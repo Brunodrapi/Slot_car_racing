@@ -1,0 +1,24 @@
+<!doctype html><html><body style="margin:0;background:#223">
+<canvas id="c" width="1800" height="1000"></canvas>
+<script src="../js/tracks.js"></script><script src="../js/track.js"></script>
+<script>
+const c=document.getElementById('c'),g=c.getContext('2d');
+const cols=4, cw=1800/cols, ch=1000/3;
+TRACKS.forEach((def,i)=>{
+  const t=new Track(def);
+  const b=t.bounds, w=b.maxX-b.minX, h=b.maxY-b.minY;
+  const sc=Math.min((cw-40)/w,(ch-60)/h);
+  const ox=(i%cols)*cw+20+((cw-40)-w*sc)/2, oy=Math.floor(i/cols)*ch+40+((ch-60)-h*sc)/2;
+  g.save(); g.translate(ox,oy); g.scale(sc,sc); g.translate(-b.minX,-b.minY);
+  g.lineCap='round'; g.lineJoin='round';
+  g.beginPath(); for(let j=0;j<t.n;j+=3){ if(j===0) g.moveTo(t.xs[j],t.ys[j]); else g.lineTo(t.xs[j],t.ys[j]); } g.closePath();
+  g.strokeStyle='#666'; g.lineWidth=t.width; g.stroke();
+  // corners
+  for(const cn of t.corners){ g.beginPath(); for(let j=cn.from;j<=cn.to;j++){ const k=j%t.n; if(j===cn.from) g.moveTo(t.xs[k],t.ys[k]); else g.lineTo(t.xs[k],t.ys[k]); } g.strokeStyle=cn.sign>0?'#e44':'#4ae'; g.lineWidth=t.width*0.4; g.stroke(); }
+  // start
+  const p=t.pos(0,0); g.fillStyle='#fff'; g.beginPath(); g.arc(p.x,p.y,t.width*0.5,0,7); g.fill();
+  const p2=t.pos(40,0); g.fillStyle='#ff0'; g.beginPath(); g.arc(p2.x,p2.y,t.width*0.35,0,7); g.fill();
+  g.restore();
+  g.fillStyle='#fff'; g.font='18px sans-serif'; g.fillText(def.name+'  L='+Math.round(t.length)+' corners='+t.corners.length, (i%cols)*cw+20, Math.floor(i/cols)*ch+28);
+});
+</script></body></html>
