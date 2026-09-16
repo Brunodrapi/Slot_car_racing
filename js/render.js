@@ -116,7 +116,7 @@ class Renderer {
     const lead = Math.min(45, p.v * 0.45) / (p.cls.zoom || 1);
     const tx = pos.x + Math.cos(h) * lead, ty = pos.y + Math.sin(h) * lead;
     const base = Math.min(this.w / 150, this.h / 110);
-    const zoomTarget = clamp(base, 2.6, 9) * (p.cls.zoom || 1) * (1 - 0.25 * Math.min(1, p.v / p.cls.vmax));
+    const zoomTarget = clamp(base, 2.6, 11) * (p.cls.zoom || 1) * (1 - 0.25 * Math.min(1, p.v / p.cls.vmax));
     const k = Math.min(1, dt * 4);
     if (this.cam.init) {
       this.cam.x += (tx - this.cam.x) * k;
@@ -298,7 +298,7 @@ class Renderer {
       }
     }
     // brake lights
-    if (!car.throttle && car.v > 2 && car.state === 'ok') {
+    if (car.braking && car.state === 'ok') {
       g.fillStyle = 'rgba(255,40,40,0.9)'; g.fillRect(-L / 2 - 0.15, -Wd / 2 + 0.1, 0.25, Wd - 0.2);
     }
     g.restore();

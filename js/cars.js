@@ -15,19 +15,19 @@ const CAR_CLASSES = [
     id: 'kart', name: { fr: 'Karting', en: 'Kart' }, shape: 'kart',
     desc: { fr: 'Petit, agile, pardonne beaucoup. Idéal pour apprendre.', en: 'Small, agile and forgiving. Great to learn.' },
     vmax: 32, accel: 9, brake: 14, grip: 9.5, df: 0, slide: 0.55, laneK: 8,
-    length: 2.2, width: 1.4, drivers: 8, roadScale: 0.62, zoom: 1.6,
+    length: 2.2, width: 1.4, drivers: 8, roadScale: 0.62, zoom: 2.0,
   },
   {
     id: 'touring', name: { fr: 'Tourisme', en: 'Touring' }, shape: 'sedan',
     desc: { fr: 'Berlines de course. Équilibrées et solides.', en: 'Racing sedans. Balanced and sturdy.' },
     vmax: 56, accel: 7.5, brake: 17, grip: 13.5, df: 0.0012, slide: 0.6, laneK: 6,
-    length: 4.4, width: 2.0, drivers: 10, roadScale: 0.85, zoom: 1.15,
+    length: 4.4, width: 2.0, drivers: 10, roadScale: 0.85, zoom: 1.25,
   },
   {
     id: 'rally', name: { fr: 'Rallye', en: 'Rally' }, shape: 'hatch',
     desc: { fr: 'Glisse volontiers mais se rattrape bien.', en: 'Slides easily but recovers well.' },
     vmax: 52, accel: 9.5, brake: 15, grip: 12.5, df: 0.0006, slide: 0.35, laneK: 7,
-    length: 4.2, width: 1.9, drivers: 10, roadScale: 0.8, zoom: 1.15,
+    length: 4.2, width: 1.9, drivers: 10, roadScale: 0.8, zoom: 1.25,
   },
   {
     id: 'gt', name: { fr: 'GT3', en: 'GT3' }, shape: 'gt',

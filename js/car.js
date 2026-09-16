@@ -129,12 +129,15 @@ class Car {
   update(dt, throttle, raceTime) {
     const T = this.track, c = this.cls;
     this.throttle = throttle;
+    this.offT = throttle ? 0 : (this.offT || 0) + dt;
+    this.braking = !throttle && this.offT > 0.15 && this.v > 2;
     if (this.grace > 0) this.grace -= dt;
     if (this.state === 'spin') { this._updateSpin(dt, raceTime); return; }
 
     // longitudinal
     let a;
-    if (throttle) a = c.accel * Math.max(0, 1 - Math.pow(this.v / c.vmax, 2.5));
+    const vmax = c.vmax * (this.draft ? 1.05 : 1);
+    if (throttle) a = c.accel * Math.max(0, 1 - Math.pow(this.v / vmax, 2.5)) * (this.draft ? 1.08 : 1);
     else a = -c.brake * (this.v > 1 ? 1 : this.v);
     this.v = Math.max(0, this.v + a * dt);
 
@@ -187,32 +190,33 @@ class Car {
     const limit = T.halfWidth - c.width / 2 - 0.3;
     const line = -Math.sign(kA) * Math.min(1, Math.abs(kA) * 55) * limit * 0.75;
 
+    // nearest car ahead that we are catching
     let blocker = null, bd = Infinity;
-    const range = c.length * 2.5 + this.v * 0.9;
+    const range = c.length * 3 + this.v * 1.0;
     for (const o of cars) {
       if (o === this) continue;
       const d = T.diff(this.s, o.s);
       if (d <= 0 || d > range || d >= bd) continue;
-      if (o.v > this.v + 2.5 && d > c.length * 1.5) continue; // faster car: no need to dodge
+      if (o.v > this.v + 2.5 && d > c.length * 1.5) continue; // pulling away: nothing to do
       if (Math.abs(o.lat - this.lat) < (c.width + o.cls.width) * 0.75 + 0.4) { blocker = o; bd = d; }
     }
+    // slipstream: tucked in behind someone
+    this.draft = !!blocker && bd < c.length * 3.5 && Math.abs(blocker.lat - this.lat) < c.width * 0.9;
+
     this.passTimer -= dt;
     if (blocker) {
       if (this.passSide === 0 || this.passTimer <= 0) {
+        // commit to the side with more room; when equal, prefer the inside of the corner ahead
         const roomL = limit - blocker.lat, roomR = blocker.lat + limit;
-        // prefer the inside of the corner ahead when there is room
-        const inside = -Math.sign(kA) || 1;
-        let side = roomL > roomR ? 1 : -1;
-        if (Math.abs(roomL - roomR) < 1.5) side = inside;
+        const inside = -Math.sign(kA) || (Math.random() < 0.5 ? 1 : -1);
+        let side = roomL > roomR + 1.0 ? 1 : roomR > roomL + 1.0 ? -1 : inside;
         this.passSide = side;
-        this.passTimer = 1.5 + Math.random();
+        this.passTimer = 2.5 + Math.random() * 1.5;
       }
-      const gap = (c.width + blocker.cls.width) / 2 + 0.7;
-      let want = blocker.lat + this.passSide * gap;
-      if (Math.abs(want) > limit) {
-        this.passSide = -this.passSide;
-        want = blocker.lat + this.passSide * gap;
-      }
+      // absolute lane on the chosen side, far enough from the blocker
+      const gap = (c.width + blocker.cls.width) / 2 + 0.8;
+      let want = this.passSide * limit;
+      if (Math.abs(want - blocker.lat) < gap) want = blocker.lat + this.passSide * gap;
       this.laneTarget = clamp(want, -limit, limit);
       this.blocker = blocker;
     } else {
@@ -233,7 +237,7 @@ function aiThrottle(car, cars, dt, opts) {
     const margin = (opts.marginBase + car.skill * opts.marginSpread) + car.aiNoise + (opts.rubber || 0);
     const brake = c.brake * 0.88;
     const v = car.v;
-    let allow = c.vmax;
+    let allow = c.vmax * Math.min(1, (opts.paceBase == null ? 1 : opts.paceBase + car.skill * opts.paceSpread) + (opts.rubber || 0));
     const maxD = v * v / (2 * brake) + 40;
     for (let d = 0; d < maxD; d += 3) {
       const k = Math.abs(T.curvAt(car.s + d));
@@ -247,7 +251,7 @@ function aiThrottle(car, cars, dt, opts) {
     for (const o of cars) {
       if (o === car) continue;
       const d = T.diff(car.s, o.s);
-      if (d > 0 && d < c.length * 1.3 + v * 0.18 && Math.abs(o.lat - car.lat) < (c.width + o.cls.width) * 0.6) {
+      if (d > 0 && d < c.length * 1.2 + v * 0.15 && Math.abs(o.lat - car.lat) < (c.width + o.cls.width) * 0.5 + 0.3) {
         if (o.v + 0.5 < allow) allow = Math.min(allow, o.v + 0.5);
       }
     }

@@ -2,9 +2,10 @@
 'use strict';
 
 const DIFFICULTY = {
-  easy:   { marginBase: 0.78, marginSpread: 0.10 },
-  medium: { marginBase: 0.85, marginSpread: 0.10 },
-  hard:   { marginBase: 0.90, marginSpread: 0.09 },
+  // margin: corner-speed factor (1 = physical limit); pace: top-speed factor. Both scale with driver skill.
+  easy:   { marginBase: 0.78, marginSpread: 0.10, paceBase: 0.86, paceSpread: 0.09 },
+  medium: { marginBase: 0.85, marginSpread: 0.10, paceBase: 0.91, paceSpread: 0.07 },
+  hard:   { marginBase: 0.90, marginSpread: 0.09, paceBase: 0.95, paceSpread: 0.05 },
 };
 
 const POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
@@ -68,7 +69,6 @@ class Race {
   }
 
   _step(dt, throttleInput) {
-    const T = this.track;
     if (this.state === 'countdown') {
       this.countdown -= dt;
       if (this.countdown <= 0) { this.state = 'racing'; this.events.push({ type: 'go' }); }
@@ -77,8 +77,16 @@ class Race {
       return;
     }
     if (this.state === 'finished') return;
-    this.time += dt;
+    this._simulate(dt, throttleInput);
+    if (this.state === 'finishing') {
+      this.finishTimer -= dt;
+      if (this.finishTimer <= 0 || this.cars.every(c => c.finished)) this._finish();
+    }
+  }
 
+  _simulate(dt, throttleInput) {
+    const T = this.track;
+    this.time += dt;
     // rubber-banding: slow leaders that are far ahead of the player, help stragglers a little
     const pp = this.player.progress;
     for (const car of this.cars) {
@@ -87,7 +95,7 @@ class Race {
       if (car.isPlayer) throttle = car.finished ? car.v < 15 : throttleInput;
       else {
         const gapM = car.progress - pp;
-        const rubber = car.finished ? 0 : clamp(-gapM / 4000, -0.05, 0.03);
+        const rubber = car.finished || this.player.finished ? 0 : clamp(-gapM / 4000, -0.05, 0.03);
         throttle = aiThrottle(car, this.cars, dt, { ...this.difficulty, rubber }) && !car.finished;
         if (car.finished) throttle = car.v < 15;
       }
@@ -101,16 +109,11 @@ class Race {
           car.finished = true;
           car.finishTime = this.time;
           this.events.push({ type: 'finish', car });
-          if (car.isPlayer) { this.state = 'finishing'; this.finishTimer = 6; }
+          if (car.isPlayer && this.state === 'racing') { this.state = 'finishing'; this.finishTimer = 4; }
         }
       }
     }
     if (this.mode === 'race') resolveCollisions(this.cars, T);
-
-    if (this.state === 'finishing') {
-      this.finishTimer -= dt;
-      if (this.finishTimer <= 0 || this.cars.every(c => c.finished)) this._finish();
-    }
   }
 
   standings() {
@@ -124,6 +127,10 @@ class Race {
   positionOf(car) { return this.standings().indexOf(car) + 1; }
 
   _finish() {
+    // fast-forward the rest of the field to the flag so everyone gets a real gap
+    let extra = 0;
+    while (!this.cars.every(c => c.finished) && extra < 180) { this._simulate(this.dt, false); extra += this.dt; }
+    this.events.length = 0;
     this.state = 'finished';
     const order = this.standings();
     this.results = order.map((car, i) => ({
