@@ -1,7 +1,7 @@
 // Headless simulation harness: concatenates the game scripts and runs AI-only races.
 const fs = require('fs'), vm = require('vm');
 let src = '';
-for (const f of ['tracks', 'track', 'cars', 'car', 'race']) {
+for (const f of ['util', 'tracks', 'track', 'cars', 'car', 'race']) {
   src += fs.readFileSync(`${__dirname}/../js/${f}.js`, 'utf8').replace(/if \(typeof module[^\n]*\n/g, '').replace(/'use strict';/g, '') + '\n';
 }
 src += `
@@ -9,9 +9,9 @@ const argClass = ARGS[0] || 'all', argTrack = ARGS[1] || 'all', diff = ARGS[2] |
 let totalCrash = 0;
 for (const td of TRACKS) {
   if (argTrack !== 'all' && td.id !== argTrack) continue;
-  for (const cls of CAR_CLASSES) {
+  for (const cls of CATEGORIES) {
     if (argClass !== 'all' && cls.id !== argClass) continue;
-    const race = new Race({ trackDef: td, classId: cls.id, difficulty: diff, playerLivery: 0, nCars: 8 });
+    const race = new Race({ trackDef: td, classId: cls.id, difficulty: diff, playerAI: true, playerLivery: 0, nCars: 8 });
     const t0 = Date.now();
     let thrOn = 0, thrN = 0;
     while (race.state !== 'finished' && race.time < 600) {

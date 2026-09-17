@@ -7,7 +7,7 @@ const out = process.argv[2] || '/tmp';
   page.on('console', m => { if (m.type() === 'error') console.log('[console]', m.text()); });
   await page.goto('file:///home/user/Slot_car_racing/index.html');
   await page.click('[data-action="career"]');
-  await page.click('[data-action="cup"][data-id="kart"]');
+  await page.click('[data-action="cup"][data-id="gt"]');
   const fast = async () => page.evaluate(() => {
     const r = app.race; let n = 0;
     while (r.state !== "finished" && n++ < 400000) { const thr = aiThrottle(r.player, r.cars, r.dt, { marginBase: 0.985, marginSpread: 0 }); r.update(r.dt, thr); }

@@ -13,8 +13,9 @@ const POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
 class Race {
   constructor(opts) {
     this.opts = opts;
-    this.cls = carClassById(opts.classId);
-    this.track = new Track(opts.trackDef, this.cls.roadScale || 1);
+    this.cat = categoryById(opts.classId);
+    this.cls = modelById(opts.modelId) || modelsOf(this.cat.id)[0];   // player's model
+    this.track = new Track(opts.trackDef, this.cat.roadScale || 1);
     this.mode = opts.mode || 'race';           // race | timetrial
     this.laps = opts.laps || this.track.laps;
     this.difficulty = DIFFICULTY[opts.difficulty] || DIFFICULTY.medium;
@@ -32,7 +33,8 @@ class Race {
   _buildGrid() {
     const T = this.track, c = this.cls;
     const n = this.mode === 'timetrial' ? 1 : Math.max(2, Math.min(opts_n(this.opts, c), 12));
-    const roster = this.opts.roster || makeRoster(n - 1, this.opts.playerLivery || 0);
+    const roster = this.opts.roster || makeRoster(n - 1, this.opts.playerLivery || 0, null, this.cat.id);
+    const catModels = modelsOf(this.cat.id);
     this.cars = [];
     const gap = c.length * 2.2;
     for (let i = 0; i < n; i++) {
@@ -41,7 +43,8 @@ class Race {
       const s = T.length - 8 - row * gap;
       const lat = (i % 2 === 0 ? 1 : -1) * Math.min(T.halfWidth * 0.45, c.width * 0.9);
       const ai = roster[i % roster.length];
-      const car = new Car(T, c, {
+      const model = isPlayer ? c : (modelById(ai.model) || catModels[i % catModels.length]);
+      const car = new Car(T, model, {
         name: isPlayer ? (this.opts.playerName || 'Vous') : ai.name,
         livery: LIVERIES[isPlayer ? (this.opts.playerLivery || 0) : ai.livery],
         isPlayer,
@@ -50,6 +53,7 @@ class Race {
         s, lat,
       });
       car.laneTarget = lat;
+      car.gridLat = lat;
       this.cars.push(car);
     }
     this.player = this.cars[this.cars.length - 1];
@@ -57,13 +61,17 @@ class Race {
       this.player.s = T.length - 40;
       this.player.lat = 0;
       this.player.laneTarget = 0;
+      this.player.gridLat = 0;
     }
   }
 
-  update(frameDt, throttleInput) {
+  // input: { throttle: bool, sel: -1..1 } (a bare boolean is accepted for the throttle)
+  update(frameDt, input) {
+    if (typeof input !== 'object') input = { throttle: !!input, sel: this.player.sel };
+    this.player.sel = clamp(input.sel == null ? 0 : input.sel, -1, 1);
     this.acc += Math.min(frameDt, 0.1);
     while (this.acc >= this.dt) {
-      this._step(this.dt, throttleInput);
+      this._step(this.dt, !!input.throttle);
       this.acc -= this.dt;
     }
   }
@@ -71,7 +79,11 @@ class Race {
   _step(dt, throttleInput) {
     if (this.state === 'countdown') {
       this.countdown -= dt;
-      if (this.countdown <= 0) { this.state = 'racing'; this.events.push({ type: 'go' }); }
+      if (this.countdown <= 0) {
+        this.state = 'racing';
+        this.events.push({ type: 'go' });
+        for (const car of this.cars) car.gridLat = null;
+      }
       // allow revving but no motion
       for (const car of this.cars) car.throttle = car.isPlayer ? throttleInput : this.countdown < 1.2;
       return;
@@ -90,7 +102,7 @@ class Race {
     // rubber-banding: slow leaders that are far ahead of the player, help stragglers a little
     const pp = this.player.progress;
     for (const car of this.cars) {
-      car.steer(this.cars, dt);
+      car.steer(this.cars, dt, !car.isPlayer || !!this.opts.playerAI);
       let throttle;
       if (car.isPlayer) throttle = car.finished ? car.v < 15 : throttleInput;
       else {
@@ -152,14 +164,15 @@ class Race {
 function opts_n(opts, cls) { return opts.nCars || cls.drivers; }
 
 // AI drivers with a name, livery and skill. `seed` makes the roster reproducible (championships).
-function makeRoster(count, playerLivery, seed) {
+function makeRoster(count, playerLivery, seed, catId) {
   let rnd = Math.random;
   if (seed != null) { let x = seed * 9301 + 49297; rnd = () => { x = (x * 9301 + 49297) % 233280; return x / 233280; }; }
   const names = AI_NAMES.slice(), liveries = LIVERIES.map((l, i) => i).filter(i => i !== playerLivery);
   for (let i = names.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [names[i], names[j]] = [names[j], names[i]]; }
   for (let i = liveries.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [liveries[i], liveries[j]] = [liveries[j], liveries[i]]; }
   const out = [];
-  for (let i = 0; i < count; i++) out.push({ name: names[i % names.length], livery: liveries[i % liveries.length], skill: (i / Math.max(1, count - 1)) * 0.8 + rnd() * 0.2 });
+  const models = modelsOf(catId || CATEGORIES[0].id);
+  for (let i = 0; i < count; i++) out.push({ name: names[i % names.length], livery: liveries[i % liveries.length], skill: (i / Math.max(1, count - 1)) * 0.8 + rnd() * 0.2, model: models.length ? models[Math.floor(rnd() * models.length)].id : null });
   return out;
 }
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }

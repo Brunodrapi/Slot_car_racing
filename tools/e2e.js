@@ -21,7 +21,7 @@ const W = +process.argv[3] || 1280, H = +process.argv[4] || 800;
   await page.click('[data-action="career"]');
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${out}/03-career.png` });
-  await page.click('[data-action="cup"][data-id="kart"]');
+  await page.click('[data-action="cup"][data-id="gt"]');
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${out}/04-cup.png` });
   await page.click('[data-action="startCup"]');

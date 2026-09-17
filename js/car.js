@@ -1,14 +1,12 @@
-// A car on the slot: it follows the track centreline with a lateral offset.
-// One input: throttle on/off. Everything else (line, overtaking) is automatic,
-// but physics decides whether the car stays on the road.
+// A car on the slot: it follows one of the track's three lines (inside / racing / outside),
+// selected with `sel` in [-1, 1]. One button drives the throttle; physics decides whether
+// the car stays on the road.
 'use strict';
 
-const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
-
 class Car {
-  constructor(track, cls, opts) {
+  constructor(track, model, opts) {
     this.track = track;
-    this.cls = cls;
+    this.cls = model;               // car model (stats + drawing info)
     this.name = opts.name || 'Driver';
     this.livery = opts.livery;
     this.isPlayer = !!opts.isPlayer;
@@ -25,12 +23,16 @@ class Car {
     this.spinT = 0;
     this.spinAngle = 0;
     this.spinSide = 1;
-    this.grace = 0;       // seconds of invulnerability after a spin
+    this.grace = 0;
     this.crashes = 0;
 
+    this.sel = 0;         // line selection: -1 inside, 0 racing, +1 outside
     this.laneTarget = 0;
+    this.gridLat = null;  // fixed lateral position until the start
     this.passSide = 0;
     this.passTimer = 0;
+    this.blocker = null;
+    this.draft = false;
 
     this.started = false;
     this.lap = 0;
@@ -40,6 +42,8 @@ class Car {
     this.finished = false;
     this.finishTime = null;
     this.throttle = false;
+    this.offT = 0;
+    this.braking = false;
     this.aiTimer = Math.random() * 0.15;
     this.aiNoise = 0;
     this.aiAllow = Infinity;
@@ -55,23 +59,23 @@ class Car {
     const c = this.cls;
     if (k < 1e-5) return Infinity;
     const capped = Math.sqrt(2.8 * c.grip / k);
-    if (k - c.df > 1e-6) {
-      const vc = Math.sqrt(c.grip / (k - c.df));
-      return Math.min(vc, capped);
-    }
+    if (k - c.df > 1e-6) return Math.min(Math.sqrt(c.grip / (k - c.df)), capped);
     return capped;
   }
 
   get progress() {
     return (this.lap - (this.started ? 0 : 1)) * this.track.length + this.track.wrap(this.s);
   }
-
   get pos() { return this.track.pos(this.s, this.lat); }
-
   get heading() {
     let h = this.track.headingAt(this.s) + this.yaw;
     if (this.state === 'spin') h += this.spinAngle;
     return h;
+  }
+  // demand / grip ratio on the current line (1 = limit)
+  get loadRatio() {
+    const k = Math.abs(this.track.curvAtLat(this.s, this.lat));
+    return this.v * this.v * k / this.gripAt(this.v);
   }
 
   crash() {
@@ -94,11 +98,10 @@ class Car {
     const t = Math.min(1, this.spinT / dur);
     this.spinAngle = this.spinDir * t * Math.PI * 2 * 1.5;
     this.v = Math.max(3, this.v - 22 * dt);
-    // slide along the edge then come back onto the road
-    const edge = T.halfWidth + 1.5;
-    const target = t < 0.5 ? this.spinSide * edge : this.spinSide * (T.halfWidth - this.cls.width / 2 - 0.5);
+    const hw = this.spinSide > 0 ? T.hwLeftAt(this.s) : T.hwRightAt(this.s);
+    const target = t < 0.5 ? this.spinSide * (hw + 1.5) : this.spinSide * (hw - this.cls.width / 2 - 0.5);
     this.lat += (target - this.lat) * Math.min(1, 6 * dt);
-    this._advance(this.v * dt, raceTime);
+    this._advance(this.v * dt * T.advanceFactor(this.s, this.lat), raceTime);
     if (this.spinT >= dur) {
       this.state = 'ok';
       this.spinAngle = 0;
@@ -112,15 +115,12 @@ class Car {
     const before = T.wrap(this.s);
     const after = before + ds;
     if (after >= T.length) {
-      // crossed the line
       if (this.started) {
         const lt = raceTime - this.lapStart;
         this.lapTimes.push(lt);
         if (this.bestLap == null || lt < this.bestLap) this.bestLap = lt;
         this.lap++;
-      } else {
-        this.started = true;
-      }
+      } else this.started = true;
       this.lapStart = raceTime;
     }
     this.s = T.wrap(after);
@@ -129,33 +129,31 @@ class Car {
   update(dt, throttle, raceTime) {
     const T = this.track, c = this.cls;
     this.throttle = throttle;
-    this.offT = throttle ? 0 : (this.offT || 0) + dt;
+    this.offT = throttle ? 0 : this.offT + dt;
     this.braking = !throttle && this.offT > 0.15 && this.v > 2;
     if (this.grace > 0) this.grace -= dt;
     if (this.state === 'spin') { this._updateSpin(dt, raceTime); return; }
 
     // longitudinal
-    let a;
     const vmax = c.vmax * (this.draft ? 1.05 : 1);
+    let a;
     if (throttle) a = c.accel * Math.max(0, 1 - Math.pow(this.v / vmax, 2.5)) * (this.draft ? 1.08 : 1);
     else a = -c.brake * (this.v > 1 ? 1 : this.v);
     this.v = Math.max(0, this.v + a * dt);
 
-    // lateral: cornering demand vs grip
-    const k = T.curvAt(this.s);
+    // lateral: cornering demand on our actual line vs grip
+    const k = T.curvAtLat(this.s, this.lat);
     const need = this.v * this.v * Math.abs(k);
     const grip = this.gripAt(this.v);
     const excess = need - grip;
-    const halfW = T.halfWidth;
-    const limit = halfW - c.width / 2 - 0.2;
-    const target = clamp(this.laneTarget, -limit, limit);
+    const hwL = T.hwLeftAt(this.s), hwR = T.hwRightAt(this.s);
+    const target = clamp(this.laneTarget, -(hwR - c.width / 2 - 0.2), hwL - c.width / 2 - 0.2);
 
     let auth = 1;
     if (excess > 0) {
       this.slide = Math.min(1, excess / grip);
-      // the further over the limit, the more the slide feeds itself
-      this.vl += Math.sign(k) * excess * c.slide * 3 * (1 + this.slide * 6) * dt;
-      this.v = Math.max(0, this.v - excess * 0.8 * dt); // tyre scrub
+      this.vl += Math.sign(k) * excess * c.slide * 3 * (1 + this.slide * 6) * dt;   // pushed outwards
+      this.v = Math.max(0, this.v - excess * 0.8 * dt);                              // tyre scrub
       auth = Math.max(0, 1 - this.slide * 3);
     } else {
       this.slide = Math.max(0, this.slide - 3 * dt);
@@ -165,30 +163,21 @@ class Car {
     this.vl = clamp(this.vl, -20, 20);
     this.lat += this.vl * dt;
 
-    // visual yaw: drift angle
     const yawTarget = clamp(this.vl / Math.max(6, this.v) * 1.2, -0.6, 0.6) + Math.sign(k) * this.slide * 0.35;
     this.yaw += (yawTarget - this.yaw) * Math.min(1, 10 * dt);
 
-    if (Math.abs(this.lat) > halfW) {
-      if (this.grace > 0) {
-        this.lat = clamp(this.lat, -limit, limit);
-        this.vl = 0;
-      } else {
-        this.crash();
-        return;
-      }
+    if (this.lat > hwL || this.lat < -hwR) {
+      if (this.grace > 0) { this.lat = clamp(this.lat, -(hwR - 1), hwL - 1); this.vl = 0; }
+      else { this.crash(); return; }
     }
 
-    this._advance(this.v * dt, raceTime);
+    this._advance(this.v * dt * T.advanceFactor(this.s, this.lat), raceTime);
   }
 
-  // decide where on the road we want to be (racing line + overtaking)
-  steer(cars, dt) {
+  // where we want to be laterally: our selected line, plus AI overtaking decisions
+  steer(cars, dt, ai) {
     const T = this.track, c = this.cls;
-    const look = Math.max(12, this.v * 0.8);
-    const kA = T.curvAhead(this.s, look);
-    const limit = T.halfWidth - c.width / 2 - 0.3;
-    const line = -Math.sign(kA) * Math.min(1, Math.abs(kA) * 55) * limit * 0.75;
+    if (this.gridLat != null) { this.laneTarget = this.gridLat; return; }
 
     // nearest car ahead that we are catching
     let blocker = null, bd = Infinity;
@@ -197,37 +186,39 @@ class Car {
       if (o === this) continue;
       const d = T.diff(this.s, o.s);
       if (d <= 0 || d > range || d >= bd) continue;
-      if (o.v > this.v + 2.5 && d > c.length * 1.5) continue; // pulling away: nothing to do
+      if (o.v > this.v + 2.5 && d > c.length * 1.5) continue;
       if (Math.abs(o.lat - this.lat) < (c.width + o.cls.width) * 0.75 + 0.4) { blocker = o; bd = d; }
     }
-    // slipstream: tucked in behind someone
+    this.blocker = blocker;
     this.draft = !!blocker && bd < c.length * 3.5 && Math.abs(blocker.lat - this.lat) < c.width * 0.9;
 
-    this.passTimer -= dt;
-    if (blocker) {
-      if (this.passSide === 0 || this.passTimer <= 0) {
-        // commit to the side with more room; when equal, prefer the inside of the corner ahead
-        const roomL = limit - blocker.lat, roomR = blocker.lat + limit;
-        const inside = -Math.sign(kA) || (Math.random() < 0.5 ? 1 : -1);
-        let side = roomL > roomR + 1.0 ? 1 : roomR > roomL + 1.0 ? -1 : inside;
-        this.passSide = side;
-        this.passTimer = 2.5 + Math.random() * 1.5;
-      }
-      // absolute lane on the chosen side, far enough from the blocker
-      const gap = (c.width + blocker.cls.width) / 2 + 0.8;
-      let want = this.passSide * limit;
-      if (Math.abs(want - blocker.lat) < gap) want = blocker.lat + this.passSide * gap;
-      this.laneTarget = clamp(want, -limit, limit);
-      this.blocker = blocker;
-    } else {
-      this.passSide = 0;
-      this.laneTarget = line;
-      this.blocker = null;
+    if (ai) {
+      this.passTimer -= dt;
+      if (blocker) {
+        if (this.passSide === 0 || this.passTimer <= 0) {
+          // pick the line (inside or outside) with the most room from the blocker and other cars
+          const cand = [-1, 1].map(sel => {
+            const lat = T.targetLat(this.s + 15, sel);
+            let room = Math.abs(lat - blocker.lat);
+            for (const o of cars) { if (o === this || o === blocker) continue; const d = T.diff(this.s, o.s); if (d > -c.length * 2 && d < 40) room = Math.min(room, Math.abs(lat - o.lat)); }
+            return { sel, room };
+          });
+          cand.sort((a, b) => b.room - a.room);
+          const best = cand[0];
+          if (best.room > c.width * 0.9) this.passSide = best.sel;
+          else this.passSide = 0;                       // no room: stay behind for now
+          this.passTimer = 2 + Math.random() * 1.5;
+        }
+        this.sel = this.passSide;
+      } else if (this.passSide !== 0 && this.passTimer <= 0) {
+        this.passSide = 0; this.sel = 0;
+      } else if (!blocker && this.passSide === 0) this.sel = 0;
     }
+    this.laneTarget = T.targetLat(this.s, this.sel);
   }
 }
 
-// AI: brake for the tightest corner reachable, with a skill-dependent margin.
+// AI: brake for the tightest corner reachable along its line, with a skill-dependent margin.
 function aiThrottle(car, cars, dt, opts) {
   const c = car.cls, T = car.track;
   car.aiTimer -= dt;
@@ -240,7 +231,8 @@ function aiThrottle(car, cars, dt, opts) {
     let allow = c.vmax * Math.min(1, (opts.paceBase == null ? 1 : opts.paceBase + car.skill * opts.paceSpread) + (opts.rubber || 0));
     const maxD = v * v / (2 * brake) + 40;
     for (let d = 0; d < maxD; d += 3) {
-      const k = Math.abs(T.curvAt(car.s + d));
+      const lat = d < 6 ? car.lat : T.targetLat(car.s + d, car.sel);
+      const k = Math.abs(T.curvAtLat(car.s + d, lat));
       if (k < 1e-4) continue;
       const vc = car.cornerSpeed(k) * margin;
       if (vc >= c.vmax) continue;
@@ -267,39 +259,36 @@ function resolveCollisions(cars, track) {
     const a = cars[i];
     for (let j = i + 1; j < n; j++) {
       const b = cars[j];
-      const d = track.diff(a.s, b.s); // b relative to a
+      const d = track.diff(a.s, b.s);
       const lenSum = (a.cls.length + b.cls.length) / 2;
       if (Math.abs(d) >= lenSum) continue;
       const dl = b.lat - a.lat;
       const wSum = (a.cls.width + b.cls.width) / 2;
       if (Math.abs(dl) >= wSum) continue;
-      // decide whether it's a nose-to-tail or side contact
       const longOverlap = lenSum - Math.abs(d);
       const latOverlap = wSum - Math.abs(dl);
       if (longOverlap < latOverlap * 2.2) {
-        // rear-ends: rear car slows, front gets a shove
         const rear = d > 0 ? a : b, front = d > 0 ? b : a;
         if (rear.v > front.v) {
           const dv = rear.v - front.v;
           front.v += dv * 0.35;
           rear.v = front.v - dv * 0.1;
-          const push = d > 0 ? -1 : 1;
-          const half = longOverlap / 2;
+          const push = d > 0 ? -1 : 1, half = longOverlap / 2;
           a.s = track.wrap(a.s + push * half);
           b.s = track.wrap(b.s - push * half);
         }
       } else {
         const dir = dl >= 0 ? 1 : -1;
-        const limit = track.halfWidth - 0.3;
-        a.lat = clamp(a.lat - dir * latOverlap / 2, -limit, limit);
-        b.lat = clamp(b.lat + dir * latOverlap / 2, -limit, limit);
+        const hwLa = track.hwLeftAt(a.s) - 0.3, hwRa = track.hwRightAt(a.s) - 0.3;
+        const hwLb = track.hwLeftAt(b.s) - 0.3, hwRb = track.hwRightAt(b.s) - 0.3;
+        a.lat = clamp(a.lat - dir * latOverlap / 2, -hwRa, hwLa);
+        b.lat = clamp(b.lat + dir * latOverlap / 2, -hwRb, hwLb);
         a.vl -= dir * 1.5;
         b.vl += dir * 1.5;
-        // slight speed loss for both
         a.v *= 0.995; b.v *= 0.995;
       }
     }
   }
 }
 
-if (typeof module !== 'undefined') module.exports = { Car, aiThrottle, resolveCollisions, clamp };
+if (typeof module !== 'undefined') module.exports = { Car, aiThrottle, resolveCollisions };

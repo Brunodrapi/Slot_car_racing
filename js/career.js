@@ -2,25 +2,22 @@
 'use strict';
 
 const CUPS = [
-  { id: 'kart', classId: 'kart', name: { fr: 'Coupe Karting', en: 'Kart Cup' }, tracks: ['zandvoort', 'redbullring', 'monaco'] },
-  { id: 'touring', classId: 'touring', name: { fr: 'Trophée Tourisme', en: 'Touring Trophy' }, tracks: ['zandvoort', 'interlagos', 'nurburgring', 'silverstone'] },
-  { id: 'rally', classId: 'rally', name: { fr: 'Rallye Circuit', en: 'Rally Sprint Series' }, tracks: ['laguna', 'bathurst', 'monaco'] },
-  { id: 'gt', classId: 'gt', name: { fr: 'Championnat GT3', en: 'GT3 Championship' }, tracks: ['spa', 'laguna', 'redbullring', 'silverstone', 'suzuka'] },
-  { id: 'classic', classId: 'classic', name: { fr: 'Grands Prix Classiques', en: 'Classic Grands Prix' }, tracks: ['monaco', 'monza', 'nurburgring', 'spa'] },
-  { id: 'endurance', classId: 'proto', name: { fr: 'Série Endurance', en: 'Endurance Series' }, tracks: ['lemans', 'bathurst', 'spa', 'suzuka', 'interlagos'] },
-  { id: 'muscle', classId: 'muscle', name: { fr: 'Muscle Cup', en: 'Muscle Cup' }, tracks: ['laguna', 'bathurst', 'interlagos', 'monza'] },
-  { id: 'formula', classId: 'formula', name: { fr: 'Championnat du Monde de Formule', en: 'Formula World Championship' }, tracks: ['monza', 'silverstone', 'monaco', 'spa', 'suzuka', 'interlagos', 'redbullring', 'zandvoort', 'nurburgring'] },
+  { id: 'gt', classId: 'gt', name: { fr: 'GT Legends Cup', en: 'GT Legends Cup' }, tracks: ['zandvoort', 'laguna', 'redbullring', 'silverstone', 'spa'] },
+  { id: 'proto', classId: 'protoclassic', name: { fr: 'Classiques d’Endurance', en: 'Endurance Classics' }, tracks: ['lemans', 'bathurst', 'interlagos', 'suzuka', 'spa'] },
+  { id: 'f1classic', classId: 'f1classic', name: { fr: 'Grands Prix Classiques', en: 'Classic Grands Prix' }, tracks: ['monaco', 'zandvoort', 'nurburgring', 'monza', 'silverstone', 'spa'] },
+  { id: 'f1modern', classId: 'f1modern', name: { fr: 'Championnat du Monde de Formule', en: 'Formula World Championship' }, tracks: ['monza', 'silverstone', 'monaco', 'spa', 'suzuka', 'interlagos', 'redbullring', 'zandvoort', 'nurburgring'] },
 ];
 
-// number of laps for a class on a track: keeps races around 3-4 minutes
-function lapsFor(trackDef, cls) {
-  return clamp(Math.round(trackDef.laps * cls.vmax / 80), 3, 8);
+// number of laps for a category on a track: keeps races around 3-4 minutes
+function lapsFor(trackDef, cat) {
+  const vmax = cat.base ? cat.base.vmax : cat.vmax;
+  return clamp(Math.round((trackDef.laps || 3) * vmax / 80), 3, 8);
 }
 
-const SAVE_KEY = 'slotracer.save.v1';
+const SAVE_KEY = 'slotracer.save.v2';
 
 function defaultSave() {
-  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', cups: {}, bestLaps: {}, tutorialSeen: false, racesDone: 0 };
+  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, ctrl: 'auto', cups: {}, bestLaps: {}, tutorialSeen: false, racesDone: 0 };
 }
 
 function loadSave() {

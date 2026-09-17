@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Slot Racer — Éditeur de circuits</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { overflow: hidden; }
+    #ed { position: fixed; inset: 0; display: grid; grid-template-columns: 300px 1fr; }
+    #panel { background: #141826; border-right: 1px solid rgba(255,255,255,0.08); padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+    #panel h2 { font-size: 20px; }
+    #panel h3 { margin: 6px 0 2px; }
+    #panel label { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    #panel input[type="text"], #panel input[type="number"], #panel select { font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: var(--card); color: var(--text); width: 150px; }
+    #panel input[type="file"] { width: 170px; font-size: 12px; }
+    #panel button { padding: 8px 12px; font-size: 14px; }
+    .tools { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tools button.sel { outline: 2px solid var(--accent); }
+    .line-racing { color: #fff; } .line-inside { color: #50c8ff; } .line-outside { color: #ffc83c; }
+    #cv { display: block; width: 100%; height: 100%; background: #2b3a22; cursor: crosshair; touch-action: none; }
+    .help { color: var(--muted); font-size: 12px; line-height: 1.45; }
+    #status { color: var(--accent2); font-size: 12px; min-height: 16px; }
+    .row2 { display: flex; gap: 6px; flex-wrap: wrap; }
+    @media (max-width: 800px) { #ed { grid-template-columns: 1fr; grid-template-rows: auto 1fr; } #panel { max-height: 45vh; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); } }
+  </style>
+</head>
+<body>
+  <div id="ed">
+    <div id="panel">
+      <div class="row2"><a href="index.html"><button>← Jeu</button></a><h2 style="margin:0">Éditeur de circuits</h2></div>
+      <div id="status"></div>
+      <h3>Circuit</h3>
+      <label>Sauvegardés <select id="sel-track"><option value="">— nouveau —</option></select></label>
+      <div class="row2"><button id="btn-new">Nouveau</button><button id="btn-delete" class="danger">Supprimer</button></div>
+      <label>Nom <input type="text" id="inp-name" value="Mon circuit"></label>
+      <label>Drapeau <input type="text" id="inp-flag" value="🏁" maxlength="4"></label>
+      <label>Longueur du tour (m) <input type="number" id="inp-length" value="3000" min="300" step="50"></label>
+      <label>Tours (référence) <input type="number" id="inp-laps" value="3" min="1" max="20"></label>
+      <label>Dessiner la route <input type="checkbox" id="chk-road" checked></label>
+      <h3>Image de fond</h3>
+      <input type="file" id="inp-image" accept="image/*">
+      <div class="help">Plan de circuit, vue satellite ou image de piste Ultimate Racing 2D (capture ou ground.png). Décoche « dessiner la route » si l’image contient déjà l’asphalte.</div>
+      <h3>Trajectoires</h3>
+      <div class="tools">
+        <button id="t-racing" class="line-racing sel">Idéale</button>
+        <button id="t-inside" class="line-inside">Intérieure</button>
+        <button id="t-outside" class="line-outside">Extérieure</button>
+      </div>
+      <div class="help">Clic : ajouter un point à la fin de la ligne active. Glisser : déplacer. Clic droit : supprimer. Maj+clic près d’un segment : insérer. Molette : zoom. Bouton du milieu ou Espace+glisser : déplacer la vue. Ctrl+Z : annuler.</div>
+      <div class="tools"><button id="btn-start">Placer le départ</button><button id="btn-reverse">Inverser le sens</button><button id="btn-clear">Vider la ligne</button></div>
+      <div class="tools"><button id="btn-derive">Dériver INT/EXT de l’idéale</button></div>
+      <div class="help">Le départ se pose sur un point de la ligne idéale. La route est calculée autour des trois lignes (largeur variable).</div>
+      <h3>Enregistrer</h3>
+      <div class="row2"><button id="btn-save" class="primary">Sauvegarder</button><button id="btn-test">Tester dans le jeu</button></div>
+      <div class="row2"><button id="btn-export">Exporter JSON</button><label><input type="file" id="inp-import" accept="application/json" style="display:none"><button id="btn-import">Importer JSON</button></label></div>
+      <div class="help" id="info"></div>
+    </div>
+    <canvas id="cv"></canvas>
+  </div>
+  <script src="js/util.js"></script>
+  <script src="js/track.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/editor.js"></script>
+</body>
+</html>

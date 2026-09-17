@@ -108,3 +108,16 @@ button.link { background: none; border: none; color: var(--muted); text-decorati
   .grid.classes { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
   .grid.tracks { grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)); }
 }
+
+/* v2 additions */
+.grid.models { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.grid.models.small { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+.grid.models .card img { max-width: 120px; aspect-ratio: 20/9; }
+.grid.models.small .card img { max-width: 90px; }
+.card .stats + .stats { margin-top: 3px; }
+.card .stats:nth-of-type(2) i { background: #ffd23f; }
+.card .stats:nth-of-type(3) i { background: #5ac8ff; }
+h3 .link { margin-left: 8px; text-transform: none; letter-spacing: 0; font-size: 13px; }
+.card .link { margin-top: 4px; }
+.menu .row { justify-content: center; flex-wrap: wrap; }
+.form input[type="file"] { min-width: 0; max-width: 220px; }

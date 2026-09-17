@@ -1,5 +1,8 @@
-// Canvas renderer: world (track, cars, effects) + HUD.
+// Canvas renderer: world (background image or grass, road with variable width, the three
+// driving lines, cars, effects) + HUD (position, times, speed/grip, line slider, minimap).
 'use strict';
+
+const LINE_COLORS = { inside: 'rgba(80,200,255,0.55)', racing: 'rgba(255,255,255,0.5)', outside: 'rgba(255,200,60,0.55)' };
 
 class Renderer {
   constructor(canvas) {
@@ -12,8 +15,9 @@ class Renderer {
     this.particles = [];
     this.cam = { x: 0, y: 0, zoom: 6 };
     this.grass = this._makeGrass();
-    this.minimap = null;
     this.shake = 0;
+    this.touch = false;
+    this.showLines = true;
     this.resize();
   }
 
@@ -24,6 +28,18 @@ class Renderer {
     this.canvas.height = Math.round(h * this.dpr);
     this.canvas.style.width = w + 'px';
     this.canvas.style.height = h + 'px';
+    this._layoutHud();
+  }
+
+  _layoutHud() {
+    const W = this.w, H = this.h, mobile = W < 700;
+    const pad = 14;
+    const sh = mobile ? 58 : 70, sw = mobile ? 170 : 240;
+    // vertical line slider, left side, above the speed panel
+    const len = Math.min(H * 0.36, 300);
+    this.slider = { x: pad + 22, y: H - pad - sh - 22 - len, len, w: 30 };
+    this.speedPanel = { x: pad, y: H - pad - sh, w: sw, h: sh };
+    this.mobile = mobile;
   }
 
   _makeGrass() {
@@ -34,8 +50,7 @@ class Renderer {
     g.fillRect(0, 0, 128, 128);
     for (let i = 0; i < 260; i++) {
       g.fillStyle = Math.random() < 0.5 ? 'rgba(70,125,45,0.5)' : 'rgba(120,175,80,0.35)';
-      const x = Math.random() * 128, y = Math.random() * 128;
-      g.fillRect(x, y, 2 + Math.random() * 4, 2 + Math.random() * 4);
+      g.fillRect(Math.random() * 128, Math.random() * 128, 2 + Math.random() * 4, 2 + Math.random() * 4);
     }
     return c;
   }
@@ -44,44 +59,65 @@ class Renderer {
     this.track = track;
     this.skids = [];
     this.particles = [];
-    const N = track.n, xs = track.xs, ys = track.ys;
+    const N = track.n, xs = track.xs, ys = track.ys, nx = track.nx, ny = track.ny;
     const STEP = 3;
+    const edgePt = (i, side) => {
+      const k = ((i % N) + N) % N, hw = side > 0 ? track.hwL[k] : track.hwR[k];
+      return [xs[k] + nx[k] * hw * side, ys[k] + ny[k] * hw * side];
+    };
     const center = new Path2D();
     for (let i = 0; i < N; i += STEP) { if (i === 0) center.moveTo(xs[i], ys[i]); else center.lineTo(xs[i], ys[i]); }
     center.closePath();
+    // road polygon: left edge forward, right edge back
+    const road = new Path2D(), left = new Path2D(), right = new Path2D();
+    for (let i = 0; i < N; i += STEP) { const p = edgePt(i, 1); if (i === 0) { road.moveTo(p[0], p[1]); left.moveTo(p[0], p[1]); } else { road.lineTo(p[0], p[1]); left.lineTo(p[0], p[1]); } }
+    left.closePath();
+    for (let i = N - 1; i >= 0; i -= STEP) { const p = edgePt(i, -1); road.lineTo(p[0], p[1]); if (i === N - 1) right.moveTo(p[0], p[1]); else right.lineTo(p[0], p[1]); }
+    road.closePath(); right.closePath();
 
     const corners = track.corners.map(cn => {
-      const p = new Path2D(), left = new Path2D(), right = new Path2D();
-      const hw = track.halfWidth;
+      const l = new Path2D(), r = new Path2D(), gravel = new Path2D();
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
       for (let i = cn.from; i <= cn.to; i += 2) {
-        const k = i % N;
-        const x = xs[k], y = ys[k], nx = track.nx[k], ny = track.ny[k];
-        if (i === cn.from) { p.moveTo(x, y); left.moveTo(x + nx * hw, y + ny * hw); right.moveTo(x - nx * hw, y - ny * hw); }
-        else { p.lineTo(x, y); left.lineTo(x + nx * hw, y + ny * hw); right.lineTo(x - nx * hw, y - ny * hw); }
-        if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y;
+        const a = edgePt(i, 1), b = edgePt(i, -1);
+        if (i === cn.from) { l.moveTo(a[0], a[1]); r.moveTo(b[0], b[1]); } else { l.lineTo(a[0], a[1]); r.lineTo(b[0], b[1]); }
+        minX = Math.min(minX, a[0], b[0]); maxX = Math.max(maxX, a[0], b[0]); minY = Math.min(minY, a[1], b[1]); maxY = Math.max(maxY, a[1], b[1]);
       }
-      return { p, left, right, sign: cn.sign, bbox: { minX: minX - 30, minY: minY - 30, maxX: maxX + 30, maxY: maxY + 30 } };
+      // gravel: wider band around the corner
+      for (let i = cn.from; i <= cn.to; i += 2) { const k = ((i % N) + N) % N, p = [xs[k] + nx[k] * (track.hwL[k] + 8), ys[k] + ny[k] * (track.hwL[k] + 8)]; if (i === cn.from) gravel.moveTo(p[0], p[1]); else gravel.lineTo(p[0], p[1]); }
+      for (let i = cn.to; i >= cn.from; i -= 2) { const k = ((i % N) + N) % N; gravel.lineTo(xs[k] - nx[k] * (track.hwR[k] + 8), ys[k] - ny[k] * (track.hwR[k] + 8)); }
+      gravel.closePath();
+      return { left: l, right: r, gravel, bbox: { minX: minX - 30, minY: minY - 30, maxX: maxX + 30, maxY: maxY + 30 } };
     });
 
     const bridges = track.crossings.map(cr => {
       const p = new Path2D();
-      const from = cr.over - 16, to = cr.over + 20;
-      for (let i = from; i <= to; i += 2) {
-        const k = (i + N) % N;
-        if (i === from) p.moveTo(xs[k], ys[k]); else p.lineTo(xs[k], ys[k]);
-      }
+      for (let i = cr.over - 16; i <= cr.over + 20; i += 2) { const k = (i + N) % N; if (i === cr.over - 16) p.moveTo(xs[k], ys[k]); else p.lineTo(xs[k], ys[k]); }
       return p;
     });
 
-    this.paths = { center, corners, bridges };
+    const lines = {};
+    for (const name of LINE_NAMES) {
+      const p = new Path2D(), lat = track.lines[name];
+      for (let i = 0; i < N; i += STEP) { const x = xs[i] + nx[i] * lat[i], y = ys[i] + ny[i] * lat[i]; if (i === 0) p.moveTo(x, y); else p.lineTo(x, y); }
+      p.closePath();
+      lines[name] = p;
+    }
+
+    this.paths = { center, road, left, right, corners, bridges, lines };
+    this.bgImage = null;
+    if (track.image && track.image.src) {
+      const img = new Image();
+      img.onload = () => { this.bgImage = img; };
+      img.src = track.image.src;
+    }
     this._makeMinimap();
     this.grassPattern = this.ctx.createPattern(this.grass, 'repeat');
   }
 
   _makeMinimap() {
     const T = this.track, b = T.bounds;
-    const size = Math.min(180, Math.max(120, this.w * 0.2));
+    const size = Math.min(180, Math.max(110, this.w * 0.18));
     const c = document.createElement('canvas');
     c.width = c.height = size * this.dpr;
     const g = c.getContext('2d');
@@ -103,28 +139,20 @@ class Renderer {
     return { x: m.ox + (x - b.minX) * m.sc, y: m.oy + (y - b.minY) * m.sc };
   }
 
-  // ---------- world helpers ----------
-  worldToScreen(x, y) {
-    return { x: (x - this.cam.x) * this.cam.zoom + this.w / 2, y: (y - this.cam.y) * this.cam.zoom + this.h / 2 };
-  }
-
   updateCamera(race, dt) {
-    const p = race.player;
-    const T = race.track;
-    const pos = p.pos;
+    const p = race.player, T = race.track, pos = p.pos;
     const h = T.headingAt(p.s);
-    const lead = Math.min(45, p.v * 0.45) / (p.cls.zoom || 1);
+    const zf = p.cls.zoom || 1;
+    const lead = Math.min(45, p.v * 0.45) / zf;
     const tx = pos.x + Math.cos(h) * lead, ty = pos.y + Math.sin(h) * lead;
     const base = Math.min(this.w / 150, this.h / 110);
-    const zoomTarget = clamp(base, 2.6, 11) * (p.cls.zoom || 1) * (1 - 0.25 * Math.min(1, p.v / p.cls.vmax));
+    const zoomTarget = clamp(base, 2.6, 11) * zf * (1 - 0.25 * Math.min(1, p.v / p.cls.vmax));
     const k = Math.min(1, dt * 4);
     if (this.cam.init) {
       this.cam.x += (tx - this.cam.x) * k;
       this.cam.y += (ty - this.cam.y) * k;
       this.cam.zoom += (zoomTarget - this.cam.zoom) * Math.min(1, dt * 1.5);
-    } else {
-      this.cam.x = tx; this.cam.y = ty; this.cam.zoom = zoomTarget; this.cam.init = true;
-    }
+    } else { this.cam.x = tx; this.cam.y = ty; this.cam.zoom = zoomTarget; this.cam.init = true; }
   }
 
   addEffects(race, dt) {
@@ -137,9 +165,7 @@ class Renderer {
           const by = pos.y - Math.sin(h) * car.cls.length * 0.35 + Math.sin(h + Math.PI / 2) * w * car.cls.width * 0.4;
           this.skids.push({ x: bx, y: by, a: h, l: car.v * dt * 1.2 + 0.3, alpha: Math.min(0.7, car.slide) });
         }
-        if (Math.random() < car.slide * 0.8) {
-          this.particles.push({ x: pos.x - Math.cos(h) * car.cls.length * 0.4, y: pos.y - Math.sin(h) * car.cls.length * 0.4, vx: -side * Math.cos(h + Math.PI / 2) * 2 + (Math.random() - 0.5) * 2, vy: -side * Math.sin(h + Math.PI / 2) * 2 + (Math.random() - 0.5) * 2, r: 0.6, life: 0.7, col: '200,200,200' });
-        }
+        if (Math.random() < car.slide * 0.8) this.particles.push({ x: pos.x - Math.cos(h) * car.cls.length * 0.4, y: pos.y - Math.sin(h) * car.cls.length * 0.4, vx: -side * Math.cos(h + Math.PI / 2) * 2 + (Math.random() - 0.5) * 2, vy: -side * Math.sin(h + Math.PI / 2) * 2 + (Math.random() - 0.5) * 2, r: 0.6, life: 0.7, col: '200,200,200' });
       }
       if (car.state === 'spin' && car.spinT < 0.6) {
         for (let i = 0; i < 2; i++) this.particles.push({ x: pos.x + (Math.random() - 0.5) * 3, y: pos.y + (Math.random() - 0.5) * 3, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, r: 1.2, life: 0.9, col: '190,160,110' });
@@ -152,11 +178,9 @@ class Renderer {
 
   // ---------- main draw ----------
   draw(race, ui) {
-    const g = this.ctx, W = this.w, H = this.h;
+    const g = this.ctx, W = this.w, H = this.h, T = race.track, cam = this.cam;
     g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     g.clearRect(0, 0, W, H);
-    const T = race.track;
-    const cam = this.cam;
     let sx = 0, sy = 0;
     if (this.shake > 0) { sx = (Math.random() - 0.5) * this.shake * 8; sy = (Math.random() - 0.5) * this.shake * 8; }
 
@@ -165,33 +189,40 @@ class Renderer {
     g.scale(cam.zoom, cam.zoom);
     g.translate(-cam.x, -cam.y);
     const vis = { minX: cam.x - W / 2 / cam.zoom - 40, maxX: cam.x + W / 2 / cam.zoom + 40, minY: cam.y - H / 2 / cam.zoom - 40, maxY: cam.y + H / 2 / cam.zoom + 40 };
-
-    // grass
-    g.fillStyle = this.grassPattern;
-    g.save(); g.scale(1 / 8, 1 / 8); g.fillRect(vis.minX * 8, vis.minY * 8, (vis.maxX - vis.minX) * 8, (vis.maxY - vis.minY) * 8); g.restore();
-
-    g.lineCap = 'round'; g.lineJoin = 'round';
     const inView = (b) => !(b.maxX < vis.minX || b.minX > vis.maxX || b.maxY < vis.minY || b.minY > vis.maxY);
 
-    // gravel run-off at corners
-    for (const cn of this.paths.corners) {
-      if (!inView(cn.bbox)) continue;
-      g.strokeStyle = '#c9b98a'; g.lineWidth = T.width + 16; g.stroke(cn.p);
+    // background
+    if (this.bgImage) {
+      g.fillStyle = '#3b4a2f'; g.fillRect(vis.minX, vis.minY, vis.maxX - vis.minX, vis.maxY - vis.minY);
+      const sc = T.unitScale;
+      g.imageSmoothingEnabled = true;
+      g.drawImage(this.bgImage, 0, 0, this.bgImage.naturalWidth * sc, this.bgImage.naturalHeight * sc);
+    } else {
+      g.fillStyle = this.grassPattern;
+      g.save(); g.scale(1 / 8, 1 / 8); g.fillRect(vis.minX * 8, vis.minY * 8, (vis.maxX - vis.minX) * 8, (vis.maxY - vis.minY) * 8); g.restore();
     }
-    // road
-    g.strokeStyle = '#d8d8dc'; g.lineWidth = T.width + 1.2; g.stroke(this.paths.center);
-    g.strokeStyle = '#4b4b52'; g.lineWidth = T.width; g.stroke(this.paths.center);
-    // kerbs
-    g.lineWidth = 1.3;
-    for (const cn of this.paths.corners) {
-      if (!inView(cn.bbox)) continue;
-      for (const edge of [cn.left, cn.right]) {
-        g.setLineDash([]); g.strokeStyle = '#d62828'; g.stroke(edge);
-        g.setLineDash([3, 3]); g.strokeStyle = '#f2f2f2'; g.stroke(edge);
+
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    if (T.drawRoad) {
+      for (const cn of this.paths.corners) { if (!inView(cn.bbox)) continue; g.fillStyle = '#c9b98a'; g.fill(cn.gravel); }
+      g.fillStyle = '#4b4b52'; g.fill(this.paths.road);
+      g.strokeStyle = '#d8d8dc'; g.lineWidth = 0.7; g.stroke(this.paths.left); g.stroke(this.paths.right);
+      g.lineWidth = 1.3;
+      for (const cn of this.paths.corners) {
+        if (!inView(cn.bbox)) continue;
+        for (const edge of [cn.left, cn.right]) {
+          g.setLineDash([]); g.strokeStyle = '#d62828'; g.stroke(edge);
+          g.setLineDash([3, 3]); g.strokeStyle = '#f2f2f2'; g.stroke(edge);
+        }
       }
+      g.setLineDash([]);
     }
-    g.setLineDash([]);
-    // start / finish line
+    // driving lines
+    if (this.showLines) {
+      g.lineWidth = 0.35; g.setLineDash([2.5, 2.5]);
+      for (const name of LINE_NAMES) { g.strokeStyle = LINE_COLORS[name]; g.stroke(this.paths.lines[name]); }
+      g.setLineDash([]);
+    }
     this._drawStartLine(g, T);
     // skid marks
     g.strokeStyle = 'rgba(20,20,20,1)'; g.lineWidth = 0.35;
@@ -200,16 +231,13 @@ class Renderer {
       g.beginPath(); g.moveTo(s.x, s.y); g.lineTo(s.x - Math.cos(s.a) * s.l, s.y - Math.sin(s.a) * s.l); g.stroke();
     }
     g.globalAlpha = 1;
-    // bridges (drawn over everything below, cars on the "over" part drawn later anyway)
-    for (const b of this.paths.bridges) {
+    if (T.drawRoad) for (const b of this.paths.bridges) {
       g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = T.width + 5; g.stroke(b);
       g.strokeStyle = '#2f2f36'; g.lineWidth = T.width + 2.4; g.stroke(b);
       g.strokeStyle = '#4b4b52'; g.lineWidth = T.width; g.stroke(b);
     }
-    // cars (player last)
     const order = race.cars.slice().sort((a, b) => (a.isPlayer ? 1 : 0) - (b.isPlayer ? 1 : 0));
     for (const car of order) this._drawCar(g, car);
-    // particles
     for (const p of this.particles) {
       g.fillStyle = `rgba(${p.col},${Math.max(0, p.life) * 0.6})`;
       g.beginPath(); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); g.fill();
@@ -220,91 +248,29 @@ class Renderer {
   }
 
   _drawStartLine(g, T) {
-    const i = 0, x = T.xs[i], y = T.ys[i], th = T.th[i];
+    const x = T.xs[0], y = T.ys[0], th = T.th[0];
     g.save(); g.translate(x, y); g.rotate(th);
-    const hw = T.halfWidth, n = 8, cell = (hw * 2) / n;
+    const hl = T.hwL[0], hr = T.hwR[0], n = 8, cell = (hl + hr) / n;
     for (let r = 0; r < 2; r++) for (let c = 0; c < n; c++) {
       g.fillStyle = (r + c) % 2 ? '#f5f5f5' : '#1a1a1a';
-      g.fillRect(-cell + r * cell, -hw + c * cell, cell, cell);
+      g.fillRect(-cell + r * cell, -hl + c * cell, cell, cell);
     }
     g.restore();
   }
 
   _drawCar(g, car) {
-    const c = car.cls, L = c.length, Wd = c.width, pos = car.pos, h = car.heading;
-    const body = car.livery.body, acc = car.livery.accent;
+    const c = car.cls, pos = car.pos, h = car.heading;
     g.save();
     g.translate(pos.x, pos.y);
-    // shadow
-    g.fillStyle = 'rgba(0,0,0,0.3)';
-    g.save(); g.rotate(h); g.translate(0.25, 0.35); this._roundRect(g, -L / 2, -Wd / 2, L, Wd, 0.5); g.fill(); g.restore();
     g.rotate(h);
-    const wheel = (x, y, w, l) => { g.fillStyle = '#151515'; g.fillRect(x - l / 2, y - w / 2, l, w); };
-    switch (c.shape) {
-      case 'formula':
-      case 'classic': {
-        const open = true;
-        wheel(L * 0.32, -Wd / 2 + 0.2, 0.42, 0.7); wheel(L * 0.32, Wd / 2 - 0.2, 0.42, 0.7);
-        wheel(-L * 0.32, -Wd / 2 + 0.25, 0.5, 0.8); wheel(-L * 0.32, Wd / 2 - 0.25, 0.5, 0.8);
-        g.fillStyle = body;
-        // narrow body
-        g.beginPath();
-        g.moveTo(L / 2, 0); g.lineTo(L * 0.2, -Wd * 0.22); g.lineTo(-L * 0.15, -Wd * 0.3); g.lineTo(-L / 2 + 0.3, -Wd * 0.28);
-        g.lineTo(-L / 2 + 0.3, Wd * 0.28); g.lineTo(-L * 0.15, Wd * 0.3); g.lineTo(L * 0.2, Wd * 0.22); g.closePath(); g.fill();
-        if (c.shape === 'formula') {
-          g.fillStyle = acc; g.fillRect(L / 2 - 0.5, -Wd / 2, 0.35, Wd); g.fillRect(-L / 2, -Wd / 2 + 0.1, 0.4, Wd - 0.2);
-          g.fillStyle = body; g.fillRect(-L * 0.42, -Wd * 0.12, L * 0.3, Wd * 0.24); // engine cover
-        } else {
-          g.fillStyle = acc; g.fillRect(-L * 0.05, -Wd * 0.28, L * 0.12, Wd * 0.56);
-        }
-        // helmet
-        g.fillStyle = '#f5f5f5'; g.beginPath(); g.arc(-L * 0.05, 0, 0.32, 0, Math.PI * 2); g.fill();
-        void open;
-        break;
-      }
-      case 'kart': {
-        wheel(L * 0.3, -Wd / 2 + 0.15, 0.32, 0.45); wheel(L * 0.3, Wd / 2 - 0.15, 0.32, 0.45);
-        wheel(-L * 0.35, -Wd / 2 + 0.18, 0.4, 0.5); wheel(-L * 0.35, Wd / 2 - 0.18, 0.4, 0.5);
-        g.fillStyle = body; this._roundRect(g, -L / 2 + 0.2, -Wd * 0.3, L * 0.9, Wd * 0.6, 0.3); g.fill();
-        g.fillStyle = acc; g.fillRect(L * 0.25, -Wd * 0.35, 0.3, Wd * 0.7);
-        g.fillStyle = '#f5f5f5'; g.beginPath(); g.arc(-L * 0.1, 0, 0.3, 0, Math.PI * 2); g.fill();
-        break;
-      }
-      case 'proto': {
-        g.fillStyle = body;
-        g.beginPath(); g.moveTo(L / 2, -Wd * 0.3); g.lineTo(L / 2, Wd * 0.3); g.lineTo(-L / 2, Wd / 2); g.lineTo(-L / 2, -Wd / 2); g.closePath(); g.fill();
-        g.fillStyle = '#1d2733'; this._roundRect(g, -L * 0.1, -Wd * 0.28, L * 0.35, Wd * 0.56, 0.3); g.fill();
-        g.fillStyle = acc; g.fillRect(-L / 2 + 0.15, -Wd / 2, 0.35, Wd); g.fillRect(-L * 0.35, -0.12, L * 0.3, 0.24);
-        break;
-      }
-      case 'muscle':
-      case 'sedan':
-      case 'hatch':
-      case 'gt':
-      default: {
-        g.fillStyle = body; this._roundRect(g, -L / 2, -Wd / 2, L, Wd, 0.45); g.fill();
-        // windows
-        g.fillStyle = '#1d2733';
-        const fw = c.shape === 'hatch' ? 0.28 : 0.22;
-        this._roundRect(g, L * 0.05, -Wd * 0.4, L * fw, Wd * 0.8, 0.2); g.fill();
-        this._roundRect(g, -L * 0.42, -Wd * 0.4, L * 0.16, Wd * 0.8, 0.2); g.fill();
-        // roof stripe
-        g.fillStyle = acc; g.fillRect(-L * 0.25, -Wd * 0.12, L * 0.3, Wd * 0.24);
-        if (c.shape === 'gt') { g.fillRect(-L / 2, -Wd / 2, 0.3, Wd); }
-        // headlights
-        g.fillStyle = '#fff6c0'; g.fillRect(L / 2 - 0.3, -Wd / 2 + 0.15, 0.25, 0.4); g.fillRect(L / 2 - 0.3, Wd / 2 - 0.55, 0.25, 0.4);
-        g.fillStyle = '#ff3333'; g.fillRect(-L / 2 + 0.05, -Wd / 2 + 0.15, 0.2, 0.4); g.fillRect(-L / 2 + 0.05, Wd / 2 - 0.55, 0.2, 0.4);
-        break;
-      }
-    }
-    // brake lights
-    if (car.braking && car.state === 'ok') {
-      g.fillStyle = 'rgba(255,40,40,0.9)'; g.fillRect(-L / 2 - 0.15, -Wd / 2 + 0.1, 0.25, Wd - 0.2);
-    }
+    g.fillStyle = 'rgba(0,0,0,0.3)';
+    g.save(); g.translate(0.25, 0.35); g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width); g.restore();
+    drawCarModel(g, c, car.livery, { number: car.number });
+    if (car.braking && car.state === 'ok') { g.fillStyle = 'rgba(255,40,40,0.9)'; g.fillRect(-c.length / 2 - 0.15, -c.width / 2 + 0.1, 0.25, c.width - 0.2); }
     g.restore();
     if (car.isPlayer) {
       g.strokeStyle = 'rgba(255,255,255,0.55)'; g.lineWidth = 0.25;
-      g.beginPath(); g.arc(pos.x, pos.y, Math.max(L, Wd) * 0.7, 0, Math.PI * 2); g.stroke();
+      g.beginPath(); g.arc(pos.x, pos.y, Math.max(c.length, c.width) * 0.7, 0, Math.PI * 2); g.stroke();
     }
   }
 
@@ -319,8 +285,7 @@ class Renderer {
   // ---------- HUD ----------
   _drawHUD(g, race, ui) {
     const W = this.w, H = this.h, p = race.player, t = (k, ...a) => ui.t(k, ...a);
-    const mobile = W < 700;
-    const pad = 14;
+    const mobile = this.mobile, pad = 14;
     g.textBaseline = 'top';
     const panel = (x, y, w, h) => { g.fillStyle = 'rgba(10,12,20,0.55)'; this._roundRect(g, x, y, w, h, 10); g.fill(); };
 
@@ -350,32 +315,26 @@ class Renderer {
     g.fillText(`${t('best')} ${p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---'}`, W - pad - 12, pad + (mobile ? 46 : 56));
 
     // bottom-left: speed + grip meter
-    const sw = mobile ? 170 : 240, sh = mobile ? 58 : 70;
-    const sx = pad, sy = H - pad - sh;
-    panel(sx, sy, sw, sh);
+    const sp = this.speedPanel;
+    panel(sp.x, sp.y, sp.w, sp.h);
     const kmh = Math.round(p.v * 3.6);
     g.textAlign = 'left'; g.fillStyle = '#fff'; g.font = `bold ${mobile ? 24 : 30}px ui-monospace, monospace`;
-    g.fillText(`${kmh}`, sx + 12, sy + 6);
+    g.fillText(`${kmh}`, sp.x + 12, sp.y + 6);
     g.font = `${mobile ? 11 : 13}px system-ui, sans-serif`; g.fillStyle = '#cfd3dc';
-    g.fillText('km/h', sx + 12 + (mobile ? 50 : 66), sy + (mobile ? 16 : 20));
-    // grip bar: shows how close to the limit
-    const k = Math.abs(race.track.curvAt(p.s));
-    const ratio = p.v * p.v * k / p.gripAt(p.v);
-    const barX = sx + 12, barY = sy + sh - 18, barW = sw - 24, barH = 8;
+    g.fillText('km/h', sp.x + 12 + (mobile ? 50 : 66), sp.y + (mobile ? 16 : 20));
+    const ratio = p.loadRatio;
+    const barX = sp.x + 12, barY = sp.y + sp.h - 18, barW = sp.w - 24, barH = 8;
     g.fillStyle = 'rgba(255,255,255,0.15)'; this._roundRect(g, barX, barY, barW, barH, 4); g.fill();
     const f = Math.min(1, ratio / 1.3);
-    const col = ratio < 0.85 ? '#5be07a' : ratio < 1 ? '#ffd23f' : '#ff4b4b';
-    g.fillStyle = col; this._roundRect(g, barX, barY, Math.max(4, barW * f), barH, 4); g.fill();
+    g.fillStyle = ratio < 0.85 ? '#5be07a' : ratio < 1 ? '#ffd23f' : '#ff4b4b'; this._roundRect(g, barX, barY, Math.max(4, barW * f), barH, 4); g.fill();
     g.fillStyle = 'rgba(255,255,255,0.6)'; g.fillRect(barX + barW / 1.3 - 1, barY - 3, 2, barH + 6);
     g.font = `${mobile ? 10 : 11}px system-ui, sans-serif`; g.fillStyle = '#cfd3dc'; g.textAlign = 'right';
-    g.fillText(t('grip'), sx + sw - 12, sy + sh - 34);
+    g.fillText(t('grip'), sp.x + sp.w - 12, sp.y + sp.h - 34);
+    if (p.throttle) { g.fillStyle = 'rgba(91,224,122,0.9)'; g.beginPath(); g.arc(sp.x + sp.w - 20, sp.y + 18, 7, 0, Math.PI * 2); g.fill(); }
+    else { g.strokeStyle = 'rgba(255,255,255,0.5)'; g.lineWidth = 2; g.beginPath(); g.arc(sp.x + sp.w - 20, sp.y + 18, 7, 0, Math.PI * 2); g.stroke(); }
 
-    // throttle indicator
-    if (p.throttle) {
-      g.fillStyle = 'rgba(91,224,122,0.9)'; g.beginPath(); g.arc(sx + sw - 20, sy + 18, 7, 0, Math.PI * 2); g.fill();
-    } else {
-      g.strokeStyle = 'rgba(255,255,255,0.5)'; g.lineWidth = 2; g.beginPath(); g.arc(sx + sw - 20, sy + 18, 7, 0, Math.PI * 2); g.stroke();
-    }
+    // line slider (left thumb)
+    this._drawSlider(g, p, t);
 
     // minimap bottom-right
     if (this.mm) {
@@ -390,11 +349,10 @@ class Renderer {
       }
     }
 
-    // standings strip (desktop) — top centre
+    // standings strip (desktop)
     if (!mobile && race.mode !== 'timetrial') {
       const st = race.standings().slice(0, 6);
-      const rowH = 20, bw = 190;
-      const bx = pad, by = pad + boxH + 10;
+      const rowH = 20, bw = 190, bx = pad, by = pad + boxH + 10;
       panel(bx, by, bw, st.length * rowH + 10);
       g.font = '13px system-ui, sans-serif'; g.textAlign = 'left';
       st.forEach((car, i) => {
@@ -412,33 +370,50 @@ class Renderer {
       const lights = c > 3.2 ? 0 : c > 2.4 ? 1 : c > 1.6 ? 2 : c > 0.8 ? 3 : 4;
       const cx = W / 2, cy = H * 0.22;
       panel(cx - 120, cy - 30, 240, 60);
-      for (let i = 0; i < 4; i++) {
-        g.fillStyle = i < lights ? '#ff3b3b' : 'rgba(255,255,255,0.15)';
-        g.beginPath(); g.arc(cx - 75 + i * 50, cy, 16, 0, Math.PI * 2); g.fill();
-      }
+      for (let i = 0; i < 4; i++) { g.fillStyle = i < lights ? '#ff3b3b' : 'rgba(255,255,255,0.15)'; g.beginPath(); g.arc(cx - 75 + i * 50, cy, 16, 0, Math.PI * 2); g.fill(); }
       g.textAlign = 'center'; g.fillStyle = '#fff'; g.font = 'bold 18px system-ui, sans-serif';
-      g.fillText(t('holdToGo'), cx, cy + 40);
+      g.fillText(this.touch ? t('holdToGoTouch') : t('holdToGo'), cx, cy + 40);
+      g.font = '14px system-ui, sans-serif'; g.fillStyle = '#cfd3dc';
+      g.fillText(this.touch ? t('lineHintTouch') : t('lineHintKeys'), cx, cy + 66);
     } else if (race.time < 1.2 && race.state === 'racing') {
       g.textAlign = 'center'; g.fillStyle = '#5be07a'; g.font = 'bold 64px system-ui, sans-serif';
       g.globalAlpha = 1 - race.time / 1.2; g.fillText('GO!', W / 2, H * 0.18); g.globalAlpha = 1;
     }
-
-    // spin warning
-    if (p.state === 'spin') {
-      g.textAlign = 'center'; g.fillStyle = '#ff6b6b'; g.font = 'bold 28px system-ui, sans-serif';
-      g.fillText(t('offTrack'), W / 2, H * 0.3);
-    }
-    // finished banner
-    if (p.finished && race.state !== 'finished') {
-      g.textAlign = 'center'; g.fillStyle = '#ffd400'; g.font = 'bold 40px system-ui, sans-serif';
-      g.fillText(`${t('finished')} — P${race.positionOf(p)}`, W / 2, H * 0.3);
-    }
-    // lap flash
-    if (ui.flash && ui.flash.until > performance.now()) {
-      g.textAlign = 'center'; g.fillStyle = ui.flash.color || '#fff'; g.font = 'bold 26px system-ui, sans-serif';
-      g.fillText(ui.flash.text, W / 2, H * 0.12);
-    }
+    if (p.state === 'spin') { g.textAlign = 'center'; g.fillStyle = '#ff6b6b'; g.font = 'bold 28px system-ui, sans-serif'; g.fillText(t('offTrack'), W / 2, H * 0.3); }
+    if (p.finished && race.state !== 'finished') { g.textAlign = 'center'; g.fillStyle = '#ffd400'; g.font = 'bold 40px system-ui, sans-serif'; g.fillText(`${t('finished')} — P${race.positionOf(p)}`, W / 2, H * 0.3); }
+    if (ui.flash && ui.flash.until > performance.now()) { g.textAlign = 'center'; g.fillStyle = ui.flash.color || '#fff'; g.font = 'bold 26px system-ui, sans-serif'; g.fillText(ui.flash.text, W / 2, H * 0.12); }
     g.textBaseline = 'alphabetic';
+  }
+
+  _drawSlider(g, p, t) {
+    const s = this.slider;
+    g.fillStyle = 'rgba(10,12,20,0.55)'; this._roundRect(g, s.x - s.w / 2 - 8, s.y - 26, s.w + 16, s.len + 52, 12); g.fill();
+    // track
+    g.fillStyle = 'rgba(255,255,255,0.18)'; this._roundRect(g, s.x - 4, s.y, 8, s.len, 4); g.fill();
+    const stops = [{ v: 1, c: LINE_COLORS.outside, l: t('lineOut') }, { v: 0, c: LINE_COLORS.racing, l: t('lineRace') }, { v: -1, c: LINE_COLORS.inside, l: t('lineIn') }];
+    g.font = `bold ${this.mobile ? 10 : 11}px system-ui, sans-serif`; g.textAlign = 'left'; g.textBaseline = 'middle';
+    for (const st of stops) {
+      const y = s.y + s.len / 2 - st.v * s.len / 2;
+      g.fillStyle = st.c; g.beginPath(); g.arc(s.x, y, 7, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#e8e8ec'; g.fillText(st.l, s.x + 14, y);
+    }
+    // handle
+    const hy = s.y + s.len / 2 - p.sel * s.len / 2;
+    g.fillStyle = '#ffd400'; g.beginPath(); g.arc(s.x, hy, 13, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#1a1400'; g.lineWidth = 2; g.stroke();
+    g.textBaseline = 'top';
+  }
+
+  // maps a screen point in the slider zone to a selection value; null if outside the zone
+  sliderValueAt(x, y, touchZone) {
+    const s = this.slider;
+    const inZoneX = touchZone ? x < this.w * 0.42 : Math.abs(x - s.x) < 40;
+    if (!inZoneX) return null;
+    if (!touchZone && (y < s.y - 30 || y > s.y + s.len + 30)) return null;
+    let v = (s.y + s.len / 2 - y) / (s.len / 2);
+    v = clamp(v, -1, 1);
+    if (Math.abs(v) < 0.18) v = 0; else if (Math.abs(v) > 0.82) v = Math.sign(v);
+    return v;
   }
 }
 
