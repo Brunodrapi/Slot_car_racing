@@ -27,9 +27,12 @@ Fonctionne sur ordinateur (clavier / souris) et sur mobile (tactile, à ajouter 
 Trois trajectoires par circuit : **intérieure** (plus courte mais plus serrée, donc plus lente en
 virage), **idéale** (extérieur-intérieur-extérieur) et **extérieure** (plus longue mais plus rapide).
 La physique suit vraiment la courbe choisie : rayon et distance parcourue changent avec la ligne.
-Dépasser = changer de ligne. Physique façon Pico Rally : sous la limite rien ne bouge ; un peu au-dessus
-(jauge d'adhérence dans l'orange) la voiture glisse doucement vers l'extérieur ; nettement au-dessus les
-pneus lâchent et elle part dans l'herbe, où elle ralentit fort avant de revenir sur la piste.
+Dépasser = changer de ligne. Physique façon slot racing / Pico Rally : le guide avant reste dans la
+rainure (la ligne), l'arrière est tiré derrière. Sous la limite d'adhérence rien ne bouge ; au-dessus,
+l'arrière s'ouvre progressivement (contre-braquage visible, jauge d'adhérence dans le rouge, crissement),
+un correcteur type PID le ramène en douceur dès que l'adhérence le permet, et la voiture décroche
+seulement si l'angle de dérive devient trop grand ou si l'arrière sort de la route : elle part alors dans
+l'herbe, ralentit fort, puis revient sur la piste.
 
 ## Contenu
 

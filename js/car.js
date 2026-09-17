@@ -16,9 +16,12 @@ class Car {
     this.s = opts.s || 0;
     this.lat = opts.lat || 0;
     this.v = 0;
-    this.vl = 0;          // lateral speed (m/s)
-    this.yaw = 0;         // visual drift angle
-    this.slide = 0;       // 0..1 how far over the limit
+    this.vl = 0;          // drift angle rate (rad/s)
+    this.drift = 0;       // drift angle (rad) between body and slot direction (+ = tail out to the left)
+    this.slide = 0;       // 0..1 how far the tail is out
+    this.laneAng = 0;     // heading offset from lane changes
+    this.rx = 0; this.ry = 0;   // rear point (world), derived
+    this._initRear();
     this.state = 'ok';    // ok | grass
     this.grassT = 0;
     this.offSide = 1;
@@ -66,8 +69,18 @@ class Car {
   get progress() {
     return (this.lap - (this.started ? 0 : 1)) * this.track.length + this.track.wrap(this.s);
   }
-  get pos() { return this.track.pos(this.s, this.lat); }
-  get heading() { return this.track.headingAt(this.s) + this.yaw + this.wobble; }
+  _initRear() { this.vl = 0; this.drift = 0; this.laneAng = 0; this._placeRear(); }
+  // rear point from the pin, the slot direction and the drift angle
+  _placeRear() {
+    const P = this.pin, h = this.track.headingAt(this.s) + this.laneAng + this.drift, L = this.cls.length * 0.75;
+    this.rx = P.x - Math.cos(h) * L; this.ry = P.y - Math.sin(h) * L;
+  }
+  get pin() { return this.track.pos(this.s, this.lat); }
+  // body centre: halfway between the front pin and the rear point
+  get pos() { const P = this.pin; return { x: (P.x + this.rx) / 2, y: (P.y + this.ry) / 2 }; }
+  get heading() { return this.track.headingAt(this.s) + this.laneAng + this.drift + this.wobble; }
+  // front wheels point along the slot: counter-steer relative to the body (visual)
+  get steerAngle() { return clamp(-this.drift, -0.6, 0.6); }
   // demand / grip ratio on the current line (1 = limit)
   get loadRatio() {
     const k = Math.abs(this.track.curvAtLat(this.s, this.lat));
@@ -84,6 +97,8 @@ class Car {
     this.vl = 0;
     this.crashes++;
     this.slide = 0;
+    // the pin leaves the slot on the side the tail was swinging to
+    if (Math.abs(this.drift) > 0.3) this.offSide = Math.sign(this.drift);
   }
 
   _updateGrass(dt, raceTime) {
@@ -95,12 +110,14 @@ class Car {
     this.lat += (target - this.lat) * Math.min(1, 5 * dt);
     this.wobble = Math.sin(this.grassT * 25) * 0.12 * Math.min(1, this.v / 20);
     this._advance(this.v * dt * T.advanceFactor(this.s, this.lat), raceTime);
+    this.drift *= Math.max(0, 1 - 2 * dt);
+    this._placeRear();
     if (this.grassT > 1.1 || this.v < 8) {
       this.state = 'ok';
       this.wobble = 0;
       this.grace = 0.8;
       this.lat = this.offSide * (hw - c.width / 2 - 0.4);
-      this.yaw = 0;
+      this._initRear();
     }
   }
 
@@ -135,44 +152,49 @@ class Car {
     else a = -c.brake * (this.v > 1 ? 1 : this.v);
     this.v = Math.max(0, this.v + a * dt);
 
-    // cornering demand on our actual line vs grip
-    const k = T.curvAtLat(this.s, this.lat);
-    const grip = this.gripAt(this.v);
-    let ratio = this.v * this.v * Math.abs(k) / grip;
-    // grip cliff: once clearly over the limit the tyres let go (sliding friction < static friction)
-    if (ratio > 1.05) ratio /= 1 - 0.3 * Math.min(1, (ratio - 1.05) / 0.15);
+    // --- front pin: follows the selected line (lane changes are gentle, speed-limited) ---
     const hwL = T.hwLeftAt(this.s), hwR = T.hwRightAt(this.s);
     const target = clamp(this.laneTarget, -(hwR - c.width / 2 - 0.2), hwL - c.width / 2 - 0.2);
-
-    // lane following: proportional move toward the selected line, speed-limited, no overshoot
-    const maxLat = 1.5 + this.v * 0.12;
-    let move = clamp((target - this.lat) * 4, -maxLat, maxLat);
-
-    // over the limit: the car is pushed outwards at a rate proportional to the excess
-    let drift = 0;
-    if (ratio > 1.03) {
-      const over = ratio - 1;
-      this.slide = Math.min(1, over * 2.2);
-      drift = Math.sign(k) * over * 12 * c.slide;
-      this.v = Math.max(0, this.v - over * grip * 0.4 * dt);        // tyre scrub
-      move *= Math.max(0, 1 - this.slide * 1.5);                       // can't hold the line while sliding
-    } else {
-      this.slide = Math.max(0, this.slide - 3 * dt);
-    }
-    this.vl = move + drift;
-    this.lat += this.vl * dt;
-
-    const yawTarget = clamp(this.vl / Math.max(6, this.v) * 1.2, -0.6, 0.6) + Math.sign(k) * this.slide * 0.35;
-    this.yaw += (yawTarget - this.yaw) * Math.min(1, 10 * dt);
-
-    // past the kerb: onto the grass
-    const tol = c.width * 0.35;
-    if (this.lat > hwL + tol || this.lat < -(hwR + tol)) {
-      if (this.grace > 0) { this.lat = clamp(this.lat, -(hwR - 1), hwL - 1); }
+    const maxLat = 1.2 + this.v * 0.1;
+    const move = clamp((target - this.lat) * 3, -maxLat, maxLat);
+    this.lat += move * dt;
+    if (this.lat > hwL + c.width * 0.35 || this.lat < -(hwR + c.width * 0.35)) {
+      if (this.grace > 0) this.lat = clamp(this.lat, -(hwR - 1), hwL - 1);
       else { this.crash(); return; }
     }
-
     this._advance(this.v * dt * T.advanceFactor(this.s, this.lat), raceTime);
+
+    // heading offset from the lane change itself (the pin moves sideways while advancing)
+    this.laneAng += (Math.atan2(move, Math.max(3, this.v)) - this.laneAng) * Math.min(1, 8 * dt);
+
+    // --- tail: swings out when the lateral force beats the rear grip, PID-like return otherwise ---
+    const k = T.curvAtLat(this.s, this.lat);
+    const demand = this.v * this.v * Math.abs(k);
+    const grip = this.gripAt(this.v);
+    const over = demand / grip - 1.03;                    // >0: past the limit (3% dead band)
+    let acc;
+    if (over > 0) {
+      // tail swings to the outside of the corner (left for a right-hander): the more over, the faster
+      acc = Math.sign(k) * over * 2.4 * c.slide - this.vl * 1.5;
+    } else {
+      // grip to spare: bring the tail back, critically damped, harder with more spare grip
+      const spare = Math.min(1, -over * 2 + 0.15);
+      const kp = 14 * spare, kd = 2 * Math.sqrt(14) * Math.max(0.5, spare);
+      acc = -kp * this.drift - kd * this.vl;
+    }
+    this.vl += acc * dt;
+    this.drift += this.vl * dt;
+    // sideways sliding scrubs speed
+    if (Math.abs(this.drift) > 0.05) this.v = Math.max(0, this.v - grip * Math.sin(Math.min(1.2, Math.abs(this.drift))) * 0.35 * dt);
+    this.slide = clamp(Math.abs(this.drift) / 0.5, 0, 1);
+    this._placeRear();
+
+    // de-slot: tail too far out, or the rear off the road
+    const i = T.idx(this.s);
+    const latR = (this.rx - T.xs[i]) * T.nx[i] + (this.ry - T.ys[i]) * T.ny[i];
+    if (Math.abs(this.drift) > 0.95 || latR > hwL + 0.9 || latR < -(hwR + 0.9)) {
+      if (this.grace <= 0) { this.crash(); return; }
+    }
   }
 
   // where we want to be laterally: our selected line, plus AI overtaking decisions
@@ -284,8 +306,9 @@ function resolveCollisions(cars, track) {
         const hwLb = track.hwLeftAt(b.s) - 0.3, hwRb = track.hwRightAt(b.s) - 0.3;
         a.lat = clamp(a.lat - dir * latOverlap / 2, -hwRa, hwLa);
         b.lat = clamp(b.lat + dir * latOverlap / 2, -hwRb, hwLb);
-        a.vl -= dir * 1.5;
-        b.vl += dir * 1.5;
+        // a small tail kick, capped so a rubbing pack never builds up a slide
+        a.vl = clamp(a.vl - dir * 0.08, -0.8, 0.8);
+        b.vl = clamp(b.vl + dir * 0.08, -0.8, 0.8);
         a.v *= 0.995; b.v *= 0.995;
       }
     }

@@ -31,11 +31,16 @@ function drawCarBody(g, shape, L, W, livery, opts) {
     if (mirror) for (let i = pts.length - 1; i >= 0; i--) g.lineTo(X(pts[i][0]), -Y(pts[i][1]));
     g.closePath();
   };
-  const wheel = (x, y, w, l) => { g.fillStyle = '#141414'; g.fillRect(X(x) - l / 2, Y(y) - w / 2, l, w); };
+  const steer = opts && opts.steer ? opts.steer : 0;
+  const wheel = (x, y, w, l, turn) => {
+    g.fillStyle = '#141414';
+    if (turn && steer) { g.save(); g.translate(X(x), Y(y)); g.rotate(steer); g.fillRect(-l / 2, -w / 2, l, w); g.restore(); }
+    else g.fillRect(X(x) - l / 2, Y(y) - w / 2, l, w);
+  };
 
   if (sh.wheels === 'out') {
     const tw = Math.max(0.36, W * 0.2), tl = Math.max(0.55, L * 0.13);
-    wheel(0.3, sh.wf / 2, tw, tl); wheel(0.3, -sh.wf / 2, tw, tl);
+    wheel(0.3, sh.wf / 2, tw, tl, true); wheel(0.3, -sh.wf / 2, tw, tl, true);
     wheel(-0.32, sh.wr / 2, tw * 1.25, tl * 1.15); wheel(-0.32, -sh.wr / 2, tw * 1.25, tl * 1.15);
     // suspension arms
     g.strokeStyle = '#333'; g.lineWidth = 0.08;
@@ -44,7 +49,7 @@ function drawCarBody(g, shape, L, W, livery, opts) {
     }
   } else {
     const tw = Math.max(0.3, W * 0.14), tl = Math.max(0.55, L * 0.15);
-    wheel(0.3, 0.5, tw, tl); wheel(0.3, -0.5, tw, tl); wheel(-0.3, 0.5, tw, tl); wheel(-0.3, -0.5, tw, tl);
+    wheel(0.3, 0.5, tw, tl, true); wheel(0.3, -0.5, tw, tl, true); wheel(-0.3, 0.5, tw, tl); wheel(-0.3, -0.5, tw, tl);
   }
   // wings (under the body for the front, over for the rear)
   g.fillStyle = acc;

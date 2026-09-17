@@ -159,8 +159,8 @@ class Renderer {
   addEffects(race, dt) {
     for (const car of race.cars) {
       const pos = car.pos, h = car.heading;
-      if (car.slide > 0.12 && car.state === 'ok' && car.v > 5) {
-        const side = Math.sign(car.vl) || 1;
+      if (car.slide > 0.15 && car.state === 'ok' && car.v > 5) {
+        const side = Math.sign(car.drift) || 1;
         for (const w of [-1, 1]) {
           const bx = pos.x - Math.cos(h) * car.cls.length * 0.35 + Math.cos(h + Math.PI / 2) * w * car.cls.width * 0.4;
           const by = pos.y - Math.sin(h) * car.cls.length * 0.35 + Math.sin(h + Math.PI / 2) * w * car.cls.width * 0.4;
@@ -266,7 +266,7 @@ class Renderer {
     g.rotate(h);
     g.fillStyle = 'rgba(0,0,0,0.3)';
     g.save(); g.translate(0.25, 0.35); g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width); g.restore();
-    drawCarModel(g, c, car.livery, { number: car.number });
+    drawCarModel(g, c, car.livery, { number: car.number, steer: car.steerAngle });
     if (car.braking && car.state === 'ok') { g.fillStyle = 'rgba(255,40,40,0.9)'; g.fillRect(-c.length / 2 - 0.15, -c.width / 2 + 0.1, 0.25, c.width - 0.2); }
     g.restore();
     if (car.isPlayer) {
