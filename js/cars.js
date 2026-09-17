@@ -53,8 +53,8 @@ const CATEGORIES = [
     base: { vmax: 84, accel: 9, brake: 20, grip: 14.5, df: 0.0035, slide: 0.7, laneK: 6, length: 4.8, width: 2.0 },
     drivers: 10, roadScale: 1, zoom: 1.05,
     models: [
-      { id: 'gt40', name: 'GT40 Mk II', shape: 'gt40', mul: { vmax: 0.97, grip: 0.96, df: 0.5, brake: 0.92, slide: 1.1 }, colors: ['#2166d8', '#f4f4f4'] },
-      { id: '917k', name: '917 K', shape: 'longTail', mul: { vmax: 1.03, accel: 1.02, grip: 0.97, df: 0.7, brake: 0.95 }, colors: ['#f4f4f4', '#ff8c1a'] },
+      { id: 'gt40', name: 'GT40 Mk II', shape: 'gt40', mul: { vmax: 0.98, grip: 0.98, df: 0.7, brake: 0.95, slide: 1.1 }, colors: ['#2166d8', '#f4f4f4'] },
+      { id: '917k', name: '917 K', shape: 'longTail', mul: { vmax: 1.03, accel: 1.02, grip: 0.98, df: 0.8, brake: 0.96 }, colors: ['#f4f4f4', '#ff8c1a'] },
       { id: '962c', name: '962 C', shape: 'groupC', mul: { vmax: 1.02, grip: 1.03, df: 1.2 }, colors: ['#f4f4f4', '#e0262c'] },
       { id: 'xjr9', name: 'XJR-9', shape: 'groupC', mul: { vmax: 1.04, grip: 1.02, df: 1.15, accel: 0.99 }, colors: ['#8a3ffc', '#f4f4f4'] },
       { id: '787b', name: '787B', shape: 'groupC', mul: { vmax: 1.0, accel: 1.05, grip: 1.04, df: 1.1, brake: 1.03 }, colors: ['#ff8c1a', '#1f6b3a'] },
