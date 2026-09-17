@@ -18,6 +18,8 @@ class Renderer {
     this.shake = 0;
     this.touch = false;
     this.showLines = true;
+    this.rotate = true;      // keep the track direction pointing up the screen
+    this.camAngle = 0;
     this.resize();
   }
 
@@ -143,11 +145,23 @@ class Renderer {
     const p = race.player, T = race.track, pos = p.pos;
     const h = T.headingAt(p.s);
     const zf = p.cls.zoom || 1;
-    const lead = Math.min(30, p.v * 0.32) / zf;
+    const vf = Math.min(1, p.v / p.cls.vmax);
+    // Frame a fixed distance rather than a fixed area, so a portrait phone and a desktop window
+    // show the same thing. Track-aligned: metres visible ahead, down the screen height.
+    // Fixed north-up: metres across the shorter screen axis.
+    const metres = (this.rotate ? 75 * (1 + 0.5 * vf) : 50 * (1 + 0.35 * vf)) / zf;
+    const zoomTarget = (this.rotate ? this.h : Math.min(this.w, this.h)) / metres;
+    const lead = Math.min(36, p.v * 0.42) / zf;
     const tx = pos.x + Math.cos(h) * lead, ty = pos.y + Math.sin(h) * lead;
-    // close view: ~95 m across the screen width when stopped, ~120 m at top speed
-    const base = Math.min(this.w / 95, this.h / 70);
-    const zoomTarget = clamp(base, 4, 16) * zf * (1 - 0.2 * Math.min(1, p.v / p.cls.vmax));
+    // camera heading follows the slot direction (not the car body), so a drift never spins the view
+    const want = T.headingAt(p.s + lead * 0.6);
+    if (!this.cam.init) this.camAngle = want;
+    else {
+      let da = want - this.camAngle;
+      while (da > Math.PI) da -= 2 * Math.PI;
+      while (da < -Math.PI) da += 2 * Math.PI;
+      this.camAngle += da * Math.min(1, dt * 3.5);
+    }
     const k = Math.min(1, dt * 4);
     if (this.cam.init) {
       this.cam.x += (tx - this.cam.x) * k;
@@ -187,9 +201,12 @@ class Renderer {
 
     g.save();
     g.translate(W / 2 + sx, H / 2 + sy);
+    if (this.rotate) g.rotate(-this.camAngle - Math.PI / 2);
     g.scale(cam.zoom, cam.zoom);
     g.translate(-cam.x, -cam.y);
-    const vis = { minX: cam.x - W / 2 / cam.zoom - 40, maxX: cam.x + W / 2 / cam.zoom + 40, minY: cam.y - H / 2 / cam.zoom - 40, maxY: cam.y + H / 2 / cam.zoom + 40 };
+    // conservative square view box: valid whatever the camera rotation
+    const reach = Math.hypot(W, H) / 2 / cam.zoom + 40;
+    const vis = { minX: cam.x - reach, maxX: cam.x + reach, minY: cam.y - reach, maxY: cam.y + reach };
     const inView = (b) => !(b.maxX < vis.minX || b.minX > vis.maxX || b.maxY < vis.minY || b.minY > vis.maxY);
 
     // background
@@ -218,12 +235,7 @@ class Renderer {
       }
       g.setLineDash([]);
     }
-    // driving lines
-    if (this.showLines) {
-      g.lineWidth = 0.35; g.setLineDash([2.5, 2.5]);
-      for (const name of LINE_NAMES) { g.strokeStyle = LINE_COLORS[name]; g.stroke(this.paths.lines[name]); }
-      g.setLineDash([]);
-    }
+    if (this.showLines) this._drawGuide(g, race);
     this._drawStartLine(g, T);
     // skid marks
     g.strokeStyle = 'rgba(20,20,20,1)'; g.lineWidth = 0.35;
@@ -248,6 +260,70 @@ class Renderer {
     this._drawHUD(g, race, ui);
   }
 
+  // Trajectory guide. The ribbon ahead is coloured by the reference speed profile (green where
+  // the car can be flat out, red for a slow corner) and a transverse bar marks where braking must
+  // start at the current speed. The two lines not selected stay as faint dots.
+  _drawGuide(g, race) {
+    const T = race.track, p = race.player;
+    const ahead = 240, step = 4, vmax = p.cls.vmax;
+
+    g.setLineDash([0.5, 5]); g.lineWidth = 0.3;
+    for (const name of LINE_NAMES) {
+      if ((name === 'inside' && p.sel < -0.5) || (name === 'outside' && p.sel > 0.5) ||
+          (name === 'racing' && Math.abs(p.sel) <= 0.5)) continue;
+      g.beginPath();
+      for (let d = -20; d <= ahead; d += step) {
+        const i = T.idx(p.s + d), lat = T.lines[name][i];
+        const x = T.xs[i] + T.nx[i] * lat, y = T.ys[i] + T.ny[i] * lat;
+        d === -20 ? g.moveTo(x, y) : g.lineTo(x, y);
+      }
+      g.strokeStyle = LINE_COLORS[name]; g.stroke();
+    }
+    g.setLineDash([]);
+
+    // selected line ahead, in three colour runs by reference speed
+    const pt = (d) => { const i = T.idx(p.s + d), lat = T.targetLat(p.s + d, p.sel); return [T.xs[i] + T.nx[i] * lat, T.ys[i] + T.ny[i] * lat]; };
+    const runs = { '#5be07a': [], '#ffd23f': [], '#ff6b4b': [] };
+    let prev = pt(0);
+    for (let d = step; d <= ahead; d += step) {
+      const now = pt(d);
+      const r = race.profileAt(p.s + d - step / 2, p.sel) / vmax;
+      runs[r > 0.88 ? '#5be07a' : r > 0.62 ? '#ffd23f' : '#ff6b4b'].push([prev, now]);
+      prev = now;
+    }
+    g.lineCap = 'round';
+    for (const col of ['#5be07a', '#ffd23f', '#ff6b4b']) {
+      const segs = runs[col];
+      if (!segs.length) continue;
+      const path = new Path2D();
+      for (const [a, b] of segs) { path.moveTo(a[0], a[1]); path.lineTo(b[0], b[1]); }
+      g.globalAlpha = 0.16; g.strokeStyle = col; g.lineWidth = 2.4; g.stroke(path);
+      g.globalAlpha = 0.7; g.lineWidth = 0.5; g.stroke(path);
+    }
+    g.globalAlpha = 1;
+
+    // braking point: the distance at which the most demanding corner ahead forces a lift
+    const brake = p.cls.brake * 0.9, v2 = p.v * p.v;
+    let slack = Infinity;
+    for (let d = 0; d <= ahead; d += step) {
+      const vp = race.profileAt(p.s + d, p.sel);
+      if (vp * vp >= v2) continue;
+      const need = (v2 - vp * vp) / (2 * brake);
+      if (d - need < slack) slack = d - need;
+    }
+    if (slack === Infinity || slack > 180) return;
+    const at = Math.max(4, slack);   // never sit on top of the car
+    const i = T.idx(p.s + at), lat = T.targetLat(p.s + at, p.sel);
+    const x = T.xs[i] + T.nx[i] * lat, y = T.ys[i] + T.ny[i] * lat;
+    const late = slack <= 0;
+    const col = late ? '#ff4b4b' : slack < 25 ? '#ffd23f' : '#f2f2f2';
+    const w = 2.6, th = T.th[i];
+    g.save(); g.translate(x, y); g.rotate(th);
+    g.globalAlpha = late ? 0.6 + 0.4 * Math.sin(performance.now() / 90) : 0.9;
+    g.fillStyle = col; g.fillRect(-0.3, -w, 0.6, w * 2);
+    g.globalAlpha = 1; g.restore();
+  }
+
   _drawStartLine(g, T) {
     const x = T.xs[0], y = T.ys[0], th = T.th[0];
     g.save(); g.translate(x, y); g.rotate(th);
@@ -270,8 +346,8 @@ class Renderer {
     if (car.braking && car.state === 'ok') { g.fillStyle = 'rgba(255,40,40,0.9)'; g.fillRect(-c.length / 2 - 0.15, -c.width / 2 + 0.1, 0.25, c.width - 0.2); }
     g.restore();
     if (car.isPlayer) {
-      g.strokeStyle = 'rgba(255,255,255,0.55)'; g.lineWidth = 0.25;
-      g.beginPath(); g.arc(pos.x, pos.y, Math.max(c.length, c.width) * 0.7, 0, Math.PI * 2); g.stroke();
+      g.strokeStyle = 'rgba(255,255,255,0.3)'; g.lineWidth = 0.14;
+      g.beginPath(); g.arc(pos.x, pos.y, Math.max(c.length, c.width) * 0.8, 0, Math.PI * 2); g.stroke();
     }
   }
 

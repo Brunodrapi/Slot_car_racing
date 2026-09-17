@@ -27,6 +27,9 @@ class Race {
     this.acc = 0;
     this.results = null;
     this.events = [];                          // transient events for sound/FX
+    // reference speed profile of the player's car on each line, for the braking guide
+    this.profiles = {};
+    for (const name of LINE_NAMES) this.profiles[name] = speedProfile(this.track, this.cls, name, 0.98);
     this._buildGrid();
   }
 
@@ -126,6 +129,13 @@ class Race {
       }
     }
     if (this.mode === 'race') resolveCollisions(this.cars, T);
+  }
+
+  // reference speed at s on the line selected by `sel` (-1 inside .. +1 outside)
+  profileAt(s, sel) {
+    const i = this.track.idx(s), r = this.profiles.racing[i];
+    if (sel < 0) return r + (this.profiles.inside[i] - r) * Math.min(1, -sel);
+    return r + (this.profiles.outside[i] - r) * Math.min(1, sel);
   }
 
   standings() {

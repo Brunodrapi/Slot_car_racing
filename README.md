@@ -24,6 +24,12 @@ Fonctionne sur ordinateur (clavier / souris) et sur mobile (tactile, à ajouter 
 | Trajectoire | flèches (haut/bas ou gauche/droite), molette | pouce gauche sur le curseur vertical |
 | Pause | `Échap` ou `P` | — |
 
+La caméra s'oriente par défaut sur la piste (la route monte toujours vers le haut de l'écran), ce qui
+permet de voir loin devant même sur un téléphone en portrait. Vue fixe disponible dans les réglages.
+Le ruban affiché devant la voiture est coloré par le profil de vitesse de référence du circuit (vert :
+plein gaz, orange : virage moyen, rouge : virage lent) et une barre transversale marque l'endroit où il
+faut lever à la vitesse actuelle.
+
 Trois trajectoires par circuit : **intérieure** (plus courte mais plus serrée, donc plus lente en
 virage), **idéale** (extérieur-intérieur-extérieur) et **extérieure** (plus longue mais plus rapide).
 La physique suit vraiment la courbe choisie : rayon et distance parcourue changent avec la ligne.
@@ -88,7 +94,7 @@ js/tracks.js               points de contrôle des circuits intégrés
 js/track.js                spline, courbure, largeur variable, trois lignes (auto ou dessinées), croisements
 js/cars.js                 catégories, modèles, livrées, noms des pilotes
 js/carart.js               dessins vectoriels des modèles + rendu des sprites perso (calques UR2D)
-js/car.js                  physique d'une voiture sur sa ligne, IA de freinage et de choix de ligne, collisions
+js/car.js                  physique d'une voiture sur sa ligne, profil de vitesse, IA de freinage et de choix de ligne, collisions
 js/race.js                 grille, départ, tours, classement, résultats
 js/career.js               coupes, déblocages, sauvegarde
 js/store.js                IndexedDB (circuits et voitures perso)

@@ -3,6 +3,41 @@
 // the car stays on the road.
 'use strict';
 
+// Fastest speed for curvature magnitude k on a given model (accounts for downforce).
+function cornerSpeedFor(c, k) {
+  if (k < 1e-5) return Infinity;
+  const capped = Math.sqrt(2.8 * c.grip / k);
+  if (k - c.df > 1e-6) return Math.min(Math.sqrt(c.grip / (k - c.df)), capped);
+  return capped;
+}
+
+// Reference speed profile along a line: corner limit, then a backward pass limited by braking
+// and a forward pass limited by acceleration (classic racing-line speed profile).
+// Two sweeps each way so the closed loop converges.
+function speedProfile(track, model, lineName, margin) {
+  const N = track.n, ds = track.ds, lat = track.lines[lineName];
+  const v = new Float32Array(N);
+  const m = margin == null ? 1 : margin;
+  for (let i = 0; i < N; i++) {
+    const kk = track.k[i];
+    const k = Math.abs(kk / Math.max(0.25, 1 + kk * lat[i]));
+    v[i] = Math.min(model.vmax, cornerSpeedFor(model, k) * m);
+  }
+  const brake = model.brake * 0.9;
+  for (let pass = 0; pass < 2; pass++) for (let i = N - 1; i >= 0; i--) {
+    const j = (i + 1) % N;
+    const lim = Math.sqrt(v[j] * v[j] + 2 * brake * ds);
+    if (lim < v[i]) v[i] = lim;
+  }
+  for (let pass = 0; pass < 2; pass++) for (let i = 0; i < N; i++) {
+    const j = (i - 1 + N) % N;
+    const a = model.accel * Math.max(0.15, 1 - Math.pow(v[j] / model.vmax, 2.5));
+    const lim = Math.sqrt(v[j] * v[j] + 2 * a * ds);
+    if (lim < v[i]) v[i] = lim;
+  }
+  return v;
+}
+
 class Car {
   constructor(track, model, opts) {
     this.track = track;
@@ -58,13 +93,7 @@ class Car {
   }
 
   // corner speed for curvature magnitude k (accounts for downforce)
-  cornerSpeed(k) {
-    const c = this.cls;
-    if (k < 1e-5) return Infinity;
-    const capped = Math.sqrt(2.8 * c.grip / k);
-    if (k - c.df > 1e-6) return Math.min(Math.sqrt(c.grip / (k - c.df)), capped);
-    return capped;
-  }
+  cornerSpeed(k) { return cornerSpeedFor(this.cls, k); }
 
   get progress() {
     return (this.lap - (this.started ? 0 : 1)) * this.track.length + this.track.wrap(this.s);
@@ -315,4 +344,4 @@ function resolveCollisions(cars, track) {
   }
 }
 
-if (typeof module !== 'undefined') module.exports = { Car, aiThrottle, resolveCollisions };
+if (typeof module !== 'undefined') module.exports = { Car, aiThrottle, resolveCollisions, speedProfile, cornerSpeedFor };

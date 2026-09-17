@@ -3,7 +3,7 @@ const { chromium } = require('playwright');
 const out = process.argv[2] || '/tmp';
 (async () => {
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   page.on('pageerror', e => console.log('[pageerror]', e.message));
   await page.goto('file:///home/user/Slot_car_racing/index.html');
   await page.waitForTimeout(400);
