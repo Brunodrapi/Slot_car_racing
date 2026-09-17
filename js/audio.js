@@ -49,14 +49,15 @@ class GameAudio {
   update(car, racing) {
     if (!this.started || !this.enabled) return;
     const t = this.ctx.currentTime;
-    const r = Math.min(1, car.v / car.cls.vmax);
+    const fin = (v, d) => (Number.isFinite(v) ? v : d);
+    const r = Math.min(1, fin(car.v, 0) / car.cls.vmax);
     const rev = racing ? r : (car.throttle ? 0.35 : 0.05);
     const f = 45 + rev * 260 + (car.throttle ? 12 : 0);
     this.osc1.frequency.setTargetAtTime(f, t, 0.05);
     this.osc2.frequency.setTargetAtTime(f * 1.5, t, 0.05);
     this.engFilter.frequency.setTargetAtTime(300 + rev * 1400 + (car.throttle ? 300 : 0), t, 0.05);
     this.engGain.gain.setTargetAtTime(0.18 + rev * 0.2 + (car.throttle ? 0.06 : 0), t, 0.05);
-    const sq = car.state === 'ok' ? Math.min(1, car.slide * 2) : 0.3;
+    const sq = car.state === 'ok' ? Math.min(1, fin(car.slide, 0) * 2) : 0.3;
     this.sqGain.gain.setTargetAtTime(sq * 0.25, t, 0.03);
     this.sqFilter.frequency.setTargetAtTime(1400 + sq * 900, t, 0.05);
   }

@@ -26,9 +26,11 @@ Fonctionne sur ordinateur (clavier / souris) et sur mobile (tactile, à ajouter 
 
 La caméra s'oriente par défaut sur la piste (la route monte toujours vers le haut de l'écran), ce qui
 permet de voir loin devant même sur un téléphone en portrait. Vue fixe disponible dans les réglages.
-Le ruban affiché devant la voiture est coloré par le profil de vitesse de référence du circuit (vert :
-plein gaz, orange : virage moyen, rouge : virage lent) et une barre transversale marque l'endroit où il
-faut lever à la vitesse actuelle.
+
+Aucune trajectoire n'est dessinée sur la route. Un **guide de freinage** optionnel (réglages) affiche
+devant la voiture un ruban coloré par le profil de vitesse de référence du circuit (vert : plein gaz,
+orange : virage moyen, rouge : virage lent) et une barre transversale à l'endroit où il faut lever à la
+vitesse actuelle.
 
 Trois trajectoires par circuit : **intérieure** (plus courte mais plus serrée, donc plus lente en
 virage), **idéale** (extérieur-intérieur-extérieur) et **extérieure** (plus longue mais plus rapide).
@@ -37,8 +39,9 @@ Dépasser = changer de ligne. Physique façon slot racing / Pico Rally : le guid
 rainure (la ligne), l'arrière est tiré derrière. Sous la limite d'adhérence rien ne bouge ; au-dessus,
 l'arrière s'ouvre progressivement (contre-braquage visible, jauge d'adhérence dans le rouge, crissement),
 un correcteur type PID le ramène en douceur dès que l'adhérence le permet, et la voiture décroche
-seulement si l'angle de dérive devient trop grand ou si l'arrière sort de la route : elle part alors dans
-l'herbe, ralentit fort, puis revient sur la piste.
+seulement si l'angle de dérive devient trop grand ou si l'arrière sort de la route. Elle quitte alors la
+rainure en gardant sa position et sa vitesse réelles : elle glisse librement sur sa propre trajectoire,
+ralentit dans l'herbe ou le gravier, puis le pilote la ramène en roulant jusqu'à retrouver la piste.
 
 ## Contenu
 

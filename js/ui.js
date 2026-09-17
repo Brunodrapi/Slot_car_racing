@@ -16,7 +16,7 @@ const I18N = {
     lap: 'Tour', last: 'Dernier', best: 'Meilleur', grip: 'adhérence', holdToGo: 'Maintiens une touche pour accélérer', holdToGoTouch: 'Pouce droit : accélérer', lineHintKeys: 'Flèches / molette : trajectoire', lineHintTouch: 'Pouce gauche : trajectoire',
     lineIn: 'INT', lineRace: 'IDÉALE', lineOut: 'EXT', offTrack: 'SORTIE DE PISTE !', finished: 'ARRIVÉE',
     cupComplete: 'Coupe terminée !', cupWon: 'Champion !', cupPodium: 'Podium ! Coupe suivante débloquée.', cupFailed: 'Hors du podium… retente ta chance.',
-    newRecord: 'Nouveau record !', yourBest: 'Ton record', name: 'Nom du pilote', sound: 'Son', language: 'Langue', showLines: 'Afficher les trajectoires', camera: 'Caméra', camFollow: 'Orientée piste', camFixed: 'Fixe', resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
+    newRecord: 'Nouveau record !', yourBest: 'Ton record', name: 'Nom du pilote', sound: 'Son', language: 'Langue', showLines: 'Guide de freinage', camera: 'Caméra', camFollow: 'Orientée piste', camFixed: 'Fixe', resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
     on: 'Activé', off: 'Coupé', playerDefault: 'Vous', allUnlocked: 'Tout est débloqué. Bravo !', careerIntro: 'Tu pars dernier à chaque course. Remonte le peloton, marque des points, débloque des catégories plus rapides.',
     lapDone: (n, t) => `Tour ${n} : ${t}`, tipTitle: 'Comment jouer', yourResult: (p) => `Tu termines P${p}`,
     ttIntro: 'Seul en piste. Bats ton meilleur tour.', noCustomTracks: 'Aucun circuit perso. Crée-en un dans l’éditeur.', deleteTrack: 'Supprimer', confirmDelete: 'Supprimer définitivement ?',
@@ -38,7 +38,7 @@ const I18N = {
     lap: 'Lap', last: 'Last', best: 'Best', grip: 'grip', holdToGo: 'Hold a key to accelerate', holdToGoTouch: 'Right thumb: accelerate', lineHintKeys: 'Arrows / wheel: line', lineHintTouch: 'Left thumb: line',
     lineIn: 'IN', lineRace: 'RACING', lineOut: 'OUT', offTrack: 'OFF TRACK!', finished: 'FINISH',
     cupComplete: 'Cup complete!', cupWon: 'Champion!', cupPodium: 'Podium! Next cup unlocked.', cupFailed: 'Missed the podium… try again.',
-    newRecord: 'New record!', yourBest: 'Your best', name: 'Driver name', sound: 'Sound', language: 'Language', showLines: 'Show driving lines', camera: 'Camera', camFollow: 'Track-aligned', camFixed: 'Fixed', resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
+    newRecord: 'New record!', yourBest: 'Your best', name: 'Driver name', sound: 'Sound', language: 'Language', showLines: 'Braking guide', camera: 'Camera', camFollow: 'Track-aligned', camFixed: 'Fixed', resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
     on: 'On', off: 'Off', playerDefault: 'You', allUnlocked: 'Everything unlocked. Well done!', careerIntro: 'You start every race from the back. Carve through the field, score points, unlock faster classes.',
     lapDone: (n, t) => `Lap ${n}: ${t}`, tipTitle: 'How to play', yourResult: (p) => `You finish P${p}`,
     ttIntro: 'Alone on track. Beat your best lap.', noCustomTracks: 'No custom track yet. Create one in the editor.', deleteTrack: 'Delete', confirmDelete: 'Delete permanently?',
@@ -140,7 +140,7 @@ class UI {
         <label>${t('language')}
           <select id="sel-lang"><option value="fr" ${s.lang === 'fr' ? 'selected' : ''}>Français</option><option value="en" ${s.lang === 'en' ? 'selected' : ''}>English</option></select></label>
         <label>${t('sound')}<select id="sel-sound"><option value="1" ${s.sound ? 'selected' : ''}>${t('on')}</option><option value="0" ${!s.sound ? 'selected' : ''}>${t('off')}</option></select></label>
-        <label>${t('showLines')}<select id="sel-lines"><option value="1" ${s.showLines !== false ? 'selected' : ''}>${t('on')}</option><option value="0" ${s.showLines === false ? 'selected' : ''}>${t('off')}</option></select></label>
+        <label>${t('showLines')}<select id="sel-lines"><option value="0" ${s.showLines !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.showLines === true ? 'selected' : ''}>${t('on')}</option></select></label>
         <label>${t('camera')}<select id="sel-cam"><option value="1" ${s.camRotate !== false ? 'selected' : ''}>${t('camFollow')}</option><option value="0" ${s.camRotate === false ? 'selected' : ''}>${t('camFixed')}</option></select></label>
         <label>${t('difficulty')}<select id="sel-diff">${['easy', 'medium', 'hard'].map(d => `<option value="${d}" ${s.difficulty === d ? 'selected' : ''}>${t(d)}</option>`).join('')}</select></label>
       </div>

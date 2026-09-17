@@ -264,23 +264,37 @@ class Track {
   // ---------- queries ----------
   wrap(s) { const L = this.length; s = s % L; return s < 0 ? s + L : s; }
   idx(s) { return Math.floor(this.wrap(s) / this.ds) % this.n; }
-  curvAt(s) { return this.k[this.idx(s)]; }
-  headingAt(s) { return this.th[this.idx(s)]; }
+  // Samples sit one metre apart; everything positional is interpolated between them, otherwise
+  // the car advances in one-metre hops instead of moving continuously.
+  _at(s) {
+    const w = this.wrap(s) / this.ds, fl = Math.floor(w);
+    const i = fl % this.n;
+    return { i, j: (i + 1) % this.n, f: w - fl };
+  }
+  _lerp(arr, s) { const a = this._at(s); return arr[a.i] + (arr[a.j] - arr[a.i]) * a.f; }
+  curvAt(s) { return this._lerp(this.k, s); }
+  headingAt(s) {
+    const a = this._at(s);
+    let d = this.th[a.j] - this.th[a.i];
+    while (d > Math.PI) d -= 2 * Math.PI;
+    while (d < -Math.PI) d += 2 * Math.PI;
+    return this.th[a.i] + d * a.f;
+  }
   // curvature of the offset curve at lateral offset lat (positive = left)
   curvAtLat(s, lat) {
-    const k = this.k[this.idx(s)];
+    const k = this.curvAt(s);
     return k / Math.max(0.25, 1 + k * lat);
   }
   // metres of centreline per metre travelled at offset lat
-  advanceFactor(s, lat) { return 1 / Math.max(0.25, 1 + this.k[this.idx(s)] * lat); }
-  hwLeftAt(s) { return this.hwL[this.idx(s)]; }
-  hwRightAt(s) { return this.hwR[this.idx(s)]; }
-  lineLat(name, s) { return this.lines[name][this.idx(s)]; }
+  advanceFactor(s, lat) { return 1 / Math.max(0.25, 1 + this.curvAt(s) * lat); }
+  hwLeftAt(s) { return this._lerp(this.hwL, s); }
+  hwRightAt(s) { return this._lerp(this.hwR, s); }
+  lineLat(name, s) { return this._lerp(this.lines[name], s); }
   // blend of the three lines: sel in [-1, 1] (-1 inside, 0 racing, +1 outside)
   targetLat(s, sel) {
-    const i = this.idx(s), r = this.lines.racing[i];
-    if (sel < 0) return r + (this.lines.inside[i] - r) * Math.min(1, -sel);
-    return r + (this.lines.outside[i] - r) * Math.min(1, sel);
+    const r = this._lerp(this.lines.racing, s);
+    if (sel < 0) return r + (this._lerp(this.lines.inside, s) - r) * Math.min(1, -sel);
+    return r + (this._lerp(this.lines.outside, s) - r) * Math.min(1, sel);
   }
   // strongest curvature ahead along a line
   curvAhead(s, dist, sel) {
@@ -294,9 +308,37 @@ class Track {
     }
     return best;
   }
+  // nearest centreline sample to a world point, searched in a window around `nearS`
+  project(x, y, nearS, window) {
+    const N = this.n, W = window || 8;   // small window: a crossing must never latch the other branch
+    const i0 = this.idx(nearS || 0);
+    let best = i0, bd = Infinity;
+    for (let d = -W; d <= W; d++) {
+      const i = ((i0 + d) % N + N) % N;
+      const dx = x - this.xs[i], dy = y - this.ys[i], dd = dx * dx + dy * dy;
+      if (dd < bd) { bd = dd; best = i; }
+    }
+    const i = best, j = (i + 1) % N, h = (i - 1 + N) % N;
+    // refine onto the neighbouring segment so `s` is continuous, not snapped to the sample
+    let bi = i, t = 0;
+    for (const [a, b] of [[h, i], [i, j]]) {
+      const ax = this.xs[a], ay = this.ys[a], vx = this.xs[b] - ax, vy = this.ys[b] - ay;
+      const l2 = vx * vx + vy * vy || 1e-9;
+      const u = clamp(((x - ax) * vx + (y - ay) * vy) / l2, 0, 1);
+      const px = ax + vx * u, py = ay + vy * u;
+      const dd = (x - px) * (x - px) + (y - py) * (y - py);
+      if (dd < bd) { bd = dd; bi = a; t = u; }
+    }
+    const sOut = (bi + t) * this.ds;
+    const nx = this.nx[bi], ny = this.ny[bi];
+    return { s: sOut, i: bi, lat: (x - this.xs[bi]) * nx + (y - this.ys[bi]) * ny };
+  }
+
   pos(s, lat) {
-    const i = this.idx(s);
-    return { x: this.xs[i] + this.nx[i] * lat, y: this.ys[i] + this.ny[i] * lat };
+    const a = this._at(s), i = a.i, j = a.j, f = a.f;
+    const x = this.xs[i] + (this.xs[j] - this.xs[i]) * f, y = this.ys[i] + (this.ys[j] - this.ys[i]) * f;
+    const nx = this.nx[i] + (this.nx[j] - this.nx[i]) * f, ny = this.ny[i] + (this.ny[j] - this.ny[i]) * f;
+    return { x: x + nx * lat, y: y + ny * lat };
   }
   diff(a, b) {
     let d = this.wrap(b) - this.wrap(a);

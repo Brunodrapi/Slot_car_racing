@@ -60,7 +60,6 @@ class Car {
     this.state = 'ok';    // ok | grass
     this.grassT = 0;
     this.offSide = 1;
-    this.wobble = 0;
     this.grace = 0;
     this.crashes = 0;     // number of excursions
 
@@ -105,9 +104,15 @@ class Car {
     this.rx = P.x - Math.cos(h) * L; this.ry = P.y - Math.sin(h) * L;
   }
   get pin() { return this.track.pos(this.s, this.lat); }
-  // body centre: halfway between the front pin and the rear point
-  get pos() { const P = this.pin; return { x: (P.x + this.rx) / 2, y: (P.y + this.ry) / 2 }; }
-  get heading() { return this.track.headingAt(this.s) + this.laneAng + this.drift + this.wobble; }
+  // body centre: halfway between the front pin and the rear point (free body once off track)
+  get pos() {
+    if (this.state === 'grass') return { x: this.wx, y: this.wy };
+    const P = this.pin; return { x: (P.x + this.rx) / 2, y: (P.y + this.ry) / 2 };
+  }
+  get heading() {
+    if (this.state === 'grass') return this.wa;
+    return this.track.headingAt(this.s) + this.laneAng + this.drift;
+  }
   // front wheels point along the slot: counter-steer relative to the body (visual)
   get steerAngle() { return clamp(-this.drift, -0.6, 0.6); }
   // demand / grip ratio on the current line (1 = limit)
@@ -116,37 +121,86 @@ class Car {
     return this.v * this.v * k / this.gripAt(this.v);
   }
 
-  // Pico Rally style excursion: the car runs on the grass, scrubs speed, then rejoins the road.
+  // Leaving the slot: the car keeps its own position and velocity and slides off freely,
+  // decelerating on the grass, then picks the track up again where it ends up. Nothing is
+  // snapped to a predefined side, so the departure follows the trajectory it already had.
   crash() {
     if (this.state === 'grass') return;
+    // read the on-track pose BEFORE switching state: the getters change meaning once off track
+    const T = this.track, P = this.pos, a = this.heading;
     this.state = 'grass';
     this.grassT = 0;
-    this.offSide = Math.sign(this.lat) || 1;
-    this.v *= 0.85;
-    this.vl = 0;
+    this.wx = P.x; this.wy = P.y;
+    this.wa = a;
+    // the car travels along the slot, plus part of the drift angle because it is already sliding
+    const dir = T.headingAt(this.s) + this.drift * 0.5;
+    this.wvx = Math.cos(dir) * this.v;
+    this.wvy = Math.sin(dir) * this.v;
+    this.wspin = clamp(this.vl * 0.6, -3, 3);
+    this.returning = false;
     this.crashes++;
     this.slide = 0;
-    // the pin leaves the slot on the side the tail was swinging to
-    if (Math.abs(this.drift) > 0.3) this.offSide = Math.sign(this.drift);
   }
 
   _updateGrass(dt, raceTime) {
     const T = this.track, c = this.cls;
     this.grassT += dt;
-    this.v = Math.max(0, this.v - (9 + this.v * 0.18) * dt);
-    const hw = this.offSide > 0 ? T.hwLeftAt(this.s) : T.hwRightAt(this.s);
-    const target = this.offSide * (hw + c.width * 0.6);
-    this.lat += (target - this.lat) * Math.min(1, 5 * dt);
-    this.wobble = Math.sin(this.grassT * 25) * 0.12 * Math.min(1, this.v / 20);
-    this._advance(this.v * dt * T.advanceFactor(this.s, this.lat), raceTime);
+
+    let sp = Math.hypot(this.wvx, this.wvy);
+    if (sp > 1e-4) {
+      const ux = this.wvx / sp, uy = this.wvy / sp;
+      // heavy drag while sliding; much less once the driver is powering back to the track
+      sp = Math.max(0, sp - (this.returning ? 2.5 : 11 + 0.2 * sp) * dt);
+      this.wvx = ux * sp; this.wvy = uy * sp;
+    }
+    this.wx += this.wvx * dt; this.wy += this.wvy * dt;
+    this.wa += this.wspin * dt;
+    this.wspin -= this.wspin * Math.min(1, 2.2 * dt);
+    if (sp > 3) {                                          // the body swings into its own path
+      let da = Math.atan2(this.wvy, this.wvx) - this.wa;
+      while (da > Math.PI) da -= 2 * Math.PI;
+      while (da < -Math.PI) da += 2 * Math.PI;
+      this.wa += da * Math.min(1, 1.6 * dt);
+    }
+    this.v = sp;
+
+    // Track bookkeeping uses the front pin point, not the body centre, so that rejoining the slot
+    // puts the car back exactly where it already is instead of shifting it by half a car length.
+    const halfL = c.length * 0.375;
+    const pr = T.project(this.wx + Math.cos(this.wa) * halfL, this.wy + Math.sin(this.wa) * halfL, this.s);
+    const ds = T.diff(this.s, pr.s);
+    if (Math.abs(ds) < 6) {                      // ignore an implausible projection (track crossings)
+      if (ds > 0) this._advance(ds, raceTime); else this.s = pr.s;
+      this.lat = pr.lat;
+    } else this._advance(sp * dt, raceTime);
     this.drift *= Math.max(0, 1 - 2 * dt);
     this._placeRear();
-    if (this.grassT > 1.1 || this.v < 8) {
+
+    const hwL = T.hwLeftAt(this.s), hwR = T.hwRightAt(this.s);
+    const margin = c.width / 2 + 0.4;   // strict enough that the clamp below never moves the car
+    const backOnRoad = pr.lat < hwL - margin && pr.lat > -(hwR - margin);
+
+    // once the slide is spent, drive back onto the track instead of being placed there
+    this.returning = !backOnRoad && sp < 15;
+    if (this.returning) {
+      const aim = T.pos(pr.s + 14, 0);
+      const ang = Math.atan2(aim.y - this.wy, aim.x - this.wx);
+      const want = 12;
+      this.wvx += (Math.cos(ang) * want - this.wvx) * Math.min(1, 1.1 * dt);
+      this.wvy += (Math.sin(ang) * want - this.wvy) * Math.min(1, 1.1 * dt);
+    }
+
+    if ((backOnRoad && this.grassT > 0.3) || this.grassT > 15) {
       this.state = 'ok';
-      this.wobble = 0;
-      this.grace = 0.8;
-      this.lat = this.offSide * (hw - c.width / 2 - 0.4);
-      this._initRear();
+      this.grace = 0.9;
+      this.lat = clamp(pr.lat, -(hwR - c.width / 2 - 0.3), hwL - c.width / 2 - 0.3);
+      this.v = sp;
+      let dr = this.wa - T.headingAt(pr.s);                // resume with the angle it already has
+      while (dr > Math.PI) dr -= 2 * Math.PI;
+      while (dr < -Math.PI) dr += 2 * Math.PI;
+      this.drift = clamp(dr, -0.9, 0.9);
+      this.laneAng = 0; this.vl = 0;
+      this._placeRear();
     }
   }
 
@@ -325,7 +379,8 @@ function resolveCollisions(cars, track) {
           const dv = rear.v - front.v;
           front.v += dv * 0.35;
           rear.v = front.v - dv * 0.1;
-          const push = d > 0 ? -1 : 1, half = longOverlap / 2;
+          // separate over several frames: an instant correction reads as a teleport
+          const push = d > 0 ? -1 : 1, half = Math.min(longOverlap / 2, 0.1);
           a.s = track.wrap(a.s + push * half);
           b.s = track.wrap(b.s - push * half);
         }
@@ -333,8 +388,9 @@ function resolveCollisions(cars, track) {
         const dir = dl >= 0 ? 1 : -1;
         const hwLa = track.hwLeftAt(a.s) - 0.3, hwRa = track.hwRightAt(a.s) - 0.3;
         const hwLb = track.hwLeftAt(b.s) - 0.3, hwRb = track.hwRightAt(b.s) - 0.3;
-        a.lat = clamp(a.lat - dir * latOverlap / 2, -hwRa, hwLa);
-        b.lat = clamp(b.lat + dir * latOverlap / 2, -hwRb, hwLb);
+        const sep = Math.min(latOverlap / 2, 0.1);
+        a.lat = clamp(a.lat - dir * sep, -hwRa, hwLa);
+        b.lat = clamp(b.lat + dir * sep, -hwRb, hwLb);
         // a small tail kick, capped so a rubbing pack never builds up a slide
         a.vl = clamp(a.vl - dir * 0.08, -0.8, 0.8);
         b.vl = clamp(b.vl + dir * 0.08, -0.8, 0.8);

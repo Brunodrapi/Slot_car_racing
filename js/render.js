@@ -17,7 +17,7 @@ class Renderer {
     this.grass = this._makeGrass();
     this.shake = 0;
     this.touch = false;
-    this.showLines = true;
+    this.showLines = false;   // braking guide, off unless enabled in the settings
     this.rotate = true;      // keep the track direction pointing up the screen
     this.camAngle = 0;
     this.resize();
@@ -260,26 +260,12 @@ class Renderer {
     this._drawHUD(g, race, ui);
   }
 
-  // Trajectory guide. The ribbon ahead is coloured by the reference speed profile (green where
-  // the car can be flat out, red for a slow corner) and a transverse bar marks where braking must
-  // start at the current speed. The two lines not selected stay as faint dots.
+  // Optional braking guide (off by default): the ribbon ahead is coloured by the reference speed
+  // profile (green where the car can be flat out, red for a slow corner) and a transverse bar marks
+  // where braking must start at the current speed. No driving lines are drawn on the road.
   _drawGuide(g, race) {
     const T = race.track, p = race.player;
     const ahead = 240, step = 4, vmax = p.cls.vmax;
-
-    g.setLineDash([0.5, 5]); g.lineWidth = 0.3;
-    for (const name of LINE_NAMES) {
-      if ((name === 'inside' && p.sel < -0.5) || (name === 'outside' && p.sel > 0.5) ||
-          (name === 'racing' && Math.abs(p.sel) <= 0.5)) continue;
-      g.beginPath();
-      for (let d = -20; d <= ahead; d += step) {
-        const i = T.idx(p.s + d), lat = T.lines[name][i];
-        const x = T.xs[i] + T.nx[i] * lat, y = T.ys[i] + T.ny[i] * lat;
-        d === -20 ? g.moveTo(x, y) : g.lineTo(x, y);
-      }
-      g.strokeStyle = LINE_COLORS[name]; g.stroke();
-    }
-    g.setLineDash([]);
 
     // selected line ahead, in three colour runs by reference speed
     const pt = (d) => { const i = T.idx(p.s + d), lat = T.targetLat(p.s + d, p.sel); return [T.xs[i] + T.nx[i] * lat, T.ys[i] + T.ny[i] * lat]; };
