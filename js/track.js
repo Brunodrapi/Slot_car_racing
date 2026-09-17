@@ -157,14 +157,17 @@ class Track {
     const g = new Float32Array(N);
     for (let i = 0; i < N; i++) g[i] = clamp(k[i] * 70, -1, 1);          // sign = turn direction
     const gN = Track.smooth(g, 20), gW = Track.smooth(g, 90);
-    // side of the next corner: forward-looking average
+    // side of the next corner (sign of the next significant curvature), whatever the distance
     const side = new Float32Array(N);
-    for (let i = 0; i < N; i++) {
-      let s = 0;
-      for (let j = -15; j < 140; j += 5) s += g[(i + j + N) % N];
-      side[i] = clamp(s / 8, -1, 1);
+    let nextSign = 0;
+    for (let i = 2 * N - 1; i >= 0; i--) {
+      const gi = g[i % N];
+      if (Math.abs(gi) > 0.3) nextSign = Math.sign(gi);
+      if (i < N) side[i] = nextSign || 1;
     }
-    const sideS = Track.smooth(side, 12);
+    // hold the current corner's side through the corner itself
+    for (let i = 0; i < N; i++) if (Math.abs(g[i]) > 0.3) side[i] = Math.sign(g[i]);
+    const sideS = Track.smooth(side, 25);
     const racing = new Float32Array(N), inside = new Float32Array(N), outside = new Float32Array(N);
     for (let i = 0; i < N; i++) {
       const marginL = this.hwL[i] - 1.6, marginR = this.hwR[i] - 1.6;

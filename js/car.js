@@ -19,12 +19,12 @@ class Car {
     this.vl = 0;          // lateral speed (m/s)
     this.yaw = 0;         // visual drift angle
     this.slide = 0;       // 0..1 how far over the limit
-    this.state = 'ok';    // ok | spin
-    this.spinT = 0;
-    this.spinAngle = 0;
-    this.spinSide = 1;
+    this.state = 'ok';    // ok | grass
+    this.grassT = 0;
+    this.offSide = 1;
+    this.wobble = 0;
     this.grace = 0;
-    this.crashes = 0;
+    this.crashes = 0;     // number of excursions
 
     this.sel = 0;         // line selection: -1 inside, 0 racing, +1 outside
     this.laneTarget = 0;
@@ -67,45 +67,39 @@ class Car {
     return (this.lap - (this.started ? 0 : 1)) * this.track.length + this.track.wrap(this.s);
   }
   get pos() { return this.track.pos(this.s, this.lat); }
-  get heading() {
-    let h = this.track.headingAt(this.s) + this.yaw;
-    if (this.state === 'spin') h += this.spinAngle;
-    return h;
-  }
+  get heading() { return this.track.headingAt(this.s) + this.yaw + this.wobble; }
   // demand / grip ratio on the current line (1 = limit)
   get loadRatio() {
     const k = Math.abs(this.track.curvAtLat(this.s, this.lat));
     return this.v * this.v * k / this.gripAt(this.v);
   }
 
+  // Pico Rally style excursion: the car runs on the grass, scrubs speed, then rejoins the road.
   crash() {
-    if (this.state === 'spin') return;
-    this.state = 'spin';
-    this.spinT = 0;
-    this.spinAngle = 0;
-    this.spinSide = Math.sign(this.lat) || 1;
-    this.spinDir = (Math.random() < 0.5 ? -1 : 1);
-    this.v = Math.min(this.v * 0.55, 16);
+    if (this.state === 'grass') return;
+    this.state = 'grass';
+    this.grassT = 0;
+    this.offSide = Math.sign(this.lat) || 1;
+    this.v *= 0.85;
     this.vl = 0;
     this.crashes++;
     this.slide = 0;
   }
 
-  _updateSpin(dt, raceTime) {
-    const T = this.track;
-    const dur = 1.3;
-    this.spinT += dt;
-    const t = Math.min(1, this.spinT / dur);
-    this.spinAngle = this.spinDir * t * Math.PI * 2 * 1.5;
-    this.v = Math.max(3, this.v - 22 * dt);
-    const hw = this.spinSide > 0 ? T.hwLeftAt(this.s) : T.hwRightAt(this.s);
-    const target = t < 0.5 ? this.spinSide * (hw + 1.5) : this.spinSide * (hw - this.cls.width / 2 - 0.5);
-    this.lat += (target - this.lat) * Math.min(1, 6 * dt);
+  _updateGrass(dt, raceTime) {
+    const T = this.track, c = this.cls;
+    this.grassT += dt;
+    this.v = Math.max(0, this.v - (9 + this.v * 0.18) * dt);
+    const hw = this.offSide > 0 ? T.hwLeftAt(this.s) : T.hwRightAt(this.s);
+    const target = this.offSide * (hw + c.width * 0.6);
+    this.lat += (target - this.lat) * Math.min(1, 5 * dt);
+    this.wobble = Math.sin(this.grassT * 25) * 0.12 * Math.min(1, this.v / 20);
     this._advance(this.v * dt * T.advanceFactor(this.s, this.lat), raceTime);
-    if (this.spinT >= dur) {
+    if (this.grassT > 1.1 || this.v < 8) {
       this.state = 'ok';
-      this.spinAngle = 0;
-      this.grace = 1.0;
+      this.wobble = 0;
+      this.grace = 0.8;
+      this.lat = this.offSide * (hw - c.width / 2 - 0.4);
       this.yaw = 0;
     }
   }
@@ -132,7 +126,7 @@ class Car {
     this.offT = throttle ? 0 : this.offT + dt;
     this.braking = !throttle && this.offT > 0.15 && this.v > 2;
     if (this.grace > 0) this.grace -= dt;
-    if (this.state === 'spin') { this._updateSpin(dt, raceTime); return; }
+    if (this.state === 'grass') { this._updateGrass(dt, raceTime); return; }
 
     // longitudinal
     const vmax = c.vmax * (this.draft ? 1.05 : 1);
@@ -141,33 +135,40 @@ class Car {
     else a = -c.brake * (this.v > 1 ? 1 : this.v);
     this.v = Math.max(0, this.v + a * dt);
 
-    // lateral: cornering demand on our actual line vs grip
+    // cornering demand on our actual line vs grip
     const k = T.curvAtLat(this.s, this.lat);
-    const need = this.v * this.v * Math.abs(k);
     const grip = this.gripAt(this.v);
-    const excess = need - grip;
+    let ratio = this.v * this.v * Math.abs(k) / grip;
+    // grip cliff: once clearly over the limit the tyres let go (sliding friction < static friction)
+    if (ratio > 1.05) ratio /= 1 - 0.3 * Math.min(1, (ratio - 1.05) / 0.15);
     const hwL = T.hwLeftAt(this.s), hwR = T.hwRightAt(this.s);
     const target = clamp(this.laneTarget, -(hwR - c.width / 2 - 0.2), hwL - c.width / 2 - 0.2);
 
-    let auth = 1;
-    if (excess > 0) {
-      this.slide = Math.min(1, excess / grip);
-      this.vl += Math.sign(k) * excess * c.slide * 3 * (1 + this.slide * 6) * dt;   // pushed outwards
-      this.v = Math.max(0, this.v - excess * 0.8 * dt);                              // tyre scrub
-      auth = Math.max(0, 1 - this.slide * 3);
+    // lane following: proportional move toward the selected line, speed-limited, no overshoot
+    const maxLat = 1.5 + this.v * 0.12;
+    let move = clamp((target - this.lat) * 4, -maxLat, maxLat);
+
+    // over the limit: the car is pushed outwards at a rate proportional to the excess
+    let drift = 0;
+    if (ratio > 1.03) {
+      const over = ratio - 1;
+      this.slide = Math.min(1, over * 2.2);
+      drift = Math.sign(k) * over * 12 * c.slide;
+      this.v = Math.max(0, this.v - over * grip * 0.4 * dt);        // tyre scrub
+      move *= Math.max(0, 1 - this.slide * 1.5);                       // can't hold the line while sliding
     } else {
       this.slide = Math.max(0, this.slide - 3 * dt);
     }
-    const spring = c.laneK, damp = 2 * Math.sqrt(spring) * 0.9;
-    this.vl += ((target - this.lat) * spring - this.vl * damp) * auth * dt;
-    this.vl = clamp(this.vl, -20, 20);
+    this.vl = move + drift;
     this.lat += this.vl * dt;
 
     const yawTarget = clamp(this.vl / Math.max(6, this.v) * 1.2, -0.6, 0.6) + Math.sign(k) * this.slide * 0.35;
     this.yaw += (yawTarget - this.yaw) * Math.min(1, 10 * dt);
 
-    if (this.lat > hwL || this.lat < -hwR) {
-      if (this.grace > 0) { this.lat = clamp(this.lat, -(hwR - 1), hwL - 1); this.vl = 0; }
+    // past the kerb: onto the grass
+    const tol = c.width * 0.35;
+    if (this.lat > hwL + tol || this.lat < -(hwR + tol)) {
+      if (this.grace > 0) { this.lat = clamp(this.lat, -(hwR - 1), hwL - 1); }
       else { this.crash(); return; }
     }
 

@@ -143,10 +143,11 @@ class Renderer {
     const p = race.player, T = race.track, pos = p.pos;
     const h = T.headingAt(p.s);
     const zf = p.cls.zoom || 1;
-    const lead = Math.min(45, p.v * 0.45) / zf;
+    const lead = Math.min(30, p.v * 0.32) / zf;
     const tx = pos.x + Math.cos(h) * lead, ty = pos.y + Math.sin(h) * lead;
-    const base = Math.min(this.w / 150, this.h / 110);
-    const zoomTarget = clamp(base, 2.6, 11) * zf * (1 - 0.25 * Math.min(1, p.v / p.cls.vmax));
+    // close view: ~95 m across the screen width when stopped, ~120 m at top speed
+    const base = Math.min(this.w / 95, this.h / 70);
+    const zoomTarget = clamp(base, 4, 16) * zf * (1 - 0.2 * Math.min(1, p.v / p.cls.vmax));
     const k = Math.min(1, dt * 4);
     if (this.cam.init) {
       this.cam.x += (tx - this.cam.x) * k;
@@ -167,7 +168,7 @@ class Renderer {
         }
         if (Math.random() < car.slide * 0.8) this.particles.push({ x: pos.x - Math.cos(h) * car.cls.length * 0.4, y: pos.y - Math.sin(h) * car.cls.length * 0.4, vx: -side * Math.cos(h + Math.PI / 2) * 2 + (Math.random() - 0.5) * 2, vy: -side * Math.sin(h + Math.PI / 2) * 2 + (Math.random() - 0.5) * 2, r: 0.6, life: 0.7, col: '200,200,200' });
       }
-      if (car.state === 'spin' && car.spinT < 0.6) {
+      if (car.state === 'grass') {
         for (let i = 0; i < 2; i++) this.particles.push({ x: pos.x + (Math.random() - 0.5) * 3, y: pos.y + (Math.random() - 0.5) * 3, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, r: 1.2, life: 0.9, col: '190,160,110' });
       }
     }
@@ -360,7 +361,7 @@ class Renderer {
         g.fillStyle = car.livery.body; g.fillRect(bx + 10, y + 4, 10, 10);
         g.fillStyle = car.isPlayer ? '#ffd400' : '#e8e8ec';
         g.fillText(`${i + 1}. ${car.name}`, bx + 28, y + 2);
-        if (car.state === 'spin') { g.fillStyle = '#ff6b6b'; g.textAlign = 'right'; g.fillText('!', bx + bw - 10, y + 2); g.textAlign = 'left'; }
+        if (car.state === 'grass') { g.fillStyle = '#ff6b6b'; g.textAlign = 'right'; g.fillText('!', bx + bw - 10, y + 2); g.textAlign = 'left'; }
       });
     }
 
@@ -379,7 +380,7 @@ class Renderer {
       g.textAlign = 'center'; g.fillStyle = '#5be07a'; g.font = 'bold 64px system-ui, sans-serif';
       g.globalAlpha = 1 - race.time / 1.2; g.fillText('GO!', W / 2, H * 0.18); g.globalAlpha = 1;
     }
-    if (p.state === 'spin') { g.textAlign = 'center'; g.fillStyle = '#ff6b6b'; g.font = 'bold 28px system-ui, sans-serif'; g.fillText(t('offTrack'), W / 2, H * 0.3); }
+    if (p.state === 'grass') { g.textAlign = 'center'; g.fillStyle = '#ff6b6b'; g.font = 'bold 28px system-ui, sans-serif'; g.fillText(t('offTrack'), W / 2, H * 0.3); }
     if (p.finished && race.state !== 'finished') { g.textAlign = 'center'; g.fillStyle = '#ffd400'; g.font = 'bold 40px system-ui, sans-serif'; g.fillText(`${t('finished')} — P${race.positionOf(p)}`, W / 2, H * 0.3); }
     if (ui.flash && ui.flash.until > performance.now()) { g.textAlign = 'center'; g.fillStyle = ui.flash.color || '#fff'; g.font = 'bold 26px system-ui, sans-serif'; g.fillText(ui.flash.text, W / 2, H * 0.12); }
     g.textBaseline = 'alphabetic';

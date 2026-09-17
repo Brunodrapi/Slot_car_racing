@@ -56,7 +56,7 @@ class GameAudio {
     this.osc2.frequency.setTargetAtTime(f * 1.5, t, 0.05);
     this.engFilter.frequency.setTargetAtTime(300 + rev * 1400 + (car.throttle ? 300 : 0), t, 0.05);
     this.engGain.gain.setTargetAtTime(0.18 + rev * 0.2 + (car.throttle ? 0.06 : 0), t, 0.05);
-    const sq = car.state === 'ok' ? Math.min(1, car.slide * 2) : 0;
+    const sq = car.state === 'ok' ? Math.min(1, car.slide * 2) : 0.3;
     this.sqGain.gain.setTargetAtTime(sq * 0.25, t, 0.03);
     this.sqFilter.frequency.setTargetAtTime(1400 + sq * 900, t, 0.05);
   }

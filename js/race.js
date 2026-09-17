@@ -111,10 +111,10 @@ class Race {
         throttle = aiThrottle(car, this.cars, dt, { ...this.difficulty, rubber }) && !car.finished;
         if (car.finished) throttle = car.v < 15;
       }
-      const wasSpin = car.state === 'spin';
+      const wasOff = car.state === 'grass';
       const lapBefore = car.lap;
       car.update(dt, throttle, this.time);
-      if (!wasSpin && car.state === 'spin') this.events.push({ type: 'crash', car });
+      if (!wasOff && car.state === 'grass') this.events.push({ type: 'crash', car });
       if (car.lap !== lapBefore) {
         this.events.push({ type: 'lap', car });
         if (this.mode === 'race' && car.lap >= this.laps && !car.finished) {
