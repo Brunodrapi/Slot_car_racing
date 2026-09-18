@@ -272,7 +272,10 @@ tournant sur son axe, une image par pas régulier d'un tour complet, dans le sen
 
 `tools/env.py` (Pillow et NumPy requis) découpe une planche de décor : chaque tache de pixels
 non-fond devient un PNG détouré, et l'ombre portée de chacun passe en noir translucide pour qu'elle
-assombrisse l'herbe du jeu. Voir `sprites/env/README.md` pour les réglages employés.
+assombrisse l'herbe du jeu. Il vérifie en sortant qu'aucun objet gardé n'a perdu de matière en
+chemin : le découpage amincit les formes pour séparer deux objets dont les ombres se touchent, et
+tout ce qui est plus fin que l'amincissement disparaîtrait sans précaution. Voir
+`sprites/env/README.md` pour les réglages employés.
 
 `marge` multiplie la vitesse de passage en courbe visée : ≤ 1 la voiture reste sur sa ligne, 1,1–1,2 elle
 glisse visiblement, au-delà elle part.
