@@ -24,13 +24,29 @@ from PIL import Image
 QUANT = 64          # palette size; these renders are flat-shaded so this is plenty
 
 
+# Set once per sheet: a source that already carries transparency is taken at its word, and no
+# colour is ever judged. Guessing the backdrop by colour eats a car's own greys, its chrome
+# bumpers and silver trim, wherever they touch the outside of the silhouette.
+ALPHA_ONLY = False
+
+
 def is_bg(p):
-    """Backdrop: either already transparent, or the flat grey some renders sit on."""
+    """Backdrop: the transparency the artist left, or the flat grey an untouched render sits on."""
     if len(p) > 3 and p[3] < 16:
         return True
+    if ALPHA_ONLY:
+        return False
     r, g, b = p[0], p[1], p[2]
     mn, mx = min(r, g, b), max(r, g, b)
     return (mx - mn) <= 32 and 40 <= mn <= 210
+
+
+def source_is_cut_out(img):
+    """True when a good part of the image is already transparent: the artist did the cutting."""
+    w, h = img.size
+    px = img.load()
+    clear = sum(1 for y in range(0, h, 3) for x in range(0, w, 3) if px[x, y][3] < 16)
+    return clear > (w // 3) * (h // 3) * 0.25
 
 
 def frame_inset(img):
@@ -94,17 +110,23 @@ def isolate(img):
     for k in range(w * h):
         if not bg[k]:
             solid[k] = 1
-    # leftover pieces of the decorative border survive as their own blobs; the car is the biggest
+    # Leftover pieces of the decorative border survive as their own blobs. They are the ones
+    # touching the edge of the image; everything else is the car, including parts that hang off
+    # it on their own, a mirror or an aerial. Keeping only the biggest blob would lose those.
     seen = bytearray(w * h)
-    best, best_n = None, 0
+    keep = bytearray(w * h)
+    biggest, biggest_n = None, 0
     for s in range(w * h):
         if not solid[s] or seen[s]:
             continue
         q, comp = deque([s]), [s]
         seen[s] = 1
+        edge = False
         while q:
             k = q.popleft()
             x, y = k % w, k // w
+            if x == 0 or y == 0 or x == w - 1 or y == h - 1:
+                edge = True
             for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
                 nx, ny = x + dx, y + dy
                 if 0 <= nx < w and 0 <= ny < h:
@@ -113,10 +135,12 @@ def isolate(img):
                         seen[nk] = 1
                         q.append(nk)
                         comp.append(nk)
-        if len(comp) > best_n:
-            best_n, best = len(comp), comp
-    keep = bytearray(w * h)
-    for k in best:
+        if len(comp) > biggest_n:
+            biggest_n, biggest = len(comp), comp
+        if not edge:
+            for k in comp:
+                keep[k] = 1
+    for k in biggest or []:      # the car itself is kept even if it runs to the edge
         keep[k] = 1
     outside = bytearray(w * h)
     q = deque()
@@ -160,7 +184,12 @@ def main():
         return 1
     n = len(files)
     frames = []
-    inset = frame_inset(Image.open(os.path.join(src, files[0])).convert('RGBA'))
+    global ALPHA_ONLY
+    first = Image.open(os.path.join(src, files[0])).convert('RGBA')
+    ALPHA_ONLY = source_is_cut_out(first)
+    print('source deja detouree, aucune couleur ne sera jugee' if ALPHA_ONLY
+          else 'source sur fond plein, le fond sera retire depuis le bord')
+    inset = frame_inset(first)
     print(f'bordure decorative detectee: {inset} px')
     for f in files:
         im = Image.open(os.path.join(src, f)).convert('RGBA')

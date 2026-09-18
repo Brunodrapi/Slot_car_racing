@@ -439,7 +439,19 @@ class Renderer {
     let rel = car.heading - camDir;
     while (rel > Math.PI) rel -= 2 * Math.PI;
     while (rel < -Math.PI) rel += 2 * Math.PI;
-    const k = Math.round(rel / step);
+    // Pick the view and stay on it. No leftover angle is applied on top: rotating an isometric
+    // sprite in the screen plane makes the car visibly rock as its heading wanders, and the
+    // rocking flips sign every time it crosses between two views. With views this close together
+    // the quantisation is far less noticeable than the wobble was.
+    // A little hysteresis on top, so a heading sitting on a boundary does not flicker.
+    let k = Math.round(rel / step);
+    if (car._sheetK != null) {
+      let d = rel / step - car._sheetK;
+      while (d > N / 2) d -= N;
+      while (d < -N / 2) d += N;
+      if (Math.abs(d) < 0.62) k = car._sheetK;      // close enough: keep the view we are on
+    }
+    car._sheetK = k;
     // sheetRear names the view where the car points straight away from the camera
     const img = sheet[(((c.sheetRear || 0) + k) % N + N) % N];
     if (!img.complete || !img.naturalWidth) { this._drawStackCar(g, car); return; }
@@ -449,7 +461,8 @@ class Renderer {
     // the same for every view. Otherwise fall back to the width a box of this car would cover,
     // which is all we can infer from a sheet cropped view by view.
     const fixed = c.sheetW > 0;
-    const pw = fixed ? c.sheetW : (c.length * Math.abs(Math.sin(rel)) + c.width * Math.abs(Math.cos(rel))) * 1.06;
+    const shown = k * step;            // the angle actually on screen, so the size never breathes
+    const pw = fixed ? c.sheetW : (c.length * Math.abs(Math.sin(shown)) + c.width * Math.abs(Math.cos(shown))) * 1.06;
     const ax = fixed && c.sheetAnchor ? c.sheetAnchor[0] : 0.5;
     const ay = fixed && c.sheetAnchor ? c.sheetAnchor[1] : 0.82;
     const m = g.getTransform();
@@ -459,7 +472,6 @@ class Renderer {
     g.save();
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.translate(dx, dy);
-    g.rotate(rel - k * step);          // the leftover, at most half a step
     g.imageSmoothingEnabled = false;   // the sheets are pixel art: keep the edges hard
     g.drawImage(img, -wpx * ax, -hpx * ay, wpx, hpx);
     g.imageSmoothingEnabled = true;
