@@ -95,6 +95,10 @@ class Renderer {
     this.track = track;
     this.skids = [];
     this.particles = [];
+    // scenery: baked once, placed once, and only ever drawn in the tilted view where a billboard
+    // makes sense. Seen from straight above a standing prop would be nonsense.
+    if (!this.propArt) this.propArt = buildPropArt();
+    this.props = placeProps(track, track.id || track.name || 'track');
     const N = track.n, xs = track.xs, ys = track.ys, nx = track.nx, ny = track.ny;
     const STEP = 3;
     const edgePt = (i, side) => {
@@ -304,10 +308,20 @@ class Renderer {
       g.strokeStyle = '#2f2f36'; g.lineWidth = T.width + 2.4; g.stroke(b);
       g.strokeStyle = '#4b4b52'; g.lineWidth = T.width; g.stroke(b);
     }
-    const order = race.cars.slice().sort(this.tilt === 1
-      ? (a, b) => (a.isPlayer ? 1 : 0) - (b.isPlayer ? 1 : 0)
-      : (a, b) => a.pos.y - b.pos.y);
-    for (const car of order) this._drawCar(g, car);
+    if (this.tilt === 1) {
+      const order = race.cars.slice().sort((a, b) => (a.isPlayer ? 1 : 0) - (b.isPlayer ? 1 : 0));
+      for (const car of order) this._drawCar(g, car);
+    } else {
+      // tilted: whatever sits lower on screen is nearer, cars and scenery alike
+      const items = [];
+      for (const car of race.cars) items.push({ y: car.pos.y, car });
+      for (const p of this.props || []) {
+        if (p.x < vis.minX - 30 || p.x > vis.maxX + 30 || p.y < vis.minY - 30 || p.y > vis.maxY + 30) continue;
+        items.push({ y: p.y, prop: p });
+      }
+      items.sort((a, b) => a.y - b.y);
+      for (const it of items) { if (it.car) this._drawCar(g, it.car); else this._drawProp(g, it.prop); }
+    }
     for (const p of this.particles) {
       g.fillStyle = `rgba(${p.col},${Math.max(0, p.life) * 0.6})`;
       g.beginPath(); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); g.fill();
@@ -502,6 +516,25 @@ class Renderer {
       g.drawImage(tx.cv, -tx.w / 2, -tx.h / 2, tx.w, tx.h);
       g.restore();
     }
+  }
+
+  // A prop stands upright on the ground like a sheet car: its foot is at its world position and
+  // its art rises from there up the screen. The sprites carry their own cast shadow, so nothing is
+  // drawn under them.
+  _drawProp(g, prop) {
+    const art = this.propArt && this.propArt[prop.id];
+    if (!art || !art.img.complete || !art.img.naturalWidth) return;
+    const m = g.getTransform();
+    const dx = m.a * prop.x + m.c * prop.y + m.e, dy = m.b * prop.x + m.d * prop.y + m.f;
+    const wpx = art.wm * this.cam.zoom * this.dpr;
+    const hpx = wpx * art.img.naturalHeight / art.img.naturalWidth;
+    g.save();
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.translate(dx, dy);
+    g.imageSmoothingEnabled = false;
+    g.drawImage(art.img, -wpx * art.anchor[0], -hpx * art.anchor[1], wpx, hpx);
+    g.imageSmoothingEnabled = true;
+    g.restore();
   }
 
   _drawCar(g, car) {

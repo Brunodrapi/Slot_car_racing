@@ -124,6 +124,25 @@ la route, ligne jaune discontinue au milieu, marquages blancs sur les bords, vib
 épais, herbe saturée à taches carrées alignées sur une grille de pixels. Les voitures venant d'une
 planche sont dessinées **sans lissage**, pour que le pixel art reste net.
 
+### Décor
+
+Autour de la piste, `js/props.js` sème des objets debout — chênes, sapins, buissons, maisons, granges,
+barrières, puits, tonneaux, ruines. Ils viennent d'une planche de sprites isométriques découpée par
+`tools/env.py`, et portent leur propre ombre portée, passée en noir translucide pour qu'elle
+assombrisse l'herbe au lieu d'y poser une dalle de la couleur de la planche. Le semis est
+**déterministe** : un circuit retrouve toujours le même décor, d'une
+partie à l'autre. Chaque type indique la bande dans laquelle il aime se poser, mesurée depuis le bord
+de la piste : barrières, tonneaux et caisses collent aux graviers, les maisons se tiennent en
+retrait, les arbres remplissent entre les deux. Ces bandes sont serrées parce que la caméra ne montre
+qu'environ vingt-cinq mètres de chaque côté de la voiture ; plus loin, un objet existe mais
+n'apparaît jamais. Un candidat est refusé s'il tombe trop près d'un morceau quelconque du circuit —
+ce qui compte là où le tracé se replie — ou trop près d'un objet déjà posé.
+
+En vue isométrique, décor et voitures sont **triés ensemble** par leur position à l'écran, de sorte
+qu'une voiture passe devant un arbre placé plus haut et derrière un arbre placé plus bas.
+
+`sprites/env/README.md` donne la commande de découpe et la façon de brancher un nouvel objet.
+
 ## Vue isométrique
 
 Une caméra orthographique inclinée regardant une piste plate, c'est exactement un écrasement vertical
@@ -208,9 +227,12 @@ js/util.js                 helpers
 js/tracks.js               points de contrôle des circuits intégrés
 js/track.js                spline, courbure, largeur variable, trois lignes (auto ou dessinées), croisements
 js/cars.js                 catégories, modèles, livrées, noms des pilotes
+js/props.js                décor autour de la piste (types, semis déterministe)
 js/carart.js               dessins vectoriels des modèles + rendu des sprites perso (calques UR2D)
 sprites/                   planches de rotations pour la vue isométrique (v0…vN-1 par modèle)
+sprites/env/               objets de décor découpés dans sprites/environnement/
 tools/sheet.py             fabrique une planche à partir d'un dossier de rendus
+tools/env.py               découpe une planche de décor en objets séparés
 js/car.js                  physique (corps libre, deux trains), pilote automatique, profil de vitesse, IA de freinage et de choix de ligne, collisions
 js/race.js                 grille, départ, tours, classement, résultats
 js/career.js               coupes, déblocages, sauvegarde
@@ -234,6 +256,8 @@ node tools/step.js <circuit> <catégorie> [marge] [-v]                          
 node tools/sweep.js '[{},{"yawK":4}]'                                             # balayage des réglages physiques
 node tools/jump.js <circuit> <catégorie> <marge>                                  # continuité du déplacement
 python3 tools/sheet.py <dossier de rendus> <id du modèle> <longueur en m> [largeur]  # planche de rotations
+python3 tools/env.py <planche.png> sprites/env [--erode=6] [--shadow=r,g,b] …     # découpe une planche de décor
+NODE_PATH=$(npm root -g) node tools/propdbg.js <image.png>                        # décor visible et coût par image
 ```
 
 `tools/sheet.py` (Pillow requis, outil de développement seulement) transforme un dossier de rendus en
@@ -241,6 +265,10 @@ cadre fixe en planche utilisable : il retire le fond, garde la plus grande forme
 découpe toutes les vues à la même boîte, mesure l'échelle sur la vue de profil et affiche la ligne à
 coller dans `js/cars.js`. Les rendus doivent venir d'une caméra **orthographique immobile**, la voiture
 tournant sur son axe, une image par pas régulier d'un tour complet, dans le sens horaire à l'écran.
+
+`tools/env.py` (Pillow et NumPy requis) découpe une planche de décor : chaque tache de pixels
+non-fond devient un PNG détouré, et l'ombre portée de chacun passe en noir translucide pour qu'elle
+assombrisse l'herbe du jeu. Voir `sprites/env/README.md` pour les réglages employés.
 
 `marge` multiplie la vitesse de passage en courbe visée : ≤ 1 la voiture reste sur sa ligne, 1,1–1,2 elle
 glisse visiblement, au-delà elle part.
