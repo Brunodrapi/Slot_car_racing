@@ -17,7 +17,7 @@ function lapsFor(trackDef, cat) {
 const SAVE_KEY = 'slotracer.save.v2';
 
 function defaultSave() {
-  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, ctrl: 'auto', camRotate: true, view: 'track', showLines: false, debug: false, guideMigrated: true, cups: {}, bestLaps: {}, tutorialSeen: false, racesDone: 0 };
+  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, ctrl: 'auto', camRotate: false, view: 'iso', showLines: false, debug: false, guideMigrated: true, cups: {}, bestLaps: {}, tutorialSeen: false, racesDone: 0 };
 }
 
 function loadSave() {
@@ -47,16 +47,13 @@ function cupUnlocked(save, index) {
   return prev.done && prev.finalPos != null && prev.finalPos <= 3;
 }
 
+// With the career out of the way nothing is gated: every class and every track is available.
 function unlockedClasses(save) {
-  const set = new Set();
-  CUPS.forEach((c, i) => { if (cupUnlocked(save, i)) set.add(c.classId); });
-  return set;
+  return new Set(CATEGORIES.map(c => c.id));
 }
 
 function unlockedTracks(save) {
-  const set = new Set();
-  CUPS.forEach((c, i) => { if (cupUnlocked(save, i)) c.tracks.forEach(t => set.add(t)); });
-  return set;
+  return new Set(TRACKS.map(t => t.id));
 }
 
 function allUnlocked(save) {

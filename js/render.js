@@ -2,6 +2,16 @@
 // driving lines, cars, effects) + HUD (position, times, speed/grip, line slider, minimap).
 'use strict';
 
+// Cartoon palette, flat and saturated, in the spirit of an isometric pixel-art city.
+const PAL = {
+  grass: '#4e7a3a', grassLight: '#557f3f', grassDark: '#477036',
+  asphalt: '#33333c', asphaltLight: '#3b3b45',
+  outline: '#1a1a20',
+  edgeLine: '#d7d9dd', centreLine: '#e8bc32',
+  kerbRed: '#c33b30', kerbWhite: '#e9e9ee',
+  gravel: '#b9a271', gravelDark: '#a68f5f',
+};
+
 const LINE_COLORS = { inside: 'rgba(80,200,255,0.55)', racing: 'rgba(255,255,255,0.5)', outside: 'rgba(255,200,60,0.55)' };
 
 class Renderer {
@@ -63,15 +73,20 @@ class Renderer {
     this.mobile = mobile;
   }
 
+  // Cartoon ground: a flat saturated base with a few chunky patches, everything snapped to an
+  // 8 px grid so it reads as pixel art rather than noise.
   _makeGrass() {
     const c = document.createElement('canvas');
     c.width = c.height = 128;
     const g = c.getContext('2d');
-    g.fillStyle = '#5c9a3c';
+    g.fillStyle = PAL.grass;
     g.fillRect(0, 0, 128, 128);
-    for (let i = 0; i < 260; i++) {
-      g.fillStyle = Math.random() < 0.5 ? 'rgba(70,125,45,0.5)' : 'rgba(120,175,80,0.35)';
-      g.fillRect(Math.random() * 128, Math.random() * 128, 2 + Math.random() * 4, 2 + Math.random() * 4);
+    const cell = 8;
+    for (let i = 0; i < 26; i++) {
+      g.fillStyle = i % 3 === 0 ? PAL.grassLight : PAL.grassDark;
+      const x = Math.floor(Math.random() * 16) * cell, y = Math.floor(Math.random() * 16) * cell;
+      const w = (1 + Math.floor(Math.random() * 3)) * cell, h = (1 + Math.floor(Math.random() * 2)) * cell;
+      g.fillRect(x, y, w, h);
     }
     return c;
   }
@@ -95,6 +110,14 @@ class Renderer {
     left.closePath();
     for (let i = N - 1; i >= 0; i -= STEP) { const p = edgePt(i, -1); road.lineTo(p[0], p[1]); if (i === N - 1) right.moveTo(p[0], p[1]); else right.lineTo(p[0], p[1]); }
     road.closePath(); right.closePath();
+    // geometric middle of the road, for the painted centre line
+    const mid = new Path2D();
+    for (let i = 0; i < N; i += STEP) {
+      const k = i % N, off = (track.hwL[k] - track.hwR[k]) / 2;
+      const x = xs[k] + nx[k] * off, y = ys[k] + ny[k] * off;
+      if (i === 0) mid.moveTo(x, y); else mid.lineTo(x, y);
+    }
+    mid.closePath();
 
     const corners = track.corners.map(cn => {
       const l = new Path2D(), r = new Path2D(), gravel = new Path2D();
@@ -125,7 +148,7 @@ class Renderer {
       lines[name] = p;
     }
 
-    this.paths = { center, road, left, right, corners, bridges, lines };
+    this.paths = { center, mid, road, left, right, corners, bridges, lines };
     this.bgImage = null;
     if (track.image && track.image.src) {
       const img = new Image();
@@ -244,15 +267,25 @@ class Renderer {
 
     g.lineCap = 'round'; g.lineJoin = 'round';
     if (T.drawRoad) {
-      for (const cn of this.paths.corners) { if (!inView(cn.bbox)) continue; g.fillStyle = '#c9b98a'; g.fill(cn.gravel); }
-      g.fillStyle = '#4b4b52'; g.fill(this.paths.road);
-      g.strokeStyle = '#d8d8dc'; g.lineWidth = 0.7; g.stroke(this.paths.left); g.stroke(this.paths.right);
-      g.lineWidth = 1.3;
+      // gravel traps first, then the road itself with a heavy dark outline: the cartoon look
+      // comes from flat colours and hard edges rather than shading
+      for (const cn of this.paths.corners) { if (!inView(cn.bbox)) continue; g.fillStyle = PAL.gravel; g.fill(cn.gravel); }
+      g.strokeStyle = PAL.outline; g.lineWidth = 3.6; g.stroke(this.paths.road);
+      g.fillStyle = PAL.asphalt; g.fill(this.paths.road);
+      // painted markings: solid white at the edges, dashed yellow down the middle
+      g.strokeStyle = PAL.edgeLine; g.lineWidth = 0.55;
+      g.stroke(this.paths.left); g.stroke(this.paths.right);
+      g.setLineDash([2.6, 3.4]);
+      g.strokeStyle = PAL.centreLine; g.lineWidth = 0.42;
+      g.stroke(this.paths.mid);
+      g.setLineDash([]);
+      // kerbs on the corners, chunkier than before
+      g.lineWidth = 1.6;
       for (const cn of this.paths.corners) {
         if (!inView(cn.bbox)) continue;
         for (const edge of [cn.left, cn.right]) {
-          g.setLineDash([]); g.strokeStyle = '#d62828'; g.stroke(edge);
-          g.setLineDash([3, 3]); g.strokeStyle = '#f2f2f2'; g.stroke(edge);
+          g.setLineDash([]); g.strokeStyle = PAL.kerbRed; g.stroke(edge);
+          g.setLineDash([2.6, 2.6]); g.strokeStyle = PAL.kerbWhite; g.stroke(edge);
         }
       }
       g.setLineDash([]);
@@ -427,7 +460,9 @@ class Renderer {
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.translate(dx, dy);
     g.rotate(rel - k * step);          // the leftover, at most half a step
+    g.imageSmoothingEnabled = false;   // the sheets are pixel art: keep the edges hard
     g.drawImage(img, -wpx * ax, -hpx * ay, wpx, hpx);
+    g.imageSmoothingEnabled = true;
     g.restore();
   }
 

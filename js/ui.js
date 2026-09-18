@@ -117,12 +117,9 @@ class UI {
   // ---------- screens ----------
   menu() {
     const t = (k) => this.t(k);
-    const save = this.app.save;
-    const done = CUPS.filter((c) => cupState(save, c.id).done && cupState(save, c.id).finalPos <= 3).length;
     this.show(`
       <div class="title"><h1>${t('title')}</h1><p class="sub">${t('subtitle')}</p></div>
       <div class="menu">
-        <button class="big" data-action="career">${t('career')} <small>${done}/${CUPS.length}</small></button>
         <button class="big" data-action="setup" data-mode="race">${t('quickRace')}</button>
         <button class="big" data-action="setup" data-mode="timetrial">${t('timeTrial')}</button>
         <div class="row"><button data-action="editor">${t('editor')}</button><button data-action="workshop">${t('workshop')}</button><button data-action="settings">${t('settings')}</button></div>
@@ -152,8 +149,9 @@ class UI {
   setupScreen(mode) {
     const t = (k) => this.t(k), s = this.app.save, st = this.setup, app = this.app;
     st.mode = mode;
-    const uc = unlockedClasses(s), ut = unlockedTracks(s);
-    if (!uc.has(st.classId)) st.classId = CATEGORIES.find(c => uc.has(c.id)).id;
+    const cats = playableCategories();
+    if (!cats.find(c => c.id === st.classId)) st.classId = cats[0].id;
+    const ut = unlockedTracks(s);
     const tracks = app.allTracks();
     const trackOk = (tr) => tr.custom || ut.has(tr.id);
     if (!tracks.find(tr => tr.id === st.trackId && trackOk(tr))) st.trackId = tracks.find(trackOk).id;
@@ -166,15 +164,6 @@ class UI {
     const statBar = (v, max) => `<span class="stats"><i style="width:${Math.round(v / max * 100)}%"></i></span>`;
     this.show(`
       <div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${mode === 'race' ? t('quickRace') : t('timeTrial')}</h2></div>
-      <h3>${t('carClass')}</h3>
-      <div class="grid classes">
-        ${CATEGORIES.map(c => {
-          const locked = !uc.has(c.id);
-          return `<button class="card ${c.id === st.classId ? 'sel' : ''} ${locked ? 'locked' : ''}" data-action="pickClass" data-id="${c.id}" ${locked ? 'disabled' : ''}>
-            <img alt="" src="${this.carIcon(modelsOf(c.id)[0], livery)}">
-            <b>${this.L(c.name)}</b><small>${locked ? t('locked') : this.L(c.desc)}</small></button>`;
-        }).join('')}
-      </div>
       <h3>${t('model')} <span class="muted">· ${t('stats')}</span></h3>
       <div class="grid models">
         ${modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${m.id}">
@@ -306,7 +295,7 @@ class UI {
       <div class="cols">
         <div class="form">
           <label>${t('wsName')}<input id="ws-name" maxlength="24" placeholder="F40 LM"></label>
-          <label>${t('wsCat')}<select id="ws-cat">${CATEGORIES.map(c => `<option value="${c.id}">${this.L(c.name)}</option>`).join('')}</select></label>
+          <label>${t('wsCat')}<select id="ws-cat">${playableCategories().map(c => `<option value="${c.id}">${this.L(c.name)}</option>`).join('')}</select></label>
           <label>${t('wsLength')}<input id="ws-len" type="number" step="0.1" min="2" max="8" value="4.5"></label>
           <label>${t('wsWidth')}<input id="ws-wid" type="number" step="0.1" min="1" max="4" value="2"></label>
           <label>${t('wsSingle')}<input id="ws-single" type="file" accept="image/png,image/webp,image/jpeg"></label>

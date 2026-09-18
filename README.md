@@ -45,6 +45,12 @@ Le cadran ne peut jamais recouvrir le curseur de trajectoire : le pouce gauche g
 pouce droit emmène le cadran où il veut. Sur téléphone la minicarte passe en haut à droite, le bas de
 l'écran appartenant au pouce.
 
+> **Version allégée.** Le jeu se limite pour l'instant à la **course rapide** et au
+> **contre-la-montre**, avec une seule catégorie de voitures, et uniquement celles qui disposent
+> d'une planche de rotations. La carrière et les autres catégories restent dans le code, elles ne
+> sont simplement plus proposées : `SIMPLE` dans `js/cars.js` et le bouton du menu dans `js/ui.js`
+> suffisent à les rouvrir.
+
 Trois vues dans les réglages :
 
 - **Dessus, orientée piste** (par défaut) : la route monte toujours vers le haut de l'écran, ce qui
@@ -111,6 +117,13 @@ Quatre valeurs suffisent à lire le comportement de la voiture :
 seuils et les mêmes couleurs. Les deux angles de dérive (avant / arrière) et le braquage sont affichés en
 dessous : avant > arrière = sous-virage, arrière > avant = survirage.
 
+## Style
+
+Le décor vise un rendu **cartoon isométrique** : bitume sombre et plat, contour foncé marqué autour de
+la route, ligne jaune discontinue au milieu, marquages blancs sur les bords, vibreurs rouge et blanc
+épais, herbe saturée à taches carrées alignées sur une grille de pixels. Les voitures venant d'une
+planche sont dessinées **sans lissage**, pour que le pixel art reste net.
+
 ## Vue isométrique
 
 Une caméra orthographique inclinée regardant une piste plate, c'est exactement un écrasement vertical
@@ -141,16 +154,19 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
 
 ## Contenu
 
+- **4 voitures**, toutes dessinées à partir d'une planche de rotations : *M1 Procar*, *F40 LM*,
+  *911 Turbo* et *Testarossa*. Les trois premières sont en pixel art, la F40 LM en illustration ; son
+  style tranche avec les autres, une ligne dans `js/cars.js` suffit à la retirer.
 - **12 circuits** inspirés de vrais tracés : Monza, Spa-Francorchamps, Monaco, Silverstone, Suzuka
   (avec son pont), Interlagos, Laguna Seca, Nürburgring GP, Le Mans, Mount Panorama, Red Bull Ring, Zandvoort.
-- **4 catégories, 6 modèles chacune**, tous avec leurs stats et leur dessin :
+- Dans le code, toujours **4 catégories de 6 modèles**, avec leurs stats et leur dessin vectoriel,
+  même si une seule catégorie est proposée pour l'instant :
   - *F1 classiques* (Type 49, 312 F1, MS80, BT24, Type 72, M23) : peu d'appui, très instables ;
   - *F1 modernes* (Bull, Rosso, Silver Arrow, Papaya, AMR, A5) : très rapides, très stables ;
   - *GT* (M1 Procar, F40, Countach, 911 Turbo, Testarossa, XJ220) ;
   - *Prototypes classiques* (GT40, 917 K, 962 C, XJR-9, 787B, C9).
-- **Carrière** : 4 coupes (GT → Prototypes → F1 classiques → F1 modernes), points 25-18-15…,
-  adversaires fixes par coupe. Podium = coupe suivante débloquée.
 - **Course rapide** et **contre-la-montre** (records par circuit et catégorie), 3 niveaux de difficulté.
+- Une **carrière** en 4 coupes existe dans le code, actuellement masquée.
 - IA qui freine selon son talent, choisit sa ligne pour dépasser, aspire dans le sillage, se touche.
 - 12 livrées, français / anglais, son procédural, sauvegarde locale.
 
