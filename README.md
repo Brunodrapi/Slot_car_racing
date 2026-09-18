@@ -25,12 +25,20 @@ Fonctionne sur ordinateur (clavier / souris) et sur mobile (tactile, à ajouter 
 | Pause | `Échap` ou `P` | — |
 | Télémétrie | `G` | réglages |
 
-L'accélérateur est un **cadran en demi-lune**, façon *SpotRacers* : on maintient pour accélérer, on
-relâche pour freiner. C'est un contrôle flottant — il **vient se placer au-dessus du pouce**, sa base
-posée sur le doigt pour que rien ne soit masqué par la main, et il y reste. Au repos (clavier, souris,
-nouvelle course) il attend en bas au centre. Il sert en même temps de compteur : arc extérieur pour la
-vitesse, arc intérieur pour l'usage de l'adhérence avec une zone rouge au-delà de la limite, et le dôme
-s'illumine tant que le gaz est maintenu.
+L'accélérateur reprend le contrôle de *SpotRacers*, en trois morceaux :
+
+- une **pastille blanche** sur laquelle le pouce se pose : on maintient pour accélérer, on relâche pour
+  freiner. Elle s'enfonce légèrement tant que le gaz est maintenu ;
+- une **jauge en éventail** derrière elle, de l'arrêt à la vitesse maximale de la voiture, avec une
+  aiguille pâle à la vitesse courante ;
+- un **bandeau blanc** au-dessus, avec la vitesse en chiffres.
+
+C'est un contrôle flottant : il **vient se placer sur le pouce**, pastille centrée sur le doigt, donc
+la jauge et les chiffres se lisent au-dessus de la main. Il y reste, et revient en bas au centre pour
+une nouvelle course, une rotation d'écran, ou quand on joue au clavier.
+
+Le liseré de la pastille reste blanc tant qu'il y a de la marge, puis prend les couleurs de l'usage de
+l'adhérence (jaune, orange, rouge) : c'est la seule alerte dont on a besoin en course.
 
 Le cadran ne peut jamais recouvrir le curseur de trajectoire : le pouce gauche garde sa colonne, le
 pouce droit emmène le cadran où il veut. Sur téléphone la minicarte passe en haut à droite, le bas de

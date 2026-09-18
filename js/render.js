@@ -42,7 +42,7 @@ class Renderer {
     // centre; a thumb landing anywhere off the line slider moves it there, base on the finger, so
     // the whole dial reads above the hand instead of under it.
     const r = clamp(Math.min(W * 0.26, H * 0.17), 68, 130);
-    this.dialHome = { cx: W / 2, cy: H - pad - 8 };
+    this.dialHome = { cx: W / 2, cy: H - pad - r * 0.46 };   // at rest the pad shows in full
     this.dial = { cx: this.dialHome.cx, cy: this.dialHome.cy, r };
     this.dialAnchored = false;
     // vertical line slider, left side, clear of the dial
@@ -352,54 +352,68 @@ class Renderer {
     g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y); g.closePath();
   }
 
-  // The accelerator, SpotRacers style: a half-dome under the thumb that doubles as the speedometer.
-  // Pressing it (or anywhere in the throttle zone) accelerates; releasing brakes. The outer arc is
-  // the speed, the inner arc is grip usage, and the dome lights up while the throttle is held.
+  // The accelerator, built like the SpotRacers control: a white pad that sits under the thumb, a
+  // fan gauge running from a standstill to the car's top speed, and a white tab above it carrying
+  // the speed in figures. Everything that has to be read sits above the hand.
   _drawDial(g, p, t) {
     const d = this.dial, cx = d.cx, cy = d.cy, r = d.r;
-    const vmax = p.cls.vmax;
     const held = !!p.throttle;
     this.dialPress += ((held ? 1 : 0) - this.dialPress) * 0.25;   // eased press feedback
     const press = this.dialPress;
     const A0 = Math.PI, SPAN = Math.PI;
-
-    // dome body, lifted slightly while pressed
-    const rr = r * (1 + 0.03 * press);
-    g.beginPath(); g.arc(cx, cy, rr, A0, A0 + SPAN); g.closePath();
-    // lighter once it has left the bottom of the screen: there it sits over the road
-    const veil = this.dialAnchored ? 0.26 : 0.46;
-    g.fillStyle = `rgba(10,12,20,${veil + 0.12 * press})`; g.fill();
-    g.strokeStyle = `rgba(255,255,255,${0.14 + 0.25 * press})`; g.lineWidth = 2; g.stroke();
-
-    const arc = (rad, from, to, col, width) => {
-      if (to <= from) return;
-      g.beginPath(); g.arc(cx, cy, rad, from, to);
-      g.strokeStyle = col; g.lineWidth = width; g.lineCap = 'round'; g.stroke();
-    };
-    // speed arc
-    const sR = rr - 12, vf = clamp(Math.abs(p.v) / vmax, 0, 1);
-    arc(sR, A0, A0 + SPAN, 'rgba(255,255,255,0.16)', 11);
-    arc(sR, A0, A0 + SPAN * vf, held ? '#5fd0ff' : '#8ea6b4', 11);
-    // grip arc, same thresholds as the telemetry: 0.7 loaded, 1 drifting, 1.2 sliding, 1.5 lost
-    // Past the limit mark (usage 1) the background turns red, so the danger zone reads at a glance.
-    const gR = rr - 25, uf = clamp(p.loadRatio / 1.5, 0, 1), lim = SPAN / 1.5;
-    arc(gR, A0, A0 + lim, 'rgba(255,255,255,0.12)', 5);
-    arc(gR, A0 + lim, A0 + SPAN, 'rgba(255,80,80,0.28)', 5);
-    arc(gR, A0, A0 + SPAN * uf, Renderer.gripColor(p.loadRatio), 5);
-
-    // speed readout inside the dome
+    const rPad = r * 0.46, rIn = r * 0.54, rOut = r * 0.97;
+    const f = clamp(Math.max(0, p.speed) / p.cls.vmax, 0, 1);
     const kmh = Math.round(Math.max(0, p.speed) * 3.6);
+
+    // --- white tab with the speed in figures, tucked behind the fan ---
+    const cardW = r * 0.94, cardH = r * 0.72;
+    const cardX = cx - cardW / 2, cardY = cy - rOut - cardH + r * 0.10;
+    g.save();
+    g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 10; g.shadowOffsetY = 2;
+    g.fillStyle = '#f2f4f7'; this._roundRect(g, cardX, cardY, cardW, cardH, r * 0.16); g.fill();
+    g.restore();
     g.textAlign = 'center'; g.textBaseline = 'alphabetic';
-    g.shadowColor = 'rgba(0,0,0,0.85)'; g.shadowBlur = 6;
-    g.fillStyle = held ? '#bfe9ff' : '#e8e8ec';
-    g.font = `bold ${Math.round(r * 0.32)}px ui-monospace, monospace`;
-    g.fillText(String(kmh).padStart(3, '0'), cx, cy - r * 0.52);
-    g.font = `${Math.round(r * 0.12)}px system-ui, sans-serif`; g.fillStyle = '#9aa0ad';
-    g.fillText('km/h', cx, cy - r * 0.33);
-    g.font = `bold ${Math.round(r * 0.13)}px system-ui, sans-serif`;
-    g.fillStyle = held ? 'rgba(95,208,255,0.95)' : 'rgba(255,140,140,0.8)';
-    g.fillText(held ? t('gas') : t('brake'), cx, cy - r * 0.13);
-    g.shadowBlur = 0; g.textBaseline = 'top'; g.lineCap = 'butt';
+    g.fillStyle = '#4ec0e6'; g.font = `bold ${Math.round(r * 0.36)}px system-ui, sans-serif`;
+    g.fillText(String(kmh), cx, cardY + cardH * 0.55);
+    g.fillStyle = '#3ea8d2'; g.font = `600 ${Math.round(r * 0.15)}px system-ui, sans-serif`;
+    g.fillText('km/h', cx, cardY + cardH * 0.84);
+
+    // --- fan gauge: empty part, filled part up to the current speed, then the needle ---
+    const sector = (a0, a1, fill) => {
+      if (a1 <= a0) return;
+      g.beginPath();
+      g.arc(cx, cy, rOut, a0, a1);
+      g.arc(cx, cy, rIn, a1, a0, true);
+      g.closePath();
+      g.fillStyle = fill; g.fill();
+    };
+    g.save();
+    g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 10; g.shadowOffsetY = 2;
+    sector(A0, A0 + SPAN, 'rgba(120,200,228,0.85)');
+    g.restore();
+    sector(A0, A0 + SPAN * f, held ? '#2f86c8' : '#54839c');
+    const nA = A0 + SPAN * f, nW = 0.075;
+    sector(Math.max(A0, nA - nW), Math.min(A0 + SPAN, nA + nW), 'rgba(236,247,252,0.98)');
+    // white rim around the whole fan, as one piece
+    g.beginPath();
+    g.arc(cx, cy, rOut, A0, A0 + SPAN);
+    g.arc(cx, cy, rIn, A0 + SPAN, A0, true);
+    g.closePath();
+    g.strokeStyle = '#f2f4f7'; g.lineWidth = Math.max(3, r * 0.075); g.lineJoin = 'round'; g.stroke();
+
+    // --- the white pad: the thumb rests here, its rim warns when the tyres are working ---
+    const pr = rPad * (1 - 0.05 * press);
+    g.save();
+    g.shadowColor = 'rgba(0,0,0,0.4)'; g.shadowBlur = 12; g.shadowOffsetY = 3;
+    g.beginPath(); g.arc(cx, cy, pr, 0, Math.PI * 2);
+    g.fillStyle = press > 0.5 ? '#ccd5df' : '#dfe5ec'; g.fill();
+    g.restore();
+    // grip usage on the rim: white while there is margin, then the telemetry colours
+    const u = p.loadRatio;
+    g.beginPath(); g.arc(cx, cy, pr, 0, Math.PI * 2);
+    g.strokeStyle = u < 0.7 ? 'rgba(255,255,255,0.9)' : Renderer.gripColor(u);
+    g.lineWidth = Math.max(3, r * 0.07); g.stroke();
+    g.lineJoin = 'miter'; g.textBaseline = 'top';
   }
 
   // Move the dial so its flat base sits just above the thumb, kept fully on screen.
@@ -408,7 +422,8 @@ class Renderer {
     // never far enough left to cover the line slider: that column must stay reachable
     const lo = this.slider.x + 30 + d.r, hi = this.w - d.r - m;
     d.cx = hi > lo ? clamp(x, lo, hi) : hi;
-    d.cy = clamp(y - 10, d.r + 40, this.h - m);
+    // the pad is centred on the thumb; the fan and the tab need room above it
+    d.cy = clamp(y, d.r * 1.65 + m, this.h - m);
     this.dialAnchored = true;
   }
 
@@ -567,9 +582,8 @@ class Renderer {
     // The visible dome always wins: a thumb landing on it accelerates, wherever it has moved to.
     // It can never cover the slider column, so the line stays reachable in any case.
     if (d) {
-      // a small skirt below the base, where the thumb that carried the dial there actually rests
       const dx = x - d.cx, dy = y - d.cy;
-      if (dy <= 18 && dx * dx + dy * dy < (d.r + 12) * (d.r + 12)) return null;
+      if (dy <= d.r * 0.6 && dx * dx + dy * dy < (d.r + 12) * (d.r + 12)) return null;
     }
     const inZoneX = touchZone ? x < this.w * 0.42 : Math.abs(x - s.x) < 40;
     if (!inZoneX) return null;
