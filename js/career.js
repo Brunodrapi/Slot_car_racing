@@ -17,7 +17,7 @@ function lapsFor(trackDef, cat) {
 const SAVE_KEY = 'slotracer.save.v2';
 
 function defaultSave() {
-  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, ctrl: 'auto', camRotate: false, view: 'iso', showLines: false, debug: false, guideMigrated: true, isoMigrated: true, cups: {}, bestLaps: {}, tutorialSeen: false, racesDone: 0 };
+  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, ctrl: 'auto', camRotate: false, view: 'iso', showLines: false, debug: false, guideMigrated: true, isoMigrated: false, cups: {}, bestLaps: {}, tutorialSeen: false, racesDone: 0 };
 }
 
 function loadSave() {
@@ -29,8 +29,10 @@ function loadSave() {
     if (!save.guideMigrated) { save.showLines = false; save.guideMigrated = true; }
     // the camera used to be a two-way toggle; it is now a three-way view setting
     if (!save.view) save.view = save.camRotate === false ? 'fixed' : 'track';
-    // this build ships the isometric view: switch a browser over once, then leave the choice alone
-    if (!save.isoMigrated) { save.view = 'iso'; save.isoMigrated = true; }
+    // This build ships the isometric view: switch a browser over once, then leave the choice alone.
+    // The flag has to default to false, otherwise Object.assign above hands it to every old save
+    // and the migration never runs.
+    if (!save.isoMigrated) { save.view = 'iso'; save.isoMigrated = true; storeSave(save); }
     return save;
   } catch (e) { return defaultSave(); }
 }
