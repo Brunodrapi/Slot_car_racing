@@ -14,17 +14,20 @@ const W = +process.argv[3] || 1280, H = +process.argv[4] || 800;
   await page.click('[data-action="setup"][data-mode="race"]');
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${out}/02-setup.png`, fullPage: false });
-  await page.click('[data-action="career"]').catch(() => {});
-  await page.waitForTimeout(200);
-  // back to setup via menu
+  // pick the last car offered, so every sheet in the roster gets exercised over a run
+  const cars = await page.$$('[data-action="pickModel"]');
+  if (cars.length) { await cars[cars.length - 1].click(); await page.waitForTimeout(200); }
+  await page.screenshot({ path: `${out}/03-car.png` });
   await page.click('[data-action="menu"]');
-  await page.click('[data-action="career"]');
+  await page.waitForTimeout(200);
+  await page.click('[data-action="setup"][data-mode="timetrial"]');
   await page.waitForTimeout(300);
-  await page.screenshot({ path: `${out}/03-career.png` });
-  await page.click('[data-action="cup"][data-id="gt"]');
+  await page.screenshot({ path: `${out}/04-timetrial.png` });
+  await page.click('[data-action="menu"]');
+  await page.waitForTimeout(200);
+  await page.click('[data-action="setup"][data-mode="race"]');
   await page.waitForTimeout(300);
-  await page.screenshot({ path: `${out}/04-cup.png` });
-  await page.click('[data-action="startCup"]');
+  await page.click('[data-action="startQuick"]');
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${out}/05-countdown.png` });
   await page.keyboard.down('Space');

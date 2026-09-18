@@ -19,7 +19,7 @@ const out = process.argv[2] || '/tmp';
   await page.click('[data-action="workshop"]');
   await page.waitForTimeout(300);
   await page.fill('#ws-name', 'Proto Test');
-  await page.selectOption('#ws-cat', 'protoclassic');
+  await page.selectOption('#ws-cat', 'gt');
   await page.setInputFiles('#ws-folder', [
     { name: 'car_base.png', mimeType: 'image/png', buffer: Buffer.from(pngs.base, 'base64') },
     { name: 'car_color.png', mimeType: 'image/png', buffer: Buffer.from(pngs.color, 'base64') },
@@ -30,10 +30,9 @@ const out = process.argv[2] || '/tmp';
   console.log('ws msg:', await page.textContent('#ws-msg'));
   await page.screenshot({ path: `${out}/30-workshop.png` });
   // unlock everything for the test and pick the custom model
-  await page.evaluate(() => { for (const c of CUPS) app.save.cups[c.id] = { race: c.tracks.length, points: {}, done: true, finalPos: 1 }; storeSave(app.save); });
   await page.click('[data-action="menu"]');
   await page.click('[data-action="setup"][data-mode="race"]');
-  await page.click('[data-action="pickClass"][data-id="protoclassic"]');
+  await page.waitForTimeout(300);
   const customBtn = await page.$('button[data-action="pickModel"]:has-text("Proto Test")');
   console.log('custom model card:', !!customBtn);
   if (customBtn) await customBtn.click();

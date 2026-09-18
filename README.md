@@ -45,6 +45,12 @@ Le cadran ne peut jamais recouvrir le curseur de trajectoire : le pouce gauche g
 pouce droit emmène le cadran où il veut. Sur téléphone la minicarte passe en haut à droite, le bas de
 l'écran appartenant au pouce.
 
+> **Version allégée.** Le jeu se limite pour l'instant à la **course rapide** et au
+> **contre-la-montre**, avec une seule catégorie de voitures, et uniquement celles qui disposent
+> d'une planche de rotations. La carrière et les autres catégories restent dans le code, elles ne
+> sont simplement plus proposées : `SIMPLE` dans `js/cars.js` et le bouton du menu dans `js/ui.js`
+> suffisent à les rouvrir.
+>
 > **Cette branche est la version isométrique.** Elle est identique à la branche de développement à
 > une chose près : la vue isométrique y est active par défaut, y compris pour un navigateur qui avait
 > déjà joué. Les deux autres vues restent disponibles dans les réglages.
@@ -115,6 +121,13 @@ Quatre valeurs suffisent à lire le comportement de la voiture :
 seuils et les mêmes couleurs. Les deux angles de dérive (avant / arrière) et le braquage sont affichés en
 dessous : avant > arrière = sous-virage, arrière > avant = survirage.
 
+## Style
+
+Le décor vise un rendu **cartoon isométrique** : bitume sombre et plat, contour foncé marqué autour de
+la route, ligne jaune discontinue au milieu, marquages blancs sur les bords, vibreurs rouge et blanc
+épais, herbe saturée à taches carrées alignées sur une grille de pixels. Les voitures venant d'une
+planche sont dessinées **sans lissage**, pour que le pixel art reste net.
+
 ## Vue isométrique
 
 Une caméra orthographique inclinée regardant une piste plate, c'est exactement un écrasement vertical
@@ -128,8 +141,12 @@ Les voitures y prennent du volume de deux façons :
 - **Planche de rotations** si le modèle en fournit une (`sheet` dans `js/cars.js`, un dossier de
   `v0.png`…`vN-1.png` pris tous les 360/N degrés, `sheetRear` désignant la vue de dos). Le moteur
   prend la vue la plus proche du cap relatif à la caméra et applique le reste de l'angle en rotation
-  d'écran. L'échelle est calculée sur l'angle réel, sinon la voiture changerait brutalement de largeur
-  au moment de passer d'une vue à l'autre. La *F40 LM* est la première voiture convertie.
+  d'écran. Une planche rendue en **cadre fixe** déclare en plus sa largeur en mètres (`sheetW`) et
+  l'endroit où se pose la voiture dans l'image (`sheetAnchor`) : l'échelle est alors exacte et le
+  point d'appui ne bouge jamais d'une vue à l'autre. Sans ces deux valeurs, le moteur retombe sur la
+  largeur qu'occuperait une boîte aux dimensions de la voiture, tout ce qu'on peut déduire d'une
+  planche découpée vue par vue. La *Testarossa* (seize vues, cadre fixe) et la *F40 LM* (huit vues)
+  sont les premières converties.
 - **Empilement de sprites** sinon : la silhouette vue de dessus est dessinée à des hauteurs
   croissantes, ce qui sous une caméra inclinée la décale vers le haut de l'écran et lui donne des
   flancs. Aucun dessin nouveau n'est nécessaire, c'est juste au cap près, et le nombre de couches suit
@@ -141,16 +158,19 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
 
 ## Contenu
 
+- **4 voitures**, toutes dessinées à partir d'une planche de rotations : *M1 Procar*, *F40 LM*,
+  *911 Turbo* et *Testarossa*. Les trois premières sont en pixel art, la F40 LM en illustration ; son
+  style tranche avec les autres, une ligne dans `js/cars.js` suffit à la retirer.
 - **12 circuits** inspirés de vrais tracés : Monza, Spa-Francorchamps, Monaco, Silverstone, Suzuka
   (avec son pont), Interlagos, Laguna Seca, Nürburgring GP, Le Mans, Mount Panorama, Red Bull Ring, Zandvoort.
-- **4 catégories, 6 modèles chacune**, tous avec leurs stats et leur dessin :
+- Dans le code, toujours **4 catégories de 6 modèles**, avec leurs stats et leur dessin vectoriel,
+  même si une seule catégorie est proposée pour l'instant :
   - *F1 classiques* (Type 49, 312 F1, MS80, BT24, Type 72, M23) : peu d'appui, très instables ;
   - *F1 modernes* (Bull, Rosso, Silver Arrow, Papaya, AMR, A5) : très rapides, très stables ;
   - *GT* (M1 Procar, F40, Countach, 911 Turbo, Testarossa, XJ220) ;
   - *Prototypes classiques* (GT40, 917 K, 962 C, XJR-9, 787B, C9).
-- **Carrière** : 4 coupes (GT → Prototypes → F1 classiques → F1 modernes), points 25-18-15…,
-  adversaires fixes par coupe. Podium = coupe suivante débloquée.
 - **Course rapide** et **contre-la-montre** (records par circuit et catégorie), 3 niveaux de difficulté.
+- Une **carrière** en 4 coupes existe dans le code, actuellement masquée.
 - IA qui freine selon son talent, choisit sa ligne pour dépasser, aspire dans le sillage, se touche.
 - 12 livrées, français / anglais, son procédural, sauvegarde locale.
 
@@ -193,7 +213,8 @@ js/tracks.js               points de contrôle des circuits intégrés
 js/track.js                spline, courbure, largeur variable, trois lignes (auto ou dessinées), croisements
 js/cars.js                 catégories, modèles, livrées, noms des pilotes
 js/carart.js               dessins vectoriels des modèles + rendu des sprites perso (calques UR2D)
-sprites/                   planches de rotations pour la vue isométrique (v0…v7 par modèle)
+sprites/                   planches de rotations pour la vue isométrique (v0…vN-1 par modèle)
+tools/sheet.py             fabrique une planche à partir d'un dossier de rendus
 js/car.js                  physique (corps libre, deux trains), pilote automatique, profil de vitesse, IA de freinage et de choix de ligne, collisions
 js/race.js                 grille, départ, tours, classement, résultats
 js/career.js               coupes, déblocages, sauvegarde
@@ -216,7 +237,14 @@ NODE_PATH=$(npm root -g) node tools/e2e-workshop.js <dossier>                   
 node tools/step.js <circuit> <catégorie> [marge] [-v]                             # suivi de ligne d'une voiture seule
 node tools/sweep.js '[{},{"yawK":4}]'                                             # balayage des réglages physiques
 node tools/jump.js <circuit> <catégorie> <marge>                                  # continuité du déplacement
+python3 tools/sheet.py <dossier de rendus> <id du modèle> <longueur en m> [largeur]  # planche de rotations
 ```
+
+`tools/sheet.py` (Pillow requis, outil de développement seulement) transforme un dossier de rendus en
+cadre fixe en planche utilisable : il retire le fond, garde la plus grande forme et rebouche ses trous,
+découpe toutes les vues à la même boîte, mesure l'échelle sur la vue de profil et affiche la ligne à
+coller dans `js/cars.js`. Les rendus doivent venir d'une caméra **orthographique immobile**, la voiture
+tournant sur son axe, une image par pas régulier d'un tour complet, dans le sens horaire à l'écran.
 
 `marge` multiplie la vitesse de passage en courbe visée : ≤ 1 la voiture reste sur sa ligne, 1,1–1,2 elle
 glisse visiblement, au-delà elle part.
