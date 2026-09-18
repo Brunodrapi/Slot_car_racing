@@ -19,16 +19,22 @@ Fonctionne sur ordinateur (clavier / souris) et sur mobile (tactile, à ajouter 
 
 | Action | Ordinateur | Mobile |
 | --- | --- | --- |
-| Accélérer | maintenir n'importe quelle touche (Espace, etc.) ou le clic | maintenir le cadran en bas de l'écran (ou n'importe où hors du curseur) |
+| Accélérer | maintenir n'importe quelle touche (Espace, etc.) ou le clic | poser le pouce n'importe où hors du curseur |
 | Freiner | relâcher | relâcher |
 | Trajectoire | flèches (haut/bas ou gauche/droite), molette | pouce gauche sur le curseur vertical |
 | Pause | `Échap` ou `P` | — |
 | Télémétrie | `G` | réglages |
 
-L'accélérateur est un **cadran en demi-lune en bas de l'écran**, façon *SpotRacers* : on le maintient
-pour accélérer, on relâche pour freiner. Il sert en même temps de compteur (arc extérieur : vitesse,
-arc intérieur : usage de l'adhérence, zone rouge au-delà de la limite) et s'illumine tant que le gaz est
-maintenu. N'importe quel point de l'écran hors du curseur de trajectoire accélère aussi.
+L'accélérateur est un **cadran en demi-lune**, façon *SpotRacers* : on maintient pour accélérer, on
+relâche pour freiner. C'est un contrôle flottant — il **vient se placer au-dessus du pouce**, sa base
+posée sur le doigt pour que rien ne soit masqué par la main, et il y reste. Au repos (clavier, souris,
+nouvelle course) il attend en bas au centre. Il sert en même temps de compteur : arc extérieur pour la
+vitesse, arc intérieur pour l'usage de l'adhérence avec une zone rouge au-delà de la limite, et le dôme
+s'illumine tant que le gaz est maintenu.
+
+Le cadran ne peut jamais recouvrir le curseur de trajectoire : le pouce gauche garde sa colonne, le
+pouce droit emmène le cadran où il veut. Sur téléphone la minicarte passe en haut à droite, le bas de
+l'écran appartenant au pouce.
 
 La caméra s'oriente par défaut sur la piste (la route monte toujours vers le haut de l'écran), ce qui
 permet de voir loin devant même sur un téléphone en portrait. Vue fixe disponible dans les réglages.

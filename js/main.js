@@ -94,7 +94,11 @@ class App {
       if (touch) this.renderer.touch = true;
       const v = this.renderer.sliderValueAt(e.clientX, e.clientY, touch);
       if (v != null && this.pointers.slider == null) { this.pointers.slider = e.pointerId; this.input.sel = v; return; }
-      if (this.pointers.throttle == null) { this.pointers.throttle = e.pointerId; on(); }
+      if (this.pointers.throttle == null) {
+        this.pointers.throttle = e.pointerId;
+        if (touch) this.renderer.anchorDial(e.clientX, e.clientY);   // the dial comes to the thumb
+        on();
+      }
     });
     c.addEventListener('pointermove', (e) => {
       if (this.pointers.slider === e.pointerId) {
@@ -160,6 +164,7 @@ class App {
     this.race = new Race(opts);
     this.renderer.setTrack(this.race.track);
     this.renderer.cam.init = false;
+    this.renderer.homeDial();
     this.state = 'race';
     this.input.throttle = false;
     this.input.sel = 0;

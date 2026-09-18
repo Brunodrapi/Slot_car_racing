@@ -38,9 +38,13 @@ class Renderer {
   _layoutHud() {
     const W = this.w, H = this.h, mobile = W < 700;
     const pad = 14;
-    // throttle dial: a half-dome at the bottom centre, under the thumb, SpotRacers style
+    // Throttle dial: a half-dome that the thumb carries with it. At rest it waits at the bottom
+    // centre; a thumb landing anywhere off the line slider moves it there, base on the finger, so
+    // the whole dial reads above the hand instead of under it.
     const r = clamp(Math.min(W * 0.26, H * 0.17), 68, 130);
-    this.dial = { cx: W / 2, cy: H - pad - 8, r };
+    this.dialHome = { cx: W / 2, cy: H - pad - 8 };
+    this.dial = { cx: this.dialHome.cx, cy: this.dialHome.cy, r };
+    this.dialAnchored = false;
     // vertical line slider, left side, clear of the dial
     const len = Math.min(H * 0.38, 320);
     this.slider = { x: pad + 22, y: H - pad - 30 - len, len, w: 30 };
@@ -362,8 +366,10 @@ class Renderer {
     // dome body, lifted slightly while pressed
     const rr = r * (1 + 0.03 * press);
     g.beginPath(); g.arc(cx, cy, rr, A0, A0 + SPAN); g.closePath();
-    g.fillStyle = `rgba(10,12,20,${0.5 + 0.12 * press})`; g.fill();
-    g.strokeStyle = `rgba(255,255,255,${0.12 + 0.25 * press})`; g.lineWidth = 2; g.stroke();
+    // lighter once it has left the bottom of the screen: there it sits over the road
+    const veil = this.dialAnchored ? 0.26 : 0.46;
+    g.fillStyle = `rgba(10,12,20,${veil + 0.12 * press})`; g.fill();
+    g.strokeStyle = `rgba(255,255,255,${0.14 + 0.25 * press})`; g.lineWidth = 2; g.stroke();
 
     const arc = (rad, from, to, col, width) => {
       if (to <= from) return;
@@ -384,6 +390,7 @@ class Renderer {
     // speed readout inside the dome
     const kmh = Math.round(Math.max(0, p.speed) * 3.6);
     g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+    g.shadowColor = 'rgba(0,0,0,0.85)'; g.shadowBlur = 6;
     g.fillStyle = held ? '#bfe9ff' : '#e8e8ec';
     g.font = `bold ${Math.round(r * 0.32)}px ui-monospace, monospace`;
     g.fillText(String(kmh).padStart(3, '0'), cx, cy - r * 0.52);
@@ -392,7 +399,24 @@ class Renderer {
     g.font = `bold ${Math.round(r * 0.13)}px system-ui, sans-serif`;
     g.fillStyle = held ? 'rgba(95,208,255,0.95)' : 'rgba(255,140,140,0.8)';
     g.fillText(held ? t('gas') : t('brake'), cx, cy - r * 0.13);
-    g.textBaseline = 'top'; g.lineCap = 'butt';
+    g.shadowBlur = 0; g.textBaseline = 'top'; g.lineCap = 'butt';
+  }
+
+  // Move the dial so its flat base sits just above the thumb, kept fully on screen.
+  anchorDial(x, y) {
+    const d = this.dial, m = 8;
+    // never far enough left to cover the line slider: that column must stay reachable
+    const lo = this.slider.x + 30 + d.r, hi = this.w - d.r - m;
+    d.cx = hi > lo ? clamp(x, lo, hi) : hi;
+    d.cy = clamp(y - 10, d.r + 40, this.h - m);
+    this.dialAnchored = true;
+  }
+
+  // back to the bottom centre (new race, orientation change)
+  homeDial() {
+    if (!this.dialHome) return;
+    this.dial.cx = this.dialHome.cx; this.dial.cy = this.dialHome.cy;
+    this.dialAnchored = false;
   }
 
   static gripColor(u) { return u < 0.7 ? '#5be07a' : u < 1 ? '#ffd23f' : u < 1.2 ? '#ff9f2e' : u < 1.5 ? '#ff4b4b' : '#c74bff'; }
@@ -456,17 +480,15 @@ class Renderer {
     g.fillText(`${t('last')} ${last != null ? fmtTime(last) : '--:--.---'}`, W - pad - 12, pad + (mobile ? 32 : 40));
     g.fillText(`${t('best')} ${p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---'}`, W - pad - 12, pad + (mobile ? 46 : 56));
 
-    // bottom centre: the throttle dial (speed, grip, and the accelerator itself)
-    this._drawDial(g, p, t);
-
     // line slider (left thumb)
     this._drawSlider(g, p, t);
 
     // minimap bottom-right
     if (this.mm) {
-      // on a phone the throttle dome reaches the bottom-right corner, so the map sits above it
+      // On a phone the bottom-right corner belongs to the thumb, so the map moves up under the
+      // times. On a desktop there is no thumb and it stays in the corner.
       const m = this.mm, mx = W - pad - m.size;
-      const my = H - pad - m.size - (mobile ? Math.round(this.dial.r * 0.85) : 0);
+      const my = mobile ? pad + boxH + 10 : H - pad - m.size;
       panel(mx, my, m.size, m.size);
       g.drawImage(m.canvas, mx, my, m.size, m.size);
       for (const car of race.cars) {
@@ -492,8 +514,12 @@ class Renderer {
       });
     }
 
+    // the throttle dial goes on top of the map and the standings: it is the live control
+    this._drawDial(g, p, t);
+
     // telemetry overlay (G key or settings): the four numbers that describe the car's state
-    if (this.debug) this._drawDebug(g, p, mobile ? 150 + pad * 2 : 200 + pad * 2, pad + boxH + 10);
+    const dbgY = pad + boxH + 10 + (mobile && this.mm ? this.mm.size + 10 : 0);
+    if (this.debug) this._drawDebug(g, p, mobile ? 150 + pad * 2 : 200 + pad * 2, dbgY);
 
     // countdown
     if (race.state === 'countdown') {
@@ -538,8 +564,13 @@ class Renderer {
   // maps a screen point in the slider zone to a selection value; null if outside the zone
   sliderValueAt(x, y, touchZone) {
     const s = this.slider, d = this.dial;
-    // the throttle dial owns its dome: a thumb landing there accelerates, it never changes the line
-    if (d) { const dx = x - d.cx, dy = y - d.cy; if (dy <= 0 && dx * dx + dy * dy < (d.r + 12) * (d.r + 12)) return null; }
+    // The visible dome always wins: a thumb landing on it accelerates, wherever it has moved to.
+    // It can never cover the slider column, so the line stays reachable in any case.
+    if (d) {
+      // a small skirt below the base, where the thumb that carried the dial there actually rests
+      const dx = x - d.cx, dy = y - d.cy;
+      if (dy <= 18 && dx * dx + dy * dy < (d.r + 12) * (d.r + 12)) return null;
+    }
     const inZoneX = touchZone ? x < this.w * 0.42 : Math.abs(x - s.x) < 40;
     if (!inZoneX) return null;
     if (!touchZone && (y < s.y - 30 || y > s.y + s.len + 30)) return null;
