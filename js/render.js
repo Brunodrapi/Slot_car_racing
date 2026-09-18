@@ -392,8 +392,11 @@ class Renderer {
     sector(A0, A0 + SPAN, 'rgba(120,200,228,0.85)');
     g.restore();
     sector(A0, A0 + SPAN * f, held ? '#2f86c8' : '#54839c');
-    const nA = A0 + SPAN * f, nW = 0.075;
-    sector(Math.max(A0, nA - nW), Math.min(A0 + SPAN, nA + nW), 'rgba(236,247,252,0.98)');
+    // the needle also carries grip usage: pale while there is margin, then the telemetry colours
+    const u = p.loadRatio;
+    // it also thickens as the tyres load up, so the warning catches the eye without moving
+    const nA = A0 + SPAN * f, nW = 0.075 * (1 + 0.6 * clamp((u - 0.7) / 0.8, 0, 1));
+    sector(Math.max(A0, nA - nW), Math.min(A0 + SPAN, nA + nW), u < 0.7 ? 'rgba(236,247,252,0.98)' : Renderer.gripColor(u));
     // white rim around the whole fan, as one piece
     g.beginPath();
     g.arc(cx, cy, rOut, A0, A0 + SPAN);
@@ -408,10 +411,8 @@ class Renderer {
     g.beginPath(); g.arc(cx, cy, pr, 0, Math.PI * 2);
     g.fillStyle = press > 0.5 ? '#ccd5df' : '#dfe5ec'; g.fill();
     g.restore();
-    // grip usage on the rim: white while there is margin, then the telemetry colours
-    const u = p.loadRatio;
     g.beginPath(); g.arc(cx, cy, pr, 0, Math.PI * 2);
-    g.strokeStyle = u < 0.7 ? 'rgba(255,255,255,0.9)' : Renderer.gripColor(u);
+    g.strokeStyle = 'rgba(255,255,255,0.92)';
     g.lineWidth = Math.max(3, r * 0.07); g.stroke();
     g.lineJoin = 'miter'; g.textBaseline = 'top';
   }

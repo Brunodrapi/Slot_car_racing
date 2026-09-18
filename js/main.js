@@ -104,7 +104,10 @@ class App {
       if (this.pointers.slider === e.pointerId) {
         const v = this.renderer.sliderValueAt(e.clientX, e.clientY, true);
         if (v != null) this.input.sel = v;
+        return;
       }
+      // the dial stays under the thumb: sliding without lifting carries it along
+      if (this.pointers.throttle === e.pointerId && e.pointerType === 'touch') this.renderer.anchorDial(e.clientX, e.clientY);
     });
     const release = (e) => {
       if (this.pointers.slider === e.pointerId) this.pointers.slider = null;

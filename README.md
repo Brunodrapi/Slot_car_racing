@@ -30,15 +30,16 @@ L'accélérateur reprend le contrôle de *SpotRacers*, en trois morceaux :
 - une **pastille blanche** sur laquelle le pouce se pose : on maintient pour accélérer, on relâche pour
   freiner. Elle s'enfonce légèrement tant que le gaz est maintenu ;
 - une **jauge en éventail** derrière elle, de l'arrêt à la vitesse maximale de la voiture, avec une
-  aiguille pâle à la vitesse courante ;
+  aiguille à la vitesse courante ;
 - un **bandeau blanc** au-dessus, avec la vitesse en chiffres.
 
-C'est un contrôle flottant : il **vient se placer sur le pouce**, pastille centrée sur le doigt, donc
-la jauge et les chiffres se lisent au-dessus de la main. Il y reste, et revient en bas au centre pour
-une nouvelle course, une rotation d'écran, ou quand on joue au clavier.
+C'est un contrôle flottant : il **suit le pouce**, pastille centrée sur le doigt, donc la jauge et les
+chiffres se lisent au-dessus de la main. Glisser sans lever l'emmène avec soi. Il revient en bas au
+centre pour une nouvelle course, une rotation d'écran, ou quand on joue au clavier.
 
-Le liseré de la pastille reste blanc tant qu'il y a de la marge, puis prend les couleurs de l'usage de
-l'adhérence (jaune, orange, rouge) : c'est la seule alerte dont on a besoin en course.
+**L'aiguille porte aussi l'adhérence** : pâle tant qu'il y a de la marge, puis jaune, orange et rouge
+selon l'usage des pneus, en s'épaississant. Un seul repère dit donc à la fois où on en est en vitesse
+et combien il reste de marge.
 
 Le cadran ne peut jamais recouvrir le curseur de trajectoire : le pouce gauche garde sa colonne, le
 pouce droit emmène le cadran où il veut. Sur téléphone la minicarte passe en haut à droite, le bas de
