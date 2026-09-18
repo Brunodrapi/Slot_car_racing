@@ -24,7 +24,10 @@ from PIL import Image
 QUANT = 64          # palette size; these renders are flat-shaded so this is plenty
 
 
-def greyish(p):
+def is_bg(p):
+    """Backdrop: either already transparent, or the flat grey some renders sit on."""
+    if len(p) > 3 and p[3] < 16:
+        return True
     r, g, b = p[0], p[1], p[2]
     mn, mx = min(r, g, b), max(r, g, b)
     return (mx - mn) <= 32 and 40 <= mn <= 210
@@ -46,7 +49,7 @@ def frame_inset(img):
                 line = [px[d, y] for y in range(0, h, 3)]
             else:
                 line = [px[w - 1 - d, y] for y in range(0, h, 3)]
-            if sum(1 for p in line if greyish(p)) > len(line) * 0.85:
+            if sum(1 for p in line if is_bg(p)) > len(line) * 0.85:
                 found = d
                 break
         worst = max(worst, found)
@@ -54,14 +57,44 @@ def frame_inset(img):
 
 
 def isolate(img):
-    """Keep the biggest non-backdrop blob and fill its holes."""
+    """Cut the backdrop away, keeping everything the car is made of.
+
+    The backdrop is found by flooding inward from the border, never by testing colours on their
+    own: a car has grey in it too, chrome bumpers and wheels, and judging pixel by pixel eats
+    those. The car's dark outline stops the flood at its edge, so its own greys survive. Sources
+    that already carry an alpha channel work the same way, their transparency counts as backdrop.
+    """
     w, h = img.size
     px = img.load()
-    solid = bytearray(w * h)
+    bg = bytearray(w * h)
+    q = deque()
+    for x in range(w):
+        for y in (0, h - 1):
+            k = y * w + x
+            if is_bg(px[x, y]) and not bg[k]:
+                bg[k] = 1
+                q.append(k)
     for y in range(h):
-        for x in range(w):
-            if not greyish(px[x, y]):
-                solid[y * w + x] = 1
+        for x in (0, w - 1):
+            k = y * w + x
+            if is_bg(px[x, y]) and not bg[k]:
+                bg[k] = 1
+                q.append(k)
+    while q:
+        k = q.popleft()
+        x, y = k % w, k // w
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < w and 0 <= ny < h:
+                nk = ny * w + nx
+                if not bg[nk] and is_bg(px[nx, ny]):
+                    bg[nk] = 1
+                    q.append(nk)
+    solid = bytearray(w * h)
+    for k in range(w * h):
+        if not bg[k]:
+            solid[k] = 1
+    # leftover pieces of the decorative border survive as their own blobs; the car is the biggest
     seen = bytearray(w * h)
     best, best_n = None, 0
     for s in range(w * h):
