@@ -11,11 +11,18 @@ python3 tools/env.py sprites/environnement/image.png sprites/env \
   --shadow=14,26,61 --shadowtol=24 --shadowa=95 --light=1.4
 ```
 
+Les numéros de fichiers dépendent des réglages : refaire la découpe autrement les renumérote, et
+les chemins de `js/props.js` sont alors à reprendre. D'où cette commande, fixée ici.
+
 Ce que font les réglages, sur cette planche-là :
 
 - `--ignore=0,0,180,50` jette le filigrane en haut à gauche ;
 - `--erode=6` amincit les formes avant de les séparer : sans ça, deux objets voisins dont les
-  ombres se touchent sortent collés. Les pixels retirés sont rendus ensuite ;
+  ombres se touchent sortent collés. L'amincissement ne sert **qu'à décider où passe la coupure** :
+  ensuite chaque pixel retiré revient à l'objet dont il est le plus proche, sans limite de
+  distance. Une première version ne regrossissait que de six pixels, et tout ce qui était plus
+  fin que douze — une rambarde, une branche, un poteau de perron — disparaissait. L'outil vérifie
+  maintenant qu'aucune tache gardée n'a perdu de matière, et sort en erreur sinon ;
 - `--min=800` laisse de côté les touffes d'herbe et les cailloux isolés ;
 - `--shadow=14,26,61` est le bleu très sombre de la planche. L'ombre portée **et** les faces non
   éclairées partagent cette couleur : ce qui les sépare, c'est la place, et l'outil ferme la

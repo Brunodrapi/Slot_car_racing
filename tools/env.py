@@ -5,8 +5,9 @@
 
       --tol=26            tolerance de couleur du fond
       --gap=0             deux morceaux distants de moins de N pixels vont ensemble
-      --erode=0           amincit de N pixels avant le decoupage, pour couper les ombres
-                          qui se touchent, puis rend les pixels aux objets
+      --erode=0           amincit de N pixels avant le decoupage, pour couper les ombres qui se
+                          touchent. Rien n'est perdu : chaque pixel retire revient a l'objet
+                          dont il est le plus proche
       --min=400           taille minimale d'un sprite, en pixels
       --ignore=x0,y0,x1,y1   zone a jeter (un filigrane, par exemple), repetable
       --shadow=r,g,b      couleur de l'ombre portee de la planche : ces pixels deviennent du
@@ -84,11 +85,13 @@ def label(mask):
         for x0, x1 in zip(starts, ends):
             parent.append(len(parent))
             cur = len(parent) - 1
-            for (p0, p1), pid in zip(runs_prev, ids_prev):   # 8-voisins : les runs se touchent en diagonale
-                if p0 <= x1 and x0 <= p1:
+            # 8-voisins : le run [x0, x1[ touche le run [p0, p1[ de la ligne du dessus des que
+            # leurs colonnes se chevauchent a un pixel pres, en diagonale comprise
+            for (p0, p1), pid in zip(runs_prev, ids_prev):
+                if p0 < x1 and x0 <= p1:
                     union(cur, pid)
             lab[y, x0:x1] = cur
-            runs.append((x0 - 1, x1))
+            runs.append((x0, x1))
             ids.append(cur)
         runs_prev, ids_prev = runs, ids
     if len(parent) == 1:
@@ -117,19 +120,30 @@ def close(mask, r):
     return erode(dilate(mask, r), r) if r else mask
 
 
-def dilate_labels(lab, r, within):
-    """Regrossit chaque etiquette de r pixels, sans deborder de `within` ni sur une voisine."""
+def grow_labels(lab, within):
+    """Rend a chaque etiquette tous les pixels de `within` qui lui sont les plus proches.
+
+    L'amincissement qui precede sert seulement a decider ou passe la coupure entre deux objets
+    colles : il ne doit rien supprimer. On regrossit donc jusqu'a ce que plus aucun pixel ne
+    reste sans etiquette, sans quoi tout ce qui est plus fin que deux fois l'amincissement --
+    une rambarde, une branche, un poteau de perron -- disparaitrait de la planche.
+    """
     out = lab.copy()
-    for _ in range(r):
+    while True:
         m = out
         out = m.copy()
-        for src, dst in (((slice(None, -1), slice(None)), (slice(1, None), slice(None))),
-                         ((slice(1, None), slice(None)), (slice(None, -1), slice(None))),
-                         ((slice(None), slice(None, -1)), (slice(None), slice(1, None))),
-                         ((slice(None), slice(1, None)), (slice(None), slice(None, -1)))):
-            take = (out[dst] == 0) & (m[src] > 0) & within[dst]
-            out[dst] = np.where(take, m[src], out[dst])
-    return out
+        for dy in (-1, 0, 1):                       # huit voisins, comme le decoupage : en
+            for dx in (-1, 0, 1):                     # quatre voisins, un pixel relie seulement
+                if not dy and not dx:                 # en diagonale ne serait jamais repris
+                    continue
+                sy = slice(max(0, -dy), None if dy <= 0 else -dy)
+                dy_ = slice(max(0, dy), None if dy >= 0 else dy)
+                sx = slice(max(0, -dx), None if dx <= 0 else -dx)
+                dx_ = slice(max(0, dx), None if dx >= 0 else dx)
+                take = (out[dy_, dx_] == 0) & (m[sy, sx] > 0) & within[dy_, dx_]
+                out[dy_, dx_] = np.where(take, m[sy, sx], out[dy_, dx_])
+        if (out > 0).sum() == (m > 0).sum():
+            return out
 
 
 def main():
@@ -160,7 +174,7 @@ def main():
     core = erode(dilate(fg, gap) if gap else fg, er)
     lab, ids = label(core)
     if er:
-        lab = np.where(fg, dilate_labels(lab, er, fg), 0)
+        lab = np.where(fg, grow_labels(lab, fg), 0)
     print(f'{img.width}x{img.height}, fond {bg.mean():.0%}, {len(ids)} taches')
 
     boxes = []
@@ -213,6 +227,24 @@ def main():
     with open(os.path.join(out_dir, 'sheet.json'), 'w') as f:
         json.dump({'source': os.path.basename(src), 'sprites': meta}, f, indent=1)
     print(f'{len(meta)} sprites ecrits dans {out_dir}')
+
+    # Verification. Une tache de la planche qui disparait entierement sous l'amincissement est
+    # sans consequence : elle est plus fine que lui, donc bien plus petite que --min, et on ne la
+    # voulait pas. Ce qui est grave, c'est une tache dont une partie seulement revient : la
+    # matiere manquante est alors un morceau d'objet -- une rambarde, une branche, un poteau de
+    # perron -- et le degat part en eclats trop petits pour se voir sur une vignette.
+    raw, raw_ids = label(fg)
+    orphan = fg & (lab == 0)
+    hurt = 0
+    for r in sorted(raw_ids):
+        blob = raw == r
+        miss = int((blob & orphan).sum())
+        if miss and (blob & ~orphan).any():
+            hurt += miss
+    print(f'matiere : {int(fg.sum())} px, {int(orphan.sum())} px laisses de cote')
+    if hurt:
+        print(f"  ATTENTION : {hurt} px ont ete ronges sur des objets gardes")
+        return 2
     return 0
 
 
