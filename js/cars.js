@@ -6,6 +6,7 @@
 //  slipPeak body slip angle (rad) at which the tyres give their maximum: bigger = lazier, more visible drift
 //  roadScale (road width factor) · zoom (camera)
 //  sheet: folder of a rotation sheet (v0..vN-1.png) used by the isometric view; sheetRear names the rear view
+//  sheetW / sheetAnchor: for a sheet rendered in a fixed frame, its width in metres and the ground point
 'use strict';
 
 const CATEGORIES = [
@@ -47,7 +48,7 @@ const CATEGORIES = [
       { id: 'f40', name: 'F40', shape: 'f40', mul: { vmax: 1.05, accel: 1.06, grip: 0.98, df: 1.5 }, colors: ['#e0262c', '#22242b'], sheet: 'sprites/f40lm', sheetN: 8, sheetRear: 3 },
       { id: 'countach', name: 'Countach LP500', shape: 'wedgeGT', mul: { vmax: 1.03, accel: 1.02, grip: 0.95, brake: 0.95 }, colors: ['#ffd400', '#22242b'] },
       { id: '930', name: '911 Turbo', shape: 'roundGT', mul: { vmax: 0.99, accel: 1.04, grip: 0.97, slide: 1.2 }, colors: ['#c9ced6', '#e0262c'] },
-      { id: 'testarossa', name: 'Testarossa', shape: 'wideGT', mul: { vmax: 1.0, grip: 1.0, brake: 0.98 }, colors: ['#e0262c', '#f4f4f4'] },
+      { id: 'testarossa', name: 'Testarossa', shape: 'wideGT', mul: { vmax: 1.0, grip: 1.0, brake: 0.98 }, colors: ['#e0262c', '#f4f4f4'], sheet: 'sprites/testarossa', sheetN: 16, sheetRear: 12, sheetW: 5.125, sheetAnchor: [0.512, 0.862] },
       { id: 'xj220', name: 'XJ220', shape: 'wideGT', mul: { vmax: 1.07, accel: 0.98, grip: 1.0, df: 1.3 }, colors: ['#12b5a8', '#f4f4f4'] },
     ],
   },
@@ -96,6 +97,9 @@ function resolveModel(cat, m) {
     id: m.id, catId: cat.id, name: m.name, shape: m.shape, colors: m.colors, custom: !!m.custom, sprite: m.sprite || null,
     // optional rotation sheet for the isometric view: folder of v0..v(N-1).png, sheetRear = the rear view
     sheet: m.sheet || null, sheetN: m.sheetN || 8, sheetRear: m.sheetRear || 0,
+    // a sheet rendered in a fixed frame also states its width in metres and where the car's
+    // ground point sits in the image, which beats guessing the scale from the silhouette
+    sheetW: m.sheetW || 0, sheetAnchor: m.sheetAnchor || null,
     vmax: b.vmax * (mul.vmax || 1), accel: b.accel * (mul.accel || 1), brake: b.brake * (mul.brake || 1),
     grip: b.grip * (mul.grip || 1), df: b.df * (mul.df || 1), slide: b.slide * (mul.slide || 1), laneK: b.laneK,
     // handling balance: a model's `slide` multiplier above 1 makes it more tail-happy

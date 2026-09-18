@@ -412,8 +412,13 @@ class Renderer {
     if (!img.complete || !img.naturalWidth) { this._drawStackCar(g, car); return; }
     this._carShadow(g, car);
     if (car.isPlayer) this._playerRing(g, car);
-    // a box of length L and width W seen from this angle covers this much width on screen
-    const pw = (c.length * Math.abs(Math.sin(rel)) + c.width * Math.abs(Math.cos(rel))) * 1.06;
+    // A sheet rendered in a fixed frame states its own width in metres, so the scale is exact and
+    // the same for every view. Otherwise fall back to the width a box of this car would cover,
+    // which is all we can infer from a sheet cropped view by view.
+    const fixed = c.sheetW > 0;
+    const pw = fixed ? c.sheetW : (c.length * Math.abs(Math.sin(rel)) + c.width * Math.abs(Math.cos(rel))) * 1.06;
+    const ax = fixed && c.sheetAnchor ? c.sheetAnchor[0] : 0.5;
+    const ay = fixed && c.sheetAnchor ? c.sheetAnchor[1] : 0.82;
     const m = g.getTransform();
     const dx = m.a * pos.x + m.c * pos.y + m.e, dy = m.b * pos.x + m.d * pos.y + m.f;
     const wpx = pw * this.cam.zoom * this.dpr;
@@ -422,7 +427,7 @@ class Renderer {
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.translate(dx, dy);
     g.rotate(rel - k * step);          // the leftover, at most half a step
-    g.drawImage(img, -wpx / 2, -hpx * 0.82, wpx, hpx);
+    g.drawImage(img, -wpx * ax, -hpx * ay, wpx, hpx);
     g.restore();
   }
 

@@ -124,8 +124,12 @@ Les voitures y prennent du volume de deux façons :
 - **Planche de rotations** si le modèle en fournit une (`sheet` dans `js/cars.js`, un dossier de
   `v0.png`…`vN-1.png` pris tous les 360/N degrés, `sheetRear` désignant la vue de dos). Le moteur
   prend la vue la plus proche du cap relatif à la caméra et applique le reste de l'angle en rotation
-  d'écran. L'échelle est calculée sur l'angle réel, sinon la voiture changerait brutalement de largeur
-  au moment de passer d'une vue à l'autre. La *F40 LM* est la première voiture convertie.
+  d'écran. Une planche rendue en **cadre fixe** déclare en plus sa largeur en mètres (`sheetW`) et
+  l'endroit où se pose la voiture dans l'image (`sheetAnchor`) : l'échelle est alors exacte et le
+  point d'appui ne bouge jamais d'une vue à l'autre. Sans ces deux valeurs, le moteur retombe sur la
+  largeur qu'occuperait une boîte aux dimensions de la voiture, tout ce qu'on peut déduire d'une
+  planche découpée vue par vue. La *Testarossa* (seize vues, cadre fixe) et la *F40 LM* (huit vues)
+  sont les premières converties.
 - **Empilement de sprites** sinon : la silhouette vue de dessus est dessinée à des hauteurs
   croissantes, ce qui sous une caméra inclinée la décale vers le haut de l'écran et lui donne des
   flancs. Aucun dessin nouveau n'est nécessaire, c'est juste au cap près, et le nombre de couches suit
@@ -189,7 +193,8 @@ js/tracks.js               points de contrôle des circuits intégrés
 js/track.js                spline, courbure, largeur variable, trois lignes (auto ou dessinées), croisements
 js/cars.js                 catégories, modèles, livrées, noms des pilotes
 js/carart.js               dessins vectoriels des modèles + rendu des sprites perso (calques UR2D)
-sprites/                   planches de rotations pour la vue isométrique (v0…v7 par modèle)
+sprites/                   planches de rotations pour la vue isométrique (v0…vN-1 par modèle)
+tools/sheet.py             fabrique une planche à partir d'un dossier de rendus
 js/car.js                  physique (corps libre, deux trains), pilote automatique, profil de vitesse, IA de freinage et de choix de ligne, collisions
 js/race.js                 grille, départ, tours, classement, résultats
 js/career.js               coupes, déblocages, sauvegarde
@@ -212,7 +217,14 @@ NODE_PATH=$(npm root -g) node tools/e2e-workshop.js <dossier>                   
 node tools/step.js <circuit> <catégorie> [marge] [-v]                             # suivi de ligne d'une voiture seule
 node tools/sweep.js '[{},{"yawK":4}]'                                             # balayage des réglages physiques
 node tools/jump.js <circuit> <catégorie> <marge>                                  # continuité du déplacement
+python3 tools/sheet.py <dossier de rendus> <id du modèle> <longueur en m> [largeur]  # planche de rotations
 ```
+
+`tools/sheet.py` (Pillow requis, outil de développement seulement) transforme un dossier de rendus en
+cadre fixe en planche utilisable : il retire le fond, garde la plus grande forme et rebouche ses trous,
+découpe toutes les vues à la même boîte, mesure l'échelle sur la vue de profil et affiche la ligne à
+coller dans `js/cars.js`. Les rendus doivent venir d'une caméra **orthographique immobile**, la voiture
+tournant sur son axe, une image par pas régulier d'un tour complet, dans le sens horaire à l'écran.
 
 `marge` multiplie la vitesse de passage en courbe visée : ≤ 1 la voiture reste sur sa ligne, 1,1–1,2 elle
 glisse visiblement, au-delà elle part.
