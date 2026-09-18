@@ -45,12 +45,16 @@ Le cadran ne peut jamais recouvrir le curseur de trajectoire : le pouce gauche g
 pouce droit emmène le cadran où il veut. Sur téléphone la minicarte passe en haut à droite, le bas de
 l'écran appartenant au pouce.
 
+> **Cette branche est la version isométrique.** Elle est identique à la branche de développement à
+> une chose près : la vue isométrique y est active par défaut, y compris pour un navigateur qui avait
+> déjà joué. Les deux autres vues restent disponibles dans les réglages.
+
 Trois vues dans les réglages :
 
 - **Dessus, orientée piste** (par défaut) : la route monte toujours vers le haut de l'écran, ce qui
   permet de voir loin devant même sur un téléphone en portrait ;
 - **Dessus, fixe** : le nord reste en haut, la caméra ne fait que suivre ;
-- **Isométrique** : le sol est incliné, la caméra ne tourne pas non plus.
+- **Isométrique** (par défaut sur cette branche) : le sol est incliné, la caméra ne tourne pas non plus.
 
 Aucune trajectoire n'est dessinée sur la route. Un **guide de freinage** optionnel (réglages) affiche
 devant la voiture un ruban coloré par le profil de vitesse de référence du circuit (vert : plein gaz,
