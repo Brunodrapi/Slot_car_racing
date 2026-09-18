@@ -19,6 +19,7 @@ class Renderer {
     this.touch = false;
     this.showLines = false;   // braking guide, off unless enabled in the settings
     this.debug = false;       // vehicle telemetry overlay (speed, slip angle, lateral velocity, grip usage)
+    this.dialPress = 0;       // eased 0..1 press state of the throttle dial
     this.rotate = true;      // keep the track direction pointing up the screen
     this.camAngle = 0;
     this.resize();
@@ -37,11 +38,12 @@ class Renderer {
   _layoutHud() {
     const W = this.w, H = this.h, mobile = W < 700;
     const pad = 14;
-    const sh = mobile ? 58 : 70, sw = mobile ? 170 : 240;
-    // vertical line slider, left side, above the speed panel
-    const len = Math.min(H * 0.36, 300);
-    this.slider = { x: pad + 22, y: H - pad - sh - 22 - len, len, w: 30 };
-    this.speedPanel = { x: pad, y: H - pad - sh, w: sw, h: sh };
+    // throttle dial: a half-dome at the bottom centre, under the thumb, SpotRacers style
+    const r = clamp(Math.min(W * 0.26, H * 0.17), 68, 130);
+    this.dial = { cx: W / 2, cy: H - pad - 8, r };
+    // vertical line slider, left side, clear of the dial
+    const len = Math.min(H * 0.38, 320);
+    this.slider = { x: pad + 22, y: H - pad - 30 - len, len, w: 30 };
     this.mobile = mobile;
   }
 
@@ -346,6 +348,53 @@ class Renderer {
     g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y); g.closePath();
   }
 
+  // The accelerator, SpotRacers style: a half-dome under the thumb that doubles as the speedometer.
+  // Pressing it (or anywhere in the throttle zone) accelerates; releasing brakes. The outer arc is
+  // the speed, the inner arc is grip usage, and the dome lights up while the throttle is held.
+  _drawDial(g, p, t) {
+    const d = this.dial, cx = d.cx, cy = d.cy, r = d.r;
+    const vmax = p.cls.vmax;
+    const held = !!p.throttle;
+    this.dialPress += ((held ? 1 : 0) - this.dialPress) * 0.25;   // eased press feedback
+    const press = this.dialPress;
+    const A0 = Math.PI, SPAN = Math.PI;
+
+    // dome body, lifted slightly while pressed
+    const rr = r * (1 + 0.03 * press);
+    g.beginPath(); g.arc(cx, cy, rr, A0, A0 + SPAN); g.closePath();
+    g.fillStyle = `rgba(10,12,20,${0.5 + 0.12 * press})`; g.fill();
+    g.strokeStyle = `rgba(255,255,255,${0.12 + 0.25 * press})`; g.lineWidth = 2; g.stroke();
+
+    const arc = (rad, from, to, col, width) => {
+      if (to <= from) return;
+      g.beginPath(); g.arc(cx, cy, rad, from, to);
+      g.strokeStyle = col; g.lineWidth = width; g.lineCap = 'round'; g.stroke();
+    };
+    // speed arc
+    const sR = rr - 12, vf = clamp(Math.abs(p.v) / vmax, 0, 1);
+    arc(sR, A0, A0 + SPAN, 'rgba(255,255,255,0.16)', 11);
+    arc(sR, A0, A0 + SPAN * vf, held ? '#5fd0ff' : '#8ea6b4', 11);
+    // grip arc, same thresholds as the telemetry: 0.7 loaded, 1 drifting, 1.2 sliding, 1.5 lost
+    // Past the limit mark (usage 1) the background turns red, so the danger zone reads at a glance.
+    const gR = rr - 25, uf = clamp(p.loadRatio / 1.5, 0, 1), lim = SPAN / 1.5;
+    arc(gR, A0, A0 + lim, 'rgba(255,255,255,0.12)', 5);
+    arc(gR, A0 + lim, A0 + SPAN, 'rgba(255,80,80,0.28)', 5);
+    arc(gR, A0, A0 + SPAN * uf, Renderer.gripColor(p.loadRatio), 5);
+
+    // speed readout inside the dome
+    const kmh = Math.round(Math.max(0, p.speed) * 3.6);
+    g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+    g.fillStyle = held ? '#bfe9ff' : '#e8e8ec';
+    g.font = `bold ${Math.round(r * 0.32)}px ui-monospace, monospace`;
+    g.fillText(String(kmh).padStart(3, '0'), cx, cy - r * 0.52);
+    g.font = `${Math.round(r * 0.12)}px system-ui, sans-serif`; g.fillStyle = '#9aa0ad';
+    g.fillText('km/h', cx, cy - r * 0.33);
+    g.font = `bold ${Math.round(r * 0.13)}px system-ui, sans-serif`;
+    g.fillStyle = held ? 'rgba(95,208,255,0.95)' : 'rgba(255,140,140,0.8)';
+    g.fillText(held ? t('gas') : t('brake'), cx, cy - r * 0.13);
+    g.textBaseline = 'top'; g.lineCap = 'butt';
+  }
+
   static gripColor(u) { return u < 0.7 ? '#5be07a' : u < 1 ? '#ffd23f' : u < 1.2 ? '#ff9f2e' : u < 1.5 ? '#ff4b4b' : '#c74bff'; }
 
   // Telemetry: speed, slip angle (heading vs velocity), lateral velocity, grip usage (lateral
@@ -407,32 +456,17 @@ class Renderer {
     g.fillText(`${t('last')} ${last != null ? fmtTime(last) : '--:--.---'}`, W - pad - 12, pad + (mobile ? 32 : 40));
     g.fillText(`${t('best')} ${p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---'}`, W - pad - 12, pad + (mobile ? 46 : 56));
 
-    // bottom-left: speed + grip meter
-    const sp = this.speedPanel;
-    panel(sp.x, sp.y, sp.w, sp.h);
-    const kmh = Math.round(p.v * 3.6);
-    g.textAlign = 'left'; g.fillStyle = '#fff'; g.font = `bold ${mobile ? 24 : 30}px ui-monospace, monospace`;
-    g.fillText(`${kmh}`, sp.x + 12, sp.y + 6);
-    g.font = `${mobile ? 11 : 13}px system-ui, sans-serif`; g.fillStyle = '#cfd3dc';
-    g.fillText('km/h', sp.x + 12 + (mobile ? 50 : 66), sp.y + (mobile ? 16 : 20));
-    // grip gauge: 0-0.7 stable, 0.7-1 loaded, 1-1.2 light drift, 1.2-1.5 sliding, beyond = lost
-    const ratio = p.loadRatio;
-    const barX = sp.x + 12, barY = sp.y + sp.h - 18, barW = sp.w - 24, barH = 8;
-    g.fillStyle = 'rgba(255,255,255,0.15)'; this._roundRect(g, barX, barY, barW, barH, 4); g.fill();
-    const f = Math.min(1, ratio / 1.5);
-    g.fillStyle = Renderer.gripColor(ratio); this._roundRect(g, barX, barY, Math.max(4, barW * f), barH, 4); g.fill();
-    g.fillStyle = 'rgba(255,255,255,0.6)'; g.fillRect(barX + barW / 1.5 - 1, barY - 3, 2, barH + 6);
-    g.font = `${mobile ? 10 : 11}px system-ui, sans-serif`; g.fillStyle = '#cfd3dc'; g.textAlign = 'right';
-    g.fillText(t('grip'), sp.x + sp.w - 12, sp.y + sp.h - 34);
-    if (p.throttle) { g.fillStyle = 'rgba(91,224,122,0.9)'; g.beginPath(); g.arc(sp.x + sp.w - 20, sp.y + 18, 7, 0, Math.PI * 2); g.fill(); }
-    else { g.strokeStyle = 'rgba(255,255,255,0.5)'; g.lineWidth = 2; g.beginPath(); g.arc(sp.x + sp.w - 20, sp.y + 18, 7, 0, Math.PI * 2); g.stroke(); }
+    // bottom centre: the throttle dial (speed, grip, and the accelerator itself)
+    this._drawDial(g, p, t);
 
     // line slider (left thumb)
     this._drawSlider(g, p, t);
 
     // minimap bottom-right
     if (this.mm) {
-      const m = this.mm, mx = W - pad - m.size, my = H - pad - m.size;
+      // on a phone the throttle dome reaches the bottom-right corner, so the map sits above it
+      const m = this.mm, mx = W - pad - m.size;
+      const my = H - pad - m.size - (mobile ? Math.round(this.dial.r * 0.85) : 0);
       panel(mx, my, m.size, m.size);
       g.drawImage(m.canvas, mx, my, m.size, m.size);
       for (const car of race.cars) {
@@ -503,7 +537,9 @@ class Renderer {
 
   // maps a screen point in the slider zone to a selection value; null if outside the zone
   sliderValueAt(x, y, touchZone) {
-    const s = this.slider;
+    const s = this.slider, d = this.dial;
+    // the throttle dial owns its dome: a thumb landing there accelerates, it never changes the line
+    if (d) { const dx = x - d.cx, dy = y - d.cy; if (dy <= 0 && dx * dx + dy * dy < (d.r + 12) * (d.r + 12)) return null; }
     const inZoneX = touchZone ? x < this.w * 0.42 : Math.abs(x - s.x) < 40;
     if (!inZoneX) return null;
     if (!touchZone && (y < s.y - 30 || y > s.y + s.len + 30)) return null;

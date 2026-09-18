@@ -19,11 +19,16 @@ Fonctionne sur ordinateur (clavier / souris) et sur mobile (tactile, à ajouter 
 
 | Action | Ordinateur | Mobile |
 | --- | --- | --- |
-| Accélérer | maintenir n'importe quelle touche (Espace, etc.) ou le clic | pouce droit sur l'écran |
+| Accélérer | maintenir n'importe quelle touche (Espace, etc.) ou le clic | maintenir le cadran en bas de l'écran (ou n'importe où hors du curseur) |
 | Freiner | relâcher | relâcher |
 | Trajectoire | flèches (haut/bas ou gauche/droite), molette | pouce gauche sur le curseur vertical |
 | Pause | `Échap` ou `P` | — |
 | Télémétrie | `G` | réglages |
+
+L'accélérateur est un **cadran en demi-lune en bas de l'écran**, façon *SpotRacers* : on le maintient
+pour accélérer, on relâche pour freiner. Il sert en même temps de compteur (arc extérieur : vitesse,
+arc intérieur : usage de l'adhérence, zone rouge au-delà de la limite) et s'illumine tant que le gaz est
+maintenu. N'importe quel point de l'écran hors du curseur de trajectoire accélère aussi.
 
 La caméra s'oriente par défaut sur la piste (la route monte toujours vers le haut de l'écran), ce qui
 permet de voir loin devant même sur un téléphone en portrait. Vue fixe disponible dans les réglages.
