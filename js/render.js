@@ -21,8 +21,20 @@ class Renderer {
     this.debug = false;       // vehicle telemetry overlay (speed, slip angle, lateral velocity, grip usage)
     this.dialPress = 0;       // eased 0..1 press state of the throttle dial
     this.rotate = true;      // keep the track direction pointing up the screen
+    this.tilt = 1;           // 1 = straight down; below that the ground plane is tilted (isometric)
+    this._sheets = new Map();
+    this._stacks = new Map();
     this.camAngle = 0;
     this.resize();
+  }
+
+  // 'track' top-down following the road, 'fixed' top-down north-up, 'iso' tilted ground with a
+  // camera that only follows: it never turns, so a car is seen from every angle through a lap.
+  setView(view) {
+    this.view = view;
+    this.rotate = view === 'track';
+    this.tilt = view === 'iso' ? 0.55 : 1;
+    this.cam.init = false;
   }
 
   resize() {
@@ -156,7 +168,7 @@ class Renderer {
     // Frame a fixed distance rather than a fixed area, so a portrait phone and a desktop window
     // show the same thing. Track-aligned: metres visible ahead, down the screen height.
     // Fixed north-up: metres across the shorter screen axis.
-    const metres = (this.rotate ? 75 * (1 + 0.5 * vf) : 50 * (1 + 0.35 * vf)) / zf;
+    const metres = (this.rotate ? 75 * (1 + 0.5 * vf) : (this.tilt === 1 ? 50 : 40) * (1 + 0.35 * vf)) / zf;
     const zoomTarget = (this.rotate ? this.h : Math.min(this.w, this.h)) / metres;
     const lead = Math.min(36, p.v * 0.42) / zf;
     const tx = pos.x + Math.cos(h) * lead, ty = pos.y + Math.sin(h) * lead;
@@ -208,11 +220,14 @@ class Renderer {
 
     g.save();
     g.translate(W / 2 + sx, H / 2 + sy);
+    // An orthographic camera tilted about the screen's horizontal axis, looking at a flat track,
+    // is exactly a vertical squash of the top-down view. tilt = cos(angle from vertical).
+    if (this.tilt !== 1) g.scale(1, this.tilt);
     if (this.rotate) g.rotate(-this.camAngle - Math.PI / 2);
     g.scale(cam.zoom, cam.zoom);
     g.translate(-cam.x, -cam.y);
     // conservative square view box: valid whatever the camera rotation
-    const reach = Math.hypot(W, H) / 2 / cam.zoom + 40;
+    const reach = Math.hypot(W, H) / 2 / cam.zoom / this.tilt + 60;
     const vis = { minX: cam.x - reach, maxX: cam.x + reach, minY: cam.y - reach, maxY: cam.y + reach };
     const inView = (b) => !(b.maxX < vis.minX || b.minX > vis.maxX || b.maxY < vis.minY || b.minY > vis.maxY);
 
@@ -256,7 +271,9 @@ class Renderer {
       g.strokeStyle = '#2f2f36'; g.lineWidth = T.width + 2.4; g.stroke(b);
       g.strokeStyle = '#4b4b52'; g.lineWidth = T.width; g.stroke(b);
     }
-    const order = race.cars.slice().sort((a, b) => (a.isPlayer ? 1 : 0) - (b.isPlayer ? 1 : 0));
+    const order = race.cars.slice().sort(this.tilt === 1
+      ? (a, b) => (a.isPlayer ? 1 : 0) - (b.isPlayer ? 1 : 0)
+      : (a, b) => a.pos.y - b.pos.y);
     for (const car of order) this._drawCar(g, car);
     for (const p of this.particles) {
       g.fillStyle = `rgba(${p.col},${Math.max(0, p.life) * 0.6})`;
@@ -328,8 +345,121 @@ class Renderer {
     g.restore();
   }
 
+  // ---------- cars in the tilted view ----------
+  // Two ways to give a car volume without a 3D engine. A model that ships a rotation sheet uses it:
+  // the nearest view plus the leftover angle applied in the screen plane, scaled from the TRUE angle
+  // so the car's width never jumps when the view changes. Anything else stacks its own top-down
+  // drawing: under an orthographic tilt, the same flat shape at rising heights projects as that
+  // shape shifted up the screen, which reads as a body and stays correct from every heading.
+
+  _sheetFor(cls) {
+    if (!cls.sheet) return null;
+    let sh = this._sheets.get(cls.sheet);
+    if (!sh) {
+      sh = [];
+      for (let i = 0; i < (cls.sheetN || 8); i++) { const im = new Image(); im.src = `${cls.sheet}/v${i}.png`; sh.push(im); }
+      this._sheets.set(cls.sheet, sh);
+    }
+    return sh[0].complete && sh[0].naturalWidth ? sh : null;
+  }
+
+  // brightness levels baked once per model and livery: a canvas filter per draw costs a layer
+  _stackTexFor(cls, livery, N) {
+    const key = `${cls.id}|${livery.body}|${livery.trim}|${N}`;
+    let tex = this._stacks.get(key);
+    if (tex) return tex;
+    const PPM = 26, w = Math.ceil(cls.length * PPM) + 8, h = Math.ceil(cls.width * PPM) + 8;
+    tex = [];
+    for (let i = 0; i < N; i++) {
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      const cg = cv.getContext('2d');
+      cg.translate(w / 2, h / 2); cg.scale(PPM, PPM);
+      cg.filter = `brightness(${(0.55 + 0.45 * (i / (N - 1))).toFixed(3)})`;
+      drawCarModel(cg, cls, livery, { number: 0, steer: 0 });
+      tex.push({ cv, w: w / PPM, h: h / PPM });
+    }
+    this._stacks.set(key, tex);
+    return tex;
+  }
+
+  _carShadow(g, car) {
+    const c = car.cls, pos = car.pos;
+    g.save(); g.translate(pos.x, pos.y); g.rotate(car.heading);
+    g.fillStyle = 'rgba(0,0,0,0.28)';
+    g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width);
+    g.restore();
+  }
+
+  _playerRing(g, car) {
+    const c = car.cls, pos = car.pos;
+    g.save(); g.translate(pos.x, pos.y);
+    g.strokeStyle = 'rgba(255,255,255,0.3)'; g.lineWidth = 0.14;
+    g.beginPath(); g.arc(0, 0, Math.max(c.length, c.width) * 0.8, 0, Math.PI * 2); g.stroke();
+    g.restore();
+  }
+
+  _drawSheetCar(g, car, sheet) {
+    const c = car.cls, pos = car.pos, N = sheet.length, step = Math.PI * 2 / N;
+    // heading relative to where the camera looks from
+    const camDir = this.rotate ? this.camAngle : -Math.PI / 2;
+    let rel = car.heading - camDir;
+    while (rel > Math.PI) rel -= 2 * Math.PI;
+    while (rel < -Math.PI) rel += 2 * Math.PI;
+    const k = Math.round(rel / step);
+    // sheetRear names the view where the car points straight away from the camera
+    const img = sheet[(((c.sheetRear || 0) + k) % N + N) % N];
+    if (!img.complete || !img.naturalWidth) { this._drawStackCar(g, car); return; }
+    this._carShadow(g, car);
+    if (car.isPlayer) this._playerRing(g, car);
+    // a box of length L and width W seen from this angle covers this much width on screen
+    const pw = (c.length * Math.abs(Math.sin(rel)) + c.width * Math.abs(Math.cos(rel))) * 1.06;
+    const m = g.getTransform();
+    const dx = m.a * pos.x + m.c * pos.y + m.e, dy = m.b * pos.x + m.d * pos.y + m.f;
+    const wpx = pw * this.cam.zoom * this.dpr;
+    const hpx = wpx * img.naturalHeight / img.naturalWidth;
+    g.save();
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.translate(dx, dy);
+    g.rotate(rel - k * step);          // the leftover, at most half a step
+    g.drawImage(img, -wpx / 2, -hpx * 0.82, wpx, hpx);
+    g.restore();
+  }
+
+  _drawStackCar(g, car) {
+    const c = car.cls, pos = car.pos, h = car.heading, tilt = this.tilt;
+    const a = (this.rotate ? this.camAngle : -Math.PI / 2) + Math.PI / 2;
+    const sinT = Math.sqrt(Math.max(0, 1 - tilt * tilt));
+    const ux = Math.sin(a), uy = -Math.cos(a);      // screen-up, in world units, per metre of height
+    const hCar = c.width * 0.62;
+    // enough layers that they overlap on screen, or the sides come out striped; capped so a distant
+    // car stays cheap, and rounded to a few values so the baked textures are reused
+    const spread = hCar * sinT / tilt * this.cam.zoom;
+    const N = clamp(Math.round(spread / 1.1 / 4) * 4, 8, 28);
+    this._carShadow(g, car);
+    if (car.isPlayer) this._playerRing(g, car);
+    const tex = this._stackTexFor(c, car.livery, N);
+    for (let i = 0; i < N; i++) {
+      const tz = i / (N - 1);
+      const lift = hCar * tz * sinT / tilt;
+      const sc = 1 - 0.16 * tz * tz;                // slight taper: it reads as a body, not a brick
+      const tx = tex[i];
+      g.save();
+      g.translate(pos.x + ux * lift, pos.y + uy * lift);
+      g.rotate(h); g.scale(sc, sc);
+      g.drawImage(tx.cv, -tx.w / 2, -tx.h / 2, tx.w, tx.h);
+      g.restore();
+    }
+  }
+
   _drawCar(g, car) {
     const c = car.cls, pos = car.pos, h = car.heading;
+    if (this.tilt !== 1) {
+      const sheet = this._sheetFor(c);
+      if (sheet) this._drawSheetCar(g, car, sheet);
+      else this._drawStackCar(g, car);
+      return;
+    }
     g.save();
     g.translate(pos.x, pos.y);
     g.rotate(h);

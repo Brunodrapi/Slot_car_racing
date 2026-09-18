@@ -8,7 +8,7 @@ class App {
     this.canvas = document.getElementById('game');
     this.renderer = new Renderer(this.canvas);
     this.renderer.showLines = this.save.showLines === true;
-    this.renderer.rotate = this.save.camRotate !== false;
+    this.renderer.setView(this.save.view || 'track');
     this.renderer.debug = this.save.debug === true;
     this.audio = new GameAudio();
     this.audio.enabled = this.save.sound;

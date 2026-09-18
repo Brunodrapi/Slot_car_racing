@@ -17,7 +17,7 @@ function lapsFor(trackDef, cat) {
 const SAVE_KEY = 'slotracer.save.v2';
 
 function defaultSave() {
-  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, ctrl: 'auto', camRotate: true, showLines: false, debug: false, guideMigrated: true, cups: {}, bestLaps: {}, tutorialSeen: false, racesDone: 0 };
+  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, ctrl: 'auto', camRotate: true, view: 'track', showLines: false, debug: false, guideMigrated: true, cups: {}, bestLaps: {}, tutorialSeen: false, racesDone: 0 };
 }
 
 function loadSave() {
@@ -27,6 +27,8 @@ function loadSave() {
     const save = Object.assign(defaultSave(), JSON.parse(raw));
     // the driving lines used to be drawn on the road; turn the guide off once for existing saves
     if (!save.guideMigrated) { save.showLines = false; save.guideMigrated = true; }
+    // the camera used to be a two-way toggle; it is now a three-way view setting
+    if (!save.view) save.view = save.camRotate === false ? 'fixed' : 'track';
     return save;
   } catch (e) { return defaultSave(); }
 }

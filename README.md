@@ -45,8 +45,12 @@ Le cadran ne peut jamais recouvrir le curseur de trajectoire : le pouce gauche g
 pouce droit emmène le cadran où il veut. Sur téléphone la minicarte passe en haut à droite, le bas de
 l'écran appartenant au pouce.
 
-La caméra s'oriente par défaut sur la piste (la route monte toujours vers le haut de l'écran), ce qui
-permet de voir loin devant même sur un téléphone en portrait. Vue fixe disponible dans les réglages.
+Trois vues dans les réglages :
+
+- **Dessus, orientée piste** (par défaut) : la route monte toujours vers le haut de l'écran, ce qui
+  permet de voir loin devant même sur un téléphone en portrait ;
+- **Dessus, fixe** : le nord reste en haut, la caméra ne fait que suivre ;
+- **Isométrique** : le sol est incliné, la caméra ne tourne pas non plus.
 
 Aucune trajectoire n'est dessinée sur la route. Un **guide de freinage** optionnel (réglages) affiche
 devant la voiture un ruban coloré par le profil de vitesse de référence du circuit (vert : plein gaz,
@@ -107,6 +111,30 @@ Quatre valeurs suffisent à lire le comportement de la voiture :
 seuils et les mêmes couleurs. Les deux angles de dérive (avant / arrière) et le braquage sont affichés en
 dessous : avant > arrière = sous-virage, arrière > avant = survirage.
 
+## Vue isométrique
+
+Une caméra orthographique inclinée regardant une piste plate, c'est exactement un écrasement vertical
+de la vue de dessus. Aucun moteur 3D, aucune dépendance : la route, les vibreurs et les graviers se
+projettent justes puisqu'ils sont plats, et à zoom latéral égal on voit environ **1,8 fois plus de
+piste devant soi** qu'en vue de dessus. La caméra ne tourne pas, donc une voiture se présente sous
+tous ses angles au fil d'un tour.
+
+Les voitures y prennent du volume de deux façons :
+
+- **Planche de rotations** si le modèle en fournit une (`sheet` dans `js/cars.js`, un dossier de
+  `v0.png`…`vN-1.png` pris tous les 360/N degrés, `sheetRear` désignant la vue de dos). Le moteur
+  prend la vue la plus proche du cap relatif à la caméra et applique le reste de l'angle en rotation
+  d'écran. L'échelle est calculée sur l'angle réel, sinon la voiture changerait brutalement de largeur
+  au moment de passer d'une vue à l'autre. La *F40 LM* est la première voiture convertie.
+- **Empilement de sprites** sinon : la silhouette vue de dessus est dessinée à des hauteurs
+  croissantes, ce qui sous une caméra inclinée la décale vers le haut de l'écran et lui donne des
+  flancs. Aucun dessin nouveau n'est nécessaire, c'est juste au cap près, et le nombre de couches suit
+  le zoom pour éviter l'escalier. Les niveaux d'ombre sont cuits une fois par modèle et par livrée
+  dans des canvas hors écran : appliquer un filtre canvas à chaque tracé ferait tomber le jeu sous une
+  image par seconde.
+
+Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
+
 ## Contenu
 
 - **12 circuits** inspirés de vrais tracés : Monza, Spa-Francorchamps, Monaco, Silverstone, Suzuka
@@ -161,6 +189,7 @@ js/tracks.js               points de contrôle des circuits intégrés
 js/track.js                spline, courbure, largeur variable, trois lignes (auto ou dessinées), croisements
 js/cars.js                 catégories, modèles, livrées, noms des pilotes
 js/carart.js               dessins vectoriels des modèles + rendu des sprites perso (calques UR2D)
+sprites/                   planches de rotations pour la vue isométrique (v0…v7 par modèle)
 js/car.js                  physique (corps libre, deux trains), pilote automatique, profil de vitesse, IA de freinage et de choix de ligne, collisions
 js/race.js                 grille, départ, tours, classement, résultats
 js/career.js               coupes, déblocages, sauvegarde
