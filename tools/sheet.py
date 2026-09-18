@@ -21,7 +21,6 @@ from collections import deque
 
 from PIL import Image
 
-INSET = 60          # cut the decorative border away before looking at anything
 QUANT = 64          # palette size; these renders are flat-shaded so this is plenty
 
 
@@ -29,6 +28,29 @@ def greyish(p):
     r, g, b = p[0], p[1], p[2]
     mn, mx = min(r, g, b), max(r, g, b)
     return (mx - mn) <= 32 and 40 <= mn <= 210
+
+
+def frame_inset(img):
+    """How thick the decorative border is: scan inward until a line is mostly backdrop."""
+    w, h = img.size
+    px = img.load()
+    worst = 0
+    for axis in range(4):
+        found = 0
+        for d in range(min(w, h) // 3):
+            if axis == 0:
+                line = [px[x, d] for x in range(0, w, 3)]
+            elif axis == 1:
+                line = [px[x, h - 1 - d] for x in range(0, w, 3)]
+            elif axis == 2:
+                line = [px[d, y] for y in range(0, h, 3)]
+            else:
+                line = [px[w - 1 - d, y] for y in range(0, h, 3)]
+            if sum(1 for p in line if greyish(p)) > len(line) * 0.85:
+                found = d
+                break
+        worst = max(worst, found)
+    return worst + 4        # a little margin; leftover corner pieces are dropped as small blobs
 
 
 def isolate(img):
@@ -105,10 +127,12 @@ def main():
         return 1
     n = len(files)
     frames = []
+    inset = frame_inset(Image.open(os.path.join(src, files[0])).convert('RGBA'))
+    print(f'bordure decorative detectee: {inset} px')
     for f in files:
         im = Image.open(os.path.join(src, f)).convert('RGBA')
         w, h = im.size
-        frames.append(isolate(im.crop((INSET, INSET, w - INSET, h - INSET))))
+        frames.append(isolate(im.crop((inset, inset, w - inset, h - inset))))
     boxes = [f.split()[3].getbbox() for f in frames]
     x0 = min(b[0] for b in boxes); y0 = min(b[1] for b in boxes)
     x1 = max(b[2] for b in boxes); y1 = max(b[3] for b in boxes)
