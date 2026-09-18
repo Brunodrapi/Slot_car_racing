@@ -18,6 +18,7 @@ class Renderer {
     this.shake = 0;
     this.touch = false;
     this.showLines = false;   // braking guide, off unless enabled in the settings
+    this.debug = false;       // vehicle telemetry overlay (speed, slip angle, lateral velocity, grip usage)
     this.rotate = true;      // keep the track direction pointing up the screen
     this.camAngle = 0;
     this.resize();
@@ -268,12 +269,12 @@ class Renderer {
     const ahead = 240, step = 4, vmax = p.cls.vmax;
 
     // selected line ahead, in three colour runs by reference speed
-    const pt = (d) => { const i = T.idx(p.s + d), lat = T.targetLat(p.s + d, p.sel); return [T.xs[i] + T.nx[i] * lat, T.ys[i] + T.ny[i] * lat]; };
+    const pt = (d) => { const i = T.idx(p.s + d), lat = T.targetLat(p.s + d, p.selS); return [T.xs[i] + T.nx[i] * lat, T.ys[i] + T.ny[i] * lat]; };
     const runs = { '#5be07a': [], '#ffd23f': [], '#ff6b4b': [] };
     let prev = pt(0);
     for (let d = step; d <= ahead; d += step) {
       const now = pt(d);
-      const r = race.profileAt(p.s + d - step / 2, p.sel) / vmax;
+      const r = race.profileAt(p.s + d - step / 2, p.selS) / vmax;
       runs[r > 0.88 ? '#5be07a' : r > 0.62 ? '#ffd23f' : '#ff6b4b'].push([prev, now]);
       prev = now;
     }
@@ -292,14 +293,14 @@ class Renderer {
     const brake = p.cls.brake * 0.9, v2 = p.v * p.v;
     let slack = Infinity;
     for (let d = 0; d <= ahead; d += step) {
-      const vp = race.profileAt(p.s + d, p.sel);
+      const vp = race.profileAt(p.s + d, p.selS);
       if (vp * vp >= v2) continue;
       const need = (v2 - vp * vp) / (2 * brake);
       if (d - need < slack) slack = d - need;
     }
     if (slack === Infinity || slack > 180) return;
     const at = Math.max(4, slack);   // never sit on top of the car
-    const i = T.idx(p.s + at), lat = T.targetLat(p.s + at, p.sel);
+    const i = T.idx(p.s + at), lat = T.targetLat(p.s + at, p.selS);
     const x = T.xs[i] + T.nx[i] * lat, y = T.ys[i] + T.ny[i] * lat;
     const late = slack <= 0;
     const col = late ? '#ff4b4b' : slack < 25 ? '#ffd23f' : '#f2f2f2';
@@ -345,6 +346,35 @@ class Renderer {
     g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y); g.closePath();
   }
 
+  static gripColor(u) { return u < 0.7 ? '#5be07a' : u < 1 ? '#ffd23f' : u < 1.2 ? '#ff9f2e' : u < 1.5 ? '#ff4b4b' : '#c74bff'; }
+
+  // Telemetry: speed, slip angle (heading vs velocity), lateral velocity, grip usage (lateral
+  // demand / available grip), plus the two axle slip angles and the steering angle.
+  _drawDebug(g, p, x, y) {
+    const rows = [
+      ['speed', `${(p.speed * 3.6).toFixed(0)} km/h`, null],
+      ['slipAngle', `${(p.drift * 180 / Math.PI).toFixed(1)}°`, Math.abs(p.drift) < 0.05 ? '#5be07a' : Math.abs(p.drift) < 0.15 ? '#ffd23f' : '#ff4b4b'],
+      ['lateralVel', `${p.vl.toFixed(2)} m/s`, null],
+      ['gripUsage', `${Math.min(9.99, p.usage).toFixed(2)}`, Renderer.gripColor(p.usage)],
+      ['slip F / R', `${(p.alphaF * 180 / Math.PI).toFixed(1)}° / ${(p.alphaR * 180 / Math.PI).toFixed(1)}°`, null],
+      ['steer', `${(p.delta * 180 / Math.PI).toFixed(1)}°`, null],
+    ];
+    const w = 210, rowH = 18, h = rows.length * rowH + 24;
+    x = Math.min(x, this.w - w - 14);   // stays on screen on a phone
+    g.fillStyle = 'rgba(10,12,20,0.7)'; this._roundRect(g, x, y, w, h, 10); g.fill();
+    g.font = '13px ui-monospace, monospace';
+    rows.forEach(([k, v, col], i) => {
+      const yy = y + 6 + i * rowH;
+      g.textAlign = 'left'; g.fillStyle = '#9aa0ad'; g.fillText(k, x + 10, yy);
+      g.textAlign = 'right'; g.fillStyle = col || '#fff'; g.fillText(v, x + w - 10, yy);
+    });
+    // grip usage bar with the four thresholds
+    const bx = x + 10, by = y + h - 10, bw = w - 20;
+    g.fillStyle = 'rgba(255,255,255,0.15)'; g.fillRect(bx, by, bw, 3);
+    g.fillStyle = Renderer.gripColor(p.usage); g.fillRect(bx, by, bw * Math.min(1, p.usage / 2), 3);
+    for (const th of [0.7, 1, 1.2, 1.5]) { g.fillStyle = 'rgba(255,255,255,0.5)'; g.fillRect(bx + bw * th / 2 - 0.5, by - 2, 1, 7); }
+  }
+
   // ---------- HUD ----------
   _drawHUD(g, race, ui) {
     const W = this.w, H = this.h, p = race.player, t = (k, ...a) => ui.t(k, ...a);
@@ -385,12 +415,13 @@ class Renderer {
     g.fillText(`${kmh}`, sp.x + 12, sp.y + 6);
     g.font = `${mobile ? 11 : 13}px system-ui, sans-serif`; g.fillStyle = '#cfd3dc';
     g.fillText('km/h', sp.x + 12 + (mobile ? 50 : 66), sp.y + (mobile ? 16 : 20));
+    // grip gauge: 0-0.7 stable, 0.7-1 loaded, 1-1.2 light drift, 1.2-1.5 sliding, beyond = lost
     const ratio = p.loadRatio;
     const barX = sp.x + 12, barY = sp.y + sp.h - 18, barW = sp.w - 24, barH = 8;
     g.fillStyle = 'rgba(255,255,255,0.15)'; this._roundRect(g, barX, barY, barW, barH, 4); g.fill();
-    const f = Math.min(1, ratio / 1.3);
-    g.fillStyle = ratio < 0.85 ? '#5be07a' : ratio < 1 ? '#ffd23f' : '#ff4b4b'; this._roundRect(g, barX, barY, Math.max(4, barW * f), barH, 4); g.fill();
-    g.fillStyle = 'rgba(255,255,255,0.6)'; g.fillRect(barX + barW / 1.3 - 1, barY - 3, 2, barH + 6);
+    const f = Math.min(1, ratio / 1.5);
+    g.fillStyle = Renderer.gripColor(ratio); this._roundRect(g, barX, barY, Math.max(4, barW * f), barH, 4); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.6)'; g.fillRect(barX + barW / 1.5 - 1, barY - 3, 2, barH + 6);
     g.font = `${mobile ? 10 : 11}px system-ui, sans-serif`; g.fillStyle = '#cfd3dc'; g.textAlign = 'right';
     g.fillText(t('grip'), sp.x + sp.w - 12, sp.y + sp.h - 34);
     if (p.throttle) { g.fillStyle = 'rgba(91,224,122,0.9)'; g.beginPath(); g.arc(sp.x + sp.w - 20, sp.y + 18, 7, 0, Math.PI * 2); g.fill(); }
@@ -426,6 +457,9 @@ class Renderer {
         if (car.state === 'grass') { g.fillStyle = '#ff6b6b'; g.textAlign = 'right'; g.fillText('!', bx + bw - 10, y + 2); g.textAlign = 'left'; }
       });
     }
+
+    // telemetry overlay (G key or settings): the four numbers that describe the car's state
+    if (this.debug) this._drawDebug(g, p, mobile ? 150 + pad * 2 : 200 + pad * 2, pad + boxH + 10);
 
     // countdown
     if (race.state === 'countdown') {

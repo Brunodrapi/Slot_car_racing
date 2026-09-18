@@ -23,6 +23,7 @@ Fonctionne sur ordinateur (clavier / souris) et sur mobile (tactile, à ajouter 
 | Freiner | relâcher | relâcher |
 | Trajectoire | flèches (haut/bas ou gauche/droite), molette | pouce gauche sur le curseur vertical |
 | Pause | `Échap` ou `P` | — |
+| Télémétrie | `G` | réglages |
 
 La caméra s'oriente par défaut sur la piste (la route monte toujours vers le haut de l'écran), ce qui
 permet de voir loin devant même sur un téléphone en portrait. Vue fixe disponible dans les réglages.
@@ -34,14 +35,57 @@ vitesse actuelle.
 
 Trois trajectoires par circuit : **intérieure** (plus courte mais plus serrée, donc plus lente en
 virage), **idéale** (extérieur-intérieur-extérieur) et **extérieure** (plus longue mais plus rapide).
-La physique suit vraiment la courbe choisie : rayon et distance parcourue changent avec la ligne.
-Dépasser = changer de ligne. Physique façon slot racing / Pico Rally : le guide avant reste dans la
-rainure (la ligne), l'arrière est tiré derrière. Sous la limite d'adhérence rien ne bouge ; au-dessus,
-l'arrière s'ouvre progressivement (contre-braquage visible, jauge d'adhérence dans le rouge, crissement),
-un correcteur type PID le ramène en douceur dès que l'adhérence le permet, et la voiture décroche
-seulement si l'angle de dérive devient trop grand ou si l'arrière sort de la route. Elle quitte alors la
-rainure en gardant sa position et sa vitesse réelles : elle glisse librement sur sa propre trajectoire,
-ralentit dans l'herbe ou le gravier, puis le pilote la ramène en roulant jusqu'à retrouver la piste.
+Dépasser = changer de ligne.
+
+## Physique
+
+La ligne est une **intention de trajectoire**, jamais une position imposée : le pilote automatique ne
+fournit qu'un angle de braquage, tout le reste sort de la physique. La voiture est un corps libre, avec
+une direction (là où elle pointe) et une vitesse (là où elle va) qui ne coïncident que tant que les
+pneus ont de la marge.
+
+```
+ligne visée → braquage désiré → forces des deux trains → rotation (lacet) + glissement → position
+```
+
+- **Deux trains, deux angles de dérive.** Chaque essieu calcule la vitesse latérale de ses roues divisée
+  par la vitesse de roulement : c'est son angle de dérive. La force latérale monte linéairement jusqu'à
+  un angle de dérive optimal (`slipPeak`, propre à chaque catégorie) puis sature — au-delà, le pneu ne
+  donne plus rien de plus et la voiture glisse. Un temps de relaxation empêche les forces d'apparaître
+  d'un coup.
+- **Sous-virage d'abord.** Trop vite en entrée de virage, l'avant sature : la voiture tourne moins que
+  demandé et va au large, sans jamais partir brutalement. C'est le comportement par défaut sur un simple
+  excès de vitesse.
+- **Survirage sur grosse perte.** Si l'arrière sature avant l'avant (voiture instable, choc, gravier d'un
+  seul côté), l'arrière s'ouvre, l'angle de dérive de la caisse monte, et le pilote applique
+  naturellement du contre-braquage : le correcteur travaille sur la **vitesse de lacet**, donc dès que la
+  voiture tourne plus vite que la ligne ne le demande, le braquage s'inverse tout seul.
+- **Retour progressif.** L'adhérence revient quand les angles de dérive redescendent. Rien n'est jamais
+  recollé à la ligne, ni sur la route ni dans le bac à gravier : la voiture y entre et en sort sur sa
+  vraie trajectoire, avec sa vraie vitesse.
+- Résultat visé : un **drift quatre roues** visible à la limite, sans le moindre coup de volant du joueur.
+- **Hors piste**, l'herbe et le gravier freinent le vecteur vitesse entier : une voiture qui arrive en
+  travers est ralentie en travers. Après 8 secondes d'ensablement, les commissaires la remettent au bord
+  de la piste, dans le bon sens et au pas.
+
+Les changements de trajectoire sont eux aussi progressifs : déplacer le curseur déplace l'intention, pas
+la voiture.
+
+### Télémétrie (touche `G`, ou réglages)
+
+Quatre valeurs suffisent à lire le comportement de la voiture :
+
+| Valeur | Ce qu'elle dit |
+| --- | --- |
+| `speed` | vitesse réelle (norme du vecteur vitesse, pas la vitesse longitudinale) |
+| `slipAngle` | angle entre la direction de la caisse et sa trajectoire réelle |
+| `lateralVel` | vitesse latérale en m/s (positive vers la gauche) |
+| `gripUsage` | accélération latérale demandée / adhérence disponible |
+
+`gripUsage` se lit ainsi : **0 – 0,7** stable · **0,7 – 1,0** chargé · **1,0 – 1,2** léger drift ·
+**1,2 – 1,5** vraie glisse · **au-delà** perte d'adhérence. La jauge d'adhérence du HUD utilise les mêmes
+seuils et les mêmes couleurs. Les deux angles de dérive (avant / arrière) et le braquage sont affichés en
+dessous : avant > arrière = sous-virage, arrière > avant = survirage.
 
 ## Contenu
 
@@ -97,7 +141,7 @@ js/tracks.js               points de contrôle des circuits intégrés
 js/track.js                spline, courbure, largeur variable, trois lignes (auto ou dessinées), croisements
 js/cars.js                 catégories, modèles, livrées, noms des pilotes
 js/carart.js               dessins vectoriels des modèles + rendu des sprites perso (calques UR2D)
-js/car.js                  physique d'une voiture sur sa ligne, profil de vitesse, IA de freinage et de choix de ligne, collisions
+js/car.js                  physique (corps libre, deux trains), pilote automatique, profil de vitesse, IA de freinage et de choix de ligne, collisions
 js/race.js                 grille, départ, tours, classement, résultats
 js/career.js               coupes, déblocages, sauvegarde
 js/store.js                IndexedDB (circuits et voitures perso)
@@ -106,7 +150,7 @@ js/audio.js                moteur et effets (WebAudio)
 js/ui.js                   écrans (menus, sélection, carrière, atelier, résultats), textes FR/EN
 js/editor.js               éditeur de circuits
 js/main.js                 boucle de jeu, entrées, enchaînement
-tools/                     scripts de développement (simulation IA headless, tests Playwright)
+tools/                     scripts de développement (simulation IA headless, diagnostics physique, tests Playwright)
 ```
 
 ## Outils de développement
@@ -116,7 +160,13 @@ node tools/sim.js [catégorie|all] [circuit|all] [easy|medium|hard] [marge]     
 NODE_PATH=$(npm root -g) node tools/e2e.js <dossier> [largeur] [hauteur]          # parcours du jeu + captures
 NODE_PATH=$(npm root -g) node tools/e2e-editor.js <dossier>                        # éditeur → course
 NODE_PATH=$(npm root -g) node tools/e2e-workshop.js <dossier>                      # import de sprites → course
+node tools/step.js <circuit> <catégorie> [marge] [-v]                             # suivi de ligne d'une voiture seule
+node tools/sweep.js '[{},{"yawK":4}]'                                             # balayage des réglages physiques
+node tools/jump.js <circuit> <catégorie> <marge>                                  # continuité du déplacement
 ```
+
+`marge` multiplie la vitesse de passage en courbe visée : ≤ 1 la voiture reste sur sa ligne, 1,1–1,2 elle
+glisse visiblement, au-delà elle part.
 
 ## Ajouter un circuit intégré
 

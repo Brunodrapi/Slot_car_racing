@@ -17,7 +17,7 @@ function lapsFor(trackDef, cat) {
 const SAVE_KEY = 'slotracer.save.v2';
 
 function defaultSave() {
-  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, ctrl: 'auto', camRotate: true, showLines: false, guideMigrated: true, cups: {}, bestLaps: {}, tutorialSeen: false, racesDone: 0 };
+  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, ctrl: 'auto', camRotate: true, showLines: false, debug: false, guideMigrated: true, cups: {}, bestLaps: {}, tutorialSeen: false, racesDone: 0 };
 }
 
 function loadSave() {

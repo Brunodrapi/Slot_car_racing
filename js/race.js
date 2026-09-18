@@ -61,8 +61,7 @@ class Race {
     }
     this.player = this.cars[this.cars.length - 1];
     if (this.mode === 'timetrial') {
-      this.player.s = T.length - 40;
-      this.player.lat = 0;
+      this.player.place(T.length - 40, 0);
       this.player.laneTarget = 0;
       this.player.gridLat = 0;
     }

@@ -1,14 +1,17 @@
 // Car categories and models. Units: m, m/s, m/s².
 //  vmax top speed · accel · brake (deceleration when released) · grip (lateral m/s² at low speed)
 //  df downforce (extra grip = df·v², capped) · slide (how brutally the car drifts when over the limit)
-//  laneK (how quickly it settles on a line) · roadScale (road width factor) · zoom (camera)
+//  laneK yaw responsiveness · rearBias rear grip relative to front (<1 oversteer-prone, >1 understeer-prone)
+//  cliff how much grip a tyre loses once pushed well past its peak slip angle (0..1)
+//  slipPeak body slip angle (rad) at which the tyres give their maximum: bigger = lazier, more visible drift
+//  roadScale (road width factor) · zoom (camera)
 'use strict';
 
 const CATEGORIES = [
   {
     id: 'f1classic', name: { fr: 'F1 classiques', en: 'Classic F1' },
     desc: { fr: 'Années 60-70 : pneus fins, peu d’appui, châssis nerveux. La moindre erreur se paie.', en: '60s-70s: skinny tyres, little downforce, twitchy. Every mistake costs.' },
-    base: { vmax: 76, accel: 8.5, brake: 13, grip: 11.5, df: 0.0006, slide: 0.85, laneK: 5, length: 4.1, width: 1.8 },
+    base: { vmax: 76, accel: 8.5, brake: 13, grip: 11.5, df: 0.0006, slide: 0.85, laneK: 5, rearBias: 1.0, cliff: 0.25, slipPeak: 0.14, length: 4.1, width: 1.8 },
     drivers: 10, roadScale: 0.9, zoom: 1.1,
     models: [
       { id: 'type49', name: 'Type 49', shape: 'cigar', mul: { vmax: 1.0, grip: 1.0, accel: 1.03 }, colors: ['#1f6b3a', '#ffd400'] },
@@ -22,7 +25,7 @@ const CATEGORIES = [
   {
     id: 'f1modern', name: { fr: 'F1 modernes', en: 'Modern F1' },
     desc: { fr: 'Appui énorme, freinages ultra tardifs, virages rapides à fond. Très stables.', en: 'Huge downforce, very late braking, fast corners flat out. Very stable.' },
-    base: { vmax: 96, accel: 11, brake: 32, grip: 19, df: 0.0075, slide: 0.9, laneK: 7, length: 5.3, width: 2.0 },
+    base: { vmax: 96, accel: 11, brake: 32, grip: 19, df: 0.0075, slide: 0.9, laneK: 7, rearBias: 1.1, cliff: 0.1, slipPeak: 0.07, length: 5.3, width: 2.0 },
     drivers: 12, roadScale: 1, zoom: 1,
     models: [
       { id: 'bull', name: 'Bull RB', shape: 'modern', mul: { vmax: 1.01, df: 1.04 }, colors: ['#1a2a6c', '#ffd400'] },
@@ -36,7 +39,7 @@ const CATEGORIES = [
   {
     id: 'gt', name: { fr: 'GT', en: 'GT' },
     desc: { fr: 'Les icônes : M1 Procar, F40, Countach, 911 Turbo… Lourdes, puissantes, joueuses.', en: 'The icons: M1 Procar, F40, Countach, 911 Turbo… Heavy, powerful, playful.' },
-    base: { vmax: 70, accel: 8, brake: 17, grip: 13.5, df: 0.0015, slide: 0.6, laneK: 6, length: 4.5, width: 2.0 },
+    base: { vmax: 70, accel: 8, brake: 17, grip: 13.5, df: 0.0015, slide: 0.6, laneK: 6, rearBias: 1.06, cliff: 0.18, slipPeak: 0.12, length: 4.5, width: 2.0 },
     drivers: 10, roadScale: 0.9, zoom: 1.15,
     models: [
       { id: 'm1procar', name: 'M1 Procar', shape: 'gtBoxy', mul: { vmax: 0.98, grip: 1.04, brake: 1.03 }, colors: ['#f4f4f4', '#2166d8'] },
@@ -50,7 +53,7 @@ const CATEGORIES = [
   {
     id: 'protoclassic', name: { fr: 'Prototypes classiques', en: 'Classic prototypes' },
     desc: { fr: 'Le Mans 66-91 : GT40, 917, 962, 787B… Très rapides en ligne droite, de l’appui, longues à arrêter.', en: 'Le Mans 66-91: GT40, 917, 962, 787B… Very fast in a straight line, real downforce, long to stop.' },
-    base: { vmax: 84, accel: 9, brake: 20, grip: 14.5, df: 0.0035, slide: 0.7, laneK: 6, length: 4.8, width: 2.0 },
+    base: { vmax: 84, accel: 9, brake: 20, grip: 14.5, df: 0.0035, slide: 0.7, laneK: 6, rearBias: 1.06, cliff: 0.15, slipPeak: 0.11, length: 4.8, width: 2.0 },
     drivers: 10, roadScale: 1, zoom: 1.05,
     models: [
       { id: 'gt40', name: 'GT40 Mk II', shape: 'gt40', mul: { vmax: 0.98, grip: 0.98, df: 0.7, brake: 0.95, slide: 1.1 }, colors: ['#2166d8', '#f4f4f4'] },
@@ -92,6 +95,8 @@ function resolveModel(cat, m) {
     id: m.id, catId: cat.id, name: m.name, shape: m.shape, colors: m.colors, custom: !!m.custom, sprite: m.sprite || null,
     vmax: b.vmax * (mul.vmax || 1), accel: b.accel * (mul.accel || 1), brake: b.brake * (mul.brake || 1),
     grip: b.grip * (mul.grip || 1), df: b.df * (mul.df || 1), slide: b.slide * (mul.slide || 1), laneK: b.laneK,
+    // handling balance: a model's `slide` multiplier above 1 makes it more tail-happy
+    rearBias: (b.rearBias || 1.04) / Math.pow(mul.slide || 1, 0.5), cliff: b.cliff == null ? 0.25 : b.cliff, slipPeak: (b.slipPeak || 0.1) * Math.pow(mul.slide || 1, 0.5),
     length: m.length || b.length, width: m.width || b.width,
     drivers: cat.drivers, roadScale: cat.roadScale, zoom: cat.zoom,
   };

@@ -9,6 +9,7 @@ class App {
     this.renderer = new Renderer(this.canvas);
     this.renderer.showLines = this.save.showLines === true;
     this.renderer.rotate = this.save.camRotate !== false;
+    this.renderer.debug = this.save.debug === true;
     this.audio = new GameAudio();
     this.audio.enabled = this.save.sound;
     this.ui = new UI(this);
@@ -76,11 +77,12 @@ class App {
       if (this.state !== 'race') return;
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
       e.preventDefault();
+      if (e.key === 'g' || e.key === 'G') { this.renderer.debug = !this.renderer.debug; this.save.debug = this.renderer.debug; storeSave(this.save); return; }
       if (LINE_DOWN.includes(e.key)) { stepSel(-1); return; }
       if (LINE_UP.includes(e.key)) { stepSel(1); return; }
       on();
     });
-    window.addEventListener('keyup', (e) => { if (LINE_DOWN.includes(e.key) || LINE_UP.includes(e.key) || e.key === 'Escape') return; off(); });
+    window.addEventListener('keyup', (e) => { if (LINE_DOWN.includes(e.key) || LINE_UP.includes(e.key) || e.key === 'Escape' || e.key === 'g' || e.key === 'G') return; off(); });
     window.addEventListener('blur', () => { off(); this.pointers.throttle = this.pointers.slider = null; });
     window.addEventListener('wheel', (e) => { if (this.state === 'race') stepSel(e.deltaY < 0 ? 1 : -1); }, { passive: true });
 

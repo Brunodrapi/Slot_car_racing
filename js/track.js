@@ -116,8 +116,10 @@ class Track {
     this.lines = {};
     if (def.lines && def.lines.racing) this._projectLines(def.lines, scale);
     else this._autoLines();
+    this._limitLines(0.07);
     if (def.lines && !def.width) this._widthFromLines();
     this._clampLines();
+    this._lineCurvatures();
     this.halfWidth = baseHw;          // nominal, used for grids and camera
     this.width = baseHw * 2;
 
@@ -177,9 +179,23 @@ class Track {
       inside[i] = -sg > 0 ? -sg * marginL * 0.92 : -sg * marginR * 0.92;
       outside[i] = sg > 0 ? sg * marginL * 0.92 : sg * marginR * 0.92;
     }
-    this.lines.racing = Track.smooth(racing, 6);
-    this.lines.inside = Track.smooth(inside, 6);
-    this.lines.outside = Track.smooth(outside, 6);
+    this.lines.racing = Track.smooth(racing, 20);
+    this.lines.inside = Track.smooth(inside, 20);
+    this.lines.outside = Track.smooth(outside, 20);
+  }
+
+  // A line must be something a car can actually follow: limit how fast it moves across the road
+  // (metres of lateral per metre travelled), forward and backward so both ends of a move are gentle.
+  _limitLines(maxSlope) {
+    const N = this.n;
+    for (const name of LINE_NAMES) {
+      const a = this.lines[name];
+      for (let pass = 0; pass < 2; pass++) {
+        for (let i = 1; i <= N; i++) { const j = i % N, k = (i - 1) % N; a[j] = clamp(a[j], a[k] - maxSlope, a[k] + maxSlope); }
+        for (let i = N - 1; i >= -1; i--) { const j = (i + N) % N, k = (i + 1) % N; a[j] = clamp(a[j], a[k] - maxSlope, a[k] + maxSlope); }
+      }
+      this.lines[name] = Track.smooth(a, 4);
+    }
   }
 
   // Editor tracks: each drawn line becomes a lateral profile by walking it along the centreline.
@@ -244,6 +260,26 @@ class Track {
     }
   }
 
+  // Real curvature of each line: the road curvature at that offset plus the bending of the line
+  // itself as it moves across the road (a line drifting from outside to inside bends more than
+  // the road at corner entry). This is what the cars actually have to turn, so the braking AI
+  // and the speed profile use it.
+  _lineCurvatures() {
+    const N = this.n, ds = this.ds;
+    this.lineK = {};
+    for (const name of LINE_NAMES) {
+      const lat = this.lines[name], out = new Float32Array(N);
+      for (let i = 0; i < N; i++) {
+        const h = 3;
+        const a = lat[(i - h + N) % N], b = lat[i], c = lat[(i + h) % N];
+        const d2 = (a - 2 * b + c) / (h * ds * h * ds);
+        const k = this.k[i], f = Math.max(0.25, 1 + k * b);
+        out[i] = k / f - d2 / (f * f);
+      }
+      this.lineK[name] = Track.smooth(out, 2);
+    }
+  }
+
   _findCrossings() {
     const N = this.n, xs = this.xs, ys = this.ys, step = 4, res = [];
     const seg = (i) => [xs[i % N], ys[i % N], xs[(i + step) % N], ys[(i + step) % N]];
@@ -296,14 +332,19 @@ class Track {
     if (sel < 0) return r + (this._lerp(this.lines.inside, s) - r) * Math.min(1, -sel);
     return r + (this._lerp(this.lines.outside, s) - r) * Math.min(1, sel);
   }
+  // curvature of the blended line (what a car following it really turns)
+  lineCurv(s, sel) {
+    const r = this._lerp(this.lineK.racing, s);
+    if (sel < 0) return r + (this._lerp(this.lineK.inside, s) - r) * Math.min(1, -sel);
+    return r + (this._lerp(this.lineK.outside, s) - r) * Math.min(1, sel);
+  }
   // strongest curvature ahead along a line
   curvAhead(s, dist, sel) {
     const i0 = this.idx(s), cnt = Math.max(1, Math.round(dist / this.ds));
     let best = 0;
     for (let j = 0; j < cnt; j++) {
       const i = (i0 + j) % this.n;
-      const lat = sel == null ? 0 : this.targetLat(i * this.ds, sel);
-      const v = this.k[i] / Math.max(0.25, 1 + this.k[i] * lat);
+      const v = sel == null ? this.k[i] : this.lineCurv(i * this.ds, sel);
       if (Math.abs(v) > Math.abs(best)) best = v;
     }
     return best;

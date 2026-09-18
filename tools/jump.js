@@ -10,16 +10,16 @@ const p = race.player;
 let prev = null, worst = 0, worstAt = '', excursions = 0, log = [];
 let watch = 0;
 while (race.state !== 'finished' && race.time < 200) {
-  const wasOff = p.state === 'grass';
+  const wasOff = p.state === 'grass', rj = p.rejoined;
   const thr = aiThrottle(p, race.cars, race.dt, { marginBase: +ARGS[2], marginSpread: 0 });
   race.update(race.dt, thr);
   if (!wasOff && p.state === 'grass') { excursions++; watch = 240; }
   const q = p.pos;
-  if (prev) {
+  if (prev && p.rejoined === rj) {   // a marshal rejoin is a deliberate reposition, not a physics jump
     const step = Math.hypot(q.x - prev.x, q.y - prev.y);
-    const expect = p.v * race.dt + 0.02;
+    const expect = Math.hypot(p.v, p.vl) * race.dt + 0.02;
     if (step > expect * 2.5 && step > 0.25) { if (step > worst) { worst = step; worstAt = 'v=' + p.v.toFixed(1) + ' state=' + p.state + ' t=' + race.time.toFixed(2); } }
-    if (watch > 0) { watch--; if (watch % 12 === 0) log.push((step / Math.max(0.01, p.v * race.dt)).toFixed(2)); }
+    if (watch > 0) { watch--; if (watch % 12 === 0) log.push((step / Math.max(0.01, Math.hypot(p.v, p.vl) * race.dt)).toFixed(2)); }
   }
   prev = q;
 }
