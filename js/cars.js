@@ -111,10 +111,11 @@ function resolveModel(cat, m) {
 }
 for (const cat of CATEGORIES) for (const m of cat.models) MODELS.push(resolveModel(cat, m));
 
-// Pared back for now: a single playable category, and inside it only the cars that ship a
-// rotation sheet, so every car on track is drawn from real artwork. The other categories and
-// models stay in the data, they are simply not offered.
-const SIMPLE = { catId: 'gt', sheetOnly: true };
+// Pared back for now: a single playable category. The rotation sheets only serve the isometric
+// view, which is no longer the default, so the whole GT field is offered again and every car is
+// drawn from its own vector shape. The other categories stay in the data, they are simply not
+// offered. Set sheetOnly to keep only the cars that ship a sheet.
+const SIMPLE = { catId: 'gt', sheetOnly: false };
 
 function playableCategories() { return CATEGORIES.filter(c => c.id === SIMPLE.catId); }
 function categoryById(id) { return CATEGORIES.find(c => c.id === id) || playableCategories()[0]; }

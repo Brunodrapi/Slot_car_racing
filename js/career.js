@@ -17,7 +17,7 @@ function lapsFor(trackDef, cat) {
 const SAVE_KEY = 'slotracer.save.v2';
 
 function defaultSave() {
-  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, ctrl: 'auto', camRotate: false, view: 'iso', showLines: false, debug: false, guideMigrated: true, cups: {}, bestLaps: {}, tutorialSeen: false, racesDone: 0 };
+  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, ctrl: 'auto', camRotate: false, view: 'fixed', showLines: false, debug: false, guideMigrated: true, flatMigrated: false, cups: {}, bestLaps: {}, tutorialSeen: false, racesDone: 0 };
 }
 
 function loadSave() {
@@ -29,6 +29,10 @@ function loadSave() {
     if (!save.guideMigrated) { save.showLines = false; save.guideMigrated = true; }
     // the camera used to be a two-way toggle; it is now a three-way view setting
     if (!save.view) save.view = save.camRotate === false ? 'fixed' : 'track';
+    // The isometric view was tried as the default and dropped: drawing a car from every angle
+    // needs a rotation sheet per model, which is more artwork than the game can carry. Bring
+    // existing saves back to the top-down view, once, leaving the setting free afterwards.
+    if (!save.flatMigrated) { if (save.view === 'iso') save.view = 'fixed'; save.flatMigrated = true; storeSave(save); }
     return save;
   } catch (e) { return defaultSave(); }
 }

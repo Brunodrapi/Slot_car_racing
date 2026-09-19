@@ -46,17 +46,17 @@ pouce droit emmène le cadran où il veut. Sur téléphone la minicarte passe en
 l'écran appartenant au pouce.
 
 > **Version allégée.** Le jeu se limite pour l'instant à la **course rapide** et au
-> **contre-la-montre**, avec une seule catégorie de voitures, et uniquement celles qui disposent
-> d'une planche de rotations. La carrière et les autres catégories restent dans le code, elles ne
-> sont simplement plus proposées : `SIMPLE` dans `js/cars.js` et le bouton du menu dans `js/ui.js`
-> suffisent à les rouvrir.
+> **contre-la-montre**, avec une seule catégorie de voitures, la GT, et ses six modèles. La
+> carrière et les autres catégories restent dans le code, elles ne sont simplement plus proposées :
+> `SIMPLE` dans `js/cars.js` et le bouton du menu dans `js/ui.js` suffisent à les rouvrir.
 
 Trois vues dans les réglages :
 
-- **Dessus, orientée piste** (par défaut) : la route monte toujours vers le haut de l'écran, ce qui
-  permet de voir loin devant même sur un téléphone en portrait ;
-- **Dessus, fixe** : le nord reste en haut, la caméra ne fait que suivre ;
-- **Isométrique** : le sol est incliné, la caméra ne tourne pas non plus.
+- **Dessus, fixe** (par défaut) : le nord reste en haut, la caméra ne fait que suivre ;
+- **Dessus, orientée piste** : la route monte toujours vers le haut de l'écran, ce qui permet de voir
+  loin devant même sur un téléphone en portrait ;
+- **Isométrique** : le sol est incliné, la caméra ne tourne pas non plus. Seule cette vue affiche le
+  décor, et seule elle utilise les planches de rotations des voitures.
 
 Aucune trajectoire n'est dessinée sur la route. Un **guide de freinage** optionnel (réglages) affiche
 devant la voiture un ruban coloré par le profil de vitesse de référence du circuit (vert : plein gaz,
@@ -126,6 +126,9 @@ planche sont dessinées **sans lissage**, pour que le pixel art reste net.
 
 ### Décor
 
+Le décor ne se dessine qu'en **vue isométrique** : les sprites sont des objets vus de trois quarts,
+ils n'ont pas de sens vus du dessus. En vue de dessus, il ne reste que l'herbe.
+
 Autour de la piste, `js/props.js` sème des objets debout — chênes, sapins, buissons, maisons, granges,
 barrières, puits, tonneaux, ruines. Ils viennent d'une planche de sprites isométriques découpée par
 `tools/env.py`, et portent leur propre ombre portée, passée en noir translucide pour qu'elle
@@ -143,7 +146,13 @@ qu'une voiture passe devant un arbre placé plus haut et derrière un arbre plac
 
 `sprites/env/README.md` donne la commande de découpe et la façon de brancher un nouvel objet.
 
-## Vue isométrique
+## Vue isométrique (optionnelle)
+
+Elle a été essayée comme vue par défaut, puis écartée : donner à chaque voiture ses vues sous tous
+les angles demande une planche de rotations par modèle, et c'est plus de travail de sprites que le
+jeu peut en porter. Le jeu s'ouvre donc de nouveau en **vue de dessus**, où une seule silhouette
+vectorielle suffit par voiture, et toute la catégorie GT est jouable. La vue isométrique reste dans
+les réglages, et le décor avec elle ; la branche `isometric` garde l'essai tel quel.
 
 Une caméra orthographique inclinée regardant une piste plate, c'est exactement un écrasement vertical
 de la vue de dessus. Aucun moteur 3D, aucune dépendance : la route, les vibreurs et les graviers se
@@ -173,9 +182,8 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
 
 ## Contenu
 
-- **4 voitures**, toutes dessinées à partir d'une planche de rotations : *M1 Procar*, *F40 LM*,
-  *911 Turbo* et *Testarossa*. Les trois premières sont en pixel art, la F40 LM en illustration ; son
-  style tranche avec les autres, une ligne dans `js/cars.js` suffit à la retirer.
+- **6 voitures GT** : *M1 Procar*, *F40*, *Countach LP500*, *911 Turbo*, *Testarossa*, *XJ220*.
+  Quatre d'entre elles ont en plus une planche de rotations, qui ne sert qu'à la vue isométrique.
 - **12 circuits** inspirés de vrais tracés : Monza, Spa-Francorchamps, Monaco, Silverstone, Suzuka
   (avec son pont), Interlagos, Laguna Seca, Nürburgring GP, Le Mans, Mount Panorama, Red Bull Ring, Zandvoort.
 - Dans le code, toujours **4 catégories de 6 modèles**, avec leurs stats et leur dessin vectoriel,
