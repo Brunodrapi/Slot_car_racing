@@ -389,9 +389,10 @@ class Renderer {
   _drawBoards(g, T, vis) {
     const boards = T.boards;
     if (!boards || !boards.length) return;
-    const W = 5.2, H = 6.4, r = 0.6;
+    const W = 5.2, H = 6.4, r = 0.6, specs = Renderer.ARROWS;
     for (const b of boards) {
       if (b.x < vis.minX - 12 || b.x > vis.maxX + 12 || b.y < vis.minY - 12 || b.y > vis.maxY + 12) continue;
+      const spec = specs[b.kind && b.kind !== 'normal' ? b.kind : b.grade] || specs[3];
       g.save();
       g.translate(b.x, b.y);
       g.rotate(b.th + Math.PI / 2);      // the panel's top points the way the track goes
@@ -400,56 +401,102 @@ class Renderer {
       else g.rect(-W / 2, -H / 2, W, H);
       g.fillStyle = PAL.edgeLine; g.fill();
       g.lineWidth = 0.45; g.strokeStyle = PAL.outline; g.stroke();
-      // the arrow fills the top two thirds, the distance sits underneath
-      const bend = { 1: 2.7, 2: 2.1, 3: 1.6, 4: 1.15, 5: 0.75, 6: 0.42 }[b.grade] || 1.15;
-      // In the panel's frame the driver's right is +x, and a positive curvature turns right, so the
-      // arrow curls toward +x for a right-hander. (Checked against the road, not reasoned about:
-      // tools/arrow.js compares every drawn arc with the bend it announces.)
+      // In the panel's frame the driver's right is +x, and a positive curvature turns right, so
+      // the arrow bends toward +x for a right-hander. (Checked against the road rather than
+      // reasoned about: tools/arrow.js compares every drawn glyph with the bend it announces.)
       const dir = b.sign > 0 ? 1 : -1;
-      Renderer.cornerArrow(g, { x: 0, y: -H * 0.21, w: W * 0.8, h: H * 0.44 }, bend, dir,
-        b.grade <= 2 ? PAL.kerbRed : b.grade <= 4 ? PAL.centreLine : '#7a7a86');
+      Renderer.paceArrow(g, { x: 0, y: -H * 0.24, w: W * 0.78, h: H * 0.40 }, spec, dir);
       g.save();
       g.scale(1 / 16, 1 / 16);
+      g.textAlign = 'center'; g.textBaseline = 'middle';
       g.fillStyle = PAL.outline;
       g.font = 'bold 26px "Trebuchet MS", "DejaVu Sans", sans-serif';
-      g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText(String(b.dist), 0, H * 0.28 * 16);
+      g.fillText(String(b.dist), 0, H * 0.30 * 16);
+      if (spec.tag) {                    // the named corners say so, as on a pace-note chart
+        g.fillStyle = spec.col;
+        g.font = 'bold 16px "Trebuchet MS", "DejaVu Sans", sans-serif';
+        g.fillText(spec.tag, 0, H * 0.06 * 16);
+      }
       g.restore();
       g.restore();
     }
   }
 
-  // An arrow that starts pointing straight up and curls by `bend` radians in total, `dir` giving
-  // the side: a hairpin curls right round, a kink barely leans. The shape is measured and then
-  // fitted to the box it is given, so a tight arrow and an open one both fill the panel instead
-  // of one spilling over the edge.
-  static cornerArrow(g, box, bend, dir, colour) {
+  // The pace-note glyph: a straight stem that bends near its top, the way a rally co-driver's
+  // chart draws it. How far it bends is the note — a 6 barely leans, a 1 folds well past square —
+  // and the three named corners get their own shape: a square turns on a hard right angle, a
+  // hairpin comes all the way round, an acute folds back on itself.
+  static get ARROWS() {
+    return {
+      6: { stem: 2.0, bend: 20, r: 1.2, tail: 0.3, col: '#3aa65f' },
+      5: { stem: 1.8, bend: 36, r: 1.1, tail: 0.3, col: '#63b845' },
+      4: { stem: 1.6, bend: 56, r: 1.0, tail: 0.3, col: '#a2c637' },
+      3: { stem: 1.4, bend: 80, r: 0.9, tail: 0.3, col: '#d0cd30' },
+      2: { stem: 1.2, bend: 105, r: 0.8, tail: 0.3, col: '#e8bc32' },
+      1: { stem: 1.0, bend: 135, r: 0.7, tail: 0.3, col: '#e08f2c' },
+      square: { stem: 1.5, bend: 90, r: 0.16, tail: 1.0, col: '#dd7a28', tag: 'SQ' },
+      hairpin: { stem: 0.9, bend: 180, r: 0.62, tail: 0.5, col: '#d85c26', tag: 'HP' },
+      acute: { stem: 1.3, bend: 158, r: 0.14, tail: 1.1, col: '#c33b30', tag: 'AC' },
+    };
+  }
+
+  // Builds the glyph, measures it, then fits it to the box it is given, so a hairpin and a kink
+  // both fill the panel instead of one spilling over the edge and the other floating in the middle.
+  static paceArrow(g, box, spec, dir) {
+    const bend = spec.bend * Math.PI / 180;
     const a0 = dir > 0 ? Math.PI : 0, a1 = a0 + dir * bend;
-    const HL = 0.46, HW = 0.28;                // head, as a fraction of the arc radius
-    const pt = (a) => [dir + Math.cos(a), Math.sin(a)];
-    const pts = [];
-    for (let i = 0; i <= 24; i++) pts.push(pt(a0 + (a1 - a0) * i / 24));
-    const [ex, ey] = pt(a1), tan = a1 + dir * Math.PI / 2;
-    for (const [l, w] of [[HL, 0], [0, HW], [0, -HW]]) {
-      pts.push([ex + Math.cos(tan) * l - Math.sin(tan) * w, ey + Math.sin(tan) * l + Math.cos(tan) * w]);
+    const cx = dir * spec.r, cy = -spec.stem;
+    const path = [[0, 0], [0, -spec.stem]];
+    const STEPS = 18;
+    for (let i = 1; i <= STEPS; i++) {
+      const a = a0 + (a1 - a0) * i / STEPS;
+      path.push([cx + spec.r * Math.cos(a), cy + spec.r * Math.sin(a)]);
     }
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const [x, y] of pts) { minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
-    const pad = 0.22;                          // room for half the stroke at either end
-    const sc = Math.min(box.w / (maxX - minX + pad), box.h / (maxY - minY + pad));
+    const te = a1 + dir * Math.PI / 2;                       // where the arrow ends up pointing
+    const [px, py] = path[path.length - 1];
+    const ex = px + Math.cos(te) * spec.tail, ey = py + Math.sin(te) * spec.tail;
+    path.push([ex, ey]);
+    // The head is a fixed size on the panel, not a fraction of the glyph: a kink and a hairpin are
+    // drawn at very different scales, and a head that shrank with the glyph vanished on the open
+    // notes, leaving a bar with no direction. Fitting therefore takes two passes — one to learn
+    // the scale, one that knows how much room the head will take at that scale.
+    const HLp = 0.95, HWp = 0.52;                            // head, in panel units
+    const bbox = (pts) => {
+      let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity;
+      for (const [x, y] of pts) { a = Math.min(a, x); c = Math.max(c, x); b = Math.min(b, y); d = Math.max(d, y); }
+      return [a, b, c, d];
+    };
+    const pad = 0.3;                                         // room for half the stroke either end
+    const fit = (pts) => {
+      const [a, b, c, d] = bbox(pts);
+      return Math.min(box.w / (c - a + pad), box.h / (d - b + pad));
+    };
+    let sc = fit(path);
+    const headAt = (k) => {
+      const hl = HLp / k, hw = HWp / k;
+      return [
+        [ex + Math.cos(te) * hl, ey + Math.sin(te) * hl],
+        [ex - Math.sin(te) * hw, ey + Math.cos(te) * hw],
+        [ex + Math.sin(te) * hw, ey - Math.cos(te) * hw],
+      ];
+    };
+    sc = fit(path.concat(headAt(sc)));
+    const head = headAt(sc);
+    const [minX, minY, maxX, maxY] = bbox(path.concat(head));
 
     g.save();
     g.translate(box.x - (minX + maxX) / 2 * sc, box.y - (minY + maxY) / 2 * sc);
     g.scale(sc, sc);
-    g.strokeStyle = colour; g.fillStyle = colour;
-    g.lineWidth = 0.5 / sc; g.lineCap = 'round';
+    g.strokeStyle = spec.col; g.fillStyle = spec.col;
+    g.lineWidth = 0.42 / sc; g.lineCap = 'round'; g.lineJoin = 'round';
     g.beginPath();
-    g.arc(dir, 0, 1, a0, a1, dir < 0);
+    g.moveTo(path[0][0], path[0][1]);
+    for (let i = 1; i < path.length; i++) g.lineTo(path[i][0], path[i][1]);
     g.stroke();
     g.beginPath();
-    g.moveTo(ex + Math.cos(tan) * HL, ey + Math.sin(tan) * HL);
-    g.lineTo(ex - Math.sin(tan) * HW, ey + Math.cos(tan) * HW);
-    g.lineTo(ex + Math.sin(tan) * HW, ey - Math.cos(tan) * HW);
+    g.moveTo(head[0][0], head[0][1]);
+    g.lineTo(head[1][0], head[1][1]);
+    g.lineTo(head[2][0], head[2][1]);
     g.closePath(); g.fill();
     g.restore();
   }

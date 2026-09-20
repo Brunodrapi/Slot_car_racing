@@ -17,13 +17,13 @@ const track = process.argv[2] || 'monza';
   const res = await page.evaluate(() => {
     const R = app.renderer, T = app.race.track;
     const caught = [];
-    const orig = Renderer.cornerArrow;
-    Renderer.cornerArrow = function (g, box, bend, dir, colour) {
-      // sample the canonical arc's start and end tangents, in the panel's local frame
-      const a0 = dir > 0 ? Math.PI : 0, a1 = a0 + dir * bend;
-      const tan = (a) => a + dir * Math.PI / 2;           // travel direction along the arc
-      caught.push({ bend, dir, startTan: tan(a0), endTan: tan(a1) });
-      return orig.call(this, g, box, bend, dir, colour);
+    const orig = Renderer.paceArrow;
+    Renderer.paceArrow = function (g, box, spec, dir) {
+      // the glyph starts pointing up the panel and ends along the tangent at the end of its bend
+      const bend = spec.bend * Math.PI / 180;
+      const startTan = -Math.PI / 2;
+      caught.push({ bend, dir, startTan, endTan: startTan + dir * bend });
+      return orig.call(this, g, box, spec, dir);
     };
     // draw every board by putting the whole circuit in view
     R.cam.x = (T.bounds.minX + T.bounds.maxX) / 2;
@@ -31,7 +31,7 @@ const track = process.argv[2] || 'monza';
     R.cam.zoom = 0.2;
     R.updateCamera = () => {};
     R.draw(app.race, app.ui);
-    Renderer.cornerArrow = orig;
+    Renderer.paceArrow = orig;
 
     // nothing is culled at this zoom, so the captured arrows line up with T.boards one for one
     const rows = [];
@@ -50,7 +50,7 @@ const track = process.argv[2] || 'monza';
         while (e < -Math.PI) e += 2 * Math.PI;
         dth += e;
       }
-      rows.push({ dist: bd.dist, grade: bd.grade, drawnSign, roadSign: Math.sign(dth),
+      rows.push({ dist: bd.dist, note: bd.kind === 'normal' ? bd.grade : bd.kind, drawnSign, roadSign: Math.sign(dth),
         ok: drawnSign === Math.sign(dth) });
     }
     return { caught: caught.length, boards: T.boards.length, rows };

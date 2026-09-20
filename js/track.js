@@ -188,8 +188,23 @@ class Track {
       // A gentle bend asks for no braking, so it gets no board: a panel there is only clutter.
       if (z.peak < 1 / 200) continue;
       const radius = 1 / z.peak;
-      // Rally grading, tightest first: 1 is a hairpin, 6 is barely a kink.
+      // Pace-note grading, tightest first: 1 is extremely aggressive, 6 barely a kink.
       const grade = radius < 20 ? 1 : radius < 35 ? 2 : radius < 55 ? 3 : radius < 90 ? 4 : radius < 150 ? 5 : 6;
+      // A few corners deserve their own note rather than a number, as in rally: how far round the
+      // road goes matters as much as how tight it is. A ninety that has to be taken slowly is a
+      // square; a corner that turns you back where you came from is a hairpin.
+      let turn = 0;
+      for (let i = z.from; i < z.firstTo; i++) {
+        const a = ((i % N) + N) % N, b = (((i + 1) % N) + N) % N;
+        let e = this.th[b] - this.th[a];
+        while (e > Math.PI) e -= 2 * Math.PI;
+        while (e < -Math.PI) e += 2 * Math.PI;
+        turn += e;
+      }
+      const A = Math.abs(turn) * 180 / Math.PI;
+      const kind = (A >= 150 && radius < 40) ? 'hairpin'
+        : (A >= 115 && radius < 26) ? 'acute'
+          : (A >= 75 && A <= 105 && radius < 35) ? 'square' : 'normal';
       const entry = z.from * this.ds;
       for (const dist of [200, 100, 50]) {
         const s = this.wrap(entry - dist);
@@ -204,7 +219,7 @@ class Track {
         out.push({
           x: this.xs[i] + this.nx[i] * off * side,
           y: this.ys[i] + this.ny[i] * off * side,
-          th: this.th[i], dist, grade, sign: z.sign, side,
+          th: this.th[i], dist, grade, kind, sign: z.sign, side,
           from: z.from, to: z.firstTo,        // the corner the arrow describes, for checking
         });
       }

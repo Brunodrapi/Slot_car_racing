@@ -127,10 +127,24 @@ planche sont dessinées **sans lissage**, pour que le pixel art reste net.
 ### Panneaux de freinage
 
 Sur l'approche de chaque virage, trois panneaux au bord de la piste annoncent la distance — **200,
-100, 50 mètres** — et, au-dessus du chiffre, une **flèche à la manière du rallye** : plus le virage
-est serré, plus elle s'enroule, et elle pointe du côté où la route tourne. Un coup d'œil donne les
-deux choses à la fois, à quelle distance et à quel point c'est fermé. Rouge pour les notes 1 et 2,
-jaune pour 3 et 4, gris pour les courbes rapides.
+100, 50 mètres** — et, au-dessus du chiffre, le **symbole des notes de rallye** : une tige droite
+qui se coude près du sommet, d'autant plus que le virage est fermé, et qui pointe du côté où la
+route tourne. Un coup d'œil donne les deux choses à la fois, à quelle distance et à quel point
+c'est serré.
+
+Les notes vont de **6** (à peine un décroché) à **1** (extrêmement fermé), avec un dégradé du vert
+au rouge, plus trois virages nommés qui ont leur propre dessin et leurs initiales, comme sur une
+charte de copilote :
+
+| note | dessin | couleur |
+| --- | --- | --- |
+| 6 → 1 | tige qui se coude de 20° à 135° | vert → orange |
+| **SQ** carré | angle droit net | orange |
+| **HP** épingle | demi-tour arrondi | orange foncé |
+| **AC** aigu | repli en V | rouge |
+
+Le nom ne vient pas du rayon seul : c'est l'angle total dont la route tourne qui décide. Une
+parabolique de 180° au rayon large reste une note 3, pas une épingle.
 
 Tout est déduit de la géométrie, aucun circuit n'est annoté à la main. Les virages sont d'abord
 regroupés en **zones de freinage** : une chicane ou une suite d'esses, c'est un seul freinage, pas
@@ -144,9 +158,13 @@ Le panneau est peint à plat, tourné avec la piste, donc il se lit à l'endroit
 tient à l'extérieur du virage, où il y a de la place et où il reste loin de la corde.
 
 `node tools/arrow.js <circuit>` capture chaque flèche réellement dessinée et compare le sens dans
-lequel elle s'enroule à celui dans lequel la route tourne vraiment. C'est ce contrôle qui a rattrapé
+lequel elle se coude à celui dans lequel la route tourne vraiment. C'est ce contrôle qui a rattrapé
 les deux erreurs de signe de la première version : les panneaux étaient à l'intérieur du virage et
 les flèches à l'envers, ce qui ne se voit pas sur une vignette.
+
+Le symbole est mesuré puis ajusté à la boîte qu'on lui donne, en **deux passes** : la pointe fait
+une taille fixe sur le panneau et non une fraction du dessin, sans quoi elle disparaît sur les notes
+ouvertes, dessinées bien plus petit qu'une épingle — il ne reste alors qu'une barre sans direction.
 
 ### Décor
 
