@@ -150,6 +150,74 @@ class Track {
         if (i - start > 6) this.corners.push({ from: start, to: i, sign: Math.sign(this.k[Math.floor((start + i) / 2) % N]) });
       }
     }
+
+    this.boards = this._brakingBoards();
+  }
+
+  // Braking boards: the 200 / 100 / 50 metre panels on the approach to a corner, each carrying a
+  // rally-style arrow bent to the corner's severity and pointing the way it turns. They are placed
+  // from the geometry alone, so every circuit gets them without being annotated by hand.
+  //
+  // Corners are first grouped into braking zones: a chicane or a set of esses is one thing to
+  // brake for, not three, and boarding each of its corners would only clutter the approach.
+  _brakingBoards() {
+    const N = this.n, out = [];
+    if (!this.corners.length) return out;
+    const GAP = 60;                    // straight below this and the corners are the same zone
+    const zones = [];
+    for (const c of this.corners) {
+      let peak = 0;
+      for (let i = c.from; i <= c.to; i++) peak = Math.max(peak, Math.abs(this.k[((i % N) + N) % N]));
+      const z = zones[zones.length - 1];
+      // The arrow shows the way the FIRST corner of the zone goes, not the tightest: through a
+      // chicane it is the first direction you turn that matters. The severity still comes from
+      // the tightest, since that is what sets the braking.
+      if (z && (c.from - z.to) * this.ds < GAP) { z.to = c.to; z.peak = Math.max(z.peak, peak); }
+      else zones.push({ from: c.from, to: c.to, peak, sign: c.sign, firstTo: c.to });
+    }
+    // the track is a loop: the last zone may run into the first
+    if (zones.length > 1) {
+      const a = zones[zones.length - 1], b = zones[0];
+      if ((b.from + N - a.to) * this.ds < GAP) { b.from = a.from - N; b.peak = Math.max(b.peak, a.peak); zones.pop(); }
+    }
+    const inAZone = (i) => zones.some(z => {
+      const a = ((z.from % N) + N) % N, b = ((z.to % N) + N) % N;
+      return a <= b ? (i >= a && i <= b) : (i >= a || i <= b);
+    });
+    for (const z of zones) {
+      // A gentle bend asks for no braking, so it gets no board: a panel there is only clutter.
+      if (z.peak < 1 / 200) continue;
+      const radius = 1 / z.peak;
+      // Rally grading, tightest first: 1 is a hairpin, 6 is barely a kink.
+      const grade = radius < 20 ? 1 : radius < 35 ? 2 : radius < 55 ? 3 : radius < 90 ? 4 : radius < 150 ? 5 : 6;
+      const entry = z.from * this.ds;
+      for (const dist of [200, 100, 50]) {
+        const s = this.wrap(entry - dist);
+        const i = this.idx(s);
+        if (inAZone(i)) continue;                 // the straight is too short for this one
+        // Outside of the corner, where there is room and where the panel stays clear of the apex.
+        // nx,ny is the left normal, and a positive curvature turns right on screen, so the outside
+        // of a right-hander is the left side: side and sign match.
+        const side = z.sign || 1;
+        const hw = side > 0 ? this.hwL[i] : this.hwR[i];
+        const off = hw + 4.2;
+        out.push({
+          x: this.xs[i] + this.nx[i] * off * side,
+          y: this.ys[i] + this.ny[i] * off * side,
+          th: this.th[i], dist, grade, sign: z.sign, side,
+          from: z.from, to: z.firstTo,        // the corner the arrow describes, for checking
+        });
+      }
+    }
+    // Two boards on top of each other read as neither: where the end of one approach meets the
+    // start of the next, keep the one closest to its own corner.
+    out.sort((a, b) => a.dist - b.dist);
+    const kept = [];
+    for (const b of out) {
+      if (kept.some(k => (k.x - b.x) ** 2 + (k.y - b.y) ** 2 < 22 * 22)) continue;
+      kept.push(b);
+    }
+    return kept;
   }
 
   // Lines generated from curvature: racing = out-in-out, inside/outside hug the road edges

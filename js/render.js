@@ -296,6 +296,7 @@ class Renderer {
     }
     if (this.showLines) this._drawGuide(g, race);
     this._drawStartLine(g, T);
+    this._drawBoards(g, T, vis);
     // skid marks
     g.strokeStyle = 'rgba(20,20,20,1)'; g.lineWidth = 0.35;
     for (const s of this.skids) {
@@ -379,6 +380,78 @@ class Renderer {
     g.globalAlpha = late ? 0.6 + 0.4 * Math.sin(performance.now() / 90) : 0.9;
     g.fillStyle = col; g.fillRect(-0.3, -w, 0.6, w * 2);
     g.globalAlpha = 1; g.restore();
+  }
+
+  // Braking boards, painted flat on the ground beside the track like everything else in this
+  // view. Each one gives the distance to the corner and, above it, an arrow bent to the corner's
+  // severity and pointing the way it turns — the rally idea, where one glance tells you both how
+  // far and how hard. The panel is turned with the track, so it reads upright as you arrive.
+  _drawBoards(g, T, vis) {
+    const boards = T.boards;
+    if (!boards || !boards.length) return;
+    const W = 5.2, H = 6.4, r = 0.6;
+    for (const b of boards) {
+      if (b.x < vis.minX - 12 || b.x > vis.maxX + 12 || b.y < vis.minY - 12 || b.y > vis.maxY + 12) continue;
+      g.save();
+      g.translate(b.x, b.y);
+      g.rotate(b.th + Math.PI / 2);      // the panel's top points the way the track goes
+      g.beginPath();
+      if (g.roundRect) g.roundRect(-W / 2, -H / 2, W, H, r);
+      else g.rect(-W / 2, -H / 2, W, H);
+      g.fillStyle = PAL.edgeLine; g.fill();
+      g.lineWidth = 0.45; g.strokeStyle = PAL.outline; g.stroke();
+      // the arrow fills the top two thirds, the distance sits underneath
+      const bend = { 1: 2.7, 2: 2.1, 3: 1.6, 4: 1.15, 5: 0.75, 6: 0.42 }[b.grade] || 1.15;
+      // In the panel's frame the driver's right is +x, and a positive curvature turns right, so the
+      // arrow curls toward +x for a right-hander. (Checked against the road, not reasoned about:
+      // tools/arrow.js compares every drawn arc with the bend it announces.)
+      const dir = b.sign > 0 ? 1 : -1;
+      Renderer.cornerArrow(g, { x: 0, y: -H * 0.21, w: W * 0.8, h: H * 0.44 }, bend, dir,
+        b.grade <= 2 ? PAL.kerbRed : b.grade <= 4 ? PAL.centreLine : '#7a7a86');
+      g.save();
+      g.scale(1 / 16, 1 / 16);
+      g.fillStyle = PAL.outline;
+      g.font = 'bold 26px "Trebuchet MS", "DejaVu Sans", sans-serif';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(String(b.dist), 0, H * 0.28 * 16);
+      g.restore();
+      g.restore();
+    }
+  }
+
+  // An arrow that starts pointing straight up and curls by `bend` radians in total, `dir` giving
+  // the side: a hairpin curls right round, a kink barely leans. The shape is measured and then
+  // fitted to the box it is given, so a tight arrow and an open one both fill the panel instead
+  // of one spilling over the edge.
+  static cornerArrow(g, box, bend, dir, colour) {
+    const a0 = dir > 0 ? Math.PI : 0, a1 = a0 + dir * bend;
+    const HL = 0.46, HW = 0.28;                // head, as a fraction of the arc radius
+    const pt = (a) => [dir + Math.cos(a), Math.sin(a)];
+    const pts = [];
+    for (let i = 0; i <= 24; i++) pts.push(pt(a0 + (a1 - a0) * i / 24));
+    const [ex, ey] = pt(a1), tan = a1 + dir * Math.PI / 2;
+    for (const [l, w] of [[HL, 0], [0, HW], [0, -HW]]) {
+      pts.push([ex + Math.cos(tan) * l - Math.sin(tan) * w, ey + Math.sin(tan) * l + Math.cos(tan) * w]);
+    }
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const [x, y] of pts) { minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
+    const pad = 0.22;                          // room for half the stroke at either end
+    const sc = Math.min(box.w / (maxX - minX + pad), box.h / (maxY - minY + pad));
+
+    g.save();
+    g.translate(box.x - (minX + maxX) / 2 * sc, box.y - (minY + maxY) / 2 * sc);
+    g.scale(sc, sc);
+    g.strokeStyle = colour; g.fillStyle = colour;
+    g.lineWidth = 0.5 / sc; g.lineCap = 'round';
+    g.beginPath();
+    g.arc(dir, 0, 1, a0, a1, dir < 0);
+    g.stroke();
+    g.beginPath();
+    g.moveTo(ex + Math.cos(tan) * HL, ey + Math.sin(tan) * HL);
+    g.lineTo(ex - Math.sin(tan) * HW, ey + Math.cos(tan) * HW);
+    g.lineTo(ex + Math.sin(tan) * HW, ey - Math.cos(tan) * HW);
+    g.closePath(); g.fill();
+    g.restore();
   }
 
   _drawStartLine(g, T) {

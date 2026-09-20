@@ -124,6 +124,30 @@ la route, ligne jaune discontinue au milieu, marquages blancs sur les bords, vib
 épais, herbe saturée à taches carrées alignées sur une grille de pixels. Les voitures venant d'une
 planche sont dessinées **sans lissage**, pour que le pixel art reste net.
 
+### Panneaux de freinage
+
+Sur l'approche de chaque virage, trois panneaux au bord de la piste annoncent la distance — **200,
+100, 50 mètres** — et, au-dessus du chiffre, une **flèche à la manière du rallye** : plus le virage
+est serré, plus elle s'enroule, et elle pointe du côté où la route tourne. Un coup d'œil donne les
+deux choses à la fois, à quelle distance et à quel point c'est fermé. Rouge pour les notes 1 et 2,
+jaune pour 3 et 4, gris pour les courbes rapides.
+
+Tout est déduit de la géométrie, aucun circuit n'est annoté à la main. Les virages sont d'abord
+regroupés en **zones de freinage** : une chicane ou une suite d'esses, c'est un seul freinage, pas
+trois, et poser des panneaux devant chacun de ses virages ne ferait qu'encombrer l'approche. La
+sévérité vient du rayon le plus serré de la zone, la direction de la flèche du **premier** virage —
+dans une chicane, c'est le premier côté qui compte. Une courbe trop ouverte pour demander un
+freinage n'a pas de panneau, un panneau qui tomberait dans un autre virage est abandonné, et deux
+panneaux trop proches, ce sont deux panneaux illisibles : on garde celui du virage le plus proche.
+
+Le panneau est peint à plat, tourné avec la piste, donc il se lit à l'endroit quand on arrive. Il se
+tient à l'extérieur du virage, où il y a de la place et où il reste loin de la corde.
+
+`node tools/arrow.js <circuit>` capture chaque flèche réellement dessinée et compare le sens dans
+lequel elle s'enroule à celui dans lequel la route tourne vraiment. C'est ce contrôle qui a rattrapé
+les deux erreurs de signe de la première version : les panneaux étaient à l'intérieur du virage et
+les flèches à l'envers, ce qui ne se voit pas sur une vignette.
+
 ### Décor
 
 Le décor ne se dessine qu'en **vue isométrique** : les sprites sont des objets vus de trois quarts,
@@ -233,7 +257,7 @@ index.html / editor.html   pages du jeu et de l'éditeur
 css/style.css              menus
 js/util.js                 helpers
 js/tracks.js               points de contrôle des circuits intégrés
-js/track.js                spline, courbure, largeur variable, trois lignes (auto ou dessinées), croisements
+js/track.js                spline, courbure, largeur variable, trois lignes (auto ou dessinées), croisements, panneaux de freinage
 js/cars.js                 catégories, modèles, livrées, noms des pilotes
 js/props.js                décor autour de la piste (types, semis déterministe)
 js/carart.js               dessins vectoriels des modèles + rendu des sprites perso (calques UR2D)
@@ -263,6 +287,7 @@ NODE_PATH=$(npm root -g) node tools/e2e-workshop.js <dossier>                   
 node tools/step.js <circuit> <catégorie> [marge] [-v]                             # suivi de ligne d'une voiture seule
 node tools/sweep.js '[{},{"yawK":4}]'                                             # balayage des réglages physiques
 node tools/jump.js <circuit> <catégorie> <marge>                                  # continuité du déplacement
+NODE_PATH=$(npm root -g) node tools/arrow.js <circuit>                            # sens des flèches des panneaux
 python3 tools/sheet.py <dossier de rendus> <id du modèle> <longueur en m> [largeur]  # planche de rotations
 python3 tools/env.py <planche.png> sprites/env [--erode=6] [--shadow=r,g,b] …     # découpe une planche de décor
 NODE_PATH=$(npm root -g) node tools/propdbg.js <image.png>                        # décor visible et coût par image
