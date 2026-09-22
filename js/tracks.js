@@ -40,7 +40,7 @@ const TRACKS = [
     ],
   },
   {
-    id: 'monaco', name: 'Monaco', country: 'MC', flag: '🇲🇨', theme: 'street',
+    id: 'monaco', name: 'Monaco', country: 'MC', flag: '🇲🇨', theme: 'riviera',
     length: 2300, width: 11, laps: 5,
     pts: [
       [60, 120], [40, 120], [22, 120],

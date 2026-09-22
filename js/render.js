@@ -16,7 +16,7 @@
    A theme names a ground, a road, a pair of kerb colours and the palette the scenery is drawn in.
    `props` re-weights what gets sown: no pines in a dune, no palms in the Ardennes. `centre` is the
    marking down the middle of the road, and it is null almost everywhere, because a race track has
-   no centre line — only the street circuit keeps one.
+   no centre line — only Monaco, which is a road, keeps one.
 
    Fields left out of a theme are taken from `base`.
 */
@@ -32,6 +32,10 @@ const THEME_BASE = {
   trunk: '#4a3421', rock: '#9a9384', log: '#7a4f2c',
   props: null,
   patches: 0.6,            // how much bare earth shows through, 0 = none
+  water: null,             // a bay along part of the lap; see placeWater in js/props.js
+  sea: '#50b4be', seaDeep: '#2f8a94', seaShallow: '#72cbd4', surf: '#f4f7f3',
+  wall: '#f2e8d5', wallDark: '#ddd0b9', roofA: '#2f9aa0', roofB: '#b5654a',
+  sail: '#ffffff', sailDeck: '#d8d2c2', boatHull: '#c9503a',
 };
 
 const THEME_DEFS = {
@@ -67,18 +71,23 @@ const THEME_DEFS = {
     trunk: '#6b4526', rock: '#b6ad98', log: '#8a552c',
     props: { pine: 0.6, palm: 0 },
   },
-  // Between the barriers: stone, paint and the harbour.
-  street: {
-    patches: 0,
-    grass: '#c3bdb2', grassLight: '#cdc7bc', grassDark: '#b4aea3',
-    earth: '#a9a296', earthDark: '#978f84',
-    asphalt: '#524659', asphaltLight: '#5e5266',
-    edgeLine: '#f2f0f4', centre: '#e8bc32',
-    gravel: '#b6afa3', gravelDark: '#a39c90',
-    canopy: ['#3f7a4a', '#4b8d57', '#33663e'], pine: ['#2f5f4f', '#37705d'],
-    rock: '#a8a196',
-    props: { tree: 0.5, tree2: 0.5, pine: 0.2, rock: 2, bales: 0, logs: 0, palm: 0.6 },
+  /* The Riviera: dry stone, a Cyclades village, and the sea along the harbour front. */
+  riviera: {
+    // The bare ground here is not worn earth but the dark rock the coast is cut into.
+    patches: 0.4,
+    grass: '#dcd2c8', grassLight: '#e7ded2', grassDark: '#cfc4b6',
+    earth: '#877482', earthDark: '#746373',
+    asphalt: '#56465e', asphaltLight: '#62526a',
+    edgeLine: '#f5f2e8', centre: '#f5f2e8',
+    kerbA: '#c33b30', kerbB: '#f4f1e8',
+    gravel: '#cfc3ae', gravelDark: '#bdb09a',
+    canopy: ['#4f9a55', '#5cae61', '#3f7f45'], pine: ['#3f7a5a', '#4a8c69'],
+    rock: '#64505a', trunk: '#6b4a32', log: '#8a5a34',
+    props: { house: 9, house2: 7, chapel: 2, palm: 3, tree: 0.6, tree2: 0.5,
+             pine: 0.3, bush: 1, rock: 1.2, bales: 0, logs: 0 },
+    water: { from: 0.05, to: 0.36, side: 1, gap: 13, out: 180 },
   },
+
   // The dunes: sand, marram grass, and orange everywhere.
   dunes: {
     patches: 0.4,
@@ -249,6 +258,9 @@ class Renderer {
     this.topArt = buildTopArt(PAL);
     this.topProps = placeTopProps(track, seed, null, PAL.props);
     this.patches = placePatches(track, seed, PAL.patches);
+    this.water = placeWater(track, PAL.water);
+    this.boats = placeBoats(track, seed, this.water);
+    this.boatArt = this.water ? buildBoatArt(PAL) : null;
     const N = track.n, xs = track.xs, ys = track.ys, nx = track.nx, ny = track.ny;
     const STEP = 3;
     const edgePt = (i, side) => {
@@ -448,6 +460,7 @@ class Renderer {
       g.fillStyle = this.grassPattern;
       g.save(); g.scale(1 / 8, 1 / 8); g.fillRect(vis.minX * 8, vis.minY * 8, (vis.maxX - vis.minX) * 8, (vis.maxY - vis.minY) * 8); g.restore();
       this._drawPatches(g, vis);
+      this._drawSea(g, vis);
     }
 
     g.lineCap = 'round'; g.lineJoin = 'round';
@@ -818,6 +831,62 @@ class Renderer {
       g.translate(pos.x + ux * lift, pos.y + uy * lift);
       g.rotate(h); g.scale(sc, sc);
       g.drawImage(tx.cv, -tx.w / 2, -tx.h / 2, tx.w, tx.h);
+      g.restore();
+    }
+  }
+
+  /* The bay, and what floats on it.
+
+     Three bands rather than one flat blue: the open water, a paler shelf near the shore, and a
+     thin line of surf where it meets the land. A single colour reads as a hole in the ground. */
+  _drawSea(g, vis) {
+    const w = this.water;
+    if (!w) return;
+    const b = w.bbox;
+    if (b.maxX < vis.minX || b.minX > vis.maxX || b.maxY < vis.minY || b.minY > vis.maxY) return;
+    const ring = (inner, outer) => {
+      g.beginPath();
+      g.moveTo(inner[0][0], inner[0][1]);
+      for (let i = 1; i < inner.length; i++) g.lineTo(inner[i][0], inner[i][1]);
+      for (let i = outer.length - 1; i >= 0; i--) g.lineTo(outer[i][0], outer[i][1]);
+      g.closePath();
+    };
+    ring(w.inner, w.outer);
+    g.fillStyle = PAL.sea; g.fill();
+    // the shallow shelf: the shore line pushed a little way out to sea
+    const shelf = w.inner.map(([x, y], i) => {
+      const [ox, oy] = w.outer[i];
+      const d = Math.hypot(ox - x, oy - y) || 1;
+      return [x + (ox - x) / d * Math.min(16, d * 0.45), y + (oy - y) / d * Math.min(16, d * 0.45)];
+    });
+    ring(w.inner, shelf);
+    g.fillStyle = PAL.seaShallow; g.fill();
+    g.beginPath();
+    g.moveTo(w.inner[0][0], w.inner[0][1]);
+    for (let i = 1; i < w.inner.length; i++) g.lineTo(w.inner[i][0], w.inner[i][1]);
+    g.strokeStyle = PAL.surf; g.lineWidth = 1.2; g.stroke();
+    this._drawBoats(g, vis);
+  }
+
+  _drawBoats(g, vis) {
+    const art = this.boatArt;
+    if (!art) return;
+    for (const bt of this.boats || []) {
+      const a = art[bt.id];
+      if (!a) continue;
+      if (bt.x < vis.minX - 20 || bt.x > vis.maxX + 20 || bt.y < vis.minY - 20 || bt.y > vis.maxY + 20) continue;
+      g.save();
+      g.translate(bt.x, bt.y);
+      g.rotate(bt.th);
+      g.fillStyle = PAL.seaDeep;
+      g.beginPath();
+      g.ellipse(a.wm * 0.06, a.wm * 0.07, a.wm * 0.38, a.wm * 0.15, 0, 0, Math.PI * 2);
+      g.fill();
+      const m = g.getTransform();
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      const sc = this.cam.zoom * this.dpr;
+      g.setTransform(m.a, m.b, m.c, m.d, m.e, m.f);
+      g.drawImage(a.canvas, -a.wm / 2, -a.wm / 2, a.wm, a.wm);
       g.restore();
     }
   }

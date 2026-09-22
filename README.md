@@ -234,7 +234,7 @@ ce sol, la couleur des vibreurs, et ce qui pousse au bord.
 | `park` | Monza | vert d'eau pâle du parc royal | rouge et blanc |
 | `forest` | Spa, Nürburgring | vert sombre et humide, sapins | rouge et blanc |
 | `autumn` | Silverstone | chaume pâle, terre ocre, arbres roux | bleu et blanc |
-| `street` | Monaco | pierre grise, aucune terre usée | rouge et blanc |
+| `riviera` | Monaco | pierre claire, roche, **la mer et son village** | rouge et blanc |
 | `dunes` | Zandvoort | sable et oyats | **orange** et blanc |
 | `california` | Laguna Seca | herbe dorée, chênes secs | bleu et blanc |
 | `tropical` | Interlagos | vert saturé, palmiers | jaune et vert |
@@ -243,11 +243,30 @@ ce sol, la couleur des vibreurs, et ce qui pousse au bord.
 | `alpine` | Red Bull Ring | prairie très verte | rouge et blanc |
 | `lemans` | Le Mans | bas-côtés secs de juin | bleu et blanc |
 
-Un thème règle aussi deux choses au-delà des couleurs. `props` repondère ce qui est semé — pas de
-sapin dans une dune, pas de palmier dans les Ardennes — et `patches` dit combien de terre nue perce
-sous l'herbe, jusqu'à zéro pour un circuit en ville. Enfin `centre` est le marquage au milieu de la
-route, et il est absent partout sauf à Monaco : **un circuit n'a pas de ligne médiane**, seule une
-rue en a une.
+Un thème règle aussi trois choses au-delà des couleurs. `props` repondère ce qui est semé — pas de
+sapin dans une dune, pas de palmier dans les Ardennes. Un type qui n'appartient à aucun endroit en
+particulier porte un poids de base nul (les palmiers, les maisons des Cyclades, la chapelle) : pour
+ceux-là le nombre du thème n'est pas un facteur mais le poids lui-même, puisque multiplier zéro les
+tiendrait hors du seul endroit pour lequel ils ont été dessinés. `patches` dit combien de sol nu
+perce sous l'herbe. Enfin `centre` est le marquage au milieu de la route, absent partout sauf à
+Monaco : **un circuit n'a pas de ligne médiane**, seule une route en a une.
+
+### La mer
+
+Un circuit au bord de l'eau reçoit une **baie**, pas un étang : elle suit une portion du tour d'un
+côté, et se referme en fuseau aux deux bouts, de sorte qu'elle se lise comme un littoral et non
+comme une dalle bleue posée à côté de la route. Le rivage ondule, parce qu'une courbe parallèle à
+distance constante ressemble à un canal.
+
+Trois bandes plutôt qu'un bleu uni : l'eau libre, un haut-fond plus clair près du bord, et un trait
+d'écume à la rencontre de la terre. Une seule couleur se lit comme un trou dans le sol.
+
+Des **bateaux** y mouillent — voiliers, vedettes, barques de pêche — couchés à peu près dans l'axe
+du rivage, et tirés vers le quai plutôt que répartis au hasard sur le plan d'eau, parce qu'un
+mouillage se serre près du bord.
+
+`water: { from, to, side, gap, out }` dans le thème décrit la baie : la portion du tour, le côté, la
+distance à la route et la largeur au large.
 
 Les champs qu'un thème ne nomme pas viennent de `THEME_BASE`, au début de `js/render.js`.
 
