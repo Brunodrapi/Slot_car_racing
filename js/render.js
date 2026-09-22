@@ -3,14 +3,34 @@
 'use strict';
 
 // Cartoon palette, flat and saturated, in the spirit of an isometric pixel-art city.
-const PAL = {
-  grass: '#4e7a3a', grassLight: '#557f3f', grassDark: '#477036',
-  asphalt: '#33333c', asphaltLight: '#3b3b45',
-  outline: '#1a1a20',
-  edgeLine: '#d7d9dd', centreLine: '#e8bc32',
-  kerbRed: '#c33b30', kerbWhite: '#e9e9ee',
-  gravel: '#b9a271', gravelDark: '#a68f5f',
+// Each circuit names a theme; a track without one gets the default. The palette is swapped whole
+// rather than tinted, so a theme can change the mood of the ground and the colour of the kerbs at
+// once — Silverstone in autumn wants pale stubble, ochre earth and blue kerbs, not a greener green.
+const THEMES = {
+  classic: {
+    grass: '#4e7a3a', grassLight: '#557f3f', grassDark: '#477036',
+    earth: '#b9a271', earthDark: '#a68f5f',
+    asphalt: '#33333c', asphaltLight: '#3b3b45',
+    outline: '#1a1a20',
+    edgeLine: '#d7d9dd', centreLine: '#e8bc32',
+    kerbA: '#c33b30', kerbB: '#e9e9ee',
+    gravel: '#b9a271', gravelDark: '#a68f5f',
+    canopy: ['#3f7a34', '#4b8d3c', '#336629'], pine: ['#2f5f4f', '#37705d'],
+    trunk: '#4a3421', rock: '#9a9384', log: '#7a4f2c',
+  },
+  autumn: {
+    grass: '#c6cf87', grassLight: '#d2da93', grassDark: '#b7c079',
+    earth: '#e0c391', earthDark: '#d2b27e',
+    asphalt: '#5a5a62', asphaltLight: '#63636c',
+    outline: '#3b3540',
+    edgeLine: '#f1f0e8', centreLine: '#f1f0e8',
+    kerbA: '#2f63b0', kerbB: '#eef1f4',          // blue and white, as asked
+    gravel: '#e2c48f', gravelDark: '#d0ae76',
+    canopy: ['#b4472e', '#c9662c', '#8e3a26'], pine: ['#2c5a52', '#356d5f'],
+    trunk: '#6b4526', rock: '#b6ad98', log: '#8a552c',
+  },
 };
+let PAL = THEMES.classic;
 
 const LINE_COLORS = { inside: 'rgba(80,200,255,0.55)', racing: 'rgba(255,255,255,0.5)', outside: 'rgba(255,200,60,0.55)' };
 
@@ -95,10 +115,18 @@ class Renderer {
     this.track = track;
     this.skids = [];
     this.particles = [];
-    // scenery: baked once, placed once, and only ever drawn in the tilted view where a billboard
-    // makes sense. Seen from straight above a standing prop would be nonsense.
+    PAL = THEMES[track.theme] || THEMES.classic;
+    this.grass = this._makeGrass();
+    this.grassPattern = this.ctx.createPattern(this.grass, 'repeat');
+    const seed = track.id || track.name || 'track';
+    // Two sets of scenery for two ways of looking at the world. The billboards only make sense in
+    // the tilted view — seen from straight above, a standing prop is nonsense — so the flat view
+    // gets its own objects, drawn as they look from a bird's eye.
     if (!this.propArt) this.propArt = buildPropArt();
-    this.props = placeProps(track, track.id || track.name || 'track');
+    this.props = placeProps(track, seed);
+    this.topArt = buildTopArt(PAL);
+    this.topProps = placeTopProps(track, seed);
+    this.patches = placePatches(track, seed);
     const N = track.n, xs = track.xs, ys = track.ys, nx = track.nx, ny = track.ny;
     const STEP = 3;
     const edgePt = (i, side) => {
@@ -267,6 +295,7 @@ class Renderer {
     } else {
       g.fillStyle = this.grassPattern;
       g.save(); g.scale(1 / 8, 1 / 8); g.fillRect(vis.minX * 8, vis.minY * 8, (vis.maxX - vis.minX) * 8, (vis.maxY - vis.minY) * 8); g.restore();
+      this._drawPatches(g, vis);
     }
 
     g.lineCap = 'round'; g.lineJoin = 'round';
@@ -288,8 +317,8 @@ class Renderer {
       for (const cn of this.paths.corners) {
         if (!inView(cn.bbox)) continue;
         for (const edge of [cn.left, cn.right]) {
-          g.setLineDash([]); g.strokeStyle = PAL.kerbRed; g.stroke(edge);
-          g.setLineDash([2.6, 2.6]); g.strokeStyle = PAL.kerbWhite; g.stroke(edge);
+          g.setLineDash([]); g.strokeStyle = PAL.kerbA; g.stroke(edge);
+          g.setLineDash([2.6, 2.6]); g.strokeStyle = PAL.kerbB; g.stroke(edge);
         }
       }
       g.setLineDash([]);
@@ -310,6 +339,7 @@ class Renderer {
       g.strokeStyle = '#4b4b52'; g.lineWidth = T.width; g.stroke(b);
     }
     if (this.tilt === 1) {
+      this._drawTopProps(g, vis);
       const order = race.cars.slice().sort((a, b) => (a.isPlayer ? 1 : 0) - (b.isPlayer ? 1 : 0));
       for (const car of order) this._drawCar(g, car);
     } else {
@@ -634,6 +664,45 @@ class Renderer {
       g.translate(pos.x + ux * lift, pos.y + uy * lift);
       g.rotate(h); g.scale(sc, sc);
       g.drawImage(tx.cv, -tx.w / 2, -tx.h / 2, tx.w, tx.h);
+      g.restore();
+    }
+  }
+
+  // Bare earth showing through the grass, as a circuit wears it away around its corners. Drawn
+  // under the road, so the tarmac and its kerbs always sit on top of it.
+  _drawPatches(g, vis) {
+    for (const p of this.patches || []) {
+      if (p.x < vis.minX - p.r || p.x > vis.maxX + p.r || p.y < vis.minY - p.r || p.y > vis.maxY + p.r) continue;
+      g.save();
+      g.translate(p.x, p.y);
+      g.rotate(p.a);
+      g.fillStyle = p.dark ? PAL.earthDark : PAL.earth;
+      g.beginPath();
+      // a couple of overlapping ellipses read as one soft, irregular patch
+      g.ellipse(0, 0, p.r, p.r * 0.62, 0, 0, Math.PI * 2);
+      g.ellipse(p.r * 0.42, p.r * 0.16, p.r * 0.6, p.r * 0.44, 0.7, 0, Math.PI * 2);
+      if (p.k > 1) g.ellipse(-p.r * 0.38, -p.r * 0.2, p.r * 0.52, p.r * 0.4, -0.5, 0, Math.PI * 2);
+      g.fill();
+      g.restore();
+    }
+  }
+
+  // Scenery for the flat view: objects drawn as a bird sees them, shadow baked in, no rotation —
+  // a tree looks the same from every side, and turning it would only make it shimmer.
+  _drawTopProps(g, vis) {
+    const art = this.topArt;
+    if (!art) return;
+    for (const p of this.topProps || []) {
+      const a = art[p.id];
+      if (!a) continue;
+      const half = a.wm / 2;
+      if (p.x < vis.minX - half || p.x > vis.maxX + half || p.y < vis.minY - half || p.y > vis.maxY + half) continue;
+      const m = g.getTransform();
+      const dx = m.a * p.x + m.c * p.y + m.e, dy = m.b * p.x + m.d * p.y + m.f;
+      const wpx = a.wm * this.cam.zoom * this.dpr;
+      g.save();
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.drawImage(a.canvas, dx - wpx / 2, dy - wpx / 2, wpx, wpx);
       g.restore();
     }
   }

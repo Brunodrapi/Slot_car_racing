@@ -119,6 +119,14 @@ dessous : avant > arrière = sous-virage, arrière > avant = survirage.
 
 ## Style
 
+### Thèmes de circuit
+
+Chaque circuit peut nommer un **thème** (`theme` dans `js/tracks.js`), qui remplace la palette
+entière plutôt que de la teinter : le sol, le bitume, les lignes, la couleur des vibreurs et celle
+du décor changent ensemble. Silverstone se court en **automne** — chaume pâle, terre ocre, arbres
+roux et **vibreurs bleu et blanc** — là où les autres gardent le vert saturé et le rouge et blanc.
+Ajouter un thème, c'est une entrée dans `THEMES`, au début de `js/render.js`.
+
 Le décor vise un rendu **cartoon isométrique** : bitume sombre et plat, contour foncé marqué autour de
 la route, ligne jaune discontinue au milieu, marquages blancs sur les bords, vibreurs rouge et blanc
 épais, herbe saturée à taches carrées alignées sur une grille de pixels. Les voitures venant d'une
@@ -168,8 +176,17 @@ ouvertes, dessinées bien plus petit qu'une épingle — il ne reste alors qu'un
 
 ### Décor
 
-Le décor ne se dessine qu'en **vue isométrique** : les sprites sont des objets vus de trois quarts,
-ils n'ont pas de sens vus du dessus. En vue de dessus, il ne reste que l'herbe.
+Deux décors, pour deux façons de regarder le monde.
+
+En **vue de dessus**, `js/props.js` dessine des objets **vus à la verticale** : un arbre y est une
+couronne et son ombre, pas un tronc. Feuillus, sapins en rosette, buissons, rochers, piles de rondins
+et bottes de paille, tous tracés dans la palette du circuit puis cuits une fois en image. Ils se
+posent plus près de la piste que les panneaux publicitaires : vu du ciel il n'y a pas d'horizon à
+remplir, et un arbre planté trop loin n'entre jamais dans le cadre. S'y ajoutent des **plaques de
+terre nue** sous le bitume, comme un circuit en use autour de ses virages.
+
+En **vue isométrique**, ce sont les sprites de trois quarts découpés dans la planche, qui n'auraient
+aucun sens vus du dessus.
 
 Autour de la piste, `js/props.js` sème des objets debout — chênes, sapins, buissons, maisons, granges,
 barrières, puits, tonneaux, ruines. Ils viennent d'une planche de sprites isométriques découpée par

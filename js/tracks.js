@@ -60,7 +60,7 @@ const TRACKS = [
     ],
   },
   {
-    id: 'silverstone', name: 'Silverstone', country: 'GB', flag: '🇬🇧',
+    id: 'silverstone', name: 'Silverstone', country: 'GB', flag: '🇬🇧', theme: 'autumn',
     length: 3300, width: 16, laps: 3,
     pts: [
       [0, 120], [0, 80], [0, 40],

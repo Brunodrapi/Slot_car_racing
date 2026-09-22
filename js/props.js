@@ -67,14 +67,15 @@ function seedFromId(id) {
 
 // Walk the track and drop objects on either side, beyond the gravel trap, never on the tarmac.
 // A candidate is rejected if it lands too near any part of the circuit, which matters where the
-// track folds back on itself, or too near an object already placed.
-function placeProps(track, id, density) {
-  const rnd = propRng(seedFromId(id || 'track'));
-  const total = PROP_KINDS.reduce((a, k) => a + k.weight, 0);
+// track folds back on itself, or too near an object already placed. Both sets of scenery — the
+// billboards and the bird's-eye objects — are sown by this one routine.
+function placeFrom(kinds, track, seed, density, clear) {
+  const rnd = propRng(seed);
+  const total = kinds.reduce((a, k) => a + k.weight, 0);
   const pick = () => {
     let r = rnd() * total;
-    for (const k of PROP_KINDS) { r -= k.weight; if (r <= 0) return k; }
-    return PROP_KINDS[0];
+    for (const k of kinds) { r -= k.weight; if (r <= 0) return k; }
+    return kinds[0];
   };
   const N = track.n, step = 9, out = [];
   const clearOfTrack = (x, y, need) => {
@@ -93,7 +94,7 @@ function placeProps(track, id, density) {
   };
   for (let s = 0; s < track.length; s += step) {
     for (const side of [1, -1]) {
-      if (rnd() > (density == null ? 0.75 : density)) continue;
+      if (rnd() > density) continue;
       const k = pick();
       const i = track.idx(s + (rnd() - 0.5) * step);
       const hw = side > 0 ? track.hwL[i] : track.hwR[i];
@@ -101,7 +102,7 @@ function placeProps(track, id, density) {
       const x = track.xs[i] + track.nx[i] * off * side;
       const y = track.ys[i] + track.ny[i] * off * side;
       // keep clear of the road itself wherever it runs, gravel trap included
-      if (!clearOfTrack(x, y, track.halfWidth + 8.5 + k.wm * 0.3)) continue;
+      if (!clearOfTrack(x, y, track.halfWidth + (clear == null ? 8.5 : clear) + k.wm * 0.3)) continue;
       if (!clearOfProps(x, y, (k.wm + 2) * 0.6)) continue;
       out.push({ x, y, id: k.id });
     }
@@ -109,4 +110,179 @@ function placeProps(track, id, density) {
   return out;
 }
 
-if (typeof module !== 'undefined') module.exports = { PROP_KINDS, buildPropArt, placeProps };
+function placeProps(track, id, density) {
+  return placeFrom(PROP_KINDS, track, seedFromId(id || 'track'), density == null ? 0.75 : density);
+}
+
+if (typeof module !== 'undefined') module.exports = { PROP_KINDS, buildPropArt, placeProps, placeFrom };
+
+/* ----------------------------------------------------------------- seen from straight above
+
+The billboards above are three-quarter views: they only make sense under a tilted camera. The flat
+view needs objects drawn as a bird sees them — a tree is a canopy and a shadow, not a trunk — so it
+has its own set, drawn in the circuit's own palette rather than from a sprite sheet.
+*/
+
+const TOP_PPM = 24;              // pixels per metre when baking a top-down object
+
+// `draw` works in a square of side `w` pixels, centred, with the palette of the circuit.
+const TOP_KINDS = [
+  {
+    id: 'tree', wm: 9.0, weight: 7, near: 7, far: 26,
+    draw(g, w, pal) {
+      const r = w * 0.44, c = w / 2;
+      blob(g, c, c, r, 11, pal.canopy[0], 0.12, 0);
+      blob(g, c - r * 0.17, c - r * 0.17, r * 0.62, 9, pal.canopy[1], 0.13, 1.1);
+      blob(g, c + r * 0.3, c + r * 0.32, r * 0.3, 7, pal.canopy[2], 0.14, 2.3);
+    },
+  },
+  {
+    id: 'tree2', wm: 6.8, weight: 6, near: 7, far: 26,
+    draw(g, w, pal) {
+      const r = w * 0.44, c = w / 2;
+      blob(g, c, c, r, 10, pal.canopy[2], 0.13, 0.6);
+      blob(g, c - r * 0.15, c - r * 0.15, r * 0.6, 8, pal.canopy[0], 0.15, 1.9);
+    },
+  },
+  {
+    // A conifer from above is a rosette: dark fronds radiating from a small pale centre.
+    id: 'pine', wm: 6.0, weight: 6, near: 7, far: 26,
+    draw(g, w, pal) {
+      const c = w / 2, r = w * 0.46;
+      for (const [k, col, rr] of [[9, pal.pine[0], r], [7, pal.pine[1], r * 0.6]]) {
+        g.fillStyle = col;
+        g.beginPath();
+        for (let i = 0; i < k; i++) {
+          const a = i / k * Math.PI * 2, a2 = (i + 0.5) / k * Math.PI * 2;
+          g.lineTo(c + Math.cos(a) * rr, c + Math.sin(a) * rr);
+          g.lineTo(c + Math.cos(a2) * rr * 0.52, c + Math.sin(a2) * rr * 0.52);
+        }
+        g.closePath(); g.fill();
+      }
+      g.fillStyle = pal.trunk;
+      g.beginPath(); g.arc(c, c, r * 0.12, 0, Math.PI * 2); g.fill();
+    },
+  },
+  {
+    id: 'bush', wm: 3.4, weight: 5, near: 6, far: 22,
+    draw(g, w, pal) {
+      const c = w / 2;
+      blob(g, c, c, w * 0.42, 9, pal.canopy[1], 0.16, 0.3);
+      blob(g, c - w * 0.06, c - w * 0.06, w * 0.24, 7, pal.canopy[0], 0.18, 1.4);
+    },
+  },
+  {
+    id: 'rock', wm: 3.0, weight: 3, near: 6, far: 20,
+    draw(g, w, pal) {
+      const c = w / 2;
+      blob(g, c, c, w * 0.4, 7, pal.rock, 0.16, 0.9);
+      blob(g, c - w * 0.07, c - w * 0.07, w * 0.22, 6, '#d8d2c4', 0.18, 2.1);
+    },
+  },
+  {
+    // The stack of felled trunks that lies at the edge of a forest road.
+    id: 'logs', wm: 6.0, weight: 2, near: 7, far: 18,
+    draw(g, w, pal) {
+      const n = 4, lw = w * 0.84, lh = w * 0.15;
+      for (let i = 0; i < n; i++) {
+        const y = w * 0.24 + i * lh * 1.12;
+        g.fillStyle = i % 2 ? pal.log : '#95602f';
+        round(g, (w - lw) / 2, y, lw, lh, lh / 2); g.fill();
+        g.fillStyle = 'rgba(0,0,0,0.18)';
+        round(g, (w - lw) / 2, y + lh * 0.62, lw, lh * 0.38, lh * 0.19); g.fill();
+      }
+    },
+  },
+  {
+    id: 'bales', wm: 4.4, weight: 2, near: 6, far: 16,
+    draw(g, w, pal) {
+      for (const [dx, dy] of [[0.3, 0.32], [0.68, 0.4], [0.44, 0.7]]) {
+        const r = w * 0.17;
+        g.fillStyle = '#d9bd7c';
+        g.beginPath(); g.arc(w * dx, w * dy, r, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = '#bd9f5f'; g.lineWidth = Math.max(1, w * 0.02);
+        g.beginPath(); g.arc(w * dx, w * dy, r * 0.55, 0, Math.PI * 2); g.stroke();
+      }
+    },
+  },
+];
+
+// An irregular round blob — the shape everything organic is made of here. The outline runs as a
+// closed spline through the wobbled points rather than between them: joined by straight segments
+// the same points read as a hexagon, which is what a canopy from above must not look like.
+function blob(g, cx, cy, r, n, colour, wobble, phase) {
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    const a = i / n * Math.PI * 2;
+    const rr = r * (1 + wobble * Math.sin(i * 2.7 + (phase || 0)));
+    pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]);
+  }
+  const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  g.fillStyle = colour;
+  g.beginPath();
+  let m = mid(pts[n - 1], pts[0]);
+  g.moveTo(m[0], m[1]);
+  for (let i = 0; i < n; i++) {
+    const nxt = mid(pts[i], pts[(i + 1) % n]);
+    g.quadraticCurveTo(pts[i][0], pts[i][1], nxt[0], nxt[1]);
+  }
+  g.closePath(); g.fill();
+}
+
+function round(g, x, y, w, h, r) {
+  g.beginPath();
+  if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h);
+}
+
+// Bake each object once per palette. The shadow is baked in with it: one offset ellipse under the
+// whole thing, as if the sun sat high and behind the camera's right shoulder.
+function buildTopArt(pal) {
+  const art = {};
+  for (const k of TOP_KINDS) {
+    const w = Math.max(12, Math.round(k.wm * TOP_PPM));
+    const pad = Math.round(w * 0.22);
+    const c = document.createElement('canvas');
+    c.width = c.height = w + pad * 2;
+    const g = c.getContext('2d');
+    g.save();
+    g.translate(pad - w * 0.1, pad + w * 0.12);
+    g.fillStyle = 'rgba(30,26,20,0.17)';
+    g.beginPath(); g.ellipse(w / 2, w / 2, w * 0.46, w * 0.42, 0, 0, Math.PI * 2); g.fill();
+    g.restore();
+    g.save(); g.translate(pad, pad); k.draw(g, w, pal); g.restore();
+    art[k.id] = { canvas: c, wm: k.wm * (c.width / w) };
+  }
+  return art;
+}
+
+function placeTopProps(track, id, density) {
+  // Closer to the road than the billboards: seen from above there is no horizon to fill, and a
+  // tree that stands well back simply never enters the frame.
+  return placeFrom(TOP_KINDS, track, seedFromId('top-' + id), density == null ? 0.85 : density, 6);
+}
+
+// Ground colour, not objects: the broad patches of bare earth that a circuit wears around its
+// corners. Drawn under the road, so the tarmac always covers them.
+function placePatches(track, id) {
+  const rnd = propRng(seedFromId('patch-' + id));
+  const N = track.n, out = [];
+  for (let s = 0; s < track.length; s += 26) {
+    for (const side of [1, -1]) {
+      if (rnd() > 0.5) continue;
+      const i = track.idx(s + (rnd() - 0.5) * 20);
+      const hw = side > 0 ? track.hwL[i] : track.hwR[i];
+      const r = 9 + rnd() * 16;
+      const off = hw + 1 + rnd() * 8;
+      out.push({
+        x: track.xs[i] + track.nx[i] * off * side,
+        y: track.ys[i] + track.ny[i] * off * side,
+        r, a: rnd() * Math.PI, k: 1 + Math.floor(rnd() * 3), dark: rnd() < 0.3,
+      });
+    }
+  }
+  return out;
+}
+
+if (typeof module !== 'undefined') module.exports.TOP_KINDS = TOP_KINDS;
+if (typeof module !== 'undefined') module.exports.placeTopProps = placeTopProps;
+if (typeof module !== 'undefined') module.exports.placePatches = placePatches;

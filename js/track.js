@@ -15,6 +15,7 @@ class Track {
     this.def = def;
     this.id = def.id;
     this.name = def.name;
+    this.theme = def.theme || 'classic';    // palette, see THEMES in js/render.js
     this.laps = def.laps || 3;
     this.ds = 1;
     this.widthScale = widthScale || 1;
