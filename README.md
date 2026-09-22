@@ -106,8 +106,8 @@ claude.ai.
 ## Voitures dessinées
 
 Un modèle peut fournir un **dessin de la vraie voiture vue à la verticale** (`top` dans
-`js/cars.js`), qui remplace alors la silhouette vectorielle *et* la livrée choisie : ce sont des
-voitures précises dans leurs couleurs, pas une forme à peindre. L'ombre suit leur contour au lieu
+`js/cars.js`), qui remplace alors la silhouette vectorielle : ce sont des voitures précises dans
+leurs couleurs, pas une forme à peindre. L'ombre suit leur contour au lieu
 d'être un rectangle posé dessous — la silhouette est remplie de noir une fois et gardée.
 
 `tools/topcar.py <image> <id du modèle> [--nose=left] [--width=420]` prépare une illustration. Le
@@ -212,13 +212,36 @@ dessous : avant > arrière = sous-virage, arrière > avant = survirage.
 
 ## Style
 
-### Thèmes de circuit
+### Chaque circuit chez lui
 
-Chaque circuit peut nommer un **thème** (`theme` dans `js/tracks.js`), qui remplace la palette
-entière plutôt que de la teinter : le sol, le bitume, les lignes, la couleur des vibreurs et celle
-du décor changent ensemble. Silverstone se court en **automne** — chaume pâle, terre ocre, arbres
-roux et **vibreurs bleu et blanc** — là où les autres gardent le vert saturé et le rouge et blanc.
-Ajouter un thème, c'est une entrée dans `THEMES`, au début de `js/render.js`.
+Les douze circuits ont chacun leur **thème** (`theme` dans `js/tracks.js`), qui remplace la palette
+entière plutôt que de la teinter.
+
+Ce qu'ils partagent, c'est la route : un **gris violacé** et non un anthracite neutre. C'est ce qui
+tient la famille ensemble quoi que fasse le sol autour. Ce qu'ils ne partagent pas, c'est justement
+ce sol, la couleur des vibreurs, et ce qui pousse au bord.
+
+| thème | circuit | sol | vibreurs |
+| --- | --- | --- | --- |
+| `park` | Monza | vert d'eau pâle du parc royal | rouge et blanc |
+| `forest` | Spa, Nürburgring | vert sombre et humide, sapins | rouge et blanc |
+| `autumn` | Silverstone | chaume pâle, terre ocre, arbres roux | bleu et blanc |
+| `street` | Monaco | pierre grise, aucune terre usée | rouge et blanc |
+| `dunes` | Zandvoort | sable et oyats | **orange** et blanc |
+| `california` | Laguna Seca | herbe dorée, chênes secs | bleu et blanc |
+| `tropical` | Interlagos | vert saturé, palmiers | jaune et vert |
+| `japan` | Suzuka | vert frais, sapins | rouge et blanc |
+| `bush` | Mount Panorama | kaki sur terre rouge | rouge et blanc |
+| `alpine` | Red Bull Ring | prairie très verte | rouge et blanc |
+| `lemans` | Le Mans | bas-côtés secs de juin | bleu et blanc |
+
+Un thème règle aussi deux choses au-delà des couleurs. `props` repondère ce qui est semé — pas de
+sapin dans une dune, pas de palmier dans les Ardennes — et `patches` dit combien de terre nue perce
+sous l'herbe, jusqu'à zéro pour un circuit en ville. Enfin `centre` est le marquage au milieu de la
+route, et il est absent partout sauf à Monaco : **un circuit n'a pas de ligne médiane**, seule une
+rue en a une.
+
+Les champs qu'un thème ne nomme pas viennent de `THEME_BASE`, au début de `js/render.js`.
 
 Le décor vise un rendu **cartoon isométrique** : bitume sombre et plat, contour foncé marqué autour de
 la route, ligne jaune discontinue au milieu, marquages blancs sur les bords, herbe saturée à taches
@@ -342,6 +365,8 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
 ## Contenu
 
 - **6 voitures GT** : *M1 Procar*, *F40*, *Countach LP500*, *911 Turbo*, *Testarossa*, *XJ220*.
+  On choisit sa voiture, et rien d'autre : plus de livrée à régler. En ligne, la place à la table
+  donne la couleur, si bien que deux pilotes ne se ressemblent jamais sans avoir eu à en discuter.
   La M1 Procar et la F40 LM sont dessinées d'après la vraie voiture vue du dessus (plus la 787B,
   rangée dans les prototypes classiques) ; les autres gardent leur silhouette vectorielle. Quatre
   ont en plus une planche de rotations, qui ne sert qu'à la vue isométrique.
@@ -356,7 +381,7 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
 - **Course rapide** et **contre-la-montre** (records par circuit et catégorie), 3 niveaux de difficulté.
 - Une **carrière** en 4 coupes existe dans le code, actuellement masquée.
 - IA qui freine selon son talent, choisit sa ligne pour dépasser, aspire dans le sillage, se touche.
-- 12 livrées, français / anglais, son procédural, sauvegarde locale.
+- Français / anglais, son procédural, sauvegarde locale.
 
 ## Éditeur de circuits (`editor.html`)
 
@@ -376,7 +401,7 @@ Ajoute tes propres voitures 2D :
 - une **image PNG unique** vue de dessus, avant vers la droite, fond transparent ;
 - ou un **dossier de sprites Ultimate Racing 2D 2** tel qu'exporté par son éditeur de voitures :
   `car_base.png`, `car_color.png` (ou `main_color.png`) et `car_1.png`…`car_10.png`. Le calque
-  « color » est teinté avec la couleur de ta livrée, comme dans UR2D.
+  « color » est teinté avec la couleur du pilote, comme dans UR2D.
 
 Chaque voiture est rattachée à une catégorie (elle en prend la physique) et apparaît dans les menus.
 

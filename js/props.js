@@ -194,6 +194,27 @@ const TOP_KINDS = [
     },
   },
   {
+    // A palm from above is a wheel of long fronds with a bright crown at the hub.
+    id: 'palm', wm: 6.5, weight: 0, near: 7, far: 24,
+    draw(g, w, pal) {
+      const c = w / 2, r = w * 0.46;
+      for (let i = 0; i < 11; i++) {
+        const a = i / 11 * Math.PI * 2, rr = r * (i % 2 ? 0.78 : 1);
+        g.fillStyle = i % 2 ? pal.canopy[2] : pal.canopy[0];
+        g.beginPath();
+        g.moveTo(c, c);
+        g.lineTo(c + Math.cos(a - 0.14) * rr, c + Math.sin(a - 0.14) * rr);
+        g.lineTo(c + Math.cos(a) * rr * 1.06, c + Math.sin(a) * rr * 1.06);
+        g.lineTo(c + Math.cos(a + 0.14) * rr, c + Math.sin(a + 0.14) * rr);
+        g.closePath(); g.fill();
+      }
+      g.fillStyle = pal.canopy[1];
+      g.beginPath(); g.arc(c, c, r * 0.16, 0, Math.PI * 2); g.fill();
+      g.fillStyle = pal.trunk;
+      g.beginPath(); g.arc(c, c, r * 0.07, 0, Math.PI * 2); g.fill();
+    },
+  },
+  {
     id: 'bales', wm: 4.4, weight: 2, near: 6, far: 16,
     draw(g, w, pal) {
       for (const [dx, dy] of [[0.3, 0.32], [0.68, 0.4], [0.44, 0.7]]) {
@@ -255,23 +276,38 @@ function buildTopArt(pal) {
   return art;
 }
 
-function placeTopProps(track, id, density) {
-  // Closer to the road than the billboards: seen from above there is no horizon to fill, and a
-  // tree that stands well back simply never enters the frame.
-  return placeFrom(TOP_KINDS, track, seedFromId('top-' + id), density == null ? 0.85 : density, 6);
+/* Closer to the road than the billboards: seen from above there is no horizon to fill, and a tree
+   that stands well back simply never enters the frame.
+
+   `weights` re-weights the mix for the circuit's theme — no pines in a dune, no palms in the
+   Ardennes — so the scenery belongs to the place rather than being the same wood everywhere. A
+   kind whose weight falls to zero is simply not sown. */
+function placeTopProps(track, id, density, weights) {
+  let kinds = TOP_KINDS;
+  if (weights) {
+    kinds = TOP_KINDS
+      .map(k => (weights[k.id] == null ? k : Object.assign({}, k, { weight: k.weight * weights[k.id] })))
+      .filter(k => k.weight > 0);
+    if (!kinds.length) kinds = TOP_KINDS;
+  } else {
+    kinds = TOP_KINDS.filter(k => k.weight > 0);
+  }
+  return placeFrom(kinds, track, seedFromId('top-' + id), density == null ? 0.85 : density, 6);
 }
 
 // Ground colour, not objects: the broad patches of bare earth that a circuit wears around its
 // corners. Drawn under the road, so the tarmac always covers them.
-function placePatches(track, id) {
+function placePatches(track, id, density) {
+  const d = density == null ? 0.6 : density;
   const rnd = propRng(seedFromId('patch-' + id));
   const N = track.n, out = [];
+  if (d <= 0) return out;                       // a street circuit wears no earth
   for (let s = 0; s < track.length; s += 26) {
     for (const side of [1, -1]) {
-      if (rnd() > 0.5) continue;
+      if (rnd() > d) continue;
       const i = track.idx(s + (rnd() - 0.5) * 20);
       const hw = side > 0 ? track.hwL[i] : track.hwR[i];
-      const r = 9 + rnd() * 16;
+      const r = 7 + rnd() * 12;
       const off = hw + 1 + rnd() * 8;
       out.push({
         x: track.xs[i] + track.nx[i] * off * side,

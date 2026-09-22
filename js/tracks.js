@@ -6,7 +6,7 @@
 
 const TRACKS = [
   {
-    id: 'monza', name: 'Monza', country: 'IT', flag: '🇮🇹',
+    id: 'monza', name: 'Monza', country: 'IT', flag: '🇮🇹', theme: 'park',
     length: 2900, width: 15, laps: 4,
     pts: [
       [0, 180], [0, 120], [0, 40],
@@ -21,7 +21,7 @@ const TRACKS = [
     ],
   },
   {
-    id: 'spa', name: 'Spa-Francorchamps', country: 'BE', flag: '🇧🇪',
+    id: 'spa', name: 'Spa-Francorchamps', country: 'BE', flag: '🇧🇪', theme: 'forest',
     length: 3400, width: 14, laps: 3,
     pts: [
       [0, 40], [0, 20],
@@ -40,7 +40,7 @@ const TRACKS = [
     ],
   },
   {
-    id: 'monaco', name: 'Monaco', country: 'MC', flag: '🇲🇨',
+    id: 'monaco', name: 'Monaco', country: 'MC', flag: '🇲🇨', theme: 'street',
     length: 2300, width: 11, laps: 5,
     pts: [
       [60, 120], [40, 120], [22, 120],
@@ -85,7 +85,7 @@ const TRACKS = [
     ],
   },
   {
-    id: 'suzuka', name: 'Suzuka', country: 'JP', flag: '🇯🇵',
+    id: 'suzuka', name: 'Suzuka', country: 'JP', flag: '🇯🇵', theme: 'japan',
     length: 3300, width: 14, laps: 3,
     pts: [
       [0, 0], [30, 0], [60, 0],
@@ -102,7 +102,7 @@ const TRACKS = [
     ],
   },
   {
-    id: 'interlagos', name: 'Interlagos', country: 'BR', flag: '🇧🇷',
+    id: 'interlagos', name: 'Interlagos', country: 'BR', flag: '🇧🇷', theme: 'tropical',
     length: 2700, width: 14, laps: 4,
     pts: [
       [44, 0], [20, 0],
@@ -120,7 +120,7 @@ const TRACKS = [
     ],
   },
   {
-    id: 'laguna', name: 'Laguna Seca', country: 'US', flag: '🇺🇸',
+    id: 'laguna', name: 'Laguna Seca', country: 'US', flag: '🇺🇸', theme: 'california',
     length: 2400, width: 13, laps: 4,
     pts: [
       [0, 0], [40, 0],
@@ -137,7 +137,7 @@ const TRACKS = [
     ],
   },
   {
-    id: 'nurburgring', name: 'Nürburgring GP', country: 'DE', flag: '🇩🇪',
+    id: 'nurburgring', name: 'Nürburgring GP', country: 'DE', flag: '🇩🇪', theme: 'forest',
     length: 3000, width: 15, laps: 3,
     pts: [
       [0, 0], [40, 0],
@@ -156,7 +156,7 @@ const TRACKS = [
     ],
   },
   {
-    id: 'lemans', name: 'Le Mans', country: 'FR', flag: '🇫🇷',
+    id: 'lemans', name: 'Le Mans', country: 'FR', flag: '🇫🇷', theme: 'lemans',
     length: 4200, width: 15, laps: 2,
     pts: [
       [0, 0], [40, 0],
@@ -177,7 +177,7 @@ const TRACKS = [
     ],
   },
   {
-    id: 'bathurst', name: 'Mount Panorama', country: 'AU', flag: '🇦🇺',
+    id: 'bathurst', name: 'Mount Panorama', country: 'AU', flag: '🇦🇺', theme: 'bush',
     length: 3600, width: 13, laps: 3,
     pts: [
       [0, 0], [40, 0], [80, 0], [110, 0],
@@ -195,7 +195,7 @@ const TRACKS = [
     ],
   },
   {
-    id: 'redbullring', name: 'Red Bull Ring', country: 'AT', flag: '🇦🇹',
+    id: 'redbullring', name: 'Red Bull Ring', country: 'AT', flag: '🇦🇹', theme: 'alpine',
     length: 2400, width: 15, laps: 4,
     pts: [
       [0, 0], [40, 0], [70, 0],
@@ -210,7 +210,7 @@ const TRACKS = [
     ],
   },
   {
-    id: 'zandvoort', name: 'Zandvoort', country: 'NL', flag: '🇳🇱',
+    id: 'zandvoort', name: 'Zandvoort', country: 'NL', flag: '🇳🇱', theme: 'dunes',
     length: 2400, width: 13, laps: 4,
     pts: [
       [0, 0], [40, 0], [60, 0],

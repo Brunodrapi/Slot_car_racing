@@ -6,31 +6,153 @@
 // Each circuit names a theme; a track without one gets the default. The palette is swapped whole
 // rather than tinted, so a theme can change the mood of the ground and the colour of the kerbs at
 // once — Silverstone in autumn wants pale stubble, ochre earth and blue kerbs, not a greener green.
-const THEMES = {
-  classic: {
-    grass: '#4e7a3a', grassLight: '#557f3f', grassDark: '#477036',
-    earth: '#b9a271', earthDark: '#a68f5f',
-    asphalt: '#33333c', asphaltLight: '#3b3b45',
-    outline: '#1a1a20',
-    edgeLine: '#d7d9dd', centreLine: '#e8bc32',
-    kerbA: '#c33b30', kerbB: '#e9e9ee',
-    gravel: '#b9a271', gravelDark: '#a68f5f',
-    canopy: ['#3f7a34', '#4b8d3c', '#336629'], pine: ['#2f5f4f', '#37705d'],
-    trunk: '#4a3421', rock: '#9a9384', log: '#7a4f2c',
+/* Every circuit has its own look.
+
+   What they share is the road: a dark **purple-grey** rather than a neutral charcoal, which is what
+   holds the family together whatever the ground around it does. What they do not share is the
+   ground — Monza's pale park green, the dunes' sand, the Ardennes' damp forest, Bathurst's red
+   earth — nor the colour of their kerbs, nor what grows beside the track.
+
+   A theme names a ground, a road, a pair of kerb colours and the palette the scenery is drawn in.
+   `props` re-weights what gets sown: no pines in a dune, no palms in the Ardennes. `centre` is the
+   marking down the middle of the road, and it is null almost everywhere, because a race track has
+   no centre line — only the street circuit keeps one.
+
+   Fields left out of a theme are taken from `base`.
+*/
+const THEME_BASE = {
+  grass: '#4e7a3a', grassLight: '#557f3f', grassDark: '#477036',
+  earth: '#b9a271', earthDark: '#a68f5f',
+  asphalt: '#4e3f57', asphaltLight: '#5b4a64',
+  outline: '#241d2a',
+  edgeLine: '#eceaf0', centre: null,
+  kerbA: '#c33b30', kerbB: '#eceaf0',
+  gravel: '#c8ab72', gravelDark: '#b39660',
+  canopy: ['#3f7a34', '#4b8d3c', '#336629'], pine: ['#2f5f4f', '#37705d'],
+  trunk: '#4a3421', rock: '#9a9384', log: '#7a4f2c',
+  props: null,
+  patches: 0.6,            // how much bare earth shows through, 0 = none
+};
+
+const THEME_DEFS = {
+  // The royal park: pale mint grass under plane trees, and the old banking's concrete.
+  park: {
+    patches: 0.45,
+    grass: '#bcd5ae', grassLight: '#c9dfbb', grassDark: '#a8c79c',
+    earth: '#d9c79c', earthDark: '#c8b489',
+    gravel: '#d9c79c', gravelDark: '#c8b489',
+    canopy: ['#4a8a52', '#59a05f', '#3c7243'], pine: ['#356b58', '#3f7c66'],
+    rock: '#b9b4a6',
+    props: { pine: 0.4, bales: 0.4, logs: 0.4 },
   },
+  // The Ardennes: damp, dark, coniferous.
+  forest: {
+    patches: 0.55,
+    grass: '#5f8f52', grassLight: '#6a9a5c', grassDark: '#537f48',
+    earth: '#8d7a56', earthDark: '#7c6a49',
+    asphalt: '#443a50', asphaltLight: '#50465c',
+    canopy: ['#2f6b34', '#3a7f3e', '#25562b'], pine: ['#23503f', '#2b6250'],
+    props: { pine: 3, tree: 1.4, bales: 0, palm: 0 },
+  },
+  // Stubble and ochre earth, blue kerbs.
   autumn: {
+    patches: 0.7,
     grass: '#c6cf87', grassLight: '#d2da93', grassDark: '#b7c079',
     earth: '#e0c391', earthDark: '#d2b27e',
-    asphalt: '#5a5a62', asphaltLight: '#63636c',
-    outline: '#3b3540',
-    edgeLine: '#f1f0e8', centreLine: '#f1f0e8',
-    kerbA: '#2f63b0', kerbB: '#eef1f4',          // blue and white, as asked
+    asphalt: '#574a5e', asphaltLight: '#63566a',
+    outline: '#332b39',
+    kerbA: '#2f63b0', kerbB: '#eef1f4',
     gravel: '#e2c48f', gravelDark: '#d0ae76',
     canopy: ['#b4472e', '#c9662c', '#8e3a26'], pine: ['#2c5a52', '#356d5f'],
     trunk: '#6b4526', rock: '#b6ad98', log: '#8a552c',
+    props: { pine: 0.6, palm: 0 },
+  },
+  // Between the barriers: stone, paint and the harbour.
+  street: {
+    patches: 0,
+    grass: '#c3bdb2', grassLight: '#cdc7bc', grassDark: '#b4aea3',
+    earth: '#a9a296', earthDark: '#978f84',
+    asphalt: '#524659', asphaltLight: '#5e5266',
+    edgeLine: '#f2f0f4', centre: '#e8bc32',
+    gravel: '#b6afa3', gravelDark: '#a39c90',
+    canopy: ['#3f7a4a', '#4b8d57', '#33663e'], pine: ['#2f5f4f', '#37705d'],
+    rock: '#a8a196',
+    props: { tree: 0.5, tree2: 0.5, pine: 0.2, rock: 2, bales: 0, logs: 0, palm: 0.6 },
+  },
+  // The dunes: sand, marram grass, and orange everywhere.
+  dunes: {
+    patches: 0.4,
+    grass: '#e8d5a0', grassLight: '#f0dfae', grassDark: '#d9c48c',
+    earth: '#c9ae79', earthDark: '#b79c68',
+    kerbA: '#e07a1f', kerbB: '#f4f1e8',
+    gravel: '#d9c08a', gravelDark: '#c5aa74',
+    canopy: ['#7f9a52', '#8fae5e', '#6c8544'], pine: ['#5e7a45', '#6b8a50'],
+    rock: '#c0b49a',
+    props: { pine: 0.3, tree: 0.4, bush: 2.5, rock: 2, palm: 0.5, logs: 0 },
+  },
+  // Dry California hills: gold grass, dark scrub oaks.
+  california: {
+    patches: 0.5,
+    grass: '#cfc184', grassLight: '#dacd91', grassDark: '#beb073',
+    earth: '#bfa268', earthDark: '#ab8f58',
+    kerbA: '#2f63b0', kerbB: '#f1f0ea',
+    gravel: '#c9ad74', gravelDark: '#b59862',
+    canopy: ['#5d7a3c', '#6d8c46', '#4c6631'], pine: ['#4a6b46', '#567a52'],
+    rock: '#bdb298',
+    props: { pine: 0.5, bush: 2, rock: 2, palm: 0.6, bales: 0.5 },
+  },
+  // Warm and saturated, with palms.
+  tropical: {
+    patches: 0.5,
+    grass: '#66a84e', grassLight: '#73b659', grassDark: '#5a9645',
+    earth: '#b08a58', earthDark: '#9c774a',
+    kerbA: '#e8bc32', kerbB: '#1f7a3c',
+    canopy: ['#2f8a3f', '#3aa04c', '#256e32'], pine: ['#2a6b4a', '#337d58'],
+    props: { palm: 3, pine: 0.2, tree: 1.2, logs: 0.4 },
+  },
+  // Cool green under the mountains, hard red kerbs.
+  japan: {
+    patches: 0.5,
+    grass: '#7fb073', grassLight: '#8cbd7f', grassDark: '#6f9e64',
+    earth: '#a89369', earthDark: '#95805a',
+    asphalt: '#473c53', asphaltLight: '#53485f',
+    canopy: ['#3a7a46', '#478f54', '#2e6237'], pine: ['#2a5b4e', '#336d5e'],
+    props: { pine: 2, palm: 0, bales: 0.4 },
+  },
+  // The bush: khaki scrub over red earth.
+  bush: {
+    patches: 0.85,
+    grass: '#a9ab68', grassLight: '#b5b774', grassDark: '#9a9c5d',
+    earth: '#b3663c', earthDark: '#9d5733',
+    gravel: '#c08a5a', gravelDark: '#aa774b',
+    canopy: ['#6f8a4a', '#7f9c56', '#5d743c'], pine: ['#54704a', '#608055'],
+    rock: '#b09479',
+    props: { pine: 0.4, bush: 2, rock: 1.6, palm: 0.3, logs: 1.4 },
+  },
+  // Alpine meadow, very green, very clean.
+  alpine: {
+    patches: 0.45,
+    grass: '#66ad55', grassLight: '#74bb61', grassDark: '#5a9c4b',
+    earth: '#ab9263', earthDark: '#977f53',
+    asphalt: '#4a3e55', asphaltLight: '#564a61',
+    canopy: ['#347a3c', '#3f9047', '#2a6231'], pine: ['#24543f', '#2c664e'],
+    props: { pine: 2.4, palm: 0, bales: 1.4 },
+  },
+  // Long French summer: dry verges, blue kerbs.
+  lemans: {
+    patches: 0.55,
+    grass: '#8fae5e', grassLight: '#9cbb6a', grassDark: '#7f9e51',
+    earth: '#bda572', earthDark: '#a98f60',
+    kerbA: '#2f63b0', kerbB: '#f0efe9',
+    canopy: ['#417f3c', '#4e9448', '#356832'], pine: ['#2f6350', '#38755f'],
+    props: { pine: 1.4, palm: 0, bales: 1.2 },
   },
 };
-let PAL = THEMES.classic;
+
+const THEMES = {};
+for (const name in THEME_DEFS) THEMES[name] = Object.assign({}, THEME_BASE, THEME_DEFS[name]);
+THEMES.classic = Object.assign({}, THEME_BASE);
+let PAL = THEMES.park;
 
 const LINE_COLORS = { inside: 'rgba(80,200,255,0.55)', racing: 'rgba(255,255,255,0.5)', outside: 'rgba(255,200,60,0.55)' };
 
@@ -115,7 +237,7 @@ class Renderer {
     this.track = track;
     this.skids = [];
     this.particles = [];
-    PAL = THEMES[track.theme] || THEMES.classic;
+    PAL = THEMES[track.theme] || THEMES.park;
     this.grass = this._makeGrass();
     this.grassPattern = this.ctx.createPattern(this.grass, 'repeat');
     const seed = track.id || track.name || 'track';
@@ -125,8 +247,8 @@ class Renderer {
     if (!this.propArt) this.propArt = buildPropArt();
     this.props = placeProps(track, seed);
     this.topArt = buildTopArt(PAL);
-    this.topProps = placeTopProps(track, seed);
-    this.patches = placePatches(track, seed);
+    this.topProps = placeTopProps(track, seed, null, PAL.props);
+    this.patches = placePatches(track, seed, PAL.patches);
     const N = track.n, xs = track.xs, ys = track.ys, nx = track.nx, ny = track.ny;
     const STEP = 3;
     const edgePt = (i, side) => {
@@ -348,9 +470,11 @@ class Renderer {
       // painted markings: solid white at the edges, dashed yellow down the middle
       g.strokeStyle = PAL.edgeLine; g.lineWidth = 0.55;
       g.stroke(this.paths.left); g.stroke(this.paths.right);
-      g.setLineDash([2.6, 3.4]);
-      g.strokeStyle = PAL.centreLine; g.lineWidth = 0.42;
-      g.stroke(this.paths.mid);
+      if (PAL.centre) {
+        g.setLineDash([2.6, 3.4]);
+        g.strokeStyle = PAL.centre; g.lineWidth = 0.42;
+        g.stroke(this.paths.mid);
+      }
       g.setLineDash([]);
     }
     if (this.showLines) this._drawGuide(g, race);

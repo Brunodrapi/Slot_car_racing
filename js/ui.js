@@ -221,7 +221,6 @@ class UI {
             <img alt="" src="${this.thumb(tr, 90)}"><b>${tr.flag || '🏁'} ${escapeHtml(tr.name)}</b><small>${lapsFor(tr, cat)} ${t('laps')}</small></button>`).join('') : `<p class="muted">${t('noCustomTracks')}</p>`}
       </div>
       <div class="row wrap">
-        <div><h3>${t('livery')}</h3><div class="swatches">${LIVERIES.map((l, i) => `<button class="swatch ${i === s.livery ? 'sel' : ''}" data-action="pickLivery" data-id="${i}" style="background:${l.body};border-color:${l.accent}" title="${l.name}"></button>`).join('')}</div></div>
         ${mode === 'race' ? `<div><h3>${t('difficulty')}</h3><div class="seg">${['easy', 'medium', 'hard'].map(d => `<button class="${s.difficulty === d ? 'sel' : ''}" data-action="pickDiff" data-id="${d}">${t(d)}</button>`).join('')}</div></div>` : `<div><h3>${t('yourBest')}</h3><div class="bestlap">${best ? fmtTime(best) : '--:--.---'}</div></div>`}
       </div>
       <div class="row end"><span class="muted">${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ${escapeHtml(model.name)} · ${mode === 'race' ? `${laps} ${t('laps')}` : t('ttIntro')}</span><button class="big primary" data-action="startQuick">${t('start')}</button></div>
@@ -283,9 +282,6 @@ class UI {
       <div class="grid models">
         ${modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelNet" data-id="${m.id}">
           ${this.carIcon(m, livery)}<b>${escapeHtml(m.name)}</b></button>`).join('')}
-      </div>
-      <div class="row wrap">
-        <div><h3>${t('livery')}</h3><div class="swatches">${LIVERIES.map((l, i) => `<button class="swatch ${i === s.livery ? 'sel' : ''}" data-action="pickLiveryNet" data-id="${i}" style="background:${l.body};border-color:${l.accent}" title="${l.name}"></button>`).join('')}</div></div>
       </div>
       <div class="row end">
         <span class="muted">${trackDef ? `${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ` : ''}${escapeHtml(model.name)}</span>
@@ -467,7 +463,6 @@ class UI {
       case 'pickModel': { const m = modelById(id); app.save.models[m.catId] = id; storeSave(app.save); this.setupScreen(this.setup.mode); break; }
       case 'pickModelCup': { const m = modelById(id); app.save.models[m.catId] = id; storeSave(app.save); this.cupScreen(btn.dataset.cup); break; }
       case 'pickTrack': this.setup.trackId = id; this.setupScreen(this.setup.mode); break;
-      case 'pickLivery': app.save.livery = +id; storeSave(app.save); this.icons.clear(); this.setupScreen(this.setup.mode); break;
       case 'pickDiff': app.save.difficulty = id; storeSave(app.save); this.setupScreen(this.setup.mode); break;
       case 'startQuick': app.startQuick(this.setup.mode, this.setup.classId, this.setup.trackId); break;
       case 'multi': app.state = 'lobby'; this.lobbyScreen(); break;
@@ -479,7 +474,6 @@ class UI {
       case 'netReady': this._netReady(!app.net.mine.ready); break;
       case 'netStart': app.net.start(); break;
       case 'pickModelNet': { const m = modelById(id); app.save.models[m.catId] = id; storeSave(app.save); this._netCar(); break; }
-      case 'pickLiveryNet': app.save.livery = +id; storeSave(app.save); this.icons.clear(); this._netCar(); break;
       case 'toLobby': app.toLobby(); break;
       case 'startCup': app.startCupRace(id); break;
       case 'resetCup': delete app.save.cups[id]; storeSave(app.save); this.cupScreen(id); break;
@@ -493,7 +487,7 @@ class UI {
 
   _netCar() {
     const app = this.app, cat = categoryById(this.setup.classId);
-    app.net.setMine({ car: { modelId: app.playerModelFor(cat.id).id, livery: app.save.livery } });
+    app.net.setMine({ car: { modelId: app.playerModelFor(cat.id).id } });
   }
 
   _netReady(v) {

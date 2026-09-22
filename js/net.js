@@ -168,10 +168,12 @@ class Net {
     this.post();
     this.onStart({
       mode: t.mode, trackId: t.trackId, laps: t.laps, difficulty: t.difficulty,
-      humans: m.map(x => ({
+      // Nobody picks a colour any more, so the seat gives one: the order is the same on every
+      // screen, so everyone agrees on who is which without a word about it passing over the wire.
+      humans: m.map((x, i) => ({
         name: x.name,
         modelId: (x.car && x.car.modelId) || null,
-        livery: (x.car && x.car.livery) || 0,
+        livery: i,
         local: x.pid === this.pid,
       })),
     });
