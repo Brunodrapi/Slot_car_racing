@@ -11,6 +11,9 @@
 const LINE_NAMES = ['inside', 'racing', 'outside'];
 
 class Track {
+  // How fast the racing line may cross the road, in metres of lateral per metre travelled.
+  static get RACING_SLOPE() { return 0.3; }
+
   constructor(def, widthScale) {
     this.def = def;
     this.id = def.id;
@@ -117,7 +120,7 @@ class Track {
     this.lines = {};
     if (def.lines && def.lines.racing) this._projectLines(def.lines, scale);
     else this._autoLines();
-    this._limitLines(0.07);
+    this._limitLines(0.07, Track.RACING_SLOPE);
     if (def.lines && !def.width) this._widthFromLines();
     this._clampLines();
     this._lineCurvatures();
@@ -238,45 +241,125 @@ class Track {
 
   // Lines generated from curvature: racing = out-in-out, inside/outside hug the road edges
   // on the side of the next corner.
+  /* The racing line, found rather than guessed.
+
+  The old rule was a formula on smoothed curvature: hug the inside in proportion to how tight the
+  corner is. It produced something that mostly followed the middle of the road, because a formula
+  on the road's own curvature cannot know that the fast way through a corner starts on the far side
+  of the road two hundred metres earlier.
+
+  So the line is solved for instead. Write it as a lateral offset a(i) at every metre of the track,
+  giving the point P(i) = C(i) + n(i)·a(i), and look for the offsets that make the path bend as
+  little as possible:
+
+      minimise  Σ |P(i-1) − 2·P(i) + P(i+1)|²      subject to the line staying on the road
+
+  That is the classic minimum-curvature line, and it is what produces out-in-out on its own: the
+  solver discovers that starting wide lets the corner be taken with a bigger radius, and that the
+  corner after decides which side to exit on. Nothing about corners is coded anywhere — only the
+  road's shape and its width.
+
+  It is solved by relaxation. The energy above is quadratic in the offsets, so a step of Gauss-
+  Seidel on one offset, holding its neighbours, is a division: the second derivative of the energy
+  with respect to a(i) is 6·|n|² = 6, and the first is n(i)·(D(i-1) − 2·D(i) + D(i+1)) where D is
+  the second difference of P. Clamp to the road after every step and repeat.
+  */
   _autoLines() {
-    const N = this.n, k = this.k;
-    const g = new Float32Array(N);
-    for (let i = 0; i < N; i++) g[i] = clamp(k[i] * 70, -1, 1);          // sign = turn direction
-    const gN = Track.smooth(g, 20), gW = Track.smooth(g, 90);
-    // side of the next corner (sign of the next significant curvature), whatever the distance
-    const side = new Float32Array(N);
-    let nextSign = 0;
-    for (let i = 2 * N - 1; i >= 0; i--) {
-      const gi = g[i % N];
-      if (Math.abs(gi) > 0.3) nextSign = Math.sign(gi);
-      if (i < N) side[i] = nextSign || 1;
-    }
-    // hold the current corner's side through the corner itself
-    for (let i = 0; i < N; i++) if (Math.abs(g[i]) > 0.3) side[i] = Math.sign(g[i]);
-    const sideS = Track.smooth(side, 25);
-    const racing = new Float32Array(N), inside = new Float32Array(N), outside = new Float32Array(N);
+    const N = this.n, margin = 1.7;
+    const lo = new Float32Array(N), hi = new Float32Array(N);
     for (let i = 0; i < N; i++) {
-      const marginL = this.hwL[i] - 1.6, marginR = this.hwR[i] - 1.6;
-      const r = clamp(-(2 * gN[i] - gW[i]), -1, 1);
-      racing[i] = r > 0 ? r * marginL : r * marginR;
-      const sg = clamp(sideS[i] * 2.2, -1, 1);       // ±1 nearly everywhere, soft crossovers
-      inside[i] = -sg > 0 ? -sg * marginL * 0.92 : -sg * marginR * 0.92;
-      outside[i] = sg > 0 ? sg * marginL * 0.92 : sg * marginR * 0.92;
+      hi[i] = Math.max(0.2, this.hwL[i] - margin);
+      lo[i] = -Math.max(0.2, this.hwR[i] - margin);
     }
-    this.lines.racing = Track.smooth(racing, 20);
-    this.lines.inside = Track.smooth(inside, 20);
-    this.lines.outside = Track.smooth(outside, 20);
+    const racing = this._minCurvature(lo, hi, 120);
+
+    // The other two lines are offsets from the fast one, not lines in their own right: the inside
+    // is the defensive line that shuts the door, the outside the one that goes round. Each moves
+    // toward its edge by most of the room the racing line has left on that side.
+    const inside = new Float32Array(N), outside = new Float32Array(N);
+    const turn = new Float32Array(N);
+    for (let i = 0; i < N; i++) turn[i] = clamp(this.k[i] * 120, -1, 1);   // + = the road turns left
+    const turnS = Track.smooth(turn, 40);
+    for (let i = 0; i < N; i++) {
+      const r = racing[i], sg = clamp(turnS[i] * 2.4, -1, 1);
+      const toL = hi[i] - r, toR = r - lo[i];
+      inside[i] = r + sg * (sg > 0 ? toL : toR) * 0.85;
+      outside[i] = r - sg * (sg > 0 ? toR : toL) * 0.85;
+    }
+    this.lines.racing = racing;
+    this.lines.inside = Track.smooth(inside, 16);
+    this.lines.outside = Track.smooth(outside, 16);
+  }
+
+  /* Relaxes a line to the least-bending path that stays between `lo` and `hi`.
+
+  Done at one metre only, this never finishes: a pass of relaxation carries a change by one sample,
+  so after six hundred passes the far end of a straight still knows nothing about the corner it
+  leads into — and a racing line is precisely the corner reaching back up the straight. The first
+  attempt did exactly that and came out worse than the formula it replaced: a kinked line with a
+  minimum radius of eight metres where the old one managed thirteen.
+
+  So the same relaxation runs over a ladder of spans. Measuring the bend between samples sixty-four
+  metres apart makes a pass carry sixty-four metres of news, and finds the broad shape — which side
+  to be on, where to start moving. Each finer span then sharpens it without undoing it, down to the
+  metre. Same energy, same step, only the distance over which the bend is measured changes.
+  */
+  _minCurvature(lo, hi, passes) {
+    const RELAX = 0.5;              // the stencil is wide; a full Newton step overshoots
+    // Bending alone, with no term for the path's own length. Adding one is the textbook blend —
+    // the widest arc against the shortest way round — and it was tried: a tenth of length weight
+    // costs six seconds over eight circuits, half a weight costs fourteen. On a road this wide
+    // relative to its corners, the shortest way round is simply slower.
+    const N = this.n, xs = this.xs, ys = this.ys, nx = this.nx, ny = this.ny;
+    const a = new Float32Array(N);
+    const px = new Float32Array(N), py = new Float32Array(N);
+    const dx = new Float32Array(N), dy = new Float32Array(N);
+    const at = (i) => ((i % N) + N) % N;
+    const place = (i) => { px[i] = xs[i] + nx[i] * a[i]; py[i] = ys[i] + ny[i] * a[i]; };
+    // Start in the middle of the corridor: where the road is not symmetric, that is the line's home.
+    for (let i = 0; i < N; i++) { a[i] = (lo[i] + hi[i]) / 2; place(i); }
+
+    // One clean Jacobi step per pass: the whole gradient is read from the positions as they were
+    // at the start of the pass, every offset moves, and only then are the positions rebuilt.
+    // Moving a point in the middle of reading the gradient mixes old and new, and on this stencil
+    // that is unstable — the line diverges and pins itself to the edges of the road, which showed
+    // up as an eleven-metre jump across the start line.
+    const grad = new Float32Array(N);
+    const spans = [64, 32, 16, 8, 4, 2, 1].filter(h => h * 4 < N);
+    for (const h of spans) {
+      for (let it = 0; it < passes; it++) {
+        for (let i = 0; i < N; i++) {
+          const p = at(i - h), q = at(i + h);
+          dx[i] = px[p] - 2 * px[i] + px[q];
+          dy[i] = py[p] - 2 * py[i] + py[q];
+        }
+        for (let i = 0; i < N; i++) {
+          const p = at(i - h), q = at(i + h);
+          // d²E/da² = 6 for this stencil, so the Newton step is the gradient over six
+          grad[i] = (nx[i] * (dx[p] - 2 * dx[i] + dx[q]) + ny[i] * (dy[p] - 2 * dy[i] + dy[q])) / 6;
+        }
+        for (let i = 0; i < N; i++) a[i] = clamp(a[i] - RELAX * grad[i], lo[i], hi[i]);
+        for (let i = 0; i < N; i++) place(i);
+      }
+    }
+    return a;
   }
 
   // A line must be something a car can actually follow: limit how fast it moves across the road
   // (metres of lateral per metre travelled), forward and backward so both ends of a move are gentle.
-  _limitLines(maxSlope) {
+  _limitLines(maxSlope, racingSlope) {
     const N = this.n;
     for (const name of LINE_NAMES) {
+      // The racing line is allowed to move across the road much faster than the other two. It is
+      // solved, not guessed, and its curvature is already the least the road allows — a slope cap
+      // can only flatten it back toward the middle, which is exactly what it used to do: at seven
+      // centimetres per metre a line needs a hundred metres to cross seven metres of road, so it
+      // never reached the outside before a corner and never looked like a racing line at all.
+      const limit = name === 'racing' ? (racingSlope == null ? maxSlope : racingSlope) : maxSlope;
       const a = this.lines[name];
       for (let pass = 0; pass < 2; pass++) {
-        for (let i = 1; i <= N; i++) { const j = i % N, k = (i - 1) % N; a[j] = clamp(a[j], a[k] - maxSlope, a[k] + maxSlope); }
-        for (let i = N - 1; i >= -1; i--) { const j = (i + N) % N, k = (i + 1) % N; a[j] = clamp(a[j], a[k] - maxSlope, a[k] + maxSlope); }
+        for (let i = 1; i <= N; i++) { const j = i % N, k = (i - 1) % N; a[j] = clamp(a[j], a[k] - limit, a[k] + limit); }
+        for (let i = N - 1; i >= -1; i--) { const j = (i + N) % N, k = (i + 1) % N; a[j] = clamp(a[j], a[k] - limit, a[k] + limit); }
       }
       this.lines[name] = Track.smooth(a, 4);
     }
@@ -348,17 +431,33 @@ class Track {
   // itself as it moves across the road (a line drifting from outside to inside bends more than
   // the road at corner entry). This is what the cars actually have to turn, so the braking AI
   // and the speed profile use it.
+  /* How hard each line actually bends — the number the speed profile brakes for.
+
+  Measured on the line's own points rather than from a formula on the road's curvature plus the
+  offset's second difference. The formula is right in the limit, but it was evaluated over a
+  six-metre stencil and then smoothed again, so a line that tightened over a couple of metres came
+  out gentler than it is. The car was sent into those places carrying speed it could not hold: the
+  grip demand peaked at three times what the tyres had, and it slid rather than turned.
+  */
   _lineCurvatures() {
-    const N = this.n, ds = this.ds;
+    const N = this.n;
     this.lineK = {};
+    const at = (i) => ((i % N) + N) % N;
     for (const name of LINE_NAMES) {
       const lat = this.lines[name], out = new Float32Array(N);
+      const px = new Float32Array(N), py = new Float32Array(N);
+      for (let i = 0; i < N; i++) { px[i] = this.xs[i] + this.nx[i] * lat[i]; py[i] = this.ys[i] + this.ny[i] * lat[i]; }
       for (let i = 0; i < N; i++) {
-        const h = 3;
-        const a = lat[(i - h + N) % N], b = lat[i], c = lat[(i + h) % N];
-        const d2 = (a - 2 * b + c) / (h * ds * h * ds);
-        const k = this.k[i], f = Math.max(0.25, 1 + k * b);
-        out[i] = k / f - d2 / (f * f);
+        const p = at(i - 1), q = at(i + 1);
+        // signed turn per metre travelled: the circle through the three points
+        const ax = px[i] - px[p], ay = py[i] - py[p];
+        const bx = px[q] - px[i], by = py[q] - py[i];
+        const la = Math.hypot(ax, ay), lb = Math.hypot(bx, by);
+        if (la < 1e-4 || lb < 1e-4) { out[i] = 0; continue; }
+        let d = Math.atan2(by, bx) - Math.atan2(ay, ax);
+        while (d > Math.PI) d -= 2 * Math.PI;
+        while (d < -Math.PI) d += 2 * Math.PI;
+        out[i] = 2 * d / (la + lb);
       }
       this.lineK[name] = Track.smooth(out, 2);
     }

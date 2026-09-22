@@ -103,6 +103,45 @@ se joindre. Le jeu le dit alors au lieu d'attendre. Pour pointer son propre serv
 Le transport vient de *Botminton*, où la même surface sert aussi de secours à la capacité `room` de
 claude.ai.
 
+## Les trois trajectoires
+
+La trajectoire idéale n'est pas devinée, elle est **résolue**. On écrit la ligne comme un décalage
+latéral `a(i)` à chaque mètre du circuit — le point vaut alors `C(i) + n(i)·a(i)` — et on cherche les
+décalages qui font que le chemin plie le moins possible :
+
+> minimiser Σ |P(i-1) − 2·P(i) + P(i+1)|², la ligne devant rester sur la route
+
+C'est la trajectoire de courbure minimale, et elle produit le **extérieur-corde-extérieur** toute
+seule : le solveur découvre qu'entrer large permet de prendre le virage sur un plus grand rayon, et
+que le virage suivant décide du côté de sortie. Rien sur les virages n'est écrit nulle part — la
+forme de la route et sa largeur suffisent.
+
+Elle est résolue par relaxation, sur une **échelle de portées**. Faite au mètre seulement, la
+relaxation ne finit jamais : une passe ne transporte un changement que d'un échantillon, si bien
+qu'au bout de six cents passes le bout d'une ligne droite ignore encore le virage vers lequel elle
+mène — alors qu'une trajectoire idéale, c'est précisément le virage qui remonte la ligne droite.
+On mesure donc d'abord le pli entre des points distants de soixante-quatre mètres, ce qui trouve la
+forme d'ensemble, puis on resserre jusqu'au mètre.
+
+Les deux autres lignes sont des décalages par rapport à la rapide, et non des lignes à part
+entière : l'intérieure ferme la porte, l'extérieure passe autour.
+
+**Ce qui la retenait au milieu de la piste**, avant, n'était pas seulement la formule qu'elle
+remplace : un limiteur bornait le déplacement latéral à sept centimètres par mètre parcouru. À ce
+rythme, traverser sept mètres de route demande cent mètres — la ligne n'atteignait jamais
+l'extérieur avant un virage. La trajectoire résolue a droit à trente centimètres par mètre ; sa
+courbure est déjà la plus faible que la route autorise, un plafond de pente ne peut que la
+réaplatir vers le centre.
+
+Au banc d'essai (`tools/step.js`, une voiture seule à 95 % de la limite), les douze circuits gagnent
+entre une et quatre secondes au tour, sans une seule sortie de piste, et la demande d'adhérence
+reste au niveau d'avant. En course l'IA est aussi plus propre : soixante sorties sur les douze
+circuits contre près de deux cents.
+
+Et les trois lignes veulent enfin dire quelque chose. Avant, le tour idéal de l'intérieure, de la
+rapide et de l'extérieure tenait en une seconde d'écart à Monza — autant tirer au sort. Maintenant
+la rapide est à 61 s, les deux autres à 73 et 74.
+
 ## Physique
 
 La ligne est une **intention de trajectoire**, jamais une position imposée : le pilote automatique ne
@@ -164,8 +203,15 @@ roux et **vibreurs bleu et blanc** — là où les autres gardent le vert satur�
 Ajouter un thème, c'est une entrée dans `THEMES`, au début de `js/render.js`.
 
 Le décor vise un rendu **cartoon isométrique** : bitume sombre et plat, contour foncé marqué autour de
-la route, ligne jaune discontinue au milieu, marquages blancs sur les bords, vibreurs rouge et blanc
-épais, herbe saturée à taches carrées alignées sur une grille de pixels. Les voitures venant d'une
+la route, ligne jaune discontinue au milieu, marquages blancs sur les bords, herbe saturée à taches
+carrées alignées sur une grille de pixels.
+
+Les **vibreurs** sont des quadrilatères pleins, alternés, encadrés d'un trait foncé des deux côtés,
+posés juste à l'extérieur de la ligne blanche. Ils étaient auparavant tracés au trait pointillé, ce
+qui prenait l'embout de ligne arrondi que ce style emploie partout ailleurs : les blocs sortaient en
+gélules. Une forme pleine n'a pas d'embout, donc les arêtes restent franches à tous les zooms. Et le
+fait de les décaler de la ligne blanche compte autant : à cheval dessus, les blocs blancs
+disparaissaient dans la peinture et le vibreur se lisait comme une file de tirets bleus. Les voitures venant d'une
 planche sont dessinées **sans lissage**, pour que le pixel art reste net.
 
 ### Panneaux de freinage
@@ -360,6 +406,7 @@ NODE_PATH=$(npm root -g) node tools/e2e-workshop.js <dossier>                   
 node tools/step.js <circuit> <catégorie> [marge] [-v]                             # suivi de ligne d'une voiture seule
 node tools/sweep.js '[{},{"yawK":4}]'                                             # balayage des réglages physiques
 node tools/jump.js <circuit> <catégorie> <marge>                                  # continuité du déplacement
+node tools/line.js [circuit|all] [catégorie] [-v]                                # ce que vaut une trajectoire
 node tools/netsim.js <circuit> [secondes] [perte %] [format]                      # deux écrans en réseau, sans navigateur
 NODE_PATH=$(npm root -g) node tools/e2e-net.js <dossier> [format]                 # deux onglets, une table, une course
 NODE_PATH=$(npm root -g) node tools/arrow.js <circuit>                            # sens des flèches des panneaux
@@ -380,6 +427,13 @@ assombrisse l'herbe du jeu. Il vérifie en sortant qu'aucun objet gardé n'a per
 chemin : le découpage amincit les formes pour séparer deux objets dont les ombres se touchent, et
 tout ce qui est plus fin que l'amincissement disparaîtrait sans précaution. Voir
 `sprites/env/README.md` pour les réglages employés.
+
+`tools/line.js` mesure une trajectoire sans faire intervenir de pilote : sa longueur, son rayon
+minimal, et le tour qu'elle donnerait à une voiture qui la suivrait exactement à la limite. C'est le
+nombre qu'une trajectoire idéale existe pour abaisser, et la seule façon honnête de dire si une
+modification du générateur a aidé — un temps de simulation mélange la qualité de la ligne et
+l'aptitude du pilote automatique à la suivre. Avec `-v`, l'outil nomme aussi le point le plus serré
+et montre les décalages autour : un vrai virage serré a des voisins qui s'accordent, un pli non.
 
 `tools/netsim.js` et `tools/e2e-net.js` remplacent le transport WebRTC par une boucle locale —
 l'annuaire public n'est pas joignable depuis une machine de test, et ce n'est pas lui qu'il faut

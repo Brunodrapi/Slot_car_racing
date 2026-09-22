@@ -151,19 +151,49 @@ class Renderer {
     }
     mid.closePath();
 
+    // A kerb is a band just outside the white line, cut into alternating blocks. Built as filled
+    // quads rather than stroked with a dash: a dash takes the line cap of whatever is drawing, and
+    // with the round caps this look needs everywhere else the blocks came out as pills. Filled
+    // shapes have no caps at all, so the edges stay square whatever the zoom.
+    // The band starts just outside the white edge line rather than under it: overlapping, the
+    // white blocks disappeared into the paint and the kerb read as a row of blue dashes.
+    const KERB_IN = 0.34, KERB_W = 1.7, KERB_BLOCK = 3;
+    const bandPt = (i, side, w) => {
+      const k = ((i % N) + N) % N, hw = (side > 0 ? track.hwL[k] : track.hwR[k]) + w;
+      return [xs[k] + nx[k] * hw * side, ys[k] + ny[k] * hw * side];
+    };
     const corners = track.corners.map(cn => {
       const l = new Path2D(), r = new Path2D(), gravel = new Path2D();
+      const kerbA = new Path2D(), kerbB = new Path2D(), kerbEdge = new Path2D();
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
       for (let i = cn.from; i <= cn.to; i += 2) {
         const a = edgePt(i, 1), b = edgePt(i, -1);
         if (i === cn.from) { l.moveTo(a[0], a[1]); r.moveTo(b[0], b[1]); } else { l.lineTo(a[0], a[1]); r.lineTo(b[0], b[1]); }
         minX = Math.min(minX, a[0], b[0]); maxX = Math.max(maxX, a[0], b[0]); minY = Math.min(minY, a[1], b[1]); maxY = Math.max(maxY, a[1], b[1]);
       }
+      for (const side of [1, -1]) {
+        let block = 0;
+        for (let i = cn.from; i < cn.to; i += KERB_BLOCK, block++) {
+          const j = Math.min(i + KERB_BLOCK, cn.to);
+          const p = block % 2 ? kerbB : kerbA;
+          const a0 = bandPt(i, side, KERB_IN);
+          p.moveTo(a0[0], a0[1]);
+          for (let t = i + 1; t <= j; t++) { const q = bandPt(t, side, KERB_IN); p.lineTo(q[0], q[1]); }
+          for (let t = j; t >= i; t--) { const q = bandPt(t, side, KERB_IN + KERB_W); p.lineTo(q[0], q[1]); }
+          p.closePath();
+        }
+        // both sides of the band get the dark outline, so the strip is framed like the road is
+        for (const w of [KERB_IN, KERB_IN + KERB_W]) {
+          const e0 = bandPt(cn.from, side, w);
+          kerbEdge.moveTo(e0[0], e0[1]);
+          for (let t = cn.from + 1; t <= cn.to; t++) { const q = bandPt(t, side, w); kerbEdge.lineTo(q[0], q[1]); }
+        }
+      }
       // gravel: wider band around the corner
       for (let i = cn.from; i <= cn.to; i += 2) { const k = ((i % N) + N) % N, p = [xs[k] + nx[k] * (track.hwL[k] + 8), ys[k] + ny[k] * (track.hwL[k] + 8)]; if (i === cn.from) gravel.moveTo(p[0], p[1]); else gravel.lineTo(p[0], p[1]); }
       for (let i = cn.to; i >= cn.from; i -= 2) { const k = ((i % N) + N) % N; gravel.lineTo(xs[k] - nx[k] * (track.hwR[k] + 8), ys[k] - ny[k] * (track.hwR[k] + 8)); }
       gravel.closePath();
-      return { left: l, right: r, gravel, bbox: { minX: minX - 30, minY: minY - 30, maxX: maxX + 30, maxY: maxY + 30 } };
+      return { left: l, right: r, gravel, kerbA, kerbB, kerbEdge, bbox: { minX: minX - 30, minY: minY - 30, maxX: maxX + 30, maxY: maxY + 30 } };
     });
 
     const bridges = track.crossings.map(cr => {
@@ -305,22 +335,22 @@ class Renderer {
       for (const cn of this.paths.corners) { if (!inView(cn.bbox)) continue; g.fillStyle = PAL.gravel; g.fill(cn.gravel); }
       g.strokeStyle = PAL.outline; g.lineWidth = 3.6; g.stroke(this.paths.road);
       g.fillStyle = PAL.asphalt; g.fill(this.paths.road);
+      // kerbs, laid over the road's dark outline so the band reads as one crisp edge
+      g.save();
+      g.lineJoin = 'miter'; g.lineCap = 'butt'; g.miterLimit = 3;
+      for (const cn of this.paths.corners) {
+        if (!inView(cn.bbox)) continue;
+        g.fillStyle = PAL.kerbA; g.fill(cn.kerbA);
+        g.fillStyle = PAL.kerbB; g.fill(cn.kerbB);
+        g.strokeStyle = PAL.outline; g.lineWidth = 0.34; g.stroke(cn.kerbEdge);
+      }
+      g.restore();
       // painted markings: solid white at the edges, dashed yellow down the middle
       g.strokeStyle = PAL.edgeLine; g.lineWidth = 0.55;
       g.stroke(this.paths.left); g.stroke(this.paths.right);
       g.setLineDash([2.6, 3.4]);
       g.strokeStyle = PAL.centreLine; g.lineWidth = 0.42;
       g.stroke(this.paths.mid);
-      g.setLineDash([]);
-      // kerbs on the corners, chunkier than before
-      g.lineWidth = 1.6;
-      for (const cn of this.paths.corners) {
-        if (!inView(cn.bbox)) continue;
-        for (const edge of [cn.left, cn.right]) {
-          g.setLineDash([]); g.strokeStyle = PAL.kerbA; g.stroke(edge);
-          g.setLineDash([2.6, 2.6]); g.strokeStyle = PAL.kerbB; g.stroke(edge);
-        }
-      }
       g.setLineDash([]);
     }
     if (this.showLines) this._drawGuide(g, race);
