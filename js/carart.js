@@ -122,11 +122,67 @@ function drawCarSprite(g, model, L, W, livery) {
   return true;
 }
 
+/* A model may ship a drawing of the real car seen from straight above (`top` in js/cars.js). It
+   replaces both the vector body and the chosen livery: these are particular cars in their own
+   colours, not a shape to be painted. The silhouette is filled black once and kept, so the shadow
+   can follow the car's outline instead of being a rectangle under it. */
+const _topCache = new Map();
+const _topWaiters = [];
+/** True once this model's drawing is decoded and can be drawn. */
+function topReady(model) { return !model.top || !!topArt(model); }
+/** Called once every drawing has landed, so a screen built too early can be built again. */
+function onTopReady(cb) { _topWaiters.push(cb); }
+function topArt(model) {
+  if (!model.top) return null;
+  let e = _topCache.get(model.top);
+  if (!e) {
+    const img = new Image();
+    img.onload = () => { for (const cb of _topWaiters.splice(0)) cb(); };
+    img.src = model.top;
+    e = { img, shadow: null };
+    _topCache.set(model.top, e);
+  }
+  if (!e.img.complete || !e.img.naturalWidth) return null;
+  if (!e.shadow) {
+    const c = document.createElement('canvas');
+    c.width = e.img.naturalWidth; c.height = e.img.naturalHeight;
+    const g2 = c.getContext('2d');
+    g2.drawImage(e.img, 0, 0);
+    g2.globalCompositeOperation = 'source-in';
+    g2.fillStyle = '#000';
+    g2.fillRect(0, 0, c.width, c.height);
+    e.shadow = c;
+  }
+  return e;
+}
+
+// Both are drawn to the car's length, keeping the drawing's own proportions: an illustration
+// includes the mirrors and the wing, so it comes out a little wider than the collision box.
+function topSize(model, art) {
+  const L = model.length;
+  return [L, L * art.img.naturalHeight / art.img.naturalWidth];
+}
+
+/** The car's own outline, filled dark, for the shadow. Returns false if this model has no drawing. */
+function drawCarShadow(g, model) {
+  const art = topArt(model);
+  if (!art) return false;
+  const [w, h] = topSize(model, art);
+  g.drawImage(art.shadow, -w / 2, -h / 2, w, h);
+  return true;
+}
+
 // Draws any model centred at the origin, facing +x.
 function drawCarModel(g, model, livery, opts) {
   const L = model.length, W = model.width;
+  const art = topArt(model);
+  if (art) {
+    const [w, h] = topSize(model, art);
+    g.drawImage(art.img, -w / 2, -h / 2, w, h);
+    return;
+  }
   if (model.sprite && drawCarSprite(g, model, L, W, livery)) return;
   drawCarBody(g, model.shape, L, W, livery, opts);
 }
 
-if (typeof module !== 'undefined') module.exports = { SHAPES, drawCarModel };
+if (typeof module !== 'undefined') module.exports = { drawCarShadow, topReady, onTopReady, SHAPES, drawCarModel };

@@ -767,8 +767,12 @@ class Renderer {
     g.save();
     g.translate(pos.x, pos.y);
     g.rotate(h);
-    g.fillStyle = 'rgba(0,0,0,0.3)';
-    g.save(); g.translate(0.25, 0.35); g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width); g.restore();
+    g.save();
+    g.translate(0.25, 0.35);
+    g.globalAlpha = 0.3;
+    // a drawn car casts its own outline; a vector one only has a box to offer
+    if (!drawCarShadow(g, c)) { g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width); }
+    g.restore();
     drawCarModel(g, c, car.livery, { number: car.number, steer: car.steerAngle });
     if (car.braking && car.state === 'ok') { g.fillStyle = 'rgba(255,40,40,0.9)'; g.fillRect(-c.length / 2 - 0.15, -c.width / 2 + 0.1, 0.25, c.width - 0.2); }
     g.restore();

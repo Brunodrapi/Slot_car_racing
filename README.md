@@ -103,6 +103,24 @@ se joindre. Le jeu le dit alors au lieu d'attendre. Pour pointer son propre serv
 Le transport vient de *Botminton*, où la même surface sert aussi de secours à la capacité `room` de
 claude.ai.
 
+## Voitures dessinées
+
+Un modèle peut fournir un **dessin de la vraie voiture vue à la verticale** (`top` dans
+`js/cars.js`), qui remplace alors la silhouette vectorielle *et* la livrée choisie : ce sont des
+voitures précises dans leurs couleurs, pas une forme à peindre. L'ombre suit leur contour au lieu
+d'être un rectangle posé dessous — la silhouette est remplie de noir une fois et gardée.
+
+`tools/topcar.py <image> <id du modèle> [--nose=left] [--width=420]` prépare une illustration. Le
+fond est retiré par **remplissage depuis le bord** et non par seuil de couleur : une M1 Procar est
+blanche sur fond blanc, et un seuil la mangerait entière — le trait sombre qui entoure la
+carrosserie arrête le remplissage, le blanc intérieur est conservé. L'image est ensuite redressée
+(l'axe long de la voiture est mesuré et ramené à l'horizontale, ce qui a valu un tiers de degré à la
+F40) puis tournée pour que l'avant pointe vers la droite, ce que le jeu attend.
+
+Le dessin est mis à l'échelle sur la **longueur** de la voiture, en gardant ses proportions : une
+illustration inclut les rétroviseurs et l'aileron, elle sort donc un peu plus large que la boîte de
+collision.
+
 ## Les trois trajectoires
 
 La trajectoire idéale n'est pas devinée, elle est **résolue**. On écrit la ligne comme un décalage
@@ -324,7 +342,9 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
 ## Contenu
 
 - **6 voitures GT** : *M1 Procar*, *F40*, *Countach LP500*, *911 Turbo*, *Testarossa*, *XJ220*.
-  Quatre d'entre elles ont en plus une planche de rotations, qui ne sert qu'à la vue isométrique.
+  La M1 Procar et la F40 LM sont dessinées d'après la vraie voiture vue du dessus (plus la 787B,
+  rangée dans les prototypes classiques) ; les autres gardent leur silhouette vectorielle. Quatre
+  ont en plus une planche de rotations, qui ne sert qu'à la vue isométrique.
 - **12 circuits** inspirés de vrais tracés : Monza, Spa-Francorchamps, Monaco, Silverstone, Suzuka
   (avec son pont), Interlagos, Laguna Seca, Nürburgring GP, Le Mans, Mount Panorama, Red Bull Ring, Zandvoort.
 - Dans le code, toujours **4 catégories de 6 modèles**, avec leurs stats et leur dessin vectoriel,
@@ -380,6 +400,7 @@ js/props.js                décor autour de la piste (types, semis déterministe
 js/carart.js               dessins vectoriels des modèles + rendu des sprites perso (calques UR2D)
 sprites/                   planches de rotations pour la vue isométrique (v0…vN-1 par modèle)
 sprites/env/               objets de décor découpés dans sprites/environnement/
+sprites/top/               voitures dessinées vues à la verticale
 tools/sheet.py             fabrique une planche à partir d'un dossier de rendus
 tools/env.py               découpe une planche de décor en objets séparés
 js/car.js                  physique (corps libre, deux trains), pilote automatique, profil de vitesse, IA de freinage et de choix de ligne, collisions
@@ -412,6 +433,7 @@ NODE_PATH=$(npm root -g) node tools/e2e-net.js <dossier> [format]               
 NODE_PATH=$(npm root -g) node tools/arrow.js <circuit>                            # sens des flèches des panneaux
 python3 tools/sheet.py <dossier de rendus> <id du modèle> <longueur en m> [largeur]  # planche de rotations
 python3 tools/env.py <planche.png> sprites/env [--erode=6] [--shadow=r,g,b] …     # découpe une planche de décor
+python3 tools/topcar.py <image> <id du modèle> [--nose=left]                      # voiture vue de dessus
 NODE_PATH=$(npm root -g) node tools/propdbg.js <image.png>                        # décor visible et coût par image
 ```
 

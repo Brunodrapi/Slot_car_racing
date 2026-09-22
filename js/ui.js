@@ -88,6 +88,7 @@ class UI {
   show(html, cls) {
     this.root.innerHTML = `<div class="screen ${cls || ''}">${html}</div>`;
     this.root.classList.remove('hidden');
+    this.paintIcons();
   }
   hide() { this.root.classList.add('hidden'); this.root.innerHTML = ''; }
 
@@ -119,17 +120,34 @@ class UI {
     return url;
   }
 
+  /* A card's picture is a canvas left in the page, not an encoded image.
+     It used to be a data URL, which is tidier to put in markup — but drawing one of the cars'
+     illustrations onto a canvas taints it when the game is opened as a local file, and a tainted
+     canvas cannot be encoded at all: the whole model list threw. A canvas left in the page has
+     nothing to encode, so it works from a file, from a server, anywhere. It also settles the
+     timing — a drawing that has not decoded yet is simply painted again when it lands, where a
+     cached data URL would have kept the fallback body for good. */
   carIcon(model, livery) {
-    const key = model.id + ':' + livery.body + ':' + (model.sprite ? 's' : 'v');
-    if (this.icons.has(key)) return this.icons.get(key);
-    const c = document.createElement('canvas'); c.width = 160; c.height = 72;
-    const g = c.getContext('2d');
-    const sc = Math.min(150 / model.length, 60 / model.width);
-    g.translate(80, 36); g.scale(sc, sc);
-    drawCarModel(g, model, livery, {});
-    const url = c.toDataURL();
-    this.icons.set(key, url);
-    return url;
+    return `<canvas class="caricon" width="160" height="72" data-car="${model.id}" data-livery="${LIVERIES.indexOf(livery)}"></canvas>`;
+  }
+
+  /** Paints every card picture the screen just laid out. */
+  paintIcons() {
+    let pending = false;
+    for (const c of this.root.querySelectorAll('canvas.caricon')) {
+      const model = modelById(c.dataset.car);
+      if (!model) continue;
+      if (!topReady(model)) pending = true;
+      const g = c.getContext('2d');
+      g.clearRect(0, 0, c.width, c.height);
+      const sc = Math.min(150 / model.length, 60 / model.width);
+      g.save();
+      g.translate(c.width / 2, c.height / 2);
+      g.scale(sc, sc);
+      drawCarModel(g, model, LIVERIES[+c.dataset.livery] || LIVERIES[0], {});
+      g.restore();
+    }
+    if (pending) onTopReady(() => this.paintIcons());
   }
 
   // ---------- screens ----------
@@ -186,7 +204,7 @@ class UI {
       <h3>${t('model')} <span class="muted">· ${t('stats')}</span></h3>
       <div class="grid models">
         ${modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${m.id}">
-            <img alt="" src="${this.carIcon(m, livery)}"><b>${escapeHtml(m.name)}${m.custom ? ` <small>(${t('custom')})</small>` : ''}</b>
+            ${this.carIcon(m, livery)}<b>${escapeHtml(m.name)}${m.custom ? ` <small>(${t('custom')})</small>` : ''}</b>
             ${statBar(m.vmax, 100)}${statBar(m.brake, 34)}${statBar(m.grip + m.df * 2500, 40)}</button>`).join('')}
       </div>
       <h3>${t('track')}</h3>
@@ -264,7 +282,7 @@ class UI {
       <h3>${t('model')}</h3>
       <div class="grid models">
         ${modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelNet" data-id="${m.id}">
-          <img alt="" src="${this.carIcon(m, livery)}"><b>${escapeHtml(m.name)}</b></button>`).join('')}
+          ${this.carIcon(m, livery)}<b>${escapeHtml(m.name)}</b></button>`).join('')}
       </div>
       <div class="row wrap">
         <div><h3>${t('livery')}</h3><div class="swatches">${LIVERIES.map((l, i) => `<button class="swatch ${i === s.livery ? 'sel' : ''}" data-action="pickLiveryNet" data-id="${i}" style="background:${l.body};border-color:${l.accent}" title="${l.name}"></button>`).join('')}</div></div>
@@ -287,7 +305,7 @@ class UI {
           const unlocked = cupUnlocked(s, i), cs = cupState(s, c.id), cat = categoryById(c.classId);
           const status = !unlocked ? t('locked') : cs.done ? `${t('done')} · ${t('finalPos', cs.finalPos)}` : cs.race > 0 ? `${t('inProgress')} · ${t('raceOf', cs.race + 1, c.tracks.length)}` : t('notStarted');
           return `<button class="cup ${unlocked ? '' : 'locked'} ${cs.done && cs.finalPos <= 3 ? 'won' : ''}" data-action="cup" data-id="${c.id}" ${unlocked ? '' : 'disabled'}>
-            <img alt="" src="${this.carIcon(this.app.playerModelFor(cat.id), livery)}">
+            ${this.carIcon(this.app.playerModelFor(cat.id), livery)}
             <div><b>${this.L(c.name)}</b><small>${this.L(cat.name)} · ${c.tracks.length} ${t('races')}</small><small class="status">${status}</small></div>
             <div class="medal">${cs.done && cs.finalPos <= 3 ? ['🥇', '🥈', '🥉'][cs.finalPos - 1] : unlocked ? '' : '🔒'}</div>
           </button>`;
@@ -311,7 +329,7 @@ class UI {
           <h3>${t('standings')}</h3>${table}
           <button class="link" data-action="resetCup" data-id="${cupId}">${t('resetCup')}</button>
           <h3>${t('model')}</h3>
-          <div class="grid models small">${modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelCup" data-id="${m.id}" data-cup="${cupId}"><img alt="" src="${this.carIcon(m, livery)}"><b>${escapeHtml(m.name)}</b></button>`).join('')}</div>
+          <div class="grid models small">${modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelCup" data-id="${m.id}" data-cup="${cupId}">${this.carIcon(m, livery)}<b>${escapeHtml(m.name)}</b></button>`).join('')}</div>
         </div>
         <div>
           <h3>${cs.done ? t('done') : t('nextRace')} · ${t('raceOf', idx + 1, cup.tracks.length)}</h3>
@@ -390,7 +408,7 @@ class UI {
         </div>
         <div>
           <h3>${t('wsList')}</h3>
-          ${cars.length ? `<div class="grid models">${cars.map(c => { const m = modelById(c.id); return `<div class="card"><img alt="" src="${m ? this.carIcon(m, livery) : ''}"><b>${escapeHtml(c.name)}</b><small>${this.L(categoryById(c.catId).name)}</small><button class="link danger" data-action="wsDelete" data-id="${c.id}">${t('deleteTrack')}</button></div>`; }).join('')}</div>` : `<p class="muted">${t('wsNone')}</p>`}
+          ${cars.length ? `<div class="grid models">${cars.map(c => { const m = modelById(c.id); return `<div class="card">${m ? this.carIcon(m, livery) : ''}<b>${escapeHtml(c.name)}</b><small>${this.L(categoryById(c.catId).name)}</small><button class="link danger" data-action="wsDelete" data-id="${c.id}">${t('deleteTrack')}</button></div>`; }).join('')}</div>` : `<p class="muted">${t('wsNone')}</p>`}
         </div>
       </div>
     `, 'scroll');
