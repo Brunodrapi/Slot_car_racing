@@ -67,6 +67,42 @@ Trois trajectoires par circuit : **intérieure** (plus courte mais plus serrée,
 virage), **idéale** (extérieur-intérieur-extérieur) et **extérieure** (plus longue mais plus rapide).
 Dépasser = changer de ligne.
 
+## À plusieurs
+
+Une table, un code de quatre lettres. L'un ouvre la table et dicte son code, les autres le
+saisissent ; jusqu'à six écrans. Chacun choisit sa voiture, se déclare prêt, et l'hôte lâche le
+drapeau. Après l'arrivée on retombe sur la table, prêts à repartir.
+
+| Format | Sur la piste | Contacts |
+| --- | --- | --- |
+| **Course** | tout le monde sur la grille, complétée par des IA | oui |
+| **Duel** | les humains et personne d'autre | oui |
+| **Contre-la-montre** | les humains, chacun son tour | non, les voitures se traversent |
+
+**Un seul écran simule.** L'hôte — celui qui a ouvert la table — fait tourner la course et publie
+l'état de chaque voiture trente fois par seconde. Les invités ne publient que deux nombres, gaz et
+choix de ligne, et rejouent ce qu'ils reçoivent. Aucun invité ne prédit quoi que ce soit, donc aucun
+ne peut être en désaccord avec l'hôte : ce qu'un invité voit est la course de l'hôte, avec une
+fraction de seconde de retard. Entre deux images reçues, les voitures avancent le long de leur
+propre vitesse — non pour deviner la suite, seulement pour que l'écran ne se fige pas.
+
+Le canal n'est ni fiable ni ordonné : une image d'entrées peut arriver après une plus récente, et la
+rejouer ferait repartir un gaz déjà relâché. On ne lit donc que ce qui avance, de chaque côté.
+
+**Rien ne passe par un serveur de jeu.** Les données vont directement d'un appareil à l'autre en
+WebRTC ; un annuaire public (le courtier PeerJS) ne sert qu'à présenter les deux navigateurs l'un à
+l'autre au moment de rejoindre, et ne voit jamais une seule image de course. Rien n'est conservé :
+fermer la page ferme la table. Deux limites en découlent — l'annuaire est un service gratuit, il peut
+être lent ou indisponible, et faute de serveur de relais deux réseaux très fermés peuvent ne jamais
+se joindre. Le jeu le dit alors au lieu d'attendre. Pour pointer son propre serveur de signalisation :
+
+```html
+<script>window.SLOT_RACER_RTC = { peer: { host: 'exemple.net', port: 443, path: '/', secure: true } };</script>
+```
+
+Le transport vient de *Botminton*, où la même surface sert aussi de secours à la capacité `room` de
+claude.ai.
+
 ## Physique
 
 La ligne est une **intention de trajectoire**, jamais une position imposée : le pilote automatique ne
@@ -301,7 +337,9 @@ sprites/env/               objets de décor découpés dans sprites/environnemen
 tools/sheet.py             fabrique une planche à partir d'un dossier de rendus
 tools/env.py               découpe une planche de décor en objets séparés
 js/car.js                  physique (corps libre, deux trains), pilote automatique, profil de vitesse, IA de freinage et de choix de ligne, collisions
-js/race.js                 grille, départ, tours, classement, résultats
+js/race.js                 grille, départ, tours, classement, résultats, instantanés pour le jeu en ligne
+js/room-rtc.js             le transport : un tableau de présences au-dessus de WebRTC
+js/net.js                  jeu en ligne : table, formats, boucle de l'hôte et des invités
 js/career.js               coupes, déblocages, sauvegarde
 js/store.js                IndexedDB (circuits et voitures perso)
 js/render.js               rendu canvas (image de fond ou herbe, route, lignes, voitures, HUD, curseur)
@@ -322,6 +360,8 @@ NODE_PATH=$(npm root -g) node tools/e2e-workshop.js <dossier>                   
 node tools/step.js <circuit> <catégorie> [marge] [-v]                             # suivi de ligne d'une voiture seule
 node tools/sweep.js '[{},{"yawK":4}]'                                             # balayage des réglages physiques
 node tools/jump.js <circuit> <catégorie> <marge>                                  # continuité du déplacement
+node tools/netsim.js <circuit> [secondes] [perte %] [format]                      # deux écrans en réseau, sans navigateur
+NODE_PATH=$(npm root -g) node tools/e2e-net.js <dossier> [format]                 # deux onglets, une table, une course
 NODE_PATH=$(npm root -g) node tools/arrow.js <circuit>                            # sens des flèches des panneaux
 python3 tools/sheet.py <dossier de rendus> <id du modèle> <longueur en m> [largeur]  # planche de rotations
 python3 tools/env.py <planche.png> sprites/env [--erode=6] [--shadow=r,g,b] …     # découpe une planche de décor
@@ -340,6 +380,13 @@ assombrisse l'herbe du jeu. Il vérifie en sortant qu'aucun objet gardé n'a per
 chemin : le découpage amincit les formes pour séparer deux objets dont les ombres se touchent, et
 tout ce qui est plus fin que l'amincissement disparaîtrait sans précaution. Voir
 `sprites/env/README.md` pour les réglages employés.
+
+`tools/netsim.js` et `tools/e2e-net.js` remplacent le transport WebRTC par une boucle locale —
+l'annuaire public n'est pas joignable depuis une machine de test, et ce n'est pas lui qu'il faut
+éprouver. Tout ce qui est au-dessus est le vrai code : le salon, la boucle de l'hôte, les
+instantanés, la course. Le premier mesure l'écart entre l'écran de l'hôte et celui de l'invité en
+faisant tomber une part des messages ; le second ouvre deux onglets qui se trouvent, se déclarent
+prêts et courent ensemble.
 
 `marge` multiplie la vitesse de passage en courbe visée : ≤ 1 la voiture reste sur sa ligne, 1,1–1,2 elle
 glisse visiblement, au-delà elle part.

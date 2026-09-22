@@ -20,6 +20,15 @@ const I18N = {
     on: 'Activé', off: 'Coupé', playerDefault: 'Vous', allUnlocked: 'Tout est débloqué. Bravo !', careerIntro: 'Tu pars dernier à chaque course. Remonte le peloton, marque des points, débloque des catégories plus rapides.',
     lapDone: (n, t) => `Tour ${n} : ${t}`, tipTitle: 'Comment jouer', yourResult: (p) => `Tu termines P${p}`,
     ttIntro: 'Seul en piste. Bats ton meilleur tour.', noCustomTracks: 'Aucun circuit perso. Crée-en un dans l’éditeur.', deleteTrack: 'Supprimer', confirmDelete: 'Supprimer définitivement ?',
+    multi: 'À plusieurs', multiIntro: 'Ouvre une table et donne son code à quatre lettres, ou saisis celui qu’on t’a donné. Tout passe directement d’un appareil à l’autre : rien n’est conservé, fermer la page ferme la table.',
+    createTable: 'Ouvrir une table', joinTable: 'Rejoindre', tableCode: 'Code de la table', yourTable: 'Ta table', waiting: 'En attente…',
+    mFormat: 'Format', mRace: 'Course', mDuel: 'Duel', mGhost: 'Contre-la-montre',
+    mRaceDesc: 'Tout le monde sur la grille, complétée par des IA, avec les contacts.',
+    mDuelDesc: 'Les humains et personne d’autre.', mGhostDesc: 'Même circuit, chacun son tour, les voitures se traversent.',
+    ready: 'Prêt', notReady: 'Pas prêt', host: 'hôte', you: 'toi', players: 'Pilotes',
+    startWhenReady: 'Tout le monde doit être prêt', leaveTable: 'Quitter la table', backToTable: 'Retour à la table',
+    netOff: 'Le multijoueur a besoin de WebRTC, que ce navigateur n’a pas.',
+    netLost: 'Liaison perdue avec l’hôte…', netWait: 'Connexion…',
     wsIntro: 'Ajoute tes propres voitures 2D : une image PNG vue de dessus (avant vers la droite), ou un dossier de sprites Ultimate Racing 2D 2 (car_base.png, car_color.png, car_1.png…). Le calque « color » prend la couleur de ta livrée.',
     wsName: 'Nom', wsCat: 'Catégorie', wsLength: 'Longueur (m)', wsWidth: 'Largeur (m)', wsSingle: 'Image PNG unique', wsFolder: 'Dossier UR2D 2 (plusieurs PNG)', wsAdd: 'Ajouter la voiture', wsList: 'Mes voitures', wsNone: 'Aucune voiture perso pour l’instant.', wsNeedBase: 'Il faut au moins une image (car_base.png ou une image seule).', wsAdded: 'Voiture ajoutée !',
     custom: 'perso', stats: 'Vitesse / Freins / Adhérence',
@@ -42,6 +51,15 @@ const I18N = {
     on: 'On', off: 'Off', playerDefault: 'You', allUnlocked: 'Everything unlocked. Well done!', careerIntro: 'You start every race from the back. Carve through the field, score points, unlock faster classes.',
     lapDone: (n, t) => `Lap ${n}: ${t}`, tipTitle: 'How to play', yourResult: (p) => `You finish P${p}`,
     ttIntro: 'Alone on track. Beat your best lap.', noCustomTracks: 'No custom track yet. Create one in the editor.', deleteTrack: 'Delete', confirmDelete: 'Delete permanently?',
+    multi: 'Together', multiIntro: 'Open a table and pass on its four-letter code, or type the one you were given. Everything goes straight from one device to the other: nothing is stored, closing the page closes the table.',
+    createTable: 'Open a table', joinTable: 'Join', tableCode: 'Table code', yourTable: 'Your table', waiting: 'Waiting…',
+    mFormat: 'Format', mRace: 'Race', mDuel: 'Duel', mGhost: 'Time trial',
+    mRaceDesc: 'Everyone on the grid, filled up with AI cars, contact on.',
+    mDuelDesc: 'The people and nobody else.', mGhostDesc: 'Same circuit, each on their own lap, cars pass through each other.',
+    ready: 'Ready', notReady: 'Not ready', host: 'host', you: 'you', players: 'Drivers',
+    startWhenReady: 'Everyone has to be ready', leaveTable: 'Leave the table', backToTable: 'Back to the table',
+    netOff: 'Playing together needs WebRTC, which this browser does not have.',
+    netLost: 'Lost the host…', netWait: 'Connecting…',
     wsIntro: 'Add your own 2D cars: a single top-down PNG (front to the right), or an Ultimate Racing 2D 2 sprite folder (car_base.png, car_color.png, car_1.png…). The "color" layer takes your livery colour.',
     wsName: 'Name', wsCat: 'Category', wsLength: 'Length (m)', wsWidth: 'Width (m)', wsSingle: 'Single PNG image', wsFolder: 'UR2D 2 folder (several PNGs)', wsAdd: 'Add car', wsList: 'My cars', wsNone: 'No custom car yet.', wsNeedBase: 'At least one image is required (car_base.png or a single image).', wsAdded: 'Car added!',
     custom: 'custom', stats: 'Speed / Brakes / Grip',
@@ -122,6 +140,7 @@ class UI {
       <div class="menu">
         <button class="big" data-action="setup" data-mode="race">${t('quickRace')}</button>
         <button class="big" data-action="setup" data-mode="timetrial">${t('timeTrial')}</button>
+        <button class="big" data-action="multi">${t('multi')}</button>
         <div class="row"><button data-action="editor">${t('editor')}</button><button data-action="workshop">${t('workshop')}</button><button data-action="settings">${t('settings')}</button></div>
       </div>
       <div class="howto"><b>${t('tipTitle')}</b> — ${t('howto')}</div>
@@ -188,6 +207,73 @@ class UI {
         ${mode === 'race' ? `<div><h3>${t('difficulty')}</h3><div class="seg">${['easy', 'medium', 'hard'].map(d => `<button class="${s.difficulty === d ? 'sel' : ''}" data-action="pickDiff" data-id="${d}">${t(d)}</button>`).join('')}</div></div>` : `<div><h3>${t('yourBest')}</h3><div class="bestlap">${best ? fmtTime(best) : '--:--.---'}</div></div>`}
       </div>
       <div class="row end"><span class="muted">${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ${escapeHtml(model.name)} · ${mode === 'race' ? `${laps} ${t('laps')}` : t('ttIntro')}</span><button class="big primary" data-action="startQuick">${t('start')}</button></div>
+    `, 'scroll');
+  }
+
+  // ---------- racing together ----------
+
+  /** The table: who is here, what we are racing, and the one button that drops the flag. */
+  lobbyScreen(msg) {
+    const t = (k) => this.t(k), app = this.app, net = app.net;
+    if (!net || !net.available()) { this.show(`<div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${t('multi')}</h2></div><p class="muted">${t('netOff')}</p>`, 'center'); return; }
+    const s = app.save, livery = LIVERIES[s.livery];
+    const cat = categoryById(this.setup.classId);
+    const model = app.playerModelFor(cat.id);
+
+    if (net.state === 'off') {
+      this.show(`
+        <div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${t('multi')}</h2></div>
+        <p class="muted">${t('multiIntro')}</p>
+        ${net.error ? `<p class="warn">${escapeHtml(net.error)}</p>` : ''}
+        ${msg ? `<p class="warn">${escapeHtml(msg)}</p>` : ''}
+        <div class="row wrap">
+          <button class="big primary" data-action="netCreate" ${net.busy ? 'disabled' : ''}>${t('createTable')}</button>
+          <label>${t('tableCode')}<input id="inp-code" maxlength="4" size="5" autocapitalize="characters" placeholder="ABCD"></label>
+          <button class="big" data-action="netJoin" ${net.busy ? 'disabled' : ''}>${t('joinTable')}</button>
+        </div>
+        ${net.busy ? `<p class="muted">${t('netWait')}</p>` : ''}
+      `, 'center');
+      return;
+    }
+
+    const cfg = net.settings();
+    const list = net.members();
+    const ut = unlockedTracks(s);
+    const tracks = app.allTracks().filter(tr => tr.custom || ut.has(tr.id));
+    const trackDef = app.trackDefById(cfg.trackId) || tracks[0];
+    const modeDesc = { race: 'mRaceDesc', duel: 'mDuelDesc', ghost: 'mGhostDesc' }[cfg.mode] || 'mRaceDesc';
+    this.show(`
+      <div class="topbar"><button data-action="netLeave">← ${t('leaveTable')}</button><h2>${t('yourTable')} <b class="code">${escapeHtml(net.code)}</b></h2></div>
+      ${net.error ? `<p class="warn">${escapeHtml(net.error)}</p>` : ''}
+      <h3>${t('players')} <span class="muted">${list.length}/${NET_SEATS}</span></h3>
+      <div class="grid players">
+        ${list.map((m, i) => `<div class="card ${m.isMe ? 'sel' : ''}">
+          <b>${escapeHtml(m.name)}</b>
+          <small>${i === 0 ? t('host') : ''}${i === 0 && m.isMe ? ' · ' : ''}${m.isMe ? t('you') : ''}</small>
+          <small class="${m.ready ? 'ok' : 'muted'}">${m.ready ? '✓ ' + t('ready') : t('waiting')}</small>
+        </div>`).join('')}
+      </div>
+      <h3>${t('mFormat')}</h3>
+      <div class="seg">${NET_MODES.map(m => `<button class="${cfg.mode === m ? 'sel' : ''}" data-action="netMode" data-id="${m}" ${net.creator ? '' : 'disabled'}>${t({ race: 'mRace', duel: 'mDuel', ghost: 'mGhost' }[m])}</button>`).join('')}</div>
+      <p class="muted">${t(modeDesc)}</p>
+      <h3>${t('track')}</h3>
+      <div class="grid tracks">
+        ${tracks.map(tr => `<button class="card ${tr.id === cfg.trackId ? 'sel' : ''}" data-action="netTrack" data-id="${tr.id}" ${net.creator ? '' : 'disabled'}>
+          <img alt="" src="${this.thumb(tr, 90)}"><b>${tr.flag || '🏁'} ${escapeHtml(tr.name)}</b><small>${lapsFor(tr, cat)} ${t('laps')}</small></button>`).join('')}
+      </div>
+      <h3>${t('model')}</h3>
+      <div class="grid models">
+        ${modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelNet" data-id="${m.id}">
+          <img alt="" src="${this.carIcon(m, livery)}"><b>${escapeHtml(m.name)}</b></button>`).join('')}
+      </div>
+      <div class="row wrap">
+        <div><h3>${t('livery')}</h3><div class="swatches">${LIVERIES.map((l, i) => `<button class="swatch ${i === s.livery ? 'sel' : ''}" data-action="pickLiveryNet" data-id="${i}" style="background:${l.body};border-color:${l.accent}" title="${l.name}"></button>`).join('')}</div></div>
+      </div>
+      <div class="row end">
+        <span class="muted">${trackDef ? `${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ` : ''}${escapeHtml(model.name)}</span>
+        <button class="${net.mine.ready ? '' : 'primary'}" data-action="netReady">${net.mine.ready ? t('notReady') : t('ready')}</button>
+        ${net.creator ? `<button class="big primary" data-action="netStart" ${net.canStart() ? '' : 'disabled'}>${t('start')}</button>` : `<span class="muted">${t('startWhenReady')}</span>`}
+      </div>
     `, 'scroll');
   }
 
@@ -267,7 +353,7 @@ class UI {
       <div class="cols"><div>${table}</div>${cupPart}</div>
       <div class="row end">
         <button data-action="menu">${t('menu')}</button>
-        ${ctx.cup ? (cupState(this.app.save, ctx.cup.id).done ? `<button class="big primary" data-action="cup" data-id="${ctx.cup.id}">${t('standings')}</button>` : `<button data-action="retryRace">${t('retry')}</button><button class="big primary" data-action="startCup" data-id="${ctx.cup.id}">${t('nextRace')}</button>`) : `<button data-action="setup" data-mode="${race.mode}">${t('back')}</button><button class="big primary" data-action="retryRace">${t('retry')}</button>`}
+        ${ctx.online ? `<button class="big primary" data-action="toLobby">${t('backToTable')}</button>` : ctx.cup ? (cupState(this.app.save, ctx.cup.id).done ? `<button class="big primary" data-action="cup" data-id="${ctx.cup.id}">${t('standings')}</button>` : `<button data-action="retryRace">${t('retry')}</button><button class="big primary" data-action="startCup" data-id="${ctx.cup.id}">${t('nextRace')}</button>`) : `<button data-action="setup" data-mode="${race.mode}">${t('back')}</button><button class="big primary" data-action="retryRace">${t('retry')}</button>`}
       </div>
     `, 'scroll');
   }
@@ -279,8 +365,8 @@ class UI {
       <div class="menu">
         <button class="big primary" data-action="resume">${t('resume')}</button>
         ${race.mode === 'timetrial' ? `<button class="big" data-action="endTT">${t('endSession')}</button>` : ''}
-        <button data-action="retryRace">${t('restart')}</button>
-        <button data-action="quitRace">${t('quit')}</button>
+        ${this.app.raceCtx && this.app.raceCtx.online ? '' : `<button data-action="retryRace">${t('restart')}</button>`}
+        <button data-action="${this.app.raceCtx && this.app.raceCtx.online ? 'toLobby' : 'quitRace'}">${this.app.raceCtx && this.app.raceCtx.online ? t('backToTable') : t('quit')}</button>
       </div>
       <p class="muted">${t('howto')}</p>
     `, 'center overlay');
@@ -366,6 +452,17 @@ class UI {
       case 'pickLivery': app.save.livery = +id; storeSave(app.save); this.icons.clear(); this.setupScreen(this.setup.mode); break;
       case 'pickDiff': app.save.difficulty = id; storeSave(app.save); this.setupScreen(this.setup.mode); break;
       case 'startQuick': app.startQuick(this.setup.mode, this.setup.classId, this.setup.trackId); break;
+      case 'multi': app.state = 'lobby'; this.lobbyScreen(); break;
+      case 'netCreate': this._netOpen(true); break;
+      case 'netJoin': this._netOpen(false); break;
+      case 'netLeave': app.toMenu(); break;
+      case 'netMode': app.net.setTable({ mode: id }); break;
+      case 'netTrack': app.net.setTable({ trackId: id, laps: lapsFor(app.trackDefById(id), categoryById(this.setup.classId)) }); break;
+      case 'netReady': this._netReady(!app.net.mine.ready); break;
+      case 'netStart': app.net.start(); break;
+      case 'pickModelNet': { const m = modelById(id); app.save.models[m.catId] = id; storeSave(app.save); this._netCar(); break; }
+      case 'pickLiveryNet': app.save.livery = +id; storeSave(app.save); this.icons.clear(); this._netCar(); break;
+      case 'toLobby': app.toLobby(); break;
       case 'startCup': app.startCupRace(id); break;
       case 'resetCup': delete app.save.cups[id]; storeSave(app.save); this.cupScreen(id); break;
       case 'resetAll': if (confirm(this.t('resetConfirm'))) { app.save = defaultSave(); storeSave(app.save); this.settings(); } break;
@@ -374,6 +471,25 @@ class UI {
       case 'quitRace': app.toMenu(); break;
       case 'endTT': app.endTimeTrial(); break;
     }
+  }
+
+  _netCar() {
+    const app = this.app, cat = categoryById(this.setup.classId);
+    app.net.setMine({ car: { modelId: app.playerModelFor(cat.id).id, livery: app.save.livery } });
+  }
+
+  _netReady(v) {
+    if (v) this._netCar();
+    this.app.net.setMine({ ready: !!v });
+  }
+
+  async _netOpen(asHost) {
+    const app = this.app;
+    const code = asHost ? null : (document.getElementById('inp-code') || {}).value;
+    this.lobbyScreen();                                  // redraw at once, to show it is working
+    const ok = await app.net.open(app.playerName(), asHost, code);
+    if (ok) { this._netCar(); this._netReady(false); }
+    this.lobbyScreen();
   }
 
   _onChange(e) {

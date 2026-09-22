@@ -121,3 +121,11 @@ h3 .link { margin-left: 8px; text-transform: none; letter-spacing: 0; font-size:
 .card .link { margin-top: 4px; }
 .menu .row { justify-content: center; flex-wrap: wrap; }
 .form input[type="file"] { min-width: 0; max-width: 220px; }
+
+/* ---------- racing together ---------- */
+.code { letter-spacing: .22em; font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; }
+.grid.players { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.grid.players .card { align-items: flex-start; gap: 2px; padding: 10px 12px; }
+.warn { color: #ffb4a2; }
+small.ok { color: #7fd48a; }
+#inp-code { text-transform: uppercase; letter-spacing: .2em; font-family: ui-monospace, Menlo, monospace; }

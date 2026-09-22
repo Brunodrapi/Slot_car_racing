@@ -16,6 +16,13 @@ class App {
     this.tracks = new Map();
     this.custom = { tracks: [], cars: [] };
     this.race = null;
+    // Racing together. The table stays open across races; the game only ever asks the net layer
+    // two things: who is on the grid, and what the others are doing.
+    this.net = typeof Net === 'undefined' ? null : new Net();
+    if (this.net) {
+      this.net.onPeers = () => { if (this.state === 'lobby') this.ui.lobbyScreen(); };
+      this.net.onStart = (cfg) => this.startOnline(cfg);
+    }
     this.raceCtx = null;
     this.state = 'menu';
     this.input = { throttle: false, sel: 0 };
@@ -124,6 +131,7 @@ class App {
 
   // ---------- flow ----------
   toMenu() {
+    if (this.net) this.net.leave();
     this.state = 'menu';
     this.race = null;
     this.raceCtx = null;
@@ -161,6 +169,28 @@ class App {
     }, { cup, raceIndex: idx });
   }
 
+  /** Called by the net layer when the host drops the flag, on every screen at once. */
+  startOnline(cfg) {
+    const trackDef = this.trackDefById(cfg.trackId), cat = categoryById(this.ui.setup.classId);
+    if (!trackDef) return;
+    const mine = cfg.humans.find(h => h.local) || {};
+    this._startRace({
+      // A shared time trial is a race with the contact turned off: everyone on the same lap
+      // counter, nobody able to knock anybody off.
+      mode: cfg.mode === 'ghost' ? 'race' : 'race',
+      noContact: cfg.mode === 'ghost',
+      aiFill: cfg.mode === 'race',
+      trackDef,
+      classId: cat.id,
+      modelId: mine.modelId || this.playerModelFor(cat.id).id,
+      laps: cfg.laps || lapsFor(trackDef, cat),
+      difficulty: cfg.difficulty || this.save.difficulty,
+      playerLivery: mine.livery || 0,
+      playerName: mine.name || this.playerName(),
+      humans: cfg.humans,
+    }, { cup: null, mode: 'race', classId: cat.id, trackId: cfg.trackId, online: cfg.mode });
+  }
+
   _startRace(opts, ctx) {
     this.raceOpts = opts;
     this.raceCtx = ctx;
@@ -178,6 +208,16 @@ class App {
   }
 
   retry() { if (this.raceOpts) this._startRace(this.raceOpts, this.raceCtx); }
+
+  /** Leaves the race but keeps the table open, so the same people can line up again. */
+  toLobby() {
+    if (this.net) this.net.backToLobby();
+    this.race = null;
+    this.raceCtx = null;
+    this.audio.idle();
+    this.state = 'lobby';
+    this.ui.lobbyScreen();
+  }
 
   togglePause() {
     if (this.state === 'race') {
@@ -236,7 +276,20 @@ class App {
     if (!this.race) return;
     const race = this.race;
     if (this.state === 'race') {
-      race.update(dt, this.input);
+      const net = this.net, online = net && net.state === 'playing';
+      if (!online || net.isHost()) {
+        race.update(dt, this.input);
+        if (online) net.hostTick(race);
+      } else {
+        // A guest runs no physics at all: it posts its two numbers, takes the host's picture of
+        // the race, and carries the cars forward between two of them so the screen does not stutter.
+        net.guestTick(race, this.input);
+        race.extrapolate(dt);
+        // Say so rather than pretending: after a couple of seconds with nothing from the host,
+        // what is on screen is no longer the race, it is the last picture of it carried forward.
+        const quiet = net.silence();
+        if (quiet > 2) this.ui.flash = { text: this.ui.t('netLost'), until: performance.now() + 600, color: '#ffb4a2' };
+      }
       this._handleEvents(race);
       this.renderer.updateCamera(race, dt);
       this.renderer.addEffects(race, dt);
