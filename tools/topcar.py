@@ -4,6 +4,8 @@
     python3 tools/topcar.py <image> <id du modele> [options]
 
       --tol=14      tolerance de blanc du fond
+      --peel=0      epaisseur, en pixels, du lisere clair a eplucher sur le pourtour
+      --fringe=26   sous cet ecart au blanc, un pixel du pourtour est du lisere
       --width=420   largeur de sortie, en pixels
       --nose=left   ou se trouve l avant sur l image d entree (left, right, up, down)
       --out=sprites/top
@@ -39,6 +41,28 @@ def background(img, tol):
         out = g
 
 
+def peel(a, depth, fringe):
+    """Epluche le lisere clair du pourtour, couche par couche.
+
+    Une photo pose une ombre douce sous la voiture : elle s enfonce dans le blanc et le
+    remplissage depuis le bord s arrete la ou elle devient trop grise, laissant un halo. On retire
+    donc les pixels du pourtour qui sont encore presque blancs — mais sur une epaisseur bornee, pour
+    qu un reflet clair de la carrosserie ne serve jamais de porte d entree vers l interieur.
+    """
+    alpha = a[:, :, 3]
+    lum = 255 - a[:, :, :3].astype(np.int16).min(axis=2)
+    for _ in range(depth):
+        op = alpha > 8
+        inner = op.copy()
+        inner[1:] &= op[:-1]; inner[:-1] &= op[1:]
+        inner[:, 1:] &= op[:, :-1]; inner[:, :-1] &= op[:, 1:]
+        rim = op & ~inner & (lum <= fringe)
+        if not rim.any():
+            break
+        alpha[rim] = 0
+    return a
+
+
 def long_axis(mask):
     """Angle de l axe long de la forme, en degres, par analyse en composantes principales."""
     ys, xs = np.nonzero(mask)
@@ -64,6 +88,7 @@ def main():
         return 1
     src, mid = args[0], args[1]
     tol = int(opts.get('tol', 14))
+    peel_depth, fringe = int(opts.get('peel', 0)), int(opts.get('fringe', 26))
     width = int(opts.get('width', 420))
     nose = opts.get('nose', 'left')
     out_dir = opts.get('out', os.path.join('sprites', 'top'))
@@ -72,6 +97,10 @@ def main():
     a = np.asarray(img).copy()
     bg = background(img, tol)
     a[bg] = 0
+    if peel_depth:
+        before = int((a[:, :, 3] > 8).sum())
+        a = peel(a, peel_depth, fringe)
+        print(f'  lisere epluche : {before - int((a[:, :, 3] > 8).sum())} pixels')
     img = Image.fromarray(a, 'RGBA')
     print(f'{src} : {img.width}x{img.height}, fond {bg.mean():.0%}')
 

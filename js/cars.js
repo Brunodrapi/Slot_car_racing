@@ -47,7 +47,7 @@ const CATEGORIES = [
       { id: 'm1procar', name: 'M1 Procar', shape: 'gtBoxy', mul: { vmax: 0.98, grip: 1.04, brake: 1.03 }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/m1procar.png', sheet: 'sprites/m1procar', sheetN: 16, sheetRear: 0, sheetW: 5.122, sheetAnchor: [0.494, 0.821] },
       { id: 'f40', name: 'F40', shape: 'f40', mul: { vmax: 1.05, accel: 1.06, grip: 0.98, df: 1.5 }, colors: ['#e0262c', '#22242b'], top: 'sprites/top/f40.png', sheet: 'sprites/f40lm', sheetN: 8, sheetRear: 3 },
       { id: 'countach', name: 'Countach LP500', shape: 'wedgeGT', mul: { vmax: 1.03, accel: 1.02, grip: 0.95, brake: 0.95 }, colors: ['#ffd400', '#22242b'] },
-      { id: '930', name: '911 Turbo', shape: 'roundGT', mul: { vmax: 0.99, accel: 1.04, grip: 0.97, slide: 1.2 }, colors: ['#c9ced6', '#e0262c'], sheet: 'sprites/930', sheetN: 16, sheetRear: 0, sheetW: 4.803, sheetAnchor: [0.499, 0.841] },
+      { id: '930', name: '911 Turbo', shape: 'roundGT', mul: { vmax: 0.99, accel: 1.04, grip: 0.97, slide: 1.2 }, colors: ['#c9ced6', '#e0262c'], top: 'sprites/top/930.png', sheet: 'sprites/930', sheetN: 16, sheetRear: 0, sheetW: 4.803, sheetAnchor: [0.499, 0.841] },
       { id: 'testarossa', name: 'Testarossa', shape: 'wideGT', mul: { vmax: 1.0, grip: 1.0, brake: 0.98 }, colors: ['#e0262c', '#f4f4f4'], sheet: 'sprites/testarossa', sheetN: 16, sheetRear: 12, sheetW: 5.125, sheetAnchor: [0.512, 0.862] },
       { id: 'xj220', name: 'XJ220', shape: 'wideGT', mul: { vmax: 1.07, accel: 0.98, grip: 1.0, df: 1.3 }, colors: ['#12b5a8', '#f4f4f4'] },
     ],

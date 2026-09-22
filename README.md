@@ -117,6 +117,14 @@ carrosserie arrête le remplissage, le blanc intérieur est conservé. L'image e
 (l'axe long de la voiture est mesuré et ramené à l'horizontale, ce qui a valu un tiers de degré à la
 F40) puis tournée pour que l'avant pointe vers la droite, ce que le jeu attend.
 
+Une **photographie** demande un réglage de plus. Une illustration à plat s'arrête sur un trait net,
+mais une photo pose une ombre douce sous la voiture : elle s'enfonce dans le blanc, le remplissage
+s'arrête là où elle devient trop grise, et il reste un liséré. `--peel=6` l'épluche, couche par
+couche, en ne retirant que les pixels du pourtour encore presque blancs — sur une épaisseur bornée,
+pour qu'un reflet clair de la carrosserie ne serve jamais de porte d'entrée vers l'intérieur. Le
+liséré ne fait que trois millièmes de la surface, mais c'est lui qu'on voit : en réduisant l'image
+à quatre cents pixels, il se fond en un halo gris tout autour de la voiture.
+
 Le dessin est mis à l'échelle sur la **longueur** de la voiture, en gardant ses proportions : une
 illustration inclut les rétroviseurs et l'aileron, elle sort donc un peu plus large que la boîte de
 collision.
@@ -367,9 +375,10 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
 - **6 voitures GT** : *M1 Procar*, *F40*, *Countach LP500*, *911 Turbo*, *Testarossa*, *XJ220*.
   On choisit sa voiture, et rien d'autre : plus de livrée à régler. En ligne, la place à la table
   donne la couleur, si bien que deux pilotes ne se ressemblent jamais sans avoir eu à en discuter.
-  La M1 Procar et la F40 LM sont dessinées d'après la vraie voiture vue du dessus (plus la 787B,
-  rangée dans les prototypes classiques) ; les autres gardent leur silhouette vectorielle. Quatre
-  ont en plus une planche de rotations, qui ne sert qu'à la vue isométrique.
+  La M1 Procar, la F40 LM et la 911 Martini sont représentées d'après la vraie voiture vue du dessus
+  (plus la 787B, rangée dans les prototypes classiques) ; la Countach, la Testarossa et la XJ220
+  gardent leur silhouette vectorielle. Quatre ont en plus une planche de rotations, qui ne sert
+  qu'à la vue isométrique.
 - **12 circuits** inspirés de vrais tracés : Monza, Spa-Francorchamps, Monaco, Silverstone, Suzuka
   (avec son pont), Interlagos, Laguna Seca, Nürburgring GP, Le Mans, Mount Panorama, Red Bull Ring, Zandvoort.
 - Dans le code, toujours **4 catégories de 6 modèles**, avec leurs stats et leur dessin vectoriel,
