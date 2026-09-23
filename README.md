@@ -635,6 +635,28 @@ Un lien qui nomme un circuit (`?track=…`) est quelqu'un qui sait déjà où il
 s'efface pour lui. Les scripts de test passent l'écran comme un joueur, par une touche, et
 `tools/e2e-splash.js` le vérifie sur les deux formats.
 
+## Le menu-affiche
+
+Le menu est une affiche, `art/menu-bg.webp`, et les cinq bandeaux posés dessus sont les boutons.
+Chacun y est **imprimé replié** — l'icône et une amorce à damier, sans mot. Le dessin déplié, celui
+qui porte le texte, est posé par-dessus et se découvre de la gauche vers la droite.
+
+Le pli n'est donc pas un tour joué à une seule image : le bandeau fermé est vraiment dessous, le
+bandeau ouvert le recouvre vraiment, et c'est pour cela qu'il n'y a rien eu à effacer de
+l'affiche. Le dépliage se fait au `clip-path`, décalé de 85 ms d'un bandeau au suivant, et sous
+`prefers-reduced-motion` tout est ouvert d'emblée.
+
+Les bandeaux sont posés par **un seul bord gauche et une seule largeur** (1 % et 88 % de
+l'affiche), la hauteur de chacun suivant son propre dessin. Caler plutôt chaque déplié sur la
+hauteur mesurée de son replié paraissait plus rigoureux et rendait moins bien : les icônes
+débordent de leur barre de façons différentes, ces hauteurs se contredisent de dix pour cent d'un
+bandeau à l'autre, et la pile sortait de travers — une des versions dépassait même la largeur de
+l'affiche.
+
+Le hamburger est dessiné dans l'affiche ; il ne reste qu'à poser la cible au-dessus, un peu plus
+large que lui pour qu'un pouce la trouve. `tools/e2e-menu.js` vérifie les cinq bandeaux, le
+chargement réel de chaque image, le dépliage, et l'endroit où mène chaque bouton.
+
 ## Nombre de tours
 
 En course rapide, la longueur se choisit : **Auto / 1 / 2 / 3 / 5 / 10** tours, à côté de la
@@ -723,6 +745,7 @@ node tools/line.js [circuit|all] [catégorie] [-v]                              
 node tools/corner.js [circuit|all] [catégorie] [marge] [-v]                      # vitesse réelle contre vitesse théorique, virage par virage
 node tools/diff.js [circuit|all] [catégorie] [-sans-elastique] [-table=…]         # ce que valent vraiment les trois difficultés
 NODE_PATH=$(npm root -g) node tools/e2e-splash.js [dossier]                       # l'écran-titre, sur téléphone et sur bureau
+NODE_PATH=$(npm root -g) node tools/e2e-menu.js [dossier]                         # le menu-affiche : bandeaux, dépliage, destinations
 node tools/bump.js [patch|minor|major]                                            # numéro de version + cassage du cache
 node tools/netsim.js <circuit> [secondes] [perte %] [format]                      # deux écrans en réseau, sans navigateur
 NODE_PATH=$(npm root -g) node tools/e2e-net.js <dossier> [format]                 # deux onglets, une table, une course
