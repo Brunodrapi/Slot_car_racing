@@ -24,7 +24,7 @@ Fonctionne sur ordinateur (clavier / souris) et sur mobile (tactile, à ajouter 
 | Trajectoire | flèches (haut/bas ou gauche/droite), molette | pouce gauche sur le curseur vertical |
 | Pause | `Échap` ou `P` | — |
 | Télémétrie | `G` | réglages |
-| Zoom | `+` / `−` | réglages |
+| Zoom | `+` / `−` | boutons `+` / `−` à droite de l'écran |
 
 L'accélérateur reprend le contrôle de *SpotRacers*, en trois morceaux :
 
@@ -215,9 +215,16 @@ mètres en travers du petit côté de l'écran, divisée par le facteur de la ca
 `js/cars.js` : 1,15 en GT, 1 en F1 modernes) et élargie d'un tiers à pleine vitesse. En GT, cela
 fait **43 m à l'arrêt et 59 m à fond**.
 
-Le réglage `zoom` multiplie ce cadrage, et les touches `+` / `−` le changent **pendant la course**,
-par pas de 12 %, avec un bandeau qui annonce le facteur et la largeur réelle en mètres — la seule
-façon honnête de choisir un cadrage est d'en conduire deux l'un après l'autre.
+Le réglage `zoom` multiplie ce cadrage, et il se change **pendant la course**, par pas de 12 % :
+deux boutons `+` / `−` sur le bord droit de l'écran, avec la largeur en mètres entre les deux, et
+les touches `+` / `−` au clavier. La seule façon honnête de choisir un cadrage est d'en conduire
+deux l'un après l'autre — et un téléphone n'a pas de clavier, donc le contrôle doit être sous le
+pouce, pas trois écrans plus loin dans les réglages.
+
+Ces deux boutons sont testés à l'appui : un doigt posé dessus change le cadrage **sans** mettre les
+gaz, et un doigt posé ailleurs accélère toujours (`tools/` — voir la note sur l'accélérateur
+« n'importe où »). C'est la seule partie du HUD, avec le curseur de trajectoire, qui vole une zone
+à l'accélérateur.
 
 | Réglage | Largeur visible, en GT à ~120 km/h |
 | --- | --- |

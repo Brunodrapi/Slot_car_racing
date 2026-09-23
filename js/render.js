@@ -1285,19 +1285,6 @@ class Renderer {
     g.textBaseline = 'top';
     const panel = (x, y, w, h) => { g.fillStyle = 'rgba(10,12,20,0.55)'; this._roundRect(g, x, y, w, h, 10); g.fill(); };
 
-    // A readout after a zoom change, so the framing being judged has a number on it.
-    if (this.zoomNote > 0) {
-      const a = Math.min(1, this.zoomNote / 0.45);
-      const txt = `Zoom ×${this.zoomMul.toFixed(2)} · ${Math.round(this.framing || 0)} m`;
-      g.font = `bold ${mobile ? 15 : 18}px system-ui, sans-serif`;
-      const w = g.measureText(txt).width + 28;
-      g.globalAlpha = a;
-      g.fillStyle = 'rgba(10,12,20,0.62)'; this._roundRect(g, (W - w) / 2, H * 0.16, w, mobile ? 30 : 36, 10); g.fill();
-      g.fillStyle = '#fff'; g.textAlign = 'center';
-      g.fillText(txt, W / 2, H * 0.16 + (mobile ? 7 : 9));
-      g.globalAlpha = 1;
-    }
-
     // top-left: position & lap
     const pos = race.positionOf(p), n = race.cars.length;
     const boxW = mobile ? 150 : 190, boxH = mobile ? 64 : 78;
@@ -1339,6 +1326,52 @@ class Renderer {
         g.fillStyle = car.isPlayer ? '#ffd400' : car.livery.body;
         g.beginPath(); g.arc(mx + q.x, my + q.y, car.isPlayer ? 4.5 : 3, 0, Math.PI * 2); g.fill();
         if (car.isPlayer) { g.strokeStyle = '#000'; g.lineWidth = 1; g.stroke(); }
+      }
+    }
+
+    // Zoom, on screen. The + / - keys are a desktop answer to a question a phone asks just as
+    // much, and the framing is the sort of thing you judge by changing it while driving — so the
+    // control has to be under the thumb, not three screens away in the settings. The width in
+    // metres sits between the two buttons, because "closer" means nothing without a number.
+    {
+      const r = mobile ? 25 : 19;
+      const top = this.mm && mobile ? pad + boxH + 10 + this.mm.size + 16 : pad + boxH + 16;
+      const bx = W - pad - r;
+      const up = top + r, down = up + r * 2 + (mobile ? 32 : 26);
+      this.zoomBtn = { x: bx, yUp: up, yDown: down, r };
+      const round = (cy, glyph) => {
+        g.fillStyle = 'rgba(10,12,20,0.55)';
+        g.beginPath(); g.arc(bx, cy, r, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = 'rgba(255,255,255,0.18)'; g.lineWidth = 1; g.stroke();
+        g.fillStyle = '#fff'; g.font = `bold ${mobile ? 26 : 21}px system-ui, sans-serif`;
+        g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText(glyph, bx, cy + 1);
+      };
+      round(up, '+');
+      round(down, '−');
+      // The width, between the two buttons. On its own pill: it lands on whatever the track shows
+      // under it, and pale grey on pale grass is not a readout.
+      g.font = `bold ${mobile ? 12 : 11}px system-ui, sans-serif`;
+      const mTxt = `${Math.round(this.framing || 0)} m`;
+      const mw = g.measureText(mTxt).width + 14, mh = mobile ? 20 : 17, my2 = (up + down) / 2;
+      g.fillStyle = 'rgba(10,12,20,0.55)';
+      this._roundRect(g, bx - mw / 2, my2 - mh / 2, mw, mh, mh / 2); g.fill();
+      g.fillStyle = '#e6e9ef'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(mTxt, bx, my2 + 0.5);
+      g.textBaseline = 'top';
+
+      // A banner on change, level with the buttons so it clears the minimap above them, and
+      // narrow enough to stop short of the buttons themselves.
+      if (this.zoomNote > 0) {
+        const txt = `Zoom ×${this.zoomMul.toFixed(2)} · ${Math.round(this.framing || 0)} m`;
+        g.font = `bold ${mobile ? 15 : 18}px system-ui, sans-serif`;
+        const bw = g.measureText(txt).width + 28, bh = mobile ? 30 : 36;
+        const cx = Math.min(W / 2, bx - r - 12 - bw / 2);
+        g.globalAlpha = Math.min(1, this.zoomNote / 0.45);
+        g.fillStyle = 'rgba(10,12,20,0.7)'; this._roundRect(g, cx - bw / 2, top, bw, bh, 10); g.fill();
+        g.fillStyle = '#fff'; g.textAlign = 'center';
+        g.fillText(txt, cx, top + (mobile ? 7 : 9));
+        g.globalAlpha = 1;
       }
     }
 
@@ -1405,6 +1438,17 @@ class Renderer {
   }
 
   // maps a screen point in the slider zone to a selection value; null if outside the zone
+  // Which zoom button a press landed on: +1 closer, -1 wider, 0 neither. Generous on the radius,
+  // because these are small circles and a thumb is not.
+  zoomHitAt(x, y) {
+    const b = this.zoomBtn;
+    if (!b) return 0;
+    const reach = b.r + 10;
+    if (Math.hypot(x - b.x, y - b.yUp) <= reach) return 1;
+    if (Math.hypot(x - b.x, y - b.yDown) <= reach) return -1;
+    return 0;
+  }
+
   sliderValueAt(x, y, touchZone) {
     const s = this.slider, d = this.dial;
     // The visible dome always wins: a thumb landing on it accelerates, wherever it has moved to.

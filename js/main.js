@@ -90,9 +90,7 @@ class App {
       // + / - reframe the camera on the spot: the only honest way to choose a zoom is to drive
       // two of them one after the other.
       if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
-        const up = e.key === '+' || e.key === '=';
-        this.save.zoom = this.renderer.setZoom(this.renderer.zoomMul * (up ? 1.12 : 1 / 1.12));
-        storeSave(this.save);
+        this.stepZoom(e.key === '+' || e.key === '=' ? 1 : -1);
         return;
       }
       if (LINE_DOWN.includes(e.key)) { stepSel(-1); return; }
@@ -109,6 +107,9 @@ class App {
       e.preventDefault();
       const touch = e.pointerType === 'touch';
       if (touch) this.renderer.touch = true;
+      // the zoom buttons come first: they sit where a thumb would otherwise mean "accelerate"
+      const z = this.renderer.zoomHitAt(e.clientX, e.clientY);
+      if (z) { this.stepZoom(z); return; }
       const v = this.renderer.sliderValueAt(e.clientX, e.clientY, touch);
       if (v != null && this.pointers.slider == null) { this.pointers.slider = e.pointerId; this.input.sel = v; return; }
       if (this.pointers.throttle == null) {
@@ -227,6 +228,13 @@ class App {
     this.audio.idle();
     this.state = 'lobby';
     this.ui.lobbyScreen();
+  }
+
+  // One step of zoom, from a key or from the on-screen buttons. Kept in one place so the two
+  // never drift apart, and remembered, because a framing is a preference and not a mood.
+  stepZoom(dir) {
+    this.save.zoom = this.renderer.setZoom(this.renderer.zoomMul * (dir > 0 ? 1.12 : 1 / 1.12));
+    storeSave(this.save);
   }
 
   togglePause() {
