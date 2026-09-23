@@ -39,13 +39,16 @@ canvas#game { position: fixed; inset: 0; display: block; touch-action: none; use
 /* Les cinq bandeaux. Un seul bord gauche, une seule largeur ; la hauteur de chacun suit son propre
    dessin. Le bouton n'a ni fond ni bordure : ce qu'on voit est l'affiche dessous et le bandeau
    déplié dessus. */
-.screen.poster .mi { position: absolute; left: 1%; width: 88%; padding: 0; border: 0; background: none;
-  border-radius: 0; cursor: pointer; line-height: 0; }
-.screen.poster .mi img { width: 100%; display: block; clip-path: inset(0 100% 0 0);
-  animation: unfold 0.55s cubic-bezier(0.2, 0.75, 0.25, 1) forwards;
-  animation-delay: calc(var(--i) * 85ms + 200ms); }
-/* Le dépliage : le bandeau se découvre de la gauche vers la droite, et tant qu'il n'est pas passé,
-   c'est le bandeau replié imprimé dans l'affiche qu'on voit dessous. */
+/* Le bouton a la taille du bandeau REPLIÉ, celui qui est imprimé dans l'affiche : c'est lui qu'on
+   voit au repos, et une cible de 88 % de large reviendrait à cliquer dans le vide à sa droite.
+   Le dessin déplié, lui, est posé par-dessus et déborde vers la droite quand il s'ouvre. */
+.screen.poster .mi { position: absolute; left: 1%; width: 61%; height: 9.6%; padding: 0; border: 0;
+  background: none; border-radius: 0; cursor: pointer; line-height: 0; }
+.screen.poster .mi img { position: absolute; left: 0; top: 0; width: 144.26%; display: block;
+  clip-path: inset(0 100% 0 0); }
+/* Le dépliage se déclenche à l'appui, pas au chargement : il se découvre de la gauche vers la
+   droite, et tant qu'il n'est pas passé c'est le bandeau replié de l'affiche qu'on voit dessous. */
+.screen.poster .mi.open img { animation: unfold 0.42s cubic-bezier(0.2, 0.75, 0.25, 1) forwards; }
 @keyframes unfold { to { clip-path: inset(0 0 0 0); } }
 .screen.poster .mi:hover img, .screen.poster .mi:focus-visible img { filter: brightness(1.08); }
 .screen.poster .mi:active { transform: translateX(0.6%); }
@@ -58,31 +61,35 @@ canvas#game { position: fixed; inset: 0; display: block; touch-action: none; use
 .screen.poster .burger:focus-visible { outline: 3px solid #ffd400; outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .screen.poster .mi img { animation: none; clip-path: inset(0 0 0 0); }
+  .screen.poster .mi.open img { animation: none; clip-path: inset(0 0 0 0); }
 }
 
 /* L'invitation, reposée par-dessus à l'emplacement exact de celle qui était imprimée dans
    l'affiche — en pourcentages de la scène, donc juste à toutes les tailles. */
 .screen.splash .press {
   position: absolute; left: 9.352%; top: 91.388%; width: 81.615%;
-  animation: press-glow 1.9s ease-in-out infinite;
-  will-change: filter, opacity;
+  animation: press-blink 1.15s step-end infinite;
+  will-change: filter;
 }
 
-/* Une enseigne qui respire : la lueur monte et redescend, l'encre reste au même endroit. Le halo
-   est un drop-shadow et non une ombre de boîte, donc il épouse les lettres découpées au lieu
-   d'éclairer un rectangle autour d'elles. */
-@keyframes press-glow {
-  0%, 100% { opacity: 0.8;
-    filter: brightness(0.92) drop-shadow(0 0 2px rgba(255, 186, 74, 0.3)) drop-shadow(0 0 8px rgba(255, 138, 30, 0.16)); }
-  50%      { opacity: 1;
-    filter: brightness(1.22) saturate(1.1) drop-shadow(0 0 8px rgba(255, 219, 138, 0.95)) drop-shadow(0 0 22px rgba(255, 160, 50, 0.7)) drop-shadow(0 0 46px rgba(255, 120, 20, 0.4)); }
+/* Une enseigne d'arcade : allumée, éteinte, franchement, sans fondu — d'où le `step-end`.
+
+   Éteindre ne peut pas vouloir dire disparaître : le texte imprimé de l'affiche est toujours là,
+   sous le calque, et le faire passer à l'invisible ne ferait que rendre la main aux lettres crème
+   d'origine — un changement de couleur, pas un clignotement. Le temps éteint les peint donc dans
+   le brun sombre du fond, qu'elles recouvrent toujours et où elles se fondent.
+
+   Le halo est un drop-shadow et non une ombre de boîte, donc il épouse les lettres découpées au
+   lieu d'éclairer un rectangle autour d'elles. */
+@keyframes press-blink {
+  0%, 59%   { filter: brightness(1.2) saturate(1.1) drop-shadow(0 0 8px rgba(255, 219, 138, 0.95)) drop-shadow(0 0 22px rgba(255, 160, 50, 0.7)) drop-shadow(0 0 46px rgba(255, 120, 20, 0.4)); }
+  60%, 100% { filter: brightness(0.26) saturate(0.45); }
 }
 
 /* Quelqu'un qui a demandé moins d'animations n'a pas demandé moins de lisibilité : la lueur se
    fige sur son point haut au lieu de disparaître. */
 @media (prefers-reduced-motion: reduce) {
-  .screen.splash .press { animation: none; opacity: 1;
+  .screen.splash .press { animation: none;
     filter: brightness(1.12) drop-shadow(0 0 8px rgba(255, 219, 138, 0.8)) drop-shadow(0 0 22px rgba(255, 150, 40, 0.5)); }
 }
 /* On a phone the poster reaches the edges, so the build number lands on the artwork rather than

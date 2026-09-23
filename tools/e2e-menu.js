@@ -2,9 +2,9 @@
 //
 //   NODE_PATH=$(npm root -g) node tools/e2e-menu.js [dossier]
 //
-// Vérifie que les cinq bandeaux sont là et cliquables, que les quatre qui portent un texte ont
-// bien chargé leur image (et non un cadre vide), que le dépliage part fermé et finit ouvert, et
-// que chacun mène où il doit. Capture le menu fermé et ouvert, pour comparer à la maquette.
+// Vérifie que les cinq bandeaux sont là et cliquables, que chacun a bien chargé son dessin déplié
+// (et non un cadre vide), qu'ils restent REPLIÉS tant qu'on n'y touche pas, qu'un appui en ouvre
+// un seul, et que chacun mène où il doit.
 const { chromium, devices } = require('playwright');
 const out = process.argv[2] || '/tmp';
 (async () => {
@@ -18,12 +18,23 @@ const out = process.argv[2] || '/tmp';
   await page.waitForTimeout(400);
   await page.keyboard.press('Enter');          // l'écran-titre
 
-  // fermé : l'animation n'a pas encore commencé
-  await page.waitForTimeout(60);
+  // au repos : rien ne doit s'être ouvert tout seul
+  await page.waitForTimeout(1600);
   await page.screenshot({ path: `${out}/menu-ferme.png` });
+  const auRepos = await page.evaluate(() => [...document.querySelectorAll('.screen.poster .mi')]
+    .map((b) => b.classList.contains('open')));
+  console.log('ouverts au repos (doivent être tous faux) :', JSON.stringify(auRepos));
 
-  await page.waitForTimeout(1400);             // le temps que les cinq se déplient
+  // un appui : celui-là s'ouvre, les autres non
+  await page.click('.screen.poster .mi:nth-of-type(3)');
+  await page.waitForTimeout(200);
+  console.log('après appui sur le 3e :', JSON.stringify(await page.evaluate(() =>
+    [...document.querySelectorAll('.screen.poster .mi')].map((b) => b.classList.contains('open')))));
   await page.screenshot({ path: `${out}/menu-ouvert.png` });
+  await page.waitForTimeout(700);
+  console.log('il mène à :', await page.evaluate(() => app.state + '/' + (app.net ? app.net.state : '-')));
+  await page.evaluate(() => app.toMenu());
+  await page.waitForTimeout(400);
 
   const etat = await page.evaluate(() => {
     const mis = [...document.querySelectorAll('.screen.poster .mi')];
@@ -34,10 +45,7 @@ const out = process.argv[2] || '/tmp';
         if (!i) return 'aucune';
         return i.naturalWidth ? `${i.naturalWidth}x${i.naturalHeight}` : 'NON CHARGÉE';
       }),
-      deplies: mis.map((b) => {
-        const i = b.querySelector('img');
-        return i ? getComputedStyle(i).clipPath : '-';
-      }),
+      replies: mis.map((b) => getComputedStyle(b.querySelector('img')).clipPath),
       fond: (() => { const i = document.querySelector('.stage .bg'); return i && i.naturalWidth ? `${i.naturalWidth}x${i.naturalHeight}` : 'NON CHARGÉ'; })(),
       burger: !!document.querySelector('.burger'),
     };
@@ -51,13 +59,13 @@ const out = process.argv[2] || '/tmp';
   ];
   for (const [nom, sel, f] of routes) {
     await page.click(`.screen.poster ${sel}`);
-    await page.waitForTimeout(250);
+    await page.waitForTimeout(800);            // le dépliage, puis l'action
     console.log(nom, '->', await page.evaluate(f));
     await page.click('[data-action="menu"]').catch(() => {});
     await page.waitForTimeout(500);
   }
   await page.click('.screen.poster .burger');
-  await page.waitForTimeout(250);
+  await page.waitForTimeout(300);
   console.log('hamburger -> réglages :', await page.locator('#sel-pull').count() > 0);
   console.log('erreurs', errs);
   await browser.close();

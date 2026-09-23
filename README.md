@@ -622,11 +622,16 @@ pourcentages et reste juste à toutes les tailles. Une image en `contain` toute 
 marges dont la taille n'est écrite nulle part, et ce qu'on pose dessus dérive dès qu'on change de
 format.
 
+Elle **clignote** comme une enseigne d'arcade : allumée, éteinte, franchement, sans fondu — d'où
+le `step-end`. Éteindre ne peut pas vouloir dire disparaître : le texte imprimé de l'affiche est
+toujours là, sous le calque, et passer celui-ci à l'invisible ne ferait que rendre la main aux
+lettres crème d'origine — un changement de couleur, pas un clignotement. Le temps éteint les
+peint donc dans le brun sombre du fond, qu'elles recouvrent toujours et où elles se fondent,
+comme les ampoules mortes d'une enseigne.
+
 La lueur est un `drop-shadow` et non une ombre de boîte, donc elle épouse les lettres au lieu
-d'éclairer un rectangle autour d'elles ; elle s'accompagne d'un `brightness` sur les lettres
-mêmes, sans quoi la pulsation se perd sur le fond clair de la mentonnière. Sous
-`prefers-reduced-motion`, elle se fige sur son point haut : qui a demandé moins d'animation n'a
-pas demandé moins de lisibilité.
+d'éclairer un rectangle autour d'elles. Sous `prefers-reduced-motion`, elle se fige sur son temps
+allumé : qui a demandé moins d'animation n'a pas demandé moins de lisibilité.
 
 C'est aussi le geste qui autorise le son : un navigateur ne joue rien tant que personne n'a touché
 la page.
@@ -643,8 +648,17 @@ qui porte le texte, est posé par-dessus et se découvre de la gauche vers la dr
 
 Le pli n'est donc pas un tour joué à une seule image : le bandeau fermé est vraiment dessous, le
 bandeau ouvert le recouvre vraiment, et c'est pour cela qu'il n'y a rien eu à effacer de
-l'affiche. Le dépliage se fait au `clip-path`, décalé de 85 ms d'un bandeau au suivant, et sous
-`prefers-reduced-motion` tout est ouvert d'emblée.
+l'affiche.
+
+**Un bandeau ne s'ouvre qu'à l'appui.** Au repos, le menu est exactement la maquette : cinq
+bandeaux repliés, une icône chacun, pas un mot. Le dépliage est la réponse à l'appui, et le mot
+qu'il découvre dit sur lequel on a appuyé ; l'écran ne change qu'ensuite, 430 ms plus tard. Sous
+`prefers-reduced-motion` le bandeau s'ouvre sans transition et l'action part aussitôt — attendre
+une animation qu'on a désactivée n'aurait aucun sens.
+
+La cible du clic a la taille du bandeau **replié**, pas du déplié : c'est ce qu'on voit au repos,
+et une cible de 88 % de large reviendrait à réagir à un appui dans le ciel de l'affiche. Le dessin
+déplié, lui, est posé par-dessus et déborde vers la droite en s'ouvrant.
 
 Les bandeaux sont posés par **un seul bord gauche et une seule largeur** (1 % et 88 % de
 l'affiche), la hauteur de chacun suivant son propre dessin. Caler plutôt chaque déplié sur la

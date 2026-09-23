@@ -492,6 +492,18 @@ class UI {
     const btn = e.target.closest('[data-action]');
     if (!btn || btn.disabled) return;
     e.stopPropagation();
+    // Un bandeau du menu s'ouvre avant d'agir : le dépliage est la réponse à l'appui, et le mot
+    // qu'il découvre dit sur lequel on a appuyé. Au repos il n'y a que le petit bandeau replié.
+    if (btn.classList.contains('mi') && !btn.classList.contains('open')) {
+      btn.classList.add('open');
+      const doux = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      setTimeout(() => this._act(btn), doux ? 0 : 430);
+      return;
+    }
+    this._act(btn);
+  }
+
+  _act(btn) {
     const a = btn.dataset.action, id = btn.dataset.id, app = this.app;
     app.audio.start(); app.audio.resume();
     switch (a) {
