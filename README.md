@@ -24,6 +24,7 @@ Fonctionne sur ordinateur (clavier / souris) et sur mobile (tactile, à ajouter 
 | Trajectoire | flèches (haut/bas ou gauche/droite), molette | pouce gauche sur le curseur vertical |
 | Pause | `Échap` ou `P` | — |
 | Télémétrie | `G` | réglages |
+| Zoom | `+` / `−` | réglages |
 
 L'accélérateur reprend le contrôle de *SpotRacers*, en trois morceaux :
 
@@ -206,6 +207,25 @@ ligne visée → braquage désiré → forces des deux trains → rotation (lace
 Les changements de trajectoire sont eux aussi progressifs : déplacer le curseur déplace l'intention, pas
 la voiture.
 
+### Zoom (touches `+` / `−`, ou réglages)
+
+La caméra cadre une **distance fixe** plutôt qu'une surface fixe, pour qu'un téléphone en portrait
+et une fenêtre de bureau montrent la même chose. En vue de dessus elle vise une cinquantaine de
+mètres en travers du petit côté de l'écran, divisée par le facteur de la catégorie (`zoom` dans
+`js/cars.js` : 1,15 en GT, 1 en F1 modernes) et élargie d'un tiers à pleine vitesse. En GT, cela
+fait **43 m à l'arrêt et 59 m à fond**.
+
+Le réglage `zoom` multiplie ce cadrage, et les touches `+` / `−` le changent **pendant la course**,
+par pas de 12 %, avec un bandeau qui annonce le facteur et la largeur réelle en mètres — la seule
+façon honnête de choisir un cadrage est d'en conduire deux l'un après l'autre.
+
+| Réglage | Largeur visible, en GT à ~120 km/h |
+| --- | --- |
+| Large ×0,8 | 64 m |
+| Normal ×1 | 52 m |
+| Rapproché ×1,3 | 39 m |
+| Très rapproché ×1,7 | 30 m |
+
 ### Télémétrie (touche `G`, ou réglages)
 
 Quatre valeurs suffisent à lire le comportement de la voiture :
@@ -331,6 +351,30 @@ gélules. Une forme pleine n'a pas d'embout, donc les arêtes restent franches �
 fait de les décaler de la ligne blanche compte autant : à cheval dessus, les blocs blancs
 disparaissaient dans la peinture et le vibreur se lisait comme une file de tirets bleus. Les voitures venant d'une
 planche sont dessinées **sans lissage**, pour que le pixel art reste net.
+
+### La gomme
+
+Les traces de pneus **restent toute la course**. Elles étaient auparavant une liste plate de
+segments, chacun tracé pour son compte et les plus anciens jetés passé neuf cents — environ un
+demi-tour d'une course à dix voitures, de sorte que le premier virage était de nouveau propre quand
+on y revenait. La gomme ne disparaît pas, donc plus rien n'est jeté.
+
+Garder des dizaines de milliers de petits traits abordable demande deux choses. Ils entrent dans
+**un chemin par parcelle de terrain**, si bien qu'une parcelle coûte un tracé quelle que soit la
+gomme qu'elle porte ; et chaque parcelle porte sa boîte englobante, de sorte que seule la poignée
+sous la caméra est dessinée. L'écran montre une cinquantaine de mètres, un tour en fait trois mille
+— à chaque image, c'est une poignée de parcelles sur la cinquantaine qu'une course à Monza finit
+par en compter.
+
+Trois intensités plutôt qu'une valeur par trace, parce qu'un chemin se trace à une seule opacité :
+une éraflure, une vraie glisse, un blocage de roues. Les traces d'une même parcelle et d'une même
+intensité se joignent en un seul chemin, ce qui veut dire aussi que repasser au même endroit ne
+noircit pas : la gomme s'accumule sur un vrai circuit, mais une trace qui double à chaque tour
+finit en trou noir.
+
+Mesuré à Monza, dix voitures, **280 secondes de course d'affilée** (vingt-huit relevés) :
+**60 images par seconde d'un bout à l'autre**, cinquante et une parcelles en mémoire à l'arrivée,
+et pas une trace jetée.
 
 ### La fumée
 

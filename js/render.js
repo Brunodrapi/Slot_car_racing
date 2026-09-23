@@ -174,7 +174,9 @@ class Renderer {
     this.dpr = Math.min(2, window.devicePixelRatio || 1);
     this.track = null;
     this.paths = null;
-    this.skids = [];
+    this.rubber = new Map();   // rubber laid on the road, kept for the whole race
+    this.zoomMul = 1;          // how close the camera sits, 1 = the framing the category asks for
+    this.zoomNote = 0;         // seconds left on the little readout after a change
     this.particles = [];
     this.wets = [];            // damp tyre tracks, carried out of a puddle
     this.damp = new Map();     // metres of water each car still has on its tyres
@@ -249,7 +251,7 @@ class Renderer {
 
   setTrack(track) {
     this.track = track;
-    this.skids = [];
+    this.rubber = new Map();
     this.particles = [];
     this.wets = [];
     this.damp = new Map();
@@ -395,8 +397,10 @@ class Renderer {
     // Frame a fixed distance rather than a fixed area, so a portrait phone and a desktop window
     // show the same thing. Track-aligned: metres visible ahead, down the screen height.
     // Fixed north-up: metres across the shorter screen axis.
-    const metres = (this.rotate ? 75 * (1 + 0.5 * vf) : (this.tilt === 1 ? 50 : 40) * (1 + 0.35 * vf)) / zf;
+    const metres = (this.rotate ? 75 * (1 + 0.5 * vf) : (this.tilt === 1 ? 50 : 40) * (1 + 0.35 * vf)) / zf / this.zoomMul;
     const zoomTarget = (this.rotate ? this.h : Math.min(this.w, this.h)) / metres;
+    this.framing = metres;           // what the screen actually shows, in metres — the readout
+    if (this.zoomNote > 0) this.zoomNote -= dt;
     const lead = Math.min(36, p.v * 0.42) / zf;
     const tx = pos.x + Math.cos(h) * lead, ty = pos.y + Math.sin(h) * lead;
     // camera heading follows the slot direction (not the car body), so a drift never spins the view
@@ -414,6 +418,15 @@ class Renderer {
       this.cam.y += (ty - this.cam.y) * k;
       this.cam.zoom += (zoomTarget - this.cam.zoom) * Math.min(1, dt * 1.5);
     } else { this.cam.x = tx; this.cam.y = ty; this.cam.zoom = zoomTarget; this.cam.init = true; }
+  }
+
+  // How close the camera sits. Called from the settings and from the + / - keys, which is the way
+  // to judge a framing: change it while driving and compare, rather than guess from a menu.
+  setZoom(v) {
+    const z = clamp(+v || 1, 0.6, 2.6);
+    if (Math.abs(z - this.zoomMul) > 1e-6) this.zoomNote = 1.8;
+    this.zoomMul = z;
+    return z;
   }
 
   // A puff of smoke: one soft ball that grows and thins as it drifts. Several at once make the
@@ -436,7 +449,7 @@ class Renderer {
       if (car.slide > 0.15 && car.state === 'ok' && car.v > 5) {
         for (const w of [-1, 1]) {
           const b = wheel(w);
-          this.skids.push({ x: b[0], y: b[1], a: h, l: car.v * dt * 1.2 + 0.3, alpha: Math.min(0.7, car.slide) });
+          this._layRubber(b[0], b[1], h, car.v * dt * 1.2 + 0.3, car.slide);
         }
         // Tyre smoke: round puffs thrown out behind the car, one or two a frame. A cartoon draws
         // smoke as a handful of distinct balls, so they have to stay few enough to be told apart —
@@ -470,7 +483,6 @@ class Renderer {
       }
       this._water(car, pos, h, cs, sn, wheel, dt);
     }
-    if (this.skids.length > 900) this.skids.splice(0, this.skids.length - 900);
     if (this.wets.length > 700) this.wets.splice(0, this.wets.length - 700);
     for (const w of this.wets) w.alpha -= dt * 0.1;
     if (this.wets.length && this.wets[0].alpha <= 0) this.wets = this.wets.filter(w => w.alpha > 0);
@@ -482,6 +494,49 @@ class Renderer {
     }
     this.particles = this.particles.filter(p => p.life > 0);
   }
+
+  /* Rubber on the road, kept for the whole race.
+
+  Skid marks used to be a flat list of segments, each stroked on its own and the oldest thrown away
+  past nine hundred — about half a lap of a ten-car race, so the first corner was clean again by
+  the time anyone came back round to it. Rubber does not disappear, so now nothing is thrown away.
+
+  Keeping tens of thousands of little strokes affordable takes two things. They go into **one path
+  per patch of ground**, so a patch costs one stroke however much rubber is on it; and the patches
+  carry a bounding box, so only the handful under the camera is drawn at all. The screen shows
+  about fifty metres, a lap is three thousand, so on any frame that is a few patches out of the
+  fifty or so a race at Monza ends up with — sixty frames a second start to finish, measured.
+
+  Three shades rather than a value per mark, because a path is stroked at one opacity: a light
+  scuff, a proper slide, and a lock-up. Marks in the same patch and the same shade join one path,
+  which also means driving the same line twice does not darken it — rubber builds up on a real
+  track, but a mark that doubles every lap ends up a black hole.
+  */
+  _layRubber(x, y, a, l, slide) {
+    const CELL = 40;
+    const band = slide > 0.62 ? 2 : slide > 0.34 ? 1 : 0;
+    const key = Math.floor(x / CELL) + ',' + Math.floor(y / CELL) + ',' + band;
+    let p = this.rubber.get(key);
+    if (!p) { p = { path: new Path2D(), band, minX: x, maxX: x, minY: y, maxY: y }; this.rubber.set(key, p); }
+    const x2 = x - Math.cos(a) * l, y2 = y - Math.sin(a) * l;
+    p.path.moveTo(x, y); p.path.lineTo(x2, y2);
+    p.minX = Math.min(p.minX, x, x2); p.maxX = Math.max(p.maxX, x, x2);
+    p.minY = Math.min(p.minY, y, y2); p.maxY = Math.max(p.maxY, y, y2);
+  }
+
+  _drawRubber(g, vis) {
+    if (!this.rubber.size) return;
+    g.strokeStyle = '#141414'; g.lineWidth = 0.35; g.lineCap = 'butt';
+    for (const p of this.rubber.values()) {
+      if (p.maxX < vis.minX || p.minX > vis.maxX || p.maxY < vis.minY || p.minY > vis.maxY) continue;
+      g.globalAlpha = Renderer.RUBBER[p.band];
+      g.stroke(p.path);
+    }
+    g.globalAlpha = 1; g.lineCap = 'round';
+  }
+
+  // a scuff, a slide, a lock-up
+  static get RUBBER() { return [0.13, 0.26, 0.42]; }
 
   // Standing water. Clip a puddle and the car throws up spray and takes the water with it: wet
   // tyres print a dark track on dry tarmac for a few dozen metres, until there is none left.
@@ -588,6 +643,9 @@ class Renderer {
     if (this.showLines) this._drawGuide(g, race);
     this._drawStartLine(g, T);
     this._drawBoards(g, T, vis);
+    // Rubber first, then the water on top of it: a puddle covers what is under it, and a car does
+    // not lay rubber across standing water.
+    this._drawRubber(g, vis);
     this._drawPuddles(g, vis);
     // the damp a car carries out of a puddle: two tracks, fading as the water runs out
     g.strokeStyle = PAL.wet; g.lineCap = 'butt';
@@ -597,13 +655,6 @@ class Renderer {
       g.beginPath(); g.moveTo(w.x, w.y); g.lineTo(w.x - Math.cos(w.a) * w.l, w.y - Math.sin(w.a) * w.l); g.stroke();
     }
     g.globalAlpha = 1; g.lineCap = 'round';
-    // skid marks
-    g.strokeStyle = 'rgba(20,20,20,1)'; g.lineWidth = 0.35;
-    for (const s of this.skids) {
-      g.globalAlpha = s.alpha * 0.6;
-      g.beginPath(); g.moveTo(s.x, s.y); g.lineTo(s.x - Math.cos(s.a) * s.l, s.y - Math.sin(s.a) * s.l); g.stroke();
-    }
-    g.globalAlpha = 1;
     if (T.drawRoad) for (const b of this.paths.bridges) {
       g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = T.width + 5; g.stroke(b);
       g.strokeStyle = '#2f2f36'; g.lineWidth = T.width + 2.4; g.stroke(b);
@@ -1233,6 +1284,19 @@ class Renderer {
     const mobile = this.mobile, pad = 14;
     g.textBaseline = 'top';
     const panel = (x, y, w, h) => { g.fillStyle = 'rgba(10,12,20,0.55)'; this._roundRect(g, x, y, w, h, 10); g.fill(); };
+
+    // A readout after a zoom change, so the framing being judged has a number on it.
+    if (this.zoomNote > 0) {
+      const a = Math.min(1, this.zoomNote / 0.45);
+      const txt = `Zoom ×${this.zoomMul.toFixed(2)} · ${Math.round(this.framing || 0)} m`;
+      g.font = `bold ${mobile ? 15 : 18}px system-ui, sans-serif`;
+      const w = g.measureText(txt).width + 28;
+      g.globalAlpha = a;
+      g.fillStyle = 'rgba(10,12,20,0.62)'; this._roundRect(g, (W - w) / 2, H * 0.16, w, mobile ? 30 : 36, 10); g.fill();
+      g.fillStyle = '#fff'; g.textAlign = 'center';
+      g.fillText(txt, W / 2, H * 0.16 + (mobile ? 7 : 9));
+      g.globalAlpha = 1;
+    }
 
     // top-left: position & lap
     const pos = race.positionOf(p), n = race.cars.length;

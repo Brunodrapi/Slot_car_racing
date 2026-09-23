@@ -9,6 +9,8 @@ class App {
     this.renderer = new Renderer(this.canvas);
     this.renderer.showLines = this.save.showLines === true;
     this.renderer.setView(this.save.view || 'track');
+    this.renderer.setZoom(this.save.zoom || 1);
+    this.renderer.zoomNote = 0;
     this.renderer.debug = this.save.debug === true;
     this.audio = new GameAudio();
     this.audio.enabled = this.save.sound;
@@ -85,11 +87,19 @@ class App {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
       e.preventDefault();
       if (e.key === 'g' || e.key === 'G') { this.renderer.debug = !this.renderer.debug; this.save.debug = this.renderer.debug; storeSave(this.save); return; }
+      // + / - reframe the camera on the spot: the only honest way to choose a zoom is to drive
+      // two of them one after the other.
+      if (e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_') {
+        const up = e.key === '+' || e.key === '=';
+        this.save.zoom = this.renderer.setZoom(this.renderer.zoomMul * (up ? 1.12 : 1 / 1.12));
+        storeSave(this.save);
+        return;
+      }
       if (LINE_DOWN.includes(e.key)) { stepSel(-1); return; }
       if (LINE_UP.includes(e.key)) { stepSel(1); return; }
       on();
     });
-    window.addEventListener('keyup', (e) => { if (LINE_DOWN.includes(e.key) || LINE_UP.includes(e.key) || e.key === 'Escape' || e.key === 'g' || e.key === 'G') return; off(); });
+    window.addEventListener('keyup', (e) => { if (LINE_DOWN.includes(e.key) || LINE_UP.includes(e.key) || e.key === 'Escape' || e.key === 'g' || e.key === 'G' || '+=-_'.includes(e.key)) return; off(); });
     window.addEventListener('blur', () => { off(); this.pointers.throttle = this.pointers.slider = null; });
     window.addEventListener('wheel', (e) => { if (this.state === 'race') stepSel(e.deltaY < 0 ? 1 : -1); }, { passive: true });
 
