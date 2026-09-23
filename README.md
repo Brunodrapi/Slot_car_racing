@@ -681,6 +681,23 @@ trois ou quatre minutes selon la vitesse de la catégorie.
 Les courses de championnat gardent leur longueur : elle fait partie du championnat, pas des
 réglages.
 
+## L'équilibre entre les voitures
+
+Une différence de caractère est un choix offert au joueur ; cinq secondes au tour n'en est pas un,
+c'est un piège. `node tools/models.js [catégorie]` met chaque voiture seule en piste sur cinq
+circuits et donne deux colonnes à lire ensemble : le **tour idéal**, ce que la voiture vaut sur le
+papier une fois le profil de vitesse résolu, et le **tour réel**, ce qu'un pilote en tire. L'écart
+entre les deux est le prix du caractère.
+
+La Corvette est arrivée à **7,1 %** du rythme quand les six voitures d'alors tenaient dans quatre —
+adhérence et appui coupés trop fort. Réglée, elle rentre à 4,7 %, et surtout son tour *idéal*
+(2,9 % du meilleur) est désormais meilleur que celui de la 911 Turbo : elle est rapide sur le
+papier et perd 5,6 % en pilotage, contre 3,8 % pour les autres. C'est sa glisse qu'elle paie, et
+c'est autre chose qu'être lente.
+
+Rien ne comparait les modèles entre eux jusque-là, ce qui explique qu'une voiture bancale ait pu
+être livrée sans qu'on la voie.
+
 ## Les trois difficultés
 
 Elles tenaient entre 0,78 et 0,90 de la vitesse de passage que l'adhérence autorise, ce qui mettait
@@ -759,6 +776,7 @@ node tools/jump.js <circuit> <catégorie> <marge>                               
 node tools/line.js [circuit|all] [catégorie] [-v]                                # ce que vaut une trajectoire
 node tools/corner.js [circuit|all] [catégorie] [marge] [-v]                      # vitesse réelle contre vitesse théorique, virage par virage
 node tools/diff.js [circuit|all] [catégorie] [-sans-elastique] [-table=…]         # ce que valent vraiment les trois difficultés
+node tools/models.js [catégorie] [marge]                                          # chaque voiture : tour idéal, tour réel, prix du pilotage
 NODE_PATH=$(npm root -g) node tools/e2e-splash.js [dossier]                       # l'écran-titre, sur téléphone et sur bureau
 NODE_PATH=$(npm root -g) node tools/e2e-menu.js [dossier]                         # le menu-affiche : bandeaux, dépliage, destinations
 node tools/bump.js [patch|minor|major]                                            # numéro de version + cassage du cache
