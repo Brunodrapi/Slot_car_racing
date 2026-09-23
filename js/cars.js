@@ -50,15 +50,16 @@ const CATEGORIES = [
       { id: '930', name: '911 Turbo', shape: 'roundGT', mul: { vmax: 0.99, accel: 1.04, grip: 0.97, slide: 1.2 }, colors: ['#c9ced6', '#e0262c'], top: 'sprites/top/930.png', sheet: 'sprites/930', sheetN: 16, sheetRear: 0, sheetW: 4.803, sheetAnchor: [0.499, 0.841] },
       { id: 'testarossa', name: 'Testarossa', shape: 'wideGT', mul: { vmax: 1.0, grip: 1.0, brake: 0.98 }, colors: ['#e0262c', '#f4f4f4'], sheet: 'sprites/testarossa', sheetN: 16, sheetRear: 12, sheetW: 5.125, sheetAnchor: [0.512, 0.862] },
       { id: 'gt40', name: 'GT40 Mk II', shape: 'gt40', mul: { vmax: 1.06, accel: 1.02, grip: 0.99, df: 0.85, brake: 0.97, slide: 1.1 }, colors: ['#5bc8e8', '#ff8c1a'], top: 'sprites/top/gt40.png' },
+      { id: '917k', name: '917 K', shape: 'longTail', mul: { vmax: 1.10, accel: 1.05, grip: 1.0, df: 1.4, brake: 0.93, slide: 1.15 }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/917.png' },
+      { id: 'corvette', name: 'Corvette', shape: 'roundGT', mul: { vmax: 1.01, accel: 1.05, grip: 0.93, df: 0.7, brake: 0.94, slide: 1.3 }, colors: ['#d8dce2', '#e0262c'], top: 'sprites/top/corvette.png' },
     ],
   },
   {
     id: 'protoclassic', name: { fr: 'Prototypes classiques', en: 'Classic prototypes' },
-    desc: { fr: 'Le Mans 70-91 : 917, 962, XJR-9, 787B… Très rapides en ligne droite, de l’appui, longues à arrêter.', en: 'Le Mans 70-91: 917, 962, XJR-9, 787B… Very fast in a straight line, real downforce, long to stop.' },
+    desc: { fr: 'Le Mans 82-91 : 962, XJR-9, 787B, C9… Très rapides en ligne droite, de l’appui, longues à arrêter.', en: 'Le Mans 82-91: 962, XJR-9, 787B, C9… Very fast in a straight line, real downforce, long to stop.' },
     base: { vmax: 84, accel: 9, brake: 20, grip: 14.5, df: 0.0035, slide: 0.7, laneK: 6, rearBias: 1.06, cliff: 0.15, slipPeak: 0.11, length: 4.8, width: 2.0 },
     drivers: 10, roadScale: 1, zoom: 1.05,
     models: [
-      { id: '917k', name: '917 K', shape: 'longTail', mul: { vmax: 1.03, accel: 1.02, grip: 0.98, df: 0.8, brake: 0.96 }, colors: ['#f4f4f4', '#ff8c1a'] },
       { id: '962c', name: '962 C', shape: 'groupC', mul: { vmax: 1.02, grip: 1.03, df: 1.2 }, colors: ['#f4f4f4', '#e0262c'] },
       { id: 'xjr9', name: 'XJR-9', shape: 'groupC', mul: { vmax: 1.04, grip: 1.02, df: 1.15, accel: 0.99 }, colors: ['#8a3ffc', '#f4f4f4'] },
       { id: '787b', name: '787B', shape: 'groupC', mul: { vmax: 1.0, accel: 1.05, grip: 1.04, df: 1.1, brake: 1.03 }, colors: ['#ff8c1a', '#1f6b3a'], top: 'sprites/top/787b.png' },
