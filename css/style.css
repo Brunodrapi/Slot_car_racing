@@ -67,7 +67,7 @@ button.link { background: none; border: none; color: var(--muted); text-decorati
 .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
 .swatch { width: 34px; height: 34px; border-radius: 50%; border: 3px solid; padding: 0; }
 .swatch.sel { outline: 3px solid #fff; outline-offset: 2px; }
-.seg { display: flex; gap: 6px; }
+.seg { display: flex; gap: 6px; flex-wrap: wrap; }   /* six lap choices do not fit a phone on one line */
 .seg button.sel { background: var(--accent); color: #1a1400; }
 .bestlap { font-family: ui-monospace, monospace; font-size: 22px; }
 

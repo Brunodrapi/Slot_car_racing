@@ -327,7 +327,13 @@ function aiThrottle(car, cars, dt, opts) {
   if (car.aiTimer <= 0) {
     car.aiTimer = 0.12;
     car.aiNoise = (Math.random() - 0.5) * 0.03;
-    const margin = (opts.marginBase + car.skill * opts.marginSpread) + car.aiNoise + (opts.rubber || 0);
+    // Never ask for more than the tyres can give. `margin` multiplies the corner speed the grip
+    // allows, so anything above 1 is a corner the car cannot take, and the driver who is handed it
+    // does not go faster — he goes off, loses ten seconds, and hands the place back. The skill
+    // spread, the noise and the rubber-banding all add up, so the sum is what has to be capped,
+    // not each part: that is how a "hard" setting ended up slower in race pace than it looked.
+    const MAX = 0.98;
+    const margin = Math.min(MAX, (opts.marginBase + car.skill * opts.marginSpread) + car.aiNoise + (opts.rubber || 0));
     const brake = c.brake * 0.88;
     const v = Math.max(0, car.v);
     let allow = c.vmax * Math.min(1, (opts.paceBase == null ? 1 : opts.paceBase + car.skill * opts.paceSpread) + (opts.rubber || 0));

@@ -588,6 +588,34 @@ js/main.js                 boucle de jeu, entrées, enchaînement
 tools/                     scripts de développement (simulation IA headless, diagnostics physique, tests Playwright)
 ```
 
+## Nombre de tours
+
+En course rapide, la longueur se choisit : **Auto / 1 / 2 / 3 / 5 / 10** tours, à côté de la
+difficulté. « Auto » garde la proposition du circuit, que `lapsFor` calcule pour tenir autour de
+trois ou quatre minutes selon la vitesse de la catégorie.
+
+Les courses de championnat gardent leur longueur : elle fait partie du championnat, pas des
+réglages.
+
+## Le plafond de marge de l'IA
+
+`margin` multiplie la vitesse de passage que l'adhérence autorise, donc **tout ce qui dépasse 1 est
+un virage que la voiture ne peut pas prendre**. Le pilote à qui on le donne ne va pas plus vite :
+il sort, perd dix secondes et rend la place.
+
+Or la marge est une somme — la base de la difficulté, l'écart de talent du pilote, un bruit, et le
+terme d'élastique. En difficile, le meilleur pilote recevait 0,90 + 0,09 + 0,015 + 0,03 = **1,035**.
+C'est la **somme** qui est désormais plafonnée, à 0,98, et non chaque terme : plafonner les parties
+séparément laisse passer exactement le cas qui pose problème.
+
+`node tools/diff.js [circuit|all] [catégorie]` traduit les coefficients de `DIFFICULTY` en la seule
+chose qu'un joueur ressent : la vitesse à laquelle le peloton tourne. Il donne le **rythme de
+course** (temps total ÷ tours) et non le meilleur tour, parce que le rythme porte les fautes, le
+trafic et les passages dans le gravier — un peloton qui signe des tours rapides et se plante deux
+fois par course n'est pas un peloton difficile. `-sans-elastique` retire le terme de rubber-banding
+avant de lancer, ce qui permet de distinguer une difficulté mal choisie d'une difficulté défaite en
+chemin. `-table='<json>'` essaie une table candidate sans l'écrire dans le jeu.
+
 ## Numéro de version
 
 Le menu porte en bas le numéro du build et sa date — `v0.15.0 · 2026-09-23`. Ce n'est pas de la
@@ -620,6 +648,7 @@ node tools/sweep.js '[{},{"yawK":4}]'                                           
 node tools/jump.js <circuit> <catégorie> <marge>                                  # continuité du déplacement
 node tools/line.js [circuit|all] [catégorie] [-v]                                # ce que vaut une trajectoire
 node tools/corner.js [circuit|all] [catégorie] [marge] [-v]                      # vitesse réelle contre vitesse théorique, virage par virage
+node tools/diff.js [circuit|all] [catégorie] [-sans-elastique] [-table=…]         # ce que valent vraiment les trois difficultés
 node tools/bump.js [patch|minor|major]                                            # numéro de version + cassage du cache
 node tools/netsim.js <circuit> [secondes] [perte %] [format]                      # deux écrans en réseau, sans navigateur
 NODE_PATH=$(npm root -g) node tools/e2e-net.js <dossier> [format]                 # deux onglets, une table, une course

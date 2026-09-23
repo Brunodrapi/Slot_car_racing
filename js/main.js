@@ -145,7 +145,9 @@ class App {
     if (!trackDef) return;
     this._startRace({
       mode, trackDef, classId, modelId: this.playerModelFor(classId).id,
-      laps: lapsFor(trackDef, cat),
+      // The circuit's own suggestion unless the player has asked for a number; a championship
+      // round keeps the suggestion, since its length is part of the championship, not a setting.
+      laps: this.save.laps || lapsFor(trackDef, cat),
       difficulty: this.save.difficulty,
       playerLivery: this.save.livery,
       playerName: this.playerName(),
