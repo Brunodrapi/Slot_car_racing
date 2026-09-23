@@ -8,6 +8,10 @@ const track = process.argv[2] || 'monza';
   const page = await b.newPage({ viewport: { width: 900, height: 600 } });
   page.on('pageerror', e => console.log('[pageerror]', e.message));
   await page.goto('file:///home/user/Slot_car_racing/index.html');
+  // L'écran-titre s'interpose désormais entre le chargement et le menu : n'importe quelle touche
+  // le passe, comme pour un joueur.
+  await page.waitForTimeout(350);
+  await page.keyboard.press('Enter');
   await page.waitForTimeout(400);
   await page.click('[data-action="setup"][data-mode="timetrial"]');
   await page.waitForTimeout(200);

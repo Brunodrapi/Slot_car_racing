@@ -1,4 +1,4 @@
-# Slot Racer
+# Eyes On Line
 
 Jeu de course 2D « un bouton, trois trajectoires », à mi-chemin entre *Pico Rally* et
 *Ultimate Racing 2D* : de vraies courses sur des circuits inspirés de vrais tracés, avec le pilotage
@@ -588,6 +588,26 @@ js/main.js                 boucle de jeu, entrées, enchaînement
 tools/                     scripts de développement (simulation IA headless, diagnostics physique, tests Playwright)
 ```
 
+## L'écran-titre
+
+Le jeu s'ouvre sur l'affiche, `art/title.webp` — 941 × 1672, soit du 9:16 à un cheveu près, donc
+plein écran sur un téléphone et centrée dans son cadre sur un bureau. Elle est posée en `contain`
+et non en `cover` : c'est une affiche imprimée, avec sa bordure, et la rogner reviendrait à couper
+le cadre d'un tableau.
+
+Rien n'est écrit par-dessus sauf le numéro de build, parce qu'un texte posé sur une illustration
+aussi chargée serait illisible où qu'on le mette — et le numéro lui-même reçoit sa pastille
+sombre, sur un téléphone où l'affiche touche les bords. L'affiche porte son propre nom et sa
+propre invitation ; n'importe quelle touche, n'importe quel appui, n'importe où la passe, ce
+qu'elle dit elle-même et la seule consigne qu'un écran-titre devrait avoir besoin de donner.
+
+C'est aussi le geste qui autorise le son : un navigateur ne joue rien tant que personne n'a touché
+la page.
+
+Un lien qui nomme un circuit (`?track=…`) est quelqu'un qui sait déjà où il va : l'affiche
+s'efface pour lui. Les scripts de test passent l'écran comme un joueur, par une touche, et
+`tools/e2e-splash.js` le vérifie sur les deux formats.
+
 ## Nombre de tours
 
 En course rapide, la longueur se choisit : **Auto / 1 / 2 / 3 / 5 / 10** tours, à côté de la
@@ -675,6 +695,7 @@ node tools/jump.js <circuit> <catégorie> <marge>                               
 node tools/line.js [circuit|all] [catégorie] [-v]                                # ce que vaut une trajectoire
 node tools/corner.js [circuit|all] [catégorie] [marge] [-v]                      # vitesse réelle contre vitesse théorique, virage par virage
 node tools/diff.js [circuit|all] [catégorie] [-sans-elastique] [-table=…]         # ce que valent vraiment les trois difficultés
+NODE_PATH=$(npm root -g) node tools/e2e-splash.js [dossier]                       # l'écran-titre, sur téléphone et sur bureau
 node tools/bump.js [patch|minor|major]                                            # numéro de version + cassage du cache
 node tools/netsim.js <circuit> [secondes] [perte %] [format]                      # deux écrans en réseau, sans navigateur
 NODE_PATH=$(npm root -g) node tools/e2e-net.js <dossier> [format]                 # deux onglets, une table, une course

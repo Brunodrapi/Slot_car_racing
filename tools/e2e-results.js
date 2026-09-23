@@ -6,6 +6,10 @@ const out = process.argv[2] || '/tmp';
   page.on('pageerror', e => console.log('[pageerror]', e.message));
   page.on('console', m => { if (m.type() === 'error') console.log('[console]', m.text()); });
   await page.goto('file:///home/user/Slot_car_racing/index.html');
+  // L'écran-titre s'interpose désormais entre le chargement et le menu : n'importe quelle touche
+  // le passe, comme pour un joueur.
+  await page.waitForTimeout(350);
+  await page.keyboard.press('Enter');
   await page.click('[data-action="career"]');
   await page.click('[data-action="cup"][data-id="gt"]');
   const fast = async () => page.evaluate(() => {

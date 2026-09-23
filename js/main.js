@@ -25,18 +25,20 @@ class App {
       this.net.onStart = (cfg) => this.startOnline(cfg);
     }
     this.raceCtx = null;
-    this.state = 'menu';
+    this.state = 'splash';
     this.input = { throttle: false, sel: 0 };
     this.pointers = { throttle: null, slider: null };
     this.last = performance.now();
     this._bindInput();
     window.addEventListener('resize', () => { this.renderer.resize(); if (this.race) this.renderer._makeMinimap(); });
-    this.ui.menu();
+    this.ui.splash();
     this.refreshCustom().then(() => {
       const params = new URLSearchParams(location.search);
       const tid = params.get('track');
-      if (tid && this.trackDefById(tid)) { this.ui.setup.trackId = tid; this.ui.setupScreen('race'); }
-      else this.ui.menu();
+      // A link that names a circuit is someone who already knows where they are going, so the
+      // title card steps aside for them.
+      if (tid && this.trackDefById(tid)) { this.state = 'menu'; this.ui.setup.trackId = tid; this.ui.setupScreen('race'); }
+      else if (this.state === 'splash') this.ui.splash();
     });
     requestAnimationFrame((t) => this._frame(t));
   }
@@ -81,6 +83,7 @@ class App {
     const LINE_DOWN = ['ArrowDown', 'ArrowLeft', 'a', 'A', 'q', 'Q'], LINE_UP = ['ArrowUp', 'ArrowRight', 'd', 'D', 'e', 'E'];
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
+      if (this.leaveSplash()) return;
       if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { this.togglePause(); return; }
       if (this.state !== 'race') return;
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
@@ -92,6 +95,9 @@ class App {
     });
     window.addEventListener('keyup', (e) => { if (LINE_DOWN.includes(e.key) || LINE_UP.includes(e.key) || e.key === 'Escape' || e.key === 'g' || e.key === 'G') return; off(); });
     window.addEventListener('blur', () => { off(); this.pointers.throttle = this.pointers.slider = null; });
+    // On the title card the whole window listens, not just the canvas: the poster fills the page,
+    // and "any button" has to mean anywhere on it.
+    window.addEventListener('pointerdown', () => this.leaveSplash());
     window.addEventListener('wheel', (e) => { if (this.state === 'race') stepSel(e.deltaY < 0 ? 1 : -1); }, { passive: true });
 
     const c = this.canvas;
@@ -220,6 +226,18 @@ class App {
     this.audio.idle();
     this.state = 'lobby';
     this.ui.lobbyScreen();
+  }
+
+  // Leave the title card. Returns true when it did, so a key press that got us past it is not
+  // also read as a command by whatever comes next. It doubles as the gesture that lets the audio
+  // start: a browser will not make a sound until someone has touched the page.
+  leaveSplash() {
+    if (this.state !== 'splash') return false;
+    this.state = 'menu';
+    this.audio.start();
+    this.audio.resume();
+    this.ui.menu();
+    return true;
   }
 
   togglePause() {

@@ -1,4 +1,4 @@
-/* Slot Racer — the online lobby, over WebRTC.
+/* Eyes On Line — the online lobby, over WebRTC.
  *
  * The game is served from GitHub Pages or opened as a local file: there is no server to ask who
  * is playing. The two browsers therefore have to find each other on their own, which is what

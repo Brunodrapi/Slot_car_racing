@@ -20,6 +20,16 @@ canvas#game { position: fixed; inset: 0; display: block; touch-action: none; use
 .screen.center { justify-content: center; align-items: center; text-align: center; }
 .screen.scroll { overflow-y: auto; }
 .screen.overlay { background: rgba(8, 10, 16, 0.75); width: 100%; }
+/* The title card: the poster as large as it will go without being cropped or stretched. It is a
+   printed thing with its own border, so `contain` rather than `cover` — cutting the border off
+   would be cutting the frame off a picture. */
+.screen.splash { width: 100%; height: 100%; padding: 0; gap: 0; justify-content: center; position: relative; }
+.screen.splash .poster { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+/* On a phone the poster reaches the edges, so the build number lands on the artwork rather than
+   on the page behind it. It gets its own dark lozenge: pale grey on a cream poster is not a
+   readout, and this number exists precisely to be read. */
+.screen.splash .version { position: absolute; bottom: max(8px, env(safe-area-inset-bottom)); right: 10px; margin: 0; opacity: 1;
+  background: rgba(10, 12, 20, 0.62); color: #dfe3ea; padding: 3px 9px; border-radius: 999px; }
 #ui:has(.overlay) { background: transparent; }
 
 h1 { font-size: clamp(42px, 9vw, 84px); letter-spacing: 0.08em; margin: 0; background: linear-gradient(90deg, #ffd400, #ff7b1a); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 900; }

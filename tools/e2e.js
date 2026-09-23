@@ -9,6 +9,10 @@ const W = +process.argv[3] || 1280, H = +process.argv[4] || 800;
   page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') console.log('[console]', m.type(), m.text()); });
   page.on('pageerror', e => { errors.push(e.message); console.log('[pageerror]', e.message); });
   await page.goto('file:///home/user/Slot_car_racing/index.html');
+  // L'écran-titre s'interpose désormais entre le chargement et le menu : n'importe quelle touche
+  // le passe, comme pour un joueur.
+  await page.waitForTimeout(350);
+  await page.keyboard.press('Enter');
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${out}/01-menu.png` });
   await page.click('[data-action="setup"][data-mode="race"]');

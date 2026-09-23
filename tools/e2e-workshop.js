@@ -7,6 +7,10 @@ const out = process.argv[2] || '/tmp';
   page.on('pageerror', e => console.log('[pageerror]', e.message));
   page.on('console', m => { if (m.type() === 'error') console.log('[console]', m.text()); });
   await page.goto('file:///home/user/Slot_car_racing/index.html');
+  // L'écran-titre s'interpose désormais entre le chargement et le menu : n'importe quelle touche
+  // le passe, comme pour un joueur.
+  await page.waitForTimeout(350);
+  await page.keyboard.press('Enter');
   await page.waitForTimeout(400);
   // generate sprites in-page: base (dark outline + wheels), color (body mask), car_1 (stripe)
   const pngs = await page.evaluate(() => {

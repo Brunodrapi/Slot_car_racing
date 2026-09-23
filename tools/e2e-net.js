@@ -86,6 +86,8 @@ function serve() {
     p.on('console', (m) => { if (m.type() === 'error') { bad++; console.log(`[${tag}] console`, m.text()); } });
     await p.goto(url);
     await p.waitForTimeout(400);
+    await p.keyboard.press('Enter');   // l'écran-titre
+    await p.waitForTimeout(150);
     // two different names, so the table list says something
     await p.evaluate((n) => { app.save.name = n; storeSave(app.save); }, name);
     await p.waitForTimeout(100);

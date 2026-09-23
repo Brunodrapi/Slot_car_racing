@@ -3,7 +3,7 @@
 
 const I18N = {
   fr: {
-    title: 'SLOT RACER', subtitle: 'Un bouton, trois trajectoires. De vrais circuits.',
+    title: 'EYES ON LINE', subtitle: 'Un bouton, trois trajectoires. De vrais circuits.',
     career: 'Carrière', quickRace: 'Course rapide', timeTrial: 'Contre-la-montre', settings: 'Réglages', back: 'Retour',
     editor: 'Éditeur de circuits', workshop: 'Atelier voitures',
     howto: 'Poser le pouce n’importe où (ou n’importe quelle touche / clic) : accélérer, relâcher pour freiner. Le cadran vient se placer au-dessus du pouce. Pouce gauche (ou flèches / molette) : choisir la trajectoire — intérieure, idéale ou extérieure. Trop vite dans un virage, c’est le bac à gravier.',
@@ -16,7 +16,7 @@ const I18N = {
     lap: 'Tour', last: 'Dernier', best: 'Meilleur', grip: 'adhérence', holdToGo: 'Maintiens une touche pour accélérer', holdToGoTouch: 'Maintiens l’écran pour accélérer', lineHintKeys: 'Flèches / molette : trajectoire', lineHintTouch: 'Pouce gauche : trajectoire',
     lineIn: 'INT', lineRace: 'IDÉALE', lineOut: 'EXT', offTrack: 'SORTIE DE PISTE !', finished: 'ARRIVÉE',
     cupComplete: 'Coupe terminée !', cupWon: 'Champion !', cupPodium: 'Podium ! Coupe suivante débloquée.', cupFailed: 'Hors du podium… retente ta chance.',
-    newRecord: 'Nouveau record !', yourBest: 'Ton record', name: 'Nom du pilote', sound: 'Son', language: 'Langue', showLines: 'Guide de freinage', telemetry: 'Télémétrie (touche G)', camera: 'Vue', camFollow: 'Dessus, orientée piste', camFixed: 'Dessus, fixe', camIso: 'Isométrique', pullBack: 'Recul de la caméra', pullNone: 'Normal', pullSome: 'Un peu en retrait', pullMore: 'Très en retrait', lapCount: 'Tours', lapAuto: 'Auto', resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
+    newRecord: 'Nouveau record !', yourBest: 'Ton record', name: 'Nom du pilote', sound: 'Son', language: 'Langue', showLines: 'Guide de freinage', telemetry: 'Télémétrie (touche G)', camera: 'Vue', camFollow: 'Dessus, orientée piste', camFixed: 'Dessus, fixe', camIso: 'Isométrique', pullBack: 'Recul de la caméra', pullNone: 'Normal', pullSome: 'Un peu en retrait', pullMore: 'Très en retrait', lapCount: 'Tours', lapAuto: 'Auto', pressStart: 'Appuie pour commencer', resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
     on: 'Activé', off: 'Coupé', playerDefault: 'Vous', allUnlocked: 'Tout est débloqué. Bravo !', careerIntro: 'Tu pars dernier à chaque course. Remonte le peloton, marque des points, débloque des catégories plus rapides.',
     lapDone: (n, t) => `Tour ${n} : ${t}`, tipTitle: 'Comment jouer', yourResult: (p) => `Tu termines P${p}`,
     ttIntro: 'Seul en piste. Bats ton meilleur tour.', noCustomTracks: 'Aucun circuit perso. Crée-en un dans l’éditeur.', deleteTrack: 'Supprimer', confirmDelete: 'Supprimer définitivement ?',
@@ -34,7 +34,7 @@ const I18N = {
     custom: 'perso', stats: 'Vitesse / Freins / Adhérence',
   },
   en: {
-    title: 'SLOT RACER', subtitle: 'One button, three lines. Real circuits.',
+    title: 'EYES ON LINE', subtitle: 'One button, three lines. Real circuits.',
     career: 'Career', quickRace: 'Quick race', timeTrial: 'Time trial', settings: 'Settings', back: 'Back',
     editor: 'Track editor', workshop: 'Car workshop',
     howto: 'Thumb anywhere (or any key / click): accelerate, release to brake. The dial moves above your thumb. Left thumb (or arrows / wheel): pick the line — inside, racing or outside. Too fast into a corner and it’s the gravel.',
@@ -47,7 +47,7 @@ const I18N = {
     lap: 'Lap', last: 'Last', best: 'Best', grip: 'grip', holdToGo: 'Hold a key to accelerate', holdToGoTouch: 'Hold anywhere to accelerate', lineHintKeys: 'Arrows / wheel: line', lineHintTouch: 'Left thumb: line',
     lineIn: 'IN', lineRace: 'RACING', lineOut: 'OUT', offTrack: 'OFF TRACK!', finished: 'FINISH',
     cupComplete: 'Cup complete!', cupWon: 'Champion!', cupPodium: 'Podium! Next cup unlocked.', cupFailed: 'Missed the podium… try again.',
-    newRecord: 'New record!', yourBest: 'Your best', name: 'Driver name', sound: 'Sound', language: 'Language', showLines: 'Braking guide', telemetry: 'Telemetry (G key)', camera: 'View', camFollow: 'Top-down, track-aligned', camFixed: 'Top-down, fixed', camIso: 'Isometric', pullBack: 'Camera set-back', pullNone: 'Normal', pullSome: 'A little further back', pullMore: 'Much further back', lapCount: 'Laps', lapAuto: 'Auto', resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
+    newRecord: 'New record!', yourBest: 'Your best', name: 'Driver name', sound: 'Sound', language: 'Language', showLines: 'Braking guide', telemetry: 'Telemetry (G key)', camera: 'View', camFollow: 'Top-down, track-aligned', camFixed: 'Top-down, fixed', camIso: 'Isometric', pullBack: 'Camera set-back', pullNone: 'Normal', pullSome: 'A little further back', pullMore: 'Much further back', lapCount: 'Laps', lapAuto: 'Auto', pressStart: 'Press any button to start', resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
     on: 'On', off: 'Off', playerDefault: 'You', allUnlocked: 'Everything unlocked. Well done!', careerIntro: 'You start every race from the back. Carve through the field, score points, unlock faster classes.',
     lapDone: (n, t) => `Lap ${n}: ${t}`, tipTitle: 'How to play', yourResult: (p) => `You finish P${p}`,
     ttIntro: 'Alone on track. Beat your best lap.', noCustomTracks: 'No custom track yet. Create one in the editor.', deleteTrack: 'Delete', confirmDelete: 'Delete permanently?',
@@ -151,6 +151,19 @@ class UI {
   }
 
   // ---------- screens ----------
+
+  // The title card. The poster carries the name and the invitation itself, so nothing is drawn
+  // over it but the build number: text laid on top of an illustration this busy would be
+  // unreadable wherever it went. Any key, any tap, anywhere gets past it — which is what the
+  // poster says to do, and the only instruction a title screen should need.
+  splash() {
+    const t = (k) => this.t(k);
+    this.show(`
+      <img class="poster" src="art/title.webp" alt="${escapeHtml(t('title'))}">
+      <div class="version">v${APP_VERSION} · ${APP_DATE}</div>
+    `, 'center splash');
+  }
+
   menu() {
     const t = (k) => this.t(k);
     this.show(`
