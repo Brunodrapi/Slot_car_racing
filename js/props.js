@@ -385,6 +385,44 @@ function placePatches(track, id, density) {
   return out;
 }
 
+/* ---------------------------------------------------------------------------- the puddles
+
+Water lies where the road drains: along the edges, inside the white line, and in the hollows just
+off the tarmac. So that is where the puddles go — never in the middle of the road, where they would
+sit on the racing line and turn a circuit into a lottery. A car that clips one throws up spray and
+carries water on its tyres for a few dozen metres, which is the trail.
+
+They are elongated along the road, because a puddle at a kerb is shaped by the edge it collects
+against, and a round pond in the middle of a straight looks like a hole.
+*/
+function placePuddles(track, id, density) {
+  const d = density == null ? 0 : density;
+  if (d <= 0) return [];
+  const rnd = propRng(seedFromId('puddle-' + id));
+  const out = [];
+  for (let s = 0; s < track.length; s += 90) {
+    for (const side of [1, -1]) {
+      if (rnd() > d) continue;
+      const i = track.idx(s + (rnd() - 0.5) * 26);
+      const hw = side > 0 ? track.hwL[i] : track.hwR[i];
+      const r = 1.0 + rnd() * 1.8;
+      // Two thirds hug the inside of the white line, on the tarmac; the rest have run off it.
+      const onRoad = rnd() < 0.68;
+      const off = onRoad ? hw - r - rnd() * 1.6 : hw + 0.6 + rnd() * 3.2;
+      if (off < 1) continue;
+      out.push({
+        x: track.xs[i] + track.nx[i] * off * side,
+        y: track.ys[i] + track.ny[i] * off * side,
+        s: i * track.ds, lat: off * side,
+        th: track.th[i], r,
+        long: 1.3 + rnd() * 0.9,          // stretched along the road
+        phase: rnd() * 6.3, onRoad,
+      });
+    }
+  }
+  return out;
+}
+
 /* ------------------------------------------------------------------------------- the sea
 
 A circuit by the water gets a bay rather than a pond: the sea follows a stretch of the lap on one
@@ -519,3 +557,4 @@ if (typeof module !== 'undefined') module.exports.TOP_KINDS = TOP_KINDS;
 if (typeof module !== 'undefined') module.exports.placeTopProps = placeTopProps;
 if (typeof module !== 'undefined') module.exports.placePatches = placePatches;
 if (typeof module !== 'undefined') module.exports.placeWater = placeWater;
+if (typeof module !== 'undefined') module.exports.placePuddles = placePuddles;

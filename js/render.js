@@ -36,6 +36,8 @@ const THEME_BASE = {
   sea: '#50b4be', seaDeep: '#2f8a94', seaShallow: '#72cbd4', surf: '#f4f7f3',
   wall: '#f2e8d5', wallDark: '#ddd0b9', roofA: '#2f9aa0', roofB: '#b5654a',
   sail: '#ffffff', sailDeck: '#d8d2c2', boatHull: '#c9503a',
+  // standing water: the puddle itself, the sky caught in it, and the damp a tyre carries out of it
+  puddle: '#2d3a57', puddleLight: '#82abc6', wet: '#2b2735',
 };
 
 const THEME_DEFS = {
@@ -174,6 +176,9 @@ class Renderer {
     this.paths = null;
     this.skids = [];
     this.particles = [];
+    this.wets = [];            // damp tyre tracks, carried out of a puddle
+    this.damp = new Map();     // metres of water each car still has on its tyres
+    this.puddles = [];
     this.cam = { x: 0, y: 0, zoom: 6 };
     this.grass = this._makeGrass();
     this.shake = 0;
@@ -246,6 +251,8 @@ class Renderer {
     this.track = track;
     this.skids = [];
     this.particles = [];
+    this.wets = [];
+    this.damp = new Map();
     PAL = THEMES[track.theme] || THEMES.park;
     this.grass = this._makeGrass();
     this.grassPattern = this.ctx.createPattern(this.grass, 'repeat');
@@ -258,6 +265,7 @@ class Renderer {
     this.topArt = buildTopArt(PAL);
     this.topProps = placeTopProps(track, seed, null, PAL.props);
     this.patches = placePatches(track, seed, PAL.patches);
+    this.puddles = placePuddles(track, seed, track.puddles);
     this.water = placeWater(track, PAL.water);
     this.boats = placeBoats(track, seed, this.water);
     this.boatArt = this.water ? buildBoatArt(PAL) : null;
@@ -408,25 +416,112 @@ class Renderer {
     } else { this.cam.x = tx; this.cam.y = ty; this.cam.zoom = zoomTarget; this.cam.init = true; }
   }
 
+  // A puff of smoke: one soft ball that grows and thins as it drifts. Several at once make the
+  // cloud, which is how a cartoon draws smoke — not one blob but a bunch of round ones.
+  _puff(x, y, vx, vy, r, life, col) {
+    if (this.particles.length > 240) return;      // a cloud, never a fog bank over the whole road
+    this.particles.push({ x, y, vx, vy, r, grow: r * 1.1, life, life0: life, col });
+  }
+
   addEffects(race, dt) {
     for (const car of race.cars) {
-      const pos = car.pos, h = car.heading;
+      const pos = car.pos, h = car.heading, c = car.cls;
+      const cs = Math.cos(h), sn = Math.sin(h), lx = Math.cos(h + Math.PI / 2), ly = Math.sin(h + Math.PI / 2);
+      // the two rear contact patches, where everything a tyre does happens
+      const wheel = (w) => [pos.x - cs * c.length * 0.35 + lx * w * c.width * 0.4, pos.y - sn * c.length * 0.35 + ly * w * c.width * 0.4];
+      // Which way the smoke is thrown: the tail is stepping out one way, so the rubber goes the
+      // other. `beta` is the angle between where the car points and where it is really going.
+      const side = Math.sign(car.beta) || 1;
+
       if (car.slide > 0.15 && car.state === 'ok' && car.v > 5) {
-        const side = Math.sign(car.drift) || 1;
         for (const w of [-1, 1]) {
-          const bx = pos.x - Math.cos(h) * car.cls.length * 0.35 + Math.cos(h + Math.PI / 2) * w * car.cls.width * 0.4;
-          const by = pos.y - Math.sin(h) * car.cls.length * 0.35 + Math.sin(h + Math.PI / 2) * w * car.cls.width * 0.4;
-          this.skids.push({ x: bx, y: by, a: h, l: car.v * dt * 1.2 + 0.3, alpha: Math.min(0.7, car.slide) });
+          const b = wheel(w);
+          this.skids.push({ x: b[0], y: b[1], a: h, l: car.v * dt * 1.2 + 0.3, alpha: Math.min(0.7, car.slide) });
         }
-        if (Math.random() < car.slide * 0.8) this.particles.push({ x: pos.x - Math.cos(h) * car.cls.length * 0.4, y: pos.y - Math.sin(h) * car.cls.length * 0.4, vx: -side * Math.cos(h + Math.PI / 2) * 2 + (Math.random() - 0.5) * 2, vy: -side * Math.sin(h + Math.PI / 2) * 2 + (Math.random() - 0.5) * 2, r: 0.6, life: 0.7, col: '200,200,200' });
+        // Tyre smoke: round puffs thrown out behind the car, one or two a frame. A cartoon draws
+        // smoke as a handful of distinct balls, so they have to stay few enough to be told apart —
+        // past that they merge into one grey sheet and the car disappears into it.
+        const n = (Math.random() < 0.55 + car.slide * 0.6 ? 1 : 0) + (car.slide > 0.55 && Math.random() < 0.45 ? 1 : 0);
+        for (let i = 0; i < n; i++) {
+          const b = wheel(Math.random() < 0.5 ? -1 : 1);
+          this._puff(
+            b[0] - cs * 0.7 + (Math.random() - 0.5) * 1.1, b[1] - sn * 0.7 + (Math.random() - 0.5) * 1.1,
+            -cs * (1 + car.v * 0.1) - side * lx * (1 + Math.random() * 2) + (Math.random() - 0.5) * 1.2,
+            -sn * (1 + car.v * 0.1) - side * ly * (1 + Math.random() * 2) + (Math.random() - 0.5) * 1.2,
+            // sizes spread wide on purpose: a row of equal balls reads as a caterpillar, not smoke
+            0.38 + car.slide * 0.5 + Math.random() * 0.55, 0.6 + car.slide * 0.5, '222,222,226');
+        }
+      }
+      // Wheelspin. Flat out at low speed the rear tyres are asked for more than they can hold, and
+      // the smoke is the proof: thickest off the line, gone once the car is really moving.
+      if (car.throttle && car.state === 'ok' && car.v < c.vmax * 0.3) {
+        const spin = Math.max(0, 1 - car.v / (c.vmax * 0.3));
+        if (Math.random() < spin * 0.85) {
+          const b = wheel(Math.random() < 0.5 ? -1 : 1);
+          this._puff(
+            b[0] - cs * 0.8 + (Math.random() - 0.5) * 0.5, b[1] - sn * 0.8 + (Math.random() - 0.5) * 0.5,
+            -cs * (1.2 + Math.random() * 2) + (Math.random() - 0.5) * 1.6,
+            -sn * (1.2 + Math.random() * 2) + (Math.random() - 0.5) * 1.6,
+            0.4 + spin * 0.55 + Math.random() * 0.2, 0.5 + spin * 0.45, '228,226,230');
+        }
       }
       if (car.state === 'grass') {
-        for (let i = 0; i < 2; i++) this.particles.push({ x: pos.x + (Math.random() - 0.5) * 3, y: pos.y + (Math.random() - 0.5) * 3, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6, r: 1.2, life: 0.9, col: '190,160,110' });
+        for (let i = 0; i < 2; i++) this._puff(pos.x + (Math.random() - 0.5) * 3, pos.y + (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, 1.2, 0.9, '190,160,110');
       }
+      this._water(car, pos, h, cs, sn, wheel, dt);
     }
     if (this.skids.length > 900) this.skids.splice(0, this.skids.length - 900);
-    for (const p of this.particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; p.r += dt * 1.5; }
+    if (this.wets.length > 700) this.wets.splice(0, this.wets.length - 700);
+    for (const w of this.wets) w.alpha -= dt * 0.1;
+    if (this.wets.length && this.wets[0].alpha <= 0) this.wets = this.wets.filter(w => w.alpha > 0);
+    for (const p of this.particles) {
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.vx -= p.vx * dt * 1.4; p.vy -= p.vy * dt * 1.4;      // the air stops it quickly
+      p.life -= dt;
+      p.r += (p.grow == null ? 1.5 : p.grow) * dt;
+    }
     this.particles = this.particles.filter(p => p.life > 0);
+  }
+
+  // Standing water. Clip a puddle and the car throws up spray and takes the water with it: wet
+  // tyres print a dark track on dry tarmac for a few dozen metres, until there is none left.
+  _water(car, pos, h, cs, sn, wheel, dt) {
+    if (!this.puddles || !this.puddles.length) return;
+    const d = this.damp.get(car) || { left: 0, acc: 0 };
+    if (car.v > 2) {
+      for (const q of this.puddles) {
+        const dx = pos.x - q.x, dy = pos.y - q.y;
+        const reach = q.r * q.long + car.cls.width * 0.5;
+        if (dx * dx + dy * dy > reach * reach) continue;
+        d.left = Math.max(d.left, 24 + car.v * 0.5);         // metres of road it will still mark
+        const n = 1 + Math.floor(Math.min(4, car.v / 12));
+        for (let i = 0; i < n; i++) {
+          const w = Math.random() < 0.5 ? -1 : 1, b = wheel(w);
+          this._puff(b[0], b[1],
+            -cs * car.v * 0.25 + Math.cos(h + w * Math.PI / 2) * (2 + Math.random() * 4),
+            -sn * car.v * 0.25 + Math.sin(h + w * Math.PI / 2) * (2 + Math.random() * 4),
+            0.35 + Math.random() * 0.4, 0.45, '188,214,232');
+        }
+        break;
+      }
+    }
+    if (d.left <= 0) { this.damp.delete(car); return; }
+    // A track is laid by the metre, not by the frame: at two hundred an hour a frame is three
+    // metres and at walking pace a few centimetres, and marking both the same way would either
+    // leave the trail in dashes or fill the list with specks nobody can see.
+    const run = Math.max(0, car.v) * dt;
+    d.left -= run;
+    d.acc += run;
+    const STEP = 0.9;
+    if (d.acc >= STEP) {
+      const l = Math.min(4, d.acc);
+      d.acc = 0;
+      for (const w of [-1, 1]) {
+        const b = wheel(w);
+        this.wets.push({ x: b[0], y: b[1], a: h, l: l + 0.15, alpha: Math.min(0.5, d.left / 40) });
+      }
+    }
+    if (d.left > 0) this.damp.set(car, d); else this.damp.delete(car);
   }
 
   // ---------- main draw ----------
@@ -493,6 +588,15 @@ class Renderer {
     if (this.showLines) this._drawGuide(g, race);
     this._drawStartLine(g, T);
     this._drawBoards(g, T, vis);
+    this._drawPuddles(g, vis);
+    // the damp a car carries out of a puddle: two tracks, fading as the water runs out
+    g.strokeStyle = PAL.wet; g.lineCap = 'butt';
+    g.lineWidth = 0.5;
+    for (const w of this.wets) {
+      g.globalAlpha = Math.max(0, w.alpha);
+      g.beginPath(); g.moveTo(w.x, w.y); g.lineTo(w.x - Math.cos(w.a) * w.l, w.y - Math.sin(w.a) * w.l); g.stroke();
+    }
+    g.globalAlpha = 1; g.lineCap = 'round';
     // skid marks
     g.strokeStyle = 'rgba(20,20,20,1)'; g.lineWidth = 0.35;
     for (const s of this.skids) {
@@ -504,6 +608,15 @@ class Renderer {
       g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = T.width + 5; g.stroke(b);
       g.strokeStyle = '#2f2f36'; g.lineWidth = T.width + 2.4; g.stroke(b);
       g.strokeStyle = '#4b4b52'; g.lineWidth = T.width; g.stroke(b);
+    }
+    // Smoke, under the cars. A puff fades over its own life rather than over a fixed second, so a
+    // big slow one stays up as long as it is meant to; and it thins as it grows, the way a cloud
+    // does. Drawn before the cars, because a car swallowed by its own smoke is a car the driver
+    // has lost sight of.
+    for (const p of this.particles) {
+      const t = p.life0 ? Math.max(0, p.life) / p.life0 : Math.max(0, p.life);
+      g.fillStyle = `rgba(${p.col},${(Math.min(1, t * 2.5) * 0.42).toFixed(3)})`;
+      g.beginPath(); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); g.fill();
     }
     if (this.tilt === 1) {
       this._drawTopProps(g, vis);
@@ -519,10 +632,6 @@ class Renderer {
       }
       items.sort((a, b) => a.y - b.y);
       for (const it of items) { if (it.car) this._drawCar(g, it.car); else this._drawProp(g, it.prop); }
-    }
-    for (const p of this.particles) {
-      g.fillStyle = `rgba(${p.col},${Math.max(0, p.life) * 0.6})`;
-      g.beginPath(); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); g.fill();
     }
     g.restore();
 
@@ -908,6 +1017,29 @@ class Renderer {
       g.fill();
       g.restore();
     }
+  }
+
+  // Standing water, drawn on top of the road and its markings — a puddle covers the white line, it
+  // does not sit under it. Flat shapes and no gradient, like everything else here: the dark of the
+  // water, a bright lip where the light catches the near edge, and a slick of sky caught inside.
+  _drawPuddles(g, vis) {
+    for (const q of this.puddles || []) {
+      const reach = q.r * q.long + 1;
+      if (q.x < vis.minX - reach || q.x > vis.maxX + reach || q.y < vis.minY - reach || q.y > vis.maxY + reach) continue;
+      g.save();
+      g.translate(q.x, q.y);
+      g.rotate(q.th);
+      g.scale(q.long, 1);
+      // the lip first, as a slightly larger shape the water is then laid inside
+      g.globalAlpha = q.onRoad ? 0.5 : 0.3;
+      blob(g, 0, q.r * 0.06, q.r * 1.1, 9, PAL.puddleLight, 0.17, q.phase);
+      g.globalAlpha = q.onRoad ? 0.92 : 0.72;
+      blob(g, 0, 0, q.r, 9, PAL.puddle, 0.17, q.phase);
+      g.globalAlpha = q.onRoad ? 0.55 : 0.4;
+      blob(g, -q.r * 0.2, -q.r * 0.22, q.r * 0.42, 7, PAL.puddleLight, 0.22, q.phase + 1.7);
+      g.restore();
+    }
+    g.globalAlpha = 1;
   }
 
   // Scenery for the flat view: objects drawn as a bird sees them, shadow baked in, no rotation —

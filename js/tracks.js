@@ -22,7 +22,7 @@ const TRACKS = [
   },
   {
     id: 'spa', name: 'Spa-Francorchamps', country: 'BE', flag: '🇧🇪', theme: 'forest',
-    length: 3400, width: 14, laps: 3,
+    length: 3400, width: 14, laps: 3, puddles: 0.5,
     pts: [
       [0, 40], [0, 20],
       [2, 8], [9, 2], [17, 5], [21, 14],
@@ -61,7 +61,7 @@ const TRACKS = [
   },
   {
     id: 'silverstone', name: 'Silverstone', country: 'GB', flag: '🇬🇧', theme: 'autumn',
-    length: 3300, width: 16, laps: 3,
+    length: 3300, width: 16, laps: 3, puddles: 0.4,
     pts: [
       [0, 120], [0, 80], [0, 40],
       [4, 26], [16, 16],

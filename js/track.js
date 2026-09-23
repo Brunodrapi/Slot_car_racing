@@ -19,6 +19,7 @@ class Track {
     this.id = def.id;
     this.name = def.name;
     this.theme = def.theme || 'classic';    // palette, see THEMES in js/render.js
+    this.puddles = def.puddles || 0;        // standing water: how often, 0 for a dry circuit
     this.laps = def.laps || 3;
     this.ds = 1;
     this.widthScale = widthScale || 1;

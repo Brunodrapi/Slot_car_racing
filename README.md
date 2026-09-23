@@ -222,6 +222,33 @@ Quatre valeurs suffisent à lire le comportement de la voiture :
 seuils et les mêmes couleurs. Les deux angles de dérive (avant / arrière) et le braquage sont affichés en
 dessous : avant > arrière = sous-virage, arrière > avant = survirage.
 
+### L'adhérence est-elle bien dosée ?
+
+`cornerSpeedFor` n'est que de l'arithmétique sur `grip` : elle promet une vitesse de passage. Rien ne
+garantit que le modèle à deux trains la tienne, une fois les angles de dérive et le lacet passés par
+là. `tools/corner.js` vérifie la promesse virage par virage, sur les douze circuits, en lisant la
+force latérale que les pneus produisent vraiment — leur somme **est** l'accélération latérale, c'est
+la seule force en jeu.
+
+Verdict, en GT à marge 1 (le pilote automatique au maximum), 75 virages :
+
+| Mesure | Médiane | 1er décile | 9e décile |
+| --- | --- | --- | --- |
+| vitesse réelle / théorique | 100 % | 88 % | 112 % |
+| adhérence employée | 101 % | 75 % | 102 % |
+| rayon suivi / rayon du tracé | 93 % | 76 % | 131 % |
+
+L'adhérence employée ne dépasse jamais **103 %**, et ce plafond n'est pas un hasard : la grip d'un
+essieu vaut `gripAt(v) × 0,5`, celle de l'autre la même chose multipliée par `rearBias`, donc une
+voiture légèrement sous-vireuse dispose d'un pour cent de rab au total. Les deux chiffres sont donc
+d'accord : une voiture passe bien les virages à la vitesse que l'arithmétique lui annonce.
+
+La marge de difficulté se lit aussi comme elle se lit : 0,85 donne 81 % de la vitesse théorique,
+0,90 donne 89 %, 0,95 donne 94 %. Ce n'est pas un bouton flou, c'est la fraction annoncée.
+
+En g, pour juger sur pièces : F1 classiques 1,17 g de latéral à l'arrêt et 1,53 g à 274 km/h ; GT
+1,43 → 2,15 g ; prototypes 1,45 → 3,14 g ; F1 modernes 1,94 → 5,42 g à 349 km/h.
+
 ## Style
 
 ### Chaque circuit chez lui
@@ -274,6 +301,25 @@ distance à la route et la largeur au large.
 
 Les champs qu'un thème ne nomme pas viennent de `THEME_BASE`, au début de `js/render.js`.
 
+### Les flaques
+
+**Spa** et **Silverstone** ont de l'eau sur la piste. Elle se pose là où une route se vide : le long
+des bords, à l'intérieur de la ligne blanche, et dans les creux juste hors bitume. Jamais au milieu
+de la route — une flaque sur la trajectoire idéale transformerait le circuit en loterie.
+
+Une flaque est étirée dans l'axe de la route, parce qu'une flaque de bord de piste prend la forme de
+l'arête contre laquelle elle s'amasse ; une mare ronde au milieu d'une ligne droite ressemble à un
+trou. Trois aplats et aucun dégradé, comme tout le reste ici : le sombre de l'eau, une lèvre claire
+là où la lumière prend le bord, et une nappe de ciel à l'intérieur.
+
+Une voiture qui en accroche une lève une **gerbe** et **repart avec l'eau** : les pneus mouillés
+impriment deux traces sombres sur le bitume sec pendant quelques dizaines de mètres, jusqu'à ce
+qu'il n'en reste plus. La trace se pose **au mètre et non à l'image** — à deux cents à l'heure une
+image fait trois mètres, au pas quelques centimètres, et les marquer pareil donnerait soit des
+pointillés soit une liste de miettes invisibles.
+
+`puddles: 0.5` sur la définition du circuit dit à quelle fréquence, `0` (par défaut) pour un circuit sec.
+
 Le décor vise un rendu **cartoon isométrique** : bitume sombre et plat, contour foncé marqué autour de
 la route, ligne jaune discontinue au milieu, marquages blancs sur les bords, herbe saturée à taches
 carrées alignées sur une grille de pixels.
@@ -285,6 +331,19 @@ gélules. Une forme pleine n'a pas d'embout, donc les arêtes restent franches �
 fait de les décaler de la ligne blanche compte autant : à cheval dessus, les blocs blancs
 disparaissaient dans la peinture et le vibreur se lisait comme une file de tirets bleus. Les voitures venant d'une
 planche sont dessinées **sans lissage**, pour que le pixel art reste net.
+
+### La fumée
+
+Les pneus fument en glisse **et à la remise des gaz** : à pleine charge sous les 30 % de la vitesse
+maximale, les roues arrière demandent plus qu'elles ne tiennent, et la fumée le dit — la plus épaisse
+au départ arrêté, disparue dès que la voiture avance vraiment.
+
+Un dessin animé dessine la fumée comme une poignée de **boules distinctes**, pas comme une nappe.
+Elles doivent donc rester assez peu nombreuses pour se distinguer les unes des autres : au-delà, elles
+fusionnent en un drap gris et la voiture disparaît dedans. D'où une bouffée ou deux par image, jamais
+plus de 240 à l'écran, des tailles volontairement très dispersées — une file de boules égales se lit
+comme une chenille — et un tracé **sous les voitures**, parce qu'une voiture avalée par sa propre
+fumée est une voiture que le pilote a perdue de vue.
 
 ### Panneaux de freinage
 
@@ -485,6 +544,7 @@ node tools/step.js <circuit> <catégorie> [marge] [-v]                          
 node tools/sweep.js '[{},{"yawK":4}]'                                             # balayage des réglages physiques
 node tools/jump.js <circuit> <catégorie> <marge>                                  # continuité du déplacement
 node tools/line.js [circuit|all] [catégorie] [-v]                                # ce que vaut une trajectoire
+node tools/corner.js [circuit|all] [catégorie] [marge] [-v]                      # vitesse réelle contre vitesse théorique, virage par virage
 node tools/netsim.js <circuit> [secondes] [perte %] [format]                      # deux écrans en réseau, sans navigateur
 NODE_PATH=$(npm root -g) node tools/e2e-net.js <dossier> [format]                 # deux onglets, une table, une course
 NODE_PATH=$(npm root -g) node tools/arrow.js <circuit>                            # sens des flèches des panneaux
