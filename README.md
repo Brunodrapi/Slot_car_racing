@@ -682,6 +682,79 @@ trois ou quatre minutes selon la vitesse de la catégorie.
 Les courses de championnat gardent leur longueur : elle fait partie du championnat, pas des
 réglages.
 
+## Le son des voitures
+
+Deux méthodes se partagent le métier : le **fondu enchaîné d'enregistrements** par régime, celle
+des simulateurs, et la **synthèse**. La première demande une douzaine de boucles par voiture et par
+perspective — un muscle car qui coupe à 5500 tr/min en réclame treize, et il en faut une série par
+perspective (échappement, moteur, admission, habitacle). À neuf voitures cela ferait des
+mégaoctets à télécharger sur un téléphone, et surtout des enregistrements génériques feraient
+sonner un flat-12 comme un six en ligne, ce qui est exactement ce qu'on cherche à éviter.
+
+La synthèse est ici la bonne réponse parce que **la différence entre ces voitures est
+arithmétique**. Un quatre-temps allume `cyl / 2` fois par tour de vilebrequin, donc la fréquence
+d'allumage vaut
+
+```
+f = tr/min ÷ 60 × cyl ÷ 2
+```
+
+À 6000 tr/min : 300 Hz pour un six en ligne, 400 pour un V8, 600 pour un V12. **Une octave sépare
+le six du douze**, sans rien avoir à enregistrer.
+
+Les **ordres moteur** sont les harmoniques de la rotation du vilebrequin. Plutôt que d'empiler
+douze oscillateurs, on en prend donc **un seul**, muni d'une `PeriodicWave` dont les coefficients
+*sont* les ordres, et on lui donne pour fréquence `tr/min ÷ 60` : l'allumage tombe alors sur
+l'harmonique `cyl/2` et tout le spectre suit. Les ordres **inférieurs** à l'allumage ne devraient
+pas exister sur un moteur équilibré, et c'est précisément leur présence qui fait le grondement d'un
+V8 à vilebrequin croisé — le champ `rough` les dose, et c'est lui qui sépare la Corvette de la
+Countach à cylindrée et régime comparables.
+
+Le reste est du réalisme de comportement, et c'est lui qui fait le plus d'effet :
+
+- **le régime suit les rapports, pas la vitesse.** Sans boîte, un moteur monte du ralenti au
+  rupteur en une seule fois sur toute la plage : rien ne sonne plus faux, et c'est ce que faisait
+  la version précédente. Cinq rapports, serrés en bas, longs en haut, avec 90 ms de coupure à
+  l'embrayage — assez pour entendre le rapport passer.
+- **la charge change le timbre.** Pied dedans, l'admission et son souffle sont là ; pied levé,
+  l'admission disparaît et l'échappement s'assombrit.
+- **le turbo** siffle d'autant plus fort que le régime monte, et retombe d'un coup au lever.
+- **le vent** ne connaît que la vitesse, et tient la scène quand on lève le pied.
+
+Chaque voiture porte son vrai moteur dans `js/cars.js` (`engine`) : six en ligne pour la M1 Procar
+et la CSL, V8 à vilebrequin plat et biturbo pour la F40, flat-6 turbo pour la 911, V12 pour la
+Countach, flat-12 pour la Testarossa et la 917, gros V8 croisé pour la GT40 et la Corvette.
+
+### Mesuré, pas écouté
+
+`NODE_PATH=$(npm root -g) node tools/e2e-audio.js` rend le son **hors ligne** dans un
+`OfflineAudioContext`, en prend le spectre par transformée directe, et vérifie deux choses qu'aucune
+capture d'écran ne montre :
+
+| voiture | cyl | tr/min | allumage attendu | pic mesuré |
+| --- | --- | --- | --- | --- |
+| M1 Procar | 6 | 3893 | 195 Hz | 194 Hz |
+| F40 | 8 | 3361 | 224 Hz | 224 Hz |
+| Countach | 12 | 3242 | 324 Hz | 324 Hz |
+| GT40 Mk II | 8 | 2689 | 179 Hz | 180 Hz |
+| 917 K | 12 | 3662 | 366 Hz | 366 Hz |
+| Corvette | 8 | 2598 | 173 Hz | 174 Hz |
+
+Les neuf tombent à moins de 0,5 % de leur fréquence d'allumage théorique, et le rapport
+douze-cylindres sur six-cylindres ramené au même régime vaut **2,01** — l'octave, comme la physique
+l'exige. L'outil compte aussi les chutes de régime le long de la plage de vitesse : quatre, soit
+les quatre passages de rapport d'une boîte à cinq.
+
+### Et les banques de sons ?
+
+Sonniss et Pixabay répondent **403** depuis ce bac à sable, et l'API de Freesound demande une clé
+que je n'ai pas ; Freesound et Mixkit restent atteignables en page publique. Mais le point qui
+décide n'est pas l'accès : un enregistrement générique de « moteur de voiture » ne fait pas
+entendre la différence entre un flat-12 et un six en ligne, alors que l'arithmétique ci-dessus le
+fait gratuitement. Les banques gardent tout leur intérêt pour ce que la synthèse rend mal et qui ne
+dépend pas de la voiture — impacts, gravier, ambiance de stands. C'est le prochain pas naturel, et
+il demande une clé d'API ou des fichiers déposés dans le dépôt.
+
 ## L'équilibre entre les voitures
 
 Une différence de caractère est un choix offert au joueur ; cinq secondes au tour n'en est pas un,
@@ -783,6 +856,7 @@ node tools/line.js [circuit|all] [catégorie] [-v]                              
 node tools/corner.js [circuit|all] [catégorie] [marge] [-v]                      # vitesse réelle contre vitesse théorique, virage par virage
 node tools/diff.js [circuit|all] [catégorie] [-sans-elastique] [-table=…]         # ce que valent vraiment les trois difficultés
 node tools/models.js [catégorie] [marge]                                          # chaque voiture : tour idéal, tour réel, prix du pilotage
+NODE_PATH=$(npm root -g) node tools/e2e-audio.js                                  # spectre de chaque moteur et étagement de la boîte
 NODE_PATH=$(npm root -g) node tools/e2e-splash.js [dossier]                       # l'écran-titre, sur téléphone et sur bureau
 NODE_PATH=$(npm root -g) node tools/e2e-menu.js [dossier]                         # le menu-affiche : bandeaux, dépliage, destinations
 node tools/bump.js [patch|minor|major]                                            # numéro de version + cassage du cache

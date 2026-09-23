@@ -7,12 +7,24 @@
 //  roadScale (road width factor) · zoom (camera)
 //  sheet: folder of a rotation sheet (v0..vN-1.png) used by the isometric view; sheetRear names the rear view
 //  sheetW / sheetAnchor: for a sheet rendered in a fixed frame, its width in metres and the ground point
+//
+//  engine: what the car sounds like, and it is real engine data rather than a tone choice.
+//    cyl      cylinders. A four-stroke fires cyl/2 times per crank revolution, so this alone sets
+//             the note: at the same rpm a V12 sounds an octave above a straight-six. It is the
+//             single thing that tells two cars apart by ear.
+//    redline  rpm at the top of the rev range, reached in top gear at vmax
+//    idle     rpm at rest
+//    rough    how uneven the firing feels, 0 to 1. A cross-plane V8 (Corvette, GT40) fires
+//             unevenly and rumbles; a flat-plane V8, a V12 or a straight-six is smooth.
+//    bright   how much upper-order content, 0 to 1: a racing engine screams, a road V8 thumps
+//    turbo    0 to 1, the whistle and the blow-off on lift
 'use strict';
 
 const CATEGORIES = [
   {
     id: 'f1classic', name: { fr: 'F1 classiques', en: 'Classic F1' },
     desc: { fr: 'Années 60-70 : pneus fins, peu d’appui, châssis nerveux. La moindre erreur se paie.', en: '60s-70s: skinny tyres, little downforce, twitchy. Every mistake costs.' },
+    engine: { cyl: 12, redline: 10500, idle: 2200, rough: 0.1, bright: 0.95, turbo: 0 },
     base: { vmax: 76, accel: 8.5, brake: 13, grip: 11.5, df: 0.0006, slide: 0.85, laneK: 5, rearBias: 1.0, cliff: 0.25, slipPeak: 0.14, length: 4.1, width: 1.8 },
     drivers: 10, roadScale: 0.9, zoom: 1.1,
     models: [
@@ -27,6 +39,7 @@ const CATEGORIES = [
   {
     id: 'f1modern', name: { fr: 'F1 modernes', en: 'Modern F1' },
     desc: { fr: 'Appui énorme, freinages ultra tardifs, virages rapides à fond. Très stables.', en: 'Huge downforce, very late braking, fast corners flat out. Very stable.' },
+    engine: { cyl: 6, redline: 14000, idle: 3500, rough: 0.05, bright: 0.98, turbo: 0.45 },
     base: { vmax: 96, accel: 11, brake: 32, grip: 19, df: 0.0075, slide: 0.9, laneK: 7, rearBias: 1.1, cliff: 0.1, slipPeak: 0.07, length: 5.3, width: 2.0 },
     drivers: 12, roadScale: 1, zoom: 1,
     models: [
@@ -41,23 +54,25 @@ const CATEGORIES = [
   {
     id: 'gt', name: { fr: 'GT', en: 'GT' },
     desc: { fr: 'Les icônes : M1 Procar, F40, Countach, 911 Turbo… Lourdes, puissantes, joueuses.', en: 'The icons: M1 Procar, F40, Countach, 911 Turbo… Heavy, powerful, playful.' },
+    engine: { cyl: 8, redline: 7000, idle: 1000, rough: 0.35, bright: 0.6, turbo: 0 },
     base: { vmax: 70, accel: 8, brake: 17, grip: 13.5, df: 0.0015, slide: 0.6, laneK: 6, rearBias: 1.06, cliff: 0.18, slipPeak: 0.12, length: 4.5, width: 2.0 },
     drivers: 10, roadScale: 0.9, zoom: 1.15,
     models: [
-      { id: 'm1procar', name: 'M1 Procar', shape: 'gtBoxy', mul: { vmax: 0.98, grip: 1.04, brake: 1.03 }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/m1procar.png', sheet: 'sprites/m1procar', sheetN: 16, sheetRear: 0, sheetW: 5.122, sheetAnchor: [0.494, 0.821] },
-      { id: 'f40', name: 'F40', shape: 'f40', mul: { vmax: 1.05, accel: 1.06, grip: 0.98, df: 1.5 }, colors: ['#e0262c', '#22242b'], top: 'sprites/top/f40.png', sheet: 'sprites/f40lm', sheetN: 8, sheetRear: 3 },
-      { id: 'countach', name: 'Countach LP500', shape: 'wedgeGT', mul: { vmax: 1.03, accel: 1.02, grip: 0.95, brake: 0.95 }, colors: ['#ffd400', '#22242b'], top: 'sprites/top/countach.png' },
-      { id: '930', name: '911 Turbo', shape: 'roundGT', mul: { vmax: 0.99, accel: 1.04, grip: 0.97, slide: 1.2 }, colors: ['#c9ced6', '#e0262c'], top: 'sprites/top/930.png', sheet: 'sprites/930', sheetN: 16, sheetRear: 0, sheetW: 4.803, sheetAnchor: [0.499, 0.841] },
-      { id: 'testarossa', name: 'Testarossa', shape: 'wideGT', mul: { vmax: 1.0, grip: 1.0, brake: 0.98 }, colors: ['#e0262c', '#f4f4f4'], sheet: 'sprites/testarossa', sheetN: 16, sheetRear: 12, sheetW: 5.125, sheetAnchor: [0.512, 0.862] },
-      { id: 'gt40', name: 'GT40 Mk II', shape: 'gt40', mul: { vmax: 1.06, accel: 1.02, grip: 0.99, df: 0.85, brake: 0.97, slide: 1.1 }, colors: ['#5bc8e8', '#ff8c1a'], top: 'sprites/top/gt40.png' },
-      { id: '917k', name: '917 K', shape: 'longTail', mul: { vmax: 1.10, accel: 1.05, grip: 1.0, df: 1.4, brake: 0.93, slide: 1.15 }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/917.png' },
-      { id: 'corvette', name: 'Corvette', shape: 'roundGT', mul: { vmax: 1.04, accel: 1.06, grip: 0.97, df: 0.9, brake: 0.95, slide: 1.3 }, colors: ['#d8dce2', '#e0262c'], top: 'sprites/top/corvette.png' },
-      { id: 'csl', name: '3.0 CSL', shape: 'gtBoxy', mul: { vmax: 0.95, accel: 0.98, grip: 1.05, df: 1.2, brake: 1.03, slide: 1.1 }, colors: ['#f7f7f7', '#2166d8'], top: 'sprites/top/csl.png' },
+      { id: 'm1procar', name: 'M1 Procar', shape: 'gtBoxy', mul: { vmax: 0.98, grip: 1.04, brake: 1.03 }, engine: { cyl: 6, redline: 9000, idle: 1100, rough: 0.15, bright: 0.78, turbo: 0 }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/m1procar.png', sheet: 'sprites/m1procar', sheetN: 16, sheetRear: 0, sheetW: 5.122, sheetAnchor: [0.494, 0.821] },
+      { id: 'f40', name: 'F40', shape: 'f40', mul: { vmax: 1.05, accel: 1.06, grip: 0.98, df: 1.5 }, engine: { cyl: 8, redline: 7750, idle: 1000, rough: 0.15, bright: 0.8, turbo: 0.9 }, colors: ['#e0262c', '#22242b'], top: 'sprites/top/f40.png', sheet: 'sprites/f40lm', sheetN: 8, sheetRear: 3 },
+      { id: 'countach', name: 'Countach LP500', shape: 'wedgeGT', mul: { vmax: 1.03, accel: 1.02, grip: 0.95, brake: 0.95 }, engine: { cyl: 12, redline: 7500, idle: 900, rough: 0.05, bright: 0.88, turbo: 0 }, colors: ['#ffd400', '#22242b'], top: 'sprites/top/countach.png' },
+      { id: '930', name: '911 Turbo', shape: 'roundGT', mul: { vmax: 0.99, accel: 1.04, grip: 0.97, slide: 1.2 }, engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.3, bright: 0.6, turbo: 0.85 }, colors: ['#c9ced6', '#e0262c'], top: 'sprites/top/930.png', sheet: 'sprites/930', sheetN: 16, sheetRear: 0, sheetW: 4.803, sheetAnchor: [0.499, 0.841] },
+      { id: 'testarossa', name: 'Testarossa', shape: 'wideGT', mul: { vmax: 1.0, grip: 1.0, brake: 0.98 }, engine: { cyl: 12, redline: 6800, idle: 900, rough: 0.05, bright: 0.7, turbo: 0 }, colors: ['#e0262c', '#f4f4f4'], sheet: 'sprites/testarossa', sheetN: 16, sheetRear: 12, sheetW: 5.125, sheetAnchor: [0.512, 0.862] },
+      { id: 'gt40', name: 'GT40 Mk II', shape: 'gt40', mul: { vmax: 1.06, accel: 1.02, grip: 0.99, df: 0.85, brake: 0.97, slide: 1.1 }, engine: { cyl: 8, redline: 6200, idle: 800, rough: 0.6, bright: 0.45, turbo: 0 }, colors: ['#5bc8e8', '#ff8c1a'], top: 'sprites/top/gt40.png' },
+      { id: '917k', name: '917 K', shape: 'longTail', mul: { vmax: 1.10, accel: 1.05, grip: 1.0, df: 1.4, brake: 0.93, slide: 1.15 }, engine: { cyl: 12, redline: 8400, idle: 1200, rough: 0.1, bright: 0.95, turbo: 0 }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/917.png' },
+      { id: 'corvette', name: 'Corvette', shape: 'roundGT', mul: { vmax: 1.04, accel: 1.06, grip: 0.97, df: 0.9, brake: 0.95, slide: 1.3 }, engine: { cyl: 8, redline: 6000, idle: 750, rough: 0.7, bright: 0.4, turbo: 0 }, colors: ['#d8dce2', '#e0262c'], top: 'sprites/top/corvette.png' },
+      { id: 'csl', name: '3.0 CSL', shape: 'gtBoxy', mul: { vmax: 0.95, accel: 0.98, grip: 1.05, df: 1.2, brake: 1.03, slide: 1.1 }, engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.1, bright: 0.68, turbo: 0 }, colors: ['#f7f7f7', '#2166d8'], top: 'sprites/top/csl.png' },
     ],
   },
   {
     id: 'protoclassic', name: { fr: 'Prototypes classiques', en: 'Classic prototypes' },
     desc: { fr: 'Le Mans 82-91 : 962, XJR-9, 787B, C9… Très rapides en ligne droite, de l’appui, longues à arrêter.', en: 'Le Mans 82-91: 962, XJR-9, 787B, C9… Very fast in a straight line, real downforce, long to stop.' },
+    engine: { cyl: 12, redline: 8200, idle: 1500, rough: 0.1, bright: 0.85, turbo: 0 },
     base: { vmax: 84, accel: 9, brake: 20, grip: 14.5, df: 0.0035, slide: 0.7, laneK: 6, rearBias: 1.06, cliff: 0.15, slipPeak: 0.11, length: 4.8, width: 2.0 },
     drivers: 10, roadScale: 1, zoom: 1.05,
     models: [
@@ -107,6 +122,8 @@ function resolveModel(cat, m) {
     rearBias: (b.rearBias || 1.04) / Math.pow(mul.slide || 1, 0.5), cliff: b.cliff == null ? 0.25 : b.cliff, slipPeak: (b.slipPeak || 0.1) * Math.pow(mul.slide || 1, 0.5),
     length: m.length || b.length, width: m.width || b.width,
     drivers: cat.drivers, roadScale: cat.roadScale, zoom: cat.zoom,
+    // le moteur : celui de la catégorie, que la voiture peut reprendre champ par champ
+    engine: Object.assign({ cyl: 8, redline: 7000, idle: 1000, rough: 0.3, bright: 0.6, turbo: 0 }, cat.engine || {}, m.engine || {}),
   };
   return model;
 }
