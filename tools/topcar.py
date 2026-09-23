@@ -14,6 +14,11 @@ Le fond est retire par remplissage depuis le bord et non par seuil de couleur : 
 blanche sur fond blanc, et un seuil la mangerait entiere. Le trait sombre qui entoure la carrosserie
 arrete le remplissage, le blanc interieur est donc conserve.
 
+`--tol` se regle sur la voiture, pas sur le fond : il doit rester sous l ecart qui separe le fond du
+bord le plus clair de la carrosserie. Quatorze pour une M1 blanche, quarante-cinq pour une Countach
+noire — trop serre sur celle-ci, il laisse un lisere blanc tout autour, et la reduction le transforme
+en halo.
+
 L image est ensuite redressee — l axe long de la voiture est mesure et ramene a l horizontale — puis
 tournee pour que l avant pointe vers la droite, ce que le jeu attend, et rognee au plus juste.
 """

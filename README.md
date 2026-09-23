@@ -110,10 +110,14 @@ Un modèle peut fournir un **dessin de la vraie voiture vue à la verticale** (`
 leurs couleurs, pas une forme à peindre. L'ombre suit leur contour au lieu
 d'être un rectangle posé dessous — la silhouette est remplie de noir une fois et gardée.
 
-`tools/topcar.py <image> <id du modèle> [--nose=left] [--width=420]` prépare une illustration. Le
-fond est retiré par **remplissage depuis le bord** et non par seuil de couleur : une M1 Procar est
-blanche sur fond blanc, et un seuil la mangerait entière — le trait sombre qui entoure la
-carrosserie arrête le remplissage, le blanc intérieur est conservé. L'image est ensuite redressée
+`tools/topcar.py <image> <id du modèle> [--nose=left] [--tol=14] [--peel=0]` prépare une
+illustration. Le fond est retiré par **remplissage depuis le bord** et non par seuil de couleur :
+une M1 Procar est blanche sur fond blanc, et un seuil la mangerait entière — le trait sombre qui
+entoure la carrosserie arrête le remplissage, le blanc intérieur est conservé.
+
+`--tol` se règle **sur la voiture, pas sur le fond** : il doit rester sous l'écart qui sépare le
+fond du bord le plus clair de la carrosserie. Quatorze pour une M1 blanche, quarante-cinq pour une
+Countach noire. Trop serré sur celle-ci, il laisse un liséré blanc tout autour. L'image est ensuite redressée
 (l'axe long de la voiture est mesuré et ramené à l'horizontale, ce qui a valu un tiers de degré à la
 F40) puis tournée pour que l'avant pointe vers la droite, ce que le jeu attend.
 
@@ -394,8 +398,8 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
 - **6 voitures GT** : *M1 Procar*, *F40*, *Countach LP500*, *911 Turbo*, *Testarossa*, *XJ220*.
   On choisit sa voiture, et rien d'autre : plus de livrée à régler. En ligne, la place à la table
   donne la couleur, si bien que deux pilotes ne se ressemblent jamais sans avoir eu à en discuter.
-  La M1 Procar, la F40 LM et la 911 Martini sont représentées d'après la vraie voiture vue du dessus
-  (plus la 787B, rangée dans les prototypes classiques) ; la Countach, la Testarossa et la XJ220
+  La M1 Procar, la F40 LM, la 911 Martini et la Countach sont représentées d'après la vraie voiture
+  vue du dessus (plus la 787B, rangée dans les prototypes classiques) ; la Testarossa et la XJ220
   gardent leur silhouette vectorielle. Quatre ont en plus une planche de rotations, qui ne sert
   qu'à la vue isométrique.
 - **12 circuits** inspirés de vrais tracés : Monza, Spa-Francorchamps, Monaco, Silverstone, Suzuka
