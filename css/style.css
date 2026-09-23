@@ -41,6 +41,9 @@ button.danger { color: var(--danger); }
 button.link { background: none; border: none; color: var(--muted); text-decoration: underline; padding: 6px 0; font-size: 13px; }
 .menu { display: flex; flex-direction: column; gap: 12px; width: min(360px, 100%); }
 .howto { margin-top: 24px; max-width: 560px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+/* Which build this is. Small, but on the first screen: it is the only way to tell a deploy that
+   has not happened from a cache that has not expired. */
+.version { margin-top: 20px; color: var(--muted); font-size: 12px; opacity: 0.6; letter-spacing: 0.03em; }
 .topbar { display: flex; align-items: center; gap: 14px; }
 .topbar button { padding: 8px 14px; }
 .row { display: flex; gap: 12px; align-items: center; }

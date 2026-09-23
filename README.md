@@ -577,6 +577,26 @@ js/main.js                 boucle de jeu, entrées, enchaînement
 tools/                     scripts de développement (simulation IA headless, diagnostics physique, tests Playwright)
 ```
 
+## Numéro de version
+
+Le menu porte en bas le numéro du build et sa date — `v0.15.0 · 2026-09-23`. Ce n'est pas de la
+décoration : le jeu est une poignée de fichiers statiques servis depuis une branche, et GitHub
+Pages comme le navigateur en gardent des copies. Sans ce numéro, « est-ce que ce que je regarde
+est bien ce qui vient d'être poussé ? » n'a pas de réponse depuis l'écran — on recharge, rien ne
+bouge, et rien ne distingue un déploiement qui n'a pas eu lieu d'un cache qui n'a pas expiré.
+
+```
+node tools/bump.js [patch|minor|major]     # patch par défaut
+```
+
+Deux choses bougent ensemble, et c'est le but. Le numéro de `js/version.js` est ce que le menu
+affiche, donc une capture d'écran dit de quel build elle vient. Le `?v=` ajouté à chaque script et
+à la feuille de style est ce qui **force** le navigateur à aller rechercher les fichiers — sans
+lui, le numéro change dans les sources et personne ne le voit jamais, ce qui est exactement la
+panne que tout ceci sert à détecter.
+
+À lancer avant de pousser une modification visible.
+
 ## Outils de développement
 
 ```
@@ -589,6 +609,7 @@ node tools/sweep.js '[{},{"yawK":4}]'                                           
 node tools/jump.js <circuit> <catégorie> <marge>                                  # continuité du déplacement
 node tools/line.js [circuit|all] [catégorie] [-v]                                # ce que vaut une trajectoire
 node tools/corner.js [circuit|all] [catégorie] [marge] [-v]                      # vitesse réelle contre vitesse théorique, virage par virage
+node tools/bump.js [patch|minor|major]                                            # numéro de version + cassage du cache
 node tools/netsim.js <circuit> [secondes] [perte %] [format]                      # deux écrans en réseau, sans navigateur
 NODE_PATH=$(npm root -g) node tools/e2e-net.js <dossier> [format]                 # deux onglets, une table, une course
 NODE_PATH=$(npm root -g) node tools/arrow.js <circuit>                            # sens des flèches des panneaux

@@ -162,6 +162,7 @@ class UI {
         <div class="row"><button data-action="editor">${t('editor')}</button><button data-action="workshop">${t('workshop')}</button><button data-action="settings">${t('settings')}</button></div>
       </div>
       <div class="howto"><b>${t('tipTitle')}</b> — ${t('howto')}</div>
+      <div class="version">v${APP_VERSION} · ${APP_DATE}</div>
     `, 'center');
   }
 
