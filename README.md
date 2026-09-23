@@ -597,6 +597,32 @@ trois ou quatre minutes selon la vitesse de la catégorie.
 Les courses de championnat gardent leur longueur : elle fait partie du championnat, pas des
 réglages.
 
+## Les trois difficultés
+
+Elles tenaient entre 0,78 et 0,90 de la vitesse de passage que l'adhérence autorise, ce qui mettait
+à peine **sept pour cent** de rythme de course entre le réglage le plus facile et le plus dur. Un
+joueur ne pouvait pas sentir la différence — et c'est la seule chose à quoi sert un réglage de
+difficulté. Elles vont maintenant de 0,70 à 0,93, et de douze pour cent.
+
+Mesuré avec `tools/diff.js` sur le **rythme de course** (temps total ÷ tours, fautes comprises) et
+non sur le meilleur tour, en GT, sur les douze circuits :
+
+| | avant | après | sorties de piste, après |
+| --- | --- | --- | --- |
+| Facile | 89,5 s | **93,4 s** | 0,1 |
+| Moyen | 85,9 s | **86,8 s** | 2,3 |
+| Difficile | 83,4 s | **82,1 s** | 10,3 |
+| écart facile → difficile | 6,9 % | **12,1 %** | |
+
+Le niveau difficile fait plus de fautes qu'avant, et c'est le marché : un peloton qui roule aussi
+près de la limite dans le trafic pose une roue dans l'herbe. Il tourne tout de même cinq secondes
+plus vite que le niveau moyen, donc les fautes sont payées plusieurs fois — et ce sont elles qui
+donnent au joueur un moyen de passer.
+
+L'élastique (qui freine une IA très détachée et aide un retardataire) n'a presque aucune part dans
+tout cela : en le retirant, l'écart passait de 6,7 à 7,3 %. Six dixièmes de point. C'est une piste
+qu'il valait mieux mesurer que suivre.
+
 ## Le plafond de marge de l'IA
 
 `margin` multiplie la vitesse de passage que l'adhérence autorise, donc **tout ce qui dépasse 1 est

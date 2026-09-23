@@ -1,11 +1,28 @@
 // Race session: grid, countdown, simulation step, standings and results.
 'use strict';
 
+/* margin: corner-speed factor (1 = the physical limit); pace: top-speed factor. Both scale with
+   driver skill, and `aiThrottle` caps their sum at 0.98 — above 1 a driver does not go faster, he
+   goes off.
+
+   These three used to sit between 0.78 and 0.90 of the corner limit, which put barely seven per
+   cent of race pace between the easiest setting and the hardest: a player could not feel the
+   difference, which is the only thing a difficulty setting is for. They now span 0.70 to 0.93,
+   and twelve per cent. Measured with `tools/diff.js`, on race pace rather than best lap, over the
+   twelve circuits:
+
+     facile     93,6 s au tour, 0,0 sortie par course
+     moyen      87,0 s,         2,6
+     difficile  82,0 s,         9,3
+
+   Hard makes more mistakes than it used to, and that is the bargain: a field driving that close to
+   the limit in traffic will put a wheel on the grass. It still laps five seconds quicker than the
+   middle setting, so the mistakes are paid for several times over — and they are what gives the
+   player a way past. */
 const DIFFICULTY = {
-  // margin: corner-speed factor (1 = physical limit); pace: top-speed factor. Both scale with driver skill.
-  easy:   { marginBase: 0.78, marginSpread: 0.10, paceBase: 0.86, paceSpread: 0.09 },
-  medium: { marginBase: 0.85, marginSpread: 0.10, paceBase: 0.91, paceSpread: 0.07 },
-  hard:   { marginBase: 0.90, marginSpread: 0.09, paceBase: 0.95, paceSpread: 0.05 },
+  easy:   { marginBase: 0.70, marginSpread: 0.10, paceBase: 0.80, paceSpread: 0.08 },
+  medium: { marginBase: 0.83, marginSpread: 0.09, paceBase: 0.90, paceSpread: 0.07 },
+  hard:   { marginBase: 0.93, marginSpread: 0.06, paceBase: 0.99, paceSpread: 0.02 },
 };
 
 const POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
