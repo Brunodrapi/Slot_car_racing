@@ -152,14 +152,25 @@ class UI {
 
   // ---------- screens ----------
 
-  // The title card. The poster carries the name and the invitation itself, so nothing is drawn
-  // over it but the build number: text laid on top of an illustration this busy would be
-  // unreadable wherever it went. Any key, any tap, anywhere gets past it — which is what the
-  // poster says to do, and the only instruction a title screen should need.
+  /* The title card. The poster carries the name and the invitation itself, so nothing is written
+  over it but the build number: text laid on an illustration this busy would be unreadable
+  wherever it went. Any key, any tap, anywhere gets past it — which is what the poster says to do,
+  and the only instruction a title screen should need.
+
+  The invitation glows, and that took two goes. The obvious way — erase the printed lettering and
+  lay a new image where it was — needs the poster's background to be invented back underneath, and
+  it is a red swoosh crossing a helmet's chin bar: every attempt left either a smeared rectangle or
+  a ghost of the old words. So the glowing layer is cut from the poster itself. Same pixels, same
+  place, so it covers the printing exactly and there is nothing to erase — only the colour changes,
+  to the yellow of the cut-out, and the grain of the paper is kept by shading it with the original
+  lettering's own brightness. */
   splash() {
     const t = (k) => this.t(k);
     this.show(`
-      <img class="poster" src="art/title.webp" alt="${escapeHtml(t('title'))}">
+      <div class="stage">
+        <img class="poster" src="art/title.webp" alt="${escapeHtml(t('title'))}">
+        <img class="press" src="art/press-start.png" alt="${escapeHtml(t('pressStart'))}">
+      </div>
       <div class="version">v${APP_VERSION} · ${APP_DATE}</div>
     `, 'center splash');
   }

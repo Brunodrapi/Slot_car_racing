@@ -601,6 +601,33 @@ sombre, sur un téléphone où l'affiche touche les bords. L'affiche porte son p
 propre invitation ; n'importe quelle touche, n'importe quel appui, n'importe où la passe, ce
 qu'elle dit elle-même et la seule consigne qu'un écran-titre devrait avoir besoin de donner.
 
+### L'invitation qui respire
+
+« Appuie pour commencer » pulse, et cela a demandé deux essais. La voie évidente — effacer le
+texte imprimé et poser une image neuve à sa place — oblige à **réinventer le fond dessous**, et ce
+fond est un lé rouge qui traverse la mentonnière d'un casque. Trois tentatives, trois échecs
+visibles : un rectangle lissé, des traînées verticales empruntées à une bande voisine, puis un
+fantôme sombre des anciennes lettres. Aucune ne tenait à l'écran.
+
+Le calque lumineux est donc **découpé dans l'affiche elle-même** : `art/press-start.png` est fait
+des pixels du texte imprimé, pris par leur clarté, avec un bord tendu entre deux seuils pour
+garder l'anticrénelage. Mêmes pixels, même place, donc il recouvre l'impression exactement et il
+n'y a plus rien à effacer. Seule la couleur change — le jaune relevé sur la découpe fournie
+(`art/press-start-source.png`) — et le grain du papier survit parce que chaque lettre est ombrée
+par sa propre clarté d'origine plutôt que peinte en aplat.
+
+La scène porte le rapport exact de l'affiche (`aspect-ratio: 941 / 1672`) et se borne à la
+fenêtre, ce qui revient à un `contain` dont on connaît les bords : le calque se place alors en
+pourcentages et reste juste à toutes les tailles. Une image en `contain` toute seule laisse des
+marges dont la taille n'est écrite nulle part, et ce qu'on pose dessus dérive dès qu'on change de
+format.
+
+La lueur est un `drop-shadow` et non une ombre de boîte, donc elle épouse les lettres au lieu
+d'éclairer un rectangle autour d'elles ; elle s'accompagne d'un `brightness` sur les lettres
+mêmes, sans quoi la pulsation se perd sur le fond clair de la mentonnière. Sous
+`prefers-reduced-motion`, elle se fige sur son point haut : qui a demandé moins d'animation n'a
+pas demandé moins de lisibilité.
+
 C'est aussi le geste qui autorise le son : un navigateur ne joue rien tant que personne n'a touché
 la page.
 
