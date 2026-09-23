@@ -24,7 +24,6 @@ Fonctionne sur ordinateur (clavier / souris) et sur mobile (tactile, à ajouter 
 | Trajectoire | flèches (haut/bas ou gauche/droite), molette | pouce gauche sur le curseur vertical |
 | Pause | `Échap` ou `P` | — |
 | Télémétrie | `G` | réglages |
-| Zoom | `+` / `−` | boutons `+` / `−` à droite de l'écran |
 
 L'accélérateur reprend le contrôle de *SpotRacers*, en trois morceaux :
 
@@ -207,31 +206,36 @@ ligne visée → braquage désiré → forces des deux trains → rotation (lace
 Les changements de trajectoire sont eux aussi progressifs : déplacer le curseur déplace l'intention, pas
 la voiture.
 
-### Zoom (touches `+` / `−`, ou réglages)
+### Cadrage de la caméra
 
 La caméra cadre une **distance fixe** plutôt qu'une surface fixe, pour qu'un téléphone en portrait
-et une fenêtre de bureau montrent la même chose. En vue de dessus elle vise une cinquantaine de
-mètres en travers du petit côté de l'écran, divisée par le facteur de la catégorie (`zoom` dans
-`js/cars.js` : 1,15 en GT, 1 en F1 modernes) et élargie d'un tiers à pleine vitesse. En GT, cela
-fait **43 m à l'arrêt et 59 m à fond**.
+et une fenêtre de bureau montrent la même chose : en vue de dessus, un nombre de mètres en travers
+du petit côté de l'écran.
 
-Le réglage `zoom` multiplie ce cadrage, et il se change **pendant la course**, par pas de 12 % :
-deux boutons `+` / `−` sur le bord droit de l'écran, avec la largeur en mètres entre les deux, et
-les touches `+` / `−` au clavier. La seule façon honnête de choisir un cadrage est d'en conduire
-deux l'un après l'autre — et un téléphone n'a pas de clavier, donc le contrôle doit être sous le
-pouce, pas trois écrans plus loin dans les réglages.
+Ce nombre suit la vitesse. **Vingt mètres à l'arrêt, cinquante à la vitesse maximale de la
+voiture.** La caméra fait donc elle-même le travail que le joueur faisait à la main : assez près
+sur la grille pour voir la voiture, assez loin en vitesse pour voir ce qui arrive. Elle lit la
+vitesse comme une fraction du maximum de *cette* voiture-là, donc une GT lente et un prototype
+rapide parcourent tous les deux toute la plage — c'est d'ailleurs pour cela que le facteur de zoom
+par catégorie a disparu, il résolvait deux fois le même problème.
 
-Ces deux boutons sont testés à l'appui : un doigt posé dessus change le cadrage **sans** mettre les
-gaz, et un doigt posé ailleurs accélère toujours (`tools/` — voir la note sur l'accélérateur
-« n'importe où »). C'est la seule partie du HUD, avec le curseur de trajectoire, qui vole une zone
-à l'accélérateur.
-
-| Réglage | Largeur visible, en GT à ~120 km/h |
+| Vitesse | Largeur visible |
 | --- | --- |
-| Large ×0,8 | 64 m |
-| Normal ×1 | 52 m |
-| Rapproché ×1,3 | 39 m |
-| Très rapproché ×1,7 | 30 m |
+| à l'arrêt | 20 m |
+| 30 % | 29 m |
+| 55 % | 37 m |
+| 85 % | 45 m |
+| maximum | 50 m |
+
+L'avance de la caméra sur la voiture suit le cadrage plutôt qu'un nombre de mètres fixe : ce qui
+compte est l'endroit où la voiture se trouve **à l'écran**, et cela ne veut rien dire sans savoir
+ce que l'écran montre. Rien à l'arrêt — la voiture reste centrée sur la grille — jusqu'à la moitié
+du cadre à pleine vitesse, ce qui la place au quart inférieur.
+
+Rien de tout cela ne se règle en course : il n'y a aucun bouton de zoom à l'écran. Le seul réglage
+est dans Réglages → **Recul de la caméra**, pour qui veut voir plus large (× 1,3 ou × 1,6 sur tout
+ce qui précède). Il n'y a pas de cran pour se rapprocher : vingt mètres sur la grille est déjà
+aussi près que le jeu doit aller.
 
 ### Télémétrie (touche `G`, ou réglages)
 

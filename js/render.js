@@ -175,8 +175,7 @@ class Renderer {
     this.track = null;
     this.paths = null;
     this.rubber = new Map();   // rubber laid on the road, kept for the whole race
-    this.zoomMul = 1;          // how close the camera sits, 1 = the framing the category asks for
-    this.zoomNote = 0;         // seconds left on the little readout after a change
+    this.pullBack = 1;         // how far the camera sits back, 1 = normal, above it wider
     this.particles = [];
     this.wets = [];            // damp tyre tracks, carried out of a puddle
     this.damp = new Map();     // metres of water each car still has on its tyres
@@ -392,16 +391,26 @@ class Renderer {
   updateCamera(race, dt) {
     const p = race.player, T = race.track, pos = p.pos;
     const h = T.headingAt(p.s);
-    const zf = p.cls.zoom || 1;
     const vf = Math.min(1, p.v / p.cls.vmax);
     // Frame a fixed distance rather than a fixed area, so a portrait phone and a desktop window
     // show the same thing. Track-aligned: metres visible ahead, down the screen height.
     // Fixed north-up: metres across the shorter screen axis.
-    const metres = (this.rotate ? 75 * (1 + 0.5 * vf) : (this.tilt === 1 ? 50 : 40) * (1 + 0.35 * vf)) / zf / this.zoomMul;
+    //
+    // Twenty metres at a standstill, fifty at the car's own top speed. The camera therefore does
+    // most of the work the player used to do by hand: close enough on the grid to see the car,
+    // and far enough at speed to see what is coming. It reads the speed as a fraction of THIS
+    // car's maximum, so a slow GT and a fast prototype both get the full range — which is also
+    // why the per-category zoom factor is gone, it was solving the same problem twice.
+    const near = this.rotate ? 30 : this.tilt === 1 ? 20 : 16;
+    const far = this.rotate ? 75 : this.tilt === 1 ? 50 : 40;
+    const metres = (near + (far - near) * vf) * this.pullBack;
     const zoomTarget = (this.rotate ? this.h : Math.min(this.w, this.h)) / metres;
-    this.framing = metres;           // what the screen actually shows, in metres — the readout
-    if (this.zoomNote > 0) this.zoomNote -= dt;
-    const lead = Math.min(36, p.v * 0.42) / zf;
+    this.framing = metres;           // what the screen actually shows, in metres
+    // How far ahead of the car the camera looks, tied to the frame rather than to a fixed number
+    // of metres: what matters is where the car sits on screen, and that only means something
+    // relative to what the screen shows. Nothing at a standstill — the car stays centred on the
+    // grid — up to half the frame at top speed, which puts it a quarter of the way down.
+    const lead = metres * 0.5 * vf;
     const tx = pos.x + Math.cos(h) * lead, ty = pos.y + Math.sin(h) * lead;
     // camera heading follows the slot direction (not the car body), so a drift never spins the view
     const want = T.headingAt(p.s + lead * 0.6);
@@ -420,13 +429,12 @@ class Renderer {
     } else { this.cam.x = tx; this.cam.y = ty; this.cam.zoom = zoomTarget; this.cam.init = true; }
   }
 
-  // How close the camera sits. Called from the settings and from the + / - keys, which is the way
-  // to judge a framing: change it while driving and compare, rather than guess from a menu.
-  setZoom(v) {
-    const z = clamp(+v || 1, 0.6, 2.6);
-    if (Math.abs(z - this.zoomMul) > 1e-6) this.zoomNote = 1.8;
-    this.zoomMul = z;
-    return z;
+  // How far back the camera sits, on top of the speed. 1 is the framing above; higher widens it.
+  // There is no way to go closer: twenty metres on the grid is already as close as the game is
+  // meant to be, and the only thing worth offering is room for someone who wants to see more.
+  setPullBack(v) {
+    this.pullBack = clamp(+v || 1, 1, 2);
+    return this.pullBack;
   }
 
   // A puff of smoke: one soft ball that grows and thins as it drifts. Several at once make the
@@ -1329,52 +1337,6 @@ class Renderer {
       }
     }
 
-    // Zoom, on screen. The + / - keys are a desktop answer to a question a phone asks just as
-    // much, and the framing is the sort of thing you judge by changing it while driving — so the
-    // control has to be under the thumb, not three screens away in the settings. The width in
-    // metres sits between the two buttons, because "closer" means nothing without a number.
-    {
-      const r = mobile ? 25 : 19;
-      const top = this.mm && mobile ? pad + boxH + 10 + this.mm.size + 16 : pad + boxH + 16;
-      const bx = W - pad - r;
-      const up = top + r, down = up + r * 2 + (mobile ? 32 : 26);
-      this.zoomBtn = { x: bx, yUp: up, yDown: down, r };
-      const round = (cy, glyph) => {
-        g.fillStyle = 'rgba(10,12,20,0.55)';
-        g.beginPath(); g.arc(bx, cy, r, 0, Math.PI * 2); g.fill();
-        g.strokeStyle = 'rgba(255,255,255,0.18)'; g.lineWidth = 1; g.stroke();
-        g.fillStyle = '#fff'; g.font = `bold ${mobile ? 26 : 21}px system-ui, sans-serif`;
-        g.textAlign = 'center'; g.textBaseline = 'middle';
-        g.fillText(glyph, bx, cy + 1);
-      };
-      round(up, '+');
-      round(down, '−');
-      // The width, between the two buttons. On its own pill: it lands on whatever the track shows
-      // under it, and pale grey on pale grass is not a readout.
-      g.font = `bold ${mobile ? 12 : 11}px system-ui, sans-serif`;
-      const mTxt = `${Math.round(this.framing || 0)} m`;
-      const mw = g.measureText(mTxt).width + 14, mh = mobile ? 20 : 17, my2 = (up + down) / 2;
-      g.fillStyle = 'rgba(10,12,20,0.55)';
-      this._roundRect(g, bx - mw / 2, my2 - mh / 2, mw, mh, mh / 2); g.fill();
-      g.fillStyle = '#e6e9ef'; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText(mTxt, bx, my2 + 0.5);
-      g.textBaseline = 'top';
-
-      // A banner on change, level with the buttons so it clears the minimap above them, and
-      // narrow enough to stop short of the buttons themselves.
-      if (this.zoomNote > 0) {
-        const txt = `Zoom ×${this.zoomMul.toFixed(2)} · ${Math.round(this.framing || 0)} m`;
-        g.font = `bold ${mobile ? 15 : 18}px system-ui, sans-serif`;
-        const bw = g.measureText(txt).width + 28, bh = mobile ? 30 : 36;
-        const cx = Math.min(W / 2, bx - r - 12 - bw / 2);
-        g.globalAlpha = Math.min(1, this.zoomNote / 0.45);
-        g.fillStyle = 'rgba(10,12,20,0.7)'; this._roundRect(g, cx - bw / 2, top, bw, bh, 10); g.fill();
-        g.fillStyle = '#fff'; g.textAlign = 'center';
-        g.fillText(txt, cx, top + (mobile ? 7 : 9));
-        g.globalAlpha = 1;
-      }
-    }
-
     // standings strip (desktop)
     if (!mobile && race.mode !== 'timetrial') {
       const st = race.standings().slice(0, 6);
@@ -1438,17 +1400,6 @@ class Renderer {
   }
 
   // maps a screen point in the slider zone to a selection value; null if outside the zone
-  // Which zoom button a press landed on: +1 closer, -1 wider, 0 neither. Generous on the radius,
-  // because these are small circles and a thumb is not.
-  zoomHitAt(x, y) {
-    const b = this.zoomBtn;
-    if (!b) return 0;
-    const reach = b.r + 10;
-    if (Math.hypot(x - b.x, y - b.yUp) <= reach) return 1;
-    if (Math.hypot(x - b.x, y - b.yDown) <= reach) return -1;
-    return 0;
-  }
-
   sliderValueAt(x, y, touchZone) {
     const s = this.slider, d = this.dial;
     // The visible dome always wins: a thumb landing on it accelerates, wherever it has moved to.

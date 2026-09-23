@@ -16,7 +16,7 @@ const I18N = {
     lap: 'Tour', last: 'Dernier', best: 'Meilleur', grip: 'adhérence', holdToGo: 'Maintiens une touche pour accélérer', holdToGoTouch: 'Maintiens l’écran pour accélérer', lineHintKeys: 'Flèches / molette : trajectoire', lineHintTouch: 'Pouce gauche : trajectoire',
     lineIn: 'INT', lineRace: 'IDÉALE', lineOut: 'EXT', offTrack: 'SORTIE DE PISTE !', finished: 'ARRIVÉE',
     cupComplete: 'Coupe terminée !', cupWon: 'Champion !', cupPodium: 'Podium ! Coupe suivante débloquée.', cupFailed: 'Hors du podium… retente ta chance.',
-    newRecord: 'Nouveau record !', yourBest: 'Ton record', name: 'Nom du pilote', sound: 'Son', language: 'Langue', showLines: 'Guide de freinage', telemetry: 'Télémétrie (touche G)', camera: 'Vue', camFollow: 'Dessus, orientée piste', camFixed: 'Dessus, fixe', camIso: 'Isométrique', zoom: 'Zoom (touches + / −)', zoomWide: 'Large', zoomNormal: 'Normal', zoomClose: 'Rapproché', zoomVeryClose: 'Très rapproché', resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
+    newRecord: 'Nouveau record !', yourBest: 'Ton record', name: 'Nom du pilote', sound: 'Son', language: 'Langue', showLines: 'Guide de freinage', telemetry: 'Télémétrie (touche G)', camera: 'Vue', camFollow: 'Dessus, orientée piste', camFixed: 'Dessus, fixe', camIso: 'Isométrique', pullBack: 'Recul de la caméra', pullNone: 'Normal', pullSome: 'Un peu en retrait', pullMore: 'Très en retrait', resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
     on: 'Activé', off: 'Coupé', playerDefault: 'Vous', allUnlocked: 'Tout est débloqué. Bravo !', careerIntro: 'Tu pars dernier à chaque course. Remonte le peloton, marque des points, débloque des catégories plus rapides.',
     lapDone: (n, t) => `Tour ${n} : ${t}`, tipTitle: 'Comment jouer', yourResult: (p) => `Tu termines P${p}`,
     ttIntro: 'Seul en piste. Bats ton meilleur tour.', noCustomTracks: 'Aucun circuit perso. Crée-en un dans l’éditeur.', deleteTrack: 'Supprimer', confirmDelete: 'Supprimer définitivement ?',
@@ -47,7 +47,7 @@ const I18N = {
     lap: 'Lap', last: 'Last', best: 'Best', grip: 'grip', holdToGo: 'Hold a key to accelerate', holdToGoTouch: 'Hold anywhere to accelerate', lineHintKeys: 'Arrows / wheel: line', lineHintTouch: 'Left thumb: line',
     lineIn: 'IN', lineRace: 'RACING', lineOut: 'OUT', offTrack: 'OFF TRACK!', finished: 'FINISH',
     cupComplete: 'Cup complete!', cupWon: 'Champion!', cupPodium: 'Podium! Next cup unlocked.', cupFailed: 'Missed the podium… try again.',
-    newRecord: 'New record!', yourBest: 'Your best', name: 'Driver name', sound: 'Sound', language: 'Language', showLines: 'Braking guide', telemetry: 'Telemetry (G key)', camera: 'View', camFollow: 'Top-down, track-aligned', camFixed: 'Top-down, fixed', camIso: 'Isometric', zoom: 'Zoom (+ / − keys)', zoomWide: 'Wide', zoomNormal: 'Normal', zoomClose: 'Close', zoomVeryClose: 'Very close', resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
+    newRecord: 'New record!', yourBest: 'Your best', name: 'Driver name', sound: 'Sound', language: 'Language', showLines: 'Braking guide', telemetry: 'Telemetry (G key)', camera: 'View', camFollow: 'Top-down, track-aligned', camFixed: 'Top-down, fixed', camIso: 'Isometric', pullBack: 'Camera set-back', pullNone: 'Normal', pullSome: 'A little further back', pullMore: 'Much further back', resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
     on: 'On', off: 'Off', playerDefault: 'You', allUnlocked: 'Everything unlocked. Well done!', careerIntro: 'You start every race from the back. Carve through the field, score points, unlock faster classes.',
     lapDone: (n, t) => `Lap ${n}: ${t}`, tipTitle: 'How to play', yourResult: (p) => `You finish P${p}`,
     ttIntro: 'Alone on track. Beat your best lap.', noCustomTracks: 'No custom track yet. Create one in the editor.', deleteTrack: 'Delete', confirmDelete: 'Delete permanently?',
@@ -177,7 +177,7 @@ class UI {
         <label>${t('sound')}<select id="sel-sound"><option value="1" ${s.sound ? 'selected' : ''}>${t('on')}</option><option value="0" ${!s.sound ? 'selected' : ''}>${t('off')}</option></select></label>
         <label>${t('showLines')}<select id="sel-lines"><option value="0" ${s.showLines !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.showLines === true ? 'selected' : ''}>${t('on')}</option></select></label>
         <label>${t('telemetry')}<select id="sel-debug"><option value="0" ${s.debug !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.debug === true ? 'selected' : ''}>${t('on')}</option></select></label>
-        <label>${t('zoom')}<select id="sel-zoom">${[[0.8, 'zoomWide'], [1, 'zoomNormal'], [1.3, 'zoomClose'], [1.7, 'zoomVeryClose']].map(([v, k]) => `<option value="${v}" ${Math.abs((s.zoom || 1) - v) < 0.05 ? 'selected' : ''}>${t(k)} ×${v}</option>`).join('')}</select></label>
+        <label>${t('pullBack')}<select id="sel-pull">${[[1, 'pullNone'], [1.3, 'pullSome'], [1.6, 'pullMore']].map(([v, k]) => `<option value="${v}" ${Math.abs((s.pullBack || 1) - v) < 0.05 ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
         <label>${t('camera')}<select id="sel-cam">${[['track', 'camFollow'], ['fixed', 'camFixed'], ['iso', 'camIso']].map(([v, k]) => `<option value="${v}" ${(s.view || 'track') === v ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
         <label>${t('difficulty')}<select id="sel-diff">${['easy', 'medium', 'hard'].map(d => `<option value="${d}" ${s.difficulty === d ? 'selected' : ''}>${t(d)}</option>`).join('')}</select></label>
       </div>
@@ -513,7 +513,7 @@ class UI {
     if (el.id === 'sel-sound') { s.sound = el.value === '1'; storeSave(s); this.app.audio.setEnabled(s.sound); }
     if (el.id === 'sel-lines') { s.showLines = el.value === '1'; storeSave(s); this.app.renderer.showLines = s.showLines; }
     if (el.id === 'sel-cam') { s.view = el.value; s.camRotate = el.value === 'track'; storeSave(s); this.app.renderer.setView(s.view); }
-    if (el.id === 'sel-zoom') { s.zoom = this.app.renderer.setZoom(el.value); this.app.renderer.zoomNote = 0; storeSave(s); }
+    if (el.id === 'sel-pull') { s.pullBack = this.app.renderer.setPullBack(el.value); storeSave(s); }
     if (el.id === 'sel-debug') { s.debug = el.value === '1'; storeSave(s); this.app.renderer.debug = s.debug; }
     if (el.id === 'sel-diff') { s.difficulty = el.value; storeSave(s); }
   }
