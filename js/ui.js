@@ -189,15 +189,15 @@ class UI {
     const t = (k) => this.t(k);
     // top of each banner, as measured on the poster; `fold` is the artwork that carries the text
     const items = [
-      { top: 20.04, h: 9.2, fold: null, act: 'setup', mode: 'race', label: t('quickRace') },
+      { top: 20.04, fold: 'course-rapide', act: 'setup', mode: 'race', label: t('quickRace') },
       { top: 30.38, fold: 'contre-la-montre', act: 'setup', mode: 'timetrial', label: t('timeTrial') },
       { top: 40.79, fold: 'multijoueurs', act: 'multi', label: t('multi') },
       { top: 51.08, fold: 'atelier-voiture', act: 'workshop', label: t('workshop') },
       { top: 61.72, fold: 'atelier-circuits', act: 'editor', label: t('editor') },
     ];
-    const band = (it, i) => `<button class="mi" style="top:${it.top}%;--i:${i}${it.h ? `;height:${it.h}%` : ''}"
+    const band = (it, i) => `<button class="mi" style="top:${it.top}%;--i:${i}"
         data-action="${it.act}" ${it.mode ? `data-mode="${it.mode}"` : ''} aria-label="${escapeHtml(it.label)}">
-        ${it.fold ? `<img src="art/menu/${it.fold}.png" alt="">` : ''}</button>`;
+        <img src="art/menu/${it.fold}.png" alt=""></button>`;
     this.show(`
       <div class="stage">
         <img class="bg" src="art/menu-bg.webp" alt="${escapeHtml(t('title'))}">

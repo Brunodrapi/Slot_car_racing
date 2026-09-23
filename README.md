@@ -509,12 +509,12 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
 
 ## Contenu
 
-- **6 voitures GT** : *M1 Procar*, *F40*, *Countach LP500*, *911 Turbo*, *Testarossa*, *XJ220*.
+- **6 voitures GT** : *M1 Procar*, *F40*, *Countach LP500*, *911 Turbo*, *Testarossa*, *GT40 Mk II*.
   On choisit sa voiture, et rien d'autre : plus de livrée à régler. En ligne, la place à la table
   donne la couleur, si bien que deux pilotes ne se ressemblent jamais sans avoir eu à en discuter.
-  La M1 Procar, la F40 LM, la 911 Martini et la Countach sont représentées d'après la vraie voiture
-  vue du dessus (plus la 787B, rangée dans les prototypes classiques) ; la Testarossa et la XJ220
-  gardent leur silhouette vectorielle. Quatre ont en plus une planche de rotations, qui ne sert
+  La M1 Procar, la F40 LM, la 911 Martini, la Countach et la GT40 Gulf sont représentées d'après la
+  vraie voiture vue du dessus (plus la 787B, rangée dans les prototypes classiques) ; seule la
+  Testarossa garde sa silhouette vectorielle. Quatre ont en plus une planche de rotations, qui ne sert
   qu'à la vue isométrique.
 - **12 circuits** inspirés de vrais tracés : Monza, Spa-Francorchamps, Monaco, Silverstone, Suzuka
   (avec son pont), Interlagos, Laguna Seca, Nürburgring GP, Le Mans, Mount Panorama, Red Bull Ring, Zandvoort.
@@ -522,7 +522,7 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
   même si une seule catégorie est proposée pour l'instant :
   - *F1 classiques* (Type 49, 312 F1, MS80, BT24, Type 72, M23) : peu d'appui, très instables ;
   - *F1 modernes* (Bull, Rosso, Silver Arrow, Papaya, AMR, A5) : très rapides, très stables ;
-  - *GT* (M1 Procar, F40, Countach, 911 Turbo, Testarossa, XJ220) ;
+  - *GT* (M1 Procar, F40, Countach, 911 Turbo, Testarossa, GT40 Mk II) ;
   - *Prototypes classiques* (GT40, 917 K, 962 C, XJR-9, 787B, C9).
 - **Course rapide** et **contre-la-montre** (records par circuit et catégorie), 3 niveaux de difficulté.
 - Une **carrière** en 4 coupes existe dans le code, actuellement masquée.
