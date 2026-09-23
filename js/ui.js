@@ -175,19 +175,37 @@ class UI {
     `, 'center splash');
   }
 
+  /* The menu is the poster, and the five banners on it are the buttons. Each one is printed in
+  its folded state — icon and a checkered tail, no words — in the background image itself; the
+  unfolded artwork, the one that carries the text, is laid over it and wiped in from the left.
+  So the fold is not a trick played on one image: the closed banner really is underneath, and the
+  open one really does cover it, which is why nothing had to be erased from the poster.
+
+  The banners are placed by a single left edge and a single width, and each one's height follows
+  from its own artwork. Matching each folded banner's measured height instead looked more rigorous
+  and was worse: the icons overhang their bars by different amounts, so those heights disagree by
+  ten per cent between banners and the stack came out ragged. */
   menu() {
     const t = (k) => this.t(k);
+    // top of each banner, as measured on the poster; `fold` is the artwork that carries the text
+    const items = [
+      { top: 20.04, h: 9.2, fold: null, act: 'setup', mode: 'race', label: t('quickRace') },
+      { top: 30.38, fold: 'contre-la-montre', act: 'setup', mode: 'timetrial', label: t('timeTrial') },
+      { top: 40.79, fold: 'multijoueurs', act: 'multi', label: t('multi') },
+      { top: 51.08, fold: 'atelier-voiture', act: 'workshop', label: t('workshop') },
+      { top: 61.72, fold: 'atelier-circuits', act: 'editor', label: t('editor') },
+    ];
+    const band = (it, i) => `<button class="mi" style="top:${it.top}%;--i:${i}${it.h ? `;height:${it.h}%` : ''}"
+        data-action="${it.act}" ${it.mode ? `data-mode="${it.mode}"` : ''} aria-label="${escapeHtml(it.label)}">
+        ${it.fold ? `<img src="art/menu/${it.fold}.png" alt="">` : ''}</button>`;
     this.show(`
-      <div class="title"><h1>${t('title')}</h1><p class="sub">${t('subtitle')}</p></div>
-      <div class="menu">
-        <button class="big" data-action="setup" data-mode="race">${t('quickRace')}</button>
-        <button class="big" data-action="setup" data-mode="timetrial">${t('timeTrial')}</button>
-        <button class="big" data-action="multi">${t('multi')}</button>
-        <div class="row"><button data-action="editor">${t('editor')}</button><button data-action="workshop">${t('workshop')}</button><button data-action="settings">${t('settings')}</button></div>
+      <div class="stage">
+        <img class="bg" src="art/menu-bg.webp" alt="${escapeHtml(t('title'))}">
+        ${items.map(band).join('')}
+        <button class="burger" data-action="settings" aria-label="${escapeHtml(t('settings'))}"></button>
       </div>
-      <div class="howto"><b>${t('tipTitle')}</b> — ${t('howto')}</div>
       <div class="version">v${APP_VERSION} · ${APP_DATE}</div>
-    `, 'center');
+    `, 'center poster');
   }
 
   settings() {

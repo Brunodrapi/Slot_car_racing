@@ -27,7 +27,7 @@ const { chromium, devices } = require('playwright');
     // n'importe quelle touche
     await page.keyboard.press('x');
     await page.waitForTimeout(300);
-    console.log(nom, 'apres une touche :', await page.evaluate(() => ({ etat: app.state, titre: (document.querySelector('h1') || {}).textContent })));
+    console.log(nom, 'apres une touche :', await page.evaluate(() => ({ etat: app.state, bandeaux: document.querySelectorAll('.screen.poster .mi').length })));
     // on revient au titre et on essaie le doigt
     await page.evaluate(() => { app.state = 'splash'; app.ui.splash(); });
     await page.waitForTimeout(200);
