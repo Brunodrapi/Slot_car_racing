@@ -509,13 +509,14 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
 
 ## Contenu
 
-- **8 voitures GT** : *M1 Procar*, *F40*, *Countach LP500*, *911 Turbo*, *Testarossa*, *GT40 Mk II*,
-  *917 K*, *Corvette*.
+- **9 voitures GT** : *M1 Procar*, *F40*, *Countach LP500*, *911 Turbo*, *Testarossa*, *GT40 Mk II*,
+  *917 K*, *Corvette*, *3.0 CSL*.
   On choisit sa voiture, et rien d'autre : plus de livrée à régler. En ligne, la place à la table
   donne la couleur, si bien que deux pilotes ne se ressemblent jamais sans avoir eu à en discuter.
-  Sept d'entre elles sont représentées d'après la vraie voiture vue du dessus — la M1 Procar, la
-  F40 LM, la 911 Martini, la Countach, la GT40 Gulf, la 917 Martini et la Corvette (plus la 787B,
-  rangée dans les prototypes classiques) ; seule la Testarossa garde sa silhouette vectorielle. Quatre ont en plus une planche de rotations, qui ne sert
+  Huit d'entre elles sont représentées d'après la vraie voiture vue du dessus — la M1 Procar, la
+  F40 LM, la 911 Martini, la Countach, la GT40 Gulf, la 917 Martini, la Corvette et la 3.0 CSL
+  (plus la 787B, rangée dans les prototypes classiques) ; seule la Testarossa garde sa silhouette
+  vectorielle. Quatre ont en plus une planche de rotations, qui ne sert
   qu'à la vue isométrique.
 - **12 circuits** inspirés de vrais tracés : Monza, Spa-Francorchamps, Monaco, Silverstone, Suzuka
   (avec son pont), Interlagos, Laguna Seca, Nürburgring GP, Le Mans, Mount Panorama, Red Bull Ring, Zandvoort.
@@ -523,7 +524,7 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
   même si une seule catégorie est proposée pour l'instant :
   - *F1 classiques* (Type 49, 312 F1, MS80, BT24, Type 72, M23) : peu d'appui, très instables ;
   - *F1 modernes* (Bull, Rosso, Silver Arrow, Papaya, AMR, A5) : très rapides, très stables ;
-  - *GT* (M1 Procar, F40, Countach, 911 Turbo, Testarossa, GT40 Mk II, 917 K, Corvette) ;
+  - *GT* (M1 Procar, F40, Countach, 911 Turbo, Testarossa, GT40 Mk II, 917 K, Corvette, 3.0 CSL) ;
   - *Prototypes classiques* (GT40, 917 K, 962 C, XJR-9, 787B, C9).
 - **Course rapide** et **contre-la-montre** (records par circuit et catégorie), 3 niveaux de difficulté.
 - Une **carrière** en 4 coupes existe dans le code, actuellement masquée.
@@ -690,10 +691,15 @@ papier une fois le profil de vitesse résolu, et le **tour réel**, ce qu'un pil
 entre les deux est le prix du caractère.
 
 La Corvette est arrivée à **7,1 %** du rythme quand les six voitures d'alors tenaient dans quatre —
-adhérence et appui coupés trop fort. Réglée, elle rentre à 4,7 %, et surtout son tour *idéal*
-(2,9 % du meilleur) est désormais meilleur que celui de la 911 Turbo : elle est rapide sur le
-papier et perd 5,6 % en pilotage, contre 3,8 % pour les autres. C'est sa glisse qu'elle paie, et
-c'est autre chose qu'être lente.
+adhérence et appui coupés trop fort. Réglée, elle rentre dans le peloton, et surtout son tour
+*idéal* est désormais meilleur que celui de la 911 Turbo : elle est rapide sur le papier et perd
+son avance en pilotage, là où les autres ne cèdent que trois à quatre pour cent. C'est sa glisse
+qu'elle paie, et c'est autre chose qu'être lente. Les neuf tiennent aujourd'hui dans **3,9 %**.
+
+Le même outil sert à vérifier qu'un caractère annoncé existe vraiment. La 3.0 CSL est censée être
+une voiture de virages : son écart à la 917 va de **0,4 % à Zandvoort** et 0,6 % à Monaco, sinueux,
+à **2,3 % à Monza**, rapide. Ce n'est donc pas une affirmation de présentation, c'est dans les
+chiffres.
 
 Rien ne comparait les modèles entre eux jusque-là, ce qui explique qu'une voiture bancale ait pu
 être livrée sans qu'on la voie.

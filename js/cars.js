@@ -52,6 +52,7 @@ const CATEGORIES = [
       { id: 'gt40', name: 'GT40 Mk II', shape: 'gt40', mul: { vmax: 1.06, accel: 1.02, grip: 0.99, df: 0.85, brake: 0.97, slide: 1.1 }, colors: ['#5bc8e8', '#ff8c1a'], top: 'sprites/top/gt40.png' },
       { id: '917k', name: '917 K', shape: 'longTail', mul: { vmax: 1.10, accel: 1.05, grip: 1.0, df: 1.4, brake: 0.93, slide: 1.15 }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/917.png' },
       { id: 'corvette', name: 'Corvette', shape: 'roundGT', mul: { vmax: 1.04, accel: 1.06, grip: 0.97, df: 0.9, brake: 0.95, slide: 1.3 }, colors: ['#d8dce2', '#e0262c'], top: 'sprites/top/corvette.png' },
+      { id: 'csl', name: '3.0 CSL', shape: 'gtBoxy', mul: { vmax: 0.95, accel: 0.98, grip: 1.05, df: 1.2, brake: 1.03, slide: 1.1 }, colors: ['#f7f7f7', '#2166d8'], top: 'sprites/top/csl.png' },
     ],
   },
   {
