@@ -31,7 +31,7 @@ const I18N = {
     netLost: 'Liaison perdue avec l’hôte…', netWait: 'Connexion…',
     wsIntro: 'Ajoute tes propres voitures 2D : une image PNG vue de dessus (avant vers la droite), ou un dossier de sprites Ultimate Racing 2D 2 (car_base.png, car_color.png, car_1.png…). Le calque « color » prend la couleur de ta livrée.',
     wsName: 'Nom', wsCat: 'Catégorie', wsLength: 'Longueur (m)', wsWidth: 'Largeur (m)', wsSingle: 'Image PNG unique', wsFolder: 'Dossier UR2D 2 (plusieurs PNG)', wsAdd: 'Ajouter la voiture', wsList: 'Mes voitures', wsNone: 'Aucune voiture perso pour l’instant.', wsNeedBase: 'Il faut au moins une image (car_base.png ou une image seule).', wsAdded: 'Voiture ajoutée !',
-    custom: 'perso', stats: 'Vitesse / Freins / Adhérence',
+    custom: 'perso',
   },
   en: {
     title: 'EYES ON LINE', subtitle: 'One button, three lines. Real circuits.',
@@ -62,8 +62,18 @@ const I18N = {
     netLost: 'Lost the host…', netWait: 'Connecting…',
     wsIntro: 'Add your own 2D cars: a single top-down PNG (front to the right), or an Ultimate Racing 2D 2 sprite folder (car_base.png, car_color.png, car_1.png…). The "color" layer takes your livery colour.',
     wsName: 'Name', wsCat: 'Category', wsLength: 'Length (m)', wsWidth: 'Width (m)', wsSingle: 'Single PNG image', wsFolder: 'UR2D 2 folder (several PNGs)', wsAdd: 'Add car', wsList: 'My cars', wsNone: 'No custom car yet.', wsNeedBase: 'At least one image is required (car_base.png or a single image).', wsAdded: 'Car added!',
-    custom: 'custom', stats: 'Speed / Brakes / Grip',
+    custom: 'custom',
   },
+};
+
+// Les pictogrammes des quatre cadrans. Des tracés et non des émojis : un émoji change de dessin
+// d'un téléphone à l'autre, et se retrouve parfois en couleur par-dessus la couleur du cadran.
+const GAUGE_ICONS = {
+  acc: '<svg viewBox="0 0 24 24"><path d="M5 5 L11 12 L5 19 M13 5 L19 12 L13 19"/></svg>',           // les chevrons de l'accélération
+  // Le cadran d'un compteur a le bas plat ; sans son moyeu, ce plat se lit comme un dessin coupé.
+  top: '<svg viewBox="0 0 24 24"><path d="M3.5 17.5a8.5 8.5 0 1 1 17 0"/><path d="M12 17.5 L16.5 10"/><circle cx="12" cy="17.5" r="1.5"/></svg>',
+  brk: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/></svg>', // le disque de frein
+  grp: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 4v5 M4.5 16 L9.4 13.5 M19.5 16 L14.6 13.5"/></svg>', // le volant
 };
 
 class UI {
@@ -136,6 +146,38 @@ class UI {
   carIcon(model, livery) {
     if (model.pick) return `<img class="carpick" src="${model.pick}" alt="">`;
     return `<canvas class="caricon" width="160" height="72" data-car="${model.id}" data-livery="${LIVERIES.indexOf(livery)}"></canvas>`;
+  }
+
+  /* Les quatre jauges d'une voiture.
+
+  Un cadran par caractéristique, chiffre au centre, arc autour. Le chiffre est en blanc et non de
+  la couleur de l'arc : sur une carte sombre une couleur saturée en petit corps gras passe sous le
+  seuil de contraste, alors que l'arc, lui, est une surface et le tient largement.
+
+  Quatre teintes dont un rouge et un vert ne se distinguent pas toujours en vision des couleurs
+  déficiente — l'écart mesuré tombe à 7 sur 100 en deutéranopie. Aucune information ne repose donc
+  sur la couleur seule : chaque cadran porte son pictogramme et son unité écrite, et surtout les
+  quatre ne se comparent jamais entre eux — ce sont quatre mesures séparées, pas une série. */
+  gauges(m, scale) {
+    const ARC = 84.8;   // les 270° d'ouverture, sur les 113,1 de circonférence d'un rayon 18
+    const one = (key, kind, colour, value, unit) => {
+      const fill = perfFill(m.perf[key], scale[key], key);
+      return `<span class="gauge" style="--c:${colour};--d:${(ARC * fill).toFixed(1)}">
+        <svg class="ring" viewBox="0 0 44 44" aria-hidden="true">
+          <circle class="trk" cx="22" cy="22" r="18"></circle>
+          <circle class="val" cx="22" cy="22" r="18"></circle>
+        </svg>
+        <span class="ico">${GAUGE_ICONS[kind]}</span>
+        <span class="num">${value}<small>${unit}</small></span>
+      </span>`;
+    };
+    const dec = (v, n) => v.toFixed(n).replace('.', this.lang === 'fr' ? ',' : '.');
+    return `<span class="gauges">
+      ${one('a100', 'acc', '#4aa8ff', dec(m.perf.a100, 2), 'S 0-100')}
+      ${one('vmax', 'top', '#ff5a5f', Math.round(m.perf.vmax), 'KM/H')}
+      ${one('b100', 'brk', '#ffa62b', Math.round(m.perf.b100), 'M 100-0')}
+      ${one('gripG', 'grp', '#4ed17e', dec(m.perf.gripG, 2), 'G')}
+    </span>`;
   }
 
   /** Paints every card picture the screen just laid out. */
@@ -249,14 +291,14 @@ class UI {
     const laps = s.laps || lapsFor(trackDef, cat);
     const best = s.bestLaps[`${st.trackId}|${st.classId}`];
     const livery = LIVERIES[s.livery];
-    const statBar = (v, max) => `<span class="stats"><i style="width:${Math.round(v / max * 100)}%"></i></span>`;
+    const scale = perfScale(modelsOf(cat.id));
     this.show(`
       <div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${mode === 'race' ? t('quickRace') : t('timeTrial')}</h2></div>
-      <h3>${t('model')} <span class="muted">· ${t('stats')}</span></h3>
+      <h3>${t('model')}</h3>
       <div class="grid models">
         ${modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${m.id}">
             ${this.carIcon(m, livery)}<b>${escapeHtml(m.name)}${m.custom ? ` <small>(${t('custom')})</small>` : ''}</b>
-            ${statBar(m.vmax, 100)}${statBar(m.brake, 34)}${statBar(m.grip + m.df * 2500, 40)}</button>`).join('')}
+            ${this.gauges(m, scale)}</button>`).join('')}
       </div>
       <h3>${t('track')}</h3>
       <div class="grid tracks">

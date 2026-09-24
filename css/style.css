@@ -139,8 +139,29 @@ button.link { background: none; border: none; color: var(--muted); text-decorati
 .card small { color: var(--muted); font-size: 11px; line-height: 1.3; }
 .card.sel { border-color: var(--accent); background: var(--card2); }
 .card.locked { filter: grayscale(1); }
-.stats { display: block; width: 80%; height: 4px; background: rgba(255,255,255,0.12); border-radius: 2px; margin-top: 4px; }
-.stats i { display: block; height: 100%; background: var(--accent2); border-radius: 2px; }
+/* Les quatre cadrans d'une carte voiture. Un anneau ouvert de 270°, chiffre au centre,
+   pictogramme posé sur l'ouverture, en bas à gauche. L'arc est tracé au `stroke-dasharray` : un
+   seul trait plutôt qu'un dégradé conique, ce qui donne des bouts arrondis et une transition
+   animable. Le fond de l'anneau reste très discret — c'est une graduation, pas une donnée. */
+.gauges { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 6px; width: 100%; margin-top: 6px; }
+.gauge { position: relative; display: block; aspect-ratio: 1; }
+.gauge .ring { width: 100%; height: 100%; display: block; transform: rotate(135deg); overflow: visible; }
+.gauge .ring circle { fill: none; stroke-width: 4.5; stroke-linecap: round; }
+.gauge .ring .trk { stroke: rgba(255,255,255,0.10); stroke-dasharray: 84.8 113.1; }
+/* La longueur de l'arc passe par une variable et non par l'attribut `stroke-dasharray` du SVG :
+   une déclaration CSS l'emporte toujours sur un attribut de présentation, si bien qu'écrire la
+   valeur dans la balise ne donnerait qu'un anneau vide. */
+.gauge .ring .val { stroke: var(--c); stroke-dasharray: var(--d, 0) 113.1; transition: stroke-dasharray 0.5s cubic-bezier(0.22,1,0.36,1); }
+.gauge .num { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-weight: 800; font-size: clamp(13px, 3.6vw, 17px); line-height: 1; color: var(--text); letter-spacing: -0.01em; }
+.gauge .num small { font-size: 8px; font-weight: 700; letter-spacing: 0.06em; color: var(--muted); margin-top: 3px; }
+/* Le pictogramme s'assied dans l'ouverture de l'anneau et porte le fond de la carte, si bien
+   qu'il ne chevauche jamais l'arc même quand celui-ci est plein. */
+.gauge .ico { position: absolute; left: 50%; bottom: -1%; transform: translateX(-50%); width: 34%; height: 34%;
+  display: grid; place-items: center; background: var(--card); border-radius: 50%; }
+.card.sel .gauge .ico { background: var(--card2); }
+.gauge .ico svg { width: 66%; height: 66%; fill: none; stroke: var(--c); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+@media (prefers-reduced-motion: reduce) { .gauge .ring .val { transition: none; } }
 .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
 .swatch { width: 34px; height: 34px; border-radius: 50%; border: 3px solid; padding: 0; }
 .swatch.sel { outline: 3px solid #fff; outline-offset: 2px; }
@@ -194,9 +215,6 @@ button.link { background: none; border: none; color: var(--muted); text-decorati
 .grid.models.small { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
 .grid.models .card img { max-width: 120px; aspect-ratio: 20/9; }
 .grid.models.small .card img { max-width: 90px; }
-.card .stats + .stats { margin-top: 3px; }
-.card .stats:nth-of-type(2) i { background: #ffd23f; }
-.card .stats:nth-of-type(3) i { background: #5ac8ff; }
 h3 .link { margin-left: 8px; text-transform: none; letter-spacing: 0; font-size: 13px; }
 .card .link { margin-top: 4px; }
 .menu .row { justify-content: center; flex-wrap: wrap; }
@@ -214,5 +232,5 @@ canvas.caricon { width: 160px; height: 72px; max-width: 100%; display: block; }
    Elle a donc sa propre boîte, et `contain` la laisse entière quelle que soit sa proportion —
    les voitures ne sont pas toutes cadrées pareil. */
 .card img.carpick,
-.grid.models .card img.carpick { width: 100%; max-width: 150px; aspect-ratio: 4/3; object-fit: contain; }
+.grid.models .card img.carpick { width: 100%; max-width: 132px; aspect-ratio: 4/3; object-fit: contain; }
 .grid.models.small .card img.carpick { max-width: 104px; }

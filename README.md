@@ -698,6 +698,47 @@ remplissage depuis le bord s'y arrête et il reste un halo gris autour des roues
 les pixels du pourtour restés presque blancs, sur une épaisseur bornée pour qu'un reflet clair de
 la carrosserie ne serve jamais de porte d'entrée vers l'intérieur.
 
+### Les quatre cadrans
+
+Sous chaque voiture, quatre jauges circulaires : **accélération**, **vitesse de pointe**,
+**freinage**, **adhérence**.
+
+Aucun de ces chiffres n'est une note attribuée à la main. Chacun s'obtient en appliquant au modèle
+la loi que le jeu applique vraiment en course, dans `perfOf` :
+
+| cadran | ce qu'il montre | d'où il sort |
+|---|---|---|
+| accélération | secondes de 0 à 100 km/h | intégration de `a(v) = accel · (1 − (v/vmax)^2,5)`, la formule de `car.js` |
+| vitesse | km/h | `vmax`, tel quel |
+| freinage | mètres de 100 km/h à l'arrêt | `v²/2a` avec la décélération de `car.js`, `1,5 + brake` |
+| adhérence | g en virage à 180 km/h | `grip + appui × 2500`, appui aérodynamique compris |
+
+L'intérêt de passer par les lois plutôt que par un second jeu de valeurs : retoucher un `mul` se
+lit aussitôt sur les cadrans, et il n'y a jamais deux vérités à tenir d'accord.
+
+**L'arc se cale sur le plateau, pas sur zéro.** Les écarts entre ces voitures sont réels mais
+serrés — 9 % sur le 0 à 100, 16 % sur la vitesse de pointe. Sur une échelle partant de zéro, les
+neuf voitures donneraient neuf arcs presque identiques, c'est-à-dire aucune information. L'arc va
+donc de la plus faible du plateau à la meilleure, ce qui répond à la seule question qu'on se pose
+sur cet écran : *laquelle je prends ?* Un temps et une distance se remplissent à l'envers — plus
+court vaut mieux — et la dernière garde 14 % d'arc, parce qu'un anneau vide se lit comme un bogue
+plutôt que comme un dernier.
+
+Deux détails qui coûtent une heure si on ne les sait pas. L'arc est tracé au `stroke-dasharray`,
+dont la longueur passe par une **variable CSS et non par l'attribut du SVG** : une déclaration CSS
+l'emporte toujours sur un attribut de présentation, et écrire la valeur dans la balise ne donne
+qu'un anneau vide. Et les pictogrammes sont des **tracés, pas des émojis** : un émoji change de
+dessin d'un téléphone à l'autre et arrive parfois en couleur par-dessus celle du cadran.
+
+Sur la couleur, un arbitrage assumé. Quatre teintes dont un rouge et un vert ne se distinguent pas
+toujours en vision des couleurs déficiente : l'écart mesuré tombe à 7 sur 100 en deutéranopie.
+Les rendre conformes demanderait de les assombrir, ce qui dégrade l'écart au lieu de l'améliorer —
+le jeu de couleurs sombres tombe à 2,7. On garde donc les teintes vives, et **aucune information
+ne repose sur la couleur seule** : chaque cadran porte son pictogramme et son unité écrite, et les
+quatre ne se comparent jamais entre eux — ce sont quatre mesures séparées, pas une série. Le
+chiffre, lui, est en blanc et non de la couleur de l'arc : en petit corps gras sur une carte
+sombre, une couleur saturée passerait sous le seuil de contraste.
+
 Les voitures sans illustration gardent leur vue de dessus : les deux voies cohabitent le temps que
 la série soit complète.
 

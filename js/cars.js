@@ -92,9 +92,55 @@ function resolveModel(cat, m) {
     pick: m.pick || null,
     engine: Object.assign({ cyl: 8, redline: 7000, idle: 1000, rough: 0.3, bright: 0.6, turbo: 0 }, cat.engine || {}, m.engine || {}),
   };
+  // Les chiffres du menu, calculés ici pour que les voitures de l'atelier en aient aussi :
+  // `registerModel` passe par ce même chemin. (`perfOf` est déclarée plus bas, donc hissée.)
+  model.perf = perfOf(model);
   return model;
 }
 for (const cat of CATEGORIES) for (const m of cat.models) MODELS.push(resolveModel(cat, m));
+
+// Les quatre chiffres du menu de sélection. Aucun n'est une note inventée : chacun est obtenu en
+// appliquant au modèle la loi que le jeu applique vraiment en course, si bien qu'une retouche des
+// `mul` se lit aussitôt sur les jauges — il n'y a pas de second jeu de valeurs à tenir à jour.
+function perfOf(c) {
+  // 0 à 100 km/h. La poussée retombe avec la vitesse — a(v) = accel · (1 − (v/vmax)^2.5), la
+  // formule de `car.js` — donc pas de forme close : on intègre, comme le jeu le fait au pas.
+  let v = 0, t = 0;
+  const dt = 0.002;
+  while (v < 27.78 && t < 30) { v += c.accel * Math.max(0, 1 - Math.pow(v / c.vmax, 2.5)) * dt; t += dt; }
+  return {
+    a100: t,                                     // secondes
+    vmax: c.vmax * 3.6,                          // km/h
+    // Freinage à fond en ligne droite : `car.js` décélère de 1,5 + brake, constant, d'où v²/2a.
+    b100: 27.78 * 27.78 / (2 * (1.5 + c.brake)), // mètres de 100 km/h à l'arrêt
+    // L'adhérence latérale disponible à 50 m/s, appui aérodynamique compris : c'est la vitesse à
+    // laquelle les virages se jouent, et une voiture à gros appui mérite d'y être jugée.
+    gripG: (c.grip + c.df * 2500) / 9.81,        // g
+  };
+}
+
+// Les écarts entre voitures d'un même plateau sont réels mais serrés — une dizaine de pour cent.
+// Sur une échelle partant de zéro ils seraient invisibles : neuf arcs presque identiques
+// n'apprennent rien. L'arc se cale donc sur le plateau, de la plus faible à la meilleure. C'est
+// une comparaison entre ces voitures-là, ce qui est exactement la question qu'on se pose ici.
+const PERF_KEYS = ['a100', 'vmax', 'b100', 'gripG'];
+// Un temps et une distance sont meilleurs quand ils sont courts : l'arc se remplit à l'envers.
+const PERF_LOWER_BETTER = { a100: true, b100: true };
+function perfScale(models) {
+  const out = {};
+  for (const k of PERF_KEYS) {
+    const a = models.map(m => m.perf[k]);
+    out[k] = [Math.min(...a), Math.max(...a)];
+  }
+  return out;
+}
+// La plus faible garde un arc visible : un anneau vide se lit comme un bogue, pas comme un dernier.
+function perfFill(v, range, key) {
+  const [lo, hi] = range;
+  let f = hi - lo < 1e-9 ? 1 : (v - lo) / (hi - lo);
+  if (PERF_LOWER_BETTER[key]) f = 1 - f;
+  return 0.14 + 0.86 * Math.max(0, Math.min(1, f));
+}
 
 // Une seule catégorie, celle du plateau dessiné d'après nature. Les trois autres — F1 classiques,
 // F1 modernes, prototypes — ont été retirées : leurs voitures n'avaient aucun dessin et n'étaient
@@ -124,4 +170,4 @@ function registerModel(def) {
 }
 function unregisterModel(id) { const i = MODELS.findIndex(m => m.id === id); if (i >= 0) MODELS.splice(i, 1); }
 
-if (typeof module !== 'undefined') module.exports = { CATEGORIES, MODELS, LIVERIES, AI_NAMES, SIMPLE, playableCategories, categoryById, modelsOf, allModelsOf, modelById, carClassById, registerModel };
+if (typeof module !== 'undefined') module.exports = { CATEGORIES, MODELS, LIVERIES, AI_NAMES, SIMPLE, perfOf, perfScale, perfFill, PERF_KEYS, playableCategories, categoryById, modelsOf, allModelsOf, modelById, carClassById, registerModel };
