@@ -125,10 +125,10 @@ function perfOf(c) {
 // l'arc vide, le second l'arc plein — pour un temps et une distance ils sont donc décroissants,
 // puisque plus court vaut mieux, ce qui évite d'avoir à dire ailleurs dans quel sens lire.
 const PERF_RANGE = {
-  a100: [8, 2],     // secondes de 0 à 100 km/h : 8 s une routière rapide, 2 s la limite du genre
-  vmax: [0, 350],   // km/h
-  b100: [40, 12],   // mètres de 100 km/h à l'arrêt : 40 m une routière, 12 m hors d'atteinte
-  gripG: [0, 3],    // g en virage
+  a100: [8, 2],       // secondes de 0 à 100 km/h : 8 s une routière rapide, 2 s la limite du genre
+  vmax: [150, 350],   // km/h
+  b100: [40, 12],     // mètres de 100 km/h à l'arrêt : 40 m une routière, 12 m hors d'atteinte
+  gripG: [1, 3],      // g en virage : 1 g ce que tient une bonne routière, 3 g hors d'atteinte
 };
 const PERF_KEYS = ['a100', 'vmax', 'b100', 'gripG'];
 function perfFill(v, key) {
