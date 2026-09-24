@@ -526,7 +526,8 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
   - *F1 modernes* (Bull, Rosso, Silver Arrow, Papaya, AMR, A5) : très rapides, très stables ;
   - *GT* (M1 Procar, F40, Countach, 911 Turbo, Testarossa, GT40 Mk II, 917 K, Corvette, 787B,
     3.0 CSL) ;
-  - *Prototypes classiques* (GT40, 917 K, 962 C, XJR-9, 787B, C9).
+  - *Prototypes classiques* (962 C, XJR-9, C9) — la GT40, la 917 K et la 787B en sont parties
+    pour la grille GT à mesure que leurs dessins arrivaient.
 - **Course rapide** et **contre-la-montre** (records par circuit et catégorie), 3 niveaux de difficulté.
 - Une **carrière** en 4 coupes existe dans le code, actuellement masquée.
 - IA qui freine selon son talent, choisit sa ligne pour dépasser, aspire dans le sillage, se touche.
