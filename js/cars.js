@@ -68,19 +68,23 @@ const CATEGORIES = [
       { id: 'gt40', name: 'GT40 Mk II', shape: 'gt40', mul: { vmax: 1.06, accel: 1.02, grip: 0.99, df: 0.85, brake: 0.97, slide: 1.1 }, pick: 'sprites/pick/gt40.png', engine: { cyl: 8, redline: 6200, idle: 800, rough: 0.6, bright: 0.45, turbo: 0 }, colors: ['#5bc8e8', '#ff8c1a'], top: 'sprites/top/gt40.png' },
       { id: '917k', name: '917 K', shape: 'longTail', mul: { vmax: 1.10, accel: 1.05, grip: 1.0, df: 1.4, brake: 0.93, slide: 1.15 }, pick: 'sprites/pick/917.png', engine: { cyl: 12, redline: 8400, idle: 1200, rough: 0.1, bright: 0.95, turbo: 0 }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/917.png' },
       { id: 'corvette', name: 'Corvette', shape: 'roundGT', mul: { vmax: 1.04, accel: 1.06, grip: 0.97, df: 0.9, brake: 0.95, slide: 1.3 }, pick: 'sprites/pick/corvette.png', engine: { cyl: 8, redline: 6000, idle: 750, rough: 0.7, bright: 0.4, turbo: 0 }, colors: ['#d8dce2', '#e0262c'], top: 'sprites/top/corvette.png' },
+      // Un moteur rotatif n'a pas de cylindres : `cyl` ne sert qu'à placer l'allumage, et un
+      // quatre-rotors allume quatre fois par tour d'arbre excentrique, exactement comme un V8 à
+      // quatre temps. D'où huit, avec la rugosité d'un moteur parfaitement équilibré et un
+      // rupteur très haut : c'est le cri de la 787B.
+      { id: '787b', name: '787B', shape: 'groupC', mul: { vmax: 1.02, accel: 1.05, grip: 1.03, df: 1.3, brake: 1.04, slide: 0.92 }, colors: ['#ff8c1a', '#1f6b3a'], top: 'sprites/top/787b.png', pick: 'sprites/pick/787b.png', engine: { cyl: 8, redline: 9000, idle: 1300, rough: 0.04, bright: 1.0, turbo: 0 } },
       { id: 'csl', name: '3.0 CSL', shape: 'gtBoxy', mul: { vmax: 0.95, accel: 0.98, grip: 1.05, df: 1.2, brake: 1.03, slide: 1.1 }, pick: 'sprites/pick/csl.png', engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.1, bright: 0.68, turbo: 0 }, colors: ['#f7f7f7', '#2166d8'], top: 'sprites/top/csl.png' },
     ],
   },
   {
     id: 'protoclassic', name: { fr: 'Prototypes classiques', en: 'Classic prototypes' },
-    desc: { fr: 'Le Mans 82-91 : 962, XJR-9, 787B, C9… Très rapides en ligne droite, de l’appui, longues à arrêter.', en: 'Le Mans 82-91: 962, XJR-9, 787B, C9… Very fast in a straight line, real downforce, long to stop.' },
+    desc: { fr: 'Le Mans 82-90 : 962, XJR-9, C9… Très rapides en ligne droite, de l’appui, longues à arrêter.', en: 'Le Mans 82-90: 962, XJR-9, C9… Very fast in a straight line, real downforce, long to stop.' },
     engine: { cyl: 12, redline: 8200, idle: 1500, rough: 0.1, bright: 0.85, turbo: 0 },
     base: { vmax: 84, accel: 9, brake: 20, grip: 14.5, df: 0.0035, slide: 0.7, laneK: 6, rearBias: 1.06, cliff: 0.15, slipPeak: 0.11, length: 4.8, width: 2.0 },
     drivers: 10, roadScale: 1, zoom: 1.05,
     models: [
       { id: '962c', name: '962 C', shape: 'groupC', mul: { vmax: 1.02, grip: 1.03, df: 1.2 }, colors: ['#f4f4f4', '#e0262c'] },
       { id: 'xjr9', name: 'XJR-9', shape: 'groupC', mul: { vmax: 1.04, grip: 1.02, df: 1.15, accel: 0.99 }, colors: ['#8a3ffc', '#f4f4f4'] },
-      { id: '787b', name: '787B', shape: 'groupC', mul: { vmax: 1.0, accel: 1.05, grip: 1.04, df: 1.1, brake: 1.03 }, colors: ['#ff8c1a', '#1f6b3a'], top: 'sprites/top/787b.png' },
       { id: 'c9', name: 'C9', shape: 'groupC', mul: { vmax: 1.06, grip: 1.0, df: 1.1, accel: 1.0 }, colors: ['#c9ced6', '#22242b'] },
     ],
   },
