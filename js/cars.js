@@ -38,35 +38,11 @@ const CATEGORIES = [
 // Découpé dans l'onboard par `tools/enginecut.py`. Six boucles pour couvrir la plage
         // utile : une seule, transposée du ralenti au rupteur, fait trois octaves et ne sonne
         // plus comme un moteur. Hors de la plage couverte, la synthèse reprend la main.
-        sample: { set: [
-          { src: 'sounds/engine/six-inline-1865.wav', rpm: 1865 },
-          { src: 'sounds/engine/six-inline-2023.wav', rpm: 2023 },
-          { src: 'sounds/engine/six-inline-2115.wav', rpm: 2115 },
-          { src: 'sounds/engine/six-inline-2256.wav', rpm: 2256 },
-          { src: 'sounds/engine/six-inline-2740.wav', rpm: 2740 },
-          { src: 'sounds/engine/six-inline-2935.wav', rpm: 2935 },
-          { src: 'sounds/engine/six-inline-3081.wav', rpm: 3081 },
-          { src: 'sounds/engine/six-inline-3313.wav', rpm: 3313 },
-          { src: 'sounds/engine/six-inline-3787.wav', rpm: 3787 },
-          { src: 'sounds/engine/six-inline-3991.wav', rpm: 3991 },
-          { src: 'sounds/engine/six-inline-4788.wav', rpm: 4788 },
-          { src: 'sounds/engine/six-inline-5319.wav', rpm: 5319 },
-          { src: 'sounds/engine/six-inline-6030.wav', rpm: 6030 },
-          { src: 'sounds/engine/six-inline-6433.wav', rpm: 6433 },
-          { src: 'sounds/engine/six-inline-6726.wav', rpm: 6726 },
-          { src: 'sounds/engine/six-inline-7234.wav', rpm: 7234 },
-          { src: 'sounds/engine/six-inline-7532.wav', rpm: 7532 },
-          { src: 'sounds/engine/six-inline-7843.wav', rpm: 7843 },
-          { src: 'sounds/engine/six-inline-9000.wav', rpm: 9000 },
-        ] },
+        sample: { ramp: 'sounds/engine/six-inline.json' },
       }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/m1procar.png', sheet: 'sprites/m1procar', sheetN: 16, sheetRear: 0, sheetW: 5.122, sheetAnchor: [0.494, 0.821] },
       { id: 'f40', name: 'F40', shape: 'f40', mul: { vmax: 1.05, accel: 1.06, grip: 0.98, df: 1.5 }, pick: 'sprites/pick/f40.png', engine: {
         cyl: 8, redline: 7750, idle: 1000, rough: 0.15, bright: 0.8, turbo: 0.9,
-        sample: { set: [
-          { src: 'sounds/engine/v8-f40-5745.wav', rpm: 5745 },
-          { src: 'sounds/engine/v8-f40-5982.wav', rpm: 5982 },
-          { src: 'sounds/engine/v8-f40-7750.wav', rpm: 7750 },
-        ] },
+        sample: { ramp: 'sounds/engine/v8-f40.json' },
       }, colors: ['#e0262c', '#22242b'], top: 'sprites/top/f40.png', sheet: 'sprites/f40lm', sheetN: 8, sheetRear: 3 },
       { id: 'countach', name: 'Countach LP500', shape: 'wedgeGT', mul: { vmax: 1.03, accel: 1.02, grip: 0.95, brake: 0.95 }, pick: 'sprites/pick/countach.png', engine: { cyl: 12, redline: 7500, idle: 900, rough: 0.05, bright: 0.88, turbo: 0 }, colors: ['#ffd400', '#22242b'], top: 'sprites/top/countach.png' },
       { id: '930', name: '911 Turbo', shape: 'roundGT', mul: { vmax: 0.99, accel: 1.04, grip: 0.97, slide: 1.2 }, pick: 'sprites/pick/930.png', engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.3, bright: 0.6, turbo: 0.85 }, colors: ['#c9ced6', '#e0262c'], top: 'sprites/top/930.png', sheet: 'sprites/930', sheetN: 16, sheetRear: 0, sheetW: 4.803, sheetAnchor: [0.499, 0.841] },
@@ -79,23 +55,7 @@ const CATEGORIES = [
         // sonagramme montre — les rangs y sont espacés d'une cinquantaine de hertz, soit un demi-
         // ordre à 6000 tr/min et non un allumage à 3000. Sans elle, la voiture sonnerait une
         // octave trop bas.
-        sample: { set: [
-          { src: 'sounds/engine/v8-corvette-1510.wav', rpm: 1510 },
-          { src: 'sounds/engine/v8-corvette-2037.wav', rpm: 2037 },
-          { src: 'sounds/engine/v8-corvette-2173.wav', rpm: 2173 },
-          { src: 'sounds/engine/v8-corvette-2309.wav', rpm: 2309 },
-          { src: 'sounds/engine/v8-corvette-2415.wav', rpm: 2415 },
-          { src: 'sounds/engine/v8-corvette-2704.wav', rpm: 2704 },
-          { src: 'sounds/engine/v8-corvette-2885.wav', rpm: 2885 },
-          { src: 'sounds/engine/v8-corvette-3041.wav', rpm: 3041 },
-          { src: 'sounds/engine/v8-corvette-3218.wav', rpm: 3218 },
-          { src: 'sounds/engine/v8-corvette-3447.wav', rpm: 3447 },
-          { src: 'sounds/engine/v8-corvette-3619.wav', rpm: 3619 },
-          { src: 'sounds/engine/v8-corvette-3939.wav', rpm: 3939 },
-          { src: 'sounds/engine/v8-corvette-5042.wav', rpm: 5042 },
-          { src: 'sounds/engine/v8-corvette-5716.wav', rpm: 5716 },
-          { src: 'sounds/engine/v8-corvette-6000.wav', rpm: 6000 },
-        ] },
+        sample: { ramp: 'sounds/engine/v8-corvette.json' },
       }, colors: ['#d8dce2', '#e0262c'], top: 'sprites/top/corvette.png' },
       // Un moteur rotatif n'a pas de cylindres : `cyl` ne sert qu'à placer l'allumage, et un
       // quatre-rotors allume quatre fois par tour d'arbre excentrique, exactement comme un V8 à

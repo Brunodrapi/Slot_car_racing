@@ -158,16 +158,18 @@ tenus n'a d'intérêt que si chacun sonne vraiment à son régime.
 
 ## Ce que les onboards ont donné
 
-| prise | durée | boucles | plage couverte | part du régime |
-|---|---|---|---|---|
-| M1 Procar | 532 s | 19 | 1865 – 9000 tr/min | 94 % |
-| Corvette Trans-Am | 990 s | 15 | 1510 – 6000 tr/min | 90 % |
-| F40 LM | 147 s | 3 | 5745 – 7750 tr/min | 43 % |
+| prise | durée | rampe retenue | montée |
+|---|---|---|---|
+| M1 Procar | 532 s | 8,0 s à 171,4 s | 17 demi-tons |
+| Corvette Trans-Am | 990 s | 7,6 s à 129,1 s | 14 demi-tons |
+| F40 LM | 147 s | 4,2 s à 22,6 s | 9 demi-tons |
 
-**La durée de la prise fait tout.** La F40 n'a donné que trois boucles sur cinq demi-tons, contre
-dix-neuf sur vingt-sept pour la M1 : son onboard dure deux minutes et demie, et l'outil n'y trouve
-que 55 fenêtres assez tonales contre 602. En dessous de 5745 tr/min elle repasse à la synthèse. Un
-onboard plus long la mettrait au niveau des deux autres — c'est la seule chose qui lui manque.
+**Ce qu'il faut chercher, c'est une rampe** : une montée continue, pied au plancher, sur un seul
+rapport, du bas de la plage au rupteur. Une dizaine de secondes suffit. Pas une série de régimes
+tenus — le lecteur est granulaire, il se déplace dans la rampe et ne transpose jamais.
 
-À comparer avec les cinq fichiers générés, qui tenaient tous dans 2315 à 2649 tr/min, soit deux
-demi-tons en tout : de quoi faire une seule boucle, pas un jeu.
+Une descente en roue libre du rupteur au ralenti serait le prochain gain : le pied levé joue
+aujourd'hui la rampe d'accélération, simplement assombrie.
+
+Et les cinq fichiers générés, pour mémoire, tenaient tous dans 2315 à 2649 tr/min : deux demi-tons
+en tout, aucune montée, rien d'exploitable.

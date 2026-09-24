@@ -41,30 +41,21 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   const pcm = await page.evaluate(async ({ id: mid, DUR: dur, base: b, synthese: sy }) => {
     const SR = 44100;
     const m = modelById(mid);
-    // La boucle est chargée à l'avance : un rendu hors ligne ne laisse pas le temps à un `fetch`
+    // La rampe est chargée à l'avance : un rendu hors ligne ne laisse pas le temps à un `fetch`
     // d'aboutir, et le moteur retomberait sur la synthèse sans qu'on sache pourquoi.
-    let pre = null;
+    let ramp = null;
     if (m.engine.sample && !sy) {
+      const meta = await (await fetch(`${b}/${m.engine.sample.ramp}`)).json();
       const tmp = new OfflineAudioContext(1, 128, SR);
-      pre = [];
-      for (const x of m.engine.sample.set) {
-        pre.push({ rpm: x.rpm, buf: await tmp.decodeAudioData(await (await fetch(`${b}/${x.src}`)).arrayBuffer()) });
-      }
+      const buf0 = await tmp.decodeAudioData(await (await fetch(`${b}/${meta.src}`)).arrayBuffer());
+      ramp = { key: m.engine.sample.ramp, buf: buf0, meta };
     }
     const off = new OfflineAudioContext(1, SR * dur, SR);
     const a = new GameAudio();
     a.start(off);
     a.setEnabled(true);
-    if (pre) {
-      a.smpFetching = a._key(m.engine);
-      a.smpKey = a.smpFetching;
-      a.smpVoices = pre.sort((x, y) => x.rpm - y.rpm).map((l) => {
-        const g = off.createGain(); g.gain.value = 0; g.connect(a.smpFilter);
-        const n = off.createBufferSource();
-        n.buffer = l.buf; n.loop = true; n.connect(g); n.start();
-        return { rpm: l.rpm, src: n, gain: g };
-      });
-    }
+    if (ramp) { a.ramp = ramp; a.rampFetching = ramp.key; }
+
     // Deux secondes à l'arrêt, puis on accélère jusqu'à la vitesse maximale, puis on lève le pied.
     const pas = 1 / 60;
     for (let i = 0; i * pas < dur; i++) {
