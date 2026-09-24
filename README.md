@@ -682,6 +682,26 @@ trois ou quatre minutes selon la vitesse de la catégorie.
 Les courses de championnat gardent leur longueur : elle fait partie du championnat, pas des
 réglages.
 
+## Choisir sa voiture
+
+Le menu de sélection montre une **illustration en trois quarts** quand la voiture en a une.
+La vue de dessus dit comment la voiture se pose sur la piste, ce qui est le sujet une fois en
+course, mais on ne choisit pas une voiture par son toit : de face, on reconnaît la calandre,
+l'aileron, la posture.
+
+`python3 tools/pickcar.py <image> <id>` prépare ces illustrations. C'est un cousin de
+`topcar.py`, à une différence près qui compte : **rien n'est tourné ni redressé**. Une vue de
+dessus doit pointer vers la droite et son axe long se mesure ; une vue en trois quarts est cadrée
+par le dessinateur, et la redresser ne ferait que la coucher de travers.
+
+Ces illustrations portent en général une ombre douce au sol, qui n'est pas du fond : le
+remplissage depuis le bord s'y arrête et il reste un halo gris autour des roues. `--peel` retire
+les pixels du pourtour restés presque blancs, sur une épaisseur bornée pour qu'un reflet clair de
+la carrosserie ne serve jamais de porte d'entrée vers l'intérieur.
+
+Les voitures sans illustration gardent leur vue de dessus : les deux voies cohabitent le temps que
+la série soit complète.
+
 ## Le son des voitures
 
 Deux méthodes se partagent le métier : le **fondu enchaîné d'enregistrements** par régime, celle
@@ -866,6 +886,7 @@ NODE_PATH=$(npm root -g) node tools/arrow.js <circuit>                          
 python3 tools/sheet.py <dossier de rendus> <id du modèle> <longueur en m> [largeur]  # planche de rotations
 python3 tools/env.py <planche.png> sprites/env [--erode=6] [--shadow=r,g,b] …     # découpe une planche de décor
 python3 tools/topcar.py <image> <id du modèle> [--nose=left]                      # voiture vue de dessus
+python3 tools/pickcar.py <image> <id du modèle> [--tol --peel]                    # voiture en trois quarts, pour le menu
 NODE_PATH=$(npm root -g) node tools/propdbg.js <image.png>                        # décor visible et coût par image
 ```
 

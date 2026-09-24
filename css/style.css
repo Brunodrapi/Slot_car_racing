@@ -210,3 +210,9 @@ h3 .link { margin-left: 8px; text-transform: none; letter-spacing: 0; font-size:
 small.ok { color: #7fd48a; }
 #inp-code { text-transform: uppercase; letter-spacing: .2em; font-family: ui-monospace, Menlo, monospace; }
 canvas.caricon { width: 160px; height: 72px; max-width: 100%; display: block; }
+/* L'illustration en trois quarts : presque carrée, là où la vue de dessus est longue et plate.
+   Elle a donc sa propre boîte, et `contain` la laisse entière quelle que soit sa proportion —
+   les voitures ne sont pas toutes cadrées pareil. */
+.card img.carpick,
+.grid.models .card img.carpick { width: 100%; max-width: 150px; aspect-ratio: 4/3; object-fit: contain; }
+.grid.models.small .card img.carpick { max-width: 104px; }

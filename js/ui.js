@@ -127,7 +127,14 @@ class UI {
      nothing to encode, so it works from a file, from a server, anywhere. It also settles the
      timing — a drawing that has not decoded yet is simply painted again when it lands, where a
      cached data URL would have kept the fallback body for good. */
+  /* La vignette d'une voiture dans les menus.
+
+  Quand elle a une illustration en trois quarts, c'est elle qu'on montre : la vue de dessus dit
+  comment la voiture se pose sur la piste, ce qui est le sujet une fois en course, mais on ne
+  choisit pas une voiture par son toit. Les autres gardent la vue de dessus, peinte sur une toile
+  par `paintIcons` — deux voies qui cohabitent le temps que la série soit complète. */
   carIcon(model, livery) {
+    if (model.pick) return `<img class="carpick" src="${model.pick}" alt="">`;
     return `<canvas class="caricon" width="160" height="72" data-car="${model.id}" data-livery="${LIVERIES.indexOf(livery)}"></canvas>`;
   }
 

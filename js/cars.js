@@ -8,6 +8,8 @@
 //  sheet: folder of a rotation sheet (v0..vN-1.png) used by the isometric view; sheetRear names the rear view
 //  sheetW / sheetAnchor: for a sheet rendered in a fixed frame, its width in metres and the ground point
 //
+//  pick: illustration en trois quarts pour le menu de selection. La vue de dessus dit comment la
+//    voiture se pose sur la piste, pas a quoi elle ressemble ; on choisit une voiture de face.
 //  engine: what the car sounds like, and it is real engine data rather than a tone choice.
 //    cyl      cylinders. A four-stroke fires cyl/2 times per crank revolution, so this alone sets
 //             the note: at the same rpm a V12 sounds an octave above a straight-six. It is the
@@ -66,7 +68,7 @@ const CATEGORIES = [
       { id: 'gt40', name: 'GT40 Mk II', shape: 'gt40', mul: { vmax: 1.06, accel: 1.02, grip: 0.99, df: 0.85, brake: 0.97, slide: 1.1 }, engine: { cyl: 8, redline: 6200, idle: 800, rough: 0.6, bright: 0.45, turbo: 0 }, colors: ['#5bc8e8', '#ff8c1a'], top: 'sprites/top/gt40.png' },
       { id: '917k', name: '917 K', shape: 'longTail', mul: { vmax: 1.10, accel: 1.05, grip: 1.0, df: 1.4, brake: 0.93, slide: 1.15 }, engine: { cyl: 12, redline: 8400, idle: 1200, rough: 0.1, bright: 0.95, turbo: 0 }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/917.png' },
       { id: 'corvette', name: 'Corvette', shape: 'roundGT', mul: { vmax: 1.04, accel: 1.06, grip: 0.97, df: 0.9, brake: 0.95, slide: 1.3 }, engine: { cyl: 8, redline: 6000, idle: 750, rough: 0.7, bright: 0.4, turbo: 0 }, colors: ['#d8dce2', '#e0262c'], top: 'sprites/top/corvette.png' },
-      { id: 'csl', name: '3.0 CSL', shape: 'gtBoxy', mul: { vmax: 0.95, accel: 0.98, grip: 1.05, df: 1.2, brake: 1.03, slide: 1.1 }, engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.1, bright: 0.68, turbo: 0 }, colors: ['#f7f7f7', '#2166d8'], top: 'sprites/top/csl.png' },
+      { id: 'csl', name: '3.0 CSL', shape: 'gtBoxy', mul: { vmax: 0.95, accel: 0.98, grip: 1.05, df: 1.2, brake: 1.03, slide: 1.1 }, pick: 'sprites/pick/csl.png', engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.1, bright: 0.68, turbo: 0 }, colors: ['#f7f7f7', '#2166d8'], top: 'sprites/top/csl.png' },
     ],
   },
   {
@@ -123,6 +125,7 @@ function resolveModel(cat, m) {
     length: m.length || b.length, width: m.width || b.width,
     drivers: cat.drivers, roadScale: cat.roadScale, zoom: cat.zoom,
     // le moteur : celui de la catégorie, que la voiture peut reprendre champ par champ
+    pick: m.pick || null,
     engine: Object.assign({ cyl: 8, redline: 7000, idle: 1000, rough: 0.3, bright: 0.6, turbo: 0 }, cat.engine || {}, m.engine || {}),
   };
   return model;
