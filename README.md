@@ -702,6 +702,11 @@ la carrosserie ne serve jamais de porte d'entrée vers l'intérieur.
 Les voitures sans illustration gardent leur vue de dessus : les deux voies cohabitent le temps que
 la série soit complète.
 
+La boîte de la vignette est en 4/3 et le dessin y tient en `contain` : les illustrations ne sont
+pas cadrées pareil d'une voiture à l'autre — la CSL arrive en 1,06 de rapport, la Corvette en 1,58
+— et les forcer au même cadre les déformerait. Le prix est que la voiture n'occupe pas tout à fait
+la même surface d'une carte à l'autre.
+
 ## Le son des voitures
 
 Deux méthodes se partagent le métier : le **fondu enchaîné d'enregistrements** par régime, celle
