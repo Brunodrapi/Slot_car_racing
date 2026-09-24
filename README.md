@@ -739,6 +739,18 @@ moins *laquelle est la meilleure des neuf*. Resserrer les bornes — `[5, 2.8]`,
 `[30, 16]`, `[1, 2.4]` — rend 14 à 19 points d'arc sans jamais remplir un cadran ; c'est une ligne
 de `PERF_RANGE` à changer.
 
+**L'arc suit le chiffre affiché, pas la valeur brute.** L'invariant tient en une phrase : deux
+voitures qui montrent le même nombre montrent le même arc. Il se casse tout seul dès qu'on
+arrondit le texte sans arrondir aussi la valeur qui pilote l'arc, et c'est exactement ce qui est
+arrivé — la 787B s'arrête en 20,118 m et la CSL en 20,298 m, toutes deux affichées « 20 » au mètre
+près, avec deux arcs différents ; le même écart séparait la Countach et la GT40 à « 1,69 » g. Le
+cadran part donc de la valeur arrondie à ce qu'il écrit. Le freinage garde en plus une décimale :
+au mètre près, neuf voitures ne prennent que trois valeurs distinctes et l'essentiel des écarts
+disparaît de l'écran.
+
+`NODE_PATH=$(npm root -g) node tools/e2e-gauges.js` relit les neuf cartes dans le navigateur et
+tient les deux propriétés : aucune paire chiffre/arc incohérente, aucun cadran plein.
+
 Deux détails qui coûtent une heure si on ne les sait pas. L'arc est tracé au `stroke-dasharray`,
 dont la longueur passe par une **variable CSS et non par l'attribut du SVG** : une déclaration CSS
 l'emporte toujours sur un attribut de présentation, et écrire la valeur dans la balise ne donne
@@ -947,6 +959,7 @@ python3 tools/sheet.py <dossier de rendus> <id du modèle> <longueur en m> [larg
 python3 tools/env.py <planche.png> sprites/env [--erode=6] [--shadow=r,g,b] …     # découpe une planche de décor
 python3 tools/topcar.py <image> <id du modèle> [--nose=left]                      # voiture vue de dessus
 python3 tools/pickcar.py <image> <id du modèle> [--tol --peel]                    # voiture en trois quarts, pour le menu
+node tools/e2e-gauges.js                                                         # les cadrans : chiffre et arc d'accord, aucun plein
 NODE_PATH=$(npm root -g) node tools/propdbg.js <image.png>                        # décor visible et coût par image
 ```
 

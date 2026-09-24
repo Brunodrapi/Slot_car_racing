@@ -160,8 +160,13 @@ class UI {
   quatre ne se comparent jamais entre eux — ce sont quatre mesures séparées, pas une série. */
   gauges(m) {
     const ARC = 84.8;   // les 270° d'ouverture, sur les 113,1 de circonférence d'un rayon 18
-    const one = (key, kind, colour, value, unit) => {
-      const fill = perfFill(m.perf[key], key);
+    // L'arc suit le chiffre affiché et non la valeur brute. Sans cela, deux voitures qui montrent
+    // le même nombre montrent des arcs différents — la 787B s'arrête en 20,12 m et la CSL en
+    // 20,30 m, toutes deux affichées « 20 », et le joueur voit un écart que le texte dément.
+    const one = (key, kind, colour, digits, unit) => {
+      const shown = +m.perf[key].toFixed(digits);
+      const fill = perfFill(shown, key);
+      const value = shown.toFixed(digits).replace('.', this.lang === 'fr' ? ',' : '.');
       return `<span class="gauge" style="--c:${colour};--d:${(ARC * fill).toFixed(1)}">
         <svg class="ring" viewBox="0 0 44 44" aria-hidden="true">
           <circle class="trk" cx="22" cy="22" r="18"></circle>
@@ -171,12 +176,13 @@ class UI {
         <span class="num">${value}<small>${unit}</small></span>
       </span>`;
     };
-    const dec = (v, n) => v.toFixed(n).replace('.', this.lang === 'fr' ? ',' : '.');
+    // Le freinage garde une décimale : au mètre près, neuf voitures ne prennent que trois valeurs
+    // distinctes et l'essentiel des écarts disparaît de l'écran.
     return `<span class="gauges">
-      ${one('a100', 'acc', '#4aa8ff', dec(m.perf.a100, 2), 'S 0-100')}
-      ${one('vmax', 'top', '#ff5a5f', Math.round(m.perf.vmax), 'KM/H')}
-      ${one('b100', 'brk', '#ffa62b', Math.round(m.perf.b100), 'M 100-0')}
-      ${one('gripG', 'grp', '#4ed17e', dec(m.perf.gripG, 2), 'G')}
+      ${one('a100', 'acc', '#4aa8ff', 2, 'S 0-100')}
+      ${one('vmax', 'top', '#ff5a5f', 0, 'KM/H')}
+      ${one('b100', 'brk', '#ffa62b', 1, 'M 100-0')}
+      ${one('gripG', 'grp', '#4ed17e', 2, 'G')}
     </span>`;
   }
 
