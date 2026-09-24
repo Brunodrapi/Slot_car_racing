@@ -830,6 +830,47 @@ Chaque voiture porte son vrai moteur dans `js/cars.js` (`engine`) : six en ligne
 et la CSL, V8 à vilebrequin plat et biturbo pour la F40, flat-6 turbo pour la 911, V12 pour la
 Countach, flat-12 pour la 917, gros V8 croisé pour la GT40 et la Corvette.
 
+### Une prise plutôt qu'un oscillateur
+
+Une voiture qui déclare un `sample` dans `js/cars.js` ne joue plus la synthèse : elle joue une
+boucle enregistrée, rejouée plus ou moins vite. La M1 Procar est la première.
+
+```js
+sample: { src: 'sounds/engine/six-inline-m1.wav', rpm: 2410 }
+```
+
+`rpm` est **le régime auquel la prise a été faite**, et c'est toute la mécanique : rejouer la
+boucle `régime ÷ 2410` fois plus vite la transpose exactement là où le moteur tourne. C'est
+l'opération d'un oscillateur dont on change la fréquence, à ceci près que la matière transposée
+est celle d'un vrai moteur.
+
+Ce chiffre ne se prend pas dans le nom du fichier. Celui-ci s'appelait `on-2500` ; la période
+mesurée dans la boucle vaut 366 échantillons à 44 100 Hz, soit 120,5 Hz d'allumage, soit
+**2410 tr/min**. Se fier au nom aurait transposé tout le moteur de 4 %. `tools/e2e-sample.js`
+refait cette mesure dans le navigateur, sur le fichier servi, et échoue si l'écart dépasse 3 %.
+
+La prise ne repasse pas par les filtres d'échappement et d'admission : ils sont là pour fabriquer
+un timbre qu'elle a déjà. Elle a sa propre sortie et un seul passe-bas, qui n'assombrit que le
+pied levé. La synthèse, elle, ne s'arrête jamais de tourner — elle est simplement mise à zéro, et
+reprend la main pour toute voiture sans prise, si le fichier manque, ou si la page est ouverte en
+`file://`, où `fetch` ne peut rien charger.
+
+`tools/engineloop.py` fabrique ces boucles. Le point qui compte : une boucle doit contenir un
+**nombre entier de périodes d'allumage**, sinon elle claque une fois par tour, et l'oreille entend
+ce clic bien avant d'entendre le moteur. La période est trouvée par corrélation directe et non au
+spectre — c'est exactement la question posée, « à partir de quel décalage le signal se
+répète-t-il ? », là où une estimation de hauteur se trompe d'octave dès que le fondamental est
+faible, ce qui est le cas de tous les moteurs. Le raccord se fond ensuite avec ce qui **précède**
+le corps de boucle, et non avec ce qui le suit : le dernier échantillon devient alors le voisin
+immédiat du premier, et il n'y a plus rien à recoller. L'outil chiffre le résultat en rapportant
+le saut du raccord aux sauts ordinaires du signal — 1 veut dire que le raccord ressemble à
+n'importe quel autre endroit, donc qu'il est inaudible.
+
+`tools/enginedemo.js <id> <sortie.wav>` rend une accélération complète, du ralenti au rupteur en
+passant les rapports, par le même code que le jeu, dans un fichier qu'on peut écouter. `--synthese`
+ignore la prise : les deux moitiés d'une écoute comparée, même voiture, même accélération, seule
+la source du timbre change.
+
 ### Mesuré, pas écouté
 
 `NODE_PATH=$(npm root -g) node tools/e2e-audio.js` rend le son **hors ligne** dans un
@@ -972,6 +1013,9 @@ python3 tools/sheet.py <dossier de rendus> <id du modèle> <longueur en m> [larg
 python3 tools/env.py <planche.png> sprites/env [--erode=6] [--shadow=r,g,b] …     # découpe une planche de décor
 python3 tools/topcar.py <image> <id du modèle> [--nose=left]                      # voiture vue de dessus
 python3 tools/pickcar.py <image> <id du modèle> [--tol --peel]                    # voiture en trois quarts, pour le menu
+python3 tools/engineloop.py <prise.wav> <boucle.wav>                             # boucle moteur sans couture
+node tools/enginedemo.js <id> <sortie.wav> [secondes] [--synthese]               # une accélération à écouter
+node tools/e2e-sample.js                                                         # le régime déclaré correspond-il à la prise ?
 node tools/e2e-gauges.js                                                         # les cadrans : chiffre et arc d'accord, aucun plein
 NODE_PATH=$(npm root -g) node tools/propdbg.js <image.png>                        # décor visible et coût par image
 ```

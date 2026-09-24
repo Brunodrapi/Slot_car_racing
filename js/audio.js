@@ -111,6 +111,16 @@ class GameAudio {
       this.eng.connect(this.inFilter); this.inFilter.connect(this.inGain); this.inGain.connect(this.master);
       this.eng.start();
 
+      // Voie d'enregistrement, à côté de la synthèse. Une prise porte déjà son timbre : elle ne
+      // repasse donc pas par les filtres d'échappement et d'admission, qui sont là pour fabriquer
+      // un timbre qu'elle a déjà. Elle a sa propre sortie, et un filtre léger, seulement pour
+      // assombrir le pied levé.
+      this.smpGain = ctx.createGain(); this.smpGain.gain.value = 0;
+      this.smpFilter = ctx.createBiquadFilter(); this.smpFilter.type = 'lowpass';
+      this.smpFilter.frequency.value = 6000; this.smpFilter.Q.value = 0.7;
+      this.smpFilter.connect(this.smpGain); this.smpGain.connect(this.master);
+      this.smp = null; this.smpSrc = null; this.smpFetching = null;
+
       // souffle d'admission : du bruit filtré au régime, présent seulement pied dedans
       this.airSrc = noise();
       this.airFilter = ctx.createBiquadFilter(); this.airFilter.type = 'bandpass';
@@ -158,6 +168,28 @@ class GameAudio {
   }
 
   /** Le rapport engagé et le régime qui en découle, à cette vitesse. */
+  /* Charge la boucle d'une voiture, une seule fois, et la met à tourner.
+
+  Tant qu'elle n'est pas là — et si elle n'arrive jamais — la synthèse continue de jouer : une
+  voiture sans prise, un réseau lent ou un fichier manquant donnent le son d'avant, jamais du
+  silence. */
+  _sample(e) {
+    if (!e.sample || this.smpFetching === e.sample.src) return;
+    this.smpFetching = e.sample.src;
+    const ctx = this.ctx;
+    fetch(e.sample.src)
+      .then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.status))))
+      .then(b => ctx.decodeAudioData(b))
+      .then((buf) => {
+        if (this.smpSrc) { try { this.smpSrc.stop(); } catch (_) { /* déjà arrêtée */ } }
+        this.smp = { buf, rpm: e.sample.rpm, src: e.sample.src };
+        const n = ctx.createBufferSource();
+        n.buffer = buf; n.loop = true; n.connect(this.smpFilter); n.start();
+        this.smpSrc = n;
+      })
+      .catch(() => { this.smp = null; this.smpSrc = null; });   // la synthèse reprend la main
+  }
+
   _gearbox(v, vmax, e) {
     const f = Math.min(1, Math.max(0, v / vmax));
     let g = 0;
@@ -176,7 +208,23 @@ class GameAudio {
     const ctx = this.ctx, t = ctx.currentTime;
     const fin = (x, d) => (Number.isFinite(x) ? x : d);
     const e = (car.cls && car.cls.engine) || { cyl: 8, redline: 7000, idle: 1000, rough: 0.3, bright: 0.6, turbo: 0 };
-    if (this.spec !== e) { this.spec = e; this.eng.setPeriodicWave(this._wave(e)); }
+    if (this.spec !== e) {
+      this.spec = e;
+      this.eng.setPeriodicWave(this._wave(e));
+      this._sample(e);
+      // La voiture n'a pas de prise, ou en a une autre : on coupe celle qui tournait.
+      if (!e.sample || (this.smp && this.smp.src !== e.sample.src)) {
+        if (this.smpSrc) { try { this.smpSrc.stop(); } catch (_) { /* déjà arrêtée */ } }
+        this.smp = null; this.smpSrc = null; this.smpFetching = e.sample ? e.sample.src : null;
+        // Source arrêtée, plus rien n'alimente ce gain : il n'est plus audible, mais il reste
+        // figé sur sa dernière valeur, que le navigateur cesse d'évaluer. Le remettre à zéro à la
+        // main évite qu'une prochaine prise démarre plein pot sur une valeur restée en l'air.
+        this.smpGain.gain.cancelScheduledValues(ctx.currentTime);
+        this.smpGain.gain.value = 0;
+      }
+    }
+    // Une prise est jouée si elle est arrivée ; sinon la synthèse, qui n'a jamais cessé de tourner.
+    const surPrise = !!(this.smp && this.smpSrc && e.sample && this.smp.src === e.sample.src);
 
     const v = Math.max(0, fin(car.v, 0));
     const vmax = car.cls.vmax;
@@ -205,15 +253,24 @@ class GameAudio {
     const crank = Math.max(8, r / 60);
     this.eng.frequency.setTargetAtTime(crank, t, 0.02);
 
+    // La prise a été faite à un régime connu : la rejouer `r / ce régime` fois plus vite la
+    // transpose exactement là où le moteur tourne. C'est la même opération qu'un oscillateur dont
+    // on change la fréquence, à ceci près que la matière transposée est celle d'un vrai moteur.
+    if (surPrise) {
+      this.smpSrc.playbackRate.setTargetAtTime(Math.max(0.25, Math.min(4, r / this.smp.rpm)), t, 0.02);
+      this.smpFilter.frequency.setTargetAtTime(1800 + frac * 5000 + load * 2200, t, 0.05);
+    }
+
     // la coupure à l'embrayage : 90 ms de silence, ce qui suffit à entendre le rapport passer
     const shifting = t - this.shiftT < 0.09 ? 0.15 : 1;
 
     // Échappement : toujours là, plus sombre pied levé. Admission : seulement pied dedans, c'est
     // elle qui fait la différence entre pousser et rouler sur l'erre.
     this.exFilter.frequency.setTargetAtTime(240 + frac * (700 + 1500 * e.bright) + load * 300, t, 0.05);
-    this.exGain.gain.setTargetAtTime((0.16 + frac * 0.2 + load * 0.05) * shifting, t, 0.04);
+    this.exGain.gain.setTargetAtTime((0.16 + frac * 0.2 + load * 0.05) * shifting * (surPrise ? 0 : 1), t, 0.04);
+    this.smpGain.gain.setTargetAtTime(surPrise ? (0.30 + frac * 0.24 + load * 0.08) * shifting : 0, t, 0.04);
     this.inFilter.frequency.setTargetAtTime(700 + frac * 2600 * e.bright, t, 0.05);
-    this.inGain.gain.setTargetAtTime(load * (0.03 + frac * 0.13) * e.bright * shifting, t, 0.05);
+    this.inGain.gain.setTargetAtTime(load * (0.03 + frac * 0.13) * e.bright * shifting * (surPrise ? 0 : 1), t, 0.05);
     this.airFilter.frequency.setTargetAtTime(500 + frac * 1800, t, 0.05);
     this.airGain.gain.setTargetAtTime(load * (0.015 + frac * 0.05) * shifting, t, 0.06);
 

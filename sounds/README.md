@@ -1,7 +1,8 @@
 # Les sons à trouver
 
-Ce dossier est vide et attend des enregistrements. Il porte la liste de courses et la convention
-de nommage, pour qu'un fichier déposé ici soit directement exploitable.
+Ce dossier porte la liste de courses et la convention de nommage, pour qu'un fichier déposé ici
+soit directement exploitable. La première prise est en place : la M1 Procar roule sur
+`engine/six-inline-m1.wav`, toutes les autres voitures sur la synthèse.
 
 ## Pourquoi des enregistrements
 
@@ -104,3 +105,47 @@ fondu suivant le régime — deux boucles voisines mélangées, plus un second �
 et pied levé. La hauteur sera corrigée par `playbackRate` entre deux boucles, ce qui évite le
 grain d'un étirement trop large. Le tout reste piloté par la boîte de vitesses et la charge déjà
 en place, et toute voiture sans enregistrement garde la synthèse.
+
+
+## Ce qu'a donné la première génération
+
+Six fichiers ont été déposés dans `six-inline/`. Mesurés avant d'être utilisés, ils disent deux
+choses utiles pour la prochaine fournée.
+
+**Les cinq fichiers `M1_Procar_*_seed_30` ne changent pas de hauteur avec le régime.** Leur bande
+dominante tombe entre 105 et 125 Hz dans les cinq, quel que soit le régime écrit dans le nom :
+
+| fichier | bande dominante | allumage attendu |
+|---|---|---|
+| `idle` | 125,3 Hz | 55 Hz (1100 tr/min) |
+| `on-2500` | 125,0 Hz | **125 Hz** ✓ |
+| `on-4500` | 125,5 Hz | 225 Hz |
+| `off-7000` | 105,0 Hz | 350 Hz |
+
+Seul `on-2500` tombe juste, et l'écart de timbre entre deux de ces fichiers ne dépasse pas 4,9 dB
+par bande de tiers d'octave — 2,5 dB entre le ralenti et les 4500. Autrement dit, c'est cinq fois
+à peu près le même son. Le paramètre de régime n'a pas agi.
+
+**`on-6000.wav` est d'une autre nature.** Sa corrélation période à période vaut 0,895 contre 0,384
+pour `on-2500` : c'est un signal franchement périodique, avec une vraie série harmonique qui monte
+et descend et des passages de rapport visibles au sonagramme. Sa bande dominante est à 360 Hz, soit
+7200 tr/min pour un six et non les 6000 du nom.
+
+**Pour la prochaine génération**, ce qui se vérifie en une commande :
+
+```
+node tools/e2e-sample.js        # le régime déclaré correspond-il à la prise ?
+```
+
+Deux exigences, dans l'ordre d'importance :
+
+1. **Que la hauteur suive le régime demandé.** C'est ce qui manque le plus : sans elle il n'y a
+   qu'un seul son, et le jeu ne peut que le transposer — ce qu'il fait déjà tout seul à partir
+   d'un fichier unique, sans avoir besoin des quatre autres.
+2. **Que le signal soit périodique.** Viser la corrélation de `on-6000` (0,895) plutôt que celle
+   des cinq autres (0,38 à 0,77). Un moteur est une suite d'explosions régulières ; un souffle
+   filtré qui pulse n'en est pas un, même bien pulsé.
+
+Et une remarque qui fait gagner du temps : **une seule montée en régime propre suffit**.
+`tools/engineloop.py` en tire une boucle sans couture, et le jeu transpose. La série de régimes
+tenus n'a d'intérêt que si chacun sonne vraiment à son régime.
