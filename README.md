@@ -835,43 +835,63 @@ Countach, flat-12 pour la 917, gros V8 croisé pour la GT40 et la Corvette.
 Trois voitures roulent sur des enregistrements découpés dans des onboards : la M1 Procar, la F40
 et la Corvette. Les six autres sur la synthèse.
 
-**Un jeu de boucles, pas une boucle.** C'est le point qui décide de tout. Du ralenti au rupteur
-il y a **trois octaves** ; une boucle unique transposée sur toute cette plage ne donne plus un
-moteur. Mesuré sur le premier essai : une boucle à 2410 tr/min demandait ×3,73 au rupteur d'une
-M1, soit **vingt-trois demi-tons au-dessus** — le son partait dans les aigus et se vidait. Avec un
-jeu, chaque boucle ne couvre plus que quelques demi-tons de part et d'autre de chez elle :
-
 | voiture | boucles | plage couverte | part du régime | pire transposition |
 |---|---|---|---|---|
-| M1 Procar | 6 | 4211 – 8421 tr/min | 69 % | 3,0 demi-tons |
-| F40 | 4 | 4645 – 8182 tr/min | 57 % | 2,9 demi-tons |
-| Corvette | 5 | 3462 – 6128 tr/min | 59 % | 2,9 demi-tons |
+| M1 Procar | 19 | 1865 – 9000 tr/min | 94 % | 2,9 demi-tons |
+| Corvette | 15 | 1510 – 6000 tr/min | 90 % | 2,9 demi-tons |
+| F40 | 3 | 5745 – 7750 tr/min | 43 % | 2,9 demi-tons |
 
-`tools/e2e-sample.js` tient cette borne à 5 demi-tons et échoue au-delà. Il ne passe par aucune
-estimation de hauteur pour cela : la vitesse de lecture demandée dit exactement de combien on
-transpose, là où tout estimateur de hauteur sur un moteur se trompe d'octave de temps en temps.
+**Un jeu de boucles, pas une boucle.** Du ralenti au rupteur il y a trois octaves. Mesuré sur le
+premier essai : une boucle unique à 2410 tr/min demandait ×3,73 au rupteur d'une M1, soit
+vingt-trois demi-tons au-dessus. Le son partait en sifflement — « on dirait des moustiques ».
+Hors de la plage couverte, la synthèse reprend la main en fondu sur un quart d'octave.
 
-**Hors de la plage couverte, la synthèse reprend la main**, en fondu sur un quart d'octave. Une
-prise ne couvre que les régimes où elle a été enregistrée, et un onboard de course ne descend
-jamais au ralenti : la boîte garde le moteur en haut. Le tableau ci-dessus dit quelle part du
-régime chaque jeu couvre — le reste, c'est-à-dire l'arrêt et les tout premiers mètres, sonne comme
-avant.
+### Ce qui se mesure, et ce qui ne se mesure pas
 
-Les voix tournent toutes en permanence, seuls les gains bougent. Réaffecter deux voix au fil du
-régime obligerait à recréer une source — le tampon d'une source ne se change pas — et chaque
-création claque. Six sources qui tournent ne coûtent rien. Le fondu se fait **sur le logarithme du
-régime**, parce que c'est l'oreille qui juge et qu'elle entend des rapports, et **à puissance
-constante**, parce que deux boucles décorrélées ajoutent leurs puissances et non leurs amplitudes :
-un fondu linéaire creuserait un trou au milieu de chaque raccord.
+C'est la leçon de toute cette affaire, et elle a coûté plusieurs jeux ratés.
+
+**Le régime d'une boucle ne se mesure pas de façon fiable.** Un moteur n'a pas un fondamental
+unique et net : il porte ses demi-ordres, ses rangs d'allumage, ses résonances d'échappement, et
+l'énergie ne se trouve pas forcément sur l'allumage. Autocorrélation, somme harmonique, écart
+entre rangs — les trois ont été essayées, les trois se trompent, et **pas toutes au même
+endroit**. D'où des jeux dont les étiquettes se contredisaient entre elles : mesurées après coup,
+les mêmes boucles donnaient des rapports allant de 0,29 à 2,05 de ce que leur étiquette annonçait.
+Et une étiquette fausse **par rapport à sa voisine** est le pire défaut possible — la hauteur
+saute au moment précis où le fondu passe de l'une à l'autre.
+
+**Le rapport de hauteur entre deux boucles, lui, se mesure sans ambiguïté.** Dilater le temps
+translate le spectre sur un axe logarithmique : le décalage qui superpose le mieux deux spectres
+donne le rapport exact, sans qu'on ait jamais besoin de savoir quel rang est l'allumage. C'est
+exactement ce dont le fondu a besoin. L'échelle absolue, elle, n'est pas mesurée du tout : elle
+est **posée**, par `--haut`, qui dit quel régime représentera la boucle la plus aiguë. On met le
+rupteur de la voiture, et le jeu est cohérent par construction.
+
+**Mais cette mesure ne vaut que de proche en proche.** La qualité de superposition chute avec
+l'écart : le timbre d'un moteur change avec le régime, deux sons éloignés ne se ressemblent plus.
+Une référence unique ne peut donc pas couvrir trois octaves. `enginecut.py` avance par **chaîne** —
+depuis la boucle la plus tonale, il cherche celle qui est un peu plus aiguë et se superpose bien,
+l'ajoute, repart d'elle, puis redescend de l'autre côté — et les rapports se multiplient le long
+du chemin. Chaque pas fait un à deux demi-tons et se mesure avec un alignement de 0,6 à 0,8.
+
+Pour la même raison, `enginecheck.py` ne compare que des **voisines**. Le jeu ne fond jamais
+qu'entre voisines : l'accord d'une boucle de bas régime avec une de haut régime n'intéresse
+personne, et le mesurer, c'est mesurer de travers puis accuser les fichiers. Les trois jeux en
+place passent à **0,0 demi-ton d'écart entre voisines**.
+
+Une conséquence contre-intuitive : **éclaircir la chaîne la casse**. Retirer une boucle sur deux
+pour gagner du poids écarte les voisines, et la mesure qui les relie perd la confiance qui faisait
+tout l'intérêt de la chaîne — essayé, le dernier pas de la M1 se contredisait de cinq demi-tons.
+Le poids se gagne sur la durée des boucles, pas sur leur nombre.
 
 ### La chaîne d'outils
 
 ```
-node tools/decodeaudio.js <entrée> <sortie.wav>      # WebM, MP3, OGG… par le décodeur de Chromium
-python3 tools/enginescan.py <prise.wav> --cyl=6      # où se trouve quel régime
-python3 tools/enginecut.py <prise.wav> <préfixe> …   # le jeu de boucles
-node tools/enginedemo.js <id> <sortie.wav>           # une accélération à écouter
-node tools/e2e-sample.js                             # les boucles arrivent, et de combien on transpose
+node tools/decodeaudio.js <entrée> <sortie.wav>          # WebM, MP3… par le décodeur de Chromium
+python3 tools/enginescan.py <prise.wav> --cyl=6          # où se trouve quel régime
+python3 tools/enginecut.py <prise.wav> <préfixe> --haut= # le jeu de boucles
+python3 tools/enginecheck.py <préfixe>                   # les voisines sont-elles d'accord ?
+node tools/enginedemo.js <id> <sortie.wav>               # une accélération à écouter
+node tools/e2e-sample.js                                 # tout arrive, et de combien on transpose
 ```
 
 Il n'y a pas de décodeur en ligne de commande dans cet environnement, mais Chromium en embarque un
@@ -879,28 +899,18 @@ pour tous les formats du Web. `decodeaudio.js` le lui fait faire, et rapatrie le
 tranches** : d'un bloc, au-delà d'un quart d'heure de son, la chaîne sérialisée dépasse ce que Node
 accepte (`ERR_STRING_TOO_LONG`) et rien n'est écrit.
 
-**Comment une fenêtre devient une boucle.** `enginecut.py` mesure trois choses, et une fenêtre doit
-passer les trois : le **régime**, par somme harmonique ; la **stabilité**, deux fenêtres voisines
-devant dire la même chose à 2,5 % près, ce qui écarte les montées en régime, qu'on ne peut pas
-boucler ; la **périodicité**, la corrélation du signal avec lui-même décalé d'une période, ce qui
-écarte le roulement et le vent, qui n'ont pas de période du tout.
+Une fenêtre devient une boucle si elle est **tonale** — assez périodique pour qu'on entende un
+moteur et non un souffle — et si son **raccord** ne claque pas. La boucle est coupée sur un nombre
+entier de périodes, sans quoi elle claque une fois par tour, et raccordée avec ce qui la
+**précède** : son dernier échantillon devient alors le voisin immédiat de son premier, et il n'y a
+plus rien à recoller. L'outil chiffre le raccord en le rapportant aux sauts ordinaires du signal —
+1 veut dire inaudible ; les trente-sept boucles en place sont toutes sous 0,8.
 
-La somme harmonique note chaque fondamentale candidate par l'énergie de ses rangs **rapportée au
-nombre de rangs pris**. Sans cette division, une candidate deux fois plus basse ramasse deux fois
-plus de rangs et gagne toujours : c'est par là que les estimateurs de hauteur tombent à l'octave.
-
-Et la boucle est coupée sur un **nombre entier de périodes d'allumage**, sans quoi elle claque une
-fois par tour et l'oreille entend ce clic bien avant d'entendre le moteur. Le raccord se fond avec
-ce qui **précède** le corps de boucle : son dernier échantillon devient alors le voisin immédiat de
-son premier, et il n'y a plus rien à recoller. L'outil chiffre le résultat en rapportant le saut du
-raccord aux sauts ordinaires du signal — 1 veut dire que le raccord ressemble à n'importe quel
-autre endroit, donc qu'il est inaudible. Les quinze boucles en place sont entre 0,01 et 1,62.
-
-**La correction d'octave.** `--facteur` multiplie le régime déduit. Un moteur porte aussi son
-demi-ordre, un rang par tour et un par cycle, et sur certaines prises ils pèsent plus lourd que
-l'allumage. L'onboard de Corvette est de celles-là : ses rangs sont espacés d'une cinquantaine de
-hertz, soit un demi-ordre à 6000 tr/min et non un allumage à 3000. Sans `--facteur=2` la voiture
-sonnerait une octave trop bas. Le facteur ne change que les étiquettes, jamais le son.
+Les voix tournent toutes en permanence, seuls les gains bougent : réaffecter deux voix au fil du
+régime obligerait à recréer une source, dont le tampon ne se change pas, et chaque création claque.
+Le fondu se fait **sur le logarithme du régime**, parce que l'oreille entend des rapports, et **à
+puissance constante**, parce que deux boucles décorrélées ajoutent leurs puissances et non leurs
+amplitudes : un fondu linéaire creuserait un trou au milieu de chaque raccord.
 
 ### Mesuré, pas écouté
 

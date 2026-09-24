@@ -158,14 +158,16 @@ tenus n'a d'intérêt que si chacun sonne vraiment à son régime.
 
 ## Ce que les onboards ont donné
 
-| prise | durée | boucles | plage | corrélation |
+| prise | durée | boucles | plage couverte | part du régime |
 |---|---|---|---|---|
-| M1 Procar | 532 s | 6 | 4211 – 8421 tr/min | 0,49 – 0,71 |
-| F40 LM | 147 s | 4 | 4645 – 8182 tr/min | 0,46 – 0,69 |
-| Corvette Trans-Am | 990 s | 5 | 3462 – 6128 tr/min | 0,55 – 0,86 |
+| M1 Procar | 532 s | 19 | 1865 – 9000 tr/min | 94 % |
+| Corvette Trans-Am | 990 s | 15 | 1510 – 6000 tr/min | 90 % |
+| F40 LM | 147 s | 3 | 5745 – 7750 tr/min | 43 % |
 
-Aucune des trois ne descend au ralenti : en course la boîte garde le moteur en haut, et c'est très
-bien ainsi — c'est la plage qu'on entend. Hors couverture, la synthèse reprend la main en fondu.
+**La durée de la prise fait tout.** La F40 n'a donné que trois boucles sur cinq demi-tons, contre
+dix-neuf sur vingt-sept pour la M1 : son onboard dure deux minutes et demie, et l'outil n'y trouve
+que 55 fenêtres assez tonales contre 602. En dessous de 5745 tr/min elle repasse à la synthèse. Un
+onboard plus long la mettrait au niveau des deux autres — c'est la seule chose qui lui manque.
 
-À comparer avec les cinq fichiers générés, qui tenaient tous dans **2315 à 2649 tr/min**, soit deux
+À comparer avec les cinq fichiers générés, qui tenaient tous dans 2315 à 2649 tr/min, soit deux
 demi-tons en tout : de quoi faire une seule boucle, pas un jeu.
