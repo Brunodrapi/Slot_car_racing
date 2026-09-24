@@ -719,15 +719,15 @@ lit aussitôt sur les cadrans, et il n'y a jamais deux vérités à tenir d'acco
 **Les bornes sont absolues et hors d'atteinte**, dans `PERF_RANGE` :
 
 ```
-a100  [8, 2]        8 s une routière rapide, 2 s la limite du genre
+a100  [5, 2.5]      5 s une routière rapide, 2,5 s hors d'atteinte
 vmax  [150, 350]    km/h
-b100  [40, 12]      40 m une routière, 12 m hors d'atteinte
-gripG [1, 3]        1 g ce que tient une bonne routière, 3 g hors d'atteinte
+b100  [30, 12]      30 m une routière, 12 m hors d'atteinte
+gripG [1, 2.6]      1 g ce que tient une bonne routière, 2,6 g hors d'atteinte
 ```
 
-Aucune de ces bornes basses n'est zéro, sauf là où zéro voudrait dire quelque chose. Une voiture
-de ce plateau ne roule pas à 40 km/h et ne tient pas 0,2 g : le bas de l'arc ne servait qu'à
-écraser les écarts.
+**Aucune borne basse n'est zéro.** Une voiture de ce plateau ne roule pas à 40 km/h et ne tient pas
+0,2 g : ce bas d'arc n'aurait servi qu'à écraser les écarts. Elles valent toutes ce que tient une
+bonne routière — 5 s, 150 km/h, 30 m, 1 g.
 
 Le premier chiffre est l'arc vide, le second l'arc plein : pour un temps et une distance ils sont
 décroissants, puisque plus court vaut mieux, ce qui évite d'avoir à écrire ailleurs dans quel sens
@@ -736,19 +736,21 @@ voulu : un arc plein dirait « le maximum possible », ce qu'aucune voiture n'a 
 voiture ajoutée plus tard peut se placer au-dessus des neuf actuelles sans qu'on retouche
 l'échelle.
 
-Reste un point à surveiller quand on touche à ces bornes : **elles fixent aussi le niveau de
-remplissage moyen de chaque cadran**, et donc l'impression que donne une carte. En l'état, le
-plateau occupe 72 à 77 % de l'arc d'accélération mais seulement 34 à 46 % de celui d'adhérence ;
-une même voiture paraît donc excellente au départ et médiocre en virage, alors que c'est le choix
-des bornes qui parle, pas la voiture. Aligner les quatre — par exemple `[5, 2.5]`, `[150, 350]`,
-`[30, 12]`, `[1, 2.6]` — les ramène tous entre 43 et 66 % avec 12 à 19 points d'étalement.
+Le point à surveiller quand on touche à ces bornes : **elles ne règlent pas seulement l'étalement,
+elles règlent aussi le niveau de remplissage moyen de chaque cadran**, et donc l'impression que
+donne une carte. Des bornes dépareillées font paraître une même voiture excellente sur un cadran
+et médiocre sur un autre, alors que c'est le choix des bornes qui parle et non la voiture — avec
+`[8, 2]` sur l'accélération et `[1, 3]` sur l'adhérence, le plateau occupait 72 à 77 % du premier
+arc contre 34 à 46 % du second, et chaque carte racontait « rapide au départ, molle en virage ».
+Les quatre bornes actuelles partent toutes du même niveau de routière, d'où quatre cadrans
+comparables :
 
 | cadran | bornes | arc du plateau | étalement |
 |---|---|---|---|
-| accélération | `[8, 2]` | 72 → 77 % | 5 points |
+| accélération | `[5, 2.5]` | 53 → 66 % | 12 points |
 | vitesse | `[150, 350]` | 45 → 64 % | 19 points |
-| freinage | `[40, 12]` | 63 → 71 % | 8 points |
-| adhérence | `[1, 3]` | 34 → 46 % | 12 points |
+| freinage | `[30, 12]` | 43 → 55 % | 12 points |
+| adhérence | `[1, 2.6]` | 42 → 57 % | 15 points |
 
 **L'arc suit le chiffre affiché, pas la valeur brute.** L'invariant tient en une phrase : deux
 voitures qui montrent le même nombre montrent le même arc. Il se casse tout seul dès qu'on

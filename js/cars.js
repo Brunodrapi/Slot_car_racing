@@ -124,11 +124,17 @@ function perfOf(c) {
 // à venir doit pouvoir se placer au-dessus sans qu'on retouche l'échelle. Le premier chiffre est
 // l'arc vide, le second l'arc plein — pour un temps et une distance ils sont donc décroissants,
 // puisque plus court vaut mieux, ce qui évite d'avoir à dire ailleurs dans quel sens lire.
+//
+// Aucune borne basse n'est zéro : une voiture de ce plateau ne roule pas à 40 km/h et ne tient pas
+// 0,2 g, si bien que ce bas d'arc n'aurait servi qu'à écraser les écarts. Elles valent toutes ce
+// que tient une bonne routière — 5 s, 150 km/h, 30 m, 1 g — ce qui donne en prime des cadrans
+// remplis au même niveau : sans cela une même voiture paraît excellente sur un cadran et médiocre
+// sur un autre, alors que c'est le choix des bornes qui parle et non la voiture.
 const PERF_RANGE = {
-  a100: [8, 2],       // secondes de 0 à 100 km/h : 8 s une routière rapide, 2 s la limite du genre
+  a100: [5, 2.5],     // secondes de 0 à 100 km/h : 5 s une routière rapide, 2,5 s hors d'atteinte
   vmax: [150, 350],   // km/h
-  b100: [40, 12],     // mètres de 100 km/h à l'arrêt : 40 m une routière, 12 m hors d'atteinte
-  gripG: [1, 3],      // g en virage : 1 g ce que tient une bonne routière, 3 g hors d'atteinte
+  b100: [30, 12],     // mètres de 100 km/h à l'arrêt : 30 m une routière, 12 m hors d'atteinte
+  gripG: [1, 2.6],    // g en virage : 1 g ce que tient une bonne routière, 2,6 g hors d'atteinte
 };
 const PERF_KEYS = ['a100', 'vmax', 'b100', 'gripG'];
 function perfFill(v, key) {
