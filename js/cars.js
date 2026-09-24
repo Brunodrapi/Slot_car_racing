@@ -119,27 +119,21 @@ function perfOf(c) {
   };
 }
 
-// Les écarts entre voitures d'un même plateau sont réels mais serrés — une dizaine de pour cent.
-// Sur une échelle partant de zéro ils seraient invisibles : neuf arcs presque identiques
-// n'apprennent rien. L'arc se cale donc sur le plateau, de la plus faible à la meilleure. C'est
-// une comparaison entre ces voitures-là, ce qui est exactement la question qu'on se pose ici.
+// Les bornes des cadrans, absolues et non calées sur le plateau. Un arc plein dirait « le maximum
+// possible », ce qu'aucune voiture n'a à afficher : il reste toujours mieux à faire, et une voiture
+// à venir doit pouvoir se placer au-dessus sans qu'on retouche l'échelle. Le premier chiffre est
+// l'arc vide, le second l'arc plein — pour un temps et une distance ils sont donc décroissants,
+// puisque plus court vaut mieux, ce qui évite d'avoir à dire ailleurs dans quel sens lire.
+const PERF_RANGE = {
+  a100: [8, 2],     // secondes de 0 à 100 km/h : 8 s une routière rapide, 2 s la limite du genre
+  vmax: [0, 350],   // km/h
+  b100: [40, 12],   // mètres de 100 km/h à l'arrêt : 40 m une routière, 12 m hors d'atteinte
+  gripG: [0, 3],    // g en virage
+};
 const PERF_KEYS = ['a100', 'vmax', 'b100', 'gripG'];
-// Un temps et une distance sont meilleurs quand ils sont courts : l'arc se remplit à l'envers.
-const PERF_LOWER_BETTER = { a100: true, b100: true };
-function perfScale(models) {
-  const out = {};
-  for (const k of PERF_KEYS) {
-    const a = models.map(m => m.perf[k]);
-    out[k] = [Math.min(...a), Math.max(...a)];
-  }
-  return out;
-}
-// La plus faible garde un arc visible : un anneau vide se lit comme un bogue, pas comme un dernier.
-function perfFill(v, range, key) {
-  const [lo, hi] = range;
-  let f = hi - lo < 1e-9 ? 1 : (v - lo) / (hi - lo);
-  if (PERF_LOWER_BETTER[key]) f = 1 - f;
-  return 0.14 + 0.86 * Math.max(0, Math.min(1, f));
+function perfFill(v, key) {
+  const [lo, hi] = PERF_RANGE[key];
+  return Math.max(0, Math.min(1, (v - lo) / (hi - lo)));
 }
 
 // Une seule catégorie, celle du plateau dessiné d'après nature. Les trois autres — F1 classiques,
@@ -170,4 +164,4 @@ function registerModel(def) {
 }
 function unregisterModel(id) { const i = MODELS.findIndex(m => m.id === id); if (i >= 0) MODELS.splice(i, 1); }
 
-if (typeof module !== 'undefined') module.exports = { CATEGORIES, MODELS, LIVERIES, AI_NAMES, SIMPLE, perfOf, perfScale, perfFill, PERF_KEYS, playableCategories, categoryById, modelsOf, allModelsOf, modelById, carClassById, registerModel };
+if (typeof module !== 'undefined') module.exports = { CATEGORIES, MODELS, LIVERIES, AI_NAMES, SIMPLE, perfOf, perfFill, PERF_RANGE, PERF_KEYS, playableCategories, categoryById, modelsOf, allModelsOf, modelById, carClassById, registerModel };

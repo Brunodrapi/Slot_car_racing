@@ -11,5 +11,5 @@ browser to fetch the new files.
 */
 'use strict';
 
-const APP_VERSION = '0.21.2';
+const APP_VERSION = '0.21.3';
 const APP_DATE = '2026-09-24';

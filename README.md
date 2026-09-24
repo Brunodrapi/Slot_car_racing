@@ -716,13 +716,28 @@ la loi que le jeu applique vraiment en course, dans `perfOf` :
 L'intérêt de passer par les lois plutôt que par un second jeu de valeurs : retoucher un `mul` se
 lit aussitôt sur les cadrans, et il n'y a jamais deux vérités à tenir d'accord.
 
-**L'arc se cale sur le plateau, pas sur zéro.** Les écarts entre ces voitures sont réels mais
-serrés — 9 % sur le 0 à 100, 16 % sur la vitesse de pointe. Sur une échelle partant de zéro, les
-neuf voitures donneraient neuf arcs presque identiques, c'est-à-dire aucune information. L'arc va
-donc de la plus faible du plateau à la meilleure, ce qui répond à la seule question qu'on se pose
-sur cet écran : *laquelle je prends ?* Un temps et une distance se remplissent à l'envers — plus
-court vaut mieux — et la dernière garde 14 % d'arc, parce qu'un anneau vide se lit comme un bogue
-plutôt que comme un dernier.
+**Les bornes sont absolues et hors d'atteinte**, dans `PERF_RANGE` :
+
+```
+a100  [8, 2]      8 s une routière rapide, 2 s la limite du genre
+vmax  [0, 350]    km/h
+b100  [40, 12]    40 m une routière, 12 m hors d'atteinte
+gripG [0, 3]      g en virage
+```
+
+Le premier chiffre est l'arc vide, le second l'arc plein : pour un temps et une distance ils sont
+décroissants, puisque plus court vaut mieux, ce qui évite d'avoir à écrire ailleurs dans quel sens
+lire. Aucune voiture du plateau ne remplit un cadran — la meilleure monte à 79 % — et c'est
+voulu : un arc plein dirait « le maximum possible », ce qu'aucune voiture n'a à afficher. Une
+voiture ajoutée plus tard peut se placer au-dessus des neuf actuelles sans qu'on retouche
+l'échelle.
+
+Ce choix a un prix, mesuré : sur ces bornes larges, les neuf voitures tiennent entre 56 et 79 % et
+l'écart entre la meilleure et la moins bonne tombe à **5 points d'arc sur l'accélération**, 11 sur
+la vitesse. Les cadrans disent donc bien *où se situe cette voiture dans l'absolu*, et beaucoup
+moins *laquelle est la meilleure des neuf*. Resserrer les bornes — `[5, 2.8]`, `[150, 350]`,
+`[30, 16]`, `[1, 2.4]` — rend 14 à 19 points d'arc sans jamais remplir un cadran ; c'est une ligne
+de `PERF_RANGE` à changer.
 
 Deux détails qui coûtent une heure si on ne les sait pas. L'arc est tracé au `stroke-dasharray`,
 dont la longueur passe par une **variable CSS et non par l'attribut du SVG** : une déclaration CSS

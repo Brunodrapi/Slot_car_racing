@@ -158,10 +158,10 @@ class UI {
   déficiente — l'écart mesuré tombe à 7 sur 100 en deutéranopie. Aucune information ne repose donc
   sur la couleur seule : chaque cadran porte son pictogramme et son unité écrite, et surtout les
   quatre ne se comparent jamais entre eux — ce sont quatre mesures séparées, pas une série. */
-  gauges(m, scale) {
+  gauges(m) {
     const ARC = 84.8;   // les 270° d'ouverture, sur les 113,1 de circonférence d'un rayon 18
     const one = (key, kind, colour, value, unit) => {
-      const fill = perfFill(m.perf[key], scale[key], key);
+      const fill = perfFill(m.perf[key], key);
       return `<span class="gauge" style="--c:${colour};--d:${(ARC * fill).toFixed(1)}">
         <svg class="ring" viewBox="0 0 44 44" aria-hidden="true">
           <circle class="trk" cx="22" cy="22" r="18"></circle>
@@ -291,14 +291,13 @@ class UI {
     const laps = s.laps || lapsFor(trackDef, cat);
     const best = s.bestLaps[`${st.trackId}|${st.classId}`];
     const livery = LIVERIES[s.livery];
-    const scale = perfScale(modelsOf(cat.id));
     this.show(`
       <div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${mode === 'race' ? t('quickRace') : t('timeTrial')}</h2></div>
       <h3>${t('model')}</h3>
       <div class="grid models">
         ${modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${m.id}">
             ${this.carIcon(m, livery)}<b>${escapeHtml(m.name)}${m.custom ? ` <small>(${t('custom')})</small>` : ''}</b>
-            ${this.gauges(m, scale)}</button>`).join('')}
+            ${this.gauges(m)}</button>`).join('')}
       </div>
       <h3>${t('track')}</h3>
       <div class="grid tracks">
