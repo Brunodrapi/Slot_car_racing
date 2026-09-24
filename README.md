@@ -830,46 +830,77 @@ Chaque voiture porte son vrai moteur dans `js/cars.js` (`engine`) : six en ligne
 et la CSL, V8 à vilebrequin plat et biturbo pour la F40, flat-6 turbo pour la 911, V12 pour la
 Countach, flat-12 pour la 917, gros V8 croisé pour la GT40 et la Corvette.
 
-### Une prise plutôt qu'un oscillateur
+### Des prises plutôt qu'un oscillateur
 
-Une voiture qui déclare un `sample` dans `js/cars.js` ne joue plus la synthèse : elle joue une
-boucle enregistrée, rejouée plus ou moins vite. La M1 Procar est la première.
+Trois voitures roulent sur des enregistrements découpés dans des onboards : la M1 Procar, la F40
+et la Corvette. Les six autres sur la synthèse.
 
-```js
-sample: { src: 'sounds/engine/six-inline-m1.wav', rpm: 2410 }
+**Un jeu de boucles, pas une boucle.** C'est le point qui décide de tout. Du ralenti au rupteur
+il y a **trois octaves** ; une boucle unique transposée sur toute cette plage ne donne plus un
+moteur. Mesuré sur le premier essai : une boucle à 2410 tr/min demandait ×3,73 au rupteur d'une
+M1, soit **vingt-trois demi-tons au-dessus** — le son partait dans les aigus et se vidait. Avec un
+jeu, chaque boucle ne couvre plus que quelques demi-tons de part et d'autre de chez elle :
+
+| voiture | boucles | plage couverte | part du régime | pire transposition |
+|---|---|---|---|---|
+| M1 Procar | 6 | 4211 – 8421 tr/min | 69 % | 3,0 demi-tons |
+| F40 | 4 | 4645 – 8182 tr/min | 57 % | 2,9 demi-tons |
+| Corvette | 5 | 3462 – 6128 tr/min | 59 % | 2,9 demi-tons |
+
+`tools/e2e-sample.js` tient cette borne à 5 demi-tons et échoue au-delà. Il ne passe par aucune
+estimation de hauteur pour cela : la vitesse de lecture demandée dit exactement de combien on
+transpose, là où tout estimateur de hauteur sur un moteur se trompe d'octave de temps en temps.
+
+**Hors de la plage couverte, la synthèse reprend la main**, en fondu sur un quart d'octave. Une
+prise ne couvre que les régimes où elle a été enregistrée, et un onboard de course ne descend
+jamais au ralenti : la boîte garde le moteur en haut. Le tableau ci-dessus dit quelle part du
+régime chaque jeu couvre — le reste, c'est-à-dire l'arrêt et les tout premiers mètres, sonne comme
+avant.
+
+Les voix tournent toutes en permanence, seuls les gains bougent. Réaffecter deux voix au fil du
+régime obligerait à recréer une source — le tampon d'une source ne se change pas — et chaque
+création claque. Six sources qui tournent ne coûtent rien. Le fondu se fait **sur le logarithme du
+régime**, parce que c'est l'oreille qui juge et qu'elle entend des rapports, et **à puissance
+constante**, parce que deux boucles décorrélées ajoutent leurs puissances et non leurs amplitudes :
+un fondu linéaire creuserait un trou au milieu de chaque raccord.
+
+### La chaîne d'outils
+
+```
+node tools/decodeaudio.js <entrée> <sortie.wav>      # WebM, MP3, OGG… par le décodeur de Chromium
+python3 tools/enginescan.py <prise.wav> --cyl=6      # où se trouve quel régime
+python3 tools/enginecut.py <prise.wav> <préfixe> …   # le jeu de boucles
+node tools/enginedemo.js <id> <sortie.wav>           # une accélération à écouter
+node tools/e2e-sample.js                             # les boucles arrivent, et de combien on transpose
 ```
 
-`rpm` est **le régime auquel la prise a été faite**, et c'est toute la mécanique : rejouer la
-boucle `régime ÷ 2410` fois plus vite la transpose exactement là où le moteur tourne. C'est
-l'opération d'un oscillateur dont on change la fréquence, à ceci près que la matière transposée
-est celle d'un vrai moteur.
+Il n'y a pas de décodeur en ligne de commande dans cet environnement, mais Chromium en embarque un
+pour tous les formats du Web. `decodeaudio.js` le lui fait faire, et rapatrie le résultat **par
+tranches** : d'un bloc, au-delà d'un quart d'heure de son, la chaîne sérialisée dépasse ce que Node
+accepte (`ERR_STRING_TOO_LONG`) et rien n'est écrit.
 
-Ce chiffre ne se prend pas dans le nom du fichier. Celui-ci s'appelait `on-2500` ; la période
-mesurée dans la boucle vaut 366 échantillons à 44 100 Hz, soit 120,5 Hz d'allumage, soit
-**2410 tr/min**. Se fier au nom aurait transposé tout le moteur de 4 %. `tools/e2e-sample.js`
-refait cette mesure dans le navigateur, sur le fichier servi, et échoue si l'écart dépasse 3 %.
+**Comment une fenêtre devient une boucle.** `enginecut.py` mesure trois choses, et une fenêtre doit
+passer les trois : le **régime**, par somme harmonique ; la **stabilité**, deux fenêtres voisines
+devant dire la même chose à 2,5 % près, ce qui écarte les montées en régime, qu'on ne peut pas
+boucler ; la **périodicité**, la corrélation du signal avec lui-même décalé d'une période, ce qui
+écarte le roulement et le vent, qui n'ont pas de période du tout.
 
-La prise ne repasse pas par les filtres d'échappement et d'admission : ils sont là pour fabriquer
-un timbre qu'elle a déjà. Elle a sa propre sortie et un seul passe-bas, qui n'assombrit que le
-pied levé. La synthèse, elle, ne s'arrête jamais de tourner — elle est simplement mise à zéro, et
-reprend la main pour toute voiture sans prise, si le fichier manque, ou si la page est ouverte en
-`file://`, où `fetch` ne peut rien charger.
+La somme harmonique note chaque fondamentale candidate par l'énergie de ses rangs **rapportée au
+nombre de rangs pris**. Sans cette division, une candidate deux fois plus basse ramasse deux fois
+plus de rangs et gagne toujours : c'est par là que les estimateurs de hauteur tombent à l'octave.
 
-`tools/engineloop.py` fabrique ces boucles. Le point qui compte : une boucle doit contenir un
-**nombre entier de périodes d'allumage**, sinon elle claque une fois par tour, et l'oreille entend
-ce clic bien avant d'entendre le moteur. La période est trouvée par corrélation directe et non au
-spectre — c'est exactement la question posée, « à partir de quel décalage le signal se
-répète-t-il ? », là où une estimation de hauteur se trompe d'octave dès que le fondamental est
-faible, ce qui est le cas de tous les moteurs. Le raccord se fond ensuite avec ce qui **précède**
-le corps de boucle, et non avec ce qui le suit : le dernier échantillon devient alors le voisin
-immédiat du premier, et il n'y a plus rien à recoller. L'outil chiffre le résultat en rapportant
-le saut du raccord aux sauts ordinaires du signal — 1 veut dire que le raccord ressemble à
-n'importe quel autre endroit, donc qu'il est inaudible.
+Et la boucle est coupée sur un **nombre entier de périodes d'allumage**, sans quoi elle claque une
+fois par tour et l'oreille entend ce clic bien avant d'entendre le moteur. Le raccord se fond avec
+ce qui **précède** le corps de boucle : son dernier échantillon devient alors le voisin immédiat de
+son premier, et il n'y a plus rien à recoller. L'outil chiffre le résultat en rapportant le saut du
+raccord aux sauts ordinaires du signal — 1 veut dire que le raccord ressemble à n'importe quel
+autre endroit, donc qu'il est inaudible. Les quinze boucles en place sont entre 0,01 et 1,62.
 
-`tools/enginedemo.js <id> <sortie.wav>` rend une accélération complète, du ralenti au rupteur en
-passant les rapports, par le même code que le jeu, dans un fichier qu'on peut écouter. `--synthese`
-ignore la prise : les deux moitiés d'une écoute comparée, même voiture, même accélération, seule
-la source du timbre change.
+**La correction d'octave.** `--facteur` multiplie le régime déduit. Un moteur porte aussi son
+demi-ordre, un rang par tour et un par cycle, et sur certaines prises ils pèsent plus lourd que
+l'allumage. L'onboard de Corvette est de celles-là : ses rangs sont espacés d'une cinquantaine de
+hertz, soit un demi-ordre à 6000 tr/min et non un allumage à 3000. Sans `--facteur=2` la voiture
+sonnerait une octave trop bas. Le facteur ne change que les étiquettes, jamais le son.
 
 ### Mesuré, pas écouté
 

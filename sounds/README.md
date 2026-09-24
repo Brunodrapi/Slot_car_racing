@@ -1,8 +1,13 @@
 # Les sons à trouver
 
 Ce dossier porte la liste de courses et la convention de nommage, pour qu'un fichier déposé ici
-soit directement exploitable. La première prise est en place : la M1 Procar roule sur
-`engine/six-inline-m1.wav`, toutes les autres voitures sur la synthèse.
+soit directement exploitable. Trois voitures roulent maintenant sur des prises découpées dans des
+onboards — la M1 Procar, la F40 et la Corvette — et les six autres sur la synthèse.
+
+**Ce qui vaut le plus : un onboard entier.** Pas une série de régimes tenus, pas des fichiers
+générés. `tools/enginecut.py` y trouve tout seul les passages à régime tenu, les découpe en
+boucles sans couture et les étiquette. Un onboard de dix minutes a donné six boucles pour la M1,
+couvrant 4211 à 8421 tr/min.
 
 ## Pourquoi des enregistrements
 
@@ -149,3 +154,18 @@ Deux exigences, dans l'ordre d'importance :
 Et une remarque qui fait gagner du temps : **une seule montée en régime propre suffit**.
 `tools/engineloop.py` en tire une boucle sans couture, et le jeu transpose. La série de régimes
 tenus n'a d'intérêt que si chacun sonne vraiment à son régime.
+
+
+## Ce que les onboards ont donné
+
+| prise | durée | boucles | plage | corrélation |
+|---|---|---|---|---|
+| M1 Procar | 532 s | 6 | 4211 – 8421 tr/min | 0,49 – 0,71 |
+| F40 LM | 147 s | 4 | 4645 – 8182 tr/min | 0,46 – 0,69 |
+| Corvette Trans-Am | 990 s | 5 | 3462 – 6128 tr/min | 0,55 – 0,86 |
+
+Aucune des trois ne descend au ralenti : en course la boîte garde le moteur en haut, et c'est très
+bien ainsi — c'est la plage qu'on entend. Hors couverture, la synthèse reprend la main en fondu.
+
+À comparer avec les cinq fichiers générés, qui tenaient tous dans **2315 à 2649 tr/min**, soit deux
+demi-tons en tout : de quoi faire une seule boucle, pas un jeu.

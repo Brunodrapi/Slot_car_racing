@@ -119,7 +119,10 @@ class GameAudio {
       this.smpFilter = ctx.createBiquadFilter(); this.smpFilter.type = 'lowpass';
       this.smpFilter.frequency.value = 6000; this.smpFilter.Q.value = 0.7;
       this.smpFilter.connect(this.smpGain); this.smpGain.connect(this.master);
-      this.smp = null; this.smpSrc = null; this.smpFetching = null;
+      // Une voix par boucle, toutes en marche en permanence, seuls les gains bougent. Réaffecter
+      // deux voix au fil du régime obligerait à recréer une source — le tampon d'une source ne se
+      // change pas — et chaque création claque. Six sources qui tournent ne coûtent rien.
+      this.smpVoices = []; this.smpKey = null; this.smpFetching = null;
 
       // souffle d'admission : du bruit filtré au régime, présent seulement pied dedans
       this.airSrc = noise();
@@ -173,21 +176,42 @@ class GameAudio {
   Tant qu'elle n'est pas là — et si elle n'arrive jamais — la synthèse continue de jouer : une
   voiture sans prise, un réseau lent ou un fichier manquant donnent le son d'avant, jamais du
   silence. */
+  _key(e) { return e.sample ? e.sample.set.map(x => x.src).join('|') : null; }
+
+  _dropVoices() {
+    for (const v of this.smpVoices) {
+      try { v.src.stop(); } catch (_) { /* déjà arrêtée */ }
+      v.gain.disconnect();
+    }
+    this.smpVoices = [];
+  }
+
+  /* Charge le jeu de boucles d'une voiture, une seule fois, et met tout en marche.
+
+  Tant qu'il n'est pas là — et s'il n'arrive jamais — la synthèse continue de jouer : une voiture
+  sans prise, un réseau lent, un fichier manquant ou une page ouverte en `file://`, où `fetch` ne
+  peut rien charger, donnent le son d'avant, jamais du silence. Le chargement est tout ou rien :
+  un jeu incomplet ferait un trou de régime, ce qui s'entend bien plus qu'un repli franc. */
   _sample(e) {
-    if (!e.sample || this.smpFetching === e.sample.src) return;
-    this.smpFetching = e.sample.src;
+    const key = this._key(e);
+    if (!key || this.smpFetching === key) return;
+    this.smpFetching = key;
     const ctx = this.ctx;
-    fetch(e.sample.src)
+    Promise.all(e.sample.set.map(x => fetch(x.src)
       .then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.status))))
       .then(b => ctx.decodeAudioData(b))
-      .then((buf) => {
-        if (this.smpSrc) { try { this.smpSrc.stop(); } catch (_) { /* déjà arrêtée */ } }
-        this.smp = { buf, rpm: e.sample.rpm, src: e.sample.src };
-        const n = ctx.createBufferSource();
-        n.buffer = buf; n.loop = true; n.connect(this.smpFilter); n.start();
-        this.smpSrc = n;
+      .then(buf => ({ rpm: x.rpm, buf }))))
+      .then((charge) => {
+        this._dropVoices();
+        this.smpVoices = charge.sort((a, b) => a.rpm - b.rpm).map((l) => {
+          const g = ctx.createGain(); g.gain.value = 0; g.connect(this.smpFilter);
+          const n = ctx.createBufferSource();
+          n.buffer = l.buf; n.loop = true; n.connect(g); n.start();
+          return { rpm: l.rpm, src: n, gain: g };
+        });
+        this.smpKey = key;
       })
-      .catch(() => { this.smp = null; this.smpSrc = null; });   // la synthèse reprend la main
+      .catch(() => { this._dropVoices(); this.smpKey = null; });   // la synthèse reprend la main
   }
 
   _gearbox(v, vmax, e) {
@@ -212,11 +236,12 @@ class GameAudio {
       this.spec = e;
       this.eng.setPeriodicWave(this._wave(e));
       this._sample(e);
-      // La voiture n'a pas de prise, ou en a une autre : on coupe celle qui tournait.
-      if (!e.sample || (this.smp && this.smp.src !== e.sample.src)) {
-        if (this.smpSrc) { try { this.smpSrc.stop(); } catch (_) { /* déjà arrêtée */ } }
-        this.smp = null; this.smpSrc = null; this.smpFetching = e.sample ? e.sample.src : null;
-        // Source arrêtée, plus rien n'alimente ce gain : il n'est plus audible, mais il reste
+      // La voiture n'a pas de prise, ou en a une autre : on coupe celles qui tournaient.
+      if (this.smpKey !== this._key(e)) {
+        this._dropVoices();
+        this.smpKey = null;
+        if (!e.sample) this.smpFetching = null;
+        // Sources arrêtées, plus rien n'alimente ce gain : il n'est plus audible, mais il reste
         // figé sur sa dernière valeur, que le navigateur cesse d'évaluer. Le remettre à zéro à la
         // main évite qu'une prochaine prise démarre plein pot sur une valeur restée en l'air.
         this.smpGain.gain.cancelScheduledValues(ctx.currentTime);
@@ -224,7 +249,7 @@ class GameAudio {
       }
     }
     // Une prise est jouée si elle est arrivée ; sinon la synthèse, qui n'a jamais cessé de tourner.
-    const surPrise = !!(this.smp && this.smpSrc && e.sample && this.smp.src === e.sample.src);
+    const surPrise = !!(this.smpVoices.length && e.sample && this.smpKey === this._key(e));
 
     const v = Math.max(0, fin(car.v, 0));
     const vmax = car.cls.vmax;
@@ -256,8 +281,40 @@ class GameAudio {
     // La prise a été faite à un régime connu : la rejouer `r / ce régime` fois plus vite la
     // transpose exactement là où le moteur tourne. C'est la même opération qu'un oscillateur dont
     // on change la fréquence, à ceci près que la matière transposée est celle d'un vrai moteur.
+    // Une prise ne couvre que la plage de régimes où elle a été enregistrée. Au-delà, chaque
+    // boucle devrait être transposée de plus en plus loin, et un moteur transposé de deux octaves
+    // ne ressemble plus à un moteur. La synthèse reprend donc la main aux extrémités, en fondu.
+    let couv = 0;
     if (surPrise) {
-      this.smpSrc.playbackRate.setTargetAtTime(Math.max(0.25, Math.min(4, r / this.smp.rpm)), t, 0.02);
+      const V = this.smpVoices;
+      const bas = V[0].rpm, haut = V[V.length - 1].rpm;
+      // un quart d'octave de marge de chaque côté, sur laquelle le fondu se fait
+      const marge = 0.25;
+      const d = r < bas ? Math.log2(bas / r) : r > haut ? Math.log2(r / haut) : 0;
+      couv = Math.max(0, Math.min(1, 1 - d / marge));
+    }
+
+    if (surPrise && couv > 0) {
+      // Le régime tombe entre deux boucles : on les joue toutes les deux et on fond de l'une à
+      // l'autre. Une boucle seule ne tient qu'une plage étroite — du ralenti au rupteur il y a
+      // trois octaves, et transposer un moteur de deux octaves ne donne plus un moteur.
+      // Le fondu se fait sur le logarithme du régime, parce que c'est l'oreille qui juge et
+      // qu'elle entend des rapports, pas des différences.
+      const V = this.smpVoices;
+      let hi = V.findIndex(x => x.rpm >= r);
+      if (hi < 0) hi = V.length - 1;
+      const lo = Math.max(0, hi - 1);
+      const w = hi > lo
+        ? Math.min(1, Math.max(0, (Math.log(r) - Math.log(V[lo].rpm)) / (Math.log(V[hi].rpm) - Math.log(V[lo].rpm))))
+        : 0;
+      for (let i = 0; i < V.length; i++) {
+        // à puissance constante : deux boucles décorrélées, leurs puissances s'ajoutent, pas leurs
+        // amplitudes — un fondu linéaire creuserait un trou au milieu du raccord
+        const g = hi === lo ? (i === hi ? 1 : 0)
+          : i === lo ? Math.cos(w * Math.PI / 2) : i === hi ? Math.sin(w * Math.PI / 2) : 0;
+        V[i].gain.gain.setTargetAtTime(g, t, 0.05);
+        if (g > 0.002) V[i].src.playbackRate.setTargetAtTime(Math.max(0.5, Math.min(2, r / V[i].rpm)), t, 0.02);
+      }
       this.smpFilter.frequency.setTargetAtTime(1800 + frac * 5000 + load * 2200, t, 0.05);
     }
 
@@ -267,10 +324,10 @@ class GameAudio {
     // Échappement : toujours là, plus sombre pied levé. Admission : seulement pied dedans, c'est
     // elle qui fait la différence entre pousser et rouler sur l'erre.
     this.exFilter.frequency.setTargetAtTime(240 + frac * (700 + 1500 * e.bright) + load * 300, t, 0.05);
-    this.exGain.gain.setTargetAtTime((0.16 + frac * 0.2 + load * 0.05) * shifting * (surPrise ? 0 : 1), t, 0.04);
-    this.smpGain.gain.setTargetAtTime(surPrise ? (0.30 + frac * 0.24 + load * 0.08) * shifting : 0, t, 0.04);
+    this.exGain.gain.setTargetAtTime((0.16 + frac * 0.2 + load * 0.05) * shifting * (1 - couv), t, 0.04);
+    this.smpGain.gain.setTargetAtTime((0.30 + frac * 0.24 + load * 0.08) * shifting * couv, t, 0.04);
     this.inFilter.frequency.setTargetAtTime(700 + frac * 2600 * e.bright, t, 0.05);
-    this.inGain.gain.setTargetAtTime(load * (0.03 + frac * 0.13) * e.bright * shifting * (surPrise ? 0 : 1), t, 0.05);
+    this.inGain.gain.setTargetAtTime(load * (0.03 + frac * 0.13) * e.bright * shifting * (1 - couv), t, 0.05);
     this.airFilter.frequency.setTargetAtTime(500 + frac * 1800, t, 0.05);
     this.airGain.gain.setTargetAtTime(load * (0.015 + frac * 0.05) * shifting, t, 0.06);
 

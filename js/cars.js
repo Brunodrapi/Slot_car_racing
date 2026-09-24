@@ -33,13 +33,48 @@ const CATEGORIES = [
     base: { vmax: 70, accel: 8, brake: 17, grip: 13.5, df: 0.0015, slide: 0.6, laneK: 6, rearBias: 1.06, cliff: 0.18, slipPeak: 0.12, length: 4.5, width: 2.0 },
     drivers: 10, roadScale: 0.9, zoom: 1.15,
     models: [
-      { id: 'm1procar', name: 'M1 Procar', shape: 'gtBoxy', mul: { vmax: 0.98, grip: 1.04, brake: 1.03 }, pick: 'sprites/pick/m1procar.png', engine: { cyl: 6, redline: 9000, idle: 1100, rough: 0.15, bright: 0.78, turbo: 0, sample: { src: 'sounds/engine/six-inline-m1.wav', rpm: 2410 } }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/m1procar.png', sheet: 'sprites/m1procar', sheetN: 16, sheetRear: 0, sheetW: 5.122, sheetAnchor: [0.494, 0.821] },
-      { id: 'f40', name: 'F40', shape: 'f40', mul: { vmax: 1.05, accel: 1.06, grip: 0.98, df: 1.5 }, pick: 'sprites/pick/f40.png', engine: { cyl: 8, redline: 7750, idle: 1000, rough: 0.15, bright: 0.8, turbo: 0.9 }, colors: ['#e0262c', '#22242b'], top: 'sprites/top/f40.png', sheet: 'sprites/f40lm', sheetN: 8, sheetRear: 3 },
+      { id: 'm1procar', name: 'M1 Procar', shape: 'gtBoxy', mul: { vmax: 0.98, grip: 1.04, brake: 1.03 }, pick: 'sprites/pick/m1procar.png', engine: {
+        cyl: 6, redline: 9000, idle: 1100, rough: 0.15, bright: 0.78, turbo: 0,
+// Découpé dans l'onboard par `tools/enginecut.py`. Six boucles pour couvrir la plage
+        // utile : une seule, transposée du ralenti au rupteur, fait trois octaves et ne sonne
+        // plus comme un moteur. Hors de la plage couverte, la synthèse reprend la main.
+        sample: { set: [
+          { src: 'sounds/engine/six-inline-4211.wav', rpm: 4211 },
+          { src: 'sounds/engine/six-inline-4660.wav', rpm: 4660 },
+          { src: 'sounds/engine/six-inline-5455.wav', rpm: 5455 },
+          { src: 'sounds/engine/six-inline-6667.wav', rpm: 6667 },
+          { src: 'sounds/engine/six-inline-7328.wav', rpm: 7328 },
+          { src: 'sounds/engine/six-inline-8421.wav', rpm: 8421 },
+        ] },
+      }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/m1procar.png', sheet: 'sprites/m1procar', sheetN: 16, sheetRear: 0, sheetW: 5.122, sheetAnchor: [0.494, 0.821] },
+      { id: 'f40', name: 'F40', shape: 'f40', mul: { vmax: 1.05, accel: 1.06, grip: 0.98, df: 1.5 }, pick: 'sprites/pick/f40.png', engine: {
+        cyl: 8, redline: 7750, idle: 1000, rough: 0.15, bright: 0.8, turbo: 0.9,
+        sample: { set: [
+          { src: 'sounds/engine/v8-f40-4645.wav', rpm: 4645 },
+          { src: 'sounds/engine/v8-f40-5625.wav', rpm: 5625 },
+          { src: 'sounds/engine/v8-f40-6207.wav', rpm: 6207 },
+          { src: 'sounds/engine/v8-f40-8182.wav', rpm: 8182 },
+        ] },
+      }, colors: ['#e0262c', '#22242b'], top: 'sprites/top/f40.png', sheet: 'sprites/f40lm', sheetN: 8, sheetRear: 3 },
       { id: 'countach', name: 'Countach LP500', shape: 'wedgeGT', mul: { vmax: 1.03, accel: 1.02, grip: 0.95, brake: 0.95 }, pick: 'sprites/pick/countach.png', engine: { cyl: 12, redline: 7500, idle: 900, rough: 0.05, bright: 0.88, turbo: 0 }, colors: ['#ffd400', '#22242b'], top: 'sprites/top/countach.png' },
       { id: '930', name: '911 Turbo', shape: 'roundGT', mul: { vmax: 0.99, accel: 1.04, grip: 0.97, slide: 1.2 }, pick: 'sprites/pick/930.png', engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.3, bright: 0.6, turbo: 0.85 }, colors: ['#c9ced6', '#e0262c'], top: 'sprites/top/930.png', sheet: 'sprites/930', sheetN: 16, sheetRear: 0, sheetW: 4.803, sheetAnchor: [0.499, 0.841] },
       { id: 'gt40', name: 'GT40 Mk II', shape: 'gt40', mul: { vmax: 1.06, accel: 1.02, grip: 0.99, df: 0.85, brake: 0.97, slide: 1.1 }, pick: 'sprites/pick/gt40.png', engine: { cyl: 8, redline: 6200, idle: 800, rough: 0.6, bright: 0.45, turbo: 0 }, colors: ['#5bc8e8', '#ff8c1a'], top: 'sprites/top/gt40.png' },
       { id: '917k', name: '917 K', shape: 'longTail', mul: { vmax: 1.10, accel: 1.05, grip: 1.0, df: 1.4, brake: 0.93, slide: 1.15 }, pick: 'sprites/pick/917.png', engine: { cyl: 12, redline: 8400, idle: 1200, rough: 0.1, bright: 0.95, turbo: 0 }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/917.png' },
-      { id: 'corvette', name: 'Corvette', shape: 'roundGT', mul: { vmax: 1.04, accel: 1.06, grip: 0.97, df: 0.9, brake: 0.95, slide: 1.3 }, pick: 'sprites/pick/corvette.png', engine: { cyl: 8, redline: 6000, idle: 750, rough: 0.7, bright: 0.4, turbo: 0 }, colors: ['#d8dce2', '#e0262c'], top: 'sprites/top/corvette.png' },
+      { id: 'corvette', name: 'Corvette', shape: 'roundGT', mul: { vmax: 1.04, accel: 1.06, grip: 0.97, df: 0.9, brake: 0.95, slide: 1.3 }, pick: 'sprites/pick/corvette.png', engine: {
+        cyl: 8, redline: 6000, idle: 750, rough: 0.7, bright: 0.4, turbo: 0,
+        // Découpé dans son propre onboard. Les étiquettes portent une correction d'octave : sur
+        // cette prise l'estimateur s'accrochait au demi-ordre plutôt qu'à l'allumage, ce que le
+        // sonagramme montre — les rangs y sont espacés d'une cinquantaine de hertz, soit un demi-
+        // ordre à 6000 tr/min et non un allumage à 3000. Sans elle, la voiture sonnerait une
+        // octave trop bas.
+        sample: { set: [
+          { src: 'sounds/engine/v8-corvette-3462.wav', rpm: 3462 },
+          { src: 'sounds/engine/v8-corvette-3956.wav', rpm: 3956 },
+          { src: 'sounds/engine/v8-corvette-4691.wav', rpm: 4691 },
+          { src: 'sounds/engine/v8-corvette-5125.wav', rpm: 5125 },
+          { src: 'sounds/engine/v8-corvette-6128.wav', rpm: 6128 },
+        ] },
+      }, colors: ['#d8dce2', '#e0262c'], top: 'sprites/top/corvette.png' },
       // Un moteur rotatif n'a pas de cylindres : `cyl` ne sert qu'à placer l'allumage, et un
       // quatre-rotors allume quatre fois par tour d'arbre excentrique, exactement comme un V8 à
       // quatre temps. D'où huit, avec la rugosité d'un moteur parfaitement équilibré et un

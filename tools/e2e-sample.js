@@ -36,47 +36,78 @@ const serveur = http.createServer((req, res) => {
   await page.goto(`${base}/index.html`);
   await page.waitForTimeout(500);
 
-  // --- 1. la boucle arrive-t-elle, et que contient-elle ? ---
-  const boucle = await page.evaluate(async (b) => {
-    const ctx = new OfflineAudioContext(1, 1024, 44100);
-    const buf = await ctx.decodeAudioData(await (await fetch(`${b}/sounds/engine/six-inline-m1.wav`)).arrayBuffer());
-    return { secondes: +buf.duration.toFixed(3), hz: buf.sampleRate, voies: buf.numberOfChannels };
-  }, base);
-  console.log('boucle :', JSON.stringify(boucle));
-
-  // --- 2. le régime déclaré correspond-il à la prise ? ---
-  // C'est l'invariant qui compte, et le seul que le navigateur ne garantit pas. Que `playbackRate`
-  // transpose est acquis ; que la boucle tourne bien au régime écrit dans `js/cars.js` ne l'est
-  // pas du tout, et s'en remettre au nom du fichier transposerait tout le moteur.
-  // On retrouve la période par corrélation directe — la même mesure que l'outil qui a fabriqué la
-  // boucle, mais refaite ici de façon indépendante, dans le navigateur, sur le fichier servi.
-  const mesure = await page.evaluate(async (b2) => {
-    const ctx = new OfflineAudioContext(1, 1024, 44100);
-    const buf = await ctx.decodeAudioData(await (await fetch(`${b2}/sounds/engine/six-inline-m1.wav`)).arrayBuffer());
-    const d = buf.getChannelData(0), sr = buf.sampleRate;
-    const W = Math.floor(sr * 0.2);
-    let m = 0; for (let i = 0; i < W; i++) m += d[i]; m /= W;
-    let na = 0; for (let i = 0; i < W; i++) na += (d[i] - m) ** 2; na = Math.sqrt(na);
-    let best = -2, bp = 0;
-    for (let p2 = Math.floor(sr / 400); p2 < Math.floor(sr / 40); p2++) {
-      let sxy = 0, syy = 0, mb = 0;
-      for (let i = 0; i < W; i++) mb += d[p2 + i]; mb /= W;
-      for (let i = 0; i < W; i++) { const x = d[i] - m, y = d[p2 + i] - mb; sxy += x * y; syy += y * y; }
-      const r = sxy / (na * Math.sqrt(syy) + 1e-12);
-      if (r > best) { best = r; bp = p2; }
+  // --- 1. toutes les boucles déclarées arrivent-elles ? ---
+  // Le chargement est tout ou rien : une seule manquante et la voiture retombe à la synthèse.
+  const inventaire = await page.evaluate(async (b) => {
+    const out = [];
+    for (const m of modelsOf('gt')) {
+      if (!m.engine.sample) { out.push({ voiture: m.name, boucles: 0 }); continue; }
+      let ok = 0, ko = [];
+      for (const x of m.engine.sample.set) {
+        const r = await fetch(`${b}/${x.src}`);
+        if (r.ok) ok++; else ko.push(x.src);
+      }
+      out.push({ voiture: m.name, boucles: m.engine.sample.set.length, servies: ok, manquantes: ko });
     }
-    const m1 = modelById('m1procar');
-    return { allumageHz: +(sr / bp).toFixed(1), correlation: +best.toFixed(3),
-             cyl: m1.engine.cyl, rpmDeclare: m1.engine.sample.rpm };
+    return out;
   }, base);
-  // Un quatre-temps allume cyl/2 fois par tour de vilebrequin.
-  const rpmMesure = mesure.allumageHz * 60 / (mesure.cyl / 2);
-  const ecart = (rpmMesure / mesure.rpmDeclare - 1) * 100;
-  let faute = Math.abs(ecart) > 3 ? 1 : 0;
-  console.log(`\nallumage mesuré   ${mesure.allumageHz} Hz  (corrélation ${mesure.correlation})`);
-  console.log(`régime déduit     ${rpmMesure.toFixed(0)} tr/min`);
-  console.log(`régime déclaré    ${mesure.rpmDeclare} tr/min`);
-  console.log(`écart             ${ecart >= 0 ? '+' : ''}${ecart.toFixed(1)} %  ${faute ? '— HORS TOLÉRANCE, le moteur serait transposé' : 'dans la tolérance'}`);
+  let absentes = 0;
+  for (const i of inventaire) {
+    if (!i.boucles) { console.log(`  ${i.voiture.padEnd(16)} synthèse`); continue; }
+    absentes += i.boucles - i.servies;
+    console.log(`  ${i.voiture.padEnd(16)} ${i.servies}/${i.boucles} boucles servies${i.manquantes.length ? '  MANQUE ' + i.manquantes.join(', ') : ''}`);
+  }
+
+  // --- 2. de combien chaque boucle est-elle transposée ? ---
+  // C'est l'invariant qui avait sauté, et le seul qui compte à l'oreille. Une boucle rejouée
+  // beaucoup plus vite ou plus lentement qu'à sa vitesse d'origine ne sonne plus comme un moteur :
+  // avec une boucle unique à 2410 tr/min, le rupteur d'une M1 demandait x3,73, soit vingt-trois
+  // demi-tons au-dessus — le son partait dans les aigus et se vidait. Avec un jeu de boucles,
+  // aucune ne doit s'éloigner de plus de quelques demi-tons de chez elle.
+  //
+  // Inutile d'estimer une hauteur pour le vérifier : la vitesse de lecture demandée le dit
+  // exactement, et c'est une mesure sans ambiguïté, là où tout estimateur de hauteur sur un
+  // moteur se trompe d'octave de temps en temps.
+  const LIMITE = 5;   // demi-tons
+  const transpo = await page.evaluate(async (lim) => {
+    const a2 = new GameAudio(); a2.start();
+    const out = [];
+    for (const m of modelsOf('gt')) {
+      if (!m.engine.sample) continue;
+      const V = m.engine.sample.set.slice().sort((x, y) => x.rpm - y.rpm);
+      let pire = 0, pireRpm = 0, couvert = 0, total = 0;
+      for (let rpm = m.engine.idle; rpm <= m.engine.redline; rpm += 25) {
+        total++;
+        const bas = V[0].rpm, haut = V[V.length - 1].rpm;
+        const d = rpm < bas ? Math.log2(bas / rpm) : rpm > haut ? Math.log2(rpm / haut) : 0;
+        if (d >= 0.25) continue;            // hors couverture : c'est la synthèse qui joue
+        couvert++;
+        // la boucle la plus proche en logarithme, celle sur laquelle le fondu s'appuie le plus
+        let best = 0, bd = 1e9;
+        for (let i = 0; i < V.length; i++) {
+          const e = Math.abs(Math.log2(rpm / V[i].rpm));
+          if (e < bd) { bd = e; best = i; }
+        }
+        const demi = Math.abs(12 * Math.log2(rpm / V[best].rpm));
+        if (demi > pire) { pire = demi; pireRpm = rpm; }
+      }
+      out.push({ voiture: m.name, boucles: V.length,
+                 plage: `${V[0].rpm}-${V[V.length - 1].rpm}`,
+                 couverture: Math.round(100 * couvert / total),
+                 pireDemiTons: +pire.toFixed(1), a: pireRpm, limite: lim });
+    }
+    return out;
+  }, LIMITE);
+  let faute = 0;
+  console.log('\nvoiture          boucles  plage couverte   part du régime   pire transposition');
+  for (const x of transpo) {
+    const mauvais = x.pireDemiTons > LIMITE;
+    if (mauvais) faute++;
+    console.log(`  ${x.voiture.padEnd(15)} ${String(x.boucles).padStart(2)}   ${x.plage.padStart(11)} tr/min` +
+      `   ${String(x.couverture).padStart(3)} %          ${x.pireDemiTons.toFixed(1)} demi-tons à ${x.a} tr/min` +
+      `${mauvais ? '  ← TROP, ça se déforme' : ''}`);
+  }
+  console.log(faute ? `${faute} voiture(s) au-dessus de ${LIMITE} demi-tons` : `aucune boucle transposée de plus de ${LIMITE} demi-tons`);
 
   // --- 3. en jeu : quelle voie joue pour quelle voiture ? ---
   const enJeu = await page.evaluate(async () => {
@@ -89,11 +120,13 @@ const serveur = http.createServer((req, res) => {
       // `setTargetAtTime` est une rampe : lue aussitôt, `.value` n'a pas encore bougé. On laisse
       // passer quelques constantes de temps, sinon on mesure l'instant d'avant.
       await new Promise((r) => setTimeout(r, 300));
-      return { voiture: m.name, prise: !!a.smpSrc, rpm: Math.round(a.rpm),
-        vitesseLecture: a.smpSrc ? +a.smpSrc.playbackRate.value.toFixed(3) : null,
+      const vives = a.smpVoices.filter(v => v.gain.gain.value > 0.02)
+        .map(v => `${v.rpm} a x${v.src.playbackRate.value.toFixed(2)} (${v.gain.gain.value.toFixed(2)})`);
+      return { voiture: m.name, boucles: a.smpVoices.length, rpm: Math.round(a.rpm), vives,
         gainPrise: +a.smpGain.gain.value.toFixed(3), gainSynthese: +a.exGain.gain.value.toFixed(3) };
     };
-    return [await voie('m1procar', 30), await voie('m1procar', 60), await voie('917k', 60), await voie('m1procar', 45)];
+    return [await voie('m1procar', 20), await voie('m1procar', 45), await voie('m1procar', 68),
+            await voie('f40', 55), await voie('corvette', 55), await voie('917k', 60), await voie('m1procar', 50)];
   });
   console.log('\nen jeu :');
   for (const r of enJeu) console.log('  ' + JSON.stringify(r));
@@ -101,5 +134,5 @@ const serveur = http.createServer((req, res) => {
   console.log('\nerrors', errs);
   await browser.close();
   serveur.close();
-  if (errs || faute) process.exitCode = 1;
+  if (errs || faute || absentes) process.exitCode = 1;
 })();

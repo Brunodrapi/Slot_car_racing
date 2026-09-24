@@ -46,18 +46,24 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     let pre = null;
     if (m.engine.sample && !sy) {
       const tmp = new OfflineAudioContext(1, 128, SR);
-      pre = await tmp.decodeAudioData(await (await fetch(`${b}/${m.engine.sample.src}`)).arrayBuffer());
+      pre = [];
+      for (const x of m.engine.sample.set) {
+        pre.push({ rpm: x.rpm, buf: await tmp.decodeAudioData(await (await fetch(`${b}/${x.src}`)).arrayBuffer()) });
+      }
     }
     const off = new OfflineAudioContext(1, SR * dur, SR);
     const a = new GameAudio();
     a.start(off);
     a.setEnabled(true);
     if (pre) {
-      a.smp = { buf: pre, rpm: m.engine.sample.rpm, src: m.engine.sample.src };
-      a.smpFetching = m.engine.sample.src;
-      const n = off.createBufferSource();
-      n.buffer = pre; n.loop = true; n.connect(a.smpFilter); n.start();
-      a.smpSrc = n;
+      a.smpFetching = a._key(m.engine);
+      a.smpKey = a.smpFetching;
+      a.smpVoices = pre.sort((x, y) => x.rpm - y.rpm).map((l) => {
+        const g = off.createGain(); g.gain.value = 0; g.connect(a.smpFilter);
+        const n = off.createBufferSource();
+        n.buffer = l.buf; n.loop = true; n.connect(g); n.start();
+        return { rpm: l.rpm, src: n, gain: g };
+      });
     }
     // Deux secondes à l'arrêt, puis on accélère jusqu'à la vitesse maximale, puis on lève le pied.
     const pas = 1 / 60;
