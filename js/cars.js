@@ -24,38 +24,11 @@
 
 const CATEGORIES = [
   {
-    id: 'f1classic', name: { fr: 'F1 classiques', en: 'Classic F1' },
-    desc: { fr: 'Années 60-70 : pneus fins, peu d’appui, châssis nerveux. La moindre erreur se paie.', en: '60s-70s: skinny tyres, little downforce, twitchy. Every mistake costs.' },
-    engine: { cyl: 12, redline: 10500, idle: 2200, rough: 0.1, bright: 0.95, turbo: 0 },
-    base: { vmax: 76, accel: 8.5, brake: 13, grip: 11.5, df: 0.0006, slide: 0.85, laneK: 5, rearBias: 1.0, cliff: 0.25, slipPeak: 0.14, length: 4.1, width: 1.8 },
-    drivers: 10, roadScale: 0.9, zoom: 1.1,
-    models: [
-      { id: 'type49', name: 'Type 49', shape: 'cigar', mul: { vmax: 1.0, grip: 1.0, accel: 1.03 }, colors: ['#1f6b3a', '#ffd400'] },
-      { id: 'f312', name: '312 F1', shape: 'cigar', mul: { vmax: 1.03, grip: 0.97, brake: 0.98 }, colors: ['#e0262c', '#ffffff'] },
-      { id: 'ms80', name: 'MS80', shape: 'cigarWing', mul: { vmax: 0.99, grip: 1.04 }, colors: ['#2166d8', '#ffffff'] },
-      { id: 'bt24', name: 'BT24', shape: 'cigar', mul: { vmax: 0.98, grip: 1.02, accel: 1.02 }, colors: ['#1f6b3a', '#f4f4f4'] },
-      { id: 'type72', name: 'Type 72', shape: 'wedge72', mul: { vmax: 1.02, grip: 1.08, df: 1.8, slide: 0.9 }, colors: ['#22242b', '#e6b422'] },
-      { id: 'm23', name: 'M23', shape: 'wedge72', mul: { vmax: 1.03, grip: 1.06, df: 1.6, brake: 1.05 }, colors: ['#ff8c1a', '#ffffff'] },
-    ],
-  },
-  {
-    id: 'f1modern', name: { fr: 'F1 modernes', en: 'Modern F1' },
-    desc: { fr: 'Appui énorme, freinages ultra tardifs, virages rapides à fond. Très stables.', en: 'Huge downforce, very late braking, fast corners flat out. Very stable.' },
-    engine: { cyl: 6, redline: 14000, idle: 3500, rough: 0.05, bright: 0.98, turbo: 0.45 },
-    base: { vmax: 96, accel: 11, brake: 32, grip: 19, df: 0.0075, slide: 0.9, laneK: 7, rearBias: 1.1, cliff: 0.1, slipPeak: 0.07, length: 5.3, width: 2.0 },
-    drivers: 12, roadScale: 1, zoom: 1,
-    models: [
-      { id: 'bull', name: 'Bull RB', shape: 'modern', mul: { vmax: 1.01, df: 1.04 }, colors: ['#1a2a6c', '#ffd400'] },
-      { id: 'rosso', name: 'Rosso SF', shape: 'modern', mul: { vmax: 1.02, accel: 1.03, df: 0.98 }, colors: ['#e0262c', '#ffffff'] },
-      { id: 'silver', name: 'Silver Arrow', shape: 'modern', mul: { brake: 1.03, grip: 1.02 }, colors: ['#c9ced6', '#12b5a8'] },
-      { id: 'papaya', name: 'Papaya MCL', shape: 'modern', mul: { vmax: 1.0, grip: 1.01 }, colors: ['#ff8c1a', '#12b5a8'] },
-      { id: 'green', name: 'Racing Green AMR', shape: 'modern', mul: { vmax: 0.99, grip: 1.0 }, colors: ['#1f6b3a', '#7ed321'] },
-      { id: 'alpine', name: 'Bleu A5', shape: 'modern', mul: { vmax: 0.99, accel: 1.01 }, colors: ['#2166d8', '#ff4fa3'] },
-    ],
-  },
-  {
-    id: 'gt', name: { fr: 'GT', en: 'GT' },
-    desc: { fr: 'Les icônes : M1 Procar, F40, Countach, 911 Turbo… Lourdes, puissantes, joueuses.', en: 'The icons: M1 Procar, F40, Countach, 911 Turbo… Heavy, powerful, playful.' },
+    // L'identifiant reste `gt` : les records de tour sont rangés sous `circuit|catégorie` dans la
+    // sauvegarde, et le changer effacerait ceux des joueurs. Le nom, lui, ne peut plus être « GT »
+    // avec une 917 et une 787B sur la grille.
+    id: 'gt', name: { fr: 'Le plateau', en: 'The field' },
+    desc: { fr: 'Les icônes : M1 Procar, F40, Countach, GT40, 917, 787B… Lourdes, puissantes, joueuses.', en: 'The icons: M1 Procar, F40, Countach, GT40, 917, 787B… Heavy, powerful, playful.' },
     engine: { cyl: 8, redline: 7000, idle: 1000, rough: 0.35, bright: 0.6, turbo: 0 },
     base: { vmax: 70, accel: 8, brake: 17, grip: 13.5, df: 0.0015, slide: 0.6, laneK: 6, rearBias: 1.06, cliff: 0.18, slipPeak: 0.12, length: 4.5, width: 2.0 },
     drivers: 10, roadScale: 0.9, zoom: 1.15,
@@ -74,18 +47,6 @@ const CATEGORIES = [
       // rupteur très haut : c'est le cri de la 787B.
       { id: '787b', name: '787B', shape: 'groupC', mul: { vmax: 1.02, accel: 1.05, grip: 1.03, df: 1.3, brake: 1.04, slide: 0.92 }, colors: ['#ff8c1a', '#1f6b3a'], top: 'sprites/top/787b.png', pick: 'sprites/pick/787b.png', engine: { cyl: 8, redline: 9000, idle: 1300, rough: 0.04, bright: 1.0, turbo: 0 } },
       { id: 'csl', name: '3.0 CSL', shape: 'gtBoxy', mul: { vmax: 0.95, accel: 0.98, grip: 1.05, df: 1.2, brake: 1.03, slide: 1.1 }, pick: 'sprites/pick/csl.png', engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.1, bright: 0.68, turbo: 0 }, colors: ['#f7f7f7', '#2166d8'], top: 'sprites/top/csl.png' },
-    ],
-  },
-  {
-    id: 'protoclassic', name: { fr: 'Prototypes classiques', en: 'Classic prototypes' },
-    desc: { fr: 'Le Mans 82-90 : 962, XJR-9, C9… Très rapides en ligne droite, de l’appui, longues à arrêter.', en: 'Le Mans 82-90: 962, XJR-9, C9… Very fast in a straight line, real downforce, long to stop.' },
-    engine: { cyl: 12, redline: 8200, idle: 1500, rough: 0.1, bright: 0.85, turbo: 0 },
-    base: { vmax: 84, accel: 9, brake: 20, grip: 14.5, df: 0.0035, slide: 0.7, laneK: 6, rearBias: 1.06, cliff: 0.15, slipPeak: 0.11, length: 4.8, width: 2.0 },
-    drivers: 10, roadScale: 1, zoom: 1.05,
-    models: [
-      { id: '962c', name: '962 C', shape: 'groupC', mul: { vmax: 1.02, grip: 1.03, df: 1.2 }, colors: ['#f4f4f4', '#e0262c'] },
-      { id: 'xjr9', name: 'XJR-9', shape: 'groupC', mul: { vmax: 1.04, grip: 1.02, df: 1.15, accel: 0.99 }, colors: ['#8a3ffc', '#f4f4f4'] },
-      { id: 'c9', name: 'C9', shape: 'groupC', mul: { vmax: 1.06, grip: 1.0, df: 1.1, accel: 1.0 }, colors: ['#c9ced6', '#22242b'] },
     ],
   },
 ];
@@ -136,10 +97,10 @@ function resolveModel(cat, m) {
 }
 for (const cat of CATEGORIES) for (const m of cat.models) MODELS.push(resolveModel(cat, m));
 
-// Pared back for now: a single playable category. The rotation sheets only serve the isometric
-// view, which is no longer the default, so the whole GT field is offered again and every car is
-// drawn from its own vector shape. The other categories stay in the data, they are simply not
-// offered. Set sheetOnly to keep only the cars that ship a sheet.
+// Une seule catégorie, celle du plateau dessiné d'après nature. Les trois autres — F1 classiques,
+// F1 modernes, prototypes — ont été retirées : leurs voitures n'avaient aucun dessin et n'étaient
+// plus proposées depuis longtemps. Elles sont dans l'historique si le sujet revient.
+// `sheetOnly` ne garde que les voitures munies d'une planche de rotations, pour la vue isométrique.
 const SIMPLE = { catId: 'gt', sheetOnly: false };
 
 function playableCategories() { return CATEGORIES.filter(c => c.id === SIMPLE.catId); }

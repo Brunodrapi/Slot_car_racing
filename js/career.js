@@ -3,9 +3,6 @@
 
 const CUPS = [
   { id: 'gt', classId: 'gt', name: { fr: 'GT Legends Cup', en: 'GT Legends Cup' }, tracks: ['zandvoort', 'laguna', 'redbullring', 'silverstone', 'spa'] },
-  { id: 'proto', classId: 'protoclassic', name: { fr: 'Classiques d’Endurance', en: 'Endurance Classics' }, tracks: ['lemans', 'bathurst', 'interlagos', 'suzuka', 'spa'] },
-  { id: 'f1classic', classId: 'f1classic', name: { fr: 'Grands Prix Classiques', en: 'Classic Grands Prix' }, tracks: ['monaco', 'zandvoort', 'nurburgring', 'monza', 'silverstone', 'spa'] },
-  { id: 'f1modern', classId: 'f1modern', name: { fr: 'Championnat du Monde de Formule', en: 'Formula World Championship' }, tracks: ['monza', 'silverstone', 'monaco', 'spa', 'suzuka', 'interlagos', 'redbullring', 'zandvoort', 'nurburgring'] },
 ];
 
 // number of laps for a category on a track: keeps races around 3-4 minutes

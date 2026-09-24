@@ -3,7 +3,7 @@ const fs = require('fs'), vm = require('vm');
 let src = '';
 for (const f of ['util', 'tracks', 'track', 'cars', 'car', 'race']) src += fs.readFileSync(`${__dirname}/../js/${f}.js`, 'utf8').replace(/if \(typeof module[^\n]*\n/g, '').replace(/'use strict';/g, '') + '\n';
 src += `
-const combos = [['zandvoort','gt'],['spa','f1classic'],['monza','f1modern'],['laguna','protoclassic']];
+const combos = [['zandvoort','gt'],['spa','gt'],['monza','gt'],['laguna','gt']];
 function run(m) {
   let rms = 0, offs = 0, spins = 0, laps = 0, n = 0;
   for (const [tid, cid] of combos) {

@@ -46,9 +46,10 @@ pouce droit emmène le cadran où il veut. Sur téléphone la minicarte passe en
 l'écran appartenant au pouce.
 
 > **Version allégée.** Le jeu se limite pour l'instant à la **course rapide** et au
-> **contre-la-montre**, avec une seule catégorie de voitures, la GT, et ses six modèles. La
-> carrière et les autres catégories restent dans le code, elles ne sont simplement plus proposées :
-> `SIMPLE` dans `js/cars.js` et le bouton du menu dans `js/ui.js` suffisent à les rouvrir.
+> **contre-la-montre**, avec **un seul plateau** de dix voitures, toutes dessinées d'après nature.
+> Les trois autres catégories — F1 classiques, F1 modernes, prototypes — ont été retirées : leurs
+> voitures n'avaient aucun dessin et n'étaient plus proposées depuis longtemps. Elles sont dans
+> l'historique si le sujet revient. La carrière, elle, reste dans le code sans être proposée.
 
 Trois vues dans les réglages :
 
@@ -277,8 +278,9 @@ d'accord : une voiture passe bien les virages à la vitesse que l'arithmétique 
 La marge de difficulté se lit aussi comme elle se lit : 0,85 donne 81 % de la vitesse théorique,
 0,90 donne 89 %, 0,95 donne 94 %. Ce n'est pas un bouton flou, c'est la fraction annoncée.
 
-En g, pour juger sur pièces : F1 classiques 1,17 g de latéral à l'arrêt et 1,53 g à 274 km/h ; GT
-1,43 → 2,15 g ; prototypes 1,45 → 3,14 g ; F1 modernes 1,94 → 5,42 g à 349 km/h.
+En g, pour juger sur pièces : le plateau tient 1,43 g de latéral à l'arrêt et 2,15 g à 247 km/h,
+et freine à 1,78 g. (Les trois catégories retirées allaient de 1,17 g pour les F1 classiques à
+5,42 g pour les F1 modernes à 349 km/h — le modèle les portait sans broncher.)
 
 ## Style
 
@@ -520,16 +522,12 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
   qu'à la vue isométrique.
 - **12 circuits** inspirés de vrais tracés : Monza, Spa-Francorchamps, Monaco, Silverstone, Suzuka
   (avec son pont), Interlagos, Laguna Seca, Nürburgring GP, Le Mans, Mount Panorama, Red Bull Ring, Zandvoort.
-- Dans le code, toujours **4 catégories de 6 modèles**, avec leurs stats et leur dessin vectoriel,
-  même si une seule catégorie est proposée pour l'instant :
-  - *F1 classiques* (Type 49, 312 F1, MS80, BT24, Type 72, M23) : peu d'appui, très instables ;
-  - *F1 modernes* (Bull, Rosso, Silver Arrow, Papaya, AMR, A5) : très rapides, très stables ;
-  - *GT* (M1 Procar, F40, Countach, 911 Turbo, Testarossa, GT40 Mk II, 917 K, Corvette, 787B,
-    3.0 CSL) ;
-  - *Prototypes classiques* (962 C, XJR-9, C9) — la GT40, la 917 K et la 787B en sont parties
-    pour la grille GT à mesure que leurs dessins arrivaient.
+- **Un seul plateau**, celui des dix voitures ci-dessus. Son identifiant reste `gt` — les records
+  de tour sont rangés sous `circuit|catégorie` dans la sauvegarde, et le changer effacerait ceux
+  des joueurs — mais son nom ne pouvait plus être « GT » avec une 917 et une 787B sur la grille.
 - **Course rapide** et **contre-la-montre** (records par circuit et catégorie), 3 niveaux de difficulté.
-- Une **carrière** en 4 coupes existe dans le code, actuellement masquée.
+- Une **carrière** existe dans le code, actuellement masquée. Elle n'a plus qu'une coupe : les
+  trois autres couraient dans les catégories retirées.
 - IA qui freine selon son talent, choisit sa ligne pour dépasser, aspire dans le sillage, se touche.
 - Français / anglais, son procédural, sauvegarde locale.
 

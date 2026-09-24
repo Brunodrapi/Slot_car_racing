@@ -523,7 +523,6 @@ class UI {
       case 'workshop': this.workshopScreen(); break;
       case 'wsAdd': this._workshopAdd().catch(err => this.workshopScreen(String(err))); break;
       case 'wsDelete': if (confirm(this.t('confirmDelete'))) { Store.del('cars', id).then(() => { unregisterModel(id); return app.refreshCustom(); }).then(() => this.workshopScreen()); } break;
-      case 'pickClass': this.setup.classId = id; this.setupScreen(this.setup.mode); break;
       case 'pickModel': { const m = modelById(id); app.save.models[m.catId] = id; storeSave(app.save); this.setupScreen(this.setup.mode); break; }
       case 'pickModelCup': { const m = modelById(id); app.save.models[m.catId] = id; storeSave(app.save); this.cupScreen(btn.dataset.cup); break; }
       case 'pickTrack': this.setup.trackId = id; this.setupScreen(this.setup.mode); break;
