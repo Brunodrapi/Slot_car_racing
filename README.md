@@ -46,7 +46,7 @@ pouce droit emmène le cadran où il veut. Sur téléphone la minicarte passe en
 l'écran appartenant au pouce.
 
 > **Version allégée.** Le jeu se limite pour l'instant à la **course rapide** et au
-> **contre-la-montre**, avec **un seul plateau** de dix voitures, toutes dessinées d'après nature.
+> **contre-la-montre**, avec **un seul plateau** de neuf voitures, toutes dessinées d'après nature.
 > Les trois autres catégories — F1 classiques, F1 modernes, prototypes — ont été retirées : leurs
 > voitures n'avaient aucun dessin et n'étaient plus proposées depuis longtemps. Elles sont dans
 > l'historique si le sujet revient. La carrière, elle, reste dans le code sans être proposée.
@@ -498,8 +498,8 @@ Les voitures y prennent du volume de deux façons :
   l'endroit où se pose la voiture dans l'image (`sheetAnchor`) : l'échelle est alors exacte et le
   point d'appui ne bouge jamais d'une vue à l'autre. Sans ces deux valeurs, le moteur retombe sur la
   largeur qu'occuperait une boîte aux dimensions de la voiture, tout ce qu'on peut déduire d'une
-  planche découpée vue par vue. La *Testarossa* (seize vues, cadre fixe) et la *F40 LM* (huit vues)
-  sont les premières converties.
+  planche découpée vue par vue. La *M1 Procar* et la *911 Turbo* (seize vues, cadre fixe) et la
+  *F40 LM* (huit vues) sont les premières converties.
 - **Empilement de sprites** sinon : la silhouette vue de dessus est dessinée à des hauteurs
   croissantes, ce qui sous une caméra inclinée la décale vers le haut de l'écran et lui donne des
   flancs. Aucun dessin nouveau n'est nécessaire, c'est juste au cap près, et le nombre de couches suit
@@ -511,18 +511,17 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
 
 ## Contenu
 
-- **10 voitures GT** : *M1 Procar*, *F40*, *Countach LP500*, *911 Turbo*, *Testarossa*,
-  *GT40 Mk II*, *917 K*, *Corvette*, *787B*, *3.0 CSL*.
+- **9 voitures GT** : *M1 Procar*, *F40*, *Countach LP500*, *911 Turbo*, *GT40 Mk II*,
+  *917 K*, *Corvette*, *787B*, *3.0 CSL*.
   On choisit sa voiture, et rien d'autre : plus de livrée à régler. En ligne, la place à la table
   donne la couleur, si bien que deux pilotes ne se ressemblent jamais sans avoir eu à en discuter.
-  Huit d'entre elles sont représentées d'après la vraie voiture vue du dessus — la M1 Procar, la
-  F40 LM, la 911 Martini, la Countach, la GT40 Gulf, la 917 Martini, la Corvette et la 3.0 CSL
-  (la 787B les rejoint, venue des prototypes) ; seule la Testarossa garde sa silhouette
-  vectorielle. Quatre ont en plus une planche de rotations, qui ne sert
+  Toutes les neuf sont représentées d'après la vraie voiture : une vue de dessus pour la piste et
+  une illustration en trois quarts pour le menu de sélection. Plus aucune silhouette vectorielle
+  sur la grille. Trois ont en plus une planche de rotations, qui ne sert
   qu'à la vue isométrique.
 - **12 circuits** inspirés de vrais tracés : Monza, Spa-Francorchamps, Monaco, Silverstone, Suzuka
   (avec son pont), Interlagos, Laguna Seca, Nürburgring GP, Le Mans, Mount Panorama, Red Bull Ring, Zandvoort.
-- **Un seul plateau**, celui des dix voitures ci-dessus. Son identifiant reste `gt` — les records
+- **Un seul plateau**, celui des neuf voitures ci-dessus. Son identifiant reste `gt` — les records
   de tour sont rangés sous `circuit|catégorie` dans la sauvegarde, et le changer effacerait ceux
   des joueurs — mais son nom ne pouvait plus être « GT » avec une 917 et une 787B sur la grille.
 - **Course rapide** et **contre-la-montre** (records par circuit et catégorie), 3 niveaux de difficulté.
@@ -684,7 +683,7 @@ réglages.
 
 ## Choisir sa voiture
 
-Le menu de sélection montre une **illustration en trois quarts** quand la voiture en a une.
+Le menu de sélection montre une **illustration en trois quarts** ; les neuf voitures en ont une.
 La vue de dessus dit comment la voiture se pose sur la piste, ce qui est le sujet une fois en
 course, mais on ne choisit pas une voiture par son toit : de face, on reconnaît la calandre,
 l'aileron, la posture.
@@ -748,7 +747,7 @@ Le reste est du réalisme de comportement, et c'est lui qui fait le plus d'effet
 
 Chaque voiture porte son vrai moteur dans `js/cars.js` (`engine`) : six en ligne pour la M1 Procar
 et la CSL, V8 à vilebrequin plat et biturbo pour la F40, flat-6 turbo pour la 911, V12 pour la
-Countach, flat-12 pour la Testarossa et la 917, gros V8 croisé pour la GT40 et la Corvette.
+Countach, flat-12 pour la 917, gros V8 croisé pour la GT40 et la Corvette.
 
 ### Mesuré, pas écouté
 
