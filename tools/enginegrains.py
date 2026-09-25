@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 """Prépare une **rampe** de moteur pour la lecture granulaire.
 
-    python3 tools/enginegrains.py <prise.wav> <nom> --bas=1200 --haut=9000
+    python3 tools/enginegrains.py <prise.wav> <nom> --haut=9000
                                   [--secondes=6] [--hz=24000] [--out=sounds/engine]
+
+`--haut` est le rupteur de la voiture, et c'est le seul repère à donner. **Le bas se déduit de la
+montée réellement mesurée dans la rampe** : une rampe qui monte de neuf demi-tons ne peut couvrir
+que neuf demi-tons de plage de régime, point. Le lui en faire couvrir vingt-cinq étire l'axe des
+régimes de presque trois fois — le moteur monte alors bien moins vite que le compte-tours, et ça
+s'entend tout de suite. C'est le défaut qui restait après le passage au granulaire.
 
 Pourquoi pas des boucles. La littérature du son de moteur de jeu est unanime et le chiffre est
 net : **une boucle commence à sonner étirée dès qu'on la transpose de plus de 500 tr/min**. À
@@ -105,7 +111,6 @@ def main():
         print(__doc__)
         return 1
     src, nom = args[0], args[1]
-    bas = float(opts.get('bas', 1200))
     haut = float(opts.get('haut', 9000))
     vise = float(opts.get('secondes', 6))
     out_dir = opts.get('out', os.path.join('sounds', 'engine'))
@@ -150,7 +155,12 @@ def main():
     i, j = meilleur
     t0, t1 = deb[i] / sr, (deb[j] + int(fen * sr)) / sr
     etendue = lp[j] - lp[i]
+    # La plage couverte vaut exactement la montée mesurée, ancrée au rupteur. Une erreur ici ne
+    # déforme pas le son — le granulaire ne transpose jamais — mais elle désaccorde le moteur du
+    # compte-tours, ce qui s'entend autant.
+    bas = haut / 2 ** etendue
     print(f'  rampe retenue : {t0:.1f} → {t1:.1f} s ({t1-t0:.1f} s), {etendue*12:.0f} demi-tons de montée')
+    print(f'  plage couverte : {bas:.0f} → {haut:.0f} tr/min (déduite de la montée, pas posée)')
 
     # --- la table régime → instant dans la rampe ---
     # La hauteur doit être strictement croissante pour être inversible : on la force, les petits
@@ -180,7 +190,8 @@ def main():
     w.writeframes((x * 32767).astype(np.int16).tobytes())
     w.close()
 
-    meta = {'src': p.replace(os.sep, '/'), 'rpmBas': bas, 'rpmHaut': haut,
+    meta = {'src': p.replace(os.sep, '/'), 'rpmBas': round(bas, 1), 'rpmHaut': haut,
+            'monteeDemiTons': round(float(etendue * 12), 2),
             'secondes': round(len(x) / sr_out, 4),
             'table': [round(float(v), 5) for v in table]}
     pj = os.path.join(out_dir, f'{nom}.json')

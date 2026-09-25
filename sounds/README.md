@@ -156,20 +156,33 @@ Et une remarque qui fait gagner du temps : **une seule montée en régime propre
 tenus n'a d'intérêt que si chacun sonne vraiment à son régime.
 
 
-## Ce que les onboards ont donné
+## Ce qu'il faut enregistrer
 
-| prise | durée | rampe retenue | montée |
+L'état de l'art du son de moteur de jeu demande **trois prises par voiture**, et rien d'autre :
+
+1. **La montée** — plein gaz, **un seul rapport**, du plus bas régime tenable jusqu'au rupteur,
+   d'un seul tenant. Une dizaine de secondes. C'est la pièce maîtresse : le lecteur s'y déplace et
+   ne transpose jamais, donc **la plage qu'elle couvre est exactement celle qu'elle parcourt**.
+2. **La descente** — pied levé, du rupteur au ralenti, en roue libre. C'est ce qui donne le frein
+   moteur et les décélérations ; aujourd'hui le pied levé rejoue la montée, simplement assombrie.
+3. **Le ralenti** — quelques secondes de régime stable, moteur chaud, à l'arrêt.
+
+Ce qui rend une prise inutilisable : un changement de rapport au milieu de la montée (la hauteur
+chute d'un coup), un lever de pied, un coup de frein, une voiture qui passe, une voix.
+
+| ce qu'on a | durée | montée | plage couverte |
 |---|---|---|---|
-| M1 Procar | 532 s | 8,0 s à 171,4 s | 17 demi-tons |
-| Corvette Trans-Am | 990 s | 7,6 s à 129,1 s | 14 demi-tons |
-| F40 LM | 147 s | 4,2 s à 22,6 s | 9 demi-tons |
+| M1 Procar | 8,0 s | 17 demi-tons | 3423 – 9000 tr/min |
+| Corvette Trans-Am | 7,6 s | 14 demi-tons | 2708 – 6000 tr/min |
+| F40 LM | 4,2 s | 9 demi-tons | 4703 – 7750 tr/min |
 
-**Ce qu'il faut chercher, c'est une rampe** : une montée continue, pied au plancher, sur un seul
-rapport, du bas de la plage au rupteur. Une dizaine de secondes suffit. Pas une série de régimes
-tenus — le lecteur est granulaire, il se déplace dans la rampe et ne transpose jamais.
+Ces trois rampes ont été trouvées automatiquement dans les onboards, et c'est leur limite : un
+onboard de course ne contient presque jamais une montée complète sur un seul rapport — le pilote
+passe un rapport toutes les deux ou trois secondes. D'où la F40, qui ne couvre que neuf demi-tons
+et repasse à la synthèse en dessous de 4700 tr/min.
 
-Une descente en roue libre du rupteur au ralenti serait le prochain gain : le pied levé joue
-aujourd'hui la rampe d'accélération, simplement assombrie.
+**Une montée découpée à la main vaut donc mieux que n'importe quel réglage.** Cherche dans une
+vidéo un départ arrêté, une sortie de stand ou une reprise en côte : ce sont les moments où le
+pilote tient un rapport longtemps.
 
-Et les cinq fichiers générés, pour mémoire, tenaient tous dans 2315 à 2649 tr/min : deux demi-tons
-en tout, aucune montée, rien d'exploitable.
+## Ce que les onboards ont donné automatiquement

@@ -47,7 +47,12 @@ const serveur = http.createServer((req, res) => {
       const rw = await fetch(`${b}/${meta.src}`);
       out.push({ voiture: m.name, rampe: rw.ok ? 'ok' : 'SON MANQUANT',
                  secondes: meta.secondes, points: meta.table.length,
-                 plage: `${meta.rpmBas}-${meta.rpmHaut}`,
+                 plage: `${Math.round(meta.rpmBas)}-${meta.rpmHaut}`,
+                 // L'axe des régimes ne doit pas être étiré : la plage couverte doit valoir
+                 // exactement la montée mesurée dans la rampe. Sinon le moteur monte moins vite
+                 // que le compte-tours — le défaut qui restait après le passage au granulaire.
+                 etirement: +(12 * Math.log2(meta.rpmHaut / meta.rpmBas) / meta.monteeDemiTons).toFixed(2),
+                 montee: meta.monteeDemiTons,
                  // la table doit être croissante, sinon monter en régime ferait reculer la lecture
                  croissante: meta.table.every((v, i) => i === 0 || v >= meta.table[i - 1] - 1e-9) });
     }
@@ -56,9 +61,11 @@ const serveur = http.createServer((req, res) => {
   let absentes = 0;
   for (const i of inventaire) {
     if (!i.rampe) { console.log(`  ${i.voiture.padEnd(16)} synthèse`); continue; }
-    if (i.rampe !== 'ok' || !i.croissante) absentes++;
+    const etire = Math.abs(i.etirement - 1) > 0.06;
+    if (i.rampe !== 'ok' || !i.croissante || etire) absentes++;
     console.log(`  ${i.voiture.padEnd(16)} rampe ${i.rampe}, ${i.secondes} s, ${i.plage} tr/min, ` +
-      `${i.points} points, table ${i.croissante ? 'croissante' : 'NON CROISSANTE'}`);
+      `montée ${i.montee} dt, étirement x${i.etirement}${etire ? '  ← L\'AXE DES RÉGIMES EST ÉTIRÉ' : ''}` +
+      `, table ${i.croissante ? 'croissante' : 'NON CROISSANTE'}`);
   }
 
   // --- 2. la lecture se déplace-t-elle avec le régime, sans jamais transposer ? ---

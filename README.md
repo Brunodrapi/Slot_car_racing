@@ -844,11 +844,23 @@ qu'on la transpose de plus de 500 tr/min**, soit sept dixièmes de demi-ton à 6
 octaves en transposant demande des dizaines de boucles et sonne mal bien avant — chez moi, « on
 dirait des moustiques ».
 
-| voiture | rampe | montée | plage posée |
+| voiture | rampe | montée | plage couverte |
 |---|---|---|---|
-| M1 Procar | 8,0 s | 17 demi-tons | 2200 – 9000 tr/min |
-| Corvette | 7,6 s | 14 demi-tons | 1500 – 6000 tr/min |
-| F40 | 4,2 s | 9 demi-tons | 1800 – 7750 tr/min |
+| M1 Procar | 8,0 s | 17 demi-tons | 3423 – 9000 tr/min |
+| Corvette | 7,6 s | 14 demi-tons | 2708 – 6000 tr/min |
+| F40 | 4,2 s | 9 demi-tons | 4703 – 7750 tr/min |
+
+**La plage n'est pas posée, elle est déduite de la montée mesurée.** Une rampe qui monte de neuf
+demi-tons ne peut couvrir que neuf demi-tons de plage de régime : lui en faire couvrir vingt-cinq
+étire l'axe des régimes de presque trois fois, et le moteur monte alors bien moins vite que le
+compte-tours. Le granulaire ne déforme plus le timbre, mais un axe étiré désaccorde le moteur du
+cadran, ce qui s'entend autant. Seul le rupteur est donné ; le bas s'en déduit, et
+`tools/e2e-sample.js` échoue si l'étirement s'écarte de 1 de plus de 6 %.
+
+La contrepartie est claire et assumée : **plus la rampe est courte, moins elle couvre**. La F40,
+avec quatre secondes, ne tient que de 4703 à 7750 tr/min ; en dessous, c'est la synthèse. C'est la
+raison pour laquelle une rampe complète, du bas de la plage au rupteur, vaut tous les réglages du
+monde.
 
 **Ce qu'il faut comme matière.** Une rampe : une montée continue, pied au plancher, sur un seul
 rapport. `tools/enginegrains.py` la trouve seul dans un onboard — il cherche la plus longue montée
