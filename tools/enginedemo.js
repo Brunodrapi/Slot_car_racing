@@ -22,6 +22,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   const dst = process.argv[3] || '/tmp/demo.wav';
   const DUR = +(process.argv[4] || 12);
   const synthese = process.argv.includes('--synthese');
+  const ralenti = process.argv.includes('--ralenti');
 
   const serveur = http.createServer((req, res) => {
     const f = path.join(ROOT, decodeURIComponent(req.url.split('?')[0]));
@@ -38,7 +39,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   await page.goto(`${base}/index.html`);
   await page.waitForTimeout(400);
 
-  const pcm = await page.evaluate(async ({ id: mid, DUR: dur, base: b, synthese: sy }) => {
+  const pcm = await page.evaluate(async ({ id: mid, DUR: dur, base: b, synthese: sy, ralenti: ral }) => {
     const SR = 44100;
     const m = modelById(mid);
     // La rampe est chargée à l'avance : un rendu hors ligne ne laisse pas le temps à un `fetch`
@@ -62,12 +63,14 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       const t = i * pas;
       const ph = t < 2 ? 0 : t < dur - 2 ? (t - 2) / (dur - 4) : 1;
       const gaz = t >= 2 && t < dur - 2;
-      const car = { cls: m, v: ph * m.vmax, throttle: gaz, usage: 0, state: 'track', slide: 0 };
-      off.suspend(Math.min(t, dur - 1 / SR)).then(() => { a.update(car, t >= 2); off.resume(); });
+      // `--ralenti` : la voiture reste à l'arrêt, moteur tournant, tout le long
+      const car = ral ? { cls: m, v: 0, throttle: false, usage: 0, state: 'track', slide: 0 }
+        : { cls: m, v: ph * m.vmax, throttle: gaz, usage: 0, state: 'track', slide: 0 };
+      off.suspend(Math.min(t, dur - 1 / SR)).then(() => { a.update(car, ral ? false : t >= 2); off.resume(); });
     }
     const buf = await off.startRendering();
     return Array.from(buf.getChannelData(0));
-  }, { id, DUR, base, synthese });
+  }, { id, DUR, base, synthese, ralenti });
 
   // en-tête WAV mono 16 bits
   const n = pcm.length;

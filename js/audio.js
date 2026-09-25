@@ -139,6 +139,26 @@ class GameAudio {
       this.airGain = ctx.createGain(); this.airGain.gain.value = 0;
       this.airSrc.connect(this.airFilter); this.airFilter.connect(this.airGain); this.airGain.connect(this.master);
 
+      /* Le clapot du ralenti.
+
+      Un moteur au ralenti ne fait pas entendre sa ligne d'échappement mais sa combustion : elle
+      est irrégulière, un cylindre ne donne pas tout à fait comme le suivant, et la distribution
+      claque. Sans cela un moteur « lisse » — une M1, une F40, `rough` à 0,15 — ne rend au ralenti
+      qu'un bourdon mince et propre, là où une Corvette à 0,70 sonne juste par chance.
+
+      D'où du bruit filtré, multiplié par le signal du moteur lui-même : le produit se module à la
+      fréquence d'allumage, ce qui donne le « pouf-pouf » d'un ralenti au lieu d'un souffle. Le
+      gain du multiplieur reste à zéro et c'est l'oscillateur, branché sur ce gain, qui le fait
+      varier — une modulation en anneau, à la fréquence audio. */
+      this.lopeSrc = noise();
+      this.lopeBand = ctx.createBiquadFilter(); this.lopeBand.type = 'bandpass';
+      this.lopeBand.frequency.value = 620; this.lopeBand.Q.value = 0.6;
+      this.lopeMod = ctx.createGain(); this.lopeMod.gain.value = 0;
+      this.eng.connect(this.lopeMod.gain);
+      this.lopeGain = ctx.createGain(); this.lopeGain.gain.value = 0;
+      this.lopeSrc.connect(this.lopeBand); this.lopeBand.connect(this.lopeMod);
+      this.lopeMod.connect(this.lopeGain); this.lopeGain.connect(this.master);
+
       // turbo : un sifflement qui monte avec le régime et la charge
       this.turbo = ctx.createOscillator(); this.turbo.type = 'sine'; this.turbo.frequency.value = 3000;
       this.turboGain = ctx.createGain(); this.turboGain.gain.value = 0;
@@ -345,6 +365,13 @@ class GameAudio {
     this.airGain.gain.setTargetAtTime(load * (0.015 + frac * 0.05) * shifting, t, 0.06);
 
     // turbo : la pression monte avec le régime, et retombe d'un coup au lever de pied
+    // Le clapot ne vit qu'en bas et pied levé : dès que le moteur monte ou pousse, c'est la ligne
+    // d'échappement qu'on entend, et lui laisser la place brouillerait le reste. Il ne joue que
+    // sur la voie de synthèse — une prise porte déjà son propre ralenti quand elle en a un.
+    const clapot = (1 - frac) * (1 - frac) * (1 - load * 0.75) * (1 - couv);
+    this.lopeBand.frequency.setTargetAtTime(200 + 320 * e.bright, t, 0.1);
+    this.lopeGain.gain.setTargetAtTime(clapot * (0.5 + 0.9 * (1 - e.rough)) * 0.30 * shifting, t, 0.06);
+
     this.turbo.frequency.setTargetAtTime(2200 + frac * 4200, t, 0.08);
     this.turboGain.gain.setTargetAtTime(e.turbo * load * frac * frac * 0.045, t, load ? 0.25 : 0.05);
 

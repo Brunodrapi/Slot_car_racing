@@ -894,6 +894,30 @@ vérifie en lisant le code du lecteur.
 Hors de la plage couverte — l'arrêt, les premiers mètres — la synthèse reprend la main en fondu sur
 un quart d'octave. Il n'est pas question de transposer pour combler.
 
+### Le clapot du ralenti
+
+Aucun des trois onboards ne contient de ralenti : une prise de course n'en a pas, le pilote ne
+laisse jamais le moteur tourner à vide. Cherché automatiquement dans les trois, les meilleurs
+candidats font deux dixièmes de seconde. C'est donc la synthèse qui tient le ralenti, et elle n'y
+était bonne que par accident.
+
+Un moteur au ralenti ne fait pas entendre sa ligne d'échappement mais sa combustion : elle est
+irrégulière, un cylindre ne donne pas tout à fait comme le suivant, la distribution claque. Un
+moteur déclaré « lisse » — la M1 et la F40, `rough` à 0,15 — ne rendait donc qu'un bourdon mince
+et propre, là où la Corvette à 0,70 sonnait juste sans qu'on ait rien fait pour.
+
+D'où une couche de bruit filtré **multipliée par le signal du moteur lui-même**. Le produit se
+module à la fréquence d'allumage : c'est le « pouf-pouf » d'un ralenti, et non un souffle. En
+pratique le gain du multiplieur reste à zéro et c'est l'oscillateur, branché sur ce gain, qui le
+fait varier — une modulation en anneau, à la fréquence audio, que le graphe audio du navigateur
+sait faire sans code.
+
+Mesuré : le battement tombe à 55,2 Hz sur la M1 pour 55,0 attendus à 1100 tr/min, et à 66,6 Hz sur
+la F40 pour 66,7. Le centroïde passe à 171 et 182 Hz, tout près des 154 Hz de la Corvette qui
+faisait déjà l'affaire. Le clapot se retire ensuite de lui-même : il est pondéré par le carré de
+ce qui reste à monter en régime, et par l'absence de prise — au plein régime de la M1 le centroïde
+est remonté à 597 Hz, celui de la F40 à 1601.
+
 ### La chaîne d'outils
 
 ```
