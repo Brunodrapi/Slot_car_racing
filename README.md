@@ -948,6 +948,24 @@ substitue un double sur `BroadcastChannel`, de même surface. Tout le jeu au-des
 donc éprouvé — le salon, les étiquettes, le gel de la liste au départ, la simulation chez l'hôte et
 la reprise chez l'invité.
 
+### La grille doit être la même sur tous les écrans
+
+Un pilote dont le modèle est inconnu du poste recevait la voiture **du joueur local**. Le repli
+dépendait donc de qui regardait : chaque écran voyait une grille différente, et celui qui regardait
+voyait tous les autres rouler dans sa propre voiture. Le cas n'est pas théorique — une voiture
+d'atelier que les autres n'ont pas, une présence encore incomplète au coup d'envoi — et il devient
+d'autant plus probable qu'on est nombreux.
+
+Le repli ne dépend plus que de la place sur la grille, donc il est le même partout.
+`tools/e2e-duo.js` ouvre autant d'écrans qu'on veut, leur fait choisir des voitures différentes et
+vérifie que **tous voient la même grille**, qu'aucune voiture ne se superpose, et que chacun a bien
+sa livrée.
+
+Ce que la mesure à huit écrans apprend aussi : au-delà de quatre, c'est la machine qui lâche avant
+la liaison. L'hôte — qui ne rejoue rien, il simule — devient le plus heurté des deux. Le seuil de
+l'essai en tient compte : un plancher absolu d'un dixième de mètre, relevé par ce que l'hôte fait
+lui-même, faute de quoi on accuserait la liaison d'un défaut de processeur.
+
 ### Le clapot du ralenti
 
 Aucun des trois onboards ne contient de ralenti : une prise de course n'en a pas, le pilote ne

@@ -78,7 +78,14 @@ class Race {
       const s = T.length - 8 - row * gap;
       const lat = (i % 2 === 0 ? 1 : -1) * Math.min(T.halfWidth * 0.45, c.width * 0.9);
       const ai = roster[i % roster.length];
-      const model = h ? (modelById(h.modelId) || c) : (isHuman ? c : (modelById(ai.model) || catModels[i % catModels.length]));
+      /* Le repli d'un pilote en ligne ne doit dépendre que de sa place, jamais de l'écran qui
+      dessine. Se rabattre sur `c` — la voiture du joueur local — donnait à chaque écran une
+      grille différente : celui qui regardait voyait tous les autres rouler dans SA voiture. Le
+      cas arrive pour de bon dès qu'un modèle est inconnu du poste, par exemple une voiture
+      d'atelier que les autres n'ont pas, ou une présence encore incomplète au coup d'envoi — donc
+      d'autant plus souvent qu'on est nombreux. */
+      const model = h ? (modelById(h.modelId) || catModels[(hIdx + 1) % catModels.length])
+        : (isHuman ? c : (modelById(ai.model) || catModels[i % catModels.length]));
       const car = new Car(T, model, {
         name: h ? (h.name || 'Pilote') : isHuman ? (this.opts.playerName || 'Vous') : ai.name,
         livery: LIVERIES[(h ? h.livery : isHuman ? (this.opts.playerLivery || 0) : ai.livery) % LIVERIES.length],

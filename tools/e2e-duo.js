@@ -1,6 +1,6 @@
 // Une vraie table à deux écrans, mesurée des deux côtés.
 //
-//   NODE_PATH=$(npm root -g) node tools/e2e-duo.js [secondes] [--bride=1]
+//   NODE_PATH=$(npm root -g) node tools/e2e-duo.js [secondes] [--bride=1] [--joueurs=2]
 //
 // Le transport réel passe par un annuaire public WebRTC, qu'on ne peut ni exiger ni reproduire
 // dans un essai. On lui substitue donc un double bâti sur `BroadcastChannel` : deux onglets de la
@@ -60,6 +60,7 @@ const DOUBLE = `
 
 (async () => {
   const DUR = +(process.argv[2] || 12);
+  const NJ = +((process.argv.find((x) => x.startsWith('--joueurs=')) || '--joueurs=2').split('=')[1]);
   const bride = +((process.argv.find((x) => x.startsWith('--bride=')) || '--bride=1').split('=')[1]);
   const serveur = http.createServer((req, res) => {
     const f = path.join(ROOT, decodeURIComponent(req.url.split('?')[0]));
@@ -87,22 +88,33 @@ const DOUBLE = `
     return p;
   };
   const hote = await ouvre('hôte');
-  const invite = await ouvre('invité');
+  const invites = [];
+  for (let i = 1; i < NJ; i++) invites.push(await ouvre('invité ' + i));
+  const invite = invites[0];
+  const tous = [hote, ...invites];
 
   // --- le salon ---
-  const code = await hote.evaluate(async () => {
-    app.save.name = 'Hôte'; app.save.modelId = 'm1procar';
+  // Chacun choisit une voiture différente : c'est la seule façon de voir si elles arrivent
+  // distinctes de l'autre côté.
+  const CHOIX = ['m1procar', 'f40', 'corvette', 'countach', '917k', '930', 'csl', '787b'];
+  const code = await hote.evaluate(async (m) => {
+    app.save.name = 'Hôte'; app.save.models = app.save.models || {}; app.save.models.gt = m;
     await app.net.open('Hôte', true, null);
-    app.ui._netCar(); app.ui._netReady(true); app.ui.lobbyScreen();
+    app.net.setMine({ car: { modelId: m } });
+    app.ui._netReady(true); app.ui.lobbyScreen();
     return app.net.code;
-  });
-  await invite.evaluate(async (c) => {
-    app.save.name = 'Invité'; app.save.modelId = 'f40';
-    await app.net.open('Invité', false, c);
-    app.ui._netCar(); app.ui._netReady(true); app.ui.lobbyScreen();
-  }, code);
+  }, CHOIX[0]);
+  for (let i = 0; i < invites.length; i++) {
+    await invites[i].evaluate(async ({ c, nom, m }) => {
+      app.save.name = nom; app.save.models = app.save.models || {}; app.save.models.gt = m;
+      await app.net.open(nom, false, c);
+      app.net.setMine({ car: { modelId: m } });
+      app.ui._netReady(true); app.ui.lobbyScreen();
+    }, { c: code, nom: 'Invité ' + (i + 1), m: CHOIX[(i + 1) % CHOIX.length] });
+    await hote.waitForTimeout(250);
+  }
   await hote.waitForTimeout(900);
-  for (const p of [hote, invite]) await p.evaluate(() => app.ui.lobbyScreen());
+  for (const p of tous) await p.evaluate(() => app.ui.lobbyScreen());
   await hote.waitForTimeout(200);
 
   const vu = async (p) => p.evaluate(() => app.net.members().map((m) => ({ nom: m.name, moi: !!m.isMe })));
@@ -144,6 +156,33 @@ const DOUBLE = `
     joueurs: app.race ? app.race.cars.filter((c) => c.isPlayer).map((c) => c.name) : [],
     humains: app.race ? app.race.cars.filter((c) => c.human !== null && c.human !== undefined).map((c) => `${c.name}#${c.human}`) : [],
   }));
+  const grille = async (p) => p.evaluate(() => (app.race ? app.race.cars
+    .filter((c) => c.human !== null && c.human !== undefined)
+    .map((c) => ({ place: c.human, nom: c.name, modele: c.cls.id, livree: c.livery && c.livery.body,
+                   x: +c.x.toFixed(1), y: +c.y.toFixed(1) })) : []));
+  // Un pilote dont le modèle est inconnu de tous : le repli doit donner la MÊME voiture sur
+  // chaque écran, sinon chacun voit une grille différente.
+  const g0 = await grille(hote);
+  const gTous = [];
+  for (const p of tous) gTous.push(await grille(p));
+  for (let k = 1; k < gTous.length; k++) {
+    const a = gTous[0].map((c) => `${c.place}:${c.modele}`).join(' ');
+    const b = gTous[k].map((c) => `${c.place}:${c.modele}`).join(' ');
+    if (a !== b) { faute++; console.log(`  ÉCHEC : l’écran ${k} voit une autre grille\n    hôte    ${a}\n    écran ${k} ${b}`); }
+  }
+  if (gTous.every((g, k) => k === 0 || g.map((c) => c.modele).join() === gTous[0].map((c) => c.modele).join()))
+    console.log('  ok : tous les écrans voient la même grille');
+  console.log('\nla grille humaine vue par l’hôte :');
+  for (const c of g0) console.log(`   place ${c.place}  ${String(c.nom).padEnd(10)} ${c.modele.padEnd(10)} ${c.livree}  (${c.x}, ${c.y})`);
+  const modeles = new Set(g0.map((c) => c.modele)), livrees = new Set(g0.map((c) => c.livree));
+  const places = g0.map((c) => `${c.x},${c.y}`), posUniq = new Set(places);
+  if (modeles.size !== g0.length) { faute++; console.log(`  ÉCHEC : ${g0.length} pilotes mais ${modeles.size} modèle(s) — ${[...modeles].join(', ')}`); }
+  else console.log('  ok : chaque pilote a bien sa voiture');
+  if (livrees.size !== g0.length) { faute++; console.log(`  ÉCHEC : ${g0.length} pilotes mais ${livrees.size} livrée(s)`); }
+  else console.log('  ok : chaque pilote a bien sa livrée');
+  if (posUniq.size !== g0.length) { faute++; console.log(`  ÉCHEC : des voitures se superposent — ${places.join(' | ')}`); }
+  else console.log('  ok : aucune voiture superposée sur la grille');
+
   console.log('\nen course, hôte   :', JSON.stringify(await enCourse(hote)));
   console.log('en course, invité :', JSON.stringify(await enCourse(invite)));
   for (const [nom, e] of [['hôte', await enCourse(hote)], ['invité', await enCourse(invite)]]) {
@@ -155,11 +194,13 @@ const DOUBLE = `
   // mesurée image par image révèle les à-coups qu'une moyenne d'images par seconde cache.
   const bouge = async (p, sec) => p.evaluate(async (s2) => {
     app.input.throttle = true;
-    const xs = [], dt = [];
+    const xs = [], dt = [], arr = [];
+    let vuSeq = -1;
     let last = performance.now();
     await new Promise((f) => { const tick = () => {
       const n = performance.now(); dt.push(n - last); last = n;
       const c = app.race && app.race.player; if (c) xs.push([c.pos.x, c.pos.y]);
+      if (!app.net.isHost() && app.net.lastSeq !== vuSeq) { vuSeq = app.net.lastSeq; arr.push(n); }
       if (dt.length < s2 * 60) requestAnimationFrame(tick); else f(); }; requestAnimationFrame(tick); });
     app.input.throttle = false;
     // saut : la variation de la variation de position, en mètres. Un mouvement régulier la garde
@@ -171,16 +212,35 @@ const DOUBLE = `
       sauts.push(Math.hypot(ax, ay));
     }
     const tri = dt.slice(8).sort((a, b) => a - b), ts = sauts.slice().sort((a, b) => a - b);
+    const ecarts = []; for (let i = 1; i < arr.length; i++) ecarts.push(arr[i] - arr[i - 1]);
+    ecarts.sort((a, b) => a - b);
     return { im: +(1000 / (tri.reduce((a, b) => a + b, 0) / tri.length)).toFixed(1),
+             snapHz: ecarts.length ? +(1000 / ecarts[ecarts.length >> 1]).toFixed(1) : null,
+             snapPire: ecarts.length ? +ecarts[ecarts.length - 1].toFixed(0) : null,
              sautMedian: +ts[ts.length >> 1].toFixed(3),
              sautP95: +ts[Math.floor(ts.length * 0.95)].toFixed(3),
              sautMax: +ts[ts.length - 1].toFixed(3) };
   }, sec);
   const [mh, mi] = await Promise.all([bouge(hote, DUR), bouge(invite, DUR)]);
-  console.log('\n                 im/s   saut médian   saut p95   saut max   (mètres, image à image)');
+  console.log('\n                 im/s   saut médian   saut p95   saut max   instantanés');
   console.log(`  hôte      ${String(mh.im).padStart(8)} ${String(mh.sautMedian).padStart(13)} ${String(mh.sautP95).padStart(10)} ${String(mh.sautMax).padStart(10)}`);
-  console.log(`  invité    ${String(mi.im).padStart(8)} ${String(mi.sautMedian).padStart(13)} ${String(mi.sautP95).padStart(10)} ${String(mi.sautMax).padStart(10)}`);
-  if (mi.sautP95 > mh.sautP95 * 3 + 0.02) { faute++; console.log('  ÉCHEC : le mouvement de l’invité est bien plus heurté que celui de l’hôte'); }
+  console.log(`  invité    ${String(mi.im).padStart(8)} ${String(mi.sautMedian).padStart(13)} ${String(mi.sautP95).padStart(10)} ${String(mi.sautMax).padStart(10)}` +
+    `   ${mi.snapHz} Hz, pire écart ${mi.snapPire} ms`);
+  /* Le seuil : un plancher absolu, relevé par ce que l'hôte fait lui-même.
+
+  Le plancher d'abord, parce que ce qui compte est l'écart en mètres : le défaut corrigé valait
+  0,173 m d'une image à l'autre, et sous un dixième de mètre le mouvement se lit comme continu. Un
+  rapport à l'hôte seul ne dirait rien — à deux, l'hôte tient 0,003 m et l'invité 0,014, un facteur
+  cinq qui n'a pourtant rien de gênant puisque les deux sont minuscules.
+
+  Mais le plancher seul accuse à tort quand la machine sature. À huit écrans ouverts sur le même
+  ordinateur, l'hôte monte à 0,59 m alors qu'il ne rejoue rien du tout : c'est le processeur qui
+  lâche, pas la liaison. Dans ce cas l'invité n'a pas à faire mieux que l'hôte, et on ne conclut
+  que s'il fait nettement pire. */
+  const limite = Math.max(0.10, mh.sautP95 * 1.5);
+  if (mi.sautP95 > limite) { faute++; console.log(`  ÉCHEC : l’invité saute de ${mi.sautP95} m au 95e centile, la limite est ${limite.toFixed(3)}`); }
+  else console.log(`  ok : l’invité à ${mi.sautP95} m au 95e centile, sous la limite de ${limite.toFixed(3)}` +
+    (mh.sautP95 > 0.05 ? '  (machine saturée : l’hôte lui-même est à ' + mh.sautP95 + ')' : ''));
 
   console.log('\nerrors', errs);
   await browser.close();
