@@ -19,7 +19,7 @@
 const NET_HZ = 30;                 // snapshots per second; the channel coalesces around this anyway
 const NET_CODE = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // no I, O, 0, 1: they are read aloud
 const NET_MODES = ['race', 'duel', 'ghost'];
-const NET_SEATS = 6;               // people per table
+const NET_SEATS = 8;               // people per table
 const NET_STALE = 6000;            // a screen quiet this long has left
 
 function netCode() {
@@ -52,6 +52,7 @@ class Net {
     this.outN = 0;
     this.seenN = {};
     this.sentAtMs = 0;
+    this.lastI = null;
     this.snapAt = 0;
     this.onPeers = () => {};
     this.onStart = () => {};
@@ -111,13 +112,17 @@ class Net {
       const q = p.presence || {};
       if (!q.pid) continue;
       if (!p.isMe && p.updatedAt && now - p.updatedAt > NET_STALE) continue;
-      out.push({ pid: q.pid, name: q.name || 'Pilote', car: q.car, ready: !!q.ready, isMe: !!p.isMe, q });
+      out.push({ pid: q.pid, name: q.name || '', car: q.car, ready: !!q.ready, isMe: !!p.isMe, q });
     }
     // The host's label starts with 0 in this transport, so sorting by label puts them first; that
     // ordering is what the roster freezes, and both screens sort the same way.
     const label = (m) => (this.peers.find(p => (p.presence || {}).pid === m.pid) || {}).peer || '';
     out.sort((a, b) => (label(a) < label(b) ? -1 : 1));
-    return out.slice(0, NET_SEATS);
+    // Un pilote sans nom en reçoit un d'après sa place. Deux « Pilote » identiques à l'écran se
+    // lisent comme deux fois soi-même, ce qui est exactement la confusion qu'on veut éviter.
+    const fin = out.slice(0, NET_SEATS);
+    fin.forEach((m, i) => { if (!m.name) m.name = 'Pilote ' + (i + 1); });
+    return fin;
   }
 
   settings() {
@@ -228,10 +233,18 @@ class Net {
     if (Array.isArray(snap) && (snap[0] > this.lastSeq || snap[0] < this.lastSeq - 120)) {
       if (race.applySnapshot(snap)) { this.lastSeq = snap[0]; this.snapAt = performance.now(); }
     }
+    const i = [input.throttle ? 1 : 0, Math.round(clamp(input.sel || 0, -1, 1) * 100)];
+    // Un appui part tout de suite, sans attendre le prochain envoi. Le reste du temps le rythme
+    // ordinaire suffit — rien n'a changé, et répéter la même chose n'apprend rien à l'hôte. Ce
+    // qui coûte cher au joueur, c'est le moment où il appuie : jusqu'à trente-trois millisecondes
+    // gagnées là où il les sent le plus.
     const now = performance.now();
-    if (now - this.sentAtMs < 1000 / NET_HZ) return;
+    const change = !this.lastI || this.lastI[0] !== i[0] || Math.abs(this.lastI[1] - i[1]) > 4;
+    if (!change && now - this.sentAtMs < 1000 / NET_HZ) return;
+    if (change && now - this.sentAtMs < 1000 / 60) return;    // sans inonder le canal pour autant
+    this.lastI = i;
     this.sentAtMs = now;
-    this.post({ i: [input.throttle ? 1 : 0, Math.round(clamp(input.sel || 0, -1, 1) * 100)], n: ++this.outN });
+    this.post({ i, n: ++this.outN });
   }
 
   /** How long since the last state arrived — the game greys the screen when it gets long. */

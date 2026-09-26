@@ -894,6 +894,60 @@ vérifie en lisant le code du lecteur.
 Hors de la plage couverte — l'arrêt, les premiers mètres — la synthèse reprend la main en fondu sur
 un quart d'octave. Il n'est pas question de transposer pour combler.
 
+### Tenir soixante images par seconde sur un téléphone
+
+Mesuré en bridant le processeur d'un facteur quatre, ce qui approche un téléphone de milieu de
+gamme : le jeu tombait à **dix-sept images par seconde**. En désactivant le dessin, il remontait à
+soixante — tout le coût est donc dans le rendu, et la physique, la caméra, les effets et le son
+réunis ne pèsent pas deux millisecondes.
+
+Deux choses en sont sorties.
+
+**Le coût est exactement proportionnel au nombre de pixels** : 1,32 Mpx coûtent 57 ms, 0,33 Mpx en
+coûtent 19. Le jeu est limité par le remplissage. La résolution s'adapte donc à ce que la machine
+tient : on mesure la durée réelle des images, on descend d'un cran au-delà de 20 ms, on remonte en
+dessous de 13. La marge entre les deux seuils évite l'accordéon, et une seconde de délai entre deux
+changements évite de payer le redimensionnement plus souvent qu'il ne rapporte. Résultat : une
+machine capable reste à pleine résolution et 60 im/s, et à quatre fois moins de processeur le jeu
+descend à un pixel par point et tient **46 im/s** au lieu de 17.
+
+**La piste était dessinée en entier à chaque image.** Un circuit fait plusieurs kilomètres, la
+caméra en montre cinquante mètres, et le rasteriseur traitait tous les segments. Les tracés sont
+désormais découpés en tronçons d'une soixantaine de mètres, chacun avec sa boîte englobante, et
+seuls les tronçons en vue sont dessinés — de 11,4 ms à 5,7 ms. Deux détails qui comptent : les
+tronçons se chevauchent d'un pas, sans quoi une ligne claire apparaît au raccord ; et le liséré
+sombre de la piste est obtenu en traçant ses deux bords plutôt que le contour du ruban, faute de
+quoi il apparaîtrait en travers de la route à chaque raccord.
+
+`tools/perf.js` mesure tout cela, sur une course servie en HTTP et non en `file://` — sous
+`file://` la rampe du moteur ne se charge pas, et un essai qui ne voit pas ce qu'on veut mesurer ne
+mesure rien. Il ne regarde pas la moyenne mais la queue de la distribution : soixante images à
+16 ms et une à 200 ms font encore 55 im/s de moyenne, et pourtant ça se voit.
+
+### L'invité ne saute plus
+
+Dans une course en ligne, l'hôte simule et publie l'état trente fois par seconde ; l'invité ne
+simule rien, il rejoue. Entre deux instantanés il avance les voitures à leur vitesse, et cette
+avance ne tombe jamais exactement juste — poser d'autorité la position reçue faisait sauter la
+voiture trente fois par seconde.
+
+Mesuré des deux côtés par `tools/e2e-duo.js`, en variation de variation de position d'une image à
+l'autre : **0,173 m au 95ᵉ centile chez l'invité contre 0,003 m chez l'hôte**, cinquante-huit fois
+pire. L'écart est maintenant gardé comme une dette d'affichage et remboursé en une centaine de
+millisecondes : la voiture reste où elle est et rejoint la vérité en glissant. L'invité tombe à
+**0,019 m**, sous le maximum de l'hôte. Au-delà de six mètres d'écart — un accrochage, un retour
+sur la piste — il n'y a rien à lisser et la voiture est reposée d'un coup.
+
+Et l'appui de l'invité part désormais tout de suite au lieu d'attendre le prochain envoi : jusqu'à
+trente-trois millisecondes gagnées là où le joueur les sent le plus. Le reste du temps le rythme
+ordinaire suffit, puisque répéter la même chose n'apprend rien à l'hôte.
+
+`tools/e2e-duo.js` ouvre deux écrans et leur fait jouer une vraie course. Le transport réel passe
+par un annuaire public WebRTC, qu'on ne peut ni exiger ni reproduire dans un essai : il lui
+substitue un double sur `BroadcastChannel`, de même surface. Tout le jeu au-dessus du transport est
+donc éprouvé — le salon, les étiquettes, le gel de la liste au départ, la simulation chez l'hôte et
+la reprise chez l'invité.
+
 ### Le clapot du ralenti
 
 Aucun des trois onboards ne contient de ralenti : une prise de course n'en a pas, le pilote ne

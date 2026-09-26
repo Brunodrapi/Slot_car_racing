@@ -210,7 +210,31 @@ class Race {
     this.countdown = snap[3] / 100;
     for (let i = 0; i < this.cars.length; i++) {
       const c = this.cars[i], o = 4 + i * per;
-      c.x = snap[o] / 100; c.y = snap[o + 1] / 100; c.th = snap[o + 2] / 1000;
+      /* L'écart est absorbé, pas imposé.
+
+      Les instantanés arrivent trente fois par seconde, l'écran en dessine soixante, et entre deux
+      l'invité avance les voitures à leur vitesse. Cette avance ne tombe jamais exactement juste :
+      poser d'autorité la position reçue fait sauter la voiture trente fois par seconde. Mesuré,
+      le saut d'une image à l'autre valait cinquante-huit fois celui de l'hôte.
+
+      On garde donc l'écart comme un décalage d'affichage, qu'on résorbe en quelques images. La
+      voiture est au bon endroit dès l'instantané suivant, mais elle y arrive en glissant. Un
+      écart énorme — un accrochage, un retour aux stands — n'a rien à lisser : au-delà de quelques
+      mètres on repose la voiture d'un coup, sinon elle traverserait le décor en patinant. */
+      const ax = snap[o] / 100, ay = snap[o + 1] / 100, ath = snap[o + 2] / 1000;
+      const ex = c.x - ax, ey = c.y - ay;
+      if (ex * ex + ey * ey < 36) {
+        // On ne bouge rien maintenant : la voiture reste où elle est, et l'écart avec la position
+        // reçue devient une dette que `extrapolate` rembourse en quelques images. Sauter sur la
+        // position reçue serait précisément le défaut qu'on corrige.
+        c.ex = ex; c.ey = ey; c.eth = wrapAngle(c.th - ath);
+        c.x = ax + c.ex; c.y = ay + c.ey; c.th = wrapAngle(ath + c.eth);
+      } else {
+        // Trop loin pour être lissé — un accrochage, un retour sur la piste : on repose la voiture
+        // d'un coup, sinon elle traverserait le décor en patinant.
+        c.ex = 0; c.ey = 0; c.eth = 0;
+        c.x = ax; c.y = ay; c.th = ath;
+      }
       c.v = snap[o + 3] / 100; c.vl = snap[o + 4] / 100; c.w = snap[o + 5] / 1000;
       c.s = snap[o + 6] / 100; c.lat = snap[o + 7] / 100; c.lap = snap[o + 8];
       c.sel = snap[o + 9] / 100; c.selS = snap[o + 10] / 100;
@@ -233,11 +257,20 @@ class Race {
   extrapolate(dt) {
     if (this.state !== 'racing' && this.state !== 'finishing') return;
     const d = Math.min(dt, 0.12);
+    // L'écart laissé par le dernier instantané se résorbe en une centaine de millisecondes : assez
+    // vite pour que la voiture ne traîne pas derrière la vérité, assez lentement pour que l'œil ne
+    // voie pas de saut.
+    const k = Math.exp(-d / 0.09);
     for (const c of this.cars) {
       const cos = Math.cos(c.th), sin = Math.sin(c.th);
       c.x += (c.v * cos - c.vl * sin) * d;
       c.y += (c.v * sin + c.vl * cos) * d;
       c.th = wrapAngle(c.th + c.w * d);
+      if (c.ex || c.ey || c.eth) {
+        c.x -= c.ex * (1 - k); c.y -= c.ey * (1 - k);
+        c.th = wrapAngle(c.th - (c.eth || 0) * (1 - k));
+        c.ex *= k; c.ey *= k; c.eth = (c.eth || 0) * k;
+      }
     }
     this.time += d;
   }
