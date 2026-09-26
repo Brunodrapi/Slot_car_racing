@@ -190,6 +190,59 @@ const DOUBLE = `
     else console.log(`  ok côté ${nom} : la voiture du joueur est ${e.joueurs[0]}`);
   }
 
+  /* À qui profite un appui ?
+
+  Le symptôme rapporté — « quand un autre joueur appuie, toutes les voitures bougent sauf celle de
+  l'hôte » — décrit une commande mal aiguillée. On la vérifie directement : un seul pilote appuie,
+  et on relève ce que **chaque écran** voit bouger. Une commande qui déborde sur d'autres voitures,
+  ou deux écrans qui ne racontent pas la même chose, se voient aussitôt.
+
+  La mesure est en mètres parcourus et non en vitesse : une voiture peut avoir de la vitesse sans
+  que le pilote y soit pour quoi que ce soit, mais la distance parcourue pendant la seconde et
+  demie où un seul appuie ne ment pas. */
+  const positions = async (p) => p.evaluate(() => app.race.cars.map((c) => ({
+    nom: c.name, place: c.human == null ? null : c.human, x: c.x, y: c.y })));
+  const parcouru = async (qui, nom) => {
+    // Tout le monde à l'arrêt d'abord. Sans cela, une voiture qui finit de ralentir après l'essai
+    // précédent parcourt encore quelques mètres, et on accuserait la commande d'un autre pilote
+    // d'un simple reste d'élan — relâcher, dans ce jeu, veut dire freiner.
+    await hote.evaluate(async () => {
+      for (let i = 0; i < 100; i++) {
+        const v = Math.max(...app.race.cars.filter((c) => c.human != null).map((c) => Math.abs(c.v)));
+        if (v < 0.4) break;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+    });
+    await hote.waitForTimeout(200);
+    const avant = [];
+    for (const p of tous) avant.push(await positions(p));
+    await qui.evaluate(() => { app.input.throttle = true; });
+    await qui.waitForTimeout(1500);
+    const apres = [];
+    for (const p of tous) apres.push(await positions(p));
+    await qui.evaluate(() => { app.input.throttle = false; });
+    const d = apres.map((g, k) => g.map((c, i) => Math.hypot(c.x - avant[k][i].x, c.y - avant[k][i].y)));
+    const humains = apres[0].map((c, i) => ({ i, nom: c.nom, place: c.place })).filter((c) => c.place !== null);
+    console.log(`\n  seul ${nom} appuie — mètres parcourus par pilote humain :`);
+    for (const h of humains) {
+      console.log(`    place ${h.place}  ${h.nom.padEnd(11)} ` + d.map((g) => g[h.i].toFixed(1).padStart(7)).join(''));
+    }
+    const bouge = humains.filter((h) => d[0][h.i] > 1.0);   // départ arrêté : un mètre suffit à trancher
+    if (bouge.length !== 1 || bouge[0].nom !== nom) {
+      faute++; console.log(`    ÉCHEC : ${bouge.length} voiture(s) humaine(s) ont avancé — ${bouge.map((b) => b.nom).join(', ') || 'aucune'}`);
+    } else console.log('    ok : seule sa voiture a avancé');
+    // et tous les écrans doivent raconter la même chose
+    for (let k = 1; k < d.length; k++) {
+      const ecart = Math.max(...humains.map((h) => Math.abs(d[k][h.i] - d[0][h.i])));
+      if (ecart > 1.5) { faute++; console.log(`    ÉCHEC : l’écran ${k} voit jusqu’à ${ecart.toFixed(1)} m d’écart avec l’hôte`); }
+    }
+  };
+  // Le décompte d'abord : pendant, la course ne simule rien et tout le monde reste à zéro.
+  await hote.evaluate(async () => { for (let i = 0; i < 200 && app.race.state !== 'racing'; i++) await new Promise((r) => setTimeout(r, 100)); });
+  await hote.waitForTimeout(300);
+  await parcouru(hote, 'Hôte');
+  await parcouru(invite, 'Invité 1');
+
   // La régularité du mouvement chez l'invité : il ne simule rien, il rejoue. Une accélération
   // mesurée image par image révèle les à-coups qu'une moyenne d'images par seconde cache.
   const bouge = async (p, sec) => p.evaluate(async (s2) => {

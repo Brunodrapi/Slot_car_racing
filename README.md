@@ -948,6 +948,21 @@ substitue un double sur `BroadcastChannel`, de même surface. Tout le jeu au-des
 donc éprouvé — le salon, les étiquettes, le gel de la liste au départ, la simulation chez l'hôte et
 la reprise chez l'invité.
 
+### À qui profite un appui
+
+Un symptôme rapporté — « quand un autre joueur appuie, toutes les voitures bougent sauf celle de
+l'hôte » — décrit une commande mal aiguillée. `tools/e2e-duo.js` le vérifie directement : un seul
+pilote appuie, et on relève ce que **chaque écran** voit bouger. Mesuré à trois écrans, dans les
+deux sens, seule la voiture de celui qui appuie avance — neuf mètres contre zéro — et les trois
+écrans s'accordent à moins de deux dixièmes de mètre.
+
+Deux précautions, apprises en se trompant. La mesure attend la fin du **décompte** : pendant, la
+course ne simule rien et tout le monde reste à zéro, ce qui ferait conclure à tort qu'aucune
+commande ne passe. Et elle attend l'**arrêt complet** entre deux essais : dans ce jeu relâcher veut
+dire freiner, une voiture qui finit de ralentir parcourt encore quatre mètres, et on accuserait la
+commande d'un autre pilote d'un simple reste d'élan. C'est exactement le faux positif qu'on a
+d'abord obtenu.
+
 ### La grille doit être la même sur tous les écrans
 
 Un pilote dont le modèle est inconnu du poste recevait la voiture **du joueur local**. Le repli
