@@ -2,7 +2,7 @@
 """Prépare une **rampe** de moteur pour la lecture granulaire.
 
     python3 tools/enginegrains.py <prise.wav> <nom> --haut=9000
-                                  [--secondes=6] [--hz=24000] [--out=sounds/engine]
+                                  [--secondes=6] [--hz=24000] [--out=sounds/engine] [--descente]
 
 `--haut` est le rupteur de la voiture, et c'est le seul repère à donner. **Le bas se déduit de la
 montée réellement mesurée dans la rampe** : une rampe qui monte de neuf demi-tons ne peut couvrir
@@ -114,13 +114,21 @@ def main():
     haut = float(opts.get('haut', 9000))
     vise = float(opts.get('secondes', 6))
     out_dir = opts.get('out', os.path.join('sounds', 'engine'))
+    descente = '--descente' in sys.argv
     os.makedirs(out_dir, exist_ok=True)
 
     a, sr = load(src)
+    # Une descente est une montée lue à l'envers : on cherche donc dans le signal retourné, ce qui
+    # évite d'écrire un second détecteur. Mais on n'écrit PAS le son retourné — une attaque de
+    # combustion jouée à reculons ne sonne plus comme un moteur. Seule la recherche est retournée,
+    # et la table est ramenée au temps du fichier d'origine : le régime le plus haut tombe au début
+    # de l'extrait, le plus bas à la fin. Lue vers l'avant, la prise descend, comme il faut.
+    a_cherche = a[::-1] if descente else a
     hop, fen = 0.08, 0.16
-    deb, V, niv = spectres(a, sr, hop, fen)
+    deb, V, niv = spectres(a_cherche, sr, hop, fen)
     q, acc = pas_a_pas(V)
-    print(f'{src} : {len(a)/sr:.1f} s, {len(deb)} fenêtres, alignement médian {np.median(acc[1:]):.2f}')
+    print(f'{src} : {len(a)/sr:.1f} s, {len(deb)} fenêtres, alignement médian {np.median(acc[1:]):.2f}'
+          + (' (cherchée à l\'envers : descente)' if descente else ''))
 
     # la hauteur relative, cumulée
     lp = np.concatenate([[0.0], np.cumsum(np.log2(q[1:]))])
@@ -145,26 +153,33 @@ def main():
             j += 1
         etendue = lp[j] - lp[i]
         duree = (j - i) * hop
-        # Le plancher d'étendue : moins d'un demi-octave de montée ne fait plus une rampe. Il n'a
-        # pas à être plus strict que cela, parce que le lecteur fond vers la synthèse en deçà du bas
-        # de la rampe et au-delà du haut — une rampe étroite coûte de la couverture, pas de la
-        # justesse. C'est le régime de course qui compte, et il vit dans le haut de la plage.
-        if duree < 1.2 or etendue < 0.45:
+        # Le plancher d'étendue. Il n'a pas à être sévère, parce que le lecteur fond vers la synthèse
+        # en deçà du bas de la rampe et au-delà du haut : une rampe étroite coûte de la couverture,
+        # pas de la justesse, et le régime de course vit dans le haut de la plage. Un tiers d'octave
+        # — 4,2 demi-tons — laisse passer un tirage entre deux rapports, qui est tout ce qu'un
+        # onboard de course contient souvent, et reste au-dessus de ce qu'un régime tenu produit par
+        # simple bruit de mesure.
+        if duree < 1.2 or etendue < 0.35:
             continue
         s = etendue * min(1.0, duree / vise)          # large ET assez longue
         if s > score:
             score, meilleur = s, (i, j)
     if not meilleur:
-        raise SystemExit('aucune montée en régime franche trouvée dans cette prise')
+        raise SystemExit('aucune montée en régime franche trouvée dans cette prise'
+                         if not descente else 'aucune descente franche trouvée dans cette prise')
     i, j = meilleur
     t0, t1 = deb[i] / sr, (deb[j] + int(fen * sr)) / sr
+    if descente:                                   # ramené au temps du fichier d'origine
+        L = len(a) / sr
+        t0, t1 = L - t1, L - t0
     etendue = lp[j] - lp[i]
     # La plage couverte vaut exactement la montée mesurée, ancrée au rupteur. Une erreur ici ne
     # déforme pas le son — le granulaire ne transpose jamais — mais elle désaccorde le moteur du
     # compte-tours, ce qui s'entend autant.
     bas = haut / 2 ** etendue
-    print(f'  rampe retenue : {t0:.1f} → {t1:.1f} s ({t1-t0:.1f} s), {etendue*12:.0f} demi-tons de montée')
-    print(f'  plage couverte : {bas:.0f} → {haut:.0f} tr/min (déduite de la montée, pas posée)')
+    print(f'  {"descente" if descente else "rampe"} retenue : {t0:.1f} → {t1:.1f} s ({t1-t0:.1f} s), '
+          f'{etendue*12:.0f} demi-tons')
+    print(f'  plage couverte : {bas:.0f} → {haut:.0f} tr/min (déduite de la variation, pas posée)')
 
     # --- la table régime → instant dans la rampe ---
     # La hauteur doit être strictement croissante pour être inversible : on la force, les petits
@@ -173,6 +188,9 @@ def main():
     seg = np.maximum.accumulate(seg)
     seg = seg / seg[-1]                                # 0 en bas, 1 au rupteur
     tps = (deb[i:j + 1] - deb[i]) / sr
+    if descente:
+        tps = (t1 - t0) - tps - fen        # même instant, compté depuis le début de l'extrait
+        tps = np.maximum(0.0, tps)
     NT = 128
     u = np.linspace(0, 1, NT)                          # u = position en hauteur, donc en régime
     table = np.interp(u, seg, tps)
@@ -195,6 +213,7 @@ def main():
     w.close()
 
     meta = {'src': p.replace(os.sep, '/'), 'rpmBas': round(bas, 1), 'rpmHaut': haut,
+            'sens': 'descente' if descente else 'montee',
             'monteeDemiTons': round(float(etendue * 12), 2),
             'secondes': round(len(x) / sr_out, 4),
             'table': [round(float(v), 5) for v in table]}
