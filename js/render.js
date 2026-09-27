@@ -171,7 +171,21 @@ class Renderer {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
-    this.dpr = Math.min(2, window.devicePixelRatio || 1);
+    /* La résolution s'adapte à ce que la machine tient.
+
+    Mesuré : le coût d'une image est **exactement proportionnel au nombre de pixels** — 1,32 Mpx
+    coûtent 57 ms là où 0,33 Mpx en coûtent 19. Le jeu est limité par le remplissage, pas par le
+    calcul : la physique, la caméra et le son réunis ne pèsent pas deux millisecondes. Sur un
+    téléphone, tenir la pleine résolution d'un écran moderne revient donc à choisir seize images
+    par seconde plutôt que soixante, ce qui n'est pas un arbitrage qu'on veut imposer.
+
+    On mesure donc la durée réelle des images et on descend d'un cran quand elle s'allonge, on
+    remonte quand elle est confortable. La marge entre les deux seuils évite de faire l'accordéon,
+    et le délai d'une seconde entre deux changements évite de payer le redimensionnement plus
+    souvent qu'il ne rapporte. */
+    this.dprMax = Math.min(2, window.devicePixelRatio || 1);
+    this.dpr = this.dprMax;
+    this.autoRes = true;
     this.track = null;
     this.paths = null;
     this.rubber = new Map();   // rubber laid on the road, kept for the whole race
@@ -202,6 +216,32 @@ class Renderer {
     this.rotate = view === 'track';
     this.tilt = view === 'iso' ? 0.55 : 1;
     this.cam.init = false;
+  }
+
+  /** Un cran de résolution en plus ou en moins, selon la durée des images récentes. */
+  _adapt(now) {
+    if (!this.autoRes) return;
+    const ms = this._lastDraw ? now - this._lastDraw : 0;
+    this._lastDraw = now;
+    if (!ms || ms > 500) return;                    // onglet en arrière-plan : on ne conclut rien
+    const f = this._fr || (this._fr = []);
+    f.push(ms);
+    if (f.length > 90) f.shift();
+    if (f.length < 60 || now - (this._scaleAt || 0) < 1200) return;
+    const tri = f.slice().sort((a, b) => a - b);
+    const med = tri[tri.length >> 1];
+    const CRANS = [1, 1.25, 1.5, 2].filter(x => x <= this.dprMax);
+    let i = CRANS.indexOf(this.dpr);
+    if (i < 0) i = CRANS.length - 1;
+    let n = i;
+    if (med > 20 && i > 0) n = i - 1;                // on n'y arrive pas : moins de pixels
+    else if (med < 13 && i < CRANS.length - 1) n = i + 1;   // de la marge : on en reprend
+    if (n === i) return;
+    this.dpr = CRANS[n];
+    this.resize();
+    if (this.track) this._makeMinimap();
+    this._scaleAt = now;
+    this._fr = [];
   }
 
   resize() {
@@ -353,7 +393,46 @@ class Renderer {
       lines[name] = p;
     }
 
-    this.paths = { center, mid, road, left, right, corners, bridges, lines };
+    /* Les mêmes tracés, mais en tronçons.
+
+    Un circuit fait plusieurs kilomètres et la caméra en montre cinquante mètres. Dessiner la
+    piste entière à chaque image fait traiter au rasteriseur des milliers de segments dont
+    quatre-vingt-dix-neuf pour cent tombent hors de l'écran — mesuré, c'était le premier poste de
+    dépense du rendu. Chaque tronçon porte sa boîte englobante et n'est dessiné que s'il est en
+    vue.
+
+    Les tronçons se chevauchent d'un pas : sans cela, une ligne claire apparaît entre deux, le
+    rasteriseur n'ayant rien à quoi raccorder les bords. Et le liséré sombre de la piste est
+    obtenu en traçant ses deux bords plutôt que le contour du ruban : découper le ruban ferait
+    apparaître le liséré en travers de la route à chaque raccord. */
+    const CHUNK = 48;                       // indices par tronçon, soit une soixantaine de mètres
+    const chunks = [];
+    for (let a = 0; a < N; a += CHUNK) {
+      const fill = new Path2D(), lp = new Path2D(), rp = new Path2D(), mp = new Path2D();
+      const b = Math.min(a + CHUNK + STEP, N + STEP - 1);   // un pas de chevauchement
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (let i = a; i <= b; i += STEP) {
+        const q = edgePt(i, 1);
+        if (i === a) { fill.moveTo(q[0], q[1]); lp.moveTo(q[0], q[1]); } else { fill.lineTo(q[0], q[1]); lp.lineTo(q[0], q[1]); }
+        minX = Math.min(minX, q[0]); maxX = Math.max(maxX, q[0]); minY = Math.min(minY, q[1]); maxY = Math.max(maxY, q[1]);
+      }
+      for (let i = b; i >= a; i -= STEP) {
+        const q = edgePt(i, -1);
+        fill.lineTo(q[0], q[1]);
+        if (i === b) rp.moveTo(q[0], q[1]); else rp.lineTo(q[0], q[1]);
+        minX = Math.min(minX, q[0]); maxX = Math.max(maxX, q[0]); minY = Math.min(minY, q[1]); maxY = Math.max(maxY, q[1]);
+      }
+      fill.closePath();
+      for (let i = a; i <= b; i += STEP) {
+        const k = ((i % N) + N) % N, off = (track.hwL[k] - track.hwR[k]) / 2;
+        const x = xs[k] + nx[k] * off, y = ys[k] + ny[k] * off;
+        if (i === a) mp.moveTo(x, y); else mp.lineTo(x, y);
+      }
+      chunks.push({ fill, left: lp, right: rp, mid: mp,
+                    bbox: { minX: minX - 12, minY: minY - 12, maxX: maxX + 12, maxY: maxY + 12 } });
+    }
+
+    this.paths = { center, mid, road, left, right, corners, bridges, lines, chunks };
     this.bgImage = null;
     if (track.image && track.image.src) {
       const img = new Image();
@@ -589,6 +668,7 @@ class Renderer {
 
   // ---------- main draw ----------
   draw(race, ui) {
+    this._adapt(performance.now());
     const g = this.ctx, W = this.w, H = this.h, T = race.track, cam = this.cam;
     g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     g.clearRect(0, 0, W, H);
@@ -626,8 +706,13 @@ class Renderer {
       // gravel traps first, then the road itself with a heavy dark outline: the cartoon look
       // comes from flat colours and hard edges rather than shading
       for (const cn of this.paths.corners) { if (!inView(cn.bbox)) continue; g.fillStyle = PAL.gravel; g.fill(cn.gravel); }
-      g.strokeStyle = PAL.outline; g.lineWidth = 3.6; g.stroke(this.paths.road);
-      g.fillStyle = PAL.asphalt; g.fill(this.paths.road);
+      // Seuls les tronçons en vue : la caméra montre une cinquantaine de mètres d'un circuit qui
+      // en fait des milliers, et tout le reste ne sert qu'à occuper le rasteriseur.
+      const vus = this.paths.chunks.filter(c => inView(c.bbox));
+      g.strokeStyle = PAL.outline; g.lineWidth = 3.6;
+      for (const c of vus) { g.stroke(c.left); g.stroke(c.right); }
+      g.fillStyle = PAL.asphalt;
+      for (const c of vus) g.fill(c.fill);
       // kerbs, laid over the road's dark outline so the band reads as one crisp edge
       g.save();
       g.lineJoin = 'miter'; g.lineCap = 'butt'; g.miterLimit = 3;
@@ -640,11 +725,11 @@ class Renderer {
       g.restore();
       // painted markings: solid white at the edges, dashed yellow down the middle
       g.strokeStyle = PAL.edgeLine; g.lineWidth = 0.55;
-      g.stroke(this.paths.left); g.stroke(this.paths.right);
+      for (const c of vus) { g.stroke(c.left); g.stroke(c.right); }
       if (PAL.centre) {
         g.setLineDash([2.6, 3.4]);
         g.strokeStyle = PAL.centre; g.lineWidth = 0.42;
-        g.stroke(this.paths.mid);
+        for (const c of vus) g.stroke(c.mid);
       }
       g.setLineDash([]);
     }

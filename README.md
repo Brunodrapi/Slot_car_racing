@@ -830,6 +830,258 @@ Chaque voiture porte son vrai moteur dans `js/cars.js` (`engine`) : six en ligne
 et la CSL, V8 à vilebrequin plat et biturbo pour la F40, flat-6 turbo pour la 911, V12 pour la
 Countach, flat-12 pour la 917, gros V8 croisé pour la GT40 et la Corvette.
 
+### Lecture granulaire, et pourquoi pas des boucles
+
+Trois voitures roulent sur des enregistrements : la M1 Procar, la F40 et la Corvette. Les six
+autres sur la synthèse.
+
+**Elles ne sont jamais transposées.** C'est tout le sujet, et il a fallu trois tentatives ratées
+pour y arriver. Un moteur de jeu sérieux — REV, AudioMotors, le moteur granulaire de Wwise — ne
+change pas la vitesse de lecture d'un son : il **se déplace dans une montée en régime enregistrée**
+et y prend des grains là où le moteur tournait vraiment à ce régime. Le chiffre qui condamne
+l'autre approche est constant dans la littérature : **une boucle commence à sonner étirée dès
+qu'on la transpose de plus de 500 tr/min**, soit sept dixièmes de demi-ton à 6000. Couvrir trois
+octaves en transposant demande des dizaines de boucles et sonne mal bien avant — chez moi, « on
+dirait des moustiques ».
+
+| voiture | rampe | montée | plage couverte |
+|---|---|---|---|
+| M1 Procar | 8,0 s | 17 demi-tons | 3423 – 9000 tr/min |
+| Corvette | 7,6 s | 14 demi-tons | 2708 – 6000 tr/min |
+| F40 | 4,2 s | 9 demi-tons | 4703 – 7750 tr/min |
+
+**La plage n'est pas posée, elle est déduite de la montée mesurée.** Une rampe qui monte de neuf
+demi-tons ne peut couvrir que neuf demi-tons de plage de régime : lui en faire couvrir vingt-cinq
+étire l'axe des régimes de presque trois fois, et le moteur monte alors bien moins vite que le
+compte-tours. Le granulaire ne déforme plus le timbre, mais un axe étiré désaccorde le moteur du
+cadran, ce qui s'entend autant. Seul le rupteur est donné ; le bas s'en déduit, et
+`tools/e2e-sample.js` échoue si l'étirement s'écarte de 1 de plus de 6 %.
+
+La contrepartie est claire et assumée : **plus la rampe est courte, moins elle couvre**. La F40,
+avec quatre secondes, ne tient que de 4703 à 7750 tr/min ; en dessous, c'est la synthèse. C'est la
+raison pour laquelle une rampe complète, du bas de la plage au rupteur, vaut tous les réglages du
+monde.
+
+**Ce qu'il faut comme matière.** Une rampe : une montée continue, pied au plancher, sur un seul
+rapport. `tools/enginegrains.py` la trouve seul dans un onboard — il cherche la plus longue montée
+de hauteur sans recul, un recul franc étant précisément un passage de rapport.
+
+**Comment la hauteur est suivie, et pourquoi ça marche enfin.** Pas en mesurant un régime. Un
+moteur n'a pas de fondamental unique et net : il porte ses demi-ordres, ses rangs d'allumage, ses
+résonances d'échappement, et l'énergie n'est pas forcément sur l'allumage. Autocorrélation, somme
+harmonique, écart entre rangs, toutes ont été essayées ici, toutes se trompent d'octave quelque
+part, et pas au même endroit — d'où des jeux de boucles dont les étiquettes se contredisaient
+entre elles de 0,29 à 2,05.
+
+On mesure donc seulement **de combien la hauteur a bougé d'une fenêtre à la suivante**. Une
+dilatation du temps translate le spectre sur un axe logarithmique, et le décalage qui superpose
+le mieux deux spectres voisins donne le rapport exact. Entre deux fenêtres distantes de quatre-
+vingts millisecondes l'écart est minuscule, donc la mesure est sûre : **l'alignement médian passe
+de 0,5 à 0,85** rien qu'en ne comparant que des voisines. Les rapports se cumulent et donnent une
+courbe de hauteur fiable sans avoir jamais eu à nommer un régime.
+
+L'échelle absolue, elle, n'est pas mesurée : elle est **posée** par `--bas` et `--haut`, donc par
+la voiture. Et c'est sans risque, parce qu'une erreur là-dessus ne déforme rien — elle décale
+seulement l'endroit de la rampe qu'on entend.
+
+**Le lecteur.** Grains de 90 ms, recouvrement de moitié, enveloppe triangulaire : la somme de deux
+enveloppes voisines vaut exactement un, donc le niveau ne bouge pas et il n'y a pas de raccord à
+entendre. La tête de lecture avance d'elle-même au rythme du son — ce qui redonne au moteur ses
+irrégularités de cycle, qu'une boucle écrase — et se recale sur la position du régime dès qu'elle
+s'en éloigne de plus de 200 ms. `playbackRate` n'est jamais touché, et `tools/e2e-sample.js` le
+vérifie en lisant le code du lecteur.
+
+Hors de la plage couverte — l'arrêt, les premiers mètres — la synthèse reprend la main en fondu sur
+un quart d'octave. Il n'est pas question de transposer pour combler.
+
+### Tenir soixante images par seconde sur un téléphone
+
+Mesuré en bridant le processeur d'un facteur quatre, ce qui approche un téléphone de milieu de
+gamme : le jeu tombait à **dix-sept images par seconde**. En désactivant le dessin, il remontait à
+soixante — tout le coût est donc dans le rendu, et la physique, la caméra, les effets et le son
+réunis ne pèsent pas deux millisecondes.
+
+Deux choses en sont sorties.
+
+**Le coût est exactement proportionnel au nombre de pixels** : 1,32 Mpx coûtent 57 ms, 0,33 Mpx en
+coûtent 19. Le jeu est limité par le remplissage. La résolution s'adapte donc à ce que la machine
+tient : on mesure la durée réelle des images, on descend d'un cran au-delà de 20 ms, on remonte en
+dessous de 13. La marge entre les deux seuils évite l'accordéon, et une seconde de délai entre deux
+changements évite de payer le redimensionnement plus souvent qu'il ne rapporte. Résultat : une
+machine capable reste à pleine résolution et 60 im/s, et à quatre fois moins de processeur le jeu
+descend à un pixel par point et tient **46 im/s** au lieu de 17.
+
+**La piste était dessinée en entier à chaque image.** Un circuit fait plusieurs kilomètres, la
+caméra en montre cinquante mètres, et le rasteriseur traitait tous les segments. Les tracés sont
+désormais découpés en tronçons d'une soixantaine de mètres, chacun avec sa boîte englobante, et
+seuls les tronçons en vue sont dessinés — de 11,4 ms à 5,7 ms. Deux détails qui comptent : les
+tronçons se chevauchent d'un pas, sans quoi une ligne claire apparaît au raccord ; et le liséré
+sombre de la piste est obtenu en traçant ses deux bords plutôt que le contour du ruban, faute de
+quoi il apparaîtrait en travers de la route à chaque raccord.
+
+`tools/perf.js` mesure tout cela, sur une course servie en HTTP et non en `file://` — sous
+`file://` la rampe du moteur ne se charge pas, et un essai qui ne voit pas ce qu'on veut mesurer ne
+mesure rien. Il ne regarde pas la moyenne mais la queue de la distribution : soixante images à
+16 ms et une à 200 ms font encore 55 im/s de moyenne, et pourtant ça se voit.
+
+### L'invité ne saute plus
+
+Dans une course en ligne, l'hôte simule et publie l'état trente fois par seconde ; l'invité ne
+simule rien, il rejoue. Entre deux instantanés il avance les voitures à leur vitesse, et cette
+avance ne tombe jamais exactement juste — poser d'autorité la position reçue faisait sauter la
+voiture trente fois par seconde.
+
+Mesuré des deux côtés par `tools/e2e-duo.js`, en variation de variation de position d'une image à
+l'autre : **0,173 m au 95ᵉ centile chez l'invité contre 0,003 m chez l'hôte**, cinquante-huit fois
+pire. L'écart est maintenant gardé comme une dette d'affichage et remboursé en glissant, au lieu
+d'être posé d'autorité. Au-delà de six mètres — un accrochage, un retour sur la piste — il n'y a
+plus rien à lisser et la voiture est reposée d'un coup.
+
+Ce qui crée cet écart n'est pas une erreur de trajectoire mais une **erreur d'horloge** : l'invité
+avance les voitures du temps réellement écoulé chez lui, alors que l'instantané suivant rend compte
+du temps écoulé chez l'hôte. Un instantané qui arrive dix millisecondes tard, à deux cent trente à
+l'heure, ce sont soixante centimètres d'avance à reprendre — sans que personne ait mal conduit.
+
+D'où la seule question qui compte : sur combien de temps l'étaler. La durée est mesurée, pas
+choisie, deux écrans et dix voitures lancées à pleine vitesse : à 0,09 s l'invité accuse **0,18 m** de saut
+d'une image à l'autre, à 0,18 s **0,07 m**, à 0,28 s **0,05 m** — pour un hôte à 0,003. Le prix est
+le décalage d'affichage lui-même, qui passe de 0,57 à 0,71 m au 95ᵉ centile : deux millisecondes de
+trajet de plus, et sans moyenne — l'avance tombe tantôt trop loin, tantôt trop court. L'essai relève
+les deux, pour que le marché se voie au lieu de se deviner. On s'arrête à 0,28 s parce que le gain
+suivant est mince et qu'une correction vraie mettrait d'autant plus longtemps à se résorber.
+
+Et l'appui de l'invité part désormais tout de suite au lieu d'attendre le prochain envoi : jusqu'à
+trente-trois millisecondes gagnées là où le joueur les sent le plus. Le reste du temps le rythme
+ordinaire suffit, puisque répéter la même chose n'apprend rien à l'hôte.
+
+`tools/e2e-duo.js` ouvre deux écrans et leur fait jouer une vraie course. Le transport réel passe
+par un annuaire public WebRTC, qu'on ne peut ni exiger ni reproduire dans un essai : il lui
+substitue un double sur `BroadcastChannel`, de même surface. Tout le jeu au-dessus du transport est
+donc éprouvé — le salon, les étiquettes, le gel de la liste au départ, la simulation chez l'hôte et
+la reprise chez l'invité.
+
+### À qui profite un appui
+
+Un symptôme rapporté — « quand un autre joueur appuie, toutes les voitures bougent sauf celle de
+l'hôte » — décrit une commande mal aiguillée. `tools/e2e-duo.js` le vérifie directement : un seul
+pilote appuie, et on relève ce que **chaque écran** voit bouger. Mesuré jusqu'à huit écrans, dans
+les deux sens, seule la voiture de celui qui appuie avance — treize mètres contre zéro — et les huit
+écrans s'accordent au décimètre près, chiffre pour chiffre.
+
+Trois précautions, apprises en se trompant. La mesure attend la fin du **décompte** : pendant, la
+course ne simule rien et tout le monde reste à zéro, ce qui ferait conclure à tort qu'aucune
+commande ne passe. Elle attend l'**arrêt complet** entre deux essais : dans ce jeu relâcher veut
+dire freiner, une voiture qui finit de ralentir parcourt encore quatre mètres, et on accuserait la
+commande d'un autre pilote d'un simple reste d'élan. C'est exactement le faux positif qu'on a
+d'abord obtenu.
+
+Et elle ne relève les positions que **voitures arrêtées**, avant comme après. Les écrans sont
+interrogés l'un après l'autre, et sous huit onglets chaque aller-retour coûte ses dizaines de
+millisecondes : relever pendant que ça roule, c'est comparer des instants différents. À douze mètres
+par seconde, le temps de faire le tour des huit écrans affichait jusqu'à **quatre mètres d'« écart
+avec l'hôte »** là où les écrans étaient parfaitement d'accord. À l'arrêt, il n'y a plus d'instant à
+choisir.
+
+### La grille doit être la même sur tous les écrans
+
+Un pilote dont le modèle est inconnu du poste recevait la voiture **du joueur local**. Le repli
+dépendait donc de qui regardait : chaque écran voyait une grille différente, et celui qui regardait
+voyait tous les autres rouler dans sa propre voiture. Le cas n'est pas théorique — une voiture
+d'atelier que les autres n'ont pas, une présence encore incomplète au coup d'envoi — et il devient
+d'autant plus probable qu'on est nombreux.
+
+Le repli ne dépend plus que de la place sur la grille, donc il est le même partout.
+`tools/e2e-duo.js` ouvre autant d'écrans qu'on veut, leur fait choisir des voitures différentes et
+vérifie que **tous voient la même grille**, qu'aucune voiture ne se superpose, et que chacun a bien
+sa livrée.
+
+### L'hôte compose la grille, personne ne la recompose
+
+Un second symptôme, à plus de deux : « les invités, lorsque l'un d'eux appuyait, voyaient toutes les
+voitures avancer » — et l'hôte, lui, n'avait rien. Chaque écran composait sa propre liste de pilotes
+au coup d'envoi, à partir de ce qu'il voyait à cet instant. Or un pair resté silencieux quelques
+secondes est écarté : l'écran qui en rate un se retrouve avec une liste plus courte, donc un
+décalage de toutes les places qui suivent.
+
+Le décalage ne se voit pas tout de suite — la grille se construit, la course part. Mais l'instantané
+de l'hôte est une suite de voitures dans **son** ordre, appliquée chez l'invité dans **le sien** :
+chaque voiture reçoit l'état d'une autre, et un seul pilote qui appuie fait bouger tout l'écran. À
+deux, l'ordre ne peut pas diverger, ce qui explique que rien ne se voyait à deux, et que l'hôte —
+dont la liste est la référence — n'était jamais touché.
+
+L'hôte compose donc la grille et la publie ; tout le monde l'adopte telle quelle. Publier les places
+seules n'aurait pas suffi : un écran qui ne connaît pas encore un pilote garde bien sa place mais
+lui donne un nom par défaut et une voiture de repli, et la grille diffère quand même. La grille
+porte le **nom et le modèle** de chacun, et l'écran n'a plus rien à deviner. Elle ne part que de
+l'hôte, reconnaissable à ce qu'il est le seul à publier les réglages — un invité qui la relaierait
+pourrait en répandre une version périmée.
+
+`tools/e2e-duo.js --perte` reproduit précisément le cas : au moment du coup d'envoi, un écran ne voit
+pas l'un des pilotes. Avant, il partait avec une place de décalage ; maintenant les quatre écrans
+affichent la même grille, nom et voiture compris, et un appui ne profite qu'à celui qui appuie.
+
+Ce que la mesure à huit écrans apprend aussi : au-delà de quatre, c'est la machine qui lâche avant
+la liaison. Le seuil de l'essai en tient compte, et de deux façons. Un plancher absolu d'un dixième
+de mètre d'abord. Puis, relevé par ce que **l'irrégularité des images explique à elle seule** —
+vitesse × écart de durée d'une image à l'autre : une image qui arrive en retard fait avancer la
+voiture d'autant, sans qu'il y ait rien à reprocher à la liaison. À huit écrans sur la même machine,
+l'invité mesure 1,16 m et ses seules images en expliquent 0,93 ; quand la machine respire, il
+retombe à 0,05 m contre 0,01 de plancher.
+
+Cette durée d'image se prend sur **l'horloge que rAF passe au jeu**, celle dont il se sert pour
+avancer les voitures, et non sur `performance.now()` lu dans la fonction, qui y ajoute le retard
+d'ordonnancement. La différence n'est pas académique : mesuré au mauvais endroit, le plancher
+annonçait 0,30 m chez un hôte qui n'en faisait que 0,002.
+
+Et une garde, apprise en se trompant une fois de plus : **une voiture immobile ne saute pas**. Les
+essais d'appui laissent chaque voiture là où elle s'est arrêtée, et l'invité finissait le nez contre
+la voiture immobile de la place précédente ; huit secondes de plein gaz contre un pare-chocs, et la
+mesure annonçait un mouvement parfaitement lisse. L'essai vérifie donc que la voiture a bien roulé
+avant de conclure quoi que ce soit — et il fait rouler tout le monde pendant la mesure, pour libérer
+la piste.
+
+### Le clapot du ralenti
+
+Aucun des trois onboards ne contient de ralenti : une prise de course n'en a pas, le pilote ne
+laisse jamais le moteur tourner à vide. Cherché automatiquement dans les trois, les meilleurs
+candidats font deux dixièmes de seconde. C'est donc la synthèse qui tient le ralenti, et elle n'y
+était bonne que par accident.
+
+Un moteur au ralenti ne fait pas entendre sa ligne d'échappement mais sa combustion : elle est
+irrégulière, un cylindre ne donne pas tout à fait comme le suivant, la distribution claque. Un
+moteur déclaré « lisse » — la M1 et la F40, `rough` à 0,15 — ne rendait donc qu'un bourdon mince
+et propre, là où la Corvette à 0,70 sonnait juste sans qu'on ait rien fait pour.
+
+D'où une couche de bruit filtré **multipliée par le signal du moteur lui-même**. Le produit se
+module à la fréquence d'allumage : c'est le « pouf-pouf » d'un ralenti, et non un souffle. En
+pratique le gain du multiplieur reste à zéro et c'est l'oscillateur, branché sur ce gain, qui le
+fait varier — une modulation en anneau, à la fréquence audio, que le graphe audio du navigateur
+sait faire sans code.
+
+Mesuré : le battement tombe à 55,2 Hz sur la M1 pour 55,0 attendus à 1100 tr/min, et à 66,6 Hz sur
+la F40 pour 66,7. Le centroïde passe à 171 et 182 Hz, tout près des 154 Hz de la Corvette qui
+faisait déjà l'affaire. Le clapot se retire ensuite de lui-même : il est pondéré par le carré de
+ce qui reste à monter en régime, et par l'absence de prise — au plein régime de la M1 le centroïde
+est remonté à 597 Hz, celui de la F40 à 1601.
+
+### La chaîne d'outils
+
+```
+node tools/decodeaudio.js <entrée> <sortie.wav>            # WebM, MP3… par le décodeur de Chromium
+python3 tools/enginescan.py <prise.wav> --cyl=6            # où se trouve quel régime
+python3 tools/enginegrains.py <prise.wav> <nom> --bas= --haut=   # la rampe + sa table
+node tools/enginedemo.js <id> <sortie.wav>                 # une accélération à écouter
+node tools/e2e-sample.js                                   # la rampe arrive, la lecture avance
+```
+
+Il n'y a pas de décodeur en ligne de commande dans cet environnement, mais Chromium en embarque un
+pour tous les formats du Web. `decodeaudio.js` le lui fait faire, et rapatrie le résultat **par
+tranches** : d'un bloc, au-delà d'un quart d'heure de son, la chaîne sérialisée dépasse ce que Node
+accepte (`ERR_STRING_TOO_LONG`) et rien n'est écrit.
+
+Les rampes sont écrites en **mono 24 kHz** : un moteur n'a plus rien à dire au-dessus de 12 kHz, et
+les trois tiennent ainsi dans 950 Ko.
+
 ### Mesuré, pas écouté
 
 `NODE_PATH=$(npm root -g) node tools/e2e-audio.js` rend le son **hors ligne** dans un
@@ -967,11 +1219,15 @@ NODE_PATH=$(npm root -g) node tools/e2e-menu.js [dossier]                       
 node tools/bump.js [patch|minor|major]                                            # numéro de version + cassage du cache
 node tools/netsim.js <circuit> [secondes] [perte %] [format]                      # deux écrans en réseau, sans navigateur
 NODE_PATH=$(npm root -g) node tools/e2e-net.js <dossier> [format]                 # deux onglets, une table, une course
+NODE_PATH=$(npm root -g) node tools/e2e-duo.js [secondes] [--joueurs=8] [--perte]  # jusqu'à huit écrans : grille, aiguillage des appuis, régularité
 NODE_PATH=$(npm root -g) node tools/arrow.js <circuit>                            # sens des flèches des panneaux
 python3 tools/sheet.py <dossier de rendus> <id du modèle> <longueur en m> [largeur]  # planche de rotations
 python3 tools/env.py <planche.png> sprites/env [--erode=6] [--shadow=r,g,b] …     # découpe une planche de décor
 python3 tools/topcar.py <image> <id du modèle> [--nose=left]                      # voiture vue de dessus
 python3 tools/pickcar.py <image> <id du modèle> [--tol --peel]                    # voiture en trois quarts, pour le menu
+python3 tools/engineloop.py <prise.wav> <boucle.wav>                             # boucle moteur sans couture
+node tools/enginedemo.js <id> <sortie.wav> [secondes] [--synthese]               # une accélération à écouter
+node tools/e2e-sample.js                                                         # le régime déclaré correspond-il à la prise ?
 node tools/e2e-gauges.js                                                         # les cadrans : chiffre et arc d'accord, aucun plein
 NODE_PATH=$(npm root -g) node tools/propdbg.js <image.png>                        # décor visible et coût par image
 ```

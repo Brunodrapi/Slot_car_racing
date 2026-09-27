@@ -78,7 +78,14 @@ class Race {
       const s = T.length - 8 - row * gap;
       const lat = (i % 2 === 0 ? 1 : -1) * Math.min(T.halfWidth * 0.45, c.width * 0.9);
       const ai = roster[i % roster.length];
-      const model = h ? (modelById(h.modelId) || c) : (isHuman ? c : (modelById(ai.model) || catModels[i % catModels.length]));
+      /* Le repli d'un pilote en ligne ne doit dépendre que de sa place, jamais de l'écran qui
+      dessine. Se rabattre sur `c` — la voiture du joueur local — donnait à chaque écran une
+      grille différente : celui qui regardait voyait tous les autres rouler dans SA voiture. Le
+      cas arrive pour de bon dès qu'un modèle est inconnu du poste, par exemple une voiture
+      d'atelier que les autres n'ont pas, ou une présence encore incomplète au coup d'envoi — donc
+      d'autant plus souvent qu'on est nombreux. */
+      const model = h ? (modelById(h.modelId) || catModels[(hIdx + 1) % catModels.length])
+        : (isHuman ? c : (modelById(ai.model) || catModels[i % catModels.length]));
       const car = new Car(T, model, {
         name: h ? (h.name || 'Pilote') : isHuman ? (this.opts.playerName || 'Vous') : ai.name,
         livery: LIVERIES[(h ? h.livery : isHuman ? (this.opts.playerLivery || 0) : ai.livery) % LIVERIES.length],
@@ -210,7 +217,31 @@ class Race {
     this.countdown = snap[3] / 100;
     for (let i = 0; i < this.cars.length; i++) {
       const c = this.cars[i], o = 4 + i * per;
-      c.x = snap[o] / 100; c.y = snap[o + 1] / 100; c.th = snap[o + 2] / 1000;
+      /* L'écart est absorbé, pas imposé.
+
+      Les instantanés arrivent trente fois par seconde, l'écran en dessine soixante, et entre deux
+      l'invité avance les voitures à leur vitesse. Cette avance ne tombe jamais exactement juste :
+      poser d'autorité la position reçue fait sauter la voiture trente fois par seconde. Mesuré,
+      le saut d'une image à l'autre valait cinquante-huit fois celui de l'hôte.
+
+      On garde donc l'écart comme un décalage d'affichage, qu'on résorbe en quelques images. La
+      voiture est au bon endroit dès l'instantané suivant, mais elle y arrive en glissant. Un
+      écart énorme — un accrochage, un retour aux stands — n'a rien à lisser : au-delà de quelques
+      mètres on repose la voiture d'un coup, sinon elle traverserait le décor en patinant. */
+      const ax = snap[o] / 100, ay = snap[o + 1] / 100, ath = snap[o + 2] / 1000;
+      const ex = c.x - ax, ey = c.y - ay;
+      if (ex * ex + ey * ey < 36) {
+        // On ne bouge rien maintenant : la voiture reste où elle est, et l'écart avec la position
+        // reçue devient une dette que `extrapolate` rembourse en quelques images. Sauter sur la
+        // position reçue serait précisément le défaut qu'on corrige.
+        c.ex = ex; c.ey = ey; c.eth = wrapAngle(c.th - ath);
+        c.x = ax + c.ex; c.y = ay + c.ey; c.th = wrapAngle(ath + c.eth);
+      } else {
+        // Trop loin pour être lissé — un accrochage, un retour sur la piste : on repose la voiture
+        // d'un coup, sinon elle traverserait le décor en patinant.
+        c.ex = 0; c.ey = 0; c.eth = 0;
+        c.x = ax; c.y = ay; c.th = ath;
+      }
       c.v = snap[o + 3] / 100; c.vl = snap[o + 4] / 100; c.w = snap[o + 5] / 1000;
       c.s = snap[o + 6] / 100; c.lat = snap[o + 7] / 100; c.lap = snap[o + 8];
       c.sel = snap[o + 9] / 100; c.selS = snap[o + 10] / 100;
@@ -233,11 +264,30 @@ class Race {
   extrapolate(dt) {
     if (this.state !== 'racing' && this.state !== 'finishing') return;
     const d = Math.min(dt, 0.12);
+    /* L'écart laissé par le dernier instantané se résorbe en un peu plus d'un quart de seconde.
+
+    Ce qui le crée n'est pas une erreur de trajectoire mais une erreur d'horloge : l'invité avance
+    les voitures du temps réellement écoulé, alors que l'instantané suivant rend compte du temps
+    écoulé chez l'hôte. Un instantané qui arrive dix millisecondes tard, à deux cent trente à
+    l'heure, ce sont soixante centimètres d'avance à reprendre — sans que personne ait mal conduit.
+
+    Reprise d'un coup, cette avance se voit ; étalée, non. La durée est mesurée, pas choisie : à
+    0,09 s l'invité accusait 0,18 m de saut d'une image à l'autre, à 0,18 s il tombe à 0,07, à
+    0,28 s à 0,05. Le prix est le décalage d'affichage, qui passe de 0,57 à 0,71 m au 95ᵉ centile —
+    deux millisecondes de trajet de plus, et il n'a pas de moyenne : l'avance tombe tantôt trop
+    loin, tantôt trop court. On s'arrête là parce que le gain suivant est mince et qu'une correction
+    vraie — un accrochage, une poussée — mettrait d'autant plus longtemps à se résorber. */
+    const k = Math.exp(-d / 0.28);
     for (const c of this.cars) {
       const cos = Math.cos(c.th), sin = Math.sin(c.th);
       c.x += (c.v * cos - c.vl * sin) * d;
       c.y += (c.v * sin + c.vl * cos) * d;
       c.th = wrapAngle(c.th + c.w * d);
+      if (c.ex || c.ey || c.eth) {
+        c.x -= c.ex * (1 - k); c.y -= c.ey * (1 - k);
+        c.th = wrapAngle(c.th - (c.eth || 0) * (1 - k));
+        c.ex *= k; c.ey *= k; c.eth = (c.eth || 0) * k;
+      }
     }
     this.time += d;
   }
