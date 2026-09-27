@@ -530,6 +530,48 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
 - IA qui freine selon son talent, choisit sa ligne pour dépasser, aspire dans le sillage, se touche.
 - Français / anglais, son procédural, sauvegarde locale.
 
+## Éditeur de lignes (`lignes.html`)
+
+Le jeu résout lui-même sa corde : il cherche le chemin qui plie le moins en restant sur la piste, ce
+qui produit l'entrée large, le point de corde et la sortie large sans que rien de tout cela soit
+écrit nulle part. C'est bon la plupart du temps, et quand ça ne l'est pas — un enchaînement où le
+solveur sacrifie le second virage, une chicane qu'il prend trop droit — aucun réglage ne rattrape une
+trajectoire : il faut la dessiner.
+
+Cette page, qui n'est pas dans le jeu, charge un **circuit intégré**, affiche ses trois lignes telles
+que le jeu les calcule, les rend déplaçables point par point, et produit le bloc `lines` à coller
+dans `js/tracks.js` à côté de `pts`. Dès qu'un circuit porte ce bloc, le solveur ne tourne plus pour
+lui et c'est le dessin qui fait foi.
+
+Glisser un point le déplace, la molette zoome, glisser le fond déplace la vue, le clic droit sur un
+point le ramène sur la ligne calculée. Quatre boutons : revenir au calcul (une ligne ou les trois),
+lisser, ramener dans la piste. Le nombre de points de contrôle se change sans perdre la forme —
+la ligne courante est rééchantillonnée, pas recalculée.
+
+**Ce qui est affiché est ce que le jeu jouera, parce que c'est le code du jeu qui le calcule.** La
+ligne dessinée n'est pas la spline qui passe par les points de contrôle : c'est la ligne d'un objet
+`Track` construit avec eux, exactement comme au chargement d'une partie. La nuance n'est pas
+théorique, et le premier jet s'y est trompé. Après projection, le jeu **limite la vitesse à laquelle
+une trajectoire peut traverser la piste** — un pilote ne se déporte pas de trois mètres en cinq — si
+bien qu'un point tiré de deux mètres n'en donne que 0,89 une fois rejoué. Un éditeur qui afficherait
+la spline brute montrerait une ligne que le jeu n'accepte pas : on réglerait à côté en croyant
+régler. Ici la ligne résiste quand on lui demande l'impossible, et c'est une information.
+
+`tools/e2e-lignes.js` vérifie précisément cela : il déplace un point, exporte le bloc, reconstruit le
+circuit comme le jeu le fait, et compare. L'écart est de **0,00 m**, et un aller-retour export/relecture
+retombe à 0,003 m près — l'arrondi de l'export, et rien d'autre. Il vérifie aussi que les trois lignes
+restent distinctes et dans la piste, et que les douze circuits se chargent.
+
+Deux détails qui viennent de la même exigence. Les coordonnées exportées sont dans les unités de
+`pts`, pas en mètres : un circuit intégré est décrit dans une unité arbitraire puis redimensionné pour
+tomber sur sa longueur annoncée. Et « lisser » agit sur l'écart à l'axe, jamais sur les points
+eux-mêmes — moyenner des coordonnées rétrécit une boucle, comme un cercle dont on moyenne les points
+voisins, ce qui décollerait la ligne de la piste à chaque passage.
+
+Au passage, un défaut latent que cet outil a révélé : `_projectLines` recevait `def.scale`, qui vaut 1
+pour un circuit intégré, alors que sa ligne centrale est redimensionnée après coup. Des lignes
+explicites sur un circuit intégré auraient été projetées à côté de la piste.
+
 ## Éditeur de circuits (`editor.html`)
 
 1. Charger une image de fond (plan, vue satellite, capture d'un circuit Ultimate Racing 2D…).
@@ -1271,6 +1313,8 @@ panne que tout ceci sert à détecter.
 node tools/sim.js [catégorie|all] [circuit|all] [easy|medium|hard] [marge]        # courses IA sans navigateur
 NODE_PATH=$(npm root -g) node tools/e2e.js <dossier> [largeur] [hauteur]          # parcours du jeu + captures
 NODE_PATH=$(npm root -g) node tools/e2e-editor.js <dossier>                        # éditeur → course
+NODE_PATH=$(npm root -g) node tools/e2e-lignes.js [dossier]                       # éditeur de lignes : ce qu'on voit est ce qui se joue
+node tools/difficulte.js [catégorie]                                             # ce qu'une voiture coûte à piloter, en pneus
 NODE_PATH=$(npm root -g) node tools/e2e-workshop.js <dossier>                      # import de sprites → course
 node tools/step.js <circuit> <catégorie> [marge] [-v]                             # suivi de ligne d'une voiture seule
 node tools/sweep.js '[{},{"yawK":4}]'                                             # balayage des réglages physiques
