@@ -219,10 +219,14 @@ def main():
                 sons.append(os.path.join(d, f))
     sons.sort()
 
-    rampes = {}
+    rampes, matieres = {}, {}
     for f in sorted(os.listdir(os.path.join(RACINE, 'sounds', 'engine'))):
-        if f.endswith('.json'):
-            rampes[f[:-5]] = json.load(open(os.path.join(RACINE, 'sounds', 'engine', f)))
+        if not f.endswith('.json'):
+            continue
+        m = json.load(open(os.path.join(RACINE, 'sounds', 'engine', f)))
+        # Une matière n'a pas de table ni d'axe des régimes : elle n'a rien à faire dans la table
+        # des rampes, où l'on lit justement une plage de régimes couverte.
+        (matieres if m.get('role') == 'matiere' else rampes)[f[:-5]] = m
 
     # quelle voiture joue quelle rampe
     cars = open(os.path.join(RACINE, 'js', 'cars.js'), encoding='utf-8').read()
@@ -244,6 +248,22 @@ def main():
         qui = ', '.join(par_rampe.get(nom, ['—']))
         lignes.append(f'| `{nom}` | {qui} | {m["secondes"]:.1f} s | {m["monteeDemiTons"]:.0f} demi-tons '
                       f'| {m["rpmBas"]:.0f} – {m["rpmHaut"]:.0f} tr/min | {ko} Ko |')
+    if matieres:
+        lignes += ['',
+                   '## Les matières',
+                   '',
+                   'Une matière est une prise sans axe des régimes : le lecteur n\'y parcourt rien, la tête de',
+                   'lecture y tourne. C\'est ce qui rend exploitable une prise à plein régime — dont la hauteur ne',
+                   'bouge presque pas par définition — ou une décélération de course, qui erre de deux ou trois',
+                   'demi-tons sans chute nette. Leur faire porter une table fabriquerait un axe faux ; elles',
+                   'portent un timbre, et c\'est ce qu\'on leur demande.',
+                   '',
+                   '| matière | rôle | fichier | fenêtre |',
+                   '|---|---|---|---|']
+        for nom, m in sorted(matieres.items()):
+            role = ('plein régime' if nom.endswith('-haut') else 'pied levé' if nom.endswith('-bas')
+                    else 'démarrage' if nom.endswith('-start') else '—')
+            lignes.append(f'| `{nom}` | {role} | `{m["src"]}` | {m["debut"]:.2f} – {m["fin"]:.2f} s |')
     lignes += ['',
                'La plage n\'est pas posée : elle est déduite de la montée mesurée. Hors d\'elle, la synthèse',
                'reprend la main en fondu sur un quart d\'octave — une rampe étroite coûte de la couverture,',

@@ -921,8 +921,43 @@ irrégularités de cycle, qu'une boucle écrase — et se recale sur la position
 s'en éloigne de plus de 200 ms. `playbackRate` n'est jamais touché, et `tools/e2e-sample.js` le
 vérifie en lisant le code du lecteur.
 
-Hors de la plage couverte — l'arrêt, les premiers mètres — la synthèse reprend la main en fondu sur
-un quart d'octave. Il n'est pas question de transposer pour combler.
+**Quand une prise existe, c'est elle qu'on entend — sur toute la plage.** La règle d'avant rendait la
+main à la synthèse dès que le régime sortait de la plage mesurée de la montée. Prudent sur le papier,
+c'était le défaut principal : une montée découpée dans un onboard de course ne couvre souvent qu'un
+tirage entre deux rapports — 4611 à 6200 tr/min pour le GT40 — si bien que **les quatre cinquièmes de
+ce qu'on entendait n'étaient pas la prise, mais la synthèse**. Le reproche « on entend encore les
+moustiques » portait donc juste, et sur la synthèse, que la prise ne faisait que couvrir par endroits.
+
+Le choix est renversé, et c'est un choix, pas une découverte. Sous le bas de la montée on reste sur la
+prise : la tête de lecture butant sur son début, la hauteur cesse de suivre le compte-tours. Un vrai
+moteur qui ne suit pas tout à fait le cadran sonne mieux qu'un oscillateur qui le suit parfaitement.
+Au-dessus du rupteur enregistré le fondu reste, parce qu'il n'y a rien à jouer plus haut. Seule
+exception, l'arrêt : avant le départ le ralenti de synthèse garde la main, aucune de ces prises ne
+contenant de ralenti et un moteur à 4600 tr/min voiture immobile s'entendant tout de suite.
+
+### Trois prises par voiture, et le moteur choisit
+
+Une montée ne dit qu'une chose : comment le moteur sonne en prenant des tours. Elle ne sait rien dire
+de ce qu'il fait installé au rupteur, ni pied levé, où la combustion cesse et où seule la ligne
+d'échappement chante. Le lecteur prend donc sa matière là où elle existe :
+
+| rôle | ce que c'est | repéré par le régime ? |
+|---|---|---|
+| `ramp` | la montée | **oui** — c'est elle qui porte l'axe des tours |
+| `haut` | à plein régime, quand les tours ne bougent plus | non |
+| `bas` | pied levé | non |
+| `start` | le démarreur, une fois, au décompte | non, joué d'un bout à l'autre |
+
+La distinction n'est pas cosmétique, elle débloque deux prises sur trois. Une prise à plein régime ne
+change presque pas de hauteur — c'est sa définition — donc la montée qu'on y mesure ne se distingue
+pas de la dérive de la mesure ; une décélération de course erre de deux ou trois demi-tons sans chute
+nette, le pilote levant, reprenant, freinant. Leur faire porter une table fabriquerait un axe faux.
+Mais elles portent parfaitement un **timbre**, et c'est tout ce qu'on leur demande : la tête de
+lecture y tourne librement, sans rien prétendre sur le régime.
+
+Les trois gains se croisent en fondu sur 120 ms, un basculement sec s'entendant comme un raccord. Le
+GT40 a ses trois matières, la 787B une montée, une descente et un démarreur. `tools/enginetexture.py`
+fabrique une matière, `tools/enginegrains.py` une montée.
 
 ### Tenir soixante images par seconde sur un téléphone
 

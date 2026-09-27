@@ -8,12 +8,27 @@ de l'outil.
 
 | rampe | voiture(s) | durée | montée | plage couverte | poids |
 |---|---|---|---|---|---|
-| `v12-countach` | countach | 6.6 s | 25 demi-tons | 1821 – 7500 tr/min | 307 Ko |
+| `v12-countach` | countach | 30.2 s | 24 demi-tons | 1907 – 7500 tr/min | 0 Ko |
 | `six-inline` | m1procar | 8.0 s | 17 demi-tons | 3423 – 9000 tr/min | 375 Ko |
 | `v8-corvette` | corvette | 7.6 s | 14 demi-tons | 2708 – 6000 tr/min | 356 Ko |
 | `v8-f40` | f40 | 4.2 s | 9 demi-tons | 4702 – 7750 tr/min | 195 Ko |
-| `r26b-787b` | 787b | 5.2 s | 6 demi-tons | 6216 – 9000 tr/min | 243 Ko |
-| `v8-gt40` | gt40 | 2.3 s | 4 demi-tons | 4852 – 6200 tr/min | 108 Ko |
+| `r26b-787b` | 787b | 26.1 s | 7 demi-tons | 6159 – 9000 tr/min | 0 Ko |
+| `v8-gt40` | gt40 | 10.8 s | 5 demi-tons | 4611 – 6200 tr/min | 0 Ko |
+
+## Les matières
+
+Une matière est une prise sans axe des régimes : le lecteur n'y parcourt rien, la tête de
+lecture y tourne. C'est ce qui rend exploitable une prise à plein régime — dont la hauteur ne
+bouge presque pas par définition — ou une décélération de course, qui erre de deux ou trois
+demi-tons sans chute nette. Leur faire porter une table fabriquerait un axe faux ; elles
+portent un timbre, et c'est ce qu'on leur demande.
+
+| matière | rôle | fichier | fenêtre |
+|---|---|---|---|
+| `r26b-787b-bas` | pied levé | `sounds/M787B/78B_descente.mp3` | 0.00 – 9.17 s |
+| `r26b-787b-start` | démarrage | `sounds/M787B/787B_start.mp3` | 0.00 – 13.04 s |
+| `v8-gt40-bas` | pied levé | `sounds/M787B/GT_40_descente.mp3` | 0.00 – 6.77 s |
+| `v8-gt40-haut` | plein régime | `sounds/M787B/gt40_plein_regime.mp3` | 0.00 – 15.62 s |
 
 La plage n'est pas posée : elle est déduite de la montée mesurée. Hors d'elle, la synthèse
 reprend la main en fondu sur un quart d'octave — une rampe étroite coûte de la couverture,
@@ -36,12 +51,9 @@ donne l'ordre de grandeur de l'incertitude de la mesure, qui est d'un ou deux de
 | `sounds/M787B/GT_40_descente.mp3` | 6.8 s | 48 kHz mono | 0.73 | 0.39 | 0.76 | 1.8 dt | 2.3 dt | 2.2 | **trop étroit** — 2.3 demi-tons, il en faut 4.2 |
 | `sounds/M787B/M787B_montee.mp3` | 26.1 s | 48 kHz mono | 0.61 | 0.62 | 0.70 | 6.4 dt | 4.1 dt | 1.3 | **montée** — 6.4 demi-tons en 5.0 s → facteur 1.45 de plage |
 | `sounds/M787B/gt40_plein_regime.mp3` | 15.6 s | 48 kHz mono | 0.78 | 0.58 | 0.74 | 5.5 dt | 0.0 dt | 0.4 | **trop lent** — 0.4 demi-ton par seconde : la dérive de la mesure suffit à l'expliquer |
-| `sounds/engine/r26b-787b.wav` | 5.2 s | 24 kHz mono | 0.89 | 0.48 | 0.70 | 7.0 dt | 0.0 dt | 1.4 | **montée** — 7.0 demi-tons en 5.0 s → facteur 1.50 de plage |
 | `sounds/engine/six-inline.wav` | 8.0 s | 24 kHz mono | 0.89 | 0.37 | 0.85 | 18.3 dt | 0.0 dt | 2.4 | **montée** — 18.3 demi-tons en 7.8 s → facteur 2.88 de plage |
-| `sounds/engine/v12-countach.wav` | 6.6 s | 24 kHz mono | 0.89 | 0.23 | 0.86 | 24.3 dt | 0.0 dt | 3.9 | **montée** — 24.3 demi-tons en 6.3 s → facteur 4.08 de plage |
 | `sounds/engine/v8-corvette.wav` | 7.6 s | 24 kHz mono | 0.89 | 0.60 | 0.81 | 11.6 dt | 0.7 dt | 2.6 | **montée** — 11.6 demi-tons en 4.5 s → facteur 1.96 de plage |
 | `sounds/engine/v8-f40.wav` | 4.2 s | 24 kHz mono | 0.89 | 0.26 | 0.61 | 8.5 dt | 0.0 dt | 2.2 | **montée** — 8.5 demi-tons en 3.9 s → facteur 1.63 de plage |
-| `sounds/engine/v8-gt40.wav` | 2.3 s | 24 kHz mono | 0.89 | 0.37 | 0.72 | 5.8 dt | 0.1 dt | 3.1 | **montée** — 5.8 demi-tons en 1.8 s → facteur 1.40 de plage |
 | `sounds/six-inline/M1_Procar_idle_seed_30.wav` | 6.0 s | 44 kHz st | 0.79 | 0.62 | 0.85 | 5.5 dt | 1.8 dt | 1.3 | **montée** — 5.5 demi-tons en 4.3 s → facteur 1.38 de plage |
 | `sounds/six-inline/M1_Procar_off-7000_seed_30.wav` | 10.0 s | 44 kHz st | 0.55 | 0.45 | 0.77 | 13.9 dt | 8.3 dt | 14.4 | **pas un régime** — 14.4 demi-tons par seconde : trop vite pour une voiture sur un rapport |
 | `sounds/six-inline/M1_Procar_on-2500_seed_30.wav` | 6.0 s | 44 kHz st | 0.67 | 0.55 | 0.89 | 7.6 dt | 2.2 dt | 5.3 | **pas un régime** — 5.3 demi-tons par seconde : trop vite pour une voiture sur un rapport |

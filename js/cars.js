@@ -54,11 +54,15 @@ const CATEGORIES = [
       { id: '930', name: '911 Turbo', shape: 'roundGT', mul: { vmax: 0.99, accel: 1.04, grip: 0.97, slide: 1.2 }, pick: 'sprites/pick/930.png', engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.3, bright: 0.6, turbo: 0.85 }, colors: ['#c9ced6', '#e0262c'], top: 'sprites/top/930.png', sheet: 'sprites/930', sheetN: 16, sheetRear: 0, sheetW: 4.803, sheetAnchor: [0.499, 0.841] },
       { id: 'gt40', name: 'GT40 Mk II', shape: 'gt40', mul: { vmax: 1.06, accel: 1.02, grip: 0.99, df: 0.85, brake: 0.97, slide: 1.1 }, pick: 'sprites/pick/gt40.png', engine: {
         cyl: 8, redline: 6200, idle: 800, rough: 0.6, bright: 0.45, turbo: 0,
-        // Quatre demi-tons : la prise ne contient que des tirages entre deux rapports, et chacun
-        // repart du même régime après le passage, si bien que les enchaîner n'élargirait rien. On
-        // n'a donc que 4852 tr/min au rupteur — mais c'est la matière d'un vrai V8 américain là où
-        // la synthèse ne donnait qu'un timbre, et sous 4852 elle reprend la main en fondu.
-        sample: { ramp: 'sounds/engine/v8-gt40.json' },
+        // Trois prises, et le moteur choisit. La montée ne porte que 4611 tr/min au rupteur — un
+        // tirage entre deux rapports, tout ce qu'un onboard de course contient souvent — mais elle
+        // n'a plus à couvrir seule : le plein régime et le pied levé ont leur propre matière, qui
+        // n'a pas besoin d'axe des régimes puisqu'on ne la parcourt pas.
+        sample: {
+          ramp: 'sounds/engine/v8-gt40.json',
+          haut: 'sounds/engine/v8-gt40-haut.json',
+          bas: 'sounds/engine/v8-gt40-bas.json',
+        },
       }, colors: ['#5bc8e8', '#ff8c1a'], top: 'sprites/top/gt40.png' },
       { id: '917k', name: '917 K', shape: 'longTail', mul: { vmax: 1.10, accel: 1.05, grip: 1.0, df: 1.4, brake: 0.93, slide: 1.15 }, pick: 'sprites/pick/917.png', engine: { cyl: 12, redline: 8400, idle: 1200, rough: 0.1, bright: 0.95, turbo: 0 }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/917.png' },
       { id: 'corvette', name: 'Corvette', shape: 'roundGT', mul: { vmax: 1.04, accel: 1.06, grip: 0.97, df: 0.9, brake: 0.95, slide: 1.3 }, pick: 'sprites/pick/corvette.png', engine: {
@@ -76,11 +80,14 @@ const CATEGORIES = [
       // rupteur très haut : c'est le cri de la 787B.
       { id: '787b', name: '787B', shape: 'groupC', mul: { vmax: 1.02, accel: 1.05, grip: 1.03, df: 1.3, brake: 1.04, slide: 0.92 }, colors: ['#ff8c1a', '#1f6b3a'], top: 'sprites/top/787b.png', pick: 'sprites/pick/787b.png', engine: {
         cyl: 8, redline: 9000, idle: 1300, rough: 0.04, bright: 1.0, turbo: 0,
-        // Six demi-tons seulement : la prise ne tient qu'un tirage, de 6216 tr/min au rupteur. La
-        // synthèse garde donc le bas de la plage, et c'est jouable ainsi parce qu'un moteur de
-        // Groupe C ne descend pas là en course. Une montée partie de plus bas, d'un seul rapport,
-        // rendrait la voiture entièrement à l'enregistrement.
-        sample: { ramp: 'sounds/engine/r26b-787b.json' },
+        // La montée tient de 6159 tr/min au rupteur, le pied levé a sa propre prise, et le
+        // démarreur est joué une fois quand la course s'ouvre — d'un bout à l'autre, pas en grains :
+        // un démarrage est un évènement, pas une matière.
+        sample: {
+          ramp: 'sounds/engine/r26b-787b.json',
+          bas: 'sounds/engine/r26b-787b-bas.json',
+          start: 'sounds/engine/r26b-787b-start.json',
+        },
       } },
       { id: 'csl', name: '3.0 CSL', shape: 'gtBoxy', mul: { vmax: 0.95, accel: 0.98, grip: 1.05, df: 1.2, brake: 1.03, slide: 1.1 }, pick: 'sprites/pick/csl.png', engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.1, bright: 0.68, turbo: 0 }, colors: ['#f7f7f7', '#2166d8'], top: 'sprites/top/csl.png' },
     ],

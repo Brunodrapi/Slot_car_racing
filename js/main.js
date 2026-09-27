@@ -204,6 +204,9 @@ class App {
     this.raceOpts = opts;
     this.raceCtx = ctx;
     this.race = new Race(opts);
+    // Le démarreur, s'il y en a un pour cette voiture : le moteur s'allume quand la course s'ouvre,
+    // avant le décompte. Une seule fois par course.
+    this.audio.demarre = false;
     this.renderer.setTrack(this.race.track);
     this.renderer.cam.init = false;
     this.renderer.homeDial();

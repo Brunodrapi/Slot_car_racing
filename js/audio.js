@@ -132,6 +132,30 @@ class GameAudio {
       this.gTime = 0;      // l'instant du prochain grain, en temps de contexte
       this.gRead = 0;      // où l'on en est dans la rampe, en secondes
 
+      /* Trois prises par voiture plutôt qu'une, et c'est le moteur qui choisit.
+
+      Une montée en régime ne dit qu'une chose : comment le moteur sonne en prenant des tours. Elle
+      ne sait rien dire de ce qu'il fait une fois installé au rupteur, ni pied levé, où la
+      combustion cesse et où seule la ligne d'échappement chante. Le lecteur prend donc sa matière
+      là où elle existe :
+
+        `ramp`  la montée, repérée par le régime — c'est elle qui porte l'axe des tours
+        `haut`  à plein régime, quand les tours ne bougent plus
+        `bas`   pied levé
+
+      La montée est la seule qui ait besoin d'une table régime → instant, parce qu'elle est la seule
+      qu'on parcourt. Les deux autres sont des matières : la tête de lecture y tourne librement, et
+      c'est ce qui les rend exploitables — une prise à régime tenu ou une décélération qui erre ne
+      peut pas porter un axe des régimes fiable, mais elle porte parfaitement un timbre.
+
+      Les trois gains se croisent en fondu. Un basculement sec entre deux matières s'entendrait
+      comme un raccord, ce que tout le reste du lecteur s'applique à éviter. */
+      this.tex = {};       // haut, bas : { key, buf, meta }, et leur tête de lecture
+      this.texRead = { haut: 0, bas: 0 };
+      this.mix = { ramp: 1, haut: 0, bas: 0 };
+      this.demarreur = null;   // la prise de démarrage, jouée une fois au départ
+      this.demarre = false;
+
       // souffle d'admission : du bruit filtré au régime, présent seulement pied dedans
       this.airSrc = noise();
       this.airFilter = ctx.createBiquadFilter(); this.airFilter.type = 'bandpass';
@@ -206,6 +230,47 @@ class GameAudio {
   silence. */
   _key(e) { return e.sample ? e.sample.ramp : null; }
 
+  /** Charge une matière — une prise sans table, dans laquelle la tête de lecture tourne. */
+  _tex(role, url) {
+    if (!url || (this.tex[role] && this.tex[role].key === url) || this['fetch_' + role] === url) return;
+    this['fetch_' + role] = url;
+    const ctx = this.ctx;
+    fetch(url)
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error(r.status))))
+      .then(meta => fetch(meta.src)
+        .then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.status))))
+        .then(b => ctx.decodeAudioData(b))
+        .then(buf => {
+          if (role === 'start') this.demarreur = { key: url, buf, meta };
+          else this.tex[role] = { key: url, buf, meta };
+        }))
+      .catch(() => { if (role === 'start') this.demarreur = null; else delete this.tex[role]; });
+  }
+
+  /* La prise de démarrage, une fois, au moment où la course s'ouvre.
+
+  Elle n'est pas jouée en grains : un démarreur est un évènement, pas une matière. On la lit d'un
+  bout à l'autre, telle quelle, et le moteur prend la suite. */
+  demarrage() {
+    const d = this.demarreur;
+    if (!d || this.demarre || !this.ctx || !this.enabled) return;
+    this.demarre = true;
+    const t = this.ctx.currentTime + 0.02;
+    const g = this.ctx.createGain();
+    const deb = d.meta.debut || 0;
+    const dur = Math.max(0.1, (d.meta.fin != null ? d.meta.fin : d.meta.secondes) - deb);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.5, t + 0.05);
+    g.gain.setValueAtTime(0.5, t + dur - 0.25);
+    g.gain.linearRampToValueAtTime(0, t + dur);
+    g.connect(this.master);
+    const n = this.ctx.createBufferSource();
+    n.buffer = d.buf;
+    n.connect(g);
+    n.start(t, deb, dur);
+    n.onended = () => { try { g.disconnect(); } catch (_) { /* déjà parti */ } };
+  }
+
   /* Charge la rampe d'une voiture : le son et la table qui dit à quel instant le moteur passait
   par quel régime. Tant qu'elle n'est pas là — et si elle n'arrive jamais — la synthèse continue
   de jouer : une voiture sans prise, un réseau lent, un fichier manquant ou une page ouverte en
@@ -222,6 +287,9 @@ class GameAudio {
         .then(b => ctx.decodeAudioData(b))
         .then(buf => { this.ramp = { key, buf, meta }; }))
       .catch(() => { this.ramp = null; });          // la synthèse reprend la main
+    this._tex('haut', e.sample.haut);
+    this._tex('bas', e.sample.bas);
+    this._tex('start', e.sample.start);
   }
 
   /* Où se trouve, dans la rampe, le moteur à ce régime.
@@ -248,25 +316,63 @@ class GameAudio {
     const G = 0.09, HOP = G / 2, AVANCE = 0.12;
     const pos = this._rampPos(rpm);
     if (this.gTime < t) { this.gTime = t; this.gRead = pos; }
+    // Les bornes de chaque matière, calculées une fois : le fichier servi est la prise entière,
+    // telle qu'elle a été déposée, et juste après la fin de la rampe il y a un passage de rapport.
+    // Laisser la tête y dériver ferait entendre le moteur perdre des tours à plein régime.
+    const bornes = (m) => [m.debut || 0, (m.fin != null ? m.fin : m.secondes) - G];
     while (this.gTime < t + AVANCE) {
       // on laisse la lecture dériver un peu autour de la position visée, pas plus : au-delà, le
       // son ne correspondrait plus au régime demandé
       this.gRead += HOP;
       if (Math.abs(this.gRead - pos) > 0.20) this.gRead = pos;
-      const off = Math.max(0, Math.min(r.meta.secondes - G, this.gRead));
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0, this.gTime);
-      g.gain.linearRampToValueAtTime(gain, this.gTime + HOP);
-      g.gain.linearRampToValueAtTime(0, this.gTime + G);
-      g.connect(this.smpFilter);
-      const n = ctx.createBufferSource();
-      n.buffer = r.buf;
-      n.connect(g);
-      n.start(this.gTime, off, G);
-      n.stop(this.gTime + G);
-      n.onended = () => { try { g.disconnect(); } catch (_) { /* déjà parti */ } };
+      // Un grain par matière active, au même instant et avec la même enveloppe : c'est le fondu.
+      // Deux enveloppes triangulaires à mi-recouvrement somment à un, donc la somme des matières
+      // garde un niveau constant quel que soit le mélange.
+      for (const [role, src] of [['ramp', r], ['haut', this.tex.haut], ['bas', this.tex.bas]]) {
+        // La montée est pondérée par sa couverture ; les matières n'en ont pas besoin.
+        const part = role === 'ramp' ? (this.mixRamp != null ? this.mixRamp : this.mix.ramp) : this.mix[role];
+        if (!src || part < 0.02) continue;
+        let off;
+        if (role === 'ramp') {
+          const [a, b] = bornes(src.meta);
+          off = Math.max(a, Math.min(Math.max(a, b), this.gRead));
+        } else {
+          // Une matière n'a pas d'axe des régimes : la tête y tourne librement et revient au début
+          // en fin de prise. C'est précisément ce qui la rend exploitable — une prise à régime tenu
+          // ou une décélération qui erre ne peut pas porter de table fiable, mais porte un timbre.
+          const [a, b] = bornes(src.meta);
+          let x = this.texRead[role] + HOP;
+          if (x > b || x < a) x = a;
+          this.texRead[role] = x;
+          off = x;
+        }
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0, this.gTime);
+        g.gain.linearRampToValueAtTime(gain * part, this.gTime + HOP);
+        g.gain.linearRampToValueAtTime(0, this.gTime + G);
+        g.connect(this.smpFilter);
+        const n = ctx.createBufferSource();
+        n.buffer = src.buf;
+        n.connect(g);
+        n.start(this.gTime, off, G);
+        n.stop(this.gTime + G);
+        n.onended = () => { try { g.disconnect(); } catch (_) { /* déjà parti */ } };
+      }
       this.gTime += HOP;
     }
+  }
+
+  /* Quelle matière, et combien de chacune.
+
+  Pied levé, la décélération si on l'a. Pied dedans et les tours installés en haut, la prise de
+  plein régime. Partout ailleurs, la montée. Les parts sont lissées d'une image à l'autre pour que
+  le passage d'une matière à l'autre ne s'entende pas comme un raccord. */
+  _melange(frac, load, dt) {
+    const aHaut = this.tex.haut ? Math.max(0, Math.min(1, (frac - 0.88) / 0.08)) * load : 0;
+    const aBas = this.tex.bas ? (1 - load) : 0;
+    const cible = { bas: aBas, haut: aHaut * (1 - aBas), ramp: Math.max(0, 1 - aBas - aHaut * (1 - aBas)) };
+    const k = Math.min(1, dt / 0.12);
+    for (const role of ['ramp', 'haut', 'bas']) this.mix[role] += (cible[role] - this.mix[role]) * k;
   }
 
   _gearbox(v, vmax, e) {
@@ -304,6 +410,9 @@ class GameAudio {
     }
     // Une prise est jouée si elle est arrivée ; sinon la synthèse, qui n'a jamais cessé de tourner.
     const surPrise = !!(this.ramp && e.sample && this.ramp.key === this._key(e));
+    // Le démarreur part pendant le décompte, dès que le fichier est là — le demander à la création
+    // de la course serait trop tôt, la prise arrivant par le réseau.
+    if (!racing && this.demarreur && !this.demarre) this.demarrage();
 
     const v = Math.max(0, fin(car.v, 0));
     const vmax = car.cls.vmax;
@@ -338,15 +447,41 @@ class GameAudio {
     // Une prise ne couvre que la plage de régimes où elle a été enregistrée. En deçà et au-delà,
     // il n'y a rien à jouer — et surtout pas la transposer, ce qui est justement ce qu'on veut
     // éviter. La synthèse reprend la main, en fondu.
+    /* Quand une prise existe, c'est elle qu'on entend — sur toute la plage.
+
+    La règle d'avant rendait la main à la synthèse dès que le régime sortait de la plage mesurée de
+    la montée. Sur le papier c'était prudent : hors de sa plage, la prise ne sait plus dire à quel
+    régime le moteur tournait. En pratique c'était le défaut principal. Une montée découpée dans un
+    onboard de course ne couvre souvent qu'un tirage entre deux rapports — 4611 à 6200 tr/min pour le
+    GT40 — si bien que les quatre cinquièmes de ce qu'on entendait n'était pas la prise du tout, mais
+    la synthèse. D'où « on entend encore les moustiques » : elles étaient toujours là, la prise ne
+    faisant que les couvrir par endroits.
+
+    Le choix est donc renversé, et c'est un choix, pas une découverte. Sous le bas de la montée on
+    reste sur la prise : la tête de lecture butant sur son début, la hauteur cesse de suivre le
+    compte-tours. Un vrai moteur qui ne suit pas tout à fait le cadran sonne mieux qu'un oscillateur
+    qui le suit parfaitement — c'est le même arbitrage que partout ailleurs ici, la matière avant la
+    justesse d'un paramètre. Au-dessus du haut, en revanche, le fondu reste : il n'y a rien à jouer
+    plus haut que le rupteur enregistré, et le jeu n'y va pas non plus.
+
+    Seule exception, l'arrêt : avant le départ, le ralenti de synthèse et son clapot gardent la main,
+    parce qu'aucune de ces prises ne contient de ralenti et qu'un moteur à 4600 tr/min pendant que la
+    voiture est immobile, cela s'entend. */
     let couv = 0;
     if (surPrise) {
       const m = this.ramp.meta;
-      const marge = 0.25;                                  // un quart d'octave de fondu
-      const d = r < m.rpmBas ? Math.log2(m.rpmBas / r) : r > m.rpmHaut ? Math.log2(r / m.rpmHaut) : 0;
-      couv = Math.max(0, Math.min(1, 1 - d / marge));
+      const d = r > m.rpmHaut ? Math.log2(r / m.rpmHaut) : 0;
+      couv = racing ? Math.max(0, Math.min(1, 1 - d / 0.25)) : 0;
     }
+    if (surPrise) this._melange(frac, load, 1 / 60);
+    // Ce que l'enregistrement tient de ce qu'on entend : la montée dans les limites de sa plage,
+    // plus les matières, qui n'en ont pas. C'est cette part que la synthèse cède.
+    const prise = surPrise
+      ? Math.max(0, Math.min(1, this.mix.ramp * couv + this.mix.haut + this.mix.bas))
+      : 0;
 
-    if (surPrise && couv > 0) {
+    if (prise > 0.02) {
+      this.mixRamp = this.mix.ramp * couv;
       this._grains(t, r, 0.62);
       this.smpFilter.frequency.setTargetAtTime(1800 + frac * 5000 + load * 2200, t, 0.05);
     }
@@ -357,10 +492,10 @@ class GameAudio {
     // Échappement : toujours là, plus sombre pied levé. Admission : seulement pied dedans, c'est
     // elle qui fait la différence entre pousser et rouler sur l'erre.
     this.exFilter.frequency.setTargetAtTime(240 + frac * (700 + 1500 * e.bright) + load * 300, t, 0.05);
-    this.exGain.gain.setTargetAtTime((0.16 + frac * 0.2 + load * 0.05) * shifting * (1 - couv), t, 0.04);
-    this.smpGain.gain.setTargetAtTime((0.30 + frac * 0.24 + load * 0.08) * shifting * couv, t, 0.04);
+    this.exGain.gain.setTargetAtTime((0.16 + frac * 0.2 + load * 0.05) * shifting * (1 - prise), t, 0.04);
+    this.smpGain.gain.setTargetAtTime((0.30 + frac * 0.24 + load * 0.08) * shifting * prise, t, 0.04);
     this.inFilter.frequency.setTargetAtTime(700 + frac * 2600 * e.bright, t, 0.05);
-    this.inGain.gain.setTargetAtTime(load * (0.03 + frac * 0.13) * e.bright * shifting * (1 - couv), t, 0.05);
+    this.inGain.gain.setTargetAtTime(load * (0.03 + frac * 0.13) * e.bright * shifting * (1 - prise), t, 0.05);
     this.airFilter.frequency.setTargetAtTime(500 + frac * 1800, t, 0.05);
     this.airGain.gain.setTargetAtTime(load * (0.015 + frac * 0.05) * shifting, t, 0.06);
 
@@ -368,7 +503,7 @@ class GameAudio {
     // Le clapot ne vit qu'en bas et pied levé : dès que le moteur monte ou pousse, c'est la ligne
     // d'échappement qu'on entend, et lui laisser la place brouillerait le reste. Il ne joue que
     // sur la voie de synthèse — une prise porte déjà son propre ralenti quand elle en a un.
-    const clapot = (1 - frac) * (1 - frac) * (1 - load * 0.75) * (1 - couv);
+    const clapot = (1 - frac) * (1 - frac) * (1 - load * 0.75) * (1 - prise);
     this.lopeBand.frequency.setTargetAtTime(200 + 320 * e.bright, t, 0.1);
     this.lopeGain.gain.setTargetAtTime(clapot * (0.5 + 0.9 * (1 - e.rough)) * 0.30 * shifting, t, 0.06);
 
