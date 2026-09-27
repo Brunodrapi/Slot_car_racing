@@ -145,7 +145,11 @@ def main():
             j += 1
         etendue = lp[j] - lp[i]
         duree = (j - i) * hop
-        if duree < 1.2 or etendue < 0.6:
+        # Le plancher d'étendue : moins d'un demi-octave de montée ne fait plus une rampe. Il n'a
+        # pas à être plus strict que cela, parce que le lecteur fond vers la synthèse en deçà du bas
+        # de la rampe et au-delà du haut — une rampe étroite coûte de la couverture, pas de la
+        # justesse. C'est le régime de course qui compte, et il vit dans le haut de la plage.
+        if duree < 1.2 or etendue < 0.45:
             continue
         s = etendue * min(1.0, duree / vise)          # large ET assez longue
         if s > score:

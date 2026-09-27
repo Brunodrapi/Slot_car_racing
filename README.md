@@ -846,9 +846,11 @@ dirait des moustiques ».
 
 | voiture | rampe | montée | plage couverte |
 |---|---|---|---|
+| Countach LP500 | 6,3 s | 25 demi-tons | 1821 – 7500 tr/min |
 | M1 Procar | 8,0 s | 17 demi-tons | 3423 – 9000 tr/min |
 | Corvette | 7,6 s | 14 demi-tons | 2708 – 6000 tr/min |
 | F40 | 4,2 s | 9 demi-tons | 4703 – 7750 tr/min |
+| 787B | 5,2 s | 6 demi-tons | 6216 – 9000 tr/min |
 
 **La plage n'est pas posée, elle est déduite de la montée mesurée.** Une rampe qui monte de neuf
 demi-tons ne peut couvrir que neuf demi-tons de plage de régime : lui en faire couvrir vingt-cinq
@@ -857,10 +859,24 @@ compte-tours. Le granulaire ne déforme plus le timbre, mais un axe étiré dés
 cadran, ce qui s'entend autant. Seul le rupteur est donné ; le bas s'en déduit, et
 `tools/e2e-sample.js` échoue si l'étirement s'écarte de 1 de plus de 6 %.
 
-La contrepartie est claire et assumée : **plus la rampe est courte, moins elle couvre**. La F40,
-avec quatre secondes, ne tient que de 4703 à 7750 tr/min ; en dessous, c'est la synthèse. C'est la
-raison pour laquelle une rampe complète, du bas de la plage au rupteur, vaut tous les réglages du
-monde.
+La contrepartie est claire et assumée : **plus la montée est large, plus la rampe couvre**. La
+Countach, vingt-cinq demi-tons d'un seul rapport, tient toute sa plage à l'enregistrement et ne
+laisse presque rien à la synthèse. La 787B, six demi-tons, n'en tient que le haut — et c'est
+jouable, parce qu'un Groupe C ne descend pas là en course. C'est la raison pour laquelle une montée
+complète, du bas de la plage au rupteur, vaut tous les réglages du monde.
+
+Le plancher de l'outil est un demi-octave de montée, pas davantage : en deçà du bas de la rampe et
+au-delà du haut, le lecteur fond vers la synthèse sur un quart d'octave, si bien qu'une rampe étroite
+coûte de la couverture et non de la justesse.
+
+**Ce qu'une prise doit être, et ce que trois prises n'étaient pas.** Sur sept fichiers découpés à la
+main, deux ont donné une rampe. Les cinq autres disent précisément ce qui manquait : `GT40_montee`
+enchaîne trois tirages entre rapports, le plus large faisant 4,4 demi-tons — chaque tirage repart du
+même régime après le passage, donc les enchaîner n'élargit rien ; `gt40_plein_regime` monte de 5,7
+demi-tons sur quinze secondes, ce qu'on ne peut pas distinguer de la dérive de la mesure cumulée ;
+`GT_40_descente` erre à ±2,6 demi-tons sans chute nette. Ce qu'il faut est une seule chose : **un
+tirage d'un seul rapport, parti du bas de la plage, sans passage** — typiquement la sortie d'un
+virage lent en deuxième ou troisième.
 
 **Ce qu'il faut comme matière.** Une rampe : une montée continue, pied au plancher, sur un seul
 rapport. `tools/enginegrains.py` la trouve seul dans un onboard — il cherche la plus longue montée
