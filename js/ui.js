@@ -8,6 +8,7 @@ const I18N = {
     editor: 'Éditeur de circuits', workshop: 'Atelier voitures',
     howto: 'Poser le pouce n’importe où (ou n’importe quelle touche / clic) : accélérer, relâcher pour freiner. Le cadran vient se placer au-dessus du pouce. Pouce gauche (ou flèches / molette) : choisir la trajectoire — intérieure, idéale ou extérieure. Trop vite dans un virage, c’est le bac à gravier.',
     carClass: 'Catégorie', model: 'Modèle', track: 'Circuit', customTracks: 'Circuits perso', livery: 'Livrée', difficulty: 'Difficulté', easy: 'Facile', medium: 'Normal', hard: 'Difficile',
+    diffTitle: 'Ce que la voiture coûte à piloter', diffLevel: (n) => `Difficulté ${n} sur 5`,
     laps: 'tours', start: 'Départ !', locked: 'Verrouillé', unlockHint: 'Termine la coupe précédente dans le top 3 pour débloquer.',
     cup: 'Coupe', races: 'courses', raceOf: (a, b) => `Course ${a} / ${b}`, standings: 'Classement', nextRace: 'Prochaine course', startRace: 'Lancer la course',
     done: 'Terminée', inProgress: 'En cours', notStarted: 'Pas commencée', resetCup: 'Recommencer cette coupe', finalPos: (p) => `Classement final : P${p}`,
@@ -39,6 +40,7 @@ const I18N = {
     editor: 'Track editor', workshop: 'Car workshop',
     howto: 'Thumb anywhere (or any key / click): accelerate, release to brake. The dial moves above your thumb. Left thumb (or arrows / wheel): pick the line — inside, racing or outside. Too fast into a corner and it’s the gravel.',
     carClass: 'Class', model: 'Model', track: 'Track', customTracks: 'Custom tracks', livery: 'Livery', difficulty: 'Difficulty', easy: 'Easy', medium: 'Normal', hard: 'Hard',
+    diffTitle: 'How much the car costs to drive', diffLevel: (n) => `Difficulty ${n} of 5`,
     laps: 'laps', start: 'Start!', locked: 'Locked', unlockHint: 'Finish the previous cup in the top 3 to unlock.',
     cup: 'Cup', races: 'races', raceOf: (a, b) => `Race ${a} / ${b}`, standings: 'Standings', nextRace: 'Next race', startRace: 'Start race',
     done: 'Complete', inProgress: 'In progress', notStarted: 'Not started', resetCup: 'Restart this cup', finalPos: (p) => `Final standing: P${p}`,
@@ -158,6 +160,28 @@ class UI {
   déficiente — l'écart mesuré tombe à 7 sur 100 en deutéranopie. Aucune information ne repose donc
   sur la couleur seule : chaque cadran porte son pictogramme et son unité écrite, et surtout les
   quatre ne se comparent jamais entre eux — ce sont quatre mesures séparées, pas une série. */
+  /* Ce que la voiture coûte à piloter, en pneus : zéro très facile, cinq très difficile.
+
+  Cinq pneus toujours dessinés, les inutilisés en creux, pour que le rang se lise d'un coup d'œil
+  sans avoir à compter — c'est une jauge, pas un nombre. Le niveau est mesuré par
+  `tools/difficulte.js` et rangé dans `cars.js` ; il est aussi écrit en clair pour les lecteurs
+  d'écran, un pictogramme répété n'ayant pas de sens lu à voix haute.
+
+  Le pneu est un anneau : deux cercles concentriques et quatre entailles, ce qui reste lisible à
+  douze pixels là où un dessin de bande de roulement se brouille. */
+  tyres(m) {
+    const n = Math.max(0, Math.min(5, m.diff == null ? 2 : m.diff));
+    const t = this.t.bind(this);
+    const un = (plein) => `<svg viewBox="0 0 16 16" class="tyre ${plein ? 'on' : 'off'}" aria-hidden="true">
+        <circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="3.2"
+                stroke-dasharray="3.6 1.4"/>
+      </svg>`;
+    return `<span class="tyres" title="${t('diffTitle')}">
+      <span class="sr">${t('diffLevel', n)}</span>
+      ${Array.from({ length: 5 }, (_, i) => un(i < n)).join('')}
+    </span>`;
+  }
+
   gauges(m) {
     const ARC = 84.8;   // les 270° d'ouverture, sur les 113,1 de circonférence d'un rayon 18
     // L'arc suit le chiffre affiché et non la valeur brute. Sans cela, deux voitures qui montrent
@@ -303,6 +327,7 @@ class UI {
       <div class="grid models">
         ${modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${m.id}">
             ${this.carIcon(m, livery)}<b>${escapeHtml(m.name)}${m.custom ? ` <small>(${t('custom')})</small>` : ''}</b>
+            ${this.tyres(m)}
             ${this.gauges(m)}</button>`).join('')}
       </div>
       <h3>${t('track')}</h3>
@@ -380,7 +405,7 @@ class UI {
       <h3>${t('model')}</h3>
       <div class="grid models">
         ${modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelNet" data-id="${m.id}">
-          ${this.carIcon(m, livery)}<b>${escapeHtml(m.name)}</b></button>`).join('')}
+          ${this.carIcon(m, livery)}<b>${escapeHtml(m.name)}</b>${this.tyres(m)}</button>`).join('')}
       </div>
       <div class="row end">
         <span class="muted">${trackDef ? `${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ` : ''}${escapeHtml(model.name)}</span>

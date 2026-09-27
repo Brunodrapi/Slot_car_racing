@@ -119,7 +119,11 @@ class Track {
 
     // lines
     this.lines = {};
-    if (def.lines && def.lines.racing) this._projectLines(def.lines, scale);
+    // Les lignes sont dans les mêmes unités que `pts`, donc remises à l'échelle comme lui. Passer
+    // `scale` ici était juste pour un circuit d'éditeur, où les deux valent la même chose, et faux
+    // pour un circuit intégré : sa ligne centrale est redimensionnée après coup pour tomber sur la
+    // longueur voulue, si bien que des lignes explicites auraient été projetées à côté de la piste.
+    if (def.lines && def.lines.racing) this._projectLines(def.lines, this.unitScale);
     else this._autoLines();
     this._limitLines(0.07, Track.RACING_SLOPE);
     if (def.lines && !def.width) this._widthFromLines();

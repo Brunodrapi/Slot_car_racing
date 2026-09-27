@@ -12,6 +12,7 @@ de l'outil.
 | `six-inline` | m1procar | 8.0 s | 17 demi-tons | 3423 – 9000 tr/min | 375 Ko |
 | `v8-corvette` | corvette | 7.6 s | 14 demi-tons | 2708 – 6000 tr/min | 356 Ko |
 | `v8-f40` | f40 | 4.2 s | 9 demi-tons | 4702 – 7750 tr/min | 195 Ko |
+| `flat6-930` | 930 | 23.9 s | 7 demi-tons | 4595 – 7000 tr/min | 0 Ko |
 | `r26b-787b` | 787b | 26.1 s | 7 demi-tons | 6159 – 9000 tr/min | 0 Ko |
 | `v8-gt40` | gt40 | 10.8 s | 5 demi-tons | 4611 – 6200 tr/min | 0 Ko |
 
@@ -25,6 +26,7 @@ portent un timbre, et c'est ce qu'on leur demande.
 
 | matière | rôle | fichier | fenêtre |
 |---|---|---|---|
+| `flat6-930-bas` | pied levé | `sounds/M787B/911_rsr_descente.mp3` | 0.00 – 3.53 s |
 | `r26b-787b-bas` | pied levé | `sounds/M787B/78B_descente.mp3` | 0.00 – 9.17 s |
 | `r26b-787b-start` | démarrage | `sounds/M787B/787B_start.mp3` | 0.00 – 13.04 s |
 | `v8-gt40-bas` | pied levé | `sounds/M787B/GT_40_descente.mp3` | 0.00 – 6.77 s |
@@ -46,6 +48,8 @@ donne l'ordre de grandeur de l'incertitude de la mesure, qui est d'un ou deux de
 |---|---|---|---|---|---|---|---|---|---|
 | `sounds/M787B/787B_start.mp3` | 13.0 s | 48 kHz mono | 0.99 | 0.13 | 0.81 | 20.7 dt | 10.4 dt | 10.8 | **pas un régime** — 10.8 demi-tons par seconde : trop vite pour une voiture sur un rapport |
 | `sounds/M787B/78B_descente.mp3` | 9.2 s | 48 kHz mono | 0.65 | 0.20 | 0.77 | 7.0 dt | 5.0 dt | 3.7 | **descente** — 5.0 demi-tons en 1.4 s |
+| `sounds/M787B/911_rsr_descente.mp3` | 3.5 s | 48 kHz mono | 0.94 | 0.28 | 0.79 | 3.0 dt | 2.9 dt | 2.8 | **trop étroit** — 3.0 demi-tons, il en faut 4.2 |
+| `sounds/M787B/911_rsr_montee.mp3` | 23.9 s | 48 kHz mono | 1.00 | 0.26 | 0.82 | 6.1 dt | 4.1 dt | 1.9 | **montée** — 6.1 demi-tons en 3.3 s → facteur 1.42 de plage |
 | `sounds/M787B/Countach_montee.mp3` | 30.2 s | 48 kHz mono | 0.47 | 0.39 | 0.74 | 24.5 dt | 10.1 dt | 3.8 | **montée** — 24.5 demi-tons en 6.4 s → facteur 4.12 de plage |
 | `sounds/M787B/GT40_montee.mp3` | 10.8 s | 48 kHz mono | 0.79 | 0.42 | 0.75 | 4.4 dt | 2.6 dt | 2.3 | **montée** — 4.4 demi-tons en 1.9 s → facteur 1.29 de plage |
 | `sounds/M787B/GT_40_descente.mp3` | 6.8 s | 48 kHz mono | 0.73 | 0.39 | 0.76 | 1.8 dt | 2.3 dt | 2.2 | **trop étroit** — 2.3 demi-tons, il en faut 4.2 |

@@ -44,7 +44,30 @@ const out = process.argv[2] || '/tmp';
   const plein = lu.flatMap((v) => v.cadrans.filter((g) => g.arc >= 100).map((g) => `${v.nom} ${g.unite}`));
   console.log(plein.length ? 'CADRAN PLEIN : ' + plein.join(', ') : 'aucun cadran plein (max ' +
     Math.max(...lu.flatMap((v) => v.cadrans.map((g) => g.arc))) + ' %)');
-  console.log('cartes', lu.length, '· errors', errs);
+  /* Les pneus de difficulté : ce qui est dessiné doit être ce qui est mesuré.
+
+  On relève ce que la page affiche — cinq pneus par carte, dont n pleins — et on le confronte au
+  `diff` du modèle. Compter les pneus à l'écran plutôt que relire la donnée est tout l'intérêt :
+  c'est le seul moyen de voir un décalage entre le classement et son affichage. */
+  const pneus = await page.evaluate(() => [...document.querySelectorAll('.grid.models .card')].map((c) => {
+    const nom = (c.querySelector('b') || {}).textContent || '';
+    const m = (typeof MODELS !== 'undefined' ? MODELS : []).find((x) => nom.startsWith(x.name));
+    return { nom: nom.trim(), attendu: m ? m.diff : null,
+             total: c.querySelectorAll('.tyres .tyre').length,
+             pleins: c.querySelectorAll('.tyres .tyre.on').length,
+             lu: (c.querySelector('.tyres .sr') || {}).textContent || '' };
+  }));
+  console.log('\nles pneus de difficulté :');
+  for (const p of pneus) {
+    const ok = p.total === 5 && p.pleins === p.attendu;
+    if (!ok) errs++;
+    console.log(`  ${ok ? 'ok  ' : 'ÉCHEC'} ${p.nom.padEnd(18)} ${'●'.repeat(p.pleins)}${'○'.repeat(Math.max(0, p.total - p.pleins))}`
+      + `  mesuré ${p.attendu}, affiché ${p.pleins} sur ${p.total}   «${p.lu.trim()}»`);
+  }
+  if (pneus.length && pneus.every((p) => p.pleins === pneus[0].pleins)) {
+    errs++; console.log('  ÉCHEC : toutes les voitures portent le même nombre de pneus — le classement ne classe rien');
+  }
+  console.log('\ncartes', lu.length, '· errors', errs);
   if (fautes || plein.length || errs) process.exitCode = 1;
   await page.screenshot({ path: `${out}/pick.png`, fullPage: true });
   await browser.close();
