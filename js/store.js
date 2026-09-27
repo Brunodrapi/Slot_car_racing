@@ -7,11 +7,15 @@ const Store = {
     if (this._db) return Promise.resolve(this._db);
     return new Promise((resolve, reject) => {
       if (!window.indexedDB) { reject(new Error('IndexedDB unavailable')); return; }
-      const req = indexedDB.open('slotracer', 1);
+      // Version 2 : le rayon `lines`, qui porte les trajectoires reprises à la main pour les
+      // circuits intégrés. Les rayons existants sont conservés — une montée de version n'ajoute
+      // que ce qui manque, donc une partie déjà jouée ne perd ni ses circuits ni ses voitures.
+      const req = indexedDB.open('slotracer', 2);
       req.onupgradeneeded = () => {
         const db = req.result;
         if (!db.objectStoreNames.contains('tracks')) db.createObjectStore('tracks', { keyPath: 'id' });
         if (!db.objectStoreNames.contains('cars')) db.createObjectStore('cars', { keyPath: 'id' });
+        if (!db.objectStoreNames.contains('lines')) db.createObjectStore('lines', { keyPath: 'id' });
       };
       req.onsuccess = () => { this._db = req.result; resolve(this._db); };
       req.onerror = () => reject(req.error);

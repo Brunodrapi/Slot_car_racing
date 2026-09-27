@@ -29,7 +29,12 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   const port = serveur.address().port;
 
   const navigateur = await chromium.launch();
-  const page = await navigateur.newPage({ viewport: { width: 1200, height: 860 } });
+  // Un seul contexte pour les deux pages : `browser.newPage()` en ouvre un neuf à chaque appel,
+  // donc une autre base IndexedDB, et l'éditeur poserait sa ligne là où le jeu ne la lira jamais.
+  // C'est ce que le premier essai a fait, et il annonçait un défaut qui n'existait pas.
+  const contexte = await navigateur.newContext();
+  const page = await contexte.newPage();
+  await page.setViewportSize({ width: 1200, height: 860 });
   let errs = 0;
   page.on('pageerror', (e) => { errs++; console.log('ERREUR JS :', e.message); });
   await page.goto(`http://127.0.0.1:${port}/lignes.html`);
@@ -129,6 +134,64 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   const mauvais = tous.filter((t) => !t.ok);
   if (mauvais.length) { errs++; console.log('  ÉCHEC : circuits illisibles —', JSON.stringify(mauvais)); }
   else console.log(`  ok : les ${tous.length} circuits se chargent`);
+
+  /* --- enregistrer pour jouer : le jeu conduit-il vraiment la ligne posée ? ---
+
+  L'éditeur peut poser sa ligne dans la base du navigateur, et le jeu la relit au démarrage. C'est
+  la seule chose qui compte ici : que le circuit joué soit le circuit dessiné, et non celui que le
+  solveur propose. On pose une ligne franchement décalée — deux mètres vers l'extérieur sur tout un
+  secteur, de quoi ne pas pouvoir confondre avec du bruit — puis on ouvre le jeu sur ce circuit et
+  on relit sa trajectoire. */
+  await page.evaluate(() => charger('monza', false));
+  const pose = await page.evaluate(async () => {
+    const T = S.track, u = T.unitScale;
+    for (let k = 4; k < 12; k++) {
+      const { j } = projeter(S.pts.racing[k]);
+      S.pts.racing[k] = [S.pts.racing[k][0] + T.nx[j] * 2 / u, S.pts.racing[k][1] + T.ny[j] * 2 / u];
+    }
+    dessiner();
+    await poser();
+    const attendu = [...S.apercu.lines.racing];
+    return { id: S.def.id, attendu: attendu.filter((_, i) => i % 50 === 0) };
+  });
+
+  const jeu = await page.evaluate(async (id) => {
+    // le jeu, dans le même navigateur donc la même base
+    const r = await fetch('index.html');
+    return { ok: r.ok, id };
+  }, pose.id);
+  if (!jeu.ok) { errs++; console.log('  ÉCHEC : le jeu ne se charge pas'); }
+
+  const pageJeu = await contexte.newPage();
+  await pageJeu.setViewportSize({ width: 900, height: 700 });
+  pageJeu.on('pageerror', (e) => { errs++; console.log('ERREUR JS (jeu) :', e.message); });
+  await pageJeu.goto(`http://127.0.0.1:${port}/index.html`);
+  await pageJeu.waitForFunction(() => window.app && app.custom && app.custom.lines);
+  const vu = await pageJeu.evaluate((id) => {
+    const def = app.trackDefById(id);
+    const T = app.trackCache(id);
+    return { aDesLignes: !!(def && def.lines && def.lines.racing),
+             reprises: app.custom.lines.size,
+             racing: [...T.lines.racing].filter((_, i) => i % 50 === 0) };
+  }, pose.id);
+  console.log(`
+enregistrer pour jouer : ${vu.reprises} reprise(s) relue(s) par le jeu, `
+    + `le circuit en porte une : ${vu.aDesLignes}`);
+  if (!vu.aDesLignes) { errs++; console.log('  ÉCHEC : le jeu ne voit pas la ligne enregistrée'); }
+  const ecart = Math.max(...vu.racing.map((v, i) => Math.abs(v - pose.attendu[i])));
+  console.log(`  écart entre la ligne posée et celle que le jeu conduit : ${ecart.toFixed(3)} m`);
+  if (ecart > 0.15) { errs++; console.log('  ÉCHEC : le jeu ne conduit pas la ligne enregistrée'); }
+  else console.log('  ok : le jeu conduit bien la ligne enregistrée');
+
+  // et « oublier » doit rendre la main au calcul
+  await page.evaluate(async () => { await oublier(); });
+  const apres = await pageJeu.evaluate(async (id) => {
+    await app.refreshCustom();
+    return { reprises: app.custom.lines.size, aDesLignes: !!(app.trackDefById(id).lines) };
+  }, pose.id);
+  if (apres.aDesLignes || apres.reprises) { errs++; console.log('  ÉCHEC : « oublier » laisse la ligne en place'); }
+  else console.log('  ok : « oublier » rend la main à la ligne calculée');
+  await pageJeu.close();
 
   if (dossier) {
     await page.evaluate(() => charger('monaco', false));

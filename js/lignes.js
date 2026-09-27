@@ -265,6 +265,54 @@ function relire() {
 
 function etat(s) { $('etat').textContent = s; }
 
+/* ------------------------------------------------- enregistrer pour jouer, ici et maintenant
+
+Deux « enregistrer », et ils ne servent pas à la même chose. Celui-ci pose la ligne dans la base du
+navigateur, à côté des circuits perso : le circuit est modifié dès la partie suivante, sur ce poste,
+sans rien publier. L'autre est le bloc à coller dans `js/tracks.js`, qui seul fait que la ligne vaut
+pour tout le monde et survit à un autre navigateur.
+
+La distinction est dite plutôt que devinée, parce que les deux se ressemblent à l'usage et que
+découvrir six mois plus tard qu'une trajectoire n'existait que dans un navigateur coûte cher. */
+async function poser() {
+  try {
+    await Store.put('lines', { id: S.def.id, at: Date.now(), lines: {
+      racing: S.pts.racing.map((p) => [arrondi(p[0]), arrondi(p[1])]),
+      inside: S.pts.inside.map((p) => [arrondi(p[0]), arrondi(p[1])]),
+      outside: S.pts.outside.map((p) => [arrondi(p[0]), arrondi(p[1])]),
+    } });
+    majPose();
+    etat(`${S.def.name} : ligne enregistrée pour ce navigateur`);
+  } catch (e) { etat('enregistrement impossible : ' + e.message); }
+}
+
+async function oublier() {
+  try {
+    await Store.del('lines', S.def.id);
+    majPose();
+    etat(`${S.def.name} : le jeu revient à sa ligne calculée`);
+  } catch (e) { etat('suppression impossible : ' + e.message); }
+}
+
+/** Dit si le circuit affiché porte déjà une ligne enregistrée, et propose de la reprendre. */
+async function majPose() {
+  let r = null;
+  try { r = await Store.get('lines', S.def.id); } catch (_) { /* base indisponible */ }
+  const el = $('pose');
+  if (!r) { el.textContent = 'Aucune ligne enregistrée pour ce circuit.'; return; }
+  const quand = new Date(r.at || Date.now()).toLocaleString();
+  el.innerHTML = `Ligne enregistrée le ${quand}. <a href="#" id="reprendre">La reprendre ici</a>`;
+  $('reprendre').addEventListener('click', (ev) => {
+    ev.preventDefault();
+    for (const nom of ['racing', 'inside', 'outside']) {
+      if (Array.isArray(r.lines[nom])) S.pts[nom] = r.lines[nom].map((p) => [+p[0], +p[1]]);
+    }
+    $('nPts').value = S.pts.racing.length;
+    dessiner();
+    etat('ligne enregistrée reprise');
+  });
+}
+
 /* --------------------------------------------------------------------------- les évènements */
 
 function redimensionner() {
@@ -334,7 +382,7 @@ for (const t of TRACKS) {
   o.value = t.id; o.textContent = `${t.flag || '🏁'} ${t.name}`;
   $('circuit').appendChild(o);
 }
-$('circuit').addEventListener('change', () => charger($('circuit').value, false));
+$('circuit').addEventListener('change', () => { charger($('circuit').value, false); majPose(); });
 
 for (const nom of ['racing', 'inside', 'outside']) {
   const b = document.createElement('button');
@@ -355,6 +403,11 @@ $('lisser').addEventListener('click', lisser);
 $('dansPiste').addEventListener('click', dansPiste);
 $('exporter').addEventListener('click', exporter);
 $('charger').addEventListener('click', relire);
+$('poser').addEventListener('click', poser);
+$('oublier').addEventListener('click', oublier);
+// « Essayer » ouvre le jeu sur ce circuit. La ligne enregistrée est relue au démarrage, donc ce
+// qu'on vient de poser est ce qu'on va conduire.
+$('essayer').addEventListener('click', async () => { await poser(); window.open('index.html?track=' + S.def.id, '_blank'); });
 $('copier').addEventListener('click', async () => {
   if (!$('sortie').value) exporter();
   try { await navigator.clipboard.writeText($('sortie').value); etat('copié'); }
@@ -363,3 +416,4 @@ $('copier').addEventListener('click', async () => {
 
 redimensionner();
 charger(TRACKS[0].id, false);
+majPose();

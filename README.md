@@ -557,10 +557,29 @@ bien qu'un point tiré de deux mètres n'en donne que 0,89 une fois rejoué. Un 
 la spline brute montrerait une ligne que le jeu n'accepte pas : on réglerait à côté en croyant
 régler. Ici la ligne résiste quand on lui demande l'impossible, et c'est une information.
 
+**Deux « enregistrer », qui ne servent pas à la même chose.** « Enregistrer pour le jeu » pose la
+ligne dans la base du navigateur, à côté des circuits perso : le circuit est modifié dès la partie
+suivante, sur ce poste, sans rien publier, et « Essayer » ouvre le jeu dessus dans la foulée.
+L'export du bloc `lines` est l'autre : lui seul fait qu'une ligne vaut pour tout le monde et survit à
+un autre navigateur. La distinction est écrite dans la page plutôt que laissée à deviner — les deux
+se ressemblent à l'usage, et découvrir six mois plus tard qu'une trajectoire n'existait que dans un
+navigateur coûte cher.
+
+La reprise locale se pose au seul endroit par lequel toute définition de circuit passe, `allTracks()`.
+Un circuit intégré qui en porte une garde tout le reste — tracé, largeur, décor — et voit seulement
+ses trois lignes remplacées ; le solveur ne tourne alors plus pour lui, puisqu'un circuit qui porte
+ses lignes ne le réveille pas.
+
 `tools/e2e-lignes.js` vérifie précisément cela : il déplace un point, exporte le bloc, reconstruit le
 circuit comme le jeu le fait, et compare. L'écart est de **0,00 m**, et un aller-retour export/relecture
 retombe à 0,003 m près — l'arrondi de l'export, et rien d'autre. Il vérifie aussi que les trois lignes
 restent distinctes et dans la piste, et que les douze circuits se chargent.
+
+Puis il fait la seule vérification qui compte pour l'enregistrement local : il pose une ligne
+franchement décalée, ouvre **le jeu** dans le même navigateur, et relit la trajectoire qu'il conduit.
+L'écart est de **0,002 m**, et « oublier » rend bien la main à la ligne calculée. Le premier jet de
+cet essai annonçait un défaut qui n'existait pas : `browser.newPage()` ouvre un contexte neuf à
+chaque appel, donc une autre base, et l'éditeur posait sa ligne là où le jeu ne la lirait jamais.
 
 Deux détails qui viennent de la même exigence. Les coordonnées exportées sont dans les unités de
 `pts`, pas en mètres : un circuit intégré est décrit dans une unité arbitraire puis redimensionné pour
