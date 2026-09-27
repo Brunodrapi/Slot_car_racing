@@ -1,8 +1,9 @@
 # Les sons à trouver
 
 Ce dossier porte la liste de courses et la convention de nommage, pour qu'un fichier déposé ici
-soit directement exploitable. Trois voitures roulent maintenant sur des prises découpées dans des
-onboards — la M1 Procar, la F40 et la Corvette — et les six autres sur la synthèse.
+soit directement exploitable. Six voitures roulent maintenant sur des prises — la M1 Procar, la F40,
+la Corvette, la Countach, le GT40 et la 787B — et les trois autres sur la synthèse. Ce que vaut
+chaque fichier est mesuré dans [`BILAN.md`](BILAN.md).
 
 **Ce qui vaut le plus : un onboard entier.** Pas une série de régimes tenus, pas des fichiers
 générés. `tools/enginecut.py` y trouve tout seul les passages à régime tenu, les découpe en
@@ -170,16 +171,16 @@ L'état de l'art du son de moteur de jeu demande **trois prises par voiture**, e
 Ce qui rend une prise inutilisable : un changement de rapport au milieu de la montée (la hauteur
 chute d'un coup), un lever de pied, un coup de frein, une voiture qui passe, une voix.
 
-| ce qu'on a | durée | montée | plage couverte |
-|---|---|---|---|
-| M1 Procar | 8,0 s | 17 demi-tons | 3423 – 9000 tr/min |
-| Corvette Trans-Am | 7,6 s | 14 demi-tons | 2708 – 6000 tr/min |
-| F40 LM | 4,2 s | 9 demi-tons | 4703 – 7750 tr/min |
+**L'état des fichiers est dans [`BILAN.md`](BILAN.md), et il n'est pas tenu à la main** :
+`python3 tools/bilanson.py` le régénère en mesurant chaque prise du dossier. Une table recopiée à la
+main est fausse au premier fichier déposé ; celle-là reste vraie, et elle dit pour chaque fichier ce
+qu'on peut en tirer — ou ce qui lui manque. L'en-tête de l'outil dit aussi quelles mesures sont
+fiables et lesquelles ont été essayées puis jetées, ce qui fait gagner du temps la fois suivante.
 
-Ces trois rampes ont été trouvées automatiquement dans les onboards, et c'est leur limite : un
+Six voitures roulent sur des prises, trois sur la synthèse. La limite est toujours la même : un
 onboard de course ne contient presque jamais une montée complète sur un seul rapport — le pilote
-passe un rapport toutes les deux ou trois secondes. D'où la F40, qui ne couvre que neuf demi-tons
-et repasse à la synthèse en dessous de 4700 tr/min.
+passe un rapport toutes les deux ou trois secondes. D'où le GT40, qui ne couvre que quatre demi-tons,
+et la 787B six.
 
 **Une montée découpée à la main vaut donc mieux que n'importe quel réglage.** Cherche dans une
 vidéo un départ arrêté, une sortie de stand ou une reprise en côte : ce sont les moments où le

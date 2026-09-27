@@ -125,7 +125,10 @@ const serveur = http.createServer((req, res) => {
         gainPrise: +a.smpGain.gain.value.toFixed(3), gainSynthese: +a.exGain.gain.value.toFixed(3) };
     };
     return [await voie('m1procar', 20), await voie('m1procar', 45), await voie('m1procar', 68),
-            await voie('f40', 55), await voie('corvette', 55), await voie('917k', 60), await voie('m1procar', 50)];
+            await voie('f40', 55), await voie('corvette', 55), await voie('countach', 55),
+            await voie('787b', 68), await voie('787b', 20), await voie('gt40', 60),
+            await voie('917k', 60),
+            await voie('m1procar', 50)];
   });
   console.log('\nen jeu :');
   for (const r of enJeu) console.log('  ' + JSON.stringify(r));

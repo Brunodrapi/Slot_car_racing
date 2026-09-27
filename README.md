@@ -844,11 +844,18 @@ qu'on la transpose de plus de 500 tr/min**, soit sept dixièmes de demi-ton à 6
 octaves en transposant demande des dizaines de boucles et sonne mal bien avant — chez moi, « on
 dirait des moustiques ».
 
+Six voitures sur neuf roulent sur une prise. La table à jour est dans
+[`sounds/BILAN.md`](sounds/BILAN.md), que `python3 tools/bilanson.py` régénère en mesurant le dossier
+— elle n'est pas tenue à la main, donc elle ne périme pas :
+
 | voiture | rampe | montée | plage couverte |
 |---|---|---|---|
+| Countach LP500 | 6,3 s | 25 demi-tons | 1821 – 7500 tr/min |
 | M1 Procar | 8,0 s | 17 demi-tons | 3423 – 9000 tr/min |
 | Corvette | 7,6 s | 14 demi-tons | 2708 – 6000 tr/min |
 | F40 | 4,2 s | 9 demi-tons | 4703 – 7750 tr/min |
+| 787B | 5,2 s | 6 demi-tons | 6216 – 9000 tr/min |
+| GT40 Mk II | 2,3 s | 4 demi-tons | 4852 – 6200 tr/min |
 
 **La plage n'est pas posée, elle est déduite de la montée mesurée.** Une rampe qui monte de neuf
 demi-tons ne peut couvrir que neuf demi-tons de plage de régime : lui en faire couvrir vingt-cinq
@@ -857,10 +864,33 @@ compte-tours. Le granulaire ne déforme plus le timbre, mais un axe étiré dés
 cadran, ce qui s'entend autant. Seul le rupteur est donné ; le bas s'en déduit, et
 `tools/e2e-sample.js` échoue si l'étirement s'écarte de 1 de plus de 6 %.
 
-La contrepartie est claire et assumée : **plus la rampe est courte, moins elle couvre**. La F40,
-avec quatre secondes, ne tient que de 4703 à 7750 tr/min ; en dessous, c'est la synthèse. C'est la
-raison pour laquelle une rampe complète, du bas de la plage au rupteur, vaut tous les réglages du
-monde.
+La contrepartie est claire et assumée : **plus la montée est large, plus la rampe couvre**. La
+Countach, vingt-cinq demi-tons d'un seul rapport, tient toute sa plage à l'enregistrement et ne
+laisse presque rien à la synthèse. La 787B, six demi-tons, n'en tient que le haut — et c'est
+jouable, parce qu'un Groupe C ne descend pas là en course. C'est la raison pour laquelle une montée
+complète, du bas de la plage au rupteur, vaut tous les réglages du monde.
+
+Le plancher de l'outil est un demi-octave de montée, pas davantage : en deçà du bas de la rampe et
+au-delà du haut, le lecteur fond vers la synthèse sur un quart d'octave, si bien qu'une rampe étroite
+coûte de la couverture et non de la justesse.
+
+**Ce qu'une prise doit être.** Sur sept fichiers découpés à la main, trois ont donné une rampe. Ce que
+disent les quatre autres est plus utile que leur rejet : `gt40_plein_regime` monte de 5,5 demi-tons
+sur quinze secondes, soit un tiers de demi-ton par seconde, ce qu'on ne distingue pas de la dérive de
+la mesure cumulée ; `787B_start` et `M1_Procar_off-7000` bougent de dix à quatorze demi-tons **par
+seconde**, ce qu'aucune voiture sur un rapport ne fait — un démarrage et un montage, pas des régimes ;
+`GT_40_descente` ne chute que de 2,3 demi-tons d'un seul tenant. Ce qu'il faut est une seule chose :
+**un tirage d'un seul rapport, parti du bas de la plage, sans passage** — typiquement la sortie d'un
+virage lent en deuxième ou troisième.
+
+**Le pied levé attend sa matière.** `tools/enginegrains.py --descente` sait extraire une rampe de
+décélération : il cherche la montée dans le signal retourné, puis ramène la table au temps du fichier
+d'origine — le son n'est jamais écrit à l'envers, une attaque de combustion jouée à reculons ne
+sonnant plus comme un moteur. Mais la seule descente déposée ne chute que de **5,0 demi-tons en
+1,4 s**, soit 6725 – 9000 tr/min sur une voiture. Brancher une seconde voie dans le lecteur granulaire
+pour cela ne se justifie pas : le pied levé n'y gagnerait que le quart haut de la plage d'une seule
+voiture sur neuf. Il faut un lever de pied **du rupteur au ralenti, sur un rapport, sans coup de
+frein**, quatre secondes au moins. La commande est prête, la matière manque.
 
 **Ce qu'il faut comme matière.** Une rampe : une montée continue, pied au plancher, sur un seul
 rapport. `tools/enginegrains.py` la trouve seul dans un onboard — il cherche la plus longue montée
@@ -1069,7 +1099,8 @@ est remonté à 597 Hz, celui de la F40 à 1601.
 ```
 node tools/decodeaudio.js <entrée> <sortie.wav>            # WebM, MP3… par le décodeur de Chromium
 python3 tools/enginescan.py <prise.wav> --cyl=6            # où se trouve quel régime
-python3 tools/enginegrains.py <prise.wav> <nom> --bas= --haut=   # la rampe + sa table
+python3 tools/enginegrains.py <prise.wav> <nom> --haut= [--descente]   # la rampe + sa table
+python3 tools/bilanson.py                                  # le bilan mesuré de tous les sons
 node tools/enginedemo.js <id> <sortie.wav>                 # une accélération à écouter
 node tools/e2e-sample.js                                   # la rampe arrive, la lecture avance
 ```
