@@ -193,6 +193,57 @@ enregistrer pour jouer : ${vu.reprises} reprise(s) relue(s) par le jeu, `
   else console.log('  ok : « oublier » rend la main à la ligne calculée');
   await pageJeu.close();
 
+  /* --- fabriquer js/tracks.js : le fichier produit est-il bon ? ---
+
+  C'est le seul enregistrement qui vaille pour tout le monde, et il consiste à récrire un fichier
+  source depuis le navigateur. Trois choses à vérifier, et pas une de moins : le fichier s'évalue,
+  il contient toujours les douze circuits, et le circuit repris porte bien la ligne dessinée — pas
+  celle que le solveur aurait proposée. Un patch textuel qui produit un fichier « presque » correct
+  casse le jeu au chargement suivant. */
+  const fabrique = await page.evaluate(async () => {
+    await charger('suzuka', false);
+    const T = S.track, u = T.unitScale;
+    for (let k = 6; k < 14; k++) {
+      const { j } = projeter(S.pts.racing[k]);
+      S.pts.racing[k] = [S.pts.racing[k][0] + T.nx[j] * 2 / u, S.pts.racing[k][1] + T.ny[j] * 2 / u];
+    }
+    dessiner();
+    const { txt, n, ids } = await fabriquerFichier();
+    return { txt, n, ids, attendu: [...S.apercu.lines.racing].filter((_, i) => i % 60 === 0) };
+  });
+  console.log(`\nfabrication de js/tracks.js : ${fabrique.n} circuit(s) repris — ${fabrique.ids.join(', ')}`);
+
+  // le fichier produit s'évalue-t-il, et dit-il ce qu'il faut ?
+  const verif = await page.evaluate((txt) => {
+    const f = new Function(txt + '; return TRACKS;');
+    const T2 = f();
+    const suz = T2.find((t) => t.id === 'suzuka');
+    return { n: T2.length, aDesLignes: !!(suz && suz.lines && suz.lines.racing),
+             pts: suz && suz.lines ? suz.lines.racing.length : 0,
+             rejoue: (() => {
+               const tr = new Track(suz);
+               return [...tr.lines.racing].filter((_, i) => i % 60 === 0);
+             })() };
+  }, fabrique.txt);
+  if (verif.n !== 12) { errs++; console.log(`  ÉCHEC : le fichier produit contient ${verif.n} circuits, 12 attendus`); }
+  else console.log('  ok : le fichier produit s’évalue et garde les douze circuits');
+  if (!verif.aDesLignes) { errs++; console.log('  ÉCHEC : Suzuka ne porte pas le bloc lines'); }
+  else console.log(`  ok : Suzuka porte ses trois lignes (${verif.pts} points)`);
+  const dFichier = Math.max(...verif.rejoue.map((v, i) => Math.abs(v - fabrique.attendu[i])));
+  console.log(`  écart entre la ligne dessinée et celle du fichier produit : ${dFichier.toFixed(3)} m`);
+  if (dFichier > 0.15) { errs++; console.log('  ÉCHEC : le fichier produit ne porte pas la ligne dessinée'); }
+  else console.log('  ok : le fichier produit porte bien la ligne dessinée');
+
+  // et refabriquer par-dessus un fichier qui a déjà un bloc doit le remplacer, pas en ajouter un
+  const deuxFois = await page.evaluate((txt) => {
+    const avant = (txt.match(/lines:/g) || []).length;
+    const apres = poserDansFichier(txt, 'suzuka', S.pts);
+    return { avant, apres: (apres.match(/lines:/g) || []).length, taille: apres.length };
+  }, fabrique.txt);
+  if (deuxFois.apres !== deuxFois.avant) {
+    errs++; console.log(`  ÉCHEC : repasser sur le fichier ajoute un bloc (${deuxFois.avant} → ${deuxFois.apres})`);
+  } else console.log('  ok : repasser sur le fichier remplace le bloc au lieu d’en ajouter un');
+
   if (dossier) {
     await page.evaluate(() => charger('monaco', false));
     await page.waitForTimeout(250);

@@ -557,13 +557,25 @@ bien qu'un point tiré de deux mètres n'en donne que 0,89 une fois rejoué. Un 
 la spline brute montrerait une ligne que le jeu n'accepte pas : on réglerait à côté en croyant
 régler. Ici la ligne résiste quand on lui demande l'impossible, et c'est une information.
 
-**Deux « enregistrer », qui ne servent pas à la même chose.** « Enregistrer pour le jeu » pose la
+**Deux boutons pour enregistrer, et ils ne servent pas à la même chose.** « Enregistrer pour le jeu » pose la
 ligne dans la base du navigateur, à côté des circuits perso : le circuit est modifié dès la partie
 suivante, sur ce poste, sans rien publier, et « Essayer » ouvre le jeu dessus dans la foulée.
-L'export du bloc `lines` est l'autre : lui seul fait qu'une ligne vaut pour tout le monde et survit à
-un autre navigateur. La distinction est écrite dans la page plutôt que laissée à deviner — les deux
-se ressemblent à l'usage, et découvrir six mois plus tard qu'une trajectoire n'existait que dans un
-navigateur coûte cher.
+« Enregistrer `js/tracks.js` » est l'autre : lui seul fait qu'une ligne vaut pour tout le monde et
+survit à un autre navigateur. La distinction est écrite dans la page plutôt que laissée à deviner —
+les deux se ressemblent à l'usage, et découvrir six mois plus tard qu'une trajectoire n'existait que
+dans un navigateur coûte cher.
+
+Une page servie par GitHub Pages ne peut pas écrire dans `js/tracks.js` : il n'y a pas de serveur au
+bout, seulement des fichiers. Elle peut en revanche **fabriquer le fichier** — relire celui qui est
+servi, y poser les lignes au bon endroit, et le rendre à télécharger. Il ne reste qu'à le remettre
+dans `js/` et à publier, sans copier-coller et sans risque de coller au mauvais endroit. Toutes les
+lignes enregistrées y passent d'un coup, sinon retoucher trois circuits demanderait trois
+téléchargements dont chacun repartirait du fichier servi et effacerait les deux autres.
+
+La découpe se fait au comptage d'accolades, en sautant ce qui est entre guillemets : une définition
+de circuit est un objet littéral, et chercher la fin d'un objet à l'expression régulière marche
+jusqu'au jour où ça ne marche plus. Repasser sur un circuit qui porte déjà un bloc le remplace au
+lieu d'en ajouter un second.
 
 La reprise locale se pose au seul endroit par lequel toute définition de circuit passe, `allTracks()`.
 Un circuit intégré qui en porte une garde tout le reste — tracé, largeur, décor — et voit seulement
@@ -580,6 +592,11 @@ franchement décalée, ouvre **le jeu** dans le même navigateur, et relit la tr
 L'écart est de **0,002 m**, et « oublier » rend bien la main à la ligne calculée. Le premier jet de
 cet essai annonçait un défaut qui n'existait pas : `browser.newPage()` ouvre un contexte neuf à
 chaque appel, donc une autre base, et l'éditeur posait sa ligne là où le jeu ne la lirait jamais.
+
+Et pour le fichier fabriqué, trois vérifications et pas une de moins, parce qu'un patch textuel qui
+produit un fichier « presque » correct casse le jeu au chargement suivant : le fichier **s'évalue**,
+il garde ses **douze circuits**, et le circuit repris porte bien la **ligne dessinée** — à 0,005 m —
+et non celle que le solveur aurait proposée.
 
 Deux détails qui viennent de la même exigence. Les coordonnées exportées sont dans les unités de
 `pts`, pas en mètres : un circuit intégré est décrit dans une unité arbitraire puis redimensionné pour

@@ -265,6 +265,80 @@ function relire() {
 
 function etat(s) { $('etat').textContent = s; }
 
+/* ------------------------------------------------- fabriquer le fichier, plutôt que le coller
+
+Une page servie par GitHub Pages ne peut pas écrire dans `js/tracks.js` — il n'y a pas de serveur
+au bout, seulement des fichiers. Mais elle peut fabriquer le fichier : le relire tel qu'il est
+servi, y poser les lignes au bon endroit, et le rendre à télécharger. Il ne reste qu'à le remettre
+dans le dépôt, sans copier-coller et sans risque de le coller au mauvais endroit.
+
+Toutes les lignes enregistrées y passent d'un coup, et pas seulement celle qu'on regarde : sinon,
+retoucher trois circuits demanderait trois téléchargements dont chacun repartirait du fichier servi
+et effacerait les deux autres.
+
+La découpe se fait au comptage d'accolades, en sautant ce qui est entre guillemets. Une définition
+de circuit est un objet littéral et rien d'autre ; chercher la fin d'un objet à l'expression
+régulière, en revanche, marche jusqu'au jour où ça ne marche plus. */
+function finObjet(txt, debut) {
+  let prof = 0, dans = null;
+  for (let i = debut; i < txt.length; i++) {
+    const c = txt[i];
+    if (dans) {                                   // dans une chaîne : on n'y compte rien
+      if (c === '\\') i++;
+      else if (c === dans) dans = null;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === '`') { dans = c; continue; }
+    if (c === '{' || c === '[') prof++;
+    else if (c === '}' || c === ']') { prof--; if (prof === 0) return i; }
+  }
+  return -1;
+}
+
+/** Le texte du bloc `lines` pour un jeu de points, indenté comme le fichier. */
+function blocPour(pts) {
+  const l = (nom) => '      ' + nom + ': [' +
+    pts[nom].map((p) => `[${arrondi(p[0])}, ${arrondi(p[1])}]`).join(', ') + '],';
+  return '    lines: {\n' + ['racing', 'inside', 'outside'].map(l).join('\n') + '\n    },';
+}
+
+/** Pose — ou remplace — le bloc `lines` d'un circuit dans le texte de `js/tracks.js`. */
+function poserDansFichier(txt, id, pts) {
+  const tete = txt.indexOf(`id: '${id}'`);
+  if (tete < 0) throw new Error(`circuit ${id} introuvable dans js/tracks.js`);
+  const ouvre = txt.lastIndexOf('{', tete);
+  const ferme = finObjet(txt, ouvre);
+  if (ferme < 0) throw new Error(`définition de ${id} mal formée`);
+  let corps = txt.slice(ouvre, ferme + 1);
+  const bloc = blocPour(pts);
+  const dejaLa = corps.indexOf('lines:');
+  if (dejaLa >= 0) {
+    // remplacer le bloc existant, bornes comprises
+    const debLigne = corps.lastIndexOf('\n', dejaLa) + 1;
+    const finBloc = finObjet(corps, corps.indexOf('{', dejaLa));
+    const apres = corps.indexOf('\n', finBloc);
+    corps = corps.slice(0, debLigne) + bloc + '\n' + corps.slice(apres + 1);
+  } else {
+    // poser juste avant l'accolade fermante de la définition
+    const avantFin = corps.lastIndexOf('\n', corps.length - 2) + 1;
+    corps = corps.slice(0, avantFin) + bloc + '\n' + corps.slice(avantFin);
+  }
+  return txt.slice(0, ouvre) + corps + txt.slice(ferme + 1);
+}
+
+async function fabriquerFichier() {
+  let reprises;
+  try { reprises = await Store.list('lines'); } catch (_) { reprises = []; }
+  // celle qu'on regarde compte, même si elle n'est pas encore posée
+  const enCours = { id: S.def.id, lines: S.pts };
+  const toutes = [...reprises.filter((r) => r.id !== enCours.id), enCours];
+  const r = await fetch('js/tracks.js');
+  if (!r.ok) throw new Error('js/tracks.js illisible (' + r.status + ')');
+  let txt = await r.text();
+  for (const t of toutes) txt = poserDansFichier(txt, t.id, t.lines);
+  return { txt, n: toutes.length, ids: toutes.map((t) => t.id) };
+}
+
 /* ------------------------------------------------- enregistrer pour jouer, ici et maintenant
 
 Deux « enregistrer », et ils ne servent pas à la même chose. Celui-ci pose la ligne dans la base du
@@ -403,6 +477,17 @@ $('lisser').addEventListener('click', lisser);
 $('dansPiste').addEventListener('click', dansPiste);
 $('exporter').addEventListener('click', exporter);
 $('charger').addEventListener('click', relire);
+$('fichier').addEventListener('click', async () => {
+  try {
+    const { txt, n, ids } = await fabriquerFichier();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([txt], { type: 'text/javascript' }));
+    a.download = 'tracks.js';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    etat(`tracks.js fabriqué avec ${n} circuit(s) : ${ids.join(', ')} — à remettre dans js/`);
+  } catch (e) { etat('fabrication impossible : ' + e.message); }
+});
 $('poser').addEventListener('click', poser);
 $('oublier').addEventListener('click', oublier);
 // « Essayer » ouvre le jeu sur ce circuit. La ligne enregistrée est relue au démarrage, donc ce
