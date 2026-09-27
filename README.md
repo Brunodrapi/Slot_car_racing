@@ -933,10 +933,22 @@ voiture trente fois par seconde.
 
 Mesuré des deux côtés par `tools/e2e-duo.js`, en variation de variation de position d'une image à
 l'autre : **0,173 m au 95ᵉ centile chez l'invité contre 0,003 m chez l'hôte**, cinquante-huit fois
-pire. L'écart est maintenant gardé comme une dette d'affichage et remboursé en une centaine de
-millisecondes : la voiture reste où elle est et rejoint la vérité en glissant. L'invité tombe à
-**0,019 m**, sous le maximum de l'hôte. Au-delà de six mètres d'écart — un accrochage, un retour
-sur la piste — il n'y a rien à lisser et la voiture est reposée d'un coup.
+pire. L'écart est maintenant gardé comme une dette d'affichage et remboursé en glissant, au lieu
+d'être posé d'autorité. Au-delà de six mètres — un accrochage, un retour sur la piste — il n'y a
+plus rien à lisser et la voiture est reposée d'un coup.
+
+Ce qui crée cet écart n'est pas une erreur de trajectoire mais une **erreur d'horloge** : l'invité
+avance les voitures du temps réellement écoulé chez lui, alors que l'instantané suivant rend compte
+du temps écoulé chez l'hôte. Un instantané qui arrive dix millisecondes tard, à deux cent trente à
+l'heure, ce sont soixante centimètres d'avance à reprendre — sans que personne ait mal conduit.
+
+D'où la seule question qui compte : sur combien de temps l'étaler. La durée est mesurée, pas
+choisie, deux écrans et dix voitures lancées à pleine vitesse : à 0,09 s l'invité accuse **0,18 m** de saut
+d'une image à l'autre, à 0,18 s **0,07 m**, à 0,28 s **0,05 m** — pour un hôte à 0,003. Le prix est
+le décalage d'affichage lui-même, qui passe de 0,57 à 0,71 m au 95ᵉ centile : deux millisecondes de
+trajet de plus, et sans moyenne — l'avance tombe tantôt trop loin, tantôt trop court. L'essai relève
+les deux, pour que le marché se voie au lieu de se deviner. On s'arrête à 0,28 s parce que le gain
+suivant est mince et qu'une correction vraie mettrait d'autant plus longtemps à se résorber.
 
 Et l'appui de l'invité part désormais tout de suite au lieu d'attendre le prochain envoi : jusqu'à
 trente-trois millisecondes gagnées là où le joueur les sent le plus. Le reste du temps le rythme
@@ -952,16 +964,23 @@ la reprise chez l'invité.
 
 Un symptôme rapporté — « quand un autre joueur appuie, toutes les voitures bougent sauf celle de
 l'hôte » — décrit une commande mal aiguillée. `tools/e2e-duo.js` le vérifie directement : un seul
-pilote appuie, et on relève ce que **chaque écran** voit bouger. Mesuré à trois écrans, dans les
-deux sens, seule la voiture de celui qui appuie avance — neuf mètres contre zéro — et les trois
-écrans s'accordent à moins de deux dixièmes de mètre.
+pilote appuie, et on relève ce que **chaque écran** voit bouger. Mesuré jusqu'à huit écrans, dans
+les deux sens, seule la voiture de celui qui appuie avance — treize mètres contre zéro — et les huit
+écrans s'accordent au décimètre près, chiffre pour chiffre.
 
-Deux précautions, apprises en se trompant. La mesure attend la fin du **décompte** : pendant, la
+Trois précautions, apprises en se trompant. La mesure attend la fin du **décompte** : pendant, la
 course ne simule rien et tout le monde reste à zéro, ce qui ferait conclure à tort qu'aucune
-commande ne passe. Et elle attend l'**arrêt complet** entre deux essais : dans ce jeu relâcher veut
+commande ne passe. Elle attend l'**arrêt complet** entre deux essais : dans ce jeu relâcher veut
 dire freiner, une voiture qui finit de ralentir parcourt encore quatre mètres, et on accuserait la
 commande d'un autre pilote d'un simple reste d'élan. C'est exactement le faux positif qu'on a
 d'abord obtenu.
+
+Et elle ne relève les positions que **voitures arrêtées**, avant comme après. Les écrans sont
+interrogés l'un après l'autre, et sous huit onglets chaque aller-retour coûte ses dizaines de
+millisecondes : relever pendant que ça roule, c'est comparer des instants différents. À douze mètres
+par seconde, le temps de faire le tour des huit écrans affichait jusqu'à **quatre mètres d'« écart
+avec l'hôte »** là où les écrans étaient parfaitement d'accord. À l'arrêt, il n'y a plus d'instant à
+choisir.
 
 ### La grille doit être la même sur tous les écrans
 
@@ -976,10 +995,50 @@ Le repli ne dépend plus que de la place sur la grille, donc il est le même par
 vérifie que **tous voient la même grille**, qu'aucune voiture ne se superpose, et que chacun a bien
 sa livrée.
 
+### L'hôte compose la grille, personne ne la recompose
+
+Un second symptôme, à plus de deux : « les invités, lorsque l'un d'eux appuyait, voyaient toutes les
+voitures avancer » — et l'hôte, lui, n'avait rien. Chaque écran composait sa propre liste de pilotes
+au coup d'envoi, à partir de ce qu'il voyait à cet instant. Or un pair resté silencieux quelques
+secondes est écarté : l'écran qui en rate un se retrouve avec une liste plus courte, donc un
+décalage de toutes les places qui suivent.
+
+Le décalage ne se voit pas tout de suite — la grille se construit, la course part. Mais l'instantané
+de l'hôte est une suite de voitures dans **son** ordre, appliquée chez l'invité dans **le sien** :
+chaque voiture reçoit l'état d'une autre, et un seul pilote qui appuie fait bouger tout l'écran. À
+deux, l'ordre ne peut pas diverger, ce qui explique que rien ne se voyait à deux, et que l'hôte —
+dont la liste est la référence — n'était jamais touché.
+
+L'hôte compose donc la grille et la publie ; tout le monde l'adopte telle quelle. Publier les places
+seules n'aurait pas suffi : un écran qui ne connaît pas encore un pilote garde bien sa place mais
+lui donne un nom par défaut et une voiture de repli, et la grille diffère quand même. La grille
+porte le **nom et le modèle** de chacun, et l'écran n'a plus rien à deviner. Elle ne part que de
+l'hôte, reconnaissable à ce qu'il est le seul à publier les réglages — un invité qui la relaierait
+pourrait en répandre une version périmée.
+
+`tools/e2e-duo.js --perte` reproduit précisément le cas : au moment du coup d'envoi, un écran ne voit
+pas l'un des pilotes. Avant, il partait avec une place de décalage ; maintenant les quatre écrans
+affichent la même grille, nom et voiture compris, et un appui ne profite qu'à celui qui appuie.
+
 Ce que la mesure à huit écrans apprend aussi : au-delà de quatre, c'est la machine qui lâche avant
-la liaison. L'hôte — qui ne rejoue rien, il simule — devient le plus heurté des deux. Le seuil de
-l'essai en tient compte : un plancher absolu d'un dixième de mètre, relevé par ce que l'hôte fait
-lui-même, faute de quoi on accuserait la liaison d'un défaut de processeur.
+la liaison. Le seuil de l'essai en tient compte, et de deux façons. Un plancher absolu d'un dixième
+de mètre d'abord. Puis, relevé par ce que **l'irrégularité des images explique à elle seule** —
+vitesse × écart de durée d'une image à l'autre : une image qui arrive en retard fait avancer la
+voiture d'autant, sans qu'il y ait rien à reprocher à la liaison. À huit écrans sur la même machine,
+l'invité mesure 1,16 m et ses seules images en expliquent 0,93 ; quand la machine respire, il
+retombe à 0,05 m contre 0,01 de plancher.
+
+Cette durée d'image se prend sur **l'horloge que rAF passe au jeu**, celle dont il se sert pour
+avancer les voitures, et non sur `performance.now()` lu dans la fonction, qui y ajoute le retard
+d'ordonnancement. La différence n'est pas académique : mesuré au mauvais endroit, le plancher
+annonçait 0,30 m chez un hôte qui n'en faisait que 0,002.
+
+Et une garde, apprise en se trompant une fois de plus : **une voiture immobile ne saute pas**. Les
+essais d'appui laissent chaque voiture là où elle s'est arrêtée, et l'invité finissait le nez contre
+la voiture immobile de la place précédente ; huit secondes de plein gaz contre un pare-chocs, et la
+mesure annonçait un mouvement parfaitement lisse. L'essai vérifie donc que la voiture a bien roulé
+avant de conclure quoi que ce soit — et il fait rouler tout le monde pendant la mesure, pour libérer
+la piste.
 
 ### Le clapot du ralenti
 
@@ -1160,6 +1219,7 @@ NODE_PATH=$(npm root -g) node tools/e2e-menu.js [dossier]                       
 node tools/bump.js [patch|minor|major]                                            # numéro de version + cassage du cache
 node tools/netsim.js <circuit> [secondes] [perte %] [format]                      # deux écrans en réseau, sans navigateur
 NODE_PATH=$(npm root -g) node tools/e2e-net.js <dossier> [format]                 # deux onglets, une table, une course
+NODE_PATH=$(npm root -g) node tools/e2e-duo.js [secondes] [--joueurs=8] [--perte]  # jusqu'à huit écrans : grille, aiguillage des appuis, régularité
 NODE_PATH=$(npm root -g) node tools/arrow.js <circuit>                            # sens des flèches des panneaux
 python3 tools/sheet.py <dossier de rendus> <id du modèle> <longueur en m> [largeur]  # planche de rotations
 python3 tools/env.py <planche.png> sprites/env [--erode=6] [--shadow=r,g,b] …     # découpe une planche de décor

@@ -264,10 +264,20 @@ class Race {
   extrapolate(dt) {
     if (this.state !== 'racing' && this.state !== 'finishing') return;
     const d = Math.min(dt, 0.12);
-    // L'écart laissé par le dernier instantané se résorbe en une centaine de millisecondes : assez
-    // vite pour que la voiture ne traîne pas derrière la vérité, assez lentement pour que l'œil ne
-    // voie pas de saut.
-    const k = Math.exp(-d / 0.09);
+    /* L'écart laissé par le dernier instantané se résorbe en un peu plus d'un quart de seconde.
+
+    Ce qui le crée n'est pas une erreur de trajectoire mais une erreur d'horloge : l'invité avance
+    les voitures du temps réellement écoulé, alors que l'instantané suivant rend compte du temps
+    écoulé chez l'hôte. Un instantané qui arrive dix millisecondes tard, à deux cent trente à
+    l'heure, ce sont soixante centimètres d'avance à reprendre — sans que personne ait mal conduit.
+
+    Reprise d'un coup, cette avance se voit ; étalée, non. La durée est mesurée, pas choisie : à
+    0,09 s l'invité accusait 0,18 m de saut d'une image à l'autre, à 0,18 s il tombe à 0,07, à
+    0,28 s à 0,05. Le prix est le décalage d'affichage, qui passe de 0,57 à 0,71 m au 95ᵉ centile —
+    deux millisecondes de trajet de plus, et il n'a pas de moyenne : l'avance tombe tantôt trop
+    loin, tantôt trop court. On s'arrête là parce que le gain suivant est mince et qu'une correction
+    vraie — un accrochage, une poussée — mettrait d'autant plus longtemps à se résorber. */
+    const k = Math.exp(-d / 0.28);
     for (const c of this.cars) {
       const cos = Math.cos(c.th), sin = Math.sin(c.th);
       c.x += (c.v * cos - c.vl * sin) * d;

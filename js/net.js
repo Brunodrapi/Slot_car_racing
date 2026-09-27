@@ -44,7 +44,8 @@ class Net {
     this.busy = false;
     this.mine = { pid: this.pid, name: '', car: null, ready: false };
     this.table = { mode: 'race', trackId: 'monza', laps: 3, difficulty: 'medium', go: 0 };
-    this.roster = null;            // frozen at kick-off: [pid, …], host first
+    this.grid = null;              // frozen at kick-off by the host: [{p, n, m}, …], host first
+    this.roster = null;            // the same list, pids only: [pid, …]
     this.seat = -1;
     this.peers = [];
     this.seq = 0;
@@ -89,6 +90,7 @@ class Net {
     this.room = null;
     this.state = 'off';
     this.code = null;
+    this.grid = null;
     this.roster = null;
     this.seat = -1;
     this.peers = [];
@@ -100,7 +102,9 @@ class Net {
     if (!this.room) return Promise.resolve();
     const p = Object.assign({}, this.mine, extra || {});
     if (this.creator) p.t = this.table;          // only the host's copy of the settings counts
-    if (this.roster) { p.rs = this.roster; p.seat = this.seat; }
+    // La grille du coup d'envoi ne part que de l'hôte : c'est lui qui la décide, et un invité qui
+    // la relaierait pourrait en répandre une version périmée.
+    if (this.creator && this.grid) p.gr = this.grid;
     return this.room.presence(p);
   }
 
@@ -156,30 +160,67 @@ class Net {
     this.setTable({ go: Date.now() });
   }
 
-  /** Watches the host's settings for a kick-off, and hands the game what it needs to build a grid. */
+  /** La grille publiée par l'hôte, si elle est arrivée. L'hôte est le seul à publier les
+   *  réglages : c'est à ça qu'on le reconnaît, sans avoir à se fier à l'ordre des pairs. */
+  hostGrid() {
+    for (const p of this.peers) {
+      const q = p.presence || {};
+      if (q.t && Array.isArray(q.gr) && q.gr.length >= 2) return q.gr;
+    }
+    return null;
+  }
+
+  /* Le coup d'envoi, et la grille qui va avec.
+
+  L'hôte seul compose cette grille — qui est là, dans quel ordre, au volant de quoi — et tout le
+  monde l'adopte telle quelle. C'est ce qui manquait : chaque écran recomposait la sienne à partir
+  de ce qu'il voyait à cet instant. Or `members()` écarte tout pair resté silencieux quelques
+  secondes ; un écran qui en rate un au moment du départ se retrouve avec une liste plus courte,
+  donc un décalage de toutes les places qui suivent.
+
+  Ce décalage ne se voit pas tout de suite : la grille se construit, la course part. Mais
+  l'instantané de l'hôte est une suite de voitures dans l'ordre de SA liste, appliquée chez
+  l'invité à l'ordre de la SIENNE. Chaque voiture reçoit alors l'état d'une autre, et un seul
+  pilote qui appuie fait bouger tout l'écran. À deux, l'ordre ne peut pas diverger — ce qui
+  explique que rien ne se voyait à deux.
+
+  Publier les places seules ne suffisait pas : un écran qui ne connaît pas encore un pilote garde
+  bien sa place, mais lui donne un nom par défaut et une voiture de repli, et la grille diffère
+  quand même. La grille porte donc le nom et le modèle de chacun ; l'écran n'a plus rien à
+  deviner. */
   pump() {
     this.onPeers();
     if (this.state !== 'lobby') return;
     const t = this.settings();
     if (!t.go) return;
-    const m = this.members();
-    if (m.length < 2) return;
-    this.roster = m.map(x => x.pid);
-    this.seat = this.roster.indexOf(this.pid);
-    if (this.seat < 0) { this.roster = null; return; }
+    let grid;
+    if (this.creator) {
+      const m = this.members();
+      if (m.length < 2) return;
+      grid = m.map(x => ({ p: x.pid, n: x.name, m: (x.car && x.car.modelId) || null }));
+    } else {
+      grid = this.hostGrid();
+      if (!grid) return;                         // l'invité attend la grille de l'hôte
+    }
+    const roster = grid.map(x => x.p);
+    const seat = roster.indexOf(this.pid);
+    if (seat < 0) return;                        // pas encore dedans : on attend le prochain envoi
+    this.grid = grid;
+    this.roster = roster;
+    this.seat = seat;
     this.state = 'playing';
     this.seq = 0; this.lastSeq = -1; this.outN = 0; this.seenN = {}; this.sentAtMs = 0;
     this.snapAt = performance.now();
     this.post();
     this.onStart({
       mode: t.mode, trackId: t.trackId, laps: t.laps, difficulty: t.difficulty,
-      // Nobody picks a colour any more, so the seat gives one: the order is the same on every
-      // screen, so everyone agrees on who is which without a word about it passing over the wire.
-      humans: m.map((x, i) => ({
-        name: x.name,
-        modelId: (x.car && x.car.modelId) || null,
+      // Personne ne choisit sa couleur : la place la donne. L'ordre étant celui de l'hôte, il est
+      // le même sur tous les écrans, et chacun sait qui est qui sans qu'un mot passe sur le fil.
+      humans: grid.map((g, i) => ({
+        name: g.n || ('Pilote ' + (i + 1)),
+        modelId: g.m || null,
         livery: i,
-        local: x.pid === this.pid,
+        local: g.p === this.pid,
       })),
     });
   }
@@ -188,6 +229,7 @@ class Net {
   backToLobby() {
     if (this.state !== 'playing') return;
     this.state = 'lobby';
+    this.grid = null;
     this.roster = null;
     this.seat = -1;
     if (this.creator) this.table.go = 0;

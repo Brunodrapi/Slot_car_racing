@@ -1,6 +1,11 @@
 // Une vraie table à deux écrans, mesurée des deux côtés.
 //
-//   NODE_PATH=$(npm root -g) node tools/e2e-duo.js [secondes] [--bride=1] [--joueurs=2]
+//   NODE_PATH=$(npm root -g) node tools/e2e-duo.js [secondes] [--bride=1] [--joueurs=2] [--perte]
+//
+// `--perte` reproduit le défaut qui rendait le multijoueur inutilisable à plus de deux : un écran
+// qui, au moment du coup d'envoi, ne voit pas encore l'un des pilotes. Tant que chaque écran
+// composait sa propre liste, il en résultait un décalage de toutes les places, donc un instantané
+// appliqué aux mauvaises voitures — et un seul pilote qui appuie faisait bouger tout l'écran.
 //
 // Le transport réel passe par un annuaire public WebRTC, qu'on ne peut ni exiger ni reproduire
 // dans un essai. On lui substitue donc un double bâti sur `BroadcastChannel` : deux onglets de la
@@ -61,6 +66,7 @@ const DOUBLE = `
 (async () => {
   const DUR = +(process.argv[2] || 12);
   const NJ = +((process.argv.find((x) => x.startsWith('--joueurs=')) || '--joueurs=2').split('=')[1]);
+  const PERTE = process.argv.includes('--perte');
   const bride = +((process.argv.find((x) => x.startsWith('--bride=')) || '--bride=1').split('=')[1]);
   const serveur = http.createServer((req, res) => {
     const f = path.join(ROOT, decodeURIComponent(req.url.split('?')[0]));
@@ -148,6 +154,20 @@ const DOUBLE = `
   }
 
   // --- la course ---
+  if (PERTE && invites.length >= 2) {
+    // Le dernier invité perd de vue l'un des autres, le temps du départ.
+    await invites[invites.length - 1].evaluate(() => {
+      const vrai = app.net.members.bind(app.net);
+      app.net.members = () => {
+        const l = vrai();
+        if (app.net.state !== 'lobby') return l;
+        const i = l.findIndex((x) => !x.isMe && l.indexOf(x) > 0);
+        return i >= 0 ? l.filter((_, k) => k !== i) : l;
+      };
+      window.__perte = vrai;
+    });
+    console.log('\n(un invité ne voit pas l’un des pilotes au moment du départ)');
+  }
   await hote.evaluate(() => app.net.start());
   await hote.waitForTimeout(1200);
   const enCourse = async (p) => p.evaluate(() => ({
@@ -162,12 +182,13 @@ const DOUBLE = `
                    x: +c.x.toFixed(1), y: +c.y.toFixed(1) })) : []));
   // Un pilote dont le modèle est inconnu de tous : le repli doit donner la MÊME voiture sur
   // chaque écran, sinon chacun voit une grille différente.
+  if (PERTE) for (const p of invites) await p.evaluate(() => { if (window.__perte) app.net.members = window.__perte; });
   const g0 = await grille(hote);
   const gTous = [];
   for (const p of tous) gTous.push(await grille(p));
   for (let k = 1; k < gTous.length; k++) {
-    const a = gTous[0].map((c) => `${c.place}:${c.modele}`).join(' ');
-    const b = gTous[k].map((c) => `${c.place}:${c.modele}`).join(' ');
+    const a = gTous[0].map((c) => `${c.place}:${c.nom}:${c.modele}`).join(' ');
+    const b = gTous[k].map((c) => `${c.place}:${c.nom}:${c.modele}`).join(' ');
     if (a !== b) { faute++; console.log(`  ÉCHEC : l’écran ${k} voit une autre grille\n    hôte    ${a}\n    écran ${k} ${b}`); }
   }
   if (gTous.every((g, k) => k === 0 || g.map((c) => c.modele).join() === gTous[0].map((c) => c.modele).join()))
@@ -202,10 +223,10 @@ const DOUBLE = `
   demie où un seul appuie ne ment pas. */
   const positions = async (p) => p.evaluate(() => app.race.cars.map((c) => ({
     nom: c.name, place: c.human == null ? null : c.human, x: c.x, y: c.y })));
-  const parcouru = async (qui, nom) => {
-    // Tout le monde à l'arrêt d'abord. Sans cela, une voiture qui finit de ralentir après l'essai
-    // précédent parcourt encore quelques mètres, et on accuserait la commande d'un autre pilote
-    // d'un simple reste d'élan — relâcher, dans ce jeu, veut dire freiner.
+  // Tout le monde à l'arrêt. Sans cela, une voiture qui finit de ralentir après l'essai précédent
+  // parcourt encore quelques mètres, et on accuserait la commande d'un autre pilote d'un simple
+  // reste d'élan — relâcher, dans ce jeu, veut dire freiner.
+  const arret = async () => {
     await hote.evaluate(async () => {
       for (let i = 0; i < 100; i++) {
         const v = Math.max(...app.race.cars.filter((c) => c.human != null).map((c) => Math.abs(c.v)));
@@ -213,14 +234,26 @@ const DOUBLE = `
         await new Promise((r) => setTimeout(r, 100));
       }
     });
-    await hote.waitForTimeout(200);
+    await hote.waitForTimeout(400);      // le temps que le dernier instantané arrive partout
+  };
+  const parcouru = async (qui, nom) => {
+    /* Les positions ne sont relevées que voitures arrêtées, avant et après.
+
+    Les écrans sont interrogés l'un après l'autre, et sous huit onglets chaque aller-retour coûte
+    ses dizaines de millisecondes : relever pendant que ça roule, c'est comparer des instants
+    différents. À douze mètres par seconde, un demi-tour de boucle sur huit écrans suffisait à
+    afficher quatre mètres d'« écart avec l'hôte » là où les écrans étaient parfaitement d'accord.
+    À l'arrêt, il n'y a plus d'instant à choisir. La distance compte alors le ralentissement en
+    plus de l'accélération, ce qui ne change rien à la question posée : qui a avancé ? */
+    await arret();
     const avant = [];
     for (const p of tous) avant.push(await positions(p));
     await qui.evaluate(() => { app.input.throttle = true; });
     await qui.waitForTimeout(1500);
+    await qui.evaluate(() => { app.input.throttle = false; });
+    await arret();
     const apres = [];
     for (const p of tous) apres.push(await positions(p));
-    await qui.evaluate(() => { app.input.throttle = false; });
     const d = apres.map((g, k) => g.map((c, i) => Math.hypot(c.x - avant[k][i].x, c.y - avant[k][i].y)));
     const humains = apres[0].map((c, i) => ({ i, nom: c.nom, place: c.place })).filter((c) => c.place !== null);
     console.log(`\n  seul ${nom} appuie — mètres parcourus par pilote humain :`);
@@ -246,39 +279,76 @@ const DOUBLE = `
   // La régularité du mouvement chez l'invité : il ne simule rien, il rejoue. Une accélération
   // mesurée image par image révèle les à-coups qu'une moyenne d'images par seconde cache.
   const bouge = async (p, sec) => p.evaluate(async (s2) => {
-    app.input.throttle = true;
-    const xs = [], dt = [], arr = [];
+    const xs = [], dt = [], vs = [], es = [], arr = [];
     let vuSeq = -1;
-    let last = performance.now();
-    await new Promise((f) => { const tick = () => {
-      const n = performance.now(); dt.push(n - last); last = n;
-      const c = app.race && app.race.player; if (c) xs.push([c.pos.x, c.pos.y]);
-      if (!app.net.isHost() && app.net.lastSeq !== vuSeq) { vuSeq = app.net.lastSeq; arr.push(n); }
+    let last = null;
+    // La durée d'image est prise sur l'horloge de l'image, celle que rAF passe au jeu et dont il
+    // se sert pour avancer les voitures. `performance.now()` lu dans la fonction y ajoute le
+    // retard d'ordonnancement, qui ne bouge aucune voiture : mesurée là, l'irrégularité paraîtrait
+    // dix fois pire qu'elle n'est.
+    await new Promise((f) => { const tick = (ts) => {
+      if (last !== null) dt.push(ts - last);
+      last = ts;
+      const c = app.race && app.race.player;
+      if (c) { xs.push([c.pos.x, c.pos.y]); vs.push(Math.hypot(c.v, c.vl)); es.push(Math.hypot(c.ex || 0, c.ey || 0)); }
+      if (!app.net.isHost() && app.net.lastSeq !== vuSeq) { vuSeq = app.net.lastSeq; arr.push(performance.now()); }
       if (dt.length < s2 * 60) requestAnimationFrame(tick); else f(); }; requestAnimationFrame(tick); });
-    app.input.throttle = false;
-    // saut : la variation de la variation de position, en mètres. Un mouvement régulier la garde
-    // minuscule ; un recalage brutal la fait bondir.
-    const sauts = [];
+    /* saut : la variation de la variation de position, en mètres. Un mouvement régulier la garde
+    minuscule ; un recalage brutal la fait bondir.
+
+    Mais une image qui arrive en retard fait bondir la même mesure sans qu'il y ait quoi que ce
+    soit à reprocher au jeu : la voiture avance à sa vitesse, et si l'image dure quatre
+    millisecondes de plus, elle avance d'autant. On relève donc en même temps ce que la seule
+    irrégularité des images explique — vitesse × écart de durée — pour ne pas mettre sur le dos de
+    la liaison ce qui revient au processeur. */
+    const sauts = [], plancher = [];
     for (let i = 2; i < xs.length; i++) {
       const ax = xs[i][0] - 2 * xs[i - 1][0] + xs[i - 2][0];
       const ay = xs[i][1] - 2 * xs[i - 1][1] + xs[i - 2][1];
       sauts.push(Math.hypot(ax, ay));
+      plancher.push(vs[i] * Math.abs(dt[i - 1] - dt[i - 2]) / 1000);
     }
     const tri = dt.slice(8).sort((a, b) => a - b), ts = sauts.slice().sort((a, b) => a - b);
+    const tp = plancher.slice().sort((a, b) => a - b);
+    // Le décalage d'affichage lui-même : ce que la voiture montrée s'écarte de la position reçue.
+    // Lisser plus longtemps rend le mouvement plus doux mais laisse ce décalage s'écarter
+    // davantage ; il n'a pas de moyenne — l'avance d'une image tombe tantôt trop loin, tantôt trop
+    // court — mais on veut voir les deux côtés du marché plutôt que les deviner.
+    const te = es.slice().sort((a, b) => a - b);
     const ecarts = []; for (let i = 1; i < arr.length; i++) ecarts.push(arr[i] - arr[i - 1]);
     ecarts.sort((a, b) => a - b);
     return { im: +(1000 / (tri.reduce((a, b) => a + b, 0) / tri.length)).toFixed(1),
              snapHz: ecarts.length ? +(1000 / ecarts[ecarts.length >> 1]).toFixed(1) : null,
              snapPire: ecarts.length ? +ecarts[ecarts.length - 1].toFixed(0) : null,
+             vmax: +Math.max(...vs).toFixed(1),
+             ecartP95: +te[Math.floor(te.length * 0.95)].toFixed(3),
+             ecartMax: +te[te.length - 1].toFixed(3),
+             imageP95: +tp[Math.floor(tp.length * 0.95)].toFixed(3),
              sautMedian: +ts[ts.length >> 1].toFixed(3),
              sautP95: +ts[Math.floor(ts.length * 0.95)].toFixed(3),
-             sautMax: +ts[ts.length - 1].toFixed(3) };
+             sautMax: +ts[ts.length - 1].toFixed(3),
+             dbg: { etat: app.race.state, silence: +app.net.silence().toFixed(2), thr: app.input.throttle,
+                    lastI: app.net.lastI, n: app.net.outN, place: app.net.seat,
+                    monThr: app.race.player.throttle, tour: app.race.player.lap } };
   }, sec);
+  /* Tout le monde roule pendant la mesure, pas seulement les deux écrans qu'on relève.
+
+  Les essais d'appui laissent chaque voiture là où elle s'est arrêtée, et l'invité finit le nez
+  contre la voiture immobile de la place précédente. Huit secondes de plein gaz contre un
+  pare-chocs, et la mesure dit « aucun à-coup » — pour la meilleure des mauvaises raisons : rien
+  n'avançait. La garde sur la vitesse maximale l'a attrapé ; le remède est de libérer la piste. */
+  await Promise.all(tous.map((p) => p.evaluate(() => { app.input.throttle = true; })));
+  await hote.waitForTimeout(1500);
   const [mh, mi] = await Promise.all([bouge(hote, DUR), bouge(invite, DUR)]);
-  console.log('\n                 im/s   saut médian   saut p95   saut max   instantanés');
-  console.log(`  hôte      ${String(mh.im).padStart(8)} ${String(mh.sautMedian).padStart(13)} ${String(mh.sautP95).padStart(10)} ${String(mh.sautMax).padStart(10)}`);
-  console.log(`  invité    ${String(mi.im).padStart(8)} ${String(mi.sautMedian).padStart(13)} ${String(mi.sautP95).padStart(10)} ${String(mi.sautMax).padStart(10)}` +
-    `   ${mi.snapHz} Hz, pire écart ${mi.snapPire} ms`);
+  await Promise.all(tous.map((p) => p.evaluate(() => { app.input.throttle = false; })));
+  console.log('\n                 im/s   v max   saut médian   saut p95   saut max   dû aux images   décalage p95/max   instantanés');
+  console.log(`  hôte      ${String(mh.im).padStart(8)} ${String(mh.vmax).padStart(7)} ${String(mh.sautMedian).padStart(13)} ${String(mh.sautP95).padStart(10)} ${String(mh.sautMax).padStart(10)} ${String(mh.imageP95).padStart(15)}`);
+  console.log(`  invité    ${String(mi.im).padStart(8)} ${String(mi.vmax).padStart(7)} ${String(mi.sautMedian).padStart(13)} ${String(mi.sautP95).padStart(10)} ${String(mi.sautMax).padStart(10)} ${String(mi.imageP95).padStart(15)}` +
+    `   ${(mi.ecartP95 + ' / ' + mi.ecartMax).padStart(17)}   ${mi.snapHz} Hz, pire écart ${mi.snapPire} ms`);
+  /* Une voiture immobile ne saute pas : sans cette vérification, un invité dont la commande
+  n'arrive pas chez l'hôte passerait l'essai haut la main. C'est arrivé. */
+  for (const [nom, m] of [['hôte', mh], ['invité', mi]])
+    if (m.vmax < 10) { faute++; console.log(`  ÉCHEC : la voiture de l’${nom} n’a pas roulé (${m.vmax} m/s) — la mesure ne vaut rien\n    ${JSON.stringify(m.dbg)}`); }
   /* Le seuil : un plancher absolu, relevé par ce que l'hôte fait lui-même.
 
   Le plancher d'abord, parce que ce qui compte est l'écart en mètres : le défaut corrigé valait
@@ -290,10 +360,12 @@ const DOUBLE = `
   ordinateur, l'hôte monte à 0,59 m alors qu'il ne rejoue rien du tout : c'est le processeur qui
   lâche, pas la liaison. Dans ce cas l'invité n'a pas à faire mieux que l'hôte, et on ne conclut
   que s'il fait nettement pire. */
-  const limite = Math.max(0.10, mh.sautP95 * 1.5);
-  if (mi.sautP95 > limite) { faute++; console.log(`  ÉCHEC : l’invité saute de ${mi.sautP95} m au 95e centile, la limite est ${limite.toFixed(3)}`); }
-  else console.log(`  ok : l’invité à ${mi.sautP95} m au 95e centile, sous la limite de ${limite.toFixed(3)}` +
-    (mh.sautP95 > 0.05 ? '  (machine saturée : l’hôte lui-même est à ' + mh.sautP95 + ')' : ''));
+  const limite = Math.max(0.10, mh.sautP95 * 1.5, mi.imageP95 * 1.5);
+  const pourquoi = mi.imageP95 * 1.5 > Math.max(0.10, mh.sautP95 * 1.5)
+    ? `  (machine saturée : les images seules de l’invité en expliquent ${mi.imageP95})`
+    : (mh.sautP95 > 0.05 ? '  (machine saturée : l’hôte lui-même est à ' + mh.sautP95 + ')' : '');
+  if (mi.sautP95 > limite) { faute++; console.log(`  ÉCHEC : l’invité saute de ${mi.sautP95} m au 95e centile, la limite est ${limite.toFixed(3)}${pourquoi}`); }
+  else console.log(`  ok : l’invité à ${mi.sautP95} m au 95e centile, sous la limite de ${limite.toFixed(3)}${pourquoi}`);
 
   console.log('\nerrors', errs);
   await browser.close();
