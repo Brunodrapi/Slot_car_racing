@@ -97,8 +97,23 @@ class UI {
   }
   L(obj) { return obj[this.lang] || obj.en; }
 
-  show(html, cls) {
+  /* Redessiner un écran ne doit pas le renvoyer en haut.
+
+  Chaque réglage — le nombre de tours, le circuit, la voiture — reconstruit l'écran entier, et
+  remplacer le contenu remet le défilement à zéro : on choisissait ses tours en bas de page et on se
+  retrouvait en haut, à devoir redescendre pour le réglage suivant.
+
+  Le défilement est donc conservé quand l'écran redessiné est **le même**, reconnu par une clé que
+  chaque écran se donne. Conserver sur la seule foi de la classe CSS ne suffirait pas : deux écrans
+  différents la partagent, et on arriverait sur le second à la hauteur où l'on avait laissé le
+  premier. Sans clé, on repart du haut — c'est ce qu'on veut en changeant d'écran. */
+  show(html, cls, cle) {
+    const avant = this.root.firstElementChild;
+    const garder = cle != null && cle === this._cleEcran && avant;
+    const y = garder ? avant.scrollTop : 0;
     this.root.innerHTML = `<div class="screen ${cls || ''}">${html}</div>`;
+    this._cleEcran = cle == null ? null : cle;
+    if (y) this.root.firstElementChild.scrollTop = y;
     this.root.classList.remove('hidden');
     this.paintIcons();
   }
@@ -303,7 +318,7 @@ class UI {
         <label>${t('difficulty')}<select id="sel-diff">${['easy', 'medium', 'hard'].map(d => `<option value="${d}" ${s.difficulty === d ? 'selected' : ''}>${t(d)}</option>`).join('')}</select></label>
       </div>
       <div class="row"><button data-action="menu">${t('back')}</button><button class="danger" data-action="resetAll">${t('resetAll')}</button></div>
-    `);
+    `, '', 'reglages');
   }
 
   setupScreen(mode) {
@@ -348,7 +363,7 @@ class UI {
         <div><h3>${t('lapCount')}</h3><div class="seg">${[0, 1, 2, 3, 5, 10].map(n => `<button class="${(s.laps || 0) === n ? 'sel' : ''}" data-action="pickLaps" data-id="${n}">${n === 0 ? `${t('lapAuto')} (${lapsFor(trackDef, cat)})` : n}</button>`).join('')}</div></div>` : `<div><h3>${t('yourBest')}</h3><div class="bestlap">${best ? fmtTime(best) : '--:--.---'}</div></div>`}
       </div>
       <div class="row end"><span class="muted">${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ${escapeHtml(model.name)} · ${mode === 'race' ? `${laps} ${t('laps')}` : t('ttIntro')}</span><button class="big primary" data-action="startQuick">${t('start')}</button></div>
-    `, 'scroll');
+    `, 'scroll', 'depart:' + mode);
   }
 
   // ---------- racing together ----------
@@ -412,7 +427,7 @@ class UI {
         <button class="${net.mine.ready ? '' : 'primary'}" data-action="netReady">${net.mine.ready ? t('notReady') : t('ready')}</button>
         ${net.creator ? `<button class="big primary" data-action="netStart" ${net.canStart() ? '' : 'disabled'}>${t('start')}</button>` : `<span class="muted">${t('startWhenReady')}</span>`}
       </div>
-    `, 'scroll');
+    `, 'scroll', 'salon');
   }
 
   careerScreen() {
@@ -432,7 +447,7 @@ class UI {
         }).join('')}
       </div>
       ${allUnlocked(s) ? `<p class="muted">${t('allUnlocked')}</p>` : ''}
-    `, 'scroll');
+    `, 'scroll', 'carriere');
   }
 
   cupScreen(cupId) {
@@ -457,7 +472,7 @@ class UI {
           ${cs.done ? '' : `<div class="row end"><button class="big primary" data-action="startCup" data-id="${cupId}">${t('startRace')} — ${trackDef.name}</button></div>`}
         </div>
       </div>
-    `, 'scroll');
+    `, 'scroll', 'coupe:' + cupId);
   }
 
   standingsTable(cup, cs) {
@@ -531,7 +546,7 @@ class UI {
           ${cars.length ? `<div class="grid models">${cars.map(c => { const m = modelById(c.id); return `<div class="card">${m ? this.carIcon(m, livery) : ''}<b>${escapeHtml(c.name)}</b><small>${this.L(categoryById(c.catId).name)}</small><button class="link danger" data-action="wsDelete" data-id="${c.id}">${t('deleteTrack')}</button></div>`; }).join('')}</div>` : `<p class="muted">${t('wsNone')}</p>`}
         </div>
       </div>
-    `, 'scroll');
+    `, 'scroll', 'atelier');
   }
 
   async _workshopAdd() {

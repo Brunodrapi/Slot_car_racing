@@ -134,6 +134,24 @@ Le dessin est mis à l'échelle sur la **longueur** de la voiture, en gardant se
 illustration inclut les rétroviseurs et l'aileron, elle sort donc un peu plus large que la boîte de
 collision.
 
+## Changer un réglage ne renvoie plus la page en haut
+
+Chaque choix de l'écran de départ — le nombre de tours, le circuit, la voiture, la difficulté —
+reconstruit l'écran entier. Or remplacer le contenu d'un conteneur remet son défilement à zéro : on
+choisissait ses tours en bas de page et on se retrouvait en haut, à devoir redescendre pour le
+réglage suivant. Mesuré, la page sautait de **1677 pixels**.
+
+Le défilement est conservé quand l'écran redessiné est **le même**, reconnu par une clé que chaque
+écran se donne — `depart:race`, `salon`, `coupe:<id>`, `atelier`. Se fier à la seule classe CSS ne
+suffirait pas : plusieurs écrans partagent `scroll`, et on arriverait sur le second à la hauteur où
+l'on avait laissé le premier. Sans clé, on repart du haut, ce qui est le bon comportement quand on
+change d'écran.
+
+`tools/e2e-menu.js` fait ce que fait le joueur : il descend, il clique sur un réglage, il regarde où
+il est. Il vérifie aussi l'autre moitié de la règle — revenir au menu puis rouvrir l'écran doit
+repartir du haut — sans quoi le remède serait pire que le mal. Et il commence par s'assurer que
+l'écran défile vraiment : sur une page trop courte pour défiler, l'essai passerait sans rien prouver.
+
 ## Les trois trajectoires
 
 La trajectoire idéale n'est pas devinée, elle est **résolue**. On écrit la ligne comme un décalage
