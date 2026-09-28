@@ -26,6 +26,10 @@ const THEME_BASE = {
   asphalt: '#4e3f57', asphaltLight: '#5b4a64',
   outline: '#241d2a',
   edgeLine: '#eceaf0', centre: null,
+  // Les deux bords de piste, teintés du côté du virage : froid dedans, chaud dehors, et ce sont les
+  // couleurs du curseur de ligne pour que le lien se fasse sans légende. Assez clairs pour rester
+  // des lignes peintes sur de l'asphalte, assez marqués pour se distinguer d'un coup d'œil.
+  edgeIn: '#7fd4ff', edgeOut: '#ffcf5c',
   kerbA: '#c33b30', kerbB: '#eceaf0',
   gravel: '#c8ab72', gravelDark: '#b39660',
   canopy: ['#3f7a34', '#4b8d3c', '#336629'], pine: ['#2f5f4f', '#37705d'],
@@ -80,7 +84,7 @@ const THEME_DEFS = {
     grass: '#dcd2c8', grassLight: '#e7ded2', grassDark: '#cfc4b6',
     earth: '#877482', earthDark: '#746373',
     asphalt: '#56465e', asphaltLight: '#62526a',
-    edgeLine: '#f5f2e8', centre: '#f5f2e8',
+    edgeLine: '#f5f2e8', centre: '#f5f2e8', edgeIn: '#8fdcff', edgeOut: '#ffd97a',
     kerbA: '#c33b30', kerbB: '#f4f1e8',
     gravel: '#cfc3ae', gravelDark: '#bdb09a',
     canopy: ['#4f9a55', '#5cae61', '#3f7f45'], pine: ['#3f7a5a', '#4a8c69'],
@@ -428,7 +432,35 @@ class Renderer {
         const x = xs[k] + nx[k] * off, y = ys[k] + ny[k] * off;
         if (i === a) mp.moveTo(x, y); else mp.lineTo(x, y);
       }
-      chunks.push({ fill, left: lp, right: rp, mid: mp,
+      /* Les bords teintés : dedans ou dehors.
+
+      Les lignes blanches de part et d'autre de la piste ne disaient rien. Elles portent maintenant
+      le côté du virage — froid vers l'intérieur, chaud vers l'extérieur — avec les couleurs mêmes
+      du curseur de ligne, pour que le lien se fasse sans légende.
+
+      Chaque bord est donc découpé en tronçons selon `track.sens`, et non teinté d'un bloc : un
+      raccord de soixante mètres traverse parfois un changement de main, et le colorer d'une seule
+      couleur mentirait sur la moitié de sa longueur. Le point de bascule est repris dans les deux
+      tronçons, faute de quoi un trou blanc apparaîtrait entre eux. */
+      const eIn = new Path2D(), eOut = new Path2D();
+      for (const side of [1, -1]) {
+        let dedansAvant = null;
+        for (let i = a; i <= b; i += STEP) {
+          const k = ((i % N) + N) % N;
+          const dedans = side > 0 ? track.sens[k] > 0 : track.sens[k] < 0;
+          const q = edgePt(i, side);
+          const cible = dedans ? eIn : eOut;
+          if (dedans !== dedansAvant) {
+            if (dedansAvant !== null) {              // rattacher au point de bascule
+              const autre = dedansAvant ? eIn : eOut;
+              autre.lineTo(q[0], q[1]);
+            }
+            cible.moveTo(q[0], q[1]);
+            dedansAvant = dedans;
+          } else cible.lineTo(q[0], q[1]);
+        }
+      }
+      chunks.push({ fill, left: lp, right: rp, mid: mp, edgeIn: eIn, edgeOut: eOut,
                     bbox: { minX: minX - 12, minY: minY - 12, maxX: maxX + 12, maxY: maxY + 12 } });
     }
 
@@ -723,9 +755,12 @@ class Renderer {
         g.strokeStyle = PAL.outline; g.lineWidth = 0.34; g.stroke(cn.kerbEdge);
       }
       g.restore();
-      // painted markings: solid white at the edges, dashed yellow down the middle
-      g.strokeStyle = PAL.edgeLine; g.lineWidth = 0.55;
-      for (const c of vus) { g.stroke(c.left); g.stroke(c.right); }
+      // painted markings: the edges say which side of the corner they are, dashed yellow down the middle
+      g.lineWidth = 0.55;
+      g.strokeStyle = PAL.edgeIn || PAL.edgeLine;
+      for (const c of vus) g.stroke(c.edgeIn);
+      g.strokeStyle = PAL.edgeOut || PAL.edgeLine;
+      for (const c of vus) g.stroke(c.edgeOut);
       if (PAL.centre) {
         g.setLineDash([2.6, 3.4]);
         g.strokeStyle = PAL.centre; g.lineWidth = 0.42;

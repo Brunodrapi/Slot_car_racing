@@ -106,6 +106,20 @@ for (const def of TRACKS) {
     const cx = T.xs[b] - 2 * T.xs[i] + T.xs[a], cy = T.ys[b] - 2 * T.ys[i] + T.ys[a];
     enVirage[i] = Math.hypot(cx, cy) / (T.ds * T.ds * 225) > 0.004 ? 1 : 0;
   }
+  /* Le sens qui teinte les bords de piste est-il le bon ?
+
+  C'est la même donnée que celle qui construit les lignes, mais elle sert aussi au rendu : chaque
+  bord est coloré froid s'il est du côté intérieur du virage, chaud sinon. Un bord teinté à l'envers
+  dirait au joueur le contraire de ce qu'il voit, ce qui est pire que de ne rien dire. */
+  let sensOk = 0, sensTot = 0;
+  for (let i = 0; i < N; i++) {
+    if (!enVirage[i] || !T.sens || Math.abs(T.sens[i]) < 0.5) continue;
+    const a = (i - 15 + N) % N, b = (i + 15) % N;
+    const cx = T.xs[b] - 2 * T.xs[i] + T.xs[a], cy = T.ys[b] - 2 * T.ys[i] + T.ys[a];
+    sensTot++;
+    if (Math.sign(T.sens[i]) === Math.sign(cx * T.nx[i] + cy * T.ny[i])) sensOk++;
+  }
+
   let appOk = 0, appTotal = 0;
   for (let i = 0; i < N; i++) {
     if (!enVirage[i] || enVirage[(i - 1 + N) % N]) continue;       // l'entrée d'un virage
@@ -131,6 +145,7 @@ for (const def of TRACKS) {
              sepDroite: nDroite ? sepDroite / nDroite : 0,
              pcCollees: 100 * collees / N,
              dInt: lInt - lRac, dExt: lExt - lRac,
+             pcSens: sensTot ? 100 * sensOk / sensTot : 0,
              pcApp: appTotal ? 100 * appOk / appTotal : 0,
              pcOpp: paires ? 100 * opposees / paires : 0,
              pcRab: paires ? 100 * intRabattue / paires : 0 });
@@ -160,6 +175,9 @@ console.log(`\n  moyenne : intérieure juste en virage ${moy('pcInt').toFixed(0)
   + ` écart en ligne droite ${moy('sepDroite').toFixed(1)} m, lignes collées sur ${moy('pcCollees').toFixed(0)} % du tour`);
 console.log(`  les deux lignes se déportent de part et d'autre : ${moy('pcOpp').toFixed(0)} % du temps`
   + ` — quand ce n'est pas le cas, l'intérieure est rabattue du côté de l'extérieure dans ${moy('pcRab').toFixed(0)} % des cas`);
+const sensMoy = moy('pcSens');
+console.log(`  le sens qui teinte les bords de piste est juste dans ${sensMoy.toFixed(0)} % des virages`);
+if (sensMoy < 85) { console.log('  ÉCHEC : les bords de piste diraient le contraire de ce qu’on voit'); process.exitCode = 1; }
 const bonnesLongueurs = res.filter((r) => r.dInt < 0 && r.dExt > 0).length;
 console.log(`  longueurs : l'intérieure est plus courte et l'extérieure plus longue que la ligne de course`
   + ` sur ${bonnesLongueurs} circuits sur ${res.length}`);

@@ -117,6 +117,13 @@ class Track {
     const baseHw = (def.width || 12) * this.widthScale / 2;
     this.hwL.fill(baseHw); this.hwR.fill(baseHw);
 
+    /* De quel côté est l'intérieur du virage, en tout point — calculé ici et non dans le générateur
+    de lignes, parce que le rendu s'en sert aussi : les deux bords de piste sont teintés d'après lui,
+    pour qu'on lise d'un coup d'œil de quel côté se trouve la corde. Un circuit qui porte ses lignes
+    à la main ne passe pas par le générateur, et doit pourtant avoir ses bords teintés : le sens ne
+    dépend que du tracé, pas des lignes. */
+    this.sens = this._sensVirages();
+
     // lines
     this.lines = {};
     // Les lignes sont dans les mêmes unités que `pts`, donc remises à l'échelle comme lui. Passer
@@ -318,7 +325,7 @@ class Track {
     curseur. Faire de l'intérieure le chemin le plus court du couloir — le fil tendu, qui est la
     vraie ligne défensive et serre tous les apex : 228 sorties, parce que la plus courte est aussi
     celle de plus petit rayon, et que les voitures ne la tiennent pas. */
-    const g = this._sensVirages();
+    const g = this.sens;
     const inside = new Float32Array(N), outside = new Float32Array(N);
     for (let i = 0; i < N; i++) {
       const r = racing[i];

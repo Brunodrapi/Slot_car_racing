@@ -282,6 +282,24 @@ plus court du couloir — le fil tendu, qui est la vraie ligne défensive et ser
 **228 sorties**, parce que la plus courte est aussi celle de plus petit rayon et que les voitures ne
 la tiennent pas. La construction en place reste la meilleure des trois sur les deux tableaux.
 
+### Les bords de piste disent de quel côté est la corde
+
+Les deux lignes blanches de part et d'autre de la route ne disaient rien. Elles portent maintenant le
+côté du virage : **froid vers l'intérieur, chaud vers l'extérieur**, avec les couleurs mêmes du
+curseur de ligne, pour que le lien se fasse sans légende. Là où les deux lignes de conduite se
+croisent, les teintes des bords s'échangent aussi — le croisement se voit donc sur la route, à
+l'endroit où il se produit.
+
+Chaque bord est découpé en tronçons plutôt que teinté d'un bloc : un raccord de rendu fait soixante
+mètres et traverse parfois un changement de main, si bien qu'une couleur unique mentirait sur la
+moitié de sa longueur. Le point de bascule appartient aux deux tronçons, faute de quoi un trou blanc
+apparaîtrait entre eux.
+
+Le sens qui les teinte est la donnée même qui construit les lignes, et non une seconde estimation qui
+pourrait en diverger. `tools/cotes.js` le vérifie contre la géométrie du tracé : **juste dans 99 %
+des virages**. Un bord teinté à l'envers dirait au joueur le contraire de ce qu'il voit, ce qui est
+pire que de ne rien dire.
+
 ### Le limiteur rabattait l'intérieure
 
 Le défaut qui restait après tout cela, et le plus instructif. Le limiteur de pente s'appliquait à la
