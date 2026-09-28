@@ -177,11 +177,40 @@ fautive alors qu'elle n'a rien fait de mal.
 
 | | avant | après |
 |---|---|---|
-| intérieure du bon côté | 1 % | **91 %** |
-| extérieure du bon côté | 50 % | 79 % |
+| intérieure du bon côté, en virage | 1 % | **94 %** |
+| intérieure du bon côté, **à l'approche** | — | **86 %** |
 | longueurs cohérentes | 3 circuits sur 12 | **12 sur 12** |
-| écart des lignes en ligne droite | 3,5 m | **7,7 m** |
-| tour où les lignes se confondent | 13 % | 6 % |
+| écart des lignes en ligne droite | 3,5 m | **7,8 m** |
+| tour où les lignes se confondent | 13 % | 4 % |
+| sorties de piste de l'IA, douze circuits | 119 | **104** |
+
+### La mesure ne regardait pas où le joueur regarde
+
+Premier verdict : 91 % en virage, affaire classée. Puis, sur Monza, la ligne intérieure passait
+visiblement à l'extérieur d'un virage. Les deux ne se contredisaient pas — la mesure ne comptait que
+les échantillons **en** virage, alors qu'une ligne intérieure n'est pas d'abord une ligne de virage :
+c'est celle qui **arrive** du côté intérieur du virage qui vient, cent mètres avant le point de
+corde. C'est là qu'elle ferme la porte, et c'est là qu'elle se voit.
+
+Mesurée sur l'approche — les quatre-vingts mètres avant l'entrée — elle n'était du bon côté que
+**71 %** du temps, et 55 % au Nürburgring. La règle partageait chaque ligne droite en deux, moitié au
+sens du virage précédent : sur cette première moitié, l'intérieure longeait encore le côté du virage
+d'avant, donc l'extérieur de celui qu'elle abordait. Le sens du virage précédent n'est désormais tenu
+que le temps de se déplier, une trentaine de mètres, et toute la suite de la droite appartient au
+virage qui vient.
+
+### Un seuil relatif se trompe sur les tracés contrastés
+
+Le défaut que Monza montrait encore. Décider s'il y a « assez de virage pour choisir un côté » avec
+un seuil relatif au virage le plus serré du circuit marche sur un tracé homogène et pas ailleurs : à
+Monza les chicanes font 22 m de rayon, si bien qu'une grande courbe de 234 m tombait sous 18 % du
+maximum, était classée ligne droite, et héritait du sens de ses voisines — les deux lignes s'y
+retrouvaient inversées sur cinq mètres d'écart, dans exactement le genre de virage rapide où le choix
+de ligne décide d'un dépassement.
+
+Le seuil est maintenant d'abord absolu, et dit la chose physique : en deçà de 400 m de rayon, il y a
+un côté à choisir. Le seuil relatif reste comme plafond, pour qu'un tracé sans aucun virage serré
+laisse quand même ses grandes courbes décider.
 
 ### Des voies séparées dans les lignes droites
 
@@ -212,10 +241,22 @@ lignes ne se trouvaient de part et d'autre de la rapide que **60 % du temps**.
 
 Le limiteur porte maintenant sur l'**écart à la ligne de course**, pas sur la position. C'est ce qui
 a un sens : une voiture sur la ligne intérieure roule sensiblement parallèle à la rapide et ne s'en
-écarte que progressivement. Les deux lignes sont désormais de part et d'autre 83 % du temps, et c'est
+écarte que progressivement. Les deux lignes sont désormais de part et d'autre 85 % du temps, et c'est
 ce seul changement qui a fait passer l'intérieure de 57 à 91 %.
 
-L'IA ne s'en porte pas plus mal : 112 sorties de piste sur les douze circuits contre 119 avant.
+Sa valeur est mesurée et non choisie, parce qu'elle arbitre deux choses opposées : trop basse, la
+ligne intérieure n'a pas le temps de traverser la piste avant le virage ; trop haute, elle traverse
+plus vite que les voitures ne savent suivre. Balayée sur les douze circuits, avec d'un côté la part
+de l'approche réussie et de l'autre les sorties de piste en course :
+
+| pente | approche juste | sorties de piste |
+|---|---|---|
+| 0,07 | 82 % | 98 |
+| **0,10** | **84 %** | **97** |
+| 0,12 | 85 % | 109 |
+| 0,18 | 86 % | 147 |
+
+Le coude est à 0,10 : au-delà on gagne un point d'approche et on paie douze sorties.
 
 **Ce qui la retenait au milieu de la piste**, avant, n'était pas seulement la formule qu'elle
 remplace : un limiteur bornait le déplacement latéral à sept centimètres par mètre parcouru. À ce

@@ -125,7 +125,19 @@ class Track {
     // longueur voulue, si bien que des lignes explicites auraient été projetées à côté de la piste.
     if (def.lines && def.lines.racing) this._projectLines(def.lines, this.unitScale);
     else this._autoLines();
-    this._limitLines(0.07, Track.RACING_SLOPE);
+    /* Dix centimètres par mètre pour les lignes secondaires, mesuré et non choisi.
+
+    Le chiffre arbitre deux choses qui tirent en sens contraire. Trop bas, la ligne intérieure
+    n'a pas le temps de traverser la piste avant le virage et l'aborde encore du mauvais côté.
+    Trop haut, elle traverse plus vite que les voitures ne savent suivre, et l'IA sort de piste.
+    Balayé sur les douze circuits, avec d'un côté la part de l'approche où l'intérieure est bien
+    à l'intérieur et de l'autre le nombre de sorties de piste en course :
+
+        0,07 → 82 % et 98 sorties      0,12 → 85 % et 109
+        0,10 → 84 % et 97              0,18 → 86 % et 147
+
+    Le coude est à 0,10 : au-delà on gagne un point d'approche et on paie douze sorties. */
+    this._limitLines(0.10, Track.RACING_SLOPE);
     if (def.lines && !def.width) this._widthFromLines();
     this._clampLines();
     this._lineCurvatures();
@@ -352,12 +364,21 @@ class Track {
     for (let i = 0; i < N; i++) num[i] = dir[i] * poids[i];
     const numS = Track.smooth(num, 30), poidsS = Track.smooth(poids, 30);
 
-    // Où il y a assez de virage pour décider. Le seuil est relatif au circuit : un tracé de ville
-    // et un anneau de vitesse n'ont pas les mêmes courbures, et un seuil absolu déclarerait l'un
-    // tout en virages et l'autre tout en lignes droites.
+    /* Où il y a assez de virage pour décider — et le seuil est d'abord absolu.
+
+    Un seuil seulement relatif au virage le plus serré du circuit se trompe sur les tracés
+    contrastés. À Monza les chicanes font 22 m de rayon ; une grande courbe de 234 m tombait donc
+    très en dessous de 18 % du maximum, se voyait classée « ligne droite », et héritait du sens de
+    ses voisines — les deux lignes s'y retrouvaient franchement inversées, sur cinq mètres d'écart.
+    C'est exactement le genre de virage rapide où le choix de ligne décide d'un dépassement.
+
+    Le seuil absolu dit la chose physique : en deçà de 400 m de rayon, il y a un côté à choisir.
+    Pour un arc de rayon R, la dérivée seconde ouverte sur W échantillons vaut (W·ds)²/R, d'où le
+    calcul. Le seuil relatif reste, mais comme plafond : sur un tracé sans aucun virage serré il
+    laisse quand même les grandes courbes décider. */
     let max = 0;
     for (let i = 0; i < N; i++) max = Math.max(max, poidsS[i]);
-    const seuil = max * 0.18;
+    const seuil = Math.min(max * 0.18, (W * this.ds) * (W * this.ds) / 400);
     const signe = new Int8Array(N);
     for (let i = 0; i < N; i++) {
       signe[i] = poidsS[i] > seuil ? (numS[i] >= 0 ? 1 : -1) : 0;
@@ -373,12 +394,22 @@ class Track {
       return out;
     }
 
-    /* Tenir le sens entre deux virages, et placer le croisement au milieu.
+    /* Tenir le sens entre deux virages — et basculer tôt, vers le virage qui vient.
 
-    On part d'un point décidé pour que le parcours de la boucle ne commence pas au milieu d'une
-    droite, puis chaque intervalle indécis prend le sens de son bord gauche jusqu'à la moitié et
-    celui de son bord droit ensuite. Deux virages de même main : l'intervalle entier garde ce sens,
-    et les lignes ne se rapprochent jamais. De mains opposées : un seul croisement, au milieu. */
+    Une ligne intérieure n'est pas d'abord une ligne de virage : c'est celle qui **arrive** du côté
+    intérieur du virage qui vient, cent mètres avant le point de corde. C'est là qu'elle ferme la
+    porte, et c'est là que le joueur la voit.
+
+    La première version partageait chaque ligne droite en deux, moitié au sens du virage précédent,
+    moitié à celui du suivant. Mesurée sur l'approche — les quatre-vingts mètres qui précèdent
+    l'entrée d'un virage — elle n'était du bon côté que 71 % du temps, et 55 % au Nürburgring : sur
+    la première moitié de chaque droite, l'intérieure longeait encore le côté du virage d'avant,
+    c'est-à-dire l'extérieur de celui qu'elle abordait.
+
+    Le sens du virage précédent n'est donc tenu que le temps de se déplier — une trentaine de mètres
+    — puis toute la suite de la droite appartient au virage qui vient. Le limiteur de pente étire de
+    toute façon la traversée sur une centaine de mètres ; basculer tôt, c'est lui laisser le temps
+    d'arriver. */
     let début = 0;
     while (!signe[début]) début++;
     const plein = new Int8Array(N);
@@ -393,7 +424,8 @@ class Track {
       while (len < N && !plein[(i + len) % N]) len++;
       const avant = plein[(i - 1 + N) % N];
       const après = plein[(i + len) % N] || avant;
-      for (let k = 0; k < len; k++) plein[(i + k) % N] = k < len / 2 ? avant : après;
+      const tenu = Math.min(len * 0.25, Math.round(30 / this.ds));
+      for (let k = 0; k < len; k++) plein[(i + k) % N] = k < tenu ? avant : après;
       n += len - 1;
     }
 

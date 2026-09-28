@@ -90,6 +90,38 @@ for (const def of TRACKS) {
     return L;
   };
   const lInt = longueur('inside'), lRac = longueur('racing'), lExt = longueur('outside');
+  /* L'approche, qui est ce que le joueur voit et ce que la mesure précédente ratait.
+
+  Une ligne intérieure n'est pas d'abord une ligne de virage : c'est celle qui **arrive** du côté
+  intérieur du virage qui vient. C'est là qu'elle ferme la porte, cent mètres avant le point de
+  corde. Ne compter que les échantillons en virage laissait donc passer le défaut le plus visible —
+  une intérieure qui longe encore le côté du virage précédent pendant toute l'approche du suivant,
+  c'est-à-dire du mauvais côté au moment qui décide du dépassement.
+
+  On repère donc l'entrée de chaque virage, on remonte quatre-vingts mètres, et on regarde de quel
+  côté chaque ligne se tient pendant cette approche. */
+  const enVirage = new Uint8Array(N);
+  for (let i = 0; i < N; i++) {
+    const a = (i - 15 + N) % N, b = (i + 15) % N;
+    const cx = T.xs[b] - 2 * T.xs[i] + T.xs[a], cy = T.ys[b] - 2 * T.ys[i] + T.ys[a];
+    enVirage[i] = Math.hypot(cx, cy) / (T.ds * T.ds * 225) > 0.004 ? 1 : 0;
+  }
+  let appOk = 0, appTotal = 0;
+  for (let i = 0; i < N; i++) {
+    if (!enVirage[i] || enVirage[(i - 1 + N) % N]) continue;       // l'entrée d'un virage
+    const a = (i - 15 + N) % N, b = (i + 15) % N;
+    const cx = T.xs[b] - 2 * T.xs[i] + T.xs[a], cy = T.ys[b] - 2 * T.ys[i] + T.ys[a];
+    const vers = Math.sign(cx * T.nx[i] + cy * T.ny[i]);           // où est l'intérieur de CE virage
+    const m = Math.round(80 / T.ds);
+    for (let d = 5; d < m; d++) {
+      const j = (i - d + N) % N;
+      if (enVirage[j]) break;                                      // on a rejoint le virage d'avant
+      const o = T.lines.inside[j] - T.lines.racing[j];
+      if (Math.abs(o) < 0.3) continue;
+      appTotal++;
+      if (Math.sign(o) === vers) appOk++;
+    }
+  }
   ecarts.sort((x, y) => x - y);
   out.push({ id: def.id, nom: def.name, N, virages,
              pcInt: decidesInt ? 100 * justeInt / decidesInt : 0,
@@ -99,6 +131,7 @@ for (const def of TRACKS) {
              sepDroite: nDroite ? sepDroite / nDroite : 0,
              pcCollees: 100 * collees / N,
              dInt: lInt - lRac, dExt: lExt - lRac,
+             pcApp: appTotal ? 100 * appOk / appTotal : 0,
              pcOpp: paires ? 100 * opposees / paires : 0,
              pcRab: paires ? 100 * intRabattue / paires : 0 });
 }
@@ -111,19 +144,19 @@ vm.runInContext(src, sandbox);
 const res = sandbox.OUT.res;
 
 console.log('\n  « intérieure » vraiment à l’intérieur du virage ? et « extérieure » à l’extérieur ?\n');
-console.log('  circuit          déportées   intérieure juste   extérieure juste   écart médian   en ligne droite   collées   longueur int./ext.');
+console.log('  circuit          déportées   en virage   À L’APPROCHE   écart médian   en ligne droite   collées   longueur int./ext.');
 for (const r of res) {
   console.log('  ' + r.nom.padEnd(20)
     + (r.decInt + '/' + r.decExt).padStart(10)
-    + (r.pcInt.toFixed(0) + ' %').padStart(18)
-    + (r.pcExt.toFixed(0) + ' %').padStart(19)
+    + (r.pcInt.toFixed(0) + ' %').padStart(12)
+    + (r.pcApp.toFixed(0) + ' %').padStart(15)
     + (r.sepMed.toFixed(1) + ' m').padStart(15)
     + (r.sepDroite.toFixed(1) + ' m').padStart(18)
     + (r.pcCollees.toFixed(0) + ' %').padStart(10)
     + ((r.dInt >= 0 ? '+' : '') + r.dInt.toFixed(0) + ' / ' + (r.dExt >= 0 ? '+' : '') + r.dExt.toFixed(0) + ' m').padStart(20));
 }
 const moy = (k) => res.reduce((a, r) => a + r[k], 0) / res.length;
-console.log(`\n  moyenne : intérieure juste ${moy('pcInt').toFixed(0)} %, extérieure juste ${moy('pcExt').toFixed(0)} %,`
+console.log(`\n  moyenne : intérieure juste en virage ${moy('pcInt').toFixed(0)} %, et à l'approche ${moy('pcApp').toFixed(0)} %,`
   + ` écart en ligne droite ${moy('sepDroite').toFixed(1)} m, lignes collées sur ${moy('pcCollees').toFixed(0)} % du tour`);
 console.log(`  les deux lignes se déportent de part et d'autre : ${moy('pcOpp').toFixed(0)} % du temps`
   + ` — quand ce n'est pas le cas, l'intérieure est rabattue du côté de l'extérieure dans ${moy('pcRab').toFixed(0)} % des cas`);
