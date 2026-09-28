@@ -1002,9 +1002,32 @@ n'est pas le curseur de ligne est de l'accélérateur : un bouton mal branché m
 donnerait les gaz, qu'on retrouverait collés à la reprise. Le test se fait donc avant cette
 branche, et sort sans rien inscrire dans `pointers`, si bien que le relâchement n'a rien à défaire.
 
+### L'encoche, que rien ne voyait
+
+Le bouton était bien là sur mobile, et pourtant il manquait. Le canvas est en
+`position: fixed; inset: 0` avec `viewport-fit=cover` : il couvre l'écran **entier**, encoche et
+barre d'accueil comprises. Les écrans en DOM respectent `env(safe-area-inset-*)` depuis toujours —
+mais le HUD est dessiné, et un dessin ne connaît pas le CSS. Il posait donc ses quatorze pixels
+depuis le bord *physique* de l'écran. En portrait sur un iPhone, le bouton pause allait de 14 à 60,
+sous une barre d'état haute de 47 : aux trois quarts caché, et intouchable.
+
+Le même écart valait pour le reste du HUD — le cadran d'accélérateur passait sous la barre
+d'accueil, et en paysage les panneaux du haut passaient sous l'encoche. Tout le HUD se mesure
+maintenant depuis le bord **sûr** : `_layoutHud` calcule un écart par côté, `14 + l'encoche`, et
+tout le reste s'y réfère.
+
+`env()` ne se lit pas depuis JavaScript : la valeur calculée d'une propriété personnalisée n'est
+pas résolue, on récupérerait le texte `env(...)`. Le moteur de rendu passe donc par une sonde — un
+élément qui porte ces quatre valeurs en marge intérieure, ce qui, lui, se résout en pixels — relue
+à chaque mise en page, parce que tourner le téléphone déplace les encoches.
+
 `tools/e2e-pause.js` vérifie les trois choses sur quatre formats — SE, iPhone 13, paysage, bureau :
 que le bouton ne passe pas sous un panneau, qu'il met en pause, et qu'il laisse l'accélérateur
-tranquille.
+tranquille. **Aucun des quatre ne pouvait voir l'encoche** : l'émulation de Chromium résout `env()`
+à zéro, et quatre formats qui passent ne disent rien d'un défaut qu'aucun d'eux ne reproduit. Un
+cinquième cas force donc la sonde, et seulement elle, aux valeurs d'un iPhone 13 en portrait — 47
+en haut, 34 en bas. Tout le reste du chemin est le vrai. Débrancher la lecture des encoches fait
+réapparaître le symptôme mot pour mot : « bouton passé de y=14 à y=14 ».
 
 Sa première version tapait puis mesurait, et **ne pouvait pas voir ce qu'elle prétendait
 vérifier** : le relâchement avait déjà remis l'accélérateur à zéro, donc elle lisait « éteint »

@@ -13,6 +13,10 @@
 // 3. Il n'accélère pas. C'est le vrai risque : en course, tout appui qui n'est pas le curseur de
 //    ligne est de l'accélérateur. Un bouton mal branché mettrait en pause ET donnerait les gaz,
 //    qu'on retrouverait collés à la reprise.
+// 4. Il échappe à l'encoche. Le canvas couvre l'écran entier, barre d'état comprise : un bouton
+//    posé à 14 px du bord physique tombe sous une barre haute de 47. Chromium ne simule pas les
+//    encoches, donc l'essai pose lui-même la valeur que la plateforme refuse de donner — et rien
+//    d'autre : toute la mise en page s'exécute ensuite pour de vrai.
 const { chromium, devices } = require('playwright');
 const http = require('http');
 const fs = require('fs');
@@ -124,6 +128,58 @@ const FORMATS = [
         + (ok ? '' : '  ← LA TAPE N\'A PAS FAIT CE QU\'IL FALLAIT'));
       await reprendre();
     }
+    await ctx.close();
+  }
+
+  /* --- 4. l'encoche ---
+
+  Les écrans en DOM respectent `env(safe-area-inset-*)` depuis toujours ; le HUD, lui, est dessiné,
+  et un dessin ne connaît pas le CSS. Il posait ses quatorze pixels depuis le bord physique de
+  l'écran, pas depuis le bord sûr. En portrait sur un iPhone le bouton pause, de 14 à 60, tombait
+  donc aux trois quarts sous une barre d'état haute de 47 — invisible, et intouchable.
+
+  Aucun de nos quatre formats ne pouvait le montrer : l'émulation de Chromium résout `env()` à
+  zéro. On force donc la sonde qui les lit, et seulement elle, aux valeurs d'un iPhone 13 en
+  portrait — 47 en haut, 34 en bas pour la barre d'accueil. Tout le reste du chemin est le vrai. */
+  {
+    const ctx = await browser.newContext({ ...devices['iPhone 13'], hasTouch: true });
+    const page = await ctx.newPage();
+    page.on('pageerror', (e) => { errs++; console.log('[pageerror]', e.message); });
+    await page.goto(`${base}/index.html`);
+    await page.waitForTimeout(400);
+    await page.keyboard.press('Enter');
+    await page.click('[data-action="setup"][data-mode="race"]');
+    await page.click('[data-action="startQuick"]');
+    await page.waitForTimeout(500);
+    const avant = await page.evaluate(() => ({ y: app.renderer.pauseBtn.y, dial: app.renderer.dialHome.cy }));
+    const ENC = { t: 47, b: 34 };
+    await page.addStyleTag({ content: `#sonde-encoches { padding: ${ENC.t}px 0px ${ENC.b}px 0px !important; }` });
+    await page.evaluate(() => app.renderer.resize());
+    await page.waitForTimeout(200);
+    const apres = await page.evaluate(() => ({
+      lues: app.renderer.encoches, b: app.renderer.pauseBtn,
+      dial: app.renderer.dialHome.cy, rayon: app.renderer.dial.r, h: app.renderer.h,
+      slider: app.renderer.slider,
+    }));
+    const lues = apres.lues.t === ENC.t && apres.lues.b === ENC.b;
+    const degage = apres.b.y >= ENC.t;
+    const basDegage = apres.dial + apres.rayon * 0.46 <= apres.h - ENC.b;
+    if (!lues || !degage || !basDegage) fautes++;
+    console.log(`  ${'encoche 47/34'.padEnd(18)} lues ${JSON.stringify(apres.lues)}`
+      + (lues ? '' : '  ← LA SONDE NE LIT PAS LES ENCOCHES'));
+    console.log(`  ${''.padEnd(18)} bouton passé de y=${avant.y} à y=${apres.b.y}`
+      + (degage ? ' (au-dessous de la barre d\'état)' : '  ← TOUJOURS SOUS LA BARRE D\'ÉTAT'));
+    console.log(`  ${''.padEnd(18)} bas du cadran à ${Math.round(apres.dial + apres.rayon * 0.46)}`
+      + ` sur ${apres.h} px, barre d'accueil à ${apres.h - ENC.b}`
+      + (basDegage ? '' : '  ← LE CADRAN PASSE SOUS LA BARRE D\'ACCUEIL'));
+
+    // et il doit toujours mettre en pause, à sa nouvelle place
+    await page.touchscreen.tap(apres.b.x + apres.b.s / 2, apres.b.y + apres.b.s / 2);
+    await page.waitForTimeout(250);
+    const et = await page.evaluate(() => app.state);
+    if (et !== 'paused') { fautes++; console.log(`  ${''.padEnd(18)} tape à la nouvelle place → « ${et} »  ← NE MET PLUS EN PAUSE`); }
+    else console.log(`  ${''.padEnd(18)} tape à la nouvelle place → « ${et} »`);
+    await page.screenshot({ path: `${out}/pause-encoche.png` });
     await ctx.close();
   }
 

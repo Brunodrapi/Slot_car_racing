@@ -258,19 +258,50 @@ class Renderer {
     this._layoutHud();
   }
 
+  /* Ce que le téléphone nous prend sur les bords.
+
+  Le canvas est en `position: fixed; inset: 0` avec `viewport-fit=cover` : il couvre l'écran ENTIER,
+  encoche et barre d'accueil comprises. Les écrans en DOM, eux, respectent `env(safe-area-inset-*)`
+  depuis toujours — mais le HUD est dessiné, et un dessin ne connaît pas le CSS. Il posait donc ses
+  quatorze pixels depuis le bord physique, si bien qu'en portrait sur un iPhone le bouton pause,
+  de 14 à 60, tombait aux trois quarts sous une barre d'état haute de 47.
+
+  `env()` ne se lit pas depuis JavaScript : la valeur calculée d'une propriété personnalisée n'est
+  pas résolue, on récupérerait le texte `env(...)`. On passe donc par une sonde — un élément qui
+  porte ces quatre valeurs en marge intérieure, ce qui, lui, se résout en pixels. Elle est relue à
+  chaque mise en page, parce que tourner le téléphone déplace les encoches. */
+  _encoches() {
+    if (!document.body) return { t: 0, r: 0, b: 0, l: 0 };
+    let d = this._sonde;
+    if (!d) {
+      d = this._sonde = document.createElement('div');
+      d.id = 'sonde-encoches';
+      d.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;'
+        + 'pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right)'
+        + ' env(safe-area-inset-bottom) env(safe-area-inset-left);';
+      document.body.appendChild(d);
+    }
+    const c = getComputedStyle(d);
+    const n = (v) => Math.max(0, Math.round(parseFloat(v) || 0));
+    return { t: n(c.paddingTop), r: n(c.paddingRight), b: n(c.paddingBottom), l: n(c.paddingLeft) };
+  }
+
   _layoutHud() {
     const W = this.w, H = this.h, mobile = W < 700;
-    const pad = 14;
+    const sa = this._encoches();
+    // Un seul écart, mesuré depuis le bord SÛR et non depuis le bord physique.
+    const P = this.pad = { t: 14 + sa.t, r: 14 + sa.r, b: 14 + sa.b, l: 14 + sa.l };
+    this.encoches = sa;
     // Throttle dial: a half-dome that the thumb carries with it. At rest it waits at the bottom
     // centre; a thumb landing anywhere off the line slider moves it there, base on the finger, so
     // the whole dial reads above the hand instead of under it.
     const r = clamp(Math.min(W * 0.26, H * 0.17), 68, 130);
-    this.dialHome = { cx: W / 2, cy: H - pad - r * 0.46 };   // at rest the pad shows in full
+    this.dialHome = { cx: W / 2, cy: H - P.b - r * 0.46 };   // at rest the pad shows in full
     this.dial = { cx: this.dialHome.cx, cy: this.dialHome.cy, r };
     this.dialAnchored = false;
     // vertical line slider, left side, clear of the dial
     const len = Math.min(H * 0.38, 320);
-    this.slider = { x: pad + 22, y: H - pad - 30 - len, len, w: 30 };
+    this.slider = { x: P.l + 22, y: H - P.b - 30 - len, len, w: 30 };
     /* Les deux panneaux du haut, mesurés ici et non plus au moment de les dessiner : le bouton
     pause se pose dans l'espace qu'ils laissent, et deux jeux de constantes qui doivent rester
     d'accord finissent toujours par ne plus l'être. */
@@ -281,9 +312,9 @@ class Renderer {
     course ne se quittait pas. Il tient dans l'espace restant : 62 px sur un iPhone 13, mais 47 sur
     un SE, donc sa taille suit la place au lieu d'être posée — sur un écran étroit un bouton de
     46 px passerait sous le chrono. */
-    const creux = W - 2 * pad - this.hudBox.w - this.hudBox.tw;
+    const creux = W - P.l - P.r - this.hudBox.w - this.hudBox.tw;
     const cote = clamp(creux - 10, 34, mobile ? 46 : 42);
-    this.pauseBtn = { x: W / 2 - cote / 2, y: pad, s: cote };
+    this.pauseBtn = { x: W / 2 - cote / 2, y: P.t, s: cote };
     this.mobile = mobile;
   }
 
@@ -1422,34 +1453,34 @@ class Renderer {
   // ---------- HUD ----------
   _drawHUD(g, race, ui) {
     const W = this.w, H = this.h, p = race.player, t = (k, ...a) => ui.t(k, ...a);
-    const mobile = this.mobile, pad = 14;
+    const mobile = this.mobile, P = this.pad;
     g.textBaseline = 'top';
     const panel = (x, y, w, h) => { g.fillStyle = 'rgba(10,12,20,0.55)'; this._roundRect(g, x, y, w, h, 10); g.fill(); };
 
     // top-left: position & lap
     const pos = race.positionOf(p), n = race.cars.length;
     const boxW = this.hudBox.w, boxH = this.hudBox.h;
-    panel(pad, pad, boxW, boxH);
+    panel(P.l, P.t, boxW, boxH);
     g.fillStyle = '#fff'; g.font = `bold ${mobile ? 30 : 40}px system-ui, sans-serif`; g.textAlign = 'left';
     const posTxt = race.mode === 'timetrial' ? '—' : `${pos}`;
-    g.fillText(posTxt, pad + 12, pad + 8);
+    g.fillText(posTxt, P.l + 12, P.t + 8);
     const posW = g.measureText(posTxt).width;
     g.font = `${mobile ? 13 : 15}px system-ui, sans-serif`; g.fillStyle = '#cfd3dc';
-    if (race.mode !== 'timetrial') g.fillText(`/ ${n}`, pad + 16 + posW, pad + (mobile ? 22 : 30));
+    if (race.mode !== 'timetrial') g.fillText(`/ ${n}`, P.l + 16 + posW, P.t + (mobile ? 22 : 30));
     const lapShown = Math.min(race.laps, p.lap + 1);
     g.textAlign = 'right';
-    g.fillText(race.mode === 'timetrial' ? `${t('lap')} ${p.lap + 1}` : `${t('lap')} ${lapShown} / ${race.laps}`, pad + boxW - 12, pad + 10);
-    g.fillText(p.name, pad + boxW - 12, pad + boxH - 24);
+    g.fillText(race.mode === 'timetrial' ? `${t('lap')} ${p.lap + 1}` : `${t('lap')} ${lapShown} / ${race.laps}`, P.l + boxW - 12, P.t + 10);
+    g.fillText(p.name, P.l + boxW - 12, P.t + boxH - 24);
 
     // top-right: times
     const tw = this.hudBox.tw;
-    panel(W - pad - tw, pad, tw, boxH);
+    panel(W - P.r - tw, P.t, tw, boxH);
     g.textAlign = 'right'; g.fillStyle = '#fff'; g.font = `bold ${mobile ? 18 : 22}px ui-monospace, monospace`;
-    g.fillText(fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart), W - pad - 12, pad + 8);
+    g.fillText(fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart), W - P.r - 12, P.t + 8);
     g.font = `${mobile ? 12 : 13}px system-ui, sans-serif`; g.fillStyle = '#cfd3dc';
     const last = p.lapTimes.length ? p.lapTimes[p.lapTimes.length - 1] : null;
-    g.fillText(`${t('last')} ${last != null ? fmtTime(last) : '--:--.---'}`, W - pad - 12, pad + (mobile ? 32 : 40));
-    g.fillText(`${t('best')} ${p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---'}`, W - pad - 12, pad + (mobile ? 46 : 56));
+    g.fillText(`${t('last')} ${last != null ? fmtTime(last) : '--:--.---'}`, W - P.r - 12, P.t + (mobile ? 32 : 40));
+    g.fillText(`${t('best')} ${p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---'}`, W - P.r - 12, P.t + (mobile ? 46 : 56));
 
     // bouton pause, entre les deux panneaux du haut
     const pb = this.pauseBtn;
@@ -1466,8 +1497,8 @@ class Renderer {
     if (this.mm) {
       // On a phone the bottom-right corner belongs to the thumb, so the map moves up under the
       // times. On a desktop there is no thumb and it stays in the corner.
-      const m = this.mm, mx = W - pad - m.size;
-      const my = mobile ? pad + boxH + 10 : H - pad - m.size;
+      const m = this.mm, mx = W - P.r - m.size;
+      const my = mobile ? P.t + boxH + 10 : H - P.b - m.size;
       panel(mx, my, m.size, m.size);
       g.drawImage(m.canvas, mx, my, m.size, m.size);
       for (const car of race.cars) {
@@ -1481,7 +1512,7 @@ class Renderer {
     // standings strip (desktop)
     if (!mobile && race.mode !== 'timetrial') {
       const st = race.standings().slice(0, 6);
-      const rowH = 20, bw = 190, bx = pad, by = pad + boxH + 10;
+      const rowH = 20, bw = 190, bx = P.l, by = P.t + boxH + 10;
       panel(bx, by, bw, st.length * rowH + 10);
       g.font = '13px system-ui, sans-serif'; g.textAlign = 'left';
       st.forEach((car, i) => {
@@ -1497,8 +1528,8 @@ class Renderer {
     this._drawDial(g, p, t);
 
     // telemetry overlay (G key or settings): the four numbers that describe the car's state
-    const dbgY = pad + boxH + 10 + (mobile && this.mm ? this.mm.size + 10 : 0);
-    if (this.debug) this._drawDebug(g, p, mobile ? 150 + pad * 2 : 200 + pad * 2, dbgY);
+    const dbgY = P.t + boxH + 10 + (mobile && this.mm ? this.mm.size + 10 : 0);
+    if (this.debug) this._drawDebug(g, p, P.l + boxW + 14, dbgY);
 
     // countdown
     if (race.state === 'countdown') {
