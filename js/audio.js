@@ -292,13 +292,32 @@ class GameAudio {
     this._tex('start', e.sample.start);
   }
 
+  /* Les bornes de la rampe, ramenées au rupteur de la voiture qui la joue.
+
+  Une voiture sans prise à elle emprunte celle d'une autre, et l'emprunt ne marche que si l'échelle
+  suit. La rampe de la M1 monte à 9000 tr/min : jouée telle quelle sur une CSL qui coupe à 7000, la
+  voiture n'en lirait que les trois quarts et ne sonnerait jamais au rupteur — le moteur paraîtrait
+  retenu en permanence.
+
+  On garde donc l'étendue de la rampe, qui est mesurée et qu'on ne touche pas, et on glisse son
+  ancrage : le rupteur de la voiture tombe sur le haut de la rampe. C'est licite parce que l'échelle
+  absolue d'une rampe est posée et non mesurée — se tromper dessus ne déforme rien, puisque la
+  lecture granulaire ne transpose jamais ; cela ne fait que choisir l'endroit de la prise qu'on
+  entend. Pour une voiture qui joue sa propre rampe, le facteur vaut exactement un. */
+  _bornes() {
+    const m = this.ramp.meta;
+    const k = this.spec && this.spec.redline ? this.spec.redline / m.rpmHaut : 1;
+    return { bas: m.rpmBas * k, haut: m.rpmHaut * k };
+  }
+
   /* Où se trouve, dans la rampe, le moteur à ce régime.
 
   La table est régulière en logarithme du régime, parce que c'est ainsi que l'oreille entend et
   que la hauteur a été suivie. Hors des bornes, on reste au bout : on ne transpose jamais. */
   _rampPos(rpm) {
     const m = this.ramp.meta, T = m.table;
-    const u = Math.log(Math.max(1, rpm) / m.rpmBas) / Math.log(m.rpmHaut / m.rpmBas);
+    const b = this._bornes();
+    const u = Math.log(Math.max(1, rpm) / b.bas) / Math.log(b.haut / b.bas);
     const x = Math.max(0, Math.min(1, u)) * (T.length - 1);
     const i = Math.min(T.length - 2, Math.floor(x));
     return T[i] + (T[i + 1] - T[i]) * (x - i);
@@ -469,8 +488,8 @@ class GameAudio {
     voiture est immobile, cela s'entend. */
     let couv = 0;
     if (surPrise) {
-      const m = this.ramp.meta;
-      const d = r > m.rpmHaut ? Math.log2(r / m.rpmHaut) : 0;
+      const b = this._bornes();
+      const d = r > b.haut ? Math.log2(r / b.haut) : 0;
       couv = racing ? Math.max(0, Math.min(1, 1 - d / 0.25)) : 0;
     }
     if (surPrise) this._melange(frac, load, 1 / 60);

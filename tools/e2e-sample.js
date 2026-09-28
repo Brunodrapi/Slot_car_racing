@@ -100,6 +100,51 @@ const serveur = http.createServer((req, res) => {
     console.log(`  ${x.voiture.padEnd(16)} du ralenti au rupteur : ${x.couvre} s de rampe parcourus, ` +
       `lecture ${x.monotone ? 'toujours vers l\'avant' : 'QUI RECULE'}`);
   }
+  /* --- 2 bis. une prise empruntée est-elle ramenée au rupteur de la voiture qui la joue ? ---
+
+  Une voiture sans prise à elle joue celle de la M1, qui monte à 9000 tr/min. Sans remise à
+  l'échelle, une CSL qui coupe à 7000 n'en lirait que les trois quarts et ne sonnerait jamais au
+  rupteur — le moteur paraîtrait retenu en permanence. On vérifie donc que le rupteur de chaque
+  voiture tombe bien sur la fin de sa rampe, empruntée ou non. */
+  const echelle = await page.evaluate(async (b) => {
+    const out = [];
+    for (const m of modelsOf('gt')) {
+      if (!m.engine.sample) continue;
+      const meta = await (await fetch(`${b}/${m.engine.sample.ramp}`)).json();
+      const tmp = new OfflineAudioContext(1, 128, 44100);
+      const buf = await tmp.decodeAudioData(await (await fetch(`${b}/${meta.src}`)).arrayBuffer());
+      const a2 = new GameAudio(); a2.start();
+      a2.ramp = { key: m.engine.sample.ramp, buf, meta };
+      a2.spec = m.engine;                       // c'est lui qui porte le rupteur
+      /* On compare à la fin de la TABLE, pas à la fin du fichier.
+
+      La dernière entrée de la table est l'instant de départ de la dernière fenêtre d'analyse, donc
+      une fenêtre avant la fin de l'extrait. Sur une rampe courte cela fait quatre pour cent, et
+      comparer à la durée du fichier accusait la F40 d'un défaut qui n'existe pas. Ce qu'on veut
+      savoir est : le rupteur de la voiture tombe-t-il au bout de la table ?
+
+      Les rampes construites avec `--garde` lisent le mp3 d'origine : leur table porte des instants
+      ABSOLUS dans ce fichier, décalés de `debut`. Le trajet parcouru va donc de `debut` à `bout`,
+      et diviser par `bout` seul accusait la Countach et la 787B, les deux seules dans ce cas. */
+      const debut = meta.debut || 0;
+      const bout = meta.table[meta.table.length - 1];
+      out.push({ voiture: m.name, rupteur: m.engine.redline,
+                 empruntee: Math.abs(meta.rpmHaut - m.engine.redline) > 1,
+                 rampeHaut: meta.rpmHaut,
+                 auRupteur: +((a2._rampPos(m.engine.redline) - debut) / (bout - debut)).toFixed(3) });
+    }
+    return out;
+  }, base);
+  console.log();
+  for (const x of echelle) {
+    const bon = x.auRupteur > 0.995 && x.auRupteur < 1.005;
+    if (!bon) faute++;
+    console.log(`  ${x.voiture.padEnd(16)} rupteur ${String(x.rupteur).padStart(4)} tr/min sur une rampe qui monte à `
+      + `${String(x.rampeHaut).padStart(4)}${x.empruntee ? ' (empruntée)' : '            '}`
+      + ` → lecture à ${(100 * x.auRupteur).toFixed(1)} % de la table`
+      + (bon ? '' : '  ← LE RUPTEUR N\'ATTEINT PAS LE HAUT DE LA RAMPE'));
+  }
+
   // aucune transposition : le lecteur granulaire ne touche jamais `playbackRate`
   const transpo = await page.evaluate(() => {
     const src = GameAudio.prototype._grains.toString();
@@ -128,7 +173,7 @@ const serveur = http.createServer((req, res) => {
             await voie('f40', 55), await voie('corvette', 55), await voie('countach', 55),
             await voie('787b', 68), await voie('787b', 20), await voie('gt40', 60),
             await voie('930', 55),
-            await voie('917k', 60),
+            await voie('917k', 60), await voie('csl', 55),
             await voie('m1procar', 50)];
   });
   console.log('\nen jeu :');

@@ -1110,18 +1110,21 @@ qu'on la transpose de plus de 500 tr/min**, soit sept dixièmes de demi-ton à 6
 octaves en transposant demande des dizaines de boucles et sonne mal bien avant — chez moi, « on
 dirait des moustiques ».
 
-Six voitures sur neuf roulent sur une prise. La table à jour est dans
-[`sounds/BILAN.md`](sounds/BILAN.md), que `python3 tools/bilanson.py` régénère en mesurant le dossier
-— elle n'est pas tenue à la main, donc elle ne périme pas :
+Sept voitures sur neuf ont leur prise à elles, et les deux autres empruntent. La table à jour est
+dans [`sounds/BILAN.md`](sounds/BILAN.md), que `python3 tools/bilanson.py` régénère en mesurant le
+dossier — elle n'est pas tenue à la main, donc elle ne périme pas :
 
 | voiture | rampe | montée | plage couverte |
 |---|---|---|---|
-| Countach LP500 | 6,3 s | 25 demi-tons | 1821 – 7500 tr/min |
-| M1 Procar | 8,0 s | 17 demi-tons | 3423 – 9000 tr/min |
-| Corvette | 7,6 s | 14 demi-tons | 2708 – 6000 tr/min |
-| F40 | 4,2 s | 9 demi-tons | 4703 – 7750 tr/min |
-| 787B | 5,2 s | 6 demi-tons | 6216 – 9000 tr/min |
-| GT40 Mk II | 2,3 s | 4 demi-tons | 4852 – 6200 tr/min |
+| Countach LP500 | 6,0 s | 24 demi-tons | 1907 – 7500 tr/min |
+| M1 Procar | 7,8 s | 17 demi-tons | 3423 – 9000 tr/min |
+| Corvette | 7,4 s | 14 demi-tons | 2708 – 6000 tr/min |
+| F40 | 4,0 s | 9 demi-tons | 4702 – 7750 tr/min |
+| 911 Turbo | 3,0 s | 7 demi-tons | 4595 – 7000 tr/min |
+| 787B | 4,6 s | 7 demi-tons | 6159 – 9000 tr/min |
+| GT40 Mk II | 1,8 s | 5 demi-tons | 4611 – 6200 tr/min |
+| 917 K | *celle de la M1* | 17 demi-tons | 3192 – 8400 tr/min |
+| 3.0 CSL | *celle de la M1* | 17 demi-tons | 2662 – 7000 tr/min |
 
 **La plage n'est pas posée, elle est déduite de la montée mesurée.** Une rampe qui monte de neuf
 demi-tons ne peut couvrir que neuf demi-tons de plage de régime : lui en faire couvrir vingt-cinq
@@ -1139,6 +1142,21 @@ complète, du bas de la plage au rupteur, vaut tous les réglages du monde.
 Le plancher de l'outil est un demi-octave de montée, pas davantage : en deçà du bas de la rampe et
 au-delà du haut, le lecteur fond vers la synthèse sur un quart d'octave, si bien qu'une rampe étroite
 coûte de la couverture et non de la justesse.
+
+**Une voiture sans prise à elle joue celle de la M1**, et non plus la synthèse. C'est la montée la
+plus large du dossier après la Countach — dix-sept demi-tons d'un seul tenant — donc celle qui
+survit le mieux au prêt. Un six en ligne sur une 917 K est faux d'origine, mais l'écart entre un six
+et un douze est un écart de timbre, quand l'écart entre une prise et la synthèse était un écart de
+nature ; le reproche « on entend encore les moustiques » portait sur le second.
+
+Le prêt demande une précaution, qui est tout ce que le code ajoute. Une rampe porte sa plage en
+tours/minute, mesurée sur la voiture qui l'a enregistrée : celle de la M1 monte à 9000. Jouée telle
+quelle sur une CSL qui coupe à 7000, le haut de la rampe resterait hors d'atteinte — la voiture
+lirait les trois quarts de l'enregistrement et **ne sonnerait jamais au rupteur**, le moteur
+paraissant retenu en permanence. `_bornes()` ramène donc les deux bornes de la rampe au rupteur de
+la voiture qui l'emprunte, par un simple facteur `rupteur / rpmHaut`. Le facteur vaut exactement 1
+pour les sept voitures qui ont leur prise, si bien que le prêt ne change rien pour elles, et
+`tools/e2e-sample.js` vérifie que le rupteur de chacune des neuf tombe bien sur la fin de sa table.
 
 **Ce qu'une prise doit être.** Sur sept fichiers découpés à la main, trois ont donné une rampe. Ce que
 disent les quatre autres est plus utile que leur rejet : `gt40_plein_regime` monte de 5,5 demi-tons

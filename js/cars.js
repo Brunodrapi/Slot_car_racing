@@ -121,6 +121,9 @@ const AI_NAMES = [
   'F. Marchetti', 'G. Larsen', 'I. Kovács', 'O. Haddad',
 ];
 
+// La prise jouée par toute voiture qui n'en a pas à elle. Voir `resolveModel`.
+const MOTEUR_DEFAUT = 'sounds/engine/six-inline.json';
+
 // Resolved models: category stats × model multipliers.
 const MODELS = [];
 function resolveModel(cat, m) {
@@ -142,6 +145,21 @@ function resolveModel(cat, m) {
     pick: m.pick || null,
     engine: Object.assign({ cyl: 8, redline: 7000, idle: 1000, rough: 0.3, bright: 0.6, turbo: 0 }, cat.engine || {}, m.engine || {}),
   };
+  /* Une voiture sans prise à elle joue quand même un vrai moteur.
+
+  La synthèse donne la bonne hauteur mais pas la bonne matière, et l'écart s'entend d'autant plus que
+  les voisines de grille, elles, roulent sur des enregistrements. Faute de prise propre, la M1 fait
+  donc le fond de plateau : un six en ligne mécanique et sec, qui monte à 9000 tr/min, et dont la
+  rampe est la plus large qu'on ait — dix-sept demi-tons, de 3423 tr/min au rupteur.
+
+  Ce n'est pas un pis-aller sans conséquence : le lecteur ramène l'échelle de la rampe au rupteur de
+  la voiture qui la joue, si bien qu'une CSL qui coupe à 7000 entend bien son propre rupteur et non
+  les trois quarts de celui de la M1. Ce qui reste emprunté est le timbre, pas le comportement — la
+  boîte, la charge, le turbo et le ralenti restent ceux de la voiture.
+
+  Cela vaut aussi pour les voitures de l'atelier, qui passent par ce même chemin. */
+  if (!model.engine.sample) model.engine = Object.assign({}, model.engine, { sample: { ramp: MOTEUR_DEFAUT } });
+
   // Les chiffres du menu, calculés ici pour que les voitures de l'atelier en aient aussi :
   // `registerModel` passe par ce même chemin. (`perfOf` est déclarée plus bas, donc hissée.)
   model.perf = perfOf(model);
