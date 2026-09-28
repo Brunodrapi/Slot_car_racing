@@ -349,7 +349,7 @@ class EASampler {
   async charge(defs, base = '') {
     for (const cle of Object.keys(defs)) {
       const d = defs[cle];
-      const buf = await this.ctx.decodeAudioData(await (await fetch(base + d.source)).arrayBuffer());
+      const buf = await this.ctx.decodeAudioData(await (await fetch(encodeURI(base + d.source))).arrayBuffer());
       const src = this.ctx.createBufferSource();
       src.buffer = buf;
       src.loop = true;
@@ -369,11 +369,18 @@ class EASampler {
     return { haut: Math.cos((1 - x) * 0.5 * Math.PI), bas: Math.cos(x * 0.5 * Math.PI) };
   }
 
+  /* Le fondu de l'auteur, tel quel : 3000 à 6500 tours, en dur.
+
+  J'avais d'abord ramené la bande et le régime de chaque prise au rupteur de la voiture qui les
+  joue, comme pour l'ancien lecteur granulaire. Ce n'est pas sa méthode, et Bruno a demandé la
+  sienne : chez lui, chaque voiture a son jeu de prises et sa configuration, et le fondu ne bouge
+  pas. Ce qui distingue une voiture d'une autre est le régime auquel chaque prise a été
+  enregistrée, plus son rupteur et son inertie — pas une correction d'échelle. */
   applique(engine, bande) {
     const v = this.voix;
     if (!v.on_low && !v.on_high) return;
-    const bas = bande && bande[0] != null ? bande[0] : (v.on_low ? v.on_low.rpm : 3000);
-    const haut = bande && bande[1] != null ? bande[1] : (v.on_high ? v.on_high.rpm : 6500);
+    const bas = bande && bande[0] != null ? bande[0] : 3000;
+    const haut = bande && bande[1] != null ? bande[1] : 6500;
     const r = EASampler.fondu(engine.rpm, bas, haut);
     const g = EASampler.fondu(engine.throttle, 0, 1);
 

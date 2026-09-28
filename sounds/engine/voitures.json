@@ -1,0 +1,52 @@
+{
+  "_note": "Les jeux de prises et les réglages moteur viennent de markeasting/engine-audio (MIT) — src/configurations.ts, repris tels quels. Seuls le rupteur, le ralenti et la boîte sont ceux de la voiture du jeu : le HUD affiche ce régime et la boîte doit correspondre à la vitesse de la voiture.",
+  "jeux": {
+    "procar": {
+      "nom": "M1 Procar",
+      "engine": { "limiter": 9000, "soft_limiter": 9000, "limiter_ms": 150 },
+      "drivetrain": { "shiftTime": 100, "damping": 12 },
+      "sounds": {
+        "on_high":  { "source": "sounds/engine-audio/procar/on_midhigh {eed64b99-c102-43cf-834e-4e4cafa68fdc}.wav", "rpm": 8000 },
+        "on_low":   { "source": "sounds/engine-audio/procar/on_low {0477930f-2954-45ee-8ac4-db4867fe1749}.wav", "rpm": 3200 },
+        "off_high": { "source": "sounds/engine-audio/procar/off_midhigh {092a60f7-c729-4d2c-979e-2e766ba42c6c}.wav", "rpm": 8430, "volume": 1.3 },
+        "off_low":  { "source": "sounds/engine-audio/procar/off_lower {05f28dcf-8251-4e6a-bc40-8099139ef81e}.wav", "rpm": 3400, "volume": 1.3 },
+        "limiter":  { "source": "sounds/engine-audio/limiter.wav", "rpm": 8000, "volume": 0.5 }
+      }
+    },
+    "bac_mono": {
+      "nom": "BAC Mono",
+      "engine": { "limiter": 9000, "soft_limiter": 8950, "limiter_ms": 0, "inertia": 1.0 },
+      "drivetrain": { "shiftTime": 50, "damping": 16 },
+      "sounds": {
+        "on_high":  { "source": "sounds/engine-audio/BAC_Mono_onhigh.wav", "rpm": 1000, "volume": 0.5 },
+        "on_low":   { "source": "sounds/engine-audio/BAC_Mono_onlow.wav", "rpm": 1000, "volume": 0.5 },
+        "off_high": { "source": "sounds/engine-audio/BAC_Mono_offveryhigh.wav", "rpm": 1000, "volume": 0.5 },
+        "off_low":  { "source": "sounds/engine-audio/BAC_Mono_offlow.wav", "rpm": 1000, "volume": 0.5 },
+        "limiter":  { "source": "sounds/engine-audio/limiter.wav", "rpm": 8000, "volume": 0.4 }
+      }
+    },
+    "458": {
+      "nom": "458",
+      "engine": { "limiter": 8900, "soft_limiter": 8800, "limiter_ms": 0, "inertia": 0.8 },
+      "drivetrain": { "shiftTime": 10, "damping": 6 },
+      "sounds": {
+        "on_high":  { "source": "sounds/engine-audio/458/power_2 {1d0b3340-525d-418d-b809-a61f94a1d76a}.wav", "rpm": 7700, "volume": 2.5 },
+        "on_low":   { "source": "sounds/engine-audio/458/mid_res_2 {a777a51b-a829-4637-ac37-ccdaca0a3e9b}.wav", "rpm": 5300, "volume": 1.5 },
+        "off_high": { "source": "sounds/engine-audio/458/off_higher {b1e2e686-3bd7-43df-9cf9-3b8c1afcffc1}.wav", "rpm": 7900, "volume": 1.6 },
+        "off_low":  { "source": "sounds/engine-audio/458/off_midhigh {94a99615-de6b-4b18-a977-a3b5e9b10641}.wav", "rpm": 6900, "volume": 1.4 },
+        "limiter":  { "source": "sounds/engine-audio/458/limiter.wav", "rpm": 0, "volume": 1.8 }
+      }
+    }
+  },
+  "voitures": {
+    "m1procar": { "nom": "M1 Procar",      "jeu": "procar",   "engine": { "limiter": 9000, "idle": 1100 }, "drivetrain": { "gears": [3.4, 2.36, 1.85, 1.47, 1.24, 1.07], "final_drive": 3.44 }, "wheel_radius": 0.32 },
+    "930":      { "nom": "911 Turbo",      "jeu": "procar",   "engine": { "limiter": 7000, "idle": 950 },  "drivetrain": { "gears": [3.18, 1.83, 1.26, 0.93], "final_drive": 4.22 }, "wheel_radius": 0.31 },
+    "countach": { "nom": "Countach LP500", "jeu": "procar",   "engine": { "limiter": 7500, "idle": 900 },  "drivetrain": { "gears": [2.99, 2.0, 1.48, 1.12, 0.88], "final_drive": 4.09 }, "wheel_radius": 0.33 },
+    "gt40":     { "nom": "GT40 Mk II",     "jeu": "procar",   "engine": { "limiter": 6200, "idle": 800 },  "drivetrain": { "gears": [2.35, 1.62, 1.23, 1.0], "final_drive": 3.09 }, "wheel_radius": 0.33 },
+    "corvette": { "nom": "Corvette",       "jeu": "procar",   "engine": { "limiter": 6000, "idle": 750 },  "drivetrain": { "gears": [2.2, 1.64, 1.28, 1.0], "final_drive": 3.36 }, "wheel_radius": 0.34 },
+    "787b":     { "nom": "787B",           "jeu": "bac_mono", "engine": { "limiter": 9000, "idle": 1300 }, "drivetrain": { "gears": [2.6, 1.85, 1.44, 1.16, 0.95], "final_drive": 3.3 }, "wheel_radius": 0.33 },
+    "917k":     { "nom": "917 K",          "jeu": "bac_mono", "engine": { "limiter": 8400, "idle": 1200 }, "drivetrain": { "gears": [2.4, 1.7, 1.32, 1.06, 0.87], "final_drive": 3.2 }, "wheel_radius": 0.34 },
+    "f40":      { "nom": "F40",            "jeu": "458",      "engine": { "limiter": 7750, "idle": 1000 }, "drivetrain": { "gears": [3.21, 2.11, 1.55, 1.18, 0.94], "final_drive": 3.31 }, "wheel_radius": 0.32 },
+    "csl":      { "nom": "3.0 CSL",        "jeu": "458",      "engine": { "limiter": 7000, "idle": 950 },  "drivetrain": { "gears": [3.4, 2.16, 1.59, 1.24, 1.0], "final_drive": 3.45 }, "wheel_radius": 0.32 }
+  }
+}

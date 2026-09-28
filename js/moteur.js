@@ -7,28 +7,54 @@ réellement le caractère — et elle affiche ce que le mélangeur envoie, pour 
 qu'on entend et ce qui se passe se voie tout de suite. */
 'use strict';
 
-const CONF_URL = 'sounds/engine/m1-procar.json';
-let conf = null, vehicule = null, sampler = null, ctx = null;
+const CONF_URL = 'sounds/engine/voitures.json';
+let cat = null, conf = null, jeu = null, vehicule = null, sampler = null, ctx = null;
 let gaz = 0, vitesse = 0, t0 = 0, dernier = 0;
 
 const $ = (id) => document.getElementById(id);
 
 async function demarrer() {
   if (ctx) return;
-  conf = await (await fetch(CONF_URL)).json();
+  cat = await (await fetch(CONF_URL)).json();
   ctx = new (window.AudioContext || window.webkitAudioContext)();
   const sortie = ctx.createGain();
   sortie.gain.value = 0.7;
   sortie.connect(ctx.destination);
   sampler = new EASampler(ctx, sortie);
   $('etat').textContent = 'chargement des prises…';
-  await sampler.charge(conf.sounds);
-  vehicule = new EAVehicle(conf);
+  const picker = $('voiture');
+  picker.innerHTML = Object.keys(cat.voitures).map((id) =>
+    `<option value="${id}">${cat.voitures[id].nom}</option>`).join('');
+  picker.addEventListener('change', () => choisir(picker.value));
+  await choisir(picker.value);
   if (ctx.state === 'suspended') await ctx.resume();
-  $('etat').textContent = conf.nom + ' — ' + Object.keys(conf.sounds).length + ' boucles';
   $('demarrer').disabled = true;
   t0 = performance.now(); dernier = t0;
   requestAnimationFrame(boucle);
+}
+
+/* Changer de voiture ne recharge que ce qui change. Les cinq voitures partagent le même jeu de
+prises : les recharger à chaque fois rendrait le banc inutilisable pour comparer deux réglages,
+puisqu'on attendrait huit mégaoctets entre chaque essai. */
+async function choisir(id) {
+  const c = cat.voitures[id], j = cat.jeux[c.jeu];
+  if (jeu !== c.jeu) {
+    $('etat').textContent = 'chargement du jeu « ' + j.nom + ' »…';
+    await sampler.charge(j.sounds);
+    jeu = c.jeu;
+  }
+  /* Le réglage du jeu de prises d'abord, celui de la voiture par-dessus. C'est l'ordre qui compte :
+  l'inertie, le temps de passage et l'amortissement viennent de la configuration de l'auteur, et la
+  voiture n'impose que ce qui la définit chez nous — son rupteur, son ralenti et sa boîte, parce que
+  le HUD affiche ce régime et que la boîte doit correspondre à la vitesse réelle de la voiture. */
+  conf = {
+    engine: Object.assign({}, j.engine, c.engine),
+    drivetrain: Object.assign({}, j.drivetrain, c.drivetrain),
+    wheel_radius: c.wheel_radius,
+  };
+  if (c.engine.limiter && !c.engine.soft_limiter) conf.engine.soft_limiter = c.engine.limiter * 0.99;
+  vehicule = new EAVehicle(conf);
+  $('etat').textContent = `${c.nom} — prises « ${j.nom} », rupteur ${conf.engine.limiter}`;
 }
 
 function boucle(now) {
@@ -38,7 +64,7 @@ function boucle(now) {
   dernier = now;
   const v = vitesse / 3.6;
   vehicule.update(now - t0, dt, v, gaz);
-  sampler.applique(vehicule.engine, conf.bande);
+  sampler.applique(vehicule.engine);
 
   const e = vehicule.engine;
   $('v-rpm').textContent = Math.round(e.rpm);
