@@ -909,7 +909,7 @@ s'efface pour lui. Les scripts de test passent l'écran comme un joueur, par une
 
 ## Le menu-affiche
 
-Le menu est une affiche, `art/menu-bg.webp`, et les cinq bandeaux posés dessus sont les boutons.
+Le menu est une affiche, `art/menu-bg.webp`, et les bandeaux posés dessus sont les boutons.
 Chacun y est **imprimé replié** — l'icône et une amorce à damier, sans mot. Le dessin déplié, celui
 qui porte le texte, est posé par-dessus et se découvre de la gauche vers la droite.
 
@@ -917,7 +917,7 @@ Le pli n'est donc pas un tour joué à une seule image : le bandeau fermé est v
 bandeau ouvert le recouvre vraiment, et c'est pour cela qu'il n'y a rien eu à effacer de
 l'affiche.
 
-**Un bandeau ne s'ouvre qu'à l'appui.** Au repos, le menu est exactement la maquette : cinq
+**Un bandeau ne s'ouvre qu'à l'appui.** Au repos, le menu est exactement la maquette : des
 bandeaux repliés, une icône chacun, pas un mot. Le dépliage est la réponse à l'appui, et le mot
 qu'il découvre dit sur lequel on a appuyé ; l'écran ne change qu'ensuite, 430 ms plus tard. Sous
 `prefers-reduced-motion` le bandeau s'ouvre sans transition et l'action part aussitôt — attendre
@@ -935,8 +935,50 @@ bandeau à l'autre, et la pile sortait de travers — une des versions dépassai
 l'affiche.
 
 Le hamburger est dessiné dans l'affiche ; il ne reste qu'à poser la cible au-dessus, un peu plus
-large que lui pour qu'un pouce la trouve. `tools/e2e-menu.js` vérifie les cinq bandeaux, le
-chargement réel de chaque image, le dépliage, et l'endroit où mène chaque bouton.
+large que lui pour qu'un pouce la trouve. `tools/e2e-menu.js` vérifie les bandeaux, le chargement
+réel de chaque image, le dépliage, et l'endroit où mène chaque bouton.
+
+### Retirer une entrée, c'est refaire l'affiche
+
+L'atelier voiture et l'atelier circuits ont quitté le menu. Retirer les deux lignes de `js/ui.js`
+n'aurait pas suffi : les bandeaux repliés sont **peints dans le fond**, c'est tout l'intérêt du
+dépliage, et deux bandeaux seraient restés sur l'affiche sans mener nulle part. C'est donc
+l'affiche elle-même qui a été refaite sans eux. Les trois qui restent n'ont pas bougé d'un pixel —
+20,04 / 30,38 / 40,79 %, les mêmes chiffres qu'avant.
+
+Ce qui a été retiré est l'entrée, pas la fonction : `_act` garde ses cas, `editor.html` et
+`lignes.html` répondent toujours à leur adresse, les voitures et les circuits déjà enregistrés se
+choisissent toujours en course, et les dessins dépliés dorment dans `art/menu/`. Le lien « éditeur
+→ » de l'écran de départ est parti avec, lui aussi : laisser l'atelier à une tape de distance
+n'aurait rien désactivé du tout.
+
+**Le défaut que cette page peut avoir, et que rien ne montrait.** Les boutons sont des rectangles
+transparents posés à des hauteurs écrites à la main. Rien ne les lie aux bandeaux peints : refaire
+l'affiche, ou changer un chiffre, décale les cibles sans rien casser ni rien afficher de faux. On
+clique simplement à côté, et une capture d'écran n'en montre rien puisque les boutons sont
+invisibles.
+
+`tools/e2e-menu.js` lit donc le fond lui-même, sur **une seule colonne**, à 6 % du bord gauche.
+C'est le seul endroit où un bandeau est une couleur franche et rien d'autre : plus à droite
+viennent les traits de vitesse, l'icône, le damier. Une première version cherchait des bandes sur
+tout le tiers gauche et se faisait couper par les icônes — elle voyait deux bandeaux sur trois et
+en inventait un quatrième dans les arbres. Sur cette colonne, un bandeau est une suite de lignes
+saturées et de couleur **constante**, et c'est la constance qui écarte le vibreur rouge et blanc du
+bas de l'affiche : texturé, écart-type 72, là où un bandeau est plat, 23 au pire.
+
+Le détecteur se vérifie lui-même de deux façons. Passé sur l'affiche d'avant, à cinq bandeaux, il
+retrouve les cinq hauteurs qui étaient alors écrites dans `ui.js` — 20,2 / 30,4 / 40,9 / 51,3 /
+61,8 %. Et remettre cette affiche-là fait échouer l'essai en nommant les deux bandeaux devenus
+orphelins. Un contrôle qui ne sait pas échouer ne contrôle rien.
+
+Ce qu'il compare est le **haut** du bandeau et le haut du bouton, et non leur recouvrement : les
+bandeaux sont des parallélogrammes qui descendent vers la droite, donc sur cette colonne on ne voit
+que leur début — or le haut est justement le nombre qu'on écrit à la main. Les trois tombent à
+0,12 point près.
+
+Cette vérification a demandé une autre correction, déjà apprise sur le moteur à échantillon : sous
+`file://` toute image vient d'une autre origine, donc la lire dans un canvas est interdit. L'essai
+sert maintenant le dossier en HTTP, comme le fait GitHub Pages.
 
 ## Nombre de tours
 

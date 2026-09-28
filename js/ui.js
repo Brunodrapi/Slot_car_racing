@@ -269,7 +269,7 @@ class UI {
     `, 'center splash');
   }
 
-  /* The menu is the poster, and the five banners on it are the buttons. Each one is printed in
+  /* The menu is the poster, and the banners on it are the buttons. Each one is printed in
   its folded state — icon and a checkered tail, no words — in the background image itself; the
   unfolded artwork, the one that carries the text, is laid over it and wiped in from the left.
   So the fold is not a trick played on one image: the closed banner really is underneath, and the
@@ -279,6 +279,18 @@ class UI {
   from its own artwork. Matching each folded banner's measured height instead looked more rigorous
   and was worse: the icons overhang their bars by different amounts, so those heights disagree by
   ten per cent between banners and the stack came out ragged. */
+  /* L'atelier voiture et l'atelier circuits ne sont plus au menu.
+
+  Un bouton retiré d'une liste laisserait son bandeau peint sur l'affiche, donc un trou de deux
+  bandeaux muets — le fond porte les bandeaux repliés, c'est tout l'intérêt du dépliage. C'est donc
+  l'affiche elle-même qui a été refaite sans eux, et les trois qui restent n'ont pas bougé d'un
+  pixel : 20,04 / 30,38 / 40,79 %, les mêmes qu'avant. `tools/e2e-menu.js` mesure les bandeaux
+  peints dans le fond et vérifie que chaque bouton tombe dessus, ce qui est la seule façon de
+  s'apercevoir qu'un chiffre et un dessin ont cessé de se correspondre.
+
+  Les deux écrans, eux, restent : `_act` garde leurs cas, `editor.html` et `lignes.html` répondent
+  toujours à leur adresse, et les dessins dépliés dorment dans `art/menu/`. Ce qui est retiré est
+  l'entrée du menu, pas la fonction. */
   menu() {
     const t = (k) => this.t(k);
     // top of each banner, as measured on the poster; `fold` is the artwork that carries the text
@@ -286,8 +298,6 @@ class UI {
       { top: 20.04, fold: 'course-rapide', act: 'setup', mode: 'race', label: t('quickRace') },
       { top: 30.38, fold: 'contre-la-montre', act: 'setup', mode: 'timetrial', label: t('timeTrial') },
       { top: 40.79, fold: 'multijoueurs', act: 'multi', label: t('multi') },
-      { top: 51.08, fold: 'atelier-voiture', act: 'workshop', label: t('workshop') },
-      { top: 61.72, fold: 'atelier-circuits', act: 'editor', label: t('editor') },
     ];
     const band = (it, i) => `<button class="mi" style="top:${it.top}%;--i:${i}"
         data-action="${it.act}" ${it.mode ? `data-mode="${it.mode}"` : ''} aria-label="${escapeHtml(it.label)}">
@@ -353,7 +363,10 @@ class UI {
             <img alt="" src="${this.thumb(tr, 90)}"><b>${tr.flag} ${tr.name}</b><small>${locked ? t('locked') : `${lapsFor(tr, cat)} ${t('laps')} · ${tr.length} m`}</small></button>`;
         }).join('')}
       </div>
-      <h3>${t('customTracks')} <button class="link" data-action="editor">${t('editor')} →</button></h3>
+      <!-- Le lien vers l'atelier circuits est retiré avec son bandeau du menu : le laisser ici
+           aurait laissé l'atelier à une tape de distance, et n'aurait donc rien désactivé du tout.
+           La liste des circuits perso reste, elle : ceux déjà enregistrés se choisissent toujours. -->
+      <h3>${t('customTracks')}</h3>
       <div class="grid tracks">
         ${app.custom.tracks.length ? app.custom.tracks.map(tr => `<button class="card ${tr.id === st.trackId ? 'sel' : ''}" data-action="pickTrack" data-id="${tr.id}">
             <img alt="" src="${this.thumb(tr, 90)}"><b>${tr.flag || '🏁'} ${escapeHtml(tr.name)}</b><small>${lapsFor(tr, cat)} ${t('laps')}</small></button>`).join('') : `<p class="muted">${t('noCustomTracks')}</p>`}

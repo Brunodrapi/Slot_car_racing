@@ -36,7 +36,7 @@ canvas#game { position: fixed; inset: 0; display: block; touch-action: none; use
 .screen.poster .version { position: absolute; bottom: max(8px, env(safe-area-inset-bottom)); right: 10px; margin: 0; opacity: 1;
   background: rgba(10, 12, 20, 0.62); color: #dfe3ea; padding: 3px 9px; border-radius: 999px; }
 
-/* Les cinq bandeaux. Un seul bord gauche, une seule largeur ; la hauteur de chacun suit son propre
+/* Les bandeaux. Un seul bord gauche, une seule largeur ; la hauteur de chacun suit son propre
    dessin. Le bouton n'a ni fond ni bordure : ce qu'on voit est l'affiche dessous et le bandeau
    déplié dessus. */
 /* Le bouton a la taille du bandeau REPLIÉ, celui qui est imprimé dans l'affiche : c'est lui qu'on
