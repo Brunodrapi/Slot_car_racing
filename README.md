@@ -1153,193 +1153,137 @@ la même surface d'une carte à l'autre.
 
 ## Le son des voitures
 
-Deux méthodes se partagent le métier : le **fondu enchaîné d'enregistrements** par régime, celle
-des simulateurs, et la **synthèse**. La première demande une douzaine de boucles par voiture et par
-perspective — un muscle car qui coupe à 5500 tr/min en réclame treize, et il en faut une série par
-perspective (échappement, moteur, admission, habitacle). À neuf voitures cela ferait des
-mégaoctets à télécharger sur un téléphone, et surtout des enregistrements génériques feraient
-sonner un flat-12 comme un six en ligne, ce qui est exactement ce qu'on cherche à éviter.
+Le moteur vient de [markeasting/engine-audio](https://github.com/markeasting/engine-audio), sous
+licence MIT, porté en JavaScript dans `js/engine-audio.js`. La notice et le copyright de l'auteur
+sont en tête du fichier, et la licence accompagne ses prises dans `sounds/engine-audio/LICENSE`.
 
-La synthèse est ici la bonne réponse parce que **la différence entre ces voitures est
-arithmétique**. Un quatre-temps allume `cyl / 2` fois par tour de vilebrequin, donc la fréquence
-d'allumage vaut
+Le principe. Le régime n'est plus déduit de la vitesse : c'est un **volant d'inertie** qu'on
+intègre vingt fois par image. Un couple le pousse, un frein moteur le retient, un embrayage le
+relie à une transmission, et les roues imposent leur vitesse à cette transmission. Le son sort de
+là au lieu d'être plaqué dessus. Par-dessus, quatre boucles stationnaires — pied dedans en bas et
+en haut, pied levé en bas et en haut — mélangées par deux fondus à puissance constante, l'un sur le
+régime, l'autre sur l'accélérateur, chacune désaccordée de `(régime − son propre régime) × 0,2`
+cent.
 
-```
-f = tr/min ÷ 60 × cyl ÷ 2
-```
+### Ce qui a été jeté, et pourquoi
 
-À 6000 tr/min : 300 Hz pour un six en ligne, 400 pour un V8, 600 pour un V12. **Une octave sépare
-le six du douze**, sans rien avoir à enregistrer.
+Un oscillateur unique muni d'une `PeriodicWave` dont les coefficients étaient les ordres moteur,
+filtré en échappement et en admission, plus un souffle, un clapot de ralenti modulé en anneau et un
+sifflement de turbo ; puis, par-dessus, un lecteur granulaire qui se déplaçait dans une montée
+enregistrée sans jamais la transposer.
 
-Les **ordres moteur** sont les harmoniques de la rotation du vilebrequin. Plutôt que d'empiler
-douze oscillateurs, on en prend donc **un seul**, muni d'une `PeriodicWave` dont les coefficients
-*sont* les ordres, et on lui donne pour fréquence `tr/min ÷ 60` : l'allumage tombe alors sur
-l'harmonique `cyl/2` et tout le spectre suit. Les ordres **inférieurs** à l'allumage ne devraient
-pas exister sur un moteur équilibré, et c'est précisément leur présence qui fait le grondement d'un
-V8 à vilebrequin croisé — le champ `rough` les dose, et c'est lui qui sépare la Corvette de la
-Countach à cylindrée et régime comparables.
+Le raisonnement tenait, et il était vérifié : un quatre-temps allume cyl/2 fois par tour, donc une
+octave sépare un six en ligne d'un V12 sans rien avoir à enregistrer, et les pics mesurés tombaient
+à un demi pour cent de l'allumage attendu sur les neuf voitures. Le granulaire, lui, ne transposait
+jamais — ce qui était le bon principe et reste vrai.
 
-Le reste est du réalisme de comportement, et c'est lui qui fait le plus d'effet :
+**Ce qui lui manquait n'était pas la justesse, c'était le répertoire.** Un régime déduit de la
+vitesse par une règle de trois ne sait faire qu'une chose : monter et descendre. Pas de trou au
+passage de rapport, pas de rebond contre le rupteur, pas de frein moteur qui retient, pas
+d'embrayage qui patine au départ. Une montée enregistrée, si juste soit-elle, ne sait rien faire
+d'autre que monter.
 
-- **le régime suit les rapports, pas la vitesse.** Sans boîte, un moteur monte du ralenti au
-  rupteur en une seule fois sur toute la plage : rien ne sonne plus faux, et c'est ce que faisait
-  la version précédente. Cinq rapports, serrés en bas, longs en haut, avec 90 ms de coupure à
-  l'embrayage — assez pour entendre le rapport passer.
-- **la charge change le timbre.** Pied dedans, l'admission et son souffle sont là ; pied levé,
-  l'admission disparaît et l'échappement s'assombrit.
-- **le turbo** siffle d'autant plus fort que le régime monte, et retombe d'un coup au lever.
-- **le vent** ne connaît que la vitesse, et tient la scène quand on lève le pied.
+La contrepartie est assumée : **il y a de la transposition maintenant**, ce qu'on avait
+explicitement écarté. Ce qui la rend tenable, c'est qu'elle est partielle — chaque prise ne
+s'écarte que de trois ou quatre demi-tons du sien, là où une boucle unique étirée sur toute la
+plage en demandait dix-neuf, et le reste du chemin est fait par le fondu vers la prise voisine.
 
-Chaque voiture porte son vrai moteur dans `js/cars.js` (`engine`) : six en ligne pour la M1 Procar
-et la CSL, V8 à vilebrequin plat et biturbo pour la F40, flat-6 turbo pour la 911, V12 pour la
-Countach, flat-12 pour la 917, gros V8 croisé pour la GT40 et la Corvette.
+### Trois écarts avec l'original
 
-### Lecture granulaire, et pourquoi pas des boucles
+1. **`rpm` était faux d'un facteur π².** `(60 * omega) / 2 * Math.PI` se lit `((60·ω)/2)·π`, soit
+   94,2·ω, là où des tours par minute valent 60·ω/(2π) = 9,55·ω. Chez l'auteur c'est sans
+   conséquence : tout son réglage vit dans cette unité gonflée et reste cohérent avec lui-même.
+   Chez nous les rupteurs sont réels et le HUD les affiche.
+2. **Le passage de rapport ne passe plus par `setTimeout`**, qui ignore la pause du jeu et dépend
+   de la charge de la machine. Il est daté sur l'horloge du jeu.
+3. **L'accélérateur n'est plus écrasé à chaque sous-pas.** L'original le multiplie vingt fois par
+   image, ce qui revient au bon résultat — mais seulement parce qu'il y a vingt sous-pas.
 
-Trois voitures roulent sur des enregistrements : la M1 Procar, la F40 et la Corvette. Les six
-autres sur la synthèse.
+### Et trois ajouts, parce que son banc ne tire rien
 
-**Elles ne sont jamais transposées.** C'est tout le sujet, et il a fallu trois tentatives ratées
-pour y arriver. Un moteur de jeu sérieux — REV, AudioMotors, le moteur granulaire de Wwise — ne
-change pas la vitesse de lecture d'un son : il **se déplace dans une montée en régime enregistrée**
-et y prend des grains là où le moteur tournait vraiment à ce régime. Le chiffre qui condamne
-l'autre approche est constant dans la littérature : **une boucle commence à sonner étirée dès
-qu'on la transpose de plus de 500 tr/min**, soit sept dixièmes de demi-ton à 6000. Couvrir trois
-octaves en transposant demande des dizaines de boucles et sonne mal bien avant — chez moi, « on
-dirait des moustiques ».
+Son démonstrateur est un banc d'essai : on y passe les rapports au clavier et rien ne relie le
+moteur aux roues — l'inertie de charge y est même multipliée par zéro. Chez nous la vitesse de la
+voiture est souveraine, elle sort de la physique du jeu, et le son doit la suivre.
 
-Sept voitures sur neuf ont leur prise à elles, et les deux autres empruntent. La table à jour est
-dans [`sounds/BILAN.md`](sounds/BILAN.md), que `python3 tools/bilanson.py` régénère en mesurant le
-dossier — elle n'est pas tenue à la main, donc elle ne périme pas :
+- **Un embrayage.** Sans lui, à l'arrêt les roues tiennent le moteur à zéro et la voiture cale au
+  départ d'une course.
+- **Une raideur d'embrayage de 180 au lieu de 12.** À 12, sous couple constant, le moteur se
+  stabilise `couple / (amortissement · inertie)` au-dessus des roues, soit près de 600 tr/min : un
+  embrayage qui patine en permanence. Invisible sur un banc à vide, faux dès qu'un compte-tours
+  affiche le régime.
+- **Une hystérésis sur le choix du rapport**, sans quoi la boîte claque plusieurs fois par seconde
+  autour de la vitesse de passage.
 
-| voiture | rampe | montée | plage couverte |
-|---|---|---|---|
-| Countach LP500 | 6,0 s | 24 demi-tons | 1907 – 7500 tr/min |
-| M1 Procar | 7,8 s | 17 demi-tons | 3423 – 9000 tr/min |
-| Corvette | 7,4 s | 14 demi-tons | 2708 – 6000 tr/min |
-| F40 | 4,0 s | 9 demi-tons | 4702 – 7750 tr/min |
-| 911 Turbo | 3,0 s | 7 demi-tons | 4595 – 7000 tr/min |
-| 787B | 4,6 s | 7 demi-tons | 6159 – 9000 tr/min |
-| GT40 Mk II | 1,8 s | 5 demi-tons | 4611 – 6200 tr/min |
-| 917 K | *celle de la M1* | 17 demi-tons | 3192 – 8400 tr/min |
-| 3.0 CSL | *celle de la M1* | 17 demi-tons | 2662 – 7000 tr/min |
+### Le pont se calcule, il ne se devine pas
 
-**La plage n'est pas posée, elle est déduite de la montée mesurée.** Une rampe qui monte de neuf
-demi-tons ne peut couvrir que neuf demi-tons de plage de régime : lui en faire couvrir vingt-cinq
-étire l'axe des régimes de presque trois fois, et le moteur monte alors bien moins vite que le
-compte-tours. Le granulaire ne déforme plus le timbre, mais un axe étiré désaccorde le moteur du
-cadran, ce qui s'entend autant. Seul le rupteur est donné ; le bas s'en déduit, et
-`tools/e2e-sample.js` échoue si l'étirement s'écarte de 1 de plus de 6 %.
+Le rupteur ne peut rien contre une mauvaise démultiplication. Il coupe les gaz, mais en prise ce
+sont les **roues** qui imposent le régime : si le dernier rapport donne 8210 tr/min à la vitesse
+maximale d'une voiture qui coupe à 7000, elle y monte quand même et y reste.
 
-La contrepartie est claire et assumée : **plus la montée est large, plus la rampe couvre**. La
-Countach, vingt-cinq demi-tons d'un seul rapport, tient toute sa plage à l'enregistrement et ne
-laisse presque rien à la synthèse. La 787B, six demi-tons, n'en tient que le haut — et c'est
-jouable, parce qu'un Groupe C ne descend pas là en course. C'est la raison pour laquelle une montée
-complète, du bas de la plage au rupteur, vaut tous les réglages du monde.
+C'est exactement ce qui est arrivé avec les rapports posés à la main — la 911 Turbo à 8210 pour un
+rupteur à 7000, la GT40 à 6502 pour 6200, la Corvette à 6733 pour 6000. Trois voitures sur neuf, et
+à l'oreille cela ne s'entend que comme « ça sonne trop haut », sans dire pourquoi.
 
-Le plancher de l'outil est un demi-octave de montée, pas davantage : en deçà du bas de la rampe et
-au-delà du haut, le lecteur fond vers la synthèse sur un quart d'octave, si bien qu'une rampe étroite
-coûte de la couverture et non de la justesse.
+Une vraie voiture est démultipliée pour que le dernier rapport atteigne le rupteur exactement à sa
+vitesse maximale. `accordeBoite` calcule donc le pont au lieu de le deviner, ce qui est juste par
+construction pour les neuf voitures et pour celles de l'atelier.
 
-**Une voiture sans prise à elle joue celle de la M1**, et non plus la synthèse. C'est la montée la
-plus large du dossier après la Countach — dix-sept demi-tons d'un seul tenant — donc celle qui
-survit le mieux au prêt. Un six en ligne sur une 917 K est faux d'origine, mais l'écart entre un six
-et un douze est un écart de timbre, quand l'écart entre une prise et la synthèse était un écart de
-nature ; le reproche « on entend encore les moustiques » portait sur le second.
+### Quelle voiture joue quel jeu de prises
 
-Le prêt demande une précaution, qui est tout ce que le code ajoute. Une rampe porte sa plage en
-tours/minute, mesurée sur la voiture qui l'a enregistrée : celle de la M1 monte à 9000. Jouée telle
-quelle sur une CSL qui coupe à 7000, le haut de la rampe resterait hors d'atteinte — la voiture
-lirait les trois quarts de l'enregistrement et **ne sonnerait jamais au rupteur**, le moteur
-paraissant retenu en permanence. `_bornes()` ramène donc les deux bornes de la rampe au rupteur de
-la voiture qui l'emprunte, par un simple facteur `rupteur / rpmHaut`. Le facteur vaut exactement 1
-pour les sept voitures qui ont leur prise, si bien que le prêt ne change rien pour elles, et
-`tools/e2e-sample.js` vérifie que le rupteur de chacune des neuf tombe bien sur la fin de sa table.
+`sounds/engine/voitures.json` fait l'aiguillage. Les trois jeux — procar, BAC Mono, 458 — sont
+repris de `src/configurations.ts` sans y toucher : mêmes fichiers, mêmes régimes, mêmes volumes,
+mêmes inerties et temps de passage.
 
-**Ce qu'une prise doit être.** Sur sept fichiers découpés à la main, trois ont donné une rampe. Ce que
-disent les quatre autres est plus utile que leur rejet : `gt40_plein_regime` monte de 5,5 demi-tons
-sur quinze secondes, soit un tiers de demi-ton par seconde, ce qu'on ne distingue pas de la dérive de
-la mesure cumulée ; `787B_start` et `M1_Procar_off-7000` bougent de dix à quatorze demi-tons **par
-seconde**, ce qu'aucune voiture sur un rapport ne fait — un démarrage et un montage, pas des régimes ;
-`GT_40_descente` ne chute que de 2,3 demi-tons d'un seul tenant. Ce qu'il faut est une seule chose :
-**un tirage d'un seul rapport, parti du bas de la plage, sans passage** — typiquement la sortie d'un
-virage lent en deuxième ou troisième.
+| jeu | voitures |
+|---|---|
+| procar | M1 Procar, 911 Turbo, Countach LP500, GT40 Mk II, Corvette |
+| BAC Mono | 787B, 917 K |
+| 458 | F40, 3.0 CSL |
 
-**Le pied levé attend sa matière.** `tools/enginegrains.py --descente` sait extraire une rampe de
-décélération : il cherche la montée dans le signal retourné, puis ramène la table au temps du fichier
-d'origine — le son n'est jamais écrit à l'envers, une attaque de combustion jouée à reculons ne
-sonnant plus comme un moteur. Mais la seule descente déposée ne chute que de **5,0 demi-tons en
-1,4 s**, soit 6725 – 9000 tr/min sur une voiture. Brancher une seconde voie dans le lecteur granulaire
-pour cela ne se justifie pas : le pied levé n'y gagnerait que le quart haut de la plage d'une seule
-voiture sur neuf. Il faut un lever de pied **du rupteur au ralenti, sur un rapport, sans coup de
-frein**, quatre secondes au moins. La commande est prête, la matière manque.
+Chaque voiture n'impose que trois choses par-dessus : son **rupteur**, son **ralenti** et sa
+**boîte**. Le HUD affiche ce régime, et la boîte doit correspondre à la vitesse réelle de la
+voiture. Une voiture absente du catalogue — celles de l'atelier — joue le jeu de la M1 avec son
+propre rupteur : aucune voiture ne reste muette.
 
-**Ce qu'il faut comme matière.** Une rampe : une montée continue, pied au plancher, sur un seul
-rapport. `tools/enginegrains.py` la trouve seul dans un onboard — il cherche la plus longue montée
-de hauteur sans recul, un recul franc étant précisément un passage de rapport.
+Un **niveau par jeu** a dû être ajouté. Les volumes de l'auteur décrivent l'équilibre entre ses
+quatre boucles — 2,5 sur la voie haute du 458, 1,6 sur sa voie levée — et chez lui une sortie
+maîtresse ramenait le tout. Chez nous ils arrivaient tels quels sur le compresseur et saturaient.
+On ne touche pas à son équilibre, on ne descend que la sortie du jeu entier : 0,4 pour le 458.
 
-**Comment la hauteur est suivie, et pourquoi ça marche enfin.** Pas en mesurant un régime. Un
-moteur n'a pas de fondamental unique et net : il porte ses demi-ordres, ses rangs d'allumage, ses
-résonances d'échappement, et l'énergie n'est pas forcément sur l'allumage. Autocorrélation, somme
-harmonique, écart entre rangs, toutes ont été essayées ici, toutes se trompent d'octave quelque
-part, et pas au même endroit — d'où des jeux de boucles dont les étiquettes se contredisaient
-entre elles de 0,29 à 2,05.
+### Boucler sans réencoder
 
-On mesure donc seulement **de combien la hauteur a bougé d'une fenêtre à la suivante**. Une
-dilatation du temps translate le spectre sur un axe logarithmique, et le décalage qui superpose
-le mieux deux spectres voisins donne le rapport exact. Entre deux fenêtres distantes de quatre-
-vingts millisecondes l'écart est minuscule, donc la mesure est sûre : **l'alignement médian passe
-de 0,5 à 0,85** rien qu'en ne comparant que des voisines. Les rapports se cumulent et donnent une
-courbe de hauteur fiable sans avoir jamais eu à nommer un régime.
+`AudioBufferSourceNode` accepte `loopStart` et `loopEnd`, donc `tools/boucles.py` ne cherche que
+deux instants et les range dans la configuration. Aucune prise n'est réencodée.
 
-L'échelle absolue, elle, n'est pas mesurée : elle est **posée** par `--bas` et `--haut`, donc par
-la voiture. Et c'est sans risque, parce qu'une erreur là-dessus ne déforme rien — elle décale
-seulement l'endroit de la rampe qu'on entend.
+Cet outil s'est trompé deux fois sur la même question — un raccord de boucle s'entend-il ?
 
-**Le lecteur.** Grains de 90 ms, recouvrement de moitié, enveloppe triangulaire : la somme de deux
-enveloppes voisines vaut exactement un, donc le niveau ne bouge pas et il n'y a pas de raccord à
-entendre. La tête de lecture avance d'elle-même au rythme du son — ce qui redonne au moteur ses
-irrégularités de cycle, qu'une boucle écrase — et se recale sur la position du régime dès qu'elle
-s'en éloigne de plus de 200 ms. `playbackRate` n'est jamais touché, et `tools/e2e-sample.js` le
-vérifie en lisant le code du lecteur.
+1. L'écart quadratique sur trente millisecondes rapporté au niveau de la prise. Il condamnait les
+   six fichiers, de −1,7 à −13 dB. Il mesurait surtout le **bruit** — souffle, route, cylindres
+   déphasés — qui ne coïncide jamais d'un tour à l'autre et ne s'entend pas pour autant.
+2. La marche entre les deux échantillons du raccord, rapportée au RMS : 0,8 à 1,4, ce qui paraissait
+   énorme. Mais le RMS est un niveau **moyen**, pas une vitesse ; il ne dit rien de ce qu'une forme
+   d'onde a le droit de faire entre deux échantillons.
 
-**Quand une prise existe, c'est elle qu'on entend — sur toute la plage.** La règle d'avant rendait la
-main à la synthèse dès que le régime sortait de la plage mesurée de la montée. Prudent sur le papier,
-c'était le défaut principal : une montée découpée dans un onboard de course ne couvre souvent qu'un
-tirage entre deux rapports — 4611 à 6200 tr/min pour le GT40 — si bien que **les quatre cinquièmes de
-ce qu'on entendait n'étaient pas la prise, mais la synthèse**. Le reproche « on entend encore les
-moustiques » portait donc juste, et sur la synthèse, que la prise ne faisait que couvrir par endroits.
+Rapportée à la plus grande pente que la prise contient **déjà**, la marche vaut 0,07 à 0,76. Le
+raccord se perd dans ce que la prise fait de toute façon. Pas de machine à fondu pour un défaut
+qu'on n'a pas su démontrer.
 
-Le choix est renversé, et c'est un choix, pas une découverte. Sous le bas de la montée on reste sur la
-prise : la tête de lecture butant sur son début, la hauteur cesse de suivre le compte-tours. Un vrai
-moteur qui ne suit pas tout à fait le cadran sonne mieux qu'un oscillateur qui le suit parfaitement.
-Au-dessus du rupteur enregistré le fondu reste, parce qu'il n'y a rien à jouer plus haut. Seule
-exception, l'arrêt : avant le départ le ralenti de synthèse garde la main, aucune de ces prises ne
-contenant de ralenti et un moteur à 4600 tr/min voiture immobile s'entendant tout de suite.
+### Ce qui se mesure, et ce qui s'écoute
 
-### Trois prises par voiture, et le moteur choisit
+`tools/moteur-banc.js` mesure le volant sans une seule note : ralenti tenu, temps du ralenti au
+rupteur, rupteur sans dépassement, régime à 0,1 % de ce que la boîte impose, une chute par passage,
+frein moteur, aucun NaN sous secousses. Il a trouvé trois fautes, toutes de moi, toutes invisibles
+à l'œil — dont un couplage aux roues qui avançait l'angle deux fois et faisait tourner la
+transmission à 6,6 × 10³⁰¹ rad/s avant de tout passer en NaN.
 
-Une montée ne dit qu'une chose : comment le moteur sonne en prenant des tours. Elle ne sait rien dire
-de ce qu'il fait installé au rupteur, ni pied levé, où la combustion cesse et où seule la ligne
-d'échappement chante. Le lecteur prend donc sa matière là où elle existe :
+`tools/e2e-moteur.js` mesure le moteur **dans le jeu** : que chaque voiture trouve un jeu de prises
+et que chaque fichier cité existe, que les prises arrivent, que le régime monte au rupteur de la
+voiture et non à celui du jeu, que le mélangeur bascule avec l'accélérateur, et que rien ne sature.
+Il remplace `e2e-sample.js` et `e2e-audio.js`, qui mesuraient un moteur qui n'existe plus.
 
-| rôle | ce que c'est | repéré par le régime ? |
-|---|---|---|
-| `ramp` | la montée | **oui** — c'est elle qui porte l'axe des tours |
-| `haut` | à plein régime, quand les tours ne bougent plus | non |
-| `bas` | pied levé | non |
-| `start` | le démarreur, une fois, au décompte | non, joué d'un bout à l'autre |
-
-La distinction n'est pas cosmétique, elle débloque deux prises sur trois. Une prise à plein régime ne
-change presque pas de hauteur — c'est sa définition — donc la montée qu'on y mesure ne se distingue
-pas de la dérive de la mesure ; une décélération de course erre de deux ou trois demi-tons sans chute
-nette, le pilote levant, reprenant, freinant. Leur faire porter une table fabriquerait un axe faux.
-Mais elles portent parfaitement un **timbre**, et c'est tout ce qu'on leur demande : la tête de
-lecture y tourne librement, sans rien prétendre sur le régime.
-
-Les trois gains se croisent en fondu sur 120 ms, un basculement sec s'entendant comme un raccord. Le
-GT40 a ses trois matières, la 787B une montée, une descente et un démarreur. `tools/enginetexture.py`
-fabrique une matière, `tools/enginegrains.py` une montée.
+`moteur.html` est le banc d'écoute : un sélecteur de voiture, une vitesse, une pédale, et l'état du
+mélangeur en direct — gain et désaccord par voie. Il ne sert à rien au joueur ; il sert à régler,
+parce qu'aucun chiffre ne dit si un moteur sonne bien.
 
 ### Tenir soixante images par seconde sur un téléphone
 
@@ -1487,79 +1431,6 @@ mesure annonçait un mouvement parfaitement lisse. L'essai vérifie donc que la 
 avant de conclure quoi que ce soit — et il fait rouler tout le monde pendant la mesure, pour libérer
 la piste.
 
-### Le clapot du ralenti
-
-Aucun des trois onboards ne contient de ralenti : une prise de course n'en a pas, le pilote ne
-laisse jamais le moteur tourner à vide. Cherché automatiquement dans les trois, les meilleurs
-candidats font deux dixièmes de seconde. C'est donc la synthèse qui tient le ralenti, et elle n'y
-était bonne que par accident.
-
-Un moteur au ralenti ne fait pas entendre sa ligne d'échappement mais sa combustion : elle est
-irrégulière, un cylindre ne donne pas tout à fait comme le suivant, la distribution claque. Un
-moteur déclaré « lisse » — la M1 et la F40, `rough` à 0,15 — ne rendait donc qu'un bourdon mince
-et propre, là où la Corvette à 0,70 sonnait juste sans qu'on ait rien fait pour.
-
-D'où une couche de bruit filtré **multipliée par le signal du moteur lui-même**. Le produit se
-module à la fréquence d'allumage : c'est le « pouf-pouf » d'un ralenti, et non un souffle. En
-pratique le gain du multiplieur reste à zéro et c'est l'oscillateur, branché sur ce gain, qui le
-fait varier — une modulation en anneau, à la fréquence audio, que le graphe audio du navigateur
-sait faire sans code.
-
-Mesuré : le battement tombe à 55,2 Hz sur la M1 pour 55,0 attendus à 1100 tr/min, et à 66,6 Hz sur
-la F40 pour 66,7. Le centroïde passe à 171 et 182 Hz, tout près des 154 Hz de la Corvette qui
-faisait déjà l'affaire. Le clapot se retire ensuite de lui-même : il est pondéré par le carré de
-ce qui reste à monter en régime, et par l'absence de prise — au plein régime de la M1 le centroïde
-est remonté à 597 Hz, celui de la F40 à 1601.
-
-### La chaîne d'outils
-
-```
-node tools/decodeaudio.js <entrée> <sortie.wav>            # WebM, MP3… par le décodeur de Chromium
-python3 tools/enginescan.py <prise.wav> --cyl=6            # où se trouve quel régime
-python3 tools/enginegrains.py <prise.wav> <nom> --haut= [--descente]   # la rampe + sa table
-python3 tools/bilanson.py                                  # le bilan mesuré de tous les sons
-node tools/enginedemo.js <id> <sortie.wav>                 # une accélération à écouter
-node tools/e2e-sample.js                                   # la rampe arrive, la lecture avance
-```
-
-Il n'y a pas de décodeur en ligne de commande dans cet environnement, mais Chromium en embarque un
-pour tous les formats du Web. `decodeaudio.js` le lui fait faire, et rapatrie le résultat **par
-tranches** : d'un bloc, au-delà d'un quart d'heure de son, la chaîne sérialisée dépasse ce que Node
-accepte (`ERR_STRING_TOO_LONG`) et rien n'est écrit.
-
-Les rampes sont écrites en **mono 24 kHz** : un moteur n'a plus rien à dire au-dessus de 12 kHz, et
-les trois tiennent ainsi dans 950 Ko.
-
-### Mesuré, pas écouté
-
-`NODE_PATH=$(npm root -g) node tools/e2e-audio.js` rend le son **hors ligne** dans un
-`OfflineAudioContext`, en prend le spectre par transformée directe, et vérifie deux choses qu'aucune
-capture d'écran ne montre :
-
-| voiture | cyl | tr/min | allumage attendu | pic mesuré |
-| --- | --- | --- | --- | --- |
-| M1 Procar | 6 | 3893 | 195 Hz | 194 Hz |
-| F40 | 8 | 3361 | 224 Hz | 224 Hz |
-| Countach | 12 | 3242 | 324 Hz | 324 Hz |
-| GT40 Mk II | 8 | 2689 | 179 Hz | 180 Hz |
-| 917 K | 12 | 3662 | 366 Hz | 366 Hz |
-| Corvette | 8 | 2598 | 173 Hz | 174 Hz |
-
-Les neuf tombent à moins de 0,5 % de leur fréquence d'allumage théorique, et le rapport
-douze-cylindres sur six-cylindres ramené au même régime vaut **2,01** — l'octave, comme la physique
-l'exige. L'outil compte aussi les chutes de régime le long de la plage de vitesse : quatre, soit
-les quatre passages de rapport d'une boîte à cinq.
-
-### Et les banques de sons ?
-
-Sonniss et Pixabay répondent **403** depuis ce bac à sable, et l'API de Freesound demande une clé
-que je n'ai pas ; Freesound et Mixkit restent atteignables en page publique. Mais le point qui
-décide n'est pas l'accès : un enregistrement générique de « moteur de voiture » ne fait pas
-entendre la différence entre un flat-12 et un six en ligne, alors que l'arithmétique ci-dessus le
-fait gratuitement. Les banques gardent tout leur intérêt pour ce que la synthèse rend mal et qui ne
-dépend pas de la voiture — impacts, gravier, ambiance de stands. C'est le prochain pas naturel, et
-il demande une clé d'API ou des fichiers déposés dans le dépôt.
-
 ## L'équilibre entre les voitures
 
 Une différence de caractère est un choix offert au joueur ; cinq secondes au tour n'en est pas un,
@@ -1665,7 +1536,7 @@ node tools/line.js [circuit|all] [catégorie] [-v]                              
 node tools/corner.js [circuit|all] [catégorie] [marge] [-v]                      # vitesse réelle contre vitesse théorique, virage par virage
 node tools/diff.js [circuit|all] [catégorie] [-sans-elastique] [-table=…]         # ce que valent vraiment les trois difficultés
 node tools/models.js [catégorie] [marge]                                          # chaque voiture : tour idéal, tour réel, prix du pilotage
-NODE_PATH=$(npm root -g) node tools/e2e-audio.js                                  # spectre de chaque moteur et étagement de la boîte
+NODE_PATH=$(npm root -g) node tools/e2e-moteur.js                                 # le moteur dans le jeu : prises, rupteur, mélangeur, saturation
 NODE_PATH=$(npm root -g) node tools/e2e-splash.js [dossier]                       # l'écran-titre, sur téléphone et sur bureau
 NODE_PATH=$(npm root -g) node tools/e2e-menu.js [dossier]                         # le menu-affiche : bandeaux, dépliage, destinations
 NODE_PATH=$(npm root -g) node tools/e2e-pause.js [dossier]                        # le bouton pause en course, sur quatre formats d'écran
@@ -1680,7 +1551,8 @@ python3 tools/topcar.py <image> <id du modèle> [--nose=left]                   
 python3 tools/pickcar.py <image> <id du modèle> [--tol --peel]                    # voiture en trois quarts, pour le menu
 python3 tools/engineloop.py <prise.wav> <boucle.wav>                             # boucle moteur sans couture
 node tools/enginedemo.js <id> <sortie.wav> [secondes] [--synthese]               # une accélération à écouter
-node tools/e2e-sample.js                                                         # le régime déclaré correspond-il à la prise ?
+node tools/moteur-banc.js                                                        # le volant d'inertie, sans une note de son
+python3 tools/boucles.py sounds/six-inline/*.wav                                  # où boucler dans une prise, sans réencoder
 node tools/e2e-gauges.js                                                         # les cadrans : chiffre et arc d'accord, aucun plein
 NODE_PATH=$(npm root -g) node tools/propdbg.js <image.png>                        # décor visible et coût par image
 ```

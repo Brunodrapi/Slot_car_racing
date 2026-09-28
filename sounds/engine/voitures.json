@@ -3,6 +3,7 @@
   "jeux": {
     "procar": {
       "nom": "M1 Procar",
+      "niveau": 1.0,
       "engine": { "limiter": 9000, "soft_limiter": 9000, "limiter_ms": 150 },
       "drivetrain": { "shiftTime": 100, "damping": 12 },
       "sounds": {
@@ -15,6 +16,7 @@
     },
     "bac_mono": {
       "nom": "BAC Mono",
+      "niveau": 1.0,
       "engine": { "limiter": 9000, "soft_limiter": 8950, "limiter_ms": 0, "inertia": 1.0 },
       "drivetrain": { "shiftTime": 50, "damping": 16 },
       "sounds": {
@@ -27,6 +29,7 @@
     },
     "458": {
       "nom": "458",
+      "niveau": 0.4,
       "engine": { "limiter": 8900, "soft_limiter": 8800, "limiter_ms": 0, "inertia": 0.8 },
       "drivetrain": { "shiftTime": 10, "damping": 6 },
       "sounds": {

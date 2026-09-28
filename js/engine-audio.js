@@ -235,6 +235,25 @@ class EAVehicle {
     this.engine.init(cfg.engine);
     this.drivetrain.init(cfg.drivetrain);
     if (cfg.wheel_radius) this.wheel_radius = cfg.wheel_radius;
+    if (cfg.vmax) this.accordeBoite(cfg.vmax);
+  }
+
+  /* Le pont accordé sur la vitesse maximale de la voiture, au lieu d'un nombre posé à la main.
+
+  Le rupteur ne peut rien contre une mauvaise démultiplication. Il coupe les gaz, mais ce sont les
+  ROUES qui imposent le régime en prise : si le dernier rapport donne 8210 tr/min à la vitesse
+  maximale d'une voiture qui coupe à 7000, elle y monte quand même et y reste. C'est ce qui est
+  arrivé à la 911 Turbo, à la GT40 et à la Corvette avec les rapports que j'avais écrits — trois
+  voitures sur neuf, et rien ne l'aurait dit à l'oreille sinon qu'elles sonnent « trop haut ».
+
+  Une vraie voiture est démultipliée pour que le dernier rapport atteigne le rupteur exactement à
+  sa vitesse maximale. On calcule donc le pont au lieu de le deviner, et c'est juste par
+  construction pour toutes les voitures, y compris celles de l'atelier. */
+  accordeBoite(vmax) {
+    const d = this.drivetrain, dernier = d.gears[d.gears.length - 1];
+    const omegaRoue = vmax / this.wheel_radius;
+    if (omegaRoue <= 0 || dernier <= 0) return;
+    d.final_drive = this.engine.limiter / (omegaRoue * dernier * RPM_PAR_OMEGA);
   }
 
   // le régime que la boîte impose à cette vitesse, sur ce rapport
@@ -346,7 +365,29 @@ class EASampler {
   /* Une voix = une boucle qui tourne en permanence, dont on ne bouge que le gain et l'accord.
   Elles ne démarrent ni ne s'arrêtent jamais : un `start()` par note coûterait un clic à chaque
   changement de régime, et c'est exactement ce qu'on cherche à éviter. */
-  async charge(defs, base = '') {
+  /* Changer de jeu de prises, c'est d'abord se débarrasser du précédent.
+
+  Une voix ne s'arrête jamais d'elle-même : c'est tout l'intérêt, aucun `start()` par note, donc
+  aucun clic. Mais charger un second jeu par-dessus laisserait le premier tourner à son dernier
+  gain, et deux moteurs joueraient ensemble. */
+  vide() {
+    for (const k of Object.keys(this.voix)) {
+      try { this.voix[k].src.stop(); } catch (e) { /* déjà arrêtée */ }
+      this.voix[k].src.disconnect();
+      this.voix[k].gain.disconnect();
+    }
+    this.voix = {};
+  }
+
+  async charge(defs, base = '', niveau = 1) {
+    this.vide();
+    /* Le niveau du JEU, distinct des volumes de chaque prise.
+
+    Les volumes viennent de la configuration de l'auteur et décrivent l'équilibre entre ses quatre
+    boucles : 2,5 sur la voie haute du 458, 1,6 sur sa voie levée. Chez lui une sortie maîtresse
+    ramenait le tout ; chez nous ils arrivaient tels quels sur le compresseur et saturaient. On ne
+    touche donc pas à son équilibre, on ne descend que la sortie du jeu entier. */
+    this.niveau = niveau;
     for (const cle of Object.keys(defs)) {
       const d = defs[cle];
       const buf = await this.ctx.decodeAudioData(await (await fetch(encodeURI(base + d.source))).arrayBuffer());
@@ -388,7 +429,7 @@ class EASampler {
       const s = v[cle];
       if (!s) return;
       if (accorde) s.src.detune.value = (engine.rpm - s.rpm) * this.pitchFactor;
-      s.gain.gain.value = gain * s.volume;
+      s.gain.gain.value = gain * s.volume * (this.niveau == null ? 1 : this.niveau);
     };
     pose('on_low', g.haut * r.bas);
     pose('off_low', g.bas * r.bas);

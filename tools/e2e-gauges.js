@@ -7,15 +7,38 @@
 // s'arrête en 20,118 m et la CSL en 20,298 m, et au mètre près les deux montraient « 20 » avec
 // deux arcs différents. Vérifie aussi qu'aucun cadran n'est plein, les bornes étant absolues.
 const { chromium, devices } = require('playwright');
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
 const out = process.argv[2] || '/tmp';
+
+/* Servi en HTTP, et non depuis le disque.
+
+Sous `file://` un `fetch` est refusé par principe, et le moteur charge son catalogue de prises par
+`fetch`. L'essai ne mesurait rien de faux pour autant — les cadrans et les pneus étaient justes —
+mais il comptait l'erreur de console et échouait pour une raison qui n'existe pas en ligne. C'est
+la même leçon que pour la rampe du moteur, le canvas du menu et les prises elles-mêmes : un essai
+qui ne s'exécute pas dans les conditions du jeu mesure autre chose que le jeu. */
+const ROOT = path.join(__dirname, '..');
+const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
+  '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.png': 'image/png', '.webp': 'image/webp' };
+const serveur = http.createServer((req, res) => {
+  const f = path.join(ROOT, decodeURIComponent(req.url.split('?')[0]));
+  if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end(); }
+  res.writeHead(200, { 'Content-Type': TYPES[path.extname(f)] || 'application/octet-stream' });
+  fs.createReadStream(f).pipe(res);
+});
+
 (async () => {
+  await new Promise((r) => serveur.listen(0, r));
+  const base = `http://127.0.0.1:${serveur.address().port}`;
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ ...devices['iPhone 13'] });
   const page = await ctx.newPage();
   let errs = 0;
   page.on('pageerror', (e) => { if (errs++ < 4) console.log('[pageerror]', e.message); });
   page.on('console', (m) => { if (m.type() === 'error') { errs++; console.log('[console]', m.text()); } });
-  await page.goto('file:///home/user/Slot_car_racing/index.html');
+  await page.goto(`${base}/index.html`);
   await page.waitForTimeout(400);
   await page.keyboard.press('Enter');
   await page.waitForTimeout(400);
@@ -71,4 +94,5 @@ const out = process.argv[2] || '/tmp';
   if (fautes || plein.length || errs) process.exitCode = 1;
   await page.screenshot({ path: `${out}/pick.png`, fullPage: true });
   await browser.close();
+  serveur.close();
 })();
