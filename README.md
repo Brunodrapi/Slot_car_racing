@@ -157,6 +157,66 @@ forme d'ensemble, puis on resserre jusqu'au mètre.
 Les deux autres lignes sont des décalages par rapport à la rapide, et non des lignes à part
 entière : l'intérieure ferme la porte, l'extérieure passe autour.
 
+### L'intérieure était à l'extérieur
+
+Elle y était **99 % du temps**, mesuré. Le fichier portait d'ailleurs deux commentaires
+contradictoires sur le sens d'une courbure positive, l'un disant à droite et l'autre à gauche : une
+convention de signe qui n'est écrite qu'en prose finit toujours par se retourner.
+
+La question se tranche par la géométrie. La dérivée seconde de l'axe pointe vers le centre de
+courbure ; projetée sur la normale, elle dit de quel côté ce centre se trouve, donc où est
+l'intérieur du virage. Ouverte sur quinze mètres, parce que sur un seul pas elle ne pèse que
+quelques millimètres pour un virage de 250 m de rayon et que sa direction n'est alors que du bruit.
+
+`tools/cotes.js` mesure le résultat, et surtout il porte un contrôle qui ne dépend d'aucune
+convention : **la longueur**. Une ligne qui prend l'intérieur des virages est plus courte que la
+ligne de course, une qui prend l'extérieur plus longue. C'est vrai quel que soit le sens des
+normales, et ça ne se laisse pas tromper par le point de corde — là où la rapide touche déjà le bord
+intérieur, l'intérieure n'a nulle part où aller, et une mesure point par point la déclarerait
+fautive alors qu'elle n'a rien fait de mal.
+
+| | avant | après |
+|---|---|---|
+| intérieure du bon côté | 1 % | **91 %** |
+| extérieure du bon côté | 50 % | 79 % |
+| longueurs cohérentes | 3 circuits sur 12 | **12 sur 12** |
+| écart des lignes en ligne droite | 3,5 m | **7,7 m** |
+| tour où les lignes se confondent | 13 % | 6 % |
+
+### Des voies séparées dans les lignes droites
+
+Trois lignes qui se confondent dès que la route est droite ne laissent aucune place pour doubler.
+Elles se confondaient sur 13 % du tour, parce que le sens venait de la courbure locale : nulle en
+ligne droite, donc les trois lignes au même endroit.
+
+Deux exigences tirent en sens contraire. Chaque virage doit imposer son vrai sens, sinon l'intérieure
+repart à l'extérieur ; et les lignes doivent rester écartées là où la route est droite. Un lissage ne
+peut pas les satisfaire toutes les deux : large, il écrase les virages courts ; étroit, il laisse les
+lignes se rejoindre. Les deux premières tentatives ont échoué exactement là — la seconde donnait 98 %
+à l'extérieure mais retombait à 57 % sur l'intérieure.
+
+La sortie est de ne pas moyenner du tout. Chaque virage décide de son sens, franchement ; entre deux
+virages, le sens est **tenu** plutôt qu'interpolé. Deux virages de même main laissent donc les lignes
+écartées d'un bout à l'autre de la droite qui les sépare, et deux virages de mains opposées se
+partagent la droite en deux, le croisement tombant au milieu. C'est l'idée reprise des tracés à voies
+commutées : des voies qui restent séparées et se croisent à des **endroits choisis**, plutôt qu'un
+fondu qui les colle l'une à l'autre sur des centaines de mètres.
+
+### Le limiteur rabattait l'intérieure
+
+Le défaut qui restait après tout cela, et le plus instructif. Le limiteur de pente s'appliquait à la
+**position** de chaque ligne : 0,07 m par mètre pour les deux secondaires, 0,30 pour la rapide. Or la
+rapide se déporte donc quatre fois plus vite que les autres ne peuvent la suivre. Dans une entrée de
+virage, l'intérieure ne pouvait pas l'accompagner et se faisait littéralement rabattre — les deux
+lignes ne se trouvaient de part et d'autre de la rapide que **60 % du temps**.
+
+Le limiteur porte maintenant sur l'**écart à la ligne de course**, pas sur la position. C'est ce qui
+a un sens : une voiture sur la ligne intérieure roule sensiblement parallèle à la rapide et ne s'en
+écarte que progressivement. Les deux lignes sont désormais de part et d'autre 83 % du temps, et c'est
+ce seul changement qui a fait passer l'intérieure de 57 à 91 %.
+
+L'IA ne s'en porte pas plus mal : 112 sorties de piste sur les douze circuits contre 119 avant.
+
 **Ce qui la retenait au milieu de la piste**, avant, n'était pas seulement la formule qu'elle
 remplace : un limiteur bornait le déplacement latéral à sept centimètres par mètre parcouru. À ce
 rythme, traverser sept mètres de route demande cent mètres — la ligne n'atteignait jamais
@@ -1355,6 +1415,7 @@ NODE_PATH=$(npm root -g) node tools/e2e-workshop.js <dossier>                   
 node tools/step.js <circuit> <catégorie> [marge] [-v]                             # suivi de ligne d'une voiture seule
 node tools/sweep.js '[{},{"yawK":4}]'                                             # balayage des réglages physiques
 node tools/jump.js <circuit> <catégorie> <marge>                                  # continuité du déplacement
+node tools/cotes.js [circuit|all]                                                 # les lignes sont-elles du bon côté, et écartées ?
 node tools/line.js [circuit|all] [catégorie] [-v]                                # ce que vaut une trajectoire
 node tools/corner.js [circuit|all] [catégorie] [marge] [-v]                      # vitesse réelle contre vitesse théorique, virage par virage
 node tools/diff.js [circuit|all] [catégorie] [-sans-elastique] [-table=…]         # ce que valent vraiment les trois difficultés

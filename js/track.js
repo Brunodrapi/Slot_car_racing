@@ -278,22 +278,133 @@ class Track {
     }
     const racing = this._minCurvature(lo, hi, 120);
 
-    // The other two lines are offsets from the fast one, not lines in their own right: the inside
-    // is the defensive line that shuts the door, the outside the one that goes round. Each moves
-    // toward its edge by most of the room the racing line has left on that side.
+    /* Les deux autres lignes : celle qui ferme la porte, et celle qui passe autour.
+
+    Elles ne sont pas des trajectoires en soi mais des écarts à la rapide, et tout tient à une seule
+    question : de quel côté est l'intérieur du virage. Elle se tranche par la géométrie et non par
+    une convention de signe — le fichier en portait deux, contradictoires, et la ligne « intérieure »
+    se trouvait de fait à l'extérieur du virage 99 % du temps. `tools/cotes.js` le mesure.
+
+    La dérivée seconde de l'axe pointe vers le centre de courbure ; projetée sur la normale gauche
+    elle dit de quel côté ce centre se trouve, et donc où est l'intérieur. On l'ouvre sur quinze
+    mètres de part et d'autre, faute de quoi elle ne pèse que quelques millimètres pour un virage
+    de 250 m de rayon et sa direction n'est plus que du bruit.
+
+    Ce sens est ensuite étendu aux lignes droites, ce qui est le second point. Une moyenne ordinaire
+    l'annulerait entre deux virages opposés ; on fait donc une moyenne **pondérée par la courbure** :
+    chaque point retient le sens des virages qui l'entourent, proportionnellement à combien de
+    virage il y a. Une ligne droite hérite ainsi du sens de ce qui la borde, au lieu de voir ses
+    trois lignes se confondre — elles se confondaient sur 13 % du tour, et sans écartement il n'y a
+    pas de place pour doubler.
+
+    Enfin le sens est saturé par une tangente hyperbolique. Il vaut donc ±1 presque partout, et ne
+    traverse zéro que là où l'enchaînement change vraiment de main. C'est ce qui donne des lignes
+    franchement séparées partout et des croisements courts et localisés, plutôt qu'un fondu mou qui
+    colle les lignes l'une à l'autre sur des centaines de mètres. */
     const inside = new Float32Array(N), outside = new Float32Array(N);
-    const turn = new Float32Array(N);
-    for (let i = 0; i < N; i++) turn[i] = clamp(this.k[i] * 120, -1, 1);   // + = the road turns left
-    const turnS = Track.smooth(turn, 40);
+    const g = this._sensVirages();
     for (let i = 0; i < N; i++) {
-      const r = racing[i], sg = clamp(turnS[i] * 2.4, -1, 1);
+      const r = racing[i];
       const toL = hi[i] - r, toR = r - lo[i];
-      inside[i] = r + sg * (sg > 0 ? toL : toR) * 0.85;
-      outside[i] = r - sg * (sg > 0 ? toR : toL) * 0.85;
+      const vers = (q, sg) => (sg > 0 ? q * toL : -q * toR);   // se déporter de q, du côté sg
+      inside[i] = r + vers(Math.abs(g[i]) * 0.85, g[i]);       // vers l'intérieur du virage
+      outside[i] = r + vers(Math.abs(g[i]) * 0.85, -g[i]);     // et l'autre, vers l'extérieur
     }
     this.lines.racing = racing;
     this.lines.inside = Track.smooth(inside, 16);
     this.lines.outside = Track.smooth(outside, 16);
+  }
+
+  /* De quel côté est l'intérieur du virage, en tout point du tour.
+
+  Deux exigences qui tirent en sens contraire. Chaque virage doit imposer son vrai sens, sinon la
+  ligne « intérieure » se retrouve à l'extérieur — elle y était 99 % du temps, avant. Et les lignes
+  doivent rester écartées dans les lignes droites, sinon il n'y a pas de place pour doubler ; elles
+  s'y confondaient sur 13 % du tour. Un simple lissage ne peut pas les satisfaire toutes les deux :
+  large, il écrase les virages courts ; étroit, il laisse les lignes se rejoindre dès que la route
+  est droite.
+
+  La sortie est de ne pas moyenner du tout. Chaque virage décide de son sens, franchement ; entre
+  deux virages, le sens est **tenu** plutôt qu'interpolé. Deux virages de même main laissent donc les
+  lignes écartées d'un bout à l'autre de la droite qui les sépare, et deux virages de mains opposées
+  se partagent la droite en deux, le croisement tombant au milieu. C'est le principe des voies qui se
+  croisent à des endroits choisis, et non d'un fondu qui les colle l'une à l'autre sur des centaines
+  de mètres.
+
+  Le sens local se lit sur la dérivée seconde de l'axe, ouverte sur quinze mètres : elle pointe vers
+  le centre de courbure, et projetée sur la normale gauche elle dit de quel côté il se trouve. Prise
+  sur un seul pas elle ne pèserait que quelques millimètres pour un virage de 250 m de rayon, et sa
+  direction ne serait que du bruit. */
+  _sensVirages() {
+    const N = this.n, W = 15;
+    const dir = new Float32Array(N), poids = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      const a = (i - W + N) % N, b = (i + W) % N;
+      const cx = this.xs[b] - 2 * this.xs[i] + this.xs[a];
+      const cy = this.ys[b] - 2 * this.ys[i] + this.ys[a];
+      const m = Math.hypot(cx, cy);
+      poids[i] = m;
+      dir[i] = m > 1e-9 ? (cx * this.nx[i] + cy * this.ny[i]) / m : 0;
+    }
+    // Le sens de chaque virage, sur un lissage court : assez pour ôter le bruit, pas assez pour
+    // qu'un virage emprunte le sens de son voisin.
+    const num = new Float32Array(N);
+    for (let i = 0; i < N; i++) num[i] = dir[i] * poids[i];
+    const numS = Track.smooth(num, 30), poidsS = Track.smooth(poids, 30);
+
+    // Où il y a assez de virage pour décider. Le seuil est relatif au circuit : un tracé de ville
+    // et un anneau de vitesse n'ont pas les mêmes courbures, et un seuil absolu déclarerait l'un
+    // tout en virages et l'autre tout en lignes droites.
+    let max = 0;
+    for (let i = 0; i < N; i++) max = Math.max(max, poidsS[i]);
+    const seuil = max * 0.18;
+    const signe = new Int8Array(N);
+    for (let i = 0; i < N; i++) {
+      signe[i] = poidsS[i] > seuil ? (numS[i] >= 0 ? 1 : -1) : 0;
+    }
+
+    // Aucun virage franc — un anneau parfait : on garde le sens brut plutôt que de rendre zéro,
+    // qui collerait les trois lignes.
+    let décidés = 0;
+    for (let i = 0; i < N; i++) if (signe[i]) décidés++;
+    if (!décidés) {
+      const out = new Float32Array(N);
+      for (let i = 0; i < N; i++) out[i] = Math.tanh((numS[i] / (poidsS[i] + 1e-9)) * 3.5);
+      return out;
+    }
+
+    /* Tenir le sens entre deux virages, et placer le croisement au milieu.
+
+    On part d'un point décidé pour que le parcours de la boucle ne commence pas au milieu d'une
+    droite, puis chaque intervalle indécis prend le sens de son bord gauche jusqu'à la moitié et
+    celui de son bord droit ensuite. Deux virages de même main : l'intervalle entier garde ce sens,
+    et les lignes ne se rapprochent jamais. De mains opposées : un seul croisement, au milieu. */
+    let début = 0;
+    while (!signe[début]) début++;
+    const plein = new Int8Array(N);
+    for (let n = 0; n < N; n++) {
+      const i = (début + n) % N;
+      plein[i] = signe[i];
+    }
+    for (let n = 0; n < N; n++) {
+      const i = (début + n) % N;
+      if (plein[i]) continue;
+      let len = 0;
+      while (len < N && !plein[(i + len) % N]) len++;
+      const avant = plein[(i - 1 + N) % N];
+      const après = plein[(i + len) % N] || avant;
+      for (let k = 0; k < len; k++) plein[(i + k) % N] = k < len / 2 ? avant : après;
+      n += len - 1;
+    }
+
+    /* Le créneau est adouci juste ce qu'il faut pour que le croisement ne soit pas une marche.
+    Vingt mètres suffisent : le limiteur de pente, appliqué ensuite, étire de toute façon un
+    changement de côté sur la distance qu'une voiture met à traverser la piste. Ce qui est décidé
+    ici, c'est **où** le croisement tombe, pas à quelle vitesse il se fait. */
+    const doux = Track.smooth(Float32Array.from(plein), 20);
+    const out = new Float32Array(N);
+    for (let i = 0; i < N; i++) out[i] = Math.tanh(doux[i] * 3);
+    return out;
   }
 
   /* Relaxes a line to the least-bending path that stays between `lo` and `hi`.
@@ -352,21 +463,41 @@ class Track {
 
   // A line must be something a car can actually follow: limit how fast it moves across the road
   // (metres of lateral per metre travelled), forward and backward so both ends of a move are gentle.
+  /* Limite la vitesse à laquelle une ligne traverse la piste — mais pas la même chose pour chacune.
+
+  La ligne de course est bridée sur sa position, et généreusement : elle est résolue, pas devinée, et
+  sa courbure est déjà la plus faible que la route autorise. Un plafond sévère ne pourrait que la
+  rabattre vers le milieu, ce qu'il faisait — à sept centimètres par mètre, traverser sept mètres de
+  piste demande cent mètres, et elle n'atteignait jamais l'extérieur avant un virage.
+
+  Les deux autres sont bridées sur leur **écart à la ligne de course**, et non sur leur position.
+  C'est la correction d'un défaut qui rendait la ligne « intérieure » inutilisable : bridée en
+  absolu à 0,07 m/m quand la ligne de course se déporte jusqu'à 0,30, elle ne pouvait pas suivre
+  celle-ci dans une entrée de virage et se faisait littéralement rabattre — les deux lignes ne se
+  trouvaient de part et d'autre que 60 % du temps, et l'intérieure passait du mauvais côté. Brider
+  l'écart plutôt que la position est d'ailleurs ce qui a un sens : une voiture sur la ligne
+  intérieure roule sensiblement parallèle à la ligne de course, et ne s'en écarte que
+  progressivement. */
   _limitLines(maxSlope, racingSlope) {
     const N = this.n;
-    for (const name of LINE_NAMES) {
-      // The racing line is allowed to move across the road much faster than the other two. It is
-      // solved, not guessed, and its curvature is already the least the road allows — a slope cap
-      // can only flatten it back toward the middle, which is exactly what it used to do: at seven
-      // centimetres per metre a line needs a hundred metres to cross seven metres of road, so it
-      // never reached the outside before a corner and never looked like a racing line at all.
-      const limit = name === 'racing' ? (racingSlope == null ? maxSlope : racingSlope) : maxSlope;
-      const a = this.lines[name];
+    const lisse = (a, limit) => {
       for (let pass = 0; pass < 2; pass++) {
         for (let i = 1; i <= N; i++) { const j = i % N, k = (i - 1) % N; a[j] = clamp(a[j], a[k] - limit, a[k] + limit); }
         for (let i = N - 1; i >= -1; i--) { const j = (i + N) % N, k = (i + 1) % N; a[j] = clamp(a[j], a[k] - limit, a[k] + limit); }
       }
-      this.lines[name] = Track.smooth(a, 4);
+      return Track.smooth(a, 4);
+    };
+    this.lines.racing = lisse(this.lines.racing, racingSlope == null ? maxSlope : racingSlope);
+    const r = this.lines.racing;
+    for (const name of LINE_NAMES) {
+      if (name === 'racing') continue;
+      const a = this.lines[name];
+      const ec = new Float32Array(N);
+      for (let i = 0; i < N; i++) ec[i] = a[i] - r[i];
+      const lim = lisse(ec, maxSlope);
+      const out = new Float32Array(N);
+      for (let i = 0; i < N; i++) out[i] = r[i] + lim[i];
+      this.lines[name] = out;
     }
   }
 
