@@ -124,6 +124,10 @@ class App {
       e.preventDefault();
       const touch = e.pointerType === 'touch';
       if (touch) this.renderer.touch = true;
+      /* La pause d'abord : sans ce test, l'appui repartirait dans la branche d'en dessous, qui prend
+      tout ce qui n'est pas le curseur pour de l'accélérateur. On sort sans toucher à `pointers`,
+      donc aucun doigt n'est retenu et le relâchement n'a rien à défaire. */
+      if (this.renderer.pauseHitAt(e.clientX, e.clientY)) { this.togglePause(); return; }
       const v = this.renderer.sliderValueAt(e.clientX, e.clientY, touch);
       if (v != null && this.pointers.slider == null) { this.pointers.slider = e.pointerId; this.input.sel = v; return; }
       if (this.pointers.throttle == null) {

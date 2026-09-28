@@ -271,6 +271,19 @@ class Renderer {
     // vertical line slider, left side, clear of the dial
     const len = Math.min(H * 0.38, 320);
     this.slider = { x: pad + 22, y: H - pad - 30 - len, len, w: 30 };
+    /* Les deux panneaux du haut, mesurés ici et non plus au moment de les dessiner : le bouton
+    pause se pose dans l'espace qu'ils laissent, et deux jeux de constantes qui doivent rester
+    d'accord finissent toujours par ne plus l'être. */
+    this.hudBox = { w: mobile ? 150 : 190, h: mobile ? 64 : 78, tw: mobile ? 150 : 200 };
+    /* Le bouton pause, entre les deux panneaux — le seul endroit du haut que rien n'occupe.
+
+    Au clavier, Échap et P mettent en pause depuis toujours ; au doigt il n'y avait rien, et une
+    course ne se quittait pas. Il tient dans l'espace restant : 62 px sur un iPhone 13, mais 47 sur
+    un SE, donc sa taille suit la place au lieu d'être posée — sur un écran étroit un bouton de
+    46 px passerait sous le chrono. */
+    const creux = W - 2 * pad - this.hudBox.w - this.hudBox.tw;
+    const cote = clamp(creux - 10, 34, mobile ? 46 : 42);
+    this.pauseBtn = { x: W / 2 - cote / 2, y: pad, s: cote };
     this.mobile = mobile;
   }
 
@@ -1415,7 +1428,7 @@ class Renderer {
 
     // top-left: position & lap
     const pos = race.positionOf(p), n = race.cars.length;
-    const boxW = mobile ? 150 : 190, boxH = mobile ? 64 : 78;
+    const boxW = this.hudBox.w, boxH = this.hudBox.h;
     panel(pad, pad, boxW, boxH);
     g.fillStyle = '#fff'; g.font = `bold ${mobile ? 30 : 40}px system-ui, sans-serif`; g.textAlign = 'left';
     const posTxt = race.mode === 'timetrial' ? '—' : `${pos}`;
@@ -1429,7 +1442,7 @@ class Renderer {
     g.fillText(p.name, pad + boxW - 12, pad + boxH - 24);
 
     // top-right: times
-    const tw = mobile ? 150 : 200;
+    const tw = this.hudBox.tw;
     panel(W - pad - tw, pad, tw, boxH);
     g.textAlign = 'right'; g.fillStyle = '#fff'; g.font = `bold ${mobile ? 18 : 22}px ui-monospace, monospace`;
     g.fillText(fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart), W - pad - 12, pad + 8);
@@ -1437,6 +1450,14 @@ class Renderer {
     const last = p.lapTimes.length ? p.lapTimes[p.lapTimes.length - 1] : null;
     g.fillText(`${t('last')} ${last != null ? fmtTime(last) : '--:--.---'}`, W - pad - 12, pad + (mobile ? 32 : 40));
     g.fillText(`${t('best')} ${p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---'}`, W - pad - 12, pad + (mobile ? 46 : 56));
+
+    // bouton pause, entre les deux panneaux du haut
+    const pb = this.pauseBtn;
+    panel(pb.x, pb.y, pb.s, pb.s);
+    g.fillStyle = '#e8e8ec';
+    const bw = Math.max(3, Math.round(pb.s * 0.11)), bh = Math.round(pb.s * 0.42), ecart = Math.round(pb.s * 0.13);
+    g.fillRect(pb.x + pb.s / 2 - ecart - bw, pb.y + (pb.s - bh) / 2, bw, bh);
+    g.fillRect(pb.x + pb.s / 2 + ecart, pb.y + (pb.s - bh) / 2, bw, bh);
 
     // line slider (left thumb)
     this._drawSlider(g, p, t);
@@ -1496,7 +1517,9 @@ class Renderer {
     }
     if (p.state === 'grass') { g.textAlign = 'center'; g.fillStyle = '#ff6b6b'; g.font = 'bold 28px system-ui, sans-serif'; g.fillText(t('offTrack'), W / 2, H * 0.3); }
     if (p.finished && race.state !== 'finished') { g.textAlign = 'center'; g.fillStyle = '#ffd400'; g.font = 'bold 40px system-ui, sans-serif'; g.fillText(`${t('finished')} — P${race.positionOf(p)}`, W / 2, H * 0.3); }
-    if (ui.flash && ui.flash.until > performance.now()) { g.textAlign = 'center'; g.fillStyle = ui.flash.color || '#fff'; g.font = 'bold 26px system-ui, sans-serif'; g.fillText(ui.flash.text, W / 2, H * 0.12); }
+    /* Le temps au tour s'affiche sous le bouton, et non plus à 12 % de la hauteur : en paysage sur
+    un téléphone, 12 % de 390 px tombait pile dessus. */
+    if (ui.flash && ui.flash.until > performance.now()) { g.textAlign = 'center'; g.fillStyle = ui.flash.color || '#fff'; g.font = 'bold 26px system-ui, sans-serif'; g.fillText(ui.flash.text, W / 2, Math.max(H * 0.12, pb.y + pb.s + 14)); }
     g.textBaseline = 'alphabetic';
   }
 
@@ -1517,6 +1540,18 @@ class Renderer {
     g.fillStyle = '#ffd400'; g.beginPath(); g.arc(s.x, hy, 13, 0, Math.PI * 2); g.fill();
     g.strokeStyle = '#1a1400'; g.lineWidth = 2; g.stroke();
     g.textBaseline = 'top';
+  }
+
+  /* Le point tombe-t-il sur le bouton pause ?
+
+  La cible est un peu plus large que le dessin, comme le hamburger du menu : sur un écran étroit le
+  bouton descend à 37 px, et un pouce ne vise pas à cinq pixels près. Elle reste très loin du
+  curseur de ligne, à gauche, et du cadran d'accélérateur, en bas. */
+  pauseHitAt(x, y) {
+    const b = this.pauseBtn;
+    if (!b) return false;
+    const m = 6;
+    return x >= b.x - m && x <= b.x + b.s + m && y >= b.y - m && y <= b.y + b.s + m;
   }
 
   // maps a screen point in the slider zone to a selection value; null if outside the zone

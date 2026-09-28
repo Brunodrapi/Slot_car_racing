@@ -980,6 +980,39 @@ Cette vérification a demandé une autre correction, déjà apprise sur le moteu
 `file://` toute image vient d'une autre origine, donc la lire dans un canvas est interdit. L'essai
 sert maintenant le dossier en HTTP, comme le fait GitHub Pages.
 
+## Quitter une course
+
+Au clavier, Échap et P mettent en pause depuis toujours. Au doigt il n'y avait rien : une course
+commencée ne se quittait plus. Le HUD est entièrement dessiné sur le canvas, donc le bouton l'est
+aussi — il est posé par `_layoutHud` et testé au clic par `pauseHitAt`, exactement comme le curseur
+de ligne.
+
+Il se glisse entre les deux panneaux du haut, le seul endroit que rien n'occupe. Cet espace n'est
+pas le même partout : 62 px sur un iPhone 13, 47 sur un SE, plus de 400 en paysage et sur un
+écran d'ordinateur. Une taille posée en dur passerait donc sous le chrono sur les écrans étroits,
+et sa taille suit la place — 46 px quand il y en a, 37 au plus serré. Les mesures des deux panneaux
+ont remonté dans `_layoutHud` au passage : deux jeux de constantes qui doivent rester d'accord
+finissent toujours par ne plus l'être.
+
+Le temps au tour s'affiche maintenant sous le bouton et non plus à 12 % de la hauteur. En paysage
+sur un téléphone, 12 % de 390 px tombait pile dessus.
+
+**Le vrai risque n'est pas que le bouton manque, c'est qu'il accélère.** En course, tout appui qui
+n'est pas le curseur de ligne est de l'accélérateur : un bouton mal branché mettrait en pause *et*
+donnerait les gaz, qu'on retrouverait collés à la reprise. Le test se fait donc avant cette
+branche, et sort sans rien inscrire dans `pointers`, si bien que le relâchement n'a rien à défaire.
+
+`tools/e2e-pause.js` vérifie les trois choses sur quatre formats — SE, iPhone 13, paysage, bureau :
+que le bouton ne passe pas sous un panneau, qu'il met en pause, et qu'il laisse l'accélérateur
+tranquille.
+
+Sa première version tapait puis mesurait, et **ne pouvait pas voir ce qu'elle prétendait
+vérifier** : le relâchement avait déjà remis l'accélérateur à zéro, donc elle lisait « éteint »
+même avec le bouton débranché. Elle garde maintenant l'appui pendant la mesure. Pour le tactile,
+dont le chemin est différent, elle regarde en plus si le cadran d'accélérateur a sauté sous le
+doigt — c'est la trace que laisserait un appui mal aiguillé, et elle, elle survit au relâchement.
+Débrancher le bouton fait bien échouer l'essai, sur les quatre formats.
+
 ## Nombre de tours
 
 En course rapide, la longueur se choisit : **Auto / 1 / 2 / 3 / 5 / 10** tours, à côté de la
@@ -1612,6 +1645,7 @@ node tools/models.js [catégorie] [marge]                                       
 NODE_PATH=$(npm root -g) node tools/e2e-audio.js                                  # spectre de chaque moteur et étagement de la boîte
 NODE_PATH=$(npm root -g) node tools/e2e-splash.js [dossier]                       # l'écran-titre, sur téléphone et sur bureau
 NODE_PATH=$(npm root -g) node tools/e2e-menu.js [dossier]                         # le menu-affiche : bandeaux, dépliage, destinations
+NODE_PATH=$(npm root -g) node tools/e2e-pause.js [dossier]                        # le bouton pause en course, sur quatre formats d'écran
 node tools/bump.js [patch|minor|major]                                            # numéro de version + cassage du cache
 node tools/netsim.js <circuit> [secondes] [perte %] [format]                      # deux écrans en réseau, sans navigateur
 NODE_PATH=$(npm root -g) node tools/e2e-net.js <dossier> [format]                 # deux onglets, une table, une course
