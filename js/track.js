@@ -295,26 +295,31 @@ class Track {
     Elles ne sont pas des trajectoires en soi mais des écarts à la rapide, et tout tient à une seule
     question : de quel côté est l'intérieur du virage. Elle se tranche par la géométrie et non par
     une convention de signe — le fichier en portait deux, contradictoires, et la ligne « intérieure »
-    se trouvait de fait à l'extérieur du virage 99 % du temps. `tools/cotes.js` le mesure.
+    se trouvait de fait à l'extérieur du virage 99 % du temps. `tools/cotes.js` le mesure, et
+    `tools/curseur.js` le vérifie en conduisant, ce qui n'est pas la même chose.
 
-    La dérivée seconde de l'axe pointe vers le centre de courbure ; projetée sur la normale gauche
-    elle dit de quel côté ce centre se trouve, et donc où est l'intérieur. On l'ouvre sur quinze
-    mètres de part et d'autre, faute de quoi elle ne pèse que quelques millimètres pour un virage
-    de 250 m de rayon et sa direction n'est plus que du bruit.
+    Chaque ligne se déporte d'une fraction de la place qui reste de son côté. Cela donne deux voies
+    nettement asymétriques, et c'est une propriété de la géométrie plutôt qu'un réglage : la ligne de
+    course est la trajectoire de courbure minimale, donc elle vient déjà toucher le bord intérieur à
+    chaque apex. Il n'y a rien « de plus à l'intérieur » dans un virage, et rien de plus à
+    l'extérieur dans une ligne droite, où elle se place déjà du côté extérieur du virage qui vient.
+    Mesuré en médiane, l'écart à la rapide vaut :
 
-    Ce sens est ensuite étendu aux lignes droites, ce qui est le second point. Une moyenne ordinaire
-    l'annulerait entre deux virages opposés ; on fait donc une moyenne **pondérée par la courbure** :
-    chaque point retient le sens des virages qui l'entourent, proportionnellement à combien de
-    virage il y a. Une ligne droite hérite ainsi du sens de ce qui la borde, au lieu de voir ses
-    trois lignes se confondre — elles se confondaient sur 13 % du tour, et sans écartement il n'y a
-    pas de place pour doubler.
+                        en virage   à l'approche   en ligne droite
+        intérieure          0,7 m        3,8 m           7,2 m
+        extérieure          6,5 m        3,5 m           1,2 m
 
-    Enfin le sens est saturé par une tangente hyperbolique. Il vaut donc ±1 presque partout, et ne
-    traverse zéro que là où l'enchaînement change vraiment de main. C'est ce qui donne des lignes
-    franchement séparées partout et des croisements courts et localisés, plutôt qu'un fondu mou qui
-    colle les lignes l'une à l'autre sur des centaines de mètres. */
-    const inside = new Float32Array(N), outside = new Float32Array(N);
+    Les deux se séparent donc dans des zones opposées, ce qui est juste : on ferme la porte AVANT le
+    virage, et on passe autour PENDANT. Le curseur n'en reste pas moins asymétrique au ressenti.
+
+    Deux autres constructions ont été essayées et mesurées, et toutes deux coûtent trop cher à l'IA
+    pour ce qu'elles apportent. Viser franchement les deux bords plutôt qu'une fraction de la place
+    restante : 217 sorties de piste sur les douze circuits contre 94, sans gagner un point sur le
+    curseur. Faire de l'intérieure le chemin le plus court du couloir — le fil tendu, qui est la
+    vraie ligne défensive et serre tous les apex : 228 sorties, parce que la plus courte est aussi
+    celle de plus petit rayon, et que les voitures ne la tiennent pas. */
     const g = this._sensVirages();
+    const inside = new Float32Array(N), outside = new Float32Array(N);
     for (let i = 0; i < N; i++) {
       const r = racing[i];
       const toL = hi[i] - r, toR = r - lo[i];

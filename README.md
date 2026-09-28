@@ -231,6 +231,57 @@ partagent la droite en deux, le croisement tombant au milieu. C'est l'idée repr
 commutées : des voies qui restent séparées et se croisent à des **endroits choisis**, plutôt qu'un
 fondu qui les colle l'une à l'autre sur des centaines de mètres.
 
+### Vérifier le curseur en conduisant, pas en relisant
+
+Le curseur de ligne a l'air juste dans le code : en bas il vaut −1, il est étiqueté « intérieur », et
+`targetLat` renvoie alors la ligne intérieure. Mais ce fichier a déjà eu l'air juste alors qu'il ne
+l'était pas. `tools/curseur.js` conduit donc : curseur à fond d'un côté, voiture seule, un tour
+lancé, et on relève sa position réelle virage par virage. La chaîne éprouvée va du curseur aux roues
+— `input.sel`, `race.update`, `car.sel`, `targetLat`, le pilote automatique, la position.
+
+**Verdict : pousser le curseur vers l'intérieur place bien la voiture à l'intérieur, dans 95 % des
+virages.** Le câblage est juste.
+
+Deux pièges se sont présentés en chemin, et aucun n'aurait été visible en relisant le code.
+
+Le premier essai conduisait avec le pilote automatique. Or, sans personne à dépasser, celui-ci remet
+la sélection à zéro à chaque pas : le curseur du joueur n'arrivait jamais aux roues. La mesure
+donnait le même écart moyen au centimètre près pour les deux positions du curseur — elle ne mesurait
+rien, et elle annonçait pourtant un défaut.
+
+Le second demandait « la voiture est-elle du côté intérieur du virage ». Cette question n'a pas de
+réponse au point de corde : la ligne de course y touche déjà le bord intérieur, la ligne intérieure
+aussi, les deux se confondent légitimement et le signe de leur écart ne veut rien dire. La mesure
+plafonnait à 46 % en comptant du bruit. La bonne question est celle que le joueur pose, et elle est
+relative : en poussant vers l'intérieur plutôt que vers l'extérieur, est-ce que je me retrouve plus
+à l'intérieur ?
+
+### Le curseur est asymétrique, et c'est de la géométrie
+
+Ce qui se ressent comme un défaut reste vrai, et se mesure. L'écart à la ligne de course, en médiane :
+
+| | en virage | à l'approche | en ligne droite |
+|---|---|---|---|
+| intérieure | 0,7 m | 3,8 m | 7,2 m |
+| extérieure | 6,5 m | 3,5 m | 1,2 m |
+
+Les deux lignes se séparent dans des **zones opposées**, et c'est juste : on ferme la porte *avant*
+le virage, on passe autour *pendant*. Mais en virage, pousser vers l'extérieur déplace la voiture de
+six mètres et pousser vers l'intérieur de moins d'un — d'où l'impression que le curseur n'a qu'un
+côté.
+
+La cause n'est pas un réglage : **la ligne de course prend déjà la corde**. Elle est la trajectoire
+de courbure minimale, elle vient toucher le bord intérieur à chaque apex, et il n'existe donc aucune
+place « plus à l'intérieur » dans un virage. Symétriquement, en ligne droite elle se place déjà du
+côté extérieur du virage qui vient, et il n'y a rien de plus à l'extérieur.
+
+Deux constructions ont été essayées pour corriger l'asymétrie, mesurées, et écartées. Viser
+franchement les deux bords au lieu d'une fraction de la place restante : **217 sorties de piste** sur
+les douze circuits contre 94, sans gagner un point sur le curseur. Faire de l'intérieure le chemin le
+plus court du couloir — le fil tendu, qui est la vraie ligne défensive et serre tous les apex :
+**228 sorties**, parce que la plus courte est aussi celle de plus petit rayon et que les voitures ne
+la tiennent pas. La construction en place reste la meilleure des trois sur les deux tableaux.
+
 ### Le limiteur rabattait l'intérieure
 
 Le défaut qui restait après tout cela, et le plus instructif. Le limiteur de pente s'appliquait à la
@@ -1457,6 +1508,7 @@ node tools/step.js <circuit> <catégorie> [marge] [-v]                          
 node tools/sweep.js '[{},{"yawK":4}]'                                             # balayage des réglages physiques
 node tools/jump.js <circuit> <catégorie> <marge>                                  # continuité du déplacement
 node tools/cotes.js [circuit|all]                                                 # les lignes sont-elles du bon côté, et écartées ?
+node tools/curseur.js [circuit|all]                                              # le curseur envoie-t-il la voiture du côté annoncé ?
 node tools/line.js [circuit|all] [catégorie] [-v]                                # ce que vaut une trajectoire
 node tools/corner.js [circuit|all] [catégorie] [marge] [-v]                      # vitesse réelle contre vitesse théorique, virage par virage
 node tools/diff.js [circuit|all] [catégorie] [-sans-elastique] [-table=…]         # ce que valent vraiment les trois difficultés
