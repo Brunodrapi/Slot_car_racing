@@ -1,0 +1,15 @@
+{
+  "nom": "M1 Procar",
+  "engine": { "idle": 1100, "limiter": 9000, "soft_limiter": 8850,
+              "torque": 380, "engine_braking": 190, "inertia": 0.55,
+              "limiter_ms": 60, "limiter_delay": 90 },
+  "drivetrain": { "shiftTime": 90, "gears": [3.4, 2.36, 1.85, 1.47, 1.24, 1.07], "final_drive": 3.44 },
+  "wheel_radius": 0.32,
+  "bande": [2500, 6000],
+  "sounds": {
+    "on_low":   { "source": "sounds/six-inline/M1_Procar_on-2500_seed_30.wav", "rpm": 2500, "loopStart": 0.42, "loopEnd": 1.20 },
+    "on_high":  { "source": "sounds/six-inline/on-6000.wav",                   "rpm": 6000, "loopStart": 0.40, "loopEnd": 1.39 },
+    "off_low":  { "source": "sounds/six-inline/M1_Procar_idle_seed_30.wav",    "rpm": 1100, "loopStart": 0.41, "loopEnd": 2.02, "volume": 0.9 },
+    "off_high": { "source": "sounds/six-inline/M1_Procar_off-7000_seed_30.wav","rpm": 7000, "loopStart": 0.40, "loopEnd": 1.15, "volume": 1.1 }
+  }
+}

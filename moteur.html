@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Eyes On Line — banc moteur</title>
+  <link rel="stylesheet" href="css/style.css?v=0.21.32">
+  <style>
+    body { margin: 0; background: #0f1117; color: #e8e8ec; font: 15px/1.5 system-ui, sans-serif; }
+    .banc { max-width: 720px; margin: 0 auto; padding: 18px 16px 60px; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .muted { color: #9aa1ad; }
+    .cadran { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin: 16px 0; }
+    .cadran div { background: #1a1e28; border-radius: 10px; padding: 10px 12px; }
+    .cadran b { display: block; font: 700 24px/1.2 ui-monospace, monospace; }
+    .cadran small { color: #9aa1ad; }
+    label { display: block; margin: 14px 0 4px; }
+    input[type=range] { width: 100%; }
+    .gaz { width: 100%; padding: 22px; font: 700 18px system-ui, sans-serif; border: 0; border-radius: 12px;
+           background: #2a7d4f; color: #fff; cursor: pointer; touch-action: none; user-select: none; }
+    .gaz.on { background: #3fbf77; }
+    table { width: 100%; border-collapse: collapse; margin-top: 14px; font: 13px ui-monospace, monospace; }
+    td { padding: 3px 6px; border-bottom: 1px solid #222733; }
+    .barre { background: #ffd400; height: 8px; border-radius: 4px; }
+    button.sec { background: #232836; color: #e8e8ec; border: 0; border-radius: 8px; padding: 8px 14px; margin-right: 6px; }
+  </style>
+</head>
+<body>
+  <div class="banc">
+    <h1>Banc moteur</h1>
+    <p class="muted">Le volant d'inertie porté de <code>markeasting/engine-audio</code> (MIT), branché sur
+      tes prises. Rien de ce qui est ici n'est encore dans le jeu.</p>
+    <p><button class="sec" id="demarrer">Démarrer le son</button><span class="muted" id="etat">en attente</span></p>
+
+    <div class="cadran">
+      <div><b id="v-rpm">—</b><small>tr/min</small></div>
+      <div><b id="v-gear">—</b><small>rapport</small></div>
+      <div><b id="v-kmh">—</b><small>km/h</small></div>
+      <div><b id="v-clutch">—</b><small>embrayage</small></div>
+    </div>
+    <div class="barre" id="jauge" style="width:0"></div>
+
+    <label>Vitesse <span class="muted" id="l-v">0 km/h</span></label>
+    <input type="range" id="vitesse" min="0" max="300" value="0" step="1">
+
+    <button class="gaz" id="gaz">Maintenir pour accélérer</button>
+
+    <p class="muted" style="margin-top:18px">Ce que le mélangeur envoie, en direct :</p>
+    <table id="voies"></table>
+  </div>
+  <script src="js/engine-audio.js?v=0.21.32"></script>
+  <script src="js/moteur.js?v=0.21.32"></script>
+</body>
+</html>

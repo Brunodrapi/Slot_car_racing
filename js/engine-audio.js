@@ -316,3 +316,88 @@ class EAVehicle {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { EAEngine, EADrivetrain, EAVehicle, eaClamp, eaRatio, RPM_PAR_OMEGA };
 }
+
+/* Le mélangeur : quatre boucles, deux fondus croisés, et une transposition assumée.
+
+Le principe de l'auteur. Quatre prises STATIONNAIRES — pied dedans en bas, pied dedans en haut,
+pied levé en bas, pied levé en haut — mélangées par deux fondus à puissance constante : l'un sur le
+régime, l'autre sur l'accélérateur. Chaque prise est ensuite désaccordée de `(régime - son régime à
+elle) × facteur` en cents.
+
+IL Y A DONC DE LA TRANSPOSITION, et c'est un renversement par rapport à ce qu'on faisait. Le lecteur
+granulaire n'en faisait aucune : il se déplaçait dans une montée enregistrée. Il avait raison sur ce
+point et ce n'est pas ce qui lui manquait ; ce qui lui manquait, c'est qu'une montée enregistrée ne
+sait rien faire d'autre que monter. Pas de pied levé, pas de trou au passage, pas de rebond au
+rupteur, pas de ralenti.
+
+Ce qui rend la transposition tenable ici, et ne l'était pas avant : elle est PARTIELLE. Le facteur
+vaut 0,2 cent par tour, soit un cinquième de ce qu'il faudrait pour suivre exactement le régime. Le
+reste du chemin est fait par le fondu vers la prise voisine, enregistrée plus haut. Une seule boucle
+étirée sur toute la plage demandait dix-neuf demi-tons ; ici chaque prise ne s'écarte que de trois
+ou quatre de son propre régime, et c'est la distance sur laquelle un timbre tient. */
+class EASampler {
+  constructor(ctx, sortie) {
+    this.ctx = ctx;
+    this.out = sortie || ctx.destination;
+    this.voix = {};
+    this.pitchFactor = 0.2;          // cents par tour/minute — voir plus haut
+  }
+
+  /* Une voix = une boucle qui tourne en permanence, dont on ne bouge que le gain et l'accord.
+  Elles ne démarrent ni ne s'arrêtent jamais : un `start()` par note coûterait un clic à chaque
+  changement de régime, et c'est exactement ce qu'on cherche à éviter. */
+  async charge(defs, base = '') {
+    for (const cle of Object.keys(defs)) {
+      const d = defs[cle];
+      const buf = await this.ctx.decodeAudioData(await (await fetch(base + d.source)).arrayBuffer());
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      src.loop = true;
+      if (d.loopStart != null) src.loopStart = d.loopStart;
+      if (d.loopEnd != null) src.loopEnd = d.loopEnd;
+      const g = this.ctx.createGain();
+      g.gain.value = 0;
+      src.connect(g).connect(this.out);
+      src.start(0, d.loopStart || 0);
+      this.voix[cle] = { src, gain: g, rpm: d.rpm || 1000, volume: d.volume == null ? 1 : d.volume };
+    }
+  }
+
+  // fondu à puissance constante : la somme des carrés reste 1, donc le niveau ne creuse pas au milieu
+  static fondu(v, a, b) {
+    const x = eaClamp((v - a) / (b - a), 0, 1);
+    return { haut: Math.cos((1 - x) * 0.5 * Math.PI), bas: Math.cos(x * 0.5 * Math.PI) };
+  }
+
+  applique(engine, bande) {
+    const v = this.voix;
+    if (!v.on_low && !v.on_high) return;
+    const bas = bande && bande[0] != null ? bande[0] : (v.on_low ? v.on_low.rpm : 3000);
+    const haut = bande && bande[1] != null ? bande[1] : (v.on_high ? v.on_high.rpm : 6500);
+    const r = EASampler.fondu(engine.rpm, bas, haut);
+    const g = EASampler.fondu(engine.throttle, 0, 1);
+
+    const pose = (cle, gain, accorde = true) => {
+      const s = v[cle];
+      if (!s) return;
+      if (accorde) s.src.detune.value = (engine.rpm - s.rpm) * this.pitchFactor;
+      s.gain.gain.value = gain * s.volume;
+    };
+    pose('on_low', g.haut * r.bas);
+    pose('off_low', g.bas * r.bas);
+    pose('on_high', g.haut * r.haut);
+    pose('off_high', g.bas * r.haut);
+    pose('limiter', eaRatio(engine.rpm, engine.soft_limiter * 0.93, engine.limiter), false);
+  }
+
+  // ce que le mélangeur envoie, pour qu'un essai puisse le lire au lieu de l'écouter
+  etat() {
+    const o = {};
+    for (const k of Object.keys(this.voix)) {
+      o[k] = { gain: +this.voix[k].gain.gain.value.toFixed(3), detune: Math.round(this.voix[k].src.detune.value) };
+    }
+    return o;
+  }
+}
+
+if (typeof module !== 'undefined' && module.exports) module.exports.EASampler = EASampler;
