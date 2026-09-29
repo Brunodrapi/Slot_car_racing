@@ -1561,37 +1561,83 @@ class Renderer {
     g.textBaseline = 'top';
     const panel = (x, y, w, h) => { g.fillStyle = 'rgba(10,12,20,0.55)'; this._roundRect(g, x, y, w, h, 10); g.fill(); };
 
-    // top-left: position & lap
-    const pos = race.positionOf(p), n = race.cars.length;
-    /* Le panneau du haut à gauche grandit quand l'usure est active, au lieu de poser les jauges
-    ailleurs. Une bande de plus en dessous serait entrée en conflit avec le classement sur un
-    écran d'ordinateur et avec la carte sur un téléphone — deux cas à régler au lieu d'un. Tout ce
-    qui se pose sous ce panneau lit `boxH`, donc tout descend ensemble. */
+    /* Les deux panneaux du haut, redessinés.
+
+    LE PROBLÈME. Tout y était de la même taille, aligné sur une seule colonne à droite : la
+    position, le tour, le nom, et à côté trois temps empilés en corps 12. Un pilote lit ces
+    panneaux en bout de ligne droite, un dixième de seconde, sans bouger les yeux du virage qui
+    arrive — et rien ne ressortait. Il fallait LIRE pour trouver sa place.
+
+    LA CONVENTION RETENUE. Un grand chiffre, et contre lui, empilés en petit, ce qu'il signifie et
+    son total : « 2 » en grand, « POS » au-dessus de « /12 » à droite. La hiérarchie fait tout le
+    travail — l'œil prend le grand chiffre, et le reste n'est là que pour qui veut vérifier. Les
+    temps deviennent des lignes étiquetées, libellé à gauche en petites capitales, valeur à droite
+    en chiffres à chasse fixe, pour que les colonnes de chiffres s'alignent d'un temps à l'autre.
+
+    Le tour courant reste en tête du panneau des temps, en grand : c'est le seul qui bouge, donc le
+    seul qu'on regarde en roulant. `best` et `last` sont des références, pas une lecture. */
     const usure = !!p.usure;
     const boxW = this.hudBox.w, boxH = this.hudBox.h + (usure ? (mobile ? 42 : 46) : 0);
     panel(P.l, P.t, boxW, boxH);
-    g.fillStyle = '#fff'; g.font = `bold ${mobile ? 30 : 40}px system-ui, sans-serif`; g.textAlign = 'left';
-    const posTxt = race.mode === 'timetrial' ? '—' : `${pos}`;
-    g.fillText(posTxt, P.l + 12, P.t + 8);
-    const posW = g.measureText(posTxt).width;
-    g.font = `${mobile ? 13 : 15}px system-ui, sans-serif`; g.fillStyle = '#cfd3dc';
-    if (race.mode !== 'timetrial') g.fillText(`/ ${n}`, P.l + 16 + posW, P.t + (mobile ? 22 : 30));
-    const lapShown = Math.min(race.laps, p.lap + 1);
-    g.textAlign = 'right';
-    g.fillText(race.mode === 'timetrial' ? `${t('lap')} ${p.lap + 1}` : `${t('lap')} ${lapShown} / ${race.laps}`, P.l + boxW - 12, P.t + 10);
-    // Le nom se cale sur la hauteur NUE du panneau, pas sur la hauteur grandie : sinon il descend
-    // avec les jauges et vient se poser dessus, ce qui ne se voit que l'option activée.
-    g.fillText(p.name, P.l + boxW - 12, P.t + this.hudBox.h - 24);
 
-    // top-right: times
+    /* Un grand chiffre avec son libellé et son total empilés contre lui.
+
+    Le libellé est au-dessus du total et non l'inverse : on cherche « quelle est ma position », pas
+    « combien sont-ils ». Le total est en gris, plus petit encore — c'est une précision, et sur un
+    écran de téléphone chaque pixel qu'il ne prend pas revient au chiffre qui compte. */
+    const bloc = (x, y, grand, libelle, total, teinte) => {
+      g.textAlign = 'left'; g.textBaseline = 'top';
+      g.fillStyle = teinte || '#fff';
+      g.font = `bold ${mobile ? 32 : 40}px system-ui, sans-serif`;
+      g.fillText(grand, x, y);
+      const lg = g.measureText(grand).width;
+      g.font = `bold ${mobile ? 10 : 11}px system-ui, sans-serif`;
+      g.fillStyle = '#9aa1ad';
+      g.fillText(libelle, x + lg + 5, y + (mobile ? 3 : 5));
+      if (total) {
+        g.font = `bold ${mobile ? 12 : 14}px ui-monospace, monospace`;
+        g.fillStyle = '#cfd3dc';
+        g.fillText(total, x + lg + 5, y + (mobile ? 15 : 20));
+      }
+      return lg;
+    };
+
+    const pos = race.positionOf(p), n = race.cars.length;
+    const tt = race.mode === 'timetrial';
+    const lapShown = tt ? p.lap + 1 : Math.min(race.laps, p.lap + 1);
+    const y0 = P.t + (mobile ? 6 : 8);
+    const lgPos = bloc(P.l + 12, y0, tt ? '—' : String(pos), t('pos').toUpperCase(), tt ? '' : '/' + n);
+    // le tour à droite dans le même panneau : deux mesures de même nature, donc même traitement
+    bloc(P.l + 12 + lgPos + (mobile ? 40 : 52), y0, String(lapShown), t('lap').toUpperCase(),
+      tt ? '' : '/' + race.laps);
+
+    // le nom, discret, calé sur la hauteur NUE du panneau : sinon il descend avec les cadrans
+    g.textAlign = 'right'; g.font = `${mobile ? 11 : 12}px system-ui, sans-serif`; g.fillStyle = '#9aa1ad';
+    g.fillText(p.name, P.l + boxW - 12, P.t + this.hudBox.h - (mobile ? 18 : 20));
+
+    // --- les temps ---
     const tw = this.hudBox.tw;
     panel(W - P.r - tw, P.t, tw, boxH);
-    g.textAlign = 'right'; g.fillStyle = '#fff'; g.font = `bold ${mobile ? 18 : 22}px ui-monospace, monospace`;
-    g.fillText(fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart), W - P.r - 12, P.t + 8);
-    g.font = `${mobile ? 12 : 13}px system-ui, sans-serif`; g.fillStyle = '#cfd3dc';
+    const tx = W - P.r - 12;
+    g.textAlign = 'right'; g.textBaseline = 'top';
+    g.fillStyle = '#fff'; g.font = `bold ${mobile ? 20 : 24}px ui-monospace, monospace`;
+    g.fillText(fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart), tx, y0);
+    /* Une ligne de temps : libellé à gauche en petites capitales, valeur à droite à chasse fixe.
+    La chasse fixe n'est pas un goût : deux temps au dixième près ne s'alignent qu'à cette
+    condition, et c'est l'alignement qui permet de comparer d'un coup d'œil sans lire. */
+    const ligneT = (yy, lib, val, teinte) => {
+      g.textAlign = 'left'; g.font = `bold ${mobile ? 9 : 10}px system-ui, sans-serif`;
+      g.fillStyle = '#9aa1ad';
+      g.fillText(lib.toUpperCase(), W - P.r - tw + 12, yy + 2);
+      g.textAlign = 'right'; g.font = `${mobile ? 12 : 13}px ui-monospace, monospace`;
+      g.fillStyle = teinte || '#cfd3dc';
+      g.fillText(val, tx, yy);
+    };
     const last = p.lapTimes.length ? p.lapTimes[p.lapTimes.length - 1] : null;
-    g.fillText(`${t('last')} ${last != null ? fmtTime(last) : '--:--.---'}`, W - P.r - 12, P.t + (mobile ? 32 : 40));
-    g.fillText(`${t('best')} ${p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---'}`, W - P.r - 12, P.t + (mobile ? 46 : 56));
+    const yT = y0 + (mobile ? 26 : 32);
+    // le meilleur tour en violet, la même teinte que le message qui l'annonce quand il tombe
+    ligneT(yT, t('best'), p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---', p.bestLap != null ? '#b48cff' : '#7d838e');
+    ligneT(yT + (mobile ? 15 : 17), t('last'), last != null ? fmtTime(last) : '--:--.---');
 
     /* Les deux cadrans : la gomme et la tôle.
 
