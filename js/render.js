@@ -633,11 +633,16 @@ class Renderer {
     const ox = 10 + ((size - 20) - w * sc) / 2, oy = 10 + ((size - 20) - h * sc) / 2;
     this.mm = { canvas: c, size, sc, ox, oy };
     g.translate(ox, oy); g.scale(sc, sc); g.translate(-b.minX, -b.minY);
+    /* Un tracé blanc TRANSLUCIDE, sans halo noir.
+
+    Il était doublé d'un contour sombre pour tenir sur n'importe quel fond. Résultat : un ruban
+    noir et blanc posé en pleine course, qui pèse autant qu'une voiture alors qu'il ne sert qu'à
+    se situer. En blanc à demi transparent il laisse voir la piste dessous et ne réclame plus
+    l'attention — on va le chercher quand on en a besoin, il ne vient plus à nous. */
     g.lineCap = 'round'; g.lineJoin = 'round';
-    g.strokeStyle = 'rgba(0,0,0,0.45)'; g.lineWidth = 9 / sc; g.stroke(this.paths.center);
-    g.strokeStyle = '#e8e8ec'; g.lineWidth = 4 / sc; g.stroke(this.paths.center);
+    g.strokeStyle = 'rgba(255,255,255,0.50)'; g.lineWidth = 5 / sc; g.stroke(this.paths.center);
     const p0 = T.pos(0, 0);
-    g.fillStyle = '#ffd400'; g.beginPath(); g.arc(p0.x, p0.y, 4 / sc, 0, 7); g.fill();
+    g.fillStyle = 'rgba(255,212,0,0.75)'; g.beginPath(); g.arc(p0.x, p0.y, 4 / sc, 0, 7); g.fill();
   }
 
   mmPoint(x, y) {
@@ -1607,26 +1612,27 @@ class Renderer {
     const usure = !!p.usure;
     const boxH = this.hudBox.h;
 
-    // le contour qui remplace le fond : tracé d'abord, rempli ensuite
-    const cerne = (txt, x, y, ep) => {
-      g.lineJoin = 'round'; g.lineWidth = ep;
-      g.strokeStyle = 'rgba(8,10,16,0.72)'; g.strokeText(txt, x, y);
-      g.fillText(txt, x, y);
-    };
+    /* Plus de contour noir : du blanc plein, et rien d'autre.
+
+    Le cerné rendait lisible sur tous les fonds, mais il épaissit chaque chiffre d'un liseré qui
+    durcit le dessin — et sur un jeu dont tout le reste est en aplats francs, c'est le seul endroit
+    qui portait une bordure. Le compromis est assumé et il est de Bruno : la lisibilité sur un fond
+    très clair contre la propreté du trait partout ailleurs. */
+    const cerne = (txt, x, y) => { g.fillText(txt, x, y); };
 
     const bloc = (x, y, grand, libelle, total) => {
       g.textAlign = 'left'; g.textBaseline = 'top';
       g.fillStyle = '#fff';
       g.font = `900 ${mobile ? 34 : 42}px system-ui, sans-serif`;
-      cerne(grand, x, y, mobile ? 6 : 7);
+      cerne(grand, x, y);
       const lg = g.measureText(grand).width;
       g.font = `bold ${mobile ? 12 : 14}px system-ui, sans-serif`;
       g.fillStyle = '#f0f2f6';
-      cerne(libelle, x + lg + 5, y + (mobile ? 2 : 4), 4);
+      cerne(libelle, x + lg + 5, y + (mobile ? 2 : 4));
       let lgT = 0;
       if (total) {
         g.font = `bold ${mobile ? 14 : 16}px ui-monospace, monospace`;
-        cerne(total, x + lg + 5, y + (mobile ? 16 : 22), 4);
+        cerne(total, x + lg + 5, y + (mobile ? 16 : 22));
         lgT = g.measureText(total).width;
       }
       // la largeur RÉELLE du bloc, libellé et total compris : c'est elle qui dit ce qui est occupé
@@ -1654,13 +1660,13 @@ class Renderer {
     g.textAlign = 'right'; g.textBaseline = 'top';
     g.fillStyle = '#fff'; g.font = `900 ${mobile ? 34 : 42}px system-ui, sans-serif`;
     const lapTxt = String(lapShown);
-    cerne(lapTxt, tx - (mobile ? 34 : 42), y0, mobile ? 6 : 7);
+    cerne(lapTxt, tx - (mobile ? 34 : 42), y0);
     g.textAlign = 'left';
     g.font = `bold ${mobile ? 12 : 14}px system-ui, sans-serif`; g.fillStyle = '#f0f2f6';
-    cerne(t('lap'), tx - (mobile ? 30 : 38), y0 + (mobile ? 2 : 4), 4);
+    cerne(t('lap'), tx - (mobile ? 30 : 38), y0 + (mobile ? 2 : 4));
     if (!tt) {
       g.font = `bold ${mobile ? 14 : 16}px ui-monospace, monospace`;
-      cerne('/' + race.laps, tx - (mobile ? 30 : 38), y0 + (mobile ? 16 : 22), 4);
+      cerne('/' + race.laps, tx - (mobile ? 30 : 38), y0 + (mobile ? 16 : 22));
     }
 
     /* Les pastilles de temps. Deux lignes, pas trois : le « dernier tour » a disparu au profit du
@@ -1754,17 +1760,17 @@ class Renderer {
     // line slider (left thumb)
     this._drawSlider(g, p, t);
 
-    /* La carte, en bas, et toujours À L'OPPOSÉ du levier.
+    /* La carte, sous la position.
 
-    Elle montait sous les chronos sur un téléphone, pour laisser le coin au pouce. Mais le pouce
-    n'occupe qu'un seul coin du bas, celui du levier : l'autre est libre, et c'est là que la carte
-    se lit le mieux — en bas, où l'œil descend déjà pour la ligne et l'accélérateur, plutôt qu'en
-    haut où il faut aller la chercher. Elle se retourne donc avec le levier. */
+    En bas à droite, elle partageait le coin avec le cadran d'accélérateur, qui est centré et
+    déborde jusque-là sur un téléphone : le cadran passait devant et n'en laissait voir qu'une
+    moitié. Sous la position, elle est dans l'angle que le pouce n'atteint jamais, et dans la même
+    colonne que le chiffre qu'on regarde le plus — on lit sa place, puis où elle se trouve. */
     if (this.mm) {
       const m = this.mm;
-      const mx = this.slider.droite ? P.l : W - P.r - m.size;
-      const my = H - P.b - m.size;
-      // pas de fond : le tracé est déjà cerné de noir dans sa propre image, il se lit sur le décor
+      const mx = P.l + 2;
+      const my = P.t + (mobile ? 46 : 56);
+      // pas de fond : le tracé translucide se pose sur le décor sans lui voler sa place
       g.drawImage(m.canvas, mx, my, m.size, m.size);
       /* Les points de la carte, deux fois plus gros, et le joueur en bleu ciel.
 
@@ -1774,9 +1780,9 @@ class Renderer {
       levier ; le bleu ciel n'est utilisé nulle part ailleurs pour une voiture. */
       for (const car of race.cars) {
         const wp = car.pos, q = this.mmPoint(wp.x, wp.y);
+        // pas de cerne ici non plus : le bleu ciel du joueur se distingue tout seul des livrées
         g.fillStyle = car.isPlayer ? '#7fd4ff' : car.livery.body;
         g.beginPath(); g.arc(mx + q.x, my + q.y, car.isPlayer ? 9 : 6, 0, Math.PI * 2); g.fill();
-        if (car.isPlayer) { g.strokeStyle = '#0b1220'; g.lineWidth = 2; g.stroke(); }
       }
     }
 
