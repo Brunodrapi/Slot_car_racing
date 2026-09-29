@@ -56,6 +56,24 @@ const USURE = {
   vmax: 0.18,        // vitesse de pointe perdue sur une voiture au maximum des dommages
 };
 
+/* L'arrêt au stand.
+
+Ce qu'il coûte est le cœur du réglage. Trop court, il n'y a aucune raison de ne pas s'arrêter ;
+trop long, il n'y en a aucune de s'arrêter. Le compte est : la voie parcourue à vitesse limitée au
+lieu de la piste à pleine vitesse, plus le temps à l'arrêt. Sur nos circuits cela fait une dizaine
+de secondes perdues — à comparer aux 3,5 % du tour que coûte un train usé, soit près de trois
+secondes par tour. L'arrêt se rembourse donc en trois ou quatre tours, ce qui le rend payant dans
+une course longue et perdant dans une course courte : c'est exactement le choix qu'on veut offrir.
+
+La limitation de vitesse n'est pas décorative. Sans elle, la voie des stands serait un raccourci —
+elle coupe légèrement par l'extérieur — et tout le monde s'y arrêterait à chaque tour. */
+const STAND = {
+  vitesse: 22,       // m/s dans la voie, environ 80 km/h
+  service: 3.2,      // secondes à l'arrêt dans la case
+  seuilArret: 3,     // m/s en dessous desquels on considère la voiture arrêtée dans la case
+  demiBoite: 9,      // demi-longueur de la case d'arrêt, en mètres
+};
+
 /* Fastest speed for curvature magnitude k on a given model (accounts for downforce).
 
 `boost` est la triche du niveau extrême : un supplément d'adhérence MÉCANIQUE, réservé aux voitures
@@ -126,6 +144,18 @@ class Car {
     this.tyre = 1;      // 1 = neuf, 0 = mort
     this.damage = 0;    // 0 = intact, 1 = épave
     this.pitsDone = 0;
+    /* `pitAsk` est l'INTENTION, `sel` reste la ligne.
+
+    La coche supplémentaire du levier aurait pu se coder comme une valeur de `sel` en dessous de
+    -1, et c'est d'ailleurs ce que `targetLat` sait faire. Mais `sel` est borné à [-1, 1] par la
+    course, par le réseau et par le choix de ligne de l'IA — trois endroits qui auraient tous dû
+    apprendre qu'une quatrième valeur existe, et qui l'écrasaient silencieusement. Le levier reste
+    un seul contrôle pour le joueur ; à l'intérieur, l'intention est un drapeau. */
+    this.pitAsk = false;
+    this.pitState = null;   // null | 'voie' | 'arret'
+    this.pitServi = false;  // déjà servi durant ce passage dans la voie
+    this.pitT = 0;          // temps restant de service
+    this.inPit = false;     // dans le couloir, donc hors piste sans être hors piste
     this.number = opts.number || 1;
 
     // track bookkeeping (derived from the world position every step)
@@ -245,6 +275,94 @@ class Car {
 
   update(dt, throttle, raceTime) {
     const T = this.track, c = this.cls;
+    /* Le bloc des stands passe AVANT `this.throttle`, et ce n'est pas cosmétique.
+
+    Il remplace l'accélérateur quand on est dans la voie. Placé après, il levait bien le pied
+    — mais `this.offT`, qui mesure depuis combien de temps le pied est levé et commande le
+    freinage, avait déjà été calculé sur la valeur d'origine. La voiture coupait les gaz sans
+    freiner, traversait la case d'arrêt en roue libre et ressortait sans s'arrêter, à chaque
+    tour, sans que rien ne le signale. */
+    /* --- la voie des stands ---
+
+    On y est quand le levier demande les stands ET que l'abscisse est dans la voie. Les deux
+    conditions ensemble : demander les stands au milieu du tour ne fait rien, et traverser la zone
+    sans les demander ne fait rien non plus. */
+    /* On est dans la voie quand on l'a demandée ET qu'on est dans sa portion de circuit.
+
+    Une première version exigeait en plus d'être déjà sur la droite de la piste, ce qui ne pouvait
+    jamais arriver : la voiture ne se décale que parce qu'elle vise la voie, et elle ne visait la
+    voie que si elle était déjà décalée. Personne n'entrait jamais aux stands. */
+    const zone = this.usure ? T.pitAt(this.s) : null;
+    this.inPit = !!(zone && (this.pitAsk || this.pitState));
+    if (this.inPit) {
+      if (!this.pitState) this.pitState = 'voie';
+      /* IL SUFFIT DE S'ARRÊTER DANS LA ZONE. Pas de case à viser au mètre près : la zone fait
+      cinquante mètres, et s'y immobiliser suffit. Viser n'est pas un choix de course, c'est une
+      corvée — et au pouce, sur un téléphone, c'est une corvée impossible.
+
+      Le verrou `pitServi` évite qu'une voiture déjà servie et toujours à l'arrêt dans la zone se
+      fasse resservir à l'image suivante, indéfiniment. */
+      if (this.pitState === 'voie' && !this.pitServi && zone.dansZone && Math.abs(this.v) < STAND.seuilArret) {
+        this.pitState = 'arret';
+        this.pitT = STAND.service;
+      }
+    } else if (this.pitState === 'voie' && !zone) {
+      /* Sorti de la voie : on retombe au neutre, et la demande s'éteint AVEC la sortie.
+
+      Deux erreurs successives ici, opposées l'une à l'autre.
+
+      D'abord la demande ne s'éteignait jamais. Un pilote qui ratait la zone — trop vite, ou servi
+      puis ressorti — gardait son drapeau levé pour le reste de la course et replongeait dans la
+      voie à chaque tour : une centaine de secondes perdues en quatre tours, sans qu'aucun arrêt
+      n'apparaisse dans les compteurs.
+
+      Puis, en corrigeant, je l'ai éteinte dès qu'on était HORS de la voie, ce qui n'est pas la
+      même chose que d'en SORTIR. Une demande faite en plein tour mourait à l'image suivante, et
+      seules les demandes faites par hasard à l'intérieur de la zone survivaient. Sur un circuit
+      court la voie occupe assez du tour pour que ça passe ; sur les trois plus longs — Spa, le
+      Nürburgring, Le Mans — la voiture n'entrait jamais aux stands. Mesuré, pas deviné.
+
+      La demande vaut donc pour le passage qui vient : elle survit tant qu'on n'a pas traversé la
+      voie, et s'éteint quand on en ressort. */
+      this.pitState = null;
+      this.pitAsk = false;
+    }
+    if (!zone) this.pitServi = false;   // le verrou ne vaut qu'à l'intérieur
+    /* Dans la voie, l'IA se conduit ; LE JOUEUR SE CONDUIT LUI-MÊME.
+
+    J'avais d'abord fait conduire la voie automatiquement pour tout le monde, en me disant que
+    viser une case au frein serait une corvée. C'est vrai pour une case de dix-huit mètres ; ça ne
+    l'est plus avec une zone de cinquante, où il suffit de s'arrêter. Et retirer le volant des
+    mains du joueur au moment le plus tendu de la course, c'était supprimer la seule chose qui
+    rende un arrêt vivant : le risque de le rater.
+
+    L'IA, elle, n'a pas de mains. Elle freine pour la zone comme elle freinerait pour un virage :
+    la distance restante décide de la vitesse qu'elle peut encore tenir. */
+    if (this.inPit && this.aiDriven) {
+      if (this.pitState === 'voie' && zone.boite < 0 && !this.pitServi) {
+        const reste = Math.max(0, -zone.boite);
+        const vCible = Math.min(STAND.vitesse, Math.sqrt(2 * c.brake * 0.8 * reste));
+        throttle = this.v < vCible * 0.92;
+      } else if (this.pitState === 'voie') {
+        throttle = this.v < STAND.vitesse * 0.95;   // servi ou déjà passé : on repart
+      } else {
+        throttle = false;
+      }
+    }
+    // la limitation de vitesse vaut pour tout le monde, elle : sans elle la voie serait un raccourci
+    if (this.inPit && this.pitState !== 'arret' && this.v > STAND.vitesse) throttle = false;
+
+    if (this.pitState === 'arret') {
+      this.pitT -= dt;
+      this.v = 0; this.vl = 0; this.w = 0;
+      if (this.pitT <= 0) {
+        this.tyre = 1; this.damage = 0; this.pitsDone++;
+        this.pitState = 'voie';
+        this.pitAsk = false;     // servi : on ressort, et on ne redemande pas au tour suivant
+        this.pitServi = true;
+      }
+    }
+
     this.throttle = throttle;
     /* L'usure. La glisse compte au carré : c'est le frottement qui arrache la gomme, pas la
     distance. Un pilote propre use lentement, un pilote en travers permanent trois fois plus vite.
@@ -258,7 +376,8 @@ class Car {
 
     // --- surface ---
     const hwL = T.hwLeftAt(this.s), hwR = T.hwRightAt(this.s);
-    const off = this.lat > hwL + c.width * 0.3 || this.lat < -(hwR + c.width * 0.3);
+    // dans la voie des stands on est hors de la piste sans être hors piste : ni gravier, ni faute
+    const off = !this.inPit && (this.lat > hwL + c.width * 0.3 || this.lat < -(hwR + c.width * 0.3));
     if (off && this.state !== 'grass') {
       this.state = 'grass'; this.grassT = 0; this.crashes++;
       // les dommages se prennent à l'INSTANT de la sortie, à la vitesse qu'on avait : rester dans
@@ -356,6 +475,9 @@ class Car {
     const v0 = this.v, vl0 = this.vl;
     // a car pushed backwards by its own spin never reaches racing speed in reverse
     this.v = clamp(v0 + (acc - vl0 * this.w) * dt, -0.25 * c.vmax, c.vmax * dmg * 1.05);
+    // la limitation de la voie : sans elle, la voie serait un raccourci et tout le monde s'y arrêterait
+    if (this.inPit && this.v > STAND.vitesse) this.v = STAND.vitesse;
+    if (this.pitState === 'arret') this.v = 0;
     this.vl = vl0 + (v0 * this.w + this.Ff + this.Fr) * dt;
     if (latDrag) this.vl += clamp(latDrag * dt, -Math.abs(vl0), Math.abs(vl0));   // drag never reverses it
     this.beta = Math.atan2(this.vl, vv) * Math.sign(this.v || 1);
@@ -378,6 +500,16 @@ class Car {
   steer(cars, dt, ai) {
     const T = this.track, c = this.cls;
     if (this.gridLat != null) { this.laneTarget = this.gridLat; this.selS = this.sel; return; }
+    /* Une voiture qui rentre aux stands ne double plus personne.
+
+    C'est ce qui manquait pour que l'intention survive : le choix de ligne de l'IA réécrit `sel` à
+    chaque pas, donc une IA qui avait décidé de s'arrêter reprenait la ligne de course à l'image
+    suivante et passait devant les stands sans les voir. */
+    if (this.pitAsk || this.pitState) {
+      this.selS += clamp(-2 - this.selS, -PHYS.selRate * dt, PHYS.selRate * dt);
+      this.laneTarget = T.targetLat(this.s, this.selS);
+      return;
+    }
     let blocker = null, bd = Infinity;
     const range = c.length * 3 + Math.max(0, this.v) * 1.0;
     for (const o of cars) {
@@ -471,6 +603,14 @@ function resolveCollisions(cars, track) {
     const a = cars[i];
     for (let j = i + 1; j < n; j++) {
       const b = cars[j];
+      /* Pas de contact dans la voie des stands, ni avec la piste depuis la voie.
+
+      Deux raisons, et la seconde compte plus que la première. D'abord c'est juste : un vrai
+      circuit met un mur entre les deux, et une voiture lancée sur la piste ne peut pas toucher une
+      voiture arrêtée aux stands, même si leurs abscisses coïncident. Ensuite c'est nécessaire :
+      les voitures de la voie sont immobiles ou au pas, en file, au même endroit — sans cette garde
+      elles se poussent les unes les autres hors de la zone d'arrêt et aucune ne se fait servir. */
+      if (a.inPit || b.inPit) continue;
       const d = track.diff(a.s, b.s);
       const lenSum = (a.cls.length + b.cls.length) / 2;
       if (Math.abs(d) >= lenSum) continue;

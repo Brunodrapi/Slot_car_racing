@@ -1587,9 +1587,22 @@ class Renderer {
     g.textBaseline = 'alphabetic';
   }
 
+  /* Le levier, et la coche des stands en dessous.
+
+  Elle se pose SOUS les trois positions existantes au lieu de réétaler le levier sur quatre crans.
+  Réétaler aurait déplacé « intérieur », « course » et « extérieur » dès que les stands
+  s'ouvrent — donc changé la géométrie du seul contrôle de trajectoire en pleine course, au tour
+  où l'on a le plus besoin qu'il soit là où la main l'attend. La coche vit donc dans la marge basse
+  du panneau, que le fond réservait déjà.
+
+  Elle n'existe que quand elle sert : option activée, premier tour bouclé, pas déjà servi. Une
+  coche grise qui ne fait rien est pire qu'une coche absente — on la vise et il ne se passe rien. */
   _drawSlider(g, p, t) {
     const s = this.slider;
-    g.fillStyle = 'rgba(10,12,20,0.55)'; this._roundRect(g, s.x - s.w / 2 - 8, s.y - 26, s.w + 16, s.len + 52, 12); g.fill();
+    const ouvert = !!(p.usure && p.lap >= 1 && !p.pitServi && !p.finished);
+    this.pitOpen = ouvert;
+    this.pitY = s.y + s.len + 22;
+    g.fillStyle = 'rgba(10,12,20,0.55)'; this._roundRect(g, s.x - s.w / 2 - 8, s.y - 26, s.w + 16, s.len + 52 + (ouvert ? 22 : 0), 12); g.fill();
     // track
     g.fillStyle = 'rgba(255,255,255,0.18)'; this._roundRect(g, s.x - 4, s.y, 8, s.len, 4); g.fill();
     const stops = [{ v: 1, c: LINE_COLORS.outside, l: t('lineOut') }, { v: 0, c: LINE_COLORS.racing, l: t('lineRace') }, { v: -1, c: LINE_COLORS.inside, l: t('lineIn') }];
@@ -1599,8 +1612,20 @@ class Renderer {
       g.fillStyle = st.c; g.beginPath(); g.arc(s.x, y, 7, 0, Math.PI * 2); g.fill();
       g.fillStyle = '#e8e8ec'; g.fillText(st.l, s.x + 14, y);
     }
-    // handle
-    const hy = s.y + s.len / 2 - p.sel * s.len / 2;
+    if (ouvert) {
+      // le rail se prolonge jusqu'à la coche, sinon elle flotte sans appartenir au levier
+      g.fillStyle = 'rgba(255,255,255,0.10)'; this._roundRect(g, s.x - 4, s.y + s.len, 8, 22, 4); g.fill();
+      const actif = p.pitAsk || p.pitState;
+      g.fillStyle = actif ? '#5be07a' : '#cfa14a';
+      g.beginPath(); g.arc(s.x, this.pitY, 8, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#1a1400'; g.font = `bold ${this.mobile ? 9 : 10}px system-ui, sans-serif`;
+      g.textAlign = 'center'; g.fillText('P', s.x, this.pitY + 0.5);
+      g.textAlign = 'left'; g.fillStyle = actif ? '#5be07a' : '#e8e8ec';
+      g.font = `bold ${this.mobile ? 10 : 11}px system-ui, sans-serif`;
+      g.fillText(t('linePit'), s.x + 14, this.pitY);
+    }
+    // handle — posée sur la coche quand les stands sont demandés
+    const hy = (p.pitAsk || p.pitState) && ouvert ? this.pitY : s.y + s.len / 2 - p.sel * s.len / 2;
     g.fillStyle = '#ffd400'; g.beginPath(); g.arc(s.x, hy, 13, 0, Math.PI * 2); g.fill();
     g.strokeStyle = '#1a1400'; g.lineWidth = 2; g.stroke();
     g.textBaseline = 'top';
@@ -1630,6 +1655,10 @@ class Renderer {
     const inZoneX = touchZone ? x < this.w * 0.42 : Math.abs(x - s.x) < 40;
     if (!inZoneX) return null;
     if (!touchZone && (y < s.y - 30 || y > s.y + s.len + 30)) return null;
+    /* La coche des stands vit SOUS le rail, dans la marge du panneau : un doigt qui descend plus
+    bas que la position « intérieur » demande les stands. Elle n'est lue que si elle est dessinée,
+    faute de quoi on demanderait un arrêt impossible en visant le bord du panneau. */
+    if (this.pitOpen && y > s.y + s.len + 8) return -2;
     let v = (s.y + s.len / 2 - y) / (s.len / 2);
     v = clamp(v, -1, 1);
     if (Math.abs(v) < 0.18) v = 0; else if (Math.abs(v) > 0.82) v = Math.sign(v);

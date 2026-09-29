@@ -148,6 +148,7 @@ class Track {
     if (def.lines && !def.width) this._widthFromLines();
     this._clampLines();
     this._lineCurvatures();
+    this._buildPits();
     this.halfWidth = baseHw;          // nominal, used for grids and camera
     this.width = baseHw * 2;
 
@@ -689,11 +690,83 @@ class Track {
   hwLeftAt(s) { return this._lerp(this.hwL, s); }
   hwRightAt(s) { return this._lerp(this.hwR, s); }
   lineLat(name, s) { return this._lerp(this.lines[name], s); }
+
+  /* La voie des stands, calculée et non dessinée.
+
+  Aucun circuit n'en a. Les douze intégrés sont une ligne centrale et des largeurs, ceux de
+  l'éditeur aussi, et en dessiner douze à la main aurait laissé les circuits perso sans stands —
+  donc la moitié du chantier inutilisable pour qui fabrique ses propres tracés.
+
+  Elle est donc déduite du tracé : un couloir décalé latéralement du côté DROIT, qui s'écarte de la
+  piste avant la ligne d'arrivée, longe la case d'arrêt, et revient se fondre après. Le côté droit
+  plutôt que l'intérieur du virage : « intérieur » change de sens à chaque courbe, alors qu'un côté
+  fixe donne une voie qui ne traverse jamais la piste.
+
+  Les trois repères sont proportionnels à la longueur du circuit et bornés : sur un tracé court la
+  voie occuperait sinon un quart du tour, sur un tracé long elle serait ridicule. */
+  _buildPits() {
+    const L = this.length;
+    const long = Math.max(160, Math.min(L * 0.22, 340));
+    this.pit = {
+      entree: this.wrap(-long * 0.70),
+      boite: this.wrap(-long * 0.20),
+      sortie: this.wrap(long * 0.30),
+      long,
+      // l'écart entre le bord de piste et l'AXE de la voie : séparation + demi-largeur de voie
+      ecartPlein: 7.0,
+      largeur: 6.0,      // largeur de la voie elle-même, pour le dessin
+      zone: 26,          // demi-longueur de la zone d'arrêt — il suffit de s'y arrêter
+    };
+  }
+
+  /* Où se trouve la voie des stands à cette abscisse, et à quel point on y est engagé.
+
+  UNE VOIE PARALLÈLE, comme sur un vrai circuit : deux courtes bretelles aux extrémités, et entre
+  les deux un couloir à écart CONSTANT du bord de piste. La première version biseautait sur toute
+  la longueur, ce qui donnait un losange — on s'écartait puis on revenait sans jamais longer quoi
+  que ce soit, et il n'y avait pas de « voie » à proprement parler.
+
+  L'écart se mesure depuis le bord droit de la piste et non depuis l'axe : `hwRightAt` varie avec
+  l'abscisse, donc suivre le bord garde la voie parallèle à la PISTE plutôt qu'à sa ligne médiane.
+  C'est ce que fait un vrai circuit, et c'est ce qui évite que la voie morde dans l'asphalte là où
+  la piste s'élargit.
+
+  Rend `null` hors de la voie. `u` va de 0 à 1 de l'entrée à la sortie. */
+  pitAt(s) {
+    const p = this.pit;
+    if (!p) return null;
+    const span = this.wrap(p.sortie - p.entree);
+    const d = this.wrap(s - p.entree);
+    if (d > span) return null;
+    const u = d / span;
+    // bretelles courtes : 12 % à l'entrée, 14 % à la sortie. Entre les deux, écart plein.
+    const ecart = Math.min(1, Math.min(u / 0.12, (1 - u) / 0.14));
+    const dBoite = this.wrap(s - p.boite);
+    return {
+      u, ecart,
+      lat: -(this.hwRightAt(s) + p.ecartPlein * ecart),
+      // distance signée à la zone d'arrêt : négative avant, positive après
+      boite: dBoite > this.length / 2 ? dBoite - this.length : dBoite,
+      // dans la zone d'arrêt ? il suffit d'y être arrêté, la précision n'est pas le jeu
+      dansZone: Math.abs(dBoite > this.length / 2 ? dBoite - this.length : dBoite) < p.zone,
+    };
+  }
   // blend of the three lines: sel in [-1, 1] (-1 inside, 0 racing, +1 outside)
+  /* Où viser, à cette abscisse, pour la position de levier demandée.
+
+  `sel` va de -1 (corde) à +1 (extérieur), et AU-DELÀ DE -1 vient la voie des stands : c'est la
+  coche de plus sur le levier. En dessous de -1 on mélange donc la ligne intérieure et le couloir
+  des stands, ce qui donne un rabattement progressif plutôt qu'un saut — et, hors de la voie, la
+  position -2 ne vaut rien de plus que la corde, si bien qu'un pilote qui la demande trop tôt reste
+  simplement à l'intérieur jusqu'à l'entrée. */
   targetLat(s, sel) {
     const r = this._lerp(this.lines.racing, s);
-    if (sel < 0) return r + (this._lerp(this.lines.inside, s) - r) * Math.min(1, -sel);
-    return r + (this._lerp(this.lines.outside, s) - r) * Math.min(1, sel);
+    if (sel >= 0) return r + (this._lerp(this.lines.outside, s) - r) * Math.min(1, sel);
+    const dedans = r + (this._lerp(this.lines.inside, s) - r) * Math.min(1, -sel);
+    if (sel > -1) return dedans;
+    const p = this.pitAt(s);
+    if (!p) return dedans;
+    return dedans + (p.lat - dedans) * Math.min(1, -sel - 1);
   }
   // curvature of the blended line (what a car following it really turns)
   lineCurv(s, sel) {

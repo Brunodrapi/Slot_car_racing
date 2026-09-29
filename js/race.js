@@ -177,6 +177,8 @@ class Race {
   update(frameDt, input) {
     if (typeof input !== 'object') input = { throttle: !!input, sel: this.player.sel };
     this.player.sel = clamp(input.sel == null ? 0 : input.sel, -1, 1);
+    // la coche des stands : une intention, pas une quatrième position de ligne (voir Car.pitAsk)
+    if (this.usure && input.pit != null) this.player.pitAsk = !!input.pit;
     this.acc += Math.min(frameDt, 0.1);
     while (this.acc >= this.dt) {
       this._step(this.dt, !!input.throttle);
@@ -207,6 +209,30 @@ class Race {
     }
   }
 
+  /* Quand une IA décide de s'arrêter.
+
+  Je n'ai pas pu regarder comment Ultimate Racing 2D s'y prend — c'est un jeu fermé et je n'ai pas
+  accès à son code. Ce qui suit est donc un raisonnement, pas une copie, et il vaut ce que vaut la
+  mesure : dis-moi si le comportement ne ressemble pas à ce que tu attends.
+
+  Le calcul est celui d'un ingénieur de course, et il tient en une ligne : un arrêt ne se rembourse
+  que s'il reste assez de tours pour le rentabiliser. Un train neuf rend à peu près trois pour cent
+  du tour face à un train mort ; l'arrêt en coûte une dizaine de secondes. Il faut donc trois ou
+  quatre tours restants pour que ce soit payant, et rentrer au dernier tour est toujours une
+  faute — même pneus morts.
+
+  Le seuil est décalé par pilote. Sans cela les huit voitures rentreraient au même tour, feraient
+  la queue dans la voie, et la course se figerait d'un coup au lieu de se déplier. Le décalage vient
+  du talent, donc il est stable d'une course à l'autre : le même pilote a toujours la même
+  stratégie, ce qui se remarque quand on joue plusieurs fois. */
+  _decidePit(car) {
+    if (car.pitAsk || car.pitState || car.tyre > 0.999) return;
+    const reste = this.laps - car.lap;
+    if (reste < 3) return;                       // trop tard pour rembourser
+    const seuil = 0.24 + car.skill * 0.16;       // 0,24 à 0,40 selon le pilote
+    if (car.tyre < seuil || car.damage > 0.75) car.pitAsk = true;
+  }
+
   _simulate(dt, throttleInput) {
     const T = this.track;
     this.time += dt;
@@ -215,7 +241,12 @@ class Race {
     for (const car of this.cars) {
       // The third argument is "let the AI pick the line". A person's car never does, wherever
       // that person is sitting.
-      car.steer(this.cars, dt, car.human == null && !car.isPlayer ? true : !!this.opts.playerAI);
+      /* Une seule source de vérité pour « cette voiture est-elle pilotée par la machine ».
+      `car.aiDriven` sert aussi à la voie des stands, où l'IA freine pour la zone d'arrêt alors que
+      le joueur freine lui-même ; la dupliquer aurait fini par la faire diverger. */
+      car.aiDriven = car.human == null && !car.isPlayer ? true : !!this.opts.playerAI;
+      car.steer(this.cars, dt, car.aiDriven);
+      if (this.usure && car.aiDriven && !car.finished) this._decidePit(car);
       let throttle;
       if (car.isPlayer) throttle = car.finished ? car.v < 15 : throttleInput;
       else if (car.human != null) {
@@ -223,6 +254,7 @@ class Race {
         // predicted — this only ever runs on the host, which is the one simulating.
         const net = this.netInput[car.human] || { thr: false, sel: 0 };
         car.sel = clamp(net.sel || 0, -1, 1);
+        if (this.usure) car.pitAsk = !!net.pit;
         throttle = car.finished ? car.v < 15 : !!net.thr;
       } else {
         const gapM = car.progress - pp;

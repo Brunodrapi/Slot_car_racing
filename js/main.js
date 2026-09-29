@@ -26,7 +26,7 @@ class App {
     }
     this.raceCtx = null;
     this.state = 'splash';
-    this.input = { throttle: false, sel: 0 };
+    this.input = { throttle: false, sel: 0, pit: false };
     this.pointers = { throttle: null, slider: null };
     this.last = performance.now();
     this._bindInput();
@@ -97,7 +97,23 @@ class App {
   _bindInput() {
     const on = () => { this.input.throttle = true; this.audio.start(); this.audio.resume(); };
     const off = () => { this.input.throttle = false; };
-    const stepSel = (d) => { const v = Math.round(this.input.sel) + d; this.input.sel = clamp(v, -1, 1); };
+    /* Une seule porte pour la position du levier, clavier comme doigt.
+
+    `pit` n'est pas une quatrième ligne, c'est une intention : la course la lit séparément de
+    `sel`, qui reste la trajectoire. Les deux sont posés ensemble ici pour qu'ils ne puissent pas
+    diverger — un levier qui dirait « stands » pendant que la voiture vise encore l'intérieur
+    serait un bug impossible à voir autrement qu'en jouant. */
+    const poseSel = (v) => {
+      this.input.pit = v <= -1.5;
+      this.input.sel = clamp(v, -1, 1);
+    };
+    // au clavier on descend d'un cran de plus quand les stands sont ouverts, sinon un joueur sur
+    // ordinateur n'aurait aucun moyen de s'arrêter
+    const stepSel = (d) => {
+      const bas = this.renderer && this.renderer.pitOpen ? -2 : -1;
+      const v = Math.round(this.input.pit ? -2 : this.input.sel) + d;
+      poseSel(clamp(v, bas, 1));
+    };
     const LINE_DOWN = ['ArrowDown', 'ArrowLeft', 'a', 'A', 'q', 'Q'], LINE_UP = ['ArrowUp', 'ArrowRight', 'd', 'D', 'e', 'E'];
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
@@ -129,7 +145,7 @@ class App {
       donc aucun doigt n'est retenu et le relâchement n'a rien à défaire. */
       if (this.renderer.pauseHitAt(e.clientX, e.clientY)) { this.togglePause(); return; }
       const v = this.renderer.sliderValueAt(e.clientX, e.clientY, touch);
-      if (v != null && this.pointers.slider == null) { this.pointers.slider = e.pointerId; this.input.sel = v; return; }
+      if (v != null && this.pointers.slider == null) { this.pointers.slider = e.pointerId; poseSel(v); return; }
       if (this.pointers.throttle == null) {
         this.pointers.throttle = e.pointerId;
         if (touch) this.renderer.anchorDial(e.clientX, e.clientY);   // the dial comes to the thumb
@@ -139,7 +155,7 @@ class App {
     c.addEventListener('pointermove', (e) => {
       if (this.pointers.slider === e.pointerId) {
         const v = this.renderer.sliderValueAt(e.clientX, e.clientY, true);
-        if (v != null) this.input.sel = v;
+        if (v != null) poseSel(v);
         return;
       }
       // the dial stays under the thumb: sliding without lifting carries it along
@@ -236,7 +252,7 @@ class App {
     this.renderer.homeDial();
     this.state = 'race';
     this.input.throttle = false;
-    this.input.sel = 0;
+    this.input.sel = 0; this.input.pit = false;
     this.pointers.throttle = this.pointers.slider = null;
     this.ui.hide();
     this.ui.flash = null;
