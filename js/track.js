@@ -729,9 +729,8 @@ class Track {
       boite: ancre,
       sortie: this.wrap(ancre + long * 0.50),
       long,
-      // l'écart entre le bord de piste et l'AXE de la voie : séparation + demi-largeur de voie
-      ecartPlein: 7.0,
-      largeur: 6.0,      // largeur de la voie elle-même, pour le dessin
+      separation: 1.2,   // bande neutre entre le bord de piste et le bord intérieur de la voie
+      largeur: 6.0,      // largeur de la voie elle-même
       zone: 26,          // demi-longueur de la zone d'arrêt — il suffit de s'y arrêter
     };
   }
@@ -759,9 +758,19 @@ class Track {
     // bretelles courtes : 12 % à l'entrée, 14 % à la sortie. Entre les deux, écart plein.
     const ecart = Math.min(1, Math.min(u / 0.12, (1 - u) / 0.14));
     const dBoite = this.wrap(s - p.boite);
+    /* Les deux bords, mesurés depuis le bord de piste vers l'EXTÉRIEUR.
+
+    La première version posait l'axe de la voie à un écart fixe et en déduisait les bords par
+    demi-largeur. Aux extrémités, où l'écart tombe à zéro, le bord intérieur passait donc DANS la
+    piste, et le polygone tracé couvrait tout depuis l'asphalte jusqu'aux garages : une dalle large
+    de quinze mètres au lieu d'une voie de six. On construit donc depuis le bord, vers le dehors,
+    et la voie ne peut plus mordre sur la piste. */
+    const bord = this.hwRightAt(s);
+    const interne = -(bord + p.separation * ecart);
+    const externe = interne - p.largeur * (0.4 + 0.6 * ecart);
     return {
-      u, ecart,
-      lat: -(this.hwRightAt(s) + p.ecartPlein * ecart),
+      u, ecart, interne, externe,
+      lat: (interne + externe) / 2,
       // distance signée à la zone d'arrêt : négative avant, positive après
       boite: dBoite > this.length / 2 ? dBoite - this.length : dBoite,
       // dans la zone d'arrêt ? il suffit d'y être arrêté, la précision n'est pas le jeu

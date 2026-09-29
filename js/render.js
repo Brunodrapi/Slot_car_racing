@@ -30,6 +30,9 @@ const THEME_BASE = {
   // couleurs du curseur de ligne pour que le lien se fasse sans légende. Assez clairs pour rester
   // des lignes peintes sur de l'asphalte, assez marqués pour se distinguer d'un coup d'œil.
   edgeIn: '#7fd4ff', edgeOut: '#ffcf5c',
+  // la voie des stands : un asphalte plus sombre que la piste, pour qu'on voie tout de suite que
+  // ce n'est pas la même surface, et une zone d'arrêt jaune qu'on repère de loin
+  pitLane: '#2f3038', pitBox: 'rgba(255,212,0,0.18)', pitBoxLine: '#ffd400',
   kerbA: '#c33b30', kerbB: '#eceaf0',
   gravel: '#c8ab72', gravelDark: '#b39660',
   canopy: ['#3f7a34', '#4b8d3c', '#336629'], pine: ['#2f5f4f', '#37705d'],
@@ -85,6 +88,7 @@ const THEME_DEFS = {
     earth: '#877482', earthDark: '#746373',
     asphalt: '#56465e', asphaltLight: '#62526a',
     edgeLine: '#f5f2e8', centre: '#f5f2e8', edgeIn: '#8fdcff', edgeOut: '#ffd97a',
+    pitLane: '#3b3142', pitBox: 'rgba(255,212,0,0.18)', pitBoxLine: '#ffd400',
     kerbA: '#c33b30', kerbB: '#f4f1e8',
     gravel: '#cfc3ae', gravelDark: '#bdb09a',
     canopy: ['#4f9a55', '#5cae61', '#3f7f45'], pine: ['#3f7a5a', '#4a8c69'],
@@ -508,7 +512,79 @@ class Renderer {
                     bbox: { minX: minX - 12, minY: minY - 12, maxX: maxX + 12, maxY: maxY + 12 } });
     }
 
-    this.paths = { center, mid, road, left, right, corners, bridges, lines, chunks };
+    /* La voie des stands, dessinée à partir de la même géométrie que celle qu'on roule.
+
+    Rien n'est redessiné à la main : `track.pitAt` donne l'axe de la voie et son engagement à
+    chaque abscisse, et le contour s'en déduit. C'est ce qui garantit que ce qu'on voit est
+    exactement ce qui se pilote — une voie peinte à part aurait dérivé de la voie réelle au premier
+    changement de réglage, et le joueur aurait visé un couloir qui n'est pas là.
+
+    La largeur suit l'engagement : les deux bretelles s'ouvrent depuis le bord de piste au lieu
+    d'apparaître d'un coup à pleine largeur. */
+    const pit = track.pit ? (() => {
+      const p = track.pit, span = track.wrap(p.sortie - p.entree), PAS = 2;
+      const pts = [];
+      for (let d = 0; d <= span; d += PAS) {
+        const s = track.wrap(p.entree + d);
+        const z = track.pitAt(s);
+        if (z) pts.push({ s, interne: z.interne, externe: z.externe, lat: z.lat, d });
+      }
+      if (pts.length < 4) return null;
+      const surface = new Path2D(), ligne = new Path2D(), zone = new Path2D();
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      const voir = (q) => { minX = Math.min(minX, q.x); maxX = Math.max(maxX, q.x); minY = Math.min(minY, q.y); maxY = Math.max(maxY, q.y); };
+      pts.forEach((q, i) => {
+        const a = track.pos(q.s, q.interne);
+        if (i === 0) { surface.moveTo(a.x, a.y); ligne.moveTo(a.x, a.y); } else { surface.lineTo(a.x, a.y); ligne.lineTo(a.x, a.y); }
+        voir(a);
+      });
+      for (let i = pts.length - 1; i >= 0; i--) {
+        const q = pts[i], b = track.pos(q.s, q.externe);
+        surface.lineTo(b.x, b.y); voir(b);
+      }
+      surface.closePath();
+      // la zone d'arrêt, peinte au sol : c'est elle qui dit où s'immobiliser
+      const dansZone = pts.filter((q) => { const z = track.pitAt(q.s); return z && z.dansZone; });
+      if (dansZone.length > 1) {
+        dansZone.forEach((q, i) => {
+          const a = track.pos(q.s, q.interne);
+          if (i === 0) zone.moveTo(a.x, a.y); else zone.lineTo(a.x, a.y);
+        });
+        for (let i = dansZone.length - 1; i >= 0; i--) {
+          const q = dansZone[i], b = track.pos(q.s, q.externe);
+          zone.lineTo(b.x, b.y);
+        }
+        zone.closePath();
+      }
+      /* Les garages, posés à l'extérieur de la voie.
+
+      L'image de Bruno est une rangée vue de dessus : l'auvent en haut, la zone balisée en bas.
+      Le bas doit donc faire face à la voie. La rotation qui y arrive est `cap + π`, et PAS une
+      symétrie : une symétrie aurait retourné les enseignes des garages avec le reste du dessin.
+      La rangée se lit alors à l'envers du sens de marche, ce qui ne se voit pas sur une rangée de
+      boxes et vaut mieux que des logos en miroir. */
+      /* Trois rangées mises bout à bout, et plus petites qu'au premier essai.
+
+      À vingt-six mètres la rangée occupait un quart de l'écran et écrasait tout : le dessin de
+      Bruno est fin et détaillé là où le reste du jeu est plat et large, donc à taille égale c'est
+      lui qu'on regarde au lieu de la piste. Réduit à seize mètres pour quatre boxes — quatre
+      mètres chacun — il redevient du décor. */
+      const garages = [];
+      const LARGE = 16, PROF = LARGE * 429 / 1310;
+      for (const dec of [-LARGE, 0, LARGE]) {
+        const s = track.wrap(p.boite + dec);
+        const z = track.pitAt(s);
+        if (!z) continue;
+        const c = track.pos(s, z.externe - PROF / 2);
+        garages.push({ x: c.x, y: c.y, a: track.headingAt(s) + Math.PI, w: LARGE, h: PROF });
+        voir({ x: c.x - PROF, y: c.y - PROF }); voir({ x: c.x + PROF, y: c.y + PROF });
+      }
+      return { surface, ligne, zone, garages, bbox: { minX: minX - 16, minY: minY - 16, maxX: maxX + 16, maxY: maxY + 16 } };
+    })() : null;
+
+    this.paths = { center, mid, road, left, right, corners, bridges, lines, chunks, pit };
+    this.pitImg = null;
+    if (pit) { const im = new Image(); im.onload = () => { this.pitImg = im; }; im.src = 'art/Pitstop.png'; }
     this.bgImage = null;
     if (track.image && track.image.src) {
       const img = new Image();
@@ -745,6 +821,9 @@ class Renderer {
   // ---------- main draw ----------
   draw(race, ui) {
     this._adapt(performance.now());
+    // la voie ne se dessine que quand elle sert : une voie peinte qui ne mène à rien est pire
+    // qu'une voie absente, on la vise et il ne se passe rien
+    this.showPit = !!race.usure;
     const g = this.ctx, W = this.w, H = this.h, T = race.track, cam = this.cam;
     g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     g.clearRect(0, 0, W, H);
@@ -811,6 +890,31 @@ class Renderer {
         for (const c of vus) g.stroke(c.mid);
       }
       g.setLineDash([]);
+
+      /* La voie des stands, par-dessus l'asphalte et sous les voitures.
+
+      Elle n'est dessinée que quand l'option d'usure est active : une voie peinte qui ne mène à
+      rien est pire qu'une voie absente — on la vise, on y perd dix secondes, et rien ne se passe.
+
+      Le bord côté piste est une ligne CONTINUE, comme sur un vrai circuit : c'est la convention
+      qui dit « on ne franchit pas ça », et elle se lit sans légende. */
+      const vp = this.paths.pit;
+      if (vp && this.showPit && inView(vp.bbox)) {
+        g.strokeStyle = PAL.outline; g.lineWidth = 2.6; g.stroke(vp.surface);
+        g.fillStyle = PAL.pitLane || '#3a3a44'; g.fill(vp.surface);
+        // la zone d'arrêt : un pavé plus clair, bordé, qu'on repère en arrivant
+        g.fillStyle = PAL.pitBox || 'rgba(255,212,0,0.16)'; g.fill(vp.zone);
+        g.strokeStyle = PAL.pitBoxLine || '#ffd400'; g.lineWidth = 0.5; g.stroke(vp.zone);
+        g.strokeStyle = PAL.edgeLine; g.lineWidth = 0.5; g.stroke(vp.ligne);
+        if (this.pitImg) {
+          for (const gr of vp.garages) {
+            g.save();
+            g.translate(gr.x, gr.y); g.rotate(gr.a);
+            g.drawImage(this.pitImg, -gr.w / 2, -gr.h / 2, gr.w, gr.h);
+            g.restore();
+          }
+        }
+      }
     }
     if (this.showLines) this._drawGuide(g, race);
     this._drawStartLine(g, T);
@@ -1464,7 +1568,7 @@ class Renderer {
     écran d'ordinateur et avec la carte sur un téléphone — deux cas à régler au lieu d'un. Tout ce
     qui se pose sous ce panneau lit `boxH`, donc tout descend ensemble. */
     const usure = !!p.usure;
-    const boxW = this.hudBox.w, boxH = this.hudBox.h + (usure ? 24 : 0);
+    const boxW = this.hudBox.w, boxH = this.hudBox.h + (usure ? (mobile ? 42 : 46) : 0);
     panel(P.l, P.t, boxW, boxH);
     g.fillStyle = '#fff'; g.font = `bold ${mobile ? 30 : 40}px system-ui, sans-serif`; g.textAlign = 'left';
     const posTxt = race.mode === 'timetrial' ? '—' : `${pos}`;
@@ -1489,26 +1593,49 @@ class Renderer {
     g.fillText(`${t('last')} ${last != null ? fmtTime(last) : '--:--.---'}`, W - P.r - 12, P.t + (mobile ? 32 : 40));
     g.fillText(`${t('best')} ${p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---'}`, W - P.r - 12, P.t + (mobile ? 46 : 56));
 
-    /* Les deux jauges : la gomme et la tôle.
+    /* Les deux cadrans : la gomme et la tôle.
 
-    Elles se lisent dans le même sens — plein à gauche, vide à droite — et changent de couleur en
-    approchant de la fin, parce qu'un conducteur regarde ça d'un coup d'œil d'un dixième de
-    seconde en bout de ligne droite, pas en lisant un nombre. Le vert ne veut rien dire tout seul ;
-    c'est le passage à l'orange puis au rouge qui porte l'information. */
+    Mêmes cadrans que ceux des fiches de voiture au menu — arc de 270° ouvert en bas, chiffre au
+    centre, pictogramme sous l'ouverture — mais redessinés au pinceau : ceux du menu sont du SVG
+    posé par CSS, et le HUD de course est entièrement peint sur le canvas. Reprendre le dessin
+    plutôt que le code était le seul moyen d'avoir la même chose des deux côtés.
+
+    Aucune information ne repose sur la couleur seule : chaque cadran porte son pictogramme et son
+    chiffre. Le vert ne veut rien dire tout seul, c'est le passage à l'orange puis au rouge qui
+    porte l'alerte — et le chiffre la porte aussi pour qui ne distingue pas les deux. */
     if (usure) {
-      const jx = pad0.l + 12, jw = boxW - 24, jy = pad0.t + this.hudBox.h - 2;
-      const jauge = (y, frac, bon, moyen, mauvais, titre) => {
-        g.fillStyle = 'rgba(255,255,255,0.14)';
-        this._roundRect(g, jx, y, jw, 7, 3.5); g.fill();
-        g.fillStyle = frac > 0.5 ? bon : frac > 0.22 ? moyen : mauvais;
-        this._roundRect(g, jx, y, Math.max(2, jw * Math.max(0, Math.min(1, frac))), 7, 3.5); g.fill();
-        g.font = `bold ${mobile ? 9 : 10}px system-ui, sans-serif`;
-        g.textAlign = 'left'; g.fillStyle = '#aeb4c0';
-        g.fillText(titre, jx, y - 10);
+      const r = mobile ? 17 : 19, cy = pad0.t + this.hudBox.h + r + 4;
+      const cadran = (cx, frac, dessine) => {
+        const f = Math.max(0, Math.min(1, frac));
+        const A0 = Math.PI * 0.75, SPAN = Math.PI * 1.5;
+        g.lineCap = 'round';
+        g.strokeStyle = 'rgba(255,255,255,0.12)'; g.lineWidth = r * 0.30;
+        g.beginPath(); g.arc(cx, cy, r * 0.78, A0, A0 + SPAN); g.stroke();
+        g.strokeStyle = f > 0.5 ? '#5be07a' : f > 0.22 ? '#ffd400' : '#ff4d4d';
+        if (f > 0.001) { g.beginPath(); g.arc(cx, cy, r * 0.78, A0, A0 + SPAN * f); g.stroke(); }
+        g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.font = `bold ${Math.round(r * 0.72)}px system-ui, sans-serif`;
+        g.fillText(String(Math.round(f * 100)), cx, cy - r * 0.14);
+        g.save(); g.translate(cx, cy + r * 0.62); g.scale(r / 20, r / 20);
+        dessine(); g.restore();
       };
-      jauge(jy, p.tyre, '#5be07a', '#ffd400', '#ff4d4d', t('tyres'));
-      jauge(jy + 15, 1 - p.damage, '#7fd4ff', '#ffd400', '#ff4d4d', t('damage'));
-      g.textAlign = 'left';
+      /* Le pneu : un anneau entaillé. C'est le même motif que les pneus de difficulté du menu, et
+      il reste lisible à douze pixels là où une bande de roulement dessinée se brouille. */
+      const pneu = () => {
+        g.strokeStyle = '#e8e8ec'; g.lineWidth = 2.6; g.setLineDash([2.4, 1.1]);
+        g.beginPath(); g.arc(0, 0, 4.2, 0, Math.PI * 2); g.stroke();
+        g.setLineDash([]);
+      };
+      // La carrosserie : une silhouette vue de dessus, capot vers le haut, avec son pare-brise.
+      const tole = () => {
+        g.fillStyle = '#e8e8ec';
+        this._roundRect(g, -3.6, -5.2, 7.2, 10.4, 2.2); g.fill();
+        g.fillStyle = 'rgba(20,24,34,0.85)';
+        this._roundRect(g, -2.3, -2.6, 4.6, 3.2, 1); g.fill();
+      };
+      cadran(pad0.l + 12 + r, p.tyre, pneu);
+      cadran(pad0.l + 12 + r * 3.3, 1 - p.damage, tole);
+      g.textAlign = 'left'; g.textBaseline = 'top';
     }
 
     // bouton pause, entre les deux panneaux du haut
@@ -1530,11 +1657,17 @@ class Renderer {
       const my = mobile ? P.t + boxH + 10 : H - P.b - m.size;
       panel(mx, my, m.size, m.size);
       g.drawImage(m.canvas, mx, my, m.size, m.size);
+      /* Les points de la carte, deux fois plus gros, et le joueur en bleu ciel.
+
+      Ils faisaient 3 et 4,5 pixels : sur un téléphone, à bout de bras, on ne distinguait pas sa
+      propre voiture du peloton, et c'est pourtant la seule information que cette carte doit donner
+      en un dixième de seconde. Le jaune, lui, servait déjà au curseur de ligne et à la poignée du
+      levier ; le bleu ciel n'est utilisé nulle part ailleurs pour une voiture. */
       for (const car of race.cars) {
         const wp = car.pos, q = this.mmPoint(wp.x, wp.y);
-        g.fillStyle = car.isPlayer ? '#ffd400' : car.livery.body;
-        g.beginPath(); g.arc(mx + q.x, my + q.y, car.isPlayer ? 4.5 : 3, 0, Math.PI * 2); g.fill();
-        if (car.isPlayer) { g.strokeStyle = '#000'; g.lineWidth = 1; g.stroke(); }
+        g.fillStyle = car.isPlayer ? '#7fd4ff' : car.livery.body;
+        g.beginPath(); g.arc(mx + q.x, my + q.y, car.isPlayer ? 9 : 6, 0, Math.PI * 2); g.fill();
+        if (car.isPlayer) { g.strokeStyle = '#0b1220'; g.lineWidth = 2; g.stroke(); }
       }
     }
 
