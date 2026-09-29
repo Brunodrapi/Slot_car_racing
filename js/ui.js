@@ -1,13 +1,19 @@
 // Menus, race setup, career, workshop, results. Plain DOM, FR/EN.
 'use strict';
 
+/* Les niveaux de difficulté, dans l'ordre. Une seule liste : ils étaient écrits en dur à deux
+endroits — la liste déroulante des réglages et les boutons de l'écran de départ — et en ajouter un
+n'en aurait servi qu'un des deux. L'ordre est celui des boutons, donc du plus facile au plus dur.
+Les coefficients, eux, sont dans `DIFFICULTY` (js/race.js). */
+const NIVEAUX = ['easy', 'medium', 'hard', 'extreme'];
+
 const I18N = {
   fr: {
     title: 'EYES ON LINE', subtitle: 'Un bouton, trois trajectoires. De vrais circuits.',
     career: 'Carrière', quickRace: 'Course rapide', timeTrial: 'Contre-la-montre', settings: 'Réglages', back: 'Retour',
     editor: 'Éditeur de circuits', workshop: 'Atelier voitures',
     howto: 'Poser le pouce n’importe où (ou n’importe quelle touche / clic) : accélérer, relâcher pour freiner. Le cadran vient se placer au-dessus du pouce. Pouce gauche (ou flèches / molette) : choisir la trajectoire — intérieure, idéale ou extérieure. Trop vite dans un virage, c’est le bac à gravier.',
-    carClass: 'Catégorie', model: 'Modèle', track: 'Circuit', customTracks: 'Circuits perso', livery: 'Livrée', difficulty: 'Difficulté', easy: 'Facile', medium: 'Normal', hard: 'Difficile',
+    carClass: 'Catégorie', model: 'Modèle', track: 'Circuit', customTracks: 'Circuits perso', livery: 'Livrée', difficulty: 'Difficulté', easy: 'Facile', medium: 'Normal', hard: 'Difficile', extreme: 'Extrême',
     diffTitle: 'Ce que la voiture coûte à piloter', diffLevel: (n) => `Difficulté ${n} sur 5`,
     laps: 'tours', start: 'Départ !', locked: 'Verrouillé', unlockHint: 'Termine la coupe précédente dans le top 3 pour débloquer.',
     cup: 'Coupe', races: 'courses', raceOf: (a, b) => `Course ${a} / ${b}`, standings: 'Classement', nextRace: 'Prochaine course', startRace: 'Lancer la course',
@@ -39,7 +45,7 @@ const I18N = {
     career: 'Career', quickRace: 'Quick race', timeTrial: 'Time trial', settings: 'Settings', back: 'Back',
     editor: 'Track editor', workshop: 'Car workshop',
     howto: 'Thumb anywhere (or any key / click): accelerate, release to brake. The dial moves above your thumb. Left thumb (or arrows / wheel): pick the line — inside, racing or outside. Too fast into a corner and it’s the gravel.',
-    carClass: 'Class', model: 'Model', track: 'Track', customTracks: 'Custom tracks', livery: 'Livery', difficulty: 'Difficulty', easy: 'Easy', medium: 'Normal', hard: 'Hard',
+    carClass: 'Class', model: 'Model', track: 'Track', customTracks: 'Custom tracks', livery: 'Livery', difficulty: 'Difficulty', easy: 'Easy', medium: 'Normal', hard: 'Hard', extreme: 'Extreme',
     diffTitle: 'How much the car costs to drive', diffLevel: (n) => `Difficulty ${n} of 5`,
     laps: 'laps', start: 'Start!', locked: 'Locked', unlockHint: 'Finish the previous cup in the top 3 to unlock.',
     cup: 'Cup', races: 'races', raceOf: (a, b) => `Race ${a} / ${b}`, standings: 'Standings', nextRace: 'Next race', startRace: 'Start race',
@@ -325,7 +331,7 @@ class UI {
         <label>${t('telemetry')}<select id="sel-debug"><option value="0" ${s.debug !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.debug === true ? 'selected' : ''}>${t('on')}</option></select></label>
         <label>${t('pullBack')}<select id="sel-pull">${[[1, 'pullNone'], [1.3, 'pullSome'], [1.6, 'pullMore']].map(([v, k]) => `<option value="${v}" ${Math.abs((s.pullBack || 1) - v) < 0.05 ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
         <label>${t('camera')}<select id="sel-cam">${[['track', 'camFollow'], ['fixed', 'camFixed'], ['iso', 'camIso']].map(([v, k]) => `<option value="${v}" ${(s.view || 'track') === v ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
-        <label>${t('difficulty')}<select id="sel-diff">${['easy', 'medium', 'hard'].map(d => `<option value="${d}" ${s.difficulty === d ? 'selected' : ''}>${t(d)}</option>`).join('')}</select></label>
+        <label>${t('difficulty')}<select id="sel-diff">${NIVEAUX.map(d => `<option value="${d}" ${s.difficulty === d ? 'selected' : ''}>${t(d)}</option>`).join('')}</select></label>
       </div>
       <div class="row"><button data-action="menu">${t('back')}</button><button class="danger" data-action="resetAll">${t('resetAll')}</button></div>
     `, '', 'reglages');
@@ -372,7 +378,7 @@ class UI {
             <img alt="" src="${this.thumb(tr, 90)}"><b>${tr.flag || '🏁'} ${escapeHtml(tr.name)}</b><small>${lapsFor(tr, cat)} ${t('laps')}</small></button>`).join('') : `<p class="muted">${t('noCustomTracks')}</p>`}
       </div>
       <div class="row wrap">
-        ${mode === 'race' ? `<div><h3>${t('difficulty')}</h3><div class="seg">${['easy', 'medium', 'hard'].map(d => `<button class="${s.difficulty === d ? 'sel' : ''}" data-action="pickDiff" data-id="${d}">${t(d)}</button>`).join('')}</div></div>
+        ${mode === 'race' ? `<div><h3>${t('difficulty')}</h3><div class="seg">${NIVEAUX.map(d => `<button class="${s.difficulty === d ? 'sel' : ''}" data-action="pickDiff" data-id="${d}">${t(d)}</button>`).join('')}</div></div>
         <div><h3>${t('lapCount')}</h3><div class="seg">${[0, 1, 2, 3, 5, 10].map(n => `<button class="${(s.laps || 0) === n ? 'sel' : ''}" data-action="pickLaps" data-id="${n}">${n === 0 ? `${t('lapAuto')} (${lapsFor(trackDef, cat)})` : n}</button>`).join('')}</div></div>` : `<div><h3>${t('yourBest')}</h3><div class="bestlap">${best ? fmtTime(best) : '--:--.---'}</div></div>`}
       </div>
       <div class="row end"><span class="muted">${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ${escapeHtml(model.name)} · ${mode === 'race' ? `${laps} ${t('laps')}` : t('ttIntro')}</span><button class="big primary" data-action="startQuick">${t('start')}</button></div>

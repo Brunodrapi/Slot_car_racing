@@ -23,6 +23,47 @@ const DIFFICULTY = {
   easy:   { marginBase: 0.70, marginSpread: 0.10, paceBase: 0.80, paceSpread: 0.08 },
   medium: { marginBase: 0.83, marginSpread: 0.09, paceBase: 0.90, paceSpread: 0.07 },
   hard:   { marginBase: 0.93, marginSpread: 0.06, paceBase: 0.99, paceSpread: 0.02 },
+  /* Extrême : l'IA triche, et il n'y avait pas d'autre moyen.
+
+  Les trois premiers niveaux ne règlent qu'une chose — à quelle fraction de SA limite l'IA
+  conduit. Difficile est déjà à 0,99, et `aiThrottle` plafonne à 0,98 : le levier est au bout de
+  sa course. Monter la marge plus haut ne donne pas un tour plus rapide, cela donne une sortie de
+  piste, parce qu'au-dessus de 1 on demande une courbe que la voiture ne peut pas prendre.
+
+  Le seul levier qui reste est la limite elle-même. `grip` multiplie l'adhérence mécanique des
+  voitures de l'IA, et d'elles seules ; la voiture du joueur n'est pas touchée.
+
+  MAIS L'ADHÉRENCE SEULE NE SUFFIT PAS, ET LA MESURE A CORRIGÉ DEUX IDÉES FAUSSES.
+
+  La première était qu'il suffirait d'en donner. Mesuré au balayage : plus d'adhérence rend le
+  peloton plus rapide ET PLUS PROPRE — 6,5 sorties par course en difficile, 1,5 à ×1,24, 0,9 à
+  ×1,32. Or un peloton qui ne se trompe jamais ne laisse aucune ouverture, et la seule façon de
+  doubler disparaîtrait à mesure que le niveau monte. Plus dur ne doit pas vouloir dire
+  imprenable.
+
+  La seconde était que relever le plafond de `aiThrottle` rendrait les fautes. Mesuré : de 0,98 à
+  1,16, les sorties passent de 1,7 à 1,6 et le rythme ne bouge pas. Le plafond était inerte,
+  simplement parce que `0,93 + 0,06·talent + bruit` ne l'atteignait jamais.
+
+  C'est donc `marginBase` qu'il fallait déplacer, à 1,00 : l'IA demande à ses pneus un peu plus
+  qu'ils ne donnent, et le paie parfois. Le plafond relevé sert à laisser passer ce 1,00.
+
+  LES DEUX RÉGLAGES N'ACHÈTENT PAS LA MÊME CHOSE, et là encore j'avais écrit le contraire avant de
+  le vérifier. En remettant le plafond à 0,98 — donc en écrasant la marge à 0,98 — le rythme reste
+  le MÊME : 75,34 s contre 75,29. Toute la vitesse vient de l'adhérence. Ce que le plafond change,
+  ce sont les fautes : 3,4 sorties par course au lieu de 7,0. Il n'achète donc pas de la vitesse,
+  il achète de quoi doubler.
+
+  Mesuré sur les douze circuits, par rapport à difficile :
+
+    rythme de course   82,40 → 75,29 s, soit −8,6 %   (facile → difficile en vaut 10,9 : c'est un
+                                                       vrai palier, pas un demi-cran)
+    meilleur tour      79,95 → 73,39 s
+    sorties            5,8 → 7,0                      (plus rapide ET plus faillible)
+
+  1,00 + 0,16 d'étalement donnait −9,4 % pour onze sorties par course : plus rapide encore, mais
+  le peloton ne finissait plus un tour proprement. */
+  extreme: { marginBase: 1.00, marginSpread: 0.10, paceBase: 1.0, paceSpread: 0.02, grip: 1.22, maxMargin: 1.25 },
 };
 
 const POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
@@ -91,6 +132,11 @@ class Race {
         livery: LIVERIES[(h ? h.livery : isHuman ? (this.opts.playerLivery || 0) : ai.livery) % LIVERIES.length],
         isPlayer,
         skill: isHuman ? 1 : ai.skill,
+        /* La triche du niveau extrême ne touche que les voitures de l'IA, et jamais un humain —
+        ni le joueur local, ni personne en ligne. Elle se pose ici, à la construction de la
+        grille, plutôt que dans `aiThrottle` : l'adhérence appartient à la voiture, pas au
+        pilotage, et une voiture qui tient plus doit aussi glisser moins quand elle est touchée. */
+        gripBoost: isHuman || h ? 1 : (this.difficulty.grip || 1),
         number: isHuman ? 1 + (hIdx || 0) : 2 + i,
         s, lat,
       });

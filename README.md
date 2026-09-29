@@ -712,7 +712,7 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
 - **Un seul plateau**, celui des neuf voitures ci-dessus. Son identifiant reste `gt` — les records
   de tour sont rangés sous `circuit|catégorie` dans la sauvegarde, et le changer effacerait ceux
   des joueurs — mais son nom ne pouvait plus être « GT » avec une 917 et une 787B sur la grille.
-- **Course rapide** et **contre-la-montre** (records par circuit et catégorie), 3 niveaux de difficulté.
+- **Course rapide** et **contre-la-montre** (records par circuit et catégorie), 4 niveaux de difficulté.
 - Une **carrière** existe dans le code, actuellement masquée. Elle n'a plus qu'une coupe : les
   trois autres couraient dans les catégories retirées.
 - IA qui freine selon son talent, choisit sa ligne pour dépasser, aspire dans le sillage, se touche.
@@ -1453,7 +1453,7 @@ chiffres.
 Rien ne comparait les modèles entre eux jusque-là, ce qui explique qu'une voiture bancale ait pu
 être livrée sans qu'on la voie.
 
-## Les trois difficultés
+## Les quatre difficultés
 
 Elles tenaient entre 0,78 et 0,90 de la vitesse de passage que l'adhérence autorise, ce qui mettait
 à peine **sept pour cent** de rythme de course entre le réglage le plus facile et le plus dur. Un
@@ -1479,6 +1479,52 @@ L'élastique (qui freine une IA très détachée et aide un retardataire) n'a pr
 tout cela : en le retirant, l'écart passait de 6,7 à 7,3 %. Six dixièmes de point. C'est une piste
 qu'il valait mieux mesurer que suivre.
 
+### Extrême : l'IA triche, et il n'y avait pas d'autre moyen
+
+Les trois premiers niveaux ne règlent qu'une chose : à quelle fraction de **sa** limite l'IA
+conduit. Difficile est déjà à 0,99, et le plafond est à 0,98 — le levier est au bout de sa course.
+Monter la marge plus haut ne donne pas un tour plus rapide, cela donne une sortie de piste, parce
+qu'au-dessus de 1 on demande une courbe que la voiture ne peut pas prendre.
+
+Le seul levier restant est la limite elle-même. `grip` multiplie l'adhérence **mécanique** des
+voitures de l'IA, et d'elles seules — la voiture du joueur n'est jamais touchée. L'appui (`df`) n'y
+touche pas non plus : l'appui ne servirait qu'en courbe rapide, l'adhérence sert partout.
+
+**Deux idées fausses, corrigées par la mesure.**
+
+La première : qu'il suffirait d'en donner. Balayé de ×1,08 à ×1,32, le résultat va à l'envers de
+l'intuition — plus d'adhérence rend le peloton plus rapide **et plus propre**.
+
+| adhérence | rythme vs difficile | sorties par course |
+| --- | --- | --- |
+| ×1,08 | −1,8 % | 3,8 |
+| ×1,16 | −4,1 % | 3,3 |
+| ×1,24 | −5,3 % | 1,5 |
+| ×1,32 | −7,2 % | 0,9 |
+
+Un peloton qui ne se trompe jamais ne laisse **aucune ouverture**. La seule façon de doubler
+disparaîtrait à mesure que le niveau monte : plus dur ne doit pas vouloir dire imprenable.
+
+La seconde : que relever le plafond de `aiThrottle` rendrait les fautes. De 0,98 à 1,16, les
+sorties passent de 1,7 à 1,6 et le rythme ne bouge pas. Le plafond était **inerte**, simplement
+parce que `0,93 + 0,06·talent + bruit` ne l'atteignait jamais. C'est `marginBase` qu'il fallait
+déplacer.
+
+**Ce que chaque réglage achète.** Avec `marginBase` à 1,00, remettre le plafond à 0,98 laisse le
+rythme identique — 75,34 s contre 75,29 — et fait tomber les sorties de 7,0 à 3,4. Toute la vitesse
+vient donc de l'adhérence ; le plafond relevé n'achète pas de la vitesse, il achète **de quoi
+doubler**.
+
+| | difficile | extrême |
+| --- | --- | --- |
+| rythme de course | 82,40 s | **75,29 s** (−8,6 %) |
+| meilleur tour | 79,95 s | **73,39 s** |
+| sorties par course | 5,8 | **7,0** |
+
+L'écart facile → difficile vaut 10,9 % : extrême est donc un vrai palier de plus, pas un demi-cran.
+Un étalement de 0,16 au lieu de 0,10 donnait −9,4 %, mais onze sorties par course — le peloton ne
+finissait plus un tour proprement.
+
 ## Le plafond de marge de l'IA
 
 `margin` multiplie la vitesse de passage que l'adhérence autorise, donc **tout ce qui dépasse 1 est
@@ -1487,8 +1533,10 @@ il sort, perd dix secondes et rend la place.
 
 Or la marge est une somme — la base de la difficulté, l'écart de talent du pilote, un bruit, et le
 terme d'élastique. En difficile, le meilleur pilote recevait 0,90 + 0,09 + 0,015 + 0,03 = **1,035**.
-C'est la **somme** qui est désormais plafonnée, à 0,98, et non chaque terme : plafonner les parties
-séparément laisse passer exactement le cas qui pose problème.
+C'est la **somme** qui est désormais plafonnée, et non chaque terme : plafonner les parties
+séparément laisse passer exactement le cas qui pose problème. Le plafond vaut 0,98 pour les trois
+premiers niveaux, et se règle par la table — le niveau extrême est le seul à le relever, pour que
+sa marge de 1,00 puisse passer.
 
 `node tools/diff.js [circuit|all] [catégorie]` traduit les coefficients de `DIFFICULTY` en la seule
 chose qu'un joueur ressent : la vitesse à laquelle le peloton tourne. Il donne le **rythme de

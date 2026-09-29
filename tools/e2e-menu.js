@@ -165,6 +165,29 @@ const serveur = http.createServer((req, res) => {
     await page.click('[data-action="menu"]').catch(() => {});
     await page.waitForTimeout(500);
   }
+  /* Les quatre niveaux sont-ils tous offerts, et au même endroit ?
+
+  Ils étaient écrits en dur à DEUX endroits — la liste des réglages et les boutons de l'écran de
+  départ — et en ajouter un n'en aurait servi qu'un des deux. On vérifie donc les deux listes
+  contre la table de `js/race.js`, qui est la seule source qui compte : un niveau qui existe dans
+  la table mais qu'aucun bouton ne propose est un niveau qui n'existe pas. */
+  {
+    await page.evaluate(() => app.ui.setupScreen('race'));
+    await page.waitForTimeout(200);
+    const dep = await page.evaluate(() => [...document.querySelectorAll('[data-action="pickDiff"]')].map((b) => b.dataset.id));
+    await page.evaluate(() => app.ui.settings());
+    await page.waitForTimeout(200);
+    const reg = await page.evaluate(() => [...document.querySelectorAll('#sel-diff option')].map((o) => o.value));
+    const attendus = await page.evaluate(() => Object.keys(DIFFICULTY));
+    const memes = (a) => a.length === attendus.length && a.every((v, i) => v === attendus[i]);
+    const ok = memes(dep) && memes(reg);
+    if (!ok) errs++;
+    console.log(`  niveaux : table ${attendus.join('/')} | départ ${dep.join('/')} | réglages ${reg.join('/')}`
+      + (ok ? '' : '  ← UNE LISTE NE SUIT PAS LA TABLE'));
+    await page.evaluate(() => app.toMenu());
+    await page.waitForTimeout(200);
+  }
+
   await page.click('.screen.poster .burger');
   await page.waitForTimeout(300);
   console.log('hamburger -> réglages :', await page.locator('#sel-pull').count() > 0);

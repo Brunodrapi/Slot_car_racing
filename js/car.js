@@ -9,11 +9,18 @@
 // Nothing is ever snapped back onto the line, on or off the road.
 'use strict';
 
-// Fastest speed for curvature magnitude k on a given model (accounts for downforce).
-function cornerSpeedFor(c, k) {
+/* Fastest speed for curvature magnitude k on a given model (accounts for downforce).
+
+`boost` est la triche du niveau extrême : un supplément d'adhérence MÉCANIQUE, réservé aux voitures
+de l'IA. L'appui (`df`) n'y touche pas, parce que ce n'est pas la même chose — l'appui est une force
+qui dépend de la vitesse, l'adhérence est ce que le pneu peut rendre. Donner plus de pneu à un
+pilote lui permet de tourner plus vite partout ; lui donner plus d'appui ne l'aiderait qu'en courbe
+rapide, ce qui n'est pas ce qu'on cherche. */
+function cornerSpeedFor(c, k, boost = 1) {
   if (k < 1e-5) return Infinity;
-  const capped = Math.sqrt(2.8 * c.grip / k);
-  if (k - c.df > 1e-6) return Math.min(Math.sqrt(c.grip / (k - c.df)), capped);
+  const g = c.grip * boost;
+  const capped = Math.sqrt(2.8 * g / k);
+  if (k - c.df > 1e-6) return Math.min(Math.sqrt(g / (k - c.df)), capped);
   return capped;
 }
 
@@ -53,6 +60,18 @@ class Car {
     this.livery = opts.livery;
     this.isPlayer = !!opts.isPlayer;
     this.skill = opts.skill == null ? 0.5 : opts.skill;
+    /* La triche du niveau extrême, et elle ne concerne QUE l'IA.
+
+    Au niveau difficile, la marge de l'IA vaut déjà 0,99 et `aiThrottle` la plafonne à 0,98 : elle
+    roule à deux pour cent du maximum physique de sa voiture. Il n'y a plus rien à prendre de ce
+    côté — pousser la marge au-dessus du plafond ne fait pas rouler plus vite, cela fait sortir.
+    Pour aller plus vite il faut donc déplacer le maximum lui-même, c'est-à-dire tricher. C'est
+    assumé et c'est le nom du niveau qui le dit.
+
+    Un multiplicateur d'adhérence est la forme honnête de cette triche : il vaut partout, il ne
+    crée aucun comportement que la physique ne sait pas produire, et la voiture reste capable de
+    sortir si elle en demande trop. Le joueur, lui, garde exactement sa voiture. */
+    this.gripBoost = opts.gripBoost == null ? 1 : opts.gripBoost;
     this.number = opts.number || 1;
 
     // track bookkeeping (derived from the world position every step)
@@ -109,10 +128,10 @@ class Car {
   }
 
   gripAt(v) {
-    const c = this.cls;
-    return c.grip + Math.min(c.df * v * v, c.grip * 1.8);
+    const c = this.cls, g = c.grip * this.gripBoost;
+    return g + Math.min(c.df * v * v, g * 1.8);
   }
-  cornerSpeed(k) { return cornerSpeedFor(this.cls, k); }
+  cornerSpeed(k) { return cornerSpeedFor(this.cls, k, this.gripBoost); }
 
   get progress() { return (this.lap - (this.started ? 0 : 1)) * this.track.length + this.track.wrap(this.s); }
   get pos() { return { x: this.x, y: this.y }; }
@@ -332,7 +351,18 @@ function aiThrottle(car, cars, dt, opts) {
     // does not go faster — he goes off, loses ten seconds, and hands the place back. The skill
     // spread, the noise and the rubber-banding all add up, so the sum is what has to be capped,
     // not each part: that is how a "hard" setting ended up slower in race pace than it looked.
-    const MAX = 0.98;
+    /* Le plafond, et pourquoi il se règle maintenant.
+
+    0,98 était écrit en dur, et il a longtemps eu raison : au-dessus de 1 on demande une courbe que
+    la voiture ne peut pas prendre, et le pilote qui l'accepte ne va pas plus vite, il sort.
+
+    Mais c'est exactement ce qu'on veut du niveau extrême. Lui donner de l'adhérence en plus le
+    rend plus rapide ET PLUS PROPRE — mesuré : 6,5 sorties par course en difficile, 1,5 à
+    adhérence ×1,24. Un peloton qui ne fait plus de fautes ne laisse aucune ouverture, et la seule
+    façon de doubler disparaît en même temps que la difficulté augmente. Laisser le plafond monter
+    au-dessus de 1 rend les fautes au niveau où elles doivent servir : l'IA demande parfois plus
+    que ses pneus ne donnent, et le paie. */
+    const MAX = opts.maxMargin || 0.98;
     const margin = Math.min(MAX, (opts.marginBase + car.skill * opts.marginSpread) + car.aiNoise + (opts.rubber || 0));
     const brake = c.brake * 0.88;
     const v = Math.max(0, car.v);
