@@ -39,7 +39,7 @@ const which = ARGS[0] || 'all', catId = ARGS[1] || 'gt';
 // Les niveaux mesurés. « extrême » s'y ajoute : c'est le seul où l'IA triche, donc le seul où la
 // comparaison des temps ne dit pas tout — il faut aussi regarder les sorties, sans quoi on choisit
 // un multiplicateur d'adhérence qui rend le peloton rapide ET incapable de finir un tour.
-const NIVEAUX = ['easy', 'medium', 'hard', 'extreme'];
+const NIVEAUX = ['easy', 'medium', 'hard', 'extreme', 'cauchemar'];
 const rows = [];
 const perDiff = {};
 for (const td of TRACKS) {

@@ -177,6 +177,7 @@ class App {
       // round keeps the suggestion, since its length is part of the championship, not a setting.
       laps: this.save.laps || lapsFor(trackDef, cat),
       difficulty: this.save.difficulty,
+      wear: this.save.wear,
       playerLivery: this.save.livery,
       playerName: this.playerName(),
     }, { cup: null, mode, classId, trackId });
@@ -194,6 +195,7 @@ class App {
       mode: 'race', trackDef, classId: cup.classId, modelId: this.playerModelFor(cup.classId).id,
       laps: lapsFor(trackDef, cat),
       difficulty: this.save.difficulty,
+      wear: this.save.wear,
       playerLivery: this.save.livery,
       playerName: this.playerName(),
       roster,

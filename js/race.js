@@ -54,16 +54,26 @@ const DIFFICULTY = {
   ce sont les fautes : 3,4 sorties par course au lieu de 7,0. Il n'achète donc pas de la vitesse,
   il achète de quoi doubler.
 
-  Mesuré sur les douze circuits, par rapport à difficile :
+  DEUX NIVEAUX PLUTÔT QU'UN, et l'ordre a demandé une correction. À adhérence ×1,14 et marge 1,00,
+  extrême faisait ONZE sorties par course quand cauchemar, mieux collé à ×1,30, n'en faisait que
+  8,8 : le niveau intermédiaire était le plus brouillon des deux, ce qui n'a aucun sens. Moins
+  d'adhérence avec la même audace, c'est simplement en demander trop plus souvent. La marge
+  d'extrême redescend donc à 0,98, et l'échelle redevient monotone dans les deux sens.
 
-    rythme de course   82,40 → 75,29 s, soit −8,6 %   (facile → difficile en vaut 10,9 : c'est un
-                                                       vrai palier, pas un demi-cran)
-    meilleur tour      79,95 → 73,39 s
-    sorties            5,8 → 7,0                      (plus rapide ET plus faillible)
+  Mesuré sur les douze circuits, rythme de course et sorties par course :
 
-  1,00 + 0,16 d'étalement donnait −9,4 % pour onze sorties par course : plus rapide encore, mais
-  le peloton ne finissait plus un tour proprement. */
-  extreme: { marginBase: 1.00, marginSpread: 0.10, paceBase: 1.0, paceSpread: 0.02, grip: 1.22, maxMargin: 1.25 },
+    facile      92,97 s   0,2
+    moyen       86,84 s   1,9
+    difficile   82,22 s   5,8
+    extrême     77,25 s   7,5   adhérence ×1,14
+    cauchemar   73,08 s   8,8   adhérence ×1,30
+
+  Chaque palier vaut cinq à six pour cent, soit l'écart qui sépare déjà moyen de difficile. */
+  extreme:   { marginBase: 0.98, marginSpread: 0.10, paceBase: 1.0, paceSpread: 0.02, grip: 1.14, maxMargin: 1.25 },
+  /* Cauchemar : la même triche, plus franche. L'écart entre les deux est une affaire d'adhérence
+  et d'audace, pas de nature — ce qui veut dire qu'aucun des deux ne fait rouler l'IA d'une façon
+  que la physique ne sait pas produire. Elle reste capable de sortir, et elle sort. */
+  cauchemar: { marginBase: 1.02, marginSpread: 0.12, paceBase: 1.0, paceSpread: 0.02, grip: 1.30, maxMargin: 1.30 },
 };
 
 const POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
@@ -81,6 +91,14 @@ class Race {
     this.mode = opts.mode || 'race';           // race | timetrial
     this.laps = opts.laps || this.track.laps;
     this.difficulty = DIFFICULTY[opts.difficulty] || DIFFICULTY.medium;
+    /* L'usure et les dommages : en option, et en COURSE seulement.
+
+    Le contre-la-montre en est exclu par nature — un record sur des pneus à moitié morts ne se
+    compare à rien, et la table des records n'a pas de colonne pour dire dans quel état ils ont été
+    signés. Mieux vaut que l'option n'existe pas là que d'avoir à l'expliquer. */
+    // `opts.mode` et non `this.mode` : celui-ci n'est affecté que trente lignes plus bas, si bien
+    // que le lire ici aurait rendu l'option inerte sans que rien ne le signale.
+    this.usure = opts.wear && (opts.mode || 'race') === 'race' ? USURE : null;
     this.time = 0;
     this.state = 'countdown';                  // countdown | racing | finishing | finished
     this.countdown = 3.6;
@@ -137,6 +155,7 @@ class Race {
         grille, plutôt que dans `aiThrottle` : l'adhérence appartient à la voiture, pas au
         pilotage, et une voiture qui tient plus doit aussi glisser moins quand elle est touchée. */
         gripBoost: isHuman || h ? 1 : (this.difficulty.grip || 1),
+        usure: this.usure,
         number: isHuman ? 1 + (hIdx || 0) : 2 + i,
         s, lat,
       });

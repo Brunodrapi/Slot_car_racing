@@ -1453,13 +1453,18 @@ class Renderer {
   // ---------- HUD ----------
   _drawHUD(g, race, ui) {
     const W = this.w, H = this.h, p = race.player, t = (k, ...a) => ui.t(k, ...a);
-    const mobile = this.mobile, P = this.pad;
+    const mobile = this.mobile, P = this.pad, pad0 = this.pad;
     g.textBaseline = 'top';
     const panel = (x, y, w, h) => { g.fillStyle = 'rgba(10,12,20,0.55)'; this._roundRect(g, x, y, w, h, 10); g.fill(); };
 
     // top-left: position & lap
     const pos = race.positionOf(p), n = race.cars.length;
-    const boxW = this.hudBox.w, boxH = this.hudBox.h;
+    /* Le panneau du haut à gauche grandit quand l'usure est active, au lieu de poser les jauges
+    ailleurs. Une bande de plus en dessous serait entrée en conflit avec le classement sur un
+    écran d'ordinateur et avec la carte sur un téléphone — deux cas à régler au lieu d'un. Tout ce
+    qui se pose sous ce panneau lit `boxH`, donc tout descend ensemble. */
+    const usure = !!p.usure;
+    const boxW = this.hudBox.w, boxH = this.hudBox.h + (usure ? 24 : 0);
     panel(P.l, P.t, boxW, boxH);
     g.fillStyle = '#fff'; g.font = `bold ${mobile ? 30 : 40}px system-ui, sans-serif`; g.textAlign = 'left';
     const posTxt = race.mode === 'timetrial' ? '—' : `${pos}`;
@@ -1470,7 +1475,9 @@ class Renderer {
     const lapShown = Math.min(race.laps, p.lap + 1);
     g.textAlign = 'right';
     g.fillText(race.mode === 'timetrial' ? `${t('lap')} ${p.lap + 1}` : `${t('lap')} ${lapShown} / ${race.laps}`, P.l + boxW - 12, P.t + 10);
-    g.fillText(p.name, P.l + boxW - 12, P.t + boxH - 24);
+    // Le nom se cale sur la hauteur NUE du panneau, pas sur la hauteur grandie : sinon il descend
+    // avec les jauges et vient se poser dessus, ce qui ne se voit que l'option activée.
+    g.fillText(p.name, P.l + boxW - 12, P.t + this.hudBox.h - 24);
 
     // top-right: times
     const tw = this.hudBox.tw;
@@ -1481,6 +1488,28 @@ class Renderer {
     const last = p.lapTimes.length ? p.lapTimes[p.lapTimes.length - 1] : null;
     g.fillText(`${t('last')} ${last != null ? fmtTime(last) : '--:--.---'}`, W - P.r - 12, P.t + (mobile ? 32 : 40));
     g.fillText(`${t('best')} ${p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---'}`, W - P.r - 12, P.t + (mobile ? 46 : 56));
+
+    /* Les deux jauges : la gomme et la tôle.
+
+    Elles se lisent dans le même sens — plein à gauche, vide à droite — et changent de couleur en
+    approchant de la fin, parce qu'un conducteur regarde ça d'un coup d'œil d'un dixième de
+    seconde en bout de ligne droite, pas en lisant un nombre. Le vert ne veut rien dire tout seul ;
+    c'est le passage à l'orange puis au rouge qui porte l'information. */
+    if (usure) {
+      const jx = pad0.l + 12, jw = boxW - 24, jy = pad0.t + this.hudBox.h - 2;
+      const jauge = (y, frac, bon, moyen, mauvais, titre) => {
+        g.fillStyle = 'rgba(255,255,255,0.14)';
+        this._roundRect(g, jx, y, jw, 7, 3.5); g.fill();
+        g.fillStyle = frac > 0.5 ? bon : frac > 0.22 ? moyen : mauvais;
+        this._roundRect(g, jx, y, Math.max(2, jw * Math.max(0, Math.min(1, frac))), 7, 3.5); g.fill();
+        g.font = `bold ${mobile ? 9 : 10}px system-ui, sans-serif`;
+        g.textAlign = 'left'; g.fillStyle = '#aeb4c0';
+        g.fillText(titre, jx, y - 10);
+      };
+      jauge(jy, p.tyre, '#5be07a', '#ffd400', '#ff4d4d', t('tyres'));
+      jauge(jy + 15, 1 - p.damage, '#7fd4ff', '#ffd400', '#ff4d4d', t('damage'));
+      g.textAlign = 'left';
+    }
 
     // bouton pause, entre les deux panneaux du haut
     const pb = this.pauseBtn;
@@ -1548,9 +1577,13 @@ class Renderer {
     }
     if (p.state === 'grass') { g.textAlign = 'center'; g.fillStyle = '#ff6b6b'; g.font = 'bold 28px system-ui, sans-serif'; g.fillText(t('offTrack'), W / 2, H * 0.3); }
     if (p.finished && race.state !== 'finished') { g.textAlign = 'center'; g.fillStyle = '#ffd400'; g.font = 'bold 40px system-ui, sans-serif'; g.fillText(`${t('finished')} — P${race.positionOf(p)}`, W / 2, H * 0.3); }
-    /* Le temps au tour s'affiche sous le bouton, et non plus à 12 % de la hauteur : en paysage sur
-    un téléphone, 12 % de 390 px tombait pile dessus. */
-    if (ui.flash && ui.flash.until > performance.now()) { g.textAlign = 'center'; g.fillStyle = ui.flash.color || '#fff'; g.font = 'bold 26px system-ui, sans-serif'; g.fillText(ui.flash.text, W / 2, Math.max(H * 0.12, pb.y + pb.s + 14)); }
+    /* Le temps au tour se pose sous TOUT ce qui occupe le haut, et non à une hauteur fixe.
+
+    Deux fois de suite il est tombé sur quelque chose : à 12 % de la hauteur il couvrait le bouton
+    pause en paysage sur un téléphone ; passé sous le bouton, il couvrait les jauges d'usure, parce
+    que le panneau de gauche grandit quand l'option est active. Il prend donc le plus bas des
+    trois, et il suivra tout seul le prochain élément qu'on ajoutera en haut. */
+    if (ui.flash && ui.flash.until > performance.now()) { g.textAlign = 'center'; g.fillStyle = ui.flash.color || '#fff'; g.font = 'bold 26px system-ui, sans-serif'; g.fillText(ui.flash.text, W / 2, Math.max(H * 0.12, pb.y + pb.s + 14, P.t + boxH + 14)); }
     g.textBaseline = 'alphabetic';
   }
 

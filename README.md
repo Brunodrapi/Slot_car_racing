@@ -712,7 +712,7 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
 - **Un seul plateau**, celui des neuf voitures ci-dessus. Son identifiant reste `gt` — les records
   de tour sont rangés sous `circuit|catégorie` dans la sauvegarde, et le changer effacerait ceux
   des joueurs — mais son nom ne pouvait plus être « GT » avec une 917 et une 787B sur la grille.
-- **Course rapide** et **contre-la-montre** (records par circuit et catégorie), 4 niveaux de difficulté.
+- **Course rapide** et **contre-la-montre** (records par circuit et catégorie), 5 niveaux de difficulté, usure et dommages en option.
 - Une **carrière** existe dans le code, actuellement masquée. Elle n'a plus qu'une coupe : les
   trois autres couraient dans les catégories retirées.
 - IA qui freine selon son talent, choisit sa ligne pour dépasser, aspire dans le sillage, se touche.
@@ -1453,7 +1453,7 @@ chiffres.
 Rien ne comparait les modèles entre eux jusque-là, ce qui explique qu'une voiture bancale ait pu
 être livrée sans qu'on la voie.
 
-## Les quatre difficultés
+## Les cinq difficultés
 
 Elles tenaient entre 0,78 et 0,90 de la vitesse de passage que l'adhérence autorise, ce qui mettait
 à peine **sept pour cent** de rythme de course entre le réglage le plus facile et le plus dur. Un
@@ -1521,9 +1521,93 @@ doubler**.
 | meilleur tour | 79,95 s | **73,39 s** |
 | sorties par course | 5,8 | **7,0** |
 
-L'écart facile → difficile vaut 10,9 % : extrême est donc un vrai palier de plus, pas un demi-cran.
-Un étalement de 0,16 au lieu de 0,10 donnait −9,4 %, mais onze sorties par course — le peloton ne
-finissait plus un tour proprement.
+### Extrême et cauchemar, et l'ordre qui s'était inversé
+
+Deux niveaux plutôt qu'un : extrême avec une adhérence moyennement gonflée, cauchemar avec
+davantage. La première grille mesurée avait un défaut que seule la mesure pouvait montrer —
+**extrême faisait plus de sorties que cauchemar**, 11,4 contre 8,8. Le niveau intermédiaire était
+le plus brouillon des deux, ce qui n'a aucun sens. Moins d'adhérence avec la même audace, c'est
+simplement en demander trop plus souvent. La marge d'extrême est redescendue de 1,00 à 0,98, et
+l'échelle est redevenue monotone dans les deux sens.
+
+| niveau | rythme de course | sorties par course | adhérence |
+| --- | --- | --- | --- |
+| facile | 92,97 s | 0,2 | — |
+| moyen | 86,84 s | 1,9 | — |
+| difficile | 82,22 s | 5,8 | — |
+| extrême | 77,25 s | 7,5 | ×1,14 |
+| cauchemar | 73,08 s | 8,8 | ×1,30 |
+
+Chaque palier vaut cinq à six pour cent, soit l'écart qui séparait déjà moyen de difficile.
+
+## Usure et dommages
+
+En option, et **en course seulement**. Un record de contre-la-montre signé sur des pneus à moitié
+morts ne se compare à rien, et la table des records n'a pas de colonne pour dire dans quel état il
+a été signé : mieux vaut que l'option n'existe pas là que d'avoir à l'expliquer.
+
+### Ce qui use un pneu n'est pas ce qu'on croit
+
+La première version faisait dépendre l'usure de la seule **glisse**, au carré, ce qui paraissait
+évident. Mesuré sur une course : `slide` vaut 0,007 à 0,021 de **moyenne** selon le niveau, et sa
+**médiane est zéro** — une voiture bien conduite ne glisse presque jamais. Le terme était cent à
+trois cents fois trop petit pour peser, et l'usure ne dépendait donc pas du tout du pilotage.
+L'outil l'a dit aussitôt : demi-usure au tour 4 ou 5, identique du niveau facile au cauchemar.
+
+Ce qui use un pneu est le **travail de frottement**, pas le spectacle. `usage` — la demande
+d'adhérence latérale rapportée à ce que les pneus peuvent donner — vaut 0,455 en facile et 0,568 en
+extrême. C'est elle qui sépare un pilote propre d'un pilote qui attaque, elle est déjà calculée à
+chaque pas, et elle entre au carré parce que le frottement croît comme le carré de la charge. La
+glisse reste, mais comme **surcoût** : quand elle arrive, elle coûte très cher.
+
+### Le minutage, et la mesure qui comparait la mauvaise chose
+
+`tools/usure.js` comparait d'abord les niveaux de difficulté. C'était une erreur : un niveau change
+aussi la durée du tour, et « facile » usait plus **par tour** que « difficile » simplement parce que
+ses tours durent treize pour cent de plus. La mesure mélangeait le rythme d'usure et le temps passé
+en piste.
+
+Ce qui compte est le choix qu'un joueur a devant lui. On pilote donc la **même voiture sur le même
+circuit** à deux marges — 0,78, bien en dessous de la limite, et 0,98, qui vit dessus :
+
+| style | demande d'adhérence | tour de référence | demi-usure | gomme au 10ᵉ tour |
+| --- | --- | --- | --- | --- |
+| ménagé | 0,435 | 75,3 s | tour 9 | 43 % |
+| attaqué | 0,689 | 67,8 s | tour 3 | 0 % |
+
+Sept secondes et demie au tour contre trois fois moins de gomme : c'est l'arbitrage de Circuit
+Superstars, et c'est ce qui rend un arrêt au stand intéressant plutôt qu'obligatoire. Un train usé
+coûte **+3,5 %** au tour, sans quoi la jauge serait une décoration.
+
+### Les dommages ne touchent pas l'adhérence
+
+Ils enlèvent de la vitesse de pointe et de la reprise, jamais du grip. C'est volontaire : un dommage
+qui enlèverait de l'adhérence punirait deux fois et rendrait une course irrattrapable après un seul
+accrochage. Une voiture cabossée traîne, elle ne devient pas dangereuse.
+
+Deux réglages ont dû être corrigés, tous deux sur des mesures absurdes.
+
+**Un frottement n'est pas un choc.** Sans seuil, un peloton lent qui se tasse en épingle se
+détruisait tout seul : 49 % de tôle au niveau facile contre 10 % en difficile — l'inverse de ce
+qu'on attend, et uniquement parce que les voitures lentes se touchent sans arrêt. Seul ce qui
+dépasse 3,5 m/s d'écart compte désormais, et la tôle en facile est tombée à 5 %.
+
+**Une sortie de route n'est pas un accident.** À 0,004 de dommage par m/s, quitter la piste à
+60 m/s coûtait 24 % de la voiture, et quatre excursions la détruisaient : un pilote qui attaque
+finissait à 95 % de tôle, donc avec vingt pour cent de vitesse en moins, pour des fautes dont
+aucune n'était un choc. Un passage dans l'herbe fait déjà perdre du temps ; c'est la punition.
+
+### Les jauges
+
+Deux barres dans le panneau du haut à gauche, qui grandit quand l'option est active plutôt que de
+poser une bande ailleurs — une bande de plus serait entrée en conflit avec le classement sur un
+écran d'ordinateur et avec la carte sur un téléphone, deux cas à régler au lieu d'un.
+
+Elles ont fait apparaître deux chevauchements que personne n'aurait vus sans activer l'option : le
+nom du pilote, calé sur le bas du panneau, descendait sur la jauge de tôle ; et le temps au tour,
+que j'avais déjà déplacé une fois pour dégager le bouton pause, tombait dessus à son tour. Il prend
+maintenant le plus bas de tout ce qui occupe le haut, et suivra tout seul le prochain élément
+qu'on y ajoutera.
 
 ## Le plafond de marge de l'IA
 
@@ -1600,6 +1684,7 @@ python3 tools/pickcar.py <image> <id du modèle> [--tol --peel]                 
 python3 tools/engineloop.py <prise.wav> <boucle.wav>                             # boucle moteur sans couture
 node tools/enginedemo.js <id> <sortie.wav> [secondes] [--synthese]               # une accélération à écouter
 node tools/moteur-banc.js                                                        # le volant d'inertie, sans une note de son
+node tools/usure.js [circuit|all] [catégorie]                                     # ce que coûte un train de pneus, ménagé ou attaqué
 python3 tools/boucles.py sounds/six-inline/*.wav                                  # où boucler dans une prise, sans réencoder
 node tools/e2e-gauges.js                                                         # les cadrans : chiffre et arc d'accord, aucun plein
 NODE_PATH=$(npm root -g) node tools/propdbg.js <image.png>                        # décor visible et coût par image

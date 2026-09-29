@@ -5,7 +5,7 @@
 endroits — la liste déroulante des réglages et les boutons de l'écran de départ — et en ajouter un
 n'en aurait servi qu'un des deux. L'ordre est celui des boutons, donc du plus facile au plus dur.
 Les coefficients, eux, sont dans `DIFFICULTY` (js/race.js). */
-const NIVEAUX = ['easy', 'medium', 'hard', 'extreme'];
+const NIVEAUX = ['easy', 'medium', 'hard', 'extreme', 'cauchemar'];
 
 const I18N = {
   fr: {
@@ -13,7 +13,7 @@ const I18N = {
     career: 'Carrière', quickRace: 'Course rapide', timeTrial: 'Contre-la-montre', settings: 'Réglages', back: 'Retour',
     editor: 'Éditeur de circuits', workshop: 'Atelier voitures',
     howto: 'Poser le pouce n’importe où (ou n’importe quelle touche / clic) : accélérer, relâcher pour freiner. Le cadran vient se placer au-dessus du pouce. Pouce gauche (ou flèches / molette) : choisir la trajectoire — intérieure, idéale ou extérieure. Trop vite dans un virage, c’est le bac à gravier.',
-    carClass: 'Catégorie', model: 'Modèle', track: 'Circuit', customTracks: 'Circuits perso', livery: 'Livrée', difficulty: 'Difficulté', easy: 'Facile', medium: 'Normal', hard: 'Difficile', extreme: 'Extrême',
+    carClass: 'Catégorie', model: 'Modèle', track: 'Circuit', customTracks: 'Circuits perso', livery: 'Livrée', tyres: 'Gomme', damage: 'Tôle', wear: 'Usure et dommages', wearHint: 'Les pneus s\'usent en glissant, les chocs et les sorties abîment la voiture.', difficulty: 'Difficulté', easy: 'Facile', medium: 'Normal', hard: 'Difficile', extreme: 'Extrême', cauchemar: 'Cauchemar',
     diffTitle: 'Ce que la voiture coûte à piloter', diffLevel: (n) => `Difficulté ${n} sur 5`,
     laps: 'tours', start: 'Départ !', locked: 'Verrouillé', unlockHint: 'Termine la coupe précédente dans le top 3 pour débloquer.',
     cup: 'Coupe', races: 'courses', raceOf: (a, b) => `Course ${a} / ${b}`, standings: 'Classement', nextRace: 'Prochaine course', startRace: 'Lancer la course',
@@ -45,7 +45,7 @@ const I18N = {
     career: 'Career', quickRace: 'Quick race', timeTrial: 'Time trial', settings: 'Settings', back: 'Back',
     editor: 'Track editor', workshop: 'Car workshop',
     howto: 'Thumb anywhere (or any key / click): accelerate, release to brake. The dial moves above your thumb. Left thumb (or arrows / wheel): pick the line — inside, racing or outside. Too fast into a corner and it’s the gravel.',
-    carClass: 'Class', model: 'Model', track: 'Track', customTracks: 'Custom tracks', livery: 'Livery', difficulty: 'Difficulty', easy: 'Easy', medium: 'Normal', hard: 'Hard', extreme: 'Extreme',
+    carClass: 'Class', model: 'Model', track: 'Track', customTracks: 'Custom tracks', livery: 'Livery', tyres: 'Tyres', damage: 'Body', wear: 'Wear and damage', wearHint: 'Tyres wear as you slide; contact and excursions damage the car.', difficulty: 'Difficulty', easy: 'Easy', medium: 'Normal', hard: 'Hard', extreme: 'Extreme', cauchemar: 'Nightmare',
     diffTitle: 'How much the car costs to drive', diffLevel: (n) => `Difficulty ${n} of 5`,
     laps: 'laps', start: 'Start!', locked: 'Locked', unlockHint: 'Finish the previous cup in the top 3 to unlock.',
     cup: 'Cup', races: 'races', raceOf: (a, b) => `Race ${a} / ${b}`, standings: 'Standings', nextRace: 'Next race', startRace: 'Start race',
@@ -379,7 +379,12 @@ class UI {
       </div>
       <div class="row wrap">
         ${mode === 'race' ? `<div><h3>${t('difficulty')}</h3><div class="seg">${NIVEAUX.map(d => `<button class="${s.difficulty === d ? 'sel' : ''}" data-action="pickDiff" data-id="${d}">${t(d)}</button>`).join('')}</div></div>
-        <div><h3>${t('lapCount')}</h3><div class="seg">${[0, 1, 2, 3, 5, 10].map(n => `<button class="${(s.laps || 0) === n ? 'sel' : ''}" data-action="pickLaps" data-id="${n}">${n === 0 ? `${t('lapAuto')} (${lapsFor(trackDef, cat)})` : n}</button>`).join('')}</div></div>` : `<div><h3>${t('yourBest')}</h3><div class="bestlap">${best ? fmtTime(best) : '--:--.---'}</div></div>`}
+        <div><h3>${t('lapCount')}</h3><div class="seg">${[0, 1, 2, 3, 5, 10].map(n => `<button class="${(s.laps || 0) === n ? 'sel' : ''}" data-action="pickLaps" data-id="${n}">${n === 0 ? `${t('lapAuto')} (${lapsFor(trackDef, cat)})` : n}</button>`).join('')}</div></div>
+        <!-- L'usure n'est offerte qu'en course. Un record signé sur des pneus à moitié morts ne se
+             compare à rien, et la table des records n'a pas de colonne pour dire dans quel état il
+             a été signé : mieux vaut que l'option n'existe pas là que d'avoir à l'expliquer. -->
+        <div><h3>${t('wear')}</h3><div class="seg">${[[0, 'off'], [1, 'on']].map(([v, k]) => `<button class="${(s.wear ? 1 : 0) === v ? 'sel' : ''}" data-action="pickWear" data-id="${v}">${t(k)}</button>`).join('')}</div>
+        <small class="muted">${t('wearHint')}</small></div>` : `<div><h3>${t('yourBest')}</h3><div class="bestlap">${best ? fmtTime(best) : '--:--.---'}</div></div>`}
       </div>
       <div class="row end"><span class="muted">${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ${escapeHtml(model.name)} · ${mode === 'race' ? `${laps} ${t('laps')}` : t('ttIntro')}</span><button class="big primary" data-action="startQuick">${t('start')}</button></div>
     `, 'scroll', 'depart:' + mode);
@@ -634,6 +639,7 @@ class UI {
       case 'pickTrack': this.setup.trackId = id; this.setupScreen(this.setup.mode); break;
       case 'pickDiff': app.save.difficulty = id; storeSave(app.save); this.setupScreen(this.setup.mode); break;
       case 'pickLaps': app.save.laps = +id; storeSave(app.save); this.setupScreen(this.setup.mode); break;
+      case 'pickWear': app.save.wear = id === '1'; storeSave(app.save); this.setupScreen(this.setup.mode); break;
       case 'startQuick': app.startQuick(this.setup.mode, this.setup.classId, this.setup.trackId); break;
       case 'multi': app.state = 'lobby'; this.lobbyScreen(); break;
       case 'netCreate': this._netOpen(true); break;

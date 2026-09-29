@@ -9,6 +9,53 @@
 // Nothing is ever snapped back onto the line, on or off the road.
 'use strict';
 
+/* L'usure et les dommages, en option et en course seulement.
+
+CE QUE FAIT L'USURE. Un pneu s'use en roulant, et beaucoup plus vite en glissant : c'est le
+frottement qui l'arrache, pas les kilomètres. La glisse compte donc au carré — rouler proprement
+coûte peu, tenir un travers coûte cher. C'est la seule chose qui rende un choix intéressant :
+attaquer maintenant et s'arrêter plus tôt, ou ménager la gomme et tenir jusqu'au bout.
+
+CE QU'ON MESURE, ET LA PREMIÈRE VERSION QUI NE MESURAIT RIEN. J'avais fait dépendre l'usure de la
+seule glisse, au carré. Mesuré sur une course : `slide` vaut 0,007 à 0,021 de MOYENNE selon le
+niveau, et sa médiane est zéro — une voiture bien conduite ne glisse presque jamais. Le terme était
+cent à trois cents fois trop petit pour peser, et l'usure ne dépendait donc pas du tout du
+pilotage, ce que l'outil a montré aussitôt : demi-usure au tour 4 ou 5, identique du niveau facile
+au cauchemar.
+
+Ce qui use un pneu est le TRAVAIL DE FROTTEMENT, pas le spectacle. `usage` — la demande d'adhérence
+latérale rapportée à ce que les pneus peuvent donner — vaut 0,455 en facile et 0,568 en extrême :
+voilà la grandeur qui sépare un pilote propre d'un pilote qui attaque, et elle est déjà calculée à
+chaque pas. Elle entre au carré, parce que le frottement croît comme le carré de la charge. La
+glisse reste, mais comme SURCOÛT : quand elle arrive, elle coûte très cher.
+
+LE MINUTAGE, pris sur Circuit Superstars. Un train doit tenir une course courte quand on roule
+proprement, et mourir en deux ou trois tours quand on martyrise la gomme — sans quoi il n'y a
+qu'une stratégie, et autant ne pas offrir le choix. Sur des tours de quatre-vingts secondes :
+mi-usure vers le huitième tour en roulant propre, vers le troisième en attaquant.
+
+CE QUE FONT LES DOMMAGES. Ils ne touchent pas l'adhérence, mais la vitesse de pointe et la
+reprise : une voiture cabossée traîne, elle ne devient pas dangereuse. C'est volontaire — un
+dommage qui enlèverait du grip punirait deux fois, et rendrait une course irrattrapable après un
+seul accrochage. */
+const USURE = {
+  charge: 0.0027,    // par seconde et par unité de demande d'adhérence au carré
+  glisse: 0.038,     // par seconde et par unité de glisse — le surcoût du travers
+  grip: 0.26,        // adhérence perdue sur un train mort
+  /* Un frottement n'est pas un choc. Sans seuil, un peloton lent qui se tasse en épingle se
+  détruisait tout seul : 49 % de tôle au niveau facile, contre 10 % en difficile — l'inverse de ce
+  qu'on attend, et uniquement parce que les voitures lentes se touchent sans arrêt. On ne compte
+  donc que ce qui dépasse quelques mètres par seconde d'écart. */
+  chocSeuil: 3.5,          // m/s d'écart en dessous desquels un contact ne casse rien
+  chocParVitesse: 0.018,   // dommage par m/s au-delà du seuil
+  /* Une sortie de route n'est pas un accident. À 0,004 par m/s, quitter la piste à 60 m/s coûtait
+  24 % de la voiture, et quatre excursions la détruisaient : mesuré, un pilote qui attaque finissait
+  à 95 % de tôle, donc avec vingt pour cent de vitesse en moins, pour des fautes dont aucune n'était
+  un choc. Un passage dans l'herbe fait perdre du temps ; c'est déjà la punition. */
+  sortieParVitesse: 0.0012, // dommage par m/s à l'instant où on quitte la piste
+  vmax: 0.18,        // vitesse de pointe perdue sur une voiture au maximum des dommages
+};
+
 /* Fastest speed for curvature magnitude k on a given model (accounts for downforce).
 
 `boost` est la triche du niveau extrême : un supplément d'adhérence MÉCANIQUE, réservé aux voitures
@@ -72,6 +119,13 @@ class Car {
     crée aucun comportement que la physique ne sait pas produire, et la voiture reste capable de
     sortir si elle en demande trop. Le joueur, lui, garde exactement sa voiture. */
     this.gripBoost = opts.gripBoost == null ? 1 : opts.gripBoost;
+    /* `usure` est le réglage, ou `null` quand l'option est coupée. Le distinguer d'un booléen
+    permet de couper la fonctionnalité SANS toucher au reste du code : `tyre` et `damage` existent
+    toujours, ils ne bougent simplement jamais, et tout ce qui les lit trouve 1 et 0. */
+    this.usure = opts.usure || null;
+    this.tyre = 1;      // 1 = neuf, 0 = mort
+    this.damage = 0;    // 0 = intact, 1 = épave
+    this.pitsDone = 0;
     this.number = opts.number || 1;
 
     // track bookkeeping (derived from the world position every step)
@@ -127,11 +181,20 @@ class Car {
     this.v = v || 0; this.vl = 0; this.w = 0; this.delta = 0; this.beta = 0; this.usage = 0; this.slide = 0; this.Ff = 0; this.Fr = 0; this.selS = this.sel;
   }
 
+  /* Ce que les pneus rendent, entre neuf et mort. Séparé de `gripBoost` parce que les deux n'ont
+  rien à voir : l'un est la triche des niveaux extrêmes, réservée à l'IA, l'autre est l'usure, qui
+  vaut pour tout le monde. Les multiplier est juste ; les confondre aurait été une erreur à
+  débusquer six semaines plus tard. */
+  tyreGrip() { return this.usure ? 1 - this.usure.grip * (1 - this.tyre) : 1; }
+
   gripAt(v) {
-    const c = this.cls, g = c.grip * this.gripBoost;
+    const c = this.cls, g = c.grip * this.gripBoost * this.tyreGrip();
     return g + Math.min(c.df * v * v, g * 1.8);
   }
-  cornerSpeed(k) { return cornerSpeedFor(this.cls, k, this.gripBoost); }
+  cornerSpeed(k) { return cornerSpeedFor(this.cls, k, this.gripBoost * this.tyreGrip()); }
+
+  // une voiture cabossée traîne : elle perd de la pointe et de la reprise, jamais de l'adhérence
+  damageFactor() { return this.usure ? 1 - this.usure.vmax * this.damage : 1; }
 
   get progress() { return (this.lap - (this.started ? 0 : 1)) * this.track.length + this.track.wrap(this.s); }
   get pos() { return { x: this.x, y: this.y }; }
@@ -183,13 +246,25 @@ class Car {
   update(dt, throttle, raceTime) {
     const T = this.track, c = this.cls;
     this.throttle = throttle;
+    /* L'usure. La glisse compte au carré : c'est le frottement qui arrache la gomme, pas la
+    distance. Un pilote propre use lentement, un pilote en travers permanent trois fois plus vite.
+    Rien ne s'use à l'arrêt ni hors piste — dans le gravier on ne fait pas chauffer un pneu. */
+    if (this.usure && this.state === 'ok' && this.v > 1) {
+      const u = this.usure, q = this.usage;
+      this.tyre = Math.max(0, this.tyre - dt * (u.charge * q * q + u.glisse * this.slide));
+    }
     this.offT = throttle ? 0 : this.offT + dt;
     this.braking = !throttle && this.offT > 0.05 && this.v > 2;
 
     // --- surface ---
     const hwL = T.hwLeftAt(this.s), hwR = T.hwRightAt(this.s);
     const off = this.lat > hwL + c.width * 0.3 || this.lat < -(hwR + c.width * 0.3);
-    if (off && this.state !== 'grass') { this.state = 'grass'; this.grassT = 0; this.crashes++; }
+    if (off && this.state !== 'grass') {
+      this.state = 'grass'; this.grassT = 0; this.crashes++;
+      // les dommages se prennent à l'INSTANT de la sortie, à la vitesse qu'on avait : rester dans
+      // le gravier ne casse rien de plus, c'est le départ en tête-à-queue qui coûte
+      if (this.usure) this.damage = clamp(this.damage + this.usure.sortieParVitesse * Math.abs(this.v), 0, 1);
+    }
     if (!off) this.state = 'ok';
     if (this.state === 'grass') this.grassT += dt;
     // stuck in the gravel: the marshals push the car back onto the edge of the road, facing the
@@ -259,8 +334,9 @@ class Car {
     // --- longitudinal ---
     let acc;
     const dir = Math.sign(this.v || 1);                 // everything that resists motion opposes it
-    const vmax = c.vmax * (this.draft ? 1.05 : 1);
-    if (throttle) acc = c.accel * Math.max(0, 1 - Math.pow(Math.max(0, this.v) / vmax, 2.5)) * (this.draft ? 1.08 : 1) * Math.max(0.3, 1 - PHYS.circle * u * u);
+    const dmg = this.damageFactor();
+    const vmax = c.vmax * dmg * (this.draft ? 1.05 : 1);
+    if (throttle) acc = c.accel * dmg * Math.max(0, 1 - Math.pow(Math.max(0, this.v) / vmax, 2.5)) * (this.draft ? 1.08 : 1) * Math.max(0.3, 1 - PHYS.circle * u * u);
     else acc = -(1.5 + c.brake * brakeFrac) * (1 - PHYS.circle * u * u) * (this.v > 1 ? 1 : Math.max(0, this.v));
     // grass and gravel drag the whole car, not just its forward motion: it opposes the velocity
     // vector, so a car sliding in sideways is slowed down sideways too.
@@ -279,7 +355,7 @@ class Car {
     this.th = wrapAngle(this.th + this.w * dt);
     const v0 = this.v, vl0 = this.vl;
     // a car pushed backwards by its own spin never reaches racing speed in reverse
-    this.v = clamp(v0 + (acc - vl0 * this.w) * dt, -0.25 * c.vmax, c.vmax * 1.05);
+    this.v = clamp(v0 + (acc - vl0 * this.w) * dt, -0.25 * c.vmax, c.vmax * dmg * 1.05);
     this.vl = vl0 + (v0 * this.w + this.Ff + this.Fr) * dt;
     if (latDrag) this.vl += clamp(latDrag * dt, -Math.abs(vl0), Math.abs(vl0));   // drag never reverses it
     this.beta = Math.atan2(this.vl, vv) * Math.sign(this.v || 1);
@@ -408,6 +484,10 @@ function resolveCollisions(cars, track) {
         const rear = d > 0 ? a : b, front = d > 0 ? b : a;
         if (rear.v > front.v) {
           const dv = rear.v - front.v;
+          // le choc abîme les deux, à proportion de ce qui dépasse le seuil de simple frottement
+          const fort = Math.max(0, dv - (rear.usure ? rear.usure.chocSeuil : 0));
+          if (rear.usure && fort > 0) rear.damage = Math.min(1, rear.damage + rear.usure.chocParVitesse * fort);
+          if (front.usure && fort > 0) front.damage = Math.min(1, front.damage + front.usure.chocParVitesse * fort * 0.6);
           front.v += dv * 0.35;
           rear.v = front.v - dv * 0.1;
           const push = Math.min(longOverlap / 2, 0.1);
