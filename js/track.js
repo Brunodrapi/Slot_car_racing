@@ -148,7 +148,7 @@ class Track {
     if (def.lines && !def.width) this._widthFromLines();
     this._clampLines();
     this._lineCurvatures();
-    this._buildPits();
+    this._buildPits(def);
     this.halfWidth = baseHw;          // nominal, used for grids and camera
     this.width = baseHw * 2;
 
@@ -704,13 +704,30 @@ class Track {
 
   Les trois repères sont proportionnels à la longueur du circuit et bornés : sur un tracé court la
   voie occuperait sinon un quart du tour, sur un tracé long elle serait ridicule. */
-  _buildPits() {
+  /* La voie est placée par défaut sur la ligne d'arrivée, et se déplace par circuit.
+
+  Le défaut vaut pour onze tracés sur douze. Spa fait exception : sa zone d'arrêt tombait dans le
+  dernier virage, la voiture y passait en portant la vitesse de la courbe et sa vitesse minimale
+  dans la zone ne descendait jamais en dessous de 12,7 m/s. Aucun arrêt de toute la course, sur ce
+  seul circuit. Le tracé n'a aucun croisement, contrairement à ce que j'avais d'abord supposé.
+
+  `def.pitAt` — la fraction du tour où se trouve la ZONE D'ARRÊT — le corrige, et sert aussi aux
+  circuits de l'éditeur.
+
+  J'AI ESSAYÉ DE LE CHOISIR AUTOMATIQUEMENT, en cherchant le tronçon le plus droit quand la ligne
+  est trop tordue, et la mesure a refusé : la courbure ne prédit pas l'échec. Le défaut de Spa a
+  une courbure maximale de 49,6 pour mille dans sa zone — mais celui du Nürburgring vaut 65,3 et
+  fonctionne, Red Bull Ring 43,5 fonctionne, Le Mans 34,3 fonctionne. Aucun seuil ne sépare le cas
+  qui casse des cas qui marchent. Un placement automatique aurait donc déplacé six circuits sains
+  sur un critère faux, pour en sauver un. */
+  _buildPits(def) {
     const L = this.length;
     const long = Math.max(160, Math.min(L * 0.22, 340));
+    const ancre = def && def.pitAt != null ? this.wrap(def.pitAt * L) : this.wrap(-long * 0.20);
     this.pit = {
-      entree: this.wrap(-long * 0.70),
-      boite: this.wrap(-long * 0.20),
-      sortie: this.wrap(long * 0.30),
+      entree: this.wrap(ancre - long * 0.50),
+      boite: ancre,
+      sortie: this.wrap(ancre + long * 0.50),
       long,
       // l'écart entre le bord de piste et l'AXE de la voie : séparation + demi-largeur de voie
       ecartPlein: 7.0,
