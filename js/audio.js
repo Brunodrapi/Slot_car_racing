@@ -1,77 +1,87 @@
-/* Le son des voitures, synthétisé.
+/* Le son des voitures.
 
-Deux méthodes se partagent le métier (voir README) : le fondu enchaîné d'enregistrements par
-régime, et la synthèse. La première est celle des simulateurs, mais elle demande une douzaine de
-boucles par voiture et par perspective ; à neuf voitures cela ferait des mégaoctets à télécharger
-sur un téléphone, et surtout des enregistrements génériques feraient sonner un flat-12 comme un
-six en ligne — exactement ce qu'on cherche à éviter.
+Le moteur vient de `js/engine-audio.js`, porté de markeasting/engine-audio (MIT). Ce fichier ne
+fabrique plus aucun timbre de moteur : il tient le reste de la scène — pneus, gravier, vent, choc —
+et il sert d'aiguillage entre la voiture qui roule et le volant d'inertie qui sonne.
 
-La synthèse est ici la bonne réponse parce que la différence entre ces voitures est *arithmétique*.
-Un quatre-temps allume cyl/2 fois par tour de vilebrequin, donc la fréquence d'allumage vaut
+CE QU'IL Y AVAIT AVANT, ET POURQUOI C'EST PARTI. Un oscillateur unique muni d'une `PeriodicWave`
+dont les coefficients étaient les ordres moteur, filtré en échappement et en admission, plus un
+souffle, un clapot de ralenti modulé en anneau et un sifflement de turbo ; puis, par-dessus, un
+lecteur granulaire qui se déplaçait dans une montée enregistrée sans jamais la transposer.
 
-    f = tr/min ÷ 60 × cyl ÷ 2
+Le raisonnement tenait : la différence entre un six en ligne et un V12 est arithmétique, un
+quatre-temps allume cyl/2 fois par tour, donc une octave sépare les deux sans rien enregistrer. Il
+était même vérifiable, et vérifié — les pics mesurés tombaient à un demi pour cent de l'allumage
+attendu sur les neuf voitures.
 
-À 6000 tr/min : 300 Hz pour un six en ligne, 400 pour un V8, 600 pour un V12. Une octave sépare le
-six du douze, sans rien avoir à enregistrer. Les ordres moteur sont les harmoniques de la rotation
-du vilebrequin, donc au lieu d'empiler douze oscillateurs on en prend **un seul**, muni d'une
-`PeriodicWave` dont les coefficients *sont* les ordres, et on lui donne pour fréquence tr/min ÷ 60.
-L'allumage tombe alors sur l'harmonique cyl/2 et tout le spectre suit.
+Ce qui lui manquait n'était pas la justesse, c'était le RÉPERTOIRE. Un régime déduit de la vitesse
+par une règle de trois ne sait faire qu'une chose : monter et descendre. Pas de trou au passage de
+rapport, pas de rebond contre le rupteur, pas de frein moteur qui retient, pas d'embrayage qui
+patine au départ. Le nouveau moteur intègre un volant d'inertie vingt fois par image ; tout cela en
+sort au lieu d'être imité.
 
-Le reste est du réalisme de comportement, et c'est lui qui fait le plus d'effet :
-  — le **régime suit les rapports**, pas la vitesse. Sans boîte, un moteur monte du ralenti au
-    rupteur en une seule fois sur toute la course : rien ne sonne plus faux.
-  — la **charge** change le timbre. Pied levé, l'admission disparaît et l'échappement s'assombrit.
-  — la **rugosité** : un V8 à vilebrequin croisé allume de travers et gronde, un V12 est lisse.
-    C'est ce qui distingue la Corvette de la Countach à cylindrée et régime comparables.
-*/
+Le reste de ce fichier — pneus, gravier, vent — n'a pas bougé : il ne dépendait que de la vitesse
+et du glissement, et il avait raison. */
 'use strict';
 
-// Rapports de boîte, en fraction de la vitesse maximale : la fin de chaque rapport. Cinq rapports
-// serrés en bas, longs en haut, comme sur une vraie boîte — le premier ne sert qu'à démarrer.
-const GEARS = [0.16, 0.32, 0.5, 0.72, 1.0];
+// Le catalogue : quelle voiture joue quel jeu de prises. Voir `_catalogue`.
+const CATALOGUE_URL = 'sounds/engine/voitures.json';
 
 class GameAudio {
   constructor() {
     this.ctx = null;
     this.enabled = true;
     this.started = false;
-    this.waves = {};        // une forme d'onde par moteur, construite une fois
-    this.spec = null;       // le moteur en cours
-    this.rpm = 0;
+    this.rpm = 0;           // lu par le HUD et par les mesures
     this.gear = 0;
-    this.shiftT = -10;
+  }
+  /* Le catalogue : quelle voiture joue quel jeu de prises, et avec quel réglage.
+
+  Il est demandé une fois, au démarrage du son, et jamais rechargé. S'il n'arrive pas — réseau
+  coupé, fichier absent — `this.catalogue` reste faux et le moteur se tait, ce qui est franc : il
+  n'y a plus de synthèse derrière pour faire semblant. Les pneus, le gravier et le vent, eux,
+  continuent de jouer. */
+  _catalogue() {
+    if (this.catFetch) return;
+    this.catFetch = fetch(CATALOGUE_URL)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.status))))
+      .then((c) => { this.catalogue = c; })
+      .catch(() => { this.catalogue = false; });
   }
 
-  /* La forme d'onde d'un moteur : ses ordres, posés comme harmoniques du vilebrequin.
+  /* La voiture change : sa configuration, et son jeu de prises s'il n'est pas déjà là.
 
-     L'ordre dominant est cyl/2, celui de l'allumage. Au-dessus viennent ses multiples, qui
-     donnent le mordant. En dessous, les demi-ordres : ils ne devraient pas exister sur un moteur
-     parfaitement équilibré, et c'est précisément leur présence qui fait le grondement d'un V8 à
-     vilebrequin croisé. `rough` les dose. */
-  _wave(e) {
-    const key = [e.cyl, e.rough, e.bright].join('|');
-    if (this.waves[key]) return this.waves[key];
-    const N = 48;
-    const real = new Float32Array(N), imag = new Float32Array(N);
-    const fire = e.cyl / 2;
-    for (let n = 1; n < N; n++) {
-      let a = 0;
-      if (n % fire === 0) {
-        // l'allumage et ses multiples : l'amplitude décroît d'autant moins vite que le moteur crie
-        const k = n / fire;
-        a = Math.pow(k, -(2.6 - 1.5 * e.bright));
-      } else if (n < fire) {
-        // les ordres inférieurs : le déséquilibre, donc le grondement
-        a = e.rough * 0.5 * Math.pow(n / fire, 0.6);
-      } else {
-        // entre deux allumages, un peu de matière pour que le spectre ne soit pas un peigne
-        a = e.rough * 0.12 / Math.pow(n / fire, 1.4);
-      }
-      imag[n] = a;
+  Une voiture absente du catalogue — celles de l'atelier — joue le jeu de la M1 avec son propre
+  rupteur et son propre ralenti. C'est la règle posée quand la M1 est devenue le moteur par défaut,
+  et elle vaut toujours : aucune voiture du jeu ne doit rester muette. */
+  _voiture(cls) {
+    const cat = this.catalogue;
+    if (!cat || !cls) return;
+    const e = cls.engine || {};
+    const c = cat.voitures[cls.id] || {
+      jeu: 'procar', wheel_radius: 0.32,
+      engine: { limiter: e.redline || 7000, idle: e.idle || 1000 }, drivetrain: {},
+    };
+    const j = cat.jeux[c.jeu];
+    if (!j) return;
+    const conf = {
+      engine: Object.assign({}, j.engine, c.engine),
+      drivetrain: Object.assign({}, j.drivetrain, c.drivetrain),
+      wheel_radius: c.wheel_radius || 0.32,
+      // c'est elle qui accorde le pont : le dernier rapport doit atteindre le rupteur à cette vitesse
+      vmax: cls.vmax,
+    };
+    // le rupteur de la voiture entraîne sa zone molle, sinon on garderait celle du jeu de prises
+    if (c.engine && c.engine.limiter && c.engine.soft_limiter == null) {
+      conf.engine.soft_limiter = c.engine.limiter * 0.99;
     }
-    const w = this.ctx.createPeriodicWave(real, imag, { disableNormalization: false });
-    this.waves[key] = w;
-    return w;
+    this.conf = conf;
+    this.vehicule = new EAVehicle(conf);
+    if (this.jeu !== c.jeu) {
+      this.jeu = c.jeu;
+      this.pret = false;
+      this.sampler.charge(j.sounds, '', j.niveau).then(() => { this.pret = true; }).catch(() => { this.pret = false; });
+    }
   }
 
   /** `ctx` n'est passé que par les mesures, qui rendent le son hors ligne pour l'analyser. */
@@ -98,73 +108,26 @@ class GameAudio {
       this.noiseBuf = buf;
       const noise = () => { const n = ctx.createBufferSource(); n.buffer = buf; n.loop = true; n.start(); return n; };
 
-      // --- moteur : deux voix du même oscillateur, l'échappement et l'admission ---
-      this.eng = ctx.createOscillator(); this.eng.frequency.value = 20;
-      this.exFilter = ctx.createBiquadFilter(); this.exFilter.type = 'lowpass';
-      this.exFilter.frequency.value = 500; this.exFilter.Q.value = 0.9;
-      this.exGain = ctx.createGain(); this.exGain.gain.value = 0;
-      this.eng.connect(this.exFilter); this.exFilter.connect(this.exGain); this.exGain.connect(this.master);
+      /* --- moteur : le volant d'inertie de engine-audio, et ses quatre boucles ---
 
-      this.inFilter = ctx.createBiquadFilter(); this.inFilter.type = 'bandpass';
-      this.inFilter.frequency.value = 1200; this.inFilter.Q.value = 1.2;
-      this.inGain = ctx.createGain(); this.inGain.gain.value = 0;
-      this.eng.connect(this.inFilter); this.inFilter.connect(this.inGain); this.inGain.connect(this.master);
-      this.eng.start();
+      Ce qui était ici a été retiré en entier : deux oscillateurs filtrés en échappement et en
+      admission, un souffle d'admission, un clapot de ralenti modulé en anneau, un sifflement de
+      turbo, et par-dessus un lecteur granulaire qui se déplaçait dans une montée enregistrée.
+      Tout cela FABRIQUAIT un timbre ; des prises en portent un. Et la montée enregistrée, si juste
+      fût-elle, ne savait rien faire d'autre que monter — ni pied levé, ni trou au passage, ni
+      rebond au rupteur, ni ralenti.
 
-      // Voie d'enregistrement, à côté de la synthèse. Une prise porte déjà son timbre : elle ne
-      // repasse donc pas par les filtres d'échappement et d'admission, qui sont là pour fabriquer
-      // un timbre qu'elle a déjà. Elle a sa propre sortie, et un filtre léger, seulement pour
-      // assombrir le pied levé.
-      this.smpGain = ctx.createGain(); this.smpGain.gain.value = 0;
-      this.smpFilter = ctx.createBiquadFilter(); this.smpFilter.type = 'lowpass';
-      this.smpFilter.frequency.value = 6000; this.smpFilter.Q.value = 0.7;
-      this.smpFilter.connect(this.smpGain); this.smpGain.connect(this.master);
-      // Une voix par boucle, toutes en marche en permanence, seuls les gains bougent. Réaffecter
-      // deux voix au fil du régime obligerait à recréer une source — le tampon d'une source ne se
-      // change pas — et chaque création claque. Six sources qui tournent ne coûtent rien.
-      // Lecture granulaire : pas de boucle, pas de transposition. On se déplace dans une montée
-      // en régime enregistrée et on y prend des grains là où le moteur tournait vraiment à ce
-      // régime-là. La littérature du son de moteur de jeu est nette sur le point qui condamnait
-      // l'approche précédente : une boucle commence à sonner étirée dès qu'on la transpose de plus
-      // de 500 tr/min, soit sept dixièmes de demi-ton à 6000. Couvrir trois octaves en
-      // transposant est donc perdu d'avance ; les moteurs granulaires ne transposent pas.
-      this.ramp = null; this.rampFetching = null;
-      this.gTime = 0;      // l'instant du prochain grain, en temps de contexte
-      this.gRead = 0;      // où l'on en est dans la rampe, en secondes
-
-      // souffle d'admission : du bruit filtré au régime, présent seulement pied dedans
-      this.airSrc = noise();
-      this.airFilter = ctx.createBiquadFilter(); this.airFilter.type = 'bandpass';
-      this.airFilter.frequency.value = 900; this.airFilter.Q.value = 0.8;
-      this.airGain = ctx.createGain(); this.airGain.gain.value = 0;
-      this.airSrc.connect(this.airFilter); this.airFilter.connect(this.airGain); this.airGain.connect(this.master);
-
-      /* Le clapot du ralenti.
-
-      Un moteur au ralenti ne fait pas entendre sa ligne d'échappement mais sa combustion : elle
-      est irrégulière, un cylindre ne donne pas tout à fait comme le suivant, et la distribution
-      claque. Sans cela un moteur « lisse » — une M1, une F40, `rough` à 0,15 — ne rend au ralenti
-      qu'un bourdon mince et propre, là où une Corvette à 0,70 sonne juste par chance.
-
-      D'où du bruit filtré, multiplié par le signal du moteur lui-même : le produit se module à la
-      fréquence d'allumage, ce qui donne le « pouf-pouf » d'un ralenti au lieu d'un souffle. Le
-      gain du multiplieur reste à zéro et c'est l'oscillateur, branché sur ce gain, qui le fait
-      varier — une modulation en anneau, à la fréquence audio. */
-      this.lopeSrc = noise();
-      this.lopeBand = ctx.createBiquadFilter(); this.lopeBand.type = 'bandpass';
-      this.lopeBand.frequency.value = 620; this.lopeBand.Q.value = 0.6;
-      this.lopeMod = ctx.createGain(); this.lopeMod.gain.value = 0;
-      this.eng.connect(this.lopeMod.gain);
-      this.lopeGain = ctx.createGain(); this.lopeGain.gain.value = 0;
-      this.lopeSrc.connect(this.lopeBand); this.lopeBand.connect(this.lopeMod);
-      this.lopeMod.connect(this.lopeGain); this.lopeGain.connect(this.master);
-
-      // turbo : un sifflement qui monte avec le régime et la charge
-      this.turbo = ctx.createOscillator(); this.turbo.type = 'sine'; this.turbo.frequency.value = 3000;
-      this.turboGain = ctx.createGain(); this.turboGain.gain.value = 0;
-      this.turbo.connect(this.turboGain); this.turboGain.connect(this.master);
-      this.turbo.start();
-
+      À la place, le modèle de markeasting/engine-audio : un volant d'inertie intégré vingt fois
+      par image, et quatre boucles stationnaires mélangées par deux fondus. Voir
+      `js/engine-audio.js`, qui porte la licence MIT et le détail. */
+      this.engGain = ctx.createGain(); this.engGain.gain.value = 0;
+      this.engGain.connect(this.master);
+      this.sampler = new EASampler(ctx, this.engGain);
+      this.vehicule = null;        // construit dès qu'on sait quelle voiture joue
+      this.jeu = null;             // le jeu de prises en cours de lecture
+      this.pret = false;           // les boucles sont-elles arrivées ?
+      this.catalogue = null;
+      this._catalogue();
       // --- pneus : deux bandes, l'une aiguë qui chante, l'autre plus basse qui racle ---
       this.tyreSrc = noise();
       this.sq1 = ctx.createBiquadFilter(); this.sq1.type = 'bandpass'; this.sq1.frequency.value = 1700; this.sq1.Q.value = 9;
@@ -198,182 +161,36 @@ class GameAudio {
     if (this.master) this.master.gain.setTargetAtTime(on ? 0.5 : 0, this.ctx.currentTime, 0.05);
   }
 
-  /** Le rapport engagé et le régime qui en découle, à cette vitesse. */
-  /* Charge la boucle d'une voiture, une seule fois, et la met à tourner.
-
-  Tant qu'elle n'est pas là — et si elle n'arrive jamais — la synthèse continue de jouer : une
-  voiture sans prise, un réseau lent ou un fichier manquant donnent le son d'avant, jamais du
-  silence. */
-  _key(e) { return e.sample ? e.sample.ramp : null; }
-
-  /* Charge la rampe d'une voiture : le son et la table qui dit à quel instant le moteur passait
-  par quel régime. Tant qu'elle n'est pas là — et si elle n'arrive jamais — la synthèse continue
-  de jouer : une voiture sans prise, un réseau lent, un fichier manquant ou une page ouverte en
-  `file://`, où `fetch` ne peut rien charger, donnent le son d'avant, jamais du silence. */
-  _sample(e) {
-    const key = this._key(e);
-    if (!key || this.rampFetching === key) return;
-    this.rampFetching = key;
-    const ctx = this.ctx;
-    fetch(key)
-      .then(r => (r.ok ? r.json() : Promise.reject(new Error(r.status))))
-      .then(meta => fetch(meta.src)
-        .then(r => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(r.status))))
-        .then(b => ctx.decodeAudioData(b))
-        .then(buf => { this.ramp = { key, buf, meta }; }))
-      .catch(() => { this.ramp = null; });          // la synthèse reprend la main
-  }
-
-  /* Où se trouve, dans la rampe, le moteur à ce régime.
-
-  La table est régulière en logarithme du régime, parce que c'est ainsi que l'oreille entend et
-  que la hauteur a été suivie. Hors des bornes, on reste au bout : on ne transpose jamais. */
-  _rampPos(rpm) {
-    const m = this.ramp.meta, T = m.table;
-    const u = Math.log(Math.max(1, rpm) / m.rpmBas) / Math.log(m.rpmHaut / m.rpmBas);
-    const x = Math.max(0, Math.min(1, u)) * (T.length - 1);
-    const i = Math.min(T.length - 2, Math.floor(x));
-    return T[i] + (T[i + 1] - T[i]) * (x - i);
-  }
-
-  /* Sème les grains qui manquent pour tenir jusqu'au prochain appel.
-
-  Enveloppe triangulaire et recouvrement de moitié : la somme de deux enveloppes voisines vaut
-  exactement un, donc le niveau ne bouge pas d'un grain à l'autre et il n'y a pas de raccord à
-  entendre. La tête de lecture avance d'elle-même au rythme du son — ce qui redonne au moteur ses
-  irrégularités de cycle, qu'une boucle écrase — et se recale sur la position du régime dès
-  qu'elle s'en éloigne. */
-  _grains(t, rpm, gain) {
-    const ctx = this.ctx, r = this.ramp;
-    const G = 0.09, HOP = G / 2, AVANCE = 0.12;
-    const pos = this._rampPos(rpm);
-    if (this.gTime < t) { this.gTime = t; this.gRead = pos; }
-    while (this.gTime < t + AVANCE) {
-      // on laisse la lecture dériver un peu autour de la position visée, pas plus : au-delà, le
-      // son ne correspondrait plus au régime demandé
-      this.gRead += HOP;
-      if (Math.abs(this.gRead - pos) > 0.20) this.gRead = pos;
-      const off = Math.max(0, Math.min(r.meta.secondes - G, this.gRead));
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0, this.gTime);
-      g.gain.linearRampToValueAtTime(gain, this.gTime + HOP);
-      g.gain.linearRampToValueAtTime(0, this.gTime + G);
-      g.connect(this.smpFilter);
-      const n = ctx.createBufferSource();
-      n.buffer = r.buf;
-      n.connect(g);
-      n.start(this.gTime, off, G);
-      n.stop(this.gTime + G);
-      n.onended = () => { try { g.disconnect(); } catch (_) { /* déjà parti */ } };
-      this.gTime += HOP;
-    }
-  }
-
-  _gearbox(v, vmax, e) {
-    const f = Math.min(1, Math.max(0, v / vmax));
-    let g = 0;
-    while (g < GEARS.length - 1 && f > GEARS[g]) g++;
-    const lo = g === 0 ? 0 : GEARS[g - 1], hi = GEARS[g];
-    // Dans un rapport, le régime va d'un creux au rupteur. Le creux monte avec les rapports :
-    // en première on repart de très bas, en cinquième la chute est faible.
-    const bottom = 0.42 + g * 0.07;
-    const k = (f - lo) / Math.max(1e-4, hi - lo);
-    const rpm = e.idle + (e.redline - e.idle) * (bottom + (1 - bottom) * k);
-    return { gear: g, rpm };
-  }
-
   update(car, racing) {
     if (!this.started || !this.enabled) return;
     const ctx = this.ctx, t = ctx.currentTime;
     const fin = (x, d) => (Number.isFinite(x) ? x : d);
-    const e = (car.cls && car.cls.engine) || { cyl: 8, redline: 7000, idle: 1000, rough: 0.3, bright: 0.6, turbo: 0 };
-    if (this.spec !== e) {
-      this.spec = e;
-      this.eng.setPeriodicWave(this._wave(e));
-      this._sample(e);
-      // La voiture n'a pas de prise, ou en a une autre : on oublie celle qui jouait.
-      if (this.ramp && this.ramp.key !== this._key(e)) this.ramp = null;
-      if (!e.sample) this.rampFetching = null;
-      this.gTime = 0;
-      if (!this.ramp) {
-        // Plus aucun grain n'alimente ce gain : il n'est plus audible, mais il reste figé sur sa
-        // dernière valeur, que le navigateur cesse d'évaluer. On le remet à zéro à la main.
-        this.smpGain.gain.cancelScheduledValues(ctx.currentTime);
-        this.smpGain.gain.value = 0;
-      }
-    }
-    // Une prise est jouée si elle est arrivée ; sinon la synthèse, qui n'a jamais cessé de tourner.
-    const surPrise = !!(this.ramp && e.sample && this.ramp.key === this._key(e));
-
+    const cls = car.cls || {};
     const v = Math.max(0, fin(car.v, 0));
-    const vmax = car.cls.vmax;
+    const vmax = cls.vmax || 80;
     const thr = !!car.throttle;
 
-    let rpm, gear;
-    if (!racing) {
-      // avant le départ : ralenti, et un coup de gaz si le pilote maintient
-      rpm = e.idle * (thr ? 2.4 : 1);
-      gear = 0;
-    } else {
-      const gb = this._gearbox(v, vmax, e);
-      rpm = gb.rpm; gear = gb.gear;
-      // pied levé, le moteur retombe vers le frein moteur plutôt que de rester au rupteur
-      if (!thr) rpm = e.idle + (rpm - e.idle) * 0.88;
+    if (this.catalogue && this.clsId !== cls.id) { this.clsId = cls.id; this._voiture(cls); }
+
+    if (this.vehicule) {
+      /* Le pas de temps vient de l'horloge du SON, pas de celle du jeu.
+
+      C'est elle qui fait avancer les boucles, et elle seule ; prendre celle du jeu ferait dériver
+      le régime de ce qu'on entend dès que le rendu décroche. Il est borné parce qu'un onglet
+      revenu au premier plan livre parfois une seconde d'un coup, et qu'une seconde d'un coup dans
+      un intégrateur, c'est un moteur qui explose. */
+      const dt = Math.min(0.05, Math.max(1 / 240, t - (this.tPrec == null ? t : this.tPrec)));
+      this.tPrec = t;
+      /* Avant le départ, la voiture est à l'arrêt et c'est tout ce qu'on a à dire : l'embrayage
+      patine, donc le moteur idle et monte seul si le pilote maintient. Le modèle s'en charge, il
+      n'y a aucun cas particulier à écrire — l'ancien moteur, lui, devait fabriquer ce coup de gaz
+      à la main. */
+      this.vehicule.update(t * 1000, dt, racing ? v : 0, thr ? 1 : 0);
+      this.sampler.applique(this.vehicule.engine);
+      this.rpm = this.vehicule.engine.rpm;
+      this.gear = this.vehicule.drivetrain.gear;
+      this.engGain.gain.setTargetAtTime(this.pret ? 0.85 : 0, t, 0.08);
     }
-    // le passage de rapport : on note l'instant pour couper brièvement le son
-    if (gear !== this.gear) { if (gear > this.gear && racing) this.shiftT = t; this.gear = gear; }
-    this.rpm += (rpm - this.rpm) * 0.35;
-    const r = this.rpm;
-    const load = thr ? 1 : 0;
-    const frac = Math.min(1, Math.max(0, (r - e.idle) / (e.redline - e.idle)));
-
-    // Un quatre-temps allume cyl/2 fois par tour : l'oscillateur tourne à la vitesse du
-    // vilebrequin et la forme d'onde place l'allumage sur l'harmonique qu'il faut.
-    const crank = Math.max(8, r / 60);
-    this.eng.frequency.setTargetAtTime(crank, t, 0.02);
-
-    // La prise a été faite à un régime connu : la rejouer `r / ce régime` fois plus vite la
-    // transpose exactement là où le moteur tourne. C'est la même opération qu'un oscillateur dont
-    // on change la fréquence, à ceci près que la matière transposée est celle d'un vrai moteur.
-    // Une prise ne couvre que la plage de régimes où elle a été enregistrée. En deçà et au-delà,
-    // il n'y a rien à jouer — et surtout pas la transposer, ce qui est justement ce qu'on veut
-    // éviter. La synthèse reprend la main, en fondu.
-    let couv = 0;
-    if (surPrise) {
-      const m = this.ramp.meta;
-      const marge = 0.25;                                  // un quart d'octave de fondu
-      const d = r < m.rpmBas ? Math.log2(m.rpmBas / r) : r > m.rpmHaut ? Math.log2(r / m.rpmHaut) : 0;
-      couv = Math.max(0, Math.min(1, 1 - d / marge));
-    }
-
-    if (surPrise && couv > 0) {
-      this._grains(t, r, 0.62);
-      this.smpFilter.frequency.setTargetAtTime(1800 + frac * 5000 + load * 2200, t, 0.05);
-    }
-
-    // la coupure à l'embrayage : 90 ms de silence, ce qui suffit à entendre le rapport passer
-    const shifting = t - this.shiftT < 0.09 ? 0.15 : 1;
-
-    // Échappement : toujours là, plus sombre pied levé. Admission : seulement pied dedans, c'est
-    // elle qui fait la différence entre pousser et rouler sur l'erre.
-    this.exFilter.frequency.setTargetAtTime(240 + frac * (700 + 1500 * e.bright) + load * 300, t, 0.05);
-    this.exGain.gain.setTargetAtTime((0.16 + frac * 0.2 + load * 0.05) * shifting * (1 - couv), t, 0.04);
-    this.smpGain.gain.setTargetAtTime((0.30 + frac * 0.24 + load * 0.08) * shifting * couv, t, 0.04);
-    this.inFilter.frequency.setTargetAtTime(700 + frac * 2600 * e.bright, t, 0.05);
-    this.inGain.gain.setTargetAtTime(load * (0.03 + frac * 0.13) * e.bright * shifting * (1 - couv), t, 0.05);
-    this.airFilter.frequency.setTargetAtTime(500 + frac * 1800, t, 0.05);
-    this.airGain.gain.setTargetAtTime(load * (0.015 + frac * 0.05) * shifting, t, 0.06);
-
-    // turbo : la pression monte avec le régime, et retombe d'un coup au lever de pied
-    // Le clapot ne vit qu'en bas et pied levé : dès que le moteur monte ou pousse, c'est la ligne
-    // d'échappement qu'on entend, et lui laisser la place brouillerait le reste. Il ne joue que
-    // sur la voie de synthèse — une prise porte déjà son propre ralenti quand elle en a un.
-    const clapot = (1 - frac) * (1 - frac) * (1 - load * 0.75) * (1 - couv);
-    this.lopeBand.frequency.setTargetAtTime(200 + 320 * e.bright, t, 0.1);
-    this.lopeGain.gain.setTargetAtTime(clapot * (0.5 + 0.9 * (1 - e.rough)) * 0.30 * shifting, t, 0.06);
-
-    this.turbo.frequency.setTargetAtTime(2200 + frac * 4200, t, 0.08);
-    this.turboGain.gain.setTargetAtTime(e.turbo * load * frac * frac * 0.045, t, load ? 0.25 : 0.05);
 
     // pneus : la hauteur monte avec la vitesse, le volume avec le glissement
     const sq = car.state === 'ok' ? Math.min(1, fin(car.slide, 0) * 1.7) : 0;
@@ -395,12 +212,15 @@ class GameAudio {
   idle() {
     if (!this.started) return;
     const t = this.ctx.currentTime;
-    for (const g of [this.exGain, this.inGain, this.airGain, this.turboGain, this.sqGain, this.grvGain, this.windGain]) {
+    for (const g of [this.engGain, this.sqGain, this.grvGain, this.windGain]) {
       if (g) g.gain.setTargetAtTime(0, t, 0.1);
     }
+    // le volant garde sa vitesse sinon : on le rend au ralenti, sans quoi reprendre une course
+    // repartirait au régime où la précédente s'est arrêtée
+    if (this.vehicule) this.vehicule.engine.init(this.conf && this.conf.engine);
+    this.tPrec = null;
     this.rpm = 0; this.gear = 0;
   }
-
   thud() {
     if (!this.started || !this.enabled) return;
     const ctx = this.ctx, t = ctx.currentTime;

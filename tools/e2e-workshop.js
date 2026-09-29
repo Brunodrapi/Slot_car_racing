@@ -20,7 +20,10 @@ const out = process.argv[2] || '/tmp';
     const car1 = mk(g => { g.fillStyle = '#ffd400'; g.fillRect(16, 42, 168, 6); g.fillStyle = '#1d2733'; g.fillRect(110, 24, 30, 42); });
     return { base, color, car1 };
   });
-  await page.click('[data-action="workshop"]');
+  /* L'atelier voiture n'a plus de bandeau au menu — il en est sorti avec l'atelier circuits — mais
+  l'écran est resté, et les voitures déjà enregistrées se choisissent toujours en course. On y entre
+  donc par son action plutôt que par un bouton qui n'existe plus. */
+  await page.evaluate(() => app.ui.workshopScreen());
   await page.waitForTimeout(300);
   await page.fill('#ws-name', 'Proto Test');
   await page.selectOption('#ws-cat', 'gt');

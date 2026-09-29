@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eyes On Line — Éditeur de lignes</title>
+<link rel="stylesheet" href="css/style.css?v=0.21.37">
+<style>
+  body { overflow: hidden; }
+  #ed { position: fixed; inset: 0; display: grid; grid-template-columns: 320px 1fr; }
+  #panel { background: #141826; border-right: 1px solid rgba(255,255,255,0.08); padding: 14px;
+           overflow-y: auto; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+  #panel h2 { font-size: 20px; margin: 0; }
+  #panel h3 { margin: 8px 0 0; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  #panel label { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  select, input[type="number"] { font: inherit; padding: 6px 8px; border-radius: 8px;
+           border: 1px solid rgba(255,255,255,0.15); background: var(--card); color: var(--text); width: 150px; }
+  button { padding: 7px 11px; font-size: 13px; }
+  .row2 { display: flex; gap: 6px; flex-wrap: wrap; }
+  .lignes button { flex: 1; }
+  .lignes button.sel { outline: 2px solid var(--accent); }
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .help { color: var(--muted); font-size: 12px; line-height: 1.5; }
+  #etat { color: var(--accent2); font-size: 12px; min-height: 16px; }
+  #sortie { width: 100%; height: 150px; font: 11px/1.4 ui-monospace, monospace; background: #0d1018;
+            color: var(--text); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 8px; }
+  #cv { display: block; width: 100%; height: 100%; background: #1a2118; cursor: crosshair; touch-action: none; }
+  @media (max-width: 860px) { #ed { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    #panel { max-height: 48vh; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); } }
+</style>
+</head>
+<body>
+<div id="ed">
+  <div id="panel">
+    <h2>Éditeur de lignes</h2>
+    <p class="help">Les trois lignes d'un circuit existant, déplaçables point par point. Le jeu
+      calcule les siennes tout seul ; cet outil sert à les reprendre à la main quand le calcul
+      n'est pas d'accord avec l'œil.</p>
+
+    <label>Circuit <select id="circuit"></select></label>
+
+    <h3>Ligne modifiée</h3>
+    <div class="row2 lignes" id="choixLigne"></div>
+
+    <label>Points de contrôle <input id="nPts" type="number" min="12" max="160" step="4" value="48"></label>
+    <p class="help">Plus de points suivent la piste de plus près ; moins de points donnent une
+      ligne plus douce et plus facile à reprendre. Changer ce nombre rééchantillonne la ligne
+      courante, sans perdre sa forme.</p>
+
+    <h3>Faire</h3>
+    <div class="row2">
+      <button id="auto">Revenir au calcul</button>
+      <button id="toutAuto">Les trois</button>
+    </div>
+    <div class="row2">
+      <button id="lisser">Lisser la ligne</button>
+      <button id="dansPiste">Ramener dans la piste</button>
+    </div>
+
+    <h3>Enregistrer pour jouer</h3>
+    <p class="help">Applique la ligne au circuit <b>tout de suite</b>, dans ce navigateur. C'est
+      stocké à côté de tes circuits perso : ça survit au rechargement, mais ça ne vaut que sur ce
+      poste et ça ne change pas le jeu publié.</p>
+    <div class="row2">
+      <button id="poser">Enregistrer pour le jeu</button>
+      <button id="oublier">Oublier</button>
+      <button id="essayer">Essayer</button>
+    </div>
+    <div id="pose" class="help"></div>
+
+    <h3>Enregistrer pour de bon</h3>
+    <p class="help">Pour qu'une ligne vaille pour tout le monde, il faut qu'elle soit dans
+      <code>js/tracks.js</code>. Cette page ne peut pas l'y écrire — il n'y a pas de serveur au
+      bout, seulement des fichiers — mais elle peut <b>fabriquer le fichier</b> : à remettre dans
+      <code>js/</code> et à publier. Toutes les lignes enregistrées y passent d'un coup.</p>
+    <div class="row2">
+      <button id="fichier">Enregistrer js/tracks.js</button>
+    </div>
+    <p class="help">Ou, pour ne prendre que la ligne courante à la main :</p>
+    <div class="row2">
+      <button id="exporter">Produire le bloc</button>
+      <button id="copier">Copier</button>
+      <button id="charger">Relire un bloc</button>
+    </div>
+    <textarea id="sortie" spellcheck="false" placeholder="le bloc lines: { … } apparaît ici"></textarea>
+    <div id="etat"></div>
+
+    <h3>À la souris</h3>
+    <p class="help">Glisser un point le déplace. <b>Molette</b> : zoom. <b>Glisser le fond</b> :
+      déplacer la vue. <b>Clic droit sur un point</b> : le ramener sur la ligne calculée.</p>
+  </div>
+  <canvas id="cv"></canvas>
+</div>
+
+<script src="js/store.js?v=0.21.37"></script>
+<script src="js/util.js?v=0.21.37"></script>
+<script src="js/tracks.js?v=0.21.37"></script>
+<script src="js/track.js?v=0.21.37"></script>
+<script src="js/lignes.js?v=0.21.37"></script>
+</body>
+</html>

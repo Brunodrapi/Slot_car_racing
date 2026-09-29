@@ -23,6 +23,57 @@ const DIFFICULTY = {
   easy:   { marginBase: 0.70, marginSpread: 0.10, paceBase: 0.80, paceSpread: 0.08 },
   medium: { marginBase: 0.83, marginSpread: 0.09, paceBase: 0.90, paceSpread: 0.07 },
   hard:   { marginBase: 0.93, marginSpread: 0.06, paceBase: 0.99, paceSpread: 0.02 },
+  /* Extrême : l'IA triche, et il n'y avait pas d'autre moyen.
+
+  Les trois premiers niveaux ne règlent qu'une chose — à quelle fraction de SA limite l'IA
+  conduit. Difficile est déjà à 0,99, et `aiThrottle` plafonne à 0,98 : le levier est au bout de
+  sa course. Monter la marge plus haut ne donne pas un tour plus rapide, cela donne une sortie de
+  piste, parce qu'au-dessus de 1 on demande une courbe que la voiture ne peut pas prendre.
+
+  Le seul levier qui reste est la limite elle-même. `grip` multiplie l'adhérence mécanique des
+  voitures de l'IA, et d'elles seules ; la voiture du joueur n'est pas touchée.
+
+  MAIS L'ADHÉRENCE SEULE NE SUFFIT PAS, ET LA MESURE A CORRIGÉ DEUX IDÉES FAUSSES.
+
+  La première était qu'il suffirait d'en donner. Mesuré au balayage : plus d'adhérence rend le
+  peloton plus rapide ET PLUS PROPRE — 6,5 sorties par course en difficile, 1,5 à ×1,24, 0,9 à
+  ×1,32. Or un peloton qui ne se trompe jamais ne laisse aucune ouverture, et la seule façon de
+  doubler disparaîtrait à mesure que le niveau monte. Plus dur ne doit pas vouloir dire
+  imprenable.
+
+  La seconde était que relever le plafond de `aiThrottle` rendrait les fautes. Mesuré : de 0,98 à
+  1,16, les sorties passent de 1,7 à 1,6 et le rythme ne bouge pas. Le plafond était inerte,
+  simplement parce que `0,93 + 0,06·talent + bruit` ne l'atteignait jamais.
+
+  C'est donc `marginBase` qu'il fallait déplacer, à 1,00 : l'IA demande à ses pneus un peu plus
+  qu'ils ne donnent, et le paie parfois. Le plafond relevé sert à laisser passer ce 1,00.
+
+  LES DEUX RÉGLAGES N'ACHÈTENT PAS LA MÊME CHOSE, et là encore j'avais écrit le contraire avant de
+  le vérifier. En remettant le plafond à 0,98 — donc en écrasant la marge à 0,98 — le rythme reste
+  le MÊME : 75,34 s contre 75,29. Toute la vitesse vient de l'adhérence. Ce que le plafond change,
+  ce sont les fautes : 3,4 sorties par course au lieu de 7,0. Il n'achète donc pas de la vitesse,
+  il achète de quoi doubler.
+
+  DEUX NIVEAUX PLUTÔT QU'UN, et l'ordre a demandé une correction. À adhérence ×1,14 et marge 1,00,
+  extrême faisait ONZE sorties par course quand cauchemar, mieux collé à ×1,30, n'en faisait que
+  8,8 : le niveau intermédiaire était le plus brouillon des deux, ce qui n'a aucun sens. Moins
+  d'adhérence avec la même audace, c'est simplement en demander trop plus souvent. La marge
+  d'extrême redescend donc à 0,98, et l'échelle redevient monotone dans les deux sens.
+
+  Mesuré sur les douze circuits, rythme de course et sorties par course :
+
+    facile      92,97 s   0,2
+    moyen       86,84 s   1,9
+    difficile   82,22 s   5,8
+    extrême     77,25 s   7,5   adhérence ×1,14
+    cauchemar   73,08 s   8,8   adhérence ×1,30
+
+  Chaque palier vaut cinq à six pour cent, soit l'écart qui sépare déjà moyen de difficile. */
+  extreme:   { marginBase: 0.98, marginSpread: 0.10, paceBase: 1.0, paceSpread: 0.02, grip: 1.14, maxMargin: 1.25 },
+  /* Cauchemar : la même triche, plus franche. L'écart entre les deux est une affaire d'adhérence
+  et d'audace, pas de nature — ce qui veut dire qu'aucun des deux ne fait rouler l'IA d'une façon
+  que la physique ne sait pas produire. Elle reste capable de sortir, et elle sort. */
+  cauchemar: { marginBase: 1.02, marginSpread: 0.12, paceBase: 1.0, paceSpread: 0.02, grip: 1.30, maxMargin: 1.30 },
 };
 
 const POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
@@ -40,6 +91,14 @@ class Race {
     this.mode = opts.mode || 'race';           // race | timetrial
     this.laps = opts.laps || this.track.laps;
     this.difficulty = DIFFICULTY[opts.difficulty] || DIFFICULTY.medium;
+    /* L'usure et les dommages : en option, et en COURSE seulement.
+
+    Le contre-la-montre en est exclu par nature — un record sur des pneus à moitié morts ne se
+    compare à rien, et la table des records n'a pas de colonne pour dire dans quel état ils ont été
+    signés. Mieux vaut que l'option n'existe pas là que d'avoir à l'expliquer. */
+    // `opts.mode` et non `this.mode` : celui-ci n'est affecté que trente lignes plus bas, si bien
+    // que le lire ici aurait rendu l'option inerte sans que rien ne le signale.
+    this.usure = opts.wear && (opts.mode || 'race') === 'race' ? USURE : null;
     this.time = 0;
     this.state = 'countdown';                  // countdown | racing | finishing | finished
     this.countdown = 3.6;
@@ -91,6 +150,12 @@ class Race {
         livery: LIVERIES[(h ? h.livery : isHuman ? (this.opts.playerLivery || 0) : ai.livery) % LIVERIES.length],
         isPlayer,
         skill: isHuman ? 1 : ai.skill,
+        /* La triche du niveau extrême ne touche que les voitures de l'IA, et jamais un humain —
+        ni le joueur local, ni personne en ligne. Elle se pose ici, à la construction de la
+        grille, plutôt que dans `aiThrottle` : l'adhérence appartient à la voiture, pas au
+        pilotage, et une voiture qui tient plus doit aussi glisser moins quand elle est touchée. */
+        gripBoost: isHuman || h ? 1 : (this.difficulty.grip || 1),
+        usure: this.usure,
         number: isHuman ? 1 + (hIdx || 0) : 2 + i,
         s, lat,
       });
@@ -112,6 +177,8 @@ class Race {
   update(frameDt, input) {
     if (typeof input !== 'object') input = { throttle: !!input, sel: this.player.sel };
     this.player.sel = clamp(input.sel == null ? 0 : input.sel, -1, 1);
+    // la coche des stands : une intention, pas une quatrième position de ligne (voir Car.pitAsk)
+    if (this.usure && input.pit != null) this.player.pitAsk = !!input.pit;
     this.acc += Math.min(frameDt, 0.1);
     while (this.acc >= this.dt) {
       this._step(this.dt, !!input.throttle);
@@ -142,6 +209,30 @@ class Race {
     }
   }
 
+  /* Quand une IA décide de s'arrêter.
+
+  Je n'ai pas pu regarder comment Ultimate Racing 2D s'y prend — c'est un jeu fermé et je n'ai pas
+  accès à son code. Ce qui suit est donc un raisonnement, pas une copie, et il vaut ce que vaut la
+  mesure : dis-moi si le comportement ne ressemble pas à ce que tu attends.
+
+  Le calcul est celui d'un ingénieur de course, et il tient en une ligne : un arrêt ne se rembourse
+  que s'il reste assez de tours pour le rentabiliser. Un train neuf rend à peu près trois pour cent
+  du tour face à un train mort ; l'arrêt en coûte une dizaine de secondes. Il faut donc trois ou
+  quatre tours restants pour que ce soit payant, et rentrer au dernier tour est toujours une
+  faute — même pneus morts.
+
+  Le seuil est décalé par pilote. Sans cela les huit voitures rentreraient au même tour, feraient
+  la queue dans la voie, et la course se figerait d'un coup au lieu de se déplier. Le décalage vient
+  du talent, donc il est stable d'une course à l'autre : le même pilote a toujours la même
+  stratégie, ce qui se remarque quand on joue plusieurs fois. */
+  _decidePit(car) {
+    if (car.pitAsk || car.pitState || car.tyre > 0.999) return;
+    const reste = this.laps - car.lap;
+    if (reste < 3) return;                       // trop tard pour rembourser
+    const seuil = 0.24 + car.skill * 0.16;       // 0,24 à 0,40 selon le pilote
+    if (car.tyre < seuil || car.damage > 0.75) car.pitAsk = true;
+  }
+
   _simulate(dt, throttleInput) {
     const T = this.track;
     this.time += dt;
@@ -150,7 +241,12 @@ class Race {
     for (const car of this.cars) {
       // The third argument is "let the AI pick the line". A person's car never does, wherever
       // that person is sitting.
-      car.steer(this.cars, dt, car.human == null && !car.isPlayer ? true : !!this.opts.playerAI);
+      /* Une seule source de vérité pour « cette voiture est-elle pilotée par la machine ».
+      `car.aiDriven` sert aussi à la voie des stands, où l'IA freine pour la zone d'arrêt alors que
+      le joueur freine lui-même ; la dupliquer aurait fini par la faire diverger. */
+      car.aiDriven = car.human == null && !car.isPlayer ? true : !!this.opts.playerAI;
+      car.steer(this.cars, dt, car.aiDriven);
+      if (this.usure && car.aiDriven && !car.finished) this._decidePit(car);
       let throttle;
       if (car.isPlayer) throttle = car.finished ? car.v < 15 : throttleInput;
       else if (car.human != null) {
@@ -158,6 +254,7 @@ class Race {
         // predicted — this only ever runs on the host, which is the one simulating.
         const net = this.netInput[car.human] || { thr: false, sel: 0 };
         car.sel = clamp(net.sel || 0, -1, 1);
+        if (this.usure) car.pitAsk = !!net.pit;
         throttle = car.finished ? car.v < 15 : !!net.thr;
       } else {
         const gapM = car.progress - pp;

@@ -36,7 +36,7 @@ canvas#game { position: fixed; inset: 0; display: block; touch-action: none; use
 .screen.poster .version { position: absolute; bottom: max(8px, env(safe-area-inset-bottom)); right: 10px; margin: 0; opacity: 1;
   background: rgba(10, 12, 20, 0.62); color: #dfe3ea; padding: 3px 9px; border-radius: 999px; }
 
-/* Les cinq bandeaux. Un seul bord gauche, une seule largeur ; la hauteur de chacun suit son propre
+/* Les bandeaux. Un seul bord gauche, une seule largeur ; la hauteur de chacun suit son propre
    dessin. Le bouton n'a ni fond ni bordure : ce qu'on voit est l'affiche dessous et le bandeau
    déplié dessus. */
 /* Le bouton a la taille du bandeau REPLIÉ, celui qui est imprimé dans l'affiche : c'est lui qu'on
@@ -143,6 +143,19 @@ button.link { background: none; border: none; color: var(--muted); text-decorati
    pictogramme posé sur l'ouverture, en bas à gauche. L'arc est tracé au `stroke-dasharray` : un
    seul trait plutôt qu'un dégradé conique, ce qui donne des bouts arrondis et une transition
    animable. Le fond de l'anneau reste très discret — c'est une graduation, pas une donnée. */
+/* Les pneus de difficulté. Cinq toujours dessinés, les inutilisés en creux : le rang se lit comme
+   une jauge, sans compter. L'écart entre plein et creux ne repose pas sur la teinte seule — le creux
+   est aussi plus transparent — pour rester lisible en vision des couleurs déficiente. */
+.tyres { display: flex; gap: 3px; align-items: center; justify-content: center; margin-top: 2px; }
+.tyres .tyre { width: 13px; height: 13px; flex: none; }
+/* Une teinte chaude, propre à la difficulté : le vert d'accent se confondait avec le cadran
+   d'adhérence placé juste en dessous, deux anneaux verts l'un au-dessus de l'autre se lisant comme
+   une même série alors qu'ils ne mesurent rien de commun. */
+.tyres .tyre.on { color: #ff8c4a; opacity: 1; }
+.tyres .tyre.off { color: var(--muted); opacity: 0.26; }
+/* Le texte réservé aux lecteurs d'écran : un pictogramme répété n'a pas de sens lu à voix haute. */
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
 .gauges { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 6px; width: 100%; margin-top: 6px; }
 .gauge { position: relative; display: block; aspect-ratio: 1; }
 .gauge .ring { width: 100%; height: 100%; display: block; transform: rotate(135deg); overflow: visible; }

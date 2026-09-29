@@ -10,7 +10,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const PAGES = ['index.html', 'editor.html'];
+const PAGES = ['index.html', 'editor.html', 'lignes.html', 'moteur.html'];
 const kind = process.argv[2] || 'patch';
 
 const vf = path.join(ROOT, 'js', 'version.js');

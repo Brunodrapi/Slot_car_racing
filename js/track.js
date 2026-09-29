@@ -117,14 +117,38 @@ class Track {
     const baseHw = (def.width || 12) * this.widthScale / 2;
     this.hwL.fill(baseHw); this.hwR.fill(baseHw);
 
+    /* De quel côté est l'intérieur du virage, en tout point — calculé ici et non dans le générateur
+    de lignes, parce que le rendu s'en sert aussi : les deux bords de piste sont teintés d'après lui,
+    pour qu'on lise d'un coup d'œil de quel côté se trouve la corde. Un circuit qui porte ses lignes
+    à la main ne passe pas par le générateur, et doit pourtant avoir ses bords teintés : le sens ne
+    dépend que du tracé, pas des lignes. */
+    this.sens = this._sensVirages();
+
     // lines
     this.lines = {};
-    if (def.lines && def.lines.racing) this._projectLines(def.lines, scale);
+    // Les lignes sont dans les mêmes unités que `pts`, donc remises à l'échelle comme lui. Passer
+    // `scale` ici était juste pour un circuit d'éditeur, où les deux valent la même chose, et faux
+    // pour un circuit intégré : sa ligne centrale est redimensionnée après coup pour tomber sur la
+    // longueur voulue, si bien que des lignes explicites auraient été projetées à côté de la piste.
+    if (def.lines && def.lines.racing) this._projectLines(def.lines, this.unitScale);
     else this._autoLines();
-    this._limitLines(0.07, Track.RACING_SLOPE);
+    /* Dix centimètres par mètre pour les lignes secondaires, mesuré et non choisi.
+
+    Le chiffre arbitre deux choses qui tirent en sens contraire. Trop bas, la ligne intérieure
+    n'a pas le temps de traverser la piste avant le virage et l'aborde encore du mauvais côté.
+    Trop haut, elle traverse plus vite que les voitures ne savent suivre, et l'IA sort de piste.
+    Balayé sur les douze circuits, avec d'un côté la part de l'approche où l'intérieure est bien
+    à l'intérieur et de l'autre le nombre de sorties de piste en course :
+
+        0,07 → 82 % et 98 sorties      0,12 → 85 % et 109
+        0,10 → 84 % et 97              0,18 → 86 % et 147
+
+    Le coude est à 0,10 : au-delà on gagne un point d'approche et on paie douze sorties. */
+    this._limitLines(0.10, Track.RACING_SLOPE);
     if (def.lines && !def.width) this._widthFromLines();
     this._clampLines();
     this._lineCurvatures();
+    this._buildPits(def);
     this.halfWidth = baseHw;          // nominal, used for grids and camera
     this.width = baseHw * 2;
 
@@ -274,22 +298,158 @@ class Track {
     }
     const racing = this._minCurvature(lo, hi, 120);
 
-    // The other two lines are offsets from the fast one, not lines in their own right: the inside
-    // is the defensive line that shuts the door, the outside the one that goes round. Each moves
-    // toward its edge by most of the room the racing line has left on that side.
+    /* Les deux autres lignes : celle qui ferme la porte, et celle qui passe autour.
+
+    Elles ne sont pas des trajectoires en soi mais des écarts à la rapide, et tout tient à une seule
+    question : de quel côté est l'intérieur du virage. Elle se tranche par la géométrie et non par
+    une convention de signe — le fichier en portait deux, contradictoires, et la ligne « intérieure »
+    se trouvait de fait à l'extérieur du virage 99 % du temps. `tools/cotes.js` le mesure, et
+    `tools/curseur.js` le vérifie en conduisant, ce qui n'est pas la même chose.
+
+    Chaque ligne se déporte d'une fraction de la place qui reste de son côté. Cela donne deux voies
+    nettement asymétriques, et c'est une propriété de la géométrie plutôt qu'un réglage : la ligne de
+    course est la trajectoire de courbure minimale, donc elle vient déjà toucher le bord intérieur à
+    chaque apex. Il n'y a rien « de plus à l'intérieur » dans un virage, et rien de plus à
+    l'extérieur dans une ligne droite, où elle se place déjà du côté extérieur du virage qui vient.
+    Mesuré en médiane, l'écart à la rapide vaut :
+
+                        en virage   à l'approche   en ligne droite
+        intérieure          0,7 m        3,8 m           7,2 m
+        extérieure          6,5 m        3,5 m           1,2 m
+
+    Les deux se séparent donc dans des zones opposées, ce qui est juste : on ferme la porte AVANT le
+    virage, et on passe autour PENDANT. Le curseur n'en reste pas moins asymétrique au ressenti.
+
+    Deux autres constructions ont été essayées et mesurées, et toutes deux coûtent trop cher à l'IA
+    pour ce qu'elles apportent. Viser franchement les deux bords plutôt qu'une fraction de la place
+    restante : 217 sorties de piste sur les douze circuits contre 94, sans gagner un point sur le
+    curseur. Faire de l'intérieure le chemin le plus court du couloir — le fil tendu, qui est la
+    vraie ligne défensive et serre tous les apex : 228 sorties, parce que la plus courte est aussi
+    celle de plus petit rayon, et que les voitures ne la tiennent pas. */
+    const g = this.sens;
     const inside = new Float32Array(N), outside = new Float32Array(N);
-    const turn = new Float32Array(N);
-    for (let i = 0; i < N; i++) turn[i] = clamp(this.k[i] * 120, -1, 1);   // + = the road turns left
-    const turnS = Track.smooth(turn, 40);
     for (let i = 0; i < N; i++) {
-      const r = racing[i], sg = clamp(turnS[i] * 2.4, -1, 1);
+      const r = racing[i];
       const toL = hi[i] - r, toR = r - lo[i];
-      inside[i] = r + sg * (sg > 0 ? toL : toR) * 0.85;
-      outside[i] = r - sg * (sg > 0 ? toR : toL) * 0.85;
+      const vers = (q, sg) => (sg > 0 ? q * toL : -q * toR);   // se déporter de q, du côté sg
+      inside[i] = r + vers(Math.abs(g[i]) * 0.85, g[i]);       // vers l'intérieur du virage
+      outside[i] = r + vers(Math.abs(g[i]) * 0.85, -g[i]);     // et l'autre, vers l'extérieur
     }
     this.lines.racing = racing;
     this.lines.inside = Track.smooth(inside, 16);
     this.lines.outside = Track.smooth(outside, 16);
+  }
+
+  /* De quel côté est l'intérieur du virage, en tout point du tour.
+
+  Deux exigences qui tirent en sens contraire. Chaque virage doit imposer son vrai sens, sinon la
+  ligne « intérieure » se retrouve à l'extérieur — elle y était 99 % du temps, avant. Et les lignes
+  doivent rester écartées dans les lignes droites, sinon il n'y a pas de place pour doubler ; elles
+  s'y confondaient sur 13 % du tour. Un simple lissage ne peut pas les satisfaire toutes les deux :
+  large, il écrase les virages courts ; étroit, il laisse les lignes se rejoindre dès que la route
+  est droite.
+
+  La sortie est de ne pas moyenner du tout. Chaque virage décide de son sens, franchement ; entre
+  deux virages, le sens est **tenu** plutôt qu'interpolé. Deux virages de même main laissent donc les
+  lignes écartées d'un bout à l'autre de la droite qui les sépare, et deux virages de mains opposées
+  se partagent la droite en deux, le croisement tombant au milieu. C'est le principe des voies qui se
+  croisent à des endroits choisis, et non d'un fondu qui les colle l'une à l'autre sur des centaines
+  de mètres.
+
+  Le sens local se lit sur la dérivée seconde de l'axe, ouverte sur quinze mètres : elle pointe vers
+  le centre de courbure, et projetée sur la normale gauche elle dit de quel côté il se trouve. Prise
+  sur un seul pas elle ne pèserait que quelques millimètres pour un virage de 250 m de rayon, et sa
+  direction ne serait que du bruit. */
+  _sensVirages() {
+    const N = this.n, W = 15;
+    const dir = new Float32Array(N), poids = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      const a = (i - W + N) % N, b = (i + W) % N;
+      const cx = this.xs[b] - 2 * this.xs[i] + this.xs[a];
+      const cy = this.ys[b] - 2 * this.ys[i] + this.ys[a];
+      const m = Math.hypot(cx, cy);
+      poids[i] = m;
+      dir[i] = m > 1e-9 ? (cx * this.nx[i] + cy * this.ny[i]) / m : 0;
+    }
+    // Le sens de chaque virage, sur un lissage court : assez pour ôter le bruit, pas assez pour
+    // qu'un virage emprunte le sens de son voisin.
+    const num = new Float32Array(N);
+    for (let i = 0; i < N; i++) num[i] = dir[i] * poids[i];
+    const numS = Track.smooth(num, 30), poidsS = Track.smooth(poids, 30);
+
+    /* Où il y a assez de virage pour décider — et le seuil est d'abord absolu.
+
+    Un seuil seulement relatif au virage le plus serré du circuit se trompe sur les tracés
+    contrastés. À Monza les chicanes font 22 m de rayon ; une grande courbe de 234 m tombait donc
+    très en dessous de 18 % du maximum, se voyait classée « ligne droite », et héritait du sens de
+    ses voisines — les deux lignes s'y retrouvaient franchement inversées, sur cinq mètres d'écart.
+    C'est exactement le genre de virage rapide où le choix de ligne décide d'un dépassement.
+
+    Le seuil absolu dit la chose physique : en deçà de 400 m de rayon, il y a un côté à choisir.
+    Pour un arc de rayon R, la dérivée seconde ouverte sur W échantillons vaut (W·ds)²/R, d'où le
+    calcul. Le seuil relatif reste, mais comme plafond : sur un tracé sans aucun virage serré il
+    laisse quand même les grandes courbes décider. */
+    let max = 0;
+    for (let i = 0; i < N; i++) max = Math.max(max, poidsS[i]);
+    const seuil = Math.min(max * 0.18, (W * this.ds) * (W * this.ds) / 400);
+    const signe = new Int8Array(N);
+    for (let i = 0; i < N; i++) {
+      signe[i] = poidsS[i] > seuil ? (numS[i] >= 0 ? 1 : -1) : 0;
+    }
+
+    // Aucun virage franc — un anneau parfait : on garde le sens brut plutôt que de rendre zéro,
+    // qui collerait les trois lignes.
+    let décidés = 0;
+    for (let i = 0; i < N; i++) if (signe[i]) décidés++;
+    if (!décidés) {
+      const out = new Float32Array(N);
+      for (let i = 0; i < N; i++) out[i] = Math.tanh((numS[i] / (poidsS[i] + 1e-9)) * 3.5);
+      return out;
+    }
+
+    /* Tenir le sens entre deux virages — et basculer tôt, vers le virage qui vient.
+
+    Une ligne intérieure n'est pas d'abord une ligne de virage : c'est celle qui **arrive** du côté
+    intérieur du virage qui vient, cent mètres avant le point de corde. C'est là qu'elle ferme la
+    porte, et c'est là que le joueur la voit.
+
+    La première version partageait chaque ligne droite en deux, moitié au sens du virage précédent,
+    moitié à celui du suivant. Mesurée sur l'approche — les quatre-vingts mètres qui précèdent
+    l'entrée d'un virage — elle n'était du bon côté que 71 % du temps, et 55 % au Nürburgring : sur
+    la première moitié de chaque droite, l'intérieure longeait encore le côté du virage d'avant,
+    c'est-à-dire l'extérieur de celui qu'elle abordait.
+
+    Le sens du virage précédent n'est donc tenu que le temps de se déplier — une trentaine de mètres
+    — puis toute la suite de la droite appartient au virage qui vient. Le limiteur de pente étire de
+    toute façon la traversée sur une centaine de mètres ; basculer tôt, c'est lui laisser le temps
+    d'arriver. */
+    let début = 0;
+    while (!signe[début]) début++;
+    const plein = new Int8Array(N);
+    for (let n = 0; n < N; n++) {
+      const i = (début + n) % N;
+      plein[i] = signe[i];
+    }
+    for (let n = 0; n < N; n++) {
+      const i = (début + n) % N;
+      if (plein[i]) continue;
+      let len = 0;
+      while (len < N && !plein[(i + len) % N]) len++;
+      const avant = plein[(i - 1 + N) % N];
+      const après = plein[(i + len) % N] || avant;
+      const tenu = Math.min(len * 0.25, Math.round(30 / this.ds));
+      for (let k = 0; k < len; k++) plein[(i + k) % N] = k < tenu ? avant : après;
+      n += len - 1;
+    }
+
+    /* Le créneau est adouci juste ce qu'il faut pour que le croisement ne soit pas une marche.
+    Vingt mètres suffisent : le limiteur de pente, appliqué ensuite, étire de toute façon un
+    changement de côté sur la distance qu'une voiture met à traverser la piste. Ce qui est décidé
+    ici, c'est **où** le croisement tombe, pas à quelle vitesse il se fait. */
+    const doux = Track.smooth(Float32Array.from(plein), 20);
+    const out = new Float32Array(N);
+    for (let i = 0; i < N; i++) out[i] = Math.tanh(doux[i] * 3);
+    return out;
   }
 
   /* Relaxes a line to the least-bending path that stays between `lo` and `hi`.
@@ -348,21 +508,41 @@ class Track {
 
   // A line must be something a car can actually follow: limit how fast it moves across the road
   // (metres of lateral per metre travelled), forward and backward so both ends of a move are gentle.
+  /* Limite la vitesse à laquelle une ligne traverse la piste — mais pas la même chose pour chacune.
+
+  La ligne de course est bridée sur sa position, et généreusement : elle est résolue, pas devinée, et
+  sa courbure est déjà la plus faible que la route autorise. Un plafond sévère ne pourrait que la
+  rabattre vers le milieu, ce qu'il faisait — à sept centimètres par mètre, traverser sept mètres de
+  piste demande cent mètres, et elle n'atteignait jamais l'extérieur avant un virage.
+
+  Les deux autres sont bridées sur leur **écart à la ligne de course**, et non sur leur position.
+  C'est la correction d'un défaut qui rendait la ligne « intérieure » inutilisable : bridée en
+  absolu à 0,07 m/m quand la ligne de course se déporte jusqu'à 0,30, elle ne pouvait pas suivre
+  celle-ci dans une entrée de virage et se faisait littéralement rabattre — les deux lignes ne se
+  trouvaient de part et d'autre que 60 % du temps, et l'intérieure passait du mauvais côté. Brider
+  l'écart plutôt que la position est d'ailleurs ce qui a un sens : une voiture sur la ligne
+  intérieure roule sensiblement parallèle à la ligne de course, et ne s'en écarte que
+  progressivement. */
   _limitLines(maxSlope, racingSlope) {
     const N = this.n;
-    for (const name of LINE_NAMES) {
-      // The racing line is allowed to move across the road much faster than the other two. It is
-      // solved, not guessed, and its curvature is already the least the road allows — a slope cap
-      // can only flatten it back toward the middle, which is exactly what it used to do: at seven
-      // centimetres per metre a line needs a hundred metres to cross seven metres of road, so it
-      // never reached the outside before a corner and never looked like a racing line at all.
-      const limit = name === 'racing' ? (racingSlope == null ? maxSlope : racingSlope) : maxSlope;
-      const a = this.lines[name];
+    const lisse = (a, limit) => {
       for (let pass = 0; pass < 2; pass++) {
         for (let i = 1; i <= N; i++) { const j = i % N, k = (i - 1) % N; a[j] = clamp(a[j], a[k] - limit, a[k] + limit); }
         for (let i = N - 1; i >= -1; i--) { const j = (i + N) % N, k = (i + 1) % N; a[j] = clamp(a[j], a[k] - limit, a[k] + limit); }
       }
-      this.lines[name] = Track.smooth(a, 4);
+      return Track.smooth(a, 4);
+    };
+    this.lines.racing = lisse(this.lines.racing, racingSlope == null ? maxSlope : racingSlope);
+    const r = this.lines.racing;
+    for (const name of LINE_NAMES) {
+      if (name === 'racing') continue;
+      const a = this.lines[name];
+      const ec = new Float32Array(N);
+      for (let i = 0; i < N; i++) ec[i] = a[i] - r[i];
+      const lim = lisse(ec, maxSlope);
+      const out = new Float32Array(N);
+      for (let i = 0; i < N; i++) out[i] = r[i] + lim[i];
+      this.lines[name] = out;
     }
   }
 
@@ -510,11 +690,100 @@ class Track {
   hwLeftAt(s) { return this._lerp(this.hwL, s); }
   hwRightAt(s) { return this._lerp(this.hwR, s); }
   lineLat(name, s) { return this._lerp(this.lines[name], s); }
+
+  /* La voie des stands, calculée et non dessinée.
+
+  Aucun circuit n'en a. Les douze intégrés sont une ligne centrale et des largeurs, ceux de
+  l'éditeur aussi, et en dessiner douze à la main aurait laissé les circuits perso sans stands —
+  donc la moitié du chantier inutilisable pour qui fabrique ses propres tracés.
+
+  Elle est donc déduite du tracé : un couloir décalé latéralement du côté DROIT, qui s'écarte de la
+  piste avant la ligne d'arrivée, longe la case d'arrêt, et revient se fondre après. Le côté droit
+  plutôt que l'intérieur du virage : « intérieur » change de sens à chaque courbe, alors qu'un côté
+  fixe donne une voie qui ne traverse jamais la piste.
+
+  Les trois repères sont proportionnels à la longueur du circuit et bornés : sur un tracé court la
+  voie occuperait sinon un quart du tour, sur un tracé long elle serait ridicule. */
+  /* La voie est placée par défaut sur la ligne d'arrivée, et se déplace par circuit.
+
+  Le défaut vaut pour onze tracés sur douze. Spa fait exception : sa zone d'arrêt tombait dans le
+  dernier virage, la voiture y passait en portant la vitesse de la courbe et sa vitesse minimale
+  dans la zone ne descendait jamais en dessous de 12,7 m/s. Aucun arrêt de toute la course, sur ce
+  seul circuit. Le tracé n'a aucun croisement, contrairement à ce que j'avais d'abord supposé.
+
+  `def.pitAt` — la fraction du tour où se trouve la ZONE D'ARRÊT — le corrige, et sert aussi aux
+  circuits de l'éditeur.
+
+  J'AI ESSAYÉ DE LE CHOISIR AUTOMATIQUEMENT, en cherchant le tronçon le plus droit quand la ligne
+  est trop tordue, et la mesure a refusé : la courbure ne prédit pas l'échec. Le défaut de Spa a
+  une courbure maximale de 49,6 pour mille dans sa zone — mais celui du Nürburgring vaut 65,3 et
+  fonctionne, Red Bull Ring 43,5 fonctionne, Le Mans 34,3 fonctionne. Aucun seuil ne sépare le cas
+  qui casse des cas qui marchent. Un placement automatique aurait donc déplacé six circuits sains
+  sur un critère faux, pour en sauver un. */
+  _buildPits(def) {
+    const L = this.length;
+    const long = Math.max(160, Math.min(L * 0.22, 340));
+    const ancre = def && def.pitAt != null ? this.wrap(def.pitAt * L) : this.wrap(-long * 0.20);
+    this.pit = {
+      entree: this.wrap(ancre - long * 0.50),
+      boite: ancre,
+      sortie: this.wrap(ancre + long * 0.50),
+      long,
+      // l'écart entre le bord de piste et l'AXE de la voie : séparation + demi-largeur de voie
+      ecartPlein: 7.0,
+      largeur: 6.0,      // largeur de la voie elle-même, pour le dessin
+      zone: 26,          // demi-longueur de la zone d'arrêt — il suffit de s'y arrêter
+    };
+  }
+
+  /* Où se trouve la voie des stands à cette abscisse, et à quel point on y est engagé.
+
+  UNE VOIE PARALLÈLE, comme sur un vrai circuit : deux courtes bretelles aux extrémités, et entre
+  les deux un couloir à écart CONSTANT du bord de piste. La première version biseautait sur toute
+  la longueur, ce qui donnait un losange — on s'écartait puis on revenait sans jamais longer quoi
+  que ce soit, et il n'y avait pas de « voie » à proprement parler.
+
+  L'écart se mesure depuis le bord droit de la piste et non depuis l'axe : `hwRightAt` varie avec
+  l'abscisse, donc suivre le bord garde la voie parallèle à la PISTE plutôt qu'à sa ligne médiane.
+  C'est ce que fait un vrai circuit, et c'est ce qui évite que la voie morde dans l'asphalte là où
+  la piste s'élargit.
+
+  Rend `null` hors de la voie. `u` va de 0 à 1 de l'entrée à la sortie. */
+  pitAt(s) {
+    const p = this.pit;
+    if (!p) return null;
+    const span = this.wrap(p.sortie - p.entree);
+    const d = this.wrap(s - p.entree);
+    if (d > span) return null;
+    const u = d / span;
+    // bretelles courtes : 12 % à l'entrée, 14 % à la sortie. Entre les deux, écart plein.
+    const ecart = Math.min(1, Math.min(u / 0.12, (1 - u) / 0.14));
+    const dBoite = this.wrap(s - p.boite);
+    return {
+      u, ecart,
+      lat: -(this.hwRightAt(s) + p.ecartPlein * ecart),
+      // distance signée à la zone d'arrêt : négative avant, positive après
+      boite: dBoite > this.length / 2 ? dBoite - this.length : dBoite,
+      // dans la zone d'arrêt ? il suffit d'y être arrêté, la précision n'est pas le jeu
+      dansZone: Math.abs(dBoite > this.length / 2 ? dBoite - this.length : dBoite) < p.zone,
+    };
+  }
   // blend of the three lines: sel in [-1, 1] (-1 inside, 0 racing, +1 outside)
+  /* Où viser, à cette abscisse, pour la position de levier demandée.
+
+  `sel` va de -1 (corde) à +1 (extérieur), et AU-DELÀ DE -1 vient la voie des stands : c'est la
+  coche de plus sur le levier. En dessous de -1 on mélange donc la ligne intérieure et le couloir
+  des stands, ce qui donne un rabattement progressif plutôt qu'un saut — et, hors de la voie, la
+  position -2 ne vaut rien de plus que la corde, si bien qu'un pilote qui la demande trop tôt reste
+  simplement à l'intérieur jusqu'à l'entrée. */
   targetLat(s, sel) {
     const r = this._lerp(this.lines.racing, s);
-    if (sel < 0) return r + (this._lerp(this.lines.inside, s) - r) * Math.min(1, -sel);
-    return r + (this._lerp(this.lines.outside, s) - r) * Math.min(1, sel);
+    if (sel >= 0) return r + (this._lerp(this.lines.outside, s) - r) * Math.min(1, sel);
+    const dedans = r + (this._lerp(this.lines.inside, s) - r) * Math.min(1, -sel);
+    if (sel > -1) return dedans;
+    const p = this.pitAt(s);
+    if (!p) return dedans;
+    return dedans + (p.lat - dedans) * Math.min(1, -sel - 1);
   }
   // curvature of the blended line (what a car following it really turns)
   lineCurv(s, sel) {

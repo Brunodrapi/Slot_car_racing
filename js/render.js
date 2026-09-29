@@ -26,6 +26,10 @@ const THEME_BASE = {
   asphalt: '#4e3f57', asphaltLight: '#5b4a64',
   outline: '#241d2a',
   edgeLine: '#eceaf0', centre: null,
+  // Les deux bords de piste, teintés du côté du virage : froid dedans, chaud dehors, et ce sont les
+  // couleurs du curseur de ligne pour que le lien se fasse sans légende. Assez clairs pour rester
+  // des lignes peintes sur de l'asphalte, assez marqués pour se distinguer d'un coup d'œil.
+  edgeIn: '#7fd4ff', edgeOut: '#ffcf5c',
   kerbA: '#c33b30', kerbB: '#eceaf0',
   gravel: '#c8ab72', gravelDark: '#b39660',
   canopy: ['#3f7a34', '#4b8d3c', '#336629'], pine: ['#2f5f4f', '#37705d'],
@@ -80,7 +84,7 @@ const THEME_DEFS = {
     grass: '#dcd2c8', grassLight: '#e7ded2', grassDark: '#cfc4b6',
     earth: '#877482', earthDark: '#746373',
     asphalt: '#56465e', asphaltLight: '#62526a',
-    edgeLine: '#f5f2e8', centre: '#f5f2e8',
+    edgeLine: '#f5f2e8', centre: '#f5f2e8', edgeIn: '#8fdcff', edgeOut: '#ffd97a',
     kerbA: '#c33b30', kerbB: '#f4f1e8',
     gravel: '#cfc3ae', gravelDark: '#bdb09a',
     canopy: ['#4f9a55', '#5cae61', '#3f7f45'], pine: ['#3f7a5a', '#4a8c69'],
@@ -254,19 +258,63 @@ class Renderer {
     this._layoutHud();
   }
 
+  /* Ce que le téléphone nous prend sur les bords.
+
+  Le canvas est en `position: fixed; inset: 0` avec `viewport-fit=cover` : il couvre l'écran ENTIER,
+  encoche et barre d'accueil comprises. Les écrans en DOM, eux, respectent `env(safe-area-inset-*)`
+  depuis toujours — mais le HUD est dessiné, et un dessin ne connaît pas le CSS. Il posait donc ses
+  quatorze pixels depuis le bord physique, si bien qu'en portrait sur un iPhone le bouton pause,
+  de 14 à 60, tombait aux trois quarts sous une barre d'état haute de 47.
+
+  `env()` ne se lit pas depuis JavaScript : la valeur calculée d'une propriété personnalisée n'est
+  pas résolue, on récupérerait le texte `env(...)`. On passe donc par une sonde — un élément qui
+  porte ces quatre valeurs en marge intérieure, ce qui, lui, se résout en pixels. Elle est relue à
+  chaque mise en page, parce que tourner le téléphone déplace les encoches. */
+  _encoches() {
+    if (!document.body) return { t: 0, r: 0, b: 0, l: 0 };
+    let d = this._sonde;
+    if (!d) {
+      d = this._sonde = document.createElement('div');
+      d.id = 'sonde-encoches';
+      d.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;'
+        + 'pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right)'
+        + ' env(safe-area-inset-bottom) env(safe-area-inset-left);';
+      document.body.appendChild(d);
+    }
+    const c = getComputedStyle(d);
+    const n = (v) => Math.max(0, Math.round(parseFloat(v) || 0));
+    return { t: n(c.paddingTop), r: n(c.paddingRight), b: n(c.paddingBottom), l: n(c.paddingLeft) };
+  }
+
   _layoutHud() {
     const W = this.w, H = this.h, mobile = W < 700;
-    const pad = 14;
+    const sa = this._encoches();
+    // Un seul écart, mesuré depuis le bord SÛR et non depuis le bord physique.
+    const P = this.pad = { t: 14 + sa.t, r: 14 + sa.r, b: 14 + sa.b, l: 14 + sa.l };
+    this.encoches = sa;
     // Throttle dial: a half-dome that the thumb carries with it. At rest it waits at the bottom
     // centre; a thumb landing anywhere off the line slider moves it there, base on the finger, so
     // the whole dial reads above the hand instead of under it.
     const r = clamp(Math.min(W * 0.26, H * 0.17), 68, 130);
-    this.dialHome = { cx: W / 2, cy: H - pad - r * 0.46 };   // at rest the pad shows in full
+    this.dialHome = { cx: W / 2, cy: H - P.b - r * 0.46 };   // at rest the pad shows in full
     this.dial = { cx: this.dialHome.cx, cy: this.dialHome.cy, r };
     this.dialAnchored = false;
     // vertical line slider, left side, clear of the dial
     const len = Math.min(H * 0.38, 320);
-    this.slider = { x: pad + 22, y: H - pad - 30 - len, len, w: 30 };
+    this.slider = { x: P.l + 22, y: H - P.b - 30 - len, len, w: 30 };
+    /* Les deux panneaux du haut, mesurés ici et non plus au moment de les dessiner : le bouton
+    pause se pose dans l'espace qu'ils laissent, et deux jeux de constantes qui doivent rester
+    d'accord finissent toujours par ne plus l'être. */
+    this.hudBox = { w: mobile ? 150 : 190, h: mobile ? 64 : 78, tw: mobile ? 150 : 200 };
+    /* Le bouton pause, entre les deux panneaux — le seul endroit du haut que rien n'occupe.
+
+    Au clavier, Échap et P mettent en pause depuis toujours ; au doigt il n'y avait rien, et une
+    course ne se quittait pas. Il tient dans l'espace restant : 62 px sur un iPhone 13, mais 47 sur
+    un SE, donc sa taille suit la place au lieu d'être posée — sur un écran étroit un bouton de
+    46 px passerait sous le chrono. */
+    const creux = W - P.l - P.r - this.hudBox.w - this.hudBox.tw;
+    const cote = clamp(creux - 10, 34, mobile ? 46 : 42);
+    this.pauseBtn = { x: W / 2 - cote / 2, y: P.t, s: cote };
     this.mobile = mobile;
   }
 
@@ -428,7 +476,35 @@ class Renderer {
         const x = xs[k] + nx[k] * off, y = ys[k] + ny[k] * off;
         if (i === a) mp.moveTo(x, y); else mp.lineTo(x, y);
       }
-      chunks.push({ fill, left: lp, right: rp, mid: mp,
+      /* Les bords teintés : dedans ou dehors.
+
+      Les lignes blanches de part et d'autre de la piste ne disaient rien. Elles portent maintenant
+      le côté du virage — froid vers l'intérieur, chaud vers l'extérieur — avec les couleurs mêmes
+      du curseur de ligne, pour que le lien se fasse sans légende.
+
+      Chaque bord est donc découpé en tronçons selon `track.sens`, et non teinté d'un bloc : un
+      raccord de soixante mètres traverse parfois un changement de main, et le colorer d'une seule
+      couleur mentirait sur la moitié de sa longueur. Le point de bascule est repris dans les deux
+      tronçons, faute de quoi un trou blanc apparaîtrait entre eux. */
+      const eIn = new Path2D(), eOut = new Path2D();
+      for (const side of [1, -1]) {
+        let dedansAvant = null;
+        for (let i = a; i <= b; i += STEP) {
+          const k = ((i % N) + N) % N;
+          const dedans = side > 0 ? track.sens[k] > 0 : track.sens[k] < 0;
+          const q = edgePt(i, side);
+          const cible = dedans ? eIn : eOut;
+          if (dedans !== dedansAvant) {
+            if (dedansAvant !== null) {              // rattacher au point de bascule
+              const autre = dedansAvant ? eIn : eOut;
+              autre.lineTo(q[0], q[1]);
+            }
+            cible.moveTo(q[0], q[1]);
+            dedansAvant = dedans;
+          } else cible.lineTo(q[0], q[1]);
+        }
+      }
+      chunks.push({ fill, left: lp, right: rp, mid: mp, edgeIn: eIn, edgeOut: eOut,
                     bbox: { minX: minX - 12, minY: minY - 12, maxX: maxX + 12, maxY: maxY + 12 } });
     }
 
@@ -723,9 +799,12 @@ class Renderer {
         g.strokeStyle = PAL.outline; g.lineWidth = 0.34; g.stroke(cn.kerbEdge);
       }
       g.restore();
-      // painted markings: solid white at the edges, dashed yellow down the middle
-      g.strokeStyle = PAL.edgeLine; g.lineWidth = 0.55;
-      for (const c of vus) { g.stroke(c.left); g.stroke(c.right); }
+      // painted markings: the edges say which side of the corner they are, dashed yellow down the middle
+      g.lineWidth = 0.55;
+      g.strokeStyle = PAL.edgeIn || PAL.edgeLine;
+      for (const c of vus) g.stroke(c.edgeIn);
+      g.strokeStyle = PAL.edgeOut || PAL.edgeLine;
+      for (const c of vus) g.stroke(c.edgeOut);
       if (PAL.centre) {
         g.setLineDash([2.6, 3.4]);
         g.strokeStyle = PAL.centre; g.lineWidth = 0.42;
@@ -1374,34 +1453,71 @@ class Renderer {
   // ---------- HUD ----------
   _drawHUD(g, race, ui) {
     const W = this.w, H = this.h, p = race.player, t = (k, ...a) => ui.t(k, ...a);
-    const mobile = this.mobile, pad = 14;
+    const mobile = this.mobile, P = this.pad, pad0 = this.pad;
     g.textBaseline = 'top';
     const panel = (x, y, w, h) => { g.fillStyle = 'rgba(10,12,20,0.55)'; this._roundRect(g, x, y, w, h, 10); g.fill(); };
 
     // top-left: position & lap
     const pos = race.positionOf(p), n = race.cars.length;
-    const boxW = mobile ? 150 : 190, boxH = mobile ? 64 : 78;
-    panel(pad, pad, boxW, boxH);
+    /* Le panneau du haut à gauche grandit quand l'usure est active, au lieu de poser les jauges
+    ailleurs. Une bande de plus en dessous serait entrée en conflit avec le classement sur un
+    écran d'ordinateur et avec la carte sur un téléphone — deux cas à régler au lieu d'un. Tout ce
+    qui se pose sous ce panneau lit `boxH`, donc tout descend ensemble. */
+    const usure = !!p.usure;
+    const boxW = this.hudBox.w, boxH = this.hudBox.h + (usure ? 24 : 0);
+    panel(P.l, P.t, boxW, boxH);
     g.fillStyle = '#fff'; g.font = `bold ${mobile ? 30 : 40}px system-ui, sans-serif`; g.textAlign = 'left';
     const posTxt = race.mode === 'timetrial' ? '—' : `${pos}`;
-    g.fillText(posTxt, pad + 12, pad + 8);
+    g.fillText(posTxt, P.l + 12, P.t + 8);
     const posW = g.measureText(posTxt).width;
     g.font = `${mobile ? 13 : 15}px system-ui, sans-serif`; g.fillStyle = '#cfd3dc';
-    if (race.mode !== 'timetrial') g.fillText(`/ ${n}`, pad + 16 + posW, pad + (mobile ? 22 : 30));
+    if (race.mode !== 'timetrial') g.fillText(`/ ${n}`, P.l + 16 + posW, P.t + (mobile ? 22 : 30));
     const lapShown = Math.min(race.laps, p.lap + 1);
     g.textAlign = 'right';
-    g.fillText(race.mode === 'timetrial' ? `${t('lap')} ${p.lap + 1}` : `${t('lap')} ${lapShown} / ${race.laps}`, pad + boxW - 12, pad + 10);
-    g.fillText(p.name, pad + boxW - 12, pad + boxH - 24);
+    g.fillText(race.mode === 'timetrial' ? `${t('lap')} ${p.lap + 1}` : `${t('lap')} ${lapShown} / ${race.laps}`, P.l + boxW - 12, P.t + 10);
+    // Le nom se cale sur la hauteur NUE du panneau, pas sur la hauteur grandie : sinon il descend
+    // avec les jauges et vient se poser dessus, ce qui ne se voit que l'option activée.
+    g.fillText(p.name, P.l + boxW - 12, P.t + this.hudBox.h - 24);
 
     // top-right: times
-    const tw = mobile ? 150 : 200;
-    panel(W - pad - tw, pad, tw, boxH);
+    const tw = this.hudBox.tw;
+    panel(W - P.r - tw, P.t, tw, boxH);
     g.textAlign = 'right'; g.fillStyle = '#fff'; g.font = `bold ${mobile ? 18 : 22}px ui-monospace, monospace`;
-    g.fillText(fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart), W - pad - 12, pad + 8);
+    g.fillText(fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart), W - P.r - 12, P.t + 8);
     g.font = `${mobile ? 12 : 13}px system-ui, sans-serif`; g.fillStyle = '#cfd3dc';
     const last = p.lapTimes.length ? p.lapTimes[p.lapTimes.length - 1] : null;
-    g.fillText(`${t('last')} ${last != null ? fmtTime(last) : '--:--.---'}`, W - pad - 12, pad + (mobile ? 32 : 40));
-    g.fillText(`${t('best')} ${p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---'}`, W - pad - 12, pad + (mobile ? 46 : 56));
+    g.fillText(`${t('last')} ${last != null ? fmtTime(last) : '--:--.---'}`, W - P.r - 12, P.t + (mobile ? 32 : 40));
+    g.fillText(`${t('best')} ${p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---'}`, W - P.r - 12, P.t + (mobile ? 46 : 56));
+
+    /* Les deux jauges : la gomme et la tôle.
+
+    Elles se lisent dans le même sens — plein à gauche, vide à droite — et changent de couleur en
+    approchant de la fin, parce qu'un conducteur regarde ça d'un coup d'œil d'un dixième de
+    seconde en bout de ligne droite, pas en lisant un nombre. Le vert ne veut rien dire tout seul ;
+    c'est le passage à l'orange puis au rouge qui porte l'information. */
+    if (usure) {
+      const jx = pad0.l + 12, jw = boxW - 24, jy = pad0.t + this.hudBox.h - 2;
+      const jauge = (y, frac, bon, moyen, mauvais, titre) => {
+        g.fillStyle = 'rgba(255,255,255,0.14)';
+        this._roundRect(g, jx, y, jw, 7, 3.5); g.fill();
+        g.fillStyle = frac > 0.5 ? bon : frac > 0.22 ? moyen : mauvais;
+        this._roundRect(g, jx, y, Math.max(2, jw * Math.max(0, Math.min(1, frac))), 7, 3.5); g.fill();
+        g.font = `bold ${mobile ? 9 : 10}px system-ui, sans-serif`;
+        g.textAlign = 'left'; g.fillStyle = '#aeb4c0';
+        g.fillText(titre, jx, y - 10);
+      };
+      jauge(jy, p.tyre, '#5be07a', '#ffd400', '#ff4d4d', t('tyres'));
+      jauge(jy + 15, 1 - p.damage, '#7fd4ff', '#ffd400', '#ff4d4d', t('damage'));
+      g.textAlign = 'left';
+    }
+
+    // bouton pause, entre les deux panneaux du haut
+    const pb = this.pauseBtn;
+    panel(pb.x, pb.y, pb.s, pb.s);
+    g.fillStyle = '#e8e8ec';
+    const bw = Math.max(3, Math.round(pb.s * 0.11)), bh = Math.round(pb.s * 0.42), ecart = Math.round(pb.s * 0.13);
+    g.fillRect(pb.x + pb.s / 2 - ecart - bw, pb.y + (pb.s - bh) / 2, bw, bh);
+    g.fillRect(pb.x + pb.s / 2 + ecart, pb.y + (pb.s - bh) / 2, bw, bh);
 
     // line slider (left thumb)
     this._drawSlider(g, p, t);
@@ -1410,8 +1526,8 @@ class Renderer {
     if (this.mm) {
       // On a phone the bottom-right corner belongs to the thumb, so the map moves up under the
       // times. On a desktop there is no thumb and it stays in the corner.
-      const m = this.mm, mx = W - pad - m.size;
-      const my = mobile ? pad + boxH + 10 : H - pad - m.size;
+      const m = this.mm, mx = W - P.r - m.size;
+      const my = mobile ? P.t + boxH + 10 : H - P.b - m.size;
       panel(mx, my, m.size, m.size);
       g.drawImage(m.canvas, mx, my, m.size, m.size);
       for (const car of race.cars) {
@@ -1425,7 +1541,7 @@ class Renderer {
     // standings strip (desktop)
     if (!mobile && race.mode !== 'timetrial') {
       const st = race.standings().slice(0, 6);
-      const rowH = 20, bw = 190, bx = pad, by = pad + boxH + 10;
+      const rowH = 20, bw = 190, bx = P.l, by = P.t + boxH + 10;
       panel(bx, by, bw, st.length * rowH + 10);
       g.font = '13px system-ui, sans-serif'; g.textAlign = 'left';
       st.forEach((car, i) => {
@@ -1441,8 +1557,8 @@ class Renderer {
     this._drawDial(g, p, t);
 
     // telemetry overlay (G key or settings): the four numbers that describe the car's state
-    const dbgY = pad + boxH + 10 + (mobile && this.mm ? this.mm.size + 10 : 0);
-    if (this.debug) this._drawDebug(g, p, mobile ? 150 + pad * 2 : 200 + pad * 2, dbgY);
+    const dbgY = P.t + boxH + 10 + (mobile && this.mm ? this.mm.size + 10 : 0);
+    if (this.debug) this._drawDebug(g, p, P.l + boxW + 14, dbgY);
 
     // countdown
     if (race.state === 'countdown') {
@@ -1461,13 +1577,32 @@ class Renderer {
     }
     if (p.state === 'grass') { g.textAlign = 'center'; g.fillStyle = '#ff6b6b'; g.font = 'bold 28px system-ui, sans-serif'; g.fillText(t('offTrack'), W / 2, H * 0.3); }
     if (p.finished && race.state !== 'finished') { g.textAlign = 'center'; g.fillStyle = '#ffd400'; g.font = 'bold 40px system-ui, sans-serif'; g.fillText(`${t('finished')} — P${race.positionOf(p)}`, W / 2, H * 0.3); }
-    if (ui.flash && ui.flash.until > performance.now()) { g.textAlign = 'center'; g.fillStyle = ui.flash.color || '#fff'; g.font = 'bold 26px system-ui, sans-serif'; g.fillText(ui.flash.text, W / 2, H * 0.12); }
+    /* Le temps au tour se pose sous TOUT ce qui occupe le haut, et non à une hauteur fixe.
+
+    Deux fois de suite il est tombé sur quelque chose : à 12 % de la hauteur il couvrait le bouton
+    pause en paysage sur un téléphone ; passé sous le bouton, il couvrait les jauges d'usure, parce
+    que le panneau de gauche grandit quand l'option est active. Il prend donc le plus bas des
+    trois, et il suivra tout seul le prochain élément qu'on ajoutera en haut. */
+    if (ui.flash && ui.flash.until > performance.now()) { g.textAlign = 'center'; g.fillStyle = ui.flash.color || '#fff'; g.font = 'bold 26px system-ui, sans-serif'; g.fillText(ui.flash.text, W / 2, Math.max(H * 0.12, pb.y + pb.s + 14, P.t + boxH + 14)); }
     g.textBaseline = 'alphabetic';
   }
 
+  /* Le levier, et la coche des stands en dessous.
+
+  Elle se pose SOUS les trois positions existantes au lieu de réétaler le levier sur quatre crans.
+  Réétaler aurait déplacé « intérieur », « course » et « extérieur » dès que les stands
+  s'ouvrent — donc changé la géométrie du seul contrôle de trajectoire en pleine course, au tour
+  où l'on a le plus besoin qu'il soit là où la main l'attend. La coche vit donc dans la marge basse
+  du panneau, que le fond réservait déjà.
+
+  Elle n'existe que quand elle sert : option activée, premier tour bouclé, pas déjà servi. Une
+  coche grise qui ne fait rien est pire qu'une coche absente — on la vise et il ne se passe rien. */
   _drawSlider(g, p, t) {
     const s = this.slider;
-    g.fillStyle = 'rgba(10,12,20,0.55)'; this._roundRect(g, s.x - s.w / 2 - 8, s.y - 26, s.w + 16, s.len + 52, 12); g.fill();
+    const ouvert = !!(p.usure && p.lap >= 1 && !p.pitServi && !p.finished);
+    this.pitOpen = ouvert;
+    this.pitY = s.y + s.len + 22;
+    g.fillStyle = 'rgba(10,12,20,0.55)'; this._roundRect(g, s.x - s.w / 2 - 8, s.y - 26, s.w + 16, s.len + 52 + (ouvert ? 22 : 0), 12); g.fill();
     // track
     g.fillStyle = 'rgba(255,255,255,0.18)'; this._roundRect(g, s.x - 4, s.y, 8, s.len, 4); g.fill();
     const stops = [{ v: 1, c: LINE_COLORS.outside, l: t('lineOut') }, { v: 0, c: LINE_COLORS.racing, l: t('lineRace') }, { v: -1, c: LINE_COLORS.inside, l: t('lineIn') }];
@@ -1477,11 +1612,35 @@ class Renderer {
       g.fillStyle = st.c; g.beginPath(); g.arc(s.x, y, 7, 0, Math.PI * 2); g.fill();
       g.fillStyle = '#e8e8ec'; g.fillText(st.l, s.x + 14, y);
     }
-    // handle
-    const hy = s.y + s.len / 2 - p.sel * s.len / 2;
+    if (ouvert) {
+      // le rail se prolonge jusqu'à la coche, sinon elle flotte sans appartenir au levier
+      g.fillStyle = 'rgba(255,255,255,0.10)'; this._roundRect(g, s.x - 4, s.y + s.len, 8, 22, 4); g.fill();
+      const actif = p.pitAsk || p.pitState;
+      g.fillStyle = actif ? '#5be07a' : '#cfa14a';
+      g.beginPath(); g.arc(s.x, this.pitY, 8, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#1a1400'; g.font = `bold ${this.mobile ? 9 : 10}px system-ui, sans-serif`;
+      g.textAlign = 'center'; g.fillText('P', s.x, this.pitY + 0.5);
+      g.textAlign = 'left'; g.fillStyle = actif ? '#5be07a' : '#e8e8ec';
+      g.font = `bold ${this.mobile ? 10 : 11}px system-ui, sans-serif`;
+      g.fillText(t('linePit'), s.x + 14, this.pitY);
+    }
+    // handle — posée sur la coche quand les stands sont demandés
+    const hy = (p.pitAsk || p.pitState) && ouvert ? this.pitY : s.y + s.len / 2 - p.sel * s.len / 2;
     g.fillStyle = '#ffd400'; g.beginPath(); g.arc(s.x, hy, 13, 0, Math.PI * 2); g.fill();
     g.strokeStyle = '#1a1400'; g.lineWidth = 2; g.stroke();
     g.textBaseline = 'top';
+  }
+
+  /* Le point tombe-t-il sur le bouton pause ?
+
+  La cible est un peu plus large que le dessin, comme le hamburger du menu : sur un écran étroit le
+  bouton descend à 37 px, et un pouce ne vise pas à cinq pixels près. Elle reste très loin du
+  curseur de ligne, à gauche, et du cadran d'accélérateur, en bas. */
+  pauseHitAt(x, y) {
+    const b = this.pauseBtn;
+    if (!b) return false;
+    const m = 6;
+    return x >= b.x - m && x <= b.x + b.s + m && y >= b.y - m && y <= b.y + b.s + m;
   }
 
   // maps a screen point in the slider zone to a selection value; null if outside the zone
@@ -1496,6 +1655,10 @@ class Renderer {
     const inZoneX = touchZone ? x < this.w * 0.42 : Math.abs(x - s.x) < 40;
     if (!inZoneX) return null;
     if (!touchZone && (y < s.y - 30 || y > s.y + s.len + 30)) return null;
+    /* La coche des stands vit SOUS le rail, dans la marge du panneau : un doigt qui descend plus
+    bas que la position « intérieur » demande les stands. Elle n'est lue que si elle est dessinée,
+    faute de quoi on demanderait un arrêt impossible en visant le bord du panneau. */
+    if (this.pitOpen && y > s.y + s.len + 8) return -2;
     let v = (s.y + s.len / 2 - y) / (s.len / 2);
     v = clamp(v, -1, 1);
     if (Math.abs(v) < 0.18) v = 0; else if (Math.abs(v) > 0.82) v = Math.sign(v);

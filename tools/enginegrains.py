@@ -2,7 +2,8 @@
 """Prépare une **rampe** de moteur pour la lecture granulaire.
 
     python3 tools/enginegrains.py <prise.wav> <nom> --haut=9000
-                                  [--secondes=6] [--hz=24000] [--out=sounds/engine] [--descente]
+                                  [--secondes=6] [--out=sounds/engine] [--descente]
+                                  [--garde=<chemin servi>]   # ne réencode rien
 
 `--haut` est le rupteur de la voiture, et c'est le seul repère à donner. **Le bas se déduit de la
 montée réellement mesurée dans la rampe** : une rampe qui monte de neuf demi-tons ne peut couvrir
@@ -111,6 +112,12 @@ def main():
         print(__doc__)
         return 1
     src, nom = args[0], args[1]
+    # `--garde=<chemin servi>` : on ne réencode rien. Le jeu lit le fichier d'origine tel qu'il a été
+    # déposé — sa fréquence d'échantillonnage, ses deux voies, son niveau — et la table porte des
+    # instants absolus dans ce fichier, avec les bornes de la rampe à côté. Découper, ramener à
+    # 24 kHz mono et normaliser n'apportait rien que le navigateur ne sache faire, et coûtait la
+    # matière que la prise avait.
+    garde = opts.get('garde')
     haut = float(opts.get('haut', 9000))
     vise = float(opts.get('secondes', 6))
     out_dir = opts.get('out', os.path.join('sounds', 'engine'))
@@ -150,7 +157,19 @@ def main():
             recul = max(recul, sommet - lp[j + 1])
             if recul > 0.12 or acc[j + 1] < 0.45:     # un huitième d'octave de recul : c'est un rapport
                 break
+            # Et on regarde devant. Un passage de rapport ne s'effondre pas d'un coup : il commence
+            # par un pas de quelques centièmes, que la tolérance au recul laisse passer, puis chute
+            # de quatre demi-tons en deux fenêtres. Attendre le recul, c'est avaler le début du
+            # passage — et comme la table est forcée croissante, le régime maximal de la rampe
+            # tombait alors sur l'instant où le moteur perd des tours. C'est exactement le défaut
+            # qu'avait la 787B.
+            av = lp[j + 1:min(n, j + 7)]
+            if len(av) and float(av.min()) < lp[j + 1] - 0.20:
+                break
             j += 1
+        # On retire la queue qui ne monte plus : elle ne porte rien et elle peut border un passage.
+        while j > i + 1 and lp[j] <= lp[j - 1]:
+            j -= 1
         etendue = lp[j] - lp[i]
         duree = (j - i) * hop
         # Le plancher d'étendue. Il n'a pas à être sévère, parce que le lecteur fond vers la synthèse
@@ -168,7 +187,9 @@ def main():
         raise SystemExit('aucune montée en régime franche trouvée dans cette prise'
                          if not descente else 'aucune descente franche trouvée dans cette prise')
     i, j = meilleur
-    t0, t1 = deb[i] / sr, (deb[j] + int(fen * sr)) / sr
+    # La fin de l'extrait est le DÉBUT de la dernière fenêtre montante, pas sa fin : la fenêtre
+    # d'analyse dure 0,16 s, et ce qu'elle couvre après son instant de départ n'a pas été vérifié.
+    t0, t1 = deb[i] / sr, deb[j] / sr
     if descente:                                   # ramené au temps du fichier d'origine
         L = len(a) / sr
         t0, t1 = L - t1, L - t0
@@ -195,31 +216,44 @@ def main():
     u = np.linspace(0, 1, NT)                          # u = position en hauteur, donc en régime
     table = np.interp(u, seg, tps)
 
-    x = a[int(t0 * sr):int(t1 * sr)]
-    # Ramené à 24 kHz : un moteur n'a plus rien à dire au-dessus de 12 kHz, et la rampe pèse
-    # moitié moins. Moyenne glissante avant décimation, faute de quoi ce qui traîne au-dessus de
-    # la nouvelle limite se replierait dans la bande utile.
-    hz = int(opts.get('hz', 24000))
-    sr_out = sr
-    if hz and hz < sr:
-        k = max(1, int(round(sr / hz)))
-        x = np.convolve(x, np.ones(k, np.float32) / k, 'same')[::k]
-        sr_out = sr // k
-    x = x / (np.abs(x).max() + 1e-9) * 0.89
-    p = os.path.join(out_dir, f'{nom}.wav')
-    w = wave.open(p, 'wb')
-    w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr_out)
-    w.writeframes((x * 32767).astype(np.int16).tobytes())
-    w.close()
+    if garde:
+        # Instants absolus dans le fichier d'origine, et les bornes pour que la tête de lecture ne
+        # sorte pas de la rampe : juste après la fin, il y a le passage de rapport.
+        p = garde
+        table = table + t0
+        bornes = {'debut': round(float(t0), 4), 'fin': round(float(t1), 4),
+                  'secondes': round(len(a) / sr, 4)}
+    else:
+        x = a[int(t0 * sr):int(t1 * sr)]
+        # Ramené à 24 kHz : un moteur n'a plus rien à dire au-dessus de 12 kHz, et la rampe pèse
+        # moitié moins. Moyenne glissante avant décimation, faute de quoi ce qui traîne au-dessus de
+        # la nouvelle limite se replierait dans la bande utile.
+        hz = int(opts.get('hz', 24000))
+        sr_out = sr
+        if hz and hz < sr:
+            k = max(1, int(round(sr / hz)))
+            x = np.convolve(x, np.ones(k, np.float32) / k, 'same')[::k]
+            sr_out = sr // k
+        x = x / (np.abs(x).max() + 1e-9) * 0.89
+        p = os.path.join(out_dir, f'{nom}.wav')
+        w = wave.open(p, 'wb')
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(sr_out)
+        w.writeframes((x * 32767).astype(np.int16).tobytes())
+        w.close()
+        bornes = {'secondes': round(len(x) / sr_out, 4)}
 
     meta = {'src': p.replace(os.sep, '/'), 'rpmBas': round(bas, 1), 'rpmHaut': haut,
             'sens': 'descente' if descente else 'montee',
             'monteeDemiTons': round(float(etendue * 12), 2),
-            'secondes': round(len(x) / sr_out, 4),
             'table': [round(float(v), 5) for v in table]}
+    meta.update(bornes)
     pj = os.path.join(out_dir, f'{nom}.json')
     json.dump(meta, open(pj, 'w', encoding='utf-8'), ensure_ascii=False)
-    print(f'  écrit {p} ({len(x)*2//1024} Ko) et {pj}')
+    if garde:
+        print(f'  le jeu lit {p} tel quel, de {t0:.2f} à {t1:.2f} s — rien n\'est réencodé')
+        print(f'  écrit {pj}')
+    else:
+        print(f'  écrit {p} ({len(x)*2//1024} Ko) et {pj}')
     print()
     print('À coller dans js/cars.js :')
     print(f"        sample: {{ ramp: '{pj}' }},")

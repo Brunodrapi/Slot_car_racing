@@ -36,12 +36,16 @@ if (TABLE) src += `Object.assign(DIFFICULTY, ${TABLE});\n`;
 
 src += `
 const which = ARGS[0] || 'all', catId = ARGS[1] || 'gt';
+// Les niveaux mesurés. « extrême » s'y ajoute : c'est le seul où l'IA triche, donc le seul où la
+// comparaison des temps ne dit pas tout — il faut aussi regarder les sorties, sans quoi on choisit
+// un multiplicateur d'adhérence qui rend le peloton rapide ET incapable de finir un tour.
+const NIVEAUX = ['easy', 'medium', 'hard', 'extreme', 'cauchemar'];
 const rows = [];
 const perDiff = {};
 for (const td of TRACKS) {
   if (which !== 'all' && td.id !== which) continue;
   const out = {};
-  for (const diff of ['easy', 'medium', 'hard']) {
+  for (const diff of NIVEAUX) {
     // Same grid every time: the roster is seeded, so the skills are identical across the three
     // runs and the only thing that changes is the setting under test.
     const race = new Race({
@@ -77,20 +81,28 @@ for (const td of TRACKS) {
     + '   sorties ' + out.easy.crash + '/' + out.medium.crash + '/' + out.hard.crash);
 }
 rows.push('');
-rows.push('table : ' + ['easy', 'medium', 'hard'].map(d => d + ' m' + DIFFICULTY[d].marginBase + '+' + DIFFICULTY[d].marginSpread + ' p' + DIFFICULTY[d].paceBase + '+' + DIFFICULTY[d].paceSpread).join('  |  '));
-for (const d of ['easy', 'medium', 'hard']) {
+rows.push('table : ' + NIVEAUX.map(d => d + ' m' + DIFFICULTY[d].marginBase + '+' + DIFFICULTY[d].marginSpread + ' p' + DIFFICULTY[d].paceBase + '+' + DIFFICULTY[d].paceSpread).join('  |  '));
+for (const d of NIVEAUX) {
   const a = perDiff[d] || [];
   if (!a.length) continue;
   const m = (f) => a.reduce((s, x) => s + f(x), 0) / a.length;
-  rows.push(d.padEnd(7) + ' meilleur tour ' + m(x => x.best).toFixed(2) + ' s'
-    + ' | RYTHME DE COURSE ' + m(x => x.pace).toFixed(2) + ' s (médian ' + m(x => x.paceMed).toFixed(2) + ')'
-    + ' | étalement ' + m(x => x.worst - x.best).toFixed(2) + ' s'
-    + ' | sorties ' + m(x => x.crash).toFixed(1));
+  rows.push(d.padEnd(8) + ' meilleur tour ' + m(y => y.best).toFixed(2) + ' s'
+    + ' | RYTHME DE COURSE ' + m(y => y.pace).toFixed(2) + ' s (médian ' + m(y => y.paceMed).toFixed(2) + ')'
+    + ' | étalement ' + m(y => y.worst - y.best).toFixed(2) + ' s'
+    + ' | sorties ' + m(y => y.crash).toFixed(1)
+    + (DIFFICULTY[d].grip ? '  | adhérence ×' + DIFFICULTY[d].grip : ''));
 }
 const e = perDiff.easy || [], h = perDiff.hard || [];
 if (e.length && h.length) {
   const mb = (a, f) => a.reduce((s, x) => s + f(x), 0) / a.length;
   rows.push('');
+  const x = perDiff.extreme || [];
+  if (x.length) {
+    const mb2 = (a, f) => a.reduce((s2, y) => s2 + f(y), 0) / a.length;
+    rows.push('écart difficile → extrême  RYTHME DE COURSE '
+      + ((mb2(h, y => y.pace) - mb2(x, y => y.pace)) / mb2(h, y => y.pace) * 100).toFixed(1) + ' %'
+      + '   sorties ' + mb2(h, y => y.crash).toFixed(1) + ' → ' + mb2(x, y => y.crash).toFixed(1));
+  }
   rows.push('écart facile → difficile   meilleur tour ' + ((mb(e, x => x.best) - mb(h, x => x.best)) / mb(e, x => x.best) * 100).toFixed(1) + ' %'
     + '   RYTHME DE COURSE ' + ((mb(e, x => x.pace) - mb(h, x => x.pace)) / mb(e, x => x.pace) * 100).toFixed(1) + ' %'
     + (${JSON.stringify(NO_RUBBER)} ? '   (élastique retiré)' : '   (élastique en place)'));

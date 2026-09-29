@@ -1,13 +1,20 @@
 // Menus, race setup, career, workshop, results. Plain DOM, FR/EN.
 'use strict';
 
+/* Les niveaux de difficulté, dans l'ordre. Une seule liste : ils étaient écrits en dur à deux
+endroits — la liste déroulante des réglages et les boutons de l'écran de départ — et en ajouter un
+n'en aurait servi qu'un des deux. L'ordre est celui des boutons, donc du plus facile au plus dur.
+Les coefficients, eux, sont dans `DIFFICULTY` (js/race.js). */
+const NIVEAUX = ['easy', 'medium', 'hard', 'extreme', 'cauchemar'];
+
 const I18N = {
   fr: {
     title: 'EYES ON LINE', subtitle: 'Un bouton, trois trajectoires. De vrais circuits.',
     career: 'Carrière', quickRace: 'Course rapide', timeTrial: 'Contre-la-montre', settings: 'Réglages', back: 'Retour',
     editor: 'Éditeur de circuits', workshop: 'Atelier voitures',
     howto: 'Poser le pouce n’importe où (ou n’importe quelle touche / clic) : accélérer, relâcher pour freiner. Le cadran vient se placer au-dessus du pouce. Pouce gauche (ou flèches / molette) : choisir la trajectoire — intérieure, idéale ou extérieure. Trop vite dans un virage, c’est le bac à gravier.',
-    carClass: 'Catégorie', model: 'Modèle', track: 'Circuit', customTracks: 'Circuits perso', livery: 'Livrée', difficulty: 'Difficulté', easy: 'Facile', medium: 'Normal', hard: 'Difficile',
+    carClass: 'Catégorie', model: 'Modèle', track: 'Circuit', customTracks: 'Circuits perso', livery: 'Livrée', tyres: 'Gomme', damage: 'Tôle', linePit: 'STAND', wear: 'Usure et dommages', wearHint: 'Les pneus s\'usent en glissant, les chocs et les sorties abîment la voiture.', difficulty: 'Difficulté', easy: 'Facile', medium: 'Normal', hard: 'Difficile', extreme: 'Extrême', cauchemar: 'Cauchemar',
+    diffTitle: 'Ce que la voiture coûte à piloter', diffLevel: (n) => `Difficulté ${n} sur 5`,
     laps: 'tours', start: 'Départ !', locked: 'Verrouillé', unlockHint: 'Termine la coupe précédente dans le top 3 pour débloquer.',
     cup: 'Coupe', races: 'courses', raceOf: (a, b) => `Course ${a} / ${b}`, standings: 'Classement', nextRace: 'Prochaine course', startRace: 'Lancer la course',
     done: 'Terminée', inProgress: 'En cours', notStarted: 'Pas commencée', resetCup: 'Recommencer cette coupe', finalPos: (p) => `Classement final : P${p}`,
@@ -38,7 +45,8 @@ const I18N = {
     career: 'Career', quickRace: 'Quick race', timeTrial: 'Time trial', settings: 'Settings', back: 'Back',
     editor: 'Track editor', workshop: 'Car workshop',
     howto: 'Thumb anywhere (or any key / click): accelerate, release to brake. The dial moves above your thumb. Left thumb (or arrows / wheel): pick the line — inside, racing or outside. Too fast into a corner and it’s the gravel.',
-    carClass: 'Class', model: 'Model', track: 'Track', customTracks: 'Custom tracks', livery: 'Livery', difficulty: 'Difficulty', easy: 'Easy', medium: 'Normal', hard: 'Hard',
+    carClass: 'Class', model: 'Model', track: 'Track', customTracks: 'Custom tracks', livery: 'Livery', tyres: 'Tyres', damage: 'Body', linePit: 'PIT', wear: 'Wear and damage', wearHint: 'Tyres wear as you slide; contact and excursions damage the car.', difficulty: 'Difficulty', easy: 'Easy', medium: 'Normal', hard: 'Hard', extreme: 'Extreme', cauchemar: 'Nightmare',
+    diffTitle: 'How much the car costs to drive', diffLevel: (n) => `Difficulty ${n} of 5`,
     laps: 'laps', start: 'Start!', locked: 'Locked', unlockHint: 'Finish the previous cup in the top 3 to unlock.',
     cup: 'Cup', races: 'races', raceOf: (a, b) => `Race ${a} / ${b}`, standings: 'Standings', nextRace: 'Next race', startRace: 'Start race',
     done: 'Complete', inProgress: 'In progress', notStarted: 'Not started', resetCup: 'Restart this cup', finalPos: (p) => `Final standing: P${p}`,
@@ -95,8 +103,23 @@ class UI {
   }
   L(obj) { return obj[this.lang] || obj.en; }
 
-  show(html, cls) {
+  /* Redessiner un écran ne doit pas le renvoyer en haut.
+
+  Chaque réglage — le nombre de tours, le circuit, la voiture — reconstruit l'écran entier, et
+  remplacer le contenu remet le défilement à zéro : on choisissait ses tours en bas de page et on se
+  retrouvait en haut, à devoir redescendre pour le réglage suivant.
+
+  Le défilement est donc conservé quand l'écran redessiné est **le même**, reconnu par une clé que
+  chaque écran se donne. Conserver sur la seule foi de la classe CSS ne suffirait pas : deux écrans
+  différents la partagent, et on arriverait sur le second à la hauteur où l'on avait laissé le
+  premier. Sans clé, on repart du haut — c'est ce qu'on veut en changeant d'écran. */
+  show(html, cls, cle) {
+    const avant = this.root.firstElementChild;
+    const garder = cle != null && cle === this._cleEcran && avant;
+    const y = garder ? avant.scrollTop : 0;
     this.root.innerHTML = `<div class="screen ${cls || ''}">${html}</div>`;
+    this._cleEcran = cle == null ? null : cle;
+    if (y) this.root.firstElementChild.scrollTop = y;
     this.root.classList.remove('hidden');
     this.paintIcons();
   }
@@ -158,6 +181,28 @@ class UI {
   déficiente — l'écart mesuré tombe à 7 sur 100 en deutéranopie. Aucune information ne repose donc
   sur la couleur seule : chaque cadran porte son pictogramme et son unité écrite, et surtout les
   quatre ne se comparent jamais entre eux — ce sont quatre mesures séparées, pas une série. */
+  /* Ce que la voiture coûte à piloter, en pneus : zéro très facile, cinq très difficile.
+
+  Cinq pneus toujours dessinés, les inutilisés en creux, pour que le rang se lise d'un coup d'œil
+  sans avoir à compter — c'est une jauge, pas un nombre. Le niveau est mesuré par
+  `tools/difficulte.js` et rangé dans `cars.js` ; il est aussi écrit en clair pour les lecteurs
+  d'écran, un pictogramme répété n'ayant pas de sens lu à voix haute.
+
+  Le pneu est un anneau : deux cercles concentriques et quatre entailles, ce qui reste lisible à
+  douze pixels là où un dessin de bande de roulement se brouille. */
+  tyres(m) {
+    const n = Math.max(0, Math.min(5, m.diff == null ? 2 : m.diff));
+    const t = this.t.bind(this);
+    const un = (plein) => `<svg viewBox="0 0 16 16" class="tyre ${plein ? 'on' : 'off'}" aria-hidden="true">
+        <circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="3.2"
+                stroke-dasharray="3.6 1.4"/>
+      </svg>`;
+    return `<span class="tyres" title="${t('diffTitle')}">
+      <span class="sr">${t('diffLevel', n)}</span>
+      ${Array.from({ length: 5 }, (_, i) => un(i < n)).join('')}
+    </span>`;
+  }
+
   gauges(m) {
     const ARC = 84.8;   // les 270° d'ouverture, sur les 113,1 de circonférence d'un rayon 18
     // L'arc suit le chiffre affiché et non la valeur brute. Sans cela, deux voitures qui montrent
@@ -230,7 +275,7 @@ class UI {
     `, 'center splash');
   }
 
-  /* The menu is the poster, and the five banners on it are the buttons. Each one is printed in
+  /* The menu is the poster, and the banners on it are the buttons. Each one is printed in
   its folded state — icon and a checkered tail, no words — in the background image itself; the
   unfolded artwork, the one that carries the text, is laid over it and wiped in from the left.
   So the fold is not a trick played on one image: the closed banner really is underneath, and the
@@ -240,6 +285,18 @@ class UI {
   from its own artwork. Matching each folded banner's measured height instead looked more rigorous
   and was worse: the icons overhang their bars by different amounts, so those heights disagree by
   ten per cent between banners and the stack came out ragged. */
+  /* L'atelier voiture et l'atelier circuits ne sont plus au menu.
+
+  Un bouton retiré d'une liste laisserait son bandeau peint sur l'affiche, donc un trou de deux
+  bandeaux muets — le fond porte les bandeaux repliés, c'est tout l'intérêt du dépliage. C'est donc
+  l'affiche elle-même qui a été refaite sans eux, et les trois qui restent n'ont pas bougé d'un
+  pixel : 20,04 / 30,38 / 40,79 %, les mêmes qu'avant. `tools/e2e-menu.js` mesure les bandeaux
+  peints dans le fond et vérifie que chaque bouton tombe dessus, ce qui est la seule façon de
+  s'apercevoir qu'un chiffre et un dessin ont cessé de se correspondre.
+
+  Les deux écrans, eux, restent : `_act` garde leurs cas, `editor.html` et `lignes.html` répondent
+  toujours à leur adresse, et les dessins dépliés dorment dans `art/menu/`. Ce qui est retiré est
+  l'entrée du menu, pas la fonction. */
   menu() {
     const t = (k) => this.t(k);
     // top of each banner, as measured on the poster; `fold` is the artwork that carries the text
@@ -247,8 +304,6 @@ class UI {
       { top: 20.04, fold: 'course-rapide', act: 'setup', mode: 'race', label: t('quickRace') },
       { top: 30.38, fold: 'contre-la-montre', act: 'setup', mode: 'timetrial', label: t('timeTrial') },
       { top: 40.79, fold: 'multijoueurs', act: 'multi', label: t('multi') },
-      { top: 51.08, fold: 'atelier-voiture', act: 'workshop', label: t('workshop') },
-      { top: 61.72, fold: 'atelier-circuits', act: 'editor', label: t('editor') },
     ];
     const band = (it, i) => `<button class="mi" style="top:${it.top}%;--i:${i}"
         data-action="${it.act}" ${it.mode ? `data-mode="${it.mode}"` : ''} aria-label="${escapeHtml(it.label)}">
@@ -276,10 +331,10 @@ class UI {
         <label>${t('telemetry')}<select id="sel-debug"><option value="0" ${s.debug !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.debug === true ? 'selected' : ''}>${t('on')}</option></select></label>
         <label>${t('pullBack')}<select id="sel-pull">${[[1, 'pullNone'], [1.3, 'pullSome'], [1.6, 'pullMore']].map(([v, k]) => `<option value="${v}" ${Math.abs((s.pullBack || 1) - v) < 0.05 ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
         <label>${t('camera')}<select id="sel-cam">${[['track', 'camFollow'], ['fixed', 'camFixed'], ['iso', 'camIso']].map(([v, k]) => `<option value="${v}" ${(s.view || 'track') === v ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
-        <label>${t('difficulty')}<select id="sel-diff">${['easy', 'medium', 'hard'].map(d => `<option value="${d}" ${s.difficulty === d ? 'selected' : ''}>${t(d)}</option>`).join('')}</select></label>
+        <label>${t('difficulty')}<select id="sel-diff">${NIVEAUX.map(d => `<option value="${d}" ${s.difficulty === d ? 'selected' : ''}>${t(d)}</option>`).join('')}</select></label>
       </div>
       <div class="row"><button data-action="menu">${t('back')}</button><button class="danger" data-action="resetAll">${t('resetAll')}</button></div>
-    `);
+    `, '', 'reglages');
   }
 
   setupScreen(mode) {
@@ -303,6 +358,7 @@ class UI {
       <div class="grid models">
         ${modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${m.id}">
             ${this.carIcon(m, livery)}<b>${escapeHtml(m.name)}${m.custom ? ` <small>(${t('custom')})</small>` : ''}</b>
+            ${this.tyres(m)}
             ${this.gauges(m)}</button>`).join('')}
       </div>
       <h3>${t('track')}</h3>
@@ -313,17 +369,25 @@ class UI {
             <img alt="" src="${this.thumb(tr, 90)}"><b>${tr.flag} ${tr.name}</b><small>${locked ? t('locked') : `${lapsFor(tr, cat)} ${t('laps')} · ${tr.length} m`}</small></button>`;
         }).join('')}
       </div>
-      <h3>${t('customTracks')} <button class="link" data-action="editor">${t('editor')} →</button></h3>
+      <!-- Le lien vers l'atelier circuits est retiré avec son bandeau du menu : le laisser ici
+           aurait laissé l'atelier à une tape de distance, et n'aurait donc rien désactivé du tout.
+           La liste des circuits perso reste, elle : ceux déjà enregistrés se choisissent toujours. -->
+      <h3>${t('customTracks')}</h3>
       <div class="grid tracks">
         ${app.custom.tracks.length ? app.custom.tracks.map(tr => `<button class="card ${tr.id === st.trackId ? 'sel' : ''}" data-action="pickTrack" data-id="${tr.id}">
             <img alt="" src="${this.thumb(tr, 90)}"><b>${tr.flag || '🏁'} ${escapeHtml(tr.name)}</b><small>${lapsFor(tr, cat)} ${t('laps')}</small></button>`).join('') : `<p class="muted">${t('noCustomTracks')}</p>`}
       </div>
       <div class="row wrap">
-        ${mode === 'race' ? `<div><h3>${t('difficulty')}</h3><div class="seg">${['easy', 'medium', 'hard'].map(d => `<button class="${s.difficulty === d ? 'sel' : ''}" data-action="pickDiff" data-id="${d}">${t(d)}</button>`).join('')}</div></div>
-        <div><h3>${t('lapCount')}</h3><div class="seg">${[0, 1, 2, 3, 5, 10].map(n => `<button class="${(s.laps || 0) === n ? 'sel' : ''}" data-action="pickLaps" data-id="${n}">${n === 0 ? `${t('lapAuto')} (${lapsFor(trackDef, cat)})` : n}</button>`).join('')}</div></div>` : `<div><h3>${t('yourBest')}</h3><div class="bestlap">${best ? fmtTime(best) : '--:--.---'}</div></div>`}
+        ${mode === 'race' ? `<div><h3>${t('difficulty')}</h3><div class="seg">${NIVEAUX.map(d => `<button class="${s.difficulty === d ? 'sel' : ''}" data-action="pickDiff" data-id="${d}">${t(d)}</button>`).join('')}</div></div>
+        <div><h3>${t('lapCount')}</h3><div class="seg">${[0, 1, 2, 3, 5, 10].map(n => `<button class="${(s.laps || 0) === n ? 'sel' : ''}" data-action="pickLaps" data-id="${n}">${n === 0 ? `${t('lapAuto')} (${lapsFor(trackDef, cat)})` : n}</button>`).join('')}</div></div>
+        <!-- L'usure n'est offerte qu'en course. Un record signé sur des pneus à moitié morts ne se
+             compare à rien, et la table des records n'a pas de colonne pour dire dans quel état il
+             a été signé : mieux vaut que l'option n'existe pas là que d'avoir à l'expliquer. -->
+        <div><h3>${t('wear')}</h3><div class="seg">${[[0, 'off'], [1, 'on']].map(([v, k]) => `<button class="${(s.wear ? 1 : 0) === v ? 'sel' : ''}" data-action="pickWear" data-id="${v}">${t(k)}</button>`).join('')}</div>
+        <small class="muted">${t('wearHint')}</small></div>` : `<div><h3>${t('yourBest')}</h3><div class="bestlap">${best ? fmtTime(best) : '--:--.---'}</div></div>`}
       </div>
       <div class="row end"><span class="muted">${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ${escapeHtml(model.name)} · ${mode === 'race' ? `${laps} ${t('laps')}` : t('ttIntro')}</span><button class="big primary" data-action="startQuick">${t('start')}</button></div>
-    `, 'scroll');
+    `, 'scroll', 'depart:' + mode);
   }
 
   // ---------- racing together ----------
@@ -380,14 +444,14 @@ class UI {
       <h3>${t('model')}</h3>
       <div class="grid models">
         ${modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelNet" data-id="${m.id}">
-          ${this.carIcon(m, livery)}<b>${escapeHtml(m.name)}</b></button>`).join('')}
+          ${this.carIcon(m, livery)}<b>${escapeHtml(m.name)}</b>${this.tyres(m)}</button>`).join('')}
       </div>
       <div class="row end">
         <span class="muted">${trackDef ? `${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ` : ''}${escapeHtml(model.name)}</span>
         <button class="${net.mine.ready ? '' : 'primary'}" data-action="netReady">${net.mine.ready ? t('notReady') : t('ready')}</button>
         ${net.creator ? `<button class="big primary" data-action="netStart" ${net.canStart() ? '' : 'disabled'}>${t('start')}</button>` : `<span class="muted">${t('startWhenReady')}</span>`}
       </div>
-    `, 'scroll');
+    `, 'scroll', 'salon');
   }
 
   careerScreen() {
@@ -407,7 +471,7 @@ class UI {
         }).join('')}
       </div>
       ${allUnlocked(s) ? `<p class="muted">${t('allUnlocked')}</p>` : ''}
-    `, 'scroll');
+    `, 'scroll', 'carriere');
   }
 
   cupScreen(cupId) {
@@ -432,7 +496,7 @@ class UI {
           ${cs.done ? '' : `<div class="row end"><button class="big primary" data-action="startCup" data-id="${cupId}">${t('startRace')} — ${trackDef.name}</button></div>`}
         </div>
       </div>
-    `, 'scroll');
+    `, 'scroll', 'coupe:' + cupId);
   }
 
   standingsTable(cup, cs) {
@@ -506,7 +570,7 @@ class UI {
           ${cars.length ? `<div class="grid models">${cars.map(c => { const m = modelById(c.id); return `<div class="card">${m ? this.carIcon(m, livery) : ''}<b>${escapeHtml(c.name)}</b><small>${this.L(categoryById(c.catId).name)}</small><button class="link danger" data-action="wsDelete" data-id="${c.id}">${t('deleteTrack')}</button></div>`; }).join('')}</div>` : `<p class="muted">${t('wsNone')}</p>`}
         </div>
       </div>
-    `, 'scroll');
+    `, 'scroll', 'atelier');
   }
 
   async _workshopAdd() {
@@ -575,6 +639,7 @@ class UI {
       case 'pickTrack': this.setup.trackId = id; this.setupScreen(this.setup.mode); break;
       case 'pickDiff': app.save.difficulty = id; storeSave(app.save); this.setupScreen(this.setup.mode); break;
       case 'pickLaps': app.save.laps = +id; storeSave(app.save); this.setupScreen(this.setup.mode); break;
+      case 'pickWear': app.save.wear = id === '1'; storeSave(app.save); this.setupScreen(this.setup.mode); break;
       case 'startQuick': app.startQuick(this.setup.mode, this.setup.classId, this.setup.trackId); break;
       case 'multi': app.state = 'lobby'; this.lobbyScreen(); break;
       case 'netCreate': this._netOpen(true); break;

@@ -22,7 +22,9 @@ const TRACKS = [
   },
   {
     id: 'spa', name: 'Spa-Francorchamps', country: 'BE', flag: '🇧🇪', theme: 'forest',
-    length: 3400, width: 14, laps: 3, puddles: 0.5,
+    // La voie des stands déplacée juste après la ligne : à sa place par défaut, la zone d'arrêt
+    // tombait dans le dernier virage et aucune voiture ne parvenait à s'y arrêter. Voir _buildPits.
+    length: 3400, width: 14, laps: 3, puddles: 0.5, pitAt: 0.10,
     pts: [
       [0, 40], [0, 20],
       [2, 8], [9, 2], [17, 5], [21, 14],

@@ -15,7 +15,7 @@ class App {
     this.audio.enabled = this.save.sound;
     this.ui = new UI(this);
     this.tracks = new Map();
-    this.custom = { tracks: [], cars: [] };
+    this.custom = { tracks: [], cars: [], lines: new Map() };
     this.race = null;
     // Racing together. The table stays open across races; the game only ever asks the net layer
     // two things: who is on the grid, and what the others are doing.
@@ -26,7 +26,7 @@ class App {
     }
     this.raceCtx = null;
     this.state = 'splash';
-    this.input = { throttle: false, sel: 0 };
+    this.input = { throttle: false, sel: 0, pit: false };
     this.pointers = { throttle: null, slider: null };
     this.last = performance.now();
     this._bindInput();
@@ -43,8 +43,23 @@ class App {
     requestAnimationFrame((t) => this._frame(t));
   }
 
-  // ---------- content ----------
-  allTracks() { return TRACKS.concat(this.custom.tracks); }
+  /* ---------- content ----------
+
+  Les trajectoires reprises à la main se posent ici, au seul endroit par lequel toute définition de
+  circuit passe. Un circuit intégré qui en porte une garde tout le reste — son tracé, sa largeur,
+  son décor — et voit seulement ses trois lignes remplacées ; le solveur ne tourne alors plus pour
+  lui, puisqu'un circuit qui porte ses lignes ne le réveille pas.
+
+  C'est volontairement une reprise locale, dans la base du navigateur, et non une modification du
+  jeu : elle vaut pour ce poste, tout de suite, sans rien publier. Pour qu'une ligne vaille pour
+  tout le monde, il faut son bloc dans `js/tracks.js`, et `lignes.html` le produit aussi. */
+  allTracks() {
+    const rep = this.custom.lines;
+    const base = rep && rep.size
+      ? TRACKS.map(t => (rep.has(t.id) ? { ...t, lines: rep.get(t.id) } : t))
+      : TRACKS;
+    return base.concat(this.custom.tracks);
+  }
   trackDefById(id) { return this.allTracks().find(t => t.id === id) || null; }
   trackCache(id) {
     if (!this.tracks.has(id)) this.tracks.set(id, new Track(this.trackDefById(id)));
@@ -53,6 +68,9 @@ class App {
   async refreshCustom() {
     try {
       this.custom.tracks = (await Store.list('tracks')).map(t => ({ ...t, custom: true }));
+      const reprises = await Store.list('lines');
+      this.custom.lines = new Map(reprises.filter(r => r && r.lines && r.lines.racing).map(r => [r.id, r.lines]));
+      for (const r of reprises) this.tracks.delete(r.id);      // le circuit en cache est périmé
       const cars = await Store.list('cars');
       for (const c of cars) {
         const sprite = { base: null, color: null, extra: [] };
@@ -79,7 +97,23 @@ class App {
   _bindInput() {
     const on = () => { this.input.throttle = true; this.audio.start(); this.audio.resume(); };
     const off = () => { this.input.throttle = false; };
-    const stepSel = (d) => { const v = Math.round(this.input.sel) + d; this.input.sel = clamp(v, -1, 1); };
+    /* Une seule porte pour la position du levier, clavier comme doigt.
+
+    `pit` n'est pas une quatrième ligne, c'est une intention : la course la lit séparément de
+    `sel`, qui reste la trajectoire. Les deux sont posés ensemble ici pour qu'ils ne puissent pas
+    diverger — un levier qui dirait « stands » pendant que la voiture vise encore l'intérieur
+    serait un bug impossible à voir autrement qu'en jouant. */
+    const poseSel = (v) => {
+      this.input.pit = v <= -1.5;
+      this.input.sel = clamp(v, -1, 1);
+    };
+    // au clavier on descend d'un cran de plus quand les stands sont ouverts, sinon un joueur sur
+    // ordinateur n'aurait aucun moyen de s'arrêter
+    const stepSel = (d) => {
+      const bas = this.renderer && this.renderer.pitOpen ? -2 : -1;
+      const v = Math.round(this.input.pit ? -2 : this.input.sel) + d;
+      poseSel(clamp(v, bas, 1));
+    };
     const LINE_DOWN = ['ArrowDown', 'ArrowLeft', 'a', 'A', 'q', 'Q'], LINE_UP = ['ArrowUp', 'ArrowRight', 'd', 'D', 'e', 'E'];
     window.addEventListener('keydown', (e) => {
       if (e.repeat) return;
@@ -106,8 +140,12 @@ class App {
       e.preventDefault();
       const touch = e.pointerType === 'touch';
       if (touch) this.renderer.touch = true;
+      /* La pause d'abord : sans ce test, l'appui repartirait dans la branche d'en dessous, qui prend
+      tout ce qui n'est pas le curseur pour de l'accélérateur. On sort sans toucher à `pointers`,
+      donc aucun doigt n'est retenu et le relâchement n'a rien à défaire. */
+      if (this.renderer.pauseHitAt(e.clientX, e.clientY)) { this.togglePause(); return; }
       const v = this.renderer.sliderValueAt(e.clientX, e.clientY, touch);
-      if (v != null && this.pointers.slider == null) { this.pointers.slider = e.pointerId; this.input.sel = v; return; }
+      if (v != null && this.pointers.slider == null) { this.pointers.slider = e.pointerId; poseSel(v); return; }
       if (this.pointers.throttle == null) {
         this.pointers.throttle = e.pointerId;
         if (touch) this.renderer.anchorDial(e.clientX, e.clientY);   // the dial comes to the thumb
@@ -117,7 +155,7 @@ class App {
     c.addEventListener('pointermove', (e) => {
       if (this.pointers.slider === e.pointerId) {
         const v = this.renderer.sliderValueAt(e.clientX, e.clientY, true);
-        if (v != null) this.input.sel = v;
+        if (v != null) poseSel(v);
         return;
       }
       // the dial stays under the thumb: sliding without lifting carries it along
@@ -155,6 +193,7 @@ class App {
       // round keeps the suggestion, since its length is part of the championship, not a setting.
       laps: this.save.laps || lapsFor(trackDef, cat),
       difficulty: this.save.difficulty,
+      wear: this.save.wear,
       playerLivery: this.save.livery,
       playerName: this.playerName(),
     }, { cup: null, mode, classId, trackId });
@@ -172,6 +211,7 @@ class App {
       mode: 'race', trackDef, classId: cup.classId, modelId: this.playerModelFor(cup.classId).id,
       laps: lapsFor(trackDef, cat),
       difficulty: this.save.difficulty,
+      wear: this.save.wear,
       playerLivery: this.save.livery,
       playerName: this.playerName(),
       roster,
@@ -204,12 +244,15 @@ class App {
     this.raceOpts = opts;
     this.raceCtx = ctx;
     this.race = new Race(opts);
+    // Le démarreur, s'il y en a un pour cette voiture : le moteur s'allume quand la course s'ouvre,
+    // avant le décompte. Une seule fois par course.
+    this.audio.demarre = false;
     this.renderer.setTrack(this.race.track);
     this.renderer.cam.init = false;
     this.renderer.homeDial();
     this.state = 'race';
     this.input.throttle = false;
-    this.input.sel = 0;
+    this.input.sel = 0; this.input.pit = false;
     this.pointers.throttle = this.pointers.slider = null;
     this.ui.hide();
     this.ui.flash = null;

@@ -10,14 +10,27 @@ const out = process.argv[2] || '/tmp';
   // le passe, comme pour un joueur.
   await page.waitForTimeout(350);
   await page.keyboard.press('Enter');
-  await page.click('[data-action="career"]');
+  /* La carrière n'a plus de bouton dans le menu — elle en est sortie quand le jeu s'est réduit à la
+  course rapide et au contre-la-montre — mais l'écran, lui, est resté. On y entre donc par son
+  action plutôt que par un bouton qui n'existe plus : cet essai garde le chemin en état pour le
+  jour où la carrière revient au menu. Le jour où elle y revient, ce `careerScreen()` redevient un
+  `click('[data-action="career"]')`, et si elle est retirée pour de bon, c'est tout ce fichier qui
+  part. Ce qu'on ne veut pas est un écran qui pourrit sans que rien ne le dise. */
+  const carriere = () => page.evaluate(() => app.ui.careerScreen());
+  await carriere();
   await page.click('[data-action="cup"][data-id="gt"]');
   const fast = async () => page.evaluate(() => {
     const r = app.race; let n = 0;
     while (r.state !== "finished" && n++ < 400000) { const thr = aiThrottle(r.player, r.cars, r.dt, { marginBase: 0.985, marginSpread: 0 }); r.update(r.dt, thr); }
     return { state: r.state, pos: r.positionOf(r.player), time: r.time, crashes: r.player.crashes, best: r.player.bestLap };
   });
-  for (let i = 0; i < 3; i++) {
+  /* Autant de courses que la coupe en compte, et non trois.
+
+  Le bouton des classements n'apparaît sur l'écran de résultats qu'une fois la coupe terminée. La
+  GT Legends Cup est passée de trois manches à cinq, et l'essai, resté à trois, attendait un bouton
+  qui ne pouvait pas venir. On lit donc la longueur de la coupe plutôt que de la retenir. */
+  const manches = await page.evaluate(() => CUPS.find(c => c.id === 'gt').tracks.length);
+  for (let i = 0; i < manches; i++) {
     await page.click('[data-action="startCup"]');
     await page.waitForTimeout(200);
     console.log('race', i + 1, JSON.stringify(await fast()));
@@ -27,7 +40,7 @@ const out = process.argv[2] || '/tmp';
   await page.click('[data-action="cup"]');
   await page.waitForTimeout(200);
   await page.screenshot({ path: `${out}/11-cup-done.png` });
-  await page.click('[data-action="career"]');
+  await carriere();
   await page.waitForTimeout(200);
   await page.screenshot({ path: `${out}/12-career-after.png` });
   // time trial flow
@@ -40,7 +53,8 @@ const out = process.argv[2] || '/tmp';
   await page.click('[data-action="endTT"]');
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${out}/13-tt-results.png` });
-  const save = await page.evaluate(() => localStorage.getItem('slotracer.save.v1'));
-  console.log('save', save.slice(0, 300));
+  // la clé vient du jeu : écrite en dur, elle est repartie sans l'essai au passage de la v1 à la v2
+  const save = await page.evaluate(() => localStorage.getItem(SAVE_KEY));
+  if (!save) { console.log('AUCUNE SAUVEGARDE'); process.exitCode = 1; } else console.log('save', save.slice(0, 300));
   await browser.close();
 })();

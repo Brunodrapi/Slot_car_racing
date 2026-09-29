@@ -134,6 +134,24 @@ Le dessin est mis à l'échelle sur la **longueur** de la voiture, en gardant se
 illustration inclut les rétroviseurs et l'aileron, elle sort donc un peu plus large que la boîte de
 collision.
 
+## Changer un réglage ne renvoie plus la page en haut
+
+Chaque choix de l'écran de départ — le nombre de tours, le circuit, la voiture, la difficulté —
+reconstruit l'écran entier. Or remplacer le contenu d'un conteneur remet son défilement à zéro : on
+choisissait ses tours en bas de page et on se retrouvait en haut, à devoir redescendre pour le
+réglage suivant. Mesuré, la page sautait de **1677 pixels**.
+
+Le défilement est conservé quand l'écran redessiné est **le même**, reconnu par une clé que chaque
+écran se donne — `depart:race`, `salon`, `coupe:<id>`, `atelier`. Se fier à la seule classe CSS ne
+suffirait pas : plusieurs écrans partagent `scroll`, et on arriverait sur le second à la hauteur où
+l'on avait laissé le premier. Sans clé, on repart du haut, ce qui est le bon comportement quand on
+change d'écran.
+
+`tools/e2e-menu.js` fait ce que fait le joueur : il descend, il clique sur un réglage, il regarde où
+il est. Il vérifie aussi l'autre moitié de la règle — revenir au menu puis rouvrir l'écran doit
+repartir du haut — sans quoi le remède serait pire que le mal. Et il commence par s'assurer que
+l'écran défile vraiment : sur une page trop courte pour défiler, l'essai passerait sans rien prouver.
+
 ## Les trois trajectoires
 
 La trajectoire idéale n'est pas devinée, elle est **résolue**. On écrit la ligne comme un décalage
@@ -156,6 +174,176 @@ forme d'ensemble, puis on resserre jusqu'au mètre.
 
 Les deux autres lignes sont des décalages par rapport à la rapide, et non des lignes à part
 entière : l'intérieure ferme la porte, l'extérieure passe autour.
+
+### L'intérieure était à l'extérieur
+
+Elle y était **99 % du temps**, mesuré. Le fichier portait d'ailleurs deux commentaires
+contradictoires sur le sens d'une courbure positive, l'un disant à droite et l'autre à gauche : une
+convention de signe qui n'est écrite qu'en prose finit toujours par se retourner.
+
+La question se tranche par la géométrie. La dérivée seconde de l'axe pointe vers le centre de
+courbure ; projetée sur la normale, elle dit de quel côté ce centre se trouve, donc où est
+l'intérieur du virage. Ouverte sur quinze mètres, parce que sur un seul pas elle ne pèse que
+quelques millimètres pour un virage de 250 m de rayon et que sa direction n'est alors que du bruit.
+
+`tools/cotes.js` mesure le résultat, et surtout il porte un contrôle qui ne dépend d'aucune
+convention : **la longueur**. Une ligne qui prend l'intérieur des virages est plus courte que la
+ligne de course, une qui prend l'extérieur plus longue. C'est vrai quel que soit le sens des
+normales, et ça ne se laisse pas tromper par le point de corde — là où la rapide touche déjà le bord
+intérieur, l'intérieure n'a nulle part où aller, et une mesure point par point la déclarerait
+fautive alors qu'elle n'a rien fait de mal.
+
+| | avant | après |
+|---|---|---|
+| intérieure du bon côté, en virage | 1 % | **94 %** |
+| intérieure du bon côté, **à l'approche** | — | **86 %** |
+| longueurs cohérentes | 3 circuits sur 12 | **12 sur 12** |
+| écart des lignes en ligne droite | 3,5 m | **7,8 m** |
+| tour où les lignes se confondent | 13 % | 4 % |
+| sorties de piste de l'IA, douze circuits | 119 | **104** |
+
+### La mesure ne regardait pas où le joueur regarde
+
+Premier verdict : 91 % en virage, affaire classée. Puis, sur Monza, la ligne intérieure passait
+visiblement à l'extérieur d'un virage. Les deux ne se contredisaient pas — la mesure ne comptait que
+les échantillons **en** virage, alors qu'une ligne intérieure n'est pas d'abord une ligne de virage :
+c'est celle qui **arrive** du côté intérieur du virage qui vient, cent mètres avant le point de
+corde. C'est là qu'elle ferme la porte, et c'est là qu'elle se voit.
+
+Mesurée sur l'approche — les quatre-vingts mètres avant l'entrée — elle n'était du bon côté que
+**71 %** du temps, et 55 % au Nürburgring. La règle partageait chaque ligne droite en deux, moitié au
+sens du virage précédent : sur cette première moitié, l'intérieure longeait encore le côté du virage
+d'avant, donc l'extérieur de celui qu'elle abordait. Le sens du virage précédent n'est désormais tenu
+que le temps de se déplier, une trentaine de mètres, et toute la suite de la droite appartient au
+virage qui vient.
+
+### Un seuil relatif se trompe sur les tracés contrastés
+
+Le défaut que Monza montrait encore. Décider s'il y a « assez de virage pour choisir un côté » avec
+un seuil relatif au virage le plus serré du circuit marche sur un tracé homogène et pas ailleurs : à
+Monza les chicanes font 22 m de rayon, si bien qu'une grande courbe de 234 m tombait sous 18 % du
+maximum, était classée ligne droite, et héritait du sens de ses voisines — les deux lignes s'y
+retrouvaient inversées sur cinq mètres d'écart, dans exactement le genre de virage rapide où le choix
+de ligne décide d'un dépassement.
+
+Le seuil est maintenant d'abord absolu, et dit la chose physique : en deçà de 400 m de rayon, il y a
+un côté à choisir. Le seuil relatif reste comme plafond, pour qu'un tracé sans aucun virage serré
+laisse quand même ses grandes courbes décider.
+
+### Des voies séparées dans les lignes droites
+
+Trois lignes qui se confondent dès que la route est droite ne laissent aucune place pour doubler.
+Elles se confondaient sur 13 % du tour, parce que le sens venait de la courbure locale : nulle en
+ligne droite, donc les trois lignes au même endroit.
+
+Deux exigences tirent en sens contraire. Chaque virage doit imposer son vrai sens, sinon l'intérieure
+repart à l'extérieur ; et les lignes doivent rester écartées là où la route est droite. Un lissage ne
+peut pas les satisfaire toutes les deux : large, il écrase les virages courts ; étroit, il laisse les
+lignes se rejoindre. Les deux premières tentatives ont échoué exactement là — la seconde donnait 98 %
+à l'extérieure mais retombait à 57 % sur l'intérieure.
+
+La sortie est de ne pas moyenner du tout. Chaque virage décide de son sens, franchement ; entre deux
+virages, le sens est **tenu** plutôt qu'interpolé. Deux virages de même main laissent donc les lignes
+écartées d'un bout à l'autre de la droite qui les sépare, et deux virages de mains opposées se
+partagent la droite en deux, le croisement tombant au milieu. C'est l'idée reprise des tracés à voies
+commutées : des voies qui restent séparées et se croisent à des **endroits choisis**, plutôt qu'un
+fondu qui les colle l'une à l'autre sur des centaines de mètres.
+
+### Vérifier le curseur en conduisant, pas en relisant
+
+Le curseur de ligne a l'air juste dans le code : en bas il vaut −1, il est étiqueté « intérieur », et
+`targetLat` renvoie alors la ligne intérieure. Mais ce fichier a déjà eu l'air juste alors qu'il ne
+l'était pas. `tools/curseur.js` conduit donc : curseur à fond d'un côté, voiture seule, un tour
+lancé, et on relève sa position réelle virage par virage. La chaîne éprouvée va du curseur aux roues
+— `input.sel`, `race.update`, `car.sel`, `targetLat`, le pilote automatique, la position.
+
+**Verdict : pousser le curseur vers l'intérieur place bien la voiture à l'intérieur, dans 95 % des
+virages.** Le câblage est juste.
+
+Deux pièges se sont présentés en chemin, et aucun n'aurait été visible en relisant le code.
+
+Le premier essai conduisait avec le pilote automatique. Or, sans personne à dépasser, celui-ci remet
+la sélection à zéro à chaque pas : le curseur du joueur n'arrivait jamais aux roues. La mesure
+donnait le même écart moyen au centimètre près pour les deux positions du curseur — elle ne mesurait
+rien, et elle annonçait pourtant un défaut.
+
+Le second demandait « la voiture est-elle du côté intérieur du virage ». Cette question n'a pas de
+réponse au point de corde : la ligne de course y touche déjà le bord intérieur, la ligne intérieure
+aussi, les deux se confondent légitimement et le signe de leur écart ne veut rien dire. La mesure
+plafonnait à 46 % en comptant du bruit. La bonne question est celle que le joueur pose, et elle est
+relative : en poussant vers l'intérieur plutôt que vers l'extérieur, est-ce que je me retrouve plus
+à l'intérieur ?
+
+### Le curseur est asymétrique, et c'est de la géométrie
+
+Ce qui se ressent comme un défaut reste vrai, et se mesure. L'écart à la ligne de course, en médiane :
+
+| | en virage | à l'approche | en ligne droite |
+|---|---|---|---|
+| intérieure | 0,7 m | 3,8 m | 7,2 m |
+| extérieure | 6,5 m | 3,5 m | 1,2 m |
+
+Les deux lignes se séparent dans des **zones opposées**, et c'est juste : on ferme la porte *avant*
+le virage, on passe autour *pendant*. Mais en virage, pousser vers l'extérieur déplace la voiture de
+six mètres et pousser vers l'intérieur de moins d'un — d'où l'impression que le curseur n'a qu'un
+côté.
+
+La cause n'est pas un réglage : **la ligne de course prend déjà la corde**. Elle est la trajectoire
+de courbure minimale, elle vient toucher le bord intérieur à chaque apex, et il n'existe donc aucune
+place « plus à l'intérieur » dans un virage. Symétriquement, en ligne droite elle se place déjà du
+côté extérieur du virage qui vient, et il n'y a rien de plus à l'extérieur.
+
+Deux constructions ont été essayées pour corriger l'asymétrie, mesurées, et écartées. Viser
+franchement les deux bords au lieu d'une fraction de la place restante : **217 sorties de piste** sur
+les douze circuits contre 94, sans gagner un point sur le curseur. Faire de l'intérieure le chemin le
+plus court du couloir — le fil tendu, qui est la vraie ligne défensive et serre tous les apex :
+**228 sorties**, parce que la plus courte est aussi celle de plus petit rayon et que les voitures ne
+la tiennent pas. La construction en place reste la meilleure des trois sur les deux tableaux.
+
+### Les bords de piste disent de quel côté est la corde
+
+Les deux lignes blanches de part et d'autre de la route ne disaient rien. Elles portent maintenant le
+côté du virage : **froid vers l'intérieur, chaud vers l'extérieur**, avec les couleurs mêmes du
+curseur de ligne, pour que le lien se fasse sans légende. Là où les deux lignes de conduite se
+croisent, les teintes des bords s'échangent aussi — le croisement se voit donc sur la route, à
+l'endroit où il se produit.
+
+Chaque bord est découpé en tronçons plutôt que teinté d'un bloc : un raccord de rendu fait soixante
+mètres et traverse parfois un changement de main, si bien qu'une couleur unique mentirait sur la
+moitié de sa longueur. Le point de bascule appartient aux deux tronçons, faute de quoi un trou blanc
+apparaîtrait entre eux.
+
+Le sens qui les teinte est la donnée même qui construit les lignes, et non une seconde estimation qui
+pourrait en diverger. `tools/cotes.js` le vérifie contre la géométrie du tracé : **juste dans 99 %
+des virages**. Un bord teinté à l'envers dirait au joueur le contraire de ce qu'il voit, ce qui est
+pire que de ne rien dire.
+
+### Le limiteur rabattait l'intérieure
+
+Le défaut qui restait après tout cela, et le plus instructif. Le limiteur de pente s'appliquait à la
+**position** de chaque ligne : 0,07 m par mètre pour les deux secondaires, 0,30 pour la rapide. Or la
+rapide se déporte donc quatre fois plus vite que les autres ne peuvent la suivre. Dans une entrée de
+virage, l'intérieure ne pouvait pas l'accompagner et se faisait littéralement rabattre — les deux
+lignes ne se trouvaient de part et d'autre de la rapide que **60 % du temps**.
+
+Le limiteur porte maintenant sur l'**écart à la ligne de course**, pas sur la position. C'est ce qui
+a un sens : une voiture sur la ligne intérieure roule sensiblement parallèle à la rapide et ne s'en
+écarte que progressivement. Les deux lignes sont désormais de part et d'autre 85 % du temps, et c'est
+ce seul changement qui a fait passer l'intérieure de 57 à 91 %.
+
+Sa valeur est mesurée et non choisie, parce qu'elle arbitre deux choses opposées : trop basse, la
+ligne intérieure n'a pas le temps de traverser la piste avant le virage ; trop haute, elle traverse
+plus vite que les voitures ne savent suivre. Balayée sur les douze circuits, avec d'un côté la part
+de l'approche réussie et de l'autre les sorties de piste en course :
+
+| pente | approche juste | sorties de piste |
+|---|---|---|
+| 0,07 | 82 % | 98 |
+| **0,10** | **84 %** | **97** |
+| 0,12 | 85 % | 109 |
+| 0,18 | 86 % | 147 |
+
+Le coude est à 0,10 : au-delà on gagne un point d'approche et on paie douze sorties.
 
 **Ce qui la retenait au milieu de la piste**, avant, n'était pas seulement la formule qu'elle
 remplace : un limiteur bornait le déplacement latéral à sept centimètres par mètre parcouru. À ce
@@ -524,11 +712,89 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
 - **Un seul plateau**, celui des neuf voitures ci-dessus. Son identifiant reste `gt` — les records
   de tour sont rangés sous `circuit|catégorie` dans la sauvegarde, et le changer effacerait ceux
   des joueurs — mais son nom ne pouvait plus être « GT » avec une 917 et une 787B sur la grille.
-- **Course rapide** et **contre-la-montre** (records par circuit et catégorie), 3 niveaux de difficulté.
+- **Course rapide** et **contre-la-montre** (records par circuit et catégorie), 5 niveaux de difficulté, usure et dommages en option.
 - Une **carrière** existe dans le code, actuellement masquée. Elle n'a plus qu'une coupe : les
   trois autres couraient dans les catégories retirées.
 - IA qui freine selon son talent, choisit sa ligne pour dépasser, aspire dans le sillage, se touche.
 - Français / anglais, son procédural, sauvegarde locale.
+
+## Éditeur de lignes (`lignes.html`)
+
+Le jeu résout lui-même sa corde : il cherche le chemin qui plie le moins en restant sur la piste, ce
+qui produit l'entrée large, le point de corde et la sortie large sans que rien de tout cela soit
+écrit nulle part. C'est bon la plupart du temps, et quand ça ne l'est pas — un enchaînement où le
+solveur sacrifie le second virage, une chicane qu'il prend trop droit — aucun réglage ne rattrape une
+trajectoire : il faut la dessiner.
+
+Cette page, qui n'est pas dans le jeu, charge un **circuit intégré**, affiche ses trois lignes telles
+que le jeu les calcule, les rend déplaçables point par point, et produit le bloc `lines` à coller
+dans `js/tracks.js` à côté de `pts`. Dès qu'un circuit porte ce bloc, le solveur ne tourne plus pour
+lui et c'est le dessin qui fait foi.
+
+Glisser un point le déplace, la molette zoome, glisser le fond déplace la vue, le clic droit sur un
+point le ramène sur la ligne calculée. Quatre boutons : revenir au calcul (une ligne ou les trois),
+lisser, ramener dans la piste. Le nombre de points de contrôle se change sans perdre la forme —
+la ligne courante est rééchantillonnée, pas recalculée.
+
+**Ce qui est affiché est ce que le jeu jouera, parce que c'est le code du jeu qui le calcule.** La
+ligne dessinée n'est pas la spline qui passe par les points de contrôle : c'est la ligne d'un objet
+`Track` construit avec eux, exactement comme au chargement d'une partie. La nuance n'est pas
+théorique, et le premier jet s'y est trompé. Après projection, le jeu **limite la vitesse à laquelle
+une trajectoire peut traverser la piste** — un pilote ne se déporte pas de trois mètres en cinq — si
+bien qu'un point tiré de deux mètres n'en donne que 0,89 une fois rejoué. Un éditeur qui afficherait
+la spline brute montrerait une ligne que le jeu n'accepte pas : on réglerait à côté en croyant
+régler. Ici la ligne résiste quand on lui demande l'impossible, et c'est une information.
+
+**Deux boutons pour enregistrer, et ils ne servent pas à la même chose.** « Enregistrer pour le jeu » pose la
+ligne dans la base du navigateur, à côté des circuits perso : le circuit est modifié dès la partie
+suivante, sur ce poste, sans rien publier, et « Essayer » ouvre le jeu dessus dans la foulée.
+« Enregistrer `js/tracks.js` » est l'autre : lui seul fait qu'une ligne vaut pour tout le monde et
+survit à un autre navigateur. La distinction est écrite dans la page plutôt que laissée à deviner —
+les deux se ressemblent à l'usage, et découvrir six mois plus tard qu'une trajectoire n'existait que
+dans un navigateur coûte cher.
+
+Une page servie par GitHub Pages ne peut pas écrire dans `js/tracks.js` : il n'y a pas de serveur au
+bout, seulement des fichiers. Elle peut en revanche **fabriquer le fichier** — relire celui qui est
+servi, y poser les lignes au bon endroit, et le rendre à télécharger. Il ne reste qu'à le remettre
+dans `js/` et à publier, sans copier-coller et sans risque de coller au mauvais endroit. Toutes les
+lignes enregistrées y passent d'un coup, sinon retoucher trois circuits demanderait trois
+téléchargements dont chacun repartirait du fichier servi et effacerait les deux autres.
+
+La découpe se fait au comptage d'accolades, en sautant ce qui est entre guillemets : une définition
+de circuit est un objet littéral, et chercher la fin d'un objet à l'expression régulière marche
+jusqu'au jour où ça ne marche plus. Repasser sur un circuit qui porte déjà un bloc le remplace au
+lieu d'en ajouter un second.
+
+La reprise locale se pose au seul endroit par lequel toute définition de circuit passe, `allTracks()`.
+Un circuit intégré qui en porte une garde tout le reste — tracé, largeur, décor — et voit seulement
+ses trois lignes remplacées ; le solveur ne tourne alors plus pour lui, puisqu'un circuit qui porte
+ses lignes ne le réveille pas.
+
+`tools/e2e-lignes.js` vérifie précisément cela : il déplace un point, exporte le bloc, reconstruit le
+circuit comme le jeu le fait, et compare. L'écart est de **0,00 m**, et un aller-retour export/relecture
+retombe à 0,003 m près — l'arrondi de l'export, et rien d'autre. Il vérifie aussi que les trois lignes
+restent distinctes et dans la piste, et que les douze circuits se chargent.
+
+Puis il fait la seule vérification qui compte pour l'enregistrement local : il pose une ligne
+franchement décalée, ouvre **le jeu** dans le même navigateur, et relit la trajectoire qu'il conduit.
+L'écart est de **0,002 m**, et « oublier » rend bien la main à la ligne calculée. Le premier jet de
+cet essai annonçait un défaut qui n'existait pas : `browser.newPage()` ouvre un contexte neuf à
+chaque appel, donc une autre base, et l'éditeur posait sa ligne là où le jeu ne la lirait jamais.
+
+Et pour le fichier fabriqué, trois vérifications et pas une de moins, parce qu'un patch textuel qui
+produit un fichier « presque » correct casse le jeu au chargement suivant : le fichier **s'évalue**,
+il garde ses **douze circuits**, et le circuit repris porte bien la **ligne dessinée** — à 0,005 m —
+et non celle que le solveur aurait proposée.
+
+Deux détails qui viennent de la même exigence. Les coordonnées exportées sont dans les unités de
+`pts`, pas en mètres : un circuit intégré est décrit dans une unité arbitraire puis redimensionné pour
+tomber sur sa longueur annoncée. Et « lisser » agit sur l'écart à l'axe, jamais sur les points
+eux-mêmes — moyenner des coordonnées rétrécit une boucle, comme un cercle dont on moyenne les points
+voisins, ce qui décollerait la ligne de la piste à chaque passage.
+
+Au passage, un défaut latent que cet outil a révélé : `_projectLines` recevait `def.scale`, qui vaut 1
+pour un circuit intégré, alors que sa ligne centrale est redimensionnée après coup. Des lignes
+explicites sur un circuit intégré auraient été projetées à côté de la piste.
 
 ## Éditeur de circuits (`editor.html`)
 
@@ -643,7 +909,7 @@ s'efface pour lui. Les scripts de test passent l'écran comme un joueur, par une
 
 ## Le menu-affiche
 
-Le menu est une affiche, `art/menu-bg.webp`, et les cinq bandeaux posés dessus sont les boutons.
+Le menu est une affiche, `art/menu-bg.webp`, et les bandeaux posés dessus sont les boutons.
 Chacun y est **imprimé replié** — l'icône et une amorce à damier, sans mot. Le dessin déplié, celui
 qui porte le texte, est posé par-dessus et se découvre de la gauche vers la droite.
 
@@ -651,7 +917,7 @@ Le pli n'est donc pas un tour joué à une seule image : le bandeau fermé est v
 bandeau ouvert le recouvre vraiment, et c'est pour cela qu'il n'y a rien eu à effacer de
 l'affiche.
 
-**Un bandeau ne s'ouvre qu'à l'appui.** Au repos, le menu est exactement la maquette : cinq
+**Un bandeau ne s'ouvre qu'à l'appui.** Au repos, le menu est exactement la maquette : des
 bandeaux repliés, une icône chacun, pas un mot. Le dépliage est la réponse à l'appui, et le mot
 qu'il découvre dit sur lequel on a appuyé ; l'écran ne change qu'ensuite, 430 ms plus tard. Sous
 `prefers-reduced-motion` le bandeau s'ouvre sans transition et l'action part aussitôt — attendre
@@ -669,8 +935,106 @@ bandeau à l'autre, et la pile sortait de travers — une des versions dépassai
 l'affiche.
 
 Le hamburger est dessiné dans l'affiche ; il ne reste qu'à poser la cible au-dessus, un peu plus
-large que lui pour qu'un pouce la trouve. `tools/e2e-menu.js` vérifie les cinq bandeaux, le
-chargement réel de chaque image, le dépliage, et l'endroit où mène chaque bouton.
+large que lui pour qu'un pouce la trouve. `tools/e2e-menu.js` vérifie les bandeaux, le chargement
+réel de chaque image, le dépliage, et l'endroit où mène chaque bouton.
+
+### Retirer une entrée, c'est refaire l'affiche
+
+L'atelier voiture et l'atelier circuits ont quitté le menu. Retirer les deux lignes de `js/ui.js`
+n'aurait pas suffi : les bandeaux repliés sont **peints dans le fond**, c'est tout l'intérêt du
+dépliage, et deux bandeaux seraient restés sur l'affiche sans mener nulle part. C'est donc
+l'affiche elle-même qui a été refaite sans eux. Les trois qui restent n'ont pas bougé d'un pixel —
+20,04 / 30,38 / 40,79 %, les mêmes chiffres qu'avant.
+
+Ce qui a été retiré est l'entrée, pas la fonction : `_act` garde ses cas, `editor.html` et
+`lignes.html` répondent toujours à leur adresse, les voitures et les circuits déjà enregistrés se
+choisissent toujours en course, et les dessins dépliés dorment dans `art/menu/`. Le lien « éditeur
+→ » de l'écran de départ est parti avec, lui aussi : laisser l'atelier à une tape de distance
+n'aurait rien désactivé du tout.
+
+**Le défaut que cette page peut avoir, et que rien ne montrait.** Les boutons sont des rectangles
+transparents posés à des hauteurs écrites à la main. Rien ne les lie aux bandeaux peints : refaire
+l'affiche, ou changer un chiffre, décale les cibles sans rien casser ni rien afficher de faux. On
+clique simplement à côté, et une capture d'écran n'en montre rien puisque les boutons sont
+invisibles.
+
+`tools/e2e-menu.js` lit donc le fond lui-même, sur **une seule colonne**, à 6 % du bord gauche.
+C'est le seul endroit où un bandeau est une couleur franche et rien d'autre : plus à droite
+viennent les traits de vitesse, l'icône, le damier. Une première version cherchait des bandes sur
+tout le tiers gauche et se faisait couper par les icônes — elle voyait deux bandeaux sur trois et
+en inventait un quatrième dans les arbres. Sur cette colonne, un bandeau est une suite de lignes
+saturées et de couleur **constante**, et c'est la constance qui écarte le vibreur rouge et blanc du
+bas de l'affiche : texturé, écart-type 72, là où un bandeau est plat, 23 au pire.
+
+Le détecteur se vérifie lui-même de deux façons. Passé sur l'affiche d'avant, à cinq bandeaux, il
+retrouve les cinq hauteurs qui étaient alors écrites dans `ui.js` — 20,2 / 30,4 / 40,9 / 51,3 /
+61,8 %. Et remettre cette affiche-là fait échouer l'essai en nommant les deux bandeaux devenus
+orphelins. Un contrôle qui ne sait pas échouer ne contrôle rien.
+
+Ce qu'il compare est le **haut** du bandeau et le haut du bouton, et non leur recouvrement : les
+bandeaux sont des parallélogrammes qui descendent vers la droite, donc sur cette colonne on ne voit
+que leur début — or le haut est justement le nombre qu'on écrit à la main. Les trois tombent à
+0,12 point près.
+
+Cette vérification a demandé une autre correction, déjà apprise sur le moteur à échantillon : sous
+`file://` toute image vient d'une autre origine, donc la lire dans un canvas est interdit. L'essai
+sert maintenant le dossier en HTTP, comme le fait GitHub Pages.
+
+## Quitter une course
+
+Au clavier, Échap et P mettent en pause depuis toujours. Au doigt il n'y avait rien : une course
+commencée ne se quittait plus. Le HUD est entièrement dessiné sur le canvas, donc le bouton l'est
+aussi — il est posé par `_layoutHud` et testé au clic par `pauseHitAt`, exactement comme le curseur
+de ligne.
+
+Il se glisse entre les deux panneaux du haut, le seul endroit que rien n'occupe. Cet espace n'est
+pas le même partout : 62 px sur un iPhone 13, 47 sur un SE, plus de 400 en paysage et sur un
+écran d'ordinateur. Une taille posée en dur passerait donc sous le chrono sur les écrans étroits,
+et sa taille suit la place — 46 px quand il y en a, 37 au plus serré. Les mesures des deux panneaux
+ont remonté dans `_layoutHud` au passage : deux jeux de constantes qui doivent rester d'accord
+finissent toujours par ne plus l'être.
+
+Le temps au tour s'affiche maintenant sous le bouton et non plus à 12 % de la hauteur. En paysage
+sur un téléphone, 12 % de 390 px tombait pile dessus.
+
+**Le vrai risque n'est pas que le bouton manque, c'est qu'il accélère.** En course, tout appui qui
+n'est pas le curseur de ligne est de l'accélérateur : un bouton mal branché mettrait en pause *et*
+donnerait les gaz, qu'on retrouverait collés à la reprise. Le test se fait donc avant cette
+branche, et sort sans rien inscrire dans `pointers`, si bien que le relâchement n'a rien à défaire.
+
+### L'encoche, que rien ne voyait
+
+Le bouton était bien là sur mobile, et pourtant il manquait. Le canvas est en
+`position: fixed; inset: 0` avec `viewport-fit=cover` : il couvre l'écran **entier**, encoche et
+barre d'accueil comprises. Les écrans en DOM respectent `env(safe-area-inset-*)` depuis toujours —
+mais le HUD est dessiné, et un dessin ne connaît pas le CSS. Il posait donc ses quatorze pixels
+depuis le bord *physique* de l'écran. En portrait sur un iPhone, le bouton pause allait de 14 à 60,
+sous une barre d'état haute de 47 : aux trois quarts caché, et intouchable.
+
+Le même écart valait pour le reste du HUD — le cadran d'accélérateur passait sous la barre
+d'accueil, et en paysage les panneaux du haut passaient sous l'encoche. Tout le HUD se mesure
+maintenant depuis le bord **sûr** : `_layoutHud` calcule un écart par côté, `14 + l'encoche`, et
+tout le reste s'y réfère.
+
+`env()` ne se lit pas depuis JavaScript : la valeur calculée d'une propriété personnalisée n'est
+pas résolue, on récupérerait le texte `env(...)`. Le moteur de rendu passe donc par une sonde — un
+élément qui porte ces quatre valeurs en marge intérieure, ce qui, lui, se résout en pixels — relue
+à chaque mise en page, parce que tourner le téléphone déplace les encoches.
+
+`tools/e2e-pause.js` vérifie les trois choses sur quatre formats — SE, iPhone 13, paysage, bureau :
+que le bouton ne passe pas sous un panneau, qu'il met en pause, et qu'il laisse l'accélérateur
+tranquille. **Aucun des quatre ne pouvait voir l'encoche** : l'émulation de Chromium résout `env()`
+à zéro, et quatre formats qui passent ne disent rien d'un défaut qu'aucun d'eux ne reproduit. Un
+cinquième cas force donc la sonde, et seulement elle, aux valeurs d'un iPhone 13 en portrait — 47
+en haut, 34 en bas. Tout le reste du chemin est le vrai. Débrancher la lecture des encoches fait
+réapparaître le symptôme mot pour mot : « bouton passé de y=14 à y=14 ».
+
+Sa première version tapait puis mesurait, et **ne pouvait pas voir ce qu'elle prétendait
+vérifier** : le relâchement avait déjà remis l'accélérateur à zéro, donc elle lisait « éteint »
+même avec le bouton débranché. Elle garde maintenant l'appui pendant la mesure. Pour le tactile,
+dont le chemin est différent, elle regarde en plus si le cadran d'accélérateur a sauté sous le
+doigt — c'est la trace que laisserait un appui mal aiguillé, et elle, elle survit au relâchement.
+Débrancher le bouton fait bien échouer l'essai, sur les quatre formats.
 
 ## Nombre de tours
 
@@ -789,140 +1153,137 @@ la même surface d'une carte à l'autre.
 
 ## Le son des voitures
 
-Deux méthodes se partagent le métier : le **fondu enchaîné d'enregistrements** par régime, celle
-des simulateurs, et la **synthèse**. La première demande une douzaine de boucles par voiture et par
-perspective — un muscle car qui coupe à 5500 tr/min en réclame treize, et il en faut une série par
-perspective (échappement, moteur, admission, habitacle). À neuf voitures cela ferait des
-mégaoctets à télécharger sur un téléphone, et surtout des enregistrements génériques feraient
-sonner un flat-12 comme un six en ligne, ce qui est exactement ce qu'on cherche à éviter.
+Le moteur vient de [markeasting/engine-audio](https://github.com/markeasting/engine-audio), sous
+licence MIT, porté en JavaScript dans `js/engine-audio.js`. La notice et le copyright de l'auteur
+sont en tête du fichier, et la licence accompagne ses prises dans `sounds/engine-audio/LICENSE`.
 
-La synthèse est ici la bonne réponse parce que **la différence entre ces voitures est
-arithmétique**. Un quatre-temps allume `cyl / 2` fois par tour de vilebrequin, donc la fréquence
-d'allumage vaut
+Le principe. Le régime n'est plus déduit de la vitesse : c'est un **volant d'inertie** qu'on
+intègre vingt fois par image. Un couple le pousse, un frein moteur le retient, un embrayage le
+relie à une transmission, et les roues imposent leur vitesse à cette transmission. Le son sort de
+là au lieu d'être plaqué dessus. Par-dessus, quatre boucles stationnaires — pied dedans en bas et
+en haut, pied levé en bas et en haut — mélangées par deux fondus à puissance constante, l'un sur le
+régime, l'autre sur l'accélérateur, chacune désaccordée de `(régime − son propre régime) × 0,2`
+cent.
 
-```
-f = tr/min ÷ 60 × cyl ÷ 2
-```
+### Ce qui a été jeté, et pourquoi
 
-À 6000 tr/min : 300 Hz pour un six en ligne, 400 pour un V8, 600 pour un V12. **Une octave sépare
-le six du douze**, sans rien avoir à enregistrer.
+Un oscillateur unique muni d'une `PeriodicWave` dont les coefficients étaient les ordres moteur,
+filtré en échappement et en admission, plus un souffle, un clapot de ralenti modulé en anneau et un
+sifflement de turbo ; puis, par-dessus, un lecteur granulaire qui se déplaçait dans une montée
+enregistrée sans jamais la transposer.
 
-Les **ordres moteur** sont les harmoniques de la rotation du vilebrequin. Plutôt que d'empiler
-douze oscillateurs, on en prend donc **un seul**, muni d'une `PeriodicWave` dont les coefficients
-*sont* les ordres, et on lui donne pour fréquence `tr/min ÷ 60` : l'allumage tombe alors sur
-l'harmonique `cyl/2` et tout le spectre suit. Les ordres **inférieurs** à l'allumage ne devraient
-pas exister sur un moteur équilibré, et c'est précisément leur présence qui fait le grondement d'un
-V8 à vilebrequin croisé — le champ `rough` les dose, et c'est lui qui sépare la Corvette de la
-Countach à cylindrée et régime comparables.
+Le raisonnement tenait, et il était vérifié : un quatre-temps allume cyl/2 fois par tour, donc une
+octave sépare un six en ligne d'un V12 sans rien avoir à enregistrer, et les pics mesurés tombaient
+à un demi pour cent de l'allumage attendu sur les neuf voitures. Le granulaire, lui, ne transposait
+jamais — ce qui était le bon principe et reste vrai.
 
-Le reste est du réalisme de comportement, et c'est lui qui fait le plus d'effet :
+**Ce qui lui manquait n'était pas la justesse, c'était le répertoire.** Un régime déduit de la
+vitesse par une règle de trois ne sait faire qu'une chose : monter et descendre. Pas de trou au
+passage de rapport, pas de rebond contre le rupteur, pas de frein moteur qui retient, pas
+d'embrayage qui patine au départ. Une montée enregistrée, si juste soit-elle, ne sait rien faire
+d'autre que monter.
 
-- **le régime suit les rapports, pas la vitesse.** Sans boîte, un moteur monte du ralenti au
-  rupteur en une seule fois sur toute la plage : rien ne sonne plus faux, et c'est ce que faisait
-  la version précédente. Cinq rapports, serrés en bas, longs en haut, avec 90 ms de coupure à
-  l'embrayage — assez pour entendre le rapport passer.
-- **la charge change le timbre.** Pied dedans, l'admission et son souffle sont là ; pied levé,
-  l'admission disparaît et l'échappement s'assombrit.
-- **le turbo** siffle d'autant plus fort que le régime monte, et retombe d'un coup au lever.
-- **le vent** ne connaît que la vitesse, et tient la scène quand on lève le pied.
+La contrepartie est assumée : **il y a de la transposition maintenant**, ce qu'on avait
+explicitement écarté. Ce qui la rend tenable, c'est qu'elle est partielle — chaque prise ne
+s'écarte que de trois ou quatre demi-tons du sien, là où une boucle unique étirée sur toute la
+plage en demandait dix-neuf, et le reste du chemin est fait par le fondu vers la prise voisine.
 
-Chaque voiture porte son vrai moteur dans `js/cars.js` (`engine`) : six en ligne pour la M1 Procar
-et la CSL, V8 à vilebrequin plat et biturbo pour la F40, flat-6 turbo pour la 911, V12 pour la
-Countach, flat-12 pour la 917, gros V8 croisé pour la GT40 et la Corvette.
+### Trois écarts avec l'original
 
-### Lecture granulaire, et pourquoi pas des boucles
+1. **`rpm` était faux d'un facteur π².** `(60 * omega) / 2 * Math.PI` se lit `((60·ω)/2)·π`, soit
+   94,2·ω, là où des tours par minute valent 60·ω/(2π) = 9,55·ω. Chez l'auteur c'est sans
+   conséquence : tout son réglage vit dans cette unité gonflée et reste cohérent avec lui-même.
+   Chez nous les rupteurs sont réels et le HUD les affiche.
+2. **Le passage de rapport ne passe plus par `setTimeout`**, qui ignore la pause du jeu et dépend
+   de la charge de la machine. Il est daté sur l'horloge du jeu.
+3. **L'accélérateur n'est plus écrasé à chaque sous-pas.** L'original le multiplie vingt fois par
+   image, ce qui revient au bon résultat — mais seulement parce qu'il y a vingt sous-pas.
 
-Trois voitures roulent sur des enregistrements : la M1 Procar, la F40 et la Corvette. Les six
-autres sur la synthèse.
+### Et trois ajouts, parce que son banc ne tire rien
 
-**Elles ne sont jamais transposées.** C'est tout le sujet, et il a fallu trois tentatives ratées
-pour y arriver. Un moteur de jeu sérieux — REV, AudioMotors, le moteur granulaire de Wwise — ne
-change pas la vitesse de lecture d'un son : il **se déplace dans une montée en régime enregistrée**
-et y prend des grains là où le moteur tournait vraiment à ce régime. Le chiffre qui condamne
-l'autre approche est constant dans la littérature : **une boucle commence à sonner étirée dès
-qu'on la transpose de plus de 500 tr/min**, soit sept dixièmes de demi-ton à 6000. Couvrir trois
-octaves en transposant demande des dizaines de boucles et sonne mal bien avant — chez moi, « on
-dirait des moustiques ».
+Son démonstrateur est un banc d'essai : on y passe les rapports au clavier et rien ne relie le
+moteur aux roues — l'inertie de charge y est même multipliée par zéro. Chez nous la vitesse de la
+voiture est souveraine, elle sort de la physique du jeu, et le son doit la suivre.
 
-Six voitures sur neuf roulent sur une prise. La table à jour est dans
-[`sounds/BILAN.md`](sounds/BILAN.md), que `python3 tools/bilanson.py` régénère en mesurant le dossier
-— elle n'est pas tenue à la main, donc elle ne périme pas :
+- **Un embrayage.** Sans lui, à l'arrêt les roues tiennent le moteur à zéro et la voiture cale au
+  départ d'une course.
+- **Une raideur d'embrayage de 180 au lieu de 12.** À 12, sous couple constant, le moteur se
+  stabilise `couple / (amortissement · inertie)` au-dessus des roues, soit près de 600 tr/min : un
+  embrayage qui patine en permanence. Invisible sur un banc à vide, faux dès qu'un compte-tours
+  affiche le régime.
+- **Une hystérésis sur le choix du rapport**, sans quoi la boîte claque plusieurs fois par seconde
+  autour de la vitesse de passage.
 
-| voiture | rampe | montée | plage couverte |
-|---|---|---|---|
-| Countach LP500 | 6,3 s | 25 demi-tons | 1821 – 7500 tr/min |
-| M1 Procar | 8,0 s | 17 demi-tons | 3423 – 9000 tr/min |
-| Corvette | 7,6 s | 14 demi-tons | 2708 – 6000 tr/min |
-| F40 | 4,2 s | 9 demi-tons | 4703 – 7750 tr/min |
-| 787B | 5,2 s | 6 demi-tons | 6216 – 9000 tr/min |
-| GT40 Mk II | 2,3 s | 4 demi-tons | 4852 – 6200 tr/min |
+### Le pont se calcule, il ne se devine pas
 
-**La plage n'est pas posée, elle est déduite de la montée mesurée.** Une rampe qui monte de neuf
-demi-tons ne peut couvrir que neuf demi-tons de plage de régime : lui en faire couvrir vingt-cinq
-étire l'axe des régimes de presque trois fois, et le moteur monte alors bien moins vite que le
-compte-tours. Le granulaire ne déforme plus le timbre, mais un axe étiré désaccorde le moteur du
-cadran, ce qui s'entend autant. Seul le rupteur est donné ; le bas s'en déduit, et
-`tools/e2e-sample.js` échoue si l'étirement s'écarte de 1 de plus de 6 %.
+Le rupteur ne peut rien contre une mauvaise démultiplication. Il coupe les gaz, mais en prise ce
+sont les **roues** qui imposent le régime : si le dernier rapport donne 8210 tr/min à la vitesse
+maximale d'une voiture qui coupe à 7000, elle y monte quand même et y reste.
 
-La contrepartie est claire et assumée : **plus la montée est large, plus la rampe couvre**. La
-Countach, vingt-cinq demi-tons d'un seul rapport, tient toute sa plage à l'enregistrement et ne
-laisse presque rien à la synthèse. La 787B, six demi-tons, n'en tient que le haut — et c'est
-jouable, parce qu'un Groupe C ne descend pas là en course. C'est la raison pour laquelle une montée
-complète, du bas de la plage au rupteur, vaut tous les réglages du monde.
+C'est exactement ce qui est arrivé avec les rapports posés à la main — la 911 Turbo à 8210 pour un
+rupteur à 7000, la GT40 à 6502 pour 6200, la Corvette à 6733 pour 6000. Trois voitures sur neuf, et
+à l'oreille cela ne s'entend que comme « ça sonne trop haut », sans dire pourquoi.
 
-Le plancher de l'outil est un demi-octave de montée, pas davantage : en deçà du bas de la rampe et
-au-delà du haut, le lecteur fond vers la synthèse sur un quart d'octave, si bien qu'une rampe étroite
-coûte de la couverture et non de la justesse.
+Une vraie voiture est démultipliée pour que le dernier rapport atteigne le rupteur exactement à sa
+vitesse maximale. `accordeBoite` calcule donc le pont au lieu de le deviner, ce qui est juste par
+construction pour les neuf voitures et pour celles de l'atelier.
 
-**Ce qu'une prise doit être.** Sur sept fichiers découpés à la main, trois ont donné une rampe. Ce que
-disent les quatre autres est plus utile que leur rejet : `gt40_plein_regime` monte de 5,5 demi-tons
-sur quinze secondes, soit un tiers de demi-ton par seconde, ce qu'on ne distingue pas de la dérive de
-la mesure cumulée ; `787B_start` et `M1_Procar_off-7000` bougent de dix à quatorze demi-tons **par
-seconde**, ce qu'aucune voiture sur un rapport ne fait — un démarrage et un montage, pas des régimes ;
-`GT_40_descente` ne chute que de 2,3 demi-tons d'un seul tenant. Ce qu'il faut est une seule chose :
-**un tirage d'un seul rapport, parti du bas de la plage, sans passage** — typiquement la sortie d'un
-virage lent en deuxième ou troisième.
+### Quelle voiture joue quel jeu de prises
 
-**Le pied levé attend sa matière.** `tools/enginegrains.py --descente` sait extraire une rampe de
-décélération : il cherche la montée dans le signal retourné, puis ramène la table au temps du fichier
-d'origine — le son n'est jamais écrit à l'envers, une attaque de combustion jouée à reculons ne
-sonnant plus comme un moteur. Mais la seule descente déposée ne chute que de **5,0 demi-tons en
-1,4 s**, soit 6725 – 9000 tr/min sur une voiture. Brancher une seconde voie dans le lecteur granulaire
-pour cela ne se justifie pas : le pied levé n'y gagnerait que le quart haut de la plage d'une seule
-voiture sur neuf. Il faut un lever de pied **du rupteur au ralenti, sur un rapport, sans coup de
-frein**, quatre secondes au moins. La commande est prête, la matière manque.
+`sounds/engine/voitures.json` fait l'aiguillage. Les trois jeux — procar, BAC Mono, 458 — sont
+repris de `src/configurations.ts` sans y toucher : mêmes fichiers, mêmes régimes, mêmes volumes,
+mêmes inerties et temps de passage.
 
-**Ce qu'il faut comme matière.** Une rampe : une montée continue, pied au plancher, sur un seul
-rapport. `tools/enginegrains.py` la trouve seul dans un onboard — il cherche la plus longue montée
-de hauteur sans recul, un recul franc étant précisément un passage de rapport.
+| jeu | voitures |
+|---|---|
+| procar | M1 Procar, 911 Turbo, Countach LP500, GT40 Mk II, Corvette |
+| BAC Mono | 787B, 917 K |
+| 458 | F40, 3.0 CSL |
 
-**Comment la hauteur est suivie, et pourquoi ça marche enfin.** Pas en mesurant un régime. Un
-moteur n'a pas de fondamental unique et net : il porte ses demi-ordres, ses rangs d'allumage, ses
-résonances d'échappement, et l'énergie n'est pas forcément sur l'allumage. Autocorrélation, somme
-harmonique, écart entre rangs, toutes ont été essayées ici, toutes se trompent d'octave quelque
-part, et pas au même endroit — d'où des jeux de boucles dont les étiquettes se contredisaient
-entre elles de 0,29 à 2,05.
+Chaque voiture n'impose que trois choses par-dessus : son **rupteur**, son **ralenti** et sa
+**boîte**. Le HUD affiche ce régime, et la boîte doit correspondre à la vitesse réelle de la
+voiture. Une voiture absente du catalogue — celles de l'atelier — joue le jeu de la M1 avec son
+propre rupteur : aucune voiture ne reste muette.
 
-On mesure donc seulement **de combien la hauteur a bougé d'une fenêtre à la suivante**. Une
-dilatation du temps translate le spectre sur un axe logarithmique, et le décalage qui superpose
-le mieux deux spectres voisins donne le rapport exact. Entre deux fenêtres distantes de quatre-
-vingts millisecondes l'écart est minuscule, donc la mesure est sûre : **l'alignement médian passe
-de 0,5 à 0,85** rien qu'en ne comparant que des voisines. Les rapports se cumulent et donnent une
-courbe de hauteur fiable sans avoir jamais eu à nommer un régime.
+Un **niveau par jeu** a dû être ajouté. Les volumes de l'auteur décrivent l'équilibre entre ses
+quatre boucles — 2,5 sur la voie haute du 458, 1,6 sur sa voie levée — et chez lui une sortie
+maîtresse ramenait le tout. Chez nous ils arrivaient tels quels sur le compresseur et saturaient.
+On ne touche pas à son équilibre, on ne descend que la sortie du jeu entier : 0,4 pour le 458.
 
-L'échelle absolue, elle, n'est pas mesurée : elle est **posée** par `--bas` et `--haut`, donc par
-la voiture. Et c'est sans risque, parce qu'une erreur là-dessus ne déforme rien — elle décale
-seulement l'endroit de la rampe qu'on entend.
+### Boucler sans réencoder
 
-**Le lecteur.** Grains de 90 ms, recouvrement de moitié, enveloppe triangulaire : la somme de deux
-enveloppes voisines vaut exactement un, donc le niveau ne bouge pas et il n'y a pas de raccord à
-entendre. La tête de lecture avance d'elle-même au rythme du son — ce qui redonne au moteur ses
-irrégularités de cycle, qu'une boucle écrase — et se recale sur la position du régime dès qu'elle
-s'en éloigne de plus de 200 ms. `playbackRate` n'est jamais touché, et `tools/e2e-sample.js` le
-vérifie en lisant le code du lecteur.
+`AudioBufferSourceNode` accepte `loopStart` et `loopEnd`, donc `tools/boucles.py` ne cherche que
+deux instants et les range dans la configuration. Aucune prise n'est réencodée.
 
-Hors de la plage couverte — l'arrêt, les premiers mètres — la synthèse reprend la main en fondu sur
-un quart d'octave. Il n'est pas question de transposer pour combler.
+Cet outil s'est trompé deux fois sur la même question — un raccord de boucle s'entend-il ?
+
+1. L'écart quadratique sur trente millisecondes rapporté au niveau de la prise. Il condamnait les
+   six fichiers, de −1,7 à −13 dB. Il mesurait surtout le **bruit** — souffle, route, cylindres
+   déphasés — qui ne coïncide jamais d'un tour à l'autre et ne s'entend pas pour autant.
+2. La marche entre les deux échantillons du raccord, rapportée au RMS : 0,8 à 1,4, ce qui paraissait
+   énorme. Mais le RMS est un niveau **moyen**, pas une vitesse ; il ne dit rien de ce qu'une forme
+   d'onde a le droit de faire entre deux échantillons.
+
+Rapportée à la plus grande pente que la prise contient **déjà**, la marche vaut 0,07 à 0,76. Le
+raccord se perd dans ce que la prise fait de toute façon. Pas de machine à fondu pour un défaut
+qu'on n'a pas su démontrer.
+
+### Ce qui se mesure, et ce qui s'écoute
+
+`tools/moteur-banc.js` mesure le volant sans une seule note : ralenti tenu, temps du ralenti au
+rupteur, rupteur sans dépassement, régime à 0,1 % de ce que la boîte impose, une chute par passage,
+frein moteur, aucun NaN sous secousses. Il a trouvé trois fautes, toutes de moi, toutes invisibles
+à l'œil — dont un couplage aux roues qui avançait l'angle deux fois et faisait tourner la
+transmission à 6,6 × 10³⁰¹ rad/s avant de tout passer en NaN.
+
+`tools/e2e-moteur.js` mesure le moteur **dans le jeu** : que chaque voiture trouve un jeu de prises
+et que chaque fichier cité existe, que les prises arrivent, que le régime monte au rupteur de la
+voiture et non à celui du jeu, que le mélangeur bascule avec l'accélérateur, et que rien ne sature.
+Il remplace `e2e-sample.js` et `e2e-audio.js`, qui mesuraient un moteur qui n'existe plus.
+
+`moteur.html` est le banc d'écoute : un sélecteur de voiture, une vitesse, une pédale, et l'état du
+mélangeur en direct — gain et désaccord par voie. Il ne sert à rien au joueur ; il sert à régler,
+parce qu'aucun chiffre ne dit si un moteur sonne bien.
 
 ### Tenir soixante images par seconde sur un téléphone
 
@@ -1070,79 +1431,6 @@ mesure annonçait un mouvement parfaitement lisse. L'essai vérifie donc que la 
 avant de conclure quoi que ce soit — et il fait rouler tout le monde pendant la mesure, pour libérer
 la piste.
 
-### Le clapot du ralenti
-
-Aucun des trois onboards ne contient de ralenti : une prise de course n'en a pas, le pilote ne
-laisse jamais le moteur tourner à vide. Cherché automatiquement dans les trois, les meilleurs
-candidats font deux dixièmes de seconde. C'est donc la synthèse qui tient le ralenti, et elle n'y
-était bonne que par accident.
-
-Un moteur au ralenti ne fait pas entendre sa ligne d'échappement mais sa combustion : elle est
-irrégulière, un cylindre ne donne pas tout à fait comme le suivant, la distribution claque. Un
-moteur déclaré « lisse » — la M1 et la F40, `rough` à 0,15 — ne rendait donc qu'un bourdon mince
-et propre, là où la Corvette à 0,70 sonnait juste sans qu'on ait rien fait pour.
-
-D'où une couche de bruit filtré **multipliée par le signal du moteur lui-même**. Le produit se
-module à la fréquence d'allumage : c'est le « pouf-pouf » d'un ralenti, et non un souffle. En
-pratique le gain du multiplieur reste à zéro et c'est l'oscillateur, branché sur ce gain, qui le
-fait varier — une modulation en anneau, à la fréquence audio, que le graphe audio du navigateur
-sait faire sans code.
-
-Mesuré : le battement tombe à 55,2 Hz sur la M1 pour 55,0 attendus à 1100 tr/min, et à 66,6 Hz sur
-la F40 pour 66,7. Le centroïde passe à 171 et 182 Hz, tout près des 154 Hz de la Corvette qui
-faisait déjà l'affaire. Le clapot se retire ensuite de lui-même : il est pondéré par le carré de
-ce qui reste à monter en régime, et par l'absence de prise — au plein régime de la M1 le centroïde
-est remonté à 597 Hz, celui de la F40 à 1601.
-
-### La chaîne d'outils
-
-```
-node tools/decodeaudio.js <entrée> <sortie.wav>            # WebM, MP3… par le décodeur de Chromium
-python3 tools/enginescan.py <prise.wav> --cyl=6            # où se trouve quel régime
-python3 tools/enginegrains.py <prise.wav> <nom> --haut= [--descente]   # la rampe + sa table
-python3 tools/bilanson.py                                  # le bilan mesuré de tous les sons
-node tools/enginedemo.js <id> <sortie.wav>                 # une accélération à écouter
-node tools/e2e-sample.js                                   # la rampe arrive, la lecture avance
-```
-
-Il n'y a pas de décodeur en ligne de commande dans cet environnement, mais Chromium en embarque un
-pour tous les formats du Web. `decodeaudio.js` le lui fait faire, et rapatrie le résultat **par
-tranches** : d'un bloc, au-delà d'un quart d'heure de son, la chaîne sérialisée dépasse ce que Node
-accepte (`ERR_STRING_TOO_LONG`) et rien n'est écrit.
-
-Les rampes sont écrites en **mono 24 kHz** : un moteur n'a plus rien à dire au-dessus de 12 kHz, et
-les trois tiennent ainsi dans 950 Ko.
-
-### Mesuré, pas écouté
-
-`NODE_PATH=$(npm root -g) node tools/e2e-audio.js` rend le son **hors ligne** dans un
-`OfflineAudioContext`, en prend le spectre par transformée directe, et vérifie deux choses qu'aucune
-capture d'écran ne montre :
-
-| voiture | cyl | tr/min | allumage attendu | pic mesuré |
-| --- | --- | --- | --- | --- |
-| M1 Procar | 6 | 3893 | 195 Hz | 194 Hz |
-| F40 | 8 | 3361 | 224 Hz | 224 Hz |
-| Countach | 12 | 3242 | 324 Hz | 324 Hz |
-| GT40 Mk II | 8 | 2689 | 179 Hz | 180 Hz |
-| 917 K | 12 | 3662 | 366 Hz | 366 Hz |
-| Corvette | 8 | 2598 | 173 Hz | 174 Hz |
-
-Les neuf tombent à moins de 0,5 % de leur fréquence d'allumage théorique, et le rapport
-douze-cylindres sur six-cylindres ramené au même régime vaut **2,01** — l'octave, comme la physique
-l'exige. L'outil compte aussi les chutes de régime le long de la plage de vitesse : quatre, soit
-les quatre passages de rapport d'une boîte à cinq.
-
-### Et les banques de sons ?
-
-Sonniss et Pixabay répondent **403** depuis ce bac à sable, et l'API de Freesound demande une clé
-que je n'ai pas ; Freesound et Mixkit restent atteignables en page publique. Mais le point qui
-décide n'est pas l'accès : un enregistrement générique de « moteur de voiture » ne fait pas
-entendre la différence entre un flat-12 et un six en ligne, alors que l'arithmétique ci-dessus le
-fait gratuitement. Les banques gardent tout leur intérêt pour ce que la synthèse rend mal et qui ne
-dépend pas de la voiture — impacts, gravier, ambiance de stands. C'est le prochain pas naturel, et
-il demande une clé d'API ou des fichiers déposés dans le dépôt.
-
 ## L'équilibre entre les voitures
 
 Une différence de caractère est un choix offert au joueur ; cinq secondes au tour n'en est pas un,
@@ -1165,7 +1453,7 @@ chiffres.
 Rien ne comparait les modèles entre eux jusque-là, ce qui explique qu'une voiture bancale ait pu
 être livrée sans qu'on la voie.
 
-## Les trois difficultés
+## Les cinq difficultés
 
 Elles tenaient entre 0,78 et 0,90 de la vitesse de passage que l'adhérence autorise, ce qui mettait
 à peine **sept pour cent** de rythme de course entre le réglage le plus facile et le plus dur. Un
@@ -1191,6 +1479,136 @@ L'élastique (qui freine une IA très détachée et aide un retardataire) n'a pr
 tout cela : en le retirant, l'écart passait de 6,7 à 7,3 %. Six dixièmes de point. C'est une piste
 qu'il valait mieux mesurer que suivre.
 
+### Extrême : l'IA triche, et il n'y avait pas d'autre moyen
+
+Les trois premiers niveaux ne règlent qu'une chose : à quelle fraction de **sa** limite l'IA
+conduit. Difficile est déjà à 0,99, et le plafond est à 0,98 — le levier est au bout de sa course.
+Monter la marge plus haut ne donne pas un tour plus rapide, cela donne une sortie de piste, parce
+qu'au-dessus de 1 on demande une courbe que la voiture ne peut pas prendre.
+
+Le seul levier restant est la limite elle-même. `grip` multiplie l'adhérence **mécanique** des
+voitures de l'IA, et d'elles seules — la voiture du joueur n'est jamais touchée. L'appui (`df`) n'y
+touche pas non plus : l'appui ne servirait qu'en courbe rapide, l'adhérence sert partout.
+
+**Deux idées fausses, corrigées par la mesure.**
+
+La première : qu'il suffirait d'en donner. Balayé de ×1,08 à ×1,32, le résultat va à l'envers de
+l'intuition — plus d'adhérence rend le peloton plus rapide **et plus propre**.
+
+| adhérence | rythme vs difficile | sorties par course |
+| --- | --- | --- |
+| ×1,08 | −1,8 % | 3,8 |
+| ×1,16 | −4,1 % | 3,3 |
+| ×1,24 | −5,3 % | 1,5 |
+| ×1,32 | −7,2 % | 0,9 |
+
+Un peloton qui ne se trompe jamais ne laisse **aucune ouverture**. La seule façon de doubler
+disparaîtrait à mesure que le niveau monte : plus dur ne doit pas vouloir dire imprenable.
+
+La seconde : que relever le plafond de `aiThrottle` rendrait les fautes. De 0,98 à 1,16, les
+sorties passent de 1,7 à 1,6 et le rythme ne bouge pas. Le plafond était **inerte**, simplement
+parce que `0,93 + 0,06·talent + bruit` ne l'atteignait jamais. C'est `marginBase` qu'il fallait
+déplacer.
+
+**Ce que chaque réglage achète.** Avec `marginBase` à 1,00, remettre le plafond à 0,98 laisse le
+rythme identique — 75,34 s contre 75,29 — et fait tomber les sorties de 7,0 à 3,4. Toute la vitesse
+vient donc de l'adhérence ; le plafond relevé n'achète pas de la vitesse, il achète **de quoi
+doubler**.
+
+| | difficile | extrême |
+| --- | --- | --- |
+| rythme de course | 82,40 s | **75,29 s** (−8,6 %) |
+| meilleur tour | 79,95 s | **73,39 s** |
+| sorties par course | 5,8 | **7,0** |
+
+### Extrême et cauchemar, et l'ordre qui s'était inversé
+
+Deux niveaux plutôt qu'un : extrême avec une adhérence moyennement gonflée, cauchemar avec
+davantage. La première grille mesurée avait un défaut que seule la mesure pouvait montrer —
+**extrême faisait plus de sorties que cauchemar**, 11,4 contre 8,8. Le niveau intermédiaire était
+le plus brouillon des deux, ce qui n'a aucun sens. Moins d'adhérence avec la même audace, c'est
+simplement en demander trop plus souvent. La marge d'extrême est redescendue de 1,00 à 0,98, et
+l'échelle est redevenue monotone dans les deux sens.
+
+| niveau | rythme de course | sorties par course | adhérence |
+| --- | --- | --- | --- |
+| facile | 92,97 s | 0,2 | — |
+| moyen | 86,84 s | 1,9 | — |
+| difficile | 82,22 s | 5,8 | — |
+| extrême | 77,25 s | 7,5 | ×1,14 |
+| cauchemar | 73,08 s | 8,8 | ×1,30 |
+
+Chaque palier vaut cinq à six pour cent, soit l'écart qui séparait déjà moyen de difficile.
+
+## Usure et dommages
+
+En option, et **en course seulement**. Un record de contre-la-montre signé sur des pneus à moitié
+morts ne se compare à rien, et la table des records n'a pas de colonne pour dire dans quel état il
+a été signé : mieux vaut que l'option n'existe pas là que d'avoir à l'expliquer.
+
+### Ce qui use un pneu n'est pas ce qu'on croit
+
+La première version faisait dépendre l'usure de la seule **glisse**, au carré, ce qui paraissait
+évident. Mesuré sur une course : `slide` vaut 0,007 à 0,021 de **moyenne** selon le niveau, et sa
+**médiane est zéro** — une voiture bien conduite ne glisse presque jamais. Le terme était cent à
+trois cents fois trop petit pour peser, et l'usure ne dépendait donc pas du tout du pilotage.
+L'outil l'a dit aussitôt : demi-usure au tour 4 ou 5, identique du niveau facile au cauchemar.
+
+Ce qui use un pneu est le **travail de frottement**, pas le spectacle. `usage` — la demande
+d'adhérence latérale rapportée à ce que les pneus peuvent donner — vaut 0,455 en facile et 0,568 en
+extrême. C'est elle qui sépare un pilote propre d'un pilote qui attaque, elle est déjà calculée à
+chaque pas, et elle entre au carré parce que le frottement croît comme le carré de la charge. La
+glisse reste, mais comme **surcoût** : quand elle arrive, elle coûte très cher.
+
+### Le minutage, et la mesure qui comparait la mauvaise chose
+
+`tools/usure.js` comparait d'abord les niveaux de difficulté. C'était une erreur : un niveau change
+aussi la durée du tour, et « facile » usait plus **par tour** que « difficile » simplement parce que
+ses tours durent treize pour cent de plus. La mesure mélangeait le rythme d'usure et le temps passé
+en piste.
+
+Ce qui compte est le choix qu'un joueur a devant lui. On pilote donc la **même voiture sur le même
+circuit** à deux marges — 0,78, bien en dessous de la limite, et 0,98, qui vit dessus :
+
+| style | demande d'adhérence | tour de référence | demi-usure | gomme au 10ᵉ tour |
+| --- | --- | --- | --- | --- |
+| ménagé | 0,435 | 75,3 s | tour 9 | 43 % |
+| attaqué | 0,689 | 67,8 s | tour 3 | 0 % |
+
+Sept secondes et demie au tour contre trois fois moins de gomme : c'est l'arbitrage de Circuit
+Superstars, et c'est ce qui rend un arrêt au stand intéressant plutôt qu'obligatoire. Un train usé
+coûte **+3,5 %** au tour, sans quoi la jauge serait une décoration.
+
+### Les dommages ne touchent pas l'adhérence
+
+Ils enlèvent de la vitesse de pointe et de la reprise, jamais du grip. C'est volontaire : un dommage
+qui enlèverait de l'adhérence punirait deux fois et rendrait une course irrattrapable après un seul
+accrochage. Une voiture cabossée traîne, elle ne devient pas dangereuse.
+
+Deux réglages ont dû être corrigés, tous deux sur des mesures absurdes.
+
+**Un frottement n'est pas un choc.** Sans seuil, un peloton lent qui se tasse en épingle se
+détruisait tout seul : 49 % de tôle au niveau facile contre 10 % en difficile — l'inverse de ce
+qu'on attend, et uniquement parce que les voitures lentes se touchent sans arrêt. Seul ce qui
+dépasse 3,5 m/s d'écart compte désormais, et la tôle en facile est tombée à 5 %.
+
+**Une sortie de route n'est pas un accident.** À 0,004 de dommage par m/s, quitter la piste à
+60 m/s coûtait 24 % de la voiture, et quatre excursions la détruisaient : un pilote qui attaque
+finissait à 95 % de tôle, donc avec vingt pour cent de vitesse en moins, pour des fautes dont
+aucune n'était un choc. Un passage dans l'herbe fait déjà perdre du temps ; c'est la punition.
+
+### Les jauges
+
+Deux barres dans le panneau du haut à gauche, qui grandit quand l'option est active plutôt que de
+poser une bande ailleurs — une bande de plus serait entrée en conflit avec le classement sur un
+écran d'ordinateur et avec la carte sur un téléphone, deux cas à régler au lieu d'un.
+
+Elles ont fait apparaître deux chevauchements que personne n'aurait vus sans activer l'option : le
+nom du pilote, calé sur le bas du panneau, descendait sur la jauge de tôle ; et le temps au tour,
+que j'avais déjà déplacé une fois pour dégager le bouton pause, tombait dessus à son tour. Il prend
+maintenant le plus bas de tout ce qui occupe le haut, et suivra tout seul le prochain élément
+qu'on y ajoutera.
+
 ## Le plafond de marge de l'IA
 
 `margin` multiplie la vitesse de passage que l'adhérence autorise, donc **tout ce qui dépasse 1 est
@@ -1199,8 +1617,10 @@ il sort, perd dix secondes et rend la place.
 
 Or la marge est une somme — la base de la difficulté, l'écart de talent du pilote, un bruit, et le
 terme d'élastique. En difficile, le meilleur pilote recevait 0,90 + 0,09 + 0,015 + 0,03 = **1,035**.
-C'est la **somme** qui est désormais plafonnée, à 0,98, et non chaque terme : plafonner les parties
-séparément laisse passer exactement le cas qui pose problème.
+C'est la **somme** qui est désormais plafonnée, et non chaque terme : plafonner les parties
+séparément laisse passer exactement le cas qui pose problème. Le plafond vaut 0,98 pour les trois
+premiers niveaux, et se règle par la table — le niveau extrême est le seul à le relever, pour que
+sa marge de 1,00 puisse passer.
 
 `node tools/diff.js [circuit|all] [catégorie]` traduit les coefficients de `DIFFICULTY` en la seule
 chose qu'un joueur ressent : la vitesse à laquelle le peloton tourne. Il donne le **rythme de
@@ -1236,17 +1656,22 @@ panne que tout ceci sert à détecter.
 node tools/sim.js [catégorie|all] [circuit|all] [easy|medium|hard] [marge]        # courses IA sans navigateur
 NODE_PATH=$(npm root -g) node tools/e2e.js <dossier> [largeur] [hauteur]          # parcours du jeu + captures
 NODE_PATH=$(npm root -g) node tools/e2e-editor.js <dossier>                        # éditeur → course
+NODE_PATH=$(npm root -g) node tools/e2e-lignes.js [dossier]                       # éditeur de lignes : ce qu'on voit est ce qui se joue
+node tools/difficulte.js [catégorie]                                             # ce qu'une voiture coûte à piloter, en pneus
 NODE_PATH=$(npm root -g) node tools/e2e-workshop.js <dossier>                      # import de sprites → course
 node tools/step.js <circuit> <catégorie> [marge] [-v]                             # suivi de ligne d'une voiture seule
 node tools/sweep.js '[{},{"yawK":4}]'                                             # balayage des réglages physiques
 node tools/jump.js <circuit> <catégorie> <marge>                                  # continuité du déplacement
+node tools/cotes.js [circuit|all]                                                 # les lignes sont-elles du bon côté, et écartées ?
+node tools/curseur.js [circuit|all]                                              # le curseur envoie-t-il la voiture du côté annoncé ?
 node tools/line.js [circuit|all] [catégorie] [-v]                                # ce que vaut une trajectoire
 node tools/corner.js [circuit|all] [catégorie] [marge] [-v]                      # vitesse réelle contre vitesse théorique, virage par virage
 node tools/diff.js [circuit|all] [catégorie] [-sans-elastique] [-table=…]         # ce que valent vraiment les trois difficultés
 node tools/models.js [catégorie] [marge]                                          # chaque voiture : tour idéal, tour réel, prix du pilotage
-NODE_PATH=$(npm root -g) node tools/e2e-audio.js                                  # spectre de chaque moteur et étagement de la boîte
+NODE_PATH=$(npm root -g) node tools/e2e-moteur.js                                 # le moteur dans le jeu : prises, rupteur, mélangeur, saturation
 NODE_PATH=$(npm root -g) node tools/e2e-splash.js [dossier]                       # l'écran-titre, sur téléphone et sur bureau
 NODE_PATH=$(npm root -g) node tools/e2e-menu.js [dossier]                         # le menu-affiche : bandeaux, dépliage, destinations
+NODE_PATH=$(npm root -g) node tools/e2e-pause.js [dossier]                        # le bouton pause en course, sur quatre formats d'écran
 node tools/bump.js [patch|minor|major]                                            # numéro de version + cassage du cache
 node tools/netsim.js <circuit> [secondes] [perte %] [format]                      # deux écrans en réseau, sans navigateur
 NODE_PATH=$(npm root -g) node tools/e2e-net.js <dossier> [format]                 # deux onglets, une table, une course
@@ -1258,7 +1683,9 @@ python3 tools/topcar.py <image> <id du modèle> [--nose=left]                   
 python3 tools/pickcar.py <image> <id du modèle> [--tol --peel]                    # voiture en trois quarts, pour le menu
 python3 tools/engineloop.py <prise.wav> <boucle.wav>                             # boucle moteur sans couture
 node tools/enginedemo.js <id> <sortie.wav> [secondes] [--synthese]               # une accélération à écouter
-node tools/e2e-sample.js                                                         # le régime déclaré correspond-il à la prise ?
+node tools/moteur-banc.js                                                        # le volant d'inertie, sans une note de son
+node tools/usure.js [circuit|all] [catégorie]                                     # ce que coûte un train de pneus, ménagé ou attaqué
+python3 tools/boucles.py sounds/six-inline/*.wav                                  # où boucler dans une prise, sans réencoder
 node tools/e2e-gauges.js                                                         # les cadrans : chiffre et arc d'accord, aucun plein
 NODE_PATH=$(npm root -g) node tools/propdbg.js <image.png>                        # décor visible et coût par image
 ```

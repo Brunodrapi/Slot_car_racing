@@ -33,35 +33,45 @@ const CATEGORIES = [
     base: { vmax: 70, accel: 8, brake: 17, grip: 13.5, df: 0.0015, slide: 0.6, laneK: 6, rearBias: 1.06, cliff: 0.18, slipPeak: 0.12, length: 4.5, width: 2.0 },
     drivers: 10, roadScale: 0.9, zoom: 1.15,
     models: [
-      { id: 'm1procar', name: 'M1 Procar', shape: 'gtBoxy', mul: { vmax: 0.98, grip: 1.04, brake: 1.03 }, pick: 'sprites/pick/m1procar.png', engine: {
+      { id: 'm1procar', diff: 0, name: 'M1 Procar', shape: 'gtBoxy', mul: { vmax: 0.98, grip: 1.04, brake: 1.03 }, pick: 'sprites/pick/m1procar.png', engine: {
         cyl: 6, redline: 9000, idle: 1100, rough: 0.15, bright: 0.78, turbo: 0,
 // Découpé dans l'onboard par `tools/enginecut.py`. Six boucles pour couvrir la plage
         // utile : une seule, transposée du ralenti au rupteur, fait trois octaves et ne sonne
         // plus comme un moteur. Hors de la plage couverte, la synthèse reprend la main.
         sample: { ramp: 'sounds/engine/six-inline.json' },
       }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/m1procar.png', sheet: 'sprites/m1procar', sheetN: 16, sheetRear: 0, sheetW: 5.122, sheetAnchor: [0.494, 0.821] },
-      { id: 'f40', name: 'F40', shape: 'f40', mul: { vmax: 1.05, accel: 1.06, grip: 0.98, df: 1.5 }, pick: 'sprites/pick/f40.png', engine: {
+      { id: 'f40', diff: 0, name: 'F40', shape: 'f40', mul: { vmax: 1.05, accel: 1.06, grip: 0.98, df: 1.5 }, pick: 'sprites/pick/f40.png', engine: {
         cyl: 8, redline: 7750, idle: 1000, rough: 0.15, bright: 0.8, turbo: 0.9,
         sample: { ramp: 'sounds/engine/v8-f40.json' },
       }, colors: ['#e0262c', '#22242b'], top: 'sprites/top/f40.png', sheet: 'sprites/f40lm', sheetN: 8, sheetRear: 3 },
-      { id: 'countach', name: 'Countach LP500', shape: 'wedgeGT', mul: { vmax: 1.03, accel: 1.02, grip: 0.95, brake: 0.95 }, pick: 'sprites/pick/countach.png', engine: {
+      { id: 'countach', diff: 0, name: 'Countach LP500', shape: 'wedgeGT', mul: { vmax: 1.03, accel: 1.02, grip: 0.95, brake: 0.95 }, pick: 'sprites/pick/countach.png', engine: {
         cyl: 12, redline: 7500, idle: 900, rough: 0.05, bright: 0.88, turbo: 0,
         // La rampe la plus large du jeu : vingt-cinq demi-tons, 1821 tr/min au rupteur, d'un seul
         // rapport et sans coupure. C'est ce qu'il faut pour n'avoir presque rien à confier à la
         // synthèse — la plage enregistrée couvre à elle seule tout ce qu'on entend en course.
         sample: { ramp: 'sounds/engine/v12-countach.json' },
       }, colors: ['#ffd400', '#22242b'], top: 'sprites/top/countach.png' },
-      { id: '930', name: '911 Turbo', shape: 'roundGT', mul: { vmax: 0.99, accel: 1.04, grip: 0.97, slide: 1.2 }, pick: 'sprites/pick/930.png', engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.3, bright: 0.6, turbo: 0.85 }, colors: ['#c9ced6', '#e0262c'], top: 'sprites/top/930.png', sheet: 'sprites/930', sheetN: 16, sheetRear: 0, sheetW: 4.803, sheetAnchor: [0.499, 0.841] },
-      { id: 'gt40', name: 'GT40 Mk II', shape: 'gt40', mul: { vmax: 1.06, accel: 1.02, grip: 0.99, df: 0.85, brake: 0.97, slide: 1.1 }, pick: 'sprites/pick/gt40.png', engine: {
+      // La prise vient d'une 911 RSR, la seule 911 du plateau étant celle-ci. Un RSR est atmosphérique
+      // là où la Turbo ne l'est pas : le sifflement reste à la synthèse, la matière du plat-six est
+      // celle de l'enregistrement.
+      { id: '930', diff: 5, name: '911 Turbo', shape: 'roundGT', mul: { vmax: 0.99, accel: 1.04, grip: 0.97, slide: 1.2 }, pick: 'sprites/pick/930.png', engine: {
+        cyl: 6, redline: 7000, idle: 950, rough: 0.3, bright: 0.6, turbo: 0.85,
+        sample: { ramp: 'sounds/engine/flat6-930.json', bas: 'sounds/engine/flat6-930-bas.json' },
+      }, colors: ['#c9ced6', '#e0262c'], top: 'sprites/top/930.png', sheet: 'sprites/930', sheetN: 16, sheetRear: 0, sheetW: 4.803, sheetAnchor: [0.499, 0.841] },
+      { id: 'gt40', diff: 2, name: 'GT40 Mk II', shape: 'gt40', mul: { vmax: 1.06, accel: 1.02, grip: 0.99, df: 0.85, brake: 0.97, slide: 1.1 }, pick: 'sprites/pick/gt40.png', engine: {
         cyl: 8, redline: 6200, idle: 800, rough: 0.6, bright: 0.45, turbo: 0,
-        // Quatre demi-tons : la prise ne contient que des tirages entre deux rapports, et chacun
-        // repart du même régime après le passage, si bien que les enchaîner n'élargirait rien. On
-        // n'a donc que 4852 tr/min au rupteur — mais c'est la matière d'un vrai V8 américain là où
-        // la synthèse ne donnait qu'un timbre, et sous 4852 elle reprend la main en fondu.
-        sample: { ramp: 'sounds/engine/v8-gt40.json' },
+        // Trois prises, et le moteur choisit. La montée ne porte que 4611 tr/min au rupteur — un
+        // tirage entre deux rapports, tout ce qu'un onboard de course contient souvent — mais elle
+        // n'a plus à couvrir seule : le plein régime et le pied levé ont leur propre matière, qui
+        // n'a pas besoin d'axe des régimes puisqu'on ne la parcourt pas.
+        sample: {
+          ramp: 'sounds/engine/v8-gt40.json',
+          haut: 'sounds/engine/v8-gt40-haut.json',
+          bas: 'sounds/engine/v8-gt40-bas.json',
+        },
       }, colors: ['#5bc8e8', '#ff8c1a'], top: 'sprites/top/gt40.png' },
-      { id: '917k', name: '917 K', shape: 'longTail', mul: { vmax: 1.10, accel: 1.05, grip: 1.0, df: 1.4, brake: 0.93, slide: 1.15 }, pick: 'sprites/pick/917.png', engine: { cyl: 12, redline: 8400, idle: 1200, rough: 0.1, bright: 0.95, turbo: 0 }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/917.png' },
-      { id: 'corvette', name: 'Corvette', shape: 'roundGT', mul: { vmax: 1.04, accel: 1.06, grip: 0.97, df: 0.9, brake: 0.95, slide: 1.3 }, pick: 'sprites/pick/corvette.png', engine: {
+      { id: '917k', diff: 3, name: '917 K', shape: 'longTail', mul: { vmax: 1.10, accel: 1.05, grip: 1.0, df: 1.4, brake: 0.93, slide: 1.15 }, pick: 'sprites/pick/917.png', engine: { cyl: 12, redline: 8400, idle: 1200, rough: 0.1, bright: 0.95, turbo: 0 }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/917.png' },
+      { id: 'corvette', diff: 5, name: 'Corvette', shape: 'roundGT', mul: { vmax: 1.04, accel: 1.06, grip: 0.97, df: 0.9, brake: 0.95, slide: 1.3 }, pick: 'sprites/pick/corvette.png', engine: {
         cyl: 8, redline: 6000, idle: 750, rough: 0.7, bright: 0.4, turbo: 0,
         // Découpé dans son propre onboard. Les étiquettes portent une correction d'octave : sur
         // cette prise l'estimateur s'accrochait au demi-ordre plutôt qu'à l'allumage, ce que le
@@ -74,15 +84,18 @@ const CATEGORIES = [
       // quatre-rotors allume quatre fois par tour d'arbre excentrique, exactement comme un V8 à
       // quatre temps. D'où huit, avec la rugosité d'un moteur parfaitement équilibré et un
       // rupteur très haut : c'est le cri de la 787B.
-      { id: '787b', name: '787B', shape: 'groupC', mul: { vmax: 1.02, accel: 1.05, grip: 1.03, df: 1.3, brake: 1.04, slide: 0.92 }, colors: ['#ff8c1a', '#1f6b3a'], top: 'sprites/top/787b.png', pick: 'sprites/pick/787b.png', engine: {
+      { id: '787b', diff: 0, name: '787B', shape: 'groupC', mul: { vmax: 1.02, accel: 1.05, grip: 1.03, df: 1.3, brake: 1.04, slide: 0.92 }, colors: ['#ff8c1a', '#1f6b3a'], top: 'sprites/top/787b.png', pick: 'sprites/pick/787b.png', engine: {
         cyl: 8, redline: 9000, idle: 1300, rough: 0.04, bright: 1.0, turbo: 0,
-        // Six demi-tons seulement : la prise ne tient qu'un tirage, de 6216 tr/min au rupteur. La
-        // synthèse garde donc le bas de la plage, et c'est jouable ainsi parce qu'un moteur de
-        // Groupe C ne descend pas là en course. Une montée partie de plus bas, d'un seul rapport,
-        // rendrait la voiture entièrement à l'enregistrement.
-        sample: { ramp: 'sounds/engine/r26b-787b.json' },
+        // La montée tient de 6159 tr/min au rupteur, le pied levé a sa propre prise, et le
+        // démarreur est joué une fois quand la course s'ouvre — d'un bout à l'autre, pas en grains :
+        // un démarrage est un évènement, pas une matière.
+        sample: {
+          ramp: 'sounds/engine/r26b-787b.json',
+          bas: 'sounds/engine/r26b-787b-bas.json',
+          start: 'sounds/engine/r26b-787b-start.json',
+        },
       } },
-      { id: 'csl', name: '3.0 CSL', shape: 'gtBoxy', mul: { vmax: 0.95, accel: 0.98, grip: 1.05, df: 1.2, brake: 1.03, slide: 1.1 }, pick: 'sprites/pick/csl.png', engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.1, bright: 0.68, turbo: 0 }, colors: ['#f7f7f7', '#2166d8'], top: 'sprites/top/csl.png' },
+      { id: 'csl', diff: 1, name: '3.0 CSL', shape: 'gtBoxy', mul: { vmax: 0.95, accel: 0.98, grip: 1.05, df: 1.2, brake: 1.03, slide: 1.1 }, pick: 'sprites/pick/csl.png', engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.1, bright: 0.68, turbo: 0 }, colors: ['#f7f7f7', '#2166d8'], top: 'sprites/top/csl.png' },
     ],
   },
 ];
@@ -108,12 +121,15 @@ const AI_NAMES = [
   'F. Marchetti', 'G. Larsen', 'I. Kovács', 'O. Haddad',
 ];
 
+// La prise jouée par toute voiture qui n'en a pas à elle. Voir `resolveModel`.
+const MOTEUR_DEFAUT = 'sounds/engine/six-inline.json';
+
 // Resolved models: category stats × model multipliers.
 const MODELS = [];
 function resolveModel(cat, m) {
   const b = cat.base, mul = m.mul || {};
   const model = {
-    id: m.id, catId: cat.id, name: m.name, shape: m.shape, colors: m.colors, custom: !!m.custom, sprite: m.sprite || null, top: m.top || null,
+    id: m.id, catId: cat.id, name: m.name, shape: m.shape, diff: m.diff == null ? 2 : m.diff, colors: m.colors, custom: !!m.custom, sprite: m.sprite || null, top: m.top || null,
     // optional rotation sheet for the isometric view: folder of v0..v(N-1).png, sheetRear = the rear view
     sheet: m.sheet || null, sheetN: m.sheetN || 8, sheetRear: m.sheetRear || 0,
     // a sheet rendered in a fixed frame also states its width in metres and where the car's
@@ -129,6 +145,21 @@ function resolveModel(cat, m) {
     pick: m.pick || null,
     engine: Object.assign({ cyl: 8, redline: 7000, idle: 1000, rough: 0.3, bright: 0.6, turbo: 0 }, cat.engine || {}, m.engine || {}),
   };
+  /* Une voiture sans prise à elle joue quand même un vrai moteur.
+
+  La synthèse donne la bonne hauteur mais pas la bonne matière, et l'écart s'entend d'autant plus que
+  les voisines de grille, elles, roulent sur des enregistrements. Faute de prise propre, la M1 fait
+  donc le fond de plateau : un six en ligne mécanique et sec, qui monte à 9000 tr/min, et dont la
+  rampe est la plus large qu'on ait — dix-sept demi-tons, de 3423 tr/min au rupteur.
+
+  Ce n'est pas un pis-aller sans conséquence : le lecteur ramène l'échelle de la rampe au rupteur de
+  la voiture qui la joue, si bien qu'une CSL qui coupe à 7000 entend bien son propre rupteur et non
+  les trois quarts de celui de la M1. Ce qui reste emprunté est le timbre, pas le comportement — la
+  boîte, la charge, le turbo et le ralenti restent ceux de la voiture.
+
+  Cela vaut aussi pour les voitures de l'atelier, qui passent par ce même chemin. */
+  if (!model.engine.sample) model.engine = Object.assign({}, model.engine, { sample: { ramp: MOTEUR_DEFAUT } });
+
   // Les chiffres du menu, calculés ici pour que les voitures de l'atelier en aient aussi :
   // `registerModel` passe par ce même chemin. (`perfOf` est déclarée plus bas, donc hissée.)
   model.perf = perfOf(model);
@@ -155,6 +186,21 @@ function perfOf(c) {
     gripG: (c.grip + c.df * 2500) / 9.81,        // g
   };
 }
+
+/* Ce qu'une voiture coûte à piloter, de zéro à cinq pneus.
+
+Le rang est mesuré, pas décidé, par `node tools/difficulte.js` : le plus gros coup de lacet dont la
+voiture se remet, l'écart entre son tour idéal et son tour réel, et la dérive qu'elle atteint pour
+un coup de référence. Trois mesures qui ne disent pas la même chose — une voiture peut pardonner et
+rester fatigante, une autre être docile puis partir d'un coup — chacune ramenée à sa place dans le
+plateau, parce que ce qui intéresse le joueur est le rang relatif et non une note absolue.
+
+Le plateau se révèle groupé du côté facile : quatre voitures à zéro pneu, deux à cinq. C'est ce que
+la mesure dit, et l'échelle n'est pas étirée pour faire joli — ce serait affirmer des écarts qui
+n'existent pas. La Corvette et la 911 sortent du lot par leur dérive, seize et vingt degrés là où le
+reste du plateau tient sous huit.
+
+Une voiture d'atelier, dont on ne sait rien, vaut deux pneus : le milieu, faute de mieux. */
 
 // Les bornes des cadrans, absolues et non calées sur le plateau. Un arc plein dirait « le maximum
 // possible », ce qu'aucune voiture n'a à afficher : il reste toujours mieux à faire, et une voiture
