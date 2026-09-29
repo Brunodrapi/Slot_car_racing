@@ -191,7 +191,8 @@ class App {
       mode, trackDef, classId, modelId: this.playerModelFor(classId).id,
       // The circuit's own suggestion unless the player has asked for a number; a championship
       // round keeps the suggestion, since its length is part of the championship, not a setting.
-      laps: this.save.laps || lapsFor(trackDef, cat),
+      // le joueur choisit sa longueur ; la proposition du circuit ne sert plus que de filet
+      laps: this.save.laps || 5,
       difficulty: this.save.difficulty,
       wear: this.save.wear,
       playerLivery: this.save.livery,

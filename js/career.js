@@ -14,7 +14,7 @@ function lapsFor(trackDef, cat) {
 const SAVE_KEY = 'slotracer.save.v2';
 
 function defaultSave() {
-  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, ctrl: 'auto', camRotate: false, view: 'fixed', pullBack: 1, laps: 0, showLines: false, debug: false, wear: false, guideMigrated: true, flatMigrated: false, cups: {}, bestLaps: {}, tutorialSeen: false, racesDone: 0 };
+  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, ctrl: 'auto', ctrlSide: 'left', camRotate: false, view: 'fixed', pullBack: 1, laps: 5, lapsPerso: false, showLines: false, debug: false, wear: false, guideMigrated: true, flatMigrated: false, cups: {}, bestLaps: {}, tutorialSeen: false, racesDone: 0 };
 }
 
 function loadSave() {
@@ -30,6 +30,11 @@ function loadSave() {
     // needs a rotation sheet per model, which is more artwork than the game can carry. Bring
     // existing saves back to the top-down view, once, leaving the setting free afterwards.
     if (!save.flatMigrated) { if (save.view === 'iso') save.view = 'fixed'; save.flatMigrated = true; storeSave(save); }
+    /* Le nombre de tours était « auto » par défaut, codé zéro, et suivait la proposition du
+    circuit. Il vaut maintenant cinq, choisi et non déduit : une course de cinq tours dure ce qu'il
+    faut pour qu'un arrêt au stand soit un vrai choix, et le joueur sait toujours combien il en
+    reste. Les sauvegardes existantes portent encore le zéro ; on les amène à cinq une fois. */
+    if (!save.lapsMigrated) { if (!save.laps) save.laps = 5; save.lapsMigrated = true; storeSave(save); }
     return save;
   } catch (e) { return defaultSave(); }
 }

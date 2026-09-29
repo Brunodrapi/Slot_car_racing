@@ -247,3 +247,13 @@ canvas.caricon { width: 160px; height: 72px; max-width: 100%; display: block; }
 .card img.carpick,
 .grid.models .card img.carpick { width: 100%; max-width: 132px; aspect-ratio: 4/3; object-fit: contain; }
 .grid.models.small .card img.carpick { max-width: 104px; }
+
+/* La saisie libre du nombre de tours, sous ses boutons.
+
+Elle n'apparaît que quand « Perso » est choisi : un champ toujours visible à côté de quatre
+boutons pose la question deux fois et laisse croire que les deux se contredisent. La valeur est
+reprise au `change` et non à la frappe — l'écran se reconstruit à chaque réglage, et le champ
+perdrait le curseur à chaque chiffre tapé. */
+.perso { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; color: var(--muted); }
+.perso input { width: 82px; padding: 7px 9px; border-radius: 8px; border: 1px solid #2b3140;
+  background: #161a23; color: #e8e8ec; font: 600 15px ui-monospace, monospace; }

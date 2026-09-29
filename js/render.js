@@ -303,9 +303,28 @@ class Renderer {
     this.dialHome = { cx: W / 2, cy: H - P.b - r * 0.46 };   // at rest the pad shows in full
     this.dial = { cx: this.dialHome.cx, cy: this.dialHome.cy, r };
     this.dialAnchored = false;
-    // vertical line slider, left side, clear of the dial
+    /* Le levier de ligne, à gauche par défaut, à droite au choix.
+
+    Un droitier tient son téléphone d'une main et pousse le levier du pouce de l'autre ; un
+    gaucher fait l'inverse, et jusqu'ici il n'avait pas le choix. Tout ce qui vit dans cette
+    colonne — les jauges d'usure, la carte en face — se retourne avec lui, sinon le retournement
+    ne ferait que déplacer la gêne. */
+    const droite = this.ctrlSide === 'right';
     const len = Math.min(H * 0.38, 320);
-    this.slider = { x: P.l + 22, y: H - P.b - 30 - len, len, w: 30 };
+    this.slider = { x: droite ? W - P.r - 22 : P.l + 22, y: H - P.b - 30 - len, len, w: 30, droite };
+    /* Les deux cadrans d'usure, en colonne au-dessus du levier.
+
+    Ils étaient dans le panneau du haut à gauche, qui grandissait pour les loger. Ils vivent
+    maintenant avec le levier, en bas : c'est là que se porte le regard quand on choisit sa ligne,
+    donc là qu'on décide aussi de ménager la gomme. Au-dessus du levier et non à côté — à côté, ils
+    entraient en collision avec le cadran d'accélérateur sur un téléphone. */
+    /* Ils se posent AU-DESSUS du panneau du levier, pas au-dessus du rail.
+
+    Calés sur le rail, le cadran du bas tombait sur le bord du panneau, qui commence vingt-six
+    pixels plus haut : il le chevauchait à moitié. On part donc du haut du panneau et on remonte. */
+    const rj = mobile ? 19 : 22;
+    const hautPanneau = this.slider.y - 26;
+    this.jauges = { r: rj, x: this.slider.x, y2: hautPanneau - rj - 10, y1: hautPanneau - rj * 3.2 - 14 };
     /* Les deux panneaux du haut, mesurés ici et non plus au moment de les dessiner : le bouton
     pause se pose dans l'espace qu'ils laissent, et deux jeux de constantes qui doivent rester
     d'accord finissent toujours par ne plus l'être. */
@@ -824,6 +843,11 @@ class Renderer {
     // la voie ne se dessine que quand elle sert : une voie peinte qui ne mène à rien est pire
     // qu'une voie absente, on la vise et il ne se passe rien
     this.showPit = !!race.usure;
+    /* Le côté du levier est lu ici, et un changement refait la mise en page tout de suite.
+    Le poser seulement au démarrage d'une course obligerait à en relancer une pour voir l'effet du
+    réglage, ce qui est la façon la plus sûre de faire croire qu'un réglage ne marche pas. */
+    const cote = (ui && ui.app && ui.app.save && ui.app.save.ctrlSide) === 'right' ? 'right' : 'left';
+    if (cote !== this.ctrlSide) { this.ctrlSide = cote; this._layoutHud(); }
     const g = this.ctx, W = this.w, H = this.h, T = race.track, cam = this.cam;
     g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     g.clearRect(0, 0, W, H);
@@ -1561,43 +1585,40 @@ class Renderer {
     g.textBaseline = 'top';
     const panel = (x, y, w, h) => { g.fillStyle = 'rgba(10,12,20,0.55)'; this._roundRect(g, x, y, w, h, 10); g.fill(); };
 
-    /* Les deux panneaux du haut, redessinés.
+    /* Le haut de l'écran, SANS panneau.
 
-    LE PROBLÈME. Tout y était de la même taille, aligné sur une seule colonne à droite : la
-    position, le tour, le nom, et à côté trois temps empilés en corps 12. Un pilote lit ces
-    panneaux en bout de ligne droite, un dixième de seconde, sans bouger les yeux du virage qui
-    arrive — et rien ne ressortait. Il fallait LIRE pour trouver sa place.
+    Les deux boîtes translucides prenaient une bande entière en haut de l'écran pour porter cinq
+    nombres, et la boîte des temps était haute de trois lignes là où deux suffisent. Sur un
+    téléphone tenu à bout de bras, cette bande est la part de piste qu'on ne voit pas.
 
-    LA CONVENTION RETENUE. Un grand chiffre, et contre lui, empilés en petit, ce qu'il signifie et
-    son total : « 2 » en grand, « POS » au-dessus de « /12 » à droite. La hiérarchie fait tout le
-    travail — l'œil prend le grand chiffre, et le reste n'est là que pour qui veut vérifier. Les
-    temps deviennent des lignes étiquetées, libellé à gauche en petites capitales, valeur à droite
-    en chiffres à chasse fixe, pour que les colonnes de chiffres s'alignent d'un temps à l'autre.
+    Tout est donc posé directement sur le monde, en gras, avec un contour sombre : c'est le contour
+    qui rend lisible, pas le fond. Il tient sur l'herbe claire comme sur l'asphalte sombre, et il ne
+    coûte rien en surface. Seules les lignes de temps gardent une pastille, parce qu'un chiffre à
+    chasse fixe changeant à chaque image scintille sans un fond pour l'asseoir.
 
-    Le tour courant reste en tête du panneau des temps, en grand : c'est le seul qui bouge, donc le
-    seul qu'on regarde en roulant. `best` et `last` sont des références, pas une lecture. */
+    La hiérarchie ne bouge pas : grand chiffre, libellé et total empilés contre lui. */
     const usure = !!p.usure;
-    const boxW = this.hudBox.w, boxH = this.hudBox.h + (usure ? (mobile ? 42 : 46) : 0);
-    panel(P.l, P.t, boxW, boxH);
+    const boxH = this.hudBox.h;
 
-    /* Un grand chiffre avec son libellé et son total empilés contre lui.
+    // le contour qui remplace le fond : tracé d'abord, rempli ensuite
+    const cerne = (txt, x, y, ep) => {
+      g.lineJoin = 'round'; g.lineWidth = ep;
+      g.strokeStyle = 'rgba(8,10,16,0.72)'; g.strokeText(txt, x, y);
+      g.fillText(txt, x, y);
+    };
 
-    Le libellé est au-dessus du total et non l'inverse : on cherche « quelle est ma position », pas
-    « combien sont-ils ». Le total est en gris, plus petit encore — c'est une précision, et sur un
-    écran de téléphone chaque pixel qu'il ne prend pas revient au chiffre qui compte. */
-    const bloc = (x, y, grand, libelle, total, teinte) => {
+    const bloc = (x, y, grand, libelle, total) => {
       g.textAlign = 'left'; g.textBaseline = 'top';
-      g.fillStyle = teinte || '#fff';
-      g.font = `bold ${mobile ? 32 : 40}px system-ui, sans-serif`;
-      g.fillText(grand, x, y);
+      g.fillStyle = '#fff';
+      g.font = `900 ${mobile ? 34 : 42}px system-ui, sans-serif`;
+      cerne(grand, x, y, mobile ? 6 : 7);
       const lg = g.measureText(grand).width;
-      g.font = `bold ${mobile ? 10 : 11}px system-ui, sans-serif`;
-      g.fillStyle = '#9aa1ad';
-      g.fillText(libelle, x + lg + 5, y + (mobile ? 3 : 5));
+      g.font = `bold ${mobile ? 12 : 14}px system-ui, sans-serif`;
+      g.fillStyle = '#f0f2f6';
+      cerne(libelle, x + lg + 5, y + (mobile ? 2 : 4), 4);
       if (total) {
-        g.font = `bold ${mobile ? 12 : 14}px ui-monospace, monospace`;
-        g.fillStyle = '#cfd3dc';
-        g.fillText(total, x + lg + 5, y + (mobile ? 15 : 20));
+        g.font = `bold ${mobile ? 14 : 16}px ui-monospace, monospace`;
+        cerne(total, x + lg + 5, y + (mobile ? 16 : 22), 4);
       }
       return lg;
     };
@@ -1605,39 +1626,44 @@ class Renderer {
     const pos = race.positionOf(p), n = race.cars.length;
     const tt = race.mode === 'timetrial';
     const lapShown = tt ? p.lap + 1 : Math.min(race.laps, p.lap + 1);
-    const y0 = P.t + (mobile ? 6 : 8);
-    const lgPos = bloc(P.l + 12, y0, tt ? '—' : String(pos), t('pos').toUpperCase(), tt ? '' : '/' + n);
-    // le tour à droite dans le même panneau : deux mesures de même nature, donc même traitement
-    bloc(P.l + 12 + lgPos + (mobile ? 40 : 52), y0, String(lapShown), t('lap').toUpperCase(),
-      tt ? '' : '/' + race.laps);
+    const y0 = P.t + 2;
+    bloc(P.l + 4, y0, tt ? '—' : String(pos), t('pos'), tt ? '' : '/' + n);
 
-    // le nom, discret, calé sur la hauteur NUE du panneau : sinon il descend avec les cadrans
-    g.textAlign = 'right'; g.font = `${mobile ? 11 : 12}px system-ui, sans-serif`; g.fillStyle = '#9aa1ad';
-    g.fillText(p.name, P.l + boxW - 12, P.t + this.hudBox.h - (mobile ? 18 : 20));
-
-    // --- les temps ---
+    // --- les temps, en haut à droite : le tour courant en grand, deux pastilles en dessous ---
     const tw = this.hudBox.tw;
-    panel(W - P.r - tw, P.t, tw, boxH);
-    const tx = W - P.r - 12;
+    const tx = W - P.r - 4;
+    // le tour, aligné à droite, au-dessus des pastilles
     g.textAlign = 'right'; g.textBaseline = 'top';
-    g.fillStyle = '#fff'; g.font = `bold ${mobile ? 20 : 24}px ui-monospace, monospace`;
-    g.fillText(fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart), tx, y0);
-    /* Une ligne de temps : libellé à gauche en petites capitales, valeur à droite à chasse fixe.
-    La chasse fixe n'est pas un goût : deux temps au dixième près ne s'alignent qu'à cette
-    condition, et c'est l'alignement qui permet de comparer d'un coup d'œil sans lire. */
-    const ligneT = (yy, lib, val, teinte) => {
-      g.textAlign = 'left'; g.font = `bold ${mobile ? 9 : 10}px system-ui, sans-serif`;
-      g.fillStyle = '#9aa1ad';
-      g.fillText(lib.toUpperCase(), W - P.r - tw + 12, yy + 2);
-      g.textAlign = 'right'; g.font = `${mobile ? 12 : 13}px ui-monospace, monospace`;
-      g.fillStyle = teinte || '#cfd3dc';
-      g.fillText(val, tx, yy);
+    g.fillStyle = '#fff'; g.font = `900 ${mobile ? 34 : 42}px system-ui, sans-serif`;
+    const lapTxt = String(lapShown);
+    cerne(lapTxt, tx - (mobile ? 34 : 42), y0, mobile ? 6 : 7);
+    g.textAlign = 'left';
+    g.font = `bold ${mobile ? 12 : 14}px system-ui, sans-serif`; g.fillStyle = '#f0f2f6';
+    cerne(t('lap'), tx - (mobile ? 30 : 38), y0 + (mobile ? 2 : 4), 4);
+    if (!tt) {
+      g.font = `bold ${mobile ? 14 : 16}px ui-monospace, monospace`;
+      cerne('/' + race.laps, tx - (mobile ? 30 : 38), y0 + (mobile ? 16 : 22), 4);
+    }
+
+    /* Les pastilles de temps. Deux lignes, pas trois : le « dernier tour » a disparu au profit du
+    tour COURANT, qui est le seul chiffre qu'on regarde en roulant. Le dernier tour ne servait qu'à
+    la seconde d'après la ligne, où le message qui l'annonce le dit déjà, en grand, au milieu. */
+    const ph = mobile ? 24 : 28, pw = mobile ? 132 : 158, px = W - P.r - pw;
+    const pastille = (yy, lib, val, teinte) => {
+      g.fillStyle = 'rgba(10,12,20,0.62)';
+      this._roundRect(g, px, yy, pw, ph, ph / 2); g.fill();
+      g.textAlign = 'left'; g.textBaseline = 'middle';
+      g.font = `bold ${mobile ? 10 : 11}px system-ui, sans-serif`; g.fillStyle = '#aeb4c0';
+      g.fillText(lib.toUpperCase(), px + 12, yy + ph / 2 + 0.5);
+      g.textAlign = 'right';
+      g.font = `bold ${mobile ? 13 : 15}px ui-monospace, monospace`; g.fillStyle = teinte || '#fff';
+      g.fillText(val, px + pw - 12, yy + ph / 2 + 0.5);
+      g.textBaseline = 'top';
     };
-    const last = p.lapTimes.length ? p.lapTimes[p.lapTimes.length - 1] : null;
-    const yT = y0 + (mobile ? 26 : 32);
-    // le meilleur tour en violet, la même teinte que le message qui l'annonce quand il tombe
-    ligneT(yT, t('best'), p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---', p.bestLap != null ? '#b48cff' : '#7d838e');
-    ligneT(yT + (mobile ? 15 : 17), t('last'), last != null ? fmtTime(last) : '--:--.---');
+    const yP = y0 + (mobile ? 44 : 54);
+    pastille(yP, t('best'), p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---',
+      p.bestLap != null ? '#b48cff' : '#7d838e');
+    pastille(yP + ph + 5, t('lap'), fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart));
 
     /* Les deux cadrans : la gomme et la tôle.
 
@@ -1650,8 +1676,10 @@ class Renderer {
     chiffre. Le vert ne veut rien dire tout seul, c'est le passage à l'orange puis au rouge qui
     porte l'alerte — et le chiffre la porte aussi pour qui ne distingue pas les deux. */
     if (usure) {
-      const r = mobile ? 17 : 19, cy = pad0.t + this.hudBox.h + r + 4;
-      const cadran = (cx, frac, dessine) => {
+      const J = this.jauges, r = J.r;
+      // leur propre fond : posés à même le décor, deux anneaux fins se perdaient sur le sable
+      panel(J.x - r - 6, J.y1 - r - 6, (r + 6) * 2, (J.y2 - J.y1) + (r + 6) * 2);
+      const cadran = (cx, cy, frac, dessine) => {
         const f = Math.max(0, Math.min(1, frac));
         const A0 = Math.PI * 0.75, SPAN = Math.PI * 1.5;
         g.lineCap = 'round';
@@ -1679,8 +1707,9 @@ class Renderer {
         g.fillStyle = 'rgba(20,24,34,0.85)';
         this._roundRect(g, -2.3, -2.6, 4.6, 3.2, 1); g.fill();
       };
-      cadran(pad0.l + 12 + r, p.tyre, pneu);
-      cadran(pad0.l + 12 + r * 3.3, 1 - p.damage, tole);
+      // en colonne : la gomme au-dessus, la tôle en dessous, dans l'ordre où on s'en soucie
+      cadran(J.x, J.y1, p.tyre, pneu);
+      cadran(J.x, J.y2, 1 - p.damage, tole);
       g.textAlign = 'left'; g.textBaseline = 'top';
     }
 
@@ -1695,13 +1724,17 @@ class Renderer {
     // line slider (left thumb)
     this._drawSlider(g, p, t);
 
-    // minimap bottom-right
+    /* La carte, en bas, et toujours À L'OPPOSÉ du levier.
+
+    Elle montait sous les chronos sur un téléphone, pour laisser le coin au pouce. Mais le pouce
+    n'occupe qu'un seul coin du bas, celui du levier : l'autre est libre, et c'est là que la carte
+    se lit le mieux — en bas, où l'œil descend déjà pour la ligne et l'accélérateur, plutôt qu'en
+    haut où il faut aller la chercher. Elle se retourne donc avec le levier. */
     if (this.mm) {
-      // On a phone the bottom-right corner belongs to the thumb, so the map moves up under the
-      // times. On a desktop there is no thumb and it stays in the corner.
-      const m = this.mm, mx = W - P.r - m.size;
-      const my = mobile ? P.t + boxH + 10 : H - P.b - m.size;
-      panel(mx, my, m.size, m.size);
+      const m = this.mm;
+      const mx = this.slider.droite ? P.l : W - P.r - m.size;
+      const my = H - P.b - m.size;
+      // pas de fond : le tracé est déjà cerné de noir dans sa propre image, il se lit sur le décor
       g.drawImage(m.canvas, mx, my, m.size, m.size);
       /* Les points de la carte, deux fois plus gros, et le joueur en bleu ciel.
 
@@ -1785,11 +1818,17 @@ class Renderer {
     // track
     g.fillStyle = 'rgba(255,255,255,0.18)'; this._roundRect(g, s.x - 4, s.y, 8, s.len, 4); g.fill();
     const stops = [{ v: 1, c: LINE_COLORS.outside, l: t('lineOut') }, { v: 0, c: LINE_COLORS.racing, l: t('lineRace') }, { v: -1, c: LINE_COLORS.inside, l: t('lineIn') }];
-    g.font = `bold ${this.mobile ? 10 : 11}px system-ui, sans-serif`; g.textAlign = 'left'; g.textBaseline = 'middle';
+    /* Les libellés passent de l'autre côté de la colonne quand le levier est à droite : posés
+    toujours à droite, ils sortiraient de l'écran, et c'est le genre de détail qui ne se voit que
+    sur l'appareil de celui qui a changé le réglage. */
+    const cote = s.droite ? -1 : 1;
+    const lx = s.x + 14 * cote;
+    g.font = `bold ${this.mobile ? 10 : 11}px system-ui, sans-serif`;
+    g.textAlign = s.droite ? 'right' : 'left'; g.textBaseline = 'middle';
     for (const st of stops) {
       const y = s.y + s.len / 2 - st.v * s.len / 2;
       g.fillStyle = st.c; g.beginPath(); g.arc(s.x, y, 7, 0, Math.PI * 2); g.fill();
-      g.fillStyle = '#e8e8ec'; g.fillText(st.l, s.x + 14, y);
+      g.fillStyle = '#e8e8ec'; g.fillText(st.l, lx, y);
     }
     if (ouvert) {
       // le rail se prolonge jusqu'à la coche, sinon elle flotte sans appartenir au levier
@@ -1799,9 +1838,9 @@ class Renderer {
       g.beginPath(); g.arc(s.x, this.pitY, 8, 0, Math.PI * 2); g.fill();
       g.fillStyle = '#1a1400'; g.font = `bold ${this.mobile ? 9 : 10}px system-ui, sans-serif`;
       g.textAlign = 'center'; g.fillText('P', s.x, this.pitY + 0.5);
-      g.textAlign = 'left'; g.fillStyle = actif ? '#5be07a' : '#e8e8ec';
+      g.textAlign = s.droite ? 'right' : 'left'; g.fillStyle = actif ? '#5be07a' : '#e8e8ec';
       g.font = `bold ${this.mobile ? 10 : 11}px system-ui, sans-serif`;
-      g.fillText(t('linePit'), s.x + 14, this.pitY);
+      g.fillText(t('linePit'), lx, this.pitY);
     }
     // handle — posée sur la coche quand les stands sont demandés
     const hy = (p.pitAsk || p.pitState) && ouvert ? this.pitY : s.y + s.len / 2 - p.sel * s.len / 2;
@@ -1831,7 +1870,8 @@ class Renderer {
       const dx = x - d.cx, dy = y - d.cy;
       if (dy <= d.r * 0.6 && dx * dx + dy * dy < (d.r + 12) * (d.r + 12)) return null;
     }
-    const inZoneX = touchZone ? x < this.w * 0.42 : Math.abs(x - s.x) < 40;
+    // la zone tactile large suit le côté du levier, sinon un gaucher pousserait dans le vide
+    const inZoneX = touchZone ? (s.droite ? x > this.w * 0.58 : x < this.w * 0.42) : Math.abs(x - s.x) < 40;
     if (!inZoneX) return null;
     if (!touchZone && (y < s.y - 30 || y > s.y + s.len + 30)) return null;
     /* La coche des stands vit SOUS le rail, dans la marge du panneau : un doigt qui descend plus
