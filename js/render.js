@@ -1611,6 +1611,14 @@ class Renderer {
     La hiérarchie ne bouge pas : grand chiffre, libellé et total empilés contre lui. */
     const usure = !!p.usure;
     const boxH = this.hudBox.h;
+    /* L'origine de la carte, calculée ICI et non au moment de la peindre.
+
+    Trois choses se rangent sous elle — la carte, le tableau des positions sur grand écran, la
+    télémétrie — et tant qu'elle vivait dans le bloc qui la dessine, les deux autres partaient d'une
+    hauteur posée en dur. La carte est remontée sous la position : le tableau, resté à son ancienne
+    ligne, se peignait par-dessus. Une seule origine, trois lecteurs. */
+    const mmX = P.l + 2, mmY = P.t + (mobile ? 46 : 56);
+    const mmBas = this.mm ? mmY + this.mm.size : P.t + boxH;
 
     /* Plus de contour noir : du blanc plein, et rien d'autre.
 
@@ -1650,12 +1658,57 @@ class Renderer {
     panneaux n'existent plus, et il accusait donc le bouton d'un chevauchement avec des rectangles
     fantômes. Le rendu publie maintenant les zones qu'il occupe pour de bon, et l'essai mesure
     contre elles : une mesure qui décrit l'écran d'avant ne décrit plus rien. */
-    const lgBloc = bloc(P.l + 4, y0, tt ? '—' : String(pos), t('pos'), tt ? '' : '/' + n);
-    this.hudZones = { pos: { x: P.l + 4, w: lgBloc } };
+    /* Le haut se répartit au lieu de se tasser.
+
+    Quatre choses s'y alignent : la position, la pause, les temps, le tour. Leurs abscisses étaient
+    posées en dur, et les vides qui en sortaient ne valaient rien les uns par rapport aux autres :
+    quarante pixels après la position, dix avant les temps, seize avant le tour sur un iPhone 13 —
+    et près de neuf cents avant le tour sur un écran de bureau, où le chiffre partait seul à l'autre
+    bout. Un alignement dont les intervalles sont arbitraires se lit comme un encombrement.
+
+    On mesure donc ce que chaque bloc occupe, et on rend le reste à parts égales. La position tient
+    le bord gauche et le tour le bord droit : ce sont les deux repères qu'on retrouve sans regarder.
+    La pause et les temps restent collés l'un à l'autre — ils se lisent d'un seul tenant — et ce
+    couple se centre dans ce qui reste entre les deux. Le résultat est symétrique à n'importe quelle
+    largeur, au lieu de l'être à une seule.
+
+    Les largeurs réservées sont les largeurs MAXIMALES de la course, pas celles de l'image courante :
+    mesuré sur le chiffre affiché, le bouton pause avancerait d'un pixel au passage de la 9e à la
+    10e place. Une cible qui bouge sous le pouce est pire qu'une cible mal placée. */
+    const mesure = (grand, libelle, total) => {
+      g.font = `900 ${mobile ? 34 : 42}px system-ui, sans-serif`;
+      const lg = g.measureText(grand).width;
+      g.font = `bold ${mobile ? 12 : 14}px system-ui, sans-serif`;
+      let l = g.measureText(libelle).width;
+      if (total) {
+        g.font = `bold ${mobile ? 14 : 16}px ui-monospace, monospace`;
+        l = Math.max(l, g.measureText(total).width);
+      }
+      return lg + 5 + l;
+    };
+    const xs = P.l + 4, xe = W - P.r - 4;
+    const posTot = tt ? '' : '/' + n, lapTot = tt ? '' : '/' + race.laps;
+    const wPos = mesure(tt ? '—' : String(n), t('pos'), posTot);
+    // au contre-la-montre le tour n'a pas de plafond : on lui réserve deux chiffres d'office
+    const wLap = mesure(tt ? String(Math.max(10, lapShown)) : String(race.laps), t('lap'), lapTot);
+    const pbs = this.pauseBtn.s;
+    const colle = 10;              // pause et temps : un seul bloc, donc un seul petit écart
+    const gMin = mobile ? 8 : 12;  // en dessous, le haut redevient un empilement
+    const restant = (xe - xs) - wPos - wLap - pbs - colle;
+    /* Les pastilles gardent leur largeur naturelle ; c'est aux vides que revient le reste.
+
+    Les laisser grandir jusqu'à remplir la place rééquilibrait le haut — mais par le bas : trois
+    vides égaux de huit pixels, donc quatre blocs collés. Répartir, c'est écarter. Elles ne se
+    rétrécissent que sous la contrainte, quand l'écran est trop étroit pour les vides minimaux. */
+    const pw = clamp(restant - gMin * 2, mobile ? 104 : 124, mobile ? 136 : 168);
+    const vide = Math.max(gMin, (restant - pw) / 2);
+    this.pauseBtn.x = Math.round(xs + wPos + vide);
+
+    bloc(xs, y0, tt ? '—' : String(pos), t('pos'), posTot);
+    this.hudZones = { pos: { x: xs, w: wPos } };
 
     // --- les temps, en haut à droite : le tour courant en grand, deux pastilles en dessous ---
-    const tw = this.hudBox.tw;
-    const tx = W - P.r - 4;   // le tour garde le bord droit : c'est le repère le plus stable
+    const tx = xe;   // le tour garde le bord droit : c'est le repère le plus stable
     // le tour, aligné à droite, au-dessus des pastilles
     g.textAlign = 'right'; g.textBaseline = 'top';
     g.fillStyle = '#fff'; g.font = `900 ${mobile ? 34 : 42}px system-ui, sans-serif`;
@@ -1674,7 +1727,7 @@ class Renderer {
     la seconde d'après la ligne, où le message qui l'annonce le dit déjà, en grand, au milieu. */
     // les pastilles commencent juste après le bouton pause, et non au bord droit de l'écran
     const pb0 = this.pauseBtn;
-    const ph = mobile ? 24 : 28, pw = mobile ? 136 : 168, px = pb0.x + pb0.s + 10;
+    const ph = mobile ? 24 : 28, px = pb0.x + pb0.s + colle;
     const pastille = (yy, lib, val, teinte) => {
       g.fillStyle = 'rgba(10,12,20,0.62)';
       this._roundRect(g, px, yy, pw, ph, ph / 2); g.fill();
@@ -1688,6 +1741,7 @@ class Renderer {
     };
     const yP = y0 + 2;
     this.hudZones.temps = { x: px, w: pw };
+    this.hudZones.lap = { x: xe - wLap, w: wLap };
     pastille(yP, t('best'), p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---',
       p.bestLap != null ? '#b48cff' : '#7d838e');
     pastille(yP + ph + 5, t('lap'), fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart));
@@ -1768,8 +1822,7 @@ class Renderer {
     colonne que le chiffre qu'on regarde le plus — on lit sa place, puis où elle se trouve. */
     if (this.mm) {
       const m = this.mm;
-      const mx = P.l + 2;
-      const my = P.t + (mobile ? 46 : 56);
+      const mx = mmX, my = mmY;
       // pas de fond : le tracé translucide se pose sur le décor sans lui voler sa place
       g.drawImage(m.canvas, mx, my, m.size, m.size);
       /* Les points de la carte, deux fois plus gros, et le joueur en bleu ciel.
@@ -1789,7 +1842,7 @@ class Renderer {
     // standings strip (desktop)
     if (!mobile && race.mode !== 'timetrial') {
       const st = race.standings().slice(0, 6);
-      const rowH = 20, bw = 190, bx = P.l, by = P.t + boxH + 10;
+      const rowH = 20, bw = 190, bx = P.l, by = mmBas + 10;
       panel(bx, by, bw, st.length * rowH + 10);
       g.font = '13px system-ui, sans-serif'; g.textAlign = 'left';
       st.forEach((car, i) => {
@@ -1805,8 +1858,14 @@ class Renderer {
     this._drawDial(g, p, t);
 
     // telemetry overlay (G key or settings): the four numbers that describe the car's state
-    const dbgY = P.t + boxH + 10 + (mobile && this.mm ? this.mm.size + 10 : 0);
-    if (this.debug) this._drawDebug(g, p, P.l + boxW + 14, dbgY);
+    // la carte n'est plus réservée au téléphone en haut : la télémétrie passe sous elle partout
+    const dbgY = mmBas + 10;
+    /* `boxW` n'existait plus — et la télémétrie jetait une exception à chaque image.
+
+    Elle se décalait de la largeur du panneau du haut pour ne pas passer dessous. Ce panneau a
+    disparu, la variable avec lui, et personne ne l'a vu : la télémétrie ne s'allume qu'à la touche
+    G. Elle se range maintenant dans la colonne de gauche, sous la carte, comme le tableau. */
+    if (this.debug) this._drawDebug(g, p, P.l + 2, dbgY);
 
     // countdown
     if (race.state === 'countdown') {

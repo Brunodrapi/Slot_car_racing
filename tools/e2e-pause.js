@@ -69,15 +69,26 @@ const FORMATS = [
     gênait. Le rendu publie `hudZones` : la position à gauche, les temps à droite. */
     const geo = await page.evaluate(() => {
       const r = app.renderer, b = r.pauseBtn, z = r.hudZones;
-      return { b, gauche: z.pos.x + z.pos.w, droite: z.temps.x, h: r.h, W: r.w };
+      return { b, pos: z.pos, temps: z.temps, lap: z.lap, h: r.h, W: r.w };
     });
-    const marge = Math.min(geo.b.x - geo.gauche, geo.droite - (geo.b.x + geo.b.s));
-    const place = marge >= 0;
+    /* Les trois vides du haut, et non plus seulement l'absence de chevauchement.
+
+    L'essai se contentait de vérifier que le bouton ne passait sous rien. Il passait le contrôle
+    avec quarante pixels d'un côté et dix de l'autre, ce qui est exactement le défaut qu'on a
+    corrigé : un alignement peut être parfaitement disjoint et parfaitement bancal. On mesure donc
+    la répartition elle-même. Le vide du milieu est volontairement petit — la pause et les temps se
+    lisent d'un seul tenant — ce sont les deux vides extérieurs qui doivent se valoir. */
+    const g1 = geo.b.x - (geo.pos.x + geo.pos.w);
+    const g2 = geo.temps.x - (geo.b.x + geo.b.s);
+    const g3 = geo.lap.x - (geo.temps.x + geo.temps.w);
+    const place = Math.min(g1, g2, g3) >= 0;
+    const equilibre = Math.abs(g1 - g3) <= 1.5;
     const assezGros = geo.b.s >= 34;
-    if (!place || !assezGros) fautes++;
+    if (!place || !assezGros || !equilibre) fautes++;
     console.log(`  ${nom.padEnd(18)} bouton ${geo.b.s} px à x=${Math.round(geo.b.x)}`
-      + `, panneaux à ${geo.gauche} et ${Math.round(geo.droite)} → ${marge.toFixed(0)} px de marge`
-      + (place ? '' : '  ← LE BOUTON PASSE SOUS UN PANNEAU')
+      + ` | vides ${g1.toFixed(1)} / ${g2.toFixed(1)} / ${g3.toFixed(1)}`
+      + (place ? '' : '  ← DEUX BLOCS SE CHEVAUCHENT')
+      + (equilibre ? '' : `  ← HAUT BANCAL : ${Math.abs(g1 - g3).toFixed(1)} px d'écart entre les bords`)
       + (assezGros ? '' : '  ← TROP PETIT POUR UN POUCE'));
 
     const cx = geo.b.x + geo.b.s / 2, cy = geo.b.y + geo.b.s / 2;
