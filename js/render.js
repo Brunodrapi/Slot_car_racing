@@ -335,9 +335,16 @@ class Renderer {
     course ne se quittait pas. Il tient dans l'espace restant : 62 px sur un iPhone 13, mais 47 sur
     un SE, donc sa taille suit la place au lieu d'être posée — sur un écran étroit un bouton de
     46 px passerait sous le chrono. */
-    const creux = W - P.l - P.r - this.hudBox.w - this.hudBox.tw;
-    const cote = clamp(creux - 10, 34, mobile ? 46 : 42);
-    this.pauseBtn = { x: W / 2 - cote / 2, y: P.t, s: cote };
+    /* Le bouton pause n'est plus au centre : il se range à gauche, derrière la position.
+
+    Au centre, il occupait le seul endroit du haut que rien n'obstrue — celui par lequel on voit
+    arriver la piste. Et il séparait la position des temps, deux informations qu'on lit d'affilée,
+    en les renvoyant aux deux bords opposés de l'écran : un aller-retour du regard pour rien.
+
+    Tout le haut se lit donc maintenant de gauche à droite d'un seul balayage : la position, la
+    pause, puis les temps. Le centre redevient de la piste. */
+    const cote = clamp(mobile ? 44 : 42, 34, 48);
+    this.pauseBtn = { x: P.l + (mobile ? 96 : 118), y: P.t, s: cote };
     this.mobile = mobile;
   }
 
@@ -1616,22 +1623,33 @@ class Renderer {
       g.font = `bold ${mobile ? 12 : 14}px system-ui, sans-serif`;
       g.fillStyle = '#f0f2f6';
       cerne(libelle, x + lg + 5, y + (mobile ? 2 : 4), 4);
+      let lgT = 0;
       if (total) {
         g.font = `bold ${mobile ? 14 : 16}px ui-monospace, monospace`;
         cerne(total, x + lg + 5, y + (mobile ? 16 : 22), 4);
+        lgT = g.measureText(total).width;
       }
-      return lg;
+      // la largeur RÉELLE du bloc, libellé et total compris : c'est elle qui dit ce qui est occupé
+      g.font = `bold ${mobile ? 12 : 14}px system-ui, sans-serif`;
+      return lg + 5 + Math.max(g.measureText(libelle).width, lgT);
     };
 
     const pos = race.positionOf(p), n = race.cars.length;
     const tt = race.mode === 'timetrial';
     const lapShown = tt ? p.lap + 1 : Math.min(race.laps, p.lap + 1);
     const y0 = P.t + 2;
-    bloc(P.l + 4, y0, tt ? '—' : String(pos), t('pos'), tt ? '' : '/' + n);
+    /* Ce que le haut occupe vraiment, mesuré et publié.
+
+    Le contrôle du bouton pause vérifiait qu'il ne passe pas sous les deux panneaux du haut. Ces
+    panneaux n'existent plus, et il accusait donc le bouton d'un chevauchement avec des rectangles
+    fantômes. Le rendu publie maintenant les zones qu'il occupe pour de bon, et l'essai mesure
+    contre elles : une mesure qui décrit l'écran d'avant ne décrit plus rien. */
+    const lgBloc = bloc(P.l + 4, y0, tt ? '—' : String(pos), t('pos'), tt ? '' : '/' + n);
+    this.hudZones = { pos: { x: P.l + 4, w: lgBloc } };
 
     // --- les temps, en haut à droite : le tour courant en grand, deux pastilles en dessous ---
     const tw = this.hudBox.tw;
-    const tx = W - P.r - 4;
+    const tx = W - P.r - 4;   // le tour garde le bord droit : c'est le repère le plus stable
     // le tour, aligné à droite, au-dessus des pastilles
     g.textAlign = 'right'; g.textBaseline = 'top';
     g.fillStyle = '#fff'; g.font = `900 ${mobile ? 34 : 42}px system-ui, sans-serif`;
@@ -1648,7 +1666,9 @@ class Renderer {
     /* Les pastilles de temps. Deux lignes, pas trois : le « dernier tour » a disparu au profit du
     tour COURANT, qui est le seul chiffre qu'on regarde en roulant. Le dernier tour ne servait qu'à
     la seconde d'après la ligne, où le message qui l'annonce le dit déjà, en grand, au milieu. */
-    const ph = mobile ? 24 : 28, pw = mobile ? 132 : 158, px = W - P.r - pw;
+    // les pastilles commencent juste après le bouton pause, et non au bord droit de l'écran
+    const pb0 = this.pauseBtn;
+    const ph = mobile ? 24 : 28, pw = mobile ? 136 : 168, px = pb0.x + pb0.s + 10;
     const pastille = (yy, lib, val, teinte) => {
       g.fillStyle = 'rgba(10,12,20,0.62)';
       this._roundRect(g, px, yy, pw, ph, ph / 2); g.fill();
@@ -1660,7 +1680,8 @@ class Renderer {
       g.fillText(val, px + pw - 12, yy + ph / 2 + 0.5);
       g.textBaseline = 'top';
     };
-    const yP = y0 + (mobile ? 44 : 54);
+    const yP = y0 + 2;
+    this.hudZones.temps = { x: px, w: pw };
     pastille(yP, t('best'), p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---',
       p.bestLap != null ? '#b48cff' : '#7d838e');
     pastille(yP + ph + 5, t('lap'), fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart));
@@ -1677,8 +1698,11 @@ class Renderer {
     porte l'alerte — et le chiffre la porte aussi pour qui ne distingue pas les deux. */
     if (usure) {
       const J = this.jauges, r = J.r;
-      // leur propre fond : posés à même le décor, deux anneaux fins se perdaient sur le sable
-      panel(J.x - r - 6, J.y1 - r - 6, (r + 6) * 2, (J.y2 - J.y1) + (r + 6) * 2);
+      /* Leur propre fond : posés à même le décor, deux anneaux fins se perdaient sur le sable.
+
+      Il descend plus bas qu'il ne monte, parce que le chiffre est passé sous l'arc : un fond
+      symétrique laissait le dernier chiffre à cheval sur le bord. */
+      panel(J.x - r - 7, J.y1 - r - 8, (r + 7) * 2, (J.y2 - J.y1) + r * 2.2 + 16);
       const cadran = (cx, cy, frac, dessine) => {
         const f = Math.max(0, Math.min(1, frac));
         const A0 = Math.PI * 0.75, SPAN = Math.PI * 1.5;
@@ -1687,11 +1711,17 @@ class Renderer {
         g.beginPath(); g.arc(cx, cy, r * 0.78, A0, A0 + SPAN); g.stroke();
         g.strokeStyle = f > 0.5 ? '#5be07a' : f > 0.22 ? '#ffd400' : '#ff4d4d';
         if (f > 0.001) { g.beginPath(); g.arc(cx, cy, r * 0.78, A0, A0 + SPAN * f); g.stroke(); }
-        g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
-        g.font = `bold ${Math.round(r * 0.72)}px system-ui, sans-serif`;
-        g.fillText(String(Math.round(f * 100)), cx, cy - r * 0.14);
-        g.save(); g.translate(cx, cy + r * 0.62); g.scale(r / 20, r / 20);
+        /* Le pictogramme au CENTRE, le chiffre en bas sous l'ouverture de l'arc.
+
+        L'inverse jusqu'ici. Le pictogramme dit de quoi on parle — gomme ou tôle — et c'est la
+        première question ; le chiffre dit combien il en reste, et c'est la seconde. Le centre d'un
+        cadran est la place qu'on regarde en premier, elle revient donc au pictogramme, et
+        l'ouverture de l'arc en bas est faite pour poser une valeur. */
+        g.save(); g.translate(cx, cy - r * 0.04); g.scale(r / 15, r / 15);
         dessine(); g.restore();
+        g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.font = `bold ${Math.round(r * 0.66)}px system-ui, sans-serif`;
+        g.fillText(String(Math.round(f * 100)), cx, cy + r * 0.72);
       };
       /* Le pneu : un anneau entaillé. C'est le même motif que les pneus de difficulté du menu, et
       il reste lisible à douze pixels là où une bande de roulement dessinée se brouille. */

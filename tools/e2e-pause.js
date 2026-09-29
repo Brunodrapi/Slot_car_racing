@@ -61,9 +61,15 @@ const FORMATS = [
     await page.waitForTimeout(500);
 
     // --- 1. la géométrie : le bouton empiète-t-il sur un panneau ? ---
+    /* On mesure contre ce que le HUD occupe VRAIMENT, pas contre des panneaux d'autrefois.
+
+    La première version comparait le bouton aux deux panneaux translucides du haut. Ils ont
+    disparu — tout est posé sur le monde avec un contour — et l'essai accusait alors le bouton de
+    passer sous des rectangles fantômes, sur les quatre formats à la fois, alors que rien ne le
+    gênait. Le rendu publie `hudZones` : la position à gauche, les temps à droite. */
     const geo = await page.evaluate(() => {
-      const r = app.renderer, b = r.pauseBtn, pad = 14;
-      return { b, gauche: pad + r.hudBox.w, droite: r.w - pad - r.hudBox.tw, h: r.h, W: r.w };
+      const r = app.renderer, b = r.pauseBtn, z = r.hudZones;
+      return { b, gauche: z.pos.x + z.pos.w, droite: z.temps.x, h: r.h, W: r.w };
     });
     const marge = Math.min(geo.b.x - geo.gauche, geo.droite - (geo.b.x + geo.b.s));
     const place = marge >= 0;
