@@ -641,6 +641,49 @@ class Renderer {
     l'attention — on va le chercher quand on en a besoin, il ne vient plus à nous. */
     g.lineCap = 'round'; g.lineJoin = 'round';
     g.strokeStyle = 'rgba(255,255,255,0.50)'; g.lineWidth = 5 / sc; g.stroke(this.paths.center);
+    /* La voie des stands sur la carte, et le seul endroit du jeu où elle n'est PAS à l'échelle.
+
+    Reprendre la géométrie réelle ne donne rien : la voie court à sept ou huit mètres du bord, ce
+    qui fait moins d'un pixel à l'échelle de la carte, et elle disparaîtrait entièrement sous le
+    trait de la piste, lui-même large de cinq pixels pour une piste de quinze mètres. La carte est
+    déjà un schéma, pas un plan : on écarte donc la voie d'une distance CONSTANTE à l'écran, six
+    pixels, quelle que soit la taille du circuit. Ce qu'elle doit dire, c'est de quel côté elle
+    part et où elle se raccorde — pas à combien de mètres elle passe.
+
+    L'écartement suit l'engagement des deux bretelles, si bien qu'elle se détache du trait et le
+    rejoint aux mêmes abscisses que la vraie. Le côté vient de `pitAt`, qui la place toujours du
+    côté négatif : elle ne peut pas se retrouver du mauvais bord sur un circuit et pas sur l'autre. */
+    const vp = this.paths && this.paths.pit;
+    this.mmPit = !!(vp && this.showPit);
+    if (this.mmPit) {
+      const pp = T.pit, span = T.wrap(pp.sortie - pp.entree), PAS = 2;
+      // l'écart suit la taille de la carte : six pixels sur un téléphone en valent dix sur un bureau,
+      // sinon la voie se détache bien sur la petite carte et se recolle à la piste sur la grande
+      const ec = Math.max(5, size / 18) / sc;
+      const voie = new Path2D(), arret = new Path2D();
+      let prem = true, premZ = true;
+      for (let d = 0; d <= span; d += PAS) {
+        const sp = T.wrap(pp.entree + d), z = T.pitAt(sp);
+        if (!z) continue;
+        const a = T.pos(sp, -ec * z.ecart);
+        if (prem) { voie.moveTo(a.x, a.y); prem = false; } else { voie.lineTo(a.x, a.y); }
+        if (z.dansZone) { if (premZ) { arret.moveTo(a.x, a.y); premZ = false; } else { arret.lineTo(a.x, a.y); } }
+      }
+      /* Même encre que la piste, mais un trait deux fois plus fin.
+
+      Essayée d'abord en blanc plus transparent, pour la mettre en retrait : sur le sable clair d'un
+      des thèmes elle ne se distinguait plus du fond, et une voie qu'on ne voit qu'à mi-chemin ne
+      dit rien. C'est la FINESSE qui la range au second plan, pas la pâleur — et comme elle porte la
+      même encre que la piste, elle se lit tout de suite comme une branche du circuit. */
+      g.strokeStyle = 'rgba(255,255,255,0.50)'; g.lineWidth = 2.5 / sc; g.stroke(voie);
+      /* La zone d'arrêt : le même trait, plus épais et plus franc. Pas un symbole de plus.
+
+      Essayée d'abord en pastille blanche. Une pastille blanche sur une carte où chaque voiture est
+      une pastille de couleur se lit comme une voiture — une treizième, immobile, que le joueur
+      cherche à identifier. En élargissant la voie là où il faut s'arrêter, l'information tient dans
+      le dessin qui la porte et ne peut plus être prise pour autre chose. */
+      g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 5 / sc; g.stroke(arret);
+    }
     const p0 = T.pos(0, 0);
     g.fillStyle = 'rgba(255,212,0,0.75)'; g.beginPath(); g.arc(p0.x, p0.y, 4 / sc, 0, 7); g.fill();
   }
@@ -855,6 +898,10 @@ class Renderer {
     // la voie ne se dessine que quand elle sert : une voie peinte qui ne mène à rien est pire
     // qu'une voie absente, on la vise et il ne se passe rien
     this.showPit = !!race.usure;
+    /* La carte est une image en cache : si la voie des stands apparaît, il faut la repeindre.
+    Sans ça, activer l'usure ajoutait la voie au monde mais pas à la carte, qui gardait le tracé
+    peint au chargement du circuit — une carte qui décrit un autre réglage que celui qu'on joue. */
+    if (this.mm && this.mmPit !== !!(this.paths && this.paths.pit && this.showPit)) this._makeMinimap();
     /* Le côté du levier est lu ici, et un changement refait la mise en page tout de suite.
     Le poser seulement au démarrage d'une course obligerait à en relancer une pour voir l'effet du
     réglage, ce qui est la façon la plus sûre de faire croire qu'un réglage ne marche pas. */
