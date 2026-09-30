@@ -1739,6 +1739,77 @@ fois par course n'est pas un peloton difficile. `-sans-elastique` retire le term
 avant de lancer, ce qui permet de distinguer une difficulté mal choisie d'une difficulté défaite en
 chemin. `-table='<json>'` essaie une table candidate sans l'écrire dans le jeu.
 
+## Le nom de pilote, et le tableau des records
+
+### Un nom avant tout le reste
+
+Plus de menu sans nom, lettres et chiffres uniquement. Le contrôle est posé sur `menu()` et non
+sur l'écran-titre : sur le titre, il aurait laissé entrer par toutes les autres portes — un lien
+`?track=`, un retour de course, un rechargement en pleine partie. Le menu est l'endroit par lequel
+tout le monde repasse, donc le seul où la question se pose une fois et une seule.
+
+Deux fonctions pour une règle, parce qu'il y a deux moments. `nomPropre` nettoie la frappe au fur
+et à mesure : ce qui n'est ni lettre ni chiffre n'entre jamais dans le champ, donc il ne peut pas
+contenir de valeur refusable et il n'y a aucun message d'erreur à écrire — le bouton éteint dit
+tout. `nomValide` juge le résultat, ce qui reste nécessaire : un champ vide est propre et ne fait
+pourtant pas un nom.
+
+Pourquoi ce jeu de caractères : le nom part vers un tableau partagé. Accents, espaces de tête,
+caractères invisibles et émojis y créent des noms qui se ressemblent à l'œil sans être égaux, et
+des lignes qu'on ne sait plus attribuer. La contrainte est écrite des deux côtés, dans le jeu et
+dans la base — deux fois, parce qu'une règle que seul le client applique n'est pas une règle.
+
+**Le curseur.** Nettoyer un champ en réécrivant `value` renvoie le curseur en fin de chaîne :
+corriger le milieu d'un nom déjà tapé devient impossible, chaque lettre l'expédie à la fin. On ne
+décompte que ce qui a été retiré AVANT le curseur, sinon un caractère refusé plus loin dans le
+champ décalerait ce qu'on écrit. Ça ne se voit sur aucune capture et sans ça le champ est
+inutilisable ; `tools/e2e-nom.js` tape une lettre au milieu et vérifie où le curseur atterrit.
+
+### Personne n'écrit depuis un navigateur
+
+La clé publiable vit dans le code de la page : tout le monde l'a. Une table ouverte en écriture se
+remplirait de tours en une milliseconde le jour où quelqu'un ouvrirait la console. Le RLS refuse
+donc toute écriture sur `records`, même à un compte connecté, et une fonction serveur — seule à
+porter la clé de service — est le seul chemin. C'est ce qui rend la validation incontournable
+plutôt que polie.
+
+Elle vérifie quatre choses, du moins cher au plus cher : **qui** (le jeton, présenté à Supabase
+plutôt que décodé par nous), **la forme**, **le plancher**, **la cadence**. Le pseudo est pris DANS
+LA BASE et jamais dans la requête : sinon n'importe qui signerait n'importe quel nom, et le tableau
+attribuerait des records au hasard.
+
+La lecture, elle, est ouverte à tous, comptes et anonymes : un tableau qu'il faut mériter de voir
+ne sert à rien, c'est ce qu'on regarde avant de jouer.
+
+### Le plancher, mesuré et non deviné
+
+`tools/plancher.js` produit `supabase/planchers.sql`. Un plancher inventé est soit trop haut — et
+il refuse les tours d'un très bon joueur, ce qui est pire que de laisser passer un tricheur — soit
+trop bas, et il n'arrête rien. Aucun des deux ne se voit avant que quelqu'un s'en plaigne.
+
+Deux bornes, on garde la plus haute. La **borne physique** (longueur / vitesse de pointe) est
+incontestable et ne peut jamais refuser un tour réel, mais elle est large : sur un tracé sinueux
+elle vaut la moitié d'un vrai tour. La **borne mesurée** est le meilleur tour de l'IA en
+« cauchemar » — qui triche déjà de 30 % d'adhérence — moins 15 %. Sur les 108 couples, c'est
+toujours la mesurée qui l'emporte : la borne physique ne sert que de filet.
+
+**Le banc a d'abord regardé douze circuits sans qu'une voiture démarre.** `playerAI` ne fait
+choisir à la machine que la LIGNE : la voiture du joueur prend toujours son accélérateur de
+l'entrée. Les 108 planchers sont donc tombés sur la borne physique — et le banc les a écrits comme
+si de rien n'était. Un fichier de planchers tous physiques a l'air d'un fichier de planchers, il
+s'applique sans broncher, et il n'arrête aucun tricheur. Le banc calcule maintenant `aiThrottle`
+lui-même, comme les autres bancs du dossier, et **refuse d'écrire** si un seul couple n'a pas bouclé.
+
+### Ce qui se casse, et ce qui ne doit pas casser
+
+`tools/e2e-mondial.js` sert les réponses lui-même. Un essai branché sur le vrai Supabase mesurerait
+Supabase : il tomberait à la première coupure, dépendrait de ce que contient la base ce jour-là, et
+ne saurait pas fabriquer les cas qui comptent. Il vérifie que l'écran se peint **avant** la réponse
+— attendre le réseau rendrait un menu hors-ligne inutilisable — que la colonne se remplit en face
+de la bonne voiture, qu'une panne laisse les temps locaux et des tirets sans rien jeter, et qu'on ne
+repart pas en boucle : `records()` est rappelé à chaque rendu et l'arrivée des temps déclenche un
+rendu, donc sans garde-fou la réponse relance la requête, indéfiniment.
+
 ## Numéro de version
 
 Le menu porte en bas le numéro du build et sa date — `v0.15.0 · 2026-09-23`. Ce n'est pas de la
