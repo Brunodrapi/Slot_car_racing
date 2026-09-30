@@ -312,8 +312,11 @@ perdrait le curseur à chaque chiffre tapé. */
    qui est un bout de phrase en ligne, devenait une grille pleine largeur avec un fond de carte
    et une colonne de 76 px pour une vignette qu'elle n'a pas. Mesuré avant de renommer. */
 .records { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+/* Quatre colonnes : vignette, nom, ton temps, celui du monde. Les deux temps ont la MÊME largeur
+   fixe, sinon la colonne du monde, encore vide au premier rendu, s'élargirait en se remplissant et
+   décalerait toute la table sous les yeux du joueur. */
 .rline {
-  display: grid; grid-template-columns: 76px 1fr auto; align-items: center; gap: 12px;
+  display: grid; grid-template-columns: 76px 1fr 106px 106px; align-items: center; gap: 12px;
   padding: 6px 14px 6px 8px; border-radius: 12px; background: var(--card);
   border: 2px solid transparent; color: var(--text);
 }
@@ -322,13 +325,38 @@ perdrait le curseur à chaque chiffre tapé. */
 .rline-img { display: grid; place-items: center; }
 .rline-img canvas.caricon { width: 76px; height: 34px; }
 .rline-img img.carpick { width: 76px; aspect-ratio: 4/3; object-fit: contain; }
-.rline-t { font-family: ui-monospace, monospace; font-size: 17px; }
+.rline-t { font-family: ui-monospace, monospace; font-size: 17px; text-align: right; }
 .rline-t.muted { color: var(--muted); }
+.rline-t.monde { color: #b48cff; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.15; }
+.rline-t.monde small { font-family: system-ui, sans-serif; font-size: 10px; color: var(--muted); }
+/* L'entête n'est pas une ligne de données : ni fond, ni cadre, juste deux étiquettes au-dessus des
+   colonnes qu'elles nomment. Sans elle, deux chronos côte à côte ne disent pas lequel est lequel. */
+/* `.rhead` et non `.rline.entete` : une ligne d'entête n'est pas une ligne de record, et compter
+   les `.rline` doit continuer de donner le nombre de voitures — c'est ce que lit l'essai, et c'est
+   ce que lirait n'importe qui. Une classe commune aurait fait mentir ce décompte. */
+.rhead { display: grid; grid-template-columns: 76px 1fr 106px 106px; align-items: center;
+  gap: 12px; padding: 0 14px 0 8px; }
+.rhead .rline-t { font: 700 10px system-ui, sans-serif; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted); text-align: right; }
+.mondial-note { font-size: 13px; margin: 0 0 4px; }
+.mondial-note .link { margin-left: 6px; }
 @media (max-width: 700px) {
   .rail .card { width: 136px; }
   .rail.tracks .card { width: 108px; }
-  .rline { grid-template-columns: 60px 1fr auto; gap: 10px; }
-  .rline-img canvas.caricon { width: 60px; height: 27px; }
-  .rline-img img.carpick { width: 60px; }
-  .rline-t { font-size: 15px; }
+  .rline, .rhead { grid-template-columns: 48px 1fr 84px 84px; gap: 8px; }
+  .rline-img canvas.caricon { width: 48px; height: 22px; }
+  .rline-img img.carpick { width: 48px; }
+  .rline-t { font-size: 13px; }
+  .rline b { font-size: 12px; }
 }
+
+/* ---------- l'écran du nom ---------- */
+/* Centré et court : c'est la première chose que voit un joueur, et la seule qui le retienne. Le
+   bouton éteint porte la règle — on n'écrit pas un message d'erreur pour une contrainte qu'un
+   bouton gris dit déjà, et le champ se nettoie à la frappe donc rien d'invalide n'y apparaît. */
+.nomform { align-items: stretch; max-width: 340px; margin: 0 auto; gap: 10px; }
+.nomform label { flex-direction: column; align-items: stretch; gap: 6px; text-align: left; }
+.nomform input { min-width: 0; width: 100%; font: 700 20px ui-monospace, monospace; letter-spacing: .06em; }
+.nomform small { text-align: left; }
+.nomform button { margin-top: 4px; }
+.nomform button:disabled { opacity: 0.45; cursor: not-allowed; }

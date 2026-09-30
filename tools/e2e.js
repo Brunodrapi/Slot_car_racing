@@ -9,6 +9,17 @@ const W = +process.argv[3] || 1280, H = +process.argv[4] || 800;
   page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') console.log('[console]', m.type(), m.text()); });
   page.on('pageerror', e => { errors.push(e.message); console.log('[pageerror]', e.message); });
   await page.goto('file:///home/user/Slot_car_racing/index.html');
+  /* Un joueur nommé. Le menu ne s'ouvre plus sans nom, et un essai doit faire ce que fait un
+  joueur. On attend que `app` existe : `goto` rend la main au chargement, pas à l'initialisation. */
+  await page.waitForFunction(() => typeof app !== 'undefined' && app.save);
+  await page.evaluate(() => {
+    app.save.name = 'Testeur'; storeSave(app.save);
+    /* Et pas de tableau mondial : ces essais mesurent des menus, pas un service distant. Le
+    laisser branché ferait partir une requête réseau à chaque ouverture de l'écran des records —
+    une source d'échecs qui n'a rien à voir avec ce qu'on vérifie, et qui rendrait la suite
+    dépendante d'un serveur. `tools/e2e-mondial.js` s'en charge, avec un faux serveur à lui. */
+    app.mondial = null;
+  });
   // L'écran-titre s'interpose désormais entre le chargement et le menu : n'importe quelle touche
   // le passe, comme pour un joueur.
   await page.waitForTimeout(350);

@@ -31,6 +31,16 @@ class App {
     this.last = performance.now();
     this._bindInput();
     window.addEventListener('resize', () => { this.renderer.resize(); if (this.race) this.renderer._makeMinimap(); });
+    // le tableau mondial : il se débrouille seul, et son absence n'empêche rien
+    this.mondial = new Mondial();
+    /* Au retour d'une connexion Google, on déclare son pseudo tout de suite.
+
+    Le serveur prend le nom dans la base et jamais dans la requête ; sans cette ligne, le premier
+    record proposé serait refusé pour « pseudo », et le joueur n'aurait aucun moyen de deviner
+    pourquoi. On le fait à la connexion, au moment où rien ne presse. */
+    if (this.mondial.connecte() && this.save.name) {
+      this.mondial.declarePseudo(this.save.name).catch(() => {});
+    }
     this.ui.splash();
     this.refreshCustom().then(() => {
       const params = new URLSearchParams(location.search);
@@ -332,6 +342,16 @@ class App {
       }
       if (save.bestLaps[keyCar] == null || race.player.bestLap < save.bestLaps[keyCar]) {
         save.bestLaps[keyCar] = race.player.bestLap;
+        /* On ne propose au tableau mondial QUE ses propres meilleurs tours.
+
+        Envoyer chaque tour aurait fait passer des centaines de temps là où un seul compte, et
+        c'est le serveur qui aurait trié — à nos frais. Un temps qui ne bat même pas le nôtre ne
+        peut pas battre celui du monde. Rien n'est attendu : la course se termine, les résultats
+        s'affichent, et la réponse arrive quand elle arrive. */
+        if (this.mondial && this.mondial.connecte() && !race.usure) {
+          this.mondial.propose(race.track.id, race.cls.id, race.player.bestLap)
+            .catch(() => { /* un tableau de scores ne fait pas échouer une fin de course */ });
+        }
       }
     }
     save.racesDone++;

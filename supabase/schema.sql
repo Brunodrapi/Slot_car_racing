@@ -1,0 +1,96 @@
+-- La table des records mondiaux, et les règles qui la gardent.
+--
+-- À coller dans le SQL Editor du tableau de bord Supabase, une seule fois.
+--
+-- Tout tient sur un principe : personne n'écrit ici depuis un navigateur. La clé publiable vit dans
+-- le code de la page, donc tout le monde l'a ; une table ouverte en écriture se remplirait de tours
+-- en une milliseconde le jour où quelqu'un ouvrirait la console. La lecture, elle, est ouverte à
+-- tous — y compris à qui n'a pas de compte : un tableau qu'il faut mériter de voir ne sert à rien.
+
+create table if not exists public.records (
+  circuit    text        not null,
+  voiture    text        not null,
+  temps      real        not null,
+  pilote     text        not null,
+  -- l'identifiant Google du joueur. C'est LUI qui identifie, pas le pseudo : le pseudo peut
+  -- changer, être repris par un autre, ou être écrit en double. Un record suit son auteur.
+  auteur     uuid        not null references auth.users(id) on delete cascade,
+  pose_le    timestamptz not null default now(),
+  -- un seul record par couple circuit/voiture : c'est la définition d'un record du monde, et la
+  -- contrainte évite d'avoir à trier des milliers de lignes à chaque lecture.
+  primary key (circuit, voiture)
+);
+
+-- La lecture se fait par circuit, triée par temps. L'index suit exactement cette requête.
+create index if not exists records_circuit_temps on public.records (circuit, temps);
+create index if not exists records_auteur on public.records (auteur);
+
+alter table public.records enable row level security;
+
+-- LECTURE : ouverte à tous, comptes et anonymes.
+drop policy if exists records_lecture on public.records;
+create policy records_lecture on public.records for select to anon, authenticated using (true);
+
+-- ÉCRITURE : aucune politique. Sans politique permissive, le RLS refuse tout — y compris à un
+-- compte connecté. Seule la fonction serveur, qui s'authentifie avec la clé de service, passe
+-- outre le RLS et peut écrire. C'est ce qui rend la validation incontournable plutôt que polie.
+
+-- La table des pseudos. Séparée des records pour qu'un changement de pseudo mette à jour toutes
+-- les lignes d'un joueur d'un coup, au lieu d'en laisser derrière sous l'ancien nom.
+create table if not exists public.pilotes (
+  id     uuid primary key references auth.users(id) on delete cascade,
+  pseudo text not null,
+  maj_le timestamptz not null default now(),
+  -- la même règle que dans le jeu, écrite ici aussi : une règle que seul le client applique
+  -- n'est pas une règle.
+  constraint pseudo_propre check (pseudo ~ '^[A-Za-z0-9]{2,14}$')
+);
+create unique index if not exists pilotes_pseudo on public.pilotes (lower(pseudo));
+
+alter table public.pilotes enable row level security;
+drop policy if exists pilotes_lecture on public.pilotes;
+create policy pilotes_lecture on public.pilotes for select to anon, authenticated using (true);
+
+-- Le plancher par circuit : le meilleur tour qu'une voiture peut physiquement faire ici.
+-- Rempli par tools/plancher.js, qui le MESURE au lieu de le deviner. La fonction serveur refuse
+-- tout temps en dessous — c'est ce qui arrête les tours en une milliseconde.
+create table if not exists public.planchers (
+  circuit text not null,
+  voiture text not null,
+  minimum real not null,
+  primary key (circuit, voiture)
+);
+alter table public.planchers enable row level security;
+drop policy if exists planchers_lecture on public.planchers;
+create policy planchers_lecture on public.planchers for select to anon, authenticated using (true);
+
+-- Poser un record, et seulement s'il est meilleur.
+--
+-- La comparaison vit dans la base et non dans la fonction : deux joueurs peuvent arriver à la même
+-- seconde, et seule la base peut les départager. `security definer` lui donne le droit d'écrire
+-- malgré le RLS ; elle est appelée uniquement par la fonction serveur, jamais depuis un navigateur.
+create or replace function public.poser_record(
+  p_circuit text, p_voiture text, p_temps real, p_pilote text, p_auteur uuid
+) returns void
+language sql
+security definer
+set search_path = public
+as $$
+  insert into public.records (circuit, voiture, temps, pilote, auteur)
+  values (p_circuit, p_voiture, p_temps, p_pilote, p_auteur)
+  on conflict (circuit, voiture) do update
+    set temps = excluded.temps, pilote = excluded.pilote,
+        auteur = excluded.auteur, pose_le = now()
+    where public.records.temps > excluded.temps;
+$$;
+
+-- Personne ne l'appelle depuis un navigateur : seule la clé de service y a droit.
+revoke all on function public.poser_record(text, text, real, text, uuid) from public, anon, authenticated;
+
+-- Enregistrer son pseudo. Appelée par le joueur lui-même, une fois connecté : c'est la seule
+-- écriture qu'un navigateur a le droit de faire, et elle ne touche que sa propre ligne.
+drop policy if exists pilotes_le_mien on public.pilotes;
+create policy pilotes_le_mien on public.pilotes for insert to authenticated with check (auth.uid() = id);
+drop policy if exists pilotes_maj_le_mien on public.pilotes;
+create policy pilotes_maj_le_mien on public.pilotes for update to authenticated
+  using (auth.uid() = id) with check (auth.uid() = id);

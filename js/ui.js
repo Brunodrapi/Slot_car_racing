@@ -26,6 +26,10 @@ const I18N = {
     newRecord: 'Nouveau record !', yourBest: 'Ton record', name: 'Nom du pilote', sound: 'Son', language: 'Langue', showLines: 'Guide de freinage', telemetry: 'Télémétrie (touche G)', ctrlSide: 'Côté du levier', sideLeft: 'Gauche', sideRight: 'Droite', camera: 'Vue', camFollow: 'Dessus, orientée piste', camFixed: 'Dessus, fixe', camIso: 'Isométrique', pullBack: 'Recul de la caméra', pullNone: 'Normal', pullSome: 'Un peu en retrait', pullMore: 'Très en retrait', lapCount: 'Tours', pressStart: 'Appuie pour commencer', resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
     on: 'Activé', off: 'Coupé', playerDefault: 'Vous', allUnlocked: 'Tout est débloqué. Bravo !', careerIntro: 'Tu pars dernier à chaque course. Remonte le peloton, marque des points, débloque des catégories plus rapides.',
     lapDone: (n, t) => `Tour ${n} : ${t}`, tipTitle: 'Comment jouer', yourResult: (p) => `Tu termines P${p}`,
+    worldBest: 'Monde', worldNeedsAccount: 'Connecte-toi pour inscrire tes temps au tableau mondial.', signIn: 'Se connecter avec Google', signOut: 'Se déconnecter',
+    nameTitle: 'Ton nom de pilote', nameGo: 'C’est parti',
+    nameWhy: 'Il signera tes temps, ici et au tableau des records.',
+    nameRule: (a, b) => `Lettres et chiffres uniquement, de ${a} à ${b} caractères.`,
     ttIntro: 'Seul en piste. Bats ton meilleur tour.', deleteTrack: 'Supprimer', confirmDelete: 'Supprimer définitivement ?',
     multi: 'À plusieurs', multiIntro: 'Ouvre une table et donne son code à quatre lettres, ou saisis celui qu’on t’a donné. Tout passe directement d’un appareil à l’autre : rien n’est conservé, fermer la page ferme la table.',
     createTable: 'Ouvrir une table', joinTable: 'Rejoindre', tableCode: 'Code de la table', yourTable: 'Ta table', waiting: 'En attente…',
@@ -58,6 +62,10 @@ const I18N = {
     newRecord: 'New record!', yourBest: 'Your best', name: 'Driver name', sound: 'Sound', language: 'Language', showLines: 'Braking guide', telemetry: 'Telemetry (G key)', ctrlSide: 'Lever side', sideLeft: 'Left', sideRight: 'Right', camera: 'View', camFollow: 'Top-down, track-aligned', camFixed: 'Top-down, fixed', camIso: 'Isometric', pullBack: 'Camera set-back', pullNone: 'Normal', pullSome: 'A little further back', pullMore: 'Much further back', lapCount: 'Laps', pressStart: 'Press any button to start', resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
     on: 'On', off: 'Off', playerDefault: 'You', allUnlocked: 'Everything unlocked. Well done!', careerIntro: 'You start every race from the back. Carve through the field, score points, unlock faster classes.',
     lapDone: (n, t) => `Lap ${n}: ${t}`, tipTitle: 'How to play', yourResult: (p) => `You finish P${p}`,
+    worldBest: 'World', worldNeedsAccount: 'Sign in to put your times on the world board.', signIn: 'Sign in with Google', signOut: 'Sign out',
+    nameTitle: 'Your driver name', nameGo: 'Let’s go',
+    nameWhy: 'It will sign your times, here and on the record board.',
+    nameRule: (a, b) => `Letters and digits only, ${a} to ${b} characters.`,
     ttIntro: 'Alone on track. Beat your best lap.', deleteTrack: 'Delete', confirmDelete: 'Delete permanently?',
     multi: 'Together', multiIntro: 'Open a table and pass on its four-letter code, or type the one you were given. Everything goes straight from one device to the other: nothing is stored, closing the page closes the table.',
     createTable: 'Open a table', joinTable: 'Join', tableCode: 'Table code', yourTable: 'Your table', waiting: 'Waiting…',
@@ -84,6 +92,23 @@ const GAUGE_ICONS = {
   grp: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 4v5 M4.5 16 L9.4 13.5 M19.5 16 L14.6 13.5"/></svg>', // le volant
 };
 
+/* Le nom du pilote : lettres et chiffres, rien d'autre.
+
+Deux fonctions et non une, parce qu'il y a deux moments distincts. `nomPropre` nettoie la frappe au
+fur et à mesure : ce qui n'est ni lettre ni chiffre n'entre jamais dans le champ, si bien qu'il ne
+peut pas contenir de valeur refusable et qu'il n'y a aucun message d'erreur à écrire. `nomValide`
+juge le résultat, ce qui reste nécessaire : un champ vide est propre, et pourtant il ne fait pas
+un nom.
+
+Pourquoi ce jeu de caractères et pas un autre : ce nom part vers un tableau des records partagé.
+Les accents, les espaces de tête, les caractères invisibles et les émojis y créent des noms qui se
+ressemblent à l'œil sans être égaux, et des lignes qu'on ne sait plus attribuer. La contrainte est
+la même des deux côtés, ici et sur le serveur qui accepte les temps — écrite deux fois, parce
+qu'une règle que seul le client applique n'est pas une règle. */
+const NOM_MAX = 14, NOM_MIN = 2;
+function nomPropre(v) { return String(v == null ? '' : v).replace(/[^A-Za-z0-9]/g, '').slice(0, NOM_MAX); }
+function nomValide(v) { return new RegExp(`^[A-Za-z0-9]{${NOM_MIN},${NOM_MAX}}$`).test(String(v == null ? '' : v)); }
+
 class UI {
   constructor(app) {
     this.app = app;
@@ -93,6 +118,8 @@ class UI {
     this.setup = { mode: 'race', classId: 'gt', trackId: 'zandvoort' };
     this.root.addEventListener('click', (e) => this._onClick(e));
     this.root.addEventListener('change', (e) => this._onChange(e));
+    // « change » n'arrive qu'à la sortie du champ : pour nettoyer la frappe il faut « input »
+    this.root.addEventListener('input', (e) => this._onInput(e));
     this.flash = null;
   }
 
@@ -315,7 +342,35 @@ class UI {
   Les deux écrans, eux, restent : `_act` garde leurs cas, `editor.html` et `lignes.html` répondent
   toujours à leur adresse, et les dessins dépliés dorment dans `art/menu/`. Ce qui est retiré est
   l'entrée du menu, pas la fonction. */
+  /* L'écran du nom, qu'on ne traverse qu'une fois.
+
+  Le bouton reste éteint tant que le nom ne vaut rien : c'est lui qui porte la règle, pas un message
+  d'erreur après coup. Et comme le champ se nettoie à la frappe, l'utilisateur ne voit jamais
+  apparaître un caractère qu'on lui refusera ensuite — il voit seulement qu'il ne s'inscrit pas. */
+  nomScreen() {
+    const t = (k, ...a) => this.t(k, ...a);
+    const n = nomPropre(this.app.save.name);
+    this.show(`
+      <h2>${t('nameTitle')}</h2>
+      <p class="sub">${t('nameWhy')}</p>
+      <div class="form nomform">
+        <label>${t('name')}<input id="inp-nom" maxlength="${NOM_MAX}" autocomplete="off"
+          autocapitalize="off" spellcheck="false" value="${escapeHtml(n)}" placeholder="Bruno42"></label>
+        <small class="muted">${t('nameRule', NOM_MIN, NOM_MAX)}</small>
+        <button class="big primary" id="btn-nom" data-action="nomOk" ${nomValide(n) ? '' : 'disabled'}>${t('nameGo')}</button>
+      </div>
+    `, 'center', 'nom');
+    const champ = document.getElementById('inp-nom');
+    if (champ) { champ.focus(); champ.setSelectionRange(champ.value.length, champ.value.length); }
+  }
+
   menu() {
+    /* Pas de menu sans nom, et le contrôle est ICI plutôt qu'au premier lancement.
+
+    Posé sur le seul passage de l'écran-titre, il aurait laissé entrer par toutes les autres portes :
+    un lien `?track=`, un retour de course, un rechargement en pleine partie. Le menu est l'endroit
+    par lequel tout le monde repasse, donc le seul où la question se pose une fois et une seule. */
+    if (!nomValide(this.app.save.name)) return this.nomScreen();
     const t = (k) => this.t(k);
     // top of each banner, as measured on the poster; `fold` is the artwork that carries the text
     const items = [
@@ -341,7 +396,8 @@ class UI {
     this.show(`
       <h2>${t('settings')}</h2>
       <div class="form">
-        <label>${t('name')}<input id="inp-name" maxlength="14" value="${escapeHtml(s.name)}" placeholder="${t('playerDefault')}"></label>
+        <label>${t('name')}<input id="inp-name" maxlength="${NOM_MAX}" autocomplete="off" autocapitalize="off"
+          spellcheck="false" value="${escapeHtml(s.name)}" placeholder="${t('playerDefault')}"></label>
         <label>${t('language')}
           <select id="sel-lang"><option value="fr" ${s.lang === 'fr' ? 'selected' : ''}>Français</option><option value="en" ${s.lang === 'en' ? 'selected' : ''}>English</option></select></label>
         <label>${t('sound')}<select id="sel-sound"><option value="1" ${s.sound ? 'selected' : ''}>${t('on')}</option><option value="0" ${!s.sound ? 'selected' : ''}>${t('off')}</option></select></label>
@@ -393,18 +449,56 @@ class UI {
   Rangées par temps, les vierges à la fin : un classement, pas un catalogue. Et la vignette à
   gauche parce qu'une liste de noms se lit, là où une liste de voitures se reconnaît. */
   records(trackId, cat, choisie, livery) {
-    const t = (k) => this.t(k), s = this.app.save;
+    const t = (k, ...a) => this.t(k, ...a), s = this.app.save, app = this.app;
+    /* Les temps du monde arrivent APRÈS l'écran, jamais avant lui.
+
+    Attendre le réseau pour peindre aurait rendu un menu hors-ligne inutilisable, et un menu lent
+    partout ailleurs. On peint donc avec ce qu'on a — les temps locaux, qui sont là — et la colonne
+    du monde se remplit toute seule quand la réponse arrive. Si elle n'arrive jamais, il reste des
+    tirets : un tableau vide est une information, une page qui ne s'ouvre pas n'en est pas une. */
+    const mondiaux = this._mondiaux && this._mondiaux.circuit === trackId ? this._mondiaux.par : null;
+    if (!mondiaux) this._chargeMondiaux(trackId);
     const lignes = modelsOf(cat.id)
-      .map(m => ({ m, b: s.bestLaps[`${trackId}|${cat.id}|${m.id}`] }))
+      .map(m => ({ m, b: s.bestLaps[`${trackId}|${cat.id}|${m.id}`], w: mondiaux ? mondiaux[m.id] : undefined }))
       .sort((x, y) => (x.b == null ? 1 : 0) - (y.b == null ? 1 : 0) || (x.b || 0) - (y.b || 0));
+    const cell = (v) => v == null ? `<span class="muted">--:--.---</span>` : fmtTime(v);
     return `<h3>${t('yourBest')}</h3>
+      ${!app.mondial || app.mondial.connecte() ? '' :
+        `<p class="muted mondial-note">${t('worldNeedsAccount')}
+          <button class="link" data-action="google">${t('signIn')}</button></p>`}
       <div class="records">
-        ${lignes.map(({ m, b }) => `<div class="rline ${m.id === choisie.id ? 'sel' : ''}">
+        <div class="rhead">
+          <span></span><b></b>
+          <span class="rline-t">${t('yourBest')}</span>
+          <span class="rline-t">${t('worldBest')}</span>
+        </div>
+        ${lignes.map(({ m, b, w }) => `<div class="rline ${m.id === choisie.id ? 'sel' : ''}">
           <span class="rline-img">${this.carIcon(m, livery)}</span>
           <b>${escapeHtml(m.name)}</b>
           <span class="rline-t ${b == null ? 'muted' : ''}">${b == null ? '--:--.---' : fmtTime(b)}</span>
+          <span class="rline-t monde" title="${w ? escapeHtml(w.pilote || '') : ''}">${
+            mondiaux || !app.mondial ? cell(w && w.temps) : `<span class="muted">…</span>`}${
+            w && w.pilote ? `<small>${escapeHtml(w.pilote)}</small>` : ''}</span>
         </div>`).join('')}
       </div>`;
+  }
+
+  /* Aller chercher les temps du monde, puis repeindre — et une seule fois.
+
+  Le drapeau `_enCours` n'est pas une optimisation : `records()` est appelé à chaque rendu de
+  l'écran, et repeindre à l'arrivée des temps rappelle `records()`. Sans lui, la réponse
+  déclencherait la requête suivante, indéfiniment. */
+  async _chargeMondiaux(trackId) {
+    const app = this.app;
+    if (!app.mondial || this._enCours === trackId) return;
+    this._enCours = trackId;
+    const lignes = await app.mondial.records(trackId);
+    this._enCours = null;
+    const par = {};
+    for (const l of lignes) if (!par[l.voiture] || l.temps < par[l.voiture].temps) par[l.voiture] = l;
+    this._mondiaux = { circuit: trackId, par };
+    // on ne repeint que si le joueur est toujours devant le même écran et le même circuit
+    if (this._cleEcran === 'depart:timetrial' && this.setup.trackId === trackId) this.setupScreen('timetrial');
   }
 
   setupScreen(mode) {
@@ -702,6 +796,15 @@ class UI {
     app.audio.start(); app.audio.resume();
     switch (a) {
       case 'menu': app.toMenu(); break;
+      case 'google': if (app.mondial) app.mondial.entrer(); break;
+      case 'nomOk': {
+        const champ = document.getElementById('inp-nom');
+        const n = nomPropre(champ ? champ.value : '');
+        if (!nomValide(n)) return;              // le bouton est éteint, mais une touche Entrée passe
+        app.save.name = n; storeSave(app.save);
+        this.menu();
+        break;
+      }
       case 'settings': this.settings(); break;
       case 'setup': this.setupScreen(btn.dataset.mode); break;
       case 'career': this.careerScreen(); break;
@@ -770,9 +873,34 @@ class UI {
     this.lobbyScreen();
   }
 
+  /* Le nettoyage à la frappe, sur les deux champs de nom.
+
+  On replace le curseur à la main : réécrire `value` le renvoie en fin de chaîne, si bien qu'une
+  correction au milieu d'un nom déjà tapé expédiait le curseur à la fin à chaque lettre. On ne
+  décompte que ce qui a été retiré AVANT le curseur : un caractère refusé plus loin dans le champ
+  ne doit pas décaler ce qu'on est en train d'écrire. */
+  _onInput(e) {
+    const el = e.target;
+    if (el.id !== 'inp-nom' && el.id !== 'inp-name') return;
+    const avant = el.value, pos = el.selectionStart == null ? avant.length : el.selectionStart;
+    const propre = nomPropre(avant);
+    if (propre !== avant) {
+      const retires = pos - nomPropre(avant.slice(0, pos)).length;
+      el.value = propre;
+      const p = Math.max(0, pos - retires);
+      try { el.setSelectionRange(p, p); } catch (_) { /* un champ non textuel n'a pas de curseur */ }
+    }
+    if (el.id === 'inp-nom') {
+      const b = document.getElementById('btn-nom');
+      if (b) b.disabled = !nomValide(el.value);
+    } else { this.app.save.name = el.value; storeSave(this.app.save); }
+  }
+
   _onChange(e) {
     const el = e.target, s = this.app.save;
-    if (el.id === 'inp-name') { s.name = el.value.trim(); storeSave(s); }
+    /* On n'enregistre que ce qui fait un nom. Vider le champ dans les réglages aurait renvoyé
+    l'écran du nom à la figure du joueur au retour au menu, comme s'il venait d'arriver. */
+    if (el.id === 'inp-name') { if (nomValide(el.value)) { s.name = el.value; storeSave(s); } else el.value = s.name; }
     if (el.id === 'inp-laps') {
       s.laps = Math.max(1, Math.min(99, Math.round(+el.value) || 5));
       storeSave(s); this.setupScreen(this.setup.mode);

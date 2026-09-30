@@ -39,6 +39,17 @@ const serveur = http.createServer((req, res) => {
   page.on('pageerror', (e) => { if (errs++ < 4) console.log('[pageerror]', e.message); });
   page.on('console', (m) => { if (m.type() === 'error') { errs++; console.log('[console]', m.text()); } });
   await page.goto(`${base}/index.html`);
+  /* Un joueur nommé. Le menu ne s'ouvre plus sans nom, et un essai doit faire ce que fait un
+  joueur. On attend que `app` existe : `goto` rend la main au chargement, pas à l'initialisation. */
+  await page.waitForFunction(() => typeof app !== 'undefined' && app.save);
+  await page.evaluate(() => {
+    app.save.name = 'Testeur'; storeSave(app.save);
+    /* Et pas de tableau mondial : ces essais mesurent des menus, pas un service distant. Le
+    laisser branché ferait partir une requête réseau à chaque ouverture de l'écran des records —
+    une source d'échecs qui n'a rien à voir avec ce qu'on vérifie, et qui rendrait la suite
+    dépendante d'un serveur. `tools/e2e-mondial.js` s'en charge, avec un faux serveur à lui. */
+    app.mondial = null;
+  });
   await page.waitForTimeout(400);
   await page.keyboard.press('Enter');
   await page.waitForTimeout(400);
