@@ -442,9 +442,9 @@ class UI {
       ${this.rail('tracks', 'tracks', TRACKS.map(tr => {
         const locked = !ut.has(tr.id);
         return `<button class="card ${tr.id === st.trackId ? 'sel' : ''} ${locked ? 'locked' : ''}" data-action="pickTrack" data-id="${tr.id}" ${locked ? 'disabled' : ''}>
-            <img alt="" src="${this.thumb(tr, 90)}"><b>${tr.flag} ${tr.name}</b><small>${locked ? t('locked') : this.longueur(tr)}</small></button>`;
+            <img alt="" src="${this.thumb(tr, 90)}"><b>${tr.name}</b><small>${locked ? t('locked') : `${tr.flag} ${this.longueur(tr)}`}</small></button>`;
       }).join('') + (perso ? `<button class="card sel" data-action="pickTrack" data-id="${perso.id}">
-            <img alt="" src="${this.thumb(perso, 90)}"><b>${perso.flag || '🏁'} ${escapeHtml(perso.name)}</b><small>${this.longueur(perso)}</small></button>` : ''))}
+            <img alt="" src="${this.thumb(perso, 90)}"><b>${escapeHtml(perso.name)}</b><small>${perso.flag || '🏁'} ${this.longueur(perso)}</small></button>` : ''))}
       <!-- La zone des circuits perso est retirée, comme le lien vers l'atelier l'avait été avant
            elle. Elle n'était plus alimentée par rien : l'atelier n'est plus accessible depuis le
            menu, si bien que la liste était soit vide, soit le musée des essais d'un ancien
@@ -518,7 +518,7 @@ class UI {
       <p class="muted">${t(modeDesc)}</p>
       <h3>${t('track')}</h3>
       ${this.rail('netTracks', 'tracks', tracks.map(tr => `<button class="card ${tr.id === cfg.trackId ? 'sel' : ''}" data-action="netTrack" data-id="${tr.id}" ${net.creator ? '' : 'disabled'}>
-          <img alt="" src="${this.thumb(tr, 90)}"><b>${tr.flag || '🏁'} ${escapeHtml(tr.name)}</b><small>${this.longueur(tr)}</small></button>`).join(''))}
+          <img alt="" src="${this.thumb(tr, 90)}"><b>${escapeHtml(tr.name)}</b><small>${tr.flag || '🏁'} ${this.longueur(tr)}</small></button>`).join(''))}
       <h3>${t('model')}</h3>
       ${this.rail('netModels', 'models', modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelNet" data-id="${m.id}">
           ${this.carIcon(m, livery)}<b>${escapeHtml(m.name)}</b>${this.tyres(m)}</button>`).join(''))}

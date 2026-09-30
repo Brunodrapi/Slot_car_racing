@@ -74,13 +74,16 @@ const serveur = http.createServer((req, res) => {
       titre: c.querySelector('b').textContent.trim(),
       sous: (c.querySelector('small') || {}).textContent || '',
     })));
+    /* Le drapeau est descendu d'une ligne : il vit avec la longueur, sous le nom. Le titre ne
+    porte donc plus que le nom, et c'est la deuxième ligne qui doit être « drapeau + mètres ». */
     const tours = sous.filter(c => /tours?|laps?/i.test(c.sous));
-    const metres = sous.filter(c => /^\d+ m$/.test(c.sous.trim()));
-    const drapeaux = sous.filter(c => /^\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(c.titre));
+    const drapeauHaut = sous.filter(c => /\p{Regional_Indicator}|\p{Extended_Pictographic}/u.test(c.titre));
+    const forme = sous.filter(c => /^(\p{Regional_Indicator}{2}|\p{Extended_Pictographic})\s+\d+ m$/u.test(c.sous.trim())
+      || /verrou|lock/i.test(c.sous));
     dit(tours.length === 0, `aucune carte circuit ne mentionne les tours${tours.length ? ' — ' + tours[0].sous : ''}`);
-    const propre = sous.every(c => /^\d+ m$/.test(c.sous.trim()) || /verrou|lock/i.test(c.sous));
-    dit(propre, `sous chaque carte : une longueur en mètres, ou « verrouillé » (${metres.length} longueurs sur ${sous.length})`);
-    dit(drapeaux.length === sous.length, `chaque carte porte son drapeau (${drapeaux.length} sur ${sous.length})`);
+    dit(drapeauHaut.length === 0, `le nom seul sur la première ligne${drapeauHaut.length ? ' — ' + drapeauHaut[0].titre : ''}`);
+    dit(forme.length === sous.length,
+      `deuxième ligne = drapeau + longueur, ou « verrouillé » (${forme.length} sur ${sous.length}) — ex. « ${sous[0].sous.trim()} »`);
 
     // --- 2. les rails débordent-ils vraiment, et gardent-ils leur place ? ---
     for (const r of ['models', 'tracks']) {

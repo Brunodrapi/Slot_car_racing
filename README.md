@@ -1109,6 +1109,36 @@ circuit-là garde donc sa carte, ajoutée en fin de rail — pas de titre, pas d
 celui qu'on a demandé — et l'essai refuse désormais tout autre nom que celui qu'il vient
 d'enregistrer.
 
+### Sous un circuit : son nom, puis son drapeau et sa longueur
+
+La carte portait « drapeau + nom » sur la première ligne et « N tours · longueur » sous elle. Le
+nombre de tours est parti : c'était la **proposition** du circuit, alors que la course se court sur
+le nombre choisi juste en dessous, si bien qu'une carte pouvait annoncer « 4 tours » pendant que le
+réglage disait 5. Le drapeau est descendu d'une ligne, auprès de la longueur : le nom tient seul en
+tête, et tout ce qui le qualifie vit sur la ligne d'en dessous.
+
+La longueur passe par une seule fonction, `longueur(tr)`, parce qu'elle n'est pas rangée au même
+endroit selon l'origine du circuit : un circuit intégré la porte en clair dans `length`, un circuit
+de l'éditeur la range sous `editor.lengthM` — le chiffre tapé par l'auteur, dont toute son échelle
+découle. Lire seulement `length` aurait laissé la carte d'un tracé dessiné sans rien sous son nom.
+
+### La page glissait de côté, et ce n'était pas nouveau
+
+`overflow-y: auto` seul ne veut pas dire ce qu'on croit : dès qu'un axe passe à `auto`, l'autre ne
+peut plus rester `visible` et devient `auto` lui aussi. Les écrans défilants étaient donc
+scrollables **horizontalement** depuis toujours — 869 px de glissement mesurés sur un iPhone 13,
+395 px sur un bureau. Inoffensif tant que rien ne débordait ; avec les rails, une inflexion du
+pouce emportait la page entière de côté et laissait une bande vide à l'écran.
+
+L'axe horizontal est fermé explicitement : c'est au rail de défiler, pas à l'écran. Les boîtes de
+rail reçoivent aussi `min-width: 0`, sans quoi leur plancher de largeur, dans une colonne flexible,
+se calerait sur la somme des cartes.
+
+**L'essai balaie pour de vrai**, ailleurs que sur un rail. Lire la propriété CSS ne suffisait pas :
+avec `overflow-x: hidden`, `scrollLeft` reste modifiable par programme, et une mesure qui se
+contente de l'écrire puis de le relire retrouve sa valeur — elle aurait conclu que rien n'était
+corrigé. C'est le geste qui doit rester sans effet, donc c'est le geste qu'on fait.
+
 ### Les records, une ligne par voiture
 
 L'écran du contre-la-montre n'affichait qu'un chiffre : le meilleur tour du circuit, toutes
