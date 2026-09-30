@@ -18,7 +18,13 @@ canvas#game { position: fixed; inset: 0; display: block; touch-action: none; use
 #ui.hidden { display: none; }
 .screen { width: min(1000px, 100%); padding: max(16px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 14px; }
 .screen.center { justify-content: center; align-items: center; text-align: center; }
-.screen.scroll { overflow-y: auto; }
+/* `overflow-y: auto` seul ne veut pas dire ce qu'on croit : dès qu'un axe est `auto`, l'autre ne
+   peut plus rester `visible` et devient `auto` lui aussi. L'écran était donc scrollable
+   HORIZONTALEMENT sans que personne l'ait demandé — 869 px de glissement sur un iPhone 13, mesurés.
+   Inoffensif tant que rien ne débordait ; avec les rails, une inflexion du pouce emportait la page
+   entière de côté, et on se retrouvait devant une bande vide. L'axe horizontal est donc fermé
+   explicitement : c'est au rail de défiler, pas à l'écran. */
+.screen.scroll { overflow-y: auto; overflow-x: hidden; }
 .screen.overlay { background: rgba(8, 10, 16, 0.75); width: 100%; }
 /* The title card: the poster as large as it will go without being cropped or stretched. It is a
    printed thing with its own border, so `contain` rather than `cover` — cutting the border off
@@ -267,7 +273,10 @@ perdrait le curseur à chaque chiffre tapé. */
    `scroll-snap-type: x proximity` et non `mandatory` : « mandatory » recale le rail sur une carte
    à chaque arrêt, y compris quand on ne voulait que jeter un œil à la suivante, et le rail semble
    alors résister au doigt. `proximity` n'aligne que si on s'arrête déjà presque en place. */
-.railbox { position: relative; }
+/* `min-width: 0` : un élément de boîte flexible a un plancher de largeur égal à son contenu, et
+   ces boîtes-ci sont des enfants directs de `.screen`, qui est une colonne flexible. Sans ce
+   plancher remis à zéro, la largeur du rail se calerait sur la somme de ses cartes. */
+.railbox { position: relative; min-width: 0; max-width: 100%; }
 .rail {
   display: flex; gap: 10px; overflow-x: auto; overscroll-behavior-x: contain;
   scroll-snap-type: x proximity; scroll-behavior: auto;

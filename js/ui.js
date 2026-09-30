@@ -356,6 +356,16 @@ class UI {
     `, '', 'reglages');
   }
 
+  /* La longueur d'un circuit, qu'il soit intégré ou dessiné.
+
+  Un circuit intégré la porte en clair ; un circuit de l'éditeur la range sous `editor.lengthM`,
+  puisque c'est le chiffre que l'auteur a tapé et dont toute son échelle découle. Lire seulement
+  `length` aurait donc laissé la carte d'un circuit dessiné sans rien sous son nom. */
+  longueur(tr) {
+    const m = tr.length != null ? tr.length : tr.editor && tr.editor.lengthM;
+    return m == null ? '' : `${Math.round(m)} m`;
+  }
+
   /* Un rail qui défile de gauche à droite, à la place d'une grille qui s'empile.
 
   Neuf voitures et douze circuits en grille, c'est un écran de haut chacun sur un téléphone : on
@@ -432,9 +442,9 @@ class UI {
       ${this.rail('tracks', 'tracks', TRACKS.map(tr => {
         const locked = !ut.has(tr.id);
         return `<button class="card ${tr.id === st.trackId ? 'sel' : ''} ${locked ? 'locked' : ''}" data-action="pickTrack" data-id="${tr.id}" ${locked ? 'disabled' : ''}>
-            <img alt="" src="${this.thumb(tr, 90)}"><b>${tr.flag} ${tr.name}</b><small>${locked ? t('locked') : `${lapsFor(tr, cat)} ${t('laps')} · ${tr.length} m`}</small></button>`;
+            <img alt="" src="${this.thumb(tr, 90)}"><b>${tr.flag} ${tr.name}</b><small>${locked ? t('locked') : this.longueur(tr)}</small></button>`;
       }).join('') + (perso ? `<button class="card sel" data-action="pickTrack" data-id="${perso.id}">
-            <img alt="" src="${this.thumb(perso, 90)}"><b>${perso.flag || '🏁'} ${escapeHtml(perso.name)}</b><small>${lapsFor(perso, cat)} ${t('laps')}</small></button>` : ''))}
+            <img alt="" src="${this.thumb(perso, 90)}"><b>${perso.flag || '🏁'} ${escapeHtml(perso.name)}</b><small>${this.longueur(perso)}</small></button>` : ''))}
       <!-- La zone des circuits perso est retirée, comme le lien vers l'atelier l'avait été avant
            elle. Elle n'était plus alimentée par rien : l'atelier n'est plus accessible depuis le
            menu, si bien que la liste était soit vide, soit le musée des essais d'un ancien
@@ -508,7 +518,7 @@ class UI {
       <p class="muted">${t(modeDesc)}</p>
       <h3>${t('track')}</h3>
       ${this.rail('netTracks', 'tracks', tracks.map(tr => `<button class="card ${tr.id === cfg.trackId ? 'sel' : ''}" data-action="netTrack" data-id="${tr.id}" ${net.creator ? '' : 'disabled'}>
-          <img alt="" src="${this.thumb(tr, 90)}"><b>${tr.flag || '🏁'} ${escapeHtml(tr.name)}</b><small>${lapsFor(tr, cat)} ${t('laps')}</small></button>`).join(''))}
+          <img alt="" src="${this.thumb(tr, 90)}"><b>${tr.flag || '🏁'} ${escapeHtml(tr.name)}</b><small>${this.longueur(tr)}</small></button>`).join(''))}
       <h3>${t('model')}</h3>
       ${this.rail('netModels', 'models', modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelNet" data-id="${m.id}">
           ${this.carIcon(m, livery)}<b>${escapeHtml(m.name)}</b>${this.tyres(m)}</button>`).join(''))}

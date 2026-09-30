@@ -69,6 +69,19 @@ const serveur = http.createServer((req, res) => {
     dit(choisi.marques === 1, `exactement une carte circuit porte la marque (${choisi.marques})`);
     dit(!choisi.zonePerso, 'aucun titre « circuits perso » a l\'ecran');
 
+    /* --- 1 bis. sous un circuit : le drapeau et la longueur, rien d'autre --- */
+    const sous = await page.evaluate(() => [...document.querySelectorAll('[data-rail="tracks"] .card')].map(c => ({
+      titre: c.querySelector('b').textContent.trim(),
+      sous: (c.querySelector('small') || {}).textContent || '',
+    })));
+    const tours = sous.filter(c => /tours?|laps?/i.test(c.sous));
+    const metres = sous.filter(c => /^\d+ m$/.test(c.sous.trim()));
+    const drapeaux = sous.filter(c => /^\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(c.titre));
+    dit(tours.length === 0, `aucune carte circuit ne mentionne les tours${tours.length ? ' — ' + tours[0].sous : ''}`);
+    const propre = sous.every(c => /^\d+ m$/.test(c.sous.trim()) || /verrou|lock/i.test(c.sous));
+    dit(propre, `sous chaque carte : une longueur en mètres, ou « verrouillé » (${metres.length} longueurs sur ${sous.length})`);
+    dit(drapeaux.length === sous.length, `chaque carte porte son drapeau (${drapeaux.length} sur ${sous.length})`);
+
     // --- 2. les rails débordent-ils vraiment, et gardent-ils leur place ? ---
     for (const r of ['models', 'tracks']) {
       const m = await page.evaluate((n) => {
@@ -96,6 +109,27 @@ const serveur = http.createServer((req, res) => {
     });
     dit(Math.abs(garde.apres - garde.avant) < 4, `rail garde sa place apres un choix (${Math.round(garde.avant)} -> ${Math.round(garde.apres)} px)`);
     dit(garde.visible, 'la carte choisie reste dans le champ');
+
+    /* --- 2 bis. la PAGE ne doit pas glisser de côté --- */
+    /* `overflow-y: auto` seul ne veut pas dire ce qu'on croit : dès qu'un axe passe à `auto`,
+    l'autre ne peut plus rester `visible` et devient `auto` lui aussi. L'écran était donc
+    horizontalement scrollable depuis toujours — 869 px de glissement sur un iPhone 13 — sans que
+    ça se voie tant que rien ne débordait. Avec les rails, une inflexion du pouce emportait la page
+    entière de côté et laissait une bande vide à l'écran. On balaie donc pour de vrai, ailleurs que
+    sur un rail : lire la propriété CSS ne suffit pas, c'est le geste qui doit rester sans effet. */
+    const titre = await page.locator('h3').first().boundingBox();
+    const cy = titre.y + titre.height / 2;
+    await page.mouse.move(titre.x + titre.width - 20, cy);
+    await page.mouse.down();
+    for (let i = 1; i <= 10; i++) await page.mouse.move(titre.x + titre.width - 20 - i * 25, cy);
+    await page.mouse.up();
+    await page.waitForTimeout(250);
+    const page_ = await page.evaluate(() => {
+      const sc = document.querySelector('.screen');
+      return { glisse: sc.scrollLeft, ovx: getComputedStyle(sc).overflowX };
+    });
+    dit(page_.glisse === 0 && page_.ovx === 'hidden',
+      `un balayage latéral hors rail ne déplace pas la page (${page_.glisse} px, overflow-x ${page_.ovx})`);
 
     // --- 3. les records, une ligne par voiture ---
     const rec = await page.evaluate(async () => {
