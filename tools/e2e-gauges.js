@@ -44,7 +44,7 @@ const serveur = http.createServer((req, res) => {
   await page.waitForTimeout(400);
   await page.click('.screen.poster .mi:nth-of-type(1)');
   await page.waitForTimeout(2500);
-  const lu = await page.evaluate(() => [...document.querySelectorAll('.grid.models .card')].map((c) => ({
+  const lu = await page.evaluate(() => [...document.querySelectorAll('.models .card')].map((c) => ({
     nom: c.querySelector('b').textContent.trim(),
     cadrans: [...c.querySelectorAll('.gauge')].map((g) => ({
       unite: g.querySelector('small').textContent,
@@ -72,7 +72,7 @@ const serveur = http.createServer((req, res) => {
   On relève ce que la page affiche — cinq pneus par carte, dont n pleins — et on le confronte au
   `diff` du modèle. Compter les pneus à l'écran plutôt que relire la donnée est tout l'intérêt :
   c'est le seul moyen de voir un décalage entre le classement et son affichage. */
-  const pneus = await page.evaluate(() => [...document.querySelectorAll('.grid.models .card')].map((c) => {
+  const pneus = await page.evaluate(() => [...document.querySelectorAll('.models .card')].map((c) => {
     const nom = (c.querySelector('b') || {}).textContent || '';
     const m = (typeof MODELS !== 'undefined' ? MODELS : []).find((x) => nom.startsWith(x.name));
     return { nom: nom.trim(), attendu: m ? m.diff : null,
@@ -90,7 +90,15 @@ const serveur = http.createServer((req, res) => {
   if (pneus.length && pneus.every((p) => p.pleins === pneus[0].pleins)) {
     errs++; console.log('  ÉCHEC : toutes les voitures portent le même nombre de pneus — le classement ne classe rien');
   }
-  console.log('\ncartes', lu.length, '· errors', errs);
+  /* Zéro carte est un ÉCHEC, pas un essai réussi sur rien.
+
+  La grille des voitures est devenue un rail, et le sélecteur `.grid.models .card` a cessé de
+  trouver quoi que ce soit. L'essai a continué d'annoncer « aucune incohérence » et de sortir en
+  zéro : il ne mesurait plus rien et s'en félicitait. Une mesure qui ne voit pas ce qu'elle mesure
+  ne mesure rien, et doit le dire. */
+  const vu = lu.length;
+  if (!vu) { errs++; console.log('  ÉCHEC : aucune carte voiture trouvée — l’essai n’a rien mesuré'); }
+  console.log('\ncartes', vu, '· errors', errs);
   if (fautes || plein.length || errs) process.exitCode = 1;
   await page.screenshot({ path: `${out}/pick.png`, fullPage: true });
   await browser.close();

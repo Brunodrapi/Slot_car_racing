@@ -710,9 +710,10 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
 - **12 circuits** inspirés de vrais tracés : Monza, Spa-Francorchamps, Monaco, Silverstone, Suzuka
   (avec son pont), Interlagos, Laguna Seca, Nürburgring GP, Le Mans, Mount Panorama, Red Bull Ring, Zandvoort.
 - **Un seul plateau**, celui des neuf voitures ci-dessus. Son identifiant reste `gt` — les records
-  de tour sont rangés sous `circuit|catégorie` dans la sauvegarde, et le changer effacerait ceux
-  des joueurs — mais son nom ne pouvait plus être « GT » avec une 917 et une 787B sur la grille.
-- **Course rapide** et **contre-la-montre** (records par circuit et catégorie), 5 niveaux de difficulté, usure et dommages en option.
+  de tour sont rangés sous `circuit|catégorie` et `circuit|catégorie|voiture` dans la sauvegarde,
+  et le changer effacerait ceux des joueurs — mais son nom ne pouvait plus être « GT » avec une
+  917 et une 787B sur la grille.
+- **Course rapide** et **contre-la-montre** (records par circuit et par voiture), 5 niveaux de difficulté, usure et dommages en option.
 - Une **carrière** existe dans le code, actuellement masquée. Elle n'a plus qu'une coupe : les
   trois autres couraient dans les catégories retirées.
 - IA qui freine selon son talent, choisit sa ligne pour dépasser, aspire dans le sillage, se touche.
@@ -1061,6 +1062,84 @@ Ces illustrations portent en général une ombre douce au sol, qui n'est pas du 
 remplissage depuis le bord s'y arrête et il reste un halo gris autour des roues. `--peel` retire
 les pixels du pourtour restés presque blancs, sur une épaisseur bornée pour qu'un reflet clair de
 la carrosserie ne serve jamais de porte d'entrée vers l'intérieur.
+
+### Une série se parcourt, elle ne s'empile pas
+
+Les neuf voitures et les douze circuits étaient posés en grille. Sur un téléphone, chaque grille
+fait un écran de haut : on choisissait en faisant défiler la page, donc en perdant de vue tout ce
+qu'on ne choisissait pas. C'est l'inverse de ce que sert un écran de sélection — comparer.
+
+Les deux sont maintenant des **rails** qui défilent de gauche à droite, une seule ligne chacun. La
+carte suivante dépasse du bord : c'est elle qui dit que ça se pousse, et aucune autre marque n'est
+nécessaire. Les deux flèches ne s'affichent qu'à la souris (`@media (hover: hover) and (pointer:
+fine)`) : au doigt on pousse le rail, et deux boutons posés par-dessus les cartes mangeraient la
+place des cartes sur un écran étroit.
+
+**Le calage, qui est tout le problème.** Choisir une voiture repeint l'écran entier. Sans rien de
+plus, taper la neuvième carte ramène le rail à la première : on se retrouve devant la M1 après
+avoir choisi la CSL, avec la marque de sélection hors champ. Le réglage aurait marché et l'écran
+aurait dit le contraire. `show()` relit donc le `scrollLeft` de chaque rail avant de remplacer le
+HTML et le repose après, exactement comme il le fait déjà pour le défilement de la page. À la
+**première** ouverture, où il n'y a rien à reposer, le rail se centre sur la carte déjà choisie
+plutôt que de partir du début.
+
+`scroll-snap-type: x proximity` et non `mandatory` : « mandatory » recale le rail sur une carte à
+chaque arrêt, y compris quand on ne voulait que jeter un œil à la suivante, et le rail semble
+alors résister au doigt.
+
+### Les circuits perso quittent l'écran de sélection
+
+La zone « Circuits perso » est retirée, comme le lien vers l'éditeur l'avait été avant elle. Elle
+n'était plus alimentée par rien : l'atelier n'est plus accessible depuis le menu, si bien que la
+liste était soit vide, soit le musée des essais d'un ancien réglage. Les tracés enregistrés ne
+sont pas effacés — ils restent dans la base du navigateur, et `editor.html` y mène encore par son
+adresse.
+
+Le piège n'était pas la liste, c'était le **garde-fou**. Il acceptait un circuit perso comme
+sélection valide ; retirer la liste sans y toucher aurait laissé un circuit perso sélectionné chez
+qui en avait un, plus aucune carte n'aurait porté la marque, et la course serait partie sur un
+tracé absent de l'écran. On retombe donc sur le premier circuit ouvert.
+
+**Sauf celui qu'un lien nomme.** Le bouton « Essayer » de l'éditeur ouvre `index.html?track=…` et
+pose directement l'identifiant dans l'écran de sélection. Écarter tous les circuits perso cassait
+donc l'aller-retour éditeur → jeu, qui est le seul moyen de voir un tracé qu'on vient de dessiner :
+la course partait sur Monza sans qu'un mot le dise, et `tools/e2e-editor.js` l'imprimait sans
+broncher parce qu'il se contentait d'afficher le circuit sélectionné au lieu de l'exiger. Ce
+circuit-là garde donc sa carte, ajoutée en fin de rail — pas de titre, pas de catalogue, seulement
+celui qu'on a demandé — et l'essai refuse désormais tout autre nom que celui qu'il vient
+d'enregistrer.
+
+### Les records, une ligne par voiture
+
+L'écran du contre-la-montre n'affichait qu'un chiffre : le meilleur tour du circuit, toutes
+voitures confondues. C'est le moins utile des deux — il dit qu'on a déjà tourné vite ici, sans
+dire avec quoi, donc sans rien donner à battre. Il y a maintenant **une ligne par voiture**,
+vignette à gauche, nom, temps à droite à chasse fixe. Rangées par temps, les vierges à la fin :
+un classement, pas un catalogue. La vignette parce qu'une liste de noms se lit, là où une liste de
+voitures se reconnaît.
+
+La sauvegarde écrit désormais **deux clés** pour un même tour : `circuit|catégorie` et
+`circuit|catégorie|voiture`. La première reste, et c'est elle qui décide du « Nouveau record ! » :
+un meilleur tour toutes voitures confondues. Sans cela, le premier tour bouclé avec chaque nouvelle
+voiture aurait déclenché la bannière, y compris à dix secondes du meilleur temps du joueur — une
+félicitation qui félicite tout le monde ne dit plus rien.
+
+Les anciennes sauvegardes gardent leurs clés à deux morceaux. Rien n'est perdu, et rien n'est
+inventé non plus : on ne sait pas avec quelle voiture ces tours ont été signés, donc on ne les
+attribue à aucune, et la liste par voiture se remplit à partir des prochaines sorties.
+
+**Une collision de noms, trouvée en mesurant.** Les lignes se sont d'abord appelées `.rec` — déjà
+pris par la pastille « Nouveau record ! » de l'écran de fin. Mes règles, écrites plus bas dans la
+feuille, passaient par-dessus les siennes : un bout de phrase en ligne devenait une grille pleine
+largeur, avec un fond de carte et une colonne de 76 px pour une vignette qu'elle n'a pas. Deux
+écrans éloignés, une classe commune, et rien pour le signaler. Les lignes s'appellent `.rline`, et
+`tools/e2e-rails.js` vérifie que la pastille reste `display: inline` sans fond.
+
+`tools/e2e-rails.js` couvre les trois changements sur téléphone et sur bureau : le circuit fantôme
+rapatrié, le débordement réel des rails (si les cartes reviennent à la ligne, `scrollWidth` vaut
+`clientWidth` et il n'y a plus rien à faire défiler — l'écran a l'air correct et le geste ne sert
+à rien), le calage conservé après un choix fait à l'autre bout du rail, l'ordre et les vignettes
+de la table des records, et l'écriture de la clé par voiture en fin de course.
 
 ### Les quatre cadrans
 

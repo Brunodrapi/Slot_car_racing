@@ -13,7 +13,7 @@ const I18N = {
     career: 'Carrière', quickRace: 'Course rapide', timeTrial: 'Contre-la-montre', settings: 'Réglages', back: 'Retour',
     editor: 'Éditeur de circuits', workshop: 'Atelier voitures',
     howto: 'Poser le pouce n’importe où (ou n’importe quelle touche / clic) : accélérer, relâcher pour freiner. Le cadran vient se placer au-dessus du pouce. Pouce gauche (ou flèches / molette) : choisir la trajectoire — intérieure, idéale ou extérieure. Trop vite dans un virage, c’est le bac à gravier.',
-    carClass: 'Catégorie', model: 'Modèle', track: 'Circuit', customTracks: 'Circuits perso', livery: 'Livrée', tyres: 'Gomme', damage: 'Tôle', linePit: 'STAND', wear: 'Usure et dommages', wearHint: 'Les pneus s\'usent en glissant, les chocs et les sorties abîment la voiture.', difficulty: 'Difficulté', easy: 'Facile', medium: 'Normal', hard: 'Difficile', extreme: 'Extrême', cauchemar: 'Cauchemar',
+    carClass: 'Catégorie', model: 'Modèle', track: 'Circuit', livery: 'Livrée', tyres: 'Gomme', damage: 'Tôle', linePit: 'STAND', wear: 'Usure et dommages', wearHint: 'Les pneus s\'usent en glissant, les chocs et les sorties abîment la voiture.', difficulty: 'Difficulté', easy: 'Facile', medium: 'Normal', hard: 'Difficile', extreme: 'Extrême', cauchemar: 'Cauchemar',
     diffTitle: 'Ce que la voiture coûte à piloter', diffLevel: (n) => `Difficulté ${n} sur 5`,
     laps: 'tours', lapCustom: 'Perso', start: 'Départ !', locked: 'Verrouillé', unlockHint: 'Termine la coupe précédente dans le top 3 pour débloquer.',
     cup: 'Coupe', races: 'courses', raceOf: (a, b) => `Course ${a} / ${b}`, standings: 'Classement', nextRace: 'Prochaine course', startRace: 'Lancer la course',
@@ -26,7 +26,7 @@ const I18N = {
     newRecord: 'Nouveau record !', yourBest: 'Ton record', name: 'Nom du pilote', sound: 'Son', language: 'Langue', showLines: 'Guide de freinage', telemetry: 'Télémétrie (touche G)', ctrlSide: 'Côté du levier', sideLeft: 'Gauche', sideRight: 'Droite', camera: 'Vue', camFollow: 'Dessus, orientée piste', camFixed: 'Dessus, fixe', camIso: 'Isométrique', pullBack: 'Recul de la caméra', pullNone: 'Normal', pullSome: 'Un peu en retrait', pullMore: 'Très en retrait', lapCount: 'Tours', pressStart: 'Appuie pour commencer', resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
     on: 'Activé', off: 'Coupé', playerDefault: 'Vous', allUnlocked: 'Tout est débloqué. Bravo !', careerIntro: 'Tu pars dernier à chaque course. Remonte le peloton, marque des points, débloque des catégories plus rapides.',
     lapDone: (n, t) => `Tour ${n} : ${t}`, tipTitle: 'Comment jouer', yourResult: (p) => `Tu termines P${p}`,
-    ttIntro: 'Seul en piste. Bats ton meilleur tour.', noCustomTracks: 'Aucun circuit perso. Crée-en un dans l’éditeur.', deleteTrack: 'Supprimer', confirmDelete: 'Supprimer définitivement ?',
+    ttIntro: 'Seul en piste. Bats ton meilleur tour.', deleteTrack: 'Supprimer', confirmDelete: 'Supprimer définitivement ?',
     multi: 'À plusieurs', multiIntro: 'Ouvre une table et donne son code à quatre lettres, ou saisis celui qu’on t’a donné. Tout passe directement d’un appareil à l’autre : rien n’est conservé, fermer la page ferme la table.',
     createTable: 'Ouvrir une table', joinTable: 'Rejoindre', tableCode: 'Code de la table', yourTable: 'Ta table', waiting: 'En attente…',
     mFormat: 'Format', mRace: 'Course', mDuel: 'Duel', mGhost: 'Contre-la-montre',
@@ -45,7 +45,7 @@ const I18N = {
     career: 'Career', quickRace: 'Quick race', timeTrial: 'Time trial', settings: 'Settings', back: 'Back',
     editor: 'Track editor', workshop: 'Car workshop',
     howto: 'Thumb anywhere (or any key / click): accelerate, release to brake. The dial moves above your thumb. Left thumb (or arrows / wheel): pick the line — inside, racing or outside. Too fast into a corner and it’s the gravel.',
-    carClass: 'Class', model: 'Model', track: 'Track', customTracks: 'Custom tracks', livery: 'Livery', tyres: 'Tyres', damage: 'Body', linePit: 'PIT', wear: 'Wear and damage', wearHint: 'Tyres wear as you slide; contact and excursions damage the car.', difficulty: 'Difficulty', easy: 'Easy', medium: 'Normal', hard: 'Hard', extreme: 'Extreme', cauchemar: 'Nightmare',
+    carClass: 'Class', model: 'Model', track: 'Track', livery: 'Livery', tyres: 'Tyres', damage: 'Body', linePit: 'PIT', wear: 'Wear and damage', wearHint: 'Tyres wear as you slide; contact and excursions damage the car.', difficulty: 'Difficulty', easy: 'Easy', medium: 'Normal', hard: 'Hard', extreme: 'Extreme', cauchemar: 'Nightmare',
     diffTitle: 'How much the car costs to drive', diffLevel: (n) => `Difficulty ${n} of 5`,
     laps: 'laps', lapCustom: 'Custom', start: 'Start!', locked: 'Locked', unlockHint: 'Finish the previous cup in the top 3 to unlock.',
     cup: 'Cup', races: 'races', raceOf: (a, b) => `Race ${a} / ${b}`, standings: 'Standings', nextRace: 'Next race', startRace: 'Start race',
@@ -58,7 +58,7 @@ const I18N = {
     newRecord: 'New record!', yourBest: 'Your best', name: 'Driver name', sound: 'Sound', language: 'Language', showLines: 'Braking guide', telemetry: 'Telemetry (G key)', ctrlSide: 'Lever side', sideLeft: 'Left', sideRight: 'Right', camera: 'View', camFollow: 'Top-down, track-aligned', camFixed: 'Top-down, fixed', camIso: 'Isometric', pullBack: 'Camera set-back', pullNone: 'Normal', pullSome: 'A little further back', pullMore: 'Much further back', lapCount: 'Laps', pressStart: 'Press any button to start', resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
     on: 'On', off: 'Off', playerDefault: 'You', allUnlocked: 'Everything unlocked. Well done!', careerIntro: 'You start every race from the back. Carve through the field, score points, unlock faster classes.',
     lapDone: (n, t) => `Lap ${n}: ${t}`, tipTitle: 'How to play', yourResult: (p) => `You finish P${p}`,
-    ttIntro: 'Alone on track. Beat your best lap.', noCustomTracks: 'No custom track yet. Create one in the editor.', deleteTrack: 'Delete', confirmDelete: 'Delete permanently?',
+    ttIntro: 'Alone on track. Beat your best lap.', deleteTrack: 'Delete', confirmDelete: 'Delete permanently?',
     multi: 'Together', multiIntro: 'Open a table and pass on its four-letter code, or type the one you were given. Everything goes straight from one device to the other: nothing is stored, closing the page closes the table.',
     createTable: 'Open a table', joinTable: 'Join', tableCode: 'Table code', yourTable: 'Your table', waiting: 'Waiting…',
     mFormat: 'Format', mRace: 'Race', mDuel: 'Duel', mGhost: 'Time trial',
@@ -117,11 +117,29 @@ class UI {
     const avant = this.root.firstElementChild;
     const garder = cle != null && cle === this._cleEcran && avant;
     const y = garder ? avant.scrollTop : 0;
+    /* Les rails aussi gardent leur place, et pour la même raison que la page.
+
+    Choisir une voiture repeint tout l'écran. Sans cela, taper la neuvième carte ramenait le rail
+    à la première : on se serait retrouvé devant la M1 après avoir choisi la CSL, avec la marque
+    de sélection hors champ. Le réglage aurait marché et l'écran aurait dit le contraire. */
+    const rails = {};
+    if (garder) for (const r of avant.querySelectorAll('[data-rail]')) rails[r.dataset.rail] = r.scrollLeft;
     this.root.innerHTML = `<div class="screen ${cls || ''}">${html}</div>`;
     this._cleEcran = cle == null ? null : cle;
     if (y) this.root.firstElementChild.scrollTop = y;
+    for (const r of this.root.querySelectorAll('[data-rail]')) {
+      // à la première ouverture, on se place sur ce qui est déjà choisi plutôt qu'au début
+      if (rails[r.dataset.rail] != null) r.scrollLeft = rails[r.dataset.rail];
+      else this._centrerRail(r);
+    }
     this.root.classList.remove('hidden');
     this.paintIcons();
+  }
+
+  _centrerRail(rail) {
+    const sel = rail.querySelector('.card.sel');
+    if (!sel) return;
+    rail.scrollLeft = Math.max(0, sel.offsetLeft - (rail.clientWidth - sel.offsetWidth) / 2);
   }
   hide() { this.root.classList.add('hidden'); this.root.innerHTML = ''; }
 
@@ -338,46 +356,90 @@ class UI {
     `, '', 'reglages');
   }
 
+  /* Un rail qui défile de gauche à droite, à la place d'une grille qui s'empile.
+
+  Neuf voitures et douze circuits en grille, c'est un écran de haut chacun sur un téléphone : on
+  choisissait en faisant défiler la page, donc en perdant de vue tout ce qu'on ne choisissait pas.
+  Un rail garde la série sur une seule ligne, et comparer redevient possible — c'est là tout le
+  sujet d'un écran de sélection.
+
+  Les deux flèches ne s'affichent qu'à la souris. Au doigt on pousse le rail, et deux boutons posés
+  par-dessus les cartes prendraient la place des cartes elles-mêmes sur un écran étroit. */
+  rail(nom, cls, cartes) {
+    return `<div class="railbox">
+      <button class="railarrow gauche" data-action="railTo" data-id="${nom}" data-dir="-1" aria-label="←">‹</button>
+      <div class="rail ${cls}" data-rail="${nom}">${cartes}</div>
+      <button class="railarrow droite" data-action="railTo" data-id="${nom}" data-dir="1" aria-label="→">›</button>
+    </div>`;
+  }
+
+  /* Les records, une ligne par voiture plutôt qu'un seul chiffre.
+
+  L'écran n'affichait que le meilleur tour du circuit, toutes voitures confondues. C'est le chiffre
+  le moins utile des deux : il dit qu'on a déjà tourné vite ici, sans dire avec quoi, donc sans
+  rien donner à battre. Une ligne par voiture transforme l'écran en tableau de chasse — on voit
+  d'un coup celles qu'on a menées et celles qui attendent encore un tour.
+
+  Rangées par temps, les vierges à la fin : un classement, pas un catalogue. Et la vignette à
+  gauche parce qu'une liste de noms se lit, là où une liste de voitures se reconnaît. */
+  records(trackId, cat, choisie, livery) {
+    const t = (k) => this.t(k), s = this.app.save;
+    const lignes = modelsOf(cat.id)
+      .map(m => ({ m, b: s.bestLaps[`${trackId}|${cat.id}|${m.id}`] }))
+      .sort((x, y) => (x.b == null ? 1 : 0) - (y.b == null ? 1 : 0) || (x.b || 0) - (y.b || 0));
+    return `<h3>${t('yourBest')}</h3>
+      <div class="records">
+        ${lignes.map(({ m, b }) => `<div class="rline ${m.id === choisie.id ? 'sel' : ''}">
+          <span class="rline-img">${this.carIcon(m, livery)}</span>
+          <b>${escapeHtml(m.name)}</b>
+          <span class="rline-t ${b == null ? 'muted' : ''}">${b == null ? '--:--.---' : fmtTime(b)}</span>
+        </div>`).join('')}
+      </div>`;
+  }
+
   setupScreen(mode) {
     const t = (k) => this.t(k), s = this.app.save, st = this.setup, app = this.app;
     st.mode = mode;
     const cats = playableCategories();
     if (!cats.find(c => c.id === st.classId)) st.classId = cats[0].id;
+    /* Les circuits perso ne se choisissent plus d'ici — sauf celui qu'un lien a nommé.
+
+    La liste « Circuits perso » est retirée, mais le bouton « Essayer » de l'éditeur ouvre le jeu
+    sur `index.html?track=…` et pose directement l'identifiant ici. Écarter tous les circuits perso
+    aurait donc cassé l'aller-retour éditeur → jeu, qui est le seul moyen de voir un tracé qu'on
+    vient de dessiner : on serait parti sur Monza sans qu'un mot le dise.
+
+    Celui-là garde donc sa carte, ajoutée en fin de rail. Ce n'est pas la liste qui revient : il n'y
+    a ni titre ni catalogue, seulement le circuit qu'on a demandé. Et il la garde justement pour que
+    l'écran ne mente pas — sans carte, aucune marque de sélection nulle part, et une course qui part
+    sur un tracé absent de l'écran. Tout autre circuit perso, lui, retombe sur le premier ouvert. */
     const ut = unlockedTracks(s);
-    const tracks = app.allTracks();
-    const trackOk = (tr) => tr.custom || ut.has(tr.id);
-    if (!tracks.find(tr => tr.id === st.trackId && trackOk(tr))) st.trackId = tracks.find(trackOk).id;
+    const perso = app.custom.tracks.find(tr => tr.id === st.trackId);
+    if (!perso && !TRACKS.find(tr => tr.id === st.trackId && ut.has(tr.id))) st.trackId = TRACKS.find(tr => ut.has(tr.id)).id;
     const cat = categoryById(st.classId);
     const model = app.playerModelFor(cat.id);
     const trackDef = app.trackDefById(st.trackId);
     const laps = s.laps || lapsFor(trackDef, cat);
-    const best = s.bestLaps[`${st.trackId}|${st.classId}`];
     const livery = LIVERIES[s.livery];
     this.show(`
       <div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${mode === 'race' ? t('quickRace') : t('timeTrial')}</h2></div>
       <h3>${t('model')}</h3>
-      <div class="grid models">
-        ${modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${m.id}">
+      ${this.rail('models', 'models', modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${m.id}">
             ${this.carIcon(m, livery)}<b>${escapeHtml(m.name)}${m.custom ? ` <small>(${t('custom')})</small>` : ''}</b>
             ${this.tyres(m)}
-            ${this.gauges(m)}</button>`).join('')}
-      </div>
+            ${this.gauges(m)}</button>`).join(''))}
       <h3>${t('track')}</h3>
-      <div class="grid tracks">
-        ${TRACKS.map(tr => {
-          const locked = !ut.has(tr.id);
-          return `<button class="card ${tr.id === st.trackId ? 'sel' : ''} ${locked ? 'locked' : ''}" data-action="pickTrack" data-id="${tr.id}" ${locked ? 'disabled' : ''}>
+      ${this.rail('tracks', 'tracks', TRACKS.map(tr => {
+        const locked = !ut.has(tr.id);
+        return `<button class="card ${tr.id === st.trackId ? 'sel' : ''} ${locked ? 'locked' : ''}" data-action="pickTrack" data-id="${tr.id}" ${locked ? 'disabled' : ''}>
             <img alt="" src="${this.thumb(tr, 90)}"><b>${tr.flag} ${tr.name}</b><small>${locked ? t('locked') : `${lapsFor(tr, cat)} ${t('laps')} · ${tr.length} m`}</small></button>`;
-        }).join('')}
-      </div>
-      <!-- Le lien vers l'atelier circuits est retiré avec son bandeau du menu : le laisser ici
-           aurait laissé l'atelier à une tape de distance, et n'aurait donc rien désactivé du tout.
-           La liste des circuits perso reste, elle : ceux déjà enregistrés se choisissent toujours. -->
-      <h3>${t('customTracks')}</h3>
-      <div class="grid tracks">
-        ${app.custom.tracks.length ? app.custom.tracks.map(tr => `<button class="card ${tr.id === st.trackId ? 'sel' : ''}" data-action="pickTrack" data-id="${tr.id}">
-            <img alt="" src="${this.thumb(tr, 90)}"><b>${tr.flag || '🏁'} ${escapeHtml(tr.name)}</b><small>${lapsFor(tr, cat)} ${t('laps')}</small></button>`).join('') : `<p class="muted">${t('noCustomTracks')}</p>`}
-      </div>
+      }).join('') + (perso ? `<button class="card sel" data-action="pickTrack" data-id="${perso.id}">
+            <img alt="" src="${this.thumb(perso, 90)}"><b>${perso.flag || '🏁'} ${escapeHtml(perso.name)}</b><small>${lapsFor(perso, cat)} ${t('laps')}</small></button>` : ''))}
+      <!-- La zone des circuits perso est retirée, comme le lien vers l'atelier l'avait été avant
+           elle. Elle n'était plus alimentée par rien : l'atelier n'est plus accessible depuis le
+           menu, si bien que la liste était soit vide, soit le musée des essais d'un ancien
+           réglage. Les tracés enregistrés ne sont pas effacés pour autant — ils restent dans le
+           navigateur et l'éditeur y mène encore par son adresse. -->
       <div class="row wrap">
         ${mode === 'race' ? `<div><h3>${t('difficulty')}</h3><div class="seg">${NIVEAUX.map(d => `<button class="${s.difficulty === d ? 'sel' : ''}" data-action="pickDiff" data-id="${d}">${t(d)}</button>`).join('')}</div></div>
         <!-- Quatre longueurs franches et une saisie libre, plutôt qu'une échelle fine.
@@ -391,8 +453,9 @@ class UI {
              compare à rien, et la table des records n'a pas de colonne pour dire dans quel état il
              a été signé : mieux vaut que l'option n'existe pas là que d'avoir à l'expliquer. -->
         <div><h3>${t('wear')}</h3><div class="seg">${[[0, 'off'], [1, 'on']].map(([v, k]) => `<button class="${(s.wear ? 1 : 0) === v ? 'sel' : ''}" data-action="pickWear" data-id="${v}">${t(k)}</button>`).join('')}</div>
-        <small class="muted">${t('wearHint')}</small></div>` : `<div><h3>${t('yourBest')}</h3><div class="bestlap">${best ? fmtTime(best) : '--:--.---'}</div></div>`}
+        <small class="muted">${t('wearHint')}</small></div>` : ''}
       </div>
+      ${mode === 'race' ? '' : this.records(st.trackId, cat, model, livery)}
       <div class="row end"><span class="muted">${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ${escapeHtml(model.name)} · ${mode === 'race' ? `${laps} ${t('laps')}` : t('ttIntro')}</span><button class="big primary" data-action="startQuick">${t('start')}</button></div>
     `, 'scroll', 'depart:' + mode);
   }
@@ -444,15 +507,11 @@ class UI {
       <div class="seg">${NET_MODES.map(m => `<button class="${cfg.mode === m ? 'sel' : ''}" data-action="netMode" data-id="${m}" ${net.creator ? '' : 'disabled'}>${t({ race: 'mRace', duel: 'mDuel', ghost: 'mGhost' }[m])}</button>`).join('')}</div>
       <p class="muted">${t(modeDesc)}</p>
       <h3>${t('track')}</h3>
-      <div class="grid tracks">
-        ${tracks.map(tr => `<button class="card ${tr.id === cfg.trackId ? 'sel' : ''}" data-action="netTrack" data-id="${tr.id}" ${net.creator ? '' : 'disabled'}>
-          <img alt="" src="${this.thumb(tr, 90)}"><b>${tr.flag || '🏁'} ${escapeHtml(tr.name)}</b><small>${lapsFor(tr, cat)} ${t('laps')}</small></button>`).join('')}
-      </div>
+      ${this.rail('netTracks', 'tracks', tracks.map(tr => `<button class="card ${tr.id === cfg.trackId ? 'sel' : ''}" data-action="netTrack" data-id="${tr.id}" ${net.creator ? '' : 'disabled'}>
+          <img alt="" src="${this.thumb(tr, 90)}"><b>${tr.flag || '🏁'} ${escapeHtml(tr.name)}</b><small>${lapsFor(tr, cat)} ${t('laps')}</small></button>`).join(''))}
       <h3>${t('model')}</h3>
-      <div class="grid models">
-        ${modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelNet" data-id="${m.id}">
-          ${this.carIcon(m, livery)}<b>${escapeHtml(m.name)}</b>${this.tyres(m)}</button>`).join('')}
-      </div>
+      ${this.rail('netModels', 'models', modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelNet" data-id="${m.id}">
+          ${this.carIcon(m, livery)}<b>${escapeHtml(m.name)}</b>${this.tyres(m)}</button>`).join(''))}
       <div class="row end">
         <span class="muted">${trackDef ? `${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ` : ''}${escapeHtml(model.name)}</span>
         <button class="${net.mine.ready ? '' : 'primary'}" data-action="netReady">${net.mine.ready ? t('notReady') : t('ready')}</button>
@@ -653,6 +712,13 @@ class UI {
         storeSave(app.save); this.setupScreen(this.setup.mode); break;
       }
       case 'pickLapsPerso': break;
+      /* Une flèche défile et s'arrête là. Pas de `setupScreen` : repeindre l'écran pour un
+         défilement referait les vignettes et rejouerait le placement, pour déplacer une barre. */
+      case 'railTo': {
+        const rail = this.root.querySelector(`[data-rail="${id}"]`);
+        if (rail) rail.scrollBy({ left: (+btn.dataset.dir) * Math.max(180, rail.clientWidth * 0.8), behavior: 'smooth' });
+        break;
+      }
       case 'pickWear': app.save.wear = id === '1'; storeSave(app.save); this.setupScreen(this.setup.mode); break;
       case 'startQuick': app.startQuick(this.setup.mode, this.setup.classId, this.setup.trackId); break;
       case 'multi': app.state = 'lobby'; this.lobbyScreen(); break;

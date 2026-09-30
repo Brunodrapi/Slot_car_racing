@@ -30,8 +30,17 @@ const out = process.argv[2] || '/tmp';
   await page.waitForTimeout(1500);
   console.log('url:', page.url());
   await page.screenshot({ path: `${out}/21-setup-custom.png` });
-  const sel = await page.$eval('.grid.tracks .card.sel b', el => el.textContent).catch(() => 'none');
-  console.log('selected track:', sel);
+  /* Le tracé qu'on vient de dessiner doit Être CELUI QUI PORTE LA MARQUE.
+
+  La ligne se contentait d'afficher ce qu'elle trouvait, et répondait « none » sans broncher. Quand
+  les circuits perso ont quitté l'écran de sélection, l'aller-retour éditeur → jeu est parti sur
+  Monza — et l'essai l'a imprimé sans rien dire. Il refuse maintenant tout ce qui n'est pas le nom
+  du circuit enregistré juste avant. */
+  const sel = await page.$eval('.tracks .card.sel b', el => el.textContent).catch(() => 'none');
+  const attendu = 'Test Ovale';
+  const bon = sel.includes(attendu);
+  console.log(`selected track: ${sel}${bon ? '' : `  ← ATTENDU « ${attendu} » : le lien de l'éditeur ne mène plus au bon circuit`}`);
+  if (!bon) process.exitCode = 1;
   await page.click('[data-action="startQuick"]');
   await page.waitForTimeout(600);
   await page.keyboard.down('Space');

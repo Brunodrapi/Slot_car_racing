@@ -257,3 +257,69 @@ perdrait le curseur à chaque chiffre tapé. */
 .perso { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; color: var(--muted); }
 .perso input { width: 82px; padding: 7px 9px; border-radius: 8px; border: 1px solid #2b3140;
   background: #161a23; color: #e8e8ec; font: 600 15px ui-monospace, monospace; }
+
+/* ---------- rails : une série se parcourt de gauche à droite ---------- */
+/* Neuf voitures et douze circuits empilés en grille font un écran de haut chacun sur un
+   téléphone. On choisissait alors en faisant défiler la page, donc en perdant de vue tout ce
+   qu'on ne choisissait pas ; un rail garde la série sur une ligne et rend la comparaison
+   possible, ce qui est tout le sujet d'un écran de sélection.
+
+   `scroll-snap-type: x proximity` et non `mandatory` : « mandatory » recale le rail sur une carte
+   à chaque arrêt, y compris quand on ne voulait que jeter un œil à la suivante, et le rail semble
+   alors résister au doigt. `proximity` n'aligne que si on s'arrête déjà presque en place. */
+.railbox { position: relative; }
+.rail {
+  display: flex; gap: 10px; overflow-x: auto; overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity; scroll-behavior: auto;
+  padding: 2px 2px 10px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.22) transparent;
+}
+.rail::-webkit-scrollbar { height: 6px; }
+.rail::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.22); border-radius: 3px; }
+.rail .card { flex: 0 0 auto; width: 152px; scroll-snap-align: center; }
+.rail.tracks .card { width: 124px; }
+.rail.models .card img { max-width: 120px; aspect-ratio: 20/9; }
+.rail.models .card img.carpick { width: 100%; max-width: 132px; aspect-ratio: 4/3; object-fit: contain; }
+.rail.tracks .card img { max-width: 90px; aspect-ratio: 1; }
+
+/* Les deux flèches ne servent qu'à la souris : au doigt on pousse le rail, et deux boutons posés
+   par-dessus les cartes mangeraient la place des cartes sur un écran étroit. */
+.railarrow {
+  position: absolute; top: calc(50% - 6px); transform: translateY(-50%);
+  width: 34px; height: 34px; padding: 0; border-radius: 50%; border: 0;
+  display: none; place-items: center; font-size: 22px; line-height: 1;
+  background: rgba(16,18,26,0.82); color: var(--text); cursor: pointer; z-index: 2;
+}
+.railarrow.gauche { left: -6px; }
+.railarrow.droite { right: -6px; }
+.railarrow:hover { background: rgba(28,32,44,0.95); }
+@media (hover: hover) and (pointer: fine) { .railarrow { display: grid; } }
+
+/* ---------- records : un temps par voiture ---------- */
+/* La vignette à gauche parce qu'une liste de noms se lit, là où une liste de voitures se
+   reconnaît. Le temps à droite, à chasse fixe, pour que les chiffres s'alignent d'une ligne à
+   l'autre — c'est une colonne qu'on compare, pas une valeur qu'on lit une par une. */
+/* `.rline` et non `.rec` : `.rec` était déjà pris par la pastille « Nouveau record ! » de
+   l'écran de fin. Nommées pareil, mes règles passaient par-dessus les siennes — la pastille,
+   qui est un bout de phrase en ligne, devenait une grille pleine largeur avec un fond de carte
+   et une colonne de 76 px pour une vignette qu'elle n'a pas. Mesuré avant de renommer. */
+.records { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.rline {
+  display: grid; grid-template-columns: 76px 1fr auto; align-items: center; gap: 12px;
+  padding: 6px 14px 6px 8px; border-radius: 12px; background: var(--card);
+  border: 2px solid transparent; color: var(--text);
+}
+.rline.sel { border-color: var(--accent); background: var(--card2); }
+.rline b { font-size: 14px; text-align: left; }
+.rline-img { display: grid; place-items: center; }
+.rline-img canvas.caricon { width: 76px; height: 34px; }
+.rline-img img.carpick { width: 76px; aspect-ratio: 4/3; object-fit: contain; }
+.rline-t { font-family: ui-monospace, monospace; font-size: 17px; }
+.rline-t.muted { color: var(--muted); }
+@media (max-width: 700px) {
+  .rail .card { width: 136px; }
+  .rail.tracks .card { width: 108px; }
+  .rline { grid-template-columns: 60px 1fr auto; gap: 10px; }
+  .rline-img canvas.caricon { width: 60px; height: 27px; }
+  .rline-img img.carpick { width: 60px; }
+  .rline-t { font-size: 15px; }
+}

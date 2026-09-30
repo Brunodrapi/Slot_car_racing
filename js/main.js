@@ -311,11 +311,28 @@ class App {
     this.state = 'results';
     this.audio.idle();
     const save = this.save;
+    /* Deux clés pour un même tour : le circuit, et le circuit avec la voiture.
+
+    L'écran des records liste désormais un temps par voiture, ce que la clé à deux morceaux ne
+    pouvait pas porter. Elle reste écrite quand même, et c'est elle qui décide du « Nouveau
+    record ! » : un meilleur tour toutes voitures confondues. Sans cela, le premier tour bouclé
+    avec chaque nouvelle voiture aurait déclenché la bannière, y compris à dix secondes du
+    meilleur temps du joueur — une félicitation qui félicite tout le monde ne dit plus rien.
+
+    Les anciennes sauvegardes gardent leurs clés à deux morceaux : rien n'est perdu, et rien
+    n'est inventé non plus. On ne sait pas avec quelle voiture ces tours ont été signés, donc on
+    ne les attribue à aucune ; la liste par voiture se remplit à partir des prochaines sorties. */
     const key = `${race.track.id}|${race.cat.id}`;
+    const keyCar = `${key}|${race.cls.id}`;
     let newRecord = false;
-    if (race.player.bestLap != null && (save.bestLaps[key] == null || race.player.bestLap < save.bestLaps[key])) {
-      save.bestLaps[key] = race.player.bestLap;
-      newRecord = true;
+    if (race.player.bestLap != null) {
+      if (save.bestLaps[key] == null || race.player.bestLap < save.bestLaps[key]) {
+        save.bestLaps[key] = race.player.bestLap;
+        newRecord = true;
+      }
+      if (save.bestLaps[keyCar] == null || race.player.bestLap < save.bestLaps[keyCar]) {
+        save.bestLaps[keyCar] = race.player.bestLap;
+      }
     }
     save.racesDone++;
     if (ctx.cup) {
