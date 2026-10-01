@@ -39,6 +39,8 @@ class App {
     record proposé serait refusé pour « pseudo », et le joueur n'aurait aucun moyen de deviner
     pourquoi. On le fait à la connexion, au moment où rien ne presse. */
     if (this.mondial.connecte() && this.save.name) {
+      // l'échec est retenu dans `mondial.pseudoErreur` et affiché à l'écran des records ; on ne
+      // l'avale pas ici, on évite seulement qu'une promesse rejetée remonte dans la console
       this.mondial.declarePseudo(this.save.name).catch(() => {});
     }
     this.ui.splash();

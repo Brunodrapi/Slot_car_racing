@@ -125,6 +125,22 @@ const serveur = http.createServer((req, res) => {
   dit(!!panne.erreur, `la panne est notee sans etre jetee : ${panne.erreur}`);
   dit(erreurs === 0, `aucune exception pendant la panne (${erreurs})`);
 
+  /* --- 5. un pseudo déjà pris doit se VOIR --- */
+  /* Sans message, le joueur voit tout fonctionner — il roule, il bat ses temps — et aucun n'entre
+  jamais au tableau, puisque le serveur refuse un temps dont l'auteur n'a pas de pseudo déclaré.
+  C'est le genre de panne qu'on finit par attribuer au jeu tout entier. */
+  console.log('\nun pseudo deja pris');
+  const pris = await page.evaluate(async () => {
+    app.mondial.pseudoErreur = 'pseudo_pris';
+    app.mondial.session = { token: 'x', expire: Date.now() / 1000 + 3600, sub: 'u1', nom: 'x' };
+    app.ui.setupScreen('timetrial');
+    await new Promise((r) => setTimeout(r, 300));
+    const n = document.querySelector('.warn.mondial-note');
+    return { vu: !!n, txt: n ? n.textContent.trim() : '' };
+  });
+  dit(pris.vu, `le joueur est prevenu : « ${pris.txt.slice(0, 64)}… »`);
+  dit(/Testeur/.test(pris.txt), 'le message nomme le pseudo refuse');
+
   await page.evaluate(() => { app.ui._mondiaux = null; app.mondial.cache.clear(); });
   await page.screenshot({ path: path.join(out, 'mondial.png'), fullPage: true });
   console.log(`\nfautes ${fautes} | erreurs ${erreurs}`);

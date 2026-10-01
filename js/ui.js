@@ -26,6 +26,7 @@ const I18N = {
     newRecord: 'Nouveau record !', yourBest: 'Ton record', name: 'Nom du pilote', sound: 'Son', language: 'Langue', showLines: 'Guide de freinage', telemetry: 'Télémétrie (touche G)', ctrlSide: 'Côté du levier', sideLeft: 'Gauche', sideRight: 'Droite', camera: 'Vue', camFollow: 'Dessus, orientée piste', camFixed: 'Dessus, fixe', camIso: 'Isométrique', pullBack: 'Recul de la caméra', pullNone: 'Normal', pullSome: 'Un peu en retrait', pullMore: 'Très en retrait', lapCount: 'Tours', pressStart: 'Appuie pour commencer', resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
     on: 'Activé', off: 'Coupé', playerDefault: 'Vous', allUnlocked: 'Tout est débloqué. Bravo !', careerIntro: 'Tu pars dernier à chaque course. Remonte le peloton, marque des points, débloque des catégories plus rapides.',
     lapDone: (n, t) => `Tour ${n} : ${t}`, tipTitle: 'Comment jouer', yourResult: (p) => `Tu termines P${p}`,
+    nameTaken: (n) => `« ${n} » est déjà pris par un autre pilote. Change de nom dans les réglages, sinon tes temps n’entreront pas au tableau mondial.`,
     worldBest: 'Monde', worldNeedsAccount: 'Connecte-toi pour inscrire tes temps au tableau mondial.', signIn: 'Se connecter avec Google', signOut: 'Se déconnecter',
     nameTitle: 'Ton nom de pilote', nameGo: 'C’est parti',
     nameWhy: 'Il signera tes temps, ici et au tableau des records.',
@@ -62,6 +63,7 @@ const I18N = {
     newRecord: 'New record!', yourBest: 'Your best', name: 'Driver name', sound: 'Sound', language: 'Language', showLines: 'Braking guide', telemetry: 'Telemetry (G key)', ctrlSide: 'Lever side', sideLeft: 'Left', sideRight: 'Right', camera: 'View', camFollow: 'Top-down, track-aligned', camFixed: 'Top-down, fixed', camIso: 'Isometric', pullBack: 'Camera set-back', pullNone: 'Normal', pullSome: 'A little further back', pullMore: 'Much further back', lapCount: 'Laps', pressStart: 'Press any button to start', resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
     on: 'On', off: 'Off', playerDefault: 'You', allUnlocked: 'Everything unlocked. Well done!', careerIntro: 'You start every race from the back. Carve through the field, score points, unlock faster classes.',
     lapDone: (n, t) => `Lap ${n}: ${t}`, tipTitle: 'How to play', yourResult: (p) => `You finish P${p}`,
+    nameTaken: (n) => `“${n}” is already taken by another driver. Change it in the settings, or your times will not reach the world board.`,
     worldBest: 'World', worldNeedsAccount: 'Sign in to put your times on the world board.', signIn: 'Sign in with Google', signOut: 'Sign out',
     nameTitle: 'Your driver name', nameGo: 'Let’s go',
     nameWhy: 'It will sign your times, here and on the record board.',
@@ -466,6 +468,8 @@ class UI {
       ${!app.mondial || app.mondial.connecte() ? '' :
         `<p class="muted mondial-note">${t('worldNeedsAccount')}
           <button class="link" data-action="google">${t('signIn')}</button></p>`}
+      ${app.mondial && app.mondial.pseudoErreur === 'pseudo_pris'
+        ? `<p class="warn mondial-note">${t('nameTaken', escapeHtml(s.name))}</p>` : ''}
       <div class="records">
         <div class="rhead">
           <span></span><b></b>

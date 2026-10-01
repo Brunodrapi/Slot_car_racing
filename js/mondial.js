@@ -39,6 +39,7 @@ class Mondial {
     this.session = null;        // { token, expire, nom, sub } une fois connecté
     this.cache = new Map();     // circuit → { t, lignes } : une lecture par circuit, pas par ligne
     this.erreur = null;
+    this.pseudoErreur = null;      // « ce nom est pris », retenu pour être DIT au joueur
     this._litSession();
     this._litRetour();
   }
@@ -138,12 +139,21 @@ class Mondial {
         },
         body: JSON.stringify({ id: this.session.sub, pseudo }),
       });
-      if (r.ok) { this.pseudoPose = pseudo; return { ok: true }; }
+      if (r.ok) { this.pseudoPose = pseudo; this.pseudoErreur = null; return { ok: true }; }
       const rep = await r.json().catch(() => ({}));
       // 23505 : l'index unique sur le pseudo. Le nom est à quelqu'un d'autre.
-      return { ok: false, raison: rep.code === '23505' ? 'pseudo_pris' : (rep.message || 'HTTP ' + r.status) };
+      const raison = rep.code === '23505' ? 'pseudo_pris' : (rep.message || 'HTTP ' + r.status);
+      /* On RETIENT l'échec au lieu de le laisser filer.
+
+      Sans cela, un joueur dont le nom est déjà pris voit tout fonctionner — il roule, il bat ses
+      temps — et aucun n'entre jamais au tableau mondial, puisque le serveur refuse un temps dont
+      l'auteur n'a pas de pseudo déclaré. Rien à l'écran ne le lui dit, et rien ne le lui dirait
+      jamais : c'est le genre de panne qu'on finit par attribuer au jeu tout entier. */
+      this.pseudoErreur = raison;
+      return { ok: false, raison };
     } catch (e) {
-      return { ok: false, raison: String(e.message || e) };
+      this.pseudoErreur = String(e.message || e);
+      return { ok: false, raison: this.pseudoErreur };
     }
   }
 
