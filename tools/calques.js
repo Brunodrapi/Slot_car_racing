@@ -4,10 +4,12 @@
 //
 // Pourquoi cette mesure existe : à l'écran, sous la voiture dessinée, on en voit une seconde —
 // plus sombre, décalée. C'est son ombre, et la question posée est légitime : deux dessins au lieu
-// d'un, est-ce que ça coûte ? La réponse ne peut pas venir de la lecture du code, parce que le
-// nombre de couches DÉPEND DE LA CAMÉRA : à plat une voiture est un `drawImage` plus son ombre,
-// en vue inclinée celle qui n'a pas de planche de rotation est empilée huit à vingt-huit fois pour
-// se donner du volume. On mesure donc les trois chemins séparément.
+// d'un, est-ce que ça coûte ? La réponse ne peut pas venir de la lecture du code — un quadrilatère
+// texturé de plus par voiture et par image, ça se mesure, ça ne se devine pas.
+//
+// Il y avait ici deux passes de plus, pour la caméra inclinée, où une voiture était empilée huit à
+// vingt-huit fois. C'est cette mesure — dix fois le dessin à plat — qui a décidé de son sort ; elle
+// est gardée dans le README, et le chemin n'existe plus.
 //
 // On compte les `drawImage` en interceptant le contexte, et on chronomètre `_drawCar` lui-même :
 // une moyenne d'images par seconde dilue huit voitures dans tout le reste de la scène et ne dirait
@@ -71,7 +73,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     const mesure = async (vue, ombre) => {
       r.setView(vue);
       window.drawCarShadow = ombre ? vraieOmbre : () => true;   // `true` : pas de boîte de repli
-      await new Promise((res) => setTimeout(res, 600));          // le temps que les planches arrivent
+      await new Promise((res) => setTimeout(res, 600));          // le temps que le décor arrive
       ms = 0; n = 0; dessins = 0;
       const t = [];
       let last = performance.now();
@@ -104,23 +106,19 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     const out = [];
     out.push(await mesure('track', true));
     out.push(await mesure('track', false));
-    out.push(await mesure('iso', true));
-    out.push(await mesure('iso', false));
     proto.drawImage = vraiDraw;
-    return { out, modele: app.race.player.cls.id, planche: !!app.race.player.cls.sheet };
+    return { out, modele: app.race.player.cls.id };
   }, { id: carId });
 
-  console.log(`${carId} · planche de rotation : ${res.planche ? 'oui' : 'non'} · processeur bridé x${bride}`);
+  console.log(`${carId} · processeur bridé x${bride}`);
   for (const m of res.out) {
-    console.log(`  ${m.vue === 'track' ? 'à plat  ' : 'inclinée'} · ombre ${m.ombre ? 'oui' : 'non '}` +
+    console.log(`  ombre ${m.ombre ? 'oui' : 'non '}` +
       ` · ${m.dessinsParVoiture} dessins/voiture · ${m.parVoiture} ms/voiture` +
       ` · image médiane ${m.image} ms (p90 ${m.p90}) · ${m.voitures} voitures`);
   }
-  const [aOmbre, aSans, iOmbre, iSans] = res.out;
-  console.log(`  coût de l'ombre à plat : ${(aOmbre.parVoiture - aSans.parVoiture).toFixed(3)} ms/voiture` +
+  const [aOmbre, aSans] = res.out;
+  console.log(`  coût de l'ombre : ${(aOmbre.parVoiture - aSans.parVoiture).toFixed(3)} ms/voiture` +
     ` (${(aOmbre.dessinsParVoiture - aSans.dessinsParVoiture).toFixed(2)} dessin)`);
-  console.log(`  à plat -> inclinée : ${(iOmbre.parVoiture - aOmbre.parVoiture).toFixed(3)} ms/voiture` +
-    ` (${(iOmbre.dessinsParVoiture - aOmbre.dessinsParVoiture).toFixed(2)} dessins)`);
   console.log(`  errors ${errs}`);
   await browser.close();
   serveur.close();

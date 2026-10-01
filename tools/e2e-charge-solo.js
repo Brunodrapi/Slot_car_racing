@@ -149,24 +149,32 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   dit(sortie.retenue === true, `elle retient d'abord (${sortie.retenue})`);
   dit(sortie.libre === false, `passe le delai, on part avec ce qu'on a (${sortie.libre})`);
 
-  /* --- le DÉCOR, qui descend par le même réseau et que personne n'attendait --- */
-  console.log('\nun sprite de decor qui traine');
+  /* --- LE DESSIN DU CIRCUIT, qui descend par le même réseau ---
+
+  Cet essai tenait un sprite de décor. Il n'y en a plus : les objets du bord de piste sont peints sur
+  une toile depuis que la vue inclinée est retirée, donc ils n'arrivent plus par le réseau. Ce qui
+  arrive encore, c'est le fond de carte du circuit et la halle des stands — `renderer.enRoute` —, et
+  c'est ce que la barrière doit attendre. Un essai qui serait resté sur l'ancien nom aurait trouvé un
+  objet vide et validé une barrière qui ne retient plus rien. */
+  console.log('\nun dessin de circuit qui traine');
   const decor = await p.evaluate(async (hote) => {
+    app.startQuick('race', 'gt', TRACKS[0].id);
+    await new Promise((res) => setTimeout(res, 300));
     const r = app.renderer;
-    const cle = Object.keys(r.propArt)[0];
-    const vrai = r.propArt[cle];
+    const avant = (r.enRoute || []).length;
     const lent = new Image();
     lent.src = hote + '/jamais.png';            // la connexion reste ouverte : l'image reste en route
-    r.propArt[cle] = { img: lent, wm: vrai.wm, anchor: vrai.anchor };
-    app.startQuick('race', 'gt', TRACKS[0].id);
-    await new Promise((res) => setTimeout(res, 900));
+    r.enRoute = (r.enRoute || []).concat([lent]);
+    await new Promise((res) => setTimeout(res, 700));
     const retenue = app.race.attente;
     const cd0 = app.race.countdown;
-    r.propArt[cle] = vrai;                       // le décor arrive
+    r.enRoute = r.enRoute.filter((im) => im !== lent);   // le dessin arrive
     await new Promise((res) => setTimeout(res, 400));
-    return { retenue, libre: app.race.attente, repart: app.race.countdown < cd0 || app.race.state !== 'countdown' };
+    return { avant, retenue, libre: app.race.attente,
+             repart: app.race.countdown < cd0 || app.race.state !== 'countdown' };
   }, base);
-  dit(decor.retenue === true, `un sprite de decor en route retient la course (attente ${decor.retenue})`);
+  dit(decor.avant > 0, `le circuit a bien des dessins en route a attendre (${decor.avant})`);
+  dit(decor.retenue === true, `un dessin en route retient la course (attente ${decor.retenue})`);
   dit(decor.libre === false && decor.repart, `elle repart quand il arrive (attente ${decor.libre})`);
 
   /* --- les trois « rien à attendre », qui ne doivent pas se confondre avec « en cours » --- */

@@ -643,59 +643,42 @@ posent plus près de la piste que les panneaux publicitaires : vu du ciel il n'y
 remplir, et un arbre planté trop loin n'entre jamais dans le cadre. S'y ajoutent des **plaques de
 terre nue** sous le bitume, comme un circuit en use autour de ses virages.
 
-En **vue isométrique**, ce sont les sprites de trois quarts découpés dans la planche, qui n'auraient
-aucun sens vus du dessus.
+Le semis est **déterministe** : un circuit retrouve toujours le même décor, d'une partie à l'autre.
+Chaque type indique la bande dans laquelle il aime se poser, mesurée depuis le bord de la piste. Ces
+bandes sont serrées parce que la caméra ne montre qu'environ vingt-cinq mètres de chaque côté de la
+voiture ; plus loin, un objet existe mais n'apparaît jamais. Un candidat est refusé s'il tombe trop
+près d'un morceau quelconque du circuit — ce qui compte là où le tracé se replie — ou trop près d'un
+objet déjà posé.
 
-Autour de la piste, `js/props.js` sème des objets debout — chênes, sapins, buissons, maisons, granges,
-barrières, puits, tonneaux, ruines. Ils viennent d'une planche de sprites isométriques découpée par
-`tools/env.py`, et portent leur propre ombre portée, passée en noir translucide pour qu'elle
-assombrisse l'herbe au lieu d'y poser une dalle de la couleur de la planche. Le semis est
-**déterministe** : un circuit retrouve toujours le même décor, d'une
-partie à l'autre. Chaque type indique la bande dans laquelle il aime se poser, mesurée depuis le bord
-de la piste : barrières, tonneaux et caisses collent aux graviers, les maisons se tiennent en
-retrait, les arbres remplissent entre les deux. Ces bandes sont serrées parce que la caméra ne montre
-qu'environ vingt-cinq mètres de chaque côté de la voiture ; plus loin, un objet existe mais
-n'apparaît jamais. Un candidat est refusé s'il tombe trop près d'un morceau quelconque du circuit —
-ce qui compte là où le tracé se replie — ou trop près d'un objet déjà posé.
+## Ce qui part avec l'isométrique
 
-En vue isométrique, décor et voitures sont **triés ensemble** par leur position à l'écran, de sorte
-qu'une voiture passe devant un arbre placé plus haut et derrière un arbre placé plus bas.
+Elle avait été essayée comme vue par défaut, puis écartée en gardant son réglage — « la vue
+isométrique reste dans les réglages, et le décor avec elle ». C'est fini : il n'y a plus que la vue
+de dessus. Ce qui disparaît avec elle, et pourquoi il valait mieux que ça disparaisse :
 
-`sprites/env/README.md` donne la commande de découpe et la façon de brancher un nouvel objet.
+- **Les deux façons de donner du volume à une voiture.** Une planche de rotations par modèle (un
+  dossier de `v0.png`…`vN-1.png`, trois voitures converties sur neuf) et, à défaut, un empilement de
+  la silhouette vue de dessus à des hauteurs croissantes. La première demandait plus de travail de
+  dessin que le jeu peut en porter — c'est la raison qui l'avait déjà écartée du défaut.
+- **Le second jeu de décor.** Vingt-cinq sprites en trois quarts découpés d'une planche, qui
+  n'avaient de sens que sous une caméra inclinée. Ils partaient au réseau à CHAQUE course, y compris
+  en vue de dessus, où personne ne les regardait : un mégaoctet téléchargé pour rien, sur l'écran qui
+  fait déjà attendre le joueur. Le décor vu de dessus, lui, n'est pas téléchargé du tout — il est
+  peint dans la palette du circuit.
+- **Le tri en profondeur**, qui mêlait décor et voitures par leur position à l'écran, et
+  l'écrasement vertical de la caméra. Vu du dessus, il n'y a ni devant ni derrière.
 
-## Vue isométrique (optionnelle)
+Ce qui a été mesuré avant d'être jeté : l'empilement coûtait **dix fois** le dessin à plat — 0,36 ms
+par voiture contre 0,04 sur une machine bridée au quart, soit 3,6 ms par image à dix voitures. Le
+tableau complet est plus bas, dans « Deux dessins sous une voiture ».
 
-Elle a été essayée comme vue par défaut, puis écartée : donner à chaque voiture ses vues sous tous
-les angles demande une planche de rotations par modèle, et c'est plus de travail de sprites que le
-jeu peut en porter. Le jeu s'ouvre donc de nouveau en **vue de dessus**, où une seule silhouette
-vectorielle suffit par voiture, et toute la catégorie GT est jouable. La vue isométrique reste dans
-les réglages, et le décor avec elle ; la branche `isometric` garde l'essai tel quel.
-
-Une caméra orthographique inclinée regardant une piste plate, c'est exactement un écrasement vertical
-de la vue de dessus. Aucun moteur 3D, aucune dépendance : la route, les vibreurs et les graviers se
-projettent justes puisqu'ils sont plats, et à zoom latéral égal on voit environ **1,8 fois plus de
-piste devant soi** qu'en vue de dessus. La caméra ne tourne pas, donc une voiture se présente sous
-tous ses angles au fil d'un tour.
-
-Les voitures y prennent du volume de deux façons :
-
-- **Planche de rotations** si le modèle en fournit une (`sheet` dans `js/cars.js`, un dossier de
-  `v0.png`…`vN-1.png` pris tous les 360/N degrés, `sheetRear` désignant la vue de dos). Le moteur
-  prend la vue la plus proche du cap relatif à la caméra et applique le reste de l'angle en rotation
-  d'écran. Une planche rendue en **cadre fixe** déclare en plus sa largeur en mètres (`sheetW`) et
-  l'endroit où se pose la voiture dans l'image (`sheetAnchor`) : l'échelle est alors exacte et le
-  point d'appui ne bouge jamais d'une vue à l'autre. Sans ces deux valeurs, le moteur retombe sur la
-  largeur qu'occuperait une boîte aux dimensions de la voiture, tout ce qu'on peut déduire d'une
-  planche découpée vue par vue. La *M1 Procar* et la *911 Turbo* (seize vues, cadre fixe) et la
-  *F40 LM* (huit vues) sont les premières converties.
-- **Empilement de sprites** sinon : la silhouette vue de dessus est dessinée à des hauteurs
-  croissantes, ce qui sous une caméra inclinée la décale vers le haut de l'écran et lui donne des
-  flancs. Aucun dessin nouveau n'est nécessaire, c'est juste au cap près, et le nombre de couches suit
-  le zoom pour éviter l'escalier. Les niveaux d'ombre sont cuits une fois par modèle et par livrée
-  dans des canvas hors écran : appliquer un filtre canvas à chaque tracé ferait tomber le jeu sous une
-  image par seconde.
-
-Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
+**Ce qui reste utile ailleurs** ne part pas : la silhouette d'ombre, le cerne du joueur, le semis
+déterministe du décor. **Ce qui est supprimé pour de bon** : `sprites/env/` et les quatre dossiers de
+planches, `tools/sheet.py`, `tools/env.py`, `tools/propdbg.js`, les champs `sheet*` de `js/cars.js`,
+et l'option « Isométrique » des réglages — une sauvegarde qui la portait encore est ramenée à la vue
+de dessus **à chaque lecture**, et pas une fois : c'est une valeur qui n'existe plus, pas une
+préférence à migrer. La planche d'origine du décor (`sprites/environnement/`) est gardée : c'est du
+dessin, pas du code mort. La branche `isometric` garde l'essai complet.
 
 ## Contenu
 
@@ -705,8 +688,7 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
   donne la couleur, si bien que deux pilotes ne se ressemblent jamais sans avoir eu à en discuter.
   Toutes les neuf sont représentées d'après la vraie voiture : une vue de dessus pour la piste et
   une illustration en trois quarts pour le menu de sélection. Plus aucune silhouette vectorielle
-  sur la grille. Trois ont en plus une planche de rotations, qui ne sert
-  qu'à la vue isométrique.
+  sur la grille. Deux d'entre elles — la 3.0 CSL et la F40 — ont trois livrées chacune.
 - **12 circuits** inspirés de vrais tracés : Monza, Spa-Francorchamps, Monaco, Silverstone, Suzuka
   (avec son pont), Interlagos, Laguna Seca, Nürburgring GP, Le Mans, Mount Panorama, Red Bull Ring, Zandvoort.
 - **Un seul plateau**, celui des neuf voitures ci-dessus. Son identifiant reste `gt` — les records
@@ -837,11 +819,8 @@ js/track.js                spline, courbure, largeur variable, trois lignes (aut
 js/cars.js                 catégories, modèles, livrées, noms des pilotes
 js/props.js                décor autour de la piste (types, semis déterministe)
 js/carart.js               dessins vectoriels des modèles + rendu des sprites perso (calques UR2D)
-sprites/                   planches de rotations pour la vue isométrique (v0…vN-1 par modèle)
-sprites/env/               objets de décor découpés dans sprites/environnement/
-sprites/top/               voitures dessinées vues à la verticale
-tools/sheet.py             fabrique une planche à partir d'un dossier de rendus
-tools/env.py               découpe une planche de décor en objets séparés
+sprites/top/               voitures dessinées vues à la verticale, une par livrée
+sprites/pick/              illustrations en trois quarts pour le menu, une par livrée
 js/car.js                  physique (corps libre, deux trains), pilote automatique, profil de vitesse, IA de freinage et de choix de ligne, collisions
 js/race.js                 grille, départ, tours, classement, résultats, instantanés pour le jeu en ligne
 js/room-rtc.js             le transport : un tableau de présences au-dessus de WebRTC
@@ -1303,12 +1282,6 @@ Deux voitures en ont trois : la 3.0 CSL (Motorsport, Castrol, Calder) et la F40 
 Crawford). Les livrées sont nommées d'après ce qui est écrit sur la voiture plutôt que d'après sa
 couleur — « Pilot » et « Crawford » se lisent sur les flancs — parce que ces noms s'affichent tels
 quels dans les deux langues du jeu et qu'un nom de couleur, lui, demanderait une traduction.
-
-La **planche de rotation** de la F40 ne suit pas ses livrées. Elle ne sert qu'à la caméra inclinée,
-qui n'est pas celle par défaut, et il en faudrait une par livrée — huit vues chacune. En vue
-inclinée, les trois F40 gardent donc l'aspect de la planche d'origine. C'est écrit ici et dans
-`js/cars.js` parce que c'est le genre d'écart qu'on découvre six mois plus tard en changeant de
-caméra.
 
 Un modèle déclare ses livrées dans `js/cars.js`, et **les chemins se déduisent de l'identifiant** :
 `castrol` donne `sprites/top/csl_castrol.png` et `sprites/pick/csl_castrol.png`, un identifiant vide
@@ -2252,11 +2225,7 @@ vérifie.
 ### Deux dessins sous une voiture, et ce qu'ils coûtent vraiment
 
 Sous la voiture, à l'écran, on en voit une seconde : plus sombre, décalée. C'est son ombre, et la
-question est légitime — deux dessins au lieu d'un, est-ce que ça pèse ? La lecture du code ne
-suffit pas à répondre, parce que **le nombre de couches dépend de la caméra** : à plat une voiture
-est un `drawImage` plus son ombre ; en vue inclinée, celle qui n'a pas de planche de rotation est
-empilée huit à vingt-huit fois, le même dessin plat à des hauteurs croissantes, ce qui est la façon
-de lui donner du volume sans moteur 3D.
+question est légitime — deux dessins au lieu d'un, est-ce que ça pèse ?
 
 `tools/calques.js` chronomètre `_drawCar` lui-même et compte les `drawImage` en interceptant le
 contexte — une moyenne d'images par seconde diluerait dix voitures dans tout le reste de la scène.
@@ -2264,18 +2233,18 @@ Sur la 935, processeur bridé quatre fois pour ressembler à un téléphone :
 
 | | dessins / voiture | ms / voiture |
 |---|---|---|
-| à plat, avec l'ombre | 2 | 0,043 |
-| à plat, sans l'ombre | 1 | 0,044 |
-| vue inclinée (empilée) | 20 | 0,359 |
+| avec l'ombre | 2 | 0,043 |
+| sans l'ombre | 1 | 0,044 |
+| *(l'empilement isométrique, depuis retiré)* | *20* | *0,359* |
 
 **L'ombre ne coûte rien de mesurable** : l'écart est de −0,001 ms, sous le bruit de la mesure. Sa
 silhouette est gravée une fois par modèle et gardée ; la redessiner, c'est un quadrilatère texturé
 de plus. Et elle n'a rien à voir avec la latence de commande, qui se joue dans la chaîne
 appui → physique → affichage, pas dans le nombre de quadrilatères.
 
-Ce qui coûte, c'est l'empilement de la vue inclinée : dix fois plus, soit 3,6 ms par image à dix
-voitures sur une machine bridée — un dixième d'image. Les trois voitures qui ont une planche de
-rotation (M1, F40, 930) n'y passent pas, et la caméra par défaut est à plat.
+La troisième ligne est celle qui a décidé du sort de la vue inclinée : dix fois le dessin à plat,
+soit 3,6 ms par image à dix voitures sur une machine bridée. Elle est gardée ici comme mesure, pas
+comme état des lieux — ce chemin n'existe plus.
 
 **Le banc a d'abord menti, et de la pire façon.** Sa première passe portait seule le prix du
 démarrage — la gomme qui s'étale, les silhouettes qu'on grave, les planches qui finissent
@@ -2342,8 +2311,6 @@ node tools/netsim.js <circuit> [secondes] [perte %] [format]                    
 NODE_PATH=$(npm root -g) node tools/e2e-net.js <dossier> [format]                 # deux onglets, une table, une course
 NODE_PATH=$(npm root -g) node tools/e2e-duo.js [secondes] [--joueurs=8] [--perte]  # jusqu'à huit écrans : grille, aiguillage des appuis, régularité
 NODE_PATH=$(npm root -g) node tools/arrow.js <circuit>                            # sens des flèches des panneaux
-python3 tools/sheet.py <dossier de rendus> <id du modèle> <longueur en m> [largeur]  # planche de rotations
-python3 tools/env.py <planche.png> sprites/env [--erode=6] [--shadow=r,g,b] …     # découpe une planche de décor
 python3 tools/topcar.py <image> <id du modèle> [--nose=left]                      # voiture vue de dessus
 python3 tools/pickcar.py <image> <id du modèle> [--tol --peel]                    # voiture en trois quarts, pour le menu
 python3 tools/engineloop.py <prise.wav> <boucle.wav>                             # boucle moteur sans couture
@@ -2352,7 +2319,6 @@ node tools/moteur-banc.js                                                       
 node tools/usure.js [circuit|all] [catégorie]                                     # ce que coûte un train de pneus, ménagé ou attaqué
 python3 tools/boucles.py sounds/six-inline/*.wav                                  # où boucler dans une prise, sans réencoder
 node tools/e2e-gauges.js                                                         # les cadrans : chiffre et arc d'accord, aucun plein
-NODE_PATH=$(npm root -g) node tools/propdbg.js <image.png>                        # décor visible et coût par image
 NODE_PATH=$(npm root -g) node tools/e2e-charge.js                                 # la barrière de chargement en ligne, et le faux « liaison perdue »
 NODE_PATH=$(npm root -g) node tools/e2e-charge-solo.js                            # la même en solo : vignettes, son, sortie, message à l'écran
 NODE_PATH=$(npm root -g) node tools/calques.js [voiture] [--bride=4]              # ce que coûte chaque couche dessinée sous une voiture
@@ -2363,19 +2329,6 @@ node tools/coupe.js [--fenetre=400]                                             
 NODE_PATH=$(npm root -g) node tools/e2e-livree.js [dossier]                       # plusieurs livrees par voiture : le clic, la memoire, le fichier charge
 python3 tools/calibre.py <fichier.png...> [--largeur=420]                         # une illustration deja detouree, ramenee a la taille affichee
 ```
-
-`tools/sheet.py` (Pillow requis, outil de développement seulement) transforme un dossier de rendus en
-cadre fixe en planche utilisable : il retire le fond, garde la plus grande forme et rebouche ses trous,
-découpe toutes les vues à la même boîte, mesure l'échelle sur la vue de profil et affiche la ligne à
-coller dans `js/cars.js`. Les rendus doivent venir d'une caméra **orthographique immobile**, la voiture
-tournant sur son axe, une image par pas régulier d'un tour complet, dans le sens horaire à l'écran.
-
-`tools/env.py` (Pillow et NumPy requis) découpe une planche de décor : chaque tache de pixels
-non-fond devient un PNG détouré, et l'ombre portée de chacun passe en noir translucide pour qu'elle
-assombrisse l'herbe du jeu. Il vérifie en sortant qu'aucun objet gardé n'a perdu de matière en
-chemin : le découpage amincit les formes pour séparer deux objets dont les ombres se touchent, et
-tout ce qui est plus fin que l'amincissement disparaîtrait sans précaution. Voir
-`sprites/env/README.md` pour les réglages employés.
 
 `tools/line.js` mesure une trajectoire sans faire intervenir de pilote : sa longueur, son rayon
 minimal, et le tour qu'elle donnerait à une voiture qui la suivrait exactement à la limite. C'est le

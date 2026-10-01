@@ -210,19 +210,18 @@ class Renderer {
     this.debug = false;       // vehicle telemetry overlay (speed, slip angle, lateral velocity, grip usage)
     this.dialPress = 0;       // eased 0..1 press state of the throttle dial
     this.rotate = true;      // keep the track direction pointing up the screen
-    this.tilt = 1;           // 1 = straight down; below that the ground plane is tilted (isometric)
-    this._sheets = new Map();
-    this._stacks = new Map();
     this.camAngle = 0;
     this.resize();
   }
 
-  // 'track' top-down following the road, 'fixed' top-down north-up, 'iso' tilted ground with a
-  // camera that only follows: it never turns, so a car is seen from every angle through a lap.
+  /* 'track' : vue de dessus qui suit la route. 'fixed' : vue de dessus, nord en haut.
+
+  Il y en avait une troisième, isométrique — un sol incliné et une caméra qui ne tourne pas, si bien
+  qu'une voiture se voit sous tous ses angles au fil d'un tour. Elle est retirée : voir le README,
+  « Ce qui part avec l'isométrique ». */
   setView(view) {
     this.view = view;
     this.rotate = view === 'track';
-    this.tilt = view === 'iso' ? 0.55 : 1;
     this.cam.init = false;
   }
 
@@ -376,11 +375,12 @@ class Renderer {
     this.grass = this._makeGrass();
     this.grassPattern = this.ctx.createPattern(this.grass, 'repeat');
     const seed = track.id || track.name || 'track';
-    // Two sets of scenery for two ways of looking at the world. The billboards only make sense in
-    // the tilted view — seen from straight above, a standing prop is nonsense — so the flat view
-    // gets its own objects, drawn as they look from a bird's eye.
-    if (!this.propArt) this.propArt = buildPropArt();
-    this.props = placeProps(track, seed);
+    /* Le décor vu de dessus, dessiné et non téléchargé.
+
+    Il y en avait un second jeu : des panneaux en trois quarts, découpés d'une planche de sprites,
+    qui n'avaient de sens que sous une caméra inclinée — vu du dessus, un objet debout n'est rien.
+    La caméra inclinée est retirée, et ses vingt-cinq PNG avec elle : ils partaient au réseau à
+    chaque course, y compris à plat où personne ne les regardait. */
     this.topArt = buildTopArt(PAL);
     this.topProps = placeTopProps(track, seed, null, PAL.props);
     this.patches = placePatches(track, seed, PAL.patches);
@@ -647,17 +647,6 @@ class Renderer {
   téléchargement qui traîne, et c'est le seul cas qu'une barrière doive attendre. */
   pretAPeindre(race) {
     for (const im of this.enRoute || []) if (!im.complete) return false;
-    for (const k in this.propArt || {}) { const im = this.propArt[k].img; if (im && !im.complete) return false; }
-    // les planches de rotation ne servent qu'à la vue inclinée : les attendre à plat ferait patienter
-    // devant seize fichiers que la caméra ne regardera pas
-    if (this.tilt !== 1 && race) {
-      for (const car of race.cars) {
-        if (!car.cls || !car.cls.sheet) continue;
-        this._sheetFor(car.cls);                 // pose la demande si le dessin ne l'a pas encore faite
-        const sh = this._sheets.get(car.cls.sheet);
-        if (sh) for (const im of sh) if (!im.complete) return false;
-      }
-    }
     return true;
   }
 
@@ -746,8 +735,8 @@ class Renderer {
     // and far enough at speed to see what is coming. It reads the speed as a fraction of THIS
     // car's maximum, so a slow GT and a fast prototype both get the full range — which is also
     // why the per-category zoom factor is gone, it was solving the same problem twice.
-    const near = this.rotate ? 30 : this.tilt === 1 ? 20 : 16;
-    const far = this.rotate ? 75 : this.tilt === 1 ? 50 : 40;
+    const near = this.rotate ? 30 : 20;
+    const far = this.rotate ? 75 : 50;
     const metres = (near + (far - near) * vf) * this.pullBack;
     const zoomTarget = (this.rotate ? this.h : Math.min(this.w, this.h)) / metres;
     this.framing = metres;           // what the screen actually shows, in metres
@@ -955,14 +944,12 @@ class Renderer {
 
     g.save();
     g.translate(W / 2 + sx, H / 2 + sy);
-    // An orthographic camera tilted about the screen's horizontal axis, looking at a flat track,
-    // is exactly a vertical squash of the top-down view. tilt = cos(angle from vertical).
-    if (this.tilt !== 1) g.scale(1, this.tilt);
+
     if (this.rotate) g.rotate(-this.camAngle - Math.PI / 2);
     g.scale(cam.zoom, cam.zoom);
     g.translate(-cam.x, -cam.y);
     // conservative square view box: valid whatever the camera rotation
-    const reach = Math.hypot(W, H) / 2 / cam.zoom / this.tilt + 60;
+    const reach = Math.hypot(W, H) / 2 / cam.zoom + 60;
     const vis = { minX: cam.x - reach, maxX: cam.x + reach, minY: cam.y - reach, maxY: cam.y + reach };
     const inView = (b) => !(b.maxX < vis.minX || b.minX > vis.maxX || b.maxY < vis.minY || b.minY > vis.maxY);
 
@@ -1068,21 +1055,10 @@ class Renderer {
       g.fillStyle = `rgba(${p.col},${(Math.min(1, t * 2.5) * 0.42).toFixed(3)})`;
       g.beginPath(); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); g.fill();
     }
-    if (this.tilt === 1) {
-      this._drawTopProps(g, vis);
-      const order = race.cars.slice().sort((a, b) => (a.isPlayer ? 1 : 0) - (b.isPlayer ? 1 : 0));
-      for (const car of order) this._drawCar(g, car);
-    } else {
-      // tilted: whatever sits lower on screen is nearer, cars and scenery alike
-      const items = [];
-      for (const car of race.cars) items.push({ y: car.pos.y, car });
-      for (const p of this.props || []) {
-        if (p.x < vis.minX - 30 || p.x > vis.maxX + 30 || p.y < vis.minY - 30 || p.y > vis.maxY + 30) continue;
-        items.push({ y: p.y, prop: p });
-      }
-      items.sort((a, b) => a.y - b.y);
-      for (const it of items) { if (it.car) this._drawCar(g, it.car); else this._drawProp(g, it.prop); }
-    }
+    this._drawTopProps(g, vis);
+    // le joueur passe en dernier : deux voitures qui se touchent, c'est la sienne qu'on veut voir
+    const order = race.cars.slice().sort((a, b) => (a.isPlayer ? 1 : 0) - (b.isPlayer ? 1 : 0));
+    for (const car of order) this._drawCar(g, car);
     g.restore();
 
     this._drawHUD(g, race, ui);
@@ -1268,134 +1244,6 @@ class Renderer {
     g.restore();
   }
 
-  // ---------- cars in the tilted view ----------
-  // Two ways to give a car volume without a 3D engine. A model that ships a rotation sheet uses it:
-  // the nearest view plus the leftover angle applied in the screen plane, scaled from the TRUE angle
-  // so the car's width never jumps when the view changes. Anything else stacks its own top-down
-  // drawing: under an orthographic tilt, the same flat shape at rising heights projects as that
-  // shape shifted up the screen, which reads as a body and stays correct from every heading.
-
-  _sheetFor(cls) {
-    if (!cls.sheet) return null;
-    let sh = this._sheets.get(cls.sheet);
-    if (!sh) {
-      sh = [];
-      for (let i = 0; i < (cls.sheetN || 8); i++) { const im = new Image(); im.src = `${cls.sheet}/v${i}.png`; sh.push(im); }
-      this._sheets.set(cls.sheet, sh);
-    }
-    return sh[0].complete && sh[0].naturalWidth ? sh : null;
-  }
-
-  // brightness levels baked once per model and livery: a canvas filter per draw costs a layer
-  _stackTexFor(cls, livery, N, livree) {
-    // la livrée fait partie de la clé : sans elle, la première Castrol gravée servait à toutes les
-    // CSL de la grille, et changer de livrée au menu ne changeait rien en vue inclinée
-    const key = `${cls.id}|${livery.body}|${livery.trim}|${N}|${livree || 0}`;
-    let tex = this._stacks.get(key);
-    if (tex) return tex;
-    const PPM = 26, w = Math.ceil(cls.length * PPM) + 8, h = Math.ceil(cls.width * PPM) + 8;
-    tex = [];
-    for (let i = 0; i < N; i++) {
-      const cv = document.createElement('canvas');
-      cv.width = w; cv.height = h;
-      const cg = cv.getContext('2d');
-      cg.translate(w / 2, h / 2); cg.scale(PPM, PPM);
-      cg.filter = `brightness(${(0.55 + 0.45 * (i / (N - 1))).toFixed(3)})`;
-      drawCarModel(cg, cls, livery, { number: 0, steer: 0, livree });
-      tex.push({ cv, w: w / PPM, h: h / PPM });
-    }
-    this._stacks.set(key, tex);
-    return tex;
-  }
-
-  _carShadow(g, car) {
-    const c = car.cls, pos = car.pos;
-    g.save(); g.translate(pos.x, pos.y); g.rotate(car.heading);
-    g.fillStyle = 'rgba(0,0,0,0.28)';
-    g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width);
-    g.restore();
-  }
-
-  _playerRing(g, car) {
-    const c = car.cls, pos = car.pos;
-    g.save(); g.translate(pos.x, pos.y);
-    g.strokeStyle = 'rgba(255,255,255,0.3)'; g.lineWidth = 0.14;
-    g.beginPath(); g.arc(0, 0, Math.max(c.length, c.width) * 0.8, 0, Math.PI * 2); g.stroke();
-    g.restore();
-  }
-
-  _drawSheetCar(g, car, sheet) {
-    const c = car.cls, pos = car.pos, N = sheet.length, step = Math.PI * 2 / N;
-    // heading relative to where the camera looks from
-    const camDir = this.rotate ? this.camAngle : -Math.PI / 2;
-    let rel = car.heading - camDir;
-    while (rel > Math.PI) rel -= 2 * Math.PI;
-    while (rel < -Math.PI) rel += 2 * Math.PI;
-    // Pick the view and stay on it. No leftover angle is applied on top: rotating an isometric
-    // sprite in the screen plane makes the car visibly rock as its heading wanders, and the
-    // rocking flips sign every time it crosses between two views. With views this close together
-    // the quantisation is far less noticeable than the wobble was.
-    // A little hysteresis on top, so a heading sitting on a boundary does not flicker.
-    let k = Math.round(rel / step);
-    if (car._sheetK != null) {
-      let d = rel / step - car._sheetK;
-      while (d > N / 2) d -= N;
-      while (d < -N / 2) d += N;
-      if (Math.abs(d) < 0.62) k = car._sheetK;      // close enough: keep the view we are on
-    }
-    car._sheetK = k;
-    // sheetRear names the view where the car points straight away from the camera
-    const img = sheet[(((c.sheetRear || 0) + k) % N + N) % N];
-    if (!img.complete || !img.naturalWidth) { this._drawStackCar(g, car); return; }
-    this._carShadow(g, car);
-    if (car.isPlayer) this._playerRing(g, car);
-    // A sheet rendered in a fixed frame states its own width in metres, so the scale is exact and
-    // the same for every view. Otherwise fall back to the width a box of this car would cover,
-    // which is all we can infer from a sheet cropped view by view.
-    const fixed = c.sheetW > 0;
-    const shown = k * step;            // the angle actually on screen, so the size never breathes
-    const pw = fixed ? c.sheetW : (c.length * Math.abs(Math.sin(shown)) + c.width * Math.abs(Math.cos(shown))) * 1.06;
-    const ax = fixed && c.sheetAnchor ? c.sheetAnchor[0] : 0.5;
-    const ay = fixed && c.sheetAnchor ? c.sheetAnchor[1] : 0.82;
-    const m = g.getTransform();
-    const dx = m.a * pos.x + m.c * pos.y + m.e, dy = m.b * pos.x + m.d * pos.y + m.f;
-    const wpx = pw * this.cam.zoom * this.dpr;
-    const hpx = wpx * img.naturalHeight / img.naturalWidth;
-    g.save();
-    g.setTransform(1, 0, 0, 1, 0, 0);
-    g.translate(dx, dy);
-    g.imageSmoothingEnabled = false;   // the sheets are pixel art: keep the edges hard
-    g.drawImage(img, -wpx * ax, -hpx * ay, wpx, hpx);
-    g.imageSmoothingEnabled = true;
-    g.restore();
-  }
-
-  _drawStackCar(g, car) {
-    const c = car.cls, pos = car.pos, h = car.heading, tilt = this.tilt;
-    const a = (this.rotate ? this.camAngle : -Math.PI / 2) + Math.PI / 2;
-    const sinT = Math.sqrt(Math.max(0, 1 - tilt * tilt));
-    const ux = Math.sin(a), uy = -Math.cos(a);      // screen-up, in world units, per metre of height
-    const hCar = c.width * 0.62;
-    // enough layers that they overlap on screen, or the sides come out striped; capped so a distant
-    // car stays cheap, and rounded to a few values so the baked textures are reused
-    const spread = hCar * sinT / tilt * this.cam.zoom;
-    const N = clamp(Math.round(spread / 1.1 / 4) * 4, 8, 28);
-    this._carShadow(g, car);
-    if (car.isPlayer) this._playerRing(g, car);
-    const tex = this._stackTexFor(c, car.livery, N, car.livree);
-    for (let i = 0; i < N; i++) {
-      const tz = i / (N - 1);
-      const lift = hCar * tz * sinT / tilt;
-      const sc = 1 - 0.16 * tz * tz;                // slight taper: it reads as a body, not a brick
-      const tx = tex[i];
-      g.save();
-      g.translate(pos.x + ux * lift, pos.y + uy * lift);
-      g.rotate(h); g.scale(sc, sc);
-      g.drawImage(tx.cv, -tx.w / 2, -tx.h / 2, tx.w, tx.h);
-      g.restore();
-    }
-  }
-
   /* The bay, and what floats on it.
 
      Three bands rather than one flat blue: the open water, a paler shelf near the shore, and a
@@ -1514,33 +1362,8 @@ class Renderer {
     }
   }
 
-  // A prop stands upright on the ground like a sheet car: its foot is at its world position and
-  // its art rises from there up the screen. The sprites carry their own cast shadow, so nothing is
-  // drawn under them.
-  _drawProp(g, prop) {
-    const art = this.propArt && this.propArt[prop.id];
-    if (!art || !art.img.complete || !art.img.naturalWidth) return;
-    const m = g.getTransform();
-    const dx = m.a * prop.x + m.c * prop.y + m.e, dy = m.b * prop.x + m.d * prop.y + m.f;
-    const wpx = art.wm * this.cam.zoom * this.dpr;
-    const hpx = wpx * art.img.naturalHeight / art.img.naturalWidth;
-    g.save();
-    g.setTransform(1, 0, 0, 1, 0, 0);
-    g.translate(dx, dy);
-    g.imageSmoothingEnabled = false;
-    g.drawImage(art.img, -wpx * art.anchor[0], -hpx * art.anchor[1], wpx, hpx);
-    g.imageSmoothingEnabled = true;
-    g.restore();
-  }
-
   _drawCar(g, car) {
     const c = car.cls, pos = car.pos, h = car.heading;
-    if (this.tilt !== 1) {
-      const sheet = this._sheetFor(c);
-      if (sheet) this._drawSheetCar(g, car, sheet);
-      else this._drawStackCar(g, car);
-      return;
-    }
     g.save();
     g.translate(pos.x, pos.y);
     g.rotate(h);

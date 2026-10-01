@@ -26,10 +26,14 @@ function loadSave() {
     if (!save.guideMigrated) { save.showLines = false; save.guideMigrated = true; }
     // the camera used to be a two-way toggle; it is now a three-way view setting
     if (!save.view) save.view = save.camRotate === false ? 'fixed' : 'track';
-    // The isometric view was tried as the default and dropped: drawing a car from every angle
-    // needs a rotation sheet per model, which is more artwork than the game can carry. Bring
-    // existing saves back to the top-down view, once, leaving the setting free afterwards.
-    if (!save.flatMigrated) { if (save.view === 'iso') save.view = 'fixed'; save.flatMigrated = true; storeSave(save); }
+    /* La vue isométrique n'existe plus, et la ramener UNE FOIS ne suffisait pas.
+
+    Elle avait d'abord été retirée du défaut, par une migration jouée une seule fois — après quoi le
+    réglage restait libre et le joueur pouvait la reprendre. Maintenant qu'elle est retirée pour de
+    bon, une sauvegarde qui la porte encore désignerait une vue que le code ne sait plus dessiner.
+    On la normalise donc à chaque lecture, et pas une seule fois : c'est une valeur qui n'existe
+    plus, pas une préférence à migrer. */
+    if (save.view === 'iso') { save.view = 'fixed'; save.flatMigrated = true; storeSave(save); }
     /* Le nombre de tours était « auto » par défaut, codé zéro, et suivait la proposition du
     circuit. Il vaut maintenant cinq, choisi et non déduit : une course de cinq tours dure ce qu'il
     faut pour qu'un arrêt au stand soit un vrai choix, et le joueur sait toujours combien il en

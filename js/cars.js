@@ -5,8 +5,6 @@
 //  cliff how much grip a tyre loses once pushed well past its peak slip angle (0..1)
 //  slipPeak body slip angle (rad) at which the tyres give their maximum: bigger = lazier, more visible drift
 //  roadScale (road width factor) · zoom (camera)
-//  sheet: folder of a rotation sheet (v0..vN-1.png) used by the isometric view; sheetRear names the rear view
-//  sheetW / sheetAnchor: for a sheet rendered in a fixed frame, its width in metres and the ground point
 //
 //  pick: illustration en trois quarts pour le menu de selection. La vue de dessus dit comment la
 //    voiture se pose sur la piste, pas a quoi elle ressemble ; on choisit une voiture de face.
@@ -39,11 +37,11 @@ const CATEGORIES = [
         // utile : une seule, transposée du ralenti au rupteur, fait trois octaves et ne sonne
         // plus comme un moteur. Hors de la plage couverte, la synthèse reprend la main.
         sample: { ramp: 'sounds/engine/six-inline.json' },
-      }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/m1procar.png', sheet: 'sprites/m1procar', sheetN: 16, sheetRear: 0, sheetW: 5.122, sheetAnchor: [0.494, 0.821] },
+      }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/m1procar.png' },
       { id: 'f40', diff: 1, name: 'F40', shape: 'f40', mul: { vmax: 1.05, accel: 1.06, grip: 0.98, df: 1.5 }, pick: 'sprites/pick/f40.png', engine: {
         cyl: 8, redline: 7750, idle: 1000, rough: 0.15, bright: 0.8, turbo: 0.9,
         sample: { ramp: 'sounds/engine/v8-f40.json' },
-      }, colors: ['#e0262c', '#22242b'], top: 'sprites/top/f40.png', sheet: 'sprites/f40lm', sheetN: 8, sheetRear: 3,
+      }, colors: ['#e0262c', '#22242b'], top: 'sprites/top/f40.png',
         /* Trois livrées, nommées d'après ce qui est écrit sur la voiture plutôt que d'après sa
         couleur : « Pilot » et « Crawford » se lisent sur les flancs, et aucun des trois mots n'a à
         être traduit — ces noms s'affichent tels quels dans les deux langues du jeu.
@@ -70,7 +68,7 @@ const CATEGORIES = [
       { id: '930', diff: 4, name: '911 Turbo', shape: 'roundGT', mul: { vmax: 0.99, accel: 1.04, grip: 0.97, slide: 1.2 }, pick: 'sprites/pick/930.png', engine: {
         cyl: 6, redline: 7000, idle: 950, rough: 0.3, bright: 0.6, turbo: 0.85,
         sample: { ramp: 'sounds/engine/flat6-930.json', bas: 'sounds/engine/flat6-930-bas.json' },
-      }, colors: ['#c9ced6', '#e0262c'], top: 'sprites/top/930.png', sheet: 'sprites/930', sheetN: 16, sheetRear: 0, sheetW: 4.803, sheetAnchor: [0.499, 0.841] },
+      }, colors: ['#c9ced6', '#e0262c'], top: 'sprites/top/930.png' },
       { id: 'gt40', diff: 2, name: 'GT40 Mk II', shape: 'gt40', mul: { vmax: 1.06, accel: 1.02, grip: 0.99, df: 0.85, brake: 0.97, slide: 1.1 }, pick: 'sprites/pick/gt40.png', engine: {
         cyl: 8, redline: 6200, idle: 800, rough: 0.6, bright: 0.45, turbo: 0,
         // Trois prises, et le moteur choisit. La montée ne porte que 4611 tr/min au rupteur — un
@@ -196,11 +194,6 @@ function resolveModel(cat, m) {
   const b = cat.base, mul = m.mul || {};
   const model = {
     id: m.id, catId: cat.id, name: m.name, shape: m.shape, diff: m.diff == null ? 2 : m.diff, colors: m.colors, custom: !!m.custom, sprite: m.sprite || null, top: m.top || null,
-    // optional rotation sheet for the isometric view: folder of v0..v(N-1).png, sheetRear = the rear view
-    sheet: m.sheet || null, sheetN: m.sheetN || 8, sheetRear: m.sheetRear || 0,
-    // a sheet rendered in a fixed frame also states its width in metres and where the car's
-    // ground point sits in the image, which beats guessing the scale from the silhouette
-    sheetW: m.sheetW || 0, sheetAnchor: m.sheetAnchor || null,
     vmax: b.vmax * (mul.vmax || 1), accel: b.accel * (mul.accel || 1), brake: b.brake * (mul.brake || 1),
     grip: b.grip * (mul.grip || 1), df: b.df * (mul.df || 1), slide: b.slide * (mul.slide || 1), laneK: b.laneK,
     // handling balance: a model's `slide` multiplier above 1 makes it more tail-happy
@@ -307,17 +300,11 @@ function perfFill(v, key) {
 // Une seule catégorie, celle du plateau dessiné d'après nature. Les trois autres — F1 classiques,
 // F1 modernes, prototypes — ont été retirées : leurs voitures n'avaient aucun dessin et n'étaient
 // plus proposées depuis longtemps. Elles sont dans l'historique si le sujet revient.
-// `sheetOnly` ne garde que les voitures munies d'une planche de rotations, pour la vue isométrique.
-const SIMPLE = { catId: 'gt', sheetOnly: false };
+const SIMPLE = { catId: 'gt' };
 
 function playableCategories() { return CATEGORIES.filter(c => c.id === SIMPLE.catId); }
 function categoryById(id) { return CATEGORIES.find(c => c.id === id) || playableCategories()[0]; }
-function modelsOf(catId) {
-  const all = MODELS.filter(m => m.catId === catId);
-  if (!SIMPLE.sheetOnly) return all;
-  const withSheet = all.filter(m => m.sheet || m.sprite);
-  return withSheet.length ? withSheet : all;
-}
+function modelsOf(catId) { return MODELS.filter(m => m.catId === catId); }
 function allModelsOf(catId) { return MODELS.filter(m => m.catId === catId); }
 function modelById(id) { return MODELS.find(m => m.id === id) || null; }
 // accepts a model id or a category id (first model)
