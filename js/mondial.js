@@ -154,6 +154,7 @@ class Mondial {
   remonte tel quel : c'est au joueur d'en choisir un autre, pas à nous d'en inventer un. */
   async declarePseudo(pseudo) {
     if (!this.connecte()) return { ok: false, raison: 'anonyme' };
+    this.pseudo = pseudo;          // retenu dès l'appel : la réparation en a besoin même après un échec
     try {
       const r = await fetch(`${MONDIAL_URL}/rest/v1/pilotes`, {
         method: 'POST',
@@ -166,7 +167,7 @@ class Mondial {
         },
         body: JSON.stringify({ id: this.session.sub, pseudo }),
       });
-      if (r.ok) { this.pseudoPose = pseudo; this.pseudoErreur = null; return { ok: true }; }
+      if (r.ok) { this.pseudo = pseudo; this.pseudoErreur = null; return { ok: true }; }
       const rep = await r.json().catch(() => ({}));
       // 23505 : l'index unique sur le pseudo. Le nom est à quelqu'un d'autre.
       const raison = rep.code === '23505' ? 'pseudo_pris' : (rep.message || 'HTTP ' + r.status);
@@ -188,7 +189,7 @@ class Mondial {
 
   On n'envoie rien sans session : sans jeton, la fonction refuserait de toute façon, et partir
   quand même ne ferait qu'ajouter un aller-retour à une réponse déjà connue. */
-  async propose(circuit, voiture, temps) {
+  async propose(circuit, voiture, temps, reessai) {
     if (!this.connecte()) return { ok: false, raison: 'anonyme' };
     try {
       const r = await fetch(`${MONDIAL_URL}/functions/v1/record`, {
@@ -210,6 +211,20 @@ class Mondial {
       explication nulle part. Les quatre refus possibles ont chacun une cause que le joueur peut
       traiter — une voiture que le serveur ne connaît pas encore, un temps sous le plancher, une
       session périmée, un envoi trop rapproché — et aucune ne se devine depuis l'écran. */
+      /* « Pseudo inconnu » se RÉPARE au lieu de se signaler.
+
+      Le serveur prend le nom dans la base. Si la ligne du pilote n'y est pas — parce que la
+      déclaration du démarrage a échoué, parce qu'elle est partie avant que les droits soient en
+      place, ou parce qu'on revient avec un autre compte Google — tous les temps sont refusés pour
+      toujours, et la seule issue proposée au joueur était de se reconnecter, ce qui ne change rien
+      puisque la déclaration ne se rejoue qu'au chargement. On la rejoue donc ICI, une fois, puis
+      on repropose. Une panne qui se répare vaut mieux qu'une panne bien expliquée. */
+      if (!r.ok && raison === 'pseudo' && !reessai && this.pseudo) {
+        const d = await this.declarePseudo(this.pseudo);
+        if (d.ok) return this.propose(circuit, voiture, temps, true);
+        this.dernierRefus = { raison: d.raison === 'pseudo_pris' ? 'pseudo_pris' : 'pseudo', circuit, voiture };
+        return { ok: false, raison: d.raison };
+      }
       this.dernierRefus = r.ok ? null : { raison, circuit, voiture };
       if (r.ok) this.marqueEnvoye(circuit, voiture);
       return { ok: r.ok, raison };

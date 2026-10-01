@@ -222,6 +222,39 @@ const serveur = http.createServer((req, res) => {
     dit(ok, `${nom.padEnd(24)} → « ${txt.slice(0, 54)} »`);
   }
 
+
+  /* --- 10. un refus « pseudo » se REPARE tout seul --- */
+  /* Le serveur prend le nom dans la base. Si la ligne du pilote n'y est pas, tous les temps sont
+  refusés pour toujours, et la seule issue proposée — se reconnecter — ne change rien, puisque la
+  déclaration ne se rejoue qu'au chargement. On vérifie que le jeu la rejoue et repropose. */
+  console.log('\nun pseudo refuse se repare');
+  const repare = await page.evaluate(async () => {
+    const m = app.mondial;
+    m.session = { token: 'x', expire: Date.now() / 1000 + 9999, sub: 'u1', nom: 'x' };
+    m.pseudo = 'Testeur'; m.dernierRefus = null;
+    const vus = [];
+    let declare = 0;
+    m.declarePseudo = async () => { declare++; return { ok: true }; };
+    const vrai = window.fetch;
+    window.fetch = async (url, opt) => {
+      if (String(url).includes('/functions/v1/record')) {
+        vus.push(1);
+        // premier appel : le serveur ne connait pas le pilote ; second : il l'accepte
+        return vus.length === 1
+          ? new Response('{"raison":"pseudo"}', { status: 403 })
+          : new Response('{"ok":true}', { status: 200 });
+      }
+      return vrai(url, opt);
+    };
+    const r = await m.propose('monza', 'f40', 70);
+    window.fetch = vrai;
+    return { ok: r.ok, appels: vus.length, declare, refus: m.dernierRefus };
+  });
+  dit(repare.declare === 1, `le pseudo est redeclare une fois (${repare.declare})`);
+  dit(repare.appels === 2, `le temps est repropose apres la reparation (${repare.appels} appels)`);
+  dit(repare.ok === true, 'et il passe');
+  dit(!repare.refus, 'aucun refus ne reste affiche');
+
   await page.evaluate(() => { app.mondial.dernierRefus = null; });
 
   await page.evaluate(() => { app.ui._mondiaux = null; app.mondial.cache.clear(); });

@@ -39,7 +39,8 @@ const I18N = {
     refus_inconnu: 'Cette voiture n’est pas encore connue du tableau mondial. Ton temps est gardé ici.',
     refus_trop_rapide: 'Ce tour a été jugé impossible par le serveur et n’a pas été retenu.',
     refus_cadence: 'Temps envoyés trop rapprochés. Le suivant partira dans un instant.',
-    refus_pseudo: 'Ton nom n’est pas encore enregistré côté serveur. Reconnecte-toi.',
+    refus_pseudo: 'Ton nom n’a pas pu être enregistré côté serveur. Reconnecte-toi.',
+    refus_pseudo_pris: 'Ce nom est déjà pris par un autre pilote. Change-le dans les réglages.',
     refus_session: 'Ta session a expiré. Reconnecte-toi pour inscrire tes temps.',
     refus_usure: 'Les tours courus avec l’usure n’entrent pas au tableau mondial : ils ne se comparent à rien.',
     refus_reseau: 'Pas de réseau au moment de l’envoi. Ton temps est gardé ici.',
@@ -93,7 +94,8 @@ const I18N = {
     refus_inconnu: 'This car is not known to the world board yet. Your time is kept here.',
     refus_trop_rapide: 'The server judged this lap impossible and did not keep it.',
     refus_cadence: 'Times sent too close together. The next one will go through shortly.',
-    refus_pseudo: 'Your name is not registered on the server yet. Sign in again.',
+    refus_pseudo: 'Your name could not be registered on the server. Sign in again.',
+    refus_pseudo_pris: 'That name is already taken by another driver. Change it in the settings.',
     refus_session: 'Your session has expired. Sign in again to post your times.',
     refus_usure: 'Laps run with wear do not reach the world board: they compare to nothing.',
     refus_reseau: 'No network when sending. Your time is kept here.',
@@ -148,6 +150,8 @@ ne la rend pas possible. Le bouton d'accueil ne s'affichait que pour qui n'est P
 bien qu'un pseudo manquant côté serveur — où la session est bien vivante — laissait le joueur
 devant une consigne sans porte. */
 const RECONNEXION = new Set(['session', 'pseudo', 'anonyme']);
+// un nom déjà pris ne se répare pas en se reconnectant : il se change
+const REGLAGES = new Set(['pseudo_pris']);
 const NOM_MAX = 14, NOM_MIN = 2;
 function nomPropre(v) { return String(v == null ? '' : v).replace(/[^A-Za-z0-9]/g, '').slice(0, NOM_MAX); }
 function nomValide(v) { return new RegExp(`^[A-Za-z0-9]{${NOM_MIN},${NOM_MAX}}$`).test(String(v == null ? '' : v)); }
@@ -559,7 +563,9 @@ class UI {
       ${app.mondial && app.mondial.dernierRefus
         ? `<p class="warn mondial-note">${this.messageRefus(app.mondial.dernierRefus.raison)}
             ${RECONNEXION.has(app.mondial.dernierRefus.raison)
-              ? `<button class="link" data-action="google">${t('reconnect')}</button>` : ''}</p>` : ''}
+              ? `<button class="link" data-action="google">${t('reconnect')}</button>` : ''}
+            ${REGLAGES.has(app.mondial.dernierRefus.raison)
+              ? `<button class="link" data-action="settings">${t('settings')}</button>` : ''}</p>` : ''}
       <div class="records">
         <div class="rhead">
           <span></span><b></b>

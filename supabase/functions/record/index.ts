@@ -64,12 +64,21 @@ Deno.serve(async (req) => {
 
   // Le pseudo vient de la table des pilotes, JAMAIS du corps de la requête : sinon n'importe qui
   // signerait n'importe quel nom, et le tableau attribuerait des records à des gens au hasard.
-  const { data: pilote } = await admin.from('pilotes').select('pseudo').eq('id', auteur).maybeSingle();
-  if (!pilote?.pseudo || !NOM.test(pilote.pseudo)) return rep(403, { raison: 'pseudo' });
+  /* L'erreur de la requête est LUE, et pas confondue avec une absence de ligne.
+
+  En n'en prenant que `data`, une panne de lecture et un pilote inconnu rendaient le même mot :
+  « pseudo ». Le joueur lisait « ton nom n'est pas enregistré » alors que son nom était en base et
+  que c'est la requête qui avait échoué — un diagnostic faux coûte plus cher qu'un diagnostic
+  absent, parce qu'on va chercher au mauvais endroit. */
+  const { data: pilote, error: errPilote } = await admin.from('pilotes')
+    .select('pseudo').eq('id', auteur).maybeSingle();
+  if (errPilote) return rep(500, { raison: 'lecture_pilote', detail: errPilote.message });
+  if (!pilote?.pseudo || !NOM.test(pilote.pseudo)) return rep(403, { raison: 'pseudo', auteur });
 
   // 3. LE PLANCHER.
-  const { data: sol } = await admin.from('planchers').select('minimum')
+  const { data: sol, error: errSol } = await admin.from('planchers').select('minimum')
     .eq('circuit', circuit).eq('voiture', voiture).maybeSingle();
+  if (errSol) return rep(500, { raison: 'lecture_plancher', detail: errSol.message });
   // Pas de plancher connu pour ce couple : on refuse plutôt que d'accepter. Un plancher manquant
   // est une lacune de notre table, et accepter « par défaut » ouvrirait une porte à qui
   // inventerait un identifiant de voiture que la mesure ne couvre pas encore.
@@ -77,8 +86,9 @@ Deno.serve(async (req) => {
   if (temps < sol.minimum) return rep(422, { raison: 'trop_rapide' });
 
   // 4. LA CADENCE.
-  const { data: dernier } = await admin.from('records').select('pose_le')
+  const { data: dernier, error: errCad } = await admin.from('records').select('pose_le')
     .eq('auteur', auteur).order('pose_le', { ascending: false }).limit(1).maybeSingle();
+  if (errCad) return rep(500, { raison: 'lecture_cadence', detail: errCad.message });
   if (dernier && Date.now() - Date.parse(dernier.pose_le) < ENTRE_DEUX_MS) {
     return rep(429, { raison: 'cadence' });
   }
