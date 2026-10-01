@@ -27,6 +27,9 @@ const I18N = {
     on: 'Activé', off: 'Coupé', playerDefault: 'Vous', allUnlocked: 'Tout est débloqué. Bravo !', careerIntro: 'Tu pars dernier à chaque course. Remonte le peloton, marque des points, débloque des catégories plus rapides.',
     lapDone: (n, t) => `Tour ${n} : ${t}`, tipTitle: 'Comment jouer', yourResult: (p) => `Tu termines P${p}`,
     nameTaken: (n) => `« ${n} » est déjà pris par un autre pilote. Change de nom dans les réglages, sinon tes temps n’entreront pas au tableau mondial.`,
+    reconnect: 'Se reconnecter',
+    account: 'Compte',
+    signedIn: 'Connecté',
     refus_inconnu: 'Cette voiture n’est pas encore connue du tableau mondial. Ton temps est gardé ici.',
     refus_trop_rapide: 'Ce tour a été jugé impossible par le serveur et n’a pas été retenu.',
     refus_cadence: 'Temps envoyés trop rapprochés. Le suivant partira dans un instant.',
@@ -72,6 +75,9 @@ const I18N = {
     on: 'On', off: 'Off', playerDefault: 'You', allUnlocked: 'Everything unlocked. Well done!', careerIntro: 'You start every race from the back. Carve through the field, score points, unlock faster classes.',
     lapDone: (n, t) => `Lap ${n}: ${t}`, tipTitle: 'How to play', yourResult: (p) => `You finish P${p}`,
     nameTaken: (n) => `“${n}” is already taken by another driver. Change it in the settings, or your times will not reach the world board.`,
+    reconnect: 'Sign in again',
+    account: 'Account',
+    signedIn: 'Signed in',
     refus_inconnu: 'This car is not known to the world board yet. Your time is kept here.',
     refus_trop_rapide: 'The server judged this lap impossible and did not keep it.',
     refus_cadence: 'Times sent too close together. The next one will go through shortly.',
@@ -123,6 +129,13 @@ Les accents, les espaces de tête, les caractères invisibles et les émojis y c
 ressemblent à l'œil sans être égaux, et des lignes qu'on ne sait plus attribuer. La contrainte est
 la même des deux côtés, ici et sur le serveur qui accepte les temps — écrite deux fois, parce
 qu'une règle que seul le client applique n'est pas une règle. */
+/* Les refus dont le remède est de se reconnecter — et qui portent donc le bouton.
+
+Un message qui dit « reconnecte-toi » sans rien à toucher est une impasse : il nomme l'action et
+ne la rend pas possible. Le bouton d'accueil ne s'affichait que pour qui n'est PAS connecté, si
+bien qu'un pseudo manquant côté serveur — où la session est bien vivante — laissait le joueur
+devant une consigne sans porte. */
+const RECONNEXION = new Set(['session', 'pseudo', 'anonyme']);
 const NOM_MAX = 14, NOM_MIN = 2;
 function nomPropre(v) { return String(v == null ? '' : v).replace(/[^A-Za-z0-9]/g, '').slice(0, NOM_MAX); }
 function nomValide(v) { return new RegExp(`^[A-Za-z0-9]{${NOM_MIN},${NOM_MAX}}$`).test(String(v == null ? '' : v)); }
@@ -422,12 +435,18 @@ class UI {
   }
 
   settings() {
-    const t = (k) => this.t(k), s = this.app.save;
+    const t = (k) => this.t(k), s = this.app.save, app = this.app;
     this.show(`
       <h2>${t('settings')}</h2>
       <div class="form">
         <label>${t('name')}<input id="inp-name" maxlength="${NOM_MAX}" autocomplete="off" autocapitalize="off"
           spellcheck="false" value="${escapeHtml(s.name)}" placeholder="${t('playerDefault')}"></label>
+        <!-- Le compte se gère ICI, et pas seulement depuis un message d'erreur. Sans cette ligne,
+             se déconnecter était impossible et changer de compte demandait de vider le navigateur. -->
+        <label>${t('account')}<span class="compte">${
+          app.mondial && app.mondial.connecte()
+            ? `<b class="ok">${t('signedIn')}</b><button class="link" data-action="signOut">${t('signOut')}</button>`
+            : `<button class="link" data-action="google">${t('signIn')}</button>`}</span></label>
         <label>${t('language')}
           <select id="sel-lang"><option value="fr" ${s.lang === 'fr' ? 'selected' : ''}>Français</option><option value="en" ${s.lang === 'en' ? 'selected' : ''}>English</option></select></label>
         <label>${t('sound')}<select id="sel-sound"><option value="1" ${s.sound ? 'selected' : ''}>${t('on')}</option><option value="0" ${!s.sound ? 'selected' : ''}>${t('off')}</option></select></label>
@@ -497,9 +516,12 @@ class UI {
         `<p class="muted mondial-note">${t('worldNeedsAccount')}
           <button class="link" data-action="google">${t('signIn')}</button></p>`}
       ${app.mondial && app.mondial.pseudoErreur === 'pseudo_pris'
-        ? `<p class="warn mondial-note">${t('nameTaken', escapeHtml(s.name))}</p>` : ''}
+        ? `<p class="warn mondial-note">${t('nameTaken', escapeHtml(s.name))}
+            <button class="link" data-action="settings">${t('settings')}</button></p>` : ''}
       ${app.mondial && app.mondial.dernierRefus
-        ? `<p class="warn mondial-note">${this.messageRefus(app.mondial.dernierRefus.raison)}</p>` : ''}
+        ? `<p class="warn mondial-note">${this.messageRefus(app.mondial.dernierRefus.raison)}
+            ${RECONNEXION.has(app.mondial.dernierRefus.raison)
+              ? `<button class="link" data-action="google">${t('reconnect')}</button>` : ''}</p>` : ''}
       <div class="records">
         <div class="rhead">
           <span></span><b></b>
@@ -830,7 +852,10 @@ class UI {
     app.audio.start(); app.audio.resume();
     switch (a) {
       case 'menu': app.toMenu(); break;
-      case 'google': if (app.mondial) app.mondial.entrer(); break;
+      /* On SORT avant d'entrer. Une session périmée encore en mémoire ferait revenir le joueur
+         sur la même session morte, et le bouton n'aurait servi à rien d'autre qu'à l'y renvoyer. */
+      case 'google': if (app.mondial) { app.mondial.sortir(); app.mondial.entrer(); } break;
+      case 'signOut': if (app.mondial) { app.mondial.sortir(); this.settings(); } break;
       case 'nomOk': {
         const champ = document.getElementById('inp-nom');
         const n = nomPropre(champ ? champ.value : '');

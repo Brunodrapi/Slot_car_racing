@@ -84,7 +84,7 @@ const CATEGORIES = [
       tendance à mettre la queue dehors qui est sa signature — d'où `slide` au-dessus de tout le
       reste du plateau. Le rang de difficulté n'est pas choisi ici : il est MESURÉ par
       `tools/difficulte.js`, qui le recalcule pour les neuf voitures à la fois. */
-      { id: '935', diff: 5, name: '935', shape: 'longTail', mul: { vmax: 1.07, accel: 1.05, grip: 0.95, df: 1.15, brake: 0.93, slide: 1.4 }, engine: {
+      { id: '935', diff: 5, name: '935', shape: 'longTail', mul: { vmax: 1.07, accel: 1.05, grip: 0.95, df: 1.15, brake: 0.93, slide: 1.4 }, pick: 'sprites/pick/935.png', engine: {
         cyl: 6, redline: 8000, idle: 1100, rough: 0.35, bright: 0.7, turbo: 0.9,
       }, colors: ['#f4f4f4', '#e0262c'], top: 'sprites/top/935.png' },
       { id: 'corvette', diff: 4, name: 'Corvette', shape: 'roundGT', mul: { vmax: 1.04, accel: 1.06, grip: 0.97, df: 0.9, brake: 0.95, slide: 1.3 }, pick: 'sprites/pick/corvette.png', engine: {

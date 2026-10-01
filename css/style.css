@@ -360,3 +360,7 @@ perdrait le curseur à chaque chiffre tapé. */
 .nomform small { text-align: left; }
 .nomform button { margin-top: 4px; }
 .nomform button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Le compte, dans les réglages : état à gauche, action à droite, comme les autres lignes. */
+.compte { display: flex; align-items: center; gap: 10px; }
+.compte .ok { color: var(--accent2); font-size: 14px; }

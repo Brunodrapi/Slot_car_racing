@@ -1286,10 +1286,11 @@ en désaccord avec elle.
 famille que la 930 d'à côté : elle passe sur `procar`, rupteur à 8000, avec l'étagement court
 d'une silhouette de Groupe 5.
 
-**Ce qui manque encore** : `sprites/pick/935.png`, l'illustration en trois quarts du menu. Sans
-elle, sa carte montre la vue de dessus là où les huit autres montrent un trois-quarts. La voiture
-fonctionne, mais elle dépareille. `python3 tools/pickcar.py <image> 935` la prépare dès qu'une
-source existe.
+**Son illustration de menu** est passée par `tools/pickcar.py` comme les huit autres. La source
+faisait 1536×1024 et 1,8 Mo ; les cartes du menu en affichent 420 de large. Posée telle quelle,
+elle aurait coûté dix fois le poids des voitures voisines pour le même résultat à l'écran — sur
+un téléphone en 4G, c'est l'écran de sélection qui attend. L'outil la ramène à 420×271 et 180 Ko,
+dans la fourchette des autres (176 à 343 Ko), avec les mêmes 40 % de transparence.
 
 ## Le son des voitures
 
@@ -1830,6 +1831,20 @@ l'entrée. Les 108 planchers sont donc tombés sur la borne physique — et le b
 si de rien n'était. Un fichier de planchers tous physiques a l'air d'un fichier de planchers, il
 s'applique sans broncher, et il n'arrête aucun tricheur. Le banc calcule maintenant `aiThrottle`
 lui-même, comme les autres bancs du dossier, et **refuse d'écrire** si un seul couple n'a pas bouclé.
+
+### Une consigne sans porte
+
+Les messages de refus disaient « reconnecte-toi » et ne donnaient rien à toucher. Le bouton
+d'accueil ne s'affichait que pour qui n'est PAS connecté : un pseudo manquant côté serveur — où la
+session est bien vivante — laissait le joueur devant une consigne et aucune porte. Les refus dont
+le remède est une reconnexion portent maintenant le bouton ; les autres ne l'ont pas, parce qu'un
+bouton qui ne répond pas au problème est pire que pas de bouton.
+
+Le bouton SORT avant d'entrer. Une session périmée encore en mémoire aurait fait revenir le joueur
+sur la même session morte, et le geste n'aurait servi qu'à l'y renvoyer.
+
+Le compte se gère aussi depuis les réglages, dans les deux sens. Sans cette ligne, se déconnecter
+était impossible et changer de compte demandait de vider le navigateur.
 
 ### Ce qui se casse, et ce qui ne doit pas casser
 

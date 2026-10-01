@@ -160,6 +160,37 @@ const serveur = http.createServer((req, res) => {
     const ok = vu.includes(bout) && !/^refus_/.test(vu);
     dit(ok, `${raison.padEnd(12)} → « ${vu.slice(0, 58)} »`);
   }
+
+  /* --- 7. un message qui dit « reconnecte-toi » doit porter le bouton --- */
+  /* Une consigne sans porte est une impasse. Le bouton d'accueil ne s'affichait que pour qui n'est
+  PAS connecté : un pseudo manquant côté serveur, où la session est bien vivante, laissait le joueur
+  devant « reconnecte-toi » et rien à toucher. */
+  for (const [raison, attendu] of [['pseudo', true], ['session', true], ['inconnu', false], ['usure', false]]) {
+    const r = await page.evaluate(async (ra) => {
+      app.mondial.session = { token: 'x', expire: Date.now() / 1000 + 9999, sub: 'u', nom: 'B' };
+      app.mondial.dernierRefus = { raison: ra, circuit: 'spa', voiture: 'f40' };
+      app.ui.setupScreen('timetrial');
+      await new Promise((res) => setTimeout(res, 220));
+      const p = [...document.querySelectorAll('.warn.mondial-note')].pop();
+      return !!(p && p.querySelector('[data-action="google"]'));
+    }, raison);
+    dit(r === attendu, `${raison.padEnd(12)} ${attendu ? 'porte' : 'ne porte pas'} le bouton de reconnexion (${r})`);
+  }
+
+  /* --- 8. le compte se gère depuis les réglages, dans les deux sens --- */
+  const compte = await page.evaluate(async () => {
+    app.ui.settings();
+    await new Promise((r) => setTimeout(r, 200));
+    const avec = (document.querySelector('.compte') || {}).textContent || '';
+    const sortie = !!document.querySelector('[data-action="signOut"]');
+    app.mondial.sortir(); app.ui.settings();
+    await new Promise((r) => setTimeout(r, 200));
+    const sans = (document.querySelector('.compte') || {}).textContent || '';
+    return { avec, sortie, sans, entree: !!document.querySelector('.compte [data-action="google"]') };
+  });
+  dit(compte.sortie, `connecte : un bouton pour sortir (« ${compte.avec.trim()} »)`);
+  dit(compte.entree, `deconnecte : un bouton pour entrer (« ${compte.sans.trim()} »)`);
+
   await page.evaluate(() => { app.mondial.dernierRefus = null; });
 
   await page.evaluate(() => { app.ui._mondiaux = null; app.mondial.cache.clear(); });
