@@ -33,9 +33,16 @@ for (const f of ['util', 'tracks', 'track', 'cars', 'car', 'race', 'paquet']) {
 
 src += `
 const cat = playableCategories()[0];
-const CHAMPS = ['x', 'y', 'cap', 'v', 'vl', 'w', 's', 'lat', 'tour', 'sel', 'selS', 'drapeaux', 'best', 'debut'];
-const DIV = [100, 100, 1000, 100, 100, 1000, 100, 100, 1, 100, 100, 1, 1000, 100];
-const UNITE = ['px', 'px', 'rad', 'm/s', 'm/s', 'rad/s', 'm', 'm', 'tour', '', '', '', 's', 's'];
+/* La liste suit « Race.snapshot », et sa longueur DOIT valoir PQ_CHAMPS.
+   Les trois derniers champs sont arrivés avec les pénalités de sortie de piste ; tant que le banc
+   gardait quatorze colonnes en dur, il comparait les champs d'une voiture à ceux de la suivante et
+   accusait le codec d'erreurs de huit mille unités. Un essai qui compte les champs à la main finit
+   toujours par ne plus compter les bons. */
+const CHAMPS = ['x', 'y', 'cap', 'v', 'vl', 'w', 's', 'lat', 'tour', 'sel', 'selS', 'drapeaux', 'best', 'debut',
+                'sorties', 'repris', 'arrivee'];
+const DIV = [100, 100, 1000, 100, 100, 1000, 100, 100, 1, 100, 100, 1, 1000, 100, 1, 100, 100];
+const UNITE = ['px', 'px', 'rad', 'm/s', 'm/s', 'rad/s', 'm', 'm', 'tour', '', '', '', 's', 's', '', 's', 's'];
+if (CHAMPS.length !== PQ_CHAMPS) OUT.casse = 'le banc compte ' + CHAMPS.length + ' champs, le codec ' + PQ_CHAMPS;
 const pire = CHAMPS.map(() => 0);
 let nOctets = 0, nJson = 0, nSnap = 0, nCars = 0;
 let garde = null;
@@ -64,9 +71,9 @@ for (const td of TRACKS) {
     la dernière valeur reçue. Les compter comme un écart de quantification faisait apparaître
     quatre-vingt-trois secondes d'erreur sur un codec qui n'en commet aucune : la mesure accusait
     le codec de ce que le protocole fait exprès. Le comportement du bloc lent a son propre essai. */
-    const kMax = rel.lent ? 14 : 12;
+    const kMax = rel.lent ? PQ_CHAMPS : 12;
     for (let c = 0; c < nCars; c++) {
-      const o = 4 + c * 14;
+      const o = 4 + c * PQ_CHAMPS;
       for (let k = 0; k < kMax; k++) {
         const d = Math.abs(rel.snap[o + k] - snap[o + k]) / DIV[k];
         if (d > pire[k]) pire[k] = d;
@@ -91,8 +98,8 @@ OUT.bords = [];
     if (!rel) { OUT.bords.push({ nom, ok: false, quoi: 'decodage impossible' }); return; }
     const ecart = [];
     for (let c = 0; c < race.cars.length; c++) {
-      const o = 4 + c * 14;
-      for (let k = 0; k < 14; k++) ecart.push(Math.abs(rel.snap[o + k] - snap[o + k]) / DIV[k]);
+      const o = 4 + c * PQ_CHAMPS;
+      for (let k = 0; k < PQ_CHAMPS; k++) ecart.push(Math.abs(rel.snap[o + k] - snap[o + k]) / DIV[k]);
     }
     OUT.bords.push({ nom, ok: true, pire: Math.max(...ecart) });
   };

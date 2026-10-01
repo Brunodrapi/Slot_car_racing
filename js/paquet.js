@@ -27,10 +27,13 @@
  *   côté pour les sorties de route — (1531 + 512) × 16 = 32 688, la moitié de ce qu'un entier
  *   court accepte.
  *
- * CE QUI NE PASSE PAS À CHAQUE IMAGE : le meilleur tour et l'heure de début de tour ne changent
- * qu'au passage de la ligne. Les envoyer trente fois par seconde, c'est six octets par voiture pour
- * répéter la même chose. Ils partent dans un bloc séparé, une image sur quinze, et une perte se
- * répare au bloc suivant — le canal n'est de toute façon ni fiable ni ordonné.
+ * CE QUI NE PASSE PAS À CHAQUE IMAGE : le meilleur tour, l'heure de début de tour, le nombre de
+ * sorties de piste, le temps qu'elles ont fait reprendre et l'heure d'arrivée. Aucun ne change entre
+ * deux passages de la ligne blanche. Les envoyer trente fois par seconde, c'est treize octets par
+ * voiture pour répéter la même chose. Ils partent dans un bloc séparé, une image sur quinze, et une
+ * perte se répare au bloc suivant — le canal n'est de toute façon ni fiable ni ordonné. À huit
+ * joueurs cela coûte sept octets par image en moyenne, pour que l'invité voie le même classement
+ * que l'hôte au lieu d'un écran vide.
  */
 'use strict';
 
@@ -39,7 +42,14 @@ const PQ_LENT = 15;             // une image sur quinze porte le bloc lent
 const PQ_XY = 16;               // pas de quantification de x et y : un seizième de pixel
 const PQ_MARGE_MIN = 256;       // jamais moins, même sur un circuit immense
 const PQ_S = 8;                 // pas sur l'abscisse curviligne : un huitième de mètre
-const PQ_CHAMPS = 14;           // ce que `Race.snapshot` met par voiture
+const PQ_CHAMPS = 17;           // ce que `Race.snapshot` met par voiture
+/* Les champs qui voyagent dans le bloc lent, et sa taille en octets.
+
+   Nommés une seule fois : l'encodage, le décodage, le report du bloc précédent et la taille du
+   paquet doivent s'accorder, et c'est la quatrième liste qu'on oublie de mettre à jour quand on
+   ajoute un champ — celle du report, qui ne se voit pas puisqu'elle ne sert qu'une image sur quinze. */
+const PQ_LENTS = [12, 13, 14, 15, 16];
+const PQ_LENT_O = 4 + 2 + 1 + 2 + 4;
 
 /* Le cadre de référence, pris sur le circuit que les deux écrans connaissent déjà.
 
@@ -71,7 +81,7 @@ function pqEncode(snap, track, lent) {
   const n = Math.floor((snap.length - 4) / PQ_CHAMPS);
   const c = pqCadre(track);
   const avecLent = lent === undefined ? (snap[0] % PQ_LENT) === 0 : !!lent;
-  const taille = 10 + n * 20 + (avecLent ? n * 6 : 0);
+  const taille = 10 + n * 20 + (avecLent ? n * PQ_LENT_O : 0);
   const buf = new ArrayBuffer(taille);
   const v = new DataView(buf);
   let p = 0;
@@ -101,6 +111,9 @@ function pqEncode(snap, track, lent) {
       const o = 4 + i * PQ_CHAMPS;
       v.setUint32(p, Math.max(0, snap[o + 12])); p += 4;   // meilleur tour, au millième
       v.setUint16(p, pqBorne(snap[o + 13], 65535)); p += 2;
+      v.setUint8(p, pqBorne(snap[o + 14], 255)); p += 1;    // sorties de piste
+      v.setUint16(p, pqBorne(snap[o + 15], 65535)); p += 2; // temps repris, au centième
+      v.setUint32(p, Math.max(0, snap[o + 16])); p += 4;    // heure d'arrivée, au centième
     }
   }
   return new Uint8Array(buf);
@@ -117,7 +130,7 @@ function pqDecode(octets, track, garde) {
   if (v.getUint8(0) !== PQ_MAGIE) return null;
   const t = v.getUint8(1);
   const avecLent = !!(t & 1), n = t >> 1;
-  if (u.length < 10 + n * 20 + (avecLent ? n * 6 : 0)) return null;
+  if (u.length < 10 + n * 20 + (avecLent ? n * PQ_LENT_O : 0)) return null;
   const c = pqCadre(track);
   const snap = new Array(4 + n * PQ_CHAMPS);
   let p = 2;
@@ -145,10 +158,12 @@ function pqDecode(octets, track, garde) {
     if (avecLent) {
       snap[o + 12] = v.getUint32(p); p += 4;
       snap[o + 13] = v.getUint16(p); p += 2;
+      snap[o + 14] = v.getUint8(p); p += 1;
+      snap[o + 15] = v.getUint16(p); p += 2;
+      snap[o + 16] = v.getUint32(p); p += 4;
     } else {
       const g = garde && garde[i];
-      snap[o + 12] = g ? g[0] : 0;
-      snap[o + 13] = g ? g[1] : 0;
+      for (let k = 0; k < PQ_LENTS.length; k++) snap[o + PQ_LENTS[k]] = g ? g[k] : 0;
     }
   }
   return { snap, lent: avecLent ? pqGarde(snap, n) : null };
@@ -156,8 +171,11 @@ function pqDecode(octets, track, garde) {
 
 function pqGarde(snap, n) {
   const g = new Array(n);
-  for (let i = 0; i < n; i++) { const o = 4 + i * PQ_CHAMPS; g[i] = [snap[o + 12], snap[o + 13]]; }
+  for (let i = 0; i < n; i++) {
+    const o = 4 + i * PQ_CHAMPS;
+    g[i] = PQ_LENTS.map((k) => snap[o + k]);
+  }
   return g;
 }
 
-if (typeof module !== 'undefined') module.exports = { pqEncode, pqDecode, pqGarde, PQ_LENT };
+if (typeof module !== 'undefined') module.exports = { pqEncode, pqDecode, pqGarde, PQ_LENT, PQ_CHAMPS };

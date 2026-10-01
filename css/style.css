@@ -202,6 +202,15 @@ button.link { background: none; border: none; color: var(--muted); text-decorati
 .tbl th { text-align: left; color: var(--muted); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid rgba(255,255,255,0.1); }
 .tbl td { padding: 7px 8px; border-bottom: 1px solid rgba(255,255,255,0.05); }
 .tbl tr.me td { color: var(--accent); font-weight: 700; }
+/* Un tour annulé par une sortie de piste. Le chrono reste lisible — on veut savoir CE QU'IL VALAIT —
+   mais barré, et doublé d'un mot : une information qui ne tient qu'à une rature n'est pas une
+   information pour qui lit mal les ratures. */
+.tbl tr.nul td { color: var(--muted); }
+.tbl tr.nul td:nth-child(2) { text-decoration: line-through; }
+.tbl tr.nul .mark { margin-left: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+  color: #ffb4a2; text-decoration: none; display: inline-block; }
+.tbl td.warn { color: #ffb4a2; font-variant-numeric: tabular-nums; }
+.tbl td.warn small { color: var(--muted); font-weight: 500; }
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: middle; }
 .tracklist { display: flex; flex-direction: column; gap: 6px; }
 .tracklist .tr { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 10px; background: var(--card); }

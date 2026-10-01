@@ -25,6 +25,17 @@ class App {
       this.net.onStart = (cfg) => this.startOnline(cfg);
     }
     this.raceCtx = null;
+    /* Revenir dans le jeu reprend le son.
+
+    Un onglet qui passe en arrière-plan fait suspendre le contexte audio par le navigateur, et rien
+    ne le reprenait au retour : le joueur revenait sur une course muette sans comprendre pourquoi.
+    Reprendre au retour de visibilité est exactement ce que la règle du navigateur autorise — le
+    geste d'origine a déjà eu lieu. */
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && this.audio) this.audio.resume();
+      });
+    }
     // L'état de la barrière de chargement : ce qu'on attend, et depuis quand on l'attend.
     this.chargement = null;
     this.chargeDes = null;
@@ -271,7 +282,17 @@ class App {
     this.race = new Race(opts);
     // Le démarreur, s'il y en a un pour cette voiture : le moteur s'allume quand la course s'ouvre,
     // avant le décompte. Une seule fois par course.
-    this.audio.demarre = false;
+    /* La barrière repart à zéro à CHAQUE course, et pas quand le décompte s'arrête.
+
+    Le délai se comptait depuis l'entrée en décompte, remise à zéro seulement en sortant. Relancer
+    une course pendant que la précédente comptait encore — un abandon puis un départ immédiat —
+    héritait donc de son chronomètre : si la première avait attendu dix secondes, la seconde partait
+    avec deux secondes de barrière, voire aucune. */
+    this.chargeDes = null;
+    this.chargement = null;
+    // Le son est remis d'aplomb ICI : contexte repris s'il avait été suspendu, prises rechargées si
+    // leur téléchargement avait échoué. Voir `GameAudio.relance`.
+    this.audio.relance();
     this.renderer.setTrack(this.race.track);
     this.renderer.cam.init = false;
     this.renderer.homeDial();
@@ -337,11 +358,18 @@ class App {
   de prises — mais seulement si le son est allumé : attendre un téléchargement dont on ne fera rien
   bloquerait la table pour un réglage que le joueur a justement coupé.
 
-  Le circuit n'y figure pas : il est construit avant le premier affichage, donc déjà là quand cette
-  fonction est appelée. */
+  Et le DÉCOR, qu'on avait oublié. La liste s'arrêtait aux voitures et au son, alors que le fond de
+  carte du circuit, la halle des stands et les trente sprites de décor descendent par le même
+  réseau. Sur un téléphone, c'est le gros du téléchargement : le circuit se peuplait au feu vert,
+  et c'est exactement ce que Bruno a vu sur l'écran du second joueur. Le renderer répond pour cette
+  part-là, qui est la sienne.
+
+  La géométrie du circuit n'y figure pas : elle est construite, pas téléchargée, et elle l'est avant
+  le premier affichage — donc déjà là quand cette fonction est appelée. */
   _pretACourir(race) {
     if (!race) return false;
     for (const c of race.cars) if (typeof topReady === 'function' && !topReady(c.cls)) return false;
+    if (this.renderer && !this.renderer.pretAPeindre(race)) return false;
     if (this.audio && !this.audio.pretAJouer()) return false;
     return true;
   }

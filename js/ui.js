@@ -19,9 +19,12 @@ const I18N = {
     cup: 'Coupe', races: 'courses', raceOf: (a, b) => `Course ${a} / ${b}`, standings: 'Classement', nextRace: 'Prochaine course', startRace: 'Lancer la course',
     done: 'Terminée', inProgress: 'En cours', notStarted: 'Pas commencée', resetCup: 'Recommencer cette coupe', finalPos: (p) => `Classement final : P${p}`,
     results: 'Résultats', pos: 'Pos', driver: 'Pilote', time: 'Temps', gap: 'Écart', bestLap: 'Meilleur tour', points: 'Pts', dnf: 'Non classé',
+    penalty: 'Pénalité', voidLap: 'annulé', voidLapTitle: 'Tour annulé : sortie de piste',
+    penaltyWhy: (n, s) => `${n} sortie${n > 1 ? 's' : ''} de piste · +${s} s au classement. Le temps gagné hors piste est repris ; les vibreurs ne comptent pas.`,
     next: 'Suivant', retry: 'Rejouer', menu: 'Menu', resume: 'Reprendre', restart: 'Recommencer', quit: 'Quitter', paused: 'Pause', endSession: 'Terminer',
     lap: 'Tour', last: 'Dernier', best: 'Meilleur', grip: 'adhérence', holdToGo: 'Maintiens une touche pour accélérer', holdToGoTouch: 'Maintiens l’écran pour accélérer', lineHintKeys: 'Flèches / molette : trajectoire', lineHintTouch: 'Pouce gauche : trajectoire',
     lineIn: 'INT', lineRace: 'IDÉALE', lineOut: 'EXT', offTrack: 'SORTIE DE PISTE !', finished: 'ARRIVÉE',
+    lapVoid: 'annulé',
     cupComplete: 'Coupe terminée !', cupWon: 'Champion !', cupPodium: 'Podium ! Coupe suivante débloquée.', cupFailed: 'Hors du podium… retente ta chance.',
     newRecord: 'Nouveau record !', yourBest: 'Ton record', name: 'Nom du pilote', sound: 'Son', language: 'Langue', showLines: 'Guide de freinage', telemetry: 'Télémétrie (touche G)', ctrlSide: 'Côté du levier', sideLeft: 'Gauche', sideRight: 'Droite', camera: 'Vue', camFollow: 'Dessus, orientée piste', camFixed: 'Dessus, fixe', camIso: 'Isométrique', pullBack: 'Recul de la caméra', pullNone: 'Normal', pullSome: 'Un peu en retrait', pullMore: 'Très en retrait', lapCount: 'Tours', pressStart: 'Appuie pour commencer', resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
     on: 'Activé', off: 'Coupé', playerDefault: 'Vous', allUnlocked: 'Tout est débloqué. Bravo !', careerIntro: 'Tu pars dernier à chaque course. Remonte le peloton, marque des points, débloque des catégories plus rapides.',
@@ -79,9 +82,12 @@ const I18N = {
     cup: 'Cup', races: 'races', raceOf: (a, b) => `Race ${a} / ${b}`, standings: 'Standings', nextRace: 'Next race', startRace: 'Start race',
     done: 'Complete', inProgress: 'In progress', notStarted: 'Not started', resetCup: 'Restart this cup', finalPos: (p) => `Final standing: P${p}`,
     results: 'Results', pos: 'Pos', driver: 'Driver', time: 'Time', gap: 'Gap', bestLap: 'Best lap', points: 'Pts', dnf: 'DNF',
+    penalty: 'Penalty', voidLap: 'void', voidLapTitle: 'Lap deleted: off track',
+    penaltyWhy: (n, s) => `${n} excursion${n > 1 ? 's' : ''} · +${s} s on the classification. Time gained off track is taken back; kerbs do not count.`,
     next: 'Next', retry: 'Retry', menu: 'Menu', resume: 'Resume', restart: 'Restart', quit: 'Quit', paused: 'Paused', endSession: 'Finish',
     lap: 'Lap', last: 'Last', best: 'Best', grip: 'grip', holdToGo: 'Hold a key to accelerate', holdToGoTouch: 'Hold anywhere to accelerate', lineHintKeys: 'Arrows / wheel: line', lineHintTouch: 'Left thumb: line',
     lineIn: 'IN', lineRace: 'RACING', lineOut: 'OUT', offTrack: 'OFF TRACK!', finished: 'FINISH',
+    lapVoid: 'void',
     cupComplete: 'Cup complete!', cupWon: 'Champion!', cupPodium: 'Podium! Next cup unlocked.', cupFailed: 'Missed the podium… try again.',
     newRecord: 'New record!', yourBest: 'Your best', name: 'Driver name', sound: 'Sound', language: 'Language', showLines: 'Braking guide', telemetry: 'Telemetry (G key)', ctrlSide: 'Lever side', sideLeft: 'Left', sideRight: 'Right', camera: 'View', camFollow: 'Top-down, track-aligned', camFixed: 'Top-down, fixed', camIso: 'Isometric', pullBack: 'Camera set-back', pullNone: 'Normal', pullSome: 'A little further back', pullMore: 'Much further back', lapCount: 'Laps', pressStart: 'Press any button to start', resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
     on: 'On', off: 'Off', playerDefault: 'You', allUnlocked: 'Everything unlocked. Well done!', careerIntro: 'You start every race from the back. Carve through the field, score points, unlock faster classes.',
@@ -810,9 +816,24 @@ class UI {
     let head = '';
     if (isTT) head = `<h2>${t('timeTrial')} · ${escapeHtml(race.track.name)}</h2><div class="bigstat">${t('bestLap')}: ${fmtTime(p.bestLap)} ${ctx.newRecord ? `<span class="rec">${t('newRecord')}</span>` : ''}</div>`;
     else head = `<h2>${t('results')} · ${escapeHtml(race.track.name)}</h2><div class="bigstat">${t('yourResult', race.positionOf(p))} ${ctx.newRecord ? `<span class="rec">${t('newRecord')}</span>` : ''}</div>`;
-    const table = isTT ? `<table class="tbl"><thead><tr><th>${t('lap')}</th><th>${t('time')}</th></tr></thead><tbody>${p.lapTimes.map((lt, i) => `<tr class="${lt === p.bestLap ? 'me' : ''}"><td>${i + 1}</td><td>${fmtTime(lt)}</td></tr>`).join('') || `<tr><td colspan="2">—</td></tr>`}</tbody></table>`
-      : `<table class="tbl"><thead><tr><th>${t('pos')}</th><th>${t('driver')}</th><th>${t('model')}</th><th>${t('gap')}</th><th>${t('bestLap')}</th>${ctx.cup ? `<th>${t('points')}</th>` : ''}</tr></thead><tbody>
-        ${res.map(r => `<tr class="${r.car.isPlayer ? 'me' : ''}"><td>${r.pos}</td><td><i class="dot" style="background:${r.car.livery.body}"></i>${escapeHtml(r.car.name)}</td><td class="muted">${escapeHtml(r.car.cls.name)}</td><td>${r.pos === 1 ? (r.time != null ? fmtTime(r.time) : '') : r.gap != null ? '+' + r.gap.toFixed(3) : t('dnf')}</td><td>${r.bestLap != null ? fmtTime(r.bestLap) : '—'}</td>${ctx.cup ? `<td>${r.points}</td>` : ''}</tr>`).join('')}</tbody></table>`;
+    /* Un tour annulé reste AFFICHÉ, barré, avec son chrono.
+
+    Le retirer de la liste aurait été plus simple et beaucoup moins clair : le joueur aurait vu ses
+    tours sauter sans savoir lesquels, ni pourquoi son meilleur tour n'est pas le plus rapide qu'il a
+    vu passer au tableau de bord. Un chiffre barré répond aux deux questions d'un coup. */
+    const tour = (lt, i) => {
+      const nul = p.lapOk && p.lapOk[i] === false;
+      return `<tr class="${!nul && lt === p.bestLap ? 'me' : ''}${nul ? ' nul' : ''}"><td>${i + 1}</td>`
+        + `<td>${fmtTime(lt)}${nul ? ` <span class="mark" title="${escapeHtml(t('voidLapTitle'))}">${t('voidLap')}</span>` : ''}</td></tr>`;
+    };
+    // la pénalité ne prend une colonne QUE si quelqu'un en a une : une colonne de tirets sur dix
+    // lignes occupe la moitié du tableau pour ne rien dire
+    const avecPen = !isTT && res.some(r => r.penalite > 0);
+    const penCell = (r) => !avecPen ? ''
+      : `<td class="${r.penalite > 0 ? 'warn' : 'muted'}">${r.penalite > 0 ? `+${r.penalite.toFixed(1)}<small> (${r.fautes})</small>` : '—'}</td>`;
+    const table = isTT ? `<table class="tbl"><thead><tr><th>${t('lap')}</th><th>${t('time')}</th></tr></thead><tbody>${p.lapTimes.map(tour).join('') || `<tr><td colspan="2">—</td></tr>`}</tbody></table>`
+      : `<table class="tbl"><thead><tr><th>${t('pos')}</th><th>${t('driver')}</th><th>${t('model')}</th><th>${t('gap')}</th>${avecPen ? `<th>${t('penalty')}</th>` : ''}<th>${t('bestLap')}</th>${ctx.cup ? `<th>${t('points')}</th>` : ''}</tr></thead><tbody>
+        ${res.map(r => `<tr class="${r.car.isPlayer ? 'me' : ''}"><td>${r.pos}</td><td><i class="dot" style="background:${r.car.livery.body}"></i>${escapeHtml(r.car.name)}</td><td class="muted">${escapeHtml(r.car.cls.name)}</td><td>${r.pos === 1 ? (r.time != null ? fmtTime(r.time) : '') : r.gap != null ? '+' + r.gap.toFixed(3) : t('dnf')}</td>${penCell(r)}<td>${r.bestLap != null ? fmtTime(r.bestLap) : '—'}</td>${ctx.cup ? `<td>${r.points}</td>` : ''}</tr>`).join('')}</tbody></table>`;
     let cupPart = '';
     if (ctx.cup) {
       const cs = cupState(this.app.save, ctx.cup.id);
@@ -820,9 +841,17 @@ class UI {
       if (cs.done) banner = `<div class="banner ${cs.finalPos <= 3 ? 'good' : 'bad'}">${t('cupComplete')} ${cs.finalPos === 1 ? t('cupWon') : cs.finalPos <= 3 ? t('cupPodium') : t('cupFailed')} ${t('finalPos', cs.finalPos)}</div>`;
       cupPart = `<div><h3>${t('standings')} — ${this.L(ctx.cup.name)}</h3>${this.standingsTable(ctx.cup, cs)}${banner}</div>`;
     }
+    /* La pénalité du joueur, EXPLIQUÉE sous le tableau.
+
+    Un classement qui ne correspond pas à l'ordre d'arrivée, sans un mot, se lit comme un bogue. Une
+    ligne dit combien de sorties, combien de secondes, et la règle en une phrase — y compris que les
+    vibreurs ne comptent pas, qui est la question qu'on se pose en premier. */
+    const mienne = res.find((r) => r.car.isPlayer);
+    const motPen = mienne && mienne.penalite > 0
+      ? `<p class="warn">${t('penaltyWhy', mienne.fautes, mienne.penalite.toFixed(1))}</p>` : '';
     this.show(`
       ${head}
-      <div class="cols"><div>${table}</div>${cupPart}</div>
+      <div class="cols"><div>${table}${motPen}</div>${cupPart}</div>
       <div class="row end">
         <button data-action="menu">${t('menu')}</button>
         ${ctx.online ? `<button class="big primary" data-action="toLobby">${t('backToTable')}</button>` : ctx.cup ? (cupState(this.app.save, ctx.cup.id).done ? `<button class="big primary" data-action="cup" data-id="${ctx.cup.id}">${t('standings')}</button>` : `<button data-action="retryRace">${t('retry')}</button><button class="big primary" data-action="startCup" data-id="${ctx.cup.id}">${t('nextRace')}</button>`) : `<button data-action="setup" data-mode="${race.mode}">${t('back')}</button><button class="big primary" data-action="retryRace">${t('retry')}</button>`}

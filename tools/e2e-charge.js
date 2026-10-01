@@ -163,6 +163,37 @@ const DOUBLE = `
   dit(sortie.avant === 1, `un retardataire est bien compté comme manquant (${sortie.avant})`);
   dit(sortie.apres === 0 && sortie.trop, `passe le delai, on part sans lui (${sortie.avant} -> ${sortie.apres})`);
 
+  /* --- 4. le drapeau, chez l'invité ---
+
+  L'invité ne simule pas, donc `Race._finish` ne tourne jamais chez lui : son classement restait nul,
+  et l'écran des résultats le lit sans le vérifier. Le défaut ne demandait qu'une course en ligne
+  menée jusqu'au drapeau pour se voir, et aucun essai ne la menait. Il est devenu visible en ajoutant
+  les pénalités de sortie de piste, qui doivent apparaître des deux côtés. */
+  console.log('\nle drapeau, chez l\'invite');
+  await hote.evaluate(() => {
+    // une pénalité chez l'hôte, pour qu'il y ait quelque chose à transmettre
+    app.race.player.fautes = 2;
+    app.race.player.repris = 1.5;
+    app.race._finish();
+  });
+  await invite.waitForTimeout(1200);
+  const fin = await invite.evaluate(() => ({
+    etat: app.state,
+    classement: app.race.results ? app.race.results.length : 0,
+    tableau: document.querySelectorAll('.tbl tbody tr').length,
+    /* La pénalité de l'HÔTE, reconnue à sa valeur exacte et non au maximum du tableau.
+
+    Les voitures de l'IA sortent aussi, donc le maximum pouvait venir de n'importe laquelle : l'essai
+    passait en lisant 4,5 s là où il attendait 3,5. On cherche donc la valeur qu'on a posée —
+    2 sorties à 1 s, plus 1,5 s reprises — que seule une pénalité fabriquée peut produire, les
+    pénalités de l'IA étant des nombres entiers de secondes. */
+    pen: app.race.results ? app.race.results.map((r) => +r.penalite.toFixed(2)) : [],
+  }));
+  dit(fin.etat === 'results', `l'invite arrive a l'ecran des resultats (${fin.etat})`);
+  dit(fin.classement >= 2 && fin.tableau >= 2, `le classement est construit chez lui (${fin.classement} lignes, ${fin.tableau} au tableau)`);
+  dit(fin.pen.some((x) => Math.abs(x - 3.5) < 0.02),
+    `et la penalite de l'hote y figure exactement (3,5 s attendus, vu ${fin.pen.join(' / ')})`);
+
   console.log(`\nfautes ${fautes} | erreurs ${erreurs}`);
   await nav.close();
   serveur.close();

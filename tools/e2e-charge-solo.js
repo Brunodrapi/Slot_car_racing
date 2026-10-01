@@ -27,6 +27,13 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 
 (async () => {
   const serveur = http.createServer((req, res) => {
+    /* Une adresse qui ne répond JAMAIS, pour tenir une image en route.
+
+    C'est la seule façon honnête de fabriquer « pas encore arrivé » : remplacer l'image par un faux
+    objet mentirait sur ce que lit la barrière (`complete`), et une image en échec passe justement à
+    `complete` — c'est voulu, un fichier absent ne doit pas retenir une course. Ici la connexion
+    reste ouverte, donc l'image reste en chemin, comme sur un réseau lent. */
+    if (req.url.split('?')[0] === '/jamais.png') return;    // ni réponse, ni fermeture
     const f = path.join(ROOT, decodeURIComponent(req.url.split('?')[0]));
     if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end(); }
     res.writeHead(200, { 'Content-Type': TYPES[path.extname(f)] || 'application/octet-stream' });
@@ -134,10 +141,33 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     await new Promise((r) => setTimeout(r, 200));
     const libre = app.race.attente;
     window.topReady = window._vraiTopReady;
+    // on laisse la course PARTIR avant de rendre la main : l'essai suivant en lance une autre, et
+    // deux courses qui se chevauchent ne mesurent plus rien de clair
+    for (let i = 0; i < 100 && app.race.state === 'countdown'; i++) await new Promise((r) => setTimeout(r, 50));
     return { retenue, libre };
   });
   dit(sortie.retenue === true, `elle retient d'abord (${sortie.retenue})`);
   dit(sortie.libre === false, `passe le delai, on part avec ce qu'on a (${sortie.libre})`);
+
+  /* --- le DÉCOR, qui descend par le même réseau et que personne n'attendait --- */
+  console.log('\nun sprite de decor qui traine');
+  const decor = await p.evaluate(async (hote) => {
+    const r = app.renderer;
+    const cle = Object.keys(r.propArt)[0];
+    const vrai = r.propArt[cle];
+    const lent = new Image();
+    lent.src = hote + '/jamais.png';            // la connexion reste ouverte : l'image reste en route
+    r.propArt[cle] = { img: lent, wm: vrai.wm, anchor: vrai.anchor };
+    app.startQuick('race', 'gt', TRACKS[0].id);
+    await new Promise((res) => setTimeout(res, 900));
+    const retenue = app.race.attente;
+    const cd0 = app.race.countdown;
+    r.propArt[cle] = vrai;                       // le décor arrive
+    await new Promise((res) => setTimeout(res, 400));
+    return { retenue, libre: app.race.attente, repart: app.race.countdown < cd0 || app.race.state !== 'countdown' };
+  }, base);
+  dit(decor.retenue === true, `un sprite de decor en route retient la course (attente ${decor.retenue})`);
+  dit(decor.libre === false && decor.repart, `elle repart quand il arrive (attente ${decor.libre})`);
 
   /* --- les trois « rien à attendre », qui ne doivent pas se confondre avec « en cours » --- */
   console.log('\nrien a attendre');
