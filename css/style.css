@@ -364,3 +364,15 @@ perdrait le curseur à chaque chiffre tapé. */
 /* Le compte, dans les réglages : état à gauche, action à droite, comme les autres lignes. */
 .compte { display: flex; align-items: center; gap: 10px; }
 .compte .ok { color: var(--accent2); font-size: 14px; }
+
+/* L'avis de connexion ratée, sur l'affiche. Posé en bas, au-dessus du numéro de version : c'est là
+   que le joueur atterrit au retour de Google, et un message qui vit quatre écrans plus loin ne sert
+   à personne. Rien ne s'affiche quand tout va bien — l'affiche reste l'affiche. */
+.menu-auth {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: max(34px, calc(env(safe-area-inset-bottom) + 30px));
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;
+  max-width: min(92vw, 560px); padding: 8px 14px; border-radius: 12px;
+  background: rgba(10,12,20,0.82); color: #ffb4a2; font-size: 13px; text-align: center; z-index: 3;
+}
+.menu-auth .link { color: var(--accent); }

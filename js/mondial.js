@@ -75,6 +75,7 @@ class Mondial {
     const err = hq.get('error_description') || hq.get('error') || q.get('error_description') || q.get('error');
     if (err) {
       this.erreurConnexion = err;
+      try { sessionStorage.removeItem('eol.parti'); } catch (_) {}
       history.replaceState(null, '', location.pathname);
       return;
     }
@@ -83,10 +84,27 @@ class Mondial {
     laisser le joueur devant un écran qui n'a rien à lui montrer. */
     if (!h.includes('access_token=') && q.get('code')) {
       this.erreurConnexion = 'pkce';
+      try { sessionStorage.removeItem('eol.parti'); } catch (_) {}
       history.replaceState(null, '', location.pathname);
       return;
     }
-    if (h.indexOf('access_token=') < 0) return;
+    if (h.indexOf('access_token=') < 0) {
+      /* Parti se connecter, revenu sans rien : c'est un échec, et il faut le dire.
+
+      On garde ce que portait l'adresse — les NOMS des paramètres, jamais leurs valeurs : un jeton
+      ou un code d'autorisation n'a rien à faire à l'écran ni dans une capture envoyée pour
+      diagnostic. Les noms suffisent à distinguer les cas, et c'est tout ce qu'on cherche. */
+      let parti = 0;
+      try { parti = +(sessionStorage.getItem('eol.parti') || 0); } catch (_) {}
+      if (parti && Date.now() - parti < 600000) {
+        const noms = [...hq.keys(), ...q.keys()];
+        this.erreurConnexion = 'vide';
+        this.retourVide = noms.length ? noms.join(', ') : 'aucun paramètre';
+        try { sessionStorage.removeItem('eol.parti'); } catch (_) {}
+      }
+      return;
+    }
+    try { sessionStorage.removeItem('eol.parti'); } catch (_) {}
     const p = new URLSearchParams(h.slice(1));
     const token = p.get('access_token');
     if (token) {
@@ -110,6 +128,13 @@ class Mondial {
   refusée au retour — c'est la protection qui empêche un site tiers de récupérer les jetons. */
   entrer() {
     const retour = location.origin + location.pathname;
+    /* On MARQUE le départ, pour pouvoir juger le retour.
+
+    Sans cette marque, un retour les mains vides est indiscernable d'une ouverture ordinaire de la
+    page : dans les deux cas il n'y a ni jeton ni erreur dans l'adresse, et le jeu n'a aucune
+    raison de dire quoi que ce soit. C'est exactement le symptôme décrit — « ça me ramène à
+    l'accueil et rien ne se passe ». Avec la marque, le silence devient un fait qu'on peut nommer. */
+    try { sessionStorage.setItem('eol.parti', String(Date.now())); } catch (_) {}
     location.href = `${MONDIAL_URL}/auth/v1/authorize?provider=google`
       + `&redirect_to=${encodeURIComponent(retour)}`;
   }

@@ -29,7 +29,9 @@ const I18N = {
     nameTaken: (n) => `« ${n} » est déjà pris par un autre pilote. Change de nom dans les réglages, sinon tes temps n’entreront pas au tableau mondial.`,
     authPkce: 'La connexion est revenue sans jeton. Vérifie que l’adresse du jeu est bien dans les « Redirect URLs » de Supabase.',
     nothingToSend: 'Aucun temps à envoyer : tes records d’avant ne disent pas avec quelle voiture ils ont été posés. Boucle un tour et il partira.',
+    authTrouble: 'La connexion au tableau mondial n’a pas abouti.',
     authFail: (e) => `La connexion a échoué : ${e}`,
+    authEmpty: (p) => `Tu es revenu de Google sans jeton (l’adresse portait : ${p}). C’est le signe que l’adresse du jeu manque dans les « Redirect URLs » de Supabase.`,
     sending: (a, b) => `Envoi de tes temps au tableau mondial… ${a} sur ${b}.`,
     sent: (n) => `${n} temps envoyé${n > 1 ? 's' : ''} au tableau mondial.`,
     signedInAs: (n) => `Connecté comme ${n}. Tes meilleurs tours partent au tableau mondial.`,
@@ -84,7 +86,9 @@ const I18N = {
     nameTaken: (n) => `“${n}” is already taken by another driver. Change it in the settings, or your times will not reach the world board.`,
     authPkce: 'Sign-in came back without a token. Check that the game URL is in Supabase’s Redirect URLs.',
     nothingToSend: 'Nothing to send: your older records do not say which car set them. Run a lap and it will go up.',
+    authTrouble: 'Sign-in to the world board did not complete.',
     authFail: (e) => `Sign-in failed: ${e}`,
+    authEmpty: (p) => `You came back from Google without a token (the URL carried: ${p}). That usually means the game URL is missing from Supabase’s Redirect URLs.`,
     sending: (a, b) => `Sending your times to the world board… ${a} of ${b}.`,
     sent: (n) => `${n} time${n > 1 ? 's' : ''} sent to the world board.`,
     signedInAs: (n) => `Signed in as ${n}. Your best laps go to the world board.`,
@@ -200,7 +204,9 @@ class UI {
     const entrer = `<button class="link" data-action="google">${t('signIn')}</button>`;
     if (!m) return '';
     if (m.erreurConnexion) {
-      const msg = m.erreurConnexion === 'pkce' ? t('authPkce') : t('authFail', escapeHtml(String(m.erreurConnexion)));
+      const msg = m.erreurConnexion === 'pkce' ? t('authPkce')
+        : m.erreurConnexion === 'vide' ? t('authEmpty', escapeHtml(String(m.retourVide || '')))
+        : t('authFail', escapeHtml(String(m.erreurConnexion)));
       return ligne('warn', msg, `<button class="link" data-action="google">${t('reconnect')}</button>`);
     }
     if (!m.connecte()) return ligne('muted', t('worldNeedsAccount'), entrer);
@@ -452,6 +458,7 @@ class UI {
   }
 
   menu() {
+    const app = this.app;
     /* Pas de menu sans nom, et le contrôle est ICI plutôt qu'au premier lancement.
 
     Posé sur le seul passage de l'écran-titre, il aurait laissé entrer par toutes les autres portes :
@@ -475,6 +482,16 @@ class UI {
         <button class="burger" data-action="settings" aria-label="${escapeHtml(t('settings'))}"></button>
       </div>
       <div class="version">v${APP_VERSION} · ${APP_DATE}</div>
+      <!-- Une connexion qui a mal tourné se dit LÀ OÙ LE JOUEUR ATTERRIT.
+
+           Au retour de Google on arrive sur l'affiche, et le message vivait sur l'écran des
+           records — quatre écrans plus loin. Le joueur revenait donc à l'accueil, ne voyait rien,
+           et n'avait aucun moyen de recommencer : c'est exactement ce qu'il a décrit. Rien ne
+           s'affiche quand tout va bien ; l'affiche reste l'affiche. -->
+      ${app.mondial && app.mondial.erreurConnexion ? `<div class="menu-auth">
+        <span>${t('authTrouble')}</span>
+        <button class="link" data-action="google">${t('reconnect')}</button>
+        <button class="link" data-action="settings">${t('settings')}</button></div>` : ''}
     `, 'center poster');
   }
 

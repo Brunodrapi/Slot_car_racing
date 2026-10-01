@@ -255,6 +255,46 @@ const serveur = http.createServer((req, res) => {
   dit(repare.ok === true, 'et il passe');
   dit(!repare.refus, 'aucun refus ne reste affiche');
 
+
+  /* --- 11. un retour de connexion rate doit se voir SUR L'AFFICHE --- */
+  /* Au retour de Google on atterrit sur l'affiche, et le message vivait sur l'écran des records,
+  quatre écrans plus loin : le joueur revenait à l'accueil, ne voyait rien, et n'avait aucun moyen
+  de recommencer. On vérifie aussi que l'affiche reste muette quand tout va bien. */
+  console.log('\nun retour rate, sur l\'affiche');
+  const affiche = await page.evaluate(async () => {
+    const lire = async () => {
+      app.ui.menu();
+      await new Promise((r) => setTimeout(r, 200));
+      const n = document.querySelector('.menu-auth');
+      return { vu: !!n, bouton: !!(n && n.querySelector('[data-action="google"]')),
+               reglages: !!(n && n.querySelector('[data-action="settings"]')) };
+    };
+    app.mondial.erreurConnexion = null;
+    const sain = await lire();
+    app.mondial.erreurConnexion = 'vide'; app.mondial.retourVide = 'code, state';
+    const casse = await lire();
+    app.mondial.erreurConnexion = null;
+    return { sain, casse };
+  });
+  dit(!affiche.sain.vu, 'rien sur l\'affiche quand tout va bien');
+  dit(affiche.casse.vu, 'un avis apparait quand la connexion a echoue');
+  dit(affiche.casse.bouton && affiche.casse.reglages, 'avec de quoi recommencer, et de quoi aller aux reglages');
+
+  /* --- 12. un retour VIDE est un echec, pas un chargement ordinaire --- */
+  /* Sans la marque posée au départ, revenir les mains vides est indiscernable d'une ouverture
+  normale de la page : ni jeton ni erreur dans l'adresse, et aucune raison de dire quoi que ce
+  soit. C'est précisément le silence qu'on cherche à supprimer. */
+  const vide = await page.evaluate(() => {
+    const avant = new Mondial();
+    const sansMarque = avant.erreurConnexion;
+    sessionStorage.setItem('eol.parti', String(Date.now()));
+    const apres = new Mondial();
+    sessionStorage.removeItem('eol.parti');
+    return { sansMarque, avec: apres.erreurConnexion, quoi: apres.retourVide };
+  });
+  dit(!vide.sansMarque, 'une ouverture ordinaire ne crie pas au loup');
+  dit(vide.avec === 'vide', `un retour les mains vides est nomme (${vide.avec}, « ${vide.quoi} »)`);
+
   await page.evaluate(() => { app.mondial.dernierRefus = null; });
 
   await page.evaluate(() => { app.ui._mondiaux = null; app.mondial.cache.clear(); });
