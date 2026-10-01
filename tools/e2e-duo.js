@@ -64,7 +64,13 @@ const DOUBLE = `
 `;
 
 (async () => {
-  const DUR = +(process.argv[2] || 12);
+  /* Un premier argument qui n'est pas un nombre vaut la durée par défaut.
+
+  Les autres essais du dossier prennent un DOSSIER de sortie en premier argument ; celui-ci prend un
+  nombre de secondes. Lancé dans une boucle qui passe le même argument à tous, il recevait
+  « /tmp/… », donc `NaN`, donc une boucle d'échantillonnage dont la condition d'arrêt était vraie
+  dès la première image : zéro mesure, et un échec qui ressemblait à une régression du jeu. */
+  const DUR = Number.isFinite(+process.argv[2]) && +process.argv[2] > 0 ? +process.argv[2] : 12;
   const NJ = +((process.argv.find((x) => x.startsWith('--joueurs=')) || '--joueurs=2').split('=')[1]);
   const PERTE = process.argv.includes('--perte');
   const bride = +((process.argv.find((x) => x.startsWith('--bride=')) || '--bride=1').split('=')[1]);
@@ -77,7 +83,14 @@ const DOUBLE = `
   await new Promise((r) => serveur.listen(0, r));
   const base = `http://127.0.0.1:${serveur.address().port}`;
 
-  const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
+  const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required',
+    /* Chromium bride les onglets qui ne sont pas au premier plan : `requestAnimationFrame` y tombe
+    à presque zéro. Avec deux écrans dans le même navigateur, un seul peut être devant — l'autre
+    cessait donc d'échantillonner, et l'essai échouait au hasard selon la charge de la machine.
+    Ces trois drapeaux éteignent ce bridage, et rendent la mesure indépendante de qui a le focus. */
+    '--disable-background-timer-throttling',
+    '--disable-backgrounding-occluded-windows',
+    '--disable-renderer-backgrounding'] });
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   let errs = 0;
   const ouvre = async (nom) => {
@@ -328,6 +341,14 @@ const DOUBLE = `
     const te = es.slice().sort((a, b) => a - b);
     const ecarts = []; for (let i = 1; i < arr.length; i++) ecarts.push(arr[i] - arr[i - 1]);
     ecarts.sort((a, b) => a - b);
+    /* ZÉRO ÉCHANTILLON EST UN ÉCHEC DU BANC, pas un résultat.
+
+    Sans ce garde-fou, une série vide — la voiture n'a pas bougé, l'instantané n'est jamais arrivé,
+    la machine était à genoux — jetait un « Cannot read properties of undefined » six lignes plus
+    bas, qui ne dit rien de ce qui s'est passé et laisse chercher un bogue dans le jeu. */
+    if (!ts.length || !te.length || !tp.length || !tri.length) {
+      return { vide: true, n: { ts: ts.length, te: te.length, tp: tp.length, im: tri.length } };
+    }
     return { im: +(1000 / (tri.reduce((a, b) => a + b, 0) / tri.length)).toFixed(1),
              snapHz: ecarts.length ? +(1000 / ecarts[ecarts.length >> 1]).toFixed(1) : null,
              snapPire: ecarts.length ? +ecarts[ecarts.length - 1].toFixed(0) : null,
@@ -351,6 +372,15 @@ const DOUBLE = `
   await Promise.all(tous.map((p) => p.evaluate(() => { app.input.throttle = true; })));
   await hote.waitForTimeout(1500);
   const [mh, mi] = await Promise.all([bouge(hote, DUR), bouge(invite, DUR)]);
+  for (const [nom, m] of [['hôte', mh], ['invité', mi]]) {
+    if (m.vide) {
+      faute++;
+      console.log(`\n  ÉCHEC côté ${nom} : le banc n'a rien relevé (${JSON.stringify(m.n)}).`);
+      console.log('  Une voiture immobile ou un écran à genoux donnent la même série vide ; aucune des');
+      console.log('  deux ne se diagnostique depuis une moyenne calculée sur rien.');
+    }
+  }
+  if (mh.vide || mi.vide) { console.log(`\nerrors ${errs + faute}`); await browser.close(); serveur.close(); process.exit(1); }
   await Promise.all(tous.map((p) => p.evaluate(() => { app.input.throttle = false; })));
   console.log('\n                 im/s   v max   saut médian   saut p95   saut max   dû aux images   décalage p95/max   instantanés');
   console.log(`  hôte      ${String(mh.im).padStart(8)} ${String(mh.vmax).padStart(7)} ${String(mh.sautMedian).padStart(13)} ${String(mh.sautP95).padStart(10)} ${String(mh.sautMax).padStart(10)} ${String(mh.imageP95).padStart(15)}`);

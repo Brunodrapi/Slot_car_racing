@@ -85,12 +85,16 @@ function serve() {
     p.on('pageerror', (e) => { bad++; console.log(`[${tag}] pageerror`, e.message); });
     p.on('console', (m) => { if (m.type() === 'error') { bad++; console.log(`[${tag}] console`, m.text()); } });
     await p.goto(url);
+    await p.waitForFunction(() => typeof app !== 'undefined' && app.save);
+    /* Le nom AVANT l'écran-titre, et non après.
+
+    Le menu ne s'ouvre plus sans nom de pilote. Posé après la touche, il arrivait trop tard : le
+    jeu avait déjà affiché l'écran du nom à la place du menu, et l'essai attendait un bandeau qui
+    ne viendrait jamais. Deux noms différents, pour que la liste de la table dise quelque chose. */
+    await p.evaluate((n) => { app.save.name = n; storeSave(app.save); app.mondial = null; }, name);
     await p.waitForTimeout(400);
     await p.keyboard.press('Enter');   // l'écran-titre
-    await p.waitForTimeout(150);
-    // two different names, so the table list says something
-    await p.evaluate((n) => { app.save.name = n; storeSave(app.save); }, name);
-    await p.waitForTimeout(100);
+    await p.waitForTimeout(250);
     return p;
   };
   const A = await open('hôte', 'Bruno'), B = await open('invité', 'Camille');

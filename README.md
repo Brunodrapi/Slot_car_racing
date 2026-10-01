@@ -1856,6 +1856,73 @@ de la bonne voiture, qu'une panne laisse les temps locaux et des tirets sans rie
 repart pas en boucle : `records()` est rappelé à chaque rendu et l'arrivée des temps déclenche un
 rendu, donc sans garde-fou la réponse relance la requête, indéfiniment.
 
+## Le multijoueur, mesuré
+
+### Rien ne mesurait le réseau
+
+`tools/e2e-duo.js` remplace WebRTC par un canal de diffusion local et éprouve tout ce qui vit
+AU-DESSUS du transport — le salon, les places, le gel de la grille, la reprise chez l'invité. Il ne
+voit ni latence, ni gigue, ni perte, ni débit. On améliorait donc à l'aveugle le seul endroit du
+jeu dont personne ne connaissait les chiffres.
+
+`tools/net-banc.js` les donne. Le transport reste un double — on ne peut pas exiger d'un essai
+qu'il trouve un annuaire public et deux NAT à traverser — mais les DÉFAUTS sont réels et imposés :
+chaque message part avec un retard tiré au sort autour d'une moyenne, et une fraction est jetée.
+C'est ce que fait un réseau mobile, et c'est ce qu'il fallait pouvoir faire varier.
+
+Quatre chiffres en sortent, et chacun répond à une question qu'on se posait sans y répondre : la
+**montée de l'hôte** (tient-elle dans une voie montante 4G ?), le **retard du pouce** entre l'appui
+et le mouvement de sa propre voiture, la **saccade** chez l'invité qui ne simule rien, et le plus
+long **silence** qu'il subit.
+
+**Le double doit facturer comme WebRTC.** Un canal de diffusion poste une fois pour tout le monde,
+là où le vrai transport boucle sur ses connexions et envoie à chacune. La première version comptait
+un envoi par message : elle annonçait 0,24 Mbit/s là où le réseau en voit sept fois plus. Un banc
+qui se trompe d'un facteur sept sur la seule grandeur pour laquelle il existe est pire qu'une
+absence de banc, parce qu'on le croit.
+
+### Le relais entre invités ne sert à rien en course
+
+L'hôte renvoie la présence de chacun à tous les autres, pour que le salon soit complet partout. Une
+fois la course partie, ça ne sert plus : l'hôte est seul à simuler, donc aucun invité n'a que faire
+de l'accélérateur d'un autre invité. Le relais coûte pourtant en N² quand les instantanés ne
+coûtent qu'en N, si bien qu'il finit par dépasser ce qu'il accompagne.
+
+Il s'éteint donc au coup d'envoi et se rallume au drapeau. `--relais=1` rejoue l'ancien
+comportement : un gain qu'on ne peut pas remettre à zéro n'est pas un gain mesuré, c'est un gain
+raconté. Mesuré à 60 ms d'aller, ±20 de gigue et 2 % de perte :
+
+| joueurs | relais allumé | relais éteint | écart |
+|---|---|---|---|
+| 2 | 0,16 Mbit/s | 0,16 Mbit/s | — |
+| 4 | 0,71 | 0,55 | −23 % |
+| 6 | 1,53 | 0,99 | −35 % |
+| 8 | **2,73** | **1,56** | **−43 %** |
+
+### Trois pièges du banc lui-même
+
+**Le dessin fausse tout.** Huit onglets qui peignent chacun un canevas à soixante images par
+seconde dans le même conteneur, ce n'est plus un banc réseau mais un banc de processeur graphique :
+la première série annonçait 378 ms de retard au pouce et 8,8 m de saccade à huit joueurs, ce qui
+n'avait aucun rapport avec le réseau. Le pinceau s'arrête pendant la mesure ; la simulation, la
+couche réseau et l'extrapolation tournent toujours.
+
+**Chromium bride les onglets en arrière-plan** : `requestAnimationFrame` y tombe à presque zéro, et
+avec deux écrans un seul peut être devant. Trois drapeaux de lancement l'éteignent, dans le banc
+comme dans `e2e-duo.js`.
+
+**Un premier argument qui n'est pas un nombre.** Les essais du dossier prennent un dossier de
+sortie ; `e2e-duo.js` prenait un nombre de secondes. Lancé dans une boucle qui passe le même
+argument à tous, il recevait `NaN`, donc une boucle d'échantillonnage dont la condition d'arrêt
+était vraie dès la première image : zéro mesure, et un échec qui ressemblait à une régression du
+jeu. Il tombe désormais sur sa durée par défaut, et une série vide est un ÉCHEC nommé plutôt
+qu'une exception obscure six lignes plus bas.
+
+**`tools/e2e-net.js` ne passait plus depuis le nom obligatoire** : il posait le nom APRÈS
+l'écran-titre, donc trop tard — le jeu avait déjà affiché l'écran du nom à la place du menu, et
+l'essai attendait un bandeau qui ne viendrait jamais. Il n'était dans aucune de mes séries, ce qui
+est exactement pourquoi il faut les lancer toutes.
+
 ## Numéro de version
 
 Le menu porte en bas le numéro du build et sa date — `v0.15.0 · 2026-09-23`. Ce n'est pas de la

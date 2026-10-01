@@ -209,6 +209,14 @@ class Net {
     this.roster = roster;
     this.seat = seat;
     this.state = 'playing';
+    /* Le relais s'éteint ici, et ne se rallume qu'au drapeau.
+
+    Il sert au salon — chacun doit voir tout le monde — et à rien d'autre une fois la course
+    partie : l'hôte est seul à simuler, donc un invité n'a que faire de l'accélérateur d'un autre
+    invité. C'est pourtant là que ça coûte le plus cher : à huit, le relais pèse 156 des 271 ko/s
+    que l'hôte envoie, soit 58 % de sa voie montante, et il grandit en N² quand les instantanés ne
+    grandissent qu'en N. */
+    if (this.room) this.room.relayer = false;
     this.seq = 0; this.lastSeq = -1; this.outN = 0; this.seenN = {}; this.sentAtMs = 0;
     this.snapAt = performance.now();
     this.post();
@@ -229,6 +237,7 @@ class Net {
   backToLobby() {
     if (this.state !== 'playing') return;
     this.state = 'lobby';
+    if (this.room) this.room.relayer = true;      // le salon a de nouveau besoin de voir tout le monde
     this.grid = null;
     this.roster = null;
     this.seat = -1;

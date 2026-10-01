@@ -53,6 +53,13 @@
       this.connHandlers = [];
       this.open = false;
       this.error = null;
+      /* L'hôte renvoie la présence de chacun à tous les autres, pour que le salon soit complet chez
+      tout le monde. En COURSE, ça ne sert plus à rien : seul l'hôte simule, donc aucun invité n'a
+      quoi que ce soit à faire de l'accélérateur d'un autre invité. Mesuré à huit joueurs, ce
+      relais représente 156 des 271 ko/s que l'hôte envoie — **58 % de sa voie montante** à ne
+      transporter que des octets dont personne ne fera rien. La couche réseau l'éteint au coup
+      d'envoi et le rallume au drapeau. */
+      this.relayer = true;
     }
 
     /** The host's label starts with 0 and a guest's with 1, so the sort the net layer applies to
@@ -113,8 +120,10 @@
         if (!d || typeof d !== 'object' || typeof d.from !== 'string') return;
         // A presence is sent whole every frame, so a lost message repairs itself.
         this.others.set(d.from, { presence: d.p && typeof d.p === 'object' ? d.p : {}, updatedAt: Date.now() });
-        // The host relays to the others, so everyone sees everyone.
-        for (const o of this.conns) if (o !== c && o.open) { try { o.send(d); } catch (_) { /* ignore */ } }
+        // The host relays to the others, so everyone sees everyone — hors course, voir `relayer`.
+        if (this.relayer) {
+          for (const o of this.conns) if (o !== c && o.open) { try { o.send(d); } catch (_) { /* ignore */ } }
+        }
         this.fire();
       });
       const gone = () => {
