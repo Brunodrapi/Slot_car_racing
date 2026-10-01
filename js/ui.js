@@ -27,6 +27,14 @@ const I18N = {
     on: 'Activé', off: 'Coupé', playerDefault: 'Vous', allUnlocked: 'Tout est débloqué. Bravo !', careerIntro: 'Tu pars dernier à chaque course. Remonte le peloton, marque des points, débloque des catégories plus rapides.',
     lapDone: (n, t) => `Tour ${n} : ${t}`, tipTitle: 'Comment jouer', yourResult: (p) => `Tu termines P${p}`,
     nameTaken: (n) => `« ${n} » est déjà pris par un autre pilote. Change de nom dans les réglages, sinon tes temps n’entreront pas au tableau mondial.`,
+    refus_inconnu: 'Cette voiture n’est pas encore connue du tableau mondial. Ton temps est gardé ici.',
+    refus_trop_rapide: 'Ce tour a été jugé impossible par le serveur et n’a pas été retenu.',
+    refus_cadence: 'Temps envoyés trop rapprochés. Le suivant partira dans un instant.',
+    refus_pseudo: 'Ton nom n’est pas encore enregistré côté serveur. Reconnecte-toi.',
+    refus_session: 'Ta session a expiré. Reconnecte-toi pour inscrire tes temps.',
+    refus_usure: 'Les tours courus avec l’usure n’entrent pas au tableau mondial : ils ne se comparent à rien.',
+    refus_reseau: 'Pas de réseau au moment de l’envoi. Ton temps est gardé ici.',
+    refus_autre: (r) => `Temps non retenu par le serveur (${r}).`,
     worldBest: 'Monde', worldNeedsAccount: 'Connecte-toi pour inscrire tes temps au tableau mondial.', signIn: 'Se connecter avec Google', signOut: 'Se déconnecter',
     nameTitle: 'Ton nom de pilote', nameGo: 'C’est parti',
     nameWhy: 'Il signera tes temps, ici et au tableau des records.',
@@ -64,6 +72,14 @@ const I18N = {
     on: 'On', off: 'Off', playerDefault: 'You', allUnlocked: 'Everything unlocked. Well done!', careerIntro: 'You start every race from the back. Carve through the field, score points, unlock faster classes.',
     lapDone: (n, t) => `Lap ${n}: ${t}`, tipTitle: 'How to play', yourResult: (p) => `You finish P${p}`,
     nameTaken: (n) => `“${n}” is already taken by another driver. Change it in the settings, or your times will not reach the world board.`,
+    refus_inconnu: 'This car is not known to the world board yet. Your time is kept here.',
+    refus_trop_rapide: 'The server judged this lap impossible and did not keep it.',
+    refus_cadence: 'Times sent too close together. The next one will go through shortly.',
+    refus_pseudo: 'Your name is not registered on the server yet. Sign in again.',
+    refus_session: 'Your session has expired. Sign in again to post your times.',
+    refus_usure: 'Laps run with wear do not reach the world board: they compare to nothing.',
+    refus_reseau: 'No network when sending. Your time is kept here.',
+    refus_autre: (r) => `Time not kept by the server (${r}).`,
     worldBest: 'World', worldNeedsAccount: 'Sign in to put your times on the world board.', signIn: 'Sign in with Google', signOut: 'Sign out',
     nameTitle: 'Your driver name', nameGo: 'Let’s go',
     nameWhy: 'It will sign your times, here and on the record board.',
@@ -131,6 +147,18 @@ class UI {
     return typeof v === 'function' ? v(...args) : (v == null ? key : v);
   }
   L(obj) { return obj[this.lang] || obj.en; }
+
+  /* Le message d'un refus, avec un vrai repli.
+
+  `t()` rend la CLÉ quand elle manque, ce qui est commode pour repérer un oubli mais piégeur ici :
+  un `t('refus_xyz') || t('refus_autre')` ne tombe jamais sur le second, puisque le premier renvoie
+  la chaîne « refus_xyz », qui est vraie. Le joueur aurait lu le nom d'une variable. On regarde
+  donc si la clé existe au lieu de se fier à ce que `t()` en fait. */
+  messageRefus(raison) {
+    const cle = 'refus_' + raison;
+    const table = I18N[this.lang] || I18N.en;
+    return table[cle] != null ? this.t(cle) : this.t('refus_autre', raison);
+  }
 
   /* Redessiner un écran ne doit pas le renvoyer en haut.
 
@@ -470,6 +498,8 @@ class UI {
           <button class="link" data-action="google">${t('signIn')}</button></p>`}
       ${app.mondial && app.mondial.pseudoErreur === 'pseudo_pris'
         ? `<p class="warn mondial-note">${t('nameTaken', escapeHtml(s.name))}</p>` : ''}
+      ${app.mondial && app.mondial.dernierRefus
+        ? `<p class="warn mondial-note">${this.messageRefus(app.mondial.dernierRefus.raison)}</p>` : ''}
       <div class="records">
         <div class="rhead">
           <span></span><b></b>

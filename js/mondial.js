@@ -40,6 +40,9 @@ class Mondial {
     this.cache = new Map();     // circuit → { t, lignes } : une lecture par circuit, pas par ligne
     this.erreur = null;
     this.pseudoErreur = null;      // « ce nom est pris », retenu pour être DIT au joueur
+    this.dernierRefus = null;      // le dernier temps refusé par le serveur, et pourquoi
+    this.envoyes = new Set();
+    try { this.envoyes = new Set(JSON.parse(localStorage.getItem('eol.envoyes') || '[]')); } catch (_) {}
     this._litSession();
     this._litRetour();
   }
@@ -176,10 +179,58 @@ class Mondial {
       const rep = await r.json().catch(() => ({}));
       if (r.ok) this.cache.delete(circuit);   // le tableau vient de changer : on le relira
       if (r.status === 401) this.sortir();    // session périmée : on redemandera la connexion
-      return { ok: r.ok, raison: rep.raison || rep.message || ('HTTP ' + r.status) };
+      const raison = rep.raison || rep.message || ('HTTP ' + r.status);
+      /* Un refus se RETIENT, pour pouvoir être dit.
+
+      Il partait dans le vide : le joueur bouclait un tour, rien n'arrivait au tableau, et aucune
+      explication nulle part. Les quatre refus possibles ont chacun une cause que le joueur peut
+      traiter — une voiture que le serveur ne connaît pas encore, un temps sous le plancher, une
+      session périmée, un envoi trop rapproché — et aucune ne se devine depuis l'écran. */
+      this.dernierRefus = r.ok ? null : { raison, circuit, voiture };
+      if (r.ok) this.marqueEnvoye(circuit, voiture);
+      return { ok: r.ok, raison };
     } catch (e) {
+      this.dernierRefus = { raison: 'reseau', circuit, voiture };
       return { ok: false, raison: String(e.message || e) };
     }
+  }
+
+  /* Ce qui est déjà parti, pour ne pas le renvoyer à chaque ouverture. */
+  marqueEnvoye(circuit, voiture) {
+    this.envoyes.add(`${circuit}|${voiture}`);
+    try { localStorage.setItem('eol.envoyes', JSON.stringify([...this.envoyes])); } catch (_) {}
+  }
+
+  /* Rattraper les temps d'AVANT le compte.
+
+  Sans cela, un joueur qui s'inscrit après avoir déjà joué ne voit rien venir : ses meilleurs tours
+  sont déjà posés dans sa sauvegarde, et seul un NOUVEAU record personnel part au tableau. Il
+  faudrait donc qu'il se batte lui-même avant d'exister aux yeux du monde — et pendant ce temps,
+  tout a l'air cassé.
+
+  Les envois sont espacés de seize secondes parce que le serveur en refuse deux rapprochés : la
+  règle de cadence est là pour empêcher le bourrage, et un rattrapage légitime doit s'y plier plutôt
+  que de la faire sauter. Neuf voitures prennent donc deux minutes, en arrière-plan, sans que rien
+  n'attende. */
+  async rattrape(bestLaps) {
+    if (!this.connecte() || this._rattrapeEnCours) return;
+    this._rattrapeEnCours = true;
+    const aFaire = [];
+    for (const cle of Object.keys(bestLaps || {})) {
+      const m = cle.split('|');
+      if (m.length !== 3) continue;                       // les clés à deux morceaux sont l'ancien format
+      const [circuit, , voiture] = m;
+      if (this.envoyes.has(`${circuit}|${voiture}`)) continue;
+      aFaire.push({ circuit, voiture, temps: bestLaps[cle] });
+    }
+    for (const t of aFaire) {
+      const r = await this.propose(t.circuit, t.voiture, t.temps);
+      // un refus définitif (voiture inconnue, temps impossible) ne se retente pas à chaque ouverture
+      if (!r.ok && (r.raison === 'inconnu' || r.raison === 'trop_rapide')) this.marqueEnvoye(t.circuit, t.voiture);
+      if (!r.ok && (r.raison === 'anonyme' || r.raison === 'session')) break;
+      await new Promise((res) => setTimeout(res, 16000));
+    }
+    this._rattrapeEnCours = false;
   }
 }
 
