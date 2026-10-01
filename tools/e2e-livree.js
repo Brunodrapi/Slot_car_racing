@@ -8,10 +8,10 @@
 // FICHIER, et c'est ce que cet essai vérifie — pas que l'écran a changé d'aspect, mais que la page
 // est allée chercher le bon dessin.
 //
-// LE SERVEUR SERT LES VARIANTES À PARTIR DU DESSIN D'ORIGINE. Les deux illustrations de CSL sont
-// faites à la main et peuvent ne pas être encore dans le dépôt ; un essai qui tomberait avec elles
-// ne dirait rien du code. Il note en revanche CHAQUE chemin demandé, ce qui est la seule preuve
-// qu'on regarde la bonne image.
+// IL NOTE CHAQUE CHEMIN DEMANDÉ, ce qui est la seule preuve qu'on regarde la bonne image. Lire la
+// balise `src` ne suffirait pas : un chemin mal formé — un tiret là où le fichier porte un tiret
+// bas — y apparaîtrait tout aussi bien, le serveur rendrait 404, et le repli afficherait sagement la
+// livrée d'origine. Un choix qui ne change rien, sans un mot d'erreur nulle part.
 //
 // Ce qui se vérifie :
 //   1. Le premier appui CHOISIT la voiture, il ne change pas sa livrée. Sinon changer de voiture
@@ -32,15 +32,18 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.png': 'image/png', '.webp': 'image/webp' };
 
 (async () => {
-  const vus = [];
+  /* On note ce qui est demandé ET ce qui a été SERVI.
+
+  Les deux ne se valent pas. Un chemin mal formé est demandé comme un autre ; c'est la réponse qui
+  dit s'il existe. Et comme une vignette absente retombe proprement sur la livrée d'origine, un essai
+  qui se contenterait de la demande verrait tout au vert devant un fichier introuvable. */
+  const vus = [], servis = [];
   const serveur = http.createServer((req, res) => {
     const url = decodeURIComponent(req.url.split('?')[0]);
     vus.push(url);
-    let f = path.join(ROOT, url);
-    // les variantes servies depuis le dessin d'origine : l'essai mesure le code, pas l'avancement
-    // du travail de dessin
-    if (!fs.existsSync(f)) f = f.replace(/csl-(castrol|calder)\.png$/, 'csl.png');
+    const f = path.join(ROOT, url);
     if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end(); }
+    servis.push(url);
     res.writeHead(200, { 'Content-Type': TYPES[path.extname(f)] || 'application/octet-stream' });
     fs.createReadStream(f).pipe(res);
   });
@@ -87,8 +90,8 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   /* --- 2 et 3. les appuis suivants font tourner, et la page va chercher le dessin --- */
   console.log('\nles appuis suivants font tourner');
   const attendu = [
-    { n: 2, mot: 'Castrol', fichier: 'sprites/pick/csl-castrol.png' },
-    { n: 3, mot: 'Calder', fichier: 'sprites/pick/csl-calder.png' },
+    { n: 2, mot: 'Castrol', fichier: 'sprites/pick/csl_castrol.png' },
+    { n: 3, mot: 'Calder', fichier: 'sprites/pick/csl_calder.png' },
     { n: 1, mot: 'Motorsport', fichier: 'sprites/pick/csl.png' },
   ];
   for (const a of attendu) {
@@ -97,7 +100,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     const l = await lire('csl');
     dit(l.repere === `${a.n}/3 ${a.mot}`, `repere « ${l.repere} »`);
     dit(l.src === a.fichier, `la vignette montree est ${l.src}`);
-    dit(vus.includes('/' + a.fichier), `et la page est bien allee la chercher`);
+    dit(servis.includes('/' + a.fichier), `et le fichier existe vraiment (servi, pas 404)`);
   }
 
   await p.screenshot({ path: path.join(process.argv[2] || '/tmp', 'livree.png') });
@@ -135,7 +138,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 
   /* --- 6. et la course part avec --- */
   console.log('\nen course');
-  vus.length = 0;
+  vus.length = 0; servis.length = 0;
   await p.click('[data-action="startQuick"]');
   await p.waitForFunction(() => app.state === 'race' && app.race, { timeout: 15000 });
   await p.waitForTimeout(900);
@@ -148,8 +151,8 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     nCsl: app.race.cars.filter((c) => c.cls.id === 'csl').length,
   }));
   dit(course.livree === 1 && course.modele === 'csl', `le joueur court en livree ${course.livree}`);
-  dit(course.dessin === 'sprites/top/csl-castrol.png', `et son dessin est ${course.dessin}`);
-  dit(vus.includes('/sprites/top/csl-castrol.png'), `la course est allee chercher ce fichier`);
+  dit(course.dessin === 'sprites/top/csl_castrol.png', `et son dessin est ${course.dessin}`);
+  dit(servis.includes('/sprites/top/csl_castrol.png'), `la course a bien recu ce fichier`);
   /* --- 7. la grille de l'IA ne porte pas trois fois la meme peinture ---
 
   La course du dessus ne comptait qu'une CSL, donc son controle passait sans rien prouver. On

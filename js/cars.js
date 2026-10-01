@@ -116,7 +116,7 @@ const CATEGORIES = [
 
         Une livrée n'est pas une couleur ici : une illustration remplace le dessin vectoriel ET la
         couleur, donc la seule façon de changer de livrée est de changer de dessin. Les fichiers
-        se déduisent de l'identifiant — `sprites/top/csl-castrol.png` et sa vignette dans
+        se déduisent de l'identifiant — `sprites/top/csl_castrol.png` et sa vignette dans
         `sprites/pick/` — et un identifiant vide garde les fichiers sans suffixe, pour que la
         livrée d'origine n'ait pas à être renommée. */
         livrees: [
@@ -151,14 +151,19 @@ const AI_NAMES = [
 
 /* Le chemin d'une variante, déduit de celui de la livrée d'origine.
 
-   `sprites/top/csl.png` + `castrol` → `sprites/top/csl-castrol.png`. Déduire plutôt qu'écrire les
+   `sprites/top/csl.png` + `castrol` → `sprites/top/csl_castrol.png`. Déduire plutôt qu'écrire les
    six chemins à la main tient le fichier lisible et rend l'ajout d'une livrée à une ligne — mais
    surtout, ça empêche la vignette et la vue de dessus de désigner deux livrées différentes, ce qui
-   ne se verrait qu'en comparant le menu et la piste. */
+   ne se verrait qu'en comparant le menu et la piste.
+
+   Le séparateur est le tiret bas parce que c'est celui des fichiers livrés. Un détail, jusqu'au
+   moment où il ne l'est pas : le jeu demanderait `csl-castrol.png`, le serveur rendrait 404, et le
+   repli afficherait sagement la livrée d'origine — un choix qui ne change rien, sans un mot
+   d'erreur nulle part. */
 function cheminLivree(src, suffixe) {
   if (!src || !suffixe) return src || null;
   const i = src.lastIndexOf('.');
-  return i < 0 ? `${src}-${suffixe}` : `${src.slice(0, i)}-${suffixe}${src.slice(i)}`;
+  return i < 0 ? `${src}_${suffixe}` : `${src.slice(0, i)}_${suffixe}${src.slice(i)}`;
 }
 
 /** La livrée `i` d'un modèle, l'indice tournant sur la liste. Toujours une livrée, jamais `null`. */
