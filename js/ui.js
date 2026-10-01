@@ -585,7 +585,8 @@ class UI {
     return `<h3>${t('yourBest')}</h3>
       ${this.etatMondial()}
       ${app.mondial && app.mondial.dernierRefus
-        ? `<p class="warn mondial-note">${this.messageRefus(app.mondial.dernierRefus.raison)}
+        ? `<p class="warn mondial-note">${this.messageRefus(app.mondial.dernierRefus.raison)}${
+            app.mondial.detailRefus ? ` <small class="detail">${escapeHtml(String(app.mondial.detailRefus))}</small>` : ''}
             ${RECONNEXION.has(app.mondial.dernierRefus.raison)
               ? `<button class="link" data-action="google">${t('reconnect')}</button>` : ''}
             ${REGLAGES.has(app.mondial.dernierRefus.raison)

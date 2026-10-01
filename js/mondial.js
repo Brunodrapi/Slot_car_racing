@@ -207,6 +207,13 @@ class Mondial {
       if (r.ok) this.cache.delete(circuit);   // le tableau vient de changer : on le relira
       if (r.status === 401) this.sortir();    // session périmée : on redemandera la connexion
       const raison = rep.raison || rep.message || ('HTTP ' + r.status);
+      /* Le DÉTAIL du serveur, gardé et montré.
+
+      La fonction renvoie déjà le message exact de la base — « permission denied », « column does
+      not exist », le nom de la contrainte violée — et on le jetait pour n'afficher qu'un mot. Ce
+      mot désigne la famille du problème ; le détail désigne le problème. Sans lui on repart pour un
+      tour d'hypothèses, et on en a déjà fait trois. */
+      this.detailRefus = r.ok ? null : (rep.detail || null);
       /* Un refus se RETIENT, pour pouvoir être dit.
 
       Il partait dans le vide : le joueur bouclait un tour, rien n'arrivait au tableau, et aucune

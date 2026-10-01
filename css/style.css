@@ -376,3 +376,8 @@ perdrait le curseur à chaque chiffre tapé. */
   background: rgba(10,12,20,0.82); color: #ffb4a2; font-size: 13px; text-align: center; z-index: 3;
 }
 .menu-auth .link { color: var(--accent); }
+
+/* Le détail d'un refus serveur : plus petit que le message, mais lisible. C'est lui qui désigne le
+   problème là où le message n'en désigne que la famille. */
+.mondial-note .detail { display: block; margin-top: 3px; font-size: 11px; color: var(--muted);
+  font-family: ui-monospace, monospace; word-break: break-word; }

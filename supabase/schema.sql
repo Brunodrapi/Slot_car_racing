@@ -114,3 +114,14 @@ drop policy if exists pilotes_maj_le_mien on public.pilotes;
 revoke insert, update, delete on public.records from anon, authenticated;
 revoke insert, update, delete on public.planchers from anon, authenticated;
 revoke insert, update, delete on public.pilotes from anon, authenticated;
+
+-- Le rôle de SERVICE, celui que porte la fonction serveur.
+--
+-- Supabase le dote généralement de tout par des privilèges par défaut, mais « généralement » n'est
+-- pas une garantie : ces défauts dépendent du rôle qui a créé la table et de l'état du projet, et
+-- une écriture refusée ici bloque tout le tableau mondial sans que rien d'autre ne bouge. On
+-- l'écrit donc, comme on a dû écrire les `grant select` que la case décochée ne posait plus.
+grant all on public.records to service_role;
+grant all on public.pilotes to service_role;
+grant all on public.planchers to service_role;
+grant execute on function public.poser_record(text, text, real, text, uuid) to service_role;
