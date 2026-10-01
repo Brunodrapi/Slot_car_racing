@@ -1287,8 +1287,10 @@ class Renderer {
   }
 
   // brightness levels baked once per model and livery: a canvas filter per draw costs a layer
-  _stackTexFor(cls, livery, N) {
-    const key = `${cls.id}|${livery.body}|${livery.trim}|${N}`;
+  _stackTexFor(cls, livery, N, livree) {
+    // la livrée fait partie de la clé : sans elle, la première Castrol gravée servait à toutes les
+    // CSL de la grille, et changer de livrée au menu ne changeait rien en vue inclinée
+    const key = `${cls.id}|${livery.body}|${livery.trim}|${N}|${livree || 0}`;
     let tex = this._stacks.get(key);
     if (tex) return tex;
     const PPM = 26, w = Math.ceil(cls.length * PPM) + 8, h = Math.ceil(cls.width * PPM) + 8;
@@ -1299,7 +1301,7 @@ class Renderer {
       const cg = cv.getContext('2d');
       cg.translate(w / 2, h / 2); cg.scale(PPM, PPM);
       cg.filter = `brightness(${(0.55 + 0.45 * (i / (N - 1))).toFixed(3)})`;
-      drawCarModel(cg, cls, livery, { number: 0, steer: 0 });
+      drawCarModel(cg, cls, livery, { number: 0, steer: 0, livree });
       tex.push({ cv, w: w / PPM, h: h / PPM });
     }
     this._stacks.set(key, tex);
@@ -1380,7 +1382,7 @@ class Renderer {
     const N = clamp(Math.round(spread / 1.1 / 4) * 4, 8, 28);
     this._carShadow(g, car);
     if (car.isPlayer) this._playerRing(g, car);
-    const tex = this._stackTexFor(c, car.livery, N);
+    const tex = this._stackTexFor(c, car.livery, N, car.livree);
     for (let i = 0; i < N; i++) {
       const tz = i / (N - 1);
       const lift = hCar * tz * sinT / tilt;
@@ -1546,9 +1548,9 @@ class Renderer {
     g.translate(0.25, 0.35);
     g.globalAlpha = 0.3;
     // a drawn car casts its own outline; a vector one only has a box to offer
-    if (!drawCarShadow(g, c)) { g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width); }
+    if (!drawCarShadow(g, c, car.livree)) { g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width); }
     g.restore();
-    drawCarModel(g, c, car.livery, { number: car.number, steer: car.steerAngle });
+    drawCarModel(g, c, car.livery, { number: car.number, steer: car.steerAngle, livree: car.livree });
     if (car.braking && car.state === 'ok') { g.fillStyle = 'rgba(255,40,40,0.9)'; g.fillRect(-c.length / 2 - 0.15, -c.width / 2 + 0.1, 0.25, c.width - 0.2); }
     g.restore();
     if (car.isPlayer) {

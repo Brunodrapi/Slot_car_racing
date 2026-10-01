@@ -128,6 +128,17 @@ class App {
     return (m && m.catId === catId) ? m : modelsOf(catId)[0];
   }
 
+  /* La livrée choisie pour un modèle donné, rangée par MODÈLE et non par catégorie.
+
+  Choisir une CSL Castrol puis passer à la 935 puis revenir doit rendre la Castrol : une livrée
+  appartient à la voiture, pas au joueur. L'indice est gardé tel quel, sans le ramener dans les
+  bornes à l'enregistrement : c'est la lecture qui le fait tourner, si bien qu'ajouter une quatrième
+  livrée plus tard ne décale aucune sauvegarde existante. */
+  playerLivreeFor(modelId) {
+    const n = this.save.livrees && this.save.livrees[modelId];
+    return Number.isFinite(n) ? n : 0;
+  }
+
   // ---------- input ----------
   _bindInput() {
     const on = () => { this.input.throttle = true; this.audio.start(); this.audio.resume(); };
@@ -224,6 +235,7 @@ class App {
     if (!trackDef) return;
     this._startRace({
       mode, trackDef, classId, modelId: this.playerModelFor(classId).id,
+      playerLivree: this.playerLivreeFor(this.playerModelFor(classId).id),
       // The circuit's own suggestion unless the player has asked for a number; a championship
       // round keeps the suggestion, since its length is part of the championship, not a setting.
       // le joueur choisit sa longueur ; la proposition du circuit ne sert plus que de filet
@@ -245,6 +257,7 @@ class App {
     const roster = makeRoster(cat.drivers - 1, this.save.livery, seed, cat.id);
     this._startRace({
       mode: 'race', trackDef, classId: cup.classId, modelId: this.playerModelFor(cup.classId).id,
+      playerLivree: this.playerLivreeFor(this.playerModelFor(cup.classId).id),
       laps: lapsFor(trackDef, cat),
       difficulty: this.save.difficulty,
       wear: this.save.wear,
@@ -271,6 +284,7 @@ class App {
       laps: cfg.laps || lapsFor(trackDef, cat),
       difficulty: cfg.difficulty || this.save.difficulty,
       playerLivery: mine.livery || 0,
+      playerLivree: this.playerLivreeFor(mine.modelId || this.playerModelFor(cat.id).id),
       playerName: mine.name || this.playerName(),
       humans: cfg.humans,
     }, { cup: null, mode: 'race', classId: cat.id, trackId: cfg.trackId, online: cfg.mode });
@@ -368,7 +382,7 @@ class App {
   le premier affichage — donc déjà là quand cette fonction est appelée. */
   _pretACourir(race) {
     if (!race) return false;
-    for (const c of race.cars) if (typeof topReady === 'function' && !topReady(c.cls)) return false;
+    for (const c of race.cars) if (typeof topReady === 'function' && !topReady(c.cls, c.livree)) return false;
     if (this.renderer && !this.renderer.pretAPeindre(race)) return false;
     if (this.audio && !this.audio.pretAJouer()) return false;
     return true;
