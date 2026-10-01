@@ -1919,6 +1919,22 @@ class Renderer {
       const c = race.countdown;
       const lights = c > 3.2 ? 0 : c > 2.4 ? 1 : c > 1.6 ? 2 : c > 0.8 ? 3 : 4;
       const cx = W / 2, cy = H * 0.22;
+      /* « Chargement » à la place des feux, tant que tout le monde n'est pas là.
+
+      Des feux arrêtés sans un mot sont indiscernables d'un jeu bloqué : c'est exactement ce que le
+      joueur voyait, avant que le message « liaison perdue » ne vienne lui donner une mauvaise
+      explication par-dessus. On dit donc ce qui se passe, et combien d'écrans manquent. */
+      const ch = ui && ui.app && ui.app.chargement;
+      const attend = (ch && ch.reste > 0) || (race.attente);
+      if (attend) {
+        panel(cx - 130, cy - 30, 260, 60);
+        g.textAlign = 'center'; g.fillStyle = '#fff'; g.font = 'bold 20px system-ui, sans-serif';
+        g.fillText(ch && ch.total ? t('loadingN', ch.prets, ch.total) : t('loading'), cx, cy + 7);
+        g.font = '13px system-ui, sans-serif'; g.fillStyle = '#cfd3dc';
+        g.fillText(t('loadingWhy'), cx, cy + 50);
+        g.textAlign = 'left'; g.textBaseline = 'top';
+        return;
+      }
       panel(cx - 120, cy - 30, 240, 60);
       for (let i = 0; i < 4; i++) { g.fillStyle = i < lights ? '#ff3b3b' : 'rgba(255,255,255,0.15)'; g.beginPath(); g.arc(cx - 75 + i * 50, cy, 16, 0, Math.PI * 2); g.fill(); }
       g.textAlign = 'center'; g.fillStyle = '#fff'; g.font = 'bold 18px system-ui, sans-serif';

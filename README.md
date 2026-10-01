@@ -1957,6 +1957,41 @@ Et les deux premières secondes de course partent complètes sans exception : c'
 chaque invité attend la grille de l'hôte pour geler la sienne, et l'alléger dès la première image
 faisait geler trois grilles différentes à quatre écrans.
 
+### « Liaison perdue » alors que personne n'avait encore rien dit
+
+Au départ d'une course en ligne, l'invité affichait « liaison perdue avec l'hôte », puis tout se
+mettait à marcher. La liaison allait très bien. L'hôte construisait son circuit, décodait ses
+vignettes de voiture et téléchargeait ses prises de moteur — plusieurs secondes pendant lesquelles
+il n'a rien à envoyer — et le compteur de silence de l'invité, parti au coup d'envoi, franchissait
+ses deux secondes avant le premier instantané.
+
+Un message faux coûte plus cher qu'une attente : il envoie chercher un problème de réseau là où il
+n'y en a pas, et il décrédibilise le vrai message le jour où la liaison tombe pour de bon.
+
+**Deux corrections, et la seconde seule n'aurait pas suffi.** Le silence ne se compte plus avant le
+PREMIER instantané : tant que rien n'est jamais arrivé, il n'y a pas de perte à mesurer. Et le
+décompte ATTEND que chaque écran ait annoncé qu'il a fini de charger — sinon la course part sans
+celui qui travaille encore, et il la rejoint en retard.
+
+Ce qu'on attend : les vignettes de voiture, qui se décodent image par image et font apparaître une
+voiture au milieu de la ligne droite quand elles arrivent tard ; et les prises de moteur, plusieurs
+mégaoctets, mais seulement si le son est allumé — retenir la table pour un téléchargement dont on
+ne fera rien punirait un réglage que le joueur a justement coupé.
+
+**La barrière a une sortie**, parce qu'une barrière sans échappatoire est un blocage : passé douze
+secondes, on part sans celui qui n'a pas répondu. Et l'attente se compte sur la GRILLE gelée au coup
+d'envoi, pas sur les présences du moment : un écran momentanément silencieux disparaîtrait de la
+liste et serait compté comme prêt, ce qui reviendrait à lever la barrière pour celui-là même
+qu'elle protège.
+
+Les feux arrêtés sans un mot sont indiscernables d'un jeu bloqué : l'écran annonce donc
+« Chargement… 2 / 4 prêts » à leur place.
+
+`tools/e2e-charge.js` reproduit le défaut plutôt que de vérifier le correctif : il retarde
+délibérément le premier instantané de l'hôte de cinq secondes — deux fois et demie le seuil — et
+regarde ce que l'invité annonce. Il fabrique aussi un retardataire qui n'existe nulle part, sans
+quoi le contrôle de l'échappatoire partirait de zéro et ne prouverait rien.
+
 ### La voie montante de l'hôte, d'un bout à l'autre
 
 | | 2 | 4 | 6 | 8 joueurs |

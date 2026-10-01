@@ -21,6 +21,13 @@ const NET_CODE = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // no I, O, 0, 1: they ar
 const NET_MODES = ['race', 'duel', 'ghost'];
 const NET_SEATS = 8;               // people per table
 const NET_STALE = 6000;            // a screen quiet this long has left
+/* Au-delà, on part sans attendre celui qui n'a pas répondu.
+
+Une barrière de chargement sans échappatoire est un blocage : un écran dont le téléchargement
+échoue, ou qui ferme son onglet entre le coup d'envoi et la grille, retiendrait tous les autres
+indéfiniment. Douze secondes couvrent très largement un chargement normal, et au pire on démarre
+à sa place plutôt que de laisser la table en plan. */
+const NET_CHARGE_MAX = 12000;
 
 function netCode() {
   return Array.from({ length: 4 }, () => NET_CODE[Math.floor(Math.random() * NET_CODE.length)]).join('');
@@ -139,6 +146,7 @@ class Net {
       L'identifiant reste : c'est à lui qu'on reconnaît un pair, et sans lui il disparaîtrait de la
       table à l'instant même. */
       p.t = null; p.gr = null; p.name = null; p.car = null; p.ready = null;
+      p.ch = this.mine.ch;        // l'état de chargement reste : la barrière s'appuie dessus
     }
     return this.room.presence(p);
   }
@@ -256,6 +264,7 @@ class Net {
     this.lentGarde = null;                 // le dernier bloc lent reçu, pour les images qui n'en ont pas
     this.postN = 0;
     this.playingAt = performance.now();
+    this.mine.ch = false;                  // chacun repart « pas encore prêt » à chaque course
     this.snapAt = performance.now();
     this.post();
     this.onStart({
@@ -357,7 +366,40 @@ class Net {
   /** How long since the last state arrived — the game greys the screen when it gets long. */
   silence() {
     if (this.state !== 'playing' || this.isHost()) return 0;
+    /* Tant que le PREMIER instantané n'est pas arrivé, il n'y a pas de silence à mesurer.
+
+    Le compteur partait du passage en course, donc il courait pendant que l'hôte construisait
+    encore son circuit et ses voitures — plusieurs secondes où il n'a rien à envoyer. L'invité
+    annonçait « liaison perdue » alors que la liaison allait très bien : personne n'avait encore
+    rien dit. On ne parle de perte qu'après avoir reçu au moins une fois. */
+    if (this.lastSeq < 0) return 0;
     return (performance.now() - this.snapAt) / 1000;
+  }
+
+  /** Cet écran a fini de charger ce qu'il lui faut pour courir. */
+  setCharge(ok) {
+    if (!!this.mine.ch === !!ok) return;
+    this.mine.ch = !!ok;
+    this.post();
+  }
+
+  /* Qui n'a pas encore annoncé qu'il était prêt.
+
+  Seul l'hôte s'en sert : c'est lui qui tient le décompte, et les invités reçoivent son état tel
+  quel. On compte sur la GRILLE gelée au coup d'envoi et non sur les présences du moment : un
+  écran momentanément silencieux disparaîtrait de `members()` et serait compté comme prêt, ce qui
+  reviendrait à lever la barrière pour celui-là même qu'elle protège. */
+  attendus() {
+    if (!this.roster) return { reste: 0, total: 0 };
+    const vus = new Set();
+    for (const p of this.peers) {
+      const q = p.presence || {};
+      if (q.pid && (p.isMe ? this.mine.ch : q.ch)) vus.add(q.pid);
+    }
+    const total = this.roster.length;
+    const prets = this.roster.filter((pid) => vus.has(pid)).length;
+    const trop = performance.now() - (this.playingAt || 0) > NET_CHARGE_MAX;
+    return { reste: trop ? 0 : total - prets, total, prets, trop };
   }
 }
 

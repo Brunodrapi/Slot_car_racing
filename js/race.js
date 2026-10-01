@@ -188,6 +188,17 @@ class Race {
 
   _step(dt, throttleInput) {
     if (this.state === 'countdown') {
+      /* Le décompte ATTEND que tout le monde ait fini de charger.
+
+      Une course en ligne démarrait dès le coup d'envoi, alors que chaque écran a encore à
+      construire son circuit, décoder ses vignettes de voiture et télécharger ses prises de moteur.
+      Pendant ces quelques secondes l'hôte n'envoie rien — il calcule — et l'invité, qui compte le
+      temps écoulé depuis le dernier instantané, affichait « liaison perdue avec l'hôte ». La
+      liaison allait très bien : personne n'avait encore rien à dire.
+
+      `attente` est posé par la couche réseau tant qu'un écran n'a pas annoncé qu'il est prêt. Hors
+      ligne il reste faux, et le décompte se déroule comme avant. */
+      if (this.attente) return;
       this.countdown -= dt;
       if (this.countdown <= 0) {
         this.state = 'racing';

@@ -327,6 +327,22 @@ class App {
     this._onRaceFinished();
   }
 
+  /* Ce qu'il faut avoir sous la main pour courir sans à-coups.
+
+  Les vignettes de voiture d'abord : elles se décodent image par image et une voiture sans la
+  sienne apparaît en retard, au milieu de la ligne droite. Le moteur ensuite — plusieurs mégaoctets
+  de prises — mais seulement si le son est allumé : attendre un téléchargement dont on ne fera rien
+  bloquerait la table pour un réglage que le joueur a justement coupé.
+
+  Le circuit n'y figure pas : il est construit avant le premier affichage, donc déjà là quand cette
+  fonction est appelée. */
+  _pretACourir(race) {
+    if (!race) return false;
+    for (const c of race.cars) if (typeof topReady === 'function' && !topReady(c.cls)) return false;
+    if (this.save.sound && this.audio && this.audio.pret === false) return false;
+    return true;
+  }
+
   _onRaceFinished() {
     const race = this.race, ctx = this.raceCtx || {};
     this.state = 'results';
@@ -399,6 +415,21 @@ class App {
     const race = this.race;
     if (this.state === 'race') {
       const net = this.net, online = net && net.state === 'playing';
+      /* La barrière de chargement, tenue pendant le décompte.
+
+      Chaque écran annonce quand il a fini : vignettes de voitures décodées, prises de moteur
+      arrivées. L'hôte retient le décompte tant qu'il en manque un, et les invités suivent
+      puisqu'ils rejouent son état. C'est ce qui manquait : la course partait pendant que les
+      machines travaillaient encore, et l'invité lisait « liaison perdue » là où il fallait lire
+      « chargement ». */
+      if (online && race.state === 'countdown') {
+        net.setCharge(this._pretACourir(race));
+        if (net.isHost()) {
+          const a = net.attendus();
+          race.attente = a.reste > 0;
+          this.chargement = a;
+        } else { this.chargement = null; }
+      } else if (this.chargement) { this.chargement = null; race.attente = false; }
       if (!online || net.isHost()) {
         race.update(dt, this.input);
         if (online) net.hostTick(race);
