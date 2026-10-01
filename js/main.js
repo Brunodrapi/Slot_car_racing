@@ -41,7 +41,14 @@ class App {
     if (this.mondial.connecte() && this.save.name) {
       // l'échec est retenu dans `mondial.pseudoErreur` et affiché à l'écran des records ; on ne
       // l'avale pas ici, on évite seulement qu'une promesse rejetée remonte dans la console
-      this.mondial.declarePseudo(this.save.name).catch(() => {});
+      this.mondial.declarePseudo(this.save.name)
+        /* Le pseudo D'ABORD, le rattrapage ensuite, et jamais l'inverse.
+
+        Le serveur prend le nom dans la base : un temps proposé avant que le pseudo n'y soit écrit
+        est refusé pour « pseudo », et le rattrapage partirait donc en entier dans le mur à la
+        toute première connexion — exactement celle où il sert. */
+        .then(() => this.mondial.rattrape(this.save.bestLaps))
+        .catch(() => {});
     }
     this.ui.splash();
     this.refreshCustom().then(() => {
@@ -353,6 +360,13 @@ class App {
         if (this.mondial && this.mondial.connecte() && !race.usure) {
           this.mondial.propose(race.track.id, race.cls.id, race.player.bestLap)
             .catch(() => { /* un tableau de scores ne fait pas échouer une fin de course */ });
+        } else if (this.mondial && this.mondial.connecte() && race.usure) {
+          /* L'usure exclut du tableau mondial, et il faut le DIRE.
+
+          Un tour signé sur des pneus à moitié morts ne se compare à rien, et la table n'a pas de
+          colonne pour préciser dans quel état il a été posé. Mais un joueur qui roule toujours
+          avec l'usure et ne voit jamais son nom apparaître croira que c'est cassé. */
+          this.mondial.dernierRefus = { raison: 'usure', circuit: race.track.id, voiture: race.cls.id };
         }
       }
     }

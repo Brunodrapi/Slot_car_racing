@@ -141,6 +141,27 @@ const serveur = http.createServer((req, res) => {
   dit(pris.vu, `le joueur est prevenu : « ${pris.txt.slice(0, 64)}… »`);
   dit(/Testeur/.test(pris.txt), 'le message nomme le pseudo refuse');
 
+  /* --- 6. un refus du serveur doit se LIRE, et chaque raison a son message --- */
+  /* Il partait dans le vide : le joueur bouclait un tour, rien n'arrivait au tableau, et aucune
+  explication nulle part. Les raisons ont chacune une cause que le joueur peut traiter, et aucune
+  ne se devine depuis l'écran. On vérifie aussi le repli : `t()` rend la CLÉ quand elle manque, ce
+  qui ferait lire un nom de variable au joueur si le repli était écrit naïvement. */
+  console.log('\nles refus du serveur');
+  for (const [raison, bout] of [['inconnu', 'not known'], ['trop_rapide', 'impossible'],
+                                ['usure', 'wear'], ['session', 'expired'], ['zarbi', 'zarbi']]) {
+    const vu = await page.evaluate(async (r) => {
+      app.mondial.pseudoErreur = null;
+      app.mondial.dernierRefus = { raison: r, circuit: 'spa', voiture: 'f40' };
+      app.ui.setupScreen('timetrial');
+      await new Promise((res) => setTimeout(res, 220));
+      const n = [...document.querySelectorAll('.warn.mondial-note')].pop();
+      return n ? n.textContent.trim() : '';
+    }, raison);
+    const ok = vu.includes(bout) && !/^refus_/.test(vu);
+    dit(ok, `${raison.padEnd(12)} → « ${vu.slice(0, 58)} »`);
+  }
+  await page.evaluate(() => { app.mondial.dernierRefus = null; });
+
   await page.evaluate(() => { app.ui._mondiaux = null; app.mondial.cache.clear(); });
   await page.screenshot({ path: path.join(out, 'mondial.png'), fullPage: true });
   console.log(`\nfautes ${fautes} | erreurs ${erreurs}`);
