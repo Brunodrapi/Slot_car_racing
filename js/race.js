@@ -156,6 +156,14 @@ class Race {
       const car = new Car(T, model, {
         name: h ? (h.name || 'Pilote') : isHuman ? (this.opts.playerName || 'Vous') : ai.name,
         livery: LIVERIES[(h ? h.livery : isHuman ? (this.opts.playerLivery || 0) : ai.livery) % LIVERIES.length],
+        /* La livrée dessinée, qui n'est pas la couleur.
+
+        Les neuf voitures du jeu portent une illustration, laquelle remplace le dessin vectoriel ET
+        la teinte : `livery` ne se voit donc plus sur aucune d'entre elles, et seule une AUTRE
+        illustration change quelque chose à l'écran. Les deux cohabitent parce qu'elles ne font pas
+        le même travail — la teinte sert encore aux voitures d'atelier et aux pastilles de couleur
+        du classement, où c'est elle qui identifie un pilote. */
+        livree: h ? (h.livree || 0) : isHuman ? (this.opts.playerLivree || 0) : (ai.livree || 0),
         isPlayer,
         skill: isHuman ? 1 : ai.skill,
         /* La triche du niveau extrême ne touche que les voitures de l'IA, et jamais un humain —
@@ -554,7 +562,19 @@ function makeRoster(count, playerLivery, seed, catId) {
   for (let i = liveries.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [liveries[i], liveries[j]] = [liveries[j], liveries[i]]; }
   const out = [];
   const models = modelsOf(catId || CATEGORIES[0].id);
-  for (let i = 0; i < count; i++) out.push({ name: names[i % names.length], livery: liveries[i % liveries.length], skill: (i / Math.max(1, count - 1)) * 0.8 + rnd() * 0.2, model: models.length ? models[Math.floor(rnd() * models.length)].id : null });
+  /* La LIVRÉE d'un pilote de l'IA, tirée au même générateur que le reste.
+
+  Elle ne sert qu'aux modèles qui en ont plusieurs — ailleurs il n'y a qu'un dessin et l'indice
+  retombe dessus. Sans ce tirage, trois CSL sur la grille portaient toutes la même peinture alors
+  que le jeu en a trois : on aurait fait le travail de dessiner des variantes pour ne les voir
+  qu'une à la fois. Le tirage suit la graine, donc une manche de championnat rejouée présente la
+  même grille. */
+  for (let i = 0; i < count; i++) {
+    out.push({ name: names[i % names.length], livery: liveries[i % liveries.length],
+      skill: (i / Math.max(1, count - 1)) * 0.8 + rnd() * 0.2,
+      model: models.length ? models[Math.floor(rnd() * models.length)].id : null,
+      livree: Math.floor(rnd() * 64) });
+  }
   return out;
 }
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }

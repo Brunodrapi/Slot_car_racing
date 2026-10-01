@@ -320,9 +320,36 @@ class UI {
   comment la voiture se pose sur la piste, ce qui est le sujet une fois en course, mais on ne
   choisit pas une voiture par son toit. Les autres gardent la vue de dessus, peinte sur une toile
   par `paintIcons` — deux voies qui cohabitent le temps que la série soit complète. */
-  carIcon(model, livery) {
-    if (model.pick) return `<img class="carpick" src="${model.pick}" alt="">`;
-    return `<canvas class="caricon" width="160" height="72" data-car="${model.id}" data-livery="${LIVERIES.indexOf(livery)}"></canvas>`;
+  carIcon(model, livery, livree) {
+    const lv = livreeDe(model, livree);
+    /* Le repli est posé en ATTRIBUT, pas branché après coup.
+
+    Une vignette de livrée peut manquer — le dessin n'est pas encore là, le fichier a été renommé —
+    et une image cassée dans un menu est le pire des deux mondes : elle ne montre pas la voiture et
+    elle ne dit pas ce qui ne va pas. On retombe donc sur la vignette d'origine. En attribut parce
+    qu'un gestionnaire ajouté par script arrive après le chargement : si l'image a déjà échoué,
+    l'événement est passé et personne ne l'attrape. */
+    if (lv.pick) {
+      const base = model.pick || '';
+      const repli = base && base !== lv.pick
+        ? ` data-base="${escapeHtml(base)}" onerror="this.onerror=null;this.src=this.dataset.base"` : '';
+      return `<img class="carpick" src="${escapeHtml(lv.pick)}" alt=""${repli}>`;
+    }
+    return `<canvas class="caricon" width="160" height="72" data-car="${model.id}"
+      data-livery="${LIVERIES.indexOf(livery)}" data-livree="${(livree || 0)}"></canvas>`;
+  }
+
+  /* Le repère de livrée, posé sur la carte — et seulement s'il y a de quoi tourner.
+
+  Un modèle n'a le plus souvent qu'un dessin, et une pastille « 1/1 » sur huit cartes sur neuf
+  promettrait un choix qui n'existe pas. Elle n'apparaît donc que là où un second appui change
+  quelque chose, ce qui fait d'elle le mode d'emploi en même temps que l'état : on ne peut pas
+  deviner qu'une carte déjà choisie se re-clique, mais on peut lire « 2/3 ». */
+  repereLivree(model, livree) {
+    const n = model.livrees ? model.livrees.length : 1;
+    if (n < 2) return '';
+    const i = ((Math.round(livree) || 0) % n + n) % n;
+    return `<span class="livree"><b>${i + 1}/${n}</b> ${escapeHtml(model.livrees[i].nom)}</span>`;
   }
 
   /* Les quatre jauges d'une voiture.
@@ -391,14 +418,15 @@ class UI {
     for (const c of this.root.querySelectorAll('canvas.caricon')) {
       const model = modelById(c.dataset.car);
       if (!model) continue;
-      if (!topReady(model)) pending = true;
+      const livree = +c.dataset.livree || 0;
+      if (!topReady(model, livree)) pending = true;
       const g = c.getContext('2d');
       g.clearRect(0, 0, c.width, c.height);
       const sc = Math.min(150 / model.length, 60 / model.width);
       g.save();
       g.translate(c.width / 2, c.height / 2);
       g.scale(sc, sc);
-      drawCarModel(g, model, LIVERIES[+c.dataset.livery] || LIVERIES[0], {});
+      drawCarModel(g, model, LIVERIES[+c.dataset.livery] || LIVERIES[0], { livree });
       g.restore();
     }
     if (pending) onTopReady(() => this.paintIcons());
@@ -604,7 +632,7 @@ class UI {
           <span class="rline-t">${t('worldBest')}</span>
         </div>
         ${lignes.map(({ m, b, w }) => `<div class="rline ${m.id === choisie.id ? 'sel' : ''}">
-          <span class="rline-img">${this.carIcon(m, livery)}</span>
+          <span class="rline-img">${this.carIcon(m, livery, this.app.playerLivreeFor(m.id))}</span>
           <b>${escapeHtml(m.name)}</b>
           <span class="rline-t ${b == null ? 'muted' : ''}">${b == null ? '--:--.---' : fmtTime(b)}</span>
           <span class="rline-t monde" title="${w ? escapeHtml(w.pilote || '') : ''}">${
@@ -660,7 +688,8 @@ class UI {
       <div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${mode === 'race' ? t('quickRace') : t('timeTrial')}</h2></div>
       <h3>${t('model')}</h3>
       ${this.rail('models', 'models', modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${m.id}">
-            ${this.carIcon(m, livery)}<b>${escapeHtml(m.name)}${m.custom ? ` <small>(${t('custom')})</small>` : ''}</b>
+            ${this.carIcon(m, livery, app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}${m.custom ? ` <small>(${t('custom')})</small>` : ''}</b>
+            ${this.repereLivree(m, app.playerLivreeFor(m.id))}
             ${this.tyres(m)}
             ${this.gauges(m)}</button>`).join(''))}
       <h3>${t('track')}</h3>
@@ -746,7 +775,8 @@ class UI {
           <img alt="" src="${this.thumb(tr, 90)}"><b>${escapeHtml(tr.name)}</b><small>${tr.flag || '🏁'} ${this.longueur(tr)}</small></button>`).join(''))}
       <h3>${t('model')}</h3>
       ${this.rail('netModels', 'models', modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelNet" data-id="${m.id}">
-          ${this.carIcon(m, livery)}<b>${escapeHtml(m.name)}</b>${this.tyres(m)}</button>`).join(''))}
+          ${this.carIcon(m, livery, app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}</b>
+          ${this.repereLivree(m, app.playerLivreeFor(m.id))}${this.tyres(m)}</button>`).join(''))}
       <div class="row end">
         <span class="muted">${trackDef ? `${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ` : ''}${escapeHtml(model.name)}</span>
         <button class="${net.mine.ready ? '' : 'primary'}" data-action="netReady">${net.mine.ready ? t('notReady') : t('ready')}</button>
@@ -765,7 +795,7 @@ class UI {
           const unlocked = cupUnlocked(s, i), cs = cupState(s, c.id), cat = categoryById(c.classId);
           const status = !unlocked ? t('locked') : cs.done ? `${t('done')} · ${t('finalPos', cs.finalPos)}` : cs.race > 0 ? `${t('inProgress')} · ${t('raceOf', cs.race + 1, c.tracks.length)}` : t('notStarted');
           return `<button class="cup ${unlocked ? '' : 'locked'} ${cs.done && cs.finalPos <= 3 ? 'won' : ''}" data-action="cup" data-id="${c.id}" ${unlocked ? '' : 'disabled'}>
-            ${this.carIcon(this.app.playerModelFor(cat.id), livery)}
+            ${this.carIcon(this.app.playerModelFor(cat.id), livery, this.app.playerLivreeFor(this.app.playerModelFor(cat.id).id))}
             <div><b>${this.L(c.name)}</b><small>${this.L(cat.name)} · ${c.tracks.length} ${t('races')}</small><small class="status">${status}</small></div>
             <div class="medal">${cs.done && cs.finalPos <= 3 ? ['🥇', '🥈', '🥉'][cs.finalPos - 1] : unlocked ? '' : '🔒'}</div>
           </button>`;
@@ -789,7 +819,7 @@ class UI {
           <h3>${t('standings')}</h3>${table}
           <button class="link" data-action="resetCup" data-id="${cupId}">${t('resetCup')}</button>
           <h3>${t('model')}</h3>
-          <div class="grid models small">${modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelCup" data-id="${m.id}" data-cup="${cupId}">${this.carIcon(m, livery)}<b>${escapeHtml(m.name)}</b></button>`).join('')}</div>
+          <div class="grid models small">${modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelCup" data-id="${m.id}" data-cup="${cupId}">${this.carIcon(m, livery, app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}</b>${this.repereLivree(m, app.playerLivreeFor(m.id))}</button>`).join('')}</div>
         </div>
         <div>
           <h3>${cs.done ? t('done') : t('nextRace')} · ${t('raceOf', idx + 1, cup.tracks.length)}</h3>
@@ -970,8 +1000,14 @@ class UI {
       case 'workshop': this.workshopScreen(); break;
       case 'wsAdd': this._workshopAdd().catch(err => this.workshopScreen(String(err))); break;
       case 'wsDelete': if (confirm(this.t('confirmDelete'))) { Store.del('cars', id).then(() => { unregisterModel(id); return app.refreshCustom(); }).then(() => this.workshopScreen()); } break;
-      case 'pickModel': { const m = modelById(id); app.save.models[m.catId] = id; storeSave(app.save); this.setupScreen(this.setup.mode); break; }
-      case 'pickModelCup': { const m = modelById(id); app.save.models[m.catId] = id; storeSave(app.save); this.cupScreen(btn.dataset.cup); break; }
+      /* Un appui CHOISIT, le suivant fait tourner la livrée.
+
+      C'est la demande de Bruno : « en cliquant plusieurs fois sur une voiture on change à chaque
+      fois de livrée ». Le premier appui sur une carte qui n'est pas la sienne la choisit — sinon
+      changer de voiture changerait aussi sa peinture au passage, ce que personne ne demande. Une
+      fois choisie, la carte devient le sélecteur de livrée. */
+      case 'pickModel': { this._choisitOuTourne(id); this.setupScreen(this.setup.mode); break; }
+      case 'pickModelCup': { this._choisitOuTourne(id); this.cupScreen(btn.dataset.cup); break; }
       case 'pickTrack': this.setup.trackId = id; this.setupScreen(this.setup.mode); break;
       case 'pickDiff': app.save.difficulty = id; storeSave(app.save); this.setupScreen(this.setup.mode); break;
       case 'pickLaps': {
@@ -999,7 +1035,7 @@ class UI {
       case 'netTrack': app.net.setTable({ trackId: id, laps: lapsFor(app.trackDefById(id), categoryById(this.setup.classId)) }); break;
       case 'netReady': this._netReady(!app.net.mine.ready); break;
       case 'netStart': app.net.start(); break;
-      case 'pickModelNet': { const m = modelById(id); app.save.models[m.catId] = id; storeSave(app.save); this._netCar(); break; }
+      case 'pickModelNet': { this._choisitOuTourne(id); this._netCar(); this.lobbyScreen(); break; }
       case 'toLobby': app.toLobby(); break;
       case 'startCup': app.startCupRace(id); break;
       case 'resetCup': delete app.save.cups[id]; storeSave(app.save); this.cupScreen(id); break;
@@ -1011,9 +1047,29 @@ class UI {
     }
   }
 
+  /* Choisir un modèle, ou faire tourner sa livrée s'il est déjà choisi.
+
+  Une seule fonction pour les trois écrans qui montrent des cartes de voiture. Les trois faisaient
+  déjà la même chose en trois copies, et la livrée aurait fait une quatrième ligne à recopier — donc
+  un écran sur trois où le second appui n'aurait rien fait, et personne pour s'en apercevoir avant
+  d'y passer. */
+  _choisitOuTourne(id) {
+    const app = this.app, m = modelById(id);
+    if (!m) return;
+    if (app.save.models[m.catId] !== id) { app.save.models[m.catId] = id; storeSave(app.save); return; }
+    const n = m.livrees ? m.livrees.length : 1;
+    if (n < 2) return;                       // rien à faire tourner : un seul dessin
+    if (!app.save.livrees) app.save.livrees = {};
+    app.save.livrees[id] = (app.playerLivreeFor(id) + 1) % n;
+    storeSave(app.save);
+  }
+
   _netCar() {
     const app = this.app, cat = categoryById(this.setup.classId);
-    app.net.setMine({ car: { modelId: app.playerModelFor(cat.id).id } });
+    const id = app.playerModelFor(cat.id).id;
+    // la livrée part avec le modèle : les autres écrans dessinent la voiture, ils doivent savoir
+    // laquelle des trois peintures montrer
+    app.net.setMine({ car: { modelId: id, livree: app.playerLivreeFor(id) } });
   }
 
   _netReady(v) {

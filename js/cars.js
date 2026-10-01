@@ -111,7 +111,19 @@ const CATEGORIES = [
           start: 'sounds/engine/r26b-787b-start.json',
         },
       } },
-      { id: 'csl', diff: 0, name: '3.0 CSL', shape: 'gtBoxy', mul: { vmax: 0.95, accel: 0.98, grip: 1.05, df: 1.2, brake: 1.03, slide: 1.1 }, pick: 'sprites/pick/csl.png', engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.1, bright: 0.68, turbo: 0 }, colors: ['#f7f7f7', '#2166d8'], top: 'sprites/top/csl.png' },
+      { id: 'csl', diff: 0, name: '3.0 CSL', shape: 'gtBoxy', mul: { vmax: 0.95, accel: 0.98, grip: 1.05, df: 1.2, brake: 1.03, slide: 1.1 }, pick: 'sprites/pick/csl.png', engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.1, bright: 0.68, turbo: 0 }, colors: ['#f7f7f7', '#2166d8'], top: 'sprites/top/csl.png',
+        /* Trois livrées, et la première est celle qui existait déjà.
+
+        Une livrée n'est pas une couleur ici : une illustration remplace le dessin vectoriel ET la
+        couleur, donc la seule façon de changer de livrée est de changer de dessin. Les fichiers
+        se déduisent de l'identifiant — `sprites/top/csl-castrol.png` et sa vignette dans
+        `sprites/pick/` — et un identifiant vide garde les fichiers sans suffixe, pour que la
+        livrée d'origine n'ait pas à être renommée. */
+        livrees: [
+          { id: '', nom: 'Motorsport' },
+          { id: 'castrol', nom: 'Castrol' },
+          { id: 'calder', nom: 'Calder' },
+        ] },
     ],
   },
 ];
@@ -137,6 +149,26 @@ const AI_NAMES = [
   'F. Marchetti', 'G. Larsen', 'I. Kovács', 'O. Haddad',
 ];
 
+/* Le chemin d'une variante, déduit de celui de la livrée d'origine.
+
+   `sprites/top/csl.png` + `castrol` → `sprites/top/csl-castrol.png`. Déduire plutôt qu'écrire les
+   six chemins à la main tient le fichier lisible et rend l'ajout d'une livrée à une ligne — mais
+   surtout, ça empêche la vignette et la vue de dessus de désigner deux livrées différentes, ce qui
+   ne se verrait qu'en comparant le menu et la piste. */
+function cheminLivree(src, suffixe) {
+  if (!src || !suffixe) return src || null;
+  const i = src.lastIndexOf('.');
+  return i < 0 ? `${src}-${suffixe}` : `${src.slice(0, i)}-${suffixe}${src.slice(i)}`;
+}
+
+/** La livrée `i` d'un modèle, l'indice tournant sur la liste. Toujours une livrée, jamais `null`. */
+function livreeDe(model, i) {
+  const l = model && model.livrees && model.livrees.length ? model.livrees : null;
+  if (!l) return { id: '', nom: (model && model.name) || '', top: (model && model.top) || null, pick: (model && model.pick) || null };
+  const n = l.length;
+  return l[((Math.round(i) || 0) % n + n) % n];
+}
+
 // La prise jouée par toute voiture qui n'en a pas à elle. Voir `resolveModel`.
 const MOTEUR_DEFAUT = 'sounds/engine/six-inline.json';
 
@@ -161,6 +193,19 @@ function resolveModel(cat, m) {
     pick: m.pick || null,
     engine: Object.assign({ cyl: 8, redline: 7000, idle: 1000, rough: 0.3, bright: 0.6, turbo: 0 }, cat.engine || {}, m.engine || {}),
   };
+  /* Les livrées : au moins une, toujours, et la première est le dessin d'origine.
+
+  Un modèle qui n'en déclare pas en reçoit une seule, bâtie sur ses propres fichiers. Tout le reste
+  du jeu lit donc la même liste, qu'un modèle ait trois livrées ou une : il n'y a pas de cas
+  particulier « ce modèle n'a pas de variantes » à écrire quelque part, et c'est précisément le
+  genre de cas particulier qu'on oublie dans une des cinq fonctions qui dessinent une voiture. */
+  model.livrees = (m.livrees && m.livrees.length ? m.livrees : [{ id: '', nom: m.name }]).map((lv) => ({
+    id: lv.id || '',
+    nom: lv.nom || m.name,
+    top: lv.top || cheminLivree(m.top, lv.id),
+    pick: lv.pick || cheminLivree(m.pick, lv.id),
+  }));
+
   /* Une voiture sans prise à elle joue quand même un vrai moteur.
 
   La synthèse donne la bonne hauteur mais pas la bonne matière, et l'écart s'entend d'autant plus que
@@ -269,4 +314,4 @@ function registerModel(def) {
 }
 function unregisterModel(id) { const i = MODELS.findIndex(m => m.id === id); if (i >= 0) MODELS.splice(i, 1); }
 
-if (typeof module !== 'undefined') module.exports = { CATEGORIES, MODELS, LIVERIES, AI_NAMES, SIMPLE, perfOf, perfFill, PERF_RANGE, PERF_KEYS, playableCategories, categoryById, modelsOf, allModelsOf, modelById, carClassById, registerModel };
+if (typeof module !== 'undefined') module.exports = { CATEGORIES, MODELS, LIVERIES, livreeDe, AI_NAMES, SIMPLE, perfOf, perfFill, PERF_RANGE, PERF_KEYS, playableCategories, categoryById, modelsOf, allModelsOf, modelById, carClassById, registerModel };

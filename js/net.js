@@ -240,7 +240,10 @@ class Net {
     if (this.creator) {
       const m = this.members();
       if (m.length < 2) return;
-      grid = m.map(x => ({ p: x.pid, n: x.name, m: (x.car && x.car.modelId) || null }));
+      // `l` : la livrée choisie. Elle voyage avec le modèle, sinon chaque écran dessine la voiture
+      // d'un autre dans la peinture qu'il a lui-même choisie.
+      grid = m.map(x => ({ p: x.pid, n: x.name, m: (x.car && x.car.modelId) || null,
+        l: (x.car && x.car.livree) || 0 }));
     } else {
       grid = this.hostGrid();
       if (!grid) return;                         // l'invité attend la grille de l'hôte
@@ -274,6 +277,7 @@ class Net {
       humans: grid.map((g, i) => ({
         name: g.n || ('Pilote ' + (i + 1)),
         modelId: g.m || null,
+        livree: g.l || 0,
         livery: i,
         local: g.p === this.pid,
       })),

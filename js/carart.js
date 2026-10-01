@@ -128,29 +128,44 @@ function drawCarSprite(g, model, L, W, livery) {
    can follow the car's outline instead of being a rectangle under it. */
 const _topCache = new Map();
 const _topWaiters = [];
+/* Quelle illustration pour quelle livrée.
+
+   Un modèle porte une liste de livrées (`js/cars.js`), chacune avec son dessin. Toutes les fonctions
+   de dessin prennent donc l'indice de livrée en plus du modèle. Il est facultatif partout : absent,
+   c'est la première livrée, c'est-à-dire exactement ce que le jeu faisait avant. */
+function topSrc(model, livree) {
+  if (!model) return null;
+  const l = model.livrees && model.livrees.length ? model.livrees : null;
+  if (!l) return model.top || null;
+  const n = l.length, i = ((Math.round(livree) || 0) % n + n) % n;
+  return l[i].top || model.top || null;
+}
+
 /* True once this model's drawing is decoded — or once we know it will never arrive.
 
    A missing file used to leave this false for good. Nobody noticed while it only delayed a drawing
    that had a vector body to fall back on; it matters now that the countdown waits on this answer,
    because "not yet" and "never" would hold the race apart for the same twelve seconds. */
-function topReady(model) {
-  if (!model.top) return true;
-  if (topArt(model)) return true;
-  const e = _topCache.get(model.top);
+function topReady(model, livree) {
+  const src = topSrc(model, livree);
+  if (!src) return true;
+  if (topArt(model, livree)) return true;
+  const e = _topCache.get(src);
   return !!(e && e.rate);
 }
 /** Called once every drawing has landed, so a screen built too early can be built again. */
 function onTopReady(cb) { _topWaiters.push(cb); }
-function topArt(model) {
-  if (!model.top) return null;
-  let e = _topCache.get(model.top);
+function topArt(model, livree) {
+  const src = topSrc(model, livree);
+  if (!src) return null;
+  let e = _topCache.get(src);
   if (!e) {
     const img = new Image();
     e = { img, shadow: null, rate: false };
     img.onload = () => { for (const cb of _topWaiters.splice(0)) cb(); };
     img.onerror = () => { e.rate = true; for (const cb of _topWaiters.splice(0)) cb(); };
-    img.src = model.top;
-    _topCache.set(model.top, e);
+    img.src = src;
+    _topCache.set(src, e);
   }
   if (!e.img.complete || !e.img.naturalWidth) return null;
   if (!e.shadow) {
@@ -174,8 +189,8 @@ function topSize(model, art) {
 }
 
 /** The car's own outline, filled dark, for the shadow. Returns false if this model has no drawing. */
-function drawCarShadow(g, model) {
-  const art = topArt(model);
+function drawCarShadow(g, model, livree) {
+  const art = topArt(model, livree);
   if (!art) return false;
   const [w, h] = topSize(model, art);
   g.drawImage(art.shadow, -w / 2, -h / 2, w, h);
@@ -185,7 +200,7 @@ function drawCarShadow(g, model) {
 // Draws any model centred at the origin, facing +x.
 function drawCarModel(g, model, livery, opts) {
   const L = model.length, W = model.width;
-  const art = topArt(model);
+  const art = topArt(model, opts && opts.livree);
   if (art) {
     const [w, h] = topSize(model, art);
     g.drawImage(art.img, -w / 2, -h / 2, w, h);
@@ -195,4 +210,4 @@ function drawCarModel(g, model, livery, opts) {
   drawCarBody(g, model.shape, L, W, livery, opts);
 }
 
-if (typeof module !== 'undefined') module.exports = { drawCarShadow, topReady, onTopReady, SHAPES, drawCarModel };
+if (typeof module !== 'undefined') module.exports = { drawCarShadow, topReady, onTopReady, SHAPES, drawCarModel, topSrc };

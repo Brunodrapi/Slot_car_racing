@@ -1292,6 +1292,50 @@ elle aurait coûté dix fois le poids des voitures voisines pour le même résul
 un téléphone en 4G, c'est l'écran de sélection qui attend. L'outil la ramène à 420×271 et 180 Ko,
 dans la fourchette des autres (176 à 343 Ko), avec les mêmes 40 % de transparence.
 
+### Plusieurs livrées par voiture, et le clic qui les fait tourner
+
+Une livrée n'est pas une couleur ici. Les neuf voitures portent une illustration, et l'illustration
+remplace le dessin vectoriel **et** la teinte : la palette `LIVERIES` ne se voit plus sur aucune
+d'elles. Changer de livrée, c'est donc changer de fichier. La 3.0 CSL en a trois — Motorsport,
+Castrol, Calder.
+
+Un modèle déclare ses livrées dans `js/cars.js`, et **les chemins se déduisent de l'identifiant** :
+`castrol` donne `sprites/top/csl-castrol.png` et `sprites/pick/csl-castrol.png`, un identifiant vide
+garde les fichiers sans suffixe pour que la livrée d'origine n'ait pas à être renommée. Déduire
+plutôt qu'écrire les six chemins à la main tient le fichier lisible, mais surtout ça empêche la
+vignette du menu et la vue de dessus de désigner deux livrées différentes — un écart qui ne se
+verrait qu'en comparant le menu et la piste.
+
+Un modèle qui ne déclare rien reçoit **une** livrée bâtie sur ses propres fichiers. Tout le reste du
+jeu lit donc la même liste, qu'un modèle en ait trois ou une : il n'y a nulle part un cas
+particulier « ce modèle n'a pas de variantes », qui serait précisément celui qu'on oublie dans une
+des cinq fonctions qui dessinent une voiture.
+
+**Le premier appui choisit, les suivants font tourner.** Choisir une voiture ne doit pas repeindre
+au passage celle qu'on vient de prendre ; une fois choisie, la carte devient le sélecteur de livrée.
+Le repère `2/3 Castrol` n'apparaît que sur les modèles qui en ont plusieurs : une pastille « 1/1 »
+sur huit cartes sur neuf promettrait un choix qui n'existe pas. Il est donc le mode d'emploi en même
+temps que l'état — on ne devine pas qu'une carte déjà choisie se re-clique, mais on lit `2/3`.
+
+Le choix est rangé **par voiture** (`save.livrees[modelId]`) : revenir à la CSL après un détour par
+la 935 rend la Castrol. Il voyage aussi dans le salon en ligne, sinon chaque écran dessinerait la
+voiture d'un autre dans la peinture qu'il a lui-même choisie. Et les pilotes de l'IA tirent la leur
+au même générateur que leur nom et leur talent : sans ce tirage, trois CSL sur la grille portaient
+la même peinture alors que le jeu en a trois — on aurait dessiné des variantes pour ne les voir
+qu'une à la fois. Le tirage suit la graine, donc une manche de championnat rejouée présente la même
+grille.
+
+Une vignette manquante retombe sur celle d'origine, et le repli est posé **en attribut** et non
+branché par script : un gestionnaire ajouté après coup arrive après le chargement, et si l'image a
+déjà échoué l'événement est passé. Une illustration de dessus manquante retombe sur le dessin
+vectoriel, sans retenir la barrière de chargement — un fichier absent ne viendra pas.
+
+`tools/e2e-livree.js` ne vérifie pas que l'écran a changé d'aspect mais que **la page est allée
+chercher le bon fichier** : il note chaque chemin demandé. Il sert les deux variantes à partir du
+dessin d'origine, pour que l'essai mesure le code et non l'avancement du travail de dessin. Et il
+interroge le tirage de l'IA directement : la course jouée ne comptait qu'une CSL, donc le contrôle
+« elles ne portent pas toutes la même » y passait sans rien prouver.
+
 ## Le son des voitures
 
 Le moteur vient de [markeasting/engine-audio](https://github.com/markeasting/engine-audio), sous
@@ -2272,6 +2316,7 @@ NODE_PATH=$(npm root -g) node tools/perf.js [voiture] [secondes] [--bride=4]    
 NODE_PATH=$(npm root -g) node tools/e2e-son-relance.js                            # le son survit-il a une deuxieme course ?
 node tools/sortie.js                                                              # vibreur, tour annule, penalite : les trois etages de la regle
 node tools/coupe.js [--fenetre=400]                                               # ce qu'une coupe peut rapporter, au plus
+NODE_PATH=$(npm root -g) node tools/e2e-livree.js [dossier]                       # plusieurs livrees par voiture : le clic, la memoire, le fichier charge
 ```
 
 `tools/sheet.py` (Pillow requis, outil de développement seulement) transforme un dossier de rendus en

@@ -132,6 +132,8 @@ class Car {
     this.cls = model;
     this.name = opts.name || 'Driver';
     this.livery = opts.livery;
+    // l'indice de la livrée DESSINÉE, parmi celles que le modèle déclare (voir `js/cars.js`)
+    this.livree = opts.livree || 0;
     this.isPlayer = !!opts.isPlayer;
     this.skill = opts.skill == null ? 0.5 : opts.skill;
     /* La triche du niveau extrême, et elle ne concerne QUE l'IA.

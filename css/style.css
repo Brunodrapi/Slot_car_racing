@@ -211,6 +211,15 @@ button.link { background: none; border: none; color: var(--muted); text-decorati
   color: #ffb4a2; text-decoration: none; display: inline-block; }
 .tbl td.warn { color: #ffb4a2; font-variant-numeric: tabular-nums; }
 .tbl td.warn small { color: var(--muted); font-weight: 500; }
+/* Le repère de livrée sur une carte de voiture.
+
+   Il ne vit que sur les modèles qui en ont plusieurs, donc il doit se lire comme un état et non
+   comme une décoration : le rang en gras, le nom de la livrée à côté, sur une seule ligne qui se
+   tronque plutôt que de pousser la carte. */
+.card .livree { display: block; margin: 2px 0 0; font-size: 11px; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.card .livree b { color: var(--accent); font-weight: 700; margin-right: 4px; }
+
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: middle; }
 .tracklist { display: flex; flex-direction: column; gap: 6px; }
 .tracklist .tr { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 10px; background: var(--card); }
