@@ -1018,10 +1018,20 @@ class UI {
       const p = Math.max(0, pos - retires);
       try { el.setSelectionRange(p, p); } catch (_) { /* un champ non textuel n'a pas de curseur */ }
     }
+    /* La frappe NETTOIE, elle n'enregistre pas.
+
+    Le champ des réglages écrivait dans la sauvegarde à chaque lettre, et le garde-fou vivait sur
+    `change` — qui remet le champ à la valeur sauvegardée quand la saisie ne vaut rien. Sauf que
+    cette valeur venait d'être écrasée : effacer son nom lettre par lettre enregistrait le dernier
+    morceau encore valide, « Br » pour « Bruno42 », et effacer jusqu'au bout enregistrait le vide,
+    que le retour au menu prenait pour un premier lancement.
+
+    Le nom s'écrit donc quand on QUITTE le champ, et seulement s'il en est un (`_onChange`). On ne
+    perd rien : partir d'un champ, c'est le quitter. */
     if (el.id === 'inp-nom') {
       const b = document.getElementById('btn-nom');
       if (b) b.disabled = !nomValide(el.value);
-    } else { this.app.save.name = el.value; storeSave(this.app.save); }
+    }
   }
 
   _onChange(e) {

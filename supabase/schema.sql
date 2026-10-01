@@ -43,8 +43,14 @@ create policy records_lecture on public.records for select to anon, authenticate
 -- compte connecté. Seule la fonction serveur, qui s'authentifie avec la clé de service, passe
 -- outre le RLS et peut écrire. C'est ce qui rend la validation incontournable plutôt que polie.
 
--- La table des pseudos. Séparée des records pour qu'un changement de pseudo mette à jour toutes
--- les lignes d'un joueur d'un coup, au lieu d'en laisser derrière sous l'ancien nom.
+-- La table des pseudos, séparée des records : c'est elle qui dit comment s'appelle un compte, et un
+-- changement de nom n'y touche qu'une ligne.
+--
+-- `records.pilote` en garde quand même une COPIE, pour que le tableau mondial s'affiche d'une seule
+-- lecture, sans jointure. Une copie se périme, et celle-là se périmait : après un renommage, le même
+-- pilote apparaissait sous son ancien nom sur ses records déjà posés et sous le nouveau sur les
+-- suivants — deux noms, donc ce qui ressemble à deux personnes. La fonction serveur recale les
+-- lignes du joueur au premier temps envoyé après le changement (voir `supabase/functions/record`).
 create table if not exists public.pilotes (
   id     uuid primary key references auth.users(id) on delete cascade,
   pseudo text not null,

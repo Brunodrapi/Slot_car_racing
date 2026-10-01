@@ -135,6 +135,44 @@ const serveur = http.createServer((req, res) => {
       return { champ: e.value, enregistre: app.save.name };
     });
     dit(vide.enregistre === 'Bruno42', `vider le champ des reglages n'efface pas le nom (« ${vide.enregistre} »)`);
+
+    /* --- 6. le même champ, EFFACÉ À LA TOUCHE --- */
+    /* Le contrôle du dessus n'envoyait qu'un `change`, et c'est par là que le défaut est passé : un
+    joueur ne pose pas un champ vide d'un coup, il efface lettre par lettre, et chaque lettre envoie
+    un `input`. C'est `input` qui écrivait dans la sauvegarde sans rien vérifier ; le `change` qui
+    devait rattraper « restaurait » alors la valeur vide qu'il venait lui-même d'enregistrer, et le
+    retour au menu redemandait son nom au joueur comme s'il venait d'arriver. */
+    const frappe = await page.evaluate(async () => {
+      app.ui.settings();
+      await new Promise((r) => setTimeout(r, 250));
+      const e = document.getElementById('inp-name');
+      for (let n = e.value.length - 1; n >= 0; n--) {
+        e.value = e.value.slice(0, n);
+        e.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      const pendant = app.save.name;
+      e.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise((r) => setTimeout(r, 150));
+      app.toMenu();
+      await new Promise((r) => setTimeout(r, 300));
+      return { pendant, enregistre: app.save.name, redemande: !!document.getElementById('inp-nom') };
+    });
+    dit(frappe.pendant === 'Bruno42', `effacer a la touche n'ecrit rien du tout (« ${frappe.pendant} »)`);
+    dit(frappe.enregistre === 'Bruno42', `le nom survit a l'effacement (« ${frappe.enregistre} »)`);
+    dit(!frappe.redemande, `le menu ne redemande pas le nom (${frappe.redemande ? 'il le redemande' : 'il s\'ouvre'})`);
+
+    /* --- 7. et renommer pour de bon marche toujours --- */
+    const renomme = await page.evaluate(async () => {
+      app.ui.settings();
+      await new Promise((r) => setTimeout(r, 250));
+      const e = document.getElementById('inp-name');
+      e.value = '';
+      for (const c of 'Nina9') { e.value += c; e.dispatchEvent(new Event('input', { bubbles: true })); }
+      e.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise((r) => setTimeout(r, 150));
+      return app.save.name;
+    });
+    dit(renomme === 'Nina9', `un vrai renommage est bien enregistre (« ${renomme} »)`);
     await page.screenshot({ path: path.join(out, 'nom.png') });
     await ctx.close();
   }

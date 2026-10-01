@@ -1846,6 +1846,40 @@ sur la même session morte, et le geste n'aurait servi qu'à l'y renvoyer.
 Le compte se gère aussi depuis les réglages, dans les deux sens. Sans cette ligne, se déconnecter
 était impossible et changer de compte demandait de vider le navigateur.
 
+### Changer de nom, et ce que ça déplace
+
+Trois choses portent un nom, et elles ne le portent pas de la même façon.
+
+**Les records locaux ne le portent pas du tout.** Ils sont rangés sous `circuit|catégorie|voiture`,
+jamais sous le pseudo : un renommage ne leur fait rien, et c'est voulu — ce sont les temps de cet
+appareil, pas ceux d'une étiquette.
+
+**Le compte mondial est le compte Google, pas le nom.** La table `pilotes` a pour clé `auth.uid()`,
+donc renommer déplace l'étiquette sans toucher l'identité : les records restent attribués, et le
+prochain temps envoyé inscrit le nouveau nom. Un index unique sur `lower(pseudo)` garde les noms
+distincts — un nom déjà pris par un autre compte renvoie `pseudo_pris`, et ce refus arrive au
+moment de l'envoi d'un temps, pas au moment du renommage.
+
+**Un renommage suit le joueur sur ses anciens records.** Le nom est recopié dans `records` à la pose
+du temps, ce qui permet d'afficher le tableau mondial d'une seule lecture, sans jointure — mais une
+copie se périme. Le joueur voyait son ancien pseudo sur les records déjà en base et le nouveau sur
+les suivants : le même pilote sous deux noms, ce qui est pire qu'un nom dépassé, parce que ça
+ressemble à deux personnes. La fonction serveur remet donc les siennes à jour, les siennes seulement
+(`auteur` est l'identité vérifiée), et seulement lorsqu'elles diffèrent — donc jamais dans le cas
+courant. Une erreur là n'arrête pas l'envoi : le temps compte plus que l'étiquette.
+
+**Le champ des réglages n'écrit plus à la frappe.** Il enregistrait à chaque lettre, et le
+garde-fou vivait sur `change`, qui remet le champ à la valeur sauvegardée quand la saisie ne vaut
+rien — sauf que cette valeur venait d'être écrasée. Effacer son nom lettre par lettre enregistrait
+le dernier morceau encore valide : « Bruno42 » devenait « Br », sans que rien ne le signale.
+Effacer jusqu'au bout enregistrait le vide, et le retour au menu redemandait son nom au joueur comme
+s'il venait d'arriver. Le nom s'écrit maintenant quand on QUITTE le champ, et seulement s'il en est
+un ; on ne perd rien, puisque partir d'un champ c'est le quitter.
+
+Le test ne voyait pas ce défaut parce qu'il n'envoyait qu'un `change` : un joueur ne pose pas un
+champ vide d'un coup, il efface lettre par lettre, et chaque lettre envoie un `input`.
+`tools/e2e-nom.js` efface donc à la touche, et vérifie aussi qu'un vrai renommage passe toujours.
+
 ### Ce qui se casse, et ce qui ne doit pas casser
 
 `tools/e2e-mondial.js` sert les réponses lui-même. Un essai branché sur le vrai Supabase mesurerait
@@ -1992,6 +2026,69 @@ délibérément le premier instantané de l'hôte de cinq secondes — deux fois
 regarde ce que l'invité annonce. Il fabrique aussi un retardataire qui n'existe nulle part, sans
 quoi le contrôle de l'échappatoire partirait de zéro et ne prouverait rien.
 
+### La même barrière en solo, et l'invité qui n'en savait rien
+
+La barrière était née du multijoueur, donc posée derrière un test `online`. En solo la course
+partait pendant que les vignettes se décodaient et que les mégaoctets de prises arrivaient : on
+démarrait au silence, le son s'allumait au deuxième virage. Le défaut était le même, seul le témoin
+manquait — personne ne crie « liaison perdue » à un joueur seul.
+
+Elle tient donc le décompte dans les trois cas, avec la même échappatoire de douze secondes. Et
+l'invité annonce désormais SON chargement : il ne tient pas le décompte, celui de l'hôte lui arrive
+tout fait, et quand l'hôte retenait, l'invité voyait des feux arrêtés sans un mot — le silence
+d'avant, déplacé d'un écran.
+
+**« Pas encore » et « jamais » devaient cesser de se ressembler.** Deux attentes pouvaient ne jamais
+finir : une illustration de voiture dont le fichier manque laissait `topReady` faux pour de bon, et
+un téléchargement de prises qui échoue laissait `pret` faux pour de bon. Tant que ces réponses ne
+servaient qu'à choisir un dessin de repli, personne ne l'avait vu ; dès qu'un décompte s'y adosse,
+les deux coûtent douze secondes d'attente à chaque course, pour un fichier qui n'arrivera pas. Une
+image qui échoue se marque donc comme telle, et `audio.pretAJouer()` répond « rien à attendre »
+dans les trois cas qui s'y ressemblent : son coupé, moteur jamais démarré faute de geste,
+téléchargement perdu.
+
+`tools/e2e-charge-solo.js` retient d'abord une vignette, puis **le son seul** — sans ce second
+contrôle le premier ne prouve qu'une moitié, les prises ayant tout le temps d'arriver pendant que la
+vignette retient la course. Il lit ensuite les textes réellement peints sur la toile, parce qu'une
+barrière muette est le défaut d'avant sous un autre nom, et il vérifie qu'à l'instant où la course
+passe en « racing » les prises sont chargées — c'est la demande, et c'est la seule mesure qui la
+vérifie.
+
+### Deux dessins sous une voiture, et ce qu'ils coûtent vraiment
+
+Sous la voiture, à l'écran, on en voit une seconde : plus sombre, décalée. C'est son ombre, et la
+question est légitime — deux dessins au lieu d'un, est-ce que ça pèse ? La lecture du code ne
+suffit pas à répondre, parce que **le nombre de couches dépend de la caméra** : à plat une voiture
+est un `drawImage` plus son ombre ; en vue inclinée, celle qui n'a pas de planche de rotation est
+empilée huit à vingt-huit fois, le même dessin plat à des hauteurs croissantes, ce qui est la façon
+de lui donner du volume sans moteur 3D.
+
+`tools/calques.js` chronomètre `_drawCar` lui-même et compte les `drawImage` en interceptant le
+contexte — une moyenne d'images par seconde diluerait dix voitures dans tout le reste de la scène.
+Sur la 935, processeur bridé quatre fois pour ressembler à un téléphone :
+
+| | dessins / voiture | ms / voiture |
+|---|---|---|
+| à plat, avec l'ombre | 2 | 0,043 |
+| à plat, sans l'ombre | 1 | 0,044 |
+| vue inclinée (empilée) | 20 | 0,359 |
+
+**L'ombre ne coûte rien de mesurable** : l'écart est de −0,001 ms, sous le bruit de la mesure. Sa
+silhouette est gravée une fois par modèle et gardée ; la redessiner, c'est un quadrilatère texturé
+de plus. Et elle n'a rien à voir avec la latence de commande, qui se joue dans la chaîne
+appui → physique → affichage, pas dans le nombre de quadrilatères.
+
+Ce qui coûte, c'est l'empilement de la vue inclinée : dix fois plus, soit 3,6 ms par image à dix
+voitures sur une machine bridée — un dixième d'image. Les trois voitures qui ont une planche de
+rotation (M1, F40, 930) n'y passent pas, et la caméra par défaut est à plat.
+
+**Le banc a d'abord menti, et de la pire façon.** Sa première passe portait seule le prix du
+démarrage — la gomme qui s'étale, les silhouettes qu'on grave, les planches qui finissent
+d'arriver — et sortait 65 ms d'image médiane contre 30 pour la suivante. Le coût par voiture, lui,
+ne variait que de 0,01 ms : c'était l'ordre des passes qu'on mesurait. Une passe de chauffe est donc
+jetée avant les quatre autres. Sans elle, le banc attribuait trente-cinq millisecondes à l'ombre
+qu'on examinait.
+
 ### La voie montante de l'hôte, d'un bout à l'autre
 
 | | 2 | 4 | 6 | 8 joueurs |
@@ -2061,6 +2158,10 @@ node tools/usure.js [circuit|all] [catégorie]                                  
 python3 tools/boucles.py sounds/six-inline/*.wav                                  # où boucler dans une prise, sans réencoder
 node tools/e2e-gauges.js                                                         # les cadrans : chiffre et arc d'accord, aucun plein
 NODE_PATH=$(npm root -g) node tools/propdbg.js <image.png>                        # décor visible et coût par image
+NODE_PATH=$(npm root -g) node tools/e2e-charge.js                                 # la barrière de chargement en ligne, et le faux « liaison perdue »
+NODE_PATH=$(npm root -g) node tools/e2e-charge-solo.js                            # la même en solo : vignettes, son, sortie, message à l'écran
+NODE_PATH=$(npm root -g) node tools/calques.js [voiture] [--bride=4]              # ce que coûte chaque couche dessinée sous une voiture
+NODE_PATH=$(npm root -g) node tools/perf.js [voiture] [secondes] [--bride=4]      # images par seconde en course, et la queue de la distribution
 ```
 
 `tools/sheet.py` (Pillow requis, outil de développement seulement) transforme un dossier de rendus en

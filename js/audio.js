@@ -80,7 +80,13 @@ class GameAudio {
     if (this.jeu !== c.jeu) {
       this.jeu = c.jeu;
       this.pret = false;
-      this.sampler.charge(j.sounds, '', j.niveau).then(() => { this.pret = true; }).catch(() => { this.pret = false; });
+      this.rate = false;
+      this.sampler.charge(j.sounds, '', j.niveau)
+        .then(() => { this.pret = true; })
+        // Un échec est DÉFINITIF et doit se dire comme tel : `pret` resterait faux, et une barrière
+        // de chargement qui lit « pas prêt » attendrait son délai entier à chaque course pour un
+        // fichier qui n'arrivera jamais.
+        .catch(() => { this.pret = false; this.rate = true; });
     }
   }
 
@@ -126,6 +132,7 @@ class GameAudio {
       this.vehicule = null;        // construit dès qu'on sait quelle voiture joue
       this.jeu = null;             // le jeu de prises en cours de lecture
       this.pret = false;           // les boucles sont-elles arrivées ?
+      this.rate = false;           // ou ne viendront-elles jamais ?
       this.catalogue = null;
       this._catalogue();
       // --- pneus : deux bandes, l'une aiguë qui chante, l'autre plus basse qui racle ---
@@ -155,6 +162,19 @@ class GameAudio {
   }
 
   resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
+
+  /* Y a-t-il encore un son à attendre avant de lâcher une course ?
+
+  La question n'est pas « est-ce prêt » mais « est-ce que ça va venir ». Les trois cas où il n'y a
+  rien à attendre se ressemblent beaucoup et ne doivent surtout pas se confondre avec « en cours » :
+  le son est coupé, le moteur n'a jamais démarré faute de geste, ou le téléchargement a échoué pour
+  de bon. Les confondre, c'est faire patienter le joueur le délai entier devant un fichier absent. */
+  pretAJouer() {
+    if (!this.enabled || !this.started) return true;
+    if (this.catalogue === false || this.rate) return true;
+    if (!this.catalogue) return false;
+    return this.pret !== false;
+  }
 
   setEnabled(on) {
     this.enabled = on;

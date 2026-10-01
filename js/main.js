@@ -25,6 +25,9 @@ class App {
       this.net.onStart = (cfg) => this.startOnline(cfg);
     }
     this.raceCtx = null;
+    // L'état de la barrière de chargement : ce qu'on attend, et depuis quand on l'attend.
+    this.chargement = null;
+    this.chargeDes = null;
     this.state = 'splash';
     this.input = { throttle: false, sel: 0, pit: false };
     this.pointers = { throttle: null, slider: null };
@@ -339,7 +342,7 @@ class App {
   _pretACourir(race) {
     if (!race) return false;
     for (const c of race.cars) if (typeof topReady === 'function' && !topReady(c.cls)) return false;
-    if (this.save.sound && this.audio && this.audio.pret === false) return false;
+    if (this.audio && !this.audio.pretAJouer()) return false;
     return true;
   }
 
@@ -422,14 +425,44 @@ class App {
       puisqu'ils rejouent son état. C'est ce qui manquait : la course partait pendant que les
       machines travaillaient encore, et l'invité lisait « liaison perdue » là où il fallait lire
       « chargement ». */
-      if (online && race.state === 'countdown') {
-        net.setCharge(this._pretACourir(race));
-        if (net.isHost()) {
-          const a = net.attendus();
-          race.attente = a.reste > 0;
-          this.chargement = a;
-        } else { this.chargement = null; }
-      } else if (this.chargement) { this.chargement = null; race.attente = false; }
+      if (race.state === 'countdown') {
+        if (this.chargeDes == null) this.chargeDes = now;
+        const pret = this._pretACourir(race);
+        if (online) {
+          net.setCharge(pret);
+          if (net.isHost()) {
+            const a = net.attendus();
+            race.attente = a.reste > 0;
+            this.chargement = a;
+          } else {
+            /* L'invité dit ce qui le concerne, LUI.
+
+            Il ne tient pas le décompte : celui de l'hôte lui arrive tout fait, et quand l'hôte
+            retient, l'invité voyait des feux arrêtés sans un mot — le même silence qu'avant, juste
+            déplacé d'un écran. Il annonce donc son propre chargement, qui est aussi, dans le cas le
+            plus fréquent, la raison même pour laquelle l'hôte attend. */
+            this.chargement = null;
+            race.attente = !pret;
+          }
+        } else {
+          /* Le solo attend aussi, et pour la même raison.
+
+          La barrière était née du multijoueur, donc posée derrière `online` : en solo la course
+          partait pendant que les vignettes se décodaient et que les mégaoctets de moteur
+          arrivaient. On démarrait au silence, la voiture du joueur apparaissait au milieu de la
+          ligne droite, et le son s'allumait au deuxième virage.
+
+          Avec la même échappatoire que la table : un téléchargement qui échoue ne retient pas le
+          joueur indéfiniment. Passé le délai, on part avec ce qu'on a — sans son plutôt que sans
+          course. */
+          this.chargement = null;
+          race.attente = !pret && (now - this.chargeDes) <= NET_CHARGE_MAX;
+        }
+      } else {
+        this.chargeDes = null;
+        if (this.chargement) this.chargement = null;
+        race.attente = false;
+      }
       if (!online || net.isHost()) {
         race.update(dt, this.input);
         if (online) net.hostTick(race);

@@ -90,6 +90,21 @@ Deno.serve(async (req) => {
       : rep(500, { raison: 'ecriture_pilote', detail: errPseudo.message });
   }
 
+  /* UN RENOMMAGE SUIT LE JOUEUR SUR SES ANCIENS RECORDS.
+
+  Le nom du pilote est recopié dans `records` au moment où le temps est posé — c'est ce qui permet
+  d'afficher le tableau mondial d'une seule lecture, sans jointure. Mais une copie se périme : après
+  un changement de nom, le joueur voyait son ancien pseudo sur tous ses records déjà en base, et son
+  nouveau sur les suivants. Le même pilote apparaissait sous deux noms, ce qui est pire qu'un nom
+  dépassé : ça ressemble à deux personnes.
+
+  On remet donc les siennes à jour — les siennes seulement, `auteur` étant l'identité vérifiée — et
+  rien que lorsqu'elles diffèrent, donc jamais dans le cas courant. Une erreur ici n'arrête pas
+  l'envoi : le temps compte plus que l'étiquette. */
+  const { error: errNom } = await admin.from('records')
+    .update({ pilote: pseudo }).eq('auteur', auteur).neq('pilote', pseudo);
+  if (errNom) console.log('renommage des records', errNom.message);
+
   // 3. LE PLANCHER.
   const { data: sol, error: errSol } = await admin.from('planchers').select('minimum')
     .eq('circuit', circuit).eq('voiture', voiture).maybeSingle();

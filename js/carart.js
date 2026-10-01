@@ -128,8 +128,17 @@ function drawCarSprite(g, model, L, W, livery) {
    can follow the car's outline instead of being a rectangle under it. */
 const _topCache = new Map();
 const _topWaiters = [];
-/** True once this model's drawing is decoded and can be drawn. */
-function topReady(model) { return !model.top || !!topArt(model); }
+/* True once this model's drawing is decoded — or once we know it will never arrive.
+
+   A missing file used to leave this false for good. Nobody noticed while it only delayed a drawing
+   that had a vector body to fall back on; it matters now that the countdown waits on this answer,
+   because "not yet" and "never" would hold the race apart for the same twelve seconds. */
+function topReady(model) {
+  if (!model.top) return true;
+  if (topArt(model)) return true;
+  const e = _topCache.get(model.top);
+  return !!(e && e.rate);
+}
 /** Called once every drawing has landed, so a screen built too early can be built again. */
 function onTopReady(cb) { _topWaiters.push(cb); }
 function topArt(model) {
@@ -137,9 +146,10 @@ function topArt(model) {
   let e = _topCache.get(model.top);
   if (!e) {
     const img = new Image();
+    e = { img, shadow: null, rate: false };
     img.onload = () => { for (const cb of _topWaiters.splice(0)) cb(); };
+    img.onerror = () => { e.rate = true; for (const cb of _topWaiters.splice(0)) cb(); };
     img.src = model.top;
-    e = { img, shadow: null };
     _topCache.set(model.top, e);
   }
   if (!e.img.complete || !e.img.naturalWidth) return null;
