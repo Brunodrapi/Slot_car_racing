@@ -27,6 +27,12 @@ const I18N = {
     on: 'Activé', off: 'Coupé', playerDefault: 'Vous', allUnlocked: 'Tout est débloqué. Bravo !', careerIntro: 'Tu pars dernier à chaque course. Remonte le peloton, marque des points, débloque des catégories plus rapides.',
     lapDone: (n, t) => `Tour ${n} : ${t}`, tipTitle: 'Comment jouer', yourResult: (p) => `Tu termines P${p}`,
     nameTaken: (n) => `« ${n} » est déjà pris par un autre pilote. Change de nom dans les réglages, sinon tes temps n’entreront pas au tableau mondial.`,
+    authPkce: 'La connexion est revenue sans jeton. Vérifie que l’adresse du jeu est bien dans les « Redirect URLs » de Supabase.',
+    nothingToSend: 'Aucun temps à envoyer : tes records d’avant ne disent pas avec quelle voiture ils ont été posés. Boucle un tour et il partira.',
+    authFail: (e) => `La connexion a échoué : ${e}`,
+    sending: (a, b) => `Envoi de tes temps au tableau mondial… ${a} sur ${b}.`,
+    sent: (n) => `${n} temps envoyé${n > 1 ? 's' : ''} au tableau mondial.`,
+    signedInAs: (n) => `Connecté comme ${n}. Tes meilleurs tours partent au tableau mondial.`,
     reconnect: 'Se reconnecter',
     account: 'Compte',
     signedIn: 'Connecté',
@@ -75,6 +81,12 @@ const I18N = {
     on: 'On', off: 'Off', playerDefault: 'You', allUnlocked: 'Everything unlocked. Well done!', careerIntro: 'You start every race from the back. Carve through the field, score points, unlock faster classes.',
     lapDone: (n, t) => `Lap ${n}: ${t}`, tipTitle: 'How to play', yourResult: (p) => `You finish P${p}`,
     nameTaken: (n) => `“${n}” is already taken by another driver. Change it in the settings, or your times will not reach the world board.`,
+    authPkce: 'Sign-in came back without a token. Check that the game URL is in Supabase’s Redirect URLs.',
+    nothingToSend: 'Nothing to send: your older records do not say which car set them. Run a lap and it will go up.',
+    authFail: (e) => `Sign-in failed: ${e}`,
+    sending: (a, b) => `Sending your times to the world board… ${a} of ${b}.`,
+    sent: (n) => `${n} time${n > 1 ? 's' : ''} sent to the world board.`,
+    signedInAs: (n) => `Signed in as ${n}. Your best laps go to the world board.`,
     reconnect: 'Sign in again',
     account: 'Account',
     signedIn: 'Signed in',
@@ -167,6 +179,34 @@ class UI {
   un `t('refus_xyz') || t('refus_autre')` ne tombe jamais sur le second, puisque le premier renvoie
   la chaîne « refus_xyz », qui est vraie. Le joueur aurait lu le nom d'une variable. On regarde
   donc si la clé existe au lieu de se fier à ce que `t()` en fait. */
+  /* Ce que fait le tableau mondial, en une ligne, tout le temps.
+
+  Les trois derniers défauts signalés par Bruno avaient la même forme : quelque chose échouait sans
+  bruit, et l'écran montrait la même chose qu'en cas de succès — rien. Un état qui ne se dit pas
+  est indiscernable d'une panne, et le joueur finit par soupçonner le jeu entier. Cette ligne couvre
+  donc tous les cas, y compris ceux où tout va bien et où il n'y a simplement rien à faire.
+
+  Le cas vide est le plus fréquent et le moins devinable : les records posés avant la version
+  0.21.48 sont rangés sous une clé à deux morceaux, sans voiture. On ne sait pas avec quoi ils ont
+  été signés, donc on ne les attribue à personne — et il n'y a rien à rattraper. Il faut boucler un
+  tour pour que le tableau se remplisse, et c'est ça qu'il faut écrire. */
+  etatMondial() {
+    const t = (k, ...a) => this.t(k, ...a), m = this.app.mondial;
+    const ligne = (cls, txt, bouton) => `<p class="${cls} mondial-note">${txt}${bouton || ''}</p>`;
+    const entrer = `<button class="link" data-action="google">${t('signIn')}</button>`;
+    if (!m) return '';
+    if (m.erreurConnexion) {
+      const msg = m.erreurConnexion === 'pkce' ? t('authPkce') : t('authFail', escapeHtml(String(m.erreurConnexion)));
+      return ligne('warn', msg, `<button class="link" data-action="google">${t('reconnect')}</button>`);
+    }
+    if (!m.connecte()) return ligne('muted', t('worldNeedsAccount'), entrer);
+    const e = m.envoi;
+    if (e && !e.rien && e.faits < e.total) return ligne('muted', t('sending', e.faits, e.total));
+    if (e && e.faits > 0) return ligne('muted', t('sent', e.faits));
+    if (e && e.rien) return ligne('muted', t('nothingToSend'));
+    return ligne('muted', t('signedInAs', escapeHtml(this.app.save.name)));
+  }
+
   messageRefus(raison) {
     const cle = 'refus_' + raison;
     const table = I18N[this.lang] || I18N.en;
@@ -512,9 +552,7 @@ class UI {
       .sort((x, y) => (x.b == null ? 1 : 0) - (y.b == null ? 1 : 0) || (x.b || 0) - (y.b || 0));
     const cell = (v) => v == null ? `<span class="muted">--:--.---</span>` : fmtTime(v);
     return `<h3>${t('yourBest')}</h3>
-      ${!app.mondial || app.mondial.connecte() ? '' :
-        `<p class="muted mondial-note">${t('worldNeedsAccount')}
-          <button class="link" data-action="google">${t('signIn')}</button></p>`}
+      ${this.etatMondial()}
       ${app.mondial && app.mondial.pseudoErreur === 'pseudo_pris'
         ? `<p class="warn mondial-note">${t('nameTaken', escapeHtml(s.name))}
             <button class="link" data-action="settings">${t('settings')}</button></p>` : ''}

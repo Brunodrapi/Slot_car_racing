@@ -41,6 +41,8 @@ class Mondial {
     this.erreur = null;
     this.pseudoErreur = null;      // « ce nom est pris », retenu pour être DIT au joueur
     this.dernierRefus = null;      // le dernier temps refusé par le serveur, et pourquoi
+    this.erreurConnexion = null;   // un retour de connexion qui a mal tourné
+    this.envoi = null;             // l'état du rattrapage : { total, faits, rien }
     this.envoyes = new Set();
     try { this.envoyes = new Set(JSON.parse(localStorage.getItem('eol.envoyes') || '[]')); } catch (_) {}
     this._litSession();
@@ -62,6 +64,28 @@ class Mondial {
 
   _litRetour() {
     const h = location.hash || '';
+    /* Un retour RATÉ doit se voir autant qu'un retour réussi.
+
+    Quand Google ou Supabase refuse, on ne revient pas les mains vides : on revient avec une
+    erreur, dans le fragment ou dans la requête selon l'étage qui a refusé. Ne lire que le cas qui
+    marche donnait exactement ce que le joueur décrit — « ça me ramène à l'accueil et rien ne se
+    passe ». Le refus était écrit dans la barre d'adresse, et personne ne le lisait. */
+    const q = new URLSearchParams((location.search || '').slice(1));
+    const hq = new URLSearchParams(h.slice(1));
+    const err = hq.get('error_description') || hq.get('error') || q.get('error_description') || q.get('error');
+    if (err) {
+      this.erreurConnexion = err;
+      history.replaceState(null, '', location.pathname);
+      return;
+    }
+    /* Le flux PKCE revient avec `?code=`, pas avec un jeton. On ne sait pas l'échanger ici — il
+    faudrait garder le vérificateur entre deux chargements de page — donc on le DIT plutôt que de
+    laisser le joueur devant un écran qui n'a rien à lui montrer. */
+    if (!h.includes('access_token=') && q.get('code')) {
+      this.erreurConnexion = 'pkce';
+      history.replaceState(null, '', location.pathname);
+      return;
+    }
     if (h.indexOf('access_token=') < 0) return;
     const p = new URLSearchParams(h.slice(1));
     const token = p.get('access_token');
@@ -223,8 +247,16 @@ class Mondial {
       if (this.envoyes.has(`${circuit}|${voiture}`)) continue;
       aFaire.push({ circuit, voiture, temps: bestLaps[cle] });
     }
+    /* L'état du rattrapage, publié pour être affiché.
+
+    « Rien à envoyer » n'est pas la même chose que « envoi en cours », et les deux ressemblent à
+    « ça ne marche pas » quand l'écran ne dit rien. Le cas vide est le plus fréquent et le moins
+    devinable : les records d'avant la version 0.21.48 sont rangés sous une clé à deux morceaux,
+    sans voiture, donc ils ne PEUVENT pas être attribués — et le rattrapage n'a rien à faire. */
+    this.envoi = { total: aFaire.length, faits: 0, rien: aFaire.length === 0 };
     for (const t of aFaire) {
       const r = await this.propose(t.circuit, t.voiture, t.temps);
+      if (r.ok) this.envoi.faits++;
       // un refus définitif (voiture inconnue, temps impossible) ne se retente pas à chaque ouverture
       if (!r.ok && (r.raison === 'inconnu' || r.raison === 'trop_rapide')) this.marqueEnvoye(t.circuit, t.voiture);
       if (!r.ok && (r.raison === 'anonyme' || r.raison === 'session')) break;

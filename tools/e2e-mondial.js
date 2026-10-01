@@ -191,6 +191,37 @@ const serveur = http.createServer((req, res) => {
   dit(compte.sortie, `connecte : un bouton pour sortir (« ${compte.avec.trim()} »)`);
   dit(compte.entree, `deconnecte : un bouton pour entrer (« ${compte.sans.trim()} »)`);
 
+
+  /* --- 9. l'etat du tableau se LIT, dans tous les cas, y compris quand tout va bien --- */
+  /* Les trois défauts signalés de suite avaient la même forme : quelque chose échouait sans bruit,
+  et l'écran montrait la même chose qu'en cas de succès — rien. Un état qui ne se dit pas est
+  indiscernable d'une panne. On vérifie donc chaque cas, le silence compris. */
+  console.log('\nl\'etat du tableau mondial');
+  const cas = [
+    ['deconnecte', () => { app.mondial.session = null; app.mondial.envoi = null; }, /sign in|connecte-toi/i],
+    ['retour sans jeton', () => { app.mondial.erreurConnexion = 'pkce'; }, /without a token|sans jeton/i],
+    ['refus de google', () => { app.mondial.erreurConnexion = 'access_denied'; }, /failed|échou/i],
+    ['rien a envoyer', () => { app.mondial.erreurConnexion = null;
+      app.mondial.session = { token: 'x', expire: Date.now() / 1000 + 9999, sub: 'u', nom: 'B' };
+      app.mondial.envoi = { total: 0, faits: 0, rien: true }; }, /nothing to send|aucun temps/i],
+    ['envoi en cours', () => { app.mondial.envoi = { total: 4, faits: 1, rien: false }; }, /1 of 4|1 sur 4/i],
+    ['envoi fini', () => { app.mondial.envoi = { total: 3, faits: 3, rien: false }; }, /3 times sent|3 temps/i],
+    ['connecte, rien de special', () => { app.mondial.envoi = null; }, /signed in as|connecté comme/i],
+  ];
+  for (const [nom, poser, attendu] of cas) {
+    const txt = await page.evaluate(async (src) => {
+      app.mondial.dernierRefus = null; app.mondial.pseudoErreur = null;
+      // eslint-disable-next-line no-new-func
+      new Function('app', src)(app);
+      app.ui.setupScreen('timetrial');
+      await new Promise((r) => setTimeout(r, 200));
+      const p = document.querySelector('.mondial-note');
+      return p ? p.textContent.trim() : '';
+    }, poser.toString().replace(/^\s*\(\)\s*=>\s*/, ''));
+    const ok = attendu.test(txt);
+    dit(ok, `${nom.padEnd(24)} → « ${txt.slice(0, 54)} »`);
+  }
+
   await page.evaluate(() => { app.mondial.dernierRefus = null; });
 
   await page.evaluate(() => { app.ui._mondiaux = null; app.mondial.cache.clear(); });
