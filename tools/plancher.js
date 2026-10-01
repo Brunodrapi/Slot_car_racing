@@ -59,7 +59,12 @@ for (const td of TRACKS) {
     while (p.lap < TOURS && pas++ < MAX && race.state !== 'finished') race.update(race.dt, thr());
     resultats.push({ circuit: td.id, nomC: td.name, len: td.length,
                      voiture: m.id, nomV: m.name, vmax: m.perf.vmax,
-                     best: p.bestLap, tours: p.lap, sorties: p.crashes });
+                     /* « bestLapBrut » et non « bestLap » : le plancher doit être le temps le plus bas
+                     que la physique autorise, coupes comprises. Depuis qu'une sortie de piste annule
+                     le tour, l'IA en cauchemar — qui sort au moins une fois par tour — ne rendait
+                     plus aucun tour propre, et les 108 planchers seraient tous retombés sur la borne
+                     physique, deux fois trop basse pour refuser quoi que ce soit. */
+                     best: p.bestLapBrut, tours: p.lap, sorties: p.crashes });
   }
 }
 OUT.resultats = resultats;

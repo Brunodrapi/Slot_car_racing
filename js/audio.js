@@ -176,6 +176,30 @@ class GameAudio {
     return this.pret !== false;
   }
 
+  /* Remettre le son en état, au départ de chaque course.
+
+  Bruno : « je perds le son si je quitte une partie et que j'en relance une ». Six chemins de sortie
+  et de relance ont été passés au banc (`tools/e2e-son-relance.js`) sans rien perdre, donc ce n'est
+  pas la relance elle-même qui casse — c'est que RIEN NE RÉPARE. Deux pannes ordinaires, hors de
+  portée d'un essai de bureau, ne se rattrapaient jamais une fois arrivées :
+
+  — Le contexte audio suspendu. Un navigateur le suspend quand l'onglet passe en arrière-plan, quand
+    un appel arrive, quand l'écran se verrouille. `resume()` n'était appelé qu'au premier appui et
+    sur un bouton de l'interface ; revenir dans le jeu par un autre chemin laissait tout muet, pour
+    de bon.
+  — Un téléchargement de prises échoué. Le jeu de boucles restait marqué perdu pour la session
+    entière : une coupure de réseau d'une seconde, et plus de moteur jusqu'au rechargement de la
+    page. C'est le genre de panne qu'on ne relie pas à sa cause, donc qu'on décrit comme « j'ai
+    perdu le son en relançant ».
+
+  Une course qui démarre est le bon moment pour tout remettre d'aplomb : c'est là que le son compte,
+  et c'est un geste du joueur, donc un contexte autorisé à reprendre. */
+  relance() {
+    this.start();
+    this.resume();
+    if (this.rate) { this.rate = false; this.jeu = null; this.clsId = null; }
+  }
+
   setEnabled(on) {
     this.enabled = on;
     if (this.master) this.master.gain.setTargetAtTime(on ? 0.5 : 0, this.ctx.currentTime, 0.05);

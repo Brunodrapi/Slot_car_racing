@@ -112,6 +112,15 @@ function speedProfile(track, model, lineName, margin) {
 }
 
 // tuning knobs (multipliers), exposed so the diagnostic tools can sweep them
+/* Ce que rend un vibreur, comparé à l'asphalte.
+
+Ni 1 ni 0,42. À 1 la bande serait deux mètres de route gratuits dans chaque virage : toutes les
+vitesses de passage monteraient, et la mesure des planchers — le temps minimum qu'un serveur accepte
+— ne décrirait plus le jeu. À 0,42 ce serait du gravier, c'est-à-dire ce qu'on vient de corriger.
+0,88 laisse s'appuyer dessus et décourage de s'y installer : un appui court ne coûte presque rien,
+deux roues dedans sur tout le virage coûte le virage. */
+const KERB_ADHERENCE = 0.88;
+
 const PHYS = { ldK: 0.45, ldMin: 6, ff: 0, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, power: 0.01, relax: 0.2, circle: 0.25 };
 
 const wrapAngle = (a) => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
@@ -192,7 +201,36 @@ class Car {
     this.checkpoint = false;
     this.lap = 0;
     this.lapTimes = [];
+    // Un tour sali par une sortie de piste garde son chrono — on l'affiche barré — mais il ne peut
+    // pas devenir un meilleur tour. Sans la liste, l'écran des résultats ne pourrait pas dire
+    // POURQUOI un tour plus rapide que le meilleur n'est pas le meilleur.
+    this.lapOk = [];
+    this.lapSale = false;
+    this.fautes = 0;
+    this.surKerb = false;
+    /* Le temps repris aux sorties de piste, et la sortie en cours. Tenus par `Race`, qui est la
+    seule à connaître le profil de vitesse de la ligne — donc ce que les mètres avalés hors piste
+    auraient coûté dessus. Voir `Race._comptePenalite`. */
+    this.repris = 0;
+    /* `sortieT` et non `offT` : ce dernier existe déjà quelques lignes plus bas et mesure depuis
+    combien de temps le PIED EST LEVÉ, ce qui commande le freinage. Les deux ont cohabité le temps
+    d'un essai : `js/car.js` remettait le compteur à zéro à chaque coup de gaz et l'incrémentait une
+    seconde fois à chaque pas pied levé, si bien que la pénalité d'une sortie se calculait sur un
+    temps faux — doublé dans un cas, effacé dans l'autre. Un nom repris en silence ne se voit nulle
+    part ; c'est `tools/sortie.js` qui l'a attrapé, en mesurant 2,97 s là où 1,48 s s'étaient
+    écoulées. */
+    this.sortieS0 = null;
+    this.sortieT = 0;
+    this.sortieI = 0;
     this.bestLap = null;
+    /* Le meilleur tour SANS condition, à côté du meilleur tour propre.
+
+    Les deux ne répondent pas à la même question et les confondre casse l'une ou l'autre. Un record
+    doit être propre : c'est `bestLap`. Un PLANCHER — le temps en dessous duquel le serveur refuse un
+    envoi — doit au contraire être le plus bas que la physique autorise, coupes comprises, sinon il
+    refuserait des tours réels. `tools/plancher.js` mesure avec l'IA en cauchemar, qui sort au moins
+    une fois par tour : sur `bestLap` seul elle ne rendait plus rien du tout. */
+    this.bestLapBrut = null;
     this.lapStart = 0;
     this.finished = false;
     this.finishTime = null;
@@ -244,11 +282,18 @@ class Car {
       if (!this.checkpoint && this.started) { this.s = T.wrap(after); return; }
       this.checkpoint = false;
       if (this.started) {
-        const lt = raceTime - this.lapStart;
+        const lt = raceTime - this.lapStart, propre = !this.lapSale;
         this.lapTimes.push(lt);
-        if (this.bestLap == null || lt < this.bestLap) this.bestLap = lt;
+        this.lapOk.push(propre);
+        if (propre && (this.bestLap == null || lt < this.bestLap)) this.bestLap = lt;
+        if (this.bestLapBrut == null || lt < this.bestLapBrut) this.bestLapBrut = lt;
         this.lap++;
-      } else this.started = true;
+        this.lapSale = false;
+      } else {
+        this.started = true;
+        // une sortie avant la ligne de départ ne salit pas le premier tour : il n'a pas commencé
+        this.lapSale = false;
+      }
       this.lapStart = raceTime;
     }
     this.s = T.wrap(after);
@@ -374,12 +419,33 @@ class Car {
     this.offT = throttle ? 0 : this.offT + dt;
     this.braking = !throttle && this.offT > 0.05 && this.v > 2;
 
-    // --- surface ---
+    /* --- la surface, en TROIS zones et non deux ---
+
+    La route, le vibreur, puis l'herbe. Le vibreur manquait : la piste s'arrêtait à la ligne blanche,
+    donc deux roues sur la peinture valaient gravier, dégâts et faute. Il appartient maintenant à la
+    piste — c'est à ça qu'il sert — mais il ne rend pas tout : on y perd de l'adhérence, sinon ce
+    serait deux mètres de route gratuits dans chaque virage.
+
+    `T.kerbAt` vaut zéro dans les lignes droites, où aucun vibreur n'est peint. On garde la même
+    tolérance de 30 % de la largeur de la voiture qu'avant, simplement mesurée depuis le bord
+    extérieur de la bande au lieu de la ligne blanche. */
     const hwL = T.hwLeftAt(this.s), hwR = T.hwRightAt(this.s);
+    const kb = T.kerbAt ? T.kerbAt(this.s) : 0;
+    const marge = c.width * 0.3;
     // dans la voie des stands on est hors de la piste sans être hors piste : ni gravier, ni faute
-    const off = !this.inPit && (this.lat > hwL + c.width * 0.3 || this.lat < -(hwR + c.width * 0.3));
+    const horsRoute = !this.inPit && (this.lat > hwL + marge || this.lat < -(hwR + marge));
+    const off = !this.inPit && (this.lat > hwL + kb + marge || this.lat < -(hwR + kb + marge));
+    this.surKerb = horsRoute && !off;
     if (off && this.state !== 'grass') {
       this.state = 'grass'; this.grassT = 0; this.crashes++;
+      /* UNE SORTIE EST UNE FAUTE, et elle se compte au moment où elle arrive.
+
+      Deux conséquences, et aucune des deux n'est une punition gratuite. Le tour en cours ne compte
+      plus : un meilleur tour signé en coupant n'est pas un meilleur tour. Et le classement final
+      porte une pénalité en secondes, parce que couper une chicane rapporte parfois plus que le
+      gravier ne coûte — c'est là qu'une course se gagne en trichant, et nulle part ailleurs. */
+      this.fautes++;
+      this.lapSale = true;
       // les dommages se prennent à l'INSTANT de la sortie, à la vitesse qu'on avait : rester dans
       // le gravier ne casse rien de plus, c'est le départ en tête-à-queue qui coûte
       if (this.usure) this.damage = clamp(this.damage + this.usure.sortieParVitesse * Math.abs(this.v), 0, 1);
@@ -394,7 +460,8 @@ class Car {
       this.state = 'ok'; this.grassT = 0; this.rejoined = (this.rejoined || 0) + 1;
       return;
     }
-    const surface = off ? 0.42 : 1;
+    // le vibreur ne rend pas tout : on peut s'y appuyer, pas s'y installer
+    const surface = off ? 0.42 : this.surKerb ? KERB_ADHERENCE : 1;
 
     // --- geometry and tyre data shared by the driver and the axle model ---
     const L = c.length * 0.6;

@@ -1750,6 +1750,113 @@ que j'avais déjà déplacé une fois pour dégager le bouton pause, tombait des
 maintenant le plus bas de tout ce qui occupe le haut, et suivra tout seul le prochain élément
 qu'on y ajoutera.
 
+## Les sorties de piste : ce qui en est une, ce qu'elle annule, ce qu'elle coûte
+
+### Le vibreur n'était pas de la piste
+
+La piste s'arrêtait à la ligne blanche. Le vibreur était peint dans `js/render.js` avec ses propres
+constantes, et la physique ne savait pas qu'il existait : poser deux roues sur la peinture valait
+gravier — 0,42 d'adhérence — plus des dégâts et un passage au compteur de sorties. C'est faux au sens
+le plus simple, puisqu'un vibreur est fait pour qu'on roule dessus, et ça devenait intenable le jour
+où une sortie annule le tour.
+
+La surface a donc trois zones au lieu de deux : la route, le vibreur, l'herbe. **Les mêmes constantes
+servent au dessin et à la règle** (`KERB_IN`, `KERB_LARGE` dans `js/track.js`), parce que deux jeux de
+nombres pour une même bande finissent toujours par se contredire, et que l'écart serait invisible — un
+joueur verrait ses roues sur la peinture et son tour annulé sans savoir pourquoi.
+
+Le vibreur ne rend pas tout : **0,88 d'adhérence**. À 1 ce seraient deux mètres de route gratuits dans
+chaque virage, toutes les vitesses de passage monteraient et la mesure des planchers ne décrirait plus
+le jeu ; à 0,42 ce serait du gravier, c'est-à-dire le défaut qu'on corrige. On peut s'appuyer dessus,
+pas s'y installer.
+
+La bande **s'affine sur quatre mètres** à chaque extrémité du virage, là où le dessin s'arrête net.
+Sans ce biseau la piste s'élargissait de deux mètres d'un coup, et une voiture qui sortait du virage en
+appui sur le vibreur se retrouvait dans le gravier d'une station à l'autre, avec une faute, pour
+n'avoir rien fait. La règle est donc un peu plus stricte que la peinture aux deux bouts, jamais plus
+large.
+
+### Un tour sali reste affiché, barré
+
+Une sortie annule le tour en cours : il garde son chrono mais ne peut pas devenir le meilleur tour,
+donc ni record local ni record mondial. Le retirer de la liste aurait été plus simple et beaucoup moins
+clair — le joueur aurait vu ses tours sauter sans savoir lesquels, ni pourquoi son meilleur tour n'est
+pas le plus rapide qu'il a vu passer au tableau de bord. Un chiffre barré répond aux deux questions.
+
+Et la pastille du tour courant **change de mot à l'instant de la faute** : une sanction qu'on ne voit
+pas tomber est une sanction qu'on ne peut pas éviter.
+
+**Deux meilleurs tours cohabitent, et les confondre casse l'un ou l'autre.** `bestLap` est le meilleur
+tour propre : c'est lui qui fait un record. `bestLapBrut` est le plus rapide quoi qu'il soit arrivé, et
+c'est lui que `tools/plancher.js` doit lire — un plancher est le temps le plus bas que la physique
+autorise, coupes comprises, sinon il refuserait des tours réels. L'IA en cauchemar sort au moins une
+fois par tour : sur `bestLap` seul, elle ne rendait plus aucun temps et les 108 planchers retombaient
+tous sur la borne physique, deux fois trop basse pour refuser quoi que ce soit.
+
+### La pénalité n'est pas un nombre choisi, c'est le temps volé
+
+Bruno voulait un malus en secondes au classement, « ça évite la triche en coupant les chicanes ».
+`tools/coupe.js` dit pourquoi aucun nombre fixe ne marche. Il mesure, pour chaque paire de points de la
+ligne de course, la corde contre le trajet réel — et il mesure aussi, au lieu de la supposer, la
+vitesse à laquelle on traverse l'herbe : **19,4 m/s, soit 70 km/h**, contre 270 sur la piste.
+
+| | gain maximum d'une coupe |
+|---|---|
+| chicane (60 m de piste) | 1,4 s |
+| 150 m de piste | 3,0 s |
+| traversée d'infield (400 m) | **8,9 s** à Silverstone |
+
+Une pénalité fixe qui couvre le dernier cas condamne une course pour un appui malheureux ; une qui
+ménage le premier laisse le dernier impuni.
+
+**On mesure donc ce que la sortie a réellement rapporté, et on le reprend.** Pendant qu'une voiture est
+hors piste, on compte les mètres de circuit qu'elle avale et le temps qu'elle y met ; le profil de
+vitesse de la ligne de course dit ce que ces mètres coûtent sur la piste. La différence, quand elle est
+positive, est du temps volé, et c'est exactement la pénalité. Une coupe ne rapporte donc rien, quelle
+que soit sa taille, et un tête-à-queue qui a déjà coûté huit secondes n'est pas puni deux fois.
+
+S'y ajoute **une seconde fixe par sortie**, pour qu'une sortie ne soit jamais tout à fait gratuite :
+sans elle, une coupe parfaitement neutre serait un essai sans risque qu'on retente à chaque tour.
+
+Mesuré sur une course de trois tours à dix voitures : **aucune sortie aux deux premières difficultés**,
+douze à « difficile », vingt-cinq en « cauchemar » — et **zéro seconde reprise** dans tous les cas. Une
+sortie d'IA perd du temps, elle n'en gagne pas. La pénalité ne mord que sur une coupe délibérée.
+
+### Un nom repris en silence, et deux écrans qui ne disaient pas la même chose
+
+Deux défauts trouvés en mesurant, dont aucun ne se serait vu en jouant.
+
+`this.offT` existait déjà dans `js/car.js` : il mesure depuis combien de temps le pied est levé et
+commande le freinage. J'ai appelé mon chronomètre de sortie du même nom. Les deux ont cohabité le temps
+d'un essai : la voiture remettait le compteur à zéro à chaque coup de gaz et l'incrémentait une seconde
+fois à chaque pas pied levé, si bien que la pénalité se calculait sur un temps faux — doublé dans un
+cas, effacé dans l'autre. C'est `tools/sortie.js` qui l'a attrapé, en lisant 2,97 s là où 1,48 s
+s'étaient écoulées.
+
+Et l'invité ne construisait aucun classement. Il ne simule pas, donc `Race._finish` ne tourne jamais
+chez lui : son `results` restait nul et l'écran des résultats le lit sans le vérifier. **Le défaut est
+ancien et n'a rien à voir avec les pénalités** ; il suffisait d'une course en ligne menée jusqu'au
+drapeau pour le voir, et aucun essai ne la menait. Il construit maintenant son classement à partir de
+l'instantané reçu, sans rien rejouer : les sorties, le temps repris et l'heure d'arrivée voyagent dans
+le bloc lent du codec, donc c'est le même calcul sur les mêmes nombres.
+
+Ce bloc lent est désormais **forcé dès que la course n'est plus en train de rouler**. Il ne part qu'une
+image sur quinze, ce qui est juste tant que ses champs ne changent qu'au passage de la ligne — mais
+l'hôte envoie UNE image d'état « terminé » puis se tait. Quatorze chances sur quinze que celle-là ne
+porte pas le bloc : mesuré, zéro seconde de pénalité chez l'invité là où l'hôte en comptait 3,5. Le
+paquet passe de 214 à 219 octets, et la voie montante à huit joueurs de 0,54 à 0,58 Mbit/s.
+
+### Ce que les bancs vérifient
+
+`tools/sortie.js` : le vibreur n'est pas une sortie, au-delà si ; dans une ligne droite il n'y a pas de
+vibreur peint, donc pas de tolérance ; un tour sali plus rapide ne devient pas le meilleur ; une coupe
+de 150 m avalée deux fois trop vite rend exactement ce qu'elle a volé ; une sortie qui ne fait pas
+avancer ne rend rien. Et deux contrôles qui existent parce que les cinq premiers ne suffisent pas : une
+course entière d'IA, où les sorties sont de vraies sorties, et la **référence confrontée à une mesure
+indépendante** — le tour théorique sur la ligne contre le meilleur tour réel de l'IA en cauchemar,
+68 s contre 76. Sans ce dernier, un profil de vitesse deux fois trop lent aurait fait passer tous les
+autres en distribuant des pénalités imméritées.
+
 ## Le plafond de marge de l'IA
 
 `margin` multiplie la vitesse de passage que l'adhérence autorise, donc **tout ce qui dépasse 1 est
@@ -2162,6 +2269,9 @@ NODE_PATH=$(npm root -g) node tools/e2e-charge.js                               
 NODE_PATH=$(npm root -g) node tools/e2e-charge-solo.js                            # la même en solo : vignettes, son, sortie, message à l'écran
 NODE_PATH=$(npm root -g) node tools/calques.js [voiture] [--bride=4]              # ce que coûte chaque couche dessinée sous une voiture
 NODE_PATH=$(npm root -g) node tools/perf.js [voiture] [secondes] [--bride=4]      # images par seconde en course, et la queue de la distribution
+NODE_PATH=$(npm root -g) node tools/e2e-son-relance.js                            # le son survit-il a une deuxieme course ?
+node tools/sortie.js                                                              # vibreur, tour annule, penalite : les trois etages de la regle
+node tools/coupe.js [--fenetre=400]                                               # ce qu'une coupe peut rapporter, au plus
 ```
 
 `tools/sheet.py` (Pillow requis, outil de développement seulement) transforme un dossier de rendus en

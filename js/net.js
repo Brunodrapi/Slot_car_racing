@@ -325,7 +325,15 @@ class Net {
     octets. `Race.snapshot()` n'a pas bougé d'une ligne — le codec traduit son tableau et le rend
     tel quel à l'arrivée, si bien qu'une erreur de quantification reste une erreur de transport et
     ne devient jamais une erreur de physique. */
-    this.post({ s: pqEncode(race.snapshot(++this.seq), race.track) });
+    /* LE BLOC LENT EST FORCÉ dès que la course n'est plus en train de rouler.
+
+    Il ne part qu'une image sur quinze, ce qui est juste tant que les champs qu'il porte ne changent
+    qu'au passage de la ligne. L'arrivée est l'exception : l'hôte envoie UNE image d'état « terminé »
+    puis se tait, et si celle-là ne portait pas le bloc lent, l'invité construisait son classement
+    avec les fautes et les pénalités d'avant — mesuré : zéro seconde de pénalité là où l'hôte en
+    comptait 3,5. Quatorze chances sur quinze de se tromper, sur la seule image qui compte. */
+    const lent = race.state === 'racing' ? undefined : true;
+    this.post({ s: pqEncode(race.snapshot(++this.seq), race.track, lent) });
   }
 
   /** A guest: publish my two numbers, apply the newest state received. Once per frame. */

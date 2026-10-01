@@ -10,6 +10,12 @@
 
 const LINE_NAMES = ['inside', 'racing', 'outside'];
 
+/* Le vibreur : son écart à la ligne blanche, et sa largeur, en mètres.
+   `js/render.js` le peint avec ces nombres, `js/car.js` décide avec eux ce qui est encore la piste.
+   Un seul jeu de constantes pour les deux, sinon la peinture et la règle divergent en silence. */
+const KERB_IN = 0.34;        // le vide entre la ligne blanche et le début de la bande
+const KERB_LARGE = 1.7;      // la largeur de la bande elle-même
+
 class Track {
   // How fast the racing line may cross the road, in metres of lateral per metre travelled.
   static get RACING_SLOPE() { return 0.3; }
@@ -177,6 +183,34 @@ class Track {
       if (!hi && inCorner) {
         inCorner = false;
         if (i - start > 6) this.corners.push({ from: start, to: i, sign: Math.sign(this.k[Math.floor((start + i) / 2) % N]) });
+      }
+    }
+
+    /* LE VIBREUR, comme donnée du circuit et non comme décor.
+
+    Il était dessiné dans `js/render.js` avec ses propres constantes, et la physique ne savait pas
+    qu'il existait : la piste s'arrêtait à la ligne blanche, donc poser deux roues sur le vibreur
+    comptait comme une sortie de piste — gravier, dégâts, et bientôt un tour annulé. C'est faux au
+    sens le plus simple : un vibreur est fait pour qu'on roule dessus.
+
+    Les mêmes nombres servent maintenant au dessin et à la règle, parce que deux jeux de constantes
+    pour une même bande finissent toujours par se contredire, et que l'écart serait invisible — un
+    joueur verrait ses roues sur la peinture et un tour annulé sans savoir pourquoi.
+
+    La bande S'AFFINE sur quatre mètres à chaque extrémité du virage. Le dessin, lui, s'arrête net ;
+    sans ce biseau la piste s'élargissait de deux mètres d'un coup, et une voiture qui sortait du
+    virage en appui sur le vibreur se retrouvait dans le gravier d'une station à l'autre, avec une
+    faute, pour n'avoir rien fait. La règle est donc un peu plus stricte que la peinture aux deux
+    bouts, jamais plus large. */
+    this.kerb = new Float32Array(N);
+    const RAMPE = 4;
+    for (const c of this.corners) {
+      const n = c.to - c.from;
+      for (let i = c.from; i <= c.to; i++) {
+        const d = Math.min(i - c.from, c.to - i, Math.floor(n / 2));
+        const f = RAMPE > 0 ? Math.min(1, d / RAMPE) : 1;
+        const k = ((i % N) + N) % N;
+        this.kerb[k] = Math.max(this.kerb[k], KERB_LARGE * f);
       }
     }
 
@@ -687,6 +721,8 @@ class Track {
   }
   // metres of centreline per metre travelled at offset lat
   advanceFactor(s, lat) { return 1 / Math.max(0.25, 1 + this.curvAt(s) * lat); }
+  /** La largeur de vibreur qui compte comme piste à cette station — zéro dans les lignes droites. */
+  kerbAt(s) { return this.kerb ? this._lerp(this.kerb, s) : 0; }
   hwLeftAt(s) { return this._lerp(this.hwL, s); }
   hwRightAt(s) { return this._lerp(this.hwR, s); }
   lineLat(name, s) { return this._lerp(this.lines[name], s); }
@@ -852,4 +888,4 @@ class Track {
   }
 }
 
-if (typeof module !== 'undefined') module.exports = { Track, LINE_NAMES };
+if (typeof module !== 'undefined') module.exports = { Track, LINE_NAMES, KERB_IN, KERB_LARGE };

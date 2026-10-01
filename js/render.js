@@ -418,7 +418,9 @@ class Renderer {
     // shapes have no caps at all, so the edges stay square whatever the zoom.
     // The band starts just outside the white edge line rather than under it: overlapping, the
     // white blocks disappeared into the paint and the kerb read as a row of blue dashes.
-    const KERB_IN = 0.34, KERB_W = 1.7, KERB_BLOCK = 3;
+    // Les deux premières viennent de `js/track.js`, qui les sert aussi à la physique : la peinture et
+    // la règle doivent décrire la même bande.
+    const KERB_W = KERB_LARGE, KERB_BLOCK = 3;
     const bandPt = (i, side, w) => {
       const k = ((i % N) + N) % N, hw = (side > 0 ? track.hwL[k] : track.hwR[k]) + w;
       return [xs[k] + nx[k] * hw * side, ys[k] + ny[k] * hw * side];
@@ -609,16 +611,54 @@ class Renderer {
     })() : null;
 
     this.paths = { center, mid, road, left, right, corners, bridges, lines, chunks, pit };
+    /* Ce que ce circuit-là doit encore recevoir, gardé pour qu'on puisse le DEMANDER.
+
+    Les deux images étaient posées et oubliées : on ne retenait que la variable remplie à l'arrivée,
+    donc rien dans le jeu ne pouvait répondre « le fond n'est pas encore là ». C'est pourtant ce qui
+    apparaissait au feu vert sur un téléphone — le décor et le fond de carte, plusieurs centaines de
+    kilo-octets, qui finissaient de descendre pendant le décompte. Voir `pretAPeindre`. */
+    this.enRoute = [];
     this.pitImg = null;
-    if (pit) { const im = new Image(); im.onload = () => { this.pitImg = im; }; im.src = 'art/Pitstop.png'; }
+    if (pit) {
+      const im = new Image(); im.onload = () => { this.pitImg = im; }; im.src = 'art/Pitstop.png';
+      this.enRoute.push(im);
+    }
     this.bgImage = null;
     if (track.image && track.image.src) {
       const img = new Image();
       img.onload = () => { this.bgImage = img; };
       img.src = track.image.src;
+      this.enRoute.push(img);
     }
     this._makeMinimap();
     this.grassPattern = this.ctx.createPattern(this.grass, 'repeat');
+  }
+
+  /* Tout ce que la PREMIÈRE IMAGE de la course doit avoir sous la main.
+
+  La barrière de chargement ne connaissait que les vignettes de voiture et les prises de moteur.
+  Tout le reste du dessin arrive aussi par le réseau — le fond de carte du circuit, la halle des
+  stands, les trente sprites de décor — et personne ne l'attendait : sur un téléphone, le décor
+  finissait de descendre pendant le décompte et le circuit se peuplait au feu vert.
+
+  On lit `complete` et non `naturalWidth` : il passe à vrai même quand le téléchargement a ÉCHOUÉ,
+  ce qui est exactement la réponse qu'il faut ici. Un fichier absent ne doit pas retenir une course
+  — il ne viendra pas — et le dessin sait déjà se passer de chacune de ces images. Ne reste que le
+  téléchargement qui traîne, et c'est le seul cas qu'une barrière doive attendre. */
+  pretAPeindre(race) {
+    for (const im of this.enRoute || []) if (!im.complete) return false;
+    for (const k in this.propArt || {}) { const im = this.propArt[k].img; if (im && !im.complete) return false; }
+    // les planches de rotation ne servent qu'à la vue inclinée : les attendre à plat ferait patienter
+    // devant seize fichiers que la caméra ne regardera pas
+    if (this.tilt !== 1 && race) {
+      for (const car of race.cars) {
+        if (!car.cls || !car.cls.sheet) continue;
+        this._sheetFor(car.cls);                 // pose la demande si le dessin ne l'a pas encore faite
+        const sh = this._sheets.get(car.cls.sheet);
+        if (sh) for (const im of sh) if (!im.complete) return false;
+      }
+    }
+    return true;
   }
 
   _makeMinimap() {
@@ -1791,7 +1831,15 @@ class Renderer {
     this.hudZones.lap = { x: xe - wLap, w: wLap };
     pastille(yP, t('best'), p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---',
       p.bestLap != null ? '#b48cff' : '#7d838e');
-    pastille(yP + ph + 5, t('lap'), fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart));
+    /* Le tour COURANT, et le fait qu'il ne compte plus.
+
+    Une sortie de piste annule le tour en cours. Si l'écran n'en dit rien, le joueur finit son tour à
+    l'attaque pour un chrono qui n'existe pas, puis voit son meilleur temps ne pas bouger sans
+    comprendre : une sanction qu'on ne voit pas tomber est une sanction qu'on ne peut pas éviter. La
+    pastille change donc de mot et de couleur à l'instant de la faute. */
+    const nul = !!p.lapSale;
+    pastille(yP + ph + 5, nul ? t('lapVoid') : t('lap'),
+      fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart), nul ? '#ffb4a2' : '#fff');
 
     /* Les deux cadrans : la gomme et la tôle.
 

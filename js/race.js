@@ -78,6 +78,14 @@ const DIFFICULTY = {
 
 const POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
 
+/* La part FIXE de la pénalité d'une sortie de piste, en secondes.
+
+   Le reste de la pénalité est mesuré — voir `Race._comptePenalite`. Celle-ci existe pour qu'une
+   sortie ne soit jamais exactement gratuite : une coupe qui ne rapporte rien resterait sinon un
+   essai sans risque, qu'on peut retenter à chaque tour jusqu'à ce qu'elle paie. Une seconde est au
+   niveau d'un appui vraiment malheureux, et sans commune mesure avec ce que coûte déjà le gravier. */
+const PENALITE_FIXE = 1.0;
+
 // race state, as one number, for the snapshots sent over the wire
 const STATE_CODE = { countdown: 0, racing: 1, finishing: 2, finished: 3 };
 const STATE_NAME = ['countdown', 'racing', 'finishing', 'finished'];
@@ -277,6 +285,7 @@ class Race {
       const lapBefore = car.lap;
       car.update(dt, throttle, this.time);
       if (!wasOff && car.state === 'grass') this.events.push({ type: 'crash', car });
+      this._comptePenalite(car, dt);
       if (car.lap !== lapBefore) {
         this.events.push({ type: 'lap', car });
         if (this.mode === 'race' && car.lap >= this.laps && !car.finished) {
@@ -307,8 +316,16 @@ class Race {
         Math.round(c.v * 100), Math.round(c.vl * 100), Math.round(c.w * 1000),
         Math.round(c.s * 100), Math.round(c.lat * 100), c.lap,
         Math.round(c.sel * 100), Math.round(c.selS * 100),
-        (c.state === 'grass' ? 1 : 0) | (c.finished ? 2 : 0) | (c.throttle ? 4 : 0) | (c.braking ? 8 : 0),
+        (c.state === 'grass' ? 1 : 0) | (c.finished ? 2 : 0) | (c.throttle ? 4 : 0) | (c.braking ? 8 : 0)
+          | (c.lapSale ? 16 : 0),
         Math.round((c.bestLap || 0) * 1000), Math.round((c.lapStart || 0) * 100),
+        /* Les trois champs des sorties de piste, dans le BLOC LENT du codec.
+
+        Ils ne changent qu'à une sortie ou au drapeau, donc les envoyer trente fois par seconde
+        reviendrait à répéter la même chose. Mais ils doivent voyager : sans eux l'invité ne voit
+        pas son tour annulé, ne voit pas sa pénalité, et son classement final n'est pas celui de
+        l'hôte — deux écrans, deux vérités, pour la même course. */
+        c.fautes || 0, Math.round((c.repris || 0) * 100), Math.round((c.finishTime || 0) * 100),
       );
     }
     return out;
@@ -318,7 +335,7 @@ class Race {
   // be, so there is nothing to reconcile.
   applySnapshot(snap) {
     if (!Array.isArray(snap) || snap.length < 4) return false;
-    const per = 14;
+    const per = 17;
     if (snap.length < 4 + this.cars.length * per) return false;
     this.time = snap[1] / 100;
     this.state = STATE_NAME[snap[2]] || this.state;
@@ -359,10 +376,25 @@ class Race {
       c.throttle = !!(f & 4);
       c.braking = !!(f & 8);
       c.started = c.lap > 0 || c.started;
+      c.lapSale = !!(f & 16);
       c.bestLap = snap[o + 12] ? snap[o + 12] / 1000 : c.bestLap;
       c.lapStart = snap[o + 13] / 100;
+      c.fautes = snap[o + 14] || 0;
+      c.repris = (snap[o + 15] || 0) / 100;
+      c.finishTime = snap[o + 16] ? snap[o + 16] / 100 : null;
       c.gridLat = this.state === 'countdown' ? c.gridLat : null;
     }
+    /* L'INVITÉ CONSTRUIT SON CLASSEMENT quand le drapeau tombe.
+
+    Il ne simule pas, donc `_finish` ne tourne jamais chez lui : son `results` restait nul, et
+    l'écran des résultats le lit sans le vérifier — `res.map` sur rien. Le défaut est ancien et
+    n'avait rien à voir avec les pénalités ; il est apparu en les mesurant, parce qu'un invité doit
+    maintenant pouvoir afficher une pénalité qu'il n'a pas calculée.
+
+    On ne rejoue rien : tout ce qu'il faut est dans l'instantané — l'ordre, les temps d'arrivée, les
+    fautes, le temps repris. Le classement de l'invité est donc celui de l'hôte, au chiffre près,
+    parce que c'est le même calcul sur les mêmes nombres. */
+    if (this.state === 'finished' && !this.results) this._classeRecu();
     return true;
   }
 
@@ -407,9 +439,57 @@ class Race {
     return r + (this.profiles.outside[i] - r) * Math.min(1, sel);
   }
 
+  /* LA PÉNALITÉ D'UNE SORTIE DE PISTE : on reprend ce qu'elle a rapporté.
+
+  Bruno veut un malus en secondes au classement, « ça évite la triche en coupant les chicanes ». Le
+  nombre ne pouvait pas être choisi au doigt mouillé, et `tools/coupe.js` dit pourquoi : couper une
+  chicane rapporte au plus trois secondes, mais traverser l'infield de Silverstone — cent mètres de
+  corde contre quatre cents mètres de piste — en rapporte neuf. Une pénalité fixe qui couvre le
+  second cas condamne une course pour un appui malheureux ; une qui ménage le premier laisse le
+  second impuni. Aucun nombre unique ne fait les deux.
+
+  On mesure donc ce que la sortie a RÉELLEMENT rapporté, et on le reprend. Pendant qu'une voiture est
+  hors piste, on compte les mètres de circuit qu'elle avale et le temps qu'elle y met ; le profil de
+  vitesse de la ligne de course dit ce que ces mètres coûtent quand on les fait sur la piste. La
+  différence, quand elle est positive, est du temps volé — et c'est exactement la pénalité. Une
+  coupe ne rapporte donc jamais rien, quelle que soit sa taille, et un tête-à-queue qui a déjà coûté
+  huit secondes n'est pas puni deux fois.
+
+  S'y ajoute une seconde fixe par sortie, pour qu'une sortie ne soit jamais tout à fait gratuite :
+  sans elle, une coupe parfaitement neutre serait un essai sans risque. */
+  _comptePenalite(car, dt) {
+    if (car.state === 'grass') {
+      if (car.sortieS0 == null) {
+        car.sortieS0 = car.progress; car.sortieT = 0; car.sortieI = this.track.idx(car.s);
+      }
+      car.sortieT += dt;
+      return;
+    }
+    if (car.sortieS0 == null) return;
+    const gagnes = car.progress - car.sortieS0;
+    const ref = this._tempsSurPiste(car.sortieI, gagnes);
+    car.repris += Math.max(0, ref - car.sortieT);
+    car.sortieS0 = null;
+  }
+
+  /** Ce que coûtent `d` mètres de piste à partir de la station `i0`, sur la ligne de course. */
+  _tempsSurPiste(i0, d) {
+    if (!(d > 0)) return 0;
+    const T = this.track, N = T.n, v = this.profiles.racing;
+    let t = 0;
+    for (let k = 0; k < Math.round(d / T.ds); k++) {
+      t += T.ds / Math.max(4, v[(i0 + k) % N]);
+    }
+    return t;
+  }
+
+  /** Le temps qui classe : celui du chrono, plus ce que les sorties de piste ont coûté. */
+  static penalite(car) { return (car.repris || 0) + (car.fautes || 0) * PENALITE_FIXE; }
+  tempsClasse(car) { return car.finishTime == null ? null : car.finishTime + Race.penalite(car); }
+
   standings() {
     return this.cars.slice().sort((a, b) => {
-      if (a.finished && b.finished) return a.finishTime - b.finishTime;
+      if (a.finished && b.finished) return this.tempsClasse(a) - this.tempsClasse(b);
       if (a.finished !== b.finished) return a.finished ? -1 : 1;
       return b.progress - a.progress;
     });
@@ -426,16 +506,39 @@ class Race {
     const order = this.standings();
     this.results = order.map((car, i) => ({
       car, pos: i + 1, points: POINTS[i] || 0,
-      time: car.finished ? car.finishTime : null,
+      // `time` est le temps QUI CLASSE, pénalités comprises : c'est lui qui a décidé de l'ordre, donc
+      // c'est lui qu'il faut montrer. Le chrono brut et la pénalité sont donnés à côté, sans quoi un
+      // joueur verrait son classement bouger sans pouvoir le relier à quoi que ce soit.
+      time: this.tempsClasse(car),
+      brut: car.finished ? car.finishTime : null,
+      penalite: Race.penalite(car),
+      fautes: car.fautes || 0,
       bestLap: car.bestLap,
-      gap: car.finished && order[0].finished ? car.finishTime - order[0].finishTime : null,
+      gap: car.finished && order[0].finished ? this.tempsClasse(car) - this.tempsClasse(order[0]) : null,
+    }));
+    return this.results;
+  }
+
+  /** Le classement d'un invité, bâti sur l'instantané reçu et non sur une simulation. */
+  _classeRecu() {
+    const order = this.standings();
+    this.results = order.map((car, i) => ({
+      car, pos: i + 1, points: POINTS[i] || 0,
+      time: this.tempsClasse(car),
+      brut: car.finished ? car.finishTime : null,
+      penalite: Race.penalite(car),
+      fautes: car.fautes || 0,
+      bestLap: car.bestLap,
+      gap: car.finished && order[0].finished ? this.tempsClasse(car) - this.tempsClasse(order[0]) : null,
     }));
     return this.results;
   }
 
   endTimeTrial() {
     this.state = 'finished';
-    this.results = [{ car: this.player, pos: 1, points: 0, time: null, bestLap: this.player.bestLap, gap: null }];
+    this.results = [{ car: this.player, pos: 1, points: 0, time: null, brut: null,
+      penalite: Race.penalite(this.player), fautes: this.player.fautes || 0,
+      bestLap: this.player.bestLap, gap: null }];
     return this.results;
   }
 }
