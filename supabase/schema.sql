@@ -28,6 +28,14 @@ create index if not exists records_auteur on public.records (auteur);
 alter table public.records enable row level security;
 
 -- LECTURE : ouverte à tous, comptes et anonymes.
+--
+-- DEUX choses sont nécessaires, et une politique seule n'en fait qu'une. Postgres demande d'abord
+-- le PRIVILÈGE (`grant select`), puis le RLS filtre les lignes que ce privilège laisse voir. Une
+-- politique sans privilège ne donne rien : la base répond « permission denied for table » (42501)
+-- et pas « aucune ligne », ce qui est déroutant — la politique est là, bien visible, et ne sert à
+-- rien. Supabase pose ces `grant` tout seul quand « Automatically expose new tables » est coché ;
+-- on l'a décoché exprès, pour que rien ne s'ouvre sans qu'on l'ait écrit. Alors on l'écrit.
+grant select on public.records to anon, authenticated;
 drop policy if exists records_lecture on public.records;
 create policy records_lecture on public.records for select to anon, authenticated using (true);
 
@@ -48,6 +56,10 @@ create table if not exists public.pilotes (
 create unique index if not exists pilotes_pseudo on public.pilotes (lower(pseudo));
 
 alter table public.pilotes enable row level security;
+grant select on public.pilotes to anon, authenticated;
+-- Le pilote déclare son propre pseudo : c'est la seule écriture qu'un navigateur a le droit de
+-- faire. Le privilège est large (toute la table), le RLS le réduit à sa seule ligne.
+grant insert, update on public.pilotes to authenticated;
 drop policy if exists pilotes_lecture on public.pilotes;
 create policy pilotes_lecture on public.pilotes for select to anon, authenticated using (true);
 
@@ -61,6 +73,7 @@ create table if not exists public.planchers (
   primary key (circuit, voiture)
 );
 alter table public.planchers enable row level security;
+grant select on public.planchers to anon, authenticated;
 drop policy if exists planchers_lecture on public.planchers;
 create policy planchers_lecture on public.planchers for select to anon, authenticated using (true);
 
@@ -94,3 +107,12 @@ create policy pilotes_le_mien on public.pilotes for insert to authenticated with
 drop policy if exists pilotes_maj_le_mien on public.pilotes;
 create policy pilotes_maj_le_mien on public.pilotes for update to authenticated
   using (auth.uid() = id) with check (auth.uid() = id);
+
+-- Et RIEN de plus. Aucune écriture n'est accordée sur `records` ni sur `planchers`, à personne :
+-- ni à un anonyme, ni à un compte connecté. Seule la fonction serveur, qui porte la clé de
+-- service, écrit — et elle ne le fait qu'après avoir vérifié. On le révoque explicitement plutôt
+-- que de compter sur l'absence : un `grant` posé par mégarde plus tard ne se verrait pas, et une
+-- table de records ouverte en écriture ne se remarque que lorsqu'elle est déjà pleine de faux.
+revoke insert, update, delete on public.records from anon, authenticated;
+revoke insert, update, delete on public.planchers from anon, authenticated;
+revoke delete on public.pilotes from anon, authenticated;
