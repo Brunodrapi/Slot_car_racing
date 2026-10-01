@@ -1923,6 +1923,51 @@ l'écran-titre, donc trop tard — le jeu avait déjà affiché l'écran du nom 
 l'essai attendait un bandeau qui ne viendrait jamais. Il n'était dans aucune de mes séries, ce qui
 est exactement pourquoi il faut les lancer toutes.
 
+### L'instantané en octets, et ce qui ne bouge plus
+
+581 octets de JSON par image, trente fois par seconde, vers chacun des sept invités. `js/paquet.js`
+en fait 214 — **2,71 fois moins**, mesuré sur 11 784 instantanés de vraies courses.
+
+**La forme de l'instantané n'a pas bougé.** `Race.snapshot()` rend toujours son tableau de nombres
+et `Race.applySnapshot()` le relit tel quel ; le codec ne fait que traduire. Un encodage glissé dans
+la simulation aurait mêlé deux sujets — ce qu'on transmet et comment — et toute erreur de
+quantification serait devenue une erreur de physique, invisible et impossible à isoler. Ici elle
+reste une erreur de transport, qu'un aller-retour suffit à mesurer.
+
+**Trois mesures ont dicté le format, aucune n'a été supposée.** Les plages réelles sur 8640
+instantanés et douze circuits, qui ont montré que quatre champs débordaient l'entier court en ×100.
+L'étendue du plus grand circuit, 1531 px au Mans, qui fixe l'échelle de x et y. Et la plus grande
+sortie de route, 21,2 px sur douze courses complètes, qui dit que la marge de 1282 px la couvre
+soixante fois.
+
+**Une économie tentante, mesurée puis rejetée.** `track.pos(s, lat)` sait retrouver x et y, ce qui
+aurait économisé quatre octets par voiture. Sur 72 992 relevés d'une voiture sur la piste, l'écart
+moyen vaut 0,011 px — mais le pire monte à 8,9 px. Une voiture posée neuf pixels à côté est une
+voiture dans le décor.
+
+**Ce qui ne change plus ne repart plus à chaque image.** La présence transportait trente fois par
+seconde la grille complète et les réglages de la table, figés depuis le coup d'envoi — plus
+d'octets que l'instantané lui-même. Ils repartent une fois par seconde : la réparation automatique
+survit, vingt-neuf envois sur trente disparaissent.
+
+Deux pièges, tous deux attrapés par les essais. `presence()` FUSIONNE ce qu'on lui donne puis envoie
+l'ensemble : omettre un champ le laisse partir quand même. Il faut le mettre à `null` pour qu'il
+disparaisse — une première version se contentait d'envoyer moins et ne changeait rien sur le fil.
+Et les deux premières secondes de course partent complètes sans exception : c'est la fenêtre où
+chaque invité attend la grille de l'hôte pour geler la sienne, et l'alléger dès la première image
+faisait geler trois grilles différentes à quatre écrans.
+
+### La voie montante de l'hôte, d'un bout à l'autre
+
+| | 2 | 4 | 6 | 8 joueurs |
+|---|---|---|---|---|
+| au départ | 0,16 | 0,71 | 1,53 | **2,73 Mbit/s** |
+| relais coupé en course | 0,16 | 0,55 | 0,99 | 1,56 |
+| instantané en octets | 0,10 | 0,35 | 0,70 | 1,14 |
+| champs figés à 1 Hz | 0,06 | 0,20 | 0,37 | **0,54 Mbit/s** |
+
+Cinq fois moins à huit joueurs, et confortablement sous ce qu'une 4G faible accepte en montée.
+
 ## Numéro de version
 
 Le menu porte en bas le numéro du build et sa date — `v0.15.0 · 2026-09-23`. Ce n'est pas de la

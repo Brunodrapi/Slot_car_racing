@@ -59,6 +59,14 @@ const DOUBLE = (retard, gigue, perte) => `
 (() => {
   const RETARD = ${retard}, GIGUE = ${gigue}, PERTE = ${perte};
   window.__net = { envoyes: 0, octets: 0, recus: 0, octetsRecus: 0, jetes: 0 };
+  const taille = (x) => {
+    if (x == null) return 0;
+    if (x instanceof Uint8Array || x instanceof ArrayBuffer) return x.byteLength;
+    if (typeof x !== 'object') return JSON.stringify(x).length;
+    let n = 2;
+    for (const k in x) n += k.length + 3 + taille(x[k]);
+    return n;
+  };
   class RoomBanc {
     static available() { return true; }
     constructor() { this.mine = {}; this.others = new Map(); this.label = null; this.h = []; this.ch = null; this.relayer = true; }
@@ -95,7 +103,12 @@ const DOUBLE = (retard, gigue, perte) => `
     Sans accent grave dans ce bloc : il vit dans un gabarit de chaine, et le premier le refermerait.
     */
     poste(msg) {
-      const o = JSON.stringify(msg).length;
+      /* Un tableau d'octets se compte en octets, pas en longueur de son JSON.
+
+      JSON.stringify d'un Uint8Array rend un objet à clés numériques — plusieurs fois le poids
+      réel. Le banc aurait annoncé que le passage au binaire coûte plus cher qu'il ne rapporte,
+      ce qui est le contraire de ce qu'il mesure. */
+      const o = taille(msg);
       msg.o = o;
       const copies = msg.pour ? 1 : Math.max(1, this.others.size);
       window.__net.envoyes += copies; window.__net.octets += o * copies;

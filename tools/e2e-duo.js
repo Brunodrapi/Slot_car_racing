@@ -411,5 +411,8 @@ const DOUBLE = `
   console.log('\nerrors', errs);
   await browser.close();
   serveur.close();
+  // le verdict doit porter les DEUX compteurs : `errors 0` après trois « ÉCHEC » à l'écran est un
+  // résumé qui contredit son propre rapport, et c'est le résumé qu'on lit
+  if (faute) console.log(`fautes ${faute}`);
   if (errs || faute) process.exitCode = 1;
 })();

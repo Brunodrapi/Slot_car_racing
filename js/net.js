@@ -98,13 +98,48 @@ class Net {
     this.onPeers();
   }
 
+  /* Ce qui ne change plus ne repart plus à chaque image — mais repart quand même.
+
+  La présence est envoyée entière à chaque fois, et c'est une bonne idée : un message perdu se
+  répare au suivant, sans accusé de réception ni réémission. Mais en course, elle transporte trente
+  fois par seconde la grille complète — identifiant, nom et modèle des huit pilotes — et les
+  réglages de la table, qui sont figés depuis le coup d'envoi. Mesuré : plus d'octets que
+  l'instantané lui-même, qui est pourtant la seule chose qui bouge.
+
+  On ne les supprime pas pour autant : un écran qui rejoint en retard ou qui a raté le départ en a
+  besoin, et c'est tout l'intérêt d'un envoi complet. Ils repartent donc une fois par seconde au
+  lieu de trente. La réparation automatique survit, au prix d'une seconde d'attente dans un cas qui
+  n'arrive presque jamais, et vingt-neuf envois sur trente disparaissent. */
   post(extra) {
     if (!this.room) return Promise.resolve();
+    /* Les deux premières secondes de course partent COMPLÈTES, sans exception.
+
+    C'est la fenêtre où la grille sert : l'hôte bascule en course avant ses invités, et chacun
+    d'eux attend de la voir apparaître dans la présence de l'hôte pour geler la sienne. Alléger
+    dès la première image la faisait disparaître vingt-neuf fois sur trente pendant ce passage —
+    à quatre écrans, les trois invités gelaient des grilles différentes, ce que `e2e-duo.js` a
+    attrapé immédiatement. Passé ce délai, plus personne n'en a besoin à chaque image, et le
+    rappel d'une fois par seconde suffit à rattraper un retardataire. */
+    const course = this.state === 'playing' && performance.now() - (this.playingAt || 0) > 2000;
+    const complet = !course || (this.postN = (this.postN || 0) + 1) % NET_HZ === 0;
     const p = Object.assign({}, this.mine, extra || {});
-    if (this.creator) p.t = this.table;          // only the host's copy of the settings counts
-    // La grille du coup d'envoi ne part que de l'hôte : c'est lui qui la décide, et un invité qui
-    // la relaierait pourrait en répandre une version périmée.
-    if (this.creator && this.grid) p.gr = this.grid;
+    if (complet) {
+      if (this.creator) p.t = this.table;          // only the host's copy of the settings counts
+      // La grille du coup d'envoi ne part que de l'hôte : c'est lui qui la décide, et un invité qui
+      // la relaierait pourrait en répandre une version périmée.
+      if (this.creator && this.grid) p.gr = this.grid;
+    } else {
+      /* On RETIRE les champs figés, on ne se contente pas de les omettre.
+
+      `presence()` fusionne ce qu'on lui donne dans la présence courante, puis envoie l'ensemble :
+      omettre un champ le laisse donc partir quand même, puisqu'il est déjà dedans. Une première
+      version se contentait d'envoyer moins et ne changeait rien sur le fil — le genre d'économie
+      qui se voit dans le code et nulle part ailleurs. `null` supprime pour de bon.
+
+      L'identifiant reste : c'est à lui qu'on reconnaît un pair, et sans lui il disparaîtrait de la
+      table à l'instant même. */
+      p.t = null; p.gr = null; p.name = null; p.car = null; p.ready = null;
+    }
     return this.room.presence(p);
   }
 
@@ -218,6 +253,9 @@ class Net {
     grandissent qu'en N. */
     if (this.room) this.room.relayer = false;
     this.seq = 0; this.lastSeq = -1; this.outN = 0; this.seenN = {}; this.sentAtMs = 0;
+    this.lentGarde = null;                 // le dernier bloc lent reçu, pour les images qui n'en ont pas
+    this.postN = 0;
+    this.playingAt = performance.now();
     this.snapAt = performance.now();
     this.post();
     this.onStart({
@@ -271,17 +309,35 @@ class Net {
     const now = performance.now();
     if (now - this.sentAtMs < 1000 / NET_HZ) return;
     this.sentAtMs = now;
-    this.post({ s: race.snapshot(++this.seq) });
+    /* L'instantané part en octets, pas en texte.
+
+    581 octets de JSON par image, trente fois par seconde, vers chacun des sept invités : 2,73
+    Mbit/s de voie montante, au-dessus de ce qu'une 4G faible accepte. Le même contenu tient en 214
+    octets. `Race.snapshot()` n'a pas bougé d'une ligne — le codec traduit son tableau et le rend
+    tel quel à l'arrivée, si bien qu'une erreur de quantification reste une erreur de transport et
+    ne devient jamais une erreur de physique. */
+    this.post({ s: pqEncode(race.snapshot(++this.seq), race.track) });
   }
 
   /** A guest: publish my two numbers, apply the newest state received. Once per frame. */
   guestTick(race, input) {
     if (!this.room || this.isHost()) return;
     const host = this.members()[0];
-    const snap = host && host.q && host.q.s;
+    const brut = host && host.q && host.q.s;
+    /* On accepte les deux formes : un tableau comme avant, des octets désormais.
+
+    Deux écrans ne portent pas forcément la même version — l'un vient de recharger, l'autre non —
+    et refuser l'ancienne forme aurait transformé une mise à jour en panne pour celui des deux qui
+    a le mauvais goût d'être en retard. Lire les deux ne coûte qu'une ligne. */
+    let snap = null;
+    if (Array.isArray(brut)) snap = brut;
+    else if (brut && typeof pqDecode === 'function') {
+      const r = pqDecode(brut, race.track, this.lentGarde);
+      if (r) { snap = r.snap; if (r.lent) this.lentGarde = r.lent; }
+    }
     // An older snapshot than the one already applied would make the race walk backwards. It is
     // let through only when it comes from far behind, which means a fresh race has started.
-    if (Array.isArray(snap) && (snap[0] > this.lastSeq || snap[0] < this.lastSeq - 120)) {
+    if (snap && (snap[0] > this.lastSeq || snap[0] < this.lastSeq - 120)) {
       if (race.applySnapshot(snap)) { this.lastSeq = snap[0]; this.snapAt = performance.now(); }
     }
     const i = [input.throttle ? 1 : 0, Math.round(clamp(input.sel || 0, -1, 1) * 100)];

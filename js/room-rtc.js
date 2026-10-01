@@ -97,7 +97,11 @@
       if (asHost) {
         peer.on('connection', (c) => this.wire(c));
       } else {
-        const c = peer.connect(id, { reliable: false, serialization: 'json' });
+        /* `binary` et non `json` : l'instantané voyage en octets.
+
+        La sérialisation JSON transforme un tableau d'octets en liste de nombres écrits en toutes
+        lettres — elle rendrait au transport, et au-delà, tout ce que le codec vient de gagner. */
+        const c = peer.connect(id, { reliable: false, serialization: 'binary' });
         await new Promise((resolve, reject) => {
           const t = setTimeout(() => reject(new Error('table introuvable')), DIAL_TIMEOUT);
           c.on('open', () => { clearTimeout(t); resolve(); });
