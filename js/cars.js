@@ -43,7 +43,20 @@ const CATEGORIES = [
       { id: 'f40', diff: 1, name: 'F40', shape: 'f40', mul: { vmax: 1.05, accel: 1.06, grip: 0.98, df: 1.5 }, pick: 'sprites/pick/f40.png', engine: {
         cyl: 8, redline: 7750, idle: 1000, rough: 0.15, bright: 0.8, turbo: 0.9,
         sample: { ramp: 'sounds/engine/v8-f40.json' },
-      }, colors: ['#e0262c', '#22242b'], top: 'sprites/top/f40.png', sheet: 'sprites/f40lm', sheetN: 8, sheetRear: 3 },
+      }, colors: ['#e0262c', '#22242b'], top: 'sprites/top/f40.png', sheet: 'sprites/f40lm', sheetN: 8, sheetRear: 3,
+        /* Trois livrées, nommées d'après ce qui est écrit sur la voiture plutôt que d'après sa
+        couleur : « Pilot » et « Crawford » se lisent sur les flancs, et aucun des trois mots n'a à
+        être traduit — ces noms s'affichent tels quels dans les deux langues du jeu.
+
+        La PLANCHE DE ROTATION ne suit pas. Elle ne sert qu'à la caméra inclinée, qui n'est pas celle
+        par défaut, et il en faudrait une par livrée — huit vues chacune. En vue inclinée les trois
+        F40 gardent donc l'aspect de la planche d'origine. C'est dit ici parce que c'est le genre
+        d'écart qu'on découvre six mois plus tard en changeant de caméra. */
+        livrees: [
+          { id: '', nom: 'Pilot' },
+          { id: 'red', nom: 'Rosso' },
+          { id: 'yellow', nom: 'Crawford' },
+        ] },
       { id: 'countach', diff: 1, name: 'Countach LP500', shape: 'wedgeGT', mul: { vmax: 1.03, accel: 1.02, grip: 0.95, brake: 0.95 }, pick: 'sprites/pick/countach.png', engine: {
         cyl: 12, redline: 7500, idle: 900, rough: 0.05, bright: 0.88, turbo: 0,
         // La rampe la plus large du jeu : vingt-cinq demi-tons, 1821 tr/min au rupteur, d'un seul

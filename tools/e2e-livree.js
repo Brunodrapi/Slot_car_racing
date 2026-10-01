@@ -65,57 +65,70 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   await p.waitForTimeout(300);
 
   const carte = (id) => `.card[data-action="pickModel"][data-id="${id}"]`;
-  const lire = (id) => p.evaluate((sel) => {
+  const lire = (id) => p.evaluate(([sel, id]) => {
     const c = document.querySelector(sel);
     if (!c) return null;
     const b = c.querySelector('.livree');
     const im = c.querySelector('img.carpick');
     return { sel: c.classList.contains('sel'), repere: b ? b.textContent.replace(/\s+/g, ' ').trim() : null,
-             src: im ? im.getAttribute('src') : null, choisi: app.save.models.gt, idx: app.playerLivreeFor('csl') };
-  }, carte(id));
+             src: im ? im.getAttribute('src') : null, choisi: app.save.models.gt, idx: app.playerLivreeFor(id) };
+  }, [carte(id), id]);
 
-  /* --- 1. le premier appui choisit --- */
-  console.log('\nle premier appui choisit, il ne repeint pas');
-  // on attend la carte au lieu de supposer que l'ecran est peint : `click` attend tout seul, pas
-  // une lecture, et la toute premiere mesure partait sur un ecran encore vide
-  await p.waitForSelector(carte('csl'));
-  const avant = await lire('csl');
-  await p.click(carte('csl'));
-  await p.waitForTimeout(250);
-  const un = await lire('csl');
-  dit(un.sel && un.choisi === 'csl', `la CSL est choisie (${un.choisi})`);
-  dit(un.idx === 0 && avant.idx === 0, `et sa livree n'a pas bouge (${avant.idx} → ${un.idx})`);
-  dit(/1\/3/.test(un.repere || ''), `le repere annonce le choix possible (« ${un.repere} »)`);
+  /* Les modèles à PLUSIEURS livrées, demandés au jeu plutôt qu'écrits ici.
 
-  /* --- 2 et 3. les appuis suivants font tourner, et la page va chercher le dessin --- */
-  console.log('\nles appuis suivants font tourner');
-  const attendu = [
-    { n: 2, mot: 'Castrol', fichier: 'sprites/pick/csl_castrol.png' },
-    { n: 3, mot: 'Calder', fichier: 'sprites/pick/csl_calder.png' },
-    { n: 1, mot: 'Motorsport', fichier: 'sprites/pick/csl.png' },
-  ];
-  for (const a of attendu) {
-    await p.click(carte('csl'));
+  La liste grandit à chaque voiture repeinte, et un essai qui nomme la CSL en dur ne dirait rien de
+  la F40 ajoutée le lendemain — pire, il continuerait à passer. On lui fait donc énumérer ce qu'il
+  doit vérifier, et on exige qu'il trouve quelque chose : une liste vide passerait toutes les
+  boucles sans rien contrôler. */
+  const plan = await p.evaluate(() => modelsOf('gt').map((m) => ({
+    id: m.id, nom: m.name, n: m.livrees.length,
+    livrees: m.livrees.map((l) => ({ nom: l.nom, pick: l.pick })),
+  })));
+  const multi = plan.filter((m) => m.n > 1);
+  const simple = plan.filter((m) => m.n === 1);
+  dit(multi.length > 0, `${multi.length} voiture(s) a plusieurs livrees : ${multi.map((m) => `${m.nom} (${m.n})`).join(', ')}`);
+  dit(simple.length > 0, `${simple.length} a dessin unique, dont ${simple[0] ? simple[0].nom : '—'}`);
+
+  /* --- 1 a 3. choisir, puis faire tourner, et aller chercher le bon dessin --- */
+  for (const m of multi) {
+    console.log(`\n${m.nom} : le premier appui choisit, les suivants font tourner`);
+    await p.waitForSelector(carte(m.id));
+    const avant = await lire(m.id);
+    await p.click(carte(m.id));
     await p.waitForTimeout(250);
-    const l = await lire('csl');
-    dit(l.repere === `${a.n}/3 ${a.mot}`, `repere « ${l.repere} »`);
-    dit(l.src === a.fichier, `la vignette montree est ${l.src}`);
-    dit(servis.includes('/' + a.fichier), `et le fichier existe vraiment (servi, pas 404)`);
+    const un = await lire(m.id);
+    dit(un.sel && un.choisi === m.id, `elle est choisie (${un.choisi})`);
+    dit(un.idx === avant.idx, `et sa livree n'a pas bouge (${avant.idx} → ${un.idx})`);
+    /* On fait un tour COMPLET, qui revient au point de depart. Un cycle qui s'arrete au dernier
+    cran passerait l'essai sans jamais montrer qu'il reboucle. */
+    for (let k = 1; k <= m.n; k++) {
+      const attendu = m.livrees[k % m.n];
+      await p.click(carte(m.id));
+      await p.waitForTimeout(250);
+      const l = await lire(m.id);
+      dit(l.repere === `${(k % m.n) + 1}/${m.n} ${attendu.nom}`, `repere « ${l.repere} »`);
+      dit(l.src === attendu.pick, `la vignette montree est ${l.src}`);
+      dit(servis.includes('/' + attendu.pick), `et le fichier existe vraiment (servi, pas 404)`);
+    }
+    dit((await lire(m.id)).idx === 0, `le tour est boucle, on est revenu a la premiere`);
   }
 
   await p.screenshot({ path: path.join(process.argv[2] || '/tmp', 'livree.png') });
 
   /* --- 4. une voiture qui n'a qu'un dessin --- */
-  console.log('\nune voiture a dessin unique');
-  await p.click(carte('f40'));
-  await p.waitForTimeout(250);
-  const f1 = await lire('f40');
-  await p.click(carte('f40'));
-  await p.waitForTimeout(250);
-  const f2 = await lire('f40');
-  dit(f1.repere === null && f2.repere === null, `aucun repere sur la F40 (rien a faire tourner)`);
-  dit(f2.sel && f2.choisi === 'f40' && f2.src === 'sprites/pick/f40.png',
-    `deux appuis la laissent choisie et inchangee (${f2.src})`);
+  const seule = simple[0];
+  if (seule) {
+    console.log(`\n${seule.nom} : un seul dessin`);
+    await p.click(carte(seule.id));
+    await p.waitForTimeout(250);
+    const f1 = await lire(seule.id);
+    await p.click(carte(seule.id));
+    await p.waitForTimeout(250);
+    const f2 = await lire(seule.id);
+    dit(f1.repere === null && f2.repere === null, `aucun repere (rien a faire tourner)`);
+    dit(f2.sel && f2.choisi === seule.id && f2.src === seule.livrees[0].pick,
+      `deux appuis la laissent choisie et inchangee (${f2.src})`);
+  }
 
   /* --- 5. le choix est range par voiture, et il survit --- */
   console.log('\nle choix se garde, voiture par voiture');

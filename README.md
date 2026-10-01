@@ -1299,6 +1299,17 @@ remplace le dessin vectoriel **et** la teinte : la palette `LIVERIES` ne se voit
 d'elles. Changer de livrée, c'est donc changer de fichier. La 3.0 CSL en a trois — Motorsport,
 Castrol, Calder.
 
+Deux voitures en ont trois : la 3.0 CSL (Motorsport, Castrol, Calder) et la F40 (Pilot, Rosso,
+Crawford). Les livrées sont nommées d'après ce qui est écrit sur la voiture plutôt que d'après sa
+couleur — « Pilot » et « Crawford » se lisent sur les flancs — parce que ces noms s'affichent tels
+quels dans les deux langues du jeu et qu'un nom de couleur, lui, demanderait une traduction.
+
+La **planche de rotation** de la F40 ne suit pas ses livrées. Elle ne sert qu'à la caméra inclinée,
+qui n'est pas celle par défaut, et il en faudrait une par livrée — huit vues chacune. En vue
+inclinée, les trois F40 gardent donc l'aspect de la planche d'origine. C'est écrit ici et dans
+`js/cars.js` parce que c'est le genre d'écart qu'on découvre six mois plus tard en changeant de
+caméra.
+
 Un modèle déclare ses livrées dans `js/cars.js`, et **les chemins se déduisent de l'identifiant** :
 `castrol` donne `sprites/top/csl_castrol.png` et `sprites/pick/csl_castrol.png`, un identifiant vide
 garde les fichiers sans suffixe pour que la livrée d'origine n'ait pas à être renommée. Déduire
@@ -1331,7 +1342,12 @@ déjà échoué l'événement est passé. Une illustration de dessus manquante r
 vectoriel, sans retenir la barrière de chargement — un fichier absent ne viendra pas.
 
 `tools/e2e-livree.js` ne vérifie pas que l'écran a changé d'aspect mais que **le bon fichier a été
-servi** : il note chaque chemin demandé et chaque chemin réellement rendu. Les deux ne se valent
+servi** : il note chaque chemin demandé et chaque chemin réellement rendu. Il **demande au jeu** la
+liste des voitures à plusieurs livrées au lieu de la porter en dur — un essai qui nomme la CSL ne
+dirait rien de la F40 ajoutée le lendemain, et surtout il continuerait à passer. Il exige en retour
+d'en trouver au moins une, et une à dessin unique : une liste vide traverserait toutes les boucles
+sans rien contrôler. Chaque voiture fait un tour complet, qui doit revenir à la première — un cycle
+qui s'arrête au dernier cran ne montre jamais qu'il reboucle. Les deux ne se valent
 pas — un chemin mal formé est demandé comme un autre, et comme une vignette absente retombe
 proprement sur la livrée d'origine, un essai qui regarderait la demande seule verrait tout au vert
 devant un fichier introuvable. Vérifié en retirant un fichier : deux contrôles tombent. Et il
@@ -1355,7 +1371,9 @@ petite que les autres à largeur égale.
 
 | | avant | après |
 |---|---|---|
-| six illustrations | 10,6 Mo | **839 ko** |
+| six illustrations (CSL, Corvette) | 10,6 Mo | 839 ko |
+| deux vignettes de F40 | 3,5 Mo | 289 ko |
+| **en tout** | **14,1 Mo** | **1,1 Mo** |
 
 L'original part dans `<dossier>-src`, parce qu'une réduction ne se remonte pas — et si une source du
 même nom est déjà là, l'outil ne l'écrase pas et le DIT : un rendu remplacé par un autre laisserait
