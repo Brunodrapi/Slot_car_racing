@@ -57,9 +57,9 @@ create unique index if not exists pilotes_pseudo on public.pilotes (lower(pseudo
 
 alter table public.pilotes enable row level security;
 grant select on public.pilotes to anon, authenticated;
--- Le pilote déclare son propre pseudo : c'est la seule écriture qu'un navigateur a le droit de
--- faire. Le privilège est large (toute la table), le RLS le réduit à sa seule ligne.
-grant insert, update on public.pilotes to authenticated;
+-- Le navigateur n'écrit PAS ici. C'est la fonction serveur qui inscrit le pseudo, lié à
+-- l'identifiant vérifié du joueur. Laisser cette écriture au navigateur demandait un privilège,
+-- une politique RLS et un ordre de passage strict ; les trois ont cassé à leur tour.
 drop policy if exists pilotes_lecture on public.pilotes;
 create policy pilotes_lecture on public.pilotes for select to anon, authenticated using (true);
 
@@ -100,13 +100,11 @@ $$;
 -- Personne ne l'appelle depuis un navigateur : seule la clé de service y a droit.
 revoke all on function public.poser_record(text, text, real, text, uuid) from public, anon, authenticated;
 
--- Enregistrer son pseudo. Appelée par le joueur lui-même, une fois connecté : c'est la seule
--- écriture qu'un navigateur a le droit de faire, et elle ne touche que sa propre ligne.
+-- Les deux politiques d'écriture du navigateur sont retirées : plus personne n'écrit ici depuis
+-- une page. Elles sont supprimées explicitement pour que rejouer ce fichier défasse l'ancienne
+-- installation au lieu de la laisser traîner — une politique oubliée rouvre une porte en silence.
 drop policy if exists pilotes_le_mien on public.pilotes;
-create policy pilotes_le_mien on public.pilotes for insert to authenticated with check (auth.uid() = id);
 drop policy if exists pilotes_maj_le_mien on public.pilotes;
-create policy pilotes_maj_le_mien on public.pilotes for update to authenticated
-  using (auth.uid() = id) with check (auth.uid() = id);
 
 -- Et RIEN de plus. Aucune écriture n'est accordée sur `records` ni sur `planchers`, à personne :
 -- ni à un anonyme, ni à un compte connecté. Seule la fonction serveur, qui porte la clé de
@@ -115,4 +113,4 @@ create policy pilotes_maj_le_mien on public.pilotes for update to authenticated
 -- table de records ouverte en écriture ne se remarque que lorsqu'elle est déjà pleine de faux.
 revoke insert, update, delete on public.records from anon, authenticated;
 revoke insert, update, delete on public.planchers from anon, authenticated;
-revoke delete on public.pilotes from anon, authenticated;
+revoke insert, update, delete on public.pilotes from anon, authenticated;

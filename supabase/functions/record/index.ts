@@ -7,6 +7,10 @@ le seul chemin. C'est ce qui rend la validation incontournable plutôt que polie
 
 Elle vérifie quatre choses, dans cet ordre, du moins cher au plus cher :
 
+  0. LE NOM. La fonction inscrit elle-même le pseudo du joueur, lié à son identifiant vérifié.
+     Le navigateur ne touche plus à la table des pilotes : c'était trois pièces mobiles — un
+     privilège d'écriture, une politique RLS, un ordre de passage — pour un champ de texte.
+
   1. QUI. Le jeton doit être valide et signé par Supabase. On ne le décode pas nous-mêmes : on le
      présente à Supabase, qui répond par un utilisateur ou par une erreur. Un jeton bricolé côté
      joueur n'ira pas plus loin.
@@ -62,18 +66,29 @@ Deno.serve(async (req) => {
     return rep(400, { raison: 'temps' });
   }
 
-  // Le pseudo vient de la table des pilotes, JAMAIS du corps de la requête : sinon n'importe qui
-  // signerait n'importe quel nom, et le tableau attribuerait des records à des gens au hasard.
-  /* L'erreur de la requête est LUE, et pas confondue avec une absence de ligne.
+  /* LE PSEUDO. C'est la fonction qui l'inscrit, et plus le navigateur.
 
-  En n'en prenant que `data`, une panne de lecture et un pilote inconnu rendaient le même mot :
-  « pseudo ». Le joueur lisait « ton nom n'est pas enregistré » alors que son nom était en base et
-  que c'est la requête qui avait échoué — un diagnostic faux coûte plus cher qu'un diagnostic
-  absent, parce qu'on va chercher au mauvais endroit. */
-  const { data: pilote, error: errPilote } = await admin.from('pilotes')
-    .select('pseudo').eq('id', auteur).maybeSingle();
-  if (errPilote) return rep(500, { raison: 'lecture_pilote', detail: errPilote.message });
-  if (!pilote?.pseudo || !NOM.test(pilote.pseudo)) return rep(403, { raison: 'pseudo', auteur });
+  Il était écrit par le jeu, directement dans la table, ce qui demandait un privilège d'écriture
+  côté navigateur, une politique RLS pour le borner à sa propre ligne, et un ordre de passage
+  strict — le nom avant le premier temps. Trois pièces mobiles pour un champ de texte, et chacune
+  a cassé à son tour : droits manquants, requête non authentifiée, déclaration qui ne se rejouait
+  qu'au chargement de la page. La fonction a déjà l'identité vérifiée du joueur et la clé de
+  service ; elle n'a besoin de personne pour écrire une ligne.
+
+  La garantie ne change pas d'un pouce. Le nom arrive bien du corps de la requête, mais il est
+  LIÉ à `auth.uid()` : on ne peut inscrire un nom que pour soi-même, et l'index unique empêche de
+  prendre celui d'un autre compte. Signer un record du nom de quelqu'un d'autre reste impossible,
+  ce qui était tout l'objet de la règle. */
+  const pseudo = typeof corps.pilote === 'string' ? corps.pilote : '';
+  if (!NOM.test(pseudo)) return rep(400, { raison: 'pseudo_forme' });
+  const { error: errPseudo } = await admin.from('pilotes')
+    .upsert({ id: auteur, pseudo, maj_le: new Date().toISOString() }, { onConflict: 'id' });
+  // 23505 : l'index unique sur le pseudo. Le nom appartient déjà à un autre compte.
+  if (errPseudo) {
+    return errPseudo.code === '23505'
+      ? rep(409, { raison: 'pseudo_pris' })
+      : rep(500, { raison: 'ecriture_pilote', detail: errPseudo.message });
+  }
 
   // 3. LE PLANCHER.
   const { data: sol, error: errSol } = await admin.from('planchers').select('minimum')
@@ -100,7 +115,7 @@ Deno.serve(async (req) => {
   arrivent à la même seconde sont départagés par la base, pas par l'ordre dans lequel leurs
   requêtes nous parviennent. */
   const { error: errEcrit } = await admin.rpc('poser_record', {
-    p_circuit: circuit, p_voiture: voiture, p_temps: temps, p_pilote: pilote.pseudo, p_auteur: auteur,
+    p_circuit: circuit, p_voiture: voiture, p_temps: temps, p_pilote: pseudo, p_auteur: auteur,
   });
   if (errEcrit) return rep(500, { raison: 'ecriture', detail: errEcrit.message });
   return rep(200, { ok: true });

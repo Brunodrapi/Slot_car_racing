@@ -38,17 +38,19 @@ class App {
     Le serveur prend le nom dans la base et jamais dans la requête ; sans cette ligne, le premier
     record proposé serait refusé pour « pseudo », et le joueur n'aurait aucun moyen de deviner
     pourquoi. On le fait à la connexion, au moment où rien ne presse. */
-    if (this.mondial.connecte() && this.save.name) {
-      // l'échec est retenu dans `mondial.pseudoErreur` et affiché à l'écran des records ; on ne
-      // l'avale pas ici, on évite seulement qu'une promesse rejetée remonte dans la console
-      this.mondial.declarePseudo(this.save.name)
-        /* Le pseudo D'ABORD, le rattrapage ensuite, et jamais l'inverse.
+    /* Le nom est posé SANS condition, même hors connexion.
 
-        Le serveur prend le nom dans la base : un temps proposé avant que le pseudo n'y soit écrit
-        est refusé pour « pseudo », et le rattrapage partirait donc en entier dans le mur à la
-        toute première connexion — exactement celle où il sert. */
-        .then(() => this.mondial.rattrape(this.save.bestLaps))
-        .catch(() => {});
+    Le poser seulement quand on est déjà connecté laissait sans nom celui qui se connecte en cours
+    de partie : ses temps partaient avec une chaîne vide et le serveur les refusait pour « forme du
+    pseudo », ce qui n'a aucun sens vu de l'écran. Poser une chaîne ne coûte rien. */
+    this.mondial.poseNom(this.playerName());
+    if (this.mondial.connecte() && this.save.name) {
+      /* Plus d'ordre à respecter : le nom voyage AVEC chaque temps.
+
+      Il fallait auparavant l'écrire en base avant de proposer quoi que ce soit, sous peine de voir
+      tout le rattrapage refusé à la première connexion — exactement celle où il sert. La
+      contrainte a disparu avec l'écriture : on pose le nom, et c'est tout. */
+      this.mondial.rattrape(this.save.bestLaps).catch(() => {});
     }
     this.ui.splash();
     this.refreshCustom().then(() => {
@@ -358,6 +360,8 @@ class App {
         peut pas battre celui du monde. Rien n'est attendu : la course se termine, les résultats
         s'affichent, et la réponse arrive quand elle arrive. */
         if (this.mondial && this.mondial.connecte() && !race.usure) {
+          // le nom courant, et pas celui du démarrage : il a pu changer dans les réglages depuis
+          this.mondial.poseNom(this.playerName());
           this.mondial.propose(race.track.id, race.cls.id, race.player.bestLap)
             .catch(() => { /* un tableau de scores ne fait pas échouer une fin de course */ });
         } else if (this.mondial && this.mondial.connecte() && race.usure) {

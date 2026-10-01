@@ -574,9 +574,6 @@ class UI {
     const cell = (v) => v == null ? `<span class="muted">--:--.---</span>` : fmtTime(v);
     return `<h3>${t('yourBest')}</h3>
       ${this.etatMondial()}
-      ${app.mondial && app.mondial.pseudoErreur === 'pseudo_pris'
-        ? `<p class="warn mondial-note">${t('nameTaken', escapeHtml(s.name))}
-            <button class="link" data-action="settings">${t('settings')}</button></p>` : ''}
       ${app.mondial && app.mondial.dernierRefus
         ? `<p class="warn mondial-note">${this.messageRefus(app.mondial.dernierRefus.raison)}
             ${RECONNEXION.has(app.mondial.dernierRefus.raison)

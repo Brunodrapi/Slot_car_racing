@@ -39,7 +39,6 @@ class Mondial {
     this.session = null;        // { token, expire, nom, sub } une fois connecté
     this.cache = new Map();     // circuit → { t, lignes } : une lecture par circuit, pas par ligne
     this.erreur = null;
-    this.pseudoErreur = null;      // « ce nom est pris », retenu pour être DIT au joueur
     this.dernierRefus = null;      // le dernier temps refusé par le serveur, et pourquoi
     this.erreurConnexion = null;   // un retour de connexion qui a mal tourné
     this.envoi = null;             // l'état du rattrapage : { total, faits, rien }
@@ -168,96 +167,15 @@ class Mondial {
     }
   }
 
-  /* Déclarer son pseudo, une fois connecté.
+  /* Le pseudo est POSÉ ici et ENVOYÉ avec chaque temps ; il n'est plus écrit en base d'ici.
 
-  C'est la seule écriture qu'un navigateur a le droit de faire, et elle ne touche que sa propre
-  ligne — le RLS s'en assure. Elle est nécessaire : le serveur refuse un temps dont l'auteur n'a
-  pas de pseudo déclaré, parce qu'il prend le nom DANS LA BASE et jamais dans la requête. Sinon
-  n'importe qui signerait n'importe quel nom, et le tableau attribuerait des records au hasard.
-
-  Un pseudo déjà pris par un autre compte fait échouer l'écriture sur l'index unique. On le
-  remonte tel quel : c'est au joueur d'en choisir un autre, pas à nous d'en inventer un. */
-  async declarePseudo(pseudo) {
-    if (!this.connecte()) return { ok: false, raison: 'anonyme' };
-    this.pseudo = pseudo;          // retenu dès l'appel : la réparation en a besoin même après un échec
-    try {
-      const r = await fetch(`${MONDIAL_URL}/rest/v1/pilotes`, {
-        method: 'POST',
-        headers: {
-          apikey: MONDIAL_KEY,
-          Authorization: `Bearer ${this.session.token}`,
-          'content-type': 'application/json',
-          // « merge-duplicates » : une deuxième connexion met à jour la ligne au lieu d'échouer
-          Prefer: 'resolution=merge-duplicates,return=minimal',
-        },
-        body: JSON.stringify({ id: this.session.sub, pseudo }),
-      });
-      if (r.ok) { this.pseudo = pseudo; this.pseudoErreur = null; return { ok: true }; }
-      const rep = await r.json().catch(() => ({}));
-      // 23505 : l'index unique sur le pseudo. Le nom est à quelqu'un d'autre.
-      const raison = rep.code === '23505' ? 'pseudo_pris' : (rep.message || 'HTTP ' + r.status);
-      /* On RETIENT l'échec au lieu de le laisser filer.
-
-      Sans cela, un joueur dont le nom est déjà pris voit tout fonctionner — il roule, il bat ses
-      temps — et aucun n'entre jamais au tableau mondial, puisque le serveur refuse un temps dont
-      l'auteur n'a pas de pseudo déclaré. Rien à l'écran ne le lui dit, et rien ne le lui dirait
-      jamais : c'est le genre de panne qu'on finit par attribuer au jeu tout entier. */
-      this.pseudoErreur = raison;
-      return { ok: false, raison };
-    } catch (e) {
-      this.pseudoErreur = String(e.message || e);
-      return { ok: false, raison: this.pseudoErreur };
-    }
-  }
-
-  /* Proposer un temps. Le serveur décide.
-
-  On n'envoie rien sans session : sans jeton, la fonction refuserait de toute façon, et partir
-  quand même ne ferait qu'ajouter un aller-retour à une réponse déjà connue. */
-  async propose(circuit, voiture, temps, reessai) {
-    if (!this.connecte()) return { ok: false, raison: 'anonyme' };
-    try {
-      const r = await fetch(`${MONDIAL_URL}/functions/v1/record`, {
-        method: 'POST',
-        headers: {
-          apikey: MONDIAL_KEY,
-          Authorization: `Bearer ${this.session.token}`,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({ circuit, voiture, temps, pilote: null }),
-      });
-      const rep = await r.json().catch(() => ({}));
-      if (r.ok) this.cache.delete(circuit);   // le tableau vient de changer : on le relira
-      if (r.status === 401) this.sortir();    // session périmée : on redemandera la connexion
-      const raison = rep.raison || rep.message || ('HTTP ' + r.status);
-      /* Un refus se RETIENT, pour pouvoir être dit.
-
-      Il partait dans le vide : le joueur bouclait un tour, rien n'arrivait au tableau, et aucune
-      explication nulle part. Les quatre refus possibles ont chacun une cause que le joueur peut
-      traiter — une voiture que le serveur ne connaît pas encore, un temps sous le plancher, une
-      session périmée, un envoi trop rapproché — et aucune ne se devine depuis l'écran. */
-      /* « Pseudo inconnu » se RÉPARE au lieu de se signaler.
-
-      Le serveur prend le nom dans la base. Si la ligne du pilote n'y est pas — parce que la
-      déclaration du démarrage a échoué, parce qu'elle est partie avant que les droits soient en
-      place, ou parce qu'on revient avec un autre compte Google — tous les temps sont refusés pour
-      toujours, et la seule issue proposée au joueur était de se reconnecter, ce qui ne change rien
-      puisque la déclaration ne se rejoue qu'au chargement. On la rejoue donc ICI, une fois, puis
-      on repropose. Une panne qui se répare vaut mieux qu'une panne bien expliquée. */
-      if (!r.ok && raison === 'pseudo' && !reessai && this.pseudo) {
-        const d = await this.declarePseudo(this.pseudo);
-        if (d.ok) return this.propose(circuit, voiture, temps, true);
-        this.dernierRefus = { raison: d.raison === 'pseudo_pris' ? 'pseudo_pris' : 'pseudo', circuit, voiture };
-        return { ok: false, raison: d.raison };
-      }
-      this.dernierRefus = r.ok ? null : { raison, circuit, voiture };
-      if (r.ok) this.marqueEnvoye(circuit, voiture);
-      return { ok: r.ok, raison };
-    } catch (e) {
-      this.dernierRefus = { raison: 'reseau', circuit, voiture };
-      return { ok: false, raison: String(e.message || e) };
-    }
-  }
+  Le navigateur écrivait lui-même dans la table des pilotes. Cela demandait un privilège
+  d'écriture, une politique pour le borner à sa propre ligne, et un ordre de passage strict — le
+  nom avant le premier temps. Trois pièces mobiles pour un champ de texte, et chacune a cassé à
+  son tour : droits manquants, requête arrivée non authentifiée, déclaration qui ne se rejouait
+  qu'au chargement de la page. La fonction serveur a déjà l'identité vérifiée du joueur ; elle
+  inscrit le nom elle-même, lié à cet identifiant. Il ne reste ici qu'une chaîne à retenir. */
+  poseNom(pseudo) { this.pseudo = pseudo; }
 
   /* Ce qui est déjà parti, pour ne pas le renvoyer à chaque ouverture. */
   marqueEnvoye(circuit, voiture) {

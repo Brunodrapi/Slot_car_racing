@@ -125,21 +125,22 @@ const serveur = http.createServer((req, res) => {
   dit(!!panne.erreur, `la panne est notee sans etre jetee : ${panne.erreur}`);
   dit(erreurs === 0, `aucune exception pendant la panne (${erreurs})`);
 
-  /* --- 5. un pseudo déjà pris doit se VOIR --- */
-  /* Sans message, le joueur voit tout fonctionner — il roule, il bat ses temps — et aucun n'entre
-  jamais au tableau, puisque le serveur refuse un temps dont l'auteur n'a pas de pseudo déclaré.
-  C'est le genre de panne qu'on finit par attribuer au jeu tout entier. */
-  console.log('\nun pseudo deja pris');
+  /* --- 5. un nom déjà pris arrive par le SERVEUR, et mène aux réglages --- */
+  /* Le navigateur n'écrit plus dans la table des pilotes : c'est la fonction qui inscrit le nom,
+  lié à l'identifiant vérifié. Un nom déjà pris par un autre compte revient donc comme un refus de
+  temps ordinaire, et son remède n'est pas de se reconnecter mais d'en changer. */
+  console.log('\nun nom deja pris');
   const pris = await page.evaluate(async () => {
-    app.mondial.pseudoErreur = 'pseudo_pris';
-    app.mondial.session = { token: 'x', expire: Date.now() / 1000 + 3600, sub: 'u1', nom: 'x' };
+    app.mondial.dernierRefus = { raison: 'pseudo_pris', circuit: 'spa', voiture: 'f40' };
     app.ui.setupScreen('timetrial');
-    await new Promise((r) => setTimeout(r, 300));
-    const n = document.querySelector('.warn.mondial-note');
-    return { vu: !!n, txt: n ? n.textContent.trim() : '' };
+    await new Promise((r) => setTimeout(r, 250));
+    const n = [...document.querySelectorAll('.warn.mondial-note')].pop();
+    return { txt: n ? n.textContent.trim() : '',
+             reglages: !!(n && n.querySelector('[data-action="settings"]')),
+             reco: !!(n && n.querySelector('[data-action="google"]')) };
   });
-  dit(pris.vu, `le joueur est prevenu : « ${pris.txt.slice(0, 64)}… »`);
-  dit(/Testeur/.test(pris.txt), 'le message nomme le pseudo refuse');
+  dit(/already taken|déjà pris/i.test(pris.txt), `le joueur est prevenu : « ${pris.txt.slice(0, 50)}… »`);
+  dit(pris.reglages && !pris.reco, 'il mene aux reglages, pas a une reconnexion inutile');
 
   /* --- 6. un refus du serveur doit se LIRE, et chaque raison a son message --- */
   /* Il partait dans le vide : le joueur bouclait un tour, rien n'arrivait au tableau, et aucune
@@ -150,7 +151,6 @@ const serveur = http.createServer((req, res) => {
   for (const [raison, bout] of [['inconnu', 'not known'], ['trop_rapide', 'impossible'],
                                 ['usure', 'wear'], ['session', 'expired'], ['zarbi', 'zarbi']]) {
     const vu = await page.evaluate(async (r) => {
-      app.mondial.pseudoErreur = null;
       app.mondial.dernierRefus = { raison: r, circuit: 'spa', voiture: 'f40' };
       app.ui.setupScreen('timetrial');
       await new Promise((res) => setTimeout(res, 220));
@@ -210,7 +210,7 @@ const serveur = http.createServer((req, res) => {
   ];
   for (const [nom, poser, attendu] of cas) {
     const txt = await page.evaluate(async (src) => {
-      app.mondial.dernierRefus = null; app.mondial.pseudoErreur = null;
+      app.mondial.dernierRefus = null;
       // eslint-disable-next-line no-new-func
       new Function('app', src)(app);
       app.ui.setupScreen('timetrial');
@@ -221,39 +221,6 @@ const serveur = http.createServer((req, res) => {
     const ok = attendu.test(txt);
     dit(ok, `${nom.padEnd(24)} → « ${txt.slice(0, 54)} »`);
   }
-
-
-  /* --- 10. un refus « pseudo » se REPARE tout seul --- */
-  /* Le serveur prend le nom dans la base. Si la ligne du pilote n'y est pas, tous les temps sont
-  refusés pour toujours, et la seule issue proposée — se reconnecter — ne change rien, puisque la
-  déclaration ne se rejoue qu'au chargement. On vérifie que le jeu la rejoue et repropose. */
-  console.log('\nun pseudo refuse se repare');
-  const repare = await page.evaluate(async () => {
-    const m = app.mondial;
-    m.session = { token: 'x', expire: Date.now() / 1000 + 9999, sub: 'u1', nom: 'x' };
-    m.pseudo = 'Testeur'; m.dernierRefus = null;
-    const vus = [];
-    let declare = 0;
-    m.declarePseudo = async () => { declare++; return { ok: true }; };
-    const vrai = window.fetch;
-    window.fetch = async (url, opt) => {
-      if (String(url).includes('/functions/v1/record')) {
-        vus.push(1);
-        // premier appel : le serveur ne connait pas le pilote ; second : il l'accepte
-        return vus.length === 1
-          ? new Response('{"raison":"pseudo"}', { status: 403 })
-          : new Response('{"ok":true}', { status: 200 });
-      }
-      return vrai(url, opt);
-    };
-    const r = await m.propose('monza', 'f40', 70);
-    window.fetch = vrai;
-    return { ok: r.ok, appels: vus.length, declare, refus: m.dernierRefus };
-  });
-  dit(repare.declare === 1, `le pseudo est redeclare une fois (${repare.declare})`);
-  dit(repare.appels === 2, `le temps est repropose apres la reparation (${repare.appels} appels)`);
-  dit(repare.ok === true, 'et il passe');
-  dit(!repare.refus, 'aucun refus ne reste affiche');
 
 
   /* --- 11. un retour de connexion rate doit se voir SUR L'AFFICHE --- */
