@@ -42,6 +42,12 @@ class Mondial {
     this.dernierRefus = null;      // le dernier temps refusé par le serveur, et pourquoi
     this.erreurConnexion = null;   // un retour de connexion qui a mal tourné
     this.envoi = null;             // l'état du rattrapage : { total, faits, rien }
+    /* Qui prévenir quand cet état change.
+
+    Sans ce rappel, l'écran des records montrait l'état du moment où il a été peint, et plus
+    jamais : « 0 sur 2 » restait affiché quoi qu'il arrive ensuite — succès, refus, abandon. Le
+    joueur regardait une photographie en croyant lire un compteur, et moi aussi. */
+    this.onEtat = () => {};
     this.envoyes = new Set();
     try { this.envoyes = new Set(JSON.parse(localStorage.getItem('eol.envoyes') || '[]')); } catch (_) {}
     this._litSession();
@@ -177,6 +183,45 @@ class Mondial {
   inscrit le nom elle-même, lié à cet identifiant. Il ne reste ici qu'une chaîne à retenir. */
   poseNom(pseudo) { this.pseudo = pseudo; }
 
+  /* Proposer un temps. Le serveur décide.
+
+  On n'envoie rien sans session : sans jeton, la fonction refuserait de toute façon, et partir quand
+  même n'ajouterait qu'un aller-retour à une réponse déjà connue.
+
+  Le nom voyage AVEC le temps. Le serveur l'inscrit lui-même, lié à l'identifiant qu'il a vérifié :
+  on ne peut donc poser un nom que pour soi, et l'index unique empêche de prendre celui d'un autre
+  compte. Signer un record du nom de quelqu'un d'autre reste impossible. */
+  async propose(circuit, voiture, temps) {
+    if (!this.connecte()) return { ok: false, raison: 'anonyme' };
+    try {
+      const r = await fetch(`${MONDIAL_URL}/functions/v1/record`, {
+        method: 'POST',
+        headers: {
+          apikey: MONDIAL_KEY,
+          Authorization: `Bearer ${this.session.token}`,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ circuit, voiture, temps, pilote: this.pseudo || '' }),
+      });
+      const rep = await r.json().catch(() => ({}));
+      if (r.ok) this.cache.delete(circuit);   // le tableau vient de changer : on le relira
+      if (r.status === 401) this.sortir();    // session périmée : on redemandera la connexion
+      const raison = rep.raison || rep.message || ('HTTP ' + r.status);
+      /* Un refus se RETIENT, pour pouvoir être dit.
+
+      Il partait dans le vide : le joueur bouclait un tour, rien n'arrivait au tableau, et aucune
+      explication nulle part. Chaque raison a une cause que le joueur peut traiter — une voiture que
+      le serveur ne connaît pas encore, un temps sous le plancher, une session périmée, un envoi
+      trop rapproché — et aucune ne se devine depuis l'écran. */
+      this.dernierRefus = r.ok ? null : { raison, circuit, voiture };
+      if (r.ok) this.marqueEnvoye(circuit, voiture);
+      return { ok: r.ok, raison };
+    } catch (e) {
+      this.dernierRefus = { raison: 'reseau', circuit, voiture };
+      return { ok: false, raison: 'reseau' };
+    }
+  }
+
   /* Ce qui est déjà parti, pour ne pas le renvoyer à chaque ouverture. */
   marqueEnvoye(circuit, voiture) {
     this.envoyes.add(`${circuit}|${voiture}`);
@@ -211,16 +256,37 @@ class Mondial {
     « ça ne marche pas » quand l'écran ne dit rien. Le cas vide est le plus fréquent et le moins
     devinable : les records d'avant la version 0.21.48 sont rangés sous une clé à deux morceaux,
     sans voiture, donc ils ne PEUVENT pas être attribués — et le rattrapage n'a rien à faire. */
-    this.envoi = { total: aFaire.length, faits: 0, rien: aFaire.length === 0 };
-    for (const t of aFaire) {
+    this.envoi = { total: aFaire.length, faits: 0, rien: aFaire.length === 0, attente: 0 };
+    this.onEtat();
+    for (let i = 0; i < aFaire.length; i++) {
+      const t = aFaire[i];
       const r = await this.propose(t.circuit, t.voiture, t.temps);
       if (r.ok) this.envoi.faits++;
       // un refus définitif (voiture inconnue, temps impossible) ne se retente pas à chaque ouverture
       if (!r.ok && (r.raison === 'inconnu' || r.raison === 'trop_rapide')) this.marqueEnvoye(t.circuit, t.voiture);
-      if (!r.ok && (r.raison === 'anonyme' || r.raison === 'session')) break;
-      await new Promise((res) => setTimeout(res, 16000));
+      this.onEtat();
+      /* Un refus définitif ARRÊTE le rattrapage au lieu de le poursuivre en pure perte.
+
+      Les quatre refus qui ne dépendent pas du temps proposé — pas de session, pseudo refusé, nom
+      déjà pris, panne de réseau — toucheront les suivants à l'identique. Continuer, c'était
+      attendre seize secondes entre deux échecs annoncés, et laisser « 0 sur 9 » à l'écran pendant
+      deux minutes et demie pour une cause connue dès le premier envoi. */
+      if (!r.ok && ['anonyme', 'session', 'pseudo', 'pseudo_pris', 'pseudo_forme', 'reseau'].includes(r.raison)) break;
+      if (i === aFaire.length - 1) break;
+      /* L'attente entre deux envois, DÉCOMPTÉE à l'écran.
+
+      Le serveur refuse deux temps rapprochés ; la règle est là pour empêcher le bourrage et un
+      rattrapage légitime s'y plie. Mais seize secondes d'immobilité sans un mot, c'est
+      indiscernable d'un blocage — d'autant que le compteur ne bougeait de toute façon pas. */
+      for (let w = 16; w > 0; w--) {
+        this.envoi.attente = w;
+        this.onEtat();
+        await new Promise((res) => setTimeout(res, 1000));
+      }
+      this.envoi.attente = 0;
     }
     this._rattrapeEnCours = false;
+    this.onEtat();
   }
 }
 

@@ -70,6 +70,21 @@ const serveur = http.createServer((req, res) => {
     app.ui.setup.trackId = 'monza';
   });
 
+  /* --- 0. la surface de `Mondial` existe-t-elle seulement ? --- */
+  /* Ce contrôle naïf aurait évité trois jours de fausse piste. En retirant un bloc de `propose`,
+  j'ai supprimé la méthode entière — et son seul essai dans le même commit. Résultat : plus aucun
+  temps ne pouvait partir, le compteur restait à « 0 sur 2 », et on a cherché la cause dans la base,
+  dans les droits, dans le jeton. Une méthode absente ne se voit nulle part tant que personne ne
+  l'appelle : il faut le demander. */
+  console.log('\nla surface');
+  const surface = await page.evaluate(() => {
+    const noms = ['records', 'propose', 'rattrape', 'poseNom', 'marqueEnvoye',
+                  'connecte', 'entrer', 'sortir', 'silence'];
+    const m = app.mondial || {};
+    return noms.filter((n) => n !== 'silence' && typeof m[n] !== 'function');
+  });
+  dit(surface.length === 0, `toutes les methodes publiques sont la${surface.length ? ' — MANQUE : ' + surface.join(', ') : ''}`);
+
   // --- 1 et 2. l'écran d'abord, les temps du monde ensuite ---
   retard = 900;
   console.log('\nla reponse arrive en retard');
@@ -262,7 +277,41 @@ const serveur = http.createServer((req, res) => {
   dit(!vide.sansMarque, 'une ouverture ordinaire ne crie pas au loup');
   dit(vide.avec === 'vide', `un retour les mains vides est nomme (${vide.avec}, « ${vide.quoi} »)`);
 
-  await page.evaluate(() => { app.mondial.dernierRefus = null; });
+
+  /* --- 13. l'etat de l'envoi se RAFRAICHIT, et un refus definitif arrete le rattrapage --- */
+  /* « 0 sur 2 » restait affiché quoi qu'il arrive : l'écran montrait l'état du moment où il avait
+  été peint, et rien ne le repeignait. Le joueur regardait une photographie en croyant lire un
+  compteur. Et le rattrapage continuait après un refus qui touchera tous les suivants à l'identique,
+  soit seize secondes d'attente entre deux échecs annoncés. */
+  console.log('\nle rattrapage');
+  const rat = await page.evaluate(async () => {
+    const m = app.mondial;
+    m.session = { token: 'x', expire: Date.now() / 1000 + 9999, sub: 'u1', nom: 'x' };
+    m.pseudo = 'Testeur'; m.envoyes = new Set(); m.dernierRefus = null;
+    let repeints = 0;
+    m.onEtat = () => { repeints++; };
+    const vrai = window.fetch;
+    let envois = 0;
+    window.fetch = async (url, opt) => {
+      if (String(url).includes('/functions/v1/record')) {
+        envois++;
+        return new Response('{"raison":"session"}', { status: 401 });
+      }
+      return vrai(url, opt);
+    };
+    const bests = {};
+    const cat = playableCategories()[0], ms = modelsOf(cat.id);
+    for (let i = 0; i < 4; i++) bests[`monza|${cat.id}|${ms[i].id}`] = 70 + i;
+    const t0 = Date.now();
+    await m.rattrape(bests);
+    window.fetch = vrai;
+    return { envois, repeints, duree: Date.now() - t0, etat: m.envoi };
+  });
+  dit(rat.envois === 1, `un refus definitif arrete le rattrapage (${rat.envois} envoi sur 4 temps)`);
+  dit(rat.duree < 3000, `sans attendre seize secondes pour rien (${rat.duree} ms)`);
+  dit(rat.repeints >= 2, `l'ecran est prevenu a chaque changement (${rat.repeints} fois)`);
+
+  await page.evaluate(() => { app.mondial.dernierRefus = null; app.mondial.envoi = null; app.mondial.onEtat = () => {}; });
 
   await page.evaluate(() => { app.ui._mondiaux = null; app.mondial.cache.clear(); });
   await page.screenshot({ path: path.join(out, 'mondial.png'), fullPage: true });

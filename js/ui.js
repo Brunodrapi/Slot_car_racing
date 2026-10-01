@@ -33,6 +33,7 @@ const I18N = {
     authFail: (e) => `La connexion a échoué : ${e}`,
     authEmpty: (p) => `Tu es revenu de Google sans jeton (l’adresse portait : ${p}). C’est le signe que l’adresse du jeu manque dans les « Redirect URLs » de Supabase.`,
     sending: (a, b) => `Envoi de tes temps au tableau mondial… ${a} sur ${b}.`,
+    sendingWait: (a, b, s) => `Envoi de tes temps… ${a} sur ${b}. Prochain dans ${s} s (le serveur les espace).`,
     sent: (n) => `${n} temps envoyé${n > 1 ? 's' : ''} au tableau mondial.`,
     signedInAs: (n) => `Connecté comme ${n}. Tes meilleurs tours partent au tableau mondial.`,
     reconnect: 'Se reconnecter',
@@ -92,6 +93,7 @@ const I18N = {
     authFail: (e) => `Sign-in failed: ${e}`,
     authEmpty: (p) => `You came back from Google without a token (the URL carried: ${p}). That usually means the game URL is missing from Supabase’s Redirect URLs.`,
     sending: (a, b) => `Sending your times to the world board… ${a} of ${b}.`,
+    sendingWait: (a, b, s) => `Sending your times… ${a} of ${b}. Next in ${s} s (the server spaces them out).`,
     sent: (n) => `${n} time${n > 1 ? 's' : ''} sent to the world board.`,
     signedInAs: (n) => `Signed in as ${n}. Your best laps go to the world board.`,
     reconnect: 'Sign in again',
@@ -215,7 +217,11 @@ class UI {
     }
     if (!m.connecte()) return ligne('muted', t('worldNeedsAccount'), entrer);
     const e = m.envoi;
-    if (e && !e.rien && e.faits < e.total) return ligne('muted', t('sending', e.faits, e.total));
+    if (e && !e.rien && e.faits < e.total) {
+      return ligne('muted', e.attente
+        ? t('sendingWait', e.faits, e.total, e.attente)
+        : t('sending', e.faits, e.total));
+    }
     if (e && e.faits > 0) return ligne('muted', t('sent', e.faits));
     if (e && e.rien) return ligne('muted', t('nothingToSend'));
     return ligne('muted', t('signedInAs', escapeHtml(this.app.save.name)));
