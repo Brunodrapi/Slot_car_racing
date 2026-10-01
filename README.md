@@ -700,7 +700,7 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
 ## Contenu
 
 - **9 voitures GT** : *M1 Procar*, *F40*, *Countach LP500*, *911 Turbo*, *GT40 Mk II*,
-  *917 K*, *Corvette*, *787B*, *3.0 CSL*.
+  *935*, *Corvette*, *787B*, *3.0 CSL*.
   On choisit sa voiture, et rien d'autre : plus de livrée à régler. En ligne, la place à la table
   donne la couleur, si bien que deux pilotes ne se ressemblent jamais sans avoir eu à en discuter.
   Toutes les neuf sont représentées d'après la vraie voiture : une vue de dessus pour la piste et
@@ -712,7 +712,7 @@ Les deux cohabitent, ce qui permet de convertir la grille voiture par voiture.
 - **Un seul plateau**, celui des neuf voitures ci-dessus. Son identifiant reste `gt` — les records
   de tour sont rangés sous `circuit|catégorie` et `circuit|catégorie|voiture` dans la sauvegarde,
   et le changer effacerait ceux des joueurs — mais son nom ne pouvait plus être « GT » avec une
-  917 et une 787B sur la grille.
+  935 et une 787B sur la grille.
 - **Course rapide** et **contre-la-montre** (records par circuit et par voiture), 5 niveaux de difficulté, usure et dommages en option.
 - Une **carrière** existe dans le code, actuellement masquée. Elle n'a plus qu'une coupe : les
   trois autres couraient dans les catégories retirées.
@@ -1260,6 +1260,37 @@ pas cadrées pareil d'une voiture à l'autre — la CSL arrive en 1,06 de rappor
 — et les forcer au même cadre les déformerait. Le prix est que la voiture n'occupe pas tout à fait
 la même surface d'une carte à l'autre.
 
+### La 935 remplace la 917 K, identifiant compris
+
+Elle prend un identifiant NEUF, `935`, et pas celui de la voiture qu'elle remplace. L'identifiant
+est la clé sous laquelle sont rangés les records — locaux comme mondiaux — et les planchers du
+serveur. Le garder aurait fait hériter la 935 des temps signés avec un prototype douze cylindres :
+des records qu'elle n'a pas faits, sur une voiture qui n'existe plus. Les anciennes lignes `917k`
+restent dans la sauvegarde sans plus s'afficher ; rien n'est effacé, rien n'est attribué à tort.
+
+Trois conséquences, toutes traitées, et dont deux ne se voient pas à l'écran.
+
+**Les planchers du serveur.** Il n'y en avait aucun pour `935`, et la fonction serveur refuse un
+couple qu'elle ne connaît pas — volontairement, puisqu'accepter par défaut ouvrirait la porte à un
+identifiant inventé. Sans régénération, **tout temps en 935 aurait été rejeté**. `planchers.sql`
+porte en plus un `delete` pour les voitures disparues : un `insert ... on conflict` n'enlève rien,
+et les douze planchers de la 917 K seraient restés en base pour toujours.
+
+**Le classement de difficulté est RELATIF**, donc l'arrivée d'une voiture le déplace tout entier.
+`tools/difficulte.js` place la 935 en tête (score 0,93, la plus dure du plateau), ce qui repousse la
+Corvette et la 911 Turbo de cinq pneus à quatre. On applique la table mesurée en entier, pas la
+seule ligne nouvelle : garder les anciennes valeurs à côté d'une mesure fraîche aurait mis l'écran
+en désaccord avec elle.
+
+**Le son.** La 917 K jouait le jeu de prises `bac_mono`. La 935 est un flat-6 turbo, donc la même
+famille que la 930 d'à côté : elle passe sur `procar`, rupteur à 8000, avec l'étagement court
+d'une silhouette de Groupe 5.
+
+**Ce qui manque encore** : `sprites/pick/935.png`, l'illustration en trois quarts du menu. Sans
+elle, sa carte montre la vue de dessus là où les huit autres montrent un trois-quarts. La voiture
+fonctionne, mais elle dépareille. `python3 tools/pickcar.py <image> 935` la prépare dès qu'une
+source existe.
+
 ## Le son des voitures
 
 Le moteur vient de [markeasting/engine-audio](https://github.com/markeasting/engine-audio), sous
@@ -1346,7 +1377,7 @@ mêmes inerties et temps de passage.
 | jeu | voitures |
 |---|---|
 | procar | M1 Procar, 911 Turbo, Countach LP500, GT40 Mk II, Corvette |
-| BAC Mono | 787B, 917 K |
+| BAC Mono | 787B |
 | 458 | F40, 3.0 CSL |
 
 Chaque voiture n'impose que trois choses par-dessus : son **rupteur**, son **ralenti** et sa
@@ -1555,7 +1586,7 @@ son avance en pilotage, là où les autres ne cèdent que trois à quatre pour c
 qu'elle paie, et c'est autre chose qu'être lente. Les neuf tiennent aujourd'hui dans **3,9 %**.
 
 Le même outil sert à vérifier qu'un caractère annoncé existe vraiment. La 3.0 CSL est censée être
-une voiture de virages : son écart à la 917 va de **0,4 % à Zandvoort** et 0,6 % à Monaco, sinueux,
+une voiture de virages : son écart à la 917 K — depuis remplacée par la 935 — allait de **0,4 % à Zandvoort** et 0,6 % à Monaco, sinueux,
 à **2,3 % à Monza**, rapide. Ce n'est donc pas une affirmation de présentation, c'est dans les
 chiffres.
 
