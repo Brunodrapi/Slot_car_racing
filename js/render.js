@@ -372,6 +372,14 @@ class Renderer {
     this.wets = [];
     this.damp = new Map();
     PAL = THEMES[track.theme] || THEMES.park;
+    /* Les vibreurs appartiennent au CIRCUIT, pas au décor. Un thème donne l'humeur d'un paysage —
+    la lande des Ardennes, les dunes, la colline californienne — et il donnait aussi la couleur des
+    bandes, ce qui mettait du bleu au Mans et de l'orange à Zandvoort alors que les deux sont en
+    rouge et blanc sur place. Quand `js/tracks.js` nomme les siennes, elles passent devant ; le
+    thème reste la valeur par défaut, pour un circuit d'éditeur qui n'en nomme aucune. */
+    if (track.def && track.def.kerb) {
+      PAL = Object.assign({}, PAL, { kerbA: track.def.kerb[0], kerbB: track.def.kerb[1] });
+    }
     this.grass = this._makeGrass();
     this.grassPattern = this.ctx.createPattern(this.grass, 'repeat');
     const seed = track.id || track.name || 'track';

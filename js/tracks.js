@@ -4,9 +4,25 @@
 // Race direction follows the point order. pts[0] must lie on the start/finish straight.
 'use strict';
 
+/* La couleur des vibreurs, et d'où elle vient.
+
+Elle appartient au circuit, pas au décor. Elle était tirée du thème, qui donne l'humeur d'un
+paysage : d'où du bleu au Mans et à Laguna Seca, de l'orange à Zandvoort — alors que les trois ont
+des bandes rouges et blanches sur place.
+
+Le rouge et blanc est la norme : c'est ce que la FIA impose sur les circuits homologués, et c'est ce
+qu'on voit partout sauf exception nationale. Interlagos fait exception, en vert et jaune.
+
+À VÉRIFIER SUR PHOTO si le cœur vous en dit : les fonds de carte de Wikipédia ne portent pas cette
+information — ils colorient les secteurs et les zones de DRS, jamais les vibreurs — donc ces
+couleurs ne sont pas relevées mais rapportées. Corriger un circuit tient sur une ligne. */
+const VIBREUR_FIA = ['#c33b30', '#eceaf0'];      // rouge et blanc
+const VIBREUR_BR = ['#1f7a3c', '#e8bc32'];       // vert et jaune — Interlagos, aux couleurs du pays
+
 const TRACKS = [
   {
     id: 'monza', name: 'Monza', country: 'IT', flag: '🇮🇹', theme: 'park',
+    kerb: VIBREUR_FIA,
     length: 2900, width: 15, laps: 4,
     /* La géométrie vient de `js/traces.js`, qui porte sa propre licence : elle est relevée dans
        OpenStreetMap, et le fichier à part rend la frontière lisible. Voir `LICENCES.md`. La
@@ -18,6 +34,7 @@ const TRACKS = [
   },
   {
     id: 'spa', name: 'Spa-Francorchamps', country: 'BE', flag: '🇧🇪', theme: 'forest',
+    kerb: VIBREUR_FIA,
     // La voie des stands déplacée juste après la ligne : à sa place par défaut, la zone d'arrêt
     // tombait dans le dernier virage et aucune voiture ne parvenait à s'y arrêter. Voir _buildPits.
     length: 3400, width: 14, laps: 3, puddles: 0.5, pitAt: 0.10,
@@ -39,6 +56,7 @@ const TRACKS = [
   },
   {
     id: 'monaco', name: 'Monaco', country: 'MC', flag: '🇲🇨', theme: 'riviera',
+    kerb: VIBREUR_FIA,
     length: 2300, width: 11, laps: 5,
     pts: [
       [60, 120], [40, 120], [22, 120],
@@ -59,6 +77,7 @@ const TRACKS = [
   },
   {
     id: 'silverstone', name: 'Silverstone', country: 'GB', flag: '🇬🇧', theme: 'autumn',
+    kerb: VIBREUR_FIA,
     length: 3300, width: 16, laps: 3, puddles: 0.4,
     pts: [
       [0, 120], [0, 80], [0, 40],
@@ -84,6 +103,7 @@ const TRACKS = [
   },
   {
     id: 'suzuka', name: 'Suzuka', country: 'JP', flag: '🇯🇵', theme: 'japan',
+    kerb: VIBREUR_FIA,
     length: 3300, width: 14, laps: 3,
     pts: [
       [0, 0], [30, 0], [60, 0],
@@ -101,6 +121,7 @@ const TRACKS = [
   },
   {
     id: 'interlagos', name: 'Interlagos', country: 'BR', flag: '🇧🇷', theme: 'tropical',
+    kerb: VIBREUR_BR,
     length: 2700, width: 14, laps: 4,
     pts: [
       [44, 0], [20, 0],
@@ -119,6 +140,7 @@ const TRACKS = [
   },
   {
     id: 'laguna', name: 'Laguna Seca', country: 'US', flag: '🇺🇸', theme: 'california',
+    kerb: VIBREUR_FIA,
     length: 2400, width: 13, laps: 4,
     pts: [
       [0, 0], [40, 0],
@@ -136,6 +158,7 @@ const TRACKS = [
   },
   {
     id: 'nurburgring', name: 'Nürburgring GP', country: 'DE', flag: '🇩🇪', theme: 'forest',
+    kerb: VIBREUR_FIA,
     length: 3000, width: 15, laps: 3,
     pts: [
       [0, 0], [40, 0],
@@ -155,6 +178,7 @@ const TRACKS = [
   },
   {
     id: 'lemans', name: 'Le Mans', country: 'FR', flag: '🇫🇷', theme: 'lemans',
+    kerb: VIBREUR_FIA,
     length: 4200, width: 15, laps: 2,
     pts: [
       [0, 0], [40, 0],
@@ -176,6 +200,7 @@ const TRACKS = [
   },
   {
     id: 'bathurst', name: 'Mount Panorama', country: 'AU', flag: '🇦🇺', theme: 'bush',
+    kerb: VIBREUR_FIA,
     length: 3600, width: 13, laps: 3,
     pts: [
       [0, 0], [40, 0], [80, 0], [110, 0],
@@ -194,6 +219,7 @@ const TRACKS = [
   },
   {
     id: 'redbullring', name: 'Red Bull Ring', country: 'AT', flag: '🇦🇹', theme: 'alpine',
+    kerb: VIBREUR_FIA,
     length: 2400, width: 15, laps: 4,
     pts: [
       [0, 0], [40, 0], [70, 0],
@@ -209,6 +235,7 @@ const TRACKS = [
   },
   {
     id: 'zandvoort', name: 'Zandvoort', country: 'NL', flag: '🇳🇱', theme: 'dunes',
+    kerb: VIBREUR_FIA,
     length: 2400, width: 13, laps: 4,
     pts: [
       [0, 0], [40, 0], [60, 0],
