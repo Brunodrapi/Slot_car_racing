@@ -1,0 +1,15 @@
+-- Vider le tableau mondial, une fois, parce que les circuits ont changé de forme.
+--
+-- Les douze tracés sont relevés dans OpenStreetMap au lieu d'être dessinés à la main, ils tournent
+-- désormais dans leur vrai sens — les douze tournaient à l'envers — et la ligne de départ est passée
+-- de la plus longue ligne droite à la ligne droite des stands. Un temps posé avant ne décrit plus le
+-- même tour : il ne commence pas au même endroit, ne se parcourt pas dans le même sens, et le tour
+-- idéal lui-même a bougé de −4 % au Mans à +31 % à Zandvoort.
+--
+-- On efface plutôt que de laisser cohabiter : un classement où les anciens temps voisinent avec les
+-- nouveaux n'est plus un classement, et rien à l'écran ne pourrait expliquer l'écart.
+--
+-- Les pilotes, eux, restent : un compte et son pseudo n'ont pas changé de sens.
+--
+--   À jouer une fois dans l'éditeur SQL de Supabase. Ce fichier ne sert pas deux fois.
+delete from public.records;

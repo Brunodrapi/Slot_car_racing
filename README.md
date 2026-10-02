@@ -2105,6 +2105,31 @@ attribuerait des records au hasard.
 La lecture, elle, est ouverte à tous, comptes et anonymes : un tableau qu'il faut mériter de voir
 ne sert à rien, c'est ce qu'on regarde avant de jouer.
 
+### Remettre les temps à zéro, une fois et une seule
+
+Les douze circuits ont changé de forme : relevés au lieu d'être dessinés, tournant dans leur vrai
+sens, et partant de la ligne droite des stands. Un temps posé avant ne décrit plus le même tour. Les
+meilleurs tours locaux sont donc effacés une fois, par une migration dans `loadSave`, et le tableau
+mondial par `supabase/remise-a-zero.sql`.
+
+**Le drapeau de migration se lit dans la sauvegarde BRUTE, pas dans la fusion**, et il a fallu deux
+essais ratés pour en tirer la bonne conclusion. `loadSave` fusionne la sauvegarde lue par-dessus les
+valeurs par défaut :
+
+- posé à `true` dans `defaultSave` et lu dans l'objet fusionné, le drapeau est **déjà vrai** pour une
+  sauvegarde qui ne le porte pas — c'est-à-dire exactement celles qu'il faut migrer. La migration
+  posait son drapeau et n'effaçait rien ;
+- retiré de `defaultSave`, il manque aussi aux sauvegardes **neuves**, et la migration se rejouait au
+  rechargement suivant en effaçant le premier temps du joueur.
+
+Les deux à la fois, donc : `true` dans le défaut pour qu'une sauvegarde neuve naisse migrée, et lu
+dans l'objet brut pour qu'une sauvegarde d'avant le soit une seule fois. `lapsMigrated` s'en tire
+sans cela parce que son action est inoffensive — reposer cinq tours sur un champ déjà à cinq ne coûte
+rien ; effacer des temps, non.
+
+`tools/e2e-remise.js` vérifie les deux défauts, et c'est lui qui les a trouvés : qu'une sauvegarde
+d'avant perde bien ses temps, et qu'une sauvegarde neuve garde le premier qu'elle pose.
+
 ### Le plancher : trente secondes, et un banc qui le vérifie
 
 Le serveur refuse tout temps sous **trente secondes**, pour tous les circuits et toutes les voitures.
@@ -2492,6 +2517,7 @@ python3 tools/prises.py <fichier.wav...> [--bits=16] [--essai]                  
 python3 tools/tracer.py <carte.svg> [--points=600] [--decimales=3] [--depart=auto]  # un chemin SVG vers la liste de points d'un circuit
 python3 tools/releve.py --bbox=s,o,n,e --depart="<voie>" --longueur=<m>           # un circuit releve dans OpenStreetMap
 node tools/fiches.js                                                             # les vitesses du jeu face aux vraies, et l'ordre du plateau
+NODE_PATH=$(npm root -g) node tools/e2e-remise.js                                 # la remise a zero des temps : efface une fois, et une seule
 ```
 
 `tools/line.js` mesure une trajectoire sans faire intervenir de pilote : sa longueur, son rayon

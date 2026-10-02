@@ -14,14 +14,15 @@ function lapsFor(trackDef, cat) {
 const SAVE_KEY = 'slotracer.save.v2';
 
 function defaultSave() {
-  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, livrees: {}, ctrl: 'auto', ctrlSide: 'left', camRotate: false, view: 'fixed', pullBack: 1, laps: 5, lapsPerso: false, showLines: false, debug: false, wear: false, guideMigrated: true, flatMigrated: false, cups: {}, bestLaps: {}, tutorialSeen: false, racesDone: 0 };
+  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, livrees: {}, ctrl: 'auto', ctrlSide: 'left', camRotate: false, view: 'fixed', pullBack: 1, laps: 5, lapsPerso: false, showLines: false, debug: false, wear: false, guideMigrated: true, flatMigrated: false, cups: {}, bestLaps: {}, tracesMigrated: true, tutorialSeen: false, racesDone: 0 };
 }
 
 function loadSave() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return defaultSave();
-    const save = Object.assign(defaultSave(), JSON.parse(raw));
+    const brut = JSON.parse(raw);
+    const save = Object.assign(defaultSave(), brut);
     // the driving lines used to be drawn on the road; turn the guide off once for existing saves
     if (!save.guideMigrated) { save.showLines = false; save.guideMigrated = true; }
     // the camera used to be a two-way toggle; it is now a three-way view setting
@@ -39,6 +40,32 @@ function loadSave() {
     faut pour qu'un arrêt au stand soit un vrai choix, et le joueur sait toujours combien il en
     reste. Les sauvegardes existantes portent encore le zéro ; on les amène à cinq une fois. */
     if (!save.lapsMigrated) { if (!save.laps) save.laps = 5; save.lapsMigrated = true; storeSave(save); }
+    /* Les meilleurs tours sont remis à zéro une fois : les douze circuits ont changé de forme.
+
+    Ils sont relevés dans OpenStreetMap au lieu d'être dessinés à la main, ils tournent dans leur
+    vrai sens — les douze tournaient à l'envers — et la ligne de départ est passée de la plus longue
+    ligne droite à la ligne droite des stands. Un temps posé avant ne décrit plus le même tour : il
+    ne commence pas au même endroit, ne se parcourt pas dans le même sens, et le tour idéal lui-même
+    a bougé de −4 % au Mans à +31 % à Zandvoort. Garder ces temps aurait laissé des records
+    imbattables à côté de records faciles, sans que rien ne dise pourquoi.
+
+    Une seule fois, et pas à chaque lecture : la différence compte ici plus qu'ailleurs, puisque la
+    seconde version effacerait les temps que le joueur vient de poser. `tools/e2e-remise.js` vérifie
+    les deux — que ça efface, et que ça n'efface qu'une fois.
+
+    LE DRAPEAU SE LIT DANS `brut`, PAS DANS `save`. `loadSave` fusionne la sauvegarde lue PAR-DESSUS
+    les valeurs par défaut, et il a fallu deux essais ratés pour en tirer la bonne conclusion.
+
+    Posé à `true` dans `defaultSave` et lu dans `save`, le drapeau est déjà vrai pour une sauvegarde
+    qui ne le porte pas — c'est-à-dire précisément celles qu'il faut migrer : la migration posait son
+    drapeau sans rien effacer. Retiré de `defaultSave`, il manque aussi aux sauvegardes NEUVES, et la
+    migration se rejouait alors au rechargement suivant en effaçant le premier temps du joueur.
+
+    Les deux à la fois, donc : `true` dans le défaut pour qu'une sauvegarde neuve naisse migrée, et
+    lu dans `brut` pour qu'une sauvegarde d'avant, qui ne porte pas la clé, le soit une seule fois.
+    `lapsMigrated` s'en tire sans ça parce que son action est inoffensive — reposer cinq tours sur un
+    champ déjà à cinq ne coûte rien. Effacer des temps, non. */
+    if (!brut.tracesMigrated) { save.bestLaps = {}; save.tracesMigrated = true; storeSave(save); }
     return save;
   } catch (e) { return defaultSave(); }
 }
