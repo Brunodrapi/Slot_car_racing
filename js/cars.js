@@ -37,7 +37,17 @@ const CATEGORIES = [
         // utile : une seule, transposée du ralenti au rupteur, fait trois octaves et ne sonne
         // plus comme un moteur. Hors de la plage couverte, la synthèse reprend la main.
         sample: { ramp: 'sounds/engine/six-inline.json' },
-      }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/m1procar.png' },
+      }, colors: ['#f4f4f4', '#2166d8'], top: 'sprites/top/m1procar.png',
+        /* Trois livrées, nommées d'après ce qui est peint sur la voiture, comme pour la F40 et la
+        CSL. La vignette de choix porte un `_45` dans son nom là où les autres voitures n'en ont
+        pas : on la nomme donc explicitement plutôt que de la déduire du suffixe de livrée. Le code
+        le permet depuis le début — `pick` posé à la main passe devant `cheminLivree` — et renommer
+        les deux fichiers en `m1procar_BASF.png` suffirait à s'en passer. */
+        livrees: [
+          { id: '', nom: 'Motorsport' },
+          { id: 'BASF', nom: 'BASF', pick: 'sprites/pick/m1procar_BASF_45.png' },
+          { id: 'DENIM', nom: 'Denim', pick: 'sprites/pick/m1procar_DENIM_45.png' },
+        ] },
       { id: 'f40', diff: 1, name: 'F40', shape: 'f40', mul: { vmax: 1.05, accel: 1.06, grip: 0.98, df: 1.5 }, pick: 'sprites/pick/f40.png', engine: {
         cyl: 8, redline: 7750, idle: 1000, rough: 0.15, bright: 0.8, turbo: 0.9,
         sample: { ramp: 'sounds/engine/v8-f40.json' },
