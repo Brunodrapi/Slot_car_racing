@@ -2567,6 +2567,45 @@ morphologique, amincissement de Zhang-Suen, marche sur le squelette : chaque ét
 aucune ne dit quand elle s'est trompée. Sur 6 785 points de squelette, la marche n'en suivait que 295
 avant de se perdre.
 
+### Le sens, la grille et l'orientation : trois choses qu'on croyait déduire
+
+**Les douze circuits tournaient à l'envers.** `aire()` était documentée « positive si la boucle tourne
+dans le sens horaire à l'écran » — un carré parcouru droite-bas-gauche-haut, qui *est* le sens horaire
+quand y descend, lui donne **−100**. Le test qui s'appuyait sur cette phrase retournait donc chaque
+boucle. La fonction porte maintenant deux assertions exécutables plutôt qu'une phrase, et le sens de
+course est **déclaré** par circuit : c'est une donnée vérifiable sur n'importe quelle carte, et
+Interlagos et Mount Panorama tournent à l'inverse des dix autres, ce qu'aucune règle automatique
+n'aurait pu trouver.
+
+**La grille était au milieu du circuit.** Le départ se posait aux deux tiers de la plus longue ligne
+droite, faute de mieux : juste à Monza, où la plus longue *est* la ligne droite des stands ; faux à
+Spa, où c'est le Kemmel, et à Silverstone, où c'est la Hangar Straight. La voie des stands est
+relevée elle aussi, et elle ne longe qu'un seul endroit : on mesure donc, station par station, la
+distance à la voie la plus proche, on garde la plus longue portion sous quarante mètres, et on pose
+le départ aux deux tiers.
+
+**L'orientation se mesure, elle ne se choisit pas.** Un relevé est orienté au nord ; une carte de
+circuit ne l'est presque jamais, et on reconnaît un circuit à sa silhouette posée comme on l'a
+toujours vue. `tools/orientation.py` superpose le tracé relevé à la carte connue et rend la rotation
+qui les fait coïncider, avec le résidu qui dit si la superposition a vraiment eu lieu :
+
+| circuit | angle | résidu | circuit | angle | résidu |
+|---|---|---|---|---|---|
+| Spa | 270,2° | 0,2 % | Monaco | 14,1° | 1,7 % |
+| Red Bull Ring | 0,6° | 0,5 % | Interlagos | 47,3° | 3,3 % |
+| Suzuka | 119,0° | 0,7 % | Laguna Seca | 251,1° | 3,9 % |
+| Silverstone | 284,0° | 1,5 % | Mount Panorama | 238,5° | 5,1 % |
+| Monza | 262,7° | 1,6 % | Zandvoort | 245,0° | 5,5 % |
+
+Le résidu n'est pas décoratif : à Laguna Seca, le plus long chemin du SVG n'était pas la piste, et
+ses 15,2 % l'ont dit — un autre chemin du même fichier tombe à 3,9 %. **Le Mans mesure 0,0° avec
+0,1 % de résidu**, ce qui est la meilleure vérification qu'on puisse avoir : son tracé vient de cette
+carte, il est donc déjà dans son orientation, et l'outil le retrouve seul. Le Nürburgring reste au
+nord, faute de carte — Wikimedia répond 429 — ce qui est dit plutôt que deviné.
+
+Une rotation ne change rien à la course : c'est une isométrie, les longueurs et les rayons sont les
+mêmes. Elle ne change que ce qu'on voit, au menu comme en piste.
+
 ### Trois décimales, et six cents points
 
 `js/track.js` fait passer une spline **par** les points du tracé : un point posé un demi-mètre de

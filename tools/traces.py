@@ -31,24 +31,32 @@ OUTIL = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'releve.py')
 TRACEUR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tracer.py')
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# L'ANGLE est mesuré, pas choisi : `tools/orientation.py` superpose le tracé relevé à la carte que
+# tout le monde connaît et rend la rotation qui les fait coïncider, avec le résidu qui dit si la
+# superposition a vraiment eu lieu. Un relevé est orienté au nord ; une carte de circuit ne l'est
+# presque jamais, et on reconnaît un circuit à sa silhouette posée comme on l'a toujours vue.
+#
+# Le Nürburgring est à zéro faute de carte : Wikimedia répond 429 depuis une heure. Il reste donc
+# orienté au nord, ce qui est dit plutôt que deviné.
+#
 # LE SENS DE COURSE est une donnée du circuit, vérifiable sur n'importe quelle carte : dix tournent
 # dans le sens des aiguilles d'une montre, Interlagos et Mount Panorama à l'envers. Il était déduit
 # du signe d'une aire dont la description était fausse, et les douze tournaient donc à l'envers du
 # vrai. Une donnée qu'on peut déclarer ne se devine pas.
 #
-#  id            boîte sud,ouest,nord,est             relation                              écarté          long.  joint. sens
+#  id            boîte sud,ouest,nord,est             relation                              écarté          long.  joint. sens          angle
 TABLE = [
-    ('monza',       '45.611,9.275,45.632,9.300',  'Autodromo Nazionale di Monza',        'Pit Lane',       5793, 0.5, 'horaire'),
-    ('spa',         '50.418,5.950,50.452,5.995',  'Circuit de Spa Francorchamps',        'Pit Lane',       7004, 0.5, 'horaire'),
-    ('monaco',      '43.730,7.410,43.752,7.442',  'Circuit de Monaco',                   'stands',         3337, 20, 'horaire'),
-    ('silverstone', '52.055,-1.040,52.090,-0.985', 'Silverstone Grand Prix',             'pit lane',       5891, 0.5, 'horaire'),
-    ('suzuka',      '34.832,136.515,34.864,136.555', '鈴鹿サーキット',                      'Pit Lane',       5807, 0.5, 'horaire'),
-    ('interlagos',  '-23.715,-46.710,-23.690,-46.678', 'José Carlos Pace',               'Pit Lane',       4309, 0.5, 'antihoraire'),
-    ('laguna',      '36.575,-121.770,36.600,-121.740', None,                             'Pit Lane',       3602, 0.5, 'horaire'),
-    ('nurburgring', '50.322,6.925,50.355,6.965',  'Nürburgring Grand Prix Strecke',      'Boxengasse',     5148, 0.5, 'horaire'),
-    ('bathurst',    '-33.465,149.540,-33.435,149.575', 'Mount Panorama Circuit',         '',               6213, 0.5, 'antihoraire'),
-    ('redbullring', '47.210,14.750,47.232,14.782', 'Red Bull Ring',                      'Boxenstraße',    4318, 0.5, 'horaire'),
-    ('zandvoort',   '52.378,4.525,52.402,4.560',  'Grand Prix Formule 1 van Nederland',  'Pitstraat',      4259, 0.5, 'horaire'),
+    ('monza',       '45.611,9.275,45.632,9.300',  'Autodromo Nazionale di Monza',        'Pit Lane',       5793, 0.5, 'horaire', 262.7),
+    ('spa',         '50.418,5.950,50.452,5.995',  'Circuit de Spa Francorchamps',        'Pit Lane',       7004, 0.5, 'horaire', 270.2),
+    ('monaco',      '43.730,7.410,43.752,7.442',  'Circuit de Monaco',                   'stands',         3337, 20, 'horaire', 14.1),
+    ('silverstone', '52.055,-1.040,52.090,-0.985', 'Silverstone Grand Prix',             'pit lane',       5891, 0.5, 'horaire', 284.0),
+    ('suzuka',      '34.832,136.515,34.864,136.555', '鈴鹿サーキット',                      'Pit Lane',       5807, 0.5, 'horaire', 119.0),
+    ('interlagos',  '-23.715,-46.710,-23.690,-46.678', 'José Carlos Pace',               'Pit Lane',       4309, 0.5, 'antihoraire', 47.3),
+    ('laguna',      '36.575,-121.770,36.600,-121.740', None,                             'Pit Lane',       3602, 0.5, 'horaire', 251.1),
+    ('nurburgring', '50.322,6.925,50.355,6.965',  'Nürburgring Grand Prix Strecke',      'Boxengasse',     5148, 0.5, 'horaire', 0),
+    ('bathurst',    '-33.465,149.540,-33.435,149.575', 'Mount Panorama Circuit',         '',               6213, 0.5, 'antihoraire', 238.5),
+    ('redbullring', '47.210,14.750,47.232,14.782', 'Red Bull Ring',                      'Boxenstraße',    4318, 0.5, 'horaire', 0.6),
+    ('zandvoort',   '52.378,4.525,52.402,4.560',  'Grand Prix Formule 1 van Nederland',  'Pitstraat',      4259, 0.5, 'horaire', 245.0),
 ]
 DEPART_SANS_RELATION = {'laguna': 'The Corkscrew'}
 
@@ -64,7 +72,7 @@ DEPART_SANS_RELATION = {'laguna': 'The Corkscrew'}
 TABLE_SVG = [
     ('lemans',
      'https://commons.wikimedia.org/wiki/Special:FilePath/Circuit_de_la_Sarthe_track_map.svg',
-     '959.7,190.4', 13626, 'Track map for the Circuit de la Sarthe, de Will Pittenger, CC BY-SA 3.0'),
+     '959.7,190.4', 13626, 'Track map for the Circuit de la Sarthe, de Will Pittenger, CC BY-SA 3.0', 0),
 ]
 
 ENTETE = '''/* Eyes On Line — la GÉOMÉTRIE des circuits, et elle seule.
@@ -105,10 +113,10 @@ const TRACES = {
 
 
 def releve(ligne, cache, points, dec):
-    cid, bbox, rel, sauf, officielle, jointure, sens = ligne
+    cid, bbox, rel, sauf, officielle, jointure, sens, rot = ligne
     cmd = [sys.executable, OUTIL, f'--bbox={bbox}', f'--longueur={officielle}',
            f'--points={points}', f'--decimales={dec}', f'--jointure={jointure}', f'--sens={sens}',
-           f'--cache={os.path.join(cache, "osm_" + cid + ".xml")}']
+           f'--rotation={rot}', f'--cache={os.path.join(cache, "osm_" + cid + ".xml")}']
     if rel:
         cmd.append(f'--relation={rel}')
     else:
@@ -129,14 +137,14 @@ def releve(ligne, cache, points, dec):
 
 
 def carte(ligne, cache, points, dec):
-    cid, url, depart, officielle, credit = ligne
+    cid, url, depart, officielle, credit, rot = ligne
     fichier = os.path.join(cache, f'carte_{cid}.svg')
     if not os.path.exists(fichier):
         r = urllib.request.Request(url, headers={'User-Agent': 'EyesOnLine/0.2 (trace de circuit)'})
         with urllib.request.urlopen(r, timeout=120) as f:
             open(fichier, 'wb').write(f.read())
     cmd = [sys.executable, TRACEUR, fichier, f'--points={points}', f'--decimales={dec}',
-           f'--depart={depart}']
+           f'--depart={depart}', f'--rotation={rot}']
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode != 0:
         print(r.stdout[-2000:], r.stderr[-2000:])
@@ -163,7 +171,7 @@ def main():
         print(f'    {mesure}')
         corps.append(f'  /* {ligne[2] or "relevé par l’étiquette highway=raceway"}.\n'
                      f'     {mesure.replace("longueur relevee", "longueur relevée")}.\n'
-                     f'     {points} points · sens {ligne[6]} · départ sur la ligne droite des stands. */\n'
+                     f'     {points} points · sens {ligne[6]} · posé à {ligne[7]}° · départ sur la ligne droite des stands. */\n'
                      f'  {ligne[0]}: [\n' + '\n'.join(pts) + '\n  ],\n')
     for ligne in TABLE_SVG:
         if choisis and ligne[0] not in choisis:
@@ -173,7 +181,7 @@ def main():
         print(f'    {len(pts) * max(1, 6 - dec)} points · {credit}')
         corps.append(f'  /* {credit}.\n'
                      f'     Un schéma, pas un relevé : la forme est juste, les rayons approximatifs.\n'
-                     f'     {points} points · départ posé sur la ligne des stands, lue dans la carte. */\n'
+                     f'     {points} points · posé à {ligne[5]}° · départ sur la ligne des stands, lue dans la carte. */\n'
                      f'  {ligne[0]}: [\n' + '\n'.join(pts) + '\n  ],\n')
     if choisis:
         print('\n  (relevé partiel : js/traces.js n’est pas réécrit)')

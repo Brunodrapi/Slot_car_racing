@@ -14,6 +14,11 @@ angle, et un résidu élevé signale que le chemin lu dans le SVG n'est pas le c
 
 Ce que l'angle ne change pas : rien de la course. Une rotation est une isométrie, les longueurs et
 les rayons sont les mêmes, et la physique ne voit aucune différence. Il ne change que ce qu'on voit.
+
+L'ANGLE EST RELATIF À CE QUE PORTE `js/traces.js` AU MOMENT DE LA MESURE. Une fois le tracé
+regénéré avec sa rotation, remesurer rend zéro — c'est le signe que c'est bon, pas un résultat à
+reporter dans la table. Pour corriger un angle déjà posé, on ajoute ce que la mesure rend à ce que
+la table porte déjà.
 """
 import math
 import re
