@@ -4,16 +4,16 @@
 
 // Cartoon palette, flat and saturated, in the spirit of an isometric pixel-art city.
 // Each circuit names a theme; a track without one gets the default. The palette is swapped whole
-// rather than tinted, so a theme can change the mood of the ground and the colour of the kerbs at
-// once — Silverstone in autumn wants pale stubble, ochre earth and blue kerbs, not a greener green.
+// rather than tinted, so a theme can change the mood of the ground at once — Silverstone in autumn
+// wants pale stubble and ochre earth, not a greener green.
 /* Every circuit has its own look.
 
    What they share is the road: a dark **purple-grey** rather than a neutral charcoal, which is what
    holds the family together whatever the ground around it does. What they do not share is the
    ground — Monza's pale park green, the dunes' sand, the Ardennes' damp forest, Bathurst's red
-   earth — nor the colour of their kerbs, nor what grows beside the track.
+   earth — nor what grows beside the track.
 
-   A theme names a ground, a road, a pair of kerb colours and the palette the scenery is drawn in.
+   A theme names a ground, a road, a list of kerb colours and the palette the scenery is drawn in.
    `props` re-weights what gets sown: no pines in a dune, no palms in the Ardennes. `centre` is the
    marking down the middle of the road, and it is null almost everywhere, because a race track has
    no centre line — only Monaco, which is a road, keeps one.
@@ -33,7 +33,9 @@ const THEME_BASE = {
   // la voie des stands : un asphalte plus sombre que la piste, pour qu'on voie tout de suite que
   // ce n'est pas la même surface, et une zone d'arrêt jaune qu'on repère de loin
   pitLane: '#2f3038', pitBox: 'rgba(255,212,0,0.18)', pitBoxLine: '#ffd400',
-  kerbA: '#c33b30', kerbB: '#eceaf0',
+  // Les blocs du vibreur font le tour de cette liste : deux couleurs pour un vibreur classique,
+  // trois pour le vert-blanc-rouge de Monza. `js/tracks.js` nomme celles de chaque circuit.
+  kerb: ['#c33b30', '#eceaf0'],
   gravel: '#c8ab72', gravelDark: '#b39660',
   canopy: ['#3f7a34', '#4b8d3c', '#336629'], pine: ['#2f5f4f', '#37705d'],
   trunk: '#4a3421', rock: '#9a9384', log: '#7a4f2c',
@@ -67,14 +69,14 @@ const THEME_DEFS = {
     canopy: ['#2f6b34', '#3a7f3e', '#25562b'], pine: ['#23503f', '#2b6250'],
     props: { pine: 3, tree: 1.4, bales: 0, palm: 0 },
   },
-  // Stubble and ochre earth, blue kerbs.
+  // Stubble and ochre earth.
   autumn: {
     patches: 0.7,
     grass: '#c6cf87', grassLight: '#d2da93', grassDark: '#b7c079',
     earth: '#e0c391', earthDark: '#d2b27e',
     asphalt: '#574a5e', asphaltLight: '#63566a',
     outline: '#332b39',
-    kerbA: '#2f63b0', kerbB: '#eef1f4',
+    kerb: ['#2f63b0', '#eef1f4'],
     gravel: '#e2c48f', gravelDark: '#d0ae76',
     canopy: ['#b4472e', '#c9662c', '#8e3a26'], pine: ['#2c5a52', '#356d5f'],
     trunk: '#6b4526', rock: '#b6ad98', log: '#8a552c',
@@ -89,7 +91,7 @@ const THEME_DEFS = {
     asphalt: '#56465e', asphaltLight: '#62526a',
     edgeLine: '#f5f2e8', centre: '#f5f2e8', edgeIn: '#8fdcff', edgeOut: '#ffd97a',
     pitLane: '#3b3142', pitBox: 'rgba(255,212,0,0.18)', pitBoxLine: '#ffd400',
-    kerbA: '#c33b30', kerbB: '#f4f1e8',
+    kerb: ['#c33b30', '#f4f1e8'],
     gravel: '#cfc3ae', gravelDark: '#bdb09a',
     canopy: ['#4f9a55', '#5cae61', '#3f7f45'], pine: ['#3f7a5a', '#4a8c69'],
     rock: '#64505a', trunk: '#6b4a32', log: '#8a5a34',
@@ -103,7 +105,7 @@ const THEME_DEFS = {
     patches: 0.4,
     grass: '#e8d5a0', grassLight: '#f0dfae', grassDark: '#d9c48c',
     earth: '#c9ae79', earthDark: '#b79c68',
-    kerbA: '#e07a1f', kerbB: '#f4f1e8',
+    kerb: ['#e07a1f', '#f4f1e8'],
     gravel: '#d9c08a', gravelDark: '#c5aa74',
     canopy: ['#7f9a52', '#8fae5e', '#6c8544'], pine: ['#5e7a45', '#6b8a50'],
     rock: '#c0b49a',
@@ -114,7 +116,7 @@ const THEME_DEFS = {
     patches: 0.5,
     grass: '#cfc184', grassLight: '#dacd91', grassDark: '#beb073',
     earth: '#bfa268', earthDark: '#ab8f58',
-    kerbA: '#2f63b0', kerbB: '#f1f0ea',
+    kerb: ['#2f63b0', '#f1f0ea'],
     gravel: '#c9ad74', gravelDark: '#b59862',
     canopy: ['#5d7a3c', '#6d8c46', '#4c6631'], pine: ['#4a6b46', '#567a52'],
     rock: '#bdb298',
@@ -125,11 +127,11 @@ const THEME_DEFS = {
     patches: 0.5,
     grass: '#66a84e', grassLight: '#73b659', grassDark: '#5a9645',
     earth: '#b08a58', earthDark: '#9c774a',
-    kerbA: '#e8bc32', kerbB: '#1f7a3c',
+    kerb: ['#e8bc32', '#1f7a3c'],
     canopy: ['#2f8a3f', '#3aa04c', '#256e32'], pine: ['#2a6b4a', '#337d58'],
     props: { palm: 3, pine: 0.2, tree: 1.2, logs: 0.4 },
   },
-  // Cool green under the mountains, hard red kerbs.
+  // Cool green under the mountains.
   japan: {
     patches: 0.5,
     grass: '#7fb073', grassLight: '#8cbd7f', grassDark: '#6f9e64',
@@ -157,12 +159,12 @@ const THEME_DEFS = {
     canopy: ['#347a3c', '#3f9047', '#2a6231'], pine: ['#24543f', '#2c664e'],
     props: { pine: 2.4, palm: 0, bales: 1.4 },
   },
-  // Long French summer: dry verges, blue kerbs.
+  // Long French summer, dry verges.
   lemans: {
     patches: 0.55,
     grass: '#8fae5e', grassLight: '#9cbb6a', grassDark: '#7f9e51',
     earth: '#bda572', earthDark: '#a98f60',
-    kerbA: '#2f63b0', kerbB: '#f0efe9',
+    kerb: ['#2f63b0', '#f0efe9'],
     canopy: ['#417f3c', '#4e9448', '#356832'], pine: ['#2f6350', '#38755f'],
     props: { pine: 1.4, palm: 0, bales: 1.2 },
   },
@@ -373,13 +375,14 @@ class Renderer {
     this.damp = new Map();
     PAL = THEMES[track.theme] || THEMES.park;
     /* Les vibreurs appartiennent au CIRCUIT, pas au décor. Un thème donne l'humeur d'un paysage —
-    la lande des Ardennes, les dunes, la colline californienne — et il donnait aussi la couleur des
-    bandes, ce qui mettait du bleu au Mans et de l'orange à Zandvoort alors que les deux sont en
-    rouge et blanc sur place. Quand `js/tracks.js` nomme les siennes, elles passent devant ; le
-    thème reste la valeur par défaut, pour un circuit d'éditeur qui n'en nomme aucune. */
-    if (track.def && track.def.kerb) {
-      PAL = Object.assign({}, PAL, { kerbA: track.def.kerb[0], kerbB: track.def.kerb[1] });
-    }
+    la lande des Ardennes, les dunes, la colline californienne — et plusieurs circuits le partagent :
+    Spa et le Nürburgring sont tous deux en forêt, et n'ont rien à voir. Quand `js/tracks.js` nomme
+    ses bandes, elles passent devant ; le thème reste la valeur par défaut, pour un circuit d'éditeur
+    qui n'en nomme aucune.
+
+    AUTANT DE COULEURS QU'ON VEUT, et non deux. Les blocs se succèdent en faisant le tour de la
+    liste : deux pour un vibreur classique, trois pour le vert-blanc-rouge de Monza. */
+    if (track.def && track.def.kerb) PAL = Object.assign({}, PAL, { kerb: track.def.kerb });
     this.grass = this._makeGrass();
     this.grassPattern = this.ctx.createPattern(this.grass, 'repeat');
     const seed = track.id || track.name || 'track';
@@ -443,7 +446,7 @@ class Renderer {
     };
     const corners = track.corners.map(cn => {
       const l = new Path2D(), r = new Path2D(), gravel = new Path2D();
-      const kerbA = new Path2D(), kerbB = new Path2D(), kerbEdge = new Path2D();
+      const kerbs = PAL.kerb.map(() => new Path2D()), kerbEdge = new Path2D();
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
       for (let i = cn.from; i <= cn.to; i += 2) {
         const a = edgePt(i, 1), b = edgePt(i, -1);
@@ -454,7 +457,7 @@ class Renderer {
         let block = 0;
         for (let i = cn.from; i < cn.to; i += KERB_BLOCK, block++) {
           const j = Math.min(i + KERB_BLOCK, cn.to);
-          const p = block % 2 ? kerbB : kerbA;
+          const p = kerbs[block % kerbs.length];
           const a0 = bandPt(i, side, false);
           p.moveTo(a0[0], a0[1]);
           for (let t = i + 1; t <= j; t++) { const q = bandPt(t, side, false); p.lineTo(q[0], q[1]); }
@@ -472,7 +475,7 @@ class Renderer {
       for (let i = cn.from; i <= cn.to; i += 2) { const k = ((i % N) + N) % N, p = [xs[k] + nx[k] * (track.hwL[k] + 8), ys[k] + ny[k] * (track.hwL[k] + 8)]; if (i === cn.from) gravel.moveTo(p[0], p[1]); else gravel.lineTo(p[0], p[1]); }
       for (let i = cn.to; i >= cn.from; i -= 2) { const k = ((i % N) + N) % N; gravel.lineTo(xs[k] - nx[k] * (track.hwR[k] + 8), ys[k] - ny[k] * (track.hwR[k] + 8)); }
       gravel.closePath();
-      return { left: l, right: r, gravel, kerbA, kerbB, kerbEdge, bbox: { minX: minX - 30, minY: minY - 30, maxX: maxX + 30, maxY: maxY + 30 } };
+      return { left: l, right: r, gravel, kerbs, kerbEdge, bbox: { minX: minX - 30, minY: minY - 30, maxX: maxX + 30, maxY: maxY + 30 } };
     });
 
     const bridges = track.crossings.map(cr => {
@@ -1005,8 +1008,7 @@ class Renderer {
       g.lineJoin = 'miter'; g.lineCap = 'butt'; g.miterLimit = 3;
       for (const cn of this.paths.corners) {
         if (!inView(cn.bbox)) continue;
-        g.fillStyle = PAL.kerbA; g.fill(cn.kerbA);
-        g.fillStyle = PAL.kerbB; g.fill(cn.kerbB);
+        for (let k = 0; k < cn.kerbs.length; k++) { g.fillStyle = PAL.kerb[k]; g.fill(cn.kerbs[k]); }
         g.strokeStyle = PAL.outline; g.lineWidth = 0.34; g.stroke(cn.kerbEdge);
       }
       g.restore();

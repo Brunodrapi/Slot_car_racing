@@ -25,8 +25,10 @@ relation. C'est un choix de jeu, pas un problème d'outil.
 import os
 import subprocess
 import sys
+import urllib.request
 
 OUTIL = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'releve.py')
+TRACEUR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tracer.py')
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 #  id            boîte sud,ouest,nord,est             relation                              écarté          long.  jointure
@@ -44,6 +46,21 @@ TABLE = [
     ('zandvoort',   '52.378,4.525,52.402,4.560',  'Grand Prix Formule 1 van Nederland',  'Pitstraat',      4259, 0.5),
 ]
 DEPART_SANS_RELATION = {'laguna': 'The Corkscrew'}
+
+# LES CARTES, FAUTE DE RELEVÉ. Le Circuit de la Sarthe emprunte la D338 sur les six kilomètres des
+# Hunaudières, une route qui n'est ni balisée circuit ni nommée dans OpenStreetMap ; seul le Circuit
+# Bugatti, qui tient dans l'enceinte, y a une relation. Le Mans vient donc d'un fond de carte
+# vectoriel, avec ce que cela coûte : une carte est un schéma, et ses rayons valent ce qu'ils valent.
+#
+# `depart` est en coordonnées du SVG, et pointe la ligne de départ. On ne l'a pas devinée : la voie
+# des stands est dessinée dans le fichier, parallèle à la piste et à quinze pixels d'elle, et c'est
+# elle qui dit où sont les stands. La règle par défaut — le point le plus long de la plus longue
+# ligne droite — aurait posé la grille au milieu des Hunaudières.
+TABLE_SVG = [
+    ('lemans',
+     'https://commons.wikimedia.org/wiki/Special:FilePath/Circuit_de_la_Sarthe_track_map.svg',
+     '962.6,136.5', 13626, 'Track map for the Circuit de la Sarthe, de Will Pittenger, CC BY-SA 3.0'),
+]
 
 ENTETE = '''/* Eyes On Line — la GÉOMÉTRIE des circuits, et elle seule.
  *
@@ -106,6 +123,26 @@ def releve(ligne, cache, points, dec):
     return pts, mesure, voies
 
 
+def carte(ligne, cache, points, dec):
+    cid, url, depart, officielle, credit = ligne
+    fichier = os.path.join(cache, f'carte_{cid}.svg')
+    if not os.path.exists(fichier):
+        r = urllib.request.Request(url, headers={'User-Agent': 'EyesOnLine/0.2 (trace de circuit)'})
+        with urllib.request.urlopen(r, timeout=120) as f:
+            open(fichier, 'wb').write(f.read())
+    cmd = [sys.executable, TRACEUR, fichier, f'--points={points}', f'--decimales={dec}',
+           f'--depart={depart}']
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if r.returncode != 0:
+        print(r.stdout[-2000:], r.stderr[-2000:])
+        raise SystemExit(f'  {cid} : le tracé a échoué')
+    sortie = r.stdout.splitlines()
+    pts = [l for l in sortie if l.startswith('      [')]
+    if not pts:
+        raise SystemExit(f'  {cid} : aucun point produit')
+    return pts, credit
+
+
 def main():
     o = {a.split('=')[0][2:]: (a.split('=', 1)[1] if '=' in a else '1')
          for a in sys.argv[1:] if a.startswith('--')}
@@ -122,6 +159,16 @@ def main():
         corps.append(f'  /* {ligne[2] or "relevé par l’étiquette highway=raceway"}.\n'
                      f'     {mesure.replace("longueur relevee", "longueur relevée")}.\n'
                      f'     {points} points · départ sur la plus longue ligne droite. */\n'
+                     f'  {ligne[0]}: [\n' + '\n'.join(pts) + '\n  ],\n')
+    for ligne in TABLE_SVG:
+        if choisis and ligne[0] not in choisis:
+            continue
+        print(f'  {ligne[0]}… (carte vectorielle, faute de relevé)', flush=True)
+        pts, credit = carte(ligne, cache, points, dec)
+        print(f'    {len(pts) * max(1, 6 - dec)} points · {credit}')
+        corps.append(f'  /* {credit}.\n'
+                     f'     Un schéma, pas un relevé : la forme est juste, les rayons approximatifs.\n'
+                     f'     {points} points · départ posé sur la ligne des stands, lue dans la carte. */\n'
                      f'  {ligne[0]}: [\n' + '\n'.join(pts) + '\n  ],\n')
     if choisis:
         print('\n  (relevé partiel : js/traces.js n’est pas réécrit)')

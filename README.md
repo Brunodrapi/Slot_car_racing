@@ -2541,9 +2541,16 @@ répondu : délais dépassés, 504, connexions coupées. L'API de base rend 5 Mo
 ne sait pas filtrer, mais elle ne tombe pas, et elle refuse au-delà de 50 000 nœuds — l'outil coupe
 alors la boîte en quatre et recolle, ce dont Interlagos et Monaco ont besoin.
 
-**Le Mans manque à l'appel.** Le Circuit de la Sarthe emprunte la D338 sur les six kilomètres des
+**Le Mans passe par la carte.** Le Circuit de la Sarthe emprunte la D338 sur les six kilomètres des
 Hunaudières, et cette route n'est ni balisée circuit ni nommée ; seul le Circuit Bugatti, qui tient
-dans l'enceinte, a une relation. Le Mans garde donc son tracé dessiné à la main.
+dans l'enceinte, a une relation. Le Mans est donc tracé avec `tools/tracer.py` sur le fond de carte de
+Wikimedia, avec ce que cela coûte : la silhouette est juste, les rayons approximatifs.
+
+Sa ligne de départ n'a pas été devinée. La règle par défaut — les deux tiers de la plus longue ligne
+droite — aurait posé la grille au milieu des Hunaudières. Mais la carte dessine aussi la voie des
+stands, parallèle à la piste et à quinze pixels d'elle : on la retrouve en cherchant, parmi les
+cinquante-six chemins du fichier, celui qui longe le tracé sans le toucher, et c'est lui qui dit où
+sont les stands.
 
 **Le passage par l'image a été essayé d'abord, et abandonné.** Masque de couleur, fermeture
 morphologique, amincissement de Zhang-Suen, marche sur le squelette : chaque étape a ses réglages, et
