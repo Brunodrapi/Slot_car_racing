@@ -1920,11 +1920,18 @@ chaque virage, toutes les vitesses de passage monteraient et la mesure des planc
 le jeu ; à 0,42 ce serait du gravier, c'est-à-dire le défaut qu'on corrige. On peut s'appuyer dessus,
 pas s'y installer.
 
-La bande **s'affine sur quatre mètres** à chaque extrémité du virage, là où le dessin s'arrête net.
-Sans ce biseau la piste s'élargissait de deux mètres d'un coup, et une voiture qui sortait du virage en
-appui sur le vibreur se retrouvait dans le gravier d'une station à l'autre, avec une faute, pour
-n'avoir rien fait. La règle est donc un peu plus stricte que la peinture aux deux bouts, jamais plus
-large.
+**La bande s'affine en pente douce** sur neuf mètres à chaque extrémité du virage — environ deux
+longueurs de voiture — suivant une courbe en S et non une droite, pour qu'il n'y ait d'angle nulle
+part, pas même à la jonction avec la pleine largeur. Un vibreur ne s'arrête pas net : il s'amincit,
+et c'est ce qui permet de le prendre jusqu'au bout, la roue le quittant progressivement au lieu de
+tomber d'une marche.
+
+**Et le dessin suit cet affinement, station par station.** C'était le vrai défaut : la peinture était
+à largeur constante et coupée à l'équerre, tandis que la règle, elle, biseautait déjà. Aux extrémités,
+la peinture promettait donc du vibreur là où rouler valait une sortie de piste — on ne pouvait pas le
+suivre jusqu'à sa fin sans se voir compter une faute à l'endroit précis où la couleur s'arrêtait.
+Les deux lisent maintenant le même tableau (`track.kerb`), et `tools/sortie.js` le vérifie là où ça
+compte : à mi-affinement, rouler au bord extérieur de ce qui est peint ne doit jamais salir un tour.
 
 ### Un tour sali reste affiché, barré
 

@@ -75,6 +75,26 @@ let droite = 0, best = -1;
 for (let i = 0; i < T0.n; i++) { if (T0.kerb[i] === 0) { let d = 1e9; for (const c of T0.corners) d = Math.min(d, Math.abs(i - c.from), Math.abs(i - c.to)); if (d > best) { best = d; droite = i; } } }
 res.droite = zones(droite, 1.2);           // le même écart, mais sans vibreur peint
 
+/* --- 3 bis. LE BOUT DU VIBREUR, là où il s'affine ---
+
+Le vibreur s'amincit en pente douce à chaque extrémité du virage, et c'est exactement là que la
+peinture et la règle doivent tomber d'accord : rouler sur ce qui est peint ne doit jamais valoir une
+sortie. Le dessin était à largeur constante et coupé net là où la règle, elle, suivait déjà
+l'affinement — la peinture promettait donc du vibreur là où rouler comptait une faute. */
+{
+  const T0b = faire().track;
+  let bout = -1;
+  for (let i = 0; i < T0b.n; i++) {
+    const w = T0b.kerb[i];
+    if (w > 0.2 * KERB_LARGE && w < 0.8 * KERB_LARGE) { bout = i; break; }
+  }
+  const w = bout >= 0 ? T0b.kerb[bout] : 0;
+  // juste en DEDANS du bord extérieur peint, et juste en DEHORS
+  res.bout = { station: bout, largeur: +w.toFixed(2),
+               dedans: bout >= 0 ? zones(bout, KERB_IN + w - 0.15) : null,
+               dehors: bout >= 0 ? zones(bout, KERB_IN + w + 1.5) : null };
+}
+
 /* --- 4. un tour sali ne devient pas le meilleur tour --- */
 {
   const r = faire(), p = r.player;
@@ -209,6 +229,13 @@ dit(r.auDela.etat === 'grass' && r.auDela.fautes === 1 && r.auDela.sale === true
   `au-dela (4 m au large) : ${r.auDela.etat}, ${r.auDela.fautes} faute, tour ${r.auDela.sale ? 'sali' : 'propre'}`);
 dit(r.droite.kerbIci === 0 && r.droite.etat === 'grass',
   `ligne droite, meme ecart : bande de ${r.droite.kerbIci} m, donc ${r.droite.etat}`);
+dit(r.bout.station >= 0 && r.bout.largeur > 0 && r.bout.largeur < 1.7,
+  `le vibreur s'affine bien quelque part (station ${r.bout.station}, ${r.bout.largeur} m de large)`);
+dit(r.bout.dedans && r.bout.dedans.etat === 'ok' && r.bout.dedans.fautes === 0,
+  `au bord exterieur de la peinture, dans l'affinement : ${r.bout.dedans && r.bout.dedans.etat},`
+  + ` ${r.bout.dedans && r.bout.dedans.fautes} faute`);
+dit(r.bout.dehors && r.bout.dehors.etat === 'grass',
+  `un metre et demi plus loin : ${r.bout.dehors && r.bout.dehors.etat}`);
 
 console.log('\nun tour sali');
 dit(r.sali.bestLap === r.sali.apresPropre,

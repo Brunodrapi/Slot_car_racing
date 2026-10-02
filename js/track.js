@@ -14,7 +14,19 @@ const LINE_NAMES = ['inside', 'racing', 'outside'];
    `js/render.js` le peint avec ces nombres, `js/car.js` décide avec eux ce qui est encore la piste.
    Un seul jeu de constantes pour les deux, sinon la peinture et la règle divergent en silence. */
 const KERB_IN = 0.34;        // le vide entre la ligne blanche et le début de la bande
-const KERB_LARGE = 1.7;      // la largeur de la bande elle-même
+const KERB_LARGE = 1.7;      // sa largeur au milieu du virage
+/* Sur quelle longueur la bande S'AFFINE à chaque bout, en mètres.
+
+   Un vibreur ne s'arrête pas net. Il s'amincit, et c'est ce qui permet de le prendre jusqu'au bout :
+   la roue le quitte progressivement au lieu de tomber d'une marche. Le jeu le coupait à l'équerre,
+   et la règle de sortie de piste avec — on ne pouvait donc pas le suivre jusqu'à sa fin sans se voir
+   compter une faute à l'endroit précis où la peinture s'arrêtait.
+
+   Neuf mètres, soit environ deux longueurs de voiture : assez pour que le biseau se voie et se
+   sente, assez court pour que la bande reste pleine là où on s'appuie vraiment. L'affinement suit
+   une courbe en S et non une droite — « pente douce » veut dire sans angle, y compris à la jonction
+   avec la pleine largeur. */
+const KERB_RAMPE = 9;
 
 class Track {
   // How fast the racing line may cross the road, in metres of lateral per metre travelled.
@@ -203,12 +215,12 @@ class Track {
     faute, pour n'avoir rien fait. La règle est donc un peu plus stricte que la peinture aux deux
     bouts, jamais plus large. */
     this.kerb = new Float32Array(N);
-    const RAMPE = 4;
     for (const c of this.corners) {
       const n = c.to - c.from;
       for (let i = c.from; i <= c.to; i++) {
         const d = Math.min(i - c.from, c.to - i, Math.floor(n / 2));
-        const f = RAMPE > 0 ? Math.min(1, d / RAMPE) : 1;
+        const x = Math.min(1, d / KERB_RAMPE);
+        const f = x * x * (3 - 2 * x);                 // pente douce aux deux bouts, pas un biseau droit
         const k = ((i % N) + N) % N;
         this.kerb[k] = Math.max(this.kerb[k], KERB_LARGE * f);
       }
@@ -888,4 +900,4 @@ class Track {
   }
 }
 
-if (typeof module !== 'undefined') module.exports = { Track, LINE_NAMES, KERB_IN, KERB_LARGE };
+if (typeof module !== 'undefined') module.exports = { Track, LINE_NAMES, KERB_IN, KERB_LARGE, KERB_RAMPE };

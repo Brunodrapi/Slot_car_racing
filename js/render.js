@@ -418,11 +418,19 @@ class Renderer {
     // shapes have no caps at all, so the edges stay square whatever the zoom.
     // The band starts just outside the white edge line rather than under it: overlapping, the
     // white blocks disappeared into the paint and the kerb read as a row of blue dashes.
-    // Les deux premières viennent de `js/track.js`, qui les sert aussi à la physique : la peinture et
-    // la règle doivent décrire la même bande.
-    const KERB_W = KERB_LARGE, KERB_BLOCK = 3;
-    const bandPt = (i, side, w) => {
-      const k = ((i % N) + N) % N, hw = (side > 0 ? track.hwL[k] : track.hwR[k]) + w;
+    /* La bande est dessinée À LA LARGEUR QUE LA PHYSIQUE LUI DONNE, station par station.
+
+    `track.kerb` porte cette largeur : pleine au milieu du virage, affinée en pente douce aux deux
+    bouts. Elle était peinte à largeur constante et coupée net, tandis que la règle, elle, suivait
+    déjà l'affinement — si bien qu'aux extrémités la peinture promettait du vibreur là où rouler
+    valait une sortie de piste. Un seul tableau pour les deux, et la promesse redevient tenable. */
+    const KERB_BLOCK = 3;
+    const kerbW = (i) => track.kerb[((i % N) + N) % N];
+    // `dehors` : le bord extérieur de la bande, qui suit l'affinement. Sinon son bord intérieur,
+    // qui longe la ligne blanche d'un bout à l'autre.
+    const bandPt = (i, side, dehors) => {
+      const k = ((i % N) + N) % N;
+      const hw = (side > 0 ? track.hwL[k] : track.hwR[k]) + KERB_IN + (dehors ? kerbW(i) : 0);
       return [xs[k] + nx[k] * hw * side, ys[k] + ny[k] * hw * side];
     };
     const corners = track.corners.map(cn => {
@@ -439,17 +447,17 @@ class Renderer {
         for (let i = cn.from; i < cn.to; i += KERB_BLOCK, block++) {
           const j = Math.min(i + KERB_BLOCK, cn.to);
           const p = block % 2 ? kerbB : kerbA;
-          const a0 = bandPt(i, side, KERB_IN);
+          const a0 = bandPt(i, side, false);
           p.moveTo(a0[0], a0[1]);
-          for (let t = i + 1; t <= j; t++) { const q = bandPt(t, side, KERB_IN); p.lineTo(q[0], q[1]); }
-          for (let t = j; t >= i; t--) { const q = bandPt(t, side, KERB_IN + KERB_W); p.lineTo(q[0], q[1]); }
+          for (let t = i + 1; t <= j; t++) { const q = bandPt(t, side, false); p.lineTo(q[0], q[1]); }
+          for (let t = j; t >= i; t--) { const q = bandPt(t, side, true); p.lineTo(q[0], q[1]); }
           p.closePath();
         }
         // both sides of the band get the dark outline, so the strip is framed like the road is
-        for (const w of [KERB_IN, KERB_IN + KERB_W]) {
-          const e0 = bandPt(cn.from, side, w);
+        for (const dehors of [false, true]) {
+          const e0 = bandPt(cn.from, side, dehors);
           kerbEdge.moveTo(e0[0], e0[1]);
-          for (let t = cn.from + 1; t <= cn.to; t++) { const q = bandPt(t, side, w); kerbEdge.lineTo(q[0], q[1]); }
+          for (let t = cn.from + 1; t <= cn.to; t++) { const q = bandPt(t, side, dehors); kerbEdge.lineTo(q[0], q[1]); }
         }
       }
       // gravel: wider band around the corner
