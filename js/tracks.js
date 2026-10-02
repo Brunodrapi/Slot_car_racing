@@ -14,22 +14,29 @@ d'arcade sur de vrais circuits, pas une simulation, et un vibreur aux couleurs d
 coup d'œil et dit où l'on court. `js/render.js` fait le tour de la liste, bloc après bloc : deux
 couleurs pour un vibreur classique, trois pour le vert-blanc-rouge de Monza.
 
+EN PASTEL, et obtenu en éclaircissant chaque couleur du drapeau vers le blanc d'un même taux — 52 %,
+et 45 % pour le noir, qui doit rester la plus foncée des trois. Une première version posait toutes les
+teintes à la même clarté et à la même saturation, ce qui est la façon habituelle de faire un pastel :
+le blanc du drapeau en ressortait beige, et le jaune belge ne se distinguait plus de lui. Éclaircir à
+taux constant garde les écarts entre couleurs ; le plus serré des douze drapeaux, le brésilien, laisse
+encore 0,21 de distance RVB entre ses deux teintes les plus proches.
+
 Le Royaume-Uni et la France ont le même drapeau à trois couleurs ; l'ordre les distingue à l'œil.
 L'Australie prend le vert et l'or de ses couleurs sportives, son drapeau étant lui aussi bleu, blanc
 et rouge. */
 const DRAPEAUX = {
-  it: ['#1f8a4c', '#f2f0ea', '#c8372d'],            // Italie
-  be: ['#1d1b22', '#f0c419', '#c8372d'],            // Belgique
-  mc: ['#c8372d', '#f2f0ea'],                       // Monaco
-  gb: ['#c8372d', '#f2f0ea', '#2f4b9a'],            // Royaume-Uni
-  jp: ['#f2f0ea', '#c8372d'],                       // Japon
-  br: ['#1f8a4c', '#e8bc32', '#2f63b0'],            // Brésil
-  us: ['#c8372d', '#f2f0ea', '#2f4b9a'],            // États-Unis
-  de: ['#1d1b22', '#c8372d', '#e8bc32'],            // Allemagne
-  fr: ['#2f4b9a', '#f2f0ea', '#c8372d'],            // France
-  au: ['#1f8a4c', '#e8bc32'],                       // Australie, couleurs sportives
-  at: ['#c8372d', '#f2f0ea'],                       // Autriche
-  nl: ['#e07a1f', '#f2f0ea', '#2f4b9a'],            // Pays-Bas, orange en tête
+  it: ['#93c7a9', '#f9f8f5', '#e59f9a'],            // Italie
+  be: ['#838285', '#f8e391', '#e59f9a'],            // Belgique
+  mc: ['#e59f9a', '#f9f8f5'],                       // Monaco
+  gb: ['#e59f9a', '#f9f8f5', '#9ba9cf'],            // Royaume-Uni
+  jp: ['#f9f8f5', '#e59f9a'],                       // Japon
+  br: ['#93c7a9', '#f4df9d', '#9bb4d9'],            // Brésil
+  us: ['#e59f9a', '#f9f8f5', '#9ba9cf'],            // États-Unis
+  de: ['#838285', '#e59f9a', '#f4df9d'],            // Allemagne
+  fr: ['#9ba9cf', '#f9f8f5', '#e59f9a'],            // France
+  au: ['#93c7a9', '#f4df9d'],                       // Australie, couleurs sportives
+  at: ['#e59f9a', '#f9f8f5'],                       // Autriche
+  nl: ['#f0bf93', '#f9f8f5', '#9ba9cf'],            // Pays-Bas, orange en tête
 };
 
 const TRACKS = [
