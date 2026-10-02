@@ -2426,6 +2426,7 @@ node tools/coupe.js [--fenetre=400]                                             
 NODE_PATH=$(npm root -g) node tools/e2e-livree.js [dossier]                       # plusieurs livrees par voiture : le clic, la memoire, le fichier charge
 python3 tools/calibre.py <fichier.png...> [--largeur=420]                         # une illustration deja detouree, ramenee a la taille affichee
 python3 tools/prises.py <fichier.wav...> [--bits=16] [--essai]                    # les prises de moteur, du flottant 32 bits a l'entier 16
+python3 tools/tracer.py <carte.svg> [--points=180] [--index=0] [--depart=x,y]     # un chemin SVG vers la liste de points d'un circuit
 ```
 
 `tools/line.js` mesure une trajectoire sans faire intervenir de pilote : sa longueur, son rayon
@@ -2444,6 +2445,34 @@ prêts et courent ensemble.
 
 `marge` multiplie la vitesse de passage en courbe visée : ≤ 1 la voiture reste sur sa ligne, 1,1–1,2 elle
 glisse visiblement, au-delà elle part.
+
+## Tracer un circuit d'après une carte vectorielle
+
+Les douze tracés ont été posés à la main et ne ressemblent que de loin aux vrais circuits. Un fond de
+carte vectoriel, lui, porte la ligne médiane comme **un seul chemin** : la lire est exact.
+`tools/tracer.py` le fait — il analyse le `d` du chemin (m/l/h/v/c/s/z), échantillonne les Béziers,
+rééchantillonne à pas constant, oriente la boucle dans le sens que `js/track.js` attend, ramène le
+premier point sur la ligne de départ et imprime le bloc `pts:` à coller.
+
+**Le passage par l'image a été essayé d'abord, et abandonné.** Masque de couleur, fermeture
+morphologique, amincissement de Zhang-Suen, marche sur le squelette : chaque étape a ses réglages, et
+aucune ne dit quand elle s'est trompée. L'amincissement laisse des fourches là où deux portions du
+circuit se frôlent — à Monza, l'entrée de la première variante passe à quelques pixels de sa
+sortie — et la marche saute de l'une à l'autre sans rien signaler. Sur 6 785 points de squelette, la
+marche n'en suivait que 295 avant de se perdre. Le chemin vectoriel évite tout cela : il est déjà
+ordonné, déjà fermé, déjà exact.
+
+**La licence est la vraie question, et l'outil ne la tranche pas.** Il lit les métadonnées du SVG et
+affiche ce qu'il trouve — auteur, titre, licence — parce qu'une carte de Wikimedia Commons est le
+plus souvent sous CC BY-SA, c'est-à-dire à partage à l'identique : en copier les coordonnées engage
+le projet entier, pas seulement le fichier. La carte de Monza vers laquelle pointait le lien d'essai
+est signée Will Pittenger, CC BY-SA 3.0. Un SVG dessiné soi-même n'a évidemment aucune de ces
+contraintes, et c'est pour cela que l'outil accepte n'importe quel fichier plutôt qu'une source
+imposée.
+
+Le nom de l'auteur vit **dans** le bloc `<dc:creator>`, dans un `<dc:title>` à lui. Une première
+version prenait le premier `<rdf:li>` venu et annonçait « Monza » comme auteur du fichier : pour une
+donnée qui sert à créditer quelqu'un, se tromper est pire que se taire.
 
 ## Ajouter un circuit intégré
 
