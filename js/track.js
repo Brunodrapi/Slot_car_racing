@@ -276,6 +276,13 @@ class Track {
 
     this.crossings = this._findCrossings();
 
+    /* Les passerelles : des stations, à partir des fractions de tour de `js/tracks.js`.
+
+    Ce ne sont pas des `crossings`. Un croisement, c'est la piste qui passe au-dessus d'elle-même —
+    Suzuka — et la voiture roule dessus. Une passerelle, on passe DESSOUS : elle se dessine après
+    les voitures, pas avant, et c'est tout ce qui les distingue à l'écran. */
+    this.passerelles = (def.passerelles || []).map((f) => ((Math.round(f * N) % N) + N) % N);
+
     // corner segments (kerbs / gravel)
     this.corners = [];
     const thr = 1 / 90;

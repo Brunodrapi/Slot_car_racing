@@ -404,6 +404,18 @@ def main():
         print(f'  pas de voie des stands lisible : depart sur la plus longue ligne droite (point {j})')
     r = r[j:] + r[:j]
 
+    # UN POINT DU DECOR, EXPRIME EN FRACTION DE TOUR. `--repere=lat,lon` rend la station la plus
+    # proche d un lieu donne — une passerelle, une tribune. On le fait ICI, apres la mise en ordre et
+    # avant la rotation : un indice ne depend ni de l angle ni de l echelle, seulement du point de
+    # depart et du sens. La fraction se garde telle quelle dans `js/tracks.js`, ou elle survit au
+    # reechantillonnage de `js/track.js`.
+    if 'repere' in o:
+        rl, ro = (float(v) for v in o['repere'].split(','))
+        cible = metres([{'lat': rl, 'lon': ro}], lat0)[0]
+        k = min(range(len(r)), key=lambda i: (r[i][0]-cible[0])**2 + (r[i][1]-cible[1])**2)
+        d = math.dist(r[k], cible)
+        print(f'  repere {rl},{ro} : station {k}/{len(r)}, soit {k/len(r):.4f} du tour, a {d:.1f} m de l axe')
+
     # L ORIENTATION, mesuree et non choisie : un releve est au nord, une carte de circuit ne l est
     # presque jamais, et on reconnait un circuit a sa silhouette posee comme on l a toujours vue.
     # `tools/orientation.py` superpose le trace a la carte connue et rend l angle qui les fait

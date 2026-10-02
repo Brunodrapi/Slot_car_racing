@@ -484,6 +484,43 @@ class Renderer {
       return p;
     });
 
+    /* LES PASSERELLES. Un tablier en travers de la piste, et son ombre portée sur l'asphalte.
+
+    Elles ne sont pas des `crossings` : un croisement, c'est la piste au-dessus d'elle-même, et la
+    voiture roule dessus — ces ponts-là se peignent avant les voitures. Sous une passerelle on
+    passe, donc elle se peint APRÈS, et c'est le seul moyen de faire comprendre lequel des deux est
+    au-dessus. L'ombre est posée avant les voitures pour qu'elle leur passe dessous, ce qui est
+    aussi la seule chose qui donne au tablier une hauteur.
+
+    Elle déborde de part et d'autre de la route : une passerelle s'appuie sur des piles plantées
+    hors piste, et un tablier qui s'arrêterait pile au bord aurait l'air posé sur les vibreurs. */
+    const PASS_LARGE = 3.2;          // la largeur du tablier, dans le sens de la marche
+    const PASS_DEBORD = 7;           // ce qu'il dépasse de chaque côté de la route
+    const passerelles = (track.passerelles || []).map((st) => {
+      const k = ((st % N) + N) % N;
+      const tx = -ny[k], ty = nx[k];                   // la tangente : le long de la piste
+      const demi = PASS_LARGE / 2;
+      /* Le tablier se pose à sa largeur exacte, le long de la tangente, et non en sautant d'une
+         station à l'autre : arrondir 1,6 m à deux stations donnait quatre mètres au lieu de trois
+         deux, et la largeur d'une passerelle se voit à côté d'une voiture de quatre mètres. */
+      const coin = (sens, d, dec) => {
+        const hw = (sens > 0 ? track.hwL[k] : track.hwR[k]) + PASS_DEBORD;
+        return [xs[k] + nx[k] * hw * sens + tx * d + dec[0], ys[k] + ny[k] * hw * sens + ty * d + dec[1]];
+      };
+      const quad = (dec) => {
+        const p = new Path2D();
+        const c = [coin(1, -demi, dec), coin(1, demi, dec), coin(-1, demi, dec), coin(-1, -demi, dec)];
+        p.moveTo(c[0][0], c[0][1]);
+        for (let i = 1; i < 4; i++) p.lineTo(c[i][0], c[i][1]);
+        p.closePath();
+        return p;
+      };
+      // L'ombre part en bas à gauche, comme celle du décor dans `js/props.js` : une seule source de
+      // lumière pour toute la scène, sinon l'œil voit deux soleils sans savoir le nommer.
+      return { pont: quad([0, 0]), ombre: quad([-1.0, 1.2]),
+               bbox: { minX: xs[k] - 40, minY: ys[k] - 40, maxX: xs[k] + 40, maxY: ys[k] + 40 } };
+    });
+
     const lines = {};
     for (const name of LINE_NAMES) {
       const p = new Path2D(), lat = track.lines[name];
@@ -635,7 +672,7 @@ class Renderer {
       return { surface, ligne, zone, garages, bbox: { minX: minX - 16, minY: minY - 16, maxX: maxX + 16, maxY: maxY + 16 } };
     })() : null;
 
-    this.paths = { center, mid, road, left, right, corners, bridges, lines, chunks, pit };
+    this.paths = { center, mid, road, left, right, corners, bridges, passerelles, lines, chunks, pit };
     /* Ce que ce circuit-là doit encore recevoir, gardé pour qu'on puisse le DEMANDER.
 
     Les deux images étaient posées et oubliées : on ne retenait que la variable remplie à l'arrivée,
@@ -1080,9 +1117,19 @@ class Renderer {
       g.beginPath(); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); g.fill();
     }
     this._drawTopProps(g, vis);
+    for (const p of this.paths.passerelles) {
+      if (!inView(p.bbox)) continue;
+      g.fillStyle = 'rgba(30,26,20,0.22)'; g.fill(p.ombre);
+    }
     // le joueur passe en dernier : deux voitures qui se touchent, c'est la sienne qu'on veut voir
     const order = race.cars.slice().sort((a, b) => (a.isPlayer ? 1 : 0) - (b.isPlayer ? 1 : 0));
     for (const car of order) this._drawCar(g, car);
+    // et le tablier par-dessus les voitures : c'est ce qui dit qu'on passe dessous
+    for (const p of this.paths.passerelles) {
+      if (!inView(p.bbox)) continue;
+      g.fillStyle = '#17171c'; g.fill(p.pont);
+      g.strokeStyle = '#2e2e36'; g.lineWidth = 0.5; g.stroke(p.pont);
+    }
     g.restore();
 
     this._drawHUD(g, race, ui);

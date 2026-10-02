@@ -2105,6 +2105,29 @@ attribuerait des records au hasard.
 La lecture, elle, est ouverte à tous, comptes et anonymes : un tableau qu'il faut mériter de voir
 ne sert à rien, c'est ce qu'on regarde avant de jouer.
 
+### La passerelle de Monza, et pourquoi ce n'est pas un pont
+
+Le jeu savait déjà dessiner un pont : `track.crossings` trouve les endroits où la piste passe
+au-dessus d'elle-même — le croisement de Suzuka — et `js/render.js` les peint **avant** les voitures,
+puisqu'on roule dessus.
+
+Une passerelle piétonne est l'inverse : on passe **dessous**. Elle se peint donc après les voitures,
+et c'est tout ce qui distingue les deux à l'écran. Son ombre, elle, reste avant — posée sur
+l'asphalte, elle passe sous les voitures, et c'est la seule chose qui donne au tablier une hauteur.
+
+**Sa position est relevée, pas placée à l'œil.** OpenStreetMap porte la passerelle comme n'importe
+quel chemin : la voie 51791412, un pont piéton de 18 m à 45,62490 N / 9,28922 E, qui enjambe la piste
+sur la ligne droite du Serraglio. `tools/releve.py --repere=lat,lon` rend la station la plus proche
+d'un lieu donné, en **fraction de tour** — 0,6333 ici. Une fraction plutôt qu'une distance, parce
+qu'elle survit au rééchantillonnage : `js/track.js` ne garde pas le même nombre de stations selon la
+longueur déclarée.
+
+Le tablier se pose à sa largeur exacte le long de la tangente, et non en sautant d'une station à
+l'autre : arrondir 1,6 m à deux stations donnait quatre mètres au lieu de trois deux, et la largeur
+d'une passerelle se juge à côté d'une voiture de quatre mètres. Il déborde de sept mètres de chaque
+côté de la route — une passerelle s'appuie sur des piles plantées hors piste, et un tablier arrêté
+pile au bord aurait l'air posé sur les vibreurs.
+
 ### Remettre les temps à zéro, une fois et une seule
 
 Les douze circuits ont changé de forme : relevés au lieu d'être dessinés, tournant dans leur vrai

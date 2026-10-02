@@ -51,6 +51,12 @@ const TRACKS = [
        chicanes s'en trouvent deux fois plus serrées qu'en vrai, et `js/track.js` les rouvre juste
        assez pour que la route ne se replie pas sur elle-même (voir PLI_MAX). */
     pts: TRACES.monza,
+    /* La passerelle piétonne, en fraction de tour. Relevée dans OpenStreetMap elle aussi — la voie
+       51791412, un pont de 18 m qui enjambe la piste entre Lesmo et Ascari — et convertie par
+       `tools/releve.py --repere=45.62490,9.28922`. Une fraction plutôt qu'une distance : elle
+       survit au rééchantillonnage de `js/track.js`, qui ne garde pas le même nombre de stations
+       selon la longueur déclarée. */
+    passerelles: [0.6333],
   },
   {
     id: 'spa', name: 'Spa-Francorchamps', country: 'BE', flag: '🇧🇪', theme: 'forest',
