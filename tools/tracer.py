@@ -134,8 +134,31 @@ def reechantillonne(p, n):
 
 
 def aire(p):
-    """Positive si la boucle tourne dans le sens horaire a l ecran (y vers le bas)."""
+    """NEGATIVE si la boucle tourne dans le sens horaire a l ecran (y vers le bas).
+
+    Le signe etait documente a l envers, et personne ne l avait verifie : un carre parcouru
+    droite-bas-gauche-haut, qui est le sens horaire quand y descend, rend -100 et non +100. Les douze
+    circuits ont donc ete retournes un a un par le test qui s appuyait dessus, et tournaient tous a
+    l envers du vrai. Une ligne d assertion vaut mieux qu une phrase : voir `sens_horaire`."""
     return sum((p[(i+1) % len(p)][0] - p[i][0]) * (p[(i+1) % len(p)][1] + p[i][1]) for i in range(len(p))) / 2
+
+
+def tourne(p, deg):
+    """Fait pivoter la boucle. C est une isometrie : la course ne voit aucune difference, seul
+    l oeil en voit une. Voir `tools/orientation.py`, qui MESURE l angle au lieu de le choisir."""
+    if not deg:
+        return p
+    a = math.radians(deg); c, s = math.cos(a), math.sin(a)
+    return [(q[0] * c - q[1] * s, q[0] * s + q[1] * c) for q in p]
+
+
+def sens_horaire(p):
+    """Vrai si la boucle tourne dans le sens des aiguilles d une montre, a l ecran."""
+    return aire(p) < 0
+
+
+assert sens_horaire([(0, 0), (10, 0), (10, 10), (0, 10)])          # droite, bas, gauche, haut
+assert not sens_horaire([(0, 0), (0, 10), (10, 10), (10, 0)])
 
 
 def depart_auto(p):
@@ -213,9 +236,9 @@ def main():
     pts = echantillonne(commandes(chemins[idx][0]))
     n = int(o.get('points', 600))
     r = reechantillonne(pts, n)
-    if (aire(r) < 0) != (o.get('sens', 'horaire') != 'horaire'):
+    if sens_horaire(r) != (o.get('sens', 'horaire') == 'horaire'):
         r = r[::-1]
-        print('\n  boucle retournee pour tourner dans le bon sens')
+        print(f"\n  boucle retournee pour tourner dans le sens {o.get('sens', 'horaire')}")
     if o.get('depart') == 'auto':
         j = depart_auto(r)
         r = r[j:] + r[:j]
@@ -226,6 +249,7 @@ def main():
         r = r[j:] + r[:j]
         print(f'  premier point ramene sur le depart (point {j})')
 
+    r = tourne(r, float(o.get('rotation', 0)))
     xs = [p[0] for p in r]; ys = [p[1] for p in r]
     cx, cy = (min(xs)+max(xs))/2, (min(ys)+max(ys))/2
     ech = 200 / max(max(xs)-min(xs), max(ys)-min(ys))        # une boite de 200 unites, comme les traces du jeu
