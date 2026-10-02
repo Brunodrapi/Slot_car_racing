@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Un trace de circuit, d un chemin SVG vers la liste de points de js/tracks.js.
 
-    python3 tools/tracer.py <carte.svg> [--points=180] [--index=0] [--depart=x,y] [--sens=horaire]
+    python3 tools/tracer.py <carte.svg> [--points=600] [--decimales=3] [--index=0] [--depart=x,y] [--sens=horaire]
 
 Un circuit du jeu est une suite de points formant une boucle fermee, que `js/track.js` lisse et
 redimensionne a la longueur declaree. Les douze trace actuels ont ete poses a la main et ne
@@ -21,6 +21,23 @@ trancher. Un SVG dessine par vous-meme n a evidemment aucune de ces contraintes.
 
 LE SENS DE PARCOURS compte : `js/track.js` attend des points qui tournent dans le sens des
 aiguilles d une montre a l ecran (y vers le bas). L outil le mesure et retourne la boucle si besoin.
+
+COMBIEN DE POINTS, ET COMBIEN DE DECIMALES. Les deux vont ensemble, et se tromper sur l un abime
+l autre. `js/track.js` reconstruit la courbe par une spline qui PASSE PAR les points : un point pose
+un demi-metre de travers fait tourner la route, et la courbure qu en tire le moteur vaut environ
+2e/h^2 — e l erreur sur le point, h l ecart entre deux points. Rapprocher les points sans gagner en
+precision empire donc le resultat, et au carre. Mesure sur un cercle de 2900 m, dont la courbure
+exacte vaut 2,17 pour mille :
+
+      points   ecart     1 decimale   2 decimales   3 decimales
+         180   16,1 m         3,123         0,578         0,060
+         360    8,1 m        13,726         1,578         0,131
+         720    4,0 m        20,598         2,167         0,207
+
+A une decimale, le bruit depasse le signal : la ligne droite serpente et la courbure sur laquelle le
+jeu calcule le freinage n a plus de sens. D ou les valeurs par defaut : des points tous les cinq
+metres, pour qu un virage de vingt metres de rayon en recoive une douzaine, et trois decimales, pour
+que le bruit reste dix fois sous la courbure la plus douce qu un circuit contienne.
 
 LE PREMIER POINT doit tomber sur la ligne de depart, parce que c est de la qu on compte les tours.
 `--depart` prend les coordonnees du depart DANS LE SVG et fait tourner la liste pour commencer la.
@@ -194,7 +211,7 @@ def main():
         print(f'    [{k}] {len(d):5} car · trait {st.group(1) if st else "?":8} epaisseur {w.group(1) if w else "?"}')
 
     pts = echantillonne(commandes(chemins[idx][0]))
-    n = int(o.get('points', 180))
+    n = int(o.get('points', 600))
     r = reechantillonne(pts, n)
     if (aire(r) < 0) != (o.get('sens', 'horaire') != 'horaire'):
         r = r[::-1]
@@ -215,9 +232,11 @@ def main():
     r = [((p[0]-cx)*ech, (p[1]-cy)*ech) for p in r]
     print(f'\n  {n} points · perimetre {perimetre(r):.1f} unites · boite '
           f'{max(q[0] for q in r)-min(q[0] for q in r):.0f} x {max(q[1] for q in r)-min(q[1] for q in r):.0f}\n')
+    dec = int(o.get('decimales', 3))
+    par_ligne = max(1, 6 - dec)
     lignes = []
-    for k in range(0, n, 6):
-        lignes.append('      ' + ', '.join(f'[{p[0]:.1f}, {p[1]:.1f}]' for p in r[k:k+6]) + ',')
+    for k in range(0, n, par_ligne):
+        lignes.append('      ' + ', '.join(f'[{p[0]:.{dec}f}, {p[1]:.{dec}f}]' for p in r[k:k+par_ligne]) + ',')
     print('    pts: [')
     print('\n'.join(lignes))
     print('    ],')

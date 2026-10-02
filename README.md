@@ -2114,10 +2114,17 @@ deux exécutions vaut **0,34 % en médiane et monte à 7,4 %** — sur une marge
 de la marge mangée par le hasard. Un plancher tiré d'une exécution malheureuse est trop haut, et un
 plancher trop haut **refuse un tour légitime**, ce que ce fichier existe précisément pour éviter.
 
-Deux corrections. Le hasard est **reproductible** : une graine fixe, affichée en tête de sortie, et
-qu'on peut changer pour vérifier qu'un résultat n'en dépend pas. Et chaque couple est joué **trois
+Trois corrections. Le hasard est **reproductible** : une graine fixe, affichée en tête de sortie, et
+qu'on peut changer pour vérifier qu'un résultat n'en dépend pas. Chaque couple est joué **trois
 fois**, dont on garde le meilleur tour : le plancher doit passer sous tout ce qui est atteignable,
 pas sous ce qu'on a observé un jour donné.
+
+Et chaque couple repart de **sa propre graine**, dérivée du nom du circuit et de celui de la voiture.
+Un flux de hasard unique pour les 108 mesures les rendait solidaires : relever Monza décalait le
+tirage de tous les circuits joués ensuite, et **106 lignes sur 108 changeaient** alors que neuf
+circuits sur douze n'avaient pas bougé d'un millimètre. Un fichier qui change partout ne dit rien sur
+ce qui a changé. Regrainé par couple, un plancher ne dépend que de son circuit et de sa voiture, et la
+différence entre deux versions se lit directement.
 
 **Ce défaut était resté invisible parce que la vérification ne vérifiait rien.** Pour contrôler que
 les planchers n'avaient pas bougé, je comparais les lignes commençant par `(` — alors qu'elles
@@ -2472,7 +2479,8 @@ node tools/coupe.js [--fenetre=400]                                             
 NODE_PATH=$(npm root -g) node tools/e2e-livree.js [dossier]                       # plusieurs livrees par voiture : le clic, la memoire, le fichier charge
 python3 tools/calibre.py <fichier.png...> [--largeur=420]                         # une illustration deja detouree, ramenee a la taille affichee
 python3 tools/prises.py <fichier.wav...> [--bits=16] [--essai]                    # les prises de moteur, du flottant 32 bits a l'entier 16
-python3 tools/tracer.py <carte.svg> [--points=180] [--index=0] [--depart=x,y]     # un chemin SVG vers la liste de points d'un circuit
+python3 tools/tracer.py <carte.svg> [--points=600] [--decimales=3] [--depart=auto]  # un chemin SVG vers la liste de points d'un circuit
+python3 tools/releve.py --bbox=s,o,n,e --depart="<voie>" --longueur=<m>           # un circuit releve dans OpenStreetMap
 node tools/fiches.js                                                             # les vitesses du jeu face aux vraies, et l'ordre du plateau
 ```
 
@@ -2493,45 +2501,82 @@ prêts et courent ensemble.
 `marge` multiplie la vitesse de passage en courbe visée : ≤ 1 la voiture reste sur sa ligne, 1,1–1,2 elle
 glisse visiblement, au-delà elle part.
 
-## Tracer un circuit d'après une carte vectorielle
+## Relever un circuit
 
-Les douze tracés ont été posés à la main et ne ressemblent que de loin aux vrais circuits. Un fond de
-carte vectoriel, lui, porte la ligne médiane comme **un seul chemin** : la lire est exact.
-`tools/tracer.py` le fait — il analyse le `d` du chemin (m/l/h/v/c/s/z), échantillonne les Béziers,
-rééchantillonne à pas constant, oriente la boucle dans le sens que `js/track.js` attend, ramène le
-premier point sur la ligne de départ et imprime le bloc `pts:` à coller.
+Les douze tracés ont été posés à la main et ne ressemblaient que de loin aux vrais circuits. Deux
+sources s'offrent pour faire mieux, et elles ne valent pas la même chose.
+
+**Une carte de Wikipédia est un SCHÉMA.** `tools/tracer.py` lit la ligne médiane dans le `d` d'un
+chemin SVG (m/l/h/v/c/s/z), échantillonne les Béziers, rééchantillonne à pas constant, oriente la
+boucle et imprime le bloc `pts:`. Monza a d'abord été relevé ainsi. Le résultat donne la silhouette
+juste et des rayons faux : la carte dessinait les quatre virages de la Variante del Rettifilo —
+entrée, deux apex, sortie — avec **une seule courbe de Bézier**, dont le point le plus serré revenait
+à 12 m de rayon sur le vrai circuit. L'outil reste dans le dépôt : il sert là où rien n'est relevé.
+
+**OpenStreetMap est un RELEVÉ.** `tools/releve.py` interroge Overpass, enchaîne les voies du circuit
+bout à bout — à Monza, vingt voies nommées d'après leurs virages — et produit le même bloc `pts:`. Il
+se vérifie seul : la boucle doit se refermer, et sa longueur tomber sur la longueur officielle.
+**5 790 m relevés contre 5 793 m annoncés**, trois mètres sur six kilomètres ; l'outil affiche les
+deux et refuse de continuer sur une boucle ouverte. Le même Rettifilo y fait 24 m de rayon, le double
+de ce que le schéma donnait.
 
 **Le passage par l'image a été essayé d'abord, et abandonné.** Masque de couleur, fermeture
 morphologique, amincissement de Zhang-Suen, marche sur le squelette : chaque étape a ses réglages, et
-aucune ne dit quand elle s'est trompée. L'amincissement laisse des fourches là où deux portions du
-circuit se frôlent — à Monza, l'entrée de la première variante passe à quelques pixels de sa
-sortie — et la marche saute de l'une à l'autre sans rien signaler. Sur 6 785 points de squelette, la
-marche n'en suivait que 295 avant de se perdre. Le chemin vectoriel évite tout cela : il est déjà
-ordonné, déjà fermé, déjà exact.
+aucune ne dit quand elle s'est trompée. Sur 6 785 points de squelette, la marche n'en suivait que 295
+avant de se perdre.
 
-**Monza est le premier circuit relevé ainsi.** Sa géométrie vit dans `js/traces.js`, un fichier à
-elle, parce que c'est elle qui porte la licence de la carte d'origine et qu'une obligation qu'on ne
-sait pas délimiter finit par être soit ignorée, soit étendue à tort. `LICENCES.md` dit qui a dessiné
-quoi et ce que ça exige. La longueur reste celle du jeu — 2 900 m contre 5 793 m en vrai : c'est la
-FORME qui est juste, pas la taille, et comprimer un circuit de moitié resserre tous ses rayons. Le
-plus serré descend à 5,8 m, et le tour de référence passe de 73 à 81 s.
+### Trois décimales, et six cents points
 
-Ce qui en dépend a suivi : les trois trajectoires et les panneaux de freinage sont regénérés
-d'office, la voie des stands retombe à 98 % du tour — sur la ligne droite des stands, comme en
-vrai — et les planchers ont été remesurés. **Les records de tour de Monza, eux, ne veulent plus rien
+`js/track.js` fait passer une spline **par** les points du tracé : un point posé un demi-mètre de
+travers fait tourner la route, et la courbure qu'en tire le moteur vaut environ `2e/h²` — `e`
+l'erreur sur le point, `h` l'écart entre deux points. Rapprocher les points sans gagner en précision
+empire donc le résultat, et au carré. Mesuré sur un cercle de 2 900 m dont la courbure exacte vaut
+2,17 pour mille :
+
+| points | écart | 1 décimale | 2 décimales | 3 décimales |
+|---|---|---|---|---|
+| 180 | 16,1 m | 3,123 | 0,578 | 0,060 |
+| 360 | 8,1 m | 13,726 | 1,578 | 0,131 |
+| 720 | 4,0 m | 20,598 | 2,167 | 0,207 |
+
+À une décimale, **le bruit dépasse le signal**. C'est ce qui faisait serpenter les lignes droites de
+Monza et zigzaguer la ligne de freinage, qui se calcule sur la courbure. Les deux outils écrivent
+donc six cents points à trois décimales : un virage de vingt mètres de rayon en reçoit une douzaine,
+et le bruit reste dix fois sous la plus douce courbure d'un circuit. Sur le tour de Monza, le
+serpentement des portions droites tombe de 0,58 à 0,27 pour mille.
+
+### Un virage ne peut pas être plus court que la route n'est large
+
+Les circuits du jeu font environ la moitié de leur taille réelle, alors que les voitures sont à
+l'échelle 1. Une chicane de 12 m de rayon à Monza n'en fait donc plus que 6 ici, pour une route
+restée large de 15 m : le bord intérieur passe de l'autre côté du centre de courbure et **se replie
+sur lui-même**. Le rendu dessine une boucle, la physique lit une piste qui se retourne. Tant que les
+tracés étaient dessinés à la main le défaut ne se voyait pas — personne ne dessine un virage aussi
+serré. Un relevé, lui, rapporte la vraie chicane.
+
+`Track.desserre` rouvre les virages plus courts que `demi-largeur / PLI_MAX` (0,85), et eux seuls :
+un flot de raccourcissement de courbe pondéré par le dépassement, arrêté dès que la contrainte est
+satisfaite. Il rogne l'apex et ne touche à rien d'autre. **Neuf circuits sur douze ne bougent pas
+d'un millimètre**, leurs virages étant déjà plus larges que leur route ; les trois autres :
+
+| circuit | rayon le plus court, avant → après | déplacement maximal |
+|---|---|---|
+| Monza | 6,5 → 9,4 m | 2,5 m |
+| Nürburgring GP | 5,4 → 9,0 m | 5,6 m |
+| Le Mans | 6,8 → 9,2 m | 2,3 m |
+
+### Ce que Monza a coûté
+
+Sa géométrie vit dans `js/traces.js`, un fichier à elle, parce que c'est elle qui porte la licence de
+la source et qu'une obligation qu'on ne sait pas délimiter finit par être soit ignorée, soit étendue
+à tort. `LICENCES.md` dit d'où vient quoi et ce que ça exige — les données d'OpenStreetMap sont sous
+ODbL : citer les contributeurs, et laisser `js/traces.js`, lui seul, sous la même licence.
+
+La longueur reste celle du jeu, 2 900 m contre 5 793 m en vrai : c'est la FORME qui est juste, pas la
+taille. Ce qui en dépend a suivi : les trois trajectoires et les panneaux de freinage sont regénérés
+d'office, et les planchers ont été remesurés. Le tour de référence passe de 80,5 à 81,6 s — les
+vraies chicanes sont plus lentes que le schéma. **Les records de tour de Monza ne veulent plus rien
 dire** : ils ont été faits sur un autre tracé.
-
-**La licence est la vraie question, et l'outil ne la tranche pas.** Il lit les métadonnées du SVG et
-affiche ce qu'il trouve — auteur, titre, licence — parce qu'une carte de Wikimedia Commons est le
-plus souvent sous CC BY-SA, c'est-à-dire à partage à l'identique : en copier les coordonnées engage
-le projet entier, pas seulement le fichier. La carte de Monza vers laquelle pointait le lien d'essai
-est signée Will Pittenger, CC BY-SA 3.0. Un SVG dessiné soi-même n'a évidemment aucune de ces
-contraintes, et c'est pour cela que l'outil accepte n'importe quel fichier plutôt qu'une source
-imposée.
-
-Le nom de l'auteur vit **dans** le bloc `<dc:creator>`, dans un `<dc:title>` à lui. Une première
-version prenait le premier `<rdf:li>` venu et annonçait « Monza » comme auteur du fichier : pour une
-donnée qui sert à créditer quelqu'un, se tromper est pire que se taire.
 
 ## Ajouter un circuit intégré
 

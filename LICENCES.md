@@ -21,42 +21,57 @@ dans `js/engine-audio.js`. Les prises de moteur en viennent également.
 
 ---
 
-## La géométrie des circuits — CC BY-SA 3.0
+## La géométrie des circuits — ODbL 1.0
 
-Les suites de points de `js/traces.js` sont relevées sur des fonds de carte vectoriels publiés sur
-Wikimedia Commons. **Ce fichier, et lui seul, porte cette licence.**
+Les suites de points de `js/traces.js` sont relevées dans **OpenStreetMap**. **Ce fichier, et lui
+seul, porte cette licence.**
 
-| circuit | carte d'origine | auteur | licence |
-|---|---|---|---|
-| Monza | [Monza track map](https://commons.wikimedia.org/wiki/File:Monza_track_map.svg) | Will Pittenger | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) |
+| circuit | relevé | licence |
+|---|---|---|
+| Monza | [Autodromo Nazionale Monza](https://www.openstreetmap.org/#map=15/45.6215/9.2870), 20 voies enchaînées | © les contributeurs d'OpenStreetMap, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/) |
 
 ### Ce que cette licence exige
 
-1. **Créditer l'auteur** et nommer la licence — ce tableau, plus l'en-tête de `js/traces.js`.
-2. **Partager à l'identique** : les coordonnées de `js/traces.js` sont elles-mêmes sous CC BY-SA 3.0.
-   Quiconque les reprend le fait aux mêmes conditions.
-3. **Ne pas les verrouiller** par des moyens techniques.
+1. **Créditer** « © les contributeurs d'OpenStreetMap » et nommer la licence — ce tableau, plus
+   l'en-tête de `js/traces.js`.
+2. **Partager à l'identique la base dérivée.** `js/traces.js` est cette base dérivée : quiconque le
+   reprend le fait sous ODbL.
+3. **Ne pas la verrouiller** par des moyens techniques.
 
 ### Ce qu'elle n'exige pas
 
-Le partage à l'identique porte sur **l'adaptation de l'œuvre** — ces coordonnées — et non sur ce qui
-les entoure. Une licence Creative Commons n'a pas de clause de liaison : contrairement à la GPL, elle
-ne s'étend pas à du code qui se contente d'utiliser la donnée. CC BY-SA 3.0 nomme même le cas, celui
-de la « Collection » : un ensemble réunissant l'œuvre avec d'autres éléments indépendants n'a pas à
-être placé sous la même licence.
+L'ODbL distingue la **base dérivée** de l'**œuvre produite**. Le jeu qui affiche un circuit est une
+œuvre produite : il doit la citation, et rien de plus. La clause de partage à l'identique porte sur
+la base — ici le seul `js/traces.js`. Le moteur, la physique, l'interface et le réseau ne sont pas
+une base de données de circuits et n'en relèvent pas.
 
 **Le reste du jeu n'est donc pas affecté.** C'est précisément pour que cette frontière soit lisible
 que la géométrie vit dans un fichier à part : mêlée aux largeurs, aux thèmes et aux réglages de
 `js/tracks.js`, personne n'aurait pu dire où elle s'arrête — et une obligation qu'on ne sait pas
 délimiter finit par être soit ignorée, soit étendue à tort.
 
+### Pourquoi un relevé plutôt qu'une carte
+
+Monza a d'abord été relevé sur un fond de carte vectoriel de Wikimedia Commons, sous CC BY-SA 3.0
+(« Monza track map », de Will Pittenger). Une carte de ce genre est un **schéma** : elle donne la
+silhouette du circuit, pas ses rayons. Celle-ci dessinait les quatre virages de la Variante del
+Rettifilo — entrée, deux apex, sortie — avec **une seule courbe de Bézier**, dont le point le plus
+serré revenait à 12 m de rayon sur le vrai circuit. Le relevé en donne 24. À l'échelle du jeu, le
+premier repliait le bord intérieur de la route sur lui-même ; le second non.
+
+OpenStreetMap n'est pas un dessin mais un relevé, tracé virage par virage sur l'imagerie aérienne, et
+il se vérifie seul : la boucle assemblée doit se refermer, et sa longueur tomber sur la longueur
+officielle. À Monza, 5790 m relevés contre 5793 m annoncés. `tools/releve.py` affiche les deux et
+refuse de continuer si la boucle reste ouverte. `tools/tracer.py`, qui lit une carte vectorielle,
+reste dans le dépôt : il sert là où rien n'est relevé.
+
 ### Une nuance, pour qui s'y intéresse
 
-La forme d'un circuit réel est un **fait**, et un fait ne s'approprie pas. Ce qu'une licence protège
-dans une carte, c'est le dessin : les couleurs, les épaisseurs de trait, les étiquettes, la mise en
-page. Ce que `tools/tracer.py` en extrait — cent quatre-vingts points rééchantillonnés, remis à une
-échelle qui n'est pas celle du circuit, réorientés — tient davantage de la description d'un lieu
-physique que de l'expression de son auteur.
+La forme d'un circuit réel est un **fait**, et un fait ne s'approprie pas. Ce que protège une base de
+données, c'est l'investissement qui l'a constituée, et ce que protège une carte, c'est son dessin.
+Ce que `tools/releve.py` en extrait — six cents points rééchantillonnés, remis à une échelle qui
+n'est pas celle du circuit, réorientés — tient davantage de la description d'un lieu physique que de
+l'expression de quiconque.
 
 L'argument est sérieux ; il n'est pas une garantie, et il varie selon les pays. Créditer coûte deux
 lignes et clôt la question, même là où elle ne se serait pas posée. C'est le parti pris ici.

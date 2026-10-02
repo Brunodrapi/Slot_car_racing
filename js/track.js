@@ -10,6 +10,18 @@
 
 const LINE_NAMES = ['inside', 'racing', 'outside'];
 
+/* Un virage ne peut pas être plus court que la route n'est large : au-delà, le bord intérieur
+   passe de l'autre côté du centre de courbure et se replie sur lui-même — le rendu dessine une
+   boucle, la physique lit une piste qui se retourne. Le plafond est posé en fraction de la
+   demi-largeur ; 0,85 laisse au bord intérieur 15 % du rayon.
+
+   Ce n'est pas un détail de dessin mais une conséquence d'échelle. Les circuits du jeu font environ
+   la moitié de leur taille réelle alors que les voitures, elles, sont à l'échelle 1 : une chicane
+   de 12 m de rayon à Monza n'en fait plus que 6 ici, pour une route restée large de 15 m. Tant que
+   les tracés étaient dessinés à la main, le problème ne se voyait pas — personne ne dessine un
+   virage aussi serré. Un relevé, lui, rapporte la vraie chicane, et le heurt apparaît. */
+const PLI_MAX = 0.85;
+
 /* Le vibreur : son écart à la ligne blanche, et sa largeur, en mètres.
    `js/render.js` le peint avec ces nombres, `js/car.js` décide avec eux ce qui est encore la piste.
    Un seul jeu de constantes pour les deux, sinon la peinture et la règle divergent en silence. */
@@ -84,6 +96,72 @@ class Track {
     }
     return { xs, ys };
   }
+  /* Ouvre les virages plus courts que `rmin`, et eux seuls.
+
+  On ne peut pas desserrer un virage en déplaçant le bord de la route : la courbure vient du tracé.
+  On déplace donc le tracé, mais UNIQUEMENT là où il est trop serré, et de ce qu'il faut. À chaque
+  passe on mesure le rayon station par station, on en tire un poids nul partout où le rayon suffit,
+  on l'étale sur quelques mètres pour que l'ouverture ne fasse pas d'angle, et on applique un
+  lissage proportionnel à ce poids. C'est un flot de raccourcissement de courbe arrêté dès que la
+  contrainte est satisfaite : il rogne l'apex et ne touche à rien d'autre.
+
+  Mesuré sur les douze circuits : neuf ne bougent pas d'un millimètre, leurs virages étant déjà plus
+  larges que leur route. */
+  static desserre(pts, rmin) {
+    const N = pts.length;
+    if (N < 16) return pts;
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    const fen = 2;                                      // le rayon se lit sur quatre mètres
+    const rayon = (i) => {
+      const a = (i - fen + N) % N, b = (i + fen) % N;
+      const ax = xs[i] - xs[a], ay = ys[i] - ys[a], bx = xs[b] - xs[i], by = ys[b] - ys[i];
+      let d = Math.atan2(by, bx) - Math.atan2(ay, ax);
+      while (d > Math.PI) d -= 2 * Math.PI;
+      while (d < -Math.PI) d += 2 * Math.PI;
+      return (Math.sqrt(ax * ax + ay * ay) + Math.sqrt(bx * bx + by * by)) / 2 / Math.max(1e-9, Math.abs(d));
+    };
+    /* On commence par chercher s'il y a seulement quelque chose à faire, et où. Neuf circuits sur
+    douze n'ont aucun virage trop serré et sortent ici, sans avoir rien recopié ; les trois autres
+    n'en ont qu'une centaine de mètres, et c'est la seule portion qu'on fera tourner. Faire tourner
+    le tour entier coûtait cinq secondes à la construction du circuit — autant sur l'écran de
+    chargement du joueur. */
+    const etale = Math.max(2, Math.round(rmin / 2));
+    const marge = etale + 20;
+    const chaud = new Uint8Array(N);
+    let rien = true;
+    for (let i = 0; i < N; i++) {
+      if (rayon(i) >= rmin) continue;
+      rien = false;
+      for (let j = -marge; j <= marge; j++) chaud[(i + j + N) % N] = 1;
+    }
+    if (rien) return pts;
+    const zone = [];
+    for (let i = 0; i < N; i++) if (chaud[i]) zone.push(i);
+
+    const w = new Float64Array(N), e = new Float64Array(N);
+    for (let passe = 0; passe < 600; passe++) {
+      let pire = 0;
+      for (const i of zone) {
+        const r = rayon(i);
+        w[i] = r < rmin ? Math.min(1, rmin / r - 1) : 0;
+        if (w[i] > pire) pire = w[i];
+      }
+      if (pire < 0.01) break;
+      for (const i of zone) {
+        let m = 0;
+        for (let j = -etale; j <= etale; j++) m = Math.max(m, w[(i + j + N) % N]);
+        e[i] = m;
+      }
+      for (const i of zone) {
+        if (e[i] <= 0) continue;
+        const a = (i - 1 + N) % N, b = (i + 1) % N;
+        const f = 0.3 * e[i];
+        xs[i] += f * (xs[a] + xs[b] - 2 * xs[i]);
+        ys[i] += f * (ys[a] + ys[b] - 2 * ys[i]);
+      }
+    }
+    return xs.map((x, i) => [x, ys[i]]);
+  }
   static smooth(arr, w) {
     const N = arr.length, out = new Float32Array(N);
     if (w <= 0) { out.set(arr); return out; }
@@ -108,6 +186,20 @@ class Track {
       raw = raw.map(p => [p[0] * f, p[1] * f]);
       this.unitScale = f;
     } else this.unitScale = scale;
+    /* Le desserrage travaille sur des stations au mètre, pas sur la sortie de la spline : celle-ci
+       pose un point tous les vingt centimètres, où l'angle entre trois points voisins n'est plus
+       qu'du bruit et le rayon qu'on en tirerait ne veut rien dire. */
+    const baseHw = (def.width || 12) * this.widthScale / 2;
+    {
+      const N0 = Math.max(50, Math.round(Track.polyLength(raw) / this.ds));
+      const r0 = Track.resample(raw, N0);
+      raw = Track.desserre(Array.from(r0.xs, (x, i) => [x, r0.ys[i]]), baseHw / PLI_MAX);
+      if (def.length && !def.scale) {                   // le desserrage raccourcit un peu la boucle
+        const f2 = def.length / Track.polyLength(raw);
+        raw = raw.map(p => [p[0] * f2, p[1] * f2]);
+        this.unitScale *= f2;
+      }
+    }
     const N = Math.max(50, Math.round(Track.polyLength(raw) / this.ds));
     this.n = N; this.length = N * this.ds;
     const { xs, ys } = Track.resample(raw, N);
@@ -132,7 +224,6 @@ class Track {
 
     // road half-widths
     this.hwL = new Float32Array(N); this.hwR = new Float32Array(N);
-    const baseHw = (def.width || 12) * this.widthScale / 2;
     this.hwL.fill(baseHw); this.hwR.fill(baseHw);
 
     /* De quel côté est l'intérieur du virage, en tout point — calculé ici et non dans le générateur

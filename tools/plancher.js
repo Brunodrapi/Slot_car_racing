@@ -63,6 +63,12 @@ for (const td of TRACKS) {
   for (const m of voitures) {
     let best = null, tours = 0, sorties = 0;
     for (let essai = 0; essai < ESSAIS; essai++) {
+      /* Chaque couple repart de sa propre graine. Un seul flux de hasard pour les 108 mesures les
+      rendait solidaires : changer le tracé de Monza décalait le tirage de tous les circuits suivants,
+      et leurs planchers bougeaient sans que leur géométrie ait bougé d'un millimètre. On ne pouvait
+      alors plus lire ce fichier — 106 lignes sur 108 changées ne disaient RIEN sur ce qui avait
+      changé. Regrainé par couple, un plancher ne dépend que de son circuit et de sa voiture. */
+      REGRAINE(td.id + '|' + m.id + '|' + essai);
       const race = new Race({ trackDef: td, classId: cat.id, modelId: m.id, difficulty: 'cauchemar',
                               playerAI: true, playerLivery: 0, nCars: 1, mode: 'timetrial', laps: 99 });
       const p = race.player;
@@ -98,9 +104,15 @@ pas à elle. */
 const GRAINE = +arg('graine', 20261002);
 let _x = GRAINE >>> 0;
 const alea = () => { _x = (Math.imul(_x, 1664525) + 1013904223) >>> 0; return _x / 4294967296; };
+const regraine = (cle) => {               // FNV-1a sur la clé du couple, mêlée à la graine du banc
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < cle.length; i++) { h ^= cle.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  _x = (h ^ (GRAINE >>> 0)) >>> 0;
+  for (let i = 0; i < 8; i++) alea();      // on jette les premiers tirages, trop proches de la graine
+};
 const MathFixe = Object.create(Math);
 MathFixe.random = alea;
-vm.runInNewContext(src, { OUT, TOURS, ESSAIS, console, performance: { now: () => Date.now() },
+vm.runInNewContext(src, { OUT, TOURS, ESSAIS, REGRAINE: regraine, console, performance: { now: () => Date.now() },
                           Math: MathFixe, JSON, Date });
 
 const lignes = [];
@@ -154,5 +166,5 @@ insert into public.planchers (circuit, voiture, minimum) values
 ${lignes.map((l) => `  ('${l.circuit}', '${l.voiture}', ${l.plancher.toFixed(3)})`).join(',\n')}
 on conflict (circuit, voiture) do update set minimum = excluded.minimum;
 `;
-fs.writeFileSync(path.join(__dirname, '..', SORTIE), sql);
+fs.writeFileSync(path.resolve(__dirname, '..', SORTIE), sql);   // resolve et non join : un chemin absolu doit rester absolu
 console.log(`\n  ${lignes.length} planchers ecrits dans ${SORTIE}`);

@@ -8,10 +8,12 @@ const TRACKS = [
   {
     id: 'monza', name: 'Monza', country: 'IT', flag: '🇮🇹', theme: 'park',
     length: 2900, width: 15, laps: 4,
-    /* La géométrie vient de `js/traces.js`, qui porte sa propre licence : elle est relevée sur une
-       carte publiée sous Creative Commons, et le fichier à part rend la frontière lisible. Voir
-       `LICENCES.md`. La longueur, la largeur et le nombre de tours restent des choix du jeu — c'est
-       la FORME du circuit qui est juste, pas sa taille. */
+    /* La géométrie vient de `js/traces.js`, qui porte sa propre licence : elle est relevée dans
+       OpenStreetMap, et le fichier à part rend la frontière lisible. Voir `LICENCES.md`. La
+       longueur, la largeur et le nombre de tours restent des choix du jeu — c'est la FORME du
+       circuit qui est juste, pas sa taille. Monza y fait la moitié de ses 5793 m réels : ses
+       chicanes s'en trouvent deux fois plus serrées qu'en vrai, et `js/track.js` les rouvre juste
+       assez pour que la route ne se replie pas sur elle-même (voir PLI_MAX). */
     pts: TRACES.monza,
   },
   {
