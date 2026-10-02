@@ -36,8 +36,9 @@ RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # superposition a vraiment eu lieu. Un relevé est orienté au nord ; une carte de circuit ne l'est
 # presque jamais, et on reconnaît un circuit à sa silhouette posée comme on l'a toujours vue.
 #
-# Le Nürburgring est à zéro faute de carte : Wikimedia répond 429 depuis une heure. Il reste donc
-# orienté au nord, ce qui est dit plutôt que deviné.
+# Le Nürburgring vaut 0,9° : sa carte est à peu de chose près orientée au nord, et c'est le seul des
+# douze dont l'angle mesuré ne change presque rien. Il a été mesuré comme les autres, après plusieurs
+# heures de 429 de la part de Wikimedia.
 #
 # LE SENS DE COURSE est une donnée du circuit, vérifiable sur n'importe quelle carte : dix tournent
 # dans le sens des aiguilles d'une montre, Interlagos et Mount Panorama à l'envers. Il était déduit
@@ -53,7 +54,7 @@ TABLE = [
     ('suzuka',      '34.832,136.515,34.864,136.555', '鈴鹿サーキット',                      'Pit Lane',       5807, 0.5, 'horaire', 119.0),
     ('interlagos',  '-23.715,-46.710,-23.690,-46.678', 'José Carlos Pace',               'Pit Lane',       4309, 0.5, 'antihoraire', 47.3),
     ('laguna',      '36.575,-121.770,36.600,-121.740', None,                             'Pit Lane',       3602, 0.5, 'horaire', 251.1),
-    ('nurburgring', '50.322,6.925,50.355,6.965',  'Nürburgring Grand Prix Strecke',      'Boxengasse',     5148, 0.5, 'horaire', 0),
+    ('nurburgring', '50.322,6.925,50.355,6.965',  'Nürburgring Grand Prix Strecke',      'Boxengasse',     5148, 0.5, 'horaire', 0.9),
     ('bathurst',    '-33.465,149.540,-33.435,149.575', 'Mount Panorama Circuit',         '',               6213, 0.5, 'antihoraire', 238.5),
     ('redbullring', '47.210,14.750,47.232,14.782', 'Red Bull Ring',                      'Boxenstraße',    4318, 0.5, 'horaire', 0.6),
     ('zandvoort',   '52.378,4.525,52.402,4.560',  'Grand Prix Formule 1 van Nederland',  'Pitstraat',      4259, 0.5, 'horaire', 245.0),

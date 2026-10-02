@@ -2596,12 +2596,14 @@ qui les fait coïncider, avec le résidu qui dit si la superposition a vraiment 
 | Suzuka | 119,0° | 0,7 % | Laguna Seca | 251,1° | 3,9 % |
 | Silverstone | 284,0° | 1,5 % | Mount Panorama | 238,5° | 5,1 % |
 | Monza | 262,7° | 1,6 % | Zandvoort | 245,0° | 5,5 % |
+| Nürburgring GP | 0,9° | 0,9 % | | | |
 
 Le résidu n'est pas décoratif : à Laguna Seca, le plus long chemin du SVG n'était pas la piste, et
 ses 15,2 % l'ont dit — un autre chemin du même fichier tombe à 3,9 %. **Le Mans mesure 0,0° avec
 0,1 % de résidu**, ce qui est la meilleure vérification qu'on puisse avoir : son tracé vient de cette
-carte, il est donc déjà dans son orientation, et l'outil le retrouve seul. Le Nürburgring reste au
-nord, faute de carte — Wikimedia répond 429 — ce qui est dit plutôt que deviné.
+carte, il est donc déjà dans son orientation, et l'outil le retrouve seul. Le Nürburgring, mesuré
+après plusieurs heures de 429 de la part de Wikimedia, ne demande que 0,9° : sa carte est à peu de
+chose près orientée au nord, et c'est le seul des douze dont l'angle ne change presque rien.
 
 Une rotation ne change rien à la course : c'est une isométrie, les longueurs et les rayons sont les
 mêmes. Elle ne change que ce qu'on voit, au menu comme en piste.
