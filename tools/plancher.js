@@ -35,10 +35,22 @@ const arg = (n, d) => {
 };
 const TOURS = Math.max(2, +arg('tours', 4));
 const MARGE = +arg('marge', 0.15);
+/* Combien de fois on rejoue chaque couple, et pourquoi plus d'une.
+
+Le pilote automatique part avec un décalage tiré au hasard (`aiTimer`) et porte un bruit de
+conduite : deux exécutions du MÊME code ne donnent donc pas le même tour. Mesuré sur les 108
+couples, l'écart entre deux exécutions vaut 0,34 % en médiane mais monte à 7,4 % — sur une marge de
+15 %, c'est la moitié de la marge mangée par le hasard. Un plancher tiré d'une exécution malheureuse
+est trop haut, et un plancher trop haut REFUSE UN TOUR LÉGITIME, ce que ce fichier existe
+précisément pour éviter.
+
+On garde donc le meilleur tour de plusieurs essais : le plancher doit passer sous tout ce qui est
+atteignable, pas sous ce qu'on a observé un jour donné. */
+const ESSAIS = Math.max(1, +arg('essais', 3));
 const SORTIE = arg('sortie', 'supabase/planchers.sql');
 
 let src = '';
-for (const f of ['util', 'tracks', 'track', 'cars', 'car', 'race']) {
+for (const f of ['util', 'traces', 'tracks', 'track', 'cars', 'car', 'race']) {
   src += fs.readFileSync(`${__dirname}/../js/${f}.js`, 'utf8')
     .replace(/if \(typeof module[^\n]*\n/g, '').replace(/'use strict';/g, '') + '\n';
 }
@@ -49,14 +61,20 @@ const voitures = modelsOf(cat.id);
 const resultats = [];
 for (const td of TRACKS) {
   for (const m of voitures) {
-    const race = new Race({ trackDef: td, classId: cat.id, modelId: m.id, difficulty: 'cauchemar',
-                            playerAI: true, playerLivery: 0, nCars: 1, mode: 'timetrial', laps: 99 });
-    const p = race.player;
-    // les gaz de l'IA, calculés ici : la voiture du joueur ne les reçoit que de l'entrée
-    const thr = () => aiThrottle(p, race.cars, race.dt, race.difficulty);
-    let pas = 0;
-    const MAX = Math.round(60 * 60 * 12 / race.dt / 60);     // douze minutes de jeu, en pas
-    while (p.lap < TOURS && pas++ < MAX && race.state !== 'finished') race.update(race.dt, thr());
+    let best = null, tours = 0, sorties = 0;
+    for (let essai = 0; essai < ESSAIS; essai++) {
+      const race = new Race({ trackDef: td, classId: cat.id, modelId: m.id, difficulty: 'cauchemar',
+                              playerAI: true, playerLivery: 0, nCars: 1, mode: 'timetrial', laps: 99 });
+      const p = race.player;
+      // les gaz de l'IA, calculés ici : la voiture du joueur ne les reçoit que de l'entrée
+      const thr = () => aiThrottle(p, race.cars, race.dt, race.difficulty);
+      let pas = 0;
+      const MAX = Math.round(60 * 60 * 12 / race.dt / 60);     // douze minutes de jeu, en pas
+      while (p.lap < TOURS && pas++ < MAX && race.state !== 'finished') race.update(race.dt, thr());
+      if (p.bestLapBrut != null && (best == null || p.bestLapBrut < best)) best = p.bestLapBrut;
+      tours = Math.max(tours, p.lap); sorties += p.crashes;
+    }
+    const p = { bestLapBrut: best, lap: tours, crashes: sorties };
     resultats.push({ circuit: td.id, nomC: td.name, len: td.length,
                      voiture: m.id, nomV: m.name, vmax: m.perf.vmax,
                      /* « bestLapBrut » et non « bestLap » : le plancher doit être le temps le plus bas
@@ -72,12 +90,24 @@ OUT.voitures = voitures.map(m => m.name);
 `;
 
 const OUT = {};
-vm.runInNewContext(src, { OUT, TOURS, console, performance: { now: () => Date.now() }, Math, JSON, Date });
+/* UN HASARD REPRODUCTIBLE. `Math.random` sert au décalage de départ du pilote et à son bruit de
+conduite. Laissé au hasard du système, le fichier produit change à chaque exécution et deux mesures
+ne se comparent plus — c'est ce qui a fait passer une régression pour un bruit, et un bruit pour une
+régression. La graine est fixe et affichée : on peut la changer pour vérifier qu'un résultat ne tient
+pas à elle. */
+const GRAINE = +arg('graine', 20261002);
+let _x = GRAINE >>> 0;
+const alea = () => { _x = (Math.imul(_x, 1664525) + 1013904223) >>> 0; return _x / 4294967296; };
+const MathFixe = Object.create(Math);
+MathFixe.random = alea;
+vm.runInNewContext(src, { OUT, TOURS, ESSAIS, console, performance: { now: () => Date.now() },
+                          Math: MathFixe, JSON, Date });
 
 const lignes = [];
 let muets = 0;
 console.log(`\n  ${OUT.voitures.length} voitures × ${OUT.resultats.length / OUT.voitures.length} circuits`
-  + ` · ${TOURS} tours · marge ${(MARGE * 100).toFixed(0)} %\n`);
+  + ` · ${TOURS} tours · ${ESSAIS} essai(s) · marge ${(MARGE * 100).toFixed(0)} %`
+  + ` · graine ${GRAINE}\n`);
 let circuit = null;
 for (const r of OUT.resultats) {
   const physique = r.len / (r.vmax / 3.6);

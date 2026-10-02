@@ -26,7 +26,7 @@
 const fs = require('fs'), vm = require('vm'), path = require('path');
 
 let src = '';
-for (const f of ['util', 'tracks', 'track', 'cars', 'car', 'race', 'paquet']) {
+for (const f of ['util', 'traces', 'tracks', 'track', 'cars', 'car', 'race', 'paquet']) {
   src += fs.readFileSync(path.join(__dirname, '..', 'js', f + '.js'), 'utf8')
     .replace(/if \(typeof module[^\n]*\n/g, '').replace(/'use strict';/g, '') + '\n';
 }

@@ -8,17 +8,11 @@ const TRACKS = [
   {
     id: 'monza', name: 'Monza', country: 'IT', flag: '🇮🇹', theme: 'park',
     length: 2900, width: 15, laps: 4,
-    pts: [
-      [0, 180], [0, 120], [0, 40],
-      [4, 26], [10, 20], [10, 12],
-      [14, 0], [28, -14], [50, -21], [78, -21], [100, -17],
-      [110, -21], [118, -27], [128, -27], [136, -20],
-      [148, -15], [154, -5], [151, 6],
-      [146, 18], [135, 27],
-      [118, 40], [100, 56], [86, 72],
-      [78, 82], [72, 88], [68, 96], [62, 102], [58, 112],
-      [58, 140], [56, 164], [48, 186], [34, 202], [18, 206], [6, 200], [1, 190],
-    ],
+    /* La géométrie vient de `js/traces.js`, qui porte sa propre licence : elle est relevée sur une
+       carte publiée sous Creative Commons, et le fichier à part rend la frontière lisible. Voir
+       `LICENCES.md`. La longueur, la largeur et le nombre de tours restent des choix du jeu — c'est
+       la FORME du circuit qui est juste, pas sa taille. */
+    pts: TRACES.monza,
   },
   {
     id: 'spa', name: 'Spa-Francorchamps', country: 'BE', flag: '🇧🇪', theme: 'forest',

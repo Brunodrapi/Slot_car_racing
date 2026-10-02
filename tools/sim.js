@@ -1,7 +1,7 @@
 // Headless simulation harness: concatenates the game scripts and runs AI-only races.
 const fs = require('fs'), vm = require('vm');
 let src = '';
-for (const f of ['util', 'tracks', 'track', 'cars', 'car', 'race']) {
+for (const f of ['util', 'traces', 'tracks', 'track', 'cars', 'car', 'race']) {
   src += fs.readFileSync(`${__dirname}/../js/${f}.js`, 'utf8').replace(/if \(typeof module[^\n]*\n/g, '').replace(/'use strict';/g, '') + '\n';
 }
 src += `

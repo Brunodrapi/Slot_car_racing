@@ -28,7 +28,7 @@ const arg = (n, d) => {
 const FENETRE = Math.max(40, +arg('fenetre', 400));
 
 let src = '';
-for (const f of ['util', 'tracks', 'track', 'cars', 'car', 'race']) {
+for (const f of ['util', 'traces', 'tracks', 'track', 'cars', 'car', 'race']) {
   src += fs.readFileSync(`${__dirname}/../js/${f}.js`, 'utf8')
     .replace(/if \(typeof module[^\n]*\n/g, '').replace(/'use strict';/g, '') + '\n';
 }

@@ -19,7 +19,7 @@ const LOSS = +(ARGS[2] || 0) / 100;
 const MODE = ARGS[3] || 'race';
 
 let src = '';
-for (const f of ['util', 'tracks', 'track', 'cars', 'car', 'race', 'net']) {
+for (const f of ['util', 'traces', 'tracks', 'track', 'cars', 'car', 'race', 'net']) {
   src += fs.readFileSync(`${__dirname}/../js/${f}.js`, 'utf8')
     .replace(/if \(typeof module[^\n]*\n/g, '').replace(/'use strict';/g, '') + '\n';
 }

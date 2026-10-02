@@ -2106,6 +2106,25 @@ ne sert à rien, c'est ce qu'on regarde avant de jouer.
 
 ### Le plancher, mesuré et non deviné
 
+### Le banc des planchers rendait un résultat différent à chaque exécution
+
+Le pilote automatique part avec un décalage tiré au hasard et porte un bruit de conduite : deux
+exécutions du même code ne donnaient pas le même fichier. Mesuré sur les 108 couples, l'écart entre
+deux exécutions vaut **0,34 % en médiane et monte à 7,4 %** — sur une marge de 15 %, c'est la moitié
+de la marge mangée par le hasard. Un plancher tiré d'une exécution malheureuse est trop haut, et un
+plancher trop haut **refuse un tour légitime**, ce que ce fichier existe précisément pour éviter.
+
+Deux corrections. Le hasard est **reproductible** : une graine fixe, affichée en tête de sortie, et
+qu'on peut changer pour vérifier qu'un résultat n'en dépend pas. Et chaque couple est joué **trois
+fois**, dont on garde le meilleur tour : le plancher doit passer sous tout ce qui est atteignable,
+pas sous ce qu'on a observé un jour donné.
+
+**Ce défaut était resté invisible parce que la vérification ne vérifiait rien.** Pour contrôler que
+les planchers n'avaient pas bougé, je comparais les lignes commençant par `(` — alors qu'elles
+commencent par deux espaces puis `(`. Le filtre ne retenait donc aucune ligne, et la comparaison de
+deux listes vides concluait « aucune différence ». Deux fois de suite, dans la même session, j'ai
+annoncé des planchers inchangés sur la foi d'un `grep` qui ne lisait rien.
+
 `tools/plancher.js` produit `supabase/planchers.sql`. Un plancher inventé est soit trop haut — et
 il refuse les tours d'un très bon joueur, ce qui est pire que de laisser passer un tricheur — soit
 trop bas, et il n'arrête rien. Aucun des deux ne se voit avant que quelqu'un s'en plaigne.
@@ -2489,6 +2508,18 @@ circuit se frôlent — à Monza, l'entrée de la première variante passe à qu
 sortie — et la marche saute de l'une à l'autre sans rien signaler. Sur 6 785 points de squelette, la
 marche n'en suivait que 295 avant de se perdre. Le chemin vectoriel évite tout cela : il est déjà
 ordonné, déjà fermé, déjà exact.
+
+**Monza est le premier circuit relevé ainsi.** Sa géométrie vit dans `js/traces.js`, un fichier à
+elle, parce que c'est elle qui porte la licence de la carte d'origine et qu'une obligation qu'on ne
+sait pas délimiter finit par être soit ignorée, soit étendue à tort. `LICENCES.md` dit qui a dessiné
+quoi et ce que ça exige. La longueur reste celle du jeu — 2 900 m contre 5 793 m en vrai : c'est la
+FORME qui est juste, pas la taille, et comprimer un circuit de moitié resserre tous ses rayons. Le
+plus serré descend à 5,8 m, et le tour de référence passe de 73 à 81 s.
+
+Ce qui en dépend a suivi : les trois trajectoires et les panneaux de freinage sont regénérés
+d'office, la voie des stands retombe à 98 % du tour — sur la ligne droite des stands, comme en
+vrai — et les planchers ont été remesurés. **Les records de tour de Monza, eux, ne veulent plus rien
+dire** : ils ont été faits sur un autre tracé.
 
 **La licence est la vraie question, et l'outil ne la tranche pas.** Il lit les métadonnées du SVG et
 affiche ce qu'il trouve — auteur, titre, licence — parce qu'une carte de Wikimedia Commons est le

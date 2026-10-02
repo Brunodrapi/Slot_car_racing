@@ -2,7 +2,7 @@
 // Prints lateral error stats, grip usage, slip and excursions; -v dumps a per-50 m trace.
 const fs = require('fs'), vm = require('vm');
 let src = '';
-for (const f of ['util', 'tracks', 'track', 'cars', 'car', 'race']) src += fs.readFileSync(`${__dirname}/../js/${f}.js`, 'utf8').replace(/if \(typeof module[^\n]*\n/g, '').replace(/'use strict';/g, '') + '\n';
+for (const f of ['util', 'traces', 'tracks', 'track', 'cars', 'car', 'race']) src += fs.readFileSync(`${__dirname}/../js/${f}.js`, 'utf8').replace(/if \(typeof module[^\n]*\n/g, '').replace(/'use strict';/g, '') + '\n';
 src += `
 const td = TRACKS.find(t => t.id === ARGS[0]); const m = +(ARGS[2] || 0.95); const verbose = ARGS[3] === '-v';
 const race = new Race({ trackDef: td, classId: ARGS[1], difficulty: 'medium', playerAI: true, playerLivery: 0, nCars: 1, mode: 'timetrial' });

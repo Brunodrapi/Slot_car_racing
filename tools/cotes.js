@@ -17,7 +17,7 @@ const fs = require('fs'), vm = require('vm');
 
 const ARGS = process.argv.slice(2);
 let src = '';
-for (const f of ['util', 'tracks', 'track']) {
+for (const f of ['util', 'traces', 'tracks', 'track']) {
   src += fs.readFileSync(`${__dirname}/../js/${f}.js`, 'utf8')
     .replace(/if \(typeof module[^\n]*\n/g, '').replace(/'use strict';/g, '') + '\n';
 }

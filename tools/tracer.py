@@ -121,6 +121,37 @@ def aire(p):
     return sum((p[(i+1) % len(p)][0] - p[i][0]) * (p[(i+1) % len(p)][1] + p[i][1]) for i in range(len(p))) / 2
 
 
+def depart_auto(p):
+    """La ligne de depart tombe sur la plus longue ligne droite, aux deux tiers.
+
+    `js/track.js` compte les tours au passage du premier point : le poser dans un virage donnerait
+    une ligne de depart en courbe et une grille de depart en travers. Faute de savoir lire sur la
+    carte ou se trouve la vraie ligne, on prend le seul endroit qui ne soit jamais faux — la plus
+    longue portion droite — et on s y place aux deux tiers, pour laisser de la place a la grille
+    derriere sans empieter sur le freinage du premier virage."""
+    n = len(p)
+    cap = []
+    for i in range(n):
+        a, b = p[i], p[(i + 1) % n]
+        cap.append(math.atan2(b[1] - a[1], b[0] - a[0]))
+    def ecart(i):
+        d = cap[(i + 1) % n] - cap[i]
+        while d > math.pi: d -= 2 * math.pi
+        while d < -math.pi: d += 2 * math.pi
+        return abs(d)
+    droit = [ecart(i) < 0.02 for i in range(n)]
+    best, cur, deb, bdeb = 0, 0, 0, 0
+    for k in range(2 * n):                       # deux tours, pour attraper une droite a cheval sur la fin
+        i = k % n
+        if droit[i]:
+            if cur == 0: deb = k
+            cur += 1
+            if cur > best: best, bdeb = cur, deb
+        else:
+            cur = 0
+    return (bdeb + int(best * 2 / 3)) % n
+
+
 def licence_du_svg(t):
     """Le nom de l auteur vit DANS le bloc <dc:creator>, dans un <dc:title> a lui.
 
@@ -168,7 +199,11 @@ def main():
     if (aire(r) < 0) != (o.get('sens', 'horaire') != 'horaire'):
         r = r[::-1]
         print('\n  boucle retournee pour tourner dans le bon sens')
-    if 'depart' in o:
+    if o.get('depart') == 'auto':
+        j = depart_auto(r)
+        r = r[j:] + r[:j]
+        print(f'  depart pose sur la plus longue ligne droite (point {j})')
+    elif 'depart' in o:
         dx, dy = (float(v) for v in o['depart'].split(','))
         j = min(range(len(r)), key=lambda i: (r[i][0]-dx)**2 + (r[i][1]-dy)**2)
         r = r[j:] + r[:j]

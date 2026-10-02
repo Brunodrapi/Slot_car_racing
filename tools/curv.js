@@ -2,7 +2,7 @@
 // and the resulting jitter of the grip ratio for a car at constant speed on the racing line.
 const fs = require('fs'), vm = require('vm');
 let src = '';
-for (const f of ['util', 'tracks', 'track', 'cars', 'car', 'race']) src += fs.readFileSync(`${__dirname}/../js/${f}.js`, 'utf8').replace(/if \(typeof module[^\n]*\n/g, '').replace(/'use strict';/g, '') + '\n';
+for (const f of ['util', 'traces', 'tracks', 'track', 'cars', 'car', 'race']) src += fs.readFileSync(`${__dirname}/../js/${f}.js`, 'utf8').replace(/if \(typeof module[^\n]*\n/g, '').replace(/'use strict';/g, '') + '\n';
 src += `
 function bspline(pts, steps) {
   const n = pts.length, out = [];

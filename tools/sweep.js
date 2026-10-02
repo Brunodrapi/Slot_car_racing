@@ -1,7 +1,7 @@
 // Parameter sweep for the autopilot / handling: scores tracking error, spins and excursions.
 const fs = require('fs'), vm = require('vm');
 let src = '';
-for (const f of ['util', 'tracks', 'track', 'cars', 'car', 'race']) src += fs.readFileSync(`${__dirname}/../js/${f}.js`, 'utf8').replace(/if \(typeof module[^\n]*\n/g, '').replace(/'use strict';/g, '') + '\n';
+for (const f of ['util', 'traces', 'tracks', 'track', 'cars', 'car', 'race']) src += fs.readFileSync(`${__dirname}/../js/${f}.js`, 'utf8').replace(/if \(typeof module[^\n]*\n/g, '').replace(/'use strict';/g, '') + '\n';
 src += `
 const combos = [['zandvoort','gt'],['spa','gt'],['monza','gt'],['laguna','gt']];
 function run(m) {
