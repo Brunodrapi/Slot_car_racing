@@ -31,19 +31,24 @@ OUTIL = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'releve.py')
 TRACEUR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tracer.py')
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-#  id            boîte sud,ouest,nord,est             relation                              écarté          long.  jointure
+# LE SENS DE COURSE est une donnée du circuit, vérifiable sur n'importe quelle carte : dix tournent
+# dans le sens des aiguilles d'une montre, Interlagos et Mount Panorama à l'envers. Il était déduit
+# du signe d'une aire dont la description était fausse, et les douze tournaient donc à l'envers du
+# vrai. Une donnée qu'on peut déclarer ne se devine pas.
+#
+#  id            boîte sud,ouest,nord,est             relation                              écarté          long.  joint. sens
 TABLE = [
-    ('monza',       '45.611,9.275,45.632,9.300',  'Autodromo Nazionale di Monza',        'Pit Lane',       5793, 0.5),
-    ('spa',         '50.418,5.950,50.452,5.995',  'Circuit de Spa Francorchamps',        'Pit Lane',       7004, 0.5),
-    ('monaco',      '43.730,7.410,43.752,7.442',  'Circuit de Monaco',                   'stands',         3337, 20),
-    ('silverstone', '52.055,-1.040,52.090,-0.985', 'Silverstone Grand Prix',             'pit lane',       5891, 0.5),
-    ('suzuka',      '34.832,136.515,34.864,136.555', '鈴鹿サーキット',                      'Pit Lane',       5807, 0.5),
-    ('interlagos',  '-23.715,-46.710,-23.690,-46.678', 'José Carlos Pace',               'Pit Lane',       4309, 0.5),
-    ('laguna',      '36.575,-121.770,36.600,-121.740', None,                             'Pit Lane',       3602, 0.5),
-    ('nurburgring', '50.322,6.925,50.355,6.965',  'Nürburgring Grand Prix Strecke',      'Boxengasse',     5148, 0.5),
-    ('bathurst',    '-33.465,149.540,-33.435,149.575', 'Mount Panorama Circuit',         '',               6213, 0.5),
-    ('redbullring', '47.210,14.750,47.232,14.782', 'Red Bull Ring',                      'Boxenstraße',    4318, 0.5),
-    ('zandvoort',   '52.378,4.525,52.402,4.560',  'Grand Prix Formule 1 van Nederland',  'Pitstraat',      4259, 0.5),
+    ('monza',       '45.611,9.275,45.632,9.300',  'Autodromo Nazionale di Monza',        'Pit Lane',       5793, 0.5, 'horaire'),
+    ('spa',         '50.418,5.950,50.452,5.995',  'Circuit de Spa Francorchamps',        'Pit Lane',       7004, 0.5, 'horaire'),
+    ('monaco',      '43.730,7.410,43.752,7.442',  'Circuit de Monaco',                   'stands',         3337, 20, 'horaire'),
+    ('silverstone', '52.055,-1.040,52.090,-0.985', 'Silverstone Grand Prix',             'pit lane',       5891, 0.5, 'horaire'),
+    ('suzuka',      '34.832,136.515,34.864,136.555', '鈴鹿サーキット',                      'Pit Lane',       5807, 0.5, 'horaire'),
+    ('interlagos',  '-23.715,-46.710,-23.690,-46.678', 'José Carlos Pace',               'Pit Lane',       4309, 0.5, 'antihoraire'),
+    ('laguna',      '36.575,-121.770,36.600,-121.740', None,                             'Pit Lane',       3602, 0.5, 'horaire'),
+    ('nurburgring', '50.322,6.925,50.355,6.965',  'Nürburgring Grand Prix Strecke',      'Boxengasse',     5148, 0.5, 'horaire'),
+    ('bathurst',    '-33.465,149.540,-33.435,149.575', 'Mount Panorama Circuit',         '',               6213, 0.5, 'antihoraire'),
+    ('redbullring', '47.210,14.750,47.232,14.782', 'Red Bull Ring',                      'Boxenstraße',    4318, 0.5, 'horaire'),
+    ('zandvoort',   '52.378,4.525,52.402,4.560',  'Grand Prix Formule 1 van Nederland',  'Pitstraat',      4259, 0.5, 'horaire'),
 ]
 DEPART_SANS_RELATION = {'laguna': 'The Corkscrew'}
 
@@ -59,7 +64,7 @@ DEPART_SANS_RELATION = {'laguna': 'The Corkscrew'}
 TABLE_SVG = [
     ('lemans',
      'https://commons.wikimedia.org/wiki/Special:FilePath/Circuit_de_la_Sarthe_track_map.svg',
-     '962.6,136.5', 13626, 'Track map for the Circuit de la Sarthe, de Will Pittenger, CC BY-SA 3.0'),
+     '959.7,190.4', 13626, 'Track map for the Circuit de la Sarthe, de Will Pittenger, CC BY-SA 3.0'),
 ]
 
 ENTETE = '''/* Eyes On Line — la GÉOMÉTRIE des circuits, et elle seule.
@@ -100,9 +105,9 @@ const TRACES = {
 
 
 def releve(ligne, cache, points, dec):
-    cid, bbox, rel, sauf, officielle, jointure = ligne
+    cid, bbox, rel, sauf, officielle, jointure, sens = ligne
     cmd = [sys.executable, OUTIL, f'--bbox={bbox}', f'--longueur={officielle}',
-           f'--points={points}', f'--decimales={dec}', f'--jointure={jointure}',
+           f'--points={points}', f'--decimales={dec}', f'--jointure={jointure}', f'--sens={sens}',
            f'--cache={os.path.join(cache, "osm_" + cid + ".xml")}']
     if rel:
         cmd.append(f'--relation={rel}')
@@ -153,12 +158,12 @@ def main():
     for ligne in TABLE:
         if choisis and ligne[0] not in choisis:
             continue
-        print(f'  {ligne[0]}…', flush=True)
+        print(f'  {ligne[0]}… ({ligne[6]})', flush=True)
         pts, mesure, voies = releve(ligne, cache, points, dec)
         print(f'    {mesure}')
         corps.append(f'  /* {ligne[2] or "relevé par l’étiquette highway=raceway"}.\n'
                      f'     {mesure.replace("longueur relevee", "longueur relevée")}.\n'
-                     f'     {points} points · départ sur la plus longue ligne droite. */\n'
+                     f'     {points} points · sens {ligne[6]} · départ sur la ligne droite des stands. */\n'
                      f'  {ligne[0]}: [\n' + '\n'.join(pts) + '\n  ],\n')
     for ligne in TABLE_SVG:
         if choisis and ligne[0] not in choisis:

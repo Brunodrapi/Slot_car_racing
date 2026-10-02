@@ -257,12 +257,59 @@ def longueur(geo):
     return sum(math.dist(xy[i], xy[i + 1]) for i in range(len(xy) - 1))
 
 
-def metres(pts):
-    """Lat/lon vers des metres plans. y vers le bas, comme sur un canvas."""
+def metres(pts, lat0=None):
+    """Lat/lon vers des metres plans. y vers le bas, comme sur un canvas.
+
+    `lat0` se passe explicitement quand on projette DEUX choses qui doivent rester comparables — la
+    piste et la voie des stands — sinon chacune prend sa propre latitude de reference et les deux ne
+    se superposent plus."""
     R = 6371000.0
-    lat0 = sum(p['lat'] for p in pts) / len(pts)
+    if lat0 is None:
+        lat0 = sum(p['lat'] for p in pts) / len(pts)
     c = math.cos(math.radians(lat0))
     return [(math.radians(p['lon']) * R * c, -math.radians(p['lat']) * R) for p in pts]
+
+
+def depart_aux_stands(r, stands, large=40.0):
+    """La ligne de depart, posee la ou la voie des stands longe la piste.
+
+    `depart_auto` prend la plus longue ligne droite, faute de mieux. C est juste a Monza, ou la plus
+    longue EST la ligne droite des stands, et faux a Spa, ou c est le Kemmel, et a Silverstone, ou
+    c est la Hangar Straight : la grille se posait au milieu du circuit, loin des stands.
+
+    La voie des stands, elle, ne longe qu un endroit. On mesure donc, station par station, la distance
+    a la voie la plus proche, on garde la plus longue portion ou elle reste sous `large` metres, et on
+    se place aux deux tiers de cette portion — pour laisser la grille derriere sans empieter sur le
+    freinage du premier virage."""
+    if not stands:
+        return None
+    n = len(r)
+    cases = {}
+    for p in stands:
+        cases.setdefault((int(p[0] // large), int(p[1] // large)), []).append(p)
+    def pres(p):
+        i, j = int(p[0] // large), int(p[1] // large)
+        for a in (i - 1, i, i + 1):
+            for b in (j - 1, j, j + 1):
+                for q in cases.get((a, b), ()):
+                    if math.dist(p, q) < large:
+                        return True
+        return False
+    longe = [pres(p) for p in r]
+    if not any(longe):
+        return None
+    best, deb, cur, bdeb = 0, 0, 0, 0
+    for k in range(2 * n):                       # deux tours, pour une portion a cheval sur la fin
+        i = k % n
+        if longe[i]:
+            if cur == 0:
+                deb = k
+            cur += 1
+            if cur > best:
+                best, bdeb = cur, deb
+        else:
+            cur = 0
+    return (bdeb + int(best * 2 / 3)) % n, best
 
 
 def main():
@@ -320,7 +367,8 @@ def main():
     for w in suite:
         print(f"    {w['id']:>11}  {(w.get('tags') or {}).get('name', '—')}")
 
-    xy = metres(pts)
+    lat0 = sum(p['lat'] for p in pts) / len(pts)
+    xy = metres(pts, lat0)
     L = tracer.perimetre(xy)
     off = o.get('longueur')
     msg = ''
@@ -333,13 +381,34 @@ def main():
 
     n = int(o.get('points', 600))
     r = tracer.reechantillonne(xy, n)
-    if (tracer.aire(r) < 0) != (o.get('sens', 'horaire') != 'horaire'):
+    # LE SENS DE COURSE est une donnee du circuit, pas une convention du jeu : Interlagos et Mount
+    # Panorama tournent a l envers des dix autres. Il est declare par `--sens`, et verifiable sur
+    # n importe quelle carte. Le test s appuyait avant sur le signe de `aire`, dont la description
+    # etait fausse : les douze circuits tournaient a l envers du vrai.
+    if tracer.sens_horaire(r) != (o.get('sens', 'horaire') == 'horaire'):
         r = r[::-1]
-        print('  boucle retournee pour tourner dans le bon sens')
-    j = tracer.depart_auto(r)
+        print(f"  boucle retournee pour tourner dans le sens {o.get('sens', 'horaire')}")
+    voie = []
+    rx = re.compile(o.get('stands', 'pit|box|stand'), re.I)
+    for w in tout:
+        t = w.get('tags') or {}
+        if t.get('highway') == 'raceway' and rx.search(t.get('name', '')):
+            voie += metres(w['geometry'], lat0)
+    pose = depart_aux_stands(r, voie)
+    if pose:
+        j, lg = pose
+        print(f'  depart pose aux deux tiers de la ligne droite des stands '
+              f'({lg} points le long de la voie, point {j})')
+    else:
+        j = tracer.depart_auto(r)
+        print(f'  pas de voie des stands lisible : depart sur la plus longue ligne droite (point {j})')
     r = r[j:] + r[:j]
-    print(f'  depart pose sur la plus longue ligne droite (point {j})')
 
+    # L ORIENTATION, mesuree et non choisie : un releve est au nord, une carte de circuit ne l est
+    # presque jamais, et on reconnait un circuit a sa silhouette posee comme on l a toujours vue.
+    # `tools/orientation.py` superpose le trace a la carte connue et rend l angle qui les fait
+    # coincider. Une rotation ne change rien a la course : longueurs et rayons sont les memes.
+    r = tracer.tourne(r, float(o.get('rotation', 0)))
     xs = [p[0] for p in r]; ys = [p[1] for p in r]
     cx, cy = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
     ech = 200 / max(max(xs) - min(xs), max(ys) - min(ys))
