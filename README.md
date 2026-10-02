@@ -1744,6 +1744,33 @@ chiffres.
 Rien ne comparait les modèles entre eux jusque-là, ce qui explique qu'une voiture bancale ait pu
 être livrée sans qu'on la voie.
 
+### Et rien ne les comparait aux vraies voitures
+
+Les multiplicateurs de `js/cars.js` ont été réglés pour l'équilibre entre voitures. Personne n'avait
+confronté le résultat à la voiture réelle, et ça se voit : la Mazda 787B plafonne à **257 km/h** dans
+le jeu, soit **0,73 fois** les 350 km/h de sa fiche, et elle n'est que **sixième des neuf** en vitesse
+de pointe — derrière une Countach et une Corvette. `node tools/fiches.js` met les deux colonnes côte
+à côte.
+
+**Ce n'est pas qu'une étiquette.** Mesuré : sur le plus long tracé du jeu, chaque voiture atteint
+**98 à 99 %** de sa vitesse déclarée. `vmax` est donc une contrainte qui mord à chaque tour, et la
+corriger change la course, pas seulement la fiche.
+
+**Et c'est là que les deux objectifs se heurtent.** Tout en haut de cette section : « une différence
+de caractère est un choix offert au joueur ; cinq secondes au tour n'en est pas un, c'est un piège ».
+Les neuf voitures tiennent dans 3,9 % au tour parce qu'on l'a voulu. Leurs vitesses de pointe
+s'étalent sur 12,6 % quand la réalité en demande bien davantage — un prototype du Mans contre une
+berline de tourisme des années soixante-dix. Donner à chacune sa vraie pointe, c'est renoncer au
+plateau équilibré ; garder le plateau, c'est afficher des chiffres qui ne sont pas ceux des voitures.
+C'est un choix de jeu, pas un réglage, et il appartient à Bruno.
+
+**Une valeur sans source n'est pas une valeur.** `tools/fiches.json` porte, pour chaque voiture, le
+chiffre, sa source et la configuration à laquelle il correspond — un prototype du Mans a une boîte
+courte et une longue, et sa pointe n'est pas la même. Ce qui n'est pas rempli s'affiche comme non
+vérifié plutôt que de se fondre dans le tableau. Au moment d'écrire, une seule ligne sur neuf est
+renseignée : Wikimedia limite le débit depuis cette machine, et inventer les huit autres de mémoire
+pour les présenter comme vérifiées serait exactement le contraire du travail demandé.
+
 ## Les cinq difficultés
 
 Elles tenaient entre 0,78 et 0,90 de la vitesse de passage que l'adhérence autorise, ce qui mettait
@@ -2427,6 +2454,7 @@ NODE_PATH=$(npm root -g) node tools/e2e-livree.js [dossier]                     
 python3 tools/calibre.py <fichier.png...> [--largeur=420]                         # une illustration deja detouree, ramenee a la taille affichee
 python3 tools/prises.py <fichier.wav...> [--bits=16] [--essai]                    # les prises de moteur, du flottant 32 bits a l'entier 16
 python3 tools/tracer.py <carte.svg> [--points=180] [--index=0] [--depart=x,y]     # un chemin SVG vers la liste de points d'un circuit
+node tools/fiches.js                                                             # les vitesses du jeu face aux vraies, et l'ordre du plateau
 ```
 
 `tools/line.js` mesure une trajectoire sans faire intervenir de pilote : sa longueur, son rayon

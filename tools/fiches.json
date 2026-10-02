@@ -1,0 +1,20 @@
+{
+  "_note": "Les caracteristiques REELLES des voitures, face a celles du jeu. Chaque valeur porte sa source ; une valeur sans source n'en est pas une. Rempli au fur et a mesure : `null` veut dire « pas encore verifie », et l'outil le dit au lieu de le cacher.",
+  "_attention": "Une vitesse de pointe depend de la configuration : un prototype du Mans a deux boites, une courte pour les circuits sinueux et une longue pour les Hunaudieres. Noter laquelle.",
+  "voitures": {
+    "787b": {
+      "nom": "Mazda 787B",
+      "vmax_kmh": 350,
+      "source": "fr.wikipedia.org/wiki/Mazda_787B — rapporte par Bruno, non revalide (Wikimedia limite cette IP)",
+      "config": "a preciser : configuration Le Mans 1991 ?"
+    },
+    "m1procar": { "nom": "BMW M1 Procar", "vmax_kmh": null, "source": null, "config": null },
+    "f40": { "nom": "Ferrari F40", "vmax_kmh": null, "source": null, "config": null },
+    "countach": { "nom": "Lamborghini Countach LP500", "vmax_kmh": null, "source": null, "config": null },
+    "930": { "nom": "Porsche 911 Turbo", "vmax_kmh": null, "source": null, "config": null },
+    "gt40": { "nom": "Ford GT40 Mk II", "vmax_kmh": null, "source": null, "config": null },
+    "935": { "nom": "Porsche 935", "vmax_kmh": null, "source": null, "config": null },
+    "corvette": { "nom": "Chevrolet Corvette", "vmax_kmh": null, "source": null, "config": null },
+    "csl": { "nom": "BMW 3.0 CSL", "vmax_kmh": null, "source": null, "config": null }
+  }
+}
