@@ -2513,12 +2513,37 @@ juste et des rayons faux : la carte dessinait les quatre virages de la Variante 
 entrée, deux apex, sortie — avec **une seule courbe de Bézier**, dont le point le plus serré revenait
 à 12 m de rayon sur le vrai circuit. L'outil reste dans le dépôt : il sert là où rien n'est relevé.
 
-**OpenStreetMap est un RELEVÉ.** `tools/releve.py` interroge Overpass, enchaîne les voies du circuit
-bout à bout — à Monza, vingt voies nommées d'après leurs virages — et produit le même bloc `pts:`. Il
-se vérifie seul : la boucle doit se refermer, et sa longueur tomber sur la longueur officielle.
-**5 790 m relevés contre 5 793 m annoncés**, trois mètres sur six kilomètres ; l'outil affiche les
-deux et refuse de continuer sur une boucle ouverte. Le même Rettifilo y fait 24 m de rayon, le double
-de ce que le schéma donnait.
+**OpenStreetMap est un RELEVÉ.** `tools/releve.py` lit l'API d'OpenStreetMap, enchaîne les voies du
+circuit bout à bout et produit le même bloc `pts:`. Il se vérifie seul : la boucle doit se refermer,
+et sa longueur tomber sur la longueur officielle. **5 794 m relevés contre 5 793 m annoncés** à
+Monza ; l'outil affiche les deux et refuse une boucle ouverte ou un écart de plus de 2 %. Le même
+Rettifilo y fait 24 m de rayon, le double de ce que le schéma donnait. `tools/traces.py` porte la
+table des onze circuits relevés et refabrique `js/traces.js` d'un coup.
+
+Trois choses ont dû être apprises, chacune après un échec :
+
+**La relation plutôt que les voies.** On cherchait d'abord les voies une à une, par leur étiquette
+`highway=raceway`, puis par leur nom de rue pour les circuits en ville. Cela demandait de deviner
+d'avance le nom OSM de chaque portion — et à Mount Panorama, une version de l'outil qui prenait seule
+la première voie repartant du bon point a pris Hinton Road et s'est perdue en ville. OpenStreetMap a
+déjà groupé le tour dans une relation `type=circuit` : « Circuit de Monaco » porte ses 42 voies, et
+« Nürburgring Grand Prix Strecke » dit lequel des quatre tracés imbriqués on veut.
+
+**Les embranchements s'essaient, ils ne se devinent pas.** Un circuit porte presque toujours
+plusieurs tracés : Silverstone en a trois, Spa a sa boucle moto, le Nürburgring quatre. À chaque
+fourche, l'outil explore les deux branches, garde les boucles fermées et rend celle dont la longueur
+tombe le plus près de l'officielle. C'est la longueur annoncée qui tranche, pas un jugement sur un
+nom de virage allemand.
+
+**Overpass ne répond pas, l'API si.** La première version passait par Overpass, la façon habituelle
+d'extraire une sélection. Sur onze circuits d'affilée, aucune des trois instances publiques n'a
+répondu : délais dépassés, 504, connexions coupées. L'API de base rend 5 Mo en deux secondes ; elle
+ne sait pas filtrer, mais elle ne tombe pas, et elle refuse au-delà de 50 000 nœuds — l'outil coupe
+alors la boîte en quatre et recolle, ce dont Interlagos et Monaco ont besoin.
+
+**Le Mans manque à l'appel.** Le Circuit de la Sarthe emprunte la D338 sur les six kilomètres des
+Hunaudières, et cette route n'est ni balisée circuit ni nommée ; seul le Circuit Bugatti, qui tient
+dans l'enceinte, a une relation. Le Mans garde donc son tracé dessiné à la main.
 
 **Le passage par l'image a été essayé d'abord, et abandonné.** Masque de couleur, fermeture
 morphologique, amincissement de Zhang-Suen, marche sur le squelette : chaque étape a ses réglages, et
@@ -2559,11 +2584,18 @@ un flot de raccourcissement de courbe pondéré par le dépassement, arrêté d�
 satisfaite. Il rogne l'apex et ne touche à rien d'autre. **Neuf circuits sur douze ne bougent pas
 d'un millimètre**, leurs virages étant déjà plus larges que leur route ; les trois autres :
 
-| circuit | rayon le plus court, avant → après | déplacement maximal |
+Sur les tracés relevés, qui rapportent les vrais rayons, il intervient sur onze circuits — et le
+rayon minimal de chacun remonte juste au-dessus de ce que sa route autorise :
+
+| circuit | rayon le plus court | demi-largeur |
 |---|---|---|
-| Monza | 6,5 → 9,4 m | 2,5 m |
-| Nürburgring GP | 5,4 → 9,0 m | 5,6 m |
-| Le Mans | 6,8 → 9,2 m | 2,3 m |
+| Monza | 9,2 m | 7,5 m |
+| Spa-Francorchamps | 8,0 m | 7,0 m |
+| Monaco | 7,2 m | 5,5 m |
+| Zandvoort | 8,7 m | 6,5 m |
+| Red Bull Ring | 9,0 m | 7,5 m |
+
+Aucun des douze circuits n'a plus un seul mètre de bord replié.
 
 ### Ce que Monza a coûté
 

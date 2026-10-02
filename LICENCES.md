@@ -26,9 +26,30 @@ dans `js/engine-audio.js`. Les prises de moteur en viennent également.
 Les suites de points de `js/traces.js` sont relevées dans **OpenStreetMap**. **Ce fichier, et lui
 seul, porte cette licence.**
 
-| circuit | relevé | licence |
+Onze circuits sur douze y sont relevés. Chacun vient d'une relation « type=circuit » d'OpenStreetMap,
+qui est la liste officielle des voies formant le tour ; Laguna Seca n'en a pas et se lit par la seule
+étiquette `highway=raceway`. L'écart à la longueur officielle du circuit est ce qui atteste le relevé :
+
+| circuit | relevé dans OpenStreetMap | longueur relevée / officielle |
 |---|---|---|
-| Monza | [Autodromo Nazionale Monza](https://www.openstreetmap.org/#map=15/45.6215/9.2870), 20 voies enchaînées | © les contributeurs d'OpenStreetMap, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/) |
+| Monza | Autodromo Nazionale di Monza | 5 794 / 5 793 m |
+| Spa-Francorchamps | Circuit de Spa Francorchamps | 6 995 / 7 004 m |
+| Monaco | Circuit de Monaco | 3 338 / 3 337 m |
+| Silverstone | Silverstone Grand Prix | 5 881 / 5 891 m |
+| Suzuka | 鈴鹿サーキット | 5 807 / 5 807 m |
+| Interlagos | Autódromo José Carlos Pace | 4 308 / 4 309 m |
+| Laguna Seca | `highway=raceway` | 3 601 / 3 602 m |
+| Nürburgring GP | Nürburgring Grand Prix Strecke | 5 116 / 5 148 m |
+| Mount Panorama | Mount Panorama Circuit | 6 197 / 6 213 m |
+| Red Bull Ring | Red Bull Ring | 4 300 / 4 318 m |
+| Zandvoort | Grand Prix Formule 1 van Nederland | 4 253 / 4 259 m |
+
+© les contributeurs d'OpenStreetMap, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/).
+
+**Le Mans n'est pas dans ce tableau** : son tracé reste dessiné à la main, et n'est donc l'œuvre de
+personne d'autre. Le Circuit de la Sarthe emprunte la D338 sur les six kilomètres des Hunaudières, une
+route qui n'est ni balisée circuit ni nommée dans OpenStreetMap ; seul le Circuit Bugatti, qui tient
+dans l'enceinte, y a une relation.
 
 ### Ce que cette licence exige
 
