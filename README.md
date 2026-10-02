@@ -1517,6 +1517,53 @@ quoi il apparaîtrait en travers de la route à chaque raccord.
 mesure rien. Il ne regarde pas la moyenne mais la queue de la distribution : soixante images à
 16 ms et une à 200 ms font encore 55 im/s de moyenne, et pourtant ça se voit.
 
+**Les chiffres ci-dessus ne se comparent qu'entre eux.** Ils viennent d'une machine, un jour donné ;
+la même mesure rejouée ailleurs donne 23 im/s à bridage égal, pour un code identique — vérifié en
+rejouant le banc sur une version antérieure, qui rend le même chiffre. Un écart entre deux versions
+ne veut donc rien dire s'il n'a pas été mesuré **dos à dos, dans la même session**.
+
+### Le retrait de l'isométrique fait-il gagner des images par seconde ? Non
+
+La question méritait d'être posée et il a fallu la mesurer plutôt que d'y répondre d'instinct. Trois
+versions passées au banc dos à dos, processeur bridé quatre fois :
+
+| | durée d'image médiane |
+|---|---|
+| avant le retrait (deux essais) | 36,1 et 36,3 ms |
+| après le retrait (deux essais) | 36,0 et 37,8 ms |
+
+**L'écart entre deux essais de la même version est plus grand que l'écart entre les versions.** C'est
+attendu : le code retiré ne s'exécutait jamais en vue de dessus. On ne gagne pas ce qu'on ne dépensait
+pas.
+
+Ce qui change est ailleurs, et `tools/reseau.js` le mesure — les octets qu'une course télécharge, et
+le temps que le joueur attend devant, à débit bridé comme sur un téléphone :
+
+| | avant | après |
+|---|---|---|
+| téléchargé pour une course | 10 404 ko | **9 877 ko** |
+| dont décor en trois quarts | 550 ko | — |
+| barrière de chargement | 7,4 s | 6,5 s |
+| du lancement au feu vert | 15,7 s | **15,7 s** |
+
+Cinq pour cent de moins, et pourtant **le joueur attend exactement aussi longtemps**. La bande
+passante libérée est reprise par ce qui bloquait déjà : les prises de moteur. La barrière raccourcit,
+le total ne bouge pas.
+
+**Où est vraiment le poids**, pour une course de dix voitures :
+
+| | |
+|---|---|
+| prises de moteur d'UNE voiture | 5 870 ko (59 %) |
+| affiche, fonds de carte, halle des stands | 2 476 ko |
+| voitures vues de dessus | 1 013 ko |
+| code et feuilles de style | 512 ko |
+
+Les quatre prises du jeu `procar` sont des WAV bruts et pèsent à elles seules plus que tout le reste.
+Et `art/Pitstop.png` fait 1 116 ko pour 1310 px de large, alors que la halle est dessinée entre 185 et
+312 px sur un téléphone — mesuré, pas supposé. Ce sont les deux seules pistes qui vaudraient le
+détour ; le reste est déjà calibré.
+
 ### L'invité ne saute plus
 
 Dans une course en ligne, l'hôte simule et publie l'état trente fois par seconde ; l'invité ne
@@ -2323,6 +2370,7 @@ NODE_PATH=$(npm root -g) node tools/e2e-charge.js                               
 NODE_PATH=$(npm root -g) node tools/e2e-charge-solo.js                            # la même en solo : vignettes, son, sortie, message à l'écran
 NODE_PATH=$(npm root -g) node tools/calques.js [voiture] [--bride=4]              # ce que coûte chaque couche dessinée sous une voiture
 NODE_PATH=$(npm root -g) node tools/perf.js [voiture] [secondes] [--bride=4]      # images par seconde en course, et la queue de la distribution
+NODE_PATH=$(npm root -g) node tools/reseau.js [--racine=.] [--debit=4] [--rtt=60] # ce qu'une course telecharge, et le temps jusqu'au feu vert
 NODE_PATH=$(npm root -g) node tools/e2e-son-relance.js                            # le son survit-il a une deuxieme course ?
 node tools/sortie.js                                                              # vibreur, tour annule, penalite : les trois etages de la regle
 node tools/coupe.js [--fenetre=400]                                               # ce qu'une coupe peut rapporter, au plus
