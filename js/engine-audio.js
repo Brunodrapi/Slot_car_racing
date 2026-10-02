@@ -388,9 +388,24 @@ class EASampler {
     ramenait le tout ; chez nous ils arrivaient tels quels sur le compresseur et saturaient. On ne
     touche donc pas à son équilibre, on ne descend que la sortie du jeu entier. */
     this.niveau = niveau;
-    for (const cle of Object.keys(defs)) {
+    /* LES CINQ PRISES DESCENDENT ENSEMBLE, et non l'une après l'autre.
+
+    La boucle attendait chaque fichier avant de demander le suivant : cinq transferts en série, cinq
+    allers-retours en série, et sur un lien lent les derniers n'arrivaient jamais avant que la course
+    ne parte sans eux. Ce sont trois à quatre mégaoctets qui bloquent le départ — c'est le plus gros
+    poste de tout ce que le jeu télécharge, et il était le seul à ne pas profiter du parallélisme que
+    le navigateur offre gratuitement.
+
+    Les voix ne sont branchées qu'UNE FOIS TOUT ARRIVÉ. Les brancher au fil de l'eau ferait entrer le
+    moteur voix par voix — une tenue basse seule pendant deux secondes, puis la haute par-dessus —
+    ce qui s'entend bien plus qu'un démarrage un peu plus tard. */
+    const cles = Object.keys(defs);
+    const arrives = await Promise.all(cles.map(async (cle) => {
       const d = defs[cle];
       const buf = await this.ctx.decodeAudioData(await (await fetch(encodeURI(base + d.source))).arrayBuffer());
+      return { cle, d, buf };
+    }));
+    for (const { cle, d, buf } of arrives) {
       const src = this.ctx.createBufferSource();
       src.buffer = buf;
       src.loop = true;

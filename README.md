@@ -1561,8 +1561,50 @@ le total ne bouge pas.
 
 Les quatre prises du jeu `procar` sont des WAV bruts et pèsent à elles seules plus que tout le reste.
 Et `art/Pitstop.png` fait 1 116 ko pour 1310 px de large, alors que la halle est dessinée entre 185 et
-312 px sur un téléphone — mesuré, pas supposé. Ce sont les deux seules pistes qui vaudraient le
-détour ; le reste est déjà calibré.
+312 px sur un téléphone — mesuré, pas supposé.
+
+### Six mégaoctets de moins, sans toucher à un son
+
+Trois choses, dont aucune n'est un compromis sur la qualité.
+
+**La halle des stands**, ramenée à 880 px — la taille maximale à laquelle elle est dessinée, mesurée
+sur la caméra réelle : 185 à 312 px sur un téléphone, 389 à 858 px sur un écran de bureau au zoom le
+plus serré. 1 116 → 463 ko. Le rapport de la halle (`PROF = LARGE * 287 / 880`) suit le fichier :
+laissé à 429/1310, il aurait étiré le dessin de quelques pour cent sans que rien ne le signale.
+
+**Les prises de moteur étaient en VIRGULE FLOTTANTE 32 bits.** Quatre octets par échantillon et par
+canal, le format d'un atelier de montage — une dynamique de 1500 dB dont aucune n'est utilisée, les
+pics mesurés tenant entre 0,17 et 0,87. En entier 16 bits c'est deux fois moins lourd pour 96 dB de
+dynamique, et `tools/prises.py` mesure ce que la requantification coûte : **le bruit reste 75 à 89 dB
+sous le signal**. 15,9 → 7,9 Mo sur l'ensemble des jeux de prises.
+
+**Et pourquoi pas du MP3**, puisque la question s'est posée. Ces prises bouclent en permanence, bout
+à bout, et un encodeur MP3 ajoute un délai au début et un remplissage à la fin : le raccord n'est
+plus au bon échantillon, et un moteur à 6000 tours repasse par ce raccord plusieurs fois par seconde.
+Le 16 bits ne touche à rien de tout cela — pas de codec, pas de délai, les boucles se raccordent au
+même échantillon qu'avant. Si un jour il faut aller plus loin, c'est Opus qu'il faudra regarder, et
+en mesurant la couture.
+
+**Les cinq prises descendaient l'une après l'autre.** `EASampler.charge` attendait chaque fichier
+avant de demander le suivant : cinq transferts en série pour le plus gros poste du jeu, le seul à ne
+pas profiter du parallélisme que le navigateur offre gratuitement. À 1,5 Mbit/s, les derniers
+n'arrivaient tout simplement jamais avant que la course ne parte sans eux — le banc ne voyait
+descendre que 1 269 ko de son sur 2 958. Elles partent ensemble, et les voix ne sont branchées
+qu'une fois tout arrivé : les brancher au fil de l'eau ferait entrer le moteur voix par voix, ce qui
+s'entend bien plus qu'un démarrage un peu plus tard.
+
+| à 4 Mbit/s, même banc | téléchargé | jusqu'au feu vert |
+|---|---|---|
+| avant le retrait de l'isométrique | 10 404 ko | 15,7 s |
+| après le retrait | 9 877 ko | 15,7 s |
+| **après la halle, le 16 bits et le parallèle** | **6 308 ko** | **13,9 s** |
+
+**Le banc a menti une fois de plus, et toujours dans le sens qui arrange.** Son silence se mesurait
+au nombre de requêtes parties : deux secondes sans nouvelle requête, et il comptait. Sur un lien lent
+c'est faux — un fichier d'un mégaoctet met cinq secondes à descendre en 1,5 Mbit/s, pendant
+lesquelles aucune requête nouvelle ne part. Il concluait au silence au milieu du téléchargement et
+annonçait un jeu d'autant plus léger que le réseau est mauvais. Il suit maintenant les requêtes **en
+cours**, pas seulement leur nombre.
 
 ### L'invité ne saute plus
 
@@ -2376,6 +2418,7 @@ node tools/sortie.js                                                            
 node tools/coupe.js [--fenetre=400]                                               # ce qu'une coupe peut rapporter, au plus
 NODE_PATH=$(npm root -g) node tools/e2e-livree.js [dossier]                       # plusieurs livrees par voiture : le clic, la memoire, le fichier charge
 python3 tools/calibre.py <fichier.png...> [--largeur=420]                         # une illustration deja detouree, ramenee a la taille affichee
+python3 tools/prises.py <fichier.wav...> [--bits=16] [--essai]                    # les prises de moteur, du flottant 32 bits a l'entier 16
 ```
 
 `tools/line.js` mesure une trajectoire sans faire intervenir de pilote : sa longueur, son rayon

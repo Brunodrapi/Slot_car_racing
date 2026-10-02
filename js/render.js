@@ -598,7 +598,13 @@ class Renderer {
       lui qu'on regarde au lieu de la piste. Réduit à seize mètres pour quatre boxes — quatre
       mètres chacun — il redevient du décor. */
       const garages = [];
-      const LARGE = 16, PROF = LARGE * 429 / 1310;
+      /* La profondeur suit les PROPORTIONS DU FICHIER, et les deux doivent rester d'accord.
+
+      Le rapport était celui de l'image d'origine, 429 sur 1310. Elle a été recalibrée — elle faisait
+      1,1 Mo pour une halle dessinée entre 185 et 312 px sur un téléphone — et les deux nombres
+      seraient restés là, à décrire un fichier qui n'existe plus : la halle se serait étirée de
+      quelques pour cent sans que rien ne le signale. */
+      const LARGE = 16, PROF = LARGE * 287 / 880;   // art/Pitstop.png fait 880 × 287
       for (const dec of [-LARGE, 0, LARGE]) {
         const s = track.wrap(p.boite + dec);
         const z = track.pitAt(s);

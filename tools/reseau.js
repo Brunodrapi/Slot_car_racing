@@ -44,8 +44,15 @@ const famille = (u) => (FAMILLES.find(([re]) => re.test(u)) || [null, 'autre'])[
 
 (async () => {
   const octets = new Map();
-  let nRequetes = 0;
-  const tailleVue = () => nRequetes;
+  /* On suit les requêtes EN COURS, pas seulement leur nombre.
+
+  Le silence se mesurait au nombre de requêtes parties : deux secondes sans nouvelle requête, et on
+  comptait. Sur un lien lent c'est faux, et faux dans le sens qui arrange — un fichier d'un mégaoctet
+  met cinq secondes à descendre en 1,5 Mbit/s, pendant lesquelles aucune requête NOUVELLE ne part. Le
+  banc concluait au silence au milieu du téléchargement et annonçait 4 618 ko là où il en passe
+  6 307, c'est-à-dire un jeu d'autant plus léger que le réseau est mauvais. */
+  let nRequetes = 0, enCours = 0;
+  const tailleVue = () => `${nRequetes}/${enCours}`;
   const serveur = http.createServer((req, res) => {
     const url = decodeURIComponent(req.url.split('?')[0]);
     const f = path.join(RACINE, url);
@@ -53,7 +60,8 @@ const famille = (u) => (FAMILLES.find(([re]) => re.test(u)) || [null, 'autre'])[
     const n = fs.statSync(f).size;
     const k = famille(url);
     octets.set(k, (octets.get(k) || 0) + n);
-    nRequetes++;
+    nRequetes++; enCours++;
+    res.on('close', () => { enCours--; });
     res.writeHead(200, { 'Content-Type': TYPES[path.extname(f)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
     fs.createReadStream(f).pipe(res);
   });
@@ -100,10 +108,11 @@ const famille = (u) => (FAMILLES.find(([re]) => re.test(u)) || [null, 'autre'])[
   version qui démarre plus tôt en téléchargeait donc moins, ce qui la faisait paraître plus légère
   alors que c'est l'inverse qu'on voulait montrer. On attend deux secondes sans une seule requête. */
   let dernier = Date.now(), vu = tailleVue();
-  while (Date.now() - dernier < 2000) {
+  while (Date.now() - dernier < 2000 || enCours > 0) {
     await page.waitForTimeout(200);
     const n = tailleVue();
     if (n !== vu) { vu = n; dernier = Date.now(); }
+    if (Date.now() - dernier > 60000) break;       // un fichier qui ne finira jamais
   }
 
   const tot = [...octets.values()].reduce((a, b) => a + b, 0);
