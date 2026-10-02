@@ -1249,11 +1249,12 @@ restent dans la sauvegarde sans plus s'afficher ; rien n'est effacé, rien n'est
 
 Trois conséquences, toutes traitées, et dont deux ne se voient pas à l'écran.
 
-**Les planchers du serveur.** Il n'y en avait aucun pour `935`, et la fonction serveur refuse un
-couple qu'elle ne connaît pas — volontairement, puisqu'accepter par défaut ouvrirait la porte à un
-identifiant inventé. Sans régénération, **tout temps en 935 aurait été rejeté**. `planchers.sql`
-porte en plus un `delete` pour les voitures disparues : un `insert ... on conflict` n'enlève rien,
-et les douze planchers de la 917 K seraient restés en base pour toujours.
+**Les planchers du serveur**, à l'époque où il y en avait un par couple. Il n'y en avait aucun pour
+`935`, et la fonction serveur refusait un couple qu'elle ne connaissait pas — volontairement, puisque
+accepter par défaut ouvrait la porte à un identifiant inventé. Sans régénération, **tout temps en 935
+aurait été rejeté**, sans que rien ne le signale. C'est l'une des raisons pour lesquelles le plancher
+est devenu une constante : il reste une liste d'identifiants à tenir à jour, mais plus de mesure à
+refaire, et une liste oubliée se voit à la lecture du fichier.
 
 **Le classement de difficulté est RELATIF**, donc l'arrivée d'une voiture le déplace tout entier.
 `tools/difficulte.js` place la 935 en tête (score 0,93, la plus dure du plateau), ce qui repousse la
@@ -2104,50 +2105,59 @@ attribuerait des records au hasard.
 La lecture, elle, est ouverte à tous, comptes et anonymes : un tableau qu'il faut mériter de voir
 ne sert à rien, c'est ce qu'on regarde avant de jouer.
 
-### Le plancher, mesuré et non deviné
+### Le plancher : trente secondes, et un banc qui le vérifie
 
-### Le banc des planchers rendait un résultat différent à chaque exécution
+Le serveur refuse tout temps sous **trente secondes**, pour tous les circuits et toutes les voitures.
+Un seul nombre, dans `supabase/functions/record/index.ts`.
 
-Le pilote automatique part avec un décalage tiré au hasard et porte un bruit de conduite : deux
-exécutions du même code ne donnaient pas le même fichier. Mesuré sur les 108 couples, l'écart entre
-deux exécutions vaut **0,34 % en médiane et monte à 7,4 %** — sur une marge de 15 %, c'est la moitié
-de la marge mangée par le hasard. Un plancher tiré d'une exécution malheureuse est trop haut, et un
-plancher trop haut **refuse un tour légitime**, ce que ce fichier existe précisément pour éviter.
+Il y avait avant une table de 108 minimums, un par couple circuit/voiture, chacun mesuré par un banc
+qui rejouait le couple trois fois. C'était plus juste, et ça coûtait vingt-cinq minutes de calcul
+après tout changement de tracé, de physique ou de voiture, plus une ligne à ne pas oublier à chaque
+voiture ajoutée — un oubli qui s'est déjà produit, et **tout temps en 935 était rejeté** sans que
+rien ne le signale.
 
-Trois corrections. Le hasard est **reproductible** : une graine fixe, affichée en tête de sortie, et
-qu'on peut changer pour vérifier qu'un résultat n'en dépend pas. Chaque couple est joué **trois
-fois**, dont on garde le meilleur tour : le plancher doit passer sous tout ce qui est atteignable,
-pas sous ce qu'on a observé un jour donné.
+**Ce qu'on y gagne et ce qu'on y perd, dit franchement.** Le tour le plus rapide que la physique
+autorise, sur le plus favorable des 108 couples, est de 55,8 s — au Red Bull Ring en 787B. Trente
+secondes passent donc sous tout ce qui est atteignable avec 86 % de marge, et ne refuseront jamais un
+tour réel, qui est le seul défaut qu'un plancher ne doit pas avoir. En échange, un plancher au plus
+juste refusait un temps inventé de 60 s ; celui-ci le laisse passer. Il arrête les valeurs absurdes,
+pas les valeurs plausibles.
 
-Et chaque couple repart de **sa propre graine**, dérivée du nom du circuit et de celui de la voiture.
-Un flux de hasard unique pour les 108 mesures les rendait solidaires : relever Monza décalait le
-tirage de tous les circuits joués ensuite, et **106 lignes sur 108 changeaient** alors que neuf
-circuits sur douze n'avaient pas bougé d'un millimètre. Un fichier qui change partout ne dit rien sur
-ce qui a changé. Regrainé par couple, un plancher ne dépend que de son circuit et de sa voiture, et la
-différence entre deux versions se lit directement.
+**`tools/plancher.js` reste, et vérifie cette phrase.** Il mesure les 108 couples et dit de combien
+le plus rapide passe au-dessus de la constante ; il sort en erreur si la marge disparaît. Deux bornes
+par couple, on garde la plus haute : la **borne physique** (longueur / vitesse de pointe) est
+incontestable mais large, la **borne mesurée** est le meilleur tour de l'IA en « cauchemar » — qui
+triche déjà de 30 % d'adhérence — moins 15 %.
+
+La liste des identifiants de circuit et de voiture reste, elle, dans la fonction serveur. La table
+des planchers en tenait lieu : un couple absent était refusé. Sans elle, n'importe quelle chaîne de
+quarante caractères minuscules serait devenue un circuit, et le tableau mondial se serait rempli de
+lignes qu'aucun écran n'affiche.
+
+#### Ce que le banc avait appris en route, et qui reste vrai
+
+**Il rendait un résultat différent à chaque exécution.** Le pilote automatique part avec un décalage
+tiré au hasard et porte un bruit de conduite : l'écart entre deux exécutions valait **0,34 % en
+médiane et montait à 7,4 %**. Le hasard est donc reproductible — graine fixe, affichée en tête de
+sortie — et chaque couple est joué trois fois, dont on garde le meilleur tour.
+
+**Chaque couple repart de sa propre graine**, dérivée du nom du circuit et de celui de la voiture. Un
+flux unique pour les 108 mesures les rendait solidaires : relever Monza décalait le tirage de tous les
+circuits joués ensuite, et **106 lignes sur 108 changeaient** alors que neuf circuits n'avaient pas
+bougé d'un millimètre. Regrainé par couple, le relevé du Mans n'a fait bouger que les neuf lignes du
+Mans — ce qui se lit directement.
 
 **Ce défaut était resté invisible parce que la vérification ne vérifiait rien.** Pour contrôler que
 les planchers n'avaient pas bougé, je comparais les lignes commençant par `(` — alors qu'elles
-commencent par deux espaces puis `(`. Le filtre ne retenait donc aucune ligne, et la comparaison de
-deux listes vides concluait « aucune différence ». Deux fois de suite, dans la même session, j'ai
-annoncé des planchers inchangés sur la foi d'un `grep` qui ne lisait rien.
+commencent par deux espaces puis `(`. Le filtre ne retenait aucune ligne, et la comparaison de deux
+listes vides concluait « aucune différence ». Deux fois de suite, dans la même session, j'ai annoncé
+des planchers inchangés sur la foi d'un `grep` qui ne lisait rien.
 
-`tools/plancher.js` produit `supabase/planchers.sql`. Un plancher inventé est soit trop haut — et
-il refuse les tours d'un très bon joueur, ce qui est pire que de laisser passer un tricheur — soit
-trop bas, et il n'arrête rien. Aucun des deux ne se voit avant que quelqu'un s'en plaigne.
-
-Deux bornes, on garde la plus haute. La **borne physique** (longueur / vitesse de pointe) est
-incontestable et ne peut jamais refuser un tour réel, mais elle est large : sur un tracé sinueux
-elle vaut la moitié d'un vrai tour. La **borne mesurée** est le meilleur tour de l'IA en
-« cauchemar » — qui triche déjà de 30 % d'adhérence — moins 15 %. Sur les 108 couples, c'est
-toujours la mesurée qui l'emporte : la borne physique ne sert que de filet.
-
-**Le banc a d'abord regardé douze circuits sans qu'une voiture démarre.** `playerAI` ne fait
-choisir à la machine que la LIGNE : la voiture du joueur prend toujours son accélérateur de
-l'entrée. Les 108 planchers sont donc tombés sur la borne physique — et le banc les a écrits comme
-si de rien n'était. Un fichier de planchers tous physiques a l'air d'un fichier de planchers, il
-s'applique sans broncher, et il n'arrête aucun tricheur. Le banc calcule maintenant `aiThrottle`
-lui-même, comme les autres bancs du dossier, et **refuse d'écrire** si un seul couple n'a pas bouclé.
+**Le banc a d'abord regardé douze circuits sans qu'une voiture démarre.** `playerAI` ne fait choisir à
+la machine que la LIGNE : la voiture du joueur prend toujours son accélérateur de l'entrée. Les 108
+planchers sont donc tombés sur la borne physique — et le banc les a écrits comme si de rien n'était.
+Il calcule maintenant `aiThrottle` lui-même, et **refuse de conclure** si un seul couple n'a pas
+bouclé.
 
 ### Une consigne sans porte
 

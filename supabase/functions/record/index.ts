@@ -16,10 +16,12 @@ Elle vérifie quatre choses, dans cet ordre, du moins cher au plus cher :
      joueur n'ira pas plus loin.
   2. LA FORME. Circuit, voiture, temps : des chaînes courtes et un nombre fini positif. Un champ
      absurde est refusé avant d'avoir coûté une requête.
-  3. LE PLANCHER. Le temps doit être au-dessus du meilleur tour physiquement possible sur ce
-     couple circuit/voiture, mesuré par `tools/plancher.js`. C'est ce qui arrête les valeurs
-     inventées. Ça n'arrête pas un joueur patient qui joue vraiment bien — rien ne le peut depuis
-     un serveur qui ne voit que le résultat — mais ça garde le tableau lisible.
+  3. LE PLANCHER. Trente secondes, pour tous les circuits et toutes les voitures. Le tour le plus
+     rapide que la physique autorise est de 55,6 s, sur le couple le plus favorable des cent huit :
+     trente secondes passent donc largement sous tout ce qui est atteignable, et ne refuseront
+     jamais un tour réel. Ça n'arrête pas un joueur patient qui joue vraiment bien — rien ne le
+     peut depuis un serveur qui ne voit que le résultat — mais ça arrête les valeurs inventées, et
+     ça garde le tableau lisible.
   4. LA CADENCE. Un compte ne peut pas proposer plus d'un temps toutes les quinze secondes. Un
      tour dure au moins une minute ; qui en propose quatre par minute ne roule pas.
 
@@ -36,6 +38,32 @@ const CORS = {
 };
 const NOM = /^[A-Za-z0-9]{2,14}$/;
 const CLE = /^[a-z0-9_-]{1,40}$/;        // identifiants de circuit et de voiture
+
+/* LE PLANCHER, EN UN SEUL NOMBRE.
+
+Il y avait une table de cent huit minimums, un par couple circuit/voiture, mesurés par un banc qui
+rejouait chaque couple trois fois — vingt-cinq minutes de calcul à refaire après tout changement de
+tracé, de physique ou de voiture, et une ligne à ne pas oublier à chaque voiture ajoutée.
+
+Un seul nombre fait le même travail pour ce qu'on lui demande. Le tour le plus rapide que la
+physique autorise, sur le plus favorable des cent huit couples, est de 55,6 s. Trente secondes
+passent donc sous TOUT ce qui est atteignable, avec une marge de 46 %, et ne refuseront jamais un
+tour réel — ce qui est le seul défaut qu'un plancher ne doit pas avoir. Ce qu'on y perd est réel et
+assumé : un plancher au plus juste refusait un temps inventé de 60 s, celui-ci le laisse passer.
+Il arrête les valeurs absurdes, pas les valeurs plausibles.
+
+`tools/plancher.js` reste, et sert maintenant à vérifier cette phrase : il mesure les cent huit
+couples et dit de combien le plus rapide passe au-dessus. */
+const PLANCHER_S = 30;
+
+/* La table des planchers servait aussi de liste blanche : un couple absent était refusé. En la
+retirant, n'importe quelle chaîne de quarante caractères minuscules serait devenue un circuit, et le
+tableau mondial se serait rempli de lignes qu'aucun écran n'affiche. On garde donc la liste, qui ne
+demande aucune mesure — juste de penser à y ajouter une voiture quand on en ajoute une. */
+const CIRCUITS = new Set(['monza', 'spa', 'monaco', 'silverstone', 'suzuka', 'interlagos',
+                          'laguna', 'nurburgring', 'lemans', 'bathurst', 'redbullring', 'zandvoort']);
+const VOITURES = new Set(['m1procar', 'f40', 'countach', '930', 'gt40', '935', 'corvette',
+                          '787b', 'csl']);
 const ENTRE_DEUX_MS = 15000;
 
 const rep = (code: number, corps: Record<string, unknown>) =>
@@ -105,15 +133,9 @@ Deno.serve(async (req) => {
     .update({ pilote: pseudo }).eq('auteur', auteur).neq('pilote', pseudo);
   if (errNom) console.log('renommage des records', errNom.message);
 
-  // 3. LE PLANCHER.
-  const { data: sol, error: errSol } = await admin.from('planchers').select('minimum')
-    .eq('circuit', circuit).eq('voiture', voiture).maybeSingle();
-  if (errSol) return rep(500, { raison: 'lecture_plancher', detail: errSol.message });
-  // Pas de plancher connu pour ce couple : on refuse plutôt que d'accepter. Un plancher manquant
-  // est une lacune de notre table, et accepter « par défaut » ouvrirait une porte à qui
-  // inventerait un identifiant de voiture que la mesure ne couvre pas encore.
-  if (!sol) return rep(422, { raison: 'inconnu' });
-  if (temps < sol.minimum) return rep(422, { raison: 'trop_rapide' });
+  // 3. LE PLANCHER, et les identifiants.
+  if (!CIRCUITS.has(circuit) || !VOITURES.has(voiture)) return rep(422, { raison: 'inconnu' });
+  if (temps < PLANCHER_S) return rep(422, { raison: 'trop_rapide' });
 
   // 4. LA CADENCE.
   const { data: dernier, error: errCad } = await admin.from('records').select('pose_le')

@@ -1,18 +1,21 @@
 // Le plancher : le tour le plus rapide qu'un couple circuit/voiture peut physiquement produire.
 //
-//   node tools/plancher.js [--tours=4] [--marge=0.15] [--sortie=supabase/planchers.sql]
+//   node tools/plancher.js [--tours=4] [--essais=3] [--plancher=30]
 //
-// C'est la pièce qui permet au serveur de refuser un tour en une milliseconde. Elle est MESURÉE et
-// non devinée, pour une raison simple : un plancher inventé est soit trop haut — et il refuse les
-// tours d'un très bon joueur, ce qui est pire que de laisser passer un tricheur — soit trop bas, et
-// il ne refuse rien. Aucun des deux ne se voit avant que quelqu'un s'en plaigne.
+// IL NE PRODUIT PLUS DE FICHIER. Le serveur refuse tout temps sous trente secondes, pour tous les
+// circuits et toutes les voitures — un seul nombre, écrit dans `supabase/functions/record/index.ts`.
+// Il y avait avant une table de cent huit minimums mesurés, un par couple : plus juste, et à refaire
+// pendant vingt-cinq minutes après tout changement de tracé, de physique ou de voiture.
 //
-// Deux bornes sont calculées, et on garde la plus haute :
+// Ce banc sert donc à VÉRIFIER cette constante, ce qui est le seul travail qui reste : il mesure les
+// cent huit couples et dit de combien le plus rapide passe au-dessus. Tant que la marge est large,
+// trente secondes ne refuseront jamais un tour réel — le seul défaut qu'un plancher ne doit pas
+// avoir. Si elle se resserre, c'est que le jeu a changé au point qu'il faut rouvrir la question.
+//
+// Deux bornes sont calculées pour chaque couple, et on garde la plus haute :
 //
 //   1. LA BORNE PHYSIQUE : longueur / vitesse de pointe. Une voiture ne peut pas boucler plus vite
-//      qu'en roulant à fond partout, freinages et virages compris. Elle est incontestable et ne
-//      peut JAMAIS refuser un tour réel. Elle est aussi très large : sur un tracé sinueux elle vaut
-//      la moitié d'un vrai tour.
+//      qu'en roulant à fond partout, freinages et virages compris. Elle est incontestable.
 //
 //   2. LA BORNE MESURÉE : le meilleur tour de l'IA en « cauchemar », qui triche déjà de 30 %
 //      d'adhérence et roule donc plus vite qu'un humain ne le peut, moins une marge.
@@ -24,10 +27,9 @@
 // joueur prend toujours son accélérateur de l'entrée. Une première version du banc s'en est remise
 // à ce seul réglage et a regardé douze circuits sans qu'une voiture démarre — puis a écrit ses 108
 // planchers comme si de rien n'était, tous tombés sur la borne physique. Le banc calcule donc
-// `aiThrottle` lui-même et le passe en entrée, comme le font les autres bancs de ce dossier ; et il
-// REFUSE d'écrire quoi que ce soit si la mesure n'a pas eu lieu.
+// `aiThrottle` lui-même et le passe en entrée, comme le font les autres bancs de ce dossier.
 'use strict';
-const fs = require('fs'), vm = require('vm'), path = require('path');
+const fs = require('fs'), vm = require('vm');
 
 const arg = (n, d) => {
   const a = process.argv.find((x) => x.startsWith(`--${n}=`));
@@ -47,7 +49,6 @@ précisément pour éviter.
 On garde donc le meilleur tour de plusieurs essais : le plancher doit passer sous tout ce qui est
 atteignable, pas sous ce qu'on a observé un jour donné. */
 const ESSAIS = Math.max(1, +arg('essais', 3));
-const SORTIE = arg('sortie', 'supabase/planchers.sql');
 
 let src = '';
 for (const f of ['util', 'traces', 'tracks', 'track', 'cars', 'car', 'race']) {
@@ -137,12 +138,12 @@ for (const r of OUT.resultats) {
 }
 console.log('\n');
 
-/* Rien de mesuré = rien d'écrit. C'est le seul garde-fou qui compte ici.
-   Un fichier de planchers tous tombés sur la borne physique a l'air d'un fichier de planchers, il
-   s'applique sans broncher, et il n'arrête aucun tricheur — on ne s'en aperçoit jamais. */
+/* Rien de mesuré = rien de vérifié. C'est le seul garde-fou qui compte ici.
+   Un banc dont aucune voiture n'a bouclé rend des bornes physiques, qui ont l'air de résultats et
+   ne disent rien : on l'a déjà vu passer inaperçu une fois. */
 if (muets) {
-  console.log(`  ÉCHEC : ${muets} couple(s) sur ${lignes.length} n'ont pas boucle ${TOURS} tours.`);
-  console.log('  Aucun fichier ecrit : un plancher non mesure n\'arrete personne.');
+  console.log(`  ECHEC : ${muets} couple(s) sur ${lignes.length} n'ont pas boucle ${TOURS} tours.`);
+  console.log('  Rien n\'est verifie : un couple qui ne roule pas ne dit rien sur ce qui est atteignable.');
   process.exit(1);
 }
 
@@ -154,17 +155,18 @@ for (const l of pires) {
     + (l.plancher === l.physique ? '  ← borne physique' : ''));
 }
 
-const sql = `-- Les planchers, MESURÉS par tools/plancher.js — ne pas écrire à la main.
---
--- Chacun est le plus haut de deux bornes : la borne physique (longueur / vitesse de pointe, qu'une
--- voiture ne peut pas franchir même à fond partout) et le meilleur tour de l'IA en « cauchemar »,
--- qui triche déjà de 30 % d'adhérence, moins ${(MARGE * 100).toFixed(0)} % de marge pour les très bons joueurs.
---
--- Regénérer après tout changement de physique, de voiture ou de tracé : un plancher qui décrit
--- l'ancienne version du jeu refuse des tours réels ou laisse passer des tours impossibles.
-insert into public.planchers (circuit, voiture, minimum) values
-${lignes.map((l) => `  ('${l.circuit}', '${l.voiture}', ${l.plancher.toFixed(3)})`).join(',\n')}
-on conflict (circuit, voiture) do update set minimum = excluded.minimum;
-`;
-fs.writeFileSync(path.resolve(__dirname, '..', SORTIE), sql);   // resolve et non join : un chemin absolu doit rester absolu
-console.log(`\n  ${lignes.length} planchers ecrits dans ${SORTIE}`);
+const PLANCHER = +arg('plancher', 30);
+const bas = [...lignes].sort((a, b) => a.plancher - b.plancher);
+const mini = bas[0];
+console.log(`\n  le couple le plus rapide : ${mini.nomC} en ${mini.nomV}, plancher ${mini.plancher.toFixed(1)} s`);
+console.log(`  le serveur refuse sous ${PLANCHER} s — marge ${((mini.plancher / PLANCHER - 1) * 100).toFixed(0)} %`);
+if (mini.plancher < PLANCHER) {
+  console.log(`\n  ECHEC : un tour de ${mini.plancher.toFixed(1)} s est atteignable, et le serveur le refuserait.`);
+  console.log('  Un plancher trop haut refuse un tour legitime, ce qui est pire que de laisser passer un triche.');
+  process.exit(1);
+}
+console.log('\n  les cinq couples les plus rapides :');
+for (const l of bas.slice(0, 5)) {
+  console.log(`    ${l.nomC.padEnd(20)} ${l.nomV.padEnd(16)} ${l.plancher.toFixed(1)} s`
+    + (l.plancher === l.physique ? '  ← borne physique' : ''));
+}

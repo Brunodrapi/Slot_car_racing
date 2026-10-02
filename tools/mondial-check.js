@@ -9,9 +9,9 @@
 //
 // Il vérifie deux choses, et la seconde compte plus que la première.
 //
-//   LES PORTES OUVERTES : les trois tables se lisent, les planchers sont chargés. Sans eux, la
-//   fonction serveur refuse TOUT avec « inconnu » — un plancher manquant est une lacune, et accepter
-//   par défaut ouvrirait la porte à un identifiant de voiture inventé.
+//   LES PORTES OUVERTES : les deux tables se lisent. Il y en avait une troisième, `planchers`, et
+//   l'essai comptait ses lignes : le plancher du serveur est désormais une constante de trente
+//   secondes, et la table n'existe plus.
 //
 //   LES PORTES FERMÉES : aucune écriture ne passe depuis un navigateur. C'est le cœur du dispositif,
 //   et c'est aussi ce qui se casse sans bruit — un `grant` posé par mégarde, une politique trop
@@ -41,14 +41,15 @@ const appel = async (chemin, opts = {}) => {
 
 (async () => {
   console.log('\nles portes ouvertes');
-  for (const t of ['records', 'pilotes', 'planchers']) {
+  for (const t of ['records', 'pilotes']) {
     const r = await appel(`/rest/v1/${t}?select=*&limit=1`);
     dit(r.code === 200, `${t} se lit (HTTP ${r.code}${r.code !== 200 ? ' — ' + JSON.stringify(r.corps).slice(0, 80) : ''})`);
   }
-  const n = await fetch(`${URL_BASE}/rest/v1/planchers?select=circuit`,
-    { headers: { apikey: CLE, Prefer: 'count=exact', Range: '0-0' } });
-  const total = +((n.headers.get('content-range') || '').split('/')[1] || 0);
-  dit(total >= 100, `${total} planchers charges (sans eux, le serveur refuse tout avec « inconnu »)`);
+  // La table `planchers` ne doit plus exister : laissée en place, elle serait lue par personne et
+  // donnerait l'illusion d'un garde-fou là où il n'y en a plus qu'un, dans la fonction serveur.
+  const vieille = await appel('/rest/v1/planchers?select=circuit&limit=1');
+  dit(vieille.code === 404 || vieille.code === 400,
+    `la table planchers a bien disparu (HTTP ${vieille.code})`);
 
   console.log('\nles portes fermees — chaque ligne doit ECHOUER');
   const faux = { circuit: 'monza', voiture: 'f40', temps: 0.001, pilote: 'Tricheur', auteur: NUL };
@@ -56,7 +57,6 @@ const appel = async (chemin, opts = {}) => {
     ['INSERT dans records', '/rest/v1/records', 'POST', faux],
     ['UPDATE dans records', '/rest/v1/records?circuit=eq.monza', 'PATCH', { temps: 0.001 }],
     ['DELETE dans records', '/rest/v1/records?circuit=eq.monza', 'DELETE', null],
-    ['INSERT dans planchers', '/rest/v1/planchers', 'POST', { circuit: 'monza', voiture: 'f40', minimum: 0.001 }],
     ['INSERT dans pilotes', '/rest/v1/pilotes', 'POST', { id: NUL, pseudo: 'Tricheur' }],
     ['appel direct de poser_record', '/rest/v1/rpc/poser_record', 'POST',
       { p_circuit: 'monza', p_voiture: 'f40', p_temps: 0.001, p_pilote: 'X', p_auteur: NUL }],

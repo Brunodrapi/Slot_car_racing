@@ -69,19 +69,12 @@ grant select on public.pilotes to anon, authenticated;
 drop policy if exists pilotes_lecture on public.pilotes;
 create policy pilotes_lecture on public.pilotes for select to anon, authenticated using (true);
 
--- Le plancher par circuit : le meilleur tour qu'une voiture peut physiquement faire ici.
--- Rempli par tools/plancher.js, qui le MESURE au lieu de le deviner. La fonction serveur refuse
--- tout temps en dessous — c'est ce qui arrête les tours en une milliseconde.
-create table if not exists public.planchers (
-  circuit text not null,
-  voiture text not null,
-  minimum real not null,
-  primary key (circuit, voiture)
-);
-alter table public.planchers enable row level security;
-grant select on public.planchers to anon, authenticated;
-drop policy if exists planchers_lecture on public.planchers;
-create policy planchers_lecture on public.planchers for select to anon, authenticated using (true);
+-- Il y avait ici une table `planchers` : cent huit minimums, un par couple circuit/voiture, mesurés
+-- par un banc. La fonction serveur n'en lit plus aucun — elle refuse tout temps sous trente
+-- secondes, pour tous les circuits, le tour le plus rapide que la physique autorise étant de 55,6 s.
+-- La table est donc supprimée, et non laissée en place : une table que plus personne ne lit finit
+-- par mentir sans que rien ne s'en aperçoive.
+drop table if exists public.planchers;
 
 -- Poser un record, et seulement s'il est meilleur.
 --
@@ -112,13 +105,12 @@ revoke all on function public.poser_record(text, text, real, text, uuid) from pu
 drop policy if exists pilotes_le_mien on public.pilotes;
 drop policy if exists pilotes_maj_le_mien on public.pilotes;
 
--- Et RIEN de plus. Aucune écriture n'est accordée sur `records` ni sur `planchers`, à personne :
+-- Et RIEN de plus. Aucune écriture n'est accordée sur `records`, à personne :
 -- ni à un anonyme, ni à un compte connecté. Seule la fonction serveur, qui porte la clé de
 -- service, écrit — et elle ne le fait qu'après avoir vérifié. On le révoque explicitement plutôt
 -- que de compter sur l'absence : un `grant` posé par mégarde plus tard ne se verrait pas, et une
 -- table de records ouverte en écriture ne se remarque que lorsqu'elle est déjà pleine de faux.
 revoke insert, update, delete on public.records from anon, authenticated;
-revoke insert, update, delete on public.planchers from anon, authenticated;
 revoke insert, update, delete on public.pilotes from anon, authenticated;
 
 -- Le rôle de SERVICE, celui que porte la fonction serveur.
@@ -129,5 +121,4 @@ revoke insert, update, delete on public.pilotes from anon, authenticated;
 -- l'écrit donc, comme on a dû écrire les `grant select` que la case décochée ne posait plus.
 grant all on public.records to service_role;
 grant all on public.pilotes to service_role;
-grant all on public.planchers to service_role;
 grant execute on function public.poser_record(text, text, real, text, uuid) to service_role;
