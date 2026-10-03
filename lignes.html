@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <title>Eyes On Line — Éditeur de lignes et de panneaux</title>
-<link rel="stylesheet" href="css/style.css?v=0.21.93">
+<link rel="stylesheet" href="css/style.css?v=0.21.94">
 <style>
   body { overflow: hidden; }
   #ed { position: fixed; inset: 0; display: grid; grid-template-columns: 340px 1fr; }
@@ -39,6 +39,8 @@
   .grille button { min-height: 42px; font-size: 15px; font-weight: 600; }
   #ficheP[hidden] { display: none; }
   #poign { display: none; }
+  .retour { color: var(--muted); font-size: 13px; text-decoration: none; }
+  .retour:hover { color: var(--text); }
 
   /* AU DOIGT, SUR UN TÉLÉPHONE. Le panneau devient un tiroir au ras du bas : la carte prend tout
      l'écran, et on remonte le tiroir quand on a besoin d'un réglage. Replié il ne laisse que sa
@@ -81,6 +83,10 @@
         <button data-mode="lignes" class="sel">Lignes</button>
         <button data-mode="panneaux">Panneaux</button>
       </div>
+      <!-- Un aller sans retour n'est pas une page, c'est un cul-de-sac : sur un téléphone il ne
+           reste que le bouton « précédent » du navigateur, et la page ne dit même pas d'où elle
+           vient. On se contente du lien, qui est aussi ce qui dit à quoi cette page appartient. -->
+      <a class="retour" href="index.html">← Retour au jeu</a>
     </div>
 
     <!-- ------------------------------------------------------------------ les lignes -->
@@ -188,13 +194,13 @@
   </div>
 </div>
 
-<script src="js/store.js?v=0.21.93"></script>
-<script src="js/util.js?v=0.21.93"></script>
-<script src="js/traces.js?v=0.21.93"></script>
-<script src="js/tracks.js?v=0.21.93"></script>
-<script src="js/track.js?v=0.21.93"></script>
-<script src="js/props.js?v=0.21.93"></script>
-<script src="js/render.js?v=0.21.93"></script>
-<script src="js/lignes.js?v=0.21.93"></script>
+<script src="js/store.js?v=0.21.94"></script>
+<script src="js/util.js?v=0.21.94"></script>
+<script src="js/traces.js?v=0.21.94"></script>
+<script src="js/tracks.js?v=0.21.94"></script>
+<script src="js/track.js?v=0.21.94"></script>
+<script src="js/props.js?v=0.21.94"></script>
+<script src="js/render.js?v=0.21.94"></script>
+<script src="js/lignes.js?v=0.21.94"></script>
 </body>
 </html>
