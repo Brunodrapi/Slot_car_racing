@@ -2778,12 +2778,29 @@ course est **déclaré** par circuit : c'est une donnée vérifiable sur n'impor
 Interlagos et Mount Panorama tournent à l'inverse des dix autres, ce qu'aucune règle automatique
 n'aurait pu trouver.
 
-**La grille était au milieu du circuit.** Le départ se posait aux deux tiers de la plus longue ligne
-droite, faute de mieux : juste à Monza, où la plus longue *est* la ligne droite des stands ; faux à
-Spa, où c'est le Kemmel, et à Silverstone, où c'est la Hangar Straight. La voie des stands est
-relevée elle aussi, et elle ne longe qu'un seul endroit : on mesure donc, station par station, la
-distance à la voie la plus proche, on garde la plus longue portion sous quarante mètres, et on pose
-le départ aux deux tiers.
+**La ligne de départ, par ordre de ce qui la sait le mieux.** Elle a demandé trois corrections, et
+chacune a appris quelque chose.
+
+1. **Le nœud balisé**, quand OpenStreetMap en porte un : `raceway=start-finish` *est* la ligne, pas
+   une déduction. C'est la meilleure source et elle a mis du temps à être vue. Cinq circuits en ont
+   un sur leur tour — Monaco, Silverstone, le Nürburgring, Le Mans, Zandvoort — et il corrige **532 m
+   au Nürburgring**, 383 m à Zandvoort, 196 m à Silverstone. Il ne vaut que **sur le tour** : à Spa,
+   le seul nœud de la boîte appartient à la piste de karting, et il est à vingt-neuf mètres de l'axe.
+   Dix mètres suffisent à trancher, et c'est une mesure, pas un avis.
+2. **La voie des stands, NOMMÉE.** On la cherchait avec `pit|box|stand`, et un circuit en porte
+   souvent plusieurs : Spa a sa « Support Pit Lane » de l'ancien paddock, Silverstone en a cinq, le
+   Nürburgring deux. La plus longue portion longée était à Spa celle de l'ancien paddock, si bien
+   que **la grille se formait à Eau Rouge, à 78 % du tour de sa place**. La bonne voie est maintenant
+   déclarée circuit par circuit, comme le sens et la longueur officielle : une donnée qu'on peut
+   nommer ne se devine pas.
+3. **La plus longue ligne droite**, faute de mieux : juste à Monza, où la plus longue *est* la ligne
+   droite des stands ; faux partout ailleurs. Il ne reste que Mount Panorama, dont aucune voie de
+   stands n'est relevée — sa grille se forme au milieu de Conrod Straight, et ça se voit.
+
+Spa portait un `pitAt: 0.10` pour corriger une zone d'arrêt tombée dans un virage, conséquence de la
+même erreur. Il est retiré : avec la ligne à sa place, le défaut — juste avant la ligne — retombe sur
+la vraie voie des stands. `tools/stands.js` le dit sans ambiguïté : avec l'ancien décalage l'arrêt ne
+se faisait **plus du tout**, et les douze circuits s'arrêtent de nouveau.
 
 **L'orientation se mesure, elle ne se choisit pas.** Un relevé est orienté au nord ; une carte de
 circuit ne l'est presque jamais, et on reconnaît un circuit à sa silhouette posée comme on l'a

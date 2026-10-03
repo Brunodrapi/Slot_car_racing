@@ -61,9 +61,12 @@ const TRACKS = [
   {
     id: 'spa', name: 'Spa-Francorchamps', country: 'BE', flag: '🇧🇪', theme: 'forest',
     kerb: DRAPEAUX.be,
-    // La voie des stands déplacée juste après la ligne : à sa place par défaut, la zone d'arrêt
-    // tombait dans le dernier virage et aucune voiture ne parvenait à s'y arrêter. Voir _buildPits.
-    length: 3400, width: 14, laps: 3, puddles: 0.5, pitAt: 0.10,
+    /* Plus de `pitAt` : il valait 0,10 et corrigeait une zone d'arrêt qui tombait dans un virage —
+       conséquence d'une ligne de départ posée à Eau Rouge. La ligne est maintenant sur la vraie
+       ligne droite des stands, donc le défaut (juste avant la ligne) retombe sur la vraie voie des
+       stands. Mesuré par `tools/stands.js` : l'arrêt ne se faisait plus du tout avec l'ancien
+       décalage, il se fait de nouveau sans lui. */
+    length: 3400, width: 14, laps: 3, puddles: 0.5,
     pts: TRACES.spa,
   },
   {
@@ -72,12 +75,12 @@ const TRACKS = [
     length: 2300, width: 11, laps: 5,
     pts: TRACES.monaco,
     // Le pont qui enjambe le boulevard Albert 1er juste avant la ligne (voie 167625745).
-    passerelles: [0.9471],
+    passerelles: [0.9204],
     /* Le tunnel du boulevard Louis II, 356 m relevés sous l'hôtel (voie 4230891, « tunnel=yes »).
        C'est le seul vrai tunnel des douze circuits. Monza et Suzuka ont des portions « covered »,
        mais couvert n'est pas souterrain : à Monza ce sont les vingt-cinq mètres sous la passerelle
        du Serraglio, qu'on dessine déjà comme une passerelle. */
-    tunnels: [[0.4817, 0.5883]],
+    tunnels: [[0.4550, 0.5617]],
   },
   {
     id: 'silverstone', name: 'Silverstone', country: 'GB', flag: '🇬🇧', theme: 'autumn',
@@ -86,7 +89,7 @@ const TRACKS = [
     pts: TRACES.silverstone,
     /* Les deux passerelles de la Wellington Straight — deux ouvrages distincts, à dix mètres l'un
        de l'autre — et la passerelle couverte du complexe des stands. */
-    passerelles: [0.2163, 0.2179, 0.9639],
+    passerelles: [0.2496, 0.2513, 0.9972],
   },
   {
     id: 'suzuka', name: 'Suzuka', country: 'JP', flag: '🇯🇵', theme: 'japan',
@@ -128,7 +131,7 @@ const TRACKS = [
     length: 4200, width: 15, laps: 2,
     pts: TRACES.lemans,
     // La Passerelle Goodyear et la Passerelle Porsche, nommées comme telles dans le relevé.
-    passerelles: [0.0989, 0.9768],
+    passerelles: [0.0772, 0.9551],
   },
   {
     id: 'bathurst', name: 'Mount Panorama', country: 'AU', flag: '🇦🇺', theme: 'bush',
