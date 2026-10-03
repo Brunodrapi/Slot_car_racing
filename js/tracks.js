@@ -43,7 +43,7 @@ const TRACKS = [
   {
     id: 'monza', name: 'Monza', country: 'IT', flag: '🇮🇹', theme: 'park',
     kerb: DRAPEAUX.it,
-    length: 2900, width: 15, laps: 4,
+    length: 2900, width: 15,
     /* La géométrie vient de `js/traces.js`, qui porte sa propre licence : elle est relevée dans
        OpenStreetMap, et le fichier à part rend la frontière lisible. Voir `LICENCES.md`. La
        longueur, la largeur et le nombre de tours restent des choix du jeu — c'est la FORME du
@@ -66,13 +66,13 @@ const TRACKS = [
        ligne droite des stands, donc le défaut (juste avant la ligne) retombe sur la vraie voie des
        stands. Mesuré par `tools/stands.js` : l'arrêt ne se faisait plus du tout avec l'ancien
        décalage, il se fait de nouveau sans lui. */
-    length: 3400, width: 14, laps: 3, puddles: 0.5,
+    length: 3400, width: 14, puddles: 0.5,
     pts: TRACES.spa,
   },
   {
     id: 'monaco', name: 'Monaco', country: 'MC', flag: '🇲🇨', theme: 'riviera',
     kerb: DRAPEAUX.mc,
-    length: 2300, width: 11, laps: 5,
+    length: 2300, width: 11,
     pts: TRACES.monaco,
     // Le pont qui enjambe le boulevard Albert 1er juste avant la ligne (voie 167625745).
     passerelles: [0.9204],
@@ -122,7 +122,7 @@ const TRACKS = [
   {
     id: 'silverstone', name: 'Silverstone', country: 'GB', flag: '🇬🇧', theme: 'autumn',
     kerb: DRAPEAUX.gb,
-    length: 3300, width: 16, laps: 3, puddles: 0.4,
+    length: 3300, width: 16, puddles: 0.4,
     pts: TRACES.silverstone,
     /* Les deux passerelles de la Wellington Straight — deux ouvrages distincts, à dix mètres l'un
        de l'autre — et la passerelle couverte du complexe des stands. */
@@ -164,7 +164,7 @@ const TRACKS = [
   {
     id: 'suzuka', name: 'Suzuka', country: 'JP', flag: '🇯🇵', theme: 'japan',
     kerb: DRAPEAUX.jp,
-    length: 3300, width: 14, laps: 3,
+    length: 3300, width: 14,
     pts: TRACES.suzuka,
     /* Le passage sous le croisement, 243 m relevés (voie 183391655). Étiqueté « covered », pas
        « tunnel » : on n'est pas sous terre, on est sous le pont que la piste se fait à elle-même.
@@ -204,7 +204,7 @@ const TRACKS = [
   {
     id: 'interlagos', name: 'Interlagos', country: 'BR', flag: '🇧🇷', theme: 'tropical',
     kerb: DRAPEAUX.br,
-    length: 2700, width: 14, laps: 4,
+    length: 2700, width: 14,
     pts: TRACES.interlagos,
     // La passerelle du S do Senna (voie 189535484).
     passerelles: [0.8625],
@@ -212,7 +212,7 @@ const TRACKS = [
   {
     id: 'laguna', name: 'Laguna Seca', country: 'US', flag: '🇺🇸', theme: 'california',
     kerb: DRAPEAUX.us,
-    length: 2400, width: 13, laps: 4,
+    length: 2400, width: 13,
     pts: TRACES.laguna,
     // Trois passerelles : l'entrée des stands, le Rainey Curve et le Corkscrew.
     passerelles: [0.0399, 0.6555, 0.7886],
@@ -220,13 +220,13 @@ const TRACKS = [
   {
     id: 'nurburgring', name: 'Nürburgring GP', country: 'DE', flag: '🇩🇪', theme: 'forest',
     kerb: DRAPEAUX.de,
-    length: 3000, width: 15, laps: 3,
+    length: 3000, width: 15,
     pts: TRACES.nurburgring,
   },
   {
     id: 'lemans', name: 'Le Mans', country: 'FR', flag: '🇫🇷', theme: 'lemans',
     kerb: DRAPEAUX.fr,
-    length: 4200, width: 15, laps: 2,
+    length: 4200, width: 15,
     pts: TRACES.lemans,
     // La Passerelle Goodyear et la Passerelle Porsche, nommées comme telles dans le relevé.
     passerelles: [0.0989, 0.9768],
@@ -264,21 +264,21 @@ const TRACKS = [
   {
     id: 'bathurst', name: 'Mount Panorama', country: 'AU', flag: '🇦🇺', theme: 'bush',
     kerb: DRAPEAUX.au,
-    length: 3600, width: 13, laps: 3,
+    length: 3600, width: 13,
     pts: TRACES.bathurst,
-    // Une passerelle sur Conrod Straight, une sur Pit Straight.
-    passerelles: [0.1524, 0.2183],
+    // Une passerelle sur Pit Straight, une sur Conrod Straight.
+    passerelles: [0.0050, 0.9391],
   },
   {
     id: 'redbullring', name: 'Red Bull Ring', country: 'AT', flag: '🇦🇹', theme: 'alpine',
     kerb: DRAPEAUX.at,
-    length: 2400, width: 15, laps: 4,
+    length: 2400, width: 15,
     pts: TRACES.redbullring,
   },
   {
     id: 'zandvoort', name: 'Zandvoort', country: 'NL', flag: '🇳🇱', theme: 'dunes',
     kerb: DRAPEAUX.nl,
-    length: 2400, width: 13, laps: 4,
+    length: 2400, width: 13,
     pts: TRACES.zandvoort,
     panneaux: [
       [0.0342, 50, 3, 1],

@@ -435,7 +435,36 @@ def main():
             break
         print(f'  noeud « raceway={nd["role"]} » {nd["id"]} ecarte : a {d:.0f} m de l axe, '
               f'il decrit un autre trace')
-    # 2. LA VOIE DES STANDS. `--stands` dit laquelle : un circuit en porte souvent plusieurs, et
+    # 2. UNE POSITION DECLAREE A LA MAIN, « <nom de voie>@<fraction> ». Pour le circuit qui n a ni
+    #    noeud ni voie de stands relevee : Mount Panorama, dont le tour passe par des rues publiques
+    #    et dont la voie des stands n est pas dans la base. Les voies du tour, elles, SONT nommees —
+    #    « Pit Straight » en fait partie — et il ne reste qu a dire ou tomber dessus. La fraction se
+    #    lit sur une carte du circuit ; d ou elle vient se note dans `tools/traces.py`.
+    #
+    #    Elle l emporte sur le reste — elle est ecrite apres, et elle ecrase : quelqu un a regarde,
+    #    et ce qu il declare vaut mieux que ce qu on deduit. Mais elle ne sert qu ou il n y a rien a
+    #    deduire — partout ailleurs la colonne est
+    #    vide, parce qu une valeur ecrite a la main est une valeur que personne ne reverifiera.
+    if 'depart-voie' in o:
+        nom, _, frac = o['depart-voie'].partition('@')
+        frac = float(frac or 0.5)
+        bouts = []
+        for w in suite:
+            if ((w.get('tags') or {}).get('name') or '') == nom:
+                g = metres(w['geometry'], lat0)
+                bouts += [g[0], g[-1]]
+        if not bouts:
+            raise SystemExit(f'  --depart-voie : aucune voie du tour ne s appelle « {nom} »')
+        pres = lambda q: min(range(len(r)), key=lambda i: math.dist(r[i], q))
+        ks = sorted(pres(q) for q in bouts)
+        a, b = ks[0], ks[-1]
+        if (b - a) > len(r) / 2:                 # la voie enjambe le point zero
+            a, b = b, a + len(r)
+        j = int(round(a + frac * (b - a))) % len(r)
+        print(f'  depart pose a {frac*100:.0f} % de « {nom} » (stations {a % len(r)} a {b % len(r)}, '
+              f'point {j})')
+
+    # 2b. LA VOIE DES STANDS. `--stands` dit laquelle : un circuit en porte souvent plusieurs, et
     #    « pit|box|stand » attrapait a Spa la « Support Pit Lane » de l ancien paddock — la grille se
     #    formait a Eau Rouge. Nommer la bonne est une donnee du circuit, pas un reglage.
     if j is None:

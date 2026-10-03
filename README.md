@@ -2793,9 +2793,24 @@ chacune a appris quelque chose.
    que **la grille se formait à Eau Rouge, à 78 % du tour de sa place**. La bonne voie est maintenant
    déclarée circuit par circuit, comme le sens et la longueur officielle : une donnée qu'on peut
    nommer ne se devine pas.
-3. **La plus longue ligne droite**, faute de mieux : juste à Monza, où la plus longue *est* la ligne
-   droite des stands ; faux partout ailleurs. Il ne reste que Mount Panorama, dont aucune voie de
-   stands n'est relevée — sa grille se forme au milieu de Conrod Straight, et ça se voit.
+3. **Une position déclarée à la main**, « *voie*@*fraction* », pour le seul circuit où il n'y a rien
+   à déduire : Mount Panorama passe par des rues publiques, sa voie des stands n'est pas relevée et
+   il n'a pas de nœud. Sa grille se formait donc au milieu de **Conrod Straight**, à un kilomètre de
+   sa place. Les voies du tour, elles, sont nommées — « Pit Straight » en fait partie — et il ne
+   reste qu'à dire où tomber dessus : **13,7 %**, lu sur la carte de 51gt3.com où le damier est
+   dessiné. C'est la seule valeur de la table qui vienne d'un dessin, et elle est la dernière.
+4. **La plus longue ligne droite**, faute de tout le reste : juste à Monza, où la plus longue *est*
+   la ligne droite des stands ; faux partout ailleurs. Plus aucun des douze n'en dépend.
+
+**Le nombre de tours n'est plus une propriété du circuit.** Chacun des douze portait son `laps`,
+écrit à la main. Multiplié par sa longueur, les douze donnaient entre 8,4 et 11,6 km — moyenne
+10,1 : ce nombre ne disait rien du circuit, il disait « une course fait une dizaine de kilomètres »,
+et le dire douze fois laissait douze occasions de se tromper. Un circuit dont on change la longueur
+gardait son compte de tours et changeait de durée sans prévenir. Il se calcule donc : la distance
+visée divisée par la longueur du tour, mise à l'échelle de la vitesse de la catégorie, puisque c'est
+la **durée** qu'on veut constante. 11 500 m redonne **onze des douze** comptes d'origine ; seul Monza
+passe de quatre tours à trois, et c'était lui l'exception. Un circuit de l'éditeur garde le sien :
+là, c'est l'auteur qui décide.
 
 Spa portait un `pitAt: 0.10` pour corriger une zone d'arrêt tombée dans un virage, conséquence de la
 même erreur. Il est retiré : avec la ligne à sa place, le défaut — juste avant la ligne — retombe sur

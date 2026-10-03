@@ -5,10 +5,27 @@ const CUPS = [
   { id: 'gt', classId: 'gt', name: { fr: 'GT Legends Cup', en: 'GT Legends Cup' }, tracks: ['zandvoort', 'laguna', 'redbullring', 'silverstone', 'spa'] },
 ];
 
-// number of laps for a category on a track: keeps races around 3-4 minutes
+/* Le nombre de tours d'une course, qui n'est pas une propriété du circuit.
+
+Chaque circuit intégré portait son `laps`, écrit à la main. Multiplié par sa longueur, les douze
+donnaient entre 8,4 et 11,6 km, moyenne 10,1 : ce nombre ne disait rien du circuit, il disait
+« une course fait une dizaine de kilomètres », et le dire douze fois laissait douze occasions de se
+tromper — un circuit dont on change la longueur gardait son compte de tours et changeait de durée
+sans prévenir.
+
+On le calcule donc : la distance visée, divisée par la longueur du tour, mise à l'échelle de la
+vitesse de la catégorie — une voiture plus rapide couvre plus de terrain dans la même durée, et
+c'est la DURÉE qu'on veut constante. 11 500 m redonne onze des douze comptes d'origine ; seul Monza
+passe de quatre tours à trois, et c'était lui l'exception — sa course faisait 11,6 km quand la
+moyenne des douze en faisait 10,1.
+
+Un circuit de l'éditeur garde le sien : là, c'est l'auteur qui décide, et il l'a écrit exprès. */
+const DISTANCE_COURSE = 11500;
+
 function lapsFor(trackDef, cat) {
   const vmax = cat.base ? cat.base.vmax : cat.vmax;
-  return clamp(Math.round((trackDef.laps || 3) * vmax / 80), 3, 8);
+  const tours = trackDef.laps || DISTANCE_COURSE / (trackDef.length || 3000);
+  return clamp(Math.round(tours * vmax / 80), 3, 8);
 }
 
 const SAVE_KEY = 'slotracer.save.v2';

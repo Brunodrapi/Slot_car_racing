@@ -57,20 +57,26 @@ RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # paddock, si bien que la grille se formait à Eau Rouge. Laisser vide garde le motif large, qui
 # suffit là où il n'y en a qu'une.
 #
-#  id            boîte sud,ouest,nord,est             relation                              écarté          long.  joint. sens          angle   stands
+# LE DÉPART DÉCLARÉ, « <voie>@<fraction> », pour le seul circuit où il n'y a rien à déduire. Mount
+# Panorama passe par des rues publiques et sa voie des stands n'est pas relevée ; il n'a pas non plus
+# de nœud « raceway=start-finish ». Il retombait donc sur la plus longue ligne droite — Conrod — et
+# la grille se formait à un kilomètre de sa place. Les voies du tour, elles, sont nommées : la ligne
+# se pose à 13,7 % de « Pit Straight », mesuré sur la carte de 51gt3.com où le damier est dessiné.
+#
+#  id            boîte sud,ouest,nord,est             relation                              écarté          long.  joint. sens          angle   stands                          départ
 TABLE = [
-    ('monza',       '45.611,9.275,45.632,9.300',  'Autodromo Nazionale di Monza',        'Pit Lane',       5793, 0.5, 'horaire', 262.7, ''),
-    ('spa',         '50.418,5.950,50.452,5.995',  'Circuit de Spa Francorchamps',        'Pit Lane',       7004, 0.5, 'horaire', 270.2, '^Pit Lane$'),
-    ('monaco',      '43.730,7.410,43.752,7.442',  'Circuit de Monaco',                   'stands',         3337, 20, 'horaire', 14.1, ''),
-    ('silverstone', '52.055,-1.040,52.090,-0.985', 'Silverstone Grand Prix',             'pit lane',       5891, 0.5, 'horaire', 284.0, '^International pit lane$'),
-    ('suzuka',      '34.832,136.515,34.864,136.555', '鈴鹿サーキット',                      'Pit Lane',       5807, 0.5, 'horaire', 119.0, '^Pit Lane$'),
-    ('interlagos',  '-23.715,-46.710,-23.690,-46.678', 'José Carlos Pace',               'Pit Lane',       4309, 0.5, 'antihoraire', 47.3, '^Pit Lane$'),
-    ('laguna',      '36.575,-121.770,36.600,-121.740', None,                             'Pit Lane',       3602, 0.5, 'horaire', 251.1, ''),
-    ('nurburgring', '50.322,6.925,50.355,6.965',  'Nürburgring Grand Prix Strecke',      'Boxengasse',     5148, 0.5, 'horaire', 0.9, '^Boxengasse$'),
-    ('lemans',      '47.910,0.203,47.965,0.248',  'Circuit des 24 Heures du Mans',       'Pit Lane',      13626, 0.5, 'horaire', 258.7, '^Pit Lane$'),
-    ('bathurst',    '-33.465,149.540,-33.435,149.575', 'Mount Panorama Circuit',         '',               6213, 0.5, 'antihoraire', 238.5, ''),
-    ('redbullring', '47.210,14.750,47.232,14.782', 'Red Bull Ring',                      'Boxenstraße',    4318, 0.5, 'horaire', 0.6, ''),
-    ('zandvoort',   '52.378,4.525,52.402,4.560',  'Grand Prix Formule 1 van Nederland',  'Pitstraat',      4259, 0.5, 'horaire', 245.0, ''),
+    ('monza',       '45.611,9.275,45.632,9.300',  'Autodromo Nazionale di Monza',        'Pit Lane',       5793, 0.5, 'horaire', 262.7, '', ''),
+    ('spa',         '50.418,5.950,50.452,5.995',  'Circuit de Spa Francorchamps',        'Pit Lane',       7004, 0.5, 'horaire', 270.2, '^Pit Lane$', ''),
+    ('monaco',      '43.730,7.410,43.752,7.442',  'Circuit de Monaco',                   'stands',         3337, 20, 'horaire', 14.1, '', ''),
+    ('silverstone', '52.055,-1.040,52.090,-0.985', 'Silverstone Grand Prix',             'pit lane',       5891, 0.5, 'horaire', 284.0, '^International pit lane$', ''),
+    ('suzuka',      '34.832,136.515,34.864,136.555', '鈴鹿サーキット',                      'Pit Lane',       5807, 0.5, 'horaire', 119.0, '^Pit Lane$', ''),
+    ('interlagos',  '-23.715,-46.710,-23.690,-46.678', 'José Carlos Pace',               'Pit Lane',       4309, 0.5, 'antihoraire', 47.3, '^Pit Lane$', ''),
+    ('laguna',      '36.575,-121.770,36.600,-121.740', None,                             'Pit Lane',       3602, 0.5, 'horaire', 251.1, '', ''),
+    ('nurburgring', '50.322,6.925,50.355,6.965',  'Nürburgring Grand Prix Strecke',      'Boxengasse',     5148, 0.5, 'horaire', 0.9, '^Boxengasse$', ''),
+    ('lemans',      '47.910,0.203,47.965,0.248',  'Circuit des 24 Heures du Mans',       'Pit Lane',      13626, 0.5, 'horaire', 258.7, '^Pit Lane$', ''),
+    ('bathurst',    '-33.465,149.540,-33.435,149.575', 'Mount Panorama Circuit',         '',               6213, 0.5, 'antihoraire', 238.5, '', 'Pit Straight@0.137'),
+    ('redbullring', '47.210,14.750,47.232,14.782', 'Red Bull Ring',                      'Boxenstraße',    4318, 0.5, 'horaire', 0.6, '', ''),
+    ('zandvoort',   '52.378,4.525,52.402,4.560',  'Grand Prix Formule 1 van Nederland',  'Pitstraat',      4259, 0.5, 'horaire', 245.0, '', ''),
 ]
 DEPART_SANS_RELATION = {'laguna': 'The Corkscrew'}
 
@@ -112,7 +118,7 @@ const TRACES = {
 
 
 def releve(ligne, cache, points, dec):
-    cid, bbox, rel, sauf, officielle, jointure, sens, rot, stands = ligne
+    cid, bbox, rel, sauf, officielle, jointure, sens, rot, stands, depart = ligne
     cmd = [sys.executable, OUTIL, f'--bbox={bbox}', f'--longueur={officielle}',
            f'--points={points}', f'--decimales={dec}', f'--jointure={jointure}', f'--sens={sens}',
            f'--rotation={rot}', f'--cache={os.path.join(cache, "osm_" + cid + ".xml")}']
@@ -124,6 +130,8 @@ def releve(ligne, cache, points, dec):
         cmd.append(f'--sauf={sauf}')
     if stands:
         cmd.append(f'--stands={stands}')
+    if depart:
+        cmd.append(f'--depart-voie={depart}')
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode != 0:
         print(r.stdout[-2000:], r.stderr[-2000:])
