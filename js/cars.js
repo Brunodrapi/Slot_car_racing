@@ -75,7 +75,21 @@ const CATEGORIES = [
       { id: '930', diff: 4, name: '911 Turbo', shape: 'roundGT', mul: { vmax: 0.99, accel: 1.04, grip: 0.97, slide: 1.2 }, pick: 'sprites/pick/930.png', engine: {
         cyl: 6, redline: 7000, idle: 950, rough: 0.3, bright: 0.6, turbo: 0.85,
         sample: { ramp: 'sounds/engine/flat6-930.json', bas: 'sounds/engine/flat6-930-bas.json' },
-      }, colors: ['#c9ced6', '#e0262c'], top: 'sprites/top/930.png' },
+      }, colors: ['#c9ced6', '#e0262c'], top: 'sprites/top/930.png',
+        /* Trois livrées, nommées d'après ce qui est peint sur la voiture, comme la F40, la CSL et
+        la M1. Les deux chemins se déduisent du suffixe.
+
+        LES DEUX ILLUSTRATIONS DE MENU SONT EN MIROIR, et ça se voit : « Vaillant » et « MOTUL » s'y
+        lisent à l'envers. Les neuf voitures du plateau sont dessinées nez à gauche, les deux rendus
+        d'origine regardaient à droite, et les retourner pour qu'elles aillent dans le même sens
+        retourne le lettrage avec. Les redresser ferait l'inverse : du texte lisible et une voiture
+        qui regarde seule dans l'autre sens, au milieu du carrousel. Les vues de DESSUS, elles —
+        celles qu'on voit en course — sont dans le bon sens et leur lettrage est juste. */
+        livrees: [
+          { id: '', nom: 'Martini' },
+          { id: 'swiss', nom: 'Swiss' },
+          { id: 'valliant', nom: 'Vaillant' },
+        ] },
       { id: 'gt40', diff: 2, name: 'GT40 Mk II', shape: 'gt40', mul: { vmax: 1.06, accel: 1.02, grip: 0.99, df: 0.85, brake: 0.97, slide: 1.1 }, pick: 'sprites/pick/gt40.png', engine: {
         cyl: 8, redline: 6200, idle: 800, rough: 0.6, bright: 0.45, turbo: 0,
         // Trois prises, et le moteur choisit. La montée ne porte que 4611 tr/min au rupteur — un
