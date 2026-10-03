@@ -2305,6 +2305,27 @@ d'avant perde bien ses temps, et qu'une sauvegarde neuve garde le premier qu'ell
 Le serveur refuse tout temps sous **trente secondes**, pour tous les circuits et toutes les voitures.
 Un seul nombre, dans `supabase/functions/record/index.ts`.
 
+
+### Déployer la fonction serveur
+
+`tools/deploie.sh [nom]` — par défaut `record`. Le code de la fonction vit dans le dépôt, mais
+l'écrire ne la met pas en ligne : tant qu'elle n'est pas déployée, c'est l'ancienne version qui
+décide, et un changement de règle ne se voit nulle part. C'est arrivé avec le plancher des temps :
+la constante était à 30 s dans le fichier et les anciens planchers par paire tournaient encore.
+
+**Le jeton ne se tape pas dans le dépôt.** `SUPABASE_ACCESS_TOKEN` se pose dans les réglages de
+l'environnement cloud, et une nouvelle session le reçoit. C'est un jeton **personnel** : il vaut pour
+tout le compte, tous projets confondus, et Supabase n'en propose pas de plus étroit pour déployer.
+Il se révoque sur la même page que celle où on le crée, ce qui est la seule chose à retenir.
+
+Le script existe pour les trois oublis qui coûtent une minute chacun à chaque fois : le numéro de
+projet, le jeton au bon endroit, et le CLI qui n'est pas installé dans le conteneur — il passe par
+`npx`, parce qu'une dépendance installée dans l'image serait à remettre à jour sans que personne ne
+le voie.
+
+Ce que le déploiement ne dit pas : que la fonction accepte un vrai temps. Elle exige un jeton Google,
+donc un navigateur et un vrai compte ; il faut poser un tour dans le jeu pour le vérifier.
+
 Il y avait avant une table de 108 minimums, un par couple circuit/voiture, chacun mesuré par un banc
 qui rejouait le couple trois fois. C'était plus juste, et ça coûtait vingt-cinq minutes de calcul
 après tout changement de tracé, de physique ou de voiture, plus une ligne à ne pas oublier à chaque
@@ -2646,6 +2667,7 @@ NODE_PATH=$(npm root -g) node tools/e2e.js <dossier> [largeur] [hauteur]        
 NODE_PATH=$(npm root -g) node tools/e2e-editor.js <dossier>                        # éditeur → course
 NODE_PATH=$(npm root -g) node tools/e2e-lignes.js [dossier]                       # éditeur de lignes : ce qu'on voit est ce qui se joue
 NODE_PATH=$(npm root -g) node tools/e2e-panneaux.js                              # les panneaux repris a la main, de l'editeur jusqu'en course
+tools/deploie.sh [record]                                                        # met la fonction serveur en ligne (jeton dans l'environnement)
 node tools/difficulte.js [catégorie]                                             # ce qu'une voiture coûte à piloter, en pneus
 NODE_PATH=$(npm root -g) node tools/e2e-workshop.js <dossier>                      # import de sprites → course
 node tools/step.js <circuit> <catégorie> [marge] [-v]                             # suivi de ligne d'une voiture seule
