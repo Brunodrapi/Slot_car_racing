@@ -712,12 +712,10 @@ qui produit l'entrée large, le point de corde et la sortie large sans que rien 
 solveur sacrifie le second virage, une chicane qu'il prend trop droit — aucun réglage ne rattrape une
 trajectoire : il faut la dessiner.
 
-**Comment y aller.** *Réglages → Outils → « Lignes et panneaux »*, à côté de l'atelier circuits. Les
-deux pages répondaient à leur adresse depuis toujours, mais leurs entrées avaient été retirées du
-menu — qui est une image peinte, et à laquelle on n'ajoute pas un bandeau sans la refaire — si bien
-qu'il n'y avait plus aucun moyen d'y aller. Une page qu'on ne peut atteindre qu'en tapant son URL
-n'existe pas. Elles sont donc dans les réglages, qui est une liste et non un dessin, et un lien
-« Retour au jeu » referme la boucle.
+**Comment y aller : par son adresse**, `lignes.html`, et pas depuis le jeu. C'est un outil d'auteur,
+pas une fonction du jeu — l'entrée avait été retirée du menu avec celle de l'atelier circuits, et
+elle y reste retirée. Un lien « Retour au jeu » referme quand même la boucle, parce qu'un aller sans
+retour n'est pas une page mais un cul-de-sac.
 
 Cette page, qui n'est pas dans le jeu, charge un **circuit intégré**, affiche ses trois lignes telles
 que le jeu les calcule, les rend déplaçables point par point, et produit le bloc `lines` à coller
