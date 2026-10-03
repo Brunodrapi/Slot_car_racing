@@ -2114,7 +2114,15 @@ Le jeu savait déjà dessiner un pont : `track.crossings` trouve les endroits o�
 au-dessus d'elle-même — le croisement de Suzuka — et `js/render.js` le peint comme une portion de
 route, puisqu'on roule dessus.
 
-**Mais l'ordre de dessin y mentait sur la position.** Le tablier se peignait avant TOUTES les
+**Le tablier n'est pas un trait épais.** Il l'a été : la ligne médiane strokée trois fois, de plus en
+plus fin — l'ombre, la bordure, la surface. C'est commode, et c'est faux aux deux bouts. Un trait a
+des extrémités, elles se refermaient en demi-cercle, et le pont se terminait en pastille au milieu de
+la piste. Une bordure n'a de sens que sur les **côtés** d'un tablier : dans le sens de la marche on
+entre dessus, il n'y a rien à border. Le tablier est donc un polygone entre ses deux bords, et seuls
+ces deux bords sont tracés, chacun ouvert et à bouts francs ; la moitié intérieure de chaque trait
+disparaît sous le remplissage, la moitié extérieure fait la bordure.
+
+**Et l'ordre de dessin y mentait sur la position.** Le tablier se peignait avant TOUTES les
 voitures ; celle qui passait dessous se retrouvait donc dessinée par-dessus le pont, et on la voyait
 rouler sur la piste du haut sans y être. C'est le seul endroit du jeu où deux morceaux de circuit
 occupent le même point de l'écran, et le seul où l'ordre de dessin porte une information plutôt

@@ -478,10 +478,40 @@ class Renderer {
       return { left: l, right: r, gravel, kerbs, kerbEdge, bbox: { minX: minX - 30, minY: minY - 30, maxX: maxX + 30, maxY: maxY + 30 } };
     });
 
+    /* LE TABLIER DU CROISEMENT, et pourquoi il n'est plus un trait épais.
+
+    Il était dessiné comme la ligne médiane strokée trois fois, de plus en plus fin : l'ombre, la
+    bordure, la surface. C'est commode et c'est faux aux deux bouts — un trait a des extrémités, et
+    elles se refermaient en demi-cercle, si bien que le pont se terminait en pastille au milieu de
+    la piste. Une bordure n'a de sens que sur les CÔTÉS d'un tablier : dans le sens de la marche on
+    entre dessus, il n'y a rien à border.
+
+    On fabrique donc le tablier comme une vraie surface — un polygone entre ses deux bords — et on
+    ne trace que les deux bords, chacun ouvert. La moitié intérieure de chaque trait disparaît sous
+    le remplissage, la moitié extérieure fait la bordure, et les bouts restent francs. */
     const bridges = track.crossings.map(cr => {
-      const p = new Path2D();
-      for (let i = cr.over - 16; i <= cr.over + 20; i += 2) { const k = (i + N) % N; if (i === cr.over - 16) p.moveTo(xs[k], ys[k]); else p.lineTo(xs[k], ys[k]); }
-      return p;
+      const demi = track.width / 2;
+      const bord = (sens) => {
+        const p = new Path2D();
+        for (let i = cr.over - 16; i <= cr.over + 20; i += 2) {
+          const k = (i + N) % N;
+          const x = xs[k] + nx[k] * demi * sens, y = ys[k] + ny[k] * demi * sens;
+          if (i === cr.over - 16) p.moveTo(x, y); else p.lineTo(x, y);
+        }
+        return p;
+      };
+      const tablier = new Path2D();
+      for (let i = cr.over - 16; i <= cr.over + 20; i += 2) {
+        const k = (i + N) % N;
+        const x = xs[k] + nx[k] * demi, y = ys[k] + ny[k] * demi;
+        if (i === cr.over - 16) tablier.moveTo(x, y); else tablier.lineTo(x, y);
+      }
+      for (let i = cr.over + 20; i >= cr.over - 16; i -= 2) {
+        const k = (i + N) % N;
+        tablier.lineTo(xs[k] - nx[k] * demi, ys[k] - ny[k] * demi);
+      }
+      tablier.closePath();
+      return { tablier, cotes: [bord(1), bord(-1)] };
     });
 
     /* LES PASSERELLES. Un tablier en travers de la piste, et son ombre portée sur l'asphalte.
@@ -1214,9 +1244,14 @@ class Renderer {
     }
     for (const car of dessous) this._drawCar(g, car);
     if (T.drawRoad) for (const b of this.paths.bridges) {
-      g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = T.width + 5; g.stroke(b);
-      g.strokeStyle = '#2f2f36'; g.lineWidth = T.width + 2.4; g.stroke(b);
-      g.strokeStyle = '#4b4b52'; g.lineWidth = T.width; g.stroke(b);
+      // bouts francs : c'est tout l'intérêt de ne border que les côtés
+      g.lineCap = 'butt'; g.lineJoin = 'round';
+      g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = 5;
+      for (const c of b.cotes) g.stroke(c);
+      g.strokeStyle = '#2f2f36'; g.lineWidth = 2.4;
+      for (const c of b.cotes) g.stroke(c);
+      g.fillStyle = '#4b4b52'; g.fill(b.tablier);
+      g.lineCap = 'round';
     }
     for (const car of dessus) this._drawCar(g, car);
     // et le tablier par-dessus les voitures : c'est ce qui dit qu'on passe dessous
