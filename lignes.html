@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <title>Eyes On Line — Éditeur de lignes et de panneaux</title>
-<link rel="stylesheet" href="css/style.css?v=0.21.96">
+<link rel="stylesheet" href="css/style.css?v=0.21.97">
 <style>
   body { overflow: hidden; }
   #ed { position: fixed; inset: 0; display: grid; grid-template-columns: 340px 1fr; }
@@ -125,11 +125,14 @@
       <div id="ficheP" hidden>
         <h3>Sens du virage</h3>
         <div class="grille" id="sensP" style="grid-template-columns:repeat(2,1fr)">
-          <button data-sens="-1">↰ gauche</button>
-          <button data-sens="1">↱ droite</button>
+          <button data-sens="-1">↰ <span class="lbl">gauche</span></button>
+          <button data-sens="1">↱ <span class="lbl">droite</span></button>
         </div>
         <h3>Intensité</h3>
         <div class="grille" id="noteP"></div>
+        <!-- Les virages nommés sur leur propre rangée : ce ne sont pas des degrés de la même
+             échelle, et les aligner dans la grille des chiffres laissait croire que si. -->
+        <div class="grille" id="noteNom" style="grid-template-columns:repeat(4,1fr); margin-top:6px"></div>
         <h3>Valeur annoncée</h3>
         <div class="row2 grille" id="distP" style="grid-template-columns:repeat(3,1fr)"></div>
         <div class="row2" style="margin-top:10px">
@@ -195,13 +198,13 @@
   </div>
 </div>
 
-<script src="js/store.js?v=0.21.96"></script>
-<script src="js/util.js?v=0.21.96"></script>
-<script src="js/traces.js?v=0.21.96"></script>
-<script src="js/tracks.js?v=0.21.96"></script>
-<script src="js/track.js?v=0.21.96"></script>
-<script src="js/props.js?v=0.21.96"></script>
-<script src="js/render.js?v=0.21.96"></script>
-<script src="js/lignes.js?v=0.21.96"></script>
+<script src="js/store.js?v=0.21.97"></script>
+<script src="js/util.js?v=0.21.97"></script>
+<script src="js/traces.js?v=0.21.97"></script>
+<script src="js/tracks.js?v=0.21.97"></script>
+<script src="js/track.js?v=0.21.97"></script>
+<script src="js/props.js?v=0.21.97"></script>
+<script src="js/render.js?v=0.21.97"></script>
+<script src="js/lignes.js?v=0.21.97"></script>
 </body>
 </html>

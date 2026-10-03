@@ -1380,6 +1380,11 @@ class Renderer {
       square: { stem: 1.5, bend: 90, r: 0.16, tail: 1.0, col: '#dd7a28', tag: 'SQ' },
       hairpin: { stem: 0.9, bend: 180, r: 0.62, tail: 0.5, col: '#d85c26', tag: 'HP' },
       acute: { stem: 1.3, bend: 158, r: 0.14, tail: 1.1, col: '#c33b30', tag: 'AC' },
+      // LA CHICANE n'est pas une sévérité mais une FORME : on tourne d'un côté puis on revient. Elle
+      // a donc son glyphe en S — `bend2` replie la courbe dans l'autre sens — et sa couleur sort du
+      // dégradé vert-rouge des notes, qui dit « plus ou moins serré » et ne s'applique pas ici.
+      // Gauche ou droite se lit du premier pli, comme pour toutes les autres : c'est `sign`.
+      chicane: { stem: 0.9, bend: 85, r: 0.3, bend2: 85, r2: 0.3, tail: 0.6, col: '#2f8fb5', tag: 'CH' },
     };
   }
 
@@ -1395,8 +1400,25 @@ class Renderer {
       const a = a0 + (a1 - a0) * i / STEPS;
       path.push([cx + spec.r * Math.cos(a), cy + spec.r * Math.sin(a)]);
     }
-    const te = a1 + dir * Math.PI / 2;                       // where the arrow ends up pointing
-    const [px, py] = path[path.length - 1];
+    let te = a1 + dir * Math.PI / 2;                         // where the arrow ends up pointing
+    let [px, py] = path[path.length - 1];
+    /* LE SECOND PLI, pour la chicane et elle seule. On repart du point courant, dans la direction
+       courante, et on tourne de l'autre côté : le centre du nouvel arc est à `r2` sur la gauche ou
+       la droite du cap selon le sens, et l'arc commence à l'opposé de ce rayon. Écrit comme ça,
+       il n'y a rien à ajuster quand le premier pli change — le second part toujours d'où le
+       premier arrive. */
+    if (spec.bend2) {
+      const d2 = -dir, b2 = spec.bend2 * Math.PI / 180, r2 = spec.r2 || spec.r;
+      const cx2 = px + r2 * Math.cos(te + d2 * Math.PI / 2);
+      const cy2 = py + r2 * Math.sin(te + d2 * Math.PI / 2);
+      const s2 = te - d2 * Math.PI / 2;
+      for (let i = 1; i <= STEPS; i++) {
+        const a = s2 + d2 * b2 * i / STEPS;
+        path.push([cx2 + r2 * Math.cos(a), cy2 + r2 * Math.sin(a)]);
+      }
+      te += d2 * b2;
+      [px, py] = path[path.length - 1];
+    }
     const ex = px + Math.cos(te) * spec.tail, ey = py + Math.sin(te) * spec.tail;
     path.push([ex, ey]);
     // The head is a fixed size on the panel, not a fraction of the glyph: a kink and a hairpin are

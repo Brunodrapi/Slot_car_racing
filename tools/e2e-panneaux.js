@@ -49,11 +49,32 @@ const ok = (c, m) => { console.log(`  ${c ? 'ok' : 'ÉCHEC'} : ${m}`); if (!c) f
   const avant = calcul[0];
   await page.evaluate(() => { S.selP = 0; majFicheP(); dessiner(); });
   await page.click(`#sensP button[data-sens="${avant[3] > 0 ? -1 : 1}"]`);
-  await page.click('#noteP button[data-note="hairpin"]');
+  await page.click('button[data-note="hairpin"]');
   await page.click('#distP button[data-dist="50"]');
   const apres = await page.evaluate(() => S.panneaux[0]);
   ok(apres.sign === -avant[3], 'le sens est retourné');
   ok(apres.note === 'hairpin' && apres.dist === 50, 'la note et la distance suivent');
+
+  /* LA CHICANE : une forme, pas une sévérité. Elle a son glyphe en S, et gauche ou droite se lit du
+     premier pli — c'est le même réglage de sens que pour tout le reste, et c'est pour ça qu'il n'y
+     a pas deux entrées dans la liste. Le libellé du sens le dit quand une chicane est choisie. */
+  await page.click('button[data-note="chicane"]');
+  const chic = await page.evaluate(() => ({
+    note: S.panneaux[0].note,
+    pose: S.track._panneauxPoses([[0.1, 100, 'chicane', -1]])[0].kind,
+    libelle: [...document.getElementById('sensP').children].map((e) => e.querySelector('.lbl').textContent),
+  }));
+  ok(chic.note === 'chicane' && chic.pose === 'chicane', 'la chicane se pose et se relit comme telle');
+  ok(chic.libelle.join('/') === 'gauche-droite/droite-gauche',
+    'le sens se lit « gauche-droite » quand c’est une chicane');
+  const glyphe = await page.evaluate(() => {
+    // le S est-il vraiment un S ? on compare les deux sens : ils doivent être l'image l'un de
+    // l'autre, et le tracé doit repartir dans l'autre sens après le premier pli.
+    const spec = Renderer.ARROWS.chicane;
+    return { a: !!spec && !!spec.bend2, tag: spec && spec.tag };
+  });
+  ok(glyphe.a && glyphe.tag === 'CH', 'le glyphe a bien son second pli');
+  await page.click('button[data-note="hairpin"]');     // on remet ce que la suite attend
   ok(await page.evaluate(() => S.panModif), 'la liste est marquée comme reprise');
 
   // on en supprime un

@@ -62,8 +62,17 @@ const S = {
   appui: null,          // l'appui long en cours
 };
 
-const NOTES = [1, 2, 3, 4, 5, 6, 'square', 'hairpin', 'acute'];
-const NOM_NOTE = { square: 'SQ · à angle droit', hairpin: 'HP · épingle', acute: 'AC · refermé' };
+const CHIFFRES = [1, 2, 3, 4, 5, 6];
+const NOMMES = ['square', 'hairpin', 'acute', 'chicane'];
+const NOM_NOTE = { square: 'SQ · à angle droit', hairpin: 'HP · épingle', acute: 'AC · refermé',
+  chicane: 'CH · chicane' };
+/* GAUCHE OU DROITE SE LIT DU PREMIER PLI, pour une chicane comme pour tout le reste : c'est le même
+   réglage de sens, et il n'y a donc pas deux entrées « chicane gauche » et « chicane droite » dans
+   la liste. Les libellés du sens le disent en toutes lettres quand une chicane est choisie —
+   « gauche-droite » plutôt que « gauche » — sinon le mot « gauche » seul ne dirait pas de quoi il
+   parle pour une courbe qui va des deux côtés. */
+const SENS_NOM = { '-1': 'gauche', 1: 'droite' };
+const SENS_CHICANE = { '-1': 'gauche-droite', 1: 'droite-gauche' };
 const DISTANCES = [200, 100, 50];
 const TACTILE = matchMedia('(pointer: coarse)').matches;
 const VISEE = TACTILE ? 22 : 12;   // le rayon de visée, en pixels : un doigt n'est pas un curseur
@@ -558,7 +567,11 @@ function majFicheP() {
   $('ficheP').hidden = !b;
   if (!b) return;
   for (const el of $('sensP').children) el.classList.toggle('sel', +el.dataset.sens === (b.sign > 0 ? 1 : -1));
-  for (const el of $('noteP').children) el.classList.toggle('sel', el.dataset.note === String(b.note));
+  for (const g of [$('noteP'), $('noteNom')]) {
+    for (const el of g.children) el.classList.toggle('sel', el.dataset.note === String(b.note));
+  }
+  const noms = b.note === 'chicane' ? SENS_CHICANE : SENS_NOM;
+  for (const el of $('sensP').children) el.querySelector('.lbl').textContent = noms[el.dataset.sens];
   for (const el of $('distP').children) el.classList.toggle('sel', +el.dataset.dist === b.dist);
 }
 
@@ -815,14 +828,16 @@ function changerMode(m) {
 }
 for (const b of $('choixMode').children) b.addEventListener('click', () => changerMode(b.dataset.mode));
 
-for (const n of NOTES) {
-  const b = document.createElement('button');
-  b.dataset.note = String(n);
-  b.textContent = typeof n === 'number' ? String(n) : Renderer.ARROWS[n].tag;
-  b.title = typeof n === 'number' ? `note ${n}` : NOM_NOTE[n];
-  b.style.color = Renderer.ARROWS[n].col;
-  b.addEventListener('click', () => changerP('note', typeof n === 'number' ? n : String(n)));
-  $('noteP').appendChild(b);
+for (const [liste, ou] of [[CHIFFRES, 'noteP'], [NOMMES, 'noteNom']]) {
+  for (const n of liste) {
+    const b = document.createElement('button');
+    b.dataset.note = String(n);
+    b.textContent = typeof n === 'number' ? String(n) : Renderer.ARROWS[n].tag;
+    b.title = typeof n === 'number' ? `note ${n}` : NOM_NOTE[n];
+    b.style.color = Renderer.ARROWS[n].col;
+    b.addEventListener('click', () => changerP('note', typeof n === 'number' ? n : String(n)));
+    $(ou).appendChild(b);
+  }
 }
 for (const d of DISTANCES) {
   const b = document.createElement('button');

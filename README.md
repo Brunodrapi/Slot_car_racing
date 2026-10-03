@@ -761,7 +761,7 @@ celle-là même qui les trace en course, ce pour quoi cette page charge `js/rend
 glyphe approchant aurait coûté moins cher et aurait menti : on règle une annonce à ce qu'elle a l'air,
 et deux dessins différents divergent au premier changement.
 
-Toucher un panneau l'ouvre : **sens** (gauche / droite), **intensité** (1 à 6, ou SQ, HP, AC) et
+Toucher un panneau l'ouvre : **sens** (gauche / droite), **intensité** (1 à 6, ou SQ, HP, AC, CH) et
 **valeur** (200, 100, 50 m), plus un bouton pour le supprimer et un autre pour en ajouter. Le toucher
 **déplie le tiroir** et fait glisser la vue juste assez pour que le panneau choisi reste au-dessus de
 lui : sans ça, le panneau s'entourait bien de vert et ses réglages restaient cachés dessous — un
@@ -769,6 +769,18 @@ choix sans suite n'est pas un choix. Le banc le vérifie à l'écran et pas seul
 parce qu'un élément présent et invisible passe tous les contrôles naïfs. Chaque
 entrée tient dans `[fraction de tour, distance, note, sens]` — une fraction et non une station, comme
 pour les passerelles, parce qu'elle survit au changement de longueur déclarée.
+
+**La chicane est une forme, pas une sévérité.** Les six chiffres disent « plus ou moins serré » ; une
+chicane dit « d'un côté puis de l'autre », ce qui n'est pas la même question. Elle a donc son glyphe
+en S — un second pli dans `paceArrow`, qui repart du point et du cap où le premier arrive — et une
+couleur hors du dégradé vert-rouge des notes, pour qu'on ne la lise pas comme un degré. Les virages
+nommés sont sur leur propre rangée, sous les chiffres, pour la même raison.
+
+Il n'y a **pas** deux entrées « chicane gauche » et « chicane droite » : gauche ou droite se lit du
+premier pli, et c'est le réglage de sens qui le porte — le même que pour les neuf autres notes.
+Deux entrées auraient créé une ambiguïté (que voudrait dire « droite » sur une « chicane gauche » ?).
+Les libellés du sens disent en toutes lettres de quoi ils parlent quand une chicane est choisie :
+« gauche-droite » et « droite-gauche » au lieu de « gauche » et « droite ».
 
 **Une liste vide est une liste vide.** Dès qu'un circuit porte `panneaux`, le générateur ne tourne
 plus pour lui : c'est ce qui permet de tous les enlever, et c'est ce que `tools/e2e-panneaux.js`
