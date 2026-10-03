@@ -21,14 +21,14 @@ dans `js/engine-audio.js`. Les prises de moteur en viennent également.
 
 ---
 
-## La géométrie des circuits — ODbL 1.0, et CC BY-SA 3.0 pour Le Mans
+## La géométrie des circuits — ODbL 1.0
 
-Les suites de points de `js/traces.js` viennent d'ailleurs. **Ce fichier, et lui seul, porte ces
-licences** ; onze circuits sont relevés dans OpenStreetMap, le douzième est tracé d'après une carte.
+Les suites de points de `js/traces.js` viennent d'ailleurs. **Ce fichier, et lui seul, porte cette
+licence** ; les douze circuits sont relevés dans OpenStreetMap.
 
-Onze circuits sur douze sont relevés. Chacun vient d'une relation « type=circuit » d'OpenStreetMap,
-qui est la liste officielle des voies formant le tour ; Laguna Seca n'en a pas et se lit par la seule
-étiquette `highway=raceway`. L'écart à la longueur officielle du circuit est ce qui atteste le relevé :
+Chacun vient d'une relation d'OpenStreetMap, qui est la liste officielle des voies formant le tour ;
+Laguna Seca n'en a pas et se lit par la seule étiquette `highway=raceway`. L'écart à la longueur
+officielle du circuit est ce qui atteste le relevé :
 
 | circuit | relevé dans OpenStreetMap | longueur relevée / officielle |
 |---|---|---|
@@ -40,31 +40,12 @@ qui est la liste officielle des voies formant le tour ; Laguna Seca n'en a pas e
 | Interlagos | Autódromo José Carlos Pace | 4 308 / 4 309 m |
 | Laguna Seca | `highway=raceway` | 3 601 / 3 602 m |
 | Nürburgring GP | Nürburgring Grand Prix Strecke | 5 116 / 5 148 m |
+| Le Mans | Circuit des 24 Heures du Mans | 13 612 / 13 626 m |
 | Mount Panorama | Mount Panorama Circuit | 6 197 / 6 213 m |
 | Red Bull Ring | Red Bull Ring | 4 300 / 4 318 m |
 | Zandvoort | Grand Prix Formule 1 van Nederland | 4 253 / 4 259 m |
 
 © les contributeurs d'OpenStreetMap, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/).
-
-### Le Mans — CC BY-SA 3.0
-
-Le Circuit de la Sarthe emprunte la D338 sur les six kilomètres des Hunaudières, une route qui n'est
-ni balisée circuit ni nommée dans OpenStreetMap ; seul le Circuit Bugatti, qui tient dans l'enceinte,
-y a une relation. Son tracé vient donc d'un fond de carte :
-
-| circuit | carte d'origine | auteur | licence |
-|---|---|---|---|
-| Le Mans | [Circuit de la Sarthe track map](https://commons.wikimedia.org/wiki/File:Circuit_de_la_Sarthe_track_map.svg) | Will Pittenger | [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) |
-
-Cette licence demande la même chose que l'ODbL à l'échelle de ce fichier : créditer l'auteur, nommer
-la licence, et laisser l'adaptation — ces coordonnées — sous les mêmes conditions. Elle n'a pas de
-clause de liaison : contrairement à la GPL, elle ne s'étend pas au code qui se contente d'utiliser la
-donnée, et CC BY-SA 3.0 nomme même le cas de la « Collection », un ensemble réunissant l'œuvre avec
-des éléments indépendants.
-
-**Une carte est un schéma.** Elle donne la silhouette juste et des rayons approximatifs — celle de
-Monza dessinait les quatre virages du Rettifilo avec une seule courbe de Bézier. C'est pourquoi les
-onze autres sont relevés, et pourquoi Le Mans le sera dès qu'OpenStreetMap portera la Sarthe entière.
 
 ### Ce que cette licence exige
 
@@ -99,7 +80,14 @@ OpenStreetMap n'est pas un dessin mais un relevé, tracé virage par virage sur 
 il se vérifie seul : la boucle assemblée doit se refermer, et sa longueur tomber sur la longueur
 officielle. À Monza, 5790 m relevés contre 5793 m annoncés. `tools/releve.py` affiche les deux et
 refuse de continuer si la boucle reste ouverte. `tools/tracer.py`, qui lit une carte vectorielle,
-reste dans le dépôt : il sert là où rien n'est relevé.
+reste dans le dépôt : il servirait là où rien n'est relevé.
+
+Le Mans a longtemps fait exception, par erreur de notre côté. On ne cherchait que les relations
+« type=circuit », et le Circuit de la Sarthe n'en est pas une : n'étant permanent qu'en partie — les
+Hunaudières sont la D338 le reste de l'année — il est décrit en « type=route, route=raceway ». Il
+venait donc de la carte de Will Pittenger (CC BY-SA 3.0), qui posait sa ligne de départ à huit
+kilomètres de sa place. La relation existait depuis toujours ; `js/traces.js` ne porte plus que de
+l'ODbL.
 
 ### Une nuance, pour qui s'y intéresse
 

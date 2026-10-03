@@ -690,7 +690,10 @@ dessin, pas du code mort. La branche `isometric` garde l'essai complet.
   une illustration en trois quarts pour le menu de sélection. Plus aucune silhouette vectorielle
   sur la grille. Deux d'entre elles — la 3.0 CSL et la F40 — ont trois livrées chacune.
 - **12 circuits** inspirés de vrais tracés : Monza, Spa-Francorchamps, Monaco, Silverstone, Suzuka
-  (avec son pont), Interlagos, Laguna Seca, Nürburgring GP, Le Mans, Mount Panorama, Red Bull Ring, Zandvoort.
+  (avec son pont), Interlagos, Laguna Seca, Nürburgring GP, Le Mans, Mount Panorama, Red Bull Ring,
+  Zandvoort. Sept d'entre eux portent les **passerelles piétonnes** relevées au-dessus de leur piste
+  — quinze en tout, dont la Passerelle Porsche et la Passerelle Goodyear au Mans — et les voitures
+  passent dessous.
 - **Un seul plateau**, celui des neuf voitures ci-dessus. Son identifiant reste `gt` — les records
   de tour sont rangés sous `circuit|catégorie` et `circuit|catégorie|voiture` dans la sauvegarde,
   et le changer effacerait ceux des joueurs — mais son nom ne pouvait plus être « GT » avec une
@@ -2105,7 +2108,7 @@ attribuerait des records au hasard.
 La lecture, elle, est ouverte à tous, comptes et anonymes : un tableau qu'il faut mériter de voir
 ne sert à rien, c'est ce qu'on regarde avant de jouer.
 
-### La passerelle de Monza, et pourquoi ce n'est pas un pont
+### Les passerelles, et pourquoi ce ne sont pas des ponts
 
 Le jeu savait déjà dessiner un pont : `track.crossings` trouve les endroits où la piste passe
 au-dessus d'elle-même — le croisement de Suzuka — et `js/render.js` les peint **avant** les voitures,
@@ -2115,12 +2118,36 @@ Une passerelle piétonne est l'inverse : on passe **dessous**. Elle se peint don
 et c'est tout ce qui distingue les deux à l'écran. Son ombre, elle, reste avant — posée sur
 l'asphalte, elle passe sous les voitures, et c'est la seule chose qui donne au tablier une hauteur.
 
-**Sa position est relevée, pas placée à l'œil.** OpenStreetMap porte la passerelle comme n'importe
-quel chemin : la voie 51791412, un pont piéton de 18 m à 45,62490 N / 9,28922 E, qui enjambe la piste
-sur la ligne droite du Serraglio. `tools/releve.py --repere=lat,lon` rend la station la plus proche
-d'un lieu donné, en **fraction de tour** — 0,6333 ici. Une fraction plutôt qu'une distance, parce
+**Leur position est relevée, pas placée à l'œil.** OpenStreetMap porte une passerelle comme n'importe
+quel chemin, avec `bridge=yes`. `tools/releve.py --passerelles` les cherche toutes et garde celles qui
+passent vraiment au-dessus, en **fraction de tour** — une fraction plutôt qu'une distance, parce
 qu'elle survit au rééchantillonnage : `js/track.js` ne garde pas le même nombre de stations selon la
 longueur déclarée.
+
+**On ne mesure pas une distance, on cherche un croisement.** La première version gardait les ponts
+dont un nœud tombait à moins de douze mètres de l'axe, puis vérifiait que les deux bouts étaient de
+part et d'autre. Ça marchait à Monza, à Monaco et à Silverstone — et ça rendait **zéro** passerelle au
+Mans, qui en a deux. Un pont n'est pourtant décrit que par ses deux culées : la Passerelle Porsche
+porte 56 m de tablier, ses nœuds sont donc à vingt-huit mètres de l'axe, loin au-delà du seuil. Le
+seuil ne mesurait pas ce que je croyais ; il ne retenait que les ponts courts. Deux segments se
+croisent ou ne se croisent pas : c'est exact, sans seuil à régler, et le point de croisement donne la
+station directement. Le test refait rend quinze passerelles au lieu de quatre.
+
+**Deux passerelles restent deux.** Le relevé coupe souvent un ouvrage en morceaux — la Passerelle
+Goodyear est un tablier et deux escaliers. On regroupe donc les chemins qui **partagent un nœud**. On
+avait d'abord regroupé par distance, moins de vingt mètres le long du tour, et ça fondait en une les
+deux passerelles de la Wellington Straight, qui sont deux ouvrages distincts à dix mètres l'un de
+l'autre. Partager un nœud est un fait de la base ; vingt mètres était un seuil de mon cru.
+
+| circuit | passerelles | | circuit | passerelles |
+|---|---|---|---|---|
+| Monza | 3 | | Le Mans | 2 (Goodyear, Porsche) |
+| Silverstone | 3 | | Mount Panorama | 2 |
+| Laguna Seca | 3 | | Monaco | 1 |
+| Interlagos | 1 | | | |
+
+Spa, Suzuka, le Nürburgring, le Red Bull Ring et Zandvoort n'en ont aucune qui enjambe la piste dans
+OpenStreetMap. On n'en invente pas : une passerelle posée au jugé serait du décor, pas un relevé.
 
 Le tablier se pose à sa largeur exacte le long de la tangente, et non en sautant d'une station à
 l'autre : arrondir 1,6 m à deux stations donnait quatre mètres au lieu de trois deux, et la largeur
@@ -2538,7 +2565,7 @@ NODE_PATH=$(npm root -g) node tools/e2e-livree.js [dossier]                     
 python3 tools/calibre.py <fichier.png...> [--largeur=420]                         # une illustration deja detouree, ramenee a la taille affichee
 python3 tools/prises.py <fichier.wav...> [--bits=16] [--essai]                    # les prises de moteur, du flottant 32 bits a l'entier 16
 python3 tools/tracer.py <carte.svg> [--points=600] [--decimales=3] [--depart=auto]  # un chemin SVG vers la liste de points d'un circuit
-python3 tools/releve.py --bbox=s,o,n,e --depart="<voie>" --longueur=<m>           # un circuit releve dans OpenStreetMap
+python3 tools/releve.py --bbox=s,o,n,e --depart="<voie>" --longueur=<m> [--passerelles]  # un circuit releve dans OpenStreetMap
 node tools/fiches.js                                                             # les vitesses du jeu face aux vraies, et l'ordre du plateau
 NODE_PATH=$(npm root -g) node tools/e2e-remise.js                                 # la remise a zero des temps : efface une fois, et une seule
 ```
@@ -2600,16 +2627,20 @@ répondu : délais dépassés, 504, connexions coupées. L'API de base rend 5 Mo
 ne sait pas filtrer, mais elle ne tombe pas, et elle refuse au-delà de 50 000 nœuds — l'outil coupe
 alors la boîte en quatre et recolle, ce dont Interlagos et Monaco ont besoin.
 
-**Le Mans passe par la carte.** Le Circuit de la Sarthe emprunte la D338 sur les six kilomètres des
-Hunaudières, et cette route n'est ni balisée circuit ni nommée ; seul le Circuit Bugatti, qui tient
-dans l'enceinte, a une relation. Le Mans est donc tracé avec `tools/tracer.py` sur le fond de carte de
-Wikimedia, avec ce que cela coûte : la silhouette est juste, les rayons approximatifs.
+**Le Mans a longtemps manqué, et la faute en revenait à la recherche, pas à la base.** On ne cherchait
+que les relations « type=circuit », et le Circuit de la Sarthe n'en est pas une : n'étant permanent
+qu'en partie — les Hunaudières sont la D338 le reste de l'année — il est décrit en « type=route,
+route=raceway ». On en a conclu qu'OpenStreetMap ne connaissait pas Le Mans, et on l'a tracé sur un
+fond de carte de Wikimedia faute de mieux.
 
-Sa ligne de départ n'a pas été devinée. La règle par défaut — les deux tiers de la plus longue ligne
-droite — aurait posé la grille au milieu des Hunaudières. Mais la carte dessine aussi la voie des
-stands, parallèle à la piste et à quinze pixels d'elle : on la retrouve en cherchant, parmi les
-cinquante-six chemins du fichier, celui qui longe le tracé sans le toucher, et c'est lui qui dit où
-sont les stands.
+La relation existait depuis toujours : cinquante voies, `distance=13.626`, et jusqu'au nœud
+`raceway=start-finish` qui marque la ligne. Assemblée, elle rend 13 612 m contre 13 626 annoncés —
+0,10 % d'écart, le deuxième meilleur des douze. L'outil accepte désormais les deux étiquettes.
+
+**Ce que la carte coûtait.** La silhouette était bonne — superposée au relevé, l'écart médian vaut
+7 m sur un tour de 13,6 km — mais la ligne de départ, lue sur le dessin de la voie des stands, tombait
+à huit kilomètres de sa place : la grille se formait vers Indianapolis. Une silhouette juste ne dit
+rien de ce qu'on y pose.
 
 **Le passage par l'image a été essayé d'abord, et abandonné.** Masque de couleur, fermeture
 morphologique, amincissement de Zhang-Suen, marche sur le squelette : chaque étape a ses réglages, et
@@ -2645,12 +2676,13 @@ qui les fait coïncider, avec le résidu qui dit si la superposition a vraiment 
 | Suzuka | 119,0° | 0,7 % | Laguna Seca | 251,1° | 3,9 % |
 | Silverstone | 284,0° | 1,5 % | Mount Panorama | 238,5° | 5,1 % |
 | Monza | 262,7° | 1,6 % | Zandvoort | 245,0° | 5,5 % |
-| Nürburgring GP | 0,9° | 0,9 % | | | |
+| Nürburgring GP | 0,9° | 0,9 % | Le Mans | 258,7° | 3,0 % |
 
 Le résidu n'est pas décoratif : à Laguna Seca, le plus long chemin du SVG n'était pas la piste, et
-ses 15,2 % l'ont dit — un autre chemin du même fichier tombe à 3,9 %. **Le Mans mesure 0,0° avec
-0,1 % de résidu**, ce qui est la meilleure vérification qu'on puisse avoir : son tracé vient de cette
-carte, il est donc déjà dans son orientation, et l'outil le retrouve seul. Le Nürburgring, mesuré
+ses 15,2 % l'ont dit — un autre chemin du même fichier tombe à 3,9 %. Le Mans a servi de témoin :
+tant qu'il venait de cette même carte, l'outil lui mesurait **0,0° avec 0,1 % de résidu**, ce qui est
+la meilleure vérification qu'on puisse avoir — il retrouvait seul l'orientation d'origine. Relevé
+depuis, il demande 258,7° et retombe à 0,2 % une fois posé. Le Nürburgring, mesuré
 après plusieurs heures de 429 de la part de Wikimedia, ne demande que 0,9° : sa carte est à peu de
 chose près orientée au nord, et c'est le seul des douze dont l'angle ne change presque rien.
 

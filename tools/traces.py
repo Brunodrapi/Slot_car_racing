@@ -16,19 +16,25 @@ autrement : les circuits en ville, dont le tour emprunte des rues publiques qu'i
 (le Nürburgring en porte quatre) ; et les voies dessinées à l'envers. Laguna Seca n'a pas de relation,
 et se laisse lire par la seule étiquette `highway=raceway`.
 
-LES DEUX QUI MANQUENT. Monaco a un trou de relevé au Casino — trois voies s'y arrêtent à dix et
-trente mètres les unes des autres sans nœud commun — d'où sa tolérance de jointure. Le Mans n'est pas
-là : le Circuit de la Sarthe emprunte la D338 sur ses six kilomètres de Hunaudières, et cette route
-n'est ni balisée circuit ni nommée ; seul le Circuit Bugatti, qui tient dans l'enceinte, a une
-relation. C'est un choix de jeu, pas un problème d'outil.
+LE CAS DE MONACO. Un trou de relevé au Casino — trois voies s'y arrêtent à dix et trente mètres les
+unes des autres sans nœud commun — d'où sa tolérance de jointure, la seule de la table qui ne vaut
+pas 0,5 m.
+
+LE MANS A LONGTEMPS MANQUÉ, et pour une mauvaise raison. On cherchait les relations « type=circuit »,
+et le Circuit de la Sarthe n'en est pas une : comme il n'est permanent qu'en partie — les Hunaudières
+sont la D338 le reste de l'année — il est décrit en « type=route, route=raceway ». On en a conclu
+qu'OpenStreetMap ne connaissait pas Le Mans, et on l'a tracé sur une carte vectorielle de Wikimedia
+faute de mieux. La relation existait depuis toujours, avec ses cinquante voies et sa longueur
+annoncée de 13,626 km. La carte, elle, posait la ligne de départ à huit kilomètres de sa place.
+
+C'est pourquoi `tools/tracer.py` n'est plus appelé d'ici : les douze circuits viennent du relevé. Il
+reste utilisable pour un treizième dont OpenStreetMap n'aurait rien.
 """
 import os
 import subprocess
 import sys
-import urllib.request
 
 OUTIL = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'releve.py')
-TRACEUR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tracer.py')
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # L'ANGLE est mesuré, pas choisi : `tools/orientation.py` superpose le tracé relevé à la carte que
@@ -55,26 +61,12 @@ TABLE = [
     ('interlagos',  '-23.715,-46.710,-23.690,-46.678', 'José Carlos Pace',               'Pit Lane',       4309, 0.5, 'antihoraire', 47.3),
     ('laguna',      '36.575,-121.770,36.600,-121.740', None,                             'Pit Lane',       3602, 0.5, 'horaire', 251.1),
     ('nurburgring', '50.322,6.925,50.355,6.965',  'Nürburgring Grand Prix Strecke',      'Boxengasse',     5148, 0.5, 'horaire', 0.9),
+    ('lemans',      '47.910,0.203,47.965,0.248',  'Circuit des 24 Heures du Mans',       'Pit Lane',      13626, 0.5, 'horaire', 258.7),
     ('bathurst',    '-33.465,149.540,-33.435,149.575', 'Mount Panorama Circuit',         '',               6213, 0.5, 'antihoraire', 238.5),
     ('redbullring', '47.210,14.750,47.232,14.782', 'Red Bull Ring',                      'Boxenstraße',    4318, 0.5, 'horaire', 0.6),
     ('zandvoort',   '52.378,4.525,52.402,4.560',  'Grand Prix Formule 1 van Nederland',  'Pitstraat',      4259, 0.5, 'horaire', 245.0),
 ]
 DEPART_SANS_RELATION = {'laguna': 'The Corkscrew'}
-
-# LES CARTES, FAUTE DE RELEVÉ. Le Circuit de la Sarthe emprunte la D338 sur les six kilomètres des
-# Hunaudières, une route qui n'est ni balisée circuit ni nommée dans OpenStreetMap ; seul le Circuit
-# Bugatti, qui tient dans l'enceinte, y a une relation. Le Mans vient donc d'un fond de carte
-# vectoriel, avec ce que cela coûte : une carte est un schéma, et ses rayons valent ce qu'ils valent.
-#
-# `depart` est en coordonnées du SVG, et pointe la ligne de départ. On ne l'a pas devinée : la voie
-# des stands est dessinée dans le fichier, parallèle à la piste et à quinze pixels d'elle, et c'est
-# elle qui dit où sont les stands. La règle par défaut — le point le plus long de la plus longue
-# ligne droite — aurait posé la grille au milieu des Hunaudières.
-TABLE_SVG = [
-    ('lemans',
-     'https://commons.wikimedia.org/wiki/Special:FilePath/Circuit_de_la_Sarthe_track_map.svg',
-     '959.7,190.4', 13626, 'Track map for the Circuit de la Sarthe, de Will Pittenger, CC BY-SA 3.0', 0),
-]
 
 ENTETE = '''/* Eyes On Line — la GÉOMÉTRIE des circuits, et elle seule.
  *
@@ -137,26 +129,6 @@ def releve(ligne, cache, points, dec):
     return pts, mesure, voies
 
 
-def carte(ligne, cache, points, dec):
-    cid, url, depart, officielle, credit, rot = ligne
-    fichier = os.path.join(cache, f'carte_{cid}.svg')
-    if not os.path.exists(fichier):
-        r = urllib.request.Request(url, headers={'User-Agent': 'EyesOnLine/0.2 (trace de circuit)'})
-        with urllib.request.urlopen(r, timeout=120) as f:
-            open(fichier, 'wb').write(f.read())
-    cmd = [sys.executable, TRACEUR, fichier, f'--points={points}', f'--decimales={dec}',
-           f'--depart={depart}', f'--rotation={rot}']
-    r = subprocess.run(cmd, capture_output=True, text=True)
-    if r.returncode != 0:
-        print(r.stdout[-2000:], r.stderr[-2000:])
-        raise SystemExit(f'  {cid} : le tracé a échoué')
-    sortie = r.stdout.splitlines()
-    pts = [l for l in sortie if l.startswith('      [')]
-    if not pts:
-        raise SystemExit(f'  {cid} : aucun point produit')
-    return pts, credit
-
-
 def main():
     o = {a.split('=')[0][2:]: (a.split('=', 1)[1] if '=' in a else '1')
          for a in sys.argv[1:] if a.startswith('--')}
@@ -173,16 +145,6 @@ def main():
         corps.append(f'  /* {ligne[2] or "relevé par l’étiquette highway=raceway"}.\n'
                      f'     {mesure.replace("longueur relevee", "longueur relevée")}.\n'
                      f'     {points} points · sens {ligne[6]} · posé à {ligne[7]}° · départ sur la ligne droite des stands. */\n'
-                     f'  {ligne[0]}: [\n' + '\n'.join(pts) + '\n  ],\n')
-    for ligne in TABLE_SVG:
-        if choisis and ligne[0] not in choisis:
-            continue
-        print(f'  {ligne[0]}… (carte vectorielle, faute de relevé)', flush=True)
-        pts, credit = carte(ligne, cache, points, dec)
-        print(f'    {len(pts) * max(1, 6 - dec)} points · {credit}')
-        corps.append(f'  /* {credit}.\n'
-                     f'     Un schéma, pas un relevé : la forme est juste, les rayons approximatifs.\n'
-                     f'     {points} points · posé à {ligne[5]}° · départ sur la ligne des stands, lue dans la carte. */\n'
                      f'  {ligne[0]}: [\n' + '\n'.join(pts) + '\n  ],\n')
     if choisis:
         print('\n  (relevé partiel : js/traces.js n’est pas réécrit)')

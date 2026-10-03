@@ -95,14 +95,20 @@ def relations(morceaux):
     par leur etiquette puis par leur nom de rue — ce qui marche pour un autodrome et pas pour un
     circuit en ville, ou le tour emprunte une douzaine de rues qu il faut deviner. OpenStreetMap les
     a deja groupees : la relation « Circuit de Monaco » porte ses 43 voies, « Nurburgring Grand Prix
-    Strecke » ses 20, et on ne choisit plus entre quatre traces imbriques, on nomme celui qu on veut."""
+    Strecke » ses 20, et on ne choisit plus entre quatre traces imbriques, on nomme celui qu on veut.
+
+    DEUX ETIQUETTES POUR LA MEME CHOSE. On ne prenait que « type=circuit », et le circuit de la
+    Sarthe n y est pas : il est decrit en « type=route, route=raceway », parce qu il n est permanent
+    qu en partie — les Hunaudieres sont une route departementale le reste de l annee. On a donc cru
+    des heures qu OpenStreetMap ne connaissait pas Le Mans. On accepte les deux etiquettes, et la
+    longueur officielle reste le juge : une relation prise a tort ne se refermerait pas dessus."""
     out = {}
     for brut in morceaux:
         for _, el in ET.iterparse(io.BytesIO(brut), events=('end',)):
             if el.tag != 'relation':
                 continue
             tags = {t.get('k'): t.get('v') for t in el.findall('tag')}
-            if tags.get('type') == 'circuit':
+            if tags.get('type') == 'circuit' or tags.get('route') == 'raceway':
                 nom = tags.get('name', f"relation {el.get('id')}")
                 membres = [int(m.get('ref')) for m in el.findall('member') if m.get('type') == 'way']
                 out.setdefault(nom, set()).update(membres)
@@ -143,7 +149,7 @@ def interroge(bbox, cache=None, aussi=None, relation=None):
     if relation:
         cibles = [n for n in rels if relation.lower() in n.lower()]
         if not cibles:
-            print('  relations « type=circuit » dans cette boite :')
+            print('  relations de circuit dans cette boite :')
             for n in sorted(rels):
                 print(f'    {len(rels[n]):3} voies  {n}')
             raise SystemExit('  aucune ne correspond a --relation')
@@ -409,6 +415,100 @@ def main():
     # avant la rotation : un indice ne depend ni de l angle ni de l echelle, seulement du point de
     # depart et du sens. La fraction se garde telle quelle dans `js/tracks.js`, ou elle survit au
     # reechantillonnage de `js/track.js`.
+    # LES PASSERELLES QUI ENJAMBENT LA PISTE. Une passerelle pietonne est un chemin comme un autre
+    # dans OpenStreetMap, avec `bridge=yes`. Reste a savoir lesquelles passent AU-DESSUS de la piste,
+    # et non a cote : un circuit traverse une ville ou une foret pleines de passerelles qui ne le
+    # concernent pas.
+    #
+    # ON NE MESURE PAS UNE DISTANCE, ON CHERCHE UN CROISEMENT. La premiere version gardait les ponts
+    # dont un noeud tombait a moins de douze metres de l axe, puis verifiait que les deux bouts
+    # etaient de part et d autre. Ca marchait a Monza, a Monaco et a Silverstone — et ca rendait zero
+    # passerelle au Mans, qui en a sept. Un pont n est pourtant decrit que par ses deux CULEES : la
+    # Passerelle Porsche porte 56 m de tablier, ses noeuds sont donc a vingt-huit metres de l axe,
+    # loin au-dela du seuil. Le seuil ne mesurait pas ce que je croyais ; il ne retenait que les
+    # ponts courts.
+    #
+    # Deux segments se croisent ou ne se croisent pas : c est exact, sans seuil a regler, et le point
+    # de croisement donne la station directement. Un pont qui longe la piste a un metre ne croise
+    # pas ; un pont de deux cents metres qui la franchit, si.
+    if o.get('passerelles'):
+        n = len(r)
+
+        def croise(p, q, a, b):
+            """Le point ou [p,q] croise [a,b], en fraction de [a,b] — ou None."""
+            rx, ry = q[0] - p[0], q[1] - p[1]
+            sx, sy = b[0] - a[0], b[1] - a[1]
+            den = rx * sy - ry * sx
+            if abs(den) < 1e-12:
+                return None
+            t = ((a[0] - p[0]) * sy - (a[1] - p[1]) * sx) / den
+            u = ((a[0] - p[0]) * ry - (a[1] - p[1]) * rx) / den
+            return u if 0 <= t <= 1 and 0 <= u <= 1 else None
+
+        trouvees, extremites = [], {}
+        for w in tout:
+            t = w.get('tags') or {}
+            if t.get('bridge') not in ('yes', 'viaduct'):
+                continue
+            if t.get('highway') not in ('footway', 'path', 'pedestrian', 'steps', 'cycleway'):
+                continue
+            g = metres(w['geometry'], lat0)
+            extremites[w['id']] = [(p['lat'], p['lon']) for p in (w['geometry'][0], w['geometry'][-1])]
+            portee = sum(math.dist(g[i], g[i + 1]) for i in range(len(g) - 1))
+            for i in range(len(g) - 1):
+                p, q = g[i], g[i + 1]
+                lo = (min(p[0], q[0]), min(p[1], q[1]))
+                hi = (max(p[0], q[0]), max(p[1], q[1]))
+                for k in range(n):
+                    a, b = r[k], r[(k + 1) % n]
+                    if max(a[0], b[0]) < lo[0] or min(a[0], b[0]) > hi[0]:
+                        continue
+                    if max(a[1], b[1]) < lo[1] or min(a[1], b[1]) > hi[1]:
+                        continue
+                    u = croise(p, q, a, b)
+                    if u is None:
+                        continue
+                    trouvees.append(((k + u) / n, w['id'], t.get('name') or '\u2014', portee))
+                    break
+                else:
+                    continue
+                break
+
+        # UNE PASSERELLE, PLUSIEURS CHEMINS — mais deux passerelles restent deux. Le releve coupe
+        # souvent un ouvrage en morceaux : la Passerelle Goodyear est un tablier et deux escaliers.
+        # On regroupe donc les chemins QUI SE TOUCHENT, c est-a-dire qui partagent un noeud. On avait
+        # d abord regroupe par distance — moins de vingt metres le long du tour — et ca fondait en
+        # une les deux passerelles de la Wellington Straight, qui sont deux ouvrages distincts a dix
+        # metres l un de l autre. Partager un noeud est un fait de la base ; vingt metres etait un
+        # seuil de mon cru.
+        bouts = {c[1]: set(extremites[c[1]]) for c in trouvees}
+        parent = {i: i for i in bouts}
+
+        def racine(i):
+            while parent[i] != i:
+                parent[i] = parent[parent[i]]
+                i = parent[i]
+            return i
+
+        for i in bouts:
+            for k2 in bouts:
+                if i < k2 and bouts[i] & bouts[k2]:
+                    parent[racine(i)] = racine(k2)
+        paquets = {}
+        for c in trouvees:
+            paquets.setdefault(racine(c[1]), []).append(c)
+        groupes = sorted(paquets.values(), key=lambda g: g[0][0])
+
+        print(f'\n  {len(groupes)} passerelle(s) enjambent la piste :')
+        for grp in groupes:
+            f = sum(c[0] for c in grp) / len(grp)
+            nom = next((c[2] for c in grp if c[2] != '\u2014'), '\u2014')
+            print(f'    {f:.4f} du tour  {nom[:26]:26} voie {grp[0][1]:>11}'
+                  f'  chemin {max(c[3] for c in grp):5.1f} m  ({len(grp)} chemin(s))')
+        if groupes:
+            print('    passerelles: ['
+                  + ', '.join(f'{sum(c[0] for c in g) / len(g):.4f}' for g in groupes) + '],')
+
     if 'repere' in o:
         rl, ro = (float(v) for v in o['repere'].split(','))
         cible = metres([{'lat': rl, 'lon': ro}], lat0)[0]

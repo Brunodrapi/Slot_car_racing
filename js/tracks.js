@@ -51,12 +51,12 @@ const TRACKS = [
        chicanes s'en trouvent deux fois plus serrées qu'en vrai, et `js/track.js` les rouvre juste
        assez pour que la route ne se replie pas sur elle-même (voir PLI_MAX). */
     pts: TRACES.monza,
-    /* La passerelle piétonne, en fraction de tour. Relevée dans OpenStreetMap elle aussi — la voie
-       51791412, un pont de 18 m qui enjambe la piste entre Lesmo et Ascari — et convertie par
-       `tools/releve.py --repere=45.62490,9.28922`. Une fraction plutôt qu'une distance : elle
-       survit au rééchantillonnage de `js/track.js`, qui ne garde pas le même nombre de stations
-       selon la longueur déclarée. */
-    passerelles: [0.6333],
+    /* Les passerelles piétonnes, en fraction de tour. Relevées dans OpenStreetMap elles aussi, par
+       `tools/releve.py --passerelles`, qui ne retient que les chemins « bridge=yes » dont le tracé
+       CROISE la ligne médiane — deux segments se croisent ou ne se croisent pas, il n'y a pas de
+       seuil à régler. Une fraction plutôt qu'une distance : elle survit au rééchantillonnage de
+       `js/track.js`, qui ne garde pas le même nombre de stations selon la longueur déclarée. */
+    passerelles: [0.6340, 0.7791, 0.8297],
   },
   {
     id: 'spa', name: 'Spa-Francorchamps', country: 'BE', flag: '🇧🇪', theme: 'forest',
@@ -71,12 +71,17 @@ const TRACKS = [
     kerb: DRAPEAUX.mc,
     length: 2300, width: 11, laps: 5,
     pts: TRACES.monaco,
+    // Le pont qui enjambe le boulevard Albert 1er juste avant la ligne (voie 167625745).
+    passerelles: [0.9471],
   },
   {
     id: 'silverstone', name: 'Silverstone', country: 'GB', flag: '🇬🇧', theme: 'autumn',
     kerb: DRAPEAUX.gb,
     length: 3300, width: 16, laps: 3, puddles: 0.4,
     pts: TRACES.silverstone,
+    /* Les deux passerelles de la Wellington Straight — deux ouvrages distincts, à dix mètres l'un
+       de l'autre — et la passerelle couverte du complexe des stands. */
+    passerelles: [0.2163, 0.2179, 0.9639],
   },
   {
     id: 'suzuka', name: 'Suzuka', country: 'JP', flag: '🇯🇵', theme: 'japan',
@@ -89,12 +94,16 @@ const TRACKS = [
     kerb: DRAPEAUX.br,
     length: 2700, width: 14, laps: 4,
     pts: TRACES.interlagos,
+    // La passerelle du S do Senna (voie 189535484).
+    passerelles: [0.8625],
   },
   {
     id: 'laguna', name: 'Laguna Seca', country: 'US', flag: '🇺🇸', theme: 'california',
     kerb: DRAPEAUX.us,
     length: 2400, width: 13, laps: 4,
     pts: TRACES.laguna,
+    // Trois passerelles : l'entrée des stands, le Rainey Curve et le Corkscrew.
+    passerelles: [0.0399, 0.6555, 0.7886],
   },
   {
     id: 'nurburgring', name: 'Nürburgring GP', country: 'DE', flag: '🇩🇪', theme: 'forest',
@@ -107,12 +116,16 @@ const TRACKS = [
     kerb: DRAPEAUX.fr,
     length: 4200, width: 15, laps: 2,
     pts: TRACES.lemans,
+    // La Passerelle Goodyear et la Passerelle Porsche, nommées comme telles dans le relevé.
+    passerelles: [0.0989, 0.9768],
   },
   {
     id: 'bathurst', name: 'Mount Panorama', country: 'AU', flag: '🇦🇺', theme: 'bush',
     kerb: DRAPEAUX.au,
     length: 3600, width: 13, laps: 3,
     pts: TRACES.bathurst,
+    // Une passerelle sur Conrod Straight, une sur Pit Straight.
+    passerelles: [0.1524, 0.2183],
   },
   {
     id: 'redbullring', name: 'Red Bull Ring', country: 'AT', flag: '🇦🇹', theme: 'alpine',
