@@ -1175,11 +1175,6 @@ class Renderer {
       g.fillStyle = 'rgba(255,208,128,0.9)';
       for (const l of tu.lampes) { g.beginPath(); g.arc(l[0], l[1], 0.7, 0, Math.PI * 2); g.fill(); }
     }
-    if (T.drawRoad) for (const b of this.paths.bridges) {
-      g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = T.width + 5; g.stroke(b);
-      g.strokeStyle = '#2f2f36'; g.lineWidth = T.width + 2.4; g.stroke(b);
-      g.strokeStyle = '#4b4b52'; g.lineWidth = T.width; g.stroke(b);
-    }
     // Smoke, under the cars. A puff fades over its own life rather than over a fixed second, so a
     // big slow one stays up as long as it is meant to; and it thins as it grows, the way a cloud
     // does. Drawn before the cars, because a car swallowed by its own smoke is a car the driver
@@ -1194,9 +1189,36 @@ class Renderer {
       if (!inView(p.bbox)) continue;
       g.fillStyle = 'rgba(30,26,20,0.22)'; g.fill(p.ombre);
     }
-    // le joueur passe en dernier : deux voitures qui se touchent, c'est la sienne qu'on veut voir
-    const order = race.cars.slice().sort((a, b) => (a.isPlayer ? 1 : 0) - (b.isPlayer ? 1 : 0));
-    for (const car of order) this._drawCar(g, car);
+    /* LES VOITURES, DE PART ET D'AUTRE DU TABLIER.
+
+    Un croisement, c'est la piste au-dessus d'elle-même : au même endroit de l'écran il y a deux
+    morceaux de circuit, l'un sur l'autre. Le tablier se peignait avant toutes les voitures, et
+    celle qui passait DESSOUS se retrouvait dessinée par-dessus le pont — on la voyait rouler sur
+    la piste du haut sans y être. C'est le seul endroit du jeu où l'ordre de dessin ment sur la
+    position.
+
+    On sépare donc en deux : celles qui sont SUR le tablier, et toutes les autres. Les autres, puis
+    le tablier, puis celles du dessus. Une voiture du dessous disparaît alors sous le pont, comme
+    elle doit, et ressort de l'autre côté.
+
+    `cr.over` est le milieu du croisement et le tablier va de −16 à +20 stations ; une station vaut
+    un mètre, et `T.idx` ramène l'abscisse curviligne à une station. */
+    const dessus = [], dessous = [];
+    const pont = this.paths.bridges.length ? T.crossings : [];
+    for (const car of race.cars.slice().sort((a, b) => (a.isPlayer ? 1 : 0) - (b.isPlayer ? 1 : 0))) {
+      // le joueur passe en dernier dans chaque groupe : deux voitures qui se touchent, c'est la
+      // sienne qu'on veut voir
+      const k = T.idx(car.s);
+      const sur = pont.some((cr) => ((k - (cr.over - 16)) % T.n + T.n) % T.n <= 36);
+      (sur ? dessus : dessous).push(car);
+    }
+    for (const car of dessous) this._drawCar(g, car);
+    if (T.drawRoad) for (const b of this.paths.bridges) {
+      g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = T.width + 5; g.stroke(b);
+      g.strokeStyle = '#2f2f36'; g.lineWidth = T.width + 2.4; g.stroke(b);
+      g.strokeStyle = '#4b4b52'; g.lineWidth = T.width; g.stroke(b);
+    }
+    for (const car of dessus) this._drawCar(g, car);
     // et le tablier par-dessus les voitures : c'est ce qui dit qu'on passe dessous
     for (const p of this.paths.passerelles) {
       if (!inView(p.bbox)) continue;

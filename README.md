@@ -2111,8 +2111,17 @@ ne sert à rien, c'est ce qu'on regarde avant de jouer.
 ### Les passerelles, et pourquoi ce ne sont pas des ponts
 
 Le jeu savait déjà dessiner un pont : `track.crossings` trouve les endroits où la piste passe
-au-dessus d'elle-même — le croisement de Suzuka — et `js/render.js` les peint **avant** les voitures,
-puisqu'on roule dessus.
+au-dessus d'elle-même — le croisement de Suzuka — et `js/render.js` le peint comme une portion de
+route, puisqu'on roule dessus.
+
+**Mais l'ordre de dessin y mentait sur la position.** Le tablier se peignait avant TOUTES les
+voitures ; celle qui passait dessous se retrouvait donc dessinée par-dessus le pont, et on la voyait
+rouler sur la piste du haut sans y être. C'est le seul endroit du jeu où deux morceaux de circuit
+occupent le même point de l'écran, et le seul où l'ordre de dessin porte une information plutôt
+qu'une préférence. Les voitures se trient maintenant en deux : celles dont la station tombe sur le
+tablier, et les autres. Les autres, puis le tablier, puis celles du dessus. Une voiture du dessous
+disparaît sous le pont, comme elle doit, et ressort de l'autre côté — **1,2 s à 108 km/h**, pour un
+tablier de 36 m.
 
 Une passerelle piétonne est l'inverse : on passe **dessous**. Elle se peint donc après les voitures,
 et c'est tout ce qui distingue les deux à l'écran. Son ombre, elle, reste avant — posée sur
