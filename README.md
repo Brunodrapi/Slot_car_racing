@@ -2155,7 +2155,7 @@ d'une passerelle se juge à côté d'une voiture de quatre mètres. Il déborde 
 côté de la route — une passerelle s'appuie sur des piles plantées hors piste, et un tablier arrêté
 pile au bord aurait l'air posé sur les vibreurs.
 
-### Le tunnel de Monaco
+### Le tunnel de Monaco, le passage couvert de Suzuka
 
 Une entrée, une sortie, et l'asphalte plus sombre entre les deux. Vu du dessus, un tunnel ne peut pas
 se montrer en cachant la voiture : le joueur perdrait la sienne pendant trois cents mètres. C'est donc
@@ -2168,11 +2168,24 @@ Et la rangée de lampes, une paire tous les seize mètres. Sans elle, la portion
 une ombre portée ; avec elle, personne n'hésite. Le tunnel de Monaco est éclairé en permanence —
 `lit=24/7` dans le relevé.
 
-**Un seul des douze circuits a un tunnel**, et c'est une étiquette qui le dit, pas mon jugement :
-`tools/releve.py --tunnels` relit les voies du tour assemblé et garde celles qui portent `tunnel=yes`.
-Monaco en a une, le boulevard Louis II, 356 m relevés sous l'hôtel — 0,4817 → 0,5883 du tour. Monza et
-Suzuka ont des portions `covered=yes`, mais **couvert n'est pas souterrain** : à Monza ce sont les
-vingt-cinq mètres sous la passerelle du Serraglio, qu'on dessine déjà comme une passerelle.
+**Ce sont des étiquettes qui le disent, pas mon jugement.** `tools/releve.py --tunnels` relit les
+voies du tour assemblé et rend deux listes séparées : `tunnel=yes` d'un côté, `covered=yes` de
+l'autre. Elles se dessinent pareil mais ne se décident pas pareil — **couvert n'est pas souterrain**,
+et un passage couvert fait parfois double emploi avec ce qui le couvre.
+
+| circuit | passage | relevé | fraction de tour |
+|---|---|---|---|
+| Monaco | boulevard Louis II, `tunnel=yes` | 356 m | 0,4817 → 0,5883 |
+| Suzuka | sous le croisement, `covered=yes` | 243 m | 0,3317 → 0,3750 |
+| Monza | sous la passerelle du Serraglio, `covered=yes` | 25 m | **non dessiné** |
+
+Monza est écarté parce que ces vingt-cinq mètres sont exactement ceux de la passerelle qu'on dessine
+déjà : deux objets pour une seule chose. Suzuka est gardé pour la raison inverse — sans
+l'assombrissement, rien ne disait qu'on passait **sous** le croisement plutôt que dessus.
+
+**L'ordre de peinture y a sa part.** À Suzuka, le passage couvert EST le dessous du croisement : les
+deux se superposent à l'écran. L'asphalte sombre se peint donc avant le tablier du pont, faute de quoi
+la piste du dessus — celle où l'on roule — se retrouvait assombrie par le tunnel qui passe dessous.
 
 ### Remettre les temps à zéro, une fois et une seule
 

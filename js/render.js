@@ -1163,17 +1163,22 @@ class Renderer {
       g.beginPath(); g.moveTo(w.x, w.y); g.lineTo(w.x - Math.cos(w.a) * w.l, w.y - Math.sin(w.a) * w.l); g.stroke();
     }
     g.globalAlpha = 1; g.lineCap = 'round';
-    if (T.drawRoad) for (const b of this.paths.bridges) {
-      g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = T.width + 5; g.stroke(b);
-      g.strokeStyle = '#2f2f36'; g.lineWidth = T.width + 2.4; g.stroke(b);
-      g.strokeStyle = '#4b4b52'; g.lineWidth = T.width; g.stroke(b);
-    }
-    // L'asphalte du tunnel s'assombrit avant les voitures : on passe dessous, mais on reste visible.
+    /* L'asphalte du tunnel s'assombrit AVANT les voitures : on passe dessous, mais on reste visible.
+
+    Et avant les ponts de croisement, ce qui n'est pas un détail. À Suzuka, la portion couverte EST
+    le passage sous le croisement : les deux se superposent à l'écran, et dans l'autre ordre le
+    tablier du pont — la piste par-dessus, où l'on roule — se retrouvait assombri par le tunnel qui
+    passe dessous. Le pont se peint donc par-dessus, et chacun retrouve son étage. */
     for (const tu of this.paths.tunnels || []) {
       if (!inView(tu.bbox)) continue;
       g.fillStyle = 'rgba(8,8,14,0.55)'; g.fill(tu.sol);
       g.fillStyle = 'rgba(255,208,128,0.9)';
       for (const l of tu.lampes) { g.beginPath(); g.arc(l[0], l[1], 0.7, 0, Math.PI * 2); g.fill(); }
+    }
+    if (T.drawRoad) for (const b of this.paths.bridges) {
+      g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = T.width + 5; g.stroke(b);
+      g.strokeStyle = '#2f2f36'; g.lineWidth = T.width + 2.4; g.stroke(b);
+      g.strokeStyle = '#4b4b52'; g.lineWidth = T.width; g.stroke(b);
     }
     // Smoke, under the cars. A puff fades over its own life rather than over a fixed second, so a
     // big slow one stays up as long as it is meant to; and it thins as it grows, the way a cloud

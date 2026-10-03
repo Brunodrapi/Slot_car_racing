@@ -93,6 +93,12 @@ const TRACKS = [
     kerb: DRAPEAUX.jp,
     length: 3300, width: 14, laps: 3,
     pts: TRACES.suzuka,
+    /* Le passage sous le croisement, 243 m relevés (voie 183391655). Étiqueté « covered », pas
+       « tunnel » : on n'est pas sous terre, on est sous le pont que la piste se fait à elle-même.
+       Ça se dessine pareil, et ça se lit mieux — sans l'assombrissement, rien ne disait qu'on
+       passait dessous plutôt que dessus. Monza a 25 m de « covered » au même titre, et on ne les
+       dessine pas : ce sont les mètres sous la passerelle du Serraglio, déjà dessinée. */
+    tunnels: [[0.3317, 0.3750]],
   },
   {
     id: 'interlagos', name: 'Interlagos', country: 'BR', flag: '🇧🇷', theme: 'tropical',
