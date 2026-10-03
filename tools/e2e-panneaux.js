@@ -164,6 +164,30 @@ const ok = (c, m) => { console.log(`  ${c ? 'ok' : 'ÉCHEC'} : ${m}`); if (!c) f
     return Math.hypot(S.pts.racing[3][0] - bouge[0], S.pts.racing[3][1] - bouge[1]);
   });
   ok(appui > 0.5, 'l’appui long ramène le point au calcul, comme le clic droit');
+
+  /* TOUCHER UN PANNEAU DOIT DONNER ACCÈS À SES RÉGLAGES. C'est le défaut qu'on a vu en vrai : le
+     panneau se choisissait, on le voyait s'entourer de vert, et la fiche restait sous le tiroir
+     replié. Un choix sans suite n'est pas un choix. */
+  await m.click('[data-mode="panneaux"]');
+  await m.waitForTimeout(200);
+  const doigt = await m.evaluate(() => {
+    const cv = document.getElementById('cv');
+    const b = panneauxPoses()[0], e = versEcran([b.x / S.track.unitScale, b.y / S.track.unitScale]);
+    for (const t of ['pointerdown', 'pointerup']) {
+      cv.dispatchEvent(new PointerEvent(t, { pointerId: 5, pointerType: 'touch', clientX: e[0], clientY: e[1], bubbles: true }));
+    }
+    const f = document.getElementById('ficheP').getBoundingClientRect();
+    const p = document.getElementById('panel');
+    const q = panneauxPoses()[S.selP];
+    const v = versEcran([q.x / S.track.unitScale, q.y / S.track.unitScale]);
+    return { choisi: S.selP, replie: p.classList.contains('replie'),
+             ficheVisible: !document.getElementById('ficheP').hidden && f.top < innerHeight && f.bottom > 0,
+             panneauVisible: v[1] > 0 && v[1] < p.getBoundingClientRect().top };
+  });
+  ok(doigt.choisi === 0, 'le doigt choisit bien le panneau visé');
+  ok(!doigt.replie, 'le tiroir s’ouvre tout seul : sinon les réglages restent dessous');
+  ok(doigt.ficheVisible, 'la fiche est à l’écran, pas seulement dans le document');
+  ok(doigt.panneauVisible, 'le panneau choisi reste visible au-dessus du tiroir');
   await tel.close();
 
   console.log('\nerrors ' + (fautes + erreurs.length));

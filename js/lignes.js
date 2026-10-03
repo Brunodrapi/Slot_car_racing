@@ -580,8 +580,52 @@ function ajouterP() {
   S.selP = S.panneaux.length - 1;
   S.panModif = true;
   majFicheP();
+  tiroir(false);
   dessiner();
   etat('panneau ajouté — donne-lui son sens et sa note');
+}
+
+/* ------------------------------------------------------------------------------ le tiroir
+
+Ouvrir le tiroir mange la moitié basse de l'écran. Sans rien faire, le circuit — centré sur toute la
+toile — disparaît derrière. On remonte donc la vue de la moitié de ce que le tiroir vient de prendre :
+ce qu'on regardait reste en vue, et le zoom ne bouge pas. Recadrer aurait été plus simple et aurait
+perdu l'endroit où on travaillait. */
+function tiroir(replie) {
+  const p = $('panel');
+  if (p.classList.contains('replie') === replie) return;
+  const avant = p.offsetHeight;
+  p.classList.toggle('replie', replie);
+  if (!replie) p.scrollTop = 0;      // déplié, on veut voir le haut : c'est là qu'est la fiche
+  const apres = p.offsetHeight;
+  S.vue.y -= (apres - avant) / 2;
+  $('poign').setAttribute('aria-expanded', String(!replie));
+  $('poign').textContent = replie ? 'Réglages' : 'Masquer';
+  dessiner();
+}
+
+/** La part de la toile que le tiroir ne couvre pas. Sur grand écran, c'est toute la toile. */
+function zoneLibre() {
+  const c = cv.getBoundingClientRect();
+  if (!matchMedia('(max-width: 860px)').matches) return { haut: 0, bas: c.height };
+  const r = $('panel').getBoundingClientRect();
+  return { haut: 0, bas: Math.max(80, r.top - c.top) };
+}
+
+/* AMENER CE QU'ON VIENT DE CHOISIR SOUS LES YEUX. Toucher un panneau ouvre le tiroir — sinon ses
+   réglages restent cachés dessous, et c'est exactement ce qui est arrivé : le panneau se
+   sélectionnait, on le voyait s'entourer de vert, et rien ne permettait de le modifier. Mais le
+   tiroir qui s'ouvre peut recouvrir le panneau même qu'on vient de choisir. On fait donc glisser la
+   vue juste assez pour qu'il retombe dans la part visible, et pas davantage : déplacer plus que
+   nécessaire fait perdre le reste du circuit. */
+function amenerEnVue(k) {
+  const b = panneauxPoses()[k];
+  if (!b) return;
+  const e = versEcran([b.x / S.track.unitScale, b.y / S.track.unitScale]);
+  const z = zoneLibre(), marge = 60;
+  if (e[1] > z.bas - marge) S.vue.y -= e[1] - (z.bas - marge);
+  else if (e[1] < z.haut + marge) S.vue.y += (z.haut + marge) - e[1];
+  dessiner();
 }
 
 /* --------------------------------------------------------------------------- les évènements */
@@ -656,7 +700,7 @@ cv.addEventListener('pointerdown', (ev) => {
 
   if (S.mode === 'panneaux') {
     const k = panneauVise(x, y);
-    if (k >= 0) { S.selP = k; majFicheP(); dessiner(); return; }
+    if (k >= 0) { S.selP = k; majFicheP(); tiroir(false); amenerEnVue(k); return; }
     S.glisse = [x, y, S.vue.x, S.vue.y]; capter(ev.pointerId);
     return;
   }
@@ -805,22 +849,10 @@ $('autoP').addEventListener('click', () => {
 /* LE TIROIR. Il n'existe qu'en dessous de 860 px — au-dessus, le panneau est une colonne et la
    poignée est cachée en CSS. Replié par défaut sur un écran étroit : on ouvre un éditeur de tracé
    pour voir le tracé. */
-$('poign').addEventListener('click', () => {
-  const p = $('panel');
-  /* Ouvrir le tiroir mange la moitié basse de l'écran. Sans rien faire, le circuit — centré sur
-     toute la toile — disparaît derrière. On remonte donc la vue de la moitié de ce que le tiroir
-     vient de prendre : ce qu'on regardait reste en vue, et le zoom ne bouge pas. Recadrer aurait
-     été plus simple et aurait perdu l'endroit où on travaillait. */
-  const avant = p.offsetHeight;
-  const replie = p.classList.toggle('replie');
-  const apres = p.offsetHeight;
-  S.vue.y -= (apres - avant) / 2;
-  $('poign').setAttribute('aria-expanded', String(!replie));
-  $('poign').textContent = replie ? 'Réglages' : 'Masquer';
-  dessiner();
-});
+$('poign').addEventListener('click', () => tiroir(!$('panel').classList.contains('replie')));
 if (matchMedia('(max-width: 860px)').matches) {
   $('panel').classList.add('replie');
   $('poign').setAttribute('aria-expanded', 'false');
+  $('poign').textContent = 'Réglages';
 }
 changerMode('lignes');

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <title>Eyes On Line — Éditeur de lignes et de panneaux</title>
-<link rel="stylesheet" href="css/style.css?v=0.21.95">
+<link rel="stylesheet" href="css/style.css?v=0.21.96">
 <style>
   body { overflow: hidden; }
   #ed { position: fixed; inset: 0; display: grid; grid-template-columns: 340px 1fr; }
@@ -24,6 +24,8 @@
   .row2 { display: flex; gap: 6px; flex-wrap: wrap; }
   .row2 > button { flex: 1 1 auto; }
   .lignes button.sel, .modes button.sel, .grille button.sel { outline: 2px solid var(--accent); }
+  /* Le sens est une grille comme les autres : sans ça, son bouton choisi n'était pas marqué —
+     on lisait le panneau pour savoir de quel côté il allait, au lieu de le lire sur le bouton. */
   .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
   .help { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 0; }
   details > summary { cursor: pointer; color: var(--muted); font-size: 13px; padding: 6px 0;
@@ -121,12 +123,11 @@
       <h3>Panneau choisi</h3>
       <p class="help" id="aucunP">Touche un panneau sur la carte pour le reprendre.</p>
       <div id="ficheP" hidden>
-        <label>Sens du virage
-          <span class="row2" id="sensP" style="width:150px">
-            <button data-sens="-1">↰ gauche</button>
-            <button data-sens="1">↱ droite</button>
-          </span>
-        </label>
+        <h3>Sens du virage</h3>
+        <div class="grille" id="sensP" style="grid-template-columns:repeat(2,1fr)">
+          <button data-sens="-1">↰ gauche</button>
+          <button data-sens="1">↱ droite</button>
+        </div>
         <h3>Intensité</h3>
         <div class="grille" id="noteP"></div>
         <h3>Valeur annoncée</h3>
@@ -194,13 +195,13 @@
   </div>
 </div>
 
-<script src="js/store.js?v=0.21.95"></script>
-<script src="js/util.js?v=0.21.95"></script>
-<script src="js/traces.js?v=0.21.95"></script>
-<script src="js/tracks.js?v=0.21.95"></script>
-<script src="js/track.js?v=0.21.95"></script>
-<script src="js/props.js?v=0.21.95"></script>
-<script src="js/render.js?v=0.21.95"></script>
-<script src="js/lignes.js?v=0.21.95"></script>
+<script src="js/store.js?v=0.21.96"></script>
+<script src="js/util.js?v=0.21.96"></script>
+<script src="js/traces.js?v=0.21.96"></script>
+<script src="js/tracks.js?v=0.21.96"></script>
+<script src="js/track.js?v=0.21.96"></script>
+<script src="js/props.js?v=0.21.96"></script>
+<script src="js/render.js?v=0.21.96"></script>
+<script src="js/lignes.js?v=0.21.96"></script>
 </body>
 </html>

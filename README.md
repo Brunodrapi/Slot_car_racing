@@ -762,7 +762,11 @@ glyphe approchant aurait coûté moins cher et aurait menti : on règle une anno
 et deux dessins différents divergent au premier changement.
 
 Toucher un panneau l'ouvre : **sens** (gauche / droite), **intensité** (1 à 6, ou SQ, HP, AC) et
-**valeur** (200, 100, 50 m), plus un bouton pour le supprimer et un autre pour en ajouter. Chaque
+**valeur** (200, 100, 50 m), plus un bouton pour le supprimer et un autre pour en ajouter. Le toucher
+**déplie le tiroir** et fait glisser la vue juste assez pour que le panneau choisi reste au-dessus de
+lui : sans ça, le panneau s'entourait bien de vert et ses réglages restaient cachés dessous — un
+choix sans suite n'est pas un choix. Le banc le vérifie à l'écran et pas seulement dans le document,
+parce qu'un élément présent et invisible passe tous les contrôles naïfs. Chaque
 entrée tient dans `[fraction de tour, distance, note, sens]` — une fraction et non une station, comme
 pour les passerelles, parce qu'elle survit au changement de longueur déclarée.
 
