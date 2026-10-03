@@ -283,6 +283,16 @@ class Track {
     les voitures, pas avant, et c'est tout ce qui les distingue à l'écran. */
     this.passerelles = (def.passerelles || []).map((f) => ((Math.round(f * N) % N) + N) % N);
 
+    /* Les tunnels : deux fractions de tour, le début et la fin. Relevés comme le reste — une voie
+       d'OpenStreetMap porte « tunnel=yes » ou ne la porte pas. Un tunnel peut enjamber la ligne de
+       départ, donc `fin` peut être plus petit que `début` ; `js/render.js` compte les stations au
+       lieu de comparer les indices. */
+    this.tunnels = (def.tunnels || []).map(([a, b]) => {
+      const st = (f) => ((Math.round(f * N) % N) + N) % N;
+      const de = st(a), vers = st(b);
+      return { from: de, to: vers, n: ((vers - de) % N + N) % N };
+    });
+
     // corner segments (kerbs / gravel)
     this.corners = [];
     const thr = 1 / 90;

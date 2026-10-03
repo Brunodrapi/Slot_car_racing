@@ -521,6 +521,67 @@ class Renderer {
                bbox: { minX: xs[k] - 40, minY: ys[k] - 40, maxX: xs[k] + 40, maxY: ys[k] + 40 } };
     });
 
+    /* LES TUNNELS. Une entrée, une sortie, et l'asphalte plus sombre entre les deux.
+
+    Vu du dessus, un tunnel ne peut pas se montrer en cachant la voiture : le joueur perdrait la
+    sienne pendant trois cents mètres. On garde donc les voitures éclairées et c'est la ROUTE qui
+    s'assombrit — l'œil lit l'ombre comme un plafond. Les deux têtes sont des ouvrages pleins, posés
+    en travers et peints après les voitures, exactement comme un tablier de passerelle : c'est ce
+    qui dit qu'on passe dessous.
+
+    Et la rangée de lampes. Sans elle, la portion sombre se confond avec une ombre portée ; avec
+    elle, personne n'hésite. Le tunnel de Monaco est éclairé en permanence — « lit=24/7 » dans le
+    relevé — et c'est la seule chose du décor qui vienne d'une étiquette plutôt que du dessin. */
+    const TUN_TETE = 5;              // la profondeur de l'ouvrage d'entrée, le long de la piste
+    const TUN_DEBORD = 5;            // ce qu'il dépasse de chaque côté de la route
+    const TUN_LAMPE = 16;            // une paire de lampes tous les tant de mètres
+    const tunnels = (track.tunnels || []).map((tu) => {
+      const bord = (i, sens) => {
+        const k = ((i % N) + N) % N;
+        const hw = sens > 0 ? track.hwL[k] : -track.hwR[k];
+        return [xs[k] + nx[k] * hw, ys[k] + ny[k] * hw];
+      };
+      const sol = new Path2D();
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      const voir = (q) => { minX = Math.min(minX, q[0]); minY = Math.min(minY, q[1]);
+                            maxX = Math.max(maxX, q[0]); maxY = Math.max(maxY, q[1]); };
+      for (let d = 0; d <= tu.n; d += 2) { const q = bord(tu.from + d, 1); voir(q); d ? sol.lineTo(q[0], q[1]) : sol.moveTo(q[0], q[1]); }
+      for (let d = tu.n; d >= 0; d -= 2) { const q = bord(tu.from + d, -1); voir(q); sol.lineTo(q[0], q[1]); }
+      sol.closePath();
+
+      // Les têtes : un quadrilatère en travers, débordant comme le tablier d'une passerelle.
+      const tete = (i, dedans) => {
+        const k = ((i % N) + N) % N;
+        const tx = -ny[k], ty = nx[k];
+        const coin = (sens, d) => {
+          const hw = (sens > 0 ? track.hwL[k] : track.hwR[k]) + TUN_DEBORD;
+          return [xs[k] + nx[k] * hw * sens + tx * d, ys[k] + ny[k] * hw * sens + ty * d];
+        };
+        const quad = (d0, d1) => {
+          const p = new Path2D();
+          const c = [coin(1, d0 * dedans), coin(1, d1 * dedans), coin(-1, d1 * dedans), coin(-1, d0 * dedans)];
+          p.moveTo(c[0][0], c[0][1]);
+          for (let j = 1; j < 4; j++) p.lineTo(c[j][0], c[j][1]);
+          p.closePath();
+          return p;
+        };
+        // Le corps de l'ouvrage, puis la bouche : la fente sombre côté tunnel. Sans elle, la tête
+        // ressemble à un tablier de passerelle, et rien ne dit de quel côté on entre.
+        return { corps: quad(0, TUN_TETE), bouche: quad(TUN_TETE - 1.3, TUN_TETE) };
+      };
+
+      // Les lampes, le long de l'axe, assez espacées pour qu'on les compte sans les subir.
+      const lampes = [];
+      const pas = Math.max(6, Math.round(TUN_LAMPE));
+      for (let d = pas; d < tu.n - pas / 2; d += pas) {
+        const k = ((tu.from + d) % N + N) % N;
+        lampes.push([xs[k] + nx[k] * (track.hwL[k] - 1.1), ys[k] + ny[k] * (track.hwL[k] - 1.1)]);
+        lampes.push([xs[k] - nx[k] * (track.hwR[k] - 1.1), ys[k] - ny[k] * (track.hwR[k] - 1.1)]);
+      }
+      return { sol, entree: tete(tu.from, 1), sortie: tete(tu.from + tu.n, -1), lampes,
+               bbox: { minX: minX - 40, minY: minY - 40, maxX: maxX + 40, maxY: maxY + 40 } };
+    });
+
     const lines = {};
     for (const name of LINE_NAMES) {
       const p = new Path2D(), lat = track.lines[name];
@@ -672,7 +733,7 @@ class Renderer {
       return { surface, ligne, zone, garages, bbox: { minX: minX - 16, minY: minY - 16, maxX: maxX + 16, maxY: maxY + 16 } };
     })() : null;
 
-    this.paths = { center, mid, road, left, right, corners, bridges, passerelles, lines, chunks, pit };
+    this.paths = { center, mid, road, left, right, corners, bridges, passerelles, tunnels, lines, chunks, pit };
     /* Ce que ce circuit-là doit encore recevoir, gardé pour qu'on puisse le DEMANDER.
 
     Les deux images étaient posées et oubliées : on ne retenait que la variable remplie à l'arrivée,
@@ -1107,6 +1168,13 @@ class Renderer {
       g.strokeStyle = '#2f2f36'; g.lineWidth = T.width + 2.4; g.stroke(b);
       g.strokeStyle = '#4b4b52'; g.lineWidth = T.width; g.stroke(b);
     }
+    // L'asphalte du tunnel s'assombrit avant les voitures : on passe dessous, mais on reste visible.
+    for (const tu of this.paths.tunnels || []) {
+      if (!inView(tu.bbox)) continue;
+      g.fillStyle = 'rgba(8,8,14,0.55)'; g.fill(tu.sol);
+      g.fillStyle = 'rgba(255,208,128,0.9)';
+      for (const l of tu.lampes) { g.beginPath(); g.arc(l[0], l[1], 0.7, 0, Math.PI * 2); g.fill(); }
+    }
     // Smoke, under the cars. A puff fades over its own life rather than over a fixed second, so a
     // big slow one stays up as long as it is meant to; and it thins as it grows, the way a cloud
     // does. Drawn before the cars, because a car swallowed by its own smoke is a car the driver
@@ -1129,6 +1197,16 @@ class Renderer {
       if (!inView(p.bbox)) continue;
       g.fillStyle = '#17171c'; g.fill(p.pont);
       g.strokeStyle = '#2e2e36'; g.lineWidth = 0.5; g.stroke(p.pont);
+    }
+    // et les têtes de tunnel, pour la même raison : une voiture qui passe dessous passe dedans
+    for (const tu of this.paths.tunnels || []) {
+      if (!inView(tu.bbox)) continue;
+      for (const t of [tu.entree, tu.sortie]) {
+        g.fillStyle = '#726d64'; g.fill(t.corps);          // du béton, pas un tablier : il faut
+        g.strokeStyle = '#8d887c'; g.lineWidth = 0.6;        // qu'une tête de tunnel tranche sur
+        g.stroke(t.corps);                                   // l'asphalte sombre qu'elle annonce
+        g.fillStyle = '#0e0e13'; g.fill(t.bouche);
+      }
     }
     g.restore();
 

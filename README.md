@@ -2155,6 +2155,25 @@ d'une passerelle se juge à côté d'une voiture de quatre mètres. Il déborde 
 côté de la route — une passerelle s'appuie sur des piles plantées hors piste, et un tablier arrêté
 pile au bord aurait l'air posé sur les vibreurs.
 
+### Le tunnel de Monaco
+
+Une entrée, une sortie, et l'asphalte plus sombre entre les deux. Vu du dessus, un tunnel ne peut pas
+se montrer en cachant la voiture : le joueur perdrait la sienne pendant trois cents mètres. C'est donc
+la **route** qui s'assombrit, et l'œil lit l'ombre comme un plafond ; les voitures restent éclairées.
+Les deux têtes sont des ouvrages de béton posés en travers, peints **après** les voitures — même règle
+que le tablier d'une passerelle : c'est ce qui dit qu'on passe dessous. Chacune porte une fente noire
+du côté du tunnel, sans quoi rien ne dirait de quel côté on entre.
+
+Et la rangée de lampes, une paire tous les seize mètres. Sans elle, la portion sombre se confond avec
+une ombre portée ; avec elle, personne n'hésite. Le tunnel de Monaco est éclairé en permanence —
+`lit=24/7` dans le relevé.
+
+**Un seul des douze circuits a un tunnel**, et c'est une étiquette qui le dit, pas mon jugement :
+`tools/releve.py --tunnels` relit les voies du tour assemblé et garde celles qui portent `tunnel=yes`.
+Monaco en a une, le boulevard Louis II, 356 m relevés sous l'hôtel — 0,4817 → 0,5883 du tour. Monza et
+Suzuka ont des portions `covered=yes`, mais **couvert n'est pas souterrain** : à Monza ce sont les
+vingt-cinq mètres sous la passerelle du Serraglio, qu'on dessine déjà comme une passerelle.
+
 ### Remettre les temps à zéro, une fois et une seule
 
 Les douze circuits ont changé de forme : relevés au lieu d'être dessinés, tournant dans leur vrai
@@ -2565,7 +2584,7 @@ NODE_PATH=$(npm root -g) node tools/e2e-livree.js [dossier]                     
 python3 tools/calibre.py <fichier.png...> [--largeur=420]                         # une illustration deja detouree, ramenee a la taille affichee
 python3 tools/prises.py <fichier.wav...> [--bits=16] [--essai]                    # les prises de moteur, du flottant 32 bits a l'entier 16
 python3 tools/tracer.py <carte.svg> [--points=600] [--decimales=3] [--depart=auto]  # un chemin SVG vers la liste de points d'un circuit
-python3 tools/releve.py --bbox=s,o,n,e --depart="<voie>" --longueur=<m> [--passerelles]  # un circuit releve dans OpenStreetMap
+python3 tools/releve.py --bbox=s,o,n,e --depart="<voie>" --longueur=<m> [--passerelles] [--tunnels]  # un circuit releve dans OpenStreetMap
 node tools/fiches.js                                                             # les vitesses du jeu face aux vraies, et l'ordre du plateau
 NODE_PATH=$(npm root -g) node tools/e2e-remise.js                                 # la remise a zero des temps : efface une fois, et une seule
 ```

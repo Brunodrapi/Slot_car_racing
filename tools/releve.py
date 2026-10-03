@@ -509,6 +509,44 @@ def main():
             print('    passerelles: ['
                   + ', '.join(f'{sum(c[0] for c in g) / len(g):.4f}' for g in groupes) + '],')
 
+    # LES TUNNELS. Rien a chercher ici : une voie du tour porte « tunnel=yes », ou elle ne la porte
+    # pas. On rend donc les deux bouts de chaque voie souterraine, en fractions de tour, et on colle
+    # celles qui se suivent — un tunnel long est souvent decoupe en plusieurs voies.
+    #
+    # ON NE PREND PAS « covered=yes ». Couvert veut dire que quelque chose passe au-dessus : a Monza
+    # ce sont les vingt-cinq metres sous la passerelle du Serraglio, qu on dessine deja comme une
+    # passerelle. Un tunnel, c est etre dedans, et « tunnel » est l etiquette qui le dit.
+    if o.get('tunnels'):
+        n = len(r)
+        pres = lambda q: min(range(n), key=lambda i: math.dist(r[i], q))
+        spans = []
+        for w in suite:
+            t = w.get('tags') or {}
+            if t.get('tunnel') not in ('yes', 'building_passage'):
+                continue
+            g = metres(w['geometry'], lat0)
+            a, b = pres(g[0]), pres(g[-1])
+            # le tour est oriente : le tunnel va de a vers b dans le sens de la course, et passer
+            # par zero est normal — c est une boucle.
+            if (b - a) % n > n / 2:
+                a, b = b, a
+            spans.append([a / n, b / n, w['id'], t.get('name') or '\u2014',
+                          round(longueur(w['geometry']))])
+        spans.sort()
+        colles = []
+        for sp in spans:
+            if colles and (sp[0] - colles[-1][1]) % 1.0 * L < 25:
+                colles[-1][1] = sp[1]
+                colles[-1][4] += sp[4]
+            else:
+                colles.append(list(sp))
+        print(f'\n  {len(colles)} tunnel(s) sur le tour :')
+        for a, b, i, nom, lg in colles:
+            print(f'    {a:.4f} \u2192 {b:.4f} du tour  {nom[:26]:26} voie {i:>11}  {lg} m releves, '
+                  f'{(b - a) % 1.0 * L:.0f} m sur le tour')
+        if colles:
+            print('    tunnels: [' + ', '.join(f'[{a:.4f}, {b:.4f}]' for a, b, *_ in colles) + '],')
+
     if 'repere' in o:
         rl, ro = (float(v) for v in o['repere'].split(','))
         cible = metres([{'lat': rl, 'lon': ro}], lat0)[0]

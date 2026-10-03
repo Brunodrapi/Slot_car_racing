@@ -73,6 +73,11 @@ const TRACKS = [
     pts: TRACES.monaco,
     // Le pont qui enjambe le boulevard Albert 1er juste avant la ligne (voie 167625745).
     passerelles: [0.9471],
+    /* Le tunnel du boulevard Louis II, 356 m relevés sous l'hôtel (voie 4230891, « tunnel=yes »).
+       C'est le seul vrai tunnel des douze circuits. Monza et Suzuka ont des portions « covered »,
+       mais couvert n'est pas souterrain : à Monza ce sont les vingt-cinq mètres sous la passerelle
+       du Serraglio, qu'on dessine déjà comme une passerelle. */
+    tunnels: [[0.4817, 0.5883]],
   },
   {
     id: 'silverstone', name: 'Silverstone', country: 'GB', flag: '🇬🇧', theme: 'autumn',
