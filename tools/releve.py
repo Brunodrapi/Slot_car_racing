@@ -116,6 +116,28 @@ def relations(morceaux):
     return out
 
 
+def lignes_depart(morceaux):
+    """Les noeuds qu OpenStreetMap balise « raceway=start-finish » : la ligne elle-meme.
+
+    C est une meilleure source que tout ce qu on peut deduire, et elle a mis du temps a etre vue.
+    Elle ne vaut cependant que SUR LE TOUR : un circuit en porte souvent plusieurs, une par trace, et
+    a Spa celui qu on trouve appartient a la piste de karting. On rend donc tous les candidats, et
+    c est la distance a l axe qui tranche — un noeud a trente metres de la piste ne la decrit pas."""
+    out = []
+    for brut in morceaux:
+        for _, el in ET.iterparse(io.BytesIO(brut), events=('end',)):
+            if el.tag != 'node':
+                continue
+            for t in el.findall('tag'):
+                if t.get('k') == 'raceway' and t.get('v') in ('start-finish', 'start/finish', 'start'):
+                    out.append({'lat': float(el.get('lat')), 'lon': float(el.get('lon')),
+                                'role': t.get('v'), 'id': el.get('id')})
+            el.clear()
+    # « start-finish » avant « start » : le second marque parfois le depart d une course et non la ligne
+    out.sort(key=lambda x: x['role'] == 'start')
+    return out
+
+
 def voies(morceaux):
     """Les chemins des fichiers OSM, chacun avec ses etiquettes et ses points, sans doublon."""
     noeuds, vus, out = {}, set(), []
@@ -142,9 +164,13 @@ def interroge(bbox, cache=None, aussi=None, relation=None):
     """Les voies qui peuvent appartenir au tour.
 
     Avec `--relation`, ce sont celles que la relation nomme, et elles seules. Sinon celles balisees
-    circuit, plus celles dont le nom repond a `--aussi`."""
+    circuit, plus celles dont le nom repond a `--aussi`.
+
+    Rend aussi les noeuds qui portent la ligne de depart, qui ne sont pas des voies mais se lisent
+    dans les memes fichiers."""
     morceaux = telecharge(bbox, cache)
     tout = voies(morceaux)
+    lignes = lignes_depart(morceaux)
     rels = relations(morceaux)
     if relation:
         cibles = [n for n in rels if relation.lower() in n.lower()]
@@ -157,12 +183,12 @@ def interroge(bbox, cache=None, aussi=None, relation=None):
             raise SystemExit('  plusieurs relations correspondent : ' + ', '.join(cibles))
         print(f'  relation « {cibles[0]} », {len(rels[cibles[0]])} voies')
         ids = rels[cibles[0]]
-        return tout, [w for w in tout if w['id'] in ids]
+        return tout, [w for w in tout if w['id'] in ids], lignes
     rx = re.compile(aussi, re.I) if aussi else None
     gardees = [w for w in tout
                if w['tags'].get('highway') == 'raceway'
                or (rx and rx.search(w['tags'].get('name', '')))]
-    return tout, gardees
+    return tout, gardees, lignes
 
 
 def assemble(voies, depart, sauf, vise=None, essais=40000, jointure=0.5):
@@ -327,7 +353,7 @@ def main():
     import tracer                                     # pour le reechantillonnage et le sens
 
     print(f"\n  OpenStreetMap, boite {o['bbox']}")
-    tout, candidates = interroge(o['bbox'], o.get('cache'), o.get('aussi'), o.get('relation'))
+    tout, candidates, lignes = interroge(o['bbox'], o.get('cache'), o.get('aussi'), o.get('relation'))
     print(f'  {len(tout)} chemins dans la boite, dont {len(candidates)} retenus')
     if o.get('liste'):
         vus = {}
@@ -394,18 +420,38 @@ def main():
     if tracer.sens_horaire(r) != (o.get('sens', 'horaire') == 'horaire'):
         r = r[::-1]
         print(f"  boucle retournee pour tourner dans le sens {o.get('sens', 'horaire')}")
-    voie = []
-    rx = re.compile(o.get('stands', 'pit|box|stand'), re.I)
-    for w in tout:
-        t = w.get('tags') or {}
-        if t.get('highway') == 'raceway' and rx.search(t.get('name', '')):
-            voie += metres(w['geometry'], lat0)
-    pose = depart_aux_stands(r, voie)
-    if pose:
-        j, lg = pose
-        print(f'  depart pose aux deux tiers de la ligne droite des stands '
-              f'({lg} points le long de la voie, point {j})')
-    else:
+    # LA LIGNE DE DEPART, par ordre de ce qui la sait le mieux.
+    j = None
+    # 1. LE NOEUD BALISE. C est la ligne elle-meme, pas une deduction. On exige qu il tombe sur le
+    #    tour : a Spa, le seul noeud « start-finish » de la boite appartient a la piste de karting,
+    #    et il est a vingt-neuf metres de l axe. Dix metres suffisent a trancher.
+    for nd in lignes:                            # surtout pas `L` : c est la longueur relevee
+        c = metres([nd], lat0)[0]
+        k = min(range(len(r)), key=lambda i: math.dist(r[i], c))
+        d = math.dist(r[k], c)
+        if d <= 10:
+            j = k
+            print(f'  depart pose sur le noeud « raceway={nd["role"]} » {nd["id"]} (a {d:.0f} m de l axe)')
+            break
+        print(f'  noeud « raceway={nd["role"]} » {nd["id"]} ecarte : a {d:.0f} m de l axe, '
+              f'il decrit un autre trace')
+    # 2. LA VOIE DES STANDS. `--stands` dit laquelle : un circuit en porte souvent plusieurs, et
+    #    « pit|box|stand » attrapait a Spa la « Support Pit Lane » de l ancien paddock — la grille se
+    #    formait a Eau Rouge. Nommer la bonne est une donnee du circuit, pas un reglage.
+    if j is None:
+        voie = []
+        rx = re.compile(o.get('stands', 'pit|box|stand'), re.I)
+        for w in tout:
+            t = w.get('tags') or {}
+            if t.get('highway') == 'raceway' and rx.search(t.get('name', '')):
+                voie += metres(w['geometry'], lat0)
+        pose = depart_aux_stands(r, voie)
+        if pose:
+            j, lg = pose
+            print(f'  depart pose aux deux tiers de la ligne droite des stands '
+                  f'({lg} points le long de la voie, point {j})')
+    # 3. FAUTE DE MIEUX, la plus longue ligne droite. C est juste a Monza et faux ailleurs.
+    if j is None:
         j = tracer.depart_auto(r)
         print(f'  pas de voie des stands lisible : depart sur la plus longue ligne droite (point {j})')
     r = r[j:] + r[:j]
