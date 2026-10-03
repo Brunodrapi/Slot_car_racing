@@ -15,7 +15,7 @@ class App {
     this.audio.enabled = this.save.sound;
     this.ui = new UI(this);
     this.tracks = new Map();
-    this.custom = { tracks: [], cars: [], lines: new Map() };
+    this.custom = { tracks: [], cars: [], lines: new Map(), panneaux: new Map() };
     this.race = null;
     // Racing together. The table stays open across races; the game only ever asks the net layer
     // two things: who is on the grid, and what the others are doing.
@@ -89,9 +89,15 @@ class App {
   jeu : elle vaut pour ce poste, tout de suite, sans rien publier. Pour qu'une ligne vaille pour
   tout le monde, il faut son bloc dans `js/tracks.js`, et `lignes.html` le produit aussi. */
   allTracks() {
-    const rep = this.custom.lines;
-    const base = rep && rep.size
-      ? TRACKS.map(t => (rep.has(t.id) ? { ...t, lines: rep.get(t.id) } : t))
+    const rep = this.custom.lines, pan = this.custom.panneaux;
+    const base = (rep && rep.size) || (pan && pan.size)
+      ? TRACKS.map((t) => {
+        if (!rep.has(t.id) && !pan.has(t.id)) return t;
+        const nu = { ...t };
+        if (rep.has(t.id)) nu.lines = rep.get(t.id);
+        if (pan.has(t.id)) nu.panneaux = pan.get(t.id);
+        return nu;
+      })
       : TRACKS;
     return base.concat(this.custom.tracks);
   }
@@ -106,6 +112,10 @@ class App {
       const reprises = await Store.list('lines');
       this.custom.lines = new Map(reprises.filter(r => r && r.lines && r.lines.racing).map(r => [r.id, r.lines]));
       for (const r of reprises) this.tracks.delete(r.id);      // le circuit en cache est périmé
+      // Les panneaux repris : une liste VIDE compte, c'est « ce circuit n'en a aucun ».
+      const pans = await Store.list('panneaux');
+      this.custom.panneaux = new Map(pans.filter(r => r && Array.isArray(r.panneaux)).map(r => [r.id, r.panneaux]));
+      for (const r of pans) this.tracks.delete(r.id);
       const cars = await Store.list('cars');
       for (const c of cars) {
         const sprite = { base: null, color: null, extra: [] };

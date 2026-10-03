@@ -704,7 +704,7 @@ dessin, pas du code mort. La branche `isometric` garde l'essai complet.
 - IA qui freine selon son talent, choisit sa ligne pour dépasser, aspire dans le sillage, se touche.
 - Français / anglais, son procédural, sauvegarde locale.
 
-## Éditeur de lignes (`lignes.html`)
+## Éditeur de lignes et de panneaux (`lignes.html`)
 
 Le jeu résout lui-même sa corde : il cherche le chemin qui plie le moins en restant sur la piste, ce
 qui produit l'entrée large, le point de corde et la sortie large sans que rien de tout cela soit
@@ -721,6 +721,49 @@ Glisser un point le déplace, la molette zoome, glisser le fond déplace la vue,
 point le ramène sur la ligne calculée. Quatre boutons : revenir au calcul (une ligne ou les trois),
 lisser, ramener dans la piste. Le nombre de points de contrôle se change sans perdre la forme —
 la ligne courante est rééchantillonnée, pas recalculée.
+
+### Au doigt
+
+La page se tenait à la souris, et sur un téléphone il n'en restait rien : pas de molette donc pas de
+zoom, pas de clic droit, et un panneau de trois cent vingt pixels qui prenait la moitié de l'écran.
+
+- **Le panneau est devenu un tiroir** au ras du bas, replié à l'ouverture : on ouvre un éditeur de
+  tracé pour voir le tracé. Replié, il ne montre que sa tête — poignée, circuit, choix du mode. Le
+  repli se fait en cachant tout ce qui n'est pas la tête, et non en bornant une hauteur : la hauteur
+  dépend de la police et de la langue, le reste ne dépend de rien.
+- **Déplier décale la vue** de la moitié de ce que le tiroir vient de prendre. Sans ça, le circuit —
+  centré sur toute la toile — disparaissait derrière. Recadrer aurait été plus simple et aurait perdu
+  l'endroit où on travaillait.
+- **Le zoom se fait à deux doigts**, et le point sous le milieu des doigts y reste, exactement comme
+  la molette garde celui sous le curseur. Mesuré sur un pincement qui double l'écartement : **0,1 px**
+  de dérive.
+- **L'appui long remplace le clic droit** sur un point de contrôle. C'était la seule façon de dire
+  « reprends le calcul pour celui-ci » sans ajouter un mode.
+- **Les cibles sont dimensionnées pour un doigt** : on vise un point à 12 px à la souris, il en faut
+  22 au doigt. Et le rayon d'un point suit l'écartement à l'écran — posé à huit pixels, il donnait un
+  collier de perles dès qu'on dézoomait, puisque quarante-huit points sur un circuit qui tient dans
+  trois cents pixels sont à six pixels l'un de l'autre. On ne peut pas viser ce qu'on ne distingue pas.
+
+### Les panneaux
+
+Les panneaux de freinage sont déduits de la géométrie : la flèche montre le sens du **premier** virage
+d'une zone, son pliage vient du **plus serré**. Ça marche partout — sauf quand une amorce molle précède
+le vrai virage dans l'autre sens, et l'annonce part alors du mauvais côté. Aucun réglage ne rattrape
+ça, pas plus que pour une trajectoire : il faut le dire.
+
+Le mode « Panneaux » les affiche sur la carte, **dessinés par le code du jeu** — `Renderer.paceArrow`,
+celle-là même qui les trace en course, ce pour quoi cette page charge `js/render.js`. Redessiner un
+glyphe approchant aurait coûté moins cher et aurait menti : on règle une annonce à ce qu'elle a l'air,
+et deux dessins différents divergent au premier changement.
+
+Toucher un panneau l'ouvre : **sens** (gauche / droite), **intensité** (1 à 6, ou SQ, HP, AC) et
+**valeur** (200, 100, 50 m), plus un bouton pour le supprimer et un autre pour en ajouter. Chaque
+entrée tient dans `[fraction de tour, distance, note, sens]` — une fraction et non une station, comme
+pour les passerelles, parce qu'elle survit au changement de longueur déclarée.
+
+**Une liste vide est une liste vide.** Dès qu'un circuit porte `panneaux`, le générateur ne tourne
+plus pour lui : c'est ce qui permet de tous les enlever, et c'est ce que `tools/e2e-panneaux.js`
+vérifie en propre — sinon « supprimer le dernier » aurait fait réapparaître les dix-huit.
 
 **Ce qui est affiché est ce que le jeu jouera, parce que c'est le code du jeu qui le calcule.** La
 ligne dessinée n'est pas la spline qui passe par les points de contrôle : c'est la ligne d'un objet
@@ -750,6 +793,13 @@ La découpe se fait au comptage d'accolades, en sautant ce qui est entre guillem
 de circuit est un objet littéral, et chercher la fin d'un objet à l'expression régulière marche
 jusqu'au jour où ça ne marche plus. Repasser sur un circuit qui porte déjà un bloc le remplace au
 lieu d'en ajouter un second.
+
+**Et en sautant les commentaires**, ce qui n'est pas un raffinement. Le fichier est commenté en
+français : « ce qu'on », « l'assombrissement », « n'est pas ». Chaque apostrophe était lue comme une
+ouverture de chaîne, et une seule de trop décalait tout ce qui suit — le compteur d'accolades ne
+trouvait plus la fin de la définition et le bloc se posait n'importe où. Un commentaire ajouté
+ailleurs dans `js/tracks.js` cassait donc cette page, sans rapport visible. C'est le banc qui l'a
+dit, en échouant sur Suzuka le jour où on a commenté son tunnel.
 
 La reprise locale se pose au seul endroit par lequel toute définition de circuit passe, `allTracks()`.
 Un circuit intégré qui en porte une garde tout le reste — tracé, largeur, décor — et voit seulement
@@ -2574,6 +2624,7 @@ node tools/sim.js [catégorie|all] [circuit|all] [easy|medium|hard] [marge]     
 NODE_PATH=$(npm root -g) node tools/e2e.js <dossier> [largeur] [hauteur]          # parcours du jeu + captures
 NODE_PATH=$(npm root -g) node tools/e2e-editor.js <dossier>                        # éditeur → course
 NODE_PATH=$(npm root -g) node tools/e2e-lignes.js [dossier]                       # éditeur de lignes : ce qu'on voit est ce qui se joue
+NODE_PATH=$(npm root -g) node tools/e2e-panneaux.js                              # les panneaux repris a la main, de l'editeur jusqu'en course
 node tools/difficulte.js [catégorie]                                             # ce qu'une voiture coûte à piloter, en pneus
 NODE_PATH=$(npm root -g) node tools/e2e-workshop.js <dossier>                      # import de sprites → course
 node tools/step.js <circuit> <catégorie> [marge] [-v]                             # suivi de ligne d'une voiture seule

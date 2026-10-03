@@ -334,7 +334,17 @@ class Track {
       }
     }
 
-    this.boards = this._brakingBoards();
+    /* LES PANNEAUX, calculés ou repris à la main.
+
+    Ils se déduisent de la géométrie, ce qui les donne gratuitement sur les douze circuits — et ce
+    qui les trompe parfois. Un enchaînement où le premier virage est une amorce molle avant le vrai
+    virage dans l'autre sens est annoncé par l'amorce : la flèche part à gauche quand la route part
+    à droite. Aucun réglage ne rattrape ça, pas plus que pour une trajectoire ; il faut le dire.
+
+    `def.panneaux` est cette reprise : la liste des panneaux, et elle remplace le calcul. Comme pour
+    `lines`, dès qu'un circuit la porte le générateur ne tourne plus pour lui. Une liste vide est
+    donc une liste vide, et non « calcule-les » — c'est ce qui permet de tous les enlever. */
+    this.boards = def.panneaux ? this._panneauxPoses(def.panneaux) : this._brakingBoards();
   }
 
   // Braking boards: the 200 / 100 / 50 metre panels on the approach to a corner, each carrying a
@@ -403,6 +413,7 @@ class Track {
           x: this.xs[i] + this.nx[i] * off * side,
           y: this.ys[i] + this.ny[i] * off * side,
           th: this.th[i], dist, grade, kind, sign: z.sign, side,
+          at: i / N,                          // fraction de tour : ce que l'éditeur enregistre
           from: z.from, to: z.firstTo,        // the corner the arrow describes, for checking
         });
       }
@@ -416,6 +427,37 @@ class Track {
       kept.push(b);
     }
     return kept;
+  }
+
+  /* Une liste de panneaux reprise à la main, replacée sur la piste.
+
+  Chaque entrée est `[fraction de tour, distance annoncée, note, sens]`. La note est le chiffre 1 à
+  6 des notes de rallye, ou l'un des trois noms — `square`, `hairpin`, `acute`. Le sens est +1 à
+  droite, −1 à gauche, et il décide à la fois du dessin de la flèche et du côté de piste où le
+  panneau se plante : un panneau se met à l'extérieur du virage, là où il y a de la place et où il
+  ne cache pas la corde.
+
+  Une fraction plutôt qu'une station, comme pour les passerelles : elle survit au changement de
+  longueur déclarée, qui ne garde pas le même nombre de stations. */
+  _panneauxPoses(liste) {
+    const N = this.n, out = [];
+    for (const p of liste) {
+      const [at, dist, note, sign] = Array.isArray(p)
+        ? p : [p.at, p.dist, p.note != null ? p.note : (p.kind && p.kind !== 'normal' ? p.kind : p.grade), p.sign];
+      const i = ((Math.round(at * N) % N) + N) % N;
+      const side = sign > 0 ? 1 : -1;
+      const hw = side > 0 ? this.hwL[i] : this.hwR[i];
+      const off = hw + 4.2;
+      out.push({
+        x: this.xs[i] + this.nx[i] * off * side,
+        y: this.ys[i] + this.ny[i] * off * side,
+        th: this.th[i], dist: +dist, sign: side, side,
+        grade: typeof note === 'number' ? note : 3,
+        kind: typeof note === 'number' ? 'normal' : note,
+        at: i / N,
+      });
+    }
+    return out;
   }
 
   // Lines generated from curvature: racing = out-in-out, inside/outside hug the road edges

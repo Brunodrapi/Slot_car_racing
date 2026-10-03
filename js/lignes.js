@@ -1,4 +1,4 @@
-/* Éditeur de lignes — reprendre à la main les trois trajectoires d'un circuit existant.
+/* Éditeur de lignes et de panneaux — reprendre à la main ce que le jeu déduit d'un circuit.
 
 Le jeu résout lui-même sa corde : il cherche le chemin qui plie le moins en restant sur la piste,
 ce qui produit l'entrée large, le point de corde et la sortie large sans que rien de tout cela soit
@@ -25,6 +25,19 @@ demande l'impossible, et c'est une information.
 **Les coordonnées sont celles de `pts`**, pas des mètres. Un circuit intégré est décrit dans une
 unité arbitraire puis redimensionné pour tomber sur sa longueur annoncée, et mélanger les deux
 donnerait une ligne à côté de la piste.
+
+LES PANNEAUX suivent la même règle, pour la même raison. Ils sont déduits de la géométrie : la
+flèche montre le sens du PREMIER virage d'une zone de freinage, son pliage vient du plus serré. Ça
+marche partout, sauf quand une amorce molle précède le vrai virage dans l'autre sens — l'annonce
+part alors du mauvais côté, et aucun réglage ne rattrape ça. On reprend donc la liste à la main, et
+dès qu'un circuit la porte le générateur ne tourne plus pour lui. Une liste vide est une liste vide.
+
+AU DOIGT. La page se tenait à la souris : molette pour zoomer, clic droit pour annuler un point,
+un panneau de trois cent vingt pixels collé au bord. Sur un téléphone, le zoom n'existait pas, le
+clic droit non plus, et la moitié de l'écran était du texte. Le panneau est devenu un tiroir qu'on
+remonte, le zoom se fait à deux doigts, l'appui long remplace le clic droit, et les cibles sont
+dimensionnées pour un doigt plutôt que pour un curseur — un point de contrôle se vise à douze pixels
+à la souris, il en faut vingt-deux au doigt.
 */
 'use strict';
 
@@ -40,7 +53,20 @@ const S = {
   vue: { x: 0, y: 0, k: 1 },
   prise: null,          // le point en cours de déplacement
   glisse: null,         // le fond en cours de déplacement
+  mode: 'lignes',       // 'lignes' ou 'panneaux'
+  panneaux: [],         // { at, dist, note, sign } — la liste reprise, ou celle du calcul
+  panModif: false,      // vrai dès qu'on y a touché : sinon on n'enregistre rien et le jeu calcule
+  selP: null,           // le panneau choisi
+  doigts: new Map(),    // les contacts en cours, pour le pincement
+  pince: null,          // l'écartement et le centre au début du pincement
+  appui: null,          // l'appui long en cours
 };
+
+const NOTES = [1, 2, 3, 4, 5, 6, 'square', 'hairpin', 'acute'];
+const NOM_NOTE = { square: 'SQ · à angle droit', hairpin: 'HP · épingle', acute: 'AC · refermé' };
+const DISTANCES = [200, 100, 50];
+const TACTILE = matchMedia('(pointer: coarse)').matches;
+const VISEE = TACTILE ? 22 : 12;   // le rayon de visée, en pixels : un doigt n'est pas un curseur
 
 const $ = (id) => document.getElementById(id);
 const cv = $('cv');
@@ -66,12 +92,31 @@ function charger(id, garderPts) {
   // toujours dire la même chose : ce que le solveur propose, et non ce qu'on a déjà dessiné.
   const nu = Object.assign({}, S.def);
   delete nu.lines;
+  delete nu.panneaux;      // idem pour les panneaux : `boards` doit être le calcul, pas la reprise
   S.track = new Track(nu);
   $('circuit').value = S.def.id;         // le sélecteur suit, même quand on charge par code
   const n = +$('nPts').value;
   if (!garderPts) for (const nom of ['racing', 'inside', 'outside']) S.pts[nom] = autoPoints(nom, n);
+  if (!garderPts) { S.panneaux = panneauxDuCalcul(); S.panModif = false; S.selP = null; }
   cadrer();
+  majFicheP();
   dessiner();
+}
+
+/* ------------------------------------------------------------------------------ les panneaux */
+
+/** La note d'un panneau calculé : le chiffre de rallye, ou le nom du virage nommé. */
+const noteDe = (b) => (b.kind && b.kind !== 'normal' ? b.kind : b.grade);
+
+/** Les panneaux tels que le jeu les déduit, dans la forme que l'éditeur manipule. */
+function panneauxDuCalcul() {
+  // Le circuit de travail est construit SANS `panneaux`, donc `boards` est bien le calcul.
+  return S.track.boards.map((b) => ({ at: b.at, dist: b.dist, note: noteDe(b), sign: b.sign }));
+}
+
+/** Où chaque panneau se plante, par le code du jeu et non par une copie de ce code. */
+function panneauxPoses() {
+  return S.track._panneauxPoses(S.panneaux.map((p) => [p.at, p.dist, p.note, p.sign]));
 }
 
 /* ---------------------------------------------------------------------------------- la vue */
@@ -130,12 +175,29 @@ function dessiner() {
   }
   trace(S.ligne, 3, 1);
 
-  // les points de contrôle de la ligne modifiée
-  for (const p of S.pts[S.ligne]) {
-    const e = versEcran(p);
-    ctx.beginPath(); ctx.arc(e[0], e[1], 5, 0, 7);
-    ctx.fillStyle = COULEURS[S.ligne]; ctx.fill();
-    ctx.lineWidth = 1.5; ctx.strokeStyle = '#11141c'; ctx.stroke();
+  // les points de contrôle de la ligne modifiée — seulement quand c'est elle qu'on modifie
+  if (S.mode === 'lignes') {
+    /* Le rayon d'un point suit l'écartement à l'écran. Posé à huit pixels pour le doigt, il
+       donnait un collier de perles dès qu'on dézoomait : quarante-huit points sur un circuit qui
+       tient dans trois cents pixels sont à six pixels l'un de l'autre, et des pastilles de seize
+       se chevauchent. On ne peut pas viser ce qu'on ne distingue pas. */
+    const ptsL = S.pts[S.ligne];
+    let esp = 0;
+    for (let i = 0; i < ptsL.length; i++) {
+      const a = versEcran(ptsL[i]), b = versEcran(ptsL[(i + 1) % ptsL.length]);
+      esp += Math.hypot(a[0] - b[0], a[1] - b[1]);
+    }
+    esp /= Math.max(1, ptsL.length);
+    const r = Math.max(2.5, Math.min(TACTILE ? 8 : 5, esp * 0.42));
+    for (const p of S.pts[S.ligne]) {
+      const e = versEcran(p);
+      ctx.beginPath(); ctx.arc(e[0], e[1], r, 0, 7);
+      ctx.fillStyle = COULEURS[S.ligne]; ctx.fill();
+      ctx.lineWidth = Math.min(1.5, r * 0.3); ctx.strokeStyle = '#11141c'; ctx.stroke();
+    }
+  } else {
+    const poses = panneauxPoses();
+    poses.forEach((b, i) => dessinerPanneau(b, i === S.selP));
   }
 
   // le sens de la marche, sans quoi on ne sait pas de quel côté est l'intérieur
@@ -143,6 +205,44 @@ function dessiner() {
   const b = versEcran([T.xs[Math.round(N * 0.02)] / u, T.ys[Math.round(N * 0.02)] / u]);
   ctx.strokeStyle = '#7ed321'; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+}
+
+/* Un panneau, dessiné par le code du jeu.
+
+La flèche vient de `Renderer.paceArrow`, celle-là même qui la trace en course — c'est pour ça que
+cette page charge `js/render.js`. Redessiner un glyphe approchant ici aurait coûté moins cher et
+aurait menti : on règle une annonce à ce qu'elle a l'air, et deux dessins différents divergent au
+premier changement.
+
+La taille est en pixels d'écran et non en unités de piste : un panneau fait cinq mètres de côté sur
+la route, ce qui, dézoomé sur un circuit entier, tiendrait dans un pixel. Ici il doit rester visible
+et touchable quel que soit le zoom. */
+const PAN_TAILLE = 30;
+
+function dessinerPanneau(b, choisi) {
+  const u = S.track.unitScale;
+  const e = versEcran([b.x / u, b.y / u]);
+  const W = PAN_TAILLE, H = W * 1.23, spec = Renderer.ARROWS[noteDe(b)] || Renderer.ARROWS[3];
+  ctx.save();
+  ctx.translate(e[0], e[1]);
+  ctx.rotate(b.th + Math.PI / 2);
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(-W / 2, -H / 2, W, H, 3.5); else ctx.rect(-W / 2, -H / 2, W, H);
+  ctx.fillStyle = '#f2f2ee'; ctx.fill();
+  ctx.lineWidth = choisi ? 3 : 1.4;
+  ctx.strokeStyle = choisi ? '#7ed321' : '#11141c';
+  ctx.stroke();
+  Renderer.paceArrow(ctx, { x: 0, y: -H * 0.24, w: W * 0.78, h: H * 0.40 }, spec, b.sign > 0 ? 1 : -1);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#11141c';
+  ctx.font = `bold ${Math.round(W * 0.31)}px "Trebuchet MS", sans-serif`;
+  ctx.fillText(String(b.dist), 0, H * 0.30);
+  if (spec.tag) {
+    ctx.fillStyle = spec.col;
+    ctx.font = `bold ${Math.round(W * 0.19)}px "Trebuchet MS", sans-serif`;
+    ctx.fillText(spec.tag, 0, H * 0.06);
+  }
+  ctx.restore();
 }
 
 /* L'aperçu : un circuit construit avec les lignes dessinées, donc la vérité.
@@ -236,17 +336,33 @@ function reechantillonner(n) {
 // deux décimales laissaient un arrondi de quinze centimètres — assez pour qu'exporter puis relire ne
 // redonne pas tout à fait la même ligne.
 const arrondi = (v) => Math.round(v * 1000) / 1000;
+// Une fraction de tour, elle, se compte sur la longueur entière : quatre décimales valent un
+// mètre sur un circuit de dix kilomètres, ce qui est plus fin que la largeur d'un panneau.
+const arrondi4 = (v) => Math.round(v * 10000) / 10000;
 
 function exporter() {
-  const l = (nom) => '      ' + nom + ': [' +
-    S.pts[nom].map((p) => `[${arrondi(p[0])}, ${arrondi(p[1])}]`).join(', ') + '],';
-  const txt = '    lines: {\n' + ['racing', 'inside', 'outside'].map(l).join('\n') + '\n    },';
-  $('sortie').value = txt;
+  if (S.mode === 'panneaux') {
+    $('sortie').value = blocPanneaux(panneauxPlats());
+    etat(`bloc produit pour ${S.def.name} — ${S.panneaux.length} panneau(x)`);
+    return;
+  }
+  $('sortie').value = blocPour(S.pts);
   etat(`bloc produit pour ${S.def.name} — ${S.pts.racing.length} points par ligne`);
 }
 
 function relire() {
   const txt = $('sortie').value.trim();
+  const mp = txt.match(/panneaux\s*:\s*(\[[\s\S]*\])\s*,?\s*$/);
+  if (mp) {
+    try {
+      const liste = JSON.parse(mp[1].replace(/'/g, '"').replace(/,(\s*[}\]])/g, '$1'));
+      S.panneaux = liste.map(([at, dist, note, sign]) => ({ at: +at, dist: +dist, note, sign: +sign }));
+      S.panModif = true; S.selP = null;
+      majFicheP(); dessiner();
+      etat(`${S.panneaux.length} panneau(x) relu(s)`);
+    } catch (e) { etat('bloc de panneaux illisible : ' + e.message); }
+    return;
+  }
   try {
     // On accepte le bloc tel qu'il sera collé dans `tracks.js`, accolade de `lines` comprise.
     const m = txt.match(/lines\s*:\s*(\{[\s\S]*\})\s*,?\s*$/);
@@ -280,14 +396,24 @@ La découpe se fait au comptage d'accolades, en sautant ce qui est entre guillem
 de circuit est un objet littéral et rien d'autre ; chercher la fin d'un objet à l'expression
 régulière, en revanche, marche jusqu'au jour où ça ne marche plus. */
 function finObjet(txt, debut) {
-  let prof = 0, dans = null;
+  let prof = 0, dans = null, com = null;
   for (let i = debut; i < txt.length; i++) {
     const c = txt[i];
+    /* LES COMMENTAIRES SE SAUTENT, et ce n'est pas un raffinement. Le fichier est commenté en
+       français : « ce qu'on », « l'assombrissement », « n'est pas ». Chaque apostrophe était lue
+       comme une ouverture de chaîne, et une seule de trop décalait tout ce qui suit — le compteur
+       d'accolades ne trouvait plus la fin de la définition, et le bloc se posait au mauvais endroit.
+       Un commentaire ajouté ailleurs dans le fichier cassait donc cette page, sans rapport visible. */
+    if (com) {
+      if (com === '//' ? c === '\n' : (c === '*' && txt[i + 1] === '/')) { if (com === '/*') i++; com = null; }
+      continue;
+    }
     if (dans) {                                   // dans une chaîne : on n'y compte rien
       if (c === '\\') i++;
       else if (c === dans) dans = null;
       continue;
     }
+    if (c === '/' && (txt[i + 1] === '/' || txt[i + 1] === '*')) { com = c + txt[i + 1]; i++; continue; }
     if (c === '"' || c === "'" || c === '`') { dans = c; continue; }
     if (c === '{' || c === '[') prof++;
     else if (c === '}' || c === ']') { prof--; if (prof === 0) return i; }
@@ -302,41 +428,58 @@ function blocPour(pts) {
   return '    lines: {\n' + ['racing', 'inside', 'outside'].map(l).join('\n') + '\n    },';
 }
 
-/** Pose — ou remplace — le bloc `lines` d'un circuit dans le texte de `js/tracks.js`. */
-function poserDansFichier(txt, id, pts) {
+/** Le bloc `panneaux` : une ligne par panneau, pour qu'un diff dise lequel a bougé. */
+function blocPanneaux(liste) {
+  const l = (p) => `      [${arrondi4(p[0])}, ${p[1]}, ${typeof p[2] === 'number' ? p[2] : `'${p[2]}'`}, ${p[3]}],`;
+  if (!liste.length) return '    panneaux: [],';
+  return '    panneaux: [\n' + liste.map(l).join('\n') + '\n    ],';
+}
+
+/** Remplace — ou pose — un bloc nommé dans le corps d'une définition de circuit. */
+function poserBloc(corps, cle, bloc) {
+  const dejaLa = corps.indexOf(cle + ':');
+  if (dejaLa >= 0) {
+    const debLigne = corps.lastIndexOf('\n', dejaLa) + 1;
+    const a = corps.indexOf('{', dejaLa), b = corps.indexOf('[', dejaLa);
+    const ouvre = a < 0 ? b : b < 0 ? a : Math.min(a, b);
+    const finBloc = finObjet(corps, ouvre);
+    const apres = corps.indexOf('\n', finBloc);
+    return corps.slice(0, debLigne) + bloc + '\n' + corps.slice(apres + 1);
+  }
+  // poser juste avant l'accolade fermante de la définition
+  const avantFin = corps.lastIndexOf('\n', corps.length - 2) + 1;
+  return corps.slice(0, avantFin) + bloc + '\n' + corps.slice(avantFin);
+}
+
+/** Pose — ou remplace — les blocs repris d'un circuit dans le texte de `js/tracks.js`. */
+function poserDansFichier(txt, id, repris) {
   const tete = txt.indexOf(`id: '${id}'`);
   if (tete < 0) throw new Error(`circuit ${id} introuvable dans js/tracks.js`);
   const ouvre = txt.lastIndexOf('{', tete);
   const ferme = finObjet(txt, ouvre);
   if (ferme < 0) throw new Error(`définition de ${id} mal formée`);
   let corps = txt.slice(ouvre, ferme + 1);
-  const bloc = blocPour(pts);
-  const dejaLa = corps.indexOf('lines:');
-  if (dejaLa >= 0) {
-    // remplacer le bloc existant, bornes comprises
-    const debLigne = corps.lastIndexOf('\n', dejaLa) + 1;
-    const finBloc = finObjet(corps, corps.indexOf('{', dejaLa));
-    const apres = corps.indexOf('\n', finBloc);
-    corps = corps.slice(0, debLigne) + bloc + '\n' + corps.slice(apres + 1);
-  } else {
-    // poser juste avant l'accolade fermante de la définition
-    const avantFin = corps.lastIndexOf('\n', corps.length - 2) + 1;
-    corps = corps.slice(0, avantFin) + bloc + '\n' + corps.slice(avantFin);
-  }
+  if (repris.lines) corps = poserBloc(corps, 'lines', blocPour(repris.lines));
+  if (repris.panneaux) corps = poserBloc(corps, 'panneaux', blocPanneaux(repris.panneaux));
   return txt.slice(0, ouvre) + corps + txt.slice(ferme + 1);
 }
 
 async function fabriquerFichier() {
-  let reprises;
-  try { reprises = await Store.list('lines'); } catch (_) { reprises = []; }
-  // celle qu'on regarde compte, même si elle n'est pas encore posée
-  const enCours = { id: S.def.id, lines: S.pts };
-  const toutes = [...reprises.filter((r) => r.id !== enCours.id), enCours];
+  let lignes = [], pans = [];
+  try { lignes = await Store.list('lines'); } catch (_) { /* base indisponible */ }
+  try { pans = await Store.list('panneaux'); } catch (_) { /* base indisponible */ }
+  const par = new Map();
+  const pour = (id) => { if (!par.has(id)) par.set(id, {}); return par.get(id); };
+  for (const r of lignes) pour(r.id).lines = r.lines;
+  for (const r of pans) pour(r.id).panneaux = r.panneaux;
+  // ce qu'on regarde compte, même si ce n'est pas encore posé
+  pour(S.def.id).lines = S.pts;
+  if (S.panModif) pour(S.def.id).panneaux = panneauxPlats();
   const r = await fetch('js/tracks.js');
   if (!r.ok) throw new Error('js/tracks.js illisible (' + r.status + ')');
   let txt = await r.text();
-  for (const t of toutes) txt = poserDansFichier(txt, t.id, t.lines);
-  return { txt, n: toutes.length, ids: toutes.map((t) => t.id) };
+  for (const [id, repris] of par) txt = poserDansFichier(txt, id, repris);
+  return { txt, n: par.size, ids: [...par.keys()] };
 }
 
 /* ------------------------------------------------- enregistrer pour jouer, ici et maintenant
@@ -348,6 +491,9 @@ pour tout le monde et survit à un autre navigateur.
 
 La distinction est dite plutôt que devinée, parce que les deux se ressemblent à l'usage et que
 découvrir six mois plus tard qu'une trajectoire n'existait que dans un navigateur coûte cher. */
+/** La liste des panneaux dans sa forme de fichier : `[fraction, distance, note, sens]`. */
+const panneauxPlats = () => S.panneaux.map((p) => [arrondi4(p.at), p.dist, p.note, p.sign]);
+
 async function poser() {
   try {
     await Store.put('lines', { id: S.def.id, at: Date.now(), lines: {
@@ -355,36 +501,87 @@ async function poser() {
       inside: S.pts.inside.map((p) => [arrondi(p[0]), arrondi(p[1])]),
       outside: S.pts.outside.map((p) => [arrondi(p[0]), arrondi(p[1])]),
     } });
+    // Les panneaux ne s'enregistrent que si on y a touché : sans ça, poser une ligne figerait
+    // aussi des panneaux qu'on n'a pas regardés, et le jeu cesserait de les recalculer.
+    if (S.panModif) await Store.put('panneaux', { id: S.def.id, at: Date.now(), panneaux: panneauxPlats() });
     majPose();
-    etat(`${S.def.name} : ligne enregistrée pour ce navigateur`);
+    etat(`${S.def.name} : enregistré pour ce navigateur`);
   } catch (e) { etat('enregistrement impossible : ' + e.message); }
 }
 
 async function oublier() {
   try {
     await Store.del('lines', S.def.id);
-    majPose();
-    etat(`${S.def.name} : le jeu revient à sa ligne calculée`);
+    await Store.del('panneaux', S.def.id);
+    S.panneaux = panneauxDuCalcul(); S.panModif = false; S.selP = null;
+    majFicheP(); majPose(); dessiner();
+    etat(`${S.def.name} : le jeu revient à ce qu'il calcule`);
   } catch (e) { etat('suppression impossible : ' + e.message); }
 }
 
 /** Dit si le circuit affiché porte déjà une ligne enregistrée, et propose de la reprendre. */
 async function majPose() {
-  let r = null;
+  let r = null, q = null;
   try { r = await Store.get('lines', S.def.id); } catch (_) { /* base indisponible */ }
+  try { q = await Store.get('panneaux', S.def.id); } catch (_) { /* base indisponible */ }
   const el = $('pose');
-  if (!r) { el.textContent = 'Aucune ligne enregistrée pour ce circuit.'; return; }
-  const quand = new Date(r.at || Date.now()).toLocaleString();
-  el.innerHTML = `Ligne enregistrée le ${quand}. <a href="#" id="reprendre">La reprendre ici</a>`;
+  if (!r && !q) { el.textContent = 'Rien d’enregistré pour ce circuit.'; return; }
+  const bouts = [];
+  if (r) bouts.push(`ligne du ${new Date(r.at || Date.now()).toLocaleString()}`);
+  if (q) bouts.push(`${q.panneaux.length} panneau(x)`);
+  el.innerHTML = `Enregistré : ${bouts.join(', ')}. <a href="#" id="reprendre">Reprendre ici</a>`;
   $('reprendre').addEventListener('click', (ev) => {
     ev.preventDefault();
-    for (const nom of ['racing', 'inside', 'outside']) {
-      if (Array.isArray(r.lines[nom])) S.pts[nom] = r.lines[nom].map((p) => [+p[0], +p[1]]);
+    if (r) {
+      for (const nom of ['racing', 'inside', 'outside']) {
+        if (Array.isArray(r.lines[nom])) S.pts[nom] = r.lines[nom].map((p) => [+p[0], +p[1]]);
+      }
+      $('nPts').value = S.pts.racing.length;
     }
-    $('nPts').value = S.pts.racing.length;
+    if (q) {
+      S.panneaux = q.panneaux.map(([at, dist, note, sign]) => ({ at: +at, dist: +dist, note, sign: +sign }));
+      S.panModif = true; S.selP = null; majFicheP();
+    }
     dessiner();
-    etat('ligne enregistrée reprise');
+    etat('enregistrement repris');
   });
+}
+
+/* ------------------------------------------------------- la fiche du panneau choisi
+
+Trois réglages et rien de plus, parce que ce sont les trois choses qu'un panneau dit : de quel côté
+ça tourne, à quel point, et dans combien de mètres. Le quatrième bouton l'enlève. */
+
+function majFicheP() {
+  const b = S.selP != null ? S.panneaux[S.selP] : null;
+  $('aucunP').hidden = !!b;
+  $('ficheP').hidden = !b;
+  if (!b) return;
+  for (const el of $('sensP').children) el.classList.toggle('sel', +el.dataset.sens === (b.sign > 0 ? 1 : -1));
+  for (const el of $('noteP').children) el.classList.toggle('sel', el.dataset.note === String(b.note));
+  for (const el of $('distP').children) el.classList.toggle('sel', +el.dataset.dist === b.dist);
+}
+
+/** Toute retouche passe par ici : la liste devient une reprise, et le calcul ne la reprendra plus. */
+function changerP(champ, valeur) {
+  if (S.selP == null) return;
+  S.panneaux[S.selP][champ] = valeur;
+  S.panModif = true;
+  majFicheP();
+  dessiner();
+}
+
+/** Un panneau neuf, au milieu de la vue, posé sur la station la plus proche. */
+function ajouterP() {
+  const w = cv.width / devicePixelRatio, h = cv.height / devicePixelRatio;
+  const c = versPiste(w / 2, h / 2);
+  const { j } = projeter(c);
+  S.panneaux.push({ at: j / S.track.n, dist: 100, note: 3, sign: 1 });
+  S.selP = S.panneaux.length - 1;
+  S.panModif = true;
+  majFicheP();
+  dessiner();
+  etat('panneau ajouté — donne-lui son sens et sa note');
 }
 
 /* --------------------------------------------------------------------------- les évènements */
@@ -397,7 +594,7 @@ function redimensionner() {
 }
 
 function pointVise(x, y) {
-  let best = 12 * 12, k = -1;
+  let best = VISEE * VISEE, k = -1;
   S.pts[S.ligne].forEach((p, i) => {
     const e = versEcran(p);
     const d = (e[0] - x) ** 2 + (e[1] - y) ** 2;
@@ -406,31 +603,91 @@ function pointVise(x, y) {
   return k;
 }
 
+/** Le panneau sous le doigt : on vise le rectangle, pas son centre. */
+function panneauVise(x, y) {
+  const u = S.track.unitScale, poses = panneauxPoses();
+  let best = (PAN_TAILLE * 0.75) ** 2, k = -1;
+  poses.forEach((b, i) => {
+    const e = versEcran([b.x / u, b.y / u]);
+    const d = (e[0] - x) ** 2 + (e[1] - y) ** 2;
+    if (d < best) { best = d; k = i; }
+  });
+  return k;
+}
+
+const ou = (ev) => { const r = cv.getBoundingClientRect(); return [ev.clientX - r.left, ev.clientY - r.top]; };
+// La capture du pointeur est un confort — elle garde les évènements quand le doigt sort de la toile
+// — et elle refuse parfois (pointeur déjà relâché, évènement synthétique). Un refus ne doit pas
+// emporter le reste du traitement : sans ce garde, un `setPointerCapture` qui jette annulait la
+// prise du point et l'appui long qui vient juste après.
+const capter = (id) => { try { cv.setPointerCapture(id); } catch (_) { /* tant pis */ } };
+
+/** Ramène un point de contrôle sur la ligne calculée — le clic droit, et l'appui long. */
+function annuler(k) {
+  const auto = autoPoints(S.ligne, S.pts[S.ligne].length);
+  S.pts[S.ligne][k] = auto[k];
+  dessiner();
+}
+
+/* LE ZOOM À DEUX DOIGTS. On suit tous les contacts ; dès qu'il y en a deux, l'écartement donne le
+   facteur et le milieu donne le déplacement. Le point du circuit sous le milieu reste sous le
+   milieu, exactement comme la molette garde celui sous le curseur — sans quoi on zoome vers un coin
+   et on perd ce qu'on regardait. */
+function majPince() {
+  const pts = [...S.doigts.values()];
+  if (pts.length < 2) { S.pince = null; return; }
+  const [a, b] = pts;
+  const d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+  const c = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  if (!S.pince) { S.pince = { d, c, k: S.vue.k }; return; }
+  const avant = versPiste(c[0], c[1]);
+  S.vue.k = S.pince.k * (d / Math.max(1, S.pince.d));
+  const apres = versPiste(c[0], c[1]);
+  S.vue.x += (apres[0] - avant[0]) * S.vue.k + (c[0] - S.pince.c[0]);
+  S.vue.y += (apres[1] - avant[1]) * S.vue.k + (c[1] - S.pince.c[1]);
+  S.pince.c = c;
+  dessiner();
+}
+
 cv.addEventListener('pointerdown', (ev) => {
-  const r = cv.getBoundingClientRect();
-  const x = ev.clientX - r.left, y = ev.clientY - r.top;
-  const k = pointVise(x, y);
-  if (ev.button === 2) {
-    if (k >= 0) {
-      // ramener ce point sur la ligne que le jeu calcule
-      const auto = autoPoints(S.ligne, S.pts[S.ligne].length);
-      S.pts[S.ligne][k] = auto[k];
-      dessiner();
-    }
+  const [x, y] = ou(ev);
+  S.doigts.set(ev.pointerId, [x, y]);
+  if (S.doigts.size > 1) { S.prise = null; S.glisse = null; clearTimeout(S.appui); majPince(); return; }
+
+  if (S.mode === 'panneaux') {
+    const k = panneauVise(x, y);
+    if (k >= 0) { S.selP = k; majFicheP(); dessiner(); return; }
+    S.glisse = [x, y, S.vue.x, S.vue.y]; capter(ev.pointerId);
     return;
   }
-  if (k >= 0) { S.prise = k; cv.setPointerCapture(ev.pointerId); }
-  else { S.glisse = [x, y, S.vue.x, S.vue.y]; cv.setPointerCapture(ev.pointerId); }
+  const k = pointVise(x, y);
+  if (ev.button === 2) { if (k >= 0) annuler(k); return; }
+  if (k >= 0) {
+    S.prise = k; capter(ev.pointerId);
+    // L'appui long tient lieu de clic droit : un téléphone n'en a pas, et c'est la seule façon de
+    // dire « reprends le calcul pour ce point » sans ajouter un mode.
+    S.appui = setTimeout(() => { S.prise = null; annuler(k); etat('point revenu au calcul'); }, 550);
+  } else { S.glisse = [x, y, S.vue.x, S.vue.y]; capter(ev.pointerId); }
 });
 
 cv.addEventListener('pointermove', (ev) => {
-  const r = cv.getBoundingClientRect();
-  const x = ev.clientX - r.left, y = ev.clientY - r.top;
-  if (S.prise != null) { S.pts[S.ligne][S.prise] = versPiste(x, y); dessiner(); }
-  else if (S.glisse) { S.vue.x = S.glisse[2] + (x - S.glisse[0]); S.vue.y = S.glisse[3] + (y - S.glisse[1]); dessiner(); }
+  const [x, y] = ou(ev);
+  if (S.doigts.has(ev.pointerId)) S.doigts.set(ev.pointerId, [x, y]);
+  if (S.doigts.size > 1) { majPince(); return; }
+  if (S.prise != null) {
+    clearTimeout(S.appui);
+    S.pts[S.ligne][S.prise] = versPiste(x, y); dessiner();
+  } else if (S.glisse) {
+    S.vue.x = S.glisse[2] + (x - S.glisse[0]); S.vue.y = S.glisse[3] + (y - S.glisse[1]); dessiner();
+  }
 });
 
-const relacher = () => { S.prise = null; S.glisse = null; };
+const relacher = (ev) => {
+  if (ev) S.doigts.delete(ev.pointerId);
+  if (S.doigts.size < 2) S.pince = null;
+  clearTimeout(S.appui);
+  S.prise = null; S.glisse = null;
+};
 cv.addEventListener('pointerup', relacher);
 cv.addEventListener('pointercancel', relacher);
 cv.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -502,3 +759,68 @@ $('copier').addEventListener('click', async () => {
 redimensionner();
 charger(TRACKS[0].id, false);
 majPose();
+
+/* ------------------------------------------------------- le mode, les panneaux, le tiroir */
+
+function changerMode(m) {
+  S.mode = m;
+  $('volLignes').hidden = m !== 'lignes';
+  $('volPanneaux').hidden = m !== 'panneaux';
+  [...$('choixMode').children].forEach((b) => b.classList.toggle('sel', b.dataset.mode === m));
+  dessiner();
+}
+for (const b of $('choixMode').children) b.addEventListener('click', () => changerMode(b.dataset.mode));
+
+for (const n of NOTES) {
+  const b = document.createElement('button');
+  b.dataset.note = String(n);
+  b.textContent = typeof n === 'number' ? String(n) : Renderer.ARROWS[n].tag;
+  b.title = typeof n === 'number' ? `note ${n}` : NOM_NOTE[n];
+  b.style.color = Renderer.ARROWS[n].col;
+  b.addEventListener('click', () => changerP('note', typeof n === 'number' ? n : String(n)));
+  $('noteP').appendChild(b);
+}
+for (const d of DISTANCES) {
+  const b = document.createElement('button');
+  b.dataset.dist = String(d);
+  b.textContent = d + ' m';
+  b.addEventListener('click', () => changerP('dist', d));
+  $('distP').appendChild(b);
+}
+for (const b of $('sensP').children) b.addEventListener('click', () => changerP('sign', +b.dataset.sens));
+$('supprP').addEventListener('click', () => {
+  if (S.selP == null) return;
+  S.panneaux.splice(S.selP, 1);
+  S.selP = null; S.panModif = true;
+  majFicheP(); dessiner();
+  etat('panneau supprimé — « Enregistrer » pour que le jeu le voie');
+});
+$('ajoutP').addEventListener('click', ajouterP);
+$('autoP').addEventListener('click', () => {
+  S.panneaux = panneauxDuCalcul(); S.panModif = false; S.selP = null;
+  majFicheP(); dessiner();
+  etat('panneaux revenus au calcul');
+});
+
+/* LE TIROIR. Il n'existe qu'en dessous de 860 px — au-dessus, le panneau est une colonne et la
+   poignée est cachée en CSS. Replié par défaut sur un écran étroit : on ouvre un éditeur de tracé
+   pour voir le tracé. */
+$('poign').addEventListener('click', () => {
+  const p = $('panel');
+  /* Ouvrir le tiroir mange la moitié basse de l'écran. Sans rien faire, le circuit — centré sur
+     toute la toile — disparaît derrière. On remonte donc la vue de la moitié de ce que le tiroir
+     vient de prendre : ce qu'on regardait reste en vue, et le zoom ne bouge pas. Recadrer aurait
+     été plus simple et aurait perdu l'endroit où on travaillait. */
+  const avant = p.offsetHeight;
+  const replie = p.classList.toggle('replie');
+  const apres = p.offsetHeight;
+  S.vue.y -= (apres - avant) / 2;
+  $('poign').setAttribute('aria-expanded', String(!replie));
+  $('poign').textContent = replie ? 'Réglages' : 'Masquer';
+  dessiner();
+});
+if (matchMedia('(max-width: 860px)').matches) {
+  $('panel').classList.add('replie');
+  $('poign').setAttribute('aria-expanded', 'false');
+}
+changerMode('lignes');

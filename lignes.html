@@ -2,101 +2,199 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Eyes On Line — Éditeur de lignes</title>
-<link rel="stylesheet" href="css/style.css?v=0.21.92">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Eyes On Line — Éditeur de lignes et de panneaux</title>
+<link rel="stylesheet" href="css/style.css?v=0.21.93">
 <style>
   body { overflow: hidden; }
-  #ed { position: fixed; inset: 0; display: grid; grid-template-columns: 320px 1fr; }
-  #panel { background: #141826; border-right: 1px solid rgba(255,255,255,0.08); padding: 14px;
-           overflow-y: auto; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+  #ed { position: fixed; inset: 0; display: grid; grid-template-columns: 340px 1fr; }
+  #tete { display: contents; }
+  /* La toile est AVANT le panneau dans le document — elle doit rester au-dessous de lui quand il
+     devient un tiroir — mais elle se place à droite : la grille le dit, l'ordre du document ne
+     décide de rien. */
+  #panel { grid-area: 1 / 1; background: #141826; border-right: 1px solid rgba(255,255,255,0.08); padding: 14px;
+           overflow-y: auto; display: flex; flex-direction: column; gap: 10px; font-size: 14px;
+           -webkit-overflow-scrolling: touch; }
   #panel h2 { font-size: 20px; margin: 0; }
   #panel h3 { margin: 8px 0 0; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
   #panel label { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  select, input[type="number"] { font: inherit; padding: 6px 8px; border-radius: 8px;
+  select, input[type="number"] { font: inherit; padding: 8px; border-radius: 8px;
            border: 1px solid rgba(255,255,255,0.15); background: var(--card); color: var(--text); width: 150px; }
-  button { padding: 7px 11px; font-size: 13px; }
+  button { padding: 8px 11px; font-size: 13px; min-height: 38px; }
   .row2 { display: flex; gap: 6px; flex-wrap: wrap; }
-  .lignes button { flex: 1; }
-  .lignes button.sel { outline: 2px solid var(--accent); }
+  .row2 > button { flex: 1 1 auto; }
+  .lignes button.sel, .modes button.sel, .grille button.sel { outline: 2px solid var(--accent); }
   .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
-  .help { color: var(--muted); font-size: 12px; line-height: 1.5; }
+  .help { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 0; }
+  details > summary { cursor: pointer; color: var(--muted); font-size: 13px; padding: 6px 0;
+           text-transform: uppercase; letter-spacing: 0.04em; }
+  details[open] > summary { color: var(--text); }
+  details > *:not(summary) { margin-top: 8px; }
   #etat { color: var(--accent2); font-size: 12px; min-height: 16px; }
-  #sortie { width: 100%; height: 150px; font: 11px/1.4 ui-monospace, monospace; background: #0d1018;
+  #sortie { width: 100%; height: 130px; font: 11px/1.4 ui-monospace, monospace; background: #0d1018;
             color: var(--text); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 8px; }
-  #cv { display: block; width: 100%; height: 100%; background: #1a2118; cursor: crosshair; touch-action: none; }
-  @media (max-width: 860px) { #ed { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-    #panel { max-height: 48vh; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); } }
+  #cv { grid-area: 1 / 2; display: block; width: 100%; height: 100%; background: #1a2118; cursor: crosshair; touch-action: none; }
+  /* Les panneaux : une grille de notes, pour viser au doigt plutôt qu'au menu déroulant. */
+  .grille { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .grille button { min-height: 42px; font-size: 15px; font-weight: 600; }
+  #ficheP[hidden] { display: none; }
+  #poign { display: none; }
+
+  /* AU DOIGT, SUR UN TÉLÉPHONE. Le panneau devient un tiroir au ras du bas : la carte prend tout
+     l'écran, et on remonte le tiroir quand on a besoin d'un réglage. Replié il ne laisse que sa
+     poignée, parce qu'un éditeur de tracé où la moitié de l'écran est du texte n'est pas un
+     éditeur de tracé. */
+  @media (max-width: 860px) {
+    #ed { display: block; }
+    #cv { position: fixed; inset: 0; width: 100%; height: 100%; }
+    #panel { position: fixed; left: 0; right: 0; bottom: 0; top: auto; border-right: none;
+             border-top: 1px solid rgba(255,255,255,0.12); border-radius: 14px 14px 0 0;
+             max-height: 62vh; padding: 0 14px calc(14px + env(safe-area-inset-bottom)) 14px;
+             box-shadow: 0 -10px 30px rgba(0,0,0,0.45); gap: 9px; }
+    /* Replié, le tiroir ne montre que sa tête — poignée, circuit, et le choix du mode. Replier en
+       bornant une hauteur demanderait de connaître cette hauteur, qui dépend de la police et de la
+       langue ; cacher tout ce qui n'est pas la tête ne demande rien et ne se trompe jamais. */
+    #panel.replie > *:not(#tete) { display: none; }
+    #tete { position: sticky; top: 0; z-index: 2; background: #141826; margin: 0 -14px;
+            padding: 0 14px 10px; display: flex; flex-direction: column; gap: 9px; }
+    #poign { display: block; position: sticky; top: 0; z-index: 2; margin: 0 -14px; padding: 0;
+             width: calc(100% + 28px); background: #141826; border: none; border-radius: 14px 14px 0 0;
+             min-height: 52px; color: var(--text); font-size: 14px; font-weight: 600; }
+    #poign::before { content: ''; display: block; width: 38px; height: 4px; border-radius: 2px;
+             background: rgba(255,255,255,0.28); margin: 7px auto 5px; }
+    #panel h2 { display: none; }
+    button { min-height: 44px; }
+    select, input[type="number"] { min-height: 44px; width: 140px; }
+    .grille button { min-height: 50px; }
+  }
 </style>
 </head>
 <body>
 <div id="ed">
+  <canvas id="cv"></canvas>
   <div id="panel">
-    <h2>Éditeur de lignes</h2>
-    <p class="help">Les trois lignes d'un circuit existant, déplaçables point par point. Le jeu
-      calcule les siennes tout seul ; cet outil sert à les reprendre à la main quand le calcul
-      n'est pas d'accord avec l'œil.</p>
-
-    <label>Circuit <select id="circuit"></select></label>
-
-    <h3>Ligne modifiée</h3>
-    <div class="row2 lignes" id="choixLigne"></div>
-
-    <label>Points de contrôle <input id="nPts" type="number" min="12" max="160" step="4" value="48"></label>
-    <p class="help">Plus de points suivent la piste de plus près ; moins de points donnent une
-      ligne plus douce et plus facile à reprendre. Changer ce nombre rééchantillonne la ligne
-      courante, sans perdre sa forme.</p>
-
-    <h3>Faire</h3>
-    <div class="row2">
-      <button id="auto">Revenir au calcul</button>
-      <button id="toutAuto">Les trois</button>
-    </div>
-    <div class="row2">
-      <button id="lisser">Lisser la ligne</button>
-      <button id="dansPiste">Ramener dans la piste</button>
+    <div id="tete">
+      <button id="poign" aria-expanded="true">Réglages</button>
+      <h2>Éditeur de lignes et de panneaux</h2>
+      <label>Circuit <select id="circuit"></select></label>
+      <div class="row2 modes" id="choixMode">
+        <button data-mode="lignes" class="sel">Lignes</button>
+        <button data-mode="panneaux">Panneaux</button>
+      </div>
     </div>
 
+    <!-- ------------------------------------------------------------------ les lignes -->
+    <div id="volLignes">
+      <h3>Ligne modifiée</h3>
+      <div class="row2 lignes" id="choixLigne"></div>
+
+      <label style="margin-top:10px">Points de contrôle <input id="nPts" type="number" min="12" max="160" step="4" value="48"></label>
+
+      <h3>Faire</h3>
+      <div class="row2">
+        <button id="auto">Revenir au calcul</button>
+        <button id="toutAuto">Les trois</button>
+      </div>
+      <div class="row2" style="margin-top:6px">
+        <button id="lisser">Lisser la ligne</button>
+        <button id="dansPiste">Ramener dans la piste</button>
+      </div>
+      <details>
+        <summary>Comment ça marche</summary>
+        <p class="help">Les trois lignes d'un circuit existant, déplaçables point par point. Le jeu
+          calcule les siennes tout seul ; cet outil sert à les reprendre à la main quand le calcul
+          n'est pas d'accord avec l'œil.</p>
+        <p class="help">Plus de points de contrôle suivent la piste de plus près ; moins de points
+          donnent une ligne plus douce et plus facile à reprendre. Changer ce nombre rééchantillonne
+          la ligne courante, sans perdre sa forme.</p>
+      </details>
+    </div>
+
+    <!-- ---------------------------------------------------------------- les panneaux -->
+    <div id="volPanneaux" hidden>
+      <h3>Panneau choisi</h3>
+      <p class="help" id="aucunP">Touche un panneau sur la carte pour le reprendre.</p>
+      <div id="ficheP" hidden>
+        <label>Sens du virage
+          <span class="row2" id="sensP" style="width:150px">
+            <button data-sens="-1">↰ gauche</button>
+            <button data-sens="1">↱ droite</button>
+          </span>
+        </label>
+        <h3>Intensité</h3>
+        <div class="grille" id="noteP"></div>
+        <h3>Valeur annoncée</h3>
+        <div class="row2 grille" id="distP" style="grid-template-columns:repeat(3,1fr)"></div>
+        <div class="row2" style="margin-top:10px">
+          <button id="supprP">Supprimer ce panneau</button>
+        </div>
+      </div>
+      <h3>Faire</h3>
+      <div class="row2">
+        <button id="ajoutP">Ajouter ici</button>
+        <button id="autoP">Revenir au calcul</button>
+      </div>
+      <details>
+        <summary>Comment ça marche</summary>
+        <p class="help">Les panneaux de freinage sont déduits de la géométrie : la flèche montre le
+          sens du <b>premier</b> virage de la zone, et son pliage vient du plus serré. Quand une
+          amorce molle précède le vrai virage dans l'autre sens, l'annonce part du mauvais côté —
+          c'est ce que cette page sert à corriger.</p>
+        <p class="help">Dès qu'un circuit porte une liste reprise, le calcul ne tourne plus pour
+          lui : une liste vide veut dire « aucun panneau », et non « recalcule-les ».</p>
+        <p class="help"><b>Ajouter ici</b> pose un panneau au milieu de la vue, sur le bord de piste
+          le plus proche ; il reste à lui donner son sens et sa note.</p>
+      </details>
+    </div>
+
+    <!-- ------------------------------------------------------------- enregistrements -->
     <h3>Enregistrer pour jouer</h3>
-    <p class="help">Applique la ligne au circuit <b>tout de suite</b>, dans ce navigateur. C'est
-      stocké à côté de tes circuits perso : ça survit au rechargement, mais ça ne vaut que sur ce
-      poste et ça ne change pas le jeu publié.</p>
     <div class="row2">
-      <button id="poser">Enregistrer pour le jeu</button>
+      <button id="poser">Enregistrer</button>
       <button id="oublier">Oublier</button>
       <button id="essayer">Essayer</button>
     </div>
     <div id="pose" class="help"></div>
+    <p class="help">Applique au circuit <b>tout de suite</b>, dans ce navigateur. Ça survit au
+      rechargement, mais ça ne vaut que sur ce poste et ça ne change pas le jeu publié.</p>
 
-    <h3>Enregistrer pour de bon</h3>
-    <p class="help">Pour qu'une ligne vaille pour tout le monde, il faut qu'elle soit dans
-      <code>js/tracks.js</code>. Cette page ne peut pas l'y écrire — il n'y a pas de serveur au
-      bout, seulement des fichiers — mais elle peut <b>fabriquer le fichier</b> : à remettre dans
-      <code>js/</code> et à publier. Toutes les lignes enregistrées y passent d'un coup.</p>
-    <div class="row2">
-      <button id="fichier">Enregistrer js/tracks.js</button>
-    </div>
-    <p class="help">Ou, pour ne prendre que la ligne courante à la main :</p>
-    <div class="row2">
-      <button id="exporter">Produire le bloc</button>
-      <button id="copier">Copier</button>
-      <button id="charger">Relire un bloc</button>
-    </div>
-    <textarea id="sortie" spellcheck="false" placeholder="le bloc lines: { … } apparaît ici"></textarea>
+    <details>
+      <summary>Enregistrer pour de bon</summary>
+      <p class="help">Pour que ça vaille pour tout le monde, il faut que ce soit dans
+        <code>js/tracks.js</code>. Cette page ne peut pas l'y écrire — il n'y a pas de serveur au
+        bout, seulement des fichiers — mais elle peut <b>fabriquer le fichier</b> : à remettre dans
+        <code>js/</code> et à publier. Tout ce qui est enregistré y passe d'un coup.</p>
+      <div class="row2">
+        <button id="fichier">Enregistrer js/tracks.js</button>
+      </div>
+      <p class="help">Ou, pour ne prendre que le circuit courant à la main :</p>
+      <div class="row2">
+        <button id="exporter">Produire le bloc</button>
+        <button id="copier">Copier</button>
+        <button id="charger">Relire un bloc</button>
+      </div>
+      <textarea id="sortie" spellcheck="false" placeholder="le bloc apparaît ici"></textarea>
+    </details>
+
     <div id="etat"></div>
 
-    <h3>À la souris</h3>
-    <p class="help">Glisser un point le déplace. <b>Molette</b> : zoom. <b>Glisser le fond</b> :
-      déplacer la vue. <b>Clic droit sur un point</b> : le ramener sur la ligne calculée.</p>
+    <details>
+      <summary>Gestes</summary>
+      <p class="help"><b>Au doigt</b> : glisser un point le déplace, deux doigts pour zoomer et
+        déplacer la vue, un appui long sur un point le ramène au calcul.</p>
+      <p class="help"><b>À la souris</b> : molette pour zoomer, glisser le fond pour déplacer la
+        vue, clic droit sur un point pour le ramener au calcul.</p>
+    </details>
   </div>
-  <canvas id="cv"></canvas>
 </div>
 
-<script src="js/store.js?v=0.21.92"></script>
-<script src="js/util.js?v=0.21.92"></script>
-<script src="js/traces.js?v=0.21.92"></script>
-  <script src="js/tracks.js?v=0.21.92"></script>
-<script src="js/track.js?v=0.21.92"></script>
-<script src="js/lignes.js?v=0.21.92"></script>
+<script src="js/store.js?v=0.21.93"></script>
+<script src="js/util.js?v=0.21.93"></script>
+<script src="js/traces.js?v=0.21.93"></script>
+<script src="js/tracks.js?v=0.21.93"></script>
+<script src="js/track.js?v=0.21.93"></script>
+<script src="js/props.js?v=0.21.93"></script>
+<script src="js/render.js?v=0.21.93"></script>
+<script src="js/lignes.js?v=0.21.93"></script>
 </body>
 </html>
