@@ -594,8 +594,35 @@ façon de faire tient en quatre règles — qui ne sont pas inventées mais **lu
 4. **Même note et même sens sur tout le triplet.** Trois panneaux qui parlent du même virage n'en
    disent pas trois choses différentes.
 
-Le sens vient de la géométrie et jamais de la liste d'avant : c'est lui qui était faux quarante et
-une fois sur les cinq listes reprises à la main.
+Une cinquième règle est apparue en relisant : **un virage par flèche, pas un freinage par flèche**.
+Un carré à droite suivi trois mètres plus loin d'une épingle à gauche, c'est un seul freinage mais
+deux gestes, et Bruno a posé deux triplets entrelacés. Le groupement par distance en faisait un seul
+virage « à droite ».
+
+#### Deux façons de grouper, parce qu'il y a deux questions
+
+Pour le **freinage**, une chicane est un seul événement : on freine une fois pour les trois virages
+qui la composent, donc on les groupe sur la distance, sens ou pas.
+
+Pour une **indication**, non. `zonesVirages(gap, memeSens)` ne fusionne alors que des virages qui
+tournent du même côté — ce qui recolle les morceaux d'un même virage sans jamais souder deux virages
+opposés. À Zandvoort, cela fait passer de 10 « zones de freinage » à **13 virages**, et les trois qui
+apparaissent sont exactement les seconds de paires : l'épingle gauche à 416 m qui suit le droit à
+348, et l'épingle gauche à 1729 m qui suit le carré droit à 1704, trois mètres plus loin.
+
+#### Le banc accusait des flèches qui avaient raison
+
+Avec le groupement par distance, il jugeait les flèches du second virage d'une paire contre le
+**premier**, qui tourne à l'envers. Il a ainsi déclaré cinq flèches fausses à Zandvoort — elles
+étaient toutes justes, et c'est l'auteur qui l'a vu avant le banc.
+
+Il reste un cas que la distance ne tranche pas : quand la cible d'un panneau tombe à sept mètres d'un
+virage et dix-huit du virage opposé juste derrière. Le sens du panneau dirait lequel il vise, mais
+c'est précisément ce que ce banc vérifie — s'en servir pour choisir le virage reviendrait à lui
+donner la réponse. Ces cas sont donc marqués **ambigus** et ne sont pas comptés. Un banc qui ne peut
+pas trancher doit le dire, pas inventer un verdict.
+
+Le sens vient de la géométrie et jamais de la liste d'avant.
 
 #### Les notes lisaient les virages trop serrés
 
@@ -609,15 +636,23 @@ où il annonçait 4, il a mis 5. On remet donc le rayon à l'échelle avant de l
 méthode partagée par le calcul et par l'outil — deux classements qui doivent s'accorder finissent
 toujours par ne plus s'accorder.
 
-| | avant | après |
-| --- | --- | --- |
-| notes identiques aux siennes | 2 / 10 | **5 / 10** |
-| à un cran près | 4 | 3 |
-| vraiment différentes | 4 | 2 |
+Mesuré sur ses treize virages — une fois le groupement corrigé, car l'accord se jugeait d'abord
+contre des virages fusionnés à tort :
 
-Les deux qui restent sont celles où ses propres choix se contredisent : 128° appelé épingle, 149°
-appelé carré. L'angle, lui, ne s'échelonne pas — un virage à 180° tourne de 180° qu'on le dessine
-grand ou petit, seules les longueurs rétrécissent.
+| | notes |
+| --- | --- |
+| identiques aux siennes | **7 / 13** |
+| à un cran près | 4 |
+| plus loin | 2 |
+
+L'angle, lui, ne s'échelonne pas : un virage à 180° tourne de 180° qu'on le dessine grand ou petit,
+seules les longueurs rétrécissent.
+
+Une correction de plus a été essayée et **écartée** : resserrer la note d'un ou deux crans quand le
+virage tourne longtemps, puisque le chiffre ne vient que du rayon et qu'un 149° et un décroché de 30°
+au même rayon reçoivent aujourd'hui la même note. Mesurée, elle fait passer l'accord de 7 à 8 sur 13
+— et fait basculer un virage de 3 à 1. Un gain d'un cas sur treize ne paie pas un saut pareil, et
+trois réglages ont déjà été ajustés sur de petits échantillons dans ce chapitre.
 
 #### L'outil écrasait le circuit suivant
 

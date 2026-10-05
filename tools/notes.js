@@ -31,11 +31,64 @@ for (const f of ['util', 'traces', 'tracks', 'track'])
 
 src += `
 const SORTIE = {};
+/* --amplitudes : ON NE TOUCHE QUE LA NOTE.
+
+Bruno a posé Zandvoort à la main, virage par virage, y compris les triplets entrelacés d'un carré
+droite suivi d'une épingle gauche : ses POSITIONS et ses SENS portent une intention que le calcul ne
+sait pas retrouver. Seules les amplitudes sont faites à l'œil, et c'est tout ce qu'il a demandé de
+reprendre. On relit donc sa liste et on remplace la note, rien d'autre.
+
+LE VIRAGE VISÉ SE TROUVE PAR LE SENS AUTANT QUE PAR LA DISTANCE. Un panneau dont la cible tombe entre
+deux virages opposés distants de trois mètres est ambigu pour qui ne regarde que la distance — mais
+sa flèche dit déjà de quel côté il parle. On ne retient donc que les virages qui tournent du côté
+qu'il annonce, puis le plus proche parmi eux. C'est l'auteur qui tranche, pas l'arrondi. */
+if (ARGS.includes('--amplitudes')) {
+  const id = ARGS.find((a) => !a.startsWith('--'));
+  const td = TRACKS.find((t) => t.id === id);
+  const T = new Track(td), N = T.n, zones = T.zonesVirages(30, true);
+  const lignes = [], sortie = [];
+  for (const p of td.panneaux) {
+    const at = +p[0], dist = +p[1], note0 = p[2], sign = +p[3];
+    const vise = Math.round(at * N) + Math.round(dist / T.ds);
+    let best = Infinity, z = null;
+    for (const q of zones) {
+      if (q.sign !== sign) continue;
+      const e = (((q.from % N) + N) % N);
+      let d = (((e - vise) % N) + N) % N;
+      if (d > N / 2) d -= N;
+      if (Math.abs(d) < Math.abs(best)) { best = d; z = q; }
+    }
+    if (!z) { sortie.push([at, dist, note0, sign]); lignes.push('  ' + Math.round(at * T.length)
+      + ' m : aucun virage de ce côté, note laissée telle quelle'); continue; }
+    let turn = 0;
+    for (let i = z.from; i < z.firstTo; i++) {
+      const a = ((i % N) + N) % N, b = (((i + 1) % N) + N) % N;
+      let e = T.th[b] - T.th[a];
+      while (e > Math.PI) e -= 2 * Math.PI;
+      while (e < -Math.PI) e += 2 * Math.PI;
+      turn += e;
+    }
+    const A = Math.abs(turn) * 180 / Math.PI, rayon = 1 / z.peak;
+    const note = Track.noteVirage(rayon, A);
+    sortie.push([at, dist, note, sign]);
+    if (String(note) !== String(note0)) lignes.push('  ' + String(Math.round(at * T.length)).padStart(5)
+      + ' m · ' + String(note0).padStart(7) + ' → ' + String(note).padStart(7)
+      + '   (virage de ' + A.toFixed(0) + '° au rayon ' + rayon.toFixed(0) + ' m)');
+  }
+  SORTIE[id] = {
+    txt: sortie.map((b) => '      [' + b[0] + ', ' + b[1] + ', '
+      + (typeof b[2] === 'number' ? b[2] : "'" + b[2] + "'") + ', ' + b[3] + '],').join('\\n'),
+    n: sortie.length, zones: zones.length, lignes,
+  };
+  RESULTAT.v = SORTIE;
+} else
+
+{
 const seul = ARGS.find((a) => !a.startsWith('--'));
 for (const td of TRACKS) {
   if (seul && td.id !== seul) continue;
   const T = new Track(td);
-  const N = T.n, zones = T.zonesVirages(60);
+  const N = T.n, zones = T.zonesVirages(30, true);
   const out = [];
   const lignes = [];
   for (let zi = 0; zi < zones.length; zi++) {
@@ -94,6 +147,7 @@ for (const td of TRACKS) {
   };
 }
 RESULTAT.v = SORTIE;
+}
 `;
 const RESULTAT = { v: null };
 vm.runInNewContext(src, { Math, console, Date, Float32Array, Float64Array, ARGS: process.argv.slice(2),

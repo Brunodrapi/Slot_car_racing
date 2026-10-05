@@ -356,7 +356,7 @@ qui l'a produite. */
 function verifPanneau(b) {
   const T = S.track;
   if (!T.zonesVirages) return '';
-  const zones = T.zonesVirages(60);
+  const zones = T.zonesVirages(30, true);
   if (!zones.length) return '';
   /* LA DISTANCE EST SIGNÉE, et c'est tout l'intérêt.
 

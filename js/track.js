@@ -359,9 +359,23 @@ class Track {
   dès que la ligne droite qui les sépare est courte. Ce découpage servait déjà aux panneaux de
   freinage ; il est sorti ici parce que la caméra « saut de virage » en a besoin elle aussi, et deux
   découpages qui doivent dire la même chose finissent toujours par diverger. */
-  zonesVirages(GAP) {
+  /* DEUX FAÇONS DE GROUPER, parce qu'il y a deux questions.
+
+  Pour le FREINAGE, une chicane est un seul événement : on freine une fois pour les trois virages qui
+  la composent, donc on les groupe sur la distance, sens ou pas. C'est le groupement d'origine.
+
+  Pour une INDICATION, non. Un carré à droite suivi trois mètres plus loin d'une épingle à gauche,
+  ce sont deux gestes et il faut deux flèches — c'est ce que Bruno a posé à la main à Zandvoort, et
+  c'est ce qu'un copilote dit. Groupés sur la seule distance, ils devenaient un seul virage « à
+  droite », et la flèche gauche de la seconde se faisait accuser d'aller à l'envers. Elle avait
+  raison ; c'est le groupement qui avait tort.
+
+  `memeSens` ne fusionne donc que des virages qui tournent DU MÊME CÔTÉ — ce qui ne recolle que les
+  morceaux d'un même virage, jamais deux virages opposés. */
+  zonesVirages(GAP, memeSens) {
     const N = this.n;
     if (!this.corners.length) return [];
+    const colle = (z, c) => (c.from - z.to) * this.ds < GAP && (!memeSens || z.sign === c.sign);
     const zones = [];
     for (const c of this.corners) {
       let peak = 0;
@@ -370,13 +384,15 @@ class Track {
       // The arrow shows the way the FIRST corner of the zone goes, not the tightest: through a
       // chicane it is the first direction you turn that matters. The severity still comes from
       // the tightest, since that is what sets the braking.
-      if (z && (c.from - z.to) * this.ds < GAP) { z.to = c.to; z.peak = Math.max(z.peak, peak); }
+      if (z && colle(z, c)) { z.to = c.to; z.peak = Math.max(z.peak, peak); if (memeSens) z.firstTo = c.to; }
       else zones.push({ from: c.from, to: c.to, peak, sign: c.sign, firstTo: c.to });
     }
     // the track is a loop: the last zone may run into the first
     if (zones.length > 1) {
       const a = zones[zones.length - 1], b = zones[0];
-      if ((b.from + N - a.to) * this.ds < GAP) { b.from = a.from - N; b.peak = Math.max(b.peak, a.peak); zones.pop(); }
+      if ((b.from + N - a.to) * this.ds < GAP && (!memeSens || a.sign === b.sign)) {
+        b.from = a.from - N; b.peak = Math.max(b.peak, a.peak); zones.pop();
+      }
     }
     return zones;
   }
