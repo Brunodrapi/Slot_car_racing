@@ -4,6 +4,12 @@
 //   node tools/notes.js --ecrire             → remplace les blocs `panneaux:` de js/tracks.js
 //   node tools/notes.js spa                  → un seul circuit
 //   node tools/notes.js spa --amplitudes     → ne reprend que les notes d'une liste existante
+//   node tools/notes.js --ecrire --force     → réécrit aussi les circuits posés à la main
+//
+// LES CIRCUITS POSÉS À LA MAIN NE SE RÉÉCRIVENT PAS (`POSES`, dans `panneaux-ecrire.js`). On les
+// calcule quand même, et l'écart s'affiche : c'est la seule calibration dont on dispose. Elle vaut
+// aujourd'hui dix-sept sur dix-sept à Silverstone et à Suzuka, quatorze sur quatorze au
+// Nürburgring, treize sur treize à Zandvoort — et treize sur quatorze à Monaco.
 //
 // CE QU'UNE INDICATION SERT À SAVOIR, C'EST QUAND FREINER. Tout découle de là, et la première
 // version l'avait manqué : elle posait un triplet par VIRAGE, ce qui donnait vingt-six jeux de
@@ -86,7 +92,12 @@ if (ARGS.includes('--amplitudes')) {
     const to = (((z.to % N) + N) % N), from0 = (((z.from % N) + N) % N);
     let vmin = Infinity;
     for (let k = 0; k <= (((to - from0) % N) + N) % N; k++) vmin = Math.min(vmin, prof[(from0 + k) % N]);
-    const note = Track.noteVirage(rayon, A, vmin / categoryById('gt').base.vmax);
+    /* UNE CHICANE RESTE UNE CHICANE. Track.noteVirage ne rend jamais « chicane » — c'est un nom que
+    seul l'auteur peut donner, parce qu'il dit « deux plis, un seul geste » et non une sévérité. Le
+    laisser réécrire par un chiffre effacerait la chicane de Monaco et celles du Mans sans que rien
+    ne proteste, et c'est tout l'inverse de ce que cette passe est censée faire. */
+    const note = note0 === 'chicane' ? 'chicane'
+      : Track.noteVirage(rayon, A, vmin / categoryById('gt').base.vmax);
     sortie.push([at, dist, note, sign]);
     if (String(note) !== String(note0)) lignes.push('  ' + String(Math.round(at * T.length)).padStart(5)
       + ' m · ' + String(note0).padStart(7) + ' → ' + String(note).padStart(7)
@@ -103,7 +114,6 @@ if (ARGS.includes('--amplitudes')) {
 {
 const cls = categoryById('gt').base;
 const BRAKE = cls.brake * 0.9;
-const SEUIL = 20;                 // mètres de freinage à partir desquels ça vaut une annonce
 
 /* CE QUI MÉRITE UNE ANNONCE : deux raisons, pas une.
 
@@ -296,6 +306,34 @@ for (const td of TRACKS) {
       + ' m/s) · place ' + String(Math.round(place * T.ds)).padStart(4) + ' m');
   }
   out.sort((a, b) => a.at - b.at);
+  /* LA CALIBRATION : ce que Bruno a posé contre ce que la règle trouve.
+
+  C'est la seule mesure dont on dispose, et elle a corrigé la règle trois fois — le seuil de
+  freinage, la clause du virage abordé déjà lent, la fusion des virages collés. On apparie à
+  quarante-cinq mètres près, parce qu'une flèche posée à l'œil sur l'entrée d'un virage tombe à
+  vingt mètres près et pas au mètre. */
+  if (POSES.includes(td.id) && td.panneaux) {
+    const main = td.panneaux.filter((p) => +p[1] === 0).map((p) => Math.round(+p[0] * N)).sort((a, b) => a - b);
+    const pris = new Set();
+    let manque = 0;
+    const ecarts = [];
+    for (const h of main) {
+      let best = null, bd = Infinity;
+      for (let k = 0; k < freins.length; k++) {
+        if (pris.has(k)) continue;
+        const e = (((freins[k].z.from % N) + N) % N);
+        let d = Math.abs(e - h); d = Math.min(d, N - d);
+        if (d < bd) { bd = d; best = k; }
+      }
+      if (best != null && bd * T.ds <= 45) pris.add(best);
+      else { manque++; ecarts.push('manque ' + Math.round(h * T.ds) + ' m'); }
+    }
+    for (let k = 0; k < freins.length; k++) if (!pris.has(k))
+      ecarts.push('en trop ' + Math.round((((freins[k].z.from % N) + N) % N) * T.ds) + ' m');
+    lignes.push('  posé à la main : ' + (main.length - manque) + ' des ' + main.length
+      + ' annonces retrouvées' + (ecarts.length ? ' — ' + ecarts.join(', ') : ', aucun écart'));
+  }
+
   SORTIE[td.id] = {
     txt: out.map((b) => '      [' + (Math.round(b.at * 10000) / 10000) + ', ' + b.dist + ', '
       + (typeof b.note === 'number' ? b.note : "'" + b.note + "'") + ', ' + b.sign + '],').join('\\n'),
@@ -306,7 +344,9 @@ RESULTAT.v = SORTIE;
 }
 `;
 const RESULTAT = { v: null };
-vm.runInNewContext(src, { Math, console, Date, Float32Array, Float64Array, ARGS: process.argv.slice(2),
+const { ecrireBlocs, compterBlocs, POSES } = require('./panneaux-ecrire.js');
+
+vm.runInNewContext(src, { Math, console, Date, Float32Array, Float64Array, ARGS: process.argv.slice(2), POSES,
   navigator: { language: 'fr' }, localStorage: { getItem: () => null, setItem: () => {} },
   document: { createElement: () => ({ getContext: () => null }) }, window: {}, RESULTAT },
   { filename: 'notes' });
@@ -322,49 +362,18 @@ if (!process.argv.includes('--ecrire')) {
   process.exit(0);
 }
 
-/* L'ÉCRITURE RESTE DANS LE CIRCUIT VISÉ, et c'est tout l'enjeu.
-
-Première version : chercher `panneaux: [` après `id: 'monza'`. Sept circuits sur douze n'en avaient
-pas — et `indexOf` ne rend pas « rien », il rend le bloc du circuit SUIVANT, qui s'est donc fait
-écraser. Le compteur disait « 1 bloc réécrit » à chaque fois, parce qu'il avait bien réécrit un
-bloc : le mauvais. Un `indexOf` sans borne trouve toujours quelque chose, et c'est exactement ce qui
-le rend dangereux.
-
-On borne donc la recherche à l'entrée du circuit — d'un `id:` au suivant — et, quand il n'y a pas de
-bloc, on en INSÈRE un plutôt que d'aller en chercher un ailleurs.
-
-Les crochets se comptent au lieu de se chercher : une expression régulière sur `panneaux: [ ... ]`
-s'arrête au premier `]`, qui est celui de la première entrée. C'est le même piège que le scanneur
-d'accolades de l'éditeur, et il se répare pareil. */
+const force = process.argv.includes('--force');
 const dest = path.join(R, 'js', 'tracks.js');
-let txt = fs.readFileSync(dest, 'utf8');
-let faits = 0, ajouts = 0;
+const avant = fs.readFileSync(dest, 'utf8');
+const blocs = {};
 for (const id of Object.keys(res)) {
-  const ancre = txt.indexOf(`id: '${id}'`);
-  if (ancre < 0) { console.log('circuit introuvable dans tracks.js : ' + id); continue; }
-  const suivant = txt.indexOf("id: '", ancre + 5);
-  const borne = suivant < 0 ? txt.length : suivant;
-  const bloc = 'panneaux: [\n' + res[id].txt + '\n    ],';
-  const deb = txt.indexOf('panneaux: [', ancre);
-  if (deb >= 0 && deb < borne) {
-    let i = txt.indexOf('[', deb), prof = 0, fin = -1;
-    for (; i < txt.length; i++) {
-      if (txt[i] === '[') prof++;
-      else if (txt[i] === ']') { prof--; if (!prof) { fin = i; break; } }
-    }
-    if (fin < 0) { console.log('bloc non refermé : ' + id); continue; }
-    // la virgule qui suit, s'il y en a une, fait déjà partie du bloc qu'on réécrit
-    const apres = txt[fin + 1] === ',' ? fin + 2 : fin + 1;
-    txt = txt.slice(0, deb) + bloc + txt.slice(apres);
-    faits++;
-  } else {
-    // pas de bloc : on l'insère juste après `pts:`, qui existe pour tous les circuits intégrés
-    const pts = txt.indexOf('pts: ', ancre);
-    if (pts < 0 || pts > borne) { console.log('rien où insérer : ' + id); continue; }
-    const eol = txt.indexOf('\n', pts) + 1;
-    txt = txt.slice(0, eol) + '    ' + bloc + '\n' + txt.slice(eol);
-    ajouts++;
-  }
+  if (POSES.includes(id) && !force) { console.log('posé à la main, laissé tel quel : ' + id); continue; }
+  blocs[id] = res[id].txt;
 }
-fs.writeFileSync(dest, txt);
-console.log('\n' + faits + ' bloc(s) remplacé(s), ' + ajouts + ' ajouté(s) dans js/tracks.js');
+const n0 = compterBlocs(avant);
+const r = ecrireBlocs(avant, blocs, (m) => console.log(m));
+const n1 = compterBlocs(r.txt);
+console.log('\n' + r.faits + ' bloc(s) remplacé(s), ' + r.ajouts + ' ajouté(s) dans js/tracks.js'
+  + '  (blocs dans le fichier : ' + n0 + ' → ' + n1 + ')');
+if (n1 < n0) { console.log('ABANDON : un bloc a disparu'); process.exit(1); }
+fs.writeFileSync(dest, r.txt);

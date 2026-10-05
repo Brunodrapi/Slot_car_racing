@@ -107,6 +107,8 @@ const seul = process.argv[2] && process.argv[2] !== 'all' ? process.argv[2] : nu
         dth += e;
       }
       rows.push({ dist: bd.dist, note: bd.kind === 'normal' ? bd.grade : bd.kind, drawnSign, roadSign: Math.sign(dth),
+        m: Math.round(bd.at * T.length), virage: Math.round((((a0 % T.n) + T.n) % T.n) * T.ds),
+        A: Math.round(Math.abs(dth) * 180 / Math.PI),
         ambigu, ok: ambigu || drawnSign === Math.sign(dth) });
     }
     return { caught: caught.length, boards: T.boards.length, rows };
@@ -117,7 +119,23 @@ const seul = process.argv[2] && process.argv[2] !== 'all' ? process.argv[2] : nu
   console.log(track.padEnd(13) + String(res.caught).padStart(3) + ' flèches sur '
     + String(res.boards).padStart(3) + ' panneaux · ' + String(bad.length).padStart(2) + ' à l\'envers'
     + (amb ? ' · ' + amb + ' ambigu(s)' : '')
-    + (bad.length ? '   ' + JSON.stringify(bad.slice(0, 3)) : ''));
+  );
+  /* ON LES NOMME TOUTES, ET PAR LEUR POSITION.
+
+  Trois lignes de JSON tronquées disaient « cinq flèches à l'envers » sans dire lesquelles :
+  inutilisable pour qui pose les flèches à la main dans l'éditeur, où l'on cherche un panneau par ses
+  mètres. Et surtout : CE BANC NE TRANCHE PAS SEUL sur une liste posée à la main. Il apparie chaque
+  panneau au virage dont l'entrée tombe le plus près de l'endroit annoncé, et là où deux virages de
+  sens contraires se touchent — le carré-puis-épingle de Zandvoort, la chicane de Monaco, le
+  double virage du Mans — ce choix peut désigner le voisin et accuser une flèche juste. Trois règles
+  d'appariement ont été essayées (au plus proche, au plus gros, au dominant le plus proche) : chacune
+  répare un circuit et casse un autre, et les trois donnent des listes de fautes différentes. On
+  affiche donc la position, l'angle et le virage retenu, et c'est l'auteur qui tranche. */
+  for (const r of bad)
+    console.log('      ' + String(r.m).padStart(4) + ' m · annonce ' + String(r.dist).padStart(3)
+      + ' · ' + String(r.note).padStart(8) + ' · flèche à ' + (r.drawnSign > 0 ? 'droite' : 'gauche')
+      + ' · jugée contre le virage de ' + r.A + '° à ' + (r.roadSign > 0 ? 'droite' : 'gauche')
+      + ' qui entre à ' + r.virage + ' m');
   }
   console.log('\ntotal ' + total + ' flèche(s) à l\'envers');
   await b.close();
