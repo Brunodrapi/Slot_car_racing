@@ -56,10 +56,11 @@ Quatre vues dans les réglages, deux cadrages × deux orientations :
 - **Dessus, fixe** (par défaut) : le nord reste en haut, la caméra ne fait que suivre ;
 - **Dessus, orientée piste** : la route monte toujours vers le haut de l'écran, ce qui permet de voir
   loin devant même sur un téléphone en portrait ;
-- **En avance, orientée piste** et **En avance, fixe** : la caméra ne suit plus la voiture mais
-  l'**axe de la piste**, posée plus loin le long du tour, et elle prend d'autant plus d'avance qu'on
-  va vite. Elle entre donc dans le virage avant la voiture et en montre la sortie. Les deux variantes
-  diffèrent comme les deux premières : l'une tourne avec la piste, l'autre garde le nord en haut.
+- **En avance, orientée piste** et **En avance, fixe** : la caméra ne suit plus la voiture mais la
+  **ligne idéale**, posée plus loin le long du tour, et elle prend d'autant plus d'avance qu'on va
+  vite. Elle entre donc dans le virage avant la voiture et en montre la sortie, la voiture descendant
+  jusqu'au bas de l'écran pour libérer tout ce qu'il y a devant. Les deux variantes diffèrent comme
+  les deux premières : l'une tourne avec la piste, l'autre garde le nord en haut.
 
 La vue **isométrique** a été retirée : le décor est maintenant dessiné dans toutes les vues, et le
 sol incliné ne servait plus qu'à justifier les planches de rotations des voitures. Les anciennes
@@ -434,42 +435,100 @@ devant. En ligne droite c'est la même chose ; dans un virage, non : droit devan
 du virage, c'est-à-dire le décor. Plus on va vite, plus on regarde loin — et plus on regarde à côté,
 exactement au moment où on aurait besoin de voir la suite.
 
-Les vues « en avance » posent la caméra **sur l'axe de la piste**, `avance` mètres plus loin *le long
+Les vues « en avance » posent la caméra **sur la ligne idéale**, `avance` mètres plus loin *le long
 du tour*. Elle prend donc le virage avant la voiture et montre la sortie pendant qu'on est encore à
-l'entrée. Mesurer le long du tour et non à vol d'oiseau a un effet utile : dans une épingle, cinquante
-mètres de piste ne font que vingt mètres en ligne droite, donc la caméra se rapproche d'elle-même
-là où le circuit se replie, ce qui est précisément là où on ne veut pas qu'elle parte loin.
+l'entrée. Trois propriétés en découlent :
 
-L'avance est elle aussi une fraction du cadre, de **6 % à l'arrêt à 26 % à pleine vitesse**. Comme le
-cadre grandit déjà avec la vitesse, l'avance grandit deux fois : 2 m sur la grille, 20 m à fond. La
-voiture glisse alors du centre de l'écran jusqu'aux trois quarts de sa hauteur.
+- **Adhérence parfaite, et gratuitement.** Ce point n'est pas simulé, il est calculé : il se pose sur
+  la ligne à l'abscisse voulue, donc il ne glisse jamais, ne sous-vire ni ne survire, et ne tremble
+  pas quand la voiture tremble. La caméra ne reproduit pas les erreurs du joueur.
+- **Mesurée le long du tour, pas à vol d'oiseau.** Dans une épingle, cinquante mètres de piste ne
+  font que vingt mètres en ligne droite : la caméra se rapproche d'elle-même là où le circuit se
+  replie, ce qui est précisément là où on ne veut pas qu'elle parte loin.
+- **Un cap pris sur une corde, pas sur une tangente.** La ligne idéale ondule au mètre près et la
+  caméra se mettrait à osciller. On prend donc le cap de la corde entre deux points distants d'un
+  cinquième du cadre de part et d'autre : un lissage purement géométrique, qui ne coûte rien et, ne
+  dépendant pas du temps, n'ajoute aucun retard. La corde s'allonge avec le cadre, donc plus on va
+  vite, plus le cap est calme.
+
+#### Le lissage porte sur l'écart, pas sur la position
+
+C'est ce qui rend l'avance réelle, et c'est le point qui a fait rater la première version.
+
+Un filtre du premier ordre qui poursuit une **position** traîne derrière une cible qui avance : à
+vitesse constante `v`, le retard s'installe à `v / k` mètres. Avec `k = 4`, ça fait dix-sept mètres à
+250 km/h — alors que l'avance demandée en valait vingt-quatre. Le lissage en mangeait les trois
+quarts, et la voiture restait au milieu de l'écran quoi qu'on demande. Pire : les deux réglages se
+battaient, puisque lisser davantage revenait à réduire l'avance.
+
+En lissant l'**écart** voiture-caméra, le déplacement de la voiture est suivi exactement et seul le
+*changement* d'écart est amorti. Le retard de vitesse disparaît, l'avance demandée est l'avance
+obtenue, et on peut alors lisser beaucoup plus fort sans rien perdre : les vues en avance tournent à
+`k = 2` là où les anciennes sont à 4. Celles-ci gardent leur lissage absolu — leur comportement est
+connu, et le retard y tient lieu d'amortisseur.
+
+L'avance elle-même est une fraction du cadre, de **11 % à l'arrêt à 35 % à pleine vitesse**. Comme le
+cadre grandit déjà avec la vitesse, elle grandit deux fois : 3 m sur la grille, 26 m à fond.
+
+| Vue | Voiture à l'écran (médiane) | À pleine charge | Écart au centre |
+| --- | --- | --- | --- |
+| dessus, orientée piste | 56 % de la hauteur | 71 % | 15 % |
+| **en avance, orientée piste** | **71 %** | **81 %** | **44 %** |
+| dessus, fixe | 50 % | 48 % | 5 % |
+| **en avance, fixe** | 50 % | 45 % | **36 %** |
+
+Dans les vues « fixe », le nord reste en haut : la voiture se décale dans la direction où elle roule,
+donc sa hauteur moyenne à l'écran reste 50 % par construction. C'est l'écart au centre qui dit si la
+caméra prend de l'avance — 36 % contre 5 % avant.
+
+#### Le cadran d'accélérateur se range dans un coin
+
+Descendre la voiture en bas de l'écran ne sert à rien si quelque chose s'y trouve déjà. Le cadran
+d'accélérateur se repose en bas au centre, et sa carte de vitesse monte jusqu'aux deux tiers de la
+hauteur : mesurée, la voiture passait **derrière**. Le plafond de la caméra n'y pouvait rien, il
+garde la voiture dans l'écran, pas devant le décor.
+
+Dans les deux vues en avance, le cadran va donc attendre au repos dans le **coin opposé au levier de
+ligne** — le seul endroit du bas que rien n'occupe — et la colonne du milieu est libre jusqu'au bord.
+Ça ne change rien à la prise en main : un pouce qui se pose ailleurs emmène le cadran avec lui, comme
+avant. Les deux vues d'origine gardent le leur au milieu.
 
 #### Le plafond
 
-Suivre l'axe de la piste met la caméra où il faut, mais rien ne garantit que la voiture tienne encore
+Suivre la ligne idéale met la caméra où il faut, mais rien ne garantit que la voiture tienne encore
 dans le cadre : dans un virage le point visé part de côté, et un téléphone en portrait ne montre
 qu'une quarantaine de mètres en largeur. L'écart voiture-caméra est donc **borné dans le repère de
 l'écran**, chaque axe contre sa propre moitié — ce qui garde toute l'avance vers le haut, où il y a
 de la place, tout en coupant l'excursion latérale, où il n'y en a pas. Un plafond rond sur la
 distance aurait rogné les deux, donc l'avance en ligne droite aussi, c'est-à-dire ce qu'on cherchait.
 
+Vers l'avant il y a tout l'écran à gagner, vers l'arrière il n'y a rien à voir : dans la vue en
+avance orientée piste, la borne est donc **asymétrique**, large devant (la voiture peut descendre à
+87 %) et serrée derrière. L'asymétrie n'a de sens que dans un repère écran : sans rotation, cet axe
+est le nord-sud du *monde*, et une borne asymétrique y pencherait la caméra vers le nord. La vue
+« en avance, fixe » garde donc un plafond symétrique, et c'est la borne latérale qui l'encadre.
+
 Il porte sur la **caméra**, pas sur sa cible, et c'est tout le sujet : l'excursion ne vient pas de
 l'endroit visé mais du **retard** de la caméra, qui rejoint sa cible en un quart de seconde pendant
-qu'une voiture traverse la piste. Borner la cible ne changeait rien.
+qu'une voiture traverse la piste. Borner la cible ne changeait rien. L'écart borné est réinjecté dans
+le filtre, sinon celui-ci continue d'intégrer contre le plafond et la caméra y reste collée bien
+après le virage.
+
+#### Le banc
 
 `tools/camera.js` pilote la vraie `updateCamera`, rejoue la transformation de `draw()` et mesure où
 le joueur atterrit sur un écran de téléphone en portrait, sur deux tours de chacun des douze
 circuits et dans les quatre vues. Écrit pour les deux nouvelles, il a trouvé le même défaut dans la
-plus ancienne : « dessus, orientée piste » sortait la voiture de l'écran sur **sept circuits sur
-douze**, jusqu'à 122 % du demi-écran. Personne ne l'avait vu parce que ça dure deux images au point
-de corde d'un virage rapide, et parce qu'on joue rarement en portrait. Le plafond s'applique donc
-aux quatre vues ; il ne change rien d'autre au comportement des deux anciennes, qui n'utilisent que
-18 % de la hauteur disponible et ne touchent que la borne latérale, là où elles étaient fautives.
+plus ancienne : « dessus, orientée piste » sortait la voiture de l'écran. Personne ne l'avait vu
+parce que ça dure deux images au point de corde d'un virage rapide, et parce qu'on joue rarement en
+portrait. Le plafond s'applique donc aux quatre vues.
 
-Rien de tout cela ne se règle en course : il n'y a aucun bouton de zoom à l'écran. Le seul réglage
-est dans Réglages → **Recul de la caméra**, pour qui veut voir plus large (× 1,3 ou × 1,6 sur tout
-ce qui précède). Il n'y a pas de cran pour se rapprocher : vingt mètres sur la grille est déjà
-aussi près que le jeu doit aller.
+Le banc a aussi failli ne rien mesurer du tout : il appelait le pilote automatique avec une marge
+d'adhérence de 0,06 au lieu de 0,96, c'est-à-dire une voiture roulant à 6 % de la vitesse que les
+pneus permettent. Elle avançait à 13 km/h de moyenne, et tous les chiffres d'un premier passage ont
+été publiés dans cet état. Une caméra ne se mesure qu'avec une voiture qui roule — c'est le *retard*
+qui distingue les vues, et une voiture à l'arrêt n'en produit aucun. La même erreur vaut pour les
+captures d'écran : figer la voiture à un endroit donne les quatre vues au même endroit.
 
 ### Télémétrie (touche `G`, ou réglages)
 

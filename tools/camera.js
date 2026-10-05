@@ -31,12 +31,14 @@ function essai(trackId, vue) {
     w: W, h: H, pullBack: 1, cam: { x: 0, y: 0, zoom: 6 }, camAngle: 0,
     rotate: vue === 'track' || vue === 'avance',
     avance: vue === 'avance' || vue === 'avanceFixe',
+    _surLigne: Renderer.prototype._surLigne, _capLigne: Renderer.prototype._capLigne,
   };
   const maj = Renderer.prototype.updateCamera;
   let pireX = 0, pireY = 0, basse = 0, n = 0, vmaxVue = 0;
+  const places = [], vite = [], ecarts = [];           // où la voiture se tient, en général et à pleine charge
   const p = race.player;
   while (race.state !== 'finished' && race.time < 400) {
-    race.update(race.dt, aiThrottle(p, race.cars, race.dt, { marginBase: 0.06, marginSpread: 0 }));
+    race.update(race.dt, aiThrottle(p, race.cars, race.dt, { marginBase: 0.96, marginSpread: 0 }));
     maj.call(faux, race, race.dt);
     // la transformation de draw(), à l'identique
     const u = (p.pos.x - faux.cam.x) * faux.cam.zoom, v = (p.pos.y - faux.cam.y) * faux.cam.zoom;
@@ -49,11 +51,15 @@ function essai(trackId, vue) {
     pireX = Math.max(pireX, Math.abs(fx - 0.5) * 2);      // 1 = pile sur le bord
     pireY = Math.max(pireY, Math.abs(fy - 0.5) * 2);
     basse = Math.max(basse, fy);
+    places.push(fy);
+    ecarts.push(Math.hypot((fx - 0.5) * 2, (fy - 0.5) * 2));
+    if (p.v > 0.8 * p.cls.vmax) vite.push(fy);
     vmaxVue = Math.max(vmaxVue, p.v);
     n++;
     if (p.lap >= 2) break;
   }
-  return { pireX, pireY, basse, n, vmax: vmaxVue * 3.6 };
+  const med = (a) => { if (!a.length) return 0; const b = a.slice().sort((x, y) => x - y); return b[b.length >> 1]; };
+  return { pireX, pireY, basse, n, vmax: vmaxVue * 3.6, med: med(places), medVite: med(vite), ecart: med(ecarts) };
 }
 
 const seul = ARGS[0] && ARGS[0] !== 'all' ? [ARGS[0]] : TRACKS.map((t) => t.id);
@@ -67,7 +73,9 @@ for (const id of seul) {
     console.log('  ' + (ok ? 'ok   ' : 'DEHORS') + ' ' + nom.padEnd(26)
       + 'bord atteint : ' + (r.pireX * 100).toFixed(0).padStart(3) + ' % en largeur, '
       + (r.pireY * 100).toFixed(0).padStart(3) + ' % en hauteur'
-      + '   (voiture au plus bas : ' + (r.basse * 100).toFixed(0) + ' % de l écran)');
+      + '   écart au centre : ' + (r.ecart * 100).toFixed(0).padStart(3) + ' %'
+      + '   voiture : ' + (r.med * 100).toFixed(0) + ' % en général, '
+      + (r.medVite * 100).toFixed(0) + ' % à pleine charge, ' + (r.basse * 100).toFixed(0) + ' % au plus bas');
   }
 }
 console.log('\\nfautes ' + fautes);

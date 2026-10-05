@@ -232,6 +232,7 @@ class Renderer {
     this.rotate = view === 'track' || view === 'avance';
     this.avance = view === 'avance' || view === 'avanceFixe';
     this.cam.init = false;
+    if (this.w) this._layoutHud();     // le cadran d'accélérateur ne se range pas au même endroit
   }
 
   /** Un cran de résolution en plus ou en moins, selon la durée des images récentes. */
@@ -308,9 +309,6 @@ class Renderer {
     // centre; a thumb landing anywhere off the line slider moves it there, base on the finger, so
     // the whole dial reads above the hand instead of under it.
     const r = clamp(Math.min(W * 0.26, H * 0.17), 68, 130);
-    this.dialHome = { cx: W / 2, cy: H - P.b - r * 0.46 };   // at rest the pad shows in full
-    this.dial = { cx: this.dialHome.cx, cy: this.dialHome.cy, r };
-    this.dialAnchored = false;
     /* Le levier de ligne, à gauche par défaut, à droite au choix.
 
     Un droitier tient son téléphone d'une main et pousse le levier du pouce de l'autre ; un
@@ -318,6 +316,22 @@ class Renderer {
     colonne — les jauges d'usure, la carte en face — se retourne avec lui, sinon le retournement
     ne ferait que déplacer la gêne. */
     const droite = this.ctrlSide === 'right';
+    /* LE CADRAN SE RANGE DANS UN COIN QUAND LA CAMÉRA PREND DE L'AVANCE.
+
+    Les vues « en avance » descendent la voiture en bas de l'écran — c'est tout leur objet, puisque
+    ce qui est libéré au-dessus d'elle est ce qu'on gagne à voir. Mais le bas du milieu n'était pas
+    libre : le cadran d'accélérateur s'y repose, et sa carte de vitesse monte jusqu'aux deux tiers de
+    la hauteur. Mesuré, la voiture passait DERRIÈRE. Le plafond de la caméra n'y pouvait rien, il
+    garde la voiture dans l'écran, pas devant le décor.
+
+    Au repos, il va donc attendre dans le coin opposé au levier — le seul endroit du bas que rien
+    n'occupe — et la colonne du milieu est libre jusqu'au bord. Ça ne change rien à la prise en
+    main : un pouce qui se pose ailleurs emmène le cadran avec lui, comme avant. Les deux vues
+    d'origine gardent le leur au milieu, là où il a toujours été. */
+    const coin = droite ? P.l + r * 1.02 : W - P.r - r * 1.02;
+    this.dialHome = { cx: this.avance ? coin : W / 2, cy: H - P.b - r * 0.46 };
+    this.dial = { cx: this.dialHome.cx, cy: this.dialHome.cy, r };
+    this.dialAnchored = false;
     const len = Math.min(H * 0.38, 320);
     this.slider = { x: droite ? W - P.r - 22 : P.l + 22, y: H - P.b - 30 - len, len, w: 30, droite };
     /* Les deux cadrans d'usure, en colonne au-dessus du levier.
@@ -882,6 +896,25 @@ class Renderer {
     return { x: m.ox + (x - b.minX) * m.sc, y: m.oy + (y - b.minY) * m.sc };
   }
 
+  /** Un point de la ligne idéale, à l'abscisse `s` du tour. */
+  _surLigne(T, s) {
+    const u = T.wrap(s);
+    return T.pos(u, T.lineLat('racing', u));
+  }
+
+  /* LE CAP DE LA LIGNE IDÉALE, pris sur une corde et non sur une tangente.
+
+  La tangente de la ligne idéale en un point la suit de trop près : la ligne ondule au mètre près,
+  et la caméra se mettrait à osciller — exactement le mouvement brusque qu'on veut éviter. On prend
+  donc le cap de la CORDE entre deux points distants de `pas` de part et d'autre. C'est un lissage
+  géométrique, qui ne coûte rien et ne traîne pas : il ne dépend pas du temps, donc il ne crée aucun
+  retard, et il ignore tout ce qui est plus court que la corde. La corde fait un cinquième du cadre,
+  donc elle s'allonge avec la vitesse : plus on va vite, plus le cap est calme. */
+  _capLigne(T, s, pas) {
+    const a = this._surLigne(T, s - pas), b = this._surLigne(T, s + pas);
+    return Math.atan2(b.y - a.y, b.x - a.x);
+  }
+
   updateCamera(race, dt) {
     const p = race.player, T = race.track, pos = p.pos;
     const h = T.headingAt(p.s);
@@ -909,52 +942,72 @@ class Renderer {
     // camera heading follows the slot direction (not the car body), so a drift never spins the view
     let want = T.headingAt(p.s + lead * 0.6);
 
-    /* LA CAMÉRA EN AVANCE SUIT LA PISTE, pas le cap de la voiture.
+    /* LA CAMÉRA EN AVANCE SUIT LA LIGNE IDÉALE, pas la voiture et pas le cap.
 
     Les deux vues d'origine placent la caméra DEVANT la voiture, le long de son cap : un point à
     tant de mètres droit devant. En ligne droite les deux reviennent au même, et dans un virage
     non : droit devant, c'est l'extérieur du virage, c'est-à-dire le décor. Plus on va vite, plus on
     regarde loin, et plus on regarde à côté — exactement au moment où on aurait besoin de voir la
-    suite. Ici la caméra se pose sur l'AXE DE LA PISTE, `avance` mètres plus loin le long du tour.
+    suite. Ici la caméra se pose sur la LIGNE IDÉALE, `avance` mètres plus loin le long du tour.
     Elle prend donc le virage avant la voiture et montre la sortie pendant qu'on est encore à
-    l'entrée. Le plafond qui garde la voiture à l'écran est posé plus bas, APRÈS le lissage.
+    l'entrée.
+
+    ADHÉRENCE PARFAITE, et gratuitement : ce point n'est pas simulé, il est calculé. Il se pose sur
+    la ligne à l'abscisse voulue, donc il ne glisse jamais, ne sous-vire ni ne survire, et ne tremble
+    pas quand la voiture tremble. La caméra ne reproduit pas les erreurs du joueur.
+
+    MESURÉE LE LONG DU TOUR, pas à vol d'oiseau. Dans une épingle, cinquante mètres de piste ne font
+    que vingt mètres en ligne droite : la caméra se rapproche d'elle-même là où le circuit se replie,
+    ce qui est précisément là où on ne veut pas qu'elle parte loin.
 
     L'AVANCE EST UNE FRACTION DE CE QUE L'ÉCRAN MONTRE, jamais un nombre de mètres : ce qui compte
     n'est pas la distance, c'est où la voiture se retrouve sur l'écran, et ça n'a de sens que
     rapporté au cadre. Le cadre s'élargit déjà avec la vitesse — de 30 à 75 m — donc à pleine
     vitesse l'avance grandit deux fois : parce que la fraction monte, et parce que le cadre aussi.
-    De 6 % du cadre à l'arrêt à 26 % à fond, elle va donc de 2 m sur la grille à 20 m à pleine
-    vitesse, et la voiture glisse de l'axe de l'écran jusqu'aux trois quarts de sa hauteur.
-
-    LA FRACTION S'ARRÊTE JUSTE SOUS LE PLAFOND, et c'est volontaire. Le premier réglage montait à
-    67 % du cadre : mesuré, le plafond (28 %) l'écrasait dès le premier dixième de la vitesse, donc
-    la voiture restait collée au même endroit de l'écran à 40 comme à 300 km/h. L'avance grandissait
-    encore, mais seulement parce que le cadre grandissait — la montée demandée ne se voyait plus.
-    À 26 % elle est entière et visible, et le plafond ne sert plus qu'à ce pour quoi il est là :
-    les virages.
-
-    MESURÉE LE LONG DU TOUR, pas à vol d'oiseau. Dans une épingle, cinquante mètres de piste ne font
-    que vingt mètres en ligne droite : la caméra se rapproche d'elle-même là où le circuit se replie,
-    ce qui est précisément là où on ne veut pas qu'elle parte loin. */
+    De 11 % du cadre à l'arrêt à 35 % à fond : la voiture part du centre sur la grille et descend
+    jusqu'à 85 % de la hauteur de l'écran, où elle n'est plus là que pour se situer,
+    tout le reste de l'écran servant à voir venir. */
     if (this.avance) {
-      const avance = metres * (0.06 + 0.20 * vf);
-      const q = T.pos(T.wrap(p.s + avance), 0);
+      const avance = metres * (0.11 + 0.24 * vf);
+      const q = this._surLigne(T, p.s + avance);
       tx = q.x; ty = q.y;
-      want = T.headingAt(p.s + avance);
+      want = this._capLigne(T, p.s + avance, metres * 0.22);
     }
     if (!this.cam.init) this.camAngle = want;
     else {
       let da = want - this.camAngle;
       while (da > Math.PI) da -= 2 * Math.PI;
       while (da < -Math.PI) da += 2 * Math.PI;
-      this.camAngle += da * Math.min(1, dt * 3.5);
+      this.camAngle += da * Math.min(1, dt * (this.avance ? 2 : 3.5));
     }
-    const k = Math.min(1, dt * 4);
-    if (this.cam.init) {
+    /* LE LISSAGE PORTE SUR L'ÉCART, pas sur la position — et c'est ce qui rend l'avance réelle.
+
+    Un filtre du premier ordre qui poursuit une position absolue traîne derrière une cible qui
+    avance : à vitesse constante v, le retard s'installe à v / k mètres. Avec k = 4, ça fait dix-sept
+    mètres à 250 km/h. Or l'avance demandée en valait vingt-quatre : le lissage en mangeait les
+    trois quarts, et la voiture restait au milieu de l'écran quoi qu'on demande. Plus on lissait,
+    moins il restait d'avance — les deux réglages se battaient.
+
+    En lissant l'ÉCART voiture-caméra, le déplacement de la voiture est suivi exactement et seul le
+    CHANGEMENT d'écart est amorti. Le retard de vitesse disparaît, l'avance demandée est l'avance
+    obtenue, et on peut alors lisser beaucoup plus fort sans rien perdre : c'est pour ça que les vues
+    en avance tournent à k = 2 là où les anciennes sont à 4. Elles gardent leur lissage absolu : leur
+    comportement est connu, et le retard y tient lieu d'amortisseur. */
+    const k = Math.min(1, dt * (this.avance ? 2 : 4));
+    if (!this.cam.init) {
+      this.cam.x = tx; this.cam.y = ty; this.cam.zoom = zoomTarget; this.cam.init = true;
+      this.cam.ox = tx - pos.x; this.cam.oy = ty - pos.y;
+    } else if (this.avance) {
+      this.cam.ox += (tx - pos.x - this.cam.ox) * k;
+      this.cam.oy += (ty - pos.y - this.cam.oy) * k;
+      this.cam.x = pos.x + this.cam.ox;
+      this.cam.y = pos.y + this.cam.oy;
+      this.cam.zoom += (zoomTarget - this.cam.zoom) * Math.min(1, dt * 1.5);
+    } else {
       this.cam.x += (tx - this.cam.x) * k;
       this.cam.y += (ty - this.cam.y) * k;
       this.cam.zoom += (zoomTarget - this.cam.zoom) * Math.min(1, dt * 1.5);
-    } else { this.cam.x = tx; this.cam.y = ty; this.cam.zoom = zoomTarget; this.cam.init = true; }
+    }
 
     /* LE PLAFOND, et c'est lui qui rend la vue utilisable.
 
@@ -986,12 +1039,27 @@ class Renderer {
       const c = Math.cos(a), si = Math.sin(a);
       let dx = this.cam.x - pos.x, dy = this.cam.y - pos.y;
       let ex = dx * c - dy * si, ey = dx * si + dy * c;
-      const demiL = (this.w / this.cam.zoom) / 2 * 0.62;
-      const demiH = (this.h / this.cam.zoom) / 2 * 0.56;
+      const demiL = (this.w / this.cam.zoom) / 2 * (this.avance ? 0.72 : 0.62);
+      const demi = (this.h / this.cam.zoom) / 2;
+      // ey < 0 : la caméra est DEVANT, donc la voiture est BASSE sur l'écran. Les deux sens n'ont
+      // pas le même prix : vers l'avant il y a tout l'écran à gagner, vers l'arrière il n'y a rien
+      // à voir. Les vues en avance ouvrent donc largement devant — la voiture peut descendre jusqu'à
+      // 86 % de la hauteur — et restent serrées derrière. Les deux anciennes gardent le plafond
+      // symétrique qu'elles avaient, il ne les touche que sur le côté.
+      // L'asymétrie n'a de sens que dans un repère ÉCRAN. Sans rotation, `ey` est l'axe nord-sud du
+      // MONDE : une borne asymétrique y pencherait la caméra vers le nord, ce qui ne veut rien dire.
+      // La vue « en avance, fixe » garde donc un plafond symétrique, et c'est la borne latérale,
+      // elle aussi élargie, qui l'encadre.
+      const asym = this.avance && this.rotate;
+      const avant = demi * (asym ? 0.74 : 0.56);
+      const arriere = demi * (asym ? 0.30 : 0.56);
       ex = clamp(ex, -demiL, demiL);
-      ey = clamp(ey, -demiH, demiH);
+      ey = clamp(ey, -avant, arriere);
       dx = ex * c + ey * si; dy = -ex * si + ey * c;
       this.cam.x = pos.x + dx; this.cam.y = pos.y + dy;
+      // L'écart borné est réinjecté dans le filtre, sinon il continue d'intégrer contre le plafond
+      // et la caméra reste collée dessus bien après le virage.
+      if (this.avance) { this.cam.ox = dx; this.cam.oy = dy; }
     }
   }
 
