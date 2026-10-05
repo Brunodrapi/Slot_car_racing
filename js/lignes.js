@@ -101,6 +101,14 @@ function autoPoints(nom, n) {
   return out;
 }
 
+/* Une entrée de liste, du format du fichier vers celui de l'éditeur. `tracks.js` en porte des deux
+   formes — le tableau court, et l'objet nommé — et `Track._panneauxPoses` accepte les deux : on
+   relit donc comme lui, sinon l'éditeur ouvrirait un circuit sur une liste vide sans rien dire. */
+const versEditeur = (p) => (Array.isArray(p)
+  ? { at: +p[0], dist: +p[1], note: p[2], sign: +p[3] }
+  : { at: +p.at, dist: +p.dist,
+    note: p.note != null ? p.note : (p.kind && p.kind !== 'normal' ? p.kind : p.grade), sign: +p.sign });
+
 function charger(id, garderPts) {
   S.def = TRACKS.find((t) => t.id === id) || TRACKS[0];
   // Le circuit est construit SANS ses lignes explicites, pour que « revenir au calcul » veuille
@@ -112,7 +120,23 @@ function charger(id, garderPts) {
   $('circuit').value = S.def.id;         // le sélecteur suit, même quand on charge par code
   const n = +$('nPts').value;
   if (!garderPts) for (const nom of ['racing', 'inside', 'outside']) S.pts[nom] = autoPoints(nom, n);
-  if (!garderPts) { S.panneaux = panneauxDuCalcul(); S.panModif = false; S.selP = null; }
+  if (!garderPts) {
+    /* L'ÉDITEUR OUVRE SUR CE QUE LE JEU JOUE, pas sur ce que le jeu calculerait.
+
+    Il partait toujours du calcul. Pour les cinq circuits dont `tracks.js` porte une liste reprise à
+    la main, il montrait donc autre chose que la course : six panneaux de moins à Monaco, deux au
+    Mans, trois de trop à Zandvoort. C'est exactement le symptôme — « des panneaux en plus
+    apparaissent en jeu » — et ce n'était pas un défaut d'affichage : enregistrer depuis cet état
+    aurait REMPLACÉ la liste reprise par le calcul, sans prévenir.
+
+    L'ordre est celui du jeu : la reprise locale d'abord (posée un peu plus tard, parce qu'elle vient
+    d'une base asynchrone), puis la liste du fichier, puis le calcul. `panModif` dit d'où ça vient —
+    vrai pour une liste reprise, qu'il faut réenregistrer telle quelle, faux pour le calcul, que le
+    jeu refera tout seul. */
+    S.panneaux = Array.isArray(S.def.panneaux) ? S.def.panneaux.map(versEditeur) : panneauxDuCalcul();
+    S.panModif = Array.isArray(S.def.panneaux);
+    S.selP = null;
+  }
   cadrer();
   majFicheP();
   dessiner();
@@ -334,16 +358,30 @@ function verifPanneau(b) {
   if (!T.zonesVirages) return '';
   const zones = T.zonesVirages(60);
   if (!zones.length) return '';
+  /* LA DISTANCE EST SIGNÉE, et c'est tout l'intérêt.
+
+  Première version : la prochaine entrée de virage DEVANT. Pour un panneau posé un peu après une
+  entrée — c'est-à-dire déjà dans le virage, la faute la plus courante — elle sautait à l'entrée
+  suivante et annonçait deux cents mètres d'écart là où il n'y en avait que dix de trop. Elle
+  accusait de loin ce qui était en fait tout près, du mauvais côté.
+
+  On prend donc l'entrée la PLUS PROCHE, devant ou derrière, et on garde le signe. Un nombre négatif
+  dit la seule chose qui compte alors : le panneau est posé dans le virage qu'il annonce. */
   const j = Math.round(b.at * T.n);
   let best = Infinity;
   for (const z of zones) {
     const e = (((z.from % T.n) + T.n) % T.n);
-    const d = (((e - j) % T.n) + T.n) % T.n;
-    if (d < best) best = d;
+    let d = (((e - j) % T.n) + T.n) % T.n;
+    if (d > T.n / 2) d -= T.n;
+    if (Math.abs(d) < Math.abs(best)) best = d;
   }
   const reel = best * T.ds;
   // sans annonce il n'y a rien à comparer, mais la distance réelle reste ce qu'on veut savoir :
   // c'est elle qui dit si « sans chiffre » était le bon choix
+  if (reel < 0) {
+    const dedans = `posé ${(-reel).toFixed(0)} m DANS le virage`;
+    return b.dist > 0 ? `annoncé ${b.dist} m · ${dedans}` : `sans chiffre · ${dedans}`;
+  }
   if (!(b.dist > 0)) return `sans chiffre · virage à ${reel.toFixed(0)} m`;
   const ecart = reel - b.dist;
   const signe = ecart >= 0 ? '+' : '−';
@@ -673,11 +711,30 @@ async function oublier() {
 
 /** Dit si le circuit affiché porte déjà une ligne enregistrée, et propose de la reprendre. */
 async function majPose() {
+  const vise = S.def.id;                 // le circuit demandé, pour ne pas écraser un autre
   let r = null, q = null;
   try { r = await Store.get('lines', S.def.id); } catch (_) { /* base indisponible */ }
   try { q = await Store.get('panneaux', S.def.id); } catch (_) { /* base indisponible */ }
   const el = $('pose');
-  if (!r && !q) { el.textContent = 'Rien d’enregistré pour ce circuit.'; return; }
+  if (!r && !q) {
+    el.textContent = S.def.panneaux
+      ? 'Rien d’enregistré ici : les panneaux affichés sont la liste reprise du fichier.'
+      : 'Rien d’enregistré pour ce circuit.';
+    return;
+  }
+  /* LA REPRISE LOCALE S'APPLIQUE TOUTE SEULE, au lieu d'attendre qu'on clique « Reprendre ici ».
+
+  C'est elle que le jeu joue : ouvrir l'éditeur sur autre chose, c'est montrer un circuit qu'on ne
+  pilote pas. Et le lien était surtout un piège — qui ne le voyait pas repartait du calcul, et le
+  premier enregistrement effaçait son travail précédent sans rien dire.
+
+  On ne l'applique que si rien n'a été touché depuis le chargement, et que le circuit affiché est
+  toujours celui qu'on a demandé : la base est asynchrone, et entre la demande et la réponse
+  l'éditeur a pu changer de circuit ou être déjà en cours d'édition. */
+  if (!S.panModif && q && Array.isArray(q.panneaux) && S.def.id === vise) {
+    S.panneaux = q.panneaux.map(versEditeur);
+    S.panModif = true; S.selP = null; majFicheP(); dessiner();
+  }
   const bouts = [];
   if (r) bouts.push(`ligne du ${new Date(r.at || Date.now()).toLocaleString()}`);
   if (q) bouts.push(`${q.panneaux.length} panneau(x)`);
@@ -691,7 +748,7 @@ async function majPose() {
       $('nPts').value = S.pts.racing.length;
     }
     if (q) {
-      S.panneaux = q.panneaux.map(([at, dist, note, sign]) => ({ at: +at, dist: +dist, note, sign: +sign }));
+      S.panneaux = q.panneaux.map(versEditeur);
       S.panModif = true; S.selP = null; majFicheP();
     }
     dessiner();

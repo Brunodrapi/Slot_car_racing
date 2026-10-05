@@ -142,6 +142,34 @@ const { chromium } = require('playwright');
   const reste = await page.evaluate(() => S.mesure.length);
   dire(reste === 2, 'la mesure survit au changement de volet');
 
+  /* L'ÉDITEUR MONTRE-T-IL CE QUE LE JEU JOUE ? C'est le contrôle qui manquait, et son absence a
+  laissé passer six panneaux d'écart à Monaco. On compare, circuit par circuit, la liste que
+  l'éditeur affiche à celle que le jeu construit — pas les nombres, les listes. */
+  console.log('');
+  const croise = await page.evaluate(() => {
+    const out = [];
+    for (const td of TRACKS) {
+      charger(td.id, false);
+      const T = new Track(td);
+      /* ON COMPARE LA STATION, PAS LA FRACTION. Un panneau se pose sur une station ; la fraction
+      n'est que la façon de l'écrire, et elle survit à un changement de longueur déclarée. Le fichier
+      porte des fractions brutes, le jeu réémet `i / n` : les deux désignent le même mètre et ne
+      s'écrivent pas pareil au quatrième chiffre. Comparer les fractions accusait Monaco d'un écart
+      qui n'existait pas. */
+      const cle = (at, dist, note, sign) => [Math.round(at * T.n), dist, note, sign].join('|');
+      const edit = panneauxPlats().map((p) => cle(p[0], p[1], p[2], p[3])).sort();
+      const jeu = T.boards.map((b) => cle(b.at, b.dist,
+        (b.kind && b.kind !== 'normal' ? b.kind : b.grade), b.sign)).sort();
+      out.push({ id: td.id, n: edit.length, m: jeu.length,
+        pareil: edit.length === jeu.length && edit.every((x, i) => x === jeu[i]) });
+    }
+    return out;
+  });
+  for (const c of croise) {
+    dire(c.pareil, ('l’éditeur et le jeu s’accordent sur ' + c.id).padEnd(44),
+      c.pareil ? c.n + ' panneaux' : `éditeur ${c.n}, jeu ${c.m}`);
+  }
+
   console.log('\nfautes ' + fautes + ' | erreurs ' + errs.length);
   if (errs.length) console.log(errs.join('\n'));
   await b.close();
