@@ -596,21 +596,50 @@ ce qui le rend digne d'une annonce est la **distance de freinage** qu'il exige, 
 qui est une longueur et se compare donc d'un circuit à l'autre.
 
 Un seuil en pourcentage de chute ne le permettait pas : Monza et Monaco n'ont pas la même plage de
-vitesse, et le même pourcentage y comptait cinq freinages à l'un et seize à l'autre. **Vingt mètres
-de freinage** donne Monza 7 — exactement ses vraies zones, de la première chicane à la Parabolique —
-Monaco 10, Zandvoort 12. Bruno en avait posé treize à la main à Zandvoort, seule calibration
-disponible.
+vitesse, et le même pourcentage y comptait cinq freinages à l'un et seize à l'autre.
+
+#### Deux raisons d'annoncer, pas une
+
+**Le Zandvoort noté à la main est la référence**, et un premier seuil à vingt mètres de freinage en a
+mangé trois des treize. Chacun des trois a appris quelque chose :
+
+| virage | freinage exigé | pourquoi il manquait |
+| --- | --- | --- |
+| 869 m | 18 m | le seuil était simplement trop haut |
+| **1729 m** | **3 m** | l'épingle gauche à 159° qui suit le carré droit : on y arrive **déjà lent**, tout le freinage a été fait pour le virage d'avant |
+| 2021 m | 11 m | le dernier virage — on sort si on ne lève pas |
+
+La distance de freinage mesure ce qu'on **perd**, pas ce qu'il faut **savoir**. Un virage s'annonce
+donc s'il exige un vrai ralentissement (**dix mètres** de freinage, soit un lever de pied franc)
+**ou** s'il se prend lentement — mais la clause de rattrapage exige **les deux** : lent *et* gros
+(au-delà de 120° de changement de cap).
+
+Avec « lent » seul, Monaco passait de dix à **vingt-trois** annonces, c'est-à-dire exactement le plat
+de spaghetti qu'on venait d'enlever : Monaco est lent partout, et chaque kink d'un complexe
+déclenchait la clause. Elle n'existe que pour un cas, et il faut le dire précisément : un virage
+**majeur** qu'on aborde **déjà freiné**, donc sans freinage propre à mesurer.
+
+#### Le creux appartient au virage qui le contient
+
+Et à rien d'autre. Une version qui prenait « le plus fermé à quatre-vingts mètres devant » laissait
+une épingle happer le creux du virage d'avant : à Zandvoort, le virage de 348 m s'est fait manger par
+l'épingle de 416 et a disparu des annonces. Ce n'est que si le creux tombe **entre** deux virages — le
+profil encore en descente, ce qui arrive dans un kink de Monaco — qu'on cherche le plus fermé à
+portée.
+
+On groupe par **virage**, jamais par distance : un complexe produit plusieurs creux dans le même
+virage, c'est un seul événement ; deux virages opposés à vingt mètres sont deux événements, et une
+fusion sur la distance écrasait le carré-droite-puis-épingle-gauche.
+
+| | virages | freinages |
+| --- | --- | --- |
+| **zandvoort** | 13 | **13** — les treize posés à la main, aucun manquant |
+| monaco | 26 | 18 |
+| monza | 10 | 8 |
 
 L'ordre compte : on **filtre avant de grouper**. Un complexe de virages produit un vrai freinage
 suivi de plusieurs micro-creux de un à dix mètres ; groupés d'abord, le creux le plus lent l'emportait
 et emportait avec lui sa distance minuscule — Monza tombait à un seul freinage au lieu de sept.
-
-| | virages | freinages |
-| --- | --- | --- |
-| monaco | 26 | **10** |
-| zandvoort | 13 | 12 |
-| monza | 10 | **7** |
-| lemans | 29 | **13** |
 
 #### Le virage annoncé est celui qui fait freiner
 

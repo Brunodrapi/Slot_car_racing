@@ -105,30 +105,104 @@ const cls = categoryById('gt').base;
 const BRAKE = cls.brake * 0.9;
 const SEUIL = 20;                 // mètres de freinage à partir desquels ça vaut une annonce
 
-/* LES FREINAGES D'UN CIRCUIT, lus dans le profil de vitesse de référence.
+/* CE QUI MÉRITE UNE ANNONCE : deux raisons, pas une.
 
-On filtre AVANT de grouper, et l'ordre compte : un complexe de virages produit un vrai freinage suivi
-de plusieurs micro-creux de un à dix mètres. Groupés d'abord, le creux le plus lent l'emportait et
-emportait avec lui sa distance de freinage minuscule — Monza tombait à un seul freinage au lieu de
-sept. Filtrés d'abord, les micro-creux disparaissent et il ne reste que les vrais. */
-function freinages(T) {
+Première version : la distance de freinage exigée, au-dessus de vingt mètres. Elle a mangé trois des
+treize virages que Bruno avait annoncés à Zandvoort, et chacun des trois dit pourquoi :
+
+  869 m — dix-huit mètres de freinage, juste sous le seuil. Le seuil était trop haut, point.
+
+ 1729 m — l'épingle gauche à 159° qui suit le carré droit. Trois mètres de freinage seulement, parce
+          qu'on y arrive DÉJÀ LENT : on a tout freiné pour le virage d'avant. La distance de freinage
+          mesure ce qu'on perd, pas ce qu'il faut savoir. Un virage pris à 17 m/s est un événement,
+          qu'on ait freiné pour lui ou pour son voisin.
+
+ 2021 m — le dernier virage. Onze mètres de freinage, et on sort si on ne lève pas.
+
+Un virage s'annonce donc s'il exige un VRAI RALENTISSEMENT (dix mètres de freinage, soit un lever de
+pied franc) OU s'il SE PREND LENTEMENT dans l'absolu (sous 30 % de la vitesse maximale), ce qui
+rattrape ceux qu'on aborde déjà freinés. Les deux ensemble retrouvent les treize de Bruno.
+
+ON GROUPE PAR VIRAGE, PAS PAR DISTANCE. Un complexe produit plusieurs creux dans le même virage : un
+seul événement. Mais deux virages opposés à vingt mètres l'un de l'autre sont deux événements, et une
+fusion sur la distance les écrasait — c'est exactement le carré-droite-puis-épingle-gauche de
+Zandvoort, que Bruno avait annoncé deux fois à juste titre. */
+const FREIN_MIN = 10;             // mètres de freinage : un lever de pied franc
+const LENT_MAX = 0.30;            // « lent » : sous 30 % de la vitesse maximale
+const GROS_ANGLE = 120;           // « gros » : au-delà de 120° de changement de cap
+
+/* LA CLAUSE DE RATTRAPAGE EXIGE LES DEUX : lent ET gros.
+
+Première version : lent suffisait. Monaco est passé de dix à VINGT-TROIS annonces — c'est-à-dire
+exactement le plat de spaghetti qu'on venait d'enlever — parce que Monaco est lent partout, et que
+chaque kink d'un complexe déclenchait la clause. Elle n'existe que pour un cas, et il faut le dire
+précisément : un virage MAJEUR qu'on aborde DÉJÀ FREINÉ, donc sans freinage propre à mesurer.
+L'épingle gauche à 159° de Zandvoort, qui suit le carré droit. Un kink de trente degrés au milieu
+d'un complexe n'est pas ce cas-là, même s'il se prend à vingt à l'heure. */
+
+/* LE VIRAGE D'UN CREUX DE VITESSE.
+
+D'abord celui qui le CONTIENT : un creux dans un virage appartient à ce virage, et rien d'autre n'a
+voix au chapitre. La version qui prenait « le plus fermé à quatre-vingts mètres devant » laissait une
+épingle happer le creux du virage d'avant — à Zandvoort, le virage de 348 m s'est fait manger par
+l'épingle de 416, et il a disparu des annonces.
+
+Ce n'est que si le creux tombe ENTRE deux virages — le profil encore en descente vers le vrai virage,
+ce qui arrive dans un kink de Monaco — qu'on cherche le plus fermé à portée. */
+function virageDe(T, zones, i) {
+  const N = T.n;
+  for (const q of zones) {
+    const a = (((q.from % N) + N) % N), b = (((q.to % N) + N) % N);
+    if (a <= b ? (i >= a && i <= b) : (i >= a || i <= b)) return q;
+  }
+  let z = null, pire = 0;
+  for (const q of zones) {
+    const a = (((q.from % N) + N) % N);
+    let d = (((a - i) % N) + N) % N;
+    if (d > N / 2) d -= N;
+    const dist = d * T.ds;
+    if (dist > 80 || dist < -20) continue;
+    if (q.peak > pire) { pire = q.peak; z = q; }
+  }
+  if (z) return z;
+  let best = Infinity;
+  for (const q of zones) {
+    const a = (((q.from % N) + N) % N);
+    let d = (((a - i) % N) + N) % N;
+    if (d > N / 2) d -= N;
+    if (Math.abs(d) < Math.abs(best)) { best = d; z = q; }
+  }
+  return z;
+}
+
+function freinages(T, zones) {
   const N = T.n, v = speedProfile(T, cls, 'racing', 0.98);
-  const bruts = [];
+  const parVirage = new Map();
   for (let i = 0; i < N; i++) {
     const a = v[(i - 1 + N) % N], b = v[(i + 1) % N];
     if (!(v[i] <= a && v[i] < b)) continue;
     let haut = v[i];
     for (let k = 1; k < N; k++) { const j = (i - k + N) % N; if (v[j] < haut) break; haut = v[j]; }
     const d = (haut * haut - v[i] * v[i]) / (2 * BRAKE);
-    if (d >= SEUIL) bruts.push({ i, v: v[i], haut, d });
+    const z = virageDe(T, zones, i);
+    if (!z) continue;
+    if (d < FREIN_MIN) {
+      if (v[i] / cls.vmax >= LENT_MAX) continue;
+      let t = 0;
+      for (let k = z.from; k < z.firstTo; k++) {
+        const a = ((k % N) + N) % N, b = (((k + 1) % N) + N) % N;
+        let e = T.th[b] - T.th[a];
+        while (e > Math.PI) e -= 2 * Math.PI;
+        while (e < -Math.PI) e += 2 * Math.PI;
+        t += e;
+      }
+      if (Math.abs(t) * 180 / Math.PI < GROS_ANGLE) continue;
+    }
+    const cle = (((z.from % N) + N) % N);
+    const vieux = parVirage.get(cle);
+    if (!vieux || d > vieux.d) parVirage.set(cle, { i, v: v[i], haut, d, z });
   }
-  const nets = [];
-  for (const m of bruts) {
-    const p = nets[nets.length - 1];
-    if (p && ((m.i - p.i + N) % N) * T.ds < 60) { if (m.d > p.d) nets[nets.length - 1] = m; }
-    else nets.push(m);
-  }
-  return nets;
+  return [...parVirage.values()].sort((a, b) => a.i - b.i);
 }
 
 const seul = ARGS.find((a) => !a.startsWith('--'));
@@ -136,41 +210,12 @@ for (const td of TRACKS) {
   if (seul && td.id !== seul) continue;
   const T = new Track(td);
   const N = T.n, zones = T.zonesVirages(30, true);
-  const freins = freinages(T);
+  const freins = freinages(T, zones);
   const prof = speedProfile(T, cls, 'racing', 0.98);
   const out = [], lignes = [];
   for (let fi = 0; fi < freins.length; fi++) {
     const f = freins[fi];
-    /* LE VIRAGE ANNONCÉ EST CELUI QUI FAIT FREINER. On part du minimum de vitesse et on prend le
-    virage qui le contient — pas le premier du groupe, pas le plus proche en distance. Une amorce
-    molle suivie d'un virage dur s'annonce par le dur, puisque c'est lui qu'on freine. */
-    /* LE PLUS SERRÉ À PORTÉE, pas celui qui contient le minimum.
-
-    Première version : le virage qui contient le point le plus lent. À Monaco, un freinage de
-    cinquante mètres s'est retrouvé annoncé « note 5 » — un décroché de neuf degrés — parce que le
-    creux de vitesse tombait dans un kink entre deux virages, le profil étant encore en descente vers
-    le vrai virage. On ne freine pas pour le point où on est lent, on freine pour ce qui rend lent.
-
-    On prend donc, autour du freinage, le virage le plus FERMÉ : quatre-vingts mètres devant, vingt
-    derrière, de quoi couvrir un virage dont l'entrée précède le creux sans attraper le suivant. */
-    let z = null, pire = 0;
-    for (const q of zones) {
-      const a = (((q.from % N) + N) % N);
-      let d = (((a - f.i) % N) + N) % N;
-      if (d > N / 2) d -= N;
-      const dist = d * T.ds;
-      if (dist > 80 || dist < -20) continue;
-      if (q.peak > pire) { pire = q.peak; z = q; }
-    }
-    if (!z) {                     // rien à portée : on retombe sur le plus proche, quel qu'il soit
-      let best = Infinity;
-      for (const q of zones) {
-        const a = (((q.from % N) + N) % N);
-        let d = (((a - f.i) % N) + N) % N;
-        if (d > N / 2) d -= N;
-        if (Math.abs(d) < Math.abs(best)) { best = d; z = q; }
-      }
-    }
+    const z = f.z;
     const from = (((z.from % N) + N) % N);
     let turn = 0;
     for (let i = z.from; i < z.firstTo; i++) {
