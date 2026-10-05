@@ -922,7 +922,19 @@ class Renderer {
     // why the per-category zoom factor is gone, it was solving the same problem twice.
     const near = this.rotate ? 30 : 20;
     const far = this.rotate ? 75 : 50;
-    const metres = (near + (far - near) * vf) * this.pullBack;
+    /* LES VUES EN AVANCE CADRENT PLUS LARGE, et c'est le levier principal — pas l'avance.
+
+    Mesuré : avec le cadre d'origine, la piste visible devant la voiture en continu ne faisait que
+    25 à 35 m, et 10 m au pire. À 200 km/h c'est une demi-seconde de préavis : on ne voit pas venir
+    le virage, quelle que soit la place de la voiture à l'écran. La raison est que sur un téléphone
+    en portrait le cadre ne fait qu'une trentaine de mètres EN LARGEUR, et qu'un virage sort de cette
+    bande en quelques dizaines de mètres. Descendre la voiture ne gagne rien là-dessus : elle libère
+    de la hauteur, et ce qui manquait était la largeur.
+
+    Un tiers de cadre en plus fait passer la piste vue de 30 à 50 m à Zandvoort, de 25 à 40 m en vue
+    fixe. Un demi-cadre en plus donnerait 65 m, mais la voiture devient petite et la vue cesse d'être
+    une vue de course ; un tiers est le point où les deux tiennent encore ensemble. */
+    const metres = (near + (far - near) * vf) * this.pullBack * (this.avance ? 1.35 : 1);
     const zoomTarget = (this.rotate ? this.h : Math.min(this.w, this.h)) / metres;
     this.framing = metres;           // what the screen actually shows, in metres
     // How far ahead of the car the camera looks, tied to the frame rather than to a fixed number
@@ -952,18 +964,32 @@ class Renderer {
     que vingt mètres en ligne droite : la caméra se rapproche d'elle-même là où le circuit se replie,
     ce qui est précisément là où on ne veut pas qu'elle parte loin.
 
-    L'AVANCE EST UNE FRACTION DE CE QUE L'ÉCRAN MONTRE, jamais un nombre de mètres : ce qui compte
-    n'est pas la distance, c'est où la voiture se retrouve sur l'écran, et ça n'a de sens que
-    rapporté au cadre. Le cadre s'élargit déjà avec la vitesse — de 30 à 75 m — donc à pleine
-    vitesse l'avance grandit deux fois : parce que la fraction monte, et parce que le cadre aussi.
-    De 11 % du cadre à l'arrêt à 35 % à fond : la voiture part du centre sur la grille et descend
-    jusqu'à 85 % de la hauteur de l'écran, où elle n'est plus là que pour se situer,
-    tout le reste de l'écran servant à voir venir. */
+    LE BARYCENTRE DE LA PISTE À VENIR, PAS UN POINT DESSUS. Viser un point `avance` mètres plus
+    loin met ce point au milieu de l'écran — donc met le virage au BORD du cadre, moitié dedans
+    moitié dehors. En visant le centre de gravité du morceau de ligne à venir, l'entrée et la sortie
+    y tiennent ensemble : c'est ce que fait un cameraman qui cadre une action, pas un point mais
+    l'étendue qu'elle occupe. Mesuré, ça vaut dix mètres de piste visible en plus, à cadre égal.
+
+    Dans une ligne droite le barycentre tombe sur la ligne, à la moitié de la fenêtre : l'avance y
+    vaut donc la moitié de la fenêtre, de 20 % du cadre à l'arrêt à 55 % à pleine vitesse. Dans un
+    virage il tombe du côté de la corde, ce qui rapproche la caméra — exactement là où il ne faut pas
+    qu'elle parte loin. La fenêtre, elle, s'allonge avec la vitesse ET avec le cadre, donc l'avance
+    grandit deux fois. */
     if (this.avance) {
-      const avance = metres * (0.11 + 0.24 * vf);
-      const q = this._surLigne(T, p.s + avance);
-      tx = q.x; ty = q.y;
-      want = this._capLigne(T, p.s + avance, metres * 0.22);
+      /* La fenêtre est plus courte en vue fixe, et le plafond plus serré.
+
+      Le nord y reste en haut, donc la voiture ne descend pas : elle part dans la DIRECTION où elle
+      roule, c'est-à-dire n'importe où, y compris dans les quatre coins — où vivent le classement, le
+      chrono et le levier. Mesuré à Zandvoort, elle finissait derrière le classement, invisible. En
+      vue orientée piste la question ne se pose pas : « devant » est toujours le haut de l'écran, et
+      le haut est vide. La vue fixe prend donc une avance plus courte et reste dans la bande
+      centrale ; c'est le cadre élargi, pas la place de la voiture, qui lui fait voir le virage. */
+      const D = metres * (this.rotate ? 0.32 + 0.58 * vf : 0.24 + 0.40 * vf);
+      const N = 12;
+      let sx = 0, sy = 0;
+      for (let i = 0; i <= N; i++) { const q = this._surLigne(T, p.s + D * i / N); sx += q.x; sy += q.y; }
+      tx = sx / (N + 1); ty = sy / (N + 1);
+      want = this._capLigne(T, p.s + D * 0.5, metres * 0.22);
     }
     if (!this.cam.init) this.camAngle = want;
     else {
@@ -1031,7 +1057,7 @@ class Renderer {
       const c = Math.cos(a), si = Math.sin(a);
       let dx = this.cam.x - pos.x, dy = this.cam.y - pos.y;
       let ex = dx * c - dy * si, ey = dx * si + dy * c;
-      const demiL = (this.w / this.cam.zoom) / 2 * (this.avance ? 0.72 : 0.62);
+      const demiL = (this.w / this.cam.zoom) / 2 * (this.avance ? (this.rotate ? 0.72 : 0.56) : 0.62);
       const demi = (this.h / this.cam.zoom) / 2;
       // ey < 0 : la caméra est DEVANT, donc la voiture est BASSE sur l'écran. Les deux sens n'ont
       // pas le même prix : vers l'avant il y a tout l'écran à gagner, vers l'arrière il n'y a rien
@@ -1043,7 +1069,7 @@ class Renderer {
       // La vue « en avance, fixe » garde donc un plafond symétrique, et c'est la borne latérale,
       // elle aussi élargie, qui l'encadre.
       const asym = this.avance && this.rotate;
-      const avant = demi * (asym ? 0.74 : 0.56);
+      const avant = demi * (asym ? 0.62 : 0.56);
       const arriere = demi * (asym ? 0.30 : 0.56);
       ex = clamp(ex, -demiL, demiL);
       ey = clamp(ey, -avant, arriere);

@@ -35,7 +35,25 @@ function essai(trackId, vue) {
   };
   const maj = Renderer.prototype.updateCamera;
   let pireX = 0, pireY = 0, basse = 0, n = 0, vmaxVue = 0;
-  const places = [], vite = [], ecarts = [];           // où la voiture se tient, en général et à pleine charge
+  const places = [], vite = [], ecarts = [], vus = [];
+  /* COMBIEN DE MÈTRES DE PISTE DEVANT LA VOITURE TIENNENT À L'ÉCRAN.
+  C'est la seule mesure qui réponde à « on ne voit pas venir le virage ». Où la voiture se tient
+  n'en est qu'un moyen : une voiture au bord d'un écran qui ne montre rien ne sert à rien. On avance
+  donc le long du tour depuis la voiture, par pas de 5 m, jusqu'à sortir du cadre. */
+  const alEcran = (sx, sy) => Math.abs(sx) < W / 2 && Math.abs(sy) < H / 2;
+  const devant = (T, s0) => {
+    for (let d = 5; d <= 400; d += 5) {
+      const q = T.pos(T.wrap(s0 + d), 0);
+      const u = (q.x - faux.cam.x) * faux.cam.zoom, v = (q.y - faux.cam.y) * faux.cam.zoom;
+      let qx = u, qy = v;
+      if (faux.rotate) {
+        const a = -faux.camAngle - Math.PI / 2, c = Math.cos(a), s2 = Math.sin(a);
+        qx = u * c - v * s2; qy = u * s2 + v * c;
+      }
+      if (!alEcran(qx, qy)) return d - 5;
+    }
+    return 400;
+  };           // où la voiture se tient, en général et à pleine charge
   const p = race.player;
   while (race.state !== 'finished' && race.time < 400) {
     race.update(race.dt, aiThrottle(p, race.cars, race.dt, { marginBase: 0.96, marginSpread: 0 }));
@@ -53,13 +71,15 @@ function essai(trackId, vue) {
     basse = Math.max(basse, fy);
     places.push(fy);
     ecarts.push(Math.hypot((fx - 0.5) * 2, (fy - 0.5) * 2));
+    if (n % 6 === 0) vus.push(devant(race.track, p.s));
     if (p.v > 0.8 * p.cls.vmax) vite.push(fy);
     vmaxVue = Math.max(vmaxVue, p.v);
     n++;
     if (p.lap >= 2) break;
   }
   const med = (a) => { if (!a.length) return 0; const b = a.slice().sort((x, y) => x - y); return b[b.length >> 1]; };
-  return { pireX, pireY, basse, n, vmax: vmaxVue * 3.6, med: med(places), medVite: med(vite), ecart: med(ecarts) };
+  return { pireX, pireY, basse, n, vmax: vmaxVue * 3.6, med: med(places), medVite: med(vite), ecart: med(ecarts),
+    vu: med(vus), vuPire: vus.length ? Math.min(...vus) : 0 };
 }
 
 const seul = ARGS[0] && ARGS[0] !== 'all' ? [ARGS[0]] : TRACKS.map((t) => t.id);
@@ -73,9 +93,9 @@ for (const id of seul) {
     console.log('  ' + (ok ? 'ok   ' : 'DEHORS') + ' ' + nom.padEnd(26)
       + 'bord atteint : ' + (r.pireX * 100).toFixed(0).padStart(3) + ' % en largeur, '
       + (r.pireY * 100).toFixed(0).padStart(3) + ' % en hauteur'
-      + '   écart au centre : ' + (r.ecart * 100).toFixed(0).padStart(3) + ' %'
+      + '   piste vue devant : ' + String(r.vu).padStart(3) + ' m (pire ' + String(r.vuPire).padStart(3) + ')'
       + '   voiture : ' + (r.med * 100).toFixed(0) + ' % en général, '
-      + (r.medVite * 100).toFixed(0) + ' % à pleine charge, ' + (r.basse * 100).toFixed(0) + ' % au plus bas');
+      + (r.medVite * 100).toFixed(0) + ' % à pleine charge, écart ' + (r.ecart * 100).toFixed(0) + ' %');
   }
 }
 console.log('\\nfautes ' + fautes);
