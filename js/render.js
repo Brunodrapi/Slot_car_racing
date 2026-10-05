@@ -229,9 +229,16 @@ class Renderer {
   « Ce qui part avec l'isométrique ». */
   setView(view) {
     this.view = view;
-    this.rotate = view === 'track' || view === 'avance';
-    this.avance = view === 'avance' || view === 'avanceFixe';
+    /* Les trois dernières sont des VARIANTES de « en avance, orientée piste », une par idée, pour
+    qu'un essai à l'aveugle dise laquelle vaut quelque chose. Elles ne se composent pas exprès :
+    deux changements mesurés ensemble ne se départagent plus. */
+    this.avance = view !== 'track' && view !== 'fixed';
+    this.rotate = view !== 'fixed' && view !== 'avanceFixe';
+    this.acp = view === 'acp';
+    this.zoomGeo = view === 'zoomGeo';
+    this.rail = view === 'rail';
     this.cam.init = false;
+    this.cam.mGeo = 0;
   }
 
   /** Un cran de résolution en plus ou en moins, selon la durée des images récentes. */
@@ -907,6 +914,13 @@ class Renderer {
     return Math.atan2(b.y - a.y, b.x - a.x);
   }
 
+  /** Les points de la ligne idéale sur `D` mètres devant `s`, échantillonnés `N + 1` fois. */
+  _fenetre(T, s, D, N) {
+    const pts = [];
+    for (let i = 0; i <= N; i++) pts.push(this._surLigne(T, s + D * i / N));
+    return pts;
+  }
+
   updateCamera(race, dt) {
     const p = race.player, T = race.track, pos = p.pos;
     const h = T.headingAt(p.s);
@@ -935,7 +949,7 @@ class Renderer {
     fixe. Un demi-cadre en plus donnerait 65 m, mais la voiture devient petite et la vue cesse d'être
     une vue de course ; un tiers est le point où les deux tiennent encore ensemble. */
     const metres = (near + (far - near) * vf) * this.pullBack * (this.avance ? 1.35 : 1);
-    const zoomTarget = (this.rotate ? this.h : Math.min(this.w, this.h)) / metres;
+    let zoomTarget = (this.rotate ? this.h : Math.min(this.w, this.h)) / metres;
     this.framing = metres;           // what the screen actually shows, in metres
     // How far ahead of the car the camera looks, tied to the frame rather than to a fixed number
     // of metres: what matters is where the car sits on screen, and that only means something
@@ -986,10 +1000,114 @@ class Renderer {
       centrale ; c'est le cadre élargi, pas la place de la voiture, qui lui fait voir le virage. */
       const D = metres * (this.rotate ? 0.32 + 0.58 * vf : 0.24 + 0.40 * vf);
       const N = 12;
+      const pts = this._fenetre(T, p.s, D, N);
       let sx = 0, sy = 0;
-      for (let i = 0; i <= N; i++) { const q = this._surLigne(T, p.s + D * i / N); sx += q.x; sy += q.y; }
-      tx = sx / (N + 1); ty = sy / (N + 1);
+      for (const q of pts) { sx += q.x; sy += q.y; }
+      tx = sx / pts.length; ty = sy / pts.length;
       want = this._capLigne(T, p.s + D * 0.5, metres * 0.22);
+
+      /* A — LE CADRAGE OPTIMAL : l'axe principal du morceau à venir, pas sa tangente.
+
+      Le modèle derrière : un virage de rayon R s'écarte de sa TANGENTE de s²/2R, mais de sa CORDE
+      de s²/8R seulement — quatre fois moins. La distance qu'on voit devant croît donc comme la
+      racine de la largeur du cadre (d'où le rendement décroissant du dézoom), mais DOUBLE si on
+      aligne l'écran sur la corde plutôt que sur la tangente. C'est le cadrage, pas le zoom, qui a
+      de la marge.
+
+      La corde d'un arc est bien ce que donne `_capLigne`, mais un enchaînement n'est pas un arc :
+      dans une chicane la tangente du milieu bascule d'un côté puis de l'autre alors que l'axe
+      d'ENSEMBLE ne bouge pas. On prend donc l'axe principal du nuage — la direction de plus grande
+      variance, celle qui minimise l'étalement latéral, c'est-à-dire exactement ce qui fait sortir
+      la piste du cadre. Trois sommes et un atan2.
+
+      BORNÉ À ±45° DE LA TANGENTE, et ce n'est pas de la prudence : dans une épingle, l'axe
+      principal est celui de l'épingle, et l'aligner sur la hauteur de l'écran ferait traverser la
+      route en travers. On y gagnerait des mètres vus et on y perdrait le contrat de la vue orientée
+      piste — la route monte vers le haut. La borne choisit le contrat. */
+      if (this.acp) {
+        let axx = 0, axy = 0, ayy = 0;
+        for (const q of pts) {
+          const dx = q.x - tx, dy = q.y - ty;
+          axx += dx * dx; axy += dx * dy; ayy += dy * dy;
+        }
+        let a = 0.5 * Math.atan2(2 * axy, axx - ayy);
+        // l'axe principal n'a pas de sens : on prend celui des deux qui va vers l'avant
+        if (Math.cos(a - want) < 0) a += Math.PI;
+        let da = a - want;
+        while (da > Math.PI) da -= 2 * Math.PI;
+        while (da < -Math.PI) da += 2 * Math.PI;
+        want += clamp(da, -Math.PI / 4, Math.PI / 4);
+      }
+
+      /* B — LE ZOOM SUIT LA GÉOMÉTRIE, pas la vitesse.
+
+      La vitesse n'est qu'un indice de ce qu'il y a à montrer ; la ligne, elle, est connue. On
+      projette donc le morceau à venir dans le repère de l'écran et on demande le cadre qui le
+      contient. Une longue courbe rapide s'ouvre, une épingle se resserre, et pas parce qu'on roule
+      vite mais parce qu'il y a de l'étalement à loger.
+
+      ANTICIPÉ PAR CONSTRUCTION : la fenêtre est DEVANT la voiture, donc le besoin est connu avant
+      d'y arriver et la caméra est déjà ouverte en entrant. C'est ce qui manque à un zoom piloté par
+      la vitesse, qui ne réagit qu'une fois dans le virage.
+
+      Le lissage est ASYMÉTRIQUE — ouvrir vite, refermer lentement — parce que les deux fautes n'ont
+      pas le même prix : ouvrir en retard, c'est ne pas voir ; refermer en retard, c'est juste voir
+      un peu large. Avec une bande morte, sinon le cadre respire sur chaque ondulation. */
+      if (this.zoomGeo) {
+        const a = -want - Math.PI / 2, ca = Math.cos(a), sa = Math.sin(a);
+        let lat = 0, av = 0;
+        for (const q of pts) {
+          const dx = q.x - tx, dy = q.y - ty;
+          lat = Math.max(lat, Math.abs(dx * ca - dy * sa));
+          av = Math.max(av, Math.abs(dx * sa + dy * ca));
+        }
+        // le cadre vaut `metres` en hauteur et metres*w/h en largeur ; 0.82 laisse une marge au bord
+        const besoin = Math.max(2 * lat / 0.82 * this.h / this.w, 2 * av / 0.82);
+        const cible = clamp(Math.max(metres, besoin), metres, metres * 1.8);
+        if (!this.cam.mGeo) this.cam.mGeo = cible;
+        else if (Math.abs(cible - this.cam.mGeo) > this.cam.mGeo * 0.06)
+          this.cam.mGeo += (cible - this.cam.mGeo) * Math.min(1, dt * (cible > this.cam.mGeo ? 4 : 0.8));
+        /* Jamais plus serré que le cadre de la vitesse. La bande morte et le retour lent laissaient
+        le cadre traîner pendant que la vitesse montait : mesuré, il tombait à ×0,96 du cadre de
+        base — B finissait par ZOOMER là où il n'était censé que dézoomer. Le plancher est le cadre
+        d'avant ; B n'a le droit que de l'ouvrir. */
+        this.cam.mGeo = Math.max(this.cam.mGeo, metres);
+        zoomTarget = this.h / this.cam.mGeo;
+        this.framing = this.cam.mGeo;
+      }
+
+      /* C — LE RAIL : le cadrage est résolu HORS LIGNE, une fois, parce que le circuit ne bouge pas.
+
+      Les deux idées précédentes choisissent la pose image par image, avec ce qu'elles savent à
+      l'instant : c'est glouton. Ici `tools/rail.js` a cherché, station par station, la pose qui
+      montre le plus de piste devant — par énumération, pas par heuristique — puis a lissé le
+      résultat sur le tour entier, en anneau. La douceur n'est donc plus l'affaire d'un filtre qui
+      court après sa cible : elle est posée dans les données.
+
+      Le rail est calculé À LA VITESSE DE RÉFÉRENCE du circuit, celle du profil qui sert au guide de
+      freinage. À l'exécution on le rejoue sur le cadre de la vitesse RÉELLE : les trois nombres du
+      rail sont des proportions — un écart de cap, un multiple de cadre, un décalage en fraction
+      d'écran — donc ils se transposent. Rouler plus lentement que la référence rapproche la caméra
+      sans défaire son cadrage.
+
+      Sans rail pour ce circuit, la vue retombe sur « en avance » sans rien dire : un réglage qui ne
+      s'applique qu'à un circuit doit rester jouable sur les onze autres. */
+      const R = typeof RAILS !== 'undefined' ? RAILS[T.id] : null;
+      if (this.rail && R) {
+        const nst = R.v.length / 5, u = T.wrap(p.s) / R.pas;
+        const k0 = Math.floor(u) % nst, k1 = (k0 + 1) % nst, f = u - Math.floor(u);
+        const lire = (j) => R.v[k0 * 5 + j] + (R.v[k1 * 5 + j] - R.v[k0 * 5 + j]) * f;
+        const da = lire(0) / 1000, fm = lire(1) / 100, fl = lire(2) / 1000, av = lire(3) / 1000;
+        const mr = metres * fm;
+        want = this._capLigne(T, p.s, metres * 0.22) + da;
+        const ca = Math.cos(want), sa = Math.sin(want);
+        const lat = fl * mr * this.w / this.h;
+        const P = this._surLigne(T, p.s);
+        tx = P.x + ca * mr * av - sa * lat;
+        ty = P.y + sa * mr * av + ca * lat;
+        zoomTarget = this.h / mr;
+        this.framing = mr;
+      }
     }
     if (!this.cam.init) this.camAngle = want;
     else {
