@@ -6,7 +6,8 @@
 //   node tools/notes.js spa --amplitudes     → ne reprend que les notes d'une liste existante
 //   node tools/notes.js --ecrire --force     → réécrit aussi les circuits posés à la main
 //
-// LES CIRCUITS POSÉS À LA MAIN NE SE RÉÉCRIVENT PAS (`POSES`, dans `panneaux-ecrire.js`). On les
+// LES CIRCUITS POSÉS À LA MAIN NE SE RÉÉCRIVENT PAS (`POSES`, dans `panneaux-ecrire.js`), ni ceux
+// que l'auteur a parcourus et déclarés bons (`VERIFIES`). On les
 // calcule quand même, et l'écart s'affiche : c'est la seule calibration dont on dispose. Elle vaut
 // aujourd'hui dix-sept sur dix-sept à Silverstone et à Suzuka, quatorze sur quatorze au
 // Nürburgring, treize sur treize à Zandvoort — et treize sur quatorze à Monaco.
@@ -312,6 +313,8 @@ for (const td of TRACKS) {
   freinage, la clause du virage abordé déjà lent, la fusion des virages collés. On apparie à
   quarante-cinq mètres près, parce qu'une flèche posée à l'œil sur l'entrée d'un virage tombe à
   vingt mètres près et pas au mètre. */
+  if (VERIFIES.includes(td.id))
+    lignes.push("  vérifié tel quel par l'auteur : ces " + freins.length + " freinages sont ceux de la règle.");
   if (POSES.includes(td.id) && td.panneaux) {
     const main = td.panneaux.filter((p) => +p[1] === 0).map((p) => Math.round(+p[0] * N)).sort((a, b) => a - b);
     const pris = new Set();
@@ -344,9 +347,9 @@ RESULTAT.v = SORTIE;
 }
 `;
 const RESULTAT = { v: null };
-const { ecrireBlocs, compterBlocs, POSES } = require('./panneaux-ecrire.js');
+const { ecrireBlocs, compterBlocs, POSES, VERIFIES, FIGES } = require('./panneaux-ecrire.js');
 
-vm.runInNewContext(src, { Math, console, Date, Float32Array, Float64Array, ARGS: process.argv.slice(2), POSES,
+vm.runInNewContext(src, { Math, console, Date, Float32Array, Float64Array, ARGS: process.argv.slice(2), POSES, VERIFIES,
   navigator: { language: 'fr' }, localStorage: { getItem: () => null, setItem: () => {} },
   document: { createElement: () => ({ getContext: () => null }) }, window: {}, RESULTAT },
   { filename: 'notes' });
@@ -367,7 +370,10 @@ const dest = path.join(R, 'js', 'tracks.js');
 const avant = fs.readFileSync(dest, 'utf8');
 const blocs = {};
 for (const id of Object.keys(res)) {
-  if (POSES.includes(id) && !force) { console.log('posé à la main, laissé tel quel : ' + id); continue; }
+  if (FIGES.includes(id) && !force) {
+    console.log((POSES.includes(id) ? 'posé à la main' : 'vérifié par l\'auteur') + ', laissé tel quel : ' + id);
+    continue;
+  }
   blocs[id] = res[id].txt;
 }
 const n0 = compterBlocs(avant);

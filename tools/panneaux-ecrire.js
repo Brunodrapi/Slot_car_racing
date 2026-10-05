@@ -25,6 +25,20 @@ Le générateur ne réécrit donc pas ces circuits. Il les CALCULE quand même e
 la seule calibration dont on dispose, et elle a déjà corrigé la règle trois fois. */
 const POSES = ['zandvoort', 'monaco', 'silverstone', 'suzuka', 'nurburgring', 'lemans', 'redbullring', 'bathurst'];
 
+/* LES CIRCUITS VÉRIFIÉS, qui ne sont pas la même chose que les circuits posés.
+
+Spa n'a pas été posé à la main : la règle l'a calculé, et Bruno l'a parcouru et dit bon. Les deux
+états se protègent pareil — le générateur n'y revient pas — mais ils ne disent pas la même chose. Une
+liste posée est l'intention de l'auteur, et la règle s'y mesure. Une liste vérifiée est un résultat
+de la règle que l'auteur a ACCEPTÉ, ce qui est la meilleure nouvelle qu'elle puisse recevoir : à Spa,
+quinze freinages trouvés tout seuls et gardés tels quels.
+
+C'est aussi pour ça qu'on la fige. Un seuil retouché plus tard pour un autre circuit déplacerait sans
+un mot une liste déjà approuvée, et personne ne le verrait avant d'y rouler. */
+const VERIFIES = ['spa'];
+
+const FIGES = [...POSES, ...VERIFIES];
+
 function ecrireBlocs(txt, blocs, journal) {
   let faits = 0, ajouts = 0;
   for (const id of Object.keys(blocs)) {
@@ -63,4 +77,4 @@ function ecrireBlocs(txt, blocs, journal) {
 d'écritures disait onze et ne mentait pas. Seul le total du fichier le voyait. */
 function compterBlocs(txt) { return (txt.match(/panneaux: \[/g) || []).length; }
 
-if (typeof module !== 'undefined') module.exports = { ecrireBlocs, compterBlocs, POSES };
+if (typeof module !== 'undefined') module.exports = { ecrireBlocs, compterBlocs, POSES, VERIFIES, FIGES };
