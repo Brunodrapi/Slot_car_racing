@@ -23,7 +23,7 @@ le volant ; et la note `chicane` elle-même, que `Track.noteVirage` ne rend jama
 
 Le générateur ne réécrit donc pas ces circuits. Il les CALCULE quand même et affiche l'écart — c'est
 la seule calibration dont on dispose, et elle a déjà corrigé la règle trois fois. */
-const POSES = ['zandvoort', 'monaco', 'silverstone', 'suzuka', 'nurburgring', 'lemans'];
+const POSES = ['zandvoort', 'monaco', 'silverstone', 'suzuka', 'nurburgring', 'lemans', 'redbullring', 'bathurst'];
 
 function ecrireBlocs(txt, blocs, journal) {
   let faits = 0, ajouts = 0;
