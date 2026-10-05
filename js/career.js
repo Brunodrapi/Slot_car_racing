@@ -31,7 +31,7 @@ function lapsFor(trackDef, cat) {
 const SAVE_KEY = 'slotracer.save.v2';
 
 function defaultSave() {
-  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, livrees: {}, ctrl: 'auto', ctrlSide: 'left', camRotate: false, view: 'fixed', pullBack: 1, laps: 5, lapsPerso: false, showLines: false, debug: false, wear: false, guideMigrated: true, flatMigrated: false, cups: {}, bestLaps: {}, tracesMigrated: true, tutorialSeen: false, racesDone: 0 };
+  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, livrees: {}, ctrl: 'auto', ctrlSide: 'left', camRotate: false, view: 'avanceFixe', pullBack: 1, laps: 5, lapsPerso: false, showLines: false, debug: false, wear: false, guideMigrated: true, flatMigrated: false, cups: {}, bestLaps: {}, tracesMigrated: true, tutorialSeen: false, racesDone: 0 };
 }
 
 function loadSave() {
@@ -42,7 +42,11 @@ function loadSave() {
     const save = Object.assign(defaultSave(), brut);
     // the driving lines used to be drawn on the road; turn the guide off once for existing saves
     if (!save.guideMigrated) { save.showLines = false; save.guideMigrated = true; }
-    // the camera used to be a two-way toggle; it is now a three-way view setting
+    /* La caméra était un interrupteur à deux positions ; c'est maintenant un choix de vue.
+
+    Une sauvegarde sans `view` date de ce temps-là : on la traduit depuis l'interrupteur qu'elle
+    portait, et surtout PAS vers le nouveau défaut. Changer le défaut change ce que voit quelqu'un
+    qui n'a jamais rien réglé ; ça ne doit pas changer ce qu'a choisi quelqu'un qui avait réglé. */
     if (!save.view) save.view = save.camRotate === false ? 'fixed' : 'track';
     /* La vue isométrique n'existe plus, et la ramener UNE FOIS ne suffisait pas.
 

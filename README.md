@@ -53,14 +53,18 @@ l'écran appartenant au pouce.
 
 Quatre vues dans les réglages, deux cadrages × deux orientations :
 
-- **Dessus, fixe** (par défaut) : le nord reste en haut, la caméra ne fait que suivre ;
+- **En avance, fixe** (par défaut) et **En avance, orientée piste** : la caméra ne suit plus la
+  voiture mais la **ligne idéale**, posée plus loin le long du tour, et elle cadre un tiers plus
+  large. Elle entre donc dans le virage avant la voiture et en montre la sortie : deux fois plus de
+  piste visible devant, mesuré sur les douze circuits. Les deux variantes diffèrent comme les deux
+  suivantes : l'une garde le nord en haut, l'autre tourne avec la piste ;
+- **Dessus, fixe** : le nord reste en haut, la caméra ne fait que suivre ;
 - **Dessus, orientée piste** : la route monte toujours vers le haut de l'écran, ce qui permet de voir
-  loin devant même sur un téléphone en portrait ;
-- **En avance, orientée piste** et **En avance, fixe** : la caméra ne suit plus la voiture mais la
-  **ligne idéale**, posée plus loin le long du tour, et elle cadre un tiers plus large. Elle entre
-  donc dans le virage avant la voiture et en montre la sortie : deux fois plus de piste visible
-  devant, mesuré sur les douze circuits. Les deux variantes diffèrent comme les deux premières :
-  l'une tourne avec la piste, l'autre garde le nord en haut.
+  loin devant même sur un téléphone en portrait.
+
+Le défaut a changé : c'était « dessus, fixe ». Changer un défaut ne change que ce que voit quelqu'un
+qui n'a jamais rien réglé — une sauvegarde qui porte déjà un choix le garde, et la migration des
+vieilles sauvegardes traduit l'ancien interrupteur plutôt que de les pousser vers le nouveau défaut.
 
 La vue **isométrique** a été retirée : le décor est maintenant dessiné dans toutes les vues, et le
 sol incliné ne servait plus qu'à justifier les planches de rotations des voitures. Les anciennes
