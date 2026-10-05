@@ -60,6 +60,8 @@ const S = {
   doigts: new Map(),    // les contacts en cours, pour le pincement
   pince: null,          // l'écartement et le centre au début du pincement
   appui: null,          // l'appui long en cours
+  viseur: null,         // la station visée, pour poser un panneau à l'endroit exact
+  mesure: [],           // zéro, une ou deux stations : la règle
 };
 
 const CHIFFRES = [1, 2, 3, 4, 5, 6];
@@ -209,11 +211,136 @@ function dessiner() {
     poses.forEach((b, i) => dessinerPanneau(b, i === S.selP));
   }
 
+  dessinerMesure();
+  dessinerViseur();
+
   // le sens de la marche, sans quoi on ne sait pas de quel côté est l'intérieur
   const a = versEcran([T.xs[0] / u, T.ys[0] / u]);
   const b = versEcran([T.xs[Math.round(N * 0.02)] / u, T.ys[Math.round(N * 0.02)] / u]);
   ctx.strokeStyle = '#7ed321'; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+}
+
+/* ------------------------------------------------------------------- le viseur et la règle
+
+LE VISEUR EXISTE PARCE QU'UN PANNEAU SE POSAIT « AU MILIEU DE LA VUE ».
+
+C'était la seule façon d'en placer un, et elle ne dit rien : le milieu de la vue dépend du zoom, du
+déplacement, de la hauteur du tiroir. Pour annoncer un virage à cent mètres, il faut pouvoir désigner
+une station, pas une région. Le viseur se pose donc sur la STATION LA PLUS PROCHE de l'endroit
+touché — il colle à l'axe de la piste, puisque c'est le long de l'axe que tout se mesure — et il
+affiche sa position en mètres depuis la ligne de départ.
+
+Un appui qui ne glisse pas pose le viseur ; un appui qui glisse déplace la carte. Pas de mode
+supplémentaire pour ça : la différence entre les deux gestes est déjà dans le geste. */
+
+const stationDe = (x, y) => projeter(versPiste(x, y)).j;
+
+/** La position d'une station en mètres depuis la ligne de départ. */
+const metresDe = (j) => j * S.track.ds;
+
+function dessinerViseur() {
+  if (S.viseur == null || S.mode !== 'panneaux' || !S.track) return;
+  const T = S.track, u = T.unitScale, j = S.viseur % T.n;
+  const e = versEcran([T.xs[j] / u, T.ys[j] / u]);
+  ctx.save();
+  ctx.strokeStyle = '#7ed321'; ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(e[0] - 11, e[1]); ctx.lineTo(e[0] - 4, e[1]);
+  ctx.moveTo(e[0] + 4, e[1]); ctx.lineTo(e[0] + 11, e[1]);
+  ctx.moveTo(e[0], e[1] - 11); ctx.lineTo(e[0], e[1] - 4);
+  ctx.moveTo(e[0], e[1] + 4); ctx.lineTo(e[0], e[1] + 11);
+  ctx.stroke();
+  ctx.beginPath(); ctx.arc(e[0], e[1], 3, 0, 7); ctx.fillStyle = '#7ed321'; ctx.fill();
+  ctx.restore();
+}
+
+/* LA RÈGLE DONNE DEUX DISTANCES, et elle dit laquelle est laquelle.
+
+Le long du tour, c'est ce qu'un panneau annonce et ce qu'une voiture parcourt. À vol d'oiseau, c'est
+ce que l'œil croit lire sur la carte. Dans une épingle les deux vont du simple au double, et une
+règle qui n'en donnerait qu'une serait une règle qui trompe une fois sur deux.
+
+Elle reste dessinée dans les autres volets, en plus discret : on mesure POUR placer un panneau, et
+une règle qui s'efface quand on change de volet oblige à retenir le nombre. */
+function dessinerMesure() {
+  if (!S.track || !S.mesure.length) return;
+  const T = S.track, u = T.unitScale, actif = S.mode === 'mesure';
+  const pt = (j) => versEcran([T.xs[j % T.n] / u, T.ys[j % T.n] / u]);
+  ctx.save();
+  ctx.globalAlpha = actif ? 1 : 0.45;
+  if (S.mesure.length === 2) {
+    const [a, b] = S.mesure;
+    // le trajet le long de l'axe, dans le sens de la marche
+    ctx.strokeStyle = '#ff9f1c'; ctx.lineWidth = actif ? 4 : 2.5; ctx.lineCap = 'round';
+    ctx.beginPath();
+    const n = ((b - a) % T.n + T.n) % T.n;
+    for (let i = 0; i <= n; i++) {
+      const e = pt(a + i);
+      i ? ctx.lineTo(e[0], e[1]) : ctx.moveTo(e[0], e[1]);
+    }
+    ctx.stroke();
+    // la corde, en pointillé : c'est l'autre réponse à la même question
+    const ea = pt(a), eb = pt(b);
+    ctx.setLineDash([5, 5]); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.beginPath(); ctx.moveTo(ea[0], ea[1]); ctx.lineTo(eb[0], eb[1]); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  S.mesure.forEach((j, i) => {
+    const e = pt(j);
+    ctx.beginPath(); ctx.arc(e[0], e[1], actif ? 6 : 4, 0, 7);
+    ctx.fillStyle = '#ff9f1c'; ctx.fill();
+    ctx.lineWidth = 1.5; ctx.strokeStyle = '#11141c'; ctx.stroke();
+    if (actif) {
+      ctx.fillStyle = '#11141c';
+      ctx.font = 'bold 10px system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(i ? 'B' : 'A', e[0], e[1]);
+    }
+  });
+  ctx.restore();
+}
+
+function majFicheM() {
+  const n = S.mesure.length;
+  $('aideM').hidden = n === 2;
+  $('ficheM').hidden = n !== 2;
+  if (n !== 2) return;
+  const T = S.track, [a, b] = S.mesure;
+  const av = (((b - a) % T.n + T.n) % T.n) * T.ds;
+  const re = T.length - av;
+  const dx = T.xs[b % T.n] - T.xs[a % T.n], dy = T.ys[b % T.n] - T.ys[a % T.n];
+  $('mLong').textContent = av.toFixed(1) + ' m';
+  $('mRetour').textContent = re.toFixed(1) + ' m';
+  $('mDroit').textContent = Math.hypot(dx, dy).toFixed(1) + ' m';
+}
+
+/* L'ANNONCE CONTRE LA RÉALITÉ.
+
+Un panneau dit « 100 m ». La seule question qui compte est s'il est vraiment à cent mètres de
+l'entrée du virage qu'il annonce — et posé à la main, il ne l'est presque jamais. Les panneaux
+calculés le sont par construction ; c'est exactement pour ça que l'écart ne se voyait pas, et que
+les panneaux repris à la main pouvaient dériver sans que rien ne proteste.
+
+L'entrée du virage se lit du même découpage que le jeu utilise pour ses propres panneaux
+(`Track.zonesVirages`), sinon on vérifierait une annonce contre une définition qui n'est pas celle
+qui l'a produite. */
+function verifPanneau(b) {
+  const T = S.track;
+  if (!T.zonesVirages) return '';
+  const zones = T.zonesVirages(60);
+  if (!zones.length) return '';
+  const j = Math.round(b.at * T.n);
+  let best = Infinity;
+  for (const z of zones) {
+    const e = (((z.from % T.n) + T.n) % T.n);
+    const d = (((e - j) % T.n) + T.n) % T.n;
+    if (d < best) best = d;
+  }
+  const reel = best * T.ds;
+  const ecart = reel - b.dist;
+  const signe = ecart >= 0 ? '+' : '−';
+  return `annoncé ${b.dist} m · réel ${reel.toFixed(0)} m (${signe}${Math.abs(ecart).toFixed(0)})`;
 }
 
 /* Un panneau, dessiné par le code du jeu.
@@ -230,7 +357,11 @@ const PAN_TAILLE = 30;
 
 function dessinerPanneau(b, choisi) {
   const u = S.track.unitScale;
-  const e = versEcran([b.x / u, b.y / u]);
+  /* POSÉ SUR L'AXE, comme le marquage qu'il représente. Il était dessiné au bas-côté, du temps où
+  le jeu y plantait un panneau. Maintenant que l'indication est peinte sur la piste, le laisser à
+  côté voudrait dire que l'éditeur montre une position et le jeu une autre — et le viseur, qui colle
+  à l'axe, ne tomberait jamais sur la carte qu'on vient de déplacer. */
+  const e = versEcran([(b.cx != null ? b.cx : b.x) / u, (b.cy != null ? b.cy : b.y) / u]);
   const W = PAN_TAILLE, H = W * 1.23, spec = Renderer.ARROWS[noteDe(b)] || Renderer.ARROWS[3];
   ctx.save();
   ctx.translate(e[0], e[1]);
@@ -573,6 +704,10 @@ function majFicheP() {
   const noms = b.note === 'chicane' ? SENS_CHICANE : SENS_NOM;
   for (const el of $('sensP').children) el.querySelector('.lbl').textContent = noms[el.dataset.sens];
   for (const el of $('distP').children) el.classList.toggle('sel', +el.dataset.dist === b.dist);
+  $('verifP').textContent = verifPanneau(b);
+  $('viseurP').textContent = S.viseur == null
+    ? 'Touche la piste sans glisser : le viseur se pose sur la station la plus proche.'
+    : `viseur à ${metresDe(S.viseur).toFixed(0)} m — panneau à ${(b.at * S.track.length).toFixed(0)} m`;
 }
 
 /** Toute retouche passe par ici : la liste devient une reprise, et le calcul ne la reprendra plus. */
@@ -584,11 +719,13 @@ function changerP(champ, valeur) {
   dessiner();
 }
 
-/** Un panneau neuf, au milieu de la vue, posé sur la station la plus proche. */
+/** Un panneau neuf, au viseur — ou au milieu de la vue tant qu'aucun viseur n'est posé. */
 function ajouterP() {
-  const w = cv.width / devicePixelRatio, h = cv.height / devicePixelRatio;
-  const c = versPiste(w / 2, h / 2);
-  const { j } = projeter(c);
+  let j = S.viseur;
+  if (j == null) {
+    const w = cv.width / devicePixelRatio, h = cv.height / devicePixelRatio;
+    j = projeter(versPiste(w / 2, h / 2)).j;
+  }
   S.panneaux.push({ at: j / S.track.n, dist: 100, note: 3, sign: 1 });
   S.selP = S.panneaux.length - 1;
   S.panModif = true;
@@ -596,6 +733,23 @@ function ajouterP() {
   tiroir(false);
   dessiner();
   etat('panneau ajouté — donne-lui son sens et sa note');
+}
+
+/* DÉPLACER UN PANNEAU LE LONG DU TOUR, en mètres et non en pixels.
+
+Un panneau se posait au milieu de la vue et ne bougeait plus. Le glisser à l'écran aurait été le
+geste évident et le mauvais outil : à l'échelle d'un circuit entier, un pixel vaut plusieurs mètres,
+et on ne vise pas au mètre ce qu'on ne distingue pas. Quatre pas fixes font ce qu'un glissement ne
+peut pas — et ils font la même chose sur un téléphone et sur un écran de bureau. */
+function bougerP(metres) {
+  if (S.selP == null) return;
+  const T = S.track, b = S.panneaux[S.selP];
+  const j = ((Math.round(b.at * T.n + metres / T.ds) % T.n) + T.n) % T.n;
+  b.at = j / T.n;
+  S.panModif = true;
+  majFicheP();
+  dessiner();
+  etat(`panneau à ${metresDe(j).toFixed(0)} m`);
 }
 
 /* ------------------------------------------------------------------------------ le tiroir
@@ -665,7 +819,7 @@ function panneauVise(x, y) {
   const u = S.track.unitScale, poses = panneauxPoses();
   let best = (PAN_TAILLE * 0.75) ** 2, k = -1;
   poses.forEach((b, i) => {
-    const e = versEcran([b.x / u, b.y / u]);
+    const e = versEcran([(b.cx != null ? b.cx : b.x) / u, (b.cy != null ? b.cy : b.y) / u]);
     const d = (e[0] - x) ** 2 + (e[1] - y) ** 2;
     if (d < best) { best = d; k = i; }
   });
@@ -711,10 +865,16 @@ cv.addEventListener('pointerdown', (ev) => {
   S.doigts.set(ev.pointerId, [x, y]);
   if (S.doigts.size > 1) { S.prise = null; S.glisse = null; clearTimeout(S.appui); majPince(); return; }
 
-  if (S.mode === 'panneaux') {
-    const k = panneauVise(x, y);
-    if (k >= 0) { S.selP = k; majFicheP(); tiroir(false); amenerEnVue(k); return; }
-    S.glisse = [x, y, S.vue.x, S.vue.y]; capter(ev.pointerId);
+  if (S.mode === 'panneaux' || S.mode === 'mesure') {
+    if (S.mode === 'panneaux') {
+      const k = panneauVise(x, y);
+      if (k >= 0) { S.selP = k; majFicheP(); tiroir(false); amenerEnVue(k); return; }
+    }
+    /* UN APPUI QUI NE GLISSE PAS POSE LE POINT, un appui qui glisse déplace la carte. La différence
+    est déjà dans le geste : inutile d'ajouter un mode pour la dire. On note donc d'où on est parti
+    et on tranche au relâchement, selon ce qui a bougé entre-temps. */
+    S.glisse = [x, y, S.vue.x, S.vue.y]; S.glisse.pose = true;
+    capter(ev.pointerId);
     return;
   }
   const k = pointVise(x, y);
@@ -735,6 +895,7 @@ cv.addEventListener('pointermove', (ev) => {
     clearTimeout(S.appui);
     S.pts[S.ligne][S.prise] = versPiste(x, y); dessiner();
   } else if (S.glisse) {
+    if (Math.abs(x - S.glisse[0]) + Math.abs(y - S.glisse[1]) > 6) S.glisse.pose = false;
     S.vue.x = S.glisse[2] + (x - S.glisse[0]); S.vue.y = S.glisse[3] + (y - S.glisse[1]); dessiner();
   }
 });
@@ -743,6 +904,22 @@ const relacher = (ev) => {
   if (ev) S.doigts.delete(ev.pointerId);
   if (S.doigts.size < 2) S.pince = null;
   clearTimeout(S.appui);
+  if (S.glisse && S.glisse.pose && ev && S.track) {
+    const [x, y] = ou(ev);
+    const j = stationDe(x, y);
+    if (S.mode === 'panneaux') {
+      S.viseur = j;
+      majFicheP();
+      etat(`viseur à ${metresDe(j).toFixed(0)} m de la ligne`);
+    } else {
+      // le troisième appui recommence : deux points sont une règle, trois sont une ambiguïté
+      if (S.mesure.length >= 2) S.mesure = [];
+      S.mesure.push(j);
+      majFicheM();
+      etat(S.mesure.length === 1 ? 'départ posé — touche l’arrivée' : 'mesure faite');
+    }
+    dessiner();
+  }
   S.prise = null; S.glisse = null;
 };
 cv.addEventListener('pointerup', relacher);
@@ -823,6 +1000,8 @@ function changerMode(m) {
   S.mode = m;
   $('volLignes').hidden = m !== 'lignes';
   $('volPanneaux').hidden = m !== 'panneaux';
+  $('volMesure').hidden = m !== 'mesure';
+  if (m === 'mesure') majFicheM();
   [...$('choixMode').children].forEach((b) => b.classList.toggle('sel', b.dataset.mode === m));
   dessiner();
 }
@@ -855,6 +1034,15 @@ $('supprP').addEventListener('click', () => {
   etat('panneau supprimé — « Enregistrer » pour que le jeu le voie');
 });
 $('ajoutP').addEventListener('click', ajouterP);
+for (const b of $('pasP').children) b.addEventListener('click', () => bougerP(+b.dataset.pas));
+$('versViseurP').addEventListener('click', () => {
+  if (S.selP == null || S.viseur == null) { etat('pose le viseur sur la piste d’abord'); return; }
+  S.panneaux[S.selP].at = (S.viseur % S.track.n) / S.track.n;
+  S.panModif = true;
+  majFicheP(); dessiner();
+  etat(`panneau amené à ${metresDe(S.viseur).toFixed(0)} m`);
+});
+$('effM').addEventListener('click', () => { S.mesure = []; majFicheM(); dessiner(); });
 $('autoP').addEventListener('click', () => {
   S.panneaux = panneauxDuCalcul(); S.panModif = false; S.selP = null;
   majFicheP(); dessiner();

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <title>Eyes On Line — Éditeur de lignes et de panneaux</title>
-<link rel="stylesheet" href="css/style.css?v=0.21.108">
+<link rel="stylesheet" href="css/style.css?v=0.21.109">
 <style>
   body { overflow: hidden; }
   #ed { position: fixed; inset: 0; display: grid; grid-template-columns: 340px 1fr; }
@@ -84,6 +84,7 @@
       <div class="row2 modes" id="choixMode">
         <button data-mode="lignes" class="sel">Lignes</button>
         <button data-mode="panneaux">Panneaux</button>
+        <button data-mode="mesure">Mesure</button>
       </div>
       <!-- Un aller sans retour n'est pas une page, c'est un cul-de-sac : sur un téléphone il ne
            reste que le bouton « précédent » du navigateur, et la page ne dit même pas d'où elle
@@ -119,6 +120,26 @@
     </div>
 
     <!-- ---------------------------------------------------------------- les panneaux -->
+    <div id="volMesure" hidden>
+      <h3>Mesurer</h3>
+      <!-- DEUX MESURES, PAS UNE. Le long du tour, c'est ce qu'un panneau annonce et ce qu'une
+           voiture parcourt. À vol d'oiseau, c'est ce que l'œil croit voir sur la carte. Les deux
+           sont loin l'une de l'autre dans une épingle, et ne pas dire laquelle on donne serait une
+           façon de se tromper. -->
+      <p class="help" id="aideM">Touche deux points de la piste : le premier pose le départ, le
+        second l'arrivée. Un troisième recommence.</p>
+      <div id="ficheM" hidden>
+        <p class="help"><b id="mLong">—</b> le long du tour</p>
+        <p class="help"><span id="mRetour">—</span> dans l'autre sens</p>
+        <p class="help"><span id="mDroit">—</span> à vol d'oiseau</p>
+        <div class="row2" style="margin-top:8px">
+          <button id="effM">Effacer</button>
+        </div>
+      </div>
+      <p class="help">La mesure reste affichée dans les autres volets : elle sert à placer un
+        panneau à la bonne distance, pas à être regardée seule.</p>
+    </div>
+
     <div id="volPanneaux" hidden>
       <h3>Panneau choisi</h3>
       <p class="help" id="aucunP">Touche un panneau sur la carte pour le reprendre.</p>
@@ -135,13 +156,29 @@
         <div class="grille" id="noteNom" style="grid-template-columns:repeat(4,1fr); margin-top:6px"></div>
         <h3>Valeur annoncée</h3>
         <div class="row2 grille" id="distP" style="grid-template-columns:repeat(3,1fr)"></div>
+        <!-- L'ANNONCE CONTRE LA RÉALITÉ. Un panneau dit « 100 m » ; la seule question qui compte est
+             s'il est vraiment à cent mètres de l'entrée du virage. Posé à la main, il ne l'est
+             presque jamais, et rien ne le disait. -->
+        <p class="help" id="verifP"></p>
+        <h3>Position</h3>
+        <div class="grille" id="pasP" style="grid-template-columns:repeat(4,1fr)">
+          <button data-pas="-10">−10 m</button>
+          <button data-pas="-1">−1 m</button>
+          <button data-pas="1">+1 m</button>
+          <button data-pas="10">+10 m</button>
+        </div>
+        <div class="row2" style="margin-top:6px">
+          <button id="versViseurP">Amener au viseur</button>
+        </div>
         <div class="row2" style="margin-top:10px">
           <button id="supprP">Supprimer ce panneau</button>
         </div>
       </div>
-      <h3>Faire</h3>
+      <h3>Viseur</h3>
+      <p class="help" id="viseurP">Touche la piste sans glisser : le viseur se pose sur la station la
+        plus proche, et « Ajouter » y pose le panneau.</p>
       <div class="row2">
-        <button id="ajoutP">Ajouter ici</button>
+        <button id="ajoutP">Ajouter au viseur</button>
         <button id="autoP">Revenir au calcul</button>
       </div>
       <details>
@@ -198,13 +235,13 @@
   </div>
 </div>
 
-<script src="js/store.js?v=0.21.108"></script>
-<script src="js/util.js?v=0.21.108"></script>
-<script src="js/traces.js?v=0.21.108"></script>
-<script src="js/tracks.js?v=0.21.108"></script>
-<script src="js/track.js?v=0.21.108"></script>
-<script src="js/props.js?v=0.21.108"></script>
-<script src="js/render.js?v=0.21.108"></script>
-<script src="js/lignes.js?v=0.21.108"></script>
+<script src="js/store.js?v=0.21.109"></script>
+<script src="js/util.js?v=0.21.109"></script>
+<script src="js/traces.js?v=0.21.109"></script>
+<script src="js/tracks.js?v=0.21.109"></script>
+<script src="js/track.js?v=0.21.109"></script>
+<script src="js/props.js?v=0.21.109"></script>
+<script src="js/render.js?v=0.21.109"></script>
+<script src="js/lignes.js?v=0.21.109"></script>
 </body>
 </html>

@@ -229,23 +229,9 @@ class Renderer {
   « Ce qui part avec l'isométrique ». */
   setView(view) {
     this.view = view;
-    /* Les trois dernières sont des VARIANTES de « en avance, orientée piste », une par idée, pour
-    qu'un essai à l'aveugle dise laquelle vaut quelque chose. Elles ne se composent pas exprès :
-    deux changements mesurés ensemble ne se départagent plus. */
-    this.avance = view !== 'track' && view !== 'fixed';
-    /* LES QUATRE ESSAIS TRAVAILLENT EN CIRCUIT FIXE, nord en haut.
-
-    Conséquence à connaître : en vue fixe, l'écran ne tourne pas, donc le cap calculé n'est utilisé
-    nulle part. Une idée de cadrage qui consiste à ORIENTER l'écran n'y a aucun degré de liberté —
-    il ne reste que le centre et le cadre. C'est ce qui a fait réécrire l'essai A. */
     this.rotate = view === 'track' || view === 'avance';
-    this.acp = view === 'acp';
-    this.zoomGeo = view === 'zoomGeo';
-    this.rail = view === 'rail';
-    this.saut = view === 'saut';
-    this.cam.zone = -1;
+    this.avance = view === 'avance' || view === 'avanceFixe';
     this.cam.init = false;
-    this.cam.mGeo = 0;
   }
 
   /** Un cran de résolution en plus ou en moins, selon la durée des images récentes. */
@@ -925,15 +911,6 @@ class Renderer {
       petit côté — c'est la règle de cadrage du jeu, posée une fois pour que rien ne la redise. */
   _zoomPour(m) { return (this.rotate ? this.h : Math.min(this.w, this.h)) / m; }
 
-  /** Le cadre qu'il faut pour loger `lat` mètres de part et d'autre en largeur et `av` en hauteur,
-      avec 18 % de marge au bord. Exprimé dans l'unité de cadre de `_zoomPour`. */
-  _besoin(lat, av) {
-    // `m` mesure la hauteur si l'écran tourne, le petit côté sinon : la demi-largeur vaut donc
-    // m·w/(2·réf) et la demi-hauteur m·h/(2·réf), avec `réf` la dimension que `m` mesure.
-    const ref = this.rotate ? this.h : Math.min(this.w, this.h);
-    return Math.max(2 * lat / 0.82 * ref / this.w, 2 * av / 0.82 * ref / this.h);
-  }
-
   /** Les points de la ligne idéale sur `D` mètres devant `s`, échantillonnés `N + 1` fois. */
   _fenetre(T, s, D, N) {
     const pts = [];
@@ -1026,159 +1003,6 @@ class Renderer {
       tx = sx / pts.length; ty = sy / pts.length;
       want = this._capLigne(T, p.s + D * 0.5, metres * 0.22);
 
-      /* A — LE CADRAGE OPTIMAL : le centre de la BOÎTE, pas le centre de MASSE.
-
-      L'idée de départ était d'orienter l'écran sur l'axe principal du morceau à venir. Deux choses
-      l'ont tuée. D'abord la mesure : l'axe principal ne s'écarte de la corde que de 0,1 à 1° en
-      médiane, parce que `_capLigne` prend déjà une corde et non une tangente — le gain théorique
-      était encaissé depuis la version d'avant, sans avoir été nommé. Ensuite le cahier des charges :
-      en circuit fixe l'écran ne tourne pas, donc une idée d'orientation n'a littéralement aucun
-      degré de liberté.
-
-      Ce qui reste quand on ne peut pas tourner, c'est OÙ l'on centre. Le barycentre est un centre de
-      masse : il est tiré par les endroits où les points se tassent, c'est-à-dire par les virages
-      lents, et il ignore l'étendue. Pour faire tenir quelque chose dans un cadre, le bon centre est
-      celui de sa BOÎTE ENGLOBANTE — à mi-chemin des extrêmes, dans chaque axe de l'écran. Un demi-
-      mètre de décalage sur une boîte de quatre-vingts mètres, c'est un mètre de marge gagné des deux
-      côtés à la fois. */
-      if (this.acp) {
-        let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-        for (const q of pts) {
-          x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x);
-          y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y);
-        }
-        tx = (x0 + x1) / 2; ty = (y0 + y1) / 2;
-      }
-
-      /* B — LE ZOOM SUIT LA GÉOMÉTRIE, pas la vitesse.
-
-      La vitesse n'est qu'un indice de ce qu'il y a à montrer ; la ligne, elle, est connue. On
-      projette donc le morceau à venir dans le repère de l'écran et on demande le cadre qui le
-      contient. Une longue courbe rapide s'ouvre, une épingle se resserre, et pas parce qu'on roule
-      vite mais parce qu'il y a de l'étalement à loger.
-
-      ANTICIPÉ PAR CONSTRUCTION : la fenêtre est DEVANT la voiture, donc le besoin est connu avant
-      d'y arriver et la caméra est déjà ouverte en entrant. C'est ce qui manque à un zoom piloté par
-      la vitesse, qui ne réagit qu'une fois dans le virage.
-
-      Le lissage est ASYMÉTRIQUE — ouvrir vite, refermer lentement — parce que les deux fautes n'ont
-      pas le même prix : ouvrir en retard, c'est ne pas voir ; refermer en retard, c'est juste voir
-      un peu large. Avec une bande morte, sinon le cadre respire sur chaque ondulation. */
-      if (this.zoomGeo) {
-        // en circuit fixe les axes de l'écran sont ceux du monde : pas de rotation à appliquer
-        const a = this.rotate ? -want - Math.PI / 2 : 0, ca = Math.cos(a), sa = Math.sin(a);
-        let lat = 0, av = 0;
-        for (const q of pts) {
-          const dx = q.x - tx, dy = q.y - ty;
-          lat = Math.max(lat, Math.abs(dx * ca - dy * sa));
-          av = Math.max(av, Math.abs(dx * sa + dy * ca));
-        }
-        const cible = clamp(Math.max(metres, this._besoin(lat, av)), metres, metres * 1.8);
-        if (!this.cam.mGeo) this.cam.mGeo = cible;
-        else if (Math.abs(cible - this.cam.mGeo) > this.cam.mGeo * 0.06)
-          this.cam.mGeo += (cible - this.cam.mGeo) * Math.min(1, dt * (cible > this.cam.mGeo ? 4 : 0.8));
-        /* Jamais plus serré que le cadre de la vitesse. La bande morte et le retour lent laissaient
-        le cadre traîner pendant que la vitesse montait : mesuré, il tombait à ×0,96 du cadre de
-        base — B finissait par ZOOMER là où il n'était censé que dézoomer. Le plancher est le cadre
-        d'avant ; B n'a le droit que de l'ouvrir. */
-        this.cam.mGeo = Math.max(this.cam.mGeo, metres);
-        zoomTarget = this._zoomPour(this.cam.mGeo);
-        this.framing = this.cam.mGeo;
-      }
-
-      /* C — LE RAIL : le cadrage est résolu HORS LIGNE, une fois, parce que le circuit ne bouge pas.
-
-      Les deux idées précédentes choisissent la pose image par image, avec ce qu'elles savent à
-      l'instant : c'est glouton. Ici `tools/rail.js` a cherché, station par station, la pose qui
-      montre le plus de piste devant — par énumération, pas par heuristique — puis a lissé le
-      résultat sur le tour entier, en anneau. La douceur n'est donc plus l'affaire d'un filtre qui
-      court après sa cible : elle est posée dans les données.
-
-      Le rail est calculé À LA VITESSE DE RÉFÉRENCE du circuit, celle du profil qui sert au guide de
-      freinage. À l'exécution on le rejoue sur le cadre de la vitesse RÉELLE : les trois nombres du
-      rail sont des proportions — un écart de cap, un multiple de cadre, un décalage en fraction
-      d'écran — donc ils se transposent. Rouler plus lentement que la référence rapproche la caméra
-      sans défaire son cadrage.
-
-      Sans rail pour ce circuit, la vue retombe sur « en avance » sans rien dire : un réglage qui ne
-      s'applique qu'à un circuit doit rester jouable sur les onze autres. */
-      /* D — LE SAUT DE VIRAGE : la caméra cadre LE PROCHAIN VIRAGE ET LA VOITURE, rien d'autre.
-
-      Les autres vues regardent « devant » — une longueur de piste, prise au mètre. Celle-ci regarde
-      un ÉVÉNEMENT : le prochain virage, du début à la fin, avec la voiture dans le même cadre. Tant
-      que la voiture est loin, le virage tient à peine dans l'écran et le cadre est au plus large ;
-      à mesure qu'elle s'en approche, la boîte à loger rétrécit et le cadre se resserre tout seul.
-      On n'a rien à régler pour obtenir ce zoom progressif : il tombe de la géométrie. Quand la
-      voiture sort du virage, la cible passe au suivant et le cadre se rouvre d'un coup.
-
-      LES VIRAGES SONT GROUPÉS PAR ÉVÉNEMENT (`zonesVirages`), pas pris un par un : une chicane est
-      trois virages dans les données et un seul geste pour le pilote. Cadrer le deuxième virage
-      d'une chicane sans le troisième n'aurait aucun sens.
-
-      LA VOITURE EST DANS LA BOÎTE, donc elle est toujours visible — pas par un plafond qui la
-      rattrape au bord, mais parce qu'elle fait partie de ce qu'on cadre. C'est la différence entre
-      « on l'empêche de sortir » et « on la cadre ».
-
-      LA BOÎTE EST TRONQUÉE AU PLAFOND DE CADRE. Sur la ligne droite de Monza le prochain virage est
-      à quatre cents mètres : tout cadrer ferait de la voiture un point. On avance donc le long du
-      tour tant que ça rentre, et on s'arrête quand ça déborde — le virage entre dans l'écran par le
-      haut au lieu d'y être écrasé.
-
-      LE PLAFOND EST À ×1,8, ET C'EST UN ARBITRAGE, pas une constante physique. Mesuré sur trois
-      circuits : ×1,6 montre 55 à 60 m, ×1,8 en montre 65, ×2,2 en montre 70 à 80 — mais à ×2,2 la
-      voiture ne fait plus que vingt-cinq pixels de large. La mesure de ce chapitre récompense le
-      dézoom sans jamais le payer ; l'œil, lui, le paie. ×1,8 est le point où la voiture reste une
-      voiture, et c'est un nombre à changer si l'essai dit le contraire. */
-      if (this.saut) {
-        if (!this._zones || this._zonesId !== T.id) { this._zones = T.zonesVirages(60); this._zonesId = T.id; }
-        const Z = this._zones;
-        if (Z.length) {
-          const fin = (z) => (((z.to % T.n) + T.n) % T.n) * T.ds;
-          // `diff(a, b)` vaut b − a : la distance qui RESTE jusqu'à la sortie est donc diff(s, fin)
-          const reste = (i) => T.diff(p.s, fin(Z[i]));
-          // la zone visée : la plus proche dont la sortie est encore devant nous
-          // `zone` peut être absente (caméra neuve) ou pointer hors d'un circuit plus court :
-          // on teste l'appartenance, pas une borne, sinon `undefined < 0` laisse passer.
-          const zi = this.cam.zone;
-          if (!(zi >= 0 && zi < Z.length) || reste(zi) < 0) {
-            let best = 0, bd = Infinity;
-            for (let i = 0; i < Z.length; i++) {
-              const d = reste(i);
-              if (d >= 0 && d < bd) { bd = d; best = i; }
-            }
-            this.cam.zone = best;
-          }
-          const plafond = metres * 1.8;
-          let x0 = pos.x, x1 = pos.x, y0 = pos.y, y1 = pos.y;
-          const total = Math.max(0, reste(this.cam.zone));
-          for (let d = 10; d <= total + 10; d += 10) {
-            const q = T.pos(T.wrap(p.s + Math.min(d, total)), 0);
-            const nx0 = Math.min(x0, q.x), nx1 = Math.max(x1, q.x);
-            const ny0 = Math.min(y0, q.y), ny1 = Math.max(y1, q.y);
-            if (this._besoin((nx1 - nx0) / 2, (ny1 - ny0) / 2) > plafond) break;
-            x0 = nx0; x1 = nx1; y0 = ny0; y1 = ny1;
-            if (d >= total) break;
-          }
-          tx = (x0 + x1) / 2; ty = (y0 + y1) / 2;
-          const m = clamp(this._besoin((x1 - x0) / 2, (y1 - y0) / 2), metres, plafond);
-          zoomTarget = this._zoomPour(m);
-          this.framing = m;
-        }
-      }
-
-      const R = typeof RAILS !== 'undefined' ? RAILS[T.id] : null;
-      if (this.rail && R) {
-        const nst = R.v.length / 4, u = T.wrap(p.s) / R.pas;
-        const k0 = Math.floor(u) % nst, k1 = (k0 + 1) % nst, f = u - Math.floor(u);
-        const lire = (j) => R.v[k0 * 4 + j] + (R.v[k1 * 4 + j] - R.v[k0 * 4 + j]) * f;
-        const ex = lire(0) / 1000, ey = lire(1) / 1000, fm = lire(2) / 100;
-        const mr = metres * fm, ref = Math.min(this.w, this.h);
-        const P = this._surLigne(T, p.s);
-        tx = P.x + ex * mr * this.w / ref / 2;
-        ty = P.y + ey * mr * this.h / ref / 2;
-        zoomTarget = this._zoomPour(mr);
-        this.framing = mr;
-      }
     }
     if (!this.cam.init) this.camAngle = want;
     else {
@@ -1680,42 +1504,63 @@ class Renderer {
     g.globalAlpha = 1; g.restore();
   }
 
-  // Braking boards, painted flat on the ground beside the track like everything else in this
-  // view. Each one gives the distance to the corner and, above it, an arrow bent to the corner's
-  // severity and pointing the way it turns — the rally idea, where one glance tells you both how
-  // far and how hard. The panel is turned with the track, so it reads upright as you arrive.
+  /* LES INDICATIONS SE PEIGNENT SUR LA PISTE, pas sur un panneau au bord.
+
+  Le panneau planté au bas-côté a un défaut que la caméra ne peut pas réparer : il est là OÙ ON NE
+  REGARDE PAS. Le regard suit la route, et un panneau est, par construction, à côté d'elle — sur un
+  téléphone en portrait, souvent hors du cadre au moment exact où il servirait. Peint au sol, il est
+  dans l'axe du regard et il arrive sous la voiture : on ne peut pas le manquer.
+
+  C'est aussi ce que fait la route réelle, et pour la même raison : les chevrons, les flèches de
+  rabattement et les chiffres de distance des circuits sont au sol. On reprend donc leur grammaire —
+  pas de cadre, pas de fond, de la peinture claire usée par le passage, et un marquage ÉTIRÉ dans le
+  sens de la marche, parce qu'il se lit en l'abordant et non en le survolant.
+
+  Le marquage est dimensionné sur la LARGEUR DE LA PISTE, pas en mètres fixes : une épingle étroite
+  de Monaco et la ligne droite du Mans n'ont pas la même échelle, et un marquage de taille constante
+  aurait débordé sur l'une et disparu sur l'autre. */
   _drawBoards(g, T, vis) {
     const boards = T.boards;
     if (!boards || !boards.length) return;
-    const W = 5.2, H = 6.4, r = 0.6, specs = Renderer.ARROWS;
+    const specs = Renderer.ARROWS;
     for (const b of boards) {
-      if (b.x < vis.minX - 12 || b.x > vis.maxX + 12 || b.y < vis.minY - 12 || b.y > vis.maxY + 12) continue;
+      const cx = b.cx != null ? b.cx : b.x, cy = b.cy != null ? b.cy : b.y;
+      if (cx < vis.minX - 24 || cx > vis.maxX + 24 || cy < vis.minY - 24 || cy > vis.maxY + 24) continue;
       const spec = specs[b.kind && b.kind !== 'normal' ? b.kind : b.grade] || specs[3];
+      const hw = b.hw || 6;
+      const W = hw * 1.25;               // le marquage occupe un peu plus de la moitié de la largeur
+      const L = W * 1.7;                 // étirée dans le sens de la marche, comme un vrai marquage
       g.save();
-      g.translate(b.x, b.y);
-      g.rotate(b.th + Math.PI / 2);      // the panel's top points the way the track goes
-      g.beginPath();
-      if (g.roundRect) g.roundRect(-W / 2, -H / 2, W, H, r);
-      else g.rect(-W / 2, -H / 2, W, H);
-      g.fillStyle = PAL.edgeLine; g.fill();
-      g.lineWidth = 0.45; g.strokeStyle = PAL.outline; g.stroke();
-      // In the panel's frame the driver's right is +x, and a positive curvature turns right, so
-      // the arrow bends toward +x for a right-hander. (Checked against the road rather than
-      // reasoned about: tools/arrow.js compares every drawn glyph with the bend it announces.)
-      const dir = b.sign > 0 ? 1 : -1;
-      Renderer.paceArrow(g, { x: 0, y: -H * 0.24, w: W * 0.78, h: H * 0.40 }, spec, dir);
+      g.translate(cx, cy);
+      g.rotate(b.th + Math.PI / 2);      // le haut du marquage pointe là où la piste va
+      /* LA PEINTURE EST SOUS LES VOITURES ET SOUS LES LIGNES, donc translucide et sans contour.
+      Un marquage opaque au milieu de la piste se lirait comme un obstacle ; usé, il se lit comme ce
+      qu'il est — de la peinture sur du bitume. L'alpha est posé ici une fois pour la flèche et le
+      chiffre, pour qu'ils vieillissent ensemble. */
+      g.globalAlpha = 0.82;
+      Renderer.paceArrow(g, { x: 0, y: -L * 0.28, w: W, h: L * 0.46 }, spec, b.sign > 0 ? 1 : -1);
       g.save();
       g.scale(1 / 16, 1 / 16);
       g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillStyle = PAL.outline;
-      g.font = 'bold 26px "Trebuchet MS", "DejaVu Sans", sans-serif';
-      g.fillText(String(b.dist), 0, H * 0.30 * 16);
-      if (spec.tag) {                    // the named corners say so, as on a pace-note chart
+      g.lineJoin = 'round';
+      const taille = Math.round(W * 0.42 * 16);
+      g.font = `bold ${taille}px "Trebuchet MS", "DejaVu Sans", sans-serif`;
+      // un liseré sombre sous le chiffre : la peinture claire sur bitume sombre a besoin d'un bord,
+      // sinon le chiffre bave sur les bandes de rive au moment où on roule dessus
+      g.strokeStyle = 'rgba(12,10,18,0.55)'; g.lineWidth = taille * 0.16;
+      g.strokeText(String(b.dist), 0, L * 0.14 * 16);
+      g.fillStyle = '#f0ece4';
+      g.fillText(String(b.dist), 0, L * 0.14 * 16);
+      if (spec.tag) {                    // les virages nommés le disent, comme sur une note de rallye
+        const t2 = Math.round(W * 0.25 * 16);
+        g.font = `bold ${t2}px "Trebuchet MS", "DejaVu Sans", sans-serif`;
+        g.lineWidth = t2 * 0.18;
+        g.strokeText(spec.tag, 0, L * 0.34 * 16);
         g.fillStyle = spec.col;
-        g.font = 'bold 16px "Trebuchet MS", "DejaVu Sans", sans-serif';
-        g.fillText(spec.tag, 0, H * 0.06 * 16);
+        g.fillText(spec.tag, 0, L * 0.34 * 16);
       }
       g.restore();
+      g.globalAlpha = 1;
       g.restore();
     }
   }

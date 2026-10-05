@@ -8,16 +8,17 @@ const track = process.argv[2] || 'monza';
   const page = await b.newPage({ viewport: { width: 900, height: 600 } });
   page.on('pageerror', e => console.log('[pageerror]', e.message));
   await page.goto('file:///home/user/Slot_car_racing/index.html');
-  // L'écran-titre s'interpose désormais entre le chargement et le menu : n'importe quelle touche
-  // le passe, comme pour un joueur.
-  await page.waitForTimeout(350);
+  // On passe par l'API du jeu plutôt que par les boutons du menu : la version qui cliquait
+  // `data-mode="timetrial"` s'est mise à expirer le jour où le menu a été redessiné, et un banc
+  // qui tombe pour une raison étrangère à ce qu'il vérifie ne vérifie plus rien.
+  await page.waitForFunction(() => typeof app !== 'undefined' && app.save);
+  await page.evaluate(() => { app.save.name = 'Banc'; storeSave(app.save); app.mondial = null; });
+  await page.waitForTimeout(300);
   await page.keyboard.press('Enter');
   await page.waitForTimeout(400);
-  await page.click('[data-action="setup"][data-mode="timetrial"]');
-  await page.waitForTimeout(200);
-  await page.click(`[data-action="pickTrack"][data-id="${track}"]`).catch(() => {});
-  await page.click('[data-action="startQuick"]');
-  await page.waitForTimeout(3000);
+  await page.evaluate((id) => app.startQuick('timetrial', 'gt', id), track);
+  await page.waitForFunction(() => window.app && app.race && app.race.track, null, { timeout: 60000 });
+  await page.waitForTimeout(500);
   const res = await page.evaluate(() => {
     const R = app.renderer, T = app.race.track;
     const caught = [];
@@ -33,6 +34,7 @@ const track = process.argv[2] || 'monza';
     R.cam.x = (T.bounds.minX + T.bounds.maxX) / 2;
     R.cam.y = (T.bounds.minY + T.bounds.maxY) / 2;
     R.cam.zoom = 0.2;
+    R.rotate = false;
     R.updateCamera = () => {};
     R.draw(app.race, app.ui);
     Renderer.paceArrow = orig;

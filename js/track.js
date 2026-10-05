@@ -425,6 +425,8 @@ class Track {
         out.push({
           x: this.xs[i] + this.nx[i] * off * side,
           y: this.ys[i] + this.ny[i] * off * side,
+          // le marquage se peint SUR la piste : il lui faut le centre et la largeur, pas le bas-côté
+          cx: this.xs[i], cy: this.ys[i], hw: (this.hwL[i] + this.hwR[i]) / 2,
           th: this.th[i], dist, grade, kind, sign: z.sign, side,
           at: i / N,                          // fraction de tour : ce que l'éditeur enregistre
           from: z.from, to: z.firstTo,        // the corner the arrow describes, for checking
@@ -464,6 +466,7 @@ class Track {
       out.push({
         x: this.xs[i] + this.nx[i] * off * side,
         y: this.ys[i] + this.ny[i] * off * side,
+        cx: this.xs[i], cy: this.ys[i], hw: (this.hwL[i] + this.hwR[i]) / 2,
         th: this.th[i], dist: +dist, sign: side, side,
         grade: typeof note === 'number' ? note : 3,
         kind: typeof note === 'number' ? 'normal' : note,

@@ -572,124 +572,6 @@ Deux erreurs de méthode, les deux du même genre — le banc ne voyait pas ce q
   devant**, qui est la fin. Les deux premières versions ont donc été jugées bonnes alors qu'elles ne
   montraient que trente mètres de piste.
 
-### Quatre essais de caméra, tous en circuit fixe
-
-Quatre réglages de plus dans Vue. Ils travaillent tous **en circuit fixe** — le nord reste en haut,
-l'écran ne tourne pas — et ne changent qu'une chose chacun, pour qu'un essai à l'aveugle les
-départage.
-
-Le choix du circuit fixe a une conséquence qu'il vaut mieux connaître : **l'écran ne tournant pas, le
-cap calculé n'est utilisé nulle part**. Une idée de cadrage qui consiste à *orienter* l'écran n'y a
-aucun degré de liberté ; il ne reste que le **centre** et le **cadre**. C'est ce qui a fait réécrire
-l'essai A, et recalculer le rail C de zéro.
-
-| Vue | Piste vue devant (médiane sur 12 circuits) |
-| --- | --- |
-| dessus, fixe | 20 m |
-| en avance, fixe | 35 – 40 m |
-| A — boîte englobante | 35 – 40 m |
-| B — zoom géométrique | 35 – 45 m |
-| C — rail (Monza) | 50 m sur Monza, repli ailleurs |
-| **D — saut de virage** | **60 – 75 m** |
-
-#### A — Le centre de la boîte, pas le centre de masse
-
-L'idée de départ était d'orienter l'écran sur l'**axe principal** du morceau à venir. Deux choses
-l'ont tuée. D'abord la mesure : l'axe principal ne s'écarte de la corde que de **0,1 à 1° en
-médiane** (2 à 7° au neuvième décile), parce que `_capLigne` prend déjà une *corde* et non une
-tangente — le facteur 4 du modèle (`s²/2R` contre `s²/8R`) était encaissé depuis la version d'avant,
-sans avoir été nommé. Ensuite le circuit fixe, qui supprime l'orientation comme paramètre.
-
-Ce qui reste quand on ne peut pas tourner, c'est **où l'on centre**. Le barycentre est un centre de
-masse : il est tiré par les endroits où les points se tassent, c'est-à-dire par les virages lents, et
-il ignore l'étendue. Pour faire tenir quelque chose dans un cadre, le bon centre est celui de sa
-**boîte englobante** — à mi-chemin des extrêmes, dans chaque axe de l'écran.
-
-**Mesuré : à égalité avec la référence, sur les douze circuits.**
-
-#### B — Le zoom suit la géométrie, pas la vitesse
-
-La vitesse n'est qu'un indice de ce qu'il y a à montrer ; la ligne, elle, est connue. On projette le
-morceau à venir dans le repère de l'écran et on demande le cadre qui le contient. Anticipé par
-construction, puisque la fenêtre est *devant* la voiture : la caméra est déjà ouverte en entrant, ce
-qu'un zoom piloté par la vitesse ne peut pas faire.
-
-Lissage **asymétrique** — ouvrir vite (`k = 4`), refermer lentement (`k = 0,8`) — parce que les deux
-fautes n'ont pas le même prix : ouvrir en retard, c'est ne pas voir ; refermer en retard, c'est juste
-voir un peu large. Bande morte de 6 %, sinon le cadre respire sur chaque ondulation. Et un plancher
-au cadre de la vitesse : sans lui, la bande morte plus le retour lent le laissaient *traîner* pendant
-que la vitesse montait, si bien que B finissait par **zoomer** là où il n'était censé que dézoomer.
-
-**Mesuré : +5 m sur 5 circuits des 12, rien sur les autres.**
-
-#### C — Le rail précalculé (Monza)
-
-    node tools/rail.js monza        → écrit js/rails.js
-
-Les autres idées choisissent la pose image par image : c'est glouton. Nos circuits sont figés et la
-ligne idéale aussi, donc on peut résoudre **hors ligne**. `tools/rail.js` cherche, pour chaque
-station de dix mètres, la pose qui montre le plus de piste devant — par énumération sur le cadre et
-le décalage en x et en y, soit plus de mille poses par station — puis lisse le résultat sur le tour
-entier, en anneau. La douceur n'est plus l'affaire d'un filtre qui court après sa cible : elle est
-posée dans les données, et se vérifie en pour-cent d'écran par mètre.
-
-Le rail est calculé à la **vitesse de référence** du circuit, celle du profil qui sert au guide de
-freinage. Ses trois nombres sont des proportions, donc ils se transposent sur le cadre de la vitesse
-réelle. Sans rail pour un circuit, la vue retombe sur « en avance, fixe » sans rien dire.
-
-Trois erreurs d'objectif avant la bonne, toutes du même genre — l'optimiseur obéissait à ce qu'on lui
-demandait, pas à ce qu'on voulait :
-
-- **« Voir le plus loin possible »** a produit un rail dézoomé à fond partout : à cinq mètres de vue
-  près, ouvrir le cadre ne coûtait rien. C'était devenu une caméra large, c'est-à-dire la piste au
-  rendement décroissant qu'on cherchait à éviter, obtenue par un détour de deux cents lignes.
-- **Un préavis en temps comme cible** a fait l'inverse : la cible atteinte, le solveur ne regardait
-  plus la vue du tout et troquait quinze mètres de piste contre un cadre un cran plus serré. La cible
-  est maintenant *au moins ce que la caméra actuelle donne*, mesuré station par station.
-- **La pose d'aujourd'hui ne faisait pas partie de l'espace de recherche**, si bien que le rail
-  pouvait rendre moins que ce qu'il remplaçait — de dix à vingt mètres aux stations dures. Un
-  optimiseur ne vaut que par son espace de recherche, et le plus sûr moyen de ne jamais régresser est
-  d'y mettre ce qu'on a déjà.
-
-Combien lisser a été posé au banc, pas tranché au jugé : de une passe sur dix mètres à trois passes
-sur trente, la piste vue **ne bouge pas d'un mètre** pendant que l'agitation tombe de 101 à 41 % d'écran
-par seconde. Le lissage est gratuit ici, on en prend donc autant qu'il en donne.
-
-**Mesuré sur Monza : 45 → 60 m en médiane hors ligne, 40 → 50 m au banc avec une voiture pilotée.**
-La version tournée du même rail ne donnait rien ; la vue fixe, elle, a de la marge, parce qu'elle ne
-peut pas présenter le virage et doit le loger tel qu'il se présente.
-
-#### D — Le saut de virage
-
-Les autres vues regardent « devant » — une longueur de piste, prise au mètre. Celle-ci regarde un
-**événement** : le prochain virage, du début à la fin, avec la voiture dans le même cadre.
-
-Tant que la voiture est loin, le virage tient à peine dans l'écran et le cadre est au plus large ; à
-mesure qu'elle s'en approche, la boîte à loger rétrécit et **le cadre se resserre tout seul**. Il n'y
-a rien à régler pour obtenir ce zoom progressif : il tombe de la géométrie. Quand la voiture sort du
-virage, la cible passe au suivant et le cadre se rouvre d'un coup.
-
-- **Les virages sont groupés par événement** (`Track.zonesVirages`), pas pris un par un : une chicane
-  est trois virages dans les données et un seul geste pour le pilote. Ce découpage servait déjà aux
-  panneaux de freinage ; il a été sorti en méthode plutôt que dupliqué, parce que deux découpages qui
-  doivent dire la même chose finissent toujours par diverger.
-- **La voiture est dans la boîte**, donc toujours visible — pas parce qu'un plafond la rattrape au
-  bord, mais parce qu'elle fait partie de ce qu'on cadre. C'est la différence entre « on l'empêche de
-  sortir » et « on la cadre ».
-- **La boîte est tronquée au plafond de cadre.** Sur la ligne droite de Monza le prochain virage est
-  à quatre cents mètres : tout cadrer ferait de la voiture un point. On avance donc le long du tour
-  tant que ça rentre et on s'arrête quand ça déborde, si bien que le virage entre dans l'écran par le
-  haut au lieu d'y être écrasé.
-
-**Mesuré : 60 à 75 m sur les douze circuits, soit le double de « en avance, fixe ».** C'est de loin
-le meilleur des quatre sur cette mesure.
-
-Le plafond de dézoom est à **×1,8**, et c'est un arbitrage, pas une constante : ×1,6 montre 55 à
-60 m, ×1,8 en montre 65, ×2,2 en montre 70 à 80 — mais à ×2,2 la voiture ne fait plus que vingt-cinq
-pixels de large. **La mesure de ce chapitre récompense le dézoom sans jamais le payer ; l'œil, lui,
-le paie.** C'est la limite à garder en tête en lisant tout le tableau ci-dessus : `vu` s'arrête à la
-première sortie de cadre et ne sait rien de la lisibilité.
-
 ### Télémétrie (touche `G`, ou réglages)
 
 Quatre valeurs suffisent à lire le comportement de la voiture :
@@ -854,13 +736,34 @@ plus de 240 à l'écran, des tailles volontairement très dispersées — une fi
 comme une chenille — et un tracé **sous les voitures**, parce qu'une voiture avalée par sa propre
 fumée est une voiture que le pilote a perdue de vue.
 
-### Panneaux de freinage
+### Indications de freinage, peintes sur la piste
 
-Sur l'approche de chaque virage, trois panneaux au bord de la piste annoncent la distance — **200,
+Sur l'approche de chaque virage, trois indications **peintes au sol** annoncent la distance — **200,
 100, 50 mètres** — et, au-dessus du chiffre, le **symbole des notes de rallye** : une tige droite
 qui se coude près du sommet, d'autant plus que le virage est fermé, et qui pointe du côté où la
 route tourne. Un coup d'œil donne les deux choses à la fois, à quelle distance et à quel point
 c'est serré.
+
+#### Pourquoi au sol et non sur un panneau au bord
+
+C'étaient des panneaux plantés au bas-côté, et ils avaient un défaut qu'aucun réglage de caméra ne
+répare : **ils sont là où on ne regarde pas**. Le regard suit la route ; un panneau est, par
+construction, à côté d'elle — et sur un téléphone en portrait, souvent hors du cadre au moment exact
+où il servirait. Quatre caméras ont été écrites et mesurées pour élargir ce cadre (axe principal du
+morceau à venir, zoom piloté par la géométrie, rail précalculé hors ligne, saut de virage à virage) ;
+aucune n'a rendu les panneaux lisibles, et toutes ont été retirées. Le problème n'était pas le champ
+de vision, c'était l'endroit de l'information.
+
+Peinte au sol, elle est dans l'axe du regard et elle arrive **sous** la voiture : on ne peut pas la
+manquer. C'est aussi ce que fait la route réelle, et pour la même raison — chevrons, flèches de
+rabattement, chiffres de distance sont au sol. On reprend donc leur grammaire : pas de cadre, pas de
+fond, de la peinture claire usée par le passage, un marquage **étiré dans le sens de la marche**
+parce qu'il se lit en l'abordant, et un liseré sombre sous les chiffres, sans quoi la peinture claire
+bave sur le bitume sombre au moment où on roule dessus.
+
+Le marquage est dimensionné sur la **largeur de la piste**, jamais en mètres fixes : une épingle
+étroite de Monaco et la ligne droite du Mans n'ont pas la même échelle, et une taille constante
+déborderait sur l'une en disparaissant sur l'autre.
 
 Les notes vont de **6** (à peine un décroché) à **1** (extrêmement fermé), avec un dégradé du vert
 au rouge, plus trois virages nommés qui ont leur propre dessin et leurs initiales, comme sur une
@@ -1033,6 +936,44 @@ choix sans suite n'est pas un choix. Le banc le vérifie à l'écran et pas seul
 parce qu'un élément présent et invisible passe tous les contrôles naïfs. Chaque
 entrée tient dans `[fraction de tour, distance, note, sens]` — une fraction et non une station, comme
 pour les passerelles, parce qu'elle survit au changement de longueur déclarée.
+
+#### Le viseur, les pas fins et la règle
+
+Trois manques se sont vus dès qu'on a voulu poser une indication **à l'endroit exact** plutôt
+qu'approximativement.
+
+**Le viseur.** Un panneau neuf se posait « au milieu de la vue » — la seule façon d'en placer un, et
+elle ne dit rien : le milieu de la vue dépend du zoom, du déplacement, de la hauteur du tiroir. Pour
+annoncer un virage à cent mètres, il faut désigner une **station**, pas une région. Un appui qui ne
+glisse pas pose donc un viseur sur la station la plus proche, collé à l'axe de la piste puisque c'est
+le long de l'axe que tout se mesure, et « Ajouter » y pose le panneau. Pas de mode supplémentaire
+pour ça : la différence entre un appui qui glisse et un appui qui ne glisse pas est déjà dans le
+geste.
+
+**Les pas fins.** Une fois posé, un panneau ne bougeait plus. Le glisser à l'écran aurait été le
+geste évident et le mauvais outil : à l'échelle d'un circuit entier, un pixel vaut plusieurs mètres,
+et on ne vise pas au mètre ce qu'on ne distingue pas. Quatre pas fixes — **−10, −1, +1, +10 m** — font
+ce qu'un glissement ne peut pas, et font la même chose sur un téléphone et sur un écran de bureau.
+
+**La règle**, dans son propre volet, donne **deux** distances entre les deux points touchés, et dit
+laquelle est laquelle : *le long du tour* (ce qu'un panneau annonce et ce qu'une voiture parcourt),
+*dans l'autre sens*, et *à vol d'oiseau* (ce que l'œil croit lire sur la carte). Dans une épingle les
+deux premières vont du simple au double ; une règle qui n'en donnerait qu'une tromperait une fois sur
+deux. La mesure **reste affichée dans les autres volets**, en plus discret : on mesure *pour* placer
+un panneau, et une règle qui s'efface au changement de volet oblige à retenir le nombre.
+
+**L'annonce contre la réalité.** Un panneau dit « 100 m » ; la seule question qui compte est s'il est
+vraiment à cent mètres de l'entrée du virage. Les panneaux calculés le sont par construction — c'est
+exactement pour ça que l'écart ne se voyait pas, et que ceux repris à la main pouvaient dériver sans
+que rien ne proteste. La fiche affiche donc `annoncé 100 m · réel 83 m (−17)`, l'entrée du virage
+étant lue du **même découpage** que le jeu utilise pour ses propres panneaux (`Track.zonesVirages`,
+sorti en méthode plutôt que dupliqué) : vérifier une annonce contre une autre définition que celle
+qui l'a produite ne vérifierait rien.
+
+`tools/e2e-mesure.js` conduit la page et mesure les quatre : que le viseur se pose là où le doigt
+touche et pas ailleurs, qu'un appui qui glisse déplace la carte sans rien poser, que « +10 m »
+déplace de dix mètres et non de dix stations, que l'aller et le retour de la règle font le tour
+complet, et que la corde est forcément plus courte que le trajet.
 
 **La chicane est une forme, pas une sévérité.** Les six chiffres disent « plus ou moins serré » ; une
 chicane dit « d'un côté puis de l'autre », ce qui n'est pas la même question. Elle a donc son glyphe
