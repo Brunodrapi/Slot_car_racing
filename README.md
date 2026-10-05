@@ -619,6 +619,39 @@ de spaghetti qu'on venait d'enlever : Monaco est lent partout, et chaque kink d'
 déclenchait la clause. Elle n'existe que pour un cas, et il faut le dire précisément : un virage
 **majeur** qu'on aborde **déjà freiné**, donc sans freinage propre à mesurer.
 
+#### Deux virages collés ne font qu'une annonce
+
+Sauf s'ils sont gros tous les deux. Lu dans le Monaco posé à la main : le petit virage d'entrée du
+Casino (40°) juste avant l'épingle (151°) n'est pas annoncé — c'est l'épingle qu'on freine. Pareil
+avant Sainte-Dévote, pareil avant l'épingle du Grand Hôtel. À chaque fois le plus petit disparaît.
+
+Mais à Zandvoort, le carré droit à 92° suivi vingt-cinq mètres plus loin de l'épingle gauche à 159°
+porte **deux** annonces, et il a raison : ce sont deux gestes, pas un. La différence n'est pas la
+distance mais la taille, et le seuil tombe à **90°** — la piscine de Monaco enchaîne 76° et 78° et ne
+porte qu'une annonce.
+
+Deux défauts trouvés là : la liste était triée par **creux de vitesse** et non par entrée de virage,
+or les deux ne sont pas dans le même ordre — à Monaco, le creux du virage de 1769 m tombe avant celui
+du virage de 1736 m. La fusion comparait des voisins qui n'en sont pas et laissait passer la paire
+qu'elle devait réduire. Et le seuil de « gros » pour la clause de rattrapage était à 120°, ce qui
+faisait disparaître le virage de 605 m que Monaco annonce : il est descendu à 75°.
+
+#### Ce que la règle retrouve
+
+| | posé à la main | retrouvé | identiques |
+| --- | --- | --- | --- |
+| **zandvoort** (13 virages) | 13 | 13 | **13** |
+| **monaco** (14 virages) | 14 | 15 | **13** |
+
+Les deux écarts de Monaco : le virage de 1341 m, en sortie de tunnel, que la règle annonce (cinquante
+mètres de freinage, de 43 à 19 m/s) et que la version à la main ignore ; et la piscine, où la règle
+garde le second des deux virages là où la main garde le premier.
+
+Les **notes**, elles, ne concordent que deux fois sur treize à Monaco, contre dix sur treize à
+Zandvoort. C'est attendu et c'est dit : les amplitudes de Monaco ont été posées à l'œil, et c'est
+Zandvoort qui a servi de calibration. Le détail le montre — 141° y est appelé « épingle » et 204°
+« aigu », alors que c'est l'inverse que dit la géométrie.
+
 #### Le creux appartient au virage qui le contient
 
 Et à rien d'autre. Une version qui prenait « le plus fermé à quatre-vingts mètres devant » laissait

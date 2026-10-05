@@ -129,7 +129,13 @@ fusion sur la distance les écrasait — c'est exactement le carré-droite-puis-
 Zandvoort, que Bruno avait annoncé deux fois à juste titre. */
 const FREIN_MIN = 10;             // mètres de freinage : un lever de pied franc
 const LENT_MAX = 0.30;            // « lent » : sous 30 % de la vitesse maximale
-const GROS_ANGLE = 120;           // « gros » : au-delà de 120° de changement de cap
+const GROS_ANGLE = 75;            // « gros » : au-delà de 75° de changement de cap
+/* DEUX GROS VIRAGES COLLÉS RESTENT DEUX ANNONCES, et « gros » est ici plus exigeant que pour la
+   clause de rattrapage : il faut un quart de tour chacun. À Monaco, la piscine enchaîne 76° et 78°
+   et ne porte qu'une annonce dans la version posée à la main ; à Zandvoort, 92° puis 159° en portent
+   deux. Quatre-vingt-dix degrés sépare les deux cas. */
+const DEUX_GROS = 90;
+const COLLES = 40;                // deux annonces à moins de ça : une seule, sauf si les deux sont gros
 
 /* LA CLAUSE DE RATTRAPAGE EXIGE LES DEUX : lent ET gros.
 
@@ -202,7 +208,44 @@ function freinages(T, zones) {
     const vieux = parVirage.get(cle);
     if (!vieux || d > vieux.d) parVirage.set(cle, { i, v: v[i], haut, d, z });
   }
-  return [...parVirage.values()].sort((a, b) => a.i - b.i);
+  /* DEUX VIRAGES COLLÉS NE FONT QU'UNE ANNONCE, sauf s'ils sont gros tous les deux.
+
+  Lu dans le Monaco posé à la main : le petit virage d'entrée du Casino (40°) juste avant l'épingle
+  (151°) n'est pas annoncé — c'est l'épingle qu'on freine. Pareil avant Sainte-Dévote, pareil avant
+  l'épingle du Grand Hôtel, pareil à la piscine. À chaque fois le plus petit disparaît.
+
+  Mais à Zandvoort, le carré droit à 92° suivi vingt-cinq mètres plus loin de l'épingle gauche à 159°
+  porte DEUX annonces, et il a raison : ce sont deux gestes, pas un. La différence n'est pas la
+  distance, c'est la taille. Deux gros virages collés restent deux annonces ; un gros et un petit
+  n'en font qu'une, celle du gros. */
+  /* TRIÉ PAR ENTRÉE DE VIRAGE, pas par creux de vitesse. Les deux ne sont pas dans le même ordre :
+  à Monaco, le creux du virage de 1769 m tombe avant celui du virage de 1736 m. Trié sur les creux,
+  la fusion comparait des voisins qui n'en sont pas, et laissait passer la paire qu'elle devait
+  réduire. */
+  const entree = (m) => (((m.z.from % N) + N) % N);
+  const liste = [...parVirage.values()].sort((a, b) => entree(a) - entree(b));
+  const angle = (z) => {
+    let t = 0;
+    for (let k = z.from; k < z.firstTo; k++) {
+      const a = ((k % N) + N) % N, b = (((k + 1) % N) + N) % N;
+      let e = T.th[b] - T.th[a];
+      while (e > Math.PI) e -= 2 * Math.PI;
+      while (e < -Math.PI) e += 2 * Math.PI;
+      t += e;
+    }
+    return Math.abs(t) * 180 / Math.PI;
+  };
+  const gardes = [];
+  for (const m of liste) {
+    const p = gardes[gardes.length - 1];
+    if (!p) { gardes.push(m); continue; }
+    const ecart = ((entree(m) - entree(p)) % N + N) % N;
+    if (ecart * T.ds >= COLLES) { gardes.push(m); continue; }
+    const am = angle(m.z), ap = angle(p.z);
+    if (am >= DEUX_GROS && ap >= DEUX_GROS) { gardes.push(m); continue; }
+    if (am > ap) gardes[gardes.length - 1] = m;      // on garde le plus gros des deux
+  }
+  return gardes;
 }
 
 const seul = ARGS.find((a) => !a.startsWith('--'));
