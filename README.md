@@ -954,6 +954,31 @@ parce qu'un élément présent et invisible passe tous les contrôles naïfs. Ch
 entrée tient dans `[fraction de tour, distance, note, sens]` — une fraction et non une station, comme
 pour les passerelles, parce qu'elle survit au changement de longueur déclarée.
 
+#### L'éditeur ouvre sur ce que le jeu joue
+
+Il partait toujours **du calcul**. Pour les cinq circuits dont `tracks.js` porte une liste reprise à
+la main, il montrait donc autre chose que la course : six panneaux de moins à Monaco, deux au Mans,
+trois de trop à Zandvoort, et à Silverstone le même nombre mais pas les mêmes. C'est le symptôme
+rapporté — « des panneaux en plus apparaissent en jeu ».
+
+Et ce n'était pas un défaut d'affichage. **Enregistrer depuis cet état aurait remplacé la liste
+reprise par le calcul**, sans prévenir. La reprise locale, elle, n'était rechargée que si on cliquait
+« Reprendre ici » : qui ne voyait pas le lien repartait du calcul, et son premier enregistrement
+effaçait son travail précédent.
+
+L'éditeur suit maintenant l'ordre du jeu — reprise locale, puis liste du fichier, puis calcul — et la
+reprise locale s'applique **toute seule**, sans attendre un clic, à condition que rien n'ait été
+touché depuis le chargement et que le circuit affiché soit encore celui demandé (la base est
+asynchrone). `panModif` dit d'où la liste vient : vrai pour une reprise, qu'il faut réenregistrer
+telle quelle, faux pour le calcul, que le jeu refera tout seul.
+
+`tools/e2e-mesure.js` compare maintenant, **circuit par circuit**, la liste que l'éditeur affiche à
+celle que le jeu construit. Sur le code d'avant : cinq circuits en faute. La comparaison porte sur la
+**station**, pas sur la fraction — un panneau se pose sur une station, la fraction n'est que la façon
+de l'écrire, et le fichier et le jeu ne l'arrondissent pas pareil au quatrième chiffre. Une première
+version comparait les fractions et accusait Monaco d'un écart qui n'existait pas ; une version qui
+n'aurait compté que les panneaux aurait laissé passer Silverstone.
+
 #### Le viseur, les pas fins et la règle
 
 Trois manques se sont vus dès qu'on a voulu poser une indication **à l'endroit exact** plutôt
