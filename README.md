@@ -576,28 +576,85 @@ Deux erreurs de méthode, les deux du même genre — le banc ne voyait pas ce q
   devant**, qui est la fin. Les deux premières versions ont donc été jugées bonnes alors qu'elles ne
   montraient que trente mètres de piste.
 
-### Les notes d'un circuit, écrites comme Zandvoort
+### Les indications d'un circuit : une par freinage, pas une par virage
 
-    node tools/notes.js            → ce que ça donnerait, sans rien écrire
-    node tools/notes.js --ecrire   → remplace les blocs `panneaux:` de js/tracks.js
+    node tools/notes.js                      → ce que ça donnerait, sans rien écrire
+    node tools/notes.js --ecrire             → remplace les blocs `panneaux:` de js/tracks.js
+    node tools/notes.js spa --amplitudes     → ne reprend que les notes d'une liste existante
 
-Bruno a noté Zandvoort à la main, virage par virage, dans l'éditeur. Mesurée sur ses dix virages, sa
-façon de faire tient en quatre règles — qui ne sont pas inventées mais **lues** dans ce qu'il a posé :
+**Ce qu'une indication sert à savoir, c'est quand freiner.** Tout découle de là, et la première
+version l'avait manqué : elle posait un triplet par **virage**, ce qui donnait vingt-six jeux de
+flèches à Monaco — « des flèches partout mais rarement celles qui servent ». Un virage qu'on prend à
+plein gaz n'a rien à annoncer, et deux virages enchaînés qu'on freine une seule fois n'ont qu'une
+annonce à faire : celle du plus dur.
 
-1. **Un triplet par virage** : 100 m, 50 m, puis une flèche **sans chiffre posée sur l'entrée**. Les
-   deux premières annoncent, la troisième marque. Dix virages sur dix la suivent.
-2. **Un 200 m en plus** quand la ligne droite qui précède en laisse la place. Un seul à Zandvoort,
-   après la grande ligne droite : annoncer à deux cents mètres au bout d'une épingle mettrait le
-   panneau dans le virage d'avant.
-3. **Un virage mou n'a que sa flèche.** Son virage 4 tourne de sept degrés et ne porte rien d'autre.
-   On ne freine pas pour ça, donc on n'annonce pas de distance de freinage.
-4. **Même note et même sens sur tout le triplet.** Trois panneaux qui parlent du même virage n'en
-   disent pas trois choses différentes.
+#### On cherche des freinages, pas des virages
 
-Une cinquième règle est apparue en relisant : **un virage par flèche, pas un freinage par flèche**.
-Un carré à droite suivi trois mètres plus loin d'une épingle à gauche, c'est un seul freinage mais
-deux gestes, et Bruno a posé deux triplets entrelacés. Le groupement par distance en faisait un seul
-virage « à droite ».
+Dans le **profil de vitesse de référence** — celui-là même qui sert au guide de freinage, donc la
+vérité du jeu et pas une approximation de la géométrie. Chaque minimum local est un ralentissement ;
+ce qui le rend digne d'une annonce est la **distance de freinage** qu'il exige, `(v² − v'²) / 2a`,
+qui est une longueur et se compare donc d'un circuit à l'autre.
+
+Un seuil en pourcentage de chute ne le permettait pas : Monza et Monaco n'ont pas la même plage de
+vitesse, et le même pourcentage y comptait cinq freinages à l'un et seize à l'autre. **Vingt mètres
+de freinage** donne Monza 7 — exactement ses vraies zones, de la première chicane à la Parabolique —
+Monaco 10, Zandvoort 12. Bruno en avait posé treize à la main à Zandvoort, seule calibration
+disponible.
+
+L'ordre compte : on **filtre avant de grouper**. Un complexe de virages produit un vrai freinage
+suivi de plusieurs micro-creux de un à dix mètres ; groupés d'abord, le creux le plus lent l'emportait
+et emportait avec lui sa distance minuscule — Monza tombait à un seul freinage au lieu de sept.
+
+| | virages | freinages |
+| --- | --- | --- |
+| monaco | 26 | **10** |
+| zandvoort | 13 | 12 |
+| monza | 10 | **7** |
+| lemans | 29 | **13** |
+
+#### Le virage annoncé est celui qui fait freiner
+
+Pas le premier rencontré : « ce premier virage n'est indiqué que par une flèche légère puis une
+flèche dure, alors que c'est la flèche dure qu'on voudrait connaître deux cents mètres avant ».
+
+Et pas non plus celui qui contient le point le plus lent : à Monaco, un freinage de cinquante mètres
+s'est retrouvé annoncé « note 5 » — un décroché de neuf degrés — parce que le creux de vitesse
+tombait dans un kink entre deux virages, le profil étant encore en descente. **On ne freine pas pour
+l'endroit où on est lent, on freine pour ce qui rend lent.** On prend donc, autour du freinage, le
+virage le plus fermé à portée : quatre-vingts mètres devant, vingt derrière.
+
+#### Le chiffre dit à quel point il faut ralentir
+
+C'est la correction la plus importante, et elle vient du même reproche. Un virage court mais serré de
+Monaco obligeait à passer de 43 à 19 m/s et recevait la note **5** — « à peine un décroché » — parce
+que son rayon le plus fermé ne durait que huit mètres. Le rayon décrit la **forme** ; ce qu'on veut
+annoncer, c'est l'**effort**.
+
+Le chiffre vient donc de la vitesse de passage rapportée à la vitesse maximale de la voiture, lue
+dans le profil de référence. Les seuils sont calés sur les treize virages notés à la main :
+
+| | notes identiques | à un cran |
+| --- | --- | --- |
+| par le rayon | 7 / 13 | 4 |
+| **par la vitesse** | **10 / 13** | 1 |
+
+Les trois **noms** restent géométriques, parce qu'ils décrivent une forme et non un effort : un carré
+est un quatre-vingt-dix qu'on prend lentement, une épingle vous renvoie d'où vous venez. Leurs seuils
+de rayon sont en rayon réel, et les circuits sont dessinés plus petits — Monza fait 2 900 m pour
+5 793 en vrai, échelle moyenne **0,56** sur les douze — donc le rayon est remis à l'échelle avant
+d'être jugé. L'angle, lui, ne s'échelonne pas : un virage à 180° tourne de 180° qu'on le dessine grand
+ou petit, seules les longueurs rétrécissent.
+
+Sans vitesse — un circuit dessiné dans l'éditeur, qui n'a pas encore de profil — on retombe sur le
+rayon. C'est moins juste, et c'est dit.
+
+#### Le reste vient de Zandvoort
+
+Lu dans ce que Bruno y a posé à la main, et inchangé :
+
+1. **Un triplet par freinage** : 100 m, 50 m, puis une flèche **sans chiffre posée sur l'entrée**.
+2. **Un 200 m en plus** quand la ligne droite qui précède en laisse la place.
+3. **Même note et même sens sur tout le triplet.**
 
 #### Deux façons de grouper, parce qu'il y a deux questions
 
@@ -606,9 +663,8 @@ qui la composent, donc on les groupe sur la distance, sens ou pas.
 
 Pour une **indication**, non. `zonesVirages(gap, memeSens)` ne fusionne alors que des virages qui
 tournent du même côté — ce qui recolle les morceaux d'un même virage sans jamais souder deux virages
-opposés. À Zandvoort, cela fait passer de 10 « zones de freinage » à **13 virages**, et les trois qui
-apparaissent sont exactement les seconds de paires : l'épingle gauche à 416 m qui suit le droit à
-348, et l'épingle gauche à 1729 m qui suit le carré droit à 1704, trois mètres plus loin.
+opposés. Un carré à droite suivi trois mètres plus loin d'une épingle à gauche, c'est un seul freinage
+mais deux gestes.
 
 #### Le banc accusait des flèches qui avaient raison
 
@@ -618,41 +674,8 @@ Avec le groupement par distance, il jugeait les flèches du second virage d'une 
 
 Il reste un cas que la distance ne tranche pas : quand la cible d'un panneau tombe à sept mètres d'un
 virage et dix-huit du virage opposé juste derrière. Le sens du panneau dirait lequel il vise, mais
-c'est précisément ce que ce banc vérifie — s'en servir pour choisir le virage reviendrait à lui
-donner la réponse. Ces cas sont donc marqués **ambigus** et ne sont pas comptés. Un banc qui ne peut
-pas trancher doit le dire, pas inventer un verdict.
-
-Le sens vient de la géométrie et jamais de la liste d'avant.
-
-#### Les notes lisaient les virages trop serrés
-
-Les seuils de note sont en **rayon réel** — un 1 est un virage de moins de vingt mètres de rayon. Or
-les circuits sont dessinés plus petits que nature : Monza fait 2 900 m pour 5 793 en vrai, Spa 3 400
-pour 7 004, soit une échelle moyenne de **0,56**. Un rayon du jeu vaut donc environ **1,8 fois plus**
-sur place, et le classement lisait chaque virage **un à deux crans trop serré**.
-
-Le Zandvoort noté à la main le dit sans ambiguïté : là où le calcul annonçait 1, Bruno a mis 3 ; là
-où il annonçait 4, il a mis 5. On remet donc le rayon à l'échelle avant de le juger, dans une seule
-méthode partagée par le calcul et par l'outil — deux classements qui doivent s'accorder finissent
-toujours par ne plus s'accorder.
-
-Mesuré sur ses treize virages — une fois le groupement corrigé, car l'accord se jugeait d'abord
-contre des virages fusionnés à tort :
-
-| | notes |
-| --- | --- |
-| identiques aux siennes | **7 / 13** |
-| à un cran près | 4 |
-| plus loin | 2 |
-
-L'angle, lui, ne s'échelonne pas : un virage à 180° tourne de 180° qu'on le dessine grand ou petit,
-seules les longueurs rétrécissent.
-
-Une correction de plus a été essayée et **écartée** : resserrer la note d'un ou deux crans quand le
-virage tourne longtemps, puisque le chiffre ne vient que du rayon et qu'un 149° et un décroché de 30°
-au même rayon reçoivent aujourd'hui la même note. Mesurée, elle fait passer l'accord de 7 à 8 sur 13
-— et fait basculer un virage de 3 à 1. Un gain d'un cas sur treize ne paie pas un saut pareil, et
-trois réglages ont déjà été ajustés sur de petits échantillons dans ce chapitre.
+c'est précisément ce que ce banc vérifie — s'en servir reviendrait à lui donner la réponse. Ces cas
+sont marqués **ambigus** et ne sont pas comptés.
 
 #### L'outil écrasait le circuit suivant
 

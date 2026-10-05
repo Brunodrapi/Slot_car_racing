@@ -399,30 +399,36 @@ class Track {
 
   /* LA NOTE D'UN VIRAGE : le chiffre de rallye, ou l'un des trois noms.
 
-  LES SEUILS SONT EN RAYON RÉEL, ET LES CIRCUITS SONT DESSINÉS PLUS PETITS. Mesuré sur les douze :
-  Monza fait 2 900 m pour 5 793 en vrai, Spa 3 400 pour 7 004 — une échelle moyenne de 0,56. Un rayon
-  du jeu vaut donc environ 1,8 fois plus sur place, et des seuils écrits pour des rayons réels
-  lisaient chaque virage UN À DEUX CRANS TROP SERRÉ. Le Zandvoort noté à la main par Bruno le dit
-  sans ambiguïté : là où le calcul annonçait 1, il a mis 3 ; là où il annonçait 4, il a mis 5.
+  LE CHIFFRE DIT À QUEL POINT IL FAUT RALENTIR, pas quel rayon la route décrit. C'est la correction
+  la plus importante de ce chapitre, et elle vient d'un reproche : « l'important des indications,
+  c'est de savoir quand freiner ». Un virage court mais serré de Monaco obligeait à passer de 43 à
+  19 m/s et recevait la note 5 — « à peine un décroché » — parce que son rayon le plus fermé ne durait
+  que huit mètres. Le rayon décrit la forme ; ce qu'on veut annoncer, c'est l'effort.
 
-  On remet donc le rayon à l'échelle avant de le juger. Sur ses dix virages, la correction fait
-  passer l'accord de deux sur dix à cinq sur dix, et ramène tout le reste à un cran près sauf deux,
-  où ses propres choix se contredisent (128° appelé épingle, 149° appelé carré).
+  Le chiffre vient donc de la VITESSE DE PASSAGE rapportée à la vitesse maximale de la voiture, lue
+  dans le profil de référence — celui du guide de freinage, donc la vérité du jeu. Les seuils sont
+  calés sur les treize virages que Bruno a notés à la main à Zandvoort, seule vérité terrain
+  disponible : l'accord passe de 7 sur 13 (par le rayon) à 10 sur 13, avec un seul écart d'un cran.
 
-  L'ANGLE, LUI, NE S'ÉCHELONNE PAS : un virage à 180° tourne de 180° qu'on le dessine grand ou
-  petit. Seules les longueurs rétrécissent. */
+  LES TROIS NOMS RESTENT GÉOMÉTRIQUES, parce qu'ils décrivent une FORME et non un effort : un carré
+  est un quatre-vingt-dix qu'on prend lentement, une épingle vous renvoie d'où vous venez. Leurs
+  seuils de rayon sont en rayon réel, et les circuits sont dessinés plus petits — Monza fait 2 900 m
+  pour 5 793 en vrai, échelle moyenne 0,56 sur les douze — donc le rayon est remis à l'échelle avant
+  d'être jugé. L'angle, lui, ne s'échelonne pas : un virage à 180° tourne de 180° qu'on le dessine
+  grand ou petit, seules les longueurs rétrécissent.
+
+  Sans vitesse — un circuit dessiné dans l'éditeur, qui n'a pas encore de profil — on retombe sur le
+  rayon. C'est moins juste, et c'est dit. */
   static get ECHELLE() { return 1.8; }
 
-  static noteVirage(rayon, angle) {
+  static noteVirage(rayon, angle, fraction) {
     const R = rayon * Track.ECHELLE;
-    // Trois virages méritent un nom plutôt qu'un chiffre, comme sur une note de rallye : ce que la
-    // route fait compte autant que sa tension. Un quatre-vingt-dix qui se prend lentement est un
-    // carré ; un virage qui vous renvoie d'où vous venez est une épingle.
     if (angle >= 150 && R < 40) return 'hairpin';
     if (angle >= 115 && R < 26) return 'acute';
     if (angle >= 75 && angle <= 105 && R < 35) return 'square';
-    // Les chiffres, du plus serré au plus ouvert : 1 est extrêmement fermé, 6 à peine un décroché.
-    return R < 20 ? 1 : R < 35 ? 2 : R < 55 ? 3 : R < 90 ? 4 : R < 150 ? 5 : 6;
+    if (fraction == null) return R < 20 ? 1 : R < 35 ? 2 : R < 55 ? 3 : R < 90 ? 4 : R < 150 ? 5 : 6;
+    const f = fraction;
+    return f < 0.18 ? 1 : f < 0.255 ? 2 : f < 0.29 ? 3 : f < 0.39 ? 4 : f < 0.44 ? 5 : 6;
   }
 
   _brakingBoards() {
