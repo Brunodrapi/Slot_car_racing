@@ -216,14 +216,21 @@ class Renderer {
     this.resize();
   }
 
-  /* 'track' : vue de dessus qui suit la route. 'fixed' : vue de dessus, nord en haut.
+  /* QUATRE VUES, et ce sont deux questions croisées plutôt qu'une liste.
 
-  Il y en avait une troisième, isométrique — un sol incliné et une caméra qui ne tourne pas, si bien
+  La première : l'écran tourne-t-il avec la piste, ou le nord reste-t-il en haut ? La seconde : la
+  caméra se place-t-elle par rapport à la VOITURE, ou en avance sur la PISTE ?
+
+    'track'      dessus, orientée piste        'fixed'      dessus, fixe
+    'avance'     en avance, orientée piste     'avanceFixe' en avance, fixe
+
+  Il y en avait une cinquième, isométrique — un sol incliné et une caméra qui ne tourne pas, si bien
   qu'une voiture se voit sous tous ses angles au fil d'un tour. Elle est retirée : voir le README,
   « Ce qui part avec l'isométrique ». */
   setView(view) {
     this.view = view;
-    this.rotate = view === 'track';
+    this.rotate = view === 'track' || view === 'avance';
+    this.avance = view === 'avance' || view === 'avanceFixe';
     this.cam.init = false;
   }
 
@@ -898,9 +905,43 @@ class Renderer {
     // relative to what the screen shows. Nothing at a standstill — the car stays centred on the
     // grid — up to half the frame at top speed, which puts it a quarter of the way down.
     const lead = metres * 0.5 * vf;
-    const tx = pos.x + Math.cos(h) * lead, ty = pos.y + Math.sin(h) * lead;
+    let tx = pos.x + Math.cos(h) * lead, ty = pos.y + Math.sin(h) * lead;
     // camera heading follows the slot direction (not the car body), so a drift never spins the view
-    const want = T.headingAt(p.s + lead * 0.6);
+    let want = T.headingAt(p.s + lead * 0.6);
+
+    /* LA CAMÉRA EN AVANCE SUIT LA PISTE, pas le cap de la voiture.
+
+    Les deux vues d'origine placent la caméra DEVANT la voiture, le long de son cap : un point à
+    tant de mètres droit devant. En ligne droite les deux reviennent au même, et dans un virage
+    non : droit devant, c'est l'extérieur du virage, c'est-à-dire le décor. Plus on va vite, plus on
+    regarde loin, et plus on regarde à côté — exactement au moment où on aurait besoin de voir la
+    suite. Ici la caméra se pose sur l'AXE DE LA PISTE, `avance` mètres plus loin le long du tour.
+    Elle prend donc le virage avant la voiture et montre la sortie pendant qu'on est encore à
+    l'entrée. Le plafond qui garde la voiture à l'écran est posé plus bas, APRÈS le lissage.
+
+    L'AVANCE EST UNE FRACTION DE CE QUE L'ÉCRAN MONTRE, jamais un nombre de mètres : ce qui compte
+    n'est pas la distance, c'est où la voiture se retrouve sur l'écran, et ça n'a de sens que
+    rapporté au cadre. Le cadre s'élargit déjà avec la vitesse — de 30 à 75 m — donc à pleine
+    vitesse l'avance grandit deux fois : parce que la fraction monte, et parce que le cadre aussi.
+    De 6 % du cadre à l'arrêt à 26 % à fond, elle va donc de 2 m sur la grille à 20 m à pleine
+    vitesse, et la voiture glisse de l'axe de l'écran jusqu'aux trois quarts de sa hauteur.
+
+    LA FRACTION S'ARRÊTE JUSTE SOUS LE PLAFOND, et c'est volontaire. Le premier réglage montait à
+    67 % du cadre : mesuré, le plafond (28 %) l'écrasait dès le premier dixième de la vitesse, donc
+    la voiture restait collée au même endroit de l'écran à 40 comme à 300 km/h. L'avance grandissait
+    encore, mais seulement parce que le cadre grandissait — la montée demandée ne se voyait plus.
+    À 26 % elle est entière et visible, et le plafond ne sert plus qu'à ce pour quoi il est là :
+    les virages.
+
+    MESURÉE LE LONG DU TOUR, pas à vol d'oiseau. Dans une épingle, cinquante mètres de piste ne font
+    que vingt mètres en ligne droite : la caméra se rapproche d'elle-même là où le circuit se replie,
+    ce qui est précisément là où on ne veut pas qu'elle parte loin. */
+    if (this.avance) {
+      const avance = metres * (0.06 + 0.20 * vf);
+      const q = T.pos(T.wrap(p.s + avance), 0);
+      tx = q.x; ty = q.y;
+      want = T.headingAt(p.s + avance);
+    }
     if (!this.cam.init) this.camAngle = want;
     else {
       let da = want - this.camAngle;
@@ -914,7 +955,46 @@ class Renderer {
       this.cam.y += (ty - this.cam.y) * k;
       this.cam.zoom += (zoomTarget - this.cam.zoom) * Math.min(1, dt * 1.5);
     } else { this.cam.x = tx; this.cam.y = ty; this.cam.zoom = zoomTarget; this.cam.init = true; }
+
+    /* LE PLAFOND, et c'est lui qui rend la vue utilisable.
+
+    Suivre l'axe de la piste `avance` mètres plus loin met la caméra où il faut, mais rien ne dit
+    que la voiture tient encore dans le cadre : dans un virage, le point visé part de côté, et sur un
+    téléphone en portrait l'écran ne montre qu'une quarantaine de mètres en largeur. Mesuré sur un
+    tour de Monza, la voiture sortait de l'écran par le côté — 150 % du demi-écran.
+
+    On borne donc l'écart voiture-caméra DANS LE REPÈRE DE L'ÉCRAN, chaque axe contre sa propre
+    moitié. C'est ce qui permet de garder toute l'avance vers le haut de l'écran, où il y a de la
+    place, tout en coupant l'excursion latérale, où il n'y en a pas. Un plafond rond sur la distance
+    aurait rogné les deux, donc l'avance en ligne droite aussi, c'est-à-dire ce qu'on cherchait.
+
+    IL PORTE SUR LA CAMÉRA, PAS SUR SA CIBLE, et c'est tout le sujet. Posé sur la cible, il ne
+    changeait rien : l'excursion ne vient pas de l'endroit visé mais du RETARD de la caméra, qui
+    rejoint sa cible en un quart de seconde pendant qu'une voiture traverse la piste. Borner la cible
+    laisse donc la voiture sortir par le côté exactement comme avant. Borné ici, après le lissage,
+    l'écart ne peut plus dépasser le cadre quoi qu'il arrive — au pire la voiture pousse la caméra.
+
+    IL S'APPLIQUE AUX QUATRE VUES, et pas seulement aux deux nouvelles. Le banc, écrit pour celles-ci,
+    a trouvé le même défaut dans la plus ancienne : « dessus, orientée piste » sortait la voiture de
+    l'écran sur SEPT circuits sur douze, jusqu'à 122 % du demi-écran, sur un téléphone en portrait.
+    Personne ne l'avait vu parce que ça dure deux images au point de corde d'un virage rapide, et
+    parce qu'on joue rarement en portrait. Le plafond ne change rien au reste de son comportement :
+    mesurée, elle n'utilise que 18 % de la hauteur disponible, donc seule la borne latérale la
+    touche, et seulement là où elle était fautive. */
+    {
+      const a = this.rotate ? -this.camAngle - Math.PI / 2 : 0;
+      const c = Math.cos(a), si = Math.sin(a);
+      let dx = this.cam.x - pos.x, dy = this.cam.y - pos.y;
+      let ex = dx * c - dy * si, ey = dx * si + dy * c;
+      const demiL = (this.w / this.cam.zoom) / 2 * 0.62;
+      const demiH = (this.h / this.cam.zoom) / 2 * 0.56;
+      ex = clamp(ex, -demiL, demiL);
+      ey = clamp(ey, -demiH, demiH);
+      dx = ex * c + ey * si; dy = -ex * si + ey * c;
+      this.cam.x = pos.x + dx; this.cam.y = pos.y + dy;
+    }
   }
+
 
   // How far back the camera sits, on top of the speed. 1 is the framing above; higher widens it.
   // There is no way to go closer: twenty metres on the grid is already as close as the game is
