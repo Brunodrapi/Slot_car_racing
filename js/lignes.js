@@ -358,16 +358,30 @@ function verifPanneau(b) {
   if (!T.zonesVirages) return '';
   const zones = T.zonesVirages(60);
   if (!zones.length) return '';
+  /* LA DISTANCE EST SIGNÉE, et c'est tout l'intérêt.
+
+  Première version : la prochaine entrée de virage DEVANT. Pour un panneau posé un peu après une
+  entrée — c'est-à-dire déjà dans le virage, la faute la plus courante — elle sautait à l'entrée
+  suivante et annonçait deux cents mètres d'écart là où il n'y en avait que dix de trop. Elle
+  accusait de loin ce qui était en fait tout près, du mauvais côté.
+
+  On prend donc l'entrée la PLUS PROCHE, devant ou derrière, et on garde le signe. Un nombre négatif
+  dit la seule chose qui compte alors : le panneau est posé dans le virage qu'il annonce. */
   const j = Math.round(b.at * T.n);
   let best = Infinity;
   for (const z of zones) {
     const e = (((z.from % T.n) + T.n) % T.n);
-    const d = (((e - j) % T.n) + T.n) % T.n;
-    if (d < best) best = d;
+    let d = (((e - j) % T.n) + T.n) % T.n;
+    if (d > T.n / 2) d -= T.n;
+    if (Math.abs(d) < Math.abs(best)) best = d;
   }
   const reel = best * T.ds;
   // sans annonce il n'y a rien à comparer, mais la distance réelle reste ce qu'on veut savoir :
   // c'est elle qui dit si « sans chiffre » était le bon choix
+  if (reel < 0) {
+    const dedans = `posé ${(-reel).toFixed(0)} m DANS le virage`;
+    return b.dist > 0 ? `annoncé ${b.dist} m · ${dedans}` : `sans chiffre · ${dedans}`;
+  }
   if (!(b.dist > 0)) return `sans chiffre · virage à ${reel.toFixed(0)} m`;
   const ecart = reel - b.dist;
   const signe = ecart >= 0 ? '+' : '−';

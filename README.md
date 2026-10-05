@@ -979,6 +979,33 @@ de l'écrire, et le fichier et le jeu ne l'arrondissent pas pareil au quatrième
 version comparait les fractions et accusait Monaco d'un écart qui n'existait pas ; une version qui
 n'aurait compté que les panneaux aurait laissé passer Silverstone.
 
+#### « Posé dans le virage » : la distance est signée
+
+La fiche donnait la distance jusqu'à la **prochaine** entrée de virage, devant. Pour un panneau posé
+un peu *après* une entrée — c'est-à-dire déjà dans le virage, la faute la plus courante — elle sautait
+à l'entrée suivante et annonçait deux cents mètres d'écart là où il n'y en avait que dix de trop :
+elle accusait de loin ce qui était tout près, du mauvais côté.
+
+Elle prend donc l'entrée **la plus proche, devant ou derrière**, et garde le signe. La fiche dit alors
+« annoncé 50 m · posé 20 m **DANS** le virage », qui est la seule chose utile à savoir dans ce cas.
+
+#### Le banc des flèches ne regardait que l'endroit sûr
+
+`tools/arrow.js` compare la flèche **dessinée** au sens dont la route tourne vraiment. Il lisait
+`from`/`to` sur le panneau — deux champs que seul le **calcul** pose, parce qu'une liste reprise à la
+main ne dit pas de quelle zone elle parle. Sur les cinq circuits dont `tracks.js` porte une liste
+reprise, la boucle ne tournait donc pas du tout, l'angle restait à zéro, et `Math.sign(0)` ne valant
+aucun des deux sens, **tous** les panneaux étaient comptés « à l'envers ». Le banc annonçait 100 % de
+fautes là où il ne vérifiait rien.
+
+Et son défaut était `monza` — le seul des douze dont la liste est calculée. Il tournait sur le cas qui
+ne pouvait pas échouer et laissait les cinq autres hors de portée. Sans argument, il passe maintenant
+sur **les douze**, et pour une liste reprise il retrouve la zone comme l'éditeur : l'entrée la plus
+proche de `station + distance annoncée`, c'est-à-dire du virage que le panneau **annonce** — et non
+du plus proche de lui, qui pour une annonce à 200 m est souvent le précédent.
+
+Un banc qui ne regarde que l'endroit sûr est un banc qui dit toujours oui.
+
 #### Le viseur, les pas fins et la règle
 
 Trois manques se sont vus dès qu'on a voulu poser une indication **à l'endroit exact** plutôt
