@@ -232,7 +232,6 @@ class Renderer {
     this.rotate = view === 'track' || view === 'avance';
     this.avance = view === 'avance' || view === 'avanceFixe';
     this.cam.init = false;
-    if (this.w) this._layoutHud();     // le cadran d'accélérateur ne se range pas au même endroit
   }
 
   /** Un cran de résolution en plus ou en moins, selon la durée des images récentes. */
@@ -309,6 +308,15 @@ class Renderer {
     // centre; a thumb landing anywhere off the line slider moves it there, base on the finger, so
     // the whole dial reads above the hand instead of under it.
     const r = clamp(Math.min(W * 0.26, H * 0.17), 68, 130);
+    /* Il reste au milieu, même quand la caméra descend la voiture en bas de l'écran.
+
+    Les vues « en avance » posent la voiture vers 80 % de la hauteur, c'est-à-dire derrière la carte
+    de vitesse du cadran, qui monte aux deux tiers. Le ranger dans un coin dans ces vues-là a été
+    essayé et retiré : le cadran suit le pouce, donc le joueur le déplace lui-même s'il le gêne, et
+    une commande qui change de place selon la caméra coûte plus qu'elle ne rend. */
+    this.dialHome = { cx: W / 2, cy: H - P.b - r * 0.46 };   // at rest the pad shows in full
+    this.dial = { cx: this.dialHome.cx, cy: this.dialHome.cy, r };
+    this.dialAnchored = false;
     /* Le levier de ligne, à gauche par défaut, à droite au choix.
 
     Un droitier tient son téléphone d'une main et pousse le levier du pouce de l'autre ; un
@@ -316,22 +324,6 @@ class Renderer {
     colonne — les jauges d'usure, la carte en face — se retourne avec lui, sinon le retournement
     ne ferait que déplacer la gêne. */
     const droite = this.ctrlSide === 'right';
-    /* LE CADRAN SE RANGE DANS UN COIN QUAND LA CAMÉRA PREND DE L'AVANCE.
-
-    Les vues « en avance » descendent la voiture en bas de l'écran — c'est tout leur objet, puisque
-    ce qui est libéré au-dessus d'elle est ce qu'on gagne à voir. Mais le bas du milieu n'était pas
-    libre : le cadran d'accélérateur s'y repose, et sa carte de vitesse monte jusqu'aux deux tiers de
-    la hauteur. Mesuré, la voiture passait DERRIÈRE. Le plafond de la caméra n'y pouvait rien, il
-    garde la voiture dans l'écran, pas devant le décor.
-
-    Au repos, il va donc attendre dans le coin opposé au levier — le seul endroit du bas que rien
-    n'occupe — et la colonne du milieu est libre jusqu'au bord. Ça ne change rien à la prise en
-    main : un pouce qui se pose ailleurs emmène le cadran avec lui, comme avant. Les deux vues
-    d'origine gardent le leur au milieu, là où il a toujours été. */
-    const coin = droite ? P.l + r * 1.02 : W - P.r - r * 1.02;
-    this.dialHome = { cx: this.avance ? coin : W / 2, cy: H - P.b - r * 0.46 };
-    this.dial = { cx: this.dialHome.cx, cy: this.dialHome.cy, r };
-    this.dialAnchored = false;
     const len = Math.min(H * 0.38, 320);
     this.slider = { x: droite ? W - P.r - 22 : P.l + 22, y: H - P.b - 30 - len, len, w: 30, droite };
     /* Les deux cadrans d'usure, en colonne au-dessus du levier.

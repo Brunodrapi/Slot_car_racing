@@ -481,17 +481,13 @@ Dans les vues « fixe », le nord reste en haut : la voiture se décale dans la 
 donc sa hauteur moyenne à l'écran reste 50 % par construction. C'est l'écart au centre qui dit si la
 caméra prend de l'avance — 36 % contre 5 % avant.
 
-#### Le cadran d'accélérateur se range dans un coin
+#### Le cadran d'accélérateur ne bouge pas
 
-Descendre la voiture en bas de l'écran ne sert à rien si quelque chose s'y trouve déjà. Le cadran
-d'accélérateur se repose en bas au centre, et sa carte de vitesse monte jusqu'aux deux tiers de la
-hauteur : mesurée, la voiture passait **derrière**. Le plafond de la caméra n'y pouvait rien, il
-garde la voiture dans l'écran, pas devant le décor.
-
-Dans les deux vues en avance, le cadran va donc attendre au repos dans le **coin opposé au levier de
-ligne** — le seul endroit du bas que rien n'occupe — et la colonne du milieu est libre jusqu'au bord.
-Ça ne change rien à la prise en main : un pouce qui se pose ailleurs emmène le cadran avec lui, comme
-avant. Les deux vues d'origine gardent le leur au milieu.
+Descendre la voiture en bas de l'écran la met derrière la carte de vitesse du cadran
+d'accélérateur, qui se repose en bas au centre et monte jusqu'aux deux tiers de la hauteur. Ranger
+le cadran dans un coin dans ces deux vues a été essayé et retiré : le cadran **suit le pouce**, donc
+le joueur le déplace lui-même s'il le gêne, et une commande qui change de place selon la caméra
+coûte plus qu'elle ne rend.
 
 #### Le plafond
 
