@@ -21,8 +21,8 @@ for (const f of ['util', 'traces', 'tracks', 'track', 'rails', 'cars', 'car', 'r
 src += `
 const VUES = [['track', 'dessus, orientée piste'], ['fixed', 'dessus, fixe'],
               ['avance', 'en avance, orientée piste'], ['avanceFixe', 'en avance, fixe'],
-              ['acp', 'A — cadrage optimal'], ['zoomGeo', 'B — zoom géométrique'],
-              ['rail', 'C — rail précalculé']];
+              ['acp', 'A — boîte englobante'], ['zoomGeo', 'B — zoom géométrique'],
+              ['rail', 'C — rail précalculé'], ['saut', 'D — saut de virage']];
 const W = 900, H = 1600;        // un téléphone en portrait : le cadrage le plus serré en largeur
 
 function essai(trackId, vue) {
@@ -32,10 +32,11 @@ function essai(trackId, vue) {
   const faux = {
     w: W, h: H, pullBack: 1, cam: { x: 0, y: 0, zoom: 6 }, camAngle: 0,
     avance: vue !== 'track' && vue !== 'fixed',
-    rotate: vue !== 'fixed' && vue !== 'avanceFixe',
-    acp: vue === 'acp', zoomGeo: vue === 'zoomGeo', rail: vue === 'rail',
+    rotate: vue === 'track' || vue === 'avance',
+    acp: vue === 'acp', zoomGeo: vue === 'zoomGeo', rail: vue === 'rail', saut: vue === 'saut',
     _surLigne: Renderer.prototype._surLigne, _capLigne: Renderer.prototype._capLigne,
-    _fenetre: Renderer.prototype._fenetre,
+    _fenetre: Renderer.prototype._fenetre, _zoomPour: Renderer.prototype._zoomPour,
+    _besoin: Renderer.prototype._besoin,
   };
   const maj = Renderer.prototype.updateCamera;
   let pireX = 0, pireY = 0, basse = 0, n = 0, vmaxVue = 0;

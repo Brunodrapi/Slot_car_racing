@@ -233,10 +233,17 @@ class Renderer {
     qu'un essai à l'aveugle dise laquelle vaut quelque chose. Elles ne se composent pas exprès :
     deux changements mesurés ensemble ne se départagent plus. */
     this.avance = view !== 'track' && view !== 'fixed';
-    this.rotate = view !== 'fixed' && view !== 'avanceFixe';
+    /* LES QUATRE ESSAIS TRAVAILLENT EN CIRCUIT FIXE, nord en haut.
+
+    Conséquence à connaître : en vue fixe, l'écran ne tourne pas, donc le cap calculé n'est utilisé
+    nulle part. Une idée de cadrage qui consiste à ORIENTER l'écran n'y a aucun degré de liberté —
+    il ne reste que le centre et le cadre. C'est ce qui a fait réécrire l'essai A. */
+    this.rotate = view === 'track' || view === 'avance';
     this.acp = view === 'acp';
     this.zoomGeo = view === 'zoomGeo';
     this.rail = view === 'rail';
+    this.saut = view === 'saut';
+    this.cam.zone = -1;
     this.cam.init = false;
     this.cam.mGeo = 0;
   }
@@ -914,6 +921,19 @@ class Renderer {
     return Math.atan2(b.y - a.y, b.x - a.x);
   }
 
+  /** Le zoom qui donne un cadre de `m` mètres : sur la hauteur si l'écran tourne, sinon sur le
+      petit côté — c'est la règle de cadrage du jeu, posée une fois pour que rien ne la redise. */
+  _zoomPour(m) { return (this.rotate ? this.h : Math.min(this.w, this.h)) / m; }
+
+  /** Le cadre qu'il faut pour loger `lat` mètres de part et d'autre en largeur et `av` en hauteur,
+      avec 18 % de marge au bord. Exprimé dans l'unité de cadre de `_zoomPour`. */
+  _besoin(lat, av) {
+    // `m` mesure la hauteur si l'écran tourne, le petit côté sinon : la demi-largeur vaut donc
+    // m·w/(2·réf) et la demi-hauteur m·h/(2·réf), avec `réf` la dimension que `m` mesure.
+    const ref = this.rotate ? this.h : Math.min(this.w, this.h);
+    return Math.max(2 * lat / 0.82 * ref / this.w, 2 * av / 0.82 * ref / this.h);
+  }
+
   /** Les points de la ligne idéale sur `D` mètres devant `s`, échantillonnés `N + 1` fois. */
   _fenetre(T, s, D, N) {
     const pts = [];
@@ -1006,37 +1026,28 @@ class Renderer {
       tx = sx / pts.length; ty = sy / pts.length;
       want = this._capLigne(T, p.s + D * 0.5, metres * 0.22);
 
-      /* A — LE CADRAGE OPTIMAL : l'axe principal du morceau à venir, pas sa tangente.
+      /* A — LE CADRAGE OPTIMAL : le centre de la BOÎTE, pas le centre de MASSE.
 
-      Le modèle derrière : un virage de rayon R s'écarte de sa TANGENTE de s²/2R, mais de sa CORDE
-      de s²/8R seulement — quatre fois moins. La distance qu'on voit devant croît donc comme la
-      racine de la largeur du cadre (d'où le rendement décroissant du dézoom), mais DOUBLE si on
-      aligne l'écran sur la corde plutôt que sur la tangente. C'est le cadrage, pas le zoom, qui a
-      de la marge.
+      L'idée de départ était d'orienter l'écran sur l'axe principal du morceau à venir. Deux choses
+      l'ont tuée. D'abord la mesure : l'axe principal ne s'écarte de la corde que de 0,1 à 1° en
+      médiane, parce que `_capLigne` prend déjà une corde et non une tangente — le gain théorique
+      était encaissé depuis la version d'avant, sans avoir été nommé. Ensuite le cahier des charges :
+      en circuit fixe l'écran ne tourne pas, donc une idée d'orientation n'a littéralement aucun
+      degré de liberté.
 
-      La corde d'un arc est bien ce que donne `_capLigne`, mais un enchaînement n'est pas un arc :
-      dans une chicane la tangente du milieu bascule d'un côté puis de l'autre alors que l'axe
-      d'ENSEMBLE ne bouge pas. On prend donc l'axe principal du nuage — la direction de plus grande
-      variance, celle qui minimise l'étalement latéral, c'est-à-dire exactement ce qui fait sortir
-      la piste du cadre. Trois sommes et un atan2.
-
-      BORNÉ À ±45° DE LA TANGENTE, et ce n'est pas de la prudence : dans une épingle, l'axe
-      principal est celui de l'épingle, et l'aligner sur la hauteur de l'écran ferait traverser la
-      route en travers. On y gagnerait des mètres vus et on y perdrait le contrat de la vue orientée
-      piste — la route monte vers le haut. La borne choisit le contrat. */
+      Ce qui reste quand on ne peut pas tourner, c'est OÙ l'on centre. Le barycentre est un centre de
+      masse : il est tiré par les endroits où les points se tassent, c'est-à-dire par les virages
+      lents, et il ignore l'étendue. Pour faire tenir quelque chose dans un cadre, le bon centre est
+      celui de sa BOÎTE ENGLOBANTE — à mi-chemin des extrêmes, dans chaque axe de l'écran. Un demi-
+      mètre de décalage sur une boîte de quatre-vingts mètres, c'est un mètre de marge gagné des deux
+      côtés à la fois. */
       if (this.acp) {
-        let axx = 0, axy = 0, ayy = 0;
+        let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
         for (const q of pts) {
-          const dx = q.x - tx, dy = q.y - ty;
-          axx += dx * dx; axy += dx * dy; ayy += dy * dy;
+          x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x);
+          y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y);
         }
-        let a = 0.5 * Math.atan2(2 * axy, axx - ayy);
-        // l'axe principal n'a pas de sens : on prend celui des deux qui va vers l'avant
-        if (Math.cos(a - want) < 0) a += Math.PI;
-        let da = a - want;
-        while (da > Math.PI) da -= 2 * Math.PI;
-        while (da < -Math.PI) da += 2 * Math.PI;
-        want += clamp(da, -Math.PI / 4, Math.PI / 4);
+        tx = (x0 + x1) / 2; ty = (y0 + y1) / 2;
       }
 
       /* B — LE ZOOM SUIT LA GÉOMÉTRIE, pas la vitesse.
@@ -1054,16 +1065,15 @@ class Renderer {
       pas le même prix : ouvrir en retard, c'est ne pas voir ; refermer en retard, c'est juste voir
       un peu large. Avec une bande morte, sinon le cadre respire sur chaque ondulation. */
       if (this.zoomGeo) {
-        const a = -want - Math.PI / 2, ca = Math.cos(a), sa = Math.sin(a);
+        // en circuit fixe les axes de l'écran sont ceux du monde : pas de rotation à appliquer
+        const a = this.rotate ? -want - Math.PI / 2 : 0, ca = Math.cos(a), sa = Math.sin(a);
         let lat = 0, av = 0;
         for (const q of pts) {
           const dx = q.x - tx, dy = q.y - ty;
           lat = Math.max(lat, Math.abs(dx * ca - dy * sa));
           av = Math.max(av, Math.abs(dx * sa + dy * ca));
         }
-        // le cadre vaut `metres` en hauteur et metres*w/h en largeur ; 0.82 laisse une marge au bord
-        const besoin = Math.max(2 * lat / 0.82 * this.h / this.w, 2 * av / 0.82);
-        const cible = clamp(Math.max(metres, besoin), metres, metres * 1.8);
+        const cible = clamp(Math.max(metres, this._besoin(lat, av)), metres, metres * 1.8);
         if (!this.cam.mGeo) this.cam.mGeo = cible;
         else if (Math.abs(cible - this.cam.mGeo) > this.cam.mGeo * 0.06)
           this.cam.mGeo += (cible - this.cam.mGeo) * Math.min(1, dt * (cible > this.cam.mGeo ? 4 : 0.8));
@@ -1072,7 +1082,7 @@ class Renderer {
         base — B finissait par ZOOMER là où il n'était censé que dézoomer. Le plancher est le cadre
         d'avant ; B n'a le droit que de l'ouvrir. */
         this.cam.mGeo = Math.max(this.cam.mGeo, metres);
-        zoomTarget = this.h / this.cam.mGeo;
+        zoomTarget = this._zoomPour(this.cam.mGeo);
         this.framing = this.cam.mGeo;
       }
 
@@ -1092,20 +1102,81 @@ class Renderer {
 
       Sans rail pour ce circuit, la vue retombe sur « en avance » sans rien dire : un réglage qui ne
       s'applique qu'à un circuit doit rester jouable sur les onze autres. */
+      /* D — LE SAUT DE VIRAGE : la caméra cadre LE PROCHAIN VIRAGE ET LA VOITURE, rien d'autre.
+
+      Les autres vues regardent « devant » — une longueur de piste, prise au mètre. Celle-ci regarde
+      un ÉVÉNEMENT : le prochain virage, du début à la fin, avec la voiture dans le même cadre. Tant
+      que la voiture est loin, le virage tient à peine dans l'écran et le cadre est au plus large ;
+      à mesure qu'elle s'en approche, la boîte à loger rétrécit et le cadre se resserre tout seul.
+      On n'a rien à régler pour obtenir ce zoom progressif : il tombe de la géométrie. Quand la
+      voiture sort du virage, la cible passe au suivant et le cadre se rouvre d'un coup.
+
+      LES VIRAGES SONT GROUPÉS PAR ÉVÉNEMENT (`zonesVirages`), pas pris un par un : une chicane est
+      trois virages dans les données et un seul geste pour le pilote. Cadrer le deuxième virage
+      d'une chicane sans le troisième n'aurait aucun sens.
+
+      LA VOITURE EST DANS LA BOÎTE, donc elle est toujours visible — pas par un plafond qui la
+      rattrape au bord, mais parce qu'elle fait partie de ce qu'on cadre. C'est la différence entre
+      « on l'empêche de sortir » et « on la cadre ».
+
+      LA BOÎTE EST TRONQUÉE AU PLAFOND DE CADRE. Sur la ligne droite de Monza le prochain virage est
+      à quatre cents mètres : tout cadrer ferait de la voiture un point. On avance donc le long du
+      tour tant que ça rentre, et on s'arrête quand ça déborde — le virage entre dans l'écran par le
+      haut au lieu d'y être écrasé.
+
+      LE PLAFOND EST À ×1,8, ET C'EST UN ARBITRAGE, pas une constante physique. Mesuré sur trois
+      circuits : ×1,6 montre 55 à 60 m, ×1,8 en montre 65, ×2,2 en montre 70 à 80 — mais à ×2,2 la
+      voiture ne fait plus que vingt-cinq pixels de large. La mesure de ce chapitre récompense le
+      dézoom sans jamais le payer ; l'œil, lui, le paie. ×1,8 est le point où la voiture reste une
+      voiture, et c'est un nombre à changer si l'essai dit le contraire. */
+      if (this.saut) {
+        if (!this._zones || this._zonesId !== T.id) { this._zones = T.zonesVirages(60); this._zonesId = T.id; }
+        const Z = this._zones;
+        if (Z.length) {
+          const fin = (z) => (((z.to % T.n) + T.n) % T.n) * T.ds;
+          // `diff(a, b)` vaut b − a : la distance qui RESTE jusqu'à la sortie est donc diff(s, fin)
+          const reste = (i) => T.diff(p.s, fin(Z[i]));
+          // la zone visée : la plus proche dont la sortie est encore devant nous
+          // `zone` peut être absente (caméra neuve) ou pointer hors d'un circuit plus court :
+          // on teste l'appartenance, pas une borne, sinon `undefined < 0` laisse passer.
+          const zi = this.cam.zone;
+          if (!(zi >= 0 && zi < Z.length) || reste(zi) < 0) {
+            let best = 0, bd = Infinity;
+            for (let i = 0; i < Z.length; i++) {
+              const d = reste(i);
+              if (d >= 0 && d < bd) { bd = d; best = i; }
+            }
+            this.cam.zone = best;
+          }
+          const plafond = metres * 1.8;
+          let x0 = pos.x, x1 = pos.x, y0 = pos.y, y1 = pos.y;
+          const total = Math.max(0, reste(this.cam.zone));
+          for (let d = 10; d <= total + 10; d += 10) {
+            const q = T.pos(T.wrap(p.s + Math.min(d, total)), 0);
+            const nx0 = Math.min(x0, q.x), nx1 = Math.max(x1, q.x);
+            const ny0 = Math.min(y0, q.y), ny1 = Math.max(y1, q.y);
+            if (this._besoin((nx1 - nx0) / 2, (ny1 - ny0) / 2) > plafond) break;
+            x0 = nx0; x1 = nx1; y0 = ny0; y1 = ny1;
+            if (d >= total) break;
+          }
+          tx = (x0 + x1) / 2; ty = (y0 + y1) / 2;
+          const m = clamp(this._besoin((x1 - x0) / 2, (y1 - y0) / 2), metres, plafond);
+          zoomTarget = this._zoomPour(m);
+          this.framing = m;
+        }
+      }
+
       const R = typeof RAILS !== 'undefined' ? RAILS[T.id] : null;
       if (this.rail && R) {
-        const nst = R.v.length / 5, u = T.wrap(p.s) / R.pas;
+        const nst = R.v.length / 4, u = T.wrap(p.s) / R.pas;
         const k0 = Math.floor(u) % nst, k1 = (k0 + 1) % nst, f = u - Math.floor(u);
-        const lire = (j) => R.v[k0 * 5 + j] + (R.v[k1 * 5 + j] - R.v[k0 * 5 + j]) * f;
-        const da = lire(0) / 1000, fm = lire(1) / 100, fl = lire(2) / 1000, av = lire(3) / 1000;
-        const mr = metres * fm;
-        want = this._capLigne(T, p.s, metres * 0.22) + da;
-        const ca = Math.cos(want), sa = Math.sin(want);
-        const lat = fl * mr * this.w / this.h;
+        const lire = (j) => R.v[k0 * 4 + j] + (R.v[k1 * 4 + j] - R.v[k0 * 4 + j]) * f;
+        const ex = lire(0) / 1000, ey = lire(1) / 1000, fm = lire(2) / 100;
+        const mr = metres * fm, ref = Math.min(this.w, this.h);
         const P = this._surLigne(T, p.s);
-        tx = P.x + ca * mr * av - sa * lat;
-        ty = P.y + sa * mr * av + ca * lat;
-        zoomTarget = this.h / mr;
+        tx = P.x + ex * mr * this.w / ref / 2;
+        ty = P.y + ey * mr * this.h / ref / 2;
+        zoomTarget = this._zoomPour(mr);
         this.framing = mr;
       }
     }

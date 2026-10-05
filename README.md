@@ -572,67 +572,73 @@ Deux erreurs de méthode, les deux du même genre — le banc ne voyait pas ce q
   devant**, qui est la fin. Les deux premières versions ont donc été jugées bonnes alors qu'elles ne
   montraient que trente mètres de piste.
 
-### Trois essais de caméra : A, B et C
+### Quatre essais de caméra, tous en circuit fixe
 
-Trois réglages de plus dans Vue, chacun une **variante de « en avance, orientée piste »** et une
-seule idée à la fois — deux changements mesurés ensemble ne se départagent plus. Ils viennent de
-l'état de l'art des caméras de jeux de course, et le résultat mesuré n'est pas celui qu'on attendait.
+Quatre réglages de plus dans Vue. Ils travaillent tous **en circuit fixe** — le nord reste en haut,
+l'écran ne tourne pas — et ne changent qu'une chose chacun, pour qu'un essai à l'aveugle les
+départage.
 
-Le modèle qui les motive : un virage de rayon `R` s'écarte de sa **tangente** de `s²/2R` et de sa
-**corde** de `s²/8R` seulement. La piste visible devant croît donc comme `√(R·W)` — d'où le rendement
-décroissant du dézoom, et d'où l'idée qu'il y aurait un facteur 2 à prendre dans le *cadrage*.
+Le choix du circuit fixe a une conséquence qu'il vaut mieux connaître : **l'écran ne tournant pas, le
+cap calculé n'est utilisé nulle part**. Une idée de cadrage qui consiste à *orienter* l'écran n'y a
+aucun degré de liberté ; il ne reste que le **centre** et le **cadre**. C'est ce qui a fait réécrire
+l'essai A, et recalculer le rail C de zéro.
 
-#### A — Cadrage optimal (axe principal)
+| Vue | Piste vue devant (médiane sur 12 circuits) |
+| --- | --- |
+| dessus, fixe | 20 m |
+| en avance, fixe | 35 – 40 m |
+| A — boîte englobante | 35 – 40 m |
+| B — zoom géométrique | 35 – 45 m |
+| C — rail (Monza) | 50 m sur Monza, repli ailleurs |
+| **D — saut de virage** | **60 – 75 m** |
 
-Au lieu du cap de la corde, l'**axe principal** du nuage de points de la ligne à venir : la direction
-de plus grande variance, celle qui minimise l'étalement latéral, donc celle qui fait tenir le plus de
-piste dans la largeur. Trois sommes et un `atan2`. Borné à ±45° de la corde, sinon dans une épingle
-l'axe principal est celui de l'épingle et la route traverserait l'écran au lieu d'y monter.
+#### A — Le centre de la boîte, pas le centre de masse
 
-**Résultat mesuré : rigoureusement aucun effet, sur les douze circuits.** L'écart entre l'axe
-principal et la corde est de **0,1° à 1° en médiane**, 2 à 7° au neuvième décile. La raison est
-simple et un peu vexante : `_capLigne` prend déjà une **corde**, pas une tangente. Le facteur 4 du
-modèle était donc encaissé depuis la version précédente, sans que ce soit nommé. Seul Monaco voit
-l'axe diverger pour de bon (76° au maximum), et c'est exactement le cas que la borne refuse.
+L'idée de départ était d'orienter l'écran sur l'**axe principal** du morceau à venir. Deux choses
+l'ont tuée. D'abord la mesure : l'axe principal ne s'écarte de la corde que de **0,1 à 1° en
+médiane** (2 à 7° au neuvième décile), parce que `_capLigne` prend déjà une *corde* et non une
+tangente — le facteur 4 du modèle (`s²/2R` contre `s²/8R`) était encaissé depuis la version d'avant,
+sans avoir été nommé. Ensuite le circuit fixe, qui supprime l'orientation comme paramètre.
+
+Ce qui reste quand on ne peut pas tourner, c'est **où l'on centre**. Le barycentre est un centre de
+masse : il est tiré par les endroits où les points se tassent, c'est-à-dire par les virages lents, et
+il ignore l'étendue. Pour faire tenir quelque chose dans un cadre, le bon centre est celui de sa
+**boîte englobante** — à mi-chemin des extrêmes, dans chaque axe de l'écran.
+
+**Mesuré : à égalité avec la référence, sur les douze circuits.**
 
 #### B — Le zoom suit la géométrie, pas la vitesse
 
 La vitesse n'est qu'un indice de ce qu'il y a à montrer ; la ligne, elle, est connue. On projette le
-morceau à venir dans le repère de l'écran et on demande le cadre qui le contient. Une longue courbe
-rapide s'ouvre, une épingle se resserre — pas parce qu'on roule vite, mais parce qu'il y a de
-l'étalement à loger. Anticipé par construction, puisque la fenêtre est *devant* la voiture : la
-caméra est déjà ouverte en entrant, ce qu'un zoom piloté par la vitesse ne peut pas faire.
+morceau à venir dans le repère de l'écran et on demande le cadre qui le contient. Anticipé par
+construction, puisque la fenêtre est *devant* la voiture : la caméra est déjà ouverte en entrant, ce
+qu'un zoom piloté par la vitesse ne peut pas faire.
 
 Lissage **asymétrique** — ouvrir vite (`k = 4`), refermer lentement (`k = 0,8`) — parce que les deux
 fautes n'ont pas le même prix : ouvrir en retard, c'est ne pas voir ; refermer en retard, c'est juste
-voir un peu large. Avec bande morte de 6 %, sinon le cadre respire sur chaque ondulation.
+voir un peu large. Bande morte de 6 %, sinon le cadre respire sur chaque ondulation. Et un plancher
+au cadre de la vitesse : sans lui, la bande morte plus le retour lent le laissaient *traîner* pendant
+que la vitesse montait, si bien que B finissait par **zoomer** là où il n'était censé que dézoomer.
 
-**Résultat : +5 m sur 4 circuits des 12, rien sur les 8 autres.** Le cadre s'ouvre jusqu'à ×1,38 là
-où il faut et reste à ×1,00 ailleurs, ce qui est le comportement voulu. C'est le seul des trois qui
-mesure quelque chose.
-
-Un défaut trouvé en route : la bande morte plus le retour lent laissaient le cadre *traîner* pendant
-que la vitesse montait, si bien qu'il tombait à ×0,96 du cadre de base — B finissait par **zoomer**
-là où il n'était censé que dézoomer. Le plancher est maintenant le cadre d'avant.
+**Mesuré : +5 m sur 5 circuits des 12, rien sur les autres.**
 
 #### C — Le rail précalculé (Monza)
 
     node tools/rail.js monza        → écrit js/rails.js
 
-Les deux idées précédentes choisissent la pose image par image : c'est glouton. Nos circuits sont
-figés et la ligne idéale aussi, donc on peut résoudre **hors ligne**. `tools/rail.js` cherche, pour
-chaque station de dix mètres, la pose qui montre le plus de piste devant — par énumération sur
-l'orientation, le cadre, le décalage latéral et l'avance, soit douze mille poses par station — puis
-lisse le résultat sur le tour entier, en anneau. La douceur n'est plus l'affaire d'un filtre qui
-court après sa cible : elle est posée dans les données, et se vérifie en degrés par mètre.
+Les autres idées choisissent la pose image par image : c'est glouton. Nos circuits sont figés et la
+ligne idéale aussi, donc on peut résoudre **hors ligne**. `tools/rail.js` cherche, pour chaque
+station de dix mètres, la pose qui montre le plus de piste devant — par énumération sur le cadre et
+le décalage en x et en y, soit plus de mille poses par station — puis lisse le résultat sur le tour
+entier, en anneau. La douceur n'est plus l'affaire d'un filtre qui court après sa cible : elle est
+posée dans les données, et se vérifie en pour-cent d'écran par mètre.
 
 Le rail est calculé à la **vitesse de référence** du circuit, celle du profil qui sert au guide de
-freinage. Ses trois nombres sont des proportions — un écart de cap, un multiple de cadre, un décalage
-en fraction d'écran — donc ils se transposent sur le cadre de la vitesse réelle. Sans rail pour un
-circuit, la vue retombe sur « en avance » sans rien dire.
+freinage. Ses trois nombres sont des proportions, donc ils se transposent sur le cadre de la vitesse
+réelle. Sans rail pour un circuit, la vue retombe sur « en avance, fixe » sans rien dire.
 
-Trois erreurs d'objectif, toutes du même genre — l'optimiseur obéissait à ce qu'on lui demandait, pas
-à ce qu'on voulait :
+Trois erreurs d'objectif avant la bonne, toutes du même genre — l'optimiseur obéissait à ce qu'on lui
+demandait, pas à ce qu'on voulait :
 
 - **« Voir le plus loin possible »** a produit un rail dézoomé à fond partout : à cinq mètres de vue
   près, ouvrir le cadre ne coûtait rien. C'était devenu une caméra large, c'est-à-dire la piste au
@@ -645,25 +651,44 @@ Trois erreurs d'objectif, toutes du même genre — l'optimiseur obéissait à c
   optimiseur ne vaut que par son espace de recherche, et le plus sûr moyen de ne jamais régresser est
   d'y mettre ce qu'on a déjà.
 
-Et le lissage initial — quatre passes sur quarante mètres — effaçait l'optimum au lieu de l'adoucir :
-à l'échelle d'une chicane, c'est une moyenne sur tout le virage. Ramené à une passe sur dix mètres,
-avec la douceur **mesurée** (0,9 °/m au pire, que le filtre d'exécution absorbe) plutôt que supposée.
+Combien lisser a été posé au banc, pas tranché au jugé : de une passe sur dix mètres à trois passes
+sur trente, la piste vue **ne bouge pas d'un mètre** pendant que l'agitation tombe de 101 à 41 % d'écran
+par seconde. Le lissage est gratuit ici, on en prend donc autant qu'il en donne.
 
-**Résultat hors ligne sur Monza : 60 → 65 m en médiane, 50 → 50 m au dixième centile.** Et au banc,
-voiture pilotée : **aucun écart mesurable**. Monza est le plus ouvert des douze (rayon au dixième
-centile : 56 m, contre 19 à Monaco), donc le circuit où il y avait le moins à gagner — c'est celui
-qui a été demandé. L'outil prend n'importe quel circuit en argument.
+**Mesuré sur Monza : 45 → 60 m en médiane hors ligne, 40 → 50 m au banc avec une voiture pilotée.**
+La version tournée du même rail ne donnait rien ; la vue fixe, elle, a de la marge, parce qu'elle ne
+peut pas présenter le virage et doit le loger tel qu'il se présente.
 
-#### Ce que les trois essais apprennent
+#### D — Le saut de virage
 
-Le facteur 2 annoncé dans le cadrage n'existait plus : il avait déjà été pris, sans être nommé, le
-jour où le cap est passé de la tangente à la corde. Ce qui reste accessible tient au cadre — c'est-à-
-dire à la racine — et B le prend là où il y en a, cinq mètres sur un tiers des circuits.
+Les autres vues regardent « devant » — une longueur de piste, prise au mètre. Celle-ci regarde un
+**événement** : le prochain virage, du début à la fin, avec la voiture dans le même cadre.
 
-La mesure de ce chapitre est d'ailleurs **pessimiste** : `vu` s'arrête à la *première* sortie de
-cadre, donc un virage qui mord un coin de l'écran puis revient compte court alors qu'on l'aurait vu.
-Elle pénalise surtout la vue fixe. Les trois essais restent dans les réglages parce que le ressenti
-n'est pas cette métrique — mais c'est elle qui tranche les chiffres annoncés.
+Tant que la voiture est loin, le virage tient à peine dans l'écran et le cadre est au plus large ; à
+mesure qu'elle s'en approche, la boîte à loger rétrécit et **le cadre se resserre tout seul**. Il n'y
+a rien à régler pour obtenir ce zoom progressif : il tombe de la géométrie. Quand la voiture sort du
+virage, la cible passe au suivant et le cadre se rouvre d'un coup.
+
+- **Les virages sont groupés par événement** (`Track.zonesVirages`), pas pris un par un : une chicane
+  est trois virages dans les données et un seul geste pour le pilote. Ce découpage servait déjà aux
+  panneaux de freinage ; il a été sorti en méthode plutôt que dupliqué, parce que deux découpages qui
+  doivent dire la même chose finissent toujours par diverger.
+- **La voiture est dans la boîte**, donc toujours visible — pas parce qu'un plafond la rattrape au
+  bord, mais parce qu'elle fait partie de ce qu'on cadre. C'est la différence entre « on l'empêche de
+  sortir » et « on la cadre ».
+- **La boîte est tronquée au plafond de cadre.** Sur la ligne droite de Monza le prochain virage est
+  à quatre cents mètres : tout cadrer ferait de la voiture un point. On avance donc le long du tour
+  tant que ça rentre et on s'arrête quand ça déborde, si bien que le virage entre dans l'écran par le
+  haut au lieu d'y être écrasé.
+
+**Mesuré : 60 à 75 m sur les douze circuits, soit le double de « en avance, fixe ».** C'est de loin
+le meilleur des quatre sur cette mesure.
+
+Le plafond de dézoom est à **×1,8**, et c'est un arbitrage, pas une constante : ×1,6 montre 55 à
+60 m, ×1,8 en montre 65, ×2,2 en montre 70 à 80 — mais à ×2,2 la voiture ne fait plus que vingt-cinq
+pixels de large. **La mesure de ce chapitre récompense le dézoom sans jamais le payer ; l'œil, lui,
+le paie.** C'est la limite à garder en tête en lisant tout le tableau ci-dessus : `vu` s'arrête à la
+première sortie de cadre et ne sait rien de la lisibilité.
 
 ### Télémétrie (touche `G`, ou réglages)
 

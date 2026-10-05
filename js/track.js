@@ -353,10 +353,15 @@ class Track {
   //
   // Corners are first grouped into braking zones: a chicane or a set of esses is one thing to
   // brake for, not three, and boarding each of its corners would only clutter the approach.
-  _brakingBoards() {
-    const N = this.n, out = [];
-    if (!this.corners.length) return out;
-    const GAP = 60;                    // straight below this and the corners are the same zone
+  /* LES ZONES DE VIRAGE : les virages groupés par événement, pas un par un.
+
+  Une chicane est trois virages dans `corners` et un seul geste pour le pilote. On les regroupe donc
+  dès que la ligne droite qui les sépare est courte. Ce découpage servait déjà aux panneaux de
+  freinage ; il est sorti ici parce que la caméra « saut de virage » en a besoin elle aussi, et deux
+  découpages qui doivent dire la même chose finissent toujours par diverger. */
+  zonesVirages(GAP) {
+    const N = this.n;
+    if (!this.corners.length) return [];
     const zones = [];
     for (const c of this.corners) {
       let peak = 0;
@@ -373,6 +378,14 @@ class Track {
       const a = zones[zones.length - 1], b = zones[0];
       if ((b.from + N - a.to) * this.ds < GAP) { b.from = a.from - N; b.peak = Math.max(b.peak, a.peak); zones.pop(); }
     }
+    return zones;
+  }
+
+  _brakingBoards() {
+    const N = this.n, out = [];
+    if (!this.corners.length) return out;
+    const GAP = 60;                    // straight below this and the corners are the same zone
+    const zones = this.zonesVirages(GAP);
     const inAZone = (i) => zones.some(z => {
       const a = ((z.from % N) + N) % N, b = ((z.to % N) + N) % N;
       return a <= b ? (i >= a && i <= b) : (i >= a || i <= b);

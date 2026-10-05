@@ -41,12 +41,16 @@ const capLigne = (s, pas) => {
 /* CE QU'UNE POSE MONTRE : on avance le long du tour depuis la voiture, par pas de cinq mètres,
 jusqu'à sortir du cadre. C'est la mesure du banc, à l'identique — sinon on optimiserait une chose
 et on en mesurerait une autre. */
-function vue(s0, cx, cy, ang, m) {
-  const zoom = H / m, a = -ang - Math.PI / 2, ca = Math.cos(a), sa = Math.sin(a);
+/* LE RAIL EST CALCULÉ EN CIRCUIT FIXE : le nord reste en haut, donc l'écran ne tourne pas et
+l'orientation n'est plus un paramètre. Il ne reste que le CENTRE et le CADRE — c'est tout ce qu'une
+vue fixe offre, et c'est aussi ce qui la rend plus difficile : on ne peut pas présenter le virage, il
+faut le loger tel qu'il se présente. Le cadre se mesure sur le petit côté de l'écran, comme la vue
+fixe du jeu. */
+function vue(s0, cx, cy, m) {
+  const zoom = Math.min(W, H) / m;
   for (let d = 5; d <= 400; d += 5) {
     const q = T.pos(T.wrap(s0 + d), 0);
-    const u = (q.x - cx) * zoom, v = (q.y - cy) * zoom;
-    const qx = u * ca - v * sa, qy = u * sa + v * ca;
+    const qx = (q.x - cx) * zoom, qy = (q.y - cy) * zoom;
     if (Math.abs(qx) >= W / 2 || Math.abs(qy) >= H / 2) return d - 5;
   }
   return 400;
@@ -62,11 +66,10 @@ function vue(s0, cx, cy, ang, m) {
 L'avance longitudinale n'est pas cherchée : elle est DÉDUITE du cadre, de façon à poser la voiture
 à 88 % de la hauteur. C'est le réglage que l'essai a déjà tranché, et le laisser libre aurait surtout
 servi à le faire dériver d'une station à l'autre. */
-const ANGS = [], MS = [], LATS = [], AVS = [];
-for (let i = -15; i <= 15; i++) ANGS.push(i * Math.PI / 60);        // ±45° par 3°
+const MS = [], EX = [], EY = [];
 for (let i = 0; i <= 6; i++) MS.push(1 + i * 0.1);                  // ×1 à ×1,6
-for (let i = -5; i <= 5; i++) LATS.push(i * 0.10);                  // ±50 % de la demi-largeur
-for (let i = 0; i <= 5; i++) AVS.push(0.20 + i * 0.044);            // voiture de 70 % à 92 %
+for (let i = -6; i <= 6; i++) EX.push(i * 0.08);                    // ±48 % de la demi-largeur
+for (let i = -6; i <= 6; i++) EY.push(i * 0.08);                    // ±48 % de la demi-hauteur
 
 const n = Math.round(T.length / PAS);
 const rail = [];
@@ -76,13 +79,13 @@ for (let k = 0; k < n; k++) {
   const i = T.idx(s);
   const vref = race.profiles.racing[i];
   const vfr = Math.min(1, vref / VMAX);
-  const base = (30 + 45 * vfr) * 1.35;
-  const P = surLigne(s), cap = capLigne(s, base * 0.22);
-  let cible = 0;                 // posée juste après, une fois la référence mesurée
+  const base = (20 + 30 * vfr) * 1.35;          // le cadre de la vue FIXE, pas celui de la tournée
+  const P = surLigne(s);
+  let cible = 0;
   let best = null;
-  const juge = (da, fm, fl, av, cx, cy) => {
-    const ang = cap + da, m = base * fm;
-    const v = vue(s, cx, cy, ang, m);
+  const juge = (fm, ex, ey, cx, cy) => {
+    const m = base * fm;
+    const v = vue(s, cx, cy, m);
     /* L'OBJECTIF EST « VOIR ASSEZ, LE PLUS SERRÉ POSSIBLE », pas « voir le plus loin ».
 
     Première version : maximiser la piste vue. Le rail est sorti dézoomé à fond partout — à 5 m de
@@ -90,61 +93,38 @@ for (let k = 0; k < n; k++) {
     devenu une caméra large, c'est-à-dire précisément la piste au rendement décroissant qu'on
     cherchait à éviter, obtenue par un détour de deux cents lignes.
 
-    On vise donc un PRÉAVIS EN TEMPS, qui est la vraie monnaie : une seconde et demie de piste à la
-    vitesse de référence de cette station. Dès qu'une pose l'atteint, on prend la plus serrée, la
-    moins tournée, la moins décalée. Le cadre ne s'ouvre que là où le cadrage seul n'y arrive pas,
-    et c'est exactement ce qu'on voulait savoir : où. */
+    Deuxième version : un préavis en temps comme cible. L'inverse — la cible atteinte, le solveur ne
+    regardait plus la vue du tout et troquait quinze mètres de piste contre un cadre un cran plus
+    serré. La cible est donc AU MOINS CE QUE LA CAMÉRA ACTUELLE DONNE, mesuré station par station,
+    en plus du préavis d'une seconde et demie. */
     const score = v >= cible
-      ? 1e6 - fm * 1e4 - Math.abs(da) * 3e3 - Math.abs(fl) * 2e3
+      ? 1e6 - fm * 1e4 - Math.abs(ex) * 2e3 - Math.abs(ey) * 2e3
       : v * 100 - fm * 10;
-    if (!best || score > best.score) best = { score, da, fm, fl, av, v };
+    if (!best || score > best.score) best = { score, fm, ex, ey, v };
   };
 
   /* LA POSE D'AUJOURD'HUI EST DANS L'ENSEMBLE DE DÉPART, et ce n'est pas un détail.
 
   Sans elle, la recherche peut rendre MOINS que la caméra qu'elle remplace : c'est arrivé, de dix à
-  vingt mètres aux stations dures, parce que le barycentre d'un virage tombe à un endroit que mon
-  paramétrage (avance le long de l'axe + décalage latéral) n'atteignait pas. Un optimiseur ne vaut
-  que par son espace de recherche, et le plus sûr moyen de ne jamais régresser est d'y mettre ce
-  qu'on a déjà. Le rail ne peut donc être pire qu'à égalité, avant lissage. */
+  vingt mètres aux stations dures. Un optimiseur ne vaut que par son espace de recherche, et le plus
+  sûr moyen de ne jamais régresser est d'y mettre ce qu'on a déjà. */
   {
-    const D = base * 0.90, N = 12;
+    const D = base * (0.24 + 0.40 * vfr), N = 12;     // la fenêtre de la vue « en avance, fixe »
     let bx = 0, by = 0;
     for (let j = 0; j <= N; j++) { const q = surLigne(s + D * j / N); bx += q.x; by += q.y; }
     bx /= N + 1; by /= N + 1;
-    const angR = capLigne(s + D / 2, base * 0.22);
-    const a = -angR - Math.PI / 2, ca = Math.cos(a), sa = Math.sin(a);
-    let ex = (bx - P.x) * ca - (by - P.y) * sa, ey = (bx - P.x) * sa + (by - P.y) * ca;
-    const demi = base / 2, demiL = base * W / H / 2;
-    ex = Math.max(-demiL * 0.72, Math.min(demiL * 0.72, ex));
-    ey = Math.max(-demi * 0.62, Math.min(demi * 0.30, ey));
-    refs.push({ ang: angR, m: base, x: P.x + ex * ca + ey * sa, y: P.y - ex * sa + ey * ca });
-    let dr = angR - cap;
-    while (dr > Math.PI) dr -= 2 * Math.PI;
-    while (dr < -Math.PI) dr += 2 * Math.PI;
-    /* LA CIBLE EST « AU MOINS CE QUE LA CAMÉRA ACTUELLE DONNE ».
-
-    Avec un simple préavis en temps, le solveur faisait pire que ce qu'on a : la cible atteinte, il
-    ne regardait plus la vue du tout et troquait quinze mètres de piste contre un cadre un cran plus
-    serré, qui ne rapporte rien à personne. Une cible n'est un plancher que si elle est posée au
-    niveau du plancher réel. On mesure donc d'abord la pose d'aujourd'hui, et on exige au moins ça,
-    en plus du préavis d'une seconde et demie. */
-    cible = Math.max(vue(s, refs[k].x, refs[k].y, angR, base), Math.min(100, 1.5 * vref));
-    juge(dr, 1, ex / demiL / 2, -ey / base, refs[k].x, refs[k].y);
+    const demiL = base * W / Math.min(W, H) / 2, demiH = base * H / Math.min(W, H) / 2;
+    let ex = Math.max(-demiL * 0.56, Math.min(demiL * 0.56, bx - P.x));
+    let ey = Math.max(-demiH * 0.56, Math.min(demiH * 0.56, by - P.y));
+    refs.push({ m: base, x: P.x + ex, y: P.y + ey });
+    cible = Math.max(vue(s, refs[k].x, refs[k].y, base), Math.min(100, 1.5 * vref));
+    juge(1, ex / demiL, ey / demiH, refs[k].x, refs[k].y);
   }
 
-  for (const da of ANGS) {
-    const ang = cap + da, ca = Math.cos(ang), sa = Math.sin(ang);
-    for (const fm of MS) {
-      const m = base * fm, demiL = m * W / H / 2;
-      for (const av of AVS) {
-        const d = m * av;
-        for (const fl of LATS) {
-          const lat = fl * demiL * 2;
-          juge(da, fm, fl, av, P.x + ca * d - sa * lat, P.y + sa * d + ca * lat);
-        }
-      }
-    }
+  for (const fm of MS) {
+    const m = base * fm;
+    const demiL = m * W / Math.min(W, H) / 2, demiH = m * H / Math.min(W, H) / 2;
+    for (const ex of EX) for (const ey of EY) juge(fm, ex, ey, P.x + ex * demiL, P.y + ey * demiH);
   }
   rail.push(best);
 }
@@ -169,14 +149,16 @@ const lisse = (champ, passes, demi) => {
 soit une moyenne sur trente à quarante mètres — à l'échelle d'une chicane, ça efface l'optimum au
 lieu de l'adoucir, et le rail lissé rendait moins que la caméra d'aujourd'hui dans les cas durs,
 qui sont justement ceux qu'il devait traiter. */
-/* Une passe sur dix mètres, pas quatre sur quarante. Mesuré : à ±3 ou ±4 stations, la moyenne
-efface l'optimum au lieu de l'adoucir — le rail lissé rendait moins que la caméra d'aujourd'hui aux
-stations dures, qui sont justement celles qu'il devait traiter. La douceur se vérifie plus bas, en
-degrés par mètre, au lieu de se supposer. */
-lisse('da', 1, 1);
-lisse('fm', 1, 2);
-lisse('fl', 1, 1);
-lisse('av', 1, 1);
+/* COMBIEN LISSER : la question a été posée au banc, pas tranchée au jugé.
+
+De une passe sur dix mètres à trois passes sur trente, la piste vue ne bouge PAS d'un mètre — ni en
+médiane, ni au dixième centile, ni au pire — pendant que l'agitation tombe de 101 à 41 % d'écran par
+seconde. Le lissage est donc gratuit ici, et on en prend autant qu'il en donne. (En vue tournée,
+où le rail portait aussi un cap, il ne l'était pas : quatre passes sur quarante mètres y effaçaient
+l'optimum au lieu de l'adoucir, à l'échelle d'une chicane.) */
+lisse('fm', 3, 4);
+lisse('ex', 3, 3);
+lisse('ey', 3, 3);
 
 // ce que le rail lissé montre vraiment : on remesure, sinon on publierait le score de l'optimum
 // brut, qui n'est plus celui qu'on joue
@@ -185,11 +167,11 @@ let pireA = 400;
 for (let k = 0; k < n; k++) {
   const s = k * PAS, r = rail[k];
   const i = T.idx(s), vfr = Math.min(1, race.profiles.racing[i] / VMAX);
-  const base = (30 + 45 * vfr) * 1.35, m = base * r.fm;
-  const P = surLigne(s), cap = capLigne(s, base * 0.22), ang = cap + r.da;
-  const ca = Math.cos(ang), sa = Math.sin(ang), d = m * r.av, lat = r.fl * m * W / H;
-  r.vue = vue(s, P.x + ca * d - sa * lat, P.y + sa * d + ca * lat, ang, m);
-  vuesA.push(vue(s, refs[k].x, refs[k].y, refs[k].ang, refs[k].m));
+  const base = (20 + 30 * vfr) * 1.35, m = base * r.fm;
+  const P = surLigne(s);
+  const demiL = m * W / Math.min(W, H) / 2, demiH = m * H / Math.min(W, H) / 2;
+  r.vue = vue(s, P.x + r.ex * demiL, P.y + r.ey * demiH, m);
+  vuesA.push(vue(s, refs[k].x, refs[k].y, refs[k].m));
   vuesB.push(r.vue);
   pireA = Math.min(pireA, r.vue);
 }
@@ -206,22 +188,22 @@ console.log('  vue devant, au pire   : ' + Math.min(...vuesA) + ' m  ->  ' + pir
 }
 console.log('  cadre   : ×' + Math.min(...rail.map((r) => r.fm)).toFixed(2) + ' à ×' + Math.max(...rail.map((r) => r.fm)).toFixed(2));
 {
-  let dmax = 0, mmax = 0;
+  let emax = 0, mmax = 0;
   for (let k = 0; k < n; k++) {
     const a = rail[k], b = rail[(k + 1) % n];
-    dmax = Math.max(dmax, Math.abs(b.da - a.da) / PAS);
+    emax = Math.max(emax, Math.hypot(b.ex - a.ex, b.ey - a.ey) / PAS);
     mmax = Math.max(mmax, Math.abs(b.fm - a.fm) / PAS);
   }
-  // la douceur se mesure : à 60 m/s, x °/m fait 60x °/s de rotation ajoutée
-  console.log('  douceur : ' + (dmax * 180 / Math.PI).toFixed(2) + ' °/m au pire ('
-    + (dmax * 180 / Math.PI * 60).toFixed(0) + ' °/s à 60 m/s), cadre ' + (mmax * 100).toFixed(2) + ' %/m');
+  // la douceur se mesure : en fraction d'écran par mètre parcouru, puis par seconde à 60 m/s
+  console.log('  douceur : ' + (emax * 100).toFixed(2) + ' % d écran par m ('
+    + (emax * 100 * 60).toFixed(0) + ' %/s à 60 m/s), cadre ' + (mmax * 100).toFixed(2) + ' %/m');
 }
-console.log('  rotation: ' + (Math.max(...rail.map((r) => Math.abs(r.da))) * 180 / Math.PI).toFixed(0) + '° au plus loin de la corde');
+console.log('  décalage: ' + (Math.max(...rail.map((r) => Math.hypot(r.ex, r.ey))) * 100).toFixed(0) + ' % de demi-écran au plus loin');
 
 // quatre nombres par station : écart de cap (millièmes de radian), cadre (centièmes), décalage
 // latéral (millièmes), et la vue obtenue (mètres, pour la documentation seulement)
 const plat = [];
-for (const r of rail) plat.push(Math.round(r.da * 1000), Math.round(r.fm * 100), Math.round(r.fl * 1000), Math.round(r.av * 1000), r.vue);
+for (const r of rail) plat.push(Math.round(r.ex * 1000), Math.round(r.ey * 1000), Math.round(r.fm * 100), r.vue);
 SORTIE.js = 'RAILS.' + ID + " = { pas: " + PAS + ", v: [" + plat.join(',') + "] };\\n";
 `;
 const SORTIE = { js: '', code: 0 };
@@ -237,10 +219,10 @@ const ENTETE = `'use strict';
    node tools/rail.js <circuit>
 
 Pour chaque station du tour, la pose de caméra qui montre le plus de piste devant, cherchée hors
-ligne et lissée sur le tour entier. Cinq nombres par station : écart de cap à la corde de la ligne
-idéale (en millièmes de radian), cadre en multiples de celui que donnerait la vitesse (en
-centièmes), décalage latéral (en millièmes de la largeur de l'écran), avance de la caméra (en
-millièmes du cadre) et la piste vue obtenue (en mètres, pour la documentation). Voir le README, « Le rail de caméra ». */
+ligne et lissée sur le tour entier. Calculé EN CIRCUIT FIXE, donc sans orientation : il ne
+reste que le centre et le cadre. Quatre nombres par station : décalage de la caméra en x et en y
+(en millièmes de demi-écran, axes du monde), cadre en multiples de celui que donnerait la vitesse
+(en centièmes), et la piste vue obtenue (en mètres, pour la documentation). Voir le README, « Le rail de caméra ». */
 const RAILS = {};
 `;
 const dest = path.join(R, 'js', 'rails.js');
