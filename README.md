@@ -765,6 +765,18 @@ Le marquage est dimensionné sur la **largeur de la piste**, jamais en mètres f
 étroite de Monaco et la ligne droite du Mans n'ont pas la même échelle, et une taille constante
 déborderait sur l'une en disparaissant sur l'autre.
 
+#### Un marquage sans chiffre
+
+Quand deux virages s'enchaînent, le second est à moins de cinquante mètres du premier : annoncer une
+distance y serait faux, et l'arrondir à 50 mentirait. L'indication se réduit alors à ce qu'elle a de
+vrai — **le sens et la sévérité**, rien d'autre — et le marquage **se resserre autour de la flèche**
+au lieu de garder un vide là où le chiffre aurait dû être. Un blanc réservé à rien se lit comme un
+défaut.
+
+Dans les données c'est une distance de **zéro**, plutôt que `null` : la liste voyage en tableau de
+nombres jusque dans `tracks.js`, et un panneau qui annoncerait vraiment « 0 m » n'a aucun sens, donc
+la valeur est libre.
+
 Les notes vont de **6** (à peine un décroché) à **1** (extrêmement fermé), avec un dégradé du vert
 au rouge, plus trois virages nommés qui ont leur propre dessin et leurs initiales, comme sur une
 charte de copilote :
@@ -929,7 +941,8 @@ glyphe approchant aurait coûté moins cher et aurait menti : on règle une anno
 et deux dessins différents divergent au premier changement.
 
 Toucher un panneau l'ouvre : **sens** (gauche / droite), **intensité** (1 à 6, ou SQ, HP, AC, CH) et
-**valeur** (200, 100, 50 m), plus un bouton pour le supprimer et un autre pour en ajouter. Le toucher
+**valeur** (200, 100, 50 m, ou **« — »** pour n'afficher que la flèche quand le virage suivant est à
+moins de cinquante mètres), plus un bouton pour le supprimer et un autre pour en ajouter. Le toucher
 **déplie le tiroir** et fait glisser la vue juste assez pour que le panneau choisi reste au-dessus de
 lui : sans ça, le panneau s'entourait bien de vert et ses réglages restaient cachés dessous — un
 choix sans suite n'est pas un choix. Le banc le vérifie à l'écran et pas seulement dans le document,
@@ -970,10 +983,11 @@ que rien ne proteste. La fiche affiche donc `annoncé 100 m · réel 83 m (−17
 sorti en méthode plutôt que dupliqué) : vérifier une annonce contre une autre définition que celle
 qui l'a produite ne vérifierait rien.
 
-`tools/e2e-mesure.js` conduit la page et mesure les quatre : que le viseur se pose là où le doigt
+`tools/e2e-mesure.js` conduit la page et mesure l'ensemble : que le viseur se pose là où le doigt
 touche et pas ailleurs, qu'un appui qui glisse déplace la carte sans rien poser, que « +10 m »
 déplace de dix mètres et non de dix stations, que l'aller et le retour de la règle font le tour
-complet, et que la corde est forcément plus courte que le trajet.
+complet, que la corde est forcément plus courte que le trajet — et que la valeur vide survit à
+l'aller-retour par le fichier, c'est-à-dire que le jeu relit ce zéro sans en faire un `NaN`.
 
 **La chicane est une forme, pas une sévérité.** Les six chiffres disent « plus ou moins serré » ; une
 chicane dit « d'un côté puis de l'autre », ce qui n'est pas la même question. Elle a donc son glyphe

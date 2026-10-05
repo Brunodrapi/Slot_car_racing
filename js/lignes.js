@@ -75,7 +75,11 @@ const NOM_NOTE = { square: 'SQ · à angle droit', hairpin: 'HP · épingle', ac
    parle pour une courbe qui va des deux côtés. */
 const SENS_NOM = { '-1': 'gauche', 1: 'droite' };
 const SENS_CHICANE = { '-1': 'gauche-droite', 1: 'droite-gauche' };
-const DISTANCES = [200, 100, 50];
+/* LA QUATRIÈME VALEUR EST L'ABSENCE DE VALEUR. Deux virages qui s'enchaînent sont à moins de
+   cinquante mètres : annoncer une distance y serait faux, l'arrondir à 50 mentirait. Zéro note
+   « sans chiffre », et l'indication se réduit alors au sens et à la sévérité. */
+const DISTANCES = [200, 100, 50, 0];
+const NOM_DIST = { 0: '—' };
 const TACTILE = matchMedia('(pointer: coarse)').matches;
 const VISEE = TACTILE ? 22 : 12;   // le rayon de visée, en pixels : un doigt n'est pas un curseur
 
@@ -338,6 +342,9 @@ function verifPanneau(b) {
     if (d < best) best = d;
   }
   const reel = best * T.ds;
+  // sans annonce il n'y a rien à comparer, mais la distance réelle reste ce qu'on veut savoir :
+  // c'est elle qui dit si « sans chiffre » était le bon choix
+  if (!(b.dist > 0)) return `sans chiffre · virage à ${reel.toFixed(0)} m`;
   const ecart = reel - b.dist;
   const signe = ecart >= 0 ? '+' : '−';
   return `annoncé ${b.dist} m · réel ${reel.toFixed(0)} m (${signe}${Math.abs(ecart).toFixed(0)})`;
@@ -372,15 +379,20 @@ function dessinerPanneau(b, choisi) {
   ctx.lineWidth = choisi ? 3 : 1.4;
   ctx.strokeStyle = choisi ? '#7ed321' : '#11141c';
   ctx.stroke();
-  Renderer.paceArrow(ctx, { x: 0, y: -H * 0.24, w: W * 0.78, h: H * 0.40 }, spec, b.sign > 0 ? 1 : -1);
+  // sans chiffre, la flèche se recentre — comme le marquage qu'elle représente
+  const chiffre = b.dist > 0;
+  Renderer.paceArrow(ctx, { x: 0, y: H * (chiffre ? -0.24 : -0.06), w: W * 0.78, h: H * (chiffre ? 0.40 : 0.52) },
+    spec, b.sign > 0 ? 1 : -1);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#11141c';
-  ctx.font = `bold ${Math.round(W * 0.31)}px "Trebuchet MS", sans-serif`;
-  ctx.fillText(String(b.dist), 0, H * 0.30);
+  if (chiffre) {
+    ctx.fillStyle = '#11141c';
+    ctx.font = `bold ${Math.round(W * 0.31)}px "Trebuchet MS", sans-serif`;
+    ctx.fillText(String(b.dist), 0, H * 0.30);
+  }
   if (spec.tag) {
     ctx.fillStyle = spec.col;
     ctx.font = `bold ${Math.round(W * 0.19)}px "Trebuchet MS", sans-serif`;
-    ctx.fillText(spec.tag, 0, H * 0.06);
+    ctx.fillText(spec.tag, 0, H * (chiffre ? 0.06 : 0.33));
   }
   ctx.restore();
 }
@@ -1021,7 +1033,8 @@ for (const [liste, ou] of [[CHIFFRES, 'noteP'], [NOMMES, 'noteNom']]) {
 for (const d of DISTANCES) {
   const b = document.createElement('button');
   b.dataset.dist = String(d);
-  b.textContent = d + ' m';
+  b.textContent = NOM_DIST[d] || (d + ' m');
+  if (!d) b.title = 'sans chiffre : seulement la flèche';
   b.addEventListener('click', () => changerP('dist', d));
   $('distP').appendChild(b);
 }

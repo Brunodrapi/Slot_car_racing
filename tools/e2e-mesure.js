@@ -88,6 +88,29 @@ const { chromium } = require('playwright');
   const m = /réel (\d+) m/.exec(verif);
   dire(!!m && Math.abs(+m[1] - 100) <= 2, 'l’annonce est comparée à la vraie distance', verif);
 
+  // --- la valeur vide : seulement la flèche, et la liste l'enregistre ---
+  const vide = await page.evaluate(() => {
+    document.querySelector('#distP [data-dist="0"]').click();
+    const b = S.panneaux[S.selP];
+    const plat = panneauxPlats()[S.selP];
+    return { dist: b.dist, plat, verif: document.getElementById('verifP').textContent,
+      choisi: document.querySelector('#distP [data-dist="0"]').classList.contains('sel') };
+  });
+  dire(vide.dist === 0, 'la valeur vide se pose', 'dist = ' + vide.dist);
+  dire(vide.choisi, 'le bouton « — » se marque comme choisi');
+  dire(vide.plat[1] === 0, 'la liste enregistrée porte bien le zéro', JSON.stringify(vide.plat));
+  dire(/sans chiffre/.test(vide.verif), 'la fiche dit « sans chiffre » et donne quand même le réel',
+    vide.verif);
+
+  // le jeu doit relire ce zéro sans le transformer en NaN
+  const relu = await page.evaluate(() => {
+    const def2 = Object.assign({}, S.def, { panneaux: panneauxPlats() });
+    const T2 = new Track(def2);
+    const b = T2.boards[S.selP];
+    return { dist: b.dist, fini: Number.isFinite(b.dist) };
+  });
+  dire(relu.fini && relu.dist === 0, 'le jeu relit le zéro sans le casser', 'dist = ' + relu.dist);
+
   // --- la règle : le long du tour, le retour, et la corde ---
   await page.click('[data-mode="mesure"]');
   const regle = await page.evaluate(() => {

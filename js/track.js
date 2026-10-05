@@ -452,6 +452,12 @@ class Track {
   panneau se plante : un panneau se met à l'extérieur du virage, là où il y a de la place et où il
   ne cache pas la corde.
 
+  UNE DISTANCE DE ZÉRO VEUT DIRE « SANS CHIFFRE ». Deux virages qui s'enchaînent sont à moins de
+  cinquante mètres l'un de l'autre : annoncer une distance y serait faux et l'arrondir à 50 mentirait.
+  L'indication se réduit alors au sens et à la sévérité. Zéro plutôt que `null` parce que la liste
+  voyage en tableau de nombres jusque dans `tracks.js`, et parce qu'un panneau qui annoncerait
+  vraiment « 0 m » n'a pas de sens : la valeur est libre.
+
   Une fraction plutôt qu'une station, comme pour les passerelles : elle survit au changement de
   longueur déclarée, qui ne garde pas le même nombre de stations. */
   _panneauxPoses(liste) {

@@ -1538,27 +1538,32 @@ class Renderer {
       qu'il est — de la peinture sur du bitume. L'alpha est posé ici une fois pour la flèche et le
       chiffre, pour qu'ils vieillissent ensemble. */
       g.globalAlpha = 0.82;
-      Renderer.paceArrow(g, { x: 0, y: -L * 0.28, w: W, h: L * 0.46 }, spec, b.sign > 0 ? 1 : -1);
+      /* SANS CHIFFRE, LA FLÈCHE SE RECENTRE.
+
+      Deux virages qui s'enchaînent sont à moins de cinquante mètres l'un de l'autre : annoncer une
+      distance y serait faux, et l'arrondir à 50 mentirait. L'indication se réduit alors à ce qu'elle
+      a de vrai — le sens et la sévérité — et le marquage se resserre autour de la flèche au lieu de
+      garder un vide là où le chiffre aurait dû être. Un blanc réservé à rien se lit comme un
+      défaut. */
+      const chiffre = b.dist > 0;
+      Renderer.paceArrow(g, { x: 0, y: L * (chiffre ? -0.28 : -0.08), w: W, h: L * (chiffre ? 0.46 : 0.58) },
+        spec, b.sign > 0 ? 1 : -1);
       g.save();
       g.scale(1 / 16, 1 / 16);
       g.textAlign = 'center'; g.textBaseline = 'middle';
       g.lineJoin = 'round';
-      const taille = Math.round(W * 0.42 * 16);
-      g.font = `bold ${taille}px "Trebuchet MS", "DejaVu Sans", sans-serif`;
-      // un liseré sombre sous le chiffre : la peinture claire sur bitume sombre a besoin d'un bord,
-      // sinon le chiffre bave sur les bandes de rive au moment où on roule dessus
-      g.strokeStyle = 'rgba(12,10,18,0.55)'; g.lineWidth = taille * 0.16;
-      g.strokeText(String(b.dist), 0, L * 0.14 * 16);
-      g.fillStyle = '#f0ece4';
-      g.fillText(String(b.dist), 0, L * 0.14 * 16);
-      if (spec.tag) {                    // les virages nommés le disent, comme sur une note de rallye
-        const t2 = Math.round(W * 0.25 * 16);
-        g.font = `bold ${t2}px "Trebuchet MS", "DejaVu Sans", sans-serif`;
-        g.lineWidth = t2 * 0.18;
-        g.strokeText(spec.tag, 0, L * 0.34 * 16);
-        g.fillStyle = spec.col;
-        g.fillText(spec.tag, 0, L * 0.34 * 16);
-      }
+      // un liseré sombre sous le texte : la peinture claire sur bitume sombre a besoin d'un bord,
+      // sinon elle bave sur les bandes de rive au moment où on roule dessus
+      const peindre = (txt, taille, y, col) => {
+        g.font = `bold ${taille}px "Trebuchet MS", "DejaVu Sans", sans-serif`;
+        g.strokeStyle = 'rgba(12,10,18,0.55)'; g.lineWidth = taille * 0.17;
+        g.strokeText(txt, 0, y * 16);
+        g.fillStyle = col;
+        g.fillText(txt, 0, y * 16);
+      };
+      if (chiffre) peindre(String(b.dist), Math.round(W * 0.42 * 16), L * 0.14, '#f0ece4');
+      // les virages nommés le disent, comme sur une note de rallye
+      if (spec.tag) peindre(spec.tag, Math.round(W * 0.25 * 16), L * (chiffre ? 0.34 : 0.30), spec.col);
       g.restore();
       g.globalAlpha = 1;
       g.restore();
