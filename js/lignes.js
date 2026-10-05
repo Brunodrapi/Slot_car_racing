@@ -419,8 +419,10 @@ function dessinerPanneau(b, choisi) {
   ctx.stroke();
   // sans chiffre, la flèche se recentre — comme le marquage qu'elle représente
   const chiffre = b.dist > 0;
+  // la carte montre le marquage, donc blanche et épaisse comme lui ; la couleur des notes reste sur
+  // les BOUTONS du volet, là où elle sert à choisir
   Renderer.paceArrow(ctx, { x: 0, y: H * (chiffre ? -0.24 : -0.06), w: W * 0.78, h: H * (chiffre ? 0.40 : 0.52) },
-    spec, b.sign > 0 ? 1 : -1);
+    spec, b.sign > 0 ? 1 : -1, { col: '#2a2d36', epais: 0.78 });
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   if (chiffre) {
     ctx.fillStyle = '#11141c';
@@ -428,7 +430,7 @@ function dessinerPanneau(b, choisi) {
     ctx.fillText(String(b.dist), 0, H * 0.30);
   }
   if (spec.tag) {
-    ctx.fillStyle = spec.col;
+    ctx.fillStyle = '#2a2d36';
     ctx.font = `bold ${Math.round(W * 0.19)}px "Trebuchet MS", sans-serif`;
     ctx.fillText(spec.tag, 0, H * (chiffre ? 0.06 : 0.33));
   }

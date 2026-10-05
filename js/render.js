@@ -1547,7 +1547,7 @@ class Renderer {
       défaut. */
       const chiffre = b.dist > 0;
       Renderer.paceArrow(g, { x: 0, y: L * (chiffre ? -0.28 : -0.08), w: W, h: L * (chiffre ? 0.46 : 0.58) },
-        spec, b.sign > 0 ? 1 : -1);
+        spec, b.sign > 0 ? 1 : -1, { col: '#f0ece4', epais: 0.78 });
       g.save();
       g.scale(1 / 16, 1 / 16);
       g.textAlign = 'center'; g.textBaseline = 'middle';
@@ -1563,7 +1563,7 @@ class Renderer {
       };
       if (chiffre) peindre(String(b.dist), Math.round(W * 0.42 * 16), L * 0.14, '#f0ece4');
       // les virages nommés le disent, comme sur une note de rallye
-      if (spec.tag) peindre(spec.tag, Math.round(W * 0.25 * 16), L * (chiffre ? 0.34 : 0.30), spec.col);
+      if (spec.tag) peindre(spec.tag, Math.round(W * 0.25 * 16), L * (chiffre ? 0.34 : 0.30), '#f0ece4');
       g.restore();
       g.globalAlpha = 1;
       g.restore();
@@ -1595,7 +1595,16 @@ class Renderer {
 
   // Builds the glyph, measures it, then fits it to the box it is given, so a hairpin and a kink
   // both fill the panel instead of one spilling over the edge and the other floating in the middle.
-  static paceArrow(g, box, spec, dir) {
+  static paceArrow(g, box, spec, dir, opts) {
+    /* LA COULEUR ET L'ÉPAISSEUR SE DEMANDENT, elles ne sont plus dans la note.
+
+    Le dégradé vert-rouge des notes disait la sévérité une deuxième fois, après le pliage de la
+    flèche qui la dit déjà. Sur la route, il la faisait surtout ressembler à un pictogramme posé là :
+    une route n'a pas de peinture verte. En blanc, et plus épaisse, elle se lit comme ce qu'elle
+    prétend être — du marquage au sol. Le choix de la note garde ses couleurs dans l'éditeur, sur les
+    BOUTONS, là où elles servent à choisir plutôt qu'à décorer. */
+    const col = (opts && opts.col) || spec.col;
+    const epais = (opts && opts.epais) || 0.42;
     const bend = spec.bend * Math.PI / 180;
     const a0 = dir > 0 ? Math.PI : 0, a1 = a0 + dir * bend;
     const cx = dir * spec.r, cy = -spec.stem;
@@ -1630,7 +1639,7 @@ class Renderer {
     // drawn at very different scales, and a head that shrank with the glyph vanished on the open
     // notes, leaving a bar with no direction. Fitting therefore takes two passes — one to learn
     // the scale, one that knows how much room the head will take at that scale.
-    const HLp = 0.95, HWp = 0.52;                            // head, in panel units
+    const HLp = 0.95 * (epais / 0.42), HWp = 0.52 * (epais / 0.42);   // head, in panel units
     const bbox = (pts) => {
       let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity;
       for (const [x, y] of pts) { a = Math.min(a, x); c = Math.max(c, x); b = Math.min(b, y); d = Math.max(d, y); }
@@ -1657,8 +1666,8 @@ class Renderer {
     g.save();
     g.translate(box.x - (minX + maxX) / 2 * sc, box.y - (minY + maxY) / 2 * sc);
     g.scale(sc, sc);
-    g.strokeStyle = spec.col; g.fillStyle = spec.col;
-    g.lineWidth = 0.42 / sc; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.strokeStyle = col; g.fillStyle = col;
+    g.lineWidth = epais / sc; g.lineCap = 'round'; g.lineJoin = 'round';
     g.beginPath();
     g.moveTo(path[0][0], path[0][1]);
     for (let i = 1; i < path.length; i++) g.lineTo(path[i][0], path[i][1]);

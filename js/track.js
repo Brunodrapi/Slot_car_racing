@@ -381,6 +381,34 @@ class Track {
     return zones;
   }
 
+  /* LA NOTE D'UN VIRAGE : le chiffre de rallye, ou l'un des trois noms.
+
+  LES SEUILS SONT EN RAYON RÉEL, ET LES CIRCUITS SONT DESSINÉS PLUS PETITS. Mesuré sur les douze :
+  Monza fait 2 900 m pour 5 793 en vrai, Spa 3 400 pour 7 004 — une échelle moyenne de 0,56. Un rayon
+  du jeu vaut donc environ 1,8 fois plus sur place, et des seuils écrits pour des rayons réels
+  lisaient chaque virage UN À DEUX CRANS TROP SERRÉ. Le Zandvoort noté à la main par Bruno le dit
+  sans ambiguïté : là où le calcul annonçait 1, il a mis 3 ; là où il annonçait 4, il a mis 5.
+
+  On remet donc le rayon à l'échelle avant de le juger. Sur ses dix virages, la correction fait
+  passer l'accord de deux sur dix à cinq sur dix, et ramène tout le reste à un cran près sauf deux,
+  où ses propres choix se contredisent (128° appelé épingle, 149° appelé carré).
+
+  L'ANGLE, LUI, NE S'ÉCHELONNE PAS : un virage à 180° tourne de 180° qu'on le dessine grand ou
+  petit. Seules les longueurs rétrécissent. */
+  static get ECHELLE() { return 1.8; }
+
+  static noteVirage(rayon, angle) {
+    const R = rayon * Track.ECHELLE;
+    // Trois virages méritent un nom plutôt qu'un chiffre, comme sur une note de rallye : ce que la
+    // route fait compte autant que sa tension. Un quatre-vingt-dix qui se prend lentement est un
+    // carré ; un virage qui vous renvoie d'où vous venez est une épingle.
+    if (angle >= 150 && R < 40) return 'hairpin';
+    if (angle >= 115 && R < 26) return 'acute';
+    if (angle >= 75 && angle <= 105 && R < 35) return 'square';
+    // Les chiffres, du plus serré au plus ouvert : 1 est extrêmement fermé, 6 à peine un décroché.
+    return R < 20 ? 1 : R < 35 ? 2 : R < 55 ? 3 : R < 90 ? 4 : R < 150 ? 5 : 6;
+  }
+
   _brakingBoards() {
     const N = this.n, out = [];
     if (!this.corners.length) return out;
@@ -394,8 +422,6 @@ class Track {
       // A gentle bend asks for no braking, so it gets no board: a panel there is only clutter.
       if (z.peak < 1 / 200) continue;
       const radius = 1 / z.peak;
-      // Pace-note grading, tightest first: 1 is extremely aggressive, 6 barely a kink.
-      const grade = radius < 20 ? 1 : radius < 35 ? 2 : radius < 55 ? 3 : radius < 90 ? 4 : radius < 150 ? 5 : 6;
       // A few corners deserve their own note rather than a number, as in rally: how far round the
       // road goes matters as much as how tight it is. A ninety that has to be taken slowly is a
       // square; a corner that turns you back where you came from is a hairpin.
@@ -407,10 +433,9 @@ class Track {
         while (e < -Math.PI) e += 2 * Math.PI;
         turn += e;
       }
-      const A = Math.abs(turn) * 180 / Math.PI;
-      const kind = (A >= 150 && radius < 40) ? 'hairpin'
-        : (A >= 115 && radius < 26) ? 'acute'
-          : (A >= 75 && A <= 105 && radius < 35) ? 'square' : 'normal';
+      const note = Track.noteVirage(radius, Math.abs(turn) * 180 / Math.PI);
+      const kind = typeof note === 'number' ? 'normal' : note;
+      const grade = typeof note === 'number' ? note : 3;
       const entry = z.from * this.ds;
       for (const dist of [200, 100, 50]) {
         const s = this.wrap(entry - dist);

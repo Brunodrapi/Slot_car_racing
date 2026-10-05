@@ -576,6 +576,60 @@ Deux erreurs de méthode, les deux du même genre — le banc ne voyait pas ce q
   devant**, qui est la fin. Les deux premières versions ont donc été jugées bonnes alors qu'elles ne
   montraient que trente mètres de piste.
 
+### Les notes d'un circuit, écrites comme Zandvoort
+
+    node tools/notes.js            → ce que ça donnerait, sans rien écrire
+    node tools/notes.js --ecrire   → remplace les blocs `panneaux:` de js/tracks.js
+
+Bruno a noté Zandvoort à la main, virage par virage, dans l'éditeur. Mesurée sur ses dix virages, sa
+façon de faire tient en quatre règles — qui ne sont pas inventées mais **lues** dans ce qu'il a posé :
+
+1. **Un triplet par virage** : 100 m, 50 m, puis une flèche **sans chiffre posée sur l'entrée**. Les
+   deux premières annoncent, la troisième marque. Dix virages sur dix la suivent.
+2. **Un 200 m en plus** quand la ligne droite qui précède en laisse la place. Un seul à Zandvoort,
+   après la grande ligne droite : annoncer à deux cents mètres au bout d'une épingle mettrait le
+   panneau dans le virage d'avant.
+3. **Un virage mou n'a que sa flèche.** Son virage 4 tourne de sept degrés et ne porte rien d'autre.
+   On ne freine pas pour ça, donc on n'annonce pas de distance de freinage.
+4. **Même note et même sens sur tout le triplet.** Trois panneaux qui parlent du même virage n'en
+   disent pas trois choses différentes.
+
+Le sens vient de la géométrie et jamais de la liste d'avant : c'est lui qui était faux quarante et
+une fois sur les cinq listes reprises à la main.
+
+#### Les notes lisaient les virages trop serrés
+
+Les seuils de note sont en **rayon réel** — un 1 est un virage de moins de vingt mètres de rayon. Or
+les circuits sont dessinés plus petits que nature : Monza fait 2 900 m pour 5 793 en vrai, Spa 3 400
+pour 7 004, soit une échelle moyenne de **0,56**. Un rayon du jeu vaut donc environ **1,8 fois plus**
+sur place, et le classement lisait chaque virage **un à deux crans trop serré**.
+
+Le Zandvoort noté à la main le dit sans ambiguïté : là où le calcul annonçait 1, Bruno a mis 3 ; là
+où il annonçait 4, il a mis 5. On remet donc le rayon à l'échelle avant de le juger, dans une seule
+méthode partagée par le calcul et par l'outil — deux classements qui doivent s'accorder finissent
+toujours par ne plus s'accorder.
+
+| | avant | après |
+| --- | --- | --- |
+| notes identiques aux siennes | 2 / 10 | **5 / 10** |
+| à un cran près | 4 | 3 |
+| vraiment différentes | 4 | 2 |
+
+Les deux qui restent sont celles où ses propres choix se contredisent : 128° appelé épingle, 149°
+appelé carré. L'angle, lui, ne s'échelonne pas — un virage à 180° tourne de 180° qu'on le dessine
+grand ou petit, seules les longueurs rétrécissent.
+
+#### L'outil écrasait le circuit suivant
+
+Première version de l'écriture : chercher `panneaux: [` après `id: 'monza'`. **Sept circuits sur
+douze n'en avaient pas** — et `indexOf` ne rend pas « rien », il rend le bloc du circuit *suivant*,
+qui s'est donc fait écraser. Le compteur disait « 1 bloc réécrit » à chaque fois, parce qu'il avait
+bien réécrit un bloc : le mauvais.
+
+Un `indexOf` sans borne trouve toujours quelque chose, et c'est exactement ce qui le rend dangereux.
+La recherche est maintenant **bornée à l'entrée du circuit**, d'un `id:` au suivant, et quand il n'y
+a pas de bloc l'outil en **insère** un au lieu d'aller en chercher un ailleurs.
+
 ### Télémétrie (touche `G`, ou réglages)
 
 Quatre valeurs suffisent à lire le comportement de la voiture :
@@ -768,6 +822,14 @@ bave sur le bitume sombre au moment où on roule dessus.
 Le marquage est dimensionné sur la **largeur de la piste**, jamais en mètres fixes : une épingle
 étroite de Monaco et la ligne droite du Mans n'ont pas la même échelle, et une taille constante
 déborderait sur l'une en disparaissant sur l'autre.
+
+#### Blanc, et plus épais
+
+Le dégradé vert-rouge des notes disait la sévérité une deuxième fois, après le pliage de la flèche
+qui la dit déjà. Sur la route, il la faisait surtout ressembler à un pictogramme posé là : une route
+n'a pas de peinture verte. En **blanc**, et plus épaisse, elle se lit comme ce qu'elle prétend être —
+du marquage au sol. Le choix de la note garde ses couleurs dans l'éditeur, sur les **boutons**, là où
+elles servent à choisir plutôt qu'à décorer.
 
 #### Un marquage sans chiffre
 
