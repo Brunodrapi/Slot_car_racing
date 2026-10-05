@@ -379,7 +379,16 @@ for (const id of Object.keys(res)) {
 const n0 = compterBlocs(avant);
 const r = ecrireBlocs(avant, blocs, (m) => console.log(m));
 const n1 = compterBlocs(r.txt);
-console.log('\n' + r.faits + ' bloc(s) remplacé(s), ' + r.ajouts + ' ajouté(s) dans js/tracks.js'
+/* LES DOUZE SONT FIGÉS : LE DIRE, et ne pas laisser croire à une écriture.
+
+Le compteur à zéro se lit « rien à faire » aussi bien que « rien n'a marché », et c'est exactement
+l'ambiguïté qui avait laissé passer la réécriture du mauvais circuit. Maintenant que les douze
+listes sont posées ou vérifiées, le passage sans `--force` n'écrit plus rien du tout : la règle ne
+sert qu'à se mesurer aux listes de l'auteur, et ce bilan-là est au-dessus. */
+if (!Object.keys(blocs).length)
+  console.log('\nles douze circuits sont posés ou vérifiés : rien à écrire.'
+    + '\nla règle ne sert plus qu\'à se mesurer à eux — « --force » passerait outre.');
+else console.log('\n' + r.faits + ' bloc(s) remplacé(s), ' + r.ajouts + ' ajouté(s) dans js/tracks.js'
   + '  (blocs dans le fichier : ' + n0 + ' → ' + n1 + ')');
 if (n1 < n0) { console.log('ABANDON : un bloc a disparu'); process.exit(1); }
 fs.writeFileSync(dest, r.txt);
