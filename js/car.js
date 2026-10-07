@@ -121,7 +121,60 @@ vitesses de passage monteraient, et la mesure des planchers — le temps minimum
 deux roues dedans sur tout le virage coûte le virage. */
 const KERB_ADHERENCE = 0.88;
 
-const PHYS = { ldK: 0.45, ldMin: 6, ff: 0, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, power: 0.01, relax: 0.2, circle: 0.25 };
+const PHYS = { aimant: 0, ldK: 0.45, ldMin: 6, ff: 0, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, power: 0.01, relax: 0.2, circle: 0.25 };
+
+/* L'AIMANT : une tension vers la ligne, et un décrochage net.
+
+L'idée est de Bruno, et elle répond à ce que la mesure dit du modèle actuel. Trois leviers ont été
+essayés pour que les voitures tournent plus court, et les trois ne donnent rien : ouvrir la butée de
+braquage de 29° à 52° gagne 0,4 m de rayon minimum, ouvrir le plafond de dérive avant de 1,3 à 3,5
+fois le pic n'en gagne aucun, et rapetisser les voitures à l'échelle des circuits coûte des sorties
+de piste. La raison tient en une ligne, `clamp(alphaF / peak, -1, 1)` : AU-DELÀ DU PIC, PLUS D'ANGLE
+NE DONNE PLUS DE FORCE. Le pneu avant a déjà tout donné, le pilote peut demander ce qu'il veut.
+
+Le seul paramètre qui achète de la capacité à tourner est donc l'adhérence — mais la monter
+globalement déplacerait chaque point de freinage, puisque `speedProfile` lit `gripAt`, et avec eux
+les douze listes d'annonces posées à la main. L'aimant est une hausse d'adhérence LOCALISÉE : une
+force ajoutée dans `update`, jamais dans `gripAt`, donc le profil de vitesse et les annonces ne
+bougent pas d'un mètre.
+
+Et il soigne les deux symptômes d'un coup. Posé sur l'ESSIEU AVANT, il tire le nez vers la ligne et
+crée un couple de lacet dans le même sens : c'est le sous-virage. Avec un seuil de décrochage, il
+ajoute l'INSTANT qui manque — aujourd'hui la dérive monte à soixante-huit degrés sur trois secondes
+et on ne sait jamais quand ça a lâché.
+
+L'HYSTÉRÉSIS EST ASYMÉTRIQUE, et c'est le point à ne pas rater : facile à retrouver, net à perdre.
+Si l'aimant raccroche au seuil même où il lâche, on obtient un oscillateur accroche-décroche, pire
+que le flou qu'on voulait enlever. On lâche donc quand la demande dépasse le plafond, et on ne
+reprend qu'une fois bien revenu dessous ET l'arrière redevenu sage. */
+/* UN RESSORT SANS AMORTISSEUR EST UN OSCILLATEUR, et la première version l'a prouvé.
+
+Tension proportionnelle au seul écart, posée sur l'essieu avant : la M1 Procar est passée de 5,7° de
+dérive à 70,8°, la 787B de 5,0° à 71,1°. Les deux voitures les plus saines du plateau devenaient
+pires que celles qu'on voulait soigner, et l'écart à la ligne ne baissait même pas — 1,05 m contre
+1,26 m, donc en hausse. C'était inévitable : une rétroaction sur la POSITION, couplée au lacet
+qu'elle crée elle-même, est un double intégrateur en phase arrière. Il oscille.
+
+`c` est donc l'amortisseur : il s'oppose à la VITESSE d'éloignement, pas à l'éloignement. Et
+`avant` partage la tension entre les deux essieux — tout à l'avant donne le plus de pouvoir
+directionnel mais aussi le plus de couple de lacet, donc le plus d'oscillation. */
+/* LA TENSION TIRE TOUTE LA VOITURE, PAS SEULEMENT LE NEZ — et c'est contre l'intuition.
+
+Posée aux sept dixièmes sur l'avant, elle laissait la M1 Procar à 20,9° de dérive et la 787B à 16,6°,
+contre 5,7° et 5,1° sans aimant : les voitures saines se dégradaient encore, même amorties. Partagée
+à égalité entre les deux essieux, elles reviennent à 6,6°. Le coupable était le COUPLE de lacet : un
+aimant mordant sur le seul train avant fait pivoter la voiture autant qu'il la déplace, et ce pivot
+se rajoute à celui que le pilote demande déjà. À cinquante-cinquante il ne reste que la translation,
+qui est tout ce qu'on voulait. Mesuré sur quatre voitures et deux circuits. */
+const AIMANT = {
+  k: 1.4,          // raideur : accélération latérale par mètre d'écart à la ligne
+  c: 1.0,          // amortissement : par mètre par seconde d'éloignement
+  avant: 0.5,      // part de la tension posée sur l'essieu avant (le reste à l'arrière)
+  max: 0.3,        // plafond de la tension, en fraction de l'adhérence totale
+  lache: 1.0,      // on décroche quand la demande dépasse le plafond
+  reprend: 0.5,    // on ne raccroche qu'à la moitié du plafond
+  derive: 1.3,     // ... et seulement si l'arrière est revenu sous ce multiple de son pic
+};
 
 const wrapAngle = (a) => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
 const smoothstep = (x, a, b) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
@@ -185,6 +238,9 @@ class Car {
     this.Ff = 0; this.Fr = 0;            // lateral force (per unit mass) of the front / rear axle
     this.alphaF = 0; this.alphaR = 0;
     this.slide = 0;                      // 0..1 for effects
+    this.accroche = true;                // l'aimant tient-il la ligne ? (voir AIMANT)
+    this.ecartAv = null;                 // l'écart de l'image d'avant, pour l'amortissement
+    this.aimantF = 0;                    // la tension du moment, pour la télémétrie
     this.state = 'ok';                   // ok | grass
     this.grassT = 0;
     this.rejoined = 0;
@@ -248,7 +304,7 @@ class Car {
   place(s, lat, v) {
     const T = this.track, P = T.pos(s, lat);
     this.s = T.wrap(s); this.lat = lat; this.x = P.x; this.y = P.y; this.th = T.headingAt(s);
-    this.v = v || 0; this.vl = 0; this.w = 0; this.delta = 0; this.beta = 0; this.usage = 0; this.slide = 0; this.Ff = 0; this.Fr = 0; this.selS = this.sel;
+    this.v = v || 0; this.vl = 0; this.w = 0; this.delta = 0; this.beta = 0; this.usage = 0; this.slide = 0; this.Ff = 0; this.Fr = 0; this.selS = this.sel; this.accroche = true; this.aimantF = 0; this.ecartAv = null;
   }
 
   /* Ce que les pneus rendent, entre neuf et mort. Séparé de `gripBoost` parce que les deux n'ont
@@ -515,6 +571,44 @@ class Car {
     const relax = Math.min(1, dt * vv / PHYS.relax);
     this.Ff += (FfT - this.Ff) * relax;
     this.Fr += (FrT - this.Fr) * relax;
+
+    /* LA TENSION DE L'AIMANT, hors du circuit de frottement des pneus.
+
+    Elle ne passe pas par la relaxation : un aimant n'a pas de carcasse à déformer. Et elle ne compte
+    pas dans `u`, l'usage du pneu, pour la même raison — ce n'est pas le pneu qui tire.
+
+    Elle s'éteint hors piste : l'aimant tient une LIGNE, et il n'y a pas de ligne dans le gravier.
+    Elle s'éteint aussi à l'arrêt, sinon elle replacerait une voiture immobile toute seule. */
+    let Fm = 0;
+    if (PHYS.aimant > 0 && !off && Math.abs(this.v) > 3 && !this.inPit) {
+      const latCible = this.gridLat != null ? this.gridLat : T.targetLat(this.s, this.selS);
+      const ecart = latCible - this.lat;
+      const dEcart = this.ecartAv == null ? 0 : (ecart - this.ecartAv) / Math.max(1e-4, dt);
+      const plafond = AIMANT.max * gTot * PHYS.aimant;
+      /* LE VERROU SE DÉCIDE SUR LA DISTANCE, LA FORCE S'APPLIQUE AVEC L'AMORTISSEMENT.
+
+      Deuxième défaut de la première version : le verrou lisait la demande AMORTIE, dont le terme
+      dérivé est une différence finie à soixante images par seconde, donc bruitée. Résultat, cent
+      vingt à deux cent quarante décrochages par minute — quatre par seconde. L'oscillateur avait
+      simplement déménagé du ressort vers le verrou, et l'INSTANT qu'on voulait créer n'existait
+      plus : clignoter n'est pas un événement.
+
+      Un aimant lâche quand on le tire trop LOIN, pas trop VITE. Le verrou ne regarde donc que le
+      terme proportionnel ; l'amortissement, lui, reste dans la force appliquée, où il a sa place. */
+      const tension = AIMANT.k * ecart;
+      const demande = tension + AIMANT.c * dEcart;
+      if (this.accroche) {
+        if (Math.abs(tension) > plafond * AIMANT.lache) this.accroche = false;
+        else Fm = clamp(demande, -plafond, plafond);
+      } else if (Math.abs(tension) < plafond * AIMANT.reprend
+                 && Math.abs(alphaR) < peak * AIMANT.derive) {
+        this.accroche = true;
+        Fm = clamp(demande, -plafond, plafond);
+      }
+      this.ecartAv = ecart;
+    } else { this.accroche = true; this.ecartAv = null; }
+    this.aimantF = Fm;
+    const FmAv = Fm * AIMANT.avant, FmAr = Fm * (1 - AIMANT.avant);
     // how hard the tyres are working (friction circle for the longitudinal forces)
     const useF = Math.abs(this.Ff) / Math.max(1e-3, gF), useR = Math.abs(this.Fr) / Math.max(1e-3, gR);
     const u = Math.min(1, Math.max(useF, useR));
@@ -538,7 +632,7 @@ class Car {
     // sliding tyres scrub speed (lateral force component along the velocity)
     acc -= (Math.abs(this.Ff * Math.sin(alphaF)) + Math.abs(this.Fr * Math.sin(alphaR))) * 0.8 * dir;
     // --- yaw from the axle moments; the velocity vector is rotated into the new body frame ---
-    const wDot = (-a * this.Ff + b * this.Fr) / kk;
+    const wDot = (-a * (this.Ff + FmAv) + b * (this.Fr + FmAr)) / kk;
     this.w = clamp(this.w + wDot * dt, -4, 4);
     this.th = wrapAngle(this.th + this.w * dt);
     const v0 = this.v, vl0 = this.vl;
@@ -547,7 +641,7 @@ class Car {
     // la limitation de la voie : sans elle, la voie serait un raccourci et tout le monde s'y arrêterait
     if (this.inPit && this.v > STAND.vitesse) this.v = STAND.vitesse;
     if (this.pitState === 'arret') this.v = 0;
-    this.vl = vl0 + (v0 * this.w + this.Ff + this.Fr) * dt;
+    this.vl = vl0 + (v0 * this.w + this.Ff + Fm + this.Fr) * dt;
     if (latDrag) this.vl += clamp(latDrag * dt, -Math.abs(vl0), Math.abs(vl0));   // drag never reverses it
     this.beta = Math.atan2(this.vl, vv) * Math.sign(this.v || 1);
     this.alphaF = alphaF; this.alphaR = alphaR;

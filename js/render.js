@@ -1933,6 +1933,15 @@ class Renderer {
       ['slip F / R', `${(p.alphaF * 180 / Math.PI).toFixed(1)}° / ${(p.alphaR * 180 / Math.PI).toFixed(1)}°`, null],
       ['steer', `${(p.delta * 180 / Math.PI).toFixed(1)}°`, null],
     ];
+    /* L'AIMANT NE S'AFFICHE QUE S'IL EST ALLUMÉ, et il affiche d'abord s'il TIENT.
+
+    C'est un essai : ce qu'on cherche à voir en roulant, ce n'est pas la valeur de la tension mais
+    l'INSTANT du décrochage — le défaut qu'il est censé réparer est justement qu'on ne sait pas quand
+    la voiture a lâché. Le mot passe donc au rouge au moment où ça lâche, et la tension suit entre
+    parenthèses pour ceux qui veulent le chiffre. */
+    if (PHYS.aimant > 0)
+      rows.push(['aimant', `${p.accroche ? 'tient' : 'LÂCHÉ'} (${p.aimantF.toFixed(1)})`,
+        p.accroche ? '#5be07a' : '#ff4b4b']);
     const w = 210, rowH = 18, h = rows.length * rowH + 24;
     x = Math.min(x, this.w - w - 14);   // stays on screen on a phone
     g.fillStyle = 'rgba(10,12,20,0.7)'; this._roundRect(g, x, y, w, h, 10); g.fill();

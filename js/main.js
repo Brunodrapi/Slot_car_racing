@@ -10,6 +10,7 @@ class App {
     this.renderer.showLines = this.save.showLines === true;
     this.renderer.setView(this.save.view || 'avanceFixe');
     this.renderer.setPullBack(this.save.pullBack || 1);
+    PHYS.aimant = this.save.aimant || 0;
     this.renderer.debug = this.save.debug === true;
     this.audio = new GameAudio();
     this.audio.enabled = this.save.sound;
