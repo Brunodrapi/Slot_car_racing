@@ -158,18 +158,34 @@ qu'elle crée elle-même, est un double intégrateur en phase arrière. Il oscil
 `c` est donc l'amortisseur : il s'oppose à la VITESSE d'éloignement, pas à l'éloignement. Et
 `avant` partage la tension entre les deux essieux — tout à l'avant donne le plus de pouvoir
 directionnel mais aussi le plus de couple de lacet, donc le plus d'oscillation. */
-/* LA TENSION TIRE TOUTE LA VOITURE, PAS SEULEMENT LE NEZ — et c'est contre l'intuition.
+/* LA PART AVANT EST LE CARACTÈRE DE L'AIMANT, et le bon critère n'est pas la dérive.
 
-Posée aux sept dixièmes sur l'avant, elle laissait la M1 Procar à 20,9° de dérive et la 787B à 16,6°,
-contre 5,7° et 5,1° sans aimant : les voitures saines se dégradaient encore, même amorties. Partagée
-à égalité entre les deux essieux, elles reviennent à 6,6°. Le coupable était le COUPLE de lacet : un
-aimant mordant sur le seul train avant fait pivoter la voiture autant qu'il la déplace, et ce pivot
-se rajoute à celui que le pilote demande déjà. À cinquante-cinquante il ne reste que la translation,
-qui est tout ce qu'on voulait. Mesuré sur quatre voitures et deux circuits. */
+Premier balayage, rejeté pour de mauvaises raisons : il jugeait « les voitures saines ne doivent pas
+se dégrader » sur la DÉRIVE MAXIMALE, et comptait donc comme un défaut exactement ce qu'on cherche.
+Dans un slot car le guide est à l'avant : le nez reste dans la rainure, l'arrière chasse, et la
+voiture ne pivote pas puisque l'avant ne sort pas. De la glisse sans demi-tour est le but.
+
+Remesuré sur le vrai critère — le nombre de fois où la dérive franchit quatre-vingt-dix degrés, les
+sorties de piste, l'écart du NEZ à la ligne (l'essieu avant projeté, pas le centre de gravité) :
+
+  avant   demi-tours   sorties   écart du nez   dérive M1/787B/935/911T   tour M1
+  éteint       0          5         1,02 m        6° /  5° / 70° / 71°    83,7 s
+  0,5          0          0         0,68 m        7° /  7° / 22° / 22°    83,5 s
+  0,7          0          0         0,66 m       21° / 19° / 29° / 34°    83,6 s
+  0,85         0          0         0,79 m       31° / 29° / 67° / 72°    84,2 s
+  1,0          0          4         0,99 m       69° / 33° / 71° / 73°    88,4 s
+
+Aucun réglage ne produit jamais de vrai demi-tour, aimant éteint compris : les soixante-dix degrés
+sont une glisse énorme mais tenue. Sept dixièmes donnent la glisse sans rien coûter. TOUT À L'AVANT
+EST PIRE SUR LES TROIS CRITÈRES : le nez revient au niveau d'« éteint », les sorties reviennent, et
+la M1 perd près de cinq secondes. La force avant crée un couple de lacet, le lacet fait pivoter la
+voiture, et le pivot ramène le nez hors de la ligne — passé sept dixièmes l'aimant se bat contre
+lui-même. Le guide d'un vrai slot car est une CONTRAINTE, qui ne peut pas sortir ; ici c'est une
+force, et une force qui tire trop fort sur le nez le fait tourner autour. */
 const AIMANT = {
   k: 1.4,          // raideur : accélération latérale par mètre d'écart à la ligne
   c: 1.0,          // amortissement : par mètre par seconde d'éloignement
-  avant: 0.5,      // part de la tension posée sur l'essieu avant (le reste à l'arrière)
+  avant: 0.7,      // part de la tension posée sur l'essieu avant (le reste à l'arrière)
   max: 0.3,        // plafond de la tension, en fraction de l'adhérence totale
   lache: 1.0,      // on décroche quand la demande dépasse le plafond
   reprend: 0.5,    // on ne raccroche qu'à la moitié du plafond
