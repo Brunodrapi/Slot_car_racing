@@ -158,34 +158,46 @@ qu'elle crée elle-même, est un double intégrateur en phase arrière. Il oscil
 `c` est donc l'amortisseur : il s'oppose à la VITESSE d'éloignement, pas à l'éloignement. Et
 `avant` partage la tension entre les deux essieux — tout à l'avant donne le plus de pouvoir
 directionnel mais aussi le plus de couple de lacet, donc le plus d'oscillation. */
-/* LA PART AVANT EST LE CARACTÈRE DE L'AIMANT, et le bon critère n'est pas la dérive.
+/* LA PART AVANT, ET LE BANC QUI NE VOYAIT PAS LES DEMI-TOURS.
 
-Premier balayage, rejeté pour de mauvaises raisons : il jugeait « les voitures saines ne doivent pas
-se dégrader » sur la DÉRIVE MAXIMALE, et comptait donc comme un défaut exactement ce qu'on cherche.
-Dans un slot car le guide est à l'avant : le nez reste dans la rainure, l'arrière chasse, et la
-voiture ne pivote pas puisque l'avant ne sort pas. De la glisse sans demi-tour est le but.
+Deux balayages l'ont mal réglée, pour deux mauvaises mesures, et c'est Bruno qui a trouvé les deux
+en roulant — « avec les Porsche je faisais des tête-à-queue ».
 
-Remesuré sur le vrai critère — le nombre de fois où la dérive franchit quatre-vingt-dix degrés, les
-sorties de piste, l'écart du NEZ à la ligne (l'essieu avant projeté, pas le centre de gravité) :
+PREMIÈRE MAUVAISE MESURE : le critère jugeait « les voitures saines ne doivent pas se dégrader » sur
+la dérive maximale, donc comptait comme un défaut la glisse qu'on cherche. Dans un slot car le guide
+est à l'avant, le nez reste dans la rainure et l'arrière chasse : du travers sans pirouette est le
+but. Corrigé, on passe la part avant de 0,5 à 0,7.
 
-  avant   demi-tours   sorties   écart du nez   dérive M1/787B/935/911T   tour M1
-  éteint       0          5         1,02 m        6° /  5° / 70° / 71°    83,7 s
-  0,5          0          0         0,68 m        7° /  7° / 22° / 22°    83,5 s
-  0,7          0          0         0,66 m       21° / 19° / 29° / 34°    83,6 s
-  0,85         0          0         0,79 m       31° / 29° / 67° / 72°    84,2 s
-  1,0          0          4         0,99 m       69° / 33° / 71° / 73°    88,4 s
+SECONDE MAUVAISE MESURE, et celle-là était une tautologie : le compteur de demi-tours lisait
+|beta| > 90°, or beta = atan2(vl, vv) avec vv = max(3, |v|) toujours positif, donc atan2 est borné à
+±90° par construction. LE COMPTEUR NE POUVAIT PAS SE DÉCLENCHER, et « zéro demi-tour partout » n'est
+pas un résultat. Pire, il roulait avec aiThrottle, qui plafonne à la vitesse que l'adhérence autorise
+— un pilote qui ne se trompe jamais ne verra jamais la faute qui fait partir la voiture.
 
-Aucun réglage ne produit jamais de vrai demi-tour, aimant éteint compris : les soixante-dix degrés
-sont une glisse énorme mais tenue. Sept dixièmes donnent la glisse sans rien coûter. TOUT À L'AVANT
-EST PIRE SUR LES TROIS CRITÈRES : le nez revient au niveau d'« éteint », les sorties reviennent, et
-la M1 perd près de cinq secondes. La force avant crée un couple de lacet, le lacet fait pivoter la
-voiture, et le pivot ramène le nez hors de la ligne — passé sept dixièmes l'aimant se bat contre
-lui-même. Le guide d'un vrai slot car est une CONTRAINTE, qui ne peut pas sortir ; ici c'est une
-force, et une force qui tire trop fort sur le nez le fait tourner autour. */
+Remesuré sur l'ÉCART DE CAP (le cap de la voiture contre celui de la piste, non borné) avec un pilote
+qui freine en retard, trois tours sur Zandvoort, Monaco et Suzuka, demi-tours / sorties :
+
+                retard 0 %    retard 12 %   retard 25 %   cap max   dérive
+  935  éteint      6 / 3          6 / 9        6 / 9       126°      72°
+       av 0,5      0 / 0          0 / 0        0 / 0        33°      31°
+       av 0,7      0 / 0          3 / 0        2 / 0       103°      69°
+       av 1,0      5 / 3          6 / 5        6 / 6       126°      72°
+  911T éteint      6 / 4          6 / 9        6 / 9       114°      75°
+       av 0,5      0 / 0          0 / 0        0 / 0        36°      32°
+       av 0,7      0 / 0          3 / 0        3 / 0       104°      72°
+
+CINQUANTE-CINQUANTE EST LE SEUL RÉGLAGE QUI SUPPRIME LES DEMI-TOURS MÊME QUAND LE PILOTE SE TROMPE,
+et il ne coûte pas la glisse : sous la faute, les Porsche y dérivent de trente à trente-deux degrés,
+autant qu'à sept dixièmes en conduite propre. On a le travers sans la pirouette.
+
+Et la raison est toujours la même : la force avant crée un couple de lacet qui S'AJOUTE à la rotation
+au lieu de s'y opposer, donc elle pousse une voiture déjà en train de pivoter. Le guide d'un vrai slot
+car ne peut pas faire ça parce que c'est une CONTRAINTE — le nez ne sort pas de la rainure, et le
+couple qu'il encaisse n'a pas de plafond. Une force, elle, sature. */
 const AIMANT = {
   k: 1.4,          // raideur : accélération latérale par mètre d'écart à la ligne
   c: 1.0,          // amortissement : par mètre par seconde d'éloignement
-  avant: 0.7,      // part de la tension posée sur l'essieu avant (le reste à l'arrière)
+  avant: 0.5,      // part de la tension posée sur l'essieu avant (le reste à l'arrière)
   max: 0.3,        // plafond de la tension, en fraction de l'adhérence totale
   lache: 1.0,      // on décroche quand la demande dépasse le plafond
   reprend: 0.5,    // on ne raccroche qu'à la moitié du plafond
