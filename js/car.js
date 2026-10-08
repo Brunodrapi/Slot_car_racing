@@ -121,7 +121,7 @@ vitesses de passage monteraient, et la mesure des planchers — le temps minimum
 deux roues dedans sur tout le virage coûte le virage. */
 const KERB_ADHERENCE = 0.88;
 
-const PHYS = { aimant: 0, ldK: 0.45, ldMin: 6, ff: 0, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, power: 0.01, relax: 0.2, circle: 0.25 };
+const PHYS = { aimant: 0, ldK: 0.45, ldMin: 6, ff: 0.5, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, power: 0.01, relax: 0.2, circle: 0.25 };
 
 /* L'AIMANT : une tension vers la ligne, et un décrochage net.
 
@@ -399,7 +399,42 @@ class Car {
     // target behind us (after a spin): full lock towards it, pure pursuit alone would give zero
     if (Math.abs(alpha) > Math.PI / 2) return Math.sign(alpha) * 0.25;
     const kPursuit = 2 * Math.sin(alpha) / dist;
-    // pure pursuit already contains the path curvature; ff only adds a lead on top of it
+    /* L'ANTICIPATION N'EST PAS UN SUPPLÉMENT, C'EST CE QUI MANQUAIT — et `ff` valait zéro.
+
+    Le commentaire qu'il y avait ici disait « pure pursuit already contains the path curvature; ff
+    only adds a lead on top of it ». C'est faux, et c'est ce qui a laissé le terme éteint. Un pure
+    pursuit vise un point à Ld devant et va vers lui : sa courbure vaut 2·sin(α)/Ld, donc avec
+    sin(α) = e/Ld elle vaut 2e/Ld². Pour commander la courbure d'un virage, il lui faut donc un écart
+    PERMANENT e ≈ κ·Ld²/2 — il ne suit pas la ligne, il la coupe, et d'autant plus que le virage est
+    serré. C'est un fait de géométrie du correcteur, pas un réglage à trouver, et la littérature le
+    nomme : « the main issue is cutting corners since no curvature information is taken into account ».
+
+    Bruno l'a vu en roulant, avant la mesure : « on dirait que le pilote a comme une latence pour
+    prendre la ligne donc on est jamais sur la ligne idéale... il braque à fond alors que c'est déjà
+    trop tard plutôt que d'y aller petit à petit ». Les deux moitiés de la phrase sont vraies, et la
+    seconde découle de la première : l'écart s'accumule jusqu'à ce que α soit grand, et alors
+    2·sin(α)/dist monte d'un coup.
+
+    LA PREUVE EST DANS LE SIGNE, pas dans la moyenne. Un écart moyen peut être du bruit ; un écart
+    toujours du même côté ne peut pas l'être. Biais vers l'intérieur du virage, trois tours sur
+    Zandvoort, Monaco et Suzuka, en mètres :
+
+                 ligne droite   virage large   virage serré   demi-tours   sorties
+      ff 0,0  M1     +0,15          +0,54          +0,51           0          0
+              935    +0,18          +0,71          +1,04           5          3
+              911T   +0,16          +0,65          +1,14           3          4
+      ff 0,5  M1     +0,06          +0,03          −0,28           0          0
+              935    +0,09          +0,21          +0,04           4          0
+              911T   +0,07          +0,16          +0,12           0          0
+
+    Le 935 coupait d'un mètre quatre dans les virages serrés. À 0,5 le biais tombe sous vingt
+    centimètres partout, les sorties de piste disparaissent sur les quatre voitures essayées, et les
+    tours gagnent de trois dixièmes à une seconde et demie. Au-delà de 0,6 le pilote anticipe trop :
+    le biais repasse de l'autre côté, et à 1,4 on retrouve huit demi-tours et onze sorties.
+
+    Le compte des demi-tours reste bruité à cette taille d'échantillon (le 935 en fait 5, 1, 4 puis 2
+    pour ff de 0 à 0,6) : la valeur est choisie sur le BIAIS et sur les sorties, qui eux sont
+    monotones, et non sur lui. */
     const kFF = PHYS.ff ? T.lineCurv(this.s + Ld * 0.4, this.selS) : 0;
     return clamp(kPursuit + PHYS.ff * kFF, -0.25, 0.25);
   }
