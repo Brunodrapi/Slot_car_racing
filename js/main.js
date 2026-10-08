@@ -11,7 +11,7 @@ class App {
     this.renderer.setView(this.save.view || 'avanceFixe');
     this.renderer.setPullBack(this.save.pullBack || 1);
     PHYS.aimant = this.save.aimant || 0;
-    PHYS.guide = this.save.guide || 0;
+    PHYS.ff = this.save.ff == null ? 0.3 : this.save.ff;
     this.renderer.debug = this.save.debug === true;
     this.audio = new GameAudio();
     this.audio.enabled = this.save.sound;

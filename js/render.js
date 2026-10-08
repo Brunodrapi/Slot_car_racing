@@ -1942,9 +1942,6 @@ class Renderer {
     if (PHYS.aimant > 0)
       rows.push(['aimant', `${p.accroche ? 'tient' : 'LÂCHÉ'} (${p.aimantF.toFixed(1)})`,
         p.accroche ? '#5be07a' : '#ff4b4b']);
-    if (PHYS.guide > 0)
-      rows.push(['guide', `${p.enRainure ? 'en rainure' : 'SAUTÉ'} (${p.guideF.toFixed(0)})`,
-        p.enRainure ? '#5be07a' : '#ff4b4b']);
     const w = 210, rowH = 18, h = rows.length * rowH + 24;
     x = Math.min(x, this.w - w - 14);   // stays on screen on a phone
     g.fillStyle = 'rgba(10,12,20,0.7)'; this._roundRect(g, x, y, w, h, 10); g.fill();

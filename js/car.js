@@ -121,7 +121,7 @@ vitesses de passage monteraient, et la mesure des planchers — le temps minimum
 deux roues dedans sur tout le virage coûte le virage. */
 const KERB_ADHERENCE = 0.88;
 
-const PHYS = { aimant: 0, guide: 0, ldK: 0.45, ldMin: 6, ff: 0.3, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, power: 0.01, relax: 0.2, circle: 0.25 };
+const PHYS = { aimant: 0, ldK: 0.45, ldMin: 6, ff: 0.3, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, power: 0.01, relax: 0.2, circle: 0.25 };
 
 /* L'AIMANT : une tension vers la ligne, et un décrochage net.
 
@@ -200,85 +200,40 @@ const AIMANT = {
   derive: 1.3,     // ... et seulement si l'arrière est revenu sous ce multiple de son pic
 };
 
-/* LE GUIDE : UNE CONTRAINTE, PAS UNE FORCE — et c'est toute la différence avec l'aimant.
+/* LE GUIDE DE SLOT CAR EN CONTRAINTE : SIX TENTATIVES, AUCUNE QUI TIENNE. Essai abandonné, et le
+chemin noté ici pour que la prochaine tentative ne le refasse pas.
 
-La mesure de l'aimant posé au nez a été sans appel : pire que rien, sur les trois voitures, y compris
-sur l'écart du nez qu'il était censé tenir. La raison tient en une phrase : une force au bout d'un
-long bras fait TOURNER la voiture avant de la déplacer, la rotation emmène le nez, l'écart grandit,
-la force grandit — boucle positive. Le guide d'un vrai slot car ne peut pas faire ça parce qu'il ne
-peut pas sortir de la rainure : sa raideur est infinie et le couple qu'il encaisse n'a pas de
-plafond. C'est pour ça que l'arrière chasse sans que la voiture pivote.
+On cherchait ce que l'aimant ne sait pas donner : de la glisse SANS tête-à-queue. L'aimant y arrive
+en réduisant la glisse à vingt-deux degrés ; un guide la laisserait entière, puisque le nez ne peut
+pas sortir de la rainure. Dans l'ordre, et ce que la mesure a dit de chacune :
 
-ON L'ÉCRIT DONC COMME IL EST : on n'applique pas un effort vers la ligne, on IMPOSE que le point de
-guidage ne s'en écarte pas, et on laisse la queue libre. Au niveau des vitesses, le point situé à g
-devant le centre a pour vitesse latérale vl − g·w ; une impulsion latérale J appliquée là change vl
-de J et w de −g·J/k², donc elle change cette vitesse de J·(1 + g²/k²). La contrainte se résout d'une
-division, sans itération :
+  1. Contrainte en vitesse, impulsion répartie entre la vitesse latérale ET le lacet : elle perturbait
+     la rotation que les pneus venaient de calculer. Bras de fer à soixante hertz, cent seize
+     demi-tours en trois tours quand on la laissait tenir.
+  2. Rappel divisé par trois et plafonné, soupçonnant un dosage : les sorties ont AUGMENTÉ.
+  3. Pivot autour du guide (moment pris au guide, inertie k² + g²) et vitesse latérale POSÉE au lieu
+     d'être négociée : zéro demi-tour, dérive intacte à soixante-treize degrés — le bon comportement.
+     Sauf que le guide ne tenait que QUATRE À TREIZE POUR CENT DU TEMPS : le résultat n'était pas le
+     sien.
+  4. Position épinglée sur la ligne à chaque image : six à quinze pour cent. Pas le verrou non plus.
+  5. Effort lissé sur un dixième de seconde, puisqu'on comparait une impulsion — une différence de
+     vitesse divisée par dt — à un seuil d'adhérence : zéro à trois pour cent, donc pire, le lissage
+     donnant de la mémoire à un effort déjà trop élevé.
+  6. Raccrochage géométrique au lieu d'un raccrochage sur la force, l'ancienne condition se mordant la
+     queue : loin de la ligne, la demande pour y revenir est énorme, donc l'effort reste haut, donc on
+     ne raccroche jamais. Le temps en rainure est monté à QUATRE-VINGTS POUR CENT — mais la voiture se
+     retrouvait à vingt-huit mètres de la ligne, cap à cent quatre-vingts degrés, cent cinquante
+     sorties. Sans l'épinglage, encore six mètres d'écart et des tours à cent vingt secondes.
 
-    J = (vitesse voulue au guide − vitesse actuelle au guide) / (1 + g²/k²)
+POURQUOI AUCUNE NE TIENT : la contrainte s'applique APRÈS l'intégration des forces des pneus, et
+ceux-ci répondent à l'image suivante à un état qu'ils n'ont pas produit. Il faudrait les résoudre
+dans le même système, ou traiter la voiture guidée comme un système à deux degrés de liberté —
+l'abscisse le long du rail et le cap, la position latérale esclave — au lieu d'intégrer librement
+puis de corriger. Ce n'est pas un réglage, c'est un autre intégrateur.
 
-« Vitesse voulue » n'est pas zéro mais la vitesse à laquelle la LIGNE se décale, plus un rappel
-proportionnel à l'écart résiduel : sans ce rappel, une contrainte en vitesse laisse l'erreur de
-position dériver sans jamais la corriger. C'est la stabilisation de Baumgarte, et `rappel` en est le
-taux, en inverses de seconde.
-
-ET IL DÉCROCHE, parce que Bruno y tient et qu'il a raison : « sauf qu'il faut quand même un
-décrochage dans la contrainte ». Un guide qui ne saute jamais est un rail, et le jeu n'est plus un
-jeu. On regarde donc l'effort que la contrainte réclame — J/dt, une accélération — et au-delà de
-`saute` fois l'adhérence disponible, le guide sort de la rainure : on ne donne plus rien du tout, et
-non une version affaiblie, parce que c'est ce que fait un guide qui saute. Il ne reprend qu'une fois
-revenu près de la ligne ET sous un effort bien plus faible : hystérésis asymétrique, facile à
-retrouver, net à perdre. */
-/* CE QU'IL A FALLU POUR QUE LE GUIDE TIENNE : contraindre la POSITION, pas la vitesse.
-
-La première version ne marchait pas, et Bruno l'a dit en une ligne : « ton guide ne fonctionne pas du
-tout ». Elle imposait la vitesse du guide en répartissant une impulsion ENTRE vl ET LE LACET, donc
-elle perturbait la rotation que les pneus venaient de calculer ; ceux-ci répondaient à l'image
-suivante et les deux se tiraient dessus soixante fois par seconde. Au mieux elle ne faisait rien, au
-pire — quand on la laissait tenir — cent seize demi-tours et cent sept sorties en trois tours. Et ce
-n'était pas un dosage : diviser le rappel par trois a EMPIRÉ les sorties.
-
-Deux choses manquaient, et elles viennent du même principe — contraindre la position du point de
-guidage, puis calculer l'orientation du châssis séparément :
-
-  1. LA VOITURE PIVOTE AUTOUR DU GUIDE. Le moment des pneus se prend par rapport à lui et non au
-     centre, avec l'inertie transportée k² + g² (Huygens). C'est ce qui laisse l'arrière chasser
-     pendant que le nez reste dans la rainure.
-  2. LA VITESSE LATÉRALE EST POSÉE, PAS NÉGOCIÉE. Pour que le guide suive la rainure sa vitesse doit
-     être parallèle à la ligne ; sa vitesse valant (v, vl − g·w) dans le repère voiture, cela s'écrit
-     vl = g·w + v·tan(ψ) avec ψ l'angle entre le cap de la voiture et celui de la ligne. On pose cette
-     valeur et on ne touche plus au lacet : une inconnue par équation, plus de bras de fer.
-
-Ce que ça donne, 911 Turbo, trois tours sur Zandvoort, Monaco et Suzuka, pilote freinant tard :
-
-                        demi-tours   cap max   dérive   écart du nez   tour
-  sans guide                 6         114°      73°       0,82 m     97,2 s
-  guide 0,6 à mi-nez         0          56°      73°       0,96 m     97,3 s
-  guide 1 au nez             0          54°      73°       1,11 m     98,5 s
-
-Zéro demi-tour, le cap plafonne à cinquante-six degrés au lieu de cent quatorze, ET LA DÉRIVE RESTE À
-SOIXANTE-TREIZE : l'arrière chasse toujours autant, la voiture ne se retourne plus. C'est ce que
-l'aimant ne sait pas faire — lui supprime les demi-tours en RÉDUISANT la glisse à vingt-deux degrés.
-
-Le guide est posé à mi-nez plutôt qu'à la pointe : au nez l'écart du nez monte à 1,11 m contre 0,96,
-et il saute trente et une fois par minute contre vingt. Plus le bras est long, plus la rainure doit
-tirer fort pour le même effet.
-
-LE DÉSLOTAGE se lit dans l'effort que l'asservissement réclame, c'est-à-dire ce que la rainure doit
-fournir en plus des pneus. Au-delà du plafond le guide sort, la vitesse latérale redevient libre, et
-il ne revient qu'une fois près de la ligne et sous un effort bien moindre.
-
-Le rappel, enfin, se dimensionne : à six inverses de seconde un écart d'un mètre réclamait dix fois
-l'adhérence en une image et le seuil de saut ne décidait plus rien. Deux, plafonnés, le rendent à
-nouveau une décision. */
-const GUIDE = {
-  avance: 0.5,     // à mi-nez : au-delà, la mesure dit que ça détruit (voir ci-dessus)
-  rappel: 2,       // rappel de l'écart résiduel, en inverses de seconde (Baumgarte)
-  rappelMax: 1.2,  // ... et jamais plus de ça en mètres par seconde, sinon il sature le seuil
-  saute: 0.55,     // il sort de la rainure au-delà de cette fraction de l'adhérence disponible
-  reprend: 0.3,    // ... et ne reprend qu'en dessous de celle-ci
-  ecartMax: 0.8,   // ... et seulement si le guide est revenu à moins de ça de la ligne, en mètres
-};
+Et une leçon de banc : UN TAUX DE TRANSITION N'EST PAS UNE DURÉE. « Vingt sauts par minute » est
+compatible avec « dehors quatre-vingt-quinze pour cent du temps », et c'est Bruno qui l'a vu en
+roulant — « le guide est tout le temps sauté » — bien avant que le banc le mesure. */
 
 const wrapAngle = (a) => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
 const smoothstep = (x, a, b) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
@@ -344,8 +299,6 @@ class Car {
     this.slide = 0;                      // 0..1 for effects
     this.accroche = true;                // l'aimant tient-il la ligne ? (voir AIMANT)
     this.ecartAv = null;                 // l'écart de l'image d'avant, pour l'amortissement
-    this.enRainure = true;               // le guide tient-il la rainure ? (voir GUIDE)
-    this.guideF = 0;                     // l'effort qu'il réclame, pour la télémétrie
     this.aimantF = 0;                    // la tension du moment, pour la télémétrie
     this.state = 'ok';                   // ok | grass
     this.grassT = 0;
@@ -410,7 +363,7 @@ class Car {
   place(s, lat, v) {
     const T = this.track, P = T.pos(s, lat);
     this.s = T.wrap(s); this.lat = lat; this.x = P.x; this.y = P.y; this.th = T.headingAt(s);
-    this.v = v || 0; this.vl = 0; this.w = 0; this.delta = 0; this.beta = 0; this.usage = 0; this.slide = 0; this.Ff = 0; this.Fr = 0; this.selS = this.sel; this.accroche = true; this.aimantF = 0; this.ecartAv = null; this.enRainure = true; this.guideF = 0;
+    this.v = v || 0; this.vl = 0; this.w = 0; this.delta = 0; this.beta = 0; this.usage = 0; this.slide = 0; this.Ff = 0; this.Fr = 0; this.selS = this.sel; this.accroche = true; this.aimantF = 0; this.ecartAv = null;
   }
 
   /* Ce que les pneus rendent, entre neuf et mort. Séparé de `gripBoost` parce que les deux n'ont
@@ -814,17 +767,7 @@ class Car {
     // sliding tyres scrub speed (lateral force component along the velocity)
     acc -= (Math.abs(this.Ff * Math.sin(alphaF)) + Math.abs(this.Fr * Math.sin(alphaR))) * 0.8 * dir;
     // --- yaw from the axle moments; the velocity vector is rotated into the new body frame ---
-    /* LA VOITURE PIVOTE AUTOUR DU GUIDE, PAS AUTOUR DE SON CENTRE.
-
-    C'est la moitié de l'architecture qui manquait. Tant que le guide tient la rainure, le point fixe
-    du châssis est le guide : le moment des pneus se prend donc par rapport à LUI, et l'inertie est
-    celle transportée au guide par le théorème de Huygens, k² + g². L'essieu avant est alors à (a − g)
-    du guide et l'arrière à −(b + g). C'est ce qui laisse l'arrière chasser pendant que le nez reste
-    dans la rainure, au lieu que la voiture tourne autour de son milieu. */
-    const gRail = this.enRainure && PHYS.guide > 0 ? GUIDE.avance * c.length / 2 : 0;
-    const wDot = gRail
-      ? (-(a - gRail) * (this.Ff + FmAv) + (b + gRail) * (this.Fr + FmAr)) / (kk + gRail * gRail)
-      : (-a * (this.Ff + FmAv) + b * (this.Fr + FmAr)) / kk;
+    const wDot = (-a * (this.Ff + FmAv) + b * (this.Fr + FmAr)) / kk;
     this.w = clamp(this.w + wDot * dt, -4, 4);
     this.th = wrapAngle(this.th + this.w * dt);
     const v0 = this.v, vl0 = this.vl;
@@ -835,48 +778,6 @@ class Car {
     if (this.pitState === 'arret') this.v = 0;
     this.vl = vl0 + (v0 * this.w + this.Ff + Fm + this.Fr) * dt;
 
-    /* LE GUIDE ASSERVIT LA VITESSE LATÉRALE, IL NE LA NÉGOCIE PAS.
-
-    Première version, et Bruno l'a jugée sans appel : elle imposait la vitesse du guide en répartissant
-    une impulsion ENTRE vl ET LE LACET. Elle perturbait donc la rotation que les pneus venaient de
-    calculer, ceux-ci répondaient à l'image suivante, et les deux se tiraient dessus soixante fois par
-    seconde. Ce n'était pas un défaut de dosage : diviser le rappel par trois a empiré les sorties.
-
-    Ce qu'il faut contraindre est la POSITION du guide, et calculer l'orientation du châssis
-    séparément. Au niveau des vitesses cela s'écrit simplement : pour que le guide suive la rainure, sa
-    vitesse doit être PARALLÈLE à la ligne. Si ψ est l'angle entre le cap de la voiture et celui de la
-    ligne au droit du guide, et que la vitesse du guide vaut (v, vl − g·w) dans le repère de la
-    voiture, alors vl − g·w = v·tan(ψ), donc :
-
-        vl = g·w + v·tan(ψ)
-
-    On POSE cette valeur. Le lacet, lui, vient des pneus seuls, pris au guide — plus de redistribution,
-    plus de bras de fer : une seule inconnue par équation.
-
-    LE DÉSLOTAGE se lit alors dans l'effort que l'asservissement réclame, c'est-à-dire ce que la
-    rainure doit fournir en plus des pneus : (vl voulue − vl actuelle)/dt − v·w − Ff − Fr. Au-delà du
-    plafond, le guide sort, on garde la vitesse latérale libre, et il ne revient qu'une fois près de la
-    ligne et sous un effort bien moindre. */
-    this.guideF = 0;
-    if (PHYS.guide > 0 && !off && Math.abs(this.v) > 3 && !this.inPit) {
-      const g = GUIDE.avance * c.length / 2;
-      const gx = this.x + g * Math.cos(this.th), gy = this.y + g * Math.sin(this.th);
-      const pg = T.project(gx, gy, this.s);
-      const cible = this.gridLat != null ? this.gridLat : T.targetLat(pg.s, this.selS);
-      const ecart = pg.lat - cible;
-      // le cap de la LIGNE : celui de la piste, corrigé de la pente latérale de la ligne
-      const pente = (T.targetLat(pg.s + 1, this.selS) - T.targetLat(pg.s - 1, this.selS)) / 2;
-      // le rappel ramène l'écart résiduel ; borné, sinon il sature le seuil de déslotage
-      const corr = clamp(GUIDE.rappel * ecart, -GUIDE.rappelMax, GUIDE.rappelMax) / Math.max(3, Math.abs(this.v));
-      const psi = wrapAngle(T.headingAt(pg.s) - Math.atan(pente) - this.th) - corr;
-      const voulue = g * this.w + this.v * Math.tan(clamp(psi, -0.9, 0.9));
-      const effort = Math.abs((voulue - this.vl) / Math.max(1e-4, dt) - v0 * this.w - this.Ff - Fm - this.Fr);
-      const plafond = GUIDE.saute * gTot * PHYS.guide;
-      if (this.enRainure && effort > plafond) this.enRainure = false;
-      else if (!this.enRainure && effort < plafond * GUIDE.reprend / GUIDE.saute
-               && Math.abs(ecart) < GUIDE.ecartMax) this.enRainure = true;
-      if (this.enRainure) { this.vl = voulue; this.guideF = effort; }
-    } else this.enRainure = true;
     if (latDrag) this.vl += clamp(latDrag * dt, -Math.abs(vl0), Math.abs(vl0));   // drag never reverses it
     this.beta = Math.atan2(this.vl, vv) * Math.sign(this.v || 1);
     this.alphaF = alphaF; this.alphaR = alphaR;
