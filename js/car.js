@@ -229,35 +229,48 @@ jeu. On regarde donc l'effort que la contrainte réclame — J/dt, une accélér
 non une version affaiblie, parce que c'est ce que fait un guide qui saute. Il ne reprend qu'une fois
 revenu près de la ligne ET sous un effort bien plus faible : hystérésis asymétrique, facile à
 retrouver, net à perdre. */
-/* CE GUIDE EST UN ESSAI QUI N'A PAS ABOUTI, et le dire ici vaut mieux que de le laisser croire.
+/* CE QU'IL A FALLU POUR QUE LE GUIDE TIENNE : contraindre la POSITION, pas la vitesse.
 
-Mesuré contre « rien », trois tours sur Zandvoort, Monaco et Suzuka, pilote freinant tard :
+La première version ne marchait pas, et Bruno l'a dit en une ligne : « ton guide ne fonctionne pas du
+tout ». Elle imposait la vitesse du guide en répartissant une impulsion ENTRE vl ET LE LACET, donc
+elle perturbait la rotation que les pneus venaient de calculer ; ceux-ci répondaient à l'image
+suivante et les deux se tiraient dessus soixante fois par seconde. Au mieux elle ne faisait rien, au
+pire — quand on la laissait tenir — cent seize demi-tours et cent sept sorties en trois tours. Et ce
+n'était pas un dosage : diviser le rappel par trois a EMPIRÉ les sorties.
 
-  réglage                   demi-tours   sorties   écart du nez   tour      (M1 Procar)
-  rien                           0          3         0,74 m     93,6 s
-  guide 0,6, à mi-nez            0          3         0,78 m     93,5 s
-  guide 1, au nez                3         31         2,32 m    105,7 s
-  guide 1,8, au nez             54         96         4,50 m    154,9 s
+Deux choses manquaient, et elles viennent du même principe — contraindre la position du point de
+guidage, puis calculer l'orientation du châssis séparément :
 
-Au mieux il ne fait rien ; dès qu'il tient vraiment, il détruit. ET LA CAUSE N'EST PAS LE
-DIMENSIONNEMENT — c'est la première chose essayée, en divisant le rappel par trois et en plafonnant
-la vitesse réclamée, et les sorties ont AUGMENTÉ. Elle est structurelle : la contrainte s'applique
-APRÈS les forces des pneus, si bien qu'à l'image suivante ceux-ci recalculent leurs angles de dérive
-sur le vl et le w qu'elle vient d'imposer. Ils voient des angles qu'ils n'ont pas choisis, produisent
-des forces qui la combattent, et les deux se tirent dessus soixante fois par seconde — d'où un taux
-de saut de vingt-huit par minute qui ne bouge avec aucun réglage. Pour qu'une contrainte tienne, il
-faut la résoudre AVEC les pneus et non après : c'est restructurer l'intégrateur, pas le compléter.
+  1. LA VOITURE PIVOTE AUTOUR DU GUIDE. Le moment des pneus se prend par rapport à lui et non au
+     centre, avec l'inertie transportée k² + g² (Huygens). C'est ce qui laisse l'arrière chasser
+     pendant que le nez reste dans la rainure.
+  2. LA VITESSE LATÉRALE EST POSÉE, PAS NÉGOCIÉE. Pour que le guide suive la rainure sa vitesse doit
+     être parallèle à la ligne ; sa vitesse valant (v, vl − g·w) dans le repère voiture, cela s'écrit
+     vl = g·w + v·tan(ψ) avec ψ l'angle entre le cap de la voiture et celui de la ligne. On pose cette
+     valeur et on ne touche plus au lacet : une inconnue par équation, plus de bras de fer.
 
-Ce qui donne la conclusion utile : L'AIMANT EST CE GUIDE, CORRECTEMENT INTÉGRÉ. Une raideur finie au
-lieu d'infinie est la seule forme qui cohabite avec un intégrateur explicite, et c'est pour ça que
-l'un marche et l'autre pas.
+Ce que ça donne, 911 Turbo, trois tours sur Zandvoort, Monaco et Suzuka, pilote freinant tard :
 
-Il reste donc dans le jeu, mais posé à mi-nez et borné aux deux crans que la mesure dit inoffensifs,
-pour qu'on puisse le SENTIR — la télémétrie dit quand il saute — sans qu'il casse quoi que ce soit.
+                        demi-tours   cap max   dérive   écart du nez   tour
+  sans guide                 6         114°      73°       0,82 m     97,2 s
+  guide 0,6 à mi-nez         0          56°      73°       0,96 m     97,3 s
+  guide 1 au nez             0          54°      73°       1,11 m     98,5 s
 
-Le rappel, enfin, se dimensionne : à six inverses de seconde un écart d'un mètre réclamait six mètres
-par seconde au guide, soit dix fois l'adhérence en une image, et le seuil de saut ne décidait plus
-rien. Deux, plafonnés, le rendent à nouveau une décision. */
+Zéro demi-tour, le cap plafonne à cinquante-six degrés au lieu de cent quatorze, ET LA DÉRIVE RESTE À
+SOIXANTE-TREIZE : l'arrière chasse toujours autant, la voiture ne se retourne plus. C'est ce que
+l'aimant ne sait pas faire — lui supprime les demi-tours en RÉDUISANT la glisse à vingt-deux degrés.
+
+Le guide est posé à mi-nez plutôt qu'à la pointe : au nez l'écart du nez monte à 1,11 m contre 0,96,
+et il saute trente et une fois par minute contre vingt. Plus le bras est long, plus la rainure doit
+tirer fort pour le même effet.
+
+LE DÉSLOTAGE se lit dans l'effort que l'asservissement réclame, c'est-à-dire ce que la rainure doit
+fournir en plus des pneus. Au-delà du plafond le guide sort, la vitesse latérale redevient libre, et
+il ne revient qu'une fois près de la ligne et sous un effort bien moindre.
+
+Le rappel, enfin, se dimensionne : à six inverses de seconde un écart d'un mètre réclamait dix fois
+l'adhérence en une image et le seuil de saut ne décidait plus rien. Deux, plafonnés, le rendent à
+nouveau une décision. */
 const GUIDE = {
   avance: 0.5,     // à mi-nez : au-delà, la mesure dit que ça détruit (voir ci-dessus)
   rappel: 2,       // rappel de l'écart résiduel, en inverses de seconde (Baumgarte)
@@ -801,7 +814,17 @@ class Car {
     // sliding tyres scrub speed (lateral force component along the velocity)
     acc -= (Math.abs(this.Ff * Math.sin(alphaF)) + Math.abs(this.Fr * Math.sin(alphaR))) * 0.8 * dir;
     // --- yaw from the axle moments; the velocity vector is rotated into the new body frame ---
-    const wDot = (-a * (this.Ff + FmAv) + b * (this.Fr + FmAr)) / kk;
+    /* LA VOITURE PIVOTE AUTOUR DU GUIDE, PAS AUTOUR DE SON CENTRE.
+
+    C'est la moitié de l'architecture qui manquait. Tant que le guide tient la rainure, le point fixe
+    du châssis est le guide : le moment des pneus se prend donc par rapport à LUI, et l'inertie est
+    celle transportée au guide par le théorème de Huygens, k² + g². L'essieu avant est alors à (a − g)
+    du guide et l'arrière à −(b + g). C'est ce qui laisse l'arrière chasser pendant que le nez reste
+    dans la rainure, au lieu que la voiture tourne autour de son milieu. */
+    const gRail = this.enRainure && PHYS.guide > 0 ? GUIDE.avance * c.length / 2 : 0;
+    const wDot = gRail
+      ? (-(a - gRail) * (this.Ff + FmAv) + (b + gRail) * (this.Fr + FmAr)) / (kk + gRail * gRail)
+      : (-a * (this.Ff + FmAv) + b * (this.Fr + FmAr)) / kk;
     this.w = clamp(this.w + wDot * dt, -4, 4);
     this.th = wrapAngle(this.th + this.w * dt);
     const v0 = this.v, vl0 = this.vl;
@@ -812,30 +835,47 @@ class Car {
     if (this.pitState === 'arret') this.v = 0;
     this.vl = vl0 + (v0 * this.w + this.Ff + Fm + this.Fr) * dt;
 
-    /* LA CONTRAINTE DU GUIDE, résolue après les pneus et avant d'avancer. */
+    /* LE GUIDE ASSERVIT LA VITESSE LATÉRALE, IL NE LA NÉGOCIE PAS.
+
+    Première version, et Bruno l'a jugée sans appel : elle imposait la vitesse du guide en répartissant
+    une impulsion ENTRE vl ET LE LACET. Elle perturbait donc la rotation que les pneus venaient de
+    calculer, ceux-ci répondaient à l'image suivante, et les deux se tiraient dessus soixante fois par
+    seconde. Ce n'était pas un défaut de dosage : diviser le rappel par trois a empiré les sorties.
+
+    Ce qu'il faut contraindre est la POSITION du guide, et calculer l'orientation du châssis
+    séparément. Au niveau des vitesses cela s'écrit simplement : pour que le guide suive la rainure, sa
+    vitesse doit être PARALLÈLE à la ligne. Si ψ est l'angle entre le cap de la voiture et celui de la
+    ligne au droit du guide, et que la vitesse du guide vaut (v, vl − g·w) dans le repère de la
+    voiture, alors vl − g·w = v·tan(ψ), donc :
+
+        vl = g·w + v·tan(ψ)
+
+    On POSE cette valeur. Le lacet, lui, vient des pneus seuls, pris au guide — plus de redistribution,
+    plus de bras de fer : une seule inconnue par équation.
+
+    LE DÉSLOTAGE se lit alors dans l'effort que l'asservissement réclame, c'est-à-dire ce que la
+    rainure doit fournir en plus des pneus : (vl voulue − vl actuelle)/dt − v·w − Ff − Fr. Au-delà du
+    plafond, le guide sort, on garde la vitesse latérale libre, et il ne revient qu'une fois près de la
+    ligne et sous un effort bien moindre. */
     this.guideF = 0;
     if (PHYS.guide > 0 && !off && Math.abs(this.v) > 3 && !this.inPit) {
-      const g = GUIDE.avance * c.length / 2;              // le guide, devant le centre
+      const g = GUIDE.avance * c.length / 2;
       const gx = this.x + g * Math.cos(this.th), gy = this.y + g * Math.sin(this.th);
       const pg = T.project(gx, gy, this.s);
       const cible = this.gridLat != null ? this.gridLat : T.targetLat(pg.s, this.selS);
       const ecart = pg.lat - cible;
-      // la vitesse à laquelle la ligne elle-même se décale, par mètre parcouru puis par seconde
+      // le cap de la LIGNE : celui de la piste, corrigé de la pente latérale de la ligne
       const pente = (T.targetLat(pg.s + 1, this.selS) - T.targetLat(pg.s - 1, this.selS)) / 2;
-      const voulue = pente * this.v
-        - clamp(GUIDE.rappel * ecart, -GUIDE.rappelMax, GUIDE.rappelMax);
-      const actuelle = this.vl - g * this.w;
-      const J = (voulue - actuelle) / (1 + g * g / kk);
-      const effort = Math.abs(J) / Math.max(1e-4, dt);
+      // le rappel ramène l'écart résiduel ; borné, sinon il sature le seuil de déslotage
+      const corr = clamp(GUIDE.rappel * ecart, -GUIDE.rappelMax, GUIDE.rappelMax) / Math.max(3, Math.abs(this.v));
+      const psi = wrapAngle(T.headingAt(pg.s) - Math.atan(pente) - this.th) - corr;
+      const voulue = g * this.w + this.v * Math.tan(clamp(psi, -0.9, 0.9));
+      const effort = Math.abs((voulue - this.vl) / Math.max(1e-4, dt) - v0 * this.w - this.Ff - Fm - this.Fr);
       const plafond = GUIDE.saute * gTot * PHYS.guide;
       if (this.enRainure && effort > plafond) this.enRainure = false;
       else if (!this.enRainure && effort < plafond * GUIDE.reprend / GUIDE.saute
                && Math.abs(ecart) < GUIDE.ecartMax) this.enRainure = true;
-      if (this.enRainure) {
-        this.vl += J;
-        this.w = clamp(this.w - g * J / kk, -4, 4);
-        this.guideF = effort;
-      }
+      if (this.enRainure) { this.vl = voulue; this.guideF = effort; }
     } else this.enRainure = true;
     if (latDrag) this.vl += clamp(latDrag * dt, -Math.abs(vl0), Math.abs(vl0));   // drag never reverses it
     this.beta = Math.atan2(this.vl, vv) * Math.sign(this.v || 1);
