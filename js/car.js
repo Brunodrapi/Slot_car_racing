@@ -121,7 +121,7 @@ vitesses de passage monteraient, et la mesure des planchers — le temps minimum
 deux roues dedans sur tout le virage coûte le virage. */
 const KERB_ADHERENCE = 0.88;
 
-const PHYS = { aimant: 0, ldK: 0.45, ldMin: 6, ff: 0.3, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, power: 0.01, relax: 0.2, circle: 0.25 };
+const PHYS = { aimant: 0, guide: 0, ldK: 0.45, ldMin: 6, ff: 0.3, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, power: 0.01, relax: 0.2, circle: 0.25 };
 
 /* L'AIMANT : une tension vers la ligne, et un décrochage net.
 
@@ -200,6 +200,73 @@ const AIMANT = {
   derive: 1.3,     // ... et seulement si l'arrière est revenu sous ce multiple de son pic
 };
 
+/* LE GUIDE : UNE CONTRAINTE, PAS UNE FORCE — et c'est toute la différence avec l'aimant.
+
+La mesure de l'aimant posé au nez a été sans appel : pire que rien, sur les trois voitures, y compris
+sur l'écart du nez qu'il était censé tenir. La raison tient en une phrase : une force au bout d'un
+long bras fait TOURNER la voiture avant de la déplacer, la rotation emmène le nez, l'écart grandit,
+la force grandit — boucle positive. Le guide d'un vrai slot car ne peut pas faire ça parce qu'il ne
+peut pas sortir de la rainure : sa raideur est infinie et le couple qu'il encaisse n'a pas de
+plafond. C'est pour ça que l'arrière chasse sans que la voiture pivote.
+
+ON L'ÉCRIT DONC COMME IL EST : on n'applique pas un effort vers la ligne, on IMPOSE que le point de
+guidage ne s'en écarte pas, et on laisse la queue libre. Au niveau des vitesses, le point situé à g
+devant le centre a pour vitesse latérale vl − g·w ; une impulsion latérale J appliquée là change vl
+de J et w de −g·J/k², donc elle change cette vitesse de J·(1 + g²/k²). La contrainte se résout d'une
+division, sans itération :
+
+    J = (vitesse voulue au guide − vitesse actuelle au guide) / (1 + g²/k²)
+
+« Vitesse voulue » n'est pas zéro mais la vitesse à laquelle la LIGNE se décale, plus un rappel
+proportionnel à l'écart résiduel : sans ce rappel, une contrainte en vitesse laisse l'erreur de
+position dériver sans jamais la corriger. C'est la stabilisation de Baumgarte, et `rappel` en est le
+taux, en inverses de seconde.
+
+ET IL DÉCROCHE, parce que Bruno y tient et qu'il a raison : « sauf qu'il faut quand même un
+décrochage dans la contrainte ». Un guide qui ne saute jamais est un rail, et le jeu n'est plus un
+jeu. On regarde donc l'effort que la contrainte réclame — J/dt, une accélération — et au-delà de
+`saute` fois l'adhérence disponible, le guide sort de la rainure : on ne donne plus rien du tout, et
+non une version affaiblie, parce que c'est ce que fait un guide qui saute. Il ne reprend qu'une fois
+revenu près de la ligne ET sous un effort bien plus faible : hystérésis asymétrique, facile à
+retrouver, net à perdre. */
+/* CE GUIDE EST UN ESSAI QUI N'A PAS ABOUTI, et le dire ici vaut mieux que de le laisser croire.
+
+Mesuré contre « rien », trois tours sur Zandvoort, Monaco et Suzuka, pilote freinant tard :
+
+  réglage                   demi-tours   sorties   écart du nez   tour      (M1 Procar)
+  rien                           0          3         0,74 m     93,6 s
+  guide 0,6, à mi-nez            0          3         0,78 m     93,5 s
+  guide 1, au nez                3         31         2,32 m    105,7 s
+  guide 1,8, au nez             54         96         4,50 m    154,9 s
+
+Au mieux il ne fait rien ; dès qu'il tient vraiment, il détruit. ET LA CAUSE N'EST PAS LE
+DIMENSIONNEMENT — c'est la première chose essayée, en divisant le rappel par trois et en plafonnant
+la vitesse réclamée, et les sorties ont AUGMENTÉ. Elle est structurelle : la contrainte s'applique
+APRÈS les forces des pneus, si bien qu'à l'image suivante ceux-ci recalculent leurs angles de dérive
+sur le vl et le w qu'elle vient d'imposer. Ils voient des angles qu'ils n'ont pas choisis, produisent
+des forces qui la combattent, et les deux se tirent dessus soixante fois par seconde — d'où un taux
+de saut de vingt-huit par minute qui ne bouge avec aucun réglage. Pour qu'une contrainte tienne, il
+faut la résoudre AVEC les pneus et non après : c'est restructurer l'intégrateur, pas le compléter.
+
+Ce qui donne la conclusion utile : L'AIMANT EST CE GUIDE, CORRECTEMENT INTÉGRÉ. Une raideur finie au
+lieu d'infinie est la seule forme qui cohabite avec un intégrateur explicite, et c'est pour ça que
+l'un marche et l'autre pas.
+
+Il reste donc dans le jeu, mais posé à mi-nez et borné aux deux crans que la mesure dit inoffensifs,
+pour qu'on puisse le SENTIR — la télémétrie dit quand il saute — sans qu'il casse quoi que ce soit.
+
+Le rappel, enfin, se dimensionne : à six inverses de seconde un écart d'un mètre réclamait six mètres
+par seconde au guide, soit dix fois l'adhérence en une image, et le seuil de saut ne décidait plus
+rien. Deux, plafonnés, le rendent à nouveau une décision. */
+const GUIDE = {
+  avance: 0.5,     // à mi-nez : au-delà, la mesure dit que ça détruit (voir ci-dessus)
+  rappel: 2,       // rappel de l'écart résiduel, en inverses de seconde (Baumgarte)
+  rappelMax: 1.2,  // ... et jamais plus de ça en mètres par seconde, sinon il sature le seuil
+  saute: 0.55,     // il sort de la rainure au-delà de cette fraction de l'adhérence disponible
+  reprend: 0.3,    // ... et ne reprend qu'en dessous de celle-ci
+  ecartMax: 0.8,   // ... et seulement si le guide est revenu à moins de ça de la ligne, en mètres
+};
+
 const wrapAngle = (a) => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
 const smoothstep = (x, a, b) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 
@@ -264,6 +331,8 @@ class Car {
     this.slide = 0;                      // 0..1 for effects
     this.accroche = true;                // l'aimant tient-il la ligne ? (voir AIMANT)
     this.ecartAv = null;                 // l'écart de l'image d'avant, pour l'amortissement
+    this.enRainure = true;               // le guide tient-il la rainure ? (voir GUIDE)
+    this.guideF = 0;                     // l'effort qu'il réclame, pour la télémétrie
     this.aimantF = 0;                    // la tension du moment, pour la télémétrie
     this.state = 'ok';                   // ok | grass
     this.grassT = 0;
@@ -328,7 +397,7 @@ class Car {
   place(s, lat, v) {
     const T = this.track, P = T.pos(s, lat);
     this.s = T.wrap(s); this.lat = lat; this.x = P.x; this.y = P.y; this.th = T.headingAt(s);
-    this.v = v || 0; this.vl = 0; this.w = 0; this.delta = 0; this.beta = 0; this.usage = 0; this.slide = 0; this.Ff = 0; this.Fr = 0; this.selS = this.sel; this.accroche = true; this.aimantF = 0; this.ecartAv = null;
+    this.v = v || 0; this.vl = 0; this.w = 0; this.delta = 0; this.beta = 0; this.usage = 0; this.slide = 0; this.Ff = 0; this.Fr = 0; this.selS = this.sel; this.accroche = true; this.aimantF = 0; this.ecartAv = null; this.enRainure = true; this.guideF = 0;
   }
 
   /* Ce que les pneus rendent, entre neuf et mort. Séparé de `gripBoost` parce que les deux n'ont
@@ -742,6 +811,32 @@ class Car {
     if (this.inPit && this.v > STAND.vitesse) this.v = STAND.vitesse;
     if (this.pitState === 'arret') this.v = 0;
     this.vl = vl0 + (v0 * this.w + this.Ff + Fm + this.Fr) * dt;
+
+    /* LA CONTRAINTE DU GUIDE, résolue après les pneus et avant d'avancer. */
+    this.guideF = 0;
+    if (PHYS.guide > 0 && !off && Math.abs(this.v) > 3 && !this.inPit) {
+      const g = GUIDE.avance * c.length / 2;              // le guide, devant le centre
+      const gx = this.x + g * Math.cos(this.th), gy = this.y + g * Math.sin(this.th);
+      const pg = T.project(gx, gy, this.s);
+      const cible = this.gridLat != null ? this.gridLat : T.targetLat(pg.s, this.selS);
+      const ecart = pg.lat - cible;
+      // la vitesse à laquelle la ligne elle-même se décale, par mètre parcouru puis par seconde
+      const pente = (T.targetLat(pg.s + 1, this.selS) - T.targetLat(pg.s - 1, this.selS)) / 2;
+      const voulue = pente * this.v
+        - clamp(GUIDE.rappel * ecart, -GUIDE.rappelMax, GUIDE.rappelMax);
+      const actuelle = this.vl - g * this.w;
+      const J = (voulue - actuelle) / (1 + g * g / kk);
+      const effort = Math.abs(J) / Math.max(1e-4, dt);
+      const plafond = GUIDE.saute * gTot * PHYS.guide;
+      if (this.enRainure && effort > plafond) this.enRainure = false;
+      else if (!this.enRainure && effort < plafond * GUIDE.reprend / GUIDE.saute
+               && Math.abs(ecart) < GUIDE.ecartMax) this.enRainure = true;
+      if (this.enRainure) {
+        this.vl += J;
+        this.w = clamp(this.w - g * J / kk, -4, 4);
+        this.guideF = effort;
+      }
+    } else this.enRainure = true;
     if (latDrag) this.vl += clamp(latDrag * dt, -Math.abs(vl0), Math.abs(vl0));   // drag never reverses it
     this.beta = Math.atan2(this.vl, vv) * Math.sign(this.v || 1);
     this.alphaF = alphaF; this.alphaR = alphaR;
