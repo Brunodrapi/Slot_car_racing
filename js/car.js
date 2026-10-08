@@ -121,7 +121,7 @@ vitesses de passage monteraient, et la mesure des planchers — le temps minimum
 deux roues dedans sur tout le virage coûte le virage. */
 const KERB_ADHERENCE = 0.88;
 
-const PHYS = { aimant: 0, ldK: 0.45, ldMin: 6, ff: 0.5, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, power: 0.01, relax: 0.2, circle: 0.25 };
+const PHYS = { aimant: 0, ldK: 0.45, ldMin: 6, ff: 0.3, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, power: 0.01, relax: 0.2, circle: 0.25 };
 
 /* L'AIMANT : une tension vers la ligne, et un décrochage net.
 
@@ -158,46 +158,42 @@ qu'elle crée elle-même, est un double intégrateur en phase arrière. Il oscil
 `c` est donc l'amortisseur : il s'oppose à la VITESSE d'éloignement, pas à l'éloignement. Et
 `avant` partage la tension entre les deux essieux — tout à l'avant donne le plus de pouvoir
 directionnel mais aussi le plus de couple de lacet, donc le plus d'oscillation. */
-/* LA PART AVANT, ET LE BANC QUI NE VOYAIT PAS LES DEMI-TOURS.
+/* OÙ MORD L'AIMANT : AU CENTRE, ET LE NEZ EST LE PIRE ENDROIT — mesuré jusqu'au bout.
 
-Deux balayages l'ont mal réglée, pour deux mauvaises mesures, et c'est Bruno qui a trouvé les deux
-en roulant — « avec les Porsche je faisais des tête-à-queue ».
+Bruno a montré le châssis d'un slot car BRM : le guide est à la pointe avant, bien devant l'essieu,
+et il demandait l'aimant là. Le paramètre d'alors ne savait pas y aller — il interpolait entre les
+deux essieux, donc « tout à l'avant » voulait dire « sur l'essieu avant » et rien de plus loin. Il a
+été refait en distance pour que la question soit posable, puis balayée du centre au nez, avec le
+critère qui voit vraiment les demi-tours (l'écart de cap, non borné) et un pilote qui freine tard.
 
-PREMIÈRE MAUVAISE MESURE : le critère jugeait « les voitures saines ne doivent pas se dégrader » sur
-la dérive maximale, donc comptait comme un défaut la glisse qu'on cherche. Dans un slot car le guide
-est à l'avant, le nez reste dans la rainure et l'arrière chasse : du travers sans pirouette est le
-but. Corrigé, on passe la part avant de 0,5 à 0,7.
+935, pilote tardif, trois tours sur Zandvoort, Monaco et Suzuka :
 
-SECONDE MAUVAISE MESURE, et celle-là était une tautologie : le compteur de demi-tours lisait
-|beta| > 90°, or beta = atan2(vl, vv) avec vv = max(3, |v|) toujours positif, donc atan2 est borné à
-±90° par construction. LE COMPTEUR NE POUVAIT PAS SE DÉCLENCHER, et « zéro demi-tour partout » n'est
-pas un résultat. Pire, il roulait avec aiThrottle, qui plafonne à la vitesse que l'adhérence autorise
-— un pilote qui ne se trompe jamais ne verra jamais la faute qui fait partir la voiture.
+  où mord l'aimant        demi-tours   sorties   écart du NEZ   tour
+  éteint                       6          1         0,76 m     97,2 s
+  0    (centre de gravité)     0          0         0,47 m     95,5 s
+  0,7                          0          0         0,56 m     95,8 s
+  1,35 (essieu avant)          9          4         0,71 m     98,4 s
+  1,8                         12         12         0,95 m    101,8 s
+  2,25 (le nez)               12         20         1,02 m    103,7 s
 
-Remesuré sur l'ÉCART DE CAP (le cap de la voiture contre celui de la piste, non borné) avec un pilote
-qui freine en retard, trois tours sur Zandvoort, Monaco et Suzuka, demi-tours / sorties :
+Monotone, et sur les trois voitures essayées : au nez c'est PIRE QUE SANS AIMANT, y compris sur
+l'écart du nez lui-même, que le guide est pourtant censé tenir. La M1 Procar, qui ne part jamais,
+y fait neuf demi-tours.
 
-                retard 0 %    retard 12 %   retard 25 %   cap max   dérive
-  935  éteint      6 / 3          6 / 9        6 / 9       126°      72°
-       av 0,5      0 / 0          0 / 0        0 / 0        33°      31°
-       av 0,7      0 / 0          3 / 0        2 / 0       103°      69°
-       av 1,0      5 / 3          6 / 5        6 / 6       126°      72°
-  911T éteint      6 / 4          6 / 9        6 / 9       114°      75°
-       av 0,5      0 / 0          0 / 0        0 / 0        36°      32°
-       av 0,7      0 / 0          3 / 0        3 / 0       104°      72°
+LA RAISON EST QU'UNE FORCE N'EST PAS UNE CONTRAINTE. Le guide d'un vrai slot car ne peut pas sortir
+de la rainure : sa raideur est infinie, le couple qu'il encaisse n'a pas de plafond, et le nez est
+tenu quoi qu'il arrive — c'est pour ça que l'arrière peut chasser sans que la voiture pivote. Une
+force, elle, sature à son plafond, et le moment qu'elle crée au bout d'un long bras FAIT TOURNER la
+voiture avant de la déplacer : la rotation emmène le nez, ce qui augmente l'écart, ce qui augmente la
+force. C'est une boucle positive, et plus le bras est long plus elle est rapide.
 
-CINQUANTE-CINQUANTE EST LE SEUL RÉGLAGE QUI SUPPRIME LES DEMI-TOURS MÊME QUAND LE PILOTE SE TROMPE,
-et il ne coûte pas la glisse : sous la faute, les Porsche y dérivent de trente à trente-deux degrés,
-autant qu'à sept dixièmes en conduite propre. On a le travers sans la pirouette.
-
-Et la raison est toujours la même : la force avant crée un couple de lacet qui S'AJOUTE à la rotation
-au lieu de s'y opposer, donc elle pousse une voiture déjà en train de pivoter. Le guide d'un vrai slot
-car ne peut pas faire ça parce que c'est une CONTRAINTE — le nez ne sort pas de la rainure, et le
-couple qu'il encaisse n'a pas de plafond. Une force, elle, sature. */
+Reproduire un vrai guide demanderait de le poser en CONTRAINTE et non en force : imposer la position
+latérale du nez sur la ligne, laisser la queue libre, et déverrouiller au-delà d'un effort. Ce n'est
+pas le même objet, et ce n'est pas ce qui est écrit ici. */
 const AIMANT = {
   k: 1.4,          // raideur : accélération latérale par mètre d'écart à la ligne
   c: 1.0,          // amortissement : par mètre par seconde d'éloignement
-  avant: 0.5,      // part de la tension posée sur l'essieu avant (le reste à l'arrière)
+  devant: 0,       // où mord l'aimant : mètres DEVANT le centre de gravité (voir plus bas)
   max: 0.3,        // plafond de la tension, en fraction de l'adhérence totale
   lache: 1.0,      // on décroche quand la demande dépasse le plafond
   reprend: 0.5,    // on ne raccroche qu'à la moitié du plafond
@@ -434,7 +430,31 @@ class Car {
 
     Le compte des demi-tours reste bruité à cette taille d'échantillon (le 935 en fait 5, 1, 4 puis 2
     pour ff de 0 à 0,6) : la valeur est choisie sur le BIAIS et sur les sorties, qui eux sont
-    monotones, et non sur lui. */
+    monotones, et non sur lui.
+
+    ET 0,5 OSCILLAIT, ce qu'aucun de ces chiffres ne disait. Bruno l'a senti en roulant : « avec le ff
+    à 0.5 j'ai l'impression que la voiture oscille ». Un correcteur peut parfaitement se recentrer en
+    moyenne tout en tremblant, et ni le biais ni les sorties ne le voient. La grandeur qui le voit est
+    la SECOUSSE DU VOLANT, la valeur efficace de la vitesse de braquage :
+
+                        M1    787B    935   911T     biais en virage serré (M1)
+      ff 0            9°/s    9°/s  17°/s  17°/s            +0,62
+      ff 0,3         22°/s   22°/s  27°/s  28°/s            +0,02
+      ff 0,5         33°/s   32°/s  38°/s  37°/s            −0,29
+
+    Presque quadruplé sur la M1. D'où 0,3 : il garde tout le bénéfice — le biais en virage serré y est
+    à deux centimètres, le meilleur de toutes les valeurs essayées, et l'écart absolu y est le plus
+    faible — pour la moitié de la secousse.
+
+    LISSER DAVANTAGE LA COURBURE N'EST PAS LE REMÈDE, bien que ce fût la cause soupçonnée. `lineK` est
+    une dérivée seconde d'une ligne échantillonnée, donc bruitée, et huit passes de lissage de plus
+    font bien tomber la secousse de 33 à 14°/s. Mais elles ramènent le biais vers l'intérieur (+0,02 →
+    +0,20 sur la M1, +0,29 → +0,42 sur le 935) et ajoutent deux à trois sorties de piste sur les
+    voitures qui n'en faisaient aucune : la courbure étalée fait anticiper le mauvais virage. On garde
+    donc le lissage d'origine et on baisse le gain.
+
+    Vingt-deux degrés par seconde restent plus que les neuf du départ : anticiper, c'est bouger le
+    volant plus tôt et davantage. C'est une réduction, pas une suppression. */
     const kFF = PHYS.ff ? T.lineCurv(this.s + Ld * 0.4, this.selS) : 0;
     return clamp(kPursuit + PHYS.ff * kFF, -0.25, 0.25);
   }
@@ -671,7 +691,24 @@ class Car {
       this.ecartAv = ecart;
     } else { this.accroche = true; this.ecartAv = null; }
     this.aimantF = Fm;
-    const FmAv = Fm * AIMANT.avant, FmAr = Fm * (1 - AIMANT.avant);
+    /* OÙ MORD L'AIMANT, en mètres devant le centre de gravité.
+
+    L'ancien réglage partageait la tension entre les deux essieux, donc il ne savait placer l'aimant
+    QU'ENTRE EUX : 1,0 valait « sur l'essieu avant » et il n'y avait pas de plus loin. Or le guide
+    d'un slot car est au NEZ, bien devant l'essieu avant — Bruno l'a montré sur un châssis BRM 911.
+    La plage utile était donc hors d'atteinte du paramètre.
+
+    On pose la distance directement. Une force Fm appliquée à `d` devant le centre y produit le moment
+    −d·Fm, qu'on obtient avec FmAv + FmAr = Fm et FmAv − FmAr = d·Fm/a. Au-delà de l'essieu avant
+    (d > a) la part arrière devient négative : c'est le couple équivalent, et c'est bien ce qu'il faut.
+
+    Repères, pour une voiture de 4,5 m dont l'empattement vaut 2,7 m :
+      0     le centre de gravité — l'aimant tire sans faire tourner
+      1,35  l'essieu avant
+      2,25  le nez, là où est le guide d'un vrai slot car */
+    const aAim = L / 2;
+    const FmAv = Fm * (1 + AIMANT.devant / aAim) / 2;
+    const FmAr = Fm * (1 - AIMANT.devant / aAim) / 2;
     // how hard the tyres are working (friction circle for the longitudinal forces)
     const useF = Math.abs(this.Ff) / Math.max(1e-3, gF), useR = Math.abs(this.Fr) / Math.max(1e-3, gR);
     const u = Math.min(1, Math.max(useF, useR));
