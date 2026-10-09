@@ -66,7 +66,7 @@ class App {
       Il fallait auparavant l'écrire en base avant de proposer quoi que ce soit, sous peine de voir
       tout le rattrapage refusé à la première connexion — exactement celle où il sert. La
       contrainte a disparu avec l'écriture : on pose le nom, et c'est tout. */
-      this.mondial.rattrape(this.save.bestLaps).catch(() => {});
+      this.mondial.rattrape(this.save.bestLapsNets).catch(() => {});
     }
     this.ui.splash();
     this.refreshCustom().then(() => {
@@ -424,28 +424,39 @@ class App {
         save.bestLaps[key] = race.player.bestLap;
         newRecord = true;
       }
-      if (save.bestLaps[keyCar] == null || race.player.bestLap < save.bestLaps[keyCar]) {
+      if (save.bestLaps[keyCar] == null || race.player.bestLap < save.bestLaps[keyCar])
         save.bestLaps[keyCar] = race.player.bestLap;
+      /* LE TABLEAU MONDIAL NE REGARDE QUE LE REGISTRE DES TOURS NETS.
+
+      Le record personnel ci-dessus se bat avec n'importe quel réglage — c'est le sien. Celui-ci ne
+      s'écrit que dans la configuration de référence, et c'est lui seul que `rattrape` renverra à la
+      prochaine ouverture. Sans ce second registre, bloquer l'envoi du moment ne servait à rien : le
+      temps restait dans la sauvegarde et repartait au démarrage suivant — le trou que la règle de
+      l'usure avait déjà. */
+      const net = tourNet(save, race);
+      if (net && (save.bestLapsNets[keyCar] == null || race.player.bestLap < save.bestLapsNets[keyCar])) {
+        save.bestLapsNets[keyCar] = race.player.bestLap;
         /* On ne propose au tableau mondial QUE ses propres meilleurs tours.
 
         Envoyer chaque tour aurait fait passer des centaines de temps là où un seul compte, et
         c'est le serveur qui aurait trié — à nos frais. Un temps qui ne bat même pas le nôtre ne
         peut pas battre celui du monde. Rien n'est attendu : la course se termine, les résultats
         s'affichent, et la réponse arrive quand elle arrive. */
-        if (this.mondial && this.mondial.connecte() && !race.usure) {
+        if (this.mondial && this.mondial.connecte()) {
           // le nom courant, et pas celui du démarrage : il a pu changer dans les réglages depuis
           this.mondial.poseNom(this.playerName());
           this.mondial.propose(race.track.id, race.cls.id, race.player.bestLap)
             .catch(() => { /* un tableau de scores ne fait pas échouer une fin de course */ });
-        } else if (this.mondial && this.mondial.connecte() && race.usure) {
-          /* L'usure exclut du tableau mondial, et il faut le DIRE.
-
-          Un tour signé sur des pneus à moitié morts ne se compare à rien, et la table n'a pas de
-          colonne pour préciser dans quel état il a été posé. Mais un joueur qui roule toujours
-          avec l'usure et ne voit jamais son nom apparaître croira que c'est cassé. */
-          this.mondial.dernierRefus = { raison: 'usure', circuit: race.track.id, voiture: race.cls.id };
         }
       }
+      /* UNE EXCLUSION SE DIT, sinon elle ressemble à une panne.
+
+      Un joueur qui roule toujours avec une aide et ne voit jamais son nom apparaître croira que le
+      tableau est cassé. On nomme donc le motif — l'usure, ou la configuration — même quand il n'y a
+      rien eu à envoyer. */
+      if (!net && this.mondial && this.mondial.connecte())
+        this.mondial.dernierRefus = { raison: race.usure ? 'usure' : 'aides',
+                                      circuit: race.track.id, voiture: race.cls.id };
     }
     save.racesDone++;
     if (ctx.cup) {

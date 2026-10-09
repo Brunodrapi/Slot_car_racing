@@ -31,7 +31,7 @@ function lapsFor(trackDef, cat) {
 const SAVE_KEY = 'slotracer.save.v2';
 
 function defaultSave() {
-  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, livrees: {}, ctrl: 'auto', ctrlSide: 'left', camRotate: false, view: 'avanceFixe', pullBack: 1, aimant: 0, ff: 0.3, laps: 5, lapsPerso: false, showLines: false, debug: false, wear: false, guideMigrated: true, flatMigrated: false, cups: {}, bestLaps: {}, tracesMigrated: true, tutorialSeen: false, racesDone: 0 };
+  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, livrees: {}, ctrl: 'auto', ctrlSide: 'left', camRotate: false, view: 'avanceFixe', pullBack: 1, aimant: 0, ff: 0.3, laps: 5, lapsPerso: false, showLines: false, debug: false, wear: false, guideMigrated: true, flatMigrated: false, cups: {}, bestLaps: {}, bestLapsNets: {}, tracesMigrated: true, tutorialSeen: false, racesDone: 0 };
 }
 
 function loadSave() {
@@ -87,6 +87,20 @@ function loadSave() {
     `lapsMigrated` s'en tire sans ça parce que son action est inoffensive — reposer cinq tours sur un
     champ déjà à cinq ne coûte rien. Effacer des temps, non. */
     if (!brut.tracesMigrated) { save.bestLaps = {}; save.tracesMigrated = true; storeSave(save); }
+  /* LE REGISTRE DES TOURS NETS, et la reprise des anciens.
+
+  `bestLaps` est le record PERSONNEL : il se bat avec n'importe quel réglage, parce que c'est le
+  sien et qu'on veut le voir. `bestLapsNets` est celui qui a le droit d'aller au tableau mondial :
+  seuls y entrent les tours courus dans la configuration de référence.
+
+  Deux registres plutôt qu'un drapeau, parce qu'un drapeau aurait un défaut qu'on ne voit qu'au
+  deuxième tour : si le meilleur temps personnel a été posé avec une aide, un tour propre PLUS LENT
+  ne le battrait pas, donc ne serait jamais enregistré, donc ne partirait jamais au tableau. Le
+  joueur serait puni d'avoir essayé une aide une fois.
+
+  Les sauvegardes d'avant datent d'un temps sans aimant ni anticipation réglables : leurs tours sont
+  nets par construction, et on les reprend tels quels. */
+  if (!brut.bestLapsNets) { save.bestLapsNets = Object.assign({}, save.bestLaps); storeSave(save); }
     return save;
   } catch (e) { return defaultSave(); }
 }
@@ -116,4 +130,29 @@ function unlockedTracks(save) {
 
 function allUnlocked(save) {
   return CUPS.every((c, i) => cupUnlocked(save, i)) && cupState(save, CUPS[CUPS.length - 1].id).done;
+}
+
+/* UN TOUR NE COMPTE POUR LE MONDE QUE DANS LA CONFIGURATION DE RÉFÉRENCE.
+
+Le tableau mondial n'a qu'une colonne pour le temps : il ne peut pas dire dans quelles conditions il
+a été posé. Un tour aidé n'y est donc pas « moins bon », il est INCOMPARABLE — et la seule façon de
+garder la table lisible est de ne pas l'y mettre. C'est déjà la règle de l'usure ; elle s'étend aux
+aides et aux réglages de conduite.
+
+Ce qui exclut, et pourquoi :
+  — l'USURE, parce qu'un tour sur des pneus morts ne se compare à rien (règle d'origine) ;
+  — le GUIDE DE FREINAGE, qui montre où freiner : c'est précisément ce qu'on vient chercher ;
+  — l'AIMANT, qui tient la voiture sur la ligne ;
+  — l'ANTICIPATION hors de sa valeur par défaut. Celle-là n'est pas une aide — à zéro elle rend la
+    voiture PLUS difficile — mais elle change le pilote intégré, donc la physique. Un temps posé
+    avec un autre pilote ne se compare pas davantage, dans un sens comme dans l'autre.
+
+La télémétrie n'exclut pas : elle affiche des angles de dérive, elle ne conduit pas. */
+const FF_DEFAUT = 0.3;
+function tourNet(save, race) {
+  if (race && race.usure) return false;
+  if (save.showLines) return false;
+  if ((save.aimant || 0) !== 0) return false;
+  if ((save.ff == null ? FF_DEFAUT : save.ff) !== FF_DEFAUT) return false;
+  return true;
 }

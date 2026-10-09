@@ -49,6 +49,8 @@ const I18N = {
     refus_pseudo_pris: 'Ce nom est déjà pris par un autre pilote. Change-le dans les réglages.',
     refus_session: 'Ta session a expiré. Reconnecte-toi pour inscrire tes temps.',
     refus_usure: 'Les tours courus avec l’usure n’entrent pas au tableau mondial : ils ne se comparent à rien.',
+    refus_aides: 'Ce tour n’entre pas au tableau mondial : il a été couru avec une aide ou un réglage de conduite. Remets-les à zéro pour inscrire tes temps.',
+    horsClassement: 'Hors tableau mondial : ', horsGuide: 'guide de freinage', horsAimant: 'aimant', horsFf: 'anticipation', horsUsure: 'usure',
     refus_reseau: 'Pas de réseau au moment de l’envoi. Ton temps est gardé ici.',
     refus_autre: (r) => `Temps non retenu par le serveur (${r}).`,
     worldBest: 'Monde', worldNeedsAccount: 'Connecte-toi pour inscrire tes temps au tableau mondial.', signIn: 'Se connecter avec Google', signOut: 'Se déconnecter',
@@ -112,6 +114,8 @@ const I18N = {
     refus_pseudo_pris: 'That name is already taken by another driver. Change it in the settings.',
     refus_session: 'Your session has expired. Sign in again to post your times.',
     refus_usure: 'Laps run with wear do not reach the world board: they compare to nothing.',
+    refus_aides: 'This lap does not reach the world board: it was driven with an aid or a driving setting. Turn them off to post your times.',
+    horsClassement: 'Outside the world board: ', horsGuide: 'braking guide', horsAimant: 'magnet', horsFf: 'anticipation', horsUsure: 'tyre wear',
     refus_reseau: 'No network when sending. Your time is kept here.',
     refus_autre: (r) => `Time not kept by the server (${r}).`,
     worldBest: 'World', worldNeedsAccount: 'Sign in to put your times on the world board.', signIn: 'Sign in with Google', signOut: 'Sign out',
@@ -567,6 +571,18 @@ class UI {
              pure pursuit seul, donc il coupe la corde ; au-delà de 0,5 il oscille. Réglable pour que
              Bruno tranche au pouce ce que le banc ne départage qu'à moitié. -->
         <label>${t('anticip')}<select id="sel-ff">${[[0, 'anticipOff'], [0.3, 'anticipPeu'], [0.5, 'anticipMoy'], [1, 'anticipFort']].map(([v, k]) => `<option value="${v}" ${Math.abs((s.ff == null ? 0.3 : s.ff) - v) < 0.05 ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
+        <!-- CE QUI EXCLUT DU TABLEAU MONDIAL SE DIT ICI, pas seulement après la course. Découvrir
+             au résultat que son tour ne compte pas, c'est l'avoir couru pour rien ; la ligne
+             n'apparaît que lorsqu'au moins un réglage exclut, donc elle ne pèse pas le reste du
+             temps. -->
+        ${(() => {
+          const h = [];
+          if (s.showLines) h.push(t('horsGuide'));
+          if (s.aimant) h.push(t('horsAimant'));
+          if ((s.ff == null ? 0.3 : s.ff) !== 0.3) h.push(t('horsFf'));
+          if (s.wear) h.push(t('horsUsure'));
+          return h.length ? `<p class="avert">${t('horsClassement')}${h.join(', ')}.</p>` : '';
+        })()}
         <label>${t('difficulty')}<select id="sel-diff">${NIVEAUX.map(d => `<option value="${d}" ${s.difficulty === d ? 'selected' : ''}>${t(d)}</option>`).join('')}</select></label>
       </div>
       <div class="row"><button data-action="menu">${t('back')}</button><button class="danger" data-action="resetAll">${t('resetAll')}</button></div>

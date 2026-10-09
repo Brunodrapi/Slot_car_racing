@@ -121,6 +121,10 @@ button.big small { font-weight: 400; color: var(--muted); margin-left: 8px; }
 button.primary { background: var(--accent); color: #1a1400; border-color: transparent; }
 button.primary:hover:not(:disabled) { background: #ffe14d; }
 button.danger { color: var(--danger); }
+/* L'avertissement d'exclusion du tableau mondial, dans les réglages. Il n'apparaît que quand un
+   réglage exclut, donc il doit se voir sans crier : la couleur d'alerte, mais en petit et sans
+   cadre, à la place qu'aurait eue une ligne de texte ordinaire. */
+p.avert { margin: 2px 0 6px; font-size: 13px; color: var(--danger); opacity: 0.9; }
 button.link { background: none; border: none; color: var(--muted); text-decoration: underline; padding: 6px 0; font-size: 13px; }
 .menu { display: flex; flex-direction: column; gap: 12px; width: min(360px, 100%); }
 .howto { margin-top: 24px; max-width: 560px; color: var(--muted); font-size: 14px; line-height: 1.5; }
