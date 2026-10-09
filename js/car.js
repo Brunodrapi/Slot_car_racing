@@ -123,6 +123,21 @@ const KERB_ADHERENCE = 0.88;
 
 const PHYS = { aimant: 0, ldK: 0.45, ldMin: 6, ff: 0.3, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, power: 0.01, relax: 0.2, circle: 0.25 };
 
+/* LES AIDES DE L'IA, qui ne sont pas celles du joueur.
+
+`PHYS.aimant` et `PHYS.ff` portent ce que LE JOUEUR a choisi dans les réglages. Les rivales n'ont
+aucune raison d'en hériter : elles ne choisissent rien, et elles roulent mal — « elles roulent
+doucement et sont assez mauvaises ». On leur donne donc une configuration fixe, celle que la mesure
+a trouvée la meilleure : l'aimant au cran normal, qui leur supprime les tête-à-queue, et
+l'anticipation au défaut, qui les empêche de couper la corde.
+
+LE DÉPARTAGE SE FAIT SUR LA VOITURE, PAS SUR QUI LA CONDUIT. `isPlayer` est posé à la construction,
+alors que `aiDriven` se recalcule à chaque image et vaut vrai pour la voiture du joueur dès que
+l'autopilote la pilote — ce qui est le cas de tous les bancs. Se brancher dessus aurait donné les
+aides de l'IA à la voiture mesurée, et rendu incomparables tous les relevés d'avant. Un adversaire
+humain en réseau n'y a pas droit non plus : il choisit, lui. */
+const AIDES_IA = { aimant: 1, ff: 0.3 };
+
 /* L'AIMANT : une tension vers la ligne, et un décrochage net.
 
 L'idée est de Bruno, et elle répond à ce que la mesure dit du modèle actuel. Trois leviers ont été
@@ -372,6 +387,9 @@ class Car {
   débusquer six semaines plus tard. */
   tyreGrip() { return this.usure ? 1 - this.usure.grip * (1 - this.tyre) : 1; }
 
+  /* Les aides qui s'appliquent à CETTE voiture : les siennes au joueur, celles de l'IA aux rivales. */
+  get aides() { return this.isPlayer || this.human != null ? PHYS : AIDES_IA; }
+
   gripAt(v) {
     const c = this.cls, g = c.grip * this.gripBoost * this.tyreGrip();
     return g + Math.min(c.df * v * v, g * 1.8);
@@ -490,8 +508,9 @@ class Car {
 
     Vingt-deux degrés par seconde restent plus que les neuf du départ : anticiper, c'est bouger le
     volant plus tôt et davantage. C'est une réduction, pas une suppression. */
-    const kFF = PHYS.ff ? T.lineCurv(this.s + Ld * 0.4, this.selS) : 0;
-    return clamp(kPursuit + PHYS.ff * kFF, -0.25, 0.25);
+    const ff = this.aides.ff;
+    const kFF = ff ? T.lineCurv(this.s + Ld * 0.4, this.selS) : 0;
+    return clamp(kPursuit + ff * kFF, -0.25, 0.25);
   }
 
   update(dt, throttle, raceTime) {
@@ -698,11 +717,12 @@ class Car {
     Elle s'éteint hors piste : l'aimant tient une LIGNE, et il n'y a pas de ligne dans le gravier.
     Elle s'éteint aussi à l'arrêt, sinon elle replacerait une voiture immobile toute seule. */
     let Fm = 0;
-    if (PHYS.aimant > 0 && !off && Math.abs(this.v) > 3 && !this.inPit) {
+    const aimant = this.aides.aimant;
+    if (aimant > 0 && !off && Math.abs(this.v) > 3 && !this.inPit) {
       const latCible = this.gridLat != null ? this.gridLat : T.targetLat(this.s, this.selS);
       const ecart = latCible - this.lat;
       const dEcart = this.ecartAv == null ? 0 : (ecart - this.ecartAv) / Math.max(1e-4, dt);
-      const plafond = AIMANT.max * gTot * PHYS.aimant;
+      const plafond = AIMANT.max * gTot * aimant;
       /* LE VERROU SE DÉCIDE SUR LA DISTANCE, LA FORCE S'APPLIQUE AVEC L'AMORTISSEMENT.
 
       Deuxième défaut de la première version : le verrou lisait la demande AMORTIE, dont le terme
