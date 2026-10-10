@@ -327,6 +327,7 @@ class Car {
     this.passSide = 0;
     this.passTimer = 0;
     this.blocker = null;
+    this.voisin = null;
     this.draft = false;
 
     this.started = false;
@@ -829,25 +830,65 @@ class Car {
       this.laneTarget = T.targetLat(this.s, this.selS);
       return;
     }
-    let blocker = null, bd = Infinity;
+    /* DEVANT ET À CÔTÉ NE SONT PAS LA MÊME CHOSE.
+
+    L'ancienne détection écartait tout ce qui n'était pas strictement devant (`d <= 0`), et prenait
+    tout le reste pour un gêneur. Deux voitures roue contre roue étaient donc traitées comme une
+    file : celle dont le nez dépassait d'un centimètre voyait un gêneur, l'autre ne voyait rien, et
+    aucune des deux ne savait qu'il y avait quelqu'un à côté d'elle. La mesure dit ce que ça coûte :
+    des blocages par PAIRES de même durée, jusqu'à 22 s à Suzuka, 59 km/h à l'entrée et 26 km/h
+    dedans, avec quatre fois la dérive normale.
+
+    On sépare donc trois cas, sur la MÊME géométrie que le solveur de contact — deux voitures se
+    chevauchent en abscisse en dessous de la demi-somme de leurs longueurs, soit une longueur de
+    voiture quand elles sont de la même taille :
+
+      d >= lenSum    DEVANT    c'est un gêneur : on le double, et on lève pour ne pas le percuter
+      |d| < lenSum   À CÔTÉ    c'est un voisin : on ne lève pas, on lui laisse la place
+      d <= -lenSum   DERRIÈRE  ce n'est pas notre affaire
+
+    Le voisin se retient par le plus petit écart LATÉRAL et non par la distance : celui dont il faut
+    se méfier est celui qui est le plus près de notre flanc, pas celui dont le nez est le plus
+    proche du nôtre. */
+    let blocker = null, bd = Infinity, voisin = null, vdl = Infinity;
     const range = c.length * 3 + Math.max(0, this.v) * 1.0;
     for (const o of cars) {
       if (o === this) continue;
       const d = T.diff(this.s, o.s);
-      if (d <= 0 || d > range || d >= bd) continue;
+      if (d > range) continue;
+      const lenSum = (c.length + o.cls.length) / 2;
+      const dl = o.lat - this.lat, demiLarg = (c.width + o.cls.width) / 2;
+      if (Math.abs(d) < lenSum) {
+        if (Math.abs(dl) < demiLarg + 0.6 && Math.abs(dl) < Math.abs(vdl)) { voisin = o; vdl = dl; }
+        continue;
+      }
+      if (d < lenSum || d >= bd) continue;
       if (o.v > this.v + 2.5 && d > c.length * 1.5) continue;
-      if (Math.abs(o.lat - this.lat) < (c.width + o.cls.width) * 0.75 + 0.4) { blocker = o; bd = d; }
+      if (Math.abs(dl) < demiLarg * 1.5 + 0.4) { blocker = o; bd = d; }
     }
     this.blocker = blocker;
+    this.voisin = voisin;
     this.draft = !!blocker && bd < c.length * 3.5 && Math.abs(blocker.lat - this.lat) < c.width * 0.9;
     if (ai) {
       this.passTimer -= dt;
       if (blocker) {
         if (this.passSide === 0 || this.passTimer <= 0) {
+          /* LA PLACE SE JUGE À LA MÊME ABSCISSE DES DEUX CÔTÉS.
+
+          L'ancienne version comparait un `targetLat` pris 15 m devant au `lat` ACTUEL des autres.
+          Sur une ligne droite les deux se valent ; en virage la ligne se déplace latéralement entre
+          les deux points, et la comparaison mesurait ce déplacement au lieu de l'écart entre les
+          voitures. On prend donc la position que chacun aura à notre `s + 15` s'il tient sa ligne,
+          ce qui est exactement comparable au candidat. */
+          const sAv = this.s + 15;
           const cand = [-1, 1].map(sel => {
-            const lat = T.targetLat(this.s + 15, sel);
-            let room = Math.abs(lat - blocker.lat);
-            for (const o of cars) { if (o === this || o === blocker) continue; const d = T.diff(this.s, o.s); if (d > -c.length * 2 && d < 40) room = Math.min(room, Math.abs(lat - o.lat)); }
+            const lat = T.targetLat(sAv, sel);
+            let room = Math.abs(lat - T.targetLat(sAv, blocker.selS));
+            for (const o of cars) {
+              if (o === this || o === blocker) continue;
+              const d = T.diff(this.s, o.s);
+              if (d > -c.length * 2 && d < 40) room = Math.min(room, Math.abs(lat - T.targetLat(sAv, o.selS)));
+            }
             return { sel, room };
           });
           cand.sort((a, b) => b.room - a.room);
@@ -857,6 +898,21 @@ class Car {
         this.sel = this.passSide;
       } else if (this.passSide !== 0 && this.passTimer <= 0) { this.passSide = 0; this.sel = 0; }
       else if (!blocker && this.passSide === 0) this.sel = 0;
+      /* ON NE SE RABAT PAS SUR QUELQU'UN QUI EST DÉJÀ LÀ.
+
+      C'est une contrainte, pas une force : la ligne visée reste la ligne de course, mais elle ne
+      peut plus franchir le flanc du voisin. Sans ça, les deux voitures visent le même point et le
+      chevauchement que le solveur vient d'écarter se reforme à l'image suivante — c'est ce qui rend
+      le blocage mutuel et le fait durer.
+
+      `targetLat` n'est pas monotone en `sel` : l'intérieur et l'extérieur changent de bord à chaque
+      changement de sens du circuit. Le côté se lit donc dans les positions, jamais dans `sel`. */
+      if (voisin) {
+        const versVoisin = Math.sign(vdl);
+        const latVise = T.targetLat(this.s, this.sel);
+        if (Math.sign(latVise - this.lat) === versVoisin && Math.abs(latVise - this.lat) > Math.abs(vdl) - (c.width + voisin.cls.width) / 2)
+          this.sel = this.selS;   // on tient la position tant qu'il est là
+      }
     }
     // ease the chosen line in: changing lane is a manoeuvre, not a jump of the target
     this.selS += clamp(this.sel - this.selS, -PHYS.selRate * dt, PHYS.selRate * dt);
@@ -903,10 +959,18 @@ function aiThrottle(car, cars, dt, opts) {
       const a = Math.sqrt(vc * vc + 2 * brake * d);
       if (a < allow) allow = a;
     }
+    /* On lève pour la voiture DEVANT, pas pour celle qui est à côté.
+
+    `d > 0` suffisait à faire lever une voiture dont le nez dépassait d'un centimètre : roue contre
+    roue, celle qui était derrière d'un rien se bridait sur la vitesse de l'autre, reculait, et le
+    duel se transformait en file. Lever n'y sert à rien — à cette distance il n'y a plus de choc
+    frontal à éviter, seulement un flanc, et c'est au solveur de contact de s'en occuper. Le seuil
+    est donc la même demi-longueur que partout ailleurs. */
     for (const o of cars) {
       if (o === car) continue;
       const d = T.diff(car.s, o.s);
-      if (d > 0 && d < c.length * 1.2 + v * 0.15 && Math.abs(o.lat - car.lat) < (c.width + o.cls.width) * 0.5 + 0.3) {
+      const lenSum = (c.length + o.cls.length) / 2;
+      if (d >= lenSum && d < c.length * 1.2 + v * 0.15 && Math.abs(o.lat - car.lat) < (c.width + o.cls.width) * 0.5 + 0.3) {
         if (o.v + 0.5 < allow) allow = Math.min(allow, o.v + 0.5);
       }
     }
