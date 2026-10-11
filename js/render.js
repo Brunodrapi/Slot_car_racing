@@ -210,7 +210,7 @@ class Renderer {
     this.touch = false;
     this.showLines = false;   // braking guide, off unless enabled in the settings
     this.debug = false;       // vehicle telemetry overlay (speed, slip angle, lateral velocity, grip usage)
-    this.dialPress = 0;       // eased 0..1 press state of the throttle dial
+    this.poucePress = 0;      // appui lissé de 0 à 1 sur la pastille du pouce
     this.rotate = true;      // keep the track direction pointing up the screen
     this.camAngle = 0;
     this.resize();
@@ -304,19 +304,25 @@ class Renderer {
     // Un seul écart, mesuré depuis le bord SÛR et non depuis le bord physique.
     const P = this.pad = { t: 14 + sa.t, r: 14 + sa.r, b: 14 + sa.b, l: 14 + sa.l };
     this.encoches = sa;
-    // Throttle dial: a half-dome that the thumb carries with it. At rest it waits at the bottom
-    // centre; a thumb landing anywhere off the line slider moves it there, base on the finger, so
-    // the whole dial reads above the hand instead of under it.
-    const r = clamp(Math.min(W * 0.26, H * 0.17), 68, 130);
-    /* Il reste au milieu, même quand la caméra descend la voiture en bas de l'écran.
+    /* LA PASTILLE DU POUCE, ET RIEN D'AUTRE EN BAS DE L'ÉCRAN.
 
-    Les vues « en avance » posent la voiture vers 80 % de la hauteur, c'est-à-dire derrière la carte
-    de vitesse du cadran, qui monte aux deux tiers. Le ranger dans un coin dans ces vues-là a été
-    essayé et retiré : le cadran suit le pouce, donc le joueur le déplace lui-même s'il le gêne, et
-    une commande qui change de place selon la caméra coûte plus qu'elle ne rend. */
-    this.dialHome = { cx: W / 2, cy: H - P.b - r * 0.46 };   // at rest the pad shows in full
-    this.dial = { cx: this.dialHome.cx, cy: this.dialHome.cy, r };
-    this.dialAnchored = false;
+    Il y avait là un cadran : une pastille, un éventail de vitesse, et une carte blanche portant les
+    chiffres. Sur un iPhone 13 en portrait il occupait 197 × 208 px, soit 12,4 % de l'écran et 7,4 %
+    en surface vraiment opaque, dans une bande allant de y=588 à y=796 — or les vues « en avance »
+    posent la voiture vers y=675. Il couvrait donc la voiture du joueur.
+
+    L'ancien commentaire d'ici le savait et concluait que « le joueur le déplace lui-même s'il le
+    gêne ». C'est faux en course : déplacer la pastille demande de LÂCHER l'accélérateur, donc on ne
+    le fait jamais. Le constat est de Bruno, au volant.
+
+    ET IL NE PAYAIT PAS SON LOYER. `main.js` prend tout appui qui n'est ni la pause ni la zone du
+    levier pour de l'accélérateur : la cible fait un demi-écran, et le dessin n'a aucune valeur de
+    visée — il n'était qu'un instrument. Les deux chiffres qu'il portait sont donc remontés sous le
+    bandeau du haut, et il ne reste ici qu'un disque translucide qui dit où est le pouce. */
+    const r = clamp(Math.min(W * 0.12, H * 0.08), 32, 60);
+    this.pouceHome = { cx: W / 2, cy: H - P.b - r };
+    this.pouce = { cx: this.pouceHome.cx, cy: this.pouceHome.cy, r };
+    this.pouceAncre = false;
     /* Le levier de ligne, à gauche par défaut, à droite au choix.
 
     Un droitier tient son téléphone d'une main et pousse le levier du pouce de l'autre ; un
@@ -1823,10 +1829,12 @@ class Renderer {
     drawCarModel(g, c, car.livery, { number: car.number, steer: car.steerAngle, livree: car.livree });
     if (car.braking && car.state === 'ok') { g.fillStyle = 'rgba(255,40,40,0.9)'; g.fillRect(-c.length / 2 - 0.15, -c.width / 2 + 0.1, 0.25, c.width - 0.2); }
     g.restore();
-    if (car.isPlayer) {
-      g.strokeStyle = 'rgba(255,255,255,0.3)'; g.lineWidth = 0.14;
-      g.beginPath(); g.arc(pos.x, pos.y, Math.max(c.length, c.width) * 0.8, 0, Math.PI * 2); g.stroke();
-    }
+    /* Pas de cercle autour de la voiture du joueur.
+
+    Il y en avait un, pour la retrouver dans le peloton. Il est retiré sur le constat de Bruno : un
+    anneau qui n'existe pas dans le monde, posé sur la seule voiture qu'on regarde, casse
+    l'immersion. La voiture se retrouve autrement — c'est elle que la caméra suit, et la pastille
+    de couleur du classement la désigne déjà. */
   }
 
   _roundRect(g, x, y, w, h, r) {
@@ -1837,87 +1845,37 @@ class Renderer {
     g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y); g.closePath();
   }
 
-  // The accelerator, built like the SpotRacers control: a white pad that sits under the thumb, a
-  // fan gauge running from a standstill to the car's top speed, and a white tab above it carrying
-  // the speed in figures. Everything that has to be read sits above the hand.
-  _drawDial(g, p, t) {
-    const d = this.dial, cx = d.cx, cy = d.cy, r = d.r;
+  /* L'accélérateur : un disque translucide sous le pouce, sans contour et sans rien à lire.
+
+  Tout ce qui se lisait est passé en haut. Ce qui reste n'a qu'un travail : dire où le doigt a pris
+  la commande, et accuser l'appui. Sans contour et à faible opacité, parce que c'est un repère et
+  pas un objet — ce qu'il recouvre doit rester visible à travers. */
+  _drawPouce(g, p) {
+    const d = this.pouce, cx = d.cx, cy = d.cy;
     const held = !!p.throttle;
-    this.dialPress += ((held ? 1 : 0) - this.dialPress) * 0.25;   // eased press feedback
-    const press = this.dialPress;
-    const A0 = Math.PI, SPAN = Math.PI;
-    const rPad = r * 0.46, rIn = r * 0.54, rOut = r * 0.97;
-    const f = clamp(Math.max(0, p.speed) / p.cls.vmax, 0, 1);
-    const kmh = Math.round(Math.max(0, p.speed) * 3.6);
-
-    // --- white tab with the speed in figures, tucked behind the fan ---
-    const cardW = r * 0.94, cardH = r * 0.72;
-    const cardX = cx - cardW / 2, cardY = cy - rOut - cardH + r * 0.10;
-    g.save();
-    g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 10; g.shadowOffsetY = 2;
-    g.fillStyle = '#f2f4f7'; this._roundRect(g, cardX, cardY, cardW, cardH, r * 0.16); g.fill();
-    g.restore();
-    g.textAlign = 'center'; g.textBaseline = 'alphabetic';
-    g.fillStyle = '#4ec0e6'; g.font = `bold ${Math.round(r * 0.36)}px system-ui, sans-serif`;
-    g.fillText(String(kmh), cx, cardY + cardH * 0.55);
-    g.fillStyle = '#3ea8d2'; g.font = `600 ${Math.round(r * 0.15)}px system-ui, sans-serif`;
-    g.fillText('km/h', cx, cardY + cardH * 0.84);
-
-    // --- fan gauge: empty part, filled part up to the current speed, then the needle ---
-    const sector = (a0, a1, fill) => {
-      if (a1 <= a0) return;
-      g.beginPath();
-      g.arc(cx, cy, rOut, a0, a1);
-      g.arc(cx, cy, rIn, a1, a0, true);
-      g.closePath();
-      g.fillStyle = fill; g.fill();
-    };
-    g.save();
-    g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 10; g.shadowOffsetY = 2;
-    sector(A0, A0 + SPAN, 'rgba(120,200,228,0.85)');
-    g.restore();
-    sector(A0, A0 + SPAN * f, held ? '#2f86c8' : '#54839c');
-    // the needle also carries grip usage: pale while there is margin, then the telemetry colours
-    const u = p.loadRatio;
-    // it also thickens as the tyres load up, so the warning catches the eye without moving
-    const nA = A0 + SPAN * f, nW = 0.075 * (1 + 0.6 * clamp((u - 0.7) / 0.8, 0, 1));
-    sector(Math.max(A0, nA - nW), Math.min(A0 + SPAN, nA + nW), u < 0.7 ? 'rgba(236,247,252,0.98)' : Renderer.gripColor(u));
-    // white rim around the whole fan, as one piece
-    g.beginPath();
-    g.arc(cx, cy, rOut, A0, A0 + SPAN);
-    g.arc(cx, cy, rIn, A0 + SPAN, A0, true);
-    g.closePath();
-    g.strokeStyle = '#f2f4f7'; g.lineWidth = Math.max(3, r * 0.075); g.lineJoin = 'round'; g.stroke();
-
-    // --- the white pad: the thumb rests here, its rim warns when the tyres are working ---
-    const pr = rPad * (1 - 0.05 * press);
-    g.save();
-    g.shadowColor = 'rgba(0,0,0,0.4)'; g.shadowBlur = 12; g.shadowOffsetY = 3;
+    this.poucePress += ((held ? 1 : 0) - this.poucePress) * 0.25;   // eased press feedback
+    const pr = d.r * (1 - 0.06 * this.poucePress);
     g.beginPath(); g.arc(cx, cy, pr, 0, Math.PI * 2);
-    g.fillStyle = press > 0.5 ? '#ccd5df' : '#dfe5ec'; g.fill();
-    g.restore();
-    g.beginPath(); g.arc(cx, cy, pr, 0, Math.PI * 2);
-    g.strokeStyle = 'rgba(255,255,255,0.92)';
-    g.lineWidth = Math.max(3, r * 0.07); g.stroke();
-    g.lineJoin = 'miter'; g.textBaseline = 'top';
+    g.fillStyle = `rgba(255,255,255,${0.10 + 0.08 * this.poucePress})`; g.fill();
+    g.textBaseline = 'top';
   }
 
-  // Move the dial so its flat base sits just above the thumb, kept fully on screen.
-  anchorDial(x, y) {
-    const d = this.dial, m = 8;
+  // La pastille vient sous le pouce, et reste entière à l'écran.
+  anchorPouce(x, y) {
+    const d = this.pouce, m = 8;
     // never far enough left to cover the line slider: that column must stay reachable
     const lo = this.slider.x + 30 + d.r, hi = this.w - d.r - m;
     d.cx = hi > lo ? clamp(x, lo, hi) : hi;
-    // the pad is centred on the thumb; the fan and the tab need room above it
-    d.cy = clamp(y, d.r * 1.65 + m, this.h - m);
-    this.dialAnchored = true;
+    // plus rien à lire au-dessus d'elle : il ne lui faut que sa propre place
+    d.cy = clamp(y, d.r + m, this.h - d.r - m);
+    this.pouceAncre = true;
   }
 
   // back to the bottom centre (new race, orientation change)
-  homeDial() {
-    if (!this.dialHome) return;
-    this.dial.cx = this.dialHome.cx; this.dial.cy = this.dialHome.cy;
-    this.dialAnchored = false;
+  homePouce() {
+    if (!this.pouceHome) return;
+    this.pouce.cx = this.pouceHome.cx; this.pouce.cy = this.pouceHome.cy;
+    this.pouceAncre = false;
   }
 
   static gripColor(u) { return u < 0.7 ? '#5be07a' : u < 1 ? '#ffd23f' : u < 1.2 ? '#ff9f2e' : u < 1.5 ? '#ff4b4b' : '#c74bff'; }
@@ -2122,6 +2080,46 @@ class Renderer {
     pastille(yP + ph + 5, nul ? t('lapVoid') : t('lap'),
       fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart), nul ? '#ffb4a2' : '#fff');
 
+    /* LA VITESSE, SOUS LE BANDEAU ET AU MILIEU — c'est-à-dire là où le cadran du bas n'était pas.
+
+    Elle vivait en bas de l'écran, sur une carte blanche de 95 × 73 px plantée devant la voiture.
+    Elle est ici parce que c'est le seul endroit que rien n'occupe : la position et la carte tiennent
+    la colonne de gauche, les temps et le tour celle de droite, et le milieu du bandeau ne porte que
+    le bouton pause. Le regard y passe déjà entre les deux colonnes.
+
+    LE CHIFFRE EST CENTRÉ, PAS LE GROUPE. La jauge s'ajoute à sa droite, donc centrer l'ensemble
+    aurait décalé le chiffre vers la gauche — et c'est le chiffre qu'on lit, pas la composition. Il
+    garde l'axe de l'écran, ce qui est aussi ce qui le rend retrouvable sans le chercher.
+
+    La jauge ne porte plus l'usage d'adhérence : c'est un choix de Bruno, l'information était une
+    couleur de plus sur un écran qui en a déjà assez. Elle ne dit que la vitesse rapportée au maximum
+    de la voiture — l'éventail disait la même chose, déroulé. Elle s'éclaircit à l'appui, parce que
+    la pastille du pouce n'a plus de liseré pour le dire. */
+    const kmh = String(Math.round(Math.max(0, p.speed) * 3.6));
+    const fv = clamp(Math.max(0, p.speed) / p.cls.vmax, 0, 1);
+    const yV = yP + ph * 2 + 5 + (mobile ? 13 : 16);
+    const hV = mobile ? 30 : 38;
+    g.textAlign = 'center'; g.textBaseline = 'top';
+    g.fillStyle = '#fff'; g.font = `900 ${hV}px system-ui, sans-serif`;
+    cerne(kmh, W / 2, yV);
+    const wNum = g.measureText(kmh).width;
+    g.textAlign = 'left';
+    g.font = `bold ${mobile ? 12 : 14}px system-ui, sans-serif`; g.fillStyle = '#c8ced9';
+    const xU = W / 2 + wNum / 2 + 5;
+    cerne('km/h', xU, yV + (mobile ? 13 : 17));
+    const wU = g.measureText('km/h').width;
+    // la jauge, à droite de l'unité, centrée sur la hauteur optique du chiffre
+    const wJ = mobile ? 78 : 104, hJ = mobile ? 7 : 8;
+    const xJ = xU + wU + (mobile ? 9 : 12), yJ = yV + hV * 0.42 - hJ / 2;
+    g.fillStyle = 'rgba(10,12,20,0.62)';
+    this._roundRect(g, xJ, yJ, wJ, hJ, hJ / 2); g.fill();
+    if (fv > 0.004) {
+      g.fillStyle = p.throttle ? '#5ccdf0' : '#4e8aa8';
+      this._roundRect(g, xJ, yJ, Math.max(hJ, wJ * fv), hJ, hJ / 2); g.fill();
+    }
+    this.hudZones.vitesse = { x: W / 2 - wNum / 2, w: wNum / 2 + 5 + wU + (mobile ? 9 : 12) + wJ, y: yV, h: hV };
+    g.textAlign = 'left';
+
     /* Les deux cadrans : la gomme et la tôle.
 
     Mêmes cadrans que ceux des fiches de voiture au menu — arc de 270° ouvert en bas, chiffre au
@@ -2230,8 +2228,8 @@ class Renderer {
       });
     }
 
-    // the throttle dial goes on top of the map and the standings: it is the live control
-    this._drawDial(g, p, t);
+    // la pastille du pouce passe au-dessus de la carte et du classement : c'est la commande vive
+    this._drawPouce(g, p);
 
     // telemetry overlay (G key or settings): the four numbers that describe the car's state
     // la carte n'est plus réservée au téléphone en haut : la télémétrie passe sous elle partout
@@ -2350,12 +2348,12 @@ class Renderer {
 
   // maps a screen point in the slider zone to a selection value; null if outside the zone
   sliderValueAt(x, y, touchZone) {
-    const s = this.slider, d = this.dial;
-    // The visible dome always wins: a thumb landing on it accelerates, wherever it has moved to.
-    // It can never cover the slider column, so the line stays reachable in any case.
+    const s = this.slider, d = this.pouce;
+    // La pastille visible gagne toujours : un pouce qui s'y pose accélère, où qu'elle ait été
+    // déplacée. Elle ne peut jamais couvrir la colonne du levier, donc la ligne reste accessible.
     if (d) {
       const dx = x - d.cx, dy = y - d.cy;
-      if (dy <= d.r * 0.6 && dx * dx + dy * dy < (d.r + 12) * (d.r + 12)) return null;
+      if (dx * dx + dy * dy < (d.r + 12) * (d.r + 12)) return null;
     }
     // la zone tactile large suit le côté du levier, sinon un gaucher pousserait dans le vide
     const inZoneX = touchZone ? (s.droite ? x > this.w * 0.58 : x < this.w * 0.42) : Math.abs(x - s.x) < 40;

@@ -206,7 +206,7 @@ class App {
       if (v != null && this.pointers.slider == null) { this.pointers.slider = e.pointerId; poseSel(v); return; }
       if (this.pointers.throttle == null) {
         this.pointers.throttle = e.pointerId;
-        if (touch) this.renderer.anchorDial(e.clientX, e.clientY);   // the dial comes to the thumb
+        if (touch) this.renderer.anchorPouce(e.clientX, e.clientY);   // la pastille vient au pouce
         on();
       }
     });
@@ -217,7 +217,7 @@ class App {
         return;
       }
       // the dial stays under the thumb: sliding without lifting carries it along
-      if (this.pointers.throttle === e.pointerId && e.pointerType === 'touch') this.renderer.anchorDial(e.clientX, e.clientY);
+      if (this.pointers.throttle === e.pointerId && e.pointerType === 'touch') this.renderer.anchorPouce(e.clientX, e.clientY);
     });
     const release = (e) => {
       if (this.pointers.slider === e.pointerId) this.pointers.slider = null;
@@ -321,7 +321,7 @@ class App {
     this.audio.relance();
     this.renderer.setTrack(this.race.track);
     this.renderer.cam.init = false;
-    this.renderer.homeDial();
+    this.renderer.homePouce();
     this.state = 'race';
     this.input.throttle = false;
     this.input.sel = 0; this.input.pit = false;
