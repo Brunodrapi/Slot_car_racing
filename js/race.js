@@ -440,11 +440,11 @@ class Race {
     this.time += d;
   }
 
-  // reference speed at s on the line selected by `sel` (-1 inside .. +1 outside)
+  // reference speed at s on the line selected by `sel` (-1 bleu/droite .. +1 jaune/gauche)
   profileAt(s, sel) {
     const i = this.track.idx(s), r = this.profiles.racing[i];
-    if (sel < 0) return r + (this.profiles.inside[i] - r) * Math.min(1, -sel);
-    return r + (this.profiles.outside[i] - r) * Math.min(1, sel);
+    if (sel < 0) return r + (this.profiles.bleu[i] - r) * Math.min(1, -sel);
+    return r + (this.profiles.jaune[i] - r) * Math.min(1, sel);
   }
 
   /* LA PÉNALITÉ D'UNE SORTIE DE PISTE : on reprend ce qu'elle a rapporté.

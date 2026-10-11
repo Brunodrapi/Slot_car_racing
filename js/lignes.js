@@ -95,7 +95,7 @@ function autoPoints(nom, n) {
   const out = [];
   for (let i = 0; i < n; i++) {
     const j = Math.round(i * N / n) % N;
-    const lat = T.lines[nom][j];
+    const lat = T.tracees[nom][j];
     out.push([(T.xs[j] + T.nx[j] * lat) / u, (T.ys[j] + T.ny[j] * lat) / u]);
   }
   return out;
@@ -450,14 +450,14 @@ function majApercu() {
 
 function trace(nom, epais, alpha) {
   const T = S.apercu;
-  if (!T || !T.lines[nom]) return;
+  if (!T || !T.tracees || !T.tracees[nom]) return;
   const u = T.unitScale, N = T.n;
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.strokeStyle = COULEURS[nom]; ctx.lineWidth = epais;
   ctx.beginPath();
   for (let i = 0; i <= N; i++) {
-    const j = i % N, lat = T.lines[nom][j];
+    const j = i % N, lat = T.tracees[nom][j];
     const p = versEcran([(T.xs[j] + T.nx[j] * lat) / u, (T.ys[j] + T.ny[j] * lat) / u]);
     i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]);
   }

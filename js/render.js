@@ -29,7 +29,7 @@ const THEME_BASE = {
   // Les deux bords de piste, teintés du côté du virage : froid dedans, chaud dehors, et ce sont les
   // couleurs du curseur de ligne pour que le lien se fasse sans légende. Assez clairs pour rester
   // des lignes peintes sur de l'asphalte, assez marqués pour se distinguer d'un coup d'œil.
-  edgeIn: '#7fd4ff', edgeOut: '#ffcf5c',
+  edgeBleu: '#7fd4ff', edgeJaune: '#ffcf5c',
   // la voie des stands : un asphalte plus sombre que la piste, pour qu'on voie tout de suite que
   // ce n'est pas la même surface, et une zone d'arrêt jaune qu'on repère de loin
   pitLane: '#2f3038', pitBox: 'rgba(255,212,0,0.18)', pitBoxLine: '#ffd400',
@@ -89,7 +89,7 @@ const THEME_DEFS = {
     grass: '#dcd2c8', grassLight: '#e7ded2', grassDark: '#cfc4b6',
     earth: '#877482', earthDark: '#746373',
     asphalt: '#56465e', asphaltLight: '#62526a',
-    edgeLine: '#f5f2e8', centre: '#f5f2e8', edgeIn: '#8fdcff', edgeOut: '#ffd97a',
+    edgeLine: '#f5f2e8', centre: '#f5f2e8', edgeBleu: '#8fdcff', edgeJaune: '#ffd97a',
     pitLane: '#3b3142', pitBox: 'rgba(255,212,0,0.18)', pitBoxLine: '#ffd400',
     kerb: ['#e2a19c', '#faf8f4'],
     gravel: '#cfc3ae', gravelDark: '#bdb09a',
@@ -175,7 +175,12 @@ for (const name in THEME_DEFS) THEMES[name] = Object.assign({}, THEME_BASE, THEM
 THEMES.classic = Object.assign({}, THEME_BASE);
 let PAL = THEMES.park;
 
-const LINE_COLORS = { inside: 'rgba(80,200,255,0.55)', racing: 'rgba(255,255,255,0.5)', outside: 'rgba(255,200,60,0.55)' };
+/* Les deux bords ont une couleur, et elle ne bouge plus.
+
+Le bleu est le côté DROIT du ruban, le jaune le côté GAUCHE, du départ à l'arrivée. Les mêmes
+couleurs servent aux lignes tracées, aux pastilles du levier et aux bords peints de la piste : c'est
+ce qui permet de se passer de légende — on voit le bord jaune, on pousse le levier vers le jaune. */
+const LINE_COLORS = { bleu: 'rgba(80,200,255,0.55)', racing: 'rgba(255,255,255,0.5)', jaune: 'rgba(255,200,60,0.55)' };
 
 class Renderer {
   constructor(canvas) {
@@ -674,35 +679,30 @@ class Renderer {
         const x = xs[k] + nx[k] * off, y = ys[k] + ny[k] * off;
         if (i === a) mp.moveTo(x, y); else mp.lineTo(x, y);
       }
-      /* Les bords teintés : dedans ou dehors.
+      /* Les bords teintés : UN BORD, UNE COULEUR, TOUT LE TOUR.
 
-      Les lignes blanches de part et d'autre de la piste ne disaient rien. Elles portent maintenant
-      le côté du virage — froid vers l'intérieur, chaud vers l'extérieur — avec les couleurs mêmes
-      du curseur de ligne, pour que le lien se fasse sans légende.
+      Ils portaient le côté du VIRAGE — froid vers l'intérieur, chaud vers l'extérieur — et
+      changeaient donc de bord à chaque changement de main. Le bord gauche était jaune dans une
+      courbe et bleu dans la suivante, en même temps que le levier qui porte les mêmes couleurs.
+      Un repère qui change de place pendant qu'on s'en sert n'est pas un repère : c'est le constat
+      de Bruno, et c'est ce qui motive tout ce changement.
 
-      Chaque bord est donc découpé en tronçons selon `track.sens`, et non teinté d'un bloc : un
-      raccord de soixante mètres traverse parfois un changement de main, et le colorer d'une seule
-      couleur mentirait sur la moitié de sa longueur. Le point de bascule est repris dans les deux
-      tronçons, faute de quoi un trou blanc apparaîtrait entre eux. */
-      const eIn = new Path2D(), eOut = new Path2D();
+      Chaque bord garde donc sa couleur du départ à l'arrivée. Le jaune est la gauche du sens de
+      marche, le bleu la droite — le même partage que `lines.jaune` et `lines.bleu`, par le même
+      signe, de sorte que pousser le levier vers le jaune mène bien au bord jaune.
+
+      Le découpage en tronçons selon `track.sens` disparaît avec sa raison d'être : il existait pour
+      qu'un raccord traversant un changement de main ne soit pas menti sur la moitié de sa longueur,
+      et il n'y a plus de changement de main à traverser. */
+      const eBleu = new Path2D(), eJaune = new Path2D();
       for (const side of [1, -1]) {
-        let dedansAvant = null;
+        const cible = side > 0 ? eJaune : eBleu;     // lat positif = normale gauche = jaune
         for (let i = a; i <= b; i += STEP) {
-          const k = ((i % N) + N) % N;
-          const dedans = side > 0 ? track.sens[k] > 0 : track.sens[k] < 0;
           const q = edgePt(i, side);
-          const cible = dedans ? eIn : eOut;
-          if (dedans !== dedansAvant) {
-            if (dedansAvant !== null) {              // rattacher au point de bascule
-              const autre = dedansAvant ? eIn : eOut;
-              autre.lineTo(q[0], q[1]);
-            }
-            cible.moveTo(q[0], q[1]);
-            dedansAvant = dedans;
-          } else cible.lineTo(q[0], q[1]);
+          if (i === a) cible.moveTo(q[0], q[1]); else cible.lineTo(q[0], q[1]);
         }
       }
-      chunks.push({ fill, left: lp, right: rp, mid: mp, edgeIn: eIn, edgeOut: eOut,
+      chunks.push({ fill, left: lp, right: rp, mid: mp, edgeBleu: eBleu, edgeJaune: eJaune,
                     bbox: { minX: minX - 12, minY: minY - 12, maxX: maxX + 12, maxY: maxY + 12 } });
     }
 
@@ -1327,10 +1327,10 @@ class Renderer {
       g.restore();
       // painted markings: the edges say which side of the corner they are, dashed yellow down the middle
       g.lineWidth = 0.55;
-      g.strokeStyle = PAL.edgeIn || PAL.edgeLine;
-      for (const c of vus) g.stroke(c.edgeIn);
-      g.strokeStyle = PAL.edgeOut || PAL.edgeLine;
-      for (const c of vus) g.stroke(c.edgeOut);
+      g.strokeStyle = PAL.edgeBleu || PAL.edgeLine;
+      for (const c of vus) g.stroke(c.edgeBleu);
+      g.strokeStyle = PAL.edgeJaune || PAL.edgeLine;
+      for (const c of vus) g.stroke(c.edgeJaune);
       if (PAL.centre) {
         g.setLineDash([2.6, 3.4]);
         g.strokeStyle = PAL.centre; g.lineWidth = 0.42;
@@ -2302,7 +2302,7 @@ class Renderer {
     g.fillStyle = 'rgba(10,12,20,0.55)'; this._roundRect(g, s.x - s.w / 2 - 8, s.y - 26, s.w + 16, s.len + 52 + (ouvert ? 22 : 0), 12); g.fill();
     // track
     g.fillStyle = 'rgba(255,255,255,0.18)'; this._roundRect(g, s.x - 4, s.y, 8, s.len, 4); g.fill();
-    const stops = [{ v: 1, c: LINE_COLORS.outside, l: t('lineOut') }, { v: 0, c: LINE_COLORS.racing, l: t('lineRace') }, { v: -1, c: LINE_COLORS.inside, l: t('lineIn') }];
+    const stops = [{ v: 1, c: LINE_COLORS.jaune, l: t('lineJaune') }, { v: 0, c: LINE_COLORS.racing, l: t('lineRace') }, { v: -1, c: LINE_COLORS.bleu, l: t('lineBleu') }];
     /* Les libellés passent de l'autre côté de la colonne quand le levier est à droite : posés
     toujours à droite, ils sortiraient de l'écran, et c'est le genre de détail qui ne se voit que
     sur l'appareil de celui qui a changé le réglage. */
@@ -2327,10 +2327,23 @@ class Renderer {
       g.font = `bold ${this.mobile ? 10 : 11}px system-ui, sans-serif`;
       g.fillText(t('linePit'), lx, this.pitY);
     }
-    // handle — posée sur la coche quand les stands sont demandés
+    /* La poignée prend la couleur de ce qu'elle demande.
+
+    Elle était jaune en toute position, ce qui ne se voyait pas tant que les deux bouts du levier
+    s'appelaient « intérieur » et « extérieur ». Maintenant qu'ils ont une couleur et que les bords
+    de la piste la portent aussi, une poignée jaune posée sur la butée bleue dit le contraire de ce
+    qu'elle fait. Elle se dégrade donc du bleu au jaune en passant par le blanc de l'idéale, ce qui
+    la rend lisible sans lire le libellé — et au coin de l'œil, qui est la façon dont on la lit en
+    roulant. Sur la coche des stands elle reste verte, comme la coche. */
     const hy = (p.pitAsk || p.pitState) && ouvert ? this.pitY : s.y + s.len / 2 - p.sel * s.len / 2;
-    g.fillStyle = '#ffd400'; g.beginPath(); g.arc(s.x, hy, 13, 0, Math.PI * 2); g.fill();
-    g.strokeStyle = '#1a1400'; g.lineWidth = 2; g.stroke();
+    const melange = (a, b, f) => a.map((v, i) => Math.round(v + (b[i] - v) * f));
+    const BLEU = [80, 200, 255], BLANC = [245, 246, 250], JAUNE = [255, 212, 0];
+    const u = clamp(p.sel, -1, 1);
+    const rgb = (p.pitAsk || p.pitState) && ouvert ? [91, 224, 122]
+      : u >= 0 ? melange(BLANC, JAUNE, u) : melange(BLANC, BLEU, -u);
+    g.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+    g.beginPath(); g.arc(s.x, hy, 13, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = 'rgba(12,14,22,0.85)'; g.lineWidth = 2; g.stroke();
     g.textBaseline = 'top';
   }
 

@@ -2,13 +2,36 @@
 //  - centreline: closed Catmull-Rom spline through control points, resampled every metre
 //  - road: left/right half-width per sample (constant for built-in tracks, derived from the
 //    drawn lines for editor tracks)
-//  - three driving lines (racing / inside / outside) stored as lateral offsets from the centreline.
+//  - three driving lines (racing / bleu / jaune) stored as lateral offsets from the centreline.
+//    `bleu` is always the right-hand side of the ribbon, `jaune` always the left — fixed, whatever
+//    way the corner turns. See NOMS_AUTEUR / LINE_NAMES below.
 //    Built-in tracks generate them from curvature; editor tracks project the drawn polylines.
 //  - a car at lateral offset `lat` follows an offset curve: curvature k/(1+k*lat) and path length
 //    scaled by (1+k*lat), so the inside is shorter but tighter, the outside longer but faster.
 'use strict';
 
-const LINE_NAMES = ['inside', 'racing', 'outside'];
+/* DEUX JEUX DE NOMS, ET LA DIFFÉRENCE COMPTE.
+
+`NOMS_AUTEUR` est le format dans lequel les lignes sont ÉCRITES — dans `tracks.js`, dans l'éditeur,
+dans les documents sauvegardés. Il parle de la géométrie du virage : l'intérieure est celle qui
+serre la corde, l'extérieure celle qui prend le large. Ces deux-là CHANGENT DE BORD à chaque
+changement de main du circuit, et c'est normal : c'est ce que veut dire « intérieur ».
+
+`LINE_NAMES` est le format dans lequel le jeu les JOUE. Il parle de bords fixes : le jaune est
+toujours le même côté du ruban, le bleu toujours l'autre, du départ à l'arrivée. Les deux lignes
+sont les mêmes points — elles sont simplement rangées par côté au lieu d'être rangées par rôle.
+
+Pourquoi ce changement : un levier dont les deux extrémités échangent de place en roulant ne
+s'apprend pas. Pousser vers « l'extérieur » envoyait la voiture à gauche dans un virage et à droite
+dans le suivant, et les bords peints — qui portent les mêmes couleurs — changeaient avec lui. Le
+joueur doit pouvoir dire « je vais au bord jaune » et que ce soit vrai partout. L'idée est de
+Bruno. `_fusionneCotes` fait la conversion, une fois, à la construction.
+
+Le bleu est le côté DROIT (lat négatif), et ce n'est pas arbitraire : la voie des stands est à
+droite, et le cran des stands prolonge le bas du levier, donc le bas du levier doit mener du bon
+côté. Le jaune est la gauche. */
+const NOMS_AUTEUR = ['inside', 'racing', 'outside'];
+const LINE_NAMES = ['bleu', 'racing', 'jaune'];
 
 /* Un virage ne peut pas être plus court que la route n'est large : au-delà, le bord intérieur
    passe de l'autre côté du centre de courbure et se replie sur lui-même — le rendu dessine une
@@ -601,8 +624,40 @@ class Track {
       outside[i] = r + vers(Math.abs(g[i]) * 0.85, -g[i]);     // et l'autre, vers l'extérieur
     }
     this.lines.racing = racing;
-    this.lines.inside = Track.smooth(inside, 16);
-    this.lines.outside = Track.smooth(outside, 16);
+    const li = Track.smooth(inside, 16), lo2 = Track.smooth(outside, 16);
+    this.tracees = { racing, inside: li, outside: lo2 };
+    this._fusionneCotes(li, lo2);
+  }
+
+  /* Ranger les deux lignes secondaires PAR CÔTÉ au lieu de par rôle.
+
+  `lat` se mesure sur la normale GAUCHE (`nx = dy/l, ny = -dx/l`), donc un écart positif est à
+  gauche du sens de marche, partout et tout le tour : le signe de `lat` est le seul repère de côté
+  qui ne tourne pas avec le circuit. À chaque station on garde donc la plus à gauche des deux pour
+  le jaune et la plus à droite pour le bleu.
+
+  LE RÉSULTAT EST CONTINU, et c'est la raison de prendre un maximum plutôt que de choisir une
+  source par tronçon : là où les deux lignes se croisent elles sont égales, donc l'échange de source
+  se fait sans saut. Elles se croisent de 4 à 14 fois selon le circuit — mesuré sur les douze — et
+  Monaco fait exception avec zéro croisement, ses deux lignes tracées à la main se confondant sur
+  les trois cinquièmes du tour, dans les parties où il n'y a pas la place de choisir.
+
+  La fusion a lieu AVANT `_limitLines`, pour que le limiteur de pente et le lissage passent sur les
+  lignes fusionnées : un croisement laisse un angle, et c'est à ce moment-là qu'on le casse. */
+  /* `tracees` garde ce qui a été DESSINÉ, `lines` ce qui est JOUÉ.
+
+  L'éditeur de lignes dessine et relit en intérieure / idéale / extérieure, et il a besoin du profil
+  latéral projeté, que lui seul ne sait pas calculer. Garder les deux coûte deux tableaux par
+  circuit et évite d'avoir à choisir entre un éditeur qui marche et un jeu qui a des bords fixes.
+  `tracees` n'est pas lissé par `_limitLines` : c'est le tracé brut, celui que l'auteur reconnaît. */
+  _fusionneCotes(a, b) {
+    const N = this.n, jaune = new Float32Array(N), bleu = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      jaune[i] = Math.max(a[i], b[i]);     // la plus à GAUCHE
+      bleu[i] = Math.min(a[i], b[i]);      // la plus à DROITE, du côté des stands
+    }
+    this.lines.jaune = jaune;
+    this.lines.bleu = bleu;
   }
 
   /* De quel côté est l'intérieur du virage, en tout point du tour.
@@ -814,10 +869,17 @@ class Track {
   // Editor tracks: each drawn line becomes a lateral profile by walking it along the centreline.
   _projectLines(lines, scale) {
     const N = this.n, xs = this.xs, ys = this.ys, nx = this.nx, ny = this.ny;
-    for (const name of LINE_NAMES) {
+    /* On projette sous les noms de l'AUTEUR, puis on range par côté.
+
+    Les tracés de `tracks.js` et de l'éditeur sont écrits en intérieure / idéale / extérieure, et ils
+    le restent : c'est le format dans lequel Bruno les dessine et les relit, et le changer casserait
+    tout ce qui les édite. La conversion vers les deux côtés fixes se fait ici, à la projection, et
+    nulle part ailleurs. */
+    const projete = {};
+    for (const name of NOMS_AUTEUR) {
       const pts = lines[name];
       const lat = new Float32Array(N);
-      if (!pts || pts.length < 3) { lat.fill(0); this.lines[name] = lat; continue; }
+      if (!pts || pts.length < 3) { lat.fill(0); projete[name] = lat; continue; }
       const dense = Track.spline(pts.map(p => [p[0] * scale, p[1] * scale]), 16);
       const acc = new Float32Array(N), cnt = new Uint16Array(N);
       // start: nearest centre sample to the first point
@@ -838,7 +900,7 @@ class Track {
       // fill gaps by interpolation around the loop
       let firstFilled = -1;
       for (let i = 0; i < N; i++) if (cnt[i]) { firstFilled = i; break; }
-      if (firstFilled < 0) { lat.fill(0); this.lines[name] = lat; continue; }
+      if (firstFilled < 0) { lat.fill(0); projete[name] = lat; continue; }
       let i = firstFilled, guard = 0;
       while (guard++ < N + 2) {
         const v0 = acc[i] / cnt[i];
@@ -849,8 +911,11 @@ class Track {
         i = nxt;
         if (i === firstFilled) break;
       }
-      this.lines[name] = Track.smooth(lat, 4);
+      projete[name] = Track.smooth(lat, 4);
     }
+    this.lines.racing = projete.racing;
+    this.tracees = projete;
+    this._fusionneCotes(projete.inside, projete.outside);
   }
 
   // road edges for editor tracks: cover the drawn lines plus a margin
@@ -870,6 +935,26 @@ class Track {
     for (const name of LINE_NAMES) {
       const a = this.lines[name];
       for (let i = 0; i < N; i++) a[i] = clamp(a[i], -(this.hwR[i] - 1.3), this.hwL[i] - 1.3);
+    }
+    /* LE LEVIER NE DOIT JAMAIS RECULER, et pour ça les deux bords doivent ENCADRER l'idéale.
+
+    `targetLat` va de la bleue à l'idéale puis de l'idéale à la jaune. La course est donc monotone
+    si et seulement si bleue ≤ idéale ≤ jaune — et rien ne le garantissait. Deux causes : une ligne
+    idéale tracée à la main s'appuie parfois contre un bord au-delà des deux lignes secondaires, et
+    le lissage de `_limitLines` déplace les trois indépendamment.
+
+    MESURÉ, et c'est le défaut que Bruno décrit depuis le début. Avec l'intérieure et l'extérieure
+    du virage, le levier reculait sur 51,8 % des stations des douze circuits, de 11,4 m au pire :
+    normal, les deux extrémités échangeaient de place à chaque changement de main. Ranger par côté
+    le ramène à 10,2 %. Cette ligne-ci finit le travail : elle tombe à zéro.
+
+    Ce qu'on perd : là où l'idéale dépasse un bord, ce bord devient l'idéale elle-même, et le levier
+    n'offre plus rien de ce côté-là, localement. Un levier qui ne fait rien vaut mieux qu'un levier
+    qui part à l'envers. */
+    const J = this.lines.jaune, B = this.lines.bleu, R = this.lines.racing;
+    for (let i = 0; i < N; i++) {
+      if (J[i] < R[i]) J[i] = R[i];
+      if (B[i] > R[i]) B[i] = R[i];
     }
   }
 
@@ -1044,7 +1129,7 @@ class Track {
       dansZone: Math.abs(dBoite > this.length / 2 ? dBoite - this.length : dBoite) < p.zone,
     };
   }
-  // blend of the three lines: sel in [-1, 1] (-1 inside, 0 racing, +1 outside)
+  // blend of the three lines: sel in [-1, 1] (-1 bleu/droite, 0 racing, +1 jaune/gauche)
   /* Où viser, à cette abscisse, pour la position de levier demandée.
 
   `sel` va de -1 (corde) à +1 (extérieur), et AU-DELÀ DE -1 vient la voie des stands : c'est la
@@ -1054,8 +1139,8 @@ class Track {
   simplement à l'intérieur jusqu'à l'entrée. */
   targetLat(s, sel) {
     const r = this._lerp(this.lines.racing, s);
-    if (sel >= 0) return r + (this._lerp(this.lines.outside, s) - r) * Math.min(1, sel);
-    const dedans = r + (this._lerp(this.lines.inside, s) - r) * Math.min(1, -sel);
+    if (sel >= 0) return r + (this._lerp(this.lines.jaune, s) - r) * Math.min(1, sel);
+    const dedans = r + (this._lerp(this.lines.bleu, s) - r) * Math.min(1, -sel);
     if (sel > -1) return dedans;
     const p = this.pitAt(s);
     if (!p) return dedans;
@@ -1064,8 +1149,8 @@ class Track {
   // curvature of the blended line (what a car following it really turns)
   lineCurv(s, sel) {
     const r = this._lerp(this.lineK.racing, s);
-    if (sel < 0) return r + (this._lerp(this.lineK.inside, s) - r) * Math.min(1, -sel);
-    return r + (this._lerp(this.lineK.outside, s) - r) * Math.min(1, sel);
+    if (sel < 0) return r + (this._lerp(this.lineK.bleu, s) - r) * Math.min(1, -sel);
+    return r + (this._lerp(this.lineK.jaune, s) - r) * Math.min(1, sel);
   }
   // strongest curvature ahead along a line
   curvAhead(s, dist, sel) {
@@ -1119,4 +1204,4 @@ class Track {
   }
 }
 
-if (typeof module !== 'undefined') module.exports = { Track, LINE_NAMES, KERB_IN, KERB_LARGE, KERB_RAMPE };
+if (typeof module !== 'undefined') module.exports = { Track, LINE_NAMES, NOMS_AUTEUR, KERB_IN, KERB_LARGE, KERB_RAMPE };

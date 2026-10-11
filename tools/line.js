@@ -79,7 +79,7 @@ for (const td of TRACKS) {
     'longueur ' + Math.round(r.len).toString().padStart(5) + ' m',
     'rayon min ' + r.rmin.toFixed(1).padStart(6) + ' m',
     'courbure moyenne ' + (r.mean * 1000).toFixed(2),
-    '| int ' + out.find(o => o.name === 'inside').t.toFixed(1) + ' ext ' + out.find(o => o.name === 'outside').t.toFixed(1),
+    '| bleu ' + out.find(o => o.name === 'bleu').t.toFixed(1) + ' jaune ' + out.find(o => o.name === 'jaune').t.toFixed(1),
   ].join('  '));
 }
 OUT = rows.join('\\n');

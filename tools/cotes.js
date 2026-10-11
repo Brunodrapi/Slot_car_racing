@@ -2,6 +2,12 @@
 //
 //   node tools/cotes.js [circuit|all]
 //
+// IL MESURE `track.tracees`, LE TRACÉ, ET NON `track.lines`, CE QUE LE JEU JOUE. Les deux ne sont
+// plus la même chose : le jeu range ses deux lignes secondaires par côté fixe — jaune à gauche,
+// bleu à droite — alors que l'auteur les dessine toujours en intérieure et extérieure du virage.
+// C'est la qualité du DESSIN qu'on juge ici, donc c'est le dessin qu'on lit. Les bords fixes ont
+// leur propre banc, `tools/bords.js`.
+//
 // La question se tranche par la géométrie et non en relisant les commentaires, qui se contredisent
 // dans ce fichier même : l'un annonce qu'une courbure positive tourne à droite, l'autre à gauche.
 //
@@ -43,7 +49,7 @@ for (const def of TRACKS) {
     const cy = T.ys[b] - 2 * T.ys[i] + T.ys[a];
     const vers = cx * T.nx[i] + cy * T.ny[i];       // > 0 : le centre est à gauche
     const r = T.lines.racing[i];
-    const oInt = T.lines.inside[i] - r, oExt = T.lines.outside[i] - r;
+    const oInt = T.tracees.inside[i] - r, oExt = T.tracees.outside[i] - r;
     const sep = Math.max(Math.abs(oInt), Math.abs(oExt), Math.abs(oInt - oExt));
     ecarts.push(sep);
     sepMin = Math.min(sepMin, sep);
@@ -83,8 +89,8 @@ for (const def of TRACKS) {
     let L = 0;
     for (let i = 0; i < N; i++) {
       const j = (i + 1) % N;
-      const ax = T.xs[i] + T.nx[i] * T.lines[nom][i], ay = T.ys[i] + T.ny[i] * T.lines[nom][i];
-      const bx = T.xs[j] + T.nx[j] * T.lines[nom][j], by = T.ys[j] + T.ny[j] * T.lines[nom][j];
+      const ax = T.xs[i] + T.nx[i] * T.tracees[nom][i], ay = T.ys[i] + T.ny[i] * T.tracees[nom][i];
+      const bx = T.xs[j] + T.nx[j] * T.tracees[nom][j], by = T.ys[j] + T.ny[j] * T.tracees[nom][j];
       L += Math.hypot(bx - ax, by - ay);
     }
     return L;
@@ -106,11 +112,14 @@ for (const def of TRACKS) {
     const cx = T.xs[b] - 2 * T.xs[i] + T.xs[a], cy = T.ys[b] - 2 * T.ys[i] + T.ys[a];
     enVirage[i] = Math.hypot(cx, cy) / (T.ds * T.ds * 225) > 0.004 ? 1 : 0;
   }
-  /* Le sens qui teinte les bords de piste est-il le bon ?
+  /* Le sens du virage est-il juste ?
 
-  C'est la même donnée que celle qui construit les lignes, mais elle sert aussi au rendu : chaque
-  bord est coloré froid s'il est du côté intérieur du virage, chaud sinon. Un bord teinté à l'envers
-  dirait au joueur le contraire de ce qu'il voit, ce qui est pire que de ne rien dire. */
+  Il ne teint plus les bords de piste — ceux-ci gardent leur couleur tout le tour depuis que le
+  jeu range ses lignes par côté fixe — mais il construit toujours les lignes des sept circuits qui
+  n'en portent pas à la main. Un sens faux y mettrait l'intérieure du mauvais côté.
+
+  (Pas de guillemet oblique ici : ce commentaire vit dans le littéral gabarit passé à la machine
+  virtuelle, et un seul y refermerait le gabarit au milieu du fichier.) */
   let sensOk = 0, sensTot = 0;
   for (let i = 0; i < N; i++) {
     if (!enVirage[i] || !T.sens || Math.abs(T.sens[i]) < 0.5) continue;
@@ -130,7 +139,7 @@ for (const def of TRACKS) {
     for (let d = 5; d < m; d++) {
       const j = (i - d + N) % N;
       if (enVirage[j]) break;                                      // on a rejoint le virage d'avant
-      const o = T.lines.inside[j] - T.lines.racing[j];
+      const o = T.tracees.inside[j] - T.tracees.racing[j];
       if (Math.abs(o) < 0.3) continue;
       appTotal++;
       if (Math.sign(o) === vers) appOk++;
@@ -176,8 +185,8 @@ console.log(`\n  moyenne : intérieure juste en virage ${moy('pcInt').toFixed(0)
 console.log(`  les deux lignes se déportent de part et d'autre : ${moy('pcOpp').toFixed(0)} % du temps`
   + ` — quand ce n'est pas le cas, l'intérieure est rabattue du côté de l'extérieure dans ${moy('pcRab').toFixed(0)} % des cas`);
 const sensMoy = moy('pcSens');
-console.log(`  le sens qui teinte les bords de piste est juste dans ${sensMoy.toFixed(0)} % des virages`);
-if (sensMoy < 85) { console.log('  ÉCHEC : les bords de piste diraient le contraire de ce qu’on voit'); process.exitCode = 1; }
+console.log(`  le sens du virage est juste dans ${sensMoy.toFixed(0)} % des virages`);
+if (sensMoy < 85) { console.log('  ÉCHEC : les lignes générées partiraient du mauvais côté'); process.exitCode = 1; }
 const bonnesLongueurs = res.filter((r) => r.dInt < 0 && r.dExt > 0).length;
 console.log(`  longueurs : l'intérieure est plus courte et l'extérieure plus longue que la ligne de course`
   + ` sur ${bonnesLongueurs} circuits sur ${res.length}`);

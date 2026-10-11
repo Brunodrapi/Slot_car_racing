@@ -16,8 +16,8 @@ TRACKS.forEach((def,i)=>{
   // corners
   for(const cn of t.corners){ g.beginPath(); for(let j=cn.from;j<=cn.to;j++){ const k=j%t.n; if(j===cn.from) g.moveTo(t.xs[k],t.ys[k]); else g.lineTo(t.xs[k],t.ys[k]); } g.strokeStyle=cn.sign>0?'rgba(230,70,70,0.5)':'rgba(70,170,230,0.5)'; g.lineWidth=t.width*0.3; g.stroke(); }
   // lines
-  const LC={inside:'#50c8ff',racing:'#fff',outside:'#ffc83c'};
-  for(const name of ['inside','racing','outside']){ g.beginPath(); for(let j=0;j<t.n;j+=3){ const x=t.xs[j]+t.nx[j]*t.lines[name][j], y=t.ys[j]+t.ny[j]*t.lines[name][j]; if(j===0) g.moveTo(x,y); else g.lineTo(x,y);} g.closePath(); g.strokeStyle=LC[name]; g.lineWidth=t.width*0.12; g.stroke(); }
+  const LC={bleu:'#50c8ff',racing:'#fff',jaune:'#ffc83c'};
+  for(const name of ['bleu','racing','jaune']){ g.beginPath(); for(let j=0;j<t.n;j+=3){ const x=t.xs[j]+t.nx[j]*t.lines[name][j], y=t.ys[j]+t.ny[j]*t.lines[name][j]; if(j===0) g.moveTo(x,y); else g.lineTo(x,y);} g.closePath(); g.strokeStyle=LC[name]; g.lineWidth=t.width*0.12; g.stroke(); }
   // start
   const p=t.pos(0,0); g.fillStyle='#fff'; g.beginPath(); g.arc(p.x,p.y,t.width*0.5,0,7); g.fill();
   const p2=t.pos(40,0); g.fillStyle='#ff0'; g.beginPath(); g.arc(p2.x,p2.y,t.width*0.35,0,7); g.fill();
