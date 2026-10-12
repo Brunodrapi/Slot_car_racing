@@ -97,7 +97,22 @@ function placeFrom(kinds, track, seed, density, clear, serre, lisiere, profond) 
       // keep clear of the road itself wherever it runs, gravel trap included
       if (!clearOfTrack(x, y, track.halfWidth + (clear == null ? 8.5 : clear) * li + k.wm * 0.3 * li)) continue;
       if (!clearOfProps(x, y, (k.wm + 2) * 0.6 * (serre == null ? 1 : serre))) continue;
-      out.push({ x, y, id: k.id });
+      /* TROIS VARIATIONS PAR EXEMPLAIRE, et c'est ce qui fait une forêt avec seize fichiers.
+
+         Posés tous identiques, les mêmes trois arbres répétés deux mille fois se lisent comme un
+         motif : l'œil n'attrape pas un arbre, il attrape la RÉPÉTITION. Il suffit de peu pour la
+         casser — la taille d'abord, qui donne aussi les couches (un grand devant un petit, c'est
+         de la profondeur sans toucher à la caméra), la rotation ensuite, pour les objets qui n'ont
+         pas de haut (une couronne vue de dessus n'en a pas ; une barrière, une fleur sur sa tige,
+         si), et le ton enfin, de quelques pourcents, qui suffit à séparer deux couronnes qui se
+         chevauchent.
+
+         Les trois sortent du MÊME tirage que la position, donc un circuit retrouve sa forêt à
+         l'identique d'une partie à l'autre. */
+      const ech = 0.76 + rnd() * 0.58;
+      out.push({ x, y, id: k.id, ech,
+        rot: k.fixe ? 0 : rnd() * Math.PI * 2,
+        ton: Math.min(TONS - 1, Math.floor(rnd() * TONS)) });
      }
     }
   }
@@ -139,14 +154,14 @@ const KINDS_DESSINES = [
   { famille: 'bush', id: 'buisson-petit', f: 'art/decor/buisson-petit.png', wm: 2.6, weight: 2, near: 0.5, far: 18 },
   { famille: 'bush', id: 'buisson2', f: 'art/decor/buisson2.png', wm: 3.6, weight: 3, near: 1, far: 22 },
   { famille: 'rock', id: 'caillou', f: 'art/decor/caillou.png', wm: 1.8, weight: 0, near: 0.3, far: 12 },
-  { id: 'fleurs-blanches', f: 'art/decor/fleurs-blanches.png', wm: 3.0, weight: 0, near: 0.2, far: 9 },
-  { id: 'fleurs-jaunes', f: 'art/decor/fleurs-jaunes.png', wm: 3.0, weight: 0, near: 0.2, far: 9 },
-  { id: 'fleurs-rouges', f: 'art/decor/fleurs-rouges.png', wm: 3.0, weight: 0, near: 0.2, far: 9 },
-  { famille: 'bush', id: 'fougere', f: 'art/decor/fougere.png', wm: 3.2, weight: 2, near: 0.5, far: 16 },
+  { fixe: 1, id: 'fleurs-blanches', f: 'art/decor/fleurs-blanches.png', wm: 3.0, weight: 0, near: 0.2, far: 9 },
+  { fixe: 1, id: 'fleurs-jaunes', f: 'art/decor/fleurs-jaunes.png', wm: 3.0, weight: 0, near: 0.2, far: 9 },
+  { fixe: 1, id: 'fleurs-rouges', f: 'art/decor/fleurs-rouges.png', wm: 3.0, weight: 0, near: 0.2, far: 9 },
+  { famille: 'bush', fixe: 1, id: 'fougere', f: 'art/decor/fougere.png', wm: 3.2, weight: 2, near: 0.5, far: 16 },
   { famille: 'rock', id: 'rocher', f: 'art/decor/rocher.png', wm: 4.2, weight: 2, near: 1, far: 18 },
   { famille: 'rock', id: 'rocher-petit', f: 'art/decor/rocher-petit.png', wm: 2.2, weight: 1.2, near: 0.5, far: 16 },
-  { id: 'touffe', f: 'art/decor/touffe.png', wm: 2.6, weight: 0, near: 0.2, far: 9 },
-  { id: 'touffe-mini', f: 'art/decor/touffe-mini.png', wm: 1.6, weight: 0, near: 0.2, far: 8 },
+  { fixe: 1, id: 'touffe', f: 'art/decor/touffe.png', wm: 2.6, weight: 0, near: 0.2, far: 9 },
+  { fixe: 1, id: 'touffe-mini', f: 'art/decor/touffe-mini.png', wm: 1.6, weight: 0, near: 0.2, far: 8 },
 ];
 
 /* Les images, chargées une fois. Tant qu'elles ne sont pas là, `buildTopArt` retombe sur les
@@ -165,6 +180,11 @@ function chargeDecor(fini) {
   }
 }
 const decorPret = () => decorAttendu > 0 && decorCharge >= decorAttendu;
+
+/* Les nuances de ton cuites pour chaque sprite. Quatre suffisent : au-delà on ne distingue plus,
+   et chaque nuance coûte une toile de la taille du sprite. */
+const TONS = 4;
+const ECARTS_TON = [0.86, 0.95, 1.04, 1.12];
 
 const TOP_PPM = 24;              // pixels per metre when baking a top-down object
 
@@ -347,7 +367,7 @@ const TOP_KINDS = [
     },
   },
   {
-    id: 'pine', wm: 6.0, weight: 6, near: 7, far: 26,
+    fixe: 1, id: 'pine', wm: 6.0, weight: 6, near: 7, far: 26,
     draw(g, w, pal) {
       const p = pal.pine;
       conifere(g, w / 2, w * 0.52, w * 0.42, [p[0], p[1], teinte(p[1], 1.3)], 0x2b7c);
@@ -405,7 +425,7 @@ const TOP_KINDS = [
   },
   {
     // The stack of felled trunks that lies at the edge of a forest road.
-    id: 'logs', wm: 6.0, weight: 2, near: 7, far: 18,
+    fixe: 1, id: 'logs', wm: 6.0, weight: 2, near: 7, far: 18,
     draw(g, w, pal) {
       const n = 4, lw = w * 0.84, lh = w * 0.15;
       for (let i = 0; i < n; i++) {
@@ -422,7 +442,7 @@ const TOP_KINDS = [
        under a painted awning, an outside stair, and the dark square of the hatch. Not a box with
        a lid — a pitched roof drawn from straight overhead reads as a triangle, which is why the
        first attempt looked like an envelope. */
-    id: 'house', wm: 7.5, weight: 0, near: 8, far: 26,
+    fixe: 1, id: 'house', wm: 7.5, weight: 0, near: 8, far: 26,
     draw(g, w, pal) {
       const R = (x, y, ww, hh, c) => { g.fillStyle = c; g.fillRect(w * x, w * y, w * ww, w * hh); };
       R(0.06, 0.08, 0.56, 0.52, pal.wallDark);
@@ -441,7 +461,7 @@ const TOP_KINDS = [
     /* Its neighbour, with the terracotta tiles the mainland uses: from above a pitched roof shows
        its ridge as a line down the middle, one slope catching more light than the other, and the
        courses of tiles running down each. */
-    id: 'house2', wm: 6.5, weight: 0, near: 8, far: 24,
+    fixe: 1, id: 'house2', wm: 6.5, weight: 0, near: 8, far: 24,
     draw(g, w, pal) {
       const R = (x, y, ww, hh, c) => { g.fillStyle = c; g.fillRect(w * x, w * y, w * ww, w * hh); };
       R(0.08, 0.12, 0.76, 0.64, '#8f4f36');
@@ -456,7 +476,7 @@ const TOP_KINDS = [
   },
   {
     // The white chapel with its blue dome, the one thing every postcard has.
-    id: 'chapel', wm: 7.0, weight: 0, near: 9, far: 24,
+    fixe: 1, id: 'chapel', wm: 7.0, weight: 0, near: 9, far: 24,
     draw(g, w, pal) {
       const c = w / 2;
       g.fillStyle = pal.wallDark;
@@ -549,7 +569,26 @@ function buildTopArt(pal) {
   for (const k of KINDS_DESSINES) {
     const img = ART_DESSINE[k.id];
     if (!img) continue;
-    art[k.id] = { canvas: img, wm: k.wm, hm: k.wm * (img.naturalHeight / img.naturalWidth) };
+    /* LE TON SE CUIT, il ne se calcule pas à l'image. `ctx.filter = 'brightness(…)'` aurait suffi
+       et aurait coûté un filtre par objet et par image — sept mille fois par trame — là où quatre
+       toiles cuites une fois servent toute la course. Et `filter` n'est pas sûr sur les Safari
+       anciens, qui sont précisément les téléphones qu'on vise. */
+    const tons = [];
+    for (const f of ECARTS_TON) {
+      if (f === 1) { tons.push(img); continue; }
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      const g2 = c.getContext('2d');
+      g2.drawImage(img, 0, 0);
+      // on éclaircit ou on assombrit SANS toucher à l'alpha : `source-atop` ne peint que ce qui
+      // est déjà là, donc le contour découpé reste net
+      g2.globalCompositeOperation = 'source-atop';
+      g2.globalAlpha = Math.abs(1 - f) * 1.6;
+      g2.fillStyle = f > 1 ? '#ffffff' : '#000022';
+      g2.fillRect(0, 0, c.width, c.height);
+      tons.push(c);
+    }
+    art[k.id] = { canvas: img, tons, wm: k.wm, hm: k.wm * (img.naturalHeight / img.naturalWidth) };
   }
   for (const k of TOP_KINDS) {
     if (art[k.id]) continue;

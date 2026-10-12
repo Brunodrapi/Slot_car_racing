@@ -550,8 +550,17 @@ class Renderer {
     const N0 = track.n;
     /* L'herbe d'abord, les arbres ensuite : l'ordre de la liste est l'ordre du dessin, et une
        touffe doit passer SOUS l'arbre à côté duquel elle est tombée. */
+    /* L'ORDRE DE LA LISTE EST L'ORDRE DU DESSIN, et on le trie PAR TAILLE : les touffes d'abord,
+       les grandes couronnes en dernier. C'est ce qui fait les couches — une canopée couvre son
+       sous-bois, et un grand arbre qui passerait sous un buisson se lirait comme un trou. La
+       profondeur vient de là, pas de la caméra. */
     this.topProps = placeGroundProps(track, seed, PAL.herbe)
       .concat(placeTopProps(track, seed, PAL.densite, PAL.props, PAL.serre, PAL.lisiere, PAL.profond));
+    const taille = (p) => {
+      const a = this.topArt[p.id];
+      return (a ? a.wm : 1) * (p.ech || 1);
+    };
+    this.topProps.sort((a, b) => taille(a) - taille(b));
     /* LES ARBRES QUI DÉBORDENT SUR LE BITUME, repérés une fois pour toutes.
 
     Sur l'image cible, ce qui rend la route habitée n'est pas la forêt à côté : c'est l'ombre des
@@ -566,9 +575,10 @@ class Renderer {
     this.ombresRoute = [];
     for (const pr of this.topProps) {
       const a = this.topArt[pr.id];
-      if (!a || a.wm < 3.5) continue;          // une touffe ne porte pas d'ombre jusqu'à la route
-      const r = a.wm * 0.46;
-      const ox = pr.x + a.wm * DECAL_X, oy = pr.y + a.wm * DECAL_Y;
+      if (!a || a.wm * (pr.ech || 1) < 3.5) continue;   // une touffe ne porte pas jusqu'à la route
+      const wm = a.wm * (pr.ech || 1);
+      const r = wm * 0.46;
+      const ox = pr.x + wm * DECAL_X, oy = pr.y + wm * DECAL_Y;
       let proche = false;
       for (let i = 0; i < N0 && !proche; i += 4) {
         const dx = ox - track.xs[i], dy = oy - track.ys[i];
@@ -2014,24 +2024,42 @@ class Renderer {
 
   // Scenery for the flat view: objects drawn as a bird sees them, shadow baked in, no rotation —
   // a tree looks the same from every side, and turning it would only make it shimmer.
+  /* SEPT MILLE OBJETS PAR IMAGE : la boucle est écrite pour ça.
+
+  Les objets se peignent dans le repère de l'ÉCRAN, pas du monde — c'est ce qui garde une barrière
+  debout et un conifère pointe en l'air quand la piste tourne. La version naïve enveloppait donc
+  chaque objet dans un `save`/`setTransform`/`restore`, et relisait la matrice de la caméra à
+  chaque fois. À sept mille par trame, ça se voyait : la résolution adaptative retombait à 1,5 en
+  fin de course, ce qui est le symptôme qu'on paie quelque chose qu'on ne regarde pas.
+
+  On lit donc la matrice UNE FOIS, on passe à l'identité UNE FOIS, et un objet tourné pose sa
+  rotation directement par `setTransform` — la même matrice, écrite à la main, sans pile. */
   _drawTopProps(g, vis) {
     const art = this.topArt;
     if (!art) return;
+    const m = g.getTransform();
+    const zp = this.cam.zoom * this.dpr;
+    g.setTransform(1, 0, 0, 1, 0, 0);
     for (const p of this.topProps || []) {
       const a = art[p.id];
       if (!a) continue;
-      // un sprite dessiné n'est pas carré : il porte sa propre hauteur, sinon une fougère s'écrase
-      const hm = a.hm || a.wm;
-      const half = Math.max(a.wm, hm) / 2;
+      const ech = p.ech || 1;
+      const wm = a.wm * ech, hm = (a.hm || a.wm) * ech;
+      const half = Math.max(wm, hm) * 0.73;            // la rotation déborde du rectangle droit
       if (p.x < vis.minX - half || p.x > vis.maxX + half || p.y < vis.minY - half || p.y > vis.maxY + half) continue;
-      const m = g.getTransform();
       const dx = m.a * p.x + m.c * p.y + m.e, dy = m.b * p.x + m.d * p.y + m.f;
-      const wpx = a.wm * this.cam.zoom * this.dpr, hpx = hm * this.cam.zoom * this.dpr;
-      g.save();
-      g.setTransform(1, 0, 0, 1, 0, 0);
-      g.drawImage(a.canvas, dx - wpx / 2, dy - hpx / 2, wpx, hpx);
-      g.restore();
+      const wpx = wm * zp, hpx = hm * zp;
+      const toile = (a.tons && a.tons[p.ton]) || a.canvas;
+      if (p.rot) {
+        const c = Math.cos(p.rot), si = Math.sin(p.rot);
+        g.setTransform(c, si, -si, c, dx, dy);
+        g.drawImage(toile, -wpx / 2, -hpx / 2, wpx, hpx);
+        g.setTransform(1, 0, 0, 1, 0, 0);
+      } else {
+        g.drawImage(toile, dx - wpx / 2, dy - hpx / 2, wpx, hpx);
+      }
     }
+    g.setTransform(m);
   }
 
   _drawCar(g, car) {
