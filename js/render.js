@@ -31,7 +31,12 @@
 const THEME_BASE = {
   grass: '#4e7a3a', grassLight: '#557f3f', grassDark: '#477036',
   earth: '#b9a271', earthDark: '#a68f5f',
-  asphalt: '#495a66', asphaltLight: '#536674',
+  /* LA ROUTE EST LA CRÈME DE L'IMAGE CIBLE, relevée à #fae3b8 (teinte 39°, saturation 0,90,
+     luminance 0,85). Les thèmes n'en nomment plus : ils héritent tous de celle-ci, et un circuit
+     qui voudrait du bitume sombre n'a qu'à reposer `asphalt` — tout le reste (l'encre des
+     marquages, la ligne de rive, les bords du levier, le gravier, l'ombre portée) se redéduit
+     tout seul de sa clarté. */
+  asphalt: '#fae3b8', asphaltLight: '#fdeccb',
   outline: '#283138',
   edgeLine: '#eceaf0', centre: null,
   // Les deux bords de piste, teintés du côté du virage : froid dedans, chaud dehors, et ce sont les
@@ -62,6 +67,11 @@ const THEME_BASE = {
      les planches de référence (#55802b sur la sombre, #8dbd4e sur la claire). `bordureM` est sa
      largeur en mètres, de chaque côté. */
   bordure: null, bordureM: 3.4,
+  /* `densite` est la chance qu'un objet tombe à chaque pas et de chaque côté ; `serre` de quel droit
+     deux couronnes se chevauchent (1 = jamais, le verger ; 0,45 = une masse). Un thème de forêt les
+     pousse, un circuit de ville ou de parc garde ses abords dégagés : une piste bordée d'un mur
+     d'arbres ne se lit plus de la même façon, et ça n'est pas qu'une question de goût. */
+  densite: 0.85, serre: 1, lisiere: 1, profond: 1,
   herbe: 0.95,                     // densité du semis d'herbe et de fleurs, 0 = aucun
   fleur: 'rgba(252,250,244,0.95)',
 };
@@ -82,16 +92,15 @@ const THEME_DEFS = {
     patches: 0.55,
     grass: '#5f8f52', grassLight: '#6a9a5c', grassDark: '#537f48',
     earth: '#8d7a56', earthDark: '#7c6a49',
-    asphalt: '#44545f', asphaltLight: '#4e606d',
     canopy: ['#2f6b34', '#3a7f3e', '#25562b'], pine: ['#23503f', '#2b6250'],
     props: { pine: 3, tree: 1.4, bales: 0, palm: 0 },
+    densite: 11, serre: 0.40, lisiere: 0.18, profond: 3.2,
   },
   // Stubble and ochre earth.
   autumn: {
     patches: 0.7,
     grass: '#c6cf87', grassLight: '#d2da93', grassDark: '#b7c079',
     earth: '#e0c391', earthDark: '#d2b27e',
-    asphalt: '#516370', asphaltLight: '#5b707e',
     outline: '#344049',
     kerb: ['#9bb4d9', '#f7f8fa'],
     gravel: '#e2c48f', gravelDark: '#d0ae76',
@@ -105,7 +114,6 @@ const THEME_DEFS = {
     patches: 0.4,
     grass: '#dcd2c8', grassLight: '#e7ded2', grassDark: '#cfc4b6',
     earth: '#877482', earthDark: '#746373',
-    asphalt: '#4f616e', asphaltLight: '#596e7c',
     edgeLine: '#f5f2e8', centre: '#f5f2e8', edgeBleu: '#8fdcff', edgeJaune: '#ffd97a',
     pitLane: '#3b3142', pitBox: 'rgba(255,212,0,0.18)', pitBoxLine: '#ffd400',
     kerb: ['#e2a19c', '#faf8f4'],
@@ -153,7 +161,6 @@ const THEME_DEFS = {
     patches: 0.5,
     grass: '#7fb073', grassLight: '#8cbd7f', grassDark: '#6f9e64',
     earth: '#a89369', earthDark: '#95805a',
-    asphalt: '#465662', asphaltLight: '#506370',
     canopy: ['#3a7a46', '#478f54', '#2e6237'], pine: ['#2a5b4e', '#336d5e'],
     props: { pine: 2, palm: 0, bales: 0.4 },
   },
@@ -172,7 +179,6 @@ const THEME_DEFS = {
     patches: 0.45,
     grass: '#66ad55', grassLight: '#74bb61', grassDark: '#5a9c4b',
     earth: '#ab9263', earthDark: '#977f53',
-    asphalt: '#485864', asphaltLight: '#526572',
     canopy: ['#347a3c', '#3f9047', '#2a6231'], pine: ['#24543f', '#2c664e'],
     props: { pine: 2.4, palm: 0, bales: 1.4 },
   },
@@ -231,13 +237,40 @@ function plusVerte(hex) {
     .map((x) => Math.round(Math.max(0, Math.min(1, x)) * 255).toString(16).padStart(2, '0')).join('');
 }
 
+/* Assombrit et désature une couleur, d'un facteur donné. */
+function assombrir(hex, k, ds) {
+  const n = parseInt(String(hex).replace('#', ''), 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  const moy = (c[0] + c[1] + c[2]) / 3;
+  return '#' + c.map((v) => Math.round(Math.max(0, Math.min(255, (v + (moy - v) * (ds || 0)) * k))))
+    .map((v) => v.toString(16).padStart(2, '0')).join('');
+}
+
 function completeTheme(t) {
   if (t.bordure == null) t.bordure = plusVerte(t.grass);
   const clair = clarte(t.asphalt) > 0.52;
   // `encre` est la couleur de tout ce qui est PEINT sur la route : marquages de freinage,
   // chiffres, ligne de départ. `edgeLine` la suit quand le thème ne la nomme pas lui-même.
   if (t.encre == null) t.encre = clair ? '#3b3a30' : '#f0ece4';
-  if (clair && t.edgeLine === THEME_BASE.edgeLine) t.edgeLine = '#6b6757';
+  if (clair) {
+    /* TOUT CE QUI SE LISAIT PAR CONTRASTE AVEC UN BITUME SOMBRE DOIT ÊTRE REPRIS, et c'est
+       justement pourquoi ça se déduit : on ne peut pas oublier une pièce.
+
+       — la ligne de rive, blanche sur du sombre, devient un gris chaud ;
+       — les deux bords colorés du levier s'assombrissent, sinon le jaune disparaît dans la crème ;
+       — le bac à gravier, qui était un sable clair sur une route sombre, se retrouverait de la
+         couleur de la route : il s'assombrit et se désature pour redevenir un dégagement. */
+    if (t.edgeLine === THEME_BASE.edgeLine) t.edgeLine = '#8a8371';
+    if (t.edgeBleu === THEME_BASE.edgeBleu) t.edgeBleu = '#2b86b8';
+    if (t.edgeJaune === THEME_BASE.edgeJaune) t.edgeJaune = '#c2862a';
+    t.gravel = assombrir(t.gravel, 0.78, 0.30);
+    t.gravelDark = assombrir(t.gravelDark, 0.74, 0.30);
+  }
+  /* L'OMBRE DE FEUILLAGE PORTÉE SUR LA ROUTE. Relevée sur l'image cible : un bitume crème à
+     #fae3b8 passe à #799eb7 sous les arbres — un bleu acier franc, pas un gris. Résolue en
+     couverture, c'est ce bleu-là à un peu plus de la moitié. Sur une route sombre il en faut
+     beaucoup moins, sans quoi l'ombre serait plus visible que la route. */
+  if (t.ombreRoute == null) t.ombreRoute = clair ? 'rgba(15,102,182,0.50)' : 'rgba(18,42,78,0.34)';
   return t;
 }
 
@@ -514,10 +547,35 @@ class Renderer {
     La caméra inclinée est retirée, et ses vingt-cinq PNG avec elle : ils partaient au réseau à
     chaque course, y compris à plat où personne ne les regardait. */
     this.topArt = buildTopArt(PAL);
+    const N0 = track.n;
     /* L'herbe d'abord, les arbres ensuite : l'ordre de la liste est l'ordre du dessin, et une
        touffe doit passer SOUS l'arbre à côté duquel elle est tombée. */
     this.topProps = placeGroundProps(track, seed, PAL.herbe)
-      .concat(placeTopProps(track, seed, null, PAL.props));
+      .concat(placeTopProps(track, seed, PAL.densite, PAL.props, PAL.serre, PAL.lisiere, PAL.profond));
+    /* LES ARBRES QUI DÉBORDENT SUR LE BITUME, repérés une fois pour toutes.
+
+    Sur l'image cible, ce qui rend la route habitée n'est pas la forêt à côté : c'est l'ombre des
+    arbres QUI TOMBE DESSUS, par grandes taches bleu acier. On ne peut pas la peindre par-dessus
+    tout le décor — elle doit s'arrêter net au bord de la piste, comme une ombre vue de dessus
+    s'arrête sur ce qu'elle rencontre. Elle sera donc découpée à la forme de la route au moment du
+    dessin, et il ne reste ici qu'à savoir QUELS objets sont assez près pour y arriver : les
+    chercher à chaque image coûterait le prix d'un balayage du circuit soixante fois par seconde.
+
+    Le décalage est celui des ombres cuites dans les sprites — vers le bas-gauche. */
+    const DECAL_X = -0.22, DECAL_Y = 0.26;
+    this.ombresRoute = [];
+    for (const pr of this.topProps) {
+      const a = this.topArt[pr.id];
+      if (!a || pr.id === 'touffe' || pr.id === 'fleurs') continue;   // trop petits pour porter
+      const r = a.wm * 0.46;
+      const ox = pr.x + a.wm * DECAL_X, oy = pr.y + a.wm * DECAL_Y;
+      let proche = false;
+      for (let i = 0; i < N0 && !proche; i += 4) {
+        const dx = ox - track.xs[i], dy = oy - track.ys[i];
+        if (dx * dx + dy * dy < (track.halfWidth + r) * (track.halfWidth + r)) proche = true;
+      }
+      if (proche) this.ombresRoute.push({ x: ox, y: oy, r });
+    }
     this.patches = placePatches(track, seed, PAL.patches);
     this.puddles = placePuddles(track, seed, track.puddles);
     this.water = placeWater(track, PAL.water);
@@ -882,7 +940,12 @@ class Renderer {
       return { surface, ligne, zone, garages, bbox: { minX: minX - 16, minY: minY - 16, maxX: maxX + 16, maxY: maxY + 16 } };
     })() : null;
 
-    this.paths = { center, mid, road, left, right, corners, bridges, passerelles, tunnels, lines, chunks, pit };
+    /* Le ruban entier en UNE forme. Découper à l'écran demande un seul chemin : deux `clip`
+       successifs s'intersectent au lieu de s'additionner, et on n'aurait gardé que le chevauchement
+       de deux tronçons — c'est-à-dire rien. */
+    const ruban = new Path2D();
+    for (const c of chunks) ruban.addPath(c.fill);
+    this.paths = { center, mid, road, ruban, left, right, corners, bridges, passerelles, tunnels, lines, chunks, pit };
     /* Ce que ce circuit-là doit encore recevoir, gardé pour qu'on puisse le DEMANDER.
 
     Les deux images étaient posées et oubliées : on ne retenait que la variable remplie à l'arrivée,
@@ -1439,6 +1502,7 @@ class Renderer {
       for (const c of vus) { g.stroke(c.left); g.stroke(c.right); }
       g.fillStyle = PAL.asphalt;
       for (const c of vus) g.fill(c.fill);
+      this._ombresSurRoute(g, vis);
       // kerbs, laid over the road's dark outline so the band reads as one crisp edge
       g.save();
       g.lineJoin = 'miter'; g.lineCap = 'butt'; g.miterLimit = 3;
@@ -1697,6 +1761,36 @@ class Renderer {
       g.globalAlpha = 1;
       g.restore();
     }
+  }
+
+  /* L'OMBRE DU FEUILLAGE TOMBE SUR LE BITUME, et s'arrête à son bord.
+
+  C'est ce qui, sur l'image cible, fait que la route traverse la forêt au lieu d'être posée à côté
+  d'elle : de grandes taches bleu acier débordent des arbres et se cassent net sur la piste. Une
+  route sans elles reste une bande propre qui ne doit rien à ce qui l'entoure.
+
+  Deux choses la rendent possible sans coûter cher. Les objets qui peuvent y arriver sont repérés
+  UNE FOIS au chargement — les chercher à chaque image reviendrait à balayer le circuit soixante
+  fois par seconde. Et le découpage se fait sur le ruban entier en une seule forme, parce que deux
+  `clip` successifs s'intersectent au lieu de s'additionner : découper tronçon par tronçon n'aurait
+  gardé que leur chevauchement, c'est-à-dire rien.
+
+  Les taches sont posées en `lighter`-non, en peinture simple et translucide : leur couleur est
+  résolue pour que le crème de la route arrive exactement au bleu relevé sur la cible. */
+  _ombresSurRoute(g, vis) {
+    const liste = this.ombresRoute;
+    if (!liste || !liste.length || !this.paths.ruban) return;
+    g.save();
+    g.clip(this.paths.ruban);
+    g.fillStyle = PAL.ombreRoute;
+    for (const o of liste) {
+      if (o.x < vis.minX - o.r || o.x > vis.maxX + o.r || o.y < vis.minY - o.r || o.y > vis.maxY + o.r) continue;
+      // une tache molle, pas un disque : une ombre de feuillage n'a pas de bord
+      g.beginPath();
+      g.ellipse(o.x, o.y, o.r, o.r * 0.88, 0, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.restore();
   }
 
   // The pace-note glyph: a straight stem that bends near its top, the way a rally co-driver's

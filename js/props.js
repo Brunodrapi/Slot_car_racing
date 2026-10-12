@@ -31,7 +31,14 @@ function seedFromId(id) {
 // A candidate is rejected if it lands too near any part of the circuit, which matters where the
 // track folds back on itself, or too near an object already placed. Both sets of scenery — the
 // billboards and the bird's-eye objects — are sown by this one routine.
-function placeFrom(kinds, track, seed, density, clear) {
+/* `serre` DIT DE QUEL DROIT DEUX OBJETS SE TOUCHENT.
+
+   Le semeur refusait tout candidat trop près d'un voisin déjà posé, et le résultat était un verger :
+   des arbres régulièrement espacés dans un grand pré. Une forêt, c'est l'inverse — des couronnes qui
+   se CHEVAUCHENT, et c'est le chevauchement qui fait la masse. Le facteur réduit la distance exigée :
+   à 1 c'est le verger d'avant, à 0,45 les couronnes mordent les unes sur les autres. L'ordre de la
+   liste reste l'ordre du dessin, donc le dernier posé passe devant — ce qui donne les couches. */
+function placeFrom(kinds, track, seed, density, clear, serre, lisiere, profond) {
   const rnd = propRng(seed);
   const total = kinds.reduce((a, k) => a + k.weight, 0);
   const pick = () => {
@@ -48,25 +55,50 @@ function placeFrom(kinds, track, seed, density, clear) {
     return true;
   };
   const clearOfProps = (x, y, need) => {
-    for (let j = out.length - 1; j >= 0 && j > out.length - 40; j--) {
+    for (let j = out.length - 1; j >= 0 && j > out.length - 120; j--) {
       const dx = x - out[j].x, dy = y - out[j].y;
       if (dx * dx + dy * dy < need * need) return false;
     }
     return true;
   };
+  /* AU-DELÀ DE UN, LA DENSITÉ EST UN NOMBRE DE TIRAGES et non plus une probabilité.
+
+     Le semeur posait AU PLUS un objet par pas de neuf mètres et par côté : à densité 1 il était
+     déjà saturé, et un circuit de trois kilomètres recevait sept cents arbres au total. C'est un
+     bois clairsemé, et aucune probabilité ne pouvait en faire une forêt — on ne tire pas plus
+     qu'une fois. Au-delà de 1 on tire donc plusieurs fois au même pas, chacun avec sa chance, ce
+     qui empile les couronnes sur la largeur de la bande au lieu de les aligner le long de la
+     piste. C'est ce qui manquait pour que le bas-côté devienne une masse. */
+  const tirs = Math.max(1, Math.ceil(density));
+  const chance = density / tirs;
   for (let s = 0; s < track.length; s += step) {
     for (const side of [1, -1]) {
-      if (rnd() > density) continue;
+     for (let t = 0; t < tirs; t++) {
+      if (rnd() > chance) continue;
       const k = pick();
       const i = track.idx(s + (rnd() - 0.5) * step);
       const hw = side > 0 ? track.hwL[i] : track.hwR[i];
-      const off = hw + k.near + rnd() * (k.far - k.near) + k.wm * 0.3;
+      /* `lisiere` RAPPROCHE LA FORÊT DU BITUME. Chaque objet garde une distance au bord — sept
+         mètres pour un arbre — et c'est ce qui donnait une piste traversant une clairière : il
+         fallait neuf mètres avant le premier tronc, quand l'image cible montre des couronnes qui
+         SURPLOMBENT la route. Le facteur raccourcit cette garde, et le contrôle de dégagement avec
+         elle : les deux doivent bouger ensemble, sinon on rapproche les arbres pour les faire
+         refuser juste après. */
+      const li = lisiere == null ? 1 : lisiere;
+      /* `profond` DIT JUSQU'OÙ LA BANDE S'ENFONCE. Chaque objet a sa fourchette — un arbre entre
+         sept et vingt-six mètres du bord — parce que la caméra ne montrait qu'une vingtaine de
+         mètres de part et d'autre et qu'au-delà un objet existe sans être jamais vu. C'était vrai
+         d'un bois clairsemé ; ça ne l'est plus d'une forêt, dont on doit voir le fond. Le facteur
+         creuse la fourchette sans toucher au NOMBRE d'objets : il les étale, il n'en ajoute pas. */
+      const pf = profond == null ? 1 : profond;
+      const off = hw + k.near * li + rnd() * (k.far - k.near) * (0.3 + 0.7 * li) * pf + k.wm * 0.3;
       const x = track.xs[i] + track.nx[i] * off * side;
       const y = track.ys[i] + track.ny[i] * off * side;
       // keep clear of the road itself wherever it runs, gravel trap included
-      if (!clearOfTrack(x, y, track.halfWidth + (clear == null ? 8.5 : clear) + k.wm * 0.3)) continue;
-      if (!clearOfProps(x, y, (k.wm + 2) * 0.6)) continue;
+      if (!clearOfTrack(x, y, track.halfWidth + (clear == null ? 8.5 : clear) * li + k.wm * 0.3 * li)) continue;
+      if (!clearOfProps(x, y, (k.wm + 2) * 0.6 * (serre == null ? 1 : serre))) continue;
       out.push({ x, y, id: k.id });
+     }
     }
   }
   return out;
@@ -108,11 +140,56 @@ function teinte(hex, k) {
    n'a pas à porter une couleur qui se déduit, et aucun n'est à réécrire pour autant. */
 function versFeuillage(canopy) {
   const c = canopy && canopy.length >= 3 ? canopy : ['#3f7a34', '#4b8d3c', '#336629'];
-  /* CINQ VALEURS, ÉTALÉES. Les trois couleurs d'un thème se tiennent dans un mouchoir : empilées
-     telles quelles, les passes ne se distinguaient pas et la couronne restait plate. On pousse
-     donc les deux bouts — un fond plus sombre que le plus sombre, une lumière plus claire que la
-     plus claire — et c'est l'écart qui fait le volume. */
-  return [teinte(c[2], 0.80), c[2], c[0], c[1], teinte(c[1], 1.34)];
+  /* LA RAMPE TOURNE EN TEINTE, elle ne fait pas que s'éclaircir.
+
+     Relevé sur l'image cible, le feuillage va de #086051 — un vert-bleu profond — à #b7d04e, un
+     vert-jaune vif, en passant par #2a7643, #4b9c4a et #89c03c. Ce n'est pas une couleur
+     éclaircie quatre fois : la teinte VOYAGE de 170° à 72° pendant que la luminance monte. C'est
+     le vieux truc du feuillage peint, et c'est ce qui manquait — cinq valeurs d'un même vert
+     donnaient un relief gris, parce qu'une ombre de feuille n'est pas du vert sombre, c'est du
+     bleu-vert, et une feuille au soleil n'est pas du vert clair, c'est du jaune-vert.
+
+     On garde la couleur du thème comme PIVOT : c'est elle qui décide si la forêt est celle des
+     Ardennes ou le parc de Monza. Les deux bouts s'en écartent du même pas partout. */
+  const moyen = c[0];
+  const n = parseInt(moyen.slice(1), 16);
+  const r = ((n >> 16) & 255) / 255, v = ((n >> 8) & 255) / 255, bl = (n & 255) / 255;
+  const mx = Math.max(r, v, bl), mn = Math.min(r, v, bl), lp = (mx + mn) / 2;
+  let hp = 0, sp = 0;
+  if (mx !== mn) {
+    const d = mx - mn;
+    sp = lp > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    hp = mx === r ? (v - bl) / d + (v < bl ? 6 : 0) : mx === v ? (bl - r) / d + 2 : (r - v) / d + 4;
+    hp /= 6;
+  }
+  const hsl = (h, sa, l) => {
+    const q = l < 0.5 ? l * (1 + sa) : l + sa - l * sa, pp = 2 * l - q;
+    const can = (t) => {
+      t = (t + 1) % 1;
+      if (t < 1 / 6) return pp + (q - pp) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return pp + (q - pp) * (2 / 3 - t) * 6;
+      return pp;
+    };
+    return '#' + [can(h + 1 / 3), can(h), can(h - 1 / 3)]
+      .map((x) => Math.round(Math.max(0, Math.min(1, x)) * 255).toString(16).padStart(2, '0')).join('');
+  };
+  /* LA LUMIÈRE VA VERS LE JAUNE, L'OMBRE S'EN ÉLOIGNE — et c'est vrai de n'importe quelle teinte,
+     pas seulement du vert. Une première version tournait « vers le bleu-vert » en dur : elle allait
+     aux Ardennes et transformait les frondaisons rousses de Silverstone en magenta. Le soleil est
+     jaune, donc une surface éclairée tire vers 60° et une surface à l'ombre tire à l'opposé, par
+     le plus court chemin. Pour un vert (120°) ça donne du jaune-vert et du bleu-vert ; pour un
+     roux (25°), du jaune-orangé et du rouge profond. Les deux sont justes, et c'est la même règle. */
+  const JAUNE = 60 / 360;
+  let vers = JAUNE - hp;                       // le plus court chemin vers le jaune, signé
+  if (vers > 0.5) vers -= 1; else if (vers < -0.5) vers += 1;
+  const sens = vers === 0 ? 1 : Math.sign(vers);
+  const dispo = Math.abs(vers) * 360;          // on ne dépasse pas le jaune : au-delà, la couleur change de nom
+  const pas = [[-52, -0.40, 0.12], [-24, -0.21, 0.05], [0, 0, 0], [20, 0.15, 0.03], [38, 0.30, 0.06]];
+  return pas.map(([dh, dl, ds]) => hsl(
+    (hp + sens * (dh > 0 ? Math.min(dh, dispo) : dh) / 360 + 1) % 1,
+    Math.max(0.22, Math.min(0.70, sp + ds + 0.10)),
+    Math.max(0.10, Math.min(0.72, lp + dl))));
 }
 
 /* LA GRAPPE EST TIRÉE UNE FOIS et resservie par chaque passe. Retirer les lobes à chaque passe
@@ -141,10 +218,10 @@ function couronne(g, cx, cy, r, verts, graine, opts) {
     }
   };
   passe(verts[0], 1.00, 0);
-  passe(verts[1], 0.93, 0.20);
-  passe(verts[2], 0.82, 0.42);
-  passe(verts[3], 0.64, 0.62);
-  passe(verts[4], 0.40, 0.80);
+  passe(verts[1], 0.94, 0.18);
+  passe(verts[2], 0.85, 0.38);
+  passe(verts[3], 0.70, 0.58);
+  passe(verts[4], 0.30, 0.84);      // une touche, pas une calotte : sinon l'arbre devient un œuf
 }
 
 /* UN CONIFÈRE GARDE SA POINTE. Vu de quatre-vingt-dix degrés il n'est qu'une rosette, et la
@@ -443,7 +520,7 @@ function buildTopArt(pal) {
    A kind that belongs nowhere in particular carries a base weight of zero — the palms, the Cyclades
    houses, the chapel. For those the theme's number is not a multiplier but the weight itself,
    since multiplying zero would keep them out of the one place they were drawn for. */
-function placeTopProps(track, id, density, weights) {
+function placeTopProps(track, id, density, weights, serre, lisiere, profond) {
   let kinds = TOP_KINDS;
   if (weights) {
     kinds = TOP_KINDS
@@ -454,7 +531,7 @@ function placeTopProps(track, id, density, weights) {
   } else {
     kinds = TOP_KINDS.filter(k => k.weight > 0);
   }
-  return placeFrom(kinds, track, seedFromId('top-' + id), density == null ? 0.85 : density, 6);
+  return placeFrom(kinds, track, seedFromId('top-' + id), density == null ? 0.85 : density, 6, serre, lisiere, profond);
 }
 
 /* L'HERBE SE SÈME À PART, et c'est le seul moyen d'en avoir sans perdre des arbres.
