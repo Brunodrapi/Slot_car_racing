@@ -23,7 +23,7 @@ const I18N = {
     penaltyWhy: (n, s) => `${n} sortie${n > 1 ? 's' : ''} de piste · +${s} s au classement. Le temps gagné hors piste est repris ; les vibreurs ne comptent pas.`,
     next: 'Suivant', retry: 'Rejouer', menu: 'Menu', resume: 'Reprendre', restart: 'Recommencer', quit: 'Quitter', paused: 'Pause', endSession: 'Terminer',
     lap: 'Tour', last: 'Dernier', best: 'Meilleur', grip: 'adhérence', holdToGo: 'Maintiens une touche pour accélérer', holdToGoTouch: 'Maintiens l’écran pour accélérer', lineHintKeys: 'Flèches / molette : trajectoire', lineHintTouch: 'Pouce gauche : trajectoire',
-    lineBleu: 'BLEU', lineRace: 'IDÉALE', lineJaune: 'JAUNE', offTrack: 'SORTIE DE PISTE !', finished: 'ARRIVÉE',
+    lineBleu: 'BLEU', lineRace: 'IDÉALE', lineJaune: 'JAUNE', freinage: 'Freinage', reglages: 'Réglages', regDefaut: 'Par défaut', regRegler: 'Régler', regTitre: 'Réglage du freinage', regAide: 'Pousse le levier en roulant. Trop de frein et la voiture s’arrête dans le virage ; trop peu et c’est la sortie. Le repère blanc est le réglage d’origine.', regEnreg: 'Enregistrer la configuration', regNom: 'Nom de la configuration', regFait: (n) => `Configuration « ${n} » enregistrée.`, offTrack: 'SORTIE DE PISTE !', finished: 'ARRIVÉE',
     lapVoid: 'annulé',
     cupComplete: 'Coupe terminée !', cupWon: 'Champion !', cupPodium: 'Podium ! Coupe suivante débloquée.', cupFailed: 'Hors du podium… retente ta chance.',
     newRecord: 'Nouveau record !', yourBest: 'Ton record', name: 'Nom du pilote', sound: 'Son', language: 'Langue', showLines: 'Guide de freinage', telemetry: 'Télémétrie (touche G)', ctrlSide: 'Côté du levier', sideLeft: 'Gauche', sideRight: 'Droite', camera: 'Vue', camFollow: 'Dessus, orientée piste', camFixed: 'Dessus, fixe', camAvance: 'En avance, orientée piste', camAvanceFixe: 'En avance, fixe', pullBack: 'Recul de la caméra', pullNone: 'Normal', pullSome: 'Un peu en retrait', pullMore: 'Très en retrait', aimant: 'Aimant sur la ligne', aimantOff: 'Désactivé', aimantDoux: 'Doux', aimantNormal: 'Normal', aimantFort: 'Fort', aimantTresFort: 'Très fort', aimantDouble: '×2 fort', anticip: 'Anticipation du pilote', anticipOff: 'Aucune', anticipPeu: 'Légère', anticipMoy: 'Moyenne', anticipFort: 'Forte', lapCount: 'Tours', pressStart: 'Appuie pour commencer', resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
@@ -88,7 +88,7 @@ const I18N = {
     penaltyWhy: (n, s) => `${n} excursion${n > 1 ? 's' : ''} · +${s} s on the classification. Time gained off track is taken back; kerbs do not count.`,
     next: 'Next', retry: 'Retry', menu: 'Menu', resume: 'Resume', restart: 'Restart', quit: 'Quit', paused: 'Paused', endSession: 'Finish',
     lap: 'Lap', last: 'Last', best: 'Best', grip: 'grip', holdToGo: 'Hold a key to accelerate', holdToGoTouch: 'Hold anywhere to accelerate', lineHintKeys: 'Arrows / wheel: line', lineHintTouch: 'Left thumb: line',
-    lineBleu: 'BLUE', lineRace: 'RACING', lineJaune: 'YELLOW', offTrack: 'OFF TRACK!', finished: 'FINISH',
+    lineBleu: 'BLUE', lineRace: 'RACING', lineJaune: 'YELLOW', freinage: 'Braking', reglages: 'Setup', regDefaut: 'Default', regRegler: 'Tune', regTitre: 'Braking setup', regAide: 'Push the lever while driving. Too much brake and the car stops in the corner; too little and you go off. The white mark is the stock setting.', regEnreg: 'Save this setup', regNom: 'Setup name', regFait: (n) => `Setup “${n}” saved.`, offTrack: 'OFF TRACK!', finished: 'FINISH',
     lapVoid: 'void',
     cupComplete: 'Cup complete!', cupWon: 'Champion!', cupPodium: 'Podium! Next cup unlocked.', cupFailed: 'Missed the podium… try again.',
     newRecord: 'New record!', yourBest: 'Your best', name: 'Driver name', sound: 'Sound', language: 'Language', showLines: 'Braking guide', telemetry: 'Telemetry (G key)', ctrlSide: 'Lever side', sideLeft: 'Left', sideRight: 'Right', camera: 'View', camFollow: 'Top-down, track-aligned', camFixed: 'Top-down, fixed', camAvance: 'Look-ahead, track-aligned', camAvanceFixe: 'Look-ahead, fixed', pullBack: 'Camera set-back', pullNone: 'Normal', pullSome: 'A little further back', pullMore: 'Much further back', aimant: 'Line magnet', aimantOff: 'Off', aimantDoux: 'Light', aimantNormal: 'Normal', aimantFort: 'Strong', aimantTresFort: 'Very strong', aimantDouble: '×2 strong', anticip: 'Driver anticipation', anticipOff: 'None', anticipPeu: 'Light', anticipMoy: 'Medium', anticipFort: 'Strong', lapCount: 'Laps', pressStart: 'Press any button to start', resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
@@ -743,7 +743,18 @@ class UI {
         <small class="muted">${t('wearHint')}</small></div>` : ''}
       </div>
       ${mode === 'race' ? '' : this.records(st.trackId, cat, model, livery)}
-      <div class="row end"><span class="muted">${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ${escapeHtml(model.name)} · ${mode === 'race' ? `${laps} ${t('laps')}` : t('ttIntro')}</span><button class="big primary" data-action="startQuick">${t('start')}</button></div>
+      <!-- Les réglages vivent À CÔTÉ DU DÉPART et non dans l'écran des options, parce qu'ils
+           dépendent du circuit ET de la voiture : c'est ici, une fois les deux choisis, que la
+           question « avec quel freinage ? » a un sens. Le bouton « Régler » lance la même course
+           avec le levier en haut. -->
+      <div class="row end">
+        <label class="perso">${t('reglages')}<select id="sel-reglage">
+          <option value="">${t('regDefaut')}</option>
+          ${((s.reglages && s.reglages.configs) || []).map((c) => `<option value="${escapeHtml(c.nom)}" ${s.reglages.actif === c.nom ? 'selected' : ''}>${escapeHtml(c.nom)}</option>`).join('')}
+        </select></label>
+        <button data-action="startTune">${t('regRegler')}</button>
+        <span class="muted">${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ${escapeHtml(model.name)} · ${mode === 'race' ? `${laps} ${t('laps')}` : t('ttIntro')}</span><button class="big primary" data-action="startQuick">${t('start')}</button>
+      </div>
     `, 'scroll', 'depart:' + mode);
   }
 
@@ -919,11 +930,38 @@ class UI {
       <div class="menu">
         <button class="big primary" data-action="resume">${t('resume')}</button>
         ${race.mode === 'timetrial' ? `<button class="big" data-action="endTT">${t('endSession')}</button>` : ''}
+        ${race.reglage ? `<div class="form reglage-pause">
+          <h3>${t('regTitre')} — ×${(race.frein || 1).toFixed(2)}</h3>
+          <label>${t('regNom')}<input id="reg-nom" maxlength="24" placeholder="${escapeHtml(t('regDefaut'))}"
+            value="${escapeHtml((this.app.save.reglages && this.app.save.reglages.actif) || '')}"></label>
+          <button class="big primary" data-action="regEnreg">${t('regEnreg')}</button>
+          <p class="muted">${t('regAide')}</p>
+        </div>` : ''}
         ${this.app.raceCtx && this.app.raceCtx.online ? '' : `<button data-action="retryRace">${t('restart')}</button>`}
         <button data-action="${this.app.raceCtx && this.app.raceCtx.online ? 'toLobby' : 'quitRace'}">${this.app.raceCtx && this.app.raceCtx.online ? t('backToTable') : t('quit')}</button>
       </div>
       <p class="muted">${t('howto')}</p>
     `, 'center overlay');
+  }
+
+  /* Enregistrer le réglage en cours sous un nom, depuis la pause.
+
+  Le nom est le seul champ : le circuit et la voiture, on les connaît — ce sont ceux de la course
+  qui tourne. Sans nom, on reprend celui de la configuration active ; sans configuration active,
+  « Par défaut ». Réenregistrer sous un nom existant complète la configuration au lieu de la
+  remplacer : on règle un circuit à la fois, et perdre les autres à chaque sauvegarde rendrait la
+  chose inutilisable. */
+  enregistreReglage() {
+    const app = this.app, race = app.race, ctx = app.raceCtx;
+    if (!race || !race.reglage || !ctx) return;
+    const champ = document.getElementById('reg-nom');
+    const nom = ((champ && champ.value) || '').trim()
+      || (app.save.reglages && app.save.reglages.actif) || this.t('regDefaut');
+    poseFrein(app.save, nom, ctx.trackId, race.opts.modelId, race.frein || 1);
+    storeSave(app.save);
+    this.pauseScreen(race);
+    const p = document.querySelector('.reglage-pause .muted');
+    if (p) { p.textContent = this.t('regFait', nom); p.classList.add('ok'); }
   }
 
   workshopScreen(msg) {
@@ -1050,6 +1088,8 @@ class UI {
       }
       case 'pickWear': app.save.wear = id === '1'; storeSave(app.save); this.setupScreen(this.setup.mode); break;
       case 'startQuick': app.startQuick(this.setup.mode, this.setup.classId, this.setup.trackId); break;
+      case 'startTune': app.startQuick(this.setup.mode, this.setup.classId, this.setup.trackId, true); break;
+      case 'regEnreg': this.enregistreReglage(); break;
       case 'multi': app.state = 'lobby'; this.lobbyScreen(); break;
       case 'netCreate': this._netOpen(true); break;
       case 'netJoin': this._netOpen(false); break;
@@ -1156,6 +1196,10 @@ class UI {
     if (el.id === 'sel-lines') { s.showLines = el.value === '1'; storeSave(s); this.app.renderer.showLines = s.showLines; }
     // le côté du levier : le rendu le relit à chaque image, il n'y a rien d'autre à faire ici
     if (el.id === 'sel-side') { s.ctrlSide = el.value === 'right' ? 'right' : 'left'; storeSave(s); }
+    if (el.id === 'sel-reglage') {
+      s.reglages = s.reglages || { actif: null, configs: [] };
+      s.reglages.actif = el.value || null; storeSave(s);
+    }
     if (el.id === 'sel-cam') { s.view = el.value; s.camRotate = el.value === 'track' || el.value === 'avance'; storeSave(s); this.app.renderer.setView(s.view); }
     if (el.id === 'sel-pull') { s.pullBack = this.app.renderer.setPullBack(el.value); storeSave(s); }
     if (el.id === 'sel-aimant') { s.aimant = PHYS.aimant = +el.value; storeSave(s); }

@@ -138,6 +138,18 @@ aides de l'IA à la voiture mesurée, et rendu incomparables tous les relevés d
 humain en réseau n'y a pas droit non plus : il choisit, lui. */
 const AIDES_IA = { aimant: 1, ff: 0.3 };
 
+/* LES BORNES DU RÉGLAGE DE FREIN, et pourquoi elles vivent ICI.
+
+Elles décrivent ce que la physique accepte, donc leur place est avec la physique. Mais la raison
+concrète est plus bête et plus solide : `js/race.js` s'en sert à la construction de la grille, et
+les bancs chargent `car.js` sans charger `career.js`. Les poser dans `career.js` — où vit le reste
+des configurations — faisait planter tous les bancs sur une référence absente.
+
+0,5 et 1,6 encadrent ce qui a été mesuré : en dessous de 0,65 aucun tour n'est bouclé sur les trois
+circuits d'essai, et au-dessus de 1,6 la vitesse de passage ne descend plus, elle a déjà touché le
+fond. Laisser aller plus loin ne proposerait que des réglages dont on sait qu'ils ne servent à rien. */
+const FREIN_MIN = 0.5, FREIN_MAX = 1.6;
+
 /* L'AIMANT : une tension vers la ligne, et un décrochage net.
 
 L'idée est de Bruno, et elle répond à ce que la mesure dit du modèle actuel. Trois leviers ont été
@@ -1131,4 +1143,4 @@ function resolveCollisions(cars, track) {
   }
 }
 
-if (typeof module !== 'undefined') module.exports = { Car, aiThrottle, resolveCollisions, speedProfile, cornerSpeedFor, PHYS };
+if (typeof module !== 'undefined') module.exports = { Car, aiThrottle, resolveCollisions, speedProfile, cornerSpeedFor, PHYS, FREIN_MIN, FREIN_MAX };

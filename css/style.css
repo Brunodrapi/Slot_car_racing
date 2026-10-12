@@ -403,3 +403,10 @@ perdrait le curseur à chaque chiffre tapé. */
    problème là où le message n'en désigne que la famille. */
 .mondial-note .detail { display: block; margin-top: 3px; font-size: 11px; color: var(--muted);
   font-family: ui-monospace, monospace; word-break: break-word; }
+
+/* Le bloc de réglage dans l'écran de pause : il n'apparaît qu'en mode réglage, et il porte le
+   seul champ qui manque — le nom. Le circuit et la voiture, on les connaît déjà. */
+.reglage-pause { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.14); }
+.reglage-pause h3 { margin: 0 0 8px; }
+.reglage-pause .muted { font-size: 13px; line-height: 1.45; }
+.reglage-pause .muted.ok { color: var(--ok, #5be07a); }

@@ -181,12 +181,41 @@ class Race {
       this.cars.push(car);
     }
     this.player = this.cars.find(c2 => c2.isPlayer) || this.cars[this.cars.length - 1];
+    /* LE RÉGLAGE DE FREIN DU JOUEUR, ET DE LUI SEUL.
+
+    En slot racing on règle la puissance de freinage de sa commande, et c'est un vrai compromis :
+    trop fort, la voiture s'arrête dans le virage au lieu de l'enrouler ; trop faible, on sort.
+    Mesuré sur trois circuits à repères de pilotage constants — à ×0,50 aucun tour n'est bouclé et
+    23 sorties, à ×0,80 l'optimum propre, et au-delà la vitesse minimale en courbe tombe de 67,3 à
+    63,6 km/h et le tour avec. L'optimum est intérieur, et il diffère par circuit : c'est pour ça
+    que le réglage se fait circuit par circuit et voiture par voiture.
+
+    IL NE TOUCHE QUE LA VOITURE DU JOUEUR. La classe est clonée avant d'être modifiée, parce que
+    `carClassById` rend le même objet à tout le monde : la retoucher en place réglerait aussi les
+    rivales, et le classement ne voudrait plus rien dire. Les profils de vitesse (`this.profiles`),
+    qui servent à l'IA et aux panneaux, sont calculés sur la classe d'origine et ne bougent pas —
+    les panneaux sont du mobilier de circuit, pas une aide personnelle. */
+    this.reglage = !!this.opts.reglage;
+    this.freinBase = this.player ? this.player.cls.brake : 0;
+    this.poseFrein(this.opts.frein == null ? 1 : this.opts.frein);
     this.netInput = [];                              // seat -> { thr, sel } received over the wire
     if (solo) {
       this.player.place(T.length - 40, 0);
       this.player.laneTarget = 0;
       this.player.gridLat = 0;
     }
+  }
+
+  /* Changer le frein du joueur, en course et sans tout reconstruire.
+
+  On repart TOUJOURS de `freinBase`, jamais de la valeur courante : multiplier à chaque appel
+  ferait dériver le réglage à chaque pixel de curseur, et un levier qui ne revient pas à sa valeur
+  quand on le ramène au même endroit n'est pas un levier. */
+  poseFrein(f) {
+    this.frein = clamp(f, FREIN_MIN, FREIN_MAX);
+    if (!this.player) return;
+    this.player.cls = Object.assign({}, this.player.cls);
+    this.player.cls.brake = this.freinBase * this.frein;
   }
 
   // input: { throttle: bool, sel: -1..1 } (a bare boolean is accepted for the throttle)

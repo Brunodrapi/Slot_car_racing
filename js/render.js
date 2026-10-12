@@ -216,6 +216,7 @@ class Renderer {
     this.showLines = false;   // braking guide, off unless enabled in the settings
     this.debug = false;       // vehicle telemetry overlay (speed, slip angle, lateral velocity, grip usage)
     this.poucePress = 0;      // appui lissé de 0 à 1 sur la pastille du pouce
+    this.reglageZone = null;  // le rail du levier de freinage, en mode réglage seulement
     this.rotate = true;      // keep the track direction pointing up the screen
     this.camAngle = 0;
     this.resize();
@@ -2136,6 +2137,43 @@ class Renderer {
       this._roundRect(g, xJ, yJ, Math.max(hJ, wJ * fv), hJ, hJ / 2); g.fill();
     }
     this.hudZones.jauge = { x: xJ, w: wJ, y: yJ, h: hJ };
+
+    /* LE LEVIER DE FREINAGE, et seulement en mode réglage.
+
+    Il n'a rien à faire dans une course ordinaire : un curseur qu'on peut bouger en roulant invite à
+    le bouger en roulant, et un réglage qui change pendant qu'on mesure ne se compare à rien. Il
+    n'apparaît donc que quand la course a été ouverte pour régler.
+
+    HORIZONTAL ET EN HAUT, comme demandé, et sur toute la largeur utile : la précision se joue au
+    centième et un rail court la rendrait impossible au pouce. Le repère du défaut est marqué, parce
+    que c'est la seule valeur dont on sait qu'elle a été équilibrée — tout le reste est un pari que
+    le joueur prend. */
+    if (race.reglage) {
+      const f = clamp(race.frein == null ? 1 : race.frein, FREIN_MIN, FREIN_MAX);
+      const u = (f - FREIN_MIN) / (FREIN_MAX - FREIN_MIN);
+      const wR = Math.min(W - P.l - P.r - 8, mobile ? 300 : 420), hR = mobile ? 16 : 18;
+      /* Il passe SOUS la carte, et pas seulement sous la jauge. Posé juste en dessous de celle-ci,
+      il traversait la minicarte en haut à gauche : large et centré, il la croise forcément. On
+      part donc du plus bas des deux. */
+      const xR = Math.round((W - wR) / 2);
+      const yR = Math.max(yJ + hJ + (mobile ? 16 : 20), mmBas + 14);
+      this.reglageZone = { x: xR, w: wR, y: yR - 14, h: hR + 28 };
+      g.fillStyle = 'rgba(10,12,20,0.70)';
+      this._roundRect(g, xR - 10, yR - 14, wR + 20, hR + 30, 10); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.16)';
+      this._roundRect(g, xR, yR, wR, hR, hR / 2); g.fill();
+      // le repère du défaut, là où la voiture a été équilibrée
+      const xD = xR + wR * (1 - FREIN_MIN) / (FREIN_MAX - FREIN_MIN);
+      g.fillStyle = 'rgba(255,255,255,0.45)'; g.fillRect(Math.round(xD) - 1, yR - 4, 2, hR + 8);
+      g.fillStyle = f < 1 ? '#f0e09a' : '#9ecbf0';
+      this._roundRect(g, xR, yR, Math.max(hR, wR * u), hR, hR / 2); g.fill();
+      g.beginPath(); g.arc(xR + wR * u, yR + hR / 2, hR * 0.78, 0, Math.PI * 2);
+      g.fillStyle = '#f5f6fa'; g.fill();
+      g.strokeStyle = 'rgba(12,14,22,0.85)'; g.lineWidth = 2; g.stroke();
+      g.textAlign = 'center'; g.textBaseline = 'top';
+      g.font = `bold ${mobile ? 11 : 12}px system-ui, sans-serif`; g.fillStyle = '#e8e8ec';
+      g.fillText(t('freinage') + '  ×' + f.toFixed(2), xR + wR / 2, yR + hR + 5);
+    } else this.reglageZone = null;
     g.textAlign = 'left';
 
     /* Les deux cadrans : la gomme et la tôle.
@@ -2365,6 +2403,16 @@ class Renderer {
     g.textBaseline = 'top';
   }
 
+  // le freinage demandé par un appui sur le levier de réglage, ou null hors de lui
+  reglageValeurAt(x, y) {
+    const r = this.reglageZone;
+    if (!r) return null;
+    if (x < r.x - 14 || x > r.x + r.w + 14 || y < r.y || y > r.y + r.h) return null;
+    const u = clamp((x - r.x) / Math.max(1, r.w), 0, 1);
+    const v = FREIN_MIN + u * (FREIN_MAX - FREIN_MIN);
+    return Math.round(v * 100) / 100;
+  }
+
   /* Le point tombe-t-il sur le bouton pause ?
 
   La cible est un peu plus large que le dessin, comme le hamburger du menu : sur un écran étroit le
@@ -2379,6 +2427,10 @@ class Renderer {
 
   // maps a screen point in the slider zone to a selection value; null if outside the zone
   sliderValueAt(x, y, touchZone) {
+    // le levier de réglage prend le dessus : il est en haut, loin du pouce, mais un appui dessus ne
+    // doit surtout pas compter pour de l'accélérateur
+    const r = this.reglageZone;
+    if (r && x >= r.x - 14 && x <= r.x + r.w + 14 && y >= r.y && y <= r.y + r.h) return null;
     const s = this.slider, d = this.pouce;
     // La pastille visible gagne toujours : un pouce qui s'y pose accélère, où qu'elle ait été
     // déplacée. Elle ne peut jamais couvrir la colonne du levier, donc la ligne reste accessible.

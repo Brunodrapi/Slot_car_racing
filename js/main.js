@@ -43,7 +43,7 @@ class App {
     this.chargeDes = null;
     this.state = 'splash';
     this.input = { throttle: false, sel: 0, pit: false };
-    this.pointers = { throttle: null, slider: null };
+    this.pointers = { throttle: null, slider: null, reglage: null };
     this.last = performance.now();
     this._bindInput();
     window.addEventListener('resize', () => { this.renderer.resize(); if (this.race) this.renderer._makeMinimap(); });
@@ -186,7 +186,7 @@ class App {
       on();
     });
     window.addEventListener('keyup', (e) => { if (LINE_DOWN.includes(e.key) || LINE_UP.includes(e.key) || e.key === 'Escape' || e.key === 'g' || e.key === 'G') return; off(); });
-    window.addEventListener('blur', () => { off(); this.pointers.throttle = this.pointers.slider = null; });
+    window.addEventListener('blur', () => { off(); this.pointers.throttle = this.pointers.slider = this.pointers.reglage = null; });
     // On the title card the whole window listens, not just the canvas: the poster fills the page,
     // and "any button" has to mean anywhere on it.
     window.addEventListener('pointerdown', () => this.leaveSplash());
@@ -202,6 +202,17 @@ class App {
       tout ce qui n'est pas le curseur pour de l'accélérateur. On sort sans toucher à `pointers`,
       donc aucun doigt n'est retenu et le relâchement n'a rien à défaire. */
       if (this.renderer.pauseHitAt(e.clientX, e.clientY)) { this.togglePause(); return; }
+      /* Le levier de réglage avant tout le reste, et il retient son doigt.
+
+      Sans ça l'appui repartirait dans la branche d'en dessous, qui prend tout ce qui n'est pas le
+      curseur de ligne pour de l'accélérateur : on réglerait son frein en accélérant, ce qui est
+      exactement ce qu'on ne veut pas pendant qu'on mesure. */
+      const fr = this.renderer.reglageValeurAt(e.clientX, e.clientY);
+      if (fr != null && this.pointers.reglage == null) {
+        this.pointers.reglage = e.pointerId;
+        this.race.poseFrein(fr);
+        return;
+      }
       const v = this.renderer.sliderValueAt(e.clientX, e.clientY, touch);
       if (v != null && this.pointers.slider == null) { this.pointers.slider = e.pointerId; poseSel(v); return; }
       if (this.pointers.throttle == null) {
@@ -211,6 +222,11 @@ class App {
       }
     });
     c.addEventListener('pointermove', (e) => {
+      if (this.pointers.reglage === e.pointerId) {
+        const fr = this.renderer.reglageValeurAt(e.clientX, e.clientY);
+        if (fr != null) this.race.poseFrein(fr);
+        return;
+      }
       if (this.pointers.slider === e.pointerId) {
         const v = this.renderer.sliderValueAt(e.clientX, e.clientY, true);
         if (v != null) poseSel(v);
@@ -220,6 +236,7 @@ class App {
       if (this.pointers.throttle === e.pointerId && e.pointerType === 'touch') this.renderer.anchorPouce(e.clientX, e.clientY);
     });
     const release = (e) => {
+      if (this.pointers.reglage === e.pointerId) { this.pointers.reglage = null; return; }
       if (this.pointers.slider === e.pointerId) this.pointers.slider = null;
       if (this.pointers.throttle === e.pointerId) { this.pointers.throttle = null; off(); }
       if (e.pointerType === 'mouse') off();
@@ -242,12 +259,18 @@ class App {
     this.ui.menu();
   }
 
-  startQuick(mode, classId, trackId) {
+  /* `reglage` ouvre la course en MODE RÉGLAGE : un levier de freinage apparaît en haut, et la pause
+  propose d'enregistrer la configuration sous un nom. La course elle-même ne change pas — c'est le
+  seul moyen de régler un frein honnêtement, en roulant. */
+  startQuick(mode, classId, trackId, reglage) {
     const trackDef = this.trackDefById(trackId), cat = categoryById(classId);
     if (!trackDef) return;
+    const modelId = this.playerModelFor(classId).id;
     this._startRace({
-      mode, trackDef, classId, modelId: this.playerModelFor(classId).id,
-      playerLivree: this.playerLivreeFor(this.playerModelFor(classId).id),
+      reglage: !!reglage,
+      frein: freinDe(this.save, trackId, modelId),
+      mode, trackDef, classId, modelId,
+      playerLivree: this.playerLivreeFor(modelId),
       // The circuit's own suggestion unless the player has asked for a number; a championship
       // round keeps the suggestion, since its length is part of the championship, not a setting.
       // le joueur choisit sa longueur ; la proposition du circuit ne sert plus que de filet
