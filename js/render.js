@@ -2107,7 +2107,8 @@ class Renderer {
     g.textAlign = 'left';
     g.font = `bold ${mobile ? 12 : 14}px system-ui, sans-serif`; g.fillStyle = '#c8ced9';
     cerne('km/h', W / 2 + wNum / 2 + 5, yV + (mobile ? 13 : 17));
-    this.hudZones.vitesse = { x: W / 2 - wNum / 2, w: wNum + 5 + g.measureText('km/h').width, y: yV, h: hV };
+    const wU = g.measureText('km/h').width;
+    this.hudZones.vitesse = { x: W / 2 - wNum / 2, w: wNum + 5 + wU, y: yV, h: hV };
 
     /* LA JAUGE : sa LONGUEUR dit la vitesse, sa COULEUR dit l'état de la voiture.
 
@@ -2128,14 +2129,17 @@ class Renderer {
       const a = PASTEL[i], b = PASTEL[i + 1];
       return `rgb(${Math.round(a[0] + (b[0] - a[0]) * f)},${Math.round(a[1] + (b[1] - a[1]) * f)},${Math.round(a[2] + (b[2] - a[2]) * f)})`;
     };
-    const wJ = mobile ? 156 : 208, hJ = mobile ? 14 : 16;
-    const xJ = xe - wJ, yJ = yV + hV + (mobile ? 7 : 9);
+    /* SUR LA LIGNE DU CHIFFRE, et en rectangle. Elle était sur sa propre ligne parce qu'une largeur
+    posée en dur mordait sur le « km/h » dès trois chiffres de vitesse. La largeur se MESURE donc
+    maintenant : on prend ce qui reste entre l'unité et le bord droit. Le problème disparaît au lieu
+    d'être contourné, et la jauge se lit à la hauteur de ce qu'elle qualifie. */
+    const xFin = W / 2 + wNum / 2 + 5 + wU;
+    const hJ = mobile ? 16 : 20;
+    const xJ = xFin + (mobile ? 12 : 16), wJ = Math.max(mobile ? 60 : 90, xe - xJ);
+    const yJ = yV + hV * 0.40 - hJ / 2;
     g.fillStyle = 'rgba(10,12,20,0.62)';
-    this._roundRect(g, xJ, yJ, wJ, hJ, hJ / 2); g.fill();
-    if (fv > 0.004) {
-      g.fillStyle = teinte(p.ressenti || 0);
-      this._roundRect(g, xJ, yJ, Math.max(hJ, wJ * fv), hJ, hJ / 2); g.fill();
-    }
+    g.fillRect(xJ, yJ, wJ, hJ);
+    if (fv > 0.004) { g.fillStyle = teinte(p.ressenti || 0); g.fillRect(xJ, yJ, wJ * fv, hJ); }
     this.hudZones.jauge = { x: xJ, w: wJ, y: yJ, h: hJ };
 
     /* LE LEVIER DE FREINAGE, et seulement en mode réglage.

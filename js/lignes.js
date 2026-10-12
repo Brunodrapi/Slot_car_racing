@@ -41,7 +41,22 @@ dimensionnées pour un doigt plutôt que pour un curseur — un point de contrô
 */
 'use strict';
 
-const COULEURS = { racing: '#ffffff', inside: '#50c8ff', outside: '#ffc83c' };
+/* LES COULEURS D'ÉDITION NE SONT PLUS CELLES DU JEU, et il a fallu que ça se voie à l'écran.
+
+L'intérieure était peinte du bleu du jeu et l'extérieure de son jaune. Ça allait tant que le jeu
+jouait ces deux lignes-là. Depuis qu'il range ses lignes par CÔTÉ FIXE — jaune à gauche du sens de
+marche, bleu à droite — les deux ne désignent plus la même chose : l'intérieure d'un virage change
+de bord à chaque changement de main, et les deux tracés se croisent de 4 à 14 fois par tour selon le
+circuit, 6 fois à Monza. À partir du premier croisement, l'éditeur montrait en bleu ce que le joueur
+voit en jaune. Constat de Bruno, sur Monza, et c'est une régression que j'ai introduite en même
+temps que les côtés fixes.
+
+Les lignes qu'on DESSINE prennent donc des couleurs d'atelier, qui ne ressemblent à rien dans le
+jeu, et le jaune et le bleu sont rendus à ce qu'ils désignent : les deux bords tels qu'ils seront
+JOUÉS, dessinés en dessous par `traceJouee`. On édite l'intérieure et l'extérieure, on voit le
+résultat. */
+const COULEURS = { racing: '#ffffff', inside: '#ff7ad9', outside: '#8ef58e' };
+const COULEURS_JEU = { jaune: '#ffc83c', bleu: '#50c8ff' };
 const NOMS = { racing: 'Corde', inside: 'Intérieure', outside: 'Extérieure' };
 
 const S = {
@@ -207,6 +222,8 @@ function dessiner() {
   ctx.stroke();
   ctx.restore();
 
+  // d'abord ce que le JEU jouera : les deux bords fixes, sous les lignes qu'on dessine
+  traceJouee();
   // les trois lignes, celle qu'on modifie par-dessus les autres
   for (const nom of ['inside', 'outside', 'racing']) {
     if (nom === S.ligne) continue;
@@ -446,6 +463,31 @@ function majApercu() {
   const def2 = Object.assign({}, S.def, { lines: {
     racing: S.pts.racing, inside: S.pts.inside, outside: S.pts.outside } });
   try { S.apercu = new Track(def2); } catch (e) { S.apercu = null; }
+}
+
+/* Les deux bords tels que le jeu les jouera, c'est-à-dire après la fusion par côté.
+
+Ce n'est pas un ornement : c'est la seule façon de voir, en dessinant, ce que le joueur aura sous
+les yeux. `apercu` porte déjà la piste construite, donc les lignes fusionnées sont là, prêtes. */
+function traceJouee() {
+  const T = S.apercu;
+  if (!T || !T.lines || !T.lines.jaune) return;
+  const u = T.unitScale, N = T.n;
+  for (const [nom, lat] of [['jaune', T.lines.jaune], ['bleu', T.lines.bleu]]) {
+    ctx.save();
+    /* Fin et discret : c'est une RÉFÉRENCE, pas le sujet. Posé plus épais que les lignes qu'on
+    dessine, l'aperçu les recouvrait et on éditait à l'aveugle. */
+    ctx.globalAlpha = 0.55;
+    ctx.strokeStyle = COULEURS_JEU[nom]; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let i = 0; i <= N; i++) {
+      const j = i % N;
+      const p = versEcran([(T.xs[j] + T.nx[j] * lat[j]) / u, (T.ys[j] + T.ny[j] * lat[j]) / u]);
+      i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
 }
 
 function trace(nom, epais, alpha) {
