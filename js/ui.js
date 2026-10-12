@@ -23,7 +23,7 @@ const I18N = {
     penaltyWhy: (n, s) => `${n} sortie${n > 1 ? 's' : ''} de piste · +${s} s au classement. Le temps gagné hors piste est repris ; les vibreurs ne comptent pas.`,
     next: 'Suivant', retry: 'Rejouer', menu: 'Menu', resume: 'Reprendre', restart: 'Recommencer', quit: 'Quitter', paused: 'Pause', endSession: 'Terminer',
     lap: 'Tour', last: 'Dernier', best: 'Meilleur', grip: 'adhérence', holdToGo: 'Maintiens une touche pour accélérer', holdToGoTouch: 'Maintiens l’écran pour accélérer', lineHintKeys: 'Flèches / molette : trajectoire', lineHintTouch: 'Pouce gauche : trajectoire',
-    lineBleu: 'BLEU', lineRace: 'IDÉALE', lineJaune: 'JAUNE', freinage: 'Freinage', reglages: 'Réglages', regDefaut: 'Par défaut', regRegler: 'Régler', regTitre: 'Réglage du freinage', regAide: 'Pousse le levier en roulant. Trop de frein et la voiture s’arrête dans le virage ; trop peu et c’est la sortie. Le repère blanc est le réglage d’origine.', regEnreg: 'Enregistrer la configuration', regNom: 'Nom de la configuration', regFait: (n) => `Configuration « ${n} » enregistrée.`, offTrack: 'SORTIE DE PISTE !', finished: 'ARRIVÉE',
+    lineBleu: 'BLEU', lineRace: 'IDÉALE', lineJaune: 'JAUNE', freinage: 'Freinage', reglages: 'Réglages', regDefaut: 'Par défaut', regRegler: 'Régler', regTitre: 'Réglage du freinage', regAide: 'Pousse le levier en roulant. Trop de frein et la voiture s’arrête dans le virage ; trop peu et c’est la sortie. Le repère blanc est le réglage d’origine.', regEnreg: 'Enregistrer la configuration', regNom: 'Nom de la configuration', regIci: (v) => `freinage ×${v.toFixed(2)} ici`, regIciDefaut: 'freinage d’origine ici', regPortee: 'Un réglage ne vaut que pour le circuit et la voiture où il a été enregistré. Partout ailleurs, la voiture garde son freinage d’origine.', regFait: (n) => `Configuration « ${n} » enregistrée.`, offTrack: 'SORTIE DE PISTE !', finished: 'ARRIVÉE',
     lapVoid: 'annulé',
     cupComplete: 'Coupe terminée !', cupWon: 'Champion !', cupPodium: 'Podium ! Coupe suivante débloquée.', cupFailed: 'Hors du podium… retente ta chance.',
     newRecord: 'Nouveau record !', yourBest: 'Ton record', name: 'Nom du pilote', sound: 'Son', language: 'Langue', showLines: 'Guide de freinage', telemetry: 'Télémétrie (touche G)', ctrlSide: 'Côté du levier', sideLeft: 'Gauche', sideRight: 'Droite', camera: 'Vue', camFollow: 'Dessus, orientée piste', camFixed: 'Dessus, fixe', camAvance: 'En avance, orientée piste', camAvanceFixe: 'En avance, fixe', pullBack: 'Recul de la caméra', pullNone: 'Normal', pullSome: 'Un peu en retrait', pullMore: 'Très en retrait', aimant: 'Aimant sur la ligne', aimantOff: 'Désactivé', aimantDoux: 'Doux', aimantNormal: 'Normal', aimantFort: 'Fort', aimantTresFort: 'Très fort', aimantDouble: '×2 fort', anticip: 'Anticipation du pilote', anticipOff: 'Aucune', anticipPeu: 'Légère', anticipMoy: 'Moyenne', anticipFort: 'Forte', lapCount: 'Tours', pressStart: 'Appuie pour commencer', resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
@@ -88,7 +88,7 @@ const I18N = {
     penaltyWhy: (n, s) => `${n} excursion${n > 1 ? 's' : ''} · +${s} s on the classification. Time gained off track is taken back; kerbs do not count.`,
     next: 'Next', retry: 'Retry', menu: 'Menu', resume: 'Resume', restart: 'Restart', quit: 'Quit', paused: 'Paused', endSession: 'Finish',
     lap: 'Lap', last: 'Last', best: 'Best', grip: 'grip', holdToGo: 'Hold a key to accelerate', holdToGoTouch: 'Hold anywhere to accelerate', lineHintKeys: 'Arrows / wheel: line', lineHintTouch: 'Left thumb: line',
-    lineBleu: 'BLUE', lineRace: 'RACING', lineJaune: 'YELLOW', freinage: 'Braking', reglages: 'Setup', regDefaut: 'Default', regRegler: 'Tune', regTitre: 'Braking setup', regAide: 'Push the lever while driving. Too much brake and the car stops in the corner; too little and you go off. The white mark is the stock setting.', regEnreg: 'Save this setup', regNom: 'Setup name', regFait: (n) => `Setup “${n}” saved.`, offTrack: 'OFF TRACK!', finished: 'FINISH',
+    lineBleu: 'BLUE', lineRace: 'RACING', lineJaune: 'YELLOW', freinage: 'Braking', reglages: 'Setup', regDefaut: 'Default', regRegler: 'Tune', regTitre: 'Braking setup', regAide: 'Push the lever while driving. Too much brake and the car stops in the corner; too little and you go off. The white mark is the stock setting.', regEnreg: 'Save this setup', regNom: 'Setup name', regIci: (v) => `braking ×${v.toFixed(2)} here`, regIciDefaut: 'stock braking here', regPortee: 'A setup only applies to the circuit and car it was saved for. Everywhere else the car keeps its stock braking.', regFait: (n) => `Setup “${n}” saved.`, offTrack: 'OFF TRACK!', finished: 'FINISH',
     lapVoid: 'void',
     cupComplete: 'Cup complete!', cupWon: 'Champion!', cupPodium: 'Podium! Next cup unlocked.', cupFailed: 'Missed the podium… try again.',
     newRecord: 'New record!', yourBest: 'Your best', name: 'Driver name', sound: 'Sound', language: 'Language', showLines: 'Braking guide', telemetry: 'Telemetry (G key)', ctrlSide: 'Lever side', sideLeft: 'Left', sideRight: 'Right', camera: 'View', camFollow: 'Top-down, track-aligned', camFixed: 'Top-down, fixed', camAvance: 'Look-ahead, track-aligned', camAvanceFixe: 'Look-ahead, fixed', pullBack: 'Camera set-back', pullNone: 'Normal', pullSome: 'A little further back', pullMore: 'Much further back', aimant: 'Line magnet', aimantOff: 'Off', aimantDoux: 'Light', aimantNormal: 'Normal', aimantFort: 'Strong', aimantTresFort: 'Very strong', aimantDouble: '×2 strong', anticip: 'Driver anticipation', anticipOff: 'None', anticipPeu: 'Light', anticipMoy: 'Medium', anticipFort: 'Strong', lapCount: 'Laps', pressStart: 'Press any button to start', resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
@@ -451,7 +451,7 @@ class UI {
   to the yellow of the cut-out, and the grain of the paper is kept by shading it with the original
   lettering's own brightness. */
   splash() {
-    const t = (k) => this.t(k);
+    const t = (k, ...a) => this.t(k, ...a);
     this.show(`
       <div class="stage">
         <img class="poster" src="art/title.webp" alt="${escapeHtml(t('title'))}">
@@ -513,7 +513,7 @@ class UI {
     un lien `?track=`, un retour de course, un rechargement en pleine partie. Le menu est l'endroit
     par lequel tout le monde repasse, donc le seul où la question se pose une fois et une seule. */
     if (!nomValide(this.app.save.name)) return this.nomScreen();
-    const t = (k) => this.t(k);
+    const t = (k, ...a) => this.t(k, ...a);
     // top of each banner, as measured on the poster; `fold` is the artwork that carries the text
     const items = [
       { top: 20.04, fold: 'course-rapide', act: 'setup', mode: 'race', label: t('quickRace') },
@@ -544,7 +544,7 @@ class UI {
   }
 
   settings() {
-    const t = (k) => this.t(k), s = this.app.save, app = this.app;
+    const t = (k, ...a) => this.t(k, ...a), s = this.app.save, app = this.app;
     this.show(`
       <h2>${t('settings')}</h2>
       <div class="form">
@@ -684,7 +684,7 @@ class UI {
   }
 
   setupScreen(mode) {
-    const t = (k) => this.t(k), s = this.app.save, st = this.setup, app = this.app;
+    const t = (k, ...a) => this.t(k, ...a), s = this.app.save, st = this.setup, app = this.app;
     st.mode = mode;
     const cats = playableCategories();
     if (!cats.find(c => c.id === st.classId)) st.classId = cats[0].id;
@@ -748,10 +748,17 @@ class UI {
            question « avec quel freinage ? » a un sens. Le bouton « Régler » lance la même course
            avec le levier en haut. -->
       <div class="row end">
+        <!-- CE QUI S'APPLIQUE ICI, écrit à côté du volet.
+             Une configuration est un jeu de valeurs indexées par circuit ET par voiture : la
+             choisir dans la liste ne règle donc rien par elle-même, elle ne fait quelque chose que
+             là où une valeur a été enregistrée. C'était invisible, et donc trompeur — on
+             sélectionnait « Course » sur un circuit jamais réglé et il ne se passait rien, sans
+             qu'aucun écran ne le dise. Le chiffre effectif est maintenant affiché. -->
         <label class="perso">${t('reglages')}<select id="sel-reglage">
           <option value="">${t('regDefaut')}</option>
           ${((s.reglages && s.reglages.configs) || []).map((c) => `<option value="${escapeHtml(c.nom)}" ${s.reglages.actif === c.nom ? 'selected' : ''}>${escapeHtml(c.nom)}</option>`).join('')}
         </select></label>
+        <span class="muted reg-ici">${(() => { const v = freinDe(s, st.trackId, model.id); return v === 1 ? t('regIciDefaut') : t('regIci', v); })()}</span>
         <button data-action="startTune">${t('regRegler')}</button>
         <span class="muted">${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ${escapeHtml(model.name)} · ${mode === 'race' ? `${laps} ${t('laps')}` : t('ttIntro')}</span><button class="big primary" data-action="startQuick">${t('start')}</button>
       </div>
@@ -762,7 +769,7 @@ class UI {
 
   /** The table: who is here, what we are racing, and the one button that drops the flag. */
   lobbyScreen(msg) {
-    const t = (k) => this.t(k), app = this.app, net = app.net;
+    const t = (k, ...a) => this.t(k, ...a), app = this.app, net = app.net;
     if (!net || !net.available()) { this.show(`<div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${t('multi')}</h2></div><p class="muted">${t('netOff')}</p>`, 'center'); return; }
     const s = app.save, livery = LIVERIES[s.livery];
     const cat = categoryById(this.setup.classId);
@@ -820,7 +827,7 @@ class UI {
   }
 
   careerScreen() {
-    const t = (k) => this.t(k), s = this.app.save, livery = LIVERIES[s.livery];
+    const t = (k, ...a) => this.t(k, ...a), s = this.app.save, livery = LIVERIES[s.livery];
     this.show(`
       <div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${t('career')}</h2></div>
       <p class="muted">${t('careerIntro')}</p>
@@ -865,7 +872,7 @@ class UI {
   }
 
   standingsTable(cup, cs) {
-    const t = (k) => this.t(k);
+    const t = (k, ...a) => this.t(k, ...a);
     const rows = Object.entries(cs.points).sort((a, b) => b[1] - a[1]);
     if (!rows.length) return `<p class="muted">—</p>`;
     const me = this.app.playerName();
@@ -924,7 +931,7 @@ class UI {
   }
 
   pauseScreen(race) {
-    const t = (k) => this.t(k);
+    const t = (k, ...a) => this.t(k, ...a);
     this.show(`
       <h2>${t('paused')}</h2>
       <div class="menu">
@@ -936,6 +943,7 @@ class UI {
             value="${escapeHtml((this.app.save.reglages && this.app.save.reglages.actif) || '')}"></label>
           <button class="big primary" data-action="regEnreg">${t('regEnreg')}</button>
           <p class="muted">${t('regAide')}</p>
+          <p class="muted petite">${t('regPortee')}</p>
         </div>` : ''}
         ${this.app.raceCtx && this.app.raceCtx.online ? '' : `<button data-action="retryRace">${t('restart')}</button>`}
         <button data-action="${this.app.raceCtx && this.app.raceCtx.online ? 'toLobby' : 'quitRace'}">${this.app.raceCtx && this.app.raceCtx.online ? t('backToTable') : t('quit')}</button>
@@ -965,7 +973,7 @@ class UI {
   }
 
   workshopScreen(msg) {
-    const t = (k) => this.t(k), app = this.app, livery = LIVERIES[app.save.livery];
+    const t = (k, ...a) => this.t(k, ...a), app = this.app, livery = LIVERIES[app.save.livery];
     const cars = app.custom.cars;
     this.show(`
       <div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${t('workshop')}</h2></div>
@@ -989,7 +997,7 @@ class UI {
   }
 
   async _workshopAdd() {
-    const t = (k) => this.t(k), app = this.app;
+    const t = (k, ...a) => this.t(k, ...a), app = this.app;
     const name = (document.getElementById('ws-name').value || 'Custom').trim();
     const catId = document.getElementById('ws-cat').value;
     const length = +document.getElementById('ws-len').value || 4.5;

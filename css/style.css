@@ -410,3 +410,7 @@ perdrait le curseur à chaque chiffre tapé. */
 .reglage-pause h3 { margin: 0 0 8px; }
 .reglage-pause .muted { font-size: 13px; line-height: 1.45; }
 .reglage-pause .muted.ok { color: var(--ok, #5be07a); }
+/* Ce qui s'applique ICI, à côté du volet des réglages : c'est la seule chose qui dise qu'une
+   configuration ne vaut que là où elle a été enregistrée. */
+.reg-ici { font-size: 13px; white-space: nowrap; }
+.reglage-pause .petite { font-size: 12px; opacity: 0.8; }

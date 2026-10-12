@@ -117,6 +117,23 @@ const dire = (ok, quoi, detail) => { if (!ok) fautes++; console.log('  ' + (ok ?
   await page.waitForTimeout(300);
   await page.click('[data-action="setup"][data-mode="race"]');
   await page.waitForSelector('[data-action="startQuick"]');
+  /* --- LA PORTÉE : un réglage ne vaut QUE pour son circuit et sa voiture ---
+
+  C'est le point que Bruno a relevé : la configuration se choisit dans une liste, ce qui lui donne
+  l'air globale, alors qu'elle ne s'applique que là où une valeur existe. On vérifie les deux côtés
+  de la règle, et que l'écran le DIT. */
+  
+  const portee = await page.evaluate(() => {
+    const s = app.save, st = app.ui.setup;
+    const ici = freinDe(s, st.trackId, app.playerModelFor(st.classId).id);
+    return { ici, regle: freinDe(s, 'monaco', '935'), ailleurs: freinDe(s, 'spa', 'f40'),
+             texte: (document.querySelector('.reg-ici') || {}).textContent || '' };
+  });
+  dire(portee.regle === 0.75, 'le réglage de Monaco + 935 s’applique là-bas', '×' + portee.regle);
+  dire(portee.ailleurs === 1, 'et nulle part ailleurs : Spa + F40 reste au défaut', '×' + portee.ailleurs);
+  dire(/[0-9]/.test(portee.texte) || /défaut|origine|stock/i.test(portee.texte),
+    'l’écran de départ dit ce qui s’applique ici', '« ' + portee.texte.trim() + ' »');
+
   await page.click('[data-action="startQuick"]');
   await page.waitForTimeout(700);
   const repris = await page.evaluate(() => app.race.frein);
