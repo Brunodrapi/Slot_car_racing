@@ -121,7 +121,7 @@ vitesses de passage monteraient, et la mesure des planchers — le temps minimum
 deux roues dedans sur tout le virage coûte le virage. */
 const KERB_ADHERENCE = 0.88;
 
-const PHYS = { aimant: 0, ldK: 0.45, ldMin: 6, ff: 0.3, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, motricite: 99, patine: 0, relax: 0.2, circle: 0.25 };
+const PHYS = { aimant: 0, ldK: 0.45, ldMin: 6, ff: 0.3, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, motricite: 1.25, patine: 0.15, relax: 0.2, circle: 0.25 };
 
 /* LES AIDES DE L'IA, qui ne sont pas celles du joueur.
 
@@ -723,7 +723,19 @@ class Car {
     gain gratuit), ET ce qui dépasse fait patiner, donc coûte du latéral à l'arrière (sinon il n'y
     a pas de dérapage à la remise des gaz). `PHYS.motricite` est la marge laissée à la ligne droite,
     pour que la voiture par défaut garde ses performances là où elle ne tourne pas ; c'est en virage
-    que la puissance doit se payer, et c'est ce que Bruno demande. */
+    que la puissance doit se payer.
+
+    LES DEUX CONSTANTES SONT MESURÉES. `motricite` 1,25 est la marge en ligne droite : en dessous, la
+    voiture est bridée là où elle ne tourne pas ; au-dessus de 2, le cercle ne mord plus nulle part
+    et le modèle redevient inerte. `patine` 0,15 est ce que coûte une roue qui patine : c'est elle,
+    et non le plafond, qui pénalise les voitures glissantes — décomposé sur les neuf voitures, le
+    plafond seul étale le plateau de 4,18 s à 6,24 s, et le patinage le porte à 6,90 s à 0,15 et à
+    8,07 s à 0,30. À 0,15 aucune voiture ne recule ; à 0,30 la 935 perd trois secondes et demie.
+
+    LE RÉGLAGE PAR CURSEUR N'EST PLUS NÉCESSAIRE, et c'est le constat de Bruno : en slot une seule
+    manette sert à toutes les voitures, donc on règle la manette ; ici chaque voiture a ses propres
+    données, donc chaque voiture est CONSTRUITE à son point. Les multiplicateurs de `js/cars.js`
+    portent cette calibration. */
     const dmg = this.damageFactor();
     const vmax = c.vmax * dmg * (this.draft ? 1.05 : 1);
     const accDem = throttle
