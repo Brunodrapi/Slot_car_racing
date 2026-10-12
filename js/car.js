@@ -312,6 +312,7 @@ class Car {
     this.Ff = 0; this.Fr = 0;            // lateral force (per unit mass) of the front / rear axle
     this.alphaF = 0; this.alphaR = 0;
     this.slide = 0;                      // 0..1 for effects
+    this.ressenti = 0;                   // 0..1 : bleu, vert, jaune, violet, rouge (voir update)
     this.accroche = true;                // l'aimant tient-il la ligne ? (voir AIMANT)
     this.ecartAv = null;                 // l'écart de l'image d'avant, pour l'amortissement
     this.aimantF = 0;                    // la tension du moment, pour la télémétrie
@@ -379,7 +380,7 @@ class Car {
   place(s, lat, v) {
     const T = this.track, P = T.pos(s, lat);
     this.s = T.wrap(s); this.lat = lat; this.x = P.x; this.y = P.y; this.th = T.headingAt(s);
-    this.v = v || 0; this.vl = 0; this.w = 0; this.delta = 0; this.beta = 0; this.usage = 0; this.slide = 0; this.Ff = 0; this.Fr = 0; this.selS = this.sel; this.accroche = true; this.aimantF = 0; this.ecartAv = null;
+    this.v = v || 0; this.vl = 0; this.w = 0; this.delta = 0; this.beta = 0; this.usage = 0; this.slide = 0; this.ressenti = 0; this.Ff = 0; this.Fr = 0; this.selS = this.sel; this.accroche = true; this.aimantF = 0; this.ecartAv = null;
   }
 
   /* Ce que les pneus rendent, entre neuf et mort. Séparé de `gripBoost` parce que les deux n'ont
@@ -803,6 +804,39 @@ class Car {
     this.beta = Math.atan2(this.vl, vv) * Math.sign(this.v || 1);
     this.alphaF = alphaF; this.alphaR = alphaR;
     this.slide = clamp((Math.max(Math.abs(alphaF), Math.abs(alphaR)) - peak * 0.8) / (peak * 2.5), 0, 1);
+
+    /* LE RESSENTI : ce que la voiture FAIT, et non ce que le pilote demande.
+
+    `usage` existait déjà, et il ne convient pas pour l'afficher : il vaut l'accélération latérale
+    que la LIGNE VISÉE réclame, donc c'est une prévision. Elle monte avant que la voiture ne bouge
+    et elle reste haute quand la voiture a déjà lâché. La demande de Bruno est explicite — « pas
+    prévue, mais ressentie ».
+
+    Trois grandeurs produites, et elles se relaient sur les quatre pentes de l'échelle :
+
+      charge   la force latérale réellement sortie des pneus, rapportée à ce qu'ils peuvent donner
+      glisse   l'angle de dérive des pneus rapporté au pic de la gomme : au-dessus de 1, ça glisse
+      travers  le cap de la voiture contre celui de la piste : c'est ça, un tête-à-queue
+
+    LES SEUILS SONT MESURÉS. Sur 741 000 images-voiture, GT et protos, quatre circuits, niveau
+    difficile : charge médiane 0,33 et p95 0,98 ; glisse médiane 0,38, p95 1,30, p99 1,98, p99,9
+    3,36 ; travers médian 3,8°, p95 17°, p99 26°, p99,9 38°, max 60°. Les quatre pentes sont calées
+    là-dessus, de sorte que chaque couleur corresponde à un état que la voiture atteint vraiment.
+
+    PREMIÈRE VERSION JETÉE, et la mesure l'a dit tout de suite : avec la charge étalée de 0 à 1 sur
+    la seule première pente, le peloton passait 93 % du temps en bleu, 7 % en vert, et le rouge ne
+    sortait jamais. Un indicateur qui ne quitte pas sa première couleur n'indique rien. La charge
+    sature donc bien avant le vert, et le relais passe à la glisse. */
+    const RESSENTI = [[0.00, 0.62], [0.80, 1.30], [1.30, 2.50], [0.44, 0.87]];
+    const gDispo = Math.max(1e-3, gTot);
+    const charge = Math.abs(this.Ff + this.Fr) / gDispo;
+    const glisse = Math.max(Math.abs(alphaF), Math.abs(alphaR)) / Math.max(1e-4, peak);
+    let travers = this.th - T.headingAt(this.s);
+    while (travers > Math.PI) travers -= Math.PI * 2;
+    while (travers < -Math.PI) travers += Math.PI * 2;
+    const pente = (v, [a, b]) => clamp((v - a) / (b - a), 0, 1);
+    this.ressenti = Math.min(1, 0.25 * (pente(charge, RESSENTI[0]) + pente(glisse, RESSENTI[1])
+      + pente(glisse, RESSENTI[2]) + pente(Math.abs(travers), RESSENTI[3])));
 
     // --- integrate position (body frame → world, y-down, left = (sinθ, −cosθ)) ---
     const cs = Math.cos(this.th), sn = Math.sin(this.th);

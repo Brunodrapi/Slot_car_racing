@@ -2105,19 +2105,37 @@ class Renderer {
     const wNum = g.measureText(kmh).width;
     g.textAlign = 'left';
     g.font = `bold ${mobile ? 12 : 14}px system-ui, sans-serif`; g.fillStyle = '#c8ced9';
-    const xU = W / 2 + wNum / 2 + 5;
-    cerne('km/h', xU, yV + (mobile ? 13 : 17));
-    const wU = g.measureText('km/h').width;
-    // la jauge, à droite de l'unité, centrée sur la hauteur optique du chiffre
-    const wJ = mobile ? 78 : 104, hJ = mobile ? 7 : 8;
-    const xJ = xU + wU + (mobile ? 9 : 12), yJ = yV + hV * 0.42 - hJ / 2;
+    cerne('km/h', W / 2 + wNum / 2 + 5, yV + (mobile ? 13 : 17));
+    this.hudZones.vitesse = { x: W / 2 - wNum / 2, w: wNum + 5 + g.measureText('km/h').width, y: yV, h: hV };
+
+    /* LA JAUGE : sa LONGUEUR dit la vitesse, sa COULEUR dit l'état de la voiture.
+
+    Elle est passée à droite, sous le tour, et au double de sa taille. Elle ne pouvait pas rester
+    sur la ligne du chiffre : collée au bord droit, elle y mordait sur le « km/h » dès que la
+    vitesse passait à trois chiffres. Elle a donc sa propre ligne, ce qui la met sous le bloc du
+    tour — là où Bruno la voulait — et la dégage pour de bon.
+
+    LES CINQ COULEURS SONT L'ÉTAT RESSENTI, pas l'adhérence calculée : `car.ressenti` est bâti sur
+    ce que la voiture produit, et ses seuils sortent d'une mesure sur 741 000 images (voir
+    `js/car.js`). En pastel, parce qu'elles doivent se lire du coin de l'œil sans tirer le regard
+    hors de la piste — et parce qu'une alerte rouge saturée sur un écran de course se confond avec
+    les feux stop. Répartition mesurée au niveau difficile : 66 % de bleu, 25 % de vert, 6,6 % de
+    jaune, 1,5 % de violet, et le rouge aux seuls vrais tête-à-queue. */
+    const PASTEL = [[158, 203, 240], [166, 223, 166], [240, 224, 154], [200, 168, 234], [242, 163, 163]];
+    const teinte = (r) => {
+      const x = clamp(r, 0, 1) * (PASTEL.length - 1), i = Math.min(PASTEL.length - 2, Math.floor(x)), f = x - i;
+      const a = PASTEL[i], b = PASTEL[i + 1];
+      return `rgb(${Math.round(a[0] + (b[0] - a[0]) * f)},${Math.round(a[1] + (b[1] - a[1]) * f)},${Math.round(a[2] + (b[2] - a[2]) * f)})`;
+    };
+    const wJ = mobile ? 156 : 208, hJ = mobile ? 14 : 16;
+    const xJ = xe - wJ, yJ = yV + hV + (mobile ? 7 : 9);
     g.fillStyle = 'rgba(10,12,20,0.62)';
     this._roundRect(g, xJ, yJ, wJ, hJ, hJ / 2); g.fill();
     if (fv > 0.004) {
-      g.fillStyle = p.throttle ? '#5ccdf0' : '#4e8aa8';
+      g.fillStyle = teinte(p.ressenti || 0);
       this._roundRect(g, xJ, yJ, Math.max(hJ, wJ * fv), hJ, hJ / 2); g.fill();
     }
-    this.hudZones.vitesse = { x: W / 2 - wNum / 2, w: wNum / 2 + 5 + wU + (mobile ? 9 : 12) + wJ, y: yV, h: hV };
+    this.hudZones.jauge = { x: xJ, w: wJ, y: yJ, h: hJ };
     g.textAlign = 'left';
 
     /* Les deux cadrans : la gomme et la tôle.
