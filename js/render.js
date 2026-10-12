@@ -20,11 +20,19 @@
 
    Fields left out of a theme are taken from `base`.
 */
+/* LA ROUTE EST BLEU-GRIS, plus violette. Le violet tenait la famille ensemble mais il n'existe pas
+   dans un décor dessiné : un asphalte y est toujours un gris froid, qui est la couleur du ciel
+   diffus sur une surface mate. Le virage est fait à LUMINOSITÉ CONSTANTE — teinte 212°, saturation
+   à peine réduite, luminance inchangée au millième — pour que les contrastes mesurés du bandeau et
+   de la pastille du pouce restent exactement ceux qu'on avait relevés.
+
+   `ombre` est la couleur que tout objet du décor projette, et `herbe` la densité du semis d'herbe
+   et de fleurs. */
 const THEME_BASE = {
   grass: '#4e7a3a', grassLight: '#557f3f', grassDark: '#477036',
   earth: '#b9a271', earthDark: '#a68f5f',
-  asphalt: '#4e3f57', asphaltLight: '#5b4a64',
-  outline: '#241d2a',
+  asphalt: '#404a56', asphaltLight: '#4b5663',
+  outline: '#1e2329',
   edgeLine: '#eceaf0', centre: null,
   // Les deux bords de piste, teintés du côté du virage : froid dedans, chaud dehors, et ce sont les
   // couleurs du curseur de ligne pour que le lien se fasse sans légende. Assez clairs pour rester
@@ -47,6 +55,11 @@ const THEME_BASE = {
   sail: '#ffffff', sailDeck: '#d8d2c2', boatHull: '#c9503a',
   // standing water: the puddle itself, the sky caught in it, and the damp a tyre carries out of it
   puddle: '#2d3a57', puddleLight: '#82abc6', wet: '#2b2735',
+  // l'ombre portée du décor : bleu froid, jamais grise — une ombre neutre salit le vert qu'elle
+  // recouvre, une ombre bleue le refroidit et le laisse propre
+  ombre: 'rgba(74,96,152,0.30)',
+  herbe: 0.95,                     // densité du semis d'herbe et de fleurs, 0 = aucun
+  fleur: 'rgba(252,250,244,0.95)',
 };
 
 const THEME_DEFS = {
@@ -65,7 +78,7 @@ const THEME_DEFS = {
     patches: 0.55,
     grass: '#5f8f52', grassLight: '#6a9a5c', grassDark: '#537f48',
     earth: '#8d7a56', earthDark: '#7c6a49',
-    asphalt: '#443a50', asphaltLight: '#50465c',
+    asphalt: '#3b444f', asphaltLight: '#47505b',
     canopy: ['#2f6b34', '#3a7f3e', '#25562b'], pine: ['#23503f', '#2b6250'],
     props: { pine: 3, tree: 1.4, bales: 0, palm: 0 },
   },
@@ -74,8 +87,8 @@ const THEME_DEFS = {
     patches: 0.7,
     grass: '#c6cf87', grassLight: '#d2da93', grassDark: '#b7c079',
     earth: '#e0c391', earthDark: '#d2b27e',
-    asphalt: '#574a5e', asphaltLight: '#63566a',
-    outline: '#332b39',
+    asphalt: '#4b535d', asphaltLight: '#575f69',
+    outline: '#2c3238',
     kerb: ['#9bb4d9', '#f7f8fa'],
     gravel: '#e2c48f', gravelDark: '#d0ae76',
     canopy: ['#b4472e', '#c9662c', '#8e3a26'], pine: ['#2c5a52', '#356d5f'],
@@ -88,7 +101,7 @@ const THEME_DEFS = {
     patches: 0.4,
     grass: '#dcd2c8', grassLight: '#e7ded2', grassDark: '#cfc4b6',
     earth: '#877482', earthDark: '#746373',
-    asphalt: '#56465e', asphaltLight: '#62526a',
+    asphalt: '#47515d', asphaltLight: '#535d69',
     edgeLine: '#f5f2e8', centre: '#f5f2e8', edgeBleu: '#8fdcff', edgeJaune: '#ffd97a',
     pitLane: '#3b3142', pitBox: 'rgba(255,212,0,0.18)', pitBoxLine: '#ffd400',
     kerb: ['#e2a19c', '#faf8f4'],
@@ -136,7 +149,7 @@ const THEME_DEFS = {
     patches: 0.5,
     grass: '#7fb073', grassLight: '#8cbd7f', grassDark: '#6f9e64',
     earth: '#a89369', earthDark: '#95805a',
-    asphalt: '#473c53', asphaltLight: '#53485f',
+    asphalt: '#3d4752', asphaltLight: '#49535e',
     canopy: ['#3a7a46', '#478f54', '#2e6237'], pine: ['#2a5b4e', '#336d5e'],
     props: { pine: 2, palm: 0, bales: 0.4 },
   },
@@ -155,7 +168,7 @@ const THEME_DEFS = {
     patches: 0.45,
     grass: '#66ad55', grassLight: '#74bb61', grassDark: '#5a9c4b',
     earth: '#ab9263', earthDark: '#977f53',
-    asphalt: '#4a3e55', asphaltLight: '#564a61',
+    asphalt: '#3f4954', asphaltLight: '#4b5560',
     canopy: ['#347a3c', '#3f9047', '#2a6231'], pine: ['#24543f', '#2c664e'],
     props: { pine: 2.4, palm: 0, bales: 1.4 },
   },
@@ -374,21 +387,46 @@ class Renderer {
     this.mobile = mobile;
   }
 
-  // Cartoon ground: a flat saturated base with a few chunky patches, everything snapped to an
-  // 8 px grid so it reads as pixel art rather than noise.
+  /* LE SOL N'EST PLUS UNE MOSAÏQUE DE PIXELS.
+
+  Il était fait de rectangles alignés sur une grille de 8 px, ce qui lisait comme du pixel art
+  assumé. Dans un décor dessiné, un pré n'a pas de carreaux : il a un aplat et des VARIATIONS
+  MOLLES, de grandes taches à peine plus claires ou plus sombres que le fond, dont on ne voit pas
+  le bord. C'est ce qui laisse la place aux touffes et aux fleurs semées par-dessus — sur une
+  mosaïque, elles disparaissaient dans le bruit.
+
+  Les taches sont posées à l'arrondi près sur une tuile de 256, et le motif se répète : il faut
+  donc qu'aucune n'ait de bord franc, sinon la couture de la tuile se voit à travers tout le pré. */
   _makeGrass() {
+    /* LA TUILE FAIT SOIXANTE-QUATRE MÈTRES, et ses taches sont à peine visibles. Posée à trente-
+       deux mètres et bien marquée, elle se répétait à l'écran comme un papier peint : l'œil
+       n'attrape pas une tache isolée, mais il attrape une GRILLE de taches, et la régularité
+       trahit la tuile. Au-delà de la fenêtre de la caméra, et presque transparente, il ne reste
+       qu'une respiration dans l'aplat. La vraie texture du pré vient des touffes semées dessus. */
+    const T = 512;
     const c = document.createElement('canvas');
-    c.width = c.height = 128;
+    c.width = c.height = T;
     const g = c.getContext('2d');
     g.fillStyle = PAL.grass;
-    g.fillRect(0, 0, 128, 128);
-    const cell = 8;
-    for (let i = 0; i < 26; i++) {
-      g.fillStyle = i % 3 === 0 ? PAL.grassLight : PAL.grassDark;
-      const x = Math.floor(Math.random() * 16) * cell, y = Math.floor(Math.random() * 16) * cell;
-      const w = (1 + Math.floor(Math.random() * 3)) * cell, h = (1 + Math.floor(Math.random() * 2)) * cell;
-      g.fillRect(x, y, w, h);
+    g.fillRect(0, 0, T, T);
+    const rnd = (() => { let z = 0x2f6e2b; return () => (z = (z * 1664525 + 1013904223) >>> 0) / 4294967296; })();
+    for (let i = 0; i < 14; i++) {
+      const x = rnd() * T, y = rnd() * T, r = T * (0.10 + rnd() * 0.16);
+      const col = i % 3 === 0 ? PAL.grassLight : PAL.grassDark;
+      // un dégradé radial qui s'éteint : pas de bord, donc pas de couture à la répétition
+      const d = g.createRadialGradient(x, y, 0, x, y, r);
+      d.addColorStop(0, col); d.addColorStop(1, 'rgba(0,0,0,0)');
+      g.globalAlpha = 0.26;
+      // la tache est peinte neuf fois, décalée d'une tuile dans chaque sens : ce qui déborde
+      // d'un côté rentre de l'autre, et la tuile se raccorde avec elle-même
+      for (const dx of [-T, 0, T]) for (const dy of [-T, 0, T]) {
+        const dd = g.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, r);
+        dd.addColorStop(0, col); dd.addColorStop(1, 'rgba(0,0,0,0)');
+        g.fillStyle = dd; g.fillRect(x + dx - r, y + dy - r, r * 2, r * 2);
+      }
+      void d;
     }
+    g.globalAlpha = 1;
     return c;
   }
 
@@ -418,7 +456,10 @@ class Renderer {
     La caméra inclinée est retirée, et ses vingt-cinq PNG avec elle : ils partaient au réseau à
     chaque course, y compris à plat où personne ne les regardait. */
     this.topArt = buildTopArt(PAL);
-    this.topProps = placeTopProps(track, seed, null, PAL.props);
+    /* L'herbe d'abord, les arbres ensuite : l'ordre de la liste est l'ordre du dessin, et une
+       touffe doit passer SOUS l'arbre à côté duquel elle est tombée. */
+    this.topProps = placeGroundProps(track, seed, PAL.herbe)
+      .concat(placeTopProps(track, seed, null, PAL.props));
     this.patches = placePatches(track, seed, PAL.patches);
     this.puddles = placePuddles(track, seed, track.puddles);
     this.water = placeWater(track, PAL.water);

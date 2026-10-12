@@ -82,50 +82,186 @@ circuit plutôt que découpé d'une planche, ce qui lui permet de changer de tei
 
 const TOP_PPM = 24;              // pixels per metre when baking a top-down object
 
+/* ------------------------------------------------- LA GRAMMAIRE DU FEUILLAGE, VUE DE DESSUS
+
+Un feuillage d'animation japonaise vue de dessus n'est pas un disque : c'est une GRAPPE DE LOBES à
+contour irrégulier, peinte en aplats, et son volume vient d'un décalage et non d'un dégradé. On
+pose la silhouette entière dans le vert le plus sombre, puis on repose la même grappe plus petite
+et décalée VERS LA LUMIÈRE, trois ou quatre fois. L'œil lit l'empilement comme une masse ronde
+éclairée d'en haut à gauche, alors qu'il n'y a que des aplats.
+
+C'est la seule façon d'avoir ce rendu sans planche de sprites : les objets sont peints dans la
+palette du circuit, donc les mêmes arbres sont vert tendre à Monza, sombres dans les Ardennes et
+dorés à Laguna Seca. Une planche dessinée à la main donnerait la même forêt partout, et vingt-cinq
+PNG à télécharger à chaque course — ce que ce fichier avait justement retiré. */
+
+/** Éclaircit — ou assombrit, k < 1 — une couleur `#rrggbb`, pour compléter une palette à trois verts. */
+function teinte(hex, k) {
+  const n = parseInt(hex.slice(1), 16);
+  const f = (v) => Math.max(0, Math.min(255, Math.round(v)));
+  return '#' + [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+    .map((v) => f(k > 1 ? v + (255 - v) * (k - 1) : v * k).toString(16).padStart(2, '0')).join('');
+}
+
+/* Les quatre verts d'une couronne, du plus sombre au plus clair. Un thème n'en nomme que trois —
+   `canopy` — et le quatrième est la touche de lumière, dérivée du plus clair des trois : un thème
+   n'a pas à porter une couleur qui se déduit, et aucun n'est à réécrire pour autant. */
+function versFeuillage(canopy) {
+  const c = canopy && canopy.length >= 3 ? canopy : ['#3f7a34', '#4b8d3c', '#336629'];
+  /* CINQ VALEURS, ÉTALÉES. Les trois couleurs d'un thème se tiennent dans un mouchoir : empilées
+     telles quelles, les passes ne se distinguaient pas et la couronne restait plate. On pousse
+     donc les deux bouts — un fond plus sombre que le plus sombre, une lumière plus claire que la
+     plus claire — et c'est l'écart qui fait le volume. */
+  return [teinte(c[2], 0.80), c[2], c[0], c[1], teinte(c[1], 1.34)];
+}
+
+/* LA GRAPPE EST TIRÉE UNE FOIS et resservie par chaque passe. Retirer les lobes à chaque passe
+   donnait une couronne qui se délite : les aplats ne se superposaient plus, et le contour du
+   dessus n'avait plus rien à voir avec celui du dessous. */
+function couronne(g, cx, cy, r, verts, graine, opts) {
+  const o = opts || {};
+  const rnd = propRng(graine);
+  const n = o.lobes || (5 + Math.floor(rnd() * 3));
+  const lobes = [{ x: cx, y: cy, r: r * 0.66, ph: rnd() * 6 }];
+  for (let i = 0; i < n; i++) {
+    const a = i / n * Math.PI * 2 + (rnd() - 0.5) * 0.7;
+    const d = r * (0.28 + rnd() * 0.3);
+    lobes.push({ x: cx + Math.cos(a) * d, y: cy + Math.sin(a) * d, r: r * (0.40 + rnd() * 0.22), ph: rnd() * 6 });
+  }
+  /* LES PASSES CONVERGENT VERS UN POINT DE LUMIÈRE, elles ne sont pas décalées en bloc.
+
+     Décalées en bloc, chaque lobe gardait sa propre tache claire et la couronne se lisait comme un
+     bouquet de brocolis. En ramenant chaque lobe vers le même point haut-gauche, un peu plus à
+     chaque passe, les taches se rejoignent : il n'y a plus qu'UNE masse éclairée qui traverse la
+     couronne, et le sombre ne reste qu'en liseré du côté opposé. C'est ce que fait la planche. */
+  const px = cx - r * 0.32, py = cy - r * 0.32;
+  const passe = (col, k, t) => {
+    for (const L of lobes) {
+      blob(g, L.x + (px - L.x) * t, L.y + (py - L.y) * t, L.r * k, 9, col, 0.17, L.ph);
+    }
+  };
+  passe(verts[0], 1.00, 0);
+  passe(verts[1], 0.93, 0.20);
+  passe(verts[2], 0.82, 0.42);
+  passe(verts[3], 0.64, 0.62);
+  passe(verts[4], 0.40, 0.80);
+}
+
+/* UN CONIFÈRE GARDE SA POINTE. Vu de quatre-vingt-dix degrés il n'est qu'une rosette, et la
+   planche de référence ne le dessine pas comme ça : elle en fait une goutte dentelée, pointe en
+   haut. Elle a raison et c'est volontaire — la pointe est ce qui dit « conifère » d'un coup d'œil,
+   et les objets sont peints dans le repère de l'ÉCRAN, jamais tournés, donc tous les conifères
+   pointent du même côté comme sur la planche. */
+function conifere(g, cx, cy, r, tons, graine) {
+  const rnd = propRng(graine);
+  /* UN ÉTAGE EST UN TRIANGLE À BORDS EN DENTS DE SCIE, construit point par point et fermé en
+     lignes droites. Les courbes avaient donné une tente lisse : ce qui dit « conifère » vu de
+     dessus, c'est l'arête dentelée, et une dent est un angle, pas un bombement. On descend de la
+     pointe vers la base d'un côté, on remonte de l'autre, et entre deux points on ressort d'un
+     tiers — la dent. Trois étages emboîtés, du sombre au clair, chacun plus court et remonté. */
+  const etage = (col, haut, demi, bas, dents) => {
+    const cote = (sens) => {
+      const out = [];
+      for (let i = 1; i <= dents; i++) {
+        const t0 = (i - 1) / dents, t1 = i / dents, tm = (t0 + t1) / 2;
+        const saillie = 1.34 + rnd() * 0.22;
+        out.push([cx + sens * demi * tm * saillie, haut + (bas - haut) * tm]);   // la pointe
+        out.push([cx + sens * demi * t1, haut + (bas - haut) * t1]);             // le creux
+      }
+      return out;
+    };
+    g.fillStyle = col;
+    g.beginPath();
+    g.moveTo(cx, haut);
+    for (const [x, y] of cote(1)) g.lineTo(x, y);
+    g.lineTo(cx, bas - (bas - haut) * 0.16);          // le creux sous l'arbre, entre les deux côtés
+    for (const [x, y] of cote(-1).reverse()) g.lineTo(x, y);
+    g.closePath(); g.fill();
+  };
+  etage(tons[0], cy - r * 1.15, r * 0.74, cy + r * 0.55, 5);
+  etage(tons[1], cy - r * 1.00, r * 0.52, cy + r * 0.30, 4);
+  etage(tons[2], cy - r * 0.80, r * 0.28, cy + r * 0.02, 3);
+}
+
+/** Quelques fleurs posées sur un buisson ou dans l'herbe — trois pétales et un cœur, pas plus. */
+function fleurs(g, cx, cy, r, n, col, graine) {
+  const rnd = propRng(graine);
+  for (let i = 0; i < n; i++) {
+    const a = rnd() * Math.PI * 2, d = rnd() * r;
+    const x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d, s = r * (0.09 + rnd() * 0.05);
+    g.fillStyle = col;
+    for (let k = 0; k < 4; k++) {
+      const b = k / 4 * Math.PI * 2 + rnd();
+      g.beginPath(); g.arc(x + Math.cos(b) * s * 0.7, y + Math.sin(b) * s * 0.7, s * 0.62, 0, 7); g.fill();
+    }
+    g.fillStyle = 'rgba(250,228,120,0.95)';
+    g.beginPath(); g.arc(x, y, s * 0.4, 0, 7); g.fill();
+  }
+}
+
 // `draw` works in a square of side `w` pixels, centred, with the palette of the circuit.
 const TOP_KINDS = [
   {
     id: 'tree', wm: 9.0, weight: 7, near: 7, far: 26,
     draw(g, w, pal) {
-      const r = w * 0.44, c = w / 2;
-      blob(g, c, c, r, 11, pal.canopy[0], 0.12, 0);
-      blob(g, c - r * 0.17, c - r * 0.17, r * 0.62, 9, pal.canopy[1], 0.13, 1.1);
-      blob(g, c + r * 0.3, c + r * 0.32, r * 0.3, 7, pal.canopy[2], 0.14, 2.3);
+      couronne(g, w / 2, w / 2, w * 0.44, versFeuillage(pal.canopy), 0x51ee);
     },
   },
   {
+    // Le voisin : plus petit, moins de lobes, une autre graine. Deux arbres identiques alignés le
+    // long d'une route se voient tout de suite — c'est à ça que sert le second.
     id: 'tree2', wm: 6.8, weight: 6, near: 7, far: 26,
     draw(g, w, pal) {
-      const r = w * 0.44, c = w / 2;
-      blob(g, c, c, r, 10, pal.canopy[2], 0.13, 0.6);
-      blob(g, c - r * 0.15, c - r * 0.15, r * 0.6, 8, pal.canopy[0], 0.15, 1.9);
+      couronne(g, w / 2, w / 2, w * 0.45, versFeuillage(pal.canopy), 0x9a37, { lobes: 5 });
     },
   },
   {
-    // A conifer from above is a rosette: dark fronds radiating from a small pale centre.
     id: 'pine', wm: 6.0, weight: 6, near: 7, far: 26,
     draw(g, w, pal) {
-      const c = w / 2, r = w * 0.46;
-      for (const [k, col, rr] of [[9, pal.pine[0], r], [7, pal.pine[1], r * 0.6]]) {
-        g.fillStyle = col;
-        g.beginPath();
-        for (let i = 0; i < k; i++) {
-          const a = i / k * Math.PI * 2, a2 = (i + 0.5) / k * Math.PI * 2;
-          g.lineTo(c + Math.cos(a) * rr, c + Math.sin(a) * rr);
-          g.lineTo(c + Math.cos(a2) * rr * 0.52, c + Math.sin(a2) * rr * 0.52);
-        }
-        g.closePath(); g.fill();
-      }
-      g.fillStyle = pal.trunk;
-      g.beginPath(); g.arc(c, c, r * 0.12, 0, Math.PI * 2); g.fill();
+      const p = pal.pine;
+      conifere(g, w / 2, w * 0.52, w * 0.42, [p[0], p[1], teinte(p[1], 1.3)], 0x2b7c);
     },
   },
   {
+    // Un buisson, c'est une petite couronne — et de temps en temps des fleurs, qui sont la seule
+    // tache claire du bas-côté et donnent l'échelle du reste.
     id: 'bush', wm: 3.4, weight: 5, near: 6, far: 22,
     draw(g, w, pal) {
-      const c = w / 2;
-      blob(g, c, c, w * 0.42, 9, pal.canopy[1], 0.16, 0.3);
-      blob(g, c - w * 0.06, c - w * 0.06, w * 0.24, 7, pal.canopy[0], 0.18, 1.4);
+      couronne(g, w / 2, w / 2, w * 0.42, versFeuillage(pal.canopy), 0x3c11, { lobes: 4 });
+      fleurs(g, w / 2, w / 2, w * 0.26, 3, 'rgba(252,250,244,0.95)', 0x77a1);
+    },
+  },
+  {
+    /* L'HERBE N'EST PAS UNE TEXTURE DE FOND, c'est un objet comme un autre. Semée dru et très
+       petite, elle casse l'aplat vert sans qu'on la remarque — et comme elle passe par le même
+       semeur, elle évite la route et les autres objets toute seule. */
+    id: 'touffe', wm: 2.8, weight: 0, near: 2, far: 20,
+    draw(g, w, pal) {
+      const rnd = propRng(0x5e21), c = w / 2;
+      const verts = versFeuillage(pal.canopy);
+      for (let i = 0; i < 7; i++) {
+        const x = c + (rnd() - 0.5) * w * 0.7, y = c + (rnd() - 0.5) * w * 0.55;
+        const h = w * (0.22 + rnd() * 0.22), pen = (rnd() - 0.5) * w * 0.18;
+        g.strokeStyle = i % 3 === 0 ? verts[2] : verts[1];
+        g.lineWidth = w * 0.07; g.lineCap = 'round';
+        g.beginPath(); g.moveTo(x, y + h / 2);
+        g.quadraticCurveTo(x + pen * 0.5, y, x + pen, y - h / 2);
+        g.stroke();
+      }
+    },
+  },
+  {
+    // Et des fleurs des champs, plus rares : blanc, jaune, rouge, comme sur la planche.
+    id: 'fleurs', wm: 3.0, weight: 0, near: 2, far: 20,
+    draw(g, w, pal) {
+      const verts = versFeuillage(pal.canopy);
+      g.strokeStyle = verts[1]; g.lineWidth = w * 0.06; g.lineCap = 'round';
+      const rnd = propRng(0x1d4f);
+      for (let i = 0; i < 4; i++) {
+        const x = w / 2 + (rnd() - 0.5) * w * 0.6;
+        g.beginPath(); g.moveTo(x, w * 0.78); g.lineTo(x + (rnd() - 0.5) * w * 0.1, w * 0.42); g.stroke();
+      }
+      fleurs(g, w / 2, w * 0.42, w * 0.3, 4, pal.fleur || 'rgba(252,250,244,0.95)', 0x6b02);
     },
   },
   {
@@ -268,8 +404,11 @@ function round(g, x, y, w, h, r) {
   if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h);
 }
 
-// Bake each object once per palette. The shadow is baked in with it: one offset ellipse under the
-// whole thing, as if the sun sat high and behind the camera's right shoulder.
+/* Bake each object once per palette. L'ombre est cuite avec lui.
+
+   ELLE EST BLEU-VIOLET, PAS NOIRE. Une ombre grise ou brune salit la couleur qu'elle recouvre ;
+   l'animation la peint en bleu froid, qui est à la fois la couleur du ciel diffus et le
+   complément du vert. C'est ce qui fait tenir ensemble le feuillage et le sol. */
 function buildTopArt(pal) {
   const art = {};
   for (const k of TOP_KINDS) {
@@ -285,9 +424,9 @@ function buildTopArt(pal) {
     const sg = sil.getContext('2d');
     k.draw(sg, w, pal);
     sg.globalCompositeOperation = 'source-in';
-    sg.fillStyle = 'rgba(30,26,20,0.22)';
+    sg.fillStyle = pal.ombre || 'rgba(74,96,152,0.30)';
     sg.fillRect(0, 0, w, w);
-    g.drawImage(sil, pad - w * 0.09, pad + w * 0.11);
+    g.drawImage(sil, pad - w * 0.12, pad + w * 0.14);
     g.save(); g.translate(pad, pad); k.draw(g, w, pal); g.restore();
     art[k.id] = { canvas: c, wm: k.wm * (c.width / w) };
   }
@@ -316,6 +455,20 @@ function placeTopProps(track, id, density, weights) {
     kinds = TOP_KINDS.filter(k => k.weight > 0);
   }
   return placeFrom(kinds, track, seedFromId('top-' + id), density == null ? 0.85 : density, 6);
+}
+
+/* L'HERBE SE SÈME À PART, et c'est le seul moyen d'en avoir sans perdre des arbres.
+
+   Mise dans le même tirage que les arbres, une touffe à poids fort leur prend leur place : le
+   semeur pose UN objet par pas et par côté, donc tout ce qu'on ajoute au mélange retire autre
+   chose. Les deux passes se marchent un peu dessus — le second semeur ne connaît pas les objets du
+   premier — et c'est voulu : une touffe d'herbe au pied d'un arbre est exactement ce que fait la
+   planche de référence. Elle reste dessous, parce qu'elle est dessinée avant. */
+function placeGroundProps(track, id, density) {
+  const petits = TOP_KINDS.filter((k) => k.id === 'touffe' || k.id === 'fleurs')
+    .map((k) => Object.assign({}, k, { weight: k.id === 'touffe' ? 3 : 1 }));
+  if (!petits.length) return [];
+  return placeFrom(petits, track, seedFromId('herbe-' + id), density == null ? 0.95 : density, 3);
 }
 
 // Ground colour, not objects: the broad patches of bare earth that a circuit wears around its

@@ -108,6 +108,14 @@ const VUES = [0.08, 0.33, 0.58, 0.83];
   /* UNE PLANCHE PAR CIRCUIT. Soixante fichiers ne se regardent pas ; cinq vues côte à côte, si.
      Le tour entier en haut pour situer, les quatre vues de jeu dessous pour juger le rendu. */
   const rel = path.relative(ROOT, OUT).split(path.sep).join('/');
+  /* La planche se monte dans la page, qui relit les images par le serveur : il ne sert que ce qui
+     est sous la racine du dépôt. Un dossier de sortie ailleurs reste donc sans planche, et le dit,
+     plutôt que de faire tomber l'export entier sur une image introuvable. */
+  if (rel.startsWith('..')) {
+    console.log('\n(pas de planches : le dossier de sortie est hors du dépôt)');
+    await nav.close(); srv.close();
+    return console.log(`fait — ${OUT}`);
+  }
   for (const c of circuits) {
     const png = await page.evaluate(async ({ id, nom, theme, rel }) => {
       const charge = (u) => new Promise((ok, non) => {
