@@ -47,6 +47,11 @@ const VUES = [0.08, 0.33, 0.58, 0.83];
   await page.keyboard.press('Enter');
   await page.waitForTimeout(300);
 
+  /* ON ATTEND LE DÉCOR DESSINÉ. Il descend par le réseau ; sans cette attente l'export
+     photographie le repli peint et donne à croire que les sprites ne sont pas pris — c'est
+     exactement ce qui est arrivé, et le défaut était dans l'outil, pas dans le jeu. */
+  await page.waitForFunction(() => typeof decorPret !== 'function' || decorPret(), null, { timeout: 20000 });
+
   const circuits = await page.evaluate(() => TRACKS.map((t) => ({ id: t.id, nom: t.name, theme: t.theme || 'park' })));
   console.log(`${circuits.length} circuits -> ${OUT}\n`);
 

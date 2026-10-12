@@ -566,7 +566,7 @@ class Renderer {
     this.ombresRoute = [];
     for (const pr of this.topProps) {
       const a = this.topArt[pr.id];
-      if (!a || pr.id === 'touffe' || pr.id === 'fleurs') continue;   // trop petits pour porter
+      if (!a || a.wm < 3.5) continue;          // une touffe ne porte pas d'ombre jusqu'à la route
       const r = a.wm * 0.46;
       const ox = pr.x + a.wm * DECAL_X, oy = pr.y + a.wm * DECAL_Y;
       let proche = false;
@@ -2020,14 +2020,16 @@ class Renderer {
     for (const p of this.topProps || []) {
       const a = art[p.id];
       if (!a) continue;
-      const half = a.wm / 2;
+      // un sprite dessiné n'est pas carré : il porte sa propre hauteur, sinon une fougère s'écrase
+      const hm = a.hm || a.wm;
+      const half = Math.max(a.wm, hm) / 2;
       if (p.x < vis.minX - half || p.x > vis.maxX + half || p.y < vis.minY - half || p.y > vis.maxY + half) continue;
       const m = g.getTransform();
       const dx = m.a * p.x + m.c * p.y + m.e, dy = m.b * p.x + m.d * p.y + m.f;
-      const wpx = a.wm * this.cam.zoom * this.dpr;
+      const wpx = a.wm * this.cam.zoom * this.dpr, hpx = hm * this.cam.zoom * this.dpr;
       g.save();
       g.setTransform(1, 0, 0, 1, 0, 0);
-      g.drawImage(a.canvas, dx - wpx / 2, dy - wpx / 2, wpx, wpx);
+      g.drawImage(a.canvas, dx - wpx / 2, dy - hpx / 2, wpx, hpx);
       g.restore();
     }
   }

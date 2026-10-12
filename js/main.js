@@ -69,6 +69,13 @@ class App {
       this.mondial.rattrape(this.save.bestLapsNets).catch(() => {});
     }
     this.ui.splash();
+    /* LE DÉCOR DESSINÉ ARRIVE PAR LE RÉSEAU, donc après le premier écran. Une course lancée
+       pendant le chargement est cuite avec les objets peints — c'est le repli, et il vaut mieux
+       qu'un décor vide. Quand les seize images sont là, on REFAIT LA CUISSON du circuit affiché :
+       sans ça il faudrait quitter et relancer pour voir le décor qu'on vient de télécharger. */
+    chargeDecor(() => {
+      if (this.renderer && this.renderer.track) this.renderer.setTrack(this.renderer.track);
+    });
     this.refreshCustom().then(() => {
       const params = new URLSearchParams(location.search);
       const tid = params.get('track');

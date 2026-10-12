@@ -112,6 +112,60 @@ Un arbre est une couronne et une ombre, pas un tronc. Chaque objet est dessiné 
 circuit plutôt que découpé d'une planche, ce qui lui permet de changer de teinte avec le thème.
 */
 
+
+/* ------------------------------------------------- LE DÉCOR DESSINÉ À LA MAIN
+
+Les objets du bas-côté ne sont plus peints par le code : ce sont des sprites découpés d'une planche
+dessinée, et c'est un échange assumé.
+
+CE QU'ON PERD : la recoloration par circuit. Un arbre peint prenait la palette du thème — vert
+tendre à Monza, sombre dans les Ardennes, doré à Laguna Seca. Un sprite a sa couleur une fois pour
+toutes, donc la même forêt partout. Et seize fichiers repartent sur le réseau, 192 Ko au total.
+
+CE QU'ON GAGNE : le dessin. Aucune grammaire de lobes et d'aplats ne remplace une main.
+
+Chaque sprite porte DÉJÀ SON OMBRE, cuite dans la planche. On ne lui en ajoute donc pas une
+seconde — c'était le réflexe, et ça donnait deux ombres décalées sous chaque arbre.
+
+Le manifeste est en dur plutôt que lu dans `art/decor/vegetation.json` : une requête de moins, et
+surtout aucune course entre l'arrivée du manifeste et celle des images. Le fichier reste à côté des
+sprites, écrit par `tools/decoupe-sprites.py`, pour qu'on sache d'où ils viennent. */
+const KINDS_DESSINES = [
+  { famille: 'tree', id: 'arbre', f: 'art/decor/arbre.png', wm: 9.0, weight: 7, near: 1, far: 26 },
+  { famille: 'tree', id: 'bosquet', f: 'art/decor/bosquet.png', wm: 10.5, weight: 5, near: 2, far: 26 },
+  { famille: 'bush', id: 'buisson', f: 'art/decor/buisson.png', wm: 4.2, weight: 4, near: 1, far: 22 },
+  { famille: 'bush', id: 'buisson-fleuri', f: 'art/decor/buisson-fleuri.png', wm: 5.5, weight: 3, near: 1, far: 20 },
+  { famille: 'bush', id: 'buisson-mini', f: 'art/decor/buisson-mini.png', wm: 2.2, weight: 0, near: 0.3, far: 12 },
+  { famille: 'bush', id: 'buisson-petit', f: 'art/decor/buisson-petit.png', wm: 2.6, weight: 2, near: 0.5, far: 18 },
+  { famille: 'bush', id: 'buisson2', f: 'art/decor/buisson2.png', wm: 3.6, weight: 3, near: 1, far: 22 },
+  { famille: 'rock', id: 'caillou', f: 'art/decor/caillou.png', wm: 1.8, weight: 0, near: 0.3, far: 12 },
+  { id: 'fleurs-blanches', f: 'art/decor/fleurs-blanches.png', wm: 3.0, weight: 0, near: 0.2, far: 9 },
+  { id: 'fleurs-jaunes', f: 'art/decor/fleurs-jaunes.png', wm: 3.0, weight: 0, near: 0.2, far: 9 },
+  { id: 'fleurs-rouges', f: 'art/decor/fleurs-rouges.png', wm: 3.0, weight: 0, near: 0.2, far: 9 },
+  { famille: 'bush', id: 'fougere', f: 'art/decor/fougere.png', wm: 3.2, weight: 2, near: 0.5, far: 16 },
+  { famille: 'rock', id: 'rocher', f: 'art/decor/rocher.png', wm: 4.2, weight: 2, near: 1, far: 18 },
+  { famille: 'rock', id: 'rocher-petit', f: 'art/decor/rocher-petit.png', wm: 2.2, weight: 1.2, near: 0.5, far: 16 },
+  { id: 'touffe', f: 'art/decor/touffe.png', wm: 2.6, weight: 0, near: 0.2, far: 9 },
+  { id: 'touffe-mini', f: 'art/decor/touffe-mini.png', wm: 1.6, weight: 0, near: 0.2, far: 8 },
+];
+
+/* Les images, chargées une fois. Tant qu'elles ne sont pas là, `buildTopArt` retombe sur les
+   objets peints : une course qui démarre pendant le chargement montre un décor peint plutôt
+   qu'un décor vide, et `aPeint` dira plus tard de refaire la cuisson. */
+const ART_DESSINE = {};
+let decorCharge = 0, decorAttendu = 0;
+function chargeDecor(fini) {
+  if (typeof Image === 'undefined') return;
+  decorAttendu = KINDS_DESSINES.length;
+  for (const k of KINDS_DESSINES) {
+    const img = new Image();
+    img.onload = () => { ART_DESSINE[k.id] = img; if (++decorCharge === decorAttendu && fini) fini(); };
+    img.onerror = () => { if (++decorCharge === decorAttendu && fini) fini(); };
+    img.src = k.f;
+  }
+}
+const decorPret = () => decorAttendu > 0 && decorCharge >= decorAttendu;
+
 const TOP_PPM = 24;              // pixels per metre when baking a top-down object
 
 /* ------------------------------------------------- LA GRAMMAIRE DU FEUILLAGE, VUE DE DESSUS
@@ -488,7 +542,17 @@ function round(g, x, y, w, h, r) {
    complément du vert. C'est ce qui fait tenir ensemble le feuillage et le sol. */
 function buildTopArt(pal) {
   const art = {};
+  /* LE SPRITE PASSE DEVANT L'OBJET PEINT, et il garde l'ombre de sa planche. Lui en cuire une
+     seconde par-dessus — le réflexe, puisque c'est ce qu'on fait pour les objets peints — plantait
+     deux ombres décalées sous chaque arbre. `wm` tient compte du rapport du fichier : un sprite
+     n'est pas carré, et l'étirer dans un carré écrasait les fougères. */
+  for (const k of KINDS_DESSINES) {
+    const img = ART_DESSINE[k.id];
+    if (!img) continue;
+    art[k.id] = { canvas: img, wm: k.wm, hm: k.wm * (img.naturalHeight / img.naturalWidth) };
+  }
   for (const k of TOP_KINDS) {
+    if (art[k.id]) continue;
     const w = Math.max(12, Math.round(k.wm * TOP_PPM));
     const pad = Math.round(w * 0.22);
     const c = document.createElement('canvas');
@@ -520,16 +584,30 @@ function buildTopArt(pal) {
    A kind that belongs nowhere in particular carries a base weight of zero — the palms, the Cyclades
    houses, the chapel. For those the theme's number is not a multiplier but the weight itself,
    since multiplying zero would keep them out of the one place they were drawn for. */
+/* Ce qui n'a PAS de sprite dessiné reste peint, et se mélange aux autres. Le conifère, le palmier,
+   les bottes de paille, le tas de rondins et les maisons n'étaient pas sur la planche découpée ;
+   les retirer d'office aurait vidé la forêt des Ardennes de ses sapins. Tant qu'ils cohabitent, le
+   décor est mixte et ça se voit — c'est le prix de l'étape, pas un état d'arrivée. */
+const SANS_DESSIN = ['pine', 'palm', 'logs', 'bales', 'house', 'house2', 'chapel'];
+function kindsActifs() {
+  if (!decorPret()) return TOP_KINDS;
+  return KINDS_DESSINES.concat(TOP_KINDS.filter((k) => SANS_DESSIN.indexOf(k.id) >= 0));
+}
+
 function placeTopProps(track, id, density, weights, serre, lisiere, profond) {
-  let kinds = TOP_KINDS;
+  /* LE POIDS D'UN THÈME PORTE SUR LA FAMILLE, pas sur le fichier. `js/render.js` dit « pas de
+     palmiers dans les Ardennes » en nommant `palm`, `tree`, `bush` — un vocabulaire qui existait
+     avant les sprites et qui doit survivre, sinon chaque nouveau dessin obligerait à reprendre les
+     douze thèmes. Chaque sprite déclare donc sa famille, et c'est elle qu'on pèse. */
+  let kinds = kindsActifs();
   if (weights) {
-    kinds = TOP_KINDS
-      .map(k => (weights[k.id] == null ? k
-        : Object.assign({}, k, { weight: k.weight ? k.weight * weights[k.id] : weights[k.id] })))
-      .filter(k => k.weight > 0);
-    if (!kinds.length) kinds = TOP_KINDS;
+    kinds = kinds
+      .map((k) => { const w = weights[k.id] != null ? weights[k.id] : weights[k.famille];
+        return w == null ? k : Object.assign({}, k, { weight: k.weight ? k.weight * w : w }); })
+      .filter((k) => k.weight > 0);
+    if (!kinds.length) kinds = kindsActifs();
   } else {
-    kinds = TOP_KINDS.filter(k => k.weight > 0);
+    kinds = kinds.filter((k) => k.weight > 0);
   }
   return placeFrom(kinds, track, seedFromId('top-' + id), density == null ? 0.85 : density, 6, serre, lisiere, profond);
 }
@@ -541,9 +619,12 @@ function placeTopProps(track, id, density, weights, serre, lisiere, profond) {
    chose. Les deux passes se marchent un peu dessus — le second semeur ne connaît pas les objets du
    premier — et c'est voulu : une touffe d'herbe au pied d'un arbre est exactement ce que fait la
    planche de référence. Elle reste dessous, parce qu'elle est dessinée avant. */
+const AU_SOL = { touffe: 3, 'touffe-mini': 2, 'fleurs-jaunes': 1, 'fleurs-blanches': 1,
+  'fleurs-rouges': 1, caillou: 0.6, 'buisson-mini': 0.8, fleurs: 1 };
 function placeGroundProps(track, id, density) {
-  const petits = TOP_KINDS.filter((k) => k.id === 'touffe' || k.id === 'fleurs')
-    .map((k) => Object.assign({}, k, { weight: k.id === 'touffe' ? 3 : 1 }));
+  const source = decorPret() ? KINDS_DESSINES : TOP_KINDS;
+  const petits = source.filter((k) => AU_SOL[k.id] != null)
+    .map((k) => Object.assign({}, k, { weight: AU_SOL[k.id] }));
   if (!petits.length) return [];
   /* `clear` tombe à zéro : le semeur refusait tout ce qui approchait la route de moins de huit
      mètres et demi, ce qui mettait l'herbe PLUS LOIN que la bande qu'elle doit garnir. Une touffe

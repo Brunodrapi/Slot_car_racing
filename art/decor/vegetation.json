@@ -1,0 +1,146 @@
+[
+ {
+  "id": "arbre",
+  "fichier": "art/decor/arbre.png",
+  "m": 9.0,
+  "px": [
+   88,
+   92
+  ]
+ },
+ {
+  "id": "bosquet",
+  "fichier": "art/decor/bosquet.png",
+  "m": 10.5,
+  "px": [
+   94,
+   192
+  ]
+ },
+ {
+  "id": "buisson",
+  "fichier": "art/decor/buisson.png",
+  "m": 4.2,
+  "px": [
+   79,
+   77
+  ]
+ },
+ {
+  "id": "buisson-fleuri",
+  "fichier": "art/decor/buisson-fleuri.png",
+  "m": 5.5,
+  "px": [
+   102,
+   87
+  ]
+ },
+ {
+  "id": "buisson-mini",
+  "fichier": "art/decor/buisson-mini.png",
+  "m": 2.2,
+  "px": [
+   53,
+   56
+  ]
+ },
+ {
+  "id": "buisson-petit",
+  "fichier": "art/decor/buisson-petit.png",
+  "m": 2.6,
+  "px": [
+   45,
+   48
+  ]
+ },
+ {
+  "id": "buisson2",
+  "fichier": "art/decor/buisson2.png",
+  "m": 3.6,
+  "px": [
+   73,
+   76
+  ]
+ },
+ {
+  "id": "caillou",
+  "fichier": "art/decor/caillou.png",
+  "m": 1.8,
+  "px": [
+   42,
+   39
+  ]
+ },
+ {
+  "id": "fleurs-blanches",
+  "fichier": "art/decor/fleurs-blanches.png",
+  "m": 3.0,
+  "px": [
+   72,
+   69
+  ]
+ },
+ {
+  "id": "fleurs-jaunes",
+  "fichier": "art/decor/fleurs-jaunes.png",
+  "m": 3.0,
+  "px": [
+   68,
+   64
+  ]
+ },
+ {
+  "id": "fleurs-rouges",
+  "fichier": "art/decor/fleurs-rouges.png",
+  "m": 3.0,
+  "px": [
+   66,
+   69
+  ]
+ },
+ {
+  "id": "fougere",
+  "fichier": "art/decor/fougere.png",
+  "m": 3.2,
+  "px": [
+   72,
+   91
+  ]
+ },
+ {
+  "id": "rocher",
+  "fichier": "art/decor/rocher.png",
+  "m": 4.2,
+  "px": [
+   76,
+   70
+  ]
+ },
+ {
+  "id": "rocher-petit",
+  "fichier": "art/decor/rocher-petit.png",
+  "m": 2.2,
+  "px": [
+   47,
+   45
+  ]
+ },
+ {
+  "id": "touffe",
+  "fichier": "art/decor/touffe.png",
+  "m": 2.6,
+  "px": [
+   57,
+   56
+  ]
+ },
+ {
+  "id": "touffe-mini",
+  "fichier": "art/decor/touffe-mini.png",
+  "m": 1.6,
+  "px": [
+   34,
+   36
+  ]
+ }
+]
