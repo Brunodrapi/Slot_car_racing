@@ -121,7 +121,7 @@ vitesses de passage monteraient, et la mesure des planchers — le temps minimum
 deux roues dedans sur tout le virage coûte le virage. */
 const KERB_ADHERENCE = 0.88;
 
-const PHYS = { aimant: 0, ldK: 0.45, ldMin: 6, ff: 0.3, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, power: 0.01, relax: 0.2, circle: 0.25 };
+const PHYS = { aimant: 0, ldK: 0.45, ldMin: 6, ff: 0.3, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, motricite: 99, patine: 0, relax: 0.2, circle: 0.25 };
 
 /* LES AIDES DE L'IA, qui ne sont pas celles du joueur.
 
@@ -312,6 +312,7 @@ class Car {
     this.Ff = 0; this.Fr = 0;            // lateral force (per unit mass) of the front / rear axle
     this.alphaF = 0; this.alphaR = 0;
     this.slide = 0;                      // 0..1 for effects
+    this.patine = 0;                     // 0..1 : la part de poussée que l'arrière ne passe pas
     this.ressenti = 0;                   // 0..1 : bleu, vert, jaune, violet, rouge (voir update)
     this.accroche = true;                // l'aimant tient-il la ligne ? (voir AIMANT)
     this.ecartAv = null;                 // l'écart de l'image d'avant, pour l'amortissement
@@ -700,9 +701,49 @@ class Car {
     const base = gAxle;
     const cliffF = 1 - c.cliff * PHYS.cliff * smoothstep(Math.abs(alphaF), peak * 1.5, peak * 5);
     const cliffR = 1 - c.cliff * PHYS.cliff * smoothstep(Math.abs(alphaR), peak * 1.5, peak * 5);
-    const driveFrac = throttle ? clamp(1 - Math.pow(Math.max(0, this.v) / c.vmax, 2.5), 0, 1) : 0;
+    /* LA MOTRICITÉ : ce que l'essieu arrière peut transmettre, et ce qui part en fumée.
+
+    CE QU'IL Y AVAIT, ET POURQUOI ÇA NE POUVAIT PAS MARCHER. `driveFrac` ne dépendait que de la
+    vitesse : il valait la même chose quelle que soit la puissance demandée, et il ne retirait que
+    1 % à l'essieu arrière. La traction ne passait donc pas par les pneus. Mesuré en multipliant
+    `accel`, à repères de pilotage constants : 96,12 s au tour à ×0,5, 81,48 s à ×2, et ZÉRO sortie
+    de piste d'un bout à l'autre. Quinze secondes au tour pour un curseur, sans contrepartie.
+
+    LE CHIFFRE QUI DIT TOUT : une GT demande 8 m/s² de poussée quand son essieu arrière ne peut en
+    transmettre que 7,15 (`gTot/2 × rearBias`, soit 6,75 × 1,06). Elle est survoltée de 12 % pour
+    ses pneus — et le modèle le cachait, parce que rien ne comparait jamais les deux.
+
+    LE CERCLE D'ADHÉRENCE (Milliken & Milliken, « Race Car Vehicle Dynamics ») : la force d'un pneu
+    est bornée, donc ce que prend le latéral n'est plus disponible pour le longitudinal, en
+    quadrature. On lit le latéral déjà pris sur `alphaR/peak` plutôt que sur `FrT` — qui dépendrait
+    de `gR`, qu'on est en train de calculer — ce qui évite la boucle sans rien perdre : c'est la
+    même grandeur, avant la falaise.
+
+    DEUX CONSÉQUENCES, ET IL FAUT LES DEUX. Ce qui dépasse ne pousse pas (sinon le curseur reste un
+    gain gratuit), ET ce qui dépasse fait patiner, donc coûte du latéral à l'arrière (sinon il n'y
+    a pas de dérapage à la remise des gaz). `PHYS.motricite` est la marge laissée à la ligne droite,
+    pour que la voiture par défaut garde ses performances là où elle ne tourne pas ; c'est en virage
+    que la puissance doit se payer, et c'est ce que Bruno demande. */
+    const dmg = this.damageFactor();
+    const vmax = c.vmax * dmg * (this.draft ? 1.05 : 1);
+    const accDem = throttle
+      ? c.accel * dmg * Math.max(0, 1 - Math.pow(Math.max(0, this.v) / vmax, 2.5)) * (this.draft ? 1.08 : 1)
+      : 0;
     const gF = base * cliffF;
-    const gR = base * c.rearBias * cliffR * (1 - PHYS.liftOff * brakeFrac) * (1 - PHYS.power * driveFrac);   // lift-off / power oversteer
+    /* LA MOTRICITÉ SE MESURE SUR L'ADHÉRENCE BRUTE, LA FALAISE S'APPLIQUE APRÈS.
+
+    Première version fausse, et c'est une boucle positive que j'ai mise moi-même : je calculais ce
+    que l'arrière peut transmettre à partir d'une adhérence DÉJÀ réduite par la falaise, puis je la
+    réduisais encore du patinage. Près de la limite, la falaise écroulait la capacité, donc le
+    patinage explosait, donc l'arrière perdait encore — glisse, moins d'adhérence, plus de glisse.
+    Mesuré : 11 à 20 sorties de piste par essai contre 6 avant, et huit secondes au tour. Les deux
+    effets sont maintenant en série et non enchaînés l'un sur l'autre. */
+    const gArrBrut = base * c.rearBias * (1 - PHYS.liftOff * brakeFrac);
+    const latPris = Math.min(1, Math.abs(alphaR) / peak);
+    const longDispo = gArrBrut * PHYS.motricite * Math.sqrt(Math.max(0, 1 - latPris * latPris));
+    const accReel = Math.min(accDem, longDispo);
+    this.patine = clamp((accDem - longDispo) / Math.max(1e-3, gArrBrut), 0, 1);
+    const gR = gArrBrut * cliffR * (1 - PHYS.patine * this.patine);
     // tyre curve: linear up to the peak slip angle, then saturated (the cliff is applied above)
     const FfT = -gF * clamp(alphaF / peak, -1, 1);
     const FrT = -gR * clamp(alphaR / peak, -1, 1);
@@ -773,9 +814,12 @@ class Car {
     // --- longitudinal ---
     let acc;
     const dir = Math.sign(this.v || 1);                 // everything that resists motion opposes it
-    const dmg = this.damageFactor();
-    const vmax = c.vmax * dmg * (this.draft ? 1.05 : 1);
-    if (throttle) acc = c.accel * dmg * Math.max(0, 1 - Math.pow(Math.max(0, this.v) / vmax, 2.5)) * (this.draft ? 1.08 : 1) * Math.max(0.3, 1 - PHYS.circle * u * u);
+    /* `accReel` est calculé plus haut, avec la motricité. Le facteur `max(0.3, 1 - circle·u²)` reste
+    tant que la motricité est au neutre : il est aujourd'hui LE seul lien entre la charge latérale
+    et le moteur, et le retirer rendrait la voiture par défaut plus rapide. Le jour où la motricité
+    sera calibrée, c'est lui qu'il faudra enlever — les deux font le même travail, l'un grossièrement
+    et l'autre par les pneus, et les garder tous les deux serait compter deux fois. */
+    if (throttle) acc = accReel * Math.max(0.3, 1 - PHYS.circle * u * u);
     else acc = -(1.5 + c.brake * brakeFrac) * (1 - PHYS.circle * u * u) * (this.v > 1 ? 1 : Math.max(0, this.v));
     // grass and gravel drag the whole car, not just its forward motion: it opposes the velocity
     // vector, so a car sliding in sideways is slowed down sideways too.
