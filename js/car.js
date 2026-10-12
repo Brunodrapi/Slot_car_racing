@@ -753,8 +753,19 @@ class Car {
     const gArrBrut = base * c.rearBias * (1 - PHYS.liftOff * brakeFrac);
     const latPris = Math.min(1, Math.abs(alphaR) / peak);
     const longDispo = gArrBrut * PHYS.motricite * Math.sqrt(Math.max(0, 1 - latPris * latPris));
-    const accReel = Math.min(accDem, longDispo);
-    this.patine = clamp((accDem - longDispo) / Math.max(1e-3, gArrBrut), 0, 1);
+    /* HORS PISTE, LE PLAFOND NE S'APPLIQUE PAS, et ce n'est pas une facilité.
+
+    L'herbe est déjà punie deux fois : `surface` ramène l'adhérence à 42 %, et le bloc de traînée
+    plus bas freine la voiture entière, y compris de travers. Y ajouter le plafond de motricité en
+    faisait une troisième punition, et comme il se calcule SUR l'adhérence réduite, il divisait la
+    poussée par deux au moment précis où on en a le plus besoin. Mesuré sur les neuf voitures :
+    dix secondes pour revenir à 60 km/h depuis le bas-côté, contre quatre avant. « La voiture est
+    tankée », et c'était juste.
+
+    Le modèle est là pour façonner la sortie de virage SUR L'ASPHALTE. Hors piste il se tait, et le
+    bas-côté redevient exactement ce qu'il était. */
+    const accReel = off ? accDem : Math.min(accDem, longDispo);
+    this.patine = off ? 0 : clamp((accDem - longDispo) / Math.max(1e-3, gArrBrut), 0, 1);
     const gR = gArrBrut * cliffR * (1 - PHYS.patine * this.patine);
     // tyre curve: linear up to the peak slip angle, then saturated (the cliff is applied above)
     const FfT = -gF * clamp(alphaF / peak, -1, 1);
