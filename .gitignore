@@ -3,3 +3,6 @@ node_modules/
 .DS_Store
 __pycache__/
 *.pyc
+
+# Les exports : des images lourdes, régénérées par `tools/export-decor.js` en une minute.
+export/
