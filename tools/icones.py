@@ -4,7 +4,7 @@
     python3 tools/icones.py
 
 Entrée : `art-src/casque.png`, le dessin pleine résolution sur fond noir.
-Sorties : `favicon.ico`, `art/casque-180.png`, `art/casque-192.png`, `art/casque-512.png`,
+Sorties : `favicon.ico`, `art/casque-{16,32,48,180,192,512}.png`,
           `art/casque-maskable-512.png`.
 
 POURQUOI UN SCRIPT ET PAS CINQ FICHIERS POSÉS À LA MAIN. Les cinq sorties doivent rester d'accord
@@ -118,7 +118,10 @@ def main():
     grand = Image.new('RGBA', (cote, cote), (0, 0, 0, 0))
     grand.paste(Image.fromarray(plein, 'RGBA'), (cote // 2 - cx, cote // 2 - cy))
 
-    for taille in (512, 192):
+    # 512 et 192 pour le manifeste ; 48, 32 et 16 pour les onglets. Les navigateurs modernes
+    # préfèrent un PNG à un `.ico`, et plusieurs se montrent capricieux avec un `.ico` qui annonce
+    # trois tailles dans un seul `sizes` : on leur donne donc le choix explicite, taille par taille.
+    for taille in (512, 192, 48, 32, 16):
         reduire(grand, taille).save(os.path.join(RACINE, 'art', 'casque-%d.png' % taille), optimize=True)
     # iOS compose mal la transparence : son icône garde un fond plein
     sur_fond(reduire(grand, 180), FOND_PLEIN).save(os.path.join(RACINE, 'art', 'casque-180.png'), optimize=True)
@@ -130,7 +133,7 @@ def main():
     masque.save(os.path.join(RACINE, 'art', 'casque-maskable-512.png'), optimize=True)
     # le .ico porte les trois tailles que les navigateurs demandent, avec la transparence
     reduire(grand, 256).save(os.path.join(RACINE, 'favicon.ico'), sizes=[(16, 16), (32, 32), (48, 48)])
-    print('écrit : favicon.ico, art/casque-{180,192,512}.png, art/casque-maskable-512.png')
+    print('écrit : favicon.ico, art/casque-{16,32,48,180,192,512}.png, art/casque-maskable-512.png')
 
 
 if __name__ == '__main__':
