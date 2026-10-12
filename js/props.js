@@ -235,7 +235,7 @@ const TOP_KINDS = [
     /* L'HERBE N'EST PAS UNE TEXTURE DE FOND, c'est un objet comme un autre. Semée dru et très
        petite, elle casse l'aplat vert sans qu'on la remarque — et comme elle passe par le même
        semeur, elle évite la route et les autres objets toute seule. */
-    id: 'touffe', wm: 2.8, weight: 0, near: 2, far: 20,
+    id: 'touffe', wm: 2.8, weight: 0, near: 0.2, far: 9,
     draw(g, w, pal) {
       const rnd = propRng(0x5e21), c = w / 2;
       const verts = versFeuillage(pal.canopy);
@@ -252,7 +252,7 @@ const TOP_KINDS = [
   },
   {
     // Et des fleurs des champs, plus rares : blanc, jaune, rouge, comme sur la planche.
-    id: 'fleurs', wm: 3.0, weight: 0, near: 2, far: 20,
+    id: 'fleurs', wm: 3.0, weight: 0, near: 0.2, far: 8,
     draw(g, w, pal) {
       const verts = versFeuillage(pal.canopy);
       g.strokeStyle = verts[1]; g.lineWidth = w * 0.06; g.lineCap = 'round';
@@ -468,7 +468,10 @@ function placeGroundProps(track, id, density) {
   const petits = TOP_KINDS.filter((k) => k.id === 'touffe' || k.id === 'fleurs')
     .map((k) => Object.assign({}, k, { weight: k.id === 'touffe' ? 3 : 1 }));
   if (!petits.length) return [];
-  return placeFrom(petits, track, seedFromId('herbe-' + id), density == null ? 0.95 : density, 3);
+  /* `clear` tombe à zéro : le semeur refusait tout ce qui approchait la route de moins de huit
+     mètres et demi, ce qui mettait l'herbe PLUS LOIN que la bande qu'elle doit garnir. Une touffe
+     n'est pas un obstacle ; elle a le droit d'être au bord. */
+  return placeFrom(petits, track, seedFromId('herbe-' + id), density == null ? 1 : density, 0);
 }
 
 // Ground colour, not objects: the broad patches of bare earth that a circuit wears around its

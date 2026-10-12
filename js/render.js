@@ -31,8 +31,8 @@
 const THEME_BASE = {
   grass: '#4e7a3a', grassLight: '#557f3f', grassDark: '#477036',
   earth: '#b9a271', earthDark: '#a68f5f',
-  asphalt: '#404a56', asphaltLight: '#4b5663',
-  outline: '#1e2329',
+  asphalt: '#495a66', asphaltLight: '#536674',
+  outline: '#283138',
   edgeLine: '#eceaf0', centre: null,
   // Les deux bords de piste, teintés du côté du virage : froid dedans, chaud dehors, et ce sont les
   // couleurs du curseur de ligne pour que le lien se fasse sans légende. Assez clairs pour rester
@@ -58,6 +58,10 @@ const THEME_BASE = {
   // l'ombre portée du décor : bleu froid, jamais grise — une ombre neutre salit le vert qu'elle
   // recouvre, une ombre bleue le refroidit et le laisse propre
   ombre: 'rgba(74,96,152,0.30)',
+  /* La bande d'herbe qui borde le bitume : un vert plus jaune et plus saturé que le pré, relevé sur
+     les planches de référence (#55802b sur la sombre, #8dbd4e sur la claire). `bordureM` est sa
+     largeur en mètres, de chaque côté. */
+  bordure: null, bordureM: 3.4,
   herbe: 0.95,                     // densité du semis d'herbe et de fleurs, 0 = aucun
   fleur: 'rgba(252,250,244,0.95)',
 };
@@ -78,7 +82,7 @@ const THEME_DEFS = {
     patches: 0.55,
     grass: '#5f8f52', grassLight: '#6a9a5c', grassDark: '#537f48',
     earth: '#8d7a56', earthDark: '#7c6a49',
-    asphalt: '#3b444f', asphaltLight: '#47505b',
+    asphalt: '#44545f', asphaltLight: '#4e606d',
     canopy: ['#2f6b34', '#3a7f3e', '#25562b'], pine: ['#23503f', '#2b6250'],
     props: { pine: 3, tree: 1.4, bales: 0, palm: 0 },
   },
@@ -87,8 +91,8 @@ const THEME_DEFS = {
     patches: 0.7,
     grass: '#c6cf87', grassLight: '#d2da93', grassDark: '#b7c079',
     earth: '#e0c391', earthDark: '#d2b27e',
-    asphalt: '#4b535d', asphaltLight: '#575f69',
-    outline: '#2c3238',
+    asphalt: '#516370', asphaltLight: '#5b707e',
+    outline: '#344049',
     kerb: ['#9bb4d9', '#f7f8fa'],
     gravel: '#e2c48f', gravelDark: '#d0ae76',
     canopy: ['#b4472e', '#c9662c', '#8e3a26'], pine: ['#2c5a52', '#356d5f'],
@@ -101,7 +105,7 @@ const THEME_DEFS = {
     patches: 0.4,
     grass: '#dcd2c8', grassLight: '#e7ded2', grassDark: '#cfc4b6',
     earth: '#877482', earthDark: '#746373',
-    asphalt: '#47515d', asphaltLight: '#535d69',
+    asphalt: '#4f616e', asphaltLight: '#596e7c',
     edgeLine: '#f5f2e8', centre: '#f5f2e8', edgeBleu: '#8fdcff', edgeJaune: '#ffd97a',
     pitLane: '#3b3142', pitBox: 'rgba(255,212,0,0.18)', pitBoxLine: '#ffd400',
     kerb: ['#e2a19c', '#faf8f4'],
@@ -149,7 +153,7 @@ const THEME_DEFS = {
     patches: 0.5,
     grass: '#7fb073', grassLight: '#8cbd7f', grassDark: '#6f9e64',
     earth: '#a89369', earthDark: '#95805a',
-    asphalt: '#3d4752', asphaltLight: '#49535e',
+    asphalt: '#465662', asphaltLight: '#506370',
     canopy: ['#3a7a46', '#478f54', '#2e6237'], pine: ['#2a5b4e', '#336d5e'],
     props: { pine: 2, palm: 0, bales: 0.4 },
   },
@@ -168,7 +172,7 @@ const THEME_DEFS = {
     patches: 0.45,
     grass: '#66ad55', grassLight: '#74bb61', grassDark: '#5a9c4b',
     earth: '#ab9263', earthDark: '#977f53',
-    asphalt: '#3f4954', asphaltLight: '#4b5560',
+    asphalt: '#485864', asphaltLight: '#526572',
     canopy: ['#347a3c', '#3f9047', '#2a6231'], pine: ['#24543f', '#2c664e'],
     props: { pine: 2.4, palm: 0, bales: 1.4 },
   },
@@ -183,9 +187,63 @@ const THEME_DEFS = {
   },
 };
 
+/* LA PEINTURE AU SOL SUIT LA ROUTE, elle n'est pas une couleur de plus à régler.
+
+   Un circuit peut être bitumé sombre ou, comme la seconde planche de référence, d'une crème très
+   claire. Sur l'un la peinture est blanche, sur l'autre elle doit être sombre : une bande blanche
+   sur une route crème n'existe pas. Deux réglages auraient voulu dire qu'on peut en changer un et
+   pas l'autre, et obtenir une piste dont le marquage a disparu. On le DÉDUIT donc de la clarté de
+   l'asphalte, une fois pour toutes, à la construction du thème. Le seuil est à mi-chemin : au-delà
+   la route est claire. */
+function clarte(hex) {
+  const n = parseInt(String(hex).replace('#', ''), 16);
+  return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
+}
+/* LA BANDE SE DÉDUIT DU PRÉ DU THÈME, elle n'est pas une couleur posée à la main.
+
+   Un vert fixe relevé sur la planche de référence allait aux Ardennes et nulle part ailleurs : sur
+   le sable de Zandvoort ou le chaume de Silverstone, une bande lime se serait lue comme un trait de
+   feutre. Ce qui est VRAI partout, c'est le rapport — la bande fauchée et arrosée est plus verte,
+   plus saturée et plus sombre que le pré derrière elle. On applique donc ce rapport à l'herbe du
+   thème : teinte ramenée d'un tiers vers le vert, saturation augmentée de moitié, luminance
+   abaissée d'un sixième. */
+function plusVerte(hex) {
+  const n = parseInt(String(hex).replace('#', ''), 16);
+  const r = ((n >> 16) & 255) / 255, v = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, v, b), mn = Math.min(r, v, b), l = (mx + mn) / 2;
+  let h = 0, sa = 0;
+  if (mx !== mn) {
+    const d = mx - mn;
+    sa = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    h = mx === r ? (v - b) / d + (v < b ? 6 : 0) : mx === v ? (b - r) / d + 2 : (r - v) / d + 4;
+    h /= 6;
+  }
+  const h2 = h + (95 / 360 - h) * 0.34, s2 = Math.min(0.58, sa * 1.5), l2 = l * 0.84;
+  const q = l2 < 0.5 ? l2 * (1 + s2) : l2 + s2 - l2 * s2, pp = 2 * l2 - q;
+  const can = (t) => {
+    t = (t + 1) % 1;
+    if (t < 1 / 6) return pp + (q - pp) * 6 * t;
+    if (t < 1 / 2) return q;
+    if (t < 2 / 3) return pp + (q - pp) * (2 / 3 - t) * 6;
+    return pp;
+  };
+  return '#' + [can(h2 + 1 / 3), can(h2), can(h2 - 1 / 3)]
+    .map((x) => Math.round(Math.max(0, Math.min(1, x)) * 255).toString(16).padStart(2, '0')).join('');
+}
+
+function completeTheme(t) {
+  if (t.bordure == null) t.bordure = plusVerte(t.grass);
+  const clair = clarte(t.asphalt) > 0.52;
+  // `encre` est la couleur de tout ce qui est PEINT sur la route : marquages de freinage,
+  // chiffres, ligne de départ. `edgeLine` la suit quand le thème ne la nomme pas lui-même.
+  if (t.encre == null) t.encre = clair ? '#3b3a30' : '#f0ece4';
+  if (clair && t.edgeLine === THEME_BASE.edgeLine) t.edgeLine = '#6b6757';
+  return t;
+}
+
 const THEMES = {};
-for (const name in THEME_DEFS) THEMES[name] = Object.assign({}, THEME_BASE, THEME_DEFS[name]);
-THEMES.classic = Object.assign({}, THEME_BASE);
+for (const name in THEME_DEFS) THEMES[name] = completeTheme(Object.assign({}, THEME_BASE, THEME_DEFS[name]));
+THEMES.classic = completeTheme(Object.assign({}, THEME_BASE));
 let PAL = THEMES.park;
 
 /* Les deux bords ont une couleur, et elle ne bouge plus.
@@ -1348,7 +1406,30 @@ class Renderer {
 
     g.lineCap = 'round'; g.lineJoin = 'round';
     if (T.drawRoad) {
-      // gravel traps first, then the road itself with a heavy dark outline: the cartoon look
+      /* LE BAS-CÔTÉ, une bande d'herbe drue qui longe le bitume.
+
+      C'est l'élément qui revient sur chaque tuile des planches de référence, bien avant les arbres :
+      entre la route et le pré, il y a toujours quelques mètres d'herbe plus verte et plus fleurie,
+      parce que c'est la bande qu'on fauche et qu'on arrose. Sans elle la route est posée sur le
+      pré comme un autocollant ; avec elle, elle y est plantée.
+
+      Elle se peint en bordant les DEUX CÔTÉS du ruban d'un trait large : la moitié intérieure du
+      trait sera recouverte par le bitume juste après, il ne reste donc que la bande extérieure, et
+      elle épouse exactement la largeur variable de la piste sans qu'on ait à la recalculer.
+
+      Elle passe SOUS le bac à gravier : là où il y a un dégagement, il n'y a pas de pelouse à
+      tondre, et c'est le gravier qui doit se voir. */
+      const vus0 = this.paths.chunks.filter(c => inView(c.bbox));
+      const lg = (PAL.bordureM || 3.4) * 2;
+      /* DEUX PASSES, parce qu'un bord franc se lit comme un trait tracé et non comme de l'herbe.
+         La première déborde et ne fait qu'un quart du ton ; la seconde pose la bande pleine. */
+      g.globalAlpha = 0.45;
+      g.strokeStyle = PAL.bordure; g.lineWidth = lg * 1.45;
+      for (const c of vus0) { g.stroke(c.left); g.stroke(c.right); }
+      g.globalAlpha = 1;
+      g.strokeStyle = PAL.bordure; g.lineWidth = lg;
+      for (const c of vus0) { g.stroke(c.left); g.stroke(c.right); }
+      // gravel traps next, then the road itself with a heavy dark outline: the cartoon look
       // comes from flat colours and hard edges rather than shading
       for (const cn of this.paths.corners) { if (!inView(cn.bbox)) continue; g.fillStyle = PAL.gravel; g.fill(cn.gravel); }
       // Seuls les tronçons en vue : la caméra montre une cinquantaine de mètres d'un circuit qui
@@ -1595,7 +1676,7 @@ class Renderer {
       défaut. */
       const chiffre = b.dist > 0;
       Renderer.paceArrow(g, { x: 0, y: L * (chiffre ? -0.28 : -0.08), w: W, h: L * (chiffre ? 0.46 : 0.58) },
-        spec, b.sign > 0 ? 1 : -1, { col: '#f0ece4', epais: 0.78 });
+        spec, b.sign > 0 ? 1 : -1, { col: PAL.encre, epais: 0.78 });
       g.save();
       g.scale(1 / 16, 1 / 16);
       g.textAlign = 'center'; g.textBaseline = 'middle';
@@ -1609,9 +1690,9 @@ class Renderer {
         g.fillStyle = col;
         g.fillText(txt, 0, y * 16);
       };
-      if (chiffre) peindre(String(b.dist), Math.round(W * 0.42 * 16), L * 0.14, '#f0ece4');
+      if (chiffre) peindre(String(b.dist), Math.round(W * 0.42 * 16), L * 0.14, PAL.encre);
       // les virages nommés le disent, comme sur une note de rallye
-      if (spec.tag) peindre(spec.tag, Math.round(W * 0.25 * 16), L * (chiffre ? 0.34 : 0.30), '#f0ece4');
+      if (spec.tag) peindre(spec.tag, Math.round(W * 0.25 * 16), L * (chiffre ? 0.34 : 0.30), PAL.encre);
       g.restore();
       g.globalAlpha = 1;
       g.restore();
@@ -1928,6 +2009,10 @@ class Renderer {
     Le jaune pastel est à DOUZE unités du sable : c'est sa couleur, à peu de chose près. Aucune
     opacité ne le rattrape — à 60 % il est encore à 23, quand le même jaune sur l'asphalte dépasse
     250 et devient criard. Une seule valeur ne peut pas servir les deux fonds.
+
+    (La ligne « asphalte » a été relevée sur la route violette d'avant le passage au bleu-gris, un
+    peu plus sombre. Elle n'est pas refaite parce qu'elle ne décide plus de rien : c'est la ligne
+    « sable » qui tranche, et depuis la pastille ne touche plus le décor du tout.)
 
     On pose donc un disque sombre d'abord, et la teinte dessus. Elle a alors toujours le même fond,
     donc toujours la même lisibilité, où que soit la voiture — ce qu'on attend d'un instrument. La
