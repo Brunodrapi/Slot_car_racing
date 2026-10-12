@@ -85,6 +85,8 @@ const TRACKS = [
   },
   {
     id: 'spa', name: 'Spa-Francorchamps', country: 'BE', flag: '🇧🇪', theme: 'forest',
+    // le semis par strates, pour l'instant ici et nulle part ailleurs
+    decor: 'ardennes',
     kerb: DRAPEAUX.be,
     /* Plus de `pitAt` : il valait 0,10 et corrigeait une zone d'arrêt qui tombait dans un virage —
        conséquence d'une ligne de départ posée à Eau Rouge. La ligne est maintenant sur la vraie

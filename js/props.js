@@ -110,8 +110,11 @@ function placeFrom(kinds, track, seed, density, clear, serre, lisiere, profond) 
          Les trois sortent du MÊME tirage que la position, donc un circuit retrouve sa forêt à
          l'identique d'une partie à l'autre. */
       const ech = 0.76 + rnd() * 0.58;
-      out.push({ x, y, id: k.id, ech,
-        rot: k.fixe ? 0 : rnd() * Math.PI * 2,
+      /* PAS DE ROTATION. Un feuillage dessiné porte sa lumière — clair en haut à gauche, ombre en
+         bas à droite. Le tourner retourne l'éclairage, et une forêt dont chaque arbre est éclairé
+         d'un côté différent est précisément ce qui se lisait comme du chaos. Les arbres n'ont
+         qu'une orientation. Le champ reste, à zéro, pour que le dessin n'ait pas deux chemins. */
+      out.push({ x, y, id: k.id, ech, rot: 0,
         ton: Math.min(TONS - 1, Math.floor(rnd() * TONS)) });
      }
     }
@@ -669,6 +672,175 @@ function placeGroundProps(track, id, density) {
      mètres et demi, ce qui mettait l'herbe PLUS LOIN que la bande qu'elle doit garnir. Une touffe
      n'est pas un obstacle ; elle a le droit d'être au bord. */
   return placeFrom(petits, track, seedFromId('herbe-' + id), density == null ? 1 : density, 0);
+}
+
+/* ------------------------------------------------------ LE SEMIS PAR STRATES, À BRUIT BLEU
+
+Le semeur précédent tirait une position au hasard et rejetait celles qui tombaient trop près d'un
+voisin déjà posé. C'est la façon la plus directe d'obtenir du BRUIT BLANC : des paquets ici, des
+trous là, et à l'œil, du chaos. Deux idées de la littérature le remplacent.
+
+1. LES STRATES (Deussen et al., « Realistic Modeling and Rendering of Plant Ecosystems »,
+   SIGGRAPH 1998). On ne sème pas « des plantes » : on sème une CANOPÉE, puis un SOUS-BOIS dans ce
+   qu'elle laisse, puis un COUVRE-SOL. Les grandes dominent les petites — une pousse à l'ombre
+   d'un grand arbre n'existe pas, et de toute façon vue de dessus on ne la verrait pas. Chaque
+   strate a sa taille d'objet, sa distance à la route et son espacement propres.
+
+2. LE DISQUE DE POISSON (Cook 1986 ; algorithme de Bridson, « Fast Poisson Disk Sampling in
+   Arbitrary Dimensions », 2007). Les points sont séparés d'au moins `r`, mais sans grille : c'est
+   le BRUIT BLEU, la répartition qu'on lit comme « naturelle » parce qu'elle n'a ni amas ni
+   alignement. Bridson tire autour d'un point actif jusqu'à trente candidats entre r et 2r, garde
+   le premier qui respecte la distance, et avance ; une grille de fond rend le test local.
+
+   On échantillonne dans le repère de la PISTE — abscisse curviligne `s`, distance au bord `d` —
+   et non dans le plan. Le ruban se replie sur lui-même à Spa ; dans le plan, deux points très
+   éloignés le long du tour peuvent être voisins, et l'algorithme les refuserait alors qu'ils
+   appartiennent à deux bords différents. Dans (s, d) le domaine est un rectangle, `s` est
+   circulaire, et la distance y vaut la distance au sol tant que le rayon de courbure reste grand
+   devant la largeur de la bande — ce qui est le cas partout sauf au fond de l'épingle.
+
+3. LE GRADIENT DE LISIÈRE (écologie du paysage). Un bord de forêt n'est pas un mur : c'est une
+   transition — herbes et fleurs au bord, arbustes derrière, grands arbres au fond. Chaque strate
+   a donc sa bande, et elles se recouvrent partiellement. C'est ce que montre l'image de référence,
+   et c'est aussi ce qui laisse voir le bord de piste.
+
+AUCUNE ROTATION. Un feuillage dessiné porte sa lumière — le clair en haut à gauche, l'ombre en bas
+à droite. Le tourner retourne l'éclairage, et une forêt dont chaque arbre est éclairé d'un côté
+différent est exactement ce qui se lisait comme du chaos. Les arbres n'ont qu'une orientation. */
+
+function rngStrate(graine) { return propRng(graine); }
+
+/** Bridson, dans le rectangle (s circulaire sur `L`) × (d de `d0` à `d1`). */
+function poissonRuban(L, d0, d1, r, rnd, K) {
+  if (d1 <= d0 || r <= 0) return [];
+  const k = K || 30;
+  const cell = r / Math.SQRT2;
+  const nS = Math.max(1, Math.ceil(L / cell));
+  const nD = Math.max(1, Math.ceil((d1 - d0) / cell));
+  const grille = new Int32Array(nS * nD).fill(-1);
+  const pts = [];
+  const actifs = [];
+  const cs = (s) => Math.min(nS - 1, Math.floor((((s % L) + L) % L) / cell));
+  const cd = (d) => Math.min(nD - 1, Math.max(0, Math.floor((d - d0) / cell)));
+  const libre = (s, d) => {
+    const is = cs(s), id = cd(d);
+    for (let a = -2; a <= 2; a++) {
+      for (let b = -2; b <= 2; b++) {
+        const js = ((is + a) % nS + nS) % nS, jd = id + b;   // `s` est circulaire, `d` ne l'est pas
+        if (jd < 0 || jd >= nD) continue;
+        const q = grille[js * nD + jd];
+        if (q < 0) continue;
+        let ds = pts[q].s - s;
+        if (ds > L / 2) ds -= L; else if (ds < -L / 2) ds += L;
+        const dd = pts[q].d - d;
+        if (ds * ds + dd * dd < r * r) return false;
+      }
+    }
+    return true;
+  };
+  const pose = (s, d) => {
+    const i = pts.length;
+    pts.push({ s: ((s % L) + L) % L, d });
+    grille[cs(s) * nD + cd(d)] = i;
+    actifs.push(i);
+  };
+  pose(rnd() * L, d0 + rnd() * (d1 - d0));
+  while (actifs.length) {
+    const ai = Math.floor(rnd() * actifs.length);
+    const p = pts[actifs[ai]];
+    let pose2 = false;
+    for (let t = 0; t < k; t++) {
+      const ang = rnd() * Math.PI * 2, ray = r * (1 + rnd());
+      const s = p.s + Math.cos(ang) * ray, d = p.d + Math.sin(ang) * ray;
+      if (d < d0 || d > d1) continue;
+      if (!libre(s, d)) continue;
+      pose(s, d); pose2 = true; break;
+    }
+    if (!pose2) { actifs[ai] = actifs[actifs.length - 1]; actifs.pop(); }
+  }
+  return pts;
+}
+
+/* Une strate : les objets qu'elle emploie, la bande qu'elle occupe depuis le bord de piste,
+   l'espacement minimal, et la plage de tailles. `couvre` est le rayon sous lequel une strate
+   EMPÊCHE les suivantes de pousser : c'est la concurrence de Deussen, et vue de dessus c'est aussi
+   ce qui évite de dessiner un buisson que la canopée cachera entièrement. L'ordre de la liste est
+   donc l'ordre de DOMINATION — la canopée d'abord — et non l'ordre du dessin, qui se trie ensuite
+   par taille pour que les grandes couronnes couvrent le sous-bois. */
+/* LA FORÊT DES ARDENNES, en trois strates et un gradient de lisière.
+
+   Les bandes se recouvrent exprès : un bord de forêt n'est pas un mur, c'est une transition. Les
+   herbes et les fleurs commencent au bitume, les arbustes deux mètres plus loin, les grands arbres
+   à sept — assez pour qu'on voie le bord de piste et le bas-côté fauché, qui sont l'information
+   utile au pilote.
+
+   Les espacements sont donnés en mètres au sol : dix mètres entre deux grandes couronnes de neuf
+   mètres, elles se touchent sans se confondre. */
+const STRATES_ARDENNES = [
+  /* `de` est la distance du BORD DE PISTE au CENTRE de l'objet, pas à son bord. Une couronne de
+     neuf mètres à l'échelle 1,4 fait six mètres de rayon : posée à sept, elle couvrait la
+     trajectoire. Dix mètres lui laissent déborder sur le bas-côté — ce que fait l'image de
+     référence — sans manger la piste. */
+  { nom: 'canopee', kinds: ['arbre', 'arbre', 'bosquet'], de: 10, a: 95, r: 10.5,
+    ech: [1.0, 1.38], couvre: 6.5 },
+  { nom: 'sous-bois', kinds: ['buisson', 'buisson2', 'buisson-fleuri', 'buisson-petit', 'fougere', 'rocher'],
+    de: 2.5, a: 70, r: 5.2, ech: [0.8, 1.2], couvre: 2.6 },
+  { nom: 'couvre-sol', kinds: ['touffe', 'touffe', 'touffe-mini', 'fleurs-jaunes', 'fleurs-blanches',
+    'fleurs-rouges', 'caillou', 'rocher-petit', 'buisson-mini'],
+    de: 0.4, a: 18, r: 2.4, ech: [0.8, 1.25] },
+];
+
+function semeStrates(track, id, strates) {
+  const L = track.length, N = track.n, out = [];
+  /* LE RUBAN SE REPLIE SUR LUI-MÊME, et (s, d) ne le sait pas.
+
+  Échantillonner dans le repère de la piste règle l'espacement, mais il ignore que deux tronçons du
+  même tour peuvent se croiser : à l'épingle de Spa, une bande de quatre-vingt-quinze mètres posée
+  depuis un tronçon retombe en plein sur un autre, et la forêt recouvrait la piste au point qu'on
+  ne la voyait plus. Après le passage en coordonnées du monde, on vérifie donc la distance à TOUTE
+  la ligne médiane, pas seulement à la station d'origine. Les trous que ça creuse dans le bruit
+  bleu sont justes : il y a une route à cet endroit. */
+  const loinDeLaPiste = (x, y, besoin) => {
+    const b2 = besoin * besoin;
+    for (let i = 0; i < N; i += 4) {
+      const dx = x - track.xs[i], dy = y - track.ys[i];
+      if (dx * dx + dy * dy < b2) return false;
+    }
+    return true;
+  };
+  const poses = [];                       // {s, d, cote, r} de tout ce qui est déjà debout
+  strates.forEach((st, is) => {
+    const rnd = rngStrate(seedFromId('strate-' + is + '-' + id));
+    for (const cote of [1, -1]) {
+      const pts = poissonRuban(L, st.de, st.a, st.r, rnd);
+      for (const p of pts) {
+        {
+          let couvert = false;
+          for (const q of poses) {
+            if (q.cote !== cote) continue;
+            let ds = q.s - p.s;
+            if (ds > L / 2) ds -= L; else if (ds < -L / 2) ds += L;
+            const dd = q.d - p.d;
+            if (ds * ds + dd * dd < q.r * q.r) { couvert = true; break; }
+          }
+          if (couvert) continue;
+        }
+        const k = st.kinds[Math.floor(rnd() * st.kinds.length)];
+        const ech = st.ech[0] + rnd() * (st.ech[1] - st.ech[0]);
+        const i = track.idx(p.s);
+        const hw = cote > 0 ? track.hwL[i] : track.hwR[i];
+        const lat = (hw + p.d) * cote;
+        const x = track.xs[i] + track.nx[i] * lat, y = track.ys[i] + track.ny[i] * lat;
+        // la garde est celle de la strate elle-même : ce qu'elle s'interdit près de SON bord, elle
+        // se l'interdit près de n'importe quel autre tronçon du tour
+        if (!loinDeLaPiste(x, y, track.halfWidth + st.de * 0.85)) continue;
+        out.push({ x, y, id: k, ech, rot: 0, ton: Math.min(TONS - 1, Math.floor(rnd() * TONS)) });
+        if (st.couvre) poses.push({ s: p.s, d: p.d, cote, r: st.couvre * ech });
+      }
+    }
+    void N;
+  });
+  return out;
 }
 
 // Ground colour, not objects: the broad patches of bare earth that a circuit wears around its

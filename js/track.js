@@ -77,6 +77,9 @@ class Track {
     this.ds = 1;
     this.widthScale = widthScale || 1;
     this.image = def.image || null;     // { src, w, h } drawn at world origin with def.scale
+    /* Le décor du circuit, quand il en nomme un : le semis par strates s'applique à lui seul.
+       Les autres gardent l'ancien semeur tant qu'on ne les a pas repris un par un. */
+    this.decor = def.decor || null;
     this.drawRoad = def.drawRoad !== false;
     this._build();
   }

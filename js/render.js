@@ -554,8 +554,10 @@ class Renderer {
        les grandes couronnes en dernier. C'est ce qui fait les couches — une canopée couvre son
        sous-bois, et un grand arbre qui passerait sous un buisson se lirait comme un trou. La
        profondeur vient de là, pas de la caméra. */
-    this.topProps = placeGroundProps(track, seed, PAL.herbe)
-      .concat(placeTopProps(track, seed, PAL.densite, PAL.props, PAL.serre, PAL.lisiere, PAL.profond));
+    this.topProps = track.decor === 'ardennes' && decorPret()
+      ? semeStrates(track, seed, STRATES_ARDENNES)
+      : placeGroundProps(track, seed, PAL.herbe)
+        .concat(placeTopProps(track, seed, PAL.densite, PAL.props, PAL.serre, PAL.lisiere, PAL.profond));
     const taille = (p) => {
       const a = this.topArt[p.id];
       return (a ? a.wm : 1) * (p.ech || 1);
