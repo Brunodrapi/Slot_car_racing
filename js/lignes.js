@@ -70,7 +70,8 @@ const S = {
   glisse: null,         // le fond en cours de déplacement
   mode: 'lignes',       // 'lignes' ou 'panneaux'
   panneaux: [],         // { at, dist, note, sign } — la liste reprise, ou celle du calcul
-  panModif: false,      // vrai dès qu'on y a touché : sinon on n'enregistre rien et le jeu calcule
+  panModif: false,      // vrai quand la liste est une reprise : sinon on n'enregistre rien et le jeu calcule
+  panTouche: false,     // vrai quand ON y a touché depuis le chargement — pas la même chose
   selP: null,           // le panneau choisi
   doigts: new Map(),    // les contacts en cours, pour le pincement
   pince: null,          // l'écartement et le centre au début du pincement
@@ -150,11 +151,16 @@ function charger(id, garderPts) {
     jeu refera tout seul. */
     S.panneaux = Array.isArray(S.def.panneaux) ? S.def.panneaux.map(versEditeur) : panneauxDuCalcul();
     S.panModif = Array.isArray(S.def.panneaux);
+    S.panTouche = false;
     S.selP = null;
   }
   cadrer();
   majFicheP();
   dessiner();
+  /* LA REPRISE LOCALE SE RELIT À CHAQUE CHARGEMENT, pas seulement quand on passe par le menu
+     déroulant. Elle était accrochée à l'événement `change` du sélecteur : charger un circuit par
+     code — au démarrage, par un lien — ouvrait l'éditeur sur le fichier en ignorant la base. */
+  if (!garderPts) majPose();
 }
 
 /* ------------------------------------------------------------------------------ les panneaux */
@@ -591,7 +597,7 @@ function relire() {
     try {
       const liste = JSON.parse(mp[1].replace(/'/g, '"').replace(/,(\s*[}\]])/g, '$1'));
       S.panneaux = liste.map(([at, dist, note, sign]) => ({ at: +at, dist: +dist, note, sign: +sign }));
-      S.panModif = true; S.selP = null;
+      S.panModif = S.panTouche = true; S.selP = null;
       majFicheP(); dessiner();
       etat(`${S.panneaux.length} panneau(x) relu(s)`);
     } catch (e) { etat('bloc de panneaux illisible : ' + e.message); }
@@ -747,9 +753,14 @@ async function oublier() {
   try {
     await Store.del('lines', S.def.id);
     await Store.del('panneaux', S.def.id);
-    S.panneaux = panneauxDuCalcul(); S.panModif = false; S.selP = null;
+    /* OUBLIER, C'EST REVENIR À CE QUE LE JEU JOUE SANS CETTE BASE — et sans la base, le jeu joue
+       la liste du fichier quand il y en a une, le calcul seulement sinon. Repartir du calcul dans
+       tous les cas rouvrait la même divergence par l'autre bout. */
+    const duFichier = Array.isArray(S.def.panneaux);
+    S.panneaux = duFichier ? S.def.panneaux.map(versEditeur) : panneauxDuCalcul();
+    S.panModif = duFichier; S.panTouche = false; S.selP = null;
     majFicheP(); majPose(); dessiner();
-    etat(`${S.def.name} : le jeu revient à ce qu'il calcule`);
+    etat(`${S.def.name} : le jeu revient à ${duFichier ? 'la liste du fichier' : 'ce qu\'il calcule'}`);
   } catch (e) { etat('suppression impossible : ' + e.message); }
 }
 
@@ -774,8 +785,14 @@ async function majPose() {
 
   On ne l'applique que si rien n'a été touché depuis le chargement, et que le circuit affiché est
   toujours celui qu'on a demandé : la base est asynchrone, et entre la demande et la réponse
-  l'éditeur a pu changer de circuit ou être déjà en cours d'édition. */
-  if (!S.panModif && q && Array.isArray(q.panneaux) && S.def.id === vise) {
+  l'éditeur a pu changer de circuit ou être déjà en cours d'édition.
+
+  LA GARDE PORTE SUR `panTouche`, PAS SUR `panModif`. Les deux se ressemblaient et ne disent pas la
+  même chose : `panModif` vaut déjà vrai au chargement d'un circuit dont `tracks.js` porte une liste
+  reprise. La reprise locale ne s'appliquait donc jamais sur ces cinq circuits-là — l'éditeur
+  montrait le fichier pendant que le jeu jouait la base. C'est le défaut constaté à Monza : la
+  deuxième chicane y était un virage serré en course et une chicane dans l'éditeur. */
+  if (!S.panTouche && q && Array.isArray(q.panneaux) && S.def.id === vise) {
     S.panneaux = q.panneaux.map(versEditeur);
     S.panModif = true; S.selP = null; majFicheP(); dessiner();
   }
@@ -793,7 +810,7 @@ async function majPose() {
     }
     if (q) {
       S.panneaux = q.panneaux.map(versEditeur);
-      S.panModif = true; S.selP = null; majFicheP();
+      S.panModif = S.panTouche = true; S.selP = null; majFicheP();
     }
     dessiner();
     etat('enregistrement repris');
@@ -827,7 +844,7 @@ function majFicheP() {
 function changerP(champ, valeur) {
   if (S.selP == null) return;
   S.panneaux[S.selP][champ] = valeur;
-  S.panModif = true;
+  S.panModif = S.panTouche = true;
   majFicheP();
   dessiner();
 }
@@ -841,7 +858,7 @@ function ajouterP() {
   }
   S.panneaux.push({ at: j / S.track.n, dist: 100, note: 3, sign: 1 });
   S.selP = S.panneaux.length - 1;
-  S.panModif = true;
+  S.panModif = S.panTouche = true;
   majFicheP();
   tiroir(false);
   dessiner();
@@ -859,7 +876,7 @@ function bougerP(metres) {
   const T = S.track, b = S.panneaux[S.selP];
   const j = ((Math.round(b.at * T.n + metres / T.ds) % T.n) + T.n) % T.n;
   b.at = j / T.n;
-  S.panModif = true;
+  S.panModif = S.panTouche = true;
   majFicheP();
   dessiner();
   etat(`panneau à ${metresDe(j).toFixed(0)} m`);
@@ -1060,7 +1077,7 @@ for (const t of TRACKS) {
   o.value = t.id; o.textContent = `${t.flag || '🏁'} ${t.name}`;
   $('circuit').appendChild(o);
 }
-$('circuit').addEventListener('change', () => { charger($('circuit').value, false); majPose(); });
+$('circuit').addEventListener('change', () => charger($('circuit').value, false));
 
 for (const nom of ['racing', 'inside', 'outside']) {
   const b = document.createElement('button');
@@ -1105,7 +1122,6 @@ $('copier').addEventListener('click', async () => {
 
 redimensionner();
 charger(TRACKS[0].id, false);
-majPose();
 
 /* ------------------------------------------------------- le mode, les panneaux, le tiroir */
 
@@ -1143,7 +1159,7 @@ for (const b of $('sensP').children) b.addEventListener('click', () => changerP(
 $('supprP').addEventListener('click', () => {
   if (S.selP == null) return;
   S.panneaux.splice(S.selP, 1);
-  S.selP = null; S.panModif = true;
+  S.selP = null; S.panModif = S.panTouche = true;
   majFicheP(); dessiner();
   etat('panneau supprimé — « Enregistrer » pour que le jeu le voie');
 });
@@ -1152,15 +1168,20 @@ for (const b of $('pasP').children) b.addEventListener('click', () => bougerP(+b
 $('versViseurP').addEventListener('click', () => {
   if (S.selP == null || S.viseur == null) { etat('pose le viseur sur la piste d’abord'); return; }
   S.panneaux[S.selP].at = (S.viseur % S.track.n) / S.track.n;
-  S.panModif = true;
+  S.panModif = S.panTouche = true;
   majFicheP(); dessiner();
   etat(`panneau amené à ${metresDe(S.viseur).toFixed(0)} m`);
 });
 $('effM').addEventListener('click', () => { S.mesure = []; majFicheM(); dessiner(); });
+/* « Revenir au calcul » montre le calcul — mais sur un circuit dont `tracks.js` porte une liste,
+   le jeu continuera de jouer cette liste tant que le bloc n'est pas recollé. On le dit, plutôt que
+   de laisser croire que la course suit l'écran. */
 $('autoP').addEventListener('click', () => {
-  S.panneaux = panneauxDuCalcul(); S.panModif = false; S.selP = null;
+  S.panneaux = panneauxDuCalcul(); S.panModif = false; S.panTouche = true; S.selP = null;
   majFicheP(); dessiner();
-  etat('panneaux revenus au calcul');
+  etat(Array.isArray(S.def.panneaux)
+    ? 'panneaux revenus au calcul — en course le jeu garde la liste du fichier tant que le bloc n’est pas recollé'
+    : 'panneaux revenus au calcul');
 });
 
 /* LE TIROIR. Il n'existe qu'en dessous de 860 px — au-dessus, le panneau est une colonne et la
