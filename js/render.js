@@ -1851,14 +1851,74 @@ class Renderer {
   Tout ce qui se lisait est passé en haut. Ce qui reste n'a qu'un travail : dire où le doigt a pris
   la commande, et accuser l'appui. Sans contour et à faible opacité, parce que c'est un repère et
   pas un objet — ce qu'il recouvre doit rester visible à travers. */
+  /* LES CINQ COULEURS DE L'ÉTAT RESSENTI, en pastel.
+
+  Elles doivent se lire du coin de l'œil sans tirer le regard hors de la piste, et un rouge saturé
+  sur un écran de course se confondrait avec les feux stop. `car.ressenti` est bâti sur ce que la
+  voiture PRODUIT — pas sur ce que le pilote demande — et ses seuils sortent d'une mesure sur
+  741 000 images (voir `js/car.js`). Répartition mesurée au niveau difficile : 66 % de bleu, 25 %
+  de vert, 6,6 % de jaune, 1,5 % de violet, et le rouge aux seuls vrais tête-à-queue. */
+  static get PASTEL() {
+    return [[158, 203, 240], [166, 223, 166], [240, 224, 154], [200, 168, 234], [242, 163, 163]];
+  }
+
+  static teintePastel(r) {
+    const P = Renderer.PASTEL;
+    const x = clamp(r, 0, 1) * (P.length - 1), i = Math.min(P.length - 2, Math.floor(x)), f = x - i;
+    const a = P[i], b = P[i + 1];
+    return [Math.round(a[0] + (b[0] - a[0]) * f), Math.round(a[1] + (b[1] - a[1]) * f),
+            Math.round(a[2] + (b[2] - a[2]) * f)];
+  }
+
   _drawPouce(g, p) {
     const d = this.pouce, cx = d.cx, cy = d.cy;
     const held = !!p.throttle;
     this.poucePress += ((held ? 1 : 0) - this.poucePress) * 0.25;   // eased press feedback
     const pr = d.r * (1 - 0.06 * this.poucePress);
+    /* LA PASTILLE PORTE L'ÉTAT, SUR SON PROPRE FOND, et c'est une mesure qui l'impose.
+
+    Posée en translucide à même le décor, la teinte changeait de lisibilité selon ce qu'il y avait
+    dessous. Calculé sur les deux fonds du jeu, l'écart de couleur entre la pastille et son fond :
+
+                     bleu  vert  jaune  violet  rouge
+      sur le sable     48    27     12      45     29      (à 30 % d'opacité)
+      sur l'asphalte  121   111    126     113    100
+
+    Le jaune pastel est à DOUZE unités du sable : c'est sa couleur, à peu de chose près. Aucune
+    opacité ne le rattrape — à 60 % il est encore à 23, quand le même jaune sur l'asphalte dépasse
+    250 et devient criard. Une seule valeur ne peut pas servir les deux fonds.
+
+    On pose donc un disque sombre d'abord, et la teinte dessus. Elle a alors toujours le même fond,
+    donc toujours la même lisibilité, où que soit la voiture — ce qu'on attend d'un instrument. La
+    pastille y gagne en présence, et c'est le prix : elle ne décore plus, elle informe. Toujours pas
+    de contour pour autant. */
+    const [r0, v0, b0] = Renderer.teintePastel(p.ressenti || 0);
     g.beginPath(); g.arc(cx, cy, pr, 0, Math.PI * 2);
-    g.fillStyle = `rgba(255,255,255,${0.10 + 0.08 * this.poucePress})`; g.fill();
-    g.textBaseline = 'top';
+    g.fillStyle = 'rgba(14,16,22,0.38)'; g.fill();
+    g.beginPath(); g.arc(cx, cy, pr, 0, Math.PI * 2);
+    g.fillStyle = `rgba(${r0},${v0},${b0},${0.62 + 0.14 * this.poucePress})`; g.fill();
+
+    /* LA VITESSE JUSTE AU-DESSUS, donc au-dessus de la main. La pastille suit le doigt et le
+    chiffre avec elle : il garde toujours la même place par rapport à la main, ce qu'aucune
+    position fixe à l'écran ne peut offrir. En blanc plein sans fond, comme tout le bandeau depuis
+    que le cerné noir a été retiré. */
+    const kmh = String(Math.round(Math.max(0, p.speed) * 3.6));
+    const hT = this.mobile ? 28 : 34;
+    const yT = cy - pr - (this.mobile ? 10 : 13);
+    g.textAlign = 'center'; g.textBaseline = 'bottom';
+    g.font = `900 ${hT}px system-ui, sans-serif`;
+    const wNum = g.measureText(kmh).width;
+    g.font = `bold ${this.mobile ? 12 : 14}px system-ui, sans-serif`;
+    const wU = g.measureText('km/h').width;
+    const x0 = cx - (wNum + 4 + wU) / 2;
+    g.textAlign = 'left';
+    g.fillStyle = '#fff'; g.font = `900 ${hT}px system-ui, sans-serif`;
+    g.fillText(kmh, x0, yT);
+    g.fillStyle = '#c8ced9'; g.font = `bold ${this.mobile ? 12 : 14}px system-ui, sans-serif`;
+    g.fillText('km/h', x0 + wNum + 4, yT);
+    this.hudZones = this.hudZones || {};
+    this.hudZones.vitesse = { x: x0, w: wNum + 4 + wU, y: yT - hT, h: hT };
+    g.textAlign = 'left'; g.textBaseline = 'top';
   }
 
   // La pastille vient sous le pouce, et reste entière à l'écran.
@@ -1867,8 +1927,9 @@ class Renderer {
     // never far enough left to cover the line slider: that column must stay reachable
     const lo = this.slider.x + 30 + d.r, hi = this.w - d.r - m;
     d.cx = hi > lo ? clamp(x, lo, hi) : hi;
-    // plus rien à lire au-dessus d'elle : il ne lui faut que sa propre place
-    d.cy = clamp(y, d.r + m, this.h - d.r - m);
+    // le chiffre de la vitesse se pose au-dessus d'elle : il lui faut sa place, sinon il sort par
+    // le haut dès qu'on remonte le pouce
+    d.cy = clamp(y, d.r + (this.mobile ? 42 : 50) + m, this.h - d.r - m);
     this.pouceAncre = true;
   }
 
@@ -2096,51 +2157,19 @@ class Renderer {
     couleur de plus sur un écran qui en a déjà assez. Elle ne dit que la vitesse rapportée au maximum
     de la voiture — l'éventail disait la même chose, déroulé. Elle s'éclaircit à l'appui, parce que
     la pastille du pouce n'a plus de liseré pour le dire. */
-    const kmh = String(Math.round(Math.max(0, p.speed) * 3.6));
-    const fv = clamp(Math.max(0, p.speed) / p.cls.vmax, 0, 1);
-    const yV = yP + ph * 2 + 5 + (mobile ? 13 : 16);
-    const hV = mobile ? 30 : 38;
-    g.textAlign = 'center'; g.textBaseline = 'top';
-    g.fillStyle = '#fff'; g.font = `900 ${hV}px system-ui, sans-serif`;
-    cerne(kmh, W / 2, yV);
-    const wNum = g.measureText(kmh).width;
-    g.textAlign = 'left';
-    g.font = `bold ${mobile ? 12 : 14}px system-ui, sans-serif`; g.fillStyle = '#c8ced9';
-    cerne('km/h', W / 2 + wNum / 2 + 5, yV + (mobile ? 13 : 17));
-    const wU = g.measureText('km/h').width;
-    this.hudZones.vitesse = { x: W / 2 - wNum / 2, w: wNum + 5 + wU, y: yV, h: hV };
+    /* LA VITESSE ET L'ADHÉRENCE ONT QUITTÉ LE BANDEAU, et sont retournées sous le pouce.
 
-    /* LA JAUGE : sa LONGUEUR dit la vitesse, sa COULEUR dit l'état de la voiture.
+    Elles étaient en haut : le chiffre au centre, une jauge à sa droite dont la couleur portait
+    l'état ressenti. Bruno : « on perd de l'info ». C'est juste — deux choses à lire, loin l'une de
+    l'autre et loin de la voiture, pendant qu'on regarde la piste.
 
-    Elle est passée à droite, sous le tour, et au double de sa taille. Elle ne pouvait pas rester
-    sur la ligne du chiffre : collée au bord droit, elle y mordait sur le « km/h » dès que la
-    vitesse passait à trois chiffres. Elle a donc sa propre ligne, ce qui la met sous le bloc du
-    tour — là où Bruno la voulait — et la dégage pour de bon.
+    Les deux reviennent donc là où le regard passe de toute façon : la pastille du pouce PREND la
+    couleur de l'état, et le chiffre se pose juste au-dessus d'elle. Rien à chercher, rien à
+    balayer, et comme la pastille suit le doigt, le chiffre le suit aussi — il reste toujours au
+    même endroit par rapport à la main, ce qu'aucune position fixe ne peut offrir.
 
-    LES CINQ COULEURS SONT L'ÉTAT RESSENTI, pas l'adhérence calculée : `car.ressenti` est bâti sur
-    ce que la voiture produit, et ses seuils sortent d'une mesure sur 741 000 images (voir
-    `js/car.js`). En pastel, parce qu'elles doivent se lire du coin de l'œil sans tirer le regard
-    hors de la piste — et parce qu'une alerte rouge saturée sur un écran de course se confond avec
-    les feux stop. Répartition mesurée au niveau difficile : 66 % de bleu, 25 % de vert, 6,6 % de
-    jaune, 1,5 % de violet, et le rouge aux seuls vrais tête-à-queue. */
-    const PASTEL = [[158, 203, 240], [166, 223, 166], [240, 224, 154], [200, 168, 234], [242, 163, 163]];
-    const teinte = (r) => {
-      const x = clamp(r, 0, 1) * (PASTEL.length - 1), i = Math.min(PASTEL.length - 2, Math.floor(x)), f = x - i;
-      const a = PASTEL[i], b = PASTEL[i + 1];
-      return `rgb(${Math.round(a[0] + (b[0] - a[0]) * f)},${Math.round(a[1] + (b[1] - a[1]) * f)},${Math.round(a[2] + (b[2] - a[2]) * f)})`;
-    };
-    /* SUR LA LIGNE DU CHIFFRE, et en rectangle. Elle était sur sa propre ligne parce qu'une largeur
-    posée en dur mordait sur le « km/h » dès trois chiffres de vitesse. La largeur se MESURE donc
-    maintenant : on prend ce qui reste entre l'unité et le bord droit. Le problème disparaît au lieu
-    d'être contourné, et la jauge se lit à la hauteur de ce qu'elle qualifie. */
-    const xFin = W / 2 + wNum / 2 + 5 + wU;
-    const hJ = mobile ? 16 : 20;
-    const xJ = xFin + (mobile ? 12 : 16), wJ = Math.max(mobile ? 60 : 90, xe - xJ);
-    const yJ = yV + hV * 0.40 - hJ / 2;
-    g.fillStyle = 'rgba(10,12,20,0.62)';
-    g.fillRect(xJ, yJ, wJ, hJ);
-    if (fv > 0.004) { g.fillStyle = teinte(p.ressenti || 0); g.fillRect(xJ, yJ, wJ * fv, hJ); }
-    this.hudZones.jauge = { x: xJ, w: wJ, y: yJ, h: hJ };
+    La jauge disparaît : la vitesse rapportée au maximum ne disait rien que le chiffre ne dise
+    mieux, et c'était la troisième chose à lire. */
 
     /* LE LEVIER DE FREINAGE, et seulement en mode réglage.
 
@@ -2160,7 +2189,7 @@ class Renderer {
       il traversait la minicarte en haut à gauche : large et centré, il la croise forcément. On
       part donc du plus bas des deux. */
       const xR = Math.round((W - wR) / 2);
-      const yR = Math.max(yJ + hJ + (mobile ? 16 : 20), mmBas + 14);
+      const yR = mmBas + (mobile ? 16 : 20);
       this.reglageZone = { x: xR, w: wR, y: yR - 14, h: hR + 28 };
       g.fillStyle = 'rgba(10,12,20,0.70)';
       this._roundRect(g, xR - 10, yR - 14, wR + 20, hR + 30, 10); g.fill();
