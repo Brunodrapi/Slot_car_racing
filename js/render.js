@@ -882,19 +882,43 @@ class Renderer {
           if (i === a) cible.moveTo(q[0], q[1]); else cible.lineTo(q[0], q[1]);
         }
       }
-      /* LES STRIES DU BITUME. Une route n'est jamais un aplat : elle garde les passes de la
-         finisseuse et les traces du passage, et ça court DANS LE SENS DE LA MARCHE. À peine
-         visibles, elles font plus pour la lecture de la vitesse que n'importe quel effet : ce sont
-         elles qui défilent. Cinq lignes posées en fraction de la demi-largeur, pour qu'elles
-         suivent la piste quand elle s'élargit plutôt que de sortir du bitume. */
-      const stries = new Path2D();
-      for (const f of [-0.82, -0.56, -0.28, 0.02, 0.3, 0.58, 0.84]) {
-        for (let i = a; i <= b; i += STEP) {
-          const k = ((i % N) + N) % N;
-          const hw = f > 0 ? track.hwL[k] : track.hwR[k];
-          const lat = hw * f;
-          const q = [xs[k] + nx[k] * lat, ys[k] + ny[k] * lat];
-          if (i === a) stries.moveTo(q[0], q[1]); else stries.lineTo(q[0], q[1]);
+      /* LES STRIES DU BITUME — ÉPARSES, COURTES, INÉGALES.
+
+      Premier essai : sept lignes continues en fraction de la demi-largeur, du départ à l'arrivée.
+      C'est régulier, et une route ne l'est pas. Ce qu'on voit sur la photo, ce sont des TRACES —
+      un joint de bande d'enrobé qui court sur quelques dizaines de mètres puis s'arrête, une
+      reprise plus sombre, un passage lustré. Elles ne vont pas jusqu'au bout, elles ne sont pas
+      parallèles, et l'écart entre deux n'est jamais le même.
+
+      On en sème donc par longueurs tirées au sort, à des positions latérales tirées au sort, avec
+      une DÉRIVE latérale le long de chaque trace pour qu'aucune ne soit tout à fait parallèle à la
+      piste. Trois épaisseurs d'encre, en trois chemins, pour que toutes ne pèsent pas pareil :
+      c'est l'inégalité de l'encre autant que celle des longueurs qui empêche de lire un peigne.
+
+      Le tirage est semé sur l'indice du tronçon, donc un circuit retrouve ses traces à l'identique
+      d'une partie à l'autre, et chaque trace tient dans son tronçon — une soixantaine de mètres,
+      assez pour qu'on ne voie pas la coupure, et ça garde le découpage par la vue. */
+      const stries = [new Path2D(), new Path2D(), new Path2D()];
+      {
+        let graine = ((a + 1) * 2654435761) >>> 0;
+        const al = () => { graine ^= graine << 13; graine >>>= 0; graine ^= graine >> 17;
+          graine ^= graine << 5; graine >>>= 0; return graine / 4294967296; };
+        const finT = Math.min(a + CHUNK, N - 1);
+        let i0 = a + Math.floor(al() * 14);
+        while (i0 < finT - 6) {
+          const i1 = Math.min(finT, i0 + 6 + Math.floor(al() * 32));
+          const f0 = -0.86 + al() * 1.72;                        // où elle commence en largeur
+          const f1 = f0 + (al() - 0.5) * 0.3;                    // et où elle finit : jamais droit
+          const ch = stries[Math.floor(al() * stries.length)];
+          for (let i = i0; i <= i1; i += STEP) {
+            const k = ((i % N) + N) % N;
+            const t = (i - i0) / Math.max(1, i1 - i0);
+            const f = f0 + (f1 - f0) * t;
+            const hw = f > 0 ? track.hwL[k] : track.hwR[k];
+            const q = [xs[k] + nx[k] * hw * f, ys[k] + ny[k] * hw * f];
+            if (i === i0) ch.moveTo(q[0], q[1]); else ch.lineTo(q[0], q[1]);
+          }
+          i0 = i1 + 2 + Math.floor(al() * 24);                   // et l'écart jusqu'à la suivante
         }
       }
       chunks.push({ fill, left: lp, right: rp, mid: mp, stries, edgeBleu: eBleu, edgeJaune: eJaune,
@@ -1536,11 +1560,12 @@ class Renderer {
       for (const c of vus) g.fill(c.fill);
       // les stries, juste après l'aplat et avant tout le reste : elles sont DANS le bitume
       g.save();
-      // « de très légères stries » : un trait fin et peu appuyé. Plus marquées, elles se lisaient
-      // comme des lignes de voie peintes sur la route plutôt que comme sa matière.
-      g.globalAlpha = 0.38; g.lineWidth = 0.38; g.lineCap = 'butt';
-      g.strokeStyle = PAL.strie || 'rgba(120,96,56,0.16)';
-      for (const c of vus) g.stroke(c.stries);
+      g.lineCap = 'round'; g.strokeStyle = PAL.strie || 'rgba(146,112,58,0.15)';
+      const encre = [[0.20, 0.30], [0.40, 0.42], [0.60, 0.24]];
+      for (let k = 0; k < 3; k++) {
+        g.globalAlpha = encre[k][0]; g.lineWidth = encre[k][1];
+        for (const c of vus) g.stroke(c.stries[k]);
+      }
       g.restore();
       // kerbs, laid over the road's dark outline so the band reads as one crisp edge
       g.save();
