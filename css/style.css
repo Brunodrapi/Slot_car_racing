@@ -414,3 +414,55 @@ perdrait le curseur à chaque chiffre tapé. */
    configuration ne vaut que là où elle a été enregistrée. */
 .reg-ici { font-size: 13px; white-space: nowrap; }
 .reglage-pause .petite { font-size: 12px; opacity: 0.8; }
+
+/* Le même écran LCD pour les menus, les fiches et la course. */
+:root[data-theme="gameboy"] {
+  --bg: #c6d384; --panel: #c6d384; --card: #c6d384; --card2: #819a56;
+  --text: #112718; --muted: #30472c; --accent: #112718;
+  --accent2: #30472c; --danger: #112718; --radius: 0;
+}
+[data-theme="gameboy"] body { font-family: ui-monospace, "Courier New", monospace; }
+[data-theme="gameboy"] #ui { background: var(--bg); }
+[data-theme="gameboy"] #ui:has(.overlay) { background: transparent; }
+[data-theme="gameboy"] .screen.overlay { background: var(--panel); border: 4px double var(--text); }
+[data-theme="gameboy"] h1 { background: none; color: var(--text); font-family: ui-monospace, "Courier New", monospace; font-size: clamp(38px, 8vw, 72px); line-height: 1; letter-spacing: -0.06em; text-shadow: 3px 3px #819a56; }
+[data-theme="gameboy"] button,
+[data-theme="gameboy"] .form input,
+[data-theme="gameboy"] .form select,
+[data-theme="gameboy"] .card,
+[data-theme="gameboy"] .banner { border: 2px solid var(--text); border-radius: 0; box-shadow: none; }
+[data-theme="gameboy"] button { transition: none; }
+[data-theme="gameboy"] button.primary,
+[data-theme="gameboy"] button.primary:hover:not(:disabled),
+[data-theme="gameboy"] .card.sel { background: #112718; color: #c6d384; border-color: #112718; }
+[data-theme="gameboy"] .card.sel .muted { color: #c6d384; }
+[data-theme="gameboy"] :focus-visible { outline: 3px double var(--text); outline-offset: 4px; }
+[data-theme="gameboy"] .banner.good,
+[data-theme="gameboy"] .banner.bad { background: #819a56; color: #112718; }
+[data-theme="gameboy"] .gauge { --c: #30472c !important; }
+[data-theme="gameboy"] .gauge .ring .trk { stroke: #819a56; }
+[data-theme="gameboy"] #ui img,
+[data-theme="gameboy"] #ui canvas { filter: url(#gb-ink); image-rendering: pixelated; }
+[data-theme="gameboy"] .tbl th,
+[data-theme="gameboy"] .tbl td { border-color: #819a56; }
+.gb-title { width: min(460px, 100%); padding: 24px; border: 6px double #112718; background: #c6d384; }
+.gb-label { display: block; font-size: 12px; font-weight: bold; letter-spacing: 0.25em; margin-bottom: 28px; }
+.gb-title p { line-height: 1.5; }
+.gb-menu { display: grid; gap: 12px; margin: 28px 0; text-align: left; }
+.gb-menu button { text-align: left; font-weight: bold; min-height: 48px; }
+.gb-menu button::before { content: '▸ '; }
+.gb-menu button:hover, .gb-menu button:focus-visible { color: #c6d384; background: #112718 !important; }
+.gb-road { position: relative; height: 80px; margin: 28px -24px; border-block: 6px double #112718; background: #30472c; overflow: hidden; }
+.gb-road::before { content: ''; position: absolute; left: 0; right: 0; top: 32px; height: 4px; background: repeating-linear-gradient(90deg, #c6d384 0 20px, transparent 20px 40px); }
+.gb-car { position: absolute; left: 42%; top: 12px; width: 56px; height: 24px; background: #c6d384; border: 4px solid #112718; box-shadow: -6px -4px #112718, -6px 4px #112718, 6px -4px #112718, 6px 4px #112718; }
+.gb-car::after { content: ''; position: absolute; right: 8px; top: 0; width: 12px; height: 16px; background: #819a56; border-inline: 4px solid #112718; }
+.gb-press { font-weight: bold; animation: gb-blink 1.2s step-end infinite; }
+@keyframes gb-blink { 50% { opacity: 0.35; } }
+@media (max-height: 600px) { .gb-title { padding: 16px; } .gb-label { margin-bottom: 12px; } .gb-menu { gap: 8px; margin: 16px 0; } .gb-road { margin: 16px -16px; } }
+@media (prefers-reduced-motion: reduce) { .gb-press { animation: none; } }
+@font-face { font-family: 'GB Pixel'; src: url('../art/fonts/PressStart2P-Regular.ttf') format('truetype'); font-display: swap; }
+[data-theme="gameboy"] h1, [data-theme="gameboy"] h2, [data-theme="gameboy"] .gb-label,
+[data-theme="gameboy"] .gb-menu button, [data-theme="gameboy"] .gb-press { font-family: 'GB Pixel', monospace; }
+[data-theme="gameboy"] h2 { font-size: 18px; line-height: 1.6; }
+[data-theme="gameboy"] .gb-menu button, [data-theme="gameboy"] .gb-press { font-size: 11px; line-height: 1.8; }
+[data-theme="gameboy"] .gb-label { font-size: 9px; }

@@ -9,7 +9,7 @@ const NIVEAUX = ['easy', 'medium', 'hard', 'extreme', 'cauchemar'];
 
 const I18N = {
   fr: {
-    title: 'EYES ON LINE', subtitle: 'Un bouton, trois trajectoires. De vrais circuits.',
+    visualTheme: 'Thème visuel', classicTheme: 'Classique', title: 'EYES ON LINE', subtitle: 'Un bouton, trois trajectoires. De vrais circuits.',
     career: 'Carrière', quickRace: 'Course rapide', timeTrial: 'Contre-la-montre', settings: 'Réglages', back: 'Retour',
     editor: 'Éditeur de circuits', workshop: 'Atelier voitures',
     howto: 'Poser le pouce n’importe où (ou n’importe quelle touche / clic) : accélérer, relâcher pour freiner. La pastille vient se placer sous le pouce, et la vitesse se lit en haut au milieu. Pouce gauche (ou flèches / molette) : choisir sa place sur la piste — bord bleu, ligne idéale ou bord jaune. Les deux bords gardent leur couleur tout le tour. Trop vite dans un virage, c’est le bac à gravier.',
@@ -74,7 +74,7 @@ const I18N = {
     custom: 'perso',
   },
   en: {
-    title: 'EYES ON LINE', subtitle: 'One button, three lines. Real circuits.',
+    visualTheme: 'Visual theme', classicTheme: 'Classic', title: 'EYES ON LINE', subtitle: 'One button, three lines. Real circuits.',
     career: 'Career', quickRace: 'Quick race', timeTrial: 'Time trial', settings: 'Settings', back: 'Back',
     editor: 'Track editor', workshop: 'Car workshop',
     howto: 'Thumb anywhere (or any key / click): accelerate, release to brake. The pad follows your thumb, and the speed reads at the top centre. Left thumb (or arrows / wheel): pick your place on the road — blue edge, racing line or yellow edge. Each edge keeps its colour all the way round. Too fast into a corner and it’s the gravel.',
@@ -254,6 +254,7 @@ class UI {
   différents la partagent, et on arriverait sur le second à la hauteur où l'on avait laissé le
   premier. Sans clé, on repart du haut — c'est ce qu'on veut en changeant d'écran. */
   show(html, cls, cle) {
+    this.app.applyVisualTheme();
     const avant = this.root.firstElementChild;
     const garder = cle != null && cle === this._cleEcran && avant;
     const y = garder ? avant.scrollTop : 0;
@@ -452,6 +453,17 @@ class UI {
   lettering's own brightness. */
   splash() {
     const t = (k, ...a) => this.t(k, ...a);
+    if (this.app.save.visualTheme !== 'classic') {
+      this.show(`
+        <div class="gb-title"><span class="gb-label">GB · RACING</span>
+          <h1>EYES<br>ON LINE</h1>
+          <div class="gb-road" aria-hidden="true"><span class="gb-car"></span></div>
+          <p>${t('subtitle')}</p><p class="gb-press">${t('pressStart')}</p>
+        </div>
+        <div class="version">v${APP_VERSION} · ${APP_DATE}</div>
+      `, 'center splash gb-splash');
+      return;
+    }
     this.show(`
       <div class="stage">
         <img class="poster" src="art/title.webp" alt="${escapeHtml(t('title'))}">
@@ -514,6 +526,22 @@ class UI {
     par lequel tout le monde repasse, donc le seul où la question se pose une fois et une seule. */
     if (!nomValide(this.app.save.name)) return this.nomScreen();
     const t = (k, ...a) => this.t(k, ...a);
+    if (app.save.visualTheme !== 'classic') {
+      this.show(`
+        <div class="gb-title gb-home"><span class="gb-label">GB · RACING</span>
+          <h1>EYES<br>ON LINE</h1><p>${t('subtitle')}</p>
+          <nav class="gb-menu" aria-label="${escapeHtml(t('title'))}">
+            <button data-action="setup" data-mode="race">${t('quickRace')}</button>
+            <button data-action="setup" data-mode="timetrial">${t('timeTrial')}</button>
+            <button data-action="multi">${t('multi')}</button>
+            <button data-action="settings">${t('settings')}</button>
+          </nav>
+          ${app.mondial && app.mondial.erreurConnexion ? `<div class="menu-auth"><span>${t('authTrouble')}</span><button data-action="google">${t('reconnect')}</button></div>` : ''}
+          <small class="muted">v${APP_VERSION} · ${APP_DATE}</small>
+        </div>
+      `, 'center scroll gb-home-screen');
+      return;
+    }
     // top of each banner, as measured on the poster; `fold` is the artwork that carries the text
     const items = [
       { top: 20.04, fold: 'course-rapide', act: 'setup', mode: 'race', label: t('quickRace') },
@@ -558,6 +586,7 @@ class UI {
             : `<button class="link" data-action="google">${t('signIn')}</button>`}</span></label>
         <label>${t('language')}
           <select id="sel-lang"><option value="fr" ${s.lang === 'fr' ? 'selected' : ''}>Français</option><option value="en" ${s.lang === 'en' ? 'selected' : ''}>English</option></select></label>
+        <label>${t('visualTheme')}<select id="sel-theme"><option value="gameboy" ${s.visualTheme !== 'classic' ? 'selected' : ''}>Game Boy</option><option value="classic" ${s.visualTheme === 'classic' ? 'selected' : ''}>${t('classicTheme')}</option></select></label>
         <label>${t('sound')}<select id="sel-sound"><option value="1" ${s.sound ? 'selected' : ''}>${t('on')}</option><option value="0" ${!s.sound ? 'selected' : ''}>${t('off')}</option></select></label>
         <label>${t('showLines')}<select id="sel-lines"><option value="0" ${s.showLines !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.showLines === true ? 'selected' : ''}>${t('on')}</option></select></label>
         <label>${t('telemetry')}<select id="sel-debug"><option value="0" ${s.debug !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.debug === true ? 'selected' : ''}>${t('on')}</option></select></label>
@@ -1110,7 +1139,7 @@ class UI {
       case 'toLobby': app.toLobby(); break;
       case 'startCup': app.startCupRace(id); break;
       case 'resetCup': delete app.save.cups[id]; storeSave(app.save); this.cupScreen(id); break;
-      case 'resetAll': if (confirm(this.t('resetConfirm'))) { app.save = defaultSave(); storeSave(app.save); this.settings(); } break;
+      case 'resetAll': if (confirm(this.t('resetConfirm'))) { app.save = defaultSave(); storeSave(app.save); app.applyVisualTheme(); this.settings(); } break;
       case 'resume': app.resume(); break;
       case 'retryRace': app.retry(); break;
       case 'quitRace': app.toMenu(); break;
@@ -1200,6 +1229,7 @@ class UI {
       storeSave(s); this.setupScreen(this.setup.mode);
     }
     if (el.id === 'sel-lang') { s.lang = el.value; storeSave(s); this.settings(); }
+    if (el.id === 'sel-theme') { s.visualTheme = el.value === 'classic' ? 'classic' : 'gameboy'; storeSave(s); this.app.applyVisualTheme(); }
     if (el.id === 'sel-sound') { s.sound = el.value === '1'; storeSave(s); this.app.audio.setEnabled(s.sound); }
     if (el.id === 'sel-lines') { s.showLines = el.value === '1'; storeSave(s); this.app.renderer.showLines = s.showLines; }
     // le côté du levier : le rendu le relit à chaque image, il n'y a rien d'autre à faire ici

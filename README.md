@@ -3387,3 +3387,21 @@ Ajouter une entrée dans `js/tracks.js` : une liste de points `[x, y]` formant u
 (y vers le bas, le premier point sur la ligne droite de départ), la longueur cible en mètres, la largeur
 et le nombre de tours de référence. Les trois trajectoires sont générées automatiquement. Un circuit
 dessiné dans l'éditeur peut aussi être exporté en JSON et copié dans ce fichier.
+
+## Thème Game Boy
+
+Le style Game Boy est proposé par défaut : quatre tons olive, rendu de course à 320 pixels de large,
+menus LCD et police pixel locale. Il s'applique à tous les circuits, y compris ceux importés, sans
+changer la physique ni les records. Dans **Réglages → Thème visuel**, **Classique** restaure les
+menus illustrés et les couleurs d'origine ; le choix est conservé au rechargement.
+La variante **Spa · Game Boy** garde son filtre même en style classique.
+
+Vérification du thème : `node tools/e2e-gameboy.js /tmp/slot-gameboy` (Playwright + Chromium).
+Le test couvre téléphone et bureau, les quatre couleurs du canvas, le changement de thème,
+sa persistance, la pause et la rotation. Les captures restent dans le dossier de sortie.
+
+Captures du thème GB sur téléphone :
+
+| Menu | Course |
+| --- | --- |
+| ![Menu Game Boy](docs/gameboy/menu-mobile.png) | ![Course Game Boy](docs/gameboy/course-mobile.png) |

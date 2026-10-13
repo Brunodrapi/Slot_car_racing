@@ -101,3 +101,9 @@ L'argument est sérieux ; il n'est pas une garantie, et il varie selon les pays.
 lignes et clôt la question, même là où elle ne se serait pas posée. C'est le parti pris ici.
 
 *Ceci est une lecture des licences, pas un avis juridique.*
+
+## Police du thème Game Boy
+
+`art/fonts/PressStart2P-Regular.ttf` : **Press Start 2P**, Copyright 2012 The Press Start 2P Project Authors, sous SIL Open Font License 1.1.
+Source : https://github.com/google/fonts/tree/main/ofl/pressstart2p.
+Le texte de la licence est fourni dans `art/fonts/PressStart2P-OFL.txt`. La police est servie localement, sans appel à Google Fonts.

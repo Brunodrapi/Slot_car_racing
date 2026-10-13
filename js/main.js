@@ -3,10 +3,22 @@
 'use strict';
 
 class App {
+  applyVisualTheme() {
+    const gb = this.save.visualTheme !== 'classic';
+    document.documentElement.dataset.theme = gb ? 'gameboy' : 'classic';
+    const avant = this.renderer.gameboy;
+    this.renderer.visualTheme = gb ? 'gameboy' : 'classic';
+    this.renderer.gameboy = gb || !!(this.renderer.track && this.renderer.track.gameboy);
+    if (avant !== this.renderer.gameboy && this.renderer.track && this.renderer.paths) this.renderer._makeMinimap();
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = gb ? '#c6d384' : '#0f1117';
+  }
+
   constructor() {
     this.save = loadSave();
     this.canvas = document.getElementById('game');
     this.renderer = new Renderer(this.canvas);
+    this.applyVisualTheme();
     this.renderer.showLines = this.save.showLines === true;
     this.renderer.setView(this.save.view || 'avanceFixe');
     this.renderer.setPullBack(this.save.pullBack || 1);

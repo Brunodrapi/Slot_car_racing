@@ -575,7 +575,7 @@ class Renderer {
   }
 
   setTrack(track) {
-    this.gameboy = !!track.gameboy;   // le filtre quatre tons, voir `_toileGB`
+    this.gameboy = this.visualTheme === 'gameboy' || !!track.gameboy;   // le filtre quatre tons, voir `_toileGB`
     this.track = track;
     this.rubber = new Map();
     this.particles = [];
@@ -1137,7 +1137,7 @@ class Renderer {
     se situer. En blanc à demi transparent il laisse voir la piste dessous et ne réclame plus
     l'attention — on va le chercher quand on en a besoin, il ne vient plus à nous. */
     g.lineCap = 'round'; g.lineJoin = 'round';
-    g.strokeStyle = 'rgba(255,255,255,0.50)'; g.lineWidth = 5 / sc; g.stroke(this.paths.center);
+    g.strokeStyle = this.gameboy ? '#ffffff' : 'rgba(255,255,255,0.50)'; g.lineWidth = 5 / sc; g.stroke(this.paths.center);
     /* La voie des stands sur la carte, et le seul endroit du jeu où elle n'est PAS à l'échelle.
 
     Reprendre la géométrie réelle ne donne rien : la voie court à sept ou huit mètres du bord, ce
@@ -1617,12 +1617,18 @@ class Renderer {
          la console, qui n'écrivaient jamais sans bordure. */
       const vrai = ctx.fillText.bind(ctx);
       ctx.fillText = function (t, x, y, m) {
+        const largeur = m === undefined ? ctx.measureText(t).width : m;
         ctx.save();
-        ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.miterLimit = 2;
+        if (document.fonts.check('8px "GB Pixel"')) {
+          const taille = +(ctx.font.match(/([\d.]+)px/) || [0, 12])[1];
+          ctx.font = `${Math.max(8 / k, taille * 0.75)}px "GB Pixel", monospace`;
+        }
+        ctx.fillStyle = '#ffffff';
+        ctx.lineWidth = 1.5; ctx.lineJoin = 'round'; ctx.miterLimit = 2;
         ctx.strokeStyle = Renderer.GB_PAL[0];
-        if (m === undefined) ctx.strokeText(t, x, y); else ctx.strokeText(t, x, y, m);
+        ctx.strokeText(t, x, y, largeur);
+        vrai(t, x, y, largeur);
         ctx.restore();
-        if (m === undefined) vrai(t, x, y); else vrai(t, x, y, m);
       };
       this._gb = { canvas: c, ctx, lut };
     }
@@ -2415,8 +2421,10 @@ class Renderer {
        disque du pouce, qu'un cadre à liseré défigurerait. */
     if (this.gameboy && w >= 40 && h >= 16) {
       g.save();
-      g.fillStyle = Renderer.GB_PAL[3];
-      g.fillRect(x - 1, y - 1, w + 2, h + 2);
+      g.globalAlpha = 1;
+      g.fillStyle = '#ffffff';
+      const bord = 1 / this.dpr;
+      g.fillRect(x - bord, y - bord, w + bord * 2, h + bord * 2);
       g.restore();
       g.fillStyle = Renderer.GB_PAL[0];
       g.beginPath(); g.rect(x, y, w, h);
@@ -2679,10 +2687,12 @@ class Renderer {
     const vide = Math.max(gMin, (restant - pw) / 2);
     this.pauseBtn.x = Math.round(xs + wPos + vide);
 
+    if (this.gameboy) panel(xs - 4, y0 - 2, wPos + 8, mobile ? 40 : 50);
     bloc(xs, y0, tt ? '—' : String(pos), t('pos'), posTot);
     this.hudZones = { pos: { x: xs, w: wPos } };
 
     // --- les temps, en haut à droite : le tour courant en grand, deux pastilles en dessous ---
+    if (this.gameboy) panel(xe - wLap - 4, y0 - 2, wLap + 8, mobile ? 40 : 50);
     const tx = xe;   // le tour garde le bord droit : c'est le repère le plus stable
     // le tour, aligné à droite, au-dessus des pastilles
     g.textAlign = 'right'; g.textBaseline = 'top';
@@ -2873,7 +2883,8 @@ class Renderer {
     if (this.mm) {
       const m = this.mm;
       const mx = mmX, my = mmY;
-      // pas de fond : le tracé translucide se pose sur le décor sans lui voler sa place
+      if (this.gameboy) panel(mx - 2, my - 2, m.size + 4, m.size + 4);
+      // Le style classique garde la carte transparente.
       g.drawImage(m.canvas, mx, my, m.size, m.size);
       /* Les points de la carte, deux fois plus gros, et le joueur en bleu ciel.
 
@@ -2884,7 +2895,7 @@ class Renderer {
       for (const car of race.cars) {
         const wp = car.pos, q = this.mmPoint(wp.x, wp.y);
         // pas de cerne ici non plus : le bleu ciel du joueur se distingue tout seul des livrées
-        g.fillStyle = car.isPlayer ? '#7fd4ff' : car.livery.body;
+        g.fillStyle = this.gameboy ? (car.isPlayer ? '#ffffff' : '#cccccc') : (car.isPlayer ? '#7fd4ff' : car.livery.body);
         g.beginPath(); g.arc(mx + q.x, my + q.y, car.isPlayer ? 9 : 6, 0, Math.PI * 2); g.fill();
       }
     }
@@ -2975,7 +2986,8 @@ class Renderer {
     const ouvert = !!(p.usure && p.lap >= 1 && !p.pitServi && !p.finished);
     this.pitOpen = ouvert;
     this.pitY = s.y + s.len + 22;
-    g.fillStyle = 'rgba(10,12,20,0.55)'; this._roundRect(g, s.x - s.w / 2 - 8, s.y - 26, s.w + 16, s.len + 52 + (ouvert ? 22 : 0), 12); g.fill();
+    const margeGB = this.gameboy ? 48 : 0;
+    g.fillStyle = 'rgba(10,12,20,0.55)'; this._roundRect(g, s.x - s.w / 2 - 8 - (s.droite ? margeGB : 0), s.y - 26, s.w + 16 + margeGB, s.len + 52 + (ouvert ? 22 : 0), 12); g.fill();
     // track
     g.fillStyle = 'rgba(255,255,255,0.18)'; this._roundRect(g, s.x - 4, s.y, 8, s.len, 4); g.fill();
     const stops = [{ v: 1, c: LINE_COLORS.jaune, l: t('lineJaune') }, { v: 0, c: LINE_COLORS.racing, l: t('lineRace') }, { v: -1, c: LINE_COLORS.bleu, l: t('lineBleu') }];

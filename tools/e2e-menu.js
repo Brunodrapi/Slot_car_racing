@@ -41,6 +41,8 @@ const serveur = http.createServer((req, res) => {
   joueur. On attend que `app` existe : `goto` rend la main au chargement, pas à l'initialisation. */
   await page.waitForFunction(() => typeof app !== 'undefined' && app.save);
   await page.evaluate(() => {
+    // Cette suite mesure les bandeaux illustrés classiques ; e2e-gameboy couvre les menus GB.
+    app.save.visualTheme = 'classic'; app.applyVisualTheme();
     app.save.name = 'Testeur'; storeSave(app.save);
     /* Et pas de tableau mondial : ces essais mesurent des menus, pas un service distant. Le
     laisser branché ferait partir une requête réseau à chaque ouverture de l'écran des records —
