@@ -675,9 +675,22 @@ class Renderer {
         ruban(kerbHaut, 0.05, 0.34);      // l'arête qui prend la lumière, étroite
         ruban(kerbFlanc, 0.74, 1);        // le flanc extérieur, dans l'ombre de lui-même
       }
-      // gravel: wider band around the corner
-      for (let i = cn.from; i <= cn.to; i += 2) { const k = ((i % N) + N) % N, p = [xs[k] + nx[k] * (track.hwL[k] + 8), ys[k] + ny[k] * (track.hwL[k] + 8)]; if (i === cn.from) gravel.moveTo(p[0], p[1]); else gravel.lineTo(p[0], p[1]); }
-      for (let i = cn.to; i >= cn.from; i -= 2) { const k = ((i % N) + N) % N; gravel.lineTo(xs[k] - nx[k] * (track.hwR[k] + 8), ys[k] - ny[k] * (track.hwR[k] + 8)); }
+      /* LE BAC MEURT SUR SES BORDS au lieu de se refermer par une corde.
+
+      Il était fait d'un ruban de huit mètres de large sur toute la longueur du virage, refermé aux
+      deux bouts : la fermeture est un trait droit EN TRAVERS DE LA PISTE, et il se voyait comme
+      tel — un triangle à arête franche posé sur l'herbe. Deux virages qui s'enchaînent empilaient
+      les leurs, et le bas-côté se couvrait d'un patchwork de facettes.
+
+      La largeur suit donc une cloche qui vaut zéro aux deux extrémités : le bac rejoint le bord de
+      piste là où il commence et là où il finit, et il n'y a plus rien à refermer. C'est aussi ce
+      que fait un vrai dégagement, qui s'ouvre et se referme progressivement. */
+      const large = (i) => {
+        const t = (i - cn.from) / Math.max(1, cn.to - cn.from);
+        return 8 * Math.pow(Math.sin(Math.PI * Math.min(1, Math.max(0, t))), 0.55);
+      };
+      for (let i = cn.from; i <= cn.to; i += 2) { const k = ((i % N) + N) % N, w = large(i), p = [xs[k] + nx[k] * (track.hwL[k] + w), ys[k] + ny[k] * (track.hwL[k] + w)]; if (i === cn.from) gravel.moveTo(p[0], p[1]); else gravel.lineTo(p[0], p[1]); }
+      for (let i = cn.to; i >= cn.from; i -= 2) { const k = ((i % N) + N) % N, w = large(i); gravel.lineTo(xs[k] - nx[k] * (track.hwR[k] + w), ys[k] - ny[k] * (track.hwR[k] + w)); }
       gravel.closePath();
       return { left: l, right: r, gravel, kerbs, kerbEdge, kerbOmbre, kerbHaut, kerbFlanc, bbox: { minX: minX - 30, minY: minY - 30, maxX: maxX + 30, maxY: maxY + 30 } };
     });

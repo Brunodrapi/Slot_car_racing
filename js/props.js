@@ -896,6 +896,14 @@ const BUISSONS = ['buisson-1', 'buisson-2', 'buisson-3', 'buisson-4', 'buisson-5
    première, et quinze mètres couvre le cas le plus large. */
 const HORS_BARRIERES = 15;
 
+/* RIEN NE POUSSE SUR LES BANDES PEINTES. Le bord de piste porte trois marques dans l'ordre : le
+   liseré sombre qui encadre le bitume, large de trois mètres et demi dont la moitié déborde sur
+   l'herbe, puis la ligne bleue ou jaune qui dit de quel côté on est. Ce sont des REPÈRES — on
+   pousse le levier vers le jaune, on vise le bleu — et une touffe posée dessus les hache. Le semis
+   commence donc après elles. La bande d'herbe fauchée, elle, va jusqu'au bitume : c'est ce qui
+   rattache la route au pré sans rien cacher. */
+const HORS_MARQUAGE = 2.6;
+
 const STRATES_ARDENNES = [
   { nom: 'canopee', kinds: ARBRES.concat(ARBRES, SAPINS), de: HORS_BARRIERES, a: 95, r: 9.5,
     ech: [0.95, 1.35], couvre: 6.0 },
@@ -905,12 +913,12 @@ const STRATES_ARDENNES = [
   // devant les barrières : des arbustes et rien qui pèse
   { nom: 'abords', kinds: ['buisson-6', 'buisson-7', 'buisson-8', 'buisson-9', 'buisson-10',
     'buisson-fleuri-jaune', 'buisson-fleuri-rouge', 'buisson-fleuri-vert'],
-    de: 2.5, a: HORS_BARRIERES - 2, r: 4.4, ech: [0.7, 1.0], couvre: 2.0 },
+    de: HORS_MARQUAGE + 0.8, a: HORS_BARRIERES - 2, r: 4.4, ech: [0.7, 1.0], couvre: 2.0 },
   // l'herbe et les fleurs vont partout ; la souche, le rondin et les cailloux restent au bois
   { nom: 'couvre-sol', kinds: ['herbe-1', 'herbe-2', 'herbe-3', 'herbe-1', 'herbe-2',
     'fleurs-blanches', 'fleurs-jaunes', 'fleurs-rouges', 'fleurs-blanches2',
     'buisson-mini-1', 'buisson-mini-2', 'buisson-mini-3', 'buisson-mini-4'],
-    de: 0.4, a: 22, r: 2.2, ech: [0.85, 1.25] },
+    de: HORS_MARQUAGE, a: 22, r: 2.2, ech: [0.85, 1.25] },
   { nom: 'bois-mort', kinds: ['caillou', 'rocher-2', 'souche', 'rondin', 'branche'],
     de: HORS_BARRIERES, a: 60, r: 7.0, ech: [0.85, 1.2] },
 ];
