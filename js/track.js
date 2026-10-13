@@ -81,6 +81,15 @@ class Track {
        Les autres gardent l'ancien semeur tant qu'on ne les a pas repris un par un. */
     this.decor = def.decor || null;
     this.plaques = def.plaques || null;   // les images d'essai posées au sol, voir `js/render.js`
+    /* Le rectangle de chaque plaque, dans son propre repère, pour qu'on puisse demander vite si
+       un point est dessous. Trois morceaux du jeu ont besoin de le savoir — le semis, le
+       mobilier et le dessin du sol — et chacun le recalculant de son côté, le premier réglage
+       de rotation les désaccorderait. */
+    this._rectsPlaques = (def.plaques || []).map((pl) => {
+      const a = (pl.rot || 0) * Math.PI / 180;
+      return { x: pl.x, y: pl.y, c: Math.cos(a), si: Math.sin(a),
+        dx: pl.m / 2, dy: pl.m * (pl.hw || 1) / 2 };
+    });
     this.drawRoad = def.drawRoad !== false;
     this._build();
   }
@@ -562,6 +571,18 @@ class Track {
   /* `cote` vaut +1 pour le côté de la normale (celui de `hwL`), -1 pour l'autre. Sans argument on
      rend la plus grande des deux : c'est ce qu'il faut à tout ce qui doit ÉVITER le bac sans
      savoir de quel bord il parle — le semis, par exemple, qui se contente d'un rayon. */
+  /* Sous une plaque d'essai, le moteur ne pose plus que la route et ses flèches : l'image porte
+     déjà sa forêt, ses bas-côtés, son dégagement et ses glissières, et en superposer une seconde
+     série empêche de juger ce qu'elle vaut. */
+  sousPlaque(x, y) {
+    for (const q of this._rectsPlaques) {
+      const ux = x - q.x, uy = y - q.y;
+      const a = ux * q.c + uy * q.si, b = -ux * q.si + uy * q.c;
+      if (Math.abs(a) < q.dx && Math.abs(b) < q.dy) return true;
+    }
+    return false;
+  }
+
   largeurBac(i, cote) {
     const N = this.n;
     if (!this.bacW) this.bacW = this._profilBac();

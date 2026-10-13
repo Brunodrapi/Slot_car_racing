@@ -1618,7 +1618,14 @@ class Renderer {
 
       Elle passe SOUS le bac à gravier : là où il y a un dégagement, il n'y a pas de pelouse à
       tondre, et c'est le gravier qui doit se voir. */
-      const vus0 = this.paths.chunks.filter(c => inView(c.bbox));
+      /* SOUS UNE PLAQUE, le moteur ne pose plus que la route et ses flèches. Le bas-côté, le
+         dégagement, les glissières, les pneus et le semis s'y taisent : l'image les porte déjà,
+         et en superposer une seconde série empêche de juger ce qu'elle vaut. Le test se fait au
+         milieu du tronçon, ce qui suffit — un tronçon fait quelques mètres. */
+      const horsPlaque = T.plaques
+        ? (c) => !T.sousPlaque((c.bbox.minX + c.bbox.maxX) / 2, (c.bbox.minY + c.bbox.maxY) / 2)
+        : () => true;
+      const vus0 = this.paths.chunks.filter(c => inView(c.bbox) && horsPlaque(c));
       const lg = (PAL.bordureM || 3.4) * 2;
       /* DEUX PASSES, parce qu'un bord franc se lit comme un trait tracé et non comme de l'herbe.
          La première déborde et ne fait qu'un quart du ton ; la seconde pose la bande pleine. */
@@ -1642,7 +1649,7 @@ class Renderer {
       contexte : mettre le contexte à l'échelle mettrait aussi le CHEMIN à l'échelle, et le bac se
       retrouverait seize fois trop loin de la piste. */
       for (const cn of this.paths.corners) {
-        if (!inView(cn.bbox)) continue;
+        if (!inView(cn.bbox) || !horsPlaque(cn)) continue;
         g.fillStyle = PAL.gravel; g.fill(cn.gravel);
         if (this.gravierMotif) {
           /* À pleine opacité, la texture remplaçait la couleur du thème et ramenait le brun de la

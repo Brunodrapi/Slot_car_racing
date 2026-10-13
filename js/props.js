@@ -1225,23 +1225,6 @@ function semeStrates(track, id, strates) {
     }
     return true;
   };
-  /* SOUS UNE PLAQUE, ON NE SÈME RIEN. Une plaque d'essai porte déjà sa forêt, ses bas-côtés et
-     son dégagement : y semer les nôtres par-dessus empêche justement de voir ce qu'elle vaut.
-     C'est la condition pour que la comparaison ait un sens. */
-  const plaques = (track.plaques || []).map((pl) => {
-    const a = (pl.rot || 0) * Math.PI / 180;
-    return { x: pl.x, y: pl.y, c: Math.cos(a), si: Math.sin(a),
-      dx: pl.m / 2, dy: pl.m * (pl.hw || 1) / 2 };
-  });
-  const sousPlaque = (x, y) => {
-    for (const q of plaques) {
-      const ux = x - q.x, uy = y - q.y;
-      // on repasse dans le repère de la plaque : rotation inverse
-      const a = ux * q.c + uy * q.si, b = -ux * q.si + uy * q.c;
-      if (Math.abs(a) < q.dx && Math.abs(b) < q.dy) return true;
-    }
-    return false;
-  };
   const poses = [];                       // {s, d, cote, r} de tout ce qui est déjà debout
   strates.forEach((st, is) => {
     const rnd = rngStrate(seedFromId('strate-' + is + '-' + id));
@@ -1292,7 +1275,7 @@ function semeStrates(track, id, strates) {
         const lat = (hw + p.d) * cote;
         if (p.d < track.largeurBac(i, cote) + 1.2) continue;   // le bac du bord qu'on longe
         const x = track.xs[i] + track.nx[i] * lat, y = track.ys[i] + track.ny[i] * lat;
-        if (plaques.length && sousPlaque(x, y)) continue;
+        if (track.plaques && track.sousPlaque(x, y)) continue;   // l'image porte la sienne
         // la garde est celle de la strate elle-même : ce qu'elle s'interdit près de SON bord, elle
         // se l'interdit près de n'importe quel autre tronçon du tour
         /* La garde radiale se cale sur le `de` de la strate, moins une marge : à quatre-vingt-
@@ -1467,7 +1450,9 @@ function poseBarrieres(track, id) {
         const clos = Math.max(track.hwL[j] + recul.L[j], track.hwR[j] + recul.R[j]);
         if (dx * dx + dy * dy < clos * clos) dehors = false;
       }
-      if (dehors) out.push({ x, y, id: 'rail', ech: 1, ton: 0, om: 0, rot: cap });
+      if (dehors && !(track.plaques && track.sousPlaque(x, y))) {
+        out.push({ x, y, id: 'rail', ech: 1, ton: 0, om: 0, rot: cap });
+      }
       s += pas;
     }
   }
@@ -1557,7 +1542,7 @@ function posePneus(track, id) {
         const clos = Math.max(track.hwL[j] + recul.L[j], track.hwR[j] + recul.R[j]);
         if (dx * dx + dy * dy < clos * clos) dehors = false;
       }
-      if (dehors) {
+      if (dehors && !(track.plaques && track.sousPlaque(x, y))) {
         out.push({ x, y, id: 'pneu-' + (k++ % PNEUS.length), ech: 1, ton: 0, om: 0, rot: 0 });
         px = x; py = y;
       }
