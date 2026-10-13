@@ -575,6 +575,7 @@ class Renderer {
   }
 
   setTrack(track) {
+    this.gameboy = !!track.gameboy;   // le filtre quatre tons, voir `_toileGB`
     this.track = track;
     this.rubber = new Map();
     this.particles = [];
@@ -1555,8 +1556,107 @@ class Renderer {
   }
 
   // ---------- main draw ----------
+  /* ------------------------------------------------------------------------ LE RENDU GAME BOY
+
+     Quatre tons de vert, de gros pixels, et rien d'autre. C'est un FILTRE, pas un thème : le jeu
+     se dessine exactement comme d'habitude, et on le réduit à la fin. Trois raisons de faire
+     ainsi plutôt que de peindre un décor vert.
+
+     D'abord, le HUD est dessiné sur la même toile que le monde : l'interface se pixelise donc
+     avec lui, sans qu'on ait à la refaire. C'est elle qui fait la moitié de l'effet.
+
+     Ensuite, la quantification se fait sur la CLARTÉ. Peu importe de quelle couleur est le
+     feuillage, le bitume ou un vibreur : ce qui compte est leur valeur, et c'est elle qui décide
+     du ton. Tout circuit, tout thème, toute voiture passent au filtre sans rien préparer.
+
+     Enfin, le coût : la toile interne fait trois cent vingt pixels de large. On ne parcourt donc
+     que deux cent mille pixels au lieu du million trois cent mille de l'écran, et on y gagne
+     aussi tout le dessin, qui se fait à cette taille-là.
+
+     Les quatre tons sont relevés sur l'image de Bruno, pas inventés : #112718, #30472c, #819a56,
+     #c6d384 — une palette plus olive que celle de la vraie console. Les seuils sont les milieux
+     des clartés mesurées. */
+  _toileGB() {
+    /* LA TOILE EST PLUS PETITE, LES COORDONNÉES NE CHANGENT PAS. Premier essai : je donnais au
+       moteur une largeur logique de trois cent vingt. Tout ce qui est dessiné en pixels absolus —
+       et une taille de police l'est — occupait alors un cinquième de plus de la largeur, et le
+       HUD débordait de ses propres cadres.
+
+       On ne touche donc pas aux coordonnées : on ne change que le FACTEUR entre elles et les
+       pixels. C'est exactement ce que `dpr` veut dire, et il sait déjà valoir deux ; rien
+       n'interdit qu'il vaille quatre cinquièmes. La mise en page, les polices et les cadres
+       restent ceux de l'écran, et c'est la toile qui rétrécit sous eux. */
+    const k = Math.min(1, Renderer.GB_LARGEUR / Math.max(1, this.w));
+    const l = Math.max(1, Math.round(this.w * k));
+    const h = Math.max(1, Math.round(this.h * k));
+    if (!this._gb || this._gb.canvas.width !== l || this._gb.canvas.height !== h) {
+      const c = document.createElement('canvas');
+      c.width = l; c.height = h;
+      /* LA TABLE EST CALCULÉE UNE FOIS. Quantifier revient à lire une clarté et à écrire une
+         couleur : deux cent mille fois par image, toute division ou comparaison en trop se paie.
+         Une table de deux cent cinquante-six entrées, déjà au format d'un pixel, et la boucle ne
+         fait plus qu'une lecture et une écriture. */
+      const pal = Renderer.GB_PAL.map((x) => {
+        const v = parseInt(x.slice(1), 16);
+        return (255 << 24) | ((v & 255) << 16) | ((v >> 8 & 255) << 8) | (v >> 16 & 255);
+      });
+      const seuils = Renderer.GB_SEUILS;
+      const lut = new Uint32Array(256);
+      for (let i = 0; i < 256; i++) {
+        lut[i] = pal[i < seuils[0] ? 0 : i < seuils[1] ? 1 : i < seuils[2] ? 2 : 3];
+      }
+      const ctx = c.getContext('2d', { willReadFrequently: true });
+      /* TOUT TEXTE PREND UN CONTOUR SOMBRE. Sur quatre tons, un texte clair posé sur le bitume —
+         qui est le ton le plus clair — devient invisible : les deux tombent dans le même ton.
+         C'est ce qui arrivait aux libellés du levier dès qu'ils dépassaient de leur panneau, et
+         ça ne se corrige pas en déplaçant un panneau, parce que le cas se présente partout où un
+         texte croise une surface claire.
+
+         On enveloppe donc `fillText` une fois pour toutes, sur NOTRE contexte et lui seul : un
+         tracé sombre d'abord, le remplissage ensuite. C'est aussi ce que faisaient les jeux de
+         la console, qui n'écrivaient jamais sans bordure. */
+      const vrai = ctx.fillText.bind(ctx);
+      ctx.fillText = function (t, x, y, m) {
+        ctx.save();
+        ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.miterLimit = 2;
+        ctx.strokeStyle = Renderer.GB_PAL[0];
+        if (m === undefined) ctx.strokeText(t, x, y); else ctx.strokeText(t, x, y, m);
+        ctx.restore();
+        if (m === undefined) vrai(t, x, y); else vrai(t, x, y, m);
+      };
+      this._gb = { canvas: c, ctx, lut };
+    }
+    return this._gb;
+  }
+
   draw(race, ui) {
-    this._adapt(performance.now());
+    if (!this.gameboy) return this._dessine(race, ui);
+    const gb = this._toileGB();
+    const vrai = { ctx: this.ctx, canvas: this.canvas, w: this.w, h: this.h, dpr: this.dpr };
+    /* La résolution est FIXE par définition : on neutralise l'adaptation, qui sinon ferait varier
+       la taille des pixels d'une seconde à l'autre — ce qui est le contraire d'une Game Boy. */
+    this.ctx = gb.ctx; this.canvas = gb.canvas;
+    this.dpr = gb.canvas.width / this.w;     // `w` et `h` ne bougent pas : voir `_toileGB`
+    try { this._dessine(race, ui, true); } finally { Object.assign(this, vrai); }
+
+    const im = gb.ctx.getImageData(0, 0, gb.canvas.width, gb.canvas.height);
+    const px = new Uint32Array(im.data.buffer), d = im.data, lut = gb.lut;
+    for (let i = 0, j = 0; i < px.length; i++, j += 4) {
+      // la clarté, au plus court : (r + 2v + b) / 4, à un décalage près
+      px[i] = lut[(d[j] + 2 * d[j + 1] + d[j + 2]) >> 2];
+    }
+    gb.ctx.putImageData(im, 0, 0);
+
+    const g = this.ctx;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.imageSmoothingEnabled = false;
+    g.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    g.drawImage(gb.canvas, 0, 0, this.canvas.width, this.canvas.height);
+    g.imageSmoothingEnabled = true;
+  }
+
+  _dessine(race, ui, gameboy) {
+    if (!gameboy) this._adapt(performance.now());
     // la voie ne se dessine que quand elle sert : une voie peinte qui ne mène à rien est pire
     // qu'une voie absente, on la vise et il ne se passe rien
     this.showPit = !!race.usure;
@@ -2300,6 +2400,28 @@ class Renderer {
   }
 
   _roundRect(g, x, y, w, h, r) {
+    /* EN GAME BOY, UN PANNEAU EST UN RECTANGLE À LISERÉ, et il est OPAQUE. Les panneaux du jeu
+       sont arrondis et translucides : posés sur quatre tons, l'arrondi disparaît au premier pixel
+       et la translucidité fait flotter le texte au-dessus du décor, qu'on lit à travers. Sur la
+       console il n'y avait ni l'un ni l'autre — un cadre plein, un trait clair autour, et le
+       contenu détaché de ce qu'il recouvre.
+
+       On détourne donc le seul endroit par où tous les panneaux passent. Le liseré se peint
+       DEBORDANT d'un pixel, avant que l'appelant ne remplisse : son remplissage recouvre
+       l'intérieur et laisse le trait. Et on lui impose la couleur de fond en écrasant `fillStyle`,
+       qu'il vient de poser et qu'il ne relira pas.
+
+       Seulement au-dessus d'une certaine taille : `_roundRect` sert aussi aux pastilles et au
+       disque du pouce, qu'un cadre à liseré défigurerait. */
+    if (this.gameboy && w >= 40 && h >= 16) {
+      g.save();
+      g.fillStyle = Renderer.GB_PAL[3];
+      g.fillRect(x - 1, y - 1, w + 2, h + 2);
+      g.restore();
+      g.fillStyle = Renderer.GB_PAL[0];
+      g.beginPath(); g.rect(x, y, w, h);
+      return;
+    }
     g.beginPath();
     g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.quadraticCurveTo(x + w, y, x + w, y + r);
     g.lineTo(x + w, y + h - r); g.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
@@ -2956,3 +3078,24 @@ function fmtTime(s) {
   const m = Math.floor(s / 60), sec = s - m * 60;
   return `${m}:${sec < 10 ? '0' : ''}${sec.toFixed(3)}`;
 }
+
+/* Les quatre tons sont relevés sur l'image de référence (voir `_toileGB`).
+
+   LES SEUILS, EUX, NE SE DÉDUISENT PAS DE LA PALETTE. Je les avais d'abord posés aux milieux des
+   clartés des quatre tons — 41, 88, 149 — ce qui paraît évident et donne un résultat délavé :
+   mesuré sur Spa, deux pour cent de pixels dans le ton le plus sombre contre vingt-trois sur
+   l'image de référence, et quarante-quatre dans l'avant-dernier contre dix-neuf. La raison est
+   que le jeu n'est pas peint autour du gris moyen : le bitume de Spa est un crème très clair, et
+   le vert du pré l'est aussi.
+
+   Ce qui fait l'image d'une Game Boy n'est pas où l'on coupe, c'est COMBIEN DE PIXELS tombent
+   dans chaque ton. Les seuils sont donc les centiles de la clarté réelle du jeu qui reproduisent
+   la répartition relevée sur l'image de Bruno — 23,5 / 39,3 / 18,9 / 18,3 pour cent. Mesurés sur
+   six instants d'un tour de Spa, ils tombent à 97, 178 et 226. */
+Renderer.GB_PAL = ['#112718', '#30472c', '#819a56', '#c6d384'];
+Renderer.GB_SEUILS = [97, 178, 226];
+/* TROIS CENT VINGT PIXELS DE LARGE, et c'est mesuré aussi : sur l'image de Bruno, un pixel en
+   vaut quatre, ce qui place sa résolution interne vers trois cent treize. La vraie console en
+   fait cent soixante — à cette taille-là le HUD du jeu ne tiendrait plus, et c'est le HUD qui
+   fait la moitié de l'effet. */
+Renderer.GB_LARGEUR = 320;

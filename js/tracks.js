@@ -675,6 +675,10 @@ const TRACKS = [
    Le temps au tour est rangé par identifiant de circuit : les trois ont donc leurs propres
    records, ce qui est voulu — on compare des décors, pas des chronos. */
 (() => {
+  const spa = TRACKS.find((t) => t.id === 'spa');
+  /* SPA EN GAME BOY. Rien d'autre que le drapeau : le filtre travaille sur la clarté de ce que
+     le moteur dessine, donc le circuit n'a aucun décor particulier à préparer. */
+  if (spa) TRACKS.push({ ...spa, id: 'spa-gameboy', name: 'Spa · Game Boy', gameboy: true });
   const base = TRACKS.find((t) => t.id === 'zandvoort');
   if (!base) return;
   TRACKS.push(

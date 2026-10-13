@@ -81,6 +81,7 @@ class Track {
        Les autres gardent l'ancien semeur tant qu'on ne les a pas repris un par un. */
     this.decor = def.decor || null;
     this.plaques = def.plaques || null;   // les images d'essai posées au sol, voir `js/render.js`
+    this.gameboy = !!def.gameboy;        // le rendu quatre tons, voir `js/render.js`
     /* Le rectangle de chaque plaque, dans son propre repère, pour qu'on puisse demander vite si
        un point est dessous. Trois morceaux du jeu ont besoin de le savoir — le semis, le
        mobilier et le dessin du sol — et chacun le recalculant de son côté, le premier réglage
