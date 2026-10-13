@@ -1071,6 +1071,27 @@ class Renderer {
       const im = new Image(); im.onload = () => { this.pitImg = im; }; im.src = 'art/Pitstop.png';
       this.enRoute.push(im);
     }
+    /* LES PLAQUES : UN ESSAI, et il faut dire tout de suite ce qu'on essaie.
+
+       Une image générée à l'avance peut-elle remplacer le décor construit au sprite ? La réponse
+       de fond est non à l'échelle d'un circuit entier — à quatorze pixels par mètre, la boîte de
+       Spa demanderait neuf cents mégapixels — mais elle est peut-être oui sur un VIRAGE, posé
+       comme une plaque dans l'herbe. Ce bout de code existe pour qu'on puisse en juger sur pièce
+       plutôt que sur un calcul.
+
+       La plaque se pose au sol, centrée sur un point du monde, tournée, à une échelle donnée en
+       mètres. Elle passe SOUS la route : le bitume, les vibreurs, les marquages et les bandes de
+       couleur restent ceux du moteur, parce que ce sont eux que la physique connaît et que le
+       pilote lit. Ne reste de l'image que ce qui déborde du ruban — la forêt, les bas-côtés, le
+       dégagement — et c'est justement la partie qu'on cherche à remplacer. */
+    this.plaques = [];
+    for (const pl of track.plaques || []) {
+      const img = new Image();
+      const fiche = { img: null, x: pl.x, y: pl.y, m: pl.m, rot: (pl.rot || 0) * Math.PI / 180 };
+      img.onload = () => { fiche.img = img; };
+      img.src = pl.src;
+      this.plaques.push(fiche);
+    }
     this.bgImage = null;
     if (track.image && track.image.src) {
       const img = new Image();
@@ -1580,6 +1601,7 @@ class Renderer {
       this._drawPatches(g, vis);
       this._drawSea(g, vis);
     }
+    this._drawPlaques(g, vis);
 
     g.lineCap = 'round'; g.lineJoin = 'round';
     if (T.drawRoad) {
@@ -2212,6 +2234,25 @@ class Renderer {
       }
     }
     g.setTransform(m);
+  }
+
+  /* Voir la note des plaques dans le constructeur. On la dessine dans le repère du monde, donc
+     il suffit de se translater, de tourner et de mettre à l'échelle : la caméra s'occupe du
+     reste. L'image est centrée sur son point, ce qui est le plus simple à régler à la main. */
+  _drawPlaques(g, vis) {
+    for (const p of this.plaques) {
+      if (!p.img) continue;
+      const demi = p.m * 0.72;              // la rotation déborde du rectangle droit
+      if (p.x < vis.minX - demi || p.x > vis.maxX + demi
+        || p.y < vis.minY - demi || p.y > vis.maxY + demi) continue;
+      const h = p.m * (p.img.naturalHeight / p.img.naturalWidth);
+      g.save();
+      g.translate(p.x, p.y);
+      g.rotate(p.rot);
+      g.imageSmoothingEnabled = true;
+      g.drawImage(p.img, -p.m / 2, -h / 2, p.m, h);
+      g.restore();
+    }
   }
 
   _drawCar(g, car) {

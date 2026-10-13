@@ -80,6 +80,7 @@ class Track {
     /* Le décor du circuit, quand il en nomme un : le semis par strates s'applique à lui seul.
        Les autres gardent l'ancien semeur tant qu'on ne les a pas repris un par un. */
     this.decor = def.decor || null;
+    this.plaques = def.plaques || null;   // les images d'essai posées au sol, voir `js/render.js`
     this.drawRoad = def.drawRoad !== false;
     this._build();
   }

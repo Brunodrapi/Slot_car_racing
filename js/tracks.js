@@ -613,6 +613,14 @@ const TRACKS = [
   {
     id: 'zandvoort', name: 'Zandvoort', country: 'NL', flag: '🇳🇱', theme: 'automne',
     decor: 'automne',
+    /* DEUX PLAQUES D'ESSAI, posées sur les deux épingles. Voir la note dans `js/render.js` : on
+       veut voir sur pièce ce que donne une image faite à l'avance, à côté du décor construit au
+       sprite. Les cadrages sont réglés à la main — c'est tout le problème de la méthode, et c'est
+       une bonne raison de l'essayer avant de s'y engager. */
+    plaques: [
+      { src: 'art/decor/plaques/z-epingle.webp', x: -237, y: 209, m: 155, hw: 1.500, rot: -100 },
+      { src: 'art/decor/plaques/z-double.webp', x: -124, y: -169, m: 143, hw: 0.956, rot: -9 },
+    ],
     kerb: DRAPEAUX.nl,
     length: 2400, width: 13,
     pts: TRACES.zandvoort,
