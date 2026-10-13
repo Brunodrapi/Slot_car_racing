@@ -554,7 +554,7 @@ class Renderer {
        sous-bois, et un grand arbre qui passerait sous un buisson se lirait comme un trou. La
        profondeur vient de là, pas de la caméra. */
     this.topProps = track.decor === 'ardennes' && decorPret()
-      ? semeStrates(track, seed, STRATES_ARDENNES)
+      ? semeStrates(track, seed, STRATES_ARDENNES).concat(poseBarrieres(track, seed))
       : placeGroundProps(track, seed, PAL.herbe)
         .concat(placeTopProps(track, seed, PAL.densite, PAL.props, PAL.serre, PAL.lisiere, PAL.profond));
     /* L'ORDRE DE DESSIN EST CELUI DU NORD VERS LE SUD, pas celui des tailles.
@@ -613,14 +613,19 @@ class Renderer {
     const kerbW = (i) => track.kerb[((i % N) + N) % N];
     // `dehors` : le bord extérieur de la bande, qui suit l'affinement. Sinon son bord intérieur,
     // qui longe la ligne blanche d'un bout à l'autre.
-    const bandPt = (i, side, dehors) => {
+    /* `t` EST UNE FRACTION DE LA LARGEUR DE BANDE, plus un booléen dedans/dehors. Le vibreur a
+       besoin d'être découpé en tranches pour qu'on puisse en éclairer le dessus et en assombrir le
+       flanc : c'est ça, le relief. Un booléen ne donne que les deux bords. */
+    const bandPt = (i, side, t) => {
       const k = ((i % N) + N) % N;
-      const hw = (side > 0 ? track.hwL[k] : track.hwR[k]) + KERB_IN + (dehors ? kerbW(i) : 0);
+      const hw = (side > 0 ? track.hwL[k] : track.hwR[k]) + KERB_IN + kerbW(i) * (t === true ? 1 : t || 0);
       return [xs[k] + nx[k] * hw * side, ys[k] + ny[k] * hw * side];
     };
     const corners = track.corners.map(cn => {
       const l = new Path2D(), r = new Path2D(), gravel = new Path2D();
       const kerbs = PAL.kerb.map(() => new Path2D()), kerbEdge = new Path2D();
+      // les trois tranches du relief : l'ombre portée, le dessus éclairé, le flanc extérieur
+      const kerbOmbre = new Path2D(), kerbHaut = new Path2D(), kerbFlanc = new Path2D();
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
       for (let i = cn.from; i <= cn.to; i += 2) {
         const a = edgePt(i, 1), b = edgePt(i, -1);
@@ -639,17 +644,32 @@ class Renderer {
           p.closePath();
         }
         // both sides of the band get the dark outline, so the strip is framed like the road is
-        for (const dehors of [false, true]) {
+        for (const dehors of [0, 1]) {
           const e0 = bandPt(cn.from, side, dehors);
           kerbEdge.moveTo(e0[0], e0[1]);
           for (let t = cn.from + 1; t <= cn.to; t++) { const q = bandPt(t, side, dehors); kerbEdge.lineTo(q[0], q[1]); }
         }
+        /* LE RELIEF, EN TROIS BANDES PLUTÔT QU'EN DÉGRADÉ. Un vibreur peint à plat se lit comme
+           de la peinture au sol ; c'est un BORD, il monte de quelques centimètres et il faut le
+           voir. Le dessin l'obtient toujours de la même façon — une ombre portée au pied, un
+           dessus éclairé, un flanc plus sombre — et trois aplats suffisent, comme pour les
+           couronnes : c'est le décalage qui fait le volume, pas le fondu. */
+        const ruban = (chemin, t0, t1) => {
+          const a0 = bandPt(cn.from, side, t0);
+          chemin.moveTo(a0[0], a0[1]);
+          for (let t = cn.from + 1; t <= cn.to; t++) { const q = bandPt(t, side, t0); chemin.lineTo(q[0], q[1]); }
+          for (let t = cn.to; t >= cn.from; t--) { const q = bandPt(t, side, t1); chemin.lineTo(q[0], q[1]); }
+          chemin.closePath();
+        };
+        ruban(kerbOmbre, -0.28, 0.08);    // l'ombre déborde vers la piste, côté intérieur
+        ruban(kerbHaut, 0.05, 0.34);      // l'arête qui prend la lumière, étroite
+        ruban(kerbFlanc, 0.74, 1);        // le flanc extérieur, dans l'ombre de lui-même
       }
       // gravel: wider band around the corner
       for (let i = cn.from; i <= cn.to; i += 2) { const k = ((i % N) + N) % N, p = [xs[k] + nx[k] * (track.hwL[k] + 8), ys[k] + ny[k] * (track.hwL[k] + 8)]; if (i === cn.from) gravel.moveTo(p[0], p[1]); else gravel.lineTo(p[0], p[1]); }
       for (let i = cn.to; i >= cn.from; i -= 2) { const k = ((i % N) + N) % N; gravel.lineTo(xs[k] - nx[k] * (track.hwR[k] + 8), ys[k] - ny[k] * (track.hwR[k] + 8)); }
       gravel.closePath();
-      return { left: l, right: r, gravel, kerbs, kerbEdge, bbox: { minX: minX - 30, minY: minY - 30, maxX: maxX + 30, maxY: maxY + 30 } };
+      return { left: l, right: r, gravel, kerbs, kerbEdge, kerbOmbre, kerbHaut, kerbFlanc, bbox: { minX: minX - 30, minY: minY - 30, maxX: maxX + 30, maxY: maxY + 30 } };
     });
 
     /* LE TABLIER DU CROISEMENT, et pourquoi il n'est plus un trait épais.
@@ -1494,7 +1514,15 @@ class Renderer {
       g.lineJoin = 'miter'; g.lineCap = 'butt'; g.miterLimit = 3;
       for (const cn of this.paths.corners) {
         if (!inView(cn.bbox)) continue;
+        // l'ombre d'abord, sur le bitume ; puis les blocs ; puis le dessus et le flanc
+        g.globalAlpha = 0.18; g.fillStyle = '#16233a'; g.fill(cn.kerbOmbre); g.globalAlpha = 1;
         for (let k = 0; k < cn.kerbs.length; k++) { g.fillStyle = PAL.kerb[k]; g.fill(cn.kerbs[k]); }
+        /* LE VOILE RESTE LÉGER. À trente pour cent de blanc, le noir du drapeau belge virait au
+           gris et son rouge au rose : on gagnait du relief et on perdait les couleurs du circuit,
+           qui sont une information. Une arête étroite et discrète suffit à dire qu'il monte. */
+        g.globalAlpha = 0.16; g.fillStyle = '#ffffff'; g.fill(cn.kerbHaut);
+        g.globalAlpha = 0.26; g.fillStyle = '#131b2b'; g.fill(cn.kerbFlanc);
+        g.globalAlpha = 1;
         g.strokeStyle = PAL.outline; g.lineWidth = 0.34; g.stroke(cn.kerbEdge);
       }
       g.restore();

@@ -172,6 +172,23 @@ const OMBRES_DESSIN = [
   'art/decor/ombre-7.webp',
 ];
 
+/* ------------------------------------------------------------------- LE MOBILIER DE BORD DE PISTE
+
+   Une glissière, un muret, une barrière de bois ne se SÈMENT pas : ils SUIVENT. Le semeur par
+   strates répartit des objets dans une bande ; une barrière est une ligne continue, elle a une
+   longueur, une direction, et le trou entre deux tronçons se voit immédiatement.
+
+   Chaque tuile couvre quelques mètres de piste et se pose tournée dans le sens de la marche. C'est
+   la seule famille d'objets qu'on tourne : un arbre n'a pas de direction, une glissière n'est que
+   ça. Le pas de pose est un peu plus court que la tuile, pour que la corde d'un virage ne laisse
+   pas apparaître le joint. */
+const MOBILIER = [
+  { id: 'glissiere', f: 'art/decor/glissiere.webp', wm: 14.0, px: [256, 47] },
+  { id: 'glissiere2', f: 'art/decor/glissiere2.webp', wm: 14.0, px: [256, 42] },
+  { id: 'barriere-bois', f: 'art/decor/barriere-bois.webp', wm: 14.0, px: [256, 47] },
+  { id: 'muret', f: 'art/decor/muret.webp', wm: 15.0, px: [256, 43] },
+];
+
 const KINDS_DESSINES = [
   { famille: 'tree', id: 'arbre-1', f: 'art/decor/arbre-1.webp', wm: 11, anc: 0.56, weight: 6, near: 1, far: 24 },
   { famille: 'tree', id: 'arbre-2', f: 'art/decor/arbre-2.webp', wm: 10, anc: 0.56, weight: 6, near: 1, far: 24 },
@@ -232,9 +249,15 @@ let decorCharge = 0, decorAttendu = 0;
 const ART_OMBRE = [];
 function chargeDecor(fini) {
   if (typeof Image === 'undefined') return;
-  decorAttendu = KINDS_DESSINES.length + OMBRES_DESSIN.length;
+  decorAttendu = KINDS_DESSINES.length + OMBRES_DESSIN.length + MOBILIER.length;
   const un = () => { if (++decorCharge === decorAttendu && fini) fini(); };
   for (const k of KINDS_DESSINES) {
+    const img = new Image();
+    img.onload = () => { ART_DESSINE[k.id] = img; un(); };
+    img.onerror = un;
+    img.src = k.f;
+  }
+  for (const k of MOBILIER) {
     const img = new Image();
     img.onload = () => { ART_DESSINE[k.id] = img; un(); };
     img.onerror = un;
@@ -659,6 +682,12 @@ function buildTopArt(pal) {
     art[k.id] = { canvas: img, tons, wm: k.wm, cuite: !!k.cuite, anc: k.anc == null ? 0.5 : k.anc,
       hm: k.wm * (img.naturalHeight / img.naturalWidth) };
   }
+  for (const k of MOBILIER) {
+    const img = ART_DESSINE[k.id];
+    if (!img) continue;
+    art[k.id] = { canvas: img, wm: k.wm, cuite: true, anc: 0.5,
+      hm: k.wm * (img.naturalHeight / img.naturalWidth) };
+  }
   for (const k of TOP_KINDS) {
     if (art[k.id]) continue;
     const w = Math.max(12, Math.round(k.wm * TOP_PPM));
@@ -951,6 +980,110 @@ function semeStrates(track, id, strates) {
     }
     void N;
   });
+  return out;
+}
+
+/* LES BARRIÈRES SUIVENT LE TRACÉ, des deux côtés, sans trou.
+
+   Trois décisions font tout le résultat.
+
+   OÙ. Le recul n'est pas constant : derrière un bac à gravier en virage, tout près du bitume sur
+   une ligne droite. Pris station par station, ce recul saute de dix mètres à cinq à l'entrée du
+   virage, et la barrière fait un coude que rien ne justifie. On LISSE donc le profil sur une
+   soixantaine de mètres — c'est ce que fait un vrai circuit, où la glissière s'écarte
+   progressivement avant le dégagement et revient après.
+
+   QUOI. Une glissière là où ça va vite et où une sortie est violente, une barrière de bois ou un
+   muret sur le reste. La vitesse de référence vient du rayon du virage le plus proche, pas d'un
+   réglage : le circuit décide tout seul de son mobilier.
+
+   COMMENT. Une tuile tous les `wm` mètres moins un chevauchement : sur la corde d'un virage, deux
+   tuiles droites posées bout à bout laissent un coin de vide à l'extérieur, et un joint le long
+   d'une glissière se voit plus qu'un chevauchement.
+
+   C'est la seule famille d'objets qu'on tourne. Un arbre n'a pas de direction ; une glissière
+   n'est que ça. */
+function poseBarrieres(track, id) {
+  if (!decorPret() || !MOBILIER.length) return [];
+  const N = track.n, L = track.length, out = [];
+  const rnd = propRng(seedFromId('mob-' + id));
+  const art = {};
+  for (const k of MOBILIER) art[k.id] = k;
+
+  // le recul voulu, station par station, puis lissé
+  const enVirage = new Uint8Array(N);
+  for (const cn of track.corners) for (let i = cn.from; i <= cn.to; i++) enVirage[((i % N) + N) % N] = 1;
+  const brut = new Float32Array(N);
+  for (let i = 0; i < N; i++) brut[i] = enVirage[i] ? 13.5 : 7.5;
+  const F = Math.max(1, Math.round(30 / track.ds));         // demi-fenêtre : trente mètres
+  const recul = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    let somme = 0;
+    for (let k = -F; k <= F; k++) somme += brut[((i + k) % N + N) % N];
+    recul[i] = somme / (2 * F + 1);
+  }
+
+  /* La sévérité du virage le plus proche décide du mobilier. `corners` porte le rayon de courbure
+     de chaque virage ; un grand rayon est une courbe rapide, et c'est là qu'on met de l'acier. */
+  const severite = new Float32Array(N);
+  for (const cn of track.corners) {
+    const r = cn.peak ? 1 / Math.abs(cn.peak) : 400;
+    for (let k = -60; k <= 60; k++) {
+      const i = ((cn.from + k) % N + N) % N;
+      severite[i] = Math.max(severite[i], Math.min(1, 200 / Math.max(40, r)));
+    }
+  }
+
+  for (const cote of [1, -1]) {
+    let s = rnd() * 30;
+    while (s < L) {
+      const i = track.idx(s);
+      // acier là où ça va vite ; bois et pierre ailleurs, tirés au sort pour ne pas alterner
+      const vite = severite[i] < 0.6;
+      const k = art[vite ? (rnd() < 0.5 ? 'glissiere' : 'glissiere2')
+        : (rnd() < 0.55 ? 'barriere-bois' : 'muret')];
+      /* LE PAS SE RESSERRE EN VIRAGE. Deux tuiles droites posées bout à bout le long d'un arc
+         laissent un coin de vide à l'extérieur — la corde est plus courte que l'arc — et un jour
+         dans une glissière se voit beaucoup plus qu'un chevauchement. */
+      const pas = k.wm * (enVirage[i] ? 0.76 : 0.94);
+      const hw = cote > 0 ? track.hwL[i] : track.hwR[i];
+      const lat = (hw + recul[i]) * cote;
+      const x = track.xs[i] + track.nx[i] * lat, y = track.ys[i] + track.ny[i] * lat;
+      /* LA TUILE NE DOIT PAS TOMBER SUR UN AUTRE TRONÇON. À l'intérieur d'une épingle, treize
+         mètres de recul font traverser la piste : la barrière se retrouvait en travers du
+         bitume. On vérifie donc la distance à toutes les stations SAUF le voisinage immédiat,
+         dont on s'écarte par construction. Là où il n'y a pas la place, il n'y a pas de
+         barrière — c'est aussi ce que fait un vrai circuit. */
+      /* ON NE REJETTE QUE CE QUI VIENT D'UNE AUTRE DIRECTION. Écarter par la seule distance le
+         long du tour confondait l'arc qu'on longe avec l'autre branche d'une épingle : au bout de
+         vingt mètres d'arc serré, la ligne médiane est déjà revenue sous la barrière, et toute la
+         courbe extérieure se retrouvait sans glissière. Un tronçon qui mérite qu'on s'écarte est
+         un tronçon qui va AILLEURS — plus de soixante-dix degrés d'écart de cap. L'arc qu'on suit
+         tourne lentement et reste en dessous ; l'autre branche d'une épingle est à cent quatre-
+         vingts degrés. */
+      let dehors = true;
+      for (let j = 0; j < N && dehors; j += 2) {
+        let e = Math.abs(j - i); if (e > N / 2) e = N - e;
+        if (e * track.ds < k.wm * 0.8) continue;
+        let dth = track.th[j] - track.th[i];
+        while (dth > Math.PI) dth -= 2 * Math.PI;
+        while (dth < -Math.PI) dth += 2 * Math.PI;
+        if (Math.abs(dth) < 1.22) continue;
+        const dx = x - track.xs[j], dy = y - track.ys[j];
+        if (dx * dx + dy * dy < (track.halfWidth + 5) * (track.halfWidth + 5)) dehors = false;
+      }
+      if (dehors) {
+        /* L'ORIENTATION. La tuile est dessinée couchée, le rail en HAUT du fichier. Après une
+           rotation du cap, le haut du fichier pointe vers la normale gauche de la piste : il
+           regarde donc la piste du côté gauche, et le dos de la barrière du côté droit. Un
+           demi-tour remet le rail face à la route de l'autre côté. Posée d'un quart de tour, ce
+           qu'on avait d'abord, elle se plantait en travers du bitume. */
+        out.push({ x, y, id: k.id, ech: 1, ton: 0, om: 0,
+          rot: track.th[i] + (cote > 0 ? 0 : Math.PI) });
+      }
+      s += pas;
+    }
+  }
   return out;
 }
 

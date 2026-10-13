@@ -597,5 +597,43 @@
     36
    ]
   }
+ ],
+ "mobilier": [
+  {
+   "id": "glissiere",
+   "fichier": "art/decor/glissiere.webp",
+   "m": 14.0,
+   "px": [
+    256,
+    47
+   ]
+  },
+  {
+   "id": "glissiere2",
+   "fichier": "art/decor/glissiere2.webp",
+   "m": 14.0,
+   "px": [
+    256,
+    42
+   ]
+  },
+  {
+   "id": "barriere-bois",
+   "fichier": "art/decor/barriere-bois.webp",
+   "m": 14.0,
+   "px": [
+    256,
+    47
+   ]
+  },
+  {
+   "id": "muret",
+   "fichier": "art/decor/muret.webp",
+   "m": 15.0,
+   "px": [
+    256,
+    43
+   ]
+  }
  ]
 }
