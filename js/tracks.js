@@ -611,16 +611,8 @@ const TRACKS = [
     ],
   },
   {
-    id: 'zandvoort', name: 'Zandvoort', country: 'NL', flag: '🇳🇱', theme: 'automne',
+    id: 'zandvoort', name: 'Zandvoort · sprites', country: 'NL', flag: '🇳🇱', theme: 'automne',
     decor: 'automne',
-    /* DEUX PLAQUES D'ESSAI, posées sur les deux épingles. Voir la note dans `js/render.js` : on
-       veut voir sur pièce ce que donne une image faite à l'avance, à côté du décor construit au
-       sprite. Les cadrages sont réglés à la main — c'est tout le problème de la méthode, et c'est
-       une bonne raison de l'essayer avant de s'y engager. */
-    plaques: [
-      { src: 'art/decor/plaques/z-double.webp', x: -183, y: -198, m: 143, hw: 0.956, rot: -27 },
-      { src: 'art/decor/plaques/z-epingle.webp', x: 206, y: 128, m: 155, hw: 1.500, rot: 0 },
-    ],
     kerb: DRAPEAUX.nl,
     length: 2400, width: 13,
     pts: TRACES.zandvoort,
@@ -669,5 +661,36 @@ const TRACKS = [
     },
   },
 ];
+
+/* TROIS ZANDVOORT, POUR COMPARER TROIS DÉCORS SUR LE MÊME TRACÉ.
+
+   C'est la seule façon de trancher entre eux : les regarder l'un après l'autre sur des captures
+   ne dit pas ce que ça fait de conduire dedans. Le sélecteur n'est donc pas un écran de plus —
+   ce sont trois entrées dans la liste des circuits, là où on va déjà choisir.
+
+   Elles DÉRIVENT de l'entrée de base plutôt que de la recopier. Zandvoort porte cent soixante
+   panneaux et trois lignes de mille coordonnées : trois copies, et la première correction du
+   tracé n'en toucherait qu'une. Ce qui change d'une version à l'autre tient en trois champs.
+
+   Le temps au tour est rangé par identifiant de circuit : les trois ont donc leurs propres
+   records, ce qui est voulu — on compare des décors, pas des chronos. */
+(() => {
+  const base = TRACKS.find((t) => t.id === 'zandvoort');
+  if (!base) return;
+  TRACKS.push(
+    /* L'ORIGINE : le décor peint, celui d'avant la planche de sprites. Thème des dunes, aucun
+       décor dessiné, aucune plaque. */
+    { ...base, id: 'zandvoort-origine', name: 'Zandvoort · origine', theme: 'dunes',
+      decor: null, plaques: null },
+    /* LA PLAQUE : une seule image, peinte à la main par-dessus le calque, qui couvre tout le
+       circuit. Les cinq nombres viennent de `plaqueDeRetour` dans le JSON du calque — c'est à ça
+       qu'il sert. `decor` reste renseigné pour que le semeur tourne et se taise sous la plaque ;
+       sans lui, le repli peint reviendrait couvrir l'image. */
+    { ...base, id: 'zandvoort-peint', name: 'Zandvoort · plaque', theme: 'automne',
+      decor: 'automne',
+      plaques: [{ src: 'art/decor/plaques/zandvoort-peint.webp',
+        x: -0.03, y: 0.01, m: 607.18, hw: 0.9809, rot: 0 }] },
+  );
+})();
 
 if (typeof module !== 'undefined') module.exports = { TRACKS };

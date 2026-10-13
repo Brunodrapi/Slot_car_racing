@@ -7,16 +7,16 @@
 
    Il fige la boucle de jeu comme l'export, pour ne pas photographier une caméra qui a bougé.
 
-       node tools/vue.js '[["nom", x, y, largeurEnMetres], ...]'
+       node tools/vue.js <circuit> '[["nom", x, y, largeurEnMetres], ...]'
 
-   Les images sortent dans le répertoire de travail de la session. Le circuit est en dur ici :
-   c'est un outil de réglage, pas un produit. */
+   Les images sortent dans le répertoire de travail de la session. */
 const { chromium } = require('playwright');
 const http = require('http'), fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
   '.webp': 'image/webp', '.png': 'image/png', '.json': 'application/json', '.svg': 'image/svg+xml' };
 (async () => {
+  const piste = process.argv[2] || 'zandvoort';
   const srv = http.createServer((q, r) => {
     const f = path.join(ROOT, decodeURIComponent(q.url.split('?')[0]).replace(/^\//, '') || 'index.html');
     fs.readFile(f, (e, d) => e ? (r.writeHead(404), r.end())
@@ -32,17 +32,17 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   await page.evaluate(() => { app.save.name = 'Vue'; app.mondial = null; storeSave(app.save); });
   await page.waitForTimeout(250); await page.keyboard.press('Enter'); await page.waitForTimeout(250);
   await page.waitForFunction(() => typeof decorPret !== 'function' || decorPret(), null, { timeout: 30000 });
-  await page.evaluate(() => {
-    app.startQuick('timetrial', 'gt', 'zandvoort');
+  await page.evaluate((id) => {
+    app.startQuick('timetrial', 'gt', id);
     app.gele = true;
     const vrai = Renderer.prototype.draw;
     Renderer.prototype._vraiDraw = vrai;
     Renderer.prototype.draw = function () {};
     Renderer.prototype._drawHUD = function () {};
-  });
+  }, piste);
   await page.waitForFunction(() => app.race && app.renderer && app.renderer.paths);
   await page.waitForTimeout(400);
-  for (const [nom, x, y, m] of JSON.parse(process.argv[2])) {
+  for (const [nom, x, y, m] of JSON.parse(process.argv[3])) {
     await page.evaluate(([x, y, m]) => {
       const r = app.renderer;
       app.race.cars.length = 0;

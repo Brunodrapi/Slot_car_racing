@@ -218,15 +218,23 @@ enregistrer pour jouer : ${vu.reprises} reprise(s) relue(s) par le jeu, `
     const f = new Function(txt + '; return TRACKS;');
     const T2 = f();
     const suz = T2.find((t) => t.id === 'suzuka');
-    return { n: T2.length, aDesLignes: !!(suz && suz.lines && suz.lines.racing),
+    return { ids: T2.map((t) => t.id), avant: TRACKS.map((t) => t.id),
+             aDesLignes: !!(suz && suz.lines && suz.lines.racing),
              pts: suz && suz.lines ? suz.lines.racing.length : 0,
              rejoue: (() => {
                const tr = new Track(suz);
                return [...tr.lines.racing].filter((_, i) => i % 60 === 0);
              })() };
   }, fabrique.txt);
-  if (verif.n !== 12) { errs++; console.log(`  ÉCHEC : le fichier produit contient ${verif.n} circuits, 12 attendus`); }
-  else console.log('  ok : le fichier produit s’évalue et garde les douze circuits');
+  /* CE QU'ON VEUT VRAIMENT SAVOIR, c'est que la réécriture n'a RIEN PERDU — pas qu'il reste un
+     nombre précis de circuits. Le compte était figé à douze ; le jour où le fichier a porté deux
+     variantes de plus, le banc a crié alors que la réécriture était intacte. Un banc qui compte
+     ce qu'il devrait nommer finit toujours par accuser le mauvais coupable. */
+  const perdus = verif.avant.filter((id) => verif.ids.indexOf(id) < 0);
+  const doubles = verif.ids.filter((id, i) => verif.ids.indexOf(id) !== i);
+  if (perdus.length) { errs++; console.log(`  ÉCHEC : la réécriture a perdu ${JSON.stringify(perdus)}`); }
+  else if (doubles.length) { errs++; console.log(`  ÉCHEC : circuits en double ${JSON.stringify(doubles)}`); }
+  else console.log(`  ok : le fichier produit s’évalue et garde ses ${verif.ids.length} circuits`);
   if (!verif.aDesLignes) { errs++; console.log('  ÉCHEC : Suzuka ne porte pas le bloc lines'); }
   else console.log(`  ok : Suzuka porte ses trois lignes (${verif.pts} points)`);
   const dFichier = Math.max(...verif.rejoue.map((v, i) => Math.abs(v - fabrique.attendu[i])));

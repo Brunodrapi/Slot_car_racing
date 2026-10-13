@@ -87,7 +87,7 @@ class Track {
        de rotation les désaccorderait. */
     this._rectsPlaques = (def.plaques || []).map((pl) => {
       const a = (pl.rot || 0) * Math.PI / 180;
-      return { x: pl.x, y: pl.y, c: Math.cos(a), si: Math.sin(a),
+      return { src: pl.src, x: pl.x, y: pl.y, c: Math.cos(a), si: Math.sin(a),
         dx: pl.m / 2, dy: pl.m * (pl.hw || 1) / 2 };
     });
     this.drawRoad = def.drawRoad !== false;
@@ -578,7 +578,17 @@ class Track {
     for (const q of this._rectsPlaques) {
       const ux = x - q.x, uy = y - q.y;
       const a = ux * q.c + uy * q.si, b = -ux * q.si + uy * q.c;
-      if (Math.abs(a) < q.dx && Math.abs(b) < q.dy) return true;
+      if (Math.abs(a) >= q.dx || Math.abs(b) >= q.dy) continue;
+      /* LE RECTANGLE NE SUFFIT PAS : une image peinte à la main ne couvre pas tout le sien. On
+         consulte donc son opacité réelle, à un point par mètre — voir `ART_PLAQUE` dans
+         `js/props.js`. Tant que le masque n'est pas construit on s'en tient au rectangle, qui
+         est le comportement d'avant et le plus prudent des deux. */
+      const f = typeof ART_PLAQUE !== 'undefined' ? ART_PLAQUE[q.src] : null;
+      if (!f || !f.masque) return true;
+      const u = Math.floor((a + q.dx) / (2 * q.dx) * f.mw);
+      const v = Math.floor((b + q.dy) / (2 * q.dy) * f.mh);
+      if (u < 0 || v < 0 || u >= f.mw || v >= f.mh) continue;
+      if (f.masque[v * f.mw + u]) return true;
     }
     return false;
   }

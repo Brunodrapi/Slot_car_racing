@@ -1084,14 +1084,11 @@ class Renderer {
        couleur restent ceux du moteur, parce que ce sont eux que la physique connaît et que le
        pilote lit. Ne reste de l'image que ce qui déborde du ruban — la forêt, les bas-côtés, le
        dégagement — et c'est justement la partie qu'on cherche à remplacer. */
-    this.plaques = [];
-    for (const pl of track.plaques || []) {
-      const img = new Image();
-      const fiche = { img: null, x: pl.x, y: pl.y, m: pl.m, rot: (pl.rot || 0) * Math.PI / 180 };
-      img.onload = () => { fiche.img = img; };
-      img.src = pl.src;
-      this.plaques.push(fiche);
-    }
+    /* L'image vient de `ART_PLAQUE`, chargée avec le reste du décor : elle compte dans
+       `decorPret()`, donc elle est là quand le semis décide où se taire. La charger ici, de son
+       côté, remettait une course entre les deux. */
+    this.plaques = (track.plaques || []).map((pl) => ({
+      src: pl.src, x: pl.x, y: pl.y, m: pl.m, rot: (pl.rot || 0) * Math.PI / 180 }));
     this.bgImage = null;
     if (track.image && track.image.src) {
       const img = new Image();
@@ -2265,16 +2262,17 @@ class Renderer {
      reste. L'image est centrée sur son point, ce qui est le plus simple à régler à la main. */
   _drawPlaques(g, vis) {
     for (const p of this.plaques) {
-      if (!p.img) continue;
+      const f = typeof ART_PLAQUE !== 'undefined' ? ART_PLAQUE[p.src] : null;
+      if (!f || !f.img) continue;
       const demi = p.m * 0.72;              // la rotation déborde du rectangle droit
       if (p.x < vis.minX - demi || p.x > vis.maxX + demi
         || p.y < vis.minY - demi || p.y > vis.maxY + demi) continue;
-      const h = p.m * (p.img.naturalHeight / p.img.naturalWidth);
+      const h = p.m * (f.img.naturalHeight / f.img.naturalWidth);
       g.save();
       g.translate(p.x, p.y);
       g.rotate(p.rot);
       g.imageSmoothingEnabled = true;
-      g.drawImage(p.img, -p.m / 2, -h / 2, p.m, h);
+      g.drawImage(f.img, -p.m / 2, -h / 2, p.m, h);
       g.restore();
     }
   }

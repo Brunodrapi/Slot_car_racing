@@ -376,10 +376,53 @@ const ART_OMBRE = [];
    une forme : le bac suit la piste, sa largeur varie, et aucune tuile d'angle dessinée à rayon
    fixe ne pourrait l'épouser. On garde donc la géométrie et on lui donne la matière. */
 let ART_GRAVIER = null;
+
+/* LES PLAQUES, ET LEUR MASQUE D'OPACITÉ.
+
+   Une plaque éteint le décor du moteur sous elle — c'est tout son intérêt, l'image porte le sien.
+   Mais elle l'éteignait sur tout son RECTANGLE, et une image peinte à la main ne couvre pas son
+   rectangle : celle de Zandvoort ne porte que trois zones, le reste est transparent. Partout
+   ailleurs on obtenait donc de l'herbe nue — le décor du moteur retiré, et rien mis à la place.
+
+   On lit donc l'opacité réelle de l'image, à un point par mètre. C'est grossier à dessein : le
+   masque sert à décider s'il faut planter un arbre, pas à découper un contour, et un mètre est
+   déjà plus fin que l'écart entre deux arbres. Pour Zandvoort ça fait un tableau de six cents
+   sur six cents, soixante dixièmes de mégaoctet, construit une fois.
+
+   Le seuil est bas — un cinquième d'opacité — parce qu'un bord de collage dégradé reste du décor
+   peint : mieux vaut une touffe en moins qu'une touffe au milieu d'une forêt dessinée. */
+const ART_PLAQUE = {};
+const MASQUE_PPM = 1;           // un point par mètre
+
+function chargePlaque(src, fini) {
+  if (ART_PLAQUE[src]) { fini(); return; }
+  const img = new Image();
+  img.onload = () => {
+    const fiche = { img, masque: null, mw: 0, mh: 0 };
+    try {
+      const pm = (window.__plaqueM && window.__plaqueM[src]) || null;
+      const mw = Math.max(1, Math.round((pm ? pm.m : 100) * MASQUE_PPM));
+      const mh = Math.max(1, Math.round(mw * img.naturalHeight / img.naturalWidth));
+      const c = document.createElement('canvas');
+      c.width = mw; c.height = mh;
+      const g = c.getContext('2d');
+      g.drawImage(img, 0, 0, mw, mh);
+      const d = g.getImageData(0, 0, mw, mh).data;
+      const m = new Uint8Array(mw * mh);
+      for (let i = 0; i < m.length; i++) m[i] = d[i * 4 + 3] > 50 ? 1 : 0;
+      fiche.masque = m; fiche.mw = mw; fiche.mh = mh;
+    } catch (e) { /* une toile salie par une image d'une autre origine : on retombe sur le
+                     rectangle, ce qui est le comportement d'avant */ }
+    ART_PLAQUE[src] = fiche;
+    fini();
+  };
+  img.onerror = fini;
+  img.src = src;
+}
 function chargeDecor(fini) {
   if (typeof Image === 'undefined') return;
   decorAttendu = KINDS_DESSINES.length + OMBRES_DESSIN.length + MOBILIER.length
-    + PNEUS.length + 2;
+    + PNEUS.length + 2 + srcDesPlaques().length;
   const un = () => { if (++decorCharge === decorAttendu && fini) fini(); };
   for (const k of KINDS_DESSINES) {
     const img = new Image();
@@ -417,6 +460,24 @@ function chargeDecor(fini) {
     img.onerror = un;
     img.src = f;
   });
+  /* Les plaques de tous les circuits, avec le reste : elles comptent dans `decorPret()`, donc le
+     semis ne tourne jamais avant que leur masque soit là. Sans ça il éteindrait le décor sur un
+     rectangle entier faute de savoir où l'image est vraiment peinte, et la course d'un seul
+     chargement déciderait du résultat. */
+  for (const f of srcDesPlaques()) chargePlaque(f, un);
+}
+
+function srcDesPlaques() {
+  const out = [];
+  if (typeof TRACKS === 'undefined') return out;
+  window.__plaqueM = window.__plaqueM || {};
+  for (const t of TRACKS) {
+    for (const pl of t.plaques || []) {
+      window.__plaqueM[pl.src] = { m: pl.m };
+      if (out.indexOf(pl.src) < 0) out.push(pl.src);
+    }
+  }
+  return out;
 }
 const decorPret = () => decorAttendu > 0 && decorCharge >= decorAttendu;
 
