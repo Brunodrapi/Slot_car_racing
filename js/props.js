@@ -1233,38 +1233,9 @@ const STRATES_AUTOMNE = [
   { nom: 'bois-mort', kinds: A_PIERRES, de: HORS_BARRIERES, a: 60, r: 7.0, ech: [0.85, 1.2] },
 ];
 
-/* ----------------------------------------------------------------------- LE PARC, EN PLUS DENSE
-
-   Monza court dans un parc royal, et c'est sa particularité : un bois FERMÉ, qui vient jusqu'aux
-   barrières et ne laisse voir le ciel que par la trouée de la piste. Les Ardennes sont une forêt
-   de versant, plus aérée ; reprendre leurs écarts tels quels donnait un sous-bois de clairière.
-
-   Mêmes sprites d'été, mêmes strates, mêmes règles — seuls les écarts changent. Et ils changent
-   dans les limites que Bridson impose : la bande de chaque strate doit rester plus large que son
-   écart, sans quoi son front meurt et on obtient le contraire de ce qu'on demandait. La canopée
-   sème sur soixante-seize mètres pour un écart de sept, la lisière sud sur quatorze pour six et
-   demi : les deux tiennent. */
-const STRATES_PARC = [
-  { nom: 'canopee', kinds: ARBRES.concat(ARBRES, SAPINS), de: HORS_BARRIERES, a: 95, r: 7.0,
-    ech: [0.9, 1.3], couvre: 4.6 },
-  { nom: 'lisiere-sud', kinds: ARBRES, de: 8.0, a: 22.0, r: 6.5,
-    ech: [1.2, 1.6], couvre: 4.0, sud: 0.25, pres: 3.5 },
-  { nom: 'sous-bois', kinds: BUISSONS.concat(['sapin-4', 'sapin-5', 'sapin-9', 'rocher-1', 'rocher-3']),
-    de: HORS_BARRIERES, a: 72, r: 3.9, ech: [0.85, 1.25], couvre: 2.0 },
-  { nom: 'abords', kinds: ['buisson-6', 'buisson-7', 'buisson-8', 'buisson-9', 'buisson-10',
-    'buisson-fleuri-jaune', 'buisson-fleuri-rouge', 'buisson-fleuri-vert'],
-    de: HORS_MARQUAGE + 0.8, a: HORS_BARRIERES - 2, r: 4.0, ech: [0.7, 1.0], couvre: 1.8 },
-  { nom: 'couvre-sol', kinds: ['herbe-1', 'herbe-2', 'herbe-3', 'herbe-1', 'herbe-2',
-    'fleurs-blanches', 'fleurs-jaunes', 'fleurs-rouges', 'fleurs-blanches2',
-    'buisson-mini-1', 'buisson-mini-2', 'buisson-mini-3', 'buisson-mini-4'],
-    de: HORS_MARQUAGE, a: 22, r: 2.0, ech: [0.85, 1.25] },
-  { nom: 'bois-mort', kinds: ['caillou', 'rocher-2', 'souche', 'rondin', 'branche'],
-    de: HORS_BARRIERES, a: 60, r: 6.0, ech: [0.85, 1.2] },
-];
-
 /* Le décor d'un circuit nomme sa planche, et c'est ici qu'on fait la correspondance — une seule
    table, pour que `render.js` n'ait pas à connaître le nom des strates. */
-const STRATES = { ardennes: STRATES_ARDENNES, automne: STRATES_AUTOMNE, parc: STRATES_PARC };
+const STRATES = { ardennes: STRATES_ARDENNES, automne: STRATES_AUTOMNE };
 
 
 /* UNE STRATE QUI NOMME UN SPRITE INEXISTANT NE SE VOIT PAS : le dessin saute l'objet et la forêt

@@ -676,11 +676,6 @@ const TRACKS = [
    records, ce qui est voulu — on compare des décors, pas des chronos. */
 (() => {
   const base = TRACKS.find((t) => t.id === 'zandvoort');
-  const mz = TRACKS.find((t) => t.id === 'monza');
-  /* MONZA AUSSI, pour le comparer à son décor peint. Le parc royal est un bois fermé : c'est la
-     strate `parc`, celle des Ardennes resserrée. Le thème ne change pas — ce sont les verts et la
-     route crème de Monza, seul le décor passe du peint au dessiné. */
-  if (mz) TRACKS.push({ ...mz, id: 'monza-dense', name: 'Monza · dense', decor: 'parc' });
   if (!base) return;
   TRACKS.push(
     /* L'ORIGINE : le décor peint, celui d'avant la planche de sprites. Thème des dunes, aucun
