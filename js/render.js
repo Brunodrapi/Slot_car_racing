@@ -1589,8 +1589,21 @@ class Renderer {
     const vis = { minX: cam.x - reach, maxX: cam.x + reach, minY: cam.y - reach, maxY: cam.y + reach };
     const inView = (b) => !(b.maxX < vis.minX || b.minX > vis.maxX || b.maxY < vis.minY || b.minY > vis.maxY);
 
+    /* LE CALQUE : la route et ses flèches, rien d'autre, sur fond transparent.
+
+       Ce n'est pas un mode de jeu, c'est un EXPORT — un gabarit pour peindre le décor à la main
+       dans un éditeur d'images et le réimporter ensuite. Ce qu'il faut à qui trace par-dessus,
+       c'est la forme exacte du bitume et les repères peints dessus ; tout le reste — l'herbe, le
+       bac, les vibreurs, les lignes de rive, le mobilier, le semis — est précisément ce qu'il
+       vient remplacer, et le laisser l'empêcherait de voir ce qu'il fait.
+
+       La toile est déjà effacée au `clearRect` du début de l'image : il suffit de ne rien peindre
+       pour que le fond reste transparent. */
+    const calque = !!this.calque;
     // background
-    if (this.bgImage) {
+    if (calque) {
+      // rien : la toile effacée fait le fond transparent
+    } else if (this.bgImage) {
       g.fillStyle = '#3b4a2f'; g.fillRect(vis.minX, vis.minY, vis.maxX - vis.minX, vis.maxY - vis.minY);
       const sc = T.unitScale;
       g.imageSmoothingEnabled = true;
@@ -1601,7 +1614,7 @@ class Renderer {
       this._drawPatches(g, vis);
       this._drawSea(g, vis);
     }
-    this._drawPlaques(g, vis);
+    if (!calque) this._drawPlaques(g, vis);
 
     g.lineCap = 'round'; g.lineJoin = 'round';
     if (T.drawRoad) {
@@ -1625,7 +1638,7 @@ class Renderer {
       const horsPlaque = T.plaques
         ? (c) => !T.sousPlaque((c.bbox.minX + c.bbox.maxX) / 2, (c.bbox.minY + c.bbox.maxY) / 2)
         : () => true;
-      const vus0 = this.paths.chunks.filter(c => inView(c.bbox) && horsPlaque(c));
+      const vus0 = calque ? [] : this.paths.chunks.filter(c => inView(c.bbox) && horsPlaque(c));
       const lg = (PAL.bordureM || 3.4) * 2;
       /* DEUX PASSES, parce qu'un bord franc se lit comme un trait tracé et non comme de l'herbe.
          La première déborde et ne fait qu'un quart du ton ; la seconde pose la bande pleine. */
@@ -1648,7 +1661,7 @@ class Renderer {
       Le motif est posé par `setTransform` sur le motif lui-même et non par une mise à l'échelle du
       contexte : mettre le contexte à l'échelle mettrait aussi le CHEMIN à l'échelle, et le bac se
       retrouverait seize fois trop loin de la piste. */
-      for (const cn of this.paths.corners) {
+      for (const cn of calque ? [] : this.paths.corners) {
         if (!inView(cn.bbox) || !horsPlaque(cn)) continue;
         g.fillStyle = PAL.gravel; g.fill(cn.gravel);
         if (this.gravierMotif) {
@@ -1666,6 +1679,7 @@ class Renderer {
       g.fillStyle = PAL.asphalt;
       for (const c of vus) g.fill(c.fill);
       // les stries, juste après l'aplat et avant tout le reste : elles sont DANS le bitume
+      if (!calque) {
       g.save();
       g.lineCap = 'round'; g.strokeStyle = PAL.strie || 'rgba(146,112,58,0.15)';
       const encre = [[0.20, 0.30], [0.40, 0.42], [0.60, 0.24]];
@@ -1674,10 +1688,11 @@ class Renderer {
         for (const c of vus) g.stroke(c.stries[k]);
       }
       g.restore();
+      }
       // kerbs, laid over the road's dark outline so the band reads as one crisp edge
       g.save();
       g.lineJoin = 'miter'; g.lineCap = 'butt'; g.miterLimit = 3;
-      for (const cn of this.paths.corners) {
+      for (const cn of calque ? [] : this.paths.corners) {
         if (!inView(cn.bbox)) continue;
         // l'ombre d'abord, sur le bitume ; puis les blocs ; puis le dessus et le flanc
         g.globalAlpha = 0.18; g.fillStyle = '#16233a'; g.fill(cn.kerbOmbre); g.globalAlpha = 1;
@@ -1693,11 +1708,12 @@ class Renderer {
       g.restore();
       // painted markings: the edges say which side of the corner they are, dashed yellow down the middle
       g.lineWidth = 0.55;
+      const bords = calque ? [] : vus;
       g.strokeStyle = PAL.edgeBleu || PAL.edgeLine;
-      for (const c of vus) g.stroke(c.edgeBleu);
+      for (const c of bords) g.stroke(c.edgeBleu);
       g.strokeStyle = PAL.edgeJaune || PAL.edgeLine;
-      for (const c of vus) g.stroke(c.edgeJaune);
-      if (PAL.centre) {
+      for (const c of bords) g.stroke(c.edgeJaune);
+      if (PAL.centre && !calque) {
         g.setLineDash([2.6, 3.4]);
         g.strokeStyle = PAL.centre; g.lineWidth = 0.42;
         for (const c of vus) g.stroke(c.mid);
@@ -1712,7 +1728,7 @@ class Renderer {
       Le bord côté piste est une ligne CONTINUE, comme sur un vrai circuit : c'est la convention
       qui dit « on ne franchit pas ça », et elle se lit sans légende. */
       const vp = this.paths.pit;
-      if (vp && this.showPit && inView(vp.bbox)) {
+      if (vp && this.showPit && !calque && inView(vp.bbox)) {
         g.strokeStyle = PAL.outline; g.lineWidth = 2.6; g.stroke(vp.surface);
         g.fillStyle = PAL.pitLane || '#3a3a44'; g.fill(vp.surface);
         // la zone d'arrêt : un pavé plus clair, bordé, qu'on repère en arrivant
@@ -1729,6 +1745,7 @@ class Renderer {
         }
       }
     }
+    if (calque) { this._drawBoards(g, T, vis); g.restore(); return; }
     if (this.showLines) this._drawGuide(g, race);
     this._drawStartLine(g, T);
     this._drawBoards(g, T, vis);
