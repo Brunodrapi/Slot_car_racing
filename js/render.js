@@ -557,11 +557,17 @@ class Renderer {
       ? semeStrates(track, seed, STRATES_ARDENNES)
       : placeGroundProps(track, seed, PAL.herbe)
         .concat(placeTopProps(track, seed, PAL.densite, PAL.props, PAL.serre, PAL.lisiere, PAL.profond));
-    const taille = (p) => {
-      const a = this.topArt[p.id];
-      return (a ? a.wm : 1) * (p.ech || 1);
-    };
-    this.topProps.sort((a, b) => taille(a) - taille(b));
+    /* L'ORDRE DE DESSIN EST CELUI DU NORD VERS LE SUD, pas celui des tailles.
+
+    Tous les sprites regardent du même côté — ils portent leur lumière en haut à gauche et on ne
+    les tourne pas. Un décor dessiné ainsi n'est plus tout à fait vu de quatre-vingt-dix degrés :
+    chaque arbre montre un peu son flanc, donc celui qui est PLUS AU SUD est plus près de l'œil et
+    doit passer devant. C'est le peintre, et sur un point d'appui au sol c'est exact.
+
+    Le tri par taille, qu'on avait d'abord, faisait couvrir le sous-bois par la canopée — vrai pour
+    une vue strictement zénithale, faux dès que les sprites ont un flanc : un petit buisson au sud
+    d'un grand arbre passait derrière lui alors qu'il est devant. */
+    this.topProps.sort((a, b) => a.y - b.y);
     this.patches = placePatches(track, seed, PAL.patches);
     this.puddles = placePuddles(track, seed, track.puddles);
     this.water = placeWater(track, PAL.water);

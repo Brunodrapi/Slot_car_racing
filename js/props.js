@@ -898,11 +898,22 @@ function semeStrates(track, id, strates) {
   ne la voyait plus. Après le passage en coordonnées du monde, on vérifie donc la distance à TOUTE
   la ligne médiane, pas seulement à la station d'origine. Les trous que ça creuse dans le bruit
   bleu sont justes : il y a une route à cet endroit. */
+  /* RIEN NE POUSSE DANS UN BAC À GRAVIER. C'est un dégagement : on y envoie une voiture, et une
+     touffe d'herbe au milieu dit le contraire de ce que la surface promet. Le bac est la bande de
+     huit mètres au-delà du bord, sur toute la longueur d'un virage — c'est `js/render.js` qui le
+     peint ainsi, et on se cale sur sa définition plutôt que d'en inventer une seconde. */
+  const enVirage = new Uint8Array(N);
+  for (const cn of track.corners) {
+    for (let i = cn.from; i <= cn.to; i++) enVirage[((i % N) + N) % N] = 1;
+  }
+  const GRAVIER = 9;                       // les huit mètres du bac, plus un de marge
   const loinDeLaPiste = (x, y, besoin) => {
-    const b2 = besoin * besoin;
     for (let i = 0; i < N; i += 4) {
       const dx = x - track.xs[i], dy = y - track.ys[i];
-      if (dx * dx + dy * dy < b2) return false;
+      // en virage la garde s'élargit au bac : sans ça un objet semé depuis un autre tronçon du
+      // tour pouvait tomber en plein dégagement
+      const b = Math.max(besoin, track.halfWidth + (enVirage[i] ? GRAVIER : 0));
+      if (dx * dx + dy * dy < b * b) return false;
     }
     return true;
   };
@@ -928,6 +939,7 @@ function semeStrates(track, id, strates) {
         const i = track.idx(p.s);
         const hw = cote > 0 ? track.hwL[i] : track.hwR[i];
         const lat = (hw + p.d) * cote;
+        if (enVirage[i] && p.d < GRAVIER) continue;        // le bac du virage qu'on longe
         const x = track.xs[i] + track.nx[i] * lat, y = track.ys[i] + track.ny[i] * lat;
         // la garde est celle de la strate elle-même : ce qu'elle s'interdit près de SON bord, elle
         // se l'interdit près de n'importe quel autre tronçon du tour
