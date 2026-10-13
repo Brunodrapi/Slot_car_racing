@@ -3387,3 +3387,18 @@ Ajouter une entrée dans `js/tracks.js` : une liste de points `[x, y]` formant u
 (y vers le bas, le premier point sur la ligne droite de départ), la longueur cible en mètres, la largeur
 et le nombre de tours de référence. Les trois trajectoires sont générées automatiquement. Un circuit
 dessiné dans l'éditeur peut aussi être exporté en JSON et copié dans ce fichier.
+
+### Voitures nettes sur écran Retina
+
+Depuis la version 0.22.0, la résolution adaptative concerne le décor. Les voitures
+sont dessinées à la densité native de l'écran, y compris ×3 sur un iPhone, puis composées par-dessus.
+Les images de voitures, leur taille, le cadrage, la physique et les commandes sont conservés.
+Les ponts et tunnels continuent de masquer les voitures qui passent dessous.
+
+`node tools/e2e-resolution.js /tmp/slot-resolution` vérifie que les voitures restent identiques
+pixel par pixel lorsque le décor passe de ×2 à ×1, sur téléphone Retina et sur bureau. Il vérifie
+aussi la rotation et le passage sous/sur le croisement de Suzuka.
+
+Le rendu Retina a un coût : dans le banc Chromium à densité ×3 et processeur ralenti ×4,
+la mesure est d'environ 29 im/s contre 41 pour le rendu précédent. Ce banc simule la charge ;
+il ne mesure pas Safari sur un iPhone réel.

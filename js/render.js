@@ -186,6 +186,20 @@ class Renderer {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
+    this.carCanvas = document.createElement('canvas');
+    this.carCtx = this.carCanvas.getContext('2d');
+    this.hudCanvas = document.createElement('canvas');
+    this.hudCtx = this.hudCanvas.getContext('2d');
+    this.carRects = [];
+    for (const layer of [this.carCanvas, this.hudCanvas]) {
+      layer.setAttribute('aria-hidden', 'true');
+      layer.style.cssText = 'position:fixed;inset:0;display:block;pointer-events:none;user-select:none;';
+    }
+    // Même ordre que le rendu initial : décor, voitures, HUD, puis menus DOM.
+    if (canvas.parentNode) {
+      canvas.after(this.carCanvas);
+      this.carCanvas.after(this.hudCanvas);
+    }
     /* La résolution s'adapte à ce que la machine tient.
 
     Mesuré : le coût d'une image est **exactement proportionnel au nombre de pixels** — 1,32 Mpx
@@ -273,6 +287,15 @@ class Renderer {
     this.canvas.height = Math.round(h * this.dpr);
     this.canvas.style.width = w + 'px';
     this.canvas.style.height = h + 'px';
+    this.nativeDpr = Math.max(1, window.devicePixelRatio || 1);
+    for (const [layer, scale] of [[this.carCanvas, this.nativeDpr], [this.hudCanvas, this.dpr]]) {
+      const width = Math.round(w * scale), height = Math.round(h * scale);
+      if (layer.width !== width || layer.height !== height) {
+        layer.width = width; layer.height = height;
+        if (layer === this.carCanvas) this.carRects = [];
+      }
+      layer.style.width = w + 'px'; layer.style.height = h + 'px';
+    }
     this._layoutHud();
   }
 
@@ -1263,6 +1286,10 @@ class Renderer {
   // ---------- main draw ----------
   draw(race, ui) {
     this._adapt(performance.now());
+    // Effacer les anciennes voitures, pas trois millions de pixels transparents.
+    this.carCtx.setTransform(1, 0, 0, 1, 0, 0);
+    for (const r of this.carRects) this.carCtx.clearRect(r.x, r.y, r.w, r.h);
+    this.carRects = [];
     // la voie ne se dessine que quand elle sert : une voie peinte qui ne mène à rien est pire
     // qu'une voie absente, on la vise et il ne se passe rien
     this.showPit = !!race.usure;
@@ -1437,6 +1464,7 @@ class Renderer {
       g.strokeStyle = '#2f2f36'; g.lineWidth = 2.4;
       for (const c of b.cotes) g.stroke(c);
       g.fillStyle = '#4b4b52'; g.fill(b.tablier);
+      this._hideCars(g, b.tablier);
       g.lineCap = 'round';
     }
     for (const car of dessus) this._drawCar(g, car);
@@ -1444,6 +1472,7 @@ class Renderer {
     for (const p of this.paths.passerelles) {
       if (!inView(p.bbox)) continue;
       g.fillStyle = '#17171c'; g.fill(p.pont);
+      this._hideCars(g, p.pont);
       g.strokeStyle = '#2e2e36'; g.lineWidth = 0.5; g.stroke(p.pont);
     }
     // et les têtes de tunnel, pour la même raison : une voiture qui passe dessous passe dedans
@@ -1451,14 +1480,20 @@ class Renderer {
       if (!inView(tu.bbox)) continue;
       for (const t of [tu.entree, tu.sortie]) {
         g.fillStyle = '#726d64'; g.fill(t.corps);          // du béton, pas un tablier : il faut
+        this._hideCars(g, t.corps);
         g.strokeStyle = '#8d887c'; g.lineWidth = 0.6;        // qu'une tête de tunnel tranche sur
         g.stroke(t.corps);                                   // l'asphalte sombre qu'elle annonce
         g.fillStyle = '#0e0e13'; g.fill(t.bouche);
+        this._hideCars(g, t.bouche);
       }
     }
     g.restore();
 
-    this._drawHUD(g, race, ui);
+    const hud = this.hudCtx;
+    hud.setTransform(1, 0, 0, 1, 0, 0);
+    hud.clearRect(0, 0, this.hudCanvas.width, this.hudCanvas.height);
+    hud.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    this._drawHUD(hud, race, ui);
   }
 
   // Optional braking guide (off by default): the ribbon ahead is coloured by the reference speed
@@ -1816,11 +1851,37 @@ class Renderer {
     }
   }
 
+  // Conserver le masquage par les ponts et tunnels sur le calque Retina.
+  _hideCars(g, path) {
+    const m = g.getTransform(), scale = this.nativeDpr / this.dpr, ctx = this.carCtx;
+    ctx.save();
+    ctx.setTransform(m.a * scale, m.b * scale, m.c * scale, m.d * scale, m.e * scale, m.f * scale);
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fill(path);
+    ctx.restore();
+  }
+
   _drawCar(g, car) {
+    const m = g.getTransform(), scale = this.nativeDpr / this.dpr;
+    g = this.carCtx;
+    g.setTransform(m.a * scale, m.b * scale, m.c * scale, m.d * scale, m.e * scale, m.f * scale);
+    g.imageSmoothingEnabled = true;
     const c = car.cls, pos = car.pos, h = car.heading;
     g.save();
     g.translate(pos.x, pos.y);
     g.rotate(h);
+    // Inclure le contour du dessin, les rétroviseurs, l'ombre et les feux.
+    const art = topArt(c, car.livree);
+    const halfL = c.length / 2 + 0.7, halfW = (art ? topSize(c, art)[1] : c.width) / 2 + 0.7;
+    const pose = g.getTransform();
+    const corners = [[-halfL, -halfW], [-halfL, halfW], [halfL, -halfW], [halfL, halfW]];
+    const xs = corners.map(([x, y]) => pose.a * x + pose.c * y + pose.e);
+    const ys = corners.map(([x, y]) => pose.b * x + pose.d * y + pose.f);
+    const x0 = Math.max(0, Math.floor(Math.min(...xs)) - 2);
+    const y0 = Math.max(0, Math.floor(Math.min(...ys)) - 2);
+    const x1 = Math.min(this.carCanvas.width, Math.ceil(Math.max(...xs)) + 2);
+    const y1 = Math.min(this.carCanvas.height, Math.ceil(Math.max(...ys)) + 2);
+    if (x1 > x0 && y1 > y0) this.carRects.push({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
     g.save();
     g.translate(0.25, 0.35);
     g.globalAlpha = 0.3;
