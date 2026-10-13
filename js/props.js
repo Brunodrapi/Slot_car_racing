@@ -255,6 +255,23 @@ const KINDS_DESSINES = [
    Elles remplacent aussi les longues tuiles de quatorze mètres : une section se pose tous les
    quelques mètres, comme une vraie glissière se boulonne poteau par poteau, et le pas court suit
    la courbure sans laisser de jour. */
+/* LE MUR DE PNEUS, et pourquoi il se pose un pneu à la fois.
+
+   Vu de dessus, UN PNEU EST ROND : il n'a pas d'orientation, donc aucune lumière à faire pivoter
+   et aucune planche de trente-deux angles à prévoir. C'est le seul objet du mobilier qu'on peut
+   semer librement. Les murs tout faits de la planche sont des tuiles droites ou des arcs de rayon
+   fixe ; posés un par un, les mêmes pneus épousent n'importe quelle courbure.
+
+   Ils bordent le GRAVIER, pas la piste : c'est là qu'ils servent, et c'est pour ça que leur
+   position se déduit de `largeurBac` plutôt que d'un recul à eux — agrandir le bac les emmène
+   avec lui, sans qu'on ait à y penser. */
+const PNEUS = ['art/decor/pneu-1.webp', 'art/decor/pneu-2.webp',
+  'art/decor/pneu-3.webp', 'art/decor/pneu-4.webp'];
+/* UN MUR DE PNEUS N'EST PAS UN PNEU. Posés à leur taille réelle — soixante-dix centimètres — ils
+   se lisaient comme une rangée de points noirs. Ce qu'on borde un circuit avec, c'est une pile de
+   plusieurs pneus liés, et c'est cet objet-là que la planche dessine : deux mètres de côté. */
+const PNEU_M = 2.1;
+
 const RAILS = [];
 for (let i = 0; i < 32; i++) RAILS.push('art/decor/rail/r' + String(i).padStart(2, '0') + '.webp');
 /* L'ÉCHELLE EST EN PIXELS PAR MÈTRE, PAS EN MÈTRES PAR DESSIN. Les trente-deux dessins montrent
@@ -276,7 +293,8 @@ const ART_OMBRE = [];
 let ART_GRAVIER = null;
 function chargeDecor(fini) {
   if (typeof Image === 'undefined') return;
-  decorAttendu = KINDS_DESSINES.length + OMBRES_DESSIN.length + MOBILIER.length + RAILS.length + 1;
+  decorAttendu = KINDS_DESSINES.length + OMBRES_DESSIN.length + MOBILIER.length
+    + RAILS.length + PNEUS.length + 1;
   const un = () => { if (++decorCharge === decorAttendu && fini) fini(); };
   for (const k of KINDS_DESSINES) {
     const img = new Image();
@@ -290,6 +308,12 @@ function chargeDecor(fini) {
     img.onerror = un;
     img.src = k.f;
   }
+  PNEUS.forEach((f, i) => {
+    const img = new Image();
+    img.onload = () => { ART_DESSINE['pneu-' + i] = img; un(); };
+    img.onerror = un;
+    img.src = f;
+  });
   RAILS.forEach((f, i) => {
     const img = new Image();
     img.onload = () => { ART_DESSINE['rail-' + i] = img; un(); };
@@ -727,6 +751,12 @@ function buildTopArt(pal) {
     art[k.id] = { canvas: img, wm: k.wm, cuite: true, anc: 0.5,
       hm: k.wm * (img.naturalHeight / img.naturalWidth) };
   }
+  for (let i = 0; i < PNEUS.length; i++) {
+    const img = ART_DESSINE['pneu-' + i];
+    if (!img) continue;
+    art['pneu-' + i] = { canvas: img, wm: PNEU_M, cuite: true, anc: 0.5,
+      hm: PNEU_M * (img.naturalHeight / img.naturalWidth) };
+  }
   for (let i = 0; i < RAILS.length; i++) {
     const img = ART_DESSINE['rail-' + i];
     if (!img) continue;
@@ -940,7 +970,7 @@ const BUISSONS = ['buisson-1', 'buisson-2', 'buisson-3', 'buisson-4', 'buisson-5
    derrière un bac, lissé entre les deux. On prend QUINZE mètres partout plutôt que de recalculer
    ce profil ici — une seconde définition du même nombre finit toujours par diverger de la
    première, et quinze mètres couvre le cas le plus large. */
-const HORS_BARRIERES = 15;
+const HORS_BARRIERES = 19;
 
 /* RIEN NE POUSSE SUR LES BANDES PEINTES. Le bord de piste porte trois marques dans l'ordre : le
    liseré sombre qui encadre le bitume, large de trois mètres et demi dont la moitié déborde sur
@@ -1004,13 +1034,13 @@ function semeStrates(track, id, strates) {
   for (const cn of track.corners) {
     for (let i = cn.from; i <= cn.to; i++) enVirage[((i % N) + N) % N] = 1;
   }
-  const GRAVIER = 9;                       // les huit mètres du bac, plus un de marge
+  const bac = (i) => track.halfWidth + track.largeurBac(i) + 1.2;   // le bac, plus une marge
   const loinDeLaPiste = (x, y, besoin) => {
     for (let i = 0; i < N; i += 4) {
       const dx = x - track.xs[i], dy = y - track.ys[i];
       // en virage la garde s'élargit au bac : sans ça un objet semé depuis un autre tronçon du
       // tour pouvait tomber en plein dégagement
-      const b = Math.max(besoin, track.halfWidth + (enVirage[i] ? GRAVIER : 0));
+      const b = Math.max(besoin, enVirage[i] ? bac(i) : 0);
       if (dx * dx + dy * dy < b * b) return false;
     }
     return true;
@@ -1037,7 +1067,7 @@ function semeStrates(track, id, strates) {
         const i = track.idx(p.s);
         const hw = cote > 0 ? track.hwL[i] : track.hwR[i];
         const lat = (hw + p.d) * cote;
-        if (enVirage[i] && p.d < GRAVIER) continue;        // le bac du virage qu'on longe
+        if (p.d < track.largeurBac(i) + 1.2) continue;     // le bac du virage qu'on longe
         const x = track.xs[i] + track.nx[i] * lat, y = track.ys[i] + track.ny[i] * lat;
         // la garde est celle de la strate elle-même : ce qu'elle s'interdit près de SON bord, elle
         // se l'interdit près de n'importe quel autre tronçon du tour
@@ -1083,7 +1113,7 @@ function poseBarrieres(track, id) {
   const enVirage = new Uint8Array(N);
   for (const cn of track.corners) for (let i = cn.from; i <= cn.to; i++) enVirage[((i % N) + N) % N] = 1;
   const brut = new Float32Array(N);
-  for (let i = 0; i < N; i++) brut[i] = enVirage[i] ? 13.5 : 7.5;
+  for (let i = 0; i < N; i++) brut[i] = enVirage[i] ? track.largeurBac(i) + 4.5 : 7.5;
   const F = Math.max(1, Math.round(30 / track.ds));         // demi-fenêtre : trente mètres
   const recul = new Float32Array(N);
   for (let i = 0; i < N; i++) {
@@ -1148,6 +1178,62 @@ function poseBarrieres(track, id) {
       s += pas;
     }
   }
+  return out;
+}
+
+/* LES PNEUS BORDENT LE BAC, un par un, sur toute la partie où il est assez large pour servir.
+
+   Pas de tuiles : un pneu est rond, donc il se pose où on veut sans orientation. Le pas est serré —
+   les pneus d'un mur se touchent — et il suit la cloche du bac, donc le mur apparaît quand le bac
+   s'ouvre et disparaît quand il se referme, sans qu'on ait à dire où.
+
+   Les quatre dessins tournent dans l'ordre plutôt qu'au hasard : un mur de pneus est fait de pneus
+   usés empilés par les commissaires, pas d'un tirage. L'alternance régulière est ce qu'on voit sur
+   un circuit, et elle évite les paquets de deux identiques qu'un tirage produit toujours. */
+function posePneus(track, id) {
+  if (!decorPret() || !PNEUS.length) return [];
+  const L = track.length, N2 = track.n, out = [];
+  const MINI = 4.5;                      // en deçà, le bac est trop étroit pour mériter un mur
+  /* LE PAS SE MESURE ENTRE DEUX PNEUS, PAS LE LONG DE L'AXE. Le mur est posé une vingtaine de
+     mètres au large ; sur l'extérieur d'une épingle de vingt-cinq mètres de rayon, l'arc qu'il
+     décrit est presque deux fois plus long que celui de la ligne médiane. Un pas constant compté
+     sur l'axe écartait donc les pneus d'autant, et le mur se clairsemait exactement là où il sert
+     le plus. On avance par petits incréments et on pose quand on s'est VRAIMENT éloigné du
+     précédent. */
+  const ECART = PNEU_M * 0.72;
+  let k = 0;
+  for (const cote of [1, -1]) {
+    let px = null, py = null;
+    for (let s = 0; s < L; s += 0.4) {
+      const i = track.idx(s);
+      const w = track.largeurBac(i);
+      if (w < MINI) { px = null; continue; }    // le mur s'interrompt, on repart à neuf
+      const hw = cote > 0 ? track.hwL[i] : track.hwR[i];
+      const lat = (hw + w + PNEU_M * 0.45) * cote;
+      const x = track.xs[i] + track.nx[i] * lat, y = track.ys[i] + track.ny[i] * lat;
+      if (px !== null && (x - px) * (x - px) + (y - py) * (y - py) < ECART * ECART) continue;
+      /* À L'INTÉRIEUR D'UNE ÉPINGLE, le bord extérieur du bac traverse l'autre branche : le mur
+         se retrouvait en travers du bitume. Même garde-fou que pour les glissières — on n'écarte
+         que les tronçons qui vont AILLEURS, faute de quoi on confondrait l'arc qu'on longe avec
+         la branche d'en face et on perdrait tout le mur extérieur. */
+      let dehors = true;
+      for (let j = 0; j < N2 && dehors; j += 2) {
+        let e = Math.abs(j - i); if (e > N2 / 2) e = N2 - e;
+        if (e * track.ds < PNEU_M * 2) continue;
+        let dth = track.th[j] - track.th[i];
+        while (dth > Math.PI) dth -= 2 * Math.PI;
+        while (dth < -Math.PI) dth += 2 * Math.PI;
+        if (Math.abs(dth) < 1.22) continue;
+        const dx = x - track.xs[j], dy = y - track.ys[j];
+        if (dx * dx + dy * dy < (track.halfWidth + 3) * (track.halfWidth + 3)) dehors = false;
+      }
+      if (dehors) {
+        out.push({ x, y, id: 'pneu-' + (k++ % PNEUS.length), ech: 1, ton: 0, om: 0, rot: 0 });
+        px = x; py = y;
+      }
+    }
+  }
+  void id;
   return out;
 }
 

@@ -579,7 +579,8 @@ class Renderer {
        sous-bois, et un grand arbre qui passerait sous un buisson se lirait comme un trou. La
        profondeur vient de là, pas de la caméra. */
     this.topProps = track.decor === 'ardennes' && decorPret()
-      ? semeStrates(track, seed, STRATES_ARDENNES).concat(poseBarrieres(track, seed))
+      ? semeStrates(track, seed, STRATES_ARDENNES)
+        .concat(poseBarrieres(track, seed), posePneus(track, seed))
       : placeGroundProps(track, seed, PAL.herbe)
         .concat(placeTopProps(track, seed, PAL.densite, PAL.props, PAL.serre, PAL.lisiere, PAL.profond));
     /* L'ORDRE DE DESSIN EST CELUI DU NORD VERS LE SUD, pas celui des tailles.
@@ -700,10 +701,7 @@ class Renderer {
       La largeur suit donc une cloche qui vaut zéro aux deux extrémités : le bac rejoint le bord de
       piste là où il commence et là où il finit, et il n'y a plus rien à refermer. C'est aussi ce
       que fait un vrai dégagement, qui s'ouvre et se referme progressivement. */
-      const large = (i) => {
-        const t = (i - cn.from) / Math.max(1, cn.to - cn.from);
-        return 8 * Math.pow(Math.sin(Math.PI * Math.min(1, Math.max(0, t))), 0.55);
-      };
+      const large = (i) => track.largeurBac(i);
       for (let i = cn.from; i <= cn.to; i += 2) { const k = ((i % N) + N) % N, w = large(i), p = [xs[k] + nx[k] * (track.hwL[k] + w), ys[k] + ny[k] * (track.hwL[k] + w)]; if (i === cn.from) gravel.moveTo(p[0], p[1]); else gravel.lineTo(p[0], p[1]); }
       for (let i = cn.to; i >= cn.from; i -= 2) { const k = ((i % N) + N) % N, w = large(i); gravel.lineTo(xs[k] - nx[k] * (track.hwR[k] + w), ys[k] - ny[k] * (track.hwR[k] + w)); }
       gravel.closePath();

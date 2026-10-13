@@ -457,6 +457,31 @@ class Track {
     return f < 0.18 ? 1 : f < 0.255 ? 2 : f < 0.29 ? 3 : f < 0.39 ? 4 : f < 0.44 ? 5 : 6;
   }
 
+  /* LA LARGEUR DU BAC À GRAVIER, EN UN SEUL ENDROIT.
+
+  Trois choses en dépendent et elles doivent s'accorder : le dessin du bac, le semis qui doit
+  l'éviter, et le mur de pneus qui se pose sur son bord extérieur. Chacune avait sa propre copie du
+  nombre — huit mètres ici, neuf là — et la première fois qu'on agrandit le bac, les deux autres ne
+  suivent pas : la végétation repousse au milieu du gravier et les pneus se retrouvent dedans. Le
+  circuit répond donc lui-même à la question.
+
+  La largeur suit une cloche nulle aux deux extrémités du virage : le bac rejoint le bord de piste
+  là où il commence et là où il finit, et il n'y a pas de corde droite à refermer en travers. */
+  largeurBac(i) {
+    const N = this.n, k = ((i % N) + N) % N;
+    let max = 0;
+    for (const cn of this.corners) {
+      // un virage peut enjamber la ligne de départ : on compare dans son propre repère
+      let t = k - cn.from;
+      if (t < 0) t += N;
+      if (t > cn.to - cn.from) continue;
+      const u = t / Math.max(1, cn.to - cn.from);
+      const w = Track.BAC_M * Math.pow(Math.sin(Math.PI * u), 0.55);
+      if (w > max) max = w;
+    }
+    return max;
+  }
+
   _brakingBoards() {
     const N = this.n, out = [];
     if (!this.corners.length) return out;
@@ -1206,5 +1231,7 @@ class Track {
     return d;
   }
 }
+
+Track.BAC_M = 12;              // la largeur maximale d'un bac à gravier, au milieu du virage
 
 if (typeof module !== 'undefined') module.exports = { Track, LINE_NAMES, NOMS_AUTEUR, KERB_IN, KERB_LARGE, KERB_RAMPE };
