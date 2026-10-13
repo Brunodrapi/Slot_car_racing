@@ -531,6 +531,20 @@ class Renderer {
     return c;
   }
 
+  /* Le motif du bac, à l'échelle du monde. Une tuile de deux cent cinquante-six pixels couvre
+     quatorze mètres : les gravillons y font la taille de vrais gravillons vus de la caméra, et la
+     répétition passe sous le seuil où l'œil attrape une grille. `setTransform` n'existe pas sur
+     tous les navigateurs anciens ; sans lui on se passe de texture plutôt que de la poser à une
+     échelle absurde. */
+  _motifGravier() {
+    if (typeof ART_GRAVIER === 'undefined' || !ART_GRAVIER) return null;
+    const m = this.ctx.createPattern(ART_GRAVIER, 'repeat');
+    if (!m || !m.setTransform || typeof DOMMatrix === 'undefined') return null;
+    const s = 14 / ART_GRAVIER.naturalWidth;
+    m.setTransform(new DOMMatrix([s, 0, 0, s, 0, 0]));
+    return m;
+  }
+
   setTrack(track) {
     this.track = track;
     this.rubber = new Map();
@@ -549,6 +563,7 @@ class Renderer {
     if (track.def && track.def.kerb) PAL = Object.assign({}, PAL, { kerb: track.def.kerb });
     this.grass = this._makeGrass();
     this.grassPattern = this.ctx.createPattern(this.grass, 'repeat');
+    this.gravierMotif = this._motifGravier();
     const seed = track.id || track.name || 'track';
     /* Le décor vu de dessus, dessiné et non téléchargé.
 
@@ -1036,6 +1051,7 @@ class Renderer {
     }
     this._makeMinimap();
     this.grassPattern = this.ctx.createPattern(this.grass, 'repeat');
+    this.gravierMotif = this._motifGravier();
   }
 
   /* Tout ce que la PREMIÈRE IMAGE de la course doit avoir sous la main.
@@ -1563,7 +1579,24 @@ class Renderer {
       for (const c of vus0) { g.stroke(c.left); g.stroke(c.right); }
       // gravel traps next, then the road itself with a heavy dark outline: the cartoon look
       // comes from flat colours and hard edges rather than shading
-      for (const cn of this.paths.corners) { if (!inView(cn.bbox)) continue; g.fillStyle = PAL.gravel; g.fill(cn.gravel); }
+      /* LE BAC : son ton, puis sa MATIÈRE par-dessus.
+
+      Le ton seul donnait un aplat beige qui jurait à côté de tout ce qui l'entoure. La planche
+      fournit du sable ratissé avec ses gravillons ; on le pose en motif répété, à l'intérieur de
+      la forme qu'on a déjà — celle qui épouse la piste et meurt sur ses bords. Les tuiles d'angle
+      dessinées à rayon fixe de la planche ne pourraient pas faire ça : une piste n'a pas deux
+      virages du même rayon.
+
+      Le motif est posé par `setTransform` sur le motif lui-même et non par une mise à l'échelle du
+      contexte : mettre le contexte à l'échelle mettrait aussi le CHEMIN à l'échelle, et le bac se
+      retrouverait seize fois trop loin de la piste. */
+      for (const cn of this.paths.corners) {
+        if (!inView(cn.bbox)) continue;
+        g.fillStyle = PAL.gravel; g.fill(cn.gravel);
+        if (this.gravierMotif) {
+          g.save(); g.globalAlpha = 0.9; g.fillStyle = this.gravierMotif; g.fill(cn.gravel); g.restore();
+        }
+      }
       // Seuls les tronçons en vue : la caméra montre une cinquantaine de mètres d'un circuit qui
       // en fait des milliers, et tout le reste ne sert qu'à occuper le rasteriseur.
       const vus = this.paths.chunks.filter(c => inView(c.bbox));

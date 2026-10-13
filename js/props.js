@@ -244,12 +244,39 @@ const KINDS_DESSINES = [
 /* Les images, chargées une fois. Tant qu'elles ne sont pas là, `buildTopArt` retombe sur les
    objets peints : une course qui démarre pendant le chargement montre un décor peint plutôt
    qu'un décor vide, et `aPeint` dira plus tard de refaire la cuisson. */
+/* LES GLISSIÈRES EN TRENTE-DEUX ORIENTATIONS, et ce n'est pas un luxe.
+
+   Une tuile unique qu'on fait pivoter fait pivoter sa LUMIÈRE avec elle : le reflet sur le rail
+   partait vers le haut dans un sens et vers le bas dans l'autre, et c'est exactement ce qu'on
+   avait reproché aux arbres. Un décor dessiné n'a qu'un soleil. Trente-deux dessins, un tous les
+   onze degrés et quart, règlent la question : chacun est posé sans rotation, donc chacun garde la
+   lumière qu'on lui a peinte.
+
+   Elles remplacent aussi les longues tuiles de quatorze mètres : une section se pose tous les
+   quelques mètres, comme une vraie glissière se boulonne poteau par poteau, et le pas court suit
+   la courbure sans laisser de jour. */
+const RAILS = [];
+for (let i = 0; i < 32; i++) RAILS.push('art/decor/rail/r' + String(i).padStart(2, '0') + '.webp');
+/* L'ÉCHELLE EST EN PIXELS PAR MÈTRE, PAS EN MÈTRES PAR DESSIN. Les trente-deux dessins montrent
+   la MÊME glissière sous trente-deux angles : sa boîte est large et basse à zéro degré, étroite et
+   haute à quatre-vingt-dix. Leur donner à tous la même largeur en mètres étirait la glissière de
+   moitié aux angles obliques. On fixe donc la définition — vingt-cinq pixels et demi par mètre,
+   choisie pour qu'une section à plat fasse sept mètres — et chaque dessin prend la largeur que sa
+   propre boîte lui donne. */
+const RAIL_PPM = 25.6;
+const RAIL_LONG = 7.0;       // la longueur réelle d'une section, qui décide du pas de pose
+const RAIL_ANC = 0.76;       // son appui au sol : le bas du dessin, où est l'herbe
+
 const ART_DESSINE = {};
 let decorCharge = 0, decorAttendu = 0;
 const ART_OMBRE = [];
+/* LA TEXTURE DU BAC À GRAVIER. Ce n'est pas un objet qu'on sème mais un MOTIF qu'on répète dans
+   une forme : le bac suit la piste, sa largeur varie, et aucune tuile d'angle dessinée à rayon
+   fixe ne pourrait l'épouser. On garde donc la géométrie et on lui donne la matière. */
+let ART_GRAVIER = null;
 function chargeDecor(fini) {
   if (typeof Image === 'undefined') return;
-  decorAttendu = KINDS_DESSINES.length + OMBRES_DESSIN.length + MOBILIER.length;
+  decorAttendu = KINDS_DESSINES.length + OMBRES_DESSIN.length + MOBILIER.length + RAILS.length + 1;
   const un = () => { if (++decorCharge === decorAttendu && fini) fini(); };
   for (const k of KINDS_DESSINES) {
     const img = new Image();
@@ -262,6 +289,18 @@ function chargeDecor(fini) {
     img.onload = () => { ART_DESSINE[k.id] = img; un(); };
     img.onerror = un;
     img.src = k.f;
+  }
+  RAILS.forEach((f, i) => {
+    const img = new Image();
+    img.onload = () => { ART_DESSINE['rail-' + i] = img; un(); };
+    img.onerror = un;
+    img.src = f;
+  });
+  {
+    const img = new Image();
+    img.onload = () => { ART_GRAVIER = img; un(); };
+    img.onerror = un;
+    img.src = 'art/decor/gravier.webp';
   }
   OMBRES_DESSIN.forEach((f, i) => {
     const img = new Image();
@@ -688,6 +727,13 @@ function buildTopArt(pal) {
     art[k.id] = { canvas: img, wm: k.wm, cuite: true, anc: 0.5,
       hm: k.wm * (img.naturalHeight / img.naturalWidth) };
   }
+  for (let i = 0; i < RAILS.length; i++) {
+    const img = ART_DESSINE['rail-' + i];
+    if (!img) continue;
+    const wm = img.naturalWidth / RAIL_PPM;
+    art['rail-' + i] = { canvas: img, wm, cuite: true, anc: RAIL_ANC,
+      hm: img.naturalHeight / RAIL_PPM };
+  }
   for (const k of TOP_KINDS) {
     if (art[k.id]) continue;
     const w = Math.max(12, Math.round(k.wm * TOP_PPM));
@@ -1061,33 +1107,36 @@ function poseBarrieres(track, id) {
     let s = rnd() * 30;
     while (s < L) {
       const i = track.idx(s);
-      // acier là où ça va vite ; bois et pierre ailleurs, tirés au sort pour ne pas alterner
-      const vite = severite[i] < 0.6;
-      const k = art[vite ? (rnd() < 0.5 ? 'glissiere' : 'glissiere2')
-        : (rnd() < 0.55 ? 'barriere-bois' : 'muret')];
-      /* LE PAS SE RESSERRE EN VIRAGE. Deux tuiles droites posées bout à bout le long d'un arc
-         laissent un coin de vide à l'extérieur — la corde est plus courte que l'arc — et un jour
-         dans une glissière se voit beaucoup plus qu'un chevauchement. */
-      const pas = k.wm * (enVirage[i] ? 0.76 : 0.94);
+      /* L'ORIENTATION SE CHOISIT, ELLE NE S'APPLIQUE PLUS. On prend le dessin dont l'angle est
+         le plus proche du cap, et on le pose tel quel : c'est ce qui garde une lumière unique sur
+         tout le circuit. Un demi-tour sépare les deux côtés — le rail regarde la piste, donc il
+         regarde à l'opposé selon qu'on est à gauche ou à droite du ruban. */
+      /* LE SENS DE ROTATION DE LA PLANCHE EST L'INVERSE DE CELUI DU CAP. Les angles d'une planche
+         se lisent dans le sens trigonométrique ; le cap d'une piste, lui, tourne dans le sens des
+         aiguilles parce que l'axe des ordonnées de la toile descend. Posées au cap tel quel, les
+         glissières se plantaient en travers de la piste — et d'autant plus que la piste tournait. */
+      const cap = -track.th[i] + (cote > 0 ? 0 : Math.PI);
+      const n = RAILS.length;
+      const idx = ((Math.round(cap / (2 * Math.PI) * n) % n) + n) % n;
+      /* LE PAS EST BIEN PLUS COURT QUE LA SECTION, et c'est la géométrie du dessin qui l'impose.
+         À zéro degré la glissière occupe toute la largeur de sa boîte ; à quarante-cinq elle la
+         traverse en diagonale, donc ce qu'elle couvre LE LONG DE LA PISTE est bien moindre que la
+         boîte. Poser au pas de la boîte laissait un jour sur deux tronçons obliques sur trois. On
+         recouvre donc franchement : deux glissières superposées font une glissière, un trou entre
+         deux n'en fait pas. */
+      const pas = RAIL_LONG * (enVirage[i] ? 0.5 : 0.62);
       const hw = cote > 0 ? track.hwL[i] : track.hwR[i];
       const lat = (hw + recul[i]) * cote;
       const x = track.xs[i] + track.nx[i] * lat, y = track.ys[i] + track.ny[i] * lat;
-      /* LA TUILE NE DOIT PAS TOMBER SUR UN AUTRE TRONÇON. À l'intérieur d'une épingle, treize
-         mètres de recul font traverser la piste : la barrière se retrouvait en travers du
-         bitume. On vérifie donc la distance à toutes les stations SAUF le voisinage immédiat,
-         dont on s'écarte par construction. Là où il n'y a pas la place, il n'y a pas de
-         barrière — c'est aussi ce que fait un vrai circuit. */
-      /* ON NE REJETTE QUE CE QUI VIENT D'UNE AUTRE DIRECTION. Écarter par la seule distance le
-         long du tour confondait l'arc qu'on longe avec l'autre branche d'une épingle : au bout de
-         vingt mètres d'arc serré, la ligne médiane est déjà revenue sous la barrière, et toute la
-         courbe extérieure se retrouvait sans glissière. Un tronçon qui mérite qu'on s'écarte est
-         un tronçon qui va AILLEURS — plus de soixante-dix degrés d'écart de cap. L'arc qu'on suit
-         tourne lentement et reste en dessous ; l'autre branche d'une épingle est à cent quatre-
-         vingts degrés. */
+      /* LA SECTION NE DOIT PAS TOMBER SUR UN AUTRE TRONÇON. À l'intérieur d'une épingle, le recul
+         fait traverser la piste. Écarter par la seule distance le long du tour confondrait l'arc
+         qu'on longe avec l'autre branche : au bout de vingt mètres d'arc serré la ligne médiane
+         est déjà revenue sous la barrière. On n'écarte que ce qui va AILLEURS — plus de soixante-
+         dix degrés d'écart de cap. */
       let dehors = true;
       for (let j = 0; j < N && dehors; j += 2) {
         let e = Math.abs(j - i); if (e > N / 2) e = N - e;
-        if (e * track.ds < k.wm * 0.8) continue;
+        if (e * track.ds < RAIL_LONG) continue;
         let dth = track.th[j] - track.th[i];
         while (dth > Math.PI) dth -= 2 * Math.PI;
         while (dth < -Math.PI) dth += 2 * Math.PI;
@@ -1095,15 +1144,7 @@ function poseBarrieres(track, id) {
         const dx = x - track.xs[j], dy = y - track.ys[j];
         if (dx * dx + dy * dy < (track.halfWidth + 5) * (track.halfWidth + 5)) dehors = false;
       }
-      if (dehors) {
-        /* L'ORIENTATION. La tuile est dessinée couchée, le rail en HAUT du fichier. Après une
-           rotation du cap, le haut du fichier pointe vers la normale gauche de la piste : il
-           regarde donc la piste du côté gauche, et le dos de la barrière du côté droit. Un
-           demi-tour remet le rail face à la route de l'autre côté. Posée d'un quart de tour, ce
-           qu'on avait d'abord, elle se plantait en travers du bitume. */
-        out.push({ x, y, id: k.id, ech: 1, ton: 0, om: 0,
-          rot: track.th[i] + (cote > 0 ? 0 : Math.PI) });
-      }
+      if (dehors) out.push({ x, y, id: 'rail-' + idx, ech: 1, ton: 0, om: 0, rot: 0 });
       s += pas;
     }
   }
