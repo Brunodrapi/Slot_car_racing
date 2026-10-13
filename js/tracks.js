@@ -618,8 +618,8 @@ const TRACKS = [
        sprite. Les cadrages sont réglés à la main — c'est tout le problème de la méthode, et c'est
        une bonne raison de l'essayer avant de s'y engager. */
     plaques: [
-      { src: 'art/decor/plaques/z-epingle.webp', x: -183, y: -198, m: 155, hw: 1.500, rot: -60 },
-      { src: 'art/decor/plaques/z-double.webp', x: 206, y: 128, m: 143, hw: 0.956, rot: -78 },
+      { src: 'art/decor/plaques/z-double.webp', x: -183, y: -198, m: 143, hw: 0.956, rot: -27 },
+      { src: 'art/decor/plaques/z-epingle.webp', x: 206, y: 128, m: 155, hw: 1.500, rot: 0 },
     ],
     kerb: DRAPEAUX.nl,
     length: 2400, width: 13,
