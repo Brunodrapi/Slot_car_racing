@@ -1,146 +1,392 @@
 [
  {
-  "id": "arbre",
-  "fichier": "art/decor/arbre.png",
-  "m": 9.0,
+  "id": "arbre-1",
+  "fichier": "art/decor/arbre-1.webp",
+  "m": 11.0,
+  "anc": 0.56,
   "px": [
-   88,
+   156,
+   160
+  ]
+ },
+ {
+  "id": "arbre-2",
+  "fichier": "art/decor/arbre-2.webp",
+  "m": 10.0,
+  "anc": 0.56,
+  "px": [
+   141,
+   160
+  ]
+ },
+ {
+  "id": "arbre-3",
+  "fichier": "art/decor/arbre-3.webp",
+  "m": 10.5,
+  "anc": 0.56,
+  "px": [
+   144,
+   160
+  ]
+ },
+ {
+  "id": "arbre-4",
+  "fichier": "art/decor/arbre-4.webp",
+  "m": 10.5,
+  "anc": 0.56,
+  "px": [
+   151,
+   160
+  ]
+ },
+ {
+  "id": "arbre-5",
+  "fichier": "art/decor/arbre-5.webp",
+  "m": 9.5,
+  "anc": 0.56,
+  "px": [
+   138,
+   160
+  ]
+ },
+ {
+  "id": "arbre-6",
+  "fichier": "art/decor/arbre-6.webp",
+  "m": 10.0,
+  "anc": 0.56,
+  "px": [
+   142,
+   160
+  ]
+ },
+ {
+  "id": "arbre-7",
+  "fichier": "art/decor/arbre-7.webp",
+  "m": 10.5,
+  "anc": 0.56,
+  "px": [
+   144,
+   160
+  ]
+ },
+ {
+  "id": "arbre-8",
+  "fichier": "art/decor/arbre-8.webp",
+  "m": 10.0,
+  "anc": 0.56,
+  "px": [
+   143,
+   160
+  ]
+ },
+ {
+  "id": "sapin-1",
+  "fichier": "art/decor/sapin-1.webp",
+  "m": 6.5,
+  "anc": 0.86,
+  "px": [
+   68,
+   147
+  ]
+ },
+ {
+  "id": "sapin-2",
+  "fichier": "art/decor/sapin-2.webp",
+  "m": 6.0,
+  "anc": 0.86,
+  "px": [
+   79,
+   160
+  ]
+ },
+ {
+  "id": "sapin-3",
+  "fichier": "art/decor/sapin-3.webp",
+  "m": 5.5,
+  "anc": 0.86,
+  "px": [
+   64,
+   160
+  ]
+ },
+ {
+  "id": "sapin-4",
+  "fichier": "art/decor/sapin-4.webp",
+  "m": 3.6,
+  "anc": 0.86,
+  "px": [
+   42,
+   107
+  ]
+ },
+ {
+  "id": "buisson-1",
+  "fichier": "art/decor/buisson-1.webp",
+  "m": 4.6,
+  "anc": 0.58,
+  "px": [
+   90,
    92
   ]
  },
  {
-  "id": "bosquet",
-  "fichier": "art/decor/bosquet.png",
-  "m": 10.5,
+  "id": "buisson-2",
+  "fichier": "art/decor/buisson-2.webp",
+  "m": 4.2,
+  "anc": 0.58,
+  "px": [
+   84,
+   91
+  ]
+ },
+ {
+  "id": "buisson-3",
+  "fichier": "art/decor/buisson-3.webp",
+  "m": 4.4,
+  "anc": 0.58,
   "px": [
    94,
-   192
+   102
   ]
  },
  {
-  "id": "buisson",
-  "fichier": "art/decor/buisson.png",
-  "m": 4.2,
+  "id": "buisson-4",
+  "fichier": "art/decor/buisson-4.webp",
+  "m": 4.0,
+  "anc": 0.58,
   "px": [
-   79,
-   77
+   85,
+   89
   ]
  },
  {
-  "id": "buisson-fleuri",
-  "fichier": "art/decor/buisson-fleuri.png",
-  "m": 5.5,
+  "id": "buisson-5",
+  "fichier": "art/decor/buisson-5.webp",
+  "m": 5.2,
+  "anc": 0.58,
   "px": [
-   102,
-   87
+   112,
+   108
   ]
  },
  {
-  "id": "buisson-mini",
-  "fichier": "art/decor/buisson-mini.png",
-  "m": 2.2,
+  "id": "buisson-6",
+  "fichier": "art/decor/buisson-6.webp",
+  "m": 3.8,
+  "anc": 0.58,
   "px": [
-   53,
-   56
-  ]
- },
- {
-  "id": "buisson-petit",
-  "fichier": "art/decor/buisson-petit.png",
-  "m": 2.6,
-  "px": [
-   45,
-   48
-  ]
- },
- {
-  "id": "buisson2",
-  "fichier": "art/decor/buisson2.png",
-  "m": 3.6,
-  "px": [
-   73,
-   76
-  ]
- },
- {
-  "id": "caillou",
-  "fichier": "art/decor/caillou.png",
-  "m": 1.8,
-  "px": [
-   42,
-   39
-  ]
- },
- {
-  "id": "fleurs-blanches",
-  "fichier": "art/decor/fleurs-blanches.png",
-  "m": 3.0,
-  "px": [
-   72,
+   84,
    69
   ]
  },
  {
-  "id": "fleurs-jaunes",
-  "fichier": "art/decor/fleurs-jaunes.png",
-  "m": 3.0,
+  "id": "buisson-7",
+  "fichier": "art/decor/buisson-7.webp",
+  "m": 3.6,
+  "anc": 0.58,
   "px": [
-   68,
+   80,
+   70
+  ]
+ },
+ {
+  "id": "buisson-8",
+  "fichier": "art/decor/buisson-8.webp",
+  "m": 3.2,
+  "anc": 0.58,
+  "px": [
+   66,
+   65
+  ]
+ },
+ {
+  "id": "buisson-fleuri-jaune",
+  "fichier": "art/decor/buisson-fleuri-jaune.webp",
+  "m": 3.0,
+  "anc": 0.58,
+  "px": [
+   57,
+   57
+  ]
+ },
+ {
+  "id": "buisson-fleuri-rouge",
+  "fichier": "art/decor/buisson-fleuri-rouge.webp",
+  "m": 2.8,
+  "anc": 0.58,
+  "px": [
+   61,
+   57
+  ]
+ },
+ {
+  "id": "buisson-fleuri-blanc",
+  "fichier": "art/decor/buisson-fleuri-blanc.webp",
+  "m": 2.4,
+  "anc": 0.58,
+  "px": [
+   45,
+   47
+  ]
+ },
+ {
+  "id": "buisson-mini",
+  "fichier": "art/decor/buisson-mini.webp",
+  "m": 2.0,
+  "anc": 0.58,
+  "px": [
+   49,
+   49
+  ]
+ },
+ {
+  "id": "buisson-mini2",
+  "fichier": "art/decor/buisson-mini2.webp",
+  "m": 1.7,
+  "anc": 0.58,
+  "px": [
+   39,
+   38
+  ]
+ },
+ {
+  "id": "rocher-1",
+  "fichier": "art/decor/rocher-1.webp",
+  "m": 3.6,
+  "anc": 0.6,
+  "px": [
+   70,
+   61
+  ]
+ },
+ {
+  "id": "rocher-2",
+  "fichier": "art/decor/rocher-2.webp",
+  "m": 2.6,
+  "anc": 0.6,
+  "px": [
+   51,
+   49
+  ]
+ },
+ {
+  "id": "rocher-3",
+  "fichier": "art/decor/rocher-3.webp",
+  "m": 4.4,
+  "anc": 0.6,
+  "px": [
+   87,
+   90
+  ]
+ },
+ {
+  "id": "caillou",
+  "fichier": "art/decor/caillou.webp",
+  "m": 1.6,
+  "anc": 0.6,
+  "px": [
+   35,
+   34
+  ]
+ },
+ {
+  "id": "souche",
+  "fichier": "art/decor/souche.webp",
+  "m": 2.2,
+  "anc": 0.62,
+  "px": [
+   61,
+   48
+  ]
+ },
+ {
+  "id": "rondin",
+  "fichier": "art/decor/rondin.webp",
+  "m": 3.0,
+  "anc": 0.6,
+  "px": [
+   58,
+   50
+  ]
+ },
+ {
+  "id": "branche",
+  "fichier": "art/decor/branche.webp",
+  "m": 3.0,
+  "anc": 0.6,
+  "px": [
+   65,
+   63
+  ]
+ },
+ {
+  "id": "herbe-1",
+  "fichier": "art/decor/herbe-1.webp",
+  "m": 1.6,
+  "anc": 0.7,
+  "px": [
+   32,
+   28
+  ]
+ },
+ {
+  "id": "herbe-2",
+  "fichier": "art/decor/herbe-2.webp",
+  "m": 1.5,
+  "anc": 0.7,
+  "px": [
+   34,
+   33
+  ]
+ },
+ {
+  "id": "herbe-3",
+  "fichier": "art/decor/herbe-3.webp",
+  "m": 1.5,
+  "anc": 0.7,
+  "px": [
+   34,
+   30
+  ]
+ },
+ {
+  "id": "fleurs-blanches",
+  "fichier": "art/decor/fleurs-blanches.webp",
+  "m": 2.6,
+  "anc": 0.66,
+  "px": [
+   82,
+   78
+  ]
+ },
+ {
+  "id": "fleurs-jaunes",
+  "fichier": "art/decor/fleurs-jaunes.webp",
+  "m": 2.4,
+  "anc": 0.66,
+  "px": [
+   39,
    64
   ]
  },
  {
   "id": "fleurs-rouges",
-  "fichier": "art/decor/fleurs-rouges.png",
-  "m": 3.0,
+  "fichier": "art/decor/fleurs-rouges.webp",
+  "m": 2.4,
+  "anc": 0.66,
   "px": [
-   66,
-   69
+   62,
+   67
   ]
  },
  {
-  "id": "fougere",
-  "fichier": "art/decor/fougere.png",
-  "m": 3.2,
+  "id": "fleurs-blanches2",
+  "fichier": "art/decor/fleurs-blanches2.webp",
+  "m": 2.4,
+  "anc": 0.66,
   "px": [
-   72,
-   91
-  ]
- },
- {
-  "id": "rocher",
-  "fichier": "art/decor/rocher.png",
-  "m": 4.2,
-  "px": [
-   76,
-   70
-  ]
- },
- {
-  "id": "rocher-petit",
-  "fichier": "art/decor/rocher-petit.png",
-  "m": 2.2,
-  "px": [
-   47,
-   45
-  ]
- },
- {
-  "id": "touffe",
-  "fichier": "art/decor/touffe.png",
-  "m": 2.6,
-  "px": [
-   57,
-   56
-  ]
- },
- {
-  "id": "touffe-mini",
-  "fichier": "art/decor/touffe-mini.png",
-  "m": 1.6,
-  "px": [
-   34,
-   36
+   58,
+   61
   ]
  }
 ]

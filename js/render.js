@@ -573,7 +573,11 @@ class Renderer {
     chercher à chaque image coûterait le prix d'un balayage du circuit soixante fois par seconde.
 
     Le décalage est celui des ombres cuites dans les sprites — vers le bas-gauche. */
-    const DECAL_X = -0.22, DECAL_Y = 0.26;
+    /* L'OMBRE TOMBE LOIN, parce que le soleil est bas. Au décalage d'un quart de couronne, une
+       canopée plantée à dix mètres du bord n'atteignait plus le bitume et la route redevenait une
+       bande propre. Un arbre de onze mètres projette ici son ombre à cinq mètres de son pied :
+       c'est ce que montre l'image de référence, et c'est aussi ce qui raccroche les deux. */
+    const DECAL_X = -0.42, DECAL_Y = 0.48;
     this.ombresRoute = [];
     for (const pr of this.topProps) {
       const a = this.topArt[pr.id];
@@ -2051,14 +2055,19 @@ class Renderer {
       if (p.x < vis.minX - half || p.x > vis.maxX + half || p.y < vis.minY - half || p.y > vis.maxY + half) continue;
       const dx = m.a * p.x + m.c * p.y + m.e, dy = m.b * p.x + m.d * p.y + m.f;
       const wpx = wm * zp, hpx = hm * zp;
+      /* L'ANCRE EST LE POINT D'APPUI AU SOL, pas le centre du fichier. Une couronne vue de dessus
+         s'appuie en son milieu ; un conifère dessiné en gouttelette s'appuie sur sa base, en bas
+         du fichier. Centrer les deux pareil plantait les sapins un demi-sprite trop bas, et leur
+         ombre, cuite sous la base, se retrouvait au milieu du voisin. */
+      const haut = dy - hpx * (a.anc == null ? 0.5 : a.anc);
       const toile = (a.tons && a.tons[p.ton]) || a.canvas;
       if (p.rot) {
         const c = Math.cos(p.rot), si = Math.sin(p.rot);
         g.setTransform(c, si, -si, c, dx, dy);
-        g.drawImage(toile, -wpx / 2, -hpx / 2, wpx, hpx);
+        g.drawImage(toile, -wpx / 2, haut - dy, wpx, hpx);
         g.setTransform(1, 0, 0, 1, 0, 0);
       } else {
-        g.drawImage(toile, dx - wpx / 2, dy - hpx / 2, wpx, hpx);
+        g.drawImage(toile, dx - wpx / 2, haut, wpx, hpx);
       }
     }
     g.setTransform(m);
