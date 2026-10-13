@@ -3397,7 +3397,7 @@ menus illustrés et les couleurs d'origine ; le choix est conservé au rechargem
 La variante **Spa · Game Boy** garde son filtre même en style classique.
 
 Vérification du thème : `node tools/e2e-gameboy.js /tmp/slot-gameboy` (Playwright + Chromium).
-Le test couvre téléphone et bureau, les quatre couleurs du canvas, le changement de thème,
+Le test couvre téléphone, bureau et format carré, les quatre couleurs du canvas, le changement de thème,
 sa persistance, la pause et la rotation. Les captures restent dans le dossier de sortie.
 
 Captures du thème GB sur téléphone :
@@ -3405,3 +3405,11 @@ Captures du thème GB sur téléphone :
 | Menu | Course |
 | --- | --- |
 | ![Menu Game Boy](docs/gameboy/menu-mobile.png) | ![Course Game Boy](docs/gameboy/course-mobile.png) |
+
+Les voitures utilisent un calque trois fois plus fin que le décor afin de conserver les fenêtres,
+les livrées et les numéros. La palette reste limitée aux quatre verts ; le cadrage et la distance
+de visibilité des virages sont identiques au style classique. Les dessins du décor sont convertis
+séparément pour conserver leurs détails, sans modifier les fichiers d'origine.
+
+[Vue de Spa au format de la référence](docs/gameboy/course-spa-carree.png) ·
+[Vue de Spa sur téléphone](docs/gameboy/course-spa-mobile.png).

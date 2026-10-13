@@ -20,7 +20,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   let browser;
   try {
     browser = await chromium.launch();
-    for (const [width, height] of [[390, 844], [1280, 720]]) {
+    for (const [width, height] of [[390, 844], [1280, 720], [1254, 1254]]) {
       const context = await browser.newContext({ locale: 'fr-FR', viewport: { width, height } });
       const page = await context.newPage();
       const errors = [];
@@ -62,6 +62,16 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       });
       assert.deepEqual(palette, ['#112718', '#30472c', '#819a56', '#c6d384'].sort());
       assert.equal(await page.evaluate(() => app.renderer._gb.canvas.width), 320);
+      const carDetail = await page.evaluate(() => {
+        const r = app.renderer, p = app.race.player, art = topArt(p.cls, p.livree);
+        const sprite = r._artGB(art.img);
+        return { pixels: p.cls.length * r.cam.zoom * r._gb.cars.width / r.w,
+          cached: sprite === r._artGB(art.img), numbered: art.gbNumbers.has(p.number) };
+      });
+      assert.equal(await page.evaluate(() => app.renderer._gb.cars.width), 960);
+      assert.ok(carDetail.pixels >= 24, `voiture trop petite : ${carDetail.pixels} pixels`);
+      assert.ok(carDetail.cached && carDetail.numbered);
+
       await page.screenshot({ path: path.join(OUT, `race-${width}.png`) });
       await page.keyboard.up('Space');
       await page.keyboard.press('Escape');

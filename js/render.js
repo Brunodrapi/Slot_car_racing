@@ -1630,7 +1630,10 @@ class Renderer {
         vrai(t, x, y, largeur);
         ctx.restore();
       };
-      this._gb = { canvas: c, ctx, lut };
+      const cars = document.createElement('canvas');
+      cars.width = l * 3; cars.height = h * 3;
+      this._gb = { canvas: c, ctx, lut, cars,
+        carCtx: cars.getContext('2d', { willReadFrequently: true }) };
     }
     return this._gb;
   }
@@ -1641,6 +1644,9 @@ class Renderer {
     const vrai = { ctx: this.ctx, canvas: this.canvas, w: this.w, h: this.h, dpr: this.dpr };
     /* La résolution est FIXE par définition : on neutralise l'adaptation, qui sinon ferait varier
        la taille des pixels d'une seconde à l'autre — ce qui est le contraire d'une Game Boy. */
+    gb.carCtx.setTransform(1, 0, 0, 1, 0, 0);
+    gb.carCtx.clearRect(0, 0, gb.cars.width, gb.cars.height);
+    gb.ctx.imageSmoothingEnabled = false;
     this.ctx = gb.ctx; this.canvas = gb.canvas;
     this.dpr = gb.canvas.width / this.w;     // `w` et `h` ne bougent pas : voir `_toileGB`
     try { this._dessine(race, ui, true); } finally { Object.assign(this, vrai); }
@@ -1658,6 +1664,15 @@ class Renderer {
     g.imageSmoothingEnabled = false;
     g.clearRect(0, 0, this.canvas.width, this.canvas.height);
     g.drawImage(gb.canvas, 0, 0, this.canvas.width, this.canvas.height);
+    // Les voitures gardent trois fois plus de pixels par axe que le décor.
+    // Alpha binaire : leur contour ne crée pas de cinquième couleur LCD.
+    const carImage = gb.carCtx.getImageData(0, 0, gb.cars.width, gb.cars.height);
+    const cd = carImage.data, cp = new Uint32Array(cd.buffer);
+    for (let i = 0, j = 0; i < cp.length; i++, j += 4) {
+      cp[i] = cd[j + 3] < 128 ? 0 : lut[(cd[j] + 2 * cd[j + 1] + cd[j + 2]) >> 2];
+    }
+    gb.carCtx.putImageData(carImage, 0, 0);
+    g.drawImage(gb.cars, 0, 0, this.canvas.width, this.canvas.height);
     g.imageSmoothingEnabled = true;
   }
 
@@ -1922,6 +1937,7 @@ class Renderer {
       g.strokeStyle = '#2f2f36'; g.lineWidth = 2.4;
       for (const c of b.cotes) g.stroke(c);
       g.fillStyle = '#4b4b52'; g.fill(b.tablier);
+      this._cacheCarsGB(g, b.tablier);
       g.lineCap = 'round';
     }
     for (const car of dessus) this._drawCar(g, car);
@@ -1929,6 +1945,7 @@ class Renderer {
     for (const p of this.paths.passerelles) {
       if (!inView(p.bbox)) continue;
       g.fillStyle = '#17171c'; g.fill(p.pont);
+      this._cacheCarsGB(g, p.pont);
       g.strokeStyle = '#2e2e36'; g.lineWidth = 0.5; g.stroke(p.pont);
     }
     // et les têtes de tunnel, pour la même raison : une voiture qui passe dessous passe dedans
@@ -1936,14 +1953,17 @@ class Renderer {
       if (!inView(tu.bbox)) continue;
       for (const t of [tu.entree, tu.sortie]) {
         g.fillStyle = '#726d64'; g.fill(t.corps);          // du béton, pas un tablier : il faut
+        this._cacheCarsGB(g, t.corps);
         g.strokeStyle = '#8d887c'; g.lineWidth = 0.6;        // qu'une tête de tunnel tranche sur
         g.stroke(t.corps);                                   // l'asphalte sombre qu'elle annonce
         g.fillStyle = '#0e0e13'; g.fill(t.bouche);
+        this._cacheCarsGB(g, t.bouche);
       }
     }
     g.restore();
 
-    this._drawHUD(g, race, ui);
+    if (this._gb) this._gb.hud = true;
+    try { this._drawHUD(g, race, ui); } finally { if (this._gb) this._gb.hud = false; }
   }
 
   // Optional braking guide (off by default): the ribbon ahead is coloured by the reference speed
@@ -2350,7 +2370,8 @@ class Renderer {
          au milieu en largeur non plus, et le négliger décale la section le long de la route. */
       const gauche = dx - wpx * (a.ancX == null ? 0.5 : a.ancX);
       const haut = dy - hpx * (a.anc == null ? 0.5 : a.anc);
-      const toile = (a.tons && a.tons[p.ton]) || a.canvas;
+      const original = (a.tons && a.tons[p.ton]) || a.canvas;
+      const toile = this.gameboy ? this._artGB(original, true) : original;
       if (p.rot) {
         const c = Math.cos(p.rot), si = Math.sin(p.rot);
         g.setTransform(c, si, -si, c, dx, dy);
@@ -2383,6 +2404,87 @@ class Renderer {
     }
   }
 
+  // Quantifier chaque dessin avant de le réduire évite de fondre les fenêtres,
+  // les numéros et les branches dans une même masse sombre. Le cache est local
+  // au rendu GB ; les dessins originaux restent ceux du style classique.
+  _artGB(source, vegetation = false) {
+    const cache = this._gbArt || (this._gbArt = new WeakMap());
+    if (cache.has(source)) return cache.get(source);
+    const canvas = document.createElement('canvas');
+    const sw = source.naturalWidth || source.width, sh = source.naturalHeight || source.height;
+    canvas.width = Math.min(sw, vegetation ? 96 : 192);
+    canvas.height = Math.max(1, Math.round(sh * canvas.width / sw));
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+    const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = image.data, hist = new Uint32Array(256);
+    let n = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] < 128) continue;
+      hist[(data[i] + 2 * data[i + 1] + data[i + 2]) >> 2]++; n++;
+    }
+    const centile = f => {
+      let count = 0;
+      for (let value = 0; value < 256; value++) {
+        count += hist[value]; if (count >= n * f) return value;
+      }
+      return 255;
+    };
+    let cuts = vegetation
+      ? [centile(0.18), centile(0.48), centile(0.82)]
+      : [centile(0.20), centile(0.48), centile(0.78)];
+    // Un dessin presque uniforme ne doit pas devenir un aplat blanc.
+    if (cuts[2] - cuts[0] < 40) cuts = [64, 128, 196];
+    // Valeurs de gris avant le filtre commun, une par vert final.
+    const tones = [24, 125, 202, 255];
+    for (let i = 0; i < data.length; i += 4) {
+      if (!data[i + 3]) continue;
+      const l = (data[i] + 2 * data[i + 1] + data[i + 2]) >> 2;
+      const tone = tones[l < cuts[0] ? 0 : l < cuts[1] ? 1 : l < cuts[2] ? 2 : 3];
+      data[i] = data[i + 1] = data[i + 2] = tone;
+    }
+    ctx.putImageData(image, 0, 0);
+    cache.set(source, canvas);
+    return canvas;
+  }
+
+  _drawCarGB(g, model, livree, number) {
+    const art = topArt(model, livree);
+    if (!art) return false;
+    const [w, h] = topSize(model, art);
+    let sprite = this._artGB(art.img);
+    if (Number.isInteger(number) && number > 0 && number < 100) {
+      const numbers = art.gbNumbers || (art.gbNumbers = new Map());
+      if (!numbers.has(number)) {
+        const canvas = document.createElement('canvas');
+        canvas.width = sprite.width; canvas.height = sprite.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(sprite, 0, 0);
+        const x = Math.round(canvas.width * 0.66), y = Math.round(canvas.height / 2);
+        const taille = Math.round(canvas.width / 8);
+        ctx.font = `${taille}px "GB Pixel", monospace`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const text = String(number), nw = Math.ceil(ctx.measureText(text).width);
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(x - nw / 2 - 1, y - taille / 2 - 1, nw + 2, taille + 2);
+        ctx.fillStyle = '#000000'; ctx.fillText(text, x, y + Math.max(1, taille / 8));
+        numbers.set(number, canvas);
+      }
+      sprite = numbers.get(number);
+    }
+    g.drawImage(sprite, -w / 2, -h / 2, w, h);
+    return true;
+  }
+
+  _cacheCarsGB(g, path) {
+    if (!this.gameboy || !this._gb || g !== this._gb.ctx) return;
+    const m = g.getTransform(), ctx = this._gb.carCtx;
+    ctx.save();
+    ctx.setTransform(m.a * 3, m.b * 3, m.c * 3, m.d * 3, m.e * 3, m.f * 3);
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fill(path);
+    ctx.restore();
+  }
+
   _drawCar(g, car) {
     const c = car.cls, pos = car.pos, h = car.heading;
     g.save();
@@ -2394,9 +2496,20 @@ class Renderer {
     // a drawn car casts its own outline; a vector one only has a box to offer
     if (!drawCarShadow(g, c, car.livree)) { g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width); }
     g.restore();
-    drawCarModel(g, c, car.livery, { number: car.number, steer: car.steerAngle, livree: car.livree });
+    const world = g;
+    if (this.gameboy && this._gb && g === this._gb.ctx) {
+      const m = g.getTransform();
+      g = this._gb.carCtx;
+      g.save();
+      g.setTransform(m.a * 3, m.b * 3, m.c * 3, m.d * 3, m.e * 3, m.f * 3);
+      g.imageSmoothingEnabled = true;
+    }
+    if (!this.gameboy || !this._drawCarGB(g, c, car.livree, car.number)) {
+      drawCarModel(g, c, car.livery, { number: car.number, steer: car.steerAngle, livree: car.livree });
+    }
     if (car.braking && car.state === 'ok') { g.fillStyle = 'rgba(255,40,40,0.9)'; g.fillRect(-c.length / 2 - 0.15, -c.width / 2 + 0.1, 0.25, c.width - 0.2); }
     g.restore();
+    if (g !== world) world.restore();
     /* Pas de cercle autour de la voiture du joueur.
 
     Il y en avait un, pour la retrouver dans le peloton. Il est retiré sur le constat de Bruno : un
@@ -2428,6 +2541,10 @@ class Renderer {
       g.restore();
       g.fillStyle = Renderer.GB_PAL[0];
       g.beginPath(); g.rect(x, y, w, h);
+      if (this._gb && this._gb.hud) {
+        const panel = new Path2D(); panel.rect(x - bord, y - bord, w + 2 * bord, h + 2 * bord);
+        this._cacheCarsGB(g, panel);
+      }
       return;
     }
     g.beginPath();

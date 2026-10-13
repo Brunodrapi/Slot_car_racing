@@ -25,6 +25,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 const vues = [
   { nom: 'jeu-telephone', w: 390, h: 844, dpr: 3, mobile: true },
   { nom: 'jeu-large', w: 1280, h: 720, dpr: 2, mobile: false },
+  { nom: 'jeu-reference', w: 1254, h: 1254, dpr: 1, mobile: false },
 ];
 
 (async () => {
@@ -41,7 +42,7 @@ const vues = [
   const nav = await chromium.launch();
 
   for (const v of vues) {
-    const ctx = await nav.newContext({ viewport: { width: v.w, height: v.h },
+    const ctx = await nav.newContext({ locale: 'fr-FR', viewport: { width: v.w, height: v.h },
       deviceScaleFactor: v.dpr, isMobile: v.mobile, hasTouch: v.mobile });
     const page = await ctx.newPage();
     page.on('pageerror', (e) => console.log('  ERREUR ' + e.message));
