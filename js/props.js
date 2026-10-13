@@ -1109,6 +1109,34 @@ function semeStrates(track, id, strates) {
 
    C'est la seule famille d'objets qu'on tourne. Un arbre n'a pas de direction ; une glissière
    n'est que ça. */
+/* LE RECUL DE LA BARRIÈRE, EN UN SEUL ENDROIT — pour la même raison que la largeur du bac.
+   La glissière et le mur de pneus se posent au même écart de la piste, à l'épaisseur d'un pneu
+   près : ils sont la même clôture, l'un contre l'autre. Chacun le recalculant de son côté, il a
+   suffi de retoucher l'un pour que le mur se retrouve à quatre mètres dans l'herbe, seul au
+   milieu de rien.
+
+   Le recul n'est pas constant : derrière un bac à gravier en virage, tout près du bitume sur une
+   ligne droite. Pris station par station il saute de dix mètres à cinq à l'entrée du virage, et
+   la barrière fait un coude que rien ne justifie. On LISSE donc sur une soixantaine de mètres,
+   comme un vrai circuit où la glissière s'écarte progressivement avant le dégagement. */
+function reculBarriere(track) {
+  if (track._recul) return track._recul;
+  const N = track.n;
+  const enVirage = new Uint8Array(N);
+  for (const cn of track.corners) for (let i = cn.from; i <= cn.to; i++) enVirage[((i % N) + N) % N] = 1;
+  const brut = new Float32Array(N);
+  for (let i = 0; i < N; i++) brut[i] = enVirage[i] ? track.largeurBac(i) + 2.6 : 7.5;
+  const F = Math.max(1, Math.round(30 / track.ds));         // demi-fenêtre : trente mètres
+  const out = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    let somme = 0;
+    for (let k = -F; k <= F; k++) somme += brut[((i + k) % N + N) % N];
+    out[i] = somme / (2 * F + 1);
+  }
+  track._recul = out;
+  return out;
+}
+
 function poseBarrieres(track, id) {
   if (!decorPret() || !MOBILIER.length) return [];
   const N = track.n, L = track.length, out = [];
@@ -1116,21 +1144,10 @@ function poseBarrieres(track, id) {
   const art = {};
   for (const k of MOBILIER) art[k.id] = k;
 
-  // le recul voulu, station par station, puis lissé
+  const recul = reculBarriere(track);
+  // en virage on resserre le pas : deux cordes droites le long d'un arc laissent un coin de vide
   const enVirage = new Uint8Array(N);
   for (const cn of track.corners) for (let i = cn.from; i <= cn.to; i++) enVirage[((i % N) + N) % N] = 1;
-  const brut = new Float32Array(N);
-  /* La glissière passe JUSTE DERRIÈRE le mur de pneus — deux mètres, l'épaisseur d'une bande
-     d'herbe. Quatre mètres et demi laissaient entre les deux un couloir vide qui n'existe sur
-     aucun circuit et qui séparait visuellement le mur de ce qu'il protège. */
-  for (let i = 0; i < N; i++) brut[i] = enVirage[i] ? track.largeurBac(i) + 2.6 : 7.5;
-  const F = Math.max(1, Math.round(30 / track.ds));         // demi-fenêtre : trente mètres
-  const recul = new Float32Array(N);
-  for (let i = 0; i < N; i++) {
-    let somme = 0;
-    for (let k = -F; k <= F; k++) somme += brut[((i + k) % N + N) % N];
-    recul[i] = somme / (2 * F + 1);
-  }
 
   /* La sévérité du virage le plus proche décide du mobilier. `corners` porte le rayon de courbure
      de chaque virage ; un grand rayon est une courbe rapide, et c'est là qu'on met de l'acier. */
@@ -1160,7 +1177,19 @@ function poseBarrieres(track, id) {
          lumière, et une barrière éclairée par en dessous se remarque plus qu'une barrière dont le
          rail est du mauvais côté. Les deux bords ont donc la même orientation, comme sur l'image
          de référence. */
-      const cap = track.th[i];
+      /* L'HERBE RESTE EN BAS. Le dessin n'est pas tout à fait zénithal : il montre un peu le
+         flanc de la glissière, avec la rambarde en haut de la boîte et l'herbe du pied en bas.
+         Le tourner au cap exact le retourne donc une fois sur deux — dès que la piste va vers
+         l'ouest, le cap dépasse le quart de tour et la barrière se retrouve sur le dos, pied en
+         l'air.
+
+         Une section de glissière est un SEGMENT : la tourner de θ ou de θ+π donne exactement la
+         même droite, au même endroit, et seul le flanc visible change. On ramène donc le cap
+         dans le demi-tour qui garde le pied vers le bas, et l'alignement entre sections voisines
+         reste parfait puisque la droite, elle, ne bouge pas. */
+      let cap = track.th[i];
+      while (cap > Math.PI / 2) cap -= Math.PI;
+      while (cap <= -Math.PI / 2) cap += Math.PI;
       /* LE PAS EST BIEN PLUS COURT QUE LA SECTION, et c'est la géométrie du dessin qui l'impose.
          À zéro degré la glissière occupe toute la largeur de sa boîte ; à quarante-cinq elle la
          traverse en diagonale, donc ce qu'elle couvre LE LONG DE LA PISTE est bien moindre que la
@@ -1229,6 +1258,7 @@ function posePneus(track, id) {
      sixième, et les carcasses se fondent en une bande continue dont seuls les anneaux clairs
      ressortent. C'est la CHAÎNE qu'on voit, pas le pneu. */
   const ECART = PNEU_M * 0.83;      // 1,25 m pour un pneu de 1,50 : un sixième de recouvrement
+  const recul = reculBarriere(track);
   let k = 0;
   for (const cote of [1, -1]) {
     let px = null, py = null;
@@ -1247,9 +1277,16 @@ function posePneus(track, id) {
       const i2 = (i + 1) % N2, u = (s - i * track.ds) / track.ds;
       const w = track.largeurBac(i) * (1 - u) + track.largeurBac(i2) * u;
       if (w < MINI) { px = null; continue; }    // le mur s'interrompt, on repart à neuf
+      /* LE MUR EST CONTRE LA BARRIÈRE, pas au bord du gravier. C'est là qu'il sert : un mur de
+         pneus n'est pas une bordure de bac, c'est l'amortisseur de la glissière, et on le pose
+         plaqué contre elle. Posé sur le bord du gravier, il laissait derrière lui une bande
+         d'herbe vide, puis la glissière plus loin — deux clôtures parallèles là où il n'y en a
+         qu'une. Il prend donc le MÊME recul que la barrière, moins un demi-pneu pour venir
+         s'appuyer dessus. */
+      const rA = recul[i], rB = recul[i2];
       const hwA = cote > 0 ? track.hwL[i] : track.hwR[i];
       const hwB = cote > 0 ? track.hwL[i2] : track.hwR[i2];
-      const lat = (hwA * (1 - u) + hwB * u + w + PNEU_M * 0.45) * cote;
+      const lat = (hwA * (1 - u) + hwB * u + rA * (1 - u) + rB * u - PNEU_M * 0.55) * cote;
       const cx = track.xs[i] * (1 - u) + track.xs[i2] * u;
       const cy = track.ys[i] * (1 - u) + track.ys[i2] * u;
       let nxv = track.nx[i] * (1 - u) + track.nx[i2] * u;

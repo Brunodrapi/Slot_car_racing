@@ -465,21 +465,89 @@ class Track {
   suivent pas : la végétation repousse au milieu du gravier et les pneus se retrouvent dedans. Le
   circuit répond donc lui-même à la question.
 
-  La largeur suit une cloche nulle aux deux extrémités du virage : le bac rejoint le bord de piste
-  là où il commence et là où il finit, et il n'y a pas de corde droite à refermer en travers. */
-  largeurBac(i) {
-    const N = this.n, k = ((i % N) + N) % N;
-    let max = 0;
-    for (const cn of this.corners) {
-      // un virage peut enjamber la ligne de départ : on compare dans son propre repère
-      let t = k - cn.from;
-      if (t < 0) t += N;
-      if (t > cn.to - cn.from) continue;
-      const u = t / Math.max(1, cn.to - cn.from);
-      const w = Track.BAC_M * Math.pow(Math.sin(Math.PI * u), 0.55);
-      if (w > max) max = w;
+  LE BAC ÉPOUSE LA COURBURE, il ne remplit pas le virage. La première version suivait une simple
+  cloche sur la longueur du virage, et à un exposant de 0,55 cette cloche était plate : le bac
+  s'ouvrait d'un coup à l'entrée, gardait sa largeur maximale sur presque tout l'arc, et se
+  refermait aussi sec. On lisait un champ de sable posé à côté de la piste, pas un dégagement.
+
+  Un dégagement est large là où la sortie est la plus probable — au plus serré du virage — et il
+  se referme à mesure que la courbe s'ouvre. La largeur se déduit donc de la COURBURE LOCALE,
+  rapportée à la courbure maximale du virage qu'on traverse : au plus serré elle vaut un, aux
+  extrémités elle vaut ce que vaut le seuil de détection, presque rien. Un fondu doux par-dessus
+  ramène les deux bouts exactement à zéro, pour que le bac rejoigne le bord de piste sans corde
+  droite à refermer en travers.
+
+  Le profil est CALCULÉ UNE FOIS et lissé sur une quinzaine de mètres : la courbure, dérivée
+  seconde d'une ligne échantillonnée au mètre, est bruitée, et un bac dont le bord tremble d'un
+  nœud à l'autre se voit. Le lissage garantit aussi que le rétrécissement est progressif partout.
+  Accessoirement c'est devenu un tableau : `largeurBac` est appelée des dizaines de milliers de
+  fois à la pose du mur de pneus, et elle parcourait tous les virages à chaque appel. */
+  _profilBac() {
+    const N = this.n, brut = new Float32Array(N);
+    // la courbure, dérivée seconde d'une ligne échantillonnée au mètre, est bruitée : on l'adoucit
+    // sur dix mètres avant de s'en servir comme pondération
+    const G = Math.max(1, Math.round(10 / this.ds)), ks = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      let somme = 0;
+      for (let j = -G; j <= G; j++) somme += Math.abs(this.k[((i + j) % N + N) % N]);
+      ks[i] = somme / (2 * G + 1);
     }
-    return max;
+    for (const cn of this.corners) {
+      const span = Math.max(1, cn.to - cn.from);
+      let kmax = 0;
+      for (let t = 0; t <= span; t++) {
+        const a = ks[((cn.from + t) % N + N) % N];
+        if (a > kmax) kmax = a;
+      }
+      if (!kmax) continue;
+      /* La courbure PONDÈRE la largeur, elle ne la dicte pas : à elle seule, elle effondrait les
+         dégagements des courbes longues, où le pic de courbure est bref et le reste de l'arc deux
+         fois moins serré. Un dégagement existe sur tout le virage ; il est simplement plus large
+         au plus serré. D'où un plancher à quatre dixièmes.
+
+         Et le profil est RAMENÉ À `BAC_M` À SON SOMMET, virage par virage. Sans ça, le produit de
+         deux facteurs inférieurs à un donne un bac qui n'atteint jamais sa largeur nominale, et
+         la forme qu'on vient de régler se paie d'un dégagement deux fois trop petit. La forme dit
+         où le sable est large ; `BAC_M` dit combien. */
+      const forme = new Float32Array(span + 1);
+      let fmax = 0;
+      for (let t = 0; t <= span; t++) {
+        const i = ((cn.from + t) % N + N) % N;
+        const rel = Math.min(1, ks[i] / kmax);
+        const f = (0.4 + 0.6 * rel) * Math.pow(Math.sin(Math.PI * (t / span)), 0.9);
+        forme[t] = f;
+        if (f > fmax) fmax = f;
+      }
+      if (!fmax) continue;
+      for (let t = 0; t <= span; t++) {
+        const i = ((cn.from + t) % N + N) % N;
+        const w = Track.BAC_M * forme[t] / fmax;
+        if (w > brut[i]) brut[i] = w;
+      }
+    }
+    /* ON LISSE LA COURBURE, PAS LE PROFIL — et c'est la correction qui compte ici. Lisser le
+       profil fini sur quinze mètres écrasait les virages COURTS : une épingle de neuf mètres
+       d'arc voyait son sommet moyenné avec vingt-deux mètres de zéros, et elle sortait à 3,6 m
+       de sable là où une longue courbe en gardait onze. C'est l'inverse de ce qu'il faut — une
+       épingle est exactement l'endroit où l'on sort.
+
+       Le profil est déjà lisse par construction : un sinus puissance 0,9 n'a pas de marche. Seule
+       la courbure était bruitée, et c'est elle qu'on lisse, en amont. Il ne reste au bout qu'un
+       arrondi de cinq mètres pour adoucir la jonction entre deux virages voisins. */
+    const F = Math.max(1, Math.round(5 / this.ds));
+    const out = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      let somme = 0;
+      for (let k = -F; k <= F; k++) somme += brut[((i + k) % N + N) % N];
+      out[i] = somme / (2 * F + 1);
+    }
+    return out;
+  }
+
+  largeurBac(i) {
+    const N = this.n;
+    if (!this.bacW) this.bacW = this._profilBac();
+    return this.bacW[((i % N) + N) % N];
   }
 
   _brakingBoards() {
