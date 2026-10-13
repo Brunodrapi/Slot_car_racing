@@ -41,20 +41,28 @@ SORTIE = 'art/decor/automne'
 # --- le haut de la planche, à la main : nom, rectangle, largeur en mètres, ancre -----------------
 # L'ancre est la hauteur, dans la boîte, du point d'appui au sol. Une couronne vue de dessus
 # s'appuie en son milieu ; un conifère dessiné en flamme s'appuie sur sa base.
-# SIX COURONNES MANQUENT À L'APPEL, et c'est volontaire. Là où deux couronnes se touchent par le
+# HUIT COURONNES MANQUENT À L'APPEL, et c'est volontaire. Là où deux couronnes se touchent par le
 # FEUILLAGE et non par la litière, aucune érosion ne les sépare : on en ressort soit avec un bloc
-# du voisin collé au bord, soit avec un arbre tranché au couteau. Sept feuillus et cinq conifères
-# suffisent largement à une forêt — la planche d'été en avait neuf et neuf — et un sprite propre
-# en moins vaut mieux qu'un sprite sale en plus. Le dénudé n° 2 est tombé pour la raison inverse :
-# ses branches sont si fines que l'érosion qui nettoie les autres le réduit à son tronc.
+# du voisin collé au bord, soit avec un arbre tranché au couteau.
+#
+# Les deux dernières à tomber l'ont fait sur MESURE, pas à l'œil, et c'est ce qui les a trouvées.
+# Un arbre tranché se reconnaît à son bord : la colonne de pixels du bord de la boîte est opaque
+# sur toute sa hauteur, là qu'une couronne entière s'y termine en pointillé. `arbre-9` sortait à
+# 0,98 d'opacité sur son bord droit, `arbre-7` à 0,78 — autrement dit deux demi-arbres. Posés
+# quatre cents fois le long du bord sud, ils dessinaient des coutures verticales en travers de la
+# forêt, visibles d'un bout à l'autre de l'écran. Aucun découpage ne les sauve : essayés à quatre
+# cadrages chacun, leur bord droit ne descend jamais sous 0,45.
+#
+# Restent cinq feuillus et cinq conifères, contre neuf et six pour la planche d'été : la forêt
+# d'automne se répète un peu plus. Un sprite propre en moins vaut mieux qu'un sprite sale en
+# plus. Le dénudé n° 2 est tombé pour la raison inverse : ses branches sont si fines que
+# l'érosion qui nettoie les autres le réduit à son tronc.
 A_LA_MAIN = [
-    ('arbre-1',  (10,   0,  185, 192), 11.0, 0.56),
+    ('arbre-1',  (20,   0,  240, 195), 12.0, 0.56),
     ('arbre-3',  (482,  2,  668, 196), 11.5, 0.56),
     ('arbre-4',  (682,  0,  868, 196), 11.5, 0.56),
     ('arbre-6',  (1038, 4, 1182, 192),  9.5, 0.56),
-    ('arbre-7',  (8,  192,  188, 350), 10.5, 0.56),
-    ('arbre-9',  (392, 196, 528, 348),  9.5, 0.56),
-    ('arbre-nu-1', (842, 184, 968, 342), 8.5, 0.58),
+    ('arbre-nu-1', (842, 184, 1000, 342), 9.5, 0.58),
     ('conifere-1', (1188, 0, 1246, 202), 4.0, 0.80),
     ('conifere-2', (1246, 0, 1304, 202), 4.0, 0.80),
     ('conifere-4', (1364, 0, 1412, 202), 3.4, 0.80),

@@ -3,11 +3,11 @@
   {
    "id": "arbre-1",
    "fichier": "art/decor/automne/arbre-1.webp",
-   "m": 11.0,
+   "m": 12.0,
    "anc": 0.56,
    "px": [
-    188,
-    194
+    243,
+    197
    ]
   },
   {
@@ -41,32 +41,12 @@
    ]
   },
   {
-   "id": "arbre-7",
-   "fichier": "art/decor/automne/arbre-7.webp",
-   "m": 10.5,
-   "anc": 0.56,
-   "px": [
-    190,
-    170
-   ]
-  },
-  {
-   "id": "arbre-9",
-   "fichier": "art/decor/automne/arbre-9.webp",
-   "m": 9.5,
-   "anc": 0.56,
-   "px": [
-    140,
-    169
-   ]
-  },
-  {
    "id": "arbre-nu-1",
    "fichier": "art/decor/automne/arbre-nu-1.webp",
-   "m": 8.5,
+   "m": 9.5,
    "anc": 0.58,
    "px": [
-    133,
+    151,
     171
    ]
   },

@@ -257,13 +257,11 @@ const KINDS_DESSINES = [
      pour l'instant elle se contente de joncher.
 
      Les fichiers et les tailles sortent de `tools/automne.py`, qui écrit aussi son manifeste. */
-  { famille: 'tree', id: 'a-arbre-1', f: 'art/decor/automne/arbre-1.webp', wm: 11.0, anc: 0.56, cuite: 1, weight: 6, near: 1, far: 24 },
+  { famille: 'tree', id: 'a-arbre-1', f: 'art/decor/automne/arbre-1.webp', wm: 12.0, anc: 0.56, cuite: 1, weight: 6, near: 1, far: 24 },
   { famille: 'tree', id: 'a-arbre-3', f: 'art/decor/automne/arbre-3.webp', wm: 11.5, anc: 0.56, cuite: 1, weight: 6, near: 1, far: 24 },
   { famille: 'tree', id: 'a-arbre-4', f: 'art/decor/automne/arbre-4.webp', wm: 11.5, anc: 0.56, cuite: 1, weight: 6, near: 1, far: 24 },
   { famille: 'tree', id: 'a-arbre-6', f: 'art/decor/automne/arbre-6.webp', wm: 9.5, anc: 0.56, cuite: 1, weight: 6, near: 1, far: 24 },
-  { famille: 'tree', id: 'a-arbre-7', f: 'art/decor/automne/arbre-7.webp', wm: 10.5, anc: 0.56, cuite: 1, weight: 6, near: 1, far: 24 },
-  { famille: 'tree', id: 'a-arbre-9', f: 'art/decor/automne/arbre-9.webp', wm: 9.5, anc: 0.56, cuite: 1, weight: 6, near: 1, far: 24 },
-  { famille: 'tree', id: 'a-arbre-nu-1', f: 'art/decor/automne/arbre-nu-1.webp', wm: 8.5, anc: 0.58, cuite: 1, weight: 6, near: 1, far: 24 },
+  { famille: 'tree', id: 'a-arbre-nu-1', f: 'art/decor/automne/arbre-nu-1.webp', wm: 9.5, anc: 0.58, cuite: 1, weight: 6, near: 1, far: 24 },
   { famille: 'pine', id: 'a-conifere-1', f: 'art/decor/automne/conifere-1.webp', wm: 4.0, anc: 0.8, cuite: 1, weight: 4, near: 1, far: 24 },
   { famille: 'pine', id: 'a-conifere-2', f: 'art/decor/automne/conifere-2.webp', wm: 4.0, anc: 0.8, cuite: 1, weight: 4, near: 1, far: 24 },
   { famille: 'pine', id: 'a-conifere-4', f: 'art/decor/automne/conifere-4.webp', wm: 3.4, anc: 0.8, cuite: 1, weight: 4, near: 1, far: 24 },
@@ -814,8 +812,22 @@ function buildTopArt(pal) {
        et aurait coûté un filtre par objet et par image — sept mille fois par trame — là où quatre
        toiles cuites une fois servent toute la course. Et `filter` n'est pas sûr sur les Safari
        anciens, qui sont précisément les téléphones qu'on vise. */
+    /* UN SPRITE QUI PORTE SON OMBRE NE S'ÉCLAIRCIT PAS, il ne fait que s'assombrir.
+
+       `source-atop` ne peint que ce qui est déjà là, mais il peint aussi bien un pixel à deux
+       dixièmes d'opacité qu'un pixel plein. Or l'ombre cuite de la planche d'automne est
+       justement un voile sombre à deux dixièmes, étalé sur presque toute la boîte du dessin :
+       l'éclaircir le retourne en voile CLAIR, et comme il remplit la boîte, on voit apparaître
+       un rectangle pâle autour de chaque arbre, aux arêtes bien droites. C'était visible comme
+       des coutures verticales en travers de la forêt.
+
+       Assombrir, en revanche, ne fait qu'assombrir une ombre : elle reste une ombre. On garde
+       donc les écarts vers le bas et on renonce aux écarts vers le haut pour ces sprites-là. La
+       variation de lumière y est de toute façon moindre que celle qu'apportent sept couronnes
+       différentes et une échelle qui va de un à un et demi. */
+    const ecarts = k.cuite ? ECARTS_TON.map((f) => Math.min(f, 1)) : ECARTS_TON;
     const tons = [];
-    for (const f of ECARTS_TON) {
+    for (const f of ecarts) {
       if (f === 1) { tons.push(img); continue; }
       const c = document.createElement('canvas');
       c.width = img.naturalWidth; c.height = img.naturalHeight;
@@ -1069,6 +1081,36 @@ const STRATES_ARDENNES = [
   { nom: 'canopee', kinds: ARBRES.concat(ARBRES, SAPINS), de: HORS_BARRIERES, a: 95, r: 9.5,
     ech: [0.95, 1.35], couvre: 6.0 },
   // le sous-bois, avec ses pierres, commence lui aussi derrière les barrières
+  /* LA LISIÈRE SUD : les arbres qui débordent sur la route.
+
+     Elle plante de grandes couronnes JUSTE DERRIÈRE LA GLISSIÈRE — huit mètres au plus près, le
+     recul en ligne droite étant de sept et demi — et seulement là où le bord regarde le sud. La
+     cime s'étale alors sur le bitume et, le dessin allant du nord au sud, elle passe devant : on
+     roule dessous. La bande est ÉTROITE — sept à treize mètres — parce que c'est la distance qui
+     décide : l'ancre d'une couronne est comptée depuis le haut du dessin, donc elle monte de
+     `anc × hm` vers le nord, soit neuf mètres et demi pour un grand arbre au plus fort de son
+     échelle. Plantée à vingt mètres elle ne déborde rien.
+
+     ATTENTION À L'ÉCART DE BRUIT BLEU DANS UNE BANDE ÉTROITE. Premier essai : bande de quatre
+     mètres, écart de 4,2 — et soixante-douze arbres pour trois kilomètres et demi. Ce n'étaient
+     pas mes filtres : Bridson sème autour d'un point actif entre r et 2r, et dans une bande plus
+     étroite que r presque tous les candidats tombent dehors, donc le front meurt au bout de
+     quelques pas. Bande de huit mètres et écart de cinq : mille huit cents candidats au lieu de
+     soixante-douze, pour le même rayon à peu près. La règle à retenir est que la bande doit être
+     plus large que l'écart, sans quoi on ne règle pas une densité, on étouffe un algorithme.
+
+     Le premier réglage qui donnait vraiment des cimes sur la route en posait huit cents, un tous
+     les trois mètres et demi : un mur de feuillage qui mangeait la glissière, c'est-à-dire la
+     seule information vraie de ce bord-là. Quatre cent cinquante, dont une centaine qui dépassent
+     sur le bitume, laissent voir le rail entre les troncs. C'est la seule chose qui donne une épaisseur à la forêt depuis la voiture ;
+     vue de dessus, une forêt qui s'arrête net à dix-neuf mètres est un papier peint.
+
+     La règle « pas d'arbre entre la piste et la barrière » tient toujours : le tronc est DERRIÈRE
+     la glissière, c'est la cime qui dépasse. Et le bac à gravier reste interdit — dans un virage
+     il fait plus de neuf mètres, donc la strate n'y pose rien, ce qui est juste : on ne plante
+     pas un chêne au bord d'un dégagement. */
+  { nom: 'lisiere-sud', kinds: ARBRES, de: 8.0, a: 22.0, r: 8.0,
+    ech: [1.2, 1.6], couvre: 4.0, sud: 0.25, pres: 3.5 },
   { nom: 'sous-bois', kinds: BUISSONS.concat(['sapin-4', 'sapin-5', 'sapin-9', 'rocher-1', 'rocher-3']),
     de: HORS_BARRIERES, a: 72, r: 4.8, ech: [0.85, 1.25], couvre: 2.4 },
   // devant les barrières : des arbustes et rien qui pèse
@@ -1096,8 +1138,7 @@ const STRATES_ARDENNES = [
    barrières. Des feuilles tombées sur une zone de dégagement, c'est précisément ce qu'on voit
    en octobre, et ça ne cache rien de ce que le pilote doit lire. */
 const A_ARBRES = [
-  'a-arbre-1', 'a-arbre-3', 'a-arbre-4', 'a-arbre-6', 'a-arbre-7', 'a-arbre-9',
-  'a-arbre-nu-1'];
+  'a-arbre-1', 'a-arbre-3', 'a-arbre-4', 'a-arbre-6', 'a-arbre-nu-1'];
 const A_CONIFERES = [
   'a-conifere-1', 'a-conifere-2', 'a-conifere-4', 'a-conifere-5', 'a-conifere-6'];
 const A_ARBUSTES = [
@@ -1118,6 +1159,9 @@ const A_PIERRES = [
 const STRATES_AUTOMNE = [
   { nom: 'canopee', kinds: A_ARBRES.concat(A_ARBRES, A_CONIFERES), de: HORS_BARRIERES, a: 95,
     r: 9.5, ech: [0.95, 1.35], couvre: 6.0 },
+  // la lisière sud : voir la note dans les strates des Ardennes
+  { nom: 'lisiere-sud', kinds: A_ARBRES, de: 8.0, a: 22.0, r: 8.0,
+    ech: [1.2, 1.6], couvre: 4.0, sud: 0.25, pres: 3.5 },
   { nom: 'sous-bois', kinds: A_ARBUSTES.concat(A_CONIFERES, A_PIERRES.slice(0, 4)),
     de: HORS_BARRIERES, a: 72, r: 4.8, ech: [0.85, 1.25], couvre: 2.4 },
   // devant les barrières : des arbustes bas et rien qui pèse
@@ -1201,13 +1245,42 @@ function semeStrates(track, id, strates) {
         const k = st.kinds[Math.floor(rnd() * st.kinds.length)];
         const ech = st.ech[0] + rnd() * (st.ech[1] - st.ech[0]);
         const i = track.idx(p.s);
+        /* UNE STRATE PEUT NE VALOIR QUE POUR LE BORD SUD, et c'est ce qui permet de faire
+           déborder des cimes sur la piste sans poser un arbre devant la glissière du bord nord.
+
+           Tous les sprites regardent du même côté : un arbre montre un peu son flanc et sa cime
+           s'étale VERS LE HAUT de l'image, c'est-à-dire vers le nord. Planté au sud de la route,
+           il déborde donc sur le bitume ; planté au nord, il déborde sur la forêt, où ça ne se
+           voit pas. Et comme le dessin va du nord au sud, cette cime-là passe DEVANT la route :
+           on roule dessous, ce qui est exactement l'effet recherché.
+
+           Le sud, pour un bord, c'est la direction de sa normale sortante — `ny` positif, l'écran
+           ayant son y vers le bas. Un quart suffit comme seuil : au-delà le bord regarde déjà
+           franchement vers le bas de l'écran. */
+        if (st.sud && track.ny[i] * cote < st.sud) continue;
+        /* ON SÈME LARGE, PUIS ON TASSE VERS LA BARRIÈRE. La lisière voudrait une bande de quatre
+           mètres, et Bridson n'en veut pas : dans une bande plus étroite que son écart, presque
+           tous ses candidats tombent dehors et le front meurt — soixante-douze arbres pour trois
+           kilomètres et demi, mesuré. On lui laisse donc la bande large dont il a besoin, et on
+           redistribue ensuite les distances par une puissance, ce qui les concentre près du bord.
+
+           Le prix est que l'écart minimal n'est plus garanti après la transformation : deux
+           arbres voisins se retrouvent plus près l'un de l'autre qu'en (s, d). Pour une lisière
+           dont les couronnes DOIVENT se recouvrir, c'est le sens de la manœuvre. */
+        if (st.pres) {
+          const u = (p.d - st.de) / Math.max(1e-6, st.a - st.de);
+          p.d = st.de + (st.a - st.de) * Math.pow(u, st.pres);
+        }
         const hw = cote > 0 ? track.hwL[i] : track.hwR[i];
         const lat = (hw + p.d) * cote;
         if (p.d < track.largeurBac(i, cote) + 1.2) continue;   // le bac du bord qu'on longe
         const x = track.xs[i] + track.nx[i] * lat, y = track.ys[i] + track.ny[i] * lat;
         // la garde est celle de la strate elle-même : ce qu'elle s'interdit près de SON bord, elle
         // se l'interdit près de n'importe quel autre tronçon du tour
-        if (!loinDeLaPiste(x, y, track.halfWidth + st.de * 0.85)) continue;
+        /* La garde radiale se cale sur le `de` de la strate, moins une marge : à quatre-vingt-
+           cinq pour cent elle allait bien tant que `de` valait dix-neuf mètres, mais une lisière
+           posée à sept se rejetait elle-même sur sa propre station. */
+        if (!loinDeLaPiste(x, y, track.halfWidth + Math.min(st.de - 1.2, st.de * 0.85))) continue;
         out.push({ x, y, id: k, ech, rot: 0, ton: Math.min(TONS - 1, Math.floor(rnd() * TONS)),
           om: Math.floor(rnd() * OMBRES_DESSIN.length) });
         if (st.couvre) poses.push({ s: p.s, d: p.d, cote, r: st.couvre * ech });
