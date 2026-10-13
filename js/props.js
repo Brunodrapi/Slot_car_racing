@@ -239,6 +239,84 @@ const KINDS_DESSINES = [
   { famille: 'bush', id: 'fleurs-jaunes', f: 'art/decor/fleurs-jaunes.webp', wm: 2.4, anc: 0.68, cuite: 1, weight: 0, near: 1, far: 24 },
   { famille: 'bush', id: 'fleurs-rouges', f: 'art/decor/fleurs-rouges.webp', wm: 2.4, anc: 0.68, cuite: 1, weight: 0, near: 1, far: 24 },
   { famille: 'bush', id: 'fleurs-blanches2', f: 'art/decor/fleurs-blanches2.webp', wm: 2.4, anc: 0.68, cuite: 1, weight: 0, near: 1, far: 24 },
+
+
+  /* ------------------------------------------------------------------- LA PLANCHE D'AUTOMNE
+
+     Mêmes règles, autre saison. Le préfixe `a-` évite la collision de noms avec la planche d'été
+     — `arbre-1` existe dans les deux — et rend lisible, dans une strate, de quelle planche on
+     parle.
+
+     Ici l'ombre reste CUITE. Celle d'été a été détachée parce qu'un arbre ombrait son voisin au
+     lieu du sol ; sur cette planche-ci elle est déjà posée en bas à gauche, du bon côté par
+     rapport au soleil qu'on s'est donné, et la détacher demanderait de redessiner ce qui est
+     juste. Le prix est le même défaut, et il ne se distingue pas à cette densité.
+
+     La LITIÈRE est la famille nouvelle : des tas de feuilles au sol, qui sont à l'automne ce que
+     l'herbe est à l'été. C'est elle qu'il faudra faire tourbillonner au passage d'une voiture ;
+     pour l'instant elle se contente de joncher.
+
+     Les fichiers et les tailles sortent de `tools/automne.py`, qui écrit aussi son manifeste. */
+  { famille: 'tree', id: 'a-arbre-1', f: 'art/decor/automne/arbre-1.webp', wm: 11.0, anc: 0.56, cuite: 1, weight: 6, near: 1, far: 24 },
+  { famille: 'tree', id: 'a-arbre-3', f: 'art/decor/automne/arbre-3.webp', wm: 11.5, anc: 0.56, cuite: 1, weight: 6, near: 1, far: 24 },
+  { famille: 'tree', id: 'a-arbre-4', f: 'art/decor/automne/arbre-4.webp', wm: 11.5, anc: 0.56, cuite: 1, weight: 6, near: 1, far: 24 },
+  { famille: 'tree', id: 'a-arbre-6', f: 'art/decor/automne/arbre-6.webp', wm: 9.5, anc: 0.56, cuite: 1, weight: 6, near: 1, far: 24 },
+  { famille: 'tree', id: 'a-arbre-7', f: 'art/decor/automne/arbre-7.webp', wm: 10.5, anc: 0.56, cuite: 1, weight: 6, near: 1, far: 24 },
+  { famille: 'tree', id: 'a-arbre-9', f: 'art/decor/automne/arbre-9.webp', wm: 9.5, anc: 0.56, cuite: 1, weight: 6, near: 1, far: 24 },
+  { famille: 'tree', id: 'a-arbre-nu-1', f: 'art/decor/automne/arbre-nu-1.webp', wm: 8.5, anc: 0.58, cuite: 1, weight: 6, near: 1, far: 24 },
+  { famille: 'pine', id: 'a-conifere-1', f: 'art/decor/automne/conifere-1.webp', wm: 4.0, anc: 0.8, cuite: 1, weight: 4, near: 1, far: 24 },
+  { famille: 'pine', id: 'a-conifere-2', f: 'art/decor/automne/conifere-2.webp', wm: 4.0, anc: 0.8, cuite: 1, weight: 4, near: 1, far: 24 },
+  { famille: 'pine', id: 'a-conifere-4', f: 'art/decor/automne/conifere-4.webp', wm: 3.4, anc: 0.8, cuite: 1, weight: 4, near: 1, far: 24 },
+  { famille: 'pine', id: 'a-conifere-5', f: 'art/decor/automne/conifere-5.webp', wm: 4.2, anc: 0.8, cuite: 1, weight: 4, near: 1, far: 24 },
+  { famille: 'pine', id: 'a-conifere-6', f: 'art/decor/automne/conifere-6.webp', wm: 3.4, anc: 0.8, cuite: 1, weight: 4, near: 1, far: 24 },
+  { famille: 'bush', id: 'a-arbuste-1', f: 'art/decor/automne/arbuste-1.webp', wm: 3.4, anc: 0.66, cuite: 1, weight: 2, near: 1, far: 24 },
+  { famille: 'bush', id: 'a-arbuste-2', f: 'art/decor/automne/arbuste-2.webp', wm: 3.2, anc: 0.66, cuite: 1, weight: 2, near: 1, far: 24 },
+  { famille: 'bush', id: 'a-arbuste-3', f: 'art/decor/automne/arbuste-3.webp', wm: 3.0, anc: 0.66, cuite: 1, weight: 2, near: 1, far: 24 },
+  { famille: 'bush', id: 'a-arbuste-4', f: 'art/decor/automne/arbuste-4.webp', wm: 2.8, anc: 0.66, cuite: 1, weight: 2, near: 1, far: 24 },
+  { famille: 'bush', id: 'a-arbuste-5', f: 'art/decor/automne/arbuste-5.webp', wm: 2.2, anc: 0.66, cuite: 1, weight: 2, near: 1, far: 24 },
+  { famille: 'bush', id: 'a-arbuste-6', f: 'art/decor/automne/arbuste-6.webp', wm: 2.8, anc: 0.66, cuite: 1, weight: 2, near: 1, far: 24 },
+  { famille: 'bush', id: 'a-arbuste-7', f: 'art/decor/automne/arbuste-7.webp', wm: 2.4, anc: 0.66, cuite: 1, weight: 2, near: 1, far: 24 },
+  { famille: 'bush', id: 'a-arbuste-8', f: 'art/decor/automne/arbuste-8.webp', wm: 2.4, anc: 0.66, cuite: 1, weight: 2, near: 1, far: 24 },
+  { famille: 'bush', id: 'a-touffe-1', f: 'art/decor/automne/touffe-1.webp', wm: 4.2, anc: 0.7, cuite: 1, weight: 2, near: 1, far: 24 },
+  { famille: 'bush', id: 'a-touffe-2', f: 'art/decor/automne/touffe-2.webp', wm: 4.4, anc: 0.7, cuite: 1, weight: 2, near: 1, far: 24 },
+  { famille: 'bush', id: 'a-touffe-3', f: 'art/decor/automne/touffe-3.webp', wm: 4.0, anc: 0.7, cuite: 1, weight: 2, near: 1, far: 24 },
+  { famille: 'bush', id: 'a-touffe-4', f: 'art/decor/automne/touffe-4.webp', wm: 4.0, anc: 0.7, cuite: 1, weight: 2, near: 1, far: 24 },
+  { famille: 'bush', id: 'a-touffe-5', f: 'art/decor/automne/touffe-5.webp', wm: 3.8, anc: 0.7, cuite: 1, weight: 2, near: 1, far: 24 },
+  { famille: 'bush', id: 'a-touffe-6', f: 'art/decor/automne/touffe-6.webp', wm: 2.0, anc: 0.7, cuite: 1, weight: 2, near: 1, far: 24 },
+  { famille: 'bush', id: 'a-touffe-7', f: 'art/decor/automne/touffe-7.webp', wm: 2.0, anc: 0.7, cuite: 1, weight: 2, near: 1, far: 24 },
+  { famille: 'bush', id: 'a-touffe-8', f: 'art/decor/automne/touffe-8.webp', wm: 2.2, anc: 0.7, cuite: 1, weight: 2, near: 1, far: 24 },
+  { famille: 'grass', id: 'a-herbe-1', f: 'art/decor/automne/herbe-1.webp', wm: 2.0, anc: 0.74, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'grass', id: 'a-herbe-2', f: 'art/decor/automne/herbe-2.webp', wm: 1.8, anc: 0.74, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'grass', id: 'a-herbe-3', f: 'art/decor/automne/herbe-3.webp', wm: 1.8, anc: 0.74, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'grass', id: 'a-herbe-4', f: 'art/decor/automne/herbe-4.webp', wm: 1.6, anc: 0.74, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'grass', id: 'a-plant-1', f: 'art/decor/automne/plant-1.webp', wm: 2.0, anc: 0.74, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'grass', id: 'a-plant-2', f: 'art/decor/automne/plant-2.webp', wm: 1.8, anc: 0.74, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'grass', id: 'a-plant-3', f: 'art/decor/automne/plant-3.webp', wm: 2.2, anc: 0.74, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'grass', id: 'a-plant-4', f: 'art/decor/automne/plant-4.webp', wm: 1.8, anc: 0.74, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'grass', id: 'a-plant-5', f: 'art/decor/automne/plant-5.webp', wm: 1.6, anc: 0.74, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'grass', id: 'a-plant-6', f: 'art/decor/automne/plant-6.webp', wm: 1.8, anc: 0.74, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'litter', id: 'a-feuilles-1', f: 'art/decor/automne/feuilles-1.webp', wm: 3.6, anc: 0.5, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'litter', id: 'a-feuilles-2', f: 'art/decor/automne/feuilles-2.webp', wm: 3.8, anc: 0.5, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'litter', id: 'a-feuilles-3', f: 'art/decor/automne/feuilles-3.webp', wm: 3.0, anc: 0.5, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'litter', id: 'a-feuilles-4', f: 'art/decor/automne/feuilles-4.webp', wm: 2.6, anc: 0.5, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'litter', id: 'a-feuilles-5', f: 'art/decor/automne/feuilles-5.webp', wm: 2.2, anc: 0.5, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'litter', id: 'a-feuilles-6', f: 'art/decor/automne/feuilles-6.webp', wm: 2.4, anc: 0.5, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'litter', id: 'a-feuilles-7', f: 'art/decor/automne/feuilles-7.webp', wm: 2.0, anc: 0.5, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'litter', id: 'a-feuilles-8', f: 'art/decor/automne/feuilles-8.webp', wm: 1.8, anc: 0.5, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'litter', id: 'a-feuille-1', f: 'art/decor/automne/feuille-1.webp', wm: 0.7, anc: 0.5, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'litter', id: 'a-feuille-2', f: 'art/decor/automne/feuille-2.webp', wm: 0.7, anc: 0.5, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'litter', id: 'a-feuille-3', f: 'art/decor/automne/feuille-3.webp', wm: 0.7, anc: 0.5, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'litter', id: 'a-feuille-4', f: 'art/decor/automne/feuille-4.webp', wm: 0.9, anc: 0.5, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'rock', id: 'a-rocher-1', f: 'art/decor/automne/rocher-1.webp', wm: 3.2, anc: 0.62, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'rock', id: 'a-rocher-2', f: 'art/decor/automne/rocher-2.webp', wm: 3.0, anc: 0.62, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'rock', id: 'a-rocher-3', f: 'art/decor/automne/rocher-3.webp', wm: 2.6, anc: 0.62, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'rock', id: 'a-rocher-4', f: 'art/decor/automne/rocher-4.webp', wm: 1.6, anc: 0.62, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'rock', id: 'a-rocher-5', f: 'art/decor/automne/rocher-5.webp', wm: 2.4, anc: 0.62, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'rock', id: 'a-souche-1', f: 'art/decor/automne/souche-1.webp', wm: 2.2, anc: 0.68, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'rock', id: 'a-souche-2', f: 'art/decor/automne/souche-2.webp', wm: 1.8, anc: 0.68, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'rock', id: 'a-rondin-1', f: 'art/decor/automne/rondin-1.webp', wm: 3.4, anc: 0.62, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'rock', id: 'a-rondin-2', f: 'art/decor/automne/rondin-2.webp', wm: 2.8, anc: 0.62, cuite: 1, weight: 1, near: 1, far: 24 },
+  { famille: 'rock', id: 'a-rondin-3', f: 'art/decor/automne/rondin-3.webp', wm: 2.6, anc: 0.62, cuite: 1, weight: 1, near: 1, far: 24 },
 ];
 
 /* Les images, chargées une fois. Tant qu'elles ne sont pas là, `buildTopArt` retombe sur les
@@ -1006,6 +1084,55 @@ const STRATES_ARDENNES = [
     de: HORS_BARRIERES, a: 60, r: 7.0, ech: [0.85, 1.2] },
 ];
 
+/* -------------------------------------------------------------------- LES STRATES D'AUTOMNE
+
+   La structure est celle des Ardennes — canopée, sous-bois, abords, couvre-sol, bois mort — et
+   ce n'est pas de la paresse : les règles qui l'ont fixée ne dépendent pas de la saison. La
+   bande devant les barrières se fauche en octobre comme en juin, le semis évite les bandes
+   peintes de la même manière, et une couronne de onze mètres a besoin du même écart pour ne pas
+   se confondre avec sa voisine.
+
+   Ce qui change est la LITIÈRE : elle s'ajoute au couvre-sol, partout, y compris devant les
+   barrières. Des feuilles tombées sur une zone de dégagement, c'est précisément ce qu'on voit
+   en octobre, et ça ne cache rien de ce que le pilote doit lire. */
+const A_ARBRES = [
+  'a-arbre-1', 'a-arbre-3', 'a-arbre-4', 'a-arbre-6', 'a-arbre-7', 'a-arbre-9',
+  'a-arbre-nu-1'];
+const A_CONIFERES = [
+  'a-conifere-1', 'a-conifere-2', 'a-conifere-4', 'a-conifere-5', 'a-conifere-6'];
+const A_ARBUSTES = [
+  'a-arbuste-1', 'a-arbuste-2', 'a-arbuste-3', 'a-arbuste-4', 'a-arbuste-5', 'a-arbuste-6',
+  'a-arbuste-7', 'a-arbuste-8', 'a-touffe-1', 'a-touffe-2', 'a-touffe-3', 'a-touffe-4',
+  'a-touffe-5', 'a-touffe-6', 'a-touffe-7', 'a-touffe-8'];
+const A_HERBES = [
+  'a-herbe-1', 'a-herbe-2', 'a-herbe-3', 'a-herbe-4', 'a-plant-1', 'a-plant-2',
+  'a-plant-3', 'a-plant-4', 'a-plant-5', 'a-plant-6'];
+const A_LITIERE = [
+  'a-feuilles-1', 'a-feuilles-2', 'a-feuilles-3', 'a-feuilles-4', 'a-feuilles-5',
+  'a-feuilles-6', 'a-feuilles-7', 'a-feuilles-8', 'a-feuille-1', 'a-feuille-2',
+  'a-feuille-3', 'a-feuille-4'];
+const A_PIERRES = [
+  'a-rocher-1', 'a-rocher-2', 'a-rocher-3', 'a-rocher-4', 'a-rocher-5', 'a-souche-1',
+  'a-souche-2', 'a-rondin-1', 'a-rondin-2', 'a-rondin-3'];
+
+const STRATES_AUTOMNE = [
+  { nom: 'canopee', kinds: A_ARBRES.concat(A_ARBRES, A_CONIFERES), de: HORS_BARRIERES, a: 95,
+    r: 9.5, ech: [0.95, 1.35], couvre: 6.0 },
+  { nom: 'sous-bois', kinds: A_ARBUSTES.concat(A_CONIFERES, A_PIERRES.slice(0, 4)),
+    de: HORS_BARRIERES, a: 72, r: 4.8, ech: [0.85, 1.25], couvre: 2.4 },
+  // devant les barrières : des arbustes bas et rien qui pèse
+  { nom: 'abords', kinds: A_ARBUSTES.slice(0, 10),
+    de: HORS_MARQUAGE + 0.8, a: HORS_BARRIERES - 2, r: 4.4, ech: [0.7, 1.0], couvre: 2.0 },
+  { nom: 'couvre-sol', kinds: A_HERBES.concat(A_LITIERE, A_LITIERE),
+    de: HORS_MARQUAGE, a: 22, r: 2.2, ech: [0.85, 1.25] },
+  { nom: 'bois-mort', kinds: A_PIERRES, de: HORS_BARRIERES, a: 60, r: 7.0, ech: [0.85, 1.2] },
+];
+
+/* Le décor d'un circuit nomme sa planche, et c'est ici qu'on fait la correspondance — une seule
+   table, pour que `render.js` n'ait pas à connaître le nom des strates. */
+const STRATES = { ardennes: STRATES_ARDENNES, automne: STRATES_AUTOMNE };
+
+
 /* UNE STRATE QUI NOMME UN SPRITE INEXISTANT NE SE VOIT PAS : le dessin saute l'objet et la forêt
    s'éclaircit sans que rien ne proteste. C'est arrivé en renommant les sprites, et c'est le genre
    de panne qu'aucune image ne révèle — on croit que le semis est moins dense. On le dit donc à
@@ -1041,7 +1168,9 @@ function semeStrates(track, id, strates) {
   for (const cn of track.corners) {
     for (let i = cn.from; i <= cn.to; i++) enVirage[((i % N) + N) % N] = 1;
   }
-  const bac = (i) => track.halfWidth + track.largeurBac(i) + 1.2;   // le bac, plus une marge
+  // garde radiale : elle ne sait pas de quel bord elle parle, donc elle prend le plus large des
+  // deux — mieux vaut un pied d'herbe en moins qu'une touffe au milieu du sable
+  const bac = (i) => track.halfWidth + track.largeurBac(i) + 1.2;
   const loinDeLaPiste = (x, y, besoin) => {
     for (let i = 0; i < N; i += 4) {
       const dx = x - track.xs[i], dy = y - track.ys[i];
@@ -1074,7 +1203,7 @@ function semeStrates(track, id, strates) {
         const i = track.idx(p.s);
         const hw = cote > 0 ? track.hwL[i] : track.hwR[i];
         const lat = (hw + p.d) * cote;
-        if (p.d < track.largeurBac(i) + 1.2) continue;     // le bac du virage qu'on longe
+        if (p.d < track.largeurBac(i, cote) + 1.2) continue;   // le bac du bord qu'on longe
         const x = track.xs[i] + track.nx[i] * lat, y = track.ys[i] + track.ny[i] * lat;
         // la garde est celle de la strate elle-même : ce qu'elle s'interdit près de SON bord, elle
         // se l'interdit près de n'importe quel autre tronçon du tour
@@ -1125,16 +1254,25 @@ function reculBarriere(track) {
   const enVirage = new Uint8Array(N);
   for (const cn of track.corners) for (let i = cn.from; i <= cn.to; i++) enVirage[((i % N) + N) % N] = 1;
   const brut = new Float32Array(N);
-  for (let i = 0; i < N; i++) brut[i] = enVirage[i] ? track.largeurBac(i) + 2.6 : 7.5;
-  const F = Math.max(1, Math.round(30 / track.ds));         // demi-fenêtre : trente mètres
-  const out = new Float32Array(N);
+  /* Chaque bord a son propre recul : le bac n'est qu'à l'extérieur du virage, donc la barrière
+     intérieure n'a aucune raison de s'écarter pour un sable qui est de l'autre côté. */
+  const brutD = new Float32Array(N);
   for (let i = 0; i < N; i++) {
-    let somme = 0;
-    for (let k = -F; k <= F; k++) somme += brut[((i + k) % N + N) % N];
-    out[i] = somme / (2 * F + 1);
+    brut[i] = enVirage[i] ? Math.max(7.5, track.largeurBac(i, 1) + 2.6) : 7.5;
+    brutD[i] = enVirage[i] ? Math.max(7.5, track.largeurBac(i, -1) + 2.6) : 7.5;
   }
-  track._recul = out;
-  return out;
+  const F = Math.max(1, Math.round(30 / track.ds));         // demi-fenêtre : trente mètres
+  const lisse = (src) => {
+    const out = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      let somme = 0;
+      for (let k = -F; k <= F; k++) somme += src[((i + k) % N + N) % N];
+      out[i] = somme / (2 * F + 1);
+    }
+    return out;
+  };
+  track._recul = { L: lisse(brut), R: lisse(brutD) };
+  return track._recul;
 }
 
 function poseBarrieres(track, id) {
@@ -1210,7 +1348,8 @@ function poseBarrieres(track, id) {
          l'extérieur — la corde est plus courte que l'arc. */
       const pas = RAIL_LONG * (enVirage[i] ? 0.62 : 0.76);
       const hw = cote > 0 ? track.hwL[i] : track.hwR[i];
-      const lat = (hw + recul[i]) * cote;
+      const rec = cote > 0 ? recul.L : recul.R;
+      const lat = (hw + rec[i]) * cote;
       const x = track.xs[i] + track.nx[i] * lat, y = track.ys[i] + track.ny[i] * lat;
       /* LA SECTION NE DOIT PAS TOMBER SUR UN AUTRE TRONÇON. À l'intérieur d'une épingle, le recul
          fait traverser la piste. Écarter par la seule distance le long du tour confondrait l'arc
@@ -1225,8 +1364,17 @@ function poseBarrieres(track, id) {
         while (dth > Math.PI) dth -= 2 * Math.PI;
         while (dth < -Math.PI) dth += 2 * Math.PI;
         if (Math.abs(dth) < 1.22) continue;
+        /* ON S'ARRÊTE AU BORD DE L'AUTRE ENCLOS, pas au bord de l'autre bitume. Le garde-fou ne
+           rejetait que ce qui tombait SUR la piste d'en face ; entre les deux branches d'une
+           épingle il reste pourtant une bande d'herbe, assez large pour qu'une section y passe et
+           beaucoup trop étroite pour deux clôtures. Les deux barrières s'y croisaient en X.
+
+           Une branche de circuit n'est pas son bitume : c'est son bitume PLUS son recul, jusqu'à
+           sa propre glissière. On rejette donc ce qui entre dans cet enclos-là, et les deux
+           clôtures se rejoignent exactement là où elles se touchent, en V. */
         const dx = x - track.xs[j], dy = y - track.ys[j];
-        if (dx * dx + dy * dy < (track.halfWidth + 5) * (track.halfWidth + 5)) dehors = false;
+        const clos = Math.max(track.hwL[j] + recul.L[j], track.hwR[j] + recul.R[j]);
+        if (dx * dx + dy * dy < clos * clos) dehors = false;
       }
       if (dehors) out.push({ x, y, id: 'rail', ech: 1, ton: 0, om: 0, rot: cap });
       s += pas;
@@ -1275,7 +1423,7 @@ function posePneus(track, id) {
     for (let s = 0; s < L; s += 0.1) {
       const i = track.idx(s);
       const i2 = (i + 1) % N2, u = (s - i * track.ds) / track.ds;
-      const w = track.largeurBac(i) * (1 - u) + track.largeurBac(i2) * u;
+      const w = track.largeurBac(i, cote) * (1 - u) + track.largeurBac(i2, cote) * u;
       if (w < MINI) { px = null; continue; }    // le mur s'interrompt, on repart à neuf
       /* LE MUR EST CONTRE LA BARRIÈRE, pas au bord du gravier. C'est là qu'il sert : un mur de
          pneus n'est pas une bordure de bac, c'est l'amortisseur de la glissière, et on le pose
@@ -1283,7 +1431,8 @@ function posePneus(track, id) {
          d'herbe vide, puis la glissière plus loin — deux clôtures parallèles là où il n'y en a
          qu'une. Il prend donc le MÊME recul que la barrière, moins un demi-pneu pour venir
          s'appuyer dessus. */
-      const rA = recul[i], rB = recul[i2];
+      const rec = cote > 0 ? recul.L : recul.R;
+      const rA = rec[i], rB = rec[i2];
       const hwA = cote > 0 ? track.hwL[i] : track.hwR[i];
       const hwB = cote > 0 ? track.hwL[i2] : track.hwR[i2];
       const lat = (hwA * (1 - u) + hwB * u + rA * (1 - u) + rB * u - PNEU_M * 0.55) * cote;
@@ -1310,8 +1459,12 @@ function posePneus(track, id) {
         while (dth > Math.PI) dth -= 2 * Math.PI;
         while (dth < -Math.PI) dth += 2 * Math.PI;
         if (Math.abs(dth) < 1.22) continue;
+        /* Le mur s'arrête où s'arrête la barrière sur laquelle il s'appuie : même enclos, même
+           garde-fou. Sinon il restait un bout de mur seul dans l'herbe, à l'intérieur de
+           l'épingle, là où la barrière avait déjà renoncé. */
         const dx = x - track.xs[j], dy = y - track.ys[j];
-        if (dx * dx + dy * dy < (track.halfWidth + 3) * (track.halfWidth + 3)) dehors = false;
+        const clos = Math.max(track.hwL[j] + recul.L[j], track.hwR[j] + recul.R[j]);
+        if (dx * dx + dy * dy < clos * clos) dehors = false;
       }
       if (dehors) {
         out.push({ x, y, id: 'pneu-' + (k++ % PNEUS.length), ech: 1, ton: 0, om: 0, rot: 0 });

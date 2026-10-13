@@ -21,7 +21,15 @@ découpe ratée ressemble à une découpe réussie tant qu'on la regarde sur un 
 écrit donc aussi une planche de contrôle où chaque sprite est posé sur du magenta : tout reste de
 fond ou tout trou dans l'objet y saute aux yeux.
 
+UNE PLANCHE SUR DAMIER se traite autrement, et `--damier` est là pour ça. Le damier de
+transparence n'est pas une couleur : c'est deux gris qui alternent, et la compression les étale
+sur toute une plage de clarté. Aucune distance à « la » couleur de fond ne les attrape tous. Ce
+qu'ils ont en commun, en revanche, est qu'ils sont CLAIRS ET GRIS — sans teinte. On garde donc
+tout ce qui est clair et désaturé, et c'est l'étape de liaison au bord qui fait le reste du
+travail : un caillou gris au milieu de la planche n'est relié à rien, il est rendu à l'objet.
+
     python3 tools/decoupe-sprites.py <planche.png> <dossier de sortie> [--zone x0,y0,x1,y1]
+                                     [--sans-ombre] [--damier]
 """
 import sys, os, json
 from collections import deque, Counter
@@ -163,11 +171,14 @@ def main():
     src, dst = sys.argv[1], sys.argv[2]
     zone = None
     coupe_ombre = False
+    damier = False
     for a in sys.argv[3:]:
         if a.startswith('--zone'):
             zone = tuple(int(v) for v in a.split('=')[1].split(','))
         if a == '--sans-ombre':
             coupe_ombre = True
+        if a == '--damier':
+            damier = True
     im = Image.open(src).convert('RGB')
     if zone:
         im = im.crop(zone)
@@ -175,8 +186,14 @@ def main():
     fond = couleur_de_fond(a)
     print(f'fond  #{fond[0]:02x}{fond[1]:02x}{fond[2]:02x}   planche {im.size[0]}x{im.size[1]}')
 
-    dist = np.sqrt(((a - fond) ** 2).sum(axis=2))
-    cand = dist < TOL
+    if damier:
+        lum = a.mean(axis=2)
+        gris = a.max(axis=2) - a.min(axis=2)
+        cand = (lum > 188) & (gris < 32)
+        print(f'damier : {100 * cand.mean():.0f} % de la planche est clair et gris')
+    else:
+        dist = np.sqrt(((a - fond) ** 2).sum(axis=2))
+        cand = dist < TOL
     masque = relie_au_bord(cand)              # le fond, et lui seul
     obj = ~masque
     obj = erode(dilate(obj, FERME), FERME)    # on rebouche, puis on rend ce qu'on a pris

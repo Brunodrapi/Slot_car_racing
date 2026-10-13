@@ -1,0 +1,604 @@
+{
+ "vegetation": [
+  {
+   "id": "arbre-1",
+   "fichier": "art/decor/automne/arbre-1.webp",
+   "m": 11.0,
+   "anc": 0.56,
+   "px": [
+    188,
+    194
+   ]
+  },
+  {
+   "id": "arbre-3",
+   "fichier": "art/decor/automne/arbre-3.webp",
+   "m": 11.5,
+   "anc": 0.56,
+   "px": [
+    201,
+    199
+   ]
+  },
+  {
+   "id": "arbre-4",
+   "fichier": "art/decor/automne/arbre-4.webp",
+   "m": 11.5,
+   "anc": 0.56,
+   "px": [
+    214,
+    204
+   ]
+  },
+  {
+   "id": "arbre-6",
+   "fichier": "art/decor/automne/arbre-6.webp",
+   "m": 9.5,
+   "anc": 0.56,
+   "px": [
+    146,
+    176
+   ]
+  },
+  {
+   "id": "arbre-7",
+   "fichier": "art/decor/automne/arbre-7.webp",
+   "m": 10.5,
+   "anc": 0.56,
+   "px": [
+    190,
+    170
+   ]
+  },
+  {
+   "id": "arbre-9",
+   "fichier": "art/decor/automne/arbre-9.webp",
+   "m": 9.5,
+   "anc": 0.56,
+   "px": [
+    140,
+    169
+   ]
+  },
+  {
+   "id": "arbre-nu-1",
+   "fichier": "art/decor/automne/arbre-nu-1.webp",
+   "m": 8.5,
+   "anc": 0.58,
+   "px": [
+    133,
+    171
+   ]
+  },
+  {
+   "id": "conifere-1",
+   "fichier": "art/decor/automne/conifere-1.webp",
+   "m": 4.0,
+   "anc": 0.8,
+   "px": [
+    74,
+    200
+   ]
+  },
+  {
+   "id": "conifere-2",
+   "fichier": "art/decor/automne/conifere-2.webp",
+   "m": 4.0,
+   "anc": 0.8,
+   "px": [
+    71,
+    189
+   ]
+  },
+  {
+   "id": "conifere-4",
+   "fichier": "art/decor/automne/conifere-4.webp",
+   "m": 3.4,
+   "anc": 0.8,
+   "px": [
+    54,
+    181
+   ]
+  },
+  {
+   "id": "conifere-5",
+   "fichier": "art/decor/automne/conifere-5.webp",
+   "m": 4.2,
+   "anc": 0.8,
+   "px": [
+    69,
+    179
+   ]
+  },
+  {
+   "id": "conifere-6",
+   "fichier": "art/decor/automne/conifere-6.webp",
+   "m": 3.4,
+   "anc": 0.8,
+   "px": [
+    73,
+    130
+   ]
+  },
+  {
+   "id": "arbuste-1",
+   "fichier": "art/decor/automne/arbuste-1.webp",
+   "m": 3.4,
+   "anc": 0.66,
+   "px": [
+    94,
+    81
+   ]
+  },
+  {
+   "id": "arbuste-2",
+   "fichier": "art/decor/automne/arbuste-2.webp",
+   "m": 3.2,
+   "anc": 0.66,
+   "px": [
+    87,
+    76
+   ]
+  },
+  {
+   "id": "arbuste-3",
+   "fichier": "art/decor/automne/arbuste-3.webp",
+   "m": 3.0,
+   "anc": 0.66,
+   "px": [
+    180,
+    104
+   ]
+  },
+  {
+   "id": "arbuste-4",
+   "fichier": "art/decor/automne/arbuste-4.webp",
+   "m": 2.8,
+   "anc": 0.66,
+   "px": [
+    83,
+    65
+   ]
+  },
+  {
+   "id": "arbuste-5",
+   "fichier": "art/decor/automne/arbuste-5.webp",
+   "m": 2.2,
+   "anc": 0.66,
+   "px": [
+    61,
+    71
+   ]
+  },
+  {
+   "id": "arbuste-6",
+   "fichier": "art/decor/automne/arbuste-6.webp",
+   "m": 2.8,
+   "anc": 0.66,
+   "px": [
+    76,
+    65
+   ]
+  },
+  {
+   "id": "arbuste-7",
+   "fichier": "art/decor/automne/arbuste-7.webp",
+   "m": 2.4,
+   "anc": 0.66,
+   "px": [
+    76,
+    67
+   ]
+  },
+  {
+   "id": "arbuste-8",
+   "fichier": "art/decor/automne/arbuste-8.webp",
+   "m": 2.4,
+   "anc": 0.66,
+   "px": [
+    59,
+    67
+   ]
+  },
+  {
+   "id": "touffe-1",
+   "fichier": "art/decor/automne/touffe-1.webp",
+   "m": 4.2,
+   "anc": 0.7,
+   "px": [
+    78,
+    89
+   ]
+  },
+  {
+   "id": "touffe-2",
+   "fichier": "art/decor/automne/touffe-2.webp",
+   "m": 4.4,
+   "anc": 0.7,
+   "px": [
+    143,
+    96
+   ]
+  },
+  {
+   "id": "touffe-3",
+   "fichier": "art/decor/automne/touffe-3.webp",
+   "m": 4.0,
+   "anc": 0.7,
+   "px": [
+    146,
+    73
+   ]
+  },
+  {
+   "id": "touffe-4",
+   "fichier": "art/decor/automne/touffe-4.webp",
+   "m": 4.0,
+   "anc": 0.7,
+   "px": [
+    110,
+    53
+   ]
+  },
+  {
+   "id": "touffe-5",
+   "fichier": "art/decor/automne/touffe-5.webp",
+   "m": 3.8,
+   "anc": 0.7,
+   "px": [
+    105,
+    93
+   ]
+  },
+  {
+   "id": "touffe-6",
+   "fichier": "art/decor/automne/touffe-6.webp",
+   "m": 2.0,
+   "anc": 0.7,
+   "px": [
+    60,
+    63
+   ]
+  },
+  {
+   "id": "touffe-7",
+   "fichier": "art/decor/automne/touffe-7.webp",
+   "m": 2.0,
+   "anc": 0.7,
+   "px": [
+    64,
+    64
+   ]
+  },
+  {
+   "id": "touffe-8",
+   "fichier": "art/decor/automne/touffe-8.webp",
+   "m": 2.2,
+   "anc": 0.7,
+   "px": [
+    88,
+    99
+   ]
+  },
+  {
+   "id": "herbe-1",
+   "fichier": "art/decor/automne/herbe-1.webp",
+   "m": 2.0,
+   "anc": 0.74,
+   "px": [
+    127,
+    65
+   ]
+  },
+  {
+   "id": "herbe-2",
+   "fichier": "art/decor/automne/herbe-2.webp",
+   "m": 1.8,
+   "anc": 0.74,
+   "px": [
+    64,
+    57
+   ]
+  },
+  {
+   "id": "herbe-3",
+   "fichier": "art/decor/automne/herbe-3.webp",
+   "m": 1.8,
+   "anc": 0.74,
+   "px": [
+    65,
+    66
+   ]
+  },
+  {
+   "id": "herbe-4",
+   "fichier": "art/decor/automne/herbe-4.webp",
+   "m": 1.6,
+   "anc": 0.74,
+   "px": [
+    71,
+    81
+   ]
+  },
+  {
+   "id": "plant-1",
+   "fichier": "art/decor/automne/plant-1.webp",
+   "m": 2.0,
+   "anc": 0.74,
+   "px": [
+    133,
+    70
+   ]
+  },
+  {
+   "id": "plant-2",
+   "fichier": "art/decor/automne/plant-2.webp",
+   "m": 1.8,
+   "anc": 0.74,
+   "px": [
+    87,
+    76
+   ]
+  },
+  {
+   "id": "plant-3",
+   "fichier": "art/decor/automne/plant-3.webp",
+   "m": 2.2,
+   "anc": 0.74,
+   "px": [
+    150,
+    80
+   ]
+  },
+  {
+   "id": "plant-4",
+   "fichier": "art/decor/automne/plant-4.webp",
+   "m": 1.8,
+   "anc": 0.74,
+   "px": [
+    79,
+    72
+   ]
+  },
+  {
+   "id": "plant-5",
+   "fichier": "art/decor/automne/plant-5.webp",
+   "m": 1.6,
+   "anc": 0.74,
+   "px": [
+    53,
+    79
+   ]
+  },
+  {
+   "id": "plant-6",
+   "fichier": "art/decor/automne/plant-6.webp",
+   "m": 1.8,
+   "anc": 0.74,
+   "px": [
+    79,
+    67
+   ]
+  },
+  {
+   "id": "feuilles-1",
+   "fichier": "art/decor/automne/feuilles-1.webp",
+   "m": 3.6,
+   "anc": 0.5,
+   "px": [
+    140,
+    65
+   ]
+  },
+  {
+   "id": "feuilles-2",
+   "fichier": "art/decor/automne/feuilles-2.webp",
+   "m": 3.8,
+   "anc": 0.5,
+   "px": [
+    198,
+    104
+   ]
+  },
+  {
+   "id": "feuilles-3",
+   "fichier": "art/decor/automne/feuilles-3.webp",
+   "m": 3.0,
+   "anc": 0.5,
+   "px": [
+    163,
+    57
+   ]
+  },
+  {
+   "id": "feuilles-4",
+   "fichier": "art/decor/automne/feuilles-4.webp",
+   "m": 2.6,
+   "anc": 0.5,
+   "px": [
+    113,
+    59
+   ]
+  },
+  {
+   "id": "feuilles-5",
+   "fichier": "art/decor/automne/feuilles-5.webp",
+   "m": 2.2,
+   "anc": 0.5,
+   "px": [
+    69,
+    67
+   ]
+  },
+  {
+   "id": "feuilles-6",
+   "fichier": "art/decor/automne/feuilles-6.webp",
+   "m": 2.4,
+   "anc": 0.5,
+   "px": [
+    115,
+    72
+   ]
+  },
+  {
+   "id": "feuilles-7",
+   "fichier": "art/decor/automne/feuilles-7.webp",
+   "m": 2.0,
+   "anc": 0.5,
+   "px": [
+    99,
+    76
+   ]
+  },
+  {
+   "id": "feuilles-8",
+   "fichier": "art/decor/automne/feuilles-8.webp",
+   "m": 1.8,
+   "anc": 0.5,
+   "px": [
+    81,
+    46
+   ]
+  },
+  {
+   "id": "feuille-1",
+   "fichier": "art/decor/automne/feuille-1.webp",
+   "m": 0.7,
+   "anc": 0.5,
+   "px": [
+    38,
+    42
+   ]
+  },
+  {
+   "id": "feuille-2",
+   "fichier": "art/decor/automne/feuille-2.webp",
+   "m": 0.7,
+   "anc": 0.5,
+   "px": [
+    38,
+    39
+   ]
+  },
+  {
+   "id": "feuille-3",
+   "fichier": "art/decor/automne/feuille-3.webp",
+   "m": 0.7,
+   "anc": 0.5,
+   "px": [
+    19,
+    23
+   ]
+  },
+  {
+   "id": "feuille-4",
+   "fichier": "art/decor/automne/feuille-4.webp",
+   "m": 0.9,
+   "anc": 0.5,
+   "px": [
+    54,
+    56
+   ]
+  },
+  {
+   "id": "rocher-1",
+   "fichier": "art/decor/automne/rocher-1.webp",
+   "m": 3.2,
+   "anc": 0.62,
+   "px": [
+    117,
+    84
+   ]
+  },
+  {
+   "id": "rocher-2",
+   "fichier": "art/decor/automne/rocher-2.webp",
+   "m": 3.0,
+   "anc": 0.62,
+   "px": [
+    122,
+    75
+   ]
+  },
+  {
+   "id": "rocher-3",
+   "fichier": "art/decor/automne/rocher-3.webp",
+   "m": 2.6,
+   "anc": 0.62,
+   "px": [
+    113,
+    81
+   ]
+  },
+  {
+   "id": "rocher-4",
+   "fichier": "art/decor/automne/rocher-4.webp",
+   "m": 1.6,
+   "anc": 0.62,
+   "px": [
+    50,
+    49
+   ]
+  },
+  {
+   "id": "rocher-5",
+   "fichier": "art/decor/automne/rocher-5.webp",
+   "m": 2.4,
+   "anc": 0.62,
+   "px": [
+    110,
+    82
+   ]
+  },
+  {
+   "id": "souche-1",
+   "fichier": "art/decor/automne/souche-1.webp",
+   "m": 2.2,
+   "anc": 0.68,
+   "px": [
+    111,
+    99
+   ]
+  },
+  {
+   "id": "souche-2",
+   "fichier": "art/decor/automne/souche-2.webp",
+   "m": 1.8,
+   "anc": 0.68,
+   "px": [
+    79,
+    61
+   ]
+  },
+  {
+   "id": "rondin-1",
+   "fichier": "art/decor/automne/rondin-1.webp",
+   "m": 3.4,
+   "anc": 0.62,
+   "px": [
+    127,
+    78
+   ]
+  },
+  {
+   "id": "rondin-2",
+   "fichier": "art/decor/automne/rondin-2.webp",
+   "m": 2.8,
+   "anc": 0.62,
+   "px": [
+    100,
+    50
+   ]
+  },
+  {
+   "id": "rondin-3",
+   "fichier": "art/decor/automne/rondin-3.webp",
+   "m": 2.6,
+   "anc": 0.62,
+   "px": [
+    106,
+    60
+   ]
+  }
+ ]
+}

@@ -611,7 +611,8 @@ const TRACKS = [
     ],
   },
   {
-    id: 'zandvoort', name: 'Zandvoort', country: 'NL', flag: '🇳🇱', theme: 'dunes',
+    id: 'zandvoort', name: 'Zandvoort', country: 'NL', flag: '🇳🇱', theme: 'automne',
+    decor: 'automne',
     kerb: DRAPEAUX.nl,
     length: 2400, width: 13,
     pts: TRACES.zandvoort,

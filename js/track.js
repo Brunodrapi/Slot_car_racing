@@ -483,7 +483,7 @@ class Track {
   Accessoirement c'est devenu un tableau : `largeurBac` est appelée des dizaines de milliers de
   fois à la pose du mur de pneus, et elle parcourait tous les virages à chaque appel. */
   _profilBac() {
-    const N = this.n, brut = new Float32Array(N);
+    const N = this.n, brutL = new Float32Array(N), brutR = new Float32Array(N);
     // la courbure, dérivée seconde d'une ligne échantillonnée au mètre, est bruitée : on l'adoucit
     // sur dix mètres avant de s'en servir comme pondération
     const G = Math.max(1, Math.round(10 / this.ds)), ks = new Float32Array(N);
@@ -519,10 +519,21 @@ class Track {
         if (f > fmax) fmax = f;
       }
       if (!fmax) continue;
+      /* LE DÉGAGEMENT EST À L'EXTÉRIEUR DU VIRAGE, et seulement là. Une voiture qui perd le train
+         arrière part vers l'extérieur ; l'intérieur est l'endroit où l'on COUPE, pas celui où
+         l'on sort. Le bac était posé des deux côtés, ce qui donnait un croissant de sable à
+         l'intérieur d'une épingle — et, de proche en proche, un bout de mur de pneus planté là où
+         personne n'arrivera jamais.
+
+         La normale est la gauche en repère y vers le bas : mesuré sur les vingt virages de Spa,
+         une courbure positive met le centre du cercle du côté -n, donc l'extérieur est le côté
+         +n. */
+      const cote = (cn.sign || Math.sign(this.k[((cn.from + (span >> 1)) % N + N) % N])) > 0
+        ? brutL : brutR;
       for (let t = 0; t <= span; t++) {
         const i = ((cn.from + t) % N + N) % N;
         const w = Track.BAC_M * forme[t] / fmax;
-        if (w > brut[i]) brut[i] = w;
+        if (w > cote[i]) cote[i] = w;
       }
     }
     /* ON LISSE LA COURBURE, PAS LE PROFIL — et c'est la correction qui compte ici. Lisser le
@@ -535,19 +546,28 @@ class Track {
        la courbure était bruitée, et c'est elle qu'on lisse, en amont. Il ne reste au bout qu'un
        arrondi de cinq mètres pour adoucir la jonction entre deux virages voisins. */
     const F = Math.max(1, Math.round(5 / this.ds));
-    const out = new Float32Array(N);
-    for (let i = 0; i < N; i++) {
-      let somme = 0;
-      for (let k = -F; k <= F; k++) somme += brut[((i + k) % N + N) % N];
-      out[i] = somme / (2 * F + 1);
-    }
-    return out;
+    const lisse = (brut) => {
+      const out = new Float32Array(N);
+      for (let i = 0; i < N; i++) {
+        let somme = 0;
+        for (let k = -F; k <= F; k++) somme += brut[((i + k) % N + N) % N];
+        out[i] = somme / (2 * F + 1);
+      }
+      return out;
+    };
+    return { L: lisse(brutL), R: lisse(brutR) };
   }
 
-  largeurBac(i) {
+  /* `cote` vaut +1 pour le côté de la normale (celui de `hwL`), -1 pour l'autre. Sans argument on
+     rend la plus grande des deux : c'est ce qu'il faut à tout ce qui doit ÉVITER le bac sans
+     savoir de quel bord il parle — le semis, par exemple, qui se contente d'un rayon. */
+  largeurBac(i, cote) {
     const N = this.n;
     if (!this.bacW) this.bacW = this._profilBac();
-    return this.bacW[((i % N) + N) % N];
+    const k = ((i % N) + N) % N;
+    if (cote > 0) return this.bacW.L[k];
+    if (cote < 0) return this.bacW.R[k];
+    return Math.max(this.bacW.L[k], this.bacW.R[k]);
   }
 
   _brakingBoards() {

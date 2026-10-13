@@ -93,6 +93,30 @@ const THEME_DEFS = {
      SATURÉ que ce qu'on avait — #95b240 contre #5f8f52, soit vingt-cinq degrés de teinte et vingt
      points de saturation d'écart. C'était la remarque, et elle portait d'abord là : un vert
      grisâtre fait un décor d'hiver quelle que soit la qualité des arbres qu'on pose dessus. */
+  /* L'AUTOMNE, ET UNE ROUTE SOMBRE. Les deux vont ensemble : le feuillage de cette planche est
+     orange et jaune saturé, et posé sur le bitume crème des Ardennes il s'y fondrait. Sur une
+     route d'asphalte gris-bleu, il tranche — et tout ce que `completeTheme` déduit d'une route
+     sombre redevient juste du même coup : la ligne de rive blanche, le bleu et le jaune francs
+     du levier, le sable clair du dégagement.
+
+     L'herbe est une herbe de fin de saison : encore verte, mais tirée vers l'olive et le jaune,
+     pour qu'elle appartienne aux arbres qui la couvrent. */
+  automne: {
+    patches: 0.5,
+    asphalt: '#4a505c', asphaltLight: '#565d6a',
+    strie: 'rgba(214,226,240,0.09)',
+    /* Une herbe de FIN de saison : le vert y est encore, mais tiré vers l'ocre et désaturé.
+       Le premier essai était un vert de printemps — sous une forêt orange, il donnait une pelouse
+       d'avril plantée d'arbres d'octobre, et c'est l'herbe qui avait tort. */
+    grass: '#8e9148', grassLight: '#9c9e55', grassDark: '#787b3a',
+    earth: '#8a6f45', earthDark: '#78603b',
+    kerb: ['#c6453a', '#f4efe6'],
+    gravel: '#e9cf9e', gravelDark: '#d8bd8b',
+    canopy: ['#b4601f', '#c9801f', '#8f4a1c'], pine: ['#a3461c', '#b85f1e'],
+    props: { pine: 2, tree: 2.2, bales: 0, palm: 0 },
+    densite: 11, serre: 0.40, lisiere: 0.18, profond: 3.2,
+  },
+
   forest: {
     patches: 0.55,
     grass: '#95b240', grassLight: '#a4c049', grassDark: '#79a045',
@@ -583,8 +607,9 @@ class Renderer {
        les grandes couronnes en dernier. C'est ce qui fait les couches — une canopée couvre son
        sous-bois, et un grand arbre qui passerait sous un buisson se lirait comme un trou. La
        profondeur vient de là, pas de la caméra. */
-    this.topProps = track.decor === 'ardennes' && decorPret()
-      ? semeStrates(track, seed, STRATES_ARDENNES)
+    // le circuit nomme sa planche, `STRATES` dit laquelle : rien ici ne connaît les saisons
+    this.topProps = track.decor && STRATES[track.decor] && decorPret()
+      ? semeStrates(track, seed, STRATES[track.decor])
         .concat(poseBarrieres(track, seed), posePneus(track, seed))
       : placeGroundProps(track, seed, PAL.herbe)
         .concat(placeTopProps(track, seed, PAL.densite, PAL.props, PAL.serre, PAL.lisiere, PAL.profond));
@@ -706,9 +731,10 @@ class Renderer {
       La largeur suit donc une cloche qui vaut zéro aux deux extrémités : le bac rejoint le bord de
       piste là où il commence et là où il finit, et il n'y a plus rien à refermer. C'est aussi ce
       que fait un vrai dégagement, qui s'ouvre et se referme progressivement. */
-      const large = (i) => track.largeurBac(i);
-      for (let i = cn.from; i <= cn.to; i += 2) { const k = ((i % N) + N) % N, w = large(i), p = [xs[k] + nx[k] * (track.hwL[k] + w), ys[k] + ny[k] * (track.hwL[k] + w)]; if (i === cn.from) gravel.moveTo(p[0], p[1]); else gravel.lineTo(p[0], p[1]); }
-      for (let i = cn.to; i >= cn.from; i -= 2) { const k = ((i % N) + N) % N, w = large(i); gravel.lineTo(xs[k] - nx[k] * (track.hwR[k] + w), ys[k] - ny[k] * (track.hwR[k] + w)); }
+      // le bac n'existe qu'à l'extérieur du virage : chaque bord a donc sa propre largeur, et
+      // celle du bord intérieur est nulle — le contour y longe simplement le bitume
+      for (let i = cn.from; i <= cn.to; i += 2) { const k = ((i % N) + N) % N, w = track.largeurBac(k, 1), p = [xs[k] + nx[k] * (track.hwL[k] + w), ys[k] + ny[k] * (track.hwL[k] + w)]; if (i === cn.from) gravel.moveTo(p[0], p[1]); else gravel.lineTo(p[0], p[1]); }
+      for (let i = cn.to; i >= cn.from; i -= 2) { const k = ((i % N) + N) % N, w = track.largeurBac(k, -1); gravel.lineTo(xs[k] - nx[k] * (track.hwR[k] + w), ys[k] - ny[k] * (track.hwR[k] + w)); }
       gravel.closePath();
       return { left: l, right: r, gravel, kerbs, kerbEdge, kerbOmbre, kerbHaut, kerbFlanc, bbox: { minX: minX - 30, minY: minY - 30, maxX: maxX + 30, maxY: maxY + 30 } };
     });
