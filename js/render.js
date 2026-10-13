@@ -2162,15 +2162,19 @@ class Renderer {
          s'appuie en son milieu ; un conifère dessiné en gouttelette s'appuie sur sa base, en bas
          du fichier. Centrer les deux pareil plantait les sapins un demi-sprite trop bas, et leur
          ombre, cuite sous la base, se retrouvait au milieu du voisin. */
+      /* L'ancre a DEUX coordonnées. Pour une couronne, le milieu horizontal suffit ; pour une
+         glissière oblique, dont le rail traverse sa boîte en diagonale, le point d'appui n'est pas
+         au milieu en largeur non plus, et le négliger décale la section le long de la route. */
+      const gauche = dx - wpx * (a.ancX == null ? 0.5 : a.ancX);
       const haut = dy - hpx * (a.anc == null ? 0.5 : a.anc);
       const toile = (a.tons && a.tons[p.ton]) || a.canvas;
       if (p.rot) {
         const c = Math.cos(p.rot), si = Math.sin(p.rot);
         g.setTransform(c, si, -si, c, dx, dy);
-        g.drawImage(toile, -wpx / 2, haut - dy, wpx, hpx);
+        g.drawImage(toile, gauche - dx, haut - dy, wpx, hpx);
         g.setTransform(1, 0, 0, 1, 0, 0);
       } else {
-        g.drawImage(toile, dx - wpx / 2, haut, wpx, hpx);
+        g.drawImage(toile, gauche, haut, wpx, hpx);
       }
     }
     g.setTransform(m);

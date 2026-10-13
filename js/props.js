@@ -244,27 +244,15 @@ const KINDS_DESSINES = [
 /* Les images, chargées une fois. Tant qu'elles ne sont pas là, `buildTopArt` retombe sur les
    objets peints : une course qui démarre pendant le chargement montre un décor peint plutôt
    qu'un décor vide, et `aPeint` dira plus tard de refaire la cuisson. */
-/* LES GLISSIÈRES EN TRENTE-DEUX ORIENTATIONS, et ce n'est pas un luxe.
-
-   Une tuile unique qu'on fait pivoter fait pivoter sa LUMIÈRE avec elle : le reflet sur le rail
-   partait vers le haut dans un sens et vers le bas dans l'autre, et c'est exactement ce qu'on
-   avait reproché aux arbres. Un décor dessiné n'a qu'un soleil. Trente-deux dessins, un tous les
-   onze degrés et quart, règlent la question : chacun est posé sans rotation, donc chacun garde la
-   lumière qu'on lui a peinte.
-
-   Elles remplacent aussi les longues tuiles de quatorze mètres : une section se pose tous les
-   quelques mètres, comme une vraie glissière se boulonne poteau par poteau, et le pas court suit
-   la courbure sans laisser de jour. */
 /* LE MUR DE PNEUS, et pourquoi il se pose un pneu à la fois.
 
-   Vu de dessus, UN PNEU EST ROND : il n'a pas d'orientation, donc aucune lumière à faire pivoter
-   et aucune planche de trente-deux angles à prévoir. C'est le seul objet du mobilier qu'on peut
-   semer librement. Les murs tout faits de la planche sont des tuiles droites ou des arcs de rayon
-   fixe ; posés un par un, les mêmes pneus épousent n'importe quelle courbure.
+   Vu de dessus, UN PNEU EST ROND : il n'a pas d'orientation, donc aucune lumière à faire pivoter et
+   aucune planche d'angles à prévoir. C'est le seul objet du mobilier qu'on peut semer librement, et
+   c'est ce qui lui permet d'épouser n'importe quelle courbure là où les murs tout faits de la
+   planche sont des tuiles droites ou des arcs de rayon fixe.
 
-   Ils bordent le GRAVIER, pas la piste : c'est là qu'ils servent, et c'est pour ça que leur
-   position se déduit de `largeurBac` plutôt que d'un recul à eux — agrandir le bac les emmène
-   avec lui, sans qu'on ait à y penser. */
+   Il borde le GRAVIER et non la piste — c'est là qu'il sert — donc sa position se déduit de la
+   largeur du bac : l'agrandir l'emmène avec lui. */
 const PNEUS = ['art/decor/pneu-1.webp', 'art/decor/pneu-2.webp',
   'art/decor/pneu-3.webp', 'art/decor/pneu-4.webp'];
 /* UN MUR DE PNEUS N'EST PAS UN PNEU. Posés à leur taille réelle — soixante-dix centimètres — ils
@@ -272,17 +260,32 @@ const PNEUS = ['art/decor/pneu-1.webp', 'art/decor/pneu-2.webp',
    plusieurs pneus liés, et c'est cet objet-là que la planche dessine : deux mètres de côté. */
 const PNEU_M = 2.1;
 
-const RAILS = [];
-for (let i = 0; i < 32; i++) RAILS.push('art/decor/rail/r' + String(i).padStart(2, '0') + '.webp');
-/* L'ÉCHELLE EST EN PIXELS PAR MÈTRE, PAS EN MÈTRES PAR DESSIN. Les trente-deux dessins montrent
-   la MÊME glissière sous trente-deux angles : sa boîte est large et basse à zéro degré, étroite et
-   haute à quatre-vingt-dix. Leur donner à tous la même largeur en mètres étirait la glissière de
-   moitié aux angles obliques. On fixe donc la définition — vingt-cinq pixels et demi par mètre,
-   choisie pour qu'une section à plat fasse sept mètres — et chaque dessin prend la largeur que sa
-   propre boîte lui donne. */
-const RAIL_PPM = 25.6;
+/* LA GLISSIÈRE : UN SEUL DESSIN, TOURNÉ — et c'est une planche qui a tranché, pas un goût.
+
+   La planche fournit trente-deux orientations, et l'idée était juste : un dessin posé sans rotation
+   garde la lumière qu'on lui a peinte, là qu'une tuile qu'on fait pivoter fait pivoter son reflet
+   avec elle. Sauf que ces trente-deux-là ne conviennent pas à CE jeu, et la mesure le dit sans
+   appel : en cherchant de quelle rotation il faut tourner le dessin à zéro degré pour retrouver
+   chacun des autres, on trouve que le libellé va de 0 à 90° pendant que l'image ne tourne, elle,
+   que de 0 à 30°. La planche est dessinée en TROIS QUARTS : la verticale y est écrasée par la
+   projection. Un jeu vu de dessus a besoin qu'une glissière longeant une route en biais soit en
+   biais ; aucun de ces dessins ne l'est assez.
+
+   Trois mesures ont échoué avant celle-là — l'axe des pixels, tiré par les poteaux ; la droite
+   joignant les deux poteaux, qui suppose de les reconnaître ; l'anneau d'essai, trop petit pour
+   qu'on y lise un écart de vingt degrés. La bonne question ne portait sur aucune de ces choses :
+   « de quelle rotation passe-t-on d'un dessin à l'autre » n'a pas besoin de savoir ce qu'est une
+   glissière, et c'est pour ça qu'elle a répondu.
+
+   On reprend donc UNE section — la plate, celle dont l'écrasement est nul — et on la tourne au cap
+   exact. L'orientation est alors juste par construction, et la jonction aussi, puisque toutes les
+   sections sont identiques et parfaitement alignées. Le reflet tourne avec le rail : sur une barre
+   métallique presque symétrique, ça ne se voit pas, là où sur une couronne d'arbre ça sautait aux
+   yeux. C'est l'échange, et il est du bon côté. */
+const RAIL_F = 'art/decor/rail/r00.webp';
+const RAIL_PPM = 21.4;       // cent cinquante pixels pour sept mètres
 const RAIL_LONG = 7.0;       // la longueur réelle d'une section, qui décide du pas de pose
-const RAIL_ANC = 0.76;       // son appui au sol : le bas du dessin, où est l'herbe
+const RAIL_ANC = [0.5496, 0.3745];   // le milieu du rail dans sa boîte, mesuré sur le dessin
 
 const ART_DESSINE = {};
 let decorCharge = 0, decorAttendu = 0;
@@ -294,7 +297,7 @@ let ART_GRAVIER = null;
 function chargeDecor(fini) {
   if (typeof Image === 'undefined') return;
   decorAttendu = KINDS_DESSINES.length + OMBRES_DESSIN.length + MOBILIER.length
-    + RAILS.length + PNEUS.length + 1;
+    + PNEUS.length + 2;
   const un = () => { if (++decorCharge === decorAttendu && fini) fini(); };
   for (const k of KINDS_DESSINES) {
     const img = new Image();
@@ -314,12 +317,12 @@ function chargeDecor(fini) {
     img.onerror = un;
     img.src = f;
   });
-  RAILS.forEach((f, i) => {
+  {
     const img = new Image();
-    img.onload = () => { ART_DESSINE['rail-' + i] = img; un(); };
+    img.onload = () => { ART_DESSINE.rail = img; un(); };
     img.onerror = un;
-    img.src = f;
-  });
+    img.src = RAIL_F;
+  }
   {
     const img = new Image();
     img.onload = () => { ART_GRAVIER = img; un(); };
@@ -757,12 +760,10 @@ function buildTopArt(pal) {
     art['pneu-' + i] = { canvas: img, wm: PNEU_M, cuite: true, anc: 0.5,
       hm: PNEU_M * (img.naturalHeight / img.naturalWidth) };
   }
-  for (let i = 0; i < RAILS.length; i++) {
-    const img = ART_DESSINE['rail-' + i];
-    if (!img) continue;
-    const wm = img.naturalWidth / RAIL_PPM;
-    art['rail-' + i] = { canvas: img, wm, cuite: true, anc: RAIL_ANC,
-      hm: img.naturalHeight / RAIL_PPM };
+  {
+    const img = ART_DESSINE.rail;
+    if (img) art.rail = { canvas: img, wm: img.naturalWidth / RAIL_PPM, cuite: true,
+      ancX: RAIL_ANC[0], anc: RAIL_ANC[1], hm: img.naturalHeight / RAIL_PPM };
   }
   for (const k of TOP_KINDS) {
     if (art[k.id]) continue;
@@ -1141,20 +1142,30 @@ function poseBarrieres(track, id) {
          le plus proche du cap, et on le pose tel quel : c'est ce qui garde une lumière unique sur
          tout le circuit. Un demi-tour sépare les deux côtés — le rail regarde la piste, donc il
          regarde à l'opposé selon qu'on est à gauche ou à droite du ruban. */
-      /* LE SENS DE ROTATION DE LA PLANCHE EST L'INVERSE DE CELUI DU CAP. Les angles d'une planche
-         se lisent dans le sens trigonométrique ; le cap d'une piste, lui, tourne dans le sens des
-         aiguilles parce que l'axe des ordonnées de la toile descend. Posées au cap tel quel, les
-         glissières se plantaient en travers de la piste — et d'autant plus que la piste tournait. */
-      const cap = -track.th[i] + (cote > 0 ? 0 : Math.PI);
-      const n = RAILS.length;
-      const idx = ((Math.round(cap / (2 * Math.PI) * n) % n) + n) % n;
+      /* LE CAP EXACT, pas le plus proche d'une liste. C'est tout l'intérêt de revenir à un seul
+         dessin : la glissière est parallèle à la route au degré près, sur toute sa longueur, et
+         deux sections voisines sont rigoureusement alignées. Un demi-tour sépare les deux côtés —
+         le rail regarde la piste, donc il regarde à l'opposé selon le bord. */
+      const cap = track.th[i] + (cote > 0 ? 0 : Math.PI);
       /* LE PAS EST BIEN PLUS COURT QUE LA SECTION, et c'est la géométrie du dessin qui l'impose.
          À zéro degré la glissière occupe toute la largeur de sa boîte ; à quarante-cinq elle la
          traverse en diagonale, donc ce qu'elle couvre LE LONG DE LA PISTE est bien moindre que la
          boîte. Poser au pas de la boîte laissait un jour sur deux tronçons obliques sur trois. On
          recouvre donc franchement : deux glissières superposées font une glissière, un trou entre
          deux n'en fait pas. */
-      const pas = RAIL_LONG * (enVirage[i] ? 0.5 : 0.62);
+      /* LE PAS VAUT PRESQUE LA SECTION. Avec des dessins à la même échelle, la glissière mesure
+         sept mètres quel que soit son angle : il suffit de poser la suivante juste avant la fin de
+         la précédente. Le recouvrement franc d'avant servait à masquer des sections de tailles
+         inégales — un symptôme, pas une solution. */
+      /* LE PAS SE RÈGLE SUR LE RAIL, PAS SUR LA BOÎTE. La boîte du dessin comprend la bande
+         d'herbe, qui dépasse aux deux bouts : le métal n'occupe que les quatre cinquièmes. Un pas
+         calé sur la boîte laissait donc un jour à chaque jonction, assez petit pour qu'on ne voie
+         pas d'où il venait et assez régulier pour qu'on le voie partout. */
+      /* LE PAS SE RÈGLE SUR LE MÉTAL, PAS SUR LA BOÎTE. La boîte comprend la bande d'herbe, qui
+         dépasse aux deux bouts : le rail n'occupe que les quatre cinquièmes. Et en virage, deux
+         sections droites posées bout à bout le long d'un arc laissent un coin de vide à
+         l'extérieur — la corde est plus courte que l'arc. */
+      const pas = RAIL_LONG * (enVirage[i] ? 0.62 : 0.76);
       const hw = cote > 0 ? track.hwL[i] : track.hwR[i];
       const lat = (hw + recul[i]) * cote;
       const x = track.xs[i] + track.nx[i] * lat, y = track.ys[i] + track.ny[i] * lat;
@@ -1174,7 +1185,7 @@ function poseBarrieres(track, id) {
         const dx = x - track.xs[j], dy = y - track.ys[j];
         if (dx * dx + dy * dy < (track.halfWidth + 5) * (track.halfWidth + 5)) dehors = false;
       }
-      if (dehors) out.push({ x, y, id: 'rail-' + idx, ech: 1, ton: 0, om: 0, rot: 0 });
+      if (dehors) out.push({ x, y, id: 'rail', ech: 1, ton: 0, om: 0, rot: cap });
       s += pas;
     }
   }
