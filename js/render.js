@@ -97,7 +97,12 @@ const THEME_DEFS = {
     patches: 0.55,
     grass: '#95b240', grassLight: '#a4c049', grassDark: '#79a045',
     earth: '#8d7a56', earthDark: '#7c6a49',
-    gravel: '#d5a96f', gravelDark: '#c0945d',
+    /* LE BAC A LA CLARTÉ DE LA ROUTE, et c'est ce qui manquait le plus. Relevé sur l'image :
+       #f7ddb0 pour le sable contre #f7dbaa pour le bitume — le même ton à un cheveu près. Ce qui
+       sépare les deux n'est pas la couleur mais le vibreur entre eux et le grain du sable. Le mien
+       était un brun à 0,64 de luminance contre 0,85 pour la route : une tache de boue au bord de
+       la piste. */
+    gravel: '#f4d8a6', gravelDark: '#e6c892',
     canopy: ['#2f6b34', '#3a7f3e', '#25562b'], pine: ['#23503f', '#2b6250'],
     props: { pine: 3, tree: 1.4, bales: 0, palm: 0 },
     densite: 11, serre: 0.40, lisiere: 0.18, profond: 3.2,
@@ -1592,7 +1597,10 @@ class Renderer {
         if (!inView(cn.bbox)) continue;
         g.fillStyle = PAL.gravel; g.fill(cn.gravel);
         if (this.gravierMotif) {
-          g.save(); g.globalAlpha = 0.9; g.fillStyle = this.gravierMotif; g.fill(cn.gravel); g.restore();
+          /* À pleine opacité, la texture remplaçait la couleur du thème et ramenait le brun de la
+             planche. Posée au tiers, elle ne donne plus que le GRAIN — les gravillons et les traces
+             de ratissage — et la clarté reste celle qu'on a choisie. */
+          g.save(); g.globalAlpha = 0.34; g.fillStyle = this.gravierMotif; g.fill(cn.gravel); g.restore();
         }
       }
       // Seuls les tronçons en vue : la caméra montre une cinquantaine de mètres d'un circuit qui

@@ -253,12 +253,18 @@ const KINDS_DESSINES = [
 
    Il borde le GRAVIER et non la piste — c'est là qu'il sert — donc sa position se déduit de la
    largeur du bac : l'agrandir l'emmène avec lui. */
+/* CEUX-LÀ SONT DESSINÉS, PAS DÉCOUPÉS — et c'est la seule pièce du décor dont je me permets de
+   le dire. La planche en contenait, mais vus de trois quarts et collés les uns aux autres : chaque
+   découpe emportait un morceau noir de sa voisine, et le mur se lisait comme une file de grumeaux.
+   Un anneau n'a ni style ni orientation à retrouver, donc rien ne se perd à le redessiner — voir
+   `tools/pneus.py`, qui relève sa structure sur l'image de référence. */
 const PNEUS = ['art/decor/pneu-1.webp', 'art/decor/pneu-2.webp',
   'art/decor/pneu-3.webp', 'art/decor/pneu-4.webp'];
-/* UN MUR DE PNEUS N'EST PAS UN PNEU. Posés à leur taille réelle — soixante-dix centimètres — ils
-   se lisaient comme une rangée de points noirs. Ce qu'on borde un circuit avec, c'est une pile de
-   plusieurs pneus liés, et c'est cet objet-là que la planche dessine : deux mètres de côté. */
-const PNEU_M = 2.1;
+/* UN PNEU FAIT LA TAILLE D'UN BLOC DE VIBREUR, et pas plus. Je les avais grossis à deux mètres
+   parce qu'à leur taille réelle ils se lisaient comme des points — mais c'était le symptôme d'autre
+   chose : ils étaient trop ESPACÉS. Sur l'image de référence, les pneus se touchent et forment une
+   chaîne continue, et c'est la chaîne qu'on voit, pas le pneu. */
+const PNEU_M = 1.5;
 
 /* LA GLISSIÈRE : UN SEUL DESSIN, TOURNÉ — et c'est une planche qui a tranché, pas un goût.
 
@@ -1114,7 +1120,10 @@ function poseBarrieres(track, id) {
   const enVirage = new Uint8Array(N);
   for (const cn of track.corners) for (let i = cn.from; i <= cn.to; i++) enVirage[((i % N) + N) % N] = 1;
   const brut = new Float32Array(N);
-  for (let i = 0; i < N; i++) brut[i] = enVirage[i] ? track.largeurBac(i) + 4.5 : 7.5;
+  /* La glissière passe JUSTE DERRIÈRE le mur de pneus — deux mètres, l'épaisseur d'une bande
+     d'herbe. Quatre mètres et demi laissaient entre les deux un couloir vide qui n'existe sur
+     aucun circuit et qui séparait visuellement le mur de ce qu'il protège. */
+  for (let i = 0; i < N; i++) brut[i] = enVirage[i] ? track.largeurBac(i) + 2.6 : 7.5;
   const F = Math.max(1, Math.round(30 / track.ds));         // demi-fenêtre : trente mètres
   const recul = new Float32Array(N);
   for (let i = 0; i < N; i++) {
@@ -1142,11 +1151,16 @@ function poseBarrieres(track, id) {
          le plus proche du cap, et on le pose tel quel : c'est ce qui garde une lumière unique sur
          tout le circuit. Un demi-tour sépare les deux côtés — le rail regarde la piste, donc il
          regarde à l'opposé selon qu'on est à gauche ou à droite du ruban. */
-      /* LE CAP EXACT, pas le plus proche d'une liste. C'est tout l'intérêt de revenir à un seul
+      /* LE CAP EXACT, ET LE MÊME DES DEUX CÔTÉS. C'est tout l'intérêt de revenir à un seul
          dessin : la glissière est parallèle à la route au degré près, sur toute sa longueur, et
-         deux sections voisines sont rigoureusement alignées. Un demi-tour sépare les deux côtés —
-         le rail regarde la piste, donc il regarde à l'opposé selon le bord. */
-      const cap = track.th[i] + (cote > 0 ? 0 : Math.PI);
+         deux sections voisines sont rigoureusement alignées.
+
+         On ne retourne PLUS la section du côté opposé. Le demi-tour voulait que le rail regarde la
+         piste des deux bords, ce qui est vrai d'une vraie glissière ; mais il retourne aussi la
+         lumière, et une barrière éclairée par en dessous se remarque plus qu'une barrière dont le
+         rail est du mauvais côté. Les deux bords ont donc la même orientation, comme sur l'image
+         de référence. */
+      const cap = track.th[i];
       /* LE PAS EST BIEN PLUS COURT QUE LA SECTION, et c'est la géométrie du dessin qui l'impose.
          À zéro degré la glissière occupe toute la largeur de sa boîte ; à quarante-cinq elle la
          traverse en diagonale, donc ce qu'elle couvre LE LONG DE LA PISTE est bien moindre que la
@@ -1211,17 +1225,37 @@ function posePneus(track, id) {
      sur l'axe écartait donc les pneus d'autant, et le mur se clairsemait exactement là où il sert
      le plus. On avance par petits incréments et on pose quand on s'est VRAIMENT éloigné du
      précédent. */
-  const ECART = PNEU_M * 0.72;
+  /* Relevé sur l'image : le pas vaut 1,25 m pour un pneu de 1,50 — ils se recouvrent d'un bon
+     sixième, et les carcasses se fondent en une bande continue dont seuls les anneaux clairs
+     ressortent. C'est la CHAÎNE qu'on voit, pas le pneu. */
+  const ECART = PNEU_M * 0.83;      // 1,25 m pour un pneu de 1,50 : un sixième de recouvrement
   let k = 0;
   for (const cote of [1, -1]) {
     let px = null, py = null;
-    for (let s = 0; s < L; s += 0.4) {
+    /* ON INTERPOLE ENTRE LES NŒUDS, et c'est là qu'était le trou. La ligne médiane est
+       échantillonnée au mètre : en se contentant de `track.idx(s)`, tout pas plus fin retombait
+       sur le même nœud, et le mur ne pouvait pas être plus serré qu'un pneu par mètre d'AXE. Sur
+       l'extérieur d'un virage, et surtout là où la cloche du bac s'ouvre d'un bon mètre d'un nœud
+       au suivant, ce mètre d'axe devient trois mètres et demi au niveau du mur — un pneu sur
+       deux manquait exactement dans les montées. En évaluant le point du mur entre deux nœuds,
+       le pas redevient continu et c'est l'écart voulu qui décide partout.
+
+       Mesure : avant, le centile 99 des écarts valait 3,62 m pour un pneu de 1,50, et 44 écarts
+       dépassaient trois mètres. */
+    for (let s = 0; s < L; s += 0.1) {
       const i = track.idx(s);
-      const w = track.largeurBac(i);
+      const i2 = (i + 1) % N2, u = (s - i * track.ds) / track.ds;
+      const w = track.largeurBac(i) * (1 - u) + track.largeurBac(i2) * u;
       if (w < MINI) { px = null; continue; }    // le mur s'interrompt, on repart à neuf
-      const hw = cote > 0 ? track.hwL[i] : track.hwR[i];
-      const lat = (hw + w + PNEU_M * 0.45) * cote;
-      const x = track.xs[i] + track.nx[i] * lat, y = track.ys[i] + track.ny[i] * lat;
+      const hwA = cote > 0 ? track.hwL[i] : track.hwR[i];
+      const hwB = cote > 0 ? track.hwL[i2] : track.hwR[i2];
+      const lat = (hwA * (1 - u) + hwB * u + w + PNEU_M * 0.45) * cote;
+      const cx = track.xs[i] * (1 - u) + track.xs[i2] * u;
+      const cy = track.ys[i] * (1 - u) + track.ys[i2] * u;
+      let nxv = track.nx[i] * (1 - u) + track.nx[i2] * u;
+      let nyv = track.ny[i] * (1 - u) + track.ny[i2] * u;
+      const nl = Math.hypot(nxv, nyv) || 1; nxv /= nl; nyv /= nl;
+      const x = cx + nxv * lat, y = cy + nyv * lat;
       if (px !== null && (x - px) * (x - px) + (y - py) * (y - py) < ECART * ECART) continue;
       /* À L'INTÉRIEUR D'UNE ÉPINGLE, le bord extérieur du bac traverse l'autre branche : le mur
          se retrouvait en travers du bitume. Même garde-fou que pour les glissières — on n'écarte
@@ -1230,7 +1264,11 @@ function posePneus(track, id) {
       let dehors = true;
       for (let j = 0; j < N2 && dehors; j += 2) {
         let e = Math.abs(j - i); if (e > N2 / 2) e = N2 - e;
-        if (e * track.ds < PNEU_M * 2) continue;
+        /* L'EXEMPTION LOCALE DOIT COUVRIR TOUT L'ARC QU'ON LONGE. À deux fois le diamètre d'un
+           pneu, elle ne couvrait que trois mètres : dans une épingle serrée, la ligne médiane
+           revient sous le mur bien avant ça, et le garde-fou rejetait les trois quarts des pneus
+           du virage — d'où une chaîne en pointillé exactement là où elle doit être pleine. */
+        if (e * track.ds < 30) continue;
         let dth = track.th[j] - track.th[i];
         while (dth > Math.PI) dth -= 2 * Math.PI;
         while (dth < -Math.PI) dth += 2 * Math.PI;
