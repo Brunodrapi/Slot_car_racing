@@ -36,7 +36,7 @@ const THEME_BASE = {
      qui voudrait du bitume sombre n'a qu'à reposer `asphalt` — tout le reste (l'encre des
      marquages, la ligne de rive, les bords du levier, le gravier, l'ombre portée) se redéduit
      tout seul de sa clarté. */
-  asphalt: '#fae3b8', asphaltLight: '#fdeccb',
+  asphalt: '#fde7bd', asphaltLight: '#fff1d2',
   outline: '#283138',
   edgeLine: '#eceaf0', centre: null,
   // Les deux bords de piste, teintés du côté du virage : froid dedans, chaud dehors, et ce sont les
@@ -67,6 +67,8 @@ const THEME_BASE = {
      les planches de référence (#55802b sur la sombre, #8dbd4e sur la claire). `bordureM` est sa
      largeur en mètres, de chaque côté. */
   bordure: null, bordureM: 3.4,
+  // la strie du bitume : la couleur de la route, en plus sombre et à peine posée
+  strie: 'rgba(146,112,58,0.15)',
   /* `densite` est la chance qu'un objet tombe à chaque pas et de chaque côté ; `serre` de quel droit
      deux couronnes se chevauchent (1 = jamais, le verger ; 0,45 = une masse). Un thème de forêt les
      pousse, un circuit de ville ou de parc garde ses abords dégagés : une piste bordée d'un mur
@@ -87,11 +89,15 @@ const THEME_DEFS = {
     rock: '#b9b4a6',
     props: { pine: 0.4, bales: 0.4, logs: 0.4 },
   },
-  // The Ardennes: damp, dark, coniferous.
+  /* Les Ardennes. Les verts sont relevés sur l'image de référence : un pré bien plus JAUNE et plus
+     SATURÉ que ce qu'on avait — #95b240 contre #5f8f52, soit vingt-cinq degrés de teinte et vingt
+     points de saturation d'écart. C'était la remarque, et elle portait d'abord là : un vert
+     grisâtre fait un décor d'hiver quelle que soit la qualité des arbres qu'on pose dessus. */
   forest: {
     patches: 0.55,
-    grass: '#5f8f52', grassLight: '#6a9a5c', grassDark: '#537f48',
+    grass: '#95b240', grassLight: '#a4c049', grassDark: '#79a045',
     earth: '#8d7a56', earthDark: '#7c6a49',
+    gravel: '#d5a96f', gravelDark: '#c0945d',
     canopy: ['#2f6b34', '#3a7f3e', '#25562b'], pine: ['#23503f', '#2b6250'],
     props: { pine: 3, tree: 1.4, bales: 0, palm: 0 },
     densite: 11, serre: 0.40, lisiere: 0.18, profond: 3.2,
@@ -263,8 +269,12 @@ function completeTheme(t) {
     if (t.edgeLine === THEME_BASE.edgeLine) t.edgeLine = '#8a8371';
     if (t.edgeBleu === THEME_BASE.edgeBleu) t.edgeBleu = '#2b86b8';
     if (t.edgeJaune === THEME_BASE.edgeJaune) t.edgeJaune = '#c2862a';
-    t.gravel = assombrir(t.gravel, 0.78, 0.30);
-    t.gravelDark = assombrir(t.gravelDark, 0.74, 0.30);
+    /* Le bac ne s'assombrit que si le thème n'a pas dit lui-même de quelle couleur il est. La
+       règle existe pour qu'un sable clair ne se confonde pas avec une route claire ; un thème qui
+       nomme son gravier a déjà réglé la question, et le lui réassombrir par-dessus donnait un gris
+       de boue à la place du tan relevé sur l'image. */
+    if (t.gravel === THEME_BASE.gravel) t.gravel = assombrir(t.gravel, 0.78, 0.30);
+    if (t.gravelDark === THEME_BASE.gravelDark) t.gravelDark = assombrir(t.gravelDark, 0.74, 0.30);
   }
   /* L'OMBRE DE FEUILLAGE PORTÉE SUR LA ROUTE. Relevée sur l'image cible : un bitume crème à
      #fae3b8 passe à #799eb7 sous les arbres — un bleu acier franc, pas un gris. Résolue en
@@ -507,7 +517,7 @@ class Renderer {
       // un dégradé radial qui s'éteint : pas de bord, donc pas de couture à la répétition
       const d = g.createRadialGradient(x, y, 0, x, y, r);
       d.addColorStop(0, col); d.addColorStop(1, 'rgba(0,0,0,0)');
-      g.globalAlpha = 0.26;
+      g.globalAlpha = 0.38;
       // la tache est peinte neuf fois, décalée d'une tuile dans chaque sens : ce qui déborde
       // d'un côté rentre de l'autre, et la tuile se raccorde avec elle-même
       for (const dx of [-T, 0, T]) for (const dy of [-T, 0, T]) {
@@ -872,7 +882,22 @@ class Renderer {
           if (i === a) cible.moveTo(q[0], q[1]); else cible.lineTo(q[0], q[1]);
         }
       }
-      chunks.push({ fill, left: lp, right: rp, mid: mp, edgeBleu: eBleu, edgeJaune: eJaune,
+      /* LES STRIES DU BITUME. Une route n'est jamais un aplat : elle garde les passes de la
+         finisseuse et les traces du passage, et ça court DANS LE SENS DE LA MARCHE. À peine
+         visibles, elles font plus pour la lecture de la vitesse que n'importe quel effet : ce sont
+         elles qui défilent. Cinq lignes posées en fraction de la demi-largeur, pour qu'elles
+         suivent la piste quand elle s'élargit plutôt que de sortir du bitume. */
+      const stries = new Path2D();
+      for (const f of [-0.82, -0.56, -0.28, 0.02, 0.3, 0.58, 0.84]) {
+        for (let i = a; i <= b; i += STEP) {
+          const k = ((i % N) + N) % N;
+          const hw = f > 0 ? track.hwL[k] : track.hwR[k];
+          const lat = hw * f;
+          const q = [xs[k] + nx[k] * lat, ys[k] + ny[k] * lat];
+          if (i === a) stries.moveTo(q[0], q[1]); else stries.lineTo(q[0], q[1]);
+        }
+      }
+      chunks.push({ fill, left: lp, right: rp, mid: mp, stries, edgeBleu: eBleu, edgeJaune: eJaune,
                     bbox: { minX: minX - 12, minY: minY - 12, maxX: maxX + 12, maxY: maxY + 12 } });
     }
 
@@ -1509,6 +1534,14 @@ class Renderer {
       for (const c of vus) { g.stroke(c.left); g.stroke(c.right); }
       g.fillStyle = PAL.asphalt;
       for (const c of vus) g.fill(c.fill);
+      // les stries, juste après l'aplat et avant tout le reste : elles sont DANS le bitume
+      g.save();
+      // « de très légères stries » : un trait fin et peu appuyé. Plus marquées, elles se lisaient
+      // comme des lignes de voie peintes sur la route plutôt que comme sa matière.
+      g.globalAlpha = 0.38; g.lineWidth = 0.38; g.lineCap = 'butt';
+      g.strokeStyle = PAL.strie || 'rgba(120,96,56,0.16)';
+      for (const c of vus) g.stroke(c.stries);
+      g.restore();
       // kerbs, laid over the road's dark outline so the band reads as one crisp edge
       g.save();
       g.lineJoin = 'miter'; g.lineCap = 'butt'; g.miterLimit = 3;

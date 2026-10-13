@@ -883,21 +883,36 @@ const ARBRES = ['arbre-1', 'arbre-2', 'arbre-3', 'arbre-4', 'arbre-5',
 const SAPINS = ['sapin-1', 'sapin-2', 'sapin-3', 'sapin-6', 'sapin-7', 'sapin-8'];
 const BUISSONS = ['buisson-1', 'buisson-2', 'buisson-3', 'buisson-4', 'buisson-5',
   'buisson-6', 'buisson-7', 'buisson-8', 'buisson-9', 'buisson-10'];
+/* LA BANDE ENTRE LA PISTE ET LES BARRIÈRES N'A NI ARBRE NI PIERRE.
+
+   C'est la zone de dégagement : on y envoie une voiture, les commissaires y marchent, et elle se
+   fauche. Un tronc ou un rocher à cet endroit dit qu'on ne peut pas y aller — ce qui est faux — et
+   cache en plus la glissière, qui est l'information vraie. De l'herbe, des fleurs, des arbustes
+   bas, rien d'autre.
+
+   La limite est le recul des barrières : sept mètres cinquante en ligne droite, treize et demi
+   derrière un bac, lissé entre les deux. On prend QUINZE mètres partout plutôt que de recalculer
+   ce profil ici — une seconde définition du même nombre finit toujours par diverger de la
+   première, et quinze mètres couvre le cas le plus large. */
+const HORS_BARRIERES = 15;
+
 const STRATES_ARDENNES = [
-  /* La canopée mêle feuillus et conifères, et les Ardennes penchent du côté des sapins — c'est
-     leur caractère. Les deux partagent la même strate parce qu'ils se disputent la même lumière :
-     les séparer aurait laissé pousser un sapin au milieu d'un hêtre. Les feuillus comptent double
-     dans le tirage, sinon les six conifères reviennent trop souvent pour neuf couronnes. */
-  { nom: 'canopee', kinds: ARBRES.concat(ARBRES, SAPINS), de: 10, a: 95, r: 9.5,
+  { nom: 'canopee', kinds: ARBRES.concat(ARBRES, SAPINS), de: HORS_BARRIERES, a: 95, r: 9.5,
     ech: [0.95, 1.35], couvre: 6.0 },
+  // le sous-bois, avec ses pierres, commence lui aussi derrière les barrières
   { nom: 'sous-bois', kinds: BUISSONS.concat(['sapin-4', 'sapin-5', 'sapin-9', 'rocher-1', 'rocher-3']),
-    de: 2.5, a: 72, r: 4.8, ech: [0.85, 1.25], couvre: 2.4 },
+    de: HORS_BARRIERES, a: 72, r: 4.8, ech: [0.85, 1.25], couvre: 2.4 },
+  // devant les barrières : des arbustes et rien qui pèse
+  { nom: 'abords', kinds: ['buisson-6', 'buisson-7', 'buisson-8', 'buisson-9', 'buisson-10',
+    'buisson-fleuri-jaune', 'buisson-fleuri-rouge', 'buisson-fleuri-vert'],
+    de: 2.5, a: HORS_BARRIERES - 2, r: 4.4, ech: [0.7, 1.0], couvre: 2.0 },
+  // l'herbe et les fleurs vont partout ; la souche, le rondin et les cailloux restent au bois
   { nom: 'couvre-sol', kinds: ['herbe-1', 'herbe-2', 'herbe-3', 'herbe-1', 'herbe-2',
     'fleurs-blanches', 'fleurs-jaunes', 'fleurs-rouges', 'fleurs-blanches2',
-    'buisson-fleuri-jaune', 'buisson-fleuri-rouge', 'buisson-fleuri-vert',
-    'buisson-mini-1', 'buisson-mini-2', 'buisson-mini-3', 'buisson-mini-4',
-    'caillou', 'rocher-2', 'souche', 'rondin', 'branche'],
-    de: 0.4, a: 20, r: 2.2, ech: [0.85, 1.25] },
+    'buisson-mini-1', 'buisson-mini-2', 'buisson-mini-3', 'buisson-mini-4'],
+    de: 0.4, a: 22, r: 2.2, ech: [0.85, 1.25] },
+  { nom: 'bois-mort', kinds: ['caillou', 'rocher-2', 'souche', 'rondin', 'branche'],
+    de: HORS_BARRIERES, a: 60, r: 7.0, ech: [0.85, 1.2] },
 ];
 
 /* UNE STRATE QUI NOMME UN SPRITE INEXISTANT NE SE VOIT PAS : le dessin saute l'objet et la forêt
