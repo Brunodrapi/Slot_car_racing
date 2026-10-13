@@ -547,7 +547,6 @@ class Renderer {
     La caméra inclinée est retirée, et ses vingt-cinq PNG avec elle : ils partaient au réseau à
     chaque course, y compris à plat où personne ne les regardait. */
     this.topArt = buildTopArt(PAL);
-    const N0 = track.n;
     /* L'herbe d'abord, les arbres ensuite : l'ordre de la liste est l'ordre du dessin, et une
        touffe doit passer SOUS l'arbre à côté duquel elle est tombée. */
     /* L'ORDRE DE LA LISTE EST L'ORDRE DU DESSIN, et on le trie PAR TAILLE : les touffes d'abord,
@@ -563,35 +562,6 @@ class Renderer {
       return (a ? a.wm : 1) * (p.ech || 1);
     };
     this.topProps.sort((a, b) => taille(a) - taille(b));
-    /* LES ARBRES QUI DÉBORDENT SUR LE BITUME, repérés une fois pour toutes.
-
-    Sur l'image cible, ce qui rend la route habitée n'est pas la forêt à côté : c'est l'ombre des
-    arbres QUI TOMBE DESSUS, par grandes taches bleu acier. On ne peut pas la peindre par-dessus
-    tout le décor — elle doit s'arrêter net au bord de la piste, comme une ombre vue de dessus
-    s'arrête sur ce qu'elle rencontre. Elle sera donc découpée à la forme de la route au moment du
-    dessin, et il ne reste ici qu'à savoir QUELS objets sont assez près pour y arriver : les
-    chercher à chaque image coûterait le prix d'un balayage du circuit soixante fois par seconde.
-
-    Le décalage est celui des ombres cuites dans les sprites — vers le bas-gauche. */
-    /* L'OMBRE TOMBE LOIN, parce que le soleil est bas. Au décalage d'un quart de couronne, une
-       canopée plantée à dix mètres du bord n'atteignait plus le bitume et la route redevenait une
-       bande propre. Un arbre de onze mètres projette ici son ombre à cinq mètres de son pied :
-       c'est ce que montre l'image de référence, et c'est aussi ce qui raccroche les deux. */
-    const DECAL_X = -0.42, DECAL_Y = 0.48;
-    this.ombresRoute = [];
-    for (const pr of this.topProps) {
-      const a = this.topArt[pr.id];
-      if (!a || a.wm * (pr.ech || 1) < 3.5) continue;   // une touffe ne porte pas jusqu'à la route
-      const wm = a.wm * (pr.ech || 1);
-      const r = wm * 0.46;
-      const ox = pr.x + wm * DECAL_X, oy = pr.y + wm * DECAL_Y;
-      let proche = false;
-      for (let i = 0; i < N0 && !proche; i += 4) {
-        const dx = ox - track.xs[i], dy = oy - track.ys[i];
-        if (dx * dx + dy * dy < (track.halfWidth + r) * (track.halfWidth + r)) proche = true;
-      }
-      if (proche) this.ombresRoute.push({ x: ox, y: oy, r });
-    }
     this.patches = placePatches(track, seed, PAL.patches);
     this.puddles = placePuddles(track, seed, track.puddles);
     this.water = placeWater(track, PAL.water);
@@ -956,12 +926,7 @@ class Renderer {
       return { surface, ligne, zone, garages, bbox: { minX: minX - 16, minY: minY - 16, maxX: maxX + 16, maxY: maxY + 16 } };
     })() : null;
 
-    /* Le ruban entier en UNE forme. Découper à l'écran demande un seul chemin : deux `clip`
-       successifs s'intersectent au lieu de s'additionner, et on n'aurait gardé que le chevauchement
-       de deux tronçons — c'est-à-dire rien. */
-    const ruban = new Path2D();
-    for (const c of chunks) ruban.addPath(c.fill);
-    this.paths = { center, mid, road, ruban, left, right, corners, bridges, passerelles, tunnels, lines, chunks, pit };
+    this.paths = { center, mid, road, left, right, corners, bridges, passerelles, tunnels, lines, chunks, pit };
     /* Ce que ce circuit-là doit encore recevoir, gardé pour qu'on puisse le DEMANDER.
 
     Les deux images étaient posées et oubliées : on ne retenait que la variable remplie à l'arrivée,
@@ -1518,7 +1483,6 @@ class Renderer {
       for (const c of vus) { g.stroke(c.left); g.stroke(c.right); }
       g.fillStyle = PAL.asphalt;
       for (const c of vus) g.fill(c.fill);
-      this._ombresSurRoute(g, vis);
       // kerbs, laid over the road's dark outline so the band reads as one crisp edge
       g.save();
       g.lineJoin = 'miter'; g.lineCap = 'butt'; g.miterLimit = 3;
@@ -1779,35 +1743,11 @@ class Renderer {
     }
   }
 
-  /* L'OMBRE DU FEUILLAGE TOMBE SUR LE BITUME, et s'arrête à son bord.
-
-  C'est ce qui, sur l'image cible, fait que la route traverse la forêt au lieu d'être posée à côté
-  d'elle : de grandes taches bleu acier débordent des arbres et se cassent net sur la piste. Une
-  route sans elles reste une bande propre qui ne doit rien à ce qui l'entoure.
-
-  Deux choses la rendent possible sans coûter cher. Les objets qui peuvent y arriver sont repérés
-  UNE FOIS au chargement — les chercher à chaque image reviendrait à balayer le circuit soixante
-  fois par seconde. Et le découpage se fait sur le ruban entier en une seule forme, parce que deux
-  `clip` successifs s'intersectent au lieu de s'additionner : découper tronçon par tronçon n'aurait
-  gardé que leur chevauchement, c'est-à-dire rien.
-
-  Les taches sont posées en `lighter`-non, en peinture simple et translucide : leur couleur est
-  résolue pour que le crème de la route arrive exactement au bleu relevé sur la cible. */
-  _ombresSurRoute(g, vis) {
-    const liste = this.ombresRoute;
-    if (!liste || !liste.length || !this.paths.ruban) return;
-    g.save();
-    g.clip(this.paths.ruban);
-    g.fillStyle = PAL.ombreRoute;
-    for (const o of liste) {
-      if (o.x < vis.minX - o.r || o.x > vis.maxX + o.r || o.y < vis.minY - o.r || o.y > vis.maxY + o.r) continue;
-      // une tache molle, pas un disque : une ombre de feuillage n'a pas de bord
-      g.beginPath();
-      g.ellipse(o.x, o.y, o.r, o.r * 0.88, 0, 0, Math.PI * 2);
-      g.fill();
-    }
-    g.restore();
-  }
+  /* (L'ancienne passe d'ombres peintes sur le bitume est retirée. Elle simulait, avec des taches
+  bleues découpées à la forme de la route, ce que les vraies ombres font maintenant d'elles-mêmes :
+  elles se dessinent après la route, donc elles tombent dessus sans qu'on ait à les y découper. Un
+  mécanisme de moins, et ce sont les mêmes ombres partout plutôt que deux dessins différents selon
+  qu'on est sur l'herbe ou sur le bitume.) */
 
   // The pace-note glyph: a straight stem that bends near its top, the way a rally co-driver's
   // chart draws it. How far it bends is the note — a 6 barely leans, a 1 folds well past square —
@@ -2046,6 +1986,33 @@ class Renderer {
     const m = g.getTransform();
     const zp = this.cam.zoom * this.dpr;
     g.setTransform(1, 0, 0, 1, 0, 0);
+    /* LES OMBRES D'ABORD, TOUTES, et ensuite la végétation. C'est tout l'intérêt de les avoir
+       séparées du sprite : une ombre cuite se dessine avec son arbre, donc par-dessus l'arbre
+       voisin déjà posé. Au sol, une ombre ne passe jamais devant ce qui la projette ni devant
+       personne — elle est dessous, par définition. Deux boucles plutôt qu'une, et le compte y est.
+
+       Translucides, donc deux couronnes voisines assombrissent un peu leur recouvrement : c'est
+       ce que fait un sous-bois, et à opacité pleine la forêt virait au bleu. */
+    if (ART_OMBRE.length) {
+      g.globalAlpha = 0.34;
+      for (const p of this.topProps || []) {
+        const a = art[p.id];
+        if (!a || a.cuite) continue;              // ceux qui portent déjà la leur
+        const ech = p.ech || 1, wm = a.wm * ech;
+        if (wm < 1.8) continue;                   // une herbe ne porte pas d'ombre lisible
+        const half = wm;
+        if (p.x < vis.minX - half || p.x > vis.maxX + half || p.y < vis.minY - half || p.y > vis.maxY + half) continue;
+        const om = ART_OMBRE[p.om % ART_OMBRE.length];
+        if (!om) continue;
+        // posée au pied, décalée vers le bas-gauche : le soleil est en haut à droite, comme la
+        // lumière peinte dans chaque couronne
+        const ox = p.x - wm * 0.30, oy = p.y + wm * 0.26;
+        const dx = m.a * ox + m.c * oy + m.e, dy = m.b * ox + m.d * oy + m.f;
+        const wp = wm * 0.98 * zp, hp = wp * (om.naturalHeight / om.naturalWidth);
+        g.drawImage(om, dx - wp / 2, dy - hp / 2, wp, hp);
+      }
+      g.globalAlpha = 1;
+    }
     for (const p of this.topProps || []) {
       const a = art[p.id];
       if (!a) continue;

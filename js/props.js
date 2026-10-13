@@ -115,7 +115,8 @@ function placeFrom(kinds, track, seed, density, clear, serre, lisiere, profond) 
          d'un côté différent est précisément ce qui se lisait comme du chaos. Les arbres n'ont
          qu'une orientation. Le champ reste, à zéro, pour que le dessin n'ait pas deux chemins. */
       out.push({ x, y, id: k.id, ech, rot: 0,
-        ton: Math.min(TONS - 1, Math.floor(rnd() * TONS)) });
+        ton: Math.min(TONS - 1, Math.floor(rnd() * TONS)),
+        om: Math.floor(rnd() * OMBRES_DESSIN.length) });
      }
     }
   }
@@ -148,46 +149,79 @@ seconde — c'était le réflexe, et ça donnait deux ombres décalées sous cha
 Le manifeste est en dur plutôt que lu dans `art/decor/vegetation.json` : une requête de moins, et
 surtout aucune course entre l'arrivée du manifeste et celle des images. Le fichier reste à côté des
 sprites, écrit par `tools/decoupe-sprites.py`, pour qu'on sache d'où ils viennent. */
+/* LES OMBRES SONT UNE COUCHE À PART, et ce n'est pas qu'une question de dessin.
+
+   Cuite dans le sprite, une ombre est AU-DESSUS des voisins : un arbre projette la sienne sur
+   l'arbre d'à côté au lieu de la poser au sol, et dans une forêt dense c'est la moitié des ombres
+   qui sont au mauvais endroit. Elle est aussi figée en taille, en position et en opacité.
+
+   Séparées, elles se dessinent toutes AVANT la végétation : elles passent donc sous tout, ce qui
+   est la seule place juste pour une ombre vue de dessus. Elles sont translucides, donc deux
+   couronnes voisines assombrissent un peu leur recouvrement, comme sur un vrai sous-bois.
+
+   Les rochers, les souches et les fleurs gardent la leur, cuite : ils sont gris-bleu, c'est-à-dire
+   exactement la couleur qu'on retire, et les découper proprement aurait mangé la pierre. `cuite`
+   dit au moteur de ne pas leur en ajouter une seconde. */
+const OMBRES_DESSIN = [
+  'art/decor/ombre-1.webp',
+  'art/decor/ombre-2.webp',
+  'art/decor/ombre-3.webp',
+  'art/decor/ombre-4.webp',
+  'art/decor/ombre-5.webp',
+  'art/decor/ombre-6.webp',
+  'art/decor/ombre-7.webp',
+];
+
 const KINDS_DESSINES = [
-  { famille: 'tree', id: 'arbre-1', f: 'art/decor/arbre-1.webp', wm: 11.0, anc: 0.56, weight: 6, near: 1, far: 24 },
-  { famille: 'tree', id: 'arbre-2', f: 'art/decor/arbre-2.webp', wm: 10.0, anc: 0.56, weight: 6, near: 1, far: 24 },
+  { famille: 'tree', id: 'arbre-1', f: 'art/decor/arbre-1.webp', wm: 11, anc: 0.56, weight: 6, near: 1, far: 24 },
+  { famille: 'tree', id: 'arbre-2', f: 'art/decor/arbre-2.webp', wm: 10, anc: 0.56, weight: 6, near: 1, far: 24 },
   { famille: 'tree', id: 'arbre-3', f: 'art/decor/arbre-3.webp', wm: 10.5, anc: 0.56, weight: 6, near: 1, far: 24 },
   { famille: 'tree', id: 'arbre-4', f: 'art/decor/arbre-4.webp', wm: 10.5, anc: 0.56, weight: 6, near: 1, far: 24 },
   { famille: 'tree', id: 'arbre-5', f: 'art/decor/arbre-5.webp', wm: 9.5, anc: 0.56, weight: 6, near: 1, far: 24 },
-  { famille: 'tree', id: 'arbre-6', f: 'art/decor/arbre-6.webp', wm: 10.0, anc: 0.56, weight: 6, near: 1, far: 24 },
+  { famille: 'tree', id: 'arbre-6', f: 'art/decor/arbre-6.webp', wm: 10, anc: 0.56, weight: 6, near: 1, far: 24 },
   { famille: 'tree', id: 'arbre-7', f: 'art/decor/arbre-7.webp', wm: 10.5, anc: 0.56, weight: 6, near: 1, far: 24 },
-  { famille: 'tree', id: 'arbre-8', f: 'art/decor/arbre-8.webp', wm: 10.0, anc: 0.56, weight: 6, near: 1, far: 24 },
-  { famille: 'pine', id: 'sapin-1', f: 'art/decor/sapin-1.webp', wm: 6.5, anc: 0.86, weight: 4, near: 1, far: 24 },
-  { famille: 'pine', id: 'sapin-2', f: 'art/decor/sapin-2.webp', wm: 6.0, anc: 0.86, weight: 4, near: 1, far: 24 },
-  { famille: 'pine', id: 'sapin-3', f: 'art/decor/sapin-3.webp', wm: 5.5, anc: 0.86, weight: 4, near: 1, far: 24 },
-  { famille: 'pine', id: 'sapin-4', f: 'art/decor/sapin-4.webp', wm: 3.6, anc: 0.86, weight: 4, near: 1, far: 24 },
+  { famille: 'tree', id: 'arbre-8', f: 'art/decor/arbre-8.webp', wm: 10, anc: 0.56, weight: 6, near: 1, far: 24 },
+  { famille: 'tree', id: 'arbre-9', f: 'art/decor/arbre-9.webp', wm: 10, anc: 0.56, weight: 6, near: 1, far: 24 },
+  { famille: 'pine', id: 'sapin-1', f: 'art/decor/sapin-1.webp', wm: 5.4, anc: 0.88, weight: 4, near: 1, far: 24 },
+  { famille: 'pine', id: 'sapin-2', f: 'art/decor/sapin-2.webp', wm: 5.6, anc: 0.88, weight: 4, near: 1, far: 24 },
+  { famille: 'pine', id: 'sapin-3', f: 'art/decor/sapin-3.webp', wm: 6.2, anc: 0.88, weight: 4, near: 1, far: 24 },
+  { famille: 'pine', id: 'sapin-4', f: 'art/decor/sapin-4.webp', wm: 4.4, anc: 0.88, weight: 4, near: 1, far: 24 },
+  { famille: 'pine', id: 'sapin-5', f: 'art/decor/sapin-5.webp', wm: 3.4, anc: 0.88, weight: 4, near: 1, far: 24 },
+  { famille: 'pine', id: 'sapin-6', f: 'art/decor/sapin-6.webp', wm: 5.0, anc: 0.88, weight: 4, near: 1, far: 24 },
+  { famille: 'pine', id: 'sapin-7', f: 'art/decor/sapin-7.webp', wm: 5.8, anc: 0.88, weight: 4, near: 1, far: 24 },
+  { famille: 'pine', id: 'sapin-8', f: 'art/decor/sapin-8.webp', wm: 5.6, anc: 0.88, weight: 4, near: 1, far: 24 },
+  { famille: 'pine', id: 'sapin-9', f: 'art/decor/sapin-9.webp', wm: 3.2, anc: 0.88, weight: 4, near: 1, far: 24 },
   { famille: 'bush', id: 'buisson-1', f: 'art/decor/buisson-1.webp', wm: 4.6, anc: 0.58, weight: 3, near: 1, far: 24 },
   { famille: 'bush', id: 'buisson-2', f: 'art/decor/buisson-2.webp', wm: 4.2, anc: 0.58, weight: 3, near: 1, far: 24 },
-  { famille: 'bush', id: 'buisson-3', f: 'art/decor/buisson-3.webp', wm: 4.4, anc: 0.58, weight: 3, near: 1, far: 24 },
+  { famille: 'bush', id: 'buisson-3', f: 'art/decor/buisson-3.webp', wm: 4.8, anc: 0.58, weight: 3, near: 1, far: 24 },
   { famille: 'bush', id: 'buisson-4', f: 'art/decor/buisson-4.webp', wm: 4.0, anc: 0.58, weight: 3, near: 1, far: 24 },
-  { famille: 'bush', id: 'buisson-5', f: 'art/decor/buisson-5.webp', wm: 5.2, anc: 0.58, weight: 3, near: 1, far: 24 },
-  { famille: 'bush', id: 'buisson-6', f: 'art/decor/buisson-6.webp', wm: 3.8, anc: 0.58, weight: 3, near: 1, far: 24 },
-  { famille: 'bush', id: 'buisson-7', f: 'art/decor/buisson-7.webp', wm: 3.6, anc: 0.58, weight: 3, near: 1, far: 24 },
-  { famille: 'bush', id: 'buisson-8', f: 'art/decor/buisson-8.webp', wm: 3.2, anc: 0.58, weight: 3, near: 1, far: 24 },
+  { famille: 'bush', id: 'buisson-5', f: 'art/decor/buisson-5.webp', wm: 5.0, anc: 0.58, weight: 3, near: 1, far: 24 },
+  { famille: 'bush', id: 'buisson-6', f: 'art/decor/buisson-6.webp', wm: 3.6, anc: 0.58, weight: 3, near: 1, far: 24 },
+  { famille: 'bush', id: 'buisson-7', f: 'art/decor/buisson-7.webp', wm: 3.8, anc: 0.58, weight: 3, near: 1, far: 24 },
+  { famille: 'bush', id: 'buisson-8', f: 'art/decor/buisson-8.webp', wm: 3.4, anc: 0.58, weight: 3, near: 1, far: 24 },
+  { famille: 'bush', id: 'buisson-9', f: 'art/decor/buisson-9.webp', wm: 3.0, anc: 0.58, weight: 3, near: 1, far: 24 },
+  { famille: 'bush', id: 'buisson-10', f: 'art/decor/buisson-10.webp', wm: 3.0, anc: 0.58, weight: 3, near: 1, far: 24 },
   { famille: 'bush', id: 'buisson-fleuri-jaune', f: 'art/decor/buisson-fleuri-jaune.webp', wm: 3.0, anc: 0.58, weight: 3, near: 1, far: 24 },
   { famille: 'bush', id: 'buisson-fleuri-rouge', f: 'art/decor/buisson-fleuri-rouge.webp', wm: 2.8, anc: 0.58, weight: 3, near: 1, far: 24 },
-  { famille: 'bush', id: 'buisson-fleuri-blanc', f: 'art/decor/buisson-fleuri-blanc.webp', wm: 2.4, anc: 0.58, weight: 3, near: 1, far: 24 },
-  { famille: 'bush', id: 'buisson-mini', f: 'art/decor/buisson-mini.webp', wm: 2.0, anc: 0.58, weight: 0, near: 1, far: 24 },
-  { famille: 'bush', id: 'buisson-mini2', f: 'art/decor/buisson-mini2.webp', wm: 1.7, anc: 0.58, weight: 0, near: 1, far: 24 },
-  { famille: 'rock', id: 'rocher-1', f: 'art/decor/rocher-1.webp', wm: 3.6, anc: 0.6, weight: 1.5, near: 1, far: 24 },
-  { famille: 'rock', id: 'rocher-2', f: 'art/decor/rocher-2.webp', wm: 2.6, anc: 0.6, weight: 1.5, near: 1, far: 24 },
-  { famille: 'rock', id: 'rocher-3', f: 'art/decor/rocher-3.webp', wm: 4.4, anc: 0.6, weight: 1.5, near: 1, far: 24 },
-  { famille: 'rock', id: 'caillou', f: 'art/decor/caillou.webp', wm: 1.6, anc: 0.6, weight: 0, near: 1, far: 24 },
-  { famille: 'logs', id: 'souche', f: 'art/decor/souche.webp', wm: 2.2, anc: 0.62, weight: 0, near: 1, far: 24 },
-  { famille: 'logs', id: 'rondin', f: 'art/decor/rondin.webp', wm: 3.0, anc: 0.6, weight: 0, near: 1, far: 24 },
-  { famille: 'logs', id: 'branche', f: 'art/decor/branche.webp', wm: 3.0, anc: 0.6, weight: 0, near: 1, far: 24 },
-  { famille: 'bush', id: 'herbe-1', f: 'art/decor/herbe-1.webp', wm: 1.6, anc: 0.7, weight: 0, near: 1, far: 24 },
-  { famille: 'bush', id: 'herbe-2', f: 'art/decor/herbe-2.webp', wm: 1.5, anc: 0.7, weight: 0, near: 1, far: 24 },
-  { famille: 'bush', id: 'herbe-3', f: 'art/decor/herbe-3.webp', wm: 1.5, anc: 0.7, weight: 0, near: 1, far: 24 },
-  { famille: 'bush', id: 'fleurs-blanches', f: 'art/decor/fleurs-blanches.webp', wm: 2.6, anc: 0.66, weight: 0, near: 1, far: 24 },
-  { famille: 'bush', id: 'fleurs-jaunes', f: 'art/decor/fleurs-jaunes.webp', wm: 2.4, anc: 0.66, weight: 0, near: 1, far: 24 },
-  { famille: 'bush', id: 'fleurs-rouges', f: 'art/decor/fleurs-rouges.webp', wm: 2.4, anc: 0.66, weight: 0, near: 1, far: 24 },
-  { famille: 'bush', id: 'fleurs-blanches2', f: 'art/decor/fleurs-blanches2.webp', wm: 2.4, anc: 0.66, weight: 0, near: 1, far: 24 },
+  { famille: 'bush', id: 'buisson-fleuri-vert', f: 'art/decor/buisson-fleuri-vert.webp', wm: 2.4, anc: 0.58, weight: 3, near: 1, far: 24 },
+  { famille: 'bush', id: 'buisson-mini-1', f: 'art/decor/buisson-mini-1.webp', wm: 2.2, anc: 0.58, weight: 0, near: 1, far: 24 },
+  { famille: 'bush', id: 'buisson-mini-2', f: 'art/decor/buisson-mini-2.webp', wm: 2.0, anc: 0.58, weight: 0, near: 1, far: 24 },
+  { famille: 'bush', id: 'buisson-mini-3', f: 'art/decor/buisson-mini-3.webp', wm: 1.9, anc: 0.58, weight: 0, near: 1, far: 24 },
+  { famille: 'bush', id: 'buisson-mini-4', f: 'art/decor/buisson-mini-4.webp', wm: 1.7, anc: 0.58, weight: 0, near: 1, far: 24 },
+  { famille: 'rock', id: 'rocher-1', f: 'art/decor/rocher-1.webp', wm: 3.6, anc: 0.62, cuite: 1, weight: 1.5, near: 1, far: 24 },
+  { famille: 'rock', id: 'rocher-2', f: 'art/decor/rocher-2.webp', wm: 2.6, anc: 0.62, cuite: 1, weight: 1.5, near: 1, far: 24 },
+  { famille: 'rock', id: 'rocher-3', f: 'art/decor/rocher-3.webp', wm: 4.4, anc: 0.62, cuite: 1, weight: 1.5, near: 1, far: 24 },
+  { famille: 'rock', id: 'caillou', f: 'art/decor/caillou.webp', wm: 1.6, anc: 0.62, cuite: 1, weight: 0, near: 1, far: 24 },
+  { famille: 'logs', id: 'souche', f: 'art/decor/souche.webp', wm: 2.2, anc: 0.64, cuite: 1, weight: 0, near: 1, far: 24 },
+  { famille: 'logs', id: 'rondin', f: 'art/decor/rondin.webp', wm: 3.0, anc: 0.62, cuite: 1, weight: 0, near: 1, far: 24 },
+  { famille: 'logs', id: 'branche', f: 'art/decor/branche.webp', wm: 3.0, anc: 0.62, cuite: 1, weight: 0, near: 1, far: 24 },
+  { famille: 'bush', id: 'herbe-1', f: 'art/decor/herbe-1.webp', wm: 1.6, anc: 0.72, cuite: 1, weight: 0, near: 1, far: 24 },
+  { famille: 'bush', id: 'herbe-2', f: 'art/decor/herbe-2.webp', wm: 1.5, anc: 0.72, cuite: 1, weight: 0, near: 1, far: 24 },
+  { famille: 'bush', id: 'herbe-3', f: 'art/decor/herbe-3.webp', wm: 1.5, anc: 0.72, cuite: 1, weight: 0, near: 1, far: 24 },
+  { famille: 'bush', id: 'fleurs-blanches', f: 'art/decor/fleurs-blanches.webp', wm: 2.6, anc: 0.68, cuite: 1, weight: 0, near: 1, far: 24 },
+  { famille: 'bush', id: 'fleurs-jaunes', f: 'art/decor/fleurs-jaunes.webp', wm: 2.4, anc: 0.68, cuite: 1, weight: 0, near: 1, far: 24 },
+  { famille: 'bush', id: 'fleurs-rouges', f: 'art/decor/fleurs-rouges.webp', wm: 2.4, anc: 0.68, cuite: 1, weight: 0, near: 1, far: 24 },
+  { famille: 'bush', id: 'fleurs-blanches2', f: 'art/decor/fleurs-blanches2.webp', wm: 2.4, anc: 0.68, cuite: 1, weight: 0, near: 1, far: 24 },
 ];
 
 /* Les images, chargées une fois. Tant qu'elles ne sont pas là, `buildTopArt` retombe sur les
@@ -195,15 +229,23 @@ const KINDS_DESSINES = [
    qu'un décor vide, et `aPeint` dira plus tard de refaire la cuisson. */
 const ART_DESSINE = {};
 let decorCharge = 0, decorAttendu = 0;
+const ART_OMBRE = [];
 function chargeDecor(fini) {
   if (typeof Image === 'undefined') return;
-  decorAttendu = KINDS_DESSINES.length;
+  decorAttendu = KINDS_DESSINES.length + OMBRES_DESSIN.length;
+  const un = () => { if (++decorCharge === decorAttendu && fini) fini(); };
   for (const k of KINDS_DESSINES) {
     const img = new Image();
-    img.onload = () => { ART_DESSINE[k.id] = img; if (++decorCharge === decorAttendu && fini) fini(); };
-    img.onerror = () => { if (++decorCharge === decorAttendu && fini) fini(); };
+    img.onload = () => { ART_DESSINE[k.id] = img; un(); };
+    img.onerror = un;
     img.src = k.f;
   }
+  OMBRES_DESSIN.forEach((f, i) => {
+    const img = new Image();
+    img.onload = () => { ART_OMBRE[i] = img; un(); };
+    img.onerror = un;
+    img.src = f;
+  });
 }
 const decorPret = () => decorAttendu > 0 && decorCharge >= decorAttendu;
 
@@ -614,7 +656,7 @@ function buildTopArt(pal) {
       g2.fillRect(0, 0, c.width, c.height);
       tons.push(c);
     }
-    art[k.id] = { canvas: img, tons, wm: k.wm, anc: k.anc == null ? 0.5 : k.anc,
+    art[k.id] = { canvas: img, tons, wm: k.wm, cuite: !!k.cuite, anc: k.anc == null ? 0.5 : k.anc,
       hm: k.wm * (img.naturalHeight / img.naturalWidth) };
   }
   for (const k of TOP_KINDS) {
@@ -685,8 +727,15 @@ function placeTopProps(track, id, density, weights, serre, lisiere, profond) {
    chose. Les deux passes se marchent un peu dessus — le second semeur ne connaît pas les objets du
    premier — et c'est voulu : une touffe d'herbe au pied d'un arbre est exactement ce que fait la
    planche de référence. Elle reste dessous, parce qu'elle est dessinée avant. */
-const AU_SOL = { touffe: 3, 'touffe-mini': 2, 'fleurs-jaunes': 1, 'fleurs-blanches': 1,
-  'fleurs-rouges': 1, caillou: 0.6, 'buisson-mini': 0.8, fleurs: 1 };
+/* Le couvre-sol de l'ANCIEN semeur, celui des onze circuits qu'on n'a pas encore repris. Les noms
+   suivent ceux des sprites, et c'est un piège : les avoir renommés sans toucher à cette liste
+   avait silencieusement vidé ces circuits de leur herbe, qui s'étaient retrouvés couverts de
+   fleurs et de cailloux — les seuls noms encore valides. Rien ne protestait. */
+const AU_SOL = { 'herbe-1': 3, 'herbe-2': 3, 'herbe-3': 2,
+  'fleurs-jaunes': 1, 'fleurs-blanches': 1, 'fleurs-rouges': 1, 'fleurs-blanches2': 1,
+  caillou: 0.6, 'buisson-mini-1': 0.8, 'buisson-mini-2': 0.8, 'buisson-mini-3': 0.6,
+  'buisson-mini-4': 0.6 };
+
 function placeGroundProps(track, id, density) {
   const source = decorPret() ? KINDS_DESSINES : TOP_KINDS;
   const petits = source.filter((k) => AU_SOL[k.id] != null)
@@ -800,25 +849,46 @@ function poissonRuban(L, d0, d1, r, rnd, K) {
 
    Les espacements sont donnés en mètres au sol : dix mètres entre deux grandes couronnes de neuf
    mètres, elles se touchent sans se confondre. */
-const ARBRES = ['arbre-1', 'arbre-2', 'arbre-3', 'arbre-4', 'arbre-5', 'arbre-6', 'arbre-7', 'arbre-8'];
-const SAPINS = ['sapin-1', 'sapin-2', 'sapin-3'];
+const ARBRES = ['arbre-1', 'arbre-2', 'arbre-3', 'arbre-4', 'arbre-5',
+  'arbre-6', 'arbre-7', 'arbre-8', 'arbre-9'];
+const SAPINS = ['sapin-1', 'sapin-2', 'sapin-3', 'sapin-6', 'sapin-7', 'sapin-8'];
+const BUISSONS = ['buisson-1', 'buisson-2', 'buisson-3', 'buisson-4', 'buisson-5',
+  'buisson-6', 'buisson-7', 'buisson-8', 'buisson-9', 'buisson-10'];
 const STRATES_ARDENNES = [
   /* La canopée mêle feuillus et conifères, et les Ardennes penchent du côté des sapins — c'est
      leur caractère. Les deux partagent la même strate parce qu'ils se disputent la même lumière :
-     les séparer aurait laissé pousser un sapin au milieu d'un hêtre. */
-  { nom: 'canopee', kinds: ARBRES.concat(ARBRES, SAPINS, SAPINS), de: 10, a: 95, r: 9.5,
+     les séparer aurait laissé pousser un sapin au milieu d'un hêtre. Les feuillus comptent double
+     dans le tirage, sinon les six conifères reviennent trop souvent pour neuf couronnes. */
+  { nom: 'canopee', kinds: ARBRES.concat(ARBRES, SAPINS), de: 10, a: 95, r: 9.5,
     ech: [0.95, 1.35], couvre: 6.0 },
-  { nom: 'sous-bois', kinds: ['buisson-1', 'buisson-2', 'buisson-3', 'buisson-4', 'buisson-5',
-    'buisson-6', 'buisson-7', 'buisson-8', 'sapin-4', 'rocher-1', 'rocher-3'],
+  { nom: 'sous-bois', kinds: BUISSONS.concat(['sapin-4', 'sapin-5', 'sapin-9', 'rocher-1', 'rocher-3']),
     de: 2.5, a: 72, r: 4.8, ech: [0.85, 1.25], couvre: 2.4 },
   { nom: 'couvre-sol', kinds: ['herbe-1', 'herbe-2', 'herbe-3', 'herbe-1', 'herbe-2',
     'fleurs-blanches', 'fleurs-jaunes', 'fleurs-rouges', 'fleurs-blanches2',
-    'buisson-fleuri-jaune', 'buisson-fleuri-rouge', 'buisson-fleuri-blanc',
-    'buisson-mini', 'buisson-mini2', 'caillou', 'rocher-2', 'souche', 'rondin', 'branche'],
+    'buisson-fleuri-jaune', 'buisson-fleuri-rouge', 'buisson-fleuri-vert',
+    'buisson-mini-1', 'buisson-mini-2', 'buisson-mini-3', 'buisson-mini-4',
+    'caillou', 'rocher-2', 'souche', 'rondin', 'branche'],
     de: 0.4, a: 20, r: 2.2, ech: [0.85, 1.25] },
 ];
 
+/* UNE STRATE QUI NOMME UN SPRITE INEXISTANT NE SE VOIT PAS : le dessin saute l'objet et la forêt
+   s'éclaircit sans que rien ne proteste. C'est arrivé en renommant les sprites, et c'est le genre
+   de panne qu'aucune image ne révèle — on croit que le semis est moins dense. On le dit donc à
+   voix haute, une fois, au premier semis. */
+function verifieStrates(strates) {
+  const connus = {};
+  for (const k of KINDS_DESSINES) connus[k.id] = 1;
+  const absents = [];
+  for (const st of strates) for (const k of st.kinds) if (!connus[k] && absents.indexOf(k) < 0) absents.push(k);
+  if (absents.length && typeof console !== 'undefined') {
+    console.warn('décor : sprites nommés par une strate mais absents — ' + absents.join(', '));
+  }
+  return absents;
+}
+
+let strates_verifiees = false;
 function semeStrates(track, id, strates) {
+  if (!strates_verifiees) { strates_verifiees = true; verifieStrates(strates); }
   const L = track.length, N = track.n, out = [];
   /* LE RUBAN SE REPLIE SUR LUI-MÊME, et (s, d) ne le sait pas.
 
@@ -862,7 +932,8 @@ function semeStrates(track, id, strates) {
         // la garde est celle de la strate elle-même : ce qu'elle s'interdit près de SON bord, elle
         // se l'interdit près de n'importe quel autre tronçon du tour
         if (!loinDeLaPiste(x, y, track.halfWidth + st.de * 0.85)) continue;
-        out.push({ x, y, id: k, ech, rot: 0, ton: Math.min(TONS - 1, Math.floor(rnd() * TONS)) });
+        out.push({ x, y, id: k, ech, rot: 0, ton: Math.min(TONS - 1, Math.floor(rnd() * TONS)),
+          om: Math.floor(rnd() * OMBRES_DESSIN.length) });
         if (st.couvre) poses.push({ s: p.s, d: p.d, cote, r: st.couvre * ech });
       }
     }

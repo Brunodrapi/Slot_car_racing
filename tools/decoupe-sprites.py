@@ -105,14 +105,69 @@ def composantes(obj, min_cote):
     return boites
 
 
+def sans_ombre(a, alpha, fond=None):
+    """Retire l'ombre portée CUITE DANS LE SPRITE, pour pouvoir la redessiner à part.
+
+    Une ombre cuite est au-dessus des voisins : un arbre projette alors la sienne SUR l'arbre d'à
+    côté au lieu de la poser au sol. Elle est aussi figée en position, en taille et en couleur. La
+    séparer rend les trois.
+
+    Elle se distingue sans ambiguïté sur cette planche : le feuillage vit entre 75° et 165° de
+    teinte avec une saturation forte, l'ombre est un bleu à 195-215° et à peine saturé. On coupe
+    donc en TEINTE ET SATURATION, pas en luminance — un vert d'ombre reste un vert, et le couper
+    en luminance aurait mangé le dessous des couronnes, qui est la moitié du volume.
+
+    Les pixels du bord entre les deux sont rendus progressivement transparents plutôt que d'un
+    coup : un seuil net laissait un liseré bleu d'un pixel tout autour du feuillage, qui se voit
+    d'autant plus que le sprite est petit à l'écran."""
+    import colorsys as _c
+    h, w = alpha.shape
+    rgb = a.astype(np.float32) / 255.0
+    mx = rgb.max(axis=2); mn = rgb.min(axis=2)
+    l = (mx + mn) / 2
+    d = mx - mn
+    sat = np.where(d == 0, 0, np.where(l > 0.5, d / np.maximum(1e-6, 2 - mx - mn), d / np.maximum(1e-6, mx + mn)))
+    r, g, b = rgb[:, :, 0], rgb[:, :, 1], rgb[:, :, 2]
+    hue = np.zeros_like(l)
+    m = d > 0
+    hr = ((g - b) / np.maximum(1e-6, d)) % 6
+    hg = (b - r) / np.maximum(1e-6, d) + 2
+    hb = (r - g) / np.maximum(1e-6, d) + 4
+    hue = np.where(mx == r, hr, np.where(mx == g, hg, hb)) * 60
+    hue = np.where(m, hue, 0)
+    bleu = (hue > 185) & (hue < 265)
+    # 0 au cœur de l'ombre, 1 dès que la saturation remonte dans le feuillage
+    garde = np.clip((sat - 0.26) / 0.16, 0, 1)
+    fac = np.where(bleu, garde, 1.0)
+    # LE LISERÉ. Entre l'ombre et le parchemin, le dessin passe par des pixels qui ne sont ni
+    # franchement bleus ni franchement fond : retirer l'ombre les laissait en halo pâle d'un
+    # pixel tout autour de la couronne, d'autant plus visible que le sprite est petit à l'écran.
+    # On les efface par un second critère, indépendant du premier : la distance à la couleur du
+    # parchemin.
+    if fond is not None:
+        d2 = np.sqrt(((a.astype(np.float32) - fond.astype(np.float32)) ** 2).sum(axis=2))
+        fac = fac * np.clip((d2 - 26) / 34, 0, 1)
+    out = (alpha.astype(np.float32) * fac).astype(np.uint8)
+    # ET UN PIXEL D'ÉROSION POUR FINIR. Les deux critères précédents visent le franc : ils ne
+    # peuvent rien pour le pixel unique où le feuillage, l'ombre et le parchemin se mélangent tous
+    # les trois, et il en reste un liseré. Le chercher par un troisième seuil, c'est continuer à
+    # régler des nombres contre un cas qui n'a pas de bonne réponse ; le retirer coûte un pixel de
+    # silhouette, invisible à la taille où l'objet se regarde.
+    plein = out > 160
+    return np.where(erode(plein, 1), out, 0).astype(np.uint8)
+
+
 def main():
     if len(sys.argv) < 3:
         print(__doc__); return 2
     src, dst = sys.argv[1], sys.argv[2]
     zone = None
+    coupe_ombre = False
     for a in sys.argv[3:]:
         if a.startswith('--zone'):
             zone = tuple(int(v) for v in a.split('=')[1].split(','))
+        if a == '--sans-ombre':
+            coupe_ombre = True
     im = Image.open(src).convert('RGB')
     if zone:
         im = im.crop(zone)
@@ -126,10 +181,18 @@ def main():
     obj = ~masque
     obj = erode(dilate(obj, FERME), FERME)    # on rebouche, puis on rend ce qu'on a pris
 
-    boites = composantes(obj, MIN_COTE)
+    alpha = (obj * 255).astype(np.uint8)
+    if coupe_ombre:
+        alpha = sans_ombre(a, alpha, fond)
+
+    # LES BOÎTES SE CALCULENT SUR CE QUI RESTE. Découpées sur la silhouette avec ombre, un sprite
+    # sans ombre garderait le cadre de son ombre et se retrouverait décentré dans son fichier —
+    # c'est-à-dire décalé au sol une fois posé dans le jeu.
+    boites = composantes((alpha > 40) if coupe_ombre else obj, MIN_COTE)
     boites.sort(key=lambda b: (b[1] // 40, b[0]))
     os.makedirs(dst, exist_ok=True)
-    rgba = np.dstack([a.astype(np.uint8), (obj * 255).astype(np.uint8)])
+    rgba = np.dstack([a.astype(np.uint8), alpha])
+
     plein = Image.fromarray(rgba, 'RGBA')
 
     fiches = []
