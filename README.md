@@ -3406,10 +3406,19 @@ Captures du thème GB sur téléphone :
 | --- | --- |
 | ![Menu Game Boy](docs/gameboy/menu-mobile.png) | ![Course Game Boy](docs/gameboy/course-mobile.png) |
 
-Les voitures utilisent un calque trois fois plus fin que le décor afin de conserver les fenêtres,
+Les voitures utilisent un calque à la densité native de l’écran (×3 sur un iPhone Retina),
+indépendant de la résolution du décor et du canvas principal, pour conserver les fenêtres,
 les livrées et les numéros. La palette reste limitée aux quatre verts ; le cadrage et la distance
 de visibilité des virages sont identiques au style classique. Les dessins du décor sont convertis
 séparément pour conserver leurs détails, sans modifier les fichiers d'origine.
 
 [Vue de Spa au format de la référence](docs/gameboy/course-spa-carree.png) ·
 [Vue de Spa sur téléphone](docs/gameboy/course-spa-mobile.png).
+
+La version GB sépare également les voitures du HUD : les cadres restent au-dessus des carrosseries.
+Seules les zones occupées par les voitures sont effacées et reconverties dans les quatre verts,
+y compris lorsque deux voitures se touchent. Les ponts conservent leur rôle de masque.
+
+`node tools/e2e-resolution.js /tmp/slot-resolution` vérifie l’identité pixel par pixel des voitures
+en résolution d’affichage ×1 et ×2, la rotation, l’absence de traces et le croisement de Suzuka.
+[Capture iPhone Retina](docs/gameboy/voitures-retina-iphone.png).

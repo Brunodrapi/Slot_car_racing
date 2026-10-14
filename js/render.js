@@ -329,6 +329,20 @@ class Renderer {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
+    this.carCanvas = document.createElement('canvas');
+    this.carCtx = this.carCanvas.getContext('2d', { willReadFrequently: true });
+    this.hudCanvas = document.createElement('canvas');
+    this.hudCtx = this.hudCanvas.getContext('2d');
+    this.carRects = [];
+    for (const layer of [this.carCanvas, this.hudCanvas]) {
+      layer.setAttribute('aria-hidden', 'true');
+      layer.style.cssText = 'position:fixed;inset:0;display:block;pointer-events:none;user-select:none;';
+    }
+    // Même ordre que le rendu initial : décor, voitures, HUD, puis menus DOM.
+    if (canvas.parentNode) {
+      canvas.after(this.carCanvas);
+      this.carCanvas.after(this.hudCanvas);
+    }
     /* La résolution s'adapte à ce que la machine tient.
 
     Mesuré : le coût d'une image est **exactement proportionnel au nombre de pixels** — 1,32 Mpx
@@ -416,6 +430,15 @@ class Renderer {
     this.canvas.height = Math.round(h * this.dpr);
     this.canvas.style.width = w + 'px';
     this.canvas.style.height = h + 'px';
+    this.nativeDpr = Math.max(1, window.devicePixelRatio || 1);
+    for (const [layer, scale] of [[this.carCanvas, this.nativeDpr], [this.hudCanvas, this.dpr]]) {
+      const width = Math.round(w * scale), height = Math.round(h * scale);
+      if (layer.width !== width || layer.height !== height) {
+        layer.width = width; layer.height = height;
+        if (layer === this.carCanvas) this.carRects = [];
+      }
+      layer.style.width = w + 'px'; layer.style.height = h + 'px';
+    }
     this._layoutHud();
   }
 
@@ -1605,53 +1628,75 @@ class Renderer {
       for (let i = 0; i < 256; i++) {
         lut[i] = pal[i < seuils[0] ? 0 : i < seuils[1] ? 1 : i < seuils[2] ? 2 : 3];
       }
-      const ctx = c.getContext('2d', { willReadFrequently: true });
-      /* TOUT TEXTE PREND UN CONTOUR SOMBRE. Sur quatre tons, un texte clair posé sur le bitume —
-         qui est le ton le plus clair — devient invisible : les deux tombent dans le même ton.
-         C'est ce qui arrivait aux libellés du levier dès qu'ils dépassaient de leur panneau, et
-         ça ne se corrige pas en déplaçant un panneau, parce que le cas se présente partout où un
-         texte croise une surface claire.
+      const makeContext = canvas => {
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        /* TOUT TEXTE PREND UN CONTOUR SOMBRE. Sur quatre tons, un texte clair posé sur le bitume —
+           qui est le ton le plus clair — devient invisible : les deux tombent dans le même ton.
+           C'est ce qui arrivait aux libellés du levier dès qu'ils dépassaient de leur panneau, et
+           ça ne se corrige pas en déplaçant un panneau, parce que le cas se présente partout où un
+           texte croise une surface claire.
 
-         On enveloppe donc `fillText` une fois pour toutes, sur NOTRE contexte et lui seul : un
-         tracé sombre d'abord, le remplissage ensuite. C'est aussi ce que faisaient les jeux de
-         la console, qui n'écrivaient jamais sans bordure. */
-      const vrai = ctx.fillText.bind(ctx);
-      ctx.fillText = function (t, x, y, m) {
-        const largeur = m === undefined ? ctx.measureText(t).width : m;
-        ctx.save();
-        if (document.fonts.check('8px "GB Pixel"')) {
-          const taille = +(ctx.font.match(/([\d.]+)px/) || [0, 12])[1];
-          ctx.font = `${Math.max(8 / k, taille * 0.75)}px "GB Pixel", monospace`;
-        }
-        ctx.fillStyle = '#ffffff';
-        ctx.lineWidth = 1.5; ctx.lineJoin = 'round'; ctx.miterLimit = 2;
-        ctx.strokeStyle = Renderer.GB_PAL[0];
-        ctx.strokeText(t, x, y, largeur);
-        vrai(t, x, y, largeur);
-        ctx.restore();
+           On enveloppe donc `fillText` une fois pour toutes, sur NOTRE contexte et lui seul : un
+           tracé sombre d'abord, le remplissage ensuite. C'est aussi ce que faisaient les jeux de
+           la console, qui n'écrivaient jamais sans bordure. */
+        const vrai = CanvasRenderingContext2D.prototype.fillText.bind(ctx);
+        ctx.fillText = function (t, x, y, m) {
+          const largeur = m === undefined ? ctx.measureText(t).width : m;
+          ctx.save();
+          if (document.fonts.check('8px "GB Pixel"')) {
+            const taille = +(ctx.font.match(/([\d.]+)px/) || [0, 12])[1];
+            ctx.font = `${Math.max(8 / k, taille * 0.75)}px "GB Pixel", monospace`;
+          }
+          ctx.fillStyle = '#ffffff';
+          ctx.lineWidth = 1.5; ctx.lineJoin = 'round'; ctx.miterLimit = 2;
+          ctx.strokeStyle = Renderer.GB_PAL[0];
+          ctx.strokeText(t, x, y, largeur);
+          vrai(t, x, y, largeur);
+          ctx.restore();
+        };
+        return ctx;
       };
-      const cars = document.createElement('canvas');
-      cars.width = l * 3; cars.height = h * 3;
-      this._gb = { canvas: c, ctx, lut, cars,
-        carCtx: cars.getContext('2d', { willReadFrequently: true }) };
+      const ctx = makeContext(c);
+      this.hudCanvas.width = l; this.hudCanvas.height = h;
+      const hudCtx = makeContext(this.hudCanvas);
+      this._gb = { canvas: c, ctx, lut, hudCtx, hudText: hudCtx.fillText,
+        cars: this.carCanvas, carCtx: this.carCtx };
     }
     return this._gb;
   }
 
   draw(race, ui) {
-    if (!this.gameboy) return this._dessine(race, ui);
+    this.carCtx.setTransform(1, 0, 0, 1, 0, 0);
+    for (const r of this.carRects) this.carCtx.clearRect(r.x, r.y, r.w, r.h);
+    this.carRects = [];
+    if (!this.gameboy) {
+      this.hudCtx.fillText = CanvasRenderingContext2D.prototype.fillText;
+      return this._dessine(race, ui);
+    }
     const gb = this._toileGB();
     const vrai = { ctx: this.ctx, canvas: this.canvas, w: this.w, h: this.h, dpr: this.dpr };
     /* La résolution est FIXE par définition : on neutralise l'adaptation, qui sinon ferait varier
        la taille des pixels d'une seconde à l'autre — ce qui est le contraire d'une Game Boy. */
-    gb.carCtx.setTransform(1, 0, 0, 1, 0, 0);
-    gb.carCtx.clearRect(0, 0, gb.cars.width, gb.cars.height);
+    if (this.hudCanvas.width !== gb.canvas.width || this.hudCanvas.height !== gb.canvas.height) {
+      this.hudCanvas.width = gb.canvas.width; this.hudCanvas.height = gb.canvas.height;
+    }
+    this.hudCtx.fillText = gb.hudText;
     gb.ctx.imageSmoothingEnabled = false;
     this.ctx = gb.ctx; this.canvas = gb.canvas;
     this.dpr = gb.canvas.width / this.w;     // `w` et `h` ne bougent pas : voir `_toileGB`
     try { this._dessine(race, ui, true); } finally { Object.assign(this, vrai); }
 
     const im = gb.ctx.getImageData(0, 0, gb.canvas.width, gb.canvas.height);
+    const hud = gb.hudCtx.getImageData(0, 0, gb.canvas.width, gb.canvas.height);
+    const hp = new Uint32Array(hud.data.buffer), hd = hud.data, back = im.data;
+    for (let i = 0, j = 0; i < hp.length; i++, j += 4) {
+      const alpha = hd[j + 3];
+      if (!alpha) { hp[i] = 0; continue; }
+      const front = hd[j] + 2 * hd[j + 1] + hd[j + 2];
+      const ground = back[j] + 2 * back[j + 1] + back[j + 2];
+      hp[i] = gb.lut[Math.min(255, Math.floor((front * alpha + ground * (255 - alpha)) / 1020))];
+    }
+    gb.hudCtx.putImageData(hud, 0, 0);
     const px = new Uint32Array(im.data.buffer), d = im.data, lut = gb.lut;
     for (let i = 0, j = 0; i < px.length; i++, j += 4) {
       // la clarté, au plus court : (r + 2v + b) / 4, à un décalage près
@@ -1664,15 +1709,16 @@ class Renderer {
     g.imageSmoothingEnabled = false;
     g.clearRect(0, 0, this.canvas.width, this.canvas.height);
     g.drawImage(gb.canvas, 0, 0, this.canvas.width, this.canvas.height);
-    // Les voitures gardent trois fois plus de pixels par axe que le décor.
-    // Alpha binaire : leur contour ne crée pas de cinquième couleur LCD.
-    const carImage = gb.carCtx.getImageData(0, 0, gb.cars.width, gb.cars.height);
-    const cd = carImage.data, cp = new Uint32Array(cd.buffer);
-    for (let i = 0, j = 0; i < cp.length; i++, j += 4) {
-      cp[i] = cd[j + 3] < 128 ? 0 : lut[(cd[j] + 2 * cd[j + 1] + cd[j + 2]) >> 2];
+    // Ne lire que les régions des voitures, sans traiter tout l'écran Retina.
+    this.carRects = this._mergeCarRects(this.carRects);
+    for (const r of this.carRects) {
+      const image = this.carCtx.getImageData(r.x, r.y, r.w, r.h);
+      const data = image.data, pixels = new Uint32Array(data.buffer);
+      for (let i = 0, j = 0; i < pixels.length; i++, j += 4) {
+        pixels[i] = data[j + 3] < 128 ? 0 : lut[(data[j] + 2 * data[j + 1] + data[j + 2]) >> 2];
+      }
+      this.carCtx.putImageData(image, r.x, r.y);
     }
-    gb.carCtx.putImageData(carImage, 0, 0);
-    g.drawImage(gb.cars, 0, 0, this.canvas.width, this.canvas.height);
     g.imageSmoothingEnabled = true;
   }
 
@@ -1962,8 +2008,15 @@ class Renderer {
     }
     g.restore();
 
-    if (this._gb) this._gb.hud = true;
-    try { this._drawHUD(g, race, ui); } finally { if (this._gb) this._gb.hud = false; }
+    const hud = this.hudCtx;
+    const hw = Math.round(this.w * this.dpr), hh = Math.round(this.h * this.dpr);
+    if (this.hudCanvas.width !== hw || this.hudCanvas.height !== hh) {
+      this.hudCanvas.width = hw; this.hudCanvas.height = hh;
+    }
+    hud.setTransform(1, 0, 0, 1, 0, 0);
+    hud.clearRect(0, 0, hw, hh);
+    hud.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    this._drawHUD(hud, race, ui);
   }
 
   // Optional braking guide (off by default): the ribbon ahead is coloured by the reference speed
@@ -2475,11 +2528,28 @@ class Renderer {
     return true;
   }
 
+  // Un pixel ne doit être quantifié qu'une fois, même quand deux voitures se touchent.
+  _mergeCarRects(rects) {
+    const merged = [];
+    for (const rect of rects) {
+      let r = { ...rect };
+      for (let i = 0; i < merged.length;) {
+        const b = merged[i];
+        if (r.x < b.x + b.w && b.x < r.x + r.w && r.y < b.y + b.h && b.y < r.y + r.h) {
+          const x = Math.min(r.x, b.x), y = Math.min(r.y, b.y);
+          r = { x, y, w: Math.max(r.x + r.w, b.x + b.w) - x, h: Math.max(r.y + r.h, b.y + b.h) - y };
+          merged.splice(i, 1); i = 0;
+        } else i++;
+      }
+      merged.push(r);
+    }
+    return merged;
+  }
+
   _cacheCarsGB(g, path) {
-    if (!this.gameboy || !this._gb || g !== this._gb.ctx) return;
-    const m = g.getTransform(), ctx = this._gb.carCtx;
+    const m = g.getTransform(), ctx = this.carCtx, scale = this.nativeDpr / this.dpr;
     ctx.save();
-    ctx.setTransform(m.a * 3, m.b * 3, m.c * 3, m.d * 3, m.e * 3, m.f * 3);
+    ctx.setTransform(m.a * scale, m.b * scale, m.c * scale, m.d * scale, m.e * scale, m.f * scale);
     ctx.globalCompositeOperation = 'destination-out';
     ctx.fill(path);
     ctx.restore();
@@ -2497,12 +2567,21 @@ class Renderer {
     if (!drawCarShadow(g, c, car.livree)) { g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width); }
     g.restore();
     const world = g;
-    if (this.gameboy && this._gb && g === this._gb.ctx) {
-      const m = g.getTransform();
-      g = this._gb.carCtx;
+    {
+      const m = g.getTransform(), scale = this.nativeDpr / this.dpr;
+      g = this.carCtx;
       g.save();
-      g.setTransform(m.a * 3, m.b * 3, m.c * 3, m.d * 3, m.e * 3, m.f * 3);
+      g.setTransform(m.a * scale, m.b * scale, m.c * scale, m.d * scale, m.e * scale, m.f * scale);
       g.imageSmoothingEnabled = true;
+      const art = topArt(c, car.livree), pose = g.getTransform();
+      const halfL = c.length / 2 + 0.3, halfW = (art ? topSize(c, art)[1] : c.width) / 2 + 0.3;
+      const corners = [[-halfL, -halfW], [-halfL, halfW], [halfL, -halfW], [halfL, halfW]];
+      const xs = corners.map(([x, y]) => pose.a * x + pose.c * y + pose.e);
+      const ys = corners.map(([x, y]) => pose.b * x + pose.d * y + pose.f);
+      const x0 = Math.max(0, Math.floor(Math.min(...xs)) - 2), y0 = Math.max(0, Math.floor(Math.min(...ys)) - 2);
+      const x1 = Math.min(this.carCanvas.width, Math.ceil(Math.max(...xs)) + 2);
+      const y1 = Math.min(this.carCanvas.height, Math.ceil(Math.max(...ys)) + 2);
+      if (x1 > x0 && y1 > y0) this.carRects.push({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
     }
     if (!this.gameboy || !this._drawCarGB(g, c, car.livree, car.number)) {
       drawCarModel(g, c, car.livery, { number: car.number, steer: car.steerAngle, livree: car.livree });
@@ -2541,10 +2620,6 @@ class Renderer {
       g.restore();
       g.fillStyle = Renderer.GB_PAL[0];
       g.beginPath(); g.rect(x, y, w, h);
-      if (this._gb && this._gb.hud) {
-        const panel = new Path2D(); panel.rect(x - bord, y - bord, w + 2 * bord, h + 2 * bord);
-        this._cacheCarsGB(g, panel);
-      }
       return;
     }
     g.beginPath();

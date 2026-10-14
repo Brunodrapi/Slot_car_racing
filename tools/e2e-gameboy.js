@@ -21,7 +21,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   try {
     browser = await chromium.launch();
     for (const [width, height] of [[390, 844], [1280, 720], [1254, 1254]]) {
-      const context = await browser.newContext({ locale: 'fr-FR', viewport: { width, height } });
+      const context = await browser.newContext({ locale: 'fr-FR', viewport: { width, height }, deviceScaleFactor: width < 700 ? 3 : 2 });
       const page = await context.newPage();
       const errors = [];
       page.on('pageerror', e => errors.push(e.message));
@@ -55,9 +55,15 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       await page.waitForFunction(() => app.race.time > 5 && app.race.player.v > 5);
       const palette = await page.evaluate(() => {
         const renderer = app.renderer;
-        const pixels = renderer.ctx.getImageData(0, 0, renderer.canvas.width, renderer.canvas.height).data;
         const colours = new Set();
-        for (let i = 0; i < pixels.length; i += 4) colours.add('#' + [...pixels.slice(i, i + 3)].map(v => v.toString(16).padStart(2, '0')).join(''));
+        for (const [canvas, ctx] of [[renderer.canvas, renderer.ctx], [renderer.carCanvas, renderer.carCtx], [renderer.hudCanvas, renderer.hudCtx]]) {
+          const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+          for (let i = 0; i < pixels.length; i += 4) {
+            if (!pixels[i + 3]) continue;
+            if (pixels[i + 3] !== 255) throw new Error('un pixel LCD partiellement transparent');
+            colours.add('#' + [...pixels.slice(i, i + 3)].map(v => v.toString(16).padStart(2, '0')).join(''));
+          }
+        }
         return [...colours].sort();
       });
       assert.deepEqual(palette, ['#112718', '#30472c', '#819a56', '#c6d384'].sort());
@@ -68,7 +74,7 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
         return { pixels: p.cls.length * r.cam.zoom * r._gb.cars.width / r.w,
           cached: sprite === r._artGB(art.img), numbered: art.gbNumbers.has(p.number) };
       });
-      assert.equal(await page.evaluate(() => app.renderer._gb.cars.width), 960);
+      assert.equal(await page.evaluate(() => app.renderer._gb.cars.width), width * (width < 700 ? 3 : 2));
       assert.ok(carDetail.pixels >= 24, `voiture trop petite : ${carDetail.pixels} pixels`);
       assert.ok(carDetail.cached && carDetail.numbered);
 
