@@ -213,6 +213,8 @@ class GameAudio {
     const v = Math.max(0, fin(car.v, 0));
     const vmax = cls.vmax || 80;
     const thr = !!car.throttle;
+    const spin = racing && car.state === 'ok' && !car.inPit
+      ? clamp(fin(car.patineFx, 0), 0, 1) : 0;
 
     if (this.catalogue && this.clsId !== cls.id) { this.clsId = cls.id; this._voiture(cls); }
 
@@ -229,7 +231,7 @@ class GameAudio {
       patine, donc le moteur idle et monte seul si le pilote maintient. Le modèle s'en charge, il
       n'y a aucun cas particulier à écrire — l'ancien moteur, lui, devait fabriquer ce coup de gaz
       à la main. */
-      this.vehicule.update(t * 1000, dt, racing ? v : 0, thr ? 1 : 0);
+      this.vehicule.update(t * 1000, dt, racing ? v : 0, thr ? 1 : 0, spin);
       this.sampler.applique(this.vehicule.engine);
       this.rpm = this.vehicule.engine.rpm;
       this.gear = this.vehicule.drivetrain.gear;
@@ -237,7 +239,9 @@ class GameAudio {
     }
 
     // pneus : la hauteur monte avec la vitesse, le volume avec le glissement
-    const sq = car.state === 'ok' ? Math.min(1, fin(car.slide, 0) * 1.7) : 0;
+    // La dérive et le patinage peuvent coexister sans doubler le volume maximal.
+    const lateral = clamp(fin(car.slide, 0) * 1.7, 0, 1);
+    const sq = racing && car.state === 'ok' && !car.inPit ? 1 - (1 - lateral) * (1 - spin * 0.85) : 0;
     this.sqGain.gain.setTargetAtTime(sq * sq * 0.3, t, 0.03);
     this.sq1.frequency.setTargetAtTime(1200 + v * 12 + sq * 500, t, 0.05);
     this.sq2.frequency.setTargetAtTime(600 + v * 5, t, 0.05);

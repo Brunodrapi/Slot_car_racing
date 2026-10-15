@@ -55,6 +55,7 @@ class App {
     this.chargeDes = null;
     this.state = 'splash';
     this.input = { throttle: false, sel: 0, pit: false };
+    this.throttlePulses = new ThrottlePulses();
     this.pointers = { throttle: null, slider: null, reglage: null };
     this.last = performance.now();
     this._bindInput();
@@ -172,8 +173,13 @@ class App {
 
   // ---------- input ----------
   _bindInput() {
-    const on = () => { this.input.throttle = true; this.audio.start(); this.audio.resume(); };
-    const off = () => { this.input.throttle = false; };
+    const poseGaz = value => {
+      this.input.throttle = value;
+      if (this.state === 'race') this.throttlePulses.push(performance.now(), value);
+      else this.throttlePulses.reset(value);
+    };
+    const on = () => { poseGaz(true); this.audio.start(); this.audio.resume(); };
+    const off = () => { poseGaz(false); };
     /* Une seule porte pour la position du levier, clavier comme doigt.
 
     `pit` n'est pas une quatrième ligne, c'est une intention : la course la lit séparément de
@@ -366,6 +372,7 @@ class App {
     this.renderer.homePouce();
     this.state = 'race';
     this.input.throttle = false;
+    this.throttlePulses.reset();
     this.input.sel = 0; this.input.pit = false;
     this.pointers.throttle = this.pointers.slider = null;
     this.ui.hide();
@@ -401,6 +408,7 @@ class App {
     if (this.state === 'race') {
       this.state = 'paused';
       this.input.throttle = false;
+      this.throttlePulses.reset();
       this.audio.idle();
       this.ui.pauseScreen(this.race);
     } else if (this.state === 'paused') this.resume();
@@ -409,6 +417,8 @@ class App {
   resume() {
     if (this.state !== 'paused') return;
     this.state = 'race';
+    this.input.throttle = false;
+    this.throttlePulses.reset();
     this.ui.hide();
     this.last = performance.now();
   }
@@ -571,9 +581,12 @@ class App {
         race.attente = false;
       }
       if (!online || net.isHost()) {
-        race.update(dt, this.input);
+        for (const pulse of this.throttlePulses.take(now - dt * 1000, now, this.input.throttle)) {
+          race.update(pulse.dt, { ...this.input, throttle: pulse.throttle });
+        }
         if (online) net.hostTick(race);
       } else {
+        this.throttlePulses.reset(this.input.throttle);
         // A guest runs no physics at all: it posts its two numbers, takes the host's picture of
         // the race, and carries the cars forward between two of them so the screen does not stutter.
         net.guestTick(race, this.input);

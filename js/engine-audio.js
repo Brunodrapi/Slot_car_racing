@@ -286,13 +286,22 @@ class EAVehicle {
     return eaRatio(this.rpmFor(v, Math.max(1, this.drivetrain.gear)), this.engine.idle * 0.55, this.engine.idle * 1.15);
   }
 
-  update(time, dt, v, throttle) {
+  update(time, dt, v, throttle, wheelspin = 0) {
     const e = this.engine, d = this.drivetrain;
     e.throttle = eaClamp(throttle, 0, 1);
 
     const vise = this.gearFor(v);
     if (d._passageA == null && d.gear !== vise && vise > 0) d.changeGear(vise, time);
     d.avance(time, e);
+    // Approximation sonore bornée : la roue peut tourner un peu plus vite que le châssis.
+    // La boîte choisit toujours son rapport sur v, pour éviter des passages fantômes.
+    // L'indice ne vient pas d'une simulation de roue : le supplément reste limité à 12 %,
+    // 4 m/s et au régime utile du rapport engagé, sans jamais modifier la vitesse du jeu.
+    // À très basse vitesse, l'embrayage gère déjà la montée à vide du moteur.
+    const spin = Number.isFinite(wheelspin) ? eaClamp(wheelspin, 0, 1) * e.throttle * eaRatio(v, 3, 8) : 0;
+    const rpmAtV = this.rpmFor(v, d.gear);
+    const reserve = rpmAtV > 0 ? Math.max(0, v * (e.limiter * 0.98 / rpmAtV - 1)) : 0;
+    const wheelV = v + Math.min(v * 0.12, 4, reserve) * spin;
     /* Pendant le passage, l'embrayage est DÉBRAYÉ. C'est ce qui fait qu'une montée en régime n'est
     pas une droite : le moteur est lâché pour la durée du passage, retombe sur son frein moteur, et
     le rapport suivant le rattrape plus bas. Ce trou est la moitié de ce qu'on entend d'une boîte. */
@@ -322,7 +331,7 @@ class EAVehicle {
       Sa place est ici, avec les autres vitesses, et après elles : une voiture porte mille fois
       l'inertie de son embrayage, donc c'est la roue qui a le dernier mot, pas le volant. */
       if (d.gear > 0) {
-        const cible = (v / this.wheel_radius) * d.totalRatio();
+        const cible = (wheelV / this.wheel_radius) * d.totalRatio();
         d.omega += (cible - d.omega) * Math.min(0.6, 120 * h);
       }
     }

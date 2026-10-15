@@ -354,7 +354,10 @@ class Race {
         Math.round(c.s * 100), Math.round(c.lat * 100), c.lap,
         Math.round(c.sel * 100), Math.round(c.selS * 100),
         (c.state === 'grass' ? 1 : 0) | (c.finished ? 2 : 0) | (c.throttle ? 4 : 0) | (c.braking ? 8 : 0)
-          | (c.lapSale ? 16 : 0),
+          | (c.lapSale ? 16 : 0)
+          // Les trois bits libres transportent l'effet de patinage sans agrandir le paquet.
+          // Les anciennes versions ignorent ces bits ; un ancien hôte donne un effet nul.
+          | (Math.round(clamp(c.patineFx || 0, 0, 1) * 7) << 5),
         Math.round((c.bestLap || 0) * 1000), Math.round((c.lapStart || 0) * 100),
         /* Les trois champs des sorties de piste, dans le BLOC LENT du codec.
 
@@ -412,6 +415,7 @@ class Race {
       c.finished = !!(f & 2);
       c.throttle = !!(f & 4);
       c.braking = !!(f & 8);
+      c.patineFx = ((f >>> 5) & 7) / 7;
       c.started = c.lap > 0 || c.started;
       c.lapSale = !!(f & 16);
       c.bestLap = snap[o + 12] ? snap[o + 12] / 1000 : c.bestLap;

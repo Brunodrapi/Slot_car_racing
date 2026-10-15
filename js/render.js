@@ -1445,37 +1445,30 @@ class Renderer {
       // other. `beta` is the angle between where the car points and where it is really going.
       const side = Math.sign(car.beta) || 1;
 
-      if (car.slide > 0.15 && car.state === 'ok' && car.v > 5) {
+      const rolling = race.state === 'racing' || race.state === 'finishing';
+      const onRoad = rolling && car.state === 'ok' && !car.inPit;
+      const spin = onRoad ? clamp(car.patineFx || 0, 0, 1) : 0;
+      const slip = onRoad ? 1 - (1 - clamp(car.slide, 0, 1)) * (1 - spin * 0.85) : 0;
+      const speed = Math.abs(car.v);
+      // Deux traces arrière : la teinte suit l'effort, même en patinage sans dérive.
+      // Sans déplacement, on ne superpose pas une trace sur place à chaque image.
+      if (slip > 0.08 && speed > 0.5) {
         for (const w of [-1, 1]) {
           const b = wheel(w);
-          this._layRubber(b[0], b[1], h, car.v * dt * 1.2 + 0.3, car.slide);
-        }
-        // Tyre smoke: round puffs thrown out behind the car, one or two a frame. A cartoon draws
-        // smoke as a handful of distinct balls, so they have to stay few enough to be told apart —
-        // past that they merge into one grey sheet and the car disappears into it.
-        const n = (Math.random() < 0.55 + car.slide * 0.6 ? 1 : 0) + (car.slide > 0.55 && Math.random() < 0.45 ? 1 : 0);
-        for (let i = 0; i < n; i++) {
-          const b = wheel(Math.random() < 0.5 ? -1 : 1);
-          this._puff(
-            b[0] - cs * 0.7 + (Math.random() - 0.5) * 1.1, b[1] - sn * 0.7 + (Math.random() - 0.5) * 1.1,
-            -cs * (1 + car.v * 0.1) - side * lx * (1 + Math.random() * 2) + (Math.random() - 0.5) * 1.2,
-            -sn * (1 + car.v * 0.1) - side * ly * (1 + Math.random() * 2) + (Math.random() - 0.5) * 1.2,
-            // sizes spread wide on purpose: a row of equal balls reads as a caterpillar, not smoke
-            0.38 + car.slide * 0.5 + Math.random() * 0.55, 0.6 + car.slide * 0.5, '222,222,226');
+          this._layRubber(b[0], b[1], h, speed * dt * 1.2 + 0.3, slip);
         }
       }
-      // Wheelspin. Flat out at low speed the rear tyres are asked for more than they can hold, and
-      // the smoke is the proof: thickest off the line, gone once the car is really moving.
-      if (car.throttle && car.state === 'ok' && car.v < c.vmax * 0.3) {
-        const spin = Math.max(0, 1 - car.v / (c.vmax * 0.3));
-        if (Math.random() < spin * 0.85) {
-          const b = wheel(Math.random() < 0.5 ? -1 : 1);
-          this._puff(
-            b[0] - cs * 0.8 + (Math.random() - 0.5) * 0.5, b[1] - sn * 0.8 + (Math.random() - 0.5) * 0.5,
-            -cs * (1.2 + Math.random() * 2) + (Math.random() - 0.5) * 1.6,
-            -sn * (1.2 + Math.random() * 2) + (Math.random() - 0.5) * 1.6,
-            0.4 + spin * 0.55 + Math.random() * 0.2, 0.5 + spin * 0.45, '228,226,230');
-        }
+      // Le patinage réel remplace l'ancienne fumée automatique à basse vitesse.
+      // Un débit par seconde garde la même densité lorsque le téléphone ralentit.
+      const expected = slip > 0.15 ? 24 * slip * slip * Math.min(dt, 0.1) : 0;
+      const count = Math.floor(expected) + (Math.random() < expected % 1 ? 1 : 0);
+      for (let i = 0; i < count; i++) {
+        const b = wheel(Math.random() < 0.5 ? -1 : 1);
+        this._puff(
+          b[0] - cs * 0.7 + (Math.random() - 0.5) * 0.7, b[1] - sn * 0.7 + (Math.random() - 0.5) * 0.7,
+          -cs * (1 + speed * 0.1) - side * lx * car.slide + (Math.random() - 0.5),
+          -sn * (1 + speed * 0.1) - side * ly * car.slide + (Math.random() - 0.5),
+          0.3 + slip * 0.4 + Math.random() * 0.3, 0.45 + slip * 0.4, '222,222,226');
       }
       if (car.state === 'grass') {
         for (let i = 0; i < 2; i++) this._puff(pos.x + (Math.random() - 0.5) * 3, pos.y + (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, 1.2, 0.9, '190,160,110');
