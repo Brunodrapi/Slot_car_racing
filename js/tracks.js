@@ -676,9 +676,8 @@ const TRACKS = [
    records, ce qui est voulu — on compare des décors, pas des chronos. */
 (() => {
   const spa = TRACKS.find((t) => t.id === 'spa');
-  /* SPA EN GAME BOY. Rien d'autre que le drapeau : le filtre travaille sur la clarté de ce que
-     le moteur dessine, donc le circuit n'a aucun décor particulier à préparer. */
-  if (spa) TRACKS.push({ ...spa, id: 'spa-gameboy', name: 'Spa · Game Boy', gameboy: true });
+  // Le tracé reste celui de Spa ; cette variante emploie la planche de décor GB fournie.
+  if (spa) TRACKS.push({ ...spa, id: 'spa-gameboy', name: 'Spa · Game Boy', gameboy: true, gbAtlas: true });
   const base = TRACKS.find((t) => t.id === 'zandvoort');
   if (!base) return;
   TRACKS.push(

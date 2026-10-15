@@ -600,6 +600,10 @@ class Renderer {
   setTrack(track) {
     this.gameboy = this.visualTheme === 'gameboy' || !!track.gameboy;   // le filtre quatre tons, voir `_toileGB`
     this.track = track;
+    this.gbAtlas = !!(track.def && track.def.gbAtlas);
+    if(this.gbAtlas && typeof GB_ATLAS!=='undefined' && !GB_ATLAS.ready && !GB_ATLAS.failed){
+      chargeAtlasGB().then(ready=>{if(ready && this.track===track)this.setTrack(track);});
+    }
     this.rubber = new Map();
     this.particles = [];
     this.wets = [];
@@ -625,6 +629,18 @@ class Renderer {
     La caméra inclinée est retirée, et ses vingt-cinq PNG avec elle : ils partaient au réseau à
     chaque course, y compris à plat où personne ne les regardait. */
     this.topArt = buildTopArt(PAL);
+    this.asphaltPattern = null;
+    this.gbGravelPattern = null;
+    if(this.gbAtlas && typeof GB_ATLAS!=='undefined' && GB_ATLAS.ready){
+      appliqueAtlasGB(this.topArt);
+      const pattern=(kind,metres)=>{
+        const tile=GB_ATLAS.sprites[kind][0],p=this.ctx.createPattern(tile,'repeat');
+        if(p && p.setTransform)p.setTransform(new DOMMatrix([metres/tile.width,0,0,metres/tile.width,0,0]));
+        return p;
+      };
+      this.asphaltPattern=pattern('asphalt',2);
+      this.gbGravelPattern=pattern('gravel',8);
+    }
     /* L'herbe d'abord, les arbres ensuite : l'ordre de la liste est l'ordre du dessin, et une
        touffe doit passer SOUS l'arbre à côté duquel elle est tombée. */
     /* L'ORDRE DE LA LISTE EST L'ORDRE DU DESSIN, et on le trie PAR TAILLE : les touffes d'abord,
@@ -1122,7 +1138,7 @@ class Renderer {
     }
     this._makeMinimap();
     this.grassPattern = this.ctx.createPattern(this.grass, 'repeat');
-    this.gravierMotif = this._motifGravier();
+    this.gravierMotif = this.gbGravelPattern || this._motifGravier();
   }
 
   /* Tout ce que la PREMIÈRE IMAGE de la course doit avoir sous la main.
@@ -1137,6 +1153,7 @@ class Renderer {
   — il ne viendra pas — et le dessin sait déjà se passer de chacune de ces images. Ne reste que le
   téléchargement qui traîne, et c'est le seul cas qu'une barrière doive attendre. */
   pretAPeindre(race) {
+    if(this.gbAtlas && typeof GB_ATLAS!=='undefined' && !GB_ATLAS.ready && !GB_ATLAS.failed)return false;
     for (const im of this.enRoute || []) if (!im.complete) return false;
     return true;
   }
@@ -1833,7 +1850,7 @@ class Renderer {
       const vus = this.paths.chunks.filter(c => inView(c.bbox));
       g.strokeStyle = PAL.outline; g.lineWidth = 3.6;
       for (const c of vus) { g.stroke(c.left); g.stroke(c.right); }
-      g.fillStyle = PAL.asphalt;
+      g.fillStyle = this.asphaltPattern || PAL.asphalt;
       for (const c of vus) g.fill(c.fill);
       // les stries, juste après l'aplat et avant tout le reste : elles sont DANS le bitume
       if (!calque) {
@@ -2417,7 +2434,7 @@ class Renderer {
       const gauche = dx - wpx * (a.ancX == null ? 0.5 : a.ancX);
       const haut = dy - hpx * (a.anc == null ? 0.5 : a.anc);
       const original = (a.tons && a.tons[p.ton]) || a.canvas;
-      const toile = this.gameboy ? this._artGB(original, true) : original;
+      const toile = this.gameboy && !a.gbAtlas ? this._artGB(original, true) : original;
       if (p.rot) {
         const c = Math.cos(p.rot), si = Math.sin(p.rot);
         g.setTransform(c, si, -si, c, dx, dy);

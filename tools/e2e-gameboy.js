@@ -89,6 +89,25 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       await page.waitForFunction(() => app.race && app.race.track.id === 'spa' && !app.renderer.gameboy);
       await page.evaluate(() => app.startQuick('race', 'gt', 'spa-gameboy'));
       await page.waitForFunction(() => app.renderer.gameboy);
+      await page.waitForFunction(() => GB_ATLAS.ready && app.renderer.topArt['arbre-1'].gbAtlas && app.race.state === 'racing');
+      const atlas=await page.evaluate(()=>{
+        const r=app.renderer,tree=r.topArt['arbre-1'];
+        const pixels=tree.canvas.getContext('2d').getImageData(0,0,tree.canvas.width,tree.canvas.height).data;
+        let clear=0,opaque=0,checker=0;
+        for(let i=0;i<pixels.length;i+=4){
+          if(!pixels[i+3])clear++;else{opaque++;if(![24,125,202,255].includes(pixels[i]))checker++;}
+        }
+        return {clear,opaque,checker,used:r.topProps.filter(p=>r.topArt[p.id]?.gbAtlas).length,
+          texture:!!r.asphaltPattern&&r.gravierMotif===r.gbGravelPattern};
+      });
+      assert.ok(atlas.clear>100&&atlas.opaque>1000&&atlas.used>500);
+      assert.equal(atlas.checker,0);assert.ok(atlas.texture);
+      await page.keyboard.down('Space');
+      await page.waitForFunction(()=>app.race.player.v>15);
+      await page.keyboard.up('Space');
+      await page.screenshot({path:path.join(OUT,`spa-atlas-${width}.png`)});
+      await page.evaluate(()=>app.startQuick('race','gt','monza'));
+      assert.equal(await page.evaluate(()=>!!app.renderer.topArt['arbre-1'].gbAtlas),false);
       assert.deepEqual(errors, []);
       console.log(`${width}×${height}: menus, quatre tons, course, pause, rotation et préférence OK`);
       await context.close();
