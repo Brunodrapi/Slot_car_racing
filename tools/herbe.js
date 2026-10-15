@@ -31,7 +31,7 @@ src += [
 "for (const m of modelsOf('gt')) {",
 "  const l = [];",
 "  for (const cas of CAS) {",
-"    PHYS.motricite = cas[1]; PHYS.patine = cas[2];",
+"    PHYS.motricite = cas[1]; PHYS.drivePriority = cas[2];",
 "    const td = TRACKS.find(x => x.id === 'monza');",
 "    const race = new Race({ trackDef: td, classId: 'gt', modelId: m.id, difficulty: 'medium',",
 "                            playerAI: false, playerLivery: 0, nCars: 1, mode: 'timetrial' });",

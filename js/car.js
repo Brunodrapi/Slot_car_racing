@@ -121,7 +121,7 @@ vitesses de passage monteraient, et la mesure des planchers — le temps minimum
 deux roues dedans sur tout le virage coûte le virage. */
 const KERB_ADHERENCE = 0.88;
 
-const PHYS = { aimant: 0, ldK: 0.45, ldMin: 6, ff: 0.3, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, motricite: 1.25, patine: 0.15, relax: 0.2, circle: 0.25 };
+const PHYS = { aimant: 0, ldK: 0.45, ldMin: 6, ff: 0.3, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, motricite: 1.25, drivePriority: 0.15, relax: 0.2, circle: 0.25 };
 
 /* LES AIDES DE L'IA, qui ne sont pas celles du joueur.
 
@@ -325,6 +325,7 @@ class Car {
     this.alphaF = 0; this.alphaR = 0;
     this.slide = 0;                      // 0..1 for effects
     this.patine = 0;                     // 0..1 : la part de poussée que l'arrière ne passe pas
+    this.patineFx = 0;                   // retour sonore/visuel, sans effet sur les forces
     this.ressenti = 0;                   // 0..1 : bleu, vert, jaune, violet, rouge (voir update)
     this.accroche = true;                // l'aimant tient-il la ligne ? (voir AIMANT)
     this.ecartAv = null;                 // l'écart de l'image d'avant, pour l'amortissement
@@ -394,6 +395,7 @@ class Car {
     const T = this.track, P = T.pos(s, lat);
     this.s = T.wrap(s); this.lat = lat; this.x = P.x; this.y = P.y; this.th = T.headingAt(s);
     this.v = v || 0; this.vl = 0; this.w = 0; this.delta = 0; this.beta = 0; this.usage = 0; this.slide = 0; this.ressenti = 0; this.Ff = 0; this.Fr = 0; this.selS = this.sel; this.accroche = true; this.aimantF = 0; this.ecartAv = null;
+    this.patine = 0; this.patineFx = 0;
   }
 
   /* Ce que les pneus rendent, entre neuf et mort. Séparé de `gripBoost` parce que les deux n'ont
@@ -713,55 +715,17 @@ class Car {
     const base = gAxle;
     const cliffF = 1 - c.cliff * PHYS.cliff * smoothstep(Math.abs(alphaF), peak * 1.5, peak * 5);
     const cliffR = 1 - c.cliff * PHYS.cliff * smoothstep(Math.abs(alphaR), peak * 1.5, peak * 5);
-    /* LA MOTRICITÉ : ce que l'essieu arrière peut transmettre, et ce qui part en fumée.
-
-    CE QU'IL Y AVAIT, ET POURQUOI ÇA NE POUVAIT PAS MARCHER. `driveFrac` ne dépendait que de la
-    vitesse : il valait la même chose quelle que soit la puissance demandée, et il ne retirait que
-    1 % à l'essieu arrière. La traction ne passait donc pas par les pneus. Mesuré en multipliant
-    `accel`, à repères de pilotage constants : 96,12 s au tour à ×0,5, 81,48 s à ×2, et ZÉRO sortie
-    de piste d'un bout à l'autre. Quinze secondes au tour pour un curseur, sans contrepartie.
-
-    LE CHIFFRE QUI DIT TOUT : une GT demande 8 m/s² de poussée quand son essieu arrière ne peut en
-    transmettre que 7,15 (`gTot/2 × rearBias`, soit 6,75 × 1,06). Elle est survoltée de 12 % pour
-    ses pneus — et le modèle le cachait, parce que rien ne comparait jamais les deux.
-
-    LE CERCLE D'ADHÉRENCE (Milliken & Milliken, « Race Car Vehicle Dynamics ») : la force d'un pneu
-    est bornée, donc ce que prend le latéral n'est plus disponible pour le longitudinal, en
-    quadrature. On lit le latéral déjà pris sur `alphaR/peak` plutôt que sur `FrT` — qui dépendrait
-    de `gR`, qu'on est en train de calculer — ce qui évite la boucle sans rien perdre : c'est la
-    même grandeur, avant la falaise.
-
-    DEUX CONSÉQUENCES, ET IL FAUT LES DEUX. Ce qui dépasse ne pousse pas (sinon le curseur reste un
-    gain gratuit), ET ce qui dépasse fait patiner, donc coûte du latéral à l'arrière (sinon il n'y
-    a pas de dérapage à la remise des gaz). `PHYS.motricite` est la marge laissée à la ligne droite,
-    pour que la voiture par défaut garde ses performances là où elle ne tourne pas ; c'est en virage
-    que la puissance doit se payer.
-
-    LES DEUX CONSTANTES SONT MESURÉES. `motricite` 1,25 est la marge en ligne droite : en dessous, la
-    voiture est bridée là où elle ne tourne pas ; au-dessus de 2, le cercle ne mord plus nulle part
-    et le modèle redevient inerte. `patine` 0,15 est ce que coûte une roue qui patine : c'est elle,
-    et non le plafond, qui pénalise les voitures glissantes — décomposé sur les neuf voitures, le
-    plafond seul étale le plateau de 4,18 s à 6,24 s, et le patinage le porte à 6,90 s à 0,15 et à
-    8,07 s à 0,30. À 0,15 aucune voiture ne recule ; à 0,30 la 935 perd trois secondes et demie.
-
-    LE RÉGLAGE PAR CURSEUR N'EST PLUS NÉCESSAIRE, et c'est le constat de Bruno : en slot une seule
-    manette sert à toutes les voitures, donc on règle la manette ; ici chaque voiture a ses propres
-    données, donc chaque voiture est CONSTRUITE à son point. Les multiplicateurs de `js/cars.js`
-    portent cette calibration. */
+    /* Motricité : partager l'adhérence arrière entre poussée et tenue latérale.
+       Le compromis 0,15 garde une poussée à la limite, sans le décrochage brutal observé
+       à partir de 0,35. Mesures : docs/motricite/README.md. Le pilote dose par impulsions. */
     const dmg = this.damageFactor();
     const vmax = c.vmax * dmg * (this.draft ? 1.05 : 1);
     const accDem = throttle
       ? c.accel * dmg * Math.max(0, 1 - Math.pow(Math.max(0, this.v) / vmax, 2.5)) * (this.draft ? 1.08 : 1)
       : 0;
     const gF = base * cliffF;
-    /* LA MOTRICITÉ SE MESURE SUR L'ADHÉRENCE BRUTE, LA FALAISE S'APPLIQUE APRÈS.
-
-    Première version fausse, et c'est une boucle positive que j'ai mise moi-même : je calculais ce
-    que l'arrière peut transmettre à partir d'une adhérence DÉJÀ réduite par la falaise, puis je la
-    réduisais encore du patinage. Près de la limite, la falaise écroulait la capacité, donc le
-    patinage explosait, donc l'arrière perdait encore — glisse, moins d'adhérence, plus de glisse.
-    Mesuré : 11 à 20 sorties de piste par essai contre 6 avant, et huit secondes au tour. Les deux
-    effets sont maintenant en série et non enchaînés l'un sur l'autre. */
+    // Toujours repartir de la capacité de l'essieu, jamais d'une force déjà réduite
+    // par ce même partage : cela réintroduirait une boucle de perte d'adhérence.
     const gArrBrut = base * c.rearBias * (1 - PHYS.liftOff * brakeFrac);
     const latPris = Math.min(1, Math.abs(alphaR) / peak);
     const longDispo = gArrBrut * PHYS.motricite * Math.sqrt(Math.max(0, 1 - latPris * latPris));
@@ -776,9 +740,21 @@ class Car {
 
     Le modèle est là pour façonner la sortie de virage SUR L'ASPHALTE. Hors piste il se tait, et le
     bas-côté redevient exactement ce qu'il était. */
-    const accReel = off ? accDem : Math.min(accDem, longDispo);
-    this.patine = off ? 0 : clamp((accDem - longDispo) / Math.max(1e-3, gArrBrut), 0, 1);
-    const gR = gArrBrut * cliffR * (1 - PHYS.patine * this.patine);
+    const qy = clamp(alphaR / peak, -1, 1);
+    const qx = accDem / Math.max(1e-3, gArrBrut * cliffR * PHYS.motricite);
+    const share = off ? 1 : 1 / Math.max(1, Math.hypot(qx, qy));
+    const priority = PHYS.drivePriority;
+    const safeDrive = Math.min(accDem, longDispo * cliffR);
+    const accReel = off ? accDem : safeDrive * (1 - priority) + accDem * share * priority;
+    this.patine = off || accDem <= 0 ? 0 : clamp(1 - accReel / accDem, 0, 1);
+    // Part de poussée non transmise : un indice d'effet, pas une vitesse de roue simulée.
+    // Attaque courte pour rendre un appui de 50 ms audible ; extinction douce au relâchement.
+    // Ce filtre ne retarde jamais l'accélérateur ni le retour d'adhérence de la physique.
+    const spinFx = !off && !this.inPit && accDem > 0
+      ? clamp(1 - accReel / accDem, 0, 1) : 0;
+    const spinTau = spinFx > this.patineFx ? 0.035 : 0.08;
+    this.patineFx += (spinFx - this.patineFx) * (1 - Math.exp(-dt / spinTau));
+    const gR = gArrBrut * cliffR * (off ? 1 : 1 - priority + priority * share);
     // tyre curve: linear up to the peak slip angle, then saturated (the cliff is applied above)
     const FfT = -gF * clamp(alphaF / peak, -1, 1);
     const FrT = -gR * clamp(alphaR / peak, -1, 1);
@@ -849,12 +825,9 @@ class Car {
     // --- longitudinal ---
     let acc;
     const dir = Math.sign(this.v || 1);                 // everything that resists motion opposes it
-    /* `accReel` est calculé plus haut, avec la motricité. Le facteur `max(0.3, 1 - circle·u²)` reste
-    tant que la motricité est au neutre : il est aujourd'hui LE seul lien entre la charge latérale
-    et le moteur, et le retirer rendrait la voiture par défaut plus rapide. Le jour où la motricité
-    sera calibrée, c'est lui qu'il faudra enlever — les deux font le même travail, l'un grossièrement
-    et l'autre par les pneus, et les garder tous les deux serait compter deux fois. */
-    if (throttle) acc = accReel * Math.max(0.3, 1 - PHYS.circle * u * u);
+    // Sur l'asphalte, le partage arrière suffit. L'ancien facteur reste pour le
+    // freinage et le hors-piste, dont les réglages sont indépendants de ce changement.
+    if (throttle) acc = accReel * (off ? Math.max(0.3, 1 - PHYS.circle * u * u) : 1);
     else acc = -(1.5 + c.brake * brakeFrac) * (1 - PHYS.circle * u * u) * (this.v > 1 ? 1 : Math.max(0, this.v));
     // grass and gravel drag the whole car, not just its forward motion: it opposes the velocity
     // vector, so a car sliding in sideways is slowed down sideways too.
