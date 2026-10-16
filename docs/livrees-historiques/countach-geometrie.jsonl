@@ -1,0 +1,4 @@
+{"file":"sprites/top/countach_rainx.png","canvas":[395,203],"baseBounds":{"x0":0,"y0":0,"width":395,"height":203},"newBounds":{"x0":0,"y0":0,"width":395,"height":203},"silhouetteIoU":0.980104928896866}
+{"file":"sprites/top/countach_monaco83.png","canvas":[395,203],"baseBounds":{"x0":0,"y0":0,"width":395,"height":203},"newBounds":{"x0":0,"y0":0,"width":395,"height":203},"silhouetteIoU":0.9814907038512616}
+{"file":"sprites/pick/countach_rainx.png","canvas":[420,349],"baseBounds":{"x0":0,"y0":0,"width":420,"height":349},"newBounds":{"x0":0,"y0":0,"width":420,"height":349},"silhouetteIoU":0.9283968132707628}
+{"file":"sprites/pick/countach_monaco83.png","canvas":[420,349],"baseBounds":{"x0":0,"y0":0,"width":420,"height":349},"newBounds":{"x0":0,"y0":0,"width":420,"height":349},"silhouetteIoU":0.9287045006373451}

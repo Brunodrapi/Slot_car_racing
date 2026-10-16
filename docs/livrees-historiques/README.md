@@ -24,3 +24,11 @@ La Mazda n°56 du Mans 1991 a été écartée : c’était une 787, pas une 787B
 - `node --require /workspace/cloud-setup/system-chromium.cjs tools/e2e-livree.js /tmp` : aucune faute, aucune erreur JavaScript ; 54 images chargées, cycles complets des neuf modèles, sauvegarde et sprite de course vérifiés.
 - 20 nouveaux PNG : transparence, dimensions identiques aux originaux, contenus distincts.
 - [Planche des dix variantes](apercu.png).
+
+## Méthode de conservation de la carrosserie
+
+Pour les prochaines générations, convertir les sprites d’origine en noir et blanc en conservant leur transparence, puis les fournir comme référence de géométrie prioritaire. Les photos historiques servent à la peinture uniquement. Conserver caméra, silhouette, empattement, roues, vitrage et aileron de la voiture de base.
+
+En sortie, contrôler séparément les dimensions du PNG et le rectangle réellement occupé par la voiture, puis comparer les silhouettes à celle du sprite d’origine. Avoir deux fichiers de même taille ne garantit pas des voitures de mêmes proportions. Le cadrage final doit reprendre le rectangle occupé par la référence, et une différence de carrosserie visible doit entraîner une correction.
+
+Correction Countach (0.28.2) : les quatre sprites ont été régénérés sur les références d’origine en noir et blanc. Dimensions du fichier et rectangle occupé identiques aux originaux : 395 × 203 en course, 420 × 349 en sélection. Recouvrement des silhouettes (intersection / union des pixels d’alpha ≥ 32) : environ 98 % en course et 93 % en sélection ; il subsiste donc de petites différences de dessin. Les mesures détaillées sont dans `countach-geometrie.jsonl`. La variante Monaco conserve volontairement la carrosserie et l’aileron de base, sans rampe lumineuse, pour respecter la silhouette demandée.
