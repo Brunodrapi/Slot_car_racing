@@ -472,17 +472,34 @@ function implArbres(track, z, s0, s1, rnd, out) {
 
 Les modules se suivent le long du secteur, chacun aligné sur le cap de la piste à son abscisse, ce
 qui suffit à faire suivre la courbe sans déformer les rectangles. */
+/* Le module se raccourcit dans les virages serrés.
+
+Un bâtiment est un rectangle, et un rectangle de trente mètres posé le long d'un virage de treize
+mètres de rayon chevauche le suivant : à Luffield et à l'épingle de Loews, les tribunes se
+montaient les unes sur les autres en éventail. La longueur utilisable est donc bornée par le rayon
+— c'est la même raison qui fait qu'une vraie tribune de virage est bâtie en tronçons courts. */
+function implModule(track, s, demande) {
+  const k = Math.abs(track.curvAt(s));
+  const r = k > 1e-4 ? 1 / k : 1e4;
+  return Math.max(8, Math.min(demande, r * 0.5));
+}
+
 function implTribunes(track, z, s0, s1, rnd, out) {
-  const module = z.module == null ? 26 : z.module;
+  const demande = z.module == null ? 26 : z.module;
   const prof = z.prof;
-  for (let s = s0 + module / 2; s < s1; s += module + 2) {
-    const base = implBase(track, s, z.side, z);
-    const p = track.pos(s, z.side * (base + prof / 2));
+  let s = s0;
+  while (s < s1) {
+    const module = implModule(track, s + demande / 2, demande);
+    const c = s + module / 2;
+    if (c >= s1) break;
+    const base = implBase(track, c, z.side, z);
+    const p = track.pos(c, z.side * (base + prof / 2));
     out.push({
-      type: 'tribune', x: p.x, y: p.y, a: track.headingAt(s),
+      type: 'tribune', x: p.x, y: p.y, a: track.headingAt(c),
       l: module, w: prof, side: z.side, toit: rnd() < 0.72,
       gradins: Math.max(3, Math.round(prof / 2.6)),
     });
+    s += module + 2.5;
   }
 }
 
@@ -492,17 +509,22 @@ Le toit est plat et clair vu d'en haut, avec sa verrière ou ses lanterneaux en 
 proportions changent d'un bâtiment à l'autre, mais ils restent alignés sur la piste : un paddock
 est construit le long d'une voie, pas semé au hasard. */
 function implBatiments(track, z, s0, s1, rnd, out) {
-  const module = z.module == null ? 34 : z.module;
-  for (let s = s0 + module / 2; s < s1; s += module + 6 + rnd() * 10) {
-    const base = implBase(track, s, z.side, z);
+  const demande = z.module == null ? 34 : z.module;
+  let s = s0;
+  while (s < s1) {
+    const module = implModule(track, s + demande / 2, demande) * (0.7 + rnd() * 0.5);
+    const c = s + module / 2;
+    if (c >= s1) break;
+    const base = implBase(track, c, z.side, z);
     const prof = z.prof * (0.6 + rnd() * 0.4);
-    const p = track.pos(s, z.side * (base + prof / 2 + rnd() * z.prof * 0.15));
+    const p = track.pos(c, z.side * (base + prof / 2 + rnd() * z.prof * 0.15));
     out.push({
       type: z.kind === 'stands' ? 'stands' : 'hangar',
-      x: p.x, y: p.y, a: track.headingAt(s),
-      l: module * (0.7 + rnd() * 0.5), w: prof, side: z.side,
+      x: p.x, y: p.y, a: track.headingAt(c),
+      l: module, w: prof, side: z.side,
       portes: Math.max(2, Math.round(module / 9)), teinte: rnd(),
     });
+    s += module + 5 + rnd() * 8;
   }
 }
 

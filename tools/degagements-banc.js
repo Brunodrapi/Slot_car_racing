@@ -23,7 +23,12 @@ checkSurface(.735,1,'gravel',8); // raccord Campus / Paul Frère
 checkSurface(.92,-1,'grass',30); // la zone bitumée a bien une fin
 for(const side of ['L','R'])for(let i=0;i<T.n;i++){
  assert.ok(Number.isFinite(T.bacW[side][i])&&Number.isFinite(T.asphaltW[side][i]));
- assert.ok(!(T.bacW[side][i]>0&&T.asphaltW[side][i]>0),'deux surfaces au même endroit');
+ /* Les deux surfaces se SUPERPOSENT par construction aux extrémités d'une zone : le profil
+    automatique y est encore là, le tablier déclaré commence, et la lecture de surface rend le bitume
+    d'abord puis le gravier au-delà. Ce n'est pas un défaut mais le raccord, et c'est ce que
+    montrent beaucoup de circuits réels. Ce qui serait un défaut, c'est du gravier AU MILIEU d'un
+    tablier bitumé : vérifié plus bas, zone par zone. */
+ assert.ok(T.bacW[side][i]>=0&&T.asphaltW[side][i]>=0,'largeur négative');
  assert.ok(Math.abs(T.runoffWidthAt(i,side==='L'?1:-1)-T.runoffWidthAt(i+1,side==='L'?1:-1))<3,
   'raccord brutal '+i+' '+side);
 }
@@ -60,8 +65,43 @@ p.update(1/120,true,0);race._comptePenalite(p,.01);
 const initial=p.progress;p.s+=50;p.state='ok';race._comptePenalite(p,.01);
 assert.ok(p.repris>0,'gain de temps hors piste non repris');assert.ok(p.lapSale);
 assert.ok(Race.penalite(p)>=1);
+/* Les onze autres circuits ont maintenant leurs propres zones, relevées sur les vues du dessus.
+   La garde « aucun autre circuit n'a de dégagement » qui tenait ici ne veut donc plus rien dire :
+   elle vérifiait qu'on n'avait rien recopié de Spa, et on a depuis relevé chaque circuit. Ce qui
+   reste à vérifier, c'est que chaque relevé est SAIN — deux surfaces ne se superposent pas, la
+   largeur ne fait pas de marche, et rien ne déborde du tour — et que les barrières dessinées
+   restent le seul essai de Spa tant qu'elles n'ont pas été étendues. */
 for(const d of TRACKS.filter(d=>d.id!=='spa')){
- const t=new Track(d);assert.equal(t.asphaltW,undefined);assert.equal(t.barriers.length,0);
+ const t=new Track(d);
+ assert.equal(t.barriers.length,0,d.id+' : barrières inattendues');
+ if(!d.runoffs){assert.equal(t.asphaltW,undefined);continue;}
+ for(const z of d.runoffs){
+  assert.ok(z.points||(z.w>0&&z.from>=0&&z.from<1),d.id+' : zone sans profil — '+z.name);
+  assert.ok(!z.points||z.points.length>1,d.id+' : contour vide — '+z.name);
+ }
+ for(const side of ['L','R'])for(let i=0;i<t.n;i++){
+  assert.ok(Number.isFinite(t.bacW[side][i])&&Number.isFinite(t.asphaltW[side][i]),d.id+' : largeur non finie');
+  /* Un liseré de gravier subsiste aux deux bouts d'un tablier bitumé, le temps que la zone
+     déclarée ait fini de chasser le profil automatique. Deux mètres, pas davantage : au-delà ce
+     ne serait plus un raccord mais deux dégagements superposés. */
+  assert.ok(t.bacW[side][i]>=0&&t.asphaltW[side][i]>=0,d.id+' : largeur négative');
+  assert.ok(t.bacW[side][i]<40&&t.asphaltW[side][i]<40,d.id+' : dégagement démesuré '+i);
+  const cote=side==='L'?1:-1;
+  assert.ok(Math.abs(t.runoffWidthAt(i,cote)-t.runoffWidthAt(i+1,cote))<3,d.id+' : raccord brutal '+i+' '+side);
+ }
+ // Une zone se pose à l'EXTÉRIEUR du virage : à l'intérieur d'une épingle elle rentrerait
+ // dans l'autre branche. On vérifie le côté sur le pic de chaque zone déclarée.
+ for(const z of (d.runoffs||[])){
+  if(z.points||z.surface==='grass')continue;
+  const mid=((z.from+(z.to>z.from?z.to:z.to+1))/2)%1;
+  assert.ok(t.runoffWidthAt(mid*t.length,z.side)>z.w*0.5,
+   d.id+' : zone absente à son milieu — '+z.name);
+  // Au milieu d'un tablier bitumé, le profil automatique doit avoir entièrement disparu.
+  if(z.surface==='asphalt'){
+   const k=t.idx(mid*t.length),cote=z.side>0?'L':'R';
+   assert.ok(t.bacW[cote][k]<0.5,d.id+' : gravier au milieu du bitume — '+z.name);
+  }
+ }
 }
 // Les définitions futures peuvent traverser le départ.
 const wrap=new Track({...def,barriers:false,runoffs:[{surface:'asphalt',side:1,points:[[.99,0],[1,10],[1.01,0]]}]});

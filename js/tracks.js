@@ -76,6 +76,34 @@ const TRACKS = [
       [0.8793, 50, 3, 1],
       [0.8966, 0, 3, 1],
     ],
+    /* Monza relevé sur `art/reprise circuit/monza_2.jpg` : le ruban est percé dans le bois du parc
+       royal, et c'est le bois qui fait le circuit. Il tient partout sauf sur la ligne des stands,
+       où le paddock et les tribunes ouvrent la seule clairière du tour. Le sable des bacs est celui
+       de la carte peinte : Rettifilo, Roggia, les deux Lesmo, Ascari. La Parabolica est bitumée
+       depuis 2014, avec le gravier au-delà. */
+    runoffs: [
+      { name: 'Variante del Rettifilo', surface: 'gravel', side: -1, from: 0.166, to: 0.200, w: 15 },
+      { name: 'Curva Grande', surface: 'asphalt', side: 1, from: 0.228, to: 0.302, w: 13 },
+      { name: 'Variante della Roggia', surface: 'gravel', side: -1, from: 0.374, to: 0.409, w: 14 },
+      { name: 'Lesmo 1', surface: 'gravel', side: 1, from: 0.436, to: 0.472, w: 16 },
+      { name: 'Lesmo 2', surface: 'gravel', side: 1, from: 0.499, to: 0.522, w: 15 },
+      { name: 'Variante Ascari', surface: 'asphalt', side: -1, from: 0.684, to: 0.740, w: 16 },
+      { name: 'Parabolica', surface: 'asphalt', side: 1, from: 0.888, to: 0.972, w: 18 },
+    ],
+    implantation: [
+      { kind: 'stands', side: -1, from: 0.975, to: 0.075, recul: 11, prof: 22, module: 42 },
+      { kind: 'tribune', side: 1, from: 0.98, to: 0.06, recul: 10, prof: 17, module: 32 },
+      { kind: 'parking', side: -1, from: 0.085, to: 0.14, recul: 18, prof: 34 },
+      { kind: 'bois', side: 1, from: 0.09, to: 0.235, recul: 11, prof: 65 },
+      { kind: 'bois', side: -1, from: 0.205, to: 0.37, recul: 12, prof: 75 },
+      { kind: 'bois', side: 1, from: 0.31, to: 0.43, recul: 11, prof: 70 },
+      { kind: 'bois', side: -1, from: 0.415, to: 0.68, recul: 11, prof: 80 },
+      { kind: 'bois', side: 1, from: 0.53, to: 0.68, recul: 12, prof: 70 },
+      { kind: 'bois', side: 1, from: 0.745, to: 0.88, recul: 12, prof: 60 },
+      { kind: 'bois', side: -1, from: 0.75, to: 0.885, recul: 12, prof: 75 },
+      { kind: 'tribune', side: -1, from: 0.9, to: 0.965, recul: 13, prof: 15, module: 30 },
+      { kind: 'parking', side: 1, from: 0.9, to: 0.96, recul: 16, prof: 30 },
+    ],
     /* Les passerelles piétonnes, en fraction de tour. Relevées dans OpenStreetMap elles aussi, par
        `tools/releve.py --passerelles`, qui ne retient que les chemins « bridge=yes » dont le tracé
        CROISE la ligne médiane — deux segments se croisent ou ne se croisent pas, il n'y a pas de
@@ -251,6 +279,25 @@ const TRACKS = [
       [0.773, 100, 4, 1],
       [0.9048, 0, 2, 1],
     ],
+    /* Monaco n'a pas de dégagement : un mur, et derrière le mur la ville. Rien dans `runoffs`,
+       donc — c'est précisément ce qui fait ce circuit. Relevé sur `monaco_2.jpg` : les immeubles
+       serrent la piste de la montée du casino à la Rascasse, le rocher pousse sa verdure au-dessus
+       du tunnel, et le port tient tout le bas du tour. Les « hangars » servent ici d'immeubles :
+       vus de dessus, un toit de la Condamine et un toit de paddock sont le même rectangle clair. */
+    implantation: [
+      { kind: 'hangars', side: 1, from: 0.0, to: 0.2, recul: 5, prof: 34, module: 22 },
+      { kind: 'hangars', side: -1, from: 0.02, to: 0.19, recul: 6, prof: 30, module: 20 },
+      { kind: 'bois', side: 1, from: 0.2, to: 0.32, recul: 7, prof: 26, essence: 'taillis', densite: 0.7 },
+      { kind: 'hangars', side: -1, from: 0.2, to: 0.33, recul: 6, prof: 36, module: 26 },
+      { kind: 'hangars', side: 1, from: 0.33, to: 0.46, recul: 5, prof: 40, module: 28 },
+      { kind: 'hangars', side: -1, from: 0.35, to: 0.45, recul: 7, prof: 30, module: 22 },
+      { kind: 'bois', side: 1, from: 0.47, to: 0.56, recul: 8, prof: 22, essence: 'taillis', densite: 0.6 },
+      { kind: 'parking', side: -1, from: 0.6, to: 0.66, recul: 10, prof: 22 },
+      { kind: 'hangars', side: 1, from: 0.62, to: 0.78, recul: 6, prof: 34, module: 24 },
+      { kind: 'tribune', side: 1, from: 0.8, to: 0.88, recul: 8, prof: 14, module: 24 },
+      { kind: 'hangars', side: 1, from: 0.89, to: 0.99, recul: 7, prof: 30, module: 22 },
+      { kind: 'stands', side: -1, from: 0.93, to: 0.02, recul: 8, prof: 18, module: 34 },
+    ],
   },
   {
     id: 'silverstone', name: 'Silverstone', country: 'GB', flag: '🇬🇧', theme: 'autumn',
@@ -312,6 +359,42 @@ const TRACKS = [
       [0.9533, 0, 4, 1],
       [0.9815, 200, 3, 1],
       [0.1309, 50, 'acute', 1],
+    ],
+    /* Silverstone est un aérodrome, et cela se voit d'en haut avant tout le reste : de l'herbe rase
+       à perte de vue, presque pas d'arbre, et des tribunes posées dessus. Les zones `nu` effacent
+       le semis par défaut — un bosquet au milieu du terrain trahirait le lieu plus sûrement qu'une
+       couleur fausse. Relevé sur `Silverstone.jpg` : le gris clair des dégagements bitumés couvre
+       la quasi-totalité du tour, le beige du gravier ne reste qu'à Abbey, Copse, Stowe et Club. */
+    runoffs: [
+      { name: 'Abbey', surface: 'gravel', side: 1, from: 0.036, to: 0.064, w: 15 },
+      { name: 'Farm', surface: 'asphalt', side: -1, from: 0.07, to: 0.098, w: 12 },
+      { name: 'Village / The Loop', surface: 'asphalt', side: 1, from: 0.118, to: 0.148, w: 14 },
+      { name: 'Aintree', surface: 'asphalt', side: -1, from: 0.146, to: 0.2, w: 13 },
+      { name: 'Brooklands', surface: 'gravel', side: -1, from: 0.294, to: 0.33, w: 15 },
+      { name: 'Luffield', surface: 'asphalt', side: 1, from: 0.328, to: 0.372, w: 13 },
+      { name: 'Woodcote', surface: 'asphalt', side: 1, from: 0.39, to: 0.43, w: 12 },
+      { name: 'Copse', surface: 'gravel', side: 1, from: 0.486, to: 0.518, w: 17 },
+      { name: 'Maggotts / Becketts', surface: 'asphalt', side: 1, from: 0.58, to: 0.62, w: 14 },
+      { name: 'Chapel', surface: 'asphalt', side: -1, from: 0.675, to: 0.7, w: 13 },
+      { name: 'Stowe', surface: 'gravel', side: 1, from: 0.812, to: 0.866, w: 18 },
+      { name: 'Vale', surface: 'asphalt', side: -1, from: 0.858, to: 0.888, w: 12 },
+      { name: 'Club', surface: 'gravel', side: -1, from: 0.904, to: 0.968, w: 16 },
+    ],
+    implantation: [
+      { kind: 'nu', side: 1, from: 0.19, to: 0.29, prof: 140 },
+      { kind: 'nu', side: -1, from: 0.43, to: 0.49, prof: 140 },
+      { kind: 'nu', side: 1, from: 0.7, to: 0.81, prof: 140 },
+      { kind: 'stands', side: -1, from: 0.955, to: 0.04, recul: 12, prof: 24, module: 44 },
+      { kind: 'tribune', side: 1, from: 0.96, to: 0.045, recul: 11, prof: 18, module: 34 },
+      { kind: 'tribune', side: -1, from: 0.12, to: 0.2, recul: 14, prof: 15, module: 28 },
+      { kind: 'parking', side: -1, from: 0.205, to: 0.28, recul: 22, prof: 46 },
+      { kind: 'tribune', side: 1, from: 0.3, to: 0.37, recul: 13, prof: 16, module: 30 },
+      { kind: 'hangars', side: -1, from: 0.33, to: 0.42, recul: 20, prof: 26, module: 28 },
+      { kind: 'bois', side: -1, from: 0.055, to: 0.105, recul: 16, prof: 34, densite: 0.55 },
+      { kind: 'bois', side: 1, from: 0.6, to: 0.69, recul: 18, prof: 30, densite: 0.5 },
+      { kind: 'tribune', side: 1, from: 0.815, to: 0.87, recul: 14, prof: 16, module: 28 },
+      { kind: 'tribune', side: -1, from: 0.905, to: 0.955, recul: 13, prof: 16, module: 28 },
+      { kind: 'parking', side: 1, from: 0.88, to: 0.945, recul: 20, prof: 40 },
     ],
   },
   {
@@ -375,6 +458,37 @@ const TRACKS = [
       [0.9882, 100, 2, 1],
       [0.3876, 50, 'acute', -1],
     ],
+    /* Suzuka est dans un parc d'attractions, et le parc se voit : la grande roue, les bosquets
+       taillés et les parkings tiennent l'intérieur de la boucle. Relevé sur `suzuka.jpg` : le gris
+       des dégagements bitumés dans les Esses, le sable des bacs à Degner, à l'épingle, à la
+       Cuillère et au 130R. Les stands occupent la ligne droite, avec leurs tribunes en face. */
+    runoffs: [
+      { name: 'Virage 1-2', surface: 'asphalt', side: 1, from: 0.012, to: 0.07, w: 14 },
+      { name: 'Esses', surface: 'asphalt', side: -1, from: 0.085, to: 0.13, w: 11 },
+      { name: 'Esses 2', surface: 'asphalt', side: 1, from: 0.155, to: 0.195, w: 11 },
+      { name: 'Dunlop', surface: 'gravel', side: -1, from: 0.22, to: 0.28, w: 15 },
+      { name: 'Degner 1', surface: 'gravel', side: 1, from: 0.292, to: 0.312, w: 14 },
+      { name: 'Degner 2', surface: 'gravel', side: 1, from: 0.318, to: 0.342, w: 17 },
+      { name: 'Epingle', surface: 'gravel', side: -1, from: 0.396, to: 0.424, w: 15 },
+      { name: 'Cuillere', surface: 'gravel', side: 1, from: 0.46, to: 0.54, w: 17 },
+      { name: '130R', surface: 'gravel', side: -1, from: 0.55, to: 0.618, w: 18 },
+      { name: 'Casio', surface: 'gravel', side: -1, from: 0.752, to: 0.8, w: 14 },
+      { name: 'Dernier virage', surface: 'asphalt', side: -1, from: 0.82, to: 0.9, w: 15 },
+    ],
+    implantation: [
+      { kind: 'stands', side: -1, from: 0.96, to: 0.03, recul: 11, prof: 22, module: 40 },
+      { kind: 'tribune', side: 1, from: 0.955, to: 0.04, recul: 10, prof: 18, module: 32 },
+      { kind: 'parking', side: -1, from: 0.05, to: 0.11, recul: 18, prof: 36 },
+      { kind: 'bois', side: 1, from: 0.07, to: 0.21, recul: 12, prof: 45, densite: 0.8 },
+      { kind: 'bois', side: -1, from: 0.14, to: 0.22, recul: 13, prof: 40, densite: 0.75 },
+      { kind: 'bois', side: 1, from: 0.24, to: 0.4, recul: 12, prof: 55 },
+      { kind: 'bois', side: -1, from: 0.3, to: 0.45, recul: 13, prof: 50 },
+      { kind: 'bois', side: 1, from: 0.55, to: 0.74, recul: 13, prof: 60 },
+      { kind: 'bois', side: -1, from: 0.62, to: 0.75, recul: 14, prof: 48 },
+      { kind: 'hangars', side: 1, from: 0.76, to: 0.82, recul: 16, prof: 26, module: 24 },
+      { kind: 'tribune', side: -1, from: 0.81, to: 0.9, recul: 13, prof: 16, module: 28 },
+      { kind: 'parking', side: 1, from: 0.86, to: 0.94, recul: 18, prof: 38 },
+    ],
   },
   {
     id: 'interlagos', name: 'Interlagos', country: 'BR', flag: '🇧🇷', theme: 'tropical',
@@ -415,6 +529,35 @@ const TRACKS = [
       [0.8767, 50, 'square', 1],
       [0.8952, 0, 'square', 1],
       [0.917, 0, 3, -1],
+    ],
+    /* Interlagos : deux lacs, des gradins empilés au-dessus des stands, et le gravier vert d'eau
+       de `interlagos_2.jpg` autour du S de Senna, de la Descida do Lago, de Laranjinha, du Mergulho
+       et de la Junção. Le reste du site est de l'herbe et du bitume de paddock : peu d'arbres, et
+       groupés, comme le montre la carte. */
+    runoffs: [
+      { name: 'S de Senna', surface: 'gravel', side: -1, from: 0.108, to: 0.142, w: 16 },
+      { name: 'Curva do Sol', surface: 'asphalt', side: -1, from: 0.146, to: 0.192, w: 13 },
+      { name: 'Descida do Lago', surface: 'gravel', side: 1, from: 0.25, to: 0.315, w: 16 },
+      { name: 'Ferradura', surface: 'gravel', side: 1, from: 0.32, to: 0.395, w: 15 },
+      { name: 'Laranja', surface: 'gravel', side: 1, from: 0.418, to: 0.455, w: 15 },
+      { name: 'Pinheirinho', surface: 'gravel', side: -1, from: 0.458, to: 0.515, w: 14 },
+      { name: 'Bico de Pato', surface: 'gravel', side: -1, from: 0.54, to: 0.595, w: 14 },
+      { name: 'Mergulho', surface: 'gravel', side: -1, from: 0.622, to: 0.668, w: 16 },
+      { name: 'Juncao', surface: 'gravel', side: -1, from: 0.852, to: 0.895, w: 15 },
+      { name: 'Arquibancadas', surface: 'asphalt', side: 1, from: 0.9, to: 0.98, w: 13 },
+    ],
+    implantation: [
+      { kind: 'stands', side: -1, from: 0.955, to: 0.055, recul: 10, prof: 20, module: 38 },
+      { kind: 'tribune', side: 1, from: 0.96, to: 0.07, recul: 9, prof: 19, module: 30 },
+      { kind: 'tribune', side: -1, from: 0.09, to: 0.15, recul: 13, prof: 15, module: 26 },
+      { kind: 'bois', side: 1, from: 0.17, to: 0.25, recul: 14, prof: 40, densite: 0.8 },
+      { kind: 'bois', side: -1, from: 0.2, to: 0.31, recul: 15, prof: 45, densite: 0.75 },
+      { kind: 'bois', side: 1, from: 0.33, to: 0.43, recul: 14, prof: 38, densite: 0.8 },
+      { kind: 'bois', side: -1, from: 0.46, to: 0.58, recul: 14, prof: 42, densite: 0.7 },
+      { kind: 'bois', side: 1, from: 0.6, to: 0.72, recul: 14, prof: 46 },
+      { kind: 'nu', side: -1, from: 0.68, to: 0.84, prof: 120 },
+      { kind: 'parking', side: 1, from: 0.75, to: 0.83, recul: 18, prof: 34 },
+      { kind: 'hangars', side: -1, from: 0.9, to: 0.95, recul: 16, prof: 24, module: 24 },
     ],
     // La passerelle du S do Senna (voie 189535484).
     passerelles: [0.8625],
@@ -459,6 +602,32 @@ const TRACKS = [
       [0.9388, 100, 5, 1],
       [0.9596, 50, 5, 1],
       [0.9804, 0, 5, 1],
+    ],
+    /* Laguna Seca n'a pas reçu de vue du dessus : son implantation vient de ce que le circuit est,
+       une piste tracée dans des collines pelées du comté de Monterey. Chênes isolés en touffes sur
+       les crêtes, herbe sèche partout ailleurs, et de grands bacs de sable aux virages rapides.
+       À reprendre si une vue arrive. */
+    runoffs: [
+      { name: 'Andretti Hairpin', surface: 'gravel', side: 1, from: 0.118, to: 0.152, w: 15 },
+      { name: 'Virage 3', surface: 'gravel', side: -1, from: 0.196, to: 0.235, w: 14 },
+      { name: 'Virage 5', surface: 'gravel', side: 1, from: 0.265, to: 0.382, w: 16 },
+      { name: 'Virage 6', surface: 'asphalt', side: -1, from: 0.374, to: 0.4, w: 13 },
+      { name: 'Tire-bouchon', surface: 'gravel', side: 1, from: 0.46, to: 0.52, w: 16 },
+      { name: 'Rainey Curve', surface: 'gravel', side: 1, from: 0.588, to: 0.64, w: 17 },
+      { name: 'Virage 10', surface: 'gravel', side: -1, from: 0.735, to: 0.775, w: 15 },
+      { name: 'Virage 11', surface: 'asphalt', side: -1, from: 0.808, to: 0.892, w: 14 },
+    ],
+    implantation: [
+      { kind: 'stands', side: -1, from: 0.97, to: 0.06, recul: 11, prof: 20, module: 36 },
+      { kind: 'tribune', side: 1, from: 0.975, to: 0.05, recul: 10, prof: 16, module: 28 },
+      { kind: 'nu', side: 1, from: 0.17, to: 0.3, prof: 120 },
+      { kind: 'bois', side: -1, from: 0.1, to: 0.2, recul: 14, prof: 36, densite: 0.4 },
+      { kind: 'bois', side: 1, from: 0.33, to: 0.44, recul: 13, prof: 40, densite: 0.45 },
+      { kind: 'bois', side: -1, from: 0.42, to: 0.56, recul: 13, prof: 44, densite: 0.5 },
+      { kind: 'nu', side: 1, from: 0.6, to: 0.72, prof: 110 },
+      { kind: 'bois', side: -1, from: 0.62, to: 0.74, recul: 14, prof: 38, densite: 0.4 },
+      { kind: 'parking', side: 1, from: 0.78, to: 0.86, recul: 18, prof: 36 },
+      { kind: 'hangars', side: -1, from: 0.88, to: 0.94, recul: 16, prof: 24, module: 24 },
     ],
     // Trois passerelles : l'entrée des stands, le Rainey Curve et le Corkscrew.
     passerelles: [0.0399, 0.6555, 0.7886],
@@ -510,6 +679,38 @@ const TRACKS = [
       [0.853, 100, 2, 1],
       [0.8697, 50, 2, 1],
       [0.8863, 0, 2, 1],
+    ],
+    /* Le Nürburgring GP : un complexe de stands et de tribunes qui tient tout le bas du tour, et
+       l'Eifel qui ferme le reste. Relevé sur `nurburging_jp.jpg` : la forêt serre le circuit au
+       nord et à l'est, les grands bacs clairs sont à la chicane et à la Coca-Cola Kurve, et le
+       paddock occupe toute la ligne droite avec ses parkings derrière. */
+    runoffs: [
+      { name: 'Castrol-S', surface: 'asphalt', side: 1, from: 0.065, to: 0.1, w: 15 },
+      { name: 'Mercedes-Arena', surface: 'gravel', side: -1, from: 0.098, to: 0.14, w: 14 },
+      { name: 'Epingle Mercedes', surface: 'gravel', side: 1, from: 0.138, to: 0.2, w: 15 },
+      { name: 'Ford-Kurve', surface: 'asphalt', side: -1, from: 0.266, to: 0.3, w: 13 },
+      { name: 'Dunlop-Kehre', surface: 'gravel', side: 1, from: 0.3, to: 0.335, w: 16 },
+      { name: 'Michael-Schumacher-S', surface: 'gravel', side: 1, from: 0.412, to: 0.456, w: 15 },
+      { name: 'Veedol-Schikane', surface: 'gravel', side: -1, from: 0.495, to: 0.548, w: 18 },
+      { name: 'Bit-Kurve', surface: 'gravel', side: -1, from: 0.606, to: 0.634, w: 15 },
+      { name: 'Advan-Bogen', surface: 'asphalt', side: 1, from: 0.644, to: 0.682, w: 13 },
+      { name: 'Schumacher-S bas', surface: 'gravel', side: -1, from: 0.828, to: 0.868, w: 16 },
+      { name: 'Coca-Cola-Kurve', surface: 'asphalt', side: 1, from: 0.878, to: 0.92, w: 17 },
+    ],
+    implantation: [
+      { kind: 'stands', side: -1, from: 0.945, to: 0.055, recul: 12, prof: 26, module: 46 },
+      { kind: 'tribune', side: 1, from: 0.95, to: 0.06, recul: 11, prof: 20, module: 36 },
+      { kind: 'parking', side: -1, from: 0.07, to: 0.13, recul: 22, prof: 44 },
+      { kind: 'tribune', side: 1, from: 0.095, to: 0.2, recul: 13, prof: 16, module: 28 },
+      { kind: 'bois', side: 1, from: 0.21, to: 0.3, recul: 13, prof: 55 },
+      { kind: 'bois', side: -1, from: 0.185, to: 0.26, recul: 14, prof: 60 },
+      { kind: 'bois', side: 1, from: 0.34, to: 0.41, recul: 13, prof: 50 },
+      { kind: 'bois', side: -1, from: 0.33, to: 0.49, recul: 14, prof: 65 },
+      { kind: 'bois', side: 1, from: 0.46, to: 0.6, recul: 13, prof: 70 },
+      { kind: 'bois', side: -1, from: 0.56, to: 0.72, recul: 14, prof: 65 },
+      { kind: 'bois', side: 1, from: 0.69, to: 0.82, recul: 13, prof: 60 },
+      { kind: 'hangars', side: -1, from: 0.74, to: 0.8, recul: 18, prof: 26, module: 26 },
+      { kind: 'tribune', side: -1, from: 0.87, to: 0.935, recul: 13, prof: 18, module: 30 },
     ],
   },
   {
@@ -564,6 +765,39 @@ const TRACKS = [
       [0.9602, 50, 'chicane', -1],
       [0.9721, 0, 'chicane', -1],
       [0.9969, 200, 5, 1],
+    ],
+    /* Le Mans : la pinède des Hunaudières et des Porsche, et au milieu du tour le village —
+       fan zones, grande roue, stands de restauration — qu'on voit sur `lemans.jpg`. Peu de
+       gravier : le circuit est en grande partie bordé de bitume et de rails, sauf à Mulsanne, à
+       Indianapolis, à Arnage et aux virages Porsche. Les stands tiennent toute la ligne droite. */
+    runoffs: [
+      { name: 'Dunlop', surface: 'asphalt', side: 1, from: 0.038, to: 0.058, w: 13 },
+      { name: 'Esses de la foret', surface: 'gravel', side: -1, from: 0.055, to: 0.078, w: 13 },
+      { name: 'Tertre Rouge', surface: 'gravel', side: 1, from: 0.075, to: 0.105, w: 16 },
+      { name: 'Chicane Hunaudieres 1', surface: 'gravel', side: -1, from: 0.1, to: 0.128, w: 14 },
+      { name: 'Chicane Hunaudieres 2', surface: 'gravel', side: 1, from: 0.134, to: 0.152, w: 14 },
+      { name: 'Mulsanne', surface: 'gravel', side: -1, from: 0.29, to: 0.322, w: 17 },
+      { name: 'Indianapolis', surface: 'gravel', side: 1, from: 0.434, to: 0.466, w: 18 },
+      { name: 'Arnage', surface: 'gravel', side: 1, from: 0.56, to: 0.58, w: 16 },
+      { name: 'Porsche 1', surface: 'gravel', side: 1, from: 0.7, to: 0.718, w: 15 },
+      { name: 'Porsche 2', surface: 'gravel', side: -1, from: 0.715, to: 0.734, w: 15 },
+      { name: 'Porsche 3', surface: 'gravel', side: 1, from: 0.738, to: 0.756, w: 15 },
+      { name: 'Maison Blanche', surface: 'asphalt', side: -1, from: 0.855, to: 0.878, w: 13 },
+      { name: 'Chicane Ford', surface: 'asphalt', side: -1, from: 0.924, to: 0.948, w: 14 },
+    ],
+    implantation: [
+      { kind: 'stands', side: -1, from: 0.955, to: 0.035, recul: 12, prof: 26, module: 46 },
+      { kind: 'tribune', side: 1, from: 0.96, to: 0.045, recul: 11, prof: 20, module: 34 },
+      { kind: 'bois', side: 1, from: 0.06, to: 0.29, recul: 13, prof: 70, essence: 'pinede' },
+      { kind: 'bois', side: -1, from: 0.14, to: 0.29, recul: 14, prof: 80, essence: 'pinede' },
+      { kind: 'bois', side: 1, from: 0.33, to: 0.43, recul: 13, prof: 65, essence: 'pinede' },
+      { kind: 'bois', side: -1, from: 0.33, to: 0.55, recul: 14, prof: 75, essence: 'pinede' },
+      { kind: 'bois', side: 1, from: 0.47, to: 0.69, recul: 13, prof: 70, essence: 'pinede' },
+      { kind: 'bois', side: -1, from: 0.6, to: 0.7, recul: 14, prof: 60, essence: 'pinede' },
+      { kind: 'bois', side: 1, from: 0.76, to: 0.85, recul: 14, prof: 55, essence: 'pinede' },
+      { kind: 'hangars', side: -1, from: 0.76, to: 0.85, recul: 18, prof: 30, module: 26 },
+      { kind: 'parking', side: -1, from: 0.86, to: 0.93, recul: 20, prof: 44 },
+      { kind: 'tribune', side: 1, from: 0.88, to: 0.95, recul: 13, prof: 17, module: 30 },
     ],
     lines: {
       racing: [[-30.646, 64.631], [-34.192, 66.924], [-43.868, 68.498], [-61.058, 69.201], [-71.338, 63.674], [-82.061, 56.906], [-87.38, 47.91], [-93.609, 46.011], [-99.897, 36.052], [-94.005, 25.086], [-85.689, 17.354], [-76.08, 10.955], [-66.162, 5.464], [-55.977, 0.186], [-45.87, -4.963], [-35.615, -10.189], [-25.465, -14.515], [-25.878, -16.043], [-7.06, -26.462], [2.869, -32.198], [12.696, -37.85], [22.658, -43.527], [33.736, -50.067], [37.181, -53.431], [43.148, -55.011], [62.437, -62.535], [73.349, -65.61], [84.455, -68.476], [95.729, -70.285], [99.862, -67.102], [99.368, -50.665], [97.788, -39.288], [95.223, -28.238], [91.661, -17.321], [87.176, -6.898], [80.024, 4.651], [75.175, 8.365], [80.044, 18.868], [69.436, 25.352], [59.251, 30.321], [50.151, 37.02], [37.663, 46.998], [30.503, 46.936], [21.404, 44.769], [12.408, 52.754], [2.272, 50.669], [-8.727, 53.076], [-19.119, 57.703]],
@@ -622,6 +856,32 @@ const TRACKS = [
       [0.5417, 50, 2, 1],
       [0.6114, 50, 2, -1],
     ],
+    /* Mount Panorama n'est pas un circuit mais une route de montagne fermée : un mur de béton de
+       chaque côté sur toute la traversée du sommet, et donc presque pas de dégagement. Les seuls
+       bacs sont en bas, à Hell Corner et à Murray's. Relevé sur `Mount-Panorama_2.jpg` : l'eucalyptus
+       clairsemé tient le flanc, le sommet est nu et pelé, et les tribunes sont groupées sur la
+       ligne droite de Pit Straight. */
+    runoffs: [
+      { name: 'Hell Corner', surface: 'gravel', side: -1, from: 0.052, to: 0.082, w: 12 },
+      { name: 'Griffins Bend', surface: 'gravel', side: 1, from: 0.232, to: 0.272, w: 11 },
+      { name: 'Forrest Elbow', surface: 'gravel', side: -1, from: 0.618, to: 0.648, w: 10 },
+      { name: 'The Chase', surface: 'gravel', side: 1, from: 0.838, to: 0.862, w: 16 },
+      { name: 'Murrays Corner', surface: 'gravel', side: -1, from: 0.882, to: 0.922, w: 14 },
+    ],
+    implantation: [
+      { kind: 'stands', side: -1, from: 0.955, to: 0.045, recul: 10, prof: 20, module: 36 },
+      { kind: 'tribune', side: 1, from: 0.96, to: 0.05, recul: 9, prof: 17, module: 28 },
+      { kind: 'parking', side: -1, from: 0.06, to: 0.12, recul: 16, prof: 32 },
+      { kind: 'bois', side: 1, from: 0.1, to: 0.24, recul: 10, prof: 44, densite: 0.4 },
+      { kind: 'bois', side: -1, from: 0.14, to: 0.3, recul: 11, prof: 50, densite: 0.35 },
+      { kind: 'bois', side: 1, from: 0.27, to: 0.35, recul: 9, prof: 36, densite: 0.45 },
+      { kind: 'nu', side: 1, from: 0.36, to: 0.52, prof: 110 },
+      { kind: 'nu', side: -1, from: 0.36, to: 0.52, prof: 110 },
+      { kind: 'bois', side: -1, from: 0.53, to: 0.68, recul: 9, prof: 46, densite: 0.5 },
+      { kind: 'bois', side: 1, from: 0.56, to: 0.7, recul: 10, prof: 40, densite: 0.45 },
+      { kind: 'bois', side: -1, from: 0.7, to: 0.83, recul: 12, prof: 44, densite: 0.4 },
+      { kind: 'bois', side: 1, from: 0.72, to: 0.83, recul: 12, prof: 40, densite: 0.35 },
+    ],
     // Une passerelle sur Pit Straight, une sur Conrod Straight.
     passerelles: [0.0050, 0.9391],
   },
@@ -659,6 +919,33 @@ const TRACKS = [
       [0.9308, 100, 'square', 1],
       [0.9517, 50, 'square', 1],
       [0.9725, 0, 'square', 1],
+    ],
+    /* Le Red Bull Ring a été relevé sur `red_bull_ring.jpg`, qui porte sa propre légende : piste,
+       dégagement bitumé, bac à gravier, gazon synthétique, zones spectateurs, stands, forêt. La
+       forêt remplit l'intérieur de la boucle et borde les deux grandes montées ; les bacs sont au
+       sommet de chaque virage ; le paddock tient le bas du tour, sous la colline. */
+    runoffs: [
+      { name: 'Virage 1', surface: 'gravel', side: 1, from: 0.178, to: 0.212, w: 17 },
+      { name: 'Virage 2', surface: 'asphalt', side: -1, from: 0.108, to: 0.15, w: 13 },
+      { name: 'Virage 3', surface: 'gravel', side: 1, from: 0.364, to: 0.456, w: 18 },
+      { name: 'Virage 4', surface: 'gravel', side: -1, from: 0.474, to: 0.536, w: 16 },
+      { name: 'Virage 6-7', surface: 'gravel', side: -1, from: 0.548, to: 0.648, w: 17 },
+      { name: 'Virage 8', surface: 'asphalt', side: 1, from: 0.728, to: 0.772, w: 14 },
+      { name: 'Virage 9', surface: 'gravel', side: 1, from: 0.782, to: 0.826, w: 16 },
+      { name: 'Virage 10', surface: 'gravel', side: 1, from: 0.962, to: 0.998, w: 15 },
+    ],
+    implantation: [
+      { kind: 'stands', side: -1, from: 0.0, to: 0.085, recul: 11, prof: 22, module: 40 },
+      { kind: 'tribune', side: 1, from: 0.005, to: 0.09, recul: 10, prof: 18, module: 30 },
+      { kind: 'bois', side: -1, from: 0.215, to: 0.35, recul: 13, prof: 70, essence: 'pinede' },
+      { kind: 'bois', side: 1, from: 0.095, to: 0.17, recul: 14, prof: 60, essence: 'pinede' },
+      { kind: 'bois', side: 1, from: 0.47, to: 0.54, recul: 14, prof: 50, essence: 'pinede' },
+      { kind: 'bois', side: -1, from: 0.66, to: 0.72, recul: 14, prof: 55, essence: 'pinede' },
+      { kind: 'bois', side: 1, from: 0.58, to: 0.72, recul: 13, prof: 60, essence: 'pinede' },
+      { kind: 'tribune', side: -1, from: 0.38, to: 0.44, recul: 14, prof: 15, module: 26 },
+      { kind: 'tribune', side: 1, from: 0.83, to: 0.89, recul: 13, prof: 16, module: 28 },
+      { kind: 'parking', side: -1, from: 0.86, to: 0.95, recul: 18, prof: 40 },
+      { kind: 'hangars', side: -1, from: 0.79, to: 0.85, recul: 16, prof: 24, module: 24 },
     ],
   },
   {
@@ -703,6 +990,39 @@ const TRACKS = [
       [0.8096, 0, 3, 1],
       [0.8271, 50, 5, 1],
       [0.8513, 0, 5, 1],
+    ],
+    /* Zandvoort est dans les dunes, et les dunes ne portent pas d'arbre : le semis par défaut est
+       effacé sur tout le nord du tour, où `zandvoort_2.png` ne montre que du sable, de l'oyat et
+       quelques étangs. Les dégagements y sont du SABLE et non du gravier concassé — même surface
+       pour le jeu — à Tarzan, à Scheivlak, au virage 8 et au virage 13 relevé ; le reste est
+       bitumé. Tout le sud-est est bâti : paddock, parc fermé et les quatre parkings de la carte. */
+    runoffs: [
+      { name: 'Tarzanbocht', surface: 'gravel', side: 1, from: 0.05, to: 0.1, w: 16 },
+      { name: 'Gerlachbocht', surface: 'asphalt', side: -1, from: 0.108, to: 0.142, w: 12 },
+      { name: 'Hugenholtzbocht', surface: 'asphalt', side: 1, from: 0.14, to: 0.168, w: 13 },
+      { name: 'Hunserug', surface: 'gravel', side: -1, from: 0.166, to: 0.21, w: 15 },
+      { name: 'Slotemakerbocht', surface: 'gravel', side: 1, from: 0.218, to: 0.26, w: 15 },
+      { name: 'Scheivlak', surface: 'gravel', side: -1, from: 0.262, to: 0.308, w: 18 },
+      { name: 'Mastersbocht', surface: 'gravel', side: 1, from: 0.304, to: 0.342, w: 16 },
+      { name: 'Bocht 9', surface: 'gravel', side: 1, from: 0.352, to: 0.42, w: 15 },
+      { name: 'CM.com-bocht', surface: 'gravel', side: 1, from: 0.45, to: 0.546, w: 16 },
+      { name: 'Hans Ernst-bocht', surface: 'gravel', side: -1, from: 0.54, to: 0.602, w: 15 },
+      { name: 'Bocht 12', surface: 'asphalt', side: 1, from: 0.7, to: 0.754, w: 13 },
+      { name: 'Bocht 13', surface: 'gravel', side: 1, from: 0.794, to: 0.832, w: 17 },
+      { name: 'Arie Luyendyk-bocht', surface: 'asphalt', side: 1, from: 0.834, to: 0.91, w: 16 },
+    ],
+    implantation: [
+      { kind: 'stands', side: -1, from: 0.93, to: 0.045, recul: 11, prof: 22, module: 40 },
+      { kind: 'tribune', side: 1, from: 0.94, to: 0.04, recul: 10, prof: 18, module: 32 },
+      { kind: 'nu', side: 1, from: 0.1, to: 0.62, prof: 150 },
+      { kind: 'nu', side: -1, from: 0.14, to: 0.6, prof: 150 },
+      { kind: 'bois', side: 1, from: 0.2, to: 0.29, recul: 16, prof: 26, essence: 'taillis', densite: 0.4 },
+      { kind: 'bois', side: -1, from: 0.36, to: 0.46, recul: 16, prof: 24, essence: 'taillis', densite: 0.35 },
+      { kind: 'bois', side: 1, from: 0.6, to: 0.68, recul: 15, prof: 26, essence: 'taillis', densite: 0.4 },
+      { kind: 'hangars', side: -1, from: 0.62, to: 0.72, recul: 16, prof: 30, module: 28 },
+      { kind: 'parking', side: -1, from: 0.74, to: 0.82, recul: 18, prof: 42 },
+      { kind: 'tribune', side: -1, from: 0.84, to: 0.92, recul: 13, prof: 16, module: 28 },
+      { kind: 'parking', side: 1, from: 0.0, to: 0.04, recul: 34, prof: 36 },
     ],
     lines: {
       racing: [[-28.751, 96.752], [-49.819, 97.736], [-70.893, 98.638], [-94.858, 95.368], [-95.703, 82.487], [-76.914, 76.224], [-56.28, 73.846], [-31.985, 67.787], [-6.602, 83.135], [-0.305, 77.822], [-7.388, 61.898], [-20.07, 45.394], [-29.057, 27.011], [-36.483, 7.244], [-47.385, -9.543], [-62.714, -23.984], [-75.853, -39.38], [-84.769, -58.485], [-85.927, -78.584], [-74.3, -93.305], [-54.552, -96.706], [-33.672, -95.084], [-10.574, -92.286], [-0.266, -77.81], [1.582, -56.964], [-8.098, -42.777], [-24.005, -53.84], [-43.903, -73.831], [-54.236, -66.636], [-54.705, -47.03], [-46.417, -27.392], [-34.17, -10.008], [-19.961, 5.568], [-4.876, 20.025], [11.493, 36.191], [11.068, 56.059], [27.346, 54.277], [44.636, 42.196], [61.503, 29.503], [80.233, 24.415], [94.014, 37.899], [98.5, 57.976], [92.066, 76.407], [76.034, 87.838], [55.501, 92.385], [34.457, 93.796], [13.387, 94.782], [-7.681, 95.767]],

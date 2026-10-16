@@ -26,6 +26,7 @@ for(const kind of ['rail','tyres'])segments[kind]=T.barriers.find(b=>b.kind===ki
 assert.ok(segments.rail&&segments.tyres);
 function impact(model,kind,speed,angle,wear,alreadyOff=false){
  const b=segments[kind],p=new Car(T,model,{usure:wear?USURE:null,isPlayer:true});
+ void b;
  const heading=Math.atan2(-b.ny,-b.nx)+angle,cs=Math.cos(heading),sn=Math.sin(heading);
  const support=model.width/2+(model.length-model.width)/2*Math.abs(cs*b.nx+sn*b.ny);
  const x=(b.ax+b.bx)/2+b.nx*(b.half+support+1),y=(b.ay+b.by)/2+b.ny*(b.half+support+1);
@@ -33,9 +34,19 @@ function impact(model,kind,speed,angle,wear,alreadyOff=false){
  if(alreadyOff)p._leaveTrack(false);
  const from={x,y,th:heading};p.x+=cs*12;p.y+=sn*12;
  assert.ok(p._barrierContact(from,12/speed),kind+' sans contact');
- assert.equal(p.v,0);assert.equal(p.vl,0);assert.equal(p.w,0);assert.ok(p.engineStopped);
+ /* La voiture n'est plus clouée au mur : elle en repart. Ce qui se vérifie, c'est que le rebond
+    la ramène VERS LA PISTE et jamais dedans. La vitesse normale sortante est comptée sur la
+    normale du segment, qui pointe vers la piste : elle doit être positive, et rester sous la
+    vitesse d'impact — un mur rend moins qu'il ne reçoit, sinon c'est un tremplin. */
+ const nvx=p.v*Math.cos(p.th)+p.vl*Math.sin(p.th),nvy=p.v*Math.sin(p.th)-p.vl*Math.cos(p.th);
+ const sortie=nvx*b.nx+nvy*b.ny;
+ assert.ok(sortie>-1e-6,kind+' : renvoyée dans le mur à '+speed+'/'+angle);
+ assert.ok(sortie<=speed+1e-6,kind+' : le mur rend plus qu-il ne recoit');
  assert.equal(p.crashes,1);assert.equal(p.fautes,1);assert.ok(p.lapSale);assert.equal(p.barrierHits,1);
- assert.ok(p.engineCut>=.25&&p.engineCut<=5);
+ // Le moteur ne se coupe qu'au-delà du seuil : en dessous c'est un frottement, pas un accident.
+ const normale=speed*Math.cos(angle);
+ if(normale>BARRIERE.seuil){assert.ok(p.engineStopped);assert.ok(p.engineCut>=.25&&p.engineCut<=5);}
+ else{assert.ok(!p.engineStopped,kind+' : coupure sur un simple frottement');}
  if(!wear)assert.equal(p.damage,0);
  return p;
 }
@@ -46,17 +57,24 @@ for(const m of modelsOf('gt'))for(const speed of [10,30,60])for(const angle of [
  impact(m,'rail',speed,angle,false,true);n+=3;
 }
 console.log(n+' impacts : neuf voitures, trois vitesses, trois angles, pneus et dégâts optionnels OK');
+/* Pendant la coupure la voiture ROULE au lieu d'être figée : elle s'écarte du mur et s'arrête
+   d'elle-même. On vérifie donc qu'elle s'éloigne, qu'elle finit immobile avant la fin de la
+   coupure, et que rien ne se recompte en chemin. */
 const p=impact(modelById('f40'),'rail',30,0,true),cut=p.engineCut,x=p.x,y=p.y,damage=p.damage;
-for(let i=0;i<Math.floor(cut*120)-1;i++){p.update(1/120,true,i/120);assert.equal(p.v,0);assert.equal(p.x,x);assert.equal(p.y,y);}
+for(let i=0;i<Math.floor(cut*120)-1;i++)p.update(1/120,true,i/120);
+const ecart=Math.hypot(p.x-x,p.y-y);
+assert.ok(ecart>0.3,'voiture figée contre le mur : '+ecart.toFixed(3)+' m');
+assert.ok(ecart<12,'rebond démesuré : '+ecart.toFixed(2)+' m');
+assert.equal(p.v,0,'toujours en mouvement à la fin de la coupure');
 assert.equal(p.damage,damage);assert.equal(p.barrierHits,1);assert.equal(p.crashes,1);
 for(let i=0;i<240;i++){p.steer([p],1/120,true);p.update(1/120,true,cut+i/120);}
 assert.ok(!p.engineStopped&&p.v>2,'voiture bloquée après le choc');
 assert.ok(p.barrierHits<4,'collision réarmée à chaque appui : '+p.barrierHits);
 // Le secours après huit secondes ne doit pas interrompre une coupure en cours.
 const late=impact(modelById('f40'),'rail',50,0,true,true);
-late.grassT=7.99;const lx=late.x,ly=late.y;
+late.grassT=7.99;
 for(let i=0;i<120;i++)late.update(1/120,true,i/120);
-assert.ok(late.engineStopped);assert.equal(late.rejoined,0);assert.equal(late.x,lx);assert.equal(late.y,ly);
+assert.ok(late.engineStopped);assert.equal(late.rejoined,0,'secours pendant la coupure');
 p.place(0,0,0);assert.equal(p.engineCut,0);assert.equal(p.engineStopped,false);
 const host=new Race({trackDef:TRACKS.find(t=>t.id==='spa'),classId:'gt',modelId:'f40',nCars:1,wear:true});
 const guest=new Race({trackDef:TRACKS.find(t=>t.id==='spa'),classId:'gt',modelId:'f40',nCars:1,wear:true});

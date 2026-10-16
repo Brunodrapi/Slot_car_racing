@@ -121,6 +121,27 @@ vitesses de passage monteraient, et la mesure des planchers — le temps minimum
 deux roues dedans sur tout le virage coûte le virage. */
 const KERB_ADHERENCE = 0.88;
 
+/* LE REBOND SUR UNE PROTECTION — les nombres du trampoline. Voir `_barrierContact`.
+
+   `rebond` et `douceur` ensemble font une courbe en cloche : la vitesse renvoyée vaut
+   `v · rebond · e^(−v/douceur)`, donc elle monte avec la vitesse d'impact, passe par un maximum
+   vers 9 m/s, puis redescend. C'est volontaire et c'est ce qui rend le rebond jouable : sous le
+   maximum, plus on tape fort plus on est renvoyé loin — ce qui aide à se dégager ; au-delà, taper
+   plus fort ne sert plus à rien, ce qui empêche le mur de devenir un tremplin à exploiter.
+
+   `glisseRail` et `glissePneus` disent ce qu'il reste de la vitesse LE LONG du mur, celle qui ne
+   tape pas : un rail d'acier laisse filer, un empilement de pneus accroche. C'est la différence
+   qu'on sent entre frotter une glissière et s'enfoncer dans les pneus.
+
+   `seuil` est la vitesse normale en dessous de laquelle le moteur ne se coupe plus : en dessous ce
+   n'est pas un accident, c'est un frottement. */
+const BARRIERE = { rebond: 1.05, douceur: 9, pneus: 0.62, glisseRail: 0.78, glissePneus: 0.52,
+  lacet: 0.35, seuil: 5 };
+
+// Temps caractéristique de décélération en roue libre, moteur coupé : la voiture roule encore,
+// mais elle s'arrête en deux secondes environ, sans qu'on ait à la figer.
+const ARRET_LIBRE = 0.55;
+
 const PHYS = { aimant: 0, ldK: 0.45, ldMin: 6, ff: 0.3, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, motricite: 1.25, drivePriority: 0.15, relax: 0.2, circle: 0.25 };
 
 /* LES AIDES DE L'IA, qui ne sont pas celles du joueur.
@@ -543,6 +564,36 @@ class Car {
       this.damage = clamp(this.damage + this.usure.sortieParVitesse * Math.abs(this.v), 0, 1);
   }
 
+  /* LE CHOC CONTRE UNE PROTECTION, ET LE DROIT D'EN REPARTIR.
+
+  La première version arrêtait tout : les trois vitesses à zéro, moteur coupé, et la voiture figée
+  sur place jusqu'à la fin de la coupure. C'est juste pour un impact frontal — on tape, on s'arrête,
+  on attend — mais c'était appliqué à TOUT contact, y compris au frottement en sortie de virage où
+  l'aile effleure le rail. Bruno l'a dit comme on le ressent : « on colle à la barrière ».
+
+  Et c'est exactement ce qui se passait. La vitesse le long du mur, celle qui n'a rien à voir avec
+  le choc, était effacée elle aussi : une voiture qui glissait à soixante contre le rail s'y
+  trouvait collée, à l'arrêt, pour une à deux secondes. Rien, dans le mouvement, n'indiquait
+  comment s'en défaire — parce qu'il n'y avait rien à faire.
+
+  On sépare donc les deux composantes de la vitesse, ce qui était déjà fait pour mesurer la
+  sévérité mais ne servait qu'à ça :
+
+    NORMALE     ce qui rentre dans le mur. C'est elle qui fait le choc, et elle repart en sens
+                inverse, amortie — le trampoline. D'autant plus franchement que le choc est léger :
+                un effleurement rebondit vivement, un impact à plein régime ne renvoie presque
+                rien, sans quoi on repartirait d'un mur comme d'un ressort.
+    TANGENTIELLE ce qui glisse le long du mur. Elle ne cause aucun choc et n'est plus effacée :
+                on en garde la plus grande part contre un rail, moins contre les pneus, qui
+                accrochent. C'est elle qui emmène la voiture hors de la zone.
+
+  En dessous d'un seuil de vitesse normale le moteur ne se coupe plus du tout : un frottement n'est
+  pas un accident. La faute et le tour sali restent — on est sorti de la piste, et cela se paie —
+  mais on continue de rouler.
+
+  Le seuil est à 5 m/s parce que c'est, sur le banc, ce qui sépare les deux familles : à angle
+  rasant et aux vitesses de sortie de virage la composante normale reste en dessous, tandis qu'un
+  tête-à-queue dans le mur ou une sortie tout droit la passe largement. */
   _barrierContact(from, dt, raceTime) {
     const hit=this.track.barrierHit(this,from);
     if(!hit)return false;
@@ -550,16 +601,29 @@ class Car {
     const vy=this.v*Math.sin(this.th)-this.vl*Math.cos(this.th);
     // La composante normale distingue un frottement d'un impact frontal.
     const impact=Math.max(0,-vx*hit.nx-vy*hit.ny);
+    const pneus=hit.barrier.kind==='tyres';
     this.x=from.x+(this.x-from.x)*hit.t+hit.nx*(hit.depth+.035);
     this.y=from.y+(this.y-from.y)*hit.t+hit.ny*(hit.depth+.035);
     this.th=wrapAngle(from.th+wrapAngle(this.th-from.th)*hit.t);
-    this.v=0;this.vl=0;this.w=0;this.Ff=0;this.Fr=0;
+    // Le long du mur : la vitesse qui ne tape pas, et qu'on garde.
+    const tx=-hit.ny,ty=hit.nx;
+    const vt=vx*tx+vy*ty;
+    const rendu=impact*BARRIERE.rebond*Math.exp(-impact/BARRIERE.douceur)*(pneus?BARRIERE.pneus:1);
+    const glisse=vt*(pneus?BARRIERE.glissePneus:BARRIERE.glisseRail);
+    const wx=hit.nx*rendu+tx*glisse, wy=hit.ny*rendu+ty*glisse;
+    const cs=Math.cos(this.th),sn=Math.sin(this.th);
+    this.v=wx*cs+wy*sn; this.vl=wx*sn-wy*cs;
+    this.w*=BARRIERE.lacet;this.Ff=0;this.Fr=0;
     this.slide=0;this.patine=0;this.patineFx=0;this.throttle=false;this.braking=false;
     if(!this.engineStopped){
-      const effective=impact*(hit.barrier.kind==='tyres'?.55:1);
-      this.engineCut=clamp(.25+2*Math.pow(effective/20,2),.25,5);
-      this.engineStopped=true;this.barrierHits++;
-      this.lastBarrierImpact={speed:impact,effective,kind:hit.barrier.kind,cut:this.engineCut};
+      const effective=impact*(pneus?.55:1);
+      this.barrierHits++;
+      this.lastBarrierImpact={speed:impact,effective,kind:hit.barrier.kind,cut:0};
+      if(impact>BARRIERE.seuil){
+        this.engineCut=clamp(.25+2*Math.pow(effective/20,2),.25,5);
+        this.engineStopped=true;
+        this.lastBarrierImpact.cut=this.engineCut;
+      }
       this._leaveTrack(false); // une excursion et son impact ne comptent pas deux fautes
       if(this.usure)this.damage=clamp(this.damage+this.usure.chocParVitesse*Math.max(0,effective-this.usure.chocSeuil),0,1);
     }
@@ -709,7 +773,30 @@ class Car {
       this.state = 'ok'; this.grassT = 0; this.rejoined = (this.rejoined || 0) + 1;
       return;
     }
-    if (this.engineStopped) { this.v=0; this.vl=0; this.w=0; return; }
+    /* MOTEUR COUPÉ : LA VOITURE ROULE ENCORE.
+
+    Elle était figée — trois vitesses à zéro et retour immédiat — ce qui, ajouté au rebond, aurait
+    annulé le rebond : la voiture aurait été renvoyée du mur puis clouée sur place à l'image
+    suivante. Elle roule donc en roue libre, freinée fort mais pas arrêtée, jusqu'à ce que le
+    moteur revienne ou qu'elle s'immobilise d'elle-même. C'est ce qui donne au choc son mouvement
+    de sortie, et c'est aussi ce qui fait qu'on voit où l'on est reparti. */
+    if (this.engineStopped) {
+      const frein = Math.exp(-dt / ARRET_LIBRE);
+      this.v *= frein; this.vl *= frein; this.w *= frein;
+      if (Math.abs(this.v) < 0.05) this.v = 0;
+      if (Math.abs(this.vl) < 0.05) this.vl = 0;
+      if (Math.abs(this.w) < 0.02) this.w = 0;
+      this.th = wrapAngle(this.th + this.w * dt);
+      const cs0 = Math.cos(this.th), sn0 = Math.sin(this.th);
+      const av = { x: this.x, y: this.y, th: this.th };
+      this.x += (this.v * cs0 + this.vl * sn0) * dt;
+      this.y += (this.v * sn0 - this.vl * cs0) * dt;
+      // Un rebond peut renvoyer la voiture dans la protection d'en face : on le vérifie.
+      if (T.barriers.length && this._barrierContact(av, dt, raceTime)) return;
+      const prc = T.project(this.x, this.y, this.s, 30);
+      if (Math.abs(T.diff(this.s, prc.s)) < 6) { this.s = prc.s; this.lat = prc.lat; }
+      return;
+    }
     // le vibreur ne rend pas tout : on peut s'y appuyer, pas s'y installer
     const surface = loose ? 0.42 : this.surKerb ? KERB_ADHERENCE : 1;
 

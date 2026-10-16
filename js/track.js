@@ -63,6 +63,26 @@ const KERB_LARGE = 1.7;      // sa largeur au milieu du virage
    avec la pleine largeur. */
 const KERB_RAMPE = 9;
 
+/* Une zone de dégagement sans contour relevé point par point.
+
+Spa a été relevé sur une image annotée : chaque zone y porte ses propres couples abscisse-largeur,
+et c'est ce qu'il faut quand on recopie un tracé réel au pixel près. Les onze autres circuits sont
+relevés sur des vues du dessus qui ne sont pas superposables au tracé du jeu — elles disent QUELLE
+surface entoure quel virage, pas sa forme exacte en mètres. Pour ceux-là une zone se donne par son
+secteur et sa largeur maximale, et le profil se déduit : nul aux extrémités, plein au milieu.
+
+La puissance 0,8 sur le sinus est la même que celle du profil automatique : elle ouvre vite et
+ferme vite, alors qu'un sinus pur passe le plus clair de la zone à monter ou à descendre. */
+function runoffProfil(zone) {
+  const a = zone.from, b = zone.to > zone.from ? zone.to : zone.to + 1;
+  const n = 12, pts = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    pts.push([a + (b - a) * t, zone.w * Math.pow(Math.sin(Math.PI * t), 0.8)]);
+  }
+  return pts;
+}
+
 class Track {
   // How fast the racing line may cross the road, in metres of lateral per metre travelled.
   static get RACING_SLOPE() { return 0.3; }
@@ -166,12 +186,15 @@ class Track {
   // Les contours annotés priment sur la détection des virages. Une zone peut
   // traverser une ligne droite ou un changement de courbure sans être morcelée.
   _buildRunoffs() {
+
     if (!this.def.runoffs) return;
     this.bacW = this._profilBac();
     this.asphaltW = { L: new Float32Array(this.n), R: new Float32Array(this.n) };
     for (const zone of this.def.runoffs) {
-      const pts = zone.points, side = zone.side > 0 ? 'L' : 'R';
+      const pts = zone.points || runoffProfil(zone), side = zone.side > 0 ? 'L' : 'R';
       const first = pts[0][0], last = pts[pts.length - 1][0];
+      let crete = 0;
+      for (const p of pts) if (p[1] > crete) crete = p[1];
       for (let i = 0; i < this.n; i++) {
         // Accepte aussi les secteurs passant par la ligne de départ (fin > 1).
         let f = i / this.n;
@@ -181,7 +204,22 @@ class Track {
         while (j < pts.length - 2 && f > pts[j + 1][0]) j++;
         const a = pts[j], b = pts[j + 1], u = (f - a[0]) / (b[0] - a[0]);
         const w = Math.max(0, a[1] + (b[1] - a[1]) * u);
-        this.bacW[side][i] = zone.surface === 'gravel' ? w : 0;
+        /* La zone déclarée CHASSE le profil automatique au lieu de l'écraser.
+
+        Une zone s'ouvre à zéro et se ferme à zéro ; le profil tiré de la courbure, lui, ne
+        s'arrête pas exactement là. Remplacer la valeur sèchement laissait donc une falaise à
+        chaque extrémité : d'un nœud à l'autre, la largeur passait de douze mètres à rien, et avec
+        elle la barrière qui la suit. Le profil automatique est maintenant retiré À LA MESURE de
+        la zone qui le remplace : entier là où elle est nulle, nul là où elle est pleine. Le
+        raccord est continu des deux côtés sans qu'on ait à faire coïncider les bouts à la main.
+
+        Il reste donc, aux extrémités d'un dégagement bitumé, un liseré où le gravier n'a pas
+        encore disparu derrière le bitume. C'est quelques mètres sur la longueur d'un virage, et
+        c'est ce que montrent beaucoup de circuits réels : un tablier d'asphalte, puis du gravier
+        au-delà. */
+        const reste = crete > 0 ? this.bacW[side][i] * Math.max(0, 1 - w / crete) : this.bacW[side][i];
+        this.bacW[side][i] = zone.surface === 'gravel' ? Math.max(w, reste)
+          : zone.surface === 'grass' ? 0 : reste;
         this.asphaltW[side][i] = zone.surface === 'asphalt' ? w : 0;
       }
     }
