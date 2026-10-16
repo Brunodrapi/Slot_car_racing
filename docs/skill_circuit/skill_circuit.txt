@@ -1,5 +1,17 @@
 # CIRCUIT GRAPHICS — Procedural Rendering Rules
 
+## 0. Project requirements and context
+
+Read `analyse_circuit.md` in this directory together with this skill. It is the source analysis and supplies artistic context and circuit identities. The operative implementation rules are in this skill; explicit user instructions take priority.
+
+- Preserve the existing **large distance numbers and corner arrows painted on the road**. They are gameplay aids, not decorative attempts at real-world signage.
+- Keep their positions, orientation, size and legibility. Do not remove, shrink, hide or relocate them to make the circuit look more realistic.
+- **Do not add trackside distance boards or distance panels.** Do not replace or duplicate the gameplay road markings with physical signs.
+- Focus circuit improvements on materials, procedural textures, lighting restraint and the trackside environment while preserving gameplay and physical geometry.
+- The source analysis is context, not an instruction to implement every suggested asset or feature. Its references to sprites, imported textures and distance-board catalogues do not override the procedural-only rule or the gameplay requirements above.
+- Circuit identity matters: Monza uses a natural green/grey palette with dark asphalt, trees, grass and chicanes; Spa uses deep forest greens; Silverstone uses grey/green with modern facilities; Paul Ricard alone receives its configured blue/red runoff stripes. Do not copy a distinctive feature to other circuits without supporting data.
+
+
 ## 1. Objective
 
 Generate visually coherent, realistic, modern Formula 1-style circuits using **100% procedural rendering**.
@@ -287,28 +299,20 @@ Distinguish between flexible objects and solid obstacles.
 
 Do not place decorative obstacles directly on the racing line.
 
-## 9. Braking zones and corner entries
+## 9. Braking zones, corner entries and gameplay aids
 
-Do not paint artificial braking zones onto the asphalt.
+The existing large distance numbers and corner arrows painted on the track **must remain**. They tell the player when to brake and which corner is approaching. Preserve their world-space positions, orientation, dimensions and readable contrast.
 
-Instead, use realistic visual cues:
+Do not add trackside distance boards, distance panels or duplicated braking signs. Do not move the gameplay information from the road to the verge.
 
-- Distance boards.
-- Rubber deposits.
-- Trackside reference markers.
-- Kerb geometry.
-- Track width and corner shape.
+Realistic material improvements may complement the existing gameplay markings:
 
-Distance boards may display:
+- Restrained rubber deposits following the racing line.
+- Existing kerb geometry.
+- Actual track width and corner shape.
+- Surface grain and subtle asphalt wear.
 
-- 200 m.
-- 150 m.
-- 100 m.
-- 50 m.
-
-These distances must be measured along the track path to the relevant braking reference, not inferred from screen-space distance.
-
-Do not generate all four boards if there is insufficient space or if the circuit configuration specifies otherwise.
+Do not invent systematic yellow/orange braking zones or decorative obstacles. The instruction to avoid artificial braking-zone paint does not apply to the required existing gameplay numbers and arrows.
 
 ## 10. Track markings
 
@@ -319,6 +323,7 @@ Supported markings:
 - Starting grid positions.
 - Pit entry and exit lines.
 - Pit box markings.
+- Existing large gameplay distance numbers and corner arrows (mandatory; retain their dimensions and placement).
 - Directional arrows where appropriate.
 - Special race-control markings where configured.
 
@@ -476,7 +481,7 @@ Each circuit may define:
 - Pit lane geometry.
 - Trackside objects.
 - Painted runoff patterns.
-- Braking boards.
+- Existing gameplay braking-distance and corner-arrow road markings; no added distance boards.
 - Special corner features.
 
 Never infer exact safety infrastructure solely from track curvature.
@@ -500,6 +505,9 @@ Before accepting a generated circuit, verify:
 - [ ] Obstacles are not placed on the racing line.
 - [ ] Pit entry and exit connect logically.
 - [ ] Start/finish and grid markings follow the track geometry.
+- [ ] Existing large road numbers and corner arrows remain readable, at their original scale and placement.
+- [ ] No trackside distance boards or distance panels have been added.
+- [ ] Circuit identity was checked against `analyse_circuit.md` and available circuit-specific data.
 - [ ] All materials follow the shared palette.
 - [ ] Procedural details are deterministic.
 - [ ] Rendering is stable at different zoom levels.
@@ -520,6 +528,8 @@ When implementing or modifying circuit rendering:
 8. Never invent circuit-specific features without configuration data.
 9. Validate the result at representative straights, tight corners, chicanes and pit lane sections.
 10. If semantic information is missing, use a neutral fallback and report the missing data rather than pretending to know the correct placement.
+11. Read `analyse_circuit.md` for circuit-specific artistic context before changing a circuit.
+12. Preserve the large gameplay numbers and arrows on the road; add no trackside distance boards.
 
 **Priority order: geometric correctness → physical coherence → track readability → visual realism → decorative detail.**
 
