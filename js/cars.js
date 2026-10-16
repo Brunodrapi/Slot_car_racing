@@ -175,6 +175,22 @@ const LIVERIES = [
   { name: 'White', body: '#f4f4f4', accent: '#2166d8' },
 ];
 
+// Livrées historiques illustrées ; voir docs/livrees-historiques/README.md.
+const HISTORIC_LIVERIES = {
+  countach: [{ id: 'rainx', nom: 'Rain-X JLOC · 88' }, { id: 'monaco83', nom: 'Monaco 1983 Safety Car' }],
+  gt40: [{ id: 'lemans1', nom: 'Le Mans 1966 · 1' }, { id: 'lemans2', nom: 'Le Mans 1966 · 2' }],
+  '935': [{ id: 'jager', nom: 'Jägermeister · 16' }, { id: 'vaillant', nom: 'Vaillant-Kremer · 51' }],
+  corvette: [{ id: 'spirit76', nom: 'Spirit of Le Mans · 76' }, { id: 'bfg49', nom: 'BFGoodrich · 49' }],
+  '787b': [{ id: 'efini18', nom: 'Efini Autopolis · 18' }, { id: 'jspc202', nom: 'Renown JSPC · 202' }],
+};
+for (const category of CATEGORIES) {
+  for (const model of category.models) {
+    if (HISTORIC_LIVERIES[model.id]) {
+      model.livrees = [{ id: '', nom: model.name }, ...HISTORIC_LIVERIES[model.id]];
+    }
+  }
+}
+
 const AI_NAMES = [
   'L. Moreau', 'K. Tanaka', 'M. Rossi', 'A. Silva', 'J. Becker', 'S. Novak', 'D. Okafor', 'E. Lindqvist',
   'R. Castillo', 'T. Nguyen', 'P. Dubois', 'H. Weber', 'N. Petrov', 'C. Ferreira', 'B. Andersen', 'Y. Sato',

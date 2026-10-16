@@ -87,7 +87,18 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   const multi = plan.filter((m) => m.n > 1);
   const simple = plan.filter((m) => m.n === 1);
   dit(multi.length > 0, `${multi.length} voiture(s) a plusieurs livrees : ${multi.map((m) => `${m.nom} (${m.n})`).join(', ')}`);
-  dit(simple.length > 0, `${simple.length} a dessin unique, dont ${simple[0] ? simple[0].nom : '—'}`);
+  dit(plan.length === 9 && plan.every((m) => m.n === 3), 'les neuf modèles ont chacun trois livrées');
+
+  const images = await p.evaluate(async () => {
+    const paths = modelsOf('gt').flatMap((m) => m.livrees.flatMap((l) => [l.top, l.pick]));
+    return Promise.all(paths.map((src) => new Promise((resolve) => {
+      const image = new Image();
+      image.onload = () => resolve({ src, ok: image.naturalWidth > 0 });
+      image.onerror = () => resolve({ src, ok: false });
+      image.src = src;
+    })));
+  });
+  dit(images.length === 54 && images.every((i) => i.ok), 'les 54 images de course et de menu sont chargees');
 
   /* --- 1 a 3. choisir, puis faire tourner, et aller chercher le bon dessin --- */
   for (const m of multi) {
@@ -132,6 +143,8 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 
   /* --- 5. le choix est range par voiture, et il survit --- */
   console.log('\nle choix se garde, voiture par voiture');
+  await p.click(carte('m1procar'));
+  await p.waitForTimeout(250);
   await p.click(carte('csl'));                    // on revient a la CSL : premier appui = choix
   await p.waitForTimeout(250);
   const retour = await lire('csl');
