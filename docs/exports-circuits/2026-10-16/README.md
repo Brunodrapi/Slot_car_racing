@@ -1,6 +1,6 @@
 # Circuits hybrid — vues complètes du 16 octobre 2026
 
-Version **0.28.0**. Ce dossier contient uniquement les **13 vues tour**, en PNG de 2560 × 1600 pixels, sans voitures ni interface. Les anciennes vues de détail et planches de ce dossier ont été supprimées à la demande de l’utilisateur.
+Version **0.29.1**. Ce dossier contient uniquement les **13 vues tour**, en PNG de 2560 × 1600 pixels, sans voitures ni interface. Les anciennes vues de détail et planches de ce dossier ont été supprimées à la demande de l’utilisateur.
 
 [Télécharger les 13 vues tour en ZIP](../circuits-hybrid-2026-10-16.zip)
 
@@ -20,9 +20,11 @@ Version **0.28.0**. Ce dossier contient uniquement les **13 vues tour**, en PNG 
 | Paul Ricard | [castellet-tour.png](castellet-tour.png) |
 | Zandvoort | [zandvoort-tour.png](zandvoort-tour.png) |
 
-Dernières corrections : suppression du décor dont l’empreinte touche une barrière ; fusion moyenne des séparations proches et correction des boucles ; regroupement des petits dégagements de Monaco et Bathurst ; alternance couleur/bitume dans les bandes peintes, y compris Paul Ricard ; protections resserrées aux tunnels/pont de Monaco et Suzuka, avec niveaux de collision séparés et rails du pont visibles sur le tablier.
+Dernière régénération : remplacement intégral des treize PNG, sans conserver les anciennes images dans ce dossier. Suzuka et Zandvoort suivent les reprises annotées : matériaux rouge/vert, piste élargie au trait bleu et rails simples aux croix à Zandvoort ; passage sous pont limité au tablier à Suzuka ; garages de Zandvoort dégagés. [Détail des corrections et références](../../reprises-circuits/README.md).
 
-Les chiffres, flèches et bords jaunes/bleus de gameplay sont conservés. Le tracé, la largeur de chaussée et les vibreurs physiques ne changent pas ; les enveloppes hors piste et les protections évoluent pour corriger les conflits. Aucun panneau de distance ajouté.
+Corrections précédentes : suppression du décor dont l’empreinte touche une barrière ; fusion moyenne des séparations proches et correction des boucles ; regroupement des petits dégagements de Monaco et Bathurst ; alternance couleur/bitume dans les bandes peintes, y compris Paul Ricard ; protections resserrées aux tunnels/pont de Monaco et Suzuka, avec niveaux de collision séparés et rails du pont visibles sur le tablier.
+
+Les chiffres, flèches et bords jaunes/bleus de gameplay sont conservés. Les lignes centrales sont conservées. La largeur de chaussée change localement à Zandvoort selon le trait bleu demandé ; enveloppes hors piste et protections suivent la même géométrie pour le dessin et les contacts. Aucun panneau de distance ajouté.
 
 [Skill consolidé](../../skill_circuit/skill_circuit.txt) · [Audit des surfaces et limites des références](../../surfaces-circuits/README.md). Les palettes restent artistiques ; les références web n’ont pas pu être consultées.
 

@@ -9,7 +9,7 @@ Quatre modèles sélectionnables dans le plateau existant, avec une illustration
 | McLaren M23 | James Hunt n°11, 1976 | [GP de Grande-Bretagne 1976](https://commons.wikimedia.org/wiki/File:James_Hunt_British_GP_1976.jpg) |
 | Lotus 79 | John Player Special, Mario Andretti n°5, 1978 | [Voiture de référence](https://commons.wikimedia.org/wiki/File:Lotus_79_2009_Lime_Rock.jpg) |
 
-« Tyrrell BT34 » a été interprété comme Tyrrell P34, la six-roues. BT34 désigne un modèle Brabham différent.
+La Tyrrell P34 à six roues a été confirmée par l’utilisateur. BT34 désigne un modèle Brabham différent.
 
 ## Dessin et gabarit
 
@@ -29,3 +29,7 @@ Les moteurs utilisent la synthèse existante : douze cylindres pour la Ferrari, 
 - `tools/e2e-livree.js` : 62 images chargées, cycles des neuf voitures à variantes, voitures à une livrée, persistance et livrée de course ; aucune faute, aucune erreur JavaScript.
 - Huit PNG vérifiés : transparence et dimensions communes (420 × 205 / 420 × 340).
 - [Aperçu des quatre modèles](apercu.png).
+
+## Réglages 0.29.1
+
+[Analyse et mesures du comportement](comportement/README.md) : différenciation mécanique/appui, frein et impulsions, comparaison avant/après et limites du protocole.

@@ -459,17 +459,16 @@ const TRACKS = [
   },
   {
     id: 'suzuka', name: 'Suzuka', country: 'JP', flag: '🇯🇵', theme: 'japan',
+    parallelClearance: true,
     architecture: 'graphique',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.jp,
     length: 3300, width: 14,
     pts: TRACES.suzuka,
-    /* Le passage sous le croisement, 243 m relevés (voie 183391655). Étiqueté « covered », pas
-       « tunnel » : on n'est pas sous terre, on est sous le pont que la piste se fait à elle-même.
-       Ça se dessine pareil, et ça se lit mieux — sans l'assombrissement, rien ne disait qu'on
-       passait dessous plutôt que dessus. Monza a 25 m de « covered » au même titre, et on ne les
-       dessine pas : ce sont les mètres sous la passerelle du Serraglio, déjà dessinée. */
-    tunnels: [[0.3317, 0.3750]],
+    // Uniquement le passage sous le pont du croisement : pas de tunnel ni de portails.
+    // L’emprise couverte est déduite de la largeur du tablier dans Track.
+    tunnels: [],
+    annotatedRunoffsOnly: true, // contours rouge/vert de art/reprise circuit/suzuka_reprise.png
     lines: {
       racing: [[-74.294, 71.274], [-88.322, 72.58], [-99.803, 64.597], [-97.785, 57.129], [-76.388, 53.412], [-69.971, 49.421], [-63.68, 44.454], [-47.075, 44.528], [-37.102, 34.185], [-28.956, 33.889], [-15.383, 42.684], [-4.179, 38.122], [2.292, 27.102], [2.035, 14.29], [-3.098, -4.161], [-2.117, -11.181], [4.109, -19.201], [19.766, -16.184], [34.95, -10.176], [46.664, 1.12], [49.174, -2.657], [42.133, -15.489], [40.618, -27.47], [46.071, -39.216], [56.403, -48.504], [67.626, -53.203], [80.709, -53.226], [93.446, -54.591], [99.143, -65.188], [91.056, -71.868], [77.988, -68.867], [66.235, -62.651], [55.135, -54.978], [44.715, -46.458], [34.651, -37.611], [24.762, -28.857], [15.102, -19.554], [9.001, -8.31], [8.879, 4.667], [11.868, 17.465], [13.131, 30.777], [7.942, 40.977], [2.45, 51.875], [-8.762, 58.222], [-21.758, 61.654], [-34.93, 64.112], [-48.107, 66.544], [-61.102, 68.921]],
       inside: [[-74.051, 70.047], [-87.764, 71.957], [-98.172, 64.811], [-97.785, 57.365], [-81.415, 54.001], [-69.974, 49.419], [-63.809, 44.417], [-47.685, 44.177], [-38.099, 37.343], [-26.207, 35.928], [-15.383, 42.684], [-4.474, 37.768], [2.203, 27.081], [1.98, 14.305], [-1.458, 1.389], [-2.374, -6.652], [4.607, -19.282], [17.15, -12.416], [27.673, -10.42], [37.77, -7.795], [44.938, -4.901], [42.876, -15.35], [44.4, -28.022], [49.301, -38.543], [54.518, -41.874], [65.468, -51.345], [80.748, -53.613], [93.86, -54.226], [98.947, -65.207], [91.101, -71.48], [78.686, -67.334], [67.072, -61.219], [56.047, -53.773], [45.847, -45.179], [35.804, -36.307], [25.917, -27.554], [15.952, -18.595], [9.133, -8.284], [8.903, 4.662], [11.105, 17.65], [11.973, 32.215], [8.339, 41.073], [2.38, 51.797], [-8.972, 57.267], [-22.072, 59.956], [-35.247, 62.401], [-48.423, 64.842], [-61.411, 67.212]],
@@ -520,22 +519,44 @@ const TRACKS = [
       [0.9882, 100, 2, 1],
       [0.3876, 50, 'acute', -1],
     ],
-    /* Suzuka est dans un parc d'attractions, et le parc se voit : la grande roue, les bosquets
-       taillés et les parkings tiennent l'intérieur de la boucle. Relevé sur `suzuka.jpg` : le gris
-       des dégagements bitumés dans les Esses, le sable des bacs à Degner, à l'épingle, à la
-       Cuillère et au 130R. Les stands occupent la ligne droite, avec leurs tribunes en face. */
+    /* Reprise annotée par l’utilisateur : rouge = gravier, vert = bitume.
+       Profils simplifiés à partir de suzuka_reprise.png ; Cuillère et Casio reçoivent
+       les tabliers bitumés indiqués. Pas de gravier automatique hors des contours déclarés. */
     runoffs: [
       { name: 'Virage 1-2', surface: 'asphalt', side: 1, from: 0.012, to: 0.07, w: 14 },
-      { name: 'Esses', surface: 'asphalt', side: -1, from: 0.085, to: 0.13, w: 11 },
-      { name: 'Esses 2', surface: 'asphalt', side: 1, from: 0.155, to: 0.195, w: 11 },
-      { name: 'Dunlop', surface: 'gravel', side: -1, from: 0.22, to: 0.28, w: 15 },
-      { name: 'Degner 1', surface: 'gravel', side: 1, from: 0.292, to: 0.312, w: 14 },
-      { name: 'Degner 2', surface: 'gravel', side: 1, from: 0.318, to: 0.342, w: 17 },
-      { name: 'Epingle', surface: 'gravel', side: -1, from: 0.396, to: 0.424, w: 15 },
-      { name: 'Cuillere', surface: 'gravel', side: 1, from: 0.46, to: 0.54, w: 17 },
-      { name: '130R', surface: 'gravel', side: -1, from: 0.55, to: 0.618, w: 18 },
-      { name: 'Casio', surface: 'gravel', side: -1, from: 0.752, to: 0.8, w: 14 },
-      { name: 'Dernier virage', surface: 'asphalt', side: -1, from: 0.82, to: 0.9, w: 15 },
+      // Largeurs interprétées du dessin annoté, en mètres du jeu (pas un relevé réel).
+      { name: 'Esses — extérieur droit', surface: 'gravel', side: -1,
+        points: [[.078,0],[.09,9],[.105,20],[.12,8],[.135,7],[.145,13],[.155,10],[.168,0]] },
+      { name: 'Esses — extérieur gauche', surface: 'gravel', side: 1,
+        points: [[.098,0],[.115,12],[.125,9.5],[.14,0],[.15,0],[.165,13],[.175,11.5],[.19,7],[.198,0]] },
+      { name: 'Dunlop', surface: 'gravel', side: -1,
+        points: [[.195,0],[.205,15],[.22,6],[.235,5],[.25,14],[.265,10],[.278,5],[.285,0]] },
+      { name: 'Degner 1', surface: 'gravel', side: 1,
+        points: [[.283,0],[.294,14],[.306,19],[.315,20],[.326,19],[.335,17],[.348,0]] },
+      { name: 'Degner — dégagement opposé', surface: 'gravel', side: -1,
+        points: [[.305,0],[.315,17],[.326,15],[.337,12],[.342,0]] },
+      { name: 'Epingle — approche', surface: 'gravel', side: 1,
+        points: [[.377,0],[.386,11],[.398,7],[.408,0]] },
+      { name: 'Epingle — extérieur', surface: 'gravel', side: -1,
+        points: [[.386,0],[.4,16],[.415,10],[.43,0]] },
+      { name: '200R — approche de la Cuillère', surface: 'gravel', side: 1,
+        points: [[.438,0],[.451,10],[.463,14],[.477,6],[.487,0]] },
+      { name: 'Cuillère — entrée', surface: 'gravel', side: 1,
+        points: [[.51,0],[.523,13],[.535,10],[.545,0]] },
+      { name: 'Cuillère — tablier bitumé annoté', surface: 'asphalt', side: -1,
+        points: [[.542,0],[.555,7],[.568,7.5],[.582,8],[.595,8],[.606,4],[.614,0]] },
+      { name: 'Retour vers 130R — bande extérieure', surface: 'gravel', side: 1,
+        points: [[.635,0],[.645,12],[.658,3],[.675,4],[.69,0]] },
+      { name: '130R', surface: 'gravel', side: -1,
+        points: [[.752,0],[.766,12],[.775,18],[.785,12],[.797,0]] },
+      { name: 'Casio — extérieur gauche', surface: 'gravel', side: 1,
+        points: [[.823,0],[.835,24],[.852,26],[.862,9],[.877,8],[.892,0]] },
+      { name: 'Casio — gravier extérieur droit', surface: 'gravel', side: -1,
+        points: [[.838,0],[.853,18],[.866,20],[.879,18],[.89,6],[.902,0]] },
+      { name: 'Casio — tablier bitumé avant gravier', surface: 'asphalt', side: -1,
+        points: [[.812,0],[.825,17],[.84,17],[.848,16]] },
+      { name: 'Casio — raccord bitume et gravier', surface: 'asphalt', side: -1, keepOuterGravel: true,
+        points: [[.848,16],[.853,16],[.86,0]] },
     ],
     implantation: [
       { kind: 'stands', side: -1, from: 0.96, to: 0.03, recul: 11, prof: 22, module: 40 },
@@ -1083,6 +1104,16 @@ const TRACKS = [
   {
     id: 'zandvoort', name: 'Zandvoort', country: 'NL', flag: '🇳🇱', theme: 'dunes',
     parallelClearance: true, // Limiter les dégagements aux couloirs réellement disponibles.
+    // Garder l’arrêt et les trois garages sur la ligne droite, hors de Hunserug.
+    pitAt: 0, pitLength: 220,
+    annotatedRunoffsOnly: true,
+    roadWidenings: [{side:-1,points:[[.164,0],[.177,0],[.186,5],[.195,9],[.202,5],[.212,0]]}],
+    // Les croix de l’annotation suppriment le dégagement, quelle que soit leur couleur.
+    barrierCloseZones: [
+      {side:-1,from:.102,to:.145},
+      {side:-1,from:.26,to:.309}, {side:1,from:.30,to:.346},
+      {side:-1,from:.615,to:.68}, {side:1,from:.837,to:.916},
+    ],
     architecture: 'plats',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.nl,
@@ -1126,25 +1157,25 @@ const TRACKS = [
       [0.8271, 50, 5, 1],
       [0.8513, 0, 5, 1],
     ],
-    /* Zandvoort est dans les dunes, et les dunes ne portent pas d'arbre : le semis par défaut est
-       effacé sur tout le nord du tour, où `zandvoort_2.png` ne montre que du sable, de l'oyat et
-       quelques étangs. Les dégagements y sont du SABLE et non du gravier concassé — même surface
-       pour le jeu — à Tarzan, à Scheivlak, au virage 8 et au virage 13 relevé ; le reste est
-       bitumé. Tout le sud-est est bâti : paddock, parc fermé et les quatre parkings de la carte. */
+    /* Reprise utilisateur : contours rouges en gravier, vert en bitume, trait bleu
+       en chaussée et croix sans dégagement. Les zones sont contraintes par les branches
+       voisines et les garages, avec la même géométrie pour le rendu et la physique. */
     runoffs: [
-      { name: 'Tarzanbocht', surface: 'gravel', side: 1, from: 0.05, to: 0.1, w: 16 },
-      { name: 'Gerlachbocht', surface: 'asphalt', side: -1, from: 0.108, to: 0.142, w: 12 },
-      { name: 'Hugenholtzbocht', surface: 'asphalt', side: 1, from: 0.14, to: 0.168, w: 13 },
-      { name: 'Hunserug', surface: 'gravel', side: -1, from: 0.166, to: 0.21, w: 15 },
-      { name: 'Slotemakerbocht', surface: 'gravel', side: 1, from: 0.218, to: 0.26, w: 15 },
-      { name: 'Scheivlak', surface: 'gravel', side: -1, from: 0.262, to: 0.308, w: 18 },
-      { name: 'Mastersbocht', surface: 'gravel', side: 1, from: 0.304, to: 0.342, w: 16 },
-      { name: 'Bocht 9', surface: 'gravel', side: 1, from: 0.352, to: 0.42, w: 15 },
-      { name: 'CM.com-bocht', surface: 'gravel', side: 1, from: 0.45, to: 0.546, w: 16 },
-      { name: 'Hans Ernst-bocht', surface: 'gravel', side: -1, from: 0.54, to: 0.602, w: 15 },
-      { name: 'Bocht 12', surface: 'asphalt', side: 1, from: 0.7, to: 0.754, w: 13 },
-      { name: 'Bocht 13', surface: 'gravel', side: 1, from: 0.794, to: 0.832, w: 17 },
-      { name: 'Arie Luyendyk-bocht', surface: 'asphalt', side: 1, from: 0.834, to: 0.91, w: 16 },
+      // Profils interprétés de zandvoort_reprise.png ; les croix ne sont pas des surfaces.
+      { name: 'Tarzanbocht', surface: 'gravel', side: 1,
+        points:[[.048,0],[.065,25],[.075,19],[.085,15],[.098,0]] },
+      { name: 'Hugenholtzbocht — extérieur', surface: 'gravel', side: 1,
+        points:[[.137,0],[.151,14],[.163,12],[.179,0]] },
+      { name: 'Bocht 9', surface: 'gravel', side: 1,
+        points:[[.348,0],[.363,18],[.375,19],[.391,19],[.405,11],[.422,4],[.435,0]] },
+      { name: 'CM.com-bocht — enveloppe regroupée', surface: 'gravel', side: 1,
+        points:[[.446,0],[.46,19],[.473,8],[.488,3],[.505,3],[.517,20],[.53,11],[.544,0]] },
+      { name: 'Hans Ernst-bocht', surface: 'gravel', side: -1,
+        points:[[.554,0],[.57,15],[.585,13],[.603,0]] },
+      { name: 'Bocht 12 — tablier bitumé', surface: 'asphalt', side: 1,
+        points:[[.694,0],[.709,21],[.723,17],[.742,12],[.759,0]] },
+      { name: 'Bocht 13', surface: 'gravel', side: 1,
+        points:[[.788,0],[.804,19],[.816,21],[.83,14],[.842,0]] },
     ],
     implantation: [
       { kind: 'stands', side: -1, from: 0.93, to: 0.045, recul: 11, prof: 22, module: 40 },

@@ -194,7 +194,8 @@ class Track {
   _buildRunoffs() {
 
     if (!this.def.runoffs && this.def.defaultRunoff !== 'asphalt') return;
-    this.bacW = this._profilBac();
+    this.bacW = this.def.annotatedRunoffsOnly
+      ? {L:new Float32Array(this.n),R:new Float32Array(this.n)} : this._profilBac();
     this.asphaltW = { L: new Float32Array(this.n), R: new Float32Array(this.n) };
     // Les circuits urbains n'ont pas de bacs automatiques : même enveloppe, en bitume.
     if(this.def.defaultRunoff === 'asphalt'){
@@ -281,20 +282,26 @@ class Track {
       const d=Math.abs(this.diff(s,cr.over*this.ds));
       f=Math.max(f,Math.max(0,Math.min(1,(42-d)/18)));
     }
+    for(const pass of this.underpasses||[]){
+      const d=Math.abs(this.diff(s,pass.s));
+      f=Math.max(f,Math.max(0,Math.min(1,(pass.half+18-d)/18)));
+    }
     return f;
   }
 
   _protectParallelRoads() {
     this.parallelLimits=null;
     if(!this.def.parallelClearance)return;
-    const N=this.n;
+    const N=this.n, garages=this.pitGarages(),levels=Uint8Array.from({length:this.n},(_,i)=>this.barrierLevelAt(i*this.ds));
     this.parallelLimits={L:new Float32Array(N).fill(1e6),R:new Float32Array(N).fill(1e6)};
     // Intersection des rayons latéraux avec les couloirs des branches éloignées.
     // Échantillons tous les 2 m, marge incluant vibreurs et volume des protections.
     for(let i=0;i<N;i++)for(const side of [-1,1]){
       const key=side>0?'L':'R',hw=side>0?this.hwL[i]:this.hwR[i];
-      let limit=1e6;
+      // Le rail intérieur ne peut pas suivre un décalage au-delà du rayon du virage.
+      let limit=this.k[i]*side<0?Math.max(hw,.7/Math.max(1e-6,Math.abs(this.k[i]))):1e6;
       for(let j=0;j<N;j+=2){
+        if(levels[i]!==levels[j])continue;
         const arc=Math.min(Math.abs(j-i),N-Math.abs(j-i));
         if(arc*this.ds<45)continue;
         const dx=this.xs[j]-this.xs[i],dy=this.ys[j]-this.ys[i];
@@ -306,6 +313,20 @@ class Track {
         if(across>=r*r)continue;
         const hit=along-Math.sqrt(r*r-across);
         limit=Math.min(limit,Math.max(hw,hit));
+      }
+      // Les garages fixes des stands peuvent border une AUTRE branche du tour.
+      // Leur emprise réelle et son accès restent libres de gravier et de protections.
+      for(const gr of garages){
+        if(this.barrierLevelAt(i*this.ds)!==this.barrierLevelAt(gr.s))continue;
+        const cs=Math.cos(gr.a),sn=Math.sin(gr.a),dx=this.xs[i]-gr.x,dy=this.ys[i]-gr.y;
+        const ox=dx*cs+dy*sn,oy=-dx*sn+dy*cs;
+        const vx=(this.nx[i]*cs+this.ny[i]*sn)*side,vy=(-this.nx[i]*sn+this.ny[i]*cs)*side;
+        let near=0,far=1e6;
+        for(const [o,v,half] of [[ox,vx,gr.w/2+5],[oy,vy,gr.h/2+5]]){
+          if(Math.abs(v)<1e-9){if(Math.abs(o)>half){far=-1;break;}}
+          else {const a=(-half-o)/v,b=(half-o)/v;near=Math.max(near,Math.min(a,b));far=Math.min(far,Math.max(a,b));}
+        }
+        if(far>=near&&far>=0)limit=Math.min(limit,Math.max(hw,near));
       }
       this.parallelLimits[key][i]=limit;
     }
@@ -353,7 +374,15 @@ class Track {
     // des grands dégagements et évite une marche à leur entrée/sortie.
     const u = Math.min(1, runoff / 6), t = u * u * (3 - 2 * u);
     const verge = (this.def.grassBarrierGap ?? 9) * (1 - t) + 2.2 * t;
-    const wanted=hw + Math.max(this.kerbAt(s) + verge, runoff + 1.5);
+    let wanted=hw + Math.max(this.kerbAt(s) + verge, runoff + 1.5);
+    for(const z of this.def.barrierCloseZones||[]){
+      if(z.side!==side)continue;
+      let f=this.wrap(s)/this.length;if(f<z.from)f+=1;
+      if(f<z.from||f>z.to)continue;
+      const fade=Math.min(1,(f-z.from)*this.length/8,(z.to-f)*this.length/8);
+      const near=hw+Math.max(this.kerbAt(s)+1.5,runoff+1.5);
+      wanted+=(near-wanted)*Math.max(0,fade);
+    }
     let distance=this.parallelLimits?Math.min(wanted,this._lerp(this.parallelLimits[side>0?'L':'R'],s)):wanted;
     const blend=this._structureBlend(s);
     distance+=(hw+this.kerbAt(s)+1.1-distance)*blend;
@@ -486,7 +515,7 @@ class Track {
       if(side<0 && [s-12,mid,end+12].some(x=>this.pitAt(x)))continue;
       if(this.parallelLimits && [s,mid,end].some(u=>{
         const hw=side>0?this.hwLeftAt(u):this.hwRightAt(u);
-        return this.limiteProtection(u,side)<hw+this.kerbAt(u)+2;
+        return this._lerp(this.parallelLimits[side>0?'L':'R'],u)<hw+this.kerbAt(u)+1.1;
       }))continue;
       const a=point(s,side),b=point(end,side),dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
       if(len<.1)continue;
@@ -760,6 +789,18 @@ class Track {
     this.hwL = new Float32Array(N); this.hwR = new Float32Array(N);
     this.hwL.fill(baseHw); this.hwR.fill(baseHw);
 
+    // Un élargissement annoté est de la chaussée, pas un dégagement peint.
+    for(const zone of def.roadWidenings||[]){
+      const pts=zone.points,key=zone.side>0?this.hwL:this.hwR;
+      for(let i=0;i<N;i++){
+        let f=i/N;if(f<pts[0][0])f+=1;
+        if(f<pts[0][0]||f>pts.at(-1)[0])continue;
+        let j=0;while(j<pts.length-2&&f>pts[j+1][0])j++;
+        const [a,b]=[pts[j],pts[j+1]],u=(f-a[0])/(b[0]-a[0]);
+        key[i]+=Math.max(0,a[1]+(b[1]-a[1])*u)*this.widthScale;
+      }
+    }
+
     /* De quel côté est l'intérieur du virage, en tout point — calculé ici et non dans le générateur
     de lignes, parce que le rendu s'en sert aussi : les deux bords de piste sont teintés d'après lui,
     pour qu'on lise d'un coup d'œil de quel côté se trouve la corde. Un circuit qui porte ses lignes
@@ -825,6 +866,14 @@ class Track {
       const st = (f) => ((Math.round(f * N) % N) + N) % N;
       const de = st(a), vers = st(b);
       return { from: de, to: vers, n: ((vers - de) % N + N) % N };
+    });
+
+    // Un croisement couvert par un tablier n’est pas un tunnel. Seule sa largeur
+    // projetée sur la branche inférieure impose le resserrement des protections.
+    this.underpasses=this.crossings.map(cr=>{
+      const s=cr.under*this.ds,over=cr.over*this.ds;
+      const angle=Math.abs(Math.sin(this.headingAt(s)-this.headingAt(over)));
+      return {s,half:(this.width/2+1.2)/Math.max(.15,angle)};
     });
 
     // corner segments (kerbs / gravel)
@@ -1600,7 +1649,8 @@ class Track {
   sur un critère faux, pour en sauver un. */
   _buildPits(def) {
     const L = this.length;
-    const long = Math.max(160, Math.min(L * 0.22, 340));
+    const long = def && def.pitLength != null ? clamp(def.pitLength, 120, L * 0.3)
+      : Math.max(160, Math.min(L * 0.22, 340));
     const ancre = def && def.pitAt != null ? this.wrap(def.pitAt * L) : this.wrap(-long * 0.20);
     this.pit = {
       entree: this.wrap(ancre - long * 0.50),
@@ -1611,6 +1661,19 @@ class Track {
       largeur: 6.0,      // largeur de la voie elle-même
       zone: 26,          // demi-longueur de la zone d'arrêt — il suffit de s'y arrêter
     };
+  }
+
+  // Géométrie commune au rendu et aux contraintes des branches voisines.
+  pitGarages() {
+    if(!this.pit)return [];
+    const w=16,h=w*287/880,out=[];
+    for(const dec of [-w,0,w]){
+      const s=this.wrap(this.pit.boite+dec),z=this.pitAt(s);
+      if(!z)continue;
+      const c=this.pos(s,z.externe-h/2);
+      out.push({x:c.x,y:c.y,a:this.headingAt(s)+Math.PI,w,h,s});
+    }
+    return out;
   }
 
   /* Où se trouve la voie des stands à cette abscisse, et à quel point on y est engagé.

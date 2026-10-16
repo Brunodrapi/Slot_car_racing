@@ -4,6 +4,8 @@
 
 Read `analyse_circuit.md` in this directory together with this skill. It is the source analysis and supplies artistic context and circuit identities. The operative implementation rules are in this skill; explicit user instructions take priority.
 
+- For user annotations, read the accompanying legend before implementation: a blue line can explicitly authorize widening the drivable road (rendering AND physical widths); red outlines can mark gravel, green outlines asphalt runoff. Crosses, regardless of their color, can mean remove the runoff and replace it with a simple rail. Do not mistake a cross for a colored surface or a road widening. Keep these changes local to the annotated circuit and preserve the uploaded reference outside the active export folder.
+- Suzuka has a short underpass beneath its own bridge, not an extended tunnel. Derive its covered footprint from bridge width/crossing angle; retain grade separation and remove tunnel portals and lighting outside the deck. Monaco keeps its real tunnel treatment.
 - Preserve the existing **large distance numbers and corner arrows painted on the road**. They are gameplay aids, not decorative attempts at real-world signage.
 - Keep their positions, orientation, size and legibility. Do not remove, shrink, hide or relocate them to make the circuit look more realistic.
 - Preserve the existing **yellow and blue road-edge markings**: they indicate which side to take for gameplay. Keep their colors, side assignment, positions, continuity and original width (0.55 m). Never replace them with white styling lines.
@@ -23,6 +25,7 @@ Before accepting runoff or barriers, check them against every nearby branch of t
 
 Additional layout requirements:
 
+- Operational pit garages count as physical buildings too. Share their rotated footprint between renderer and track constraints, and keep runoff, nearby roads and complete barrier bodies clear of them. Reserve access space. Check remote branches as well as the pit straight; keep the pit stop and garages on a suitable straight.
 - A barrier must not intersect a physical scenery object. Check complete rotated building footprints and tree crowns, not only centers/corners; remove the scenery object when it conflicts. Ground paint and ground polygons are not physical scenery obstacles.
 - At the same height, neighboring barrier runs must join or share a mean separation instead of crossing. Average compatible geometry, deduplicate the common segment and trim local loops. Use exactly that geometry for drawing and collision; keep the drivable road clear. Reduce runoff at a shared separator when necessary.
 - Group nearby runoff lobes into a coherent envelope, especially Monaco and Bathurst. Close short gaps (configured up to 60 game metres), smooth the shoulder profile, then apply neighboring-road and structure constraints. Do not smooth or move the actual track centerline or its gameplay kerbs.

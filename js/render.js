@@ -1068,21 +1068,10 @@ class Renderer {
       Bruno est fin et détaillé là où le reste du jeu est plat et large, donc à taille égale c'est
       lui qu'on regarde au lieu de la piste. Réduit à seize mètres pour quatre boxes — quatre
       mètres chacun — il redevient du décor. */
-      const garages = [];
-      /* La profondeur suit les PROPORTIONS DU FICHIER, et les deux doivent rester d'accord.
-
-      Le rapport était celui de l'image d'origine, 429 sur 1310. Elle a été recalibrée — elle faisait
-      1,1 Mo pour une halle dessinée entre 185 et 312 px sur un téléphone — et les deux nombres
-      seraient restés là, à décrire un fichier qui n'existe plus : la halle se serait étirée de
-      quelques pour cent sans que rien ne le signale. */
-      const LARGE = 16, PROF = LARGE * 287 / 880;   // art/Pitstop.png fait 880 × 287
-      for (const dec of [-LARGE, 0, LARGE]) {
-        const s = track.wrap(p.boite + dec);
-        const z = track.pitAt(s);
-        if (!z) continue;
-        const c = track.pos(s, z.externe - PROF / 2);
-        garages.push({ x: c.x, y: c.y, a: track.headingAt(s) + Math.PI, w: LARGE, h: PROF });
-        voir({ x: c.x - PROF, y: c.y - PROF }); voir({ x: c.x + PROF, y: c.y + PROF });
+      const garages = track.pitGarages();
+      for (const gr of garages) {
+        const r=Math.hypot(gr.w,gr.h)/2;
+        voir({x:gr.x-r,y:gr.y-r});voir({x:gr.x+r,y:gr.y+r});
       }
       return { surface, ligne, zone, garages, bbox: { minX: minX - 16, minY: minY - 16, maxX: maxX + 16, maxY: maxY + 16 } };
     })() : null;
