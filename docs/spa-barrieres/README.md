@@ -1,5 +1,7 @@
 # Essai de barrières — Spa hybride
 
+**Mise à jour 0.25.0 :** les annotations de Spa définissent maintenant les dégagements en bitume et les bacs corrigés. Voir [l’analyse, les règles et la capture complète](zones.md).
+
 Activé uniquement sur Spa, dans `claude/hybrid-racing-game-2d-jkk7q0`. Les protections sont dessinées par Canvas (`Path2D`, traits, polygones et cercles), sans charger d'image. Les chemins sont préparés au chargement du circuit et regroupés pour ne dessiner que les portions visibles.
 
 ## Décor et tracé
@@ -10,7 +12,7 @@ Activé uniquement sur Spa, dans `claude/hybrid-racing-game-2d-jkk7q0`. Les prot
 - Retrait des objets de décor qui recouvriraient les protections.
 - Suppression des boucles que le décalage du bord produit à l'intérieur des épingles.
 
-Le profil des bacs reprend le travail de Claude présent dans `28a9082` et `4cf3098` : courbure lissée, largeur normalisée à 12 m avant lissage du raccord, ouverture progressive et dégagement uniquement à l'extérieur du virage. Les 3 400 valeurs de chaque côté de Spa ont été comparées à la branche Game Boy : elles sont identiques. Un contour continu évite les facettes entre les anciens polygones de virage.
+Le profil initial des bacs (version 0.24.0) reprend le travail de Claude présent dans `28a9082` et `4cf3098` : courbure lissée, largeur normalisée à 12 m avant lissage du raccord, ouverture progressive et dégagement uniquement à l'extérieur du virage. Dans cette version initiale, les 3 400 valeurs de chaque côté de Spa ont été comparées à la branche Game Boy : elles sont identiques. Un contour continu évite les facettes entre les anciens polygones de virage.
 
 Le même ensemble de segments sert au dessin et aux collisions. La carrosserie est approchée par trois disques et balayée entre deux pas physiques, ce qui détecte aussi un mur traversé entièrement entre deux positions. Les pneus forment une protection continue : leurs petits interstices ne permettent pas de passer au travers.
 

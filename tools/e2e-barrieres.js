@@ -60,9 +60,32 @@ const ROOT=path.resolve(__dirname,'..'),OUT=process.argv[2]||'/tmp/spa-barrieres
    await page.evaluate(()=>{app.race.player.engineStopped=false;app.audio.update(app.race.player,true);});
    await page.waitForTimeout(250);
    assert.ok(await page.evaluate(()=>app.audio.engGain.gain.value>.8),'son moteur absent à la reprise');
+   // Une sortie bitumée garde le son/tracé de pneus, sans poussière ni son de gravier.
+   for(const paved of [true,false]){
+    const fx=await page.evaluate(paved=>{
+     const r=app.race,T=r.track,p=r.player,s=T.length*(paved?.18:.16);
+     p.place(s,-T.hwRightAt(s)-7,25);p.gridLat=null;p.update(1/120,true,0);
+     p.slide=.7;p.patineFx=.5;
+     const renderer=app.renderer;renderer.particles=[];renderer.rubber.clear();
+     renderer.addEffects({cars:[p],state:'racing'},1/60);
+     app.audio.update(p,true);
+     return {off:p.state==='grass',paved:p.runoffAsphalt,
+      dust:renderer.particles.filter(p=>p.col==='190,160,110').length,rubber:renderer.rubber.size};
+    },paved);
+    assert.ok(fx.off);assert.equal(fx.paved,paved);
+    assert.equal(fx.dust>0,!paved);assert.equal(fx.rubber>0,paved);
+    await page.waitForTimeout(350);
+    const sound=await page.evaluate(()=>({gravel:app.audio.grvGain.gain.value,tyres:app.audio.sqGain.gain.value}));
+    if(paved){
+     assert.ok(sound.gravel<.001);assert.ok(sound.tyres>.1);
+     await page.evaluate(()=>{for(let i=0;i<160;i++)app.renderer.updateCamera(app.race,1/60);app.renderer.draw(app.race,app.ui);});
+     await page.screenshot({path:path.join(OUT,'bitume-'+width+'.png')});
+    }
+    else{assert.ok(sound.gravel>.1);assert.ok(sound.tyres<.001);}
+   }
    await page.evaluate(()=>app.startQuick('race','gt','monza'));
    assert.equal(await page.evaluate(()=>app.renderer.barrierArt.length),0);
-   assert.deepEqual(errors,[]);console.log(width+'×'+height+': rendu procédural, bac, collision réelle et changement de circuit OK',impact);
+   assert.deepEqual(errors,[]);console.log(width+'×'+height+': rendu, collision, bitume, effets/sons et changement de circuit OK',impact);
    await page.close();
   }
  }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}

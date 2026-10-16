@@ -11,7 +11,7 @@
    Le HUD est retiré et les voitures aussi : on exporte le MONDE, pas une partie. La trajectoire
    non plus — ce sont des lignes de jeu, pas du décor.
 
-     NODE_PATH=$(npm root -g) node tools/export-decor.js [dossier]
+     NODE_PATH=$(npm root -g) node tools/export-decor.js [dossier] [circuit]
 */
 const http = require('http');
 const fs = require('fs');
@@ -20,6 +20,7 @@ const { chromium } = require('playwright');
 
 const ROOT = path.join(__dirname, '..');
 const OUT = process.argv[2] || path.join(ROOT, 'export', 'decor');
+const CIRCUIT = process.argv[3] || null;
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png',
   '.ico': 'image/vnd.microsoft.icon', '.webmanifest': 'application/manifest+json', '.webp': 'image/webp' };
 
@@ -47,7 +48,8 @@ const VUES = [0.08, 0.33, 0.58, 0.83];
   await page.keyboard.press('Enter');
   await page.waitForTimeout(300);
 
-  const circuits = await page.evaluate(() => TRACKS.map((t) => ({ id: t.id, nom: t.name, theme: t.theme || 'park' })));
+  const circuits = await page.evaluate(id => TRACKS.filter(t => !id || t.id === id).map((t) => ({ id: t.id, nom: t.name, theme: t.theme || 'park' })), CIRCUIT);
+  if (!circuits.length) { await nav.close(); srv.close(); throw Error('Circuit inconnu : ' + CIRCUIT); }
   console.log(`${circuits.length} circuits -> ${OUT}\n`);
 
   for (const c of circuits) {
@@ -107,15 +109,14 @@ const VUES = [0.08, 0.33, 0.58, 0.83];
 
   /* UNE PLANCHE PAR CIRCUIT. Soixante fichiers ne se regardent pas ; cinq vues côte à côte, si.
      Le tour entier en haut pour situer, les quatre vues de jeu dessous pour juger le rendu. */
-  const rel = path.relative(ROOT, OUT).split(path.sep).join('/');
   for (const c of circuits) {
-    const png = await page.evaluate(async ({ id, nom, theme, rel }) => {
+    const png = await page.evaluate(async ({ nom, theme, images }) => {
       const charge = (u) => new Promise((ok, non) => {
         const i = new Image(); i.onload = () => ok(i); i.onerror = non; i.src = u;
       });
-      const tour = await charge(`/${rel}/${id}-tour.png`);
+      const tour = await charge(images[0]);
       const vues = [];
-      for (let k = 1; k <= 4; k++) vues.push(await charge(`/${rel}/${id}-${k}.png`));
+      for (let k = 1; k <= 4; k++) vues.push(await charge(images[k]));
       const W = 2560, marge = 24, titre = 64;
       const hT = Math.round(tour.height * (W - marge * 2) / tour.width);
       const wv = Math.round((W - marge * 3) / 2), hv = Math.round(vues[0].height * wv / vues[0].width);
@@ -130,7 +131,8 @@ const VUES = [0.08, 0.33, 0.58, 0.83];
         g.drawImage(v, marge + (k % 2) * (wv + marge), titre + hT + marge + Math.floor(k / 2) * (hv + marge), wv, hv);
       });
       return cv.toDataURL('image/png').split(',')[1];
-    }, { id: c.id, nom: c.nom, theme: c.theme, rel });
+    }, { nom: c.nom, theme: c.theme, images: ['tour', 1, 2, 3, 4].map(suffix =>
+      'data:image/png;base64,' + fs.readFileSync(path.join(OUT, `${c.id}-${suffix}.png`)).toString('base64')) });
     fs.writeFileSync(path.join(OUT, `${c.id}-planche.png`), Buffer.from(png, 'base64'));
   }
   console.log(`\n${circuits.length} planches`);

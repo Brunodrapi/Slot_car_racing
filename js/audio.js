@@ -213,7 +213,7 @@ class GameAudio {
     const v = Math.max(0, fin(car.v, 0));
     const vmax = cls.vmax || 80;
     const thr = !!car.throttle;
-    const spin = racing && car.state === 'ok' && !car.inPit
+    const spin = racing && (car.state === 'ok' || car.runoffAsphalt) && !car.inPit
       ? clamp(fin(car.patineFx, 0), 0, 1) : 0;
 
     if (this.catalogue && this.clsId !== cls.id) { this.clsId = cls.id; this._voiture(cls); }
@@ -241,13 +241,13 @@ class GameAudio {
     // pneus : la hauteur monte avec la vitesse, le volume avec le glissement
     // La dérive et le patinage peuvent coexister sans doubler le volume maximal.
     const lateral = clamp(fin(car.slide, 0) * 1.7, 0, 1);
-    const sq = racing && car.state === 'ok' && !car.inPit ? 1 - (1 - lateral) * (1 - spin * 0.85) : 0;
+    const sq = racing && (car.state === 'ok' || car.runoffAsphalt) && !car.inPit ? 1 - (1 - lateral) * (1 - spin * 0.85) : 0;
     this.sqGain.gain.setTargetAtTime(sq * sq * 0.3, t, 0.03);
     this.sq1.frequency.setTargetAtTime(1200 + v * 12 + sq * 500, t, 0.05);
     this.sq2.frequency.setTargetAtTime(600 + v * 5, t, 0.05);
 
     // gravier : d'autant plus fort qu'on y arrive vite
-    const off = car.state === 'grass' ? Math.min(1, v / 25) : 0;
+    const off = car.state === 'grass' && !car.runoffAsphalt ? Math.min(1, v / 25) : 0;
     this.grvGain.gain.setTargetAtTime(off * 0.34, t, 0.05);
     this.grvFilter.frequency.setTargetAtTime(400 + v * 14, t, 0.08);
 
