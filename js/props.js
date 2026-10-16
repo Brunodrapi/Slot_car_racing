@@ -606,7 +606,8 @@ dessous du rayon seuil, on passe son chemin. */
 const BATI_RAYON = 55;
 
 function implBatiments(track, z, s0, s1, rnd, out) {
-  const demande = z.module == null ? 34 : z.module;
+  const pavilion = track.def.architecture === 'pavillons' && z.kind === 'hangars';
+  const demande = pavilion ? 13 : (z.module == null ? 34 : z.module);
   let s = s0;
   while (s < s1) {
     const module = implModule(track, s + demande / 2, demande) * (0.7 + rnd() * 0.5);
@@ -615,13 +616,15 @@ function implBatiments(track, z, s0, s1, rnd, out) {
     const k = Math.abs(track.curvAt(c));
     if (k > 1 / BATI_RAYON) { s += module * 0.6; continue; }
     const base = implBase(track, c, z.side, z);
-    const prof = z.prof * (0.6 + rnd() * 0.4);
+    const prof = pavilion ? 8 + rnd() * 3 : z.prof * (0.6 + rnd() * 0.4);
     const p = track.pos(c, z.side * (base + prof / 2 + rnd() * z.prof * 0.15));
     out.push({
       type: z.kind === 'stands' ? 'stands' : 'hangar',
       x: p.x, y: p.y, a: track.headingAt(c),
       l: module, w: prof, side: z.side,
       portes: Math.max(2, Math.round(module / 9)), teinte: rnd(),
+      architecture: z.kind === 'stands' ? 'graphique' : track.def.architecture,
+      height: track.def.architecture === 'immeubles' && z.kind !== 'stands' ? 22 + rnd() * 26 : pavilion ? 4 + rnd() * 2 : 6,
     });
     s += module + 5 + rnd() * 8;
   }
@@ -663,7 +666,7 @@ Rendu : les sols d'abord, sous la route, puis les couronnes et les bâtiments pa
 reste. Les couronnes sont rangées en cases de quarante-huit mètres : la caméra en montre une
 trentaine de mètres de côté, et parcourir les dix mille arbres d'un bois à chaque image pour en
 dessiner quinze serait tout le budget de la frame. */
-function placeImplantation(track, id, zones) {
+function placeImplantation(track, id, zones, water = placeWater(track, track.def.water)) {
   if (!zones || !zones.length) return null;
   const rnd = propRng(seedFromId('impl-' + id));
   const sols = [], arbres = [], batis = [], nus = [];
@@ -674,7 +677,7 @@ function placeImplantation(track, id, zones) {
   for (const z of zones) {
     const [s0, s1] = implSpan(track, z);
     if (z.kind === 'nu') { nus.push({ s0, s1, side: z.side, prof: z.prof }); continue; }
-    if (z.sol !== false)
+    if (z.sol !== false && !(track.def.architecture === 'pavillons' && z.kind === 'hangars'))
       for (const pts of implContour(track, z, s0, s1, 4))
         sols.push({ pts, bbox: implBbox(pts), kind: z.kind, sol: z.sol });
     if (z.kind === 'bois') bois.push([z, s0, s1]);
@@ -692,7 +695,10 @@ function placeImplantation(track, id, zones) {
   réellement les quatre coins, et pas seulement d'où l'on est parti. */
   for (let i = batis.length - 1; i >= 0; i--) {
     const b = batis[i];
-    if (b.type === 'voiture') continue;
+    if (b.type === 'voiture') {
+      if(waterOverlaps(water,sceneryFootprint(b)))batis.splice(i,1);
+      continue;
+    }
     const cs = Math.cos(b.a), sn = Math.sin(b.a);
     let dedans = false;
     for (const du of [-b.l / 2, b.l / 2]) for (const dv of [0, -b.side * b.w]) {
@@ -700,11 +706,23 @@ function placeImplantation(track, id, zones) {
       const pr = implProjette(track, x, y);
       if (Math.abs(pr.lat) < track.limiteProtection(pr.s, pr.lat >= 0 ? 1 : -1)) dedans = true;
     }
-    if (dedans) batis.splice(i, 1);
+    if (dedans || waterOverlaps(water, sceneryFootprint(b))) batis.splice(i, 1);
+  }
+  // Les modules voisins peuvent se rapprocher dans une courbe : contrôler
+  // leur empreinte réelle avant de planter les arbres autour des constructions.
+  const occupied=[];
+  for(let i=0;i<batis.length;i++){
+    const b=batis[i];if(b.type==='voiture')continue;
+    const footprint=sceneryFootprint(b);
+    if(occupied.some(p=>sceneryRectsOverlap(p,footprint))){batis.splice(i--,1);continue;}
+    occupied.push(footprint);
   }
   const masque = implMasque(track);
   for (const b of batis) implMasqueBati(masque, b);
   for (const [z, s0, s1] of bois) implArbres(track, z, s0, s1, rnd, arbres, masque);
+  if(water)for(let i=arbres.length-1;i>=0;i--){
+    const a=arbres[i];if(waterContains(water,a.x,a.y,5))arbres.splice(i,1);
+  }
   const cases = new Map();
   let marge = 8;                // la demi-taille du plus gros objet, pour la fenêtre de rendu
   const range = (o, r) => {
@@ -892,7 +910,8 @@ function placeWater(track, spec) {
     // both ends close smoothly, so the water is a bay and not a slab that stops mid-air
     const taper = Math.min(ease01(t / 0.14), ease01((1 - t) / 0.14));
     const hw = side > 0 ? track.hwL[i] : track.hwR[i];
-    const a = hw + spec.gap + 4 * Math.sin(s * 0.021) + 2 * Math.sin(s * 0.061);
+    const a = spec.seaEdge ? Math.max(hw + spec.gap, track.limiteProtection(s, side) + 6)
+      : hw + spec.gap + 4 * Math.sin(s * 0.021) + 2 * Math.sin(s * 0.061);
     const b = a + spec.out * taper;
     const px = track.xs[i], py = track.ys[i], nx = track.nx[i] * side, ny = track.ny[i] * side;
     inner.push([px + nx * a, py + ny * a]);
@@ -902,7 +921,68 @@ function placeWater(track, spec) {
       minY = Math.min(minY, y); maxY = Math.max(maxY, y);
     }
   }
-  return { inner, outer, spec, bbox: { minX, minY, maxX, maxY } };
+  if(spec.seaEdge){
+    const b=track.bounds;
+    const anchors=[inner[0],...spec.seaEdge.map(([x,y])=>[b.minX+x*(b.maxX-b.minX),b.minY+y*(b.maxY-b.minY)]),inner.at(-1)];
+    for(let i=0;i<inner.length;i++){
+      const t=i/(inner.length-1)*(anchors.length-1),j=Math.min(anchors.length-2,Math.floor(t)),u=t-j;
+      outer[i]=[anchors[j][0]*(1-u)+anchors[j+1][0]*u,anchors[j][1]*(1-u)+anchors[j+1][1]*u];
+    }
+    minX=minY=Infinity;maxX=maxY=-Infinity;
+    for(const [x,y] of inner.concat(outer)){minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);}
+  }
+  const polygon=inner.concat([...outer].reverse());
+  return { inner, outer, polygon, spec, bbox: { minX, minY, maxX, maxY } };
+}
+
+function sceneryFootprint(b) {
+  const cs=Math.cos(b.a),sn=Math.sin(b.a),y0=b.type==='voiture'?-b.w/2:Math.min(0,-b.side*b.w);
+  return [[-b.l/2,y0],[b.l/2,y0],[b.l/2,y0+b.w],[-b.l/2,y0+b.w]]
+    .map(([x,y])=>[b.x+cs*x-sn*y,b.y+sn*x+cs*y]);
+}
+
+function sceneryRectsOverlap(a,b) {
+  // Axes séparateurs des deux rectangles orientés, avec une petite allée.
+  for(const poly of [a,b])for(let i=0;i<2;i++){
+    const dx=poly[i+1][0]-poly[i][0],dy=poly[i+1][1]-poly[i][1],n=Math.hypot(dx,dy)||1;
+    const project=p=>(-dy*p[0]+dx*p[1])/n,A=a.map(project),B=b.map(project);
+    if(Math.max(...A)+.4<=Math.min(...B)||Math.max(...B)+.4<=Math.min(...A))return false;
+  }
+  return true;
+}
+
+function sceneryPointInPolygon(points,x,y) {
+  let inside=false;
+  for(let i=0,j=points.length-1;i<points.length;j=i++){
+    const [ax,ay]=points[i],[bx,by]=points[j];
+    if((ay>y)!==(by>y)&&x<(bx-ax)*(y-ay)/(by-ay)+ax)inside=!inside;
+  }
+  return inside;
+}
+
+function waterContains(w,x,y,pad=0) {
+  if(!w)return false;
+  const b=w.bbox;if(x<b.minX-pad||x>b.maxX+pad||y<b.minY-pad||y>b.maxY+pad)return false;
+  if(sceneryPointInPolygon(w.polygon,x,y))return true;
+  if(!pad)return false;
+  for(let i=0;i<w.polygon.length;i++){
+    const a=w.polygon[i],b=w.polygon[(i+1)%w.polygon.length],dx=b[0]-a[0],dy=b[1]-a[1];
+    const t=Math.max(0,Math.min(1,((x-a[0])*dx+(y-a[1])*dy)/(dx*dx+dy*dy||1)));
+    if(Math.hypot(x-a[0]-t*dx,y-a[1]-t*dy)<pad)return true;
+  }
+  return false;
+}
+
+function waterOverlaps(w,points) {
+  if(!w)return false;
+  if(points.some(([x,y])=>waterContains(w,x,y)))return true;
+  if(w.polygon.some(([x,y])=>sceneryPointInPolygon(points,x,y)))return true;
+  const cross=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
+  for(let i=0;i<points.length;i++)for(let j=0;j<w.polygon.length;j++){
+    const a=points[i],b=points[(i+1)%points.length],c=w.polygon[j],d=w.polygon[(j+1)%w.polygon.length];
+    if(cross(a,b,c)*cross(a,b,d)<0&&cross(c,d,a)*cross(c,d,b)<0)return true;
+  }
+  return false;
 }
 
 /** Boats at anchor, lying roughly along the shore, never on top of one another. */
@@ -914,6 +994,18 @@ function placeBoats(track, id, water) {
   const total = BOAT_KINDS.reduce((a, k) => a + k.weight, 0);
   const out = [];
   for (let n = 0; n < 320; n++) {
+    if(spec.seaEdge){
+      // Concentrer les mouillages dans le bassin visible, pas au large.
+      const t=track.bounds,b={minX:water.bbox.minX,minY:water.bbox.minY,
+        maxX:Math.min(water.bbox.maxX,t.maxX+50),maxY:Math.min(water.bbox.maxY,t.maxY+40)};
+      const x=b.minX+rnd()*(b.maxX-b.minX),y=b.minY+rnd()*(b.maxY-b.minY);
+      if(!waterContains(water,x,y)||[[-8,0],[8,0],[0,-8],[0,8]].some(([dx,dy])=>!waterContains(water,x+dx,y+dy)))continue;
+      if(out.some(o=>(o.x-x)**2+(o.y-y)**2<15*15))continue;
+      const pr=implProjette(track,x,y),hw=pr.lat>0?track.hwLeftAt(pr.s):track.hwRightAt(pr.s);
+      if(Math.abs(pr.lat)<hw+8)continue;
+      let draw=rnd()*total,kind=BOAT_KINDS[0];for(const k of BOAT_KINDS){draw-=k.weight;if(draw<=0){kind=k;break;}}
+      out.push({x,y,th:track.headingAt(pr.s)+(rnd()-.5)*.6,id:kind.id});continue;
+    }
     const s = s0 + rnd() * span, t = (s - s0) / span;
     const taper = Math.min(ease01(t / 0.14), ease01((1 - t) / 0.14));
     if (taper < 0.35) continue;                       // too close to where the bay closes

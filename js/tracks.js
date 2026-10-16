@@ -42,6 +42,7 @@ const DRAPEAUX = {
 const TRACKS = [
   {
     id: 'monza', name: 'Monza', country: 'IT', flag: '🇮🇹', theme: 'park',
+    architecture: 'pavillons',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.it,
     length: 2900, width: 15,
@@ -133,6 +134,7 @@ const TRACKS = [
   },
   {
     id: 'spa', name: 'Spa-Francorchamps', country: 'BE', flag: '🇧🇪', theme: 'forest',
+    architecture: 'pavillons',
     barriers: true, // essai : géométrie partagée entre dessin et collisions
     // Contours de spa-tour_reprise.png : fraction du tour, largeur hors route (m).
     // Les secteurs non annotés gardent leur profil existant. Voir docs/spa-barrieres/zones.md.
@@ -242,6 +244,11 @@ const TRACKS = [
   },
   {
     id: 'monaco', name: 'Monaco', country: 'MC', flag: '🇲🇨', theme: 'riviera',
+    architecture: 'immeubles',
+    // Port Hercule, côté intérieur : sortie du tunnel → Tabac → Piscine.
+    // Bord au large en fractions de la boîte du tracé (x, y), indépendant des normales des virages.
+    water: { from: 0.455, to: 0.882, side: 1, gap: 16, out: 260,
+      seaEdge: [[2,0.10],[2,2],[0.23,2]], piers: [0.625,0.665,0.785,0.825] },
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.mc,
     length: 2300, width: 11,
@@ -324,6 +331,7 @@ const TRACKS = [
   },
   {
     id: 'silverstone', name: 'Silverstone', country: 'GB', flag: '🇬🇧', theme: 'autumn',
+    architecture: 'graphique',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.gb,
     length: 3300, width: 16, puddles: 0.4,
@@ -423,6 +431,7 @@ const TRACKS = [
   },
   {
     id: 'suzuka', name: 'Suzuka', country: 'JP', flag: '🇯🇵', theme: 'japan',
+    architecture: 'graphique',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.jp,
     length: 3300, width: 14,
@@ -517,6 +526,7 @@ const TRACKS = [
   },
   {
     id: 'interlagos', name: 'Interlagos', country: 'BR', flag: '🇧🇷', theme: 'tropical',
+    architecture: 'plats',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.br,
     length: 2700, width: 14,
@@ -590,6 +600,7 @@ const TRACKS = [
   },
   {
     id: 'laguna', name: 'Laguna Seca', country: 'US', flag: '🇺🇸', theme: 'california',
+    architecture: 'pavillons',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.us,
     length: 2400, width: 13,
@@ -661,6 +672,7 @@ const TRACKS = [
   },
   {
     id: 'nurburgring', name: 'Nürburgring GP', country: 'DE', flag: '🇩🇪', theme: 'forest',
+    architecture: 'pavillons',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.de,
     length: 3000, width: 15,
@@ -743,6 +755,7 @@ const TRACKS = [
   },
   {
     id: 'lemans', name: 'Le Mans', country: 'FR', flag: '🇫🇷', theme: 'lemans',
+    architecture: 'pavillons',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.fr,
     length: 4200, width: 15,
@@ -836,6 +849,7 @@ const TRACKS = [
   },
   {
     id: 'bathurst', name: 'Mount Panorama', country: 'AU', flag: '🇦🇺', theme: 'bush',
+    architecture: 'pavillons',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.au,
     length: 3600, width: 13,
@@ -917,6 +931,7 @@ const TRACKS = [
   },
   {
     id: 'redbullring', name: 'Red Bull Ring', country: 'AT', flag: '🇦🇹', theme: 'alpine',
+    architecture: 'terrasses',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.at,
     length: 2400, width: 15,
@@ -991,6 +1006,7 @@ const TRACKS = [
     ligne droite du Mistral et le paddock entre les deux. Presque pas de gravier : le Castellet a
     remplacé ses bacs par le bitume peint, et c'est précisément pour cela qu'il a cette tête-là. */
     id: 'castellet', name: 'Paul Ricard', country: 'FR', flag: '🇫🇷', theme: 'lemans',
+    architecture: 'plats',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.fr,
     length: 3000, width: 14,
@@ -1036,6 +1052,7 @@ const TRACKS = [
   },
   {
     id: 'zandvoort', name: 'Zandvoort', country: 'NL', flag: '🇳🇱', theme: 'dunes',
+    architecture: 'plats',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.nl,
     length: 2400, width: 13,

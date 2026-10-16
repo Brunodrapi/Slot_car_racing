@@ -47,12 +47,15 @@ const ROOT=path.resolve(__dirname,'..'),OUT=process.argv[2]||'/tmp/spa-barrieres
     p.usure=USURE;p.state='ok';p.damage=0;p.crashes=0;p.fautes=0;p.barrierHits=0;p.gridLat=null;
     const x=(b.ax+b.bx)/2+b.nx*(p.cls.length/2+b.half+1),y=(b.ay+b.by)/2+b.ny*(p.cls.length/2+b.half+1);
     const pr=T.project(x,y,b.s,20);p.place(pr.s,pr.lat,35);p.x=x;p.y=y;p.th=Math.atan2(-b.ny,-b.nx);
-    for(let i=0;i<120&&!p.engineStopped;i++)p.update(1/120,true,r.time+i/120);
+    const query=T.barrierHit;let normal=null;
+    T.barrierHit=function(...args){const hit=query.apply(this,args);if(hit)normal={nx:hit.nx,ny:hit.ny};return hit;};
+    try{for(let i=0;i<120&&!p.engineStopped;i++)p.update(1/120,true,r.time+i/120);}
+    finally{T.barrierHit=query;}
     for(let i=0;i<160;i++)app.renderer.updateCamera(r,1/60);
     app.renderer.draw(r,app.ui);
-    return {stopped:p.engineStopped,v:p.v,damage:p.damage,crashes:p.crashes,fautes:p.fautes,hits:p.barrierHits,cut:p.engineCut};
+    return {stopped:p.engineStopped,v:p.v,speed:p.speed,away:(p.v*Math.cos(p.th)+p.vl*Math.sin(p.th))*(normal?.nx||0)+(p.v*Math.sin(p.th)-p.vl*Math.cos(p.th))*(normal?.ny||0),damage:p.damage,crashes:p.crashes,fautes:p.fautes,hits:p.barrierHits,cut:p.engineCut};
    });
-   assert.ok(impact.stopped&&impact.cut>0&&impact.damage>0);assert.equal(impact.v,0);assert.equal(impact.crashes,1);assert.equal(impact.fautes,1);assert.equal(impact.hits,1);
+   assert.ok(impact.stopped&&impact.cut>0&&impact.damage>0);assert.ok(impact.away>=-1e-6&&impact.speed<35,'rebond dirigé vers le mur ou gain d’énergie');assert.equal(impact.crashes,1);assert.equal(impact.fautes,1);assert.equal(impact.hits,1);
    await page.screenshot({path:path.join(OUT,'impact-'+width+'.png')});
    await page.evaluate(()=>app.audio.update(app.race.player,true));
    await page.waitForTimeout(250);
@@ -84,8 +87,18 @@ const ROOT=path.resolve(__dirname,'..'),OUT=process.argv[2]||'/tmp/spa-barrieres
     else{assert.ok(sound.gravel>.1);assert.ok(sound.tyres<.001);}
    }
    await page.evaluate(()=>app.startQuick('race','gt','monza'));
-   assert.equal(await page.evaluate(()=>app.renderer.barrierArt.length),0);
-   assert.deepEqual(errors,[]);console.log(width+'×'+height+': rendu, collision, bitume, effets/sons et changement de circuit OK',impact);
+   assert.ok(await page.evaluate(()=>app.renderer.barrierArt.length>0),'protections absentes à Monza');
+   const marina=await page.evaluate(()=>{
+    app.startQuick('timetrial','gt','monaco');app.state='paused';app.ui.hide();
+    const r=app.renderer,T=app.race.track,p=T.pos(.65*T.length,65),casino=T.pos(.15*T.length,30);
+    app.race.player.place(.65*T.length,0,20);
+    for(let i=0;i<160;i++)r.updateCamera(app.race,1/60);r.draw(app.race,app.ui);
+    return {port:waterContains(r.water,p.x,p.y),casino:waterContains(r.water,casino.x,casino.y),
+     overlaps:r.implantation.batis.filter(b=>waterOverlaps(r.water,sceneryFootprint(b))).length,patches:r.patches.length};
+   });
+   assert.ok(marina.port&&!marina.casino);assert.equal(marina.overlaps,0);assert.equal(marina.patches,0);
+   await page.screenshot({path:path.join(OUT,'monaco-'+width+'.png')});
+   assert.deepEqual(errors,[]);console.log(width+'×'+height+': rendu, collision, bitume, effets/sons et marina de Monaco OK',impact);
    await page.close();
   }
  }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}

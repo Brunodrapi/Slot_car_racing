@@ -109,7 +109,7 @@ const THEME_DEFS = {
     rock: '#64505a', trunk: '#6b4a32', log: '#8a5a34',
     props: { house: 9, house2: 7, chapel: 2, palm: 3, tree: 0.6, tree2: 0.5,
              pine: 0.3, bush: 1, rock: 1.2, bales: 0, logs: 0 },
-    water: { from: 0.05, to: 0.36, side: 1, gap: 13, out: 180 },
+    water: null, // le port est une donnée du circuit, pas du thème
   },
 
   // The dunes: sand, marram grass, and orange everywhere.
@@ -448,18 +448,27 @@ class Renderer {
 
   // Cartoon ground: a flat saturated base with a few chunky patches, everything snapped to an
   // 8 px grid so it reads as pixel art rather than noise.
-  _makeGrass() {
-    const c = document.createElement('canvas');
-    c.width = c.height = 128;
-    const g = c.getContext('2d');
-    g.fillStyle = PAL.grass;
-    g.fillRect(0, 0, 128, 128);
-    const cell = 8;
-    for (let i = 0; i < 26; i++) {
-      g.fillStyle = i % 3 === 0 ? PAL.grassLight : PAL.grassDark;
-      const x = Math.floor(Math.random() * 16) * cell, y = Math.floor(Math.random() * 16) * cell;
-      const w = (1 + Math.floor(Math.random() * 3)) * cell, h = (1 + Math.floor(Math.random() * 2)) * cell;
-      g.fillRect(x, y, w, h);
+  _makeGrass(style = this.grassStyle || 'aplats') {
+    const c = document.createElement('canvas');c.width=c.height=256;
+    const g=c.getContext('2d'),rnd=propRng(seedFromId('grass-'+style));
+    g.fillStyle=PAL.grass;g.fillRect(0,0,256,256);
+    if(this.track?.theme==='riviera'){
+      // Le sol urbain reste minéral : de grands joints discrets, pas de pelouse.
+      g.strokeStyle=this._melange(PAL.grass,PAL.grassDark,.3);g.lineWidth=1;
+      for(let y=0;y<256;y+=64){g.beginPath();g.moveTo(0,y);g.lineTo(256,y);g.stroke();}
+      return c;
+    }
+    if(style==='tonte'){
+      g.fillStyle=this._melange(PAL.grass,PAL.grassLight,.48);
+      g.fillRect(0,0,256,64);g.fillRect(0,128,256,64);
+    }else if(style==='aplats'){
+      const shapes=[[[0,0],[120,0],[155,75],[85,135],[0,100]],[[256,90],[165,120],[128,210],[200,256],[256,256]]];
+      shapes.forEach((pts,i)=>{g.fillStyle=this._melange(PAL.grass,i?PAL.grassDark:PAL.grassLight,.4);g.beginPath();pts.forEach(([x,y],j)=>j?g.lineTo(x,y):g.moveTo(x,y));g.closePath();g.fill();});
+    }
+    g.strokeStyle=this._melange(PAL.grass,PAL.grassDark,.6);g.lineWidth=1.4;g.lineCap='round';
+    for(let i=0;i<(style==='prairie'?75:28);i++){
+      const x=5+rnd()*246,y=6+rnd()*244;
+      g.beginPath();g.moveTo(x-2,y);g.lineTo(x-3,y-3);g.moveTo(x,y);g.lineTo(x+1,y-4);g.stroke();
     }
     return c;
   }
@@ -675,6 +684,7 @@ class Renderer {
     qui n'avaient de sens que sous une caméra inclinée — vu du dessus, un objet debout n'est rien.
     La caméra inclinée est retirée, et ses vingt-cinq PNG avec elle : ils partaient au réseau à
     chaque course, y compris à plat où personne ne les regardait. */
+    this.water = placeWater(track, track.def.water || PAL.water);
     this.topArt = buildTopArt(PAL);
     this.topProps = placeTopProps(track, seed, null, PAL.props);
     /* L'implantation relevée sur la vue du dessus du circuit, quand il en a une.
@@ -682,7 +692,7 @@ class Renderer {
     Elle passe AVANT le filtrage des barrières, et elle efface d'abord le semis ordinaire là où la
     vue montre du vide : un bosquet par défaut au milieu de l'aérodrome de Silverstone trahit le
     lieu plus sûrement qu'une couleur fausse. */
-    this.implantation = placeImplantation(track, seed, track.def && track.def.implantation);
+    this.implantation = placeImplantation(track, seed, track.def && track.def.implantation, this.water);
     this.topProps = implEfface(track, this.implantation, this.topProps);
     this._buildBarrierArt(track);
     if(track.barriers.length)this.topProps=this.topProps.filter(p=>{
@@ -690,9 +700,9 @@ class Renderer {
       return track.barrierCandidates(p.x,p.y,p.x,p.y,radius+2)
         .every(b=>track.barrierDistance(p.x,p.y,b)>radius+1);
     });
-    this.patches = placePatches(track, seed, PAL.patches);
+    if(this.water)this.topProps=this.topProps.filter(p=>!waterContains(this.water,p.x,p.y,(this.topArt[p.id]?.wm||4)*.6));
+    this.patches = []; // les anciens ovales de terre ne font plus partie du décor
     this.puddles = placePuddles(track, seed, track.puddles);
-    this.water = placeWater(track, PAL.water);
     this.boats = placeBoats(track, seed, this.water);
     this.boatArt = this.water ? buildBoatArt(PAL) : null;
     const N = track.n, xs = track.xs, ys = track.ys, nx = track.nx, ny = track.ny;
@@ -1581,7 +1591,7 @@ class Renderer {
     } else {
       g.fillStyle = this.grassPattern;
       g.save(); g.scale(1 / 8, 1 / 8); g.fillRect(vis.minX * 8, vis.minY * 8, (vis.maxX - vis.minX) * 8, (vis.maxY - vis.minY) * 8); g.restore();
-      this._drawPatches(g, vis);
+      this._drawDryGrass(g, vis);
       this._drawImplantationSol(g, vis);
       this._drawSea(g, vis);
     }
@@ -2025,6 +2035,12 @@ class Renderer {
     g.moveTo(w.inner[0][0], w.inner[0][1]);
     for (let i = 1; i < w.inner.length; i++) g.lineTo(w.inner[i][0], w.inner[i][1]);
     g.strokeStyle = PAL.surf; g.lineWidth = 1.2; g.stroke();
+    for(const f of w.spec.piers||[]){
+      const s=f*this.track.length,side=w.spec.side,lat=Math.max((side>0?this.track.hwLeftAt(s):this.track.hwRightAt(s))+w.spec.gap,this.track.limiteProtection(s,side)+6);
+      const a=this.track.pos(s,side*(lat+2)),b=this.track.pos(s,side*(lat+34));
+      if(!waterContains(w,b.x,b.y))continue;
+      g.strokeStyle='#e1dcd0';g.lineWidth=2.5;g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.stroke();
+    }
     this._drawBoats(g, vis);
   }
 
@@ -2051,22 +2067,20 @@ class Renderer {
     }
   }
 
-  // Bare earth showing through the grass, as a circuit wears it away around its corners. Drawn
-  // under the road, so the tarmac and its kerbs always sit on top of it.
-  _drawPatches(g, vis) {
-    for (const p of this.patches || []) {
-      if (p.x < vis.minX - p.r || p.x > vis.maxX + p.r || p.y < vis.minY - p.r || p.y > vis.maxY + p.r) continue;
-      g.save();
-      g.translate(p.x, p.y);
-      g.rotate(p.a);
-      g.fillStyle = p.dark ? PAL.earthDark : PAL.earth;
+  _drawDryGrass(g,vis) {
+    if(this.track.theme==='riviera')return;
+    const cell=120,seed=this.track.id||this.track.name;
+    g.fillStyle=this._melange(PAL.grass,'#cbb66d',.46);
+    for(let x=Math.floor(vis.minX/cell)-1;x<=Math.floor(vis.maxX/cell)+1;x++)for(let y=Math.floor(vis.minY/cell)-1;y<=Math.floor(vis.maxY/cell)+1;y++){
+      const rnd=propRng(seedFromId('dry-'+seed+'-'+x+','+y));
+      if(rnd()>.17)continue;
+      const cx=(x+rnd())*cell,cy=(y+rnd())*cell,r=18+rnd()*25;
       g.beginPath();
-      // a couple of overlapping ellipses read as one soft, irregular patch
-      g.ellipse(0, 0, p.r, p.r * 0.62, 0, 0, Math.PI * 2);
-      g.ellipse(p.r * 0.42, p.r * 0.16, p.r * 0.6, p.r * 0.44, 0.7, 0, Math.PI * 2);
-      if (p.k > 1) g.ellipse(-p.r * 0.38, -p.r * 0.2, p.r * 0.52, p.r * 0.4, -0.5, 0, Math.PI * 2);
-      g.fill();
-      g.restore();
+      for(let j=0;j<7;j++){
+        const a=j/7*Math.PI*2,d=r*(.75+rnd()*.4),px=cx+Math.cos(a)*d,py=cy+Math.sin(a)*d*.62;
+        if(j)g.lineTo(px,py);else g.moveTo(px,py);
+      }
+      g.closePath();g.fill();
     }
   }
 
@@ -2209,6 +2223,10 @@ class Renderer {
       g.fillStyle = 'rgba(30,34,44,0.45)';
       g.fillRect(-L * 0.12, -W / 2 + 0.4, L * 0.34, W - 0.8);
     } else {
+      const architecture=this.buildingStyle || o.architecture;
+      if(architecture && architecture!=='classic'){
+        this._drawRoofVariant(g,o,architecture);g.restore();return;
+      }
       /* Stands et hangars : un toit clair, sa bordure sombre, et une bande de lanterneaux.
 
       Les stands ont en plus leurs portes de garage, côté piste : c'est à ça qu'on reconnaît un
@@ -2229,6 +2247,64 @@ class Renderer {
       }
     }
     g.restore();
+  }
+
+  // Quatre propositions procédurales. Le choix ne change pas l'empreinte au sol.
+  _drawRoofVariant(g,o,style) {
+    const L=o.l,W=o.w,y=Math.min(0,-o.side*W),inset=Math.min(1.2,W*.08);
+    g.fillStyle=PAL.outline;g.fillRect(-L/2,y,L,W);
+    const rect=(col,x,dy,w,h)=>{g.fillStyle=col;g.fillRect(x,y+dy,w,h);};
+    if(style==='immeubles'){
+      // Volume contenu dans son emprise : toit en retrait et façade haute rythmée
+      // par plusieurs étages, lisibles dans la vue de dessus du jeu.
+      rect('#b5b1aa',-L/2+.35,.35,L-.7,W-.7);
+      rect('#ede8dc',-L/2+.45,.45,L-.9,W*.56);
+      rect('#d4d0c5',-L/2+1.2,1.2,L-2.4,W*.45);
+      rect('#f5f1e8',-L*.26,W*.12,L*.52,W*.22);
+      rect('#6f8b92',-L*.18,W*.19,L*.36,W*.06);
+      const floors=Math.max(3,Math.min(7,Math.round((o.height||28)/6))),h=W*.37/floors;
+      for(let i=0;i<floors;i++){
+        rect('#e1dbce',-L/2+.5,W*.6+i*h,L-1,h*.18);
+        for(let x=-L/2+1.4;x<L/2-1;x+=3.2)rect('#647f8b',x,W*.6+i*h+.15,1.7,h*.58);
+      }
+    }else if(style==='pavillons'){
+      const roof=this.track?.theme==='forest'?'#69747c':this.track?.theme==='bush'?'#a87157':'#b8886c';
+      rect(roof,-L/2+.35,.35,L-.7,W-.7);
+      rect(this._melange(roof,'#393b44',.24),-L/2+.35,W/2,L-.7,W/2-.35);
+      rect('#dfcbb5',-L/2+.5,W/2-.1,L-1,.2);
+      rect('#7a7067',L*.2,W*.15,Math.min(1.2,L*.09),Math.min(1.2,W*.12));
+    }else if(style==='terrecuite'){
+      rect('#c9896b',-L/2+.4,.4,L-.8,W-.8);
+      rect('#ae705e',-L/2+.4,W/2,L-.8,W/2-.4);
+      rect('#edc4a5',-L/2+.7,W/2-.12,L-1.4,.24);
+      g.strokeStyle='rgba(79,49,44,.2)';g.lineWidth=.18;
+      for(let x=-L/2+4;x<L/2-2;x+=5){g.beginPath();g.moveTo(x,y+.6);g.lineTo(x,y+W-.6);g.stroke();}
+    }else if(style==='terrasses'){
+      rect('#eee9dc',-L/2+.35,.35,L-.7,W-.7);
+      rect('#c0b8ab',-L/2+inset,inset,L-2*inset,W*.62);
+      rect('#faf5e8',-L/2+inset*1.5,inset*1.5,L-3*inset,W*.53);
+      rect('#647c82',-L/2+L*.15,W*.72,L*.7,W*.07);
+      rect('#537b56',-L/2+inset*1.5,W*.85,L*.16,W*.06);
+      rect('#537b56',L*.2,W*.85,L*.16,W*.06);
+    }else if(style==='graphique'){
+      rect('#56616b',-L/2+.4,.4,L-.8,W-.8);
+      rect('#414955',-L/2+.4,W*.78,L-.8,W*.22-.4);
+      for(let i=0;i<3;i++){
+        const x=-L*.35+i*L*.28;
+        rect('#d4dcdb',x,W*.16,L*.15,W*.48);
+        rect('#90b2bb',x+.3,W*.19,L*.15-.6,W*.4);
+      }
+    }else{
+      rect('#e6e1d5',-L/2+.4,.4,L-.8,W-.8);
+      rect('#c7c3b8',-L/2+inset,W-inset-1,L-2*inset,1);
+      rect('#f7f3e9',-L*.27,W*.2,L*.52,W*.42);
+      rect('#89999b',-L*.17,W*.3,L*.34,W*.13);
+      rect('#a8ada7',L*.3,W*.2,L*.08,W*.12);
+    }
+    if(o.type==='stands'){
+      const step=(L-2)/o.portes;
+      for(let i=0;i<o.portes;i++)rect(PAL.betonOmbre,-L/2+1+i*step,o.side<0?.3:W*.84,step*.74,W*.14);
+    }
   }
 
   // Deux couleurs hexadécimales mélangées, pour les marches d'un gradin et les toits d'un paddock.
