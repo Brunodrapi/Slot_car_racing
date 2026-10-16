@@ -401,21 +401,41 @@ function implOndule(s, prof) {
     + 0.06 * Math.sin(s / 2.9 + 0.7));
 }
 
+/* Le contour d'une zone, DÉCOUPÉ EN TRONÇONS.
+
+Le sol est tiré en dedans de deux mètres et demi par rapport aux couronnes. Sans ce retrait, le
+polygone affleure le bord du semis et son arête apparaît là où les couronnes s'arrêtent : une bande
+sombre et nue autour du bois, qui dessine exactement la ligne qu'on cherche à cacher. En retrait,
+ce sont les couronnes qui débordent, et la lisière n'a plus de bord net du tout.
+
+Le découpage, lui, est une affaire de budget. Une zone fait couramment quatre cents mètres de long
+et son polygone deux cents points ; la caméra en montre trente. Peint d'un bloc, il était rempli en
+entier à chaque image, et son rectangle englobant est si grand qu'il passait toujours le test de
+visibilité — autrement dit, le test ne servait à rien. Des tronçons de soixante mètres portent
+chacun le leur, et seuls ceux que la caméra touche sont peints. Ils partagent leurs bords exactement,
+donc ils se recollent sans couture. */
 function implContour(track, z, s0, s1, pas) {
-  /* Le sol est TIRÉ EN DEDANS de deux mètres et demi par rapport aux couronnes. Sans ce retrait,
-  le polygone affleure le bord du semis et son arête apparaît là où les couronnes s'arrêtent : une
-  bande sombre et nue autour du bois, qui dessine exactement la ligne qu'on cherche à cacher. En
-  retrait, ce sont les couronnes qui débordent, et la lisière n'a plus de bord net du tout. */
   const retrait = z.kind === 'bois' ? 2.5 : 0;
-  const dedans = [], dehors = [];
-  for (let s = s0; s <= s1 + 1e-6; s += pas) {
-    const u = Math.min(s, s1);
+  const bord = (u) => {
     const base = implBase(track, u, z.side, z);
     const prof = implOndule(u, z.prof) * implFondu(u, s0, s1);
-    dedans.push(track.pos(u, z.side * (base + Math.min(retrait, prof / 3))));
-    dehors.push(track.pos(u, z.side * (base + Math.max(0, prof - retrait))));
+    return [track.pos(u, z.side * (base + Math.min(retrait, prof / 3))),
+      track.pos(u, z.side * (base + Math.max(0, prof - retrait)))];
+  };
+  const TRONCON = 60;
+  const out = [];
+  for (let a = s0; a < s1 - 1e-6; a += TRONCON) {
+    const b = Math.min(a + TRONCON, s1);
+    const dedans = [], dehors = [];
+    for (let u = a; u <= b + 1e-6; u += pas) {
+      const [d, h] = bord(Math.min(u, b));
+      dedans.push(d); dehors.push(h);
+    }
+    const [d, h] = bord(b);
+    dedans.push(d); dehors.push(h);
+    out.push(dedans.concat(dehors.reverse()));
   }
-  return dedans.concat(dehors.reverse());
+  return out;
 }
 
 function implBbox(pts) {
@@ -571,15 +591,19 @@ function placeImplantation(track, id, zones) {
   for (const z of zones) {
     const [s0, s1] = implSpan(track, z);
     if (z.kind === 'nu') { nus.push({ s0, s1, side: z.side, prof: z.prof }); continue; }
-    const pts = implContour(track, z, s0, s1, 4);
-    if (z.sol !== false) sols.push({ pts, bbox: implBbox(pts), kind: z.kind, sol: z.sol });
+    if (z.sol !== false)
+      for (const pts of implContour(track, z, s0, s1, 4))
+        sols.push({ pts, bbox: implBbox(pts), kind: z.kind, sol: z.sol });
     if (z.kind === 'bois') implArbres(track, z, s0, s1, rnd, arbres);
     else if (z.kind === 'tribune') implTribunes(track, z, s0, s1, rnd, batis);
     else if (z.kind === 'stands' || z.kind === 'hangars') implBatiments(track, z, s0, s1, rnd, batis);
     else if (z.kind === 'parking') implParking(track, z, s0, s1, rnd, batis);
   }
   const cases = new Map();
+  let marge = 8;                // la demi-taille du plus gros objet, pour la fenêtre de rendu
   const range = (o, r) => {
+    if (r > marge) marge = r;
+    o._r = r;
     const i0 = Math.floor((o.x - r) / IMPL_CELL), i1 = Math.floor((o.x + r) / IMPL_CELL);
     const j0 = Math.floor((o.y - r) / IMPL_CELL), j1 = Math.floor((o.y + r) / IMPL_CELL);
     for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
@@ -590,7 +614,7 @@ function placeImplantation(track, id, zones) {
   };
   for (const a of arbres) range(a, 6);
   for (const b of batis) range(b, Math.max(b.l, b.w) * 0.7);
-  return { sols, arbres, batis, nus, cases, cell: IMPL_CELL };
+  return { sols, arbres, batis, nus, cases, cell: IMPL_CELL, marge };
 }
 
 /* Les zones `nu` effacent le semis ordinaire.

@@ -65,6 +65,7 @@ const THEME_DEFS = {
     earth: '#d9c79c', earthDark: '#c8b489',
     gravel: '#d9c79c', gravelDark: '#c8b489',
     canopy: ['#4a8a52', '#59a05f', '#3c7243'], pine: ['#356b58', '#3f7c66'],
+    sousBois: '#3c6b3e',
     rock: '#b9b4a6',
     props: { pine: 0.4, bales: 0.4, logs: 0.4 },
   },
@@ -75,6 +76,7 @@ const THEME_DEFS = {
     earth: '#8d7a56', earthDark: '#7c6a49',
     asphalt: '#443a50', asphaltLight: '#50465c',
     canopy: ['#2f6b34', '#3a7f3e', '#25562b'], pine: ['#23503f', '#2b6250'],
+    sousBois: '#23431f',
     props: { pine: 3, tree: 1.4, bales: 0, palm: 0 },
   },
   // Stubble and ochre earth.
@@ -87,6 +89,7 @@ const THEME_DEFS = {
     kerb: ['#9bb4d9', '#f7f8fa'],
     gravel: '#e2c48f', gravelDark: '#d0ae76',
     canopy: ['#b4472e', '#c9662c', '#8e3a26'], pine: ['#2c5a52', '#356d5f'],
+    sousBois: '#5a3a22',
     trunk: '#6b4526', rock: '#b6ad98', log: '#8a552c',
     props: { pine: 0.6, palm: 0 },
   },
@@ -102,6 +105,7 @@ const THEME_DEFS = {
     kerb: ['#e2a19c', '#faf8f4'],
     gravel: '#cfc3ae', gravelDark: '#bdb09a',
     canopy: ['#4f9a55', '#5cae61', '#3f7f45'], pine: ['#3f7a5a', '#4a8c69'],
+    sousBois: '#33543a',
     rock: '#64505a', trunk: '#6b4a32', log: '#8a5a34',
     props: { house: 9, house2: 7, chapel: 2, palm: 3, tree: 0.6, tree2: 0.5,
              pine: 0.3, bush: 1, rock: 1.2, bales: 0, logs: 0 },
@@ -116,6 +120,7 @@ const THEME_DEFS = {
     kerb: ['#f0bf93', '#faf8f4'],
     gravel: '#d9c08a', gravelDark: '#c5aa74',
     canopy: ['#7f9a52', '#8fae5e', '#6c8544'], pine: ['#5e7a45', '#6b8a50'],
+    sousBois: '#6b7342',
     rock: '#c0b49a',
     props: { pine: 0.3, tree: 0.4, bush: 2.5, rock: 2, palm: 0.5, logs: 0 },
   },
@@ -127,6 +132,7 @@ const THEME_DEFS = {
     kerb: ['#9bb4d9', '#f8f8f5'],
     gravel: '#c9ad74', gravelDark: '#b59862',
     canopy: ['#5d7a3c', '#6d8c46', '#4c6631'], pine: ['#4a6b46', '#567a52'],
+    sousBois: '#51603a',
     rock: '#bdb298',
     props: { pine: 0.5, bush: 2, rock: 2, palm: 0.6, bales: 0.5 },
   },
@@ -137,6 +143,7 @@ const THEME_DEFS = {
     earth: '#b08a58', earthDark: '#9c774a',
     kerb: ['#f4df9d', '#93bfa1'],
     canopy: ['#2f8a3f', '#3aa04c', '#256e32'], pine: ['#2a6b4a', '#337d58'],
+    sousBois: '#1f5c2c',
     props: { palm: 3, pine: 0.2, tree: 1.2, logs: 0.4 },
   },
   // Cool green under the mountains.
@@ -146,6 +153,7 @@ const THEME_DEFS = {
     earth: '#a89369', earthDark: '#95805a',
     asphalt: '#473c53', asphaltLight: '#53485f',
     canopy: ['#3a7a46', '#478f54', '#2e6237'], pine: ['#2a5b4e', '#336d5e'],
+    sousBois: '#28513a',
     props: { pine: 2, palm: 0, bales: 0.4 },
   },
   // The bush: khaki scrub over red earth.
@@ -155,6 +163,7 @@ const THEME_DEFS = {
     earth: '#b3663c', earthDark: '#9d5733',
     gravel: '#c08a5a', gravelDark: '#aa774b',
     canopy: ['#6f8a4a', '#7f9c56', '#5d743c'], pine: ['#54704a', '#608055'],
+    sousBois: '#5b6540',
     rock: '#b09479',
     props: { pine: 0.4, bush: 2, rock: 1.6, palm: 0.3, logs: 1.4 },
   },
@@ -165,6 +174,7 @@ const THEME_DEFS = {
     earth: '#ab9263', earthDark: '#977f53',
     asphalt: '#4a3e55', asphaltLight: '#564a61',
     canopy: ['#347a3c', '#3f9047', '#2a6231'], pine: ['#24543f', '#2c664e'],
+    sousBois: '#255239',
     props: { pine: 2.4, palm: 0, bales: 1.4 },
   },
   // Long French summer, dry verges.
@@ -174,6 +184,7 @@ const THEME_DEFS = {
     earth: '#bda572', earthDark: '#a98f60',
     kerb: ['#9bb4d9', '#f8f7f4'],
     canopy: ['#417f3c', '#4e9448', '#356832'], pine: ['#2f6350', '#38755f'],
+    sousBois: '#2c5330',
     props: { pine: 1.4, palm: 0, bales: 1.2 },
   },
 };
@@ -190,6 +201,11 @@ couleurs servent aux lignes tracées, aux pastilles du levier et aux bords peint
 ce qui permet de se passer de légende — on voit le bord jaune, on pousse le levier vers le jaune. */
 /* Les carrosseries d'un parking, dans la proportion où on les voit sur une aire : la moitié en
    gris, blanc et noir, le reste en teintes sourdes, et une rouge pour deux cents places. */
+/* Les raies du Castellet, de la piste vers le mur : deux bleus, puis deux rouges, chacun en deux
+   tons pour que la bande se lise comme peinte et non comme un aplat. Le blanc qui les sépare sur
+   le vrai circuit tient dans le ton clair de chaque paire. */
+const RAIES = ['#4a7bb4', '#6d97c6', '#4a7bb4', '#6d97c6', '#a8443c', '#c06a60', '#a8443c', '#c06a60'];
+
 const PARK_TEINTES = ['#d9d9dc', '#ececed', '#9b9ba1', '#6e6e76', '#3b3c42', '#2b2c31',
   '#c9ccd1', '#8a9099', '#5a6472', '#7e8a7a', '#8b7f72', '#b4453c'];
 
@@ -464,7 +480,7 @@ class Renderer {
     this.barrierArt=[...groups.values()];
     this.barrierGravel=null;
     this.runoffAsphalt=null;
-    this.runoffPaint=[];
+    this.runoffPaint=[];this.runoffBandes=null;
     if(track.barriers.length || track.def.runoffs){
       // Un seul contour fermé évite les cordes et les facettes aux raccords des bacs.
       const p=this.barrierGravel=new Path2D();
@@ -485,6 +501,41 @@ class Renderer {
         if(side===1&&j===0)p.moveTo(x,y);else p.lineTo(x,y);
       }
       p.closePath();
+      /* LE DÉGAGEMENT RAYÉ DU CASTELLET.
+
+      Paul Ricard ne ressemble à aucun autre circuit vu d'en haut, et c'est entièrement à cause de
+      ses dégagements : des bandes peintes, bleues près de la piste et rouges près du mur, de plus
+      en plus abrasives à mesure qu'on s'en éloigne. Sur la carte fournie, c'est la première chose
+      qu'on voit — avant le tracé lui-même. Un dégagement gris uni aurait fait du Castellet un
+      circuit quelconque.
+
+      Les bandes sont découpées dans la LARGEUR du dégagement, pas dans sa longueur : chacune est
+      un ruban qui suit la piste entre deux fractions de la largeur, et elles se peignent de
+      l'extérieur vers l'intérieur pour que le rouge ne recouvre pas le bleu aux raccords. */
+      if (track.def.runoffRaye) {
+        const N = RAIES.length;
+        this.runoffBandes = RAIES.map((col, b) => {
+          const q = new Path2D();
+          for (const side of [1, -1]) {
+            const dedans = [], dehors = [];
+            for (let j = 0; j < track.n; j++) {
+              const i = side > 0 ? j : track.n - 1 - j;
+              const hw = side > 0 ? track.hwL[i] : track.hwR[i];
+              const w = track.asphaltW[side > 0 ? 'L' : 'R'][i];
+              const nx = track.nx[i] * side, ny = track.ny[i] * side;
+              const a = hw + w * b / N, c = hw + w * (b + 1) / N;
+              dedans.push([track.xs[i] + nx * a, track.ys[i] + ny * a]);
+              dehors.push([track.xs[i] + nx * c, track.ys[i] + ny * c]);
+            }
+            dehors.reverse();
+            const tour = dedans.concat(dehors);
+            q.moveTo(tour[0][0], tour[0][1]);
+            for (let k = 1; k < tour.length; k++) q.lineTo(tour[k][0], tour[k][1]);
+            q.closePath();
+          }
+          return { path: q, col };
+        }).reverse();
+      }
       // Bande extérieure peinte dans les couleurs du circuit, inspirée de Raidillon.
       // L'intérieur gris distingue immédiatement le dégagement de la chaussée.
       this.runoffPaint=PAL.kerb.map(()=>new Path2D());
@@ -1456,6 +1507,7 @@ class Renderer {
       else for (const cn of this.paths.corners) { if (!inView(cn.bbox)) continue; g.fillStyle = PAL.gravel; g.fill(cn.gravel); }
       if(this.runoffAsphalt){
         g.fillStyle='#777681';g.fill(this.runoffAsphalt);
+        if(this.runoffBandes)for(const b of this.runoffBandes){g.fillStyle=b.col;g.fill(b.path);}
         for(let i=0;i<this.runoffPaint.length;i++){g.fillStyle=PAL.kerb[i];g.fill(this.runoffPaint[i]);}
       }
       // Seuls les tronçons en vue : la caméra montre une cinquantaine de mètres d'un circuit qui
@@ -1981,6 +2033,18 @@ class Renderer {
   Seules les cases que la caméra touche sont parcourues ; un bois de Monza compte des milliers
   d'arbres et la caméra en montre une quinzaine. Une couronne peut appartenir à plusieurs cases,
   d'où le marquage par numéro d'image plutôt qu'un Set qu'il faudrait vider. */
+  /* La fenêtre de l'implantation est PLUS SERRÉE que celle du reste du décor.
+
+  `vis` prend le rayon du rectangle de l'écran — correct quelle que soit la rotation de la caméra —
+  et lui ajoute soixante mètres de marge. Soixante mètres existent pour des objets dont on ne
+  connaît pas la taille ; une couronne fait six mètres et un bâtiment quarante. Avec cette marge on
+  parcourait un carré de 224 m de côté pour un écran qui en montre quatre-vingt-dix, soit dix fois
+  trop de surface — mesuré à quatre virgule cinq millisecondes par image sur un processeur bridé
+  quatre fois, ce qui est un tiers du budget d'un téléphone.
+
+  Le rayon exact suffit, plus la demi-taille du plus gros objet de l'implantation. Et chaque objet
+  est quand même testé un à un : une case de quarante-huit mètres qui touche le bord de la fenêtre
+  n'y a le plus souvent qu'un ou deux arbres. */
   _drawImplantation(g, vis) {
     const im = this.implantation;
     if (!im) return;
@@ -1988,13 +2052,17 @@ class Renderer {
     const C = im.cell;
     const m = g.getTransform();
     const k = this.cam.zoom * this.dpr;
-    for (let i = Math.floor(vis.minX / C); i <= Math.floor(vis.maxX / C); i++) {
-      for (let j = Math.floor(vis.minY / C); j <= Math.floor(vis.maxY / C); j++) {
+    const r = Math.hypot(this.w, this.h) / 2 / this.cam.zoom + im.marge;
+    const minX = this.cam.x - r, maxX = this.cam.x + r;
+    const minY = this.cam.y - r, maxY = this.cam.y + r;
+    for (let i = Math.floor(minX / C); i <= Math.floor(maxX / C); i++) {
+      for (let j = Math.floor(minY / C); j <= Math.floor(maxY / C); j++) {
         const cel = im.cases.get(i + ',' + j);
         if (!cel) continue;
         for (const o of cel) {
           if (o._vu === tag) continue;
           o._vu = tag;
+          if (o.x < minX - o._r || o.x > maxX + o._r || o.y < minY - o._r || o.y > maxY + o._r) continue;
           const dx = m.a * o.x + m.c * o.y + m.e, dy = m.b * o.x + m.d * o.y + m.f;
           if (o.type) this._drawBati(g, o, dx, dy, k);
           else {

@@ -218,15 +218,24 @@ enregistrer pour jouer : ${vu.reprises} reprise(s) relue(s) par le jeu, `
     const f = new Function(txt + '; return TRACKS;');
     const T2 = f();
     const suz = T2.find((t) => t.id === 'suzuka');
-    return { n: T2.length, aDesLignes: !!(suz && suz.lines && suz.lines.racing),
+    return { n: T2.length, ids: T2.map((t) => t.id), avant: TRACKS.map((t) => t.id),
+             aDesLignes: !!(suz && suz.lines && suz.lines.racing),
              pts: suz && suz.lines ? suz.lines.racing.length : 0,
              rejoue: (() => {
                const tr = new Track(suz);
                return [...tr.lines.racing].filter((_, i) => i % 60 === 0);
              })() };
   }, fabrique.txt);
-  if (verif.n !== 12) { errs++; console.log(`  ÉCHEC : le fichier produit contient ${verif.n} circuits, 12 attendus`); }
-  else console.log('  ok : le fichier produit s’évalue et garde les douze circuits');
+  /* On compare au ROSTER CHARGÉ, et non à un nombre écrit ici.
+     Le compte en dur disait « 12 attendus » ; ajouter le Castellet faisait échouer un essai qui
+     ne vérifiait rien d'autre que le fait qu'on n'ajoute jamais de circuit. Ce qu'il doit
+     vérifier, c'est que la fabrication n'en PERD ni n'en DOUBLE aucun. */
+  const perdus = verif.avant.filter((id) => !verif.ids.includes(id));
+  const doubles = verif.ids.filter((id, i) => verif.ids.indexOf(id) !== i);
+  if (perdus.length || doubles.length) {
+    errs++;
+    console.log(`  ÉCHEC : le fichier produit a ${verif.n} circuits — perdus [${perdus}], doublés [${doubles}]`);
+  } else console.log(`  ok : le fichier produit s’évalue et garde les ${verif.n} circuits, sans doublon`);
   if (!verif.aDesLignes) { errs++; console.log('  ÉCHEC : Suzuka ne porte pas le bloc lines'); }
   else console.log(`  ok : Suzuka porte ses trois lignes (${verif.pts} points)`);
   const dFichier = Math.max(...verif.rejoue.map((v, i) => Math.abs(v - fabrique.attendu[i])));

@@ -949,6 +949,60 @@ const TRACKS = [
     ],
   },
   {
+    /* PAUL RICARD — LE CASTELLET, relevé sur `art/reprise circuit/Map Castellet.JPG`.
+
+    Le seul circuit du roster où le décor n'est pas ce qui le distingue : ce sont ses DÉGAGEMENTS.
+    Des bandes peintes, bleues près de la piste et rouges près du mur, de plus en plus abrasives à
+    mesure qu'on s'en éloigne — sur la vue du dessus, c'est la première chose qu'on voit, avant le
+    tracé. D'où `runoffRaye`, qui n'existe que pour lui.
+
+    Le reste est une pinède du Var posée sur un plateau, avec la piste d'aviation le long de la
+    ligne droite du Mistral et le paddock entre les deux. Presque pas de gravier : le Castellet a
+    remplacé ses bacs par le bitume peint, et c'est précisément pour cela qu'il a cette tête-là. */
+    id: 'castellet', name: 'Paul Ricard', country: 'FR', flag: '🇫🇷', theme: 'lemans',
+    kerb: DRAPEAUX.fr,
+    length: 3000, width: 14,
+    pts: TRACES.castellet,
+    runoffRaye: true,
+    /* Les secteurs sont posés sur les virages du tracé relevé, et non devinés : la courbure donne
+       le S de la Verrerie vers 0,11-0,16, l'hôtel et le camp vers 0,18-0,25, la Sainte-Baume vers
+       0,26-0,33, puis TRENTE POUR CENT DE TOUR SANS LE MOINDRE VIRAGE — la ligne droite du
+       Mistral — Signes à 0,67, le Beausset à 0,77, la longue gauche Bendor-Garlaban-Lac de 0,81
+       à 0,93, et l'épingle du Pont à 0,94. */
+    runoffs: [
+      { name: 'S de la Verrerie', surface: 'asphalt', side: -1, from: 0.098, to: 0.122, w: 20 },
+      { name: 'S de la Verrerie, sortie', surface: 'asphalt', side: 1, from: 0.118, to: 0.168, w: 19 },
+      { name: "Virage de l'hotel", surface: 'asphalt', side: -1, from: 0.176, to: 0.198, w: 16 },
+      /* Les deux secteurs du même côté se TOUCHENT sans se recouvrir. À cheval, le second
+         réécrivait le premier avec sa propre valeur d'ouverture — c'est-à-dire zéro — et la
+         largeur tombait d'un coup au milieu du virage du camp. Bord à bord, chacun s'y referme
+         sur zéro et le raccord est continu. */
+      { name: 'Virage du camp', surface: 'asphalt', side: 1, from: 0.196, to: 0.252, w: 20 },
+      { name: 'Sainte-Baume', surface: 'asphalt', side: 1, from: 0.252, to: 0.32, w: 24 },
+      { name: 'Sainte-Baume, sortie', surface: 'asphalt', side: -1, from: 0.316, to: 0.34, w: 18 },
+      { name: 'Courbe de Signes', surface: 'asphalt', side: 1, from: 0.648, to: 0.695, w: 26 },
+      { name: 'Double droite du Beausset', surface: 'asphalt', side: 1, from: 0.718, to: 0.798, w: 22 },
+      { name: 'Bendor / Garlaban / Lac', surface: 'asphalt', side: -1, from: 0.802, to: 0.934, w: 21 },
+      { name: 'Virage du Pont', surface: 'gravel', side: 1, from: 0.932, to: 0.956, w: 14 },
+    ],
+    implantation: [
+      { kind: 'stands', side: -1, from: 0.955, to: 0.025, recul: 12, prof: 24, module: 44 },
+      { kind: 'tribune', side: 1, from: 0.96, to: 0.03, recul: 11, prof: 18, module: 32 },
+      { kind: 'hangars', side: -1, from: 0.03, to: 0.1, recul: 18, prof: 30, module: 30 },
+      { kind: 'bois', side: 1, from: 0.06, to: 0.26, recul: 13, prof: 60, essence: 'pinede' },
+      { kind: 'bois', side: -1, from: 0.13, to: 0.27, recul: 14, prof: 55, essence: 'pinede' },
+      { kind: 'bois', side: 1, from: 0.29, to: 0.45, recul: 13, prof: 70, essence: 'pinede' },
+      // La piste d'aviation longe la ligne droite du Mistral : du bitume nu, et rien d'autre.
+      { kind: 'nu', side: -1, from: 0.345, to: 0.64, prof: 130 },
+      { kind: 'parking', side: -1, from: 0.4, to: 0.47, recul: 24, prof: 40 },
+      { kind: 'bois', side: 1, from: 0.48, to: 0.64, recul: 14, prof: 65, essence: 'pinede' },
+      { kind: 'bois', side: 1, from: 0.7, to: 0.8, recul: 15, prof: 60, essence: 'pinede' },
+      { kind: 'bois', side: -1, from: 0.66, to: 0.79, recul: 16, prof: 55, essence: 'pinede' },
+      { kind: 'bois', side: 1, from: 0.86, to: 0.93, recul: 15, prof: 45, essence: 'pinede' },
+      { kind: 'parking', side: 1, from: 0.0, to: 0.05, recul: 34, prof: 34 },
+    ],
+  },
+  {
     id: 'zandvoort', name: 'Zandvoort', country: 'NL', flag: '🇳🇱', theme: 'dunes',
     kerb: DRAPEAUX.nl,
     length: 2400, width: 13,

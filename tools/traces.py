@@ -77,6 +77,9 @@ TABLE = [
     ('bathurst',    '-33.465,149.540,-33.435,149.575', 'Mount Panorama Circuit',         '',               6213, 0.5, 'antihoraire', 238.5, '', 'Pit Straight@0.137'),
     ('redbullring', '47.210,14.750,47.232,14.782', 'Red Bull Ring',                      'Boxenstraße',    4318, 0.5, 'horaire', 0.6, '', ''),
     ('zandvoort',   '52.378,4.525,52.402,4.560',  'Grand Prix Formule 1 van Nederland',  'Pitstraat',      4259, 0.5, 'horaire', 245.0, '', ''),
+    # La boîte déborde largement le circuit : serrée au plus juste, elle coupait le virage de
+    # l'hôtel à l'ouest et la chaîne ne se refermait pas — dix-sept voies sur vingt et une.
+    ('castellet',   '43.240,5.770,43.265,5.810',  'Circuit Paul Ricard Piste GP',        'Pit Lane',       5842, 0.5, 'horaire', 118.0, '', ''),
 ]
 DEPART_SANS_RELATION = {'laguna': 'The Corkscrew'}
 
