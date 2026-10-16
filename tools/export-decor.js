@@ -72,10 +72,24 @@ const VUES = [0.08, 0.33, 0.58, 0.83];
     // --- le tour entier
     const nomTour = `${c.id}-tour.png`;
     await page.evaluate(() => {
-      const r = app.renderer, T = app.race.track, b = T.bounds;
+      const r = app.renderer, T = app.race.track, b = { ...T.bounds };
+      // Le cadre englobe aussi les dégagements et les protections : ils peuvent
+      // dépasser la chaussée de plusieurs dizaines de mètres aux extrémités.
+      const inclure = (x, y, pad = 0) => {
+        b.minX = Math.min(b.minX, x - pad); b.maxX = Math.max(b.maxX, x + pad);
+        b.minY = Math.min(b.minY, y - pad); b.maxY = Math.max(b.maxY, y + pad);
+      };
+      for (let i = 0; i < T.n; i += 2) for (const side of [-1, 1]) {
+        const s = i * T.ds, hw = side > 0 ? T.hwLeftAt(s) : T.hwRightAt(s);
+        const p = T.pos(s, side * (hw + Math.max(T.kerbAt(s), T.runoffWidthAt(s, side))));
+        inclure(p.x, p.y);
+      }
+      for (const wall of T.barriers) {
+        inclure(wall.ax, wall.ay, wall.half); inclure(wall.bx, wall.by, wall.half);
+      }
       const sansVoitures = app.race.cars.slice();
       app.race.cars.length = 0;
-      const marge = 40;
+      const marge = 64;
       r.cam.zoom = Math.min(r.w / (b.maxX - b.minX + marge), r.h / (b.maxY - b.minY + marge));
       r.cam.x = (b.minX + b.maxX) / 2; r.cam.y = (b.minY + b.maxY) / 2;
       r.rotate = false; r.camAngle = 0;
