@@ -27,12 +27,12 @@ assert.ok(p.patineFx<.01,'effet persistant après le relâchement');
 p.place(100,0,0);assert.equal(p.patineFx,0);
 // Tous les niveaux et les bits de conduite survivent au codec existant.
 for(let i=0;i<=7;i++){
- p.patineFx=i/7;p.throttle=true;p.braking=true;p.lapSale=true;
+ p.patineFx=i/7;p.throttle=true;p.braking=false;p.lapSale=true;
  const snap=left.snapshot(1),oct=pqEncode(snap,left.track,true),decoded=pqDecode(oct,left.track);
  assert.equal(oct.length,43,'le paquet à une voiture a grandi');
  right.applySnapshot(decoded.snap);
  assert.equal(right.player.patineFx,i/7);
- assert.ok(right.player.throttle&&right.player.braking&&right.player.lapSale);
+ assert.ok(right.player.throttle&&!right.player.braking&&right.player.lapSale);
 }
 const old=left.snapshot(1);old[4+11]&=31;right.applySnapshot(old);assert.equal(right.player.patineFx,0);
 console.log('Physique indépendante des effets, impulsions de 50 ms, extinction et réseau : OK');

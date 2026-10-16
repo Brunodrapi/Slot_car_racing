@@ -235,7 +235,7 @@ class GameAudio {
       this.sampler.applique(this.vehicule.engine);
       this.rpm = this.vehicule.engine.rpm;
       this.gear = this.vehicule.drivetrain.gear;
-      this.engGain.gain.setTargetAtTime(this.pret ? 0.85 : 0, t, 0.08);
+      this.engGain.gain.setTargetAtTime(this.pret && !car.engineStopped ? 0.85 : 0, t, 0.04);
     }
 
     // pneus : la hauteur monte avec la vitesse, le volume avec le glissement

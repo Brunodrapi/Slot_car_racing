@@ -79,6 +79,208 @@ class Track {
     this.image = def.image || null;     // { src, w, h } drawn at world origin with def.scale
     this.drawRoad = def.drawRoad !== false;
     this._build();
+    this._buildBarriers();
+  }
+
+  // La même géométrie en mètres sert au dessin et aux contacts. Spa est le seul
+  // essai activé ; les autres circuits ne construisent ni segments ni index spatial.
+  // Profil repris du travail de Claude (28a9082, 4cf3098) : courbure lissée,
+  // largeur normalisée, dégagement extérieur uniquement.
+  _profilBac() {
+    const N = this.n, brutL = new Float32Array(N), brutR = new Float32Array(N);
+    // la courbure, dérivée seconde d'une ligne échantillonnée au mètre, est bruitée : on l'adoucit
+    // sur dix mètres avant de s'en servir comme pondération
+    const G = Math.max(1, Math.round(10 / this.ds)), ks = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      let somme = 0;
+      for (let j = -G; j <= G; j++) somme += Math.abs(this.k[((i + j) % N + N) % N]);
+      ks[i] = somme / (2 * G + 1);
+    }
+    for (const cn of this.corners) {
+      const span = Math.max(1, cn.to - cn.from);
+      let kmax = 0;
+      for (let t = 0; t <= span; t++) {
+        const a = ks[((cn.from + t) % N + N) % N];
+        if (a > kmax) kmax = a;
+      }
+      if (!kmax) continue;
+      /* La courbure PONDÈRE la largeur, elle ne la dicte pas : à elle seule, elle effondrait les
+         dégagements des courbes longues, où le pic de courbure est bref et le reste de l'arc deux
+         fois moins serré. Un dégagement existe sur tout le virage ; il est simplement plus large
+         au plus serré. D'où un plancher à quatre dixièmes.
+
+         Et le profil est RAMENÉ À `BAC_M` À SON SOMMET, virage par virage. Sans ça, le produit de
+         deux facteurs inférieurs à un donne un bac qui n'atteint jamais sa largeur nominale, et
+         la forme qu'on vient de régler se paie d'un dégagement deux fois trop petit. La forme dit
+         où le sable est large ; `BAC_M` dit combien. */
+      const forme = new Float32Array(span + 1);
+      let fmax = 0;
+      for (let t = 0; t <= span; t++) {
+        const i = ((cn.from + t) % N + N) % N;
+        const rel = Math.min(1, ks[i] / kmax);
+        const f = (0.4 + 0.6 * rel) * Math.pow(Math.sin(Math.PI * (t / span)), 0.9);
+        forme[t] = f;
+        if (f > fmax) fmax = f;
+      }
+      if (!fmax) continue;
+      /* LE DÉGAGEMENT EST À L'EXTÉRIEUR DU VIRAGE, et seulement là. Une voiture qui perd le train
+         arrière part vers l'extérieur ; l'intérieur est l'endroit où l'on COUPE, pas celui où
+         l'on sort. Le bac était posé des deux côtés, ce qui donnait un croissant de sable à
+         l'intérieur d'une épingle — et, de proche en proche, un bout de mur de pneus planté là où
+         personne n'arrivera jamais.
+
+         La normale est la gauche en repère y vers le bas : mesuré sur les vingt virages de Spa,
+         une courbure positive met le centre du cercle du côté -n, donc l'extérieur est le côté
+         +n. */
+      const cote = (cn.sign || Math.sign(this.k[((cn.from + (span >> 1)) % N + N) % N])) > 0
+        ? brutL : brutR;
+      for (let t = 0; t <= span; t++) {
+        const i = ((cn.from + t) % N + N) % N;
+        const w = Track.BAC_M * forme[t] / fmax;
+        if (w > cote[i]) cote[i] = w;
+      }
+    }
+    /* ON LISSE LA COURBURE, PAS LE PROFIL — et c'est la correction qui compte ici. Lisser le
+       profil fini sur quinze mètres écrasait les virages COURTS : une épingle de neuf mètres
+       d'arc voyait son sommet moyenné avec vingt-deux mètres de zéros, et elle sortait à 3,6 m
+       de sable là où une longue courbe en gardait onze. C'est l'inverse de ce qu'il faut — une
+       épingle est exactement l'endroit où l'on sort.
+
+       Le profil est déjà lisse par construction : un sinus puissance 0,9 n'a pas de marche. Seule
+       la courbure était bruitée, et c'est elle qu'on lisse, en amont. Il ne reste au bout qu'un
+       arrondi de cinq mètres pour adoucir la jonction entre deux virages voisins. */
+    const F = Math.max(1, Math.round(5 / this.ds));
+    const lisse = (brut) => {
+      const out = new Float32Array(N);
+      for (let i = 0; i < N; i++) {
+        let somme = 0;
+        for (let k = -F; k <= F; k++) somme += brut[((i + k) % N + N) % N];
+        out[i] = somme / (2 * F + 1);
+      }
+      return out;
+    };
+    return { L: lisse(brutL), R: lisse(brutR) };
+  }
+
+  largeurBac(i, cote) {
+    const N = this.n;
+    if (!this.bacW) this.bacW = this._profilBac();
+    const k = ((i % N) + N) % N;
+    if (cote > 0) return this.bacW.L[k];
+    if (cote < 0) return this.bacW.R[k];
+    return Math.max(this.bacW.L[k], this.bacW.R[k]);
+  }
+
+  _buildBarriers() {
+    this.barriers = []; this.barrierGrid = new Map(); this.barrierCell = 16;
+    if (!this.def.barriers) return;
+    this.bacW = this._profilBac();
+    const point = (s, side) => {
+      const hw = side > 0 ? this.hwLeftAt(s) : this.hwRightAt(s);
+      return this.pos(s, side * (hw + Math.max(this.kerbAt(s)+2.2, this._lerp(side>0?this.bacW.L:this.bacW.R,s)+1.5)));
+    };
+    for (const side of [-1,1]) for(let s=0;s<this.length;s+=3) {
+      const end=Math.min(s+3,this.length),mid=(s+end)/2;
+      // Une ouverture franche réserve les deux bretelles et la voie des stands.
+      if(side<0 && [s-12,mid,end+12].some(x=>this.pitAt(x)))continue;
+      const a=point(s,side),b=point(end,side),dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
+      if(len<.1)continue;
+      const tyres=this._lerp(side>0?this.bacW.L:this.bacW.R,mid)>2.5;
+      const seg={ax:a.x,ay:a.y,bx:b.x,by:b.y,s:mid,side,kind:tyres?'tyres':'rail',
+        half:tyres?1.2:.28,tx:dx/len,ty:dy/len,len,
+        // normale dirigée vers la piste, indépendante du sens de parcours
+        nx:dy/len*-side,ny:-dx/len*-side};
+      this.barriers.push(seg);
+    }
+    // À l'intérieur d'une épingle, une courbe décalée peut se replier sur elle-même.
+    // Couper ces boucles donne un raccord net au lieu d'une glissière en nœud.
+    const cross=(ax,ay,bx,by)=>ax*by-ay*bx;
+    for(let i=0;i<this.barriers.length;i++){
+      const a=this.barriers[i];
+      for(let j=i+2;j<this.barriers.length&&j<i+80;j++){
+        const b=this.barriers[j];if(b.side!==a.side||b.s-a.s>150)break;
+        const ax=a.bx-a.ax,ay=a.by-a.ay,bx=b.bx-b.ax,by=b.by-b.ay,den=cross(ax,ay,bx,by);
+        if(Math.abs(den)<1e-8)continue;
+        const dx=b.ax-a.ax,dy=b.ay-a.ay,u=cross(dx,dy,bx,by)/den,v=cross(dx,dy,ax,ay)/den;
+        if(u<=1e-6||u>=1-1e-6||v<=1e-6||v>=1-1e-6)continue;
+        const x=a.ax+ax*u,y=a.ay+ay*u;a.bx=x;a.by=y;b.ax=x;b.ay=y;
+        this.barriers.splice(i+1,j-i-1);i=Math.max(-1,i-1);break;
+      }
+    }
+    this.barriers=this.barriers.filter(b=>Math.hypot(b.bx-b.ax,b.by-b.ay)>.05);
+    for(let id=0;id<this.barriers.length;id++){
+      const b=this.barriers[id],C=this.barrierCell;
+      b.len=Math.hypot(b.bx-b.ax,b.by-b.ay);b.tx=(b.bx-b.ax)/b.len;b.ty=(b.by-b.ay)/b.len;
+      b.nx=-b.ty*b.side;b.ny=b.tx*b.side;
+      for(let x=Math.floor((Math.min(b.ax,b.bx)-b.half)/C);x<=Math.floor((Math.max(b.ax,b.bx)+b.half)/C);x++)
+        for(let y=Math.floor((Math.min(b.ay,b.by)-b.half)/C);y<=Math.floor((Math.max(b.ay,b.by)+b.half)/C);y++){
+          const key=x+','+y;if(!this.barrierGrid.has(key))this.barrierGrid.set(key,[]);
+          this.barrierGrid.get(key).push(id);
+        }
+    }
+  }
+
+  barrierCandidates(x0,y0,x1,y1,pad) {
+    if(!this.barriers.length)return [];
+    const C=this.barrierCell,ids=new Set();
+    for(let x=Math.floor((Math.min(x0,x1)-pad)/C);x<=Math.floor((Math.max(x0,x1)+pad)/C);x++)
+      for(let y=Math.floor((Math.min(y0,y1)-pad)/C);y<=Math.floor((Math.max(y0,y1)+pad)/C);y++)
+        for(const id of this.barrierGrid.get(x+','+y)||[])ids.add(id);
+    return [...ids].map(i=>this.barriers[i]);
+  }
+
+  barrierDistance(x,y,b) {
+    const t=clamp(((x-b.ax)*b.tx+(y-b.ay)*b.ty)/b.len,0,1);
+    return Math.hypot(x-b.ax-t*b.len*b.tx,y-b.ay-t*b.len*b.ty)-b.half;
+  }
+
+  // Balayage continu d'un disque contre un segment épaissi : corps et extrémités.
+  // On cherche le premier contact, même si le disque traverse le mur en un seul pas.
+  static sweepBarrier(x,y,dx,dy,b,r) {
+    r+=b.half;
+    const u=(x-b.ax)*b.tx+(y-b.ay)*b.ty,v=(x-b.ax)*-b.ty+(y-b.ay)*b.tx;
+    const du=dx*b.tx+dy*b.ty,dv=dx*-b.ty+dy*b.tx;
+    let best=null;
+    const accept=(t,nx,ny,depth=0)=>{
+      if(t<0||t>1||dx*nx+dy*ny>=-1e-9)return;
+      if(!best||t<best.t)best={t,nx,ny,depth};
+    };
+    const q=clamp(u,0,b.len),ex=u-q,dist=Math.hypot(ex,v);
+    if(dist<r){
+      const nx=dist>1e-8?(ex*b.tx-v*b.ty)/dist:b.nx;
+      const ny=dist>1e-8?(ex*b.ty+v*b.tx)/dist:b.ny;
+      accept(0,nx,ny,r-dist);
+    }
+    if(Math.abs(dv)>1e-10)for(const sign of [-1,1]){
+      const t=(sign*r-v)/dv,along=u+du*t;
+      if(along>=0&&along<=b.len)accept(t,-b.ty*sign,b.tx*sign);
+    }
+    const aa=dx*dx+dy*dy;
+    if(aa>1e-12)for(const end of [0,b.len]){
+      const ex=u-end,bb=2*(ex*du+v*dv),cc=ex*ex+v*v-r*r,disc=bb*bb-4*aa*cc;
+      if(disc<0)continue;
+      const t=(-bb-Math.sqrt(disc))/(2*aa),px=ex+du*t,py=v+dv*t;
+      accept(t,(px*b.tx-py*b.ty)/r,(px*b.ty+py*b.tx)/r);
+    }
+    return best;
+  }
+
+  barrierHit(car,from) {
+    const pad=car.cls.length/2+car.cls.width/2;
+    const candidates=this.barrierCandidates(from.x,from.y,car.x,car.y,pad);
+    if(!candidates.length)return null;
+    // Trois disques forment une carrosserie arrondie : nez, habitacle et arrière.
+    const r=car.cls.width/2,arm=Math.max(0,car.cls.length/2-r);
+    let best=null;
+    for(const d of [-arm,0,arm]){
+      const x=from.x+Math.cos(from.th)*d,y=from.y+Math.sin(from.th)*d;
+      const dx=car.x+Math.cos(car.th)*d-x,dy=car.y+Math.sin(car.th)*d-y;
+      for(const b of candidates){
+        const hit=Track.sweepBarrier(x,y,dx,dy,b,r);
+        if(hit&&(!best||hit.t<best.t))best={...hit,barrier:b};
+      }
+    }
+    return best;
   }
 
   // ---------- helpers ----------
@@ -1203,5 +1405,7 @@ class Track {
     return d;
   }
 }
+
+Track.BAC_M = 12;
 
 if (typeof module !== 'undefined') module.exports = { Track, LINE_NAMES, NOMS_AUTEUR, KERB_IN, KERB_LARGE, KERB_RAMPE };

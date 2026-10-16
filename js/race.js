@@ -318,10 +318,10 @@ class Race {
         throttle = aiThrottle(car, this.cars, dt, { ...this.difficulty, rubber }) && !car.finished;
         if (car.finished) throttle = car.v < 15;
       }
-      const wasOff = car.state === 'grass';
+      const wasOff = car.state === 'grass', hitsBefore = car.barrierHits;
       const lapBefore = car.lap;
       car.update(dt, throttle, this.time);
-      if (!wasOff && car.state === 'grass') this.events.push({ type: 'crash', car });
+      if (car.barrierHits > hitsBefore || (!wasOff && car.state === 'grass')) this.events.push({ type: 'crash', car });
       this._comptePenalite(car, dt);
       if (car.lap !== lapBefore) {
         this.events.push({ type: 'lap', car });
@@ -333,7 +333,16 @@ class Race {
         }
       }
     }
-    if (this.mode === 'race' && !this.opts.noContact) resolveCollisions(this.cars, T);
+    if (this.mode === 'race' && !this.opts.noContact) {
+      const before = T.barriers.length ? this.cars.map(c=>({x:c.x,y:c.y,th:c.th})) : null;
+      resolveCollisions(this.cars, T);
+      if(before)for(let i=0;i<this.cars.length;i++){
+        const car=this.cars[i],hits=car.barrierHits;
+        car._barrierContact(before[i],dt);
+        if(car.engineStopped){car.v=0;car.vl=0;car.w=0;}
+        if(car.barrierHits>hits)this.events.push({type:'crash',car});
+      }
+    }
   }
 
   /* ------------------------------------------------------------------ online: host and guest
@@ -353,7 +362,7 @@ class Race {
         Math.round(c.v * 100), Math.round(c.vl * 100), Math.round(c.w * 1000),
         Math.round(c.s * 100), Math.round(c.lat * 100), c.lap,
         Math.round(c.sel * 100), Math.round(c.selS * 100),
-        (c.state === 'grass' ? 1 : 0) | (c.finished ? 2 : 0) | (c.throttle ? 4 : 0) | (c.braking ? 8 : 0)
+        (c.state === 'grass' ? 1 : 0) | (c.finished ? 2 : 0) | (c.engineStopped ? 12 : (c.throttle ? 4 : 0) | (c.braking ? 8 : 0))
           | (c.lapSale ? 16 : 0)
           // Les trois bits libres transportent l'effet de patinage sans agrandir le paquet.
           // Les anciennes versions ignorent ces bits ; un ancien hôte donne un effet nul.
@@ -413,8 +422,10 @@ class Race {
       const f = snap[o + 11];
       c.state = (f & 1) ? 'grass' : 'ok';
       c.finished = !!(f & 2);
-      c.throttle = !!(f & 4);
-      c.braking = !!(f & 8);
+      // Combinaison réservée gaz + frein : moteur coupé, sans changer le codec.
+      c.engineStopped = (f & 12) === 12;
+      c.throttle = !c.engineStopped && !!(f & 4);
+      c.braking = !c.engineStopped && !!(f & 8);
       c.patineFx = ((f >>> 5) & 7) / 7;
       c.started = c.lap > 0 || c.started;
       c.lapSale = !!(f & 16);

@@ -415,6 +415,71 @@ class Renderer {
     return c;
   }
 
+  _buildBarrierArt(track) {
+    const groups=new Map();let blockIndex=0;
+    for(const b of track.barriers){
+      const key=b.side+':'+Math.floor(b.s/48);
+      if(!groups.has(key))groups.set(key,{rail:new Path2D(),shine:new Path2D(),posts:new Path2D(),
+        blocks:PAL.kerb.map(()=>new Path2D()),tyres:new Path2D(),holes:new Path2D(),
+        bbox:{minX:Infinity,minY:Infinity,maxX:-Infinity,maxY:-Infinity}});
+      const g=groups.get(key),box=g.bbox;
+      box.minX=Math.min(box.minX,b.ax-3,b.bx-3);box.maxX=Math.max(box.maxX,b.ax+3,b.bx+3);
+      box.minY=Math.min(box.minY,b.ay-3,b.by-3);box.maxY=Math.max(box.maxY,b.ay+3,b.by+3);
+      const line=(p,off)=>{p.moveTo(b.ax+b.nx*off,b.ay+b.ny*off);p.lineTo(b.bx+b.nx*off,b.by+b.ny*off);};
+      if(b.kind==='rail'){
+        line(g.rail,0);line(g.shine,.13);
+        g.posts.moveTo(b.ax-b.nx*.45,b.ay-b.ny*.45);g.posts.lineTo(b.ax+b.nx*.45,b.ay+b.ny*.45);
+      }else{
+        // Mur aux couleurs exactes des vibreurs ; deux rangées de pneus devant.
+        const modules=Math.max(1,Math.ceil(b.len/3));
+        for(let j=0;j<modules;j++){
+          const p=g.blocks[blockIndex++%g.blocks.length],start=j/modules,end=(j+1)/modules;
+          const ax=b.ax+(b.bx-b.ax)*start,ay=b.ay+(b.by-b.ay)*start;
+          const bx=b.ax+(b.bx-b.ax)*end,by=b.ay+(b.by-b.ay)*end;
+          p.moveTo(ax-b.nx*.38,ay-b.ny*.38);p.lineTo(bx-b.nx*.38,by-b.ny*.38);
+          p.lineTo(bx-b.nx*1.05,by-b.ny*1.05);p.lineTo(ax-b.nx*1.05,ay-b.ny*1.05);p.closePath();
+        }
+        const count=Math.max(1,Math.round(b.len/.82));
+        for(let j=0;j<count;j++)for(const off of [.10,.83]){
+          const u=(j+.5)/count,x=b.ax+(b.bx-b.ax)*u+b.nx*off,y=b.ay+(b.by-b.ay)*u+b.ny*off;
+          g.tyres.moveTo(x+.36,y);g.tyres.arc(x,y,.36,0,Math.PI*2);
+          g.holes.moveTo(x+.14,y);g.holes.arc(x,y,.14,0,Math.PI*2);
+        }
+      }
+    }
+    this.barrierArt=[...groups.values()];
+    this.barrierGravel=null;
+    if(track.barriers.length){
+      // Un seul contour fermé évite les cordes et les facettes aux raccords des bacs.
+      const p=this.barrierGravel=new Path2D();
+      for(const side of [1,-1])for(let j=0;j<track.n;j+=2){
+        const i=side>0?j:track.n-1-j;
+        const hw=(side>0?track.hwL[i]:track.hwR[i])+track.largeurBac(i,side);
+        const x=track.xs[i]+track.nx[i]*hw*side,y=track.ys[i]+track.ny[i]*hw*side;
+        if(side===1&&j===0)p.moveTo(x,y);else p.lineTo(x,y);
+      }
+      p.closePath();
+    }
+  }
+
+  _drawBarriers(g,vis) {
+    g.save();g.lineJoin='round';g.lineCap='round';
+    for(const a of this.barrierArt||[]){
+      const b=a.bbox;if(b.maxX<vis.minX||b.minX>vis.maxX||b.maxY<vis.minY||b.minY>vis.maxY)continue;
+      g.save();g.translate(.25,.3);g.strokeStyle='rgba(20,18,26,.28)';g.lineWidth=.8;
+      g.stroke(a.rail);g.fillStyle='rgba(20,18,26,.25)';for(const p of a.blocks)g.fill(p);g.fill(a.tyres);g.restore();
+      g.strokeStyle='#36333e';g.lineWidth=.22;g.stroke(a.posts);
+      g.strokeStyle='#302c38';g.lineWidth=.58;g.stroke(a.rail);
+      g.strokeStyle='#9fa9b0';g.lineWidth=.38;g.stroke(a.rail);
+      g.strokeStyle='#e6e9e8';g.lineWidth=.10;g.stroke(a.shine);
+      g.strokeStyle='#302c38';g.lineWidth=.10;
+      for(let i=0;i<a.blocks.length;i++){g.fillStyle=PAL.kerb[i];g.fill(a.blocks[i]);g.stroke(a.blocks[i]);}
+      g.fillStyle='#41404a';g.fill(a.tyres);g.strokeStyle='#25222b';g.lineWidth=.09;g.stroke(a.tyres);
+      g.fillStyle='#181720';g.fill(a.holes);
+    }
+    g.restore();
+  }
+
   setTrack(track) {
     this.track = track;
     this.rubber = new Map();
@@ -442,6 +507,12 @@ class Renderer {
     chaque course, y compris à plat où personne ne les regardait. */
     this.topArt = buildTopArt(PAL);
     this.topProps = placeTopProps(track, seed, null, PAL.props);
+    this._buildBarrierArt(track);
+    if(track.barriers.length)this.topProps=this.topProps.filter(p=>{
+      const radius=(this.topArt[p.id]?.wm||4)*.6;
+      return track.barrierCandidates(p.x,p.y,p.x,p.y,radius+2)
+        .every(b=>track.barrierDistance(p.x,p.y,b)>radius+1);
+    });
     this.patches = placePatches(track, seed, PAL.patches);
     this.puddles = placePuddles(track, seed, track.puddles);
     this.water = placeWater(track, PAL.water);
@@ -519,9 +590,11 @@ class Renderer {
           for (let t = cn.from + 1; t <= cn.to; t++) { const q = bandPt(t, side, dehors); kerbEdge.lineTo(q[0], q[1]); }
         }
       }
+      // Le profil de Spa est partagé avec les barrières, y compris ses raccords.
+      const gravelW = (k,side) => track.def.barriers ? track.largeurBac(k,side) : 8;
       // gravel: wider band around the corner
-      for (let i = cn.from; i <= cn.to; i += 2) { const k = ((i % N) + N) % N, p = [xs[k] + nx[k] * (track.hwL[k] + 8), ys[k] + ny[k] * (track.hwL[k] + 8)]; if (i === cn.from) gravel.moveTo(p[0], p[1]); else gravel.lineTo(p[0], p[1]); }
-      for (let i = cn.to; i >= cn.from; i -= 2) { const k = ((i % N) + N) % N; gravel.lineTo(xs[k] - nx[k] * (track.hwR[k] + 8), ys[k] - ny[k] * (track.hwR[k] + 8)); }
+      for (let i = cn.from; i <= cn.to; i += 2) { const k = ((i % N) + N) % N, p = [xs[k] + nx[k] * (track.hwL[k] + gravelW(k,1)), ys[k] + ny[k] * (track.hwL[k] + gravelW(k,1))]; if (i === cn.from) gravel.moveTo(p[0], p[1]); else gravel.lineTo(p[0], p[1]); }
+      for (let i = cn.to; i >= cn.from; i -= 2) { const k = ((i % N) + N) % N; gravel.lineTo(xs[k] - nx[k] * (track.hwR[k] + gravelW(k,-1)), ys[k] - ny[k] * (track.hwR[k] + gravelW(k,-1))); }
       gravel.closePath();
       return { left: l, right: r, gravel, kerbs, kerbEdge, bbox: { minX: minX - 30, minY: minY - 30, maxX: maxX + 30, maxY: maxY + 30 } };
     });
@@ -1329,7 +1402,8 @@ class Renderer {
     if (T.drawRoad) {
       // gravel traps first, then the road itself with a heavy dark outline: the cartoon look
       // comes from flat colours and hard edges rather than shading
-      for (const cn of this.paths.corners) { if (!inView(cn.bbox)) continue; g.fillStyle = PAL.gravel; g.fill(cn.gravel); }
+      if(this.barrierGravel){g.fillStyle=PAL.gravel;g.fill(this.barrierGravel);}
+      else for (const cn of this.paths.corners) { if (!inView(cn.bbox)) continue; g.fillStyle = PAL.gravel; g.fill(cn.gravel); }
       // Seuls les tronçons en vue : la caméra montre une cinquantaine de mètres d'un circuit qui
       // en fait des milliers, et tout le reste ne sert qu'à occuper le rasteriseur.
       const vus = this.paths.chunks.filter(c => inView(c.bbox));
@@ -1421,6 +1495,7 @@ class Renderer {
       g.beginPath(); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); g.fill();
     }
     this._drawTopProps(g, vis);
+    this._drawBarriers(g, vis);
     for (const p of this.paths.passerelles) {
       if (!inView(p.bbox)) continue;
       g.fillStyle = 'rgba(30,26,20,0.22)'; g.fill(p.ombre);
@@ -2415,7 +2490,8 @@ class Renderer {
       g.textAlign = 'center'; g.fillStyle = '#5be07a'; g.font = 'bold 64px system-ui, sans-serif';
       g.globalAlpha = 1 - race.time / 1.2; g.fillText('GO!', W / 2, H * 0.18); g.globalAlpha = 1;
     }
-    if (p.state === 'grass') { g.textAlign = 'center'; g.fillStyle = '#ff6b6b'; g.font = 'bold 28px system-ui, sans-serif'; g.fillText(t('offTrack'), W / 2, H * 0.3); }
+    if (p.state === 'grass') { g.textAlign = 'center'; g.fillStyle = '#ff6b6b'; g.font = 'bold 28px system-ui, sans-serif'; g.fillText(t('offTrack'), W / 2, H * 0.3);
+      if(p.engineStopped){g.fillStyle='#ffcf5c';g.font='bold 18px system-ui, sans-serif';g.fillText(t('engineCut'),W/2,H*.3+30);} }
     if (p.finished && race.state !== 'finished') { g.textAlign = 'center'; g.fillStyle = '#ffd400'; g.font = 'bold 40px system-ui, sans-serif'; g.fillText(`${t('finished')} — P${race.positionOf(p)}`, W / 2, H * 0.3); }
     /* Le temps au tour se pose sous TOUT ce qui occupe le haut, et non à une hauteur fixe.
 

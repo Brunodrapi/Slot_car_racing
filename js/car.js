@@ -334,6 +334,8 @@ class Car {
     this.grassT = 0;
     this.rejoined = 0;
     this.crashes = 0;
+    this.engineCut = 0; this.engineStopped = false; this.barrierHits = 0;
+    this.lastBarrierImpact = null;
 
     this.sel = 0;                        // line selection -1..1 (driver's intention)
     this.selS = 0;                       // the same, eased: a driver moves across the road, he does not teleport
@@ -396,6 +398,7 @@ class Car {
     this.s = T.wrap(s); this.lat = lat; this.x = P.x; this.y = P.y; this.th = T.headingAt(s);
     this.v = v || 0; this.vl = 0; this.w = 0; this.delta = 0; this.beta = 0; this.usage = 0; this.slide = 0; this.ressenti = 0; this.Ff = 0; this.Fr = 0; this.selS = this.sel; this.accroche = true; this.aimantF = 0; this.ecartAv = null;
     this.patine = 0; this.patineFx = 0;
+    this.engineCut = 0; this.engineStopped = false;
   }
 
   /* Ce que les pneus rendent, entre neuf et mort. Séparé de `gripBoost` parce que les deux n'ont
@@ -530,8 +533,51 @@ class Car {
     return clamp(kPursuit + ff * kFF, -0.25, 0.25);
   }
 
+  _leaveTrack(withDamage = true) {
+    if (this.state === 'grass') return;
+    this.state = 'grass'; this.grassT = 0; this.crashes++; this.fautes++;
+    this.lapSale = true;
+    if (withDamage && this.usure)
+      this.damage = clamp(this.damage + this.usure.sortieParVitesse * Math.abs(this.v), 0, 1);
+  }
+
+  _barrierContact(from, dt, raceTime) {
+    const hit=this.track.barrierHit(this,from);
+    if(!hit)return false;
+    const vx=this.v*Math.cos(this.th)+this.vl*Math.sin(this.th);
+    const vy=this.v*Math.sin(this.th)-this.vl*Math.cos(this.th);
+    // La composante normale distingue un frottement d'un impact frontal.
+    const impact=Math.max(0,-vx*hit.nx-vy*hit.ny);
+    this.x=from.x+(this.x-from.x)*hit.t+hit.nx*(hit.depth+.035);
+    this.y=from.y+(this.y-from.y)*hit.t+hit.ny*(hit.depth+.035);
+    this.th=wrapAngle(from.th+wrapAngle(this.th-from.th)*hit.t);
+    this.v=0;this.vl=0;this.w=0;this.Ff=0;this.Fr=0;
+    this.slide=0;this.patine=0;this.patineFx=0;this.throttle=false;this.braking=false;
+    if(!this.engineStopped){
+      const effective=impact*(hit.barrier.kind==='tyres'?.55:1);
+      this.engineCut=clamp(.25+2*Math.pow(effective/20,2),.25,5);
+      this.engineStopped=true;this.barrierHits++;
+      this.lastBarrierImpact={speed:impact,effective,kind:hit.barrier.kind,cut:this.engineCut};
+      this._leaveTrack(false); // une excursion et son impact ne comptent pas deux fautes
+      if(this.usure)this.damage=clamp(this.damage+this.usure.chocParVitesse*Math.max(0,effective-this.usure.chocSeuil),0,1);
+    }
+    const pr=this.track.project(this.x,this.y,this.s,30);
+    const ds=this.track.diff(this.s,pr.s);
+    if(raceTime!=null&&ds>0&&ds<6)this._advance(ds,raceTime);else this.s=pr.s;
+    this.lat=pr.lat;
+    return true;
+  }
+
   update(dt, throttle, raceTime) {
     const T = this.track, c = this.cls;
+    const wasStopped = this.engineStopped;
+    this.engineCut = Math.max(0, this.engineCut - dt);
+    this.engineStopped = this.engineCut > 1e-6;
+    // Avec un seul accélérateur et sans marche arrière, repartir nez contre le mur
+    // créerait une boucle de chocs. On remet le cap dans le sens de la piste sur place.
+    if (wasStopped && !this.engineStopped) {
+      this.th = T.headingAt(this.s); this.delta=0; this.Ff=0; this.Fr=0;
+    }
     /* Le bloc des stands passe AVANT `this.throttle`, et ce n'est pas cosmétique.
 
     Il remplace l'accélérateur quand on est dans la voie. Placé après, il levait bien le pied
@@ -620,6 +666,7 @@ class Car {
       }
     }
 
+    if (this.engineStopped) throttle = false;
     this.throttle = throttle;
     /* L'usure. La glisse compte au carré : c'est le frottement qui arrache la gomme, pas la
     distance. Un pilote propre use lentement, un pilote en travers permanent trois fois plus vite.
@@ -648,30 +695,18 @@ class Car {
     const horsRoute = !this.inPit && (this.lat > hwL + marge || this.lat < -(hwR + marge));
     const off = !this.inPit && (this.lat > hwL + kb + marge || this.lat < -(hwR + kb + marge));
     this.surKerb = horsRoute && !off;
-    if (off && this.state !== 'grass') {
-      this.state = 'grass'; this.grassT = 0; this.crashes++;
-      /* UNE SORTIE EST UNE FAUTE, et elle se compte au moment où elle arrive.
-
-      Deux conséquences, et aucune des deux n'est une punition gratuite. Le tour en cours ne compte
-      plus : un meilleur tour signé en coupant n'est pas un meilleur tour. Et le classement final
-      porte une pénalité en secondes, parce que couper une chicane rapporte parfois plus que le
-      gravier ne coûte — c'est là qu'une course se gagne en trichant, et nulle part ailleurs. */
-      this.fautes++;
-      this.lapSale = true;
-      // les dommages se prennent à l'INSTANT de la sortie, à la vitesse qu'on avait : rester dans
-      // le gravier ne casse rien de plus, c'est le départ en tête-à-queue qui coûte
-      if (this.usure) this.damage = clamp(this.damage + this.usure.sortieParVitesse * Math.abs(this.v), 0, 1);
-    }
-    if (!off) this.state = 'ok';
+    if (off) this._leaveTrack();
+    if (!off && !this.engineStopped) this.state = 'ok';
     if (this.state === 'grass') this.grassT += dt;
     // stuck in the gravel: the marshals push the car back onto the edge of the road, facing the
     // right way and barely moving. Only after a long excursion, never during a slide.
-    if (this.grassT > 8) {
+    if (this.grassT > 8 && !this.engineStopped) {
       const edge = clamp(this.lat, -(T.hwRightAt(this.s) - c.width), T.hwLeftAt(this.s) - c.width);
       this.place(this.s, edge, Math.min(8, Math.abs(this.v)));
       this.state = 'ok'; this.grassT = 0; this.rejoined = (this.rejoined || 0) + 1;
       return;
     }
+    if (this.engineStopped) { this.v=0; this.vl=0; this.w=0; return; }
     // le vibreur ne rend pas tout : on peut s'y appuyer, pas s'y installer
     const surface = off ? 0.42 : this.surKerb ? KERB_ADHERENCE : 1;
 
@@ -840,6 +875,7 @@ class Car {
     }
     // sliding tyres scrub speed (lateral force component along the velocity)
     acc -= (Math.abs(this.Ff * Math.sin(alphaF)) + Math.abs(this.Fr * Math.sin(alphaR))) * 0.8 * dir;
+    const beforeBarrier = T.barriers.length ? {x:this.x,y:this.y,th:this.th} : null;
     // --- yaw from the axle moments; the velocity vector is rotated into the new body frame ---
     const wDot = (-a * (this.Ff + FmAv) + b * (this.Fr + FmAr)) / kk;
     this.w = clamp(this.w + wDot * dt, -4, 4);
@@ -894,6 +930,8 @@ class Car {
     const cs = Math.cos(this.th), sn = Math.sin(this.th);
     this.x += (this.v * cs + this.vl * sn) * dt;
     this.y += (this.v * sn - this.vl * cs) * dt;
+
+    if (beforeBarrier && this._barrierContact(beforeBarrier,dt,raceTime)) return;
 
     // --- track bookkeeping ---
     const pr = T.project(this.x, this.y, this.s);
