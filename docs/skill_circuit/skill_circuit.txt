@@ -1,0 +1,526 @@
+# CIRCUIT GRAPHICS — Procedural Rendering Rules
+
+## 1. Objective
+
+Generate visually coherent, realistic, modern Formula 1-style circuits using **100% procedural rendering**.
+
+All circuit elements must be drawn directly by code using paths, polygons, curves, strokes, fills, gradients, noise and geometric primitives.
+
+**Never use external assets, imported textures, sprites, raster images or AI-generated images.**
+
+The rendering must remain deterministic, resolution-independent and consistent across all circuits.
+
+These rules describe a unified artistic style inspired by modern European racing circuits. They are not intended to reproduce every FIA homologation requirement.
+
+## 2. Core principles
+
+1. **Geometry first:** derive every element from the actual track geometry.
+2. **Track-relative placement:** position kerbs, runoff, barriers and markings relative to track edges, never using arbitrary screen coordinates.
+3. **Consistent materials:** identical surfaces must share the same base palette.
+4. **Context-aware rendering:** apexes, exits, chicanes and straights require different treatments.
+5. **No arbitrary decorations:** do not invent colored markings, safety devices or obstacles without a meaningful reason.
+6. **Top-down readability:** the road, track limits and obstacles must remain clearly distinguishable.
+7. **Scalable rendering:** use world-space dimensions and convert them to pixels through the camera.
+8. **Preserve existing geometry:** styling must not alter the track centerline, road width, corner radius or collision boundaries unless explicitly requested.
+
+## 3. Global color palette
+
+Use these reference colors as defaults. Small deterministic variations are permitted for material realism.
+
+| Material | HEX |
+|---|---|
+| Main racing asphalt | `#424448` |
+| Fresh asphalt | `#34373B` |
+| Worn asphalt | `#55565A` |
+| Asphalt runoff | `#606267` |
+| Service road asphalt | `#686969` |
+| Pit lane asphalt | `#4A4C50` |
+| Rubber deposits | `#292A2C` |
+| Concrete | `#A9A9A3` |
+| Light concrete | `#D6D5CE` |
+| White marking | `#F1F0E8` |
+| Kerb red | `#C9282E` |
+| Kerb white | `#F1F0E8` |
+| Runoff green | `#448C58` |
+| Runoff blue | `#2769A3` |
+| Runoff red | `#B83843` |
+| Grass | `#6D9652` |
+| Dark grass | `#557944` |
+| Dry grass | `#A2A06A` |
+| Gravel | `#C7B48C` |
+| Gravel shadow | `#A99874` |
+| Dry soil | `#A18B69` |
+| Tire barriers | `#27292A` |
+| Metal barriers | `#A6AAAD` |
+| Safety yellow | `#E9BE37` |
+| Safety orange | `#F17A27` |
+
+Do not randomly assign different base colors to equivalent materials.
+
+## 4. Track geometry and surface rendering
+
+### 4.1 Main track
+
+Render the road as a continuous polygon derived from the centerline and local track width.
+
+- Base color: `#424448`.
+- Avoid pure black.
+- Apply subtle, low-contrast procedural grain.
+- Add restrained asphalt variation using deterministic noise.
+- Keep the road visually darker than the default runoff.
+- Avoid visible polygon seams and abrupt changes in texture.
+- Never render the track as disconnected rectangular segments.
+
+If the engine supports material shaders, use world-space noise. Otherwise, use deterministic procedural geometry.
+
+### 4.2 Asphalt wear and rubber
+
+Rubber deposits should appear primarily along the racing line.
+
+- Color: `#292A2C`.
+- Use low opacity and soft transitions.
+- Concentrate deposits near braking zones, apexes and acceleration zones.
+- Avoid drawing a uniform black stripe around the entire circuit.
+- Tire marks must follow physically plausible vehicle trajectories.
+
+Rubber marks are decorative only and must never change the actual collision geometry.
+
+### 4.3 Track boundaries
+
+Both track edges must be computed from the centerline and the local normal.
+
+Draw continuous white boundary lines:
+
+- Color: `#F1F0E8`.
+- Suggested visual width: 0.12–0.20 m.
+- Use smooth joins.
+- Do not interrupt lines arbitrarily.
+- The white line must remain distinguishable from adjacent kerbs.
+
+When kerbs are present, preserve the correct geometric relationship between the track edge, white line and kerb.
+
+## 5. Kerbs
+
+### 5.1 Default kerb style
+
+Use alternating red and white segments.
+
+- Red: `#C9282E`.
+- White: `#F1F0E8`.
+- Suggested width: 0.8–1.5 m.
+- Suggested segment length: 0.6–1.2 m.
+- Segments must follow the local track curvature.
+
+Kerbs must be generated as curved strips following the edge geometry, not as independently rotated rectangles.
+
+### 5.2 Kerb placement
+
+Place kerbs primarily:
+
+- On the inside of corners near apexes.
+- On the outside of corners near exits.
+- Along relevant chicane entry and exit sections.
+- At other positions explicitly specified by circuit geometry or design metadata.
+
+Do not place kerbs continuously along every straight or every track edge.
+
+### 5.3 Kerb geometry
+
+Kerbs must:
+
+- Follow the exact local edge.
+- Maintain approximately constant width.
+- Use regular color alternation measured along arc length.
+- Avoid overlapping neighboring sections.
+- Remain smooth in tight curves.
+- Maintain stripe continuity through sampling subdivisions.
+
+Add only subtle relief or shading. In top-down view, avoid exaggerated 3D effects.
+
+### 5.4 Apex-specific behavior
+
+Do not invent special apex colors.
+
+Use standard red/white kerbs unless a circuit-specific variant is configured.
+
+The apex should be visually recognizable through the geometry and placement of the kerb.
+
+### 5.5 Anti-cut kerbs
+
+Raised yellow/orange anti-cut devices are optional and must be explicitly enabled.
+
+- Yellow: `#E9BE37`.
+- Orange: `#F17A27`.
+
+Use them selectively at chicanes or other designated locations.
+
+Never generate raised anti-cut devices automatically at every apex.
+
+## 6. Runoff areas
+
+### 6.1 Asphalt runoff
+
+- Base: `#606267`.
+- Must be visually distinguishable from racing asphalt.
+- Must follow the geometry of the corner and available safety area.
+- Use a coherent surface polygon, not a constant-width ring around the track.
+
+Runoff areas are not necessarily symmetrical.
+
+### 6.2 Painted runoff
+
+Supported variants:
+
+- Green: `#448C58`.
+- Blue: `#2769A3`.
+- Red: `#B83843`.
+
+Painted areas must be configured by circuit style or segment metadata.
+
+Do not apply Paul Ricard-style colored stripes to every circuit.
+
+### 6.3 Gravel traps
+
+- Base: `#C7B48C`.
+- Use subtle procedural variation with `#A99874`.
+- Generate irregular granular detail in world space.
+- Avoid large repeated circular dots.
+- Boundaries may be slightly irregular but must remain coherent.
+
+Gravel traps should generally occupy appropriate exterior runoff zones, not arbitrary interior sections.
+
+### 6.4 Grass
+
+- Base: `#6D9652`.
+- Dark: `#557944`.
+- Dry: `#A2A06A`.
+
+Use low-frequency color variation with restrained fine detail.
+
+Grass must not look like a uniformly tiled pattern.
+
+### 6.5 Surface transitions
+
+Use sharp, well-defined boundaries between constructed surfaces:
+
+- Asphalt to painted asphalt.
+- Asphalt to concrete.
+- Track to kerb.
+
+Use more natural irregularity between:
+
+- Grass and soil.
+- Gravel and surrounding terrain.
+- Vegetation and exposed earth.
+
+Do not blur the physical boundary of the track.
+
+## 7. Safety barriers
+
+Safety barriers must follow dedicated safety boundaries, not automatically coincide with track edges.
+
+### 7.1 Concrete walls
+
+- Base: `#A9A9A3`.
+- Light surfaces: `#D6D5CE`.
+- Dark joints: `#81827E`.
+
+Render as connected geometric modules with restrained joint lines.
+
+### 7.2 Tire barriers
+
+- Base: `#27292A`.
+- Highlights: `#373A3C`.
+
+Generate repeated circular or cylindrical tire geometry along the barrier path.
+
+Tires must be individually recognizable at normal gameplay zoom without becoming visually noisy.
+
+### 7.3 Metal barriers
+
+- Base: `#A6AAAD`.
+- Shadow: `#55585B`.
+
+Draw parallel metal rails with regular support posts.
+
+### 7.4 TecPro-style barriers
+
+Supported colors:
+
+- Red: `#C92F32`.
+- White: `#E6E6DF`.
+- Blue: `#28639C`.
+
+Draw modular rectangular blocks following the barrier alignment.
+
+### 7.5 Barrier placement
+
+Barriers must be placed only when the circuit geometry or safety layout requires them.
+
+Never surround the entire track with concrete walls by default.
+
+Maintain reasonable separation between the road, runoff and barriers.
+
+## 8. Bollards, cones and concrete blocks
+
+Supported objects:
+
+- Orange traffic cones.
+- Yellow flexible bollards.
+- White delineator posts.
+- Grey concrete blocks.
+- Red/white painted concrete blocks.
+- Yellow/orange anti-cut elements.
+
+Use procedural shapes only.
+
+Every object must have:
+
+- A defined world-space position.
+- A defined orientation.
+- A collision classification.
+- A material color.
+- A consistent scale.
+- A small coherent shadow when appropriate.
+
+Distinguish between flexible objects and solid obstacles.
+
+Do not place decorative obstacles directly on the racing line.
+
+## 9. Braking zones and corner entries
+
+Do not paint artificial braking zones onto the asphalt.
+
+Instead, use realistic visual cues:
+
+- Distance boards.
+- Rubber deposits.
+- Trackside reference markers.
+- Kerb geometry.
+- Track width and corner shape.
+
+Distance boards may display:
+
+- 200 m.
+- 150 m.
+- 100 m.
+- 50 m.
+
+These distances must be measured along the track path to the relevant braking reference, not inferred from screen-space distance.
+
+Do not generate all four boards if there is insufficient space or if the circuit configuration specifies otherwise.
+
+## 10. Track markings
+
+Supported markings:
+
+- Continuous white track boundary lines.
+- Start/finish line.
+- Starting grid positions.
+- Pit entry and exit lines.
+- Pit box markings.
+- Directional arrows where appropriate.
+- Special race-control markings where configured.
+
+All markings must be placed in world coordinates.
+
+The start/finish line must be perpendicular to the local track tangent.
+
+Grid positions must follow the local track direction and configured spacing.
+
+Avoid unnecessary road markings typical of public roads.
+
+## 11. Pit lane and paddock
+
+Pit lane:
+
+- Asphalt: `#4A4C50`.
+- White markings: `#F1F0E8`.
+- Concrete: `#A9A9A3`.
+
+The pit lane must be a separate geometric road path, connected logically to the main track.
+
+Draw:
+
+- Pit entry.
+- Pit exit.
+- Pit lane boundaries.
+- Pit boxes.
+- Pit wall.
+- Garage fronts when visible.
+- Relevant signs and traffic lights.
+
+Do not treat the pit lane as a decorative stripe alongside the circuit.
+
+## 12. Trackside environment
+
+Use procedural drawing for:
+
+- Grass fields.
+- Trees and bushes.
+- Soil and gravel.
+- Access roads.
+- Service roads.
+- Fences.
+- Grandstands.
+- Buildings.
+- Camera towers.
+- Signage.
+- Advertising boards.
+- Safety equipment.
+
+The environment must remain visually subordinate to the track.
+
+Avoid random placement of trees inside runoff areas, service roads or safety corridors.
+
+All decorations must respect the circuit geometry and object exclusion zones.
+
+## 13. Rendering order
+
+Render elements in a consistent layer order, from back to front:
+
+1. Base terrain.
+2. Terrain variations.
+3. Grass and soil.
+4. Gravel traps.
+5. Asphalt runoff.
+6. Painted runoff.
+7. Service roads.
+8. Main track asphalt.
+9. Pit lane.
+10. Asphalt wear and rubber deposits.
+11. Track boundary lines.
+12. Kerbs and raised anti-cut elements.
+13. Road markings.
+14. Barriers and walls.
+15. Bollards, cones and signs.
+16. Buildings, vegetation and other trackside objects.
+17. Vehicles and dynamic race objects.
+18. Dynamic effects and gameplay overlays.
+
+When layers intersect, use actual geometry and masks to prevent incorrect overpainting.
+
+The precise order may be adjusted to account for local overlap, but the visual hierarchy must be preserved.
+
+## 14. Geometry and procedural implementation
+
+### 14.1 Coordinate system
+
+Use world coordinates for all physical dimensions.
+
+Screen coordinates must be derived from the camera transform.
+
+Do not hardcode pixel distances for physical features.
+
+### 14.2 Curve sampling
+
+Sample curves adaptively according to curvature and zoom.
+
+Requirements:
+
+- Smooth track edges.
+- Smooth kerb boundaries.
+- No visible polygon gaps.
+- No sharp artifacts at joins.
+- Consistent stripe lengths along arc length.
+
+### 14.3 Track-relative placement
+
+Use:
+
+- Centerline position.
+- Tangent.
+- Normal.
+- Curvature.
+- Local road width.
+- Distance along the track.
+
+Place objects relative to these quantities.
+
+### 14.4 Procedural randomness
+
+All random variations must use a deterministic seed.
+
+The same circuit and seed must always produce the same appearance.
+
+Do not regenerate random terrain detail on every frame.
+
+### 14.5 Performance
+
+Prefer:
+
+- Cached geometry.
+- Batched draw calls.
+- Reusable procedural materials.
+- Spatial culling.
+- Level-of-detail adjustments.
+- Precomputed static geometry.
+
+Do not recalculate static track geometry every frame.
+
+Caching generated geometry is allowed. Importing premade visual assets is not.
+
+## 15. Circuit-specific configuration
+
+The visual style must be configurable without changing rendering code.
+
+Each circuit may define:
+
+- Asphalt palette.
+- Kerb palette.
+- Kerb locations.
+- Runoff materials and polygons.
+- Gravel trap locations.
+- Grass regions.
+- Safety barrier paths and types.
+- Pit lane geometry.
+- Trackside objects.
+- Painted runoff patterns.
+- Braking boards.
+- Special corner features.
+
+Never infer exact safety infrastructure solely from track curvature.
+
+When a circuit-specific feature is unknown, use the neutral default style rather than inventing a distinctive feature.
+
+## 16. Validation rules
+
+Before accepting a generated circuit, verify:
+
+- [ ] The main track is continuous.
+- [ ] Track widths are preserved.
+- [ ] White boundary lines follow both track edges.
+- [ ] Kerbs follow curved track boundaries.
+- [ ] Kerbs appear at appropriate locations, not everywhere.
+- [ ] Kerb stripe lengths are consistent.
+- [ ] Apexes do not receive arbitrary special colors.
+- [ ] Runoff regions do not overlap the main road.
+- [ ] Gravel and grass regions are coherent.
+- [ ] Barriers do not intersect the road unintentionally.
+- [ ] Obstacles are not placed on the racing line.
+- [ ] Pit entry and exit connect logically.
+- [ ] Start/finish and grid markings follow the track geometry.
+- [ ] All materials follow the shared palette.
+- [ ] Procedural details are deterministic.
+- [ ] Rendering is stable at different zoom levels.
+- [ ] No external image or sprite assets are used.
+- [ ] Styling does not silently modify driving physics.
+
+## 17. Mandatory implementation behavior for AI coding agents
+
+When implementing or modifying circuit rendering:
+
+1. Inspect the existing rendering architecture before making changes.
+2. Reuse the existing track geometry and coordinate system.
+3. Separate track geometry, semantic circuit data and visual rendering.
+4. Centralize the color palette and style parameters.
+5. Implement procedural drawing rather than adding assets.
+6. Preserve existing gameplay behavior and collision logic.
+7. Avoid duplicating geometry calculations.
+8. Never invent circuit-specific features without configuration data.
+9. Validate the result at representative straights, tight corners, chicanes and pit lane sections.
+10. If semantic information is missing, use a neutral fallback and report the missing data rather than pretending to know the correct placement.
+
+**Priority order: geometric correctness → physical coherence → track readability → visual realism → decorative detail.**
+
+The goal is a coherent racing circuit, not simply an attractive collection of colored polygons.
