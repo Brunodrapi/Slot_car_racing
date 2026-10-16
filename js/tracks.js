@@ -114,6 +114,30 @@ const TRACKS = [
       { name: "Suppression avant Eau Rouge", surface: 'grass', side: -1,
         points: [[0.153,0],[0.163,0]] },
     ],
+    /* Spa relevé d'en haut : un ruban percé dans la forêt ardennaise.
+
+    Le bois serre la piste partout sauf sur la ligne des stands, qui est la seule clairière du
+    tour — paddock, hangars, tribunes. Entre Les Combes et Stavelot la hêtraie descend jusqu'au
+    dégagement des deux côtés ; à Blanchimont elle ne tient plus qu'à l'extérieur, l'intérieur de
+    la boucle étant occupé par les parkings. */
+    implantation: [
+      { kind: 'stands', side: -1, from: 0.975, to: 0.045, recul: 10, prof: 22, module: 40 },
+      { kind: 'tribune', side: 1, from: 0.985, to: 0.04, recul: 9, prof: 16, module: 30 },
+      { kind: 'tribune', side: 1, from: 0.055, to: 0.082, recul: 11, prof: 14, module: 24 },
+      { kind: 'hangars', side: -1, from: 0.055, to: 0.12, recul: 16, prof: 26, module: 30 },
+      { kind: 'bois', side: -1, from: 0.12, to: 0.175, recul: 8, prof: 55 },
+      { kind: 'bois', side: 1, from: 0.09, to: 0.33, recul: 10, prof: 70 },
+      { kind: 'bois', side: -1, from: 0.2, to: 0.345, recul: 9, prof: 60 },
+      { kind: 'parking', side: -1, from: 0.35, to: 0.385, recul: 12, prof: 26 },
+      { kind: 'bois', side: 1, from: 0.345, to: 0.55, recul: 10, prof: 65 },
+      { kind: 'bois', side: -1, from: 0.39, to: 0.545, recul: 10, prof: 60 },
+      { kind: 'bois', side: -1, from: 0.56, to: 0.705, recul: 11, prof: 70 },
+      { kind: 'bois', side: 1, from: 0.6, to: 0.70, recul: 10, prof: 55 },
+      { kind: 'bois', side: 1, from: 0.715, to: 0.88, recul: 10, prof: 60 },
+      { kind: 'bois', side: -1, from: 0.72, to: 0.885, recul: 11, prof: 70 },
+      { kind: 'bois', side: -1, from: 0.89, to: 0.955, recul: 14, prof: 50 },
+      { kind: 'parking', side: 1, from: 0.9, to: 0.95, recul: 14, prof: 30 },
+    ],
     kerb: DRAPEAUX.be,
     /* Plus de `pitAt` : il valait 0,10 et corrigeait une zone d'arrêt qui tombait dans un virage —
        conséquence d'une ligne de départ posée à Eau Rouge. La ligne est maintenant sur la vraie

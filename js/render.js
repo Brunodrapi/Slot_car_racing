@@ -47,6 +47,14 @@ const THEME_BASE = {
   sail: '#ffffff', sailDeck: '#d8d2c2', boatHull: '#c9503a',
   // standing water: the puddle itself, the sky caught in it, and the damp a tyre carries out of it
   puddle: '#2d3a57', puddleLight: '#82abc6', wet: '#2b2735',
+  /* L'implantation : le sol d'un sous-bois, et de quoi bâtir.
+
+  Le sol d'une masse boisée n'est pas de l'herbe — c'est de l'ombre et de la litière, et il doit
+  être assez sombre pour qu'un trou entre deux couronnes ne fasse pas une tache claire au milieu du
+  bois. Le béton, lui, sert aux tribunes comme aux hangars : sur une vue du dessus, tout ce qui est
+  bâti autour d'un circuit est gris clair et plat. */
+  sousBois: '#2c4a26', beton: '#b7b3ab', betonOmbre: '#8d8a84', toit: '#c9c5bb',
+  verriere: '#6f7a80', gradin: '#9aa0a4', bitumeNu: '#6e6b74',
 };
 
 const THEME_DEFS = {
@@ -180,6 +188,11 @@ let PAL = THEMES.park;
 Le bleu est le côté DROIT du ruban, le jaune le côté GAUCHE, du départ à l'arrivée. Les mêmes
 couleurs servent aux lignes tracées, aux pastilles du levier et aux bords peints de la piste : c'est
 ce qui permet de se passer de légende — on voit le bord jaune, on pousse le levier vers le jaune. */
+/* Les carrosseries d'un parking, dans la proportion où on les voit sur une aire : la moitié en
+   gris, blanc et noir, le reste en teintes sourdes, et une rouge pour deux cents places. */
+const PARK_TEINTES = ['#d9d9dc', '#ececed', '#9b9ba1', '#6e6e76', '#3b3c42', '#2b2c31',
+  '#c9ccd1', '#8a9099', '#5a6472', '#7e8a7a', '#8b7f72', '#b4453c'];
+
 const LINE_COLORS = { bleu: 'rgba(80,200,255,0.55)', racing: 'rgba(255,255,255,0.5)', jaune: 'rgba(255,200,60,0.55)' };
 
 class Renderer {
@@ -226,6 +239,7 @@ class Renderer {
     this.cam = { x: 0, y: 0, zoom: 6 };
     this.grass = this._makeGrass();
     this.shake = 0;
+    this._implTag = 0;   // numéro d'image, pour ne dessiner qu'une fois un arbre à cheval sur deux cases
     this.touch = false;
     this.showLines = false;   // braking guide, off unless enabled in the settings
     this.debug = false;       // vehicle telemetry overlay (speed, slip angle, lateral velocity, grip usage)
@@ -535,6 +549,13 @@ class Renderer {
     chaque course, y compris à plat où personne ne les regardait. */
     this.topArt = buildTopArt(PAL);
     this.topProps = placeTopProps(track, seed, null, PAL.props);
+    /* L'implantation relevée sur la vue du dessus du circuit, quand il en a une.
+
+    Elle passe AVANT le filtrage des barrières, et elle efface d'abord le semis ordinaire là où la
+    vue montre du vide : un bosquet par défaut au milieu de l'aérodrome de Silverstone trahit le
+    lieu plus sûrement qu'une couleur fausse. */
+    this.implantation = placeImplantation(track, seed, track.def && track.def.implantation);
+    this.topProps = implEfface(track, this.implantation, this.topProps);
     this._buildBarrierArt(track);
     if(track.barriers.length)this.topProps=this.topProps.filter(p=>{
       const radius=(this.topArt[p.id]?.wm||4)*.6;
@@ -1423,6 +1444,7 @@ class Renderer {
       g.fillStyle = this.grassPattern;
       g.save(); g.scale(1 / 8, 1 / 8); g.fillRect(vis.minX * 8, vis.minY * 8, (vis.maxX - vis.minX) * 8, (vis.maxY - vis.minY) * 8); g.restore();
       this._drawPatches(g, vis);
+      this._drawImplantationSol(g, vis);
       this._drawSea(g, vis);
     }
 
@@ -1526,6 +1548,7 @@ class Renderer {
       g.fillStyle = `rgba(${p.col},${(Math.min(1, t * 2.5) * 0.42).toFixed(3)})`;
       g.beginPath(); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); g.fill();
     }
+    this._drawImplantation(g, vis);
     this._drawTopProps(g, vis);
     this._drawBarriers(g, vis);
     for (const p of this.paths.passerelles) {
@@ -1929,6 +1952,137 @@ class Renderer {
       g.restore();
     }
     g.globalAlpha = 1;
+  }
+
+  /* Le sol de l'implantation, peint avec le terrain et donc sous la route.
+
+  Un bois a son sous-bois, un parking et un paddock leur bitume, une tribune sa dalle. La couleur
+  vient du thème : le sous-bois des Ardennes n'est pas celui du parc royal. Le contour est un
+  polygone fermé, pas une bande tracée au pinceau, sinon les bouts dépassent en arrondi. */
+  _drawImplantationSol(g, vis) {
+    const im = this.implantation;
+    if (!im) return;
+    for (const z of im.sols) {
+      const b = z.bbox;
+      if (b.maxX < vis.minX || b.minX > vis.maxX || b.maxY < vis.minY || b.minY > vis.maxY) continue;
+      g.fillStyle = z.sol || (z.kind === 'bois' ? PAL.sousBois
+        : z.kind === 'parking' || z.kind === 'hangars' || z.kind === 'stands' ? PAL.bitumeNu
+        : PAL.betonOmbre);
+      g.beginPath();
+      g.moveTo(z.pts[0].x, z.pts[0].y);
+      for (let i = 1; i < z.pts.length; i++) g.lineTo(z.pts[i].x, z.pts[i].y);
+      g.closePath();
+      g.fill();
+    }
+  }
+
+  /* Les couronnes et les bâtiments, par-dessus tout le reste.
+
+  Seules les cases que la caméra touche sont parcourues ; un bois de Monza compte des milliers
+  d'arbres et la caméra en montre une quinzaine. Une couronne peut appartenir à plusieurs cases,
+  d'où le marquage par numéro d'image plutôt qu'un Set qu'il faudrait vider. */
+  _drawImplantation(g, vis) {
+    const im = this.implantation;
+    if (!im) return;
+    const tag = ++this._implTag;
+    const C = im.cell;
+    const m = g.getTransform();
+    const k = this.cam.zoom * this.dpr;
+    for (let i = Math.floor(vis.minX / C); i <= Math.floor(vis.maxX / C); i++) {
+      for (let j = Math.floor(vis.minY / C); j <= Math.floor(vis.maxY / C); j++) {
+        const cel = im.cases.get(i + ',' + j);
+        if (!cel) continue;
+        for (const o of cel) {
+          if (o._vu === tag) continue;
+          o._vu = tag;
+          const dx = m.a * o.x + m.c * o.y + m.e, dy = m.b * o.x + m.d * o.y + m.f;
+          if (o.type) this._drawBati(g, o, dx, dy, k);
+          else {
+            const a = this.topArt[o.id];
+            if (!a) continue;
+            const wpx = a.wm * o.e * k;
+            g.save();
+            g.setTransform(1, 0, 0, 1, 0, 0);
+            g.drawImage(a.canvas, dx - wpx / 2, dy - wpx / 2, wpx, wpx);
+            g.restore();
+          }
+        }
+      }
+    }
+  }
+
+  /* Un bâti, dessiné dans le monde et non collé à l'écran : il tourne avec la caméra.
+
+  Une tribune vue du dessus n'est pas une boîte. C'est un toit, et devant lui les gradins qui
+  descendent vers la piste — des bandes de plus en plus claires, parce qu'une marche prend la
+  lumière et la suivante est dans son ombre. Sans ces bandes une tribune est un rectangle gris, et
+  rien ne dit de quel côté le public regarde. */
+  _drawBati(g, o, dx, dy, k) {
+    g.save();
+    g.translate(o.x, o.y);
+    g.rotate(o.a);
+    const L = o.l, W = o.w, s = -o.side;   // s < 0 : la piste est du côté des y négatifs
+    if (o.type === 'tribune') {
+      g.fillStyle = PAL.betonOmbre;
+      g.fillRect(-L / 2, Math.min(0, s * W), L, W);
+      const n = o.gradins, pas = W / n;
+      for (let i = 0; i < n; i++) {
+        // le gradin le plus proche de la piste est le plus bas, donc le plus clair
+        const t = i / (n - 1 || 1);
+        g.fillStyle = this._melange(PAL.gradin, PAL.betonOmbre, t * 0.75);
+        const y0 = s > 0 ? i * pas : -(i + 1) * pas;
+        g.fillRect(-L / 2 + 0.4, y0, L - 0.8, pas * 0.86);
+      }
+      if (o.toit) {
+        g.fillStyle = PAL.toit;
+        const y0 = s > 0 ? W * 0.52 : -W;
+        g.fillRect(-L / 2 - 0.6, y0, L + 1.2, W * 0.48);
+        g.fillStyle = PAL.verriere;
+        g.fillRect(-L / 2 + 1, y0 + W * 0.1, L - 2, W * 0.1);
+      }
+      g.strokeStyle = PAL.outline; g.lineWidth = 0.3;
+      g.strokeRect(-L / 2, Math.min(0, s * W), L, W);
+    } else if (o.type === 'voiture') {
+      /* Un parking de spectateurs est GRIS. Tiré au hasard sur la roue des teintes il virait à la
+      boîte de bonbons : trente couleurs pures côte à côte sautaient à l'œil plus que la piste. Une
+      vraie rangée est faite de blanc, de gris, de noir et d'un bleu sombre, avec une voiture
+      colorée de temps en temps — c'est cette proportion qu'on tire ici, pas la teinte. */
+      g.fillStyle = PAL.outline;
+      g.fillRect(-L / 2, -W / 2, L, W);
+      g.fillStyle = PARK_TEINTES[Math.min(PARK_TEINTES.length - 1, Math.floor(o.teinte * PARK_TEINTES.length))];
+      g.fillRect(-L / 2 + 0.25, -W / 2 + 0.25, L - 0.5, W - 0.5);
+      g.fillStyle = 'rgba(30,34,44,0.45)';
+      g.fillRect(-L * 0.12, -W / 2 + 0.4, L * 0.34, W - 0.8);
+    } else {
+      /* Stands et hangars : un toit clair, sa bordure sombre, et une bande de lanterneaux.
+
+      Les stands ont en plus leurs portes de garage, côté piste : c'est à ça qu'on reconnaît un
+      bâtiment de stands d'un hangar de paddock, vu d'en haut. */
+      g.fillStyle = PAL.outline;
+      g.fillRect(-L / 2, Math.min(0, s * W), L, W);
+      g.fillStyle = this._melange(PAL.toit, PAL.betonOmbre, o.teinte * 0.45);
+      g.fillRect(-L / 2 + 0.3, Math.min(0, s * W) + 0.3, L - 0.6, W - 0.6);
+      g.fillStyle = PAL.verriere;
+      const yv = s > 0 ? W * 0.42 : -W * 0.58;
+      g.fillRect(-L / 2 + 1.2, yv, L - 2.4, W * 0.16);
+      if (o.type === 'stands') {
+        g.fillStyle = PAL.betonOmbre;
+        const yp = s > 0 ? 0.3 : -W * 0.22;
+        const pas = (L - 2) / o.portes;
+        for (let i = 0; i < o.portes; i++)
+          g.fillRect(-L / 2 + 1 + i * pas, yp, pas * 0.74, W * 0.2);
+      }
+    }
+    g.restore();
+  }
+
+  // Deux couleurs hexadécimales mélangées, pour les marches d'un gradin et les toits d'un paddock.
+  _melange(a, b, t) {
+    const A = parseInt(a.slice(1), 16), B = parseInt(b.slice(1), 16);
+    const r = Math.round((A >> 16 & 255) * (1 - t) + (B >> 16 & 255) * t);
+    const v = Math.round((A >> 8 & 255) * (1 - t) + (B >> 8 & 255) * t);
+    const u = Math.round((A & 255) * (1 - t) + (B & 255) * t);
+    return `rgb(${r},${v},${u})`;
   }
 
   // Scenery for the flat view: objects drawn as a bird sees them, shadow baked in, no rotation —

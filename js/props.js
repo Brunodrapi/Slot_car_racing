@@ -323,6 +323,273 @@ function placeTopProps(track, id, density, weights) {
   return placeFrom(kinds, track, seedFromId('top-' + id), density == null ? 0.85 : density, 6);
 }
 
+/* ------------------------------------------------------- l'implantation du circuit
+
+Un semis ne fait pas un lieu. `placeTopProps` saupoudre : un arbre ici, un buisson là, la même
+densité moyenne tout autour du tour, et les douze circuits finissent par se ressembler. Les vues
+du dessus rangées dans `art/reprise circuit/` disent autre chose. Monza est un ruban percé dans un
+bois, et ce bois est MASSIF : on ne voit pas à travers. Silverstone est un aérodrome nu, presque
+sans arbre, mais cerné de tribunes et de hangars. Le Castellet est une pinède, avec sa piste
+d'aviation le long de la ligne droite. Interlagos a ses deux lacs et ses gradins au-dessus des
+stands. Ce qui distingue un circuit d'un autre, vu d'en haut, ce n'est pas combien il y a de
+décor, c'est OÙ il y en a — et surtout où il n'y en a pas.
+
+Une zone se déclare donc par secteur du tour : `from` et `to` en fraction, un côté, un recul
+depuis la protection et une profondeur. Le reste se déduit du tracé, si bien qu'une zone suit les
+virages sans qu'on ait à en relever le contour point par point.
+
+TOUT EST DESSINÉ. Pas une image n'est chargée : une masse boisée est un sol sombre sur lequel on
+pose des couronnes assez serrées pour se recouvrir, une tribune est une dalle et ses gradins, un
+bâtiment est un toit et sa verrière. C'est la demande, et c'est aussi la seule façon de tenir : un
+bois de Monza en vraies images, ce sont des milliers de fichiers à descendre avant le départ. */
+
+const IMPL_CELL = 48;            // côté des cases servant à ne dessiner que ce qui est en vue
+
+/* Projeter un point sur le tour entier, sans savoir où il tombe.
+
+`Track.project` prend une FENÊTRE EN NOMBRE DE NŒUDS autour d'une abscisse connue, pas une distance
+en mètres : elle existe pour qu'une voiture ne s'accroche pas à l'autre branche d'un croisement.
+Lui passer un grand nombre pour dire « cherche partout » lui fait parcourir ce nombre de nœuds —
+deux milliards de tours de boucle pour 1e9, ce qui ne finit jamais. La moitié des nœuds suffit à
+couvrir l'anneau, et c'est le maximum qui ait un sens. */
+function implProjette(track, x, y) {
+  return track.project(x, y, 0, Math.ceil(track.n / 2) + 1);
+}
+
+// Le secteur d'une zone, en mètres, en acceptant qu'elle passe la ligne de départ (to < from).
+function implSpan(track, z) {
+  const L = track.length;
+  const a = (z.from == null ? 0 : z.from) * L;
+  let b = (z.to == null ? 1 : z.to) * L;
+  if (b <= a + 1) b += L;
+  return [a, b];
+}
+
+/* Les extrémités s'ouvrent et se ferment au lieu de commencer par un mur.
+
+Un bois qui démarre à pleine profondeur fait une arête droite en travers du paysage, et l'œil ne
+voit plus que cette arête. L'ouverture se fait sur trente mètres, ou sur le tiers de la zone quand
+elle est courte — sinon une zone de quarante mètres n'aurait jamais sa profondeur. */
+function implFondu(s, s0, s1) {
+  const marge = Math.min(30, (s1 - s0) / 3);
+  if (marge <= 0) return 1;
+  const t = Math.min(s - s0, s1 - s) / marge;
+  return t >= 1 ? 1 : t <= 0 ? 0 : t * t * (3 - 2 * t);
+}
+
+/* Où commence le paysage, à une abscisse donnée.
+
+C'est `limiteProtection` plus le recul demandé. Un bois collé à la barrière enferme la piste dans
+un couloir ; vingt mètres d'herbe derrière le rail, et on retrouve la respiration des vrais
+circuits — celle-là même qu'on a cherchée en éloignant les barrières. */
+function implBase(track, s, side, z) {
+  return track.limiteProtection(s, side) + (z.recul == null ? 6 : z.recul);
+}
+
+/* Le contour d'une zone : bord intérieur à l'aller, bord extérieur au retour.
+
+Le bord extérieur ONDULE. Une lisière de bois rectiligne sur quatre cents mètres se voit comme un
+trait de règle en travers du paysage — c'est exactement ce qui trahissait la première version. Deux
+sinusoïdes de périodes incommensurables suffisent à casser la ligne sans qu'un motif se répète, et
+elles sont une fonction de l'abscisse, donc le contour et les couronnes ondulent ensemble. */
+function implOndule(s, prof) {
+  /* Trois périodes, dont une COURTE. Les deux premières donnent la forme générale de la lisière,
+  mais elles s'étendent sur deux cents mètres et la caméra n'en montre qu'une trentaine : à
+  l'échelle de jeu, leur ondulation est encore une ligne droite. La troisième, de dix-huit mètres
+  de période, est celle qu'on voit effectivement en roulant. */
+  return prof * (1 + 0.14 * Math.sin(s / 37) + 0.09 * Math.sin(s / 13.7 + 2.1)
+    + 0.06 * Math.sin(s / 2.9 + 0.7));
+}
+
+function implContour(track, z, s0, s1, pas) {
+  /* Le sol est TIRÉ EN DEDANS de deux mètres et demi par rapport aux couronnes. Sans ce retrait,
+  le polygone affleure le bord du semis et son arête apparaît là où les couronnes s'arrêtent : une
+  bande sombre et nue autour du bois, qui dessine exactement la ligne qu'on cherche à cacher. En
+  retrait, ce sont les couronnes qui débordent, et la lisière n'a plus de bord net du tout. */
+  const retrait = z.kind === 'bois' ? 2.5 : 0;
+  const dedans = [], dehors = [];
+  for (let s = s0; s <= s1 + 1e-6; s += pas) {
+    const u = Math.min(s, s1);
+    const base = implBase(track, u, z.side, z);
+    const prof = implOndule(u, z.prof) * implFondu(u, s0, s1);
+    dedans.push(track.pos(u, z.side * (base + Math.min(retrait, prof / 3))));
+    dehors.push(track.pos(u, z.side * (base + Math.max(0, prof - retrait))));
+  }
+  return dedans.concat(dehors.reverse());
+}
+
+function implBbox(pts) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const p of pts) {
+    if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
+    if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
+  }
+  return { minX, minY, maxX, maxY };
+}
+
+/* Les essences par défaut d'une masse boisée.
+
+Le thème dit déjà quel arbre pousse là — `PAL.props` pondère le semis — mais une masse n'est pas
+un semis : elle veut deux ou trois essences qui se recouvrent, pas la liste entière. */
+const IMPL_ESSENCES = {
+  bois: [['tree', 1.2], ['tree2', 1], ['bush', 0.45]],
+  pinede: [['pine', 1.6], ['bush', 0.3], ['tree2', 0.25]],
+  taillis: [['bush', 1.5], ['tree2', 0.6]],
+};
+
+/* La masse boisée : un sol, puis des couronnes serrées.
+
+Le pas de semis vaut une fraction du diamètre des couronnes, pour qu'elles se RECOUVRENT. C'est la
+différence entre un bois et un verger : à pas égal au diamètre on voit le sol entre les arbres et
+on compte les rangées. La grille est jitterée plutôt qu'un disque de Poisson — un front de Poisson
+meurt dans une bande étroite, ce qui a déjà coûté assez cher ici, tandis qu'une grille secouée ne
+peut pas mourir et donne le même désordre à l'œil. */
+function implArbres(track, z, s0, s1, rnd, out) {
+  const essences = IMPL_ESSENCES[z.essence || 'bois'] || IMPL_ESSENCES.bois;
+  const total = essences.reduce((a, e) => a + e[1], 0);
+  const pick = () => { let r = rnd() * total; for (const e of essences) { r -= e[1]; if (r <= 0) return e[0]; } return essences[0][0]; };
+  const densite = z.densite == null ? 1 : z.densite;
+  if (densite <= 0) return;
+  const pas = 5.4 / Math.sqrt(densite);
+  for (let s = s0; s < s1; s += pas) {
+    const base = implBase(track, s, z.side, z);
+    const prof = implOndule(s, z.prof) * implFondu(s, s0, s1);
+    if (prof < 3) continue;
+    for (let d = 0; d < prof; d += pas) {
+      if (rnd() > Math.min(1, densite)) continue;
+      const ss = s + (rnd() - 0.5) * pas * 0.9;
+      const dd = base + d + (rnd() - 0.5) * pas * 0.9;
+      if (dd < base) continue;
+      const p = track.pos(ss, z.side * dd);
+      // Une couronne de lisière est plus petite : un bois s'effiloche sur son bord.
+      const lisiere = Math.min(1, Math.min(d, prof - d) / 9);
+      out.push({ x: p.x, y: p.y, id: pick(), e: 0.62 + 0.38 * lisiere + rnd() * 0.28 });
+    }
+  }
+}
+
+/* Une tribune, vue du dessus : un toit, et sous son bord les gradins qui descendent vers la piste.
+
+Les modules se suivent le long du secteur, chacun aligné sur le cap de la piste à son abscisse, ce
+qui suffit à faire suivre la courbe sans déformer les rectangles. */
+function implTribunes(track, z, s0, s1, rnd, out) {
+  const module = z.module == null ? 26 : z.module;
+  const prof = z.prof;
+  for (let s = s0 + module / 2; s < s1; s += module + 2) {
+    const base = implBase(track, s, z.side, z);
+    const p = track.pos(s, z.side * (base + prof / 2));
+    out.push({
+      type: 'tribune', x: p.x, y: p.y, a: track.headingAt(s),
+      l: module, w: prof, side: z.side, toit: rnd() < 0.72,
+      gradins: Math.max(3, Math.round(prof / 2.6)),
+    });
+  }
+}
+
+/* Les bâtiments : stands, hangars du paddock, ateliers.
+
+Le toit est plat et clair vu d'en haut, avec sa verrière ou ses lanterneaux en bande sombre. Les
+proportions changent d'un bâtiment à l'autre, mais ils restent alignés sur la piste : un paddock
+est construit le long d'une voie, pas semé au hasard. */
+function implBatiments(track, z, s0, s1, rnd, out) {
+  const module = z.module == null ? 34 : z.module;
+  for (let s = s0 + module / 2; s < s1; s += module + 6 + rnd() * 10) {
+    const base = implBase(track, s, z.side, z);
+    const prof = z.prof * (0.6 + rnd() * 0.4);
+    const p = track.pos(s, z.side * (base + prof / 2 + rnd() * z.prof * 0.15));
+    out.push({
+      type: z.kind === 'stands' ? 'stands' : 'hangar',
+      x: p.x, y: p.y, a: track.headingAt(s),
+      l: module * (0.7 + rnd() * 0.5), w: prof, side: z.side,
+      portes: Math.max(2, Math.round(module / 9)), teinte: rnd(),
+    });
+  }
+}
+
+/* Un parking : des rangées de voitures, par rangs tête-bêche séparés d'une allée.
+
+Il n'y a pas de modèle de voiture ici — à cette distance une voiture garée est un rectangle de
+quatre mètres sur deux, et c'est leur ALIGNEMENT qui se lit, pas leur dessin. */
+function implParking(track, z, s0, s1, rnd, out) {
+  /* Les rangs sont PARALLÈLES ENTRE EUX, et non chacun aligné sur le cap de la piste à son
+  abscisse. Un parking construit le long d'un virage avait des rangs en éventail : des voitures
+  garées en étoile autour du centre de courbure, ce qu'aucun parking ne fait. Le cap est donc pris
+  une fois pour toutes au milieu de la zone, et la grille est posée dans ce repère. */
+  const mid = (s0 + s1) / 2;
+  const a = track.headingAt(mid);
+  const o = track.pos(mid, z.side * (implBase(track, mid, z.side, z) + z.prof / 2));
+  const ux = Math.cos(a), uy = Math.sin(a);           // le long de la piste
+  const vx = -Math.sin(a) * z.side, vy = Math.cos(a) * z.side;   // vers l'extérieur
+  const demiL = (s1 - s0) / 2, rang = 11, place = 2.6;
+  for (let u = -demiL; u < demiL; u += place) {
+    for (let d = -z.prof / 2; d < z.prof / 2; d += rang) {
+      for (const dd of [d, d + 4.6]) {
+        if (dd > z.prof / 2) continue;
+        if (rnd() < 0.12) continue;             // une place vide, sinon c'est une grille
+        const x = o.x + ux * u + vx * dd, y = o.y + uy * u + vy * dd;
+        // Trop près du ruban, où qu'il passe : on ne gare pas là.
+        const pr = implProjette(track, x, y);
+        if (Math.abs(pr.lat) < track.limiteProtection(pr.s, pr.lat >= 0 ? 1 : -1) + 4) continue;
+        out.push({ type: 'voiture', x, y, a: a + Math.PI / 2, l: 4.3, w: 1.9, teinte: rnd() });
+      }
+    }
+  }
+}
+
+/* Le relevé d'un circuit, zone par zone.
+
+Rendu : les sols d'abord, sous la route, puis les couronnes et les bâtiments par-dessus tout le
+reste. Les couronnes sont rangées en cases de quarante-huit mètres : la caméra en montre une
+trentaine de mètres de côté, et parcourir les dix mille arbres d'un bois à chaque image pour en
+dessiner quinze serait tout le budget de la frame. */
+function placeImplantation(track, id, zones) {
+  if (!zones || !zones.length) return null;
+  const rnd = propRng(seedFromId('impl-' + id));
+  const sols = [], arbres = [], batis = [], nus = [];
+  for (const z of zones) {
+    const [s0, s1] = implSpan(track, z);
+    if (z.kind === 'nu') { nus.push({ s0, s1, side: z.side, prof: z.prof }); continue; }
+    const pts = implContour(track, z, s0, s1, 4);
+    if (z.sol !== false) sols.push({ pts, bbox: implBbox(pts), kind: z.kind, sol: z.sol });
+    if (z.kind === 'bois') implArbres(track, z, s0, s1, rnd, arbres);
+    else if (z.kind === 'tribune') implTribunes(track, z, s0, s1, rnd, batis);
+    else if (z.kind === 'stands' || z.kind === 'hangars') implBatiments(track, z, s0, s1, rnd, batis);
+    else if (z.kind === 'parking') implParking(track, z, s0, s1, rnd, batis);
+  }
+  const cases = new Map();
+  const range = (o, r) => {
+    const i0 = Math.floor((o.x - r) / IMPL_CELL), i1 = Math.floor((o.x + r) / IMPL_CELL);
+    const j0 = Math.floor((o.y - r) / IMPL_CELL), j1 = Math.floor((o.y + r) / IMPL_CELL);
+    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
+      const k = i + ',' + j;
+      let c = cases.get(k); if (!c) cases.set(k, c = []);
+      c.push(o);
+    }
+  };
+  for (const a of arbres) range(a, 6);
+  for (const b of batis) range(b, Math.max(b.l, b.w) * 0.7);
+  return { sols, arbres, batis, nus, cases, cell: IMPL_CELL };
+}
+
+/* Les zones `nu` effacent le semis ordinaire.
+
+Silverstone est un aérodrome : entre Hangar Straight et Stowe il n'y a rien, et un bosquet semé là
+par défaut trahit le lieu plus sûrement qu'une couleur fausse. */
+function implEfface(track, impl, props) {
+  if (!impl || !impl.nus.length) return props;
+  return props.filter(p => {
+    const pr = implProjette(track, p.x, p.y);
+    const lat = pr.lat, side = lat >= 0 ? 1 : -1;
+    for (const n of impl.nus) {
+      if (n.side && n.side !== side) continue;
+      let s = pr.s; if (s < n.s0) s += track.length;
+      if (s < n.s0 || s > n.s1) continue;
+      if (Math.abs(lat) < n.prof) return false;
+    }
+    return true;
+  });
+}
+
 // Ground colour, not objects: the broad patches of bare earth that a circuit wears around its
 // corners. Drawn under the road, so the tarmac always covers them.
 function placePatches(track, id, density) {

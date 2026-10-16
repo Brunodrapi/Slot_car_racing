@@ -202,6 +202,18 @@ class Track {
     return 'grass';
   }
 
+  /* Jusqu'où le circuit s'étend avant que le paysage commence.
+
+  La protection ne longe pas le ruban : elle se pose au-delà du vibreur et de tout le dégagement,
+  gravier ou bitume. Le décor, lui, doit commencer derrière elle. Les deux lectures étaient faites
+  séparément — `_buildBarriers` pour poser les rails, `placeFrom` pour écarter les arbres — et
+  elles ne donnaient pas la même distance, si bien qu'un arbre pouvait pousser sur un bac. C'est
+  maintenant une seule mesure. */
+  limiteProtection(s, side) {
+    const hw = side > 0 ? this.hwLeftAt(s) : this.hwRightAt(s);
+    return hw + Math.max(this.kerbAt(s) + 2.2, this.runoffWidthAt(s, side) + 1.5);
+  }
+
   largeurBac(i, cote) {
     const N = this.n;
     if (!this.bacW) this.bacW = this._profilBac();
@@ -215,10 +227,7 @@ class Track {
     this.barriers = []; this.barrierGrid = new Map(); this.barrierCell = 16;
     if (!this.def.barriers) return;
     if (!this.bacW) this.bacW = this._profilBac();
-    const point = (s, side) => {
-      const hw = side > 0 ? this.hwLeftAt(s) : this.hwRightAt(s);
-      return this.pos(s, side * (hw + Math.max(this.kerbAt(s)+2.2, this.runoffWidthAt(s,side)+1.5)));
-    };
+    const point = (s, side) => this.pos(s, side * this.limiteProtection(s, side));
     for (const side of [-1,1]) for(let s=0;s<this.length;s+=3) {
       const end=Math.min(s+3,this.length),mid=(s+end)/2;
       // Une ouverture franche réserve les deux bretelles et la voie des stands.
