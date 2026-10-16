@@ -15,7 +15,7 @@ Ce sont des adaptations illustrées sur les carrosseries du jeu : les versions h
 | Corvette C3 | Spirit of Le Mans n°76 | [IMSA](https://www.imsa.com/news/2023/03/10/spirit-of-le-mans-corvette-honored-at-amelia-island-concours-delegance/) |
 | Corvette C3 | BFGoodrich Stars and Stripes n°49 | [BFGoodrich](https://www.bfgoodrichracing.com/gallery/bfgoodrich-greenwood-corvette/) |
 | Mazda 787B | Efini n°18, SWC Autopolis 1991 | [HPI 997](https://www.hpiracing.com/en/part/997) |
-| Mazda 787B | Renown n°202, JSPC 1991 | [HPI 8039](https://www.hpiracing.com/en/part/8039) |
+| Mazda 787B | Mazda blanche et bleue n°18, Le Mans 1991 | [Kyosho](https://rc.kyosho.com/en/newitem/32361ma.html) |
 
 La Mazda n°56 du Mans 1991 a été écartée : c’était une 787, pas une 787B.
 
@@ -32,3 +32,7 @@ Pour les prochaines générations, convertir les sprites d’origine en noir et 
 En sortie, contrôler séparément les dimensions du PNG et le rectangle réellement occupé par la voiture, puis comparer les silhouettes à celle du sprite d’origine. Avoir deux fichiers de même taille ne garantit pas des voitures de mêmes proportions. Le cadrage final doit reprendre le rectangle occupé par la référence, et une différence de carrosserie visible doit entraîner une correction.
 
 Correction Countach (0.28.2) : les quatre sprites ont été régénérés sur les références d’origine en noir et blanc. Dimensions du fichier et rectangle occupé identiques aux originaux : 395 × 203 en course, 420 × 349 en sélection. Recouvrement des silhouettes (intersection / union des pixels d’alpha ≥ 32) : environ 98 % en course et 93 % en sélection ; il subsiste donc de petites différences de dessin. Les mesures détaillées sont dans `countach-geometrie.jsonl`. La variante Monaco conserve volontairement la carrosserie et l’aileron de base, sans rampe lumineuse, pour respecter la silhouette demandée.
+
+La Renown JSPC n°202 a été remplacée par la n°18 blanche et bleue du Mans : les deux Mazda n°18 correspondent à des épreuves et décorations différentes (Autopolis Efini / Le Mans Mazda). La Renown n°55 d’origine est conservée.
+
+Correction Mazda (0.28.3) : la vue de course de la nouvelle livrée blanche/bleue mesure 420 × 230 px, celle du menu 420 × 331 px, comme les originaux. Le rectangle occupé est également conservé. Recouvrement des silhouettes : 97 % et 93 % respectivement (voir `mazda-geometrie.jsonl`).

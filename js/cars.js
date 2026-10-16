@@ -181,7 +181,7 @@ const HISTORIC_LIVERIES = {
   gt40: [{ id: 'lemans1', nom: 'Le Mans 1966 · 1' }, { id: 'lemans2', nom: 'Le Mans 1966 · 2' }],
   '935': [{ id: 'jager', nom: 'Jägermeister · 16' }, { id: 'vaillant', nom: 'Vaillant-Kremer · 51' }],
   corvette: [{ id: 'spirit76', nom: 'Spirit of Le Mans · 76' }, { id: 'bfg49', nom: 'BFGoodrich · 49' }],
-  '787b': [{ id: 'efini18', nom: 'Efini Autopolis · 18' }, { id: 'jspc202', nom: 'Renown JSPC · 202' }],
+  '787b': [{ id: 'efini18', nom: 'Efini Autopolis · 18' }, { id: 'lemans18', nom: 'Mazda Le Mans 1991 · 18' }],
 };
 for (const category of CATEGORIES) {
   for (const model of category.models) {
