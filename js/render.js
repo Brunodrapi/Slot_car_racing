@@ -449,7 +449,9 @@ class Renderer {
     }
     this.barrierArt=[...groups.values()];
     this.barrierGravel=null;
-    if(track.barriers.length){
+    this.runoffAsphalt=null;
+    this.runoffPaint=[];
+    if(track.barriers.length || track.def.runoffs){
       // Un seul contour fermé évite les cordes et les facettes aux raccords des bacs.
       const p=this.barrierGravel=new Path2D();
       for(const side of [1,-1])for(let j=0;j<track.n;j+=2){
@@ -459,6 +461,32 @@ class Renderer {
         if(side===1&&j===0)p.moveTo(x,y);else p.lineTo(x,y);
       }
       p.closePath();
+    }
+    if(track.asphaltW){
+      const p=this.runoffAsphalt=new Path2D();
+      for(const side of [1,-1])for(let j=0;j<track.n;j++){
+        const i=side>0?j:track.n-1-j;
+        const hw=(side>0?track.hwL[i]:track.hwR[i])+track.asphaltW[side>0?'L':'R'][i];
+        const x=track.xs[i]+track.nx[i]*hw*side,y=track.ys[i]+track.ny[i]*hw*side;
+        if(side===1&&j===0)p.moveTo(x,y);else p.lineTo(x,y);
+      }
+      p.closePath();
+      // Bande extérieure peinte dans les couleurs du circuit, inspirée de Raidillon.
+      // L'intérieur gris distingue immédiatement le dégagement de la chaussée.
+      this.runoffPaint=PAL.kerb.map(()=>new Path2D());
+      // Les segments de protection ont déjà éliminé les boucles des normales
+      // à l'intérieur des chicanes : la peinture suit cette même enveloppe.
+      for(const b of track.barriers){
+        const w=track.asphaltW[b.side>0?'L':'R'][track.idx(b.s)];
+        const band=Math.min(2.4,Math.max(0,(w-4)*.45));
+        if(!band)continue;
+        const paint=this.runoffPaint[Math.floor(b.s/6)%this.runoffPaint.length];
+        paint.moveTo(b.ax+b.nx*1.5,b.ay+b.ny*1.5);
+        paint.lineTo(b.bx+b.nx*1.5,b.by+b.ny*1.5);
+        paint.lineTo(b.bx+b.nx*(1.5+band),b.by+b.ny*(1.5+band));
+        paint.lineTo(b.ax+b.nx*(1.5+band),b.ay+b.ny*(1.5+band));
+        paint.closePath();
+      }
     }
   }
 
@@ -1224,7 +1252,7 @@ class Renderer {
       const side = Math.sign(car.beta) || 1;
 
       const rolling = race.state === 'racing' || race.state === 'finishing';
-      const onRoad = rolling && car.state === 'ok' && !car.inPit;
+      const onRoad = rolling && (car.state === 'ok' || car.runoffAsphalt) && !car.inPit;
       const spin = onRoad ? clamp(car.patineFx || 0, 0, 1) : 0;
       const slip = onRoad ? 1 - (1 - clamp(car.slide, 0, 1)) * (1 - spin * 0.85) : 0;
       const speed = Math.abs(car.v);
@@ -1248,7 +1276,7 @@ class Renderer {
           -sn * (1 + speed * 0.1) - side * ly * car.slide + (Math.random() - 0.5),
           0.3 + slip * 0.4 + Math.random() * 0.3, 0.45 + slip * 0.4, '222,222,226');
       }
-      if (car.state === 'grass') {
+      if (car.state === 'grass' && !car.runoffAsphalt) {
         for (let i = 0; i < 2; i++) this._puff(pos.x + (Math.random() - 0.5) * 3, pos.y + (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, 1.2, 0.9, '190,160,110');
       }
       this._water(car, pos, h, cs, sn, wheel, dt);
@@ -1404,6 +1432,10 @@ class Renderer {
       // comes from flat colours and hard edges rather than shading
       if(this.barrierGravel){g.fillStyle=PAL.gravel;g.fill(this.barrierGravel);}
       else for (const cn of this.paths.corners) { if (!inView(cn.bbox)) continue; g.fillStyle = PAL.gravel; g.fill(cn.gravel); }
+      if(this.runoffAsphalt){
+        g.fillStyle='#777681';g.fill(this.runoffAsphalt);
+        for(let i=0;i<this.runoffPaint.length;i++){g.fillStyle=PAL.kerb[i];g.fill(this.runoffPaint[i]);}
+      }
       // Seuls les tronçons en vue : la caméra montre une cinquantaine de mètres d'un circuit qui
       // en fait des milliers, et tout le reste ne sert qu'à occuper le rasteriseur.
       const vus = this.paths.chunks.filter(c => inView(c.bbox));

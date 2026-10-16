@@ -425,6 +425,8 @@ class Car {
   get steerAngle() { return this.delta; }
   get drift() { return this.beta; }
   get loadRatio() { return this.usage; }
+  // Calculé depuis la position : fonctionne aussi avec les instantanés réseau.
+  get runoffAsphalt() { return !!this.track.asphaltW && this.track.runoffSurfaceAt(this.s, this.lat) === 'asphalt'; }
   get speed() { return Math.hypot(this.v, this.vl); }
 
   _advance(ds, raceTime) {
@@ -694,6 +696,7 @@ class Car {
     // dans la voie des stands on est hors de la piste sans être hors piste : ni gravier, ni faute
     const horsRoute = !this.inPit && (this.lat > hwL + marge || this.lat < -(hwR + marge));
     const off = !this.inPit && (this.lat > hwL + kb + marge || this.lat < -(hwR + kb + marge));
+    const loose = off && !this.runoffAsphalt;
     this.surKerb = horsRoute && !off;
     if (off) this._leaveTrack();
     if (!off && !this.engineStopped) this.state = 'ok';
@@ -708,7 +711,7 @@ class Car {
     }
     if (this.engineStopped) { this.v=0; this.vl=0; this.w=0; return; }
     // le vibreur ne rend pas tout : on peut s'y appuyer, pas s'y installer
-    const surface = off ? 0.42 : this.surKerb ? KERB_ADHERENCE : 1;
+    const surface = loose ? 0.42 : this.surKerb ? KERB_ADHERENCE : 1;
 
     // --- geometry and tyre data shared by the driver and the axle model ---
     const L = c.length * 0.6;
@@ -764,7 +767,8 @@ class Car {
     const gArrBrut = base * c.rearBias * (1 - PHYS.liftOff * brakeFrac);
     const latPris = Math.min(1, Math.abs(alphaR) / peak);
     const longDispo = gArrBrut * PHYS.motricite * Math.sqrt(Math.max(0, 1 - latPris * latPris));
-    /* HORS PISTE, LE PLAFOND NE S'APPLIQUE PAS, et ce n'est pas une facilité.
+    /* SUR SOL MEUBLE, LE PLAFOND NE S'APPLIQUE PAS. Le bitume de dégagement
+    garde le modèle de pneus de la route, mais reste une sortie pour les pénalités.
 
     L'herbe est déjà punie deux fois : `surface` ramène l'adhérence à 42 %, et le bloc de traînée
     plus bas freine la voiture entière, y compris de travers. Y ajouter le plafond de motricité en
@@ -773,23 +777,23 @@ class Car {
     dix secondes pour revenir à 60 km/h depuis le bas-côté, contre quatre avant. « La voiture est
     tankée », et c'était juste.
 
-    Le modèle est là pour façonner la sortie de virage SUR L'ASPHALTE. Hors piste il se tait, et le
-    bas-côté redevient exactement ce qu'il était. */
+    Le modèle reste actif sur l'asphalte, dégagements compris. Sur l'herbe et le gravier,
+    le bas-côté conserve son comportement antérieur. */
     const qy = clamp(alphaR / peak, -1, 1);
     const qx = accDem / Math.max(1e-3, gArrBrut * cliffR * PHYS.motricite);
-    const share = off ? 1 : 1 / Math.max(1, Math.hypot(qx, qy));
+    const share = loose ? 1 : 1 / Math.max(1, Math.hypot(qx, qy));
     const priority = PHYS.drivePriority;
     const safeDrive = Math.min(accDem, longDispo * cliffR);
-    const accReel = off ? accDem : safeDrive * (1 - priority) + accDem * share * priority;
-    this.patine = off || accDem <= 0 ? 0 : clamp(1 - accReel / accDem, 0, 1);
+    const accReel = loose ? accDem : safeDrive * (1 - priority) + accDem * share * priority;
+    this.patine = loose || accDem <= 0 ? 0 : clamp(1 - accReel / accDem, 0, 1);
     // Part de poussée non transmise : un indice d'effet, pas une vitesse de roue simulée.
     // Attaque courte pour rendre un appui de 50 ms audible ; extinction douce au relâchement.
     // Ce filtre ne retarde jamais l'accélérateur ni le retour d'adhérence de la physique.
-    const spinFx = !off && !this.inPit && accDem > 0
+    const spinFx = !loose && !this.inPit && accDem > 0
       ? clamp(1 - accReel / accDem, 0, 1) : 0;
     const spinTau = spinFx > this.patineFx ? 0.035 : 0.08;
     this.patineFx += (spinFx - this.patineFx) * (1 - Math.exp(-dt / spinTau));
-    const gR = gArrBrut * cliffR * (off ? 1 : 1 - priority + priority * share);
+    const gR = gArrBrut * cliffR * (loose ? 1 : 1 - priority + priority * share);
     // tyre curve: linear up to the peak slip angle, then saturated (the cliff is applied above)
     const FfT = -gF * clamp(alphaF / peak, -1, 1);
     const FrT = -gR * clamp(alphaR / peak, -1, 1);
@@ -861,13 +865,13 @@ class Car {
     let acc;
     const dir = Math.sign(this.v || 1);                 // everything that resists motion opposes it
     // Sur l'asphalte, le partage arrière suffit. L'ancien facteur reste pour le
-    // freinage et le hors-piste, dont les réglages sont indépendants de ce changement.
-    if (throttle) acc = accReel * (off ? Math.max(0.3, 1 - PHYS.circle * u * u) : 1);
+    // freinage et les sols meubles, dont les réglages sont indépendants de ce changement.
+    if (throttle) acc = accReel * (loose ? Math.max(0.3, 1 - PHYS.circle * u * u) : 1);
     else acc = -(1.5 + c.brake * brakeFrac) * (1 - PHYS.circle * u * u) * (this.v > 1 ? 1 : Math.max(0, this.v));
     // grass and gravel drag the whole car, not just its forward motion: it opposes the velocity
     // vector, so a car sliding in sideways is slowed down sideways too.
     let latDrag = 0;
-    if (off) {
+    if (loose) {
       const sp = Math.hypot(this.v, this.vl) || 1e-6;
       const dragA = 5 + 0.15 * sp;
       acc -= dragA * this.v / sp;

@@ -86,6 +86,34 @@ const TRACKS = [
   {
     id: 'spa', name: 'Spa-Francorchamps', country: 'BE', flag: '🇧🇪', theme: 'forest',
     barriers: true, // essai : géométrie partagée entre dessin et collisions
+    // Contours de spa-tour_reprise.png : fraction du tour, largeur hors route (m).
+    // Les secteurs non annotés gardent leur profil existant. Voir docs/spa-barrieres/zones.md.
+    runoffs: [
+      { name: "Les Combes — gauche", surface: 'asphalt', side: 1,
+        points: [[0.3486,0],[0.3521,4.8],[0.3562,13.0],[0.3588,16.6],[0.3606,22.5],[0.3738,25.0],[0.3753,22.2],[0.3818,4.0],[0.3835,0]] },
+      { name: "Les Combes — droite", surface: 'asphalt', side: -1,
+        points: [[0.348,0],[0.3515,7.2],[0.3529,12.4],[0.3582,14.2],[0.3618,13.8],[0.3635,12.2],[0.3682,12.1],[0.3726,7.6],[0.3815,1.6],[0.385,0]] },
+      { name: "Eau Rouge / Raidillon — gauche", surface: 'asphalt', side: 1,
+        points: [[0.1671,0],[0.1706,8.2],[0.1726,12.8],[0.1821,12.8],[0.1912,15.7],[0.1941,15.1],[0.1965,13.1],[0.2029,3.6],[0.2064,0]] },
+      { name: "Eau Rouge / Raidillon — droite", surface: 'asphalt', side: -1,
+        points: [[0.163,0],[0.1665,3.3],[0.1679,8.4],[0.1703,14.4],[0.175,19.4],[0.1824,21.5],[0.1871,19.2],[0.2026,1.4],[0.2061,0]] },
+      { name: "Blanchimont", surface: 'asphalt', side: -1,
+        points: [[0.8871,0],[0.8906,6.3],[0.8929,10.9],[0.895,13.7],[0.9093,17.9],[0.9234,18.5],[0.9329,17.5],[0.9376,15.7],[0.9446,10.4],[0.9515,2.6],[0.955,0]] },
+      { name: "Bus Stop — droite", surface: 'asphalt', side: -1,
+        points: [[0.963,0],[0.9665,5.9],[0.9674,12.4],[0.9803,12.6],[0.9844,6.9],[0.9862,2.2],[0.9897,0]] },
+      { name: "Bus Stop — gauche", surface: 'asphalt', side: 1,
+        points: [[0.9671,0],[0.9706,4.3],[0.9729,11.5],[0.975,11.1],[0.9765,7.3],[0.9853,1.4],[0.9871,3.4],[0.9885,7.1],[0.992,0]] },
+      { name: "Malmedy", surface: 'gravel', side: 1,
+        points: [[0.3835,0],[0.3853,3.3],[0.3871,5.7],[0.3893,10.3],[0.3918,10.6],[0.4,2.1],[0.4035,0]] },
+      { name: "Pouhon / Double Gauche", surface: 'gravel', side: -1,
+        points: [[0.5489,0],[0.5524,5.5],[0.5538,9.0],[0.5562,12.7],[0.5585,13.4],[0.5656,9.9],[0.5776,11.3],[0.5868,14.8],[0.5894,14.7],[0.5941,11.2],[0.5985,5.9],[0.6032,2.4],[0.6067,0]] },
+      { name: "La Source", surface: 'gravel', side: 1,
+        points: [[0.0591,0],[0.0626,3.8],[0.0647,11.1],[0.0668,11.7],[0.0688,7.6],[0.0759,3.5],[0.0794,0]] },
+      { name: "Campus / Paul Frère", surface: 'gravel', side: 1,
+        points: [[0.7089,0],[0.7124,3.6],[0.7162,12.0],[0.7185,14.0],[0.7232,11.6],[0.7303,13.3],[0.7421,11.2],[0.7494,12.6],[0.7515,12.1],[0.7541,9.9],[0.7582,3.7],[0.7617,0]] },
+      { name: "Suppression avant Eau Rouge", surface: 'grass', side: -1,
+        points: [[0.153,0],[0.163,0]] },
+    ],
     kerb: DRAPEAUX.be,
     /* Plus de `pitAt` : il valait 0,10 et corrigeait une zone d'arrêt qui tombait dans un virage —
        conséquence d'une ligne de départ posée à Eau Rouge. La ligne est maintenant sur la vraie

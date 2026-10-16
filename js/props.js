@@ -43,7 +43,12 @@ function placeFrom(kinds, track, seed, density, clear) {
   const clearOfTrack = (x, y, need) => {
     for (let i = 0; i < N; i += 4) {
       const dx = x - track.xs[i], dy = y - track.ys[i];
-      if (dx * dx + dy * dy < need * need) return false;
+      const side = dx * track.nx[i] + dy * track.ny[i] >= 0 ? 1 : -1;
+      const hw = side > 0 ? track.hwL[i] : track.hwR[i];
+      const clearance = track.def.runoffs
+        ? Math.max(need, hw + track.runoffWidthAt(i * track.ds, side) + need - track.halfWidth)
+        : need;
+      if (dx * dx + dy * dy < clearance * clearance) return false;
     }
     return true;
   };

@@ -79,6 +79,7 @@ class Track {
     this.image = def.image || null;     // { src, w, h } drawn at world origin with def.scale
     this.drawRoad = def.drawRoad !== false;
     this._build();
+    this._buildRunoffs();
     this._buildBarriers();
   }
 
@@ -162,6 +163,45 @@ class Track {
     return { L: lisse(brutL), R: lisse(brutR) };
   }
 
+  // Les contours annotés priment sur la détection des virages. Une zone peut
+  // traverser une ligne droite ou un changement de courbure sans être morcelée.
+  _buildRunoffs() {
+    if (!this.def.runoffs) return;
+    this.bacW = this._profilBac();
+    this.asphaltW = { L: new Float32Array(this.n), R: new Float32Array(this.n) };
+    for (const zone of this.def.runoffs) {
+      const pts = zone.points, side = zone.side > 0 ? 'L' : 'R';
+      const first = pts[0][0], last = pts[pts.length - 1][0];
+      for (let i = 0; i < this.n; i++) {
+        // Accepte aussi les secteurs passant par la ligne de départ (fin > 1).
+        let f = i / this.n;
+        if (f < first) f += 1;
+        if (f < first || f > last) continue;
+        let j = 0;
+        while (j < pts.length - 2 && f > pts[j + 1][0]) j++;
+        const a = pts[j], b = pts[j + 1], u = (f - a[0]) / (b[0] - a[0]);
+        const w = Math.max(0, a[1] + (b[1] - a[1]) * u);
+        this.bacW[side][i] = zone.surface === 'gravel' ? w : 0;
+        this.asphaltW[side][i] = zone.surface === 'asphalt' ? w : 0;
+      }
+    }
+  }
+
+  runoffWidthAt(s, side) {
+    const key = side > 0 ? 'L' : 'R';
+    return Math.max(this.bacW ? this._lerp(this.bacW[key], s) : 0,
+      this.asphaltW ? this._lerp(this.asphaltW[key], s) : 0);
+  }
+
+  runoffSurfaceAt(s, lat) {
+    const side = lat >= 0 ? 'L' : 'R';
+    const d = Math.abs(lat) - (lat >= 0 ? this.hwLeftAt(s) : this.hwRightAt(s));
+    if (d <= 0) return 'asphalt';
+    if (this.asphaltW && d <= this._lerp(this.asphaltW[side], s)) return 'asphalt';
+    if (this.bacW && d <= this._lerp(this.bacW[side], s)) return 'gravel';
+    return 'grass';
+  }
+
   largeurBac(i, cote) {
     const N = this.n;
     if (!this.bacW) this.bacW = this._profilBac();
@@ -174,10 +214,10 @@ class Track {
   _buildBarriers() {
     this.barriers = []; this.barrierGrid = new Map(); this.barrierCell = 16;
     if (!this.def.barriers) return;
-    this.bacW = this._profilBac();
+    if (!this.bacW) this.bacW = this._profilBac();
     const point = (s, side) => {
       const hw = side > 0 ? this.hwLeftAt(s) : this.hwRightAt(s);
-      return this.pos(s, side * (hw + Math.max(this.kerbAt(s)+2.2, this._lerp(side>0?this.bacW.L:this.bacW.R,s)+1.5)));
+      return this.pos(s, side * (hw + Math.max(this.kerbAt(s)+2.2, this.runoffWidthAt(s,side)+1.5)));
     };
     for (const side of [-1,1]) for(let s=0;s<this.length;s+=3) {
       const end=Math.min(s+3,this.length),mid=(s+end)/2;
