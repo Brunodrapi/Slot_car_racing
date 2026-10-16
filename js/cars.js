@@ -26,7 +26,7 @@ const CATEGORIES = [
     // sauvegarde, et le changer effacerait ceux des joueurs. Le nom, lui, ne peut plus être « GT »
     // avec une 935 et une 787B sur la grille.
     id: 'gt', name: { fr: 'Le plateau', en: 'The field' },
-    desc: { fr: 'Les icônes : M1 Procar, F40, Countach, GT40, 935, 787B… Lourdes, puissantes, joueuses.', en: 'The icons: M1 Procar, F40, Countach, GT40, 935, 787B… Heavy, powerful, playful.' },
+    desc: { fr: 'Les icônes : M1 Procar, F40, 787B et F1 classiques… Des icônes puissantes et joueuses.', en: 'The icons: M1 Procar, F40, 787B and classic F1… Powerful, playful icons.' },
     engine: { cyl: 8, redline: 7000, idle: 1000, rough: 0.35, bright: 0.6, turbo: 0 },
     base: { vmax: 70, accel: 8, brake: 17, grip: 13.5, df: 0.0015, slide: 0.6, laneK: 6, rearBias: 1.06, cliff: 0.18, slipPeak: 0.12, length: 4.5, width: 2.0 },
     drivers: 10, roadScale: 0.9, zoom: 1.15,
@@ -159,6 +159,31 @@ const CATEGORIES = [
     ],
   },
 ];
+
+// Monoplaces historiques : illustrations cartoon et réglages adaptés au jeu.
+// Les quatre sprites partagent un gabarit compact ; les pneus exposés font partie du dessin.
+CATEGORIES[0].models.push(
+  { id: 'tyrrellp34', name: 'Tyrrell P34', diff: 1, shape: 'wedge72', length: 4.2, width: 2.0,
+    mul: { vmax: 1.04, accel: 1.14, brake: 1.08, grip: 1.08, df: 1.3, slide: 0.95 },
+    colors: ['#174d9b', '#f4da38'], top: 'sprites/top/tyrrellp34.png', pick: 'sprites/pick/tyrrellp34.png',
+    livrees: [{ id: '', nom: 'Elf · Scheckter · 1976' }],
+    engine: { cyl: 8, redline: 10500, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
+  { id: 'ferrari312t', name: 'Ferrari 312T', diff: 2, shape: 'wedge72', length: 4.2, width: 2.0,
+    mul: { vmax: 1.06, accel: 1.15, brake: 1.07, grip: 1.04, df: 1.2, slide: 1.08 },
+    colors: ['#dc282d', '#f5f3e9'], top: 'sprites/top/ferrari312t.png', pick: 'sprites/pick/ferrari312t.png',
+    livrees: [{ id: '', nom: 'Lauda · 1975 · 12' }],
+    engine: { cyl: 12, redline: 12500, idle: 1700, rough: 0.06, bright: 0.98, turbo: 0 } },
+  { id: 'mclarenm23', name: 'McLaren M23', diff: 2, shape: 'wedge72', length: 4.2, width: 2.0,
+    mul: { vmax: 1.05, accel: 1.13, brake: 1.08, grip: 1.05, df: 1.2, slide: 1.05 },
+    colors: ['#e3352d', '#f5f3e9'], top: 'sprites/top/mclarenm23.png', pick: 'sprites/pick/mclarenm23.png',
+    livrees: [{ id: '', nom: 'Hunt · 1976 · 11' }],
+    engine: { cyl: 8, redline: 10800, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
+  { id: 'lotus79', name: 'Lotus 79', diff: 1, shape: 'wedge72', length: 4.2, width: 2.0,
+    mul: { vmax: 1.05, accel: 1.12, brake: 1.1, grip: 1.1, df: 1.65, slide: 0.95 },
+    colors: ['#161719', '#d4b35e'], top: 'sprites/top/lotus79.png', pick: 'sprites/pick/lotus79.png',
+    livrees: [{ id: '', nom: 'JPS · Andretti · 1978' }],
+    engine: { cyl: 8, redline: 11000, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } }
+);
 
 const LIVERIES = [
   { name: 'Rosso', body: '#e0262c', accent: '#ffffff' },

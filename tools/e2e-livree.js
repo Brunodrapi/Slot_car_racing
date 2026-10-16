@@ -87,7 +87,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   const multi = plan.filter((m) => m.n > 1);
   const simple = plan.filter((m) => m.n === 1);
   dit(multi.length > 0, `${multi.length} voiture(s) a plusieurs livrees : ${multi.map((m) => `${m.nom} (${m.n})`).join(', ')}`);
-  dit(plan.length === 9 && plan.every((m) => m.n === 3), 'les neuf modèles ont chacun trois livrées');
+  dit(plan.length === 13 && multi.length === 9 && multi.every((m) => m.n === 3) && simple.length === 4, 'neuf modèles à trois livrées et quatre F1 à une livrée');
 
   const images = await p.evaluate(async () => {
     const paths = modelsOf('gt').flatMap((m) => m.livrees.flatMap((l) => [l.top, l.pick]));
@@ -98,7 +98,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       image.src = src;
     })));
   });
-  dit(images.length === 54 && images.every((i) => i.ok), 'les 54 images de course et de menu sont chargees');
+  dit(images.length === 62 && images.every((i) => i.ok), 'les 62 images de course et de menu sont chargees');
 
   /* --- 1 a 3. choisir, puis faire tourner, et aller chercher le bon dessin --- */
   for (const m of multi) {
