@@ -126,7 +126,9 @@ for(const d of TRACKS.filter(d=>d.id!=='spa')){
  for(const z of (d.runoffs||[])){
   if(z.points||z.surface==='grass')continue;
   const mid=((z.from+(z.to>z.from?z.to:z.to+1))/2)%1;
-  assert.ok(t.runoffWidthAt(mid*t.length,z.side)>z.w*0.5,
+  // Un couloir voisin peut imposer une largeur inférieure au profil demandé.
+  // Le banc paralleles-banc vérifie alors la sécurité plutôt qu'une largeur nominale.
+  if(!d.parallelClearance)assert.ok(t.runoffWidthAt(mid*t.length,z.side)>z.w*0.5,
    d.id+' : zone absente à son milieu — '+z.name);
   // Le tablier est bitumé ; un bac extérieur peut être explicitement conservé.
   if(z.surface==='asphalt'){

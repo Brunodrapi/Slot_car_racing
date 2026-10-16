@@ -19,6 +19,8 @@ Read the supplied images in `art/reprise circuit/` before deciding which materia
 
 Monaco has no gravel runoff: existing urban runoff envelopes must be asphalt. Monza must not be classified as all gravel: asphalt aprons and outer gravel can coexist in the same sector. Represent these radial layers explicitly (asphalt near the track, gravel farther out); painting must agree with the surface used by car physics. Preserve centerline, road/kerb widths, gameplay markings and barrier clearance; surface corrections are authorized and may change off-track rolling behavior. Audit report: `../surfaces-circuits/README.md`.
 
+Before accepting runoff or barriers, check them against every nearby branch of the circuit, not only their own centerline station. On tightly folded layouts such as Zandvoort, reduce runoff to the available corridor and keep barrier bodies, tire rows and artwork clear of neighboring road/kerb envelopes. Use the same corrected geometry for rendering and collision. Check whole segments and runoff interiors; remove a barrier segment if no safe space remains. Preserve the drivable road and its gameplay markings. Do not apply this at a real grade-separated crossing without accounting for height.
+
 ## 0.2 Consolidated artistic direction (user clarifications)
 
 Aim for a warmer, more colorful circuit while keeping a minimalist, fully code-drawn style. Treat apexes, corner approaches, exits and protections as well as the asphalt itself.

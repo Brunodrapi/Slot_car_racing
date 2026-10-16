@@ -103,6 +103,7 @@ class Track {
     this.drawRoad = def.drawRoad !== false;
     this._build();
     this._buildRunoffs();
+    this._protectParallelRoads();
     this._buildBarriers();
   }
 
@@ -236,6 +237,46 @@ class Track {
     }
   }
 
+  _protectParallelRoads() {
+    this.parallelLimits=null;
+    if(!this.def.parallelClearance)return;
+    const N=this.n;
+    this.parallelLimits={L:new Float32Array(N).fill(1e6),R:new Float32Array(N).fill(1e6)};
+    // Intersection des rayons latéraux avec les couloirs des branches éloignées.
+    // Échantillons tous les 2 m, marge incluant vibreurs et volume des protections.
+    for(let i=0;i<N;i++)for(const side of [-1,1]){
+      const key=side>0?'L':'R',hw=side>0?this.hwL[i]:this.hwR[i];
+      let limit=1e6;
+      for(let j=0;j<N;j+=2){
+        const arc=Math.min(Math.abs(j-i),N-Math.abs(j-i));
+        if(arc*this.ds<45)continue;
+        const dx=this.xs[j]-this.xs[i],dy=this.ys[j]-this.ys[i];
+        if(dx*dx+dy*dy>10000)continue;
+        const along=(dx*this.nx[i]+dy*this.ny[i])*side;
+        if(along<0)continue;
+        const r=Math.max(this.hwL[j],this.hwR[j])+this.kerb[j]+3;
+        const across=dx*dx+dy*dy-along*along;
+        if(across>=r*r)continue;
+        const hit=along-Math.sqrt(r*r-across);
+        limit=Math.min(limit,Math.max(hw,hit));
+      }
+      this.parallelLimits[key][i]=limit;
+    }
+    // Un abaissement conservateur adoucit les raccords sans réélargir la zone.
+    for(const key of ['L','R']){
+      const limits=this.parallelLimits[key],smooth=new Float32Array(limits);
+      for(let i=0;i<N;i++)for(let d=-12;d<=12;d++){
+        const j=(i+d+N)%N;smooth[i]=Math.min(smooth[i],limits[j]+Math.abs(d)*.25);
+      }
+      this.parallelLimits[key]=smooth;
+      for(let i=0;i<N;i++){
+        const hw=key==='L'?this.hwL[i]:this.hwR[i],cap=Math.max(0,smooth[i]-hw-2.5);
+        if(this.bacW)this.bacW[key][i]=Math.min(this.bacW[key][i],cap);
+        if(this.asphaltW)this.asphaltW[key][i]=Math.min(this.asphaltW[key][i],cap);
+      }
+    }
+  }
+
   runoffWidthAt(s, side) {
     const key = side > 0 ? 'L' : 'R';
     return Math.max(this.bacW ? this._lerp(this.bacW[key], s) : 0,
@@ -265,7 +306,8 @@ class Track {
     // des grands dégagements et évite une marche à leur entrée/sortie.
     const u = Math.min(1, runoff / 6), t = u * u * (3 - 2 * u);
     const verge = (this.def.grassBarrierGap ?? 9) * (1 - t) + 2.2 * t;
-    return hw + Math.max(this.kerbAt(s) + verge, runoff + 1.5);
+    const wanted=hw + Math.max(this.kerbAt(s) + verge, runoff + 1.5);
+    return this.parallelLimits?Math.min(wanted,this._lerp(this.parallelLimits[side>0?'L':'R'],s)):wanted;
   }
 
   largeurBac(i, cote) {
@@ -286,6 +328,10 @@ class Track {
       const end=Math.min(s+3,this.length),mid=(s+end)/2;
       // Une ouverture franche réserve les deux bretelles et la voie des stands.
       if(side<0 && [s-12,mid,end+12].some(x=>this.pitAt(x)))continue;
+      if(this.parallelLimits && [s,mid,end].some(u=>{
+        const hw=side>0?this.hwLeftAt(u):this.hwRightAt(u);
+        return this.limiteProtection(u,side)<hw+this.kerbAt(u)+2;
+      }))continue;
       const a=point(s,side),b=point(end,side),dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
       if(len<.1)continue;
       /* LES PNEUS BORDENT LE GRAVIER ET LE BITUME HORS PISTE, pas seulement le gravier.

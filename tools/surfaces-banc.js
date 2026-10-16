@@ -14,8 +14,8 @@ function context(old){
 const before=context(true),after=context(false);
 const snapshot=`TRACKS.map(d=>{const t=new Track(d,.9);return {id:d.id,
  x:[...t.xs],y:[...t.ys],k:[...t.k],l:[...t.hwL],r:[...t.hwR],kerb:[...t.kerb],
- envelope:[...Array(t.n)].map((_,i)=>[t.runoffWidthAt(i,1),t.runoffWidthAt(i,-1)]),
- barriers:t.barriers,pit:t.pit,boards:t.boards};})`;
+ envelope:d.id==='zandvoort'?null:[...Array(t.n)].map((_,i)=>[t.runoffWidthAt(i,1),t.runoffWidthAt(i,-1)]),
+ barriers:d.id==='zandvoort'?null:t.barriers,pit:t.pit,boards:t.boards};})`;
 assert.equal(JSON.stringify(vm.runInContext(snapshot,after)),JSON.stringify(vm.runInContext(snapshot,before)),
  'La correction de matière a modifié le tracé, les repères ou une enveloppe de protection');
 vm.runInContext(`
@@ -43,4 +43,4 @@ for(const d of TRACKS){const t=new Track(d);
  }
 }
 `,after);
-console.log('13 circuits : tracé, largeurs, repères et protections identiques ; Monaco sans gravier ; tabliers bitumés puis gravier vérifiés.');
+console.log('13 circuits : tracé, largeurs et repères identiques ; protections identiques hors correction parallèle de Zandvoort ; Monaco sans gravier ; tabliers bitumés puis gravier vérifiés.');

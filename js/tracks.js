@@ -1079,6 +1079,7 @@ const TRACKS = [
   },
   {
     id: 'zandvoort', name: 'Zandvoort', country: 'NL', flag: '🇳🇱', theme: 'dunes',
+    parallelClearance: true, // Limiter les dégagements aux couloirs réellement disponibles.
     architecture: 'plats',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.nl,
