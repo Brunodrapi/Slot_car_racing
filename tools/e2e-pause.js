@@ -147,7 +147,7 @@ const FORMATS = [
       await page.waitForTimeout(250);
       const doigt = await page.evaluate(() => ({
         etat: app.state, ecran: !!document.querySelector('[data-action="resume"]'),
-        cadranBouge: app.renderer.dialAnchored,
+        cadranBouge: app.renderer.pouceAncre,
       }));
       const ok = doigt.etat === 'paused' && doigt.ecran && !doigt.cadranBouge;
       if (!ok) fautes++;
@@ -190,25 +190,25 @@ const FORMATS = [
     await page.click('[data-action="setup"][data-mode="race"]');
     await page.click('[data-action="startQuick"]');
     await page.waitForTimeout(500);
-    const avant = await page.evaluate(() => ({ y: app.renderer.pauseBtn.y, dial: app.renderer.dialHome.cy }));
+    const avant = await page.evaluate(() => ({ y: app.renderer.pauseBtn.y, dial: app.renderer.pouceHome.cy }));
     const ENC = { t: 47, b: 34 };
     await page.addStyleTag({ content: `#sonde-encoches { padding: ${ENC.t}px 0px ${ENC.b}px 0px !important; }` });
     await page.evaluate(() => app.renderer.resize());
     await page.waitForTimeout(200);
     const apres = await page.evaluate(() => ({
       lues: app.renderer.encoches, b: app.renderer.pauseBtn,
-      dial: app.renderer.dialHome.cy, rayon: app.renderer.dial.r, h: app.renderer.h,
+      dial: app.renderer.pouceHome.cy, rayon: app.renderer.pouce.r, h: app.renderer.h,
       slider: app.renderer.slider,
     }));
     const lues = apres.lues.t === ENC.t && apres.lues.b === ENC.b;
     const degage = apres.b.y >= ENC.t;
-    const basDegage = apres.dial + apres.rayon * 0.46 <= apres.h - ENC.b;
+    const basDegage = apres.dial + apres.rayon <= apres.h - ENC.b;
     if (!lues || !degage || !basDegage) fautes++;
     console.log(`  ${'encoche 47/34'.padEnd(18)} lues ${JSON.stringify(apres.lues)}`
       + (lues ? '' : '  ← LA SONDE NE LIT PAS LES ENCOCHES'));
     console.log(`  ${''.padEnd(18)} bouton passé de y=${avant.y} à y=${apres.b.y}`
       + (degage ? ' (au-dessous de la barre d\'état)' : '  ← TOUJOURS SOUS LA BARRE D\'ÉTAT'));
-    console.log(`  ${''.padEnd(18)} bas du cadran à ${Math.round(apres.dial + apres.rayon * 0.46)}`
+    console.log(`  ${''.padEnd(18)} bas de la pastille à ${Math.round(apres.dial + apres.rayon)}`
       + ` sur ${apres.h} px, barre d'accueil à ${apres.h - ENC.b}`
       + (basDegage ? '' : '  ← LE CADRAN PASSE SOUS LA BARRE D\'ACCUEIL'));
 

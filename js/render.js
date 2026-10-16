@@ -29,7 +29,7 @@ const THEME_BASE = {
   // Les deux bords de piste, teintés du côté du virage : froid dedans, chaud dehors, et ce sont les
   // couleurs du curseur de ligne pour que le lien se fasse sans légende. Assez clairs pour rester
   // des lignes peintes sur de l'asphalte, assez marqués pour se distinguer d'un coup d'œil.
-  edgeIn: '#7fd4ff', edgeOut: '#ffcf5c',
+  edgeBleu: '#7fd4ff', edgeJaune: '#ffcf5c',
   // la voie des stands : un asphalte plus sombre que la piste, pour qu'on voie tout de suite que
   // ce n'est pas la même surface, et une zone d'arrêt jaune qu'on repère de loin
   pitLane: '#2f3038', pitBox: 'rgba(255,212,0,0.18)', pitBoxLine: '#ffd400',
@@ -89,7 +89,7 @@ const THEME_DEFS = {
     grass: '#dcd2c8', grassLight: '#e7ded2', grassDark: '#cfc4b6',
     earth: '#877482', earthDark: '#746373',
     asphalt: '#56465e', asphaltLight: '#62526a',
-    edgeLine: '#f5f2e8', centre: '#f5f2e8', edgeIn: '#8fdcff', edgeOut: '#ffd97a',
+    edgeLine: '#f5f2e8', centre: '#f5f2e8', edgeBleu: '#8fdcff', edgeJaune: '#ffd97a',
     pitLane: '#3b3142', pitBox: 'rgba(255,212,0,0.18)', pitBoxLine: '#ffd400',
     kerb: ['#e2a19c', '#faf8f4'],
     gravel: '#cfc3ae', gravelDark: '#bdb09a',
@@ -175,12 +175,31 @@ for (const name in THEME_DEFS) THEMES[name] = Object.assign({}, THEME_BASE, THEM
 THEMES.classic = Object.assign({}, THEME_BASE);
 let PAL = THEMES.park;
 
-const LINE_COLORS = { inside: 'rgba(80,200,255,0.55)', racing: 'rgba(255,255,255,0.5)', outside: 'rgba(255,200,60,0.55)' };
+/* Les deux bords ont une couleur, et elle ne bouge plus.
+
+Le bleu est le côté DROIT du ruban, le jaune le côté GAUCHE, du départ à l'arrivée. Les mêmes
+couleurs servent aux lignes tracées, aux pastilles du levier et aux bords peints de la piste : c'est
+ce qui permet de se passer de légende — on voit le bord jaune, on pousse le levier vers le jaune. */
+const LINE_COLORS = { bleu: 'rgba(80,200,255,0.55)', racing: 'rgba(255,255,255,0.5)', jaune: 'rgba(255,200,60,0.55)' };
 
 class Renderer {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
+    this.carCanvas = document.createElement('canvas');
+    this.carCtx = this.carCanvas.getContext('2d');
+    this.hudCanvas = document.createElement('canvas');
+    this.hudCtx = this.hudCanvas.getContext('2d');
+    this.carRects = [];
+    for (const layer of [this.carCanvas, this.hudCanvas]) {
+      layer.setAttribute('aria-hidden', 'true');
+      layer.style.cssText = 'position:fixed;inset:0;display:block;pointer-events:none;user-select:none;';
+    }
+    // Même ordre que le rendu initial : décor, voitures, HUD, puis menus DOM.
+    if (canvas.parentNode) {
+      canvas.after(this.carCanvas);
+      this.carCanvas.after(this.hudCanvas);
+    }
     /* La résolution s'adapte à ce que la machine tient.
 
     Mesuré : le coût d'une image est **exactement proportionnel au nombre de pixels** — 1,32 Mpx
@@ -210,7 +229,8 @@ class Renderer {
     this.touch = false;
     this.showLines = false;   // braking guide, off unless enabled in the settings
     this.debug = false;       // vehicle telemetry overlay (speed, slip angle, lateral velocity, grip usage)
-    this.dialPress = 0;       // eased 0..1 press state of the throttle dial
+    this.poucePress = 0;      // appui lissé de 0 à 1 sur la pastille du pouce
+    this.reglageZone = null;  // le rail du levier de freinage, en mode réglage seulement
     this.rotate = true;      // keep the track direction pointing up the screen
     this.camAngle = 0;
     this.resize();
@@ -267,6 +287,15 @@ class Renderer {
     this.canvas.height = Math.round(h * this.dpr);
     this.canvas.style.width = w + 'px';
     this.canvas.style.height = h + 'px';
+    this.nativeDpr = Math.max(1, window.devicePixelRatio || 1);
+    for (const [layer, scale] of [[this.carCanvas, this.nativeDpr], [this.hudCanvas, this.dpr]]) {
+      const width = Math.round(w * scale), height = Math.round(h * scale);
+      if (layer.width !== width || layer.height !== height) {
+        layer.width = width; layer.height = height;
+        if (layer === this.carCanvas) this.carRects = [];
+      }
+      layer.style.width = w + 'px'; layer.style.height = h + 'px';
+    }
     this._layoutHud();
   }
 
@@ -304,19 +333,25 @@ class Renderer {
     // Un seul écart, mesuré depuis le bord SÛR et non depuis le bord physique.
     const P = this.pad = { t: 14 + sa.t, r: 14 + sa.r, b: 14 + sa.b, l: 14 + sa.l };
     this.encoches = sa;
-    // Throttle dial: a half-dome that the thumb carries with it. At rest it waits at the bottom
-    // centre; a thumb landing anywhere off the line slider moves it there, base on the finger, so
-    // the whole dial reads above the hand instead of under it.
-    const r = clamp(Math.min(W * 0.26, H * 0.17), 68, 130);
-    /* Il reste au milieu, même quand la caméra descend la voiture en bas de l'écran.
+    /* LA PASTILLE DU POUCE, ET RIEN D'AUTRE EN BAS DE L'ÉCRAN.
 
-    Les vues « en avance » posent la voiture vers 80 % de la hauteur, c'est-à-dire derrière la carte
-    de vitesse du cadran, qui monte aux deux tiers. Le ranger dans un coin dans ces vues-là a été
-    essayé et retiré : le cadran suit le pouce, donc le joueur le déplace lui-même s'il le gêne, et
-    une commande qui change de place selon la caméra coûte plus qu'elle ne rend. */
-    this.dialHome = { cx: W / 2, cy: H - P.b - r * 0.46 };   // at rest the pad shows in full
-    this.dial = { cx: this.dialHome.cx, cy: this.dialHome.cy, r };
-    this.dialAnchored = false;
+    Il y avait là un cadran : une pastille, un éventail de vitesse, et une carte blanche portant les
+    chiffres. Sur un iPhone 13 en portrait il occupait 197 × 208 px, soit 12,4 % de l'écran et 7,4 %
+    en surface vraiment opaque, dans une bande allant de y=588 à y=796 — or les vues « en avance »
+    posent la voiture vers y=675. Il couvrait donc la voiture du joueur.
+
+    L'ancien commentaire d'ici le savait et concluait que « le joueur le déplace lui-même s'il le
+    gêne ». C'est faux en course : déplacer la pastille demande de LÂCHER l'accélérateur, donc on ne
+    le fait jamais. Le constat est de Bruno, au volant.
+
+    ET IL NE PAYAIT PAS SON LOYER. `main.js` prend tout appui qui n'est ni la pause ni la zone du
+    levier pour de l'accélérateur : la cible fait un demi-écran, et le dessin n'a aucune valeur de
+    visée — il n'était qu'un instrument. Les deux chiffres qu'il portait sont donc remontés sous le
+    bandeau du haut, et il ne reste ici qu'un disque translucide qui dit où est le pouce. */
+    const r = clamp(Math.min(W * 0.12, H * 0.08), 32, 60);
+    this.pouceHome = { cx: W / 2, cy: H - P.b - r };
+    this.pouce = { cx: this.pouceHome.cx, cy: this.pouceHome.cy, r };
+    this.pouceAncre = false;
     /* Le levier de ligne, à gauche par défaut, à droite au choix.
 
     Un droitier tient son téléphone d'une main et pousse le levier du pouce de l'autre ; un
@@ -380,6 +415,71 @@ class Renderer {
     return c;
   }
 
+  _buildBarrierArt(track) {
+    const groups=new Map();let blockIndex=0;
+    for(const b of track.barriers){
+      const key=b.side+':'+Math.floor(b.s/48);
+      if(!groups.has(key))groups.set(key,{rail:new Path2D(),shine:new Path2D(),posts:new Path2D(),
+        blocks:PAL.kerb.map(()=>new Path2D()),tyres:new Path2D(),holes:new Path2D(),
+        bbox:{minX:Infinity,minY:Infinity,maxX:-Infinity,maxY:-Infinity}});
+      const g=groups.get(key),box=g.bbox;
+      box.minX=Math.min(box.minX,b.ax-3,b.bx-3);box.maxX=Math.max(box.maxX,b.ax+3,b.bx+3);
+      box.minY=Math.min(box.minY,b.ay-3,b.by-3);box.maxY=Math.max(box.maxY,b.ay+3,b.by+3);
+      const line=(p,off)=>{p.moveTo(b.ax+b.nx*off,b.ay+b.ny*off);p.lineTo(b.bx+b.nx*off,b.by+b.ny*off);};
+      if(b.kind==='rail'){
+        line(g.rail,0);line(g.shine,.13);
+        g.posts.moveTo(b.ax-b.nx*.45,b.ay-b.ny*.45);g.posts.lineTo(b.ax+b.nx*.45,b.ay+b.ny*.45);
+      }else{
+        // Mur aux couleurs exactes des vibreurs ; deux rangées de pneus devant.
+        const modules=Math.max(1,Math.ceil(b.len/3));
+        for(let j=0;j<modules;j++){
+          const p=g.blocks[blockIndex++%g.blocks.length],start=j/modules,end=(j+1)/modules;
+          const ax=b.ax+(b.bx-b.ax)*start,ay=b.ay+(b.by-b.ay)*start;
+          const bx=b.ax+(b.bx-b.ax)*end,by=b.ay+(b.by-b.ay)*end;
+          p.moveTo(ax-b.nx*.38,ay-b.ny*.38);p.lineTo(bx-b.nx*.38,by-b.ny*.38);
+          p.lineTo(bx-b.nx*1.05,by-b.ny*1.05);p.lineTo(ax-b.nx*1.05,ay-b.ny*1.05);p.closePath();
+        }
+        const count=Math.max(1,Math.round(b.len/.82));
+        for(let j=0;j<count;j++)for(const off of [.10,.83]){
+          const u=(j+.5)/count,x=b.ax+(b.bx-b.ax)*u+b.nx*off,y=b.ay+(b.by-b.ay)*u+b.ny*off;
+          g.tyres.moveTo(x+.36,y);g.tyres.arc(x,y,.36,0,Math.PI*2);
+          g.holes.moveTo(x+.14,y);g.holes.arc(x,y,.14,0,Math.PI*2);
+        }
+      }
+    }
+    this.barrierArt=[...groups.values()];
+    this.barrierGravel=null;
+    if(track.barriers.length){
+      // Un seul contour fermé évite les cordes et les facettes aux raccords des bacs.
+      const p=this.barrierGravel=new Path2D();
+      for(const side of [1,-1])for(let j=0;j<track.n;j+=2){
+        const i=side>0?j:track.n-1-j;
+        const hw=(side>0?track.hwL[i]:track.hwR[i])+track.largeurBac(i,side);
+        const x=track.xs[i]+track.nx[i]*hw*side,y=track.ys[i]+track.ny[i]*hw*side;
+        if(side===1&&j===0)p.moveTo(x,y);else p.lineTo(x,y);
+      }
+      p.closePath();
+    }
+  }
+
+  _drawBarriers(g,vis) {
+    g.save();g.lineJoin='round';g.lineCap='round';
+    for(const a of this.barrierArt||[]){
+      const b=a.bbox;if(b.maxX<vis.minX||b.minX>vis.maxX||b.maxY<vis.minY||b.minY>vis.maxY)continue;
+      g.save();g.translate(.25,.3);g.strokeStyle='rgba(20,18,26,.28)';g.lineWidth=.8;
+      g.stroke(a.rail);g.fillStyle='rgba(20,18,26,.25)';for(const p of a.blocks)g.fill(p);g.fill(a.tyres);g.restore();
+      g.strokeStyle='#36333e';g.lineWidth=.22;g.stroke(a.posts);
+      g.strokeStyle='#302c38';g.lineWidth=.58;g.stroke(a.rail);
+      g.strokeStyle='#9fa9b0';g.lineWidth=.38;g.stroke(a.rail);
+      g.strokeStyle='#e6e9e8';g.lineWidth=.10;g.stroke(a.shine);
+      g.strokeStyle='#302c38';g.lineWidth=.10;
+      for(let i=0;i<a.blocks.length;i++){g.fillStyle=PAL.kerb[i];g.fill(a.blocks[i]);g.stroke(a.blocks[i]);}
+      g.fillStyle='#41404a';g.fill(a.tyres);g.strokeStyle='#25222b';g.lineWidth=.09;g.stroke(a.tyres);
+      g.fillStyle='#181720';g.fill(a.holes);
+    }
+    g.restore();
+  }
+
   setTrack(track) {
     this.track = track;
     this.rubber = new Map();
@@ -407,6 +507,12 @@ class Renderer {
     chaque course, y compris à plat où personne ne les regardait. */
     this.topArt = buildTopArt(PAL);
     this.topProps = placeTopProps(track, seed, null, PAL.props);
+    this._buildBarrierArt(track);
+    if(track.barriers.length)this.topProps=this.topProps.filter(p=>{
+      const radius=(this.topArt[p.id]?.wm||4)*.6;
+      return track.barrierCandidates(p.x,p.y,p.x,p.y,radius+2)
+        .every(b=>track.barrierDistance(p.x,p.y,b)>radius+1);
+    });
     this.patches = placePatches(track, seed, PAL.patches);
     this.puddles = placePuddles(track, seed, track.puddles);
     this.water = placeWater(track, PAL.water);
@@ -484,9 +590,11 @@ class Renderer {
           for (let t = cn.from + 1; t <= cn.to; t++) { const q = bandPt(t, side, dehors); kerbEdge.lineTo(q[0], q[1]); }
         }
       }
+      // Le profil de Spa est partagé avec les barrières, y compris ses raccords.
+      const gravelW = (k,side) => track.def.barriers ? track.largeurBac(k,side) : 8;
       // gravel: wider band around the corner
-      for (let i = cn.from; i <= cn.to; i += 2) { const k = ((i % N) + N) % N, p = [xs[k] + nx[k] * (track.hwL[k] + 8), ys[k] + ny[k] * (track.hwL[k] + 8)]; if (i === cn.from) gravel.moveTo(p[0], p[1]); else gravel.lineTo(p[0], p[1]); }
-      for (let i = cn.to; i >= cn.from; i -= 2) { const k = ((i % N) + N) % N; gravel.lineTo(xs[k] - nx[k] * (track.hwR[k] + 8), ys[k] - ny[k] * (track.hwR[k] + 8)); }
+      for (let i = cn.from; i <= cn.to; i += 2) { const k = ((i % N) + N) % N, p = [xs[k] + nx[k] * (track.hwL[k] + gravelW(k,1)), ys[k] + ny[k] * (track.hwL[k] + gravelW(k,1))]; if (i === cn.from) gravel.moveTo(p[0], p[1]); else gravel.lineTo(p[0], p[1]); }
+      for (let i = cn.to; i >= cn.from; i -= 2) { const k = ((i % N) + N) % N; gravel.lineTo(xs[k] - nx[k] * (track.hwR[k] + gravelW(k,-1)), ys[k] - ny[k] * (track.hwR[k] + gravelW(k,-1))); }
       gravel.closePath();
       return { left: l, right: r, gravel, kerbs, kerbEdge, bbox: { minX: minX - 30, minY: minY - 30, maxX: maxX + 30, maxY: maxY + 30 } };
     });
@@ -668,35 +776,30 @@ class Renderer {
         const x = xs[k] + nx[k] * off, y = ys[k] + ny[k] * off;
         if (i === a) mp.moveTo(x, y); else mp.lineTo(x, y);
       }
-      /* Les bords teintés : dedans ou dehors.
+      /* Les bords teintés : UN BORD, UNE COULEUR, TOUT LE TOUR.
 
-      Les lignes blanches de part et d'autre de la piste ne disaient rien. Elles portent maintenant
-      le côté du virage — froid vers l'intérieur, chaud vers l'extérieur — avec les couleurs mêmes
-      du curseur de ligne, pour que le lien se fasse sans légende.
+      Ils portaient le côté du VIRAGE — froid vers l'intérieur, chaud vers l'extérieur — et
+      changeaient donc de bord à chaque changement de main. Le bord gauche était jaune dans une
+      courbe et bleu dans la suivante, en même temps que le levier qui porte les mêmes couleurs.
+      Un repère qui change de place pendant qu'on s'en sert n'est pas un repère : c'est le constat
+      de Bruno, et c'est ce qui motive tout ce changement.
 
-      Chaque bord est donc découpé en tronçons selon `track.sens`, et non teinté d'un bloc : un
-      raccord de soixante mètres traverse parfois un changement de main, et le colorer d'une seule
-      couleur mentirait sur la moitié de sa longueur. Le point de bascule est repris dans les deux
-      tronçons, faute de quoi un trou blanc apparaîtrait entre eux. */
-      const eIn = new Path2D(), eOut = new Path2D();
+      Chaque bord garde donc sa couleur du départ à l'arrivée. Le jaune est la gauche du sens de
+      marche, le bleu la droite — le même partage que `lines.jaune` et `lines.bleu`, par le même
+      signe, de sorte que pousser le levier vers le jaune mène bien au bord jaune.
+
+      Le découpage en tronçons selon `track.sens` disparaît avec sa raison d'être : il existait pour
+      qu'un raccord traversant un changement de main ne soit pas menti sur la moitié de sa longueur,
+      et il n'y a plus de changement de main à traverser. */
+      const eBleu = new Path2D(), eJaune = new Path2D();
       for (const side of [1, -1]) {
-        let dedansAvant = null;
+        const cible = side > 0 ? eJaune : eBleu;     // lat positif = normale gauche = jaune
         for (let i = a; i <= b; i += STEP) {
-          const k = ((i % N) + N) % N;
-          const dedans = side > 0 ? track.sens[k] > 0 : track.sens[k] < 0;
           const q = edgePt(i, side);
-          const cible = dedans ? eIn : eOut;
-          if (dedans !== dedansAvant) {
-            if (dedansAvant !== null) {              // rattacher au point de bascule
-              const autre = dedansAvant ? eIn : eOut;
-              autre.lineTo(q[0], q[1]);
-            }
-            cible.moveTo(q[0], q[1]);
-            dedansAvant = dedans;
-          } else cible.lineTo(q[0], q[1]);
+          if (i === a) cible.moveTo(q[0], q[1]); else cible.lineTo(q[0], q[1]);
         }
       }
-      chunks.push({ fill, left: lp, right: rp, mid: mp, edgeIn: eIn, edgeOut: eOut,
+      chunks.push({ fill, left: lp, right: rp, mid: mp, edgeBleu: eBleu, edgeJaune: eJaune,
                     bbox: { minX: minX - 12, minY: minY - 12, maxX: maxX + 12, maxY: maxY + 12 } });
     }
 
@@ -1120,37 +1223,30 @@ class Renderer {
       // other. `beta` is the angle between where the car points and where it is really going.
       const side = Math.sign(car.beta) || 1;
 
-      if (car.slide > 0.15 && car.state === 'ok' && car.v > 5) {
+      const rolling = race.state === 'racing' || race.state === 'finishing';
+      const onRoad = rolling && car.state === 'ok' && !car.inPit;
+      const spin = onRoad ? clamp(car.patineFx || 0, 0, 1) : 0;
+      const slip = onRoad ? 1 - (1 - clamp(car.slide, 0, 1)) * (1 - spin * 0.85) : 0;
+      const speed = Math.abs(car.v);
+      // Deux traces arrière : la teinte suit l'effort, même en patinage sans dérive.
+      // Sans déplacement, on ne superpose pas une trace sur place à chaque image.
+      if (slip > 0.08 && speed > 0.5) {
         for (const w of [-1, 1]) {
           const b = wheel(w);
-          this._layRubber(b[0], b[1], h, car.v * dt * 1.2 + 0.3, car.slide);
-        }
-        // Tyre smoke: round puffs thrown out behind the car, one or two a frame. A cartoon draws
-        // smoke as a handful of distinct balls, so they have to stay few enough to be told apart —
-        // past that they merge into one grey sheet and the car disappears into it.
-        const n = (Math.random() < 0.55 + car.slide * 0.6 ? 1 : 0) + (car.slide > 0.55 && Math.random() < 0.45 ? 1 : 0);
-        for (let i = 0; i < n; i++) {
-          const b = wheel(Math.random() < 0.5 ? -1 : 1);
-          this._puff(
-            b[0] - cs * 0.7 + (Math.random() - 0.5) * 1.1, b[1] - sn * 0.7 + (Math.random() - 0.5) * 1.1,
-            -cs * (1 + car.v * 0.1) - side * lx * (1 + Math.random() * 2) + (Math.random() - 0.5) * 1.2,
-            -sn * (1 + car.v * 0.1) - side * ly * (1 + Math.random() * 2) + (Math.random() - 0.5) * 1.2,
-            // sizes spread wide on purpose: a row of equal balls reads as a caterpillar, not smoke
-            0.38 + car.slide * 0.5 + Math.random() * 0.55, 0.6 + car.slide * 0.5, '222,222,226');
+          this._layRubber(b[0], b[1], h, speed * dt * 1.2 + 0.3, slip);
         }
       }
-      // Wheelspin. Flat out at low speed the rear tyres are asked for more than they can hold, and
-      // the smoke is the proof: thickest off the line, gone once the car is really moving.
-      if (car.throttle && car.state === 'ok' && car.v < c.vmax * 0.3) {
-        const spin = Math.max(0, 1 - car.v / (c.vmax * 0.3));
-        if (Math.random() < spin * 0.85) {
-          const b = wheel(Math.random() < 0.5 ? -1 : 1);
-          this._puff(
-            b[0] - cs * 0.8 + (Math.random() - 0.5) * 0.5, b[1] - sn * 0.8 + (Math.random() - 0.5) * 0.5,
-            -cs * (1.2 + Math.random() * 2) + (Math.random() - 0.5) * 1.6,
-            -sn * (1.2 + Math.random() * 2) + (Math.random() - 0.5) * 1.6,
-            0.4 + spin * 0.55 + Math.random() * 0.2, 0.5 + spin * 0.45, '228,226,230');
-        }
+      // Le patinage réel remplace l'ancienne fumée automatique à basse vitesse.
+      // Un débit par seconde garde la même densité lorsque le téléphone ralentit.
+      const expected = slip > 0.15 ? 24 * slip * slip * Math.min(dt, 0.1) : 0;
+      const count = Math.floor(expected) + (Math.random() < expected % 1 ? 1 : 0);
+      for (let i = 0; i < count; i++) {
+        const b = wheel(Math.random() < 0.5 ? -1 : 1);
+        this._puff(
+          b[0] - cs * 0.7 + (Math.random() - 0.5) * 0.7, b[1] - sn * 0.7 + (Math.random() - 0.5) * 0.7,
+          -cs * (1 + speed * 0.1) - side * lx * car.slide + (Math.random() - 0.5),
+          -sn * (1 + speed * 0.1) - side * ly * car.slide + (Math.random() - 0.5),
+          0.3 + slip * 0.4 + Math.random() * 0.3, 0.45 + slip * 0.4, '222,222,226');
       }
       if (car.state === 'grass') {
         for (let i = 0; i < 2; i++) this._puff(pos.x + (Math.random() - 0.5) * 3, pos.y + (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, 1.2, 0.9, '190,160,110');
@@ -1256,6 +1352,10 @@ class Renderer {
   // ---------- main draw ----------
   draw(race, ui) {
     this._adapt(performance.now());
+    // Effacer les anciennes voitures, pas trois millions de pixels transparents.
+    this.carCtx.setTransform(1, 0, 0, 1, 0, 0);
+    for (const r of this.carRects) this.carCtx.clearRect(r.x, r.y, r.w, r.h);
+    this.carRects = [];
     // la voie ne se dessine que quand elle sert : une voie peinte qui ne mène à rien est pire
     // qu'une voie absente, on la vise et il ne se passe rien
     this.showPit = !!race.usure;
@@ -1302,7 +1402,8 @@ class Renderer {
     if (T.drawRoad) {
       // gravel traps first, then the road itself with a heavy dark outline: the cartoon look
       // comes from flat colours and hard edges rather than shading
-      for (const cn of this.paths.corners) { if (!inView(cn.bbox)) continue; g.fillStyle = PAL.gravel; g.fill(cn.gravel); }
+      if(this.barrierGravel){g.fillStyle=PAL.gravel;g.fill(this.barrierGravel);}
+      else for (const cn of this.paths.corners) { if (!inView(cn.bbox)) continue; g.fillStyle = PAL.gravel; g.fill(cn.gravel); }
       // Seuls les tronçons en vue : la caméra montre une cinquantaine de mètres d'un circuit qui
       // en fait des milliers, et tout le reste ne sert qu'à occuper le rasteriseur.
       const vus = this.paths.chunks.filter(c => inView(c.bbox));
@@ -1321,10 +1422,10 @@ class Renderer {
       g.restore();
       // painted markings: the edges say which side of the corner they are, dashed yellow down the middle
       g.lineWidth = 0.55;
-      g.strokeStyle = PAL.edgeIn || PAL.edgeLine;
-      for (const c of vus) g.stroke(c.edgeIn);
-      g.strokeStyle = PAL.edgeOut || PAL.edgeLine;
-      for (const c of vus) g.stroke(c.edgeOut);
+      g.strokeStyle = PAL.edgeBleu || PAL.edgeLine;
+      for (const c of vus) g.stroke(c.edgeBleu);
+      g.strokeStyle = PAL.edgeJaune || PAL.edgeLine;
+      for (const c of vus) g.stroke(c.edgeJaune);
       if (PAL.centre) {
         g.setLineDash([2.6, 3.4]);
         g.strokeStyle = PAL.centre; g.lineWidth = 0.42;
@@ -1394,6 +1495,7 @@ class Renderer {
       g.beginPath(); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); g.fill();
     }
     this._drawTopProps(g, vis);
+    this._drawBarriers(g, vis);
     for (const p of this.paths.passerelles) {
       if (!inView(p.bbox)) continue;
       g.fillStyle = 'rgba(30,26,20,0.22)'; g.fill(p.ombre);
@@ -1430,6 +1532,7 @@ class Renderer {
       g.strokeStyle = '#2f2f36'; g.lineWidth = 2.4;
       for (const c of b.cotes) g.stroke(c);
       g.fillStyle = '#4b4b52'; g.fill(b.tablier);
+      this._hideCars(g, b.tablier);
       g.lineCap = 'round';
     }
     for (const car of dessus) this._drawCar(g, car);
@@ -1437,6 +1540,7 @@ class Renderer {
     for (const p of this.paths.passerelles) {
       if (!inView(p.bbox)) continue;
       g.fillStyle = '#17171c'; g.fill(p.pont);
+      this._hideCars(g, p.pont);
       g.strokeStyle = '#2e2e36'; g.lineWidth = 0.5; g.stroke(p.pont);
     }
     // et les têtes de tunnel, pour la même raison : une voiture qui passe dessous passe dedans
@@ -1444,14 +1548,20 @@ class Renderer {
       if (!inView(tu.bbox)) continue;
       for (const t of [tu.entree, tu.sortie]) {
         g.fillStyle = '#726d64'; g.fill(t.corps);          // du béton, pas un tablier : il faut
+        this._hideCars(g, t.corps);
         g.strokeStyle = '#8d887c'; g.lineWidth = 0.6;        // qu'une tête de tunnel tranche sur
         g.stroke(t.corps);                                   // l'asphalte sombre qu'elle annonce
         g.fillStyle = '#0e0e13'; g.fill(t.bouche);
+        this._hideCars(g, t.bouche);
       }
     }
     g.restore();
 
-    this._drawHUD(g, race, ui);
+    const hud = this.hudCtx;
+    hud.setTransform(1, 0, 0, 1, 0, 0);
+    hud.clearRect(0, 0, this.hudCanvas.width, this.hudCanvas.height);
+    hud.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    this._drawHUD(hud, race, ui);
   }
 
   // Optional braking guide (off by default): the ribbon ahead is coloured by the reference speed
@@ -1547,7 +1657,7 @@ class Renderer {
       défaut. */
       const chiffre = b.dist > 0;
       Renderer.paceArrow(g, { x: 0, y: L * (chiffre ? -0.28 : -0.08), w: W, h: L * (chiffre ? 0.46 : 0.58) },
-        spec, b.sign > 0 ? 1 : -1);
+        spec, b.sign > 0 ? 1 : -1, { col: '#f0ece4', epais: 0.78 });
       g.save();
       g.scale(1 / 16, 1 / 16);
       g.textAlign = 'center'; g.textBaseline = 'middle';
@@ -1563,7 +1673,7 @@ class Renderer {
       };
       if (chiffre) peindre(String(b.dist), Math.round(W * 0.42 * 16), L * 0.14, '#f0ece4');
       // les virages nommés le disent, comme sur une note de rallye
-      if (spec.tag) peindre(spec.tag, Math.round(W * 0.25 * 16), L * (chiffre ? 0.34 : 0.30), spec.col);
+      if (spec.tag) peindre(spec.tag, Math.round(W * 0.25 * 16), L * (chiffre ? 0.34 : 0.30), '#f0ece4');
       g.restore();
       g.globalAlpha = 1;
       g.restore();
@@ -1595,7 +1705,16 @@ class Renderer {
 
   // Builds the glyph, measures it, then fits it to the box it is given, so a hairpin and a kink
   // both fill the panel instead of one spilling over the edge and the other floating in the middle.
-  static paceArrow(g, box, spec, dir) {
+  static paceArrow(g, box, spec, dir, opts) {
+    /* LA COULEUR ET L'ÉPAISSEUR SE DEMANDENT, elles ne sont plus dans la note.
+
+    Le dégradé vert-rouge des notes disait la sévérité une deuxième fois, après le pliage de la
+    flèche qui la dit déjà. Sur la route, il la faisait surtout ressembler à un pictogramme posé là :
+    une route n'a pas de peinture verte. En blanc, et plus épaisse, elle se lit comme ce qu'elle
+    prétend être — du marquage au sol. Le choix de la note garde ses couleurs dans l'éditeur, sur les
+    BOUTONS, là où elles servent à choisir plutôt qu'à décorer. */
+    const col = (opts && opts.col) || spec.col;
+    const epais = (opts && opts.epais) || 0.42;
     const bend = spec.bend * Math.PI / 180;
     const a0 = dir > 0 ? Math.PI : 0, a1 = a0 + dir * bend;
     const cx = dir * spec.r, cy = -spec.stem;
@@ -1630,7 +1749,7 @@ class Renderer {
     // drawn at very different scales, and a head that shrank with the glyph vanished on the open
     // notes, leaving a bar with no direction. Fitting therefore takes two passes — one to learn
     // the scale, one that knows how much room the head will take at that scale.
-    const HLp = 0.95, HWp = 0.52;                            // head, in panel units
+    const HLp = 0.95 * (epais / 0.42), HWp = 0.52 * (epais / 0.42);   // head, in panel units
     const bbox = (pts) => {
       let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity;
       for (const [x, y] of pts) { a = Math.min(a, x); c = Math.max(c, x); b = Math.min(b, y); d = Math.max(d, y); }
@@ -1657,8 +1776,8 @@ class Renderer {
     g.save();
     g.translate(box.x - (minX + maxX) / 2 * sc, box.y - (minY + maxY) / 2 * sc);
     g.scale(sc, sc);
-    g.strokeStyle = spec.col; g.fillStyle = spec.col;
-    g.lineWidth = 0.42 / sc; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.strokeStyle = col; g.fillStyle = col;
+    g.lineWidth = epais / sc; g.lineCap = 'round'; g.lineJoin = 'round';
     g.beginPath();
     g.moveTo(path[0][0], path[0][1]);
     for (let i = 1; i < path.length; i++) g.lineTo(path[i][0], path[i][1]);
@@ -1800,11 +1919,37 @@ class Renderer {
     }
   }
 
+  // Conserver le masquage par les ponts et tunnels sur le calque Retina.
+  _hideCars(g, path) {
+    const m = g.getTransform(), scale = this.nativeDpr / this.dpr, ctx = this.carCtx;
+    ctx.save();
+    ctx.setTransform(m.a * scale, m.b * scale, m.c * scale, m.d * scale, m.e * scale, m.f * scale);
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fill(path);
+    ctx.restore();
+  }
+
   _drawCar(g, car) {
+    const m = g.getTransform(), scale = this.nativeDpr / this.dpr;
+    g = this.carCtx;
+    g.setTransform(m.a * scale, m.b * scale, m.c * scale, m.d * scale, m.e * scale, m.f * scale);
+    g.imageSmoothingEnabled = true;
     const c = car.cls, pos = car.pos, h = car.heading;
     g.save();
     g.translate(pos.x, pos.y);
     g.rotate(h);
+    // Inclure le contour du dessin, les rétroviseurs, l'ombre et les feux.
+    const art = topArt(c, car.livree);
+    const halfL = c.length / 2 + 0.7, halfW = (art ? topSize(c, art)[1] : c.width) / 2 + 0.7;
+    const pose = g.getTransform();
+    const corners = [[-halfL, -halfW], [-halfL, halfW], [halfL, -halfW], [halfL, halfW]];
+    const xs = corners.map(([x, y]) => pose.a * x + pose.c * y + pose.e);
+    const ys = corners.map(([x, y]) => pose.b * x + pose.d * y + pose.f);
+    const x0 = Math.max(0, Math.floor(Math.min(...xs)) - 2);
+    const y0 = Math.max(0, Math.floor(Math.min(...ys)) - 2);
+    const x1 = Math.min(this.carCanvas.width, Math.ceil(Math.max(...xs)) + 2);
+    const y1 = Math.min(this.carCanvas.height, Math.ceil(Math.max(...ys)) + 2);
+    if (x1 > x0 && y1 > y0) this.carRects.push({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
     g.save();
     g.translate(0.25, 0.35);
     g.globalAlpha = 0.3;
@@ -1814,10 +1959,12 @@ class Renderer {
     drawCarModel(g, c, car.livery, { number: car.number, steer: car.steerAngle, livree: car.livree });
     if (car.braking && car.state === 'ok') { g.fillStyle = 'rgba(255,40,40,0.9)'; g.fillRect(-c.length / 2 - 0.15, -c.width / 2 + 0.1, 0.25, c.width - 0.2); }
     g.restore();
-    if (car.isPlayer) {
-      g.strokeStyle = 'rgba(255,255,255,0.3)'; g.lineWidth = 0.14;
-      g.beginPath(); g.arc(pos.x, pos.y, Math.max(c.length, c.width) * 0.8, 0, Math.PI * 2); g.stroke();
-    }
+    /* Pas de cercle autour de la voiture du joueur.
+
+    Il y en avait un, pour la retrouver dans le peloton. Il est retiré sur le constat de Bruno : un
+    anneau qui n'existe pas dans le monde, posé sur la seule voiture qu'on regarde, casse
+    l'immersion. La voiture se retrouve autrement — c'est elle que la caméra suit, et la pastille
+    de couleur du classement la désigne déjà. */
   }
 
   _roundRect(g, x, y, w, h, r) {
@@ -1828,87 +1975,98 @@ class Renderer {
     g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y); g.closePath();
   }
 
-  // The accelerator, built like the SpotRacers control: a white pad that sits under the thumb, a
-  // fan gauge running from a standstill to the car's top speed, and a white tab above it carrying
-  // the speed in figures. Everything that has to be read sits above the hand.
-  _drawDial(g, p, t) {
-    const d = this.dial, cx = d.cx, cy = d.cy, r = d.r;
-    const held = !!p.throttle;
-    this.dialPress += ((held ? 1 : 0) - this.dialPress) * 0.25;   // eased press feedback
-    const press = this.dialPress;
-    const A0 = Math.PI, SPAN = Math.PI;
-    const rPad = r * 0.46, rIn = r * 0.54, rOut = r * 0.97;
-    const f = clamp(Math.max(0, p.speed) / p.cls.vmax, 0, 1);
-    const kmh = Math.round(Math.max(0, p.speed) * 3.6);
+  /* L'accélérateur : un disque translucide sous le pouce, sans contour et sans rien à lire.
 
-    // --- white tab with the speed in figures, tucked behind the fan ---
-    const cardW = r * 0.94, cardH = r * 0.72;
-    const cardX = cx - cardW / 2, cardY = cy - rOut - cardH + r * 0.10;
-    g.save();
-    g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 10; g.shadowOffsetY = 2;
-    g.fillStyle = '#f2f4f7'; this._roundRect(g, cardX, cardY, cardW, cardH, r * 0.16); g.fill();
-    g.restore();
-    g.textAlign = 'center'; g.textBaseline = 'alphabetic';
-    g.fillStyle = '#4ec0e6'; g.font = `bold ${Math.round(r * 0.36)}px system-ui, sans-serif`;
-    g.fillText(String(kmh), cx, cardY + cardH * 0.55);
-    g.fillStyle = '#3ea8d2'; g.font = `600 ${Math.round(r * 0.15)}px system-ui, sans-serif`;
-    g.fillText('km/h', cx, cardY + cardH * 0.84);
+  Tout ce qui se lisait est passé en haut. Ce qui reste n'a qu'un travail : dire où le doigt a pris
+  la commande, et accuser l'appui. Sans contour et à faible opacité, parce que c'est un repère et
+  pas un objet — ce qu'il recouvre doit rester visible à travers. */
+  /* LES CINQ COULEURS DE L'ÉTAT RESSENTI, en pastel.
 
-    // --- fan gauge: empty part, filled part up to the current speed, then the needle ---
-    const sector = (a0, a1, fill) => {
-      if (a1 <= a0) return;
-      g.beginPath();
-      g.arc(cx, cy, rOut, a0, a1);
-      g.arc(cx, cy, rIn, a1, a0, true);
-      g.closePath();
-      g.fillStyle = fill; g.fill();
-    };
-    g.save();
-    g.shadowColor = 'rgba(0,0,0,0.35)'; g.shadowBlur = 10; g.shadowOffsetY = 2;
-    sector(A0, A0 + SPAN, 'rgba(120,200,228,0.85)');
-    g.restore();
-    sector(A0, A0 + SPAN * f, held ? '#2f86c8' : '#54839c');
-    // the needle also carries grip usage: pale while there is margin, then the telemetry colours
-    const u = p.loadRatio;
-    // it also thickens as the tyres load up, so the warning catches the eye without moving
-    const nA = A0 + SPAN * f, nW = 0.075 * (1 + 0.6 * clamp((u - 0.7) / 0.8, 0, 1));
-    sector(Math.max(A0, nA - nW), Math.min(A0 + SPAN, nA + nW), u < 0.7 ? 'rgba(236,247,252,0.98)' : Renderer.gripColor(u));
-    // white rim around the whole fan, as one piece
-    g.beginPath();
-    g.arc(cx, cy, rOut, A0, A0 + SPAN);
-    g.arc(cx, cy, rIn, A0 + SPAN, A0, true);
-    g.closePath();
-    g.strokeStyle = '#f2f4f7'; g.lineWidth = Math.max(3, r * 0.075); g.lineJoin = 'round'; g.stroke();
-
-    // --- the white pad: the thumb rests here, its rim warns when the tyres are working ---
-    const pr = rPad * (1 - 0.05 * press);
-    g.save();
-    g.shadowColor = 'rgba(0,0,0,0.4)'; g.shadowBlur = 12; g.shadowOffsetY = 3;
-    g.beginPath(); g.arc(cx, cy, pr, 0, Math.PI * 2);
-    g.fillStyle = press > 0.5 ? '#ccd5df' : '#dfe5ec'; g.fill();
-    g.restore();
-    g.beginPath(); g.arc(cx, cy, pr, 0, Math.PI * 2);
-    g.strokeStyle = 'rgba(255,255,255,0.92)';
-    g.lineWidth = Math.max(3, r * 0.07); g.stroke();
-    g.lineJoin = 'miter'; g.textBaseline = 'top';
+  Elles doivent se lire du coin de l'œil sans tirer le regard hors de la piste, et un rouge saturé
+  sur un écran de course se confondrait avec les feux stop. `car.ressenti` est bâti sur ce que la
+  voiture PRODUIT — pas sur ce que le pilote demande — et ses seuils sortent d'une mesure sur
+  741 000 images (voir `js/car.js`). Répartition mesurée au niveau difficile : 66 % de bleu, 25 %
+  de vert, 6,6 % de jaune, 1,5 % de violet, et le rouge aux seuls vrais tête-à-queue. */
+  static get PASTEL() {
+    return [[158, 203, 240], [166, 223, 166], [240, 224, 154], [200, 168, 234], [242, 163, 163]];
   }
 
-  // Move the dial so its flat base sits just above the thumb, kept fully on screen.
-  anchorDial(x, y) {
-    const d = this.dial, m = 8;
+  static teintePastel(r) {
+    const P = Renderer.PASTEL;
+    const x = clamp(r, 0, 1) * (P.length - 1), i = Math.min(P.length - 2, Math.floor(x)), f = x - i;
+    const a = P[i], b = P[i + 1];
+    return [Math.round(a[0] + (b[0] - a[0]) * f), Math.round(a[1] + (b[1] - a[1]) * f),
+            Math.round(a[2] + (b[2] - a[2]) * f)];
+  }
+
+  _drawPouce(g, p) {
+    const d = this.pouce, cx = d.cx, cy = d.cy;
+    const held = !!p.throttle;
+    this.poucePress += ((held ? 1 : 0) - this.poucePress) * 0.25;   // eased press feedback
+    const pr = d.r * (1 - 0.06 * this.poucePress);
+    /* LA PASTILLE PORTE L'ÉTAT, SUR SON PROPRE FOND, et c'est une mesure qui l'impose.
+
+    Posée en translucide à même le décor, la teinte changeait de lisibilité selon ce qu'il y avait
+    dessous. Calculé sur les deux fonds du jeu, l'écart de couleur entre la pastille et son fond :
+
+                     bleu  vert  jaune  violet  rouge
+      sur le sable     48    27     12      45     29      (à 30 % d'opacité)
+      sur l'asphalte  121   111    126     113    100
+
+    Le jaune pastel est à DOUZE unités du sable : c'est sa couleur, à peu de chose près. Aucune
+    opacité ne le rattrape — à 60 % il est encore à 23, quand le même jaune sur l'asphalte dépasse
+    250 et devient criard. Une seule valeur ne peut pas servir les deux fonds.
+
+    On pose donc un disque sombre d'abord, et la teinte dessus. Elle a alors toujours le même fond,
+    donc toujours la même lisibilité, où que soit la voiture — ce qu'on attend d'un instrument. La
+    pastille y gagne en présence, et c'est le prix : elle ne décore plus, elle informe. Toujours pas
+    de contour pour autant. */
+    const [r0, v0, b0] = Renderer.teintePastel(p.ressenti || 0);
+    g.beginPath(); g.arc(cx, cy, pr, 0, Math.PI * 2);
+    g.fillStyle = 'rgba(14,16,22,0.38)'; g.fill();
+    g.beginPath(); g.arc(cx, cy, pr, 0, Math.PI * 2);
+    g.fillStyle = `rgba(${r0},${v0},${b0},${0.62 + 0.14 * this.poucePress})`; g.fill();
+
+    /* LA VITESSE JUSTE AU-DESSUS, donc au-dessus de la main. La pastille suit le doigt et le
+    chiffre avec elle : il garde toujours la même place par rapport à la main, ce qu'aucune
+    position fixe à l'écran ne peut offrir. En blanc plein sans fond, comme tout le bandeau depuis
+    que le cerné noir a été retiré. */
+    const kmh = String(Math.round(Math.max(0, p.speed) * 3.6));
+    const hT = this.mobile ? 28 : 34;
+    const yT = cy - pr - (this.mobile ? 10 : 13);
+    g.textAlign = 'center'; g.textBaseline = 'bottom';
+    g.font = `900 ${hT}px system-ui, sans-serif`;
+    const wNum = g.measureText(kmh).width;
+    g.font = `bold ${this.mobile ? 12 : 14}px system-ui, sans-serif`;
+    const wU = g.measureText('km/h').width;
+    const x0 = cx - (wNum + 4 + wU) / 2;
+    g.textAlign = 'left';
+    g.fillStyle = '#fff'; g.font = `900 ${hT}px system-ui, sans-serif`;
+    g.fillText(kmh, x0, yT);
+    g.fillStyle = '#c8ced9'; g.font = `bold ${this.mobile ? 12 : 14}px system-ui, sans-serif`;
+    g.fillText('km/h', x0 + wNum + 4, yT);
+    this.hudZones = this.hudZones || {};
+    this.hudZones.vitesse = { x: x0, w: wNum + 4 + wU, y: yT - hT, h: hT };
+    g.textAlign = 'left'; g.textBaseline = 'top';
+  }
+
+  // La pastille vient sous le pouce, et reste entière à l'écran.
+  anchorPouce(x, y) {
+    const d = this.pouce, m = 8;
     // never far enough left to cover the line slider: that column must stay reachable
     const lo = this.slider.x + 30 + d.r, hi = this.w - d.r - m;
     d.cx = hi > lo ? clamp(x, lo, hi) : hi;
-    // the pad is centred on the thumb; the fan and the tab need room above it
-    d.cy = clamp(y, d.r * 1.65 + m, this.h - m);
-    this.dialAnchored = true;
+    // le chiffre de la vitesse se pose au-dessus d'elle : il lui faut sa place, sinon il sort par
+    // le haut dès qu'on remonte le pouce
+    d.cy = clamp(y, d.r + (this.mobile ? 42 : 50) + m, this.h - d.r - m);
+    this.pouceAncre = true;
   }
 
   // back to the bottom centre (new race, orientation change)
-  homeDial() {
-    if (!this.dialHome) return;
-    this.dial.cx = this.dialHome.cx; this.dial.cy = this.dialHome.cy;
-    this.dialAnchored = false;
+  homePouce() {
+    if (!this.pouceHome) return;
+    this.pouce.cx = this.pouceHome.cx; this.pouce.cy = this.pouceHome.cy;
+    this.pouceAncre = false;
   }
 
   static gripColor(u) { return u < 0.7 ? '#5be07a' : u < 1 ? '#ffd23f' : u < 1.2 ? '#ff9f2e' : u < 1.5 ? '#ff4b4b' : '#c74bff'; }
@@ -1924,6 +2082,15 @@ class Renderer {
       ['slip F / R', `${(p.alphaF * 180 / Math.PI).toFixed(1)}° / ${(p.alphaR * 180 / Math.PI).toFixed(1)}°`, null],
       ['steer', `${(p.delta * 180 / Math.PI).toFixed(1)}°`, null],
     ];
+    /* L'AIMANT NE S'AFFICHE QUE S'IL EST ALLUMÉ, et il affiche d'abord s'il TIENT.
+
+    C'est un essai : ce qu'on cherche à voir en roulant, ce n'est pas la valeur de la tension mais
+    l'INSTANT du décrochage — le défaut qu'il est censé réparer est justement qu'on ne sait pas quand
+    la voiture a lâché. Le mot passe donc au rouge au moment où ça lâche, et la tension suit entre
+    parenthèses pour ceux qui veulent le chiffre. */
+    if (PHYS.aimant > 0)
+      rows.push(['aimant', `${p.accroche ? 'tient' : 'LÂCHÉ'} (${p.aimantF.toFixed(1)})`,
+        p.accroche ? '#5be07a' : '#ff4b4b']);
     const w = 210, rowH = 18, h = rows.length * rowH + 24;
     x = Math.min(x, this.w - w - 14);   // stays on screen on a phone
     g.fillStyle = 'rgba(10,12,20,0.7)'; this._roundRect(g, x, y, w, h, 10); g.fill();
@@ -2104,6 +2271,73 @@ class Renderer {
     pastille(yP + ph + 5, nul ? t('lapVoid') : t('lap'),
       fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart), nul ? '#ffb4a2' : '#fff');
 
+    /* LA VITESSE, SOUS LE BANDEAU ET AU MILIEU — c'est-à-dire là où le cadran du bas n'était pas.
+
+    Elle vivait en bas de l'écran, sur une carte blanche de 95 × 73 px plantée devant la voiture.
+    Elle est ici parce que c'est le seul endroit que rien n'occupe : la position et la carte tiennent
+    la colonne de gauche, les temps et le tour celle de droite, et le milieu du bandeau ne porte que
+    le bouton pause. Le regard y passe déjà entre les deux colonnes.
+
+    LE CHIFFRE EST CENTRÉ, PAS LE GROUPE. La jauge s'ajoute à sa droite, donc centrer l'ensemble
+    aurait décalé le chiffre vers la gauche — et c'est le chiffre qu'on lit, pas la composition. Il
+    garde l'axe de l'écran, ce qui est aussi ce qui le rend retrouvable sans le chercher.
+
+    La jauge ne porte plus l'usage d'adhérence : c'est un choix de Bruno, l'information était une
+    couleur de plus sur un écran qui en a déjà assez. Elle ne dit que la vitesse rapportée au maximum
+    de la voiture — l'éventail disait la même chose, déroulé. Elle s'éclaircit à l'appui, parce que
+    la pastille du pouce n'a plus de liseré pour le dire. */
+    /* LA VITESSE ET L'ADHÉRENCE ONT QUITTÉ LE BANDEAU, et sont retournées sous le pouce.
+
+    Elles étaient en haut : le chiffre au centre, une jauge à sa droite dont la couleur portait
+    l'état ressenti. Bruno : « on perd de l'info ». C'est juste — deux choses à lire, loin l'une de
+    l'autre et loin de la voiture, pendant qu'on regarde la piste.
+
+    Les deux reviennent donc là où le regard passe de toute façon : la pastille du pouce PREND la
+    couleur de l'état, et le chiffre se pose juste au-dessus d'elle. Rien à chercher, rien à
+    balayer, et comme la pastille suit le doigt, le chiffre le suit aussi — il reste toujours au
+    même endroit par rapport à la main, ce qu'aucune position fixe ne peut offrir.
+
+    La jauge disparaît : la vitesse rapportée au maximum ne disait rien que le chiffre ne dise
+    mieux, et c'était la troisième chose à lire. */
+
+    /* LE LEVIER DE FREINAGE, et seulement en mode réglage.
+
+    Il n'a rien à faire dans une course ordinaire : un curseur qu'on peut bouger en roulant invite à
+    le bouger en roulant, et un réglage qui change pendant qu'on mesure ne se compare à rien. Il
+    n'apparaît donc que quand la course a été ouverte pour régler.
+
+    HORIZONTAL ET EN HAUT, comme demandé, et sur toute la largeur utile : la précision se joue au
+    centième et un rail court la rendrait impossible au pouce. Le repère du défaut est marqué, parce
+    que c'est la seule valeur dont on sait qu'elle a été équilibrée — tout le reste est un pari que
+    le joueur prend. */
+    if (race.reglage) {
+      const f = clamp(race.frein == null ? 1 : race.frein, FREIN_MIN, FREIN_MAX);
+      const u = (f - FREIN_MIN) / (FREIN_MAX - FREIN_MIN);
+      const wR = Math.min(W - P.l - P.r - 8, mobile ? 300 : 420), hR = mobile ? 16 : 18;
+      /* Il passe SOUS la carte, et pas seulement sous la jauge. Posé juste en dessous de celle-ci,
+      il traversait la minicarte en haut à gauche : large et centré, il la croise forcément. On
+      part donc du plus bas des deux. */
+      const xR = Math.round((W - wR) / 2);
+      const yR = mmBas + (mobile ? 16 : 20);
+      this.reglageZone = { x: xR, w: wR, y: yR - 14, h: hR + 28 };
+      g.fillStyle = 'rgba(10,12,20,0.70)';
+      this._roundRect(g, xR - 10, yR - 14, wR + 20, hR + 30, 10); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.16)';
+      this._roundRect(g, xR, yR, wR, hR, hR / 2); g.fill();
+      // le repère du défaut, là où la voiture a été équilibrée
+      const xD = xR + wR * (1 - FREIN_MIN) / (FREIN_MAX - FREIN_MIN);
+      g.fillStyle = 'rgba(255,255,255,0.45)'; g.fillRect(Math.round(xD) - 1, yR - 4, 2, hR + 8);
+      g.fillStyle = f < 1 ? '#f0e09a' : '#9ecbf0';
+      this._roundRect(g, xR, yR, Math.max(hR, wR * u), hR, hR / 2); g.fill();
+      g.beginPath(); g.arc(xR + wR * u, yR + hR / 2, hR * 0.78, 0, Math.PI * 2);
+      g.fillStyle = '#f5f6fa'; g.fill();
+      g.strokeStyle = 'rgba(12,14,22,0.85)'; g.lineWidth = 2; g.stroke();
+      g.textAlign = 'center'; g.textBaseline = 'top';
+      g.font = `bold ${mobile ? 11 : 12}px system-ui, sans-serif`; g.fillStyle = '#e8e8ec';
+      g.fillText(t('freinage') + '  ×' + f.toFixed(2), xR + wR / 2, yR + hR + 5);
+    } else this.reglageZone = null;
+    g.textAlign = 'left';
+
     /* Les deux cadrans : la gomme et la tôle.
 
     Mêmes cadrans que ceux des fiches de voiture au menu — arc de 270° ouvert en bas, chiffre au
@@ -2212,8 +2446,8 @@ class Renderer {
       });
     }
 
-    // the throttle dial goes on top of the map and the standings: it is the live control
-    this._drawDial(g, p, t);
+    // la pastille du pouce passe au-dessus de la carte et du classement : c'est la commande vive
+    this._drawPouce(g, p);
 
     // telemetry overlay (G key or settings): the four numbers that describe the car's state
     // la carte n'est plus réservée au téléphone en haut : la télémétrie passe sous elle partout
@@ -2256,7 +2490,8 @@ class Renderer {
       g.textAlign = 'center'; g.fillStyle = '#5be07a'; g.font = 'bold 64px system-ui, sans-serif';
       g.globalAlpha = 1 - race.time / 1.2; g.fillText('GO!', W / 2, H * 0.18); g.globalAlpha = 1;
     }
-    if (p.state === 'grass') { g.textAlign = 'center'; g.fillStyle = '#ff6b6b'; g.font = 'bold 28px system-ui, sans-serif'; g.fillText(t('offTrack'), W / 2, H * 0.3); }
+    if (p.state === 'grass') { g.textAlign = 'center'; g.fillStyle = '#ff6b6b'; g.font = 'bold 28px system-ui, sans-serif'; g.fillText(t('offTrack'), W / 2, H * 0.3);
+      if(p.engineStopped){g.fillStyle='#ffcf5c';g.font='bold 18px system-ui, sans-serif';g.fillText(t('engineCut'),W/2,H*.3+30);} }
     if (p.finished && race.state !== 'finished') { g.textAlign = 'center'; g.fillStyle = '#ffd400'; g.font = 'bold 40px system-ui, sans-serif'; g.fillText(`${t('finished')} — P${race.positionOf(p)}`, W / 2, H * 0.3); }
     /* Le temps au tour se pose sous TOUT ce qui occupe le haut, et non à une hauteur fixe.
 
@@ -2286,7 +2521,7 @@ class Renderer {
     g.fillStyle = 'rgba(10,12,20,0.55)'; this._roundRect(g, s.x - s.w / 2 - 8, s.y - 26, s.w + 16, s.len + 52 + (ouvert ? 22 : 0), 12); g.fill();
     // track
     g.fillStyle = 'rgba(255,255,255,0.18)'; this._roundRect(g, s.x - 4, s.y, 8, s.len, 4); g.fill();
-    const stops = [{ v: 1, c: LINE_COLORS.outside, l: t('lineOut') }, { v: 0, c: LINE_COLORS.racing, l: t('lineRace') }, { v: -1, c: LINE_COLORS.inside, l: t('lineIn') }];
+    const stops = [{ v: 1, c: LINE_COLORS.jaune, l: t('lineJaune') }, { v: 0, c: LINE_COLORS.racing, l: t('lineRace') }, { v: -1, c: LINE_COLORS.bleu, l: t('lineBleu') }];
     /* Les libellés passent de l'autre côté de la colonne quand le levier est à droite : posés
     toujours à droite, ils sortiraient de l'écran, et c'est le genre de détail qui ne se voit que
     sur l'appareil de celui qui a changé le réglage. */
@@ -2311,11 +2546,34 @@ class Renderer {
       g.font = `bold ${this.mobile ? 10 : 11}px system-ui, sans-serif`;
       g.fillText(t('linePit'), lx, this.pitY);
     }
-    // handle — posée sur la coche quand les stands sont demandés
+    /* La poignée prend la couleur de ce qu'elle demande.
+
+    Elle était jaune en toute position, ce qui ne se voyait pas tant que les deux bouts du levier
+    s'appelaient « intérieur » et « extérieur ». Maintenant qu'ils ont une couleur et que les bords
+    de la piste la portent aussi, une poignée jaune posée sur la butée bleue dit le contraire de ce
+    qu'elle fait. Elle se dégrade donc du bleu au jaune en passant par le blanc de l'idéale, ce qui
+    la rend lisible sans lire le libellé — et au coin de l'œil, qui est la façon dont on la lit en
+    roulant. Sur la coche des stands elle reste verte, comme la coche. */
     const hy = (p.pitAsk || p.pitState) && ouvert ? this.pitY : s.y + s.len / 2 - p.sel * s.len / 2;
-    g.fillStyle = '#ffd400'; g.beginPath(); g.arc(s.x, hy, 13, 0, Math.PI * 2); g.fill();
-    g.strokeStyle = '#1a1400'; g.lineWidth = 2; g.stroke();
+    const melange = (a, b, f) => a.map((v, i) => Math.round(v + (b[i] - v) * f));
+    const BLEU = [80, 200, 255], BLANC = [245, 246, 250], JAUNE = [255, 212, 0];
+    const u = clamp(p.sel, -1, 1);
+    const rgb = (p.pitAsk || p.pitState) && ouvert ? [91, 224, 122]
+      : u >= 0 ? melange(BLANC, JAUNE, u) : melange(BLANC, BLEU, -u);
+    g.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+    g.beginPath(); g.arc(s.x, hy, 13, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = 'rgba(12,14,22,0.85)'; g.lineWidth = 2; g.stroke();
     g.textBaseline = 'top';
+  }
+
+  // le freinage demandé par un appui sur le levier de réglage, ou null hors de lui
+  reglageValeurAt(x, y) {
+    const r = this.reglageZone;
+    if (!r) return null;
+    if (x < r.x - 14 || x > r.x + r.w + 14 || y < r.y || y > r.y + r.h) return null;
+    const u = clamp((x - r.x) / Math.max(1, r.w), 0, 1);
+    const v = FREIN_MIN + u * (FREIN_MAX - FREIN_MIN);
+    return Math.round(v * 100) / 100;
   }
 
   /* Le point tombe-t-il sur le bouton pause ?
@@ -2332,12 +2590,16 @@ class Renderer {
 
   // maps a screen point in the slider zone to a selection value; null if outside the zone
   sliderValueAt(x, y, touchZone) {
-    const s = this.slider, d = this.dial;
-    // The visible dome always wins: a thumb landing on it accelerates, wherever it has moved to.
-    // It can never cover the slider column, so the line stays reachable in any case.
+    // le levier de réglage prend le dessus : il est en haut, loin du pouce, mais un appui dessus ne
+    // doit surtout pas compter pour de l'accélérateur
+    const r = this.reglageZone;
+    if (r && x >= r.x - 14 && x <= r.x + r.w + 14 && y >= r.y && y <= r.y + r.h) return null;
+    const s = this.slider, d = this.pouce;
+    // La pastille visible gagne toujours : un pouce qui s'y pose accélère, où qu'elle ait été
+    // déplacée. Elle ne peut jamais couvrir la colonne du levier, donc la ligne reste accessible.
     if (d) {
       const dx = x - d.cx, dy = y - d.cy;
-      if (dy <= d.r * 0.6 && dx * dx + dy * dy < (d.r + 12) * (d.r + 12)) return null;
+      if (dx * dx + dy * dy < (d.r + 12) * (d.r + 12)) return null;
     }
     // la zone tactile large suit le côté du levier, sinon un gaucher pousserait dans le vide
     const inZoneX = touchZone ? (s.droite ? x > this.w * 0.58 : x < this.w * 0.42) : Math.abs(x - s.x) < 40;

@@ -121,7 +121,146 @@ vitesses de passage monteraient, et la mesure des planchers — le temps minimum
 deux roues dedans sur tout le virage coûte le virage. */
 const KERB_ADHERENCE = 0.88;
 
-const PHYS = { ldK: 0.45, ldMin: 6, ff: 0, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, power: 0.01, relax: 0.2, circle: 0.25 };
+const PHYS = { aimant: 0, ldK: 0.45, ldMin: 6, ff: 0.3, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, motricite: 1.25, drivePriority: 0.15, relax: 0.2, circle: 0.25 };
+
+/* LES AIDES DE L'IA, qui ne sont pas celles du joueur.
+
+`PHYS.aimant` et `PHYS.ff` portent ce que LE JOUEUR a choisi dans les réglages. Les rivales n'ont
+aucune raison d'en hériter : elles ne choisissent rien, et elles roulent mal — « elles roulent
+doucement et sont assez mauvaises ». On leur donne donc une configuration fixe, celle que la mesure
+a trouvée la meilleure : l'aimant au cran normal, qui leur supprime les tête-à-queue, et
+l'anticipation au défaut, qui les empêche de couper la corde.
+
+LE DÉPARTAGE SE FAIT SUR LA VOITURE, PAS SUR QUI LA CONDUIT. `isPlayer` est posé à la construction,
+alors que `aiDriven` se recalcule à chaque image et vaut vrai pour la voiture du joueur dès que
+l'autopilote la pilote — ce qui est le cas de tous les bancs. Se brancher dessus aurait donné les
+aides de l'IA à la voiture mesurée, et rendu incomparables tous les relevés d'avant. Un adversaire
+humain en réseau n'y a pas droit non plus : il choisit, lui. */
+const AIDES_IA = { aimant: 1, ff: 0.3 };
+
+/* LES BORNES DU RÉGLAGE DE FREIN, et pourquoi elles vivent ICI.
+
+Elles décrivent ce que la physique accepte, donc leur place est avec la physique. Mais la raison
+concrète est plus bête et plus solide : `js/race.js` s'en sert à la construction de la grille, et
+les bancs chargent `car.js` sans charger `career.js`. Les poser dans `career.js` — où vit le reste
+des configurations — faisait planter tous les bancs sur une référence absente.
+
+0,5 et 1,6 encadrent ce qui a été mesuré : en dessous de 0,65 aucun tour n'est bouclé sur les trois
+circuits d'essai, et au-dessus de 1,6 la vitesse de passage ne descend plus, elle a déjà touché le
+fond. Laisser aller plus loin ne proposerait que des réglages dont on sait qu'ils ne servent à rien. */
+const FREIN_MIN = 0.5, FREIN_MAX = 1.6;
+
+/* L'AIMANT : une tension vers la ligne, et un décrochage net.
+
+L'idée est de Bruno, et elle répond à ce que la mesure dit du modèle actuel. Trois leviers ont été
+essayés pour que les voitures tournent plus court, et les trois ne donnent rien : ouvrir la butée de
+braquage de 29° à 52° gagne 0,4 m de rayon minimum, ouvrir le plafond de dérive avant de 1,3 à 3,5
+fois le pic n'en gagne aucun, et rapetisser les voitures à l'échelle des circuits coûte des sorties
+de piste. La raison tient en une ligne, `clamp(alphaF / peak, -1, 1)` : AU-DELÀ DU PIC, PLUS D'ANGLE
+NE DONNE PLUS DE FORCE. Le pneu avant a déjà tout donné, le pilote peut demander ce qu'il veut.
+
+Le seul paramètre qui achète de la capacité à tourner est donc l'adhérence — mais la monter
+globalement déplacerait chaque point de freinage, puisque `speedProfile` lit `gripAt`, et avec eux
+les douze listes d'annonces posées à la main. L'aimant est une hausse d'adhérence LOCALISÉE : une
+force ajoutée dans `update`, jamais dans `gripAt`, donc le profil de vitesse et les annonces ne
+bougent pas d'un mètre.
+
+Et il soigne les deux symptômes d'un coup. Posé sur l'ESSIEU AVANT, il tire le nez vers la ligne et
+crée un couple de lacet dans le même sens : c'est le sous-virage. Avec un seuil de décrochage, il
+ajoute l'INSTANT qui manque — aujourd'hui la dérive monte à soixante-huit degrés sur trois secondes
+et on ne sait jamais quand ça a lâché.
+
+L'HYSTÉRÉSIS EST ASYMÉTRIQUE, et c'est le point à ne pas rater : facile à retrouver, net à perdre.
+Si l'aimant raccroche au seuil même où il lâche, on obtient un oscillateur accroche-décroche, pire
+que le flou qu'on voulait enlever. On lâche donc quand la demande dépasse le plafond, et on ne
+reprend qu'une fois bien revenu dessous ET l'arrière redevenu sage. */
+/* UN RESSORT SANS AMORTISSEUR EST UN OSCILLATEUR, et la première version l'a prouvé.
+
+Tension proportionnelle au seul écart, posée sur l'essieu avant : la M1 Procar est passée de 5,7° de
+dérive à 70,8°, la 787B de 5,0° à 71,1°. Les deux voitures les plus saines du plateau devenaient
+pires que celles qu'on voulait soigner, et l'écart à la ligne ne baissait même pas — 1,05 m contre
+1,26 m, donc en hausse. C'était inévitable : une rétroaction sur la POSITION, couplée au lacet
+qu'elle crée elle-même, est un double intégrateur en phase arrière. Il oscille.
+
+`c` est donc l'amortisseur : il s'oppose à la VITESSE d'éloignement, pas à l'éloignement. Et
+`avant` partage la tension entre les deux essieux — tout à l'avant donne le plus de pouvoir
+directionnel mais aussi le plus de couple de lacet, donc le plus d'oscillation. */
+/* OÙ MORD L'AIMANT : AU CENTRE, ET LE NEZ EST LE PIRE ENDROIT — mesuré jusqu'au bout.
+
+Bruno a montré le châssis d'un slot car BRM : le guide est à la pointe avant, bien devant l'essieu,
+et il demandait l'aimant là. Le paramètre d'alors ne savait pas y aller — il interpolait entre les
+deux essieux, donc « tout à l'avant » voulait dire « sur l'essieu avant » et rien de plus loin. Il a
+été refait en distance pour que la question soit posable, puis balayée du centre au nez, avec le
+critère qui voit vraiment les demi-tours (l'écart de cap, non borné) et un pilote qui freine tard.
+
+935, pilote tardif, trois tours sur Zandvoort, Monaco et Suzuka :
+
+  où mord l'aimant        demi-tours   sorties   écart du NEZ   tour
+  éteint                       6          1         0,76 m     97,2 s
+  0    (centre de gravité)     0          0         0,47 m     95,5 s
+  0,7                          0          0         0,56 m     95,8 s
+  1,35 (essieu avant)          9          4         0,71 m     98,4 s
+  1,8                         12         12         0,95 m    101,8 s
+  2,25 (le nez)               12         20         1,02 m    103,7 s
+
+Monotone, et sur les trois voitures essayées : au nez c'est PIRE QUE SANS AIMANT, y compris sur
+l'écart du nez lui-même, que le guide est pourtant censé tenir. La M1 Procar, qui ne part jamais,
+y fait neuf demi-tours.
+
+LA RAISON EST QU'UNE FORCE N'EST PAS UNE CONTRAINTE. Le guide d'un vrai slot car ne peut pas sortir
+de la rainure : sa raideur est infinie, le couple qu'il encaisse n'a pas de plafond, et le nez est
+tenu quoi qu'il arrive — c'est pour ça que l'arrière peut chasser sans que la voiture pivote. Une
+force, elle, sature à son plafond, et le moment qu'elle crée au bout d'un long bras FAIT TOURNER la
+voiture avant de la déplacer : la rotation emmène le nez, ce qui augmente l'écart, ce qui augmente la
+force. C'est une boucle positive, et plus le bras est long plus elle est rapide.
+
+Reproduire un vrai guide demanderait de le poser en CONTRAINTE et non en force : imposer la position
+latérale du nez sur la ligne, laisser la queue libre, et déverrouiller au-delà d'un effort. Ce n'est
+pas le même objet, et ce n'est pas ce qui est écrit ici. */
+const AIMANT = {
+  k: 1.4,          // raideur : accélération latérale par mètre d'écart à la ligne
+  c: 1.0,          // amortissement : par mètre par seconde d'éloignement
+  devant: 0,       // où mord l'aimant : mètres DEVANT le centre de gravité (voir plus bas)
+  max: 0.3,        // plafond de la tension, en fraction de l'adhérence totale
+  lache: 1.0,      // on décroche quand la demande dépasse le plafond
+  reprend: 0.5,    // on ne raccroche qu'à la moitié du plafond
+  derive: 1.3,     // ... et seulement si l'arrière est revenu sous ce multiple de son pic
+};
+
+/* LE GUIDE DE SLOT CAR EN CONTRAINTE : SIX TENTATIVES, AUCUNE QUI TIENNE. Essai abandonné, et le
+chemin noté ici pour que la prochaine tentative ne le refasse pas.
+
+On cherchait ce que l'aimant ne sait pas donner : de la glisse SANS tête-à-queue. L'aimant y arrive
+en réduisant la glisse à vingt-deux degrés ; un guide la laisserait entière, puisque le nez ne peut
+pas sortir de la rainure. Dans l'ordre, et ce que la mesure a dit de chacune :
+
+  1. Contrainte en vitesse, impulsion répartie entre la vitesse latérale ET le lacet : elle perturbait
+     la rotation que les pneus venaient de calculer. Bras de fer à soixante hertz, cent seize
+     demi-tours en trois tours quand on la laissait tenir.
+  2. Rappel divisé par trois et plafonné, soupçonnant un dosage : les sorties ont AUGMENTÉ.
+  3. Pivot autour du guide (moment pris au guide, inertie k² + g²) et vitesse latérale POSÉE au lieu
+     d'être négociée : zéro demi-tour, dérive intacte à soixante-treize degrés — le bon comportement.
+     Sauf que le guide ne tenait que QUATRE À TREIZE POUR CENT DU TEMPS : le résultat n'était pas le
+     sien.
+  4. Position épinglée sur la ligne à chaque image : six à quinze pour cent. Pas le verrou non plus.
+  5. Effort lissé sur un dixième de seconde, puisqu'on comparait une impulsion — une différence de
+     vitesse divisée par dt — à un seuil d'adhérence : zéro à trois pour cent, donc pire, le lissage
+     donnant de la mémoire à un effort déjà trop élevé.
+  6. Raccrochage géométrique au lieu d'un raccrochage sur la force, l'ancienne condition se mordant la
+     queue : loin de la ligne, la demande pour y revenir est énorme, donc l'effort reste haut, donc on
+     ne raccroche jamais. Le temps en rainure est monté à QUATRE-VINGTS POUR CENT — mais la voiture se
+     retrouvait à vingt-huit mètres de la ligne, cap à cent quatre-vingts degrés, cent cinquante
+     sorties. Sans l'épinglage, encore six mètres d'écart et des tours à cent vingt secondes.
+
+POURQUOI AUCUNE NE TIENT : la contrainte s'applique APRÈS l'intégration des forces des pneus, et
+ceux-ci répondent à l'image suivante à un état qu'ils n'ont pas produit. Il faudrait les résoudre
+dans le même système, ou traiter la voiture guidée comme un système à deux degrés de liberté —
+l'abscisse le long du rail et le cap, la position latérale esclave — au lieu d'intégrer librement
+puis de corriger. Ce n'est pas un réglage, c'est un autre intégrateur.
+
+Et une leçon de banc : UN TAUX DE TRANSITION N'EST PAS UNE DURÉE. « Vingt sauts par minute » est
+compatible avec « dehors quatre-vingt-quinze pour cent du temps », et c'est Bruno qui l'a vu en
+roulant — « le guide est tout le temps sauté » — bien avant que le banc le mesure. */
 
 const wrapAngle = (a) => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
 const smoothstep = (x, a, b) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
@@ -185,10 +324,18 @@ class Car {
     this.Ff = 0; this.Fr = 0;            // lateral force (per unit mass) of the front / rear axle
     this.alphaF = 0; this.alphaR = 0;
     this.slide = 0;                      // 0..1 for effects
+    this.patine = 0;                     // 0..1 : la part de poussée que l'arrière ne passe pas
+    this.patineFx = 0;                   // retour sonore/visuel, sans effet sur les forces
+    this.ressenti = 0;                   // 0..1 : bleu, vert, jaune, violet, rouge (voir update)
+    this.accroche = true;                // l'aimant tient-il la ligne ? (voir AIMANT)
+    this.ecartAv = null;                 // l'écart de l'image d'avant, pour l'amortissement
+    this.aimantF = 0;                    // la tension du moment, pour la télémétrie
     this.state = 'ok';                   // ok | grass
     this.grassT = 0;
     this.rejoined = 0;
     this.crashes = 0;
+    this.engineCut = 0; this.engineStopped = false; this.barrierHits = 0;
+    this.lastBarrierImpact = null;
 
     this.sel = 0;                        // line selection -1..1 (driver's intention)
     this.selS = 0;                       // the same, eased: a driver moves across the road, he does not teleport
@@ -197,6 +344,7 @@ class Car {
     this.passSide = 0;
     this.passTimer = 0;
     this.blocker = null;
+    this.voisin = null;
     this.draft = false;
 
     this.started = false;
@@ -248,7 +396,9 @@ class Car {
   place(s, lat, v) {
     const T = this.track, P = T.pos(s, lat);
     this.s = T.wrap(s); this.lat = lat; this.x = P.x; this.y = P.y; this.th = T.headingAt(s);
-    this.v = v || 0; this.vl = 0; this.w = 0; this.delta = 0; this.beta = 0; this.usage = 0; this.slide = 0; this.Ff = 0; this.Fr = 0; this.selS = this.sel;
+    this.v = v || 0; this.vl = 0; this.w = 0; this.delta = 0; this.beta = 0; this.usage = 0; this.slide = 0; this.ressenti = 0; this.Ff = 0; this.Fr = 0; this.selS = this.sel; this.accroche = true; this.aimantF = 0; this.ecartAv = null;
+    this.patine = 0; this.patineFx = 0;
+    this.engineCut = 0; this.engineStopped = false;
   }
 
   /* Ce que les pneus rendent, entre neuf et mort. Séparé de `gripBoost` parce que les deux n'ont
@@ -256,6 +406,9 @@ class Car {
   vaut pour tout le monde. Les multiplier est juste ; les confondre aurait été une erreur à
   débusquer six semaines plus tard. */
   tyreGrip() { return this.usure ? 1 - this.usure.grip * (1 - this.tyre) : 1; }
+
+  /* Les aides qui s'appliquent à CETTE voiture : les siennes au joueur, celles de l'IA aux rivales. */
+  get aides() { return this.isPlayer || this.human != null ? PHYS : AIDES_IA; }
 
   gripAt(v) {
     const c = this.cls, g = c.grip * this.gripBoost * this.tyreGrip();
@@ -315,13 +468,116 @@ class Car {
     // target behind us (after a spin): full lock towards it, pure pursuit alone would give zero
     if (Math.abs(alpha) > Math.PI / 2) return Math.sign(alpha) * 0.25;
     const kPursuit = 2 * Math.sin(alpha) / dist;
-    // pure pursuit already contains the path curvature; ff only adds a lead on top of it
-    const kFF = PHYS.ff ? T.lineCurv(this.s + Ld * 0.4, this.selS) : 0;
-    return clamp(kPursuit + PHYS.ff * kFF, -0.25, 0.25);
+    /* L'ANTICIPATION N'EST PAS UN SUPPLÉMENT, C'EST CE QUI MANQUAIT — et `ff` valait zéro.
+
+    Le commentaire qu'il y avait ici disait « pure pursuit already contains the path curvature; ff
+    only adds a lead on top of it ». C'est faux, et c'est ce qui a laissé le terme éteint. Un pure
+    pursuit vise un point à Ld devant et va vers lui : sa courbure vaut 2·sin(α)/Ld, donc avec
+    sin(α) = e/Ld elle vaut 2e/Ld². Pour commander la courbure d'un virage, il lui faut donc un écart
+    PERMANENT e ≈ κ·Ld²/2 — il ne suit pas la ligne, il la coupe, et d'autant plus que le virage est
+    serré. C'est un fait de géométrie du correcteur, pas un réglage à trouver, et la littérature le
+    nomme : « the main issue is cutting corners since no curvature information is taken into account ».
+
+    Bruno l'a vu en roulant, avant la mesure : « on dirait que le pilote a comme une latence pour
+    prendre la ligne donc on est jamais sur la ligne idéale... il braque à fond alors que c'est déjà
+    trop tard plutôt que d'y aller petit à petit ». Les deux moitiés de la phrase sont vraies, et la
+    seconde découle de la première : l'écart s'accumule jusqu'à ce que α soit grand, et alors
+    2·sin(α)/dist monte d'un coup.
+
+    LA PREUVE EST DANS LE SIGNE, pas dans la moyenne. Un écart moyen peut être du bruit ; un écart
+    toujours du même côté ne peut pas l'être. Biais vers l'intérieur du virage, trois tours sur
+    Zandvoort, Monaco et Suzuka, en mètres :
+
+                 ligne droite   virage large   virage serré   demi-tours   sorties
+      ff 0,0  M1     +0,15          +0,54          +0,51           0          0
+              935    +0,18          +0,71          +1,04           5          3
+              911T   +0,16          +0,65          +1,14           3          4
+      ff 0,5  M1     +0,06          +0,03          −0,28           0          0
+              935    +0,09          +0,21          +0,04           4          0
+              911T   +0,07          +0,16          +0,12           0          0
+
+    Le 935 coupait d'un mètre quatre dans les virages serrés. À 0,5 le biais tombe sous vingt
+    centimètres partout, les sorties de piste disparaissent sur les quatre voitures essayées, et les
+    tours gagnent de trois dixièmes à une seconde et demie. Au-delà de 0,6 le pilote anticipe trop :
+    le biais repasse de l'autre côté, et à 1,4 on retrouve huit demi-tours et onze sorties.
+
+    Le compte des demi-tours reste bruité à cette taille d'échantillon (le 935 en fait 5, 1, 4 puis 2
+    pour ff de 0 à 0,6) : la valeur est choisie sur le BIAIS et sur les sorties, qui eux sont
+    monotones, et non sur lui.
+
+    ET 0,5 OSCILLAIT, ce qu'aucun de ces chiffres ne disait. Bruno l'a senti en roulant : « avec le ff
+    à 0.5 j'ai l'impression que la voiture oscille ». Un correcteur peut parfaitement se recentrer en
+    moyenne tout en tremblant, et ni le biais ni les sorties ne le voient. La grandeur qui le voit est
+    la SECOUSSE DU VOLANT, la valeur efficace de la vitesse de braquage :
+
+                        M1    787B    935   911T     biais en virage serré (M1)
+      ff 0            9°/s    9°/s  17°/s  17°/s            +0,62
+      ff 0,3         22°/s   22°/s  27°/s  28°/s            +0,02
+      ff 0,5         33°/s   32°/s  38°/s  37°/s            −0,29
+
+    Presque quadruplé sur la M1. D'où 0,3 : il garde tout le bénéfice — le biais en virage serré y est
+    à deux centimètres, le meilleur de toutes les valeurs essayées, et l'écart absolu y est le plus
+    faible — pour la moitié de la secousse.
+
+    LISSER DAVANTAGE LA COURBURE N'EST PAS LE REMÈDE, bien que ce fût la cause soupçonnée. `lineK` est
+    une dérivée seconde d'une ligne échantillonnée, donc bruitée, et huit passes de lissage de plus
+    font bien tomber la secousse de 33 à 14°/s. Mais elles ramènent le biais vers l'intérieur (+0,02 →
+    +0,20 sur la M1, +0,29 → +0,42 sur le 935) et ajoutent deux à trois sorties de piste sur les
+    voitures qui n'en faisaient aucune : la courbure étalée fait anticiper le mauvais virage. On garde
+    donc le lissage d'origine et on baisse le gain.
+
+    Vingt-deux degrés par seconde restent plus que les neuf du départ : anticiper, c'est bouger le
+    volant plus tôt et davantage. C'est une réduction, pas une suppression. */
+    const ff = this.aides.ff;
+    const kFF = ff ? T.lineCurv(this.s + Ld * 0.4, this.selS) : 0;
+    return clamp(kPursuit + ff * kFF, -0.25, 0.25);
+  }
+
+  _leaveTrack(withDamage = true) {
+    if (this.state === 'grass') return;
+    this.state = 'grass'; this.grassT = 0; this.crashes++; this.fautes++;
+    this.lapSale = true;
+    if (withDamage && this.usure)
+      this.damage = clamp(this.damage + this.usure.sortieParVitesse * Math.abs(this.v), 0, 1);
+  }
+
+  _barrierContact(from, dt, raceTime) {
+    const hit=this.track.barrierHit(this,from);
+    if(!hit)return false;
+    const vx=this.v*Math.cos(this.th)+this.vl*Math.sin(this.th);
+    const vy=this.v*Math.sin(this.th)-this.vl*Math.cos(this.th);
+    // La composante normale distingue un frottement d'un impact frontal.
+    const impact=Math.max(0,-vx*hit.nx-vy*hit.ny);
+    this.x=from.x+(this.x-from.x)*hit.t+hit.nx*(hit.depth+.035);
+    this.y=from.y+(this.y-from.y)*hit.t+hit.ny*(hit.depth+.035);
+    this.th=wrapAngle(from.th+wrapAngle(this.th-from.th)*hit.t);
+    this.v=0;this.vl=0;this.w=0;this.Ff=0;this.Fr=0;
+    this.slide=0;this.patine=0;this.patineFx=0;this.throttle=false;this.braking=false;
+    if(!this.engineStopped){
+      const effective=impact*(hit.barrier.kind==='tyres'?.55:1);
+      this.engineCut=clamp(.25+2*Math.pow(effective/20,2),.25,5);
+      this.engineStopped=true;this.barrierHits++;
+      this.lastBarrierImpact={speed:impact,effective,kind:hit.barrier.kind,cut:this.engineCut};
+      this._leaveTrack(false); // une excursion et son impact ne comptent pas deux fautes
+      if(this.usure)this.damage=clamp(this.damage+this.usure.chocParVitesse*Math.max(0,effective-this.usure.chocSeuil),0,1);
+    }
+    const pr=this.track.project(this.x,this.y,this.s,30);
+    const ds=this.track.diff(this.s,pr.s);
+    if(raceTime!=null&&ds>0&&ds<6)this._advance(ds,raceTime);else this.s=pr.s;
+    this.lat=pr.lat;
+    return true;
   }
 
   update(dt, throttle, raceTime) {
     const T = this.track, c = this.cls;
+    const wasStopped = this.engineStopped;
+    this.engineCut = Math.max(0, this.engineCut - dt);
+    this.engineStopped = this.engineCut > 1e-6;
+    // Avec un seul accélérateur et sans marche arrière, repartir nez contre le mur
+    // créerait une boucle de chocs. On remet le cap dans le sens de la piste sur place.
+    if (wasStopped && !this.engineStopped) {
+      this.th = T.headingAt(this.s); this.delta=0; this.Ff=0; this.Fr=0;
+    }
     /* Le bloc des stands passe AVANT `this.throttle`, et ce n'est pas cosmétique.
 
     Il remplace l'accélérateur quand on est dans la voie. Placé après, il levait bien le pied
@@ -410,6 +666,7 @@ class Car {
       }
     }
 
+    if (this.engineStopped) throttle = false;
     this.throttle = throttle;
     /* L'usure. La glisse compte au carré : c'est le frottement qui arrache la gomme, pas la
     distance. Un pilote propre use lentement, un pilote en travers permanent trois fois plus vite.
@@ -438,30 +695,18 @@ class Car {
     const horsRoute = !this.inPit && (this.lat > hwL + marge || this.lat < -(hwR + marge));
     const off = !this.inPit && (this.lat > hwL + kb + marge || this.lat < -(hwR + kb + marge));
     this.surKerb = horsRoute && !off;
-    if (off && this.state !== 'grass') {
-      this.state = 'grass'; this.grassT = 0; this.crashes++;
-      /* UNE SORTIE EST UNE FAUTE, et elle se compte au moment où elle arrive.
-
-      Deux conséquences, et aucune des deux n'est une punition gratuite. Le tour en cours ne compte
-      plus : un meilleur tour signé en coupant n'est pas un meilleur tour. Et le classement final
-      porte une pénalité en secondes, parce que couper une chicane rapporte parfois plus que le
-      gravier ne coûte — c'est là qu'une course se gagne en trichant, et nulle part ailleurs. */
-      this.fautes++;
-      this.lapSale = true;
-      // les dommages se prennent à l'INSTANT de la sortie, à la vitesse qu'on avait : rester dans
-      // le gravier ne casse rien de plus, c'est le départ en tête-à-queue qui coûte
-      if (this.usure) this.damage = clamp(this.damage + this.usure.sortieParVitesse * Math.abs(this.v), 0, 1);
-    }
-    if (!off) this.state = 'ok';
+    if (off) this._leaveTrack();
+    if (!off && !this.engineStopped) this.state = 'ok';
     if (this.state === 'grass') this.grassT += dt;
     // stuck in the gravel: the marshals push the car back onto the edge of the road, facing the
     // right way and barely moving. Only after a long excursion, never during a slide.
-    if (this.grassT > 8) {
+    if (this.grassT > 8 && !this.engineStopped) {
       const edge = clamp(this.lat, -(T.hwRightAt(this.s) - c.width), T.hwLeftAt(this.s) - c.width);
       this.place(this.s, edge, Math.min(8, Math.abs(this.v)));
       this.state = 'ok'; this.grassT = 0; this.rejoined = (this.rejoined || 0) + 1;
       return;
     }
+    if (this.engineStopped) { this.v=0; this.vl=0; this.w=0; return; }
     // le vibreur ne rend pas tout : on peut s'y appuyer, pas s'y installer
     const surface = off ? 0.42 : this.surKerb ? KERB_ADHERENCE : 1;
 
@@ -505,9 +750,46 @@ class Car {
     const base = gAxle;
     const cliffF = 1 - c.cliff * PHYS.cliff * smoothstep(Math.abs(alphaF), peak * 1.5, peak * 5);
     const cliffR = 1 - c.cliff * PHYS.cliff * smoothstep(Math.abs(alphaR), peak * 1.5, peak * 5);
-    const driveFrac = throttle ? clamp(1 - Math.pow(Math.max(0, this.v) / c.vmax, 2.5), 0, 1) : 0;
+    /* Motricité : partager l'adhérence arrière entre poussée et tenue latérale.
+       Le compromis 0,15 garde une poussée à la limite, sans le décrochage brutal observé
+       à partir de 0,35. Mesures : docs/motricite/README.md. Le pilote dose par impulsions. */
+    const dmg = this.damageFactor();
+    const vmax = c.vmax * dmg * (this.draft ? 1.05 : 1);
+    const accDem = throttle
+      ? c.accel * dmg * Math.max(0, 1 - Math.pow(Math.max(0, this.v) / vmax, 2.5)) * (this.draft ? 1.08 : 1)
+      : 0;
     const gF = base * cliffF;
-    const gR = base * c.rearBias * cliffR * (1 - PHYS.liftOff * brakeFrac) * (1 - PHYS.power * driveFrac);   // lift-off / power oversteer
+    // Toujours repartir de la capacité de l'essieu, jamais d'une force déjà réduite
+    // par ce même partage : cela réintroduirait une boucle de perte d'adhérence.
+    const gArrBrut = base * c.rearBias * (1 - PHYS.liftOff * brakeFrac);
+    const latPris = Math.min(1, Math.abs(alphaR) / peak);
+    const longDispo = gArrBrut * PHYS.motricite * Math.sqrt(Math.max(0, 1 - latPris * latPris));
+    /* HORS PISTE, LE PLAFOND NE S'APPLIQUE PAS, et ce n'est pas une facilité.
+
+    L'herbe est déjà punie deux fois : `surface` ramène l'adhérence à 42 %, et le bloc de traînée
+    plus bas freine la voiture entière, y compris de travers. Y ajouter le plafond de motricité en
+    faisait une troisième punition, et comme il se calcule SUR l'adhérence réduite, il divisait la
+    poussée par deux au moment précis où on en a le plus besoin. Mesuré sur les neuf voitures :
+    dix secondes pour revenir à 60 km/h depuis le bas-côté, contre quatre avant. « La voiture est
+    tankée », et c'était juste.
+
+    Le modèle est là pour façonner la sortie de virage SUR L'ASPHALTE. Hors piste il se tait, et le
+    bas-côté redevient exactement ce qu'il était. */
+    const qy = clamp(alphaR / peak, -1, 1);
+    const qx = accDem / Math.max(1e-3, gArrBrut * cliffR * PHYS.motricite);
+    const share = off ? 1 : 1 / Math.max(1, Math.hypot(qx, qy));
+    const priority = PHYS.drivePriority;
+    const safeDrive = Math.min(accDem, longDispo * cliffR);
+    const accReel = off ? accDem : safeDrive * (1 - priority) + accDem * share * priority;
+    this.patine = off || accDem <= 0 ? 0 : clamp(1 - accReel / accDem, 0, 1);
+    // Part de poussée non transmise : un indice d'effet, pas une vitesse de roue simulée.
+    // Attaque courte pour rendre un appui de 50 ms audible ; extinction douce au relâchement.
+    // Ce filtre ne retarde jamais l'accélérateur ni le retour d'adhérence de la physique.
+    const spinFx = !off && !this.inPit && accDem > 0
+      ? clamp(1 - accReel / accDem, 0, 1) : 0;
+    const spinTau = spinFx > this.patineFx ? 0.035 : 0.08;
+    this.patineFx += (spinFx - this.patineFx) * (1 - Math.exp(-dt / spinTau));
+    const gR = gArrBrut * cliffR * (off ? 1 : 1 - priority + priority * share);
     // tyre curve: linear up to the peak slip angle, then saturated (the cliff is applied above)
     const FfT = -gF * clamp(alphaF / peak, -1, 1);
     const FrT = -gR * clamp(alphaR / peak, -1, 1);
@@ -515,6 +797,62 @@ class Car {
     const relax = Math.min(1, dt * vv / PHYS.relax);
     this.Ff += (FfT - this.Ff) * relax;
     this.Fr += (FrT - this.Fr) * relax;
+
+    /* LA TENSION DE L'AIMANT, hors du circuit de frottement des pneus.
+
+    Elle ne passe pas par la relaxation : un aimant n'a pas de carcasse à déformer. Et elle ne compte
+    pas dans `u`, l'usage du pneu, pour la même raison — ce n'est pas le pneu qui tire.
+
+    Elle s'éteint hors piste : l'aimant tient une LIGNE, et il n'y a pas de ligne dans le gravier.
+    Elle s'éteint aussi à l'arrêt, sinon elle replacerait une voiture immobile toute seule. */
+    let Fm = 0;
+    const aimant = this.aides.aimant;
+    if (aimant > 0 && !off && Math.abs(this.v) > 3 && !this.inPit) {
+      const latCible = this.gridLat != null ? this.gridLat : T.targetLat(this.s, this.selS);
+      const ecart = latCible - this.lat;
+      const dEcart = this.ecartAv == null ? 0 : (ecart - this.ecartAv) / Math.max(1e-4, dt);
+      const plafond = AIMANT.max * gTot * aimant;
+      /* LE VERROU SE DÉCIDE SUR LA DISTANCE, LA FORCE S'APPLIQUE AVEC L'AMORTISSEMENT.
+
+      Deuxième défaut de la première version : le verrou lisait la demande AMORTIE, dont le terme
+      dérivé est une différence finie à soixante images par seconde, donc bruitée. Résultat, cent
+      vingt à deux cent quarante décrochages par minute — quatre par seconde. L'oscillateur avait
+      simplement déménagé du ressort vers le verrou, et l'INSTANT qu'on voulait créer n'existait
+      plus : clignoter n'est pas un événement.
+
+      Un aimant lâche quand on le tire trop LOIN, pas trop VITE. Le verrou ne regarde donc que le
+      terme proportionnel ; l'amortissement, lui, reste dans la force appliquée, où il a sa place. */
+      const tension = AIMANT.k * ecart;
+      const demande = tension + AIMANT.c * dEcart;
+      if (this.accroche) {
+        if (Math.abs(tension) > plafond * AIMANT.lache) this.accroche = false;
+        else Fm = clamp(demande, -plafond, plafond);
+      } else if (Math.abs(tension) < plafond * AIMANT.reprend
+                 && Math.abs(alphaR) < peak * AIMANT.derive) {
+        this.accroche = true;
+        Fm = clamp(demande, -plafond, plafond);
+      }
+      this.ecartAv = ecart;
+    } else { this.accroche = true; this.ecartAv = null; }
+    this.aimantF = Fm;
+    /* OÙ MORD L'AIMANT, en mètres devant le centre de gravité.
+
+    L'ancien réglage partageait la tension entre les deux essieux, donc il ne savait placer l'aimant
+    QU'ENTRE EUX : 1,0 valait « sur l'essieu avant » et il n'y avait pas de plus loin. Or le guide
+    d'un slot car est au NEZ, bien devant l'essieu avant — Bruno l'a montré sur un châssis BRM 911.
+    La plage utile était donc hors d'atteinte du paramètre.
+
+    On pose la distance directement. Une force Fm appliquée à `d` devant le centre y produit le moment
+    −d·Fm, qu'on obtient avec FmAv + FmAr = Fm et FmAv − FmAr = d·Fm/a. Au-delà de l'essieu avant
+    (d > a) la part arrière devient négative : c'est le couple équivalent, et c'est bien ce qu'il faut.
+
+    Repères, pour une voiture de 4,5 m dont l'empattement vaut 2,7 m :
+      0     le centre de gravité — l'aimant tire sans faire tourner
+      1,35  l'essieu avant
+      2,25  le nez, là où est le guide d'un vrai slot car */
+    const aAim = L / 2;
+    const FmAv = Fm * (1 + AIMANT.devant / aAim) / 2;
+    const FmAr = Fm * (1 - AIMANT.devant / aAim) / 2;
     // how hard the tyres are working (friction circle for the longitudinal forces)
     const useF = Math.abs(this.Ff) / Math.max(1e-3, gF), useR = Math.abs(this.Fr) / Math.max(1e-3, gR);
     const u = Math.min(1, Math.max(useF, useR));
@@ -522,9 +860,9 @@ class Car {
     // --- longitudinal ---
     let acc;
     const dir = Math.sign(this.v || 1);                 // everything that resists motion opposes it
-    const dmg = this.damageFactor();
-    const vmax = c.vmax * dmg * (this.draft ? 1.05 : 1);
-    if (throttle) acc = c.accel * dmg * Math.max(0, 1 - Math.pow(Math.max(0, this.v) / vmax, 2.5)) * (this.draft ? 1.08 : 1) * Math.max(0.3, 1 - PHYS.circle * u * u);
+    // Sur l'asphalte, le partage arrière suffit. L'ancien facteur reste pour le
+    // freinage et le hors-piste, dont les réglages sont indépendants de ce changement.
+    if (throttle) acc = accReel * (off ? Math.max(0.3, 1 - PHYS.circle * u * u) : 1);
     else acc = -(1.5 + c.brake * brakeFrac) * (1 - PHYS.circle * u * u) * (this.v > 1 ? 1 : Math.max(0, this.v));
     // grass and gravel drag the whole car, not just its forward motion: it opposes the velocity
     // vector, so a car sliding in sideways is slowed down sideways too.
@@ -537,8 +875,9 @@ class Car {
     }
     // sliding tyres scrub speed (lateral force component along the velocity)
     acc -= (Math.abs(this.Ff * Math.sin(alphaF)) + Math.abs(this.Fr * Math.sin(alphaR))) * 0.8 * dir;
+    const beforeBarrier = T.barriers.length ? {x:this.x,y:this.y,th:this.th} : null;
     // --- yaw from the axle moments; the velocity vector is rotated into the new body frame ---
-    const wDot = (-a * this.Ff + b * this.Fr) / kk;
+    const wDot = (-a * (this.Ff + FmAv) + b * (this.Fr + FmAr)) / kk;
     this.w = clamp(this.w + wDot * dt, -4, 4);
     this.th = wrapAngle(this.th + this.w * dt);
     const v0 = this.v, vl0 = this.vl;
@@ -547,16 +886,52 @@ class Car {
     // la limitation de la voie : sans elle, la voie serait un raccourci et tout le monde s'y arrêterait
     if (this.inPit && this.v > STAND.vitesse) this.v = STAND.vitesse;
     if (this.pitState === 'arret') this.v = 0;
-    this.vl = vl0 + (v0 * this.w + this.Ff + this.Fr) * dt;
+    this.vl = vl0 + (v0 * this.w + this.Ff + Fm + this.Fr) * dt;
+
     if (latDrag) this.vl += clamp(latDrag * dt, -Math.abs(vl0), Math.abs(vl0));   // drag never reverses it
     this.beta = Math.atan2(this.vl, vv) * Math.sign(this.v || 1);
     this.alphaF = alphaF; this.alphaR = alphaR;
     this.slide = clamp((Math.max(Math.abs(alphaF), Math.abs(alphaR)) - peak * 0.8) / (peak * 2.5), 0, 1);
 
+    /* LE RESSENTI : ce que la voiture FAIT, et non ce que le pilote demande.
+
+    `usage` existait déjà, et il ne convient pas pour l'afficher : il vaut l'accélération latérale
+    que la LIGNE VISÉE réclame, donc c'est une prévision. Elle monte avant que la voiture ne bouge
+    et elle reste haute quand la voiture a déjà lâché. La demande de Bruno est explicite — « pas
+    prévue, mais ressentie ».
+
+    Trois grandeurs produites, et elles se relaient sur les quatre pentes de l'échelle :
+
+      charge   la force latérale réellement sortie des pneus, rapportée à ce qu'ils peuvent donner
+      glisse   l'angle de dérive des pneus rapporté au pic de la gomme : au-dessus de 1, ça glisse
+      travers  le cap de la voiture contre celui de la piste : c'est ça, un tête-à-queue
+
+    LES SEUILS SONT MESURÉS. Sur 741 000 images-voiture, GT et protos, quatre circuits, niveau
+    difficile : charge médiane 0,33 et p95 0,98 ; glisse médiane 0,38, p95 1,30, p99 1,98, p99,9
+    3,36 ; travers médian 3,8°, p95 17°, p99 26°, p99,9 38°, max 60°. Les quatre pentes sont calées
+    là-dessus, de sorte que chaque couleur corresponde à un état que la voiture atteint vraiment.
+
+    PREMIÈRE VERSION JETÉE, et la mesure l'a dit tout de suite : avec la charge étalée de 0 à 1 sur
+    la seule première pente, le peloton passait 93 % du temps en bleu, 7 % en vert, et le rouge ne
+    sortait jamais. Un indicateur qui ne quitte pas sa première couleur n'indique rien. La charge
+    sature donc bien avant le vert, et le relais passe à la glisse. */
+    const RESSENTI = [[0.00, 0.62], [0.80, 1.30], [1.30, 2.50], [0.44, 0.87]];
+    const gDispo = Math.max(1e-3, gTot);
+    const charge = Math.abs(this.Ff + this.Fr) / gDispo;
+    const glisse = Math.max(Math.abs(alphaF), Math.abs(alphaR)) / Math.max(1e-4, peak);
+    let travers = this.th - T.headingAt(this.s);
+    while (travers > Math.PI) travers -= Math.PI * 2;
+    while (travers < -Math.PI) travers += Math.PI * 2;
+    const pente = (v, [a, b]) => clamp((v - a) / (b - a), 0, 1);
+    this.ressenti = Math.min(1, 0.25 * (pente(charge, RESSENTI[0]) + pente(glisse, RESSENTI[1])
+      + pente(glisse, RESSENTI[2]) + pente(Math.abs(travers), RESSENTI[3])));
+
     // --- integrate position (body frame → world, y-down, left = (sinθ, −cosθ)) ---
     const cs = Math.cos(this.th), sn = Math.sin(this.th);
     this.x += (this.v * cs + this.vl * sn) * dt;
     this.y += (this.v * sn - this.vl * cs) * dt;
+
+    if (beforeBarrier && this._barrierContact(beforeBarrier,dt,raceTime)) return;
 
     // --- track bookkeeping ---
     const pr = T.project(this.x, this.y, this.s);
@@ -579,25 +954,65 @@ class Car {
       this.laneTarget = T.targetLat(this.s, this.selS);
       return;
     }
-    let blocker = null, bd = Infinity;
+    /* DEVANT ET À CÔTÉ NE SONT PAS LA MÊME CHOSE.
+
+    L'ancienne détection écartait tout ce qui n'était pas strictement devant (`d <= 0`), et prenait
+    tout le reste pour un gêneur. Deux voitures roue contre roue étaient donc traitées comme une
+    file : celle dont le nez dépassait d'un centimètre voyait un gêneur, l'autre ne voyait rien, et
+    aucune des deux ne savait qu'il y avait quelqu'un à côté d'elle. La mesure dit ce que ça coûte :
+    des blocages par PAIRES de même durée, jusqu'à 22 s à Suzuka, 59 km/h à l'entrée et 26 km/h
+    dedans, avec quatre fois la dérive normale.
+
+    On sépare donc trois cas, sur la MÊME géométrie que le solveur de contact — deux voitures se
+    chevauchent en abscisse en dessous de la demi-somme de leurs longueurs, soit une longueur de
+    voiture quand elles sont de la même taille :
+
+      d >= lenSum    DEVANT    c'est un gêneur : on le double, et on lève pour ne pas le percuter
+      |d| < lenSum   À CÔTÉ    c'est un voisin : on ne lève pas, on lui laisse la place
+      d <= -lenSum   DERRIÈRE  ce n'est pas notre affaire
+
+    Le voisin se retient par le plus petit écart LATÉRAL et non par la distance : celui dont il faut
+    se méfier est celui qui est le plus près de notre flanc, pas celui dont le nez est le plus
+    proche du nôtre. */
+    let blocker = null, bd = Infinity, voisin = null, vdl = Infinity;
     const range = c.length * 3 + Math.max(0, this.v) * 1.0;
     for (const o of cars) {
       if (o === this) continue;
       const d = T.diff(this.s, o.s);
-      if (d <= 0 || d > range || d >= bd) continue;
+      if (d > range) continue;
+      const lenSum = (c.length + o.cls.length) / 2;
+      const dl = o.lat - this.lat, demiLarg = (c.width + o.cls.width) / 2;
+      if (Math.abs(d) < lenSum) {
+        if (Math.abs(dl) < demiLarg + 0.6 && Math.abs(dl) < Math.abs(vdl)) { voisin = o; vdl = dl; }
+        continue;
+      }
+      if (d < lenSum || d >= bd) continue;
       if (o.v > this.v + 2.5 && d > c.length * 1.5) continue;
-      if (Math.abs(o.lat - this.lat) < (c.width + o.cls.width) * 0.75 + 0.4) { blocker = o; bd = d; }
+      if (Math.abs(dl) < demiLarg * 1.5 + 0.4) { blocker = o; bd = d; }
     }
     this.blocker = blocker;
+    this.voisin = voisin;
     this.draft = !!blocker && bd < c.length * 3.5 && Math.abs(blocker.lat - this.lat) < c.width * 0.9;
     if (ai) {
       this.passTimer -= dt;
       if (blocker) {
         if (this.passSide === 0 || this.passTimer <= 0) {
+          /* LA PLACE SE JUGE À LA MÊME ABSCISSE DES DEUX CÔTÉS.
+
+          L'ancienne version comparait un `targetLat` pris 15 m devant au `lat` ACTUEL des autres.
+          Sur une ligne droite les deux se valent ; en virage la ligne se déplace latéralement entre
+          les deux points, et la comparaison mesurait ce déplacement au lieu de l'écart entre les
+          voitures. On prend donc la position que chacun aura à notre `s + 15` s'il tient sa ligne,
+          ce qui est exactement comparable au candidat. */
+          const sAv = this.s + 15;
           const cand = [-1, 1].map(sel => {
-            const lat = T.targetLat(this.s + 15, sel);
-            let room = Math.abs(lat - blocker.lat);
-            for (const o of cars) { if (o === this || o === blocker) continue; const d = T.diff(this.s, o.s); if (d > -c.length * 2 && d < 40) room = Math.min(room, Math.abs(lat - o.lat)); }
+            const lat = T.targetLat(sAv, sel);
+            let room = Math.abs(lat - T.targetLat(sAv, blocker.selS));
+            for (const o of cars) {
+              if (o === this || o === blocker) continue;
+              const d = T.diff(this.s, o.s);
+              if (d > -c.length * 2 && d < 40) room = Math.min(room, Math.abs(lat - T.targetLat(sAv, o.selS)));
+            }
             return { sel, room };
           });
           cand.sort((a, b) => b.room - a.room);
@@ -607,6 +1022,21 @@ class Car {
         this.sel = this.passSide;
       } else if (this.passSide !== 0 && this.passTimer <= 0) { this.passSide = 0; this.sel = 0; }
       else if (!blocker && this.passSide === 0) this.sel = 0;
+      /* ON NE SE RABAT PAS SUR QUELQU'UN QUI EST DÉJÀ LÀ.
+
+      C'est une contrainte, pas une force : la ligne visée reste la ligne de course, mais elle ne
+      peut plus franchir le flanc du voisin. Sans ça, les deux voitures visent le même point et le
+      chevauchement que le solveur vient d'écarter se reforme à l'image suivante — c'est ce qui rend
+      le blocage mutuel et le fait durer.
+
+      `targetLat` n'est pas monotone en `sel` : l'intérieur et l'extérieur changent de bord à chaque
+      changement de sens du circuit. Le côté se lit donc dans les positions, jamais dans `sel`. */
+      if (voisin) {
+        const versVoisin = Math.sign(vdl);
+        const latVise = T.targetLat(this.s, this.sel);
+        if (Math.sign(latVise - this.lat) === versVoisin && Math.abs(latVise - this.lat) > Math.abs(vdl) - (c.width + voisin.cls.width) / 2)
+          this.sel = this.selS;   // on tient la position tant qu'il est là
+      }
     }
     // ease the chosen line in: changing lane is a manoeuvre, not a jump of the target
     this.selS += clamp(this.sel - this.selS, -PHYS.selRate * dt, PHYS.selRate * dt);
@@ -653,10 +1083,18 @@ function aiThrottle(car, cars, dt, opts) {
       const a = Math.sqrt(vc * vc + 2 * brake * d);
       if (a < allow) allow = a;
     }
+    /* On lève pour la voiture DEVANT, pas pour celle qui est à côté.
+
+    `d > 0` suffisait à faire lever une voiture dont le nez dépassait d'un centimètre : roue contre
+    roue, celle qui était derrière d'un rien se bridait sur la vitesse de l'autre, reculait, et le
+    duel se transformait en file. Lever n'y sert à rien — à cette distance il n'y a plus de choc
+    frontal à éviter, seulement un flanc, et c'est au solveur de contact de s'en occuper. Le seuil
+    est donc la même demi-longueur que partout ailleurs. */
     for (const o of cars) {
       if (o === car) continue;
       const d = T.diff(car.s, o.s);
-      if (d > 0 && d < c.length * 1.2 + v * 0.15 && Math.abs(o.lat - car.lat) < (c.width + o.cls.width) * 0.5 + 0.3) {
+      const lenSum = (c.length + o.cls.length) / 2;
+      if (d >= lenSum && d < c.length * 1.2 + v * 0.15 && Math.abs(o.lat - car.lat) < (c.width + o.cls.width) * 0.5 + 0.3) {
         if (o.v + 0.5 < allow) allow = Math.min(allow, o.v + 0.5);
       }
     }
@@ -716,4 +1154,4 @@ function resolveCollisions(cars, track) {
   }
 }
 
-if (typeof module !== 'undefined') module.exports = { Car, aiThrottle, resolveCollisions, speedProfile, cornerSpeedFor, PHYS };
+if (typeof module !== 'undefined') module.exports = { Car, aiThrottle, resolveCollisions, speedProfile, cornerSpeedFor, PHYS, FREIN_MIN, FREIN_MAX };

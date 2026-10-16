@@ -31,7 +31,7 @@ const CATEGORIES = [
     base: { vmax: 70, accel: 8, brake: 17, grip: 13.5, df: 0.0015, slide: 0.6, laneK: 6, rearBias: 1.06, cliff: 0.18, slipPeak: 0.12, length: 4.5, width: 2.0 },
     drivers: 10, roadScale: 0.9, zoom: 1.15,
     models: [
-      { id: 'm1procar', diff: 0, name: 'M1 Procar', shape: 'gtBoxy', mul: { vmax: 0.98, grip: 1.04, brake: 1.03 }, pick: 'sprites/pick/m1procar.png', engine: {
+      { id: 'm1procar', diff: 0, name: 'M1 Procar', shape: 'gtBoxy', mul: { accel: 1.06, vmax: 0.98, grip: 1.04, brake: 1.03 }, pick: 'sprites/pick/m1procar.png', engine: {
         cyl: 6, redline: 9000, idle: 1100, rough: 0.15, bright: 0.78, turbo: 0,
 // Découpé dans l'onboard par `tools/enginecut.py`. Six boucles pour couvrir la plage
         // utile : une seule, transposée du ralenti au rupteur, fait trois octaves et ne sonne
@@ -45,7 +45,7 @@ const CATEGORIES = [
           { id: 'BASF', nom: 'BASF' },
           { id: 'DENIM', nom: 'Denim' },
         ] },
-      { id: 'f40', diff: 1, name: 'F40', shape: 'f40', mul: { vmax: 1.05, accel: 1.06, grip: 0.98, df: 1.5 }, pick: 'sprites/pick/f40.png', engine: {
+      { id: 'f40', diff: 1, name: 'F40', shape: 'f40', mul: { vmax: 1.05, accel: 1.145, grip: 0.98, df: 1.5 }, pick: 'sprites/pick/f40.png', engine: {
         cyl: 8, redline: 7750, idle: 1000, rough: 0.15, bright: 0.8, turbo: 0.9,
         sample: { ramp: 'sounds/engine/v8-f40.json' },
       }, colors: ['#e0262c', '#22242b'], top: 'sprites/top/f40.png',
@@ -62,7 +62,7 @@ const CATEGORIES = [
           { id: 'red', nom: 'Rosso' },
           { id: 'yellow', nom: 'Crawford' },
         ] },
-      { id: 'countach', diff: 1, name: 'Countach LP500', shape: 'wedgeGT', mul: { vmax: 1.03, accel: 1.02, grip: 0.95, brake: 0.95 }, pick: 'sprites/pick/countach.png', engine: {
+      { id: 'countach', diff: 0, name: 'Countach LP500', shape: 'wedgeGT', mul: { vmax: 1.03, accel: 1.102, grip: 0.95, brake: 0.95 }, pick: 'sprites/pick/countach.png', engine: {
         cyl: 12, redline: 7500, idle: 900, rough: 0.05, bright: 0.88, turbo: 0,
         // La rampe la plus large du jeu : vingt-cinq demi-tons, 1821 tr/min au rupteur, d'un seul
         // rapport et sans coupure. C'est ce qu'il faut pour n'avoir presque rien à confier à la
@@ -72,7 +72,7 @@ const CATEGORIES = [
       // La prise vient d'une 911 RSR, la seule 911 du plateau étant celle-ci. Un RSR est atmosphérique
       // là où la Turbo ne l'est pas : le sifflement reste à la synthèse, la matière du plat-six est
       // celle de l'enregistrement.
-      { id: '930', diff: 4, name: '911 Turbo', shape: 'roundGT', mul: { vmax: 0.99, accel: 1.04, grip: 0.97, slide: 1.2 }, pick: 'sprites/pick/930.png', engine: {
+      { id: '930', diff: 5, name: '911 Turbo', shape: 'roundGT', mul: { vmax: 0.99, accel: 1.092, grip: 0.97, slide: 1.2 }, pick: 'sprites/pick/930.png', engine: {
         cyl: 6, redline: 7000, idle: 950, rough: 0.3, bright: 0.6, turbo: 0.85,
         sample: { ramp: 'sounds/engine/flat6-930.json', bas: 'sounds/engine/flat6-930-bas.json' },
       }, colors: ['#c9ced6', '#e0262c'], top: 'sprites/top/930.png',
@@ -90,7 +90,7 @@ const CATEGORIES = [
           { id: 'swiss', nom: 'Swiss' },
           { id: 'valliant', nom: 'Vaillant' },
         ] },
-      { id: 'gt40', diff: 2, name: 'GT40 Mk II', shape: 'gt40', mul: { vmax: 1.06, accel: 1.02, grip: 0.99, df: 0.85, brake: 0.97, slide: 1.1 }, pick: 'sprites/pick/gt40.png', engine: {
+      { id: 'gt40', diff: 4, name: 'GT40 Mk II', shape: 'gt40', mul: { vmax: 1.06, accel: 1.112, grip: 0.99, df: 0.85, brake: 0.97, slide: 1.1 }, pick: 'sprites/pick/gt40.png', engine: {
         cyl: 8, redline: 6200, idle: 800, rough: 0.6, bright: 0.45, turbo: 0,
         // Trois prises, et le moteur choisit. La montée ne porte que 4611 tr/min au rupteur — un
         // tirage entre deux rapports, tout ce qu'un onboard de course contient souvent — mais elle
@@ -116,10 +116,10 @@ const CATEGORIES = [
       tendance à mettre la queue dehors qui est sa signature — d'où `slide` au-dessus de tout le
       reste du plateau. Le rang de difficulté n'est pas choisi ici : il est MESURÉ par
       `tools/difficulte.js`, qui le recalcule pour les neuf voitures à la fois. */
-      { id: '935', diff: 5, name: '935', shape: 'longTail', mul: { vmax: 1.07, accel: 1.05, grip: 0.95, df: 1.15, brake: 0.93, slide: 1.4 }, pick: 'sprites/pick/935.png', engine: {
+      { id: '935', diff: 2, name: '935', shape: 'longTail', mul: { vmax: 1.07, accel: 1.05, grip: 0.95, df: 1.15, brake: 0.93, slide: 1.4 }, pick: 'sprites/pick/935.png', engine: {
         cyl: 6, redline: 8000, idle: 1100, rough: 0.35, bright: 0.7, turbo: 0.9,
       }, colors: ['#f4f4f4', '#e0262c'], top: 'sprites/top/935.png' },
-      { id: 'corvette', diff: 4, name: 'Corvette', shape: 'roundGT', mul: { vmax: 1.04, accel: 1.06, grip: 0.97, df: 0.9, brake: 0.95, slide: 1.3 }, pick: 'sprites/pick/corvette.png', engine: {
+      { id: 'corvette', diff: 3, name: 'Corvette', shape: 'roundGT', mul: { vmax: 1.04, accel: 1.06, grip: 0.97, df: 0.9, brake: 0.95, slide: 1.3 }, pick: 'sprites/pick/corvette.png', engine: {
         cyl: 8, redline: 6000, idle: 750, rough: 0.7, bright: 0.4, turbo: 0,
         // Découpé dans son propre onboard. Les étiquettes portent une correction d'octave : sur
         // cette prise l'estimateur s'accrochait au demi-ordre plutôt qu'à l'allumage, ce que le
@@ -132,7 +132,7 @@ const CATEGORIES = [
       // quatre-rotors allume quatre fois par tour d'arbre excentrique, exactement comme un V8 à
       // quatre temps. D'où huit, avec la rugosité d'un moteur parfaitement équilibré et un
       // rupteur très haut : c'est le cri de la 787B.
-      { id: '787b', diff: 0, name: '787B', shape: 'groupC', mul: { vmax: 1.02, accel: 1.05, grip: 1.03, df: 1.3, brake: 1.04, slide: 0.92 }, colors: ['#ff8c1a', '#1f6b3a'], top: 'sprites/top/787b.png', pick: 'sprites/pick/787b.png', engine: {
+      { id: '787b', diff: 0, name: '787B', shape: 'groupC', mul: { vmax: 1.02, accel: 1.092, grip: 1.03, df: 1.3, brake: 1.04, slide: 0.92 }, colors: ['#ff8c1a', '#1f6b3a'], top: 'sprites/top/787b.png', pick: 'sprites/pick/787b.png', engine: {
         cyl: 8, redline: 9000, idle: 1300, rough: 0.04, bright: 1.0, turbo: 0,
         // La montée tient de 6159 tr/min au rupteur, le pied levé a sa propre prise, et le
         // démarreur est joué une fois quand la course s'ouvre — d'un bout à l'autre, pas en grains :
@@ -143,7 +143,7 @@ const CATEGORIES = [
           start: 'sounds/engine/r26b-787b-start.json',
         },
       } },
-      { id: 'csl', diff: 0, name: '3.0 CSL', shape: 'gtBoxy', mul: { vmax: 0.95, accel: 0.98, grip: 1.05, df: 1.2, brake: 1.03, slide: 1.1 }, pick: 'sprites/pick/csl.png', engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.1, bright: 0.68, turbo: 0 }, colors: ['#f7f7f7', '#2166d8'], top: 'sprites/top/csl.png',
+      { id: 'csl', diff: 4, name: '3.0 CSL', shape: 'gtBoxy', mul: { vmax: 0.95, accel: 1.019, grip: 1.05, df: 1.2, brake: 1.03, slide: 1.1 }, pick: 'sprites/pick/csl.png', engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.1, bright: 0.68, turbo: 0 }, colors: ['#f7f7f7', '#2166d8'], top: 'sprites/top/csl.png',
         /* Trois livrées, et la première est celle qui existait déjà.
 
         Une livrée n'est pas une couleur ici : une illustration remplace le dessin vectoriel ET la

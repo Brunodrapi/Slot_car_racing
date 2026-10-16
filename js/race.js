@@ -181,12 +181,41 @@ class Race {
       this.cars.push(car);
     }
     this.player = this.cars.find(c2 => c2.isPlayer) || this.cars[this.cars.length - 1];
+    /* LE RÉGLAGE DE FREIN DU JOUEUR, ET DE LUI SEUL.
+
+    En slot racing on règle la puissance de freinage de sa commande, et c'est un vrai compromis :
+    trop fort, la voiture s'arrête dans le virage au lieu de l'enrouler ; trop faible, on sort.
+    Mesuré sur trois circuits à repères de pilotage constants — à ×0,50 aucun tour n'est bouclé et
+    23 sorties, à ×0,80 l'optimum propre, et au-delà la vitesse minimale en courbe tombe de 67,3 à
+    63,6 km/h et le tour avec. L'optimum est intérieur, et il diffère par circuit : c'est pour ça
+    que le réglage se fait circuit par circuit et voiture par voiture.
+
+    IL NE TOUCHE QUE LA VOITURE DU JOUEUR. La classe est clonée avant d'être modifiée, parce que
+    `carClassById` rend le même objet à tout le monde : la retoucher en place réglerait aussi les
+    rivales, et le classement ne voudrait plus rien dire. Les profils de vitesse (`this.profiles`),
+    qui servent à l'IA et aux panneaux, sont calculés sur la classe d'origine et ne bougent pas —
+    les panneaux sont du mobilier de circuit, pas une aide personnelle. */
+    this.reglage = !!this.opts.reglage;
+    this.freinBase = this.player ? this.player.cls.brake : 0;
+    this.poseFrein(this.opts.frein == null ? 1 : this.opts.frein);
     this.netInput = [];                              // seat -> { thr, sel } received over the wire
     if (solo) {
       this.player.place(T.length - 40, 0);
       this.player.laneTarget = 0;
       this.player.gridLat = 0;
     }
+  }
+
+  /* Changer le frein du joueur, en course et sans tout reconstruire.
+
+  On repart TOUJOURS de `freinBase`, jamais de la valeur courante : multiplier à chaque appel
+  ferait dériver le réglage à chaque pixel de curseur, et un levier qui ne revient pas à sa valeur
+  quand on le ramène au même endroit n'est pas un levier. */
+  poseFrein(f) {
+    this.frein = clamp(f, FREIN_MIN, FREIN_MAX);
+    if (!this.player) return;
+    this.player.cls = Object.assign({}, this.player.cls);
+    this.player.cls.brake = this.freinBase * this.frein;
   }
 
   // input: { throttle: bool, sel: -1..1 } (a bare boolean is accepted for the throttle)
@@ -289,10 +318,10 @@ class Race {
         throttle = aiThrottle(car, this.cars, dt, { ...this.difficulty, rubber }) && !car.finished;
         if (car.finished) throttle = car.v < 15;
       }
-      const wasOff = car.state === 'grass';
+      const wasOff = car.state === 'grass', hitsBefore = car.barrierHits;
       const lapBefore = car.lap;
       car.update(dt, throttle, this.time);
-      if (!wasOff && car.state === 'grass') this.events.push({ type: 'crash', car });
+      if (car.barrierHits > hitsBefore || (!wasOff && car.state === 'grass')) this.events.push({ type: 'crash', car });
       this._comptePenalite(car, dt);
       if (car.lap !== lapBefore) {
         this.events.push({ type: 'lap', car });
@@ -304,7 +333,16 @@ class Race {
         }
       }
     }
-    if (this.mode === 'race' && !this.opts.noContact) resolveCollisions(this.cars, T);
+    if (this.mode === 'race' && !this.opts.noContact) {
+      const before = T.barriers.length ? this.cars.map(c=>({x:c.x,y:c.y,th:c.th})) : null;
+      resolveCollisions(this.cars, T);
+      if(before)for(let i=0;i<this.cars.length;i++){
+        const car=this.cars[i],hits=car.barrierHits;
+        car._barrierContact(before[i],dt);
+        if(car.engineStopped){car.v=0;car.vl=0;car.w=0;}
+        if(car.barrierHits>hits)this.events.push({type:'crash',car});
+      }
+    }
   }
 
   /* ------------------------------------------------------------------ online: host and guest
@@ -324,8 +362,11 @@ class Race {
         Math.round(c.v * 100), Math.round(c.vl * 100), Math.round(c.w * 1000),
         Math.round(c.s * 100), Math.round(c.lat * 100), c.lap,
         Math.round(c.sel * 100), Math.round(c.selS * 100),
-        (c.state === 'grass' ? 1 : 0) | (c.finished ? 2 : 0) | (c.throttle ? 4 : 0) | (c.braking ? 8 : 0)
-          | (c.lapSale ? 16 : 0),
+        (c.state === 'grass' ? 1 : 0) | (c.finished ? 2 : 0) | (c.engineStopped ? 12 : (c.throttle ? 4 : 0) | (c.braking ? 8 : 0))
+          | (c.lapSale ? 16 : 0)
+          // Les trois bits libres transportent l'effet de patinage sans agrandir le paquet.
+          // Les anciennes versions ignorent ces bits ; un ancien hôte donne un effet nul.
+          | (Math.round(clamp(c.patineFx || 0, 0, 1) * 7) << 5),
         Math.round((c.bestLap || 0) * 1000), Math.round((c.lapStart || 0) * 100),
         /* Les trois champs des sorties de piste, dans le BLOC LENT du codec.
 
@@ -381,8 +422,11 @@ class Race {
       const f = snap[o + 11];
       c.state = (f & 1) ? 'grass' : 'ok';
       c.finished = !!(f & 2);
-      c.throttle = !!(f & 4);
-      c.braking = !!(f & 8);
+      // Combinaison réservée gaz + frein : moteur coupé, sans changer le codec.
+      c.engineStopped = (f & 12) === 12;
+      c.throttle = !c.engineStopped && !!(f & 4);
+      c.braking = !c.engineStopped && !!(f & 8);
+      c.patineFx = ((f >>> 5) & 7) / 7;
       c.started = c.lap > 0 || c.started;
       c.lapSale = !!(f & 16);
       c.bestLap = snap[o + 12] ? snap[o + 12] / 1000 : c.bestLap;
@@ -440,11 +484,11 @@ class Race {
     this.time += d;
   }
 
-  // reference speed at s on the line selected by `sel` (-1 inside .. +1 outside)
+  // reference speed at s on the line selected by `sel` (-1 bleu/droite .. +1 jaune/gauche)
   profileAt(s, sel) {
     const i = this.track.idx(s), r = this.profiles.racing[i];
-    if (sel < 0) return r + (this.profiles.inside[i] - r) * Math.min(1, -sel);
-    return r + (this.profiles.outside[i] - r) * Math.min(1, sel);
+    if (sel < 0) return r + (this.profiles.bleu[i] - r) * Math.min(1, -sel);
+    return r + (this.profiles.jaune[i] - r) * Math.min(1, sel);
   }
 
   /* LA PÉNALITÉ D'UNE SORTIE DE PISTE : on reprend ce qu'elle a rapporté.

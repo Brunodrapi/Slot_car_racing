@@ -128,7 +128,29 @@ for (const m of modelsOf(cat)) {
 OUT.res = out;
 `;
 
-const sandbox = { ARGS, OUT: {}, console, performance: { now: () => Date.now() } };
+/* LE BANC EST DÉTERMINISTE, et il a fallu que ça devienne indispensable pour s'en apercevoir.
+
+Deux passes consécutives donnaient des classements incompatibles : la M1 Procar notée 4 puis 1, la
+F40 2 puis 0, la CSL 4 puis 5. Impossible d'aligner les pneus affichés sur une mesure qui bouge de
+quatre crans d'une fois sur l'autre.
+
+La cause tient à la combinaison de deux choses. `aiThrottle` tire un bruit à chaque décision
+(`aiNoise`), ce qui suffit à déplacer un tour de quelques centièmes ; et les trois mesures sont
+rangées PAR RANG dans le plateau, si bien qu'un centième d'écart entre deux voitures serrées suffit
+à les échanger. Tant que les neuf voitures s'étalaient, ça ne se voyait pas. Depuis que le modèle
+de motricité les a rapprochées, le classement est devenu du bruit amplifié.
+
+Le bruit n'apporte rien à une mesure : on remplace donc `Math.random` par un générateur à graine
+dans la machine virtuelle. Le jeu n'est pas touché — c'est le bac à sable du banc qui change — et
+deux exécutions rendent désormais exactement le même classement, donc un écart entre deux
+révisions est un vrai écart. */
+const graine = (() => {
+  let x = 0x2f6e2b1;
+  return () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; x |= 0; return (x >>> 0) / 4294967296; };
+})();
+const MathFixe = Object.create(Math);
+MathFixe.random = graine;
+const sandbox = { ARGS, OUT: {}, console, Math: MathFixe, performance: { now: () => Date.now() } };
 vm.createContext(sandbox);
 vm.runInContext(src, sandbox);
 const res = sandbox.OUT.res;

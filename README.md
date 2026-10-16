@@ -576,6 +576,180 @@ Deux erreurs de méthode, les deux du même genre — le banc ne voyait pas ce q
   devant**, qui est la fin. Les deux premières versions ont donc été jugées bonnes alors qu'elles ne
   montraient que trente mètres de piste.
 
+### Les indications d'un circuit : une par freinage, pas une par virage
+
+    node tools/notes.js                      → ce que ça donnerait, sans rien écrire
+    node tools/notes.js --ecrire             → remplace les blocs `panneaux:` de js/tracks.js
+    node tools/notes.js spa --amplitudes     → ne reprend que les notes d'une liste existante
+
+**Ce qu'une indication sert à savoir, c'est quand freiner.** Tout découle de là, et la première
+version l'avait manqué : elle posait un triplet par **virage**, ce qui donnait vingt-six jeux de
+flèches à Monaco — « des flèches partout mais rarement celles qui servent ». Un virage qu'on prend à
+plein gaz n'a rien à annoncer, et deux virages enchaînés qu'on freine une seule fois n'ont qu'une
+annonce à faire : celle du plus dur.
+
+#### On cherche des freinages, pas des virages
+
+Dans le **profil de vitesse de référence** — celui-là même qui sert au guide de freinage, donc la
+vérité du jeu et pas une approximation de la géométrie. Chaque minimum local est un ralentissement ;
+ce qui le rend digne d'une annonce est la **distance de freinage** qu'il exige, `(v² − v'²) / 2a`,
+qui est une longueur et se compare donc d'un circuit à l'autre.
+
+Un seuil en pourcentage de chute ne le permettait pas : Monza et Monaco n'ont pas la même plage de
+vitesse, et le même pourcentage y comptait cinq freinages à l'un et seize à l'autre.
+
+#### Deux raisons d'annoncer, pas une
+
+**Le Zandvoort noté à la main est la référence**, et un premier seuil à vingt mètres de freinage en a
+mangé trois des treize. Chacun des trois a appris quelque chose :
+
+| virage | freinage exigé | pourquoi il manquait |
+| --- | --- | --- |
+| 869 m | 18 m | le seuil était simplement trop haut |
+| **1729 m** | **3 m** | l'épingle gauche à 159° qui suit le carré droit : on y arrive **déjà lent**, tout le freinage a été fait pour le virage d'avant |
+| 2021 m | 11 m | le dernier virage — on sort si on ne lève pas |
+
+La distance de freinage mesure ce qu'on **perd**, pas ce qu'il faut **savoir**. Un virage s'annonce
+donc s'il exige un vrai ralentissement (**dix mètres** de freinage, soit un lever de pied franc)
+**ou** s'il se prend lentement — mais la clause de rattrapage exige **les deux** : lent *et* gros
+(au-delà de 120° de changement de cap).
+
+Avec « lent » seul, Monaco passait de dix à **vingt-trois** annonces, c'est-à-dire exactement le plat
+de spaghetti qu'on venait d'enlever : Monaco est lent partout, et chaque kink d'un complexe
+déclenchait la clause. Elle n'existe que pour un cas, et il faut le dire précisément : un virage
+**majeur** qu'on aborde **déjà freiné**, donc sans freinage propre à mesurer.
+
+#### Deux virages collés ne font qu'une annonce
+
+Sauf s'ils sont gros tous les deux. Lu dans le Monaco posé à la main : le petit virage d'entrée du
+Casino (40°) juste avant l'épingle (151°) n'est pas annoncé — c'est l'épingle qu'on freine. Pareil
+avant Sainte-Dévote, pareil avant l'épingle du Grand Hôtel. À chaque fois le plus petit disparaît.
+
+Mais à Zandvoort, le carré droit à 92° suivi vingt-cinq mètres plus loin de l'épingle gauche à 159°
+porte **deux** annonces, et il a raison : ce sont deux gestes, pas un. La différence n'est pas la
+distance mais la taille, et le seuil tombe à **90°** — la piscine de Monaco enchaîne 76° et 78° et ne
+porte qu'une annonce.
+
+Deux défauts trouvés là : la liste était triée par **creux de vitesse** et non par entrée de virage,
+or les deux ne sont pas dans le même ordre — à Monaco, le creux du virage de 1769 m tombe avant celui
+du virage de 1736 m. La fusion comparait des voisins qui n'en sont pas et laissait passer la paire
+qu'elle devait réduire. Et le seuil de « gros » pour la clause de rattrapage était à 120°, ce qui
+faisait disparaître le virage de 605 m que Monaco annonce : il est descendu à 75°.
+
+#### Ce que la règle retrouve
+
+| | posé à la main | retrouvé | identiques |
+| --- | --- | --- | --- |
+| **zandvoort** (13 virages) | 13 | 13 | **13** |
+| **monaco** (14 virages) | 14 | 15 | **13** |
+
+Les deux écarts de Monaco : le virage de 1341 m, en sortie de tunnel, que la règle annonce (cinquante
+mètres de freinage, de 43 à 19 m/s) et que la version à la main ignore ; et la piscine, où la règle
+garde le second des deux virages là où la main garde le premier.
+
+Les **notes**, elles, ne concordent que deux fois sur treize à Monaco, contre dix sur treize à
+Zandvoort. C'est attendu et c'est dit : les amplitudes de Monaco ont été posées à l'œil, et c'est
+Zandvoort qui a servi de calibration. Le détail le montre — 141° y est appelé « épingle » et 204°
+« aigu », alors que c'est l'inverse que dit la géométrie.
+
+#### Le creux appartient au virage qui le contient
+
+Et à rien d'autre. Une version qui prenait « le plus fermé à quatre-vingts mètres devant » laissait
+une épingle happer le creux du virage d'avant : à Zandvoort, le virage de 348 m s'est fait manger par
+l'épingle de 416 et a disparu des annonces. Ce n'est que si le creux tombe **entre** deux virages — le
+profil encore en descente, ce qui arrive dans un kink de Monaco — qu'on cherche le plus fermé à
+portée.
+
+On groupe par **virage**, jamais par distance : un complexe produit plusieurs creux dans le même
+virage, c'est un seul événement ; deux virages opposés à vingt mètres sont deux événements, et une
+fusion sur la distance écrasait le carré-droite-puis-épingle-gauche.
+
+| | virages | freinages |
+| --- | --- | --- |
+| **zandvoort** | 13 | **13** — les treize posés à la main, aucun manquant |
+| monaco | 26 | 18 |
+| monza | 10 | 8 |
+
+L'ordre compte : on **filtre avant de grouper**. Un complexe de virages produit un vrai freinage
+suivi de plusieurs micro-creux de un à dix mètres ; groupés d'abord, le creux le plus lent l'emportait
+et emportait avec lui sa distance minuscule — Monza tombait à un seul freinage au lieu de sept.
+
+#### Le virage annoncé est celui qui fait freiner
+
+Pas le premier rencontré : « ce premier virage n'est indiqué que par une flèche légère puis une
+flèche dure, alors que c'est la flèche dure qu'on voudrait connaître deux cents mètres avant ».
+
+Et pas non plus celui qui contient le point le plus lent : à Monaco, un freinage de cinquante mètres
+s'est retrouvé annoncé « note 5 » — un décroché de neuf degrés — parce que le creux de vitesse
+tombait dans un kink entre deux virages, le profil étant encore en descente. **On ne freine pas pour
+l'endroit où on est lent, on freine pour ce qui rend lent.** On prend donc, autour du freinage, le
+virage le plus fermé à portée : quatre-vingts mètres devant, vingt derrière.
+
+#### Le chiffre dit à quel point il faut ralentir
+
+C'est la correction la plus importante, et elle vient du même reproche. Un virage court mais serré de
+Monaco obligeait à passer de 43 à 19 m/s et recevait la note **5** — « à peine un décroché » — parce
+que son rayon le plus fermé ne durait que huit mètres. Le rayon décrit la **forme** ; ce qu'on veut
+annoncer, c'est l'**effort**.
+
+Le chiffre vient donc de la vitesse de passage rapportée à la vitesse maximale de la voiture, lue
+dans le profil de référence. Les seuils sont calés sur les treize virages notés à la main :
+
+| | notes identiques | à un cran |
+| --- | --- | --- |
+| par le rayon | 7 / 13 | 4 |
+| **par la vitesse** | **10 / 13** | 1 |
+
+Les trois **noms** restent géométriques, parce qu'ils décrivent une forme et non un effort : un carré
+est un quatre-vingt-dix qu'on prend lentement, une épingle vous renvoie d'où vous venez. Leurs seuils
+de rayon sont en rayon réel, et les circuits sont dessinés plus petits — Monza fait 2 900 m pour
+5 793 en vrai, échelle moyenne **0,56** sur les douze — donc le rayon est remis à l'échelle avant
+d'être jugé. L'angle, lui, ne s'échelonne pas : un virage à 180° tourne de 180° qu'on le dessine grand
+ou petit, seules les longueurs rétrécissent.
+
+Sans vitesse — un circuit dessiné dans l'éditeur, qui n'a pas encore de profil — on retombe sur le
+rayon. C'est moins juste, et c'est dit.
+
+#### Le reste vient de Zandvoort
+
+Lu dans ce que Bruno y a posé à la main, et inchangé :
+
+1. **Un triplet par freinage** : 100 m, 50 m, puis une flèche **sans chiffre posée sur l'entrée**.
+2. **Un 200 m en plus** quand la ligne droite qui précède en laisse la place.
+3. **Même note et même sens sur tout le triplet.**
+
+#### Deux façons de grouper, parce qu'il y a deux questions
+
+Pour le **freinage**, une chicane est un seul événement : on freine une fois pour les trois virages
+qui la composent, donc on les groupe sur la distance, sens ou pas.
+
+Pour une **indication**, non. `zonesVirages(gap, memeSens)` ne fusionne alors que des virages qui
+tournent du même côté — ce qui recolle les morceaux d'un même virage sans jamais souder deux virages
+opposés. Un carré à droite suivi trois mètres plus loin d'une épingle à gauche, c'est un seul freinage
+mais deux gestes.
+
+#### Le banc accusait des flèches qui avaient raison
+
+Avec le groupement par distance, il jugeait les flèches du second virage d'une paire contre le
+**premier**, qui tourne à l'envers. Il a ainsi déclaré cinq flèches fausses à Zandvoort — elles
+étaient toutes justes, et c'est l'auteur qui l'a vu avant le banc.
+
+Il reste un cas que la distance ne tranche pas : quand la cible d'un panneau tombe à sept mètres d'un
+virage et dix-huit du virage opposé juste derrière. Le sens du panneau dirait lequel il vise, mais
+c'est précisément ce que ce banc vérifie — s'en servir reviendrait à lui donner la réponse. Ces cas
+sont marqués **ambigus** et ne sont pas comptés.
+
+#### L'outil écrasait le circuit suivant
+
+Première version de l'écriture : chercher `panneaux: [` après `id: 'monza'`. **Sept circuits sur
+douze n'en avaient pas** — et `indexOf` ne rend pas « rien », il rend le bloc du circuit *suivant*,
+qui s'est donc fait écraser. Le compteur disait « 1 bloc réécrit » à chaque fois, parce qu'il avait
+bien réécrit un bloc : le mauvais.
+
+Un `indexOf` sans borne trouve toujours quelque chose, et c'est exactement ce qui le rend dangereux.
+La recherche est maintenant **bornée à l'entrée du circuit**, d'un `id:` au suivant, et quand il n'y
+a pas de bloc l'outil en **insère** un au lieu d'aller en chercher un ailleurs.
+
 ### Télémétrie (touche `G`, ou réglages)
 
 Quatre valeurs suffisent à lire le comportement de la voiture :
@@ -768,6 +942,14 @@ bave sur le bitume sombre au moment où on roule dessus.
 Le marquage est dimensionné sur la **largeur de la piste**, jamais en mètres fixes : une épingle
 étroite de Monaco et la ligne droite du Mans n'ont pas la même échelle, et une taille constante
 déborderait sur l'une en disparaissant sur l'autre.
+
+#### Blanc, et plus épais
+
+Le dégradé vert-rouge des notes disait la sévérité une deuxième fois, après le pliage de la flèche
+qui la dit déjà. Sur la route, il la faisait surtout ressembler à un pictogramme posé là : une route
+n'a pas de peinture verte. En **blanc**, et plus épaisse, elle se lit comme ce qu'elle prétend être —
+du marquage au sol. Le choix de la note garde ses couleurs dans l'éditeur, sur les **boutons**, là où
+elles servent à choisir plutôt qu'à décorer.
 
 #### Un marquage sans chiffre
 
@@ -3205,3 +3387,18 @@ Ajouter une entrée dans `js/tracks.js` : une liste de points `[x, y]` formant u
 (y vers le bas, le premier point sur la ligne droite de départ), la longueur cible en mètres, la largeur
 et le nombre de tours de référence. Les trois trajectoires sont générées automatiquement. Un circuit
 dessiné dans l'éditeur peut aussi être exporté en JSON et copié dans ce fichier.
+
+### Voitures nettes sur écran Retina
+
+Depuis la version 0.22.0, la résolution adaptative concerne le décor. Les voitures
+sont dessinées à la densité native de l'écran, y compris ×3 sur un iPhone, puis composées par-dessus.
+Les images de voitures, leur taille, le cadrage, la physique et les commandes sont conservés.
+Les ponts et tunnels continuent de masquer les voitures qui passent dessous.
+
+`node tools/e2e-resolution.js /tmp/slot-resolution` vérifie que les voitures restent identiques
+pixel par pixel lorsque le décor passe de ×2 à ×1, sur téléphone Retina et sur bureau. Il vérifie
+aussi la rotation et le passage sous/sur le croisement de Suzuka.
+
+Le rendu Retina a un coût : dans le banc Chromium à densité ×3 et processeur ralenti ×4,
+la mesure est d'environ 29 im/s contre 41 pour le rendu précédent. Ce banc simule la charge ;
+il ne mesure pas Safari sur un iPhone réel.

@@ -41,7 +41,22 @@ dimensionnées pour un doigt plutôt que pour un curseur — un point de contrô
 */
 'use strict';
 
-const COULEURS = { racing: '#ffffff', inside: '#50c8ff', outside: '#ffc83c' };
+/* LES COULEURS D'ÉDITION NE SONT PLUS CELLES DU JEU, et il a fallu que ça se voie à l'écran.
+
+L'intérieure était peinte du bleu du jeu et l'extérieure de son jaune. Ça allait tant que le jeu
+jouait ces deux lignes-là. Depuis qu'il range ses lignes par CÔTÉ FIXE — jaune à gauche du sens de
+marche, bleu à droite — les deux ne désignent plus la même chose : l'intérieure d'un virage change
+de bord à chaque changement de main, et les deux tracés se croisent de 4 à 14 fois par tour selon le
+circuit, 6 fois à Monza. À partir du premier croisement, l'éditeur montrait en bleu ce que le joueur
+voit en jaune. Constat de Bruno, sur Monza, et c'est une régression que j'ai introduite en même
+temps que les côtés fixes.
+
+Les lignes qu'on DESSINE prennent donc des couleurs d'atelier, qui ne ressemblent à rien dans le
+jeu, et le jaune et le bleu sont rendus à ce qu'ils désignent : les deux bords tels qu'ils seront
+JOUÉS, dessinés en dessous par `traceJouee`. On édite l'intérieure et l'extérieure, on voit le
+résultat. */
+const COULEURS = { racing: '#ffffff', inside: '#ff7ad9', outside: '#8ef58e' };
+const COULEURS_JEU = { jaune: '#ffc83c', bleu: '#50c8ff' };
 const NOMS = { racing: 'Corde', inside: 'Intérieure', outside: 'Extérieure' };
 
 const S = {
@@ -55,7 +70,8 @@ const S = {
   glisse: null,         // le fond en cours de déplacement
   mode: 'lignes',       // 'lignes' ou 'panneaux'
   panneaux: [],         // { at, dist, note, sign } — la liste reprise, ou celle du calcul
-  panModif: false,      // vrai dès qu'on y a touché : sinon on n'enregistre rien et le jeu calcule
+  panModif: false,      // vrai quand la liste est une reprise : sinon on n'enregistre rien et le jeu calcule
+  panTouche: false,     // vrai quand ON y a touché depuis le chargement — pas la même chose
   selP: null,           // le panneau choisi
   doigts: new Map(),    // les contacts en cours, pour le pincement
   pince: null,          // l'écartement et le centre au début du pincement
@@ -95,7 +111,7 @@ function autoPoints(nom, n) {
   const out = [];
   for (let i = 0; i < n; i++) {
     const j = Math.round(i * N / n) % N;
-    const lat = T.lines[nom][j];
+    const lat = T.tracees[nom][j];
     out.push([(T.xs[j] + T.nx[j] * lat) / u, (T.ys[j] + T.ny[j] * lat) / u]);
   }
   return out;
@@ -135,11 +151,16 @@ function charger(id, garderPts) {
     jeu refera tout seul. */
     S.panneaux = Array.isArray(S.def.panneaux) ? S.def.panneaux.map(versEditeur) : panneauxDuCalcul();
     S.panModif = Array.isArray(S.def.panneaux);
+    S.panTouche = false;
     S.selP = null;
   }
   cadrer();
   majFicheP();
   dessiner();
+  /* LA REPRISE LOCALE SE RELIT À CHAQUE CHARGEMENT, pas seulement quand on passe par le menu
+     déroulant. Elle était accrochée à l'événement `change` du sélecteur : charger un circuit par
+     code — au démarrage, par un lien — ouvrait l'éditeur sur le fichier en ignorant la base. */
+  if (!garderPts) majPose();
 }
 
 /* ------------------------------------------------------------------------------ les panneaux */
@@ -207,6 +228,8 @@ function dessiner() {
   ctx.stroke();
   ctx.restore();
 
+  // d'abord ce que le JEU jouera : les deux bords fixes, sous les lignes qu'on dessine
+  traceJouee();
   // les trois lignes, celle qu'on modifie par-dessus les autres
   for (const nom of ['inside', 'outside', 'racing']) {
     if (nom === S.ligne) continue;
@@ -356,7 +379,7 @@ qui l'a produite. */
 function verifPanneau(b) {
   const T = S.track;
   if (!T.zonesVirages) return '';
-  const zones = T.zonesVirages(60);
+  const zones = T.zonesVirages(30, true);
   if (!zones.length) return '';
   /* LA DISTANCE EST SIGNÉE, et c'est tout l'intérêt.
 
@@ -419,8 +442,10 @@ function dessinerPanneau(b, choisi) {
   ctx.stroke();
   // sans chiffre, la flèche se recentre — comme le marquage qu'elle représente
   const chiffre = b.dist > 0;
+  // la carte montre le marquage, donc blanche et épaisse comme lui ; la couleur des notes reste sur
+  // les BOUTONS du volet, là où elle sert à choisir
   Renderer.paceArrow(ctx, { x: 0, y: H * (chiffre ? -0.24 : -0.06), w: W * 0.78, h: H * (chiffre ? 0.40 : 0.52) },
-    spec, b.sign > 0 ? 1 : -1);
+    spec, b.sign > 0 ? 1 : -1, { col: '#2a2d36', epais: 0.78 });
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   if (chiffre) {
     ctx.fillStyle = '#11141c';
@@ -428,7 +453,7 @@ function dessinerPanneau(b, choisi) {
     ctx.fillText(String(b.dist), 0, H * 0.30);
   }
   if (spec.tag) {
-    ctx.fillStyle = spec.col;
+    ctx.fillStyle = '#2a2d36';
     ctx.font = `bold ${Math.round(W * 0.19)}px "Trebuchet MS", sans-serif`;
     ctx.fillText(spec.tag, 0, H * (chiffre ? 0.06 : 0.33));
   }
@@ -446,16 +471,41 @@ function majApercu() {
   try { S.apercu = new Track(def2); } catch (e) { S.apercu = null; }
 }
 
+/* Les deux bords tels que le jeu les jouera, c'est-à-dire après la fusion par côté.
+
+Ce n'est pas un ornement : c'est la seule façon de voir, en dessinant, ce que le joueur aura sous
+les yeux. `apercu` porte déjà la piste construite, donc les lignes fusionnées sont là, prêtes. */
+function traceJouee() {
+  const T = S.apercu;
+  if (!T || !T.lines || !T.lines.jaune) return;
+  const u = T.unitScale, N = T.n;
+  for (const [nom, lat] of [['jaune', T.lines.jaune], ['bleu', T.lines.bleu]]) {
+    ctx.save();
+    /* Fin et discret : c'est une RÉFÉRENCE, pas le sujet. Posé plus épais que les lignes qu'on
+    dessine, l'aperçu les recouvrait et on éditait à l'aveugle. */
+    ctx.globalAlpha = 0.55;
+    ctx.strokeStyle = COULEURS_JEU[nom]; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let i = 0; i <= N; i++) {
+      const j = i % N;
+      const p = versEcran([(T.xs[j] + T.nx[j] * lat[j]) / u, (T.ys[j] + T.ny[j] * lat[j]) / u]);
+      i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
 function trace(nom, epais, alpha) {
   const T = S.apercu;
-  if (!T || !T.lines[nom]) return;
+  if (!T || !T.tracees || !T.tracees[nom]) return;
   const u = T.unitScale, N = T.n;
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.strokeStyle = COULEURS[nom]; ctx.lineWidth = epais;
   ctx.beginPath();
   for (let i = 0; i <= N; i++) {
-    const j = i % N, lat = T.lines[nom][j];
+    const j = i % N, lat = T.tracees[nom][j];
     const p = versEcran([(T.xs[j] + T.nx[j] * lat) / u, (T.ys[j] + T.ny[j] * lat) / u]);
     i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]);
   }
@@ -547,7 +597,7 @@ function relire() {
     try {
       const liste = JSON.parse(mp[1].replace(/'/g, '"').replace(/,(\s*[}\]])/g, '$1'));
       S.panneaux = liste.map(([at, dist, note, sign]) => ({ at: +at, dist: +dist, note, sign: +sign }));
-      S.panModif = true; S.selP = null;
+      S.panModif = S.panTouche = true; S.selP = null;
       majFicheP(); dessiner();
       etat(`${S.panneaux.length} panneau(x) relu(s)`);
     } catch (e) { etat('bloc de panneaux illisible : ' + e.message); }
@@ -703,9 +753,14 @@ async function oublier() {
   try {
     await Store.del('lines', S.def.id);
     await Store.del('panneaux', S.def.id);
-    S.panneaux = panneauxDuCalcul(); S.panModif = false; S.selP = null;
+    /* OUBLIER, C'EST REVENIR À CE QUE LE JEU JOUE SANS CETTE BASE — et sans la base, le jeu joue
+       la liste du fichier quand il y en a une, le calcul seulement sinon. Repartir du calcul dans
+       tous les cas rouvrait la même divergence par l'autre bout. */
+    const duFichier = Array.isArray(S.def.panneaux);
+    S.panneaux = duFichier ? S.def.panneaux.map(versEditeur) : panneauxDuCalcul();
+    S.panModif = duFichier; S.panTouche = false; S.selP = null;
     majFicheP(); majPose(); dessiner();
-    etat(`${S.def.name} : le jeu revient à ce qu'il calcule`);
+    etat(`${S.def.name} : le jeu revient à ${duFichier ? 'la liste du fichier' : 'ce qu\'il calcule'}`);
   } catch (e) { etat('suppression impossible : ' + e.message); }
 }
 
@@ -730,8 +785,14 @@ async function majPose() {
 
   On ne l'applique que si rien n'a été touché depuis le chargement, et que le circuit affiché est
   toujours celui qu'on a demandé : la base est asynchrone, et entre la demande et la réponse
-  l'éditeur a pu changer de circuit ou être déjà en cours d'édition. */
-  if (!S.panModif && q && Array.isArray(q.panneaux) && S.def.id === vise) {
+  l'éditeur a pu changer de circuit ou être déjà en cours d'édition.
+
+  LA GARDE PORTE SUR `panTouche`, PAS SUR `panModif`. Les deux se ressemblaient et ne disent pas la
+  même chose : `panModif` vaut déjà vrai au chargement d'un circuit dont `tracks.js` porte une liste
+  reprise. La reprise locale ne s'appliquait donc jamais sur ces cinq circuits-là — l'éditeur
+  montrait le fichier pendant que le jeu jouait la base. C'est le défaut constaté à Monza : la
+  deuxième chicane y était un virage serré en course et une chicane dans l'éditeur. */
+  if (!S.panTouche && q && Array.isArray(q.panneaux) && S.def.id === vise) {
     S.panneaux = q.panneaux.map(versEditeur);
     S.panModif = true; S.selP = null; majFicheP(); dessiner();
   }
@@ -749,7 +810,7 @@ async function majPose() {
     }
     if (q) {
       S.panneaux = q.panneaux.map(versEditeur);
-      S.panModif = true; S.selP = null; majFicheP();
+      S.panModif = S.panTouche = true; S.selP = null; majFicheP();
     }
     dessiner();
     etat('enregistrement repris');
@@ -783,7 +844,7 @@ function majFicheP() {
 function changerP(champ, valeur) {
   if (S.selP == null) return;
   S.panneaux[S.selP][champ] = valeur;
-  S.panModif = true;
+  S.panModif = S.panTouche = true;
   majFicheP();
   dessiner();
 }
@@ -797,7 +858,7 @@ function ajouterP() {
   }
   S.panneaux.push({ at: j / S.track.n, dist: 100, note: 3, sign: 1 });
   S.selP = S.panneaux.length - 1;
-  S.panModif = true;
+  S.panModif = S.panTouche = true;
   majFicheP();
   tiroir(false);
   dessiner();
@@ -815,7 +876,7 @@ function bougerP(metres) {
   const T = S.track, b = S.panneaux[S.selP];
   const j = ((Math.round(b.at * T.n + metres / T.ds) % T.n) + T.n) % T.n;
   b.at = j / T.n;
-  S.panModif = true;
+  S.panModif = S.panTouche = true;
   majFicheP();
   dessiner();
   etat(`panneau à ${metresDe(j).toFixed(0)} m`);
@@ -1016,7 +1077,7 @@ for (const t of TRACKS) {
   o.value = t.id; o.textContent = `${t.flag || '🏁'} ${t.name}`;
   $('circuit').appendChild(o);
 }
-$('circuit').addEventListener('change', () => { charger($('circuit').value, false); majPose(); });
+$('circuit').addEventListener('change', () => charger($('circuit').value, false));
 
 for (const nom of ['racing', 'inside', 'outside']) {
   const b = document.createElement('button');
@@ -1061,7 +1122,6 @@ $('copier').addEventListener('click', async () => {
 
 redimensionner();
 charger(TRACKS[0].id, false);
-majPose();
 
 /* ------------------------------------------------------- le mode, les panneaux, le tiroir */
 
@@ -1099,7 +1159,7 @@ for (const b of $('sensP').children) b.addEventListener('click', () => changerP(
 $('supprP').addEventListener('click', () => {
   if (S.selP == null) return;
   S.panneaux.splice(S.selP, 1);
-  S.selP = null; S.panModif = true;
+  S.selP = null; S.panModif = S.panTouche = true;
   majFicheP(); dessiner();
   etat('panneau supprimé — « Enregistrer » pour que le jeu le voie');
 });
@@ -1108,15 +1168,20 @@ for (const b of $('pasP').children) b.addEventListener('click', () => bougerP(+b
 $('versViseurP').addEventListener('click', () => {
   if (S.selP == null || S.viseur == null) { etat('pose le viseur sur la piste d’abord'); return; }
   S.panneaux[S.selP].at = (S.viseur % S.track.n) / S.track.n;
-  S.panModif = true;
+  S.panModif = S.panTouche = true;
   majFicheP(); dessiner();
   etat(`panneau amené à ${metresDe(S.viseur).toFixed(0)} m`);
 });
 $('effM').addEventListener('click', () => { S.mesure = []; majFicheM(); dessiner(); });
+/* « Revenir au calcul » montre le calcul — mais sur un circuit dont `tracks.js` porte une liste,
+   le jeu continuera de jouer cette liste tant que le bloc n'est pas recollé. On le dit, plutôt que
+   de laisser croire que la course suit l'écran. */
 $('autoP').addEventListener('click', () => {
-  S.panneaux = panneauxDuCalcul(); S.panModif = false; S.selP = null;
+  S.panneaux = panneauxDuCalcul(); S.panModif = false; S.panTouche = true; S.selP = null;
   majFicheP(); dessiner();
-  etat('panneaux revenus au calcul');
+  etat(Array.isArray(S.def.panneaux)
+    ? 'panneaux revenus au calcul — en course le jeu garde la liste du fichier tant que le bloc n’est pas recollé'
+    : 'panneaux revenus au calcul');
 });
 
 /* LE TIROIR. Il n'existe qu'en dessous de 860 px — au-dessus, le panneau est une colonne et la

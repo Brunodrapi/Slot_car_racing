@@ -10,6 +10,8 @@ class App {
     this.renderer.showLines = this.save.showLines === true;
     this.renderer.setView(this.save.view || 'avanceFixe');
     this.renderer.setPullBack(this.save.pullBack || 1);
+    PHYS.aimant = this.save.aimant || 0;
+    PHYS.ff = this.save.ff == null ? 0.3 : this.save.ff;
     this.renderer.debug = this.save.debug === true;
     this.audio = new GameAudio();
     this.audio.enabled = this.save.sound;
@@ -41,7 +43,8 @@ class App {
     this.chargeDes = null;
     this.state = 'splash';
     this.input = { throttle: false, sel: 0, pit: false };
-    this.pointers = { throttle: null, slider: null };
+    this.throttlePulses = new ThrottlePulses();
+    this.pointers = { throttle: null, slider: null, reglage: null };
     this.last = performance.now();
     this._bindInput();
     window.addEventListener('resize', () => { this.renderer.resize(); if (this.race) this.renderer._makeMinimap(); });
@@ -64,7 +67,7 @@ class App {
       Il fallait auparavant l'écrire en base avant de proposer quoi que ce soit, sous peine de voir
       tout le rattrapage refusé à la première connexion — exactement celle où il sert. La
       contrainte a disparu avec l'écriture : on pose le nom, et c'est tout. */
-      this.mondial.rattrape(this.save.bestLaps).catch(() => {});
+      this.mondial.rattrape(this.save.bestLapsNets).catch(() => {});
     }
     this.ui.splash();
     this.refreshCustom().then(() => {
@@ -151,8 +154,13 @@ class App {
 
   // ---------- input ----------
   _bindInput() {
-    const on = () => { this.input.throttle = true; this.audio.start(); this.audio.resume(); };
-    const off = () => { this.input.throttle = false; };
+    const poseGaz = value => {
+      this.input.throttle = value;
+      if (this.state === 'race') this.throttlePulses.push(performance.now(), value);
+      else this.throttlePulses.reset(value);
+    };
+    const on = () => { poseGaz(true); this.audio.start(); this.audio.resume(); };
+    const off = () => { poseGaz(false); };
     /* Une seule porte pour la position du levier, clavier comme doigt.
 
     `pit` n'est pas une quatrième ligne, c'est une intention : la course la lit séparément de
@@ -184,7 +192,7 @@ class App {
       on();
     });
     window.addEventListener('keyup', (e) => { if (LINE_DOWN.includes(e.key) || LINE_UP.includes(e.key) || e.key === 'Escape' || e.key === 'g' || e.key === 'G') return; off(); });
-    window.addEventListener('blur', () => { off(); this.pointers.throttle = this.pointers.slider = null; });
+    window.addEventListener('blur', () => { off(); this.pointers.throttle = this.pointers.slider = this.pointers.reglage = null; });
     // On the title card the whole window listens, not just the canvas: the poster fills the page,
     // and "any button" has to mean anywhere on it.
     window.addEventListener('pointerdown', () => this.leaveSplash());
@@ -200,24 +208,41 @@ class App {
       tout ce qui n'est pas le curseur pour de l'accélérateur. On sort sans toucher à `pointers`,
       donc aucun doigt n'est retenu et le relâchement n'a rien à défaire. */
       if (this.renderer.pauseHitAt(e.clientX, e.clientY)) { this.togglePause(); return; }
+      /* Le levier de réglage avant tout le reste, et il retient son doigt.
+
+      Sans ça l'appui repartirait dans la branche d'en dessous, qui prend tout ce qui n'est pas le
+      curseur de ligne pour de l'accélérateur : on réglerait son frein en accélérant, ce qui est
+      exactement ce qu'on ne veut pas pendant qu'on mesure. */
+      const fr = this.renderer.reglageValeurAt(e.clientX, e.clientY);
+      if (fr != null && this.pointers.reglage == null) {
+        this.pointers.reglage = e.pointerId;
+        this.race.poseFrein(fr);
+        return;
+      }
       const v = this.renderer.sliderValueAt(e.clientX, e.clientY, touch);
       if (v != null && this.pointers.slider == null) { this.pointers.slider = e.pointerId; poseSel(v); return; }
       if (this.pointers.throttle == null) {
         this.pointers.throttle = e.pointerId;
-        if (touch) this.renderer.anchorDial(e.clientX, e.clientY);   // the dial comes to the thumb
+        if (touch) this.renderer.anchorPouce(e.clientX, e.clientY);   // la pastille vient au pouce
         on();
       }
     });
     c.addEventListener('pointermove', (e) => {
+      if (this.pointers.reglage === e.pointerId) {
+        const fr = this.renderer.reglageValeurAt(e.clientX, e.clientY);
+        if (fr != null) this.race.poseFrein(fr);
+        return;
+      }
       if (this.pointers.slider === e.pointerId) {
         const v = this.renderer.sliderValueAt(e.clientX, e.clientY, true);
         if (v != null) poseSel(v);
         return;
       }
       // the dial stays under the thumb: sliding without lifting carries it along
-      if (this.pointers.throttle === e.pointerId && e.pointerType === 'touch') this.renderer.anchorDial(e.clientX, e.clientY);
+      if (this.pointers.throttle === e.pointerId && e.pointerType === 'touch') this.renderer.anchorPouce(e.clientX, e.clientY);
     });
     const release = (e) => {
+      if (this.pointers.reglage === e.pointerId) { this.pointers.reglage = null; return; }
       if (this.pointers.slider === e.pointerId) this.pointers.slider = null;
       if (this.pointers.throttle === e.pointerId) { this.pointers.throttle = null; off(); }
       if (e.pointerType === 'mouse') off();
@@ -240,12 +265,18 @@ class App {
     this.ui.menu();
   }
 
-  startQuick(mode, classId, trackId) {
+  /* `reglage` ouvre la course en MODE RÉGLAGE : un levier de freinage apparaît en haut, et la pause
+  propose d'enregistrer la configuration sous un nom. La course elle-même ne change pas — c'est le
+  seul moyen de régler un frein honnêtement, en roulant. */
+  startQuick(mode, classId, trackId, reglage) {
     const trackDef = this.trackDefById(trackId), cat = categoryById(classId);
     if (!trackDef) return;
+    const modelId = this.playerModelFor(classId).id;
     this._startRace({
-      mode, trackDef, classId, modelId: this.playerModelFor(classId).id,
-      playerLivree: this.playerLivreeFor(this.playerModelFor(classId).id),
+      reglage: !!reglage,
+      frein: freinDe(this.save, trackId, modelId),
+      mode, trackDef, classId, modelId,
+      playerLivree: this.playerLivreeFor(modelId),
       // The circuit's own suggestion unless the player has asked for a number; a championship
       // round keeps the suggestion, since its length is part of the championship, not a setting.
       // le joueur choisit sa longueur ; la proposition du circuit ne sert plus que de filet
@@ -319,9 +350,10 @@ class App {
     this.audio.relance();
     this.renderer.setTrack(this.race.track);
     this.renderer.cam.init = false;
-    this.renderer.homeDial();
+    this.renderer.homePouce();
     this.state = 'race';
     this.input.throttle = false;
+    this.throttlePulses.reset();
     this.input.sel = 0; this.input.pit = false;
     this.pointers.throttle = this.pointers.slider = null;
     this.ui.hide();
@@ -357,6 +389,7 @@ class App {
     if (this.state === 'race') {
       this.state = 'paused';
       this.input.throttle = false;
+      this.throttlePulses.reset();
       this.audio.idle();
       this.ui.pauseScreen(this.race);
     } else if (this.state === 'paused') this.resume();
@@ -365,6 +398,8 @@ class App {
   resume() {
     if (this.state !== 'paused') return;
     this.state = 'race';
+    this.input.throttle = false;
+    this.throttlePulses.reset();
     this.ui.hide();
     this.last = performance.now();
   }
@@ -422,28 +457,39 @@ class App {
         save.bestLaps[key] = race.player.bestLap;
         newRecord = true;
       }
-      if (save.bestLaps[keyCar] == null || race.player.bestLap < save.bestLaps[keyCar]) {
+      if (save.bestLaps[keyCar] == null || race.player.bestLap < save.bestLaps[keyCar])
         save.bestLaps[keyCar] = race.player.bestLap;
+      /* LE TABLEAU MONDIAL NE REGARDE QUE LE REGISTRE DES TOURS NETS.
+
+      Le record personnel ci-dessus se bat avec n'importe quel réglage — c'est le sien. Celui-ci ne
+      s'écrit que dans la configuration de référence, et c'est lui seul que `rattrape` renverra à la
+      prochaine ouverture. Sans ce second registre, bloquer l'envoi du moment ne servait à rien : le
+      temps restait dans la sauvegarde et repartait au démarrage suivant — le trou que la règle de
+      l'usure avait déjà. */
+      const net = tourNet(save, race);
+      if (net && (save.bestLapsNets[keyCar] == null || race.player.bestLap < save.bestLapsNets[keyCar])) {
+        save.bestLapsNets[keyCar] = race.player.bestLap;
         /* On ne propose au tableau mondial QUE ses propres meilleurs tours.
 
         Envoyer chaque tour aurait fait passer des centaines de temps là où un seul compte, et
         c'est le serveur qui aurait trié — à nos frais. Un temps qui ne bat même pas le nôtre ne
         peut pas battre celui du monde. Rien n'est attendu : la course se termine, les résultats
         s'affichent, et la réponse arrive quand elle arrive. */
-        if (this.mondial && this.mondial.connecte() && !race.usure) {
+        if (this.mondial && this.mondial.connecte()) {
           // le nom courant, et pas celui du démarrage : il a pu changer dans les réglages depuis
           this.mondial.poseNom(this.playerName());
           this.mondial.propose(race.track.id, race.cls.id, race.player.bestLap)
             .catch(() => { /* un tableau de scores ne fait pas échouer une fin de course */ });
-        } else if (this.mondial && this.mondial.connecte() && race.usure) {
-          /* L'usure exclut du tableau mondial, et il faut le DIRE.
-
-          Un tour signé sur des pneus à moitié morts ne se compare à rien, et la table n'a pas de
-          colonne pour préciser dans quel état il a été posé. Mais un joueur qui roule toujours
-          avec l'usure et ne voit jamais son nom apparaître croira que c'est cassé. */
-          this.mondial.dernierRefus = { raison: 'usure', circuit: race.track.id, voiture: race.cls.id };
         }
       }
+      /* UNE EXCLUSION SE DIT, sinon elle ressemble à une panne.
+
+      Un joueur qui roule toujours avec une aide et ne voit jamais son nom apparaître croira que le
+      tableau est cassé. On nomme donc le motif — l'usure, ou la configuration — même quand il n'y a
+      rien eu à envoyer. */
+      if (!net && this.mondial && this.mondial.connecte())
+        this.mondial.dernierRefus = { raison: race.usure ? 'usure' : 'aides',
+                                      circuit: race.track.id, voiture: race.cls.id };
     }
     save.racesDone++;
     if (ctx.cup) {
@@ -516,9 +562,12 @@ class App {
         race.attente = false;
       }
       if (!online || net.isHost()) {
-        race.update(dt, this.input);
+        for (const pulse of this.throttlePulses.take(now - dt * 1000, now, this.input.throttle)) {
+          race.update(pulse.dt, { ...this.input, throttle: pulse.throttle });
+        }
         if (online) net.hostTick(race);
       } else {
+        this.throttlePulses.reset(this.input.throttle);
         // A guest runs no physics at all: it posts its two numbers, takes the host's picture of
         // the race, and carries the cars forward between two of them so the screen does not stutter.
         net.guestTick(race, this.input);

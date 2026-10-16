@@ -211,6 +211,67 @@ const ok = (c, m) => { console.log(`  ${c ? 'ok' : 'ÉCHEC'} : ${m}`); if (!c) f
   ok(doigt.panneauVisible, 'le panneau choisi reste visible au-dessus du tiroir');
   await tel.close();
 
+  /* ------------------------------------------- L'ÉDITEUR MONTRE-T-IL CE QUE LA COURSE JOUE ?
+
+  Le défaut constaté à Monza : la deuxième chicane était un virage serré en course et une chicane
+  dans l'éditeur. La reprise locale gagne en course ; l'éditeur, lui, ne l'appliquait que si la
+  liste n'était PAS déjà une reprise — or elle l'est d'emblée sur les cinq circuits dont
+  `tracks.js` porte une liste écrite à la main. Le garde-fou portait sur le mauvais drapeau, et il
+  ne protégeait rien : sur ces circuits-là les deux écrans divergeaient en silence.
+
+  L'essai est donc en deux temps, et il traverse les deux pages : on pose une reprise locale qui
+  CHANGE une note, puis on demande à chacune des deux ce qu'elle en fait. */
+  console.log('\nl’éditeur et la course, sur la même base');
+  const ctx2 = await nav.newContext({ viewport: { width: 1280, height: 860 } });
+  const ed = await ctx2.newPage();
+  ed.on('pageerror', (e) => erreurs.push(String(e.message)));
+  await ed.goto(`${base}/lignes.html`);
+  await ed.waitForFunction(() => typeof S !== 'undefined' && S.track);
+  const cible = await ed.evaluate(async () => {
+    const liste = TRACKS.find((t) => t.id === 'monza').panneaux.map((p) => p.slice());
+    const k = liste.findIndex((p) => p[2] === 'chicane' && p[1] === 200);
+    liste[k][2] = 'hairpin';
+    await Store.put('panneaux', { id: 'monza', at: Date.now(), panneaux: liste });
+    return k;
+  });
+
+  // l'éditeur, rouvert sur Monza — un circuit qui porte DÉJÀ une liste dans le fichier
+  await ed.goto(`${base}/lignes.html`);
+  await ed.waitForFunction(() => typeof S !== 'undefined' && S.track);
+  await ed.evaluate(() => charger('monza', false));
+  await ed.waitForFunction(() => S.def.id === 'monza' && S.panneaux.length > 0);
+  await ed.waitForTimeout(500);                     // la base est asynchrone
+  const vuEditeur = await ed.evaluate((k) => S.panneaux[k].note, cible);
+
+  const jeu2 = await ctx2.newPage();
+  jeu2.on('pageerror', (e) => erreurs.push(String(e.message)));
+  await jeu2.goto(`${base}/index.html`);
+  await jeu2.waitForFunction(() => typeof app !== 'undefined' && app.save);
+  const vuJeu = await jeu2.evaluate(async (k) => {
+    await app.refreshCustom();
+    app.tracks.delete('monza');
+    const b = app.trackCache('monza').boards[k];
+    return b.kind && b.kind !== 'normal' ? b.kind : b.grade;
+  }, cible);
+  ok(vuJeu === 'hairpin', 'la course joue bien la reprise locale');
+  ok(vuEditeur === vuJeu, `l’éditeur montre ce que la course joue (éditeur ${vuEditeur}, course ${vuJeu})`);
+
+  /* « OUBLIER » REND LA MAIN À CE QUE LE JEU JOUERA SANS CETTE BASE : la liste du fichier quand il
+     y en a une, le calcul seulement sinon. Repartir du calcul rouvrait la divergence par l'autre
+     bout — l'éditeur montrait un calcul que la course n'allait jamais jouer. */
+  await ed.evaluate(() => oublier());
+  await ed.waitForTimeout(500);
+  const apresOubli = await ed.evaluate((k) => S.panneaux[k].note, cible);
+  const jeuOubli = await jeu2.evaluate(async (k) => {
+    await app.refreshCustom();
+    app.tracks.delete('monza');
+    const b = app.trackCache('monza').boards[k];
+    return b.kind && b.kind !== 'normal' ? b.kind : b.grade;
+  }, cible);
+  ok(apresOubli === 'chicane', '« oublier » ramène l’éditeur à la liste du fichier');
+  ok(jeuOubli === apresOubli, `et la course la retrouve aussi (course ${jeuOubli})`);
+  await ctx2.close();
+
   console.log('\nerrors ' + (fautes + erreurs.length));
   if (erreurs.length) console.log(erreurs.join('\n'));
   await nav.close();
