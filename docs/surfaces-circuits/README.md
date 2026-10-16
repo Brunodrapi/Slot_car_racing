@@ -1,4 +1,4 @@
-# Audit des surfaces hors piste — hybrid 0.27.2
+# Audit des surfaces hors piste — hybrid 0.28.0
 
 Les références locales de `art/reprise circuit/` ont été ouvertes et comparées aux définitions. L’audit distingue ce qui est lisible dans les images de ce qui reste une approximation. Il ne constitue pas une validation de l’état réel de tous les circuits en 2026 : plusieurs plans sont anciens, schématiques ou touristiques.
 
@@ -27,6 +27,8 @@ Un tablier et un bac peuvent coexister dans une même coupe : **route → bitume
 
 ## Contrôles et exports
 
-`node tools/surfaces-banc.js` compare les données à la version 0.27.0 : tracé, largeur de chaussée, vibreurs, repères et stands restent identiques sur les 13 circuits. Les enveloppes/barrières restent identiques sauf à Zandvoort, où la correction des pistes parallèles réduit les dégagements et retire les segments sans espace sûr. Le banc `paralleles-banc.js` vérifie ces nouveaux dégagements et protections. Il vérifie l’absence totale de gravier à Monaco et les couches bitume/gravier des trois autres circuits corrigés. Les matières changent donc le roulement hors piste aux endroits concernés ; le modèle de motricité sur la piste est inchangé.
+`node tools/surfaces-banc.js` compare le tracé, les largeurs de chaussée, les vibreurs, les stands et les repères avec 0.27.0 sur les 13 circuits. Les enveloppes et barrières ne sont plus supposées identiques : elles sont corrigées pour les conflits entre branches, les séparations communes, le regroupement des dégagements et les approches de tunnels/pont. Le même banc vérifie l’absence de gravier à Monaco et les couches bitume/gravier déclarées. Les matières changent le roulement hors piste ; le modèle de motricité sur la piste est inchangé.
 
-Les contrôles existants de dégagements, de décor et de collisions complètent cette vérification. [Exports courants](../exports-circuits/2026-10-16/README.md).
+`node tools/decor-protections-banc.js` vérifie l’absence de barrières en croix au même niveau, les empreintes des bâtiments et des couronnes d’arbres et le rapprochement des protections dans les tunnels. `paralleles-banc.js` contrôle les branches proches de Zandvoort. Les contrôles de dégagements et de collisions complètent ces vérifications.
+
+[Exports courants — vues tour uniquement](../exports-circuits/2026-10-16/README.md).

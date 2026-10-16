@@ -320,7 +320,8 @@ function placeTopProps(track, id, density, weights) {
   } else {
     kinds = TOP_KINDS.filter(k => k.weight > 0);
   }
-  return placeFrom(kinds, track, seedFromId('top-' + id), density == null ? 0.85 : density, 6);
+  return placeFrom(kinds, track, seedFromId('top-' + id), density == null ? 0.85 : density, 6)
+    .filter(p=>!sceneryCircleNearBarrier(track,p,(kinds.find(k=>k.id===p.id)?.wm||9)*.75));
 }
 
 /* ------------------------------------------------------- l'implantation du circuit
@@ -696,7 +697,7 @@ function placeImplantation(track, id, zones, water = placeWater(track, track.def
   for (let i = batis.length - 1; i >= 0; i--) {
     const b = batis[i];
     if (b.type === 'voiture') {
-      if(waterOverlaps(water,sceneryFootprint(b)))batis.splice(i,1);
+      if(waterOverlaps(water,sceneryFootprint(b))||sceneryBarrierOverlap(track,sceneryFootprint(b)))batis.splice(i,1);
       continue;
     }
     const cs = Math.cos(b.a), sn = Math.sin(b.a);
@@ -706,7 +707,7 @@ function placeImplantation(track, id, zones, water = placeWater(track, track.def
       const pr = implProjette(track, x, y);
       if (Math.abs(pr.lat) < track.limiteProtection(pr.s, pr.lat >= 0 ? 1 : -1)) dedans = true;
     }
-    if (dedans || waterOverlaps(water, sceneryFootprint(b))) batis.splice(i, 1);
+    if (dedans || waterOverlaps(water, sceneryFootprint(b)) || sceneryBarrierOverlap(track,sceneryFootprint(b))) batis.splice(i, 1);
   }
   // Les modules voisins peuvent se rapprocher dans une courbe : contrôler
   // leur empreinte réelle avant de planter les arbres autour des constructions.
@@ -722,6 +723,10 @@ function placeImplantation(track, id, zones, water = placeWater(track, track.def
   for (const [z, s0, s1] of bois) implArbres(track, z, s0, s1, rnd, arbres, masque);
   if(water)for(let i=arbres.length-1;i>=0;i--){
     const a=arbres[i];if(waterContains(water,a.x,a.y,5))arbres.splice(i,1);
+  }
+  for(let i=arbres.length-1;i>=0;i--){
+    const a=arbres[i],kind=TOP_KINDS.find(k=>k.id===a.id);
+    if(sceneryCircleNearBarrier(track,a,(kind?.wm||9)*(a.e||1)*.55))arbres.splice(i,1);
   }
   const cases = new Map();
   let marge = 8;                // la demi-taille du plus gros objet, pour la fenêtre de rendu
@@ -933,6 +938,21 @@ function placeWater(track, spec) {
   }
   const polygon=inner.concat([...outer].reverse());
   return { inner, outer, polygon, spec, bbox: { minX, minY, maxX, maxY } };
+}
+
+// Rectangle complet contre le volume des protections, pas uniquement ses quatre coins.
+function sceneryBarrierOverlap(track,points,pad=.8){
+  const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]);
+  const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+  const candidates=track.barrierCandidates(minX,minY,maxX,maxY,pad+2);
+  for(const b of candidates){
+    const width=b.half+pad+1.1,px=-b.ty*width,py=b.tx*width;
+    const rect=[[b.ax+px,b.ay+py],[b.bx+px,b.by+py],[b.bx-px,b.by-py],[b.ax-px,b.ay-py]];
+    if(sceneryRectsOverlap(points,rect))return true;
+  }return false;
+}
+function sceneryCircleNearBarrier(track,p,r){
+  return track.barrierCandidates(p.x,p.y,p.x,p.y,r+3).some(b=>track.barrierDistance(p.x,p.y,b)<r+1.5);
 }
 
 function sceneryFootprint(b) {

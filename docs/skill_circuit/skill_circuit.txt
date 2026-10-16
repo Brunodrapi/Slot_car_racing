@@ -21,6 +21,15 @@ Monaco has no gravel runoff: existing urban runoff envelopes must be asphalt. Mo
 
 Before accepting runoff or barriers, check them against every nearby branch of the circuit, not only their own centerline station. On tightly folded layouts such as Zandvoort, reduce runoff to the available corridor and keep barrier bodies, tire rows and artwork clear of neighboring road/kerb envelopes. Use the same corrected geometry for rendering and collision. Check whole segments and runoff interiors; remove a barrier segment if no safe space remains. Preserve the drivable road and its gameplay markings. Do not apply this at a real grade-separated crossing without accounting for height.
 
+Additional layout requirements:
+
+- A barrier must not intersect a physical scenery object. Check complete rotated building footprints and tree crowns, not only centers/corners; remove the scenery object when it conflicts. Ground paint and ground polygons are not physical scenery obstacles.
+- At the same height, neighboring barrier runs must join or share a mean separation instead of crossing. Average compatible geometry, deduplicate the common segment and trim local loops. Use exactly that geometry for drawing and collision; keep the drivable road clear. Reduce runoff at a shared separator when necessary.
+- Group nearby runoff lobes into a coherent envelope, especially Monaco and Bathurst. Close short gaps (configured up to 60 game metres), smooth the shoulder profile, then apply neighboring-road and structure constraints. Do not smooth or move the actual track centerline or its gameplay kerbs.
+- Painted asphalt runoff alternates one colored strip with an unpainted asphalt strip. Keep at least half of each stripe interval grey; do this for Paul Ricard's blue/red treatment too. A colored safety zone must not become one solid multicolored carpet.
+- Barriers and runoff converge toward the track at tunnel/bridge approaches, with gradual transitions. Monaco and Suzuka are explicit cases. Keep the barrier outside the drivable kerb. Bridge and underpass protections belong to separate height levels: do not merge them or collide cars with the other level. Render the upper rail over the bridge deck.
+- Export only full-tour PNGs when requested (`tools/export-decor.js <folder> --tour-only`); remove old detail/contact-sheet files from the active export folder.
+
 ## 0.2 Consolidated artistic direction (user clarifications)
 
 Aim for a warmer, more colorful circuit while keeping a minimalist, fully code-drawn style. Treat apexes, corner approaches, exits and protections as well as the asphalt itself.

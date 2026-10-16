@@ -1,37 +1,31 @@
-# Circuits hybrid — export du 16 octobre 2026
+# Circuits hybrid — vues complètes du 16 octobre 2026
 
-Version **0.27.2** : matériaux procéduraux et palettes par circuit suivant le [skill consolidé](../../skill_circuit/skill_circuit.txt) et son [analyse source](../../skill_circuit/analyse_circuit.md).
+Version **0.28.0**. Ce dossier contient uniquement les **13 vues tour**, en PNG de 2560 × 1600 pixels, sans voitures ni interface. Les anciennes vues de détail et planches de ce dossier ont été supprimées à la demande de l’utilisateur.
 
-**78 PNG** : pour chacun des 13 circuits, une vue complète et quatre détails de 2560 × 1600 pixels, plus une planche de synthèse. Captures du jeu sans voitures ni interface ; les cadres complets incluent les dégagements et les protections.
+[Télécharger les 13 vues tour en ZIP](../circuits-hybrid-2026-10-16.zip)
 
-[Télécharger les 13 circuits complets en ZIP](../circuits-hybrid-2026-10-16.zip)
+| Circuit | PNG complet |
+| --- | --- |
+| Monza | [monza-tour.png](monza-tour.png) |
+| Spa-Francorchamps | [spa-tour.png](spa-tour.png) |
+| Monaco | [monaco-tour.png](monaco-tour.png) |
+| Silverstone | [silverstone-tour.png](silverstone-tour.png) |
+| Suzuka | [suzuka-tour.png](suzuka-tour.png) |
+| Interlagos | [interlagos-tour.png](interlagos-tour.png) |
+| Laguna Seca | [laguna-tour.png](laguna-tour.png) |
+| Nürburgring GP | [nurburgring-tour.png](nurburgring-tour.png) |
+| Le Mans | [lemans-tour.png](lemans-tour.png) |
+| Mount Panorama / Bathurst | [bathurst-tour.png](bathurst-tour.png) |
+| Red Bull Ring | [redbullring-tour.png](redbullring-tour.png) |
+| Paul Ricard | [castellet-tour.png](castellet-tour.png) |
+| Zandvoort | [zandvoort-tour.png](zandvoort-tour.png) |
 
-| Circuit | Vue complète | Planche avec détails |
-| --- | --- | --- |
-| Monza | [monza-tour.png](monza-tour.png) | [monza-planche.png](monza-planche.png) |
-| Spa-Francorchamps | [spa-tour.png](spa-tour.png) | [spa-planche.png](spa-planche.png) |
-| Monaco | [monaco-tour.png](monaco-tour.png) | [monaco-planche.png](monaco-planche.png) |
-| Silverstone | [silverstone-tour.png](silverstone-tour.png) | [silverstone-planche.png](silverstone-planche.png) |
-| Suzuka | [suzuka-tour.png](suzuka-tour.png) | [suzuka-planche.png](suzuka-planche.png) |
-| Interlagos | [interlagos-tour.png](interlagos-tour.png) | [interlagos-planche.png](interlagos-planche.png) |
-| Laguna Seca | [laguna-tour.png](laguna-tour.png) | [laguna-planche.png](laguna-planche.png) |
-| Nürburgring GP | [nurburgring-tour.png](nurburgring-tour.png) | [nurburgring-planche.png](nurburgring-planche.png) |
-| Le Mans | [lemans-tour.png](lemans-tour.png) | [lemans-planche.png](lemans-planche.png) |
-| Mount Panorama / Bathurst | [bathurst-tour.png](bathurst-tour.png) | [bathurst-planche.png](bathurst-planche.png) |
-| Red Bull Ring | [redbullring-tour.png](redbullring-tour.png) | [redbullring-planche.png](redbullring-planche.png) |
-| Paul Ricard | [castellet-tour.png](castellet-tour.png) | [castellet-planche.png](castellet-planche.png) |
-| Zandvoort | [zandvoort-tour.png](zandvoort-tour.png) | [zandvoort-planche.png](zandvoort-planche.png) |
+Dernières corrections : suppression du décor dont l’empreinte touche une barrière ; fusion moyenne des séparations proches et correction des boucles ; regroupement des petits dégagements de Monaco et Bathurst ; alternance couleur/bitume dans les bandes peintes, y compris Paul Ricard ; protections resserrées aux tunnels/pont de Monaco et Suzuka, avec niveaux de collision séparés et rails du pont visibles sur le tablier.
 
-Les détails individuels sont nommés `<circuit>-1.png` à `<circuit>-4.png`. Pour annoter, conserver le nom du circuit dans le nom du fichier.
+Les chiffres, flèches et bords jaunes/bleus de gameplay sont conservés. Le tracé, la largeur de chaussée et les vibreurs physiques ne changent pas ; les enveloppes hors piste et les protections évoluent pour corriger les conflits. Aucun panneau de distance ajouté.
 
-Le rendu conserve les chiffres et flèches de gameplay et les bordures jaunes/bleues dans leurs dimensions et leur affectation d’origine. Aucun panneau de distance ajouté. Vibreurs rouge/blanc par défaut (variante italienne de Monza conservée), bandes vertes d’approche sur le bitume disponible, dégagements aux palettes configurées, protections à modules colorés et pneus noirs, herbe en aplats irréguliers avec quelques zones sèches. Architecture et végétation restent propres aux circuits ; littoral de Monaco préservé. Aucun asset de décor importé par le nouveau rendu.
+[Skill consolidé](../../skill_circuit/skill_circuit.txt) · [Audit des surfaces et limites des références](../../surfaces-circuits/README.md). Les palettes restent artistiques ; les références web n’ont pas pu être consultées.
 
-Les couleurs des dégagements sont des propositions artistiques configurables, pas des relevés certifiés : la recherche web a été bloquée (HTTP 403). Les zones sans dégagement asphalté ne reçoivent pas de bandes peintes ; on ne transforme pas leurs graviers en bitume. Paul Ricard conserve son motif bleu/rouge spécifique.
+Validation : tests de surfaces, dégagements, barrières, pistes parallèles et empreintes du décor ; rendu Chromium des circuits. Le contrôle des barrières teste les intersections au même niveau ; un pont peut légitimement croiser un passage inférieur.
 
-Corrections de matières : Monaco entièrement bitumé hors piste ; tabliers bitumés avant gravier distingués à Monza, Interlagos et au Red Bull Ring. Voir le [bilan des références, corrections et incertitudes](../../surfaces-circuits/README.md). Les images schématiques ne permettent pas de certifier toutes les surfaces des autres circuits.
-
-Correction Zandvoort : dégagements et protections limités par les branches voisines ; les barrières sans espace suffisant sont retirées du dessin et des collisions. `node tools/paralleles-banc.js` contrôle les segments et les intérieurs de dégagements contre les autres portions du tracé.
-
-Validation : tracé, largeur de chaussée, vibreurs, repères et stands identiques sur les 13 circuits par comparaison avec 0.27.0. Les enveloppes de protection restent identiques hors correction des empiètements de Zandvoort. Les matières hors piste changent aux endroits corrigés, ainsi que leur roulement, sans modification du modèle de motricité. Tests `surfaces-banc`, `degagements-banc`, `decor-banc` et `barrieres-banc`. Captures Chromium desktop 1280 × 800 (DPR 2).
-
-Reproduction : `node --require /workspace/cloud-setup/system-chromium.cjs tools/export-decor.js docs/exports-circuits/2026-10-16`. Le préchargement Chromium est propre à l’environnement cloud ; avec Playwright configuré, `node tools/export-decor.js <dossier>` suffit.
+Reproduction : `node tools/export-decor.js docs/exports-circuits/2026-10-16 --tour-only` (Playwright/Chromium requis ; dans cet environnement ajouter `--require /workspace/cloud-setup/system-chromium.cjs` à Node).

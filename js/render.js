@@ -478,8 +478,8 @@ class Renderer {
     for(const b of track.barriers){
       // Des groupes de vingt-quatre mètres : assez courts pour que la fenêtre en rejette beaucoup,
       // assez longs pour que le nombre de groupes reste modeste.
-      const key=b.side+':'+Math.floor(b.s/24);
-      if(!groups.has(key))groups.set(key,{cle:key,rail:new Path2D(),shine:new Path2D(),posts:new Path2D(),
+      const key=(b.level||0)+':'+b.side+':'+Math.floor(b.s/24);
+      if(!groups.has(key))groups.set(key,{cle:key,level:b.level||0,rail:new Path2D(),shine:new Path2D(),posts:new Path2D(),
         blocks:(PAL.barrierBlocks||PAL.kerb).map(()=>new Path2D()),tyres:new Path2D(),
         bbox:{minX:Infinity,minY:Infinity,maxX:-Infinity,maxY:-Infinity}});
       const g=groups.get(key),box=g.bbox;
@@ -560,7 +560,7 @@ class Renderer {
               const hw = side > 0 ? track.hwL[i] : track.hwR[i];
               const w = track.asphaltW[side > 0 ? 'L' : 'R'][i];
               const nx = track.nx[i] * side, ny = track.ny[i] * side;
-              const a = hw + w * b / N, c = hw + w * (b + 1) / N;
+              const a = hw + w * b / N, c = hw + w * (b + (track.def.graphics ? .45 : 1)) / N;
               dedans.push([track.xs[i] + nx * a, track.ys[i] + ny * a]);
               dehors.push([track.xs[i] + nx * c, track.ys[i] + ny * c]);
             }
@@ -602,7 +602,7 @@ class Renderer {
   moitié du budget d'un téléphone.
 
   Le rayon exact de l'écran plus cinq mètres suffit : un groupe ne dépasse jamais de trois. */
-  _drawBarriers(g,vis) {
+  _drawBarriers(g,vis,level=null) {
     const r=Math.hypot(this.w,this.h)/2/this.cam.zoom+5;
     const minX=this.cam.x-r,maxX=this.cam.x+r,minY=this.cam.y-r,maxY=this.cam.y+r;
     /* LES GROUPES VISIBLES SONT RÉUNIS AVANT D'ÊTRE PEINTS.
@@ -622,10 +622,11 @@ class Renderer {
     image, et un groupe fait vingt-quatre mètres. */
     const vus=[];
     for(const a of this.barrierArt||[]){
+      if(level!==null&&a.level!==level)continue;
       const b=a.bbox;if(b.maxX<minX||b.minX>maxX||b.maxY<minY||b.minY>maxY)continue;
       vus.push(a);
     }
-    const cle=vus.length+':'+(vus.length?vus[0].cle+'-'+vus[vus.length-1].cle:'');
+    const cle=level+':'+vus.length+':'+(vus.length?vus[0].cle+'-'+vus[vus.length-1].cle:'');
     if(!this._barrFusion||this._barrFusionCle!==cle){
       const f={rail:new Path2D(),shine:new Path2D(),posts:new Path2D(),
         blocks:(PAL.barrierBlocks||PAL.kerb).map(()=>new Path2D()),tyres:new Path2D()};
@@ -1755,6 +1756,7 @@ class Renderer {
       this._hideCars(g, b.tablier);
       g.lineCap = 'round';
     }
+    if(T.drawRoad&&pont.length)this._drawBarriers(g,vis,1);
     for (const car of dessus) this._drawCar(g, car);
     // et le tablier par-dessus les voitures : c'est ce qui dit qu'on passe dessous
     for (const p of this.paths.passerelles) {

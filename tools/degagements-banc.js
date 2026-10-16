@@ -104,7 +104,7 @@ for(const d of TRACKS.filter(d=>d.id!=='spa')){
   const p=t.project((b.ax+b.bx)/2,(b.ay+b.by)/2,b.s,60);
   const hw=p.lat>0?t.hwLeftAt(p.s):t.hwRightAt(p.s);
   assert.ok(Math.abs(p.lat)-hw-b.half>0.5,d.id+' : protection sur la piste en '+(b.s/t.length).toFixed(3));
-  assert.equal(b.kind,t.runoffWidthAt(b.s,b.side)>2.5?'tyres':'rail',d.id+' : matiere de protection');
+  assert.equal(b.kind,t.runoffWidthAt(b.s,b.side)>2.5&&t._structureBlend(b.s)<.5?'tyres':'rail',d.id+' : matiere de protection');
  }
  if(!d.runoffs){continue;}
  for(const z of d.runoffs){
@@ -128,7 +128,7 @@ for(const d of TRACKS.filter(d=>d.id!=='spa')){
   const mid=((z.from+(z.to>z.from?z.to:z.to+1))/2)%1;
   // Un couloir voisin peut imposer une largeur inférieure au profil demandé.
   // Le banc paralleles-banc vérifie alors la sécurité plutôt qu'une largeur nominale.
-  if(!d.parallelClearance)assert.ok(t.runoffWidthAt(mid*t.length,z.side)>z.w*0.5,
+  if(!d.parallelClearance&&t._structureBlend(mid*t.length)<.01)assert.ok(t.runoffWidthAt(mid*t.length,z.side)>z.w*0.5,
    d.id+' : zone absente à son milieu — '+z.name);
   // Le tablier est bitumé ; un bac extérieur peut être explicitement conservé.
   if(z.surface==='asphalt'){

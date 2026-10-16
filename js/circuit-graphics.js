@@ -28,7 +28,8 @@ class CircuitGraphics {
           const w=(track.asphaltW?track._lerp(track.asphaltW[side>0?'L':'R'],u):0);
           const start=Math.max(3.5,KERB_IN+track.kerb[i]+1.5),end=w-.6;
           if(end-start<2){valid=false;break;}
-          const lo=start+(end-start)*b/this.runoffBands.length,hi=start+(end-start)*(b+1)/this.runoffBands.length;
+          const step=(end-start)/this.runoffBands.length;
+          const lo=start+step*b,hi=lo+step*.45; // Une bande peinte, puis une bande de bitume.
           points.push([track.pos(u,side*(hw+lo)),track.pos(u,side*(hw+hi))]);
         }
         if(valid){const p=this.runoffBands[b].path,a=points[0],c=points[1];

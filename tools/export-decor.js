@@ -20,7 +20,8 @@ const { chromium } = require('playwright');
 
 const ROOT = path.join(__dirname, '..');
 const OUT = process.argv[2] || path.join(ROOT, 'export', 'decor');
-const CIRCUIT = process.argv[3] || null;
+const TOUR_ONLY = process.argv.includes('--tour-only');
+const CIRCUIT = process.argv[3] && process.argv[3] !== '--tour-only' ? process.argv[3] : null;
 const VIEW_W = +(process.env.EXPORT_WIDTH || 1280), VIEW_H = +(process.env.EXPORT_HEIGHT || 800);
 const DPR = +(process.env.EXPORT_DPR || 2);
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png',
@@ -103,7 +104,7 @@ const VUES = [0.08, 0.33, 0.58, 0.83];
     ok.push(nomTour);
 
     // --- quatre vues à l'échelle de jeu
-    for (let k = 0; k < VUES.length; k++) {
+    for (let k = 0; k < (TOUR_ONLY ? 0 : VUES.length); k++) {
       const nom = `${c.id}-${k + 1}.png`;
       await page.evaluate((f) => {
         const r = app.renderer, T = app.race.track;
@@ -126,7 +127,7 @@ const VUES = [0.08, 0.33, 0.58, 0.83];
 
   /* UNE PLANCHE PAR CIRCUIT. Soixante fichiers ne se regardent pas ; cinq vues côte à côte, si.
      Le tour entier en haut pour situer, les quatre vues de jeu dessous pour juger le rendu. */
-  for (const c of circuits) {
+  for (const c of (TOUR_ONLY ? [] : circuits)) {
     const png = await page.evaluate(async ({ nom, theme, images }) => {
       const charge = (u) => new Promise((ok, non) => {
         const i = new Image(); i.onload = () => ok(i); i.onerror = non; i.src = u;
@@ -152,7 +153,7 @@ const VUES = [0.08, 0.33, 0.58, 0.83];
       'data:image/png;base64,' + fs.readFileSync(path.join(OUT, `${c.id}-${suffix}.png`)).toString('base64')) });
     fs.writeFileSync(path.join(OUT, `${c.id}-planche.png`), Buffer.from(png, 'base64'));
   }
-  console.log(`\n${circuits.length} planches`);
+  if(!TOUR_ONLY)console.log(`\n${circuits.length} planches`);
 
   await nav.close(); srv.close();
   if(errors.length)throw Error('Erreurs de rendu : '+errors.join('; '));

@@ -270,6 +270,7 @@ const TRACKS = [
   },
   {
     id: 'monaco', name: 'Monaco', country: 'MC', flag: '🇲🇨', theme: 'riviera',
+    runoffJoinGap: 60,
     defaultRunoff: 'asphalt', // Références monaco.jpg / monaco_2.jpg : aucun bac à gravier.
     architecture: 'immeubles',
     // Port Hercule, côté intérieur : sortie du tunnel → Tabac → Piscine.
@@ -553,6 +554,7 @@ const TRACKS = [
   },
   {
     id: 'interlagos', name: 'Interlagos', country: 'BR', flag: '🇧🇷', theme: 'tropical',
+    parallelClearance: true,
     architecture: 'plats',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.br,
@@ -876,6 +878,7 @@ const TRACKS = [
   },
   {
     id: 'bathurst', name: 'Mount Panorama', country: 'AU', flag: '🇦🇺', theme: 'bush',
+    runoffJoinGap: 60,
     architecture: 'pavillons',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.au,

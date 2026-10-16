@@ -103,6 +103,8 @@ class Track {
     this.drawRoad = def.drawRoad !== false;
     this._build();
     this._buildRunoffs();
+    this._joinRunoffs();
+    this._constrainStructureRunoffs();
     this._protectParallelRoads();
     this._buildBarriers();
   }
@@ -237,6 +239,51 @@ class Track {
     }
   }
 
+  _joinRunoffs() {
+    const gap=this.def.runoffJoinGap;
+    if(!gap)return;
+    const r=Math.ceil(gap/2);
+    for(const layer of [this.bacW,this.asphaltW])if(layer)for(const key of ['L','R']){
+      const a=layer[key],N=a.length,dilated=new Float32Array(N),closed=new Float32Array(N);
+      // Fermeture morphologique : combler les creux courts entre deux lobes,
+      // sans transformer le tracé de la route ni seulement remplir à une largeur minimale.
+      for(let i=0;i<N;i++)for(let k=-r;k<=r;k++)dilated[i]=Math.max(dilated[i],a[(i+k+N)%N]);
+      for(let i=0;i<N;i++){
+        let value=Infinity;for(let k=-r;k<=r;k++)value=Math.min(value,dilated[(i+k+N)%N]);
+        closed[i]=value;
+      }
+      for(let i=0;i<N;i++){
+        let total=0;for(let k=-6;k<=6;k++)total+=closed[(i+k+N)%N];a[i]=total/13;
+      }
+    }
+  }
+
+  _constrainStructureRunoffs() {
+    if(!this.tunnels.length&&!this.crossings.length)return;
+    for(let i=0;i<this.n;i++){
+      const f=1-this._structureBlend(i*this.ds);
+      for(const layer of [this.bacW,this.asphaltW])if(layer)for(const key of ['L','R'])layer[key][i]*=f;
+    }
+  }
+
+  barrierLevelAt(s) {
+    return this.crossings.some(cr=>Math.abs(this.diff(s,cr.over*this.ds))<24)?1:0;
+  }
+
+  _structureBlend(s) {
+    let f=0;
+    for(const tu of this.tunnels){
+      const d=(s-tu.from*this.ds+this.length)%this.length,n=tu.n*this.ds;
+      if(d<=n)f=1;
+      else f=Math.max(f,Math.max(0,1-Math.min(d-n,this.length-d)/18));
+    }
+    for(const cr of this.crossings){
+      const d=Math.abs(this.diff(s,cr.over*this.ds));
+      f=Math.max(f,Math.max(0,Math.min(1,(42-d)/18)));
+    }
+    return f;
+  }
+
   _protectParallelRoads() {
     this.parallelLimits=null;
     if(!this.def.parallelClearance)return;
@@ -307,7 +354,11 @@ class Track {
     const u = Math.min(1, runoff / 6), t = u * u * (3 - 2 * u);
     const verge = (this.def.grassBarrierGap ?? 9) * (1 - t) + 2.2 * t;
     const wanted=hw + Math.max(this.kerbAt(s) + verge, runoff + 1.5);
-    return this.parallelLimits?Math.min(wanted,this._lerp(this.parallelLimits[side>0?'L':'R'],s)):wanted;
+    let distance=this.parallelLimits?Math.min(wanted,this._lerp(this.parallelLimits[side>0?'L':'R'],s)):wanted;
+    const blend=this._structureBlend(s);
+    distance+=(hw+this.kerbAt(s)+1.1-distance)*blend;
+    distance=Math.max(distance,hw+runoff+1.1);
+    return distance;
   }
 
   largeurBac(i, cote) {
@@ -317,6 +368,111 @@ class Track {
     if (cote > 0) return this.bacW.L[k];
     if (cote < 0) return this.bacW.R[k];
     return Math.max(this.bacW.L[k], this.bacW.R[k]);
+  }
+
+  _trimBarrierLoops() {
+    const cross=(ax,ay,bx,by)=>ax*by-ay*bx;
+    for(let i=0;i<this.barriers.length;i++){
+      const a=this.barriers[i];
+      for(let j=i+1;j<this.barriers.length&&j<i+80;j++){
+        const b=this.barriers[j];if(b.side!==a.side||b.s-a.s>150)break;
+        if(b.level!==a.level)continue;
+        const ax=a.bx-a.ax,ay=a.by-a.ay,bx=b.bx-b.ax,by=b.by-b.ay,den=cross(ax,ay,bx,by);
+        if(Math.abs(den)<1e-8)continue;
+        const dx=b.ax-a.ax,dy=b.ay-a.ay,u=cross(dx,dy,bx,by)/den,v=cross(dx,dy,ax,ay)/den;
+        if(u<=1e-6||u>=1-1e-6||v<=1e-6||v>=1-1e-6)continue;
+        const x=a.ax+ax*u,y=a.ay+ay*u;a.bx=x;a.by=y;b.ax=x;b.ay=y;
+        this.barriers.splice(i+1,j-i-1);i=Math.max(-1,i-1);break;
+      }
+    }
+  }
+
+  _mergeBarrierGeometry() {
+    const nodes=new Map();
+    const node=(x,y,level)=>{
+      const key=level+':'+x.toFixed(4)+':'+y.toFixed(4);
+      if(!nodes.has(key))nodes.set(key,{x,y,n:1});return nodes.get(key);
+    };
+    const root=n=>{while(n.parent)n=n.parent;return n;};
+    const mean=(a,b)=>{a=root(a);b=root(b);return {x:(a.x*a.n+b.x*b.n)/(a.n+b.n),y:(a.y*a.n+b.y*b.n)/(a.n+b.n)};};
+    const join=(a,b)=>{a=root(a);b=root(b);if(a===b)return;const m=mean(a,b);a.x=m.x;a.y=m.y;a.n+=b.n;b.parent=a;};
+    const safe=(p,level)=>{
+      for(let j=0;j<this.n;j+=2){
+        if(this.barrierLevelAt(j*this.ds)!==level)continue;
+        const radius=Math.max(this.hwL[j],this.hwR[j])+this.kerb[j]+.6;
+        if(Math.hypot(p.x-this.xs[j],p.y-this.ys[j])<radius)return false;
+      }return true;
+    };
+    const list=this.barriers.map(b=>({...b,A:node(b.ax,b.ay,b.level||0),B:node(b.bx,b.by,b.level||0)}));
+    this.mergedBarriers=0;
+    for(let pass=0;pass<4;pass++){
+      const bins=new Map(),cell=16;
+      const cells=b=>{
+        const a=root(b.A),c=root(b.B),out=[];
+        for(let x=Math.floor((Math.min(a.x,c.x)-4)/cell);x<=Math.floor((Math.max(a.x,c.x)+4)/cell);x++)
+          for(let y=Math.floor((Math.min(a.y,c.y)-4)/cell);y<=Math.floor((Math.max(a.y,c.y)+4)/cell);y++)out.push(x+','+y);
+        return out;
+      };
+      for(let i=0;i<list.length;i++)for(const key of cells(list[i])){
+        if(!bins.has(key))bins.set(key,[]);bins.get(key).push(i);
+      }
+      for(let i=0;i<list.length;i++){
+        const near=new Set();for(const key of cells(list[i]))for(const j of bins.get(key)||[])if(j>i)near.add(j);
+        for(const j of [...near].sort((a,b)=>a-b)){
+      const a=list[i],b=list[j];if(a.level!==b.level)continue;
+      if(Math.abs(this.diff(a.s,b.s))<45)continue;
+      let A=root(a.A),B=root(a.B),C=root(b.A),D=root(b.B);
+      if(A===C||A===D||B===C||B===D)continue;
+      const ux=B.x-A.x,uy=B.y-A.y,vx=D.x-C.x,vy=D.y-C.y;
+      const la=Math.hypot(ux,uy),lb=Math.hypot(vx,vy);if(la<.1||lb<.1)continue;
+      if(Math.hypot((A.x+B.x-C.x-D.x)/2,(A.y+B.y-C.y-D.y)/2)>5)continue;
+      const den=ux*vy-uy*vx,dx=C.x-A.x,dy=C.y-A.y;
+      const ta=(dx*vy-dy*vx)/den,tb=(dx*uy-dy*ux)/den;
+      const crossing=Math.abs(den)>1e-8&&ta>0&&ta<1&&tb>0&&tb<1;
+      const parallel=Math.abs((ux*vx+uy*vy)/(la*lb))>.9;
+      if(!crossing&&!parallel)continue;
+      if(ux*vx+uy*vy<0)[C,D]=[D,C];
+      const mergeReach=crossing?12:3;
+      if(Math.hypot(A.x-C.x,A.y-C.y)>mergeReach||Math.hypot(B.x-D.x,B.y-D.y)>mergeReach)continue;
+      const m0=mean(A,C),m1=mean(B,D);
+      if(!safe(m0,a.level||0)||!safe(m1,a.level||0))continue;
+      join(A,C);join(B,D);this.mergedBarriers++;
+        }
+      }
+    }
+    const seen=new Map();
+    this.barriers=[];
+    for(const b of list){
+      const a=root(b.A),c=root(b.B);if(a===c)continue;
+      const keys=[a.x.toFixed(4)+','+a.y.toFixed(4),c.x.toFixed(4)+','+c.y.toFixed(4)].sort();
+      const key=(b.level||0)+':'+keys.join('/');
+      if(seen.has(key)){seen.get(key).owners.push({s:b.s,side:b.side});continue;}
+      const {A,B,...clean}=b;
+      const merged={...clean,common:a.n>1||c.n>1,ax:a.x,ay:a.y,bx:c.x,by:c.y,owners:[{s:b.s,side:b.side}]};
+      this.barriers.push(merged);seen.set(key,merged);
+    }
+  }
+
+  _trimRunoffsAtBarriers(){
+    for(const b of this.barriers.filter(b=>b.common))for(const owner of b.owners||[{s:b.s,side:b.side}]){
+      for(let d=-3;d<=3;d++){
+        const i=this.idx(owner.s+d),x=this.xs[i],y=this.ys[i];
+        const dx=b.bx-b.ax,dy=b.by-b.ay,den=dx*dx+dy*dy;
+        const u=clamp(((x-b.ax)*dx+(y-b.ay)*dy)/(den||1),0,1);
+        const lat=((b.ax+u*dx-x)*this.nx[i]+(b.ay+u*dy-y)*this.ny[i])*owner.side;
+        const key=owner.side>0?'L':'R',hw=owner.side>0?this.hwL[i]:this.hwR[i];
+        const cap=Math.max(0,lat-hw-.4);
+        for(const layer of [this.bacW,this.asphaltW])if(layer)layer[key][i]=Math.min(layer[key][i],cap);
+      }
+    }
+    // Ne pas laisser les raccords créer une encoche d'un seul mètre.
+    for(const layer of [this.bacW,this.asphaltW])if(layer)for(const key of ['L','R']){
+      const w=layer[key];
+      for(let pass=0;pass<2;pass++){
+        for(let i=0;i<this.n;i++)w[i]=Math.min(w[i],w[(i+this.n-1)%this.n]+.7);
+        for(let i=this.n-1;i>=0;i--)w[i]=Math.min(w[i],w[(i+1)%this.n]+.7);
+      }
+    }
   }
 
   _buildBarriers() {
@@ -344,8 +500,8 @@ class Track {
       Le « sauf au début et à la fin » se fait tout seul : une zone s'ouvre et se ferme sur zéro,
       donc ses extrémités passent sous le seuil et reçoivent une glissière. La transition est là où
       elle doit être, sans qu'on ait à la placer. */
-      const tyres=this.runoffWidthAt(mid,side)>2.5;
-      const seg={ax:a.x,ay:a.y,bx:b.x,by:b.y,s:mid,side,kind:tyres?'tyres':'rail',
+      const tyres=this.runoffWidthAt(mid,side)>2.5&&this._structureBlend(mid)<.5;
+      const seg={ax:a.x,ay:a.y,bx:b.x,by:b.y,s:mid,side,level:this.barrierLevelAt(mid),kind:tyres?'tyres':'rail',
         half:tyres?1.2:.28,tx:dx/len,ty:dy/len,len,
         // normale dirigée vers la piste, indépendante du sens de parcours
         nx:dy/len*-side,ny:-dx/len*-side};
@@ -353,22 +509,15 @@ class Track {
     }
     // À l'intérieur d'une épingle, une courbe décalée peut se replier sur elle-même.
     // Couper ces boucles donne un raccord net au lieu d'une glissière en nœud.
-    const cross=(ax,ay,bx,by)=>ax*by-ay*bx;
-    for(let i=0;i<this.barriers.length;i++){
-      const a=this.barriers[i];
-      for(let j=i+2;j<this.barriers.length&&j<i+80;j++){
-        const b=this.barriers[j];if(b.side!==a.side||b.s-a.s>150)break;
-        const ax=a.bx-a.ax,ay=a.by-a.ay,bx=b.bx-b.ax,by=b.by-b.ay,den=cross(ax,ay,bx,by);
-        if(Math.abs(den)<1e-8)continue;
-        const dx=b.ax-a.ax,dy=b.ay-a.ay,u=cross(dx,dy,bx,by)/den,v=cross(dx,dy,ax,ay)/den;
-        if(u<=1e-6||u>=1-1e-6||v<=1e-6||v>=1-1e-6)continue;
-        const x=a.ax+ax*u,y=a.ay+ay*u;a.bx=x;a.by=y;b.ax=x;b.ay=y;
-        this.barriers.splice(i+1,j-i-1);i=Math.max(-1,i-1);break;
-      }
-    }
+    this._trimBarrierLoops();
+    this._mergeBarrierGeometry();
+    this._trimBarrierLoops();
     this.barriers=this.barriers.filter(b=>Math.hypot(b.bx-b.ax,b.by-b.ay)>.05);
+    this._trimRunoffsAtBarriers();
     for(let id=0;id<this.barriers.length;id++){
       const b=this.barriers[id],C=this.barrierCell;
+      b.kind=this.runoffWidthAt(b.s,b.side)>2.5&&this._structureBlend(b.s)<.5?'tyres':'rail';
+      b.half=b.kind==='tyres'?1.2:.28;
       b.len=Math.hypot(b.bx-b.ax,b.by-b.ay);b.tx=(b.bx-b.ax)/b.len;b.ty=(b.by-b.ay)/b.len;
       b.nx=-b.ty*b.side;b.ny=b.tx*b.side;
       for(let x=Math.floor((Math.min(b.ax,b.bx)-b.half)/C);x<=Math.floor((Math.max(b.ax,b.bx)+b.half)/C);x++)
@@ -435,6 +584,7 @@ class Track {
       const x=from.x+Math.cos(from.th)*d,y=from.y+Math.sin(from.th)*d;
       const dx=car.x+Math.cos(car.th)*d-x,dy=car.y+Math.sin(car.th)*d-y;
       for(const b of candidates){
+        if((b.level||0)!==this.barrierLevelAt(car.s))continue;
         const hit=Track.sweepBarrier(x,y,dx,dy,b,r);
         if(hit&&(!best||hit.t<best.t))best={...hit,barrier:b};
       }
