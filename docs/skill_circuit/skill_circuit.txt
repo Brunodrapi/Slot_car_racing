@@ -176,6 +176,8 @@ Never generate raised anti-cut devices automatically at every apex.
 
 Runoff areas are not necessarily symmetrical.
 
+For Spa, use neutral secondary asphalt (`#606267`) with restrained fine grain. Preserve the existing annotated runoff contours. Do not automatically extend national kerb colors around the outer perimeter of asphalt runoff areas. Any painted runoff requires explicit, local circuit configuration; it must not be inferred from barrier placement or the national flag.
+
 ### 6.2 Painted runoff
 
 Supported variants:
