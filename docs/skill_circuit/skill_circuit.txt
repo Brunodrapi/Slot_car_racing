@@ -176,6 +176,8 @@ Never generate raised anti-cut devices automatically at every apex.
 
 Runoff areas are not necessarily symmetrical.
 
+For the current Spa proposal, use red/white kerbs; explicitly configured green strips (#448C58) may extend selected kerbs within existing asphalt runoff. Keep them less contrasted than the kerbs and separate from natural grass. Retain yellow/blue gameplay lines. Existing protection modules may use TecPro-inspired red/white/blue styling, while tire walls remain individually readable black cylinders. These visual families do not establish real-world barrier type or justify new collision obstacles. Yellow reliefs and anti-cut bollards require documented local placement; do not invent them or force a 70% quota.
+
 For Spa, use neutral secondary asphalt (`#606267`) with restrained fine grain. Preserve the existing annotated runoff contours. Do not automatically extend national kerb colors around the outer perimeter of asphalt runoff areas. Any painted runoff requires explicit, local circuit configuration; it must not be inferred from barrier placement or the national flag.
 
 ### 6.2 Painted runoff
