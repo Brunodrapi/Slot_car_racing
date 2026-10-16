@@ -216,6 +216,10 @@ class Race {
     if (!this.player) return;
     this.player.cls = Object.assign({}, this.player.cls);
     this.player.cls.brake = this.freinBase * this.frein;
+    /* Le facteur lui-même, et non seulement son produit : la voiture s'en sert pour le transfert
+    de masse, qui est ce par quoi le réglage fait enrouler un virage. `cls.brake` seul ne le dirait
+    pas — il mélange le réglage et la puissance de freinage propre au modèle. */
+    this.player.freinRatio = this.frein;
   }
 
   // input: { throttle: bool, sel: -1..1 } (a bare boolean is accepted for the throttle)

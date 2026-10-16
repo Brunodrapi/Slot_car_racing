@@ -102,9 +102,23 @@ function speedProfile(track, model, lineName, margin) {
     const lim = Math.sqrt(v[j] * v[j] + 2 * brake * ds);
     if (lim < v[i]) v[i] = lim;
   }
+  /* LA PASSE D'ACCÉLÉRATION RESPECTE LE CERCLE D'ADHÉRENCE.
+
+  Elle appliquait toute la poussée du moteur, y compris au milieu d'un virage pris à la limite —
+  c'est-à-dire qu'elle supposait un pneu capable de donner son adhérence latérale maximale ET de
+  passer la puissance en même temps. C'était déjà optimiste ; depuis que l'arrière accumule sa
+  glisse quand on lui demande les deux, c'est faux, et cela se voyait : le banc des sorties
+  comparait un tour théorique de 77 secondes à un tour réel de 94, et concluait que la référence
+  était fausse. Elle l'était.
+
+  Ce qui reste pour avancer est ce que le cercle laisse une fois la part latérale prise. C'est la
+  même règle que celle que la physique applique à la voiture, écrite ici en une ligne parce qu'on
+  ne cherche qu'une référence, pas un modèle de pneu. */
   for (let pass = 0; pass < 2; pass++) for (let i = 0; i < N; i++) {
     const j = (i - 1 + N) % N;
-    const a = model.accel * Math.max(0.15, 1 - Math.pow(v[j] / model.vmax, 2.5));
+    const moteur = model.accel * Math.max(0.15, 1 - Math.pow(v[j] / model.vmax, 2.5));
+    const lat = v[j] * v[j] * Math.abs(lineK[j]) / Math.max(1e-3, model.grip);
+    const a = Math.max(0.05, moteur * Math.sqrt(Math.max(0, 1 - Math.min(1, lat) ** 2)));
     const lim = Math.sqrt(v[j] * v[j] + 2 * a * ds);
     if (lim < v[i]) v[i] = lim;
   }
@@ -142,7 +156,7 @@ const BARRIERE = { rebond: 1.05, douceur: 9, pneus: 0.62, glisseRail: 0.78, glis
 // mais elle s'arrête en deux secondes environ, sans qu'on ait à la figer.
 const ARRET_LIBRE = 0.55;
 
-const PHYS = { aimant: 0, ldK: 0.45, ldMin: 6, ff: 0.3, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.01, motricite: 1.25, drivePriority: 0.15, relax: 0.2, circle: 0.25 };
+const PHYS = { aimant: 0, ldK: 0.45, ldMin: 6, ff: 0.3, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.16, motricite: 1.25, drivePriority: 0.15, relax: 0.2, circle: 0.25 };
 
 /* LES AIDES DE L'IA, qui ne sont pas celles du joueur.
 
@@ -170,6 +184,59 @@ des configurations — faisait planter tous les bancs sur une référence absent
 circuits d'essai, et au-dessus de 1,6 la vitesse de passage ne descend plus, elle a déjà touché le
 fond. Laisser aller plus loin ne proposerait que des réglages dont on sait qu'ils ne servent à rien. */
 const FREIN_MIN = 0.5, FREIN_MAX = 1.6;
+
+/* LA MOTRICITÉ DANS LE TEMPS, ET NON SEULEMENT DANS L'INSTANT.
+
+   Le partage d'adhérence arrière était SANS MÉMOIRE : à chaque image, la perte ne dépendait que
+   de la demande du moment. Un appui d'un dixième de seconde et un appui tenu dix secondes se
+   payaient donc au même tarif, à la seconde près — tenir les gaz à fond dans un virage coûtait
+   exactement la moyenne de ce qu'il coûte, et le pilote n'avait rien à doser. Bruno l'a dit sans
+   détour : « il n'y a pas besoin de réguler l'accélération en appuyant, la voiture s'auto-régule.
+   En slot racing quand tu accélères à fond en virage, la voiture dérape. Il faut un mécanisme
+   d'à-coups rapides pour réguler la vitesse. »
+
+   L'arrière a maintenant un état : tant que la poussée demandée dépasse ce que l'essieu peut
+   passer, la glisse MONTE ; dès qu'on lève, elle redescend, et plus vite qu'elle n'est montée.
+   Elle retire jusqu'à `perte` de l'adhérence latérale arrière, et c'est ce qui fait déraper.
+
+   DEUX CHOSES ONT ÉTÉ MESURÉES AVANT D'ARRIVER LÀ, et la première version les ignorait toutes
+   les deux. Le banc `tools/acoups.js` a tranché en une ligne : « LE DOSAGE NE SERT À RIEN ».
+
+   D'abord, le dépassement du cercle d'adhérence est un signal FAIBLE. Dans un virage réel pris
+   aux gaz, `1 − share` plafonne vers 0,14 : la montée en glisse s'arrêtait donc à 14 % et ne
+   déclenchait jamais rien. Il est maintenant rapporté à `seuil`, qui est précisément l'ordre de
+   grandeur atteint en virage à pleine charge — au-delà, la glisse monte pour de bon.
+
+   Ensuite, faire varier `priorite` ne suffisait pas. Même poussée à 0,45, elle ne retirait que
+   six pour cent d'adhérence arrière, parce qu'elle multiplie `share`, qui vaut encore 0,86 à cet
+   endroit. La glisse accumulée agit donc directement, par son propre terme, et `priorite`
+   redevient la constante que les mesures de `docs/motricite/README.md` avaient fixée.
+
+   Les deux constantes de temps font le reste. Une impulsion de 100 ms monte à 36 %, et il n'en
+   reste que 13 % après 100 ms de pied levé ; des à-coups à parts égales se stabilisent vers 25 %,
+   tandis que les gaz tenus saturent en une demi-seconde. Doser rapporte donc la moitié de la
+   poussée pour le quart de la perte d'adhérence — un geste qui s'apprend, ce qu'un modèle sans
+   mémoire ne pouvait pas offrir. */
+const MOTRICITE = { tauMontee: 0.22, tauRetour: 0.10, seuil: 0.12, perte: 0.38 };
+
+// Les deux seuils où l'IA lève et reprend les gaz : voir `aiThrottle`. Reprendre bien plus bas
+// qu'on ne lève est ce qui fait un à-coup plutôt qu'un tremblement.
+const AI_GLISSE = [0.28, 0.55];
+
+// La part d'adhérence au-delà de laquelle l'IA n'ajoute plus de puissance : voir `aiThrottle`.
+const AI_USAGE = 0.8;
+
+/* LE TRANSFERT DE MASSE AU FREINAGE, qui est ce qui fait enrouler un virage.
+
+   `PHYS.liftOff` valait 0,01 : lever le pied retirait un centième de l'adhérence arrière, soit
+   rien du tout. Le réglage de freinage ne servait donc qu'à s'arrêter plus ou moins court, jamais
+   à placer la voiture — alors que c'est précisément ce qu'on demande d'un réglage de frein.
+
+   Freiner charge l'avant et allège l'arrière. L'avant gagne donc ce que l'arrière perd, à peu
+   près, et la voiture pivote : c'est le frein à l'entrée qui referme la trajectoire. Le réglage
+   du joueur multiplie ce transfert, et non plus seulement la décélération, si bien que monter le
+   levier fait tourner plus court — au prix d'un arrière plus léger, qu'il faut ensuite rattraper. */
+const TRANSFERT_AV = 0.62;
 
 /* L'AIMANT : une tension vers la ligne, et un décrochage net.
 
@@ -346,6 +413,9 @@ class Car {
     this.alphaF = 0; this.alphaR = 0;
     this.slide = 0;                      // 0..1 for effects
     this.patine = 0;                     // 0..1 : la part de poussée que l'arrière ne passe pas
+    this.glisseArr = 0;                  // 0..1 : la glisse accumulée par l'essieu arrière
+    this.aiLeve = false;                 // l'IA a levé le pied le temps que l'arrière reprenne
+    this.freinRatio = 1;                 // le réglage de freinage du joueur, 1 = d'origine
     this.patineFx = 0;                   // retour sonore/visuel, sans effet sur les forces
     this.ressenti = 0;                   // 0..1 : bleu, vert, jaune, violet, rouge (voir update)
     this.accroche = true;                // l'aimant tient-il la ligne ? (voir AIMANT)
@@ -418,7 +488,7 @@ class Car {
     const T = this.track, P = T.pos(s, lat);
     this.s = T.wrap(s); this.lat = lat; this.x = P.x; this.y = P.y; this.th = T.headingAt(s);
     this.v = v || 0; this.vl = 0; this.w = 0; this.delta = 0; this.beta = 0; this.usage = 0; this.slide = 0; this.ressenti = 0; this.Ff = 0; this.Fr = 0; this.selS = this.sel; this.accroche = true; this.aimantF = 0; this.ecartAv = null;
-    this.patine = 0; this.patineFx = 0;
+    this.patine = 0; this.patineFx = 0; this.glisseArr = 0;
     this.engineCut = 0; this.engineStopped = false;
   }
 
@@ -848,10 +918,12 @@ class Car {
     const accDem = throttle
       ? c.accel * dmg * Math.max(0, 1 - Math.pow(Math.max(0, this.v) / vmax, 2.5)) * (this.draft ? 1.08 : 1)
       : 0;
-    const gF = base * cliffF;
+    // Le transfert au freinage : ce que l'arrière perd, l'avant le gagne pour l'essentiel.
+    const transfert = PHYS.liftOff * brakeFrac * clamp(this.freinRatio || 1, FREIN_MIN, FREIN_MAX);
+    const gF = base * cliffF * (1 + transfert * TRANSFERT_AV);
     // Toujours repartir de la capacité de l'essieu, jamais d'une force déjà réduite
     // par ce même partage : cela réintroduirait une boucle de perte d'adhérence.
-    const gArrBrut = base * c.rearBias * (1 - PHYS.liftOff * brakeFrac);
+    const gArrBrut = base * c.rearBias * (1 - transfert);
     const latPris = Math.min(1, Math.abs(alphaR) / peak);
     const longDispo = gArrBrut * PHYS.motricite * Math.sqrt(Math.max(0, 1 - latPris * latPris));
     /* SUR SOL MEUBLE, LE PLAFOND NE S'APPLIQUE PAS. Le bitume de dégagement
@@ -869,6 +941,11 @@ class Car {
     const qy = clamp(alphaR / peak, -1, 1);
     const qx = accDem / Math.max(1e-3, gArrBrut * cliffR * PHYS.motricite);
     const share = loose ? 1 : 1 / Math.max(1, Math.hypot(qx, qy));
+    /* La glisse arrière s'accumule tant que la poussée demandée dépasse ce que l'essieu passe,
+    et retombe dès qu'on lève. C'est ce qui sépare l'à-coup des gaz tenus. */
+    const sature = loose || accDem <= 0 ? 0 : clamp((1 - share) / MOTRICITE.seuil, 0, 1);
+    const tau = sature > this.glisseArr ? MOTRICITE.tauMontee : MOTRICITE.tauRetour;
+    this.glisseArr += (sature - this.glisseArr) * (1 - Math.exp(-dt / tau));
     const priority = PHYS.drivePriority;
     const safeDrive = Math.min(accDem, longDispo * cliffR);
     const accReel = loose ? accDem : safeDrive * (1 - priority) + accDem * share * priority;
@@ -880,7 +957,8 @@ class Car {
       ? clamp(1 - accReel / accDem, 0, 1) : 0;
     const spinTau = spinFx > this.patineFx ? 0.035 : 0.08;
     this.patineFx += (spinFx - this.patineFx) * (1 - Math.exp(-dt / spinTau));
-    const gR = gArrBrut * cliffR * (loose ? 1 : 1 - priority + priority * share);
+    const gR = gArrBrut * cliffR * (loose ? 1 : 1 - priority + priority * share)
+      * (loose ? 1 : 1 - MOTRICITE.perte * this.glisseArr);
     // tyre curve: linear up to the peak slip angle, then saturated (the cliff is applied above)
     const FfT = -gF * clamp(alphaF / peak, -1, 1);
     const FrT = -gR * clamp(alphaR / peak, -1, 1);
@@ -1191,6 +1269,34 @@ function aiThrottle(car, cars, dt, opts) {
     }
     car.aiAllow = allow;
   }
+  /* LE DOSAGE PAR À-COUPS, CÔTÉ IA.
+
+  Depuis que l'arrière accumule sa glisse, tenir les gaz à fond en sortie de virage fait déraper —
+  c'est la demande, et c'est ce que le joueur doit apprendre à gérer au pouce. Mais l'IA, elle,
+  tenait : elle vise une vitesse, et tant qu'elle est en dessous elle appuie. Elle passait donc le
+  tour en travers, et le banc des sorties l'a dit tout de suite, le tour de l'IA cauchemar partant
+  de 79 à 116 secondes.
+
+  Un pilote ne fait pas ça : il sent l'arrière s'en aller et lève, le temps que la gomme reprenne.
+  L'IA le fait maintenant aussi. Les deux seuils sont là pour éviter qu'elle ne vibre à la
+  fréquence de la simulation : elle lève haut et ne reprend que bas, ce qui produit des appuis
+  d'une à deux dixièmes — exactement le geste attendu du joueur. */
+  if (car.glisseArr > AI_GLISSE[1]) car.aiLeve = true;
+  else if (car.glisseArr < AI_GLISSE[0]) car.aiLeve = false;
+  if (car.aiLeve) return false;
+  /* ON N'AJOUTE PAS DE PUISSANCE À DES PNEUS DÉJÀ OCCUPÉS.
+
+  Le verrou ci-dessus agit APRÈS coup : il attend que l'arrière soit parti pour lever. Cela suffit
+  à éviter le tête-à-queue, pas à aller vite, et la mesure le disait — l'IA cauchemar tournait un
+  quart plus lentement que sa propre référence. Elle arrivait au virage à la vitesse visée, mettait
+  les gaz pour la tenir, saturait, glissait, perdait de la vitesse en glissant, et remettait les
+  gaz parce qu'elle était en dessous de la cible. Un cercle vicieux, qu'aucun verrou de sortie ne
+  pouvait rompre puisque c'est l'entrée qui était fautive.
+
+  `usage` dit quelle part de l'adhérence la courbe visée réclame déjà. Au-dessus du seuil, il n'en
+  reste pas pour pousser : on attend la sortie du virage. C'est la leçon même du slot racing — on
+  n'accélère pas AU virage, on accélère QUAND il s'ouvre. */
+  if (car.usage > AI_USAGE) return false;
   return car.v < car.aiAllow - 0.3;
 }
 
