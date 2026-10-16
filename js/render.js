@@ -480,7 +480,7 @@ class Renderer {
       // assez longs pour que le nombre de groupes reste modeste.
       const key=b.side+':'+Math.floor(b.s/24);
       if(!groups.has(key))groups.set(key,{cle:key,rail:new Path2D(),shine:new Path2D(),posts:new Path2D(),
-        blocks:PAL.kerb.map(()=>new Path2D()),tyres:new Path2D(),
+        blocks:(PAL.barrierBlocks||PAL.kerb).map(()=>new Path2D()),tyres:new Path2D(),
         bbox:{minX:Infinity,minY:Infinity,maxX:-Infinity,maxY:-Infinity}});
       const g=groups.get(key),box=g.bbox;
       box.minX=Math.min(box.minX,b.ax-3,b.bx-3);box.maxX=Math.max(box.maxX,b.ax+3,b.bx+3);
@@ -578,7 +578,7 @@ class Renderer {
       this.runoffPaint=PAL.kerb.map(()=>new Path2D());
       // Les segments de protection ont déjà éliminé les boucles des normales
       // à l'intérieur des chicanes : la peinture suit cette même enveloppe.
-      for(const b of track.barriers){
+      for(const b of (track.def.graphics?.paintedRunoff===false?[]:track.barriers)){
         const w=track.asphaltW[b.side>0?'L':'R'][track.idx(b.s)];
         const band=Math.min(2.4,Math.max(0,(w-4)*.45));
         if(!band)continue;
@@ -628,7 +628,7 @@ class Renderer {
     const cle=vus.length+':'+(vus.length?vus[0].cle+'-'+vus[vus.length-1].cle:'');
     if(!this._barrFusion||this._barrFusionCle!==cle){
       const f={rail:new Path2D(),shine:new Path2D(),posts:new Path2D(),
-        blocks:PAL.kerb.map(()=>new Path2D()),tyres:new Path2D()};
+        blocks:(PAL.barrierBlocks||PAL.kerb).map(()=>new Path2D()),tyres:new Path2D()};
       for(const a of vus){
         f.rail.addPath(a.rail);f.shine.addPath(a.shine);f.posts.addPath(a.posts);
         f.tyres.addPath(a.tyres);
@@ -645,15 +645,18 @@ class Renderer {
       g.stroke(a.rail);g.fillStyle='rgba(20,18,26,.25)';for(const p of a.blocks)g.fill(p);
       g.setLineDash(PNEU);g.lineWidth=.72;g.stroke(a.tyres);g.setLineDash([]);g.restore();
     }
-    g.strokeStyle='#36333e';g.lineWidth=.22;g.stroke(a.posts);
-    g.strokeStyle='#302c38';g.lineWidth=.58;g.stroke(a.rail);
-    g.strokeStyle='#9fa9b0';g.lineWidth=.38;g.stroke(a.rail);
+    g.strokeStyle=PAL.metalShadow || '#36333e';g.lineWidth=.22;g.stroke(a.posts);
+    g.strokeStyle=PAL.metalShadow || '#302c38';g.lineWidth=.58;g.stroke(a.rail);
+    g.strokeStyle=PAL.metal || '#9fa9b0';g.lineWidth=.38;g.stroke(a.rail);
     if(fin){g.strokeStyle='#e6e9e8';g.lineWidth=.10;g.stroke(a.shine);}
     g.strokeStyle='#302c38';g.lineWidth=.10;
-    for(let i=0;i<a.blocks.length;i++){g.fillStyle=PAL.kerb[i];g.fill(a.blocks[i]);g.stroke(a.blocks[i]);}
+    for(let i=0;i<a.blocks.length;i++){g.fillStyle=PAL.barrierBlocks?.[i] || PAL.kerb[i];g.fill(a.blocks[i]);g.stroke(a.blocks[i]);}
     g.setLineDash(PNEU);
     if(fin){g.strokeStyle='#25222b';g.lineWidth=.76;g.stroke(a.tyres);}
-    g.strokeStyle='#41404a';g.lineWidth=.72;g.stroke(a.tyres);
+    g.strokeStyle=PAL.tyre || '#41404a';g.lineWidth=.72;g.stroke(a.tyres);
+    if(this.circuitGraphics){
+      g.strokeStyle=PAL.tyreLight;g.lineWidth=.52;g.stroke(a.tyres);
+    }
     g.strokeStyle='#181720';g.lineWidth=.26;g.stroke(a.tyres);
     g.setLineDash([]);
     g.restore();
@@ -675,6 +678,13 @@ class Renderer {
     AUTANT DE COULEURS QU'ON VEUT, et non deux. Les blocs se succèdent en faisant le tour de la
     liste : deux pour un vibreur classique, trois pour le vert-blanc-rouge de Monza. */
     if (track.def && track.def.kerb) PAL = Object.assign({}, PAL, { kerb: track.def.kerb });
+    const graphics=track.def.graphics;
+    if(graphics){
+      // Le matériau change, l'identité de la végétation de chaque thème demeure.
+      const vegetation={};
+      for(const key of ['canopy','pine','sousBois'])if(PAL[key])vegetation[key]=PAL[key];
+      PAL=Object.assign({},PAL,CIRCUIT_MATERIALS,vegetation,graphics.materials||{},{kerb:graphics.kerb||PAL.kerb});
+    }
     this.grass = this._makeGrass();
     this.grassPattern = this.ctx.createPattern(this.grass, 'repeat');
     const seed = track.id || track.name || 'track';
@@ -741,7 +751,7 @@ class Renderer {
     bouts. Elle était peinte à largeur constante et coupée net, tandis que la règle, elle, suivait
     déjà l'affinement — si bien qu'aux extrémités la peinture promettait du vibreur là où rouler
     valait une sortie de piste. Un seul tableau pour les deux, et la promesse redevient tenable. */
-    const KERB_BLOCK = 3;
+    const KERB_BLOCK = graphics?.kerbBlock || 3;
     const kerbW = (i) => track.kerb[((i % N) + N) % N];
     // `dehors` : le bord extérieur de la bande, qui suit l'affinement. Sinon son bord intérieur,
     // qui longe la ligne blanche d'un bout à l'autre.
@@ -1083,9 +1093,10 @@ class Renderer {
     donc rien dans le jeu ne pouvait répondre « le fond n'est pas encore là ». C'est pourtant ce qui
     apparaissait au feu vert sur un téléphone — le décor et le fond de carte, plusieurs centaines de
     kilo-octets, qui finissaient de descendre pendant le décompte. Voir `pretAPeindre`. */
+    this.circuitGraphics=graphics?new CircuitGraphics(track,PAL,graphics):null;
     this.enRoute = [];
     this.pitImg = null;
-    if (pit) {
+    if (pit && !graphics?.proceduralPit) {
       const im = new Image(); im.onload = () => { this.pitImg = im; }; im.src = 'art/Pitstop.png';
       this.enRoute.push(im);
     }
@@ -1589,9 +1600,9 @@ class Renderer {
       g.imageSmoothingEnabled = true;
       g.drawImage(this.bgImage, 0, 0, this.bgImage.naturalWidth * sc, this.bgImage.naturalHeight * sc);
     } else {
-      g.fillStyle = this.grassPattern;
+      g.fillStyle = this.circuitGraphics ? PAL.grass : this.grassPattern;
       g.save(); g.scale(1 / 8, 1 / 8); g.fillRect(vis.minX * 8, vis.minY * 8, (vis.maxX - vis.minX) * 8, (vis.maxY - vis.minY) * 8); g.restore();
-      this._drawDryGrass(g, vis);
+      if(this.circuitGraphics)this.circuitGraphics.drawTerrain(g,vis);else this._drawDryGrass(g, vis);
       this._drawImplantationSol(g, vis);
       this._drawSea(g, vis);
     }
@@ -1602,29 +1613,32 @@ class Renderer {
       // comes from flat colours and hard edges rather than shading
       if(this.barrierGravel){g.fillStyle=PAL.gravel;g.fill(this.barrierGravel);}
       else for (const cn of this.paths.corners) { if (!inView(cn.bbox)) continue; g.fillStyle = PAL.gravel; g.fill(cn.gravel); }
+      if(this.circuitGraphics)this.circuitGraphics.drawGravel(g,vis,this.cam.zoom);
       if(this.runoffAsphalt){
-        g.fillStyle='#777681';g.fill(this.runoffAsphalt);
+        g.fillStyle=PAL.runoff || '#777681';g.fill(this.runoffAsphalt);
+        if(this.circuitGraphics)this.circuitGraphics.drawRunoff(g,vis,this.cam.zoom,this.runoffAsphalt);
         if(this.runoffBandes)for(const b of this.runoffBandes){g.fillStyle=b.col;g.fill(b.path);}
         for(let i=0;i<this.runoffPaint.length;i++){g.fillStyle=PAL.kerb[i];g.fill(this.runoffPaint[i]);}
       }
       // Seuls les tronçons en vue : la caméra montre une cinquantaine de mètres d'un circuit qui
       // en fait des milliers, et tout le reste ne sert qu'à occuper le rasteriseur.
       const vus = this.paths.chunks.filter(c => inView(c.bbox));
-      g.strokeStyle = PAL.outline; g.lineWidth = 3.6;
+      g.strokeStyle = PAL.outline; g.lineWidth = T.def.graphics?.roadOutlineWidth ?? 3.6;
       for (const c of vus) { g.stroke(c.left); g.stroke(c.right); }
       g.fillStyle = PAL.asphalt;
       for (const c of vus) g.fill(c.fill);
+      if(this.circuitGraphics)this.circuitGraphics.drawRoad(g,vis,this.cam.zoom);
       // kerbs, laid over the road's dark outline so the band reads as one crisp edge
       g.save();
       g.lineJoin = 'miter'; g.lineCap = 'butt'; g.miterLimit = 3;
       for (const cn of this.paths.corners) {
         if (!inView(cn.bbox)) continue;
         for (let k = 0; k < cn.kerbs.length; k++) { g.fillStyle = PAL.kerb[k]; g.fill(cn.kerbs[k]); }
-        g.strokeStyle = PAL.outline; g.lineWidth = 0.34; g.stroke(cn.kerbEdge);
+        g.strokeStyle = PAL.outline; g.lineWidth = T.def.graphics?.kerbOutlineWidth ?? 0.34; g.stroke(cn.kerbEdge);
       }
       g.restore();
       // painted markings: the edges say which side of the corner they are, dashed yellow down the middle
-      g.lineWidth = 0.55;
+      g.lineWidth = 0.55; // Repères de gameplay bleu/jaune : largeur conservée.
       g.strokeStyle = PAL.edgeBleu || PAL.edgeLine;
       for (const c of vus) g.stroke(c.edgeBleu);
       g.strokeStyle = PAL.edgeJaune || PAL.edgeLine;
@@ -1644,13 +1658,14 @@ class Renderer {
       Le bord côté piste est une ligne CONTINUE, comme sur un vrai circuit : c'est la convention
       qui dit « on ne franchit pas ça », et elle se lit sans légende. */
       const vp = this.paths.pit;
-      if (vp && this.showPit && inView(vp.bbox)) {
+      if (vp && (this.showPit || this.circuitGraphics) && inView(vp.bbox)) {
         g.strokeStyle = PAL.outline; g.lineWidth = 2.6; g.stroke(vp.surface);
         g.fillStyle = PAL.pitLane || '#3a3a44'; g.fill(vp.surface);
         // la zone d'arrêt : un pavé plus clair, bordé, qu'on repère en arrivant
         g.fillStyle = PAL.pitBox || 'rgba(255,212,0,0.16)'; g.fill(vp.zone);
         g.strokeStyle = PAL.pitBoxLine || '#ffd400'; g.lineWidth = 0.5; g.stroke(vp.zone);
         g.strokeStyle = PAL.edgeLine; g.lineWidth = 0.5; g.stroke(vp.ligne);
+        if(this.circuitGraphics)this.circuitGraphics.drawPitGarages(g,vp.garages);
         if (this.pitImg) {
           for (const gr of vp.garages) {
             g.save();
@@ -1662,8 +1677,9 @@ class Renderer {
       }
     }
     if (this.showLines) this._drawGuide(g, race);
+    if(this.circuitGraphics)this.circuitGraphics.drawGrid(g);
     this._drawStartLine(g, T);
-    this._drawBoards(g, T, vis);
+    this._drawBoards(g, T, vis); // chiffres et flèches de gameplay conservés, sans panneau ajouté
     // Rubber first, then the water on top of it: a puddle covers what is under it, and a car does
     // not lay rubber across standing water.
     this._drawRubber(g, vis);

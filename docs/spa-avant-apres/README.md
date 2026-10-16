@@ -14,3 +14,6 @@ La proposition utilise des verts forestiers profonds propres à Spa, des aplats 
 Les chiffres, flèches et bordures jaunes/bleues de gameplay gardent leurs positions et dimensions. Aucun panneau de distance ajouté. Les formes annotées des dégagements bitumés et graviers sont conservées. La géométrie physique, les barrières et les repères sont identiques avant/après sur les 13 circuits. Le contrôle des 9633 arbres de Spa ne trouve aucun pied sur la piste, dans un dégagement ou sur un bâtiment.
 
 Cet export présente une proposition de rendu. Les modifications de rendu de Monza et Spa restent locales et ne sont pas déployées dans le jeu par ce commit.
+
+
+Mise à jour : le style est maintenant intégré à la version hybrid 0.27.0. Consulter les [exports courants des 13 circuits](../exports-circuits/2026-10-16/README.md) ; cette comparaison conserve les captures de la proposition à son stade de création.

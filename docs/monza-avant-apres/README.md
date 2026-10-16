@@ -13,3 +13,6 @@ Chaque dossier contient le circuit complet, quatre vues de détail et une planch
 L’après présente la proposition de rendu locale issue du [skill](../skill_circuit/skill_circuit.txt) et de son [analyse source](../skill_circuit/analyse_circuit.md) : asphalte gris sombre, bordures jaunes et bleues de gameplay conservées, vibreurs italiens, herbe en aplats naturels et stands procéduraux. Les chiffres, flèches et bordures jaunes/bleues de gameplay sont conservés, avec leurs dimensions et leur affectation par côté ; aucun panneau de distance ajouté.
 
 La géométrie physique est identique avant et après : tracé, largeurs, surfaces, vibreurs, barrières, stands et repères contrôlés sur les 13 circuits. Cet export permet de comparer la proposition ; les modifications de rendu restent en cours de travail et ne sont pas publiées dans le jeu par ce commit.
+
+
+Mise à jour : le style est maintenant intégré à la version hybrid 0.27.0. Consulter les [exports courants des 13 circuits](../exports-circuits/2026-10-16/README.md) ; cette comparaison conserve les captures de la proposition à son stade de création.

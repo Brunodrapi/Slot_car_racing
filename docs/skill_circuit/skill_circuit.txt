@@ -13,6 +13,23 @@ Read `analyse_circuit.md` in this directory together with this skill. It is the 
 - Circuit identity matters: Monza uses a natural green/grey palette with dark asphalt, trees, grass and chicanes; Spa uses deep forest greens; Silverstone uses grey/green with modern facilities; Paul Ricard alone receives its configured blue/red runoff stripes. Do not copy a distinctive feature to other circuits without supporting data.
 
 
+## 0.1 Consolidated artistic direction (user clarifications)
+
+Aim for a warmer, more colorful circuit while keeping a minimalist, fully code-drawn style. Treat apexes, corner approaches, exits and protections as well as the asphalt itself.
+
+- Mandatory gameplay: retain large road numbers, arrows and yellow/blue edge lines, including their side assignment, original placement, size and contrast. No distance boards.
+- Use red/white kerbs by default; configured circuit variants remain possible. An apex is primarily defined by the inner kerb geometry, not a mandatory extra colored patch.
+- Green painted runoff #448C58 accompanies configured approaches and kerb extensions. Clip it to existing asphalt runoff, behind gameplay markings/kerbs. It is distinct from natural grass.
+- Use broad, readable colored bands in asphalt runoff, selected per circuit. Spa yellow/red plus green; Monza green/white where asphalt exists; Paul Ricard its existing blue/red pattern. Leave a grey transition beside the road. Do not recolor gravel, fabricate asphalt areas, or paint the road itself.
+- Safety modules: red #C92F32, white #E6E6DF, blue #28639C, visible joints and short shadows. Tire walls: black #27292A, sides #373A3C, distinct cylinders. Concrete: #A9A9A3 with #81827E joints. A visual treatment does not change collision behavior or assert a real protection type.
+- Yellow #E9BE37 reliefs and orange #ED782C bollards need documented local placement. Do not invent obstacles or force an approximate 70% kerb-family quota.
+- Natural grass uses irregular flat shapes, with occasional dried yellow areas; no repeated brown patches. Preserve local vegetation and architecture (Monaco tall buildings; Le Mans small houses), sea/tunnel relationships and existing corrected runoff contours.
+- Apply color only where the corresponding existing material is present. A circuit without asphalt runoff need not show colored runoff bands.
+- Research real references when available. Label artistic palettes honestly; do not claim internet verification when requests are blocked. The current all-circuit palettes are artistic proposals, except the pre-existing configured Paul Ricard pattern; network research was blocked (HTTP 403).
+- All scenery remains procedural, deterministic and in world coordinates; preserve track geometry, surface boundaries, barrier clearance and physics.
+
+Current artistic runoff palettes: Monaco red/white; Silverstone green/white; Suzuka green/white; Interlagos green/yellow; Laguna Seca blue/white; Nürburgring green/white; Le Mans blue/yellow; Bathurst green/yellow; Red Bull Ring green/white; Zandvoort orange/white. These configurable proposals are not claims of exact real-world paint layouts.
+
 ## 1. Objective
 
 Generate visually coherent, realistic, modern Formula 1-style circuits using **100% procedural rendering**.

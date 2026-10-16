@@ -21,6 +21,8 @@ const { chromium } = require('playwright');
 const ROOT = path.join(__dirname, '..');
 const OUT = process.argv[2] || path.join(ROOT, 'export', 'decor');
 const CIRCUIT = process.argv[3] || null;
+const VIEW_W = +(process.env.EXPORT_WIDTH || 1280), VIEW_H = +(process.env.EXPORT_HEIGHT || 800);
+const DPR = +(process.env.EXPORT_DPR || 2);
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png',
   '.ico': 'image/vnd.microsoft.icon', '.webmanifest': 'application/manifest+json', '.webp': 'image/webp' };
 
@@ -39,8 +41,9 @@ const VUES = [0.08, 0.33, 0.58, 0.83];
   await new Promise((r) => srv.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${srv.address().port}`;
   const nav = await chromium.launch();
-  const page = await nav.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 });
-  page.on('pageerror', (e) => console.log('  ERREUR ' + e.message));
+  const page = await nav.newPage({ viewport: { width: VIEW_W, height: VIEW_H }, deviceScaleFactor: DPR });
+  const errors=[];
+  page.on('pageerror', (e) => { errors.push(e.message); console.log('  ERREUR ' + e.message); });
   await page.goto(base);
   await page.waitForFunction(() => typeof app !== 'undefined' && app.save && typeof TRACKS !== 'undefined');
   await page.evaluate(() => { app.save.name = 'Export'; app.mondial = null; storeSave(app.save); });
@@ -152,5 +155,6 @@ const VUES = [0.08, 0.33, 0.58, 0.83];
   console.log(`\n${circuits.length} planches`);
 
   await nav.close(); srv.close();
+  if(errors.length)throw Error('Erreurs de rendu : '+errors.join('; '));
   console.log(`fait — ${OUT}`);
 })();
