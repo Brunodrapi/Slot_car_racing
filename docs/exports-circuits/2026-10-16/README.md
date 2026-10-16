@@ -2,7 +2,7 @@
 
 13 PNG de 2560 × 1600 pixels : circuit complet avec décor, sans voitures ni interface. Le cadrage inclut les dégagements et les protections.
 
-Version du jeu : **0.25.3**, révision source `98920bffcda76bacaaaf3b5310d22dbd66465eb2`, branche `claude/hybrid-racing-game-2d-jkk7q0`. Les captures incluent les implantations récentes du décor, les protections et le nouveau circuit Paul Ricard.
+Version du jeu : **0.26.0**, révision source `f89e47de5c990a8e6a4f159d02536da41ce8b628`, branche `claude/hybrid-racing-game-2d-jkk7q0`. Captures régénérées avec les barrières reculées, l’herbe en aplats naturels et ses zones séchées, les bâtiments adaptés à chaque circuit et le littoral corrigé de Monaco jusque devant le tunnel.
 
 [Télécharger les 13 PNG dans un ZIP](../circuits-hybrid-2026-10-16.zip)
 

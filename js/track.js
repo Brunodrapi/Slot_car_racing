@@ -252,7 +252,12 @@ class Track {
   maintenant une seule mesure. */
   limiteProtection(s, side) {
     const hw = side > 0 ? this.hwLeftAt(s) : this.hwRightAt(s);
-    return hw + Math.max(this.kerbAt(s) + 2.2, this.runoffWidthAt(s, side) + 1.5);
+    const runoff = this.runoffWidthAt(s, side);
+    // Neuf mètres sur l'herbe. Le raccord garde le placement existant au bord
+    // des grands dégagements et évite une marche à leur entrée/sortie.
+    const u = Math.min(1, runoff / 6), t = u * u * (3 - 2 * u);
+    const verge = (this.def.grassBarrierGap ?? 9) * (1 - t) + 2.2 * t;
+    return hw + Math.max(this.kerbAt(s) + verge, runoff + 1.5);
   }
 
   largeurBac(i, cote) {
