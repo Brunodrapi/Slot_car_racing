@@ -1,6 +1,6 @@
 # Circuits hybrid — export du 16 octobre 2026
 
-Version **0.27.0** : matériaux procéduraux et palettes par circuit suivant le [skill consolidé](../../skill_circuit/skill_circuit.txt) et son [analyse source](../../skill_circuit/analyse_circuit.md).
+Version **0.27.1** : matériaux procéduraux et palettes par circuit suivant le [skill consolidé](../../skill_circuit/skill_circuit.txt) et son [analyse source](../../skill_circuit/analyse_circuit.md).
 
 **78 PNG** : pour chacun des 13 circuits, une vue complète et quatre détails de 2560 × 1600 pixels, plus une planche de synthèse. Captures du jeu sans voitures ni interface ; les cadres complets incluent les dégagements et les protections.
 
@@ -28,6 +28,8 @@ Le rendu conserve les chiffres et flèches de gameplay et les bordures jaunes/bl
 
 Les couleurs des dégagements sont des propositions artistiques configurables, pas des relevés certifiés : la recherche web a été bloquée (HTTP 403). Les zones sans dégagement asphalté ne reçoivent pas de bandes peintes ; on ne transforme pas leurs graviers en bitume. Paul Ricard conserve son motif bleu/rouge spécifique.
 
-Validation : géométrie physique, largeurs, surfaces, vibreurs, barrières, stands et repères identiques sur les 13 circuits par comparaison des données avant/après ; contrôles de décor, de dégagements et de collisions passés. Rendu des 13 circuits exécuté en Chromium desktop 1280 × 800 (DPR 2) et mobile simulé 390 × 844 (DPR 3), sans erreur de script ; il ne s’agit pas d’un test sur iPhone physique.
+Corrections de matières : Monaco entièrement bitumé hors piste ; tabliers bitumés avant gravier distingués à Monza, Interlagos et au Red Bull Ring. Voir le [bilan des références, corrections et incertitudes](../../surfaces-circuits/README.md). Les images schématiques ne permettent pas de certifier toutes les surfaces des autres circuits.
+
+Validation : tracé, largeur de chaussée, vibreurs, repères, stands et enveloppes de protections identiques sur les 13 circuits par comparaison avec 0.27.0. Les matières hors piste changent aux endroits corrigés, ainsi que leur roulement, sans modification du modèle de motricité. Tests `surfaces-banc`, `degagements-banc`, `decor-banc` et `barrieres-banc`. Captures Chromium desktop 1280 × 800 (DPR 2).
 
 Reproduction : `node --require /workspace/cloud-setup/system-chromium.cjs tools/export-decor.js docs/exports-circuits/2026-10-16`. Le préchargement Chromium est propre à l’environnement cloud ; avec Playwright configuré, `node tools/export-decor.js <dossier>` suffit.

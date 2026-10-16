@@ -13,7 +13,13 @@ Read `analyse_circuit.md` in this directory together with this skill. It is the 
 - Circuit identity matters: Monza uses a natural green/grey palette with dark asphalt, trees, grass and chicanes; Spa uses deep forest greens; Silverstone uses grey/green with modern facilities; Paul Ricard alone receives its configured blue/red runoff stripes. Do not copy a distinctive feature to other circuits without supporting data.
 
 
-## 0.1 Consolidated artistic direction (user clarifications)
+## 0.1 Surface identification before styling
+
+Read the supplied images in `art/reprise circuit/` before deciding which material to paint. Favor explicit material legends, readable aerial photographs and user annotations over unlabelled stylized maps. A cream/white region is not automatically gravel; colored paint is still asphalt. Record the reference and confidence for each correction. Do not claim an approximate polygon or width was measured from a schematic.
+
+Monaco has no gravel runoff: existing urban runoff envelopes must be asphalt. Monza must not be classified as all gravel: asphalt aprons and outer gravel can coexist in the same sector. Represent these radial layers explicitly (asphalt near the track, gravel farther out); painting must agree with the surface used by car physics. Preserve centerline, road/kerb widths, gameplay markings and barrier clearance; surface corrections are authorized and may change off-track rolling behavior. Audit report: `../surfaces-circuits/README.md`.
+
+## 0.2 Consolidated artistic direction (user clarifications)
 
 Aim for a warmer, more colorful circuit while keeping a minimalist, fully code-drawn style. Treat apexes, corner approaches, exits and protections as well as the asphalt itself.
 

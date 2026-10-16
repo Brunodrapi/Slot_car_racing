@@ -190,10 +190,15 @@ class Track {
   // traverser une ligne droite ou un changement de courbure sans être morcelée.
   _buildRunoffs() {
 
-    if (!this.def.runoffs) return;
+    if (!this.def.runoffs && this.def.defaultRunoff !== 'asphalt') return;
     this.bacW = this._profilBac();
     this.asphaltW = { L: new Float32Array(this.n), R: new Float32Array(this.n) };
-    for (const zone of this.def.runoffs) {
+    // Les circuits urbains n'ont pas de bacs automatiques : même enveloppe, en bitume.
+    if(this.def.defaultRunoff === 'asphalt'){
+      this.asphaltW.L.set(this.bacW.L);this.asphaltW.R.set(this.bacW.R);
+      this.bacW.L.fill(0);this.bacW.R.fill(0);
+    }
+    for (const zone of this.def.runoffs || []) {
       const pts = zone.points || runoffProfil(zone), side = zone.side > 0 ? 'L' : 'R';
       const first = pts[0][0], last = pts[pts.length - 1][0];
       let crete = 0;
@@ -206,7 +211,9 @@ class Track {
         let j = 0;
         while (j < pts.length - 2 && f > pts[j + 1][0]) j++;
         const a = pts[j], b = pts[j + 1], u = (f - a[0]) / (b[0] - a[0]);
-        const w = Math.max(0, a[1] + (b[1] - a[1]) * u);
+        let w = Math.max(0, a[1] + (b[1] - a[1]) * u);
+        // Une zone mixte conserve le gravier extérieur et son enveloppe de protection.
+        if(zone.keepOuterGravel)w=Math.min(w,this.bacW[side][i]);
         /* La zone déclarée CHASSE le profil automatique au lieu de l'écraser.
 
         Une zone s'ouvre à zéro et se ferme à zéro ; le profil tiré de la courbure, lui, ne
@@ -220,7 +227,8 @@ class Track {
         encore disparu derrière le bitume. C'est quelques mètres sur la longueur d'un virage, et
         c'est ce que montrent beaucoup de circuits réels : un tablier d'asphalte, puis du gravier
         au-delà. */
-        const reste = crete > 0 ? this.bacW[side][i] * Math.max(0, 1 - w / crete) : this.bacW[side][i];
+        const reste = zone.keepOuterGravel ? this.bacW[side][i]
+          : crete > 0 ? this.bacW[side][i] * Math.max(0, 1 - w / crete) : this.bacW[side][i];
         this.bacW[side][i] = zone.surface === 'gravel' ? Math.max(w, reste)
           : zone.surface === 'grass' ? 0 : reste;
         this.asphaltW[side][i] = zone.surface === 'asphalt' ? w : 0;

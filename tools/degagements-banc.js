@@ -128,10 +128,12 @@ for(const d of TRACKS.filter(d=>d.id!=='spa')){
   const mid=((z.from+(z.to>z.from?z.to:z.to+1))/2)%1;
   assert.ok(t.runoffWidthAt(mid*t.length,z.side)>z.w*0.5,
    d.id+' : zone absente à son milieu — '+z.name);
-  // Au milieu d'un tablier bitumé, le profil automatique doit avoir entièrement disparu.
+  // Le tablier est bitumé ; un bac extérieur peut être explicitement conservé.
   if(z.surface==='asphalt'){
    const k=t.idx(mid*t.length),cote=z.side>0?'L':'R';
-   assert.ok(t.bacW[cote][k]<0.5,d.id+' : gravier au milieu du bitume — '+z.name);
+   if(!z.keepOuterGravel)assert.ok(t.bacW[cote][k]<0.5,d.id+' : gravier au milieu du bitume — '+z.name);
+   const s=mid*t.length,hw=z.side>0?t.hwLeftAt(s):t.hwRightAt(s);
+   assert.equal(t.runoffSurfaceAt(s,z.side*(hw+t.asphaltW[cote][k]/2)),'asphalt',d.id+' : lecture de surface — '+z.name);
   }
  }
 }

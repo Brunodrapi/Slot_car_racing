@@ -91,14 +91,10 @@ const TRACKS = [
        où le paddock et les tribunes ouvrent la seule clairière du tour. Le sable des bacs est celui
        de la carte peinte : Rettifilo, Roggia, les deux Lesmo, Ascari. La Parabolica est bitumée
        depuis 2014, avec le gravier au-delà. */
-    /* RELU SUR LA CARTE PEINTE, et corrigé : la première version mettait du bitume à Curva
-       Grande, à Ascari et à la Parabolica. Il n'y en a nulle part. Monza, sur cette carte, est
-       bordé de SABLE d'un bout à l'autre — un liseré continu le long de tout l'extérieur du tour,
-       qui s'élargit brutalement à chaque virage. Les trois corrections comptent : ce sont les
-       trois endroits où l'on sort le plus souvent.
-
-       Le liseré de Serraglio, de part et d'autre de la ligne droite entre Lesmo et Ascari, est
-       étroit mais bien là sur la carte ; il n'y était pas du tout. */
+    /* Les deux cartes fournies sont stylisées, sans légende de matériaux : une zone
+       claire ne prouve pas qu'il s'agit de sable. On conserve les bacs extérieurs,
+       et on décrit séparément les tabliers bitumés des chicanes et de Parabolica.
+       Largeurs simplifiées pour le jeu ; voir docs/surfaces-circuits/README.md. */
     runoffs: [
       { name: 'Variante del Rettifilo', surface: 'gravel', side: -1, from: 0.164, to: 0.200, w: 17 },
       { name: 'Curva Grande', surface: 'gravel', side: 1, from: 0.225, to: 0.325, w: 20 },
@@ -110,6 +106,10 @@ const TRACKS = [
       { name: 'Serraglio, intérieur', surface: 'gravel', side: -1, from: 0.54, to: 0.66, w: 8 },
       { name: 'Variante Ascari', surface: 'gravel', side: -1, from: 0.675, to: 0.745, w: 16 },
       { name: 'Parabolica', surface: 'gravel', side: 1, from: 0.885, to: 0.975, w: 22 },
+      { name: 'Rettifilo — tablier intérieur au bac', surface: 'asphalt', side: -1, from:.164, to:.200, w:6, keepOuterGravel:true },
+      { name: 'Roggia — tablier intérieur au bac', surface: 'asphalt', side:-1, from:.372, to:.412, w:5, keepOuterGravel:true },
+      { name: 'Ascari — tablier intérieur au bac', surface: 'asphalt', side:-1, from:.675, to:.745, w:6, keepOuterGravel:true },
+      { name: 'Parabolica — bitume avant gravier', surface: 'asphalt', side:1, from:.885, to:.975, w:8, keepOuterGravel:true },
     ],
     /* LE BOIS EST DANS LA BOUCLE OUEST, et pas ailleurs. La carte le dit sans ambiguïté : la
        masse sombre remplit l'intérieur de Curva Grande jusqu'à Lesmo et borde Serraglio des deux
@@ -270,6 +270,7 @@ const TRACKS = [
   },
   {
     id: 'monaco', name: 'Monaco', country: 'MC', flag: '🇲🇨', theme: 'riviera',
+    defaultRunoff: 'asphalt', // Références monaco.jpg / monaco_2.jpg : aucun bac à gravier.
     architecture: 'immeubles',
     // Port Hercule, côté intérieur : sortie du tunnel → Tabac → Piscine.
     // Bord au large en fractions de la boîte du tracé (x, y), indépendant des normales des virages.
@@ -1161,6 +1162,17 @@ const TRACKS = [
     },
   },
 ];
+
+// Les tabliers bitumés peuvent précéder un bac : ne pas traiter tout le dégagement
+// comme une seule matière. Largeurs simplifiées, bornes des secteurs conservées.
+for(const id of ['interlagos','redbullring']){
+  const d=TRACKS.find(t=>t.id===id);
+  const names=id==='interlagos'?['S de Senna','Descida do Lago','Juncao']
+    :['Virage 1','Virage 3','Virage 4','Virage 6-7','Virage 9','Virage 10'];
+  const aprons=d.runoffs.filter(z=>names.includes(z.name)).map(z=>({
+    ...z,name:z.name+' — tablier bitumé avant bac',surface:'asphalt',w:4,keepOuterGravel:true}));
+  d.runoffs.push(...aprons);
+}
 
 // Profils artistiques configurés : les couleurs ne changent aucune surface physique.
 // Une palette est une proposition visuelle, pas une certification des peintures réelles.
