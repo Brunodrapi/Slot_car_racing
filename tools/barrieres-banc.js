@@ -7,7 +7,9 @@ vm.runInContext(fs.readFileSync(__dirname+'/../js/paquet.js','utf8'),c);
 vm.runInContext(`
 const T=new Track(TRACKS.find(t=>t.id==='spa'));
 assert.ok(T.barriers.length>1000);
-assert.equal(new Track(TRACKS.find(t=>t.id==='monza')).barriers.length,0);
+// Monza servait de témoin « circuit sans protections ». Il n'y en a plus : les treize en ont.
+// Ce qui se vérifie ici, c'est que l'éditeur, lui, n'en fabrique pas sans qu'on le demande.
+assert.equal(new Track({...TRACKS.find(t=>t.id==='monza'),barriers:false}).barriers.length,0);
 for(const b of T.barriers)if(b.side<0)assert.equal(T.pitAt(b.s),null,'voie des stands fermée');
 // Toute l'épaisseur des protections reste hors de l'asphalte, raccords compris.
 for(const b of T.barriers)for(const u of [0,.5,1]){

@@ -62,6 +62,9 @@ const KERB_LARGE = 1.7;      // sa largeur au milieu du virage
    une courbe en S et non une droite — « pente douce » veut dire sans angle, y compris à la jonction
    avec la pleine largeur. */
 const KERB_RAMPE = 9;
+// De combien la bande déborde du virage, en mètres : peu à l'entrée, beaucoup à la sortie, où
+// c'est elle qui rattrape la voiture qui s'élargit. Voir le bloc du vibreur plus bas.
+const KERB_AVANT = 6, KERB_APRES = 15;
 
 /* Une zone de dégagement sans contour relevé point par point.
 
@@ -272,7 +275,17 @@ class Track {
       if(side<0 && [s-12,mid,end+12].some(x=>this.pitAt(x)))continue;
       const a=point(s,side),b=point(end,side),dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
       if(len<.1)continue;
-      const tyres=this._lerp(side>0?this.bacW.L:this.bacW.R,mid)>2.5;
+      /* LES PNEUS BORDENT LE GRAVIER ET LE BITUME HORS PISTE, pas seulement le gravier.
+
+      Ils n'étaient posés que devant les bacs : une zone bitumée, pourtant aussi longue et aussi
+      rapide, n'avait qu'une glissière nue. « Les pneus doivent être collés aux graviers et aux
+      zones de bitume hors piste, sauf au début et à la fin. » C'est la largeur du dégagement qui
+      décide maintenant, quelle que soit sa matière.
+
+      Le « sauf au début et à la fin » se fait tout seul : une zone s'ouvre et se ferme sur zéro,
+      donc ses extrémités passent sous le seuil et reçoivent une glissière. La transition est là où
+      elle doit être, sans qu'on ait à la placer. */
+      const tyres=this.runoffWidthAt(mid,side)>2.5;
       const seg={ax:a.x,ay:a.y,bx:b.x,by:b.y,s:mid,side,kind:tyres?'tyres':'rail',
         half:tyres?1.2:.28,tx:dx/len,ty:dy/len,len,
         // normale dirigée vers la piste, indépendante du sens de parcours
@@ -634,11 +647,26 @@ class Track {
     virage en appui sur le vibreur se retrouvait dans le gravier d'une station à l'autre, avec une
     faute, pour n'avoir rien fait. La règle est donc un peu plus stricte que la peinture aux deux
     bouts, jamais plus large. */
+    /* LE VIBREUR DÉBORDE DU VIRAGE, à la sortie surtout.
+
+    Il s'arrêtait exactement où la courbure s'arrête, c'est-à-dire à l'apex passé. Or c'est APRÈS
+    l'apex qu'on s'appuie dessus : on ouvre le volant, la voiture dérive vers l'extérieur, et sur un
+    vrai circuit elle trouve encore dix ou quinze mètres de vibreur pour l'accueillir. Ici elle
+    trouvait de l'herbe — « en sortie de virage, les voitures ont tendance à taper la barrière ».
+
+    La bande est donc prolongée de quinze mètres à la sortie et de six à l'entrée, en gardant la
+    pente douce à ses nouvelles extrémités. Les bornes élargies servent au dessin comme à la règle :
+    ce sont les mêmes, pour que la peinture et le droit de rouler dessus ne se contredisent jamais.
+    `corners` n'est pas touché, lui — il dimensionne aussi les bacs, qui n'ont pas de raison de
+    s'allonger d'autant. */
     this.kerb = new Float32Array(N);
+    const entree = Math.round(KERB_AVANT / this.ds), sortie = Math.round(KERB_APRES / this.ds);
     for (const c of this.corners) {
-      const n = c.to - c.from;
-      for (let i = c.from; i <= c.to; i++) {
-        const d = Math.min(i - c.from, c.to - i, Math.floor(n / 2));
+      c.kerbFrom = c.from - entree;
+      c.kerbTo = c.to + sortie;
+      const n = c.kerbTo - c.kerbFrom;
+      for (let i = c.kerbFrom; i <= c.kerbTo; i++) {
+        const d = Math.min(i - c.kerbFrom, c.kerbTo - i, Math.floor(n / 2));
         const x = Math.min(1, d / KERB_RAMPE);
         const f = x * x * (3 - 2 * x);                 // pente douce aux deux bouts, pas un biseau droit
         const k = ((i % N) + N) % N;

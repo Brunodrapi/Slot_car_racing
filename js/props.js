@@ -528,6 +528,15 @@ function implTribunes(track, z, s0, s1, rnd, out) {
 Le toit est plat et clair vu d'en haut, avec sa verrière ou ses lanterneaux en bande sombre. Les
 proportions changent d'un bâtiment à l'autre, mais ils restent alignés sur la piste : un paddock
 est construit le long d'une voie, pas semé au hasard. */
+/* ON NE BÂTIT PAS DANS UN VIRAGE SERRÉ.
+
+Raccourcir le module suffisait pour une tribune, qui est basse et peu profonde ; pas pour un
+bâtiment, qui fait vingt-cinq mètres de fond. Autour de l'épingle de La Source, des modules de huit
+mètres de long mais toujours aussi profonds se chevauchaient en éventail et débordaient sur la
+piste — un paddock empilé dans un virage. Un vrai complexe de stands borde une ligne droite ; en
+dessous du rayon seuil, on passe son chemin. */
+const BATI_RAYON = 55;
+
 function implBatiments(track, z, s0, s1, rnd, out) {
   const demande = z.module == null ? 34 : z.module;
   let s = s0;
@@ -535,6 +544,8 @@ function implBatiments(track, z, s0, s1, rnd, out) {
     const module = implModule(track, s + demande / 2, demande) * (0.7 + rnd() * 0.5);
     const c = s + module / 2;
     if (c >= s1) break;
+    const k = Math.abs(track.curvAt(c));
+    if (k > 1 / BATI_RAYON) { s += module * 0.6; continue; }
     const base = implBase(track, c, z.side, z);
     const prof = z.prof * (0.6 + rnd() * 0.4);
     const p = track.pos(c, z.side * (base + prof / 2 + rnd() * z.prof * 0.15));
@@ -598,6 +609,26 @@ function placeImplantation(track, id, zones) {
     else if (z.kind === 'tribune') implTribunes(track, z, s0, s1, rnd, batis);
     else if (z.kind === 'stands' || z.kind === 'hangars') implBatiments(track, z, s0, s1, rnd, batis);
     else if (z.kind === 'parking') implParking(track, z, s0, s1, rnd, batis);
+  }
+  /* UN BÂTIMENT EST ÉCARTÉ S'IL TOMBE SUR UNE AUTRE PORTION DE PISTE.
+
+  Le recul est mesuré depuis la protection À SON ABSCISSE : il garantit qu'on ne déborde pas sur
+  la piste à cet endroit-là, et rien de plus. Là où le circuit se replie — l'épingle de La Source,
+  les deux branches d'une chicane — l'autre branche passe derrière, et un hangar posé à vingt
+  mètres de l'une se retrouvait à cheval sur l'autre. C'est le même piège qui avait mis des
+  barrières en croix à l'épingle, et il se règle de la même façon : on regarde où tombent
+  réellement les quatre coins, et pas seulement d'où l'on est parti. */
+  for (let i = batis.length - 1; i >= 0; i--) {
+    const b = batis[i];
+    if (b.type === 'voiture') continue;
+    const cs = Math.cos(b.a), sn = Math.sin(b.a);
+    let dedans = false;
+    for (const du of [-b.l / 2, b.l / 2]) for (const dv of [0, -b.side * b.w]) {
+      const x = b.x + cs * du - sn * dv, y = b.y + sn * du + cs * dv;
+      const pr = implProjette(track, x, y);
+      if (Math.abs(pr.lat) < track.limiteProtection(pr.s, pr.lat >= 0 ? 1 : -1)) dedans = true;
+    }
+    if (dedans) batis.splice(i, 1);
   }
   const cases = new Map();
   let marge = 8;                // la demi-taille du plus gros objet, pour la fenêtre de rendu

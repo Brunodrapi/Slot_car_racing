@@ -42,6 +42,7 @@ const DRAPEAUX = {
 const TRACKS = [
   {
     id: 'monza', name: 'Monza', country: 'IT', flag: '🇮🇹', theme: 'park',
+    barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.it,
     length: 2900, width: 15,
     /* La géométrie vient de `js/traces.js`, qui porte sa propre licence : elle est relevée dans
@@ -149,10 +150,12 @@ const TRACKS = [
     dégagement des deux côtés ; à Blanchimont elle ne tient plus qu'à l'extérieur, l'intérieur de
     la boucle étant occupé par les parkings. */
     implantation: [
-      { kind: 'stands', side: -1, from: 0.975, to: 0.045, recul: 10, prof: 22, module: 40 },
-      { kind: 'tribune', side: 1, from: 0.985, to: 0.04, recul: 9, prof: 16, module: 30 },
-      { kind: 'tribune', side: 1, from: 0.055, to: 0.082, recul: 11, prof: 14, module: 24 },
-      { kind: 'hangars', side: -1, from: 0.055, to: 0.12, recul: 16, prof: 26, module: 30 },
+      // La ligne des stands s'arrête AVANT La Source : l'épingle est à 0,066, et le paddock n'y
+      // entre pas. Les hangars reprennent après, le long de la montée vers Eau Rouge.
+      { kind: 'stands', side: -1, from: 0.975, to: 0.035, recul: 10, prof: 22, module: 40 },
+      { kind: 'tribune', side: 1, from: 0.985, to: 0.035, recul: 9, prof: 16, module: 30 },
+      { kind: 'tribune', side: 1, from: 0.082, to: 0.11, recul: 11, prof: 14, module: 24 },
+      { kind: 'hangars', side: -1, from: 0.085, to: 0.14, recul: 16, prof: 26, module: 30 },
       { kind: 'bois', side: -1, from: 0.12, to: 0.175, recul: 8, prof: 55 },
       { kind: 'bois', side: 1, from: 0.09, to: 0.33, recul: 10, prof: 70 },
       { kind: 'bois', side: -1, from: 0.2, to: 0.345, recul: 9, prof: 60 },
@@ -220,6 +223,7 @@ const TRACKS = [
   },
   {
     id: 'monaco', name: 'Monaco', country: 'MC', flag: '🇲🇨', theme: 'riviera',
+    barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.mc,
     length: 2300, width: 11,
     pts: TRACES.monaco,
@@ -301,6 +305,7 @@ const TRACKS = [
   },
   {
     id: 'silverstone', name: 'Silverstone', country: 'GB', flag: '🇬🇧', theme: 'autumn',
+    barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.gb,
     length: 3300, width: 16, puddles: 0.4,
     pts: TRACES.silverstone,
@@ -399,6 +404,7 @@ const TRACKS = [
   },
   {
     id: 'suzuka', name: 'Suzuka', country: 'JP', flag: '🇯🇵', theme: 'japan',
+    barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.jp,
     length: 3300, width: 14,
     pts: TRACES.suzuka,
@@ -492,6 +498,7 @@ const TRACKS = [
   },
   {
     id: 'interlagos', name: 'Interlagos', country: 'BR', flag: '🇧🇷', theme: 'tropical',
+    barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.br,
     length: 2700, width: 14,
     pts: TRACES.interlagos,
@@ -564,6 +571,7 @@ const TRACKS = [
   },
   {
     id: 'laguna', name: 'Laguna Seca', country: 'US', flag: '🇺🇸', theme: 'california',
+    barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.us,
     length: 2400, width: 13,
     pts: TRACES.laguna,
@@ -634,6 +642,7 @@ const TRACKS = [
   },
   {
     id: 'nurburgring', name: 'Nürburgring GP', country: 'DE', flag: '🇩🇪', theme: 'forest',
+    barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.de,
     length: 3000, width: 15,
     pts: TRACES.nurburgring,
@@ -715,6 +724,7 @@ const TRACKS = [
   },
   {
     id: 'lemans', name: 'Le Mans', country: 'FR', flag: '🇫🇷', theme: 'lemans',
+    barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.fr,
     length: 4200, width: 15,
     pts: TRACES.lemans,
@@ -807,6 +817,7 @@ const TRACKS = [
   },
   {
     id: 'bathurst', name: 'Mount Panorama', country: 'AU', flag: '🇦🇺', theme: 'bush',
+    barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.au,
     length: 3600, width: 13,
     pts: TRACES.bathurst,
@@ -887,6 +898,7 @@ const TRACKS = [
   },
   {
     id: 'redbullring', name: 'Red Bull Ring', country: 'AT', flag: '🇦🇹', theme: 'alpine',
+    barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.at,
     length: 2400, width: 15,
     pts: TRACES.redbullring,
@@ -960,6 +972,7 @@ const TRACKS = [
     ligne droite du Mistral et le paddock entre les deux. Presque pas de gravier : le Castellet a
     remplacé ses bacs par le bitume peint, et c'est précisément pour cela qu'il a cette tête-là. */
     id: 'castellet', name: 'Paul Ricard', country: 'FR', flag: '🇫🇷', theme: 'lemans',
+    barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.fr,
     length: 3000, width: 14,
     pts: TRACES.castellet,
@@ -1004,6 +1017,7 @@ const TRACKS = [
   },
   {
     id: 'zandvoort', name: 'Zandvoort', country: 'NL', flag: '🇳🇱', theme: 'dunes',
+    barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.nl,
     length: 2400, width: 13,
     pts: TRACES.zandvoort,

@@ -32,13 +32,33 @@ for(const side of ['L','R'])for(let i=0;i<T.n;i++){
  assert.ok(Math.abs(T.runoffWidthAt(i,side==='L'?1:-1)-T.runoffWidthAt(i+1,side==='L'?1:-1))<3,
   'raccord brutal '+i+' '+side);
 }
-// Les barrières des longs dégagements suivent le bord extérieur, et restent
-// métalliques sur le bitume ; les deux rangées de pneus restent liées au gravier.
+/* Les barrières des longs dégagements suivent le bord extérieur, et les deux rangées de pneus
+   bordent le dégagement QUELLE QUE SOIT SA MATIÈRE — gravier comme bitume hors piste. Elles ne se
+   posaient que devant les bacs : une zone bitumée, aussi longue et aussi rapide, n'avait qu'une
+   glissière nue. C'est la largeur qui décide maintenant.
+
+   Le « sauf au début et à la fin » demandé se fait tout seul, et c'est cela qu'on vérifie ici :
+   au milieu de Blanchimont, où le tablier fait près de vingt mètres, il y a des pneus ; à ses deux
+   extrémités, où il se referme sur zéro, il n'y en a pas. */
 for(const b of T.barriers.filter(b=>b.s/T.length>.9&&b.s/T.length<.94&&b.side===-1)){
  const p=T.project((b.ax+b.bx)/2,(b.ay+b.by)/2,b.s,30);
  assert.ok(Math.abs(p.lat)>T.hwRightAt(p.s)+T.runoffWidthAt(p.s,-1),'barrière au milieu du bitume');
- assert.equal(b.kind,'rail');
+ assert.equal(b.kind,'tyres','pneus absents au milieu du bitume de Blanchimont');
 }
+/* La règle, vérifiée sur TOUTES les barrières plutôt qu'en deux points choisis.
+
+   Une première version plantait deux sondes aux fractions où je croyais que le tablier de
+   Blanchimont se referme. Il ne s'y referme pas : à son entrée, le profil automatique du virage
+   est encore large, donc il y a bien des pneus, et l'essai échouait sur ma géométrie et non sur
+   le code. On énonce donc la règle elle-même — les pneus suivent la largeur du dégagement — et on
+   la vérifie partout. Les deux familles doivent exister, sinon la règle ne distingue rien. */
+let nPneus=0,nRail=0;
+for(const b of T.barriers){
+ const w=T.runoffWidthAt(b.s,b.side);
+ assert.equal(b.kind,w>2.5?'tyres':'rail','matiere de protection a '+(b.s/T.length).toFixed(3));
+ if(b.kind==='tyres')nPneus++;else nRail++;
+}
+assert.ok(nPneus>100&&nRail>100,'une seule famille de protection : '+nPneus+' pneus, '+nRail+' rails');
 // À état initial identique, seule la matière change. Le bitume rend la poussée
 // et le freinage de la route ; l'herbe/gravier conserve sa traînée existante.
 const soft=new Track({...def,barriers:false,runoffs:def.runoffs.map(z=>({...z,surface:z.surface==='asphalt'?'gravel':z.surface}))},.9);
@@ -70,11 +90,23 @@ assert.ok(Race.penalite(p)>=1);
    elle vérifiait qu'on n'avait rien recopié de Spa, et on a depuis relevé chaque circuit. Ce qui
    reste à vérifier, c'est que chaque relevé est SAIN — deux surfaces ne se superposent pas, la
    largeur ne fait pas de marche, et rien ne déborde du tour — et que les barrières dessinées
-   restent le seul essai de Spa tant qu'elles n'ont pas été étendues. */
+   sont bien posées DERRIÈRE le dégagement sur chacun, et non collées au ruban.
+
+   La garde qui tenait ici — « aucun autre circuit n'a de barrière » — datait de l'essai limité à
+   Spa. Les protections sont maintenant sur les treize, donc elle ne décrivait plus rien. Ce qui
+   doit rester vrai, c'est qu'aucune ne mord sur l'asphalte et qu'aucune ne ferme la voie des
+   stands. */
 for(const d of TRACKS.filter(d=>d.id!=='spa')){
  const t=new Track(d);
- assert.equal(t.barriers.length,0,d.id+' : barrières inattendues');
- if(!d.runoffs){assert.equal(t.asphaltW,undefined);continue;}
+ assert.ok(t.barriers.length>300,d.id+' : pas de protections');
+ for(const b of t.barriers){
+  if(b.side<0)assert.equal(t.pitAt(b.s),null,d.id+' : voie des stands fermée');
+  const p=t.project((b.ax+b.bx)/2,(b.ay+b.by)/2,b.s,60);
+  const hw=p.lat>0?t.hwLeftAt(p.s):t.hwRightAt(p.s);
+  assert.ok(Math.abs(p.lat)-hw-b.half>0.5,d.id+' : protection sur la piste en '+(b.s/t.length).toFixed(3));
+  assert.equal(b.kind,t.runoffWidthAt(b.s,b.side)>2.5?'tyres':'rail',d.id+' : matiere de protection');
+ }
+ if(!d.runoffs){continue;}
  for(const z of d.runoffs){
   assert.ok(z.points||(z.w>0&&z.from>=0&&z.from<1),d.id+' : zone sans profil — '+z.name);
   assert.ok(!z.points||z.points.length>1,d.id+' : contour vide — '+z.name);

@@ -255,6 +255,7 @@ class Renderer {
     this.cam = { x: 0, y: 0, zoom: 6 };
     this.grass = this._makeGrass();
     this.shake = 0;
+    this.detail = 1;     // 1 : protections complètes. 0 : allégées, quand la résolution est au bout.
     this._implTag = 0;   // numéro d'image, pour ne dessiner qu'une fois un arbre à cheval sur deux cases
     this.touch = false;
     this.showLines = false;   // braking guide, off unless enabled in the settings
@@ -299,10 +300,28 @@ class Renderer {
     const CRANS = [1, 1.25, 1.5, 2].filter(x => x <= this.dprMax);
     let i = CRANS.indexOf(this.dpr);
     if (i < 0) i = CRANS.length - 1;
+    /* QUAND IL N'Y A PLUS DE PIXELS À RENDRE, ON REND DU DÉTAIL.
+
+    L'échelle s'arrêtait à un pixel par point : arrivée là, elle n'avait plus rien à donner, et
+    une machine encore trop lente le restait. Les protections offrent un cran de plus. Mesuré sur
+    Spa à processeur bridé quatre fois : leur version complète coûte 45 ms par image, la version
+    allégée 38 — c'est-à-dire autant que s'il n'y avait pas de protections du tout. L'ombre
+    portée, le reflet du rail et le contour des pneus sont ce qui coûte ; ils se voient à l'arrêt
+    sur une capture, pas à soixante kilomètres-heure sur un téléphone.
+
+    Le cran se prend APRÈS la résolution et se rend AVANT elle : on préfère toujours une image
+    nette et simple à une image floue et détaillée. */
     let n = i;
     if (med > 20 && i > 0) n = i - 1;                // on n'y arrive pas : moins de pixels
     else if (med < 13 && i < CRANS.length - 1) n = i + 1;   // de la marge : on en reprend
-    if (n === i) return;
+    if (n === i) {
+      const avant = this.detail;
+      if (med > 30 && i === 0) this.detail = 0;
+      else if (med < 18) this.detail = 1;
+      if (this.detail !== avant) { this._scaleAt = now; this._fr = []; }
+      return;
+    }
+    if (this.detail === 0 && n > i) this.detail = 1;   // le détail revient avant les pixels
     this.dpr = CRANS[n];
     this.resize();
     if (this.track) this._makeMinimap();
@@ -448,9 +467,11 @@ class Renderer {
   _buildBarrierArt(track) {
     const groups=new Map();let blockIndex=0;
     for(const b of track.barriers){
-      const key=b.side+':'+Math.floor(b.s/48);
-      if(!groups.has(key))groups.set(key,{rail:new Path2D(),shine:new Path2D(),posts:new Path2D(),
-        blocks:PAL.kerb.map(()=>new Path2D()),tyres:new Path2D(),holes:new Path2D(),
+      // Des groupes de vingt-quatre mètres : assez courts pour que la fenêtre en rejette beaucoup,
+      // assez longs pour que le nombre de groupes reste modeste.
+      const key=b.side+':'+Math.floor(b.s/24);
+      if(!groups.has(key))groups.set(key,{cle:key,rail:new Path2D(),shine:new Path2D(),posts:new Path2D(),
+        blocks:PAL.kerb.map(()=>new Path2D()),tyres:new Path2D(),
         bbox:{minX:Infinity,minY:Infinity,maxX:-Infinity,maxY:-Infinity}});
       const g=groups.get(key),box=g.bbox;
       box.minX=Math.min(box.minX,b.ax-3,b.bx-3);box.maxX=Math.max(box.maxX,b.ax+3,b.bx+3);
@@ -469,15 +490,22 @@ class Renderer {
           p.moveTo(ax-b.nx*.38,ay-b.ny*.38);p.lineTo(bx-b.nx*.38,by-b.ny*.38);
           p.lineTo(bx-b.nx*1.05,by-b.ny*1.05);p.lineTo(ax-b.nx*1.05,ay-b.ny*1.05);p.closePath();
         }
-        const count=Math.max(1,Math.round(b.len/.82));
-        for(let j=0;j<count;j++)for(const off of [.10,.83]){
-          const u=(j+.5)/count,x=b.ax+(b.bx-b.ax)*u+b.nx*off,y=b.ay+(b.by-b.ay)*u+b.ny*off;
-          g.tyres.moveTo(x+.36,y);g.tyres.arc(x,y,.36,0,Math.PI*2);
-          g.holes.moveTo(x+.14,y);g.holes.arc(x,y,.14,0,Math.PI*2);
-        }
+        /* LES DEUX RANGÉES DE PNEUS SONT DEUX TRAITS, et non quatre cents cercles.
+
+        Chaque pneu était un arc, et chaque arc était tracé quatre fois — ombre, corps, contour,
+        trou. Sur Spa cela faisait quatre mille arcs par tour, dont plusieurs centaines à l'écran à
+        tout moment : huit millisecondes par image sur un processeur bridé quatre fois, mesurées en
+        retirant les pneus et en comparant. Les rails, eux, ne coûtaient qu'une demi-milliseconde.
+
+        Un trait pointillé à bouts ronds fait exactement la même image. Avec un tiret de longueur
+        nulle, chaque bout rond est un disque du diamètre de l'épaisseur ; avec la période du
+        pointillé pour espacement, c'est une rangée de pneus. Le trou au centre est le même trait,
+        plus fin et plus sombre. Deux tracés au lieu de quatre cents, et le dessin ne change pas. */
+        line(g.tyres,.10);line(g.tyres,.83);
       }
     }
     this.barrierArt=[...groups.values()];
+    this._barrFusion=null;this._barrFusionCle=null;
     this.barrierGravel=null;
     this.runoffAsphalt=null;
     this.runoffPaint=[];this.runoffBandes=null;
@@ -555,21 +583,70 @@ class Renderer {
     }
   }
 
+  /* LES PROTECTIONS SE TAILLENT SUR LA FENÊTRE SERRÉE, elles aussi.
+
+  Chaque groupe visible coûte une douzaine de passes de tracé — ombre, poteaux, trois épaisseurs de
+  rail, reflet, blocs peints, deux rangées de pneus et leurs trous. Tant qu'elles n'étaient que sur
+  Spa, en dessiner quelques-unes de trop ne se voyait pas. Sur les treize circuits, avec `vis` qui
+  porte soixante mètres de marge, on en peignait une cinquantaine de groupes par image pour une
+  dizaine réellement à l'écran : onze millisecondes sur un processeur bridé quatre fois, soit la
+  moitié du budget d'un téléphone.
+
+  Le rayon exact de l'écran plus cinq mètres suffit : un groupe ne dépasse jamais de trois. */
   _drawBarriers(g,vis) {
-    g.save();g.lineJoin='round';g.lineCap='round';
+    const r=Math.hypot(this.w,this.h)/2/this.cam.zoom+5;
+    const minX=this.cam.x-r,maxX=this.cam.x+r,minY=this.cam.y-r,maxY=this.cam.y+r;
+    /* LES GROUPES VISIBLES SONT RÉUNIS AVANT D'ÊTRE PEINTS.
+
+    Chaque groupe demandait ses douze passes à lui — ombre, poteaux, trois épaisseurs de rail,
+    reflet, blocs peints et leur contour, pneus, contour des pneus, trous. Dix groupes à l'écran
+    faisaient cent vingt passes de rastérisation, et c'est là que partaient les dix-huit
+    millisecondes par image que la mesure attribuait aux protections : plus de la moitié du budget
+    d'un téléphone, pour une poignée de mètres de rail.
+
+    Or ces passes ne diffèrent pas d'un groupe à l'autre : même couleur, même épaisseur. Réunir les
+    chemins puis peindre une fois ramène le compte à douze, quel que soit le nombre de groupes.
+    `addPath` ne fait que recopier de la géométrie — c'est la rastérisation qui coûte.
+
+    Le jeu réuni est gardé d'une image à l'autre tant que la liste des groupes visibles ne change
+    pas, ce qui est le cas la plupart du temps : la caméra avance de quelques centimètres par
+    image, et un groupe fait vingt-quatre mètres. */
+    const vus=[];
     for(const a of this.barrierArt||[]){
-      const b=a.bbox;if(b.maxX<vis.minX||b.minX>vis.maxX||b.maxY<vis.minY||b.minY>vis.maxY)continue;
-      g.save();g.translate(.25,.3);g.strokeStyle='rgba(20,18,26,.28)';g.lineWidth=.8;
-      g.stroke(a.rail);g.fillStyle='rgba(20,18,26,.25)';for(const p of a.blocks)g.fill(p);g.fill(a.tyres);g.restore();
-      g.strokeStyle='#36333e';g.lineWidth=.22;g.stroke(a.posts);
-      g.strokeStyle='#302c38';g.lineWidth=.58;g.stroke(a.rail);
-      g.strokeStyle='#9fa9b0';g.lineWidth=.38;g.stroke(a.rail);
-      g.strokeStyle='#e6e9e8';g.lineWidth=.10;g.stroke(a.shine);
-      g.strokeStyle='#302c38';g.lineWidth=.10;
-      for(let i=0;i<a.blocks.length;i++){g.fillStyle=PAL.kerb[i];g.fill(a.blocks[i]);g.stroke(a.blocks[i]);}
-      g.fillStyle='#41404a';g.fill(a.tyres);g.strokeStyle='#25222b';g.lineWidth=.09;g.stroke(a.tyres);
-      g.fillStyle='#181720';g.fill(a.holes);
+      const b=a.bbox;if(b.maxX<minX||b.minX>maxX||b.maxY<minY||b.minY>maxY)continue;
+      vus.push(a);
     }
+    const cle=vus.length+':'+(vus.length?vus[0].cle+'-'+vus[vus.length-1].cle:'');
+    if(!this._barrFusion||this._barrFusionCle!==cle){
+      const f={rail:new Path2D(),shine:new Path2D(),posts:new Path2D(),
+        blocks:PAL.kerb.map(()=>new Path2D()),tyres:new Path2D()};
+      for(const a of vus){
+        f.rail.addPath(a.rail);f.shine.addPath(a.shine);f.posts.addPath(a.posts);
+        f.tyres.addPath(a.tyres);
+        for(let i=0;i<f.blocks.length;i++)f.blocks[i].addPath(a.blocks[i]);
+      }
+      this._barrFusion=f;this._barrFusionCle=cle;
+    }
+    const a=this._barrFusion;
+    g.save();g.lineJoin='round';g.lineCap='round';
+    const PNEU=[0,.82];                    // tiret nul, période : un disque tous les 82 cm
+    const fin=this.detail!==0;
+    if(fin){
+      g.save();g.translate(.25,.3);g.strokeStyle='rgba(20,18,26,.28)';g.lineWidth=.8;
+      g.stroke(a.rail);g.fillStyle='rgba(20,18,26,.25)';for(const p of a.blocks)g.fill(p);
+      g.setLineDash(PNEU);g.lineWidth=.72;g.stroke(a.tyres);g.setLineDash([]);g.restore();
+    }
+    g.strokeStyle='#36333e';g.lineWidth=.22;g.stroke(a.posts);
+    g.strokeStyle='#302c38';g.lineWidth=.58;g.stroke(a.rail);
+    g.strokeStyle='#9fa9b0';g.lineWidth=.38;g.stroke(a.rail);
+    if(fin){g.strokeStyle='#e6e9e8';g.lineWidth=.10;g.stroke(a.shine);}
+    g.strokeStyle='#302c38';g.lineWidth=.10;
+    for(let i=0;i<a.blocks.length;i++){g.fillStyle=PAL.kerb[i];g.fill(a.blocks[i]);g.stroke(a.blocks[i]);}
+    g.setLineDash(PNEU);
+    if(fin){g.strokeStyle='#25222b';g.lineWidth=.76;g.stroke(a.tyres);}
+    g.strokeStyle='#41404a';g.lineWidth=.72;g.stroke(a.tyres);
+    g.strokeStyle='#181720';g.lineWidth=.26;g.stroke(a.tyres);
+    g.setLineDash([]);
     g.restore();
   }
 
@@ -672,10 +749,18 @@ class Renderer {
         if (i === cn.from) { l.moveTo(a[0], a[1]); r.moveTo(b[0], b[1]); } else { l.lineTo(a[0], a[1]); r.lineTo(b[0], b[1]); }
         minX = Math.min(minX, a[0], b[0]); maxX = Math.max(maxX, a[0], b[0]); minY = Math.min(minY, a[1], b[1]); maxY = Math.max(maxY, a[1], b[1]);
       }
+      /* La PEINTURE suit les bornes élargies du vibreur, pas celles du virage.
+
+      `cn.from`/`cn.to` sont les bornes de la courbure, et elles dimensionnent encore la route et
+      le bac. La bande, elle, déborde maintenant du virage — six mètres à l'entrée, quinze à la
+      sortie — et c'est `cn.kerbFrom`/`cn.kerbTo` qui le disent. Peindre sur les anciennes bornes
+      laisserait la règle autoriser quinze mètres de vibreur invisible : exactement la
+      contradiction que ce fichier cherche à éviter depuis qu'il lit `track.kerb`. */
+      const k0 = cn.kerbFrom, k1 = cn.kerbTo;
       for (const side of [1, -1]) {
         let block = 0;
-        for (let i = cn.from; i < cn.to; i += KERB_BLOCK, block++) {
-          const j = Math.min(i + KERB_BLOCK, cn.to);
+        for (let i = k0; i < k1; i += KERB_BLOCK, block++) {
+          const j = Math.min(i + KERB_BLOCK, k1);
           const p = kerbs[block % kerbs.length];
           const a0 = bandPt(i, side, false);
           p.moveTo(a0[0], a0[1]);
@@ -685,9 +770,9 @@ class Renderer {
         }
         // both sides of the band get the dark outline, so the strip is framed like the road is
         for (const dehors of [false, true]) {
-          const e0 = bandPt(cn.from, side, dehors);
+          const e0 = bandPt(k0, side, dehors);
           kerbEdge.moveTo(e0[0], e0[1]);
-          for (let t = cn.from + 1; t <= cn.to; t++) { const q = bandPt(t, side, dehors); kerbEdge.lineTo(q[0], q[1]); }
+          for (let t = k0 + 1; t <= k1; t++) { const q = bandPt(t, side, dehors); kerbEdge.lineTo(q[0], q[1]); }
         }
       }
       // Le profil de Spa est partagé avec les barrières, y compris ses raccords.
@@ -696,7 +781,9 @@ class Renderer {
       for (let i = cn.from; i <= cn.to; i += 2) { const k = ((i % N) + N) % N, p = [xs[k] + nx[k] * (track.hwL[k] + gravelW(k,1)), ys[k] + ny[k] * (track.hwL[k] + gravelW(k,1))]; if (i === cn.from) gravel.moveTo(p[0], p[1]); else gravel.lineTo(p[0], p[1]); }
       for (let i = cn.to; i >= cn.from; i -= 2) { const k = ((i % N) + N) % N; gravel.lineTo(xs[k] - nx[k] * (track.hwR[k] + gravelW(k,-1)), ys[k] - ny[k] * (track.hwR[k] + gravelW(k,-1))); }
       gravel.closePath();
-      return { left: l, right: r, gravel, kerbs, kerbEdge, bbox: { minX: minX - 30, minY: minY - 30, maxX: maxX + 30, maxY: maxY + 30 } };
+      // La boîte tient compte du débordement du vibreur, sinon la bande disparaîtrait à ses deux
+      // bouts dès que le virage lui-même sort du cadre.
+      return { left: l, right: r, gravel, kerbs, kerbEdge, bbox: { minX: minX - 50, minY: minY - 50, maxX: maxX + 50, maxY: maxY + 50 } };
     });
 
     /* LE TABLIER DU CROISEMENT, et pourquoi il n'est plus un trait épais.
