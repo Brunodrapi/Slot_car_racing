@@ -464,7 +464,74 @@ différence entre un bois et un verger : à pas égal au diamètre on voit le so
 on compte les rangées. La grille est jitterée plutôt qu'un disque de Poisson — un front de Poisson
 meurt dans une bande étroite, ce qui a déjà coûté assez cher ici, tandis qu'une grille secouée ne
 peut pas mourir et donne le même désordre à l'œil. */
-function implArbres(track, z, s0, s1, rnd, out) {
+/* CE QUI EST INTERDIT À UN ARBRE, et pourquoi il fallait une carte pour le dire.
+
+Un arbre est posé perpendiculairement au tracé À SON ABSCISSE, au-delà de la protection qui s'y
+trouve. Cela garantit qu'il ne tombe pas sur la piste à cet endroit-là, et rien de plus. Partout où
+le circuit se replie — une épingle, les deux branches d'une chicane, deux lignes droites parallèles
+— l'autre branche passe derrière, et le bois semé le long de la première poussait au milieu de la
+seconde : des arbres en pleine piste, et dans les bacs à gravier. « Un arbre isolé en milieu de
+piste ou sur un bâtiment, non. Pas d'arbre dans les graviers non plus. »
+
+C'est le même piège que pour les barrières en croix à l'épingle et pour les hangars à cheval sur
+l'autre branche. Il se règle pareil : on regarde où le point tombe RÉELLEMENT, et pas d'où l'on
+est parti. Mais le faire arbre par arbre coûte cher — dix mille arbres contre trois mille cinq
+cents nœuds, c'est trente-cinq millions de distances à chaque chargement de circuit.
+
+D'où la carte. On peint une fois ce qui est interdit dans une grille de trois mètres : la piste et
+tout son dégagement, protections comprises, puis l'empreinte de chaque bâtiment. Semer n'est plus
+alors qu'une lecture de case. Peindre coûte cent mille marques, lire en coûte une par arbre.
+
+La marge est la demi-couronne du plus gros arbre : ce n'est pas le tronc qu'il faut tenir hors de
+la piste, c'est le feuillage. En bordure il peut déborder — c'est même ce qu'on a cherché pour
+l'immersion — mais son pied reste dehors. */
+const MASQUE_CASE = 3;
+const MASQUE_MARGE = 4.5;
+
+function implMasque(track) {
+  const m = new Set();
+  const cle = (x, y) => Math.floor(x / MASQUE_CASE) + ',' + Math.floor(y / MASQUE_CASE);
+  /* LE PAS LE LONG DU TOUR SUIT L'ÉCARTEMENT, et c'est ce que la première version ignorait.
+
+  Un pas fixe de deux mètres sur l'axe est un pas de deux mètres au bord du ruban, mais pas à
+  trente mètres de là : à l'extérieur d'un virage, deux points voisins de l'axe s'écartent dans le
+  rapport (R + d) / R. Au sommet d'une épingle de dix mètres de rayon, trente mètres plus loin, ce
+  sont neuf mètres — trois cases de large. Le masque y était donc percé de trous réguliers, et le
+  banc a trouvé trente-deux arbres plantés dans les bacs à travers ces trous, jusqu'à quatorze
+  mètres à l'intérieur de la ligne de protection.
+
+  Le pas est donc divisé par ce rapport. On échantillonne beaucoup plus serré dans les épingles,
+  qui sont justement les endroits où le circuit se replie sur lui-même. */
+  const maxS = track.length;
+  for (const side of [1, -1]) {
+    let s = 0;
+    while (s < maxS) {
+      const L = track.limiteProtection(s, side) + MASQUE_MARGE;
+      for (let off = 0; off <= L; off += MASQUE_CASE * 0.5) {
+        const p = track.pos(s, side * off);
+        m.add(cle(p.x, p.y));
+      }
+      const grossi = 1 + L * Math.abs(track.curvAt(s));
+      s += Math.max(0.3, MASQUE_CASE * 0.5 / grossi);
+    }
+  }
+  return { m, cle, libre: (x, y) => !m.has(cle(x, y)) };
+}
+
+// L'empreinte d'un bâtiment, ajoutée au masque : un arbre ne pousse pas sur un toit.
+function implMasqueBati(masque, b) {
+  if (b.type === 'voiture') return;
+  const cs = Math.cos(b.a), sn = Math.sin(b.a);
+  const marge = 2;
+  for (let u = -b.l / 2 - marge; u <= b.l / 2 + marge; u += MASQUE_CASE * 0.7) {
+    for (let v = -marge; v <= b.w + marge; v += MASQUE_CASE * 0.7) {
+      const dv = -b.side * v;
+      masque.m.add(masque.cle(b.x + cs * u - sn * dv, b.y + sn * u + cs * dv));
+    }
+  }
+}
+
+function implArbres(track, z, s0, s1, rnd, out, masque) {
   const essences = IMPL_ESSENCES[z.essence || 'bois'] || IMPL_ESSENCES.bois;
   const total = essences.reduce((a, e) => a + e[1], 0);
   const pick = () => { let r = rnd() * total; for (const e of essences) { r -= e[1]; if (r <= 0) return e[0]; } return essences[0][0]; };
@@ -481,6 +548,7 @@ function implArbres(track, z, s0, s1, rnd, out) {
       const dd = base + d + (rnd() - 0.5) * pas * 0.9;
       if (dd < base) continue;
       const p = track.pos(ss, z.side * dd);
+      if (!masque.libre(p.x, p.y)) continue;     // piste, dégagement, protection ou bâtiment
       // Une couronne de lisière est plus petite : un bois s'effiloche sur son bord.
       const lisiere = Math.min(1, Math.min(d, prof - d) / 9);
       out.push({ x: p.x, y: p.y, id: pick(), e: 0.62 + 0.38 * lisiere + rnd() * 0.28 });
@@ -599,13 +667,17 @@ function placeImplantation(track, id, zones) {
   if (!zones || !zones.length) return null;
   const rnd = propRng(seedFromId('impl-' + id));
   const sols = [], arbres = [], batis = [], nus = [];
+  /* ON BÂTIT D'ABORD, ON PLANTE ENSUITE, et l'ordre compte : le masque qui interdit un emplacement
+  à un arbre doit déjà connaître les bâtiments, sinon un bois semé avant eux pousse sur leurs toits.
+  Les sols se posent dans la même passe que les bâtiments, ils ne gênent personne. */
+  const bois = [];
   for (const z of zones) {
     const [s0, s1] = implSpan(track, z);
     if (z.kind === 'nu') { nus.push({ s0, s1, side: z.side, prof: z.prof }); continue; }
     if (z.sol !== false)
       for (const pts of implContour(track, z, s0, s1, 4))
         sols.push({ pts, bbox: implBbox(pts), kind: z.kind, sol: z.sol });
-    if (z.kind === 'bois') implArbres(track, z, s0, s1, rnd, arbres);
+    if (z.kind === 'bois') bois.push([z, s0, s1]);
     else if (z.kind === 'tribune') implTribunes(track, z, s0, s1, rnd, batis);
     else if (z.kind === 'stands' || z.kind === 'hangars') implBatiments(track, z, s0, s1, rnd, batis);
     else if (z.kind === 'parking') implParking(track, z, s0, s1, rnd, batis);
@@ -630,6 +702,9 @@ function placeImplantation(track, id, zones) {
     }
     if (dedans) batis.splice(i, 1);
   }
+  const masque = implMasque(track);
+  for (const b of batis) implMasqueBati(masque, b);
+  for (const [z, s0, s1] of bois) implArbres(track, z, s0, s1, rnd, arbres, masque);
   const cases = new Map();
   let marge = 8;                // la demi-taille du plus gros objet, pour la fenêtre de rendu
   const range = (o, r) => {
@@ -645,15 +720,28 @@ function placeImplantation(track, id, zones) {
   };
   for (const a of arbres) range(a, 6);
   for (const b of batis) range(b, Math.max(b.l, b.w) * 0.7);
-  return { sols, arbres, batis, nus, cases, cell: IMPL_CELL, marge };
+  return { sols, arbres, batis, nus, cases, cell: IMPL_CELL, marge, masque };
 }
 
-/* Les zones `nu` effacent le semis ordinaire.
+/* LE SEMIS ORDINAIRE PASSE PAR LE MÊME MASQUE, et c'est ce qui manquait.
 
-Silverstone est un aérodrome : entre Hangar Straight et Stowe il n'y a rien, et un bosquet semé là
-par défaut trahit le lieu plus sûrement qu'une couleur fausse. */
+Deux jeux d'arbres cohabitent : les masses de l'implantation, et le semis qui saupoudre le reste du
+tour. Chacun avait sa façon de répondre à la même question — où a-t-on le droit de planter ? Le
+semis a la sienne depuis toujours, qui ne regarde qu'un nœud sur quatre et ignore complètement les
+bâtiments, puisqu'il n'y en avait pas quand elle a été écrite. Résultat mesuré par le banc : dix à
+vingt-huit arbres poussaient sur un toit, sur CHACUN des treize circuits, et trois dans le
+dégagement de Monaco.
+
+Deux réponses à une même question finissent toujours par se contredire. Il n'y en a plus qu'une :
+la carte de ce qui est interdit, qui connaît la piste, les dégagements, les protections et les
+bâtiments.
+
+Les zones `nu` restent traitées ici aussi — Silverstone est un aérodrome, et entre Hangar Straight
+et Stowe il n'y a rien à voir qu'un bosquet semé par défaut trahirait. */
 function implEfface(track, impl, props) {
-  if (!impl || !impl.nus.length) return props;
+  if (!impl) return props;
+  if (impl.masque) props = props.filter(p => impl.masque.libre(p.x, p.y));
+  if (!impl.nus.length) return props;
   return props.filter(p => {
     const pr = implProjette(track, p.x, p.y);
     const lat = pr.lat, side = lat >= 0 ? 1 : -1;

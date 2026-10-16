@@ -82,28 +82,47 @@ const TRACKS = [
        où le paddock et les tribunes ouvrent la seule clairière du tour. Le sable des bacs est celui
        de la carte peinte : Rettifilo, Roggia, les deux Lesmo, Ascari. La Parabolica est bitumée
        depuis 2014, avec le gravier au-delà. */
+    /* RELU SUR LA CARTE PEINTE, et corrigé : la première version mettait du bitume à Curva
+       Grande, à Ascari et à la Parabolica. Il n'y en a nulle part. Monza, sur cette carte, est
+       bordé de SABLE d'un bout à l'autre — un liseré continu le long de tout l'extérieur du tour,
+       qui s'élargit brutalement à chaque virage. Les trois corrections comptent : ce sont les
+       trois endroits où l'on sort le plus souvent.
+
+       Le liseré de Serraglio, de part et d'autre de la ligne droite entre Lesmo et Ascari, est
+       étroit mais bien là sur la carte ; il n'y était pas du tout. */
     runoffs: [
-      { name: 'Variante del Rettifilo', surface: 'gravel', side: -1, from: 0.166, to: 0.200, w: 15 },
-      { name: 'Curva Grande', surface: 'asphalt', side: 1, from: 0.228, to: 0.302, w: 13 },
-      { name: 'Variante della Roggia', surface: 'gravel', side: -1, from: 0.374, to: 0.409, w: 14 },
-      { name: 'Lesmo 1', surface: 'gravel', side: 1, from: 0.436, to: 0.472, w: 16 },
-      { name: 'Lesmo 2', surface: 'gravel', side: 1, from: 0.499, to: 0.522, w: 15 },
-      { name: 'Variante Ascari', surface: 'asphalt', side: -1, from: 0.684, to: 0.740, w: 16 },
-      { name: 'Parabolica', surface: 'asphalt', side: 1, from: 0.888, to: 0.972, w: 18 },
+      { name: 'Variante del Rettifilo', surface: 'gravel', side: -1, from: 0.164, to: 0.200, w: 17 },
+      { name: 'Curva Grande', surface: 'gravel', side: 1, from: 0.225, to: 0.325, w: 20 },
+      { name: 'Variante della Roggia', surface: 'gravel', side: -1, from: 0.372, to: 0.412, w: 15 },
+      { name: 'Roggia, corde', surface: 'gravel', side: 1, from: 0.376, to: 0.400, w: 9 },
+      { name: 'Lesmo 1', surface: 'gravel', side: 1, from: 0.434, to: 0.474, w: 17 },
+      { name: 'Lesmo 2', surface: 'gravel', side: 1, from: 0.496, to: 0.526, w: 16 },
+      { name: 'Serraglio, extérieur', surface: 'gravel', side: 1, from: 0.54, to: 0.66, w: 8 },
+      { name: 'Serraglio, intérieur', surface: 'gravel', side: -1, from: 0.54, to: 0.66, w: 8 },
+      { name: 'Variante Ascari', surface: 'gravel', side: -1, from: 0.675, to: 0.745, w: 16 },
+      { name: 'Parabolica', surface: 'gravel', side: 1, from: 0.885, to: 0.975, w: 22 },
     ],
+    /* LE BOIS EST DANS LA BOUCLE OUEST, et pas ailleurs. La carte le dit sans ambiguïté : la
+       masse sombre remplit l'intérieur de Curva Grande jusqu'à Lesmo et borde Serraglio des deux
+       côtés, tandis que toute la partie est — ligne des stands, ligne droite d'Ascari,
+       Parabolica — est une plaine rase couverte de tribunes bleues. La première version semait du
+       bois partout, ce qui effaçait justement ce qui fait Monza : un ruban percé dans un parc,
+       avec une clairière à un bout. */
     implantation: [
-      { kind: 'stands', side: -1, from: 0.975, to: 0.075, recul: 11, prof: 22, module: 42 },
+      { kind: 'stands', side: -1, from: 0.975, to: 0.06, recul: 11, prof: 22, module: 42 },
       { kind: 'tribune', side: 1, from: 0.98, to: 0.06, recul: 10, prof: 17, module: 32 },
-      { kind: 'parking', side: -1, from: 0.085, to: 0.14, recul: 18, prof: 34 },
-      { kind: 'bois', side: 1, from: 0.09, to: 0.235, recul: 11, prof: 65 },
-      { kind: 'bois', side: -1, from: 0.205, to: 0.37, recul: 12, prof: 75 },
-      { kind: 'bois', side: 1, from: 0.31, to: 0.43, recul: 11, prof: 70 },
-      { kind: 'bois', side: -1, from: 0.415, to: 0.68, recul: 11, prof: 80 },
-      { kind: 'bois', side: 1, from: 0.53, to: 0.68, recul: 12, prof: 70 },
-      { kind: 'bois', side: 1, from: 0.745, to: 0.88, recul: 12, prof: 60 },
-      { kind: 'bois', side: -1, from: 0.75, to: 0.885, recul: 12, prof: 75 },
-      { kind: 'tribune', side: -1, from: 0.9, to: 0.965, recul: 13, prof: 15, module: 30 },
-      { kind: 'parking', side: 1, from: 0.9, to: 0.96, recul: 16, prof: 30 },
+      { kind: 'tribune', side: -1, from: 0.075, to: 0.15, recul: 13, prof: 15, module: 30 },
+      { kind: 'nu', side: 1, from: 0.74, to: 0.2, prof: 130 },
+      { kind: 'nu', side: -1, from: 0.76, to: 0.17, prof: 130 },
+      { kind: 'bois', side: -1, from: 0.215, to: 0.37, recul: 12, prof: 80 },
+      { kind: 'bois', side: 1, from: 0.33, to: 0.53, recul: 12, prof: 60 },
+      { kind: 'bois', side: -1, from: 0.4, to: 0.53, recul: 12, prof: 70 },
+      { kind: 'bois', side: 1, from: 0.55, to: 0.665, recul: 11, prof: 55 },
+      { kind: 'bois', side: -1, from: 0.55, to: 0.665, recul: 11, prof: 75 },
+      { kind: 'bois', side: 1, from: 0.68, to: 0.735, recul: 13, prof: 40, densite: 0.5 },
+      { kind: 'tribune', side: -1, from: 0.78, to: 0.86, recul: 13, prof: 16, module: 30 },
+      { kind: 'tribune', side: 1, from: 0.9, to: 0.965, recul: 13, prof: 15, module: 30 },
+      { kind: 'parking', side: -1, from: 0.88, to: 0.95, recul: 18, prof: 34 },
     ],
     /* Les passerelles piétonnes, en fraction de tour. Relevées dans OpenStreetMap elles aussi, par
        `tools/releve.py --passerelles`, qui ne retient que les chemins « bridge=yes » dont le tracé
