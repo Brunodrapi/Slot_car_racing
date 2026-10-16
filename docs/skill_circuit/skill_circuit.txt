@@ -6,6 +6,7 @@ Read `analyse_circuit.md` in this directory together with this skill. It is the 
 
 - Preserve the existing **large distance numbers and corner arrows painted on the road**. They are gameplay aids, not decorative attempts at real-world signage.
 - Keep their positions, orientation, size and legibility. Do not remove, shrink, hide or relocate them to make the circuit look more realistic.
+- Preserve the existing **yellow and blue road-edge markings**: they indicate which side to take for gameplay. Keep their colors, side assignment, positions, continuity and original width (0.55 m). Never replace them with white styling lines.
 - **Do not add trackside distance boards or distance panels.** Do not replace or duplicate the gameplay road markings with physical signs.
 - Focus circuit improvements on materials, procedural textures, lighting restraint and the trackside environment while preserving gameplay and physical geometry.
 - The source analysis is context, not an instruction to implement every suggested asset or feature. Its references to sprites, imported textures and distance-board catalogues do not override the procedural-only rule or the gameplay requirements above.
@@ -101,15 +102,11 @@ Rubber marks are decorative only and must never change the actual collision geom
 
 Both track edges must be computed from the centerline and the local normal.
 
-Draw continuous white boundary lines:
+In this project, preserve the existing yellow and blue road-edge markings. Their side assignment tells the player which side to take. Keep their existing paths, colors and 0.55 m width, including the original color changes along the circuit. Do not replace them with white lines, swap their sides, narrow them or obscure them with material effects.
 
-- Color: `#F1F0E8`.
-- Suggested visual width: 0.12–0.20 m.
-- Use smooth joins.
-- Do not interrupt lines arbitrarily.
-- The white line must remain distinguishable from adjacent kerbs.
+White boundary lines (`#F1F0E8`, suggested width 0.12–0.20 m) are only a generic fallback for a project without these gameplay markings. They must not override the yellow/blue system here.
 
-When kerbs are present, preserve the correct geometric relationship between the track edge, white line and kerb.
+When kerbs are present, preserve their existing geometric relationship with the gameplay edge markings.
 
 ## 5. Kerbs
 
@@ -318,7 +315,7 @@ Do not invent systematic yellow/orange braking zones or decorative obstacles. Th
 
 Supported markings:
 
-- Continuous white track boundary lines.
+- Existing yellow/blue gameplay track-edge lines, with their colors, side assignment and original width preserved.
 - Start/finish line.
 - Starting grid positions.
 - Pit entry and exit lines.
@@ -494,7 +491,7 @@ Before accepting a generated circuit, verify:
 
 - [ ] The main track is continuous.
 - [ ] Track widths are preserved.
-- [ ] White boundary lines follow both track edges.
+- [ ] Yellow/blue gameplay edge markings retain their paths, colors, side assignment and original 0.55 m width.
 - [ ] Kerbs follow curved track boundaries.
 - [ ] Kerbs appear at appropriate locations, not everywhere.
 - [ ] Kerb stripe lengths are consistent.
@@ -529,7 +526,7 @@ When implementing or modifying circuit rendering:
 9. Validate the result at representative straights, tight corners, chicanes and pit lane sections.
 10. If semantic information is missing, use a neutral fallback and report the missing data rather than pretending to know the correct placement.
 11. Read `analyse_circuit.md` for circuit-specific artistic context before changing a circuit.
-12. Preserve the large gameplay numbers and arrows on the road; add no trackside distance boards.
+12. Preserve the large gameplay numbers, arrows and yellow/blue road-edge markings; add no trackside distance boards.
 
 **Priority order: geometric correctness → physical coherence → track readability → visual realism → decorative detail.**
 
