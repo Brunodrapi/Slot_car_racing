@@ -9,8 +9,8 @@
   "background_color": "#0f1117",
   "theme_color": "#0f1117",
   "icons": [
-    { "src": "art/casque-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "art/casque-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "art/casque-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "art/icone-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "art/icone-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "art/icone-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

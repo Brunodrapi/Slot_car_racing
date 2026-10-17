@@ -1,139 +1,64 @@
 #!/usr/bin/env python3
-"""Les icônes du jeu, dérivées du casque dessiné par Bruno.
+"""Les icônes du jeu, tirées de la face avant de la M1 Procar.
 
     python3 tools/icones.py
 
-Entrée : `art-src/casque.png`, le dessin pleine résolution sur fond noir.
-Sorties : `favicon.ico`, `art/casque-{16,32,48,180,192,512}.png`,
-          `art/casque-maskable-512.png`.
+Entrée : `art-src/m1-procar-face.png`, l'illustration carrée sur fond noir.
+Sorties : `favicon.ico`, `art/icone-{16,32,48,180,192,512}.png`, `art/icone-maskable-512.png`.
 
-POURQUOI UN SCRIPT ET PAS CINQ FICHIERS POSÉS À LA MAIN. Les cinq sorties doivent rester d'accord
-entre elles et avec le dessin ; dès qu'on retouche le casque, les refaire à la main en oublie une,
-et c'est toujours la même — le `.ico`, que personne ne regarde.
+POURQUOI UN SCRIPT ET PAS SEPT FICHIERS POSÉS À LA MAIN. Les sorties doivent rester d'accord entre
+elles et avec l'illustration ; dès qu'on la retouche, les refaire à la main en oublie une, et c'est
+toujours la même — le `.ico`, que personne ne regarde.
 
-DÉTOURER LE FOND NOIR N'EST PAS « RENDRE LE NOIR TRANSPARENT ». Le casque EST noir par endroits :
-les oreillettes, le verre des lunettes, tous les contours. Et une simple propagation depuis le bord
-ne marche pas non plus : les contours noirs touchent l'extérieur — la sangle des lunettes va jusqu'au
-bord de la silhouette — donc le fond s'infiltre par eux et vide le casque de l'intérieur. Essayé,
-mesuré : il ne restait que 6,4 % de noir, et la vérification à l'œil sur fond bleu passait, parce
-que le contour crème des oreillettes restait et faisait illusion. C'est la silhouette elle-même
-qu'il faut regarder pour voir la bêtise.
+DEUX CADRAGES, PARCE QU'UNE ICÔNE N'EST PAS LUE À LA MÊME TAILLE PARTOUT. L'illustration entière
+— calandre, cocarde, bandeau « Bavarian Motor Works », phare — sert aux grandes icônes : l'écran
+d'accueil d'un téléphone (180 et 192 px) et le manifeste (512). Réduite à seize pixels pour un
+onglet, elle ne laisse qu'une tache blanche striée de noir. Les icônes d'onglet (16, 32, 48 et le
+`.ico`) prennent donc un recadrage serré sur ce qui survit à la réduction : la diagonale bleue sur
+le blanc, le phare orange et le « 42 ». Comparé sur une planche aux tailles réelles contre l'image
+entière, la calandre seule et un cadrage plus serré encore sur le phare : c'est celui qui reste une
+M1 Procar à seize pixels.
 
-On passe donc par une FERMETURE MORPHOLOGIQUE de la couleur : on épaissit de quatre pixels tout ce
-qui n'est pas noir, ce qui ponte les contours et soude le casque en un seul bloc ; on bouche les
-trous ; on redescend de quatre pixels. Quatre suffit — testé aussi à 8, 14 et 20, qui donnent la
-même silhouette en plus arrondie au creux entre les oreillettes.
+AUCUN DÉTOURAGE. L'ancien casque était détouré pour flotter sur l'onglet ; cette illustration est
+coupée par les bords du cadre — la voiture sort à gauche et en bas —, son fond noir en fait partie.
+Toutes les sorties sont donc pleines, ce qui règle au passage ce qu'il fallait traiter à part pour
+iOS, qui compose mal la transparence.
 
-LE SOUS-ÉCHANTILLONNAGE EST PRÉMULTIPLIÉ. Réduire une image RGBA sans prémultiplier mélange la
-couleur des pixels transparents, qui est ici du noir : le bord ressortirait cerné de sombre sur un
-onglet clair, c'est-à-dire exactement ce qu'on cherche à enlever.
-
-DEUX SORTIES GARDENT UN FOND PLEIN, et ce n'est pas une inattention. L'icône iOS, parce que iOS
-compose mal la transparence et finit par poser du noir. L'icône « maskable » d'Android, parce que le
-système y applique un masque qui ne garde que les 80 % centraux : elle doit remplir son carré, et le
-casque y est reposé à 72 % pour que le masque ne lui coupe pas les oreillettes.
+L'ICÔNE « MASKABLE » d'Android ne garde que le disque central de 80 % : l'illustration y est posée
+pleine page, et ce qui tombe hors du masque n'est que du bord de cadre.
 """
 import os
-import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image
 
 RACINE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
-SOURCE = os.path.join(RACINE, 'art-src', 'casque.png')
-FOND_PLEIN = (15, 17, 23)        # #0f1117, le fond du jeu et le `theme-color` des pages
-NOIR = 10                        # au-dessus, le pixel porte de la couleur
-RAYON = 4                        # la fermeture qui ponte les contours
-AIR = 0.07                       # la marge autour du casque, en part de son côté
+SOURCE = os.path.join(RACINE, 'art-src', 'm1-procar-face.png')
+# Le cadrage des icônes d'onglet, en proportion du côté de l'illustration : le « 42 », le phare
+# et l'aile bleue (gauche, haut, droite, bas).
+ONGLET = (0.335, 0.20, 1.0, 0.865)
 
 
-def _m2i(m):
-    return Image.fromarray(np.where(m, 255, 0).astype(np.uint8), 'L')
-
-
-def _i2m(i):
-    return np.asarray(i) > 127
-
-
-def dilate(m, r):
-    return _i2m(_m2i(m).filter(ImageFilter.MaxFilter(2 * r + 1)))
-
-
-def erode(m, r):
-    return _i2m(_m2i(m).filter(ImageFilter.MinFilter(2 * r + 1)))
-
-
-def boucher_les_trous(m):
-    """m, plus tout ce qui, hors de m, ne communique pas avec le bord de l'image."""
-    libre = ~m
-    f = np.zeros_like(libre)
-    f[0, :] |= libre[0, :]
-    f[-1, :] |= libre[-1, :]
-    f[:, 0] |= libre[:, 0]
-    f[:, -1] |= libre[:, -1]
-    while True:
-        d = f.copy()
-        d[1:, :] |= f[:-1, :]
-        d[:-1, :] |= f[1:, :]
-        d[:, 1:] |= f[:, :-1]
-        d[:, :-1] |= f[:, 1:]
-        d &= libre
-        if d.sum() == f.sum():
-            return ~f
-        f = d
-
-
-def silhouette(rgb):
-    couleur = np.asarray(rgb).astype(np.int16).max(axis=2) > NOIR
-    return erode(boucher_les_trous(dilate(couleur, RAYON)), RAYON)
-
-
-def reduire(rgba, cote):
-    """Réduction prémultipliée : la couleur des pixels transparents ne doit pas déteindre."""
-    a = np.asarray(rgba).astype(np.float32)
-    pm = a.copy()
-    pm[:, :, :3] *= (a[:, :, 3:4] / 255.0)
-    petit = np.asarray(Image.fromarray(pm.astype(np.uint8), 'RGBA')
-                       .resize((cote, cote), Image.LANCZOS)).astype(np.float32)
-    al = np.clip(petit[:, :, 3:4], 1e-6, 255.0)
-    petit[:, :, :3] = np.clip(petit[:, :, :3] * 255.0 / al, 0, 255)
-    petit[:, :, 3] = np.clip(petit[:, :, 3], 0, 255)
-    return Image.fromarray(petit.astype(np.uint8), 'RGBA')
-
-
-def sur_fond(img, couleur):
-    f = Image.new('RGB', img.size, couleur)
-    f.paste(img, (0, 0), img)
-    return f
+def carre(img, boite):
+    w, h = img.size
+    x0, y0, x1, y1 = (round(boite[0] * w), round(boite[1] * h), round(boite[2] * w), round(boite[3] * h))
+    cote = min(x1 - x0, y1 - y0)
+    return img.crop((x0, y0, x0 + cote, y0 + cote))
 
 
 def main():
     src = Image.open(SOURCE).convert('RGB')
-    sil = silhouette(src)
-    ys, xs = np.where(sil)
-    x0, x1, y0, y1 = xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
-    cote = int(max(x1 - x0, y1 - y0) * (1 + 2 * AIR))
-    cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
-    print('silhouette %d×%d, carré de %d px' % (x1 - x0, y1 - y0, cote))
-
-    plein = np.dstack([np.asarray(src), np.where(sil, 255, 0).astype(np.uint8)])
-    grand = Image.new('RGBA', (cote, cote), (0, 0, 0, 0))
-    grand.paste(Image.fromarray(plein, 'RGBA'), (cote // 2 - cx, cote // 2 - cy))
-
-    # 512 et 192 pour le manifeste ; 48, 32 et 16 pour les onglets. Les navigateurs modernes
-    # préfèrent un PNG à un `.ico`, et plusieurs se montrent capricieux avec un `.ico` qui annonce
-    # trois tailles dans un seul `sizes` : on leur donne donc le choix explicite, taille par taille.
-    for taille in (512, 192, 48, 32, 16):
-        reduire(grand, taille).save(os.path.join(RACINE, 'art', 'casque-%d.png' % taille), optimize=True)
-    # iOS compose mal la transparence : son icône garde un fond plein
-    sur_fond(reduire(grand, 180), FOND_PLEIN).save(os.path.join(RACINE, 'art', 'casque-180.png'), optimize=True)
-    # « maskable » : le casque à 72 % dans son carré, pour survivre au masque d'Android
-    Z, dedans = 512, int(512 * 0.72)
-    masque = Image.new('RGB', (Z, Z), FOND_PLEIN)
-    petit = reduire(grand, dedans)
-    masque.paste(petit, ((Z - dedans) // 2, (Z - dedans) // 2), petit)
-    masque.save(os.path.join(RACINE, 'art', 'casque-maskable-512.png'), optimize=True)
-    # le .ico porte les trois tailles que les navigateurs demandent, avec la transparence
-    reduire(grand, 256).save(os.path.join(RACINE, 'favicon.ico'), sizes=[(16, 16), (32, 32), (48, 48)])
-    print('écrit : favicon.ico, art/casque-{16,32,48,180,192,512}.png, art/casque-maskable-512.png')
+    entiere = carre(src, (0, 0, 1, 1))
+    onglet = carre(src, ONGLET)
+    art = os.path.join(RACINE, 'art')
+    for taille in (512, 192, 180):
+        entiere.resize((taille, taille), Image.LANCZOS).save(os.path.join(art, 'icone-%d.png' % taille), optimize=True)
+    entiere.resize((512, 512), Image.LANCZOS).save(os.path.join(art, 'icone-maskable-512.png'), optimize=True)
+    # Les navigateurs modernes préfèrent un PNG à un `.ico`, et plusieurs se montrent capricieux avec
+    # un `.ico` qui annonce trois tailles dans un seul `sizes` : on leur donne le choix, taille par
+    # taille, et le `.ico` reste pour ceux qui ne demandent que lui.
+    for taille in (48, 32, 16):
+        onglet.resize((taille, taille), Image.LANCZOS).save(os.path.join(art, 'icone-%d.png' % taille), optimize=True)
+    onglet.resize((256, 256), Image.LANCZOS).save(os.path.join(RACINE, 'favicon.ico'), sizes=[(16, 16), (32, 32), (48, 48)])
+    print('écrit : favicon.ico, art/icone-{16,32,48,180,192,512}.png, art/icone-maskable-512.png')
 
 
 if __name__ == '__main__':
