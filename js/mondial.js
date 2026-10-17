@@ -34,6 +34,21 @@ const MONDIAL_URL = 'https://fyaifqvghkvrydcldiup.supabase.co';
    et ne doit jamais approcher ce fichier. */
 const MONDIAL_KEY = 'sb_publishable_O5veQvYKXfUt6e7iKtrDUg_rqPC_CS9';
 
+/* La version des listes de circuits et de voitures que connaît le serveur des records.
+
+À relever CHAQUE FOIS qu'on y ajoute un circuit ou une voiture (`supabase/functions/record`) : un
+tour refusé comme « inconnu » n'est pas renvoyé à chaque ouverture, mais seulement tant que cette
+version n'a pas changé. Sans ce numéro, le refus était définitif — et les tours en F1 ou à Paul
+Ricard, refusés tant que le serveur ne les connaissait pas, ne seraient jamais repartis après sa
+correction. 2 : les vingt-cinq voitures et les treize circuits. */
+const LISTES_SERVEUR = 2;
+// Ce que connaissait la version 1 : tout tour hors de ces listes n'a pu qu'être refusé.
+const LISTES_V1 = {
+  voitures: ['m1procar', 'f40', 'countach', '930', 'gt40', '935', 'corvette', '787b', 'csl'],
+  circuits: ['monza', 'spa', 'monaco', 'silverstone', 'suzuka', 'interlagos', 'laguna', 'nurburgring',
+    'lemans', 'bathurst', 'redbullring', 'zandvoort'],
+};
+
 class Mondial {
   constructor() {
     this.session = null;        // { token, expire, nom, sub } une fois connecté
@@ -50,6 +65,24 @@ class Mondial {
     this.onEtat = () => {};
     this.envoyes = new Set();
     try { this.envoyes = new Set(JSON.parse(localStorage.getItem('eol.envoyes') || '[]')); } catch (_) {}
+    /* Les refus « inconnu », rangés à part et datés de la version des listes du serveur.
+
+    Jusqu'ici ils allaient dans `envoyes`, mêlés aux tours réellement envoyés. On les en retire UNE
+    fois : tout couple hors des listes de la version 1 n'a jamais pu être accepté, donc s'il y est,
+    c'est qu'il a été refusé — et il doit repartir maintenant que le serveur le connaît. */
+    this.inconnus = new Set();
+    try {
+      const i = JSON.parse(localStorage.getItem('eol.inconnus') || 'null');
+      if (i && i.v === LISTES_SERVEUR && Array.isArray(i.cles)) this.inconnus = new Set(i.cles);
+      if (!i) {
+        for (const cle of [...this.envoyes]) {
+          const [circuit, voiture] = cle.split('|');
+          if (!LISTES_V1.voitures.includes(voiture) || !LISTES_V1.circuits.includes(circuit)) this.envoyes.delete(cle);
+        }
+        localStorage.setItem('eol.envoyes', JSON.stringify([...this.envoyes]));
+        localStorage.setItem('eol.inconnus', JSON.stringify({ v: LISTES_SERVEUR, cles: [] }));
+      }
+    } catch (_) {}
     this._litSession();
     this._litRetour();
   }
@@ -235,6 +268,12 @@ class Mondial {
     try { localStorage.setItem('eol.envoyes', JSON.stringify([...this.envoyes])); } catch (_) {}
   }
 
+  /* Ce que le serveur ne connaît pas encore : ne se retente pas avant que ses listes changent. */
+  marqueInconnu(circuit, voiture) {
+    this.inconnus.add(`${circuit}|${voiture}`);
+    try { localStorage.setItem('eol.inconnus', JSON.stringify({ v: LISTES_SERVEUR, cles: [...this.inconnus] })); } catch (_) {}
+  }
+
   /* Rattraper les temps d'AVANT le compte.
 
   Sans cela, un joueur qui s'inscrit après avoir déjà joué ne voit rien venir : ses meilleurs tours
@@ -254,7 +293,7 @@ class Mondial {
       const m = cle.split('|');
       if (m.length !== 3) continue;                       // les clés à deux morceaux sont l'ancien format
       const [circuit, , voiture] = m;
-      if (this.envoyes.has(`${circuit}|${voiture}`)) continue;
+      if (this.envoyes.has(`${circuit}|${voiture}`) || this.inconnus.has(`${circuit}|${voiture}`)) continue;
       aFaire.push({ circuit, voiture, temps: bestLaps[cle] });
     }
     /* L'état du rattrapage, publié pour être affiché.
@@ -269,8 +308,9 @@ class Mondial {
       const t = aFaire[i];
       const r = await this.propose(t.circuit, t.voiture, t.temps);
       if (r.ok) this.envoi.faits++;
-      // un refus définitif (voiture inconnue, temps impossible) ne se retente pas à chaque ouverture
-      if (!r.ok && (r.raison === 'inconnu' || r.raison === 'trop_rapide')) this.marqueEnvoye(t.circuit, t.voiture);
+      // un temps impossible ne se retente jamais ; un couple inconnu, pas avant que le serveur change
+      if (!r.ok && r.raison === 'trop_rapide') this.marqueEnvoye(t.circuit, t.voiture);
+      if (!r.ok && r.raison === 'inconnu') this.marqueInconnu(t.circuit, t.voiture);
       this.onEtat();
       /* Un refus définitif ARRÊTE le rattrapage au lieu de le poursuivre en pure perte.
 

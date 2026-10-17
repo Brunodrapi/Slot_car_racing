@@ -2478,11 +2478,24 @@ une F1 ou un prototype va maintenant plus vite qu'avant, et un ancien record de 
 facile ou plus dur à battre qu'il ne l'était. Remettre les temps à zéro est un choix qui reste à
 faire, comme il l'a été quand les circuits ont changé de forme.
 
-**Le serveur des records** connaît les vingt-cinq voitures (`supabase/functions/record/index.ts`) —
-les quatre F1 de la version précédente n'y étaient pas, et leurs tours étaient refusés comme
-« inconnus ». La fonction est à redéployer (`tools/deploie.sh`) pour que cela prenne effet. Le
-tour le plus rapide du plateau, une Lotus 72 au tour idéal de Red Bull Ring, fait 68 s : le
-plancher de trente secondes n'est pas en cause.
+**Le serveur des records** connaît les vingt-cinq voitures et les treize circuits
+(`supabase/functions/record/index.ts`, déployée). Il lui manquait plus que les nouvelles voitures :
+les quatre F1 de la version précédente et Paul Ricard n'y étaient pas, et leurs tours étaient
+refusés comme « inconnus » pendant que l'écran des records affichait des tirets. La base, elle, n'a
+aucune liste : c'est la fonction qui filtre. Ses listes sont recopiées à la main, faute de pouvoir
+importer `js/cars.js` dans une fonction Deno, et c'est ainsi qu'elles avaient dérivé sans un bruit ;
+`node tools/serveur-listes.js` les compare maintenant à celles du jeu, dans les deux sens. Le tour le
+plus rapide du plateau, une Lotus 72 au tour idéal de Red Bull Ring, fait 68 s : le plancher de
+trente secondes n'est pas en cause.
+
+**Et les tours déjà refusés repartent.** Le jeu ne renvoie pas à chaque ouverture un tour que le
+serveur a refusé comme « inconnu » — c'est voulu, sinon il le reproposerait indéfiniment. Mais il le
+rangeait avec les tours réellement envoyés, pour de bon : corriger le serveur n'aurait rien changé
+pour les tours déjà posés en F1 ou à Paul Ricard. Ces refus sont maintenant rangés à part et datés
+de `LISTES_SERVEUR` (`js/mondial.js`), **à relever chaque fois qu'on ajoute une voiture ou un circuit
+au serveur** : ils repartent alors d'eux-mêmes au prochain rattrapage. Les anciens refus, mêlés aux
+envois, en sont retirés une fois : tout couple hors des listes d'avant n'a jamais pu être accepté.
+`tools/e2e-mondial.js` le vérifie.
 
 `node tools/e2e-categories.js` vérifie le tout de bout en bout : le filtre et ses vingt-cinq cartes,
 la grille de l'IA, la reprise d'une ancienne sauvegarde, et une table en ligne que l'hôte réserve aux
@@ -3404,6 +3417,7 @@ node tools/sortie.js                                                            
 node tools/coupe.js [--fenetre=400]                                               # ce qu'une coupe peut rapporter, au plus
 NODE_PATH=$(npm root -g) node tools/e2e-livree.js [dossier]                       # plusieurs livrees par voiture : le clic, la memoire, le fichier charge
 NODE_PATH=$(npm root -g) node tools/e2e-categories.js [dossier]                  # les trois catégories : filtre, grille de l'IA, reprise de sauvegarde, table réservée
+node tools/serveur-listes.js                                                     # les listes blanches du serveur des records sont-elles celles du jeu ?
 NODE_PATH=$(npm root -g) node tools/dessins-voitures.js [id…] [--planche=x.png]     # les vues de dessus SVG des douze voitures ajoutées avec les catégories
 python3 tools/calibre.py <fichier.png...> [--largeur=420]                         # une illustration deja detouree, ramenee a la taille affichee
 python3 tools/prises.py <fichier.wav...> [--bits=16] [--essai]                    # les prises de moteur, du flottant 32 bits a l'entier 16

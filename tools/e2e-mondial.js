@@ -313,6 +313,53 @@ const serveur = http.createServer((req, res) => {
 
   await page.evaluate(() => { app.mondial.dernierRefus = null; app.mondial.envoi = null; app.mondial.onEtat = () => {}; });
 
+  /* --- 14. un tour refuse comme « inconnu » repart quand le serveur le connait --- */
+  /* Les refus « inconnu » etaient ranges avec les tours envoyes, pour de bon : les tours en F1 et a
+  Paul Ricard, refuses tant que le serveur ne les connaissait pas, ne seraient jamais repartis apres
+  sa correction. Ils sont maintenant dates de la version des listes du serveur. */
+  console.log('\nles refus « inconnu »');
+  const inc = await page.evaluate(async () => {
+    const r = {};
+    // une sauvegarde d'avant : un vrai envoi, et deux refus melanges avec lui
+    localStorage.setItem('eol.envoyes', JSON.stringify(['monza|f40', 'monza|tyrrellp34', 'castellet|f40']));
+    localStorage.removeItem('eol.inconnus');
+    let m = new Mondial();
+    r.reprise = [...m.envoyes].sort().join(',');
+    m.session = { token: 'x', expire: Date.now() / 1000 + 9999, sub: 'u1', nom: 'x' };
+    m.pseudo = 'Testeur';
+    const vrai = window.fetch;
+    const vus = [];
+    window.fetch = async (url, opt) => {
+      if (String(url).includes('/functions/v1/record')) {
+        const c = JSON.parse(opt.body);
+        vus.push(c.circuit + '|' + c.voiture);
+        return new Response('{"raison":"inconnu"}', { status: 422 });
+      }
+      return vrai(url, opt);
+    };
+    await m.rattrape({ 'monza|f1|lotus72': 80 });
+    r.premier = vus.slice();
+    r.envoyes = m.envoyes.has('monza|lotus72');
+    r.inconnus = m.inconnus.has('monza|lotus72');
+    m = new Mondial(); m.session = { token: 'x', expire: Date.now() / 1000 + 9999, sub: 'u1', nom: 'x' }; m.pseudo = 'Testeur';
+    vus.length = 0;
+    await m.rattrape({ 'monza|f1|lotus72': 80 });
+    r.second = vus.slice();
+    // le serveur a change de listes : la version gardee n'est plus la bonne
+    localStorage.setItem('eol.inconnus', JSON.stringify({ v: 1, cles: ['monza|lotus72'] }));
+    m = new Mondial(); m.session = { token: 'x', expire: Date.now() / 1000 + 9999, sub: 'u1', nom: 'x' }; m.pseudo = 'Testeur';
+    vus.length = 0;
+    await m.rattrape({ 'monza|f1|lotus72': 80 });
+    r.apresVersion = vus.slice();
+    window.fetch = vrai;
+    localStorage.removeItem('eol.envoyes'); localStorage.removeItem('eol.inconnus');
+    return r;
+  });
+  dit(inc.reprise === 'monza|f40', `les anciens refus sortent des tours envoyes, le vrai envoi reste (${inc.reprise})`);
+  dit(inc.premier.length === 1 && !inc.envoyes && inc.inconnus, 'un refus « inconnu » se range a part, pas avec les envois');
+  dit(inc.second.length === 0, `il ne repart pas a l'ouverture suivante (${inc.second.length} envoi)`);
+  dit(inc.apresVersion.length === 1, `il repart quand les listes du serveur changent (${inc.apresVersion.length} envoi)`);
+
   await page.evaluate(() => { app.ui._mondiaux = null; app.mondial.cache.clear(); });
   await page.screenshot({ path: path.join(out, 'mondial.png'), fullPage: true });
   console.log(`\nfautes ${fautes} | erreurs ${erreurs}`);

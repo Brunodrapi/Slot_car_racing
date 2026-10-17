@@ -60,8 +60,12 @@ const PLANCHER_S = 30;
 retirant, n'importe quelle chaîne de quarante caractères minuscules serait devenue un circuit, et le
 tableau mondial se serait rempli de lignes qu'aucun écran n'affiche. On garde donc la liste, qui ne
 demande aucune mesure — juste de penser à y ajouter une voiture quand on en ajoute une. */
+// `node tools/serveur-listes.js` vérifie que ces deux listes sont celles du jeu : Paul Ricard et
+// les quatre premières F1 y ont manqué des semaines sans que rien ne le signale, leurs tours étant
+// refusés comme « inconnus ».
 const CIRCUITS = new Set(['monza', 'spa', 'monaco', 'silverstone', 'suzuka', 'interlagos',
-                          'laguna', 'nurburgring', 'lemans', 'bathurst', 'redbullring', 'zandvoort']);
+                          'laguna', 'nurburgring', 'lemans', 'bathurst', 'redbullring', 'castellet',
+                          'zandvoort']);
 const VOITURES = new Set([
   // F1
   'tyrrellp34', 'ferrari312t', 'mclarenm23', 'lotus79', 'lotus72', 'brabhambt46b', 'williamsfw07',
