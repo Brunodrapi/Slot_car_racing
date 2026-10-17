@@ -44,7 +44,7 @@ class App {
     this.chargement = null;
     this.chargeDes = null;
     this.state = 'splash';
-    this.input = { throttle: false, sel: 0, pit: false };
+    this.input = { throttle: false, sel: 0, pit: false, brake: null, engineBrake: null };
     this.throttlePulses = new ThrottlePulses();
     this.pointers = { throttle: null, slider: null, reglage: null };
     this.gasKeys = new Set();
@@ -53,8 +53,12 @@ class App {
       line: direction => this.stepLine(direction),
       pause: () => this.togglePause(),
       activity: () => { if (!this.audio.started) this.audio.start(); if (this.audio.ctx?.state === 'suspended') this.audio.resume(); },
+      connected: () => this.setDesktopControl('gamepad'),
+      navigate: command => this.ui.gamepad.command(command),
+      brake: value => this.setBrake(value),
     });
     this.controls.setMode(this.desktop ? this.save.desktopControl : 'keyboard');
+    this.gamepadFocused = true;
     this.last = performance.now();
     this._bindInput();
     window.addEventListener('resize', () => { this.renderer.resize(); if (this.race) this.renderer._makeMinimap(); });
@@ -164,9 +168,16 @@ class App {
 
   // ---------- input ----------
   setThrottle(value) {
+    // En mode deux gâchettes, le frein a priorité sur les gaz.
+    if (this.input.brake > 0) value = 0;
     this.input.throttle = value;
     if (this.state === 'race') this.throttlePulses.push(performance.now(), value);
     else this.throttlePulses.reset(value);
+  }
+  setBrake(value) {
+    const separate = this.desktop && this.controls?.mode === 'gamepad' && this.save.gamepadBrake !== 'auto';
+    this.input.brake = separate ? throttleAmount(value) : null;
+    this.input.engineBrake = separate ? (Number.isFinite(this.save.engineBrake) ? throttleAmount(this.save.engineBrake) : .15) : null;
   }
   resetInput() {
     this.input.throttle = false;
@@ -180,6 +191,12 @@ class App {
     this.controls.setMode(mode);
     this.save.desktopControl = this.controls.mode;
     storeSave(this.save);
+    const select = this.ui.root.querySelector('#sel-desktop-control');
+    if (select) {
+      select.value = this.controls.mode;
+      this.ui.root.querySelector('[data-control-help]').textContent = this.ui.controlHelp();
+    }
+    this.ui.updateControllerStatus();
   }
   stepLine(direction) {
     const bas = this.renderer.pitOpen ? -2 : -1;
@@ -228,7 +245,12 @@ class App {
       if (!this.gasKeys.delete(e.code || e.key)) return;
       if (!this.gasKeys.size && this.pointers.throttle == null) off();
     });
-    window.addEventListener('blur', () => { this.resetInput(); if (this.state === 'race') this.togglePause(); });
+    window.addEventListener('blur', () => {
+      this.gamepadFocused = false; this.controls.suspend();
+      this.resetInput(); if (this.state === 'race') this.togglePause();
+    });
+    window.addEventListener('focus', () => { this.gamepadFocused = true; });
+    window.addEventListener('pointerdown', () => this.ui.gamepad.mouse());
     // On the title card the whole window listens, not just the canvas: the poster fills the page,
     // and "any button" has to mean anywhere on it.
     window.addEventListener('pointerdown', () => this.leaveSplash());
@@ -293,7 +315,9 @@ class App {
     c.addEventListener('contextmenu', (e) => e.preventDefault());
     c.addEventListener('touchstart', (e) => { if (this.state === 'race') e.preventDefault(); }, { passive: false });
     c.addEventListener('touchmove', (e) => { if (this.state === 'race') e.preventDefault(); }, { passive: false });
-    document.addEventListener('visibilitychange', () => { if (document.hidden && this.state === 'race') this.togglePause(); });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) { this.controls.suspend(); if (this.state === 'race') this.togglePause(); }
+    });
   }
 
   // ---------- flow ----------
@@ -566,7 +590,10 @@ class App {
     requestAnimationFrame((t) => this._frame(t));
     const dt = Math.min(0.1, (now - this.last) / 1000);
     this.last = now;
-    if (this.desktop && (this.state === 'race' || this.state === 'paused')) this.controls.poll(this.state === 'race');
+    if (this.desktop) {
+      if (!document.hidden && this.gamepadFocused) this.controls.poll(this.state === 'race', undefined, !this.ui.root.classList.contains('hidden'), now);
+      this.ui.gamepad.sync();
+    }
     if (this.desktop && this.state === 'paused') this.ui.updateControllerStatus();
     if (!this.race) return;
     const race = this.race;

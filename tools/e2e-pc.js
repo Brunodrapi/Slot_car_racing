@@ -45,6 +45,7 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.png
   await page.keyboard.press('Space');assert.equal(await page.evaluate(()=>app.input.throttle),0);
   await page.mouse.wheel(0,-100);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
   assert.equal(await page.evaluate(()=>app.state),'paused');assert.equal(await page.evaluate(()=>app.input.throttle),0,'perte de focus : gaz coupés');
+  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
   await page.click('[data-action="resume"]');assert.equal(await page.evaluate(()=>app.input.throttle),0);
   await page.keyboard.press('Escape');await page.selectOption('#sel-desktop-control','keyboard');await page.click('[data-action="resume"]');
   await page.keyboard.down('Space');await page.keyboard.down('w');await page.keyboard.up('Space');

@@ -323,7 +323,8 @@ class Net {
         if (seen !== undefined && n <= seen && n > seen - 120) continue;
         this.seenN[q.pid] = n;
       }
-      race.netInput[seat] = { thr: throttleAmount(q.i[0]), sel: (q.i[1] || 0) / 100 };
+      race.netInput[seat] = { thr: throttleAmount(q.i[0]), sel: (q.i[1] || 0) / 100,
+        brake: q.i.length >= 4 ? throttleAmount(q.i[2]) : null, engineBrake: q.i.length >= 4 ? throttleAmount(q.i[3]) : null };
     }
     const now = performance.now();
     if (now - this.sentAtMs < 1000 / NET_HZ) return;
@@ -368,12 +369,14 @@ class Net {
       if (race.applySnapshot(snap)) { this.lastSeq = snap[0]; this.snapAt = performance.now(); }
     }
     const i = [Math.round(throttleAmount(input.throttle) * 1000) / 1000, Math.round(clamp(input.sel || 0, -1, 1) * 100)];
+    if (input.brake != null) i.push(Math.round(throttleAmount(input.brake) * 1000) / 1000, throttleAmount(input.engineBrake));
     // Un appui part tout de suite, sans attendre le prochain envoi. Le reste du temps le rythme
     // ordinaire suffit — rien n'a changé, et répéter la même chose n'apprend rien à l'hôte. Ce
     // qui coûte cher au joueur, c'est le moment où il appuie : jusqu'à trente-trois millisecondes
     // gagnées là où il les sent le plus.
     const now = performance.now();
-    const change = !this.lastI || this.lastI[0] !== i[0] || Math.abs(this.lastI[1] - i[1]) > 4;
+    const change = !this.lastI || this.lastI.length !== i.length || this.lastI[0] !== i[0] || Math.abs(this.lastI[1] - i[1]) > 4
+      || this.lastI[2] !== i[2] || this.lastI[3] !== i[3];
     if (!change && now - this.sentAtMs < 1000 / NET_HZ) return;
     if (change && now - this.sentAtMs < 1000 / 60) return;    // sans inonder le canal pour autant
     this.lastI = i;

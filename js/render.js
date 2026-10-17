@@ -2504,7 +2504,8 @@ class Renderer {
 
   _drawDesktopThrottle(g, p, ui) {
     const app = ui.app, t = k => ui.t(k), mode = app.controls.mode;
-    const w = Math.min(310, this.w - 32), h = 142;
+    const separate = mode === 'gamepad' && app.save.gamepadBrake !== 'auto';
+    const w = Math.min(310, this.w - 32), h = separate ? 174 : 142;
     const x = this.ctrlSide === 'right' ? this.pad.l : this.w - this.pad.r - w, y = this.h - this.pad.b - h;
     const gas = throttleAmount(app.input.throttle);
     g.fillStyle = 'rgba(10,12,20,0.82)'; this._roundRect(g, x, y, w, h, 14); g.fill();
@@ -2518,6 +2519,14 @@ class Renderer {
     g.fillText(`${t('gas')} ${Math.round(gas * 100)} %`, x + 125, y + 41);
     g.fillStyle = '#3a3f4b'; this._roundRect(g, x + 16, y + 77, w - 32, 9, 4); g.fill();
     if (gas > 0) { g.fillStyle = '#5be07a'; this._roundRect(g, x + 16, y + 77, (w - 32) * gas, 9, Math.min(4, (w - 32) * gas / 2)); g.fill(); }
+    if (separate) {
+      const brake = throttleAmount(app.input.brake);
+      g.font = 'bold 12px system-ui, sans-serif'; g.fillStyle = '#ff9b88';
+      g.fillText(`LT · ${t('brake')} ${Math.round(brake * 100)} %`, x + 16, y + 96);
+      g.fillStyle = '#3a3f4b'; g.fillRect(x + 16, y + 115, w - 32, 7);
+      g.fillStyle = '#ff7760'; g.fillRect(x + 16, y + 115, (w - 32) * brake, 7);
+      g.translate(0,32);
+    }
     g.font = '12px system-ui, sans-serif'; g.fillStyle = '#d7dbe3';
     g.fillText(t(mode === 'gamepad' ? 'lineHintPad' : 'lineHintPC'), x + 16, y + 99);
     const status = { ready: 'padReady', release: 'padRelease', disconnected: 'padDisconnected', unsupported: 'padUnsupported' };
@@ -2526,6 +2535,7 @@ class Renderer {
       : (ui.lang === 'fr' ? 'Maintenir : gaz · Relâcher : frein' : 'Hold: throttle · Release: brake');
     g.fillStyle = mode === 'gamepad' && app.controls.status !== 'ready' ? '#ffd400' : '#aeb4c0';
     g.fillText(hint, x + 16, y + 120, w - 32);
+    if (separate) g.translate(0,-32);
     this.hudZones.accelerateur = { x, y, w, h };
   }
 

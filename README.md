@@ -20,18 +20,31 @@ présentation portrait ; **la course accepte le portrait et le paysage**, en tou
 ### Contrôles
 
 Sur PC, choisir **Accélérateur PC** depuis le menu, la préparation, les réglages ou la pause.
-Le choix est conservé sur ce navigateur.
+Le choix est conservé sur ce navigateur. Une manette détectée au démarrage ou nouvellement
+branchée est sélectionnée automatiquement ; un choix manuel reste possible ensuite.
 
 | Mode PC | Accélérer | Freiner | Trajectoire |
 | --- | --- | --- | --- |
 | Clavier / clic | maintenir une touche (Espace…) ou le clic | relâcher | flèches ; molette également disponible |
 | Molette | rouler vers le haut pour augmenter les gaz | rouler vers le bas ; `Espace` ramène immédiatement les gaz à zéro | flèches ou curseur à l'écran |
-| Xbox | doser la gâchette **RT** | relâcher RT | stick gauche, croix directionnelle, flèches ou curseur |
+| Xbox | doser la gâchette **RT** | **LT** progressif ; sans appui, frein moteur réglable | stick gauche, croix directionnelle, flèches ou curseur |
 
 `Échap` ou `P` met en pause ; le bouton Menu de la manette aussi. `G` affiche la télémétrie.
 Le tableau de bord PC indique la vitesse et les gaz demandés de **0 à 100 %**. Les niveaux partiels
-modulent réellement la poussée et le son moteur. À zéro, le réglage de freinage existant s'applique.
+modulent réellement la poussée et le son moteur. Le clavier et la molette freinent au relâchement.
 Les pulsations rapides au clavier/tactile restent prises en compte entre deux images.
+
+À la manette, **Frein manette → LT + frein moteur** sépare les deux gâchettes. **Frein moteur**
+se règle de 0 à 100 % (15 % par défaut) : sans appui sur RT/LT, seules les pertes naturelles et ce
+frein moteur ralentissent la voiture. LT ajoute progressivement le freinage et a priorité sur RT.
+Le réglage de freinage propre au circuit/à la voiture continue de déterminer sa puissance maximale.
+L'option **Automatique au relâchement** propose également le comportement à un accélérateur.
+
+Dans les menus, **stick ou croix** déplace le focus jaune, **A** valide et **B** revient/annule.
+**LB/RB** passe d'une rubrique à l'autre, y compris les rails de voitures et de circuits. Les listes
+de réglages et un clavier à l'écran permettent aussi de choisir ses options et de saisir un pseudo
+ou un code de salon. **X** efface un caractère dans ce clavier. Le focus défile avec la sélection
+et reste en place lors des changements de voiture, de livrée ou de réglage.
 
 Sur mobile et tablette, poser le pouce hors du curseur pour accélérer et relâcher pour freiner.
 La pastille colorée suit le pouce et exprime l'état d'adhérence ; la vitesse reste au-dessus.

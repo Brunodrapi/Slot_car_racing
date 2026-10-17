@@ -478,6 +478,7 @@ class Car {
     this.throttle = false;
     this.offT = 0;
     this.braking = false;
+    this.brake = 0;
     this.aiTimer = Math.random() * 0.15;
     this.aiNoise = 0;
     this.aiAllow = Infinity;
@@ -684,7 +685,7 @@ class Car {
     const cs=Math.cos(this.th),sn=Math.sin(this.th);
     this.v=wx*cs+wy*sn; this.vl=wx*sn-wy*cs;
     this.w*=BARRIERE.lacet;this.Ff=0;this.Fr=0;
-    this.slide=0;this.patine=0;this.patineFx=0;this.throttle=false;this.braking=false;
+    this.slide=0;this.patine=0;this.patineFx=0;this.throttle=false;this.braking=false;this.brake=0;
     if(!this.engineStopped){
       const effective=impact*(pneus?.55:1);
       this.barrierHits++;
@@ -704,7 +705,7 @@ class Car {
     return true;
   }
 
-  update(dt, throttle, raceTime) {
+  update(dt, throttle, raceTime, brakingInput = null) {
     const T = this.track, c = this.cls;
     const wasStopped = this.engineStopped;
     this.engineCut = Math.max(0, this.engineCut - dt);
@@ -803,6 +804,9 @@ class Car {
     }
 
     if (this.engineStopped) throttle = false;
+    const manualBrake = brakingInput != null;
+    this.brake = manualBrake ? throttleAmount(brakingInput.brake) : 0;
+    if (this.brake > 0) throttle = 0;
     throttle = throttleAmount(throttle);
     this.throttle = throttle;
     /* L'usure. La glisse compte au carré : c'est le frottement qui arrache la gomme, pas la
@@ -813,7 +817,7 @@ class Car {
       this.tyre = Math.max(0, this.tyre - dt * (u.charge * q * q + u.glisse * this.slide));
     }
     this.offT = throttle ? 0 : this.offT + dt;
-    this.braking = !throttle && this.offT > 0.05 && this.v > 2;
+    this.braking = manualBrake ? this.brake > .02 && this.v > 2 : !throttle && this.offT > 0.05 && this.v > 2;
 
     /* --- la surface, en TROIS zones et non deux ---
 
@@ -854,6 +858,8 @@ class Car {
     if (this.engineStopped) {
       const frein = Math.exp(-dt / ARRET_LIBRE);
       this.v *= frein; this.vl *= frein; this.w *= frein;
+      // La coupure moteur n'enlève pas les freins de la gâchette gauche.
+      if (manualBrake && this.brake > 0) this.v = Math.sign(this.v) * Math.max(0, Math.abs(this.v) - c.brake * this.brake * dt);
       if (Math.abs(this.v) < 0.05) this.v = 0;
       if (Math.abs(this.vl) < 0.05) this.vl = 0;
       if (Math.abs(this.w) < 0.02) this.w = 0;
@@ -875,7 +881,8 @@ class Car {
     const L = c.length * 0.6;
     const a = L / 2, b = L / 2;                       // CG to front / rear axle
     const kk = Math.pow(0.28 * c.length, 2) * (5 / c.laneK);   // yaw inertia (radius of gyration²)
-    const brakeFrac = throttle ? 0 : clamp(this.offT / 0.1, 0, 1);
+    const engineFrac = manualBrake && !throttle ? throttleAmount(brakingInput.engineBrake) * clamp(this.offT / .1, 0, 1) : 0;
+    const brakeFrac = manualBrake ? this.brake + (1 - this.brake) * engineFrac : throttle ? 0 : clamp(this.offT / 0.1, 0, 1);
     const vv = Math.max(3, Math.abs(this.v));
     const peak = c.slipPeak * PHYS.slip;
     const gTot = this.gripAt(Math.abs(this.v)) * surface;
@@ -1033,7 +1040,7 @@ class Car {
     // Sur l'asphalte, le partage arrière suffit. L'ancien facteur reste pour le
     // freinage et les sols meubles, dont les réglages sont indépendants de ce changement.
     if (throttle) acc = accReel * (loose ? Math.max(0.3, 1 - PHYS.circle * u * u) : 1);
-    else acc = -(1.5 + c.brake * brakeFrac) * (1 - PHYS.circle * u * u) * (this.v > 1 ? 1 : Math.max(0, this.v));
+    else acc = -(1.5 + c.brake * brakeFrac) * (manualBrake ? Math.max(.15, 1 - PHYS.circle * u * u) : 1 - PHYS.circle * u * u) * (this.v > 1 ? 1 : Math.max(0, this.v));
     // grass and gravel drag the whole car, not just its forward motion: it opposes the velocity
     // vector, so a car sliding in sideways is slowed down sideways too.
     let latDrag = 0;

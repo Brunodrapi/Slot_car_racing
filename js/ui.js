@@ -9,6 +9,11 @@ const NIVEAUX = ['easy', 'medium', 'hard', 'extreme', 'cauchemar'];
 
 const I18N = {
   fr: {
+    padGuide: 'Stick / croix : naviguer · A : valider · B : retour · LB / RB : rubriques',
+    padTextGuide: 'Stick / croix : choisir · A : saisir · X : effacer · B : annuler · LB / RB : rubriques',
+    padCancel: 'Annuler', padDone: 'Valider', padClear: 'Tout effacer', padDelete: 'Effacer', padSpace: 'Espace', padConfirm: 'Confirmer',
+    padBrake: 'Frein manette', padBrakeSeparate: 'LT + frein moteur', padBrakeAuto: 'Automatique au relâchement', engineBrake: 'Frein moteur', brake: 'Frein',
+    controlGamepadManualHint: 'RT : gaz · LT : frein progressif, prioritaire sur RT. Sans appui : frein moteur réglable. Stick / croix : trajectoire. Menu : pause.',
     pcControls: 'Accélérateur PC', controlKeyboard: 'Clavier / clic', controlWheel: 'Molette', controlGamepad: 'Manette Xbox · RT',
     controlKeyboardHint: 'Maintiens une touche ou le clic pour accélérer, relâche pour freiner. Flèches : trajectoire. Échap : pause.',
     controlWheelHint: 'Molette vers le haut : plus de gaz ; vers le bas : moins. Espace : gaz à zéro et freinage. Flèches : trajectoire.',
@@ -81,6 +86,11 @@ const I18N = {
     custom: 'perso',
   },
   en: {
+    padGuide: 'Stick / D-pad: navigate · A: confirm · B: back · LB / RB: sections',
+    padTextGuide: 'Stick / D-pad: choose · A: type · X: delete · B: cancel · LB / RB: sections',
+    padCancel: 'Cancel', padDone: 'Done', padClear: 'Clear all', padDelete: 'Delete', padSpace: 'Space', padConfirm: 'Confirm',
+    padBrake: 'Controller brake', padBrakeSeparate: 'LT + engine braking', padBrakeAuto: 'Automatic on release', engineBrake: 'Engine braking', brake: 'Brake',
+    controlGamepadManualHint: 'RT: throttle · LT: progressive brake, with priority over RT. No input: adjustable engine braking. Stick / D-pad: racing line. Menu: pause.',
     pcControls: 'PC throttle', controlKeyboard: 'Keyboard / click', controlWheel: 'Mouse wheel', controlGamepad: 'Xbox controller · RT',
     controlKeyboardHint: 'Hold a key or the mouse button to accelerate; release to brake. Arrows: racing line. Esc: pause.',
     controlWheelHint: 'Wheel up: more throttle; down: less. Space: zero throttle and brake. Arrows: racing line.',
@@ -194,6 +204,7 @@ class UI {
   constructor(app) {
     this.app = app;
     this.root = document.getElementById('ui');
+    this.gamepad = new GamepadUI(this);
     this.thumbs = new Map();
     this.icons = new Map();
     this.setup = { mode: 'race', classId: 'gt', trackId: 'zandvoort' };
@@ -268,6 +279,7 @@ class UI {
   différents la partagent, et on arriverait sur le second à la hauteur où l'on avait laissé le
   premier. Sans clé, on repart du haut — c'est ce qu'on veut en changeant d'écran. */
   show(html, cls, cle) {
+    const padFocus = this.gamepad.remember();
     const avant = this.root.firstElementChild;
     const garder = cle != null && cle === this._cleEcran && avant;
     const y = garder ? avant.scrollTop : 0;
@@ -289,6 +301,7 @@ class UI {
     this.root.classList.remove('hidden');
     this.paintIcons();
     this.updateControllerStatus();
+    this.gamepad.restore(garder ? padFocus : null);
   }
 
   _centrerRail(rail) {
@@ -627,6 +640,7 @@ class UI {
   }
 
   controlHelp() {
+    if (this.app.controls.mode === 'gamepad' && this.app.save.gamepadBrake !== 'auto') return this.t('controlGamepadManualHint');
     return this.t({ keyboard: 'controlKeyboardHint', wheel: 'controlWheelHint', gamepad: 'controlGamepadHint' }[this.app.controls.mode]);
   }
   pcControls() {
@@ -635,9 +649,22 @@ class UI {
       <select id="sel-desktop-control">${[['keyboard', 'controlKeyboard'], ['wheel', 'controlWheel'], ['gamepad', 'controlGamepad']].map(([mode, key]) =>
         `<option value="${mode}" ${this.app.controls.mode === mode ? 'selected' : ''}>${this.t(key)}</option>`).join('')}</select>
       <p data-control-help aria-live="polite">${this.controlHelp()}</p>
+      <div class="pad-brake-options" ${this.app.controls.mode === 'gamepad' ? '' : 'hidden'}>
+        <label>${this.t('padBrake')}<select id="sel-pad-brake">
+          <option value="separate" ${this.app.save.gamepadBrake !== 'auto' ? 'selected' : ''}>${this.t('padBrakeSeparate')}</option>
+          <option value="auto" ${this.app.save.gamepadBrake === 'auto' ? 'selected' : ''}>${this.t('padBrakeAuto')}</option>
+        </select></label>
+        <label>${this.t('engineBrake')}<select id="sel-engine-brake" ${this.app.save.gamepadBrake === 'auto' ? 'disabled' : ''}>
+          ${[0,.05,.1,.15,.2,.3,.5,.75,1].map(v=>`<option value="${v}" ${v === this.app.save.engineBrake ? 'selected' : ''}>${Math.round(v*100)} %</option>`).join('')}
+        </select></label>
+      </div>
       ${this.app.state === 'paused' ? '<p data-controller-status aria-live="polite" hidden></p>' : ''}</div>`;
   }
   updateControllerStatus() {
+    const options = this.root.querySelector('.pad-brake-options');
+    if (options) options.hidden = this.app.controls.mode !== 'gamepad';
+    const engine = this.root.querySelector('#sel-engine-brake');
+    if (engine) engine.disabled = this.app.save.gamepadBrake === 'auto';
     const el = this.root.querySelector('[data-controller-status]');
     if (!el) return;
     el.hidden = this.app.controls.mode !== 'gamepad';
@@ -1149,7 +1176,7 @@ class UI {
     this._act(btn);
   }
 
-  _act(btn) {
+  _act(btn, confirmed = false) {
     const a = btn.dataset.action, id = btn.dataset.id, app = this.app;
     app.audio.start(); app.audio.resume();
     switch (a) {
@@ -1174,7 +1201,7 @@ class UI {
       case 'editor': location.href = 'editor.html'; break;
       case 'workshop': this.workshopScreen(); break;
       case 'wsAdd': this._workshopAdd().catch(err => this.workshopScreen(String(err))); break;
-      case 'wsDelete': if (confirm(this.t('confirmDelete'))) { Store.del('cars', id).then(() => { unregisterModel(id); return app.refreshCustom(); }).then(() => this.workshopScreen()); } break;
+      case 'wsDelete': if (confirmed || confirm(this.t('confirmDelete'))) { Store.del('cars', id).then(() => { unregisterModel(id); return app.refreshCustom(); }).then(() => this.workshopScreen()); } break;
       /* Un appui CHOISIT, le suivant fait tourner la livrée.
 
       C'est la demande de Bruno : « en cliquant plusieurs fois sur une voiture on change à chaque
@@ -1225,7 +1252,7 @@ class UI {
       case 'toLobby': app.toLobby(); break;
       case 'startCup': app.startCupRace(id); break;
       case 'resetCup': delete app.save.cups[id]; storeSave(app.save); this.cupScreen(id); break;
-      case 'resetAll': if (confirm(this.t('resetConfirm'))) { app.save = defaultSave(); app.setDesktopControl('keyboard'); this.settings(); } break;
+      case 'resetAll': if (confirmed || confirm(this.t('resetConfirm'))) { app.save = defaultSave(); app.setDesktopControl('keyboard'); this.settings(); } break;
       case 'resume': app.resume(); break;
       case 'retryRace': app.retry(); break;
       case 'quitRace': app.toMenu(); break;
@@ -1315,6 +1342,12 @@ class UI {
 
   _onChange(e) {
     const el = e.target, s = this.app.save;
+    if (el.id === 'sel-pad-brake' || el.id === 'sel-engine-brake') {
+      if (el.id === 'sel-pad-brake') s.gamepadBrake = el.value === 'auto' ? 'auto' : 'separate';
+      else s.engineBrake = throttleAmount(+el.value);
+      storeSave(s); this.app.resetInput(); this.updateControllerStatus();
+      this.root.querySelector('[data-control-help]').textContent = this.controlHelp();
+    }
     if (el.id === 'sel-desktop-control') {
       this.app.setDesktopControl(el.value);
       this.root.querySelector('[data-control-help]').textContent = this.controlHelp();

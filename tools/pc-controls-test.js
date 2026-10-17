@@ -71,4 +71,55 @@ vm.runInContext(`(()=>{
   n.guestTick({}, {throttle:.375,sel:.5});
 })()`,current);
 assert.deepEqual(json(current.sent.i),[.375,50],'le message sortant conserve le dosage');
+const manual = vm.runInContext(`(()=>{
+  const T={length:1e6,barriers:[],pos:(s,lat)=>({x:s,y:-lat}),wrap:s=>s,diff:(a,b)=>b-a,
+    headingAt:()=>0,targetLat:()=>0,lineCurv:()=>0,hwLeftAt:()=>100,hwRightAt:()=>100,project:(x,y)=>({s:x,lat:-y})};
+  return MODELS.map(m=>{
+    function run(brake,engineBrake,gas=0){const c=new Car(T,m,{isPlayer:true,s:100});c.place(100,0,50);
+      for(let i=0;i<60;i++)c.update(1/120,gas,i/120,{brake,engineBrake});
+      return {v:c.v,braking:c.braking,throttle:c.throttle,brake:c.brake};}
+    function cut(brake){const c=new Car(T,m,{isPlayer:true,s:100});c.place(100,0,20);c.engineCut=2;
+      for(let i=0;i<30;i++)c.update(1/120,0,i/120,{brake,engineBrake:.15});return c.v;}
+    return {id:m.id,engine:[0,.15,.5].map(e=>run(0,e)),lt:[0,.25,.5,1].map(b=>run(b,.15)),mixed:run(1,.15,1),cut:[cut(0),cut(1)]};
+  });
+})()`,current);
+for(const row of manual) {
+ for(let i=1;i<row.engine.length;i++)assert(row.engine[i].v<row.engine[i-1].v,row.id+' : frein moteur réglable');
+ for(let i=1;i<row.lt.length;i++)assert(row.lt[i].v<row.lt[i-1].v,row.id+' : LT progressif');
+ assert.equal(row.engine[1].braking,false,'frein moteur sans allumer les freins');
+ assert.equal(row.lt[3].braking,true);assert.equal(row.mixed.throttle,0,'LT prioritaire sur RT');
+ assert.equal(row.mixed.v,row.lt[3].v);
+ assert(row.cut[1]<row.cut[0],row.id+' : LT freine aussi moteur coupé');
+}
+vm.runInContext(`(()=>{
+ const n=Object.create(Net.prototype);n.room={};n.isHost=()=>false;n.members=()=>[];n.sentAtMs=-Infinity;n.lastI=null;n.outN=0;
+ n.post=packet=>globalThis.manualPacket=packet;n.guestTick({}, {throttle:0,sel:.5,brake:.375,engineBrake:.3});
+ n.isHost=()=>true;n.roster=['host','guest'];n.seenN={};n.peers=[{isMe:false,presence:{pid:'guest',i:manualPacket.i,n:1}}];
+ n.sentAtMs=Infinity;const r={netInput:{}};n.hostTick(r);globalThis.manualReceived=r.netInput[1];
+})()`,current);
+assert.deepEqual(json(current.manualPacket.i),[0,50,.375,.3]);assert.equal(current.manualReceived.brake,.375);assert.equal(current.manualReceived.engineBrake,.3);
+const raceBrake = vm.runInContext(`(()=>{
+ const r=new Race({trackDef:TRACKS.find(t=>t.id==='monza'),modelId:'f40',mode:'timetrial',nCars:1});
+ r.state='racing';r.player.place(r.player.s,0,30);r.update(1/120,{throttle:1,sel:0,brake:.5,engineBrake:.3});
+ const p=r.player;return {brake:p.brake,throttle:p.throttle,flags:r.snapshot(1)[15]};
+})()`,current);
+assert.equal(raceBrake.brake,.5);assert.equal(raceBrake.throttle,0);assert.notEqual(raceBrake.flags&12,12,'le drapeau frein ne devient pas moteur coupé');
+const smoke = vm.runInContext(`(()=>{
+ let cases=0;
+ for(const id of ['monaco','spa','monza','zandvoort']) {
+  const T=new Track(TRACKS.find(t=>t.id===id),.9);
+  for(const m of MODELS) {
+   const c=new Car(T,m,{isPlayer:true,s:T.length*.2});c.place(T.length*.2,0,20);
+   for(let i=0;i<480;i++) {
+    const phase=i%120,gas=phase<60?.7:0,brake=phase>=85?.5:0;
+    c.update(1/120,gas,i/120,{brake,engineBrake:.15});
+    if(![c.x,c.y,c.v,c.vl,c.beta,c.w].every(Number.isFinite))throw Error(m.id+' '+id+' : état invalide');
+   }
+   cases++;
+  }
+ }
+ return cases;
+})()`,current);
+assert.equal(smoke,100);
 console.log('OK : clavier historique (25 voitures), 5 niveaux de gaz, Race et réseau analogiques, molette, RT, zone morte, pause, déconnexion et détection PC/tablette.');
+console.log('OK : 25 modèles, frein moteur réglable, LT progressif/prioritaire, transmission du frein et 100 simulations sur Monaco/Spa/Monza/Zandvoort.');

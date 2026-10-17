@@ -410,6 +410,21 @@ const DOUBLE = `
   if (mi.sautP95 > limite) { faute++; console.log(`  ÉCHEC : l’invité saute de ${mi.sautP95} m au 95e centile, la limite est ${limite.toFixed(3)}${pourquoi}`); }
   else console.log(`  ok : l’invité à ${mi.sautP95} m au 95e centile, sous la limite de ${limite.toFixed(3)}${pourquoi}`);
 
+  if (process.argv.includes('--frein-manette')) {
+    await invite.evaluate(() => { app.input.throttle = 1; app.input.brake = .375; app.input.engineBrake = .3; });
+    const received = await hote.waitForFunction(() => {
+      const c = app.race.cars.find(c => c.human === 1);
+      return c && Math.abs(c.brake - .375) < .001 && c.throttle === 0 && app.race.netInput[1]?.engineBrake === .3;
+    }, null, {timeout:5000}).then(() => true, () => false);
+    if (!received) { faute++; console.log('  ÉCHEC : frein LT / frein moteur non reçu par la simulation hôte'); }
+    else console.log('  ok : frein LT invité à 37,5 %, moteur à 30 %, priorité du frein sur RT chez l’hôte');
+    await invite.evaluate(() => { app.input.throttle = false; app.input.brake = null; app.input.engineBrake = null; });
+    const released = await hote.waitForFunction(() => app.race.netInput[1]?.brake == null && app.race.cars.find(c => c.human === 1)?.brake === 0,
+      null, {timeout:5000}).then(() => true, () => false);
+    if (!released) { faute++; console.log('  ÉCHEC : le mode automatique ne reprend pas après retrait du frein manuel'); }
+    else console.log('  ok : retour au protocole sans gâchette de frein');
+  }
+
   console.log('\nerrors', errs);
   await browser.close();
   serveur.close();

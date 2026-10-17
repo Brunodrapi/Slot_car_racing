@@ -236,13 +236,14 @@ class Race {
     // la coche des stands : une intention, pas une quatrième position de ligne (voir Car.pitAsk)
     if (this.usure && input.pit != null) this.player.pitAsk = !!input.pit;
     this.acc += Math.min(frameDt, 0.1);
+    const brakingInput = input.brake == null ? null : { brake: throttleAmount(input.brake), engineBrake: throttleAmount(input.engineBrake) };
     while (this.acc >= this.dt) {
-      this._step(this.dt, throttleAmount(input.throttle));
+      this._step(this.dt, throttleAmount(input.throttle), brakingInput);
       this.acc -= this.dt;
     }
   }
 
-  _step(dt, throttleInput) {
+  _step(dt, throttleInput, brakingInput = null) {
     if (this.state === 'countdown') {
       /* Le décompte ATTEND que tout le monde ait fini de charger.
 
@@ -269,7 +270,7 @@ class Race {
       return;
     }
     if (this.state === 'finished') return;
-    this._simulate(dt, throttleInput);
+    this._simulate(dt, throttleInput, brakingInput);
     if (this.state === 'finishing') {
       this.finishTimer -= dt;
       if (this.finishTimer <= 0 || this.cars.every(c => c.finished)) this._finish();
@@ -300,7 +301,7 @@ class Race {
     if (car.tyre < seuil || car.damage > 0.75) car.pitAsk = true;
   }
 
-  _simulate(dt, throttleInput) {
+  _simulate(dt, throttleInput, brakingInput = null) {
     const T = this.track;
     this.time += dt;
     // rubber-banding: slow leaders that are far ahead of the player, help stragglers a little
@@ -331,7 +332,8 @@ class Race {
       }
       const wasOff = car.state === 'grass', hitsBefore = car.barrierHits;
       const lapBefore = car.lap;
-      car.update(dt, throttle, this.time);
+      const humanBrakes = car.finished || car.aiDriven ? null : car.isPlayer ? brakingInput : this.netInput[car.human];
+      car.update(dt, throttle, this.time, humanBrakes?.brake == null ? null : humanBrakes);
       if (car.barrierHits > hitsBefore || (!wasOff && car.state === 'grass')) this.events.push({ type: 'crash', car });
       this._comptePenalite(car, dt);
       if (car.lap !== lapBefore) {
