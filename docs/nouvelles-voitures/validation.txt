@@ -1,0 +1,31 @@
+Build hybrid 0.30.2 — 2026-10-17
+
+Sprites
+- node tools/sprites-nouveaux-banc.js docs/nouvelles-voitures/geometrie.json : OK.
+  25 modèles, 57 livrées, 114 PNG chargés et non vides.
+  52 sprites générés ; 24 sprites élargis (neuf F1 et trois livrées XJR-9, deux vues).
+  Dimensions et rectangles occupés identiques entre les livrées d'un modèle.
+  Silhouette des variantes : au moins 95,8 % de recouvrement en course, 94,2 % au menu.
+- Élargissement rejoué depuis les sources conservées : 24 sorties identiques octet par octet.
+
+Navigateur Chromium
+- tools/e2e-livree.js : zéro faute, zéro erreur JavaScript ; chargement des 114 images,
+  cycles des seize modèles à trois livrées, sélection, sauvegarde/rechargement,
+  sprite en course et distribution des peintures de l'IA.
+- tools/e2e-f1.js : neuf sélections/sauvegardes/départs avec sprite servi,
+  et 36 simulations de contrôle (neuf F1 × Monaco/Spa/Monza/Zandvoort).
+  Les simulations courtes vérifient la stabilité numérique ; elles ne mesurent pas l'équilibre.
+- tools/e2e-categories.js : zéro faute, zéro erreur JavaScript ; filtres,
+  adversaires de la bonne catégorie, migration des sauvegardes et table multijoueur simulée.
+- Format téléphone 390 × 844, densité 3 : Tyrrell P34 et XJR-9 JPS sélectionnées et lancées,
+  sprites décodés respectivement 420 × 256 et 420 × 250 ; zéro erreur JavaScript.
+  Vérification dans Chromium mobile simulé, pas sur un iPhone physique.
+
+Réglages
+- Comparaison structurée avec b81ac17 : valeurs physiques, moteurs, dimensions de collision
+  et notes de difficulté des 25 voitures inchangés.
+- Avis GPT-6 Astra : 264 essais de deux tours (528 tours), 1 650 reprises courtes,
+  plus comparaison des fiches et profils. Les résultats complets sont dans
+  docs/avis-parametres-astra/. Les tours sales de Monaco restent explicitement signalés.
+
+git diff --check : OK.

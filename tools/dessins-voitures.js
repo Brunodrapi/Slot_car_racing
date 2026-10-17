@@ -1,6 +1,7 @@
 // Les vues de dessus des voitures ajoutées avec les trois catégories, dessinées en SVG.
 //
-//   node tools/dessins-voitures.js                 toutes, dans sprites/top/ et art-src/voitures/
+//   node tools/dessins-voitures.js                 sources SVG ; conserve les PNG illustrés existants
+//   node tools/dessins-voitures.js --force-vector  remplace explicitement les PNG par les anciens dessins
 //   node tools/dessins-voitures.js 962 xjr9        seulement celles-ci
 //   node tools/dessins-voitures.js --planche=x.png une planche de contrôle en plus
 //
@@ -446,7 +447,10 @@ if (require.main === module) {
       await page.setContent(`<html><body style="margin:0;background:transparent">${svg}</body></html>`);
       const el = await page.$('svg');
       const out = path.join(RACINE, 'sprites/top', nom + '.png');
-      await el.screenshot({ path: out, omitBackground: true });
+      // Les illustrations générées ont remplacé ces esquisses : ne pas les écraser par défaut.
+      if (!fs.existsSync(out) || args.includes('--force-vector')) {
+        await el.screenshot({ path: out, omitBackground: true });
+      }
       produits.push(nom);
       console.log(path.relative(RACINE, out));
     }

@@ -87,8 +87,11 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   const multi = plan.filter((m) => m.n > 1);
   const simple = plan.filter((m) => m.n === 1);
   dit(multi.length > 0, `${multi.length} voiture(s) a plusieurs livrees : ${multi.map((m) => `${m.nom} (${m.n})`).join(', ')}`);
-  dit(plan.length === 25 && multi.length === 11 && multi.filter((m) => m.n === 3).length === 9 && multi.filter((m) => m.n === 2).length === 2 && simple.length === 14,
-    'vingt-cinq modèles : neuf à trois livrées, deux à deux (962, 330 P4), quatorze à une seule');
+  dit(plan.length === 25 && multi.length === 16 && multi.every((m) => m.n === 3) && simple.length === 9,
+    'vingt-cinq modèles : les seize GT/prototypes à trois livrées, les neuf F1 à une seule');
+  const attendues = ['250gto', 'typee', '240z', '962', 'xjr9', '330p4', 'p68'];
+  dit(attendues.every((id) => plan.find((m) => m.id === id)?.n === 3), 'les sept nouvelles GT/prototypes ont chacune trois livrées');
+  dit(plan.every((m) => m.livrees.every((l) => l.top && l.pick)), 'chaque livrée a sa vue de course ET sa vignette de sélection');
 
   const images = await p.evaluate(async () => {
     // une voiture sans vignette de menu n'a que sa vue de dessus : on ne demande pas un fichier absent
@@ -100,7 +103,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       image.src = src;
     })));
   });
-  dit(images.length === 76 && images.every((i) => i.ok), `les 76 images de course et de menu sont chargees (${images.filter((i) => !i.ok).map((i) => i.src).join(', ') || 'toutes'})`);
+  dit(images.length === 114 && images.every((i) => i.ok), `les 114 images de course et de menu sont chargees (${images.filter((i) => !i.ok).map((i) => i.src).join(', ') || 'toutes'})`);
 
   /* --- 1 a 3. choisir, puis faire tourner, et aller chercher le bon dessin --- */
   for (const m of multi) {

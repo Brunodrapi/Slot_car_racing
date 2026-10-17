@@ -2394,18 +2394,20 @@ correspondaient d'ailleurs plus à ceux de `js/cars.js`. Il est laissé tel quel
 
 ### Les vraies vitesses de pointe
 
-Chaque voiture roule à **sa vraie vitesse de pointe**, sourcée : 386 km/h pour la XJR-9 aux
+Chaque voiture reçoit une **pointe historique indicative selon configuration** : 386 km/h pour la XJR-9 aux
 Hunaudières en 1988, 368 pour la F40 LM, 366 pour la 935 « Moby Dick », 251 pour la 240Z de BRE.
 La `vmax` de base de chaque catégorie est celle de sa voiture la plus rapide, et le `mul.vmax` de
-chaque voiture le rapport de sa pointe à celle-là. L'ordre des pointes est celui de la réalité dans
-les trois catégories. `node tools/fiches.js` met le jeu et les fiches côte à côte.
+chaque voiture le rapport de sa pointe à celle-là. Les neuf F1 restent des estimations, comme
+le précise le fichier de sources. `node tools/fiches.js` met le jeu et les fiches côte à côte ; il
+vérifie leur cohérence interne, sans revalider les sources externes.
 
 C'est le désaccord que la section [Et rien ne les comparait aux vraies voitures](#et-rien-ne-les-comparait-aux-vraies-voitures)
 laissait ouvert — « donner à chacune sa vraie pointe, c'est renoncer au plateau équilibré » — et il
 se dénoue pour deux raisons. Les catégories d'abord : une 240Z ne court plus contre une 787B. Et
-surtout, **aucune voiture n'approche sa pointe en piste** : les circuits du jeu sont plus courts que
-les vrais, et la plus longue ligne droite plafonne vers 290 km/h, atteints par la XJR-9 à Monza.
-La pointe s'y joue sur les reprises à haute vitesse — la poussée retombe en `1 − (v/vmax)^2,5`,
+surtout, les pointes théoriques restent rarement atteintes sur ces circuits raccourcis. Le banc
+initial sur sept circuits atteint 291 km/h avec la XJR-9 à Monza ; le contrôle indépendant atteint
+**328,6 km/h au Castellet**. Les 290 km/h ne sont donc pas une limite du jeu.
+La pointe agit aussi sur les reprises à haute vitesse — la poussée retombe en `1 − (v/vmax)^2,5`,
 donc une voiture taillée pour 386 tire encore fort à 250 — bien plus que sur le chiffre au
 compteur. Mesuré : avec les vraies pointes et avant toute retouche, chaque voiture restait à moins
 de 0,7 % de sa catégorie. Le réglage d'adhérence a repris ce qui restait ; au bout du compte, avec
@@ -2431,8 +2433,8 @@ partent de l'ordre de grandeur des DFV, au-delà de 300 km/h selon le circuit, e
 **Ce qui se règle sur la vitesse a dû suivre.** Le recul de la caméra et les couleurs du guide de
 freinage se lisent en fraction de la vitesse de pointe. Rapportés à 386 km/h qu'on n'atteint
 jamais, la caméra ne reculait plus jamais tout à fait et le guide ne passait jamais au vert. Ils se
-règlent maintenant sur `vitesseEcran` : la pointe de la voiture, plafonnée à ces 290 km/h que le jeu
-laisse atteindre. Une voiture rapide retrouve exactement ce qu'elle avait, une plus lente garde sa
+règlent maintenant sur `vitesseEcran` : la pointe de la voiture, plafonnée au repère d'affichage de
+290 km/h. Ce repère ne limite pas sa vitesse physique. Une voiture plus lente garde sa
 propre pointe. Un plafond par circuit aurait aussi marché, mais il aurait reculé la caméra à Monaco
 bien plus qu'avant, et ce n'était pas le sujet. Les cadrans du menu vont désormais jusqu'à
 400 km/h, et la longueur de course proposée ne se déduit plus de la `vmax` de base, qui ne dit plus
@@ -2440,13 +2442,19 @@ rien du rythme.
 
 ### Les dessins des nouvelles voitures
 
-Les autres voitures sont des illustrations peintes, générées hors du dépôt. Les douze nouvelles ont
-une vue de dessus dessinée en SVG par `node tools/dessins-voitures.js` — même gabarit (nez à droite,
-420 px, fond transparent), contour sombre, volumes en dégradé et livrée d'époque — avec leurs
-sources dans `art-src/voitures/`. Elles n'ont **pas encore d'illustration en trois quarts** pour le
-menu : la carte peint alors la vue de dessus, comme le prévoit déjà `carIcon`. Une illustration
-peinte pourra remplacer l'une ou l'autre sans rien changer d'autre : `tools/pack-f1.js` découpe une
-planche « dessus + trois quarts » et écrit les deux fichiers, il reste à ajouter `pick:` au modèle.
+Les douze nouvelles voitures ont maintenant des illustrations générées dans le style du plateau :
+une vue de dessus pour la course et une vue en trois quarts pour la sélection. Chaque nouvelle GT
+et chaque nouveau prototype propose trois livrées aux couleurs distinctes, historiques ou inspirées
+de décorations historiques. Les cinq nouvelles F1 gardent chacune leur livrée d'époque.
+Les neuf F1 et les trois peintures de la XJR‑9 ont ensuite été élargies de 25 % transversalement,
+par transformation des dessins existants, pour le style plus trapu demandé par Bruno. Les sources
+avant transformation et les planches avant/après sont conservées dans le dossier de revue.
+
+Les variantes sont générées sur les sprites de base en noir et blanc. Le contrôle porte sur les
+dimensions, le rectangle occupé et le recouvrement des silhouettes, séparément en course et au menu.
+[Aperçus, références et mesures](docs/nouvelles-voitures/README.md). Les anciennes esquisses SVG dans
+`art-src/voitures/` restent disponibles ; `tools/dessins-voitures.js` conserve les PNG illustrés
+existants, sauf demande explicite `--force-vector`.
 
 La Datsun est la **240Z** : il n'a jamais existé de « 250Z », et la 240Z est celle qui a couru, en
 particulier sous les couleurs de BRE.

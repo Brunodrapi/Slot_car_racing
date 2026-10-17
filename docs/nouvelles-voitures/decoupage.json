@@ -1,0 +1,152 @@
+{
+  "sprites/top/xjr9_castrol.png": {
+    "atlas": "exec-9a399e89-ebaa-4095-8535-8f6b75dad332.png",
+    "file": "sprites/top/xjr9_castrol.png",
+    "width": 420,
+    "height": 200,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 200
+    },
+    "silhouetteIoU": 0.973836862016327,
+    "aspectSource": 2.103211009174312,
+    "aspectReference": 2.1
+  },
+  "sprites/top/xjr9_jps.png": {
+    "atlas": "exec-9a399e89-ebaa-4095-8535-8f6b75dad332.png",
+    "file": "sprites/top/xjr9_jps.png",
+    "width": 420,
+    "height": 200,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 200
+    },
+    "silhouetteIoU": 0.974512743628186,
+    "aspectSource": 2.043577981651376,
+    "aspectReference": 2.1
+  },
+  "sprites/pick/xjr9_castrol.png": {
+    "atlas": "exec-9a399e89-ebaa-4095-8535-8f6b75dad332.png",
+    "file": "sprites/pick/xjr9_castrol.png",
+    "width": 420,
+    "height": 191,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 191
+    },
+    "silhouetteIoU": 0.9521961413591074,
+    "aspectSource": 2.08675799086758,
+    "aspectReference": 2.1989528795811517
+  },
+  "sprites/pick/xjr9_jps.png": {
+    "atlas": "exec-9a399e89-ebaa-4095-8535-8f6b75dad332.png",
+    "file": "sprites/pick/xjr9_jps.png",
+    "width": 420,
+    "height": 191,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 191
+    },
+    "silhouetteIoU": 0.945941468801767,
+    "aspectSource": 2.120092378752887,
+    "aspectReference": 2.1989528795811517
+  },
+  "sprites/pick/330p4_giallo.png": {
+    "atlas": "exec-eb174a55-9eec-4eb1-bb5a-b2b3e3bad5aa.png",
+    "file": "sprites/pick/330p4_giallo.png",
+    "width": 420,
+    "height": 298,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 298
+    },
+    "silhouetteIoU": 0.985699462565849,
+    "aspectSource": 1.3895582329317269,
+    "aspectReference": 1.4093959731543624
+  },
+  "sprites/pick/330p4_piper.png": {
+    "atlas": "exec-eb174a55-9eec-4eb1-bb5a-b2b3e3bad5aa.png",
+    "file": "sprites/pick/330p4_piper.png",
+    "width": 420,
+    "height": 298,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 298
+    },
+    "silhouetteIoU": 0.9653612291598561,
+    "aspectSource": 1.4084124830393487,
+    "aspectReference": 1.4093959731543624
+  },
+  "sprites/pick/240z_sharp.png": {
+    "atlas": "exec-1047d3eb-e8fe-4ee7-a84b-00c106febcbc.png",
+    "file": "sprites/pick/240z_sharp.png",
+    "width": 420,
+    "height": 278,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 278
+    },
+    "silhouetteIoU": 0.9483060137815827,
+    "aspectSource": 1.5180722891566265,
+    "aspectReference": 1.5107913669064748
+  },
+  "sprites/pick/240z_dunlop.png": {
+    "atlas": "exec-1047d3eb-e8fe-4ee7-a84b-00c106febcbc.png",
+    "file": "sprites/pick/240z_dunlop.png",
+    "width": 420,
+    "height": 278,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 278
+    },
+    "silhouetteIoU": 0.9468690454438673,
+    "aspectSource": 1.5089820359281436,
+    "aspectReference": 1.5107913669064748
+  },
+  "sprites/pick/962_jager.png": {
+    "atlas": "exec-2ae3065d-8ee6-4b9f-b5ae-71cd5af0ba95.png",
+    "file": "sprites/pick/962_jager.png",
+    "width": 420,
+    "height": 340,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 340
+    },
+    "silhouetteIoU": 0.9649992756933843,
+    "aspectSource": 1.2358156028368794,
+    "aspectReference": 1.2352941176470589
+  },
+  "sprites/pick/962_shell.png": {
+    "atlas": "exec-12cc258a-7a5c-411e-8fb9-63cdf9743c11.png",
+    "file": "sprites/pick/962_shell.png",
+    "width": 420,
+    "height": 340,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 340
+    },
+    "silhouetteIoU": 0.9651985015405758,
+    "aspectSource": 1.2294642857142857,
+    "aspectReference": 1.2352941176470589
+  }
+}

@@ -14,9 +14,11 @@ Les chiffres derrière la section « Trois catégories » du README principal.
 - **Dans une catégorie** : l'écart de chaque voiture à la moyenne de sa catégorie. À l'autopilote,
   les F1 tiennent dans 0,6 %, les GT dans 0,2 %, les prototypes dans 0,6 %.
 - **Entre catégories** : le temps moyen rapporté aux GT. F1 −8,5 %, prototypes −6,1 %.
-- **Les vitesses de pointe sont les vraies**, sourcées dans `tools/fiches.json` (`node tools/fiches.js`).
-  En piste, aucune voiture ne les approche : la plus longue ligne droite plafonne à 291 km/h (XJR-9
-  à Monza) ; `autopilote.txt` donne la pointe atteinte par voiture et par circuit.
+- **Les vitesses de pointe sont des références historiques selon configuration**, avec sources et
+  fiabilité dans `tools/fiches.json` (`node tools/fiches.js`). Les neuf F1 restent des estimations.
+  Le banc ci-dessous couvre sept circuits et atteint 291 km/h avec la XJR-9 à Monza. Le contrôle
+  [indépendant Astra](../avis-parametres-astra/README.md) atteint 328,6 km/h au Castellet : les
+  290 km/h employés par la caméra ne constituent donc pas une limite physique du jeu.
 - **Le tour idéal** s'étale davantage (2,7 à 3,2 % par catégorie) : c'est ce que la voiture vaut sur
   le papier, avant de payer sa glisse. L'écart entre les deux colonnes est le prix du caractère —
   une voiture qui glisse est rapide en théorie et rend du temps en roulant, ce que son réglage
@@ -24,7 +26,7 @@ Les chiffres derrière la section « Trois catégories » du README principal.
 
 ## Comment le réglage a été obtenu
 
-Chaque voiture a sa vraie vitesse de pointe, puis son caractère à la main (accélération, freinage, appui, glisse). Le
+Chaque voiture a sa vitesse de pointe de référence, puis son caractère à la main (accélération, freinage, appui, glisse). Le
 rythme se règle ensuite sur la seule adhérence mécanique, en boucle contre l'autopilote : trois
 passes suffisent pour que chaque voiture soit à ±0,4 % de la cible de sa catégorie, le bruit de la mesure.
 

@@ -31,7 +31,7 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.png
    const runs=await page.evaluate(id=>['monaco','spa','monza','zandvoort'].map(track=>{
     const r=new Race({trackDef:TRACKS.find(t=>t.id===track),classId:'gt',modelId:id,nCars:1,mode:'timetrial',playerAI:true});
     let maxV=0, finite=true;
-    for(let t=0;t<1200;t++){r.update(1/120,{throttle:aiThrottle(r.player,r.cars,1/120,{marginBase:0.7,marginSpread:0})});maxV=Math.max(maxV,r.player.v);finite=finite&&[r.player.s,r.player.v,r.player.lat,r.player.x,r.player.y].every(Number.isFinite);}
+    for(let t=0;t<1200;t++){r.update(1/120,aiThrottle(r.player,r.cars,1/120,{marginBase:0.7,marginSpread:0}));maxV=Math.max(maxV,r.player.v);finite=finite&&[r.player.s,r.player.v,r.player.lat,r.player.x,r.player.y].every(Number.isFinite);}
     const c=r.player;return {track,ok:finite && maxV > 5,maxV};
    }),id);
    assert(runs.every(r=>r.ok),JSON.stringify(runs));

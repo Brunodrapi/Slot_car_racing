@@ -28,13 +28,11 @@ l'écart est voulu : une F1 ou un prototype va plus vite qu'une GT, et c'est ce 
 La base de chaque catégorie porte ce rang ; les `mul` de chaque voiture ne portent que son caractère,
 autour de 1. `node tools/plateau-banc.js` mesure les deux équilibres à la fois.
 
-LES VITESSES DE POINTE SONT LES VRAIES. La `vmax` de base de chaque catégorie est celle de sa voiture
+POINTES HISTORIQUES INDICATIVES, SELON CONFIGURATION. La `vmax` de base de chaque catégorie est celle de sa voiture
 la plus rapide — 315 km/h pour la Renault RS10, 368 pour la F40 LM, 386 pour la XJR-9 aux Hunaudières
-—, et chaque `mul.vmax` est le rapport de la vraie pointe de la voiture à celle-là. Chaque chiffre a
-sa source dans `tools/fiches.json`, et `node tools/fiches.js` les confronte au jeu. Les circuits du
-jeu étant plus courts que les vrais, aucune voiture n'approche sa pointe en piste — la plus longue
-ligne droite plafonne vers 290 km/h — : la pointe y joue sur les reprises à haute vitesse plus que
-sur le chiffre au compteur, et c'est ce qui permet de garder un plateau équilibré avec des pointes
+—, et chaque `mul.vmax` est le rapport de la pointe retenue à celle-là. Les sources et leur fiabilité
+figurent dans `tools/fiches.json` ; les neuf F1 restent des estimations. Les pointes influencent
+aussi les reprises à haute vitesse, ce qui permet de garder un plateau équilibré avec des pointes
 aussi étalées que 251 et 368 km/h chez les GT.
 
 La largeur de route (`roadScale`) et le cadrage (`zoom`) sont LES MÊMES pour les trois. La largeur
@@ -71,27 +69,27 @@ const CATEGORIES = [
         engine: { cyl: 8, redline: 11000, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
       { id: 'lotus72', diff: 3, name: 'Lotus 72', shape: 'wedge72',
         mul: { vmax: 0.936, accel: 1.08, brake: 1.03, grip: 1.055, df: 0.6, slide: 1.05 },
-        colors: ['#161719', '#d4b35e'], top: 'sprites/top/lotus72.png',
+        colors: ['#161719', '#d4b35e'], top: 'sprites/top/lotus72.png', pick: 'sprites/pick/lotus72.png',
         livrees: [{ id: '', nom: 'JPS · Fittipaldi · 1972' }],
         engine: { cyl: 8, redline: 10000, idle: 1500, rough: 0.1, bright: 0.9, turbo: 0 } },
       { id: 'brabhambt46b', diff: 0, name: 'Brabham BT46B', shape: 'wedge72',
         mul: { vmax: 0.927, accel: 0.97, brake: 1, grip: 1.028, df: 0.7, slide: 0.88 },
-        colors: ['#e8202a', '#f4f4f4'], top: 'sprites/top/brabhambt46b.png',
+        colors: ['#e8202a', '#f4f4f4'], top: 'sprites/top/brabhambt46b.png', pick: 'sprites/pick/brabhambt46b.png',
         livrees: [{ id: '', nom: 'Parmalat · Lauda · 1978' }],
         engine: { cyl: 12, redline: 12000, idle: 1700, rough: 0.05, bright: 0.96, turbo: 0 } },
       { id: 'williamsfw07', diff: 1, name: 'Williams FW07', shape: 'wedge72',
         mul: { vmax: 0.952, accel: 1.02, brake: 1.02, grip: 0.912, df: 1.35, slide: 0.97 },
-        colors: ['#f4f4f4', '#1f6b3a'], top: 'sprites/top/williamsfw07.png',
+        colors: ['#f4f4f4', '#1f6b3a'], top: 'sprites/top/williamsfw07.png', pick: 'sprites/pick/williamsfw07.png',
         livrees: [{ id: '', nom: 'Saudia · Jones · 1979' }],
         engine: { cyl: 8, redline: 11000, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
       { id: 'ligierjs11', diff: 0, name: 'Ligier JS11', shape: 'wedge72',
         mul: { vmax: 0.946, accel: 0.99, brake: 1.08, grip: 0.913, df: 1.25, slide: 0.92 },
-        colors: ['#2f7fd1', '#f4f4f4'], top: 'sprites/top/ligierjs11.png',
+        colors: ['#2f7fd1', '#f4f4f4'], top: 'sprites/top/ligierjs11.png', pick: 'sprites/pick/ligierjs11.png',
         livrees: [{ id: '', nom: 'Gitanes · Laffite · 1979' }],
         engine: { cyl: 8, redline: 11000, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
       { id: 'renaultrs10', diff: 2, name: 'Renault RS10', shape: 'wedge72',
         mul: { vmax: 1, accel: 0.93, brake: 0.98, grip: 1.023, df: 1, slide: 1.06 },
-        colors: ['#f2c500', '#141414'], top: 'sprites/top/renaultrs10.png',
+        colors: ['#f2c500', '#141414'], top: 'sprites/top/renaultrs10.png', pick: 'sprites/pick/renaultrs10.png',
         livrees: [{ id: '', nom: 'Elf · Jabouille · 1979' }],
         engine: { cyl: 6, redline: 11000, idle: 1800, rough: 0.2, bright: 0.8, turbo: 1 } },
     ],
@@ -189,16 +187,16 @@ const CATEGORIES = [
       // Les trois GT des années soixante et soixante-dix. Moteur avant, pneus étroits, peu d'appui :
       // elles se battent avec leur pointe et leur légèreté là où les autres ont de la gomme.
       { id: '250gto', diff: 2, name: '250 GTO', shape: 'roundGT', mul: { vmax: 0.766, accel: 0.97, brake: 0.95, grip: 1.02, df: 0.5, slide: 0.95 },
-        colors: ['#c8161d', '#f4f4f4'], top: 'sprites/top/250gto.png',
-        livrees: [{ id: '', nom: 'Rosso Corsa · 1962' }],
+        colors: ['#c8161d', '#f4f4f4'], top: 'sprites/top/250gto.png', pick: 'sprites/pick/250gto.png',
+        livrees: [{ id: '', nom: 'Rosso Corsa · 19' }, { id: 'francorchamps', nom: 'Francorchamps · jaune' }, { id: 'walker', nom: 'Rob Walker · inspiration bleue' }],
         engine: { cyl: 12, redline: 7500, idle: 900, rough: 0.05, bright: 0.85, turbo: 0 } },
       { id: 'typee', diff: 2, name: 'Type E', shape: 'roundGT', mul: { vmax: 0.734, accel: 0.95, brake: 0.93, grip: 1.051, df: 0.45, slide: 1 },
-        colors: ['#1d5c3a', '#f4f4f4'], top: 'sprites/top/typee.png',
-        livrees: [{ id: '', nom: 'Lightweight · British Racing Green' }],
+        colors: ['#1d5c3a', '#f4f4f4'], top: 'sprites/top/typee.png', pick: 'sprites/pick/typee.png',
+        livrees: [{ id: '', nom: 'Lightweight · British Racing Green' }, { id: 'cunningham', nom: 'Cunningham · blanc et bleu' }, { id: 'ecosse', nom: 'Écurie Écosse · inspiration bleue' }],
         engine: { cyl: 6, redline: 6500, idle: 850, rough: 0.12, bright: 0.6, turbo: 0 } },
       { id: '240z', diff: 3, name: '240Z', shape: 'roundGT', mul: { vmax: 0.682, accel: 1.02, brake: 1.05, grip: 1.036, df: 0.7, slide: 1.05 },
-        colors: ['#f4f4f4', '#d12a2a'], top: 'sprites/top/240z.png',
-        livrees: [{ id: '', nom: 'BRE · 46' }],
+        colors: ['#f4f4f4', '#d12a2a'], top: 'sprites/top/240z.png', pick: 'sprites/pick/240z.png',
+        livrees: [{ id: '', nom: 'BRE · 46' }, { id: 'sharp', nom: 'Bob Sharp · inspiration bleue' }, { id: 'dunlop', nom: 'Dunlop · hommage jaune' }],
         engine: { cyl: 6, redline: 7500, idle: 950, rough: 0.12, bright: 0.66, turbo: 0 } },
     ],
   },
@@ -254,21 +252,21 @@ const CATEGORIES = [
         },
       } },
       { id: '962', diff: 1, name: '962', shape: 'groupC', mul: { vmax: 0.907, accel: 1, brake: 1.02, grip: 0.981, df: 1.15, slide: 0.95 },
-        colors: ['#f4f4f4', '#1b3f8f'], top: 'sprites/top/962.png',
-        livrees: [{ id: '', nom: 'Rothmans · 17' }, { id: 'shell', nom: 'Shell · Dunlop · 7' }],
+        colors: ['#f4f4f4', '#1b3f8f'], top: 'sprites/top/962.png', pick: 'sprites/pick/962.png',
+        livrees: [{ id: '', nom: 'Rothmans · 17' }, { id: 'shell', nom: 'Shell · Dunlop · 7' }, { id: 'jager', nom: 'Jägermeister · orange' }],
         engine: { cyl: 6, redline: 8200, idle: 1100, rough: 0.3, bright: 0.7, turbo: 0.95,
           sample: { ramp: 'sounds/engine/flat6-930.json', bas: 'sounds/engine/flat6-930-bas.json' } } },
       { id: 'xjr9', diff: 1, name: 'XJR-9', shape: 'groupC', mul: { vmax: 1, accel: 0.96, brake: 0.96, grip: 1, df: 1.1, slide: 0.95 },
-        colors: ['#5b2a86', '#f4f4f4'], top: 'sprites/top/xjr9.png',
-        livrees: [{ id: '', nom: 'Silk Cut · 2' }],
+        colors: ['#5b2a86', '#f4f4f4'], top: 'sprites/top/xjr9.png', pick: 'sprites/pick/xjr9.png',
+        livrees: [{ id: '', nom: 'Silk Cut · 2' }, { id: 'castrol', nom: 'Castrol · IMSA · vert' }, { id: 'jps', nom: 'JPS · hommage noir et or' }],
         engine: { cyl: 12, redline: 7200, idle: 900, rough: 0.05, bright: 0.75, turbo: 0, sample: { ramp: 'sounds/engine/v12-countach.json' } } },
       { id: '330p4', diff: 3, name: '330 P4', shape: 'gt40', mul: { vmax: 0.829, accel: 1.05, brake: 1.04, grip: 1.094, df: 0.6, slide: 1.05 },
-        colors: ['#d0141b', '#f4f4f4'], top: 'sprites/top/330p4.png',
-        livrees: [{ id: '', nom: 'Daytona 1967 · 23' }, { id: 'giallo', nom: 'Equipe Nationale Belge · 1967' }],
+        colors: ['#d0141b', '#f4f4f4'], top: 'sprites/top/330p4.png', pick: 'sprites/pick/330p4.png',
+        livrees: [{ id: '', nom: 'Daytona 1967 · 23' }, { id: 'giallo', nom: 'Équipe Nationale Belge · jaune' }, { id: 'piper', nom: 'David Piper · vert' }],
         engine: { cyl: 12, redline: 8500, idle: 1000, rough: 0.05, bright: 0.9, turbo: 0, sample: { ramp: 'sounds/engine/v12-countach.json' } } },
       { id: 'p68', diff: 3, name: 'Ford P68', shape: 'longTail', mul: { vmax: 0.904, accel: 0.99, brake: 0.97, grip: 1.142, df: 0.55, slide: 1.2 },
-        colors: ['#c62026', '#d9b45a'], top: 'sprites/top/p68.png',
-        livrees: [{ id: '', nom: 'Alan Mann Racing · 1968' }],
+        colors: ['#c62026', '#d9b45a'], top: 'sprites/top/p68.png', pick: 'sprites/pick/p68.png',
+        livrees: [{ id: '', nom: 'Alan Mann Racing · 1968' }, { id: 'gulf', nom: 'Gulf · hommage bleu' }, { id: 'dunlop', nom: 'Dunlop · hommage jaune' }],
         engine: { cyl: 8, redline: 9500, idle: 1300, rough: 0.12, bright: 0.88, turbo: 0 } },
     ],
   },
@@ -424,17 +422,11 @@ dérive, sept degrés au 95e centile là où les F1 à effet de sol tiennent sou
 
 Une voiture d'atelier, dont on ne sait rien, vaut deux pneus : le milieu, faute de mieux. */
 
-/* La vitesse sur laquelle se règlent la caméra et le guide de freinage : la pointe de la voiture,
-mais jamais au-delà de ce que le jeu laisse atteindre.
-
-Les voitures portent leur vraie vitesse de pointe — 386 km/h pour la XJR-9 —, mais la plus longue
-ligne droite du jeu n'en laisse atteindre que 290 (mesuré par `tools/plateau-banc.js --sim` : 291 pour
-la XJR-9 à Monza, et aucune voiture au-dessus). Le recul de la caméra et les couleurs du guide se
-lisent en fraction de cette vitesse : rapportés à 386, la caméra ne reculait plus jamais tout à fait
-et le guide ne passait jamais au vert. Plafonnée à 290, une voiture rapide retrouve exactement ce
-qu'elle avait quand sa pointe de jeu était celle qu'elle atteignait sur le plus long circuit, et une
-voiture plus lente que ça garde sa propre pointe, comme avant. Un plafond par circuit aurait aussi
-servi, mais il aurait reculé la caméra à Monaco bien plus qu'avant : ce n'est pas ce qu'on change ici. */
+/* Repère de présentation pour la caméra et le guide de freinage, pas limite physique.
+Le premier banc sur sept circuits atteignait 291 km/h à Monza ; le contrôle indépendant atteint
+328,6 km/h au Castellet avec la XJR-9. On conserve ici le repère choisi de 290 km/h : la caméra
+atteint ainsi son recul maximal avant la pointe théorique et les GT plus lentes gardent leur
+propre référence. Voir docs/avis-parametres-astra/README.md. */
 const VMAX_ECRAN = 290 / 3.6;
 function vitesseEcran(cls) { return Math.min(cls.vmax, VMAX_ECRAN); }
 

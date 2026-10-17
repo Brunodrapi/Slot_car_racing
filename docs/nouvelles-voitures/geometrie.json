@@ -1,0 +1,786 @@
+[
+  {
+    "model": "lotus72",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/lotus72.png",
+    "width": 420,
+    "height": 256,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 256
+    }
+  },
+  {
+    "model": "lotus72",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/lotus72.png",
+    "width": 420,
+    "height": 173,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 173
+    }
+  },
+  {
+    "model": "brabhambt46b",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/brabhambt46b.png",
+    "width": 420,
+    "height": 256,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 256
+    }
+  },
+  {
+    "model": "brabhambt46b",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/brabhambt46b.png",
+    "width": 420,
+    "height": 156,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 156
+    }
+  },
+  {
+    "model": "williamsfw07",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/williamsfw07.png",
+    "width": 420,
+    "height": 256,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 256
+    }
+  },
+  {
+    "model": "williamsfw07",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/williamsfw07.png",
+    "width": 420,
+    "height": 201,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 201
+    }
+  },
+  {
+    "model": "ligierjs11",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/ligierjs11.png",
+    "width": 420,
+    "height": 256,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 256
+    }
+  },
+  {
+    "model": "ligierjs11",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/ligierjs11.png",
+    "width": 420,
+    "height": 165,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 165
+    }
+  },
+  {
+    "model": "renaultrs10",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/renaultrs10.png",
+    "width": 420,
+    "height": 256,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 256
+    }
+  },
+  {
+    "model": "renaultrs10",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/renaultrs10.png",
+    "width": 420,
+    "height": 174,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 174
+    }
+  },
+  {
+    "model": "250gto",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/250gto.png",
+    "width": 420,
+    "height": 200,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 200
+    }
+  },
+  {
+    "model": "250gto",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/250gto.png",
+    "width": 420,
+    "height": 201,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 201
+    }
+  },
+  {
+    "model": "250gto",
+    "livery": "francorchamps",
+    "view": "top",
+    "file": "sprites/top/250gto_francorchamps.png",
+    "width": 420,
+    "height": 200,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 200
+    },
+    "silhouetteIoU": 0.9822904207893879,
+    "meanRgbDifference": 64.52064164118458
+  },
+  {
+    "model": "250gto",
+    "livery": "francorchamps",
+    "view": "pick",
+    "file": "sprites/pick/250gto_francorchamps.png",
+    "width": 420,
+    "height": 201,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 201
+    },
+    "silhouetteIoU": 0.9749562883029265,
+    "meanRgbDifference": 62.66696858262534
+  },
+  {
+    "model": "250gto",
+    "livery": "walker",
+    "view": "top",
+    "file": "sprites/top/250gto_walker.png",
+    "width": 420,
+    "height": 200,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 200
+    },
+    "silhouetteIoU": 0.9750162495937602,
+    "meanRgbDifference": 103.39485854756052
+  },
+  {
+    "model": "250gto",
+    "livery": "walker",
+    "view": "pick",
+    "file": "sprites/pick/250gto_walker.png",
+    "width": 420,
+    "height": 201,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 201
+    },
+    "silhouetteIoU": 0.954367077617642,
+    "meanRgbDifference": 93.62797326637798
+  },
+  {
+    "model": "typee",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/typee.png",
+    "width": 420,
+    "height": 200,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 200
+    }
+  },
+  {
+    "model": "typee",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/typee.png",
+    "width": 420,
+    "height": 259,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 259
+    }
+  },
+  {
+    "model": "typee",
+    "livery": "cunningham",
+    "view": "top",
+    "file": "sprites/top/typee_cunningham.png",
+    "width": 420,
+    "height": 200,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 200
+    },
+    "silhouetteIoU": 0.9878755024328326,
+    "meanRgbDifference": 108.11418501416493
+  },
+  {
+    "model": "typee",
+    "livery": "cunningham",
+    "view": "pick",
+    "file": "sprites/pick/typee_cunningham.png",
+    "width": 420,
+    "height": 259,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 259
+    },
+    "silhouetteIoU": 0.9550621495784455,
+    "meanRgbDifference": 110.80011321436065
+  },
+  {
+    "model": "typee",
+    "livery": "ecosse",
+    "view": "top",
+    "file": "sprites/top/typee_ecosse.png",
+    "width": 420,
+    "height": 200,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 200
+    },
+    "silhouetteIoU": 0.989053606882859,
+    "meanRgbDifference": 49.0410360040862
+  },
+  {
+    "model": "typee",
+    "livery": "ecosse",
+    "view": "pick",
+    "file": "sprites/pick/typee_ecosse.png",
+    "width": 420,
+    "height": 259,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 259
+    },
+    "silhouetteIoU": 0.9420165627462637,
+    "meanRgbDifference": 61.482924108780836
+  },
+  {
+    "model": "240z",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/240z.png",
+    "width": 420,
+    "height": 200,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 200
+    }
+  },
+  {
+    "model": "240z",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/240z.png",
+    "width": 420,
+    "height": 278,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 278
+    }
+  },
+  {
+    "model": "240z",
+    "livery": "sharp",
+    "view": "top",
+    "file": "sprites/top/240z_sharp.png",
+    "width": 420,
+    "height": 200,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 200
+    },
+    "silhouetteIoU": 0.9859828141783029,
+    "meanRgbDifference": 66.8290166494181
+  },
+  {
+    "model": "240z",
+    "livery": "sharp",
+    "view": "pick",
+    "file": "sprites/pick/240z_sharp.png",
+    "width": 420,
+    "height": 278,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 278
+    },
+    "silhouetteIoU": 0.9483060137815827,
+    "meanRgbDifference": 89.72923404391965
+  },
+  {
+    "model": "240z",
+    "livery": "dunlop",
+    "view": "top",
+    "file": "sprites/top/240z_dunlop.png",
+    "width": 420,
+    "height": 200,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 200
+    },
+    "silhouetteIoU": 0.9867914144193726,
+    "meanRgbDifference": 66.09252785221662
+  },
+  {
+    "model": "240z",
+    "livery": "dunlop",
+    "view": "pick",
+    "file": "sprites/pick/240z_dunlop.png",
+    "width": 420,
+    "height": 278,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 278
+    },
+    "silhouetteIoU": 0.9468690454438673,
+    "meanRgbDifference": 71.32690567095331
+  },
+  {
+    "model": "962",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/962.png",
+    "width": 420,
+    "height": 200,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 200
+    }
+  },
+  {
+    "model": "962",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/962.png",
+    "width": 420,
+    "height": 340,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 340
+    }
+  },
+  {
+    "model": "962",
+    "livery": "shell",
+    "view": "top",
+    "file": "sprites/top/962_shell.png",
+    "width": 420,
+    "height": 200,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 200
+    },
+    "silhouetteIoU": 0.9896312787672603,
+    "meanRgbDifference": 74.23232182803989
+  },
+  {
+    "model": "962",
+    "livery": "shell",
+    "view": "pick",
+    "file": "sprites/pick/962_shell.png",
+    "width": 420,
+    "height": 340,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 340
+    },
+    "silhouetteIoU": 0.9651985015405758,
+    "meanRgbDifference": 80.56281530134963
+  },
+  {
+    "model": "962",
+    "livery": "jager",
+    "view": "top",
+    "file": "sprites/top/962_jager.png",
+    "width": 420,
+    "height": 200,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 200
+    },
+    "silhouetteIoU": 0.990232982754524,
+    "meanRgbDifference": 78.76104838641778
+  },
+  {
+    "model": "962",
+    "livery": "jager",
+    "view": "pick",
+    "file": "sprites/pick/962_jager.png",
+    "width": 420,
+    "height": 340,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 340
+    },
+    "silhouetteIoU": 0.9649992756933843,
+    "meanRgbDifference": 84.84396843725943
+  },
+  {
+    "model": "xjr9",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/xjr9.png",
+    "width": 420,
+    "height": 250,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 250
+    }
+  },
+  {
+    "model": "xjr9",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/xjr9.png",
+    "width": 420,
+    "height": 220,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 220
+    }
+  },
+  {
+    "model": "xjr9",
+    "livery": "castrol",
+    "view": "top",
+    "file": "sprites/top/xjr9_castrol.png",
+    "width": 420,
+    "height": 250,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 250
+    },
+    "silhouetteIoU": 0.9763027637924075,
+    "meanRgbDifference": 84.22463145297286
+  },
+  {
+    "model": "xjr9",
+    "livery": "castrol",
+    "view": "pick",
+    "file": "sprites/pick/xjr9_castrol.png",
+    "width": 420,
+    "height": 220,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 220
+    },
+    "silhouetteIoU": 0.9528314843356579,
+    "meanRgbDifference": 67.11661862054238
+  },
+  {
+    "model": "xjr9",
+    "livery": "jps",
+    "view": "top",
+    "file": "sprites/top/xjr9_jps.png",
+    "width": 420,
+    "height": 250,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 250
+    },
+    "silhouetteIoU": 0.9764941845657527,
+    "meanRgbDifference": 108.4276057684993
+  },
+  {
+    "model": "xjr9",
+    "livery": "jps",
+    "view": "pick",
+    "file": "sprites/pick/xjr9_jps.png",
+    "width": 420,
+    "height": 220,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 220
+    },
+    "silhouetteIoU": 0.9478769425561099,
+    "meanRgbDifference": 83.48237258487715
+  },
+  {
+    "model": "330p4",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/330p4.png",
+    "width": 420,
+    "height": 200,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 200
+    }
+  },
+  {
+    "model": "330p4",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/330p4.png",
+    "width": 420,
+    "height": 298,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 298
+    }
+  },
+  {
+    "model": "330p4",
+    "livery": "giallo",
+    "view": "top",
+    "file": "sprites/top/330p4_giallo.png",
+    "width": 420,
+    "height": 200,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 200
+    },
+    "silhouetteIoU": 0.9862139593508744,
+    "meanRgbDifference": 63.69367450364335
+  },
+  {
+    "model": "330p4",
+    "livery": "giallo",
+    "view": "pick",
+    "file": "sprites/pick/330p4_giallo.png",
+    "width": 420,
+    "height": 298,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 298
+    },
+    "silhouetteIoU": 0.985699462565849,
+    "meanRgbDifference": 53.78603722147995
+  },
+  {
+    "model": "330p4",
+    "livery": "piper",
+    "view": "top",
+    "file": "sprites/top/330p4_piper.png",
+    "width": 420,
+    "height": 200,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 200
+    },
+    "silhouetteIoU": 0.9888834932342866,
+    "meanRgbDifference": 79.30748369743141
+  },
+  {
+    "model": "330p4",
+    "livery": "piper",
+    "view": "pick",
+    "file": "sprites/pick/330p4_piper.png",
+    "width": 420,
+    "height": 298,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 298
+    },
+    "silhouetteIoU": 0.9653612291598561,
+    "meanRgbDifference": 83.11810653879843
+  },
+  {
+    "model": "p68",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/p68.png",
+    "width": 420,
+    "height": 200,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 200
+    }
+  },
+  {
+    "model": "p68",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/p68.png",
+    "width": 420,
+    "height": 181,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 181
+    }
+  },
+  {
+    "model": "p68",
+    "livery": "gulf",
+    "view": "top",
+    "file": "sprites/top/p68_gulf.png",
+    "width": 420,
+    "height": 200,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 200
+    },
+    "silhouetteIoU": 0.9852682167579154,
+    "meanRgbDifference": 104.01130295807697
+  },
+  {
+    "model": "p68",
+    "livery": "gulf",
+    "view": "pick",
+    "file": "sprites/pick/p68_gulf.png",
+    "width": 420,
+    "height": 181,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 181
+    },
+    "silhouetteIoU": 0.9894866277282508,
+    "meanRgbDifference": 78.13861618546595
+  },
+  {
+    "model": "p68",
+    "livery": "dunlop",
+    "view": "top",
+    "file": "sprites/top/p68_dunlop.png",
+    "width": 420,
+    "height": 200,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 200
+    },
+    "silhouetteIoU": 0.9583857414296036,
+    "meanRgbDifference": 79.17509028631
+  },
+  {
+    "model": "p68",
+    "livery": "dunlop",
+    "view": "pick",
+    "file": "sprites/pick/p68_dunlop.png",
+    "width": 420,
+    "height": 181,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 181
+    },
+    "silhouetteIoU": 0.9805603667855324,
+    "meanRgbDifference": 67.02373876962933
+  }
+]

@@ -1,0 +1,398 @@
+[
+  {
+    "model": "tyrrellp34",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/tyrrellp34.png",
+    "source": "art-src/voitures/gabarits-trappus/top/tyrrellp34.png",
+    "factor": 1.25,
+    "before": {
+      "width": 420,
+      "height": 205
+    },
+    "after": {
+      "width": 420,
+      "height": 256
+    }
+  },
+  {
+    "model": "tyrrellp34",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/tyrrellp34.png",
+    "source": "art-src/voitures/gabarits-trappus/pick/tyrrellp34.png",
+    "factor": 1.25,
+    "axisDegrees": -25,
+    "before": {
+      "width": 420,
+      "height": 340
+    },
+    "after": {
+      "width": 420,
+      "height": 197
+    }
+  },
+  {
+    "model": "ferrari312t",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/ferrari312t.png",
+    "source": "art-src/voitures/gabarits-trappus/top/ferrari312t.png",
+    "factor": 1.25,
+    "before": {
+      "width": 420,
+      "height": 205
+    },
+    "after": {
+      "width": 420,
+      "height": 256
+    }
+  },
+  {
+    "model": "ferrari312t",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/ferrari312t.png",
+    "source": "art-src/voitures/gabarits-trappus/pick/ferrari312t.png",
+    "factor": 1.25,
+    "axisDegrees": -30,
+    "before": {
+      "width": 420,
+      "height": 340
+    },
+    "after": {
+      "width": 420,
+      "height": 260
+    }
+  },
+  {
+    "model": "mclarenm23",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/mclarenm23.png",
+    "source": "art-src/voitures/gabarits-trappus/top/mclarenm23.png",
+    "factor": 1.25,
+    "before": {
+      "width": 420,
+      "height": 205
+    },
+    "after": {
+      "width": 420,
+      "height": 256
+    }
+  },
+  {
+    "model": "mclarenm23",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/mclarenm23.png",
+    "source": "art-src/voitures/gabarits-trappus/pick/mclarenm23.png",
+    "factor": 1.25,
+    "axisDegrees": -26,
+    "before": {
+      "width": 420,
+      "height": 340
+    },
+    "after": {
+      "width": 420,
+      "height": 233
+    }
+  },
+  {
+    "model": "lotus79",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/lotus79.png",
+    "source": "art-src/voitures/gabarits-trappus/top/lotus79.png",
+    "factor": 1.25,
+    "before": {
+      "width": 420,
+      "height": 205
+    },
+    "after": {
+      "width": 420,
+      "height": 256
+    }
+  },
+  {
+    "model": "lotus79",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/lotus79.png",
+    "source": "art-src/voitures/gabarits-trappus/pick/lotus79.png",
+    "factor": 1.25,
+    "axisDegrees": -24,
+    "before": {
+      "width": 420,
+      "height": 340
+    },
+    "after": {
+      "width": 420,
+      "height": 218
+    }
+  },
+  {
+    "model": "lotus72",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/lotus72.png",
+    "source": "art-src/voitures/gabarits-trappus/top/lotus72.png",
+    "factor": 1.25,
+    "before": {
+      "width": 420,
+      "height": 205
+    },
+    "after": {
+      "width": 420,
+      "height": 256
+    }
+  },
+  {
+    "model": "lotus72",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/lotus72.png",
+    "source": "art-src/voitures/gabarits-trappus/pick/lotus72.png",
+    "factor": 1.25,
+    "axisDegrees": -18,
+    "before": {
+      "width": 420,
+      "height": 146
+    },
+    "after": {
+      "width": 420,
+      "height": 173
+    }
+  },
+  {
+    "model": "brabhambt46b",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/brabhambt46b.png",
+    "source": "art-src/voitures/gabarits-trappus/top/brabhambt46b.png",
+    "factor": 1.25,
+    "before": {
+      "width": 420,
+      "height": 205
+    },
+    "after": {
+      "width": 420,
+      "height": 256
+    }
+  },
+  {
+    "model": "brabhambt46b",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/brabhambt46b.png",
+    "source": "art-src/voitures/gabarits-trappus/pick/brabhambt46b.png",
+    "factor": 1.25,
+    "axisDegrees": -17,
+    "before": {
+      "width": 420,
+      "height": 139
+    },
+    "after": {
+      "width": 420,
+      "height": 156
+    }
+  },
+  {
+    "model": "williamsfw07",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/williamsfw07.png",
+    "source": "art-src/voitures/gabarits-trappus/top/williamsfw07.png",
+    "factor": 1.25,
+    "before": {
+      "width": 420,
+      "height": 205
+    },
+    "after": {
+      "width": 420,
+      "height": 256
+    }
+  },
+  {
+    "model": "williamsfw07",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/williamsfw07.png",
+    "source": "art-src/voitures/gabarits-trappus/pick/williamsfw07.png",
+    "factor": 1.25,
+    "axisDegrees": -23,
+    "before": {
+      "width": 420,
+      "height": 180
+    },
+    "after": {
+      "width": 420,
+      "height": 201
+    }
+  },
+  {
+    "model": "ligierjs11",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/ligierjs11.png",
+    "source": "art-src/voitures/gabarits-trappus/top/ligierjs11.png",
+    "factor": 1.25,
+    "before": {
+      "width": 420,
+      "height": 205
+    },
+    "after": {
+      "width": 420,
+      "height": 256
+    }
+  },
+  {
+    "model": "ligierjs11",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/ligierjs11.png",
+    "source": "art-src/voitures/gabarits-trappus/pick/ligierjs11.png",
+    "factor": 1.25,
+    "axisDegrees": -18,
+    "before": {
+      "width": 420,
+      "height": 139
+    },
+    "after": {
+      "width": 420,
+      "height": 165
+    }
+  },
+  {
+    "model": "renaultrs10",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/renaultrs10.png",
+    "source": "art-src/voitures/gabarits-trappus/top/renaultrs10.png",
+    "factor": 1.25,
+    "before": {
+      "width": 420,
+      "height": 205
+    },
+    "after": {
+      "width": 420,
+      "height": 256
+    }
+  },
+  {
+    "model": "renaultrs10",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/renaultrs10.png",
+    "source": "art-src/voitures/gabarits-trappus/pick/renaultrs10.png",
+    "factor": 1.25,
+    "axisDegrees": -18,
+    "before": {
+      "width": 420,
+      "height": 149
+    },
+    "after": {
+      "width": 420,
+      "height": 174
+    }
+  },
+  {
+    "model": "xjr9",
+    "livery": "",
+    "view": "top",
+    "file": "sprites/top/xjr9.png",
+    "source": "art-src/voitures/gabarits-trappus/top/xjr9.png",
+    "factor": 1.25,
+    "before": {
+      "width": 420,
+      "height": 200
+    },
+    "after": {
+      "width": 420,
+      "height": 250
+    }
+  },
+  {
+    "model": "xjr9",
+    "livery": "",
+    "view": "pick",
+    "file": "sprites/pick/xjr9.png",
+    "source": "art-src/voitures/gabarits-trappus/pick/xjr9.png",
+    "factor": 1.25,
+    "axisDegrees": -23,
+    "before": {
+      "width": 420,
+      "height": 191
+    },
+    "after": {
+      "width": 420,
+      "height": 220
+    }
+  },
+  {
+    "model": "xjr9",
+    "livery": "castrol",
+    "view": "top",
+    "file": "sprites/top/xjr9_castrol.png",
+    "source": "art-src/voitures/gabarits-trappus/top/xjr9_castrol.png",
+    "factor": 1.25,
+    "before": {
+      "width": 420,
+      "height": 200
+    },
+    "after": {
+      "width": 420,
+      "height": 250
+    }
+  },
+  {
+    "model": "xjr9",
+    "livery": "castrol",
+    "view": "pick",
+    "file": "sprites/pick/xjr9_castrol.png",
+    "source": "art-src/voitures/gabarits-trappus/pick/xjr9_castrol.png",
+    "factor": 1.25,
+    "axisDegrees": -23,
+    "before": {
+      "width": 420,
+      "height": 191
+    },
+    "after": {
+      "width": 420,
+      "height": 220
+    }
+  },
+  {
+    "model": "xjr9",
+    "livery": "jps",
+    "view": "top",
+    "file": "sprites/top/xjr9_jps.png",
+    "source": "art-src/voitures/gabarits-trappus/top/xjr9_jps.png",
+    "factor": 1.25,
+    "before": {
+      "width": 420,
+      "height": 200
+    },
+    "after": {
+      "width": 420,
+      "height": 250
+    }
+  },
+  {
+    "model": "xjr9",
+    "livery": "jps",
+    "view": "pick",
+    "file": "sprites/pick/xjr9_jps.png",
+    "source": "art-src/voitures/gabarits-trappus/pick/xjr9_jps.png",
+    "factor": 1.25,
+    "axisDegrees": -23,
+    "before": {
+      "width": 420,
+      "height": 191
+    },
+    "after": {
+      "width": 420,
+      "height": 220
+    }
+  }
+]
