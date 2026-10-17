@@ -116,7 +116,7 @@ function speedProfile(track, model, lineName, margin) {
   ne cherche qu'une référence, pas un modèle de pneu. */
   for (let pass = 0; pass < 2; pass++) for (let i = 0; i < N; i++) {
     const j = (i - 1 + N) % N;
-    const moteur = model.accel * Math.max(0.15, 1 - Math.pow(v[j] / model.vmax, 2.5));
+    const moteur = model.accel * driveFactor(model,v[j]) * Math.max(0.15, 1 - Math.pow(v[j] / model.vmax, 2.5));
     const lat = v[j] * v[j] * Math.abs(lineK[j]) / Math.max(1e-3, model.grip);
     const a = Math.max(0.05, moteur * Math.sqrt(Math.max(0, 1 - Math.min(1, lat) ** 2)));
     const lim = Math.sqrt(v[j] * v[j] + 2 * a * ds);
@@ -916,7 +916,7 @@ class Car {
     const dmg = this.damageFactor();
     const vmax = c.vmax * dmg * (this.draft ? 1.05 : 1);
     const accDem = throttle
-      ? c.accel * dmg * Math.max(0, 1 - Math.pow(Math.max(0, this.v) / vmax, 2.5)) * (this.draft ? 1.08 : 1)
+      ? c.accel * driveFactor(c,Math.max(0,this.v)) * dmg * Math.max(0, 1 - Math.pow(Math.max(0, this.v) / vmax, 2.5)) * (this.draft ? 1.08 : 1)
       : 0;
     // Le transfert au freinage : ce que l'arrière perd, l'avant le gagne pour l'essentiel.
     const transfert = PHYS.liftOff * brakeFrac * clamp(this.freinRatio || 1, FREIN_MIN, FREIN_MAX);

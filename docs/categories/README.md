@@ -1,6 +1,8 @@
 # Trois catégories — mesures
 
 Les chiffres derrière la section « Trois catégories » du README principal.
+Ces mesures décrivent le réglage initial `b81ac17` (0.30.1). Les retouches Brabham / Renault de
+la version 0.30.3 sont validées séparément dans [Caractères F1](../caracteres-f1/README.md).
 
 | Fichier | Mesure | Reproduire |
 | --- | --- | --- |

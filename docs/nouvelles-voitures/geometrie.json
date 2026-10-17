@@ -513,12 +513,12 @@
     "view": "top",
     "file": "sprites/top/xjr9.png",
     "width": 420,
-    "height": 250,
+    "height": 220,
     "bbox": {
       "left": 0,
       "top": 0,
       "width": 420,
-      "height": 250
+      "height": 220
     }
   },
   {
@@ -527,12 +527,12 @@
     "view": "pick",
     "file": "sprites/pick/xjr9.png",
     "width": 420,
-    "height": 220,
+    "height": 203,
     "bbox": {
       "left": 0,
       "top": 0,
       "width": 420,
-      "height": 220
+      "height": 203
     }
   },
   {
@@ -541,15 +541,15 @@
     "view": "top",
     "file": "sprites/top/xjr9_castrol.png",
     "width": 420,
-    "height": 250,
+    "height": 220,
     "bbox": {
       "left": 0,
       "top": 0,
       "width": 420,
-      "height": 250
+      "height": 220
     },
-    "silhouetteIoU": 0.9763027637924075,
-    "meanRgbDifference": 84.22463145297286
+    "silhouetteIoU": 0.9769840408207577,
+    "meanRgbDifference": 84.1307470377367
   },
   {
     "model": "xjr9",
@@ -557,15 +557,15 @@
     "view": "pick",
     "file": "sprites/pick/xjr9_castrol.png",
     "width": 420,
-    "height": 220,
+    "height": 203,
     "bbox": {
       "left": 0,
       "top": 0,
       "width": 420,
-      "height": 220
+      "height": 203
     },
-    "silhouetteIoU": 0.9528314843356579,
-    "meanRgbDifference": 67.11661862054238
+    "silhouetteIoU": 0.9531177868586181,
+    "meanRgbDifference": 67.00367148025234
   },
   {
     "model": "xjr9",
@@ -573,22 +573,6 @@
     "view": "top",
     "file": "sprites/top/xjr9_jps.png",
     "width": 420,
-    "height": 250,
-    "bbox": {
-      "left": 0,
-      "top": 0,
-      "width": 420,
-      "height": 250
-    },
-    "silhouetteIoU": 0.9764941845657527,
-    "meanRgbDifference": 108.4276057684993
-  },
-  {
-    "model": "xjr9",
-    "livery": "jps",
-    "view": "pick",
-    "file": "sprites/pick/xjr9_jps.png",
-    "width": 420,
     "height": 220,
     "bbox": {
       "left": 0,
@@ -596,8 +580,24 @@
       "width": 420,
       "height": 220
     },
-    "silhouetteIoU": 0.9478769425561099,
-    "meanRgbDifference": 83.48237258487715
+    "silhouetteIoU": 0.9776714128980143,
+    "meanRgbDifference": 108.34012816876513
+  },
+  {
+    "model": "xjr9",
+    "livery": "jps",
+    "view": "pick",
+    "file": "sprites/pick/xjr9_jps.png",
+    "width": 420,
+    "height": 203,
+    "bbox": {
+      "left": 0,
+      "top": 0,
+      "width": 420,
+      "height": 203
+    },
+    "silhouetteIoU": 0.9470753029331354,
+    "meanRgbDifference": 83.37823277142212
   },
   {
     "model": "330p4",

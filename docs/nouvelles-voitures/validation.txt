@@ -29,3 +29,17 @@ Réglages
   docs/avis-parametres-astra/. Les tours sales de Monaco restent explicitement signalés.
 
 git diff --check : OK.
+
+Mise à jour hybrid 0.30.3 — 2026-10-17
+
+- Lotus 79 : course 420 × 226 ; XJR-9 et ses variantes : 420 × 220.
+  Les deux modèles passent de +25 % à +10 % transversalement, dans les deux vues.
+  Les seize autres sprites de la série élargie restent conservés.
+- tools/sprites-nouveaux-banc.js : 114 images présentes, rectangles de livrée identiques.
+- tools/e2e-livree.js : zéro faute, zéro erreur ; les URL de sélection demandent la version courante.
+- tools/e2e-f1.js : les neuf F1 passent sélection/sauvegarde/course et les 36 simulations courtes.
+  Nouveau passage ciblé Brabham/Renault après le réglage final : OK.
+- Chromium mobile simulé, densité 3 : XJR-9 décodée en 420 × 220 et URL portant v=0.30.3.
+- Les valeurs Brabham et Renault changent dans cette version ; les mesures de régression et les
+  60 essais finaux sont dans docs/caracteres-f1/. Les autres moteurs et les freins restent inchangés.
+  Les incidents au frein fort et à Monaco sont documentés, sans être présentés comme des tours propres.

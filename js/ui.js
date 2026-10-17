@@ -336,10 +336,10 @@ class UI {
     qu'un gestionnaire ajouté par script arrive après le chargement : si l'image a déjà échoué,
     l'événement est passé et personne ne l'attrape. */
     if (lv.pick) {
-      const base = model.pick || '';
-      const repli = base && base !== lv.pick
+      const base = model.pick ? carArtUrl(model.pick) : '';
+      const repli = base && model.pick !== lv.pick
         ? ` data-base="${escapeHtml(base)}" onerror="this.onerror=null;this.src=this.dataset.base"` : '';
-      return `<img class="carpick" src="${escapeHtml(lv.pick)}" alt=""${repli}>`;
+      return `<img class="carpick" src="${escapeHtml(carArtUrl(lv.pick))}" alt=""${repli}>`;
     }
     return `<canvas class="caricon" width="160" height="72" data-car="${model.id}"
       data-livery="${LIVERIES.indexOf(livery)}" data-livree="${(livree || 0)}"></canvas>`;

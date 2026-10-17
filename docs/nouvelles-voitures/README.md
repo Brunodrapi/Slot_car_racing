@@ -4,14 +4,16 @@ Illustrations générées pour le build hybrid : **52 PNG**, avec une vue de des
 vue en trois quarts au menu pour chacune des 26 décorations. Les sept nouvelles GT/prototypes ont
 trois livrées ; les cinq nouvelles F1 ont chacune leur livrée historique. Les autres modèles et
 leurs livrées sont conservés. Le plateau complet propose désormais 57 décorations et 114 images.
-À la demande de Bruno, les neuf F1 et les trois livrées de la XJR‑9 ont ensuite été élargies de
-25 % dans le sens transversal, sans génération supplémentaire de leur dessin. Cela reprend
+À la demande de Bruno, les F1 et les trois livrées de la XJR‑9 ont été élargies sans génération
+supplémentaire de leur dessin : **+10 % pour la Lotus 79 et la XJR‑9**, +25 % pour les autres F1.
+Le premier essai à +25 % était trop large pour la Lotus et la Jaguar. Cela reprend
 également les huit sprites des quatre F1 déjà présentes avant les ajouts de Claude.
 
 - [Les 21 livrées GT et prototypes](gt-protos.png).
 - [Les neuf F1](f1.png).
 - [F1 : avant / après élargissement](f1-avant-apres.png).
 - [XJR‑9 : avant / après sur les trois livrées](xjr9-avant-apres.png).
+- [Réduction Lotus 79 / XJR‑9 par rapport au premier essai](largeur-corrigee.png).
 - [Contrôle des dimensions et silhouettes](geometrie.json).
 - [Avis indépendant sur les paramètres, par GPT‑6 Astra](../avis-parametres-astra/README.md).
 
@@ -67,19 +69,22 @@ sprites **en noir et blanc, avec transparence**, comme références prioritaires
 rester dans le rectangle d'une autre illustration. Les vues de course sont orientées nez à droite
 par rotation, jamais par miroir qui inverserait les lettrages.
 
-La longueur horizontale du PNG est de 420 pixels. Après élargissement, les vues de course mesurent
-420 × 256 pour les F1 et 420 × 250 pour la XJR‑9 ; les autres GT/prototypes restent à 420 × 200.
+La longueur horizontale du PNG est de 420 pixels. Après ajustement, les vues de course mesurent
+420 × 226 pour la Lotus 79, 420 × 220 pour la XJR‑9 et 420 × 256 pour les autres F1 ;
+les autres GT/prototypes restent à 420 × 200.
 La hauteur des vignettes suit leur perspective. Chaque variante reprend les
 dimensions du fichier et le rectangle occupé de sa base. Le contrôle de silhouette compare ensuite
 les pixels d'alpha ≥ 32 : mêmes dimensions seules ne suffisent pas. Les petites différences de
 trait sont conservées et mesurées ; les carrosseries qui changent nettement doivent être régénérées.
 
 L'élargissement des 24 sprites F1/XJR‑9 est réalisé par `tools/elargir-sprites.js`. Vue de dessus :
-longueur conservée, hauteur ×1,25. Au menu : transformation affine perpendiculaire à l'axe de la
+longueur conservée, hauteur multipliée par le facteur du modèle. Au menu : transformation affine perpendiculaire à l'axe de la
 voiture, puis retour à une largeur de fichier de 420 pixels. Les trois XJR‑9 utilisent la même
 matrice et le même cadre. Les sources avant transformation sont conservées dans
 `art-src/voitures/gabarits-trappus/` ; rejouer la commande ne cumule pas l'étirement.
-[Mesures avant/après](elargissement.json). Les paramètres physiques et les collisions sont conservés.
+[Mesures avant/après](elargissement.json). Le changement d'apparence conserve les dimensions de
+collision. Les retouches de comportement Brabham / Renault sont documentées séparément dans
+[le réglage des caractères F1](../caracteres-f1/README.md).
 
 Sur les quatorze variantes ajoutées, le recouvrement des silhouettes est d'au moins **95,8 % en
 course et 94,2 % en sélection**. Les dimensions et rectangles occupés sont identiques à ceux de

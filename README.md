@@ -2319,7 +2319,7 @@ dessiné.
 Les F1 gagnent au freinage et en virage, les prototypes en ligne droite : l'écart entre les deux se
 resserre sur les circuits rapides — Monza, Le Mans — et s'ouvre sur les sinueux.
 
-**L'équilibre interne.** Écart de chaque voiture à la moyenne de sa catégorie, sur les mêmes sept
+**L'équilibre interne initial (0.30.1).** Écart de chaque voiture à la moyenne de sa catégorie, sur les mêmes sept
 circuits : toutes tiennent dans **0,6 %** en F1, **0,2 %** en GT et **0,6 %** en Proto. C'est en moyenne ;
 circuit par circuit, chacune a ses terrains, et c'est ce qui fait un choix plutôt qu'un classement —
 la Ferrari 312T gagne un point à Monza et au Mans et en perd presque deux à Interlagos, la Brabham
@@ -2334,10 +2334,13 @@ reprennent l'avantage.
 | McLaren M23 | 300 | 3,02 | 19,2 | 2,49 | le compromis |
 | Lotus 79 | 295 | 3,21 | 19,2 | 2,90 | l'effet de sol : l'appui prend l'avantage avec la vitesse |
 | Lotus 72 | 295 | 2,88 | 18,7 | 2,21 | légère et vive, peu d'appui |
-| Brabham BT46B | 292 | 3,21 | 19,2 | 2,28 | le ventilateur : de l'adhérence dès l'arrêt, lourde |
+| Brabham BT46B | 292 | 3,21 | 19,2 | 2,21 | le ventilateur : forte accroche lente et arrière stable |
 | Williams FW07 | 300 | 3,05 | 18,8 | 2,80 | effet de sol et motricité |
 | Ligier JS11 | 298 | 3,14 | 17,9 | 2,70 | effet de sol, le meilleur freinage |
-| Renault RS10 | 315 | 3,34 | 19,6 | 2,59 | le turbo : la plus rapide en ligne droite, paresseuse en sortie |
+| Renault RS10 | 315 | 3,55 | 19,6 | 2,59 | départ doux, poussée progressive et reprises fortes à vitesse élevée |
+
+La version 0.30.3 affine les caractères de la Brabham et de la Renault.
+[Réglages, chronos avant/après et validation du dosage](docs/caracteres-f1/README.md).
 
 | GT | pointe | 0-100 | 100-0 | g à 180 | caractère |
 | --- | --- | --- | --- | --- | --- |
@@ -2446,8 +2449,9 @@ Les douze nouvelles voitures ont maintenant des illustrations générées dans l
 une vue de dessus pour la course et une vue en trois quarts pour la sélection. Chaque nouvelle GT
 et chaque nouveau prototype propose trois livrées aux couleurs distinctes, historiques ou inspirées
 de décorations historiques. Les cinq nouvelles F1 gardent chacune leur livrée d'époque.
-Les neuf F1 et les trois peintures de la XJR‑9 ont ensuite été élargies de 25 % transversalement,
-par transformation des dessins existants, pour le style plus trapu demandé par Bruno. Les sources
+Les F1 et les trois peintures de la XJR‑9 sont élargies transversalement par transformation des
+dessins existants : +10 % pour la Lotus 79 et la Jaguar, +25 % pour les autres F1, pour le style plus
+trapu demandé par Bruno. Les sources
 avant transformation et les planches avant/après sont conservées dans le dossier de revue.
 
 Les variantes sont générées sur les sprites de base en noir et blanc. Le contrôle porte sur les

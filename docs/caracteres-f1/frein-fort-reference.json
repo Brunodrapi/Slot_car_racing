@@ -1,0 +1,621 @@
+{
+  "reference": "9132dd0",
+  "dt": 0.008333333333333333,
+  "laps": 2,
+  "candidates": {
+    "modere": {
+      "brabhambt46b": {
+        "mul": {
+          "grip": 1.065,
+          "df": 0.58
+        }
+      },
+      "renaultrs10": {
+        "driveCurve": {
+          "low": 0.84,
+          "high": 1.18,
+          "from": 22.22222222222222,
+          "to": 55.55555555555556
+        }
+      }
+    },
+    "marque": {
+      "brabhambt46b": {
+        "mul": {
+          "grip": 1.075,
+          "df": 0.55
+        }
+      },
+      "renaultrs10": {
+        "driveCurve": {
+          "low": 0.82,
+          "high": 1.22,
+          "from": 19.444444444444443,
+          "to": 55.55555555555556
+        }
+      }
+    },
+    "progressif": {
+      "brabhambt46b": {
+        "mul": {
+          "grip": 1.065,
+          "df": 0.58
+        }
+      },
+      "renaultrs10": {
+        "driveCurve": {
+          "low": 0.94,
+          "high": 1.2,
+          "from": 22.22222222222222,
+          "to": 55.55555555555556
+        }
+      }
+    },
+    "vif": {
+      "brabhambt46b": {
+        "mul": {
+          "grip": 1.065,
+          "df": 0.58
+        }
+      },
+      "renaultrs10": {
+        "driveCurve": {
+          "low": 0.92,
+          "high": 1.2,
+          "from": 16.666666666666668,
+          "to": 47.22222222222222
+        }
+      }
+    }
+  },
+  "rows": [
+    {
+      "scenario": "avant",
+      "car": "renaultrs10",
+      "track": "castellet",
+      "seed": 27183,
+      "brake": 1.3,
+      "laps": 2,
+      "best": 84.1416666666566,
+      "raw": 84.1416666666566,
+      "crashes": 0,
+      "barrierHits": 0,
+      "off": 0,
+      "beta95": 6,
+      "maxKmh": 299.37561939118376,
+      "replay": [
+        {
+          "brake": 0.75,
+          "ms": -1,
+          "initialS": 833.7921926588659,
+          "initialSpeed": 20.876047486619672,
+          "peakBeta": 20.44111425641333,
+          "deltaV": -3.4837589333497156,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 0.75,
+          "ms": 0,
+          "initialS": 833.7921926588659,
+          "initialSpeed": 20.876047486619672,
+          "peakBeta": 5.216329905419884,
+          "deltaV": -16.873343761818564,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 0.75,
+          "ms": 60,
+          "initialS": 833.7921926588659,
+          "initialSpeed": 20.876047486619672,
+          "peakBeta": 5.228842256113081,
+          "deltaV": -2.8260138335791893,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 0.75,
+          "ms": 120,
+          "initialS": 833.7921926588659,
+          "initialSpeed": 20.876047486619672,
+          "peakBeta": 5.228842256113081,
+          "deltaV": -4.2685572134992995,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1,
+          "ms": -1,
+          "initialS": 833.7921926588659,
+          "initialSpeed": 20.876047486619672,
+          "peakBeta": 20.44111425641333,
+          "deltaV": -3.4837589333497156,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1,
+          "ms": 0,
+          "initialS": 833.7921926588659,
+          "initialSpeed": 20.876047486619672,
+          "peakBeta": 5.218719828392091,
+          "deltaV": -20.740578173303028,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1,
+          "ms": 60,
+          "initialS": 833.7921926588659,
+          "initialSpeed": 20.876047486619672,
+          "peakBeta": 5.228842256113081,
+          "deltaV": -3.3262820631834877,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1,
+          "ms": 120,
+          "initialS": 833.7921926588659,
+          "initialSpeed": 20.876047486619672,
+          "peakBeta": 5.228842256113081,
+          "deltaV": -5.420639890342601,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1.3,
+          "ms": -1,
+          "initialS": 833.7921926588659,
+          "initialSpeed": 20.876047486619672,
+          "peakBeta": 20.44111425641333,
+          "deltaV": -3.4837589333497156,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1.3,
+          "ms": 0,
+          "initialS": 833.7921926588659,
+          "initialSpeed": 20.876047486619672,
+          "peakBeta": 5.2215891299087005,
+          "deltaV": -20.87585571986449,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1.3,
+          "ms": 60,
+          "initialS": 833.7921926588659,
+          "initialSpeed": 20.876047486619672,
+          "peakBeta": 5.228842256113081,
+          "deltaV": -3.983049845007411,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1.3,
+          "ms": 120,
+          "initialS": 833.7921926588659,
+          "initialSpeed": 20.876047486619672,
+          "peakBeta": 5.228842256113081,
+          "deltaV": -6.916914923502187,
+          "off": 0,
+          "crashes": 0
+        }
+      ]
+    },
+    {
+      "scenario": "avant",
+      "car": "renaultrs10",
+      "track": "castellet",
+      "seed": 42761,
+      "brake": 1.3,
+      "laps": 2,
+      "best": 83.7333333333241,
+      "raw": 83.7333333333241,
+      "crashes": 0,
+      "barrierHits": 0,
+      "off": 0,
+      "beta95": 6,
+      "maxKmh": 299.0385427944167,
+      "replay": [
+        {
+          "brake": 0.75,
+          "ms": -1,
+          "initialS": 833.8972647928543,
+          "initialSpeed": 21.052628019432973,
+          "peakBeta": 22.142196569217234,
+          "deltaV": -3.6485149501164855,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 0.75,
+          "ms": 0,
+          "initialS": 833.8972647928543,
+          "initialSpeed": 21.052628019432973,
+          "peakBeta": 5.080060218815849,
+          "deltaV": -16.874105798140807,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 0.75,
+          "ms": 60,
+          "initialS": 833.8972647928543,
+          "initialSpeed": 21.052628019432973,
+          "peakBeta": 5.092721715340634,
+          "deltaV": -2.9918541518733903,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 0.75,
+          "ms": 120,
+          "initialS": 833.8972647928543,
+          "initialSpeed": 21.052628019432973,
+          "peakBeta": 5.092721715340634,
+          "deltaV": -4.364679304446529,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1,
+          "ms": -1,
+          "initialS": 833.8972647928543,
+          "initialSpeed": 21.052628019432973,
+          "peakBeta": 22.142196569217234,
+          "deltaV": -3.6485149501164855,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1,
+          "ms": 0,
+          "initialS": 833.8972647928543,
+          "initialSpeed": 21.052628019432973,
+          "peakBeta": 5.08244668492012,
+          "deltaV": -20.89052863714548,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1,
+          "ms": 60,
+          "initialS": 833.8972647928543,
+          "initialSpeed": 21.052628019432973,
+          "peakBeta": 5.092721715340634,
+          "deltaV": -3.450033735843647,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1,
+          "ms": 120,
+          "initialS": 833.8972647928543,
+          "initialSpeed": 21.052628019432973,
+          "peakBeta": 5.092721715340634,
+          "deltaV": -5.469478736000855,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1.3,
+          "ms": -1,
+          "initialS": 833.8972647928543,
+          "initialSpeed": 21.052628019432973,
+          "peakBeta": 22.142196569217234,
+          "deltaV": -3.6485149501164855,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1.3,
+          "ms": 0,
+          "initialS": 833.8972647928543,
+          "initialSpeed": 21.052628019432973,
+          "peakBeta": 5.085311868797036,
+          "deltaV": -21.05239884032956,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1.3,
+          "ms": 60,
+          "initialS": 833.8972647928543,
+          "initialSpeed": 21.052628019432973,
+          "peakBeta": 5.092721715340634,
+          "deltaV": -4.0698202695411965,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1.3,
+          "ms": 120,
+          "initialS": 833.8972647928543,
+          "initialSpeed": 21.052628019432973,
+          "peakBeta": 5.092721715340634,
+          "deltaV": -6.922797698690637,
+          "off": 0,
+          "crashes": 0
+        }
+      ]
+    },
+    {
+      "scenario": "avant",
+      "car": "renaultrs10",
+      "track": "spa",
+      "seed": 27183,
+      "brake": 1.3,
+      "laps": 2,
+      "best": 101.25833333325798,
+      "raw": 101.25833333325798,
+      "crashes": 1,
+      "barrierHits": 1,
+      "off": 7.991666666666854,
+      "beta95": 7,
+      "maxKmh": 256.33885899276225,
+      "replay": [
+        {
+          "brake": 0.75,
+          "ms": -1,
+          "initialS": 1498.665464317953,
+          "initialSpeed": 16.740747565513047,
+          "peakBeta": 35.143906877485534,
+          "deltaV": -6.7001778014943145,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 0.75,
+          "ms": 0,
+          "initialS": 1498.665464317953,
+          "initialSpeed": 16.740747565513047,
+          "peakBeta": 16.249622081537343,
+          "deltaV": -16.58947492030083,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 0.75,
+          "ms": 60,
+          "initialS": 1498.665464317953,
+          "initialSpeed": 16.740747565513047,
+          "peakBeta": 15.847105148193092,
+          "deltaV": -6.322191909908527,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 0.75,
+          "ms": 120,
+          "initialS": 1498.665464317953,
+          "initialSpeed": 16.740747565513047,
+          "peakBeta": 16.426278713111618,
+          "deltaV": -8.670008458242227,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1,
+          "ms": -1,
+          "initialS": 1498.665464317953,
+          "initialSpeed": 16.740747565513047,
+          "peakBeta": 35.143906877485534,
+          "deltaV": -6.7001778014943145,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1,
+          "ms": 0,
+          "initialS": 1498.665464317953,
+          "initialSpeed": 16.740747565513047,
+          "peakBeta": 18.487608378502138,
+          "deltaV": -16.73982740632152,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1,
+          "ms": 60,
+          "initialS": 1498.665464317953,
+          "initialSpeed": 16.740747565513047,
+          "peakBeta": 15.847105148193092,
+          "deltaV": -6.95258464814135,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1,
+          "ms": 120,
+          "initialS": 1498.665464317953,
+          "initialSpeed": 16.740747565513047,
+          "peakBeta": 17.145757638731673,
+          "deltaV": -9.87188988768149,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1.3,
+          "ms": -1,
+          "initialS": 1498.665464317953,
+          "initialSpeed": 16.740747565513047,
+          "peakBeta": 35.143906877485534,
+          "deltaV": -6.7001778014943145,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1.3,
+          "ms": 0,
+          "initialS": 1498.665464317953,
+          "initialSpeed": 16.740747565513047,
+          "peakBeta": 31.22249352151327,
+          "deltaV": -16.740740775957434,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1.3,
+          "ms": 60,
+          "initialS": 1498.665464317953,
+          "initialSpeed": 16.740747565513047,
+          "peakBeta": 15.847105148193092,
+          "deltaV": -7.738105841755166,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1.3,
+          "ms": 120,
+          "initialS": 1498.665464317953,
+          "initialSpeed": 16.740747565513047,
+          "peakBeta": 18.087038010040498,
+          "deltaV": -11.348634911111311,
+          "off": 0,
+          "crashes": 0
+        }
+      ]
+    },
+    {
+      "scenario": "avant",
+      "car": "renaultrs10",
+      "track": "spa",
+      "seed": 42761,
+      "brake": 1.3,
+      "laps": 2,
+      "best": null,
+      "raw": 119.7000000000438,
+      "crashes": 2,
+      "barrierHits": 0,
+      "off": 15.983333333333066,
+      "beta95": 7,
+      "maxKmh": 253.9094277754258,
+      "replay": [
+        {
+          "brake": 0.75,
+          "ms": -1,
+          "initialS": 1211.7644938205174,
+          "initialSpeed": 16.76101083515932,
+          "peakBeta": 4.143349755352491,
+          "deltaV": 9.061802588321587,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 0.75,
+          "ms": 0,
+          "initialS": 1211.7644938205174,
+          "initialSpeed": 16.76101083515932,
+          "peakBeta": 4.137791331426363,
+          "deltaV": -16.57239656987005,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 0.75,
+          "ms": 60,
+          "initialS": 1211.7644938205174,
+          "initialSpeed": 16.76101083515932,
+          "peakBeta": 4.143349755352491,
+          "deltaV": 0.8685209470238888,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 0.75,
+          "ms": 120,
+          "initialS": 1211.7644938205174,
+          "initialSpeed": 16.76101083515932,
+          "peakBeta": 4.143349755352491,
+          "deltaV": -1.3125934011603277,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1,
+          "ms": -1,
+          "initialS": 1211.7644938205174,
+          "initialSpeed": 16.76101083515932,
+          "peakBeta": 4.143349755352491,
+          "deltaV": 9.061802588321587,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1,
+          "ms": 0,
+          "initialS": 1211.7644938205174,
+          "initialSpeed": 16.76101083515932,
+          "peakBeta": 4.138153701073436,
+          "deltaV": -16.76033817897837,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1,
+          "ms": 60,
+          "initialS": 1211.7644938205174,
+          "initialSpeed": 16.76101083515932,
+          "peakBeta": 4.143349755352491,
+          "deltaV": -0.01103848333092472,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1,
+          "ms": 120,
+          "initialS": 1211.7644938205174,
+          "initialSpeed": 16.76101083515932,
+          "peakBeta": 4.143349755352491,
+          "deltaV": -2.920269290401217,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1.3,
+          "ms": -1,
+          "initialS": 1211.7644938205174,
+          "initialSpeed": 16.76101083515932,
+          "peakBeta": 4.143349755352491,
+          "deltaV": 9.061802588321587,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1.3,
+          "ms": 0,
+          "initialS": 1211.7644938205174,
+          "initialSpeed": 16.76101083515932,
+          "peakBeta": 4.1385885442121735,
+          "deltaV": -16.761010736881257,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1.3,
+          "ms": 60,
+          "initialS": 1211.7644938205174,
+          "initialSpeed": 16.76101083515932,
+          "peakBeta": 4.143349755352491,
+          "deltaV": -1.0723561648676885,
+          "off": 0,
+          "crashes": 0
+        },
+        {
+          "brake": 1.3,
+          "ms": 120,
+          "initialS": 1211.7644938205174,
+          "initialSpeed": 16.76101083515932,
+          "peakBeta": 4.143349755352491,
+          "deltaV": -4.855634344676984,
+          "off": 0,
+          "crashes": 0
+        }
+      ]
+    }
+  ]
+}

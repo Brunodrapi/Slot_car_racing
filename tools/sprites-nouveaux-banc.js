@@ -42,8 +42,9 @@ const additions=['lotus72','brabhambt46b','williamsfw07','ligierjs11','renaultrs
   for(const r of broad) {
     const actual=await geometry(path.join(ROOT,r.file));
     assert.equal(actual.width,r.after.width);assert.equal(actual.height,r.after.height);
-    assert.equal(r.factor,1.25);
-    if(r.view==='top') { assert.equal(actual.width,r.before.width);assert.equal(actual.height,Math.round(r.before.height*1.25)); }
+    const factor=['lotus79','xjr9'].includes(r.model)?1.10:1.25;
+    assert.equal(r.factor,factor);
+    if(r.view==='top') { assert.equal(actual.width,r.before.width);assert.equal(actual.height,Math.round(r.before.height*factor)); }
   }
   if(process.argv[2])fs.writeFileSync(process.argv[2],JSON.stringify(report,null,2)+'\n');
   console.log(`${all.length} modèles, 57 livrées, 114 images présentes ; 52 nouveaux sprites contrôlés.`);

@@ -71,7 +71,8 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     const b = c.querySelector('.livree');
     const im = c.querySelector('img.carpick');
     return { sel: c.classList.contains('sel'), repere: b ? b.textContent.replace(/\s+/g, ' ').trim() : null,
-             src: im ? im.getAttribute('src') : null, choisi: app.playerModelFor(app.ui.setup.classId).id, idx: app.playerLivreeFor(id) };
+             src: im ? im.getAttribute('src').split('?')[0] : null, version: im ? new URL(im.src).searchParams.get('v') : null,
+             choisi: app.playerModelFor(app.ui.setup.classId).id, idx: app.playerLivreeFor(id) };
   }, [carte(id), id]);
 
   /* Les modèles à PLUSIEURS livrées, demandés au jeu plutôt qu'écrits ici.
@@ -132,6 +133,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       dit(l.repere === `${(k % m.n) + 1}/${m.n} ${attendu.nom}`, `repere « ${l.repere} »`);
       // sans vignette en trois quarts, la carte peint la vue de dessus de la livrée sur une toile
       dit(l.src === (attendu.pick || null), `la vignette montree est ${l.src || 'la vue de dessus'}`);
+      dit(l.version === await p.evaluate(() => APP_VERSION), 'la vignette demande bien la version courante');
       dit(servis.includes('/' + (attendu.pick || attendu.top)), `et le fichier existe vraiment (servi, pas 404)`);
     }
     dit((await lire(m.id)).idx === 0, `le tour est boucle, on est revenu a la premiere`);

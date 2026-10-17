@@ -164,7 +164,7 @@ function topArt(model, livree) {
     e = { img, shadow: null, rate: false };
     img.onload = () => { for (const cb of _topWaiters.splice(0)) cb(); };
     img.onerror = () => { e.rate = true; for (const cb of _topWaiters.splice(0)) cb(); };
-    img.src = src;
+    img.src = carArtUrl(src);
     _topCache.set(src, e);
   }
   if (!e.img.complete || !e.img.naturalWidth) return null;

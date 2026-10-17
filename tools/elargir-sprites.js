@@ -7,11 +7,13 @@ const {MODELS}=require('../js/cars');
 const {geometry}=require('./pack-nouvelles-voitures');
 const ROOT=path.resolve(__dirname,'..');
 const SOURCE=path.join(ROOT,'art-src/voitures/gabarits-trappus');
+const FACTORS={lotus79:1.10,xjr9:1.10};
 const angle={tyrrellp34:-25,ferrari312t:-30,mclarenm23:-26,lotus79:-24,lotus72:-18,brabhambt46b:-17,williamsfw07:-23,ligierjs11:-18,renaultrs10:-18,xjr9:-23};
-async function widen(factor=1.25) {
-  if(!(factor>=1&&factor<=1.6))throw Error('Facteur attendu entre 1 et 1,6');
+async function widen(defaultFactor=1.25) {
+  if(!(defaultFactor>=1&&defaultFactor<=1.6))throw Error('Facteur attendu entre 1 et 1,6');
   const report=[];
   for(const m of MODELS.filter(m=>m.catId==='f1'||m.id==='xjr9'))for(const lv of m.livrees)for(const kind of ['top','pick']) {
+    const factor=FACTORS[m.id]||defaultFactor;
     const dest=path.join(ROOT,lv[kind]);
     const src=path.join(SOURCE,kind,path.basename(dest));
     fs.mkdirSync(path.dirname(src),{recursive:true});
@@ -38,8 +40,9 @@ async function widen(factor=1.25) {
       ...(kind==='pick'?{axisDegrees:angle[m.id]}:{}),before:{width:before.width,height:before.height},after:{width:after.width,height:after.height}});
   }
   fs.writeFileSync(path.join(ROOT,'docs/nouvelles-voitures/elargissement.json'),JSON.stringify(report,null,2)+'\n');
-  console.log(`${report.length} sprites : neuf F1 et trois livrées XJR-9, facteur transversal ${factor}.`);
+  console.log(`${report.length} sprites : Lotus 79 et XJR-9 à +10 %, autres F1 à +${Math.round((defaultFactor-1)*100)} %.`);
   return report;
 }
 if(require.main===module)widen(Number((process.argv.find(a=>a.startsWith('--factor='))||'--factor=1.25').split('=')[1])).catch(e=>{console.error(e);process.exitCode=1;});
 module.exports=widen;
+module.exports.FACTORS=FACTORS;

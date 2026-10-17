@@ -73,7 +73,8 @@ const CATEGORIES = [
         livrees: [{ id: '', nom: 'JPS · Fittipaldi · 1972' }],
         engine: { cyl: 8, redline: 10000, idle: 1500, rough: 0.1, bright: 0.9, turbo: 0 } },
       { id: 'brabhambt46b', diff: 0, name: 'Brabham BT46B', shape: 'wedge72',
-        mul: { vmax: 0.927, accel: 0.97, brake: 1, grip: 1.028, df: 0.7, slide: 0.88 },
+        // Ventilateur : davantage d'accroche lente, moins de dépendance à l'appui de vitesse.
+        mul: { vmax: 0.927, accel: 0.97, brake: 1, grip: 1.065, df: 0.58, slide: 0.88 },
         colors: ['#e8202a', '#f4f4f4'], top: 'sprites/top/brabhambt46b.png', pick: 'sprites/pick/brabhambt46b.png',
         livrees: [{ id: '', nom: 'Parmalat · Lauda · 1978' }],
         engine: { cyl: 12, redline: 12000, idle: 1700, rough: 0.05, bright: 0.96, turbo: 0 } },
@@ -88,7 +89,9 @@ const CATEGORIES = [
         livrees: [{ id: '', nom: 'Gitanes · Laffite · 1979' }],
         engine: { cyl: 8, redline: 11000, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
       { id: 'renaultrs10', diff: 2, name: 'Renault RS10', shape: 'wedge72',
-        mul: { vmax: 1, accel: 0.93, brake: 0.98, grip: 1.023, df: 1, slide: 1.06 },
+        mul: { vmax: 1, accel: 0.93, brake: 0.98, grip: 1.023, df: 1, slide: 1.04 },
+        // Relance douce, puis poussée soutenue : courbe de jeu selon la vitesse, sans délai de turbo.
+        driveCurve: { low: 0.94, high: 1.20, from: 80 / 3.6, to: 200 / 3.6 },
         colors: ['#f2c500', '#141414'], top: 'sprites/top/renaultrs10.png', pick: 'sprites/pick/renaultrs10.png',
         livrees: [{ id: '', nom: 'Elf · Jabouille · 1979' }],
         engine: { cyl: 6, redline: 11000, idle: 1800, rough: 0.2, bright: 0.8, turbo: 1 } },
@@ -326,6 +329,12 @@ function cheminLivree(src, suffixe) {
   return i < 0 ? `${src}_${suffixe}` : `${src.slice(0, i)}_${suffixe}${src.slice(i)}`;
 }
 
+// Les PNG remplacés gardent leur nom ; la version évite d'afficher l'ancienne largeur en cache.
+function carArtUrl(src) {
+  if(!src || !src.startsWith('sprites/') || typeof APP_VERSION === 'undefined')return src;
+  return src+(src.includes('?')?'&':'?')+'v='+encodeURIComponent(APP_VERSION);
+}
+
 /** La livrée `i` d'un modèle, l'indice tournant sur la liste. Toujours une livrée, jamais `null`. */
 function livreeDe(model, i) {
   const l = model && model.livrees && model.livrees.length ? model.livrees : null;
@@ -348,6 +357,8 @@ function resolveModel(cat, m) {
     // handling balance: a model's `slide` multiplier above 1 makes it more tail-happy
     rearBias: (b.rearBias || 1.04) / Math.pow(mul.slide || 1, 0.5), cliff: b.cliff == null ? 0.25 : b.cliff, slipPeak: (b.slipPeak || 0.1) * Math.pow(mul.slide || 1, 0.5),
     length: m.length || b.length, width: m.width || b.width,
+    // Courbe de poussée optionnelle : caractère moteur propre au modèle, sans état de turbo caché.
+    driveCurve: m.driveCurve || null,
     drivers: cat.drivers, roadScale: cat.roadScale, zoom: cat.zoom,
     // le moteur : celui de la catégorie, que la voiture peut reprendre champ par champ
     pick: m.pick || null,
@@ -388,6 +399,13 @@ function resolveModel(cat, m) {
 }
 for (const cat of CATEGORIES) for (const m of cat.models) MODELS.push(resolveModel(cat, m));
 
+// Transition de poussée continue, partagée par la physique et les profils de référence.
+function driveFactor(c, speed) {
+  const q=c.driveCurve;
+  if(!q)return 1;
+  const t=Math.max(0,Math.min(1,(speed-q.from)/(q.to-q.from)));
+  return q.low+(q.high-q.low)*t*t*(3-2*t);
+}
 // Les quatre chiffres du menu de sélection. Aucun n'est une note inventée : chacun est obtenu en
 // appliquant au modèle la loi que le jeu applique vraiment en course, si bien qu'une retouche des
 // `mul` se lit aussitôt sur les jauges — il n'y a pas de second jeu de valeurs à tenir à jour.
@@ -396,7 +414,7 @@ function perfOf(c) {
   // formule de `car.js` — donc pas de forme close : on intègre, comme le jeu le fait au pas.
   let v = 0, t = 0;
   const dt = 0.002;
-  while (v < 27.78 && t < 30) { v += c.accel * Math.max(0, 1 - Math.pow(v / c.vmax, 2.5)) * dt; t += dt; }
+  while (v < 27.78 && t < 30) { v += c.accel * driveFactor(c,v) * Math.max(0, 1 - Math.pow(v / c.vmax, 2.5)) * dt; t += dt; }
   return {
     a100: t,                                     // secondes
     vmax: c.vmax * 3.6,                          // km/h
@@ -478,4 +496,4 @@ function registerModel(def) {
 }
 function unregisterModel(id) { const i = MODELS.findIndex(m => m.id === id); if (i >= 0) MODELS.splice(i, 1); }
 
-if (typeof module !== 'undefined') module.exports = { CATEGORIES, MODELS, LIVERIES, livreeDe, AI_NAMES, DEFAUT_CAT, categoryOfModel, VMAX_ECRAN, vitesseEcran, perfOf, perfFill, PERF_RANGE, PERF_KEYS, playableCategories, categoryById, modelsOf, allModelsOf, modelById, carClassById, registerModel };
+if (typeof module !== 'undefined') module.exports = { CATEGORIES, MODELS, LIVERIES, livreeDe, AI_NAMES, DEFAUT_CAT, categoryOfModel, VMAX_ECRAN, vitesseEcran, driveFactor, perfOf, perfFill, PERF_RANGE, PERF_KEYS, playableCategories, categoryById, modelsOf, allModelsOf, modelById, carClassById, registerModel };
