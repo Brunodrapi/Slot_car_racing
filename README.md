@@ -40,6 +40,10 @@ frein moteur ralentissent la voiture. LT ajoute progressivement le freinage et a
 Le réglage de freinage propre au circuit/à la voiture continue de déterminer sa puissance maximale.
 L'option **Automatique au relâchement** propose également le comportement à un accélérateur.
 
+Les configurations de freinage proposées au départ sont celles enregistrées pour **la voiture
+et le circuit sélectionnés**. Le choix actif, y compris « Par défaut », est mémorisé pour chaque
+couple. Les configurations déjà enregistrées sont conservées lors de la mise à jour.
+
 Dans les menus, **stick ou croix** déplace le focus jaune, **A** valide et **B** revient/annule.
 **LB/RB** passe d'une rubrique à l'autre, y compris les rails de voitures et de circuits. Les listes
 de réglages et un clavier à l'écran permettent aussi de choisir ses options et de saisir un pseudo

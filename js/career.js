@@ -34,7 +34,7 @@ function lapsFor(trackDef, cat) {
 const SAVE_KEY = 'slotracer.save.v2';
 
 function defaultSave() {
-  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, livrees: {}, desktopControl: 'keyboard', gamepadBrake: 'separate', engineBrake: .15, ctrl: 'auto', ctrlSide: 'left', camRotate: false, view: 'avanceFixe', pullBack: 1, aimant: 0, ff: 0.3, laps: 5, lapsPerso: false, showLines: false, debug: false, wear: false, guideMigrated: true, flatMigrated: false, cups: {}, bestLaps: {}, bestLapsNets: {}, tracesMigrated: true, catsMigrated: true, cat: null, filtreCat: 'all', tutorialSeen: false, racesDone: 0, reglages: { actif: null, configs: [] } };
+  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, livrees: {}, desktopControl: 'keyboard', gamepadBrake: 'separate', engineBrake: .15, ctrl: 'auto', ctrlSide: 'left', camRotate: false, view: 'avanceFixe', pullBack: 1, aimant: 0, ff: 0.3, laps: 5, lapsPerso: false, showLines: false, debug: false, wear: false, guideMigrated: true, flatMigrated: false, cups: {}, bestLaps: {}, bestLapsNets: {}, tracesMigrated: true, catsMigrated: true, cat: null, filtreCat: 'all', tutorialSeen: false, racesDone: 0, reglages: { actif: null, actifs: {}, configs: [] } };
 }
 
 function loadSave() {
@@ -105,6 +105,7 @@ function loadSave() {
   nets par construction, et on les reprend tels quels. */
   if (!brut.bestLapsNets) { save.bestLapsNets = Object.assign({}, save.bestLaps); storeSave(save); }
     if (!brut.catsMigrated) { migreCategories(save); save.catsMigrated = true; storeSave(save); }
+    if (!save.reglages?.actifs) { migreReglages(save); storeSave(save); }
     return save;
   } catch (e) { return defaultSave(); }
 }
@@ -217,25 +218,53 @@ frein coûte la vitesse de passage autant que trop peu coûte la sortie de piste
 donne quelque chose pour rien — c'est pour ça qu'il exclut le tour et que celui-ci ne le fait pas. */
 function cleReglage(trackId, modelId) { return trackId + '|' + modelId; }
 
-function configActive(save) {
+function reglagesPour(save, trackId, modelId) {
+  const cle = cleReglage(trackId, modelId);
+  return (save?.reglages?.configs || []).filter(c => c?.freins
+    && Object.prototype.hasOwnProperty.call(c.freins, cle) && Number.isFinite(c.freins[cle]));
+}
+
+// L'ancien choix global devient un choix pour chacun des couples où il s'appliquait déjà.
+// Les valeurs et les autres configurations sont conservées, sans recopier de réglage ailleurs.
+function migreReglages(save) {
+  const r = save.reglages || (save.reglages = { actif: null, configs: [] });
+  if (!r.actifs) {
+    r.actifs = {};
+    const ancien = (r.configs || []).find(c => c.nom === r.actif);
+    for (const [cle, valeur] of Object.entries(ancien?.freins || {})) {
+      if (Number.isFinite(valeur)) r.actifs[cle] = ancien.nom;
+    }
+  }
+  return r;
+}
+
+function configActive(save, trackId, modelId) {
   const r = save && save.reglages;
-  if (!r || !r.actif) return null;
-  return (r.configs || []).find((c) => c.nom === r.actif) || null;
+  if (!r) return null;
+  const nom = r.actifs ? r.actifs[cleReglage(trackId, modelId)] : r.actif;
+  return reglagesPour(save, trackId, modelId).find(c => c.nom === nom) || null;
 }
 
 function freinDe(save, trackId, modelId) {
-  const c = configActive(save);
+  const c = configActive(save, trackId, modelId);
   if (!c) return 1;
   const v = (c.freins || {})[cleReglage(trackId, modelId)];
-  return typeof v === 'number' ? clamp(v, FREIN_MIN, FREIN_MAX) : 1;
+  return Number.isFinite(v) ? clamp(v, FREIN_MIN, FREIN_MAX) : 1;
+}
+
+function choisitReglage(save, trackId, modelId, nom) {
+  const r = migreReglages(save);
+  const c = reglagesPour(save, trackId, modelId).find(c => c.nom === nom);
+  r.actifs[cleReglage(trackId, modelId)] = c ? c.nom : null;
+  r.actif = c ? c.nom : null; // compatibilité de sauvegarde ; les lectures utilisent le couple.
 }
 
 function poseFrein(save, nom, trackId, modelId, valeur) {
-  save.reglages = save.reglages || { actif: null, configs: [] };
-  let c = save.reglages.configs.find((x) => x.nom === nom);
-  if (!c) { c = { nom, freins: {} }; save.reglages.configs.push(c); }
+  const r = migreReglages(save);
+  let c = r.configs.find((x) => x.nom === nom);
+  if (!c) { c = { nom, freins: {} }; r.configs.push(c); }
   c.freins[cleReglage(trackId, modelId)] = clamp(valeur, FREIN_MIN, FREIN_MAX);
-  save.reglages.actif = nom;
+  choisitReglage(save, trackId, modelId, nom);
   return c;
 }
 

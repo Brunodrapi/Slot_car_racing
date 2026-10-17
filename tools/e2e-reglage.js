@@ -101,7 +101,7 @@ const dire = (ok, quoi, detail) => { if (!ok) fautes++; console.log('  ' + (ok ?
   dire(!!cfg, 'la configuration est créée');
   dire(cfg && Math.abs(cfg.freins[enr.cle] - enr.frein) < 1e-9,
     'la valeur tombe dans la bonne case circuit+voiture', enr.cle + ' = ×' + enr.frein.toFixed(2));
-  dire(enr.reg.actif === 'Course', 'et elle devient la configuration active');
+  dire(enr.reg.actifs[enr.cle] === 'Course', 'et elle devient active pour ce couple');
 
   // --- une seconde sauvegarde COMPLÈTE, elle n'écrase pas ---
   const apres = await page.evaluate(() => {
@@ -139,6 +139,72 @@ const dire = (ok, quoi, detail) => { if (!ok) fautes++; console.log('  ' + (ok ?
   const repris = await page.evaluate(() => app.race.frein);
   dire(Math.abs(repris - enr.frein) < 1e-9, 'la course suivante reprend le réglage enregistré',
     '×' + repris.toFixed(2));
+
+  // Deux profils pour le même couple et un profil sur un autre couple : chaque liste et chaque
+  // sélection doivent rester indépendantes, même si les profils ont le même nom.
+  await page.evaluate(({ cle }) => {
+    const [track, model] = cle.split('|');
+    poseFrein(app.save, 'Attaque', track, model, 1.12);
+    storeSave(app.save); app.toMenu(); app.ui.setupScreen('race');
+  }, enr);
+  const lire = () => page.evaluate(() => ({
+    noms: [...document.querySelector('#sel-reglage').options].map(o => o.value),
+    actif: document.querySelector('#sel-reglage').value,
+    texte: document.querySelector('.reg-ici').textContent,
+  }));
+  let liste = await lire();
+  dire(JSON.stringify(liste.noms) === JSON.stringify(['', 'Course', 'Attaque']), 'seuls les profils du couple sont proposés');
+  dire(liste.actif === 'Attaque' && /1[.,]12/.test(liste.texte), 'le choix et la valeur effective concordent');
+  await page.selectOption('#sel-reglage', '');
+  dire(await page.evaluate(({ cle }) => freinDe(app.save, ...cle.split('|')) === 1, enr), 'le choix Par défaut est effectif');
+  await page.evaluate(() => {
+    const m = modelById('935'); app.save.models[m.catId] = m.id;
+    app.ui.setup.classId = m.catId; app.ui.setup.trackId = 'monaco'; app.ui.setupScreen('race');
+  });
+  liste = await lire();
+  dire(JSON.stringify(liste.noms) === JSON.stringify(['', 'Course']) && liste.actif === 'Course',
+    'Monaco + 935 retrouve son profil, sans Attaque');
+  await page.click('[data-action="pickTrack"][data-id="spa"]');
+  liste = await lire();
+  dire(liste.noms.length === 1 && liste.actif === '', 'changer de circuit masque les profils étrangers');
+  await page.click('[data-action="startTune"]');
+  await page.waitForTimeout(300);
+  await page.evaluate(() => app.togglePause());
+  dire(await page.inputValue('#reg-nom') === '', 'la pause ne propose aucun nom provenant d’un autre couple');
+  await page.evaluate(({ cle }) => {
+    app.toMenu(); const [track, model] = cle.split('|'), m = modelById(model);
+    app.save.models[m.catId] = m.id; app.ui.setup.classId = m.catId;
+    app.ui.setup.trackId = track; app.ui.setupScreen('race');
+  }, enr);
+  liste = await lire();
+  dire(liste.actif === '', 'le choix Par défaut du premier couple est conservé');
+  await page.selectOption('#sel-reglage', 'Attaque');
+  await page.click('[data-action="startQuick"]');
+  dire(await page.evaluate(() => app.race.frein === 1.12), 'la sélection modifiée pilote réellement le freinage');
+
+  const persiste = await page.evaluate(({ cle }) => {
+    const relu = loadSave();
+    return freinDe(relu, ...cle.split('|')) === 1.12 && freinDe(relu, 'monaco', '935') === .75
+      && freinDe(relu, 'spa', '935') === 1;
+  }, enr);
+  dire(persiste, 'les choix indépendants survivent à la relecture du stockage du téléphone');
+
+  const migration = await page.evaluate(() => {
+    const copie = JSON.parse(JSON.stringify(app.save));
+    copie.reglages = { actif: 'Ancien', configs: [{ nom: 'Ancien', freins: {
+      'monza|f40': .85, 'spa|f40': 1,
+    } }, { nom: 'Autre', freins: { 'monaco|935': .7 } }] };
+    const avant = JSON.stringify(copie.reglages.configs);
+    storeSave(copie); const relu = loadSave(); storeSave(app.save);
+    const stable = JSON.stringify(relu.reglages); migreReglages(relu);
+    return {
+      valeurs: avant === JSON.stringify(relu.reglages.configs),
+      selection: freinDe(relu, 'monza', 'f40') === .85 && configActive(relu, 'spa', 'f40')?.nom === 'Ancien',
+      etranger: configActive(relu, 'monaco', '935') === null && reglagesPour(relu, 'monaco', '935').length === 1,
+      idempotent: stable === JSON.stringify(relu.reglages),
+    };
+  });
+  for (const [nom, ok] of Object.entries(migration)) dire(ok, 'migration des anciens réglages : ' + nom);
 
   await b.close(); srv.close();
   console.log('\n' + fautes + ' faute(s)');
