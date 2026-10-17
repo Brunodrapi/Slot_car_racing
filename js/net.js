@@ -50,7 +50,8 @@ class Net {
     this.error = null;
     this.busy = false;
     this.mine = { pid: this.pid, name: '', car: null, ready: false };
-    this.table = { mode: 'race', trackId: 'monza', laps: 3, difficulty: 'medium', go: 0 };
+    // `cat` : la catégorie imposée par l'hôte, ou 'all' pour laisser chacun prendre ce qu'il veut
+    this.table = { mode: 'race', trackId: 'monza', laps: 3, difficulty: 'medium', cat: 'all', go: 0 };
     this.grid = null;              // frozen at kick-off by the host: [{p, n, m}, …], host first
     this.roster = null;            // the same list, pids only: [pid, …]
     this.seat = -1;
@@ -193,8 +194,12 @@ class Net {
 
   canStart() {
     const m = this.members();
-    const need = this.settings().mode === 'duel' ? 2 : 2;
-    return this.creator && m.length >= need && m.every(x => x.ready && x.car);
+    const t = this.settings(), need = t.mode === 'duel' ? 2 : 2;
+    /* Une table réservée à une catégorie ne part qu'avec des voitures de celle-ci. Chaque écran
+    change la sienne de lui-même en voyant la consigne, mais il y a un instant où sa présence porte
+    encore l'ancienne : c'est cet instant-là que l'on ferme. */
+    const conforme = (x) => !t.cat || t.cat === 'all' || !modelById(x.car.modelId) || modelById(x.car.modelId).catId === t.cat;
+    return this.creator && m.length >= need && m.every(x => x.ready && x.car && conforme(x));
   }
 
   /** The host calls the start; everyone freezes the same list, in the same order, at that moment. */
@@ -272,6 +277,7 @@ class Net {
     this.post();
     this.onStart({
       mode: t.mode, trackId: t.trackId, laps: t.laps, difficulty: t.difficulty,
+      cat: t.cat || 'all', go: t.go,
       // Personne ne choisit sa couleur : la place la donne. L'ordre étant celui de l'hôte, il est
       // le même sur tous les écrans, et chacun sait qui est qui sans qu'un mot passe sur le fil.
       humans: grid.map((g, i) => ({

@@ -62,8 +62,15 @@ tableau mondial se serait rempli de lignes qu'aucun écran n'affiche. On garde d
 demande aucune mesure — juste de penser à y ajouter une voiture quand on en ajoute une. */
 const CIRCUITS = new Set(['monza', 'spa', 'monaco', 'silverstone', 'suzuka', 'interlagos',
                           'laguna', 'nurburgring', 'lemans', 'bathurst', 'redbullring', 'zandvoort']);
-const VOITURES = new Set(['m1procar', 'f40', 'countach', '930', 'gt40', '935', 'corvette',
-                          '787b', 'csl']);
+const VOITURES = new Set([
+  // F1
+  'tyrrellp34', 'ferrari312t', 'mclarenm23', 'lotus79', 'lotus72', 'brabhambt46b', 'williamsfw07',
+  'ligierjs11', 'renaultrs10',
+  // GT
+  'm1procar', 'f40', 'countach', '930', 'corvette', 'csl', '250gto', 'typee', '240z',
+  // Proto
+  'gt40', '935', '787b', '962', 'xjr9', '330p4', 'p68',
+]);
 const ENTRE_DEUX_MS = 15000;
 
 const rep = (code: number, corps: Record<string, unknown>) =>

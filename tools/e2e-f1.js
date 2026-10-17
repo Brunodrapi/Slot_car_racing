@@ -1,4 +1,4 @@
-// Four F1 models: menu selection, persistence, actual race sprite and finite physics.
+// The nine F1 models: menu selection, persistence (under the f1 class), race sprite and finite physics.
 const {chromium}=require('playwright');
 const http=require('http'),fs=require('fs'),path=require('path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..');
@@ -7,7 +7,7 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.png
  const server=http.createServer((req,res)=>{const p=path.join(root,decodeURIComponent(req.url.split('?')[0]));if(!p.startsWith(root+path.sep)||!fs.existsSync(p)||fs.statSync(p).isDirectory()){res.writeHead(404);return res.end();}res.setHeader('Content-Type',types[path.extname(p)]||'application/octet-stream');fs.createReadStream(p).pipe(res);});
  await new Promise(r=>server.listen(0,r));const browser=await chromium.launch();
  try {
-  for(const id of ['tyrrellp34','ferrari312t','mclarenm23','lotus79']) {
+  for(const id of ['tyrrellp34','ferrari312t','mclarenm23','lotus79','lotus72','brabhambt46b','williamsfw07','ligierjs11','renaultrs10']) {
    const context=await browser.newContext({viewport:{width:1100,height:820}}),page=await context.newPage(),errors=[],served=[];
    page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.ok())served.push(new URL(r.url()).pathname);});
    await page.goto(`http://127.0.0.1:${server.address().port}/index.html`);
@@ -16,15 +16,16 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.png
    await page.keyboard.press('Enter');await page.click('[data-action="setup"][data-mode="race"]');
    await page.click(`.card[data-action="pickModel"][data-id="${id}"]`);
    await page.waitForTimeout(200);
-   assert.equal(await page.evaluate(()=>app.save.models.gt),id);
+   assert.equal(await page.evaluate(()=>app.save.models.f1),id);
    await page.reload();await page.waitForFunction(()=>typeof app!=='undefined'&&app.save);
-   assert.equal(await page.evaluate(()=>app.save.models.gt),id);
+   assert.equal(await page.evaluate(()=>app.save.models.f1),id);
    await page.evaluate(()=>{app.mondial=null;});await page.keyboard.press('Enter');
    await page.click('[data-action="setup"][data-mode="race"]');await page.click('[data-action="startQuick"]');
    await page.waitForFunction(()=>app.race&&app.race.player);
    await page.waitForFunction(id=>{const im=new Image();im.src=`sprites/top/${id}.png`;return im.complete&&im.naturalWidth>0;},id);
-   const result=await page.evaluate(()=>{const c=app.race.player;return {id:c.cls.id,top:livreeDe(c.cls,c.livree).top};});
-   assert.equal(result.id,id);assert.equal(result.top,`sprites/top/${id}.png`);
+   const result=await page.evaluate(()=>{const c=app.race.player;return {id:c.cls.id,top:livreeDe(c.cls,c.livree).top,rivaux:app.race.cars.filter(x=>x!==c).map(x=>x.cls.catId)};});
+   assert.equal(result.id,id);
+   assert(result.rivaux.length>0&&result.rivaux.every(k=>k==='f1'),'an F1 races against F1 only: '+result.rivaux.join(','));assert.equal(result.top,`sprites/top/${id}.png`);
    assert(served.includes(`/sprites/top/${id}.png`),'race sprite served');
    // The same production Race/Car code, exercised headlessly at fixed timestep on four circuits.
    const runs=await page.evaluate(id=>['monaco','spa','monza','zandvoort'].map(track=>{

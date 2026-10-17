@@ -71,7 +71,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     const b = c.querySelector('.livree');
     const im = c.querySelector('img.carpick');
     return { sel: c.classList.contains('sel'), repere: b ? b.textContent.replace(/\s+/g, ' ').trim() : null,
-             src: im ? im.getAttribute('src') : null, choisi: app.save.models.gt, idx: app.playerLivreeFor(id) };
+             src: im ? im.getAttribute('src') : null, choisi: app.playerModelFor(app.ui.setup.classId).id, idx: app.playerLivreeFor(id) };
   }, [carte(id), id]);
 
   /* Les modèles à PLUSIEURS livrées, demandés au jeu plutôt qu'écrits ici.
@@ -80,17 +80,19 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   la F40 ajoutée le lendemain — pire, il continuerait à passer. On lui fait donc énumérer ce qu'il
   doit vérifier, et on exige qu'il trouve quelque chose : une liste vide passerait toutes les
   boucles sans rien contrôler. */
-  const plan = await p.evaluate(() => modelsOf('gt').map((m) => ({
+  const plan = await p.evaluate(() => MODELS.filter((m) => !m.custom).map((m) => ({
     id: m.id, nom: m.name, n: m.livrees.length,
-    livrees: m.livrees.map((l) => ({ nom: l.nom, pick: l.pick })),
+    livrees: m.livrees.map((l) => ({ nom: l.nom, pick: l.pick, top: l.top })),
   })));
   const multi = plan.filter((m) => m.n > 1);
   const simple = plan.filter((m) => m.n === 1);
   dit(multi.length > 0, `${multi.length} voiture(s) a plusieurs livrees : ${multi.map((m) => `${m.nom} (${m.n})`).join(', ')}`);
-  dit(plan.length === 13 && multi.length === 9 && multi.every((m) => m.n === 3) && simple.length === 4, 'neuf modèles à trois livrées et quatre F1 à une livrée');
+  dit(plan.length === 25 && multi.length === 11 && multi.filter((m) => m.n === 3).length === 9 && multi.filter((m) => m.n === 2).length === 2 && simple.length === 14,
+    'vingt-cinq modèles : neuf à trois livrées, deux à deux (962, 330 P4), quatorze à une seule');
 
   const images = await p.evaluate(async () => {
-    const paths = modelsOf('gt').flatMap((m) => m.livrees.flatMap((l) => [l.top, l.pick]));
+    // une voiture sans vignette de menu n'a que sa vue de dessus : on ne demande pas un fichier absent
+    const paths = MODELS.filter((m) => !m.custom).flatMap((m) => m.livrees.flatMap((l) => [l.top, l.pick])).filter(Boolean);
     return Promise.all(paths.map((src) => new Promise((resolve) => {
       const image = new Image();
       image.onload = () => resolve({ src, ok: image.naturalWidth > 0 });
@@ -98,12 +100,19 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       image.src = src;
     })));
   });
-  dit(images.length === 62 && images.every((i) => i.ok), 'les 62 images de course et de menu sont chargees');
+  dit(images.length === 76 && images.every((i) => i.ok), `les 76 images de course et de menu sont chargees (${images.filter((i) => !i.ok).map((i) => i.src).join(', ') || 'toutes'})`);
 
   /* --- 1 a 3. choisir, puis faire tourner, et aller chercher le bon dessin --- */
   for (const m of multi) {
     console.log(`\n${m.nom} : le premier appui choisit, les suivants font tourner`);
     await p.waitForSelector(carte(m.id));
+    /* Une carte déjà choisie fait tourner sa livrée au premier appui — c'est la règle. La M1, voiture
+    par défaut d'un joueur neuf, l'est d'entrée : on en choisit d'abord une autre, pour que le premier
+    appui soit bien un choix. */
+    if ((await lire(m.id)).sel) {
+      await p.click(carte(plan.find((x) => x.id !== m.id).id));
+      await p.waitForTimeout(250);
+    }
     const avant = await lire(m.id);
     await p.click(carte(m.id));
     await p.waitForTimeout(250);
@@ -118,8 +127,9 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       await p.waitForTimeout(250);
       const l = await lire(m.id);
       dit(l.repere === `${(k % m.n) + 1}/${m.n} ${attendu.nom}`, `repere « ${l.repere} »`);
-      dit(l.src === attendu.pick, `la vignette montree est ${l.src}`);
-      dit(servis.includes('/' + attendu.pick), `et le fichier existe vraiment (servi, pas 404)`);
+      // sans vignette en trois quarts, la carte peint la vue de dessus de la livrée sur une toile
+      dit(l.src === (attendu.pick || null), `la vignette montree est ${l.src || 'la vue de dessus'}`);
+      dit(servis.includes('/' + (attendu.pick || attendu.top)), `et le fichier existe vraiment (servi, pas 404)`);
     }
     dit((await lire(m.id)).idx === 0, `le tour est boucle, on est revenu a la premiere`);
   }

@@ -61,6 +61,7 @@ const I18N = {
     multi: 'À plusieurs', multiIntro: 'Ouvre une table et donne son code à quatre lettres, ou saisis celui qu’on t’a donné. Tout passe directement d’un appareil à l’autre : rien n’est conservé, fermer la page ferme la table.',
     createTable: 'Ouvrir une table', joinTable: 'Rejoindre', tableCode: 'Code de la table', yourTable: 'Ta table', waiting: 'En attente…',
     mFormat: 'Format', mRace: 'Course', mDuel: 'Duel', mGhost: 'Contre-la-montre',
+    catAll: 'Toutes', mCat: 'Catégorie', mCatDesc: 'L\'hôte peut réserver la table à une catégorie : chacun choisit alors sa voiture dans celle-ci.', mCatOpen: 'Chacun prend la voiture qu\'il veut ; l\'IA court dans la catégorie de l\'hôte.',
     mRaceDesc: 'Tout le monde sur la grille, complétée par des IA, avec les contacts.',
     mDuelDesc: 'Les humains et personne d’autre.', mGhostDesc: 'Même circuit, chacun son tour, les voitures se traversent.',
     ready: 'Prêt', notReady: 'Pas prêt', host: 'hôte', you: 'toi', players: 'Pilotes',
@@ -126,6 +127,7 @@ const I18N = {
     multi: 'Together', multiIntro: 'Open a table and pass on its four-letter code, or type the one you were given. Everything goes straight from one device to the other: nothing is stored, closing the page closes the table.',
     createTable: 'Open a table', joinTable: 'Join', tableCode: 'Table code', yourTable: 'Your table', waiting: 'Waiting…',
     mFormat: 'Format', mRace: 'Race', mDuel: 'Duel', mGhost: 'Time trial',
+    catAll: 'All', mCat: 'Class', mCatDesc: 'The host can keep the table to one class: everyone then picks a car from it.', mCatOpen: 'Everyone takes any car; the AI races in the host\'s class.',
     mRaceDesc: 'Everyone on the grid, filled up with AI cars, contact on.',
     mDuelDesc: 'The people and nobody else.', mGhostDesc: 'Same circuit, each on their own lap, cars pass through each other.',
     ready: 'Ready', notReady: 'Not ready', host: 'host', you: 'you', players: 'Drivers',
@@ -683,11 +685,37 @@ class UI {
     if (this._cleEcran === 'depart:timetrial' && this.setup.trackId === trackId) this.setupScreen('timetrial');
   }
 
+  /* Le filtre de catégorie posé au-dessus d'un rail de voitures.
+
+  « Toutes » montre le plateau entier, rangé par catégorie ; une catégorie ne montre que les siennes.
+  `verrou` sert au salon : seul l'hôte choisit la catégorie de la table, les autres la lisent. */
+  filtreCat(action, courant, verrou) {
+    const ids = ['all'].concat(playableCategories().map(c => c.id));
+    return `<div class="seg filtre-cat">${ids.map(id => `<button class="${courant === id ? 'sel' : ''}" data-action="${action}" data-id="${id}" ${verrou ? 'disabled' : ''}>${id === 'all' ? this.t('catAll') : escapeHtml(this.L(categoryById(id).name))}</button>`).join('')}</div>`;
+  }
+  filtreCourant() {
+    const f = this.app.save.filtreCat;
+    return f && playableCategories().some(c => c.id === f) ? f : 'all';
+  }
+  /** Les voitures d'un filtre, catégorie après catégorie quand il les montre toutes. */
+  modelesVisibles(filtre) {
+    return filtre && filtre !== 'all' ? modelsOf(filtre) : playableCategories().flatMap(c => modelsOf(c.id));
+  }
+  // Quand le rail mélange les catégories, chaque carte dit la sienne : c'est elle qui décide contre qui on court.
+  etiquetteCat(m) { return `<small class="cattag cat-${escapeHtml(m.catId)}">${escapeHtml(this.L(categoryById(m.catId).name))}</small>`; }
+
   setupScreen(mode) {
     const t = (k, ...a) => this.t(k, ...a), s = this.app.save, st = this.setup, app = this.app;
     st.mode = mode;
-    const cats = playableCategories();
-    if (!cats.find(c => c.id === st.classId)) st.classId = cats[0].id;
+    /* La catégorie suit la voiture choisie, et le filtre ne fait que restreindre le rail.
+
+    Filtrer sur une catégorie qui ne contient pas la voiture choisie y prend la dernière voiture
+    choisie dans cette catégorie : sans cela la marque de sélection serait hors du rail, et l'écran
+    annoncerait au départ une voiture qu'on ne voit nulle part. */
+    const filtre = this.filtreCourant();
+    if (filtre !== 'all') st.classId = filtre;
+    else if (s.cat) st.classId = s.cat;
+    if (!playableCategories().find(c => c.id === st.classId)) st.classId = DEFAUT_CAT;
     /* Les circuits perso ne se choisissent plus d'ici — sauf celui qu'un lien a nommé.
 
     La liste « Circuits perso » est retirée, mais le bouton « Essayer » de l'éditeur ouvre le jeu
@@ -710,8 +738,10 @@ class UI {
     this.show(`
       <div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${mode === 'race' ? t('quickRace') : t('timeTrial')}</h2></div>
       <h3>${t('model')}</h3>
-      ${this.rail('models', 'models', modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${m.id}">
+      ${this.filtreCat('pickCat', filtre)}
+      ${this.rail('models', 'models', this.modelesVisibles(filtre).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${m.id}">
             ${this.carIcon(m, livery, app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}${m.custom ? ` <small>(${t('custom')})</small>` : ''}</b>
+            ${filtre === 'all' ? this.etiquetteCat(m) : ''}
             ${this.repereLivree(m, app.playerLivreeFor(m.id))}
             ${this.tyres(m)}
             ${this.gauges(m)}</button>`).join(''))}
@@ -773,7 +803,7 @@ class UI {
     if (!net || !net.available()) { this.show(`<div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${t('multi')}</h2></div><p class="muted">${t('netOff')}</p>`, 'center'); return; }
     const s = app.save, livery = LIVERIES[s.livery];
     const cat = categoryById(this.setup.classId);
-    const model = app.playerModelFor(cat.id);
+    let model = app.playerModelFor(cat.id);
 
     if (net.state === 'off') {
       this.show(`
@@ -792,6 +822,20 @@ class UI {
     }
 
     const cfg = net.settings();
+    /* La catégorie de la table, que seul l'hôte choisit.
+
+    Quand elle exclut la voiture de ce poste, la voiture change ICI, d'elle-même, pour la dernière
+    choisie dans la catégorie imposée — et le joueur repasse « pas prêt », pour qu'il voie ce qu'on a
+    changé sous lui avant le départ plutôt que de le découvrir sur la grille. On publie sans repeindre :
+    c'est précisément ce qu'on est en train de faire. */
+    const tcat = cfg.cat && playableCategories().some(c => c.id === cfg.cat) ? cfg.cat : 'all';
+    if (tcat !== 'all' && model.catId !== tcat) {
+      this.setup.classId = tcat;
+      model = app.playerModelFor(tcat);
+      net.mine.car = { modelId: model.id, livree: app.playerLivreeFor(model.id) };
+      net.mine.ready = false;
+      net.post();
+    }
     const list = net.members();
     const ut = unlockedTracks(s);
     const tracks = app.allTracks().filter(tr => tr.custom || ut.has(tr.id));
@@ -811,12 +855,15 @@ class UI {
       <h3>${t('mFormat')}</h3>
       <div class="seg">${NET_MODES.map(m => `<button class="${cfg.mode === m ? 'sel' : ''}" data-action="netMode" data-id="${m}" ${net.creator ? '' : 'disabled'}>${t({ race: 'mRace', duel: 'mDuel', ghost: 'mGhost' }[m])}</button>`).join('')}</div>
       <p class="muted">${t(modeDesc)}</p>
+      <h3>${t('mCat')}</h3>
+      ${this.filtreCat('netCat', tcat, !net.creator)}
+      <p class="muted">${t(tcat === 'all' ? 'mCatOpen' : 'mCatDesc')}</p>
       <h3>${t('track')}</h3>
       ${this.rail('netTracks', 'tracks', tracks.map(tr => `<button class="card ${tr.id === cfg.trackId ? 'sel' : ''}" data-action="netTrack" data-id="${tr.id}" ${net.creator ? '' : 'disabled'}>
           <img alt="" src="${this.thumb(tr, 90)}"><b>${escapeHtml(tr.name)}</b><small>${tr.flag || '🏁'} ${this.longueur(tr)}</small></button>`).join(''))}
       <h3>${t('model')}</h3>
-      ${this.rail('netModels', 'models', modelsOf(cat.id).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelNet" data-id="${m.id}">
-          ${this.carIcon(m, livery, app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}</b>
+      ${this.rail('netModels', 'models', this.modelesVisibles(tcat).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelNet" data-id="${m.id}">
+          ${this.carIcon(m, livery, app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}</b>${tcat === 'all' ? this.etiquetteCat(m) : ''}
           ${this.repereLivree(m, app.playerLivreeFor(m.id))}${this.tyres(m)}</button>`).join(''))}
       <div class="row end">
         <span class="muted">${trackDef ? `${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ` : ''}${escapeHtml(model.name)}</span>
@@ -1075,8 +1122,16 @@ class UI {
       fois de livrée ». Le premier appui sur une carte qui n'est pas la sienne la choisit — sinon
       changer de voiture changerait aussi sa peinture au passage, ce que personne ne demande. Une
       fois choisie, la carte devient le sélecteur de livrée. */
-      case 'pickModel': { this._choisitOuTourne(id); this.setupScreen(this.setup.mode); break; }
-      case 'pickModelCup': { this._choisitOuTourne(id); this.cupScreen(btn.dataset.cup); break; }
+      case 'pickModel': { this._choisitOuTourne(id, app.playerModelFor(this.setup.classId).id, true); this.setupScreen(this.setup.mode); break; }
+      case 'pickCat': {
+        app.save.filtreCat = id;
+        if (id !== 'all') { app.save.cat = id; this.setup.classId = id; }
+        storeSave(app.save); this.setupScreen(this.setup.mode); break;
+      }
+      case 'pickModelCup': {
+        const cup = CUPS.find(c => c.id === btn.dataset.cup);
+        this._choisitOuTourne(id, cup ? app.playerModelFor(cup.classId).id : null, false); this.cupScreen(btn.dataset.cup); break;
+      }
       case 'pickTrack': this.setup.trackId = id; this.setupScreen(this.setup.mode); break;
       case 'pickDiff': app.save.difficulty = id; storeSave(app.save); this.setupScreen(this.setup.mode); break;
       case 'pickLaps': {
@@ -1106,7 +1161,8 @@ class UI {
       case 'netTrack': app.net.setTable({ trackId: id, laps: lapsFor(app.trackDefById(id), categoryById(this.setup.classId)) }); break;
       case 'netReady': this._netReady(!app.net.mine.ready); break;
       case 'netStart': app.net.start(); break;
-      case 'pickModelNet': { this._choisitOuTourne(id); this._netCar(); this.lobbyScreen(); break; }
+      case 'pickModelNet': { this._choisitOuTourne(id, app.playerModelFor(this.setup.classId).id, true); this._netCar(); this.lobbyScreen(); break; }
+      case 'netCat': app.net.setTable({ cat: id }); break;
       case 'toLobby': app.toLobby(); break;
       case 'startCup': app.startCupRace(id); break;
       case 'resetCup': delete app.save.cups[id]; storeSave(app.save); this.cupScreen(id); break;
@@ -1124,10 +1180,18 @@ class UI {
   déjà la même chose en trois copies, et la livrée aurait fait une quatrième ligne à recopier — donc
   un écran sur trois où le second appui n'aurait rien fait, et personne pour s'en apercevoir avant
   d'y passer. */
-  _choisitOuTourne(id) {
+  _choisitOuTourne(id, actuel, suitCat) {
     const app = this.app, m = modelById(id);
     if (!m) return;
-    if (app.save.models[m.catId] !== id) { app.save.models[m.catId] = id; storeSave(app.save); return; }
+    /* « Déjà choisie », c'est la voiture AFFICHÉE comme choisie, pas celle qu'on a retenue dans sa
+    catégorie. Avec le rail de toutes les catégories, une F1 retenue la dernière fois qu'on courait
+    en F1 n'est pas la voiture choisie quand on court en GT : un appui doit la choisir, pas tourner
+    sa livrée. */
+    if (actuel !== id) {
+      app.save.models[m.catId] = id;
+      if (suitCat) { app.save.cat = m.catId; this.setup.classId = m.catId; }
+      storeSave(app.save); return;
+    }
     const n = m.livrees ? m.livrees.length : 1;
     if (n < 2) return;                       // rien à faire tourner : un seul dessin
     if (!app.save.livrees) app.save.livrees = {};

@@ -1,0 +1,74 @@
+AUTOPILOTE — meilleur tour brut sur 2 tours, marge 0.95, 7 circuits
+
+== F1 ==  écart à la moyenne de la catégorie, en %
+voiture          moy.   monza   spasuzukazandvointerlsilverlemans   km/h  0-100  100-0  g@180
+Tyrrell P34     -0.24     0.5   0.3  -0.2  -0.7  -0.9  -0.5  -0.0    254   3.14   18.0   2.35
+Ferrari 312T     0.71    -1.0   0.4   0.7   1.3   3.0   0.8  -0.3    278   2.95   19.2   2.43
+McLaren M23      0.04    -0.4  -0.3   0.3   0.1   0.2   0.3  -0.0    269   3.04   19.2   2.49
+Lotus 79         0.14     0.6  -0.3   0.1  -0.1   0.4  -0.3   0.6    266   3.23   19.2   2.90
+Lotus 72        -0.42    -0.6  -0.1  -0.1   0.1  -1.1   0.0  -1.2    260   2.91   18.7   2.24
+Brabham BT46B    0.07     1.2   0.6  -0.2  -1.1  -1.1   0.3   0.6    257   3.24   19.2   2.29
+Williams FW07   -0.17    -0.3  -0.2   0.1   0.3  -0.8  -0.3  -0.1    266   3.07   18.8   2.81
+Ligier JS11     -0.00     0.2  -0.1   0.2   0.2  -0.8   0.1   0.2    264   3.17   17.9   2.71
+Renault RS10    -0.12    -0.3  -0.3  -0.9  -0.1   1.1  -0.4   0.1    288   3.35   19.6   2.61
+étalement 1.13 %
+
+== GT ==  écart à la moyenne de la catégorie, en %
+voiture          moy.   monza   spasuzukazandvointerlsilverlemans   km/h  0-100  100-0  g@180
+M1 Procar       -0.30    -0.2   0.0   0.1  -0.5  -0.8  -0.4  -0.3    247   3.38   20.3   1.73
+F40              0.06    -0.5  -0.4   0.5   1.2  -0.1   0.4  -0.6    265   3.18   20.9   1.87
+Countach LP500  -0.05    -0.5  -0.2   0.8   0.4  -0.8   0.0  -0.1    260   3.25   21.9   1.72
+911 Turbo        0.68    -0.0   0.4   0.2   1.0   2.8  -0.2   0.6    249   3.29   20.9   1.78
+Corvette         0.03    -0.6   0.4   0.2   0.2   0.4  -0.1  -0.4    262   3.37   21.9   1.76
+3.0 CSL         -0.05    -0.2  -0.1  -0.6   0.2   0.8  -0.3  -0.1    239   3.52   20.3   1.86
+250 GTO         -0.15     0.8   0.0  -0.3  -1.0  -1.3   0.2   0.6    260   3.68   21.9   1.59
+Type E          -0.06     0.7   0.2  -0.3  -1.1  -1.0   0.4   0.6    265   3.75   22.3   1.60
+240Z            -0.16     0.5  -0.3  -0.6  -0.3   0.0  -0.1  -0.2    234   3.53   19.9   1.69
+étalement 0.98 %
+
+== PROTO ==  écart à la moyenne de la catégorie, en %
+voiture          moy.   monza   spasuzukazandvointerlsilverlemans   km/h  0-100  100-0  g@180
+GT40 Mk II      -0.04    -0.5  -0.2   0.1   0.2   0.9  -0.2  -0.6    296   3.08   20.6   2.12
+935              0.14     0.1  -0.5  -0.2   0.2   1.6   0.1  -0.4    299   3.29   21.0   2.29
+787B            -0.08    -0.2  -0.2   0.3   0.2  -0.6  -0.4   0.4    282   3.18   19.1   2.40
+962             -0.00     0.4  -0.1   0.1   0.2  -1.2   0.1   0.5    290   3.30   19.6   2.36
+XJR-9            0.02     0.6  -0.1   0.0  -0.0  -1.5   0.4   0.6    304   3.43   20.8   2.34
+330 P4          -0.05    -0.0   0.4  -0.1  -0.3  -0.1  -0.1  -0.2    270   3.15   19.3   2.04
+Ford P68         0.01    -0.4   0.7  -0.2  -0.6   0.7   0.0  -0.2    307   3.32   20.6   2.06
+étalement 0.23 %
+
+== ENTRE CATÉGORIES ==  temps moyen rapporté aux GT, en % (négatif : plus rapide)
+catégorie        moy.   monza   spasuzukazandvointerlsilverlemans
+f1              -8.57    -7.9  -9.3  -8.9  -8.4  -9.1  -8.4  -7.9
+gt               0.00     0.0   0.0   0.0   0.0   0.0   0.0   0.0
+proto           -6.06    -5.9  -6.6  -6.1  -5.7  -6.6  -5.7  -5.8
+
+sorties par voiture : tyrrellp34 0, ferrari312t 0, mclarenm23 0, lotus79 0, lotus72 0, brabhambt46b 0, williamsfw07 0, ligierjs11 0, renaultrs10 0, m1procar 0, f40 0, countach 0, 930 0, corvette 0, csl 0, 250gto 0, typee 0, 240z 0, gt40 0, 935 0, 787b 0, 962 0, xjr9 0, 330p4 0, p68 0
+
+ce que chaque voiture coûte à piloter, le plateau entier sur une échelle :
+  voiture          dérive   prix   score   pneus
+  Lotus 79           3.3°  -3.2 %    0.02   ○○○○○   lotus79: 0
+  Ligier JS11        3.4°  -3.0 %    0.05   ○○○○○   ligierjs11: 0
+  Brabham BT46B      3.1°  -2.6 %    0.06   ○○○○○   brabhambt46b: 0
+  Tyrrell P34        3.4°  -2.8 %    0.08   ○○○○○   tyrrellp34: 0
+  Williams FW07      4.0°  -2.9 %    0.14   ●○○○○   williamsfw07: 1
+  XJR-9              3.9°  -2.5 %    0.15   ●○○○○   xjr9: 1
+  787B               4.0°  -2.6 %    0.17   ●○○○○   787b: 1
+  962                4.1°  -2.4 %    0.20   ●○○○○   962: 1
+  McLaren M23        4.0°  -2.0 %    0.22   ●○○○○   mclarenm23: 1
+  Renault RS10       4.4°  -1.7 %    0.30   ●○○○○   renaultrs10: 1
+  250 GTO            4.1°  -1.2 %    0.32   ●●○○○   250gto: 2
+  Type E             4.6°  -0.8 %    0.41   ●●○○○   typee: 2
+  Lotus 72           5.3°  -0.9 %    0.49   ●●○○○   lotus72: 2
+  Countach LP500     5.0°  -0.2 %    0.52   ●●●○○   countach: 3
+  330 P4             5.7°  -0.8 %    0.55   ●●●○○   330p4: 3
+  M1 Procar          5.6°  -0.5 %    0.56   ●●●○○   m1procar: 3
+  Ferrari 312T       5.6°  -0.2 %    0.59   ●●●○○   ferrari312t: 3
+  F40                5.1°   0.4 %    0.60   ●●●○○   f40: 3
+  GT40 Mk II         6.0°  -0.2 %    0.64   ●●●○○   gt40: 3
+  240Z               6.1°   0.1 %    0.69   ●●●○○   240z: 3
+  935                6.6°  -0.4 %    0.69   ●●●○○   935: 3
+  Ford P68           6.4°  -0.1 %    0.70   ●●●○○   p68: 3
+  3.0 CSL            6.3°   0.5 %    0.75   ●●●●○   csl: 4
+  Corvette           7.3°   1.1 %    0.92   ●●●●●   corvette: 5
+  911 Turbo          7.3°   1.9 %    1.00   ●●●●●   930: 5

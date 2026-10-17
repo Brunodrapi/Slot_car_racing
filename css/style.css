@@ -224,6 +224,17 @@ button.link { background: none; border: none; color: var(--muted); text-decorati
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .card .livree b { color: var(--accent); font-weight: 700; margin-right: 4px; }
 
+/* Le filtre de catégorie, au-dessus du rail des voitures, et l'étiquette posée sur chaque carte
+   quand le rail les mélange. Trois teintes plutôt qu'un texte seul : en faisant défiler on repère
+   où finissent les F1 et où commencent les GT sans lire chaque carte. */
+.filtre-cat { margin: 0 0 8px; }
+.card .cattag { display: inline-block; margin: 2px 0 0; padding: 1px 7px; border-radius: 8px;
+  font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  color: #10131b; background: var(--muted); }
+.card .cattag.cat-f1 { background: #ff6b5b; }
+.card .cattag.cat-gt { background: #5bb8ff; }
+.card .cattag.cat-proto { background: #5be07a; }
+
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: middle; }
 .tracklist { display: flex; flex-direction: column; gap: 6px; }
 .tracklist .tr { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 10px; background: var(--card); }

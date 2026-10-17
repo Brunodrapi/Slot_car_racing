@@ -310,9 +310,22 @@ class App {
 
   /** Called by the net layer when the host drops the flag, on every screen at once. */
   startOnline(cfg) {
-    const trackDef = this.trackDefById(cfg.trackId), cat = categoryById(this.ui.setup.classId);
+    const trackDef = this.trackDefById(cfg.trackId);
     if (!trackDef) return;
     const mine = cfg.humans.find(h => h.local) || {};
+    const cat = mine.modelId ? categoryOfModel(mine.modelId) : categoryById(this.ui.setup.classId);
+    /* L'IA de la table : la catégorie imposée, ou celle de l'hôte quand la table est ouverte à toutes.
+
+    Et la MÊME grille sur tous les écrans : chacun la tire avec la graine du coup d'envoi, que tous
+    ont reçue de l'hôte. Tirée au hasard, chaque écran voyait d'autres modèles et d'autres noms pour
+    les mêmes voitures — invisible tant que tout le monde était dans la même catégorie et qu'un
+    modèle en valait un autre à l'œil, flagrant dès qu'une table ouverte mêle F1 et GT. Autant de
+    places que la grille en compte (`_buildGrid`), pour que l'éventail des talents reste le même. */
+    const hote = cfg.humans[0] || {};
+    const catIA = cfg.cat && cfg.cat !== 'all' ? categoryById(cfg.cat)
+      : hote.modelId ? categoryOfModel(hote.modelId) : cat;
+    const places = Math.max(cfg.humans.length + 1, Math.min(catIA.drivers || 10, 12));
+    const roster = cfg.mode === 'race' ? makeRoster(places, 0, (cfg.go || 1) % 100000, catIA.id) : null;
     this._startRace({
       // A shared time trial is a race with the contact turned off: everyone on the same lap
       // counter, nobody able to knock anybody off.
@@ -328,6 +341,7 @@ class App {
       playerLivree: this.playerLivreeFor(mine.modelId || this.playerModelFor(cat.id).id),
       playerName: mine.name || this.playerName(),
       humans: cfg.humans,
+      roster,
     }, { cup: null, mode: 'race', classId: cat.id, trackId: cfg.trackId, online: cfg.mode });
   }
 

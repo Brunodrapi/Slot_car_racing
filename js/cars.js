@@ -20,18 +20,83 @@
 //    turbo    0 to 1, the whistle and the blow-off on lift
 'use strict';
 
+/* TROIS CATÉGORIES, ET DEUX ÉQUILIBRES QUI NE SONT PAS LE MÊME.
+
+Dans une catégorie, les voitures se valent au tour et diffèrent par le caractère : une différence de
+caractère est un choix offert au joueur, cinq secondes au tour n'en est pas un. ENTRE catégories,
+l'écart est voulu : une F1 ou un prototype va plus vite qu'une GT, et c'est ce qu'on attend d'eux.
+La base de chaque catégorie porte ce rang ; les `mul` de chaque voiture ne portent que son caractère,
+autour de 1. `node tools/plateau-banc.js` mesure les deux équilibres à la fois.
+
+La largeur de route (`roadScale`) et le cadrage (`zoom`) sont LES MÊMES pour les trois. La largeur
+de route décide où passent les trois trajectoires, et les panneaux de freinage, les lignes reprises
+à la main et les bancs des circuits sont tous calés dessus : une catégorie qui la changerait
+roulerait sur un autre circuit que celui qu'on a dessiné. */
 const CATEGORIES = [
   {
-    // L'identifiant reste `gt` : les records de tour sont rangés sous `circuit|catégorie` dans la
-    // sauvegarde, et le changer effacerait ceux des joueurs. Le nom, lui, ne peut plus être « GT »
-    // avec une 935 et une 787B sur la grille.
-    id: 'gt', name: { fr: 'Le plateau', en: 'The field' },
-    desc: { fr: 'Les icônes : M1 Procar, F40, 787B et F1 classiques… Des icônes puissantes et joueuses.', en: 'The icons: M1 Procar, F40, 787B and classic F1… Powerful, playful icons.' },
+    id: 'f1', name: { fr: 'F1', en: 'F1' },
+    desc: { fr: 'Les monoplaces des années soixante-dix : légères, collées, et qui freinent tard.', en: 'Seventies single-seaters: light, glued down, braking late.' },
+    engine: { cyl: 8, redline: 10800, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 },
+    base: { vmax: 74, accel: 9.1, brake: 18.6, grip: 14.6, df: 0.0042, slide: 0.56, laneK: 6, rearBias: 1.06, cliff: 0.2, slipPeak: 0.11, length: 4.2, width: 2.0 },
+    drivers: 10, roadScale: 0.9, zoom: 1.15,
+    models: [
+      { id: 'tyrrellp34', diff: 0, name: 'Tyrrell P34', shape: 'wedge72',
+        mul: { vmax: 0.955, accel: 1, brake: 1.07, grip: 1.004, df: 0.8, slide: 0.9 },
+        colors: ['#174d9b', '#f4da38'], top: 'sprites/top/tyrrellp34.png', pick: 'sprites/pick/tyrrellp34.png',
+        livrees: [{ id: '', nom: 'Elf · Scheckter · 1976' }],
+        engine: { cyl: 8, redline: 10500, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
+      { id: 'ferrari312t', diff: 3, name: 'Ferrari 312T', shape: 'wedge72',
+        mul: { vmax: 1.045, accel: 1.06, brake: 1, grip: 1.022, df: 0.85, slide: 1.1 },
+        colors: ['#dc282d', '#f5f3e9'], top: 'sprites/top/ferrari312t.png', pick: 'sprites/pick/ferrari312t.png',
+        livrees: [{ id: '', nom: 'Lauda · 1975 · 12' }],
+        engine: { cyl: 12, redline: 12500, idle: 1700, rough: 0.06, bright: 0.98, turbo: 0 } },
+      { id: 'mclarenm23', diff: 1, name: 'McLaren M23', shape: 'wedge72',
+        mul: { vmax: 1.01, accel: 1.03, brake: 1, grip: 0.987, df: 0.95, slide: 1 },
+        colors: ['#e3352d', '#f5f3e9'], top: 'sprites/top/mclarenm23.png', pick: 'sprites/pick/mclarenm23.png',
+        livrees: [{ id: '', nom: 'Hunt · 1976 · 11' }],
+        engine: { cyl: 8, redline: 10800, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
+      { id: 'lotus79', diff: 0, name: 'Lotus 79', shape: 'wedge72',
+        mul: { vmax: 1, accel: 0.97, brake: 1, grip: 0.905, df: 1.45, slide: 0.95 },
+        colors: ['#161719', '#d4b35e'], top: 'sprites/top/lotus79.png', pick: 'sprites/pick/lotus79.png',
+        livrees: [{ id: '', nom: 'JPS · Andretti · 1978' }],
+        engine: { cyl: 8, redline: 11000, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
+      { id: 'lotus72', diff: 2, name: 'Lotus 72', shape: 'wedge72',
+        mul: { vmax: 0.975, accel: 1.08, brake: 1.03, grip: 1.076, df: 0.6, slide: 1.05 },
+        colors: ['#161719', '#d4b35e'], top: 'sprites/top/lotus72.png',
+        livrees: [{ id: '', nom: 'JPS · Fittipaldi · 1972' }],
+        engine: { cyl: 8, redline: 10000, idle: 1500, rough: 0.1, bright: 0.9, turbo: 0 } },
+      { id: 'brabhambt46b', diff: 0, name: 'Brabham BT46B', shape: 'wedge72',
+        mul: { vmax: 0.965, accel: 0.97, brake: 1, grip: 1.036, df: 0.7, slide: 0.88 },
+        colors: ['#e8202a', '#f4f4f4'], top: 'sprites/top/brabhambt46b.png',
+        livrees: [{ id: '', nom: 'Parmalat · Lauda · 1978' }],
+        engine: { cyl: 12, redline: 12000, idle: 1700, rough: 0.05, bright: 0.96, turbo: 0 } },
+      { id: 'williamsfw07', diff: 1, name: 'Williams FW07', shape: 'wedge72',
+        mul: { vmax: 1, accel: 1.02, brake: 1.02, grip: 0.915, df: 1.35, slide: 0.97 },
+        colors: ['#f4f4f4', '#1f6b3a'], top: 'sprites/top/williamsfw07.png',
+        livrees: [{ id: '', nom: 'Saudia · Jones · 1979' }],
+        engine: { cyl: 8, redline: 11000, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
+      { id: 'ligierjs11', diff: 0, name: 'Ligier JS11', shape: 'wedge72',
+        mul: { vmax: 0.99, accel: 0.99, brake: 1.08, grip: 0.922, df: 1.25, slide: 0.92 },
+        colors: ['#2f7fd1', '#f4f4f4'], top: 'sprites/top/ligierjs11.png',
+        livrees: [{ id: '', nom: 'Gitanes · Laffite · 1979' }],
+        engine: { cyl: 8, redline: 11000, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
+      { id: 'renaultrs10', diff: 1, name: 'Renault RS10', shape: 'wedge72',
+        mul: { vmax: 1.08, accel: 0.93, brake: 0.98, grip: 1.032, df: 1, slide: 1.06 },
+        colors: ['#f2c500', '#141414'], top: 'sprites/top/renaultrs10.png',
+        livrees: [{ id: '', nom: 'Elf · Jabouille · 1979' }],
+        engine: { cyl: 6, redline: 11000, idle: 1800, rough: 0.2, bright: 0.8, turbo: 1 } },
+    ],
+  },
+  {
+    // L'identifiant reste `gt` : les records de tour sont rangés sous `circuit|catégorie|voiture`
+    // dans la sauvegarde, et les GT y gardent donc les leurs sans migration.
+    id: 'gt', name: { fr: 'GT', en: 'GT' },
+    desc: { fr: 'Les grand tourisme, des années soixante aux années quatre-vingt : lourdes, puissantes, joueuses.', en: 'Grand tourers from the sixties to the eighties: heavy, powerful, playful.' },
     engine: { cyl: 8, redline: 7000, idle: 1000, rough: 0.35, bright: 0.6, turbo: 0 },
     base: { vmax: 70, accel: 8, brake: 17, grip: 13.5, df: 0.0015, slide: 0.6, laneK: 6, rearBias: 1.06, cliff: 0.18, slipPeak: 0.12, length: 4.5, width: 2.0 },
     drivers: 10, roadScale: 0.9, zoom: 1.15,
     models: [
-      { id: 'm1procar', diff: 0, name: 'M1 Procar', shape: 'gtBoxy', mul: { accel: 1.06, vmax: 0.98, grip: 1.04, brake: 1.03 }, pick: 'sprites/pick/m1procar.png', engine: {
+      { id: 'm1procar', diff: 3, name: 'M1 Procar', shape: 'gtBoxy', mul: { vmax: 0.98, accel: 1.06, brake: 1.03, grip: 0.978, df: 1, slide: 1 }, pick: 'sprites/pick/m1procar.png', engine: {
         cyl: 6, redline: 9000, idle: 1100, rough: 0.15, bright: 0.78, turbo: 0,
 // Découpé dans l'onboard par `tools/enginecut.py`. Six boucles pour couvrir la plage
         // utile : une seule, transposée du ralenti au rupteur, fait trois octaves et ne sonne
@@ -45,7 +110,7 @@ const CATEGORIES = [
           { id: 'BASF', nom: 'BASF' },
           { id: 'DENIM', nom: 'Denim' },
         ] },
-      { id: 'f40', diff: 1, name: 'F40', shape: 'f40', mul: { vmax: 1.05, accel: 1.145, grip: 0.98, df: 1.5 }, pick: 'sprites/pick/f40.png', engine: {
+      { id: 'f40', diff: 3, name: 'F40', shape: 'f40', mul: { vmax: 1.05, accel: 1.12, brake: 1, grip: 0.941, df: 1.5, slide: 1 }, pick: 'sprites/pick/f40.png', engine: {
         cyl: 8, redline: 7750, idle: 1000, rough: 0.15, bright: 0.8, turbo: 0.9,
         sample: { ramp: 'sounds/engine/v8-f40.json' },
       }, colors: ['#e0262c', '#22242b'], top: 'sprites/top/f40.png',
@@ -62,7 +127,7 @@ const CATEGORIES = [
           { id: 'red', nom: 'Rosso' },
           { id: 'yellow', nom: 'Crawford' },
         ] },
-      { id: 'countach', diff: 0, name: 'Countach LP500', shape: 'wedgeGT', mul: { vmax: 1.03, accel: 1.102, grip: 0.95, brake: 0.95 }, pick: 'sprites/pick/countach.png', engine: {
+      { id: 'countach', diff: 3, name: 'Countach LP500', shape: 'wedgeGT', mul: { vmax: 1.03, accel: 1.1, brake: 0.95, grip: 0.97, df: 1, slide: 1 }, pick: 'sprites/pick/countach.png', engine: {
         cyl: 12, redline: 7500, idle: 900, rough: 0.05, bright: 0.88, turbo: 0,
         // La rampe la plus large du jeu : vingt-cinq demi-tons, 1821 tr/min au rupteur, d'un seul
         // rapport et sans coupure. C'est ce qu'il faut pour n'avoir presque rien à confier à la
@@ -72,7 +137,7 @@ const CATEGORIES = [
       // La prise vient d'une 911 RSR, la seule 911 du plateau étant celle-ci. Un RSR est atmosphérique
       // là où la Turbo ne l'est pas : le sifflement reste à la synthèse, la matière du plat-six est
       // celle de l'enregistrement.
-      { id: '930', diff: 5, name: '911 Turbo', shape: 'roundGT', mul: { vmax: 0.99, accel: 1.092, grip: 0.97, slide: 1.2 }, pick: 'sprites/pick/930.png', engine: {
+      { id: '930', diff: 5, name: '911 Turbo', shape: 'roundGT', mul: { vmax: 0.99, accel: 1.09, brake: 1, grip: 1.017, df: 1, slide: 1.2 }, pick: 'sprites/pick/930.png', engine: {
         cyl: 6, redline: 7000, idle: 950, rough: 0.3, bright: 0.6, turbo: 0.85,
         sample: { ramp: 'sounds/engine/flat6-930.json', bas: 'sounds/engine/flat6-930-bas.json' },
       }, colors: ['#c9ced6', '#e0262c'], top: 'sprites/top/930.png',
@@ -90,7 +155,52 @@ const CATEGORIES = [
           { id: 'swiss', nom: 'Swiss' },
           { id: 'valliant', nom: 'Vaillant' },
         ] },
-      { id: 'gt40', diff: 4, name: 'GT40 Mk II', shape: 'gt40', mul: { vmax: 1.06, accel: 1.112, grip: 0.99, df: 0.85, brake: 0.97, slide: 1.1 }, pick: 'sprites/pick/gt40.png', engine: {
+      { id: 'corvette', diff: 5, name: 'Corvette', shape: 'roundGT', mul: { vmax: 1.04, accel: 1.06, brake: 0.95, grip: 1.026, df: 0.9, slide: 1.3 }, pick: 'sprites/pick/corvette.png', engine: {
+        cyl: 8, redline: 6000, idle: 750, rough: 0.7, bright: 0.4, turbo: 0,
+        // Découpé dans son propre onboard. Les étiquettes portent une correction d'octave : sur
+        // cette prise l'estimateur s'accrochait au demi-ordre plutôt qu'à l'allumage, ce que le
+        // sonagramme montre — les rangs y sont espacés d'une cinquantaine de hertz, soit un demi-
+        // ordre à 6000 tr/min et non un allumage à 3000. Sans elle, la voiture sonnerait une
+        // octave trop bas.
+        sample: { ramp: 'sounds/engine/v8-corvette.json' },
+      }, colors: ['#d8dce2', '#e0262c'], top: 'sprites/top/corvette.png' },
+      { id: 'csl', diff: 4, name: '3.0 CSL', shape: 'gtBoxy', mul: { vmax: 0.95, accel: 1.02, brake: 1.03, grip: 1.018, df: 1.2, slide: 1.1 }, pick: 'sprites/pick/csl.png', engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.1, bright: 0.68, turbo: 0 }, colors: ['#f7f7f7', '#2166d8'], top: 'sprites/top/csl.png',
+        /* Trois livrées, et la première est celle qui existait déjà.
+
+        Une livrée n'est pas une couleur ici : une illustration remplace le dessin vectoriel ET la
+        couleur, donc la seule façon de changer de livrée est de changer de dessin. Les fichiers
+        se déduisent de l'identifiant — `sprites/top/csl_castrol.png` et sa vignette dans
+        `sprites/pick/` — et un identifiant vide garde les fichiers sans suffixe, pour que la
+        livrée d'origine n'ait pas à être renommée. */
+        livrees: [
+          { id: '', nom: 'Motorsport' },
+          { id: 'castrol', nom: 'Castrol' },
+          { id: 'calder', nom: 'Calder' },
+        ] },
+      // Les trois GT des années soixante et soixante-dix. Moteur avant, pneus étroits, peu d'appui :
+      // elles se battent avec leur pointe et leur légèreté là où les autres ont de la gomme.
+      { id: '250gto', diff: 2, name: '250 GTO', shape: 'roundGT', mul: { vmax: 1.03, accel: 0.97, brake: 0.95, grip: 1.014, df: 0.5, slide: 0.95 },
+        colors: ['#c8161d', '#f4f4f4'], top: 'sprites/top/250gto.png',
+        livrees: [{ id: '', nom: 'Rosso Corsa · 1962' }],
+        engine: { cyl: 12, redline: 7500, idle: 900, rough: 0.05, bright: 0.85, turbo: 0 } },
+      { id: 'typee', diff: 2, name: 'Type E', shape: 'roundGT', mul: { vmax: 1.05, accel: 0.95, brake: 0.93, grip: 1.036, df: 0.45, slide: 1 },
+        colors: ['#1d5c3a', '#f4f4f4'], top: 'sprites/top/typee.png',
+        livrees: [{ id: '', nom: 'Lightweight · British Racing Green' }],
+        engine: { cyl: 6, redline: 6500, idle: 850, rough: 0.12, bright: 0.6, turbo: 0 } },
+      { id: '240z', diff: 3, name: '240Z', shape: 'roundGT', mul: { vmax: 0.93, accel: 1.02, brake: 1.05, grip: 1.036, df: 0.7, slide: 1.05 },
+        colors: ['#f4f4f4', '#d12a2a'], top: 'sprites/top/240z.png',
+        livrees: [{ id: '', nom: 'BRE · 46' }],
+        engine: { cyl: 6, redline: 7500, idle: 950, rough: 0.12, bright: 0.66, turbo: 0 } },
+    ],
+  },
+  {
+    id: 'proto', name: { fr: 'Proto', en: 'Prototypes' },
+    desc: { fr: 'Les voitures du Mans : les plus rapides en ligne droite, et l\'appui pour le payer en virage.', en: 'Le Mans cars: the fastest in a straight line, with the downforce to pay for it in the corners.' },
+    engine: { cyl: 8, redline: 7500, idle: 1000, rough: 0.3, bright: 0.65, turbo: 0 },
+    base: { vmax: 79, accel: 8.6, brake: 17.8, grip: 13.6, df: 0.0034, slide: 0.6, laneK: 6, rearBias: 1.06, cliff: 0.18, slipPeak: 0.12, length: 4.5, width: 2.0 },
+    drivers: 10, roadScale: 0.9, zoom: 1.15,
+    models: [
+      { id: 'gt40', diff: 3, name: 'GT40 Mk II', shape: 'gt40', mul: { vmax: 1.04, accel: 1.07, brake: 0.97, grip: 1.089, df: 0.7, slide: 1.1 }, pick: 'sprites/pick/gt40.png', engine: {
         cyl: 8, redline: 6200, idle: 800, rough: 0.6, bright: 0.45, turbo: 0,
         // Trois prises, et le moteur choisit. La montée ne porte que 4611 tr/min au rupteur — un
         // tirage entre deux rapports, tout ce qu'un onboard de course contient souvent — mais elle
@@ -115,24 +225,15 @@ const CATEGORIES = [
       cylindres atmosphérique. Très vite en ligne droite, moins collée qu'un prototype, et une
       tendance à mettre la queue dehors qui est sa signature — d'où `slide` au-dessus de tout le
       reste du plateau. Le rang de difficulté n'est pas choisi ici : il est MESURÉ par
-      `tools/difficulte.js`, qui le recalcule pour les neuf voitures à la fois. */
-      { id: '935', diff: 2, name: '935', shape: 'longTail', mul: { vmax: 1.07, accel: 1.05, grip: 0.95, df: 1.15, brake: 0.93, slide: 1.4 }, pick: 'sprites/pick/935.png', engine: {
+      `tools/plateau-banc.js --sim`, qui le recalcule pour tout le plateau à la fois. */
+      { id: '935', diff: 3, name: '935', shape: 'longTail', mul: { vmax: 1.05, accel: 1, brake: 0.95, grip: 1.088, df: 0.9, slide: 1.35 }, pick: 'sprites/pick/935.png', engine: {
         cyl: 6, redline: 8000, idle: 1100, rough: 0.35, bright: 0.7, turbo: 0.9,
       }, colors: ['#f4f4f4', '#e0262c'], top: 'sprites/top/935.png' },
-      { id: 'corvette', diff: 3, name: 'Corvette', shape: 'roundGT', mul: { vmax: 1.04, accel: 1.06, grip: 0.97, df: 0.9, brake: 0.95, slide: 1.3 }, pick: 'sprites/pick/corvette.png', engine: {
-        cyl: 8, redline: 6000, idle: 750, rough: 0.7, bright: 0.4, turbo: 0,
-        // Découpé dans son propre onboard. Les étiquettes portent une correction d'octave : sur
-        // cette prise l'estimateur s'accrochait au demi-ordre plutôt qu'à l'allumage, ce que le
-        // sonagramme montre — les rangs y sont espacés d'une cinquantaine de hertz, soit un demi-
-        // ordre à 6000 tr/min et non un allumage à 3000. Sans elle, la voiture sonnerait une
-        // octave trop bas.
-        sample: { ramp: 'sounds/engine/v8-corvette.json' },
-      }, colors: ['#d8dce2', '#e0262c'], top: 'sprites/top/corvette.png' },
       // Un moteur rotatif n'a pas de cylindres : `cyl` ne sert qu'à placer l'allumage, et un
       // quatre-rotors allume quatre fois par tour d'arbre excentrique, exactement comme un V8 à
       // quatre temps. D'où huit, avec la rugosité d'un moteur parfaitement équilibré et un
       // rupteur très haut : c'est le cri de la 787B.
-      { id: '787b', diff: 0, name: '787B', shape: 'groupC', mul: { vmax: 1.02, accel: 1.092, grip: 1.03, df: 1.3, brake: 1.04, slide: 0.92 }, colors: ['#ff8c1a', '#1f6b3a'], top: 'sprites/top/787b.png', pick: 'sprites/pick/787b.png', engine: {
+      { id: '787b', diff: 1, name: '787B', shape: 'groupC', mul: { vmax: 0.99, accel: 1.04, brake: 1.05, grip: 0.951, df: 1.25, slide: 0.92 }, colors: ['#ff8c1a', '#1f6b3a'], top: 'sprites/top/787b.png', pick: 'sprites/pick/787b.png', engine: {
         cyl: 8, redline: 9000, idle: 1300, rough: 0.04, bright: 1.0, turbo: 0,
         // La montée tient de 6159 tr/min au rupteur, le pied levé a sa propre prise, et le
         // démarreur est joué une fois quand la course s'ouvre — d'un bout à l'autre, pas en grains :
@@ -143,47 +244,26 @@ const CATEGORIES = [
           start: 'sounds/engine/r26b-787b-start.json',
         },
       } },
-      { id: 'csl', diff: 4, name: '3.0 CSL', shape: 'gtBoxy', mul: { vmax: 0.95, accel: 1.019, grip: 1.05, df: 1.2, brake: 1.03, slide: 1.1 }, pick: 'sprites/pick/csl.png', engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.1, bright: 0.68, turbo: 0 }, colors: ['#f7f7f7', '#2166d8'], top: 'sprites/top/csl.png',
-        /* Trois livrées, et la première est celle qui existait déjà.
-
-        Une livrée n'est pas une couleur ici : une illustration remplace le dessin vectoriel ET la
-        couleur, donc la seule façon de changer de livrée est de changer de dessin. Les fichiers
-        se déduisent de l'identifiant — `sprites/top/csl_castrol.png` et sa vignette dans
-        `sprites/pick/` — et un identifiant vide garde les fichiers sans suffixe, pour que la
-        livrée d'origine n'ait pas à être renommée. */
-        livrees: [
-          { id: '', nom: 'Motorsport' },
-          { id: 'castrol', nom: 'Castrol' },
-          { id: 'calder', nom: 'Calder' },
-        ] },
+      { id: '962', diff: 1, name: '962', shape: 'groupC', mul: { vmax: 1.02, accel: 1, brake: 1.02, grip: 0.982, df: 1.15, slide: 0.95 },
+        colors: ['#f4f4f4', '#1b3f8f'], top: 'sprites/top/962.png',
+        livrees: [{ id: '', nom: 'Rothmans · 17' }, { id: 'shell', nom: 'Shell · Dunlop · 7' }],
+        engine: { cyl: 6, redline: 8200, idle: 1100, rough: 0.3, bright: 0.7, turbo: 0.95,
+          sample: { ramp: 'sounds/engine/flat6-930.json', bas: 'sounds/engine/flat6-930-bas.json' } } },
+      { id: 'xjr9', diff: 1, name: 'XJR-9', shape: 'groupC', mul: { vmax: 1.07, accel: 0.96, brake: 0.96, grip: 1.004, df: 1.1, slide: 0.95 },
+        colors: ['#5b2a86', '#f4f4f4'], top: 'sprites/top/xjr9.png',
+        livrees: [{ id: '', nom: 'Silk Cut · 2' }],
+        engine: { cyl: 12, redline: 7200, idle: 900, rough: 0.05, bright: 0.75, turbo: 0, sample: { ramp: 'sounds/engine/v12-countach.json' } } },
+      { id: '330p4', diff: 3, name: '330 P4', shape: 'gt40', mul: { vmax: 0.95, accel: 1.05, brake: 1.04, grip: 1.094, df: 0.6, slide: 1.05 },
+        colors: ['#d0141b', '#f4f4f4'], top: 'sprites/top/330p4.png',
+        livrees: [{ id: '', nom: 'Daytona 1967 · 23' }, { id: 'giallo', nom: 'Equipe Nationale Belge · 1967' }],
+        engine: { cyl: 12, redline: 8500, idle: 1000, rough: 0.05, bright: 0.9, turbo: 0, sample: { ramp: 'sounds/engine/v12-countach.json' } } },
+      { id: 'p68', diff: 3, name: 'Ford P68', shape: 'longTail', mul: { vmax: 1.08, accel: 0.99, brake: 0.97, grip: 1.143, df: 0.55, slide: 1.2 },
+        colors: ['#c62026', '#d9b45a'], top: 'sprites/top/p68.png',
+        livrees: [{ id: '', nom: 'Alan Mann Racing · 1968' }],
+        engine: { cyl: 8, redline: 9500, idle: 1300, rough: 0.12, bright: 0.88, turbo: 0 } },
     ],
   },
 ];
-
-// Monoplaces historiques : illustrations cartoon et réglages adaptés au jeu.
-// Les quatre sprites partagent un gabarit compact ; les pneus exposés font partie du dessin.
-CATEGORIES[0].models.push(
-  { id: 'tyrrellp34', name: 'Tyrrell P34', diff: 1, shape: 'wedge72', length: 4.2, width: 2.0,
-    mul: { vmax: 1.0, accel: 1.16, brake: 1.04, grip: 1.09, df: 1.18, slide: 0.90 },
-    colors: ['#174d9b', '#f4da38'], top: 'sprites/top/tyrrellp34.png', pick: 'sprites/pick/tyrrellp34.png',
-    livrees: [{ id: '', nom: 'Elf · Scheckter · 1976' }],
-    engine: { cyl: 8, redline: 10500, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
-  { id: 'ferrari312t', name: 'Ferrari 312T', diff: 2, shape: 'wedge72', length: 4.2, width: 2.0,
-    mul: { vmax: 1.10, accel: 1.18, brake: 1.04, grip: 1.04, df: 1.3, slide: 1.02 },
-    colors: ['#dc282d', '#f5f3e9'], top: 'sprites/top/ferrari312t.png', pick: 'sprites/pick/ferrari312t.png',
-    livrees: [{ id: '', nom: 'Lauda · 1975 · 12' }],
-    engine: { cyl: 12, redline: 12500, idle: 1700, rough: 0.06, bright: 0.98, turbo: 0 } },
-  { id: 'mclarenm23', name: 'McLaren M23', diff: 2, shape: 'wedge72', length: 4.2, width: 2.0,
-    mul: { vmax: 1.06, accel: 1.18, brake: 1.0, grip: 1.05, df: 1.35, slide: 0.98 },
-    colors: ['#e3352d', '#f5f3e9'], top: 'sprites/top/mclarenm23.png', pick: 'sprites/pick/mclarenm23.png',
-    livrees: [{ id: '', nom: 'Hunt · 1976 · 11' }],
-    engine: { cyl: 8, redline: 10800, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
-  { id: 'lotus79', name: 'Lotus 79', diff: 1, shape: 'wedge72', length: 4.2, width: 2.0,
-    mul: { vmax: 1.045, accel: 1.11, brake: 1.02, grip: 1.015, df: 2.5, slide: 0.94 },
-    colors: ['#161719', '#d4b35e'], top: 'sprites/top/lotus79.png', pick: 'sprites/pick/lotus79.png',
-    livrees: [{ id: '', nom: 'JPS · Andretti · 1978' }],
-    engine: { cyl: 8, redline: 11000, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } }
-);
 
 const LIVERIES = [
   { name: 'Rosso', body: '#e0262c', accent: '#ffffff' },
@@ -323,16 +403,15 @@ function perfOf(c) {
 
 /* Ce qu'une voiture coûte à piloter, de zéro à cinq pneus.
 
-Le rang est mesuré, pas décidé, par `node tools/difficulte.js` : le plus gros coup de lacet dont la
-voiture se remet, l'écart entre son tour idéal et son tour réel, et la dérive qu'elle atteint pour
-un coup de référence. Trois mesures qui ne disent pas la même chose — une voiture peut pardonner et
-rester fatigante, une autre être docile puis partir d'un coup — chacune ramenée à sa place dans le
-plateau, parce que ce qui intéresse le joueur est le rang relatif et non une note absolue.
+Le rang est mesuré, pas décidé, par `node tools/plateau-banc.js --sim` : la dérive que la voiture
+atteint en roulant proprement, et l'écart entre son tour idéal et ce que l'autopilote en tire. Deux
+mesures qui ne disent pas la même chose, chacune ramenée à sa place dans le plateau, parce que ce
+qui intéresse le joueur est le rang relatif et non une note absolue.
 
-Le plateau se révèle groupé du côté facile : quatre voitures à zéro pneu, deux à cinq. C'est ce que
-la mesure dit, et l'échelle n'est pas étirée pour faire joli — ce serait affirmer des écarts qui
-n'existent pas. La Corvette et la 911 sortent du lot par leur dérive, seize et vingt degrés là où le
-reste du plateau tient sous huit.
+L'échelle couvre les TROIS catégories à la fois : une F1 à trois pneus est aussi exigeante qu'une
+GT à trois, y compris dans le rail « Toutes » qui les mélange. Les F1 à effet de sol sont les plus
+dociles, collées par leur appui ; la Corvette et la 911 restent les plus exigeantes, par leur
+dérive, sept degrés au 95e centile là où les F1 à effet de sol tiennent sous quatre.
 
 Une voiture d'atelier, dont on ne sait rien, vaut deux pneus : le milieu, faute de mieux. */
 
@@ -359,13 +438,16 @@ function perfFill(v, key) {
   return Math.max(0, Math.min(1, (v - lo) / (hi - lo)));
 }
 
-// Une seule catégorie, celle du plateau dessiné d'après nature. Les trois autres — F1 classiques,
-// F1 modernes, prototypes — ont été retirées : leurs voitures n'avaient aucun dessin et n'étaient
-// plus proposées depuis longtemps. Elles sont dans l'historique si le sujet revient.
-const SIMPLE = { catId: 'gt' };
+/* Les trois catégories sont jouables. `DEFAUT_CAT` est celle d'un joueur qui n'a encore rien
+choisi, et le repli de tout identifiant inconnu — une sauvegarde d'une version future, un lien
+tapé à la main. */
+const DEFAUT_CAT = 'gt';
 
-function playableCategories() { return CATEGORIES.filter(c => c.id === SIMPLE.catId); }
-function categoryById(id) { return CATEGORIES.find(c => c.id === id) || playableCategories()[0]; }
+function playableCategories() { return CATEGORIES; }
+function categoryById(id) { return CATEGORIES.find(c => c.id === id) || CATEGORIES.find(c => c.id === DEFAUT_CAT); }
+/* La catégorie d'une voiture, ou la catégorie par défaut pour une voiture inconnue. C'est la voiture
+qui décide de la catégorie, jamais l'inverse : on court contre les voitures de sa propre catégorie. */
+function categoryOfModel(id) { const m = modelById(id); return categoryById(m ? m.catId : DEFAUT_CAT); }
 function modelsOf(catId) { return MODELS.filter(m => m.catId === catId); }
 function allModelsOf(catId) { return MODELS.filter(m => m.catId === catId); }
 function modelById(id) { return MODELS.find(m => m.id === id) || null; }
@@ -381,4 +463,4 @@ function registerModel(def) {
 }
 function unregisterModel(id) { const i = MODELS.findIndex(m => m.id === id); if (i >= 0) MODELS.splice(i, 1); }
 
-if (typeof module !== 'undefined') module.exports = { CATEGORIES, MODELS, LIVERIES, livreeDe, AI_NAMES, SIMPLE, perfOf, perfFill, PERF_RANGE, PERF_KEYS, playableCategories, categoryById, modelsOf, allModelsOf, modelById, carClassById, registerModel };
+if (typeof module !== 'undefined') module.exports = { CATEGORIES, MODELS, LIVERIES, livreeDe, AI_NAMES, DEFAUT_CAT, categoryOfModel, perfOf, perfFill, PERF_RANGE, PERF_KEYS, playableCategories, categoryById, modelsOf, allModelsOf, modelById, carClassById, registerModel };

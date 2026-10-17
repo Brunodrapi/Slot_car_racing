@@ -126,7 +126,9 @@ const DOUBLE = `
   // --- le salon ---
   // Chacun choisit une voiture différente : c'est la seule façon de voir si elles arrivent
   // distinctes de l'autre côté.
-  const CHOIX = ['m1procar', 'f40', 'corvette', 'countach', '935', '930', 'csl', '787b'];
+  // Toutes dans la même catégorie : la voiture est rangée sous `models.gt`, et une 935 ou une 787B —
+  // des prototypes depuis les catégories — y serait ignorée au profit de la première GT.
+  const CHOIX = ['m1procar', 'f40', 'corvette', 'countach', '250gto', '930', 'csl', 'typee'];
   const code = await hote.evaluate(async (m) => {
     app.save.name = 'Hôte'; app.save.models = app.save.models || {}; app.save.models.gt = m;
     await app.net.open('Hôte', true, null);

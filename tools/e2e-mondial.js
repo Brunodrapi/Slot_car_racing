@@ -65,7 +65,7 @@ const serveur = http.createServer((req, res) => {
   await page.waitForFunction(() => typeof app !== 'undefined' && app.save);
   await page.evaluate(() => {
     app.save.name = 'Testeur'; storeSave(app.save);
-    const cat = playableCategories()[0], ms = modelsOf(cat.id);
+    const cat = categoryById('gt'), ms = modelsOf(cat.id);
     app.save.bestLaps[`monza|${cat.id}|${ms[0].id}`] = 74.0;   // un temps local, pour la colonne de gauche
     app.ui.setup.trackId = 'monza';
   });
@@ -102,7 +102,7 @@ const serveur = http.createServer((req, res) => {
 
   await page.waitForTimeout(1400);
   const rempli = await page.evaluate(() => {
-    const cat = playableCategories()[0], ms = modelsOf(cat.id);
+    const cat = categoryById('gt'), ms = modelsOf(cat.id);
     const nom = (id) => ms.find(m => m.id === id).name;
     const par = {};
     for (const e of document.querySelectorAll('.rline')) {
@@ -300,7 +300,7 @@ const serveur = http.createServer((req, res) => {
       return vrai(url, opt);
     };
     const bests = {};
-    const cat = playableCategories()[0], ms = modelsOf(cat.id);
+    const cat = categoryById('gt'), ms = modelsOf(cat.id);
     for (let i = 0; i < 4; i++) bests[`monza|${cat.id}|${ms[i].id}`] = 70 + i;
     const t0 = Date.now();
     await m.rattrape(bests);

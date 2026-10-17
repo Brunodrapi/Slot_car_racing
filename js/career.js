@@ -31,7 +31,7 @@ function lapsFor(trackDef, cat) {
 const SAVE_KEY = 'slotracer.save.v2';
 
 function defaultSave() {
-  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, livrees: {}, ctrl: 'auto', ctrlSide: 'left', camRotate: false, view: 'avanceFixe', pullBack: 1, aimant: 0, ff: 0.3, laps: 5, lapsPerso: false, showLines: false, debug: false, wear: false, guideMigrated: true, flatMigrated: false, cups: {}, bestLaps: {}, bestLapsNets: {}, tracesMigrated: true, tutorialSeen: false, racesDone: 0, reglages: { actif: null, configs: [] } };
+  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, livrees: {}, ctrl: 'auto', ctrlSide: 'left', camRotate: false, view: 'avanceFixe', pullBack: 1, aimant: 0, ff: 0.3, laps: 5, lapsPerso: false, showLines: false, debug: false, wear: false, guideMigrated: true, flatMigrated: false, cups: {}, bestLaps: {}, bestLapsNets: {}, tracesMigrated: true, catsMigrated: true, cat: null, filtreCat: 'all', tutorialSeen: false, racesDone: 0, reglages: { actif: null, configs: [] } };
 }
 
 function loadSave() {
@@ -101,8 +101,55 @@ function loadSave() {
   Les sauvegardes d'avant datent d'un temps sans aimant ni anticipation réglables : leurs tours sont
   nets par construction, et on les reprend tels quels. */
   if (!brut.bestLapsNets) { save.bestLapsNets = Object.assign({}, save.bestLaps); storeSave(save); }
+    if (!brut.catsMigrated) { migreCategories(save); save.catsMigrated = true; storeSave(save); }
     return save;
   } catch (e) { return defaultSave(); }
+}
+
+/* Le plateau unique s'est séparé en trois catégories, F1, GT et Proto.
+
+Tout était rangé sous `gt` : les records `circuit|gt|voiture`, et la voiture choisie sous
+`models.gt`. Les GT y restent et n'ont rien à faire ; les F1 et les prototypes changent de
+catégorie et emportent leurs temps avec eux, sans quoi l'écran des records les aurait perdus de vue
+— ils seraient restés dans la sauvegarde, sous une clé que plus rien ne lit.
+
+Le record de catégorie `circuit|catégorie`, lui, n'est pas déplacé mais recalculé : sous `gt` il
+pouvait porter un tour de F1, que plus aucune GT ne battrait. Il devient le meilleur des tours de la
+catégorie. Un circuit qui n'a que l'ancien record à deux morceaux, sans voiture connue, le garde :
+on ne sait pas qui l'a signé, on ne l'attribue à personne et on ne l'efface pas.
+
+La voiture choisie suit sa catégorie, et devient celle du joueur : il retrouve au menu la voiture
+qu'il avait laissée, même si c'est maintenant une F1. */
+function migreCategories(save) {
+  if (typeof modelById !== 'function') return;
+  for (const reg of [save.bestLaps, save.bestLapsNets]) {
+    if (!reg) continue;
+    for (const cle of Object.keys(reg)) {
+      const p = cle.split('|');
+      if (p.length !== 3) continue;
+      const m = modelById(p[2]);
+      if (!m || m.catId === p[1]) continue;
+      const neuve = `${p[0]}|${m.catId}|${p[2]}`;
+      if (reg[neuve] == null || reg[cle] < reg[neuve]) reg[neuve] = reg[cle];
+      delete reg[cle];
+    }
+  }
+  const b = save.bestLaps || {}, parCat = {};
+  for (const cle of Object.keys(b)) {
+    const p = cle.split('|');
+    if (p.length !== 3) continue;
+    const k = `${p[0]}|${p[1]}`;
+    if (parCat[k] == null || b[cle] < parCat[k]) parCat[k] = b[cle];
+  }
+  const circuitsConnus = new Set(Object.keys(parCat).map(k => k.split('|')[0]));
+  for (const cle of Object.keys(b)) if (cle.split('|').length === 2 && circuitsConnus.has(cle.split('|')[0])) delete b[cle];
+  Object.assign(b, parCat);
+  const choisie = save.models && save.models.gt && modelById(save.models.gt);
+  if (choisie && choisie.catId !== 'gt') {
+    save.models[choisie.catId] = choisie.id;
+    delete save.models.gt;
+    save.cat = choisie.catId;
+  }
 }
 
 function storeSave(save) {

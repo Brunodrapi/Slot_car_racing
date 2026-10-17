@@ -45,11 +45,10 @@ Le cadran ne peut jamais recouvrir le curseur de trajectoire : le pouce gauche g
 pouce droit emmène le cadran où il veut. Sur téléphone la minicarte passe en haut à droite, le bas de
 l'écran appartenant au pouce.
 
-> **Version allégée.** Le jeu se limite pour l'instant à la **course rapide** et au
-> **contre-la-montre**, avec **un seul plateau** de neuf voitures, toutes dessinées d'après nature.
-> Les trois autres catégories — F1 classiques, F1 modernes, prototypes — ont été retirées : leurs
-> voitures n'avaient aucun dessin et n'étaient plus proposées depuis longtemps. Elles sont dans
-> l'historique si le sujet revient. La carrière, elle, reste dans le code sans être proposée.
+> **Version allégée.** Le jeu se limite pour l'instant à la **course rapide**, au
+> **contre-la-montre** et au multijoueur, avec **vingt-cinq voitures en trois catégories** — F1, GT
+> et prototypes (voir [Trois catégories](#trois-catégories)). La carrière reste dans le code sans être
+> proposée.
 
 Quatre vues dans les réglages, deux cadrages × deux orientations :
 
@@ -1558,7 +1557,8 @@ réglages.
 
 ## Choisir sa voiture
 
-Le menu de sélection montre une **illustration en trois quarts** ; les neuf voitures en ont une.
+Le menu de sélection montre une **illustration en trois quarts** ; treize des vingt-cinq voitures en
+ont une, les douze ajoutées avec les catégories montrent encore leur vue de dessus.
 La vue de dessus dit comment la voiture se pose sur la piste, ce qui est le sujet une fois en
 course, mais on ne choisit pas une voiture par son toit : de face, on reconnaît la calandre,
 l'aileron, la posture.
@@ -2254,7 +2254,186 @@ mesure annonçait un mouvement parfaitement lisse. L'essai vérifie donc que la 
 avant de conclure quoi que ce soit — et il fait rouler tout le monde pendant la mesure, pour libérer
 la piste.
 
+## Trois catégories
+
+Vingt-cinq voitures en trois catégories, chacune avec son propre plateau :
+
+| F1 | GT | Proto |
+| --- | --- | --- |
+| Tyrrell P34, Ferrari 312T, McLaren M23, Lotus 79, **Lotus 72**, **Brabham BT46B**, **Williams FW07**, **Ligier JS11**, **Renault RS10** | M1 Procar, 3.0 CSL, 911 Turbo, F40, Countach, Corvette, **250 GTO**, **Type E**, **240Z** | GT40 Mk II, 935, 787B, **Porsche 962** (Rothmans, Shell), **XJR-9** (Silk Cut), **330 P4** (rouge, jaune), **Ford P68** |
+
+En gras, les douze voitures ajoutées avec les catégories.
+
+### Ce que la catégorie décide
+
+**Contre qui l'on court.** En course rapide, l'IA roule dans la catégorie de la voiture choisie :
+une F1 part avec des F1, une GT avec des GT. C'est la **voiture** qui porte la catégorie, pas
+l'écran : `Race` la déduit du modèle et non du `classId` qu'on lui passe, si bien qu'aucun écran
+qui garderait une catégorie périmée ne peut envoyer une F1 contre un plateau de GT.
+
+**Ce que montre le menu.** Un filtre au-dessus du rail des voitures — Toutes, F1, GT, Proto. Il
+ne fait que restreindre le rail ; la catégorie, elle, suit la voiture choisie. Filtrer sur une
+catégorie qui ne contient pas la voiture du moment y reprend la dernière voiture choisie dans
+celle-ci, sans quoi la marque de sélection serait hors du rail et l'écran annoncerait au départ une
+voiture qu'on ne voit nulle part. Sous « Toutes », chaque carte porte une étiquette de couleur :
+c'est elle qui dit contre qui on va courir.
+
+Un détail qui n'en était pas un : « déjà choisie », c'est la voiture **affichée** comme choisie.
+Le second appui sur une carte fait tourner sa livrée ; avec le rail de toutes les catégories, une
+F1 retenue la dernière fois qu'on courait en F1 n'est pas la voiture choisie quand on court en GT,
+et un appui doit la choisir, pas repeindre une voiture qu'on n'a pas.
+
+**En ligne, l'hôte peut réserver la table.** Une ligne « Catégorie » dans le salon, que seul l'hôte
+change. Sur « Toutes », chacun prend la voiture qu'il veut. Sur une catégorie, chaque écran ne
+montre plus que ses voitures ; celui dont la voiture en sort la voit changer d'elle-même pour la
+dernière choisie dans la catégorie imposée, et repasse « pas prêt » — pour voir ce qu'on a changé
+sous lui avant le départ plutôt que de le découvrir sur la grille. `canStart()` ferme l'instant où
+une présence porte encore l'ancienne voiture.
+
+L'IA d'une table en ligne roule dans la catégorie imposée, ou dans celle de l'hôte quand la table
+est ouverte à toutes. Et elle est maintenant **la même sur tous les écrans** : chacun la tire avec
+la graine du coup d'envoi, que tous reçoivent de l'hôte. Avant, chaque écran tirait ses modèles et
+ses noms au hasard — invisible tant que tout le monde courait dans le même plateau et qu'un modèle
+en valait un autre à l'œil, flagrant dès qu'une table ouverte mêle F1 et GT.
+
+### Deux équilibres, qui ne sont pas le même
+
+**Dans une catégorie, les voitures se valent au tour et diffèrent par le caractère.** C'est la règle
+de la section suivante, qui n'a pas changé. **Entre catégories, l'écart est voulu** : une F1 ou un
+prototype va plus vite qu'une GT, et c'est ce qu'on attend d'eux.
+
+Les deux se règlent séparément. La `base` de chaque catégorie, dans `js/cars.js`, porte le rang ;
+les `mul` de chaque voiture ne portent que son caractère, autour de 1. La largeur de route et le
+cadrage sont les mêmes pour les trois : la largeur de route décide où passent les trois
+trajectoires, et les panneaux de freinage, les lignes reprises à la main et les bancs des circuits
+sont calés dessus — une catégorie qui la changerait roulerait sur un autre circuit que celui qu'on a
+dessiné.
+
+**Le rang.** Mesuré à l'autopilote sur sept circuits, temps moyen rapporté aux GT :
+
+| | Monza | Spa | Suzuka | Zandvoort | Interlagos | Silverstone | Le Mans | moyenne |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| F1 | −7,9 % | −9,3 % | −8,9 % | −8,4 % | −9,1 % | −8,4 % | −7,9 % | **−8,6 %** |
+| Proto | −5,9 % | −6,6 % | −6,1 % | −5,7 % | −6,6 % | −5,7 % | −5,8 % | **−6,1 %** |
+
+Les F1 gagnent au freinage et en virage, les prototypes en ligne droite : l'écart entre les deux se
+resserre sur les circuits rapides — Monza, Le Mans — et s'ouvre sur les sinueux.
+
+**L'équilibre interne.** Écart de chaque voiture à la moyenne de sa catégorie, sur les mêmes sept
+circuits : toutes tiennent dans **1,1 %** en F1, **1,0 %** en GT et **0,2 %** en Proto. C'est en moyenne ;
+circuit par circuit, chacune a ses terrains, et c'est ce qui fait un choix plutôt qu'un classement —
+la Ferrari 312T gagne un point à Monza et en perd trois à Interlagos, la Brabham et la Tyrrell se
+plaisent dans le sinueux de Zandvoort et d'Interlagos, et la 250 GTO comme la Type E, malgré leur
+pointe, y sont plus à l'aise qu'à Monza : ce qu'elles n'ont pas en appui, elles l'ont en adhérence.
+
+| F1 | pointe | 0-100 | 100-0 | g à 180 | caractère |
+| --- | --- | --- | --- | --- | --- |
+| Tyrrell P34 | 254 km/h | 3,14 s | 18,0 m | 2,35 | six roues : freinage et adhérence mécanique, peu de pointe |
+| Ferrari 312T | 278 | 2,95 | 19,2 | 2,43 | le flat-12 : la pointe et les reprises, un arrière à doser |
+| McLaren M23 | 269 | 3,04 | 19,2 | 2,49 | le compromis |
+| Lotus 79 | 266 | 3,23 | 19,2 | 2,90 | l'effet de sol : l'appui prend l'avantage avec la vitesse |
+| Lotus 72 | 260 | 2,91 | 18,7 | 2,24 | légère et vive, peu d'appui |
+| Brabham BT46B | 257 | 3,24 | 19,2 | 2,29 | le ventilateur : de l'adhérence dès l'arrêt, lourde |
+| Williams FW07 | 266 | 3,07 | 18,8 | 2,81 | effet de sol et motricité |
+| Ligier JS11 | 264 | 3,17 | 17,9 | 2,71 | effet de sol, le meilleur freinage |
+| Renault RS10 | 288 | 3,35 | 19,6 | 2,61 | le turbo : la plus rapide en ligne droite, paresseuse en sortie |
+
+| GT | pointe | 0-100 | 100-0 | g à 180 | caractère |
+| --- | --- | --- | --- | --- | --- |
+| M1 Procar | 247 km/h | 3,38 s | 20,3 m | 1,73 | équilibrée et saine |
+| F40 | 265 | 3,18 | 20,9 | 1,87 | turbo et appui |
+| Countach | 260 | 3,25 | 21,9 | 1,72 | le V12 : pointe et reprises, freine long |
+| 911 Turbo | 249 | 3,29 | 20,9 | 1,78 | l'arrière qui pousse |
+| Corvette | 262 | 3,37 | 21,9 | 1,76 | le couple, et la glisse |
+| 3.0 CSL | 239 | 3,52 | 20,3 | 1,86 | la voiture de virages |
+| 250 GTO | 260 | 3,68 | 21,9 | 1,59 | pointe et douceur, presque pas d'appui |
+| Type E | 265 | 3,75 | 22,3 | 1,60 | le capot le plus long : de la pointe, peu de frein |
+| 240Z | 234 | 3,53 | 19,9 | 1,69 | légère, freine fort, peu de pointe |
+
+| Proto | pointe | 0-100 | 100-0 | g à 180 | caractère |
+| --- | --- | --- | --- | --- | --- |
+| GT40 Mk II | 296 km/h | 3,08 s | 20,6 m | 2,12 | le gros V8 : reprises, peu d'appui |
+| 935 | 299 | 3,29 | 21,0 | 2,29 | la silhouette du Groupe 5, la queue dehors |
+| 787B | 282 | 3,18 | 19,1 | 2,40 | appui et freinage |
+| Porsche 962 | 290 | 3,30 | 19,6 | 2,36 | la référence du Groupe C, stable |
+| XJR-9 | 304 | 3,43 | 20,8 | 2,34 | la pointe des Hunaudières, lourde |
+| 330 P4 | 270 | 3,15 | 19,3 | 2,04 | légère et vive, peu d'appui |
+| Ford P68 | 307 | 3,32 | 20,6 | 2,06 | la plus profilée : la pointe, et un arrière nerveux |
+
+**Comment c'est réglé.** Chaque voiture reçoit d'abord son caractère — pointe, accélération,
+freinage, appui, glisse — choisi à la main. Le rythme se règle ensuite sur **une seule** valeur,
+l'adhérence mécanique, en boucle contre l'autopilote : c'est le levier qui agit partout, et le seul
+qui ne fausse pas le caractère. Deux constats de mesure ont décidé de ce choix. Ajouter de
+l'accélération **ralentit** les voitures qui glissent — +4 % de puissance coûte 2,8 % au tour à la
+911 Turbo, la motricité sature —, donc on ne paie pas un déficit de rythme en puissance. Et
+l'adhérence vaut deux fois plus pour une voiture qui glisse que pour une voiture saine (−3 % au tour
+pour +4 % contre −1,3 %) : elle compense aussi ce qu'elle perd en travers.
+
+`node tools/plateau-banc.js` mesure tout cela. Sans option il résout le tour idéal sur les treize
+circuits, en quelques secondes ; avec `--sim` il fait rouler l'autopilote, une minute pour le
+plateau entier sur quatre cœurs. `--patch='{"962":{"grip":1.01}}'` essaie un réglage sans toucher à
+`js/cars.js`, `--patch='{"@proto":{"vmax":80}}'` une base de catégorie. Il garde le meilleur tour
+**brut** : à Monaco l'autopilote pose une roue dehors à chaque tour avec toutes les voitures, le
+meilleur tour propre y vaut « aucun », et `tools/models.js` comptait alors 999 secondes qu'il
+moyennait avec les autres circuits — 275 s de tour moyen, et un classement qui ne disait plus rien.
+Les mesures de cette version sont dans [`docs/categories/`](docs/categories/).
+
+Les pneus de difficulté se lisent maintenant sur **une seule échelle pour les trois catégories**,
+pour qu'une F1 à trois pneus soit aussi exigeante qu'une GT à trois, y compris dans le rail
+« Toutes ». Ils sortent du même banc : `--sim` mesure aussi la **dérive** que chaque voiture atteint
+en roulant proprement (95ᵉ centile) et le **prix du caractère** (tour de l'autopilote rapporté au
+tour idéal), les range sur le plateau entier et en tire de zéro à cinq pneus. Les F1 à effet de sol
+sont les plus dociles, collées par leur appui ; la 911 Turbo et la Corvette restent les plus
+exigeantes, à sept degrés de dérive là où les F1 à effet de sol tiennent sous quatre.
+
+`tools/difficulte.js`, qui faisait ce travail, ne le fait plus — et ce n'est pas ce changement qui
+l'a cassé : sur la version d'avant les catégories, son coup de lacet n'est déjà encaissé par presque
+aucune voiture (0,00 rad/s) et sa dérive sature à 34° pour la moitié du plateau. Ses pneus ne
+correspondaient d'ailleurs plus à ceux de `js/cars.js`. Il est laissé tel quel.
+
+### Les dessins des nouvelles voitures
+
+Les autres voitures sont des illustrations peintes, générées hors du dépôt. Les douze nouvelles ont
+une vue de dessus dessinée en SVG par `node tools/dessins-voitures.js` — même gabarit (nez à droite,
+420 px, fond transparent), contour sombre, volumes en dégradé et livrée d'époque — avec leurs
+sources dans `art-src/voitures/`. Elles n'ont **pas encore d'illustration en trois quarts** pour le
+menu : la carte peint alors la vue de dessus, comme le prévoit déjà `carIcon`. Une illustration
+peinte pourra remplacer l'une ou l'autre sans rien changer d'autre : `tools/pack-f1.js` découpe une
+planche « dessus + trois quarts » et écrit les deux fichiers, il reste à ajouter `pick:` au modèle.
+
+La Datsun est la **240Z** : il n'a jamais existé de « 250Z », et la 240Z est celle qui a couru, en
+particulier sous les couleurs de BRE.
+
+### Ce qui suit les voitures dans la sauvegarde
+
+Tout était rangé sous `gt`. Les F1 et les prototypes changent de catégorie et emportent leurs
+records — `circuit|gt|tyrrellp34` devient `circuit|f1|tyrrellp34` —, et la voiture choisie suit la
+sienne : le joueur retrouve au menu celle qu'il avait laissée, même si c'est maintenant une F1. Le
+record de catégorie à deux morceaux est recalculé, puisque sous `gt` il pouvait porter un tour de
+F1 qu'aucune GT ne battrait plus. Un circuit qui n'a qu'un ancien record sans voiture connue le
+garde : on ne sait pas qui l'a signé. Une fois, au premier chargement, comme les autres reprises —
+`tools/e2e-categories.js` vérifie qu'elle ne se rejoue pas.
+
+**Les temps déjà posés l'ont été avec les anciens réglages.** Ils restent, rien n'est effacé ; mais
+une F1 ou un prototype va maintenant plus vite qu'avant, et un ancien record de GT peut être plus
+facile ou plus dur à battre qu'il ne l'était. Remettre les temps à zéro est un choix qui reste à
+faire, comme il l'a été quand les circuits ont changé de forme.
+
+**Le serveur des records** connaît les vingt-cinq voitures (`supabase/functions/record/index.ts`) —
+les quatre F1 de la version précédente n'y étaient pas, et leurs tours étaient refusés comme
+« inconnus ». La fonction est à redéployer (`tools/deploie.sh`) pour que cela prenne effet. Le
+tour le plus rapide du plateau, une Lotus 72 au tour idéal de Red Bull Ring, fait 68 s : le
+plancher de trente secondes n'est pas en cause.
+
+`node tools/e2e-categories.js` vérifie le tout de bout en bout : le filtre et ses vingt-cinq cartes,
+la grille de l'IA, la reprise d'une ancienne sauvegarde, et une table en ligne que l'hôte réserve aux
+prototypes — la voiture de l'invité qui change, le départ qui attend, et la même grille, IA comprise,
+sur les deux écrans.
+
 ## L'équilibre entre les voitures
+
+*Cette section date du plateau unique ; l'équilibre par catégorie est décrit dans
+[Trois catégories](#trois-catégories), et `tools/plateau-banc.js` y remplace `tools/models.js`.*
 
 Une différence de caractère est un choix offert au joueur ; cinq secondes au tour n'en est pas un,
 c'est un piège. `node tools/models.js [catégorie]` met chaque voiture seule en piste sur cinq
@@ -3125,7 +3304,8 @@ NODE_PATH=$(npm root -g) node tools/e2e-editor.js <dossier>                     
 NODE_PATH=$(npm root -g) node tools/e2e-lignes.js [dossier]                       # éditeur de lignes : ce qu'on voit est ce qui se joue
 NODE_PATH=$(npm root -g) node tools/e2e-panneaux.js                              # les panneaux repris a la main, de l'editeur jusqu'en course
 tools/deploie.sh [record]                                                        # met la fonction serveur en ligne (jeton dans l'environnement)
-node tools/difficulte.js [catégorie]                                             # ce qu'une voiture coûte à piloter, en pneus
+node tools/plateau-banc.js [--sim]                                               # l'équilibre du plateau, et ce que chaque voiture coûte à piloter, en pneus
+node tools/difficulte.js [catégorie]                                             # l'ancien banc des pneus, hors d'usage (voir « Trois catégories »)
 NODE_PATH=$(npm root -g) node tools/e2e-workshop.js <dossier>                      # import de sprites → course
 node tools/step.js <circuit> <catégorie> [marge] [-v]                             # suivi de ligne d'une voiture seule
 node tools/sweep.js '[{},{"yawK":4}]'                                             # balayage des réglages physiques
@@ -3135,7 +3315,7 @@ node tools/curseur.js [circuit|all]                                             
 node tools/line.js [circuit|all] [catégorie] [-v]                                # ce que vaut une trajectoire
 node tools/corner.js [circuit|all] [catégorie] [marge] [-v]                      # vitesse réelle contre vitesse théorique, virage par virage
 node tools/diff.js [circuit|all] [catégorie] [-sans-elastique] [-table=…]         # ce que valent vraiment les trois difficultés
-node tools/models.js [catégorie] [marge]                                          # chaque voiture : tour idéal, tour réel, prix du pilotage
+node tools/models.js [catégorie] [marge]                                          # l'ancien banc, faussé par Monaco (999 s) : préférer plateau-banc.js
 NODE_PATH=$(npm root -g) node tools/e2e-moteur.js                                 # le moteur dans le jeu : prises, rupteur, mélangeur, saturation
 NODE_PATH=$(npm root -g) node tools/e2e-splash.js [dossier]                       # l'écran-titre, sur téléphone et sur bureau
 NODE_PATH=$(npm root -g) node tools/e2e-menu.js [dossier]                         # le menu-affiche : bandeaux, dépliage, destinations
@@ -3162,6 +3342,8 @@ NODE_PATH=$(npm root -g) node tools/e2e-son-relance.js                          
 node tools/sortie.js                                                              # vibreur, tour annule, penalite : les trois etages de la regle
 node tools/coupe.js [--fenetre=400]                                               # ce qu'une coupe peut rapporter, au plus
 NODE_PATH=$(npm root -g) node tools/e2e-livree.js [dossier]                       # plusieurs livrees par voiture : le clic, la memoire, le fichier charge
+NODE_PATH=$(npm root -g) node tools/e2e-categories.js [dossier]                  # les trois catégories : filtre, grille de l'IA, reprise de sauvegarde, table réservée
+NODE_PATH=$(npm root -g) node tools/dessins-voitures.js [id…] [--planche=x.png]     # les vues de dessus SVG des douze voitures ajoutées avec les catégories
 python3 tools/calibre.py <fichier.png...> [--largeur=420]                         # une illustration deja detouree, ramenee a la taille affichee
 python3 tools/prises.py <fichier.wav...> [--bits=16] [--essai]                    # les prises de moteur, du flottant 32 bits a l'entier 16
 python3 tools/tracer.py <carte.svg> [--points=600] [--decimales=3] [--depart=auto]  # un chemin SVG vers la liste de points d'un circuit

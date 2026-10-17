@@ -93,8 +93,15 @@ const STATE_NAME = ['countdown', 'racing', 'finishing', 'finished'];
 class Race {
   constructor(opts) {
     this.opts = opts;
-    this.cat = categoryById(opts.classId);
-    this.cls = modelById(opts.modelId) || modelsOf(this.cat.id)[0];   // player's model
+    /* La catégorie est celle de la VOITURE du joueur, pas celle qu'on a passée.
+
+    C'est elle qui décide contre qui l'on court : une F1 part avec des F1, une GT avec des GT. La
+    déduire de la voiture plutôt que de `classId` empêche qu'un écran qui garde une catégorie
+    périmée — le filtre du menu, une table en ligne ouverte à toutes — envoie une F1 se battre
+    contre un plateau de GT. `classId` ne sert plus que de repli, quand aucune voiture n'est nommée. */
+    const choisie = modelById(opts.modelId);
+    this.cat = choisie ? categoryById(choisie.catId) : categoryById(opts.classId);
+    this.cls = choisie || modelsOf(this.cat.id)[0];   // player's model
     this.track = new Track(opts.trackDef, this.cat.roadScale || 1);
     this.mode = opts.mode || 'race';           // race | timetrial
     this.laps = opts.laps || this.track.laps;
