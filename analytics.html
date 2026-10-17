@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="same-origin">
+  <title>Statistiques · Eyes On Line</title>
+  <link rel="icon" href="art/icone-32.png?v=0.33.0">
+  <link rel="stylesheet" href="css/analytics.css?v=0.33.0">
+</head>
+<body>
+  <header><a class="brand" href="index.html">EYES ON LINE <span> / ANALYTICS</span></a>
+    <div class="account"><span id="account"></span><button id="logout" hidden>Déconnexion</button><a href="index.html">Retour au jeu ↗</a></div>
+  </header>
+  <main>
+    <div class="intro"><div><p class="eyebrow">LE JEU EN CHIFFRES</p><h1>Fréquentation & pilotage</h1>
+      <p class="muted">Qui vient rouler, avec quoi, et sur quels circuits.</p></div><span class="badge">Accès propriétaire</span></div>
+    <section id="gate" class="panel gate"><h2>Statistiques privées</h2><p>Connecte ton compte Google autorisé pour consulter les statistiques du jeu.</p>
+      <button id="login" class="primary">Se connecter avec Google</button><p id="gate-message" class="muted" role="status"></p></section>
+    <div id="dashboard" hidden>
+      <form id="filters" class="filters panel">
+        <label>Période<select id="period"><option value="7">7 derniers jours</option><option value="30" selected>30 derniers jours</option><option value="90">90 derniers jours</option><option value="custom">Personnalisée</option></select></label>
+        <label>Du<input id="from" type="date" required></label><label>Au<input id="to" type="date" required></label>
+        <label>Circuit<select id="track"><option value="">Tous les circuits</option></select></label>
+        <label>Voiture<select id="car"><option value="">Toutes les voitures</option></select></label>
+        <button type="submit" id="refresh" class="primary">Actualiser</button><button id="csv" type="button" disabled>Exporter CSV</button>
+      </form>
+      <div class="status-row"><p id="status" role="status" aria-live="polite"></p><label><input type="checkbox" id="auto"> Actualiser chaque minute</label></div>
+      <p id="error" class="error" role="alert" hidden></p>
+      <p id="empty" class="panel empty" hidden>Aucune activité mesurée sur cette période. Les statistiques se rempliront à partir des prochaines parties.</p>
+      <div id="kpis" class="kpis"></div>
+      <div class="grid">
+        <section class="panel wide"><div class="section-head"><div><h2>Au fil des jours</h2><p class="muted">Visiteurs, tours et départs · jours UTC</p></div><span id="audience" class="muted"></span></div><div id="daily-chart" class="chart" role="img" aria-label="Évolution quotidienne"></div></section>
+        <section class="panel"><h2>Circuits les plus joués</h2><p class="muted">Classés par départs, puis par tours</p><div id="tracks-table"></div></section>
+        <section class="panel"><h2>Voitures les plus jouées</h2><p class="muted">Classées par départs, puis par tours</p><div id="cars-table"></div></section>
+        <section class="panel"><h2>Supports</h2><div id="devices-chart" class="small-chart" role="img" aria-label="Répartition des départs par support"></div><div id="devices-list"></div></section>
+        <section class="panel"><h2>Commandes</h2><div id="controls-chart" class="small-chart" role="img" aria-label="Répartition des départs par commande"></div><div id="controls-list"></div></section>
+        <section class="panel"><h2>Modes de jeu</h2><div id="modes-chart" class="small-chart" role="img" aria-label="Répartition des départs par mode"></div><div id="modes-list"></div></section>
+        <section class="panel"><h2>Catégories</h2><div id="categories-chart" class="small-chart" role="img" aria-label="Répartition des départs par catégorie"></div><div id="categories-list"></div></section>
+        <section class="panel wide"><h2>Quand joue-t-on ?</h2><p class="muted">Nombre de départs par jour de semaine et heure · UTC</p><div id="hours-chart" class="chart heatmap" role="img" aria-label="Départs par jour et heure"></div></section>
+        <section class="panel"><h2>Livrées</h2><div id="liveries-table"></div></section>
+        <section class="panel"><h2>Versions du jeu</h2><div id="versions-list"></div><h2 class="spaced">Qualité des tours</h2><p id="lap-quality"></p><p class="muted">Un tour propre est terminé sans sortie de piste. Les tours dont l’état est inconnu, notamment sur un invité multijoueur, sont exclus de ce taux.</p></section>
+        <section class="panel wide"><h2>Activité récente</h2><p class="muted">Les 30 derniers départs, tours et fins de session de la période.</p><div id="recent-table"></div></section>
+      </div>
+      <footer><p id="coverage"></p><p>Un visiteur unique correspond à un navigateur identifié aléatoirement : plusieurs appareils ou un stockage effacé peuvent compter plusieurs fois. Une visite expire après 30 minutes d’inactivité. Les filtres voiture/circuit limitent aussi l’audience aux joueurs de cette sélection.</p>
+        <p>Seul le pilote humain de chaque écran est compté. Le temps de jeu exclut les menus, pauses et chargements. Les sessions non clôturées restent distinctes des abandons explicites. Mesures indicatives ; les bloqueurs ou le mode hors connexion peuvent réduire les chiffres.</p>
+        <p>Graphiques : <a href="https://github.com/apache/echarts">Apache ECharts 6.0.0</a> · <a href="vendor/echarts/LICENSE">Apache 2.0</a>. <a href="docs/analytics/README.md">Installation et définitions</a>.</p></footer>
+    </div>
+  </main>
+  <script src="js/version.js?v=0.33.0"></script><script src="js/util.js?v=0.33.0"></script>
+  <script src="js/traces.js?v=0.33.0"></script><script src="js/tracks.js?v=0.33.0"></script><script src="js/cars.js?v=0.33.0"></script>
+  <script src="js/mondial.js?v=0.33.0"></script><script src="vendor/echarts/echarts.min.js?v=0.33.0"></script>
+  <script src="js/analytics-dashboard.js?v=0.33.0"></script>
+</body>
+</html>

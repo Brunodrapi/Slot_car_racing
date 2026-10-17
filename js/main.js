@@ -64,6 +64,7 @@ class App {
     window.addEventListener('resize', () => { this.renderer.resize(); if (this.race) this.renderer._makeMinimap(); });
     // le tableau mondial : il se débrouille seul, et son absence n'empêche rien
     this.mondial = new Mondial();
+    this.analytics = new GameAnalytics();
     /* Au retour d'une connexion Google, on déclare son pseudo tout de suite.
 
     Le serveur prend le nom dans la base et jamais dans la requête ; sans cette ligne, le premier
@@ -322,6 +323,7 @@ class App {
 
   // ---------- flow ----------
   toMenu() {
+    this.analytics.finish('abandoned');
     this.resetInput();
     if (this.net) this.net.leave();
     this.state = 'menu';
@@ -415,6 +417,11 @@ class App {
     this.raceOpts = opts;
     this.raceCtx = ctx;
     this.race = new Race(opts);
+    const livreeCount = modelById(opts.modelId)?.livrees?.length || 1;
+    this.analytics.begin(this.race, { track: opts.trackDef.id, car: opts.modelId,
+      category: opts.classId, livery: ((Math.round(opts.playerLivree) || 0) % livreeCount + livreeCount) % livreeCount,
+      mode: opts.reglage ? 'tuning' : ctx?.online ? 'multiplayer' : opts.mode === 'timetrial' ? 'timetrial' : 'race',
+      control: this.desktop ? this.save.desktopControl : 'touch' });
     // Le démarreur, s'il y en a un pour cette voiture : le moteur s'allume quand la course s'ouvre,
     // avant le décompte. Une seule fois par course.
     /* La barrière repart à zéro à CHAQUE course, et pas quand le décompte s'arrête.
@@ -444,6 +451,7 @@ class App {
 
   /** Leaves the race but keeps the table open, so the same people can line up again. */
   toLobby() {
+    this.analytics.finish('abandoned');
     this.resetInput();
     if (this.net) this.net.backToLobby();
     this.race = null;
@@ -512,6 +520,8 @@ class App {
   }
 
   _onRaceFinished() {
+    this.analytics.finish(this.race?.mode === 'timetrial' ? 'session_end'
+      : this.race?.player.finished ? 'completed' : 'abandoned');
     const race = this.race, ctx = this.raceCtx || {};
     this.state = 'results';
     this.audio.idle();
@@ -588,7 +598,8 @@ class App {
   // ---------- loop ----------
   _frame(now) {
     requestAnimationFrame((t) => this._frame(t));
-    const dt = Math.min(0.1, (now - this.last) / 1000);
+    const elapsed = (now - this.last) / 1000;
+    const dt = Math.min(0.1, elapsed);
     this.last = now;
     if (this.desktop) {
       if (!document.hidden && this.gamepadFocused) this.controls.poll(this.state === 'race', undefined, !this.ui.root.classList.contains('hidden'), now);
@@ -663,6 +674,7 @@ class App {
         if (quiet > 2) this.ui.flash = { text: this.ui.t('netLost'), until: performance.now() + 600, color: '#ffb4a2' };
       }
       this._handleEvents(race);
+      this.analytics.observe(race, elapsed, !document.hidden, this.desktop ? this.save.desktopControl : 'touch');
       this.renderer.updateCamera(race, dt);
       this.renderer.addEffects(race, dt);
       if (this.renderer.shake > 0) this.renderer.shake = Math.max(0, this.renderer.shake - dt * 2);

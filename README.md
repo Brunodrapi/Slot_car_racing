@@ -62,6 +62,13 @@ première fois sur un bouton pour la faire reconnaître.
 
 Captures et vérifications : [variante PC](docs/variante-pc/README.md).
 
+### Statistiques du jeu
+
+La page privée [`analytics.html`](analytics.html) présente les visiteurs uniques estimés, visites,
+tours, départs, temps de jeu et classements par voiture, livrée et circuit, avec filtres et export
+CSV. Graphiques libres Apache ECharts, données dans Supabase. La migration doit être activée avant
+que les mesures commencent : [installation et aperçus](docs/analytics/README.md).
+
 > **Version allégée.** Le jeu se limite pour l'instant à la **course rapide**, au
 > **contre-la-montre** et au multijoueur, avec **vingt-cinq voitures en trois catégories** — F1, GT
 > et prototypes (voir [Trois catégories](#trois-catégories)). La carrière reste dans le code sans être
