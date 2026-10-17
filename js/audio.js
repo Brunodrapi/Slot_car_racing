@@ -212,7 +212,7 @@ class GameAudio {
     const cls = car.cls || {};
     const v = Math.max(0, fin(car.v, 0));
     const vmax = cls.vmax || 80;
-    const thr = !!car.throttle;
+    const thr = throttleAmount(car.throttle);
     const spin = racing && (car.state === 'ok' || car.runoffAsphalt) && !car.inPit
       ? clamp(fin(car.patineFx, 0), 0, 1) : 0;
 
@@ -231,7 +231,7 @@ class GameAudio {
       patine, donc le moteur idle et monte seul si le pilote maintient. Le modèle s'en charge, il
       n'y a aucun cas particulier à écrire — l'ancien moteur, lui, devait fabriquer ce coup de gaz
       à la main. */
-      this.vehicule.update(t * 1000, dt, racing ? v : 0, thr ? 1 : 0, spin);
+      this.vehicule.update(t * 1000, dt, racing ? v : 0, thr, spin);
       this.sampler.applique(this.vehicule.engine);
       this.rpm = this.vehicule.engine.rpm;
       this.gear = this.vehicule.drivetrain.gear;

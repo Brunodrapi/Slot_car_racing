@@ -9,6 +9,12 @@ const NIVEAUX = ['easy', 'medium', 'hard', 'extreme', 'cauchemar'];
 
 const I18N = {
   fr: {
+    pcControls: 'Accélérateur PC', controlKeyboard: 'Clavier / clic', controlWheel: 'Molette', controlGamepad: 'Manette Xbox · RT',
+    controlKeyboardHint: 'Maintiens une touche ou le clic pour accélérer, relâche pour freiner. Flèches : trajectoire. Échap : pause.',
+    controlWheelHint: 'Molette vers le haut : plus de gaz ; vers le bas : moins. Espace : gaz à zéro et freinage. Flèches : trajectoire.',
+    controlGamepadHint: 'Gâchette RT : doser les gaz, relâcher pour freiner. Stick gauche ou croix : trajectoire. Menu : pause.',
+    padReady: 'Manette connectée', padRelease: 'Relâche RT pour activer', padDisconnected: 'Connecte la manette et appuie sur un bouton', padUnsupported: 'Manette indisponible dans ce navigateur',
+    gas: 'Gaz', pcIntro: 'Choisis ta voiture, lis le virage et dose ton accélération.', wheelGo: 'Molette ↑ / ↓ : doser les gaz', padGo: 'Gâchette RT : doser les gaz', lineHintPC: 'Flèches : trajectoire', lineHintPad: 'Stick / croix : trajectoire',
     title: 'EYES ON LINE', subtitle: 'Un bouton, trois trajectoires. De vrais circuits.',
     career: 'Carrière', quickRace: 'Course rapide', timeTrial: 'Contre-la-montre', settings: 'Réglages', back: 'Retour',
     editor: 'Éditeur de circuits', workshop: 'Atelier voitures',
@@ -75,6 +81,12 @@ const I18N = {
     custom: 'perso',
   },
   en: {
+    pcControls: 'PC throttle', controlKeyboard: 'Keyboard / click', controlWheel: 'Mouse wheel', controlGamepad: 'Xbox controller · RT',
+    controlKeyboardHint: 'Hold a key or the mouse button to accelerate; release to brake. Arrows: racing line. Esc: pause.',
+    controlWheelHint: 'Wheel up: more throttle; down: less. Space: zero throttle and brake. Arrows: racing line.',
+    controlGamepadHint: 'RT trigger: analog throttle; release to brake. Left stick or D-pad: racing line. Menu: pause.',
+    padReady: 'Controller connected', padRelease: 'Release RT to enable', padDisconnected: 'Connect a controller and press a button', padUnsupported: 'Controller unavailable in this browser',
+    gas: 'Throttle', pcIntro: 'Choose your car, read the corner and balance the throttle.', wheelGo: 'Wheel ↑ / ↓: adjust throttle', padGo: 'RT trigger: adjust throttle', lineHintPC: 'Arrows: racing line', lineHintPad: 'Stick / D-pad: racing line',
     title: 'EYES ON LINE', subtitle: 'One button, three lines. Real circuits.',
     career: 'Career', quickRace: 'Quick race', timeTrial: 'Time trial', settings: 'Settings', back: 'Back',
     editor: 'Track editor', workshop: 'Car workshop',
@@ -276,6 +288,7 @@ class UI {
     }
     this.root.classList.remove('hidden');
     this.paintIcons();
+    this.updateControllerStatus();
   }
 
   _centrerRail(rail) {
@@ -454,6 +467,13 @@ class UI {
   lettering's own brightness. */
   splash() {
     const t = (k, ...a) => this.t(k, ...a);
+    if (this.app.desktop) {
+      this.show(`<div class="desktop-art"><img src="art/title.webp" alt=""></div>
+        <div class="desktop-actions"><h1>${t('title')}</h1><p class="muted">${t('pcIntro')}</p>
+        <button class="big primary" data-action="enterGame">${t('pressStart')}</button>
+        <div class="version">v${APP_VERSION} · ${APP_DATE}</div></div>`, 'desktop-home scroll');
+      return;
+    }
     this.show(`
       <div class="stage">
         <img class="poster" src="art/title.webp" alt="${escapeHtml(t('title'))}">
@@ -516,6 +536,20 @@ class UI {
     par lequel tout le monde repasse, donc le seul où la question se pose une fois et une seule. */
     if (!nomValide(this.app.save.name)) return this.nomScreen();
     const t = (k, ...a) => this.t(k, ...a);
+    if (app.desktop) {
+      this.show(`<div class="desktop-art"><img src="art/title.webp" alt=""></div>
+        <div class="desktop-actions"><h1>${t('title')}</h1><p class="muted">${t('pcIntro')}</p>
+          <div class="menu">
+            <button class="big primary" data-action="setup" data-mode="race">${t('quickRace')}</button>
+            <button class="big" data-action="setup" data-mode="timetrial">${t('timeTrial')}</button>
+            <button class="big" data-action="multi">${t('multi')}</button>
+            <button data-action="settings">${t('settings')}</button>
+          </div>${this.pcControls()}
+          ${app.mondial?.erreurConnexion ? `<p class="avert">${t('authTrouble')}</p><button class="link" data-action="google">${t('reconnect')}</button>` : ''}
+          <div class="version">v${APP_VERSION} · ${APP_DATE}</div>
+        </div>`, 'desktop-home scroll');
+      return;
+    }
     // top of each banner, as measured on the poster; `fold` is the artwork that carries the text
     const items = [
       { top: 20.04, fold: 'course-rapide', act: 'setup', mode: 'race', label: t('quickRace') },
@@ -549,6 +583,7 @@ class UI {
     const t = (k, ...a) => this.t(k, ...a), s = this.app.save, app = this.app;
     this.show(`
       <h2>${t('settings')}</h2>
+      ${this.pcControls()}
       <div class="form">
         <label>${t('name')}<input id="inp-name" maxlength="${NOM_MAX}" autocomplete="off" autocapitalize="off"
           spellcheck="false" value="${escapeHtml(s.name)}" placeholder="${t('playerDefault')}"></label>
@@ -588,7 +623,27 @@ class UI {
         <label>${t('difficulty')}<select id="sel-diff">${NIVEAUX.map(d => `<option value="${d}" ${s.difficulty === d ? 'selected' : ''}>${t(d)}</option>`).join('')}</select></label>
       </div>
       <div class="row"><button data-action="menu">${t('back')}</button><button class="danger" data-action="resetAll">${t('resetAll')}</button></div>
-    `, '', 'reglages');
+    `, 'scroll settings-screen', 'reglages');
+  }
+
+  controlHelp() {
+    return this.t({ keyboard: 'controlKeyboardHint', wheel: 'controlWheelHint', gamepad: 'controlGamepadHint' }[this.app.controls.mode]);
+  }
+  pcControls() {
+    if (!this.app.desktop) return '';
+    return `<div class="pc-controls"><label for="sel-desktop-control">${this.t('pcControls')}</label>
+      <select id="sel-desktop-control">${[['keyboard', 'controlKeyboard'], ['wheel', 'controlWheel'], ['gamepad', 'controlGamepad']].map(([mode, key]) =>
+        `<option value="${mode}" ${this.app.controls.mode === mode ? 'selected' : ''}>${this.t(key)}</option>`).join('')}</select>
+      <p data-control-help aria-live="polite">${this.controlHelp()}</p>
+      ${this.app.state === 'paused' ? '<p data-controller-status aria-live="polite" hidden></p>' : ''}</div>`;
+  }
+  updateControllerStatus() {
+    const el = this.root.querySelector('[data-controller-status]');
+    if (!el) return;
+    el.hidden = this.app.controls.mode !== 'gamepad';
+    const key = { ready: 'padReady', release: 'padRelease', disconnected: 'padDisconnected', unsupported: 'padUnsupported' }[this.app.controls.status];
+    const value = this.t(key);
+    if (el.textContent !== value) el.textContent = value;
   }
 
   /* La longueur d'un circuit, qu'il soit intégré ou dessiné.
@@ -737,6 +792,7 @@ class UI {
     const livery = LIVERIES[s.livery];
     this.show(`
       <div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${mode === 'race' ? t('quickRace') : t('timeTrial')}</h2></div>
+      <div class="setup-columns"><section class="setup-block">
       <h3>${t('model')}</h3>
       ${this.filtreCat('pickCat', filtre)}
       ${this.rail('models', 'models', this.modelesVisibles(filtre).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${m.id}">
@@ -745,7 +801,7 @@ class UI {
             ${this.repereLivree(m, app.playerLivreeFor(m.id))}
             ${this.tyres(m)}
             ${this.gauges(m)}</button>`).join(''))}
-      <h3>${t('track')}</h3>
+      </section><section class="setup-block"><h3>${t('track')}</h3>
       ${this.rail('tracks', 'tracks', TRACKS.map(tr => {
         const locked = !ut.has(tr.id);
         return `<button class="card ${tr.id === st.trackId ? 'sel' : ''} ${locked ? 'locked' : ''}" data-action="pickTrack" data-id="${tr.id}" ${locked ? 'disabled' : ''}>
@@ -757,6 +813,7 @@ class UI {
            menu, si bien que la liste était soit vide, soit le musée des essais d'un ancien
            réglage. Les tracés enregistrés ne sont pas effacés pour autant — ils restent dans le
            navigateur et l'éditeur y mène encore par son adresse. -->
+      ${this.pcControls()}
       <div class="row wrap">
         ${mode === 'race' ? `<div><h3>${t('difficulty')}</h3><div class="seg">${NIVEAUX.map(d => `<button class="${s.difficulty === d ? 'sel' : ''}" data-action="pickDiff" data-id="${d}">${t(d)}</button>`).join('')}</div></div>
         <!-- Quatre longueurs franches et une saisie libre, plutôt qu'une échelle fine.
@@ -772,6 +829,7 @@ class UI {
         <div><h3>${t('wear')}</h3><div class="seg">${[[0, 'off'], [1, 'on']].map(([v, k]) => `<button class="${(s.wear ? 1 : 0) === v ? 'sel' : ''}" data-action="pickWear" data-id="${v}">${t(k)}</button>`).join('')}</div>
         <small class="muted">${t('wearHint')}</small></div>` : ''}
       </div>
+      </section></div>
       ${mode === 'race' ? '' : this.records(st.trackId, cat, model, livery)}
       <!-- Les réglages vivent À CÔTÉ DU DÉPART et non dans l'écran des options, parce qu'ils
            dépendent du circuit ET de la voiture : c'est ici, une fois les deux choisis, que la
@@ -792,7 +850,7 @@ class UI {
         <button data-action="startTune">${t('regRegler')}</button>
         <span class="muted">${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ${escapeHtml(model.name)} · ${mode === 'race' ? `${laps} ${t('laps')}` : t('ttIntro')}</span><button class="big primary" data-action="startQuick">${t('start')}</button>
       </div>
-    `, 'scroll', 'depart:' + mode);
+    `, 'scroll setup-screen', 'depart:' + mode);
   }
 
   // ---------- racing together ----------
@@ -995,7 +1053,7 @@ class UI {
         ${this.app.raceCtx && this.app.raceCtx.online ? '' : `<button data-action="retryRace">${t('restart')}</button>`}
         <button data-action="${this.app.raceCtx && this.app.raceCtx.online ? 'toLobby' : 'quitRace'}">${this.app.raceCtx && this.app.raceCtx.online ? t('backToTable') : t('quit')}</button>
       </div>
-      <p class="muted">${t('howto')}</p>
+      ${this.app.desktop ? this.pcControls() : `<p class="muted">${t('howto')}</p>`}
     `, 'center overlay');
   }
 
@@ -1109,6 +1167,7 @@ class UI {
         break;
       }
       case 'settings': this.settings(); break;
+      case 'enterGame': app.leaveSplash(); break;
       case 'setup': this.setupScreen(btn.dataset.mode); break;
       case 'career': this.careerScreen(); break;
       case 'cup': this.cupScreen(id); break;
@@ -1166,7 +1225,7 @@ class UI {
       case 'toLobby': app.toLobby(); break;
       case 'startCup': app.startCupRace(id); break;
       case 'resetCup': delete app.save.cups[id]; storeSave(app.save); this.cupScreen(id); break;
-      case 'resetAll': if (confirm(this.t('resetConfirm'))) { app.save = defaultSave(); storeSave(app.save); this.settings(); } break;
+      case 'resetAll': if (confirm(this.t('resetConfirm'))) { app.save = defaultSave(); app.setDesktopControl('keyboard'); this.settings(); } break;
       case 'resume': app.resume(); break;
       case 'retryRace': app.retry(); break;
       case 'quitRace': app.toMenu(); break;
@@ -1256,6 +1315,11 @@ class UI {
 
   _onChange(e) {
     const el = e.target, s = this.app.save;
+    if (el.id === 'sel-desktop-control') {
+      this.app.setDesktopControl(el.value);
+      this.root.querySelector('[data-control-help]').textContent = this.controlHelp();
+      this.updateControllerStatus();
+    }
     /* On n'enregistre que ce qui fait un nom. Vider le champ dans les réglages aurait renvoyé
     l'écran du nom à la figure du joueur au retour au menu, comme s'il venait d'arriver. */
     if (el.id === 'inp-name') { if (nomValide(el.value)) { s.name = el.value; storeSave(s); } else el.value = s.name; }

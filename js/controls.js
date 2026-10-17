@@ -1,0 +1,66 @@
+// Commandes PC. La molette mémorise un niveau ; RT le mesure à chaque image.
+'use strict';
+class DesktopControls {
+  constructor({ throttle, line, pause, activity }) {
+    this.onThrottle = throttle; this.onLine = line; this.onPause = pause; this.onActivity = activity;
+    this.mode = 'keyboard'; this.status = 'disconnected';
+    this.padIndex = null; this.startHeld = false;
+    this.reset();
+  }
+  setMode(mode) {
+    this.mode = ['keyboard', 'wheel', 'gamepad'].includes(mode) ? mode : 'keyboard';
+    this.reset();
+  }
+  reset() {
+    this.wheelThrottle = 0; this.armed = false; this.lineHeld = 0;
+    this.onThrottle(0);
+  }
+  wheel(event) {
+    if (this.mode !== 'wheel' || !Number.isFinite(event.deltaY) || !event.deltaY) return;
+    // 100 pixels = 10 %, également pour une souris exprimant ses crans en lignes/pages.
+    const pixels = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 400 : 1);
+    this.wheelThrottle = Math.round(clamp(this.wheelThrottle - clamp(pixels, -200, 200) / 1000, 0, 1) * 1000) / 1000;
+    this.onThrottle(this.wheelThrottle);
+    if (this.wheelThrottle) this.onActivity();
+  }
+  brake() { this.wheelThrottle = 0; this.onThrottle(0); }
+  poll(active, getPads = () => navigator.getGamepads?.()) {
+    if (this.mode !== 'gamepad') return;
+    let pads;
+    try { pads = getPads(); } catch (_) { /* API absente ou interdite par le navigateur. */ }
+    if (!pads) {
+      const lost = this.padIndex != null;
+      this.padIndex = null; this.armed = false;
+      this.status = 'unsupported'; this.onThrottle(0);
+      if (lost && active) this.onPause();
+      return;
+    }
+    let pad = this.padIndex == null ? null : pads[this.padIndex];
+    if (!pad || !pad.connected || pad.mapping !== 'standard') {
+      const lost = this.padIndex != null;
+      this.padIndex = null; this.armed = false; this.lineHeld = 0;
+      this.onThrottle(0);
+      this.status = 'disconnected';
+      if (lost && active) { this.onPause(); return; }
+      pad = Array.from(pads).find(p => p?.connected && p.mapping === 'standard');
+      if (!pad) return;
+      this.padIndex = pad.index;
+    }
+    const rt = throttleAmount(pad.buttons[7]?.value);
+    if (rt <= 0.05) this.armed = true;
+    this.status = this.armed ? 'ready' : 'release';
+    const start = !!pad.buttons[9]?.pressed;
+    if (start && !this.startHeld) this.onPause();
+    this.startHeld = start;
+    if (!active || start) { this.onThrottle(0); return; }
+    this.onThrottle(this.armed ? clamp((rt - 0.05) / 0.95, 0, 1) : 0);
+    if (this.armed && rt > 0.05) this.onActivity();
+    const x = pad.axes[0] || 0;
+    let line = pad.buttons[15]?.pressed || pad.buttons[12]?.pressed || x > 0.55 ? 1
+      : pad.buttons[14]?.pressed || pad.buttons[13]?.pressed || x < -0.55 ? -1 : 0;
+    // Revenir au centre avant le cran suivant évite les changements répétés sur un stick qui tremble.
+    if (!line && Math.abs(x) > 0.25 && Math.sign(x) === this.lineHeld) line = this.lineHeld;
+    if (line && line !== this.lineHeld) this.onLine(line);
+    this.lineHeld = line;
+  }
+}

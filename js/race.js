@@ -229,15 +229,15 @@ class Race {
     this.player.freinRatio = this.frein;
   }
 
-  // input: { throttle: bool, sel: -1..1 } (a bare boolean is accepted for the throttle)
+  // input: { throttle: 0..1 (ou bool), sel: -1..1 } ; bouton nu également accepté.
   update(frameDt, input) {
-    if (typeof input !== 'object') input = { throttle: !!input, sel: this.player.sel };
+    if (!input || typeof input !== 'object') input = { throttle: throttleAmount(input), sel: this.player.sel };
     this.player.sel = clamp(input.sel == null ? 0 : input.sel, -1, 1);
     // la coche des stands : une intention, pas une quatrième position de ligne (voir Car.pitAsk)
     if (this.usure && input.pit != null) this.player.pitAsk = !!input.pit;
     this.acc += Math.min(frameDt, 0.1);
     while (this.acc >= this.dt) {
-      this._step(this.dt, !!input.throttle);
+      this._step(this.dt, throttleAmount(input.throttle));
       this.acc -= this.dt;
     }
   }
@@ -264,7 +264,7 @@ class Race {
       // allow revving but no motion
       for (const car of this.cars) {
         const net = car.human != null && !car.isPlayer ? this.netInput[car.human] : null;
-        car.throttle = car.isPlayer ? throttleInput : net ? !!net.thr : this.countdown < 1.2;
+        car.throttle = car.isPlayer ? throttleInput : net ? throttleAmount(net.thr) : this.countdown < 1.2;
       }
       return;
     }
@@ -322,7 +322,7 @@ class Race {
         const net = this.netInput[car.human] || { thr: false, sel: 0 };
         car.sel = clamp(net.sel || 0, -1, 1);
         if (this.usure) car.pitAsk = !!net.pit;
-        throttle = car.finished ? car.v < 15 : !!net.thr;
+        throttle = car.finished ? car.v < 15 : throttleAmount(net.thr);
       } else {
         const gapM = car.progress - pp;
         const rubber = car.finished || this.player.finished ? 0 : clamp(-gapM / 4000, -0.05, 0.03);

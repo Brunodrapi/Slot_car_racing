@@ -5,6 +5,8 @@
 class App {
   constructor() {
     this.save = loadSave();
+    this.desktop = !mobileDevice();
+    document.body.classList.add(this.desktop ? 'desktop' : 'mobile');
     this.canvas = document.getElementById('game');
     this.renderer = new Renderer(this.canvas);
     this.renderer.showLines = this.save.showLines === true;
@@ -45,6 +47,14 @@ class App {
     this.input = { throttle: false, sel: 0, pit: false };
     this.throttlePulses = new ThrottlePulses();
     this.pointers = { throttle: null, slider: null, reglage: null };
+    this.gasKeys = new Set();
+    this.controls = new DesktopControls({
+      throttle: value => this.setThrottle(value),
+      line: direction => this.stepLine(direction),
+      pause: () => this.togglePause(),
+      activity: () => { if (!this.audio.started) this.audio.start(); if (this.audio.ctx?.state === 'suspended') this.audio.resume(); },
+    });
+    this.controls.setMode(this.desktop ? this.save.desktopControl : 'keyboard');
     this.last = performance.now();
     this._bindInput();
     window.addEventListener('resize', () => { this.renderer.resize(); if (this.race) this.renderer._makeMinimap(); });
@@ -153,12 +163,32 @@ class App {
   }
 
   // ---------- input ----------
+  setThrottle(value) {
+    this.input.throttle = value;
+    if (this.state === 'race') this.throttlePulses.push(performance.now(), value);
+    else this.throttlePulses.reset(value);
+  }
+  resetInput() {
+    this.input.throttle = false;
+    this.throttlePulses.reset();
+    this.gasKeys.clear();
+    this.pointers.throttle = this.pointers.slider = this.pointers.reglage = null;
+    this.controls.reset();
+  }
+  setDesktopControl(mode) {
+    this.resetInput();
+    this.controls.setMode(mode);
+    this.save.desktopControl = this.controls.mode;
+    storeSave(this.save);
+  }
+  stepLine(direction) {
+    const bas = this.renderer.pitOpen ? -2 : -1;
+    const value = clamp(Math.round(this.input.pit ? -2 : this.input.sel) + direction, bas, 1);
+    this.input.pit = value <= -1.5;
+    this.input.sel = clamp(value, -1, 1);
+  }
   _bindInput() {
-    const poseGaz = value => {
-      this.input.throttle = value;
-      if (this.state === 'race') this.throttlePulses.push(performance.now(), value);
-      else this.throttlePulses.reset(value);
-    };
+    const poseGaz = value => this.setThrottle(value);
     const on = () => { poseGaz(true); this.audio.start(); this.audio.resume(); };
     const off = () => { poseGaz(false); };
     /* Une seule porte pour la position du levier, clavier comme doigt.
@@ -174,29 +204,40 @@ class App {
     // au clavier on descend d'un cran de plus quand les stands sont ouverts, sinon un joueur sur
     // ordinateur n'aurait aucun moyen de s'arrêter
     const stepSel = (d) => {
-      const bas = this.renderer && this.renderer.pitOpen ? -2 : -1;
-      const v = Math.round(this.input.pit ? -2 : this.input.sel) + d;
-      poseSel(clamp(v, bas, 1));
+      this.stepLine(d);
     };
     const LINE_DOWN = ['ArrowDown', 'ArrowLeft', 'a', 'A', 'q', 'Q'], LINE_UP = ['ArrowUp', 'ArrowRight', 'd', 'D', 'e', 'E'];
     window.addEventListener('keydown', (e) => {
-      if (e.repeat) return;
+      if (e.target?.closest('input, select, textarea, [contenteditable="true"]')) return;
+      if (e.repeat) { if (this.state === 'race') e.preventDefault(); return; }
       if (this.leaveSplash()) return;
       if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { this.togglePause(); return; }
       if (this.state !== 'race') return;
-      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
       e.preventDefault();
       if (e.key === 'g' || e.key === 'G') { this.renderer.debug = !this.renderer.debug; this.save.debug = this.renderer.debug; storeSave(this.save); return; }
       if (LINE_DOWN.includes(e.key)) { stepSel(-1); return; }
       if (LINE_UP.includes(e.key)) { stepSel(1); return; }
+      if (this.desktop && this.controls.mode !== 'keyboard') {
+        if (e.code === 'Space' && this.controls.mode === 'wheel') this.controls.brake();
+        return;
+      }
+      this.gasKeys.add(e.code || e.key);
       on();
     });
-    window.addEventListener('keyup', (e) => { if (LINE_DOWN.includes(e.key) || LINE_UP.includes(e.key) || e.key === 'Escape' || e.key === 'g' || e.key === 'G') return; off(); });
-    window.addEventListener('blur', () => { off(); this.pointers.throttle = this.pointers.slider = this.pointers.reglage = null; });
+    window.addEventListener('keyup', (e) => {
+      if (!this.gasKeys.delete(e.code || e.key)) return;
+      if (!this.gasKeys.size && this.pointers.throttle == null) off();
+    });
+    window.addEventListener('blur', () => { this.resetInput(); if (this.state === 'race') this.togglePause(); });
     // On the title card the whole window listens, not just the canvas: the poster fills the page,
     // and "any button" has to mean anywhere on it.
     window.addEventListener('pointerdown', () => this.leaveSplash());
-    window.addEventListener('wheel', (e) => { if (this.state === 'race') stepSel(e.deltaY < 0 ? 1 : -1); }, { passive: true });
+    this.canvas.addEventListener('wheel', (e) => {
+      if (this.state !== 'race' || e.ctrlKey || !e.deltaY) return;
+      e.preventDefault();
+      if (this.desktop && this.controls.mode === 'wheel') this.controls.wheel(e);
+      else if (!this.desktop || this.controls.mode === 'keyboard') stepSel(e.deltaY < 0 ? 1 : -1);
+    }, { passive: false });
 
     const c = this.canvas;
     c.addEventListener('pointerdown', (e) => {
@@ -221,6 +262,7 @@ class App {
       }
       const v = this.renderer.sliderValueAt(e.clientX, e.clientY, touch);
       if (v != null && this.pointers.slider == null) { this.pointers.slider = e.pointerId; poseSel(v); return; }
+      if (this.desktop && this.controls.mode !== 'keyboard') return;
       if (this.pointers.throttle == null) {
         this.pointers.throttle = e.pointerId;
         if (touch) this.renderer.anchorPouce(e.clientX, e.clientY);   // la pastille vient au pouce
@@ -244,8 +286,7 @@ class App {
     const release = (e) => {
       if (this.pointers.reglage === e.pointerId) { this.pointers.reglage = null; return; }
       if (this.pointers.slider === e.pointerId) this.pointers.slider = null;
-      if (this.pointers.throttle === e.pointerId) { this.pointers.throttle = null; off(); }
-      if (e.pointerType === 'mouse') off();
+      if (this.pointers.throttle === e.pointerId) { this.pointers.throttle = null; if (!this.gasKeys.size) off(); }
     };
     window.addEventListener('pointerup', release);
     window.addEventListener('pointercancel', release);
@@ -257,6 +298,7 @@ class App {
 
   // ---------- flow ----------
   toMenu() {
+    this.resetInput();
     if (this.net) this.net.leave();
     this.state = 'menu';
     this.race = null;
@@ -366,8 +408,7 @@ class App {
     this.renderer.cam.init = false;
     this.renderer.homePouce();
     this.state = 'race';
-    this.input.throttle = false;
-    this.throttlePulses.reset();
+    this.resetInput();
     this.input.sel = 0; this.input.pit = false;
     this.pointers.throttle = this.pointers.slider = null;
     this.ui.hide();
@@ -379,6 +420,7 @@ class App {
 
   /** Leaves the race but keeps the table open, so the same people can line up again. */
   toLobby() {
+    this.resetInput();
     if (this.net) this.net.backToLobby();
     this.race = null;
     this.raceCtx = null;
@@ -402,8 +444,7 @@ class App {
   togglePause() {
     if (this.state === 'race') {
       this.state = 'paused';
-      this.input.throttle = false;
-      this.throttlePulses.reset();
+      this.resetInput();
       this.audio.idle();
       this.ui.pauseScreen(this.race);
     } else if (this.state === 'paused') this.resume();
@@ -412,8 +453,7 @@ class App {
   resume() {
     if (this.state !== 'paused') return;
     this.state = 'race';
-    this.input.throttle = false;
-    this.throttlePulses.reset();
+    this.resetInput();
     this.ui.hide();
     this.last = performance.now();
   }
@@ -526,6 +566,8 @@ class App {
     requestAnimationFrame((t) => this._frame(t));
     const dt = Math.min(0.1, (now - this.last) / 1000);
     this.last = now;
+    if (this.desktop && (this.state === 'race' || this.state === 'paused')) this.controls.poll(this.state === 'race');
+    if (this.desktop && this.state === 'paused') this.ui.updateControllerStatus();
     if (!this.race) return;
     const race = this.race;
     if (this.state === 'race') {
@@ -586,6 +628,8 @@ class App {
         // the race, and carries the cars forward between two of them so the screen does not stutter.
         net.guestTick(race, this.input);
         race.extrapolate(dt);
+        // Le paquet d'état garde ses drapeaux binaires ; le son local connaît notre dosage exact.
+        race.player.throttle = race.player.engineStopped ? 0 : throttleAmount(this.input.throttle);
         // Say so rather than pretending: after a couple of seconds with nothing from the host,
         // what is on screen is no longer the race, it is the last picture of it carried forward.
         const quiet = net.silence();

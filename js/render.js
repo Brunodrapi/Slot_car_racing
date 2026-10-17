@@ -257,7 +257,8 @@ class Renderer {
     this.shake = 0;
     this.detail = 1;     // 1 : protections complètes. 0 : allégées, quand la résolution est au bout.
     this._implTag = 0;   // numéro d'image, pour ne dessiner qu'une fois un arbre à cheval sur deux cases
-    this.touch = false;
+    this.touch = mobileDevice();
+    this.mobileDevice = this.touch;
     this.showLines = false;   // braking guide, off unless enabled in the settings
     this.debug = false;       // vehicle telemetry overlay (speed, slip angle, lateral velocity, grip usage)
     this.poucePress = 0;      // appui lissé de 0 à 1 sur la pastille du pouce
@@ -377,7 +378,8 @@ class Renderer {
   }
 
   _layoutHud() {
-    const W = this.w, H = this.h, mobile = W < 700;
+    const W = this.w, H = this.h, mobile = this.mobileDevice || W < 700;
+    this.shortLandscape = H < 560 && W > H;
     const sa = this._encoches();
     // Un seul écart, mesuré depuis le bord SÛR et non depuis le bord physique.
     const P = this.pad = { t: 14 + sa.t, r: 14 + sa.r, b: 14 + sa.b, l: 14 + sa.l };
@@ -398,7 +400,7 @@ class Renderer {
     visée — il n'était qu'un instrument. Les deux chiffres qu'il portait sont donc remontés sous le
     bandeau du haut, et il ne reste ici qu'un disque translucide qui dit où est le pouce. */
     const r = clamp(Math.min(W * 0.12, H * 0.08), 32, 60);
-    this.pouceHome = { cx: W / 2, cy: H - P.b - r };
+    this.pouceHome = { cx: this.shortLandscape ? (this.ctrlSide === 'right' ? P.l + r + 22 : W - P.r - r - 22) : W / 2, cy: H - P.b - r };
     this.pouce = { cx: this.pouceHome.cx, cy: this.pouceHome.cy, r };
     this.pouceAncre = false;
     /* Le levier de ligne, à gauche par défaut, à droite au choix.
@@ -408,7 +410,7 @@ class Renderer {
     colonne — les jauges d'usure, la carte en face — se retourne avec lui, sinon le retournement
     ne ferait que déplacer la gêne. */
     const droite = this.ctrlSide === 'right';
-    const len = Math.min(H * 0.38, 320);
+    const len = Math.min(H * (this.shortLandscape ? 0.28 : 0.38), 320);
     this.slider = { x: droite ? W - P.r - 22 : P.l + 22, y: H - P.b - 30 - len, len, w: 30, droite };
     /* Les deux cadrans d'usure, en colonne au-dessus du levier.
 
@@ -420,9 +422,10 @@ class Renderer {
 
     Calés sur le rail, le cadran du bas tombait sur le bord du panneau, qui commence vingt-six
     pixels plus haut : il le chevauchait à moitié. On part donc du haut du panneau et on remonte. */
-    const rj = mobile ? 19 : 22;
+    const rj = this.shortLandscape ? 14 : mobile ? 19 : 22;
     const hautPanneau = this.slider.y - 26;
     this.jauges = { r: rj, x: this.slider.x, y2: hautPanneau - rj - 10, y1: hautPanneau - rj * 3.2 - 14 };
+    if (this.shortLandscape) this.jauges = { r: rj, x: this.slider.x + (droite ? -85 : 85), y1: H - P.b - 85, y2: H - P.b - 42 };
     /* Les deux panneaux du haut, mesurés ici et non plus au moment de les dessiner : le bouton
     pause se pose dans l'espace qu'ils laissent, et deux jeux de constantes qui doivent rester
     d'accord finissent toujours par ne plus l'être. */
@@ -1119,7 +1122,7 @@ class Renderer {
 
   _makeMinimap() {
     const T = this.track, b = T.bounds;
-    const size = Math.min(180, Math.max(110, this.w * 0.18));
+    const size = this.shortLandscape ? 76 : Math.min(180, Math.max(110, this.w * 0.18));
     const c = document.createElement('canvas');
     c.width = c.height = size * this.dpr;
     const g = c.getContext('2d');
@@ -2481,7 +2484,8 @@ class Renderer {
   anchorPouce(x, y) {
     const d = this.pouce, m = 8;
     // never far enough left to cover the line slider: that column must stay reachable
-    const lo = this.slider.x + 30 + d.r, hi = this.w - d.r - m;
+    const lo = this.slider.droite ? d.r + m : this.slider.x + 30 + d.r;
+    const hi = this.slider.droite ? this.slider.x - 30 - d.r : this.w - d.r - m;
     d.cx = hi > lo ? clamp(x, lo, hi) : hi;
     // le chiffre de la vitesse se pose au-dessus d'elle : il lui faut sa place, sinon il sort par
     // le haut dès qu'on remonte le pouce
@@ -2497,6 +2501,33 @@ class Renderer {
   }
 
   static gripColor(u) { return u < 0.7 ? '#5be07a' : u < 1 ? '#ffd23f' : u < 1.2 ? '#ff9f2e' : u < 1.5 ? '#ff4b4b' : '#c74bff'; }
+
+  _drawDesktopThrottle(g, p, ui) {
+    const app = ui.app, t = k => ui.t(k), mode = app.controls.mode;
+    const w = Math.min(310, this.w - 32), h = 142;
+    const x = this.ctrlSide === 'right' ? this.pad.l : this.w - this.pad.r - w, y = this.h - this.pad.b - h;
+    const gas = throttleAmount(app.input.throttle);
+    g.fillStyle = 'rgba(10,12,20,0.82)'; this._roundRect(g, x, y, w, h, 14); g.fill();
+    g.textAlign = 'left'; g.textBaseline = 'top';
+    g.fillStyle = '#fff'; g.font = '900 38px system-ui, sans-serif';
+    g.fillText(String(Math.round(Math.max(0, p.speed) * 3.6)), x + 16, y + 10);
+    g.font = '12px system-ui, sans-serif'; g.fillStyle = '#c8ced9'; g.fillText('km/h', x + 18, y + 53);
+    g.font = 'bold 13px system-ui, sans-serif';
+    g.fillText(t({ keyboard: 'controlKeyboard', wheel: 'controlWheel', gamepad: 'controlGamepad' }[mode]), x + 125, y + 16);
+    g.font = 'bold 17px ui-monospace, monospace'; g.fillStyle = gas ? '#5be07a' : '#ffd400';
+    g.fillText(`${t('gas')} ${Math.round(gas * 100)} %`, x + 125, y + 41);
+    g.fillStyle = '#3a3f4b'; this._roundRect(g, x + 16, y + 77, w - 32, 9, 4); g.fill();
+    if (gas > 0) { g.fillStyle = '#5be07a'; this._roundRect(g, x + 16, y + 77, (w - 32) * gas, 9, Math.min(4, (w - 32) * gas / 2)); g.fill(); }
+    g.font = '12px system-ui, sans-serif'; g.fillStyle = '#d7dbe3';
+    g.fillText(t(mode === 'gamepad' ? 'lineHintPad' : 'lineHintPC'), x + 16, y + 99);
+    const status = { ready: 'padReady', release: 'padRelease', disconnected: 'padDisconnected', unsupported: 'padUnsupported' };
+    const hint = mode === 'gamepad' ? t(status[app.controls.status])
+      : mode === 'wheel' ? (ui.lang === 'fr' ? 'Espace : gaz à zéro · Échap : pause' : 'Space: zero throttle · Esc: pause')
+      : (ui.lang === 'fr' ? 'Maintenir : gaz · Relâcher : frein' : 'Hold: throttle · Release: brake');
+    g.fillStyle = mode === 'gamepad' && app.controls.status !== 'ready' ? '#ffd400' : '#aeb4c0';
+    g.fillText(hint, x + 16, y + 120, w - 32);
+    this.hudZones.accelerateur = { x, y, w, h };
+  }
 
   // Telemetry: speed, slip angle (heading vs velocity), lateral velocity, grip usage (lateral
   // demand / available grip), plus the two axle slip angles and the steering angle.
@@ -2861,7 +2892,7 @@ class Renderer {
     // standings strip (desktop)
     if (!mobile && race.mode !== 'timetrial') {
       const st = race.standings().slice(0, 6);
-      const rowH = 20, bw = 190, bx = P.l, by = mmBas + 10;
+      const rowH = 20, bw = 190, bx = ui.app.desktop ? W - P.r - bw : P.l, by = ui.app.desktop ? P.t + 90 : mmBas + 10;
       panel(bx, by, bw, st.length * rowH + 10);
       g.font = '13px system-ui, sans-serif'; g.textAlign = 'left';
       st.forEach((car, i) => {
@@ -2874,7 +2905,8 @@ class Renderer {
     }
 
     // la pastille du pouce passe au-dessus de la carte et du classement : c'est la commande vive
-    this._drawPouce(g, p);
+    if (ui.app.desktop) this._drawDesktopThrottle(g, p, ui);
+    else this._drawPouce(g, p);
 
     // telemetry overlay (G key or settings): the four numbers that describe the car's state
     // la carte n'est plus réservée au téléphone en haut : la télémétrie passe sous elle partout
@@ -2910,9 +2942,10 @@ class Renderer {
       panel(cx - 120, cy - 30, 240, 60);
       for (let i = 0; i < 4; i++) { g.fillStyle = i < lights ? '#ff3b3b' : 'rgba(255,255,255,0.15)'; g.beginPath(); g.arc(cx - 75 + i * 50, cy, 16, 0, Math.PI * 2); g.fill(); }
       g.textAlign = 'center'; g.fillStyle = '#fff'; g.font = 'bold 18px system-ui, sans-serif';
-      g.fillText(this.touch ? t('holdToGoTouch') : t('holdToGo'), cx, cy + 40);
+      const mode = ui.app.desktop ? ui.app.controls.mode : 'touch';
+      g.fillText(t(mode === 'wheel' ? 'wheelGo' : mode === 'gamepad' ? 'padGo' : mode === 'touch' ? 'holdToGoTouch' : 'holdToGo'), cx, cy + 40);
       g.font = '14px system-ui, sans-serif'; g.fillStyle = '#cfd3dc';
-      g.fillText(this.touch ? t('lineHintTouch') : t('lineHintKeys'), cx, cy + 66);
+      g.fillText(t(mode === 'gamepad' ? 'lineHintPad' : mode === 'touch' ? 'lineHintTouch' : 'lineHintPC'), cx, cy + 66);
     } else if (race.time < 1.2 && race.state === 'racing') {
       g.textAlign = 'center'; g.fillStyle = '#5be07a'; g.font = 'bold 64px system-ui, sans-serif';
       g.globalAlpha = 1 - race.time / 1.2; g.fillText('GO!', W / 2, H * 0.18); g.globalAlpha = 1;

@@ -803,6 +803,7 @@ class Car {
     }
 
     if (this.engineStopped) throttle = false;
+    throttle = throttleAmount(throttle);
     this.throttle = throttle;
     /* L'usure. La glisse compte au carré : c'est le frottement qui arrache la gomme, pas la
     distance. Un pilote propre use lentement, un pilote en travers permanent trois fois plus vite.
@@ -916,7 +917,7 @@ class Car {
     const dmg = this.damageFactor();
     const vmax = c.vmax * dmg * (this.draft ? 1.05 : 1);
     const accDem = throttle
-      ? c.accel * driveFactor(c,Math.max(0,this.v)) * dmg * Math.max(0, 1 - Math.pow(Math.max(0, this.v) / vmax, 2.5)) * (this.draft ? 1.08 : 1)
+      ? throttle * c.accel * driveFactor(c,Math.max(0,this.v)) * dmg * Math.max(0, 1 - Math.pow(Math.max(0, this.v) / vmax, 2.5)) * (this.draft ? 1.08 : 1)
       : 0;
     // Le transfert au freinage : ce que l'arrière perd, l'avant le gagne pour l'essentiel.
     const transfert = PHYS.liftOff * brakeFrac * clamp(this.freinRatio || 1, FREIN_MIN, FREIN_MAX);

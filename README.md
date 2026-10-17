@@ -13,37 +13,37 @@ Aucune dépendance, aucun build : ouvrir `index.html` dans un navigateur récent
 npx serve .        # ou : python3 -m http.server 8000
 ```
 
-Fonctionne sur ordinateur (clavier / souris) et sur mobile (tactile, à ajouter à l'écran d'accueil).
+Fonctionne sur ordinateur (clavier, molette ou manette Xbox) et sur mobile/tablette (tactile,
+à ajouter à l'écran d'accueil). Le PC dispose de menus en paysage. Les menus mobiles gardent leur
+présentation portrait ; **la course accepte le portrait et le paysage**, en tournant l'appareil.
 
 ### Contrôles
 
-| Action | Ordinateur | Mobile |
-| --- | --- | --- |
-| Accélérer | maintenir n'importe quelle touche (Espace, etc.) ou le clic | poser le pouce n'importe où hors du curseur |
-| Freiner | relâcher | relâcher |
-| Trajectoire | flèches (haut/bas ou gauche/droite), molette | pouce gauche sur le curseur vertical |
-| Pause | `Échap` ou `P` | — |
-| Télémétrie | `G` | réglages |
+Sur PC, choisir **Accélérateur PC** depuis le menu, la préparation, les réglages ou la pause.
+Le choix est conservé sur ce navigateur.
 
-L'accélérateur reprend le contrôle de *SpotRacers*, en trois morceaux :
+| Mode PC | Accélérer | Freiner | Trajectoire |
+| --- | --- | --- | --- |
+| Clavier / clic | maintenir une touche (Espace…) ou le clic | relâcher | flèches ; molette également disponible |
+| Molette | rouler vers le haut pour augmenter les gaz | rouler vers le bas ; `Espace` ramène immédiatement les gaz à zéro | flèches ou curseur à l'écran |
+| Xbox | doser la gâchette **RT** | relâcher RT | stick gauche, croix directionnelle, flèches ou curseur |
 
-- une **pastille blanche** sur laquelle le pouce se pose : on maintient pour accélérer, on relâche pour
-  freiner. Elle s'enfonce légèrement tant que le gaz est maintenu ;
-- une **jauge en éventail** derrière elle, de l'arrêt à la vitesse maximale de la voiture, avec une
-  aiguille à la vitesse courante ;
-- un **bandeau blanc** au-dessus, avec la vitesse en chiffres.
+`Échap` ou `P` met en pause ; le bouton Menu de la manette aussi. `G` affiche la télémétrie.
+Le tableau de bord PC indique la vitesse et les gaz demandés de **0 à 100 %**. Les niveaux partiels
+modulent réellement la poussée et le son moteur. À zéro, le réglage de freinage existant s'applique.
+Les pulsations rapides au clavier/tactile restent prises en compte entre deux images.
 
-C'est un contrôle flottant : il **suit le pouce**, pastille centrée sur le doigt, donc la jauge et les
-chiffres se lisent au-dessus de la main. Glisser sans lever l'emmène avec soi. Il revient en bas au
-centre pour une nouvelle course, une rotation d'écran, ou quand on joue au clavier.
+Sur mobile et tablette, poser le pouce hors du curseur pour accélérer et relâcher pour freiner.
+La pastille colorée suit le pouce et exprime l'état d'adhérence ; la vitesse reste au-dessus.
+Le curseur vertical choisit la trajectoire, à gauche ou à droite selon les réglages. La minicarte
+reste sous la position. Le bouton pause est accessible en haut dans les deux orientations.
 
-**L'aiguille porte aussi l'adhérence** : pâle tant qu'il y a de la marge, puis jaune, orange et rouge
-selon l'usage des pneus, en s'épaississant. Un seul repère dit donc à la fois où on en est en vitesse
-et combien il reste de marge.
+Une perte de focus coupe les gaz et met en pause. Une manette débranchée fait de même. Après une
+connexion ou une reprise, relâcher RT avant de repartir évite un départ avec la gâchette enfoncée.
+La manette utilise la Gamepad API standard du navigateur, sur HTTPS ou localhost ; appuyer une
+première fois sur un bouton pour la faire reconnaître.
 
-Le cadran ne peut jamais recouvrir le curseur de trajectoire : le pouce gauche garde sa colonne, le
-pouce droit emmène le cadran où il veut. Sur téléphone la minicarte passe en haut à droite, le bas de
-l'écran appartenant au pouce.
+Captures et vérifications : [variante PC](docs/variante-pc/README.md).
 
 > **Version allégée.** Le jeu se limite pour l'instant à la **course rapide**, au
 > **contre-la-montre** et au multijoueur, avec **vingt-cinq voitures en trois catégories** — F1, GT

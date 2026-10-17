@@ -310,6 +310,49 @@ perdrait le curseur à chaque chiffre tapé. */
    ces boîtes-ci sont des enfants directs de `.screen`, qui est une colonne flexible. Sans ce
    plancher remis à zéro, la largeur du rail se calerait sur la somme de ses cartes. */
 .railbox { position: relative; min-width: 0; max-width: 100%; }
+.setup-columns, .setup-block { display: contents; }
+
+.pc-controls { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 8px 20px;
+  width: 100%; max-width: 660px; padding: 14px 18px; background: var(--card); border-radius: var(--radius); }
+.pc-controls label { font-weight: 700; }
+.pc-controls select { font: inherit; min-width: 0; max-width: 100%; color: var(--text); background: var(--card2);
+  border: 1px solid #4a5060; border-radius: 8px; padding: 8px 10px; }
+.pc-controls p { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+body.desktop .screen { width: min(1240px, 100%); }
+body.desktop .desktop-home { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center; gap: clamp(24px, 5vw, 80px); padding: 24px max(24px, 4vw); }
+.desktop-art { display: flex; justify-content: center; min-height: 0; }
+.desktop-art img { display: block; max-width: 100%; max-height: calc(100dvh - 48px); border-radius: 16px; object-fit: contain; }
+.desktop-actions { display: flex; flex-direction: column; gap: 18px; min-width: 0; padding: 12px 0; }
+.desktop-actions h1 { font-size: clamp(30px, 3.5vw, 52px); margin: 0; }
+.desktop-actions > p, .desktop-actions .version { margin: 0; }
+.desktop-actions .menu { width: 100%; }
+body.desktop .setup-columns { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 28px; }
+body.desktop .setup-block { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+body.desktop .setup-block .row.wrap { gap: 14px; }
+body.desktop .setup-block .seg button { padding: 9px 12px; }
+body.desktop .setup-block .pc-controls { padding: 12px; gap: 8px; }
+body.desktop .setup-screen .row.end { flex-wrap: wrap; position: sticky; bottom: -20px;
+  background: rgba(15,17,23,.97); padding: 16px 0 20px; margin-top: auto; }
+body.desktop .settings-screen .form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 40px; max-width: none; }
+body.desktop .settings-screen .form > .avert { grid-column: 1 / -1; }
+body.desktop .screen.overlay { overflow-y: auto; justify-content: safe center; }
+@media (max-width: 850px) {
+  body.desktop .desktop-home { grid-template-columns: 1fr; max-width: 620px; }
+  body.desktop .desktop-art { display: none; }
+  body.desktop .setup-columns, body.desktop .setup-block { display: contents; }
+  body.desktop .settings-screen .form { grid-template-columns: 1fr; }
+  .pc-controls { grid-template-columns: 1fr; }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  body.mobile #ui > .screen:not(.poster):not(.splash) { overflow-y: auto; }
+  body.mobile #ui > .screen.center:not(.poster):not(.splash) { justify-content: flex-start; }
+}
+@media (orientation: landscape) {
+  /* Les menus tactiles gardent la largeur portrait ; la course couvre le viewport entier. */
+  body.mobile #ui > .screen:not(.poster):not(.splash) { width: min(1000px, 100%, 100dvh); }
+}
 .rail {
   display: flex; gap: 10px; overflow-x: auto; overscroll-behavior-x: contain;
   scroll-snap-type: x proximity; scroll-behavior: auto;
