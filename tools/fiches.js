@@ -24,50 +24,34 @@
 const fs = require('fs');
 const path = require('path');
 
-const { MODELS, playableCategories, modelsOf } = require(path.join(__dirname, '..', 'js', 'cars.js'));
+const { playableCategories, modelsOf } = require(path.join(__dirname, '..', 'js', 'cars.js'));
 const ref = JSON.parse(fs.readFileSync(path.join(__dirname, 'fiches.json'), 'utf8'));
 
-const cat = playableCategories()[0];
-const jeu = modelsOf(cat.id).map((m) => ({ id: m.id, nom: m.name, kmh: m.vmax * 3.6 }));
-
-console.log('\n  vitesse de pointe · le jeu contre la realite\n');
-console.log('    voiture          jeu        reelle     ecart     facteur   source');
-const avecRef = [];
-for (const v of jeu) {
-  const r = (ref.voitures || {})[v.id] || {};
-  if (r.vmax_kmh == null) {
+/* Catégorie par catégorie, depuis qu'il y en a trois : l'écart entre deux voitures ne se lit que
+dans une même catégorie, et c'est là que la question « la plus rapide est-elle la bonne ? » a un
+sens. La fiabilité de chaque source est affichée avec elle : une estimation n'est pas une mesure. */
+const dim = (t) => `\u001b[2m${t}\u001b[0m`;
+let total = 0, sourcees = 0;
+for (const cat of playableCategories()) {
+  const jeu = modelsOf(cat.id).map((m) => ({ id: m.id, nom: m.name, kmh: m.vmax * 3.6 }));
+  console.log(`\n  ${cat.id.toUpperCase()} · vitesse de pointe, le jeu contre la realite\n`);
+  console.log('    voiture          jeu        reelle     ecart     fiabilite      source');
+  for (const v of jeu) {
+    total++;
+    const r = (ref.voitures || {})[v.id] || {};
+    if (r.vmax_kmh == null) {
+      console.log(`    ${v.nom.padEnd(16)} ${v.kmh.toFixed(0).padStart(4)} km/h        —        —      ${dim('non verifiee')}`);
+      continue;
+    }
+    sourcees++;
     console.log(`    ${v.nom.padEnd(16)} ${v.kmh.toFixed(0).padStart(4)} km/h   ` +
-      `      —        —         —      ${'\u001b[2mnon verifiee\u001b[0m'}`);
-    continue;
+      `${String(r.vmax_kmh).padStart(4)} km/h  ${(v.kmh - r.vmax_kmh).toFixed(0).padStart(5)}     ` +
+      `${(r.fiabilite || '?').padEnd(13)}  ${(r.source || '').slice(0, 60)}`);
   }
-  const f = v.kmh / r.vmax_kmh;
-  avecRef.push({ ...v, reelle: r.vmax_kmh, f });
-  console.log(`    ${v.nom.padEnd(16)} ${v.kmh.toFixed(0).padStart(4)} km/h   ` +
-    `${String(r.vmax_kmh).padStart(4)} km/h  ${(v.kmh - r.vmax_kmh).toFixed(0).padStart(5)}    ` +
-    `  ${f.toFixed(2)}     ${(r.source || '').slice(0, 42)}`);
+  // L'ORDRE, qui ne demande pas de chiffre exact pour etre faux
+  const avec = jeu.filter((v) => ((ref.voitures || {})[v.id] || {}).vmax_kmh != null);
+  const ordreJeu = avec.slice().sort((a, b) => b.kmh - a.kmh).map((v) => v.id).join(',');
+  const ordreReel = avec.slice().sort((a, b) => ref.voitures[b.id].vmax_kmh - ref.voitures[a.id].vmax_kmh).map((v) => v.id).join(',');
+  console.log(`\n    ordre des pointes : ${ordreJeu === ordreReel ? 'le meme que dans la realite' : 'DIFFERENT de la realite'}`);
 }
-
-const manquantes = jeu.length - avecRef.length;
-console.log(`\n    ${avecRef.length} voiture(s) verifiable(s) sur ${jeu.length}` +
-  (manquantes ? ` · ${manquantes} sans source dans tools/fiches.json` : ''));
-
-/* --- L'ORDRE, qui ne demande pas de chiffre exact pour etre faux --- */
-console.log('\n  l\'ordre des vitesses de pointe dans le jeu, de la plus rapide a la plus lente\n');
-const parJeu = jeu.slice().sort((a, b) => b.kmh - a.kmh);
-console.log('    ' + parJeu.map((v, i) => `${i + 1}. ${v.nom}`).join('\n    '));
-const ecart = (Math.max(...jeu.map((v) => v.kmh)) / Math.min(...jeu.map((v) => v.kmh)) - 1) * 100;
-console.log(`\n    de la plus lente a la plus rapide : ${ecart.toFixed(1)} % d'ecart`);
-
-/* --- L'ECHELLE, si assez de voitures sont renseignees --- */
-if (avecRef.length >= 2) {
-  const fs_ = avecRef.map((v) => v.f);
-  const moy = fs_.reduce((a, b) => a + b, 0) / fs_.length;
-  const disp = (Math.max(...fs_) / Math.min(...fs_) - 1) * 100;
-  console.log(`\n  echelle moyenne ${moy.toFixed(2)} · dispersion ${disp.toFixed(1)} %`);
-  console.log(disp < 10
-    ? '    Serree : le jeu applique une echelle, les ecarts relatifs sont donc justes.'
-    : '    Large : il n\'y a pas d\'echelle, les ecarts entre voitures sont arbitraires.');
-} else {
-  console.log('\n  echelle : il faut au moins deux voitures sourcees pour la mesurer.');
-}
-console.log();
+console.log(`\n  ${sourcees} voiture(s) sourcee(s) sur ${total}\n`);

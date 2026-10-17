@@ -15,1577 +15,1752 @@
   {
    "car": "tyrrellp34",
    "track": "monza",
-   "brut": 73.60000000001783,
-   "propre": 73.60000000001783,
+   "brut": 72.57500000002011,
+   "propre": 72.57500000002011,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 266.7005836495782
   },
   {
    "car": "tyrrellp34",
    "track": "spa",
-   "brut": 98.04166666669315,
-   "propre": 98.04166666669315,
+   "brut": 97.70833333329068,
+   "propre": 97.70833333329068,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 248.766719700942
   },
   {
    "car": "tyrrellp34",
    "track": "silverstone",
-   "brut": 100.31666666661573,
-   "propre": 100.31666666661573,
+   "brut": 100.56666666661673,
+   "propre": 100.56666666661673,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 233.7317896019807
   },
   {
    "car": "tyrrellp34",
    "track": "zandvoort",
-   "brut": 79.74166666666952,
-   "propre": 79.74166666666952,
+   "brut": 79.36666666667058,
+   "propre": 79.36666666667058,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 230.3623854249737
   },
   {
    "car": "tyrrellp34",
    "track": "lemans",
-   "brut": 122.25833333322606,
-   "propre": 122.25833333322606,
+   "brut": 121.49166666656203,
+   "propre": 121.49166666656203,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 252.40957304405754
   },
   {
    "car": "ferrari312t",
    "track": "monza",
-   "brut": 72.48333333335428,
-   "propre": 72.48333333335428,
+   "brut": 71.70833333335665,
+   "propre": 71.70833333335665,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 278.55268299078034
   },
   {
    "car": "tyrrellp34",
    "track": "interlagos",
-   "brut": 78.96666666667184,
-   "propre": 78.96666666667184,
+   "brut": 78.75833333333922,
+   "propre": 78.75833333333922,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 5,
+   "kmh": 246.52221047668039
   },
   {
    "car": "tyrrellp34",
    "track": "suzuka",
-   "brut": 100.68333333328233,
-   "propre": 100.68333333328233,
+   "brut": 100.55833333328269,
+   "propre": 100.55833333328269,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 246.01768392819667
   },
   {
    "car": "ferrari312t",
    "track": "spa",
-   "brut": 98.11666666662278,
-   "propre": 98.11666666662278,
+   "brut": 96.70833333335868,
+   "propre": 96.70833333335868,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 256.794106175557
   },
   {
    "car": "ferrari312t",
    "track": "silverstone",
-   "brut": 101.69999999994674,
-   "propre": 101.69999999994674,
+   "brut": 100.23333333328398,
+   "propre": 100.23333333328398,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 240.6150797653151
   },
   {
    "car": "ferrari312t",
    "track": "zandvoort",
-   "brut": 81.3583333333325,
-   "propre": 81.3583333333325,
+   "brut": 80.11666666666889,
+   "propre": 80.11666666666889,
    "sorties": 0,
    "tours": 2,
-   "derive": 8
+   "derive": 9,
+   "kmh": 236.47453876527103
   },
   {
    "car": "ferrari312t",
    "track": "lemans",
-   "brut": 122.0083333332269,
-   "propre": 122.0083333332269,
+   "brut": 120.1166666665645,
+   "propre": 120.1166666665645,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
-  },
-  {
-   "car": "ferrari312t",
-   "track": "interlagos",
-   "brut": 82.10833333332953,
-   "propre": 82.10833333332953,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 8
+   "derive": 4,
+   "kmh": 261.980559607065
   },
   {
    "car": "mclarenm23",
    "track": "monza",
-   "brut": 72.93333333335326,
-   "propre": 72.93333333335326,
+   "brut": 72.13333333335498,
+   "propre": 72.13333333335498,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 272.74595075641065
   },
   {
-   "car": "mclarenm23",
-   "track": "spa",
-   "brut": 97.52499999995794,
-   "propre": 97.52499999995794,
+   "car": "ferrari312t",
+   "track": "interlagos",
+   "brut": 80.74166666667932,
+   "propre": 80.74166666667932,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 8,
+   "kmh": 252.3699968107308
   },
   {
    "car": "ferrari312t",
    "track": "suzuka",
-   "brut": 101.63333333328063,
-   "propre": 101.63333333328063,
+   "brut": 100.24999999995006,
+   "propre": 100.24999999995006,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 255.94539788053842
+  },
+  {
+   "car": "mclarenm23",
+   "track": "spa",
+   "brut": 97.07499999995859,
+   "propre": 97.07499999995859,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 4,
+   "kmh": 254.46325310256492
   },
   {
    "car": "mclarenm23",
    "track": "silverstone",
-   "brut": 101.14999999994839,
-   "propre": 101.14999999994839,
+   "brut": 100.56666666661671,
+   "propre": 100.56666666661671,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 236.56459996251624
   },
   {
    "car": "mclarenm23",
    "track": "lemans",
-   "brut": 122.30833333337908,
-   "propre": 122.30833333337908,
+   "brut": 121.75833333322822,
+   "propre": 121.75833333322822,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 255.0127799956814
   },
   {
    "car": "mclarenm23",
    "track": "zandvoort",
-   "brut": 80.45833333333503,
-   "propre": 80.45833333333503,
+   "brut": 80.23333333333527,
+   "propre": 80.23333333333527,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 6,
+   "kmh": 231.14629064565986
   },
   {
    "car": "mclarenm23",
    "track": "interlagos",
-   "brut": 79.86666666666963,
-   "propre": 79.86666666666963,
+   "brut": 79.66666666667017,
+   "propre": 79.66666666667017,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 250.75984113439713
   },
   {
    "car": "lotus79",
    "track": "monza",
-   "brut": 73.6083333333507,
-   "propre": 73.6083333333507,
+   "brut": 72.80833333335303,
+   "propre": 72.80833333335303,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
-  },
-  {
-   "car": "lotus79",
-   "track": "spa",
-   "brut": 97.51666666662443,
-   "propre": 97.51666666662443,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 267.93943572990776
   },
   {
    "car": "mclarenm23",
    "track": "suzuka",
-   "brut": 101.1749999999477,
-   "propre": 101.1749999999477,
+   "brut": 100.44166666661575,
+   "propre": 100.44166666661575,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 250.91661837148334
+  },
+  {
+   "car": "lotus79",
+   "track": "spa",
+   "brut": 96.53333333329307,
+   "propre": 96.53333333329307,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 251.65096248816945
   },
   {
    "car": "lotus79",
    "track": "silverstone",
-   "brut": 100.59166666661602,
-   "propre": 100.59166666661602,
+   "brut": 100.06666666661633,
+   "propre": 100.06666666661633,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 234.19325787742113
   },
   {
    "car": "lotus79",
    "track": "zandvoort",
-   "brut": 80.22500000000122,
-   "propre": 80.22500000000122,
+   "brut": 80.325000000002,
+   "propre": 80.325000000002,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 230.86965451379382
   },
   {
    "car": "lotus79",
    "track": "lemans",
-   "brut": 123.0333333332239,
-   "propre": 123.0333333332239,
+   "brut": 122.50833333337931,
+   "propre": 122.50833333337931,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 252.60306730377042
   },
   {
    "car": "lotus72",
    "track": "monza",
-   "brut": 72.7416666666877,
-   "propre": 72.7416666666877,
+   "brut": 72.1333333333555,
+   "propre": 72.1333333333555,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
-  },
-  {
-   "car": "lotus79",
-   "track": "interlagos",
-   "brut": 80.00000000001216,
-   "propre": 80.00000000001216,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 271.4740749542715
   },
   {
    "car": "lotus79",
    "track": "suzuka",
-   "brut": 101.0083333332812,
-   "propre": 101.0083333332812,
+   "brut": 100.2166666666161,
+   "propre": 100.2166666666161,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 248.8397557991429
   },
   {
    "car": "lotus72",
    "track": "spa",
-   "brut": 97.69166666662429,
-   "propre": 97.69166666662429,
+   "brut": 97.37499999995775,
+   "propre": 97.37499999995775,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 252.05273838582985
+  },
+  {
+   "car": "lotus79",
+   "track": "interlagos",
+   "brut": 78.21666666667333,
+   "propre": 78.21666666667333,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 4,
+   "kmh": 256.91250457080685
   },
   {
    "car": "lotus72",
    "track": "silverstone",
-   "brut": 100.88333333328265,
-   "propre": 100.88333333328265,
+   "brut": 100.51666666661686,
+   "propre": 100.51666666661686,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
-  },
-  {
-   "car": "lotus72",
-   "track": "zandvoort",
-   "brut": 80.42500000000244,
-   "propre": 80.42500000000244,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 8
+   "derive": 5,
+   "kmh": 231.86573815707413
   },
   {
    "car": "lotus72",
    "track": "lemans",
-   "brut": 120.88333333322926,
-   "propre": 120.88333333322926,
+   "brut": 120.75833333323062,
+   "propre": 120.75833333323062,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 256.52615844586353
+  },
+  {
+   "car": "lotus72",
+   "track": "zandvoort",
+   "brut": 80.60833333333524,
+   "propre": 80.60833333333524,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 8,
+   "kmh": 232.07514224429934
   },
   {
    "car": "lotus72",
    "track": "interlagos",
-   "brut": 78.8083333333363,
-   "propre": 78.8083333333363,
+   "brut": 80.116666666669,
+   "propre": 80.116666666669,
    "sorties": 0,
    "tours": 2,
-   "derive": 7
+   "derive": 8,
+   "kmh": 248.91044991290647
   },
   {
    "car": "brabhambt46b",
    "track": "monza",
-   "brut": 74.11666666668336,
-   "propre": 74.11666666668336,
+   "brut": 73.07500000001878,
+   "propre": 73.07500000001878,
    "sorties": 0,
    "tours": 2,
-   "derive": 2
+   "derive": 3,
+   "kmh": 265.2765559150438
   },
   {
    "car": "lotus72",
    "track": "suzuka",
-   "brut": 100.8583333332819,
-   "propre": 100.8583333332819,
+   "brut": 101.02499999994895,
+   "propre": 101.02499999994895,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 250.4264682075996
   },
   {
    "car": "brabhambt46b",
    "track": "spa",
-   "brut": 98.39166666662199,
-   "propre": 98.39166666662199,
+   "brut": 97.73333333329029,
+   "propre": 97.73333333329029,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 247.46875035386458
   },
   {
    "car": "brabhambt46b",
    "track": "silverstone",
-   "brut": 101.16666666661503,
-   "propre": 101.16666666661503,
+   "brut": 100.22499999994997,
+   "propre": 100.22499999994997,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
-  },
-  {
-   "car": "brabhambt46b",
-   "track": "lemans",
-   "brut": 123.05000000004641,
-   "propre": 123.05000000004641,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 230.27743098548143
   },
   {
    "car": "brabhambt46b",
    "track": "zandvoort",
-   "brut": 79.48333333333696,
-   "propre": 79.48333333333696,
+   "brut": 79.21666666667133,
+   "propre": 79.21666666667133,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 227.4387740591235
+  },
+  {
+   "car": "brabhambt46b",
+   "track": "lemans",
+   "brut": 121.99999999989406,
+   "propre": 121.99999999989406,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 249.89103365753775
   },
   {
    "car": "williamsfw07",
    "track": "monza",
-   "brut": 73.01666666668594,
-   "propre": 73.01666666668594,
+   "brut": 72.24166666668756,
+   "propre": 72.24166666668756,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 272.76764996091276
   },
   {
    "car": "brabhambt46b",
    "track": "interlagos",
-   "brut": 78.85000000000505,
-   "propre": 78.85000000000505,
+   "brut": 78.32500000000626,
+   "propre": 78.32500000000626,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 246.419152993969
   },
   {
    "car": "williamsfw07",
    "track": "spa",
-   "brut": 97.56666666669277,
-   "propre": 97.56666666669277,
+   "brut": 96.68333333329306,
+   "propre": 96.68333333329306,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 255.4509723399914
   },
   {
    "car": "brabhambt46b",
    "track": "suzuka",
-   "brut": 100.70833333328196,
-   "propre": 100.70833333328196,
+   "brut": 100.2416666666166,
+   "propre": 100.2416666666166,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 244.05362927273148
   },
   {
    "car": "williamsfw07",
    "track": "silverstone",
-   "brut": 100.54166666661453,
-   "propre": 100.54166666661453,
+   "brut": 100.28333333328297,
+   "propre": 100.28333333328297,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
-  },
-  {
-   "car": "williamsfw07",
-   "track": "lemans",
-   "brut": 122.20833333322655,
-   "propre": 122.20833333322655,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 3
+   "derive": 4,
+   "kmh": 237.61577272200716
   },
   {
    "car": "williamsfw07",
    "track": "zandvoort",
-   "brut": 80.5916666666681,
-   "propre": 80.5916666666681,
+   "brut": 80.42500000000184,
+   "propre": 80.42500000000184,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 234.5950552044712
   },
   {
    "car": "williamsfw07",
-   "track": "interlagos",
-   "brut": 79.10000000000407,
-   "propre": 79.10000000000407,
+   "track": "lemans",
+   "brut": 121.76666666671201,
+   "propre": 121.76666666671201,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 3,
+   "kmh": 256.6844934508274
   },
   {
    "car": "ligierjs11",
    "track": "monza",
-   "brut": 73.34166666668507,
-   "propre": 73.34166666668507,
+   "brut": 72.4500000000207,
+   "propre": 72.4500000000207,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 271.10689819374215
+  },
+  {
+   "car": "williamsfw07",
+   "track": "interlagos",
+   "brut": 78.59166666667164,
+   "propre": 78.59166666667164,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 5,
+   "kmh": 255.9291999067338
   },
   {
    "car": "ligierjs11",
    "track": "spa",
-   "brut": 97.64166666662362,
-   "propre": 97.64166666662362,
+   "brut": 97.12499999995775,
+   "propre": 97.12499999995775,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 250.36263770541325
   },
   {
    "car": "williamsfw07",
    "track": "suzuka",
-   "brut": 101.03333333328084,
-   "propre": 101.03333333328084,
+   "brut": 100.37499999994948,
+   "propre": 100.37499999994948,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 252.82740720906517
   },
   {
    "car": "ligierjs11",
    "track": "silverstone",
-   "brut": 100.91666666661493,
-   "propre": 100.91666666661493,
+   "brut": 100.6750000000286,
+   "propre": 100.6750000000286,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 236.0859393676179
   },
   {
    "car": "ligierjs11",
    "track": "zandvoort",
-   "brut": 80.50833333333519,
-   "propre": 80.50833333333519,
+   "brut": 80.70833333333466,
+   "propre": 80.70833333333466,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 4,
+   "kmh": 231.00642743295722
   },
   {
    "car": "ligierjs11",
    "track": "lemans",
-   "brut": 122.60000000004604,
-   "propre": 122.60000000004604,
+   "brut": 122.3833333332261,
+   "propre": 122.3833333332261,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 255.81981746769497
   },
   {
    "car": "renaultrs10",
    "track": "monza",
-   "brut": 72.98333333335242,
-   "propre": 72.98333333335242,
+   "brut": 72.7083333333531,
+   "propre": 72.7083333333531,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 274.7364511954136
   },
   {
    "car": "ligierjs11",
    "track": "interlagos",
-   "brut": 79.10000000000363,
-   "propre": 79.10000000000363,
+   "brut": 79.60833333333608,
+   "propre": 79.60833333333608,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
-  },
-  {
-   "car": "ligierjs11",
-   "track": "suzuka",
-   "brut": 101.07499999994832,
-   "propre": 101.07499999994832,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 3
+   "derive": 4,
+   "kmh": 256.2323282275825
   },
   {
    "car": "renaultrs10",
    "track": "spa",
-   "brut": 97.44999999995733,
-   "propre": 97.44999999995733,
+   "brut": 97.17500000002588,
+   "propre": 97.17500000002588,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 254.3674627834447
+  },
+  {
+   "car": "ligierjs11",
+   "track": "suzuka",
+   "brut": 100.93333333328236,
+   "propre": 100.93333333328236,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 249.67540083980757
   },
   {
    "car": "renaultrs10",
    "track": "silverstone",
-   "brut": 100.3999999999491,
-   "propre": 100.3999999999491,
+   "brut": 100.82499999994832,
+   "propre": 100.82499999994832,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
-  },
-  {
-   "car": "renaultrs10",
-   "track": "zandvoort",
-   "brut": 80.25000000000239,
-   "propre": 80.25000000000239,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 6
+   "derive": 4,
+   "kmh": 235.2259240007546
   },
   {
    "car": "renaultrs10",
    "track": "lemans",
-   "brut": 122.48333333322586,
-   "propre": 122.48333333322586,
+   "brut": 122.14999999989308,
+   "propre": 122.14999999989308,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 255.5228019052044
+  },
+  {
+   "car": "renaultrs10",
+   "track": "zandvoort",
+   "brut": 79.9750000000023,
+   "propre": 79.9750000000023,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 6,
+   "kmh": 232.53135949462944
   },
   {
    "car": "m1procar",
    "track": "monza",
-   "brut": 79.35833333333632,
-   "propre": 79.35833333333632,
+   "brut": 77.92500000000635,
+   "propre": 77.92500000000635,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 266.022538937846
   },
   {
    "car": "renaultrs10",
    "track": "interlagos",
-   "brut": 80.55833333333479,
-   "propre": 80.55833333333479,
+   "brut": 80.36666666666733,
+   "propre": 80.36666666666733,
    "sorties": 0,
    "tours": 2,
-   "derive": 6
-  },
-  {
-   "car": "m1procar",
-   "track": "spa",
-   "brut": 107.84999999993092,
-   "propre": 107.84999999993092,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 5
+   "derive": 6,
+   "kmh": 253.29429465203992
   },
   {
    "car": "renaultrs10",
    "track": "suzuka",
-   "brut": 100.0249999999495,
-   "propre": 100.0249999999495,
+   "brut": 100.6333333332825,
+   "propre": 100.6333333332825,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 250.71600877937118
+  },
+  {
+   "car": "m1procar",
+   "track": "spa",
+   "brut": 107.40833333336735,
+   "propre": 107.40833333336735,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 6,
+   "kmh": 235.94668568666444
   },
   {
    "car": "m1procar",
    "track": "silverstone",
-   "brut": 109.6666666665916,
-   "propre": 109.6666666665916,
+   "brut": 109.2333333332589,
+   "propre": 109.2333333332589,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 216.2609158063681
   },
   {
    "car": "m1procar",
    "track": "zandvoort",
-   "brut": 87.24166666664973,
-   "propre": 87.24166666664973,
+   "brut": 87.65833333331591,
+   "propre": 87.65833333331591,
    "sorties": 0,
    "tours": 2,
-   "derive": 7
+   "derive": 8,
+   "kmh": 221.83346868927862
   },
   {
    "car": "m1procar",
+   "track": "lemans",
+   "brut": 131.37499999988052,
+   "propre": 131.37499999988052,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 4,
+   "kmh": 248.43433090685002
+  },
+  {
+   "car": "f40",
+   "track": "monza",
+   "brut": 77.69166666667294,
+   "propre": 77.69166666667294,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 4,
+   "kmh": 285.16391751862506
+  },
+  {
+   "car": "m1procar",
+   "track": "interlagos",
+   "brut": 87.01666666665042,
+   "propre": 87.01666666665042,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 8,
+   "kmh": 238.44950358308094
+  },
+  {
+   "car": "m1procar",
+   "track": "suzuka",
+   "brut": 110.54999999992296,
+   "propre": 110.54999999992296,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 5,
+   "kmh": 241.49979905261404
+  },
+  {
+   "car": "f40",
+   "track": "spa",
+   "brut": 107.124999999932,
+   "propre": 107.124999999932,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 5,
+   "kmh": 250.3805594942185
+  },
+  {
+   "car": "f40",
+   "track": "silverstone",
+   "brut": 109.8833333332562,
+   "propre": 109.8833333332562,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 5,
+   "kmh": 228.50370845199092
+  },
+  {
+   "car": "f40",
+   "track": "zandvoort",
+   "brut": 88.74166666664493,
+   "propre": 88.74166666664493,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 7,
+   "kmh": 230.435459912612
+  },
+  {
+   "car": "f40",
+   "track": "lemans",
+   "brut": 130.64999999988117,
+   "propre": 130.64999999988117,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 4,
+   "kmh": 261.73651676094175
+  },
+  {
+   "car": "countach",
+   "track": "monza",
+   "brut": 78.38333333333861,
+   "propre": 78.38333333333861,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 4,
+   "kmh": 261.89874393978005
+  },
+  {
+   "car": "f40",
+   "track": "interlagos",
+   "brut": 86.84999999998364,
+   "propre": 86.84999999998364,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 7,
+   "kmh": 248.98616739678715
+  },
+  {
+   "car": "countach",
+   "track": "spa",
+   "brut": 107.12500000003376,
+   "propre": 107.12500000003376,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 5,
+   "kmh": 236.43742055833744
+  },
+  {
+   "car": "f40",
+   "track": "suzuka",
+   "brut": 110.8666666665872,
+   "propre": 110.8666666665872,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 4,
+   "kmh": 254.51774942841274
+  },
+  {
+   "car": "countach",
+   "track": "silverstone",
+   "brut": 109.66666666659154,
+   "propre": 109.66666666659154,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 5,
+   "kmh": 214.82114313239984
+  },
+  {
+   "car": "countach",
+   "track": "lemans",
+   "brut": 131.77499999988015,
+   "propre": 131.77499999988015,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 4,
+   "kmh": 246.1986099000852
+  },
+  {
+   "car": "countach",
+   "track": "zandvoort",
+   "brut": 87.8749999999821,
+   "propre": 87.8749999999821,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 7,
+   "kmh": 221.59599994113123
+  },
+  {
+   "car": "930",
+   "track": "monza",
+   "brut": 77.75833333334027,
+   "propre": 77.75833333334027,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 6,
+   "kmh": 262.809356738318
+  },
+  {
+   "car": "countach",
+   "track": "interlagos",
+   "brut": 86.24999999998519,
+   "propre": 86.24999999998519,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 7,
+   "kmh": 235.72268964101525
+  },
+  {
+   "car": "930",
+   "track": "spa",
+   "brut": 107.44166666670068,
+   "propre": 107.44166666670068,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 8,
+   "kmh": 237.17522368610383
+  },
+  {
+   "car": "countach",
+   "track": "suzuka",
+   "brut": 110.96666666658894,
+   "propre": 110.96666666658894,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 4,
+   "kmh": 239.56154655393397
+  },
+  {
+   "car": "930",
+   "track": "silverstone",
+   "brut": 109.47499999992574,
+   "propre": 109.47499999992574,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 6,
+   "kmh": 217.1986749576518
+  },
+  {
+   "car": "930",
+   "track": "zandvoort",
+   "brut": 87.67499999998213,
+   "propre": 87.67499999998213,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 10,
+   "kmh": 221.6426793109455
+  },
+  {
+   "car": "930",
+   "track": "lemans",
+   "brut": 130.77500000004264,
+   "propre": 130.77500000004264,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 5,
+   "kmh": 245.78837444070138
+  },
+  {
+   "car": "corvette",
+   "track": "monza",
+   "brut": 77.90000000000684,
+   "propre": 77.90000000000684,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 6,
+   "kmh": 274.737731976941
+  },
+  {
+   "car": "930",
+   "track": "interlagos",
+   "brut": 88.91666666664648,
+   "propre": 88.91666666664648,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 11,
+   "kmh": 236.5516608215883
+  },
+  {
+   "car": "930",
+   "track": "suzuka",
+   "brut": 110.14166666659152,
+   "propre": 110.14166666659152,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 6,
+   "kmh": 239.31913185067427
+  },
+  {
+   "car": "corvette",
+   "track": "spa",
+   "brut": 107.05000000003373,
+   "propre": 107.05000000003373,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 8,
+   "kmh": 244.12361385889136
+  },
+  {
+   "car": "corvette",
+   "track": "silverstone",
+   "brut": 109.72499999992463,
+   "propre": 109.72499999992463,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 7,
+   "kmh": 221.174294885332
+  },
+  {
+   "car": "corvette",
+   "track": "zandvoort",
+   "brut": 87.95833333331571,
+   "propre": 87.95833333331571,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 10,
+   "kmh": 225.08747192635266
+  },
+  {
+   "car": "corvette",
+   "track": "lemans",
+   "brut": 130.3333333332148,
+   "propre": 130.3333333332148,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 5,
+   "kmh": 254.7447987751854
+  },
+  {
+   "car": "csl",
+   "track": "monza",
+   "brut": 78.50000000000489,
+   "propre": 78.50000000000489,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 5,
+   "kmh": 248.75199719315592
+  },
+  {
+   "car": "corvette",
+   "track": "interlagos",
+   "brut": 88.49999999998106,
+   "propre": 88.49999999998106,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 10,
+   "kmh": 244.40210413693268
+  },
+  {
+   "car": "csl",
+   "track": "spa",
+   "brut": 106.88333333326621,
+   "propre": 106.88333333326621,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 6,
+   "kmh": 227.35786492321304
+  },
+  {
+   "car": "corvette",
+   "track": "suzuka",
+   "brut": 110.1749999999237,
+   "propre": 110.1749999999237,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 6,
+   "kmh": 246.62484478993144
+  },
+  {
+   "car": "csl",
+   "track": "silverstone",
+   "brut": 109.44999999992633,
+   "propre": 109.44999999992633,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 6,
+   "kmh": 209.30197162426427
+  },
+  {
+   "car": "csl",
+   "track": "zandvoort",
+   "brut": 87.19999999998286,
+   "propre": 87.19999999998286,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 9,
+   "kmh": 214.38035119731293
+  },
+  {
+   "car": "csl",
+   "track": "lemans",
+   "brut": 131.3416666665472,
+   "propre": 131.3416666665472,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 4,
+   "kmh": 236.37279480530756
+  },
+  {
+   "car": "csl",
+   "track": "interlagos",
+   "brut": 89.18333333331283,
+   "propre": 89.18333333331283,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 10,
+   "kmh": 228.09993582438207
+  },
+  {
+   "car": "250gto",
+   "track": "monza",
+   "brut": 79.50833333333526,
+   "propre": 79.50833333333526,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 248.21727573667025
+  },
+  {
+   "car": "250gto",
+   "track": "spa",
+   "brut": 107.45833333326459,
+   "propre": 107.45833333326459,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 4,
+   "kmh": 225.7566417211021
+  },
+  {
+   "car": "csl",
+   "track": "suzuka",
+   "brut": 109.2166666665922,
+   "propre": 109.2166666665922,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 5,
+   "kmh": 230.12623743756083
+  },
+  {
+   "car": "250gto",
+   "track": "silverstone",
+   "brut": 109.68333333325847,
+   "propre": 109.68333333325847,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 4,
+   "kmh": 205.4338661468306
+  },
+  {
+   "car": "250gto",
+   "track": "zandvoort",
+   "brut": 86.54999999998489,
+   "propre": 86.54999999998489,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 5,
+   "kmh": 212.3593483222143
+  },
+  {
+   "car": "250gto",
    "track": "lemans",
    "brut": 132.49166666654617,
    "propre": 132.49166666654617,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
-  },
-  {
-   "car": "m1procar",
-   "track": "interlagos",
-   "brut": 86.99999999998285,
-   "propre": 86.99999999998285,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 8
-  },
-  {
-   "car": "f40",
-   "track": "monza",
-   "brut": 79.10833333333603,
-   "propre": 79.10833333333603,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 4
-  },
-  {
-   "car": "f40",
-   "track": "spa",
-   "brut": 107.38333333326415,
-   "propre": 107.38333333326415,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 5
-  },
-  {
-   "car": "m1procar",
-   "track": "suzuka",
-   "brut": 110.82499999992228,
-   "propre": 110.82499999992228,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 5
-  },
-  {
-   "car": "f40",
-   "track": "silverstone",
-   "brut": 110.49166666658775,
-   "propre": 110.49166666658775,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 5
-  },
-  {
-   "car": "f40",
-   "track": "lemans",
-   "brut": 132.0166666665466,
-   "propre": 132.0166666665466,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 4
-  },
-  {
-   "car": "f40",
-   "track": "zandvoort",
-   "brut": 88.77499999997919,
-   "propre": 88.77499999997919,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 7
-  },
-  {
-   "car": "f40",
-   "track": "interlagos",
-   "brut": 87.62499999998198,
-   "propre": 87.62499999998198,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 7
-  },
-  {
-   "car": "countach",
-   "track": "monza",
-   "brut": 79.1250000000034,
-   "propre": 79.1250000000034,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 4
-  },
-  {
-   "car": "countach",
-   "track": "spa",
-   "brut": 107.62499999993099,
-   "propre": 107.62499999993099,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 5
-  },
-  {
-   "car": "f40",
-   "track": "suzuka",
-   "brut": 111.29999999992086,
-   "propre": 111.29999999992086,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 4
-  },
-  {
-   "car": "countach",
-   "track": "silverstone",
-   "brut": 110.10833333325743,
-   "propre": 110.10833333325743,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 5
-  },
-  {
-   "car": "countach",
-   "track": "zandvoort",
-   "brut": 88.00833333331491,
-   "propre": 88.00833333331491,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 6
-  },
-  {
-   "car": "countach",
-   "track": "lemans",
-   "brut": 132.7333333332126,
-   "propre": 132.7333333332126,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 4
-  },
-  {
-   "car": "930",
-   "track": "monza",
-   "brut": 79.4916666666694,
-   "propre": 79.4916666666694,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 6
-  },
-  {
-   "car": "countach",
-   "track": "interlagos",
-   "brut": 87.01666666665086,
-   "propre": 87.01666666665086,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 7
-  },
-  {
-   "car": "930",
-   "track": "spa",
-   "brut": 108.25833333326288,
-   "propre": 108.25833333326288,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 7
-  },
-  {
-   "car": "countach",
-   "track": "suzuka",
-   "brut": 111.6499999999206,
-   "propre": 111.6499999999206,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 4
-  },
-  {
-   "car": "930",
-   "track": "silverstone",
-   "brut": 109.86666666659029,
-   "propre": 109.86666666659029,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 6
-  },
-  {
-   "car": "930",
-   "track": "zandvoort",
-   "brut": 88.54999999998026,
-   "propre": 88.54999999998026,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 10
-  },
-  {
-   "car": "930",
-   "track": "lemans",
-   "brut": 133.5999999998785,
-   "propre": 133.5999999998785,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 5
-  },
-  {
-   "car": "corvette",
-   "track": "monza",
-   "brut": 79.0666666666705,
-   "propre": 79.0666666666705,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 6
-  },
-  {
-   "car": "930",
-   "track": "interlagos",
-   "brut": 90.18333333330737,
-   "propre": 90.18333333330737,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 11
-  },
-  {
-   "car": "corvette",
-   "track": "spa",
-   "brut": 108.31666666670141,
-   "propre": 108.31666666670141,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 7
-  },
-  {
-   "car": "930",
-   "track": "suzuka",
-   "brut": 110.98333333325513,
-   "propre": 110.98333333325513,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 6
-  },
-  {
-   "car": "corvette",
-   "track": "silverstone",
-   "brut": 109.98333333325678,
-   "propre": 109.98333333325678,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 6
-  },
-  {
-   "car": "corvette",
-   "track": "zandvoort",
-   "brut": 87.849999999982,
-   "propre": 87.849999999982,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 10
-  },
-  {
-   "car": "corvette",
-   "track": "lemans",
-   "brut": 132.28333333321302,
-   "propre": 132.28333333321302,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 5
-  },
-  {
-   "car": "corvette",
-   "track": "interlagos",
-   "brut": 88.09999999997756,
-   "propre": 88.09999999997756,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 11
-  },
-  {
-   "car": "csl",
-   "track": "monza",
-   "brut": 79.36666666666902,
-   "propre": 79.36666666666902,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 5
-  },
-  {
-   "car": "csl",
-   "track": "spa",
-   "brut": 107.70833333326394,
-   "propre": 107.70833333326394,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 6
-  },
-  {
-   "car": "corvette",
-   "track": "suzuka",
-   "brut": 111.03333333325531,
-   "propre": 111.03333333325531,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 6
-  },
-  {
-   "car": "csl",
-   "track": "silverstone",
-   "brut": 109.78333333325833,
-   "propre": 109.78333333325833,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 6
-  },
-  {
-   "car": "csl",
-   "track": "zandvoort",
-   "brut": 87.84166666664927,
-   "propre": 87.84166666664927,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 9
-  },
-  {
-   "car": "csl",
-   "track": "lemans",
-   "brut": 132.64999999987936,
-   "propre": 132.64999999987936,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 4
-  },
-  {
-   "car": "csl",
-   "track": "interlagos",
-   "brut": 88.43333333331165,
-   "propre": 88.43333333331165,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 9
-  },
-  {
-   "car": "250gto",
-   "track": "monza",
-   "brut": 80.11666666666736,
-   "propre": 80.11666666666736,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 4
-  },
-  {
-   "car": "250gto",
-   "track": "spa",
-   "brut": 107.86666666659636,
-   "propre": 107.86666666659636,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 4
-  },
-  {
-   "car": "csl",
-   "track": "suzuka",
-   "brut": 110.09999999992496,
-   "propre": 110.09999999992496,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 5
-  },
-  {
-   "car": "250gto",
-   "track": "silverstone",
-   "brut": 110.28333333325723,
-   "propre": 110.28333333325723,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 4
-  },
-  {
-   "car": "250gto",
-   "track": "zandvoort",
-   "brut": 86.81666666665102,
-   "propre": 86.81666666665102,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 5
-  },
-  {
-   "car": "250gto",
-   "track": "lemans",
-   "brut": 133.5999999998785,
-   "propre": 133.5999999998785,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 3
-  },
-  {
-   "car": "250gto",
-   "track": "interlagos",
-   "brut": 86.58333333331758,
-   "propre": 86.58333333331758,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 5
+   "derive": 3,
+   "kmh": 234.6149752715695
   },
   {
    "car": "typee",
    "track": "monza",
-   "brut": 80.08333333333383,
-   "propre": 80.08333333333383,
+   "brut": 79.80000000000129,
+   "propre": 79.80000000000129,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 242.864286707143
   },
   {
-   "car": "typee",
-   "track": "spa",
-   "brut": 108.01666666659635,
-   "propre": 108.01666666659635,
+   "car": "250gto",
+   "track": "interlagos",
+   "brut": 86.04166666665219,
+   "propre": 86.04166666665219,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 5,
+   "kmh": 225.34144616488152
   },
   {
    "car": "250gto",
    "track": "suzuka",
-   "brut": 110.42499999992322,
-   "propre": 110.42499999992322,
+   "brut": 110.12499999992404,
+   "propre": 110.12499999992404,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 228.23233540260486
+  },
+  {
+   "car": "typee",
+   "track": "spa",
+   "brut": 107.50833333326453,
+   "propre": 107.50833333326453,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 4,
+   "kmh": 221.49455101694724
   },
   {
    "car": "typee",
    "track": "silverstone",
-   "brut": 110.49999999992188,
-   "propre": 110.49999999992188,
+   "brut": 109.21666666659219,
+   "propre": 109.21666666659219,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 203.21226901846444
   },
   {
    "car": "typee",
    "track": "lemans",
-   "brut": 133.64166666654512,
-   "propre": 133.64166666654512,
+   "brut": 133.07500000004035,
+   "propre": 133.07500000004035,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 229.8185374795376
   },
   {
    "car": "typee",
    "track": "zandvoort",
-   "brut": 86.74166666665097,
-   "propre": 86.74166666665097,
+   "brut": 86.29166666665247,
+   "propre": 86.29166666665247,
    "sorties": 0,
    "tours": 2,
-   "derive": 6
+   "derive": 5,
+   "kmh": 208.15722906296608
   },
   {
    "car": "240z",
    "track": "monza",
-   "brut": 79.87500000000156,
-   "propre": 79.87500000000156,
+   "brut": 79.0166666666701,
+   "propre": 79.0166666666701,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 236.63885447685385
   },
   {
    "car": "typee",
    "track": "interlagos",
-   "brut": 86.8749999999844,
-   "propre": 86.8749999999844,
+   "brut": 85.8416666666531,
+   "propre": 85.8416666666531,
    "sorties": 0,
    "tours": 2,
-   "derive": 6
+   "derive": 6,
+   "kmh": 223.07786282320725
   },
   {
    "car": "240z",
    "track": "spa",
-   "brut": 107.51666666659668,
-   "propre": 107.51666666659668,
+   "brut": 107.04999999993133,
+   "propre": 107.04999999993133,
    "sorties": 0,
    "tours": 2,
-   "derive": 6
+   "derive": 6,
+   "kmh": 220.9311094536689
   },
   {
    "car": "typee",
    "track": "suzuka",
-   "brut": 110.46666666658915,
-   "propre": 110.46666666658915,
+   "brut": 109.85833333325866,
+   "propre": 109.85833333325866,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 224.81572426947983
   },
   {
    "car": "240z",
    "track": "silverstone",
-   "brut": 109.9416666665908,
-   "propre": 109.9416666665908,
+   "brut": 109.16666666659272,
+   "propre": 109.16666666659272,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 203.7308761099229
   },
   {
    "car": "240z",
    "track": "lemans",
-   "brut": 132.52499999987947,
-   "propre": 132.52499999987947,
+   "brut": 131.84999999988008,
+   "propre": 131.84999999988008,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 226.87900152420238
   },
   {
    "car": "240z",
    "track": "zandvoort",
-   "brut": 87.38333333331563,
-   "propre": 87.38333333331563,
+   "brut": 86.98333333331676,
+   "propre": 86.98333333331676,
    "sorties": 0,
    "tours": 2,
-   "derive": 8
-  },
-  {
-   "car": "gt40",
-   "track": "monza",
-   "brut": 74.43333333334941,
-   "propre": 74.43333333334941,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 5
+   "derive": 8,
+   "kmh": 208.02950039659262
   },
   {
    "car": "240z",
    "track": "interlagos",
-   "brut": 87.74166666664779,
-   "propre": 87.74166666664779,
+   "brut": 87.3916666666464,
+   "propre": 87.3916666666464,
    "sorties": 0,
    "tours": 2,
-   "derive": 10
+   "derive": 10,
+   "kmh": 220.7733557021653
+  },
+  {
+   "car": "gt40",
+   "track": "monza",
+   "brut": 73.36666666668494,
+   "propre": 73.36666666668494,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 5,
+   "kmh": 283.9880581153562
   },
   {
    "car": "gt40",
    "track": "spa",
-   "brut": 100.42499999994939,
-   "propre": 100.42499999994939,
+   "brut": 99.8166666666177,
+   "propre": 99.8166666666177,
    "sorties": 0,
    "tours": 2,
-   "derive": 6
+   "derive": 6,
+   "kmh": 254.15466047491208
   },
   {
    "car": "240z",
    "track": "suzuka",
-   "brut": 110.10833333325782,
-   "propre": 110.10833333325782,
+   "brut": 109.8333333332587,
+   "propre": 109.8333333332587,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 221.71847940701662
   },
   {
    "car": "gt40",
    "track": "silverstone",
-   "brut": 103.65833333327383,
-   "propre": 103.65833333327383,
+   "brut": 103.1749999999429,
+   "propre": 103.1749999999429,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 233.27470114173144
   },
   {
    "car": "gt40",
    "track": "zandvoort",
-   "brut": 82.88333333332865,
-   "propre": 82.88333333332865,
+   "brut": 82.48333333333034,
+   "propre": 82.48333333333034,
    "sorties": 0,
    "tours": 2,
-   "derive": 8
+   "derive": 9,
+   "kmh": 232.8051035746225
   },
   {
    "car": "gt40",
    "track": "lemans",
-   "brut": 124.39166666655396,
-   "propre": 124.39166666655396,
+   "brut": 122.85833333322395,
+   "propre": 122.85833333322395,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 262.6004940486581
   },
   {
    "car": "gt40",
    "track": "interlagos",
-   "brut": 82.70833333334761,
-   "propre": 82.70833333334761,
+   "brut": 81.24166666666622,
+   "propre": 81.24166666666622,
    "sorties": 0,
    "tours": 2,
-   "derive": 9
+   "derive": 9,
+   "kmh": 254.78230382842094
   },
   {
    "car": "935",
    "track": "monza",
-   "brut": 74.8750000000143,
-   "propre": 74.8750000000143,
+   "brut": 74.0416666666829,
+   "propre": 74.0416666666829,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 6,
+   "kmh": 287.8440852541395
   },
   {
    "car": "935",
    "track": "spa",
-   "brut": 100.19166666661533,
-   "propre": 100.19166666661533,
+   "brut": 100.42499999995042,
+   "propre": 100.42499999995042,
    "sorties": 0,
    "tours": 2,
-   "derive": 6
+   "derive": 6,
+   "kmh": 259.3922385944935
   },
   {
    "car": "gt40",
    "track": "suzuka",
-   "brut": 104.10833333327331,
-   "propre": 104.10833333327331,
+   "brut": 103.47499999994206,
+   "propre": 103.47499999994206,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 254.88473157127066
   },
   {
    "car": "935",
    "track": "silverstone",
-   "brut": 103.92499999993949,
-   "propre": 103.92499999993949,
+   "brut": 103.1666666666081,
+   "propre": 103.1666666666081,
    "sorties": 0,
    "tours": 2,
-   "derive": 6
+   "derive": 6,
+   "kmh": 236.196935818525
   },
   {
    "car": "935",
    "track": "zandvoort",
-   "brut": 82.87499999999588,
-   "propre": 82.87499999999588,
+   "brut": 82.48333333332961,
+   "propre": 82.48333333332961,
    "sorties": 0,
    "tours": 2,
-   "derive": 9
+   "derive": 9,
+   "kmh": 234.39330835012385
   },
   {
    "car": "935",
    "track": "lemans",
-   "brut": 124.74166666655321,
-   "propre": 124.74166666655321,
+   "brut": 124.24166666655444,
+   "propre": 124.24166666655444,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 264.34242502636533
+  },
+  {
+   "car": "787b",
+   "track": "monza",
+   "brut": 73.82500000001708,
+   "propre": 73.82500000001708,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 288.46521199166335
   },
   {
    "car": "935",
    "track": "interlagos",
-   "brut": 83.29166666666036,
-   "propre": 83.29166666666036,
+   "brut": 82.57499999999587,
+   "propre": 82.57499999999587,
    "sorties": 0,
    "tours": 2,
-   "derive": 9
-  },
-  {
-   "car": "787b",
-   "track": "monza",
-   "brut": 74.63333333334818,
-   "propre": 74.63333333334818,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 3
+   "derive": 9,
+   "kmh": 256.98706521752445
   },
   {
    "car": "787b",
    "track": "spa",
-   "brut": 100.44166666661637,
-   "propre": 100.44166666661637,
+   "brut": 100.26666666661686,
+   "propre": 100.26666666661686,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 259.9146908432129
   },
   {
    "car": "935",
    "track": "suzuka",
-   "brut": 103.78333333327357,
-   "propre": 103.78333333327357,
+   "brut": 103.63333333327455,
+   "propre": 103.63333333327455,
    "sorties": 0,
    "tours": 2,
-   "derive": 6
+   "derive": 6,
+   "kmh": 256.8120828774295
   },
   {
    "car": "787b",
    "track": "silverstone",
-   "brut": 103.44166666660763,
-   "propre": 103.44166666660763,
+   "brut": 103.39166666660799,
+   "propre": 103.39166666660799,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
-  },
-  {
-   "car": "787b",
-   "track": "zandvoort",
-   "brut": 82.85833333332813,
-   "propre": 82.85833333332813,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 5
+   "derive": 4,
+   "kmh": 242.10567893921862
   },
   {
    "car": "787b",
    "track": "lemans",
-   "brut": 125.63333333338068,
-   "propre": 125.63333333338068,
+   "brut": 124.20833333338065,
+   "propre": 124.20833333338065,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 266.10574335276533
+  },
+  {
+   "car": "787b",
+   "track": "zandvoort",
+   "brut": 83.10833333332711,
+   "propre": 83.10833333332711,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 5,
+   "kmh": 235.20881973428055
   },
   {
    "car": "962",
    "track": "monza",
-   "brut": 75.05833333334735,
-   "propre": 75.05833333334735,
+   "brut": 73.98333333334986,
+   "propre": 73.98333333334986,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 286.0650908203446
   },
   {
    "car": "787b",
    "track": "interlagos",
-   "brut": 81.47499999999852,
-   "propre": 81.47499999999852,
+   "brut": 81.33333333333275,
+   "propre": 81.33333333333275,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 260.2167596221913
   },
   {
    "car": "962",
    "track": "spa",
-   "brut": 100.55833333328175,
-   "propre": 100.55833333328175,
+   "brut": 100.22500000002827,
+   "propre": 100.22500000002827,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 259.41889914814277
   },
   {
    "car": "787b",
    "track": "suzuka",
-   "brut": 104.28333333327288,
-   "propre": 104.28333333327288,
+   "brut": 103.84999999994002,
+   "propre": 103.84999999994002,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 259.56943715354305
   },
   {
    "car": "962",
    "track": "silverstone",
-   "brut": 103.95833333327386,
-   "propre": 103.95833333327386,
+   "brut": 103.09166666660826,
+   "propre": 103.09166666660826,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 237.957921188339
   },
   {
    "car": "962",
    "track": "zandvoort",
-   "brut": 82.84999999999533,
-   "propre": 82.84999999999533,
+   "brut": 82.39999999999655,
+   "propre": 82.39999999999655,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 234.3095709629458
   },
   {
    "car": "962",
    "track": "lemans",
-   "brut": 125.75833333321896,
-   "propre": 125.75833333321896,
+   "brut": 124.47499999988743,
+   "propre": 124.47499999988743,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 262.34740900372833
+  },
+  {
+   "car": "962",
+   "track": "interlagos",
+   "brut": 80.21666666666755,
+   "propre": 80.21666666666755,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 5,
+   "kmh": 259.1298315016615
   },
   {
    "car": "xjr9",
    "track": "monza",
-   "brut": 75.25000000001293,
-   "propre": 75.25000000001293,
+   "brut": 74.2666666666819,
+   "propre": 74.2666666666819,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
-  },
-  {
-   "car": "962",
-   "track": "interlagos",
-   "brut": 80.99999999999909,
-   "propre": 80.99999999999909,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 6
+   "derive": 3,
+   "kmh": 290.591034810603
   },
   {
    "car": "xjr9",
    "track": "spa",
-   "brut": 100.61666666661559,
-   "propre": 100.61666666661559,
+   "brut": 99.8916666666169,
+   "propre": 99.8916666666169,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 258.01442250013685
   },
   {
    "car": "962",
    "track": "suzuka",
-   "brut": 104.14999999994001,
-   "propre": 104.14999999994001,
+   "brut": 103.47499999994142,
+   "propre": 103.47499999994142,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 255.35129883817777
   },
   {
    "car": "xjr9",
    "track": "silverstone",
-   "brut": 104.258333333272,
-   "propre": 104.258333333272,
+   "brut": 103.64166666660824,
+   "propre": 103.64166666660824,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 238.10799630077491
   },
   {
    "car": "xjr9",
    "track": "zandvoort",
-   "brut": 82.65833333332905,
-   "propre": 82.65833333332905,
+   "brut": 82.24999999999643,
+   "propre": 82.24999999999643,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 5,
+   "kmh": 234.21850134915866
   },
   {
    "car": "xjr9",
    "track": "lemans",
-   "brut": 125.9666666665521,
-   "propre": 125.9666666665521,
+   "brut": 124.47499999988679,
+   "propre": 124.47499999988679,
    "sorties": 0,
    "tours": 2,
-   "derive": 3
+   "derive": 3,
+   "kmh": 264.1997011388671
   },
   {
    "car": "330p4",
    "track": "monza",
-   "brut": 74.77500000001454,
-   "propre": 74.77500000001454,
+   "brut": 73.50833333335103,
+   "propre": 73.50833333335103,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 276.83765489952594
   },
   {
    "car": "xjr9",
    "track": "interlagos",
-   "brut": 80.7333333333324,
-   "propre": 80.7333333333324,
+   "brut": 80.78333333333376,
+   "propre": 80.78333333333376,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 259.48638700854013
   },
   {
    "car": "330p4",
    "track": "spa",
-   "brut": 101.10833333328168,
-   "propre": 101.10833333328168,
+   "brut": 100.72499999994915,
+   "propre": 100.72499999994915,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 6,
+   "kmh": 249.90169537821356
   },
   {
    "car": "xjr9",
    "track": "suzuka",
-   "brut": 104.04999999994008,
-   "propre": 104.04999999994008,
+   "brut": 103.38333333327473,
+   "propre": 103.38333333327473,
    "sorties": 0,
    "tours": 2,
-   "derive": 4
+   "derive": 4,
+   "kmh": 256.82950973504234
   },
   {
    "car": "330p4",
    "track": "silverstone",
-   "brut": 103.76666666660768,
-   "propre": 103.76666666660768,
+   "brut": 102.83333333327538,
+   "propre": 102.83333333327538,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
-  },
-  {
-   "car": "330p4",
-   "track": "lemans",
-   "brut": 124.92499999988638,
-   "propre": 124.92499999988638,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 4
+   "derive": 5,
+   "kmh": 227.57536758398743
   },
   {
    "car": "330p4",
    "track": "zandvoort",
-   "brut": 82.46666666666292,
-   "propre": 82.46666666666292,
+   "brut": 82.24166666666402,
+   "propre": 82.24166666666402,
    "sorties": 0,
    "tours": 2,
-   "derive": 7
+   "derive": 8,
+   "kmh": 232.00559947602014
+  },
+  {
+   "car": "330p4",
+   "track": "lemans",
+   "brut": 123.9500000000471,
+   "propre": 123.9500000000471,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 4,
+   "kmh": 257.4980011376144
+  },
+  {
+   "car": "330p4",
+   "track": "interlagos",
+   "brut": 80.9749999999974,
+   "propre": 80.9749999999974,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 9,
+   "kmh": 246.44952833588894
   },
   {
    "car": "p68",
    "track": "monza",
-   "brut": 74.475000000015,
-   "propre": 74.475000000015,
+   "brut": 73.90000000001649,
+   "propre": 73.90000000001649,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
-  },
-  {
-   "car": "330p4",
-   "track": "interlagos",
-   "brut": 81.84999999999728,
-   "propre": 81.84999999999728,
-   "sorties": 0,
-   "tours": 2,
-   "derive": 9
+   "derive": 5,
+   "kmh": 282.0888509820541
   },
   {
    "car": "p68",
    "track": "spa",
-   "brut": 101.38333333328121,
-   "propre": 101.38333333328121,
+   "brut": 100.89999999994856,
+   "propre": 100.89999999994856,
    "sorties": 0,
    "tours": 2,
-   "derive": 6
+   "derive": 6,
+   "kmh": 251.85926633037053
   },
   {
    "car": "330p4",
    "track": "suzuka",
-   "brut": 103.94166666660698,
-   "propre": 103.94166666660698,
+   "brut": 103.5499999999421,
+   "propre": 103.5499999999421,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 250.1358892044413
   },
   {
    "car": "p68",
    "track": "silverstone",
-   "brut": 103.84999999994027,
-   "propre": 103.84999999994027,
+   "brut": 103.0083333332749,
+   "propre": 103.0083333332749,
    "sorties": 0,
    "tours": 2,
-   "derive": 6
+   "derive": 6,
+   "kmh": 228.61463797932413
   },
   {
    "car": "p68",
    "track": "zandvoort",
-   "brut": 82.21666666666427,
-   "propre": 82.21666666666427,
+   "brut": 81.8499999999965,
+   "propre": 81.8499999999965,
    "sorties": 0,
    "tours": 2,
-   "derive": 9
+   "derive": 9,
+   "kmh": 232.13647029448015
   },
   {
    "car": "p68",
    "track": "lemans",
-   "brut": 124.90833333338126,
-   "propre": 124.90833333338126,
+   "brut": 123.8833333332212,
+   "propre": 123.8833333332212,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 259.14567461333553
   },
   {
    "car": "p68",
    "track": "interlagos",
-   "brut": 82.54166666666256,
-   "propre": 82.54166666666256,
+   "brut": 81.14999999999769,
+   "propre": 81.14999999999769,
    "sorties": 0,
    "tours": 2,
-   "derive": 9
+   "derive": 9,
+   "kmh": 250.1774061226488
   },
   {
    "car": "p68",
    "track": "suzuka",
-   "brut": 103.80833333327449,
-   "propre": 103.80833333327449,
+   "brut": 103.47499999994149,
+   "propre": 103.47499999994149,
    "sorties": 0,
    "tours": 2,
-   "derive": 5
+   "derive": 5,
+   "kmh": 252.36146177381684
   }
  ]
 }

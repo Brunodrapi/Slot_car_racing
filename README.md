@@ -2313,55 +2313,56 @@ dessiné.
 
 | | Monza | Spa | Suzuka | Zandvoort | Interlagos | Silverstone | Le Mans | moyenne |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| F1 | −7,9 % | −9,3 % | −8,9 % | −8,4 % | −9,1 % | −8,4 % | −7,9 % | **−8,6 %** |
-| Proto | −5,9 % | −6,6 % | −6,1 % | −5,7 % | −6,6 % | −5,7 % | −5,8 % | **−6,1 %** |
+| F1 | −7,7 % | −9,4 % | −8,8 % | −8,4 % | −9,1 % | −8,3 % | −7,5 % | **−8,5 %** |
+| Proto | −5,9 % | −6,4 % | −6,0 % | −5,8 % | −7,0 % | −5,8 % | −5,7 % | **−6,1 %** |
 
 Les F1 gagnent au freinage et en virage, les prototypes en ligne droite : l'écart entre les deux se
 resserre sur les circuits rapides — Monza, Le Mans — et s'ouvre sur les sinueux.
 
 **L'équilibre interne.** Écart de chaque voiture à la moyenne de sa catégorie, sur les mêmes sept
-circuits : toutes tiennent dans **1,1 %** en F1, **1,0 %** en GT et **0,2 %** en Proto. C'est en moyenne ;
+circuits : toutes tiennent dans **0,6 %** en F1, **0,2 %** en GT et **0,6 %** en Proto. C'est en moyenne ;
 circuit par circuit, chacune a ses terrains, et c'est ce qui fait un choix plutôt qu'un classement —
-la Ferrari 312T gagne un point à Monza et en perd trois à Interlagos, la Brabham et la Tyrrell se
-plaisent dans le sinueux de Zandvoort et d'Interlagos, et la 250 GTO comme la Type E, malgré leur
-pointe, y sont plus à l'aise qu'à Monza : ce qu'elles n'ont pas en appui, elles l'ont en adhérence.
+la Ferrari 312T gagne un point à Monza et au Mans et en perd presque deux à Interlagos, la Brabham
+et la Tyrrell se plaisent dans le sinueux de Zandvoort et d'Interlagos, et la 250 GTO comme la Type
+E, sans appui mais avec de l'adhérence, y sont plus à l'aise qu'à Monza, où la F40 et ses 368 km/h
+reprennent l'avantage.
 
 | F1 | pointe | 0-100 | 100-0 | g à 180 | caractère |
 | --- | --- | --- | --- | --- | --- |
-| Tyrrell P34 | 254 km/h | 3,14 s | 18,0 m | 2,35 | six roues : freinage et adhérence mécanique, peu de pointe |
-| Ferrari 312T | 278 | 2,95 | 19,2 | 2,43 | le flat-12 : la pointe et les reprises, un arrière à doser |
-| McLaren M23 | 269 | 3,04 | 19,2 | 2,49 | le compromis |
-| Lotus 79 | 266 | 3,23 | 19,2 | 2,90 | l'effet de sol : l'appui prend l'avantage avec la vitesse |
-| Lotus 72 | 260 | 2,91 | 18,7 | 2,24 | légère et vive, peu d'appui |
-| Brabham BT46B | 257 | 3,24 | 19,2 | 2,29 | le ventilateur : de l'adhérence dès l'arrêt, lourde |
-| Williams FW07 | 266 | 3,07 | 18,8 | 2,81 | effet de sol et motricité |
-| Ligier JS11 | 264 | 3,17 | 17,9 | 2,71 | effet de sol, le meilleur freinage |
-| Renault RS10 | 288 | 3,35 | 19,6 | 2,61 | le turbo : la plus rapide en ligne droite, paresseuse en sortie |
+| Tyrrell P34 | 290 km/h | 3,12 s | 18,0 m | 2,33 | six roues : freinage et adhérence mécanique, peu de pointe |
+| Ferrari 312T | 310 | 2,93 | 19,2 | 2,45 | le flat-12 : la pointe et les reprises, un arrière à doser |
+| McLaren M23 | 300 | 3,02 | 19,2 | 2,49 | le compromis |
+| Lotus 79 | 295 | 3,21 | 19,2 | 2,90 | l'effet de sol : l'appui prend l'avantage avec la vitesse |
+| Lotus 72 | 295 | 2,88 | 18,7 | 2,21 | légère et vive, peu d'appui |
+| Brabham BT46B | 292 | 3,21 | 19,2 | 2,28 | le ventilateur : de l'adhérence dès l'arrêt, lourde |
+| Williams FW07 | 300 | 3,05 | 18,8 | 2,80 | effet de sol et motricité |
+| Ligier JS11 | 298 | 3,14 | 17,9 | 2,70 | effet de sol, le meilleur freinage |
+| Renault RS10 | 315 | 3,34 | 19,6 | 2,59 | le turbo : la plus rapide en ligne droite, paresseuse en sortie |
 
 | GT | pointe | 0-100 | 100-0 | g à 180 | caractère |
 | --- | --- | --- | --- | --- | --- |
-| M1 Procar | 247 km/h | 3,38 s | 20,3 m | 1,73 | équilibrée et saine |
-| F40 | 265 | 3,18 | 20,9 | 1,87 | turbo et appui |
-| Countach | 260 | 3,25 | 21,9 | 1,72 | le V12 : pointe et reprises, freine long |
-| 911 Turbo | 249 | 3,29 | 20,9 | 1,78 | l'arrière qui pousse |
-| Corvette | 262 | 3,37 | 21,9 | 1,76 | le couple, et la glisse |
-| 3.0 CSL | 239 | 3,52 | 20,3 | 1,86 | la voiture de virages |
-| 250 GTO | 260 | 3,68 | 21,9 | 1,59 | pointe et douceur, presque pas d'appui |
-| Type E | 265 | 3,75 | 22,3 | 1,60 | le capot le plus long : de la pointe, peu de frein |
-| 240Z | 234 | 3,53 | 19,9 | 1,69 | légère, freine fort, peu de pointe |
+| M1 Procar | 310 km/h | 3,33 s | 20,3 m | 1,71 | équilibrée et saine |
+| F40 | 368 | 3,14 | 20,9 | 1,86 | turbo et appui |
+| Countach | 300 | 3,22 | 21,9 | 1,71 | le V12 : les reprises, et un freinage long |
+| 911 Turbo | 295 | 3,25 | 20,9 | 1,79 | l'arrière qui pousse |
+| Corvette | 346 | 3,32 | 21,9 | 1,76 | le couple, et la glisse |
+| 3.0 CSL | 270 | 3,49 | 20,3 | 1,86 | la voiture de virages |
+| 250 GTO | 282 | 3,66 | 21,9 | 1,59 | la douceur, presque pas d'appui |
+| Type E | 270 | 3,75 | 22,3 | 1,62 | le capot le plus long, peu de frein ni d'appui |
+| 240Z | 251 | 3,51 | 19,9 | 1,69 | légère, freine fort, peu de pointe |
 
 | Proto | pointe | 0-100 | 100-0 | g à 180 | caractère |
 | --- | --- | --- | --- | --- | --- |
-| GT40 Mk II | 296 km/h | 3,08 s | 20,6 m | 2,12 | le gros V8 : reprises, peu d'appui |
-| 935 | 299 | 3,29 | 21,0 | 2,29 | la silhouette du Groupe 5, la queue dehors |
-| 787B | 282 | 3,18 | 19,1 | 2,40 | appui et freinage |
-| Porsche 962 | 290 | 3,30 | 19,6 | 2,36 | la référence du Groupe C, stable |
-| XJR-9 | 304 | 3,43 | 20,8 | 2,34 | la pointe des Hunaudières, lourde |
-| 330 P4 | 270 | 3,15 | 19,3 | 2,04 | légère et vive, peu d'appui |
-| Ford P68 | 307 | 3,32 | 20,6 | 2,06 | la plus profilée : la pointe, et un arrière nerveux |
+| GT40 Mk II | 338 km/h | 3,06 s | 20,6 m | 2,13 | le gros V8 : reprises, peu d'appui |
+| 935 | 366 | 3,27 | 21,0 | 2,28 | la silhouette du Groupe 5, la queue dehors |
+| 787B | 350 | 3,15 | 19,1 | 2,38 | appui et freinage |
+| Porsche 962 | 350 | 3,27 | 19,6 | 2,36 | la référence du Groupe C, stable |
+| XJR-9 | 386 | 3,40 | 20,8 | 2,34 | la pointe des Hunaudières, lourde |
+| 330 P4 | 320 | 3,13 | 19,3 | 2,04 | légère et vive, peu d'appui |
+| Ford P68 | 349 | 3,31 | 20,6 | 2,06 | la plus profilée, et un arrière nerveux |
 
-**Comment c'est réglé.** Chaque voiture reçoit d'abord son caractère — pointe, accélération,
-freinage, appui, glisse — choisi à la main. Le rythme se règle ensuite sur **une seule** valeur,
+**Comment c'est réglé.** Chaque voiture a sa vraie vitesse de pointe (voir ci-dessous), puis un
+caractère — accélération, freinage, appui, glisse — choisi à la main. Le rythme se règle ensuite sur **une seule** valeur,
 l'adhérence mécanique, en boucle contre l'autopilote : c'est le levier qui agit partout, et le seul
 qui ne fausse pas le caractère. Deux constats de mesure ont décidé de ce choix. Ajouter de
 l'accélération **ralentit** les voitures qui glissent — +4 % de puissance coûte 2,8 % au tour à la
@@ -2390,6 +2391,52 @@ exigeantes, à sept degrés de dérive là où les F1 à effet de sol tiennent s
 l'a cassé : sur la version d'avant les catégories, son coup de lacet n'est déjà encaissé par presque
 aucune voiture (0,00 rad/s) et sa dérive sature à 34° pour la moitié du plateau. Ses pneus ne
 correspondaient d'ailleurs plus à ceux de `js/cars.js`. Il est laissé tel quel.
+
+### Les vraies vitesses de pointe
+
+Chaque voiture roule à **sa vraie vitesse de pointe**, sourcée : 386 km/h pour la XJR-9 aux
+Hunaudières en 1988, 368 pour la F40 LM, 366 pour la 935 « Moby Dick », 251 pour la 240Z de BRE.
+La `vmax` de base de chaque catégorie est celle de sa voiture la plus rapide, et le `mul.vmax` de
+chaque voiture le rapport de sa pointe à celle-là. L'ordre des pointes est celui de la réalité dans
+les trois catégories. `node tools/fiches.js` met le jeu et les fiches côte à côte.
+
+C'est le désaccord que la section [Et rien ne les comparait aux vraies voitures](#et-rien-ne-les-comparait-aux-vraies-voitures)
+laissait ouvert — « donner à chacune sa vraie pointe, c'est renoncer au plateau équilibré » — et il
+se dénoue pour deux raisons. Les catégories d'abord : une 240Z ne court plus contre une 787B. Et
+surtout, **aucune voiture n'approche sa pointe en piste** : les circuits du jeu sont plus courts que
+les vrais, et la plus longue ligne droite plafonne vers 290 km/h, atteints par la XJR-9 à Monza.
+La pointe s'y joue sur les reprises à haute vitesse — la poussée retombe en `1 − (v/vmax)^2,5`,
+donc une voiture taillée pour 386 tire encore fort à 250 — bien plus que sur le chiffre au
+compteur. Mesuré : avec les vraies pointes et avant toute retouche, chaque voiture restait à moins
+de 0,7 % de sa catégorie. Le réglage d'adhérence a repris ce qui restait ; au bout du compte, avec
+117 km/h de pointe en moins, la 240Z ne rend que 1,7 % à la F40 à Monza, et la lui reprend à
+Zandvoort.
+
+| | pointe en jeu | atteinte à Monza | atteinte au Mans |
+| --- | --- | --- | --- |
+| XJR-9 | 386 km/h | 291 | 264 |
+| F40 | 368 | 285 | 262 |
+| Renault RS10 | 315 | 275 | 256 |
+| 240Z | 251 | 237 | 227 |
+
+**Ce qui est sûr et ce qui ne l'est pas.** `tools/fiches.json` porte, pour chaque voiture, sa source
+et ce qu'elle vaut : *constructeur* (BMW pour la M1 Procar, Porsche pour la 935 et la 962, Ferrari
+pour la 250 GTO), *mesure* (une vitesse relevée en course et rapportée par la presse : la XJR-9, la
+Corvette Greenwood, la GT40), *secondaire* (un site spécialisé) ou *estimation*. Les F1 sont toutes
+des estimations : aucune pointe n'a pu être trouvée voiture par voiture pour ces années-là. Elles
+partent de l'ordre de grandeur des DFV, au-delà de 300 km/h selon le circuit, et de l'écart de 10 à
+15 km/h que la Renault turbo prenait aux autres au piège de Monza (Autosport). La 787B garde les
+350 km/h que Bruno avait relevés, Mazda ne publiant que sa moyenne de course.
+
+**Ce qui se règle sur la vitesse a dû suivre.** Le recul de la caméra et les couleurs du guide de
+freinage se lisent en fraction de la vitesse de pointe. Rapportés à 386 km/h qu'on n'atteint
+jamais, la caméra ne reculait plus jamais tout à fait et le guide ne passait jamais au vert. Ils se
+règlent maintenant sur `vitesseEcran` : la pointe de la voiture, plafonnée à ces 290 km/h que le jeu
+laisse atteindre. Une voiture rapide retrouve exactement ce qu'elle avait, une plus lente garde sa
+propre pointe. Un plafond par circuit aurait aussi marché, mais il aurait reculé la caméra à Monaco
+bien plus qu'avant, et ce n'était pas le sujet. Les cadrans du menu vont désormais jusqu'à
+400 km/h, et la longueur de course proposée ne se déduit plus de la `vmax` de base, qui ne dit plus
+rien du rythme.
 
 ### Les dessins des nouvelles voitures
 
@@ -2473,14 +2520,16 @@ Les neuf voitures tiennent dans 3,9 % au tour parce qu'on l'a voulu. Leurs vites
 s'étalent sur 12,6 % quand la réalité en demande bien davantage — un prototype du Mans contre une
 berline de tourisme des années soixante-dix. Donner à chacune sa vraie pointe, c'est renoncer au
 plateau équilibré ; garder le plateau, c'est afficher des chiffres qui ne sont pas ceux des voitures.
-C'est un choix de jeu, pas un réglage, et il appartient à Bruno.
+C'est un choix de jeu, pas un réglage, et il appartient à Bruno. *Il l'a fait avec les catégories :
+voir [Les vraies vitesses de pointe](#les-vraies-vitesses-de-pointe).*
 
 **Une valeur sans source n'est pas une valeur.** `tools/fiches.json` porte, pour chaque voiture, le
 chiffre, sa source et la configuration à laquelle il correspond — un prototype du Mans a une boîte
 courte et une longue, et sa pointe n'est pas la même. Ce qui n'est pas rempli s'affiche comme non
 vérifié plutôt que de se fondre dans le tableau. Au moment d'écrire, une seule ligne sur neuf est
 renseignée : Wikimedia limite le débit depuis cette machine, et inventer les huit autres de mémoire
-pour les présenter comme vérifiées serait exactement le contraire du travail demandé.
+pour les présenter comme vérifiées serait exactement le contraire du travail demandé. *Elles le sont
+toutes les vingt-cinq aujourd'hui, avec la fiabilité de chaque source.*
 
 ## Les cinq difficultés
 

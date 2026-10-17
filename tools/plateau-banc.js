@@ -65,15 +65,17 @@ const SIM = `(() => {
   const race = new Race({ trackDef: TRACKS.find(t => t.id === JOB.track), modelId: JOB.car, difficulty: 'medium',
                           playerAI: true, nCars: 1, mode: 'timetrial' });
   const p = race.player, hist = new Uint32Array(91);
+  let vMax = 0;
   while (p.lap < JOB.laps && race.time < 600) {
     race.update(race.dt, aiThrottle(p, race.cars, race.dt, { marginBase: JOB.marge, marginSpread: 0 }));
     if (race.state === 'racing' && p.v > 10) hist[Math.min(90, Math.floor(Math.abs(p.beta) * 180 / Math.PI))]++;
+    if (race.state === 'racing') vMax = Math.max(vMax, p.v);
   }
   // la dérive que la voiture atteint en roulant proprement, au 95e centile : ce qu'il faut rattraper
   let total = 0, cumul = 0, derive = 0;
   for (const h of hist) total += h;
   for (let i = 0; i < hist.length; i++) { cumul += hist[i]; if (cumul >= total * 0.95) { derive = i; break; } }
-  return { car: JOB.car, track: JOB.track, brut: p.bestLapBrut, propre: p.bestLap, sorties: p.crashes, tours: p.lap, derive };
+  return { car: JOB.car, track: JOB.track, brut: p.bestLapBrut, propre: p.bestLap, sorties: p.crashes, tours: p.lap, derive, kmh: vMax * 3.6 };
 })()`;
 
 if (!isMainThread) {
@@ -159,6 +161,15 @@ if (!isMainThread) {
       const sorties = {};
       for (const r of rows) sorties[r.car] = (sorties[r.car] || 0) + r.sorties;
       console.log('\nsorties par voiture : ' + modeles.map(m => `${m.id} ${sorties[m.id] || 0}`).join(', '));
+      // La pointe ATTEINTE, circuit par circuit, face à la pointe de la voiture : les circuits du
+      // jeu sont plus courts que les vrais, et une voiture du Mans n'y touche jamais sa vitesse de
+      // pointe. C'est ce que le joueur voit au compteur.
+      console.log('\npointe atteinte en piste (km/h), face à la pointe de la voiture :');
+      console.log('  voiture        pointe  ' + circuits.map(t => t.slice(0, 6).padStart(7)).join(''));
+      for (const m of modeles) {
+        const parC = circuits.map(t => { const r = rows.find(x => x.car === m.id && x.track === t); return r ? r.kmh : NaN; });
+        console.log('  ' + m.name.slice(0, 13).padEnd(14) + (m.vmax * 3.6).toFixed(0).padStart(6) + '  ' + parC.map(x => x.toFixed(0).padStart(7)).join(''));
+      }
       /* CE QU'UNE VOITURE COÛTE À PILOTER, et les pneus qu'on en tire.
 
       Deux mesures, prises dans les mêmes tours. LA DÉRIVE : l'angle de travers que la voiture

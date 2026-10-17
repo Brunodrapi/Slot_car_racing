@@ -22,10 +22,13 @@ moyenne des douze en faisait 10,1.
 Un circuit de l'éditeur garde le sien : là, c'est l'auteur qui décide, et il l'a écrit exprès. */
 const DISTANCE_COURSE = 11500;
 
+/* La `vmax` de base d'une catégorie est maintenant la vraie pointe de sa voiture la plus rapide,
+qu'aucune n'approche en piste : elle ne dit plus rien du rythme. On garde donc l'ancienne référence,
+celle du plateau unique, pour que la longueur proposée d'une course ne grimpe pas de moitié. */
+const VMAX_TOURS = 70;
 function lapsFor(trackDef, cat) {
-  const vmax = cat.base ? cat.base.vmax : cat.vmax;
   const tours = trackDef.laps || DISTANCE_COURSE / (trackDef.length || 3000);
-  return clamp(Math.round(tours * vmax / 80), 3, 8);
+  return clamp(Math.round(tours * VMAX_TOURS / 80), 3, 8);
 }
 
 const SAVE_KEY = 'slotracer.save.v2';

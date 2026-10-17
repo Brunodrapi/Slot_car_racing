@@ -1222,7 +1222,8 @@ class Renderer {
   updateCamera(race, dt) {
     const p = race.player, T = race.track, pos = p.pos;
     const h = T.headingAt(p.s);
-    const vf = Math.min(1, p.v / p.cls.vmax);
+    // rapportée à la pointe que le jeu laisse atteindre (`vitesseEcran`), pas à celle de la fiche
+    const vf = Math.min(1, p.v / vitesseEcran(p.cls));
     // Frame a fixed distance rather than a fixed area, so a portrait phone and a desktop window
     // show the same thing. Track-aligned: metres visible ahead, down the screen height.
     // Fixed north-up: metres across the shorter screen axis.
@@ -1230,8 +1231,9 @@ class Renderer {
     // Twenty metres at a standstill, fifty at the car's own top speed. The camera therefore does
     // most of the work the player used to do by hand: close enough on the grid to see the car,
     // and far enough at speed to see what is coming. It reads the speed as a fraction of THIS
-    // car's maximum, so a slow GT and a fast prototype both get the full range — which is also
-    // why the per-category zoom factor is gone, it was solving the same problem twice.
+    // car's maximum — capped at what the game lets anyone reach, see `vitesseEcran` — so a slow GT
+    // and a fast prototype both get the full range, which is also why the per-category zoom factor
+    // is gone.
     const near = this.rotate ? 30 : 20;
     const far = this.rotate ? 75 : 50;
     /* LES VUES EN AVANCE CADRENT PLUS LARGE, et c'est le levier principal — pas l'avance.
@@ -1780,7 +1782,8 @@ class Renderer {
   // where braking must start at the current speed. No driving lines are drawn on the road.
   _drawGuide(g, race) {
     const T = race.track, p = race.player;
-    const ahead = 240, step = 4, vmax = p.cls.vmax;
+    // le vert dit « plein gaz » : proche de la pointe qu'on atteint en jeu, pas de celle de la fiche
+    const ahead = 240, step = 4, vmax = vitesseEcran(p.cls);
 
     // selected line ahead, in three colour runs by reference speed
     const pt = (d) => { const i = T.idx(p.s + d), lat = T.targetLat(p.s + d, p.selS); return [T.xs[i] + T.nx[i] * lat, T.ys[i] + T.ny[i] * lat]; };

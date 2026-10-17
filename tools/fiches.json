@@ -1,20 +1,181 @@
 {
-  "_note": "Les caracteristiques REELLES des voitures, face a celles du jeu. Chaque valeur porte sa source ; une valeur sans source n'en est pas une. Rempli au fur et a mesure : `null` veut dire « pas encore verifie », et l'outil le dit au lieu de le cacher.",
-  "_attention": "Une vitesse de pointe depend de la configuration : un prototype du Mans a deux boites, une courte pour les circuits sinueux et une longue pour les Hunaudieres. Noter laquelle.",
+  "_note": "Les caracteristiques REELLES des voitures, face a celles du jeu. Chaque valeur porte sa source ; une valeur sans source n'en est pas une. `null` veut dire « pas encore verifie », et l'outil le dit au lieu de le cacher. `fiabilite` dit ce que vaut la source : 'constructeur' (fiche ou musee de la marque), 'mesure' (vitesse relevee en course, rapportee par la presse), 'secondaire' (site specialise, sans mesure d'origine), 'estimation' (aucune mesure publiee, valeur deduite et justifiee).",
+  "_attention": "Une vitesse de pointe depend de la configuration : un prototype du Mans a deux boites, une courte pour les circuits sinueux et une longue pour les Hunaudieres. Noter laquelle. Les chiffres du Mans d'avant 1990 sont pris sur la ligne droite sans chicanes.",
   "voitures": {
+    "renaultrs10": {
+      "nom": "Renault RS10",
+      "vmax_kmh": 315,
+      "fiabilite": "estimation",
+      "source": "aucune pointe publiee. Les DFV de 1978-1979 depassaient 300 km/h selon le circuit (Artcurial, Lotus 78, artcurial.com/en/sales/6604/lots/48-a) et la Renault passait 10 a 15 km/h plus vite au piege de Monza (Autosport, '1979: The turbo era dawns at Dijon', autosport.com/f1/news/1979-the-turbo-era-dawns-at-dijon-5053073/5053073/)",
+      "config": "Monza, aileron de course"
+    },
+    "ferrari312t": {
+      "nom": "Ferrari 312T",
+      "vmax_kmh": 310,
+      "fiabilite": "estimation",
+      "source": "aucune pointe publiee ; flat-12 de 500 ch contre 470 a 490 pour un DFV (supercars.net, 1975 Ferrari 312T), donc un peu au-dessus des 300 km/h du DFV",
+      "config": "Monza"
+    },
+    "mclarenm23": {
+      "nom": "McLaren M23",
+      "vmax_kmh": 300,
+      "fiabilite": "estimation",
+      "source": "aucune pointe publiee ; DFV, ordre de grandeur 300 km/h (Artcurial, Lotus 78)",
+      "config": "Monza"
+    },
+    "williamsfw07": {
+      "nom": "Williams FW07",
+      "vmax_kmh": 300,
+      "fiabilite": "estimation",
+      "source": "aucune pointe publiee ; DFV, ordre de grandeur 300 km/h (Artcurial, Lotus 78)",
+      "config": "Monza"
+    },
+    "ligierjs11": {
+      "nom": "Ligier JS11",
+      "vmax_kmh": 298,
+      "fiabilite": "estimation",
+      "source": "aucune pointe publiee ; DFV, effet de sol charge, un peu sous les 300 km/h",
+      "config": "Monza"
+    },
+    "lotus79": {
+      "nom": "Lotus 79",
+      "vmax_kmh": 295,
+      "fiabilite": "estimation",
+      "source": "aucune pointe publiee (le 332 km/h qui circule vient d'un jeu, iracing.fandom.com) ; DFV de 475 ch (en.wikipedia.org/wiki/Lotus_79), effet de sol au prix de la trainee",
+      "config": "Monza"
+    },
+    "lotus72": {
+      "nom": "Lotus 72",
+      "vmax_kmh": 295,
+      "fiabilite": "estimation",
+      "source": "aucune pointe publiee ; DFV, coin profile, moins d'appui que les voitures a effet de sol",
+      "config": "Monza"
+    },
+    "brabhambt46b": {
+      "nom": "Brabham BT46B",
+      "vmax_kmh": 292,
+      "fiabilite": "estimation",
+      "source": "aucune pointe publiee ; flat-12 Alfa Romeo, dont une part de la puissance entraine le ventilateur",
+      "config": "Anderstorp 1978"
+    },
+    "tyrrellp34": {
+      "nom": "Tyrrell P34",
+      "vmax_kmh": 290,
+      "fiabilite": "estimation",
+      "source": "aucune pointe publiee ; DFV, la plus lente en ligne droite des voitures de ce plateau",
+      "config": null
+    },
+    "f40": {
+      "nom": "Ferrari F40 LM",
+      "vmax_kmh": 368,
+      "fiabilite": "secondaire",
+      "source": "368,5 km/h (fr.motor1.com/news/314608/ferrari-f40-lm-replica-v8-lexus/), 368 km/h (modelcarsdb.com) ; la routiere fait 324 (topgear.nl/ferrari/f40)",
+      "config": "version course Michelotto, pas la routiere"
+    },
+    "corvette": {
+      "nom": "Chevrolet Corvette Greenwood « Spirit of Le Mans »",
+      "vmax_kmh": 346,
+      "fiabilite": "mesure",
+      "source": "215 mph dans les Hunaudieres en course, Le Mans 1976 (IMSA, imsa.com/news/2021/03/12/all-american-1976-imsa-corvette-lands-at-motorsports-hall-of-fame-of-america/) ; le Petersen cite 222 mph, estime (petersen.org)",
+      "config": "Le Mans 1976, boite longue"
+    },
+    "m1procar": {
+      "nom": "BMW M1 Procar",
+      "vmax_kmh": 310,
+      "fiabilite": "constructeur",
+      "source": "BMW Group, dossier de presse (press.bmwgroup.com, T0261151EN_GB) : 470 ch, 310 km/h",
+      "config": "Procar 1979-1980"
+    },
+    "countach": {
+      "nom": "Lamborghini Countach LP500",
+      "vmax_kmh": 300,
+      "fiabilite": "secondaire",
+      "source": "300 km/h annonces pour le prototype de 1971 (lambocars.com, comparing the classic countach) ; aucun essai independant",
+      "config": "prototype LP500"
+    },
+    "930": {
+      "nom": "Porsche 911 Turbo (934, Groupe 4)",
+      "vmax_kmh": 295,
+      "fiabilite": "secondaire",
+      "source": "pres de 300 km/h (en.wikipedia.org/wiki/Porsche_934), pres de 290 (Spark) : 295",
+      "config": "livrees Kremer 934, donc en version course"
+    },
+    "250gto": {
+      "nom": "Ferrari 250 GTO",
+      "vmax_kmh": 282,
+      "fiabilite": "constructeur",
+      "source": "Ferrari, 'The most celebrated car ever made' (ferrari.com/magazine/articles/the-most-celebrated-car-ever-made) : 282 km/h — le meme article ecrit aussi 252 plus loin ; les sites specialises donnent 255 a 280",
+      "config": null
+    },
+    "typee": {
+      "nom": "Jaguar Type E Lightweight",
+      "vmax_kmh": 270,
+      "fiabilite": "secondaire",
+      "source": "168 mph dans les Hunaudieres au Mans 1964 pour 49 FXN (Lumsden et Sargent), d'apres la presentation d'un livre consacre a cette voiture ; Jaguar annoncait 150 mph pour la routiere (en.wikipedia.org/wiki/Jaguar_E-Type)",
+      "config": "Le Mans 1964"
+    },
+    "csl": {
+      "nom": "BMW 3.0 CSL",
+      "vmax_kmh": 270,
+      "fiabilite": "constructeur",
+      "source": "BMW Group Classic : 270 km/h pour le CSL de course de 1974 (bmwgroup-classic.com, museum/touring-cars/3-0-csl) ; la routiere fait 220",
+      "config": "3.5 CSL de course, IMSA 1974"
+    },
+    "240z": {
+      "nom": "Datsun 240Z BRE",
+      "vmax_kmh": 251,
+      "fiabilite": "secondaire",
+      "source": "156 mph releves en course par son copilote, Daytona (zcarblog.com, BRE #46)",
+      "config": "Daytona"
+    },
+    "xjr9": {
+      "nom": "Jaguar XJR-9 LM",
+      "vmax_kmh": 386,
+      "fiabilite": "mesure",
+      "source": "240 mph dans les Hunaudieres, Le Mans 1988 (Motor Sport, 'Jaguar's finest day', motorsportmagazine.com/archive/article/july-1988/10/jaguars-finest-day/)",
+      "config": "Le Mans 1988, sans chicanes"
+    },
+    "935": {
+      "nom": "Porsche 935/78 « Moby Dick »",
+      "vmax_kmh": 366,
+      "fiabilite": "constructeur",
+      "source": "Porsche, dossier du musee : 366 km/h dans les Hunaudieres en 1978 (media.porsche.com, 93578-coup-moby-dick)",
+      "config": "Le Mans 1978"
+    },
+    "962": {
+      "nom": "Porsche 962 C",
+      "vmax_kmh": 350,
+      "fiabilite": "constructeur",
+      "source": "Porsche, musee : 962 C Le Mans 1987, 350 km/h (presskit.porsche.de/museum/en/2019/topic/exhibitions/cars/porsche-962-c-le-mans-1987.html)",
+      "config": "Le Mans 1987"
+    },
     "787b": {
       "nom": "Mazda 787B",
       "vmax_kmh": 350,
-      "source": "fr.wikipedia.org/wiki/Mazda_787B — rapporte par Bruno, non revalide (Wikimedia limite cette IP)",
-      "config": "a preciser : configuration Le Mans 1991 ?"
+      "fiabilite": "secondaire",
+      "source": "fr.wikipedia.org/wiki/Mazda_787B — rapporte par Bruno ; non revalide, Mazda ne publie que la moyenne de course (205 km/h)",
+      "config": "Le Mans 1991, avec chicanes"
     },
-    "m1procar": { "nom": "BMW M1 Procar", "vmax_kmh": null, "source": null, "config": null },
-    "f40": { "nom": "Ferrari F40 LM", "vmax_kmh": null, "source": null, "config": "version course Michelotto, pas la routiere" },
-    "countach": { "nom": "Lamborghini Countach LP500", "vmax_kmh": null, "source": null, "config": "version piste, pas la routiere" },
-    "930": { "nom": "Porsche 911 Turbo", "vmax_kmh": null, "source": null, "config": "livrees Kremer 934/935, donc en version course" },
-    "gt40": { "nom": "Ford GT40 Mk II", "vmax_kmh": null, "source": null, "config": null },
-    "935": { "nom": "Porsche 935", "vmax_kmh": null, "source": null, "config": null },
-    "corvette": { "nom": "Chevrolet Corvette", "vmax_kmh": null, "source": null, "config": null },
-    "csl": { "nom": "BMW 3.0 CSL", "vmax_kmh": null, "source": null, "config": null }
+    "p68": {
+      "nom": "Ford P68 (F3L)",
+      "vmax_kmh": 349,
+      "fiabilite": "secondaire",
+      "source": "217 mph, fiche technique (supercars.net, 1968 Ford F3L) ; Autosport 1968 n'avancait que « plus de 200 mph »",
+      "config": null
+    },
+    "gt40": {
+      "nom": "Ford GT40 Mk II",
+      "vmax_kmh": 338,
+      "fiabilite": "mesure",
+      "source": "210 mph dans les Hunaudieres (supercars.net, 1966 Ford GT40 Mark II) ; 203 mph lors d'un essai",
+      "config": "Le Mans 1966"
+    },
+    "330p4": {
+      "nom": "Ferrari 330 P4",
+      "vmax_kmh": 320,
+      "fiabilite": "secondaire",
+      "source": "320 km/h (conceptcarz.com, carrozzieri-italiani.com)",
+      "config": "1967"
+    }
   }
 }
