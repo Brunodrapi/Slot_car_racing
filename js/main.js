@@ -230,7 +230,7 @@ class App {
       if (e.repeat) { if (this.state === 'race') e.preventDefault(); return; }
       if (this.leaveSplash()) return;
       if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { this.togglePause(); return; }
-      if (this.state !== 'race') return;
+      if (this.state !== 'race' || this.spectator) return;
       e.preventDefault();
       if (e.key === 'g' || e.key === 'G') { this.renderer.debug = !this.renderer.debug; this.save.debug = this.renderer.debug; storeSave(this.save); return; }
       if (LINE_DOWN.includes(e.key)) { stepSel(-1); return; }
@@ -264,7 +264,7 @@ class App {
 
     const c = this.canvas;
     c.addEventListener('pointerdown', (e) => {
-      if (this.state !== 'race') return;
+      if (this.state !== 'race' || this.spectator) return;
       e.preventDefault();
       const touch = e.pointerType === 'touch';
       if (touch) this.renderer.touch = true;
@@ -323,6 +323,7 @@ class App {
 
   // ---------- flow ----------
   toMenu() {
+    this.spectator?.close(); this.spectator = null;
     this.analytics.finish('abandoned');
     this.resetInput();
     if (this.net) this.net.leave();
@@ -380,7 +381,7 @@ class App {
   startOnline(cfg) {
     const trackDef = this.trackDefById(cfg.trackId);
     if (!trackDef) return;
-    const mine = cfg.humans.find(h => h.local) || {};
+    const mine = cfg.humans.find(h => h.local) || (cfg.spectator ? cfg.humans[0] : null) || {};
     const cat = mine.modelId ? categoryOfModel(mine.modelId) : categoryById(this.ui.setup.classId);
     /* L'IA de la table : la catégorie imposée, ou celle de l'hôte quand la table est ouverte à toutes.
 
@@ -408,17 +409,20 @@ class App {
       playerLivery: mine.livery || 0,
       playerLivree: this.playerLivreeFor(mine.modelId || this.playerModelFor(cat.id).id),
       playerName: mine.name || this.playerName(),
+      spectator: cfg.spectator,
       humans: cfg.humans,
       roster,
-    }, { cup: null, mode: 'race', classId: cat.id, trackId: cfg.trackId, online: cfg.mode });
+    }, { cup: null, mode: 'race', classId: cat.id, trackId: cfg.trackId, online: cfg.mode, spectator: cfg.spectator });
   }
 
   _startRace(opts, ctx) {
     this.raceOpts = opts;
     this.raceCtx = ctx;
+    this.spectator?.close();
     this.race = new Race(opts);
+    if (ctx?.online) this.race.broadcast = new RaceBroadcast(this.race);
     const livreeCount = modelById(opts.modelId)?.livrees?.length || 1;
-    this.analytics.begin(this.race, { track: opts.trackDef.id, car: opts.modelId,
+    if (!opts.spectator) this.analytics.begin(this.race, { track: opts.trackDef.id, car: opts.modelId,
       category: opts.classId, livery: ((Math.round(opts.playerLivree) || 0) % livreeCount + livreeCount) % livreeCount,
       mode: opts.reglage ? 'tuning' : ctx?.online ? 'multiplayer' : opts.mode === 'timetrial' ? 'timetrial' : 'race',
       control: this.desktop ? this.save.desktopControl : 'touch' });
@@ -444,6 +448,7 @@ class App {
     this.pointers.throttle = this.pointers.slider = null;
     this.ui.hide();
     this.ui.flash = null;
+    this.spectator = opts.spectator ? new SpectatorView(this) : null;
     this.last = performance.now();
   }
 
@@ -451,6 +456,7 @@ class App {
 
   /** Leaves the race but keeps the table open, so the same people can line up again. */
   toLobby() {
+    this.spectator?.close(); this.spectator = null;
     this.analytics.finish('abandoned');
     this.resetInput();
     if (this.net) this.net.backToLobby();
@@ -474,6 +480,7 @@ class App {
   }
 
   togglePause() {
+    if (this.spectator && this.state === 'race') { this.spectator.root.classList.toggle('timing-hidden'); return; }
     if (this.state === 'race') {
       this.state = 'paused';
       this.resetInput();
@@ -525,6 +532,8 @@ class App {
     const race = this.race, ctx = this.raceCtx || {};
     this.state = 'results';
     this.audio.idle();
+    this.spectator?.close();
+    if (ctx.spectator) { this.ui.resultsScreen(race, ctx); return; }
     const save = this.save;
     /* Deux clés pour un même tour : le circuit, et le circuit avec la voiture.
 
@@ -592,7 +601,7 @@ class App {
       save.cups[ctx.cup.id] = cs;
     }
     storeSave(save);
-    this.ui.resultsScreen(race, { cup: ctx.cup, newRecord });
+    this.ui.resultsScreen(race, { ...ctx, newRecord });
   }
 
   // ---------- loop ----------
@@ -659,7 +668,7 @@ class App {
         for (const pulse of this.throttlePulses.take(now - dt * 1000, now, this.input.throttle)) {
           race.update(pulse.dt, { ...this.input, throttle: pulse.throttle });
         }
-        if (online) net.hostTick(race);
+        if (online) { race.broadcast?.sample(race); net.hostTick(race); }
       } else {
         this.throttlePulses.reset(this.input.throttle);
         // A guest runs no physics at all: it posts its two numbers, takes the host's picture of
@@ -667,7 +676,7 @@ class App {
         net.guestTick(race, this.input);
         race.extrapolate(dt);
         // Le paquet d'état garde ses drapeaux binaires ; le son local connaît notre dosage exact.
-        race.player.throttle = race.player.engineStopped ? 0 : throttleAmount(this.input.throttle);
+        if (!this.spectator) race.player.throttle = race.player.engineStopped ? 0 : throttleAmount(this.input.throttle);
         // Say so rather than pretending: after a couple of seconds with nothing from the host,
         // what is on screen is no longer the race, it is the last picture of it carried forward.
         const quiet = net.silence();
@@ -675,12 +684,14 @@ class App {
       }
       this._handleEvents(race);
       this.analytics.observe(race, elapsed, !document.hidden, this.desktop ? this.save.desktopControl : 'touch');
-      this.renderer.updateCamera(race, dt);
+      if (this.spectator) this.spectator.update(dt);
+      else this.renderer.updateCamera(race, dt);
       this.renderer.addEffects(race, dt);
       if (this.renderer.shake > 0) this.renderer.shake = Math.max(0, this.renderer.shake - dt * 2);
-      this.audio.update(race.player, race.state !== 'countdown');
+      this.audio.update(this.spectator ? race.cars[this.spectator.index] || race.player : race.player, race.state !== 'countdown');
       if (race.state === 'finished') this._onRaceFinished();
     }
+    if (this.state === 'results' && this.net?.isHost() && this.net.state === 'playing') this.net.hostTick(race);
     if (this.state === 'race' || this.state === 'paused' || this.state === 'results') this.renderer.draw(race, this.ui);
   }
 

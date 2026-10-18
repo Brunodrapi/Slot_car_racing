@@ -896,7 +896,7 @@ class UI {
         <div class="row wrap">
           <button class="big primary" data-action="netCreate" ${net.busy ? 'disabled' : ''}>${t('createTable')}</button>
           <label>${t('tableCode')}<input id="inp-code" maxlength="4" size="5" autocapitalize="characters" placeholder="ABCD"></label>
-          <button class="big" data-action="netJoin" ${net.busy ? 'disabled' : ''}>${t('joinTable')}</button>
+          <button class="big" data-action="netJoin" ${net.busy ? 'disabled' : ''}>${t('joinTable')}</button><button class="big" data-action="netWatch" ${net.busy ? 'disabled' : ''}>${this.lang === 'en' ? 'Watch' : 'Regarder'}</button>
         </div>
         ${net.busy ? `<p class="muted">${t('netWait')}</p>` : ''}
       `, 'center');
@@ -926,14 +926,15 @@ class UI {
     this.show(`
       <div class="topbar"><button data-action="netLeave">← ${t('leaveTable')}</button><h2>${t('yourTable')} <b class="code">${escapeHtml(net.code)}</b></h2></div>
       ${net.error ? `<p class="warn">${escapeHtml(net.error)}</p>` : ''}
-      <h3>${t('players')} <span class="muted">${list.length}/${NET_SEATS}</span></h3>
+      <h3>${t('players')} <span class="muted">${list.filter(m => !m.q.spectator).length}/${NET_SEATS} · ${list.filter(m => m.q.spectator).length} spectateurs</span></h3>
       <div class="grid players">
         ${list.map((m, i) => `<div class="card ${m.isMe ? 'sel' : ''}">
           <b>${escapeHtml(m.name)}</b>
           <small>${i === 0 ? t('host') : ''}${i === 0 && m.isMe ? ' · ' : ''}${m.isMe ? t('you') : ''}</small>
-          <small class="${m.ready ? 'ok' : 'muted'}">${m.ready ? '✓ ' + t('ready') : t('waiting')}</small>
+          <small class="${m.ready ? 'ok' : 'muted'}">${m.q.spectator ? 'Spectateur' : m.ready ? '✓ ' + t('ready') : t('waiting')}</small>
         </div>`).join('')}
       </div>
+      ${!net.creator ? `<button data-action="netRole">${net.mine.spectator ? 'Devenir pilote' : 'Devenir spectateur'}</button>` : ''}
       <h3>${t('mFormat')}</h3>
       <div class="seg">${NET_MODES.map(m => `<button class="${cfg.mode === m ? 'sel' : ''}" data-action="netMode" data-id="${m}" ${net.creator ? '' : 'disabled'}>${t({ race: 'mRace', duel: 'mDuel', ghost: 'mGhost' }[m])}</button>`).join('')}</div>
       <p class="muted">${t(modeDesc)}</p>
@@ -949,7 +950,7 @@ class UI {
           ${this.repereLivree(m, app.playerLivreeFor(m.id))}${this.tyres(m)}</button>`).join(''))}
       <div class="row end">
         <span class="muted">${trackDef ? `${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ` : ''}${escapeHtml(model.name)}</span>
-        <button class="${net.mine.ready ? '' : 'primary'}" data-action="netReady">${net.mine.ready ? t('notReady') : t('ready')}</button>
+        <button class="${net.mine.ready ? '' : 'primary'}" data-action="netReady" ${net.mine.spectator ? 'disabled' : ''}>${net.mine.ready ? t('notReady') : t('ready')}</button>
         ${net.creator ? `<button class="big primary" data-action="netStart" ${net.canStart() ? '' : 'disabled'}>${t('start')}</button>` : `<span class="muted">${t('startWhenReady')}</span>`}
       </div>
     `, 'scroll', 'salon');
@@ -1050,8 +1051,9 @@ class UI {
     const motPen = mienne && mienne.penalite > 0
       ? `<p class="warn">${t('penaltyWhy', mienne.fautes, mienne.penalite.toFixed(1))}</p>` : '';
     this.show(`
-      ${head}
+      ${ctx.spectator ? `<h2>Résultats · ${escapeHtml(race.track.name)}</h2>` : head}
       <div class="cols"><div>${table}${motPen}</div>${cupPart}</div>
+      ${ctx.online && race.broadcast ? race.broadcast.html(race) : ''}
       <div class="row end">
         <button data-action="menu">${t('menu')}</button>
         ${ctx.online ? `<button class="big primary" data-action="toLobby">${t('backToTable')}</button>` : ctx.cup ? (cupState(this.app.save, ctx.cup.id).done ? `<button class="big primary" data-action="cup" data-id="${ctx.cup.id}">${t('standings')}</button>` : `<button data-action="retryRace">${t('retry')}</button><button class="big primary" data-action="startCup" data-id="${ctx.cup.id}">${t('nextRace')}</button>`) : `<button data-action="setup" data-mode="${race.mode}">${t('back')}</button><button class="big primary" data-action="retryRace">${t('retry')}</button>`}
@@ -1239,6 +1241,8 @@ class UI {
       case 'multi': app.state = 'lobby'; this.lobbyScreen(); break;
       case 'netCreate': this._netOpen(true); break;
       case 'netJoin': this._netOpen(false); break;
+      case 'netWatch': this._netOpen(false, true); break;
+      case 'netRole': app.net.setMine({ spectator: !app.net.mine.spectator, ready: false }); app.net.pump(); break;
       case 'netLeave': app.toMenu(); break;
       case 'netMode': app.net.setTable({ mode: id }); break;
       case 'netTrack': app.net.setTable({ trackId: id, laps: lapsFor(app.trackDefById(id), categoryById(this.setup.classId)) }); break;
@@ -1295,13 +1299,13 @@ class UI {
     this.app.net.setMine({ ready: !!v });
   }
 
-  async _netOpen(asHost) {
+  async _netOpen(asHost, spectator = false) {
     const app = this.app;
     const code = asHost ? null : (document.getElementById('inp-code') || {}).value;
     this.lobbyScreen();                                  // redraw at once, to show it is working
-    const ok = await app.net.open(app.playerName(), asHost, code);
+    const ok = await app.net.open(app.playerName(), asHost, code, spectator);
     if (ok) { this._netCar(); this._netReady(false); }
-    this.lobbyScreen();
+    if (app.state === 'lobby') this.lobbyScreen();
   }
 
   /* Le nettoyage à la frappe, sur les deux champs de nom.

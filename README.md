@@ -17,6 +17,14 @@ Fonctionne sur ordinateur (clavier, molette ou manette Xbox) et sur mobile/table
 à ajouter à l'écran d'accueil). Le PC dispose de menus en paysage. Les menus mobiles gardent leur
 présentation portrait ; **la course accepte le portrait et le paysage**, en tournant l'appareil.
 
+### Spectateurs multijoueurs
+
+Rejoindre un salon avec **Regarder**, avant le départ ou pendant la course. Cinq vues sont
+proposées : réalisateur automatique, suivi pilote, circuit complet, caméras fixes et duel.
+Le tableau affiche les chronos et les écarts (estimés en course, chronométrés à l’arrivée).
+Un bilan partagé détaille les tours, la régularité, les positions, les vitesses maximales et les
+sorties de piste. [Commandes, méthode et captures de test](docs/spectateur/README.md).
+
 ### Contrôles
 
 Sur PC, choisir **Accélérateur PC** depuis le menu, la préparation, les réglages ou la pause.

@@ -72,14 +72,15 @@ class Net {
 
   /* ---------------------------------------------------------------------------- the table */
 
-  async open(name, asHost, code) {
+  async open(name, asHost, code, spectator = false) {
     this.busy = true; this.error = null;
     try {
       this.room = new RoomRTC();
       this.code = asHost ? netCode() : String(code || '').toUpperCase().trim();
       if (!asHost && !/^[A-Z0-9]{4}$/.test(this.code)) throw new Error('code à quatre lettres');
       this.creator = !!asHost;
-      this.mine = { pid: this.pid, name: name || 'Pilote', car: null, ready: false };
+      this.completedGo = 0;
+      this.mine = { pid: this.pid, name: name || 'Pilote', car: null, ready: false, spectator: !asHost && spectator };
       this.room.onPeers(() => { this.peers = this.room.peers(); this.pump(); });
       await this.room.claim(this.code, asHost);
       this.state = 'lobby';
@@ -129,7 +130,7 @@ class Net {
     attrapé immédiatement. Passé ce délai, plus personne n'en a besoin à chaque image, et le
     rappel d'une fois par seconde suffit à rattraper un retardataire. */
     const course = this.state === 'playing' && performance.now() - (this.playingAt || 0) > 2000;
-    const complet = !course || (this.postN = (this.postN || 0) + 1) % NET_HZ === 0;
+    const complet = !course || this.sentState === 'finished' || (this.postN = (this.postN || 0) + 1) % NET_HZ === 0;
     const p = Object.assign({}, this.mine, extra || {});
     if (complet) {
       if (this.creator) p.t = this.table;          // only the host's copy of the settings counts
@@ -146,9 +147,10 @@ class Net {
 
       L'identifiant reste : c'est à lui qu'on reconnaît un pair, et sans lui il disparaîtrait de la
       table à l'instant même. */
-      p.t = null; p.gr = null; p.name = null; p.car = null; p.ready = null;
+      p.t = null; p.gr = null; p.report = null; p.name = null; p.car = null; p.ready = null;
       p.ch = this.mine.ch;        // l'état de chargement reste : la barrière s'appuie dessus
     }
+    if (extra && extra.report) p.report = extra.report;
     return this.room.presence(p);
   }
 
@@ -168,14 +170,14 @@ class Net {
     out.sort((a, b) => (label(a) < label(b) ? -1 : 1));
     // Un pilote sans nom en reçoit un d'après sa place. Deux « Pilote » identiques à l'écran se
     // lisent comme deux fois soi-même, ce qui est exactement la confusion qu'on veut éviter.
-    const fin = out.slice(0, NET_SEATS);
+    const fin = out;
     fin.forEach((m, i) => { if (!m.name) m.name = 'Pilote ' + (i + 1); });
     return fin;
   }
 
   settings() {
     if (this.creator) return this.table;
-    for (const p of this.peers) { const t = (p.presence || {}).t; if (t) return t; }
+    for (const p of this.peers) { const t = (p.presence || {}).t; if (t) { this.table = t; return t; } }
     return this.table;
   }
 
@@ -193,7 +195,7 @@ class Net {
   }
 
   canStart() {
-    const m = this.members();
+    const m = this.members().filter(x => !x.q.spectator).slice(0, NET_SEATS);
     const t = this.settings(), need = t.mode === 'duel' ? 2 : 2;
     /* Une table réservée à une catégorie ne part qu'avec des voitures de celle-ci. Chaque écran
     change la sienne de lui-même en voyant la consigne, mais il y a un instant où sa présence porte
@@ -240,10 +242,10 @@ class Net {
     this.onPeers();
     if (this.state !== 'lobby') return;
     const t = this.settings();
-    if (!t.go) return;
+    if (!t.go || t.go === this.completedGo) return;
     let grid;
     if (this.creator) {
-      const m = this.members();
+      const m = this.members().filter(x => !x.q.spectator).slice(0, NET_SEATS);
       if (m.length < 2) return;
       // `l` : la livrée choisie. Elle voyage avec le modèle, sinon chaque écran dessine la voiture
       // d'un autre dans la peinture qu'il a lui-même choisie.
@@ -255,7 +257,7 @@ class Net {
     }
     const roster = grid.map(x => x.p);
     const seat = roster.indexOf(this.pid);
-    if (seat < 0) return;                        // pas encore dedans : on attend le prochain envoi
+    if (seat < 0 && !this.mine.spectator) return;                        // pas encore dedans : on attend le prochain envoi
     this.grid = grid;
     this.roster = roster;
     this.seat = seat;
@@ -277,7 +279,7 @@ class Net {
     this.post();
     this.onStart({
       mode: t.mode, trackId: t.trackId, laps: t.laps, difficulty: t.difficulty,
-      cat: t.cat || 'all', go: t.go,
+      cat: t.cat || 'all', go: t.go, spectator: !!this.mine.spectator,
       // Personne ne choisit sa couleur : la place la donne. L'ordre étant celui de l'hôte, il est
       // le même sur tous les écrans, et chacun sait qui est qui sans qu'un mot passe sur le fil.
       humans: grid.map((g, i) => ({
@@ -293,6 +295,7 @@ class Net {
   /** Back to the lobby after the flag, keeping the table open. */
   backToLobby() {
     if (this.state !== 'playing') return;
+    this.completedGo = this.settings().go;
     this.state = 'lobby';
     if (this.room) this.room.relayer = true;      // le salon a de nouveau besoin de voir tout le monde
     this.grid = null;
@@ -300,7 +303,7 @@ class Net {
     this.seat = -1;
     if (this.creator) this.table.go = 0;
     this.mine.ready = false;
-    this.post();
+    this.post({ s: null, report: null });
     this.onPeers();
   }
 
@@ -327,7 +330,8 @@ class Net {
         brake: q.i.length >= 4 ? throttleAmount(q.i[2]) : null, engineBrake: q.i.length >= 4 ? throttleAmount(q.i[3]) : null };
     }
     const now = performance.now();
-    if (now - this.sentAtMs < 1000 / NET_HZ) return;
+    if (race.state === this.sentState && now - this.sentAtMs < (race.state === 'finished' ? 1000 : 1000 / NET_HZ)) return;
+    this.sentState = race.state;
     this.sentAtMs = now;
     /* L'instantané part en octets, pas en texte.
 
@@ -344,13 +348,17 @@ class Net {
     avec les fautes et les pénalités d'avant — mesuré : zéro seconde de pénalité là où l'hôte en
     comptait 3,5. Quatorze chances sur quinze de se tromper, sur la seule image qui compte. */
     const lent = race.state === 'racing' ? undefined : true;
-    this.post({ s: pqEncode(race.snapshot(++this.seq), race.track, lent) });
+    const reportDue = now - (this.reportAt || 0) > 1000 || race.state === 'finished';
+    if (reportDue) this.reportAt = now;
+    this.post({ s: pqEncode(race.snapshot(++this.seq), race.track, lent),
+      report: reportDue && race.broadcast ? race.broadcast.packet(race) : null });
   }
 
   /** A guest: publish my two numbers, apply the newest state received. Once per frame. */
   guestTick(race, input) {
     if (!this.room || this.isHost()) return;
-    const host = this.members()[0];
+    const host = this.members().find(m => m.pid === this.roster?.[0]);
+    if (host?.q.report && race.broadcast) race.broadcast.receive(host.q.report, race);
     const brut = host && host.q && host.q.s;
     /* On accepte les deux formes : un tableau comme avant, des octets désormais.
 
@@ -367,6 +375,11 @@ class Net {
     // let through only when it comes from far behind, which means a fresh race has started.
     if (snap && (snap[0] > this.lastSeq || snap[0] < this.lastSeq - 120)) {
       if (race.applySnapshot(snap)) { this.lastSeq = snap[0]; this.snapAt = performance.now(); }
+    }
+    if (this.mine.spectator) {
+      const now = performance.now();
+      if (now - this.sentAtMs > 1000) { this.sentAtMs = now; this.post({ i: null }); }
+      return;
     }
     const i = [Math.round(throttleAmount(input.throttle) * 1000) / 1000, Math.round(clamp(input.sel || 0, -1, 1) * 100)];
     if (input.brake != null) i.push(Math.round(throttleAmount(input.brake) * 1000) / 1000, throttleAmount(input.engineBrake));

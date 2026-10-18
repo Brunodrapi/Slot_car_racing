@@ -492,3 +492,9 @@ body.desktop .screen.overlay { overflow-y: auto; justify-content: safe center; }
    configuration ne vaut que là où elle a été enregistrée. */
 .reg-ici { font-size: 13px; white-space: nowrap; }
 .reglage-pause .petite { font-size: 12px; opacity: 0.8; }
+
+.spectator-panel{position:fixed;z-index:30;top:8px;left:8px;max-width:calc(100vw - 16px);padding:8px;background:#171c21ed;color:#eee;border:1px solid #c7a553;border-radius:8px;font-size:12px}
+.spectator-controls{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.spectator-panel button,.spectator-panel select{font-size:12px;padding:5px;min-height:32px}
+.spectator-timing{max-height:40vh;overflow:auto}.spectator-timing p{margin:6px 0}.spectator-timing table{border-collapse:collapse;white-space:nowrap}.spectator-timing td,.spectator-timing th{padding:3px 6px;text-align:left}.timing-hidden .spectator-timing{display:none}
+.table-scroll{overflow-x:auto;max-width:100%}.race-analysis{margin:20px 0}.race-analysis svg{width:100%;max-height:320px;background:#1c2429}.race-analysis summary{cursor:pointer;padding:12px}

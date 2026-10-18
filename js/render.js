@@ -1777,7 +1777,8 @@ class Renderer {
     hud.setTransform(1, 0, 0, 1, 0, 0);
     hud.clearRect(0, 0, this.hudCanvas.width, this.hudCanvas.height);
     hud.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    this._drawHUD(hud, race, ui);
+    if (!race.opts.spectator) this._drawHUD(hud, race, ui);
+    else ui.app.spectator?.drawMap(hud, race);
   }
 
   // Optional braking guide (off by default): the ribbon ahead is coloured by the reference speed
