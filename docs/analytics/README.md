@@ -5,14 +5,27 @@ Accès **public sans connexion**, également proposé dans les réglages du jeu.
 Seuls des agrégats sont publiés : aucune identité, aucun identifiant technique de visiteur/session/
 course, aucun journal de parties ni temps individuel. Les événements bruts restent protégés en base.
 
-## Ce qui est prêt, ce qui doit être activé
+## Installation
 
 La page, les graphiques, la collecte dans le jeu et la migration SQL sont intégrés à la branche
-hybrid. **L’accès de gestion Supabase n’était pas disponible dans l’environnement de développement :
-la migration n’y a pas été exécutée sur le projet en ligne.** Tant qu’elle n’est pas installée,
-aucune nouvelle statistique ne peut être enregistrée sur le serveur. Le jeu continue normalement.
+hybrid. **La migration est installée sur le projet en ligne depuis le 18 octobre 2026**, par
+`node tools/deploie-analytics.js`, après les deux vérifications ci-dessous (PostgreSQL embarqué et
+Chromium). Contrôlé ensuite sur la base réelle, avec la seule clé publiable et sans y écrire de
+fausse mesure :
 
-Activation par le propriétaire, sans nouveau service payant :
+| Contrôle | Attendu | Obtenu |
+| --- | --- | --- |
+| `analytics_report` sans connexion | agrégats seuls | HTTP 200, aucun événement encore reçu |
+| lecture directe de `analytics_events` | refusée | HTTP 401 |
+| écriture directe dans `analytics_events` | refusée | HTTP 401 |
+| `analytics_ingest` avec un lot invalide | refusé, rien d'écrit | HTTP 400 « Invalid analytics batch » |
+| `analytics_ingest` avec un lot vide | accepté, zéro ligne | HTTP 200, 0 |
+| records et pilotes (`tools/mondial-check.js`) | inchangés | 0 faute |
+
+Les statistiques commencent avec les premières parties jouées sur le site publié après cette date.
+Rejouer la migration reste sans danger si elle évolue : elle est conçue pour être rejouable.
+
+Pour la rejouer après une modification, à la main et sans nouveau service payant :
 
 1. Ouvrir le [SQL Editor du projet](https://supabase.com/dashboard/project/fyaifqvghkvrydcldiup/sql/new),
    puis exécuter [`supabase/analytics.sql`](../../supabase/analytics.sql). Il ne supprime pas les records.
