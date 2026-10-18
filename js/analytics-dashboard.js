@@ -1,7 +1,7 @@
 'use strict';
 
 (() => {
-  const $ = id => document.getElementById(id), auth = new Mondial(), charts = new Map();
+  const $ = id => document.getElementById(id), charts = new Map();
   const labels = { desktop: 'Ordinateur', mobile: 'Téléphone', tablet: 'Tablette', touch: 'Tactile',
     keyboard: 'Clavier / clic', wheel: 'Molette', gamepad: 'Manette', race: 'Course',
     timetrial: 'Contre-la-montre', tuning: 'Réglage', multiplayer: 'Multijoueur', f1: 'F1', gt: 'GT', proto: 'Prototypes' };
@@ -26,8 +26,6 @@
   }
   period(); $('period').addEventListener('change', period);
   for (const id of ['from','to']) $(id).addEventListener('change', () => $('period').value = 'custom');
-  $('login').onclick = () => auth.entrer();
-  $('logout').onclick = () => { auth.sortir(); location.reload(); };
 
   function chart(id, option) {
     let c = charts.get(id);
@@ -90,13 +88,8 @@
         orient: 'horizontal', left: 'center', bottom: 5, textStyle: { color: '#a0afb4' }, inRange: { color: ['#253239','#497964','#f0bd63'] } },
       series: [{ type: 'heatmap', data: grid, itemStyle: { borderWidth: 2, borderColor: '#182025' } }] });
     $('lap-quality').textContent = c.known_laps ? `${Math.round(c.clean_laps / c.known_laps * 100)} % de tours propres · ${num(c.clean_laps)} / ${num(c.known_laps)} tours renseignés` : 'Aucun tour renseigné.';
-    const events = { race_start: 'Départ', lap: 'Tour terminé', race_end: 'Fin' }, ends = { completed: 'Arrivée', abandoned: 'Abandon', session_end: 'Fin de session' };
-    $('recent-table').innerHTML = table(['Date · UTC', 'Activité', 'Circuit', 'Voiture', 'Détail'], r.recent.map(e => [
-      esc(new Date(e.at).toLocaleString('fr-FR', { timeZone: 'UTC' })), events[e.event] || esc(e.event),
-      esc(trackName(e.track) || '—'), esc(carName(e.car) || '—'),
-      e.event === 'lap' ? `Tour ${num(e.lap)}${e.lap_s ? ' · ' + e.lap_s.toFixed(3) + ' s' : ''}` : esc(ends[e.outcome] || '—'),
-    ]));
-    $('coverage').textContent = r.first_event ? `Collecte depuis le ${new Date(r.first_event).toLocaleDateString('fr-FR', { timeZone: 'UTC' })}. Dernier événement reçu : ${new Date(r.last_event).toLocaleString('fr-FR', { timeZone: 'UTC' })} UTC. Aucun historique de tours reconstitué à partir des records.` : 'La collecte n’a encore reçu aucun événement.';
+    const displayDate = day => new Date(day + 'T00:00:00Z').toLocaleDateString('fr-FR', { timeZone: 'UTC' });
+    $('coverage').textContent = r.first_day ? `Collecte depuis le ${displayDate(r.first_day)}. Dernier jour avec une activité : ${displayDate(r.last_day)}. Aucun historique de tours reconstitué à partir des records.` : 'La collecte n’a encore reçu aucun événement.';
     $('csv').disabled = false;
   }
   async function load() {
@@ -105,7 +98,6 @@
     if (!from || !to || to < from || (Date.parse(to) - Date.parse(from)) / 86400000 > 365) {
       $('error').textContent = 'Choisis une période valide de 366 jours maximum.'; $('error').hidden = false; return;
     }
-    if (!auth.connecte()) { showGate('Ta session a expiré. Reconnecte-toi pour consulter les données.'); return; }
     busy = true; const request = ++serial;
     const controls = [...$('filters').querySelectorAll('input,select,button')];
     controls.forEach(el => el.disabled = true);
@@ -113,11 +105,10 @@
     $('error').hidden = true; $('status').textContent = 'Chargement des statistiques…';
     try {
       const response = await fetch(`${MONDIAL_URL}/rest/v1/rpc/analytics_report`, { method: 'POST',
-        headers: { apikey: MONDIAL_KEY, Authorization: `Bearer ${auth.session.token}`, 'Content-Type': 'application/json' },
+        headers: { apikey: MONDIAL_KEY, Authorization: `Bearer ${MONDIAL_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ p_from: from, p_to: to, p_track: $('track').value || null, p_car: $('car').value || null }), signal: controller.signal });
-      if (response.status === 401) { auth.sortir(); showGate('Session expirée. Reconnecte-toi.'); return; }
-      if (response.status === 403) { showGate('Ce compte n’est pas autorisé à consulter les statistiques. Le propriétaire doit l’ajouter aux administrateurs.'); return; }
-      if (response.status === 404) throw new Error('La collecte n’est pas encore installée sur Supabase. Exécuter supabase/analytics.sql puis autoriser le compte propriétaire.');
+      if (response.status === 401 || response.status === 403) throw new Error('L’accès public aux statistiques n’est pas encore activé sur Supabase. Appliquer la dernière version de supabase/analytics.sql.');
+      if (response.status === 404) throw new Error('La collecte n’est pas encore installée sur Supabase. Exécuter supabase/analytics.sql.');
       if (!response.ok) throw new Error('Statistiques indisponibles (HTTP ' + response.status + '). Réessaie dans un instant.');
       const data = await response.json();
       if (request !== serial) return;
@@ -125,10 +116,6 @@
       $('status').textContent = 'Mis à jour à ' + new Date().toLocaleTimeString('fr-FR') + ' · comparaison avec la période précédente de même durée';
     } catch (e) { $('error').textContent = e.message || 'Connexion impossible.'; $('error').hidden = false; $('status').textContent = 'Actualisation échouée. Les données précédentes restent affichées.'; }
     finally { clearTimeout(timeout); busy = false; controls.forEach(el => el.disabled = false); $('csv').disabled = !report; }
-  }
-  function showGate(message) {
-    $('dashboard').hidden = true; $('gate').hidden = false; $('gate-message').textContent = message || '';
-    $('account').textContent = auth.connecte() ? auth.session.nom : ''; $('logout').hidden = !auth.connecte();
   }
   $('filters').onsubmit = e => { e.preventDefault(); load(); };
   setInterval(() => { if ($('auto').checked && !document.hidden && !$('dashboard').hidden) load(); }, 60000);
@@ -141,7 +128,5 @@
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const a = document.createElement('a'); a.href = url; a.download = `eyes-on-line-${$('from').value}-${$('to').value}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
-  if (auth.connecte()) {
-    $('gate').hidden = true; $('dashboard').hidden = false; $('account').textContent = auth.session.nom; $('logout').hidden = false; load();
-  } else showGate(auth.erreurConnexion ? 'La connexion Google a échoué. Vérifie l’URL de retour autorisée dans Supabase.' : '');
+  load();
 })();

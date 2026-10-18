@@ -15,16 +15,27 @@ const server = http.createServer((req,res)=>{
   try {
     const page = await browser.newPage({viewport:{width:1440,height:1100},locale:'fr-FR'}), errors=[];
     page.on('pageerror',e=>{errors.push(e.message);console.error('Page :',e.message);});
-    let status=200, params;
+    let status=200, params, publicAuthorization;
     await page.route('**/rest/v1/rpc/analytics_report',route=>{
       params=route.request().postDataJSON();
+      publicAuthorization=route.request().headers().authorization;
       return route.fulfill({status,json:status===200?fixture:{message:'test'}});
     });
-    await page.goto(base+'/analytics.html'); await page.waitForSelector('#login');
-    assert.equal(await page.locator('#dashboard').isVisible(),false,'le rapport exige une connexion');
-    await page.evaluate(()=>localStorage.setItem('eol.session',JSON.stringify({token:'test-only',expire:Date.now()/1000+3600,sub:'owner',nom:'Compte de test'})));
+    await page.goto(base+'/analytics.html'); await page.waitForSelector('#kpis strong');
+    assert.equal(await page.locator('#dashboard').isVisible(),true,'le rapport est public sans connexion');
+    assert.equal(await page.locator('#login,#logout,#gate,#recent-table').count(),0,'aucune connexion ni activité individuelle');
+    assert.equal(await page.evaluate(()=>localStorage.getItem('eol.session')),null,'aucune session créée pour lire les statistiques');
+    // Même si le joueur est connecté au jeu, la page publique ne lit ni n'affiche son compte.
+    await page.evaluate(()=>{
+      localStorage.setItem('eol.session',JSON.stringify({token:'test-only-secret',expire:Date.now()/1000+3600,sub:'owner',nom:'Nom personnel de test'}));
+      const original=Storage.prototype.getItem;
+      Storage.prototype.getItem=function(key){if(key==='eol.session')throw Error('La page publique ne doit pas lire la session');return original.call(this,key);};
+    });
+    await page.click('#refresh'); await page.waitForFunction(()=>!document.querySelector('#refresh').disabled);
+    assert(!publicAuthorization.includes('test-only-secret'));
     await page.reload();
     await page.waitForTimeout(300); assert.deepEqual(errors,[]);
+    assert(!(await page.locator('body').innerText()).includes('Nom personnel de test'));
     await page.waitForSelector('#kpis strong');
     assert.equal(await page.locator('#kpis .kpi').count(),8);
     assert.equal(await page.locator('#kpis .kpi').nth(0).locator('strong').innerText(),'2');
@@ -46,11 +57,15 @@ const server = http.createServer((req,res)=>{
     const download = page.waitForEvent('download'); await page.click('#csv');
     const file = await download; const content=fs.readFileSync(await file.path(),'utf8');
     assert.match(content,/Type.*Élément/); assert.match(content,/935\|1/);
+    assert(!content.includes('Nom personnel de test'));
     status=500; await page.click('#refresh'); await page.waitForSelector('#error:visible');
     assert.match(await page.locator('#error').innerText(),/500/);
     assert.equal(await page.locator('#kpis strong').count(),8,'les données restent présentes après panne');
-    status=403; await page.click('#refresh'); await page.waitForSelector('#gate:visible');
-    assert.match(await page.locator('#gate-message').innerText(),/pas autorisé/);
+    status=403; await page.click('#refresh'); await page.waitForSelector('#error:visible');
+    assert.match(await page.locator('#error').innerText(),/accès public/);
+    assert.equal(await page.locator('#dashboard').isVisible(),true,'une ancienne migration privée ne masque pas la page');
+    status=404; await page.click('#refresh'); await page.waitForSelector('#error:visible');
+    assert.match(await page.locator('#error').innerText(),/pas encore installée/);
     status=200; await page.reload(); await page.waitForSelector('#kpis strong');
     await page.setViewportSize({width:390,height:844});
     await page.evaluate(()=>{document.querySelector('.badge').textContent='APERÇU · TEST';document.querySelector('#status').textContent='Données de test, pas la fréquentation réelle.';});
@@ -132,7 +147,13 @@ const server = http.createServer((req,res)=>{
       return ga._validId(ga.session.id)&&ga._validId(ga.visitor);
     });
     assert(storageRecovery,'un stockage abîmé ne bloque pas le démarrage du jeu');
+    await page.evaluate(()=>{app.save.lang='fr';app.ui.settings();});
+    assert.match(await page.locator('.stats-link').innerText(),/Statistiques publiques/);
+    await page.evaluate(()=>{app.save.lang='en';app.ui.settings();});
+    assert.match(await page.locator('.stats-link').innerText(),/Public statistics/);
+    await page.click('.stats-link'); await page.waitForSelector('#kpis strong');
+    assert.match(page.url(),/analytics\.html$/,'le lien des réglages ouvre bien le rapport public');
     assert.deepEqual(errors,[]);
-    console.log('OK : page privée, six graphiques, filtres, CSV, panne, accès refusé, responsive, vrai collecteur, tours local/invité, pauses, identifiants et reprise réseau.');
+    console.log('OK : page publique sans compte, aucun détail individuel, six graphiques, filtres, CSV, panne/installation, responsive, vrai collecteur, tours local/invité, pauses et reprise réseau.');
   } finally {await browser.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);server.close();process.exitCode=1;});

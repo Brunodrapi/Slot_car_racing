@@ -1,8 +1,9 @@
 # Statistiques du jeu
 
 Page : [`analytics.html`](../../analytics.html), sur le même site que le jeu.
-Accès privé, avec la session Google déjà utilisée pour les records. Les données ne sont pas
-consultables par les autres joueurs, même en appelant directement l’API.
+Accès **public sans connexion**, également proposé dans les réglages du jeu.
+Seuls des agrégats sont publiés : aucune identité, aucun identifiant technique de visiteur/session/
+course, aucun journal de parties ni temps individuel. Les événements bruts restent protégés en base.
 
 ## Ce qui est prêt, ce qui doit être activé
 
@@ -13,34 +14,18 @@ aucune nouvelle statistique ne peut être enregistrée sur le serveur. Le jeu co
 
 Activation par le propriétaire, sans nouveau service payant :
 
-1. Se connecter au moins une fois dans le jeu avec le compte Google destiné à consulter les statistiques.
-2. Ouvrir le [SQL Editor du projet](https://supabase.com/dashboard/project/fyaifqvghkvrydcldiup/sql/new),
+1. Ouvrir le [SQL Editor du projet](https://supabase.com/dashboard/project/fyaifqvghkvrydcldiup/sql/new),
    puis exécuter [`supabase/analytics.sql`](../../supabase/analytics.sql). Il ne supprime pas les records.
-3. Autoriser ce compte avec la requête suivante, en remplaçant l’adresse :
-
-   ```sql
-   insert into public.analytics_admins(user_id)
-   select id from auth.users
-   where lower(email) = lower('votre-adresse-google@example.com')
-     and email_confirmed_at is not null
-   on conflict do nothing;
-   ```
-
-   Le résultat doit annoncer une ligne insérée, ou un compte déjà présent. Zéro ligne avec un
-   nouveau compte signifie qu’il faut d’abord se connecter au jeu ou corriger l’adresse.
-4. Ouvrir `analytics.html` sur le site du jeu. Une connexion Google déjà faite dans ce navigateur
-   suffit. Pour pouvoir aussi démarrer cette connexion depuis la page analytics, ajouter son URL
-   exacte dans **Authentication → URL Configuration → Redirect URLs** de Supabase.
-5. Recharger le jeu après l’installation pour lancer la collecte et envoyer les éventuels
+   Si l’ancienne version privée a été installée, rejouer ce même fichier pour ouvrir le rapport public
+   et supprimer le détail individuel de sa réponse. Les anciennes mesures sont conservées.
+2. Ouvrir `analytics.html` sur le site du jeu : aucun compte Google ni ajout d’adresse e-mail nécessaire.
+3. Recharger le jeu après l’installation pour lancer la collecte et envoyer les éventuels
    événements encore conservés dans ce navigateur.
 
-Alternative automatisée : définir `SUPABASE_ACCESS_TOKEN` et `ANALYTICS_ADMIN_EMAIL` dans les
-variables de l’environnement cloud, puis lancer `node tools/deploie-analytics.js`. Le script
-installe la migration et autorise ce compte dans une transaction. Aucune clé privée ne va dans les
-fichiers du jeu. `SUPABASE_PROJECT_REF` permet de viser un autre projet.
-
-Pour retirer l’accès : supprimer la ligne du compte dans `analytics_admins` depuis Supabase.
-Pour ajouter un second administrateur : répéter l’étape 3. Le jeu n’a aucun droit sur cette table.
+Alternative automatisée : définir uniquement `SUPABASE_ACCESS_TOKEN` dans les variables de
+l’environnement cloud, puis lancer `node tools/deploie-analytics.js`. Le script installe la migration
+publique dans une transaction. Ce jeton sert à **installer la base**, jamais à consulter les statistiques.
+Aucune clé privée ne va dans les fichiers du jeu. `SUPABASE_PROJECT_REF` permet de viser un autre projet.
 
 ## Choix libre et hébergement
 
@@ -78,7 +63,7 @@ somme du fichier copié sont conservés dans [`vendor/echarts`](../../vendor/ech
   de faute ne sont pas assimilées à une sortie.
 - **Tours propres** : absence de sortie de piste. Les invités multijoueurs transmettent le compte
   des tours par les instantanés ; le détail exact des temps et de la propreté n’y est pas toujours
-  disponible. Ces tours sont comptés, avec temps/propreté inconnus, exclus du taux et du meilleur temps.
+  disponible. Ces tours sont comptés, avec temps/propreté inconnus, exclus du taux de propreté. Les temps individuels ne sont pas renvoyés par le rapport public.
 - **Classements** : circuits, voitures et livrées, triés par départs puis tours ; temps et visiteurs
   associés. Répartition des départs par support, commande choisie au départ, mode et catégorie.
 - **Nouveaux / déjà venus** : première activité connue du navigateur avant ou pendant la période.
@@ -114,9 +99,13 @@ Conservation conseillée : **13 mois**. À programmer mensuellement dans Supabas
 delete from public.analytics_events where at < now() - interval '13 months';
 ```
 
-La page ne demande jamais la table brute : elle reçoit un rapport agrégé après vérification de
-`auth.uid()` dans la liste des administrateurs. Les droits de lecture/écriture directs sont retirés
-aux rôles `anon` et `authenticated` ; RLS est actif. Seule l’ingestion bornée est publique.
+La page ne lit aucune session Google et utilise uniquement la clé publiable du jeu. La fonction
+`analytics_report` est ouverte aux rôles `anon` et `authenticated` et renvoie les mêmes statistiques
+globales. Elle ne renvoie ni UUID, ni pseudo, ni e-mail, ni adresse IP, ni événement individuel,
+ni temps de tour individuel. Les dates de début/fin de collecte sont publiées au jour près.
+Les droits directs de lecture/écriture des événements sont retirés aux deux rôles ; RLS est actif.
+L’ancienne table `analytics_admins`, si elle existe, n’est plus utilisée : aucune liste de comptes
+n’intervient dans l’accès à la page.
 
 ## Vérifications et aperçus
 
@@ -127,9 +116,9 @@ node tools/e2e-analytics.js docs/analytics
 ```
 
 Le premier test exécute la vraie migration sur PostgreSQL embarqué : rejouabilité, agrégations,
-périodes, filtres, tours invités inconnus, déduplication, quota, données invalides et accès refusés.
-Le second vérifie la page dans Chromium et le vrai collecteur chargé par le jeu : authentification,
-graphiques, CSV, panne et mobile ; comptage des tours, pauses et reprise réseau.
+périodes, filtres, tours invités inconnus, déduplication, quota, données invalides, lecture anonyme des agrégats et accès refusé aux événements bruts.
+Le second vérifie la page dans Chromium et le vrai collecteur chargé par le jeu : accès sans compte,
+absence de données individuelles, graphiques, CSV, panne et mobile ; comptage des tours, pauses et reprise réseau.
 
 Les captures ci-dessous utilisent **uniquement les données du test PostgreSQL**, sans rapport avec
 la fréquentation réelle. Une mention visible le rappelle dans l’image.

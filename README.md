@@ -64,9 +64,11 @@ Captures et vérifications : [variante PC](docs/variante-pc/README.md).
 
 ### Statistiques du jeu
 
-La page privée [`analytics.html`](analytics.html) présente les visiteurs uniques estimés, visites,
+La page publique [`analytics.html`](analytics.html), accessible depuis les réglages sans connexion,
+présente les visiteurs uniques estimés, visites,
 tours, départs, temps de jeu et classements par voiture, livrée et circuit, avec filtres et export
-CSV. Graphiques libres Apache ECharts, données dans Supabase. La migration doit être activée avant
+CSV. Elle ne publie que des agrégats, sans identité ni historique individuel.
+Graphiques libres Apache ECharts, données dans Supabase. La migration doit être activée avant
 que les mesures commencent : [installation et aperçus](docs/analytics/README.md).
 
 > **Version allégée.** Le jeu se limite pour l'instant à la **course rapide**, au

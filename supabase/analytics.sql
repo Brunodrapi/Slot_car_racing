@@ -1,11 +1,8 @@
--- À exécuter UNE FOIS dans le SQL Editor du projet Supabase, puis ajouter le compte propriétaire
--- dans analytics_admins (voir docs/analytics/README.md). Rejouable sans effacer les données.
+-- À exécuter dans le SQL Editor du projet Supabase (voir docs/analytics/README.md).
+-- Rejouable sans effacer les données, y compris après l'ancienne version privée.
 -- Les tables brutes sont privées. L'ingestion accepte des mesures anonymes bornées et idempotentes.
--- Le rapport vérifie auth.uid() côté base, même si l'appelant contourne la page web.
+-- Le rapport PUBLIC ne renvoie que des agrégats, sans identifiants ni historique individuel.
 
-create table if not exists public.analytics_admins (
-  user_id uuid primary key references auth.users(id) on delete cascade
-);
 create table if not exists public.analytics_events (
   id uuid primary key,
   visitor uuid not null,
@@ -36,10 +33,9 @@ create unique index if not exists analytics_visit_unique on public.analytics_eve
 create unique index if not exists analytics_race_unique on public.analytics_events(race,event) where event in ('race_start','race_end');
 create unique index if not exists analytics_lap_unique on public.analytics_events(race,lap) where event='lap';
 
-alter table public.analytics_admins enable row level security;
 alter table public.analytics_events enable row level security;
-revoke all on public.analytics_admins, public.analytics_events from public, anon, authenticated;
-grant all on public.analytics_admins, public.analytics_events to service_role;
+revoke all on public.analytics_events from public, anon, authenticated;
+grant all on public.analytics_events to service_role;
 
 create or replace function public.analytics_ingest(p_events jsonb)
 returns integer language plpgsql security definer set search_path = '' as $$
@@ -105,9 +101,6 @@ create or replace function public.analytics_report(p_from date, p_to date,
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare result jsonb;
 begin
-  if not exists(select 1 from public.analytics_admins where user_id=auth.uid()) then
-    raise exception 'Analytics access denied' using errcode='42501';
-  end if;
   if p_from is null or p_to is null or p_to<p_from or p_to-p_from>365 then
     raise exception 'Choose at most 366 days' using errcode='22023';
   end if;
@@ -144,8 +137,7 @@ begin
   ), rankings as (
     select kind,key,count(distinct visitor) visitors,count(*) filter(where event='race_start') starts,
       count(*) filter(where event='lap') laps,coalesce(sum(seconds),0) seconds,
-      coalesce(sum(value) filter(where event='offtrack'),0) offtracks,
-      min(lap_s) filter(where event='lap' and clean=true) best_lap
+      coalesce(sum(value) filter(where event='offtrack'),0) offtracks
     from current_events e cross join lateral (values ('tracks',e.track),('cars',e.car),
       ('liveries',case when e.car is not null then e.car||'|'||e.livery::text end),
       ('devices',e.device),('controls',e.control),('modes',e.mode),('categories',e.category),('versions',e.version)) k(kind,key)
@@ -157,13 +149,10 @@ begin
     select count(*) filter(where first_at >= (p_from::timestamp at time zone 'UTC')) new,
       count(*) filter(where first_at < (p_from::timestamp at time zone 'UTC')) as "returning"
     from first_seen where visitor in (select distinct visitor from current_events)
-  ), recent as (
-    select at,event,track,car,lap,lap_s,outcome from current_events
-    where event in ('race_start','lap','race_end') order by at desc limit 30
   )
   select jsonb_build_object(
-    'generated_at',now(),'first_event',(select min(at) from public.analytics_events),
-    'last_event',(select max(at) from public.analytics_events),
+    'generated_at',now(),'first_day',(select (min(at) at time zone 'UTC')::date from public.analytics_events),
+    'last_day',(select (max(at) at time zone 'UTC')::date from public.analytics_events),
     'current',coalesce((select data from totals where period='current'),'{}'::jsonb),
     'previous',coalesce((select data from totals where period='previous'),'{}'::jsonb),
     'daily',coalesce((select jsonb_agg(to_jsonb(d) order by day) from daily d),'[]'::jsonb),
@@ -172,14 +161,13 @@ begin
     'audience',(select to_jsonb(a) from audience a),
     'hours',coalesce((select jsonb_agg(to_jsonb(h)) from
       (select extract(isodow from at at time zone 'UTC')::int as day,extract(hour from at at time zone 'UTC')::int as hour,
-      count(*) starts from current_events where event='race_start' group by 1,2) h),'[]'::jsonb),
-    'recent',coalesce((select jsonb_agg(to_jsonb(r) order by at desc) from recent r),'[]'::jsonb)
+      count(*) starts from current_events where event='race_start' group by 1,2) h),'[]'::jsonb)
   ) into result;
   return result;
 end;
 $$;
-revoke all on function public.analytics_report(date,date,text,text) from public,anon;
-grant execute on function public.analytics_report(date,date,text,text) to authenticated;
+revoke all on function public.analytics_report(date,date,text,text) from public;
+grant execute on function public.analytics_report(date,date,text,text) to anon, authenticated;
 
 -- Conservation conseillée : 13 mois ; si pg_cron est activé, programmer mensuellement :
 -- delete from public.analytics_events where at < now()-interval '13 months';
