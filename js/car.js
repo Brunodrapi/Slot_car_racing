@@ -525,6 +525,7 @@ class Car {
     const T = this.track;
     const before = T.wrap(this.s);
     const after = before + ds;
+    if (this.finished) { this.s = T.wrap(after); return; }
     // half-way checkpoint: a lap only counts after really going round, not by rocking over the line
     if (before < T.length / 2 && after >= T.length / 2) this.checkpoint = true;
     if (after >= T.length) {
@@ -629,7 +630,7 @@ class Car {
 
   _leaveTrack(withDamage = true) {
     if (this.state === 'grass') return;
-    this.state = 'grass'; this.grassT = 0; this.crashes++; this.fautes++;
+    this.state = 'grass'; this.grassT = 0; this.crashes++; if (!this.finished) this.fautes++;
     this.lapSale = true;
     if (withDamage && this.usure)
       this.damage = clamp(this.damage + this.usure.sortieParVitesse * Math.abs(this.v), 0, 1);

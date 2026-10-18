@@ -2970,6 +2970,14 @@ class Renderer {
     pause en paysage sur un téléphone ; passé sous le bouton, il couvrait les jauges d'usure, parce
     que le panneau de gauche grandit quand l'option est active. Il prend donc le plus bas des
     trois, et il suivra tout seul le prochain élément qu'on ajoutera en haut. */
+    if (race.opts.humans && race.state === 'finishing' && race.finishDeadline) {
+      const remaining = Math.max(0, Math.ceil(race.finishDeadline - race.time));
+      g.save();g.textAlign='center';g.textBaseline='top';g.font='bold 16px system-ui';
+      const label = ui.lang === 'en' ? `Race ends in ${remaining}s` : `Fin de course dans ${remaining} s`;
+      const width=g.measureText(label).width+24, y=Math.max(H*.12,pb.y+pb.s+14,P.t+boxH+14);
+      g.fillStyle='rgba(10,12,20,.85)';g.fillRect((W-width)/2,y-4,width,28);
+      g.fillStyle='#f0d885';g.fillText(label,W/2,y);g.restore();
+    }
     if (ui.flash && ui.flash.until > performance.now()) { g.textAlign = 'center'; g.fillStyle = ui.flash.color || '#fff'; g.font = 'bold 26px system-ui, sans-serif'; g.fillText(ui.flash.text, W / 2, Math.max(H * 0.12, pb.y + pb.s + 14, P.t + boxH + 14)); }
     g.textBaseline = 'alphabetic';
   }

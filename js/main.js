@@ -480,7 +480,7 @@ class App {
   }
 
   togglePause() {
-    if (this.spectator && this.state === 'race') { this.spectator.root.classList.toggle('timing-hidden'); return; }
+    if (this.spectator && this.state === 'race') { this.spectator.toggleTiming(); return; }
     if (this.state === 'race') {
       this.state = 'paused';
       this.resetInput();

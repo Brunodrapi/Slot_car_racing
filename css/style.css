@@ -498,3 +498,25 @@ body.desktop .screen.overlay { overflow-y: auto; justify-content: safe center; }
 .spectator-panel button,.spectator-panel select{font-size:12px;padding:5px;min-height:32px}
 .spectator-timing{max-height:40vh;overflow:auto}.spectator-timing p{margin:6px 0}.spectator-timing table{border-collapse:collapse;white-space:nowrap}.spectator-timing td,.spectator-timing th{padding:3px 6px;text-align:left}.timing-hidden .spectator-timing{display:none}
 .table-scroll{overflow-x:auto;max-width:100%}.race-analysis{margin:20px 0}.race-analysis svg{width:100%;max-height:320px;background:#1c2429}.race-analysis summary{cursor:pointer;padding:12px}
+
+/* Spectator overview uses the available landscape width instead of a top-heavy portrait layout. */
+.spectator-panel{max-height:calc(100dvh - 16px);overflow:auto;box-sizing:border-box}
+.spectator-panel.spectator-landscape{width:clamp(230px,28vw,320px);max-width:36vw}
+.spectator-status{margin:6px 0;font-size:12px}
+.spectator-minimap{display:block;width:min(100%,250px);height:auto;margin:5px auto;border-radius:5px}
+.spectator-panel[data-view="full"] .spectator-minimap{display:none}
+.spectator-summary{display:grid;gap:2px;max-height:32vh;overflow:auto}
+.spectator-landscape .spectator-summary{max-height:calc(100dvh - 150px)}
+.spectator-landscape:not([data-view="full"]) .spectator-summary{max-height:calc(100dvh - 320px);min-height:64px}
+.spectator-position{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;text-align:left;border-radius:4px!important}
+.spectator-position.selected{outline:1px solid #e9be37;outline-offset:-1px}
+.spectator-position span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spectator-position small{white-space:nowrap;font-variant-numeric:tabular-nums}
+.spectator-dot{display:inline-block;width:11px;height:11px;border:1px solid #dce1e6;border-radius:50%;margin-right:6px;vertical-align:middle;flex-shrink:0}
+.spectator-panel .spectator-timing{display:none}
+.spectator-panel[data-view="full"]:not(.spectator-landscape):not(.compact-timing) .spectator-timing,.spectator-panel.details-open .spectator-timing{display:block}
+.spectator-panel[data-view="full"]:not(.spectator-landscape):not(.compact-timing) .spectator-summary,.spectator-panel.details-open .spectator-summary{display:none}
+.spectator-panel:not(.spectator-landscape):not([data-view="full"]){width:min(240px,calc(100vw - 16px))}
+.spectator-panel:not(.spectator-landscape):not([data-view="full"]) .spectator-minimap{width:160px}
+.spectator-panel:not(.spectator-landscape):not([data-view="full"]) .spectator-summary{max-height:22vh}
+@media (max-height:480px){.spectator-landscape .spectator-minimap{width:160px}.spectator-landscape:not([data-view="full"]) .spectator-summary{max-height:120px}.spectator-controls{gap:3px}}

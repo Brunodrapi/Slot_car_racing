@@ -4,13 +4,13 @@ Sur la branche hybrid, utiliser **Multijoueur → code du salon → Regarder**, 
 
 ## Vues
 
-- **Réalisateur** : plan conservé au moins huit secondes, priorité aux sorties et moteurs coupés puis à la bataille la plus serrée.
+- **Réalisateur** : alternance de plans de huit secondes : circuit complet, suivi puis duel. Les plans rapprochés ciblent les sorties et moteurs coupés puis la bataille la plus serrée.
 - **Suivi pilote** : caméra de course sur le pilote sélectionné, sans prendre son contrôle.
-- **Circuit complet** : carte avec repères de position et classement sélectionnable.
+- **Circuit complet** : carte avec repères colorés numérotés et classement utilisant les mêmes couleurs. Les couleurs des humains sont conservées ; les IA reçoivent des couleurs disponibles pour éviter les doublons. En paysage, le classement passe à gauche et le circuit est cadré dans la zone libre à droite. En portrait, il reste sous le panneau supérieur.
 - **Caméras fixes** : ligne de départ et principaux virages identifiés par la courbure du tracé ; flèches pour changer de poste.
 - **Duel** : cadre le pilote et son prédécesseur (le deuxième pour le leader), avec zoom adapté.
 
-Clavier : flèches gauche/droite pour changer de pilote ou de poste. Manette standard : LB/RB ou croix gauche/droite, A pour changer de vue, X pour afficher/masquer les chronos. Le bouton **Chronos** masque le tableau sur petit écran. **Quitter** quitte le salon. Le spectateur ne met pas la simulation en pause.
+Clavier : flèches gauche/droite pour changer de pilote ou de poste. Manette standard : LB/RB ou croix gauche/droite, A pour changer de vue, X pour afficher/masquer les chronos. Les vues rapprochées affichent une minicarte avec les positions et un classement compact. Le bouton **Chronos** permet de basculer vers les temps détaillés ; en portrait, le circuit complet conserve par défaut le tableau de chronométrage. Les repères de la carte et de la minicarte peuvent être sélectionnés au clic ou au toucher. **Quitter** quitte le salon. Le spectateur ne met pas la simulation en pause.
 
 ## Chronométrage
 
@@ -39,4 +39,10 @@ Les mesures proviennent de la simulation de l'hôte. Le graphique échantillonn�
 
 Ajouter `--race` pour tester un plateau complété par des IA, sinon duel à deux pilotes. Tests via le transport BroadcastChannel de `e2e-duo.js` : arrivée avant/après départ, absence de siège et d'input spectateur, cinq caméras, mobile, historique reçu, bilan partagé, sauvegarde du spectateur inchangée et retour au salon sans redémarrage de la course terminée. Ce test n'éprouve pas la connexion WebRTC entre deux réseaux Internet réels.
 
-Les captures `spectateur-circuit-test.png` et `bilan-course-test.png` utilisent des chronos injectés pour la validation : ce ne sont pas des résultats de joueurs réels. Tous les participants doivent recharger la version actuelle ; un ancien hôte ne connaît pas le rôle spectateur ni l'historique étendu.
+Les captures `spectateur-circuit-test.png`, `spectateur-suivi-test.png`, `spectateur-mobile-test.png` et `bilan-course-test.png` utilisent des chronos injectés pour la validation : ce ne sont pas des résultats de joueurs réels. Tous les participants doivent recharger la version actuelle ; un ancien hôte ne connaît pas le rôle spectateur ni l'historique étendu.
+
+Le test `node tools/multi-timing-test.js` vérifie séparément l’arrivée du premier hôte/invité/IA, la limite de 30 secondes, la fin anticipée quand tous les humains ont terminé et l’absence de temps d’arrivée inventés. `tools/e2e-duo.js --latence=50` permet de tester le transport avec 50 ms de délai artificiel par sens.
+
+## Évolution du pilotage réseau
+
+La simulation physique locale chez les invités fait l’objet d’une [étude séparée](../multijoueur/architecture-physique.md). Elle n’est pas activée par ces changements d’interface ou d’arrivée.

@@ -350,7 +350,7 @@ class Net {
     const lent = race.state === 'racing' ? undefined : true;
     const reportDue = now - (this.reportAt || 0) > 1000 || race.state === 'finished';
     if (reportDue) this.reportAt = now;
-    this.post({ s: pqEncode(race.snapshot(++this.seq), race.track, lent),
+    this.post({ s: pqEncode(race.snapshot(++this.seq), race.track, lent), endAt: race.finishDeadline || null,
       report: reportDue && race.broadcast ? race.broadcast.packet(race) : null });
   }
 
@@ -360,6 +360,7 @@ class Net {
     const host = this.members().find(m => m.pid === this.roster?.[0]);
     if (host?.q.report && race.broadcast) race.broadcast.receive(host.q.report, race);
     const brut = host && host.q && host.q.s;
+    if (Number.isFinite(host?.q.endAt)) race.finishDeadline = host.q.endAt;
     /* On accepte les deux formes : un tableau comme avant, des octets désormais.
 
     Deux écrans ne portent pas forcément la même version — l'un vient de recharger, l'autre non —

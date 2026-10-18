@@ -143,6 +143,9 @@
 
     send(c, presence) {
       if (!c || !c.open) return;
+      // A newer snapshot replaces an old one. Do not accumulate seconds of obsolete positions
+      // behind a congested data channel; the next broadcast retries, including final results.
+      if (presence.s && c.dataChannel?.bufferedAmount > 32768) return;
       try { c.send({ from: this.label, p: presence }); } catch (_) { /* the next frame retries */ }
     }
 

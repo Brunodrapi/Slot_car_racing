@@ -87,6 +87,7 @@ const POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
 const PENALITE_FIXE = 1.0;
 
 // race state, as one number, for the snapshots sent over the wire
+const NET_FINISH_GRACE = 30; // seconds after the first finisher, multiplayer only
 const STATE_CODE = { countdown: 0, racing: 1, finishing: 2, finished: 3 };
 const STATE_NAME = ['countdown', 'racing', 'finishing', 'finished'];
 
@@ -273,7 +274,8 @@ class Race {
     this._simulate(dt, throttleInput, brakingInput);
     if (this.state === 'finishing') {
       this.finishTimer -= dt;
-      if (this.finishTimer <= 0 || this.cars.every(c => c.finished)) this._finish();
+      const competitors = this.opts.humans ? this.cars.filter(c => c.human != null) : this.cars;
+      if (this.finishTimer <= 0 || competitors.every(c => c.finished)) this._finish();
     }
   }
 
@@ -342,7 +344,11 @@ class Race {
           car.finished = true;
           car.finishTime = this.time;
           this.events.push({ type: 'finish', car });
-          if (car.isPlayer && this.state === 'racing') { this.state = 'finishing'; this.finishTimer = 4; }
+          if ((this.opts.humans || car.isPlayer) && this.state === 'racing') {
+            this.state = 'finishing';
+            this.finishTimer = this.opts.humans ? NET_FINISH_GRACE : 4;
+            this.finishDeadline = this.time + this.finishTimer;
+          }
         }
       }
     }
@@ -523,6 +529,7 @@ class Race {
   S'y ajoute une seconde fixe par sortie, pour qu'une sortie ne soit jamais tout à fait gratuite :
   sans elle, une coupe parfaitement neutre serait un essai sans risque. */
   _comptePenalite(car, dt) {
+    if (car.finished) return;
     if (car.state === 'grass') {
       if (car.sortieS0 == null) {
         car.sortieS0 = car.progress; car.sortieT = 0; car.sortieI = this.track.idx(car.s);
@@ -563,9 +570,10 @@ class Race {
   positionOf(car) { return this.standings().indexOf(car) + 1; }
 
   _finish() {
-    // fast-forward the rest of the field to the flag so everyone gets a real gap
+    // Solo may complete AI laps offscreen. Online, keep only actually completed laps;
+    // fast-forwarding would freeze every guest and invent finishes for absent players.
     let extra = 0;
-    while (!this.cars.every(c => c.finished) && extra < 180) { this._simulate(this.dt, false); extra += this.dt; }
+    while (!this.opts.humans && !this.cars.every(c => c.finished) && extra < 180) { this._simulate(this.dt, false); extra += this.dt; }
     this.events.length = 0;
     this.state = 'finished';
     const order = this.standings();

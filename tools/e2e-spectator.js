@@ -39,9 +39,24 @@ const double=/const DOUBLE = `([\s\S]*?)`;/m.exec(source)[1];
       assert(await s.evaluate(()=>Number.isFinite(app.renderer.cam.x)&&Number.isFinite(app.renderer.cam.y)&&app.renderer.cam.zoom>0));
     }
     await s.locator('[data-step="1"]').click();
+    assert(await s.locator('.spectator-minimap').isVisible(),'close-up views retain a minimap');
+    assert.equal(await s.locator('.spectator-summary [data-car]').count(),await s.evaluate(()=>Math.min(6,app.race.cars.length)));
+    const shots=await s.evaluate(()=>{
+      const view=app.spectator,time=app.race.time;view.mode='auto';view.autoShot=-1;view.lastCut=time-9;
+      const shots=[];for(let i=0;i<4;i++){app.race.time=time+i*8.1;view.update(0);shots.push(view.effectiveMode);}app.race.time=time;
+      return shots;
+    });
+    assert.deepEqual(shots,['full','follow','duel','full']);
+    assert.equal(await s.evaluate(()=>new Set(app.spectator.colors).size),await s.evaluate(()=>app.race.cars.length),'one stable colour per driver');
     await s.locator('select').selectOption('full');
     await s.waitForTimeout(300);
+    assert(await s.evaluate(()=>{
+      const r=app.renderer,b=app.race.track.bounds,p=app.spectator.root.getBoundingClientRect();
+      return r.w/2+(b.minX-r.cam.x)*r.cam.zoom>p.right && r.w/2+(b.maxX-r.cam.x)*r.cam.zoom<r.w && r.h/2+(b.minY-r.cam.y)*r.cam.zoom>0 && r.h/2+(b.maxY-r.cam.y)*r.cam.zoom<r.h;
+    }),'landscape overview fits beside the sidebar');
     await s.screenshot({path:path.join(captures,'spectateur-circuit-test.png')});
+    await s.locator('select').selectOption('follow');await s.waitForTimeout(300);
+    await s.screenshot({path:path.join(captures,'spectateur-suivi-test.png')});
     const late=await open();
     await late.evaluate(()=>app.ui.lobbyScreen());
     await late.locator('#inp-code').fill(code);
@@ -52,8 +67,18 @@ const double=/const DOUBLE = `([\s\S]*?)`;/m.exec(source)[1];
     const saved=await late.evaluate(()=>JSON.stringify(app.save));
     await late.setViewportSize({width:390,height:844});
     await late.waitForTimeout(300);
+    await late.locator('select').selectOption('follow');await late.waitForTimeout(300);
+    await late.screenshot({path:path.join(captures,'spectateur-mobile-test.png')});
     assert(await late.evaluate(()=>document.querySelector('.spectator-panel').getBoundingClientRect().right<=innerWidth));
-    await h.evaluate(()=>{app.race.cars.forEach((c,i)=>{c.finished=true;c.finishTime=101+i;c.lap=3;});app.race._finish();});
+    await h.evaluate(()=>{
+      const race=app.race,c=race.cars.find(c=>c.human===1),update=c.update;
+      c.update=function(...args){update.apply(this,args);this.lap=race.laps;this.update=update;};
+    });
+    await h.waitForFunction(()=>app.race.state==='finishing');
+    await s.waitForFunction(()=>app.race.state==='finishing'&&app.race.finishDeadline>app.race.time);
+    assert(await h.evaluate(()=>app.race.finishDeadline-app.race.time>27),'first guest finisher leaves a 30-second grace period');
+    await s.waitForFunction(()=>document.querySelector('.spectator-status')?.textContent.includes('Fin dans'));
+    await h.evaluate(()=>{app.race.cars.forEach((c,i)=>{c.finished=true;c.finishTime=101+i;c.lap=3;});});
     await Promise.all([h,g,s,late].map(p=>p.waitForFunction(()=>app.state==='results',{},{timeout:30000})));
     for(const p of [h,g,s,late])assert(await p.locator('.race-analysis').isVisible());
     const packets=await Promise.all([h,g,s,late].map(p=>p.evaluate(()=>app.race.broadcast.packet(app.race))));

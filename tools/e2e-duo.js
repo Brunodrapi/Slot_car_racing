@@ -45,7 +45,7 @@ const DOUBLE = `
       setTimeout(() => this.fire(), 0);
       return Promise.resolve();
     }
-    envoi() { this.ch.postMessage({ type: 'p', from: this.label, p: this.mine }); }
+    envoi() { const packet=structuredClone({ type: 'p', from: this.label, p: this.mine }); const delay=window.NET_TEST_DELAY || 0; if(delay)setTimeout(()=>{try{this.ch.postMessage(packet);}catch(_){}},delay);else this.ch.postMessage(packet); }
     presence(patch) {
       for (const k in patch) { if (patch[k] === null) delete this.mine[k]; else this.mine[k] = patch[k]; }
       this.envoi(); this.fire(); return Promise.resolve();
@@ -113,6 +113,7 @@ const DOUBLE = `
     // Après le chargement, et non avant : les scripts de la page définissent `RoomRTC` et
     // écraseraient un double posé trop tôt. `Net` ne le lit qu'à l'ouverture de la table.
     await p.evaluate(DOUBLE);
+    await p.evaluate(ms=>{window.NET_TEST_DELAY=ms;},+(process.argv.find(x=>x.startsWith('--latence='))||'--latence=0').split('=')[1]);
     await p.keyboard.press('Enter');
     await p.waitForTimeout(300);
     return p;

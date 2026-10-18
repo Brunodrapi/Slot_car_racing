@@ -22,8 +22,11 @@ présentation portrait ; **la course accepte le portrait et le paysage**, en tou
 Rejoindre un salon avec **Regarder**, avant le départ ou pendant la course. Cinq vues sont
 proposées : réalisateur automatique, suivi pilote, circuit complet, caméras fixes et duel.
 Le tableau affiche les chronos et les écarts (estimés en course, chronométrés à l’arrivée).
-Un bilan partagé détaille les tours, la régularité, les positions, les vitesses maximales et les
+Le premier arrivé laisse 30 secondes aux autres ; si tous les pilotes ont fini, la course se clôt
+plus tôt. Un bilan partagé détaille les tours, la régularité, les positions, les vitesses maximales et les
 sorties de piste. [Commandes, méthode et captures de test](docs/spectateur/README.md).
+
+[Étude : physique locale des invités et nouvelle architecture réseau](docs/multijoueur/architecture-physique.md).
 
 ### Contrôles
 
