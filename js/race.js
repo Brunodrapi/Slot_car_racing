@@ -246,6 +246,14 @@ class Race {
 
   _step(dt, throttleInput, brakingInput = null) {
     if (this.state === 'countdown') {
+      if (this.netDrive) {
+        // The shared host-clock epoch changes the phase once, in beforeFrame.
+        // Revving cannot advance either the countdown or the car on its own clock.
+        for (const car of this.cars) if (this.netDrive.owns(car)) {
+          car.throttle = car.isPlayer ? throttleInput : this.countdown < 1.2;
+        }
+        return;
+      }
       /* Le décompte ATTEND que tout le monde ait fini de charger.
 
       Une course en ligne démarrait dès le coup d'envoi, alors que chaque écran a encore à
@@ -272,10 +280,12 @@ class Race {
     }
     if (this.state === 'finished') return;
     this._simulate(dt, throttleInput, brakingInput);
-    if (this.state === 'finishing') {
-      this.finishTimer -= dt;
+    if (this.state === 'finishing' && (!this.netDrive || this.netDrive.host)) {
+      if (this.netDrive) this.finishTimer = Math.max(0, this.finishDeadline - this.time);
+      else this.finishTimer -= dt;
       const competitors = this.opts.humans ? this.cars.filter(c => c.human != null) : this.cars;
-      if (this.finishTimer <= 0 || competitors.every(c => c.finished)) this._finish();
+      const expired = this.finishTimer <= 0 && (!this.netDrive || this.netDrive.canFinalize());
+      if (expired || competitors.every(c => c.finished)) this._finish();
     }
   }
 
@@ -306,9 +316,11 @@ class Race {
   _simulate(dt, throttleInput, brakingInput = null) {
     const T = this.track;
     this.time += dt;
+    if (this.netDrive && this.finishDeadline && this.time > this.finishDeadline) return;
     // rubber-banding: slow leaders that are far ahead of the player, help stragglers a little
     const pp = this.player.progress;
     for (const car of this.cars) {
+      if (this.netDrive && !this.netDrive.owns(car)) continue;
       // The third argument is "let the AI pick the line". A person's car never does, wherever
       // that person is sitting.
       /* Une seule source de vérité pour « cette voiture est-elle pilotée par la machine ».
@@ -344,7 +356,7 @@ class Race {
           car.finished = true;
           car.finishTime = this.time;
           this.events.push({ type: 'finish', car });
-          if ((this.opts.humans || car.isPlayer) && this.state === 'racing') {
+          if ((!this.netDrive || this.netDrive.host) && (this.opts.humans || car.isPlayer) && this.state === 'racing') {
             this.state = 'finishing';
             this.finishTimer = this.opts.humans ? NET_FINISH_GRACE : 4;
             this.finishDeadline = this.time + this.finishTimer;
@@ -352,7 +364,9 @@ class Race {
         }
       }
     }
-    if (this.mode === 'race' && !this.opts.noContact) {
+    if (this.mode === 'race' && !this.opts.noContact && this.netDrive) {
+      this.netDrive.resolveContacts(dt);
+    } else if (this.mode === 'race' && !this.opts.noContact) {
       const before = T.barriers.length ? this.cars.map(c=>({x:c.x,y:c.y,th:c.th})) : null;
       resolveCollisions(this.cars, T);
       if(before)for(let i=0;i<this.cars.length;i++){

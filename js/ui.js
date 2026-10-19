@@ -926,11 +926,13 @@ class UI {
     this.show(`
       <div class="topbar"><button data-action="netLeave">← ${t('leaveTable')}</button><h2>${t('yourTable')} <b class="code">${escapeHtml(net.code)}</b></h2></div>
       ${net.error ? `<p class="warn">${escapeHtml(net.error)}</p>` : ''}
+      <p class="muted net-ping">${escapeHtml(net.link?.label() || 'Ping : —')} · aller-retour</p>
+      ${list.some(m => !m.q.spectator && m.q.protocol !== DRIVE_PROTOCOL) ? '<p class="warn">Tous les pilotes doivent recharger la dernière version du jeu.</p>' : ''}
       <h3>${t('players')} <span class="muted">${list.filter(m => !m.q.spectator).length}/${NET_SEATS} · ${list.filter(m => m.q.spectator).length} spectateurs</span></h3>
       <div class="grid players">
         ${list.map((m, i) => `<div class="card ${m.isMe ? 'sel' : ''}">
           <b>${escapeHtml(m.name)}</b>
-          <small>${i === 0 ? t('host') : ''}${i === 0 && m.isMe ? ' · ' : ''}${m.isMe ? t('you') : ''}</small>
+          <small>${i === 0 ? t('host') : ''}${i === 0 && m.isMe ? ' · ' : ''}${m.isMe ? t('you') : ''}${i > 0 ? ' · ' + (net.link?.ping(m.pid) ?? '—') + ' ms' : ''}</small>
           <small class="${m.ready ? 'ok' : 'muted'}">${m.q.spectator ? 'Spectateur' : m.ready ? '✓ ' + t('ready') : t('waiting')}</small>
         </div>`).join('')}
       </div>
@@ -1065,6 +1067,7 @@ class UI {
     const t = (k, ...a) => this.t(k, ...a);
     this.show(`
       <h2>${t('paused')}</h2>
+      ${race.netDrive ? '<p class="muted">La course continue en ligne pendant que ce menu est ouvert.</p>' : ''}
       <div class="menu">
         <button class="big primary" data-action="resume">${t('resume')}</button>
         ${race.mode === 'timetrial' ? `<button class="big" data-action="endTT">${t('endSession')}</button>` : ''}

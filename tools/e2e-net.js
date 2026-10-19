@@ -21,7 +21,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
 // being in strict mode.
 const STUB = `
 const RoomRTCStub = class {
-  constructor() { this.mine = {}; this.others = new Map(); this.handlers = []; this.open = false; }
+  constructor() { this.mine = {}; this.others = new Map(); this.handlers = []; this.messages = []; this.open = false; }
   static available() { return true; }
   claim(code, asHost) {
     this.label = (asHost ? '0-' : '1-') + code + '-' + Math.random().toString(36).slice(2, 8);
@@ -29,6 +29,7 @@ const RoomRTCStub = class {
     this.ch.onmessage = (e) => {
       const d = e.data;
       if (!d || d.from === this.label) return;
+      if (d.message) { if (!d.to || d.to === this.label) for(const h of this.messages)h(d.message,d.from); return; }
       if (d.hello) this.ch.postMessage({ from: this.label, p: this.mine });
       this.others.set(d.from, { presence: d.p || {}, updatedAt: Date.now() });
       this.fire();
@@ -37,6 +38,8 @@ const RoomRTCStub = class {
     this.ch.postMessage({ from: this.label, p: this.mine, hello: true });
     return Promise.resolve(code);
   }
+  onMessage(h) { this.messages.push(h); }
+  message(message,to) { this.ch.postMessage({from:this.label,message,to}); }
   presence(patch) {
     for (const k in patch) { if (patch[k] === null) delete this.mine[k]; else this.mine[k] = patch[k]; }
     if (this.ch) this.ch.postMessage({ from: this.label, p: this.mine });

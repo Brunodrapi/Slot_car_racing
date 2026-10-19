@@ -3,11 +3,8 @@
  * Everything rides on the presence board of `js/room-rtc.js`: each screen posts one object and
  * sees everyone else's. Nothing is stored anywhere — close the page and the table is gone.
  *
- * One player hosts. The host is whoever opened the table, and the host alone simulates: it reads
- * the others' throttle and line off the board, runs the race, and posts the state of every car.
- * The guests post their two numbers and replay what they receive. No guest predicts anything, so
- * no guest can disagree with the host; what a guest sees is the host's race, a fraction of a
- * second old.
+ * Drivers simulate their own cars; NetDrive relays timestamped states and the host
+ * arbitrates contacts and results. NetLink measures RTT and aligns clocks.
  *
  * Three formats, one lobby:
  *   race   — everyone on the grid, filled up with AI cars, contact on
@@ -80,10 +77,11 @@ class Net {
       if (!asHost && !/^[A-Z0-9]{4}$/.test(this.code)) throw new Error('code à quatre lettres');
       this.creator = !!asHost;
       this.completedGo = 0;
-      this.mine = { pid: this.pid, name: name || 'Pilote', car: null, ready: false, spectator: !asHost && spectator };
+      this.mine = { pid: this.pid, protocol: DRIVE_PROTOCOL, name: name || 'Pilote', car: null, ready: false, spectator: !asHost && spectator };
       this.room.onPeers(() => { this.peers = this.room.peers(); this.pump(); });
       await this.room.claim(this.code, asHost);
       this.state = 'lobby';
+      this.link = new NetLink(this);
       await this.post();
     } catch (e) {
       this.error = (e && e.message) || 'liaison impossible';
@@ -95,6 +93,7 @@ class Net {
   }
 
   leave() {
+    this.link?.close(); this.link = null; this.drive = null;
     if (this.room) this.room.close();
     this.room = null;
     this.state = 'off';
@@ -130,7 +129,8 @@ class Net {
     attrapé immédiatement. Passé ce délai, plus personne n'en a besoin à chaque image, et le
     rappel d'une fois par seconde suffit à rattraper un retardataire. */
     const course = this.state === 'playing' && performance.now() - (this.playingAt || 0) > 2000;
-    const complet = !course || this.sentState === 'finished' || (this.postN = (this.postN || 0) + 1) % NET_HZ === 0;
+    const complet = !course || performance.now() - (this.presenceFullAt || 0) >= 900;
+    if (complet) this.presenceFullAt = performance.now();
     const p = Object.assign({}, this.mine, extra || {});
     if (complet) {
       if (this.creator) p.t = this.table;          // only the host's copy of the settings counts
@@ -201,7 +201,7 @@ class Net {
     change la sienne de lui-même en voyant la consigne, mais il y a un instant où sa présence porte
     encore l'ancienne : c'est cet instant-là que l'on ferme. */
     const conforme = (x) => !t.cat || t.cat === 'all' || !modelById(x.car.modelId) || modelById(x.car.modelId).catId === t.cat;
-    return this.creator && m.length >= need && m.every(x => x.ready && x.car && conforme(x));
+    return this.creator && m.length >= need && m.every(x => x.ready && x.car && x.q.protocol === DRIVE_PROTOCOL && conforme(x));
   }
 
   /** The host calls the start; everyone freezes the same list, in the same order, at that moment. */
@@ -257,6 +257,9 @@ class Net {
     }
     const roster = grid.map(x => x.p);
     const seat = roster.indexOf(this.pid);
+    if (!this.creator && this.members().find(m => m.pid === roster[0])?.q.protocol !== DRIVE_PROTOCOL) {
+      this.error = 'Version multijoueur différente : tous les pilotes doivent recharger le jeu.'; return;
+    }
     if (seat < 0 && !this.mine.spectator) return;                        // pas encore dedans : on attend le prochain envoi
     this.grid = grid;
     this.roster = roster;
@@ -297,6 +300,7 @@ class Net {
     if (this.state !== 'playing') return;
     this.completedGo = this.settings().go;
     this.state = 'lobby';
+    this.drive = null;
     if (this.room) this.room.relayer = true;      // le salon a de nouveau besoin de voir tout le monde
     this.grid = null;
     this.roster = null;
@@ -309,94 +313,8 @@ class Net {
 
   /* ------------------------------------------------------------------- during the race */
 
-  /** The host: read everyone's input, then publish the state of the race. Once per frame. */
-  hostTick(race) {
-    if (!this.room || !this.isHost()) return;
-    for (const p of this.peers) {
-      const q = p.presence || {};
-      if (p.isMe || !q.pid || !Array.isArray(q.i)) continue;
-      const seat = this.roster ? this.roster.indexOf(q.pid) : -1;
-      if (seat < 1) continue;
-      // The channel is neither reliable nor ordered: a frame of input can arrive after a newer
-      // one. Replaying it would resurrect a throttle already released, so only what moves
-      // forward is read. The window lets the counter wrap round.
-      const n = typeof q.n === 'number' ? q.n : null;
-      if (n !== null) {
-        const seen = this.seenN[q.pid];
-        if (seen !== undefined && n <= seen && n > seen - 120) continue;
-        this.seenN[q.pid] = n;
-      }
-      race.netInput[seat] = { thr: throttleAmount(q.i[0]), sel: (q.i[1] || 0) / 100,
-        brake: q.i.length >= 4 ? throttleAmount(q.i[2]) : null, engineBrake: q.i.length >= 4 ? throttleAmount(q.i[3]) : null };
-    }
-    const now = performance.now();
-    if (race.state === this.sentState && now - this.sentAtMs < (race.state === 'finished' ? 1000 : 1000 / NET_HZ)) return;
-    this.sentState = race.state;
-    this.sentAtMs = now;
-    /* L'instantané part en octets, pas en texte.
-
-    581 octets de JSON par image, trente fois par seconde, vers chacun des sept invités : 2,73
-    Mbit/s de voie montante, au-dessus de ce qu'une 4G faible accepte. Le même contenu tient en 214
-    octets. `Race.snapshot()` n'a pas bougé d'une ligne — le codec traduit son tableau et le rend
-    tel quel à l'arrivée, si bien qu'une erreur de quantification reste une erreur de transport et
-    ne devient jamais une erreur de physique. */
-    /* LE BLOC LENT EST FORCÉ dès que la course n'est plus en train de rouler.
-
-    Il ne part qu'une image sur quinze, ce qui est juste tant que les champs qu'il porte ne changent
-    qu'au passage de la ligne. L'arrivée est l'exception : l'hôte envoie UNE image d'état « terminé »
-    puis se tait, et si celle-là ne portait pas le bloc lent, l'invité construisait son classement
-    avec les fautes et les pénalités d'avant — mesuré : zéro seconde de pénalité là où l'hôte en
-    comptait 3,5. Quatorze chances sur quinze de se tromper, sur la seule image qui compte. */
-    const lent = race.state === 'racing' ? undefined : true;
-    const reportDue = now - (this.reportAt || 0) > 1000 || race.state === 'finished';
-    if (reportDue) this.reportAt = now;
-    this.post({ s: pqEncode(race.snapshot(++this.seq), race.track, lent), endAt: race.finishDeadline || null,
-      report: reportDue && race.broadcast ? race.broadcast.packet(race) : null });
-  }
-
-  /** A guest: publish my two numbers, apply the newest state received. Once per frame. */
-  guestTick(race, input) {
-    if (!this.room || this.isHost()) return;
-    const host = this.members().find(m => m.pid === this.roster?.[0]);
-    if (host?.q.report && race.broadcast) race.broadcast.receive(host.q.report, race);
-    const brut = host && host.q && host.q.s;
-    if (Number.isFinite(host?.q.endAt)) race.finishDeadline = host.q.endAt;
-    /* On accepte les deux formes : un tableau comme avant, des octets désormais.
-
-    Deux écrans ne portent pas forcément la même version — l'un vient de recharger, l'autre non —
-    et refuser l'ancienne forme aurait transformé une mise à jour en panne pour celui des deux qui
-    a le mauvais goût d'être en retard. Lire les deux ne coûte qu'une ligne. */
-    let snap = null;
-    if (Array.isArray(brut)) snap = brut;
-    else if (brut && typeof pqDecode === 'function') {
-      const r = pqDecode(brut, race.track, this.lentGarde);
-      if (r) { snap = r.snap; if (r.lent) this.lentGarde = r.lent; }
-    }
-    // An older snapshot than the one already applied would make the race walk backwards. It is
-    // let through only when it comes from far behind, which means a fresh race has started.
-    if (snap && (snap[0] > this.lastSeq || snap[0] < this.lastSeq - 120)) {
-      if (race.applySnapshot(snap)) { this.lastSeq = snap[0]; this.snapAt = performance.now(); }
-    }
-    if (this.mine.spectator) {
-      const now = performance.now();
-      if (now - this.sentAtMs > 1000) { this.sentAtMs = now; this.post({ i: null }); }
-      return;
-    }
-    const i = [Math.round(throttleAmount(input.throttle) * 1000) / 1000, Math.round(clamp(input.sel || 0, -1, 1) * 100)];
-    if (input.brake != null) i.push(Math.round(throttleAmount(input.brake) * 1000) / 1000, throttleAmount(input.engineBrake));
-    // Un appui part tout de suite, sans attendre le prochain envoi. Le reste du temps le rythme
-    // ordinaire suffit — rien n'a changé, et répéter la même chose n'apprend rien à l'hôte. Ce
-    // qui coûte cher au joueur, c'est le moment où il appuie : jusqu'à trente-trois millisecondes
-    // gagnées là où il les sent le plus.
-    const now = performance.now();
-    const change = !this.lastI || this.lastI.length !== i.length || this.lastI[0] !== i[0] || Math.abs(this.lastI[1] - i[1]) > 4
-      || this.lastI[2] !== i[2] || this.lastI[3] !== i[3];
-    if (!change && now - this.sentAtMs < 1000 / NET_HZ) return;
-    if (change && now - this.sentAtMs < 1000 / 60) return;    // sans inonder le canal pour autant
-    this.lastI = i;
-    this.sentAtMs = now;
-    this.post({ i, n: ++this.outN });
-  }
+  // Retained entry point for results rebroadcast and existing integrations.
+  hostTick(race) { if (this.drive?.race === race) this.drive.afterFrame({}); }
 
   /** How long since the last state arrived — the game greys the screen when it gets long. */
   silence() {

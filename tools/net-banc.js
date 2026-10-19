@@ -69,7 +69,7 @@ const DOUBLE = (retard, gigue, perte) => `
   };
   class RoomBanc {
     static available() { return true; }
-    constructor() { this.mine = {}; this.others = new Map(); this.label = null; this.h = []; this.ch = null; this.relayer = true; }
+    constructor() { this.mine = {}; this.others = new Map(); this.label = null; this.h = []; this.messages = []; this.ch = null; this.relayer = true; }
     claim(code, asHost) {
       this.label = (asHost ? '0-' : '1-') + Math.random().toString(36).slice(2, 7);
       this.hote = asHost;
@@ -77,6 +77,7 @@ const DOUBLE = (retard, gigue, perte) => `
       this.ch.onmessage = (e) => {
         const m = e.data;
         if (m.from === this.label) return;
+        if (m.message) { if (!m.pour || m.pour === this.label) { window.__net.recus++; window.__net.octetsRecus += m.o || 0; } if (!m.pour || m.pour === this.label) for (const h of this.messages) h(m.message,m.from); return; }
         if (m.type === 'bonjour') this.envoi();
         if (m.pour && m.pour !== this.label) return;       // un relais ciblé ne concerne que lui
         window.__net.recus++; window.__net.octetsRecus += m.o || 0;
@@ -103,6 +104,7 @@ const DOUBLE = (retard, gigue, perte) => `
     Sans accent grave dans ce bloc : il vit dans un gabarit de chaine, et le premier le refermerait.
     */
     poste(msg) {
+      msg = structuredClone(msg);
       /* Un tableau d'octets se compte en octets, pas en longueur de son JSON.
 
       JSON.stringify d'un Uint8Array rend un objet à clés numériques — plusieurs fois le poids
@@ -118,6 +120,8 @@ const DOUBLE = (retard, gigue, perte) => `
         Math.max(0, RETARD + (Math.random() * 2 - 1) * GIGUE));
     }
     envoi() { this.poste({ type: 'p', from: this.label, p: this.mine }); }
+    onMessage(h) { this.messages.push(h); }
+    message(message,pour) { this.poste({from:this.label,message,pour}); }
     presence(patch) {
       for (const k in patch) { if (patch[k] === null) delete this.mine[k]; else this.mine[k] = patch[k]; }
       this.envoi(); this.fire(); return Promise.resolve();

@@ -118,7 +118,7 @@ Dépasser = changer de ligne.
 ## À plusieurs
 
 Une table, un code de quatre lettres. L'un ouvre la table et dicte son code, les autres le
-saisissent ; jusqu'à six écrans. Chacun choisit sa voiture, se déclare prêt, et l'hôte lâche le
+saisissent ; jusqu'à huit pilotes. Chacun choisit sa voiture, se déclare prêt, et l'hôte lâche le
 drapeau. Après l'arrivée on retombe sur la table, prêts à repartir.
 
 | Format | Sur la piste | Contacts |
@@ -127,15 +127,25 @@ drapeau. Après l'arrivée on retombe sur la table, prêts à repartir.
 | **Duel** | les humains et personne d'autre | oui |
 | **Contre-la-montre** | les humains, chacun son tour | non, les voitures se traversent |
 
-**Un seul écran simule.** L'hôte — celui qui a ouvert la table — fait tourner la course et publie
-l'état de chaque voiture trente fois par seconde. Les invités ne publient que deux nombres, gaz et
-choix de ligne, et rejouent ce qu'ils reçoivent. Aucun invité ne prédit quoi que ce soit, donc aucun
-ne peut être en désaccord avec l'hôte : ce qu'un invité voit est la course de l'hôte, avec une
-fraction de seconde de retard. Entre deux images reçues, les voitures avancent le long de leur
-propre vitesse — non pour deviner la suite, seulement pour que l'écran ne se fige pas.
+**Chaque pilote simule sa voiture localement.** Gaz, petites pulsations, freinage, dérapages et
+barrières réagissent sans attendre un aller-retour réseau. L’hôte simule les IA, arbitre les contacts
+et rassemble les tours, pénalités et résultats. Les voitures proches reçoivent des états détaillés
+à environ 30 Hz, les éloignées une progression simplifiée à 5 Hz ; un freinage ou changement de
+commande important est relayé immédiatement. Les adversaires sont extrapolés brièvement (150 ms
+maximum), avec retour anticipé au détail selon la distance, la caméra et le rapprochement.
 
-Le canal n'est ni fiable ni ordonné : une image d'entrées peut arriver après une plus récente, et la
-rejouer ferait repartir un gaz déjà relâché. On ne lit donc que ce qui avance, de chaque côté.
+Le **ping aller-retour vers l’hôte** est mesuré chaque seconde, dans le salon et pendant la course.
+L’hôte voit la plage des pings de ses invités. Ce ping n’est pas le délai complet entre deux
+invités : leurs deux trajets via l’hôte s’additionnent. Une valeur absente ou périmée affiche « — ».
+Tous les pilotes doivent recharger la version **0.35.0** ou suivante pour utiliser ce protocole.
+
+Les paquets portent une course, une séquence ou un horodatage ; les anciens états sont ignorés.
+Les contacts décidés par l’hôte sont identifiés et acquittés pour ne s’appliquer qu’une fois.
+Les contacts trop incertains sont ignorés plutôt que d’imposer une poussée invisible. La course
+continue pendant l’ouverture du menu de pause en ligne. La clôture intervient au plus tard trente
+secondes après le premier arrivé, plus tôt quand tous les pilotes ont terminé.
+
+Voir [l’architecture et les vérifications](docs/multijoueur/architecture-physique.md).
 
 **Rien ne passe par un serveur de jeu.** Les données vont directement d'un appareil à l'autre en
 WebRTC ; un annuaire public (le courtier PeerJS) ne sert qu'à présenter les deux navigateurs l'un à
@@ -3432,6 +3442,9 @@ NODE_PATH=$(npm root -g) node tools/e2e-splash.js [dossier]                     
 NODE_PATH=$(npm root -g) node tools/e2e-menu.js [dossier]                         # le menu-affiche : bandeaux, dépliage, destinations
 NODE_PATH=$(npm root -g) node tools/e2e-pause.js [dossier]                        # le bouton pause en course, sur quatre formats d'écran
 node tools/bump.js [patch|minor|major]                                            # numéro de version + cassage du cache
+node tools/net-owned-test.js [circuit]                                          # propriété locale, pertes, contacts, tours, clôture
+node tools/room-message-test.js                                                 # transport adressé et congestion
+NODE_PATH=$(npm root -g) node tools/e2e-local-physics.js                          # trois pilotes, ping et freinage sous latence
 node tools/netsim.js <circuit> [secondes] [perte %] [format]                      # deux écrans en réseau, sans navigateur
 NODE_PATH=$(npm root -g) node tools/e2e-net.js <dossier> [format]                 # deux onglets, une table, une course
 NODE_PATH=$(npm root -g) node tools/e2e-duo.js [secondes] [--joueurs=8] [--perte]  # jusqu'à huit écrans : grille, aiguillage des appuis, régularité

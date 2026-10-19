@@ -51,6 +51,7 @@
       this.label = null;
       this.peerHandlers = [];
       this.connHandlers = [];
+      this.messageHandlers = [];
       this.open = false;
       this.error = null;
       /* L'hôte renvoie la présence de chacun à tous les autres, pour que le salon soit complet chez
@@ -72,6 +73,7 @@
     async claim(code, asHost) {
       await loadLib();
       this.close();
+      this.host = !!asHost;
       this.label = RoomRTC.labelFor(code, asHost);
       const id = PREFIX + code;
       const peer = new root.Peer(asHost ? id : undefined, Object.assign({ debug: 0 }, cfg().peer));
@@ -122,6 +124,15 @@
       if (c.open) this.send(c, this.mine);
       c.on('data', (d) => {
         if (!d || typeof d !== 'object' || typeof d.from !== 'string') return;
+        // Bind an identity to its connection. Race packets are addressed, never relayed
+        // blindly as lobby presences: each driver receives its own interest set.
+        if (this.host && c.slotLabel && c.slotLabel !== d.from) return;
+        if (this.host || d.from.startsWith('0-')) c.slotLabel = d.from;
+        if (d.message && !this.host && d.from !== c.slotLabel) return;
+        if (d.message) {
+          for (const h of this.messageHandlers) h(d.message, d.from);
+          return;
+        }
         // A presence is sent whole every frame, so a lost message repairs itself.
         this.others.set(d.from, { presence: d.p && typeof d.p === 'object' ? d.p : {}, updatedAt: Date.now() });
         // The host relays to the others, so everyone sees everyone — hors course, voir `relayer`.
@@ -147,6 +158,18 @@
       // behind a congested data channel; the next broadcast retries, including final results.
       if (presence.s && c.dataChannel?.bufferedAmount > 32768) return;
       try { c.send({ from: this.label, p: presence }); } catch (_) { /* the next frame retries */ }
+    }
+
+    onMessage(handler) { this.messageHandlers.push(handler); }
+
+    message(packet, target) {
+      for (const c of this.conns) {
+        if (!c.open || (target && c.slotLabel !== target)) continue;
+        if (c.dataChannel?.bufferedAmount > 65536) continue;
+        // States are replaceable; control/events are repeated until acknowledged.
+        if ((packet.kind === 'view' || packet.kind === 'owned') && c.dataChannel?.bufferedAmount > 16384) continue;
+        try { c.send({ from: this.label, message: packet }); } catch (_) { /* next update retries */ }
+      }
     }
 
     fail(msg) {

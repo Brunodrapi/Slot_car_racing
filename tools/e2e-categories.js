@@ -17,13 +17,14 @@ const DOUBLE = `
 (() => {
   class RoomBC {
     static available() { return true; }
-    constructor() { this.mine = {}; this.others = new Map(); this.label = null; this.h = []; this.ch = null; }
+    constructor() { this.mine = {}; this.others = new Map(); this.label = null; this.h = []; this.messages = []; this.ch = null; }
     claim(code, asHost) {
       this.label = (asHost ? '0-' : '1-') + Math.random().toString(36).slice(2, 7);
       this.ch = new BroadcastChannel('eol-' + code);
       this.ch.onmessage = (e) => {
         const m = e.data;
         if (m.from === this.label) return;
+        if (m.message) { if (!m.pour || m.pour === this.label) for (const h of this.messages) h(m.message,m.from); return; }
         if (m.type === 'bonjour') this.envoi();
         this.others.set(m.from, { presence: m.p, updatedAt: Date.now() });
         this.fire();
@@ -33,6 +34,8 @@ const DOUBLE = `
       return Promise.resolve();
     }
     envoi() { this.ch.postMessage({ type: 'p', from: this.label, p: this.mine }); }
+    onMessage(h) { this.messages.push(h); }
+    message(message,pour) { this.ch.postMessage({from:this.label,message,pour}); }
     presence(patch) {
       for (const k in patch) { if (patch[k] === null) delete this.mine[k]; else this.mine[k] = patch[k]; }
       this.envoi(); this.fire(); return Promise.resolve();

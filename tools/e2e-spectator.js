@@ -31,7 +31,7 @@ const double=/const DOUBLE = `([\s\S]*?)`;/m.exec(source)[1];
     await s.waitForFunction(()=>app.net.lastSeq>0);
     assert.deepEqual(await s.evaluate(()=>({seat:app.net.seat,local:app.race.cars.filter(c=>c.isPlayer).length,grid:app.net.roster.length})),{seat:-1,local:0,grid:2});
     assert.equal(await h.evaluate(()=>app.net.attendus().total),2);
-    await h.evaluate(()=>{app.race.time=100;app.race.cars.forEach((c,i)=>{c.lapTimes=[40+i,42+i];c.lapOk=[true,false];c.bestLap=40+i;c.lap=2;c.started=true;c.lapStart=90;});app.net.reportAt=0;});
+    await h.evaluate(()=>{app.net.drive.epoch=app.net.link.now()-100000;app.race.time=100;app.race.cars.forEach((c,i)=>{c.lapTimes=[40+i,42+i];c.lapOk=[true,false];c.bestLap=40+i;c.lap=2;c.started=true;c.lapStart=90;});app.net.drive.reportAt=0;});
     await s.waitForFunction(()=>app.race.cars[0].lapTimes.length===2);
     for(const mode of ['auto','follow','full','fixed','duel']){
       await s.locator('select[aria-label="Vue spectateur"]').selectOption(mode);
@@ -70,9 +70,11 @@ const double=/const DOUBLE = `([\s\S]*?)`;/m.exec(source)[1];
     await late.locator('select').selectOption('follow');await late.waitForTimeout(300);
     await late.screenshot({path:path.join(captures,'spectateur-mobile-test.png')});
     assert(await late.evaluate(()=>document.querySelector('.spectator-panel').getBoundingClientRect().right<=innerWidth));
-    await h.evaluate(()=>{
-      const race=app.race,c=race.cars.find(c=>c.human===1),update=c.update;
-      c.update=function(...args){update.apply(this,args);this.lap=race.laps;this.update=update;};
+    await g.evaluate(()=>{
+      const race=app.race,c=race.player;
+      c.started=true;c.lap=2;c.lapTimes=[40+race.cars.indexOf(c),42+race.cars.indexOf(c)];c.lapOk=[true,false];
+      c.lapStart=90;c.checkpoint=true;c.s=race.track.length-.01;c._advance(.02,race.time);
+      c.finished=true;c.finishTime=race.time;app.net.drive.metaKey=null;app.net.drive.lastSend=-Infinity;
     });
     await h.waitForFunction(()=>app.race.state==='finishing');
     await s.waitForFunction(()=>app.race.state==='finishing'&&app.race.finishDeadline>app.race.time);

@@ -409,6 +409,7 @@ class App {
       playerLivery: mine.livery || 0,
       playerLivree: this.playerLivreeFor(mine.modelId || this.playerModelFor(cat.id).id),
       playerName: mine.name || this.playerName(),
+      frein: freinDe(this.save, cfg.trackId, mine.modelId || this.playerModelFor(cat.id).id),
       spectator: cfg.spectator,
       humans: cfg.humans,
       roster,
@@ -420,7 +421,12 @@ class App {
     this.raceCtx = ctx;
     this.spectator?.close();
     this.race = new Race(opts);
-    if (ctx?.online) this.race.broadcast = new RaceBroadcast(this.race);
+    if (ctx?.online) {
+      this.race.broadcast = new RaceBroadcast(this.race);
+      this.net.drive = new NetDrive(this.net, this.race);
+      this.net.focus = () => this.spectator && ['follow','duel'].includes(this.spectator.effectiveMode) ? this.spectator.index : null;
+      this.net.viewRadius = () => Math.round(Math.hypot(this.renderer.w,this.renderer.h) / Math.max(.5,this.renderer.cam.zoom) / 2 + (this.renderer.framing || 0) * .6);
+    }
     const livreeCount = modelById(opts.modelId)?.livrees?.length || 1;
     if (!opts.spectator) this.analytics.begin(this.race, { track: opts.trackDef.id, car: opts.modelId,
       category: opts.classId, livery: ((Math.round(opts.playerLivree) || 0) % livreeCount + livreeCount) % livreeCount,
@@ -617,7 +623,7 @@ class App {
     if (this.desktop && this.state === 'paused') this.ui.updateControllerStatus();
     if (!this.race) return;
     const race = this.race;
-    if (this.state === 'race') {
+    if (this.state === 'race' || this.state === 'paused' && this.raceCtx?.online) {
       const net = this.net, online = net && net.state === 'playing';
       /* La barrière de chargement, tenue pendant le décompte.
 
@@ -630,7 +636,7 @@ class App {
         if (this.chargeDes == null) this.chargeDes = now;
         const pret = this._pretACourir(race);
         if (online) {
-          net.setCharge(pret);
+          net.setCharge(pret && (net.isHost() || net.link?.ping(net.pid) != null));
           if (net.isHost()) {
             const a = net.attendus();
             race.attente = a.reste > 0;
@@ -664,21 +670,17 @@ class App {
         if (this.chargement) this.chargement = null;
         race.attente = false;
       }
-      if (!online || net.isHost()) {
+      if (online) net.drive.beforeFrame(dt);
+      if (!this.spectator) {
         for (const pulse of this.throttlePulses.take(now - dt * 1000, now, this.input.throttle)) {
           race.update(pulse.dt, { ...this.input, throttle: pulse.throttle });
         }
-        if (online) { race.broadcast?.sample(race); net.hostTick(race); }
-      } else {
-        this.throttlePulses.reset(this.input.throttle);
-        // A guest runs no physics at all: it posts its two numbers, takes the host's picture of
-        // the race, and carries the cars forward between two of them so the screen does not stutter.
-        net.guestTick(race, this.input);
-        race.extrapolate(dt);
-        // Le paquet d'état garde ses drapeaux binaires ; le son local connaît notre dosage exact.
-        if (!this.spectator) race.player.throttle = race.player.engineStopped ? 0 : throttleAmount(this.input.throttle);
-        // Say so rather than pretending: after a couple of seconds with nothing from the host,
-        // what is on screen is no longer the race, it is the last picture of it carried forward.
+      } else if (online && net.link.synchronized && net.drive.epoch != null) {
+        race.time = Math.max(0, (net.link.now() - net.drive.epoch) / 1000);
+      }
+      if (online) {
+        if (net.isHost()) race.broadcast?.sample(race);
+        net.drive.afterFrame(this.input);
         const quiet = net.silence();
         if (quiet > 2) this.ui.flash = { text: this.ui.t('netLost'), until: performance.now() + 600, color: '#ffb4a2' };
       }

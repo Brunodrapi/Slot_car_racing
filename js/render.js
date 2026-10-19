@@ -1779,6 +1779,12 @@ class Renderer {
     hud.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     if (!race.opts.spectator) this._drawHUD(hud, race, ui);
     else ui.app.spectator?.drawMap(hud, race);
+    if (race.netDrive && ui.app.net?.link) {
+      const label = ui.app.net.link.label(), x = this.w - 10, y = this.h - 10;
+      hud.save(); hud.font = 'bold 11px system-ui'; hud.textAlign = 'right'; hud.textBaseline = 'bottom';
+      hud.fillStyle = 'rgba(10,12,20,.75)'; hud.fillRect(x - hud.measureText(label).width - 12, y - 19, hud.measureText(label).width + 20, 24);
+      hud.fillStyle = '#f3ead2'; hud.fillText(label, x, y); hud.restore();
+    }
   }
 
   // Optional braking guide (off by default): the ribbon ahead is coloured by the reference speed

@@ -1,0 +1,32 @@
+{
+  "version": "0.35.0",
+  "date": "2026-10-19",
+  "transport": "BroadcastChannel double, delay on each directed hop; not a public WebRTC measurement",
+  "measurements": [
+    {
+      "oneWayMs": 0,
+      "pingMs": 5,
+      "brakeVisibleMs": 21,
+      "pulseSpeed": 0.05767557738377056
+    },
+    {
+      "oneWayMs": 30,
+      "pingMs": 70,
+      "brakeVisibleMs": 72,
+      "pulseSpeed": 0.06064142429717124
+    },
+    {
+      "oneWayMs": 60,
+      "pingMs": 122,
+      "brakeVisibleMs": 139,
+      "pulseSpeed": 0.06566521648822193
+    },
+    {
+      "oneWayMs": 100,
+      "pingMs": 202,
+      "brakeVisibleMs": 222,
+      "pulseSpeed": 0.06861187303448521
+    }
+  ],
+  "errors": []
+}

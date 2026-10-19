@@ -19,7 +19,7 @@ const LOSS = +(ARGS[2] || 0) / 100;
 const MODE = ARGS[3] || 'race';
 
 let src = '';
-for (const f of ['util', 'traces', 'tracks', 'track', 'cars', 'car', 'race', 'net']) {
+for (const f of ['util', 'traces', 'tracks', 'track', 'cars', 'car', 'race', 'spectator', 'net-drive', 'net']) {
   src += fs.readFileSync(`${__dirname}/../js/${f}.js`, 'utf8')
     .replace(/if \(typeof module[^\n]*\n/g, '').replace(/'use strict';/g, '') + '\n';
 }
@@ -45,14 +45,16 @@ const bus = new Map();
 const host = new Net(), guest = new Net();
 host.room = new Loop(bus, '0-AAAA-host');   host.creator = true;  host.state = 'lobby'; host.code = 'AAAA';
 guest.room = new Loop(bus, '1-AAAA-guest'); guest.creator = false; guest.state = 'lobby'; guest.code = 'AAAA';
-host.mine = { pid: host.pid, name: 'Hôte', car: { modelId: null, livery: 0 }, ready: true };
-guest.mine = { pid: guest.pid, name: 'Invité', car: { modelId: null, livery: 3 }, ready: true };
+host.mine = { protocol: DRIVE_PROTOCOL, pid: host.pid, name: 'Hôte', car: { modelId: null, livery: 0 }, ready: true };
+guest.mine = { protocol: DRIVE_PROTOCOL, pid: guest.pid, name: 'Invité', car: { modelId: null, livery: 3 }, ready: true };
 host.table.trackId = ${JSON.stringify(TRACK)};
 host.table.mode = ${JSON.stringify(MODE)};
 
 let hostRace = null, guestRace = null;
-host.onStart = (cfg) => { hostRace = build(cfg); };
-guest.onStart = (cfg) => { guestRace = build(cfg); };
+const messages=[];
+for(const n of [host,guest])n.link={synchronized:true,now:()=>CLOCK.t,ping:()=>0,send(p,pid){if(Math.random()>=${LOSS})messages.push({p,to:pid,from:n.pid});}};
+host.onStart = (cfg) => { hostRace = build(cfg);host.drive=new NetDrive(host,hostRace); };
+guest.onStart = (cfg) => { guestRace = build(cfg);guest.drive=new NetDrive(guest,guestRace); };
 function build(cfg) {
   return new Race({
     mode: 'race', aiFill: cfg.mode === 'race', noContact: cfg.mode === 'ghost',
@@ -82,11 +84,10 @@ else {
     host.peers = host.room.peers();
     guest.peers = guest.room.peers();
 
-    hostRace.update(dt, { throttle: true, sel: 0 });
-    host.hostTick(hostRace);
-
-    guest.guestTick(guestRace, input);
-    guestRace.extrapolate(dt);
+    for(const m of messages.splice(0)){const n=m.to===host.pid?host:guest;n.drive?.receive(m.p,m.from);}
+    host.drive.beforeFrame(dt);hostRace.update(dt, { throttle: true, sel: 0 });host.drive.afterFrame({ throttle:true,sel:0 });
+    guest.drive.beforeFrame(dt);guestRace.update(dt,input);guest.drive.afterFrame(input);
+    if(k%60===0){host.post();guest.post();}
 
     if (hostRace.state === 'racing' && k > 300) {
       // the guest's own car on the host, against the same car as the guest draws it
