@@ -127,6 +127,7 @@ class Race {
     this.profiles = {};
     for (const name of LINE_NAMES) this.profiles[name] = speedProfile(this.track, this.cls, name, 0.98);
     this._buildGrid();
+    this.flags = typeof RaceFlags === 'undefined' ? null : new RaceFlags(this);
   }
 
   // `opts.humans` turns the grid into an online one: one seat per person, in the order the table
@@ -317,6 +318,7 @@ class Race {
     const T = this.track;
     this.time += dt;
     if (this.netDrive && this.finishDeadline && this.time > this.finishDeadline) return;
+    this.flags?.update();
     // rubber-banding: slow leaders that are far ahead of the player, help stragglers a little
     const pp = this.player.progress;
     for (const car of this.cars) {
@@ -350,6 +352,7 @@ class Race {
       car.update(dt, throttle, this.time, humanBrakes?.brake == null ? null : humanBrakes);
       if (car.barrierHits > hitsBefore || (!wasOff && car.state === 'grass')) this.events.push({ type: 'crash', car });
       this._comptePenalite(car, dt);
+      this.flags?.inspect(car);
       if (car.lap !== lapBefore) {
         this.events.push({ type: 'lap', car });
         if (this.mode === 'race' && car.lap >= this.laps && !car.finished) {
@@ -364,6 +367,7 @@ class Race {
         }
       }
     }
+    this.flags?.update();
     if (this.mode === 'race' && !this.opts.noContact && this.netDrive) {
       this.netDrive.resolveContacts(dt);
     } else if (this.mode === 'race' && !this.opts.noContact) {

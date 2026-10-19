@@ -1632,7 +1632,8 @@ class Renderer {
         g.strokeStyle = PAL.outline; g.lineWidth = T.def.graphics?.kerbOutlineWidth ?? 0.34; g.stroke(cn.kerbEdge);
       }
       g.restore();
-      // painted markings: the edges say which side of the corner they are, dashed yellow down the middle
+    drawYellowFlagZones(g,race,p=>p,T.halfWidth*2,.55);
+    // painted markings: the edges say which side of the corner they are, dashed yellow down the middle
       g.lineWidth = 0.55; // Repères de gameplay bleu/jaune : largeur conservée.
       g.strokeStyle = PAL.edgeBleu || PAL.edgeLine;
       for (const c of vus) g.stroke(c.edgeBleu);
@@ -1771,6 +1772,7 @@ class Renderer {
         this._hideCars(g, t.bouche);
       }
     }
+    if(!race.opts.spectator||ui.app.spectator?.effectiveMode!=='full')drawMapRaceFlags(g,race,p=>p,7/cam.zoom,true);
     g.restore();
 
     const hud = this.hudCtx;
@@ -2373,6 +2375,7 @@ class Renderer {
     g.imageSmoothingEnabled = true;
     const c = car.cls, pos = car.pos, h = car.heading;
     g.save();
+    if(car.blueFlag)g.globalAlpha*=.45;
     g.translate(pos.x, pos.y);
     g.rotate(h);
     // Inclure le contour du dessin, les rétroviseurs, l'ombre et les feux.
@@ -2720,12 +2723,18 @@ class Renderer {
     // les pastilles commencent juste après le bouton pause, et non au bord droit de l'écran
     const pb0 = this.pauseBtn;
     const ph = mobile ? 24 : 28, px = pb0.x + pb0.s + colle;
-    const pastille = (yy, lib, val, teinte) => {
+    const pastille = (yy, lib, val, teinte, flags=[]) => {
       g.fillStyle = 'rgba(10,12,20,0.62)';
       this._roundRect(g, px, yy, pw, ph, ph / 2); g.fill();
       g.textAlign = 'left'; g.textBaseline = 'middle';
       g.font = `bold ${mobile ? 10 : 11}px system-ui, sans-serif`; g.fillStyle = '#aeb4c0';
-      g.fillText(lib.toUpperCase(), px + 12, yy + ph / 2 + 0.5);
+      const flagSize=flags.length>1?10:12,flagWidth=flags.length*(flagSize+3);
+      flags.forEach((flag,i)=>drawRaceFlag(g,flag,px+8+i*(flagSize+3),yy+(ph-flagSize)/2,flagSize));
+      const labelWidth=g.measureText(lib.toUpperCase()).width;
+      g.font = `bold ${mobile ? 13 : 15}px ui-monospace, monospace`;
+      const valueWidth=g.measureText(val).width;
+      g.font = `bold ${mobile ? 10 : 11}px system-ui, sans-serif`;
+      if(!flags.length||pw-24-flagWidth-valueWidth>labelWidth+4)g.fillText(lib.toUpperCase(),px+12+flagWidth,yy+ph/2+.5);
       g.textAlign = 'right';
       g.font = `bold ${mobile ? 13 : 15}px ui-monospace, monospace`; g.fillStyle = teinte || '#fff';
       g.fillText(val, px + pw - 12, yy + ph / 2 + 0.5);
@@ -2744,7 +2753,8 @@ class Renderer {
     pastille change donc de mot et de couleur à l'instant de la faute. */
     const nul = !!p.lapSale;
     pastille(yP + ph + 5, nul ? t('lapVoid') : t('lap'),
-      fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart), nul ? '#ffb4a2' : '#fff');
+      fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart), nul ? '#ffb4a2' : '#fff',race.flags?.active(p)||[]);
+    this.hudZones.flags={types:race.flags?.active(p)||[],x:px+8,y:yP+ph+5};
 
     /* LA VITESSE, SOUS LE BANDEAU ET AU MILIEU — c'est-à-dire là où le cadran du bas n'était pas.
 
@@ -2892,6 +2902,7 @@ class Renderer {
       const mx = mmX, my = mmY;
       // pas de fond : le tracé translucide se pose sur le décor sans lui voler sa place
       g.drawImage(m.canvas, mx, my, m.size, m.size);
+      drawYellowFlagZones(g,race,p=>{const q=this.mmPoint(p.x,p.y);return {x:mx+q.x,y:my+q.y};},4,.95);
       /* Les points de la carte, deux fois plus gros, et le joueur en bleu ciel.
 
       Ils faisaient 3 et 4,5 pixels : sur un téléphone, à bout de bras, on ne distinguait pas sa
@@ -2904,6 +2915,7 @@ class Renderer {
         g.fillStyle = car.isPlayer ? '#7fd4ff' : car.livery.body;
         g.beginPath(); g.arc(mx + q.x, my + q.y, car.isPlayer ? 9 : 6, 0, Math.PI * 2); g.fill();
       }
+      drawMapRaceFlags(g,race,p=>{const q=this.mmPoint(p.x,p.y);return{x:mx+q.x,y:my+q.y};},7);
     }
 
     // standings strip (desktop)

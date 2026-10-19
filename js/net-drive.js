@@ -213,6 +213,7 @@ class NetDrive {
       this.contacts.set(pid,pending.filter(e=>e.id>p.ack));
       this.states.set(s.id,s);this.applyState(c,s);
       if(p.meta)this.acceptMeta(c,p.meta,s);
+      r.flags?.update();
       if(p.urgent)this.broadcast(s.id);
       return;
     }
@@ -236,6 +237,7 @@ class NetDrive {
       this.controlReceived=p.seq;this.epoch=p.epoch;
       if(p.state==='finishing'||p.state==='finished')r.state=p.state;
       r.finishDeadline=p.endAt;r.finishTimer=Math.max(0,(p.endAt||0)-r.time);
+      if(p.flags)r.flags?.receive(p.flags);
       if(Array.isArray(p.meta))p.meta.forEach((m,i)=>{if(r.cars[i]&&(i!==this.local||p.state==='finished'))this.applyMeta(r.cars[i],m);});
       if(p.report){
         const own=this.local>=0?driveMeta(r.player):null;
@@ -249,7 +251,7 @@ class NetDrive {
       for(const e of p.events||[]){
         if(e.id!==this.ack+1||e.car!==this.local)continue;
         this.ack=e.id;
-        if(this.link.now()-e.at>1500||r.state==='finished')continue;
+        if(this.link.now()-e.at>1500||r.state==='finished'||r.player.blueFlag)continue;
         const c=r.player,before={x:c.x,y:c.y,th:c.th};
         for(const key of ['x','y','v','vl','w','damage'])c[key]+=e.delta[key]||0;
         c.damage=clamp(c.damage,0,1);c._barrierContact(before,r.dt);
@@ -340,10 +342,13 @@ class NetDrive {
   }
   control(){
     const now=this.link.now(),r=this.race;
+    const flagKey=r.flags?.key();
+    if(flagKey!==this.lastFlagKey){this.lastControl=-Infinity;this.lastFlagKey=flagKey;}
     if(now-this.lastControl<(r.state==='finished'?1000:200) && r.state===this.lastState)return;
     const reportDue=now-(this.reportAt||0)>1000||r.state==='finished';
     if(reportDue)this.reportAt=now;
     const p={kind:'control',seq:++this.controlSeq,epoch:this.epoch,state:r.state,time:r.time,endAt:r.finishDeadline||null,
+      flags:r.flags?.packet(),
       meta:reportDue?r.cars.map(driveMeta):null,report:reportDue?r.broadcast?.packet(r):null};
     this.lastControl=now;this.lastState=r.state;
     for(const m of this.net.members())if(!m.isMe){
@@ -362,6 +367,7 @@ class NetDrive {
     const r=this.race,now=this.link.now();
     for(let i=0;i<r.cars.length;i++)for(let j=i+1;j<r.cars.length;j++){
       const a=r.cars[i],b=r.cars[j],key=i+':'+j;
+      if(a.blueFlag||b.blueFlag)continue;
       if(now-(this.pairAt.get(key)||-Infinity)<80)continue;
       // Beyond the prediction horizon, a contact could precede what either driver sees.
       // Prefer letting that uncertain contact pass to applying an invisible shove.

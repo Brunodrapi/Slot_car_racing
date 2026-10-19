@@ -77,7 +77,7 @@ class SpectatorView {
     for(const station of bends){if(this.stations.every(s=>Math.abs(track.diff(s,station))>track.length/12))this.stations.push(station);if(this.stations.length===8)break;}
     this.stations.sort((a,b)=>a-b);
     this.root=document.createElement('aside');this.root.className='spectator-panel';
-    this.root.innerHTML=`<div class="spectator-controls"><b>Spectateur</b><select aria-label="Vue spectateur">${[['auto','Réalisateur'],['follow','Suivi pilote'],['full','Circuit complet'],['fixed','Caméras fixes'],['duel','Duel']].map(([id,label])=>`<option value="${id}">${label}</option>`).join('')}</select><button type="button" data-step="-1" aria-label="Précédent">◀</button><button type="button" data-step="1" aria-label="Suivant">▶</button><button type="button" data-hide>Chronos</button><button type="button" data-leave>Quitter</button></div><p class="spectator-status"></p><canvas class="spectator-minimap" width="320" height="180" role="img" aria-label="Circuit et positions des pilotes"></canvas><div class="spectator-summary"></div><div class="spectator-timing"></div>`;
+    this.root.innerHTML=`<div class="spectator-controls"><b>Spectateur</b><select aria-label="Vue spectateur">${[['auto','Réalisateur'],['follow','Suivi pilote'],['full','Circuit complet'],['fixed','Caméras fixes'],['duel','Duel']].map(([id,label])=>`<option value="${id}">${label}</option>`).join('')}</select><button type="button" data-step="-1" aria-label="Précédent">◀</button><button type="button" data-step="1" aria-label="Suivant">▶</button><button type="button" data-hide>Chronos</button><button type="button" data-leave>Quitter</button></div><p class="spectator-status"></p><div class="spectator-race-clock"></div><canvas class="spectator-minimap" width="320" height="180" role="img" aria-label="Circuit et positions des pilotes"></canvas><div class="spectator-summary"></div><div class="spectator-timing"></div>`;
     document.body.append(this.root);
     this.root.querySelector('select').onchange=e=>{this.mode=e.target.value;this.paintAt=-1;};
     this.root.onclick=e=>{
@@ -125,7 +125,10 @@ class SpectatorView {
   miniPoint(c){return{x:this.miniOrigin.x+c.x*this.miniScale,y:this.miniOrigin.y+c.y*this.miniScale};}
   drawMap(g,race){
     const full=this.effectiveMode==='full', ctx=full?g:this.mini.getContext('2d');
-    if(!full)ctx.drawImage(this.miniBase,0,0);
+    if(!full){
+      ctx.drawImage(this.miniBase,0,0);
+      drawYellowFlagZones(ctx,race,p=>({x:this.miniOrigin.x+p.x*this.miniScale,y:this.miniOrigin.y+p.y*this.miniScale}),4,.95);
+    }
     ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
     // Leader drawn last so a dense pack does not hide the leading marker.
     const order=race.standings();
@@ -135,7 +138,9 @@ class SpectatorView {
       ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();ctx.stroke();
       if(race.cars.indexOf(c)===this.index){ctx.strokeStyle='#f6df87';ctx.beginPath();ctx.arc(p.x,p.y,radius+3,0,Math.PI*2);ctx.stroke();}
       if(full){ctx.font='bold 11px sans-serif';ctx.lineWidth=3;ctx.strokeStyle='#111';ctx.strokeText(String(i+1),p.x,p.y);ctx.fillStyle='#fff';ctx.fillText(String(i+1),p.x,p.y);}
-    });ctx.restore();
+    });
+    drawMapRaceFlags(ctx,race,p=>full?this.screenPoint(p):this.miniPoint(p),full?9:6);
+    ctx.restore();
   }
   gap(a,b,race){
     if(!a||!b)return '—';
@@ -178,6 +183,8 @@ class SpectatorView {
     if(hide&&!this.padHide)this.toggleTiming();this.padCycle=cycle;this.padHide=hide;
     if(performance.now()-this.paintAt<250)return;this.paintAt=performance.now();
     this.root.querySelector('.spectator-status').textContent=`${race.state==='finishing'&&race.finishDeadline?'Fin dans '+Math.max(0,Math.ceil(race.finishDeadline-race.time))+' s · ':''}${c.name} · ${Math.round(c.v*3.6)} km/h · Tour ${Math.max(1,c.lap)}${app.net.silence()>2?' · ⚠ Liaison interrompue':''}`;
+    const flags=race.flags?.active(c)||[];
+    this.root.querySelector('.spectator-race-clock').innerHTML=flags.map(f=>raceFlagHTML(f,app.ui.lang)).join('')+'<time>Course '+fmtTime(Math.max(0,race.time))+'</time>';
     const selectedRank=order.indexOf(c),start=Math.max(1,Math.min(order.length-5,selectedRank-2));
     const compact=mode==='full'?order:selectedRank>=4?[order[0],...order.slice(start,start+5)]:order.slice(0,6);
     this.root.querySelector('.spectator-summary').innerHTML=compact.map(car=>{const i=order.indexOf(car);return `<button class="spectator-position ${car===c?'selected':''}" data-car="${race.cars.indexOf(car)}"><span>${this.swatch(car)}${i+1}. ${escapeHtml(car.name)}</span><small>${i?this.gap(order[0],car,race):'Leader'}</small></button>`;}).join('');

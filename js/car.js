@@ -1155,7 +1155,7 @@ class Car {
     let blocker = null, bd = Infinity, voisin = null, vdl = Infinity;
     const range = c.length * 3 + Math.max(0, this.v) * 1.0;
     for (const o of cars) {
-      if (o === this) continue;
+      if (o === this || this.blueFlag || o.blueFlag) continue;
       const d = T.diff(this.s, o.s);
       if (d > range) continue;
       const lenSum = (c.length + o.cls.length) / 2;
@@ -1316,6 +1316,7 @@ function resolveCollisions(cars, track) {
     const a = cars[i];
     for (let j = i + 1; j < n; j++) {
       const b = cars[j];
+      if (a.blueFlag || b.blueFlag) continue;
       /* Pas de contact dans la voie des stands, ni avec la piste depuis la voie.
 
       Deux raisons, et la seconde compte plus que la première. D'abord c'est juste : un vrai

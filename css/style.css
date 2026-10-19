@@ -520,3 +520,11 @@ body.desktop .screen.overlay { overflow-y: auto; justify-content: safe center; }
 .spectator-panel:not(.spectator-landscape):not([data-view="full"]) .spectator-minimap{width:160px}
 .spectator-panel:not(.spectator-landscape):not([data-view="full"]) .spectator-summary{max-height:22vh}
 @media (max-height:480px){.spectator-landscape .spectator-minimap{width:160px}.spectator-landscape:not([data-view="full"]) .spectator-summary{max-height:120px}.spectator-controls{gap:3px}}
+
+/* Race-control flags: squares, with no green state. */
+.race-flag{display:inline-block;width:14px;height:14px;flex:0 0 14px;border:1px solid #f5f3e8;vertical-align:middle;box-sizing:border-box}
+.race-flag-blue{background:#3b82f6}
+.race-flag-yellow{background:#e9be37}
+.race-flag-penalty{background:linear-gradient(135deg,#171a1d 50%,#f5f3e8 50%)}
+.race-flag-chequered{background:conic-gradient(#171a1d 25%,#f5f3e8 0 50%,#171a1d 0 75%,#f5f3e8 0);background-size:6px 6px}
+.spectator-race-clock{display:flex;align-items:center;gap:6px;font:700 12px ui-monospace,monospace;margin:4px 0 8px}

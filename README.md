@@ -17,6 +17,15 @@ Fonctionne sur ordinateur (clavier, molette ou manette Xbox) et sur mobile/table
 à ajouter à l'écran d'accueil). Le PC dispose de menus en paysage. Les menus mobiles gardent leur
 présentation portrait ; **la course accepte le portrait et le paysage**, en tournant l'appareil.
 
+### Drapeaux en course
+
+Un carré près du chrono signale le bleu, le jaune ou une sanction en noir et blanc. Le damier
+s’affiche dès le dernier tour du leader et reste jusqu’à la clôture. Aucun drapeau vert.
+Sous bleu, la voiture devient translucide et laisse passer les autres sans collision entre
+voitures ; les barrières restent actives. Après trois secondes hors piste, un secteur jaune
+apparaît sur la piste et les cartes jusqu’au retour. Ces indications sont également partagées
+avec les invités et les spectateurs. [Règles et captures](docs/drapeaux/README.md).
+
 ### Spectateurs multijoueurs
 
 Rejoindre un salon avec **Regarder**, avant le départ ou pendant la course. Cinq vues sont

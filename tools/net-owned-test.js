@@ -3,7 +3,7 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
 const ctx=vm.createContext({console,Math,Date,assert,Uint8Array,DataView,ArrayBuffer,
   TEST_TRACK:process.argv[2]||'monza',performance:{now:()=>0},setInterval:()=>0,clearInterval:()=>{}});
-const source=['util','traces','tracks','track','cars','car','race','spectator','net-drive']
+const source=['util','traces','tracks','track','cars','car','flags','race','spectator','net-drive']
   .map(f=>fs.readFileSync(`${__dirname}/../js/${f}.js`,'utf8')).join('\n');
 vm.runInContext(source+`
 let clock=10000,delay=50,queue=[],packetN=0,loss=false;
@@ -77,11 +77,22 @@ const contact={id:1,car:g.drive.local,at:clock,delta:{v:-1,vl:.1,w:0,x:0,y:0,dam
 g.race.player.v=10;
 for(let k=0;k<3;k++)g.drive.receive({race:1,kind:'contacts',events:[contact]},'host');
 assert.equal(g.race.player.v,9);assert.equal(g.drive.ack,1);
+g.race.player.blueFlag=true;
+g.drive.receive({race:1,kind:'contacts',events:[{...contact,id:2}]},'host');
+assert.equal(g.race.player.v,9,'blue owner acknowledges but ignores a dynamic impact');assert.equal(g.drive.ack,2);
+g.race.player.blueFlag=false;
+host.race.cars[1].blueFlag=true;host.race.flags.penalties.set(1,host.race.time+5);
+host.drive.lastControl=-Infinity;host.drive.control();clock+=delay;deliver();
+assert(g.race.player.blueFlag,'blue flag is synchronized through the real control packet');
+assert(g.race.flags.active(g.race.player).includes('penalty'));
+host.race.cars[1].blueFlag=false;host.drive.lastControl=-Infinity;host.drive.control();clock+=delay;deliver();
+assert(!g.race.player.blueFlag);
 // Real host contact arbitration changes both owners, then clears after acknowledgement.
 const front=host.race.player,back=host.race.cars[1],s0=host.race.track.length-50;
 front.place(s0,0);front.v=5;back.place(s0-front.cls.length*.7,0);back.v=20;
 g.race.player.place(back.s,0);g.race.player.v=20;
 host.drive.states.set(1,driveState(back,1,clock));host.drive.contactSerial.front=g.drive.ack;
+back.blueFlag=true;host.drive.resolveContacts(1/120);assert(!host.drive.contacts.get('front')?.length,'host skips blue contacts');back.blueFlag=false;
 host.drive.resolveContacts(1/120);
 assert(front.v>5,'front car receives the shared impact');
 const events=host.drive.contacts.get('front');assert(events?.length===1);
