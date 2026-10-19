@@ -650,7 +650,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .setup-options[hidden] { display: none !important; }
 
 /* 0.38 — racing poster and printed paddock sheets. Art never contains controls. */
-#ui:has(.home-screen, .title-desktop) { background: #142724 url('../art/interface/accueil-pc.webp') right center / cover no-repeat; }
+#ui:has(.home-screen, .title-desktop) { background: #142724 url('../art/interface/accueil-pc.webp?r=2') right center / cover no-repeat; }
 .game-logo { display:block; width:100%; height:auto; }
 .screen.home-screen, body.desktop .screen.home-screen { width:100%; max-width:none; height:100%; max-height:none; margin:0; padding:clamp(16px,3vh,36px) 4vw max(12px,env(safe-area-inset-bottom)); gap:12px; }
 .home-heading { width:min(54vw,740px); flex-shrink:0; }
@@ -716,7 +716,7 @@ body.desktop .screen.title-desktop { display:flex; justify-content:center; width
 .setup-screen :is(button,select,input):focus-visible, .selection-screen :is(button,select,input):focus-visible { outline:3px solid #b72c22; outline-offset:3px; }
 .setup-screen .pad-focus, .selection-screen .pad-focus { outline:3px solid #b72c22!important; outline-offset:3px; }
 @media (max-width:850px) {
-  #ui:has(.home-screen) { background-image:url('../art/interface/accueil-mobile.webp'); }
+  #ui:has(.home-screen) { background-image:url('../art/interface/accueil-mobile.webp?r=2'); }
   .screen.home-screen, body.desktop .screen.home-screen { padding: max(10px,env(safe-area-inset-top)) 16px max(10px,env(safe-area-inset-bottom)); gap:10px; }
   .home-heading { width:100%; }
   .home-heading .game-logo { height:clamp(105px,23vh,190px); max-height:none; object-position:center; }
