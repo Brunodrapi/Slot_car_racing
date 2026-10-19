@@ -107,7 +107,7 @@ class GamepadUI {
   back() {
     if (this.panel) { this.closePanel(); return; }
     if (this.ui.app.state === 'paused') { this.ui.app.resume(); return; }
-    if (this.ui.root.querySelector('.desktop-home,.poster,.splash')) return;
+    if (this.ui.root.querySelector('.home-screen,.title-desktop,.splash')) return;
     const button = this.ui.root.querySelector('.topbar [data-action], [data-action="setup"], [data-action="menu"], [data-action="toLobby"]');
     if (button) button.click();
   }

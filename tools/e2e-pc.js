@@ -30,8 +30,8 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.png
   const {ctx,page}=await create({viewport:{width:1440,height:900}});
   assert.equal(await page.evaluate(()=>app.desktop),true);
   await page.keyboard.press('Enter');await shot(page,'pc-menu');
-  await page.selectOption('#sel-desktop-control','wheel');
   await page.click('[data-action="setup"][data-mode="race"]');
+  await page.selectOption('#sel-desktop-control','wheel');
   const cols=await page.locator('.setup-block').evaluateAll(a=>a.map(e=>{const r=e.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width};}));
   assert(cols[1].x>cols[0].x+cols[0].w,'préparation sur deux colonnes');
   await shot(page,'pc-depart');await start(page);
@@ -80,7 +80,7 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.png
    const {ctx,page}=await create(device);assert.equal(await page.evaluate(()=>app.desktop),false,name+' reste tactile');
    await page.evaluate(()=>{app.leaveSplash();});assert.equal(await page.locator('#sel-desktop-control').count(),0);
    await page.click('[data-action="setup"][data-mode="race"]');
-   assert.equal(await page.locator('.setup-columns').evaluate(e=>getComputedStyle(e).display),'contents');
+   assert(await page.locator('.setup-columns').evaluate(e=>{const [a,b]=[...e.children].map(c=>c.getBoundingClientRect());return a.height>50&&b.height>50&&b.top>=a.bottom&&Math.abs(a.left-b.left)<1;}),'préparation tactile en colonne');
    await shot(page,name+'-depart-portrait');
    await page.click('[data-action="pickWear"][data-id="1"]');await start(page);
    const portrait=device.viewport,landscape={width:portrait.height,height:portrait.width};
@@ -98,7 +98,7 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.png
    assert.equal(await page.locator('#sel-desktop-control').count(),0);
    assert(await page.locator('.screen').evaluate(e=>e.clientWidth<=Math.min(innerWidth,innerHeight)+1&&e.scrollWidth<=e.clientWidth),'menu mobile en colonne sans débordement');
    await page.evaluate(()=>{app.toMenu();app.ui.setupScreen('race');});
-   assert.equal(await page.locator('.setup-columns').evaluate(e=>getComputedStyle(e).display),'contents','menus restent en colonne en paysage');
+   assert(await page.locator('.setup-columns').evaluate(e=>{const [a,b]=[...e.children].map(c=>c.getBoundingClientRect());return a.height>50&&b.height>50&&b.top>=a.bottom&&Math.abs(a.left-b.left)<1;}),'menus restent en colonne en paysage');
    await page.setViewportSize(portrait);await shot(page,name+'-retour-portrait');
    await ctx.close();console.log(name+' : portrait conservé dans les menus, course paysage tactile et retour portrait OK.');
   }

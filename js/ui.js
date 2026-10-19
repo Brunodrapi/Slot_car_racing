@@ -299,6 +299,7 @@ class UI {
       else this._centrerRail(r);
     }
     this.root.classList.remove('hidden');
+    for (const button of this.root.querySelectorAll('button.card, .seg button')) button.setAttribute('aria-pressed', String(button.classList.contains('sel')));
     this.paintIcons();
     this.updateControllerStatus();
     this.gamepad.restore(garder ? padFocus : null);
@@ -481,10 +482,13 @@ class UI {
   splash() {
     const t = (k, ...a) => this.t(k, ...a);
     if (this.app.desktop) {
-      this.show(`<div class="desktop-art"><img src="art/title.webp" alt=""></div>
-        <div class="desktop-actions"><h1>${t('title')}</h1><p class="muted">${t('pcIntro')}</p>
-        <button class="big primary" data-action="enterGame">${t('pressStart')}</button>
-        <div class="version">v${APP_VERSION} · ${APP_DATE}</div></div>`, 'desktop-home scroll');
+      this.show(`<div class="title-art"><img src="art/title.webp" alt=""></div>
+        <div class="title-copy"><span class="eyebrow">SLOT RACING · MOTORSPORT CLASSICS</span>
+        <h1>EYES<br>ON <em>LINE.</em></h1><p class="title-tagline">${t('subtitle')}</p>
+        <p class="muted">${t('pcIntro')}</p>
+        <button class="big primary" data-action="enterGame">${t('pressStart')} <span aria-hidden="true">→</span></button>
+        <div class="title-inputs">${this.lang === 'en' ? 'Keyboard · Mouse wheel · Xbox controller' : 'Clavier · Molette · Manette Xbox'}</div>
+        <div class="version">v${APP_VERSION} · ${APP_DATE}</div></div>`, 'title-desktop scroll');
       return;
     }
     this.show(`
@@ -496,28 +500,6 @@ class UI {
     `, 'center splash');
   }
 
-  /* The menu is the poster, and the banners on it are the buttons. Each one is printed in
-  its folded state — icon and a checkered tail, no words — in the background image itself; the
-  unfolded artwork, the one that carries the text, is laid over it and wiped in from the left.
-  So the fold is not a trick played on one image: the closed banner really is underneath, and the
-  open one really does cover it, which is why nothing had to be erased from the poster.
-
-  The banners are placed by a single left edge and a single width, and each one's height follows
-  from its own artwork. Matching each folded banner's measured height instead looked more rigorous
-  and was worse: the icons overhang their bars by different amounts, so those heights disagree by
-  ten per cent between banners and the stack came out ragged. */
-  /* L'atelier voiture et l'atelier circuits ne sont plus au menu.
-
-  Un bouton retiré d'une liste laisserait son bandeau peint sur l'affiche, donc un trou de deux
-  bandeaux muets — le fond porte les bandeaux repliés, c'est tout l'intérêt du dépliage. C'est donc
-  l'affiche elle-même qui a été refaite sans eux, et les trois qui restent n'ont pas bougé d'un
-  pixel : 20,04 / 30,38 / 40,79 %, les mêmes qu'avant. `tools/e2e-menu.js` mesure les bandeaux
-  peints dans le fond et vérifie que chaque bouton tombe dessus, ce qui est la seule façon de
-  s'apercevoir qu'un chiffre et un dessin ont cessé de se correspondre.
-
-  Les deux écrans, eux, restent : `_act` garde leurs cas, `editor.html` et `lignes.html` répondent
-  toujours à leur adresse, et les dessins dépliés dorment dans `art/menu/`. Ce qui est retiré est
-  l'entrée du menu, pas la fonction. */
   /* L'écran du nom, qu'on ne traverse qu'une fois.
 
   Le bouton reste éteint tant que le nom ne vaut rien : c'est lui qui porte la règle, pas un message
@@ -549,47 +531,33 @@ class UI {
     par lequel tout le monde repasse, donc le seul où la question se pose une fois et une seule. */
     if (!nomValide(this.app.save.name)) return this.nomScreen();
     const t = (k, ...a) => this.t(k, ...a);
-    if (app.desktop) {
-      this.show(`<div class="desktop-art"><img src="art/title.webp" alt=""></div>
-        <div class="desktop-actions"><h1>${t('title')}</h1><p class="muted">${t('pcIntro')}</p>
-          <div class="menu">
-            <button class="big primary" data-action="setup" data-mode="race">${t('quickRace')}</button>
-            <button class="big" data-action="setup" data-mode="timetrial">${t('timeTrial')}</button>
-            <button class="big" data-action="multi">${t('multi')}</button>
-            <button data-action="settings">${t('settings')}</button>
-          </div>${this.pcControls()}
-          ${app.mondial?.erreurConnexion ? `<p class="avert">${t('authTrouble')}</p><button class="link" data-action="google">${t('reconnect')}</button>` : ''}
-          <div class="version">v${APP_VERSION} · ${APP_DATE}</div>
-        </div>`, 'desktop-home scroll');
-      return;
-    }
-    // top of each banner, as measured on the poster; `fold` is the artwork that carries the text
-    const items = [
-      { top: 20.04, fold: 'course-rapide', act: 'setup', mode: 'race', label: t('quickRace') },
-      { top: 30.38, fold: 'contre-la-montre', act: 'setup', mode: 'timetrial', label: t('timeTrial') },
-      { top: 40.79, fold: 'multijoueurs', act: 'multi', label: t('multi') },
+    const en = this.lang === 'en';
+    const entries = [
+      ['race', 'setup', 'quickRace', '01', en ? 'Take on the pack' : 'Affronte le peloton', 'f40'],
+      ['timetrial', 'setup', 'timeTrial', '02', en ? 'Find your perfect lap' : 'Trouve le tour parfait', '787b'],
+      ['', 'multi', 'multi', '03', en ? 'Race together. Or watch.' : 'Rejoins tes amis ou regarde la course.', 'f40'],
     ];
-    const band = (it, i) => `<button class="mi" style="top:${it.top}%;--i:${i}"
-        data-action="${it.act}" ${it.mode ? `data-mode="${it.mode}"` : ''} aria-label="${escapeHtml(it.label)}">
-        <img src="art/menu/${it.fold}.png" alt=""></button>`;
-    this.show(`
-      <div class="stage">
-        <img class="bg" src="art/menu-bg.webp" alt="${escapeHtml(t('title'))}">
-        ${items.map(band).join('')}
-        <button class="burger" data-action="settings" aria-label="${escapeHtml(t('settings'))}"></button>
-      </div>
-      <div class="version">v${APP_VERSION} · ${APP_DATE}</div>
-      <!-- Une connexion qui a mal tourné se dit LÀ OÙ LE JOUEUR ATTERRIT.
+    this.show(`<header class="home-heading"><span class="eyebrow">SLOT RACING</span><h1>EYES ON LINE</h1>
+        <p>${t('subtitle')}</p></header>
+      <div class="home-body"><div class="home-art"><img src="art/title.webp" alt=""></div>
+      <nav class="mode-menu" data-pad-group aria-label="${en ? 'Game modes' : 'Modes de jeu'}">
+      ${entries.map(([mode, action, label, number, description, id]) => {
+        const model = modelById(id) || app.playerModelFor(this.setup.classId);
+        return `<button class="mode-card mode-${mode || 'multi'}" data-action="${action}" ${mode ? `data-mode="${mode}"` : ''}>
+          <span class="mode-number">${number}</span><span class="mode-copy"><b>${t(label)}</b><small>${description}</small></span>
+          <span class="mode-art" aria-hidden="true">${this.carIcon(model, LIVERIES[0], 0)}</span><span class="mode-arrow" aria-hidden="true">→</span></button>`;
+      }).join('')}
+      <button class="home-settings" data-action="settings">⚙ ${t('settings')} <span aria-hidden="true">→</span></button>
+      ${app.mondial?.erreurConnexion ? `<p class="avert">${t('authTrouble')}</p><button class="link" data-action="google">${t('reconnect')}</button>` : ''}
+      </nav></div><footer class="home-footer"><span>${escapeHtml(app.save.name)}</span><span>v${APP_VERSION} · ${APP_DATE}</span></footer>`, 'home-screen scroll');
+  }
 
-           Au retour de Google on arrive sur l'affiche, et le message vivait sur l'écran des
-           records — quatre écrans plus loin. Le joueur revenait donc à l'accueil, ne voyait rien,
-           et n'avait aucun moyen de recommencer : c'est exactement ce qu'il a décrit. Rien ne
-           s'affiche quand tout va bien ; l'affiche reste l'affiche. -->
-      ${app.mondial && app.mondial.erreurConnexion ? `<div class="menu-auth">
-        <span>${t('authTrouble')}</span>
-        <button class="link" data-action="google">${t('reconnect')}</button>
-        <button class="link" data-action="settings">${t('settings')}</button></div>` : ''}
-    `, 'center poster');
+  selectionPreview(model, trackDef, caption) {
+    const app = this.app;
+    return `<div class="selection-preview"><div class="preview-car" aria-hidden="true">${this.carIcon(model, LIVERIES[app.save.livery], app.playerLivreeFor(model.id))}</div>
+      <div class="preview-copy"><span class="eyebrow">${caption}</span><b>${escapeHtml(model.name)}</b>
+      <span>${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ${this.longueur(trackDef)}</span></div>
+      <img class="preview-track" src="${this.thumb(trackDef, 160)}" alt="${escapeHtml(this.t('track') + ' : ' + trackDef.name)}"></div>`;
   }
 
   settings() {
@@ -635,7 +603,7 @@ class UI {
         })()}
         <label>${t('difficulty')}<select id="sel-diff">${NIVEAUX.map(d => `<option value="${d}" ${s.difficulty === d ? 'selected' : ''}>${t(d)}</option>`).join('')}</select></label>
       </div>
-      <div class="row wrap"><button data-action="menu">${t('back')}</button><a href="analytics.html" class="stats-link">${t('statistics')} ↗</a><button class="danger" data-action="resetAll">${t('resetAll')}</button></div>
+      <div class="row wrap"><button data-action="menu">${t('back')}</button><a href="analytics.html" class="stats-link">${t('statistics')} →</a><button class="danger" data-action="resetAll">${t('resetAll')}</button></div>
     `, 'scroll settings-screen', 'reglages');
   }
 
@@ -819,8 +787,10 @@ class UI {
     const livery = LIVERIES[s.livery];
     this.show(`
       <div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${mode === 'race' ? t('quickRace') : t('timeTrial')}</h2></div>
+      ${this.selectionPreview(model, trackDef, this.lang === 'en' ? 'YOUR GRID' : 'TA GRILLE DE DÉPART')}
       <div class="setup-columns"><section class="setup-block">
-      <h3>${t('model')}</h3>
+      <h3><span class="section-number">01</span> ${t('model')}</h3>
+      <p class="selection-hint">${this.lang === 'en' ? 'Tap the selected car again to change livery.' : 'Appuie à nouveau sur la voiture choisie pour changer de livrée.'}</p>
       ${this.filtreCat('pickCat', filtre)}
       ${this.rail('models', 'models', this.modelesVisibles(filtre).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${m.id}">
             ${this.carIcon(m, livery, app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}${m.custom ? ` <small>(${t('custom')})</small>` : ''}</b>
@@ -828,7 +798,7 @@ class UI {
             ${this.repereLivree(m, app.playerLivreeFor(m.id))}
             ${this.tyres(m)}
             ${this.gauges(m)}</button>`).join(''))}
-      </section><section class="setup-block"><h3>${t('track')}</h3>
+      </section><section class="setup-block"><h3><span class="section-number">02</span> ${t('track')}</h3>
       ${this.rail('tracks', 'tracks', TRACKS.map(tr => {
         const locked = !ut.has(tr.id);
         return `<button class="card ${tr.id === st.trackId ? 'sel' : ''} ${locked ? 'locked' : ''}" data-action="pickTrack" data-id="${tr.id}" ${locked ? 'disabled' : ''}>
@@ -840,6 +810,8 @@ class UI {
            menu, si bien que la liste était soit vide, soit le musée des essais d'un ancien
            réglage. Les tracés enregistrés ne sont pas effacés pour autant — ils restent dans le
            navigateur et l'éditeur y mène encore par son adresse. -->
+      </section></div><section class="setup-block setup-options" ${mode !== 'race' && !app.desktop ? 'hidden' : ''}>
+      <h3><span class="section-number">03</span> ${t('settings')}</h3>
       ${this.pcControls()}
       <div class="row wrap">
         ${mode === 'race' ? `<div><h3>${t('difficulty')}</h3><div class="seg">${NIVEAUX.map(d => `<button class="${s.difficulty === d ? 'sel' : ''}" data-action="pickDiff" data-id="${d}">${t(d)}</button>`).join('')}</div></div>
@@ -856,13 +828,13 @@ class UI {
         <div><h3>${t('wear')}</h3><div class="seg">${[[0, 'off'], [1, 'on']].map(([v, k]) => `<button class="${(s.wear ? 1 : 0) === v ? 'sel' : ''}" data-action="pickWear" data-id="${v}">${t(k)}</button>`).join('')}</div>
         <small class="muted">${t('wearHint')}</small></div>` : ''}
       </div>
-      </section></div>
+      </section>
       ${mode === 'race' ? '' : this.records(st.trackId, cat, model, livery)}
       <!-- Les réglages vivent À CÔTÉ DU DÉPART et non dans l'écran des options, parce qu'ils
            dépendent du circuit ET de la voiture : c'est ici, une fois les deux choisis, que la
            question « avec quel freinage ? » a un sens. Le bouton « Régler » lance la même course
            avec le levier en haut. -->
-      <div class="row end">
+      <div class="setup-tuning row wrap" data-pad-group>
         <!-- La liste et le choix actif sont propres au couple circuit+voiture.
              Un même nom peut conserver des valeurs pour plusieurs couples ; chacun retrouve
              son propre choix quand le joueur revient, y compris « Par défaut ». -->
@@ -872,6 +844,7 @@ class UI {
         </select></label>
         <span class="muted reg-ici">${(() => { const v = freinDe(s, st.trackId, model.id); return v === 1 ? t('regIciDefaut') : t('regIci', v); })()}</span>
         <button data-action="startTune">${t('regRegler')}</button>
+      </div><div class="row end setup-launch">
         <span class="muted">${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ${escapeHtml(model.name)} · ${mode === 'race' ? `${laps} ${t('laps')}` : t('ttIntro')}</span><button class="big primary" data-action="startQuick">${t('start')}</button>
       </div>
     `, 'scroll setup-screen', 'depart:' + mode);
@@ -890,6 +863,7 @@ class UI {
     if (net.state === 'off') {
       this.show(`
         <div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${t('multi')}</h2></div>
+        ${this.selectionPreview(model, app.trackDefById(this.setup.trackId), this.lang === 'en' ? 'MULTIPLAYER PADDOCK' : 'PADDOCK MULTIJOUEUR')}
         <p class="muted">${t('multiIntro')}</p>
         ${net.error ? `<p class="warn">${escapeHtml(net.error)}</p>` : ''}
         ${msg ? `<p class="warn">${escapeHtml(msg)}</p>` : ''}
@@ -899,7 +873,7 @@ class UI {
           <button class="big" data-action="netJoin" ${net.busy ? 'disabled' : ''}>${t('joinTable')}</button><button class="big" data-action="netWatch" ${net.busy ? 'disabled' : ''}>${this.lang === 'en' ? 'Watch' : 'Regarder'}</button>
         </div>
         ${net.busy ? `<p class="muted">${t('netWait')}</p>` : ''}
-      `, 'center');
+      `, 'scroll selection-screen lobby-entry');
       return;
     }
 
@@ -926,6 +900,7 @@ class UI {
     this.show(`
       <div class="topbar"><button data-action="netLeave">← ${t('leaveTable')}</button><h2>${t('yourTable')} <b class="code">${escapeHtml(net.code)}</b></h2></div>
       ${net.error ? `<p class="warn">${escapeHtml(net.error)}</p>` : ''}
+      ${this.selectionPreview(model, trackDef, this.lang === 'en' ? 'YOUR SESSION' : 'TA SESSION')}
       <p class="muted net-ping">${escapeHtml(net.link?.label() || 'Ping : —')} · aller-retour</p>
       ${list.some(m => !m.q.spectator && m.q.protocol !== DRIVE_PROTOCOL) ? '<p class="warn">Tous les pilotes doivent recharger la dernière version du jeu.</p>' : ''}
       <h3>${t('players')} <span class="muted">${list.filter(m => !m.q.spectator).length}/${NET_SEATS} · ${list.filter(m => m.q.spectator).length} spectateurs</span></h3>
@@ -955,7 +930,7 @@ class UI {
         <button class="${net.mine.ready ? '' : 'primary'}" data-action="netReady" ${net.mine.spectator ? 'disabled' : ''}>${net.mine.ready ? t('notReady') : t('ready')}</button>
         ${net.creator ? `<button class="big primary" data-action="netStart" ${net.canStart() ? '' : 'disabled'}>${t('start')}</button>` : `<span class="muted">${t('startWhenReady')}</span>`}
       </div>
-    `, 'scroll', 'salon');
+    `, 'scroll selection-screen lobby-screen', 'salon');
   }
 
   careerScreen() {
@@ -975,7 +950,7 @@ class UI {
         }).join('')}
       </div>
       ${allUnlocked(s) ? `<p class="muted">${t('allUnlocked')}</p>` : ''}
-    `, 'scroll', 'carriere');
+    `, 'scroll selection-screen', 'carriere');
   }
 
   cupScreen(cupId) {
@@ -1000,7 +975,7 @@ class UI {
           ${cs.done ? '' : `<div class="row end"><button class="big primary" data-action="startCup" data-id="${cupId}">${t('startRace')} — ${trackDef.name}</button></div>`}
         </div>
       </div>
-    `, 'scroll', 'coupe:' + cupId);
+    `, 'scroll selection-screen', 'coupe:' + cupId);
   }
 
   standingsTable(cup, cs) {
@@ -1167,14 +1142,6 @@ class UI {
     const btn = e.target.closest('[data-action]');
     if (!btn || btn.disabled) return;
     e.stopPropagation();
-    // Un bandeau du menu s'ouvre avant d'agir : le dépliage est la réponse à l'appui, et le mot
-    // qu'il découvre dit sur lequel on a appuyé. Au repos il n'y a que le petit bandeau replié.
-    if (btn.classList.contains('mi') && !btn.classList.contains('open')) {
-      btn.classList.add('open');
-      const doux = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      setTimeout(() => this._act(btn), doux ? 0 : 430);
-      return;
-    }
     this._act(btn);
   }
 
