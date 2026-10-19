@@ -1,9 +1,9 @@
 'use strict';
 const {chromium}=require('playwright'),fs=require('fs'),path=require('path'),http=require('http'),assert=require('assert/strict');
-const root=path.resolve(__dirname,'..'),out=path.join(root,'docs/drapeaux');
+const root=path.resolve(__dirname,'..'),out=process.argv[2]||path.join(root,'docs/drapeaux');
 const double=/const DOUBLE = `([\s\S]*?)`;/m.exec(fs.readFileSync(path.join(__dirname,'e2e-duo.js'),'utf8'))[1];
 (async()=>{
-  const server=http.createServer((req,res)=>{const f=path.resolve(root,'.'+decodeURIComponent(req.url.split('?')[0]));if(!f.startsWith(root+path.sep)||!fs.existsSync(f)||fs.statSync(f).isDirectory()){res.writeHead(404);return res.end();}res.setHeader('Content-Type',({'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png','.webp':'image/webp'})[path.extname(f)]||'application/octet-stream');fs.createReadStream(f).pipe(res);});
+  const server=http.createServer((req,res)=>{const f=path.resolve(root,'.'+decodeURIComponent(req.url.split('?')[0]));if(!f.startsWith(root+path.sep)||!fs.existsSync(f)||fs.statSync(f).isDirectory()){res.writeHead(404);return res.end();}res.setHeader('Content-Type',({'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml'})[path.extname(f)]||'application/octet-stream');fs.createReadStream(f).pipe(res);});
   await new Promise(r=>server.listen(0,'127.0.0.1',r));
   const browser=await chromium.launch({args:['--disable-background-timer-throttling','--disable-backgrounding-occluded-windows','--disable-renderer-backgrounding']});
   const errors=[];fs.mkdirSync(out,{recursive:true});

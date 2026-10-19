@@ -751,3 +751,119 @@ body.desktop .screen.title-desktop { display:flex; justify-content:center; width
   .setup-columns .paddock-track { height:200px; }
   .setup-columns .preview-car img, .setup-columns .preview-car canvas { max-height:135px; }
 }
+
+/* Printed, slanted racing graphics — the approved concept, with real controls. */
+@font-face { font-family:Racing; src:url('../art/interface/fonts/BarlowCondensed-BlackItalic.ttf') format('truetype'); font-weight:900; font-style:italic; font-display:swap; }
+.mode-copy b, .setup-screen h2, .selection-screen h2, .preview-copy b, .track-heading b,
+.setup-screen .seg button, .selection-screen .seg button, .setup-launch .primary { font-family:Racing,Impact,sans-serif; font-weight:900; font-style:italic; }
+.mode-card { clip-path:polygon(0 0,96% 0,100% 100%,0 100%); border-right:0; padding-right:30px; background-image:url('../art/interface/ink.svg'); }
+.mode-card::before { transform:none!important; background:linear-gradient(100deg,transparent 70%,#0002 70%,#fff2 75%,transparent 75%),repeating-conic-gradient(#0000000b 0% 25%,transparent 0% 50%) 0 0 / 30px 30px; }
+.mode-card:focus-visible, .mode-card.pad-focus { outline:none!important; box-shadow:inset 0 0 0 4px #fff2ce; }
+.mode-copy b { font-size:clamp(26px,2.7vw,40px); }
+.mode-art img { height:88px; object-fit:contain; }
+.home-footer { border:0; background:#171b18 url('../art/interface/ink.svg'); clip-path:polygon(1% 0,97% 0,100% 90%,0 100%); padding:4px 12px 8px 4px; box-shadow:none; }
+.home-footer button { font:italic 900 21px Racing,sans-serif; }
+.home-footer img { width:34px; height:36px; object-fit:contain; flex-shrink:0; }
+.home-footer .home-settings { gap:8px; }
+.home-footer .pilot-button span { font:inherit; font-size:15px; letter-spacing:0; }
+.home-footer .pilot-button b { font:inherit; }
+.home-footer button:focus-visible, .home-footer button.pad-focus { outline-offset:-3px; }
+#ui:has(.setup-screen, .selection-screen) { background-position:center; }
+body.desktop .screen.setup-screen, body.desktop .screen.selection-screen { width:min(1600px,100%); }
+.setup-screen, .selection-screen { background:transparent; border:0; padding-top:12px; }
+.setup-screen .topbar, .selection-screen .topbar { border:0; background:linear-gradient(105deg,#151917 0 15%,#c82520 15% 61%,#151917e8 61%); padding:8px 12px; min-height:64px; gap:22px; flex-shrink:0; }
+.setup-screen .topbar h2, .selection-screen .topbar h2 { font-size:clamp(26px,3.2vw,46px); margin:0; }
+.paddock-logo { width:190px; height:65px; object-fit:contain; margin-left:auto; }
+.setup-screen .topbar button, .selection-screen .topbar button { background:transparent; border:0; font-weight:800; text-transform:uppercase; }
+.setup-screen .setup-columns { gap:18px; }
+.setup-columns > .setup-block { border:0; box-shadow:none; padding:0; gap:0; }
+.setup-columns > .car-sheet { background:transparent; }
+.setup-columns > .circuit-sheet { background:#f8ebce url('../art/interface/ink.svg'); border:5px solid #f8ebce; outline:2px solid #20251f; align-self:start; box-shadow:5px 7px 0 #171b1966; margin-top:18px; }
+.car-sheet > .seg { background:#fff0d2 url('../art/interface/ink.svg'); padding:7px 12px 0; gap:3px; margin:0; flex-shrink:0; }
+.setup-screen .seg button, .selection-screen .seg button { clip-path:polygon(8% 0,100% 0,92% 100%,0 100%); border:0; border-radius:0; padding:9px 25px; background-image:url('../art/interface/ink.svg'); text-transform:uppercase; font-size:22px; min-width:70px; }
+.setup-screen .seg button:focus-visible, .selection-screen .seg button:focus-visible, .setup-screen .seg button.pad-focus { outline:none!important; box-shadow:inset 0 0 0 3px #e6b13c; }
+.setup-columns .paddock-car { height:420px; border:0; background:transparent; }
+.preview-copy { background:#fff0d2 url('../art/interface/ink.svg'); border:0; gap:0; padding:8px 18px 16px; clip-path:polygon(0 0,100% 0,99% 91%,0 100%); }
+.preview-copy .eyebrow { order:2; font-size:13px; color:#252a22; }
+.preview-copy b { font-size:clamp(34px,4.5vw,67px); line-height:1; }
+.preview-car { padding:0 5px; align-items:center; }
+.preview-car img, .preview-car canvas { width:100%; max-width:720px; max-height:300px; height:100%; }
+.setup-columns .paddock-track { height:470px; border:0; }
+.track-heading { padding:12px 12px 14px; display:flex; gap:12px; align-items:flex-start; background:#fff0d2 url('../art/interface/ink.svg'); border:0; clip-path:polygon(0 0,100% 0,100% 93%,0 100%); }
+.track-heading > div { display:grid; gap:7px; flex:1; min-width:0; }
+.track-heading b { font-size:clamp(28px,3.5vw,52px); line-height:.95; overflow-wrap:normal; }
+.track-heading span { font:italic 900 18px Racing,sans-serif; }
+.circuit-flag { display:block; width:60px; height:45px; object-fit:cover; flex:0 0 60px; border:1px solid #252a2233; }
+.preview-track { left:5%; right:auto; top:27%; bottom:auto; width:90%; height:69%; background:none; border:0; filter:drop-shadow(2px 4px 0 #171c1955); }
+.track-card-art img { background:none; border:0; }
+.circuit-sheet .railbox { padding:8px 0 0; }
+.setup-screen .rail.tracks .card { padding:3px; border:2px solid #a29679; background:#fff0d2; }
+.setup-screen .rail.tracks .card.sel { border:3px solid #c92c23; }
+.setup-screen .rail.tracks .card b { font:italic 900 21px Racing,sans-serif; text-transform:uppercase; }
+.setup-screen .rail.models .card { padding:5px; background:#fff0d2; border:2px solid #b4a68b; min-height:0; }
+.setup-screen .rail.models .card .gauges, .setup-screen .rail.models .card .tyres, .setup-screen .rail.models .card .livree, .setup-screen .rail.models .card .cat-label { display:none; }
+.setup-screen .rail.models .card > img, .setup-screen .rail.models .card > canvas { height:66px; }
+.setup-screen .rail.models .card > b { font:italic 900 17px Racing,sans-serif; }
+.car-sheet .model-caption { font:italic 900 18px Racing,sans-serif; background:#fff0d2; margin:0; padding:5px 12px; }
+.car-sheet > .railbox { background:#fff0d2; }
+.livery-choices { display:flex; gap:8px; padding:8px; background:#fff0d2 url('../art/interface/ink.svg'); overflow-x:auto; flex-shrink:0; }
+.livery-choices .livery-choice { position:relative; flex:1 0 100px; min-width:0; border:2px solid #f5e7c6; background:#171c19; padding:4px; color:#fff0d2; }
+.livery-choice img, .livery-choice canvas { width:100%; height:75px; object-fit:contain; }
+.livery-choice span { display:block; font-size:11px; }
+.livery-choices .livery-choice.sel { border:3px solid #ca2b22; }
+.livery-choice.sel::after { content:'✓'; position:absolute; top:0; right:0; border-radius:50%; background:#cf2a22; color:#fff0d2; padding:2px 5px; }
+.hero-performance { background:#fff0d2 url('../art/interface/ink.svg'); padding:8px 12px; display:flex; align-items:center; justify-content:space-around; border-bottom:2px solid #252b24; }
+.hero-performance .gauges { display:flex; width:100%; justify-content:space-around; }
+.hero-performance .gauge { display:flex; width:auto; height:48px; align-items:center; gap:6px; }
+.hero-performance .gauge .ring { display:none; }
+.hero-performance .gauge .ico, .hero-performance .gauge .num { position:static; transform:none; }
+.hero-performance .gauge .ico { width:25px; height:25px; color:#20261e; }
+.hero-performance .gauge .num { font:italic 900 28px Racing,sans-serif; color:#20261e; }
+.hero-performance .gauge small { font:italic 900 12px Racing,sans-serif; color:#20261e; }
+.setup-screen .setup-options, .setup-screen .setup-tuning { background:#fff0d2 url('../art/interface/ink.svg'); border:2px solid #292e26; }
+.setup-screen .setup-launch.row.end { background:#fff0d2 url('../art/interface/ink.svg'); border:0; border-top:3px solid #252b24; }
+.setup-launch .primary, .selection-screen .primary { clip-path:polygon(6% 0,100% 0,94% 100%,0 100%); padding:13px 38px; font:italic 900 34px Racing,sans-serif; border:0; background:#d22620 url('../art/interface/ink.svg'); }
+.setup-launch .primary:focus-visible, .setup-launch .primary.pad-focus { outline:none!important; box-shadow:inset 0 0 0 4px #ffd059; }
+.setup-launch::before { content:''; width:74px; height:55px; background:repeating-conic-gradient(#171c19 0% 25%,#fff0d2 0% 50%) 0 0 / 22px 22px; transform:skewX(-15deg); flex-shrink:0; }
+@media (min-width:851px) {
+  body.desktop .setup-columns { grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); }
+  body.desktop .setup-columns .circuit-sheet { transform:rotate(-.7deg); margin:18px 6px 0; }
+}
+@media (max-width:850px) {
+  .mode-art img { height:66px; }
+  .mode-copy b { font-size:28px; }
+  .home-footer button { font-size:18px; padding:7px; }
+  .home-footer img { width:25px; height:29px; }
+  .home-footer .pilot-button span { font-size:12px; }
+  .home-footer .pilot-button { gap:4px; }
+  .setup-screen { padding:8px 10px max(12px,env(safe-area-inset-bottom)); }
+  .setup-screen .topbar { padding:5px; gap:7px; min-height:50px; }
+  .setup-screen .topbar h2 { font-size:25px; }
+  .paddock-logo { width:85px; height:45px; }
+  .setup-screen .topbar button { font-size:12px; padding:8px; }
+  .setup-columns .paddock-car { height:270px; }
+  .preview-copy b { font-size:40px; }
+  .setup-columns .preview-car img, .setup-columns .preview-car canvas { max-height:190px; }
+  .setup-columns .paddock-track { height:300px; }
+  .track-heading b { font-size:36px; }
+  .circuit-flag { width:45px; height:34px; flex-basis:45px; }
+  .setup-screen .seg button { font-size:22px; padding:7px 17px; }
+  .hero-performance { padding:6px; }
+  .hero-performance .gauge .num { font-size:24px; }
+  .hero-performance .gauge .ico { display:none; }
+  .livery-choice img, .livery-choice canvas { height:65px; }
+  .setup-launch::before { display:none; }
+  .setup-screen .setup-launch.row.end .primary { font-size:30px; padding:9px 25px; }
+}
+@media (max-width:850px) {
+  .setup-columns > .circuit-sheet { width:100%; align-self:stretch; }
+  .setup-columns > .car-sheet { width:100%; }
+}
+.setup-screen .rail.tracks .card > b { max-width:100%; overflow-wrap:anywhere; font-size:19px; line-height:1.05; }
+.setup-screen .rail.tracks .card > small { white-space:normal; }
+.setup-screen .setup-options button, .setup-screen .setup-tuning button, .selection-screen .row.end button { clip-path:polygon(6% 0,100% 0,94% 100%,0 100%); border:0; padding-inline:20px; }
+.setup-screen .setup-options button:focus-visible, .setup-screen .setup-tuning button:focus-visible { outline-offset:-4px; }
+/* Avoid slicing focus rings on the rectangular interactive hit area of illustrated cards. */
+.home-footer .pilot-button { border-left:2px solid #f2e4c766!important; }
+
+body:not(.desktop) .setup-columns > .circuit-sheet { width:100%; align-self:stretch; transform:none; margin-inline:0; }

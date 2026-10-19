@@ -83,6 +83,10 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.png
    assert(await page.locator('.setup-columns').evaluate(e=>{const [a,b]=[...e.children].map(c=>c.getBoundingClientRect());return a.height>50&&b.height>50&&b.top>=a.bottom&&Math.abs(a.left-b.left)<1;}),'préparation tactile en colonne');
    await shot(page,name+'-depart-portrait');
    await page.click('[data-action="pickWear"][data-id="1"]');await start(page);
+   await page.evaluate(()=>app.renderer.draw(app.race,app.ui));
+   const hud=await page.evaluate(()=>{const r=app.renderer,z=r.hudZones,b=r.pauseBtn;return {clear:z.pos.x+z.pos.w<z.temps.x&&z.temps.x+z.temps.w<b.x,pauseRight:b.x>r.w*.75,hit:r.pauseHitAt(b.x+b.s/2,b.y+b.s/2)};});
+   assert(hud.clear&&hud.pauseRight&&hud.hit,'HUD labels separated and pause touch target at right');
+   await shot(page,name+'-course-portrait');
    const portrait=device.viewport,landscape={width:portrait.height,height:portrait.width};
    await page.setViewportSize(landscape);await page.waitForFunction(()=>app.renderer.w>app.renderer.h);
    await page.evaluate(()=>{

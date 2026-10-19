@@ -331,9 +331,9 @@ class UI {
       g.beginPath();
       for (let i = 0; i < T.n; i += 4) { if (i === 0) g.moveTo(T.xs[i], T.ys[i]); else g.lineTo(T.xs[i], T.ys[i]); }
       g.closePath();
-      g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = 8 / sc; g.stroke();
-      g.strokeStyle = '#e9e9ef'; g.lineWidth = 3.5 / sc; g.stroke();
-      g.fillStyle = '#ffd400'; g.beginPath(); g.arc(T.xs[0], T.ys[0], 3.5 / sc, 0, 7); g.fill();
+      g.strokeStyle = '#fff0cd'; g.lineWidth = (size >= 200 ? 16 : 10) / sc; g.stroke();
+      g.strokeStyle = '#171c19'; g.lineWidth = (size >= 200 ? 9 : 5) / sc; g.stroke();
+      g.fillStyle = '#c72d24'; g.beginPath(); g.arc(T.xs[0], T.ys[0], 3 / sc, 0, 7); g.fill();
       url = c.toDataURL();
     } catch (e) { url = ''; }
     this.thumbs.set(key, url);
@@ -537,11 +537,11 @@ class UI {
     this.show(`<header class="home-heading"><h1><img class="game-logo" src="art/interface/logo.webp" alt="EYES ON LINE"></h1></header>
       <div class="home-body"><nav class="mode-menu" data-pad-group aria-label="${en ? 'Game modes' : 'Modes de jeu'}">
       ${entries.map(([mode, action, label, icon]) => `<button class="mode-card mode-${mode || 'multi'}" data-action="${action}" ${mode ? `data-mode="${mode}"` : ''}>
-          <span class="mode-art" aria-hidden="true"><img src="art/interface/${icon}.svg" alt=""></span>
+          <span class="mode-art" aria-hidden="true"><img src="art/interface/${icon}.webp" alt=""></span>
           <span class="mode-copy"><b>${t(label)}</b></span><span class="mode-arrow" aria-hidden="true">›</span></button>`).join('')}
       </nav></div>
-      <footer class="home-footer"><button class="home-settings" data-action="settings">⚙ ${t('settings')}</button>
-        <button class="pilot-button" data-action="settings"><span>${en ? 'DRIVER' : 'PILOTE'}</span><b>${escapeHtml(app.save.name)}</b></button>
+      <footer class="home-footer"><button class="home-settings" data-action="settings"><img src="art/interface/gear.webp" alt="">${t('settings')}</button>
+        <button class="pilot-button" data-action="settings"><img src="art/interface/pilot.webp" alt=""><span>${en ? 'DRIVER' : 'PILOTE'}</span><b>${escapeHtml(app.save.name)}</b></button>
         ${app.mondial?.erreurConnexion ? `<button class="link" data-action="google">${t('reconnect')}</button>` : ''}</footer>
       <div class="home-version">v${APP_VERSION}</div>`, 'home-screen scroll');
   }
@@ -558,11 +558,25 @@ class UI {
       <div class="preview-car" aria-hidden="true">${this.carIcon(model, LIVERIES[app.save.livery], app.playerLivreeFor(model.id))}</div></div>`;
   }
 
+  circuitFlag(trackDef) {
+    const country = String(trackDef.country || '').toLowerCase();
+    return ['it','be','mc','gb','jp','br','us','de','fr','au','at','nl'].includes(country)
+      ? `<img class="circuit-flag" src="art/interface/flags/${country}.svg" alt="${escapeHtml(trackDef.country)}">`
+      : '<span class="circuit-flag" aria-hidden="true">🏁</span>';
+  }
+
   trackPreview(trackDef) {
     const bg = this.circuitArt(trackDef);
+    const country = trackDef.country ? new Intl.DisplayNames([this.lang], {type:'region'}).of(trackDef.country) : '';
     return `<div class="paddock-track" ${bg ? `style="background-image:url('${bg}')"` : ''}>
-      <div class="track-heading"><b>${escapeHtml(trackDef.name)}</b><span>${trackDef.flag || '🏁'} ${this.longueur(trackDef)}</span></div>
-      <img class="preview-track" src="${this.thumb(trackDef, 240)}" alt="${escapeHtml(this.t('track') + ' : ' + trackDef.name)}"></div>`;
+      <div class="track-heading"><div><b>${escapeHtml(trackDef.name)}</b><span>${escapeHtml(country)} · ${this.longueur(trackDef)}</span></div>${this.circuitFlag(trackDef)}</div>
+      <img class="preview-track" src="${this.thumb(trackDef, 360)}" alt="${escapeHtml(this.t('track') + ' : ' + trackDef.name)}"></div>`;
+  }
+
+  liveryChoices(model) {
+    const app = this.app, list = model.livrees || [];
+    if (list.length < 2) return '';
+    return `<div class="livery-choices" data-pad-group aria-label="${this.t('livery')}">${list.map((lv,i)=>`<button class="livery-choice ${app.playerLivreeFor(model.id)===i?'sel':''}" data-action="pickLivery" data-id="${i}" aria-pressed="${app.playerLivreeFor(model.id)===i}" aria-label="${escapeHtml(lv.nom)}">${this.carIcon(model,LIVERIES[app.save.livery],i)}<span>${escapeHtml(lv.nom)}</span></button>`).join('')}</div>`;
   }
 
   selectionPreview(model, trackDef) {
@@ -795,19 +809,20 @@ class UI {
     const laps = s.laps || lapsFor(trackDef, cat);
     const livery = LIVERIES[s.livery];
     this.show(`
-      <div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${mode === 'race' ? t('quickRace') : t('timeTrial')}</h2></div>
-      <div class="setup-columns"><section class="setup-block">
-      ${this.carPreview(model)}
-      <h3><span class="section-number">01</span> ${t('model')}</h3>
-      <p class="selection-hint">${this.lang === 'en' ? 'Tap the selected car again to change livery.' : 'Appuie à nouveau sur la voiture choisie pour changer de livrée.'}</p>
+      <div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${mode === 'race' ? t('quickRace') : t('timeTrial')}</h2><img class="paddock-logo" src="art/interface/logo.webp" alt="EYES ON LINE"></div>
+      <div class="setup-columns"><section class="setup-block car-sheet">
       ${this.filtreCat('pickCat', filtre)}
+      ${this.carPreview(model)}
+      ${this.liveryChoices(model)}
+      <div class="hero-performance">${this.gauges(model)}${this.tyres(model)}</div>
+      <h3 class="model-caption">${t('model')}</h3>
       ${this.rail('models', 'models', this.modelesVisibles(filtre).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${m.id}">
             ${this.carIcon(m, livery, app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}${m.custom ? ` <small>(${t('custom')})</small>` : ''}</b>
             ${filtre === 'all' ? this.etiquetteCat(m) : ''}
             ${this.repereLivree(m, app.playerLivreeFor(m.id))}
             ${this.tyres(m)}
             ${this.gauges(m)}</button>`).join(''))}
-      </section><section class="setup-block">${this.trackPreview(trackDef)}<h3><span class="section-number">02</span> ${t('track')}</h3>
+      </section><section class="setup-block circuit-sheet">${this.trackPreview(trackDef)}
       ${this.rail('tracks', 'tracks', TRACKS.map(tr => {
         const locked = !ut.has(tr.id);
         return `<button class="card ${tr.id === st.trackId ? 'sel' : ''} ${locked ? 'locked' : ''}" data-action="pickTrack" data-id="${tr.id}" ${locked ? 'disabled' : ''}>
@@ -1186,6 +1201,12 @@ class UI {
       fois de livrée ». Le premier appui sur une carte qui n'est pas la sienne la choisit — sinon
       changer de voiture changerait aussi sa peinture au passage, ce que personne ne demande. Une
       fois choisie, la carte devient le sélecteur de livrée. */
+      case 'pickLivery': {
+        const model=app.playerModelFor(this.setup.classId), index=Number(id);
+        if(!Number.isInteger(index)||index<0||index>=(model.livrees||[]).length)break;
+        app.save.livrees=app.save.livrees||{};app.save.livrees[model.id]=index;storeSave(app.save);
+        this.setupScreen(this.setup.mode);break;
+      }
       case 'pickModel': { this._choisitOuTourne(id, app.playerModelFor(this.setup.classId).id, true); this.setupScreen(this.setup.mode); break; }
       case 'pickCat': {
         app.save.filtreCat = id;

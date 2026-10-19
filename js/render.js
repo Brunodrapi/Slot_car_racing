@@ -1134,7 +1134,7 @@ class Renderer {
     g.translate(ox, oy); g.scale(sc, sc); g.translate(-b.minX, -b.minY);
     // Dark schematic on the HUD paper panel; geometry is the actual circuit.
     g.lineCap = 'round'; g.lineJoin = 'round';
-    g.strokeStyle = '#667163'; g.lineWidth = 5 / sc; g.stroke(this.paths.center);
+    g.strokeStyle = '#f2e6ca'; g.lineWidth = 4 / sc; g.stroke(this.paths.center);
     /* La voie des stands sur la carte, et le seul endroit du jeu où elle n'est PAS à l'échelle.
 
     Reprendre la géométrie réelle ne donne rien : la voie court à sept ou huit mètres du bord, ce
@@ -2475,11 +2475,11 @@ class Renderer {
     g.font = `bold ${this.mobile ? 12 : 14}px system-ui, sans-serif`;
     const wU = g.measureText('km/h').width;
     const x0 = cx - (wNum + 4 + wU) / 2;
-    this._hudPaper(g, x0 - 6, yT - hT - 3, wNum + 4 + wU + 12, hT + 8);
+    this._hudLabel(g, x0 - 8, yT - hT - 4, wNum + 4 + wU + 16, hT + 10, '#171b19c9');
     g.textAlign = 'left';
-    g.fillStyle = '#242b25'; g.font = `900 ${hT}px system-ui, sans-serif`;
+    g.fillStyle = '#fff0d4'; g.font = `900 ${hT}px system-ui, sans-serif`;
     g.fillText(kmh, x0, yT);
-    g.fillStyle = '#4c584c'; g.font = `bold ${this.mobile ? 12 : 14}px system-ui, sans-serif`;
+    g.fillStyle = '#f2e6ca'; g.font = `bold ${this.mobile ? 12 : 14}px system-ui, sans-serif`;
     g.fillText('km/h', x0 + wNum + 4, yT);
     this.hudZones = this.hudZones || {};
     this.hudZones.vitesse = { x: x0, w: wNum + 4 + wU, y: yT - hT, h: hT };
@@ -2514,7 +2514,7 @@ class Renderer {
     const w = Math.min(310, this.w - 32), h = separate ? 174 : 142;
     const x = this.ctrlSide === 'right' ? this.pad.l : this.w - this.pad.r - w, y = this.h - this.pad.b - h;
     const gas = throttleAmount(app.input.throttle);
-    g.fillStyle = '#1c2420f0'; this._roundRect(g, x, y, w, h, 3); g.fill();
+    this._hudLabel(g, x, y, w, h, '#171b19c9');
     g.textAlign = 'left'; g.textBaseline = 'top';
     g.fillStyle = '#fff'; g.font = '900 38px system-ui, sans-serif';
     g.fillText(String(Math.round(Math.max(0, p.speed) * 3.6)), x + 16, y + 10);
@@ -2581,18 +2581,21 @@ class Renderer {
     for (const th of [0.7, 1, 1.2, 1.5]) { g.fillStyle = 'rgba(255,255,255,0.5)'; g.fillRect(bx + bw * th / 2 - 0.5, by - 2, 1, 7); }
   }
 
-  // Compact printed labels; neutral information is beige, controls remain charcoal.
-  _hudPaper(g, x, y, w, h) {
-    g.fillStyle = '#f2e6ca'; this._roundRect(g, x, y, w, h, 2); g.fill();
-    g.strokeStyle = '#242b25'; g.lineWidth = 1; g.stroke();
+  // Shared slanted racing labels: paper for the player/history, ink for controls/live data.
+  _hudLabel(g, x, y, w, h, fill = '#f2e6ca') {
+    const cut = Math.min(9, h * .23);
+    g.beginPath(); g.moveTo(x + cut, y); g.lineTo(x + w, y);
+    g.lineTo(x + w - cut, y + h); g.lineTo(x, y + h); g.closePath();
+    g.fillStyle = fill; g.fill();
   }
+  _hudPaper(g, x, y, w, h) { this._hudLabel(g, x, y, w, h); }
 
   // ---------- HUD ----------
   _drawHUD(g, race, ui) {
     const W = this.w, H = this.h, p = race.player, t = (k, ...a) => ui.t(k, ...a);
     const mobile = this.mobile, P = this.pad, pad0 = this.pad;
     g.textBaseline = 'top';
-    const panel = (x, y, w, h) => { g.fillStyle = '#1c2420ed'; this._roundRect(g, x, y, w, h, 3); g.fill(); };
+    const panel = (x, y, w, h) => this._hudLabel(g, x, y, w, h, '#171b19ed');
 
     // Printed information labels keep the existing HUD geometry and touch targets.
     const usure = !!p.usure;
@@ -2606,142 +2609,47 @@ class Renderer {
     const mmX = P.l + 2, mmY = P.t + (mobile ? 46 : 56);
     const mmBas = this.mm ? mmY + this.mm.size : P.t + boxH;
 
-    // Plain dark type on cream paper; no outline around the characters.
-    const cerne = (txt, x, y) => { g.fillText(txt, x, y); };
-
-    const bloc = (x, y, grand, libelle, total) => {
-      g.textAlign = 'left'; g.textBaseline = 'top';
-      g.fillStyle = '#222a24';
-      g.font = `900 ${mobile ? 34 : 42}px system-ui, sans-serif`;
-      cerne(grand, x, y);
-      const lg = g.measureText(grand).width;
-      g.font = `bold ${mobile ? 12 : 14}px system-ui, sans-serif`;
-      g.fillStyle = '#374035';
-      cerne(libelle, x + lg + 5, y + (mobile ? 2 : 4));
-      let lgT = 0;
-      if (total) {
-        g.font = `bold ${mobile ? 14 : 16}px ui-monospace, monospace`;
-        cerne(total, x + lg + 5, y + (mobile ? 16 : 22));
-        lgT = g.measureText(total).width;
-      }
-      // la largeur RÉELLE du bloc, libellé et total compris : c'est elle qui dit ce qui est occupé
-      g.font = `bold ${mobile ? 12 : 14}px system-ui, sans-serif`;
-      return lg + 5 + Math.max(g.measureText(libelle).width, lgT);
-    };
-
-    const pos = race.positionOf(p), n = race.cars.length;
-    const tt = race.mode === 'timetrial';
+    const pos = race.positionOf(p), n = race.cars.length, tt = race.mode === 'timetrial';
     const lapShown = tt ? p.lap + 1 : Math.min(race.laps, p.lap + 1);
-    const y0 = P.t + 2;
-    /* Ce que le haut occupe vraiment, mesuré et publié.
-
-    Le contrôle du bouton pause vérifiait qu'il ne passe pas sous les deux panneaux du haut. Ces
-    panneaux n'existent plus, et il accusait donc le bouton d'un chevauchement avec des rectangles
-    fantômes. Le rendu publie maintenant les zones qu'il occupe pour de bon, et l'essai mesure
-    contre elles : une mesure qui décrit l'écran d'avant ne décrit plus rien. */
-    /* Le haut se répartit au lieu de se tasser.
-
-    Quatre choses s'y alignent : la position, la pause, les temps, le tour. Leurs abscisses étaient
-    posées en dur, et les vides qui en sortaient ne valaient rien les uns par rapport aux autres :
-    quarante pixels après la position, dix avant les temps, seize avant le tour sur un iPhone 13 —
-    et près de neuf cents avant le tour sur un écran de bureau, où le chiffre partait seul à l'autre
-    bout. Un alignement dont les intervalles sont arbitraires se lit comme un encombrement.
-
-    On mesure donc ce que chaque bloc occupe, et on rend le reste à parts égales. La position tient
-    le bord gauche et le tour le bord droit : ce sont les deux repères qu'on retrouve sans regarder.
-    La pause et les temps restent collés l'un à l'autre — ils se lisent d'un seul tenant — et ce
-    couple se centre dans ce qui reste entre les deux. Le résultat est symétrique à n'importe quelle
-    largeur, au lieu de l'être à une seule.
-
-    Les largeurs réservées sont les largeurs MAXIMALES de la course, pas celles de l'image courante :
-    mesuré sur le chiffre affiché, le bouton pause avancerait d'un pixel au passage de la 9e à la
-    10e place. Une cible qui bouge sous le pouce est pire qu'une cible mal placée. */
-    const mesure = (grand, libelle, total) => {
-      g.font = `900 ${mobile ? 34 : 42}px system-ui, sans-serif`;
-      const lg = g.measureText(grand).width;
-      g.font = `bold ${mobile ? 12 : 14}px system-ui, sans-serif`;
-      let l = g.measureText(libelle).width;
-      if (total) {
-        g.font = `bold ${mobile ? 14 : 16}px ui-monospace, monospace`;
-        l = Math.max(l, g.measureText(total).width);
+    const y0 = P.t + 2, xs = P.l + 2, xe = W - P.r - 2;
+    const wPos = mobile ? 90 : 120, headH = mobile ? 36 : 44;
+    const pb = this.pauseBtn;
+    pb.x = xe - pb.s; pb.y = y0;
+    const pw = Math.min(mobile ? 166 : 210, Math.max(110, xe - xs - wPos - pb.s - 20));
+    const px = clamp((W - pw) / 2, xs + wPos + 8, pb.x - pw - 8);
+    const ph = mobile ? 25 : 28;
+    this._hudPaper(g, xs, y0, wPos, headH);
+    g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillStyle = '#20251f';
+    g.font = `italic 900 ${mobile ? 24 : 32}px Racing, sans-serif`;
+    g.fillText(tt ? 'TT' : `P ${pos}/${n}`, xs + 10, y0 + headH / 2, wPos - 18);
+    const lapW = mobile ? 72 : 90, lapY = y0 + pb.s + 7;
+    this._hudPaper(g, xe - lapW, lapY, lapW, mobile ? 25 : 30);
+    g.fillStyle = '#242b25'; g.font = `bold ${mobile ? 11 : 13}px system-ui, sans-serif`;
+    g.fillText(`${t('lap')} ${lapShown}${tt ? '' : '/' + race.laps}`, xe - lapW + 9, lapY + (mobile ? 13 : 15), lapW - 18);
+    this.hudZones = { pos:{x:xs,y:y0,w:wPos,h:headH}, lap:{x:xe-lapW,y:lapY,w:lapW,h:mobile?25:30}, temps:{x:px,y:y0,w:pw,h:ph*2+4} };
+    const flags = race.flags?.active(p) || [], nul = !!p.lapSale;
+    const timing = (y, label, value, dark, activeFlags = []) => {
+      this._hudLabel(g, px, y, pw, ph, dark ? '#171b19ed' : '#f2e6ca');
+      g.textBaseline = 'middle'; g.textAlign = 'left';
+      const size = activeFlags.length > 1 ? 10 : 12;
+      activeFlags.forEach((flag,i)=>drawRaceFlag(g,flag,px+8+i*(size+3),y+(ph-size)/2,size));
+      g.fillStyle = dark ? '#f6eacf' : '#34392f';
+      g.font = `bold ${mobile ? 9 : 10}px system-ui,sans-serif`;
+      const val = String(value), flagWidth = activeFlags.length * (size + 3);
+      g.font = `bold ${mobile ? 13 : 16}px ui-monospace,monospace`;
+      const valueWidth = g.measureText(val).width;
+      if (pw - 24 - valueWidth - flagWidth > 36) {
+        g.font = `bold ${mobile ? 9 : 10}px system-ui,sans-serif`;
+        g.fillText(label.toUpperCase(), px + 9 + flagWidth, y + ph/2);
       }
-      return lg + 5 + l;
+      g.textAlign = 'right'; g.font = `bold ${mobile ? 13 : 16}px ui-monospace,monospace`;
+      g.fillStyle = dark && nul ? '#ffb59c' : dark ? '#fff0d4' : '#33372e';
+      g.fillText(val, px + pw - 10, y + ph/2);
     };
-    const xs = P.l + 4, xe = W - P.r - 4;
-    const posTot = tt ? '' : '/' + n, lapTot = tt ? '' : '/' + race.laps;
-    const wPos = mesure(tt ? '—' : String(n), t('pos'), posTot);
-    // au contre-la-montre le tour n'a pas de plafond : on lui réserve deux chiffres d'office
-    const wLap = mesure(tt ? String(Math.max(10, lapShown)) : String(race.laps), t('lap'), lapTot);
-    const pbs = this.pauseBtn.s;
-    const colle = 10;              // pause et temps : un seul bloc, donc un seul petit écart
-    const gMin = mobile ? 8 : 12;  // en dessous, le haut redevient un empilement
-    const restant = (xe - xs) - wPos - wLap - pbs - colle;
-    /* Les pastilles gardent leur largeur naturelle ; c'est aux vides que revient le reste.
-
-    Les laisser grandir jusqu'à remplir la place rééquilibrait le haut — mais par le bas : trois
-    vides égaux de huit pixels, donc quatre blocs collés. Répartir, c'est écarter. Elles ne se
-    rétrécissent que sous la contrainte, quand l'écran est trop étroit pour les vides minimaux. */
-    const pw = clamp(restant - gMin * 2, mobile ? 104 : 124, mobile ? 136 : 168);
-    const vide = Math.max(gMin, (restant - pw) / 2);
-    this.pauseBtn.x = Math.round(xs + wPos + vide);
-
-    this._hudPaper(g, xs - 3, y0 - 1, wPos + 6, mobile ? 40 : 50);
-    this._hudPaper(g, xe - wLap - 3, y0 - 1, wLap + 6, mobile ? 40 : 50);
-    bloc(xs, y0, tt ? '—' : String(pos), t('pos'), posTot);
-    this.hudZones = { pos: { x: xs, w: wPos } };
-
-    // --- les temps, en haut à droite : le tour courant en grand, deux pastilles en dessous ---
-    const tx = xe;   // le tour garde le bord droit : c'est le repère le plus stable
-    // le tour, aligné à droite, au-dessus des pastilles
-    g.textAlign = 'right'; g.textBaseline = 'top';
-    g.fillStyle = '#222a24'; g.font = `900 ${mobile ? 34 : 42}px system-ui, sans-serif`;
-    const lapTxt = String(lapShown);
-    cerne(lapTxt, tx - (mobile ? 34 : 42), y0);
-    g.textAlign = 'left';
-    g.font = `bold ${mobile ? 12 : 14}px system-ui, sans-serif`; g.fillStyle = '#374035';
-    cerne(t('lap'), tx - (mobile ? 30 : 38), y0 + (mobile ? 2 : 4));
-    if (!tt) {
-      g.font = `bold ${mobile ? 14 : 16}px ui-monospace, monospace`;
-      cerne('/' + race.laps, tx - (mobile ? 30 : 38), y0 + (mobile ? 16 : 22));
-    }
-
-    /* Les pastilles de temps. Deux lignes, pas trois : le « dernier tour » a disparu au profit du
-    tour COURANT, qui est le seul chiffre qu'on regarde en roulant. Le dernier tour ne servait qu'à
-    la seconde d'après la ligne, où le message qui l'annonce le dit déjà, en grand, au milieu. */
-    // les pastilles commencent juste après le bouton pause, et non au bord droit de l'écran
-    const pb0 = this.pauseBtn;
-    const ph = mobile ? 24 : 28, px = pb0.x + pb0.s + colle;
-    const pastille = (yy, lib, val, teinte, flags=[]) => {
-      this._hudPaper(g, px, yy, pw, ph);
-      g.textAlign = 'left'; g.textBaseline = 'middle';
-      g.font = `bold ${mobile ? 10 : 11}px system-ui, sans-serif`; g.fillStyle = '#565d50';
-      const flagSize=flags.length>1?10:12,flagWidth=flags.length*(flagSize+3);
-      flags.forEach((flag,i)=>drawRaceFlag(g,flag,px+8+i*(flagSize+3),yy+(ph-flagSize)/2,flagSize));
-      const labelWidth=g.measureText(lib.toUpperCase()).width;
-      g.font = `bold ${mobile ? 13 : 15}px ui-monospace, monospace`;
-      const valueWidth=g.measureText(val).width;
-      g.font = `bold ${mobile ? 10 : 11}px system-ui, sans-serif`;
-      if(!flags.length||pw-24-flagWidth-valueWidth>labelWidth+4)g.fillText(lib.toUpperCase(),px+12+flagWidth,yy+ph/2+.5);
-      g.textAlign = 'right';
-      g.font = `bold ${mobile ? 13 : 15}px ui-monospace, monospace`; g.fillStyle = teinte || '#242b25';
-      g.fillText(val, px + pw - 12, yy + ph / 2 + 0.5);
-      g.textBaseline = 'top';
-    };
-    const yP = y0 + 2;
-    this.hudZones.temps = { x: px, w: pw };
-    this.hudZones.lap = { x: xe - wLap, w: wLap };
-    pastille(yP, t('best'), p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---',
-      p.bestLap != null ? '#70408f' : '#62675d');
-    /* Le tour COURANT, et le fait qu'il ne compte plus.
-
-    Une sortie de piste annule le tour en cours. Si l'écran n'en dit rien, le joueur finit son tour à
-    l'attaque pour un chrono qui n'existe pas, puis voit son meilleur temps ne pas bouger sans
-    comprendre : une sanction qu'on ne voit pas tomber est une sanction qu'on ne peut pas éviter. La
-    pastille change donc de mot et de couleur à l'instant de la faute. */
-    const nul = !!p.lapSale;
-    pastille(yP + ph + 5, nul ? t('lapVoid') : t('lap'),
-      fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart), nul ? '#aa291f' : '#242b25',race.flags?.active(p)||[]);
-    this.hudZones.flags={types:race.flags?.active(p)||[],x:px+8,y:yP+ph+5};
+    timing(y0, nul ? t('lapVoid') : t('lap'), fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart), true, flags);
+    timing(y0 + ph + 4, t('best'), p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---', false);
+    this.hudZones.flags = {types:flags,x:px+8,y:y0};
+    g.textAlign = 'left'; g.textBaseline = 'top';
 
     /* LA VITESSE, SOUS LE BANDEAU ET AU MILIEU — c'est-à-dire là où le cadran du bas n'était pas.
 
@@ -2868,7 +2776,6 @@ class Renderer {
     }
 
     // bouton pause, entre les deux panneaux du haut
-    const pb = this.pauseBtn;
     panel(pb.x, pb.y, pb.s, pb.s);
     g.fillStyle = '#e8e8ec';
     const bw = Math.max(3, Math.round(pb.s * 0.11)), bh = Math.round(pb.s * 0.42), ecart = Math.round(pb.s * 0.13);
@@ -2887,7 +2794,6 @@ class Renderer {
     if (this.mm) {
       const m = this.mm;
       const mx = mmX, my = mmY;
-      this._hudPaper(g, mx, my, m.size, m.size);
       g.drawImage(m.canvas, mx, my, m.size, m.size);
       drawYellowFlagZones(g,race,p=>{const q=this.mmPoint(p.x,p.y);return {x:mx+q.x,y:my+q.y};},4,.95);
       /* Les points de la carte, deux fois plus gros, et le joueur en bleu ciel.
@@ -2906,26 +2812,26 @@ class Renderer {
     }
 
     // Relative standings: always show the player and adjacent competitors.
-    if (!mobile && race.mode !== 'timetrial') {
+    if (race.mode !== 'timetrial') {
       const order = race.standings(), index = order.indexOf(p);
       const start = Math.max(0, Math.min(index - 1, order.length - 3));
-      const st = order.slice(start, start + 3);
-      const rowH = 26, bw = 230, bx = ui.app.desktop ? W - P.r - bw : P.l, by = ui.app.desktop ? P.t + 90 : mmBas + 10;
-      this._hudPaper(g, bx, by, bw, st.length * rowH + 10);
+      const st = mobile ? order.slice(Math.max(0,index-1), Math.max(0,index-1)+2) : order.slice(start, start + 3);
+      const rowH = mobile ? 23 : 28, bw = mobile ? 170 : 230, bx = ui.app.desktop ? W - P.r - bw : P.l, by = ui.app.desktop ? P.t + 100 : mmBas + 4;
       g.font = 'bold 12px system-ui, sans-serif'; g.textBaseline = 'top';
       st.forEach((car, i) => {
-        const y = by + 6 + i * rowH;
+        const y = by + i * rowH;
+        this._hudLabel(g,bx,y,bw,rowH-2,car.isPlayer&&!mobile?'#f2e6ca':'#171b19df');
         g.textAlign = 'left'; g.fillStyle = car.livery.body; g.fillRect(bx + 8, y + 4, 9, 9);
         g.strokeStyle = '#394137'; g.strokeRect(bx + 8, y + 4, 9, 9);
-        g.fillStyle = car.isPlayer ? '#a32620' : '#242b25';
-        g.fillText(`${start + i + 1}. ${car.name}`, bx + 23, y + 2, 125);
+        g.fillStyle = car.isPlayer && !mobile ? '#242b25' : '#f2e6ca';
+        g.fillText(`${order.indexOf(car) + 1}. ${car.name}`, bx + 23, y + 3, mobile ? 78 : 125);
         let gap = t('you');
         if (car !== p) {
           const distance = Math.abs(car.progress - p.progress), pace = p.bestLap || car.bestLap;
           const sign = car.progress >= p.progress ? '+' : '−';
           gap = pace ? `≈${sign}${(distance / race.track.length * pace).toFixed(1)} s` : `${sign}${Math.round(distance)} m`;
         }
-        g.textAlign = 'right'; g.fillText(gap, bx + bw - 8, y + 2, 72);
+        g.textAlign = 'right'; g.fillText(gap, bx + bw - 10, y + 3, mobile ? 54 : 72);
       });
       g.textAlign = 'left';
     }
@@ -3012,7 +2918,7 @@ class Renderer {
     const ouvert = !!(p.usure && p.lap >= 1 && !p.pitServi && !p.finished);
     this.pitOpen = ouvert;
     this.pitY = s.y + s.len + 22;
-    g.fillStyle = '#1c2420ed'; this._roundRect(g, s.x - s.w / 2 - 8, s.y - 26, s.w + 16, s.len + 52 + (ouvert ? 22 : 0), 3); g.fill();
+    this._hudLabel(g, s.droite ? s.x - 65 : s.x - 18, s.y - 26, 83, s.len + 52 + (ouvert ? 22 : 0), '#171b19da');
     // track
     g.fillStyle = 'rgba(255,255,255,0.18)'; this._roundRect(g, s.x - 4, s.y, 8, s.len, 4); g.fill();
     const stops = [{ v: 1, c: LINE_COLORS.jaune, l: t('lineJaune') }, { v: 0, c: LINE_COLORS.racing, l: t('lineRace') }, { v: -1, c: LINE_COLORS.bleu, l: t('lineBleu') }];

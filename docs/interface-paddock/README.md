@@ -1,16 +1,22 @@
-# Interfaces intégrées — 0.38.0
+# Interfaces illustrées — 0.38.1
 
-Captures réelles du jeu, après intégration des [propositions visuelles](../propositions-interface/README.md). Branche hybrid.
+Captures réelles de la branche hybrid. Cette révision reprend plus fidèlement [la maquette approuvée](../propositions-interface/02-paddock.png).
 
-L’accueil utilise des décors distincts pour PC et mobile, un logo transparent et trois boutons HTML aux dimensions stables. Réglages et pilote restent visibles sur téléphone. Les textes sont traduisibles et les boutons accessibles au clavier et à la manette.
+## Paddock et affiche de circuit
 
-Les sélections course rapide, contre-la-montre et multijoueur utilisent le paddock, les illustrations de voitures existantes et les 13 fonds de circuits. Les cartes sont dessinées à partir des données du jeu, séparément des illustrations. Les circuits personnalisés gardent un fond neutre. Sur téléphone, chaque aperçu précède sa liste de choix ; le départ reste accessible en bas.
+Le paddock occupe la scène PC, avec la voiture en grand et le circuit présenté sur une affiche. Les tracés exacts du jeu sont noirs, détourés de beige et centrés sur les illustrations, sans rectangle derrière. Le drapeau est affiché à côté du nom. La typographie condensée est fournie avec le jeu et les boutons ont des bords obliques.
 
-En course, les informations sont posées sur des panneaux beiges et les commandes sur des fonds noirs. Le classement PC conserve le joueur et ses voisins. Les écarts sont en mètres tant qu’aucun meilleur tour n’est disponible, puis estimés en secondes (≈) à partir de la distance et du meilleur tour. La physique et les marquages au sol sont conservés.
+Les vignettes de livrées sont maintenant directement sélectionnables. Les rails de modèles et de circuits, les réglages et les commandes de départ restent fonctionnels au clavier, au tactile et à la manette. Les performances affichées proviennent des données du jeu ; elles ne recopient pas les valeurs fictives de la maquette.
 
-## Accueil et titre
+![M1 Procar et Spa — PC](pc-reference.png)
 
-![Titre PC](pc-titre.png)
+![M1 Procar — mobile](mobile-reference.png)
+
+![Affiche Spa — mobile après défilement](mobile-affiche.png)
+
+## Accueil
+
+Les pictogrammes de pneus, chronomètre, casques, réglages et pilote sont des images générées sur fond transparent. Les boutons colorés et le bandeau noir réglages/pilote reprennent les silhouettes obliques et le grain imprimé de la proposition.
 
 ![Accueil PC](pc-menu.png)
 
@@ -18,27 +24,44 @@ En course, les informations sont posées sur des panneaux beiges et les commande
 
 ![Petit téléphone](petit-mobile-menu.png)
 
-## Sélections
+![Titre PC](pc-titre.png)
 
-![Course rapide PC](pc-race.png)
+## En course
 
-![Course rapide mobile — début de page, autres choix accessibles par défilement](mobile-race.png)
+- Position `P 7/10` sur panneau beige oblique.
+- Pause noire à droite ; compteur de tours juste dessous.
+- Chrono courant noir au centre, meilleur tour sur beige.
+- Vitesse sur fond noir semi-transparent.
+- Classement : pilote sur beige et autres voitures sur noir en PC ; lignes noires compactes sur mobile.
+- Minicarte en trait beige sans fond. Les drapeaux, les gros chiffres au sol, les flèches et les bordures jaunes et bleues restent présents.
 
-![Contre-la-montre PC](pc-timetrial.png)
+![Course PC](pc-course-manette.png)
 
-![Salon multijoueur connecté](pc-salon.png)
-
-## Course
-
-![Course PC, manette](pc-course-manette.png)
+![Course mobile portrait](mobile-course-portrait.png)
 
 ![Course mobile paysage](mobile-course-paysage.png)
 
+Les écarts sont en mètres tant qu’aucun meilleur tour n’est disponible, puis estimés en secondes (≈). La physique et les commandes de conduite sont conservées.
+
+## Autres modes
+
+![Contre-la-montre](pc-timetrial.png)
+
+![Salon multijoueur connecté](pc-salon.png)
+
 ## Vérifications
 
-- `tools/e2e-menu.js` : cinq formats, alignement stable, réglages et pilote visibles, fonds de circuits accessibles, sélection et défilement conservés, FR/EN, salon à deux joueurs.
-- `tools/e2e-pc.js` : clavier, clic, molette, RT, pause/reprise, déconnexion et sauvegarde ; mobile/tablette en paysage pendant la course et retour aux menus portrait.
-- `tools/e2e-manette.js` : priorité à la manette, navigation, rails, livrées, réglages, RT/LT, retour B, saisie du pseudo et reconnexion.
-- Aucun échec ni erreur JavaScript dans ces parcours Chromium. Les manettes sont simulées via la Gamepad API ; ceci ne remplace pas un essai sur un iPhone ou une manette physique.
+- `tools/e2e-menu.js` : cinq formats, FR/EN, visibilité réglages/pilote, alignement stable, absence de débordement, chargement des fonds, de la police et des drapeaux, centrage de la carte, sélection des trois livrées M1, salon à deux joueurs.
+- `tools/e2e-pc.js` : clavier, souris, molette, RT, pause/reprise, déconnexion, sauvegarde, HUD sans chevauchement et cible pause à droite ; portrait/paysage mobile/tablette et retour aux menus en colonne.
+- `tools/e2e-manette.js` : navigation, rails, livrées, réglages, RT/LT, retour B, saisie du pseudo et reconnexion.
+- `tools/e2e-flags.js` : pixels des drapeaux, contre-la-montre annulé, zones jaunes, synchronisation multi et vues spectateur.
 
-Les décors de menu sont des fichiers WebP optimisés ; aucun PNG de maquette n’est chargé par le jeu. La version et les clés de cache sont passées à 0.38.0.
+Tous ces parcours Chromium passent sans erreur JavaScript. Manettes et appareils mobiles sont simulés ; un essai sur matériel réel reste complémentaire.
+
+## Assets et licences
+
+Illustrations de menu : génération d’images, versions WebP dans `art/interface/`. Les anciens pictogrammes SVG simplifiés ont été remplacés.
+
+Police **Barlow Condensed Black Italic**, Jeremy Tribby, SIL Open Font License : [licence](../../art/interface/fonts/OFL.txt), [source](https://github.com/google/fonts/tree/main/ofl/barlowcondensed).
+
+Drapeaux **flag-icons**, licence MIT : [licence](../../art/interface/flags/LICENSE), [source](https://github.com/lipis/flag-icons).

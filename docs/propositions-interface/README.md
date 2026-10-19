@@ -1,6 +1,6 @@
 # Propositions visuelles — Eyes On Line
 
-**Intégrées en version 0.38.0 : [captures réelles et vérifications](../interface-paddock/README.md).** Les images ci-dessous restent les maquettes de conception.
+**Intégrées et affinées en version 0.38.1 : [captures réelles et vérifications](../interface-paddock/README.md).** Les images ci-dessous restent les maquettes de conception.
 
 Trois maquettes de direction artistique, chacune en paysage PC et portrait mobile, proposées avant de coder les interfaces. Elles prolongent [l’audit consacré à la conception de jeu vidéo](../audit-interface-jeu/README.md).
 

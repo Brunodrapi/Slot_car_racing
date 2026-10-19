@@ -33,7 +33,9 @@ fs.mkdirSync(out,{recursive:true});
    assert((await p.request.get(bgUrl)).ok(),'selected circuit artwork resolves');
    await p.waitForTimeout(300);
    if(mode==='timetrial'&&!await p.evaluate(()=>app.desktop))assert(!await p.locator('.setup-options').isVisible(),'no empty race options in mobile time trial');
-   assert(await p.evaluate(()=>{const s=document.querySelector('.screen');return s.scrollWidth<=s.clientWidth+1;}),'screen horizontal overflow');
+   const overflow=await p.evaluate(()=>{const s=document.querySelector('.screen');return s.scrollWidth>s.clientWidth+1;});
+   if(overflow){console.log(await p.evaluate(()=>[...document.querySelectorAll('.screen *')].filter(e=>e.getBoundingClientRect().right>innerWidth+1&&!e.closest('.rail')).map(e=>({class:e.className,width:e.getBoundingClientRect().width,right:e.getBoundingClientRect().right})).slice(0,20)));await p.screenshot({path:path.join(out,name+'-overflow.png')});}
+   assert(!overflow,'screen horizontal overflow');
    assert(await p.locator('.setup-block').first().evaluate(e=>e.getBoundingClientRect().height>50),'visible selection panel');
    assert.equal(await p.locator('[data-action="pickDiff"]').count(),mode==='race'?5:0);
    const next=p.locator('[data-action="pickModel"]:not(.sel)').first(),id=await next.getAttribute('data-id');await next.click();
@@ -46,6 +48,23 @@ fs.mkdirSync(out,{recursive:true});
     const scroll=await p.evaluate(async()=>{let e=document.querySelector('.screen');e.scrollTop=e.scrollHeight;const before=e.scrollTop;document.querySelector('[data-action="pickLaps"]:not(.sel)').click();await new Promise(r=>setTimeout(r,100));return [before,document.querySelector('.screen').scrollTop];});assert(Math.abs(scroll[0]-scroll[1])<30,'selection should preserve scroll');
     if(name==='pc'||name==='mobile')await p.screenshot({scale:'css',path:path.join(out,`${name}-reglages.png`)});
    }
+  }
+  // Match the approved reference with a three-livery GT and Spa; the choices are interactive.
+  if(name==='pc'||name==='mobile') {
+   await p.evaluate(()=>{app.save.models.gt='m1procar';app.ui.setup.classId='gt';app.save.cat='gt';app.save.filtreCat='gt';app.ui.setup.trackId='spa';app.ui.setupScreen('race');});
+   await p.waitForSelector('.livery-choice');
+   assert.equal(await p.locator('.livery-choice').count(),3);
+   await p.locator('.livery-choice').nth(1).click();
+   assert.equal(await p.evaluate(()=>app.playerLivreeFor('m1procar')),1);
+   await p.locator('.livery-choice').first().click();
+   assert.equal(await p.evaluate(()=>app.playerLivreeFor('m1procar')),0);
+   await p.evaluate(async()=>{document.querySelector('.screen').scrollTop=0;await document.fonts.ready;await Promise.all([...document.images].map(im=>im.decode().catch(()=>{})));});
+   assert(await p.evaluate(()=>document.fonts.check('900 italic 30px Racing')));
+   assert(await p.locator('.circuit-flag').first().evaluate(im=>im.complete&&im.naturalWidth>0));
+   const map=await p.locator('.preview-track').evaluate(el=>{const a=el.getBoundingClientRect(),b=el.parentElement.getBoundingClientRect();return {delta:Math.abs((a.left+a.right)/2-(b.left+b.right)/2),bg:getComputedStyle(el).backgroundColor};});
+   assert(map.delta<2,'map centered on circuit illustration');assert.equal(map.bg,'rgba(0, 0, 0, 0)');
+   await p.screenshot({scale:'css',path:path.join(out,name+'-reference.png')});
+   if(name==='mobile'){await p.locator('.circuit-sheet').scrollIntoViewIfNeeded();await p.screenshot({scale:'css',path:path.join(out,'mobile-affiche.png')});}
   }
   await p.locator('[data-action="menu"]').click();await p.locator('[data-action="multi"]').click();await p.waitForSelector('.lobby-entry');
   assert.equal(await p.locator('[data-action="netWatch"]').count(),1);await p.screenshot({scale:'css',path:path.join(out,`${name}-multi.png`)});
