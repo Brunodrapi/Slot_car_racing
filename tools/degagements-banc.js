@@ -17,7 +17,7 @@ for(const side of [-1,1]){
 checkSurface(.92,-1,'asphalt',12);
 checkSurface(.16,-1,'grass',4);
 checkSurface(.066,1,'gravel',6);
-checkSurface(.39,1,'gravel',6);
+checkSurface(.39,1,'asphalt',6); // reprise 0.40 : Malmedy suit le contour vert des Combes
 checkSurface(.57,-1,'gravel',6); // raccord entre les deux lobes de Pouhon
 checkSurface(.735,1,'gravel',8); // raccord Campus / Paul Frère
 checkSurface(.92,-1,'grass',30); // la zone bitumée a bien une fin

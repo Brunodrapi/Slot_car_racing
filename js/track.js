@@ -103,9 +103,11 @@ class Track {
     this.drawRoad = def.drawRoad !== false;
     this._build();
     this._buildRunoffs();
+    this._buildPads();
     this._joinRunoffs();
     this._constrainStructureRunoffs();
     this._protectParallelRoads();
+    this._capRunoffsAtPaths();
     this._buildBarriers();
   }
 
@@ -351,10 +353,48 @@ class Track {
       this.asphaltW ? this._lerp(this.asphaltW[key], s) : 0);
   }
 
+  /* LES SURFACES DESSINÉES : une zone bitumée qu'aucun décalage latéral ne sait décrire.
+
+  À l'intérieur d'une épingle serrée, un dégagement mesuré depuis le bord se replie sur lui-même
+  dès qu'il dépasse le rayon du virage. `asphaltPads` donne alors le contour relevé sur l'image
+  annotée, en mètres du monde : la surface est le polygone fermé par le bord de piste entre ses
+  deux extrémités. Le rendu le peint comme un dégagement bitumé, la physique le lit comme tel. */
+  _buildPads(){
+    this.pads=[];
+    for(const p of this.def.asphaltPads||[]){
+      const first=p.pts[0],last=p.pts.at(-1),W=Math.ceil(this.n/2)+1;
+      let a=this.project(first[0],first[1],0,W).s,b=this.project(last[0],last[1],0,W).s;
+      if(this.wrap(b-a)>this.length/2)[a,b]=[b,a];
+      const poly=[],span=this.wrap(b-a);
+      for(let d=0;d<=span;d+=2){
+        const u=this.wrap(a+d),hw=p.side>0?this.hwLeftAt(u):this.hwRightAt(u),q=this.pos(u,p.side*hw);
+        poly.push([q.x,q.y]);
+      }
+      const pts=this.wrap(this.project(first[0],first[1],0,W).s-a)<1?p.pts.slice().reverse():p.pts.slice();
+      poly.push(...pts);
+      const xs=poly.map(q=>q[0]),ys=poly.map(q=>q[1]);
+      this.pads.push({side:p.side,poly,bbox:{minX:Math.min(...xs),maxX:Math.max(...xs),minY:Math.min(...ys),maxY:Math.max(...ys)}});
+    }
+  }
+
+  padAt(x,y){
+    for(const p of this.pads||[]){
+      const b=p.bbox;if(x<b.minX||x>b.maxX||y<b.minY||y>b.maxY)continue;
+      let inside=false;
+      for(let i=0,j=p.poly.length-1;i<p.poly.length;j=i++){
+        const [xi,yi]=p.poly[i],[xj,yj]=p.poly[j];
+        if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)inside=!inside;
+      }
+      if(inside)return true;
+    }
+    return false;
+  }
+
   runoffSurfaceAt(s, lat) {
     const side = lat >= 0 ? 'L' : 'R';
     const d = Math.abs(lat) - (lat >= 0 ? this.hwLeftAt(s) : this.hwRightAt(s));
     if (d <= 0) return 'asphalt';
+    if (this.pads && this.pads.length) { const q = this.pos(s, lat); if (this.padAt(q.x, q.y)) return 'asphalt'; }
     if (this.asphaltW && d <= this._lerp(this.asphaltW[side], s)) return 'asphalt';
     if (this.bacW && d <= this._lerp(this.bacW[side], s)) return 'gravel';
     return 'grass';
@@ -368,6 +408,8 @@ class Track {
   elles ne donnaient pas la même distance, si bien qu'un arbre pouvait pousser sur un bac. C'est
   maintenant une seule mesure. */
   limiteProtection(s, side) {
+    const trace=this._barrierPathLat(s,side);
+    if(trace!=null)return trace;
     const hw = side > 0 ? this.hwLeftAt(s) : this.hwRightAt(s);
     const runoff = this.runoffWidthAt(s, side);
     // Neuf mètres sur l'herbe. Le raccord garde le placement existant au bord
@@ -388,6 +430,115 @@ class Track {
     distance+=(hw+this.kerbAt(s)+1.1-distance)*blend;
     distance=Math.max(distance,hw+runoff+1.1);
     return distance;
+  }
+
+  /* LES TRAITS D'UNE REPRISE : la protection suit le dessin.
+
+  Le décalage calculé fait des marches là où une branche voisine, un garage ou la fin d'un
+  dégagement le contraignent, et des pointes à l'intérieur des épingles. `barrierPaths` remplace,
+  sur un secteur et un côté, la protection calculée par la ligne relevée sur l'image annotée :
+  des points du monde en mètres, dans l'ordre du trait, avec le secteur [from, to] de la branche
+  qu'ils bordent. Chaque point est projeté sur cette branche seulement — un trait tiré entre deux
+  portions voisines ne se raccroche pas à la mauvaise. Les bouts rejoignent la protection
+  calculée ; collisions, rendu et décor lisent les mêmes segments. */
+  _barrierPaths(){
+    if(this._paths)return this._paths;
+    const L=this.length;
+    this._paths=(this.def.barrierPaths||[]).filter(Boolean).map(p=>{
+      const a0=this.wrap(p.from*L),span0=this.wrap(p.to*L-a0),W=Math.ceil(span0/2/this.ds)+40;
+      const pts=p.pts.map(([x,y])=>{
+        const pr=this.project(x,y,this.wrap(a0+span0/2),W),s=this.wrap(pr.s);
+        // Un trait libre borde une surface dessinée (`asphaltPads`) : il garde sa forme exacte.
+        if(p.free)return {s,lat:pr.lat,x,y};
+        const hw=p.side>0?this.hwLeftAt(s):this.hwRightAt(s),min=hw+this.kerbAt(s)+1.6;
+        // Jamais sur la chaussée ni sur le vibreur, même si le trait les frôle : un rail garde au
+        // moins un mètre d'herbe entre son épaisseur et le bord.
+        if(Math.abs(pr.lat)>=min&&Math.sign(pr.lat)===p.side)return {s,lat:pr.lat,x,y};
+        const q=this.pos(s,p.side*min);return {s,lat:p.side*min,x:q.x,y:q.y};
+      });
+      const a=pts[0].s,b=pts.at(-1).s;
+      return {side:p.side,pts,a,b,span:this.wrap(b-a)};
+    });
+    return this._paths;
+  }
+
+  // Distance latérale du trait à cette abscisse, ou null hors de tout trait.
+  _barrierPathLat(s,side){
+    if(!this.def.barrierPaths)return null;
+    for(const p of this._barrierPaths()){
+      if(p.side!==side||this.wrap(s-p.a)>p.span)continue;
+      const d=this.wrap(s-p.a);
+      for(let k=0;k+1<p.pts.length;k++){
+        const u0=this.wrap(p.pts[k].s-p.a),u1=this.wrap(p.pts[k+1].s-p.a);
+        if(u1<=u0||d<u0||d>u1)continue;
+        const t=(d-u0)/(u1-u0);
+        return Math.abs(p.pts[k].lat+(p.pts[k+1].lat-p.pts[k].lat)*t);
+      }
+    }
+    return null;
+  }
+
+  // Les segments des traits, en monde, avec leur niveau (pont ou sol).
+  _pathSegments(){
+    if(this._pathSegs)return this._pathSegs;
+    this._pathSegs=[];
+    for(const p of this._barrierPaths())for(let k=1;k<p.pts.length;k++){
+      const a=p.pts[k-1],b=p.pts[k];
+      this._pathSegs.push({ax:a.x,ay:a.y,bx:b.x,by:b.y,level:this.barrierLevelAt(a.s),
+        minX:Math.min(a.x,b.x),maxX:Math.max(a.x,b.x),minY:Math.min(a.y,b.y),maxY:Math.max(a.y,b.y)});
+    }
+    return this._pathSegs;
+  }
+
+  /* Un dégagement ne passe pas derrière la protection dessinée — ni celui de la branche que le
+  trait borde, ni celui d'une branche voisine dont il coupe le couloir : on lance un rayon depuis
+  l'axe, perpendiculaire à la piste, et le premier trait rencontré borne la largeur. */
+  _capRunoffsAtPaths(){
+    if(!this.def.barrierPaths)return;
+    const segs=this._pathSegments(),R=80;
+    for(let i=0;i<this.n;i++){
+      const x=this.xs[i],y=this.ys[i],level=this.barrierLevelAt(i*this.ds);
+      const near=segs.filter(g=>g.level===level&&g.maxX>x-R&&g.minX<x+R&&g.maxY>y-R&&g.minY<y+R);
+      if(!near.length)continue;
+      for(const side of [-1,1]){
+        const dx=this.nx[i]*side,dy=this.ny[i]*side;
+        let t=Infinity;
+        for(const g of near){
+          const ex=g.bx-g.ax,ey=g.by-g.ay,den=dx*ey-dy*ex;
+          if(Math.abs(den)<1e-9)continue;
+          const wx=g.ax-x,wy=g.ay-y,u=(wx*ey-wy*ex)/den,v=(wx*dy-wy*dx)/den;
+          if(u>0&&v>=0&&v<=1&&u<t)t=u;
+        }
+        if(t>R)continue;
+        const key=side>0?'L':'R',hw=side>0?this.hwL[i]:this.hwR[i],cap=Math.max(0,t-hw-1.2);
+        for(const layer of [this.bacW,this.asphaltW])if(layer)layer[key][i]=Math.min(layer[key][i],cap);
+      }
+    }
+  }
+
+  /* Une protection calculée cachée derrière un trait, ou qui le croise, disparaît : le trait
+  devient la séparation commune des deux branches. « Cachée » se lit depuis la piste qui la porte —
+  le segment qui joint son axe au milieu de la protection traverse le trait. */
+  _hideBehindPaths(paths){
+    const segs=this.barriers.filter(b=>b.drawn).map(b=>({ax:b.ax,ay:b.ay,bx:b.bx,by:b.by,level:b.level||0,
+      minX:Math.min(b.ax,b.bx),maxX:Math.max(b.ax,b.bx),minY:Math.min(b.ay,b.by),maxY:Math.max(b.ay,b.by)}));
+    const cut=(ax,ay,bx,by,g,m=.02)=>{
+      const rx=bx-ax,ry=by-ay,ex=g.bx-g.ax,ey=g.by-g.ay,den=rx*ey-ry*ex;
+      if(Math.abs(den)<1e-9)return false;
+      const wx=g.ax-ax,wy=g.ay-ay,u=(wx*ey-wy*ex)/den,v=(wx*ry-wy*rx)/den;
+      return u>m&&u<1-m&&v>m&&v<1-m;
+    };
+    this.barriers=this.barriers.filter(b=>{
+      if(b.drawn)return true;
+      if(paths.some(p=>p.side===b.side&&this.wrap(b.s-p.a+12)<=p.span+24))return true;
+      const mx=(b.ax+b.bx)/2,my=(b.ay+b.by)/2,o=this.pos(b.s,0),lv=b.level||0;
+      for(const g of segs){
+        if(g.level!==lv||g.maxX<Math.min(o.x,b.ax,b.bx)-1||g.minX>Math.max(o.x,b.ax,b.bx)+1
+          ||g.maxY<Math.min(o.y,b.ay,b.by)-1||g.minY>Math.max(o.y,b.ay,b.by)+1)continue;
+        if(cut(o.x,o.y,mx,my,g)||cut(b.ax,b.ay,b.bx,b.by,g,1e-4))return false;
+      }
+      return true;
+    });
   }
 
   largeurBac(i, cote) {
@@ -448,7 +599,7 @@ class Track {
       for(let i=0;i<list.length;i++){
         const near=new Set();for(const key of cells(list[i]))for(const j of bins.get(key)||[])if(j>i)near.add(j);
         for(const j of [...near].sort((a,b)=>a-b)){
-      const a=list[i],b=list[j];if(a.level!==b.level)continue;
+      const a=list[i],b=list[j];if(a.level!==b.level||a.drawn||b.drawn)continue; // un trait relevé ne bouge pas
       if(Math.abs(this.diff(a.s,b.s))<45)continue;
       let A=root(a.A),B=root(a.B),C=root(b.A),D=root(b.B);
       if(A===C||A===D||B===C||B===D)continue;
@@ -509,8 +660,10 @@ class Track {
     if (!this.def.barriers) return;
     if (!this.bacW) this.bacW = this._profilBac();
     const point = (s, side) => this.pos(s, side * this.limiteProtection(s, side));
+    const paths=this._barrierPaths();
     for (const side of [-1,1]) for(let s=0;s<this.length;s+=3) {
       const end=Math.min(s+3,this.length),mid=(s+end)/2;
+      if(paths.some(p=>p.side===side&&this.wrap(mid-p.a)<=p.span))continue;
       // Une ouverture franche réserve les deux bretelles et la voie des stands.
       if(side<0 && [s-12,mid,end+12].some(x=>this.pitAt(x)))continue;
       if(this.parallelLimits && [s,mid,end].some(u=>{
@@ -536,6 +689,36 @@ class Track {
         nx:dy/len*-side,ny:-dx/len*-side};
       this.barriers.push(seg);
     }
+    // Les traits relevés : chaque trait devient une suite de segments, raccordée aux deux bouts.
+    for(const p of paths){
+      // Raccords exactement aux bouts des tronçons calculés de trois mètres qui l'encadrent.
+      const s0=3*Math.floor((p.a-1.5)/3)+3,s1=3*(Math.floor((p.a+p.span-1.5)/3)+1);
+      // Les points du trait d'avant le premier raccord ou d'après le dernier feraient un aller-retour.
+      const inner=p.pts.filter(q=>{const d=this.wrap(q.s-s0);return d>.5&&d<this.wrap(s1-s0)-.5;});
+      const pts=[point(this.wrap(s0),p.side),...inner,point(this.wrap(s1),p.side)];
+      const cum=[0];
+      for(let k=1;k<pts.length;k++)cum.push(cum[k-1]+Math.hypot(pts[k].x-pts[k-1].x,pts[k].y-pts[k-1].y));
+      const total=cum.at(-1)||1;
+      for(let k=1;k<pts.length;k++){
+        const a=pts[k-1],b=pts[k],dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);
+        if(len<.1)continue;
+        // L'abscisse d'un segment est celle de la chaussée à son aplomb : matière, niveau et
+        // contrôles se lisent là où il est vraiment.
+        const s=this.wrap(this.project((a.x+b.x)/2,(a.y+b.y)/2,this.wrap(s0+(s1-s0)*(cum[k-1]+len/2)/total),40).s);
+        // L'ouverture des stands reste ouverte, même si le trait passe devant.
+        if(p.side<0&&[s-12,s,s+12].some(x=>this.pitAt(this.wrap(x))))continue;
+        this.barriers.push({ax:a.x,ay:a.y,bx:b.x,by:b.y,s,side:p.side,level:this.barrierLevelAt(s),kind:'rail',
+          half:.28,tx:dx/len,ty:dy/len,len,nx:dy/len*-p.side,ny:-dx/len*-p.side,drawn:true});
+      }
+    }
+    if(paths.length){this._hideBehindPaths(paths);this.barriers.sort((u,v)=>u.side-v.side||u.s-v.s);}
+    /* Les croix tracées sur une protection : `barrierCuts` donne leurs centres en mètres du monde
+    et un rayon. Une protection calculée qui passe dans ce rayon est retirée. */
+    for(const [x,y,r] of this.def.barrierCuts||[])this.barriers=this.barriers.filter(b=>{
+      if(b.drawn)return true;
+      const dx=b.bx-b.ax,dy=b.by-b.ay,u=clamp(((x-b.ax)*dx+(y-b.ay)*dy)/(dx*dx+dy*dy||1),0,1);
+      return Math.hypot(b.ax+dx*u-x,b.ay+dy*u-y)>r;
+    });
     // À l'intérieur d'une épingle, une courbe décalée peut se replier sur elle-même.
     // Couper ces boucles donne un raccord net au lieu d'une glissière en nœud.
     this._trimBarrierLoops();
@@ -543,18 +726,45 @@ class Track {
     this._trimBarrierLoops();
     this.barriers=this.barriers.filter(b=>Math.hypot(b.bx-b.ax,b.by-b.ay)>.05);
     this._trimRunoffsAtBarriers();
+    if(paths.length)this._hideBehindPaths(paths);   // les raccords ont pu bouger
+    this._dropFoldedBarriers();
     for(let id=0;id<this.barriers.length;id++){
       const b=this.barriers[id],C=this.barrierCell;
       b.kind=this.runoffWidthAt(b.s,b.side)>2.5&&this._structureBlend(b.s)<.5?'tyres':'rail';
       b.half=b.kind==='tyres'?1.2:.28;
       b.len=Math.hypot(b.bx-b.ax,b.by-b.ay);b.tx=(b.bx-b.ax)/b.len;b.ty=(b.by-b.ay)/b.len;
       b.nx=-b.ty*b.side;b.ny=b.tx*b.side;
+      if(b.drawn){
+        // Un trait peut revenir un peu sur lui-même : sa normale vise toujours la chaussée qu'il borde.
+        const mx=(b.ax+b.bx)/2,my=(b.ay+b.by)/2,pr=this.project(mx,my,b.s,60),c=this.pos(pr.s,0);
+        if((c.x-mx)*b.nx+(c.y-my)*b.ny<0){b.nx=-b.nx;b.ny=-b.ny;}
+      }
       for(let x=Math.floor((Math.min(b.ax,b.bx)-b.half)/C);x<=Math.floor((Math.max(b.ax,b.bx)+b.half)/C);x++)
         for(let y=Math.floor((Math.min(b.ay,b.by)-b.half)/C);y<=Math.floor((Math.max(b.ay,b.by)+b.half)/C);y++){
           const key=x+','+y;if(!this.barrierGrid.has(key))this.barrierGrid.set(key,[]);
           this.barrierGrid.get(key).push(id);
         }
     }
+  }
+
+  /* Une protection calculée qui s'est repliée par-dessus le virage.
+
+  À l'intérieur d'une épingle plus serrée que le décalage voulu, la courbe décalée passe de l'autre
+  côté du centre du virage. Les boucles se coupent d'habitude d'elles-mêmes (`_trimBarrierLoops`),
+  mais une ouverture voisine — l'entrée des stands, un trait relevé — peut retirer le segment qui
+  aurait fermé la boucle. Le segment qui reste se reconnaît à ce que la chaussée la plus proche
+  n'est pas celle de son abscisse : il borde une autre portion de piste, et trop près. */
+  _dropFoldedBarriers(){
+    this.barriers=this.barriers.filter(b=>{
+      if(b.drawn)return true;
+      for(const u of [0,.5,1]){
+        const x=b.ax+(b.bx-b.ax)*u,y=b.ay+(b.by-b.ay)*u,pr=this.project(x,y,b.s,100);
+        if(Math.abs(this.diff(pr.s,b.s))<6||this.barrierLevelAt(pr.s)!==(b.level||0))continue;
+        const hw=pr.lat>0?this.hwLeftAt(pr.s):this.hwRightAt(pr.s);
+        if(Math.abs(pr.lat)-hw-b.half<=1)return false;
+      }
+      return true;
+    });
   }
 
   barrierCandidates(x0,y0,x1,y1,pad) {
@@ -789,7 +999,8 @@ class Track {
     this.hwL = new Float32Array(N); this.hwR = new Float32Array(N);
     this.hwL.fill(baseHw); this.hwR.fill(baseHw);
 
-    // Un élargissement annoté est de la chaussée, pas un dégagement peint.
+    // Un élargissement annoté est de la chaussée, pas un dégagement peint. Une valeur négative
+    // resserre la chaussée : l'arrondi d'une corde trop pointue, par exemple.
     for(const zone of def.roadWidenings||[]){
       const pts=zone.points,key=zone.side>0?this.hwL:this.hwR;
       for(let i=0;i<N;i++){
@@ -797,7 +1008,7 @@ class Track {
         if(f<pts[0][0]||f>pts.at(-1)[0])continue;
         let j=0;while(j<pts.length-2&&f>pts[j+1][0])j++;
         const [a,b]=[pts[j],pts[j+1]],u=(f-a[0])/(b[0]-a[0]);
-        key[i]+=Math.max(0,a[1]+(b[1]-a[1])*u)*this.widthScale;
+        key[i]=Math.max(2.5,key[i]+(a[1]+(b[1]-a[1])*u)*this.widthScale);
       }
     }
 
@@ -1647,8 +1858,18 @@ class Track {
   fonctionne, Red Bull Ring 43,5 fonctionne, Le Mans 34,3 fonctionne. Aucun seuil ne sépare le cas
   qui casse des cas qui marchent. Un placement automatique aurait donc déplacé six circuits sains
   sur un critère faux, pour en sauver un. */
+  /* Une reprise annotée peut aussi donner l'entrée et la sortie elles-mêmes (`pitFrom`, `pitTo`,
+  en fraction du tour) : la voie suit alors le trait noir du dessin, et la zone d'arrêt reste où
+  `pitAt` la met — les garages ne bougent pas quand seule une bretelle est reprise. */
   _buildPits(def) {
     const L = this.length;
+    if (def && def.pitFrom != null && def.pitTo != null) {
+      const entree = this.wrap(def.pitFrom * L), sortie = this.wrap(def.pitTo * L);
+      const long = this.wrap(sortie - entree);
+      const boite = def.pitAt != null ? this.wrap(def.pitAt * L) : this.wrap(entree + long / 2);
+      this.pit = { entree, boite, sortie, long, separation: 1.2, largeur: 6.0, zone: 26 };
+      return;
+    }
     const long = def && def.pitLength != null ? clamp(def.pitLength, 120, L * 0.3)
       : Math.max(160, Math.min(L * 0.22, 340));
     const ancre = def && def.pitAt != null ? this.wrap(def.pitAt * L) : this.wrap(-long * 0.20);

@@ -532,6 +532,12 @@ class Renderer {
       }
       p.closePath();
     }
+    this.runoffPads=null;
+    if(track.pads&&track.pads.length){
+      // Les surfaces dessinées, chacune son contour : remplies à part, sans règle d'enroulement commune.
+      const p=this.runoffPads=new Path2D();
+      for(const pad of track.pads){pad.poly.forEach(([x,y],k)=>k?p.lineTo(x,y):p.moveTo(x,y));p.closePath();}
+    }
     if(track.asphaltW){
       const p=this.runoffAsphalt=new Path2D();
       for(const side of [1,-1])for(let j=0;j<track.n;j++){
@@ -1606,6 +1612,7 @@ class Renderer {
       if(this.circuitGraphics)this.circuitGraphics.drawGravel(g,vis,this.cam.zoom);
       if(this.runoffAsphalt){
         g.fillStyle=PAL.runoff || '#777681';g.fill(this.runoffAsphalt);
+        if(this.runoffPads)g.fill(this.runoffPads);
         if(this.circuitGraphics)this.circuitGraphics.drawRunoff(g,vis,this.cam.zoom,this.runoffAsphalt);
         if(this.runoffBandes)for(const b of this.runoffBandes){g.fillStyle=b.col;g.fill(b.path);}
         for(let i=0;i<this.runoffPaint.length;i++){g.fillStyle=PAL.kerb[i];g.fill(this.runoffPaint[i]);}

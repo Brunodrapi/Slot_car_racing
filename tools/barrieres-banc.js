@@ -24,7 +24,10 @@ assert.ok(Track.sweepBarrier(20,5.8,-40,0,wall,1));
 assert.equal(Track.sweepBarrier(20,7,-40,0,wall,1),null);
 assert.equal(Track.sweepBarrier(2,0,10,0,wall,1),null);
 const segments={};
-for(const kind of ['rail','tyres'])segments[kind]=T.barriers.find(b=>b.kind===kind&&b.side===1&&b.len>2.8&&b.len<6&&Math.abs(T.curvAt(b.s))<.03);
+// Un segment de mur droit, PARALLÈLE à la piste : un raccord en biais (fin d'un dégagement) teste
+// l'angle de deux segments voisins, pas le rebond sur un mur.
+const parallele=b=>{const i=T.idx(b.s);return -(b.nx*T.nx[i]+b.ny*T.ny[i])*b.side>.98;};
+for(const kind of ['rail','tyres'])segments[kind]=T.barriers.find(b=>b.kind===kind&&b.side===1&&b.len>2.8&&b.len<6&&Math.abs(T.curvAt(b.s))<.03&&parallele(b));
 assert.ok(segments.rail&&segments.tyres);
 function impact(model,kind,speed,angle,wear,alreadyOff=false){
  const b=segments[kind],p=new Car(T,model,{usure:wear?USURE:null,isPlayer:true});
