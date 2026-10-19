@@ -1,3 +1,5 @@
+> Mise à jour 0.38.0 : [interfaces illustrées intégrées et captures actuelles](../interface-paddock/README.md). Le contenu ci-dessous documente la version précédente.
+
 # Menus hybrid — 0.37.0
 
 > **Complément critique** : voir l’[audit centré sur la conception de jeux vidéo](../audit-interface-jeu/README.md).

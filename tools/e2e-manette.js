@@ -4,7 +4,7 @@ const {chromium}=require('playwright'),http=require('node:http'),fs=require('nod
 const ROOT=path.resolve(__dirname,'..'),OUT=process.argv[2]||'/tmp/manette';
 (async()=>{
  fs.mkdirSync(OUT,{recursive:true});
- const server=http.createServer((req,res)=>{const p=path.join(ROOT,decodeURIComponent(req.url.split('?')[0]));if(!p.startsWith(ROOT+path.sep)||!fs.existsSync(p)||fs.statSync(p).isDirectory()){res.writeHead(404);return res.end();}const ext=path.extname(p);res.setHeader('Content-Type',({'.js':'text/javascript','.html':'text/html','.css':'text/css','.png':'image/png','.webp':'image/webp'})[ext]||'application/octet-stream');fs.createReadStream(p).pipe(res);});
+ const server=http.createServer((req,res)=>{const p=path.join(ROOT,decodeURIComponent(req.url.split('?')[0]));if(!p.startsWith(ROOT+path.sep)||!fs.existsSync(p)||fs.statSync(p).isDirectory()){res.writeHead(404);return res.end();}const ext=path.extname(p);res.setHeader('Content-Type',({'.js':'text/javascript','.html':'text/html','.css':'text/css','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml'})[ext]||'application/octet-stream');fs.createReadStream(p).pipe(res);});
  await new Promise(r=>server.listen(0,r));const browser=await chromium.launch(),errors=[];
  const url=`http://127.0.0.1:${server.address().port}/index.html`;
  async function create(name) {

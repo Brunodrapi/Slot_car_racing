@@ -4,7 +4,7 @@ Fonds illustrés sans interface ni voiture, destinés aux futurs menus. Les scè
 
 Le paddock réserve le premier plan à une voiture. Les sprites actuels vus du dessus ne sont pas des illustrations de trois-quarts : prévoir une présentation dédiée ou une illustration de sélection séparée, sans déformer les sprites de course.
 
-Les fichiers PNG sources ne sont pas encore chargés par le jeu. Lors de l’intégration, produire des versions optimisées et ne charger que le fond sélectionné.
+Le jeu utilise les versions WebP optimisées dans `art/interface/` : fond sélectionné dans l’aperçu et miniatures dans le rail. Ces PNG restent les sources de conception.
 
 ## Paddock
 

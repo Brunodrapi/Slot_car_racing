@@ -1,5 +1,7 @@
 # Propositions visuelles — Eyes On Line
 
+**Intégrées en version 0.38.0 : [captures réelles et vérifications](../interface-paddock/README.md).** Les images ci-dessous restent les maquettes de conception.
+
 Trois maquettes de direction artistique, chacune en paysage PC et portrait mobile, proposées avant de coder les interfaces. Elles prolongent [l’audit consacré à la conception de jeu vidéo](../audit-interface-jeu/README.md).
 
 ## 1. Accueil : affiche de course vivante
@@ -26,7 +28,7 @@ Ces images générées sont des propositions, pas des captures d’une interface
 
 Les gros chiffres et les flèches au sol, les bordures jaunes et bleues ainsi que les informations indispensables au gameplay doivent être conservés lors d’une éventuelle réalisation, même lorsque la génération ne les représente pas tous. Les dimensions et contrastes devront être vérifiés dans le jeu réel, au clavier, au tactile et à la manette.
 
-La refonte des interfaces n’est pas encore implémentée. Seules les accroches descriptives ont été retirées de l’accueil actuel (français et anglais).
+Les propositions ont ensuite servi à la refonte 0.38.0 ; les captures du résultat sont dans le lien en tête de page.
 
 ## Clarifications retenues
 
@@ -38,6 +40,6 @@ La refonte des interfaces n’est pas encore implémentée. Seules les accroches
 
 ## Fonds préparés
 
-[Galerie du paddock et des 13 circuits](fonds/README.md). Ces assets sont préparés avant intégration ; ils ne remplacent pas les décors de course.
+[Galerie du paddock et des 13 circuits](fonds/README.md). Ces assets sont intégrés aux sélections en WebP ; ils ne remplacent pas les décors de course.
 
 Validation de la suppression des accroches : scénario existant `tools/e2e-menu.js` réussi sur PC, PC compact, mobile, petit mobile et tablette ; navigation FR/EN et salon multijoueur connecté, sans erreur navigateur. Version 0.37.1.

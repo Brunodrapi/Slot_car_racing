@@ -482,9 +482,7 @@ class UI {
   splash() {
     const t = (k, ...a) => this.t(k, ...a);
     if (this.app.desktop) {
-      this.show(`<div class="title-art"><img src="art/title.webp" alt=""></div>
-        <div class="title-copy"><span class="eyebrow">SLOT RACING · MOTORSPORT CLASSICS</span>
-        <h1>EYES<br>ON <em>LINE.</em></h1>
+      this.show(`<div class="title-copy"><img class="game-logo" src="art/interface/logo.webp" alt="EYES ON LINE">
         <button class="big primary" data-action="enterGame">${t('pressStart')} <span aria-hidden="true">→</span></button>
         <div class="title-inputs">${this.lang === 'en' ? 'Keyboard · Mouse wheel · Xbox controller' : 'Clavier · Molette · Manette Xbox'}</div>
         <div class="version">v${APP_VERSION} · ${APP_DATE}</div></div>`, 'title-desktop scroll');
@@ -532,30 +530,43 @@ class UI {
     const t = (k, ...a) => this.t(k, ...a);
     const en = this.lang === 'en';
     const entries = [
-      ['race', 'setup', 'quickRace', '01', 'f40'],
-      ['timetrial', 'setup', 'timeTrial', '02', '787b'],
-      ['', 'multi', 'multi', '03', 'f40'],
+      ['race', 'setup', 'quickRace', 'wheel'],
+      ['timetrial', 'setup', 'timeTrial', 'clock'],
+      ['', 'multi', 'multi', 'helmets'],
     ];
-    this.show(`<header class="home-heading"><span class="eyebrow">SLOT RACING</span><h1>EYES ON LINE</h1></header>
-      <div class="home-body"><div class="home-art"><img src="art/title.webp" alt=""></div>
-      <nav class="mode-menu" data-pad-group aria-label="${en ? 'Game modes' : 'Modes de jeu'}">
-      ${entries.map(([mode, action, label, number, id]) => {
-        const model = modelById(id) || app.playerModelFor(this.setup.classId);
-        return `<button class="mode-card mode-${mode || 'multi'}" data-action="${action}" ${mode ? `data-mode="${mode}"` : ''}>
-          <span class="mode-number">${number}</span><span class="mode-copy"><b>${t(label)}</b></span>
-          <span class="mode-art" aria-hidden="true">${this.carIcon(model, LIVERIES[0], 0)}</span><span class="mode-arrow" aria-hidden="true">→</span></button>`;
-      }).join('')}
-      <button class="home-settings" data-action="settings">⚙ ${t('settings')} <span aria-hidden="true">→</span></button>
-      ${app.mondial?.erreurConnexion ? `<p class="avert">${t('authTrouble')}</p><button class="link" data-action="google">${t('reconnect')}</button>` : ''}
-      </nav></div><footer class="home-footer"><span>${escapeHtml(app.save.name)}</span><span>v${APP_VERSION} · ${APP_DATE}</span></footer>`, 'home-screen scroll');
+    this.show(`<header class="home-heading"><h1><img class="game-logo" src="art/interface/logo.webp" alt="EYES ON LINE"></h1></header>
+      <div class="home-body"><nav class="mode-menu" data-pad-group aria-label="${en ? 'Game modes' : 'Modes de jeu'}">
+      ${entries.map(([mode, action, label, icon]) => `<button class="mode-card mode-${mode || 'multi'}" data-action="${action}" ${mode ? `data-mode="${mode}"` : ''}>
+          <span class="mode-art" aria-hidden="true"><img src="art/interface/${icon}.svg" alt=""></span>
+          <span class="mode-copy"><b>${t(label)}</b></span><span class="mode-arrow" aria-hidden="true">›</span></button>`).join('')}
+      </nav></div>
+      <footer class="home-footer"><button class="home-settings" data-action="settings">⚙ ${t('settings')}</button>
+        <button class="pilot-button" data-action="settings"><span>${en ? 'DRIVER' : 'PILOTE'}</span><b>${escapeHtml(app.save.name)}</b></button>
+        ${app.mondial?.erreurConnexion ? `<button class="link" data-action="google">${t('reconnect')}</button>` : ''}</footer>
+      <div class="home-version">v${APP_VERSION}</div>`, 'home-screen scroll');
   }
 
-  selectionPreview(model, trackDef, caption) {
+  circuitArt(trackDef) {
+    // Custom tracks get a neutral background, never an unrelated real circuit.
+    return !trackDef.custom && TRACKS.some(tr => tr.id === trackDef.id)
+      ? `art/interface/circuits/${trackDef.id}.webp` : '';
+  }
+
+  carPreview(model) {
     const app = this.app;
-    return `<div class="selection-preview"><div class="preview-car" aria-hidden="true">${this.carIcon(model, LIVERIES[app.save.livery], app.playerLivreeFor(model.id))}</div>
-      <div class="preview-copy"><span class="eyebrow">${caption}</span><b>${escapeHtml(model.name)}</b>
-      <span>${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ${this.longueur(trackDef)}</span></div>
-      <img class="preview-track" src="${this.thumb(trackDef, 160)}" alt="${escapeHtml(this.t('track') + ' : ' + trackDef.name)}"></div>`;
+    return `<div class="paddock-car"><div class="preview-copy"><span class="eyebrow">${escapeHtml(this.L(categoryById(model.catId).name))}</span><b>${escapeHtml(model.name)}</b></div>
+      <div class="preview-car" aria-hidden="true">${this.carIcon(model, LIVERIES[app.save.livery], app.playerLivreeFor(model.id))}</div></div>`;
+  }
+
+  trackPreview(trackDef) {
+    const bg = this.circuitArt(trackDef);
+    return `<div class="paddock-track" ${bg ? `style="background-image:url('${bg}')"` : ''}>
+      <div class="track-heading"><b>${escapeHtml(trackDef.name)}</b><span>${trackDef.flag || '🏁'} ${this.longueur(trackDef)}</span></div>
+      <img class="preview-track" src="${this.thumb(trackDef, 240)}" alt="${escapeHtml(this.t('track') + ' : ' + trackDef.name)}"></div>`;
+  }
+
+  selectionPreview(model, trackDef) {
+    return `<div class="selection-preview">${this.carPreview(model)}${this.trackPreview(trackDef)}</div>`;
   }
 
   settings() {
@@ -785,8 +796,8 @@ class UI {
     const livery = LIVERIES[s.livery];
     this.show(`
       <div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${mode === 'race' ? t('quickRace') : t('timeTrial')}</h2></div>
-      ${this.selectionPreview(model, trackDef, this.lang === 'en' ? 'YOUR GRID' : 'TA GRILLE DE DÉPART')}
       <div class="setup-columns"><section class="setup-block">
+      ${this.carPreview(model)}
       <h3><span class="section-number">01</span> ${t('model')}</h3>
       <p class="selection-hint">${this.lang === 'en' ? 'Tap the selected car again to change livery.' : 'Appuie à nouveau sur la voiture choisie pour changer de livrée.'}</p>
       ${this.filtreCat('pickCat', filtre)}
@@ -796,11 +807,11 @@ class UI {
             ${this.repereLivree(m, app.playerLivreeFor(m.id))}
             ${this.tyres(m)}
             ${this.gauges(m)}</button>`).join(''))}
-      </section><section class="setup-block"><h3><span class="section-number">02</span> ${t('track')}</h3>
+      </section><section class="setup-block">${this.trackPreview(trackDef)}<h3><span class="section-number">02</span> ${t('track')}</h3>
       ${this.rail('tracks', 'tracks', TRACKS.map(tr => {
         const locked = !ut.has(tr.id);
         return `<button class="card ${tr.id === st.trackId ? 'sel' : ''} ${locked ? 'locked' : ''}" data-action="pickTrack" data-id="${tr.id}" ${locked ? 'disabled' : ''}>
-            <img alt="" src="${this.thumb(tr, 90)}"><b>${tr.name}</b><small>${locked ? t('locked') : `${tr.flag} ${this.longueur(tr)}`}</small></button>`;
+            <span class="track-card-art" ${this.circuitArt(tr) ? `style="background-image:url('${this.circuitArt(tr)}')"` : ''}><img alt="" src="${this.thumb(tr, 90)}"></span><b>${tr.name}</b><small>${locked ? t('locked') : `${tr.flag} ${this.longueur(tr)}`}</small></button>`;
       }).join('') + (perso ? `<button class="card sel" data-action="pickTrack" data-id="${perso.id}">
             <img alt="" src="${this.thumb(perso, 90)}"><b>${escapeHtml(perso.name)}</b><small>${perso.flag || '🏁'} ${this.longueur(perso)}</small></button>` : ''))}
       <!-- La zone des circuits perso est retirée, comme le lien vers l'atelier l'avait été avant
@@ -861,7 +872,7 @@ class UI {
     if (net.state === 'off') {
       this.show(`
         <div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${t('multi')}</h2></div>
-        ${this.selectionPreview(model, app.trackDefById(this.setup.trackId), this.lang === 'en' ? 'MULTIPLAYER PADDOCK' : 'PADDOCK MULTIJOUEUR')}
+        ${this.selectionPreview(model, app.trackDefById(this.setup.trackId))}
         <p class="muted">${t('multiIntro')}</p>
         ${net.error ? `<p class="warn">${escapeHtml(net.error)}</p>` : ''}
         ${msg ? `<p class="warn">${escapeHtml(msg)}</p>` : ''}
@@ -898,7 +909,7 @@ class UI {
     this.show(`
       <div class="topbar"><button data-action="netLeave">← ${t('leaveTable')}</button><h2>${t('yourTable')} <b class="code">${escapeHtml(net.code)}</b></h2></div>
       ${net.error ? `<p class="warn">${escapeHtml(net.error)}</p>` : ''}
-      ${this.selectionPreview(model, trackDef, this.lang === 'en' ? 'YOUR SESSION' : 'TA SESSION')}
+      ${this.selectionPreview(model, trackDef)}
       <p class="muted net-ping">${escapeHtml(net.link?.label() || 'Ping : —')} · aller-retour</p>
       ${list.some(m => !m.q.spectator && m.q.protocol !== DRIVE_PROTOCOL) ? '<p class="warn">Tous les pilotes doivent recharger la dernière version du jeu.</p>' : ''}
       <h3>${t('players')} <span class="muted">${list.filter(m => !m.q.spectator).length}/${NET_SEATS} · ${list.filter(m => m.q.spectator).length} spectateurs</span></h3>
@@ -918,7 +929,7 @@ class UI {
       <p class="muted">${t(tcat === 'all' ? 'mCatOpen' : 'mCatDesc')}</p>
       <h3>${t('track')}</h3>
       ${this.rail('netTracks', 'tracks', tracks.map(tr => `<button class="card ${tr.id === cfg.trackId ? 'sel' : ''}" data-action="netTrack" data-id="${tr.id}" ${net.creator ? '' : 'disabled'}>
-          <img alt="" src="${this.thumb(tr, 90)}"><b>${escapeHtml(tr.name)}</b><small>${tr.flag || '🏁'} ${this.longueur(tr)}</small></button>`).join(''))}
+          <span class="track-card-art" ${this.circuitArt(tr) ? `style="background-image:url('${this.circuitArt(tr)}')"` : ''}><img alt="" src="${this.thumb(tr, 90)}"></span><b>${escapeHtml(tr.name)}</b><small>${tr.flag || '🏁'} ${this.longueur(tr)}</small></button>`).join(''))}
       <h3>${t('model')}</h3>
       ${this.rail('netModels', 'models', this.modelesVisibles(tcat).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelNet" data-id="${m.id}">
           ${this.carIcon(m, livery, app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}</b>${tcat === 'all' ? this.etiquetteCat(m) : ''}

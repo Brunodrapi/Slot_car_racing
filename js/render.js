@@ -1132,14 +1132,9 @@ class Renderer {
     const ox = 10 + ((size - 20) - w * sc) / 2, oy = 10 + ((size - 20) - h * sc) / 2;
     this.mm = { canvas: c, size, sc, ox, oy };
     g.translate(ox, oy); g.scale(sc, sc); g.translate(-b.minX, -b.minY);
-    /* Un tracé blanc TRANSLUCIDE, sans halo noir.
-
-    Il était doublé d'un contour sombre pour tenir sur n'importe quel fond. Résultat : un ruban
-    noir et blanc posé en pleine course, qui pèse autant qu'une voiture alors qu'il ne sert qu'à
-    se situer. En blanc à demi transparent il laisse voir la piste dessous et ne réclame plus
-    l'attention — on va le chercher quand on en a besoin, il ne vient plus à nous. */
+    // Dark schematic on the HUD paper panel; geometry is the actual circuit.
     g.lineCap = 'round'; g.lineJoin = 'round';
-    g.strokeStyle = 'rgba(255,255,255,0.50)'; g.lineWidth = 5 / sc; g.stroke(this.paths.center);
+    g.strokeStyle = '#667163'; g.lineWidth = 5 / sc; g.stroke(this.paths.center);
     /* La voie des stands sur la carte, et le seul endroit du jeu où elle n'est PAS à l'échelle.
 
     Reprendre la géométrie réelle ne donne rien : la voie court à sept ou huit mètres du bord, ce
@@ -2480,10 +2475,11 @@ class Renderer {
     g.font = `bold ${this.mobile ? 12 : 14}px system-ui, sans-serif`;
     const wU = g.measureText('km/h').width;
     const x0 = cx - (wNum + 4 + wU) / 2;
+    this._hudPaper(g, x0 - 6, yT - hT - 3, wNum + 4 + wU + 12, hT + 8);
     g.textAlign = 'left';
-    g.fillStyle = '#fff'; g.font = `900 ${hT}px system-ui, sans-serif`;
+    g.fillStyle = '#242b25'; g.font = `900 ${hT}px system-ui, sans-serif`;
     g.fillText(kmh, x0, yT);
-    g.fillStyle = '#c8ced9'; g.font = `bold ${this.mobile ? 12 : 14}px system-ui, sans-serif`;
+    g.fillStyle = '#4c584c'; g.font = `bold ${this.mobile ? 12 : 14}px system-ui, sans-serif`;
     g.fillText('km/h', x0 + wNum + 4, yT);
     this.hudZones = this.hudZones || {};
     this.hudZones.vitesse = { x: x0, w: wNum + 4 + wU, y: yT - hT, h: hT };
@@ -2518,7 +2514,7 @@ class Renderer {
     const w = Math.min(310, this.w - 32), h = separate ? 174 : 142;
     const x = this.ctrlSide === 'right' ? this.pad.l : this.w - this.pad.r - w, y = this.h - this.pad.b - h;
     const gas = throttleAmount(app.input.throttle);
-    g.fillStyle = 'rgba(10,12,20,0.82)'; this._roundRect(g, x, y, w, h, 14); g.fill();
+    g.fillStyle = '#1c2420f0'; this._roundRect(g, x, y, w, h, 3); g.fill();
     g.textAlign = 'left'; g.textBaseline = 'top';
     g.fillStyle = '#fff'; g.font = '900 38px system-ui, sans-serif';
     g.fillText(String(Math.round(Math.max(0, p.speed) * 3.6)), x + 16, y + 10);
@@ -2585,25 +2581,20 @@ class Renderer {
     for (const th of [0.7, 1, 1.2, 1.5]) { g.fillStyle = 'rgba(255,255,255,0.5)'; g.fillRect(bx + bw * th / 2 - 0.5, by - 2, 1, 7); }
   }
 
+  // Compact printed labels; neutral information is beige, controls remain charcoal.
+  _hudPaper(g, x, y, w, h) {
+    g.fillStyle = '#f2e6ca'; this._roundRect(g, x, y, w, h, 2); g.fill();
+    g.strokeStyle = '#242b25'; g.lineWidth = 1; g.stroke();
+  }
+
   // ---------- HUD ----------
   _drawHUD(g, race, ui) {
     const W = this.w, H = this.h, p = race.player, t = (k, ...a) => ui.t(k, ...a);
     const mobile = this.mobile, P = this.pad, pad0 = this.pad;
     g.textBaseline = 'top';
-    const panel = (x, y, w, h) => { g.fillStyle = 'rgba(10,12,20,0.55)'; this._roundRect(g, x, y, w, h, 10); g.fill(); };
+    const panel = (x, y, w, h) => { g.fillStyle = '#1c2420ed'; this._roundRect(g, x, y, w, h, 3); g.fill(); };
 
-    /* Le haut de l'écran, SANS panneau.
-
-    Les deux boîtes translucides prenaient une bande entière en haut de l'écran pour porter cinq
-    nombres, et la boîte des temps était haute de trois lignes là où deux suffisent. Sur un
-    téléphone tenu à bout de bras, cette bande est la part de piste qu'on ne voit pas.
-
-    Tout est donc posé directement sur le monde, en gras, avec un contour sombre : c'est le contour
-    qui rend lisible, pas le fond. Il tient sur l'herbe claire comme sur l'asphalte sombre, et il ne
-    coûte rien en surface. Seules les lignes de temps gardent une pastille, parce qu'un chiffre à
-    chasse fixe changeant à chaque image scintille sans un fond pour l'asseoir.
-
-    La hiérarchie ne bouge pas : grand chiffre, libellé et total empilés contre lui. */
+    // Printed information labels keep the existing HUD geometry and touch targets.
     const usure = !!p.usure;
     const boxH = this.hudBox.h;
     /* L'origine de la carte, calculée ICI et non au moment de la peindre.
@@ -2615,22 +2606,17 @@ class Renderer {
     const mmX = P.l + 2, mmY = P.t + (mobile ? 46 : 56);
     const mmBas = this.mm ? mmY + this.mm.size : P.t + boxH;
 
-    /* Plus de contour noir : du blanc plein, et rien d'autre.
-
-    Le cerné rendait lisible sur tous les fonds, mais il épaissit chaque chiffre d'un liseré qui
-    durcit le dessin — et sur un jeu dont tout le reste est en aplats francs, c'est le seul endroit
-    qui portait une bordure. Le compromis est assumé et il est de Bruno : la lisibilité sur un fond
-    très clair contre la propreté du trait partout ailleurs. */
+    // Plain dark type on cream paper; no outline around the characters.
     const cerne = (txt, x, y) => { g.fillText(txt, x, y); };
 
     const bloc = (x, y, grand, libelle, total) => {
       g.textAlign = 'left'; g.textBaseline = 'top';
-      g.fillStyle = '#fff';
+      g.fillStyle = '#222a24';
       g.font = `900 ${mobile ? 34 : 42}px system-ui, sans-serif`;
       cerne(grand, x, y);
       const lg = g.measureText(grand).width;
       g.font = `bold ${mobile ? 12 : 14}px system-ui, sans-serif`;
-      g.fillStyle = '#f0f2f6';
+      g.fillStyle = '#374035';
       cerne(libelle, x + lg + 5, y + (mobile ? 2 : 4));
       let lgT = 0;
       if (total) {
@@ -2699,6 +2685,8 @@ class Renderer {
     const vide = Math.max(gMin, (restant - pw) / 2);
     this.pauseBtn.x = Math.round(xs + wPos + vide);
 
+    this._hudPaper(g, xs - 3, y0 - 1, wPos + 6, mobile ? 40 : 50);
+    this._hudPaper(g, xe - wLap - 3, y0 - 1, wLap + 6, mobile ? 40 : 50);
     bloc(xs, y0, tt ? '—' : String(pos), t('pos'), posTot);
     this.hudZones = { pos: { x: xs, w: wPos } };
 
@@ -2706,11 +2694,11 @@ class Renderer {
     const tx = xe;   // le tour garde le bord droit : c'est le repère le plus stable
     // le tour, aligné à droite, au-dessus des pastilles
     g.textAlign = 'right'; g.textBaseline = 'top';
-    g.fillStyle = '#fff'; g.font = `900 ${mobile ? 34 : 42}px system-ui, sans-serif`;
+    g.fillStyle = '#222a24'; g.font = `900 ${mobile ? 34 : 42}px system-ui, sans-serif`;
     const lapTxt = String(lapShown);
     cerne(lapTxt, tx - (mobile ? 34 : 42), y0);
     g.textAlign = 'left';
-    g.font = `bold ${mobile ? 12 : 14}px system-ui, sans-serif`; g.fillStyle = '#f0f2f6';
+    g.font = `bold ${mobile ? 12 : 14}px system-ui, sans-serif`; g.fillStyle = '#374035';
     cerne(t('lap'), tx - (mobile ? 30 : 38), y0 + (mobile ? 2 : 4));
     if (!tt) {
       g.font = `bold ${mobile ? 14 : 16}px ui-monospace, monospace`;
@@ -2724,10 +2712,9 @@ class Renderer {
     const pb0 = this.pauseBtn;
     const ph = mobile ? 24 : 28, px = pb0.x + pb0.s + colle;
     const pastille = (yy, lib, val, teinte, flags=[]) => {
-      g.fillStyle = 'rgba(10,12,20,0.62)';
-      this._roundRect(g, px, yy, pw, ph, ph / 2); g.fill();
+      this._hudPaper(g, px, yy, pw, ph);
       g.textAlign = 'left'; g.textBaseline = 'middle';
-      g.font = `bold ${mobile ? 10 : 11}px system-ui, sans-serif`; g.fillStyle = '#aeb4c0';
+      g.font = `bold ${mobile ? 10 : 11}px system-ui, sans-serif`; g.fillStyle = '#565d50';
       const flagSize=flags.length>1?10:12,flagWidth=flags.length*(flagSize+3);
       flags.forEach((flag,i)=>drawRaceFlag(g,flag,px+8+i*(flagSize+3),yy+(ph-flagSize)/2,flagSize));
       const labelWidth=g.measureText(lib.toUpperCase()).width;
@@ -2736,7 +2723,7 @@ class Renderer {
       g.font = `bold ${mobile ? 10 : 11}px system-ui, sans-serif`;
       if(!flags.length||pw-24-flagWidth-valueWidth>labelWidth+4)g.fillText(lib.toUpperCase(),px+12+flagWidth,yy+ph/2+.5);
       g.textAlign = 'right';
-      g.font = `bold ${mobile ? 13 : 15}px ui-monospace, monospace`; g.fillStyle = teinte || '#fff';
+      g.font = `bold ${mobile ? 13 : 15}px ui-monospace, monospace`; g.fillStyle = teinte || '#242b25';
       g.fillText(val, px + pw - 12, yy + ph / 2 + 0.5);
       g.textBaseline = 'top';
     };
@@ -2744,7 +2731,7 @@ class Renderer {
     this.hudZones.temps = { x: px, w: pw };
     this.hudZones.lap = { x: xe - wLap, w: wLap };
     pastille(yP, t('best'), p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---',
-      p.bestLap != null ? '#b48cff' : '#7d838e');
+      p.bestLap != null ? '#70408f' : '#62675d');
     /* Le tour COURANT, et le fait qu'il ne compte plus.
 
     Une sortie de piste annule le tour en cours. Si l'écran n'en dit rien, le joueur finit son tour à
@@ -2753,7 +2740,7 @@ class Renderer {
     pastille change donc de mot et de couleur à l'instant de la faute. */
     const nul = !!p.lapSale;
     pastille(yP + ph + 5, nul ? t('lapVoid') : t('lap'),
-      fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart), nul ? '#ffb4a2' : '#fff',race.flags?.active(p)||[]);
+      fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart), nul ? '#aa291f' : '#242b25',race.flags?.active(p)||[]);
     this.hudZones.flags={types:race.flags?.active(p)||[],x:px+8,y:yP+ph+5};
 
     /* LA VITESSE, SOUS LE BANDEAU ET AU MILIEU — c'est-à-dire là où le cadran du bas n'était pas.
@@ -2839,14 +2826,14 @@ class Renderer {
 
       Il descend plus bas qu'il ne monte, parce que le chiffre est passé sous l'arc : un fond
       symétrique laissait le dernier chiffre à cheval sur le bord. */
-      panel(J.x - r - 7, J.y1 - r - 8, (r + 7) * 2, (J.y2 - J.y1) + r * 2.2 + 16);
+      this._hudPaper(g, J.x - r - 7, J.y1 - r - 8, (r + 7) * 2, (J.y2 - J.y1) + r * 2.2 + 16);
       const cadran = (cx, cy, frac, dessine) => {
         const f = Math.max(0, Math.min(1, frac));
         const A0 = Math.PI * 0.75, SPAN = Math.PI * 1.5;
         g.lineCap = 'round';
-        g.strokeStyle = 'rgba(255,255,255,0.12)'; g.lineWidth = r * 0.30;
+        g.strokeStyle = '#cec4ad'; g.lineWidth = r * 0.30;
         g.beginPath(); g.arc(cx, cy, r * 0.78, A0, A0 + SPAN); g.stroke();
-        g.strokeStyle = f > 0.5 ? '#5be07a' : f > 0.22 ? '#ffd400' : '#ff4d4d';
+        g.strokeStyle = f > 0.5 ? '#39864c' : f > 0.22 ? '#a36b08' : '#bd2d22';
         if (f > 0.001) { g.beginPath(); g.arc(cx, cy, r * 0.78, A0, A0 + SPAN * f); g.stroke(); }
         /* Le pictogramme au CENTRE, le chiffre en bas sous l'ouverture de l'arc.
 
@@ -2856,20 +2843,20 @@ class Renderer {
         l'ouverture de l'arc en bas est faite pour poser une valeur. */
         g.save(); g.translate(cx, cy - r * 0.04); g.scale(r / 15, r / 15);
         dessine(); g.restore();
-        g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillStyle = '#242b25'; g.textAlign = 'center'; g.textBaseline = 'middle';
         g.font = `bold ${Math.round(r * 0.66)}px system-ui, sans-serif`;
         g.fillText(String(Math.round(f * 100)), cx, cy + r * 0.72);
       };
       /* Le pneu : un anneau entaillé. C'est le même motif que les pneus de difficulté du menu, et
       il reste lisible à douze pixels là où une bande de roulement dessinée se brouille. */
       const pneu = () => {
-        g.strokeStyle = '#e8e8ec'; g.lineWidth = 2.6; g.setLineDash([2.4, 1.1]);
+        g.strokeStyle = '#364333'; g.lineWidth = 2.6; g.setLineDash([2.4, 1.1]);
         g.beginPath(); g.arc(0, 0, 4.2, 0, Math.PI * 2); g.stroke();
         g.setLineDash([]);
       };
       // La carrosserie : une silhouette vue de dessus, capot vers le haut, avec son pare-brise.
       const tole = () => {
-        g.fillStyle = '#e8e8ec';
+        g.fillStyle = '#364333';
         this._roundRect(g, -3.6, -5.2, 7.2, 10.4, 2.2); g.fill();
         g.fillStyle = 'rgba(20,24,34,0.85)';
         this._roundRect(g, -2.3, -2.6, 4.6, 3.2, 1); g.fill();
@@ -2900,7 +2887,7 @@ class Renderer {
     if (this.mm) {
       const m = this.mm;
       const mx = mmX, my = mmY;
-      // pas de fond : le tracé translucide se pose sur le décor sans lui voler sa place
+      this._hudPaper(g, mx, my, m.size, m.size);
       g.drawImage(m.canvas, mx, my, m.size, m.size);
       drawYellowFlagZones(g,race,p=>{const q=this.mmPoint(p.x,p.y);return {x:mx+q.x,y:my+q.y};},4,.95);
       /* Les points de la carte, deux fois plus gros, et le joueur en bleu ciel.
@@ -2918,19 +2905,29 @@ class Renderer {
       drawMapRaceFlags(g,race,p=>{const q=this.mmPoint(p.x,p.y);return{x:mx+q.x,y:my+q.y};},7);
     }
 
-    // standings strip (desktop)
+    // Relative standings: always show the player and adjacent competitors.
     if (!mobile && race.mode !== 'timetrial') {
-      const st = race.standings().slice(0, 6);
-      const rowH = 20, bw = 190, bx = ui.app.desktop ? W - P.r - bw : P.l, by = ui.app.desktop ? P.t + 90 : mmBas + 10;
-      panel(bx, by, bw, st.length * rowH + 10);
-      g.font = '13px system-ui, sans-serif'; g.textAlign = 'left';
+      const order = race.standings(), index = order.indexOf(p);
+      const start = Math.max(0, Math.min(index - 1, order.length - 3));
+      const st = order.slice(start, start + 3);
+      const rowH = 26, bw = 230, bx = ui.app.desktop ? W - P.r - bw : P.l, by = ui.app.desktop ? P.t + 90 : mmBas + 10;
+      this._hudPaper(g, bx, by, bw, st.length * rowH + 10);
+      g.font = 'bold 12px system-ui, sans-serif'; g.textBaseline = 'top';
       st.forEach((car, i) => {
-        const y = by + 5 + i * rowH;
-        g.fillStyle = car.livery.body; g.fillRect(bx + 10, y + 4, 10, 10);
-        g.fillStyle = car.isPlayer ? '#ffd400' : '#e8e8ec';
-        g.fillText(`${i + 1}. ${car.name}`, bx + 28, y + 2);
-        if (car.state === 'grass') { g.fillStyle = '#ff6b6b'; g.textAlign = 'right'; g.fillText('!', bx + bw - 10, y + 2); g.textAlign = 'left'; }
+        const y = by + 6 + i * rowH;
+        g.textAlign = 'left'; g.fillStyle = car.livery.body; g.fillRect(bx + 8, y + 4, 9, 9);
+        g.strokeStyle = '#394137'; g.strokeRect(bx + 8, y + 4, 9, 9);
+        g.fillStyle = car.isPlayer ? '#a32620' : '#242b25';
+        g.fillText(`${start + i + 1}. ${car.name}`, bx + 23, y + 2, 125);
+        let gap = t('you');
+        if (car !== p) {
+          const distance = Math.abs(car.progress - p.progress), pace = p.bestLap || car.bestLap;
+          const sign = car.progress >= p.progress ? '+' : '−';
+          gap = pace ? `≈${sign}${(distance / race.track.length * pace).toFixed(1)} s` : `${sign}${Math.round(distance)} m`;
+        }
+        g.textAlign = 'right'; g.fillText(gap, bx + bw - 8, y + 2, 72);
       });
+      g.textAlign = 'left';
     }
 
     // la pastille du pouce passe au-dessus de la carte et du classement : c'est la commande vive
@@ -3015,7 +3012,7 @@ class Renderer {
     const ouvert = !!(p.usure && p.lap >= 1 && !p.pitServi && !p.finished);
     this.pitOpen = ouvert;
     this.pitY = s.y + s.len + 22;
-    g.fillStyle = 'rgba(10,12,20,0.55)'; this._roundRect(g, s.x - s.w / 2 - 8, s.y - 26, s.w + 16, s.len + 52 + (ouvert ? 22 : 0), 12); g.fill();
+    g.fillStyle = '#1c2420ed'; this._roundRect(g, s.x - s.w / 2 - 8, s.y - 26, s.w + 16, s.len + 52 + (ouvert ? 22 : 0), 3); g.fill();
     // track
     g.fillStyle = 'rgba(255,255,255,0.18)'; this._roundRect(g, s.x - 4, s.y, 8, s.len, 4); g.fill();
     const stops = [{ v: 1, c: LINE_COLORS.jaune, l: t('lineJaune') }, { v: 0, c: LINE_COLORS.racing, l: t('lineRace') }, { v: -1, c: LINE_COLORS.bleu, l: t('lineBleu') }];

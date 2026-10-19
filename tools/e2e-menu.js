@@ -5,7 +5,7 @@ const fs=require('fs'),path=require('path'),http=require('http'),assert=require(
 const root=path.resolve(__dirname,'..'), out=process.argv[2]||'/tmp/menus';
 fs.mkdirSync(out,{recursive:true});
 (async()=>{
- const server=http.createServer((req,res)=>{const f=path.resolve(root,'.'+decodeURIComponent(req.url.split('?')[0]));if(!f.startsWith(root+path.sep)||!fs.existsSync(f)||fs.statSync(f).isDirectory()){res.writeHead(404);return res.end();}res.setHeader('Content-Type',({'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png','.webp':'image/webp'})[path.extname(f)]||'application/octet-stream');fs.createReadStream(f).pipe(res);});
+ const server=http.createServer((req,res)=>{const f=path.resolve(root,'.'+decodeURIComponent(req.url.split('?')[0]));if(!f.startsWith(root+path.sep)||!fs.existsSync(f)||fs.statSync(f).isDirectory()){res.writeHead(404);return res.end();}res.setHeader('Content-Type',({'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml'})[path.extname(f)]||'application/octet-stream');fs.createReadStream(f).pipe(res);});
  await new Promise(r=>server.listen(0,'127.0.0.1',r)); const browser=await chromium.launch({args:['--disable-background-timer-throttling','--disable-backgrounding-occluded-windows','--disable-renderer-backgrounding']});const errors=[];
  try {
  for(const [name,opts] of [['pc',{viewport:{width:1440,height:900}}],['mobile',{...devices['iPhone 13']}],['petit-mobile',{...devices['iPhone SE']}],['tablette',{...devices['iPad Mini']}],['pc-compact',{viewport:{width:850,height:600}}]]) {
@@ -16,6 +16,10 @@ fs.mkdirSync(out,{recursive:true});
   await p.keyboard.press('Enter');await p.waitForSelector('.mode-card');
   const geometry=()=>[...document.querySelectorAll('.mode-card')].map(e=>{const r=e.getBoundingClientRect();return [r.x,r.y,r.width,r.height];});
   await p.waitForFunction(()=>[...document.querySelectorAll('.mode-art img')].every(i=>i.complete&&i.naturalWidth>0));
+  const home=await p.evaluate(()=>{
+    const settings=document.querySelector('.home-settings').getBoundingClientRect(), pilot=document.querySelector('.pilot-button').getBoundingClientRect();
+    return {visible:settings.top>=0&&settings.bottom<=innerHeight&&pilot.top>=0&&pilot.bottom<=innerHeight, name:document.querySelector('.pilot-button').textContent};
+  });assert(home.visible,'settings and driver visible without scrolling');assert(home.name.includes('Pilote'));
   const before=await p.evaluate(geometry); assert.equal(before.length,3); assert(before.every(r=>r[0]===before[0][0]&&r[2]===before[0][2]));
   await p.locator('.mode-card').first().focus();await p.waitForTimeout(250);assert.deepEqual(await p.evaluate(geometry),before,'focus must not shift buttons');
   await p.screenshot({scale:'css',path:path.join(out,`${name}-menu.png`)});
@@ -23,6 +27,10 @@ fs.mkdirSync(out,{recursive:true});
   for(const mode of ['race','timetrial']) {
    if(mode==='timetrial'){await p.locator('[data-action="menu"]').click();await p.locator('[data-mode="timetrial"]').click();}
    assert.equal(await p.evaluate(()=>app.ui.setup.mode),mode);
+   const background=await p.locator('.paddock-track').evaluate(el=>getComputedStyle(el).backgroundImage);
+   assert(background.includes('/art/interface/circuits/'),'selected circuit artwork present');
+   const bgUrl=background.match(/url\(["']?(.*?)["']?\)/)[1];
+   assert((await p.request.get(bgUrl)).ok(),'selected circuit artwork resolves');
    await p.waitForTimeout(300);
    if(mode==='timetrial'&&!await p.evaluate(()=>app.desktop))assert(!await p.locator('.setup-options').isVisible(),'no empty race options in mobile time trial');
    assert(await p.evaluate(()=>{const s=document.querySelector('.screen');return s.scrollWidth<=s.clientWidth+1;}),'screen horizontal overflow');
@@ -43,7 +51,7 @@ fs.mkdirSync(out,{recursive:true});
   assert.equal(await p.locator('[data-action="netWatch"]').count(),1);await p.screenshot({scale:'css',path:path.join(out,`${name}-multi.png`)});
   // English labels are DOM text, not baked into an illustration.
   await p.evaluate(()=>{app.save.lang='en';app.toMenu();});assert.equal(await p.locator('.mode-card').first().locator('b').textContent(),'Quick race');
-  await p.locator('[data-action="settings"]').click();assert.equal(await p.locator('#sel-diff option').count(),5);
+  await p.locator('.home-settings').click();assert.equal(await p.locator('#sel-diff option').count(),5);
   console.log(name,'navigation, alignment, selections, scroll, FR/EN: OK');await ctx.close();
  }
  const ctx=await browser.newContext({viewport:{width:1440,height:900}});
