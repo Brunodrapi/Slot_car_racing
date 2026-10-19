@@ -1,5 +1,8 @@
 # Menus hybrid — 0.37.0
 
+> **Complément critique** : voir l’[audit centré sur la conception de jeux vidéo](../audit-interface-jeu/README.md).
+> Il réévalue la perte d’identité de cette refonte et propose une direction artistique pour l’accueil et les écrans en course.
+
 ## Choix et références
 
 Analyse de recommandations d'ergonomie consultées le 19 octobre 2026. Il s'agit d'une revue
