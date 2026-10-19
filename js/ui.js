@@ -19,8 +19,8 @@ const I18N = {
     controlWheelHint: 'Molette vers le haut : plus de gaz ; vers le bas : moins. Espace : gaz à zéro et freinage. Flèches : trajectoire.',
     controlGamepadHint: 'Gâchette RT : doser les gaz, relâcher pour freiner. Stick gauche ou croix : trajectoire. Menu : pause.',
     padReady: 'Manette connectée', padRelease: 'Relâche RT pour activer', padDisconnected: 'Connecte la manette et appuie sur un bouton', padUnsupported: 'Manette indisponible dans ce navigateur',
-    gas: 'Gaz', pcIntro: 'Choisis ta voiture, lis le virage et dose ton accélération.', wheelGo: 'Molette ↑ / ↓ : doser les gaz', padGo: 'Gâchette RT : doser les gaz', lineHintPC: 'Flèches : trajectoire', lineHintPad: 'Stick / croix : trajectoire',
-    title: 'EYES ON LINE', subtitle: 'Un bouton, trois trajectoires. De vrais circuits.',
+    gas: 'Gaz', wheelGo: 'Molette ↑ / ↓ : doser les gaz', padGo: 'Gâchette RT : doser les gaz', lineHintPC: 'Flèches : trajectoire', lineHintPad: 'Stick / croix : trajectoire',
+    title: 'EYES ON LINE',
     career: 'Carrière', quickRace: 'Course rapide', timeTrial: 'Contre-la-montre', settings: 'Réglages', statistics: 'Statistiques publiques', back: 'Retour',
     editor: 'Éditeur de circuits', workshop: 'Atelier voitures',
     howto: 'Poser le pouce n’importe où (ou n’importe quelle touche / clic) : accélérer, relâcher pour freiner. La pastille vient se placer sous le pouce, et la vitesse se lit en haut au milieu. Pouce gauche (ou flèches / molette) : choisir sa place sur la piste — bord bleu, ligne idéale ou bord jaune. Les deux bords gardent leur couleur tout le tour. Trop vite dans un virage, c’est le bac à gravier.',
@@ -96,8 +96,8 @@ const I18N = {
     controlWheelHint: 'Wheel up: more throttle; down: less. Space: zero throttle and brake. Arrows: racing line.',
     controlGamepadHint: 'RT trigger: analog throttle; release to brake. Left stick or D-pad: racing line. Menu: pause.',
     padReady: 'Controller connected', padRelease: 'Release RT to enable', padDisconnected: 'Connect a controller and press a button', padUnsupported: 'Controller unavailable in this browser',
-    gas: 'Throttle', pcIntro: 'Choose your car, read the corner and balance the throttle.', wheelGo: 'Wheel ↑ / ↓: adjust throttle', padGo: 'RT trigger: adjust throttle', lineHintPC: 'Arrows: racing line', lineHintPad: 'Stick / D-pad: racing line',
-    title: 'EYES ON LINE', subtitle: 'One button, three lines. Real circuits.',
+    gas: 'Throttle', wheelGo: 'Wheel ↑ / ↓: adjust throttle', padGo: 'RT trigger: adjust throttle', lineHintPC: 'Arrows: racing line', lineHintPad: 'Stick / D-pad: racing line',
+    title: 'EYES ON LINE',
     career: 'Career', quickRace: 'Quick race', timeTrial: 'Time trial', settings: 'Settings', statistics: 'Public statistics', back: 'Back',
     editor: 'Track editor', workshop: 'Car workshop',
     howto: 'Thumb anywhere (or any key / click): accelerate, release to brake. The pad follows your thumb, and the speed reads at the top centre. Left thumb (or arrows / wheel): pick your place on the road — blue edge, racing line or yellow edge. Each edge keeps its colour all the way round. Too fast into a corner and it’s the gravel.',
@@ -484,8 +484,7 @@ class UI {
     if (this.app.desktop) {
       this.show(`<div class="title-art"><img src="art/title.webp" alt=""></div>
         <div class="title-copy"><span class="eyebrow">SLOT RACING · MOTORSPORT CLASSICS</span>
-        <h1>EYES<br>ON <em>LINE.</em></h1><p class="title-tagline">${t('subtitle')}</p>
-        <p class="muted">${t('pcIntro')}</p>
+        <h1>EYES<br>ON <em>LINE.</em></h1>
         <button class="big primary" data-action="enterGame">${t('pressStart')} <span aria-hidden="true">→</span></button>
         <div class="title-inputs">${this.lang === 'en' ? 'Keyboard · Mouse wheel · Xbox controller' : 'Clavier · Molette · Manette Xbox'}</div>
         <div class="version">v${APP_VERSION} · ${APP_DATE}</div></div>`, 'title-desktop scroll');
@@ -533,18 +532,17 @@ class UI {
     const t = (k, ...a) => this.t(k, ...a);
     const en = this.lang === 'en';
     const entries = [
-      ['race', 'setup', 'quickRace', '01', en ? 'Take on the pack' : 'Affronte le peloton', 'f40'],
-      ['timetrial', 'setup', 'timeTrial', '02', en ? 'Find your perfect lap' : 'Trouve le tour parfait', '787b'],
-      ['', 'multi', 'multi', '03', en ? 'Race together. Or watch.' : 'Rejoins tes amis ou regarde la course.', 'f40'],
+      ['race', 'setup', 'quickRace', '01', 'f40'],
+      ['timetrial', 'setup', 'timeTrial', '02', '787b'],
+      ['', 'multi', 'multi', '03', 'f40'],
     ];
-    this.show(`<header class="home-heading"><span class="eyebrow">SLOT RACING</span><h1>EYES ON LINE</h1>
-        <p>${t('subtitle')}</p></header>
+    this.show(`<header class="home-heading"><span class="eyebrow">SLOT RACING</span><h1>EYES ON LINE</h1></header>
       <div class="home-body"><div class="home-art"><img src="art/title.webp" alt=""></div>
       <nav class="mode-menu" data-pad-group aria-label="${en ? 'Game modes' : 'Modes de jeu'}">
-      ${entries.map(([mode, action, label, number, description, id]) => {
+      ${entries.map(([mode, action, label, number, id]) => {
         const model = modelById(id) || app.playerModelFor(this.setup.classId);
         return `<button class="mode-card mode-${mode || 'multi'}" data-action="${action}" ${mode ? `data-mode="${mode}"` : ''}>
-          <span class="mode-number">${number}</span><span class="mode-copy"><b>${t(label)}</b><small>${description}</small></span>
+          <span class="mode-number">${number}</span><span class="mode-copy"><b>${t(label)}</b></span>
           <span class="mode-art" aria-hidden="true">${this.carIcon(model, LIVERIES[0], 0)}</span><span class="mode-arrow" aria-hidden="true">→</span></button>`;
       }).join('')}
       <button class="home-settings" data-action="settings">⚙ ${t('settings')} <span aria-hidden="true">→</span></button>

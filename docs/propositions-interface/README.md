@@ -26,4 +26,18 @@ Ces images générées sont des propositions, pas des captures d’une interface
 
 Les gros chiffres et les flèches au sol, les bordures jaunes et bleues ainsi que les informations indispensables au gameplay doivent être conservés lors d’une éventuelle réalisation, même lorsque la génération ne les représente pas tous. Les dimensions et contrastes devront être vérifiés dans le jeu réel, au clavier, au tactile et à la manette.
 
-Aucun code d’interface n’a été modifié pour ces propositions.
+La refonte des interfaces n’est pas encore implémentée. Seules les accroches descriptives ont été retirées de l’accueil actuel (français et anglais).
+
+## Clarifications retenues
+
+- Accueil PC : une seule scène cohérente, voiture sur la piste et perspective commune aux barrières et au décor. La maquette d’accueil ci-dessus a été corrigée.
+- Accueil mobile : réglages et nom du pilote toujours présents ; prévoir la zone de sécurité du téléphone à l’intégration.
+- Menus : conserver la direction paddock et séparer le fond, les voitures, les textes et les commandes.
+- Course : commandes noires et panneaux beiges ; conserver les marquages de gameplay existants.
+- Rédaction : pas de slogans ni de petites phrases descriptives. Conserver les libellés d’action, les noms, les valeurs et les aides réellement utiles aux commandes.
+
+## Fonds préparés
+
+[Galerie du paddock et des 13 circuits](fonds/README.md). Ces assets sont préparés avant intégration ; ils ne remplacent pas les décors de course.
+
+Validation de la suppression des accroches : scénario existant `tools/e2e-menu.js` réussi sur PC, PC compact, mobile, petit mobile et tablette ; navigation FR/EN et salon multijoueur connecté, sans erreur navigateur. Version 0.37.1.
