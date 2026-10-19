@@ -867,3 +867,174 @@ body.desktop .screen.setup-screen, body.desktop .screen.selection-screen { width
 .home-footer .pilot-button { border-left:2px solid #f2e4c766!important; }
 
 body:not(.desktop) .setup-columns > .circuit-sheet { width:100%; align-self:stretch; transform:none; margin-inline:0; }
+
+/* 0.39 — le paddock de la maquette, à la lettre.
+   Une seule police pour toute l'interface : la Barlow Condensed Black Italic livrée avec le jeu.
+   Le paddock PC tient dans l'écran sans défiler ; sur téléphone, le paddock n'est plus le fond de
+   tout l'écran mais seulement celui de la voiture, et le reste se pose sur du papier. */
+.home-screen, .setup-screen, .selection-screen { font-family:Racing,Impact,'Arial Narrow',sans-serif; font-style:italic; font-weight:900; }
+.setup-screen :is(button,select,input,label,small,span,b), .selection-screen :is(button,select,input,label,small,span,b) { font-family:inherit; font-style:inherit; }
+.setup-screen select, .setup-screen input, .selection-screen select, .selection-screen input { font:inherit; }
+
+/* Le damier : un motif, pas une image, pour rester net à toutes les tailles. */
+.damier { display:block; background:repeating-conic-gradient(#151917 0% 25%,#fff0d2 0% 50%) 0 0 / 16px 16px; }
+
+/* La barre de titre : retour sur noir, damier, titre sur sa bande rouge oblique, logo. */
+.setup-screen .topbar, .selection-screen .topbar { display:flex; align-items:stretch; gap:0; padding:0; min-height:64px; background:#151917 url('../art/interface/ink.svg'); overflow:hidden; }
+.setup-screen .topbar > button, .selection-screen .topbar > button { display:flex; align-items:center; padding:0 18px; font-size:22px; color:#fff1d5; text-transform:uppercase; white-space:nowrap; min-height:0; }
+.titre-damier { flex:0 0 74px; width:74px; transform:skewX(-14deg); margin:0 -8px 0 4px; }
+.setup-screen .topbar h2, .selection-screen .topbar h2 { display:flex; align-items:center; gap:10px; margin:0; padding:4px 64px 4px 26px; color:#fff1d5; background:#c82520 url('../art/interface/ink.svg'); clip-path:polygon(14px 0,100% 0,calc(100% - 28px) 100%,0 100%); white-space:nowrap; }
+.paddock-logo { align-self:center; margin:0 10px 0 auto; }
+
+/* Les chiffres de la voiture : pictogramme, valeur, libellé. */
+.hero-performance { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:8px 16px; }
+.hero-performance .stat { display:flex; align-items:center; gap:8px; min-width:0; }
+.hero-performance .stat-ico { width:30px; height:30px; flex:0 0 30px; color:#20261e; }
+.hero-performance .stat-ico svg { width:100%; height:100%; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+img.stat-ico { object-fit:contain; }
+.hero-performance .stat > div { display:grid; line-height:1; }
+.hero-performance .stat b { font-size:28px; color:#20261e; white-space:nowrap; }
+.hero-performance .stat b small { font-size:17px; margin-left:3px; }
+.hero-performance .stat > div > span { font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:#4b4e44; }
+.hero-performance .stat-pilotage .tyres { display:flex; gap:3px; }
+.hero-performance .stat-pilotage .tyre { width:20px; height:20px; }
+.hero-performance + .railbox { margin-top:0; }
+
+/* Les livrées et les rails, dans la même police. */
+.livery-choice span { font-size:16px; text-transform:uppercase; letter-spacing:.02em; }
+.setup-screen .rail.models .card > b, .selection-screen .rail .card > b { font-size:17px; text-transform:uppercase; }
+.setup-screen .card small, .selection-screen .card small { font-size:13px; }
+.track-heading span { text-transform:uppercase; letter-spacing:.02em; }
+
+/* La barre du bas : réglages en pastilles, puis le damier collé à « En piste ! ». */
+.setup-bar { display:flex; align-items:center; flex-wrap:wrap; gap:8px 10px; padding:8px 0 0 12px; background:#fff0d2 url('../art/interface/ink.svg'); border-top:3px solid #252b24; }
+.setup-chips { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.setup-screen .setup-chips.setup-tuning { padding:0; background:none; border:0; }
+.setup-screen .setup-chips.pc-controls { padding:0; background:none; border:0; display:flex; }
+.pad-brake-options { display:contents; }
+.pad-brake-options[hidden] { display:none; }
+.setup-screen .chip { display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:6px 22px 6px 18px; color:#fff0d2; background:#171c19 url('../art/interface/ink.svg'); border:0; border-radius:0; clip-path:polygon(9px 0,100% 0,calc(100% - 9px) 100%,0 100%); font-size:19px; text-transform:uppercase; white-space:nowrap; cursor:pointer; }
+.setup-screen .chip > span { color:#fff0d2; }
+.setup-screen .chip > b { color:#171c19; background:#21b56f; padding:2px 10px; margin-right:-6px; clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%); }
+.setup-screen .chip select, .setup-screen .chip input { min-height:0; padding:2px 8px; color:#171c19; background:#21b56f; border:0; border-radius:0; font-size:19px; text-transform:uppercase; }
+.setup-screen .chip input { width:64px; }
+.setup-screen .chip .reg-ici { font-size:13px; color:#cfc6ae; text-transform:none; }
+.setup-screen button.chip:hover:not(:disabled) { background-color:#2c332d; }
+.setup-screen .chip:focus-within, .setup-screen .chip:focus-visible, .setup-screen .chip.pad-focus { outline:none!important; box-shadow:inset 0 0 0 3px #e6b13c; }
+.setup-screen .setup-launch.row.end, body.desktop .setup-screen .setup-launch.row.end { position:static; display:flex; align-items:stretch; flex-wrap:nowrap; gap:0; margin:0 0 0 auto; padding:0; background:none; border:0; box-shadow:none; }
+.setup-launch::before { display:none!important; }
+.launch-resume { display:none; }
+.launch-damier { width:96px; flex:0 0 96px; transform:skewX(-14deg); margin-right:-14px; }
+.setup-launch .primary, .selection-screen .row.end .primary { position:relative; z-index:1; margin:0!important; padding:10px 40px; font-size:38px; line-height:1; white-space:nowrap; }
+.setup-launch .primary span { margin-left:8px; }
+
+/* PC : tout l'écran, sans défiler. La colonne de la voiture et celle du circuit prennent ce qui
+   reste entre le titre et la barre du bas, et ce sont les images qui cèdent la place. */
+@media (min-width:851px) {
+  body.desktop .screen.setup-screen { display:grid; grid-template-rows:auto minmax(0,1fr) auto; height:100%; max-height:100%; overflow:hidden; padding:10px 18px max(10px,env(safe-area-inset-bottom)); gap:10px; }
+  body.desktop .setup-screen .setup-columns { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); gap:20px; min-height:0; }
+  body.desktop .setup-screen .setup-block { min-height:0; }
+  body.desktop .setup-screen .car-sheet { display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+  body.desktop .setup-screen .car-sheet > * { flex-shrink:0; }
+  body.desktop .setup-screen .car-sheet .paddock-car { flex:1 1 0; height:auto; min-height:150px; }
+  body.desktop .setup-screen .preview-car { min-height:0; }
+  body.desktop .setup-screen .preview-car img, body.desktop .setup-screen .preview-car canvas { max-height:100%; height:100%; }
+  body.desktop .setup-screen .circuit-sheet { display:flex; flex-direction:column; min-height:0; max-height:calc(100% - 14px); overflow:hidden; margin:8px 6px 0; }
+  body.desktop .setup-screen .circuit-sheet > * { flex-shrink:0; }
+  body.desktop .setup-screen .circuit-sheet .paddock-track { flex:1 1 0; height:auto; min-height:170px; }
+  body.desktop .setup-screen .setup-records { flex:1 1 0; min-height:0; overflow-y:auto; padding:6px 8px; }
+  body.desktop .setup-screen .setup-records:has(+ *) { flex-grow:0; }
+  body.desktop .setup-screen .rail.models .card { padding:3px 6px; }
+  body.desktop .setup-screen .rail.models .card > img, body.desktop .setup-screen .rail.models .card > canvas { height:52px; }
+  body.desktop .setup-screen .livery-choice img, body.desktop .setup-screen .livery-choice canvas { height:62px; }
+  body.desktop .setup-screen .setup-bar { flex-wrap:nowrap; }
+  body.desktop .setup-screen .setup-chips { flex-wrap:nowrap; }
+}
+/* Un écran de PC bas (portable 768 px) : les vignettes rapetissent avant que rien ne déborde. */
+@media (min-width:851px) and (max-height:820px) {
+  body.desktop .setup-screen .livery-choice img, body.desktop .setup-screen .livery-choice canvas { height:44px; }
+  body.desktop .setup-screen .rail.models .card > img, body.desktop .setup-screen .rail.models .card > canvas { height:38px; }
+  body.desktop .setup-screen .preview-copy { padding:4px 14px 8px; }
+  body.desktop .setup-screen .preview-copy b { font-size:44px; }
+  body.desktop .setup-screen .hero-performance { padding:4px 12px; }
+  body.desktop .setup-screen .hero-performance .stat b { font-size:23px; }
+  body.desktop .setup-screen .chip { font-size:16px; min-height:38px; padding-inline:16px 18px; }
+  body.desktop .setup-screen .chip select { font-size:16px; }
+  .setup-launch .primary { font-size:30px; padding:8px 30px; }
+}
+/* Un PC étroit : la barre passe sur deux lignes plutôt que de rogner les pastilles. */
+@media (min-width:851px) and (max-width:1380px) {
+  body.desktop .setup-screen .setup-bar { flex-wrap:wrap; }
+  body.desktop .setup-screen .chip { font-size:16px; padding-inline:14px 16px; }
+  body.desktop .setup-screen .chip select { font-size:16px; }
+  body.desktop .setup-screen .chip .reg-ici { display:none; }
+}
+
+/* Téléphone : du papier, et le paddock derrière la voiture seulement. */
+@media (max-width:850px) {
+  #ui:has(.setup-screen, .selection-screen) { background:#efe2c4 url('../art/interface/ink.svg'); }
+  .setup-screen .paddock-car, .setup-columns .paddock-car, .selection-screen .paddock-car { background:#c8baa0 url('../art/interface/paddock.webp') center / cover no-repeat; border:2px solid #20251f; }
+  .setup-screen .topbar > button, .selection-screen .topbar > button { font-size:14px; padding:0 10px; }
+  .titre-damier { flex-basis:34px; width:34px; margin:0 -6px 0 0; background-size:10px 10px; }
+  .setup-screen .topbar h2, .selection-screen .topbar h2 { padding:2px 30px 2px 16px; font-size:24px; }
+  .hero-performance { flex-wrap:wrap; justify-content:space-around; padding:8px; }
+  .hero-performance .stat-ico { width:22px; height:22px; flex-basis:22px; }
+  .hero-performance .stat b { font-size:22px; }
+  .hero-performance .stat b small { font-size:14px; }
+  .hero-performance .stat > div > span { font-size:11px; }
+  .setup-bar { position:sticky; bottom:calc(-1 * max(12px,env(safe-area-inset-bottom))); z-index:5; padding:8px 0 max(8px,env(safe-area-inset-bottom)) 8px; box-shadow:0 -8px 20px #0003; }
+  .setup-screen .chip { font-size:15px; padding:4px 14px 4px 12px; min-height:40px; }
+  .setup-screen .chip select, .setup-screen .chip input { font-size:15px; }
+  .setup-screen .chip .reg-ici { display:none; }
+  .setup-screen .setup-launch.row.end { width:100%; margin:0; }
+  .launch-damier { display:block; flex-basis:58px; width:58px; background-size:12px 12px; }
+  .setup-launch .primary { flex:1; font-size:32px; padding:10px 18px; }
+  .setup-screen .setup-records { padding:4px 0; }
+}
+
+/* L'accueil : le damier au bout de chaque bandeau, comme sur l'affiche, et le pilote nommé. */
+.mode-card { position:relative; overflow:hidden; }
+.mode-damier { position:absolute; top:0; bottom:0; right:0; width:34%; background:repeating-conic-gradient(#0000002e 0% 25%,transparent 0% 50%) 0 0 / 26px 26px; -webkit-mask-image:linear-gradient(90deg,transparent,#000 70%); mask-image:linear-gradient(90deg,transparent,#000 70%); pointer-events:none; }
+.mode-card { grid-template-columns:88px minmax(0,1fr) 0; }
+.home-footer .pilot-button span { font-size:inherit; }
+.home-footer .pilot-button b { text-transform:uppercase; }
+@media (max-width:850px) { .mode-card { grid-template-columns:66px minmax(0,1fr) 0; } }
+/* La barre : les pastilles à gauche, sur deux lignes s'il le faut ; « En piste ! » à droite, sur
+   toute la hauteur de la barre. */
+.setup-bar { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; }
+.setup-reglages { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; min-width:0; }
+.setup-reglages .setup-chips { flex-wrap:wrap; gap:6px 8px; }
+.setup-screen .setup-launch.row.end, body.desktop .setup-screen .setup-launch.row.end { align-self:stretch; }
+@media (min-width:851px) {
+  body.desktop .setup-screen .setup-bar { padding:8px 0 0 12px; }
+  body.desktop .setup-screen .setup-chips { flex-wrap:wrap; }
+  body.desktop .setup-screen .chip { font-size:17px; min-height:38px; padding:4px 18px 4px 14px; }
+  body.desktop .setup-screen .chip select, body.desktop .setup-screen .chip input { font-size:17px; }
+  body.desktop .setup-screen .chip .reg-ici { display:none; }
+  body.desktop .setup-screen .setup-columns > .circuit-sheet { align-self:stretch; }
+  body.desktop .setup-screen .rail.tracks .card { padding:3px; }
+  body.desktop .setup-screen .rail.tracks .card > b { font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; overflow-wrap:normal; }
+  body.desktop .setup-screen .track-card-art img { height:54px; width:auto; }
+  body.desktop .setup-screen .track-heading b { font-size:clamp(28px,3vw,46px); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  body.desktop .screen.setup-screen > * { min-width:0; }
+}
+@media (max-width:850px) {
+  .setup-bar { grid-template-columns:1fr; gap:8px; padding-right:8px; }
+}
+/* Téléphone : seules « En piste ! » et son damier restent collés en bas ; les réglages défilent avec
+   le reste, sinon ils prennent la moitié d'un écran de téléphone. */
+@media (max-width:850px) {
+  .setup-bar { display:contents; }
+  .setup-reglages { padding:10px 8px; background:#fff0d2 url('../art/interface/ink.svg'); border-top:3px solid #252b24; }
+  .setup-screen .setup-launch.row.end, body.desktop .setup-screen .setup-launch.row.end { position:sticky; bottom:calc(-1 * max(12px,env(safe-area-inset-bottom))); z-index:5; width:auto; margin:0 -10px calc(-1 * max(12px,env(safe-area-inset-bottom))); padding:8px 10px max(10px,env(safe-area-inset-bottom)); background:#fff0d2 url('../art/interface/ink.svg'); border-top:3px solid #252b24; box-shadow:0 -8px 20px #0003; }
+  .hero-performance { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px 6px; }
+}
+.home-footer button, .home-footer .pilot-button b, .home-footer .pilot-button span { text-transform:uppercase; }
+.preview-copy .eyebrow { font-family:Racing,Impact,sans-serif; font-style:italic; font-weight:900; font-size:17px; letter-spacing:.03em; text-transform:uppercase; }
+@media (max-width:850px) {
+  .hero-performance .stat-ico { display:none; }
+  .hero-performance .stat b { font-size:20px; }
+  .hero-performance .stat b small { font-size:13px; }
+}
+.setup-screen .rail.tracks .card > b, .selection-screen .rail.tracks .card > b { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; overflow-wrap:normal; max-width:100%; }
+@media (max-width:850px) { .setup-screen .track-card-art img { height:70px; width:auto; } .setup-screen .rail.tracks .card > b { font-size:17px; } }
