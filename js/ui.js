@@ -69,9 +69,10 @@ const I18N = {
     nameWhy: 'Il signera tes temps, ici et au tableau des records.',
     nameRule: (a, b) => `Lettres et chiffres uniquement, de ${a} à ${b} caractères.`,
     ttIntro: 'Seul en piste. Bats ton meilleur tour.', deleteTrack: 'Supprimer', confirmDelete: 'Supprimer définitivement ?',
-    multi: 'À plusieurs', multiIntro: 'Ouvre une table et donne son code à quatre lettres, ou saisis celui qu’on t’a donné. Tout passe directement d’un appareil à l’autre : rien n’est conservé, fermer la page ferme la table.',
+    multi: 'Multijoueur', multiIntro: 'Ouvre une table et donne son code à quatre lettres, ou saisis celui qu’on t’a donné. Tout passe directement d’un appareil à l’autre : rien n’est conservé, fermer la page ferme la table.',
     createTable: 'Ouvrir une table', joinTable: 'Rejoindre', tableCode: 'Code de la table', yourTable: 'Ta table', waiting: 'En attente…',
     mFormat: 'Format', mRace: 'Course', mDuel: 'Duel', mGhost: 'Contre-la-montre',
+    enPiste: 'En piste !', statVmax: 'Vitesse max.', statA100: 'Accélération', statB100: 'Freinage', statGrip: 'Adhérence', pilotage: 'Pilotage', chipWear: 'Usure', chipControl: 'Commande', pilotLabel: 'Pilote',
     catAll: 'Toutes', mCat: 'Catégorie', mCatDesc: 'L\'hôte peut réserver la table à une catégorie : chacun choisit alors sa voiture dans celle-ci.', mCatOpen: 'Chacun prend la voiture qu\'il veut ; l\'IA court dans la catégorie de l\'hôte.',
     mRaceDesc: 'Tout le monde sur la grille, complétée par des IA, avec les contacts.',
     mDuelDesc: 'Les humains et personne d’autre.', mGhostDesc: 'Même circuit, chacun son tour, les voitures se traversent.',
@@ -146,9 +147,10 @@ const I18N = {
     nameWhy: 'It will sign your times, here and on the record board.',
     nameRule: (a, b) => `Letters and digits only, ${a} to ${b} characters.`,
     ttIntro: 'Alone on track. Beat your best lap.', deleteTrack: 'Delete', confirmDelete: 'Delete permanently?',
-    multi: 'Together', multiIntro: 'Open a table and pass on its four-letter code, or type the one you were given. Everything goes straight from one device to the other: nothing is stored, closing the page closes the table.',
+    multi: 'Multiplayer', multiIntro: 'Open a table and pass on its four-letter code, or type the one you were given. Everything goes straight from one device to the other: nothing is stored, closing the page closes the table.',
     createTable: 'Open a table', joinTable: 'Join', tableCode: 'Table code', yourTable: 'Your table', waiting: 'Waiting…',
     mFormat: 'Format', mRace: 'Race', mDuel: 'Duel', mGhost: 'Time trial',
+    enPiste: 'On track!', statVmax: 'Top speed', statA100: 'Acceleration', statB100: 'Braking', statGrip: 'Grip', pilotage: 'Handling', chipWear: 'Wear', chipControl: 'Control', pilotLabel: 'Driver',
     catAll: 'All', mCat: 'Class', mCatDesc: 'The host can keep the table to one class: everyone then picks a car from it.', mCatOpen: 'Everyone takes any car; the AI races in the host\'s class.',
     mRaceDesc: 'Everyone on the grid, filled up with AI cars, contact on.',
     mDuelDesc: 'The people and nobody else.', mGhostDesc: 'Same circuit, each on their own lap, cars pass through each other.',
@@ -538,10 +540,10 @@ class UI {
       <div class="home-body"><nav class="mode-menu" data-pad-group aria-label="${en ? 'Game modes' : 'Modes de jeu'}">
       ${entries.map(([mode, action, label, icon]) => `<button class="mode-card mode-${mode || 'multi'}" data-action="${action}" ${mode ? `data-mode="${mode}"` : ''}>
           <span class="mode-art" aria-hidden="true"><img src="art/interface/${icon}.webp" alt=""></span>
-          <span class="mode-copy"><b>${t(label)}</b></span><span class="mode-arrow" aria-hidden="true">›</span></button>`).join('')}
+          <span class="mode-copy"><b>${t(label)}</b></span><span class="mode-damier" aria-hidden="true"></span></button>`).join('')}
       </nav></div>
       <footer class="home-footer"><button class="home-settings" data-action="settings"><img src="art/interface/gear.webp" alt="">${t('settings')}</button>
-        <button class="pilot-button" data-action="settings"><img src="art/interface/pilot.webp" alt=""><span>${en ? 'DRIVER' : 'PILOTE'}</span><b>${escapeHtml(app.save.name)}</b></button>
+        <button class="pilot-button" data-action="settings"><img src="art/interface/pilot.webp" alt=""><span>${t('pilotLabel')} :</span><b>${escapeHtml(app.save.name)}</b></button>
         ${app.mondial?.erreurConnexion ? `<button class="link" data-action="google">${t('reconnect')}</button>` : ''}</footer>
       <div class="home-version">v${APP_VERSION}</div>`, 'home-screen scroll');
   }
@@ -554,7 +556,8 @@ class UI {
 
   carPreview(model) {
     const app = this.app;
-    return `<div class="paddock-car"><div class="preview-copy"><span class="eyebrow">${escapeHtml(this.L(categoryById(model.catId).name))}</span><b>${escapeHtml(model.name)}</b></div>
+    const lv = livreeDe(model, app.playerLivreeFor(model.id));
+    return `<div class="paddock-car"><div class="preview-copy"><span class="eyebrow">${escapeHtml(this.L(categoryById(model.catId).name))}${lv && lv.nom && lv.nom !== model.name ? ' · ' + escapeHtml(lv.nom) : ''}</span><b>${escapeHtml(model.name)}</b></div>
       <div class="preview-car" aria-hidden="true">${this.carIcon(model, LIVERIES[app.save.livery], app.playerLivreeFor(model.id))}</div></div>`;
   }
 
@@ -565,11 +568,14 @@ class UI {
       : '<span class="circuit-flag" aria-hidden="true">🏁</span>';
   }
 
-  trackPreview(trackDef) {
+  trackPreview(trackDef, tours) {
     const bg = this.circuitArt(trackDef);
     const country = trackDef.country ? new Intl.DisplayNames([this.lang], {type:'region'}).of(trackDef.country) : '';
+    // La maquette porte le nombre de tours sous le nom : c'est la course qu'on va courir, pas
+    // seulement le circuit. Hors course, la longueur seule.
+    const detail = [country, this.longueur(trackDef), tours ? `${tours} ${this.t('laps')}` : ''].filter(Boolean).join(' · ');
     return `<div class="paddock-track" ${bg ? `style="background-image:url('${bg}')"` : ''}>
-      <div class="track-heading"><div><b>${escapeHtml(trackDef.name)}</b><span>${escapeHtml(country)} · ${this.longueur(trackDef)}</span></div>${this.circuitFlag(trackDef)}</div>
+      <div class="track-heading"><div><b>${escapeHtml(trackDef.name)}</b><span>${escapeHtml(detail)}</span></div>${this.circuitFlag(trackDef)}</div>
       <img class="preview-track" src="${this.thumb(trackDef, 360)}" alt="${escapeHtml(this.t('track') + ' : ' + trackDef.name)}"></div>`;
   }
 
@@ -808,21 +814,21 @@ class UI {
     const trackDef = app.trackDefById(st.trackId);
     const laps = s.laps || lapsFor(trackDef, cat);
     const livery = LIVERIES[s.livery];
+    const race = mode === 'race';
     this.show(`
-      <div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${mode === 'race' ? t('quickRace') : t('timeTrial')}</h2><img class="paddock-logo" src="art/interface/logo.webp" alt="EYES ON LINE"></div>
+      ${this.paddockTopbar(race ? t('quickRace') : t('timeTrial'))}
       <div class="setup-columns"><section class="setup-block car-sheet">
       ${this.filtreCat('pickCat', filtre)}
       ${this.carPreview(model)}
       ${this.liveryChoices(model)}
-      <div class="hero-performance">${this.gauges(model)}${this.tyres(model)}</div>
-      <h3 class="model-caption">${t('model')}</h3>
+      ${this.heroStats(model)}
       ${this.rail('models', 'models', this.modelesVisibles(filtre).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${m.id}">
             ${this.carIcon(m, livery, app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}${m.custom ? ` <small>(${t('custom')})</small>` : ''}</b>
             ${filtre === 'all' ? this.etiquetteCat(m) : ''}
             ${this.repereLivree(m, app.playerLivreeFor(m.id))}
             ${this.tyres(m)}
             ${this.gauges(m)}</button>`).join(''))}
-      </section><section class="setup-block circuit-sheet">${this.trackPreview(trackDef)}
+      </section><section class="setup-block circuit-sheet">${this.trackPreview(trackDef, race ? laps : null)}
       ${this.rail('tracks', 'tracks', TRACKS.map(tr => {
         const locked = !ut.has(tr.id);
         return `<button class="card ${tr.id === st.trackId ? 'sel' : ''} ${locked ? 'locked' : ''}" data-action="pickTrack" data-id="${tr.id}" ${locked ? 'disabled' : ''}>
@@ -834,44 +840,98 @@ class UI {
            menu, si bien que la liste était soit vide, soit le musée des essais d'un ancien
            réglage. Les tracés enregistrés ne sont pas effacés pour autant — ils restent dans le
            navigateur et l'éditeur y mène encore par son adresse. -->
-      </section></div><section class="setup-block setup-options" ${mode !== 'race' && !app.desktop ? 'hidden' : ''}>
-      <h3><span class="section-number">03</span> ${t('settings')}</h3>
-      ${this.pcControls()}
-      <div class="row wrap">
-        ${mode === 'race' ? `<div><h3>${t('difficulty')}</h3><div class="seg">${NIVEAUX.map(d => `<button class="${s.difficulty === d ? 'sel' : ''}" data-action="pickDiff" data-id="${d}">${t(d)}</button>`).join('')}</div></div>
-        <!-- Quatre longueurs franches et une saisie libre, plutôt qu'une échelle fine.
-             Deux tours pour une manche rapide, cinq pour une course normale, dix et vingt pour
-             que l'usure et l'arrêt au stand aient le temps d'exister. « Auto », qui suivait la
-             proposition du circuit, est parti : il ne disait pas au joueur ce qu'il allait
-             courir, et c'est précisément ce qu'on veut savoir avant de choisir sa stratégie. -->
-        <div><h3>${t('lapCount')}</h3><div class="seg">${[2, 5, 10, 20].map(n => `<button class="${!s.lapsPerso && (s.laps || 5) === n ? 'sel' : ''}" data-action="pickLaps" data-id="${n}">${n}</button>`).join('')}<button class="${s.lapsPerso ? 'sel' : ''}" data-action="pickLaps" data-id="perso">${t('lapCustom')}</button></div>
-        ${s.lapsPerso ? `<label class="perso">${t('lapCount')}<input id="inp-laps" type="number" min="1" max="99" value="${Math.max(1, Math.min(99, s.laps || 5))}"></label>` : ''}</div>
-        <!-- L'usure n'est offerte qu'en course. Un record signé sur des pneus à moitié morts ne se
-             compare à rien, et la table des records n'a pas de colonne pour dire dans quel état il
-             a été signé : mieux vaut que l'option n'existe pas là que d'avoir à l'expliquer. -->
-        <div><h3>${t('wear')}</h3><div class="seg">${[[0, 'off'], [1, 'on']].map(([v, k]) => `<button class="${(s.wear ? 1 : 0) === v ? 'sel' : ''}" data-action="pickWear" data-id="${v}">${t(k)}</button>`).join('')}</div>
-        <small class="muted">${t('wearHint')}</small></div>` : ''}
-      </div>
-      </section>
-      ${mode === 'race' ? '' : this.records(st.trackId, cat, model, livery)}
-      <!-- Les réglages vivent À CÔTÉ DU DÉPART et non dans l'écran des options, parce qu'ils
-           dépendent du circuit ET de la voiture : c'est ici, une fois les deux choisis, que la
-           question « avec quel freinage ? » a un sens. Le bouton « Régler » lance la même course
-           avec le levier en haut. -->
-      <div class="setup-tuning row wrap" data-pad-group>
-        <!-- La liste et le choix actif sont propres au couple circuit+voiture.
-             Un même nom peut conserver des valeurs pour plusieurs couples ; chacun retrouve
-             son propre choix quand le joueur revient, y compris « Par défaut ». -->
-        <label class="perso">${t('reglages')}<select id="sel-reglage">
+      ${race ? '' : `<div class="setup-records">${this.records(st.trackId, cat, model, livery)}</div>`}
+      </section></div>
+      ${this.setupBar(race, model, trackDef, laps)}
+    `, 'scroll setup-screen', 'depart:' + mode);
+  }
+
+  /* La barre de titre des écrans de préparation : retour, damier, titre sur sa bande rouge, logo.
+
+  Le damier est un élément à part entière et non un dégradé de fond : posé entre le retour et la
+  bande rouge, il doit garder sa place quelle que soit la longueur du titre — « Course rapide »,
+  « Contre-la-montre » ou le code d'une table. */
+  paddockTopbar(titre, retour = 'menu', libelleRetour) {
+    return `<div class="topbar"><button data-action="${retour}">← ${escapeHtml(libelleRetour || this.t('back'))}</button><span class="damier titre-damier" aria-hidden="true"></span><h2>${titre}</h2><img class="paddock-logo" src="art/interface/logo.webp" alt="EYES ON LINE"></div>`;
+  }
+
+  /* Les chiffres de la voiture, comme sur la maquette : pictogramme, valeur, libellé en clair.
+
+  Les mêmes valeurs que les cadrans du rail (`perfOf`), écrites en ligne : sur le paddock la place
+  manque pour quatre anneaux, et un chiffre suivi de son unité se lit plus vite qu'un arc. */
+  heroStats(m) {
+    const t = (k) => this.t(k), fr = this.lang === 'fr';
+    const n = (v, d) => (+v).toFixed(d).replace('.', fr ? ',' : '.');
+    const item = (ico, valeur, unite, libelle) => `<div class="stat"><span class="stat-ico">${ico}</span><div><b>${valeur}<small>${unite}</small></b><span>${libelle}</span></div></div>`;
+    return `<div class="hero-performance">
+      ${item(GAUGE_ICONS.top, Math.round(m.perf.vmax), 'km/h', t('statVmax'))}
+      ${item(GAUGE_ICONS.acc, '0-100 : ' + n(m.perf.a100, 1), 's', t('statA100'))}
+      ${item(GAUGE_ICONS.brk, n(m.perf.b100, 1), 'm', t('statB100'))}
+      ${item(GAUGE_ICONS.grp, n(m.perf.gripG, 2), 'g', t('statGrip'))}
+      <div class="stat stat-pilotage"><img class="stat-ico" src="art/interface/wheel.webp" alt=""><div><b>${this.tyres(m)}</b><span>${t('pilotage')}</span></div></div>
+    </div>`;
+  }
+
+  /* La barre du bas : les réglages en pastilles, puis le damier et « En piste ! ».
+
+  Les réglages tenaient dans un bloc à eux, sous les deux colonnes : sur un écran de PC il fallait
+  descendre pour les voir, et c'est ce que la maquette ne fait pas. Une pastille porte le nom du
+  réglage et sa valeur ; l'appui passe à la suivante. Ce sont les mêmes actions qu'avant
+  (`pickDiff`, `pickLaps`, `pickWear`) avec pour identifiant la valeur SUIVANTE : le clavier, la
+  souris, le tactile et la manette les déclenchent comme n'importe quel bouton.
+
+  Le freinage et la commande restent des listes, parce que ce sont des listes — des
+  configurations nommées, trois façons d'accélérer —, habillées en pastilles. Les options de la
+  manette suivent la commande quand elle est choisie.
+
+  CHAQUE LISTE EST SON PROPRE GROUPE pour la manette. Sur une liste, la croix gauche/droite change
+  la valeur au lieu de passer à la voisine : deux listes rangées côte à côte dans un même groupe,
+  la seconde n'aurait plus été atteignable qu'à la souris. RB/LB passe donc d'une liste à l'autre. */
+  setupBar(race, model, trackDef, laps) {
+    const t = (k, ...a) => this.t(k, ...a), s = this.app.save, st = this.setup, app = this.app;
+    const suivant = (liste, cur) => liste[(liste.indexOf(cur) + 1) % liste.length];
+    const pastille = (libelle, valeur, attrs) => `<button class="chip" ${attrs}><span>${libelle} :</span> <b>${valeur}</b></button>`;
+    const toursCourants = s.lapsPerso ? 'perso' : (s.laps || 5);
+    const frein = freinDe(s, st.trackId, model.id);
+    const desktop = app.desktop;
+    const gamepad = desktop && app.controls.mode === 'gamepad';
+    return `<div class="setup-bar"><div class="setup-reglages">
+      ${race ? `<div class="setup-chips" data-pad-group>
+        ${pastille(t('difficulty'), t(s.difficulty), `data-action="pickDiff" data-id="${suivant(NIVEAUX, s.difficulty)}"`)}
+        ${pastille(t('lapCount'), s.lapsPerso ? `${t('lapCustom')}` : (s.laps || 5), `data-action="pickLaps" data-id="${suivant([2, 5, 10, 20, 'perso'], toursCourants)}"`)}
+        ${s.lapsPerso ? `<label class="chip chip-input"><span>${t('lapCount')} :</span><input id="inp-laps" type="number" min="1" max="99" value="${Math.max(1, Math.min(99, s.laps || 5))}"></label>` : ''}
+        ${pastille(t('chipWear'), t(s.wear ? 'on' : 'off'), `data-action="pickWear" data-id="${s.wear ? 0 : 1}" title="${escapeHtml(t('wearHint'))}"`)}
+      </div>` : ''}
+      <!-- La liste et le choix actif sont propres au couple circuit+voiture.
+           Un même nom peut conserver des valeurs pour plusieurs couples ; chacun retrouve
+           son propre choix quand le joueur revient, y compris « Par défaut ». -->
+      <div class="setup-chips setup-tuning" data-pad-group>
+        <label class="chip chip-select" data-pad-group title="${escapeHtml(t('regPortee'))}"><span>${t('freinage')} :</span><select id="sel-reglage">
           <option value="">${t('regDefaut')}</option>
           ${reglagesPour(s, st.trackId, model.id).map(c => `<option value="${escapeHtml(c.nom)}" ${configActive(s, st.trackId, model.id)?.nom === c.nom ? 'selected' : ''}>${escapeHtml(c.nom)}</option>`).join('')}
-        </select></label>
-        <span class="muted reg-ici">${(() => { const v = freinDe(s, st.trackId, model.id); return v === 1 ? t('regIciDefaut') : t('regIci', v); })()}</span>
-        <button data-action="startTune">${t('regRegler')}</button>
-      </div><div class="row end setup-launch">
-        <span class="muted">${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ${escapeHtml(model.name)} · ${mode === 'race' ? `${laps} ${t('laps')}` : t('ttIntro')}</span><button class="big primary" data-action="startQuick">${t('start')}</button>
+        </select><small class="reg-ici">${frein === 1 ? t('regIciDefaut') : t('regIci', frein)}</small></label>
+        <button class="chip" data-action="startTune" data-pad-group>${t('regRegler')}</button>
       </div>
-    `, 'scroll setup-screen', 'depart:' + mode);
+      ${desktop ? `<div class="setup-chips pc-controls" data-pad-group>
+        <label class="chip chip-select" data-pad-group><span>${t('chipControl')} :</span><select id="sel-desktop-control">${[['keyboard', 'controlKeyboard'], ['wheel', 'controlWheel'], ['gamepad', 'controlGamepad']].map(([m, key]) =>
+          `<option value="${m}" ${app.controls.mode === m ? 'selected' : ''}>${t(key)}</option>`).join('')}</select></label>
+        <span class="pad-brake-options" ${gamepad ? '' : 'hidden'}>
+          <label class="chip chip-select" data-pad-group><span>${t('padBrake')} :</span><select id="sel-pad-brake">
+            <option value="separate" ${s.gamepadBrake !== 'auto' ? 'selected' : ''}>${t('padBrakeSeparate')}</option>
+            <option value="auto" ${s.gamepadBrake === 'auto' ? 'selected' : ''}>${t('padBrakeAuto')}</option>
+          </select></label>
+          <label class="chip chip-select" data-pad-group><span>${t('engineBrake')} :</span><select id="sel-engine-brake" ${s.gamepadBrake === 'auto' ? 'disabled' : ''}>
+            ${[0, .05, .1, .15, .2, .3, .5, .75, 1].map(v => `<option value="${v}" ${v === s.engineBrake ? 'selected' : ''}>${Math.round(v * 100)} %</option>`).join('')}
+          </select></label>
+        </span>
+        <span class="sr" data-control-help aria-live="polite">${this.controlHelp()}</span>
+      </div>` : ''}
+      </div>
+      <div class="row end setup-launch">
+        <span class="muted launch-resume">${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ${escapeHtml(model.name)} · ${race ? `${laps} ${t('laps')}` : t('ttIntro')}</span>
+        <span class="damier launch-damier" aria-hidden="true"></span><button class="big primary" data-action="startQuick">${t('enPiste')} <span aria-hidden="true">→</span></button>
+      </div>
+    </div>`;
   }
 
   // ---------- racing together ----------
@@ -886,7 +946,7 @@ class UI {
 
     if (net.state === 'off') {
       this.show(`
-        <div class="topbar"><button data-action="menu">← ${t('back')}</button><h2>${t('multi')}</h2></div>
+        ${this.paddockTopbar(t('multi'))}
         ${this.selectionPreview(model, app.trackDefById(this.setup.trackId))}
         <p class="muted">${t('multiIntro')}</p>
         ${net.error ? `<p class="warn">${escapeHtml(net.error)}</p>` : ''}
@@ -922,7 +982,7 @@ class UI {
     const trackDef = app.trackDefById(cfg.trackId) || tracks[0];
     const modeDesc = { race: 'mRaceDesc', duel: 'mDuelDesc', ghost: 'mGhostDesc' }[cfg.mode] || 'mRaceDesc';
     this.show(`
-      <div class="topbar"><button data-action="netLeave">← ${t('leaveTable')}</button><h2>${t('yourTable')} <b class="code">${escapeHtml(net.code)}</b></h2></div>
+      ${this.paddockTopbar(`${t('yourTable')} <b class="code">${escapeHtml(net.code)}</b>`, 'netLeave', t('leaveTable'))}
       ${net.error ? `<p class="warn">${escapeHtml(net.error)}</p>` : ''}
       ${this.selectionPreview(model, trackDef)}
       <p class="muted net-ping">${escapeHtml(net.link?.label() || 'Ping : —')} · aller-retour</p>

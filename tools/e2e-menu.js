@@ -8,7 +8,7 @@ fs.mkdirSync(out,{recursive:true});
  const server=http.createServer((req,res)=>{const f=path.resolve(root,'.'+decodeURIComponent(req.url.split('?')[0]));if(!f.startsWith(root+path.sep)||!fs.existsSync(f)||fs.statSync(f).isDirectory()){res.writeHead(404);return res.end();}res.setHeader('Content-Type',({'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml'})[path.extname(f)]||'application/octet-stream');fs.createReadStream(f).pipe(res);});
  await new Promise(r=>server.listen(0,'127.0.0.1',r)); const browser=await chromium.launch({args:['--disable-background-timer-throttling','--disable-backgrounding-occluded-windows','--disable-renderer-backgrounding']});const errors=[];
  try {
- for(const [name,opts] of [['pc',{viewport:{width:1440,height:900}}],['mobile',{...devices['iPhone 13']}],['petit-mobile',{...devices['iPhone SE']}],['tablette',{...devices['iPad Mini']}],['pc-compact',{viewport:{width:850,height:600}}]]) {
+ for(const [name,opts] of [['pc',{viewport:{width:1440,height:900}}],['pc-portable',{viewport:{width:1366,height:768}}],['mobile',{...devices['iPhone 13']}],['petit-mobile',{...devices['iPhone SE']}],['tablette',{...devices['iPad Mini']}],['pc-compact',{viewport:{width:850,height:600}}]]) {
   const ctx=await browser.newContext(opts),p=await ctx.newPage();p.on('pageerror',e=>errors.push(e.message));
   await p.goto(`http://127.0.0.1:${server.address().port}/index.html`);await p.waitForFunction(()=>typeof app!=='undefined'&&app.save);
   await p.evaluate(()=>{app.save.name='Pilote';app.save.lang='fr';app.mondial=null;app.ui.splash();});
@@ -37,7 +37,21 @@ fs.mkdirSync(out,{recursive:true});
    if(overflow){console.log(await p.evaluate(()=>[...document.querySelectorAll('.screen *')].filter(e=>e.getBoundingClientRect().right>innerWidth+1&&!e.closest('.rail')).map(e=>({class:e.className,width:e.getBoundingClientRect().width,right:e.getBoundingClientRect().right})).slice(0,20)));await p.screenshot({path:path.join(out,name+'-overflow.png')});}
    assert(!overflow,'screen horizontal overflow');
    assert(await p.locator('.setup-block').first().evaluate(e=>e.getBoundingClientRect().height>50),'visible selection panel');
-   assert.equal(await p.locator('[data-action="pickDiff"]').count(),mode==='race'?5:0);
+   /* Les réglages sont des pastilles : une par réglage, qui passe à la valeur suivante. */
+   assert.equal(await p.locator('[data-action="pickDiff"]').count(),mode==='race'?1:0);
+   if(mode==='race'){
+    const d0=await p.evaluate(()=>app.save.difficulty);await p.locator('[data-action="pickDiff"]').click();
+    const d1=await p.evaluate(()=>app.save.difficulty);assert.notEqual(d1,d0,'la pastille de difficulté passe au niveau suivant');
+    await p.evaluate(d=>{app.save.difficulty=d;app.ui.setupScreen('race');},d0);
+   }
+   /* Sur PC, le paddock tient dans l'écran : rien ne défile, ni la page ni l'écran. */
+   if(await p.evaluate(()=>app.desktop&&innerWidth>850)){
+    const reste=await p.evaluate(()=>{const s=document.querySelector('.screen');return s.scrollHeight-s.clientHeight;});
+    assert(reste<=1,`${name} ${mode} : le paddock PC défile de ${reste} px`);
+    const bar=await p.locator('.setup-launch .primary').evaluate(b=>{const r=b.getBoundingClientRect();return r.bottom<=innerHeight&&r.right<=innerWidth;});
+    assert(bar,'« En piste ! » entièrement visible sans défiler');
+   }
+   assert(await p.locator('.topbar .titre-damier').count()===1&&await p.locator('.setup-launch .launch-damier').count()===1,'damiers du titre et de « En piste ! »');
    const next=p.locator('[data-action="pickModel"]:not(.sel)').first(),id=await next.getAttribute('data-id');await next.click();
    assert.equal(await p.locator(`[data-action="pickModel"][data-id="${id}"]`).getAttribute('aria-pressed'),'true');
    const selected=await p.locator('[data-action="pickModel"].sel b').first().textContent();assert((await p.locator('.preview-copy b').textContent()).includes(selected.trim()));

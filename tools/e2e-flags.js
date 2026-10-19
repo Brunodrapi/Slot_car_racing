@@ -27,7 +27,7 @@ const double=/const DOUBLE = `([\s\S]*?)`;/m.exec(fs.readFileSync(path.join(__di
         },flag);
         const result=await solo.evaluate(()=>{
           const r=app.renderer,z=r.hudZones.flags,d=r.dpr;
-          return {types:z.types,pixel:[...r.hudCtx.getImageData(Math.round((z.x+5)*d),Math.round((z.y+10)*d),1,1).data],zones:app.race.flags.zones.length,blue:app.race.player.blueFlag};
+          return {types:z.types,pixel:[...r.hudCtx.getImageData(Math.round((z.x+z.s/2)*d),Math.round((z.y+z.s/2)*d),1,1).data],zones:app.race.flags.zones.length,blue:app.race.player.blueFlag};
         });
         assert(result.types.includes(flag));assert(result.pixel[3]>0);
         if(flag==='blue')assert(result.pixel[2]>result.pixel[0]+60&&result.blue,'actual blue HUD square');

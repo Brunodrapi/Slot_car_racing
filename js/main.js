@@ -195,7 +195,8 @@ class App {
     const select = this.ui.root.querySelector('#sel-desktop-control');
     if (select) {
       select.value = this.controls.mode;
-      this.ui.root.querySelector('[data-control-help]').textContent = this.ui.controlHelp();
+      const aide = this.ui.root.querySelector('[data-control-help]');
+      if (aide) aide.textContent = this.ui.controlHelp();
     }
     this.ui.updateControllerStatus();
   }

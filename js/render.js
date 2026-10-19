@@ -2470,16 +2470,16 @@ class Renderer {
     const hT = this.mobile ? 28 : 34;
     const yT = cy - pr - (this.mobile ? 10 : 13);
     g.textAlign = 'center'; g.textBaseline = 'bottom';
-    g.font = `900 ${hT}px system-ui, sans-serif`;
+    g.font = `italic 900 ${hT + 4}px Racing, Impact, sans-serif`;
     const wNum = g.measureText(kmh).width;
-    g.font = `bold ${this.mobile ? 12 : 14}px system-ui, sans-serif`;
+    g.font = `italic 900 ${this.mobile ? 15 : 17}px Racing, Impact, sans-serif`;
     const wU = g.measureText('km/h').width;
     const x0 = cx - (wNum + 4 + wU) / 2;
     this._hudLabel(g, x0 - 8, yT - hT - 4, wNum + 4 + wU + 16, hT + 10, '#171b19c9');
     g.textAlign = 'left';
-    g.fillStyle = '#fff0d4'; g.font = `900 ${hT}px system-ui, sans-serif`;
+    g.fillStyle = '#fff0d4'; g.font = `italic 900 ${hT + 4}px Racing, Impact, sans-serif`;
     g.fillText(kmh, x0, yT);
-    g.fillStyle = '#f2e6ca'; g.font = `bold ${this.mobile ? 12 : 14}px system-ui, sans-serif`;
+    g.fillStyle = '#f2e6ca'; g.font = `italic 900 ${this.mobile ? 15 : 17}px Racing, Impact, sans-serif`;
     g.fillText('km/h', x0 + wNum + 4, yT);
     this.hudZones = this.hudZones || {};
     this.hudZones.vitesse = { x: x0, w: wNum + 4 + wU, y: yT - hT, h: hT };
@@ -2516,31 +2516,35 @@ class Renderer {
     const gas = throttleAmount(app.input.throttle);
     this._hudLabel(g, x, y, w, h, '#171b19c9');
     g.textAlign = 'left'; g.textBaseline = 'top';
-    g.fillStyle = '#fff'; g.font = '900 38px system-ui, sans-serif';
-    g.fillText(String(Math.round(Math.max(0, p.speed) * 3.6)), x + 16, y + 10);
-    g.font = '12px system-ui, sans-serif'; g.fillStyle = '#c8ced9'; g.fillText('km/h', x + 18, y + 53);
-    g.font = 'bold 13px system-ui, sans-serif';
-    g.fillText(t({ keyboard: 'controlKeyboard', wheel: 'controlWheel', gamepad: 'controlGamepad' }[mode]), x + 125, y + 16);
-    g.font = 'bold 17px ui-monospace, monospace'; g.fillStyle = gas ? '#5be07a' : '#ffd400';
-    g.fillText(`${t('gas')} ${Math.round(gas * 100)} %`, x + 125, y + 41);
+    const R = (taille) => `italic 900 ${taille}px Racing, Impact, sans-serif`;
+    // la vitesse en grand, chiffres à chasse fixe, calée à droite d'une case de trois chiffres
+    g.fillStyle = '#fff'; g.font = R(54); g.textBaseline = 'alphabetic';
+    const case3 = g.measureText('888').width;
+    this._texteChiffres(g, String(Math.round(Math.max(0, p.speed) * 3.6)), x + 16 + case3, y + 54);
+    g.font = R(19); g.fillStyle = '#c8ced9'; g.textAlign = 'left'; g.fillText('km/h', x + 22 + case3, y + 54);
+    g.textBaseline = 'top';
+    g.font = R(16);
+    g.fillText(t({ keyboard: 'controlKeyboard', wheel: 'controlWheel', gamepad: 'controlGamepad' }[mode]).toUpperCase(), x + 150, y + 14, w - 162);
+    g.font = R(22); g.fillStyle = gas ? '#5be07a' : '#ffd400';
+    g.fillText(`${t('gas').toUpperCase()} ${Math.round(gas * 100)} %`, x + 150, y + 38);
     g.fillStyle = '#3a3f4b'; this._roundRect(g, x + 16, y + 77, w - 32, 9, 4); g.fill();
     if (gas > 0) { g.fillStyle = '#5be07a'; this._roundRect(g, x + 16, y + 77, (w - 32) * gas, 9, Math.min(4, (w - 32) * gas / 2)); g.fill(); }
     if (separate) {
       const brake = throttleAmount(app.input.brake);
-      g.font = 'bold 12px system-ui, sans-serif'; g.fillStyle = '#ff9b88';
-      g.fillText(`LT · ${t('brake')} ${Math.round(brake * 100)} %`, x + 16, y + 96);
+      g.font = R(16); g.fillStyle = '#ff9b88';
+      g.fillText(`LT · ${t('brake').toUpperCase()} ${Math.round(brake * 100)} %`, x + 16, y + 94);
       g.fillStyle = '#3a3f4b'; g.fillRect(x + 16, y + 115, w - 32, 7);
       g.fillStyle = '#ff7760'; g.fillRect(x + 16, y + 115, (w - 32) * brake, 7);
       g.translate(0,32);
     }
-    g.font = '12px system-ui, sans-serif'; g.fillStyle = '#d7dbe3';
-    g.fillText(t(mode === 'gamepad' ? 'lineHintPad' : 'lineHintPC'), x + 16, y + 99);
+    g.font = R(15); g.fillStyle = '#d7dbe3';
+    g.fillText(t(mode === 'gamepad' ? 'lineHintPad' : 'lineHintPC'), x + 16, y + 97, w - 32);
     const status = { ready: 'padReady', release: 'padRelease', disconnected: 'padDisconnected', unsupported: 'padUnsupported' };
     const hint = mode === 'gamepad' ? t(status[app.controls.status])
       : mode === 'wheel' ? (ui.lang === 'fr' ? 'Espace : gaz à zéro · Échap : pause' : 'Space: zero throttle · Esc: pause')
       : (ui.lang === 'fr' ? 'Maintenir : gaz · Relâcher : frein' : 'Hold: throttle · Release: brake');
     g.fillStyle = mode === 'gamepad' && app.controls.status !== 'ready' ? '#ffd400' : '#aeb4c0';
-    g.fillText(hint, x + 16, y + 120, w - 32);
+    g.font = R(15); g.fillText(hint, x + 16, y + 118, w - 32);
     if (separate) g.translate(0,-32);
     this.hudZones.accelerateur = { x, y, w, h };
   }
@@ -2590,6 +2594,27 @@ class Renderer {
   }
   _hudPaper(g, x, y, w, h) { this._hudLabel(g, x, y, w, h); }
 
+  /* Un texte aligné à droite dont les chiffres ont tous la même chasse.
+
+  La Barlow Condensed a des chiffres proportionnels : un « 1 » est plus étroit qu'un « 8 », et un
+  chrono qui défile se mettait à trembler à chaque centième. Chaque chiffre prend donc la case du
+  plus large d'entre eux ; le reste — deux-points, point, tiret — garde sa largeur. Rend la largeur
+  occupée. */
+  _texteChiffres(g, txt, xDroite, y) {
+    let w0 = 0;
+    for (const c of '0123456789') w0 = Math.max(w0, g.measureText(c).width);
+    const align = g.textAlign;
+    g.textAlign = 'center';
+    let x = xDroite;
+    for (let i = txt.length - 1; i >= 0; i--) {
+      const c = txt[i], w = /[0-9]/.test(c) ? w0 : g.measureText(c).width;
+      g.fillText(c, x - w / 2, y);
+      x -= w;
+    }
+    g.textAlign = align;
+    return xDroite - x;
+  }
+
   // ---------- HUD ----------
   _drawHUD(g, race, ui) {
     const W = this.w, H = this.h, p = race.player, t = (k, ...a) => ui.t(k, ...a);
@@ -2615,18 +2640,38 @@ class Renderer {
     const wPos = mobile ? 90 : 120, headH = mobile ? 36 : 44;
     const pb = this.pauseBtn;
     pb.x = xe - pb.s; pb.y = y0;
-    const pw = Math.min(mobile ? 166 : 210, Math.max(110, xe - xs - wPos - pb.s - 20));
+    const pw = Math.min(mobile ? 172 : 230, Math.max(110, xe - xs - wPos - pb.s - 20));
     const px = clamp((W - pw) / 2, xs + wPos + 8, pb.x - pw - 8);
-    const ph = mobile ? 25 : 28;
+    const ph = mobile ? 27 : 32;
     this._hudPaper(g, xs, y0, wPos, headH);
     g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillStyle = '#20251f';
     g.font = `italic 900 ${mobile ? 24 : 32}px Racing, sans-serif`;
     g.fillText(tt ? 'TT' : `P ${pos}/${n}`, xs + 10, y0 + headH / 2, wPos - 18);
-    const lapW = mobile ? 72 : 90, lapY = y0 + pb.s + 7;
-    this._hudPaper(g, xe - lapW, lapY, lapW, mobile ? 25 : 30);
-    g.fillStyle = '#242b25'; g.font = `bold ${mobile ? 11 : 13}px system-ui, sans-serif`;
-    g.fillText(`${t('lap')} ${lapShown}${tt ? '' : '/' + race.laps}`, xe - lapW + 9, lapY + (mobile ? 13 : 15), lapW - 18);
-    this.hudZones = { pos:{x:xs,y:y0,w:wPos,h:headH}, lap:{x:xe-lapW,y:lapY,w:lapW,h:mobile?25:30}, temps:{x:px,y:y0,w:pw,h:ph*2+4} };
+    /* LE TOUR, en grand et dans la police de la position — c'est le second chiffre qu'on cherche.
+
+    Il était écrit en petit, en police système, dans une étiquette de 90 px : le seul texte du haut
+    de l'écran qui ne parlait pas comme le reste. Comme sur la maquette : « TOUR » en petit, le
+    numéro du tour en gros, le total à côté. */
+    const lapW = mobile ? 108 : 150, lapH = mobile ? 34 : 46;
+    // sous la pause, et sous les temps quand ils lui passent au-dessus (téléphone étroit)
+    const lapY = px + pw > xe - lapW - 4 ? Math.max(y0 + pb.s + 6, y0 + ph * 2 + 12) : y0 + pb.s + 6;
+    this._hudPaper(g, xe - lapW, lapY, lapW, lapH);
+    {
+      const lbl = t('lap').toUpperCase(), num = String(lapShown), tot = tt ? '' : '/' + race.laps;
+      const fGrand = mobile ? 30 : 40, fMoyen = mobile ? 19 : 25, fPetit = mobile ? 15 : 19;
+      const police = (taille) => `italic 900 ${taille}px Racing, Impact, sans-serif`;
+      g.font = police(fPetit); const wl = g.measureText(lbl).width;
+      g.font = police(fGrand); const wn = g.measureText(num).width;
+      g.font = police(fMoyen); const wt = tot ? g.measureText(tot).width : 0;
+      let x = xe - lapW + Math.max(8, (lapW - (wl + 6 + wn + 2 + wt)) / 2);
+      const base = lapY + lapH * 0.82;
+      g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = '#20251f';
+      g.font = police(fPetit); g.fillText(lbl, x, base); x += wl + 6;
+      g.font = police(fGrand); g.fillText(num, x, base + (mobile ? 1 : 2)); x += wn + 2;
+      if (tot) { g.font = police(fMoyen); g.fillText(tot, x, base); }
+      g.textBaseline = 'middle';
+    }
+    this.hudZones = { pos:{x:xs,y:y0,w:wPos,h:headH}, lap:{x:xe-lapW,y:lapY,w:lapW,h:lapH}, temps:{x:px,y:y0,w:pw,h:ph*2+4} };
     const flags = race.flags?.active(p) || [], nul = !!p.lapSale;
     const timing = (y, label, value, dark, activeFlags = []) => {
       this._hudLabel(g, px, y, pw, ph, dark ? '#171b19ed' : '#f2e6ca');
@@ -2634,21 +2679,23 @@ class Renderer {
       const size = activeFlags.length > 1 ? 10 : 12;
       activeFlags.forEach((flag,i)=>drawRaceFlag(g,flag,px+8+i*(size+3),y+(ph-size)/2,size));
       g.fillStyle = dark ? '#f6eacf' : '#34392f';
-      g.font = `bold ${mobile ? 9 : 10}px system-ui,sans-serif`;
       const val = String(value), flagWidth = activeFlags.length * (size + 3);
-      g.font = `bold ${mobile ? 13 : 16}px ui-monospace,monospace`;
-      const valueWidth = g.measureText(val).width;
+      const fLabel = `italic 900 ${mobile ? 13 : 16}px Racing, Impact, sans-serif`;
+      const fValeur = `italic 900 ${mobile ? 19 : 24}px Racing, Impact, sans-serif`;
+      g.font = fValeur;
+      const valueWidth = g.measureText(val).width + 4;
       if (pw - 24 - valueWidth - flagWidth > 36) {
-        g.font = `bold ${mobile ? 9 : 10}px system-ui,sans-serif`;
-        g.fillText(label.toUpperCase(), px + 9 + flagWidth, y + ph/2);
+        g.font = fLabel;
+        g.fillText(label.toUpperCase(), px + 11 + flagWidth, y + ph/2);
       }
-      g.textAlign = 'right'; g.font = `bold ${mobile ? 13 : 16}px ui-monospace,monospace`;
+      g.font = fValeur;
       g.fillStyle = dark && nul ? '#ffb59c' : dark ? '#fff0d4' : '#33372e';
-      g.fillText(val, px + pw - 10, y + ph/2);
+      this._texteChiffres(g, val, px + pw - 12, y + ph/2 + 1);
     };
     timing(y0, nul ? t('lapVoid') : t('lap'), fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart), true, flags);
     timing(y0 + ph + 4, t('best'), p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---', false);
-    this.hudZones.flags = {types:flags,x:px+8,y:y0};
+    // le carré du premier drapeau, tel qu'il est peint : les essais lisent son centre
+    { const tf = flags.length > 1 ? 10 : 12; this.hudZones.flags = {types:flags,x:px+8,y:y0+(ph-tf)/2,s:tf}; }
     g.textAlign = 'left'; g.textBaseline = 'top';
 
     /* LA VITESSE, SOUS LE BANDEAU ET AU MILIEU — c'est-à-dire là où le cadran du bas n'était pas.
@@ -2816,22 +2863,24 @@ class Renderer {
       const order = race.standings(), index = order.indexOf(p);
       const start = Math.max(0, Math.min(index - 1, order.length - 3));
       const st = mobile ? order.slice(Math.max(0,index-1), Math.max(0,index-1)+2) : order.slice(start, start + 3);
-      const rowH = mobile ? 23 : 28, bw = mobile ? 170 : 230, bx = ui.app.desktop ? W - P.r - bw : P.l, by = ui.app.desktop ? P.t + 100 : mmBas + 4;
-      g.font = 'bold 12px system-ui, sans-serif'; g.textBaseline = 'top';
+      const rowH = mobile ? 26 : 32, bw = mobile ? 180 : 250, bx = ui.app.desktop ? W - P.r - bw : P.l;
+      // sous le compteur de tours, qui a grandi : posé à une hauteur fixe, le tableau le chevauchait
+      const by = ui.app.desktop ? Math.max(P.t + 100, this.hudZones.lap.y + this.hudZones.lap.h + 8) : mmBas + 4;
+      g.font = `italic 900 ${mobile ? 15 : 18}px Racing, Impact, sans-serif`; g.textBaseline = 'top';
       st.forEach((car, i) => {
         const y = by + i * rowH;
         this._hudLabel(g,bx,y,bw,rowH-2,car.isPlayer&&!mobile?'#f2e6ca':'#171b19df');
-        g.textAlign = 'left'; g.fillStyle = car.livery.body; g.fillRect(bx + 8, y + 4, 9, 9);
-        g.strokeStyle = '#394137'; g.strokeRect(bx + 8, y + 4, 9, 9);
+        g.textAlign = 'left'; g.fillStyle = car.livery.body; g.fillRect(bx + 10, y + (rowH - 12) / 2, 10, 10);
+        g.strokeStyle = '#394137'; g.strokeRect(bx + 10, y + (rowH - 12) / 2, 10, 10);
         g.fillStyle = car.isPlayer && !mobile ? '#242b25' : '#f2e6ca';
-        g.fillText(`${order.indexOf(car) + 1}. ${car.name}`, bx + 23, y + 3, mobile ? 78 : 125);
-        let gap = t('you');
+        g.fillText(`${order.indexOf(car) + 1}  ${String(car.name).toUpperCase()}`, bx + 26, y + 4, mobile ? 92 : 140);
+        let gap = t('you').toUpperCase();
         if (car !== p) {
           const distance = Math.abs(car.progress - p.progress), pace = p.bestLap || car.bestLap;
           const sign = car.progress >= p.progress ? '+' : '−';
           gap = pace ? `≈${sign}${(distance / race.track.length * pace).toFixed(1)} s` : `${sign}${Math.round(distance)} m`;
         }
-        g.textAlign = 'right'; g.fillText(gap, bx + bw - 10, y + 3, mobile ? 54 : 72);
+        g.textAlign = 'right'; g.fillText(gap, bx + bw - 14, y + 4, mobile ? 60 : 80);
       });
       g.textAlign = 'left';
     }
@@ -2864,7 +2913,7 @@ class Renderer {
       const attend = (ch && ch.reste > 0) || (race.attente);
       if (attend) {
         panel(cx - 130, cy - 30, 260, 60);
-        g.textAlign = 'center'; g.fillStyle = '#fff'; g.font = 'bold 20px system-ui, sans-serif';
+        g.textAlign = 'center'; g.fillStyle = '#fff'; g.font = 'italic 900 26px Racing, Impact, sans-serif';
         g.fillText(ch && ch.total ? t('loadingN', ch.prets, ch.total) : t('loading'), cx, cy + 7);
         g.font = '13px system-ui, sans-serif'; g.fillStyle = '#cfd3dc';
         g.fillText(t('loadingWhy'), cx, cy + 50);
@@ -2873,18 +2922,18 @@ class Renderer {
       }
       panel(cx - 120, cy - 30, 240, 60);
       for (let i = 0; i < 4; i++) { g.fillStyle = i < lights ? '#ff3b3b' : 'rgba(255,255,255,0.15)'; g.beginPath(); g.arc(cx - 75 + i * 50, cy, 16, 0, Math.PI * 2); g.fill(); }
-      g.textAlign = 'center'; g.fillStyle = '#fff'; g.font = 'bold 18px system-ui, sans-serif';
+      g.textAlign = 'center'; g.fillStyle = '#fff'; g.font = 'italic 900 24px Racing, Impact, sans-serif';
       const mode = ui.app.desktop ? ui.app.controls.mode : 'touch';
       g.fillText(t(mode === 'wheel' ? 'wheelGo' : mode === 'gamepad' ? 'padGo' : mode === 'touch' ? 'holdToGoTouch' : 'holdToGo'), cx, cy + 40);
       g.font = '14px system-ui, sans-serif'; g.fillStyle = '#cfd3dc';
       g.fillText(t(mode === 'gamepad' ? 'lineHintPad' : mode === 'touch' ? 'lineHintTouch' : 'lineHintPC'), cx, cy + 66);
     } else if (race.time < 1.2 && race.state === 'racing') {
-      g.textAlign = 'center'; g.fillStyle = '#5be07a'; g.font = 'bold 64px system-ui, sans-serif';
+      g.textAlign = 'center'; g.fillStyle = '#5be07a'; g.font = 'italic 900 80px Racing, Impact, sans-serif';
       g.globalAlpha = 1 - race.time / 1.2; g.fillText('GO!', W / 2, H * 0.18); g.globalAlpha = 1;
     }
-    if (p.state === 'grass') { g.textAlign = 'center'; g.fillStyle = '#ff6b6b'; g.font = 'bold 28px system-ui, sans-serif'; g.fillText(t('offTrack'), W / 2, H * 0.3);
-      if(p.engineStopped){g.fillStyle='#ffcf5c';g.font='bold 18px system-ui, sans-serif';g.fillText(t('engineCut'),W/2,H*.3+30);} }
-    if (p.finished && race.state !== 'finished') { g.textAlign = 'center'; g.fillStyle = '#ffd400'; g.font = 'bold 40px system-ui, sans-serif'; g.fillText(`${t('finished')} — P${race.positionOf(p)}`, W / 2, H * 0.3); }
+    if (p.state === 'grass') { g.textAlign = 'center'; g.fillStyle = '#ff6b6b'; g.font = 'italic 900 36px Racing, Impact, sans-serif'; g.fillText(t('offTrack'), W / 2, H * 0.3);
+      if(p.engineStopped){g.fillStyle='#ffcf5c';g.font='italic 900 24px Racing, Impact, sans-serif';g.fillText(t('engineCut'),W/2,H*.3+30);} }
+    if (p.finished && race.state !== 'finished') { g.textAlign = 'center'; g.fillStyle = '#ffd400'; g.font = 'italic 900 52px Racing, Impact, sans-serif'; g.fillText(`${t('finished')} — P${race.positionOf(p)}`, W / 2, H * 0.3); }
     /* Le temps au tour se pose sous TOUT ce qui occupe le haut, et non à une hauteur fixe.
 
     Deux fois de suite il est tombé sur quelque chose : à 12 % de la hauteur il couvrait le bouton
@@ -2899,7 +2948,7 @@ class Renderer {
       g.fillStyle='rgba(10,12,20,.85)';g.fillRect((W-width)/2,y-4,width,28);
       g.fillStyle='#f0d885';g.fillText(label,W/2,y);g.restore();
     }
-    if (ui.flash && ui.flash.until > performance.now()) { g.textAlign = 'center'; g.fillStyle = ui.flash.color || '#fff'; g.font = 'bold 26px system-ui, sans-serif'; g.fillText(ui.flash.text, W / 2, Math.max(H * 0.12, pb.y + pb.s + 14, P.t + boxH + 14)); }
+    if (ui.flash && ui.flash.until > performance.now()) { g.textAlign = 'center'; g.fillStyle = ui.flash.color || '#fff'; g.font = 'italic 900 32px Racing, Impact, sans-serif'; g.fillText(ui.flash.text, W / 2, Math.max(H * 0.12, pb.y + pb.s + 14, P.t + boxH + 14)); }
     g.textBaseline = 'alphabetic';
   }
 
@@ -2927,7 +2976,7 @@ class Renderer {
     sur l'appareil de celui qui a changé le réglage. */
     const cote = s.droite ? -1 : 1;
     const lx = s.x + 14 * cote;
-    g.font = `bold ${this.mobile ? 10 : 11}px system-ui, sans-serif`;
+    g.font = `italic 900 ${this.mobile ? 13 : 15}px Racing, Impact, sans-serif`;
     g.textAlign = s.droite ? 'right' : 'left'; g.textBaseline = 'middle';
     for (const st of stops) {
       const y = s.y + s.len / 2 - st.v * s.len / 2;
@@ -2943,7 +2992,7 @@ class Renderer {
       g.fillStyle = '#1a1400'; g.font = `bold ${this.mobile ? 9 : 10}px system-ui, sans-serif`;
       g.textAlign = 'center'; g.fillText('P', s.x, this.pitY + 0.5);
       g.textAlign = s.droite ? 'right' : 'left'; g.fillStyle = actif ? '#5be07a' : '#e8e8ec';
-      g.font = `bold ${this.mobile ? 10 : 11}px system-ui, sans-serif`;
+      g.font = `italic 900 ${this.mobile ? 13 : 15}px Racing, Impact, sans-serif`;
       g.fillText(t('linePit'), lx, this.pitY);
     }
     /* La poignée prend la couleur de ce qu'elle demande.
