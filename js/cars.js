@@ -221,7 +221,7 @@ const CATEGORIES = [
           haut: 'sounds/engine/v8-gt40-haut.json',
           bas: 'sounds/engine/v8-gt40-bas.json',
         },
-      }, colors: ['#5bc8e8', '#ff8c1a'], top: 'sprites/top/gt40.png' },
+      }, colors: ['#c9a348', '#202321'], top: 'sprites/top/gt40.png' },
       /* La 935 prend la place de la 917 K, et elle prend AUSSI son identifiant — non.
 
       Elle en prend un neuf, `935`, et c'est délibéré. L'identifiant est la clé sous laquelle sont
@@ -301,7 +301,7 @@ const HISTORIC_LIVERIES = {
 for (const category of CATEGORIES) {
   for (const model of category.models) {
     if (HISTORIC_LIVERIES[model.id]) {
-      model.livrees = [{ id: '', nom: model.name }, ...HISTORIC_LIVERIES[model.id]];
+      model.livrees = [{ id: '', nom: model.id === 'gt40' ? 'Holman Moody · 1966 · 5' : model.name }, ...HISTORIC_LIVERIES[model.id]];
     }
   }
 }
@@ -361,9 +361,8 @@ function frontWheelLayout(m, cat) {
   if (!CARTOON_MODELS.has(m.id)) return null;
   if (m.id === 'tyrrellp34') return {axles:[0.20,0.30], y:0.30, length:0.085, width:0.18};
   if (cat.id === 'f1') return {axles:[0.30], y:0.32, length:0.15, width:0.23};
-  // The M1's wide, square front fenders cover straight tires. Only the turned
-  // tire tips emerge; placing tires at the body edge made the arches look missing.
-  if (m.id === 'm1procar') return {axles:[0.28], y:0.36, length:0.15, width:0.16};
+  // Keep the M1 fenders intact; expose a narrow tire edge even at zero steering.
+  if (m.id === 'm1procar') return {axles:[0.28], y:0.46, length:0.15, width:0.16};
   return {axles:[0.25], y:0.42, length:0.15, width:0.18};
 }
 function resolveModel(cat, m) {

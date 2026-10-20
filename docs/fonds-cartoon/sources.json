@@ -1,0 +1,58 @@
+[
+  {
+    "name": "paddock",
+    "source": "exec-ab797a4e-196e-4c16-887e-a86ebf2440bc.png"
+  },
+  {
+    "name": "bathurst",
+    "source": "exec-10047efb-acbf-4d9b-88d1-83f4f1de95b4.png"
+  },
+  {
+    "name": "castellet",
+    "source": "exec-385452bc-5973-4973-a178-c74dd9954bae.png"
+  },
+  {
+    "name": "interlagos",
+    "source": "exec-c6d4caa9-aa43-4be3-a86b-e87119fa8444.png"
+  },
+  {
+    "name": "laguna",
+    "source": "exec-fca0ca3d-d481-49da-8068-9f5c83b21133.png"
+  },
+  {
+    "name": "lemans",
+    "source": "exec-f029cb99-b4f2-48b0-8359-105fca69b57c.png"
+  },
+  {
+    "name": "monaco",
+    "source": "exec-d1a462a8-fb43-4989-a74e-1f22e4401828.png"
+  },
+  {
+    "name": "monza",
+    "source": "exec-3dd722d5-4f22-4e9c-882d-c9437875ad4e.png"
+  },
+  {
+    "name": "nurburgring",
+    "source": "exec-9fa00e15-0ce9-40dc-a1ae-522b579ac934.png"
+  },
+  {
+    "name": "redbullring",
+    "source": "exec-b24c0e43-ae0d-4e7c-974f-98090a8b306b.png"
+  },
+  {
+    "name": "silverstone",
+    "source": "exec-f3bfa2c2-e2dd-4d78-8cfb-d83da3891951.png"
+  },
+  {
+    "name": "spa",
+    "source": "exec-880ee250-c7b7-4ee9-a630-181622e41031.png"
+  },
+  {
+    "name": "suzuka",
+    "source": "exec-2c838260-31fe-4bb4-9b70-bfa951a941c9.png"
+  },
+  {
+    "name": "zandvoort",
+    "source": "exec-5f41b30c-7175-4fdf-95c1-d44831b03255.png"
+  }
+]

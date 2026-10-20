@@ -11,9 +11,9 @@
     "id": "ferrari312t",
     "livery": 0,
     "wheels": 2,
-    "left": 4737,
-    "right": 4822,
-    "shadow": 2030
+    "left": 4631,
+    "right": 4755,
+    "shadow": 2019
   },
   {
     "id": "mclarenm23",
@@ -75,25 +75,25 @@
     "id": "m1procar",
     "livery": 0,
     "wheels": 2,
-    "left": 1618,
-    "right": 1619,
-    "shadow": 1531
+    "left": 2444,
+    "right": 2448,
+    "shadow": 1659
   },
   {
     "id": "m1procar",
     "livery": 1,
     "wheels": 2,
-    "left": 1633,
-    "right": 1636,
-    "shadow": 1538
+    "left": 2485,
+    "right": 2492,
+    "shadow": 1662
   },
   {
     "id": "m1procar",
     "livery": 2,
     "wheels": 2,
-    "left": 1612,
-    "right": 1613,
-    "shadow": 1525
+    "left": 2484,
+    "right": 2484,
+    "shadow": 1660
   },
   {
     "id": "f40",
@@ -291,9 +291,9 @@
     "id": "gt40",
     "livery": 0,
     "wheels": 2,
-    "left": 2000,
-    "right": 2008,
-    "shadow": 1520
+    "left": 1971,
+    "right": 1982,
+    "shadow": 1533
   },
   {
     "id": "gt40",

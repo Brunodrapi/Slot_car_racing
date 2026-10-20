@@ -10,8 +10,8 @@ Les vues de sélection utilisent une caméra trois-quarts plus basse, notamment 
 
 Les ailes avant font partie de la carrosserie, **pas des roues à supprimer**.
 Les trois livrées ont leurs ailes élargies et anguleuses restaurées à partir de
-la silhouette d'origine. Les pneus mobiles sont placés dessous : droits, ils sont
-masqués par les ailes ; braqués, leurs extrémités apparaissent.
+la silhouette d'origine. Depuis la version 0.41.1, les pneus mobiles sont davantage
+écartés : leur bord reste visible roues droites, et leur braquage est plus lisible.
 
 Le comparatif ci-dessous montre les fichiers de carrosserie : les roues avant
 séparées sont ajoutées par le jeu, comme dans les planches de contrôle plus bas.
@@ -92,3 +92,7 @@ restent complètes.
 couper les voitures aux limites théoriques des cellules de l'atlas. Il conserve
 les dimensions de course et le rapport de perspective des menus. Les JSON par
 modèle recensent les dimensions et le nom de la génération source.
+
+## Retouches 0.41.1
+
+Livrée GT40 or/noir Holman Moody n°5, prise d’air de la 312T redessinée du dessus et fonds harmonisés : [voir les nouveaux fonds](../fonds-cartoon/README.md).

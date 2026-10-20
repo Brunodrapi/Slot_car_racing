@@ -562,7 +562,7 @@ class UI {
   circuitArt(trackDef) {
     // Custom tracks get a neutral background, never an unrelated real circuit.
     return !trackDef.custom && TRACKS.some(tr => tr.id === trackDef.id)
-      ? `art/interface/circuits/${trackDef.id}.webp` : '';
+      ? `art/interface/circuits/${trackDef.id}.webp?r=cartoon-1` : '';
   }
 
   carPreview(model) {

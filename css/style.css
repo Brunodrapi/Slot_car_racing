@@ -678,7 +678,7 @@ body.desktop .screen.title-desktop { display:flex; justify-content:center; width
 .title-copy { width:min(57vw,760px); gap:22px; }
 .title-copy .primary { background:#cf3029; color:#fff2d7; border:2px solid #f5e6c7; border-radius:0; font-weight:900; text-transform:uppercase; box-shadow:5px 5px 0 #111; }
 .title-inputs, .title-copy .version { color:#fff3d8; background:#171c19e8; padding:8px 12px; }
-#ui:has(.setup-screen, .selection-screen) { background:#202822 url('../art/interface/paddock.webp') center / cover no-repeat; }
+#ui:has(.setup-screen, .selection-screen) { background:#202822 url('../art/interface/paddock.webp?r=cartoon-1') center / cover no-repeat; }
 .setup-screen, .selection-screen { --text:#272b28; --muted:#5f6158; --accent:#b42b26; --card:#eee3ca; --card2:#ddd0b6; --panel:#f4ead5; color:var(--text); background:#e9dec8f5; border-inline:1px solid #242824; gap:16px; }
 .setup-screen .topbar, .selection-screen .topbar { background:#bd2c26; color:#fff1d5; padding:12px; border-bottom:4px solid #252824; }
 .setup-screen h2, .selection-screen h2 { font-family:Impact,'Arial Narrow',system-ui,sans-serif; text-transform:uppercase; font-style:italic; letter-spacing:.01em; }
@@ -691,7 +691,7 @@ body.desktop .screen.title-desktop { display:flex; justify-content:center; width
 .section-number, .setup-screen .eyebrow, .selection-screen .eyebrow { color:#ad3024; }
 .selection-preview { display:grid; grid-template-columns:minmax(0,3fr) minmax(0,2fr); gap:14px; padding:0; border:0; border-radius:0; background:none; min-height:0; }
 .paddock-car, .paddock-track { position:relative; min-width:0; overflow:hidden; border:2px solid #33392f; height:300px; }
-.paddock-car { background:#c8baa0 url('../art/interface/paddock.webp') center / cover; display:flex; flex-direction:column; }
+.paddock-car { background:#c8baa0 url('../art/interface/paddock.webp?r=cartoon-1') center / cover; display:flex; flex-direction:column; }
 .preview-copy { position:relative; z-index:1; padding:10px 16px; gap:4px; background:#fbefd9f0; border-bottom:2px solid #33392f; }
 .preview-copy b { color:#20271f; font-family:Impact,'Arial Narrow',system-ui,sans-serif; font-size:clamp(22px,2.5vw,34px); font-style:italic; text-transform:uppercase; }
 .preview-car { flex:1; min-height:0; display:flex; align-items:end; justify-content:center; padding:4px 16px 12px; }
@@ -973,7 +973,7 @@ img.stat-ico { object-fit:contain; }
 /* Téléphone : du papier, et le paddock derrière la voiture seulement. */
 @media (max-width:850px) {
   #ui:has(.setup-screen, .selection-screen) { background:#efe2c4 url('../art/interface/ink.svg'); }
-  .setup-screen .paddock-car, .setup-columns .paddock-car, .selection-screen .paddock-car { background:#c8baa0 url('../art/interface/paddock.webp') center / cover no-repeat; border:2px solid #20251f; }
+  .setup-screen .paddock-car, .setup-columns .paddock-car, .selection-screen .paddock-car { background:#c8baa0 url('../art/interface/paddock.webp?r=cartoon-1') center / cover no-repeat; border:2px solid #20251f; }
   .setup-screen .topbar > button, .selection-screen .topbar > button { font-size:14px; padding:0 10px; }
   .titre-damier { flex-basis:34px; width:34px; margin:0 -6px 0 0; background-size:10px 10px; }
   .setup-screen .topbar h2, .selection-screen .topbar h2 { padding:2px 30px 2px 16px; font-size:24px; }
