@@ -213,6 +213,10 @@ const PARK_TEINTES = ['#d9d9dc', '#ececed', '#9b9ba1', '#6e6e76', '#3b3c42', '#2
 // barrières qu'elle longe (`_drawBarriers`) et des tas de bois — les valeurs d'avant, qui
 // étaient seulement posées dans le mauvais repère.
 const OMBRE_VOITURE = [0.25, 0.35];
+// Le faisceau des feux stop, en mètres : sa longueur, sa demi-largeur au bout et au feu, l'écart
+// des deux feux d'une GT (en fraction de la largeur du dessin), l'ouverture de leurs cônes vers
+// l'extérieur, et la part cachée sous la carrosserie.
+const FEU_STOP = { long: 3.2, demi: 0.95, source: 0.16, ecart: 0.3, ouvre: 0.45, dedans: 0.35 };
 const LINE_COLORS = { bleu: 'rgba(80,200,255,0.55)', racing: 'rgba(255,255,255,0.5)', jaune: 'rgba(255,200,60,0.55)' };
 
 class Renderer {
@@ -2478,11 +2482,16 @@ class Renderer {
     if(car.blueFlag)g.globalAlpha*=.45;
     g.translate(pos.x, pos.y);
     g.rotate(h);
-    // Inclure le contour du dessin, les rétroviseurs, l'ombre et les feux.
+    // Inclure le contour du dessin, les rétroviseurs, l'ombre et les feux — et, au freinage, le
+    // faisceau des feux stop, sans quoi il resterait peint sur la couche d'une image à l'autre.
     const art = topArt(c, car.livree);
-    const halfL = c.length / 2 + 0.7, halfW = (art ? topSize(c, art)[1] : c.width) / 2 + 0.7;
+    const freine = car.braking && car.state === 'ok';
+    const dessinW = art ? topSize(c, art)[1] : c.width;
+    const halfL = c.length / 2 + 0.7, halfW = dessinW / 2 + 0.7;
+    const arriere = freine ? c.length / 2 + FEU_STOP.long : halfL;
+    const largeur = freine ? Math.max(halfW, dessinW * FEU_STOP.ecart + FEU_STOP.ouvre + FEU_STOP.demi + 0.2) : halfW;
     const pose = g.getTransform();
-    const corners = [[-halfL, -halfW], [-halfL, halfW], [halfL, -halfW], [halfL, halfW]];
+    const corners = [[-arriere, -largeur], [-arriere, largeur], [halfL, -largeur], [halfL, largeur]];
     const xs = corners.map(([x, y]) => pose.a * x + pose.c * y + pose.e);
     const ys = corners.map(([x, y]) => pose.b * x + pose.d * y + pose.f);
     const x0 = Math.max(0, Math.floor(Math.min(...xs)) - 2);
@@ -2503,8 +2512,8 @@ class Renderer {
     // a drawn car casts its own outline; a vector one only has a box to offer
     if (!drawCarShadow(g, c, car.livree, { steer: car.steerAngle })) { g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width); }
     g.restore();
+    if (freine) this._feuxStop(g, c, art);
     drawCarModel(g, c, car.livery, { number: car.number, steer: car.steerAngle, livree: car.livree });
-    if (car.braking && car.state === 'ok') { g.fillStyle = 'rgba(255,40,40,0.9)'; g.fillRect(-c.length / 2 - 0.15, -c.width / 2 + 0.1, 0.25, c.width - 0.2); }
     g.restore();
     /* Pas de cercle autour de la voiture du joueur.
 
@@ -2512,6 +2521,40 @@ class Renderer {
     anneau qui n'existe pas dans le monde, posé sur la seule voiture qu'on regarde, casse
     l'immersion. La voiture se retrouve autrement — c'est elle que la caméra suit, et la pastille
     de couleur du classement la désigne déjà. */
+  }
+
+  /* LES FEUX STOP : un faisceau rouge qui part de l'arrière et s'éteint en trois mètres.
+
+  Il remplace une barre rouge peinte en travers du pare-chocs, qui se lisait comme un trait de
+  dessin plus que comme une lumière. Deux cônes pour une GT, un feu par côté ; un seul au milieu
+  pour un proto et une F1, comme le feu central d'une monoplace. Chaque cône s'écarte un peu de
+  l'axe, comme un phare, et s'estompe vite : très rouge au feu, presque rien à mi-longueur. Il se
+  peint SOUS la voiture, pour sortir de derrière la carrosserie au lieu de s'y poser dessus.
+
+  Le dégradé est créé une fois, dans le repère du feu : la couleur ne dépend que de la distance
+  au feu, et toutes les voitures le partagent. */
+  _feuxStop(g, c, art) {
+    const F = FEU_STOP, W = art ? topSize(c, art)[1] : c.width;
+    if (!this._degradeFeu || this._degradeFeuCtx !== g) {
+      const d = g.createLinearGradient(0, 0, -F.long, 0);
+      d.addColorStop(0, 'rgba(255,36,28,0.62)');
+      d.addColorStop(0.22, 'rgba(255,36,28,0.3)');
+      d.addColorStop(0.55, 'rgba(255,36,28,0.08)');
+      d.addColorStop(1, 'rgba(255,36,28,0)');
+      this._degradeFeu = d; this._degradeFeuCtx = g;
+    }
+    const feux = c.catId === 'gt' ? [-W * F.ecart, W * F.ecart] : [0];
+    g.save();
+    g.translate(-c.length / 2 + F.dedans, 0);
+    g.fillStyle = this._degradeFeu;
+    for (const y of feux) {
+      const ouvre = Math.sign(y) * F.ouvre;             // un cône de côté s'écarte de l'axe
+      g.beginPath();
+      g.moveTo(0, y - F.source); g.lineTo(-F.long, y + ouvre - F.demi);
+      g.lineTo(-F.long, y + ouvre + F.demi); g.lineTo(0, y + F.source);
+      g.closePath(); g.fill();
+    }
+    g.restore();
   }
 
   _roundRect(g, x, y, w, h, r) {
