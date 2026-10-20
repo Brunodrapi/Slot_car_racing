@@ -414,7 +414,11 @@ class Renderer {
     colonne — les jauges d'usure, la carte en face — se retourne avec lui, sinon le retournement
     ne ferait que déplacer la gêne. */
     const droite = this.ctrlSide === 'right';
-    const len = Math.min(H * (this.shortLandscape ? 0.28 : 0.38), 320);
+    /* DEUX FOIS PLUS COURT QU'AVANT (38 % de la hauteur, jusqu'à 320 px) : le pouce mettait trop
+    de temps à aller d'un bout à l'autre, et c'est en entrée de virage qu'on change de ligne. La
+    ligne suit le doigt sans délai ; seule la course du pouce raccourcit. Au moins 64 px, pour que
+    la poignée posée sur un cran ne mange pas le libellé du suivant en paysage. */
+    const len = clamp(H * (this.shortLandscape ? 0.14 : 0.19), 64, 160);
     this.slider = { x: droite ? W - P.r - 22 : P.l + 22, y: H - P.b - 30 - len, len, w: 30, droite };
     /* Les deux cadrans d'usure, en colonne au-dessus du levier.
 
