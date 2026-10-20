@@ -1,4 +1,4 @@
-# Véhicules du décor — 0.40.2
+# Véhicules du décor — 0.41.2
 
 Les voitures des parkings étaient des rectangles gris. Elles suivent maintenant la planche de référence fournie : vue de dessus, aplat franc, contour épais et sombre, vitres presque noires.
 
