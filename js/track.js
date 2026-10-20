@@ -358,10 +358,18 @@ class Track {
   À l'intérieur d'une épingle serrée, un dégagement mesuré depuis le bord se replie sur lui-même
   dès qu'il dépasse le rayon du virage. `asphaltPads` donne alors le contour relevé sur l'image
   annotée, en mètres du monde : la surface est le polygone fermé par le bord de piste entre ses
-  deux extrémités. Le rendu le peint comme un dégagement bitumé, la physique le lit comme tel. */
+  deux extrémités. `free:true` ferme directement le contour dessiné pour combler un îlot.
+  La matière (bitume par défaut ou gravier) est partagée par le rendu et la physique. */
   _buildPads(){
     this.pads=[];
     for(const p of this.def.asphaltPads||[]){
+      if (!Array.isArray(p.pts) || p.pts.length < 3) continue;
+      const surface = p.surface === 'gravel' ? 'gravel' : 'asphalt';
+      if (p.free) {
+        const poly=p.pts.map(q=>q.slice()), xs=poly.map(q=>q[0]),ys=poly.map(q=>q[1]);
+        this.pads.push({side:p.side,surface,poly,bbox:{minX:Math.min(...xs),maxX:Math.max(...xs),minY:Math.min(...ys),maxY:Math.max(...ys)}});
+        continue;
+      }
       const first=p.pts[0],last=p.pts.at(-1),W=Math.ceil(this.n/2)+1;
       let a=this.project(first[0],first[1],0,W).s,b=this.project(last[0],last[1],0,W).s;
       if(this.wrap(b-a)>this.length/2)[a,b]=[b,a];
@@ -373,19 +381,20 @@ class Track {
       const pts=this.wrap(this.project(first[0],first[1],0,W).s-a)<1?p.pts.slice().reverse():p.pts.slice();
       poly.push(...pts);
       const xs=poly.map(q=>q[0]),ys=poly.map(q=>q[1]);
-      this.pads.push({side:p.side,poly,bbox:{minX:Math.min(...xs),maxX:Math.max(...xs),minY:Math.min(...ys),maxY:Math.max(...ys)}});
+      this.pads.push({side:p.side,surface,poly,bbox:{minX:Math.min(...xs),maxX:Math.max(...xs),minY:Math.min(...ys),maxY:Math.max(...ys)}});
     }
   }
 
   padAt(x,y){
-    for(const p of this.pads||[]){
+    for(let k=(this.pads||[]).length-1;k>=0;k--){
+      const p=this.pads[k];
       const b=p.bbox;if(x<b.minX||x>b.maxX||y<b.minY||y>b.maxY)continue;
       let inside=false;
       for(let i=0,j=p.poly.length-1;i<p.poly.length;j=i++){
         const [xi,yi]=p.poly[i],[xj,yj]=p.poly[j];
         if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)inside=!inside;
       }
-      if(inside)return true;
+      if(inside)return p.surface;
     }
     return false;
   }
@@ -394,7 +403,7 @@ class Track {
     const side = lat >= 0 ? 'L' : 'R';
     const d = Math.abs(lat) - (lat >= 0 ? this.hwLeftAt(s) : this.hwRightAt(s));
     if (d <= 0) return 'asphalt';
-    if (this.pads && this.pads.length) { const q = this.pos(s, lat); if (this.padAt(q.x, q.y)) return 'asphalt'; }
+    if (this.pads && this.pads.length) { const q = this.pos(s, lat); const surface=this.padAt(q.x, q.y); if (surface) return surface; }
     if (this.asphaltW && d <= this._lerp(this.asphaltW[side], s)) return 'asphalt';
     if (this.bacW && d <= this._lerp(this.bacW[side], s)) return 'gravel';
     return 'grass';

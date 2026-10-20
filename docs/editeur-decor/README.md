@@ -51,3 +51,20 @@ Le tracé et la largeur de la piste (mode Tracé pour un circuit perso, `lignes.
 ![Au téléphone](telephone.webp)
 
 Vérification : `tools/e2e-editeur-decor.js` — chaque outil à la souris, annulation, enregistrement relu par le jeu, fichier fabriqué qui s'évalue et ne touche qu'au circuit retouché, circuit perso, téléphone. `e2e-lignes`, `e2e-barrieres`, `e2e-menu` et les bancs du décor passent.
+
+## Combler un îlot dans un dégagement — 0.42.2
+
+Les zones ordinaires sont décrites par une largeur le long de la piste. À l'intérieur des épingles et entre deux virages, ces bandes peuvent laisser des poches d'herbe ; agrandir leur largeur ne suffit pas toujours, car le décalage peut se replier ou être limité par une portion de piste voisine.
+
+Dans **Décor → Hors-piste** :
+
+1. Choisir **Combler : bitume** ou **Combler : gravier**.
+2. Cliquer autour du trou, avec au moins trois points. On peut déborder légèrement sur le dégagement existant pour éviter une couture.
+3. Terminer avec **Entrée**, un double-clic ou le bouton **Terminer** (également sur téléphone).
+4. Déplacer les points si nécessaire, puis **Enregistrer**. La liste permet de sélectionner de nouveau le comblement et de changer sa matière. **Annuler** ou Ctrl+Z défait le geste.
+
+Le contour se ferme directement : il n'est pas rattaché automatiquement à un autre bord de piste. Il reste sous la piste et les vibreurs. Les barrières et les objets ne sont pas déplacés automatiquement. Les modifications enregistrées sont locales au navigateur ; utiliser l'export de l'éditeur pour les reporter dans le fichier du jeu.
+
+Le bitume et le gravier sont reconnus par le moteur de conduite. Si deux surfaces dessinées se recouvrent, la dernière prévaut. Leurs remplissages sont séparés, ce qui évite qu'un contour tracé dans l'autre sens crée un trou par annulation.
+
+Vérifications automatisées : création par clics, matière, annulation, superposition de contours de sens opposés (rendu et physique), sauvegarde locale, export `tracks.js`, chargement dans le jeu et interface mobile.

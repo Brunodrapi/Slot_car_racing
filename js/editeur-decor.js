@@ -386,7 +386,7 @@ function dessinerCalque(g) {
     });
     padsListe().forEach((pad, pi) => {
       const pts = pad.pts.map(([x, y]) => ({ x, y })), choisie = s && s.pad === pi;
-      ligne(pts.concat([pts[0]]), COUL_SURF.asphalt, choisie ? 3 : 1.5, choisie ? [] : [3, 4]);
+      ligne(pts.concat([pts[0]]), COUL_SURF[pad.surface || 'asphalt'], choisie ? 3 : 1.5, choisie ? [] : [3, 4]);
       if (choisie) pts.forEach((p, i) => poignee(p, '#ffffff', s.point === i));
     });
   }
@@ -680,7 +680,7 @@ function finirTrace() {
     DEC.sel = { outil: 'horspiste', zone: zonesHP().length - 1 };
   } else if (t.type === 'pad' && t.pts.length >= 3) {
     const side = projette(t.pts[0][0], t.pts[0][1]).lat >= 0 ? 1 : -1;
-    changer(() => padsListe().push({ side, pts: t.pts }));
+    changer(() => padsListe().push({ side, pts: t.pts, ...(t.free ? {free:true, surface:t.surface} : {}) }));
     DEC.sel = { outil: 'horspiste', pad: padsListe().length - 1 };
   } else if (t.type === 'trait' && t.pts.length >= 2) {
     const p = { side: 1, from: 0, to: 0, pts: t.pts };
@@ -714,7 +714,7 @@ function majFiche() {
   const el = $d('d-fiche'), s = DEC.sel;
   let h = '';
   if (DEC.trace) {
-    const quoi = { runoff: 'le long du bord de la piste, du début à la fin de la zone', pad: 'le contour de la surface, d’un bord de piste à l’autre',
+    const quoi = { runoff: 'le long du bord de la piste, du début à la fin de la zone', pad: DEC.trace.free ? 'tout le contour du trou à combler (au moins trois points)' : 'le contour de la surface, d’un bord de piste à l’autre',
       trait: 'la barrière, point par point', zone: 'le début puis la fin de la zone, à côté de la piste' }[DEC.trace.type];
     h += `<p class="help">Clique ${quoi}. ${DEC.trace.type === 'zone' ? '' : 'Double-clic ou Entrée pour terminer, '}Échap pour annuler.</p>
       <div class="row2">${DEC.trace.type === 'zone' ? '' : '<button id="d-finir" class="primary">Terminer</button>'}<button id="d-abandon">Annuler le tracé</button></div>`;
@@ -740,9 +740,9 @@ function majFiche() {
     if (ob) h += '<div class="row2"><button id="d-raz-objets">Effacer les retouches d’objets</button></div>';
   } else if (DEC.outil === 'horspiste') {
     h += champ('Gravier automatique dans les virages', `<input type="checkbox" id="d-auto" ${DEC.decor.annotatedRunoffsOnly ? '' : 'checked'}>`);
-    h += `<div class="tools"><button data-nouv="asphalt">+ Bitume</button><button data-nouv="gravel">+ Gravier</button><button data-nouv="grass">+ Herbe</button><button data-nouv="pad">+ Surface</button></div>`;
+    h += `<div class="tools"><button data-nouv="asphalt">+ Bitume</button><button data-nouv="gravel">+ Gravier</button><button data-nouv="grass">+ Herbe</button><button data-nouv="pad">+ Surface liée au bord</button><button data-fill="asphalt">Combler : bitume</button><button data-fill="gravel">Combler : gravier</button></div>`;
     h += `<select id="d-liste" size="7" style="width:100%">${zonesHP().map((z, i) => opt('z' + i, `${{ asphalt: 'Bitume', gravel: 'Gravier', grass: 'Herbe' }[z.surface] || z.surface} · ${esc(z.name || 'zone')}`, s && s.zone === i)).join('')}
-      ${padsListe().map((p, i) => opt('p' + i, `Surface bitumée ${i + 1}`, s && s.pad === i)).join('')}</select>`;
+      ${padsListe().map((p, i) => opt('p' + i, `${p.free ? 'Comblement' : 'Surface'} ${p.surface === 'gravel' ? 'gravier' : 'bitume'} ${i + 1}`, s && s.pad === i)).join('')}</select>`;
     if (s && s.zone != null && zonesHP()[s.zone]) {
       const z = zonesHP()[s.zone];
       h += champ('Nom', `<input type="text" id="d-nom" value="${esc(z.name || '')}">`);
@@ -750,7 +750,8 @@ function majFiche() {
       h += `<p class="help">Côté ${z.side > 0 ? 'gauche' : 'droit'} · ${pointsZone(z).length} points. Glisser un point ; Maj+clic sur la zone : insérer ; Alt+clic ou clic droit : retirer.</p>`;
       h += '<div class="row2"><button id="d-suppr" class="danger">Supprimer la zone</button></div>';
     } else if (s && s.pad != null && padsListe()[s.pad]) {
-      h += '<p class="help">Surface bitumée dessinée : glisser un point ; Alt+clic : retirer.</p><div class="row2"><button id="d-suppr" class="danger">Supprimer la surface</button></div>';
+      h += champ('Matière', `<select id="d-pad-surface">${opt('asphalt', 'Bitume', padsListe()[s.pad].surface !== 'gravel')}${opt('gravel', 'Gravier', padsListe()[s.pad].surface === 'gravel')}</select>`);
+      h += '<p class="help">Contour fermé : glisser un point ; Alt+clic : retirer.</p><div class="row2"><button id="d-suppr" class="danger">Supprimer la surface</button></div>';
     } else h += '<p class="help">Les zones dessinées priment sur le gravier automatique. Une zone d’herbe efface le gravier sur son secteur.</p>';
   } else if (DEC.outil === 'barrieres') {
     h += `<div class="tools">${[['choisir', 'Choisir'], ['tracer', 'Tracer'], ['couper', 'Couper']].map(([m, t]) => `<button data-mode="${m}" class="${DEC.mode === m ? 'sel' : ''}">${t}</button>`).join('')}</div>`;
@@ -815,6 +816,8 @@ function brancherFiche() {
   for (const b of document.querySelectorAll('#d-fiche [data-mode]')) b.onclick = () => { DEC.mode = b.dataset.mode; DEC.trace = null; if (DEC.mode === 'tracer') commencerTrace('trait'); majFiche(); peindre(); };
   for (const b of document.querySelectorAll('#d-fiche [data-nouv]')) b.onclick = () => commencerTrace(b.dataset.nouv === 'pad' ? 'pad' : 'runoff', { surface: b.dataset.nouv });
   for (const b of document.querySelectorAll('#d-fiche [data-zone]')) b.onclick = () => commencerTrace('zone', { kind: b.dataset.zone, essence: b.dataset.essence });
+  for (const b of document.querySelectorAll('#d-fiche [data-fill]')) b.onclick = () => commencerTrace('pad', {free:true, surface:b.dataset.fill});
+  on('d-pad-surface', 'change', ev => changer(() => { padsListe()[DEC.sel.pad].surface=ev.target.value; }, true));
   on('d-finir', 'click', finirTrace);
   on('d-abandon', 'click', () => { DEC.trace = null; if (DEC.mode === 'tracer') DEC.mode = 'choisir'; majFiche(); peindre(); });
   on('d-ajout', 'change', (ev) => { DEC.ajout = ev.target.value; });

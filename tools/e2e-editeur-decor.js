@@ -116,6 +116,33 @@ const ok = (c, msg) => { console.log(`  ${c ? 'ok   ' : 'ÉCHEC'} ${msg}`); if (
   ok(Math.abs(w2 - 9) > 1, `glisser un point de zone change la largeur (${w2} m)`);
   await capture('03-hors-piste');
 
+  // A free polygon fills an island without snapping back to a different track segment.
+  await vise(0.42, 25, 4);
+  const fill = await p.evaluate(() => {
+    const T=DEC.track,s=.42*T.length,lat=T.hwLeftAt(s)+26,q=T.pos(s,lat);
+    return {s,lat,x:q.x,y:q.y,pts:[[-5,-5],[5,-5],[5,5],[-5,5]].map(([x,y])=>versEcran(q.x+x,q.y+y))};
+  });
+  await p.click('[data-fill="asphalt"]');
+  for(const q of fill.pts)await p.mouse.click(q.x,q.y);
+  await p.keyboard.press('Enter');await pret();
+  ok(await p.evaluate(({s,lat,x,y})=>DEC.decor.asphaltPads.at(-1).free && DEC.track.pads.at(-1).poly.length===4 && DEC.track.padAt(x,y)==='asphalt' && DEC.track.runoffSurfaceAt(s,lat)==='asphalt',fill), 'Combler bitume : contour libre exact, reconnu par la physique');
+  await p.selectOption('#d-pad-surface','gravel');await pret();
+  ok(await p.evaluate(({s,lat})=>DEC.track.runoffSurfaceAt(s,lat)==='gravel',fill), 'le changement de matière du comblement change la physique');
+  await p.keyboard.press('Control+z');await pret();
+  ok(await p.evaluate(({s,lat})=>DEC.track.runoffSurfaceAt(s,lat)==='asphalt',fill), 'annuler restaure le revêtement du comblement');
+  await p.click('[data-fill="gravel"]');
+  for(const q of fill.pts.slice().reverse())await p.mouse.click(q.x,q.y);
+  await p.keyboard.press('Enter');await pret();
+  ok(await p.evaluate(({x,y,s,lat})=>{
+    const c=document.createElement('canvas');c.width=c.height=100;const g=c.getContext('2d');
+    g.translate(50,50);g.scale(4,4);g.translate(-x,-y);
+    for(const pad of DEC.rendu.runoffPads){g.fillStyle=pad.surface==='gravel'?'#ff0000':'#0000ff';g.fill(pad.path);}
+    const px=g.getImageData(50,50,1,1).data;
+    return px[0]===255&&px[2]===0&&DEC.track.runoffSurfaceAt(s,lat)==='gravel';
+  },fill),'deux contours opposés superposés : aucun trou, dernier revêtement visible et physique');
+  await capture('03b-comblement');
+
+
   /* --- Barrières : tracer, couper --- */
   await outil('barrieres', 'tracer');
   const bp = await p.evaluate(() => [0.43, 0.435, 0.44].map((f) => { const T = DEC.track, s = f * T.length, q = T.pos(s, -(T.hwRightAt(s) + 6)); return versEcran(q.x, q.y); }));
