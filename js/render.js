@@ -209,6 +209,10 @@ const RAIES = ['#4a7bb4', '#6d97c6', '#4a7bb4', '#6d97c6', '#a8443c', '#c06a60',
 const PARK_TEINTES = ['#d9d9dc', '#ececed', '#9b9ba1', '#6e6e76', '#3b3c42', '#2b2c31',
   '#c9ccd1', '#8a9099', '#5a6472', '#7e8a7a', '#8b7f72', '#b4453c'];
 
+// Le décalage de l'ombre d'une voiture, en mètres du monde : en bas à droite, comme celle des
+// barrières qu'elle longe (`_drawBarriers`) et des tas de bois — les valeurs d'avant, qui
+// étaient seulement posées dans le mauvais repère.
+const OMBRE_VOITURE = [0.25, 0.35];
 const LINE_COLORS = { bleu: 'rgba(80,200,255,0.55)', racing: 'rgba(255,255,255,0.5)', jaune: 'rgba(255,200,60,0.55)' };
 
 class Renderer {
@@ -2482,8 +2486,15 @@ class Renderer {
     const x1 = Math.min(this.carCanvas.width, Math.ceil(Math.max(...xs)) + 2);
     const y1 = Math.min(this.carCanvas.height, Math.ceil(Math.max(...ys)) + 2);
     if (x1 > x0 && y1 > y0) this.carRects.push({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
+    /* L'OMBRE TOMBE DU MÊME CÔTÉ DANS LE MONDE, quel que soit le cap. Le décalage était posé après
+    la rotation, dans le repère de la voiture : l'ombre tournait avec elle, et une voiture en
+    travers la jetait vers le haut quand la barrière d'à côté jetait la sienne vers le bas. Il se
+    pose maintenant avant, dans le monde (`OMBRE_VOITURE`) — la silhouette, elle, tourne toujours
+    avec la voiture. Ça ne coûte rien : c'est la même image, seule la translation change de place. */
     g.save();
-    g.translate(0.25, 0.35);
+    g.rotate(-h);
+    g.translate(OMBRE_VOITURE[0], OMBRE_VOITURE[1]);
+    g.rotate(h);
     g.globalAlpha = 0.3;
     // a drawn car casts its own outline; a vector one only has a box to offer
     if (!drawCarShadow(g, c, car.livree, { steer: car.steerAngle })) { g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width); }

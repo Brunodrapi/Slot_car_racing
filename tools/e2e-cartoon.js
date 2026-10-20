@@ -63,6 +63,16 @@ fs.mkdirSync(out,{recursive:true});
           if(checked<100)throw Error('Missing F1 tire coverage: '+m.id);
         }
 
+        // One coat of shadow: at 30 % (alpha 77) the tires tucked under the body must not come out
+        // darker — two coats made 130. A couple of units of antialiasing at the seam are fine.
+        for(const steer of [0,.5,-.5]){
+          const k=document.createElement('canvas');k.width=480;k.height=320;
+          const g=k.getContext('2d');g.translate(240,160);g.scale(400/m.length,400/m.length);g.globalAlpha=.3;
+          drawCarShadow(g,m,i,{steer});
+          const d=data(k);let max=0;for(let p=3;p<d.length;p+=4)if(d[p]>max)max=d[p];
+          if(max>85)throw Error('Shadow darker over the tires: '+m.id+'/'+i+' steer '+steer+' alpha '+max);
+        }
+
         rows.push({id:m.id,livery:i,wheels:m.frontWheels.axles.length*2,
           left:diff(da,dc),right:diff(da,db),
           shadow:diff(data(frame(m,i,0,true)),data(frame(m,i,.5,true)))});

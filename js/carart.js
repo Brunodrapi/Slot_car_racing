@@ -188,42 +188,66 @@ function topSize(model, art) {
   return [L, L * art.img.naturalHeight / art.img.naturalWidth];
 }
 
-/** The car's own outline, filled dark, for the shadow. Returns false if this model has no drawing. */
+/** The car's own outline, filled dark, for the shadow. Returns false if this model has no drawing.
+
+ONE COAT OF SHADOW, NOT TWO. The front tires and the body were each laid down at the caller's
+opacity, so wherever a tire tucks under the body the two coats stacked: 0.3 over 0.3 makes 0.51,
+and every car carried two dark blots at its front wheels. The tires are filled first, and the
+body's silhouette is then clipped out of them — even-odd over a frame around the car — so each
+pixel of shadow is covered exactly once. */
 function drawCarShadow(g, model, livree, opts) {
   const art = topArt(model, livree);
   if (!art) return false;
   const [w, h] = topSize(model, art);
-  drawFrontWheels(g, model, w, h, opts, true);
+  const pneus = frontTires(model, w, h, opts);
+  if (!pneus.length) { g.drawImage(art.shadow, -w / 2, -h / 2, w, h); return true; }
+  const roues = new Path2D();
+  for (const p of pneus) {
+    const t = new Path2D();
+    t.roundRect(-p.length / 2, -p.width / 2, p.length, p.width, p.r);
+    roues.addPath(t, new DOMMatrix().translateSelf(p.x, p.y).rotateSelf(p.steer * 180 / Math.PI));
+  }
+  g.fillStyle = '#000';
+  g.fill(roues);
+  const horsRoues = new Path2D();
+  horsRoues.rect(-w, -h, 2 * w, 2 * h);
+  horsRoues.addPath(roues);
+  g.save();
+  g.clip(horsRoues, 'evenodd');
   g.drawImage(art.shadow, -w / 2, -h / 2, w, h);
+  g.restore();
   return true;
+}
+
+// Where each front tire sits and how far it is turned, in the sprite's frame (+x forward).
+function frontTires(model, w, h, opts) {
+  const layout = model.frontWheels;
+  if (!layout) return [];
+  const value = Number(opts && opts.steer);
+  const steer = Number.isFinite(value) ? Math.max(-0.65, Math.min(0.65, value)) : 0;
+  const length = layout.length * w, width = layout.width * h, r = Math.min(width * 0.22, length * 0.15);
+  const out = [];
+  for (const axle of layout.axles) for (const side of [-1, 1]) out.push({ x: axle * w, y: side * layout.y * h, steer, length, width, r });
+  return out;
 }
 
 // The atlas contains the body and rear wheels. Front tires are separate, underneath
 // the GT fenders or above F1 suspension, in the same local frame (+x forward).
 // Coordinates are fractions of the complete sprite, not of the collision box.
-function drawFrontWheels(g, model, w, h, opts, shadow = false) {
-  const layout = model.frontWheels;
-  if (!layout) return;
-  const value = Number(opts && opts.steer);
-  const steer = Number.isFinite(value) ? Math.max(-0.65, Math.min(0.65, value)) : 0;
-  const length = layout.length * w, width = layout.width * h;
-  g.save();
-  for (const axle of layout.axles) for (const side of [-1, 1]) {
+function drawFrontWheels(g, model, w, h, opts) {
+  for (const p of frontTires(model, w, h, opts)) {
     g.save();
-    g.translate(axle * w, side * layout.y * h);
-    g.rotate(steer);
-    g.fillStyle = shadow ? '#000' : '#171b1d';
+    g.translate(p.x, p.y);
+    g.rotate(p.steer);
+    g.fillStyle = '#171b1d';
     g.beginPath();
-    g.roundRect(-length / 2, -width / 2, length, width, Math.min(width * 0.22, length * 0.15));
+    g.roundRect(-p.length / 2, -p.width / 2, p.length, p.width, p.r);
     g.fill();
-    if (!shadow) {
-      g.strokeStyle = '#080a0b'; g.lineWidth = Math.min(width, length) * 0.12; g.stroke();
-      g.fillStyle = '#373b3e';
-      g.fillRect(-length * 0.34, -width * 0.3, length * 0.68, width * 0.18);
-    }
+    g.strokeStyle = '#080a0b'; g.lineWidth = Math.min(p.width, p.length) * 0.12; g.stroke();
+    g.fillStyle = '#373b3e';
+    g.fillRect(-p.length * 0.34, -p.width * 0.3, p.length * 0.68, p.width * 0.18);
     g.restore();
   }
-  g.restore();
 }
 
 // Draws any model centred at the origin, facing +x.
