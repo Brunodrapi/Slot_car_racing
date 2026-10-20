@@ -199,7 +199,7 @@ function drawCarShadow(g, model, livree, opts) {
 }
 
 // The atlas contains the body and rear wheels. Front tires are separate, underneath
-// the fenders, in the same local frame (+x forward) as the physical steering angle.
+// the GT fenders or above F1 suspension, in the same local frame (+x forward).
 // Coordinates are fractions of the complete sprite, not of the collision box.
 function drawFrontWheels(g, model, w, h, opts, shadow = false) {
   const layout = model.frontWheels;
@@ -232,8 +232,10 @@ function drawCarModel(g, model, livery, opts) {
   const art = topArt(model, opts && opts.livree);
   if (art) {
     const [w, h] = topSize(model, art);
-    drawFrontWheels(g, model, w, h, opts);
+    const wheelsAbove = model.frontWheels && model.frontWheels.aboveBody;
+    if (!wheelsAbove) drawFrontWheels(g, model, w, h, opts);
     g.drawImage(art.img, -w / 2, -h / 2, w, h);
+    if (wheelsAbove) drawFrontWheels(g, model, w, h, opts);
     return;
   }
   if (model.sprite && drawCarSprite(g, model, L, W, livery)) return;

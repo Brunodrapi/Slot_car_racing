@@ -3,97 +3,97 @@
     "id": "tyrrellp34",
     "livery": 0,
     "wheels": 4,
-    "left": 4116,
-    "right": 4123,
+    "left": 4573,
+    "right": 4578,
     "shadow": 2075
   },
   {
     "id": "ferrari312t",
     "livery": 0,
     "wheels": 2,
-    "left": 4631,
-    "right": 4755,
+    "left": 5302,
+    "right": 5301,
     "shadow": 2019
   },
   {
     "id": "mclarenm23",
     "livery": 0,
     "wheels": 2,
-    "left": 4945,
-    "right": 4890,
+    "left": 5302,
+    "right": 5302,
     "shadow": 2042
   },
   {
     "id": "lotus79",
     "livery": 0,
     "wheels": 2,
-    "left": 4308,
-    "right": 4299,
+    "left": 4698,
+    "right": 4697,
     "shadow": 1873
   },
   {
     "id": "lotus72",
     "livery": 0,
     "wheels": 2,
-    "left": 5037,
-    "right": 5017,
+    "left": 5307,
+    "right": 5307,
     "shadow": 2052
   },
   {
     "id": "brabhambt46b",
     "livery": 0,
     "wheels": 2,
-    "left": 5006,
-    "right": 4988,
+    "left": 5304,
+    "right": 5304,
     "shadow": 2048
   },
   {
     "id": "williamsfw07",
     "livery": 0,
     "wheels": 2,
-    "left": 5225,
-    "right": 5238,
+    "left": 5305,
+    "right": 5305,
     "shadow": 2054
   },
   {
     "id": "ligierjs11",
     "livery": 0,
     "wheels": 2,
-    "left": 4890,
-    "right": 4951,
+    "left": 5307,
+    "right": 5310,
     "shadow": 2039
   },
   {
     "id": "renaultrs10",
     "livery": 0,
     "wheels": 2,
-    "left": 4910,
-    "right": 4924,
+    "left": 5303,
+    "right": 5304,
     "shadow": 2040
   },
   {
     "id": "m1procar",
     "livery": 0,
     "wheels": 2,
-    "left": 2444,
-    "right": 2448,
-    "shadow": 1659
+    "left": 2099,
+    "right": 2058,
+    "shadow": 1590
   },
   {
     "id": "m1procar",
     "livery": 1,
     "wheels": 2,
-    "left": 2485,
-    "right": 2492,
-    "shadow": 1662
+    "left": 2179,
+    "right": 2164,
+    "shadow": 1595
   },
   {
     "id": "m1procar",
     "livery": 2,
     "wheels": 2,
-    "left": 2484,
-    "right": 2484,
-    "shadow": 1660
+    "left": 2171,
+    "right": 2143,
+    "shadow": 1597
   },
   {
     "id": "f40",

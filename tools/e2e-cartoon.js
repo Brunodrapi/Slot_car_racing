@@ -38,10 +38,11 @@ fs.mkdirSync(out,{recursive:true});
         setTimeout(check,50);
       };check();});
       const rows=[];
-      function frame(m,i,steer,shadow=false){
+      function frame(m,i,steer,shadow=false,wheelsOnly=false){
         const c=document.createElement('canvas');c.width=480;c.height=320;
         const g=c.getContext('2d');g.translate(240,160);g.scale(400/m.length,400/m.length);
-        if(shadow)drawCarShadow(g,m,i,{steer});else drawCarModel(g,m,LIVERIES[0],{livree:i,steer});
+        if(wheelsOnly){const [w,h]=topSize(m,topArt(m,i));drawFrontWheels(g,m,w,h,{steer});}
+        else if(shadow)drawCarShadow(g,m,i,{steer});else drawCarModel(g,m,LIVERIES[0],{livree:i,steer});
         return c;
       }
       for(const m of models)for(let i=0;i<m.livrees.length;i++){
@@ -50,6 +51,18 @@ fs.mkdirSync(out,{recursive:true});
         const data=k=>k.getContext('2d').getImageData(0,0,k.width,k.height).data;
         const diff=(a,b)=>{let n=0;for(let k=0;k<a.length;k+=4)if(a[k]!==b[k]||a[k+3]!==b[k+3])n++;return n;};
         const da=data(a), db=data(b), dc=data(c);
+        // Opaque F1 tire interiors must hide the sprite's suspension at every angle.
+        if(m.catId==='f1')for(const steer of [0,.5,-.5]){
+          const full=data(frame(m,i,steer)), tires=data(frame(m,i,steer,false,true));
+          let checked=0;
+          for(let k=0;k<tires.length;k+=4)if(tires[k+3]===255){
+            checked++;
+            for(let ch=0;ch<3;ch++)if(Math.abs(full[k+ch]-tires[k+ch])>1)
+              throw Error('Suspension drawn over tire: '+m.id+'/'+i+' steer '+steer);
+          }
+          if(checked<100)throw Error('Missing F1 tire coverage: '+m.id);
+        }
+
         rows.push({id:m.id,livery:i,wheels:m.frontWheels.axles.length*2,
           left:diff(da,dc),right:diff(da,db),
           shadow:diff(data(frame(m,i,0,true)),data(frame(m,i,.5,true)))});

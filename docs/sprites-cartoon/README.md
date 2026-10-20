@@ -96,3 +96,11 @@ modèle recensent les dimensions et le nom de la génération source.
 ## Retouches 0.41.1
 
 Livrée GT40 or/noir Holman Moody n°5, prise d’air de la 312T redessinée du dessus et fonds harmonisés : [voir les nouveaux fonds](../fonds-cartoon/README.md).
+
+## Correction des roues — 0.42.1
+
+Les trois carrosseries M1 ont des ailes avant moins larges, proches de la largeur arrière. Les pneus sont ramenés sous ces passages de roue : leur centre transversal passe de 0,46 à 0,41 de la hauteur du sprite. Les dimensions des PNG et la physique ne changent pas.
+
+Sur les neuf F1, les pneus avant sont dessinés après la carrosserie et les suspensions, afin que les essieux restent derrière les pneus. Les GT conservent leurs roues sous les ailes. La Tyrrell conserve ses quatre roues avant mobiles.
+
+Les planches `roues-1.png`, `roues-2.png` et `roues-3.png` montrent le rendu actuel. Le contrôle navigateur vérifie aussi que chaque pixel opaque des pneus de F1 recouvre la suspension, roues droites et braquées à ±0,5 radian. Les 57 livrées passent les contrôles de braquage, d'ombres et de nombre de roues.

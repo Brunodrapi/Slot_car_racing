@@ -359,10 +359,10 @@ const CARTOON_MODELS = new Set([
 ]);
 function frontWheelLayout(m, cat) {
   if (!CARTOON_MODELS.has(m.id)) return null;
-  if (m.id === 'tyrrellp34') return {axles:[0.20,0.30], y:0.30, length:0.085, width:0.18};
-  if (cat.id === 'f1') return {axles:[0.30], y:0.32, length:0.15, width:0.23};
-  // Keep the M1 fenders intact; expose a narrow tire edge even at zero steering.
-  if (m.id === 'm1procar') return {axles:[0.28], y:0.46, length:0.15, width:0.16};
+  if (m.id === 'tyrrellp34') return {axles:[0.20,0.30], y:0.30, length:0.085, width:0.18, aboveBody:true};
+  if (cat.id === 'f1') return {axles:[0.30], y:0.32, length:0.15, width:0.23, aboveBody:true};
+  // Narrow M1 front fenders cover the tires; only the outer edge emerges.
+  if (m.id === 'm1procar') return {axles:[0.28], y:0.41, length:0.15, width:0.16};
   return {axles:[0.25], y:0.42, length:0.15, width:0.18};
 }
 function resolveModel(cat, m) {
