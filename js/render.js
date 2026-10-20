@@ -2152,6 +2152,47 @@ class Renderer {
       g.closePath();
       g.fill();
     }
+    for (const l of im.lots || []) {
+      const b = l.bbox;
+      if (b.maxX < vis.minX || b.minX > vis.maxX || b.maxY < vis.minY || b.minY > vis.maxY) continue;
+      this._drawParking(g, l);
+    }
+  }
+
+  /* Un parc de stationnement : bordure claire, enrobé, places peintes, panneau P.
+
+  Tout est construit dans le repère du parc (props.js, `implParking`) et mis en cache en Path2D :
+  la bordure est l'enrobé élargi de quarante centimètres, peint dessous, si bien qu'elle n'apparaît
+  qu'au contour du parc. Le repère peut être une symétrie selon le côté de la piste ; le panneau,
+  lui, est redressé pour que le P ne soit jamais lu en miroir. */
+  _drawParking(g, l) {
+    if (!l._paths) {
+      const bord = new Path2D(), sol = new Path2D(), traits = new Path2D();
+      for (const [u, v, w, h] of l.runs) { bord.rect(u - .4, v - .4, w + .8, h + .8); sol.rect(u, v, w, h); }
+      for (const [x0, y0, x1, y1] of l.lignes) { traits.moveTo(x0, y0); traits.lineTo(x1, y1); }
+      l._paths = { bord, sol, traits };
+    }
+    const P = l._paths;
+    g.save();
+    g.transform(l.ux, l.uy, l.vx, l.vy, l.o.x, l.o.y);
+    g.fillStyle = PAL.bordureParking || '#d3cec2'; g.fill(P.bord);
+    g.fillStyle = PAL.bitumeNu; g.fill(P.sol);
+    g.strokeStyle = 'rgba(246,243,233,.9)'; g.lineWidth = .14; g.lineCap = 'butt'; g.stroke(P.traits);
+    g.restore();
+    if (l.panneau) {
+      const x = l.o.x + l.ux * l.panneau.u + l.vx * l.panneau.v, y = l.o.y + l.uy * l.panneau.u + l.vy * l.panneau.v;
+      // Aligné sur le parc, mais jamais tête en bas : le sens de la piste n'a pas à retourner le P.
+      let ang = Math.atan2(l.uy, l.ux);
+      if (ang > Math.PI / 2) ang -= Math.PI; else if (ang < -Math.PI / 2) ang += Math.PI;
+      g.save(); g.translate(x, y); g.rotate(ang);
+      g.fillStyle = '#f3f0e6'; g.beginPath(); g.roundRect ? g.roundRect(-2.3, -2.3, 4.6, 4.6, .6) : g.rect(-2.3, -2.3, 4.6, 4.6); g.fill();
+      g.fillStyle = '#2f6db5'; g.beginPath(); g.roundRect ? g.roundRect(-1.95, -1.95, 3.9, 3.9, .45) : g.rect(-1.95, -1.95, 3.9, 3.9); g.fill();
+      // Le P, en tracés : une hampe et une boucle, sans dépendre d'une police.
+      g.strokeStyle = '#f3f0e6'; g.lineWidth = .62; g.lineCap = 'butt'; g.lineJoin = 'round';
+      g.beginPath(); g.moveTo(-.75, 1.35); g.lineTo(-.75, -1.25); g.lineTo(.2, -1.25);
+      g.arc(.2, -.42, .83, -Math.PI / 2, Math.PI / 2); g.lineTo(-.75, .41); g.stroke();
+      g.restore();
+    }
   }
 
   /* Les couronnes et les bâtiments, par-dessus tout le reste.

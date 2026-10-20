@@ -763,98 +763,144 @@ const PARK_PLACES = [['citadine', 16], ['compacte', 20], ['berline', 15], ['brea
 const PARK_LONGS = [['campingcar', 4], ['utilitaire', 3], ['minibus', 3], ['pickup', 3], ['bus', 2], ['semi', 1]];
 const CAMPING = [['campingcar', 15], ['fourgonnette', 3], ['utilitaire', 2]];
 
-/* Un parking : des rangées de voitures, par rangs tête-bêche séparés d'une allée.
+/* Un parking : un vrai parc de stationnement, pas des voitures posées dans l'herbe.
 
-Chaque voiture regarde son allée — c'est par là qu'on entre et qu'on sort — et les deux voitures
-d'une même place, dos à dos, alignent leurs pare-chocs arrière quelle que soit leur longueur. Une
-moto prend une place à deux ou trois. Ce qui ne tient pas dans une place de quatre mètres huit —
-camping-cars, utilitaires, minibus, cars et semi-remorques — se gare en long, sur la dernière
-rangée, quand le parking est assez profond pour en avoir une. */
-function implParking(track, z, s0, s1, rnd, out) {
-  /* Les rangs sont PARALLÈLES ENTRE EUX, et non chacun aligné sur le cap de la piste à son
-  abscisse. Un parking construit le long d'un virage avait des rangs en éventail : des voitures
-  garées en étoile autour du centre de courbure, ce qu'aucun parking ne fait. Le cap est donc pris
-  une fois pour toutes au milieu de la zone, et la grille est posée dans ce repère. */
+Vu d'en haut, ce qui fait reconnaître un parking, ce sont ses lignes : un enrobé net bordé d'une
+bordure claire, des allées, et les places peintes en blanc, qu'elles soient occupées ou non. Le
+parc est donc construit dans un repère fixe — le cap de la piste au milieu de la zone, pour que
+les rangées restent parallèles entre elles même le long d'un virage — et découpé en bandes : une
+allée, deux rangées dos à dos, une allée, et ainsi de suite. Les colonnes de places qui
+déborderaient sur la piste ou ses protections sont retirées, enrobé compris.
+
+Chaque voiture regarde son allée et les deux voitures dos à dos alignent leurs pare-chocs arrière.
+Une moto prend une place à deux ou trois. Ce qui ne tient pas dans une place — camping-cars,
+utilitaires, minibus, pick-up, cars et semi-remorques — se gare en long sur la dernière rangée des
+parcs de deux bandes ou plus. Un panneau P bleu signale l'entrée, côté piste. */
+const PARK_ALLEE = 5, PARK_RANGEE = 4.6, PARK_PLACE = 2.6, PARK_LONG = 3.4;
+function implParking(track, z, s0, s1, rnd, out, lots) {
   const mid = (s0 + s1) / 2;
   const a = track.headingAt(mid);
   const o = track.pos(mid, z.side * (implBase(track, mid, z.side, z) + z.prof / 2));
   const ux = Math.cos(a), uy = Math.sin(a);           // le long de la piste
   const vx = -Math.sin(a) * z.side, vy = Math.cos(a) * z.side;   // vers l'extérieur
-  const demiL = (s1 - s0) / 2, rang = 11, place = 2.6;
-  const loin = (x, y, marge) => {
-    // Trop près du ruban, où qu'il passe : on ne gare pas là.
-    const pr = implProjette(track, x, y);
+  const W = (u, v) => ({ x: o.x + ux * u + vx * v, y: o.y + uy * u + vy * v });
+  const loin = (u, v, marge) => {
+    // Trop près du ruban, où qu'il passe : on ne gare pas là, on n'y coule pas d'enrobé.
+    const p = W(u, v), pr = implProjette(track, p.x, p.y);
     return Math.abs(pr.lat) >= track.limiteProtection(pr.s, pr.lat >= 0 ? 1 : -1) + marge;
   };
+  const demiL = (s1 - s0) / 2, v0 = -z.prof / 2, pas = PARK_ALLEE + 2 * PARK_RANGEE;
+  const n = Math.max(1, Math.floor((z.prof - PARK_ALLEE) / pas));
+  const enLong = n >= 2;          // deux bandes ou plus : la dernière accueille les grands gabarits
+  // Les bandes du parc, de la piste vers l'extérieur : [début, fin, nature].
   const bandes = [];
-  for (let d = -z.prof / 2; d < z.prof / 2; d += rang) bandes.push(d);
-  const enLong = bandes.length >= 3 ? bandes.pop() : null;
-  for (let u = -demiL; u < demiL; u += place) {
-    for (const d of bandes) {
-      for (const dd of [d, d + 4.6]) {
-        if (dd > z.prof / 2) continue;
-        if (rnd() < 0.12) continue;             // une place vide, sinon c'est une grille
-        const sens = dd === d ? -1 : 1;         // vers l'allée de la place
-        const v = vehTire(rnd, PARK_PLACES);
-        const cap = a + Math.PI / 2 + (sens === z.side ? 0 : Math.PI) + (rnd() - .5) * .06;
-        if (v.kind === 'moto') {
-          // deux ou trois motos de front dans la même place
-          const n = 2 + (rnd() < .5 ? 1 : 0);
-          for (let k = 0; k < n; k++) {
-            const du = (k - (n - 1) / 2) * .82, dv = dd + sens * (.9 + rnd() * .3);
-            const x = o.x + ux * (u + du) + vx * dv, y = o.y + uy * (u + du) + vy * dv;
-            if (!loin(x, y, 4)) continue;
-            const m = vehTire(rnd, [['moto', 1]]);
-            out.push({ type: 'voiture', ...m, x, y, a: cap + (rnd() - .5) * .2, teinte: rnd() });
-          }
-          continue;
-        }
-        const dv = dd + sens * ((v.l - 4.3) / 2 + (rnd() - .5) * .25);
-        const du = (rnd() - .5) * .3;
-        const x = o.x + ux * (u + du) + vx * dv, y = o.y + uy * (u + du) + vy * dv;
-        if (!loin(x, y, 4)) continue;
-        out.push({ type: 'voiture', ...v, x, y, a: cap, teinte: rnd() });
-      }
+  for (let k = 0; k < n; k++) {
+    const a0 = v0 + k * pas;
+    bandes.push([a0, a0 + PARK_ALLEE, 'allee']);
+    if (enLong && k === n - 1) { bandes.push([a0 + PARK_ALLEE, a0 + PARK_ALLEE + PARK_LONG, 'long']); break; }
+    bandes.push([a0 + PARK_ALLEE, a0 + PARK_ALLEE + PARK_RANGEE, 'r1'], [a0 + PARK_ALLEE + PARK_RANGEE, a0 + pas, 'r2']);
+    if (k === n - 1) bandes.push([a0 + pas, a0 + pas + PARK_ALLEE, 'allee']);
+  }
+  // Une colonne de places tous les 2,6 m ; une case n'existe que loin de toute piste.
+  const ncol = Math.max(1, Math.floor(2 * demiL / PARK_PLACE)), u0 = -ncol * PARK_PLACE / 2;
+  const cases = bandes.map(([b0, b1]) => Array.from({ length: ncol }, (_, i) =>
+    loin(u0 + (i + .5) * PARK_PLACE, (b0 + b1) / 2, 3)));
+  const lot = { o, ux, uy, vx, vy, side: z.side, runs: [], lignes: [], panneau: null };
+  // L'enrobé : par colonne, les suites de cases retenues.
+  for (let i = 0; i < ncol; i++) {
+    let debut = null;
+    for (let j = 0; j <= bandes.length; j++) {
+      const ok = j < bandes.length && cases[j][i];
+      if (ok && debut == null) debut = bandes[j][0];
+      if (!ok && debut != null) { lot.runs.push([u0 + i * PARK_PLACE, debut, PARK_PLACE, bandes[j - 1][1] - debut]); debut = null; }
     }
   }
-  if (enLong == null) return;
-  // La rangée des grands gabarits : en long, à la file, avec des trous.
-  let u = -demiL + 1;
-  while (u < demiL) {
-    const v = vehTire(rnd, PARK_LONGS);
-    if (u + v.l > demiL) break;
-    if (rnd() < 0.18) { u += 4 + rnd() * 6; continue; }
-    const c = u + v.l / 2, dv = enLong + 1.4;
-    const x = o.x + ux * c + vx * dv, y = o.y + uy * c + vy * dv;
-    if (loin(x, y, 4 + v.l / 2)) out.push({ type: 'voiture', ...v, x, y, a: a + (rnd() < .5 ? 0 : Math.PI), teinte: rnd() });
-    u += v.l + 1.2 + rnd() * 1.6;
+  if (!lot.runs.length) return;
+  // Les lignes peintes : séparations de places, ligne médiane des rangées dos à dos, bord du couloir long.
+  bandes.forEach(([b0, b1, nature], j) => {
+    for (let i = 0; i < ncol; i++) {
+      if (!cases[j][i]) continue;
+      const g = u0 + i * PARK_PLACE, d = u0 + (i + 1) * PARK_PLACE;
+      if (nature === 'r1') {
+        lot.lignes.push([g, b0 + .3, g, b1], [g, b1, d, b1]);
+        if (i === ncol - 1 || !cases[j][i + 1]) lot.lignes.push([d, b0 + .3, d, b1]);
+      } else if (nature === 'r2') {
+        lot.lignes.push([g, b0, g, b1 - .3]);
+        if (i === ncol - 1 || !cases[j][i + 1]) lot.lignes.push([d, b0, d, b1 - .3]);
+      } else if (nature === 'long') lot.lignes.push([g, b1 - .25, d, b1 - .25]);
+    }
+  });
+  // Le panneau P, dans l'allée côté piste, à l'un des bouts du parc.
+  for (const i of [1, ncol - 2, Math.floor(ncol / 2)]) {
+    if (i >= 0 && i < ncol && cases[0][i]) { lot.panneau = { u: u0 + (i + .5) * PARK_PLACE, v: (bandes[0][0] + bandes[0][1]) / 2 }; break; }
   }
+  const coins = lot.runs.flatMap(([u, v, w, h]) => [W(u, v), W(u + w, v + h)]);
+  lot.bbox = { minX: Math.min(...coins.map(p => p.x)) - 3, maxX: Math.max(...coins.map(p => p.x)) + 3,
+    minY: Math.min(...coins.map(p => p.y)) - 3, maxY: Math.max(...coins.map(p => p.y)) + 3 };
+  lots.push(lot);
+
+  // Les véhicules.
+  const pose = (v, u, vv, cap) => { const p = W(u, vv); out.push({ type: 'voiture', ...v, x: p.x, y: p.y, a: cap, teinte: rnd() }); };
+  bandes.forEach(([b0, b1, nature], j) => {
+    if (nature === 'r1' || nature === 'r2') {
+      const sens = nature === 'r1' ? -1 : 1, dos = nature === 'r1' ? b1 : b0;   // l'allée, et la ligne médiane
+      for (let i = 0; i < ncol; i++) {
+        if (!cases[j][i] || rnd() < 0.14) continue;      // une place vide de temps en temps
+        const u = u0 + (i + .5) * PARK_PLACE;
+        const v = vehTire(rnd, PARK_PLACES);
+        const cap = a + Math.PI / 2 + (sens === z.side ? 0 : Math.PI) + (rnd() - .5) * .05;
+        if (v.kind === 'moto') {
+          const k = 2 + (rnd() < .5 ? 1 : 0);
+          for (let m = 0; m < k; m++) pose(vehTire(rnd, [['moto', 1]]), u + (m - (k - 1) / 2) * .8,
+            dos + sens * (1.3 + rnd() * .3), cap + (rnd() - .5) * .2);
+          continue;
+        }
+        pose(v, u + (rnd() - .5) * .2, dos + sens * (.15 + v.l / 2), cap);
+      }
+    } else if (nature === 'long') {
+      let u = u0 + 1;
+      while (u < -u0) {
+        const v = vehTire(rnd, PARK_LONGS);
+        if (u + v.l > -u0) break;
+        const c = u + v.l / 2, i0 = Math.floor((u - u0) / PARK_PLACE), i1 = Math.floor((u + v.l - u0) / PARK_PLACE);
+        let ok = true;
+        for (let i = Math.max(0, i0); i <= Math.min(ncol - 1, i1); i++) ok = ok && cases[j][i];
+        if (ok && rnd() > .15) pose(v, c, (b0 + b1) / 2 - .15, a + (rnd() < .5 ? 0 : Math.PI));
+        u += v.l + 1.4 + rnd() * 2;
+      }
+    }
+  });
 }
 
-/* Les camping-cars au bord du circuit, derrière la barrière.
+/* Quelques camping-cars au bord du circuit, derrière la barrière.
 
-Sur les grandes épreuves on campe le long de la piste, pas au parking : une file irrégulière de
-camping-cars et de fourgons garés en long derrière la protection, avec des trous là où une
-famille a planté sa tente. On ne s'installe ni dans un virage serré ni trop près d'une autre
-portion de piste. */
-function implCamping(track, z, s0, s1, rnd, out) {
-  let s = s0 + rnd() * 6;
-  while (s < s1) {
-    const v = vehTire(rnd, CAMPING);
-    if (rnd() < .22) { s += 8 + rnd() * 18; continue; }
-    const c = s + v.l / 2;
-    if (c + v.l / 2 > s1) break;
-    if (Math.abs(track.curvAt(c)) > 1 / 45) { s += v.l + 4; continue; }
-    const lat = track.limiteProtection(c, z.side) + (z.recul == null ? 3 : z.recul) + v.w / 2 + rnd() * 2.5;
-    const p = track.pos(c, z.side * lat), cap = track.headingAt(c) + (rnd() < .5 ? 0 : Math.PI) + (rnd() - .5) * .16;
-    const cs = Math.cos(cap), sn = Math.sin(cap);
-    const libre = [[-1, -1], [1, -1], [1, 1], [-1, 1]].every(([i, j]) => {
-      const x = p.x + cs * i * v.l / 2 - sn * j * v.w / 2, y = p.y + sn * i * v.l / 2 + cs * j * v.w / 2;
-      const pr = implProjette(track, x, y);
-      return Math.abs(pr.lat) >= track.limiteProtection(pr.s, pr.lat >= 0 ? 1 : -1) + 1.5;
-    });
-    if (libre) out.push({ type: 'voiture', ...v, x: p.x, y: p.y, a: cap, teinte: rnd(), camping: true });
-    s += v.l + 2.5 + rnd() * 9;
+Pas une file : deux ou trois véhicules garés ensemble ici ou là, et c'est tout — une poignée sur
+tout le tour, juste de quoi dire qu'on campe autour du circuit. Chaque circuit a un budget (`max`
+de la zone, et `CAMPING_MAX` pour l'ensemble), les groupes sont espacés de plus de cent mètres. On
+ne s'installe ni dans un virage serré ni trop près d'une autre portion de piste. */
+const CAMPING_MAX = 5;
+function implCamping(track, z, s0, s1, rnd, out, budget) {
+  let s = s0 + rnd() * Math.min(60, (s1 - s0) / 3), pose = 0;
+  const max = z.max == null ? 2 : z.max;
+  while (s < s1 && pose < max && budget.reste > 0) {
+    const nb = rnd() < .4 ? 1 : rnd() < .75 ? 2 : 3;
+    let t = s, groupe = 0;
+    for (let k = 0; k < nb && pose < max && budget.reste > 0; k++) {
+      const v = vehTire(rnd, CAMPING), c = t + v.l / 2;
+      if (c + v.l / 2 > s1) break;
+      if (Math.abs(track.curvAt(c)) > 1 / 45) break;
+      const lat = track.limiteProtection(c, z.side) + (z.recul == null ? 3 : z.recul) + v.w / 2 + rnd() * 1.5;
+      const p = track.pos(c, z.side * lat), cap = track.headingAt(c) + (rnd() < .5 ? 0 : Math.PI) + (rnd() - .5) * .14;
+      const cs = Math.cos(cap), sn = Math.sin(cap);
+      const libre = [[-1, -1], [1, -1], [1, 1], [-1, 1]].every(([i, j]) => {
+        const x = p.x + cs * i * v.l / 2 - sn * j * v.w / 2, y = p.y + sn * i * v.l / 2 + cs * j * v.w / 2;
+        const pr = implProjette(track, x, y);
+        return Math.abs(pr.lat) >= track.limiteProtection(pr.s, pr.lat >= 0 ? 1 : -1) + 1.5;
+      });
+      if (libre) { out.push({ type: 'voiture', ...v, x: p.x, y: p.y, a: cap, teinte: rnd(), camping: true }); pose++; budget.reste--; groupe++; }
+      t += v.l + 2 + rnd() * 2.5;
+    }
+    s = t + 110 + rnd() * 150;
   }
 }
 
@@ -867,7 +913,7 @@ dessiner quinze serait tout le budget de la frame. */
 function placeImplantation(track, id, zones, water = placeWater(track, track.def.water)) {
   if (!zones || !zones.length) return null;
   const rnd = propRng(seedFromId('impl-' + id));
-  const sols = [], arbres = [], batis = [], nus = [];
+  const sols = [], arbres = [], batis = [], nus = [], lots = [], budget = { reste: CAMPING_MAX };
   /* ON BÂTIT D'ABORD, ON PLANTE ENSUITE, et l'ordre compte : le masque qui interdit un emplacement
   à un arbre doit déjà connaître les bâtiments, sinon un bois semé avant eux pousse sur leurs toits.
   Les sols se posent dans la même passe que les bâtiments, ils ne gênent personne. */
@@ -875,14 +921,14 @@ function placeImplantation(track, id, zones, water = placeWater(track, track.def
   for (const z of zones) {
     const [s0, s1] = implSpan(track, z);
     if (z.kind === 'nu') { nus.push({ s0, s1, side: z.side, prof: z.prof }); continue; }
-    if (z.sol !== false && z.kind !== 'camping' && !(track.def.architecture === 'pavillons' && z.kind === 'hangars'))
+    if (z.sol !== false && z.kind !== 'camping' && z.kind !== 'parking' && !(track.def.architecture === 'pavillons' && z.kind === 'hangars'))
       for (const pts of implContour(track, z, s0, s1, 4))
         sols.push({ pts, bbox: implBbox(pts), kind: z.kind, sol: z.sol });
     if (z.kind === 'bois') bois.push([z, s0, s1]);
     else if (z.kind === 'tribune') implTribunes(track, z, s0, s1, rnd, batis);
     else if (z.kind === 'stands' || z.kind === 'hangars') implBatiments(track, z, s0, s1, rnd, batis);
-    else if (z.kind === 'parking') implParking(track, z, s0, s1, rnd, batis);
-    else if (z.kind === 'camping') implCamping(track, z, s0, s1, rnd, batis);
+    else if (z.kind === 'parking') implParking(track, z, s0, s1, rnd, batis, lots);
+    else if (z.kind === 'camping') implCamping(track, z, s0, s1, rnd, batis, budget);
   }
   /* UN BÂTIMENT EST ÉCARTÉ S'IL TOMBE SUR UNE AUTRE PORTION DE PISTE.
 
@@ -925,6 +971,10 @@ function placeImplantation(track, id, zones, water = placeWater(track, track.def
   }
   const masque = implMasque(track);
   for (const b of batis) implMasqueBati(masque, b);
+  // L'enrobé des parkings, allées comprises : pas d'arbre au milieu d'un parc de stationnement.
+  for (const l of lots) for (const [u, v, w, h] of l.runs)
+    for (let du = 0; du <= w; du += MASQUE_CASE * .5) for (let dv = 0; dv <= h; dv += MASQUE_CASE * .5)
+      masque.m.add(masque.cle(l.o.x + l.ux * (u + du) + l.vx * (v + dv), l.o.y + l.uy * (u + du) + l.vy * (v + dv)));
   for (const [z, s0, s1] of bois) implArbres(track, z, s0, s1, rnd, arbres, masque);
   if(water)for(let i=arbres.length-1;i>=0;i--){
     const a=arbres[i];if(waterContains(water,a.x,a.y,5))arbres.splice(i,1);
@@ -948,7 +998,7 @@ function placeImplantation(track, id, zones, water = placeWater(track, track.def
   };
   for (const a of arbres) range(a, 6);
   for (const b of batis) range(b, Math.max(b.l, b.w) * 0.7);
-  return { sols, arbres, batis, nus, cases, cell: IMPL_CELL, marge, masque };
+  return { sols, arbres, batis, nus, cases, cell: IMPL_CELL, marge, masque, lots };
 }
 
 /* LE SEMIS ORDINAIRE PASSE PAR LE MÊME MASQUE, et c'est ce qui manquait.

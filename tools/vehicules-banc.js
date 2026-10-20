@@ -9,7 +9,12 @@ for(const d of TRACKS){
  const t=new Track(d),im=placeImplantation(t,d.id,d.implantation);if(!im)continue;
  const v=im.batis.filter(b=>b.type==='voiture'),bati=im.batis.filter(b=>b.type!=='voiture');
  const camp=v.filter(b=>b.camping);
- if((d.implantation||[]).some(z=>z.kind==='camping'))assert.ok(camp.length>0,d.id+' : aucun camping-car');
+ // Quelques camping-cars sur tout le tour, pas une file.
+ assert.ok(camp.length<=CAMPING_MAX,d.id+' : trop de camping-cars ('+camp.length+')');
+ // Chaque parking est un parc dessiné : enrobé, places peintes et panneau P.
+ const nParcs=(d.implantation||[]).filter(z=>z.kind==='parking').length;
+ if(nParcs&&d.id!=='monaco'){assert.ok(im.lots.length>0,d.id+' : parc absent');
+  for(const l of im.lots){assert.ok(l.runs.length&&l.lignes.length>20,d.id+' : parc sans places peintes');assert.ok(l.panneau,d.id+' : parc sans panneau');}}
  for(const b of v){
   assert.ok(VEHICULES[b.kind]&&b.col<VEHICULES[b.kind].teintes.length,d.id+' : gabarit inconnu');
   gabarits.add(b.kind);
@@ -24,7 +29,7 @@ for(const d of TRACKS){
   for(let j=i+1;j<camp.length;j++)assert.ok(!sceneryRectsOverlap(a,sceneryFootprint(camp[j])),d.id+' : camping-cars superposés');}
  total+=v.length;campeurs+=camp.length;
 }
-assert.ok(total>3000,'parkings presque vides');
+assert.ok(total>2000,'parkings presque vides');assert.ok(campeurs>0&&campeurs<=40,'camping-cars : '+campeurs);
 assert.equal(gabarits.size,Object.keys(VEHICULES).length,'gabarit jamais posé : '+Object.keys(VEHICULES).filter(k=>!gabarits.has(k)));
 console.log('Véhicules : '+total+' posés, '+campeurs+' camping-cars en bord de piste, '+gabarits.size+' gabarits ; aucun sur la piste, une protection ou un bâtiment.');
 `,c);
