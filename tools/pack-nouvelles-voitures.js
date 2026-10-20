@@ -33,7 +33,7 @@ async function elements(file, count) {
   return cars.map(b=>{
     const width=b.x1-b.x0+1, height=b.y1-b.y0+1, rgba=Buffer.alloc(width*height*4);
     for (const q of b.pixels) data.copy(rgba,((Math.floor(q/w)-b.y0)*width+q%w-b.x0)*4,q*4,q*4+4);
-    return {rgba,width,height};
+    return {rgba,width,height,left:b.x0,top:b.y0};
   });
 }
 

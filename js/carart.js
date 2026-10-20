@@ -189,12 +189,41 @@ function topSize(model, art) {
 }
 
 /** The car's own outline, filled dark, for the shadow. Returns false if this model has no drawing. */
-function drawCarShadow(g, model, livree) {
+function drawCarShadow(g, model, livree, opts) {
   const art = topArt(model, livree);
   if (!art) return false;
   const [w, h] = topSize(model, art);
+  drawFrontWheels(g, model, w, h, opts, true);
   g.drawImage(art.shadow, -w / 2, -h / 2, w, h);
   return true;
+}
+
+// The atlas contains the body and rear wheels. Front tires are separate, underneath
+// the fenders, in the same local frame (+x forward) as the physical steering angle.
+// Coordinates are fractions of the complete sprite, not of the collision box.
+function drawFrontWheels(g, model, w, h, opts, shadow = false) {
+  const layout = model.frontWheels;
+  if (!layout) return;
+  const value = Number(opts && opts.steer);
+  const steer = Number.isFinite(value) ? Math.max(-0.65, Math.min(0.65, value)) : 0;
+  const length = layout.length * w, width = layout.width * h;
+  g.save();
+  for (const axle of layout.axles) for (const side of [-1, 1]) {
+    g.save();
+    g.translate(axle * w, side * layout.y * h);
+    g.rotate(steer);
+    g.fillStyle = shadow ? '#000' : '#171b1d';
+    g.beginPath();
+    g.roundRect(-length / 2, -width / 2, length, width, Math.min(width * 0.22, length * 0.15));
+    g.fill();
+    if (!shadow) {
+      g.strokeStyle = '#080a0b'; g.lineWidth = Math.min(width, length) * 0.12; g.stroke();
+      g.fillStyle = '#373b3e';
+      g.fillRect(-length * 0.34, -width * 0.3, length * 0.68, width * 0.18);
+    }
+    g.restore();
+  }
+  g.restore();
 }
 
 // Draws any model centred at the origin, facing +x.
@@ -203,6 +232,7 @@ function drawCarModel(g, model, livery, opts) {
   const art = topArt(model, opts && opts.livree);
   if (art) {
     const [w, h] = topSize(model, art);
+    drawFrontWheels(g, model, w, h, opts);
     g.drawImage(art.img, -w / 2, -h / 2, w, h);
     return;
   }
@@ -210,4 +240,4 @@ function drawCarModel(g, model, livery, opts) {
   drawCarBody(g, model.shape, L, W, livery, opts);
 }
 
-if (typeof module !== 'undefined') module.exports = { drawCarShadow, topReady, onTopReady, SHAPES, drawCarModel, topSrc };
+if (typeof module !== 'undefined') module.exports = { drawCarShadow, drawFrontWheels, topReady, onTopReady, SHAPES, drawCarModel, topSrc };

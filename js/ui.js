@@ -284,6 +284,17 @@ class UI {
     const padFocus = this.gamepad.remember();
     const avant = this.root.firstElementChild;
     const garder = cle != null && cle === this._cleEcran && avant;
+    // Presence and ping refresh repeatedly while waiting in the lobby. Replacing
+    // every button for an unchanged table can detach the target between pointer
+    // down/up (and interrupts gamepad focus). Refresh just the ping in that case.
+    const pingPattern = /<p class="muted net-ping">([\s\S]*?)<\/p>/;
+    const lobbyHtml = cle === 'salon' ? html.replace(pingPattern, '') : null;
+    if (garder && cle === 'salon' && lobbyHtml === this._lobbyHtml) {
+      const ping = avant.querySelector('.net-ping'), match = html.match(pingPattern);
+      if (ping && match) ping.innerHTML = match[1];
+      return;
+    }
+    this._lobbyHtml = lobbyHtml;
     const y = garder ? avant.scrollTop : 0;
     /* Les rails aussi gardent leur place, et pour la même raison que la page.
 

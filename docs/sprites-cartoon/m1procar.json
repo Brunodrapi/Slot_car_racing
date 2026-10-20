@@ -1,0 +1,86 @@
+[
+  {
+    "file": "sprites/top/m1procar.png",
+    "before": [
+      420,
+      228
+    ],
+    "after": [
+      420,
+      228
+    ],
+    "generatedAspect": 1.8061538461538462,
+    "source": "exec-4c1646c5-9003-4de2-b5a7-1cbd375c2e97.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/m1procar_BASF.png",
+    "before": [
+      420,
+      228
+    ],
+    "after": [
+      420,
+      228
+    ],
+    "generatedAspect": 1.7591463414634145,
+    "source": "exec-4c1646c5-9003-4de2-b5a7-1cbd375c2e97.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/m1procar_DENIM.png",
+    "before": [
+      420,
+      228
+    ],
+    "after": [
+      420,
+      228
+    ],
+    "generatedAspect": 1.7737003058103975,
+    "source": "exec-4c1646c5-9003-4de2-b5a7-1cbd375c2e97.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/m1procar.png",
+    "before": [
+      420,
+      276
+    ],
+    "after": [
+      420,
+      242
+    ],
+    "generatedAspect": 1.7387640449438202,
+    "source": "exec-4c1646c5-9003-4de2-b5a7-1cbd375c2e97.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/m1procar_BASF.png",
+    "before": [
+      1536,
+      1024
+    ],
+    "after": [
+      1536,
+      878
+    ],
+    "generatedAspect": 1.75,
+    "source": "exec-4c1646c5-9003-4de2-b5a7-1cbd375c2e97.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/m1procar_DENIM.png",
+    "before": [
+      1536,
+      1024
+    ],
+    "after": [
+      1536,
+      928
+    ],
+    "generatedAspect": 1.6558265582655827,
+    "source": "exec-4c1646c5-9003-4de2-b5a7-1cbd375c2e97.png",
+    "referenceCommit": "37cc909"
+  }
+]

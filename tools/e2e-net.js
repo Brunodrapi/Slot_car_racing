@@ -79,7 +79,13 @@ function serve() {
   fs.mkdirSync(out, { recursive: true });
   const server = await serve();
   const url = `http://127.0.0.1:${server.address().port}/index.html`;
-  const browser = await chromium.launch();
+  // Both simulated players must keep rendering even when their tab is in the
+  // background; otherwise a 1 Hz frame races the lobby's 1 Hz presence refresh.
+  const browser = await chromium.launch({args:[
+    '--disable-background-timer-throttling',
+    '--disable-backgrounding-occluded-windows',
+    '--disable-renderer-backgrounding'
+  ]});
   const ctx = await browser.newContext({ viewport: { width: 900, height: 620 } });
   await ctx.addInitScript(STUB);
   let bad = 0;
@@ -116,8 +122,11 @@ function serve() {
 
   if (mode !== 'race') { await A.click(`[data-action="netMode"][data-id="${mode}"]`); await A.waitForTimeout(300); }
   console.log('format', await A.evaluate(() => app.net.settings().mode));
+  await A.screenshot({path:`${out}/net-avant-pret.png`,fullPage:true});
 
+  await A.bringToFront();
   await A.click('[data-action="netReady"]');
+  await B.bringToFront();
   await B.click('[data-action="netReady"]');
   await A.waitForTimeout(600);
   const seats = await A.evaluate(() => app.net.members().map(m => m.name + (m.ready ? '✓' : '·')));
@@ -127,6 +136,7 @@ function serve() {
   await B.screenshot({ path: `${out}/net-salon-invite.png` });
 
   // ---- the flag
+  await A.bringToFront();
   await A.click('[data-action="netStart"]');
   await A.waitForTimeout(1200);
   const started = await Promise.all([A, B].map(p => p.evaluate(() => app.state + '/' + (app.race ? app.race.cars.length : 0))));

@@ -1,0 +1,86 @@
+[
+  {
+    "file": "sprites/top/250gto.png",
+    "before": [
+      420,
+      200
+    ],
+    "after": [
+      420,
+      200
+    ],
+    "generatedAspect": 1.9006849315068493,
+    "source": "exec-c53bbb9c-fed1-4bd3-a65f-a0caaffa2ed4.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/250gto_francorchamps.png",
+    "before": [
+      420,
+      200
+    ],
+    "after": [
+      420,
+      200
+    ],
+    "generatedAspect": 1.8532423208191127,
+    "source": "exec-c53bbb9c-fed1-4bd3-a65f-a0caaffa2ed4.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/250gto_walker.png",
+    "before": [
+      420,
+      200
+    ],
+    "after": [
+      420,
+      200
+    ],
+    "generatedAspect": 1.8855218855218856,
+    "source": "exec-c53bbb9c-fed1-4bd3-a65f-a0caaffa2ed4.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/250gto.png",
+    "before": [
+      420,
+      201
+    ],
+    "after": [
+      420,
+      221
+    ],
+    "generatedAspect": 1.8980263157894737,
+    "source": "exec-c53bbb9c-fed1-4bd3-a65f-a0caaffa2ed4.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/250gto_francorchamps.png",
+    "before": [
+      420,
+      201
+    ],
+    "after": [
+      420,
+      225
+    ],
+    "generatedAspect": 1.8631921824104234,
+    "source": "exec-c53bbb9c-fed1-4bd3-a65f-a0caaffa2ed4.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/250gto_walker.png",
+    "before": [
+      420,
+      201
+    ],
+    "after": [
+      420,
+      222
+    ],
+    "generatedAspect": 1.8918032786885246,
+    "source": "exec-c53bbb9c-fed1-4bd3-a65f-a0caaffa2ed4.png",
+    "referenceCommit": "37cc909"
+  }
+]

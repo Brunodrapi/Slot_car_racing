@@ -1,0 +1,86 @@
+[
+  {
+    "file": "sprites/top/240z.png",
+    "before": [
+      420,
+      200
+    ],
+    "after": [
+      420,
+      200
+    ],
+    "generatedAspect": 1.8033333333333332,
+    "source": "exec-56f6b80f-49fe-46cc-8b6e-cb32637c316d.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/240z_sharp.png",
+    "before": [
+      420,
+      200
+    ],
+    "after": [
+      420,
+      200
+    ],
+    "generatedAspect": 1.8106312292358804,
+    "source": "exec-56f6b80f-49fe-46cc-8b6e-cb32637c316d.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/240z_dunlop.png",
+    "before": [
+      420,
+      200
+    ],
+    "after": [
+      420,
+      200
+    ],
+    "generatedAspect": 1.8066666666666666,
+    "source": "exec-56f6b80f-49fe-46cc-8b6e-cb32637c316d.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/240z.png",
+    "before": [
+      420,
+      278
+    ],
+    "after": [
+      420,
+      250
+    ],
+    "generatedAspect": 1.68,
+    "source": "exec-56f6b80f-49fe-46cc-8b6e-cb32637c316d.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/240z_sharp.png",
+    "before": [
+      420,
+      278
+    ],
+    "after": [
+      420,
+      249
+    ],
+    "generatedAspect": 1.6876790830945558,
+    "source": "exec-56f6b80f-49fe-46cc-8b6e-cb32637c316d.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/240z_dunlop.png",
+    "before": [
+      420,
+      278
+    ],
+    "after": [
+      420,
+      254
+    ],
+    "generatedAspect": 1.6542857142857144,
+    "source": "exec-56f6b80f-49fe-46cc-8b6e-cb32637c316d.png",
+    "referenceCommit": "37cc909"
+  }
+]

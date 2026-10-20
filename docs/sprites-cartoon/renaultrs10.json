@@ -1,0 +1,30 @@
+[
+  {
+    "file": "sprites/top/renaultrs10.png",
+    "before": [
+      420,
+      256
+    ],
+    "after": [
+      420,
+      256
+    ],
+    "generatedAspect": 1.626865671641791,
+    "source": "exec-d1421063-c2ef-4e6f-8c96-890360ba63b1.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/renaultrs10.png",
+    "before": [
+      420,
+      174
+    ],
+    "after": [
+      420,
+      212
+    ],
+    "generatedAspect": 1.9840319361277445,
+    "source": "exec-d1421063-c2ef-4e6f-8c96-890360ba63b1.png",
+    "referenceCommit": "37cc909"
+  }
+]

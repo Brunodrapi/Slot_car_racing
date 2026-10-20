@@ -1,0 +1,86 @@
+[
+  {
+    "file": "sprites/top/787b.png",
+    "before": [
+      420,
+      230
+    ],
+    "after": [
+      420,
+      230
+    ],
+    "generatedAspect": 1.7763578274760383,
+    "source": "exec-3ea82041-9ddd-4c21-906a-2e79dc8d1382.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/787b_efini18.png",
+    "before": [
+      420,
+      230
+    ],
+    "after": [
+      420,
+      230
+    ],
+    "generatedAspect": 1.6886792452830188,
+    "source": "exec-3ea82041-9ddd-4c21-906a-2e79dc8d1382.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/787b_lemans18.png",
+    "before": [
+      420,
+      230
+    ],
+    "after": [
+      420,
+      230
+    ],
+    "generatedAspect": 1.7861635220125787,
+    "source": "exec-3ea82041-9ddd-4c21-906a-2e79dc8d1382.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/787b.png",
+    "before": [
+      420,
+      331
+    ],
+    "after": [
+      420,
+      244
+    ],
+    "generatedAspect": 1.7225609756097562,
+    "source": "exec-3ea82041-9ddd-4c21-906a-2e79dc8d1382.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/787b_efini18.png",
+    "before": [
+      420,
+      331
+    ],
+    "after": [
+      420,
+      255
+    ],
+    "generatedAspect": 1.6480938416422288,
+    "source": "exec-3ea82041-9ddd-4c21-906a-2e79dc8d1382.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/787b_lemans18.png",
+    "before": [
+      420,
+      331
+    ],
+    "after": [
+      420,
+      235
+    ],
+    "generatedAspect": 1.7859327217125383,
+    "source": "exec-3ea82041-9ddd-4c21-906a-2e79dc8d1382.png",
+    "referenceCommit": "37cc909"
+  }
+]

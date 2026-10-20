@@ -63,6 +63,13 @@ for(const [s,from,race] of [[{...base,x:999,at:base.at-100},'front',1],[{...base
 // Detailed/compact codecs, malformed packets, and promotion before a fast approaching car.
 const encoded=driveEncode([base]);assert.equal(encoded.length,1+DRIVE_FULL_BYTES);
 const decoded=driveDecode(encoded)[0];assert(Math.abs(decoded.x-base.x)<.001);
+for(const steer of [-.5,0,.5]){
+ const state=driveDecode(driveEncode([{...base,steer}]))[0];
+ assert(Math.abs(state.steer-steer)<1/180,'steering survives compact quantization');
+ host.drive.applyState(car,state);
+ assert.equal(car.steerAngle,state.steer,'remote tires use transmitted steering');
+}
+assert.equal(driveEncode([base],true).length,15,'distant states stay at 14 bytes plus header');
 assert.deepEqual(driveDecode(encoded.buffer),driveDecode(encoded),'raw BinaryPack ArrayBuffer is accepted');
 assert.equal(driveDecode(encoded.slice(0,-1)),null);
 const distant={...base,s:host.race.track.wrap(host.race.player.s+300),v:10};

@@ -1,0 +1,86 @@
+[
+  {
+    "file": "sprites/top/935.png",
+    "before": [
+      420,
+      216
+    ],
+    "after": [
+      420,
+      216
+    ],
+    "generatedAspect": 1.86,
+    "source": "exec-ea9a8d27-5c08-4a90-b10b-8d2f98a59385.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/935_jager.png",
+    "before": [
+      420,
+      216
+    ],
+    "after": [
+      420,
+      216
+    ],
+    "generatedAspect": 1.8825503355704698,
+    "source": "exec-ea9a8d27-5c08-4a90-b10b-8d2f98a59385.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/935_vaillant.png",
+    "before": [
+      420,
+      216
+    ],
+    "after": [
+      420,
+      216
+    ],
+    "generatedAspect": 1.8803986710963456,
+    "source": "exec-ea9a8d27-5c08-4a90-b10b-8d2f98a59385.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/935.png",
+    "before": [
+      420,
+      271
+    ],
+    "after": [
+      420,
+      237
+    ],
+    "generatedAspect": 1.7699115044247788,
+    "source": "exec-ea9a8d27-5c08-4a90-b10b-8d2f98a59385.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/935_jager.png",
+    "before": [
+      420,
+      271
+    ],
+    "after": [
+      420,
+      241
+    ],
+    "generatedAspect": 1.7462235649546827,
+    "source": "exec-ea9a8d27-5c08-4a90-b10b-8d2f98a59385.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/935_vaillant.png",
+    "before": [
+      420,
+      271
+    ],
+    "after": [
+      420,
+      243
+    ],
+    "generatedAspect": 1.7307692307692308,
+    "source": "exec-ea9a8d27-5c08-4a90-b10b-8d2f98a59385.png",
+    "referenceCommit": "37cc909"
+  }
+]

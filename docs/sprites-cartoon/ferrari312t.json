@@ -1,0 +1,30 @@
+[
+  {
+    "file": "sprites/top/ferrari312t.png",
+    "before": [
+      420,
+      256
+    ],
+    "after": [
+      420,
+      256
+    ],
+    "generatedAspect": 1.5964343598055106,
+    "source": "exec-4d8653c0-587f-4337-a438-352e5782b3c5.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/ferrari312t.png",
+    "before": [
+      420,
+      260
+    ],
+    "after": [
+      420,
+      245
+    ],
+    "generatedAspect": 1.7160068846815835,
+    "source": "exec-4d8653c0-587f-4337-a438-352e5782b3c5.png",
+    "referenceCommit": "37cc909"
+  }
+]

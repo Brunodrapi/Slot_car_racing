@@ -1,0 +1,86 @@
+[
+  {
+    "file": "sprites/top/330p4.png",
+    "before": [
+      420,
+      200
+    ],
+    "after": [
+      420,
+      200
+    ],
+    "generatedAspect": 1.9078498293515358,
+    "source": "exec-32e5ff39-4cc1-433e-a206-1b6dc8fe0560.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/330p4_giallo.png",
+    "before": [
+      420,
+      200
+    ],
+    "after": [
+      420,
+      200
+    ],
+    "generatedAspect": 1.9112627986348123,
+    "source": "exec-32e5ff39-4cc1-433e-a206-1b6dc8fe0560.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/330p4_piper.png",
+    "before": [
+      420,
+      200
+    ],
+    "after": [
+      420,
+      200
+    ],
+    "generatedAspect": 1.9351535836177474,
+    "source": "exec-32e5ff39-4cc1-433e-a206-1b6dc8fe0560.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/330p4.png",
+    "before": [
+      420,
+      298
+    ],
+    "after": [
+      420,
+      263
+    ],
+    "generatedAspect": 1.5956873315363882,
+    "source": "exec-32e5ff39-4cc1-433e-a206-1b6dc8fe0560.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/330p4_giallo.png",
+    "before": [
+      420,
+      298
+    ],
+    "after": [
+      420,
+      270
+    ],
+    "generatedAspect": 1.554089709762533,
+    "source": "exec-32e5ff39-4cc1-433e-a206-1b6dc8fe0560.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/330p4_piper.png",
+    "before": [
+      420,
+      298
+    ],
+    "after": [
+      420,
+      267
+    ],
+    "generatedAspect": 1.572192513368984,
+    "source": "exec-32e5ff39-4cc1-433e-a206-1b6dc8fe0560.png",
+    "referenceCommit": "37cc909"
+  }
+]

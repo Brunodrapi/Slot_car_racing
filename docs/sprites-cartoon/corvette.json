@@ -1,0 +1,86 @@
+[
+  {
+    "file": "sprites/top/corvette.png",
+    "before": [
+      416,
+      203
+    ],
+    "after": [
+      416,
+      203
+    ],
+    "generatedAspect": 1.929530201342282,
+    "source": "exec-0f8cce86-124b-4393-b964-13c615273ada.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/corvette_spirit76.png",
+    "before": [
+      416,
+      203
+    ],
+    "after": [
+      416,
+      203
+    ],
+    "generatedAspect": 1.8445945945945945,
+    "source": "exec-0f8cce86-124b-4393-b964-13c615273ada.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/corvette_bfg49.png",
+    "before": [
+      416,
+      203
+    ],
+    "after": [
+      416,
+      203
+    ],
+    "generatedAspect": 1.8733333333333333,
+    "source": "exec-0f8cce86-124b-4393-b964-13c615273ada.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/corvette.png",
+    "before": [
+      420,
+      218
+    ],
+    "after": [
+      420,
+      233
+    ],
+    "generatedAspect": 1.7987616099071206,
+    "source": "exec-0f8cce86-124b-4393-b964-13c615273ada.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/corvette_spirit76.png",
+    "before": [
+      420,
+      218
+    ],
+    "after": [
+      420,
+      262
+    ],
+    "generatedAspect": 1.603076923076923,
+    "source": "exec-0f8cce86-124b-4393-b964-13c615273ada.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/corvette_bfg49.png",
+    "before": [
+      420,
+      218
+    ],
+    "after": [
+      420,
+      253
+    ],
+    "generatedAspect": 1.6596385542168675,
+    "source": "exec-0f8cce86-124b-4393-b964-13c615273ada.png",
+    "referenceCommit": "37cc909"
+  }
+]

@@ -1,0 +1,86 @@
+[
+  {
+    "file": "sprites/top/p68.png",
+    "before": [
+      420,
+      200
+    ],
+    "after": [
+      420,
+      200
+    ],
+    "generatedAspect": 1.934256055363322,
+    "source": "exec-e118499d-5ba1-4039-9805-272e4863f3eb.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/p68_gulf.png",
+    "before": [
+      420,
+      200
+    ],
+    "after": [
+      420,
+      200
+    ],
+    "generatedAspect": 1.90625,
+    "source": "exec-e118499d-5ba1-4039-9805-272e4863f3eb.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/p68_dunlop.png",
+    "before": [
+      420,
+      200
+    ],
+    "after": [
+      420,
+      200
+    ],
+    "generatedAspect": 1.9201388888888888,
+    "source": "exec-e118499d-5ba1-4039-9805-272e4863f3eb.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/p68.png",
+    "before": [
+      420,
+      181
+    ],
+    "after": [
+      420,
+      204
+    ],
+    "generatedAspect": 2.0588235294117645,
+    "source": "exec-e118499d-5ba1-4039-9805-272e4863f3eb.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/p68_gulf.png",
+    "before": [
+      420,
+      181
+    ],
+    "after": [
+      420,
+      210
+    ],
+    "generatedAspect": 2.003448275862069,
+    "source": "exec-e118499d-5ba1-4039-9805-272e4863f3eb.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/p68_dunlop.png",
+    "before": [
+      420,
+      181
+    ],
+    "after": [
+      420,
+      210
+    ],
+    "generatedAspect": 1.9965635738831615,
+    "source": "exec-e118499d-5ba1-4039-9805-272e4863f3eb.png",
+    "referenceCommit": "37cc909"
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "file": "sprites/top/williamsfw07.png",
+    "before": [
+      420,
+      256
+    ],
+    "after": [
+      420,
+      256
+    ],
+    "generatedAspect": 1.5522151898734178,
+    "source": "exec-24023b45-24ac-4202-a028-5a18b2ed099c.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/williamsfw07.png",
+    "before": [
+      420,
+      201
+    ],
+    "after": [
+      420,
+      248
+    ],
+    "generatedAspect": 1.693631669535284,
+    "source": "exec-24023b45-24ac-4202-a028-5a18b2ed099c.png",
+    "referenceCommit": "37cc909"
+  }
+]

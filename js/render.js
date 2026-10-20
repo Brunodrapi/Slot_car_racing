@@ -2396,7 +2396,7 @@ class Renderer {
     g.translate(0.25, 0.35);
     g.globalAlpha = 0.3;
     // a drawn car casts its own outline; a vector one only has a box to offer
-    if (!drawCarShadow(g, c, car.livree)) { g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width); }
+    if (!drawCarShadow(g, c, car.livree, { steer: car.steerAngle })) { g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width); }
     g.restore();
     drawCarModel(g, c, car.livery, { number: car.number, steer: car.steerAngle, livree: car.livree });
     if (car.braking && car.state === 'ok') { g.fillStyle = 'rgba(255,40,40,0.9)'; g.fillRect(-c.length / 2 - 0.15, -c.width / 2 + 0.1, 0.25, c.width - 0.2); }
@@ -2446,27 +2446,12 @@ class Renderer {
     const held = !!p.throttle;
     this.poucePress += ((held ? 1 : 0) - this.poucePress) * 0.25;   // eased press feedback
     const pr = d.r * (1 - 0.06 * this.poucePress);
-    /* LA PASTILLE PORTE L'ÉTAT, SUR SON PROPRE FOND, et c'est une mesure qui l'impose.
-
-    Posée en translucide à même le décor, la teinte changeait de lisibilité selon ce qu'il y avait
-    dessous. Calculé sur les deux fonds du jeu, l'écart de couleur entre la pastille et son fond :
-
-                     bleu  vert  jaune  violet  rouge
-      sur le sable     48    27     12      45     29      (à 30 % d'opacité)
-      sur l'asphalte  121   111    126     113    100
-
-    Le jaune pastel est à DOUZE unités du sable : c'est sa couleur, à peu de chose près. Aucune
-    opacité ne le rattrape — à 60 % il est encore à 23, quand le même jaune sur l'asphalte dépasse
-    250 et devient criard. Une seule valeur ne peut pas servir les deux fonds.
-
-    On pose donc un disque sombre d'abord, et la teinte dessus. Elle a alors toujours le même fond,
-    donc toujours la même lisibilité, où que soit la voiture — ce qu'on attend d'un instrument. La
-    pastille y gagne en présence, et c'est le prix : elle ne décore plus, elle informe. Toujours pas
-    de contour pour autant. */
+    // Match the cream/black HUD while retaining the grip colour and press feedback.
     const [r0, v0, b0] = Renderer.teintePastel(p.ressenti || 0);
     g.beginPath(); g.arc(cx, cy, pr, 0, Math.PI * 2);
-    g.fillStyle = 'rgba(14,16,22,0.38)'; g.fill();
-    g.beginPath(); g.arc(cx, cy, pr, 0, Math.PI * 2);
+    g.fillStyle = '#171b19d9'; g.fill();
+    g.strokeStyle = '#f2e6ca'; g.lineWidth = 2; g.stroke();
+    g.beginPath(); g.arc(cx, cy, pr * 0.77, 0, Math.PI * 2);
     g.fillStyle = `rgba(${r0},${v0},${b0},${0.62 + 0.14 * this.poucePress})`; g.fill();
 
     /* LA VITESSE JUSTE AU-DESSUS, donc au-dessus de la main. La pastille suit le doigt et le

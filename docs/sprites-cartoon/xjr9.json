@@ -1,0 +1,86 @@
+[
+  {
+    "file": "sprites/top/xjr9.png",
+    "before": [
+      420,
+      220
+    ],
+    "after": [
+      420,
+      220
+    ],
+    "generatedAspect": 1.7626582278481013,
+    "source": "exec-f7c3ef28-6dde-4eaa-990e-e416623fd83e.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/xjr9_castrol.png",
+    "before": [
+      420,
+      220
+    ],
+    "after": [
+      420,
+      220
+    ],
+    "generatedAspect": 1.6904024767801857,
+    "source": "exec-f7c3ef28-6dde-4eaa-990e-e416623fd83e.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/xjr9_jps.png",
+    "before": [
+      420,
+      220
+    ],
+    "after": [
+      420,
+      220
+    ],
+    "generatedAspect": 1.7298136645962734,
+    "source": "exec-f7c3ef28-6dde-4eaa-990e-e416623fd83e.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/xjr9.png",
+    "before": [
+      420,
+      203
+    ],
+    "after": [
+      420,
+      213
+    ],
+    "generatedAspect": 1.9705882352941178,
+    "source": "exec-f7c3ef28-6dde-4eaa-990e-e416623fd83e.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/xjr9_castrol.png",
+    "before": [
+      420,
+      203
+    ],
+    "after": [
+      420,
+      217
+    ],
+    "generatedAspect": 1.9350649350649352,
+    "source": "exec-f7c3ef28-6dde-4eaa-990e-e416623fd83e.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/xjr9_jps.png",
+    "before": [
+      420,
+      203
+    ],
+    "after": [
+      420,
+      219
+    ],
+    "generatedAspect": 1.9161290322580644,
+    "source": "exec-f7c3ef28-6dde-4eaa-990e-e416623fd83e.png",
+    "referenceCommit": "37cc909"
+  }
+]

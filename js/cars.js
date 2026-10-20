@@ -348,6 +348,24 @@ const MOTEUR_DEFAUT = 'sounds/engine/six-inline.json';
 
 // Resolved models: category stats × model multipliers.
 const MODELS = [];
+// Cartoon racing bodies have no fixed front tires. Their steering tires are drawn
+// beneath the body in carart.js; the P34 has two front axles, both steering.
+// This affects illustration only, never dimensions, handling or collision boxes.
+const CARTOON_MODELS = new Set([
+  'tyrrellp34', 'ferrari312t', 'mclarenm23', 'lotus79', 'lotus72',
+  'brabhambt46b', 'williamsfw07', 'ligierjs11', 'renaultrs10',
+  'm1procar', 'f40', 'countach', '930', 'corvette', 'csl', '250gto', 'typee', '240z',
+  'gt40', '935', '787b', '962', 'xjr9', '330p4', 'p68'
+]);
+function frontWheelLayout(m, cat) {
+  if (!CARTOON_MODELS.has(m.id)) return null;
+  if (m.id === 'tyrrellp34') return {axles:[0.20,0.30], y:0.30, length:0.085, width:0.18};
+  if (cat.id === 'f1') return {axles:[0.30], y:0.32, length:0.15, width:0.23};
+  // The M1's wide, square front fenders cover straight tires. Only the turned
+  // tire tips emerge; placing tires at the body edge made the arches look missing.
+  if (m.id === 'm1procar') return {axles:[0.28], y:0.36, length:0.15, width:0.16};
+  return {axles:[0.25], y:0.42, length:0.15, width:0.18};
+}
 function resolveModel(cat, m) {
   const b = cat.base, mul = m.mul || {};
   const model = {
@@ -362,6 +380,7 @@ function resolveModel(cat, m) {
     drivers: cat.drivers, roadScale: cat.roadScale, zoom: cat.zoom,
     // le moteur : celui de la catégorie, que la voiture peut reprendre champ par champ
     pick: m.pick || null,
+    frontWheels: frontWheelLayout(m, cat),
     engine: Object.assign({ cyl: 8, redline: 7000, idle: 1000, rough: 0.3, bright: 0.6, turbo: 0 }, cat.engine || {}, m.engine || {}),
   };
   /* Les livrées : au moins une, toujours, et la première est le dessin d'origine.

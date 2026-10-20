@@ -1,0 +1,30 @@
+[
+  {
+    "file": "sprites/top/ligierjs11.png",
+    "before": [
+      420,
+      256
+    ],
+    "after": [
+      420,
+      256
+    ],
+    "generatedAspect": 1.608695652173913,
+    "source": "exec-e3bdbbfd-589b-49fe-accf-1cf168c782a5.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/ligierjs11.png",
+    "before": [
+      420,
+      165
+    ],
+    "after": [
+      420,
+      194
+    ],
+    "generatedAspect": 2.164473684210526,
+    "source": "exec-e3bdbbfd-589b-49fe-accf-1cf168c782a5.png",
+    "referenceCommit": "37cc909"
+  }
+]

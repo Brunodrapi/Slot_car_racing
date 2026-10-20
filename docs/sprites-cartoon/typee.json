@@ -1,0 +1,86 @@
+[
+  {
+    "file": "sprites/top/typee.png",
+    "before": [
+      420,
+      200
+    ],
+    "after": [
+      420,
+      200
+    ],
+    "generatedAspect": 2.0249110320284696,
+    "source": "exec-88d3c35d-ca8a-454c-b54a-9c93de26a5ad.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/typee_cunningham.png",
+    "before": [
+      420,
+      200
+    ],
+    "after": [
+      420,
+      200
+    ],
+    "generatedAspect": 1.9680851063829787,
+    "source": "exec-88d3c35d-ca8a-454c-b54a-9c93de26a5ad.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/typee_ecosse.png",
+    "before": [
+      420,
+      200
+    ],
+    "after": [
+      420,
+      200
+    ],
+    "generatedAspect": 2.0285714285714285,
+    "source": "exec-88d3c35d-ca8a-454c-b54a-9c93de26a5ad.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/typee.png",
+    "before": [
+      420,
+      259
+    ],
+    "after": [
+      420,
+      234
+    ],
+    "generatedAspect": 1.7919254658385093,
+    "source": "exec-88d3c35d-ca8a-454c-b54a-9c93de26a5ad.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/typee_cunningham.png",
+    "before": [
+      420,
+      259
+    ],
+    "after": [
+      420,
+      236
+    ],
+    "generatedAspect": 1.7788161993769471,
+    "source": "exec-88d3c35d-ca8a-454c-b54a-9c93de26a5ad.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/typee_ecosse.png",
+    "before": [
+      420,
+      259
+    ],
+    "after": [
+      420,
+      240
+    ],
+    "generatedAspect": 1.7484662576687116,
+    "source": "exec-88d3c35d-ca8a-454c-b54a-9c93de26a5ad.png",
+    "referenceCommit": "37cc909"
+  }
+]

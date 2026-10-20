@@ -1,0 +1,30 @@
+[
+  {
+    "file": "sprites/top/mclarenm23.png",
+    "before": [
+      420,
+      256
+    ],
+    "after": [
+      420,
+      256
+    ],
+    "generatedAspect": 1.6025848142164782,
+    "source": "exec-5e1916e4-9765-42f5-a642-48d034f32bf7.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/mclarenm23.png",
+    "before": [
+      420,
+      233
+    ],
+    "after": [
+      420,
+      242
+    ],
+    "generatedAspect": 1.732394366197183,
+    "source": "exec-5e1916e4-9765-42f5-a642-48d034f32bf7.png",
+    "referenceCommit": "37cc909"
+  }
+]

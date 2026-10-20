@@ -1,0 +1,30 @@
+[
+  {
+    "file": "sprites/top/brabhambt46b.png",
+    "before": [
+      420,
+      256
+    ],
+    "after": [
+      420,
+      256
+    ],
+    "generatedAspect": 1.6666666666666667,
+    "source": "exec-6e75b25d-5059-4c5c-9c2c-cc7d1d100be4.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/brabhambt46b.png",
+    "before": [
+      420,
+      156
+    ],
+    "after": [
+      420,
+      192
+    ],
+    "generatedAspect": 2.185589519650655,
+    "source": "exec-6e75b25d-5059-4c5c-9c2c-cc7d1d100be4.png",
+    "referenceCommit": "37cc909"
+  }
+]

@@ -1,0 +1,86 @@
+[
+  {
+    "file": "sprites/top/930.png",
+    "before": [
+      406,
+      225
+    ],
+    "after": [
+      406,
+      225
+    ],
+    "generatedAspect": 1.7922077922077921,
+    "source": "exec-9baf8b14-cd7d-4e35-a628-661ea5aa1b3a.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/930_swiss.png",
+    "before": [
+      406,
+      225
+    ],
+    "after": [
+      406,
+      225
+    ],
+    "generatedAspect": 1.7684887459807075,
+    "source": "exec-9baf8b14-cd7d-4e35-a628-661ea5aa1b3a.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/930_valliant.png",
+    "before": [
+      406,
+      225
+    ],
+    "after": [
+      406,
+      225
+    ],
+    "generatedAspect": 1.7597402597402598,
+    "source": "exec-9baf8b14-cd7d-4e35-a628-661ea5aa1b3a.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/930.png",
+    "before": [
+      420,
+      278
+    ],
+    "after": [
+      420,
+      271
+    ],
+    "generatedAspect": 1.5524861878453038,
+    "source": "exec-9baf8b14-cd7d-4e35-a628-661ea5aa1b3a.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/930_swiss.png",
+    "before": [
+      420,
+      283
+    ],
+    "after": [
+      420,
+      275
+    ],
+    "generatedAspect": 1.5257452574525745,
+    "source": "exec-9baf8b14-cd7d-4e35-a628-661ea5aa1b3a.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/930_valliant.png",
+    "before": [
+      420,
+      283
+    ],
+    "after": [
+      420,
+      281
+    ],
+    "generatedAspect": 1.496,
+    "source": "exec-9baf8b14-cd7d-4e35-a628-661ea5aa1b3a.png",
+    "referenceCommit": "37cc909"
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "file": "sprites/top/tyrrellp34.png",
+    "before": [
+      420,
+      256
+    ],
+    "after": [
+      420,
+      256
+    ],
+    "generatedAspect": 1.5931372549019607,
+    "source": "exec-0816fb2e-9498-4d3c-9833-1e02d7915a95.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/tyrrellp34.png",
+    "before": [
+      420,
+      197
+    ],
+    "after": [
+      420,
+      231
+    ],
+    "generatedAspect": 1.8151571164510167,
+    "source": "exec-0816fb2e-9498-4d3c-9833-1e02d7915a95.png",
+    "referenceCommit": "37cc909"
+  }
+]

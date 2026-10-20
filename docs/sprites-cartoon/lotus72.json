@@ -1,0 +1,30 @@
+[
+  {
+    "file": "sprites/top/lotus72.png",
+    "before": [
+      420,
+      256
+    ],
+    "after": [
+      420,
+      256
+    ],
+    "generatedAspect": 1.5774877650897228,
+    "source": "exec-04e1fd65-6329-4114-8855-583a1beecb81.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/lotus72.png",
+    "before": [
+      420,
+      173
+    ],
+    "after": [
+      420,
+      179
+    ],
+    "generatedAspect": 2.3452380952380953,
+    "source": "exec-04e1fd65-6329-4114-8855-583a1beecb81.png",
+    "referenceCommit": "37cc909"
+  }
+]

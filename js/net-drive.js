@@ -1,9 +1,9 @@
 'use strict';
 
-// Protocol 2: the driver owns its physics, the host owns race decisions.
+// Protocol 3: owner physics + one signed byte of steering for animated tires.
 // Monotonic timestamps use the host's clock, estimated by round-trip probes.
-const DRIVE_PROTOCOL = 2;
-const DRIVE_FULL_BYTES = 39, DRIVE_FAR_BYTES = 14;
+const DRIVE_PROTOCOL = 3;
+const DRIVE_FULL_BYTES = 40, DRIVE_FAR_BYTES = 14;
 
 function driveFlags(c) {
   return (c.state === 'grass' ? 1 : 0) | (c.engineStopped ? 2 : 0) | (c.braking ? 4 : 0)
@@ -13,7 +13,7 @@ function driveFlags(c) {
 function driveState(c, id, at, acceleration = 0) {
   return { id, at, x:c.x, y:c.y, th:c.th, v:c.v, vl:c.vl, w:c.w, s:c.s, lat:c.lat,
     sel:c.sel, lap:c.lap, flags:driveFlags(c), slip:c.patineFx || 0,
-    acceleration:clamp(acceleration,-60,30), damage:c.damage, tyre:c.tyre };
+    acceleration:clamp(acceleration,-60,30), damage:c.damage, tyre:c.tyre, steer:c.delta || 0 };
 }
 
 // Every record carries its source timestamp. Relaying an old state must not make it new.
@@ -38,6 +38,7 @@ function driveEncode(records, far = false) {
     view.setInt8(p++,Math.round(s.sel*100));view.setUint8(p++,s.lap);
     view.setUint8(p++,s.flags);view.setUint8(p++,Math.round(s.slip*255));
     view.setUint8(p++,Math.round(s.damage*255));view.setUint8(p++,Math.round(s.tyre*255));
+    view.setInt8(p++,Math.round(clamp(s.steer || 0,-.65,.65)*180));
   });
   return bytes;
 }
@@ -57,6 +58,7 @@ function driveDecode(bytes) {
       for(const [key,scale] of [['th',1000],['v',100],['vl',100],['w',1000],['lat',100],['acceleration',100]]){s[key]=view.getInt16(k)/scale;k+=2;}
       s.sel=view.getInt8(k++)/100;s.lap=view.getUint8(k++);s.flags=view.getUint8(k++);
       s.slip=view.getUint8(k++)/255;s.damage=view.getUint8(k++)/255;s.tyre=view.getUint8(k++)/255;
+      s.steer=view.getInt8(k++)/180;
     }
     if(!Object.values(s).every(v=>typeof v!=='number'||Number.isFinite(v)))return null;
     out.push(s);
@@ -290,6 +292,7 @@ class NetDrive {
     for(const k of ['x','y','th','v','vl','w','s','lat','sel','damage','tyre'])c[k]=s[k];
     if(!this.host)c.lap=Math.max(c.lap,s.lap);
     c.selS=s.sel;c.braking=!!(s.flags&4);c.throttle=!!(s.flags&16);c.engineStopped=!!(s.flags&2);
+    c.delta=s.steer || 0;
     c.inPit=!!(s.flags&8);c.started=!!(s.flags&32);c.state=s.flags&1?'grass':'ok';c.patineFx=s.slip;
     c.beta=Math.atan2(s.vl,Math.max(.1,Math.abs(s.v)));
   }

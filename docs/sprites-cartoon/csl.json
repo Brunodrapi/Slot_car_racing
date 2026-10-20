@@ -1,0 +1,86 @@
+[
+  {
+    "file": "sprites/top/csl.png",
+    "before": [
+      420,
+      199
+    ],
+    "after": [
+      420,
+      199
+    ],
+    "generatedAspect": 2,
+    "source": "exec-909ca462-34a3-46ff-9b83-9a4491a21db5.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/csl_castrol.png",
+    "before": [
+      420,
+      198
+    ],
+    "after": [
+      420,
+      198
+    ],
+    "generatedAspect": 1.971326164874552,
+    "source": "exec-909ca462-34a3-46ff-9b83-9a4491a21db5.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/csl_calder.png",
+    "before": [
+      420,
+      199
+    ],
+    "after": [
+      420,
+      199
+    ],
+    "generatedAspect": 1.9821428571428572,
+    "source": "exec-909ca462-34a3-46ff-9b83-9a4491a21db5.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/csl.png",
+    "before": [
+      420,
+      396
+    ],
+    "after": [
+      420,
+      279
+    ],
+    "generatedAspect": 1.5054347826086956,
+    "source": "exec-909ca462-34a3-46ff-9b83-9a4491a21db5.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/csl_castrol.png",
+    "before": [
+      420,
+      227
+    ],
+    "after": [
+      420,
+      255
+    ],
+    "generatedAspect": 1.644808743169399,
+    "source": "exec-909ca462-34a3-46ff-9b83-9a4491a21db5.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/csl_calder.png",
+    "before": [
+      420,
+      226
+    ],
+    "after": [
+      420,
+      262
+    ],
+    "generatedAspect": 1.6043956043956045,
+    "source": "exec-909ca462-34a3-46ff-9b83-9a4491a21db5.png",
+    "referenceCommit": "37cc909"
+  }
+]

@@ -1,0 +1,86 @@
+[
+  {
+    "file": "sprites/top/f40.png",
+    "before": [
+      420,
+      209
+    ],
+    "after": [
+      420,
+      209
+    ],
+    "generatedAspect": 1.856164383561644,
+    "source": "exec-c3175180-187f-40cb-9136-e35b0b786de2.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/f40_red.png",
+    "before": [
+      420,
+      209
+    ],
+    "after": [
+      420,
+      209
+    ],
+    "generatedAspect": 1.836734693877551,
+    "source": "exec-c3175180-187f-40cb-9136-e35b0b786de2.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/f40_yellow.png",
+    "before": [
+      420,
+      209
+    ],
+    "after": [
+      420,
+      209
+    ],
+    "generatedAspect": 1.8847457627118644,
+    "source": "exec-c3175180-187f-40cb-9136-e35b0b786de2.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/f40.png",
+    "before": [
+      420,
+      279
+    ],
+    "after": [
+      420,
+      233
+    ],
+    "generatedAspect": 1.8012618296529967,
+    "source": "exec-c3175180-187f-40cb-9136-e35b0b786de2.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/f40_red.png",
+    "before": [
+      420,
+      218
+    ],
+    "after": [
+      420,
+      232
+    ],
+    "generatedAspect": 1.8107255520504733,
+    "source": "exec-c3175180-187f-40cb-9136-e35b0b786de2.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/f40_yellow.png",
+    "before": [
+      420,
+      228
+    ],
+    "after": [
+      420,
+      232
+    ],
+    "generatedAspect": 1.8113207547169812,
+    "source": "exec-c3175180-187f-40cb-9136-e35b0b786de2.png",
+    "referenceCommit": "37cc909"
+  }
+]

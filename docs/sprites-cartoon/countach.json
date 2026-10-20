@@ -1,0 +1,86 @@
+[
+  {
+    "file": "sprites/top/countach.png",
+    "before": [
+      395,
+      203
+    ],
+    "after": [
+      395,
+      203
+    ],
+    "generatedAspect": 1.7300613496932515,
+    "source": "exec-e0abe393-f8e5-42ef-8e3d-9fdf5e47e23f.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/countach_rainx.png",
+    "before": [
+      395,
+      203
+    ],
+    "after": [
+      395,
+      203
+    ],
+    "generatedAspect": 1.6932515337423313,
+    "source": "exec-e0abe393-f8e5-42ef-8e3d-9fdf5e47e23f.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/countach_monaco83.png",
+    "before": [
+      395,
+      203
+    ],
+    "after": [
+      395,
+      203
+    ],
+    "generatedAspect": 1.7116564417177915,
+    "source": "exec-e0abe393-f8e5-42ef-8e3d-9fdf5e47e23f.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/countach.png",
+    "before": [
+      420,
+      349
+    ],
+    "after": [
+      420,
+      306
+    ],
+    "generatedAspect": 1.3725490196078431,
+    "source": "exec-e0abe393-f8e5-42ef-8e3d-9fdf5e47e23f.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/countach_rainx.png",
+    "before": [
+      420,
+      349
+    ],
+    "after": [
+      420,
+      295
+    ],
+    "generatedAspect": 1.4221105527638191,
+    "source": "exec-e0abe393-f8e5-42ef-8e3d-9fdf5e47e23f.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/countach_monaco83.png",
+    "before": [
+      420,
+      349
+    ],
+    "after": [
+      420,
+      286
+    ],
+    "generatedAspect": 1.4698492462311559,
+    "source": "exec-e0abe393-f8e5-42ef-8e3d-9fdf5e47e23f.png",
+    "referenceCommit": "37cc909"
+  }
+]

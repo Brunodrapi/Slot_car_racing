@@ -1,0 +1,86 @@
+[
+  {
+    "file": "sprites/top/962.png",
+    "before": [
+      420,
+      200
+    ],
+    "after": [
+      420,
+      200
+    ],
+    "generatedAspect": 1.8543046357615893,
+    "source": "exec-99787811-d18c-4c6f-b4a3-74546ebf9f8c.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/962_shell.png",
+    "before": [
+      420,
+      200
+    ],
+    "after": [
+      420,
+      200
+    ],
+    "generatedAspect": 1.8151815181518152,
+    "source": "exec-99787811-d18c-4c6f-b4a3-74546ebf9f8c.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/top/962_jager.png",
+    "before": [
+      420,
+      200
+    ],
+    "after": [
+      420,
+      200
+    ],
+    "generatedAspect": 1.834983498349835,
+    "source": "exec-99787811-d18c-4c6f-b4a3-74546ebf9f8c.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/962.png",
+    "before": [
+      420,
+      340
+    ],
+    "after": [
+      420,
+      258
+    ],
+    "generatedAspect": 1.6288951841359773,
+    "source": "exec-99787811-d18c-4c6f-b4a3-74546ebf9f8c.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/962_shell.png",
+    "before": [
+      420,
+      340
+    ],
+    "after": [
+      420,
+      259
+    ],
+    "generatedAspect": 1.6207865168539326,
+    "source": "exec-99787811-d18c-4c6f-b4a3-74546ebf9f8c.png",
+    "referenceCommit": "37cc909"
+  },
+  {
+    "file": "sprites/pick/962_jager.png",
+    "before": [
+      420,
+      340
+    ],
+    "after": [
+      420,
+      261
+    ],
+    "generatedAspect": 1.6067415730337078,
+    "source": "exec-99787811-d18c-4c6f-b4a3-74546ebf9f8c.png",
+    "referenceCommit": "37cc909"
+  }
+]
