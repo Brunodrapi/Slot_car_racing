@@ -594,7 +594,7 @@ body.desktop .title-desktop { width: 100%; max-width: 1600px; display: grid; gri
 .setup-screen .card small, .selection-screen .card small { color: #bbc9d1; }
 .setup-screen .row.end, body.desktop .setup-screen .row.end, .selection-screen .row.end { position: static; background: #17242c; padding: 16px; border: 1px solid #ffffff24; border-radius: 14px; flex-wrap: wrap; gap: 12px; }
 .setup-screen .row.end .primary { margin-left: auto; }
-.lobby-entry { justify-content: center; }
+.lobby-entry { justify-content: flex-start; }   /* le bandeau reste en haut, comme sur les autres écrans */
 .lobby-entry > .row.wrap { align-items: end; padding: 24px; background: #17242c; border-radius: 16px; }
 .lobby-entry label { display: grid; gap: 8px; }
 .lobby-entry input { font: 700 24px ui-monospace,monospace; letter-spacing: .15em; width: 150px; }

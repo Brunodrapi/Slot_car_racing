@@ -947,7 +947,6 @@ class UI {
     if (net.state === 'off') {
       this.show(`
         ${this.paddockTopbar(t('multi'))}
-        ${this.selectionPreview(model, app.trackDefById(this.setup.trackId))}
         <p class="muted">${t('multiIntro')}</p>
         ${net.error ? `<p class="warn">${escapeHtml(net.error)}</p>` : ''}
         ${msg ? `<p class="warn">${escapeHtml(msg)}</p>` : ''}
@@ -984,7 +983,6 @@ class UI {
     this.show(`
       ${this.paddockTopbar(`${t('yourTable')} <b class="code">${escapeHtml(net.code)}</b>`, 'netLeave', t('leaveTable'))}
       ${net.error ? `<p class="warn">${escapeHtml(net.error)}</p>` : ''}
-      ${this.selectionPreview(model, trackDef)}
       <p class="muted net-ping">${escapeHtml(net.link?.label() || 'Ping : —')} · aller-retour</p>
       ${list.some(m => !m.q.spectator && m.q.protocol !== DRIVE_PROTOCOL) ? '<p class="warn">Tous les pilotes doivent recharger la dernière version du jeu.</p>' : ''}
       <h3>${t('players')} <span class="muted">${list.filter(m => !m.q.spectator).length}/${NET_SEATS} · ${list.filter(m => m.q.spectator).length} spectateurs</span></h3>
@@ -1002,6 +1000,7 @@ class UI {
       <h3>${t('mCat')}</h3>
       ${this.filtreCat('netCat', tcat, !net.creator)}
       <p class="muted">${t(tcat === 'all' ? 'mCatOpen' : 'mCatDesc')}</p>
+      ${this.selectionPreview(model, trackDef)}
       <h3>${t('track')}</h3>
       ${this.rail('netTracks', 'tracks', tracks.map(tr => `<button class="card ${tr.id === cfg.trackId ? 'sel' : ''}" data-action="netTrack" data-id="${tr.id}" ${net.creator ? '' : 'disabled'}>
           <span class="track-card-art" ${this.circuitArt(tr) ? `style="background-image:url('${this.circuitArt(tr)}')"` : ''}><img alt="" src="${this.thumb(tr, 90)}"></span><b>${escapeHtml(tr.name)}</b><small>${tr.flag || '🏁'} ${this.longueur(tr)}</small></button>`).join(''))}
