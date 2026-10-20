@@ -722,6 +722,11 @@ class Renderer {
         .every(b=>track.barrierDistance(p.x,p.y,b)>radius+1);
     });
     if(this.water)this.topProps=this.topProps.filter(p=>!waterContains(this.water,p.x,p.y,(this.topArt[p.id]?.wm||4)*.6));
+    // Les tas de bois : ceux de la lisière, et ceux du semis restés seuls ; aucun sur un arbre.
+    {const r=tasIsoles(track,this.implantation,this.topProps,propRng(seedFromId('tas-'+seed)));
+      this.topProps=r.props;this.tas=(this.implantation?.tas||[]).concat(r.tas);
+      // Le semis ne pousse pas sur une pile de lisière : elle reste à moitié visible.
+      if(this.implantation?.tas?.length)this.topProps=this.topProps.filter(p=>!this.implantation.tas.some(t=>Math.hypot(p.x-t.x,p.y-t.y)<3.6+(this.topArt[p.id]?.wm||4)*.25));}
     this.patches = []; // les anciens ovales de terre ne font plus partie du décor
     this.puddles = placePuddles(track, seed, track.puddles);
     this.boats = placeBoats(track, seed, this.water);
@@ -1712,6 +1717,7 @@ class Renderer {
       g.fillStyle = `rgba(${p.col},${(Math.min(1, t * 2.5) * 0.42).toFixed(3)})`;
       g.beginPath(); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); g.fill();
     }
+    this._drawTas(g, vis);              // sous les couronnes : un feuillage passe au-dessus d'une pile
     this._drawImplantation(g, vis);
     this._drawTopProps(g, vis);
     this._drawBarriers(g, vis);
@@ -2384,6 +2390,40 @@ class Renderer {
     const v = Math.round((A >> 8 & 255) * (1 - t) + (B >> 8 & 255) * t);
     const u = Math.round((A & 255) * (1 - t) + (B & 255) * t);
     return `rgb(${r},${v},${u})`;
+  }
+
+  /* Une pile de grumes vue du dessus, dans le monde : elle tourne avec la lisière qu'elle longe.
+
+  Un rang de grumes côte à côte, un second rang plus court dans les creux du premier, et les bouts
+  sciés en clair aux deux extrémités — c'est le bois coupé, pas l'écorce, qui fait reconnaître une
+  pile. L'ombre est décalée dans le monde (en bas à droite), comme celle du reste du décor. */
+  _drawTas(g, vis) {
+    const ecorce = [PAL.log || '#7a4f2c', '#95602f'], trait = '#3b2414', scie = '#e2bb80', cerne = '#b98a52';
+    for (const t of this.tas || []) {
+      if (t.x < vis.minX - 4 || t.x > vis.maxX + 4 || t.y < vis.minY - 4 || t.y > vis.maxY + 4) continue;
+      const d = 0.75, rangs = [[t.n, 6.4, 0], [t.n - 1, 5.8, 1]];
+      g.save(); g.translate(t.x + 0.35, t.y + 0.45); g.rotate(t.a);
+      g.fillStyle = 'rgba(30,26,20,0.24)';
+      g.beginPath(); g.roundRect ? g.roundRect(-3.3, -t.n * d / 2 - .1, 6.6, t.n * d + .2, .4) : g.rect(-3.3, -t.n * d / 2, 6.6, t.n * d); g.fill();
+      g.restore();
+      g.save(); g.translate(t.x, t.y); g.rotate(t.a);
+      g.lineWidth = 0.08; g.strokeStyle = trait;
+      for (const [n, L, haut] of rangs) {
+        for (let i = 0; i < n; i++) {
+          const y = (i - (n - 1) / 2) * d;
+          g.fillStyle = haut ? this._melange(ecorce[i % 2], '#ffffff', 0.12) : ecorce[i % 2];
+          g.beginPath(); g.roundRect ? g.roundRect(-L / 2, y - d * 0.47, L, d * 0.94, d * 0.3) : g.rect(-L / 2, y - d * 0.47, L, d * 0.94);
+          g.fill(); g.stroke();
+          for (const x of [-L / 2 + 0.14, L / 2 - 0.14]) {
+            g.fillStyle = scie;
+            g.beginPath(); g.ellipse(x, y, 0.16, d * 0.4, 0, 0, Math.PI * 2); g.fill();
+            g.strokeStyle = cerne; g.lineWidth = 0.05; g.stroke();
+            g.strokeStyle = trait; g.lineWidth = 0.08;
+          }
+        }
+      }
+      g.restore();
+    }
   }
 
   // Scenery for the flat view: objects drawn as a bird sees them, shadow baked in, no rotation —

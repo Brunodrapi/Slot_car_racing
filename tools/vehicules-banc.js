@@ -31,5 +31,22 @@ for(const d of TRACKS){
 }
 assert.ok(total>2000,'parkings presque vides');assert.ok(campeurs>0&&campeurs<=40,'camping-cars : '+campeurs);
 assert.equal(gabarits.size,Object.keys(VEHICULES).length,'gabarit jamais posé : '+Object.keys(VEHICULES).filter(k=>!gabarits.has(k)));
+// Les tas de bois : en lisière ou seuls, jamais sur un arbre ni sur la piste.
+let nTas=0;
+for(const d of TRACKS){
+ const t=new Track(d),im=placeImplantation(t,d.id,d.implantation),props=implEfface(t,im,placeTopProps(t,d.id,null,null));
+ const r=tasIsoles(t,im,props,propRng(seedFromId('tas-'+d.id))),tas=(im?im.tas:[]).concat(r.tas);
+ const arbres=(im?im.arbres:[]).filter(a=>a.id!=='bush');
+ for(const p of tas){
+  for(const [x,y] of tasEmpreinte(p)){const pr=implProjette(t,x,y);
+   assert.ok(Math.abs(pr.lat)>=t.limiteProtection(pr.s,pr.lat>=0?1:-1),d.id+' : tas de bois sur la piste');}
+  // le centre d'une pile n'est jamais sous un tronc : seules les couronnes de lisière débordent sur son dos
+  assert.ok(!arbres.some(a=>Math.hypot(a.x-p.x,a.y-p.y)<3.5),d.id+' : tas de bois sous un arbre');
+ }
+ for(let i=0;i<tas.length;i++)for(let j=i+1;j<tas.length;j++)assert.ok(Math.hypot(tas[i].x-tas[j].x,tas[i].y-tas[j].y)>=25,d.id+' : tas collés');
+ assert.ok(!r.props.some(p=>p.id==='logs'),'tas laissé dans le semis');
+ nTas+=tas.length;
+}
+console.log('Tas de bois : '+nTas+' posés, en lisière ou seuls ; aucun sur un arbre, la piste ou un autre tas.');
 console.log('Véhicules : '+total+' posés, '+campeurs+' camping-cars en bord de piste, '+gabarits.size+' gabarits ; aucun sur la piste, une protection ou un bâtiment.');
 `,c);

@@ -951,6 +951,59 @@ function implCamping(track, z, s0, s1, rnd, out, budget) {
   }
 }
 
+/* LES TAS DE BOIS, au bord des bois et jamais sur un arbre.
+
+Une pile de grumes attend à la lisière, là où un engin de débardage peut la reprendre : posée le
+long de la piste, à moitié sous les premières couronnes. Elle se peint SOUS les arbres, si bien que
+les feuillages la recouvrent en partie au lieu d'être recouverts par elle. On en met une de temps
+en temps, sur les lisières droites d'un vrai bois, pas dans les virages. */
+const TAS_MAX = 8;
+function implTasLisiere(track, bois, rnd, masque, water) {
+  const out = [];
+  for (const [z, s0, s1] of bois) {
+    let s = s0 + 30 + rnd() * 80;
+    while (s < s1 - 30 && out.length < TAS_MAX) {
+      const prof = implOndule(s, z.prof) * implFondu(s, s0, s1);
+      if (prof > 14 && rnd() < 0.55 && Math.abs(track.curvAt(s)) < 1 / 50) {
+        const base = implBase(track, s, z.side, z), a = track.headingAt(s) + (rnd() - 0.5) * 0.25;
+        const p = track.pos(s, z.side * (base - 0.6));   // le dos de la pile sous les premières couronnes
+        const t = { x: p.x, y: p.y, a, n: rnd() < 0.5 ? 4 : 5 };
+        const libre = tasEmpreinte(t).every(([x, y]) => masque.libre(x, y))
+          && !(water && waterOverlaps(water, tasEmpreinte(t))) && !sceneryBarrierOverlap(track, tasEmpreinte(t));
+        if (libre) { out.push(t); s += 160; }
+      }
+      s += 140 + rnd() * 160;
+    }
+  }
+  return out;
+}
+
+// Les quatre coins d'une pile : 6,4 m de long, une grume de 0,75 m par rang.
+function tasEmpreinte(t) {
+  const L = 3.4, W = t.n * 0.38 + 0.25, cs = Math.cos(t.a), sn = Math.sin(t.a);
+  return [[-L, -W], [L, -W], [L, W], [-L, W]].map(([u, v]) => [t.x + cs * u - sn * v, t.y + sn * u + cs * v]);
+}
+
+/* Les tas du semis ordinaire : gardés s'ils sont SEULS, sans aucun arbre dont la couronne les
+touche — ceux de l'implantation comme ceux du semis. Un tas au milieu d'un bois n'a rien à y
+faire, et un tas peint sur un feuillage est le défaut qu'on corrige ici. */
+function tasIsoles(track, impl, props, rnd) {
+  const arbres = (impl ? impl.arbres : []).concat(props.filter(p => p.id !== 'logs' && p.id !== 'rock' && p.id !== 'bales'));
+  const rayon = (a) => ((TOP_KINDS.find(k => k.id === a.id) || { wm: 6 }).wm / 2) * (a.e || 1);
+  const tas = [];
+  for (const p of props) {
+    if (p.id !== 'logs') continue;
+    if (arbres.some(a => Math.hypot(a.x - p.x, a.y - p.y) < rayon(a) + 4.2)) continue;
+    // ni collé à une pile de lisière ou à un autre tas : chacun reste seul
+    if ((impl ? impl.tas : []).concat(tas).some(t => Math.hypot(t.x - p.x, t.y - p.y) < 30)) continue;
+    const pr = implProjette(track, p.x, p.y);
+    tas.push({ x: p.x, y: p.y, a: track.headingAt(pr.s) + (rnd() - 0.5) * 0.6, n: rnd() < 0.5 ? 4 : 5 });
+  }
+  // Quelques-uns seulement : un tas isolé est un détail, pas un motif.
+  while (tas.length > 6) tas.splice(Math.floor(rnd() * tas.length), 1);
+  return { tas, props: props.filter(p => p.id !== 'logs') };
+}
+
 /* Le relevé d'un circuit, zone par zone.
 
 Rendu : les sols d'abord, sous la route, puis les couronnes et les bâtiments par-dessus tout le
@@ -1023,6 +1076,12 @@ function placeImplantation(track, id, zones, water = placeWater(track, track.def
     for (let du = 0; du <= w; du += MASQUE_CASE * .5) for (let dv = 0; dv <= h; dv += MASQUE_CASE * .5)
       masque.m.add(masque.cle(l.o.x + l.ux * (u + du) + l.vx * (v + dv), l.o.y + l.uy * (u + du) + l.vy * (v + dv)));
   for (const [z, s0, s1] of bois) implArbres(track, z, s0, s1, rnd, arbres, masque);
+  const tas = implTasLisiere(track, bois, rnd, masque, water);
+  // Les troncs voisins sont dégagés : la pile se glisse sous les couronnes, elle ne les traverse pas.
+  if (tas.length) for (let i = arbres.length - 1; i >= 0; i--) {
+    const a = arbres[i];
+    if (tas.some(t => Math.hypot(a.x - t.x, a.y - t.y) < 3.6)) arbres.splice(i, 1);
+  }
   if(water)for(let i=arbres.length-1;i>=0;i--){
     const a=arbres[i];if(waterContains(water,a.x,a.y,5))arbres.splice(i,1);
   }
@@ -1045,7 +1104,7 @@ function placeImplantation(track, id, zones, water = placeWater(track, track.def
   };
   for (const a of arbres) range(a, 6);
   for (const b of batis) range(b, Math.max(b.l, b.w) * 0.7);
-  return { sols, arbres, batis, nus, cases, cell: IMPL_CELL, marge, masque, lots };
+  return { sols, arbres, batis, nus, cases, cell: IMPL_CELL, marge, masque, lots, tas };
 }
 
 /* LE SEMIS ORDINAIRE PASSE PAR LE MÊME MASQUE, et c'est ce qui manquait.
@@ -1363,6 +1422,7 @@ function buildBoatArt(pal) {
 
 if (typeof module !== 'undefined') module.exports.TOP_KINDS = TOP_KINDS;
 if (typeof module !== 'undefined') module.exports.VEHICULES = VEHICULES;
+if (typeof module !== 'undefined') module.exports.tasEmpreinte = tasEmpreinte;
 if (typeof module !== 'undefined') module.exports.placeTopProps = placeTopProps;
 if (typeof module !== 'undefined') module.exports.placePatches = placePatches;
 if (typeof module !== 'undefined') module.exports.placeWater = placeWater;
