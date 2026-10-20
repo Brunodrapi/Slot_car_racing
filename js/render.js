@@ -2239,7 +2239,7 @@ class Renderer {
           const dx = m.a * o.x + m.c * o.y + m.e, dy = m.b * o.x + m.d * o.y + m.f;
           if (o.type) this._drawBati(g, o, dx, dy, k);
           else {
-            const a = this.topArt[o.id];
+            const a = this.topArt[o.v != null ? o.id + '#' + o.v : o.id] || this.topArt[o.id];
             if (!a) continue;
             const wpx = a.wm * o.e * k;
             g.save();
@@ -2432,13 +2432,13 @@ class Renderer {
     const art = this.topArt;
     if (!art) return;
     for (const p of this.topProps || []) {
-      const a = art[p.id];
+      const a = art[p.v != null ? p.id + '#' + p.v : p.id] || art[p.id];
       if (!a) continue;
-      const half = a.wm / 2;
+      const e = p.e || 1, half = a.wm * e / 2;
       if (p.x < vis.minX - half || p.x > vis.maxX + half || p.y < vis.minY - half || p.y > vis.maxY + half) continue;
       const m = g.getTransform();
       const dx = m.a * p.x + m.c * p.y + m.e, dy = m.b * p.x + m.d * p.y + m.f;
-      const wpx = a.wm * this.cam.zoom * this.dpr;
+      const wpx = a.wm * e * this.cam.zoom * this.dpr;
       g.save();
       g.setTransform(1, 0, 0, 1, 0, 0);
       g.drawImage(a.canvas, dx - wpx / 2, dy - wpx / 2, wpx, wpx);

@@ -71,7 +71,10 @@ function placeFrom(kinds, track, seed, density, clear) {
       // keep clear of the road itself wherever it runs, gravel trap included
       if (!clearOfTrack(x, y, track.halfWidth + (clear == null ? 8.5 : clear) + k.wm * 0.3)) continue;
       if (!clearOfProps(x, y, (k.wm + 2) * 0.6)) continue;
-      out.push({ x, y, id: k.id });
+      const o = { x, y, id: k.id };
+      // Un conifère a sa teinte et sa taille, tirées de sa position (le semis ne bouge pas).
+      if (k.teintes) { const h = varieteDe(x, y); o.v = Math.floor(h * k.teintes); o.e = 0.72 + varieteDe(y, x) * 0.56; }
+      out.push(o);
     }
   }
   return out;
@@ -107,22 +110,29 @@ const TOP_KINDS = [
     },
   },
   {
-    /* UN CONIFÈRE VU DU DESSUS EST UN CÔNE, et c'est l'étagement qui le dit.
+    /* LES CONIFÈRES, À DEUX COULEURS comme le reste du décor.
 
-    La première version était une étoile à pointes sèches, sombre, avec le tronc en pastille au
-    centre : on ne voit jamais le tronc d'un sapin d'en haut, et des pointes en épine faisaient un
-    bois de chardons. Un cône se lit par ses étages : une collerette large et sombre en bas, des
-    collerettes de plus en plus petites et claires vers la cime, chacune un peu décalée vers la
-    lumière, et la pointe en touche claire. Les bords sont festonnés — des pointes arrondies — pour
-    garder le caractère d'un résineux sans tomber dans l'épine. */
-    id: 'pine', wm: 6.2, weight: 3, near: 7, far: 26,
-    draw(g, w, pal) { conifere(g, w, pal, [[14, 1, .8], [11, .7, .78], [8, .42, .76]], 0.2); },
+    Un feuillu est une silhouette et une tache claire décalée vers la lumière ; le sapin suit la
+    même règle, et c'est ce qui le fait tenir avec le reste. La première version était une étoile
+    sombre à grandes épines avec le tronc en pastille, la suivante empilait trois ou quatre étages
+    ombrés : trop de niveaux pour un décor en aplats. Deux formes se mélangent dans les pinèdes —
+    une rosette à pointes fines et une couronne ronde à petites dents — en quatre teintes à peine
+    différentes (`teintes`) et à des tailles variées, tirées pour chaque arbre. */
+    id: 'pine', wm: 6.2, weight: 3, near: 7, far: 26, teintes: 4,
+    draw(g, w, pal) {
+      const c = w / 2, r = w * 0.46;
+      collerette(g, c, c, r, 10, 0.8, 0.2, pal.pine[0]);
+      collerette(g, c - r * 0.13, c - r * 0.13, r * 0.56, 8, 0.8, 0.7, pal.pine[1] || pal.pine[0]);
+    },
   },
   {
-    // Son voisin, plus élancé : plus d'étages et des festons plus fins. Deux dessins suffisent à
-    // casser la répétition d'une pinède, où l'on voit des centaines de couronnes à la fois.
-    id: 'pine2', alias: 'pine', wm: 5.4, weight: 3, near: 7, far: 26,
-    draw(g, w, pal) { conifere(g, w, pal, [[16, 1, .82], [13, .76, .8], [10, .52, .78], [7, .3, .74]], 1.3); },
+    // La couronne ronde : construite comme un feuillu, mais dentée.
+    id: 'pine2', alias: 'pine', wm: 5.8, weight: 3, near: 7, far: 26, teintes: 4,
+    draw(g, w, pal) {
+      const c = w / 2, r = w * 0.45;
+      collerette(g, c, c, r, 16, 0.88, 1.3, pal.pine[0]);
+      collerette(g, c - r * 0.17, c - r * 0.17, r * 0.6, 11, 0.86, 1.6, pal.pine[1] || pal.pine[0]);
+    },
   },
   {
     id: 'bush', wm: 3.4, weight: 5, near: 6, far: 22,
@@ -245,11 +255,31 @@ const TOP_KINDS = [
   },
 ];
 
-// Une teinte éclaircie (t > 0) ou assombrie (t < 0), pour étager une même couleur de palette.
-function nuance(hex, t) {
-  const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255];
-  return '#' + c.map(v => Math.round(t > 0 ? v + (255 - v) * t : v * (1 + t)))
-    .map(v => v.toString(16).padStart(2, '0')).join('');
+/* Une teinte décalée sur le cercle chromatique (`dh` degrés) et en clarté (`dl`, de 0 à 1) : de
+quoi tirer quatre sapins voisins d'une même couleur de palette sans qu'ils se ressemblent tous. */
+function decaleTeinte(hex, dh, dl) {
+  const n = parseInt(hex.slice(1), 16), r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+  let h = 0, s = 0, l = (mx + mn) / 2;
+  if (mx !== mn) {
+    const d = mx - mn;
+    s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    h /= 6;
+  }
+  h = (((h * 360 + dh) % 360) + 360) % 360 / 360; l = Math.max(0, Math.min(1, l + dl));
+  const f = (p, q, t) => { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
+  let rr = l, gg = l, bb = l;
+  if (s) { const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q; rr = f(p, q, h + 1 / 3); gg = f(p, q, h); bb = f(p, q, h - 1 / 3); }
+  return '#' + [rr, gg, bb].map(v => Math.round(Math.max(0, Math.min(1, v)) * 255).toString(16).padStart(2, '0')).join('');
+}
+// Les quatre teintes d'un conifère : [décalage de teinte, de clarté]. La couronne claire gagne 7 %.
+const TEINTES_SAPIN = [[-7, 0.02], [-2, -0.02], [3, 0.01], [8, -0.03]];
+
+// Une variante tirée d'une position, sans toucher aux tirages du semis : le décor reste le même.
+function varieteDe(x, y) {
+  const v = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+  return v - Math.floor(v);
 }
 
 /* Un étage de conifère : `k` pointes d'aiguilles vues du dessus, nombreuses et peu profondes, aux
@@ -270,27 +300,6 @@ function collerette(g, cx, cy, r, k, creux, phase, couleur) {
     g.quadraticCurveTo(c1[0], c1[1], n1[0], n1[1]);
   }
   g.closePath(); g.fill();
-}
-
-/* Le cône vu d'en haut : trois ou quatre étages de plus en plus petits vers la cime.
-
-Chaque étage est peint deux fois — d'abord sa face à l'ombre, puis sa face éclairée, décalée vers
-la lumière (en haut à gauche, comme l'ombre portée cuite avec le décor) — si bien qu'un croissant
-sombre reste en bas à droite de chaque étage. C'est ce croissant qui donne le volume : sans lui, des
-disques de teintes voisines se lisent comme une cible et non comme un arbre. */
-function conifere(g, w, pal, etages, phase) {
-  const c = w / 2, r = w * 0.47, n = etages.length;
-  const base = pal.pine[0], haut = pal.pine[1] || pal.pine[0];
-  for (let i = 0; i < n; i++) {
-    const t = i / n, [k, taille, creux] = etages[i], rr = r * taille;
-    const dec = r * 0.05 + r * 0.1 * t, cx = c - r * 0.12 * t, cy = c - r * 0.12 * t;
-    const ombre = nuance(i === 0 ? base : haut, i === 0 ? -0.32 : -0.18 + i * 0.04);
-    const clair = i === 0 ? base : nuance(haut, (i - 1) * 0.16);
-    collerette(g, cx, cy, rr, k, creux, phase + i * 0.7, ombre);
-    collerette(g, cx - dec, cy - dec, rr * 0.9, k, creux + 0.04, phase + i * 0.7, clair);
-  }
-  // la pointe : une petite étoile claire, pas un point rond (qui se lit comme un œil)
-  collerette(g, c - r * 0.3, c - r * 0.3, r * 0.09, 5, 0.5, phase, nuance(haut, 0.35));
 }
 
 // An irregular round blob — the shape everything organic is made of here. The outline runs as a
@@ -343,8 +352,29 @@ function buildTopArt(pal) {
     g.save(); g.translate(pad, pad); k.draw(g, w, pal); g.restore();
     art[k.id] = { canvas: c, wm: k.wm * (c.width / w) };
   }
+  // Les variantes de teinte, cuites une fois chacune : `id#n`.
+  for (const k of TOP_KINDS.filter(k => k.teintes)) {
+    TEINTES_SAPIN.slice(0, k.teintes).forEach(([dh, dl], n) => {
+      const pin = [decaleTeinte(pal.pine[0], dh, dl), decaleTeinte(pal.pine[1] || pal.pine[0], dh, dl + 0.07)];
+      const seul = buildTopArt.cuire(k, { ...pal, pine: pin });
+      art[k.id + '#' + n] = seul;
+    });
+  }
   return art;
 }
+// Une seule vignette, ombre comprise : la boucle ci-dessus, pour un gabarit et une palette.
+buildTopArt.cuire = function (k, pal) {
+  const w = Math.max(12, Math.round(k.wm * TOP_PPM)), pad = Math.round(w * 0.22);
+  const c = document.createElement('canvas'); c.width = c.height = w + pad * 2;
+  const g = c.getContext('2d'), sil = document.createElement('canvas');
+  sil.width = sil.height = w;
+  const sg = sil.getContext('2d');
+  k.draw(sg, w, pal);
+  sg.globalCompositeOperation = 'source-in'; sg.fillStyle = 'rgba(30,26,20,0.22)'; sg.fillRect(0, 0, w, w);
+  g.drawImage(sil, pad - w * 0.09, pad + w * 0.11);
+  g.save(); g.translate(pad, pad); k.draw(g, w, pal); g.restore();
+  return { canvas: c, wm: k.wm * (c.width / w) };
+};
 
 /* Closer to the road than the billboards: seen from above there is no horizon to fill, and a tree
    that stands well back simply never enters the frame.
@@ -606,7 +636,13 @@ function implArbres(track, z, s0, s1, rnd, out, masque) {
       if (!masque.libre(p.x, p.y)) continue;     // piste, dégagement, protection ou bâtiment
       // Une couronne de lisière est plus petite : un bois s'effiloche sur son bord.
       const lisiere = Math.min(1, Math.min(d, prof - d) / 9);
-      out.push({ x: p.x, y: p.y, id: pick(), e: 0.62 + 0.38 * lisiere + rnd() * 0.28 });
+      const id = pick(), o = { x: p.x, y: p.y, id, e: 0.62 + 0.38 * lisiere + rnd() * 0.28 };
+      if (id === 'pine' || id === 'pine2') {
+        // Des sapins de tous âges : de six dixièmes à une fois et quart la taille de référence.
+        const h = varieteDe(p.x, p.y);
+        o.v = Math.floor(h * 4); o.e *= 0.7 + varieteDe(p.y, p.x) * 0.55;
+      }
+      out.push(o);
     }
   }
 }
