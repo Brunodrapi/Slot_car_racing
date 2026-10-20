@@ -1385,8 +1385,10 @@ rocher, tas de bois, voiture garée, camping-car ou bâtiment (choisir, déplace
 supprimer, ajouter, gommer), les zones de hors-piste en bitume, gravier ou herbe, les surfaces
 bitumées, les barrières (tracer, reprendre, couper), les zones d'implantation (bois, tribunes,
 stands, hangars, parkings, camping, vide) et la voie des stands. « Enregistrer » vaut pour ce
-navigateur, « Fabriquer tracks.js » produit le fichier à remettre dans `js/`. Mode d'emploi et
-captures : [docs/editeur-decor](docs/editeur-decor/README.md). Lien direct : `editor.html?decor=spa`.
+navigateur, « Fabriquer tracks.js » produit le fichier à remettre dans `js/` — de préférence avec
+`node tools/reporter-decor.js tracks.js`, qui n'en reprend que le décor et laisse intact ce qui a
+changé dans le dépôt depuis. Mode d'emploi et captures : [docs/editeur-decor](docs/editeur-decor/README.md).
+Lien direct : `editor.html?decor=spa`.
 
 ## Atelier voitures (menu → Atelier voitures)
 

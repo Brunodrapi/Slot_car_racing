@@ -134,11 +134,13 @@ function annuler() {
   DEC.sel = null; DEC.trace = null; DEC.modif = true;
   refaire();
 }
+const VIDES = ['barrierPaths', 'barrierCuts', 'asphaltPads'];
 // Une liste vide ne s'écrit pas : `objets` sans retouche, c'est pas de clé du tout.
 function nettoyer() {
   const o = DEC.decor.objets;
+  if (o && o.retires) o.retires = o.retires.filter((p, k) => o.retires.findIndex((q) => dejaRetire([q], p)) === k);
   if (o && !(o.retires || []).length && !(o.ajouts || []).length) delete DEC.decor.objets;
-  for (const k of ['barrierPaths', 'barrierCuts', 'asphaltPads'])
+  for (const k of VIDES)
     if (Array.isArray(DEC.decor[k]) && !DEC.decor[k].length) delete DEC.decor[k];
 }
 function objets() {
@@ -211,17 +213,20 @@ function enregistrement(e) {
 function prochainI() { return (objets().ajouts.reduce((m, a) => Math.max(m, a.i || 0), 0)) + 1; }
 function recDe(e) { return e.o.ajout ? objets().ajouts.find((a) => a.i === e.o.i) : null; }
 
+// Un objet déjà retiré ne se retire pas deux fois : la gomme repasse sur ce qu'elle a effacé.
+const dejaRetire = (liste, p) => liste.some((q) => Math.abs(q[0] - p[0]) < 0.05 && Math.abs(q[1] - p[1]) < 0.05);
 function supprimerObjet(e) {
-  const ob = objets();
+  const ob = objets(), p = [r2(e.o.x), r2(e.o.y)];
   if (e.o.ajout) ob.ajouts = ob.ajouts.filter((a) => a.i !== e.o.i);
-  else ob.retires.push([r2(e.o.x), r2(e.o.y)]);
+  else if (!dejaRetire(ob.retires, p)) ob.retires.push(p);
 }
 // Modifier un objet : le sien s'il a été ajouté, sinon on le retire et on en pose une copie.
 function modifierObjet(e, patch) {
   const rec = recDe(e);
   if (rec) { Object.assign(rec, patch); return rec.i; }
   const ob = objets(), i = prochainI();
-  ob.retires.push([r2(e.o.x), r2(e.o.y)]);
+  const p = [r2(e.o.x), r2(e.o.y)];
+  if (!dejaRetire(ob.retires, p)) ob.retires.push(p);
   ob.ajouts.push({ ...enregistrement(e), ...patch, i });
   return i;
 }
@@ -262,7 +267,9 @@ function gommer(x, y) {
   const R = DEC.gomme;
   let n = 0;
   for (const e of tousObjets()) {
-    if (e.src === 'bati' || e._gomme) continue;
+    // La marque est sur l'objet : `tousObjets` refait ses enveloppes à chaque appel, et marquer
+    // l'enveloppe laissait la gomme retirer le même arbre à chaque mouvement du pointeur.
+    if (e.src === 'bati' || e.o._gomme) continue;
     if (Math.hypot(e.o.x - x, e.o.y - y) > R) continue;
     supprimerObjet(e); e.o._gomme = true; n++;
   }
@@ -907,7 +914,9 @@ async function chargerCircuit(id) {
 function ecartAuFichier(def0, decor) {
   const out = {};
   for (const k of CLES_DECOR) {
-    const a = def0[k], b = decor[k];
+    // une liste vide vaut une clé absente (l'affichage crée les listes de traits à la demande)
+    const vide = (x) => VIDES.includes(k) && Array.isArray(x) && !x.length;
+    const a = vide(def0[k]) ? undefined : def0[k], b = vide(decor[k]) ? undefined : decor[k];
     if (egal(a, b)) continue;
     out[k] = b == null ? null : clone(b);
   }
@@ -950,9 +959,7 @@ async function fabriquerFichier() {
     const ids = [];
     for (const [id, ecart] of par) {
       if (!Object.keys(ecart).length) continue;
-      const blocs = {};
-      for (const [k, v] of Object.entries(ecart)) blocs[k] = v == null ? null : k + ': ' + litteral(v);
-      txt = poserDansDefinition(txt, id, blocs);
+      txt = poserValeurs(txt, id, ecart);
       ids.push(id);
     }
     if (!ids.length) { etatDecor('Aucune retouche de décor à reporter dans le fichier.'); return; }

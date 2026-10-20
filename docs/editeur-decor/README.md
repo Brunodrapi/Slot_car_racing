@@ -36,13 +36,14 @@ Molette ou deux doigts : zoom. Glisser dans le vide, clic droit ou Espace+glisse
 - **Enregistrer** pose la retouche dans la base du navigateur (rayon `decor`) : le jeu la joue tout de suite sur ce poste. Un circuit ainsi retouché ne propose plus ses temps au tableau mondial, avec un message qui le dit ; « Revenir au fichier » oublie la retouche.
 - **Tester dans le jeu** enregistre et ouvre le circuit dans le jeu.
 - **Fabriquer tracks.js** relit `js/tracks.js`, y remplace pour chaque circuit retouché les seules clés de décor modifiées, et le rend à télécharger : à remettre dans `js/` pour que la retouche vaille pour tout le monde.
+- **Le remettre dans le dépôt** : `node tools/reporter-decor.js chemin/vers/tracks.js` (ajouter `--essai` pour seulement voir ce qui changerait). Le fichier fabriqué part de `js/tracks.js` tel que le site le sert ; s'il a changé depuis dans le dépôt, le copier tel quel effacerait ces changements. Le script ne reprend du fichier reçu que les clés de décor qui diffèrent, circuit par circuit, signale le reste sans y toucher, et vérifie le résultat en le réévaluant.
 - Un **circuit perso** garde son décor dans sa propre définition ; le mode Tracé le conserve quand on réenregistre les lignes.
 
 ## Comment c'est rangé
 
 - Les clés reprises sont celles de `CLES_DECOR` (`js/tracks.js`) : `runoffs`, `annotatedRunoffsOnly`, `implantation`, `barrierPaths`, `barrierCuts`, `asphaltPads`, `pitFrom`, `pitTo`, `pitAt`, et la nouvelle `objets`.
 - `objets` tient en deux listes (`appliqueObjets`, `js/props.js`) : `retires`, les positions des objets à enlever (à 40 cm près), et `ajouts`, des objets écrits en entier. Déplacer, c'est retirer puis ajouter. Le décor étant tiré d'une graine, une position désigne toujours le même objet — tant qu'on ne change pas la zone qui l'a semé.
-- L'écriture du fichier (`js/fichier-tracks.js`, partagé avec `lignes.html`) remplace une clé de premier niveau dans la définition, sans toucher aux autres ni aux commentaires voisins. Vérifié par un aller-retour sur les treize circuits : réécrire toutes leurs clés de décor redonne exactement les mêmes définitions.
+- L'écriture du fichier (`js/fichier-tracks.js`, partagé avec `lignes.html`) remplace une clé de premier niveau dans la définition, sans toucher aux autres ni aux commentaires voisins. Dans une liste (hors-piste, implantation, traits de barrière), un élément inchangé garde son texte et ses commentaires, un élément retouché — même nom, ou même genre au même endroit — garde ses commentaires : le diff ne montre que ce qui a bougé. Réécrire toutes les clés de décor des treize circuits redonne le même fichier, aux tabliers d'Interlagos et du Red Bull Ring près, que `js/tracks.js` ajoute après coup et qui s'écrivent dans la liste le jour où on la retouche.
 
 ## Ce qui ne s'édite pas ici
 

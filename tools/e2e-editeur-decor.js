@@ -68,17 +68,19 @@ const ok = (c, msg) => { console.log(`  ${c ? 'ok   ' : 'ÉCHEC'} ${msg}`); if (
     const e = tousObjets().find((e) => e.src === 'arbre');
     return { x: e.o.x, y: e.o.y };
   });
+  // Le fichier peut déjà porter des retouches d'objets : on compte à partir d'elles.
+  const o0 = await p.evaluate(() => { const o = DEC.decor.objets; return { r: o ? o.retires.length : 0, a: o ? o.ajouts.length : 0 }; });
   await p.evaluate(([x, y]) => { const r = DEC.rendu; r.cam.zoom = 8; r.cam.x = x - 150 / 8; r.cam.y = y; peindre(); }, [arbre.x, arbre.y]);
   await p.waitForTimeout(150);
   let a = await ecran(arbre.x, arbre.y);
   await glisse(a, { x: a.x + 80, y: a.y + 40 });
   let d = await p.evaluate(() => DEC.decor.objets);
-  ok(d && d.retires.length === 1 && d.ajouts.length === 1 && Math.abs(d.ajouts[0].x - (d.retires[0][0] + 10)) < 0.6,
+  ok(d && d.retires.length === o0.r + 1 && d.ajouts.length === o0.a + 1 && Math.abs(d.ajouts[o0.a].x - (d.retires[o0.r][0] + 10)) < 0.6,
     'glisser un arbre de bois : retiré à sa place, reposé dix mètres plus loin');
   ok(await p.evaluate(() => tousObjets().some((e) => e.o.ajout && e.src === 'arbre')), 'le moteur dessine l’arbre déplacé');
   await p.keyboard.press('Delete'); await pret();
   d = await p.evaluate(() => DEC.decor.objets);
-  ok(!d || (d.ajouts.length === 0 && d.retires.length === 1), 'Suppr : l’arbre ajouté disparaît, la place d’origine reste vide');
+  ok(d && d.ajouts.length === o0.a && d.retires.length === o0.r + 1, 'Suppr : l’arbre ajouté disparaît, la place d’origine reste vide');
   await outil('objets', 'ajouter');
   await p.selectOption('#d-ajout', 'campingcar');
   await p.mouse.click(a.x + 20, a.y - 60); await pret();
@@ -92,6 +94,8 @@ const ok = (c, msg) => { console.log(`  ${c ? 'ok   ' : 'ÉCHEC'} ${msg}`); if (
   await glisse({ x: a.x - 40, y: a.y - 120 }, { x: a.x - 40, y: a.y + 20 });
   const apresGomme = await p.evaluate(() => DEC.decor.objets.retires.length);
   ok(apresGomme > avantGomme, `Gomme : ${apresGomme - avantGomme} objet(s) effacé(s)`);
+  ok(await p.evaluate(() => { const r = DEC.decor.objets.retires; return new Set(r.map(String)).size === r.length; }),
+    'Gomme : chaque objet effacé n’est noté qu’une fois, même repassé');
   await capture('02-objets');
   const nAnnule = await p.evaluate(() => DEC.annule.length);
   await p.keyboard.press('Control+z'); await pret();
@@ -208,6 +212,10 @@ const ok = (c, msg) => { console.log(`  ${c ? 'ok   ' : 'ÉCHEC'} ${msg}`); if (
   ok(c.T.length === c0.T.length, `le fichier fabriqué s’évalue et garde ses ${c.T.length} circuits`);
   ok(Object.entries(attendu).every(([k, v]) => r4(m[k] == null ? null : m[k]) === r4(v)), 'Monza y porte exactement la reprise');
   ok(c.T.filter((t) => t.id !== 'monza').every((t) => r4(t) === r4(c0.T.find((u) => u.id === t.id))), 'les autres circuits sont inchangés');
+  const txtFab = fs.readFileSync(fichier, 'utf8');
+  ok('runoffs' in attendu && txtFab.includes('// Reprise 0.40 (monza-tour_reprise.png)')
+    && txtFab.includes("{ name: 'Roggia, corde', surface: 'gravel', side: 1, from: 0.376, to: 0.400, w: 9 },"),
+    'les hors-piste réécrits gardent leurs commentaires et le texte des zones inchangées');
 
   /* --- Le jeu joue la reprise --- */
   const jeu = await ctx.newPage();
@@ -220,7 +228,7 @@ const ok = (c, msg) => { console.log(`  ${c ? 'ok   ' : 'ÉCHEC'} ${msg}`); if (
 
   /* --- Revenir au fichier --- */
   await p.click('#d-oublier'); await p.waitForTimeout(800);
-  ok(!(await p.evaluate(() => Store.get('decor', 'monza'))) && (await p.evaluate(() => !DEC.decor.objets && !DEC.decor.barrierCuts)), 'Revenir au fichier : la reprise est oubliée');
+  ok(!(await p.evaluate(() => Store.get('decor', 'monza'))) && (await p.evaluate(() => !Object.keys(ecartAuFichier(DEC.def0, DEC.decor)).length && !DEC.decor.barrierCuts)), 'Revenir au fichier : la reprise est oubliée');
 
   /* --- Un autre circuit s'ouvre, mobile compris --- */
   await p.selectOption('#d-circuit', 'monaco');
