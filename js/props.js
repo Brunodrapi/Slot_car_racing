@@ -107,23 +107,22 @@ const TOP_KINDS = [
     },
   },
   {
-    // A conifer from above is a rosette: dark fronds radiating from a small pale centre.
-    id: 'pine', wm: 6.0, weight: 6, near: 7, far: 26,
-    draw(g, w, pal) {
-      const c = w / 2, r = w * 0.46;
-      for (const [k, col, rr] of [[9, pal.pine[0], r], [7, pal.pine[1], r * 0.6]]) {
-        g.fillStyle = col;
-        g.beginPath();
-        for (let i = 0; i < k; i++) {
-          const a = i / k * Math.PI * 2, a2 = (i + 0.5) / k * Math.PI * 2;
-          g.lineTo(c + Math.cos(a) * rr, c + Math.sin(a) * rr);
-          g.lineTo(c + Math.cos(a2) * rr * 0.52, c + Math.sin(a2) * rr * 0.52);
-        }
-        g.closePath(); g.fill();
-      }
-      g.fillStyle = pal.trunk;
-      g.beginPath(); g.arc(c, c, r * 0.12, 0, Math.PI * 2); g.fill();
-    },
+    /* UN CONIFÈRE VU DU DESSUS EST UN CÔNE, et c'est l'étagement qui le dit.
+
+    La première version était une étoile à pointes sèches, sombre, avec le tronc en pastille au
+    centre : on ne voit jamais le tronc d'un sapin d'en haut, et des pointes en épine faisaient un
+    bois de chardons. Un cône se lit par ses étages : une collerette large et sombre en bas, des
+    collerettes de plus en plus petites et claires vers la cime, chacune un peu décalée vers la
+    lumière, et la pointe en touche claire. Les bords sont festonnés — des pointes arrondies — pour
+    garder le caractère d'un résineux sans tomber dans l'épine. */
+    id: 'pine', wm: 6.2, weight: 3, near: 7, far: 26,
+    draw(g, w, pal) { conifere(g, w, pal, [[14, 1, .8], [11, .7, .78], [8, .42, .76]], 0.2); },
+  },
+  {
+    // Son voisin, plus élancé : plus d'étages et des festons plus fins. Deux dessins suffisent à
+    // casser la répétition d'une pinède, où l'on voit des centaines de couronnes à la fois.
+    id: 'pine2', alias: 'pine', wm: 5.4, weight: 3, near: 7, far: 26,
+    draw(g, w, pal) { conifere(g, w, pal, [[16, 1, .82], [13, .76, .8], [10, .52, .78], [7, .3, .74]], 1.3); },
   },
   {
     id: 'bush', wm: 3.4, weight: 5, near: 6, far: 22,
@@ -246,6 +245,54 @@ const TOP_KINDS = [
   },
 ];
 
+// Une teinte éclaircie (t > 0) ou assombrie (t < 0), pour étager une même couleur de palette.
+function nuance(hex, t) {
+  const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255];
+  return '#' + c.map(v => Math.round(t > 0 ? v + (255 - v) * t : v * (1 + t)))
+    .map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
+/* Un étage de conifère : `k` pointes d'aiguilles vues du dessus, nombreuses et peu profondes, aux
+flancs à peine bombés — la silhouette d'un sapin vu d'en haut. Trop peu de pointes et trop
+profondes donnaient un chardon ; des flancs trop bombés, des pétales de rose. La longueur
+des branches varie un peu d'une à l'autre, pour que le contour ne soit pas un cercle parfait. */
+function collerette(g, cx, cy, r, k, creux, phase, couleur) {
+  const pt = (ang, rad) => [cx + Math.cos(ang) * rad, cy + Math.sin(ang) * rad];
+  const pas = Math.PI * 2 / k;
+  g.fillStyle = couleur;
+  g.beginPath();
+  for (let i = 0; i < k; i++) {
+    const a = phase + i * pas, rt = r * (1 + 0.07 * Math.sin(i * 2.3 + phase * 5));
+    const n0 = pt(a - pas / 2, r * creux), tip = pt(a, rt), n1 = pt(a + pas / 2, r * creux);
+    const c0 = pt(a - pas * 0.2, rt * (0.9 + creux * 0.06)), c1 = pt(a + pas * 0.2, rt * (0.9 + creux * 0.06));
+    if (i === 0) g.moveTo(n0[0], n0[1]);
+    g.quadraticCurveTo(c0[0], c0[1], tip[0], tip[1]);
+    g.quadraticCurveTo(c1[0], c1[1], n1[0], n1[1]);
+  }
+  g.closePath(); g.fill();
+}
+
+/* Le cône vu d'en haut : trois ou quatre étages de plus en plus petits vers la cime.
+
+Chaque étage est peint deux fois — d'abord sa face à l'ombre, puis sa face éclairée, décalée vers
+la lumière (en haut à gauche, comme l'ombre portée cuite avec le décor) — si bien qu'un croissant
+sombre reste en bas à droite de chaque étage. C'est ce croissant qui donne le volume : sans lui, des
+disques de teintes voisines se lisent comme une cible et non comme un arbre. */
+function conifere(g, w, pal, etages, phase) {
+  const c = w / 2, r = w * 0.47, n = etages.length;
+  const base = pal.pine[0], haut = pal.pine[1] || pal.pine[0];
+  for (let i = 0; i < n; i++) {
+    const t = i / n, [k, taille, creux] = etages[i], rr = r * taille;
+    const dec = r * 0.05 + r * 0.1 * t, cx = c - r * 0.12 * t, cy = c - r * 0.12 * t;
+    const ombre = nuance(i === 0 ? base : haut, i === 0 ? -0.32 : -0.18 + i * 0.04);
+    const clair = i === 0 ? base : nuance(haut, (i - 1) * 0.16);
+    collerette(g, cx, cy, rr, k, creux, phase + i * 0.7, ombre);
+    collerette(g, cx - dec, cy - dec, rr * 0.9, k, creux + 0.04, phase + i * 0.7, clair);
+  }
+  // la pointe : une petite étoile claire, pas un point rond (qui se lit comme un œil)
+  collerette(g, c - r * 0.3, c - r * 0.3, r * 0.09, 5, 0.5, phase, nuance(haut, 0.35));
+}
+
 // An irregular round blob — the shape everything organic is made of here. The outline runs as a
 // closed spline through the wobbled points rather than between them: joined by straight segments
 // the same points read as a hexagon, which is what a canopy from above must not look like.
@@ -313,8 +360,8 @@ function placeTopProps(track, id, density, weights) {
   let kinds = TOP_KINDS;
   if (weights) {
     kinds = TOP_KINDS
-      .map(k => (weights[k.id] == null ? k
-        : Object.assign({}, k, { weight: k.weight ? k.weight * weights[k.id] : weights[k.id] })))
+      .map(k => { const wt = weights[k.alias || k.id]; return wt == null ? k
+        : Object.assign({}, k, { weight: k.weight ? k.weight * wt : wt }); })
       .filter(k => k.weight > 0);
     if (!kinds.length) kinds = TOP_KINDS;
   } else {
@@ -454,7 +501,7 @@ Le thème dit déjà quel arbre pousse là — `PAL.props` pondère le semis —
 un semis : elle veut deux ou trois essences qui se recouvrent, pas la liste entière. */
 const IMPL_ESSENCES = {
   bois: [['tree', 1.2], ['tree2', 1], ['bush', 0.45]],
-  pinede: [['pine', 1.6], ['bush', 0.3], ['tree2', 0.25]],
+  pinede: [['pine', 0.9], ['pine2', 0.8], ['bush', 0.3], ['tree2', 0.25]],
   taillis: [['bush', 1.5], ['tree2', 0.6]],
 };
 
