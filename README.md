@@ -1377,6 +1377,17 @@ explicites sur un circuit intégré auraient été projetées à côté de la pi
 La route est calculée autour des trois lignes (largeur variable, asphalte, vibreurs, graviers). Si
 l'image contient déjà la piste, décocher « dessiner la route ».
 
+### Mode Décor — retoucher tout ce qui est dessiné (0.42.0)
+
+Le bouton **Décor** en haut du panneau ouvre n'importe quel circuit — les treize du jeu comme les
+circuits perso — dans le moteur de rendu du jeu, et en fait retoucher le décor : chaque arbre,
+rocher, tas de bois, voiture garée, camping-car ou bâtiment (choisir, déplacer, tourner, changer,
+supprimer, ajouter, gommer), les zones de hors-piste en bitume, gravier ou herbe, les surfaces
+bitumées, les barrières (tracer, reprendre, couper), les zones d'implantation (bois, tribunes,
+stands, hangars, parkings, camping, vide) et la voie des stands. « Enregistrer » vaut pour ce
+navigateur, « Fabriquer tracks.js » produit le fichier à remettre dans `js/`. Mode d'emploi et
+captures : [docs/editeur-decor](docs/editeur-decor/README.md). Lien direct : `editor.html?decor=spa`.
+
 ## Atelier voitures (menu → Atelier voitures)
 
 Ajoute tes propres voitures 2D :

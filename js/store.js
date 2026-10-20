@@ -10,14 +10,16 @@ const Store = {
       // Version 2 : le rayon `lines`, qui porte les trajectoires reprises à la main pour les
       // circuits intégrés. Version 3 : `panneaux`, pareil pour les panneaux de freinage. Les rayons
       // existants sont conservés — une montée de version n'ajoute que ce qui manque, donc une partie
-      // déjà jouée ne perd ni ses circuits, ni ses voitures, ni ses lignes.
-      const req = indexedDB.open('slotracer', 3);
+      // déjà jouée ne perd ni ses circuits, ni ses voitures, ni ses lignes. Version 4 : `decor`,
+      // les retouches du décor des circuits intégrés faites dans l'éditeur.
+      const req = indexedDB.open('slotracer', 4);
       req.onupgradeneeded = () => {
         const db = req.result;
         if (!db.objectStoreNames.contains('tracks')) db.createObjectStore('tracks', { keyPath: 'id' });
         if (!db.objectStoreNames.contains('cars')) db.createObjectStore('cars', { keyPath: 'id' });
         if (!db.objectStoreNames.contains('lines')) db.createObjectStore('lines', { keyPath: 'id' });
         if (!db.objectStoreNames.contains('panneaux')) db.createObjectStore('panneaux', { keyPath: 'id' });
+        if (!db.objectStoreNames.contains('decor')) db.createObjectStore('decor', { keyPath: 'id' });
       };
       req.onsuccess = () => { this._db = req.result; resolve(this._db); };
       req.onerror = () => reject(req.error);

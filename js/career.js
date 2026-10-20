@@ -271,6 +271,8 @@ function poseFrein(save, nom, trackId, modelId, valeur) {
 const FF_DEFAUT = 0.3;
 function tourNet(save, race) {
   if (race && race.usure) return false;
+  // un décor retouché sur ce poste (barrières, dégagements) n'est plus le circuit de tout le monde
+  if (race && race.track && race.track.def && race.track.def.decorLocal) return false;
   if (save.showLines) return false;
   if ((save.aimant || 0) !== 0) return false;
   if ((save.ff == null ? FF_DEFAUT : save.ff) !== FF_DEFAUT) return false;

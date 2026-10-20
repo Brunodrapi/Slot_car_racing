@@ -1,4 +1,5 @@
 // Track editor: background image + three driving lines drawn as closed Catmull-Rom curves.
+// Its « Décor » mode (js/editeur-decor.js) edits the scenery of any circuit with the game's renderer.
 // Coordinates are image pixels; `scale` (metres per pixel) comes from the lap length typed by the user.
 'use strict';
 
@@ -51,6 +52,8 @@ function docToDef(doc) {
     drawRoad: doc.drawRoad,
     editor: { lines: doc.lines, startIndex: doc.startIndex, lengthM: doc.lengthM },
   };
+  // le décor repris dans le mode Décor voyage avec le circuit
+  for (const k of CLES_DECOR) if (doc.decor && doc.decor[k] != null) def[k] = doc.decor[k];
   // missing side lines: derived from the racing line by the game's auto generator? No: offset copies.
   if (!def.lines.inside) def.lines.inside = offsetLine(center, -8 / scale, doc);
   if (!def.lines.outside) def.lines.outside = offsetLine(center, 8 / scale, doc);
@@ -271,7 +274,14 @@ async function loadDoc(doc) {
 function defToDoc(def) {
   const e = def.editor || {};
   return { id: def.id, name: def.name, flag: def.flag || '🏁', lengthM: e.lengthM || def.length || 3000, laps: def.laps || 3, drawRoad: def.drawRoad !== false, image: def.image || null,
-    lines: e.lines ? JSON.parse(JSON.stringify(e.lines)) : { racing: def.center.slice(), inside: (def.lines && def.lines.inside) || [], outside: (def.lines && def.lines.outside) || [] }, startIndex: e.startIndex || 0 };
+    lines: e.lines ? JSON.parse(JSON.stringify(e.lines)) : { racing: def.center.slice(), inside: (def.lines && def.lines.inside) || [], outside: (def.lines && def.lines.outside) || [] }, startIndex: e.startIndex || 0,
+    decor: decorDe(def) };
+}
+// Les clés de décor d'une définition (voir CLES_DECOR, js/tracks.js).
+function decorDe(def) {
+  const d = {};
+  for (const k of CLES_DECOR) if (def[k] != null) d[k] = JSON.parse(JSON.stringify(def[k]));
+  return d;
 }
 async function refreshList(selectId) {
   const sel = document.getElementById('sel-track');
@@ -307,6 +317,7 @@ function init() {
   ed.cv.addEventListener('contextmenu', (e) => e.preventDefault());
   window.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT') return;
+    if (typeof DEC !== 'undefined' && DEC.actif) return;      // le mode Décor a ses propres touches
     if (e.code === 'Space') { ed.space = true; e.preventDefault(); }
     if ((e.ctrlKey || e.metaKey) && e.key === 'z' && ed.undo.length) { ed.doc.lines = JSON.parse(ed.undo.pop()); schedulePreview(); draw(); }
     if (e.key === '1') setActive('racing'); if (e.key === '2') setActive('inside'); if (e.key === '3') setActive('outside');

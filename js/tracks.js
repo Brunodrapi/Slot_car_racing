@@ -1411,7 +1411,9 @@ for(const id of ['interlagos','redbullring']){
   const d=TRACKS.find(t=>t.id===id);
   const names=id==='interlagos'?['S de Senna','Descida do Lago','Juncao']
     :['Virage 1','Virage 3','Virage 4','Virage 6-7','Virage 9','Virage 10'];
-  const aprons=d.runoffs.filter(z=>names.includes(z.name)).map(z=>({
+  // Sans doublon : une liste réécrite par l'éditeur de décor porte déjà ses tabliers.
+  const aprons=d.runoffs.filter(z=>names.includes(z.name)
+    &&!d.runoffs.some(y=>y.name===z.name+' — tablier bitumé avant bac')).map(z=>({
     ...z,name:z.name+' — tablier bitumé avant bac',surface:'asphalt',w:4,keepOuterGravel:true}));
   d.runoffs.push(...aprons);
 }
@@ -1448,3 +1450,20 @@ for(const d of TRACKS){
 }
 
 if (typeof module !== 'undefined') module.exports = { TRACKS };
+
+/* LES CLÉS DU DÉCOR, celles que l'éditeur de décor (`editor.html`, mode Décor) sait reprendre. Une
+retouche locale ou un bloc fabriqué pour ce fichier ne touche qu'à celles-là : le tracé, la largeur,
+les lignes et les panneaux restent ce qu'ils sont. */
+const CLES_DECOR = ['runoffs', 'annotatedRunoffsOnly', 'implantation', 'barrierPaths', 'barrierCuts',
+  'asphaltPads', 'pitFrom', 'pitTo', 'pitAt', 'objets'];
+// Une définition avec une reprise de décor posée dessus ; `null` retire la clé (plus de voie
+// déplacée, plus de traits relevés…). La définition d'origine n'est pas touchée.
+function avecDecor(def, decor) {
+  if (!decor) return def;
+  const nu = { ...def };
+  for (const k of CLES_DECOR) {
+    if (!(k in decor)) continue;
+    if (decor[k] == null) delete nu[k]; else nu[k] = decor[k];
+  }
+  return nu;
+}

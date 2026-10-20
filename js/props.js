@@ -1040,6 +1040,70 @@ function tasIsoles(track, impl, props, rnd) {
   return { tas, props: props.filter(p => p.id !== 'logs') };
 }
 
+/* Les cases de quarante-huit mètres où l'on range arbres et bâtis pour ne parcourir que ce qui est en
+vue. Refaites d'un bloc quand la liste change — après une retouche de l'éditeur de décor, par
+exemple. */
+function implIndexe(impl) {
+  const cases = new Map();
+  let marge = 8;                // la demi-taille du plus gros objet, pour la fenêtre de rendu
+  const range = (o, r) => {
+    if (r > marge) marge = r;
+    o._r = r;
+    const i0 = Math.floor((o.x - r) / IMPL_CELL), i1 = Math.floor((o.x + r) / IMPL_CELL);
+    const j0 = Math.floor((o.y - r) / IMPL_CELL), j1 = Math.floor((o.y + r) / IMPL_CELL);
+    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
+      const k = i + ',' + j;
+      let c = cases.get(k); if (!c) cases.set(k, c = []);
+      c.push(o);
+    }
+  };
+  for (const a of impl.arbres) range(a, 6 * Math.max(1, a.e || 1));
+  for (const b of impl.batis) range(b, Math.max(b.l, b.w) * 0.7);
+  impl.cases = cases; impl.marge = marge; impl.cell = IMPL_CELL;
+  return impl;
+}
+
+/* LES RETOUCHES OBJET PAR OBJET, faites dans l'éditeur de décor (`def.objets`).
+
+Tout le décor est tiré d'une graine : un même circuit donne toujours les mêmes arbres aux mêmes
+endroits. Une retouche n'a donc besoin que de deux listes. `retires` : les positions [x, y] des
+objets à enlever, quel qu'en soit le type — un arbre de bois, un rocher du semis, une voiture garée,
+un hangar, un tas de bois. `ajouts` : des objets écrits en entier, posés tels quels. Déplacer un
+objet, c'est l'enlever là où il était et l'ajouter là où on le pose.
+
+Une position désigne un objet à 40 cm près. Si l'on change ensuite la zone qui l'a semé, il ne
+pousse plus au même endroit et la retouche ne trouve plus rien à retirer : c'est sans danger, mais
+c'est à refaire. */
+const OBJ_TOLERANCE = 0.4;
+function objetRetire(retires, o) {
+  for (const [x, y] of retires) if (Math.abs(o.x - x) < OBJ_TOLERANCE && Math.abs(o.y - y) < OBJ_TOLERANCE) return true;
+  return false;
+}
+function appliqueObjets(objets, decor) {
+  if (!objets) return decor;
+  const retires = objets.retires || [], ajouts = objets.ajouts || [];
+  let impl = decor.impl;
+  if (!impl && ajouts.some(a => a.k === 'vehicule' || a.k === 'bati' || a.k === 'arbre'))
+    impl = { sols: [], arbres: [], batis: [], nus: [], masque: null, lots: [], tas: [] };
+  if (impl && retires.length) {
+    impl.arbres = impl.arbres.filter(o => !objetRetire(retires, o));
+    impl.batis = impl.batis.filter(o => !objetRetire(retires, o));
+  }
+  let props = retires.length ? decor.props.filter(o => !objetRetire(retires, o)) : decor.props.slice();
+  let tas = retires.length ? decor.tas.filter(o => !objetRetire(retires, o)) : decor.tas.slice();
+  for (const a of ajouts) {
+    const o = { ...a, ajout: true };
+    delete o.k;
+    if (a.k === 'prop') props.push(o);
+    else if (a.k === 'arbre') impl.arbres.push(o);
+    else if (a.k === 'tas') tas.push(o);
+    else if (a.k === 'vehicule') impl.batis.push({ type: 'voiture', ...o });
+    else if (a.k === 'bati') impl.batis.push(o);
+  }
+  if (impl) implIndexe(impl);
+  return { impl, props, tas };
+}
+
 /* Le relevé d'un circuit, zone par zone.
 
 Rendu : les sols d'abord, sous la route, puis les couronnes et les bâtiments par-dessus tout le
@@ -1125,22 +1189,7 @@ function placeImplantation(track, id, zones, water = placeWater(track, track.def
     const a=arbres[i],kind=TOP_KINDS.find(k=>k.id===a.id);
     if(sceneryCircleNearBarrier(track,a,(kind?.wm||9)*(a.e||1)*.55))arbres.splice(i,1);
   }
-  const cases = new Map();
-  let marge = 8;                // la demi-taille du plus gros objet, pour la fenêtre de rendu
-  const range = (o, r) => {
-    if (r > marge) marge = r;
-    o._r = r;
-    const i0 = Math.floor((o.x - r) / IMPL_CELL), i1 = Math.floor((o.x + r) / IMPL_CELL);
-    const j0 = Math.floor((o.y - r) / IMPL_CELL), j1 = Math.floor((o.y + r) / IMPL_CELL);
-    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
-      const k = i + ',' + j;
-      let c = cases.get(k); if (!c) cases.set(k, c = []);
-      c.push(o);
-    }
-  };
-  for (const a of arbres) range(a, 6);
-  for (const b of batis) range(b, Math.max(b.l, b.w) * 0.7);
-  return { sols, arbres, batis, nus, cases, cell: IMPL_CELL, marge, masque, lots, tas };
+  return implIndexe({ sols, arbres, batis, nus, cell: IMPL_CELL, masque, lots, tas });
 }
 
 /* LE SEMIS ORDINAIRE PASSE PAR LE MÊME MASQUE, et c'est ce qui manquait.
@@ -1459,6 +1508,7 @@ function buildBoatArt(pal) {
 if (typeof module !== 'undefined') module.exports.TOP_KINDS = TOP_KINDS;
 if (typeof module !== 'undefined') module.exports.VEHICULES = VEHICULES;
 if (typeof module !== 'undefined') module.exports.tasEmpreinte = tasEmpreinte;
+if (typeof module !== 'undefined') module.exports.appliqueObjets = appliqueObjets;
 if (typeof module !== 'undefined') module.exports.placeTopProps = placeTopProps;
 if (typeof module !== 'undefined') module.exports.placePatches = placePatches;
 if (typeof module !== 'undefined') module.exports.placeWater = placeWater;

@@ -635,31 +635,7 @@ et effacerait les deux autres.
 La découpe se fait au comptage d'accolades, en sautant ce qui est entre guillemets. Une définition
 de circuit est un objet littéral et rien d'autre ; chercher la fin d'un objet à l'expression
 régulière, en revanche, marche jusqu'au jour où ça ne marche plus. */
-function finObjet(txt, debut) {
-  let prof = 0, dans = null, com = null;
-  for (let i = debut; i < txt.length; i++) {
-    const c = txt[i];
-    /* LES COMMENTAIRES SE SAUTENT, et ce n'est pas un raffinement. Le fichier est commenté en
-       français : « ce qu'on », « l'assombrissement », « n'est pas ». Chaque apostrophe était lue
-       comme une ouverture de chaîne, et une seule de trop décalait tout ce qui suit — le compteur
-       d'accolades ne trouvait plus la fin de la définition, et le bloc se posait au mauvais endroit.
-       Un commentaire ajouté ailleurs dans le fichier cassait donc cette page, sans rapport visible. */
-    if (com) {
-      if (com === '//' ? c === '\n' : (c === '*' && txt[i + 1] === '/')) { if (com === '/*') i++; com = null; }
-      continue;
-    }
-    if (dans) {                                   // dans une chaîne : on n'y compte rien
-      if (c === '\\') i++;
-      else if (c === dans) dans = null;
-      continue;
-    }
-    if (c === '/' && (txt[i + 1] === '/' || txt[i + 1] === '*')) { com = c + txt[i + 1]; i++; continue; }
-    if (c === '"' || c === "'" || c === '`') { dans = c; continue; }
-    if (c === '{' || c === '[') prof++;
-    else if (c === '}' || c === ']') { prof--; if (prof === 0) return i; }
-  }
-  return -1;
-}
+// `finObjet` : js/fichier-tracks.js, partagé avec l'éditeur de décor.
 
 /** Le texte du bloc `lines` pour un jeu de points, indenté comme le fichier. */
 function blocPour(pts) {

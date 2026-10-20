@@ -19,7 +19,7 @@ class App {
     this.audio.enabled = this.save.sound;
     this.ui = new UI(this);
     this.tracks = new Map();
-    this.custom = { tracks: [], cars: [], lines: new Map(), panneaux: new Map() };
+    this.custom = { tracks: [], cars: [], lines: new Map(), panneaux: new Map(), decor: new Map() };
     this.race = null;
     // Racing together. The table stays open across races; the game only ever asks the net layer
     // two things: who is on the grid, and what the others are doing.
@@ -107,11 +107,12 @@ class App {
   jeu : elle vaut pour ce poste, tout de suite, sans rien publier. Pour qu'une ligne vaille pour
   tout le monde, il faut son bloc dans `js/tracks.js`, et `lignes.html` le produit aussi. */
   allTracks() {
-    const rep = this.custom.lines, pan = this.custom.panneaux;
-    const base = (rep && rep.size) || (pan && pan.size)
+    const rep = this.custom.lines, pan = this.custom.panneaux, dec = this.custom.decor;
+    const base = (rep && rep.size) || (pan && pan.size) || (dec && dec.size)
       ? TRACKS.map((t) => {
-        if (!rep.has(t.id) && !pan.has(t.id)) return t;
-        const nu = { ...t };
+        if (!rep.has(t.id) && !pan.has(t.id) && !(dec && dec.has(t.id))) return t;
+        // le décor repris dans l'éditeur (mode Décor), posé comme les lignes : sur ce poste seulement
+        const nu = dec && dec.has(t.id) ? { ...avecDecor(t, dec.get(t.id)), decorLocal: true } : { ...t };
         if (rep.has(t.id)) nu.lines = rep.get(t.id);
         if (pan.has(t.id)) nu.panneaux = pan.get(t.id);
         return nu;
@@ -131,6 +132,9 @@ class App {
       this.custom.lines = new Map(reprises.filter(r => r && r.lines && r.lines.racing).map(r => [r.id, r.lines]));
       for (const r of reprises) this.tracks.delete(r.id);      // le circuit en cache est périmé
       // Les panneaux repris : une liste VIDE compte, c'est « ce circuit n'en a aucun ».
+      const decors = await Store.list('decor');
+      this.custom.decor = new Map(decors.filter(r => r && r.decor).map(r => [r.id, r.decor]));
+      for (const r of decors) this.tracks.delete(r.id);
       const pans = await Store.list('panneaux');
       this.custom.panneaux = new Map(pans.filter(r => r && Array.isArray(r.panneaux)).map(r => [r.id, r.panneaux]));
       for (const r of pans) this.tracks.delete(r.id);
@@ -592,7 +596,7 @@ class App {
       tableau est cassé. On nomme donc le motif — l'usure, ou la configuration — même quand il n'y a
       rien eu à envoyer. */
       if (!net && this.mondial && this.mondial.connecte())
-        this.mondial.dernierRefus = { raison: race.usure ? 'usure' : 'aides',
+        this.mondial.dernierRefus = { raison: race.usure ? 'usure' : race.track.def.decorLocal ? 'decor' : 'aides',
                                       circuit: race.track.id, voiture: race.cls.id };
     }
     save.racesDone++;

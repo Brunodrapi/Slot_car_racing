@@ -727,6 +727,9 @@ class Renderer {
       this.topProps=r.props;this.tas=(this.implantation?.tas||[]).concat(r.tas);
       // Le semis ne pousse pas sur une pile de lisière : elle reste à moitié visible.
       if(this.implantation?.tas?.length)this.topProps=this.topProps.filter(p=>!this.implantation.tas.some(t=>Math.hypot(p.x-t.x,p.y-t.y)<3.6+(this.topArt[p.id]?.wm||4)*.25));}
+    // Les retouches de l'éditeur de décor : objets retirés, déplacés ou ajoutés à la main.
+    if(track.def.objets){const r=appliqueObjets(track.def.objets,{impl:this.implantation,props:this.topProps,tas:this.tas});
+      this.implantation=r.impl;this.topProps=r.props;this.tas=r.tas;}
     this.patches = []; // les anciens ovales de terre ne font plus partie du décor
     this.puddles = placePuddles(track, seed, track.puddles);
     this.boats = placeBoats(track, seed, this.water);

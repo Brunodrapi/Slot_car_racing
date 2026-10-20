@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Eyes On Line — Éditeur de circuits</title>
-  <link rel="icon" type="image/png" sizes="32x32" href="art/icone-32.png?v=0.41.6">
-  <link rel="icon" type="image/png" sizes="16x16" href="art/icone-16.png?v=0.41.6">
-  <link rel="icon" type="image/png" sizes="48x48" href="art/icone-48.png?v=0.41.6">
-  <link rel="icon" type="image/x-icon" href="favicon.ico?v=0.41.6">
-  <link rel="apple-touch-icon" href="art/icone-180.png?v=0.41.6">
-  <link rel="stylesheet" href="css/style.css?v=0.41.6">
+  <link rel="icon" type="image/png" sizes="32x32" href="art/icone-32.png?v=0.42.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="art/icone-16.png?v=0.42.0">
+  <link rel="icon" type="image/png" sizes="48x48" href="art/icone-48.png?v=0.42.0">
+  <link rel="icon" type="image/x-icon" href="favicon.ico?v=0.42.0">
+  <link rel="apple-touch-icon" href="art/icone-180.png?v=0.42.0">
+  <link rel="stylesheet" href="css/style.css?v=0.42.0">
   <style>
     body { overflow: hidden; }
     #ed { position: fixed; inset: 0; display: grid; grid-template-columns: 300px 1fr; }
@@ -28,12 +28,27 @@
     #status { color: var(--accent2); font-size: 12px; min-height: 16px; }
     .row2 { display: flex; gap: 6px; flex-wrap: wrap; }
     @media (max-width: 800px) { #ed { grid-template-columns: 1fr; grid-template-rows: auto 1fr; } #panel { max-height: 45vh; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); } }
+    /* Le mode Décor : la toile du jeu occupe toute la fenêtre, sous le panneau. */
+    [hidden] { display: none !important; }
+    #p-trace, #p-decor { display: flex; flex-direction: column; gap: 10px; }
+    #decor { position: fixed; inset: 0; touch-action: none; cursor: crosshair; }
+    #ed.decor { pointer-events: none; }
+    #ed.decor #panel { pointer-events: auto; background: rgba(20,24,38,0.94); }
+    #ed.decor #cv { visibility: hidden; }
+    .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .modes button.sel { outline: 2px solid var(--accent); }
+    #d-fiche { display: flex; flex-direction: column; gap: 8px; }
+    #d-fiche select[size] { height: auto; }
+    #d-etat { color: var(--accent2); font-size: 12px; min-height: 16px; }
   </style>
 </head>
 <body>
+  <canvas id="decor" style="display:none"></canvas>
   <div id="ed">
     <div id="panel">
       <div class="row2"><a href="index.html"><button>← Jeu</button></a><h2 style="margin:0">Éditeur de circuits</h2></div>
+      <div class="modes"><button id="mode-trace" class="sel">Tracé</button><button id="mode-decor">Décor</button></div>
+      <div id="p-trace">
       <div id="status"></div>
       <h3>Circuit</h3>
       <label>Sauvegardés <select id="sel-track"><option value="">— nouveau —</option></select></label>
@@ -60,12 +75,33 @@
       <div class="row2"><button id="btn-save" class="primary">Sauvegarder</button><button id="btn-test">Tester dans le jeu</button></div>
       <div class="row2"><button id="btn-export">Exporter JSON</button><label><input type="file" id="inp-import" accept="application/json" style="display:none"><button id="btn-import">Importer JSON</button></label></div>
       <div class="help" id="info"></div>
+      </div>
+      <div id="p-decor" hidden>
+        <label>Circuit <select id="d-circuit"></select></label>
+        <div id="d-etat"></div>
+        <div class="tools" id="d-outils"><button data-outil="objets" class="sel">Objets</button><button data-outil="horspiste">Hors-piste</button><button data-outil="barrieres">Barrières</button><button data-outil="zones">Zones</button><button data-outil="stands">Stands</button></div>
+        <div id="d-fiche"></div>
+        <h3>Enregistrer</h3>
+        <div class="row2"><button id="d-poser" class="primary">Enregistrer</button><button id="d-tester">Tester dans le jeu</button></div>
+        <div class="row2"><button id="d-annuler">Annuler</button><button id="d-cadrer">Recadrer</button><button id="d-oublier" class="danger">Revenir au fichier</button></div>
+        <div class="row2"><button id="d-fichier">Fabriquer tracks.js</button></div>
+        <div class="help">Molette ou deux doigts : zoom. Glisser dans le vide, clic droit ou Espace+glisser : déplacer la vue. Ctrl+Z : annuler. Suppr : effacer la sélection. Échap : abandonner.</div>
+        <div class="help">« Enregistrer » vaut pour ce navigateur : le jeu joue la retouche tout de suite, et le circuit sort du tableau mondial sur ce poste. « Fabriquer tracks.js » produit le fichier à remettre dans js/ pour qu’elle vaille pour tout le monde. Un circuit perso garde son décor avec lui.</div>
+      </div>
     </div>
     <canvas id="cv"></canvas>
   </div>
-  <script src="js/util.js?v=0.41.6"></script>
-  <script src="js/track.js?v=0.41.6"></script>
-  <script src="js/store.js?v=0.41.6"></script>
-  <script src="js/editor.js?v=0.41.6"></script>
+  <script src="js/util.js?v=0.42.0"></script>
+  <script src="js/traces.js?v=0.42.0"></script>
+  <script src="js/tracks.js?v=0.42.0"></script>
+  <script src="js/track.js?v=0.42.0"></script>
+  <script src="js/store.js?v=0.42.0"></script>
+  <script src="js/props.js?v=0.42.0"></script>
+  <script src="js/circuit-graphics.js?v=0.42.0"></script>
+  <script src="js/flags.js?v=0.42.0"></script>
+  <script src="js/render.js?v=0.42.0"></script>
+  <script src="js/fichier-tracks.js?v=0.42.0"></script>
+  <script src="js/editor.js?v=0.42.0"></script>
+  <script src="js/editeur-decor.js?v=0.42.0"></script>
 </body>
 </html>
