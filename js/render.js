@@ -3018,7 +3018,7 @@ class Renderer {
         if (car !== p) {
           const distance = Math.abs(car.progress - p.progress), pace = p.bestLap || car.bestLap;
           const sign = car.progress >= p.progress ? '+' : '−';
-          gap = pace ? `≈${sign}${(distance / race.track.length * pace).toFixed(1)} s` : `${sign}${Math.round(distance)} m`;
+          gap = pace ? `${sign}${fmtEcart(distance / race.track.length * pace)} s` : `${sign}${Math.round(distance)} m`;
         }
         g.textAlign = 'right'; g.fillText(gap, bx + bw - 14, y + 4, mobile ? 60 : 80);
       });
@@ -3212,6 +3212,15 @@ class Renderer {
     if (Math.abs(v) < 0.18) v = 0; else if (Math.abs(v) > 0.82) v = Math.sign(v);
     return v;
   }
+}
+
+/* Un écart au classement, en secondes : le dixième sous dix secondes, où il départage une
+bagarre, la seconde entière au-delà, où il n'apprendrait rien. Sans « ≈ » : c'est une estimation
+(la distance au tour divisée par un rythme), mais tout le monde le lit comme tel, et le signe
+prenait de la place dans une case de 60 px sur téléphone. */
+function fmtEcart(s) {
+  const d = Math.round(s * 10) / 10;
+  return d < 10 ? d.toFixed(1) : String(Math.round(s));
 }
 
 function fmtTime(s) {
