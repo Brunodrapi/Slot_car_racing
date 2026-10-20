@@ -3060,9 +3060,6 @@ class Renderer {
     const ouvert = !!(p.usure && p.lap >= 1 && !p.pitServi && !p.finished);
     this.pitOpen = ouvert;
     this.pitY = s.y + s.len + 22;
-    this._hudLabel(g, s.droite ? s.x - 65 : s.x - 18, s.y - 26, 83, s.len + 52 + (ouvert ? 22 : 0), '#171b19da');
-    // track
-    g.fillStyle = 'rgba(255,255,255,0.18)'; this._roundRect(g, s.x - 4, s.y, 8, s.len, 4); g.fill();
     const stops = [{ v: 1, c: LINE_COLORS.jaune, l: t('lineJaune') }, { v: 0, c: LINE_COLORS.racing, l: t('lineRace') }, { v: -1, c: LINE_COLORS.bleu, l: t('lineBleu') }];
     /* Les libellés passent de l'autre côté de la colonne quand le levier est à droite : posés
     toujours à droite, ils sortiraient de l'écran, et c'est le genre de détail qui ne se voit que
@@ -3070,6 +3067,18 @@ class Renderer {
     const cote = s.droite ? -1 : 1;
     const lx = s.x + 14 * cote;
     g.font = `italic 900 ${this.mobile ? 13 : 15}px Racing, Impact, sans-serif`;
+    /* LE FOND SE CALE SUR CE QU'IL PORTE : la même marge du côté de la poignée et du côté du plus
+    long libellé, prise à mi-hauteur — là où la poignée repose, sur l'idéale. Il était posé à 18 px
+    devant l'axe pour 65 derrière, si bien que la poignée touchait son bord quand les libellés
+    flottaient dans le vide de l'autre côté ; et sa largeur fixe ne suivait ni la langue ni la
+    taille du texte. Le biseau du fond décale ses bords d'un demi-biseau à mi-hauteur. */
+    const larg = Math.max(...stops.map((st) => g.measureText(st.l).width), g.measureText(t('linePit')).width);
+    const marge = 7, hFond = s.len + 52 + (ouvert ? 22 : 0), biseau = Math.min(9, hFond * .23);
+    const cotePoignee = 13 + marge, coteTexte = 14 + larg + marge;
+    const gauche = s.droite ? s.x - coteTexte : s.x - cotePoignee;
+    this._hudLabel(g, gauche - biseau / 2, s.y - 26, cotePoignee + coteTexte + biseau, hFond, '#171b19da');
+    // track
+    g.fillStyle = 'rgba(255,255,255,0.18)'; this._roundRect(g, s.x - 4, s.y, 8, s.len, 4); g.fill();
     g.textAlign = s.droite ? 'right' : 'left'; g.textBaseline = 'middle';
     for (const st of stops) {
       const y = s.y + s.len / 2 - st.v * s.len / 2;
