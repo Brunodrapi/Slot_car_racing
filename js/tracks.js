@@ -226,6 +226,9 @@ const TRACKS = [
       { kind: 'bois', side: -1, from: 0.72, to: 0.885, recul: 11, prof: 70 },
       { kind: 'bois', side: -1, from: 0.89, to: 0.955, recul: 14, prof: 50 },
       { kind: 'parking', side: 1, from: 0.9, to: 0.95, recul: 14, prof: 30 },
+      // Camping-cars garés en long derrière la protection, hors des parkings.
+      { kind: 'camping', side: 1, from: 0.215, to: 0.33, recul: 2.5 },
+      { kind: 'camping', side: -1, from: 0.22, to: 0.33, recul: 2.5 },
     ],
     kerb: DRAPEAUX.be,
     /* Plus de `pitAt` : il valait 0,10 et corrigeait une zone d'arrêt qui tombait dans un virage —
@@ -505,6 +508,9 @@ const TRACKS = [
       { kind: 'tribune', side: 1, from: 0.815, to: 0.87, recul: 14, prof: 16, module: 28 },
       { kind: 'tribune', side: -1, from: 0.905, to: 0.955, recul: 13, prof: 16, module: 28 },
       { kind: 'parking', side: 1, from: 0.88, to: 0.945, recul: 20, prof: 40 },
+      // Camping-cars garés en long derrière la protection, hors des parkings.
+      { kind: 'camping', side: -1, from: 0.67, to: 0.83, recul: 2.5 },
+      { kind: 'camping', side: 1, from: 0.375, to: 0.495, recul: 2.5 },
     ],
   },
   {
@@ -783,6 +789,8 @@ const TRACKS = [
       { kind: 'bois', side: -1, from: 0.62, to: 0.74, recul: 14, prof: 38, densite: 0.4 },
       { kind: 'parking', side: 1, from: 0.78, to: 0.86, recul: 18, prof: 36 },
       { kind: 'hangars', side: -1, from: 0.88, to: 0.94, recul: 16, prof: 24, module: 24 },
+      // Camping-cars garés en long derrière la protection, hors des parkings.
+      { kind: 'camping', side: 1, from: 0.515, to: 0.6, recul: 2.5 },
     ],
     // Trois passerelles : l'entrée des stands, le Rainey Curve et le Corkscrew.
     passerelles: [0.0399, 0.6555, 0.7886],
@@ -887,6 +895,8 @@ const TRACKS = [
       { kind: 'bois', side: 1, from: 0.69, to: 0.82, recul: 13, prof: 60 },
       { kind: 'hangars', side: -1, from: 0.74, to: 0.8, recul: 18, prof: 26, module: 26 },
       { kind: 'tribune', side: -1, from: 0.87, to: 0.935, recul: 13, prof: 18, module: 30 },
+      // Camping-cars garés en long derrière la protection, hors des parkings.
+      { kind: 'camping', side: -1, from: 0.34, to: 0.48, recul: 2.5 },
     ],
   },
   {
@@ -1008,6 +1018,9 @@ const TRACKS = [
       { kind: 'hangars', side: -1, from: 0.76, to: 0.85, recul: 18, prof: 30, module: 26 },
       { kind: 'parking', side: -1, from: 0.86, to: 0.93, recul: 20, prof: 44 },
       { kind: 'tribune', side: 1, from: 0.88, to: 0.95, recul: 13, prof: 17, module: 30 },
+      // Camping-cars garés en long derrière la protection, hors des parkings.
+      { kind: 'camping', side: -1, from: 0.15, to: 0.28, recul: 2.5 },
+      { kind: 'camping', side: 1, from: 0.12, to: 0.27, recul: 2.5 },
     ],
     lines: {
       racing: [[-30.646, 64.631], [-34.192, 66.924], [-43.868, 68.498], [-61.058, 69.201], [-71.338, 63.674], [-82.061, 56.906], [-87.38, 47.91], [-93.609, 46.011], [-99.897, 36.052], [-94.005, 25.086], [-85.689, 17.354], [-76.08, 10.955], [-66.162, 5.464], [-55.977, 0.186], [-45.87, -4.963], [-35.615, -10.189], [-25.465, -14.515], [-25.878, -16.043], [-7.06, -26.462], [2.869, -32.198], [12.696, -37.85], [22.658, -43.527], [33.736, -50.067], [37.181, -53.431], [43.148, -55.011], [62.437, -62.535], [73.349, -65.61], [84.455, -68.476], [95.729, -70.285], [99.862, -67.102], [99.368, -50.665], [97.788, -39.288], [95.223, -28.238], [91.661, -17.321], [87.176, -6.898], [80.024, 4.651], [75.175, 8.365], [80.044, 18.868], [69.436, 25.352], [59.251, 30.321], [50.151, 37.02], [37.663, 46.998], [30.503, 46.936], [21.404, 44.769], [12.408, 52.754], [2.272, 50.669], [-8.727, 53.076], [-19.119, 57.703]],
@@ -1111,6 +1124,9 @@ const TRACKS = [
       { kind: 'bois', side: 1, from: 0.56, to: 0.7, recul: 10, prof: 40, densite: 0.45 },
       { kind: 'bois', side: -1, from: 0.7, to: 0.83, recul: 12, prof: 44, densite: 0.4 },
       { kind: 'bois', side: 1, from: 0.72, to: 0.83, recul: 12, prof: 40, densite: 0.35 },
+      // Camping-cars garés en long derrière la protection, hors des parkings.
+      { kind: 'camping', side: 1, from: 0.835, to: 0.89, recul: 2.5 },
+      { kind: 'camping', side: -1, from: 0.835, to: 0.89, recul: 2.5 },
     ],
     // Une passerelle sur Pit Straight, une sur Conrod Straight.
     passerelles: [0.0050, 0.9391],
@@ -1189,6 +1205,8 @@ const TRACKS = [
       { kind: 'tribune', side: 1, from: 0.83, to: 0.89, recul: 13, prof: 16, module: 28 },
       { kind: 'parking', side: -1, from: 0.86, to: 0.95, recul: 18, prof: 40 },
       { kind: 'hangars', side: -1, from: 0.79, to: 0.85, recul: 16, prof: 24, module: 24 },
+      // Camping-cars garés en long derrière la protection, hors des parkings.
+      { kind: 'camping', side: 1, from: 0.2, to: 0.38, recul: 2.5 },
     ],
   },
   {
@@ -1269,6 +1287,8 @@ const TRACKS = [
       { kind: 'bois', side: -1, from: 0.66, to: 0.79, recul: 16, prof: 55, essence: 'pinede' },
       { kind: 'bois', side: 1, from: 0.86, to: 0.93, recul: 15, prof: 45, essence: 'pinede' },
       { kind: 'parking', side: 1, from: 0.0, to: 0.05, recul: 34, prof: 34 },
+      // Camping-cars garés en long derrière la protection, hors des parkings.
+      { kind: 'camping', side: -1, from: 0.84, to: 0.905, recul: 2.5 },
     ],
   },
   {
@@ -1374,6 +1394,8 @@ const TRACKS = [
       { kind: 'parking', side: -1, from: 0.74, to: 0.82, recul: 18, prof: 42 },
       { kind: 'tribune', side: -1, from: 0.84, to: 0.92, recul: 13, prof: 16, module: 28 },
       { kind: 'parking', side: 1, from: 0.0, to: 0.04, recul: 34, prof: 36 },
+      // Camping-cars garés en long derrière la protection, hors des parkings.
+      { kind: 'camping', side: 1, from: 0.825, to: 0.94, recul: 2.5 },
     ],
     lines: {
       racing: [[-28.751, 96.752], [-49.819, 97.736], [-70.893, 98.638], [-94.858, 95.368], [-95.703, 82.487], [-76.914, 76.224], [-56.28, 73.846], [-31.985, 67.787], [-6.602, 83.135], [-0.305, 77.822], [-7.388, 61.898], [-20.07, 45.394], [-29.057, 27.011], [-36.483, 7.244], [-47.385, -9.543], [-62.714, -23.984], [-75.853, -39.38], [-84.769, -58.485], [-85.927, -78.584], [-74.3, -93.305], [-54.552, -96.706], [-33.672, -95.084], [-10.574, -92.286], [-0.266, -77.81], [1.582, -56.964], [-8.098, -42.777], [-24.005, -53.84], [-43.903, -73.831], [-54.236, -66.636], [-54.705, -47.03], [-46.417, -27.392], [-34.17, -10.008], [-19.961, 5.568], [-4.876, 20.025], [11.493, 36.191], [11.068, 56.059], [27.346, 54.277], [44.636, 42.196], [61.503, 29.503], [80.233, 24.415], [94.014, 37.899], [98.5, 57.976], [92.066, 76.407], [76.034, 87.838], [55.501, 92.385], [34.457, 93.796], [13.387, 94.782], [-7.681, 95.767]],

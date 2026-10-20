@@ -521,7 +521,14 @@ function implMasque(track) {
 
 // L'empreinte d'un bâtiment, ajoutée au masque : un arbre ne pousse pas sur un toit.
 function implMasqueBati(masque, b) {
-  if (b.type === 'voiture') return;
+  if (b.type === 'voiture') {
+    // Un véhicule est centré sur sa position ; pas d'arbre planté sur son toit.
+    const cs = Math.cos(b.a), sn = Math.sin(b.a);
+    for (let u = -b.l / 2 - 1; u <= b.l / 2 + 1; u += MASQUE_CASE * 0.7)
+      for (let v = -b.w / 2 - 1; v <= b.w / 2 + 1; v += MASQUE_CASE * 0.7)
+        masque.m.add(masque.cle(b.x + cs * u - sn * v, b.y + sn * u + cs * v));
+    return;
+  }
   const cs = Math.cos(b.a), sn = Math.sin(b.a);
   const marge = 2;
   for (let u = -b.l / 2 - marge; u <= b.l / 2 + marge; u += MASQUE_CASE * 0.7) {
@@ -631,10 +638,138 @@ function implBatiments(track, z, s0, s1, rnd, out) {
   }
 }
 
+/* LES VÉHICULES DU DÉCOR, vus du dessus.
+
+Chaque gabarit se lit d'abord à sa silhouette, ensuite à ses vitres : une citadine courte et
+ronde, un break dont la lunette arrière touche le pare-chocs, un pick-up et sa benne sombre, un
+utilitaire ou un camping-car dont la cabine est plus étroite que la caisse, un semi-remorque en
+deux pièces. Le trait est celui de la planche de référence : aplat franc, contour épais et sombre,
+vitres presque noires. Les dimensions sont en mètres, l'avant vers +x.
+
+Les teintes suivent la vraie répartition d'un parking : beaucoup de blanc, de gris et de noir, et
+la couleur franche d'un modèle de temps en temps — la planche ne montre qu'une teinte par modèle,
+un parking entier dans ces couleurs serait une boîte de bonbons. */
+const VEH_TRAIT = '#22262b', VEH_VITRE = '#283038', VEH_NEUTRES = ['#f2f2ef', '#d7d9dc', '#9a9ea5', '#5f636b', '#2d3035'];
+const VEHICULES = {
+  citadine:     { l: 3.7,  w: 1.72, r: .5,  vitres: [[.08, .42], [-.66, -.44]], teintes: ['#e2322f', '#2f8fe6', ...VEH_NEUTRES] },
+  compacte:     { l: 4.25, w: 1.8,  r: .45, vitres: [[.1, .42], [-.68, -.48]], teintes: ['#2f8fe6', '#1d3557', ...VEH_NEUTRES] },
+  berline:      { l: 4.8,  w: 1.85, r: .45, vitres: [[.04, .34], [-.56, -.36]], teintes: ['#7d1e22', '#1d3557', ...VEH_NEUTRES] },
+  break:        { l: 4.8,  w: 1.85, r: .4,  vitres: [[.06, .36], [-.88, -.68]], teintes: ['#5a9b48', '#2d4a3a', ...VEH_NEUTRES] },
+  suv:          { l: 4.65, w: 1.95, r: .32, vitres: [[.1, .4], [-.86, -.64]], teintes: ['#dcc49a', '#3f5f7a', ...VEH_NEUTRES] },
+  taxi:         { l: 4.7,  w: 1.8,  r: .45, vitres: [[.06, .36], [-.64, -.44]], teintes: ['#f7cf26'], enseigne: true },
+  fourgonnette: { l: 4.5,  w: 1.85, r: .4,  vitres: [[.3, .6]], teintes: ['#f2f2ef', '#f2f2ef', '#d7d9dc', '#2f8fe6'] },
+  pickup:       { l: 5.3,  w: 1.95, r: .35, vitres: [[.24, .5]], benne: [-.92, -.1], teintes: ['#f07d22', '#c8302c', '#f2f2ef', '#2d3035'] },
+  minibus:      { l: 5.4,  w: 2.0,  r: .38, baies: [[.6, .84], [-.86, -.62]], teintes: ['#2f8fe6', '#f2f2ef', '#9a9ea5'] },
+  utilitaire:   { l: 6.0,  w: 2.1,  r: .14, cabine: .5, vitres: [[.64, .88]], teintes: ['#f2f2ef', '#f2f2ef', '#d7d9dc'] },
+  campingcar:   { l: 6.9,  w: 2.3,  r: .26, cabine: .62, vitres: [[.72, .92]], lanterneaux: [-.42, .1], teintes: ['#f4f4f1', '#ece4d4'] },
+  bus:          { l: 12.0, w: 2.55, r: .38, baies: [[.82, .95], [-.95, -.86]], teintes: ['#e53530', '#2f8fe6', '#f2f2ef'] },
+  semi:         { l: 16.5, w: 2.55, r: .14, tracteur: .7, vitres: [[.8, .95]], teintes: ['#2f8fe6', '#e53530', '#f2f2ef', '#2d3035'], remorques: ['#cfd2d5', '#f2f2ef'] },
+  moto:         { l: 2.1,  w: .85,  moto: true, teintes: ['#e53530', '#2d3035', '#2f8fe6'] },
+};
+const VEH_PPM = 20;               // pixels par mètre des vignettes
+
+// Une vitre : un bandeau bombé vers l'avant, plus large du côté du capot.
+function vehVitre(g, x0, x1, w0, w1, bombe) {
+  g.beginPath();
+  g.moveTo(x0, -w0 / 2);
+  g.quadraticCurveTo(x0 - bombe, 0, x0, w0 / 2);
+  g.lineTo(x1, w1 / 2);
+  g.quadraticCurveTo(x1 + bombe, 0, x1, -w1 / 2);
+  g.closePath();
+  g.fillStyle = VEH_VITRE; g.fill();
+}
+
+function vehCaisse(g, x0, x1, w, r, teinte) {
+  round(g, x0, -w / 2, x1 - x0, w, Math.min(r, w / 2));
+  g.fillStyle = teinte; g.fill();
+  g.lineWidth = .13; g.strokeStyle = VEH_TRAIT; g.stroke();
+}
+
+function vehDessin(g, v, teinte, remorque) {
+  const L = v.l, W = v.w, X = (f) => f * L / 2;
+  g.lineJoin = 'round';
+  if (v.moto) {
+    g.lineCap = 'round'; g.strokeStyle = VEH_TRAIT;
+    g.lineWidth = .2; g.beginPath(); g.moveTo(X(-.98), 0); g.lineTo(X(-.66), 0); g.moveTo(X(.7), 0); g.lineTo(X(.98), 0); g.stroke();
+    vehCaisse(g, X(-.72), X(.74), .42, .21, teinte);
+    round(g, X(-.56), -.15, X(.04) - X(-.56), .3, .14); g.fillStyle = VEH_TRAIT; g.fill();
+    g.lineWidth = .08; g.beginPath(); g.moveTo(X(.5), -W / 2); g.lineTo(X(.5), W / 2); g.stroke();
+    return;
+  }
+  if (v.tracteur != null) {                               // semi-remorque : tracteur et remorque
+    vehCaisse(g, X(-1), X(v.tracteur - .04), W, v.r, remorque);
+    vehCaisse(g, X(v.tracteur), X(1), W * .96, .3, teinte);
+  } else if (v.cabine != null) {                          // cabine plus étroite que la caisse
+    vehCaisse(g, X(v.cabine - .06), X(1), W * .86, .32, teinte);
+    vehCaisse(g, X(-1), X(v.cabine + .02), W, v.r, teinte);
+  } else vehCaisse(g, X(-1), X(1), W, v.r, teinte);
+  for (const [a, b] of v.vitres || []) {
+    const avant = a > 0, w0 = W * (avant ? .72 : .66), w1 = W * (avant ? .84 : .74);
+    vehVitre(g, X(a), X(b), w0, w1, avant ? .14 : -.08);
+  }
+  for (const [a, b] of v.baies || []) {                   // baies carrées : minibus, bus
+    round(g, X(a), -W * .38, X(b) - X(a), W * .76, .14); g.fillStyle = VEH_VITRE; g.fill();
+  }
+  if (v.benne) {
+    round(g, X(v.benne[0]), -W * .4, X(v.benne[1]) - X(v.benne[0]), W * .8, .1); g.fillStyle = VEH_VITRE; g.fill();
+  }
+  if (v.lanterneaux) {                                    // lanterneaux de toit du camping-car
+    for (const f of v.lanterneaux) {
+      round(g, X(f) - .35, -.42, .7, .84, .1); g.fillStyle = '#e3e5e6'; g.fill();
+      g.lineWidth = .06; g.strokeStyle = '#9a9ea5'; g.stroke();
+    }
+  }
+  if (v.enseigne) {
+    round(g, X(-.16), -.32, .42, .64, .08); g.fillStyle = '#fff6c9'; g.fill();
+    g.lineWidth = .05; g.strokeStyle = VEH_TRAIT; g.stroke();
+  }
+}
+
+/* Une vignette par gabarit et par teinte, cuite une fois, ombre comprise, comme le reste du décor.
+Le parking en compte des centaines : un drawImage tourné par véhicule, rien de plus. */
+function buildVehicleArt() {
+  const art = {};
+  for (const [id, v] of Object.entries(VEHICULES)) {
+    const remorques = v.remorques || [null];
+    v.teintes.forEach((teinte, ti) => remorques.forEach((rem, ri) => {
+      const pad = .45, c = document.createElement('canvas');
+      c.width = Math.ceil((v.l + pad * 2) * VEH_PPM); c.height = Math.ceil((v.w + pad * 2) * VEH_PPM);
+      const g = c.getContext('2d');
+      const sil = document.createElement('canvas'); sil.width = c.width; sil.height = c.height;
+      const sg = sil.getContext('2d');
+      sg.scale(VEH_PPM, VEH_PPM); sg.translate(pad + v.l / 2, pad + v.w / 2); vehDessin(sg, v, teinte, rem);
+      sg.setTransform(1, 0, 0, 1, 0, 0); sg.globalCompositeOperation = 'source-in';
+      sg.fillStyle = 'rgba(30,26,20,0.24)'; sg.fillRect(0, 0, c.width, c.height);
+      g.drawImage(sil, .18 * VEH_PPM, .26 * VEH_PPM);
+      g.scale(VEH_PPM, VEH_PPM); g.translate(pad + v.l / 2, pad + v.w / 2); vehDessin(g, v, teinte, rem);
+      art[id + ':' + ti + ':' + ri] = { canvas: c, l: v.l + pad * 2, w: v.w + pad * 2 };
+    }));
+  }
+  return art;
+}
+
+// Un véhicule tiré dans une liste pondérée [[gabarit, poids], ...], avec sa teinte.
+function vehTire(rnd, liste) {
+  let total = 0; for (const [, p] of liste) total += p;
+  let t = rnd() * total, id = liste[0][0];
+  for (const [k, p] of liste) { if ((t -= p) < 0) { id = k; break; } }
+  const v = VEHICULES[id];
+  return { kind: id, l: v.l, w: v.w, col: Math.floor(rnd() * v.teintes.length),
+    rem: v.remorques ? Math.floor(rnd() * v.remorques.length) : 0 };
+}
+
+const PARK_PLACES = [['citadine', 16], ['compacte', 20], ['berline', 15], ['break', 11], ['suv', 15],
+  ['fourgonnette', 5], ['taxi', 1], ['moto', 3]];
+const PARK_LONGS = [['campingcar', 4], ['utilitaire', 3], ['minibus', 3], ['pickup', 3], ['bus', 2], ['semi', 1]];
+const CAMPING = [['campingcar', 15], ['fourgonnette', 3], ['utilitaire', 2]];
+
 /* Un parking : des rangées de voitures, par rangs tête-bêche séparés d'une allée.
 
-Il n'y a pas de modèle de voiture ici — à cette distance une voiture garée est un rectangle de
-quatre mètres sur deux, et c'est leur ALIGNEMENT qui se lit, pas leur dessin. */
+Chaque voiture regarde son allée — c'est par là qu'on entre et qu'on sort — et les deux voitures
+d'une même place, dos à dos, alignent leurs pare-chocs arrière quelle que soit leur longueur. Une
+moto prend une place à deux ou trois. Ce qui ne tient pas dans une place de quatre mètres huit —
+camping-cars, utilitaires, minibus, cars et semi-remorques — se gare en long, sur la dernière
+rangée, quand le parking est assez profond pour en avoir une. */
 function implParking(track, z, s0, s1, rnd, out) {
   /* Les rangs sont PARALLÈLES ENTRE EUX, et non chacun aligné sur le cap de la piste à son
   abscisse. Un parking construit le long d'un virage avait des rangs en éventail : des voitures
@@ -646,18 +781,80 @@ function implParking(track, z, s0, s1, rnd, out) {
   const ux = Math.cos(a), uy = Math.sin(a);           // le long de la piste
   const vx = -Math.sin(a) * z.side, vy = Math.cos(a) * z.side;   // vers l'extérieur
   const demiL = (s1 - s0) / 2, rang = 11, place = 2.6;
+  const loin = (x, y, marge) => {
+    // Trop près du ruban, où qu'il passe : on ne gare pas là.
+    const pr = implProjette(track, x, y);
+    return Math.abs(pr.lat) >= track.limiteProtection(pr.s, pr.lat >= 0 ? 1 : -1) + marge;
+  };
+  const bandes = [];
+  for (let d = -z.prof / 2; d < z.prof / 2; d += rang) bandes.push(d);
+  const enLong = bandes.length >= 3 ? bandes.pop() : null;
   for (let u = -demiL; u < demiL; u += place) {
-    for (let d = -z.prof / 2; d < z.prof / 2; d += rang) {
+    for (const d of bandes) {
       for (const dd of [d, d + 4.6]) {
         if (dd > z.prof / 2) continue;
         if (rnd() < 0.12) continue;             // une place vide, sinon c'est une grille
-        const x = o.x + ux * u + vx * dd, y = o.y + uy * u + vy * dd;
-        // Trop près du ruban, où qu'il passe : on ne gare pas là.
-        const pr = implProjette(track, x, y);
-        if (Math.abs(pr.lat) < track.limiteProtection(pr.s, pr.lat >= 0 ? 1 : -1) + 4) continue;
-        out.push({ type: 'voiture', x, y, a: a + Math.PI / 2, l: 4.3, w: 1.9, teinte: rnd() });
+        const sens = dd === d ? -1 : 1;         // vers l'allée de la place
+        const v = vehTire(rnd, PARK_PLACES);
+        const cap = a + Math.PI / 2 + (sens === z.side ? 0 : Math.PI) + (rnd() - .5) * .06;
+        if (v.kind === 'moto') {
+          // deux ou trois motos de front dans la même place
+          const n = 2 + (rnd() < .5 ? 1 : 0);
+          for (let k = 0; k < n; k++) {
+            const du = (k - (n - 1) / 2) * .82, dv = dd + sens * (.9 + rnd() * .3);
+            const x = o.x + ux * (u + du) + vx * dv, y = o.y + uy * (u + du) + vy * dv;
+            if (!loin(x, y, 4)) continue;
+            const m = vehTire(rnd, [['moto', 1]]);
+            out.push({ type: 'voiture', ...m, x, y, a: cap + (rnd() - .5) * .2, teinte: rnd() });
+          }
+          continue;
+        }
+        const dv = dd + sens * ((v.l - 4.3) / 2 + (rnd() - .5) * .25);
+        const du = (rnd() - .5) * .3;
+        const x = o.x + ux * (u + du) + vx * dv, y = o.y + uy * (u + du) + vy * dv;
+        if (!loin(x, y, 4)) continue;
+        out.push({ type: 'voiture', ...v, x, y, a: cap, teinte: rnd() });
       }
     }
+  }
+  if (enLong == null) return;
+  // La rangée des grands gabarits : en long, à la file, avec des trous.
+  let u = -demiL + 1;
+  while (u < demiL) {
+    const v = vehTire(rnd, PARK_LONGS);
+    if (u + v.l > demiL) break;
+    if (rnd() < 0.18) { u += 4 + rnd() * 6; continue; }
+    const c = u + v.l / 2, dv = enLong + 1.4;
+    const x = o.x + ux * c + vx * dv, y = o.y + uy * c + vy * dv;
+    if (loin(x, y, 4 + v.l / 2)) out.push({ type: 'voiture', ...v, x, y, a: a + (rnd() < .5 ? 0 : Math.PI), teinte: rnd() });
+    u += v.l + 1.2 + rnd() * 1.6;
+  }
+}
+
+/* Les camping-cars au bord du circuit, derrière la barrière.
+
+Sur les grandes épreuves on campe le long de la piste, pas au parking : une file irrégulière de
+camping-cars et de fourgons garés en long derrière la protection, avec des trous là où une
+famille a planté sa tente. On ne s'installe ni dans un virage serré ni trop près d'une autre
+portion de piste. */
+function implCamping(track, z, s0, s1, rnd, out) {
+  let s = s0 + rnd() * 6;
+  while (s < s1) {
+    const v = vehTire(rnd, CAMPING);
+    if (rnd() < .22) { s += 8 + rnd() * 18; continue; }
+    const c = s + v.l / 2;
+    if (c + v.l / 2 > s1) break;
+    if (Math.abs(track.curvAt(c)) > 1 / 45) { s += v.l + 4; continue; }
+    const lat = track.limiteProtection(c, z.side) + (z.recul == null ? 3 : z.recul) + v.w / 2 + rnd() * 2.5;
+    const p = track.pos(c, z.side * lat), cap = track.headingAt(c) + (rnd() < .5 ? 0 : Math.PI) + (rnd() - .5) * .16;
+    const cs = Math.cos(cap), sn = Math.sin(cap);
+    const libre = [[-1, -1], [1, -1], [1, 1], [-1, 1]].every(([i, j]) => {
+      const x = p.x + cs * i * v.l / 2 - sn * j * v.w / 2, y = p.y + sn * i * v.l / 2 + cs * j * v.w / 2;
+      const pr = implProjette(track, x, y);
+      return Math.abs(pr.lat) >= track.limiteProtection(pr.s, pr.lat >= 0 ? 1 : -1) + 1.5;
+    });
+    if (libre) out.push({ type: 'voiture', ...v, x: p.x, y: p.y, a: cap, teinte: rnd(), camping: true });
+    s += v.l + 2.5 + rnd() * 9;
   }
 }
 
@@ -678,13 +875,14 @@ function placeImplantation(track, id, zones, water = placeWater(track, track.def
   for (const z of zones) {
     const [s0, s1] = implSpan(track, z);
     if (z.kind === 'nu') { nus.push({ s0, s1, side: z.side, prof: z.prof }); continue; }
-    if (z.sol !== false && !(track.def.architecture === 'pavillons' && z.kind === 'hangars'))
+    if (z.sol !== false && z.kind !== 'camping' && !(track.def.architecture === 'pavillons' && z.kind === 'hangars'))
       for (const pts of implContour(track, z, s0, s1, 4))
         sols.push({ pts, bbox: implBbox(pts), kind: z.kind, sol: z.sol });
     if (z.kind === 'bois') bois.push([z, s0, s1]);
     else if (z.kind === 'tribune') implTribunes(track, z, s0, s1, rnd, batis);
     else if (z.kind === 'stands' || z.kind === 'hangars') implBatiments(track, z, s0, s1, rnd, batis);
     else if (z.kind === 'parking') implParking(track, z, s0, s1, rnd, batis);
+    else if (z.kind === 'camping') implCamping(track, z, s0, s1, rnd, batis);
   }
   /* UN BÂTIMENT EST ÉCARTÉ S'IL TOMBE SUR UNE AUTRE PORTION DE PISTE.
 
@@ -714,6 +912,13 @@ function placeImplantation(track, id, zones, water = placeWater(track, track.def
   const occupied=[];
   for(let i=0;i<batis.length;i++){
     const b=batis[i];if(b.type==='voiture')continue;
+    const footprint=sceneryFootprint(b);
+    if(occupied.some(p=>sceneryRectsOverlap(p,footprint))){batis.splice(i--,1);continue;}
+    occupied.push(footprint);
+  }
+  // Un camping-car ne se gare ni sur un bâtiment ni sur un autre.
+  for(let i=0;i<batis.length;i++){
+    const b=batis[i];if(!b.camping)continue;
     const footprint=sceneryFootprint(b);
     if(occupied.some(p=>sceneryRectsOverlap(p,footprint))){batis.splice(i--,1);continue;}
     occupied.push(footprint);
@@ -1060,6 +1265,7 @@ function buildBoatArt(pal) {
 }
 
 if (typeof module !== 'undefined') module.exports.TOP_KINDS = TOP_KINDS;
+if (typeof module !== 'undefined') module.exports.VEHICULES = VEHICULES;
 if (typeof module !== 'undefined') module.exports.placeTopProps = placeTopProps;
 if (typeof module !== 'undefined') module.exports.placePatches = placePatches;
 if (typeof module !== 'undefined') module.exports.placeWater = placeWater;

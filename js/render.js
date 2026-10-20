@@ -706,6 +706,7 @@ class Renderer {
     chaque course, y compris à plat où personne ne les regardait. */
     this.water = placeWater(track, track.def.water || PAL.water);
     this.topArt = buildTopArt(PAL);
+    this.vehicleArt = buildVehicleArt();
     this.topProps = placeTopProps(track, seed, null, PAL.props);
     /* L'implantation relevée sur la vue du dessus du circuit, quand il en a une.
 
@@ -2235,6 +2236,10 @@ class Renderer {
       }
       g.strokeStyle = PAL.outline; g.lineWidth = 0.3;
       g.strokeRect(-L / 2, Math.min(0, s * W), L, W);
+    } else if (o.type === 'voiture' && o.kind && this.vehicleArt[o.kind + ':' + o.col + ':' + (o.rem || 0)]) {
+      // Vignette cuite d'avance (props.js, VEHICULES) : un seul dessin, tourné avec le véhicule.
+      const v = this.vehicleArt[o.kind + ':' + o.col + ':' + (o.rem || 0)];
+      g.drawImage(v.canvas, -v.l / 2, -v.w / 2, v.l, v.w);
     } else if (o.type === 'voiture') {
       /* Un parking de spectateurs est GRIS. Tiré au hasard sur la roue des teintes il virait à la
       boîte de bonbons : trente couleurs pures côte à côte sautaient à l'œil plus que la piste. Une
