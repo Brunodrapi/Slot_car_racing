@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Fabrique la version jouable et la recopie dans le clone du dépôt publié, prête à pousser.
 #
-#   tools/publier.sh <clone de GRIP-game/Grip-Game->
+#   tools/publier.sh <clone de GRIP-game/grip-game.github.io>   (servi à https://grip-game.github.io)
 #
 # Le contenu du clone est remplacé par dist/ (son .git est gardé), puis un commit est préparé avec le
 # numéro de version. Rien n'est poussé : `git -C <clone> push origin main` reste à faire.

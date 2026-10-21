@@ -162,11 +162,12 @@ téléchargement échoue, l'ancienne version reste entière. Continuer avec cett
 rien ; la question revient au lancement suivant. `tools/e2e-dist.js` vérifie tout cela au format d'un
 iPhone : en ligne, hors ligne, puis une mise à jour d'un seul fichier, refusée puis acceptée.
 
-**Publier** dans le dépôt de l'organisation (`GRIP-game/Grip-Game-`, servi par GitHub Pages) :
+**Publier** dans le dépôt de l'organisation, `GRIP-game/grip-game.github.io` : GitHub Pages sert ce
+dépôt-là — et lui seul, à cause de son nom — à la racine de **https://grip-game.github.io** :
 
 ```
-tools/publier.sh ../grip-game-      # fabrique dist/, le recopie dans ce clone et prépare le commit
-git -C ../grip-game- push origin main
+tools/publier.sh ../grip-game.github.io     # fabrique dist/, le recopie dans ce clone et prépare le commit
+git -C ../grip-game.github.io push origin main
 ```
 
 La minification gêne la lecture, elle ne l'empêche pas : un navigateur exécute ce qu'il reçoit. Ce qui
