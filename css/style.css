@@ -29,14 +29,20 @@ canvas#game { position: fixed; inset: 0; display: block; touch-action: none; use
 .screen.scroll { overflow-y: auto; overflow-x: hidden; }
 .screen.overlay { background: rgba(8, 10, 16, 0.75); width: 100%; }
 /* L'écran-titre : l'affiche remplit l'écran, l'invitation est posée en bas sur un fondu sombre.
-   L'affiche est en 4:5 : un téléphone la rogne sur les côtés, un moniteur en haut et en bas.
-   `object-position` choisit où : le premier nombre vaut pour un écran plus étroit qu'elle, le
-   second pour un écran plus large — de quoi garder le nom peint sur le mur et les deux voitures. */
+   Deux affiches, 9:16 debout et 16:9 couchée, choisies par l'orientation (`<picture>`, js/ui.js) :
+   il ne reste presque rien à rogner. `object-position` dit où rogner ce qui reste — le premier
+   nombre pour un écran plus étroit que l'image, le second pour un écran plus large —, de quoi
+   garder le nom peint sur le mur et les deux voitures. */
 .screen.splash { width: 100%; height: 100%; padding: 0; gap: 0; justify-content: flex-end; position: relative; overflow: hidden;
   background: #120f0c; }
 body.desktop .screen.splash { width: 100%; max-width: none; }
 .screen.splash .poster { position: absolute; inset: 0; width: 100%; height: 100%; display: block;
-  object-fit: cover; object-position: 60% 16%; }
+  object-fit: cover; object-position: 65% 60%; }
+/* Couchée, l'affiche a la Ford au milieu du bas : l'invitation se pose à gauche, sur les pavés. */
+@media (orientation: landscape) {
+  .screen.splash .poster { object-position: 60% 10%; }
+  .screen.splash .stage { align-self: flex-start; align-items: flex-start; padding-left: max(5vw, env(safe-area-inset-left)); }
+}
 .screen.splash .voile { position: absolute; left: 0; right: 0; bottom: 0; height: 32%; pointer-events: none;
   background: linear-gradient(to bottom, rgba(12, 9, 6, 0), rgba(12, 9, 6, 0.55) 55%, rgba(12, 9, 6, 0.8)); }
 .screen.splash .stage { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px;

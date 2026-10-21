@@ -484,16 +484,20 @@ class UI {
 
   /* The title card: the poster fills the screen, and the invitation sits on its lower edge.
 
-  The poster (Montmartre, GRIP painted on the wall) is 4:5 and screens are not, so filling one means
-  cropping: the sides on a phone, the top and bottom on a monitor. Where it is cropped is chosen
-  (`object-position` in css/style.css) so that the painted name and the two cars stay in frame.
+  The poster (Montmartre, GRIP painted on the wall) comes in two shapes: 9:16 for a phone held
+  upright, 16:9 for a monitor or a phone on its side, and the browser picks by orientation. What is
+  left to crop is little, and where it is cropped is chosen (`object-position` in css/style.css) so
+  that the painted name and the two cars stay in frame.
   The invitation lies on a dark fade at the bottom, in the game's own lettering, so it reads
   whatever part of the cobbles it lands on. Any key, any tap, anywhere gets past it, as before. */
   splash() {
     const t = (k, ...a) => this.t(k, ...a);
     const invite = this.app.desktop ? t('pressStart') : t('tapStart');
     this.show(`
-      <img class="poster" src="art/affiche-titre.webp" alt="${escapeHtml(t('title'))}">
+      <picture>
+        <source media="(orientation: landscape)" srcset="art/affiche-titre-paysage.webp">
+        <img class="poster" src="art/affiche-titre-portrait.webp" alt="${escapeHtml(t('title'))}">
+      </picture>
       <div class="voile" aria-hidden="true"></div>
       <div class="stage">
         <div class="press">${escapeHtml(invite)}</div>

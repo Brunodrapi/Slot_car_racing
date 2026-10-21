@@ -1477,17 +1477,17 @@ js/main.js                 boucle de jeu, entrées, enchaînement
 tools/                     scripts de développement (simulation IA headless, diagnostics physique, tests Playwright)
 ```
 
-## L'écran-titre (0.43.2)
+## L'écran-titre (0.44.1)
 
-Le jeu s'ouvre sur l'affiche de Montmartre, `art/affiche-titre.webp` — la rue Lepic, la Ford GT
-et la Ferrari sur les pavés, et *GRIP — Racing the Line* peint sur le mur. Le même écran sert au
-PC et au téléphone.
+Le jeu s'ouvre sur l'affiche de Montmartre — la rue Lepic, la Ford GT et la Ferrari sur les pavés,
+et *GRIP — Racing the Line* peint sur le mur. Elle existe en deux formats, choisis par l'orientation
+de l'écran (`<picture>`) : `art/affiche-titre-portrait.webp` en 9:16 pour un téléphone tenu debout,
+`art/affiche-titre-paysage.webp` en 16:9 pour un ordinateur ou un téléphone couché.
 
-L'affiche est en **4:5** et **remplit l'écran** : un téléphone la rogne sur les côtés, un moniteur
-en haut et en bas. `object-position: 60% 16%` choisit où — le premier nombre vaut pour un écran
-plus étroit qu'elle, le second pour un écran plus large. Au téléphone, on garde le nom peint en
-entier et les deux voitures ; sur un écran en paysage, qui ne montre que la moitié de sa hauteur,
-on garde le nom en entier, la rue et le café, et les voitures passent sous le bord.
+L'affiche **remplit l'écran** (`object-fit: cover`) et il ne reste presque rien à rogner.
+`object-position` dit où rogner ce qui reste : `65% 60%` debout, `60% 10%` couché — le nom peint et
+les deux voitures restent dans le cadre. Couchée, l'affiche a la Ford au milieu du bas : l'invitation
+se pose à gauche, sur les pavés.
 
 **L'invitation** — « Appuie pour commencer », *Press any button to start* au clavier ou *Tap to
 start* au doigt en anglais — se pose en bas de l'écran, dans le lettrage du jeu, jaune cerné de
