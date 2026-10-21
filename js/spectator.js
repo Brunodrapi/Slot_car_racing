@@ -148,7 +148,8 @@ class SpectatorView {
     const distance=Math.max(0,a.progress-b.progress);
     if(distance>=race.track.length)return `+${Math.floor(distance/race.track.length)} tour(s)`;
     const pace=a.bestLap||b.bestLap;
-    return pace?`≈ +${(distance/race.track.length*pace).toFixed(1)} s`:`+${Math.round(distance)} m`;
+    // même écriture que le classement en course (`fmtEcart`, js/render.js) : sans « ≈ », le dixième sous dix secondes
+    return pace?`+${fmtEcart(distance/race.track.length*pace)} s`:`+${Math.round(distance)} m`;
   }
   update(dt){
     const app=this.app,race=app.race,r=app.renderer,order=race.standings();
@@ -188,6 +189,6 @@ class SpectatorView {
     const selectedRank=order.indexOf(c),start=Math.max(1,Math.min(order.length-5,selectedRank-2));
     const compact=mode==='full'?order:selectedRank>=4?[order[0],...order.slice(start,start+5)]:order.slice(0,6);
     this.root.querySelector('.spectator-summary').innerHTML=compact.map(car=>{const i=order.indexOf(car);return `<button class="spectator-position ${car===c?'selected':''}" data-car="${race.cars.indexOf(car)}"><span>${this.swatch(car)}${i+1}. ${escapeHtml(car.name)}</span><small>${i?this.gap(order[0],car,race):'Leader'}</small></button>`;}).join('');
-    this.root.querySelector('.spectator-timing').innerHTML=`<div class="table-scroll"><table><thead><tr><th>Pilote</th><th>Leader</th><th>Précédent</th><th>Dernier</th><th>Meilleur</th><th>En cours</th></tr></thead><tbody>${order.map((car,i)=>`<tr><td><button data-car="${race.cars.indexOf(car)}">${this.swatch(car)}${i+1}. ${escapeHtml(car.name)}</button></td><td>${i?this.gap(order[0],car,race):'—'}</td><td>${i?this.gap(order[i-1],car,race):'—'}</td><td>${car.lapTimes.length?fmtTime(car.lapTimes.at(-1))+(car.lapOk.at(-1)===false?' ×':''):'—'}</td><td>${fmtTime(car.bestLap)}</td><td>${car.started&&!car.finished?fmtTime(Math.max(0,race.time-car.lapStart)):'—'}</td></tr>`).join('')}</tbody></table></div><small>≈ Écarts estimés · × Tour annulé<br>Manette : A vue · LB/RB pilote · X chronos</small>`;
+    this.root.querySelector('.spectator-timing').innerHTML=`<div class="table-scroll"><table><thead><tr><th>Pilote</th><th>Leader</th><th>Précédent</th><th>Dernier</th><th>Meilleur</th><th>En cours</th></tr></thead><tbody>${order.map((car,i)=>`<tr><td><button data-car="${race.cars.indexOf(car)}">${this.swatch(car)}${i+1}. ${escapeHtml(car.name)}</button></td><td>${i?this.gap(order[0],car,race):'—'}</td><td>${i?this.gap(order[i-1],car,race):'—'}</td><td>${car.lapTimes.length?fmtTime(car.lapTimes.at(-1))+(car.lapOk.at(-1)===false?' ×':''):'—'}</td><td>${fmtTime(car.bestLap)}</td><td>${car.started&&!car.finished?fmtTime(Math.max(0,race.time-car.lapStart)):'—'}</td></tr>`).join('')}</tbody></table></div><small>× Tour annulé<br>Manette : A vue · LB/RB pilote · X chronos</small>`;
   }
 }
