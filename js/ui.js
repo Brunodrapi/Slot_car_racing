@@ -482,23 +482,20 @@ class UI {
 
   // ---------- screens ----------
 
-  /* The title card: the poster, whole, and the invitation under it — on a computer as on a phone.
+  /* The title card: the poster fills the screen, and the invitation sits on its lower edge.
 
-  The poster (Montmartre, GRIP painted on the wall) is 4:5, so it never fills a screen: a phone
-  leaves room above and below it, a monitor on both sides. Cropping it to fill would cut either
-  the name or the cars, so it is shown entire and the leftover room is filled with the same poster,
-  blurred and darkened — the screen reads as one picture rather than a picture in a black box.
-
-  The invitation is not written on the poster: its bottom is the Ford's bonnet and the cobbles,
-  and text there would sit on the very thing the picture is about. It goes under it, in the
-  game's own lettering. Any key, any tap, anywhere gets past it, as before. */
+  The poster (Montmartre, GRIP painted on the wall) is 4:5 and screens are not, so filling one means
+  cropping: the sides on a phone, the top and bottom on a monitor. Where it is cropped is chosen
+  (`object-position` in css/style.css) so that the painted name and the two cars stay in frame.
+  The invitation lies on a dark fade at the bottom, in the game's own lettering, so it reads
+  whatever part of the cobbles it lands on. Any key, any tap, anywhere gets past it, as before. */
   splash() {
     const t = (k, ...a) => this.t(k, ...a);
     const invite = this.app.desktop ? t('pressStart') : t('tapStart');
     this.show(`
-      <div class="affiche-flou" aria-hidden="true"></div>
+      <img class="poster" src="art/affiche-titre.webp" alt="${escapeHtml(t('title'))}">
+      <div class="voile" aria-hidden="true"></div>
       <div class="stage">
-        <img class="poster" src="art/affiche-titre.webp" alt="${escapeHtml(t('title'))}">
         <div class="press">${escapeHtml(invite)}</div>
         ${this.app.desktop ? `<div class="title-inputs">${this.lang === 'en' ? 'Keyboard · Mouse wheel · Xbox controller' : 'Clavier · Molette · Manette Xbox'}</div>` : ''}
       </div>

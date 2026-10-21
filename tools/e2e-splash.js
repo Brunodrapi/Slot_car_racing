@@ -44,7 +44,10 @@ const { chromium, devices } = require('playwright');
     await page.waitForTimeout(200);
     if (nom === 'telephone') await page.touchscreen.tap(200, 400); else await page.mouse.click(550, 360);
     await page.waitForTimeout(300);
-    console.log(nom, 'apres un appui  :', await page.evaluate(() => ({ etat: app.state, menu: !!document.querySelector('[data-action="setup"]') })), 'erreurs', errs);
+    const apres = await page.evaluate(() => ({ etat: app.state, menu: !!document.querySelector('[data-action="setup"]') }));
+    console.log(nom, 'apres un appui  :', apres, 'erreurs', errs);
+    // l'appui qui passe l'affiche ne doit pas, en plus, cliquer le bandeau apparu sous le doigt
+    if (apres.etat !== 'menu' || !apres.menu) { console.log(nom, 'FAUX : l’appui sur l’affiche a ouvert', apres.etat); process.exitCode = 1; }
     await page.close();
   }
   await browser.close();

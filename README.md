@@ -1436,29 +1436,30 @@ js/main.js                 boucle de jeu, entrées, enchaînement
 tools/                     scripts de développement (simulation IA headless, diagnostics physique, tests Playwright)
 ```
 
-## L'écran-titre (0.43.1)
+## L'écran-titre (0.43.2)
 
 Le jeu s'ouvre sur l'affiche de Montmartre, `art/affiche-titre.webp` — la rue Lepic, la Ford GT
 et la Ferrari sur les pavés, et *GRIP — Racing the Line* peint sur le mur. Le même écran sert au
 PC et au téléphone.
 
-L'affiche est en **4:5** : elle ne remplit aucun écran, un téléphone lui laisse de la place dessus
-et dessous, un moniteur sur les côtés. La rogner pour remplir couperait soit le nom, soit les
-voitures ; elle est donc montrée entière, et le reste de l'écran est rempli par **la même affiche,
-floutée et assombrie** — on voit une seule image plutôt qu'un tableau dans une boîte noire. Sa
-largeur se calcule depuis la hauteur que laisse l'invitation (`--bas-titre`) et ne dépasse jamais
-l'écran : un `contain` dont on connaît les bords.
+L'affiche est en **4:5** et **remplit l'écran** : un téléphone la rogne sur les côtés, un moniteur
+en haut et en bas. `object-position: 60% 16%` choisit où — le premier nombre vaut pour un écran
+plus étroit qu'elle, le second pour un écran plus large. Au téléphone, on garde le nom peint en
+entier et les deux voitures ; sur un écran en paysage, qui ne montre que la moitié de sa hauteur,
+on garde le nom en entier, la rue et le café, et les voitures passent sous le bord.
 
 **L'invitation** — « Appuie pour commencer », *Press any button to start* au clavier ou *Tap to
-start* au doigt en anglais — n'est pas écrite sur l'affiche : son bas, c'est le capot de la Ford et
-les pavés, et un texte posé là cacherait ce que l'image montre. Elle va dessous, dans le lettrage
-du jeu, jaune cerné de noir pour se lire sur le flou. Elle **clignote** comme une enseigne
-d'arcade, longtemps allumée et brièvement éteinte, sans disparaître tout à fait ; sous
+start* au doigt en anglais — se pose en bas de l'écran, dans le lettrage du jeu, jaune cerné de
+noir, sur un fondu sombre qui monte du bas. Elle **clignote** comme une enseigne d'arcade,
+longtemps allumée et brièvement éteinte, sans disparaître tout à fait ; sous
 `prefers-reduced-motion`, elle reste allumée. Un téléphone en paysage n'a que 350 px de haut :
-l'invitation y rapetisse pour laisser la hauteur à l'affiche.
+l'invitation y rapetisse.
 
-N'importe quelle touche, n'importe quel appui, n'importe où passe l'écran. C'est aussi le geste
-qui autorise le son : un navigateur ne joue rien tant que personne n'a touché la page.
+N'importe quelle touche, n'importe quel appui, n'importe où passe l'écran — et ne fait que ça :
+le menu apparaît dès l'enfoncement, et le clic qui suit au relâchement tombait sur le bandeau
+apparu sous le doigt, si bien que toucher le milieu de l'affiche ouvrait le multijoueur. Ce clic-là
+est avalé, et `tools/e2e-splash.js` le vérifie. C'est aussi le geste qui autorise le son : un
+navigateur ne joue rien tant que personne n'a touché la page.
 
 Un lien qui nomme un circuit (`?track=…`) est quelqu'un qui sait déjà où il va : l'affiche
 s'efface pour lui. Les scripts de test passent l'écran comme un joueur, par une touche, et

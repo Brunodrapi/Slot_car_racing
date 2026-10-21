@@ -259,7 +259,17 @@ class App {
     window.addEventListener('pointerdown', () => this.ui.gamepad.mouse());
     // On the title card the whole window listens, not just the canvas: the poster fills the page,
     // and "any button" has to mean anywhere on it.
-    window.addEventListener('pointerdown', () => this.leaveSplash());
+    /* L'appui qui passe l'affiche ne doit rien faire d'autre. Le menu s'affiche dès l'enfoncement,
+    et le clic qui suit, au relâchement, tombait sur le bandeau apparu sous le doigt : toucher le
+    milieu de l'affiche ouvrait directement le multijoueur. Ce clic-là est donc avalé — et
+    seulement lui : s'il ne vient pas (le doigt a glissé), le filet se retire au bout d'un instant. */
+    window.addEventListener('pointerdown', () => {
+      if (!this.leaveSplash()) return;
+      const avale = (e) => { e.stopPropagation(); e.preventDefault(); retire(); };
+      const retire = () => window.removeEventListener('click', avale, true);
+      window.addEventListener('click', avale, true);
+      setTimeout(retire, 600);
+    });
     this.canvas.addEventListener('wheel', (e) => {
       if (this.state !== 'race' || e.ctrlKey || !e.deltaY) return;
       e.preventDefault();
