@@ -6,3 +6,6 @@ __pycache__/
 
 # Les exports : des images lourdes, régénérées par `tools/export-decor.js` en une minute.
 export/
+
+# La version publiée, fabriquée par `npm run build` (tools/build-dist.js).
+dist/

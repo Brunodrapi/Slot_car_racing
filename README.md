@@ -126,6 +126,28 @@ Trois trajectoires par circuit : **intérieure** (plus courte mais plus serrée,
 virage), **idéale** (extérieur-intérieur-extérieur) et **extérieure** (plus longue mais plus rapide).
 Dépasser = changer de ligne.
 
+
+## Publier la version jouable (`dist/`)
+
+Le dépôt se joue tel quel ; la version qu'on donne à jouer se fabrique :
+
+```
+npm install          # une fois : terser et esbuild
+npm run build        # écrit dist/ (option : --domaine=grip.game pour le fichier CNAME)
+NODE_PATH=$(npm root -g) node tools/e2e-dist.js    # la vérifie, en ligne puis hors ligne
+```
+
+`tools/build-dist.js` ne garde que les trois pages jouables (le jeu, l'éditeur de circuits, les
+statistiques) et ce qu'elles chargent — ni docs, ni outils, ni images de travail —, **minifie le
+code** (terser : commentaires et blancs retirés, variables locales renommées) et ajoute un **service
+worker** qui met tout le jeu en cache au premier lancement, environ 50 Mo. Ajouté à l'écran d'accueil
+de l'iPhone (Safari → Partager → Sur l'écran d'accueil), le jeu démarre ensuite sans réseau ; le
+multijoueur, le tableau mondial et les statistiques gardent besoin du réseau. Le cache porte un nom
+tiré du contenu des fichiers : chaque publication remplace la précédente au lancement suivant.
+
+La minification gêne la lecture, elle ne l'empêche pas : un navigateur exécute ce qu'il reçoit. Ce qui
+protège vraiment le travail, c'est de garder ce dépôt-ci privé et de ne publier que `dist/`.
+
 ## À plusieurs
 
 Une table, un code de quatre lettres. L'un ouvre la table et dicte son code, les autres le

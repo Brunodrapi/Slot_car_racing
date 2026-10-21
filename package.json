@@ -1,0 +1,12 @@
+{
+  "name": "grip-racing-the-line",
+  "private": true,
+  "description": "GRIP — Racing the Line. Le jeu se joue sans compilation ; ces outils ne servent qu'à fabriquer la version publiée (dist/).",
+  "scripts": {
+    "build": "node tools/build-dist.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "terser": "^5.51.2"
+  }
+}
