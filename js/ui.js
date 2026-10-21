@@ -20,7 +20,7 @@ const I18N = {
     controlGamepadHint: 'Gâchette RT : doser les gaz, relâcher pour freiner. Stick gauche ou croix : trajectoire. Menu : pause.',
     padReady: 'Manette connectée', padRelease: 'Relâche RT pour activer', padDisconnected: 'Connecte la manette et appuie sur un bouton', padUnsupported: 'Manette indisponible dans ce navigateur',
     gas: 'Gaz', wheelGo: 'Molette ↑ / ↓ : doser les gaz', padGo: 'Gâchette RT : doser les gaz', lineHintPC: 'Flèches : trajectoire', lineHintPad: 'Stick / croix : trajectoire',
-    title: 'EYES ON LINE',
+    title: 'GRIP — RACING THE LINE',
     career: 'Carrière', quickRace: 'Course rapide', timeTrial: 'Contre-la-montre', settings: 'Réglages', statistics: 'Statistiques publiques', back: 'Retour',
     editor: 'Éditeur de circuits', workshop: 'Atelier voitures',
     howto: 'Poser le pouce n’importe où (ou n’importe quelle touche / clic) : accélérer, relâcher pour freiner. La pastille vient se placer sous le pouce, et la vitesse se lit en haut au milieu. Pouce gauche (ou flèches / molette) : choisir sa place sur la piste — bord bleu, ligne idéale ou bord jaune. Les deux bords gardent leur couleur tout le tour. Trop vite dans un virage, c’est le bac à gravier.',
@@ -99,7 +99,7 @@ const I18N = {
     controlGamepadHint: 'RT trigger: analog throttle; release to brake. Left stick or D-pad: racing line. Menu: pause.',
     padReady: 'Controller connected', padRelease: 'Release RT to enable', padDisconnected: 'Connect a controller and press a button', padUnsupported: 'Controller unavailable in this browser',
     gas: 'Throttle', wheelGo: 'Wheel ↑ / ↓: adjust throttle', padGo: 'RT trigger: adjust throttle', lineHintPC: 'Arrows: racing line', lineHintPad: 'Stick / D-pad: racing line',
-    title: 'EYES ON LINE',
+    title: 'GRIP — RACING THE LINE',
     career: 'Career', quickRace: 'Quick race', timeTrial: 'Time trial', settings: 'Settings', statistics: 'Public statistics', back: 'Back',
     editor: 'Track editor', workshop: 'Car workshop',
     howto: 'Thumb anywhere (or any key / click): accelerate, release to brake. The pad follows your thumb, and the speed reads at the top centre. Left thumb (or arrows / wheel): pick your place on the road — blue edge, racing line or yellow edge. Each edge keeps its colour all the way round. Too fast into a corner and it’s the gravel.',
@@ -497,7 +497,7 @@ class UI {
   splash() {
     const t = (k, ...a) => this.t(k, ...a);
     if (this.app.desktop) {
-      this.show(`<div class="title-copy"><img class="game-logo" src="art/interface/logo.webp" alt="EYES ON LINE">
+      this.show(`<div class="title-copy"><img class="game-logo" src="art/interface/logo-grip.webp" alt="GRIP — Racing the Line">
         <button class="big primary" data-action="enterGame">${t('pressStart')} <span aria-hidden="true">→</span></button>
         <div class="title-inputs">${this.lang === 'en' ? 'Keyboard · Mouse wheel · Xbox controller' : 'Clavier · Molette · Manette Xbox'}</div>
         <div class="version">v${APP_VERSION} · ${APP_DATE}</div></div>`, 'title-desktop scroll');
@@ -505,7 +505,7 @@ class UI {
     }
     this.show(`
       <div class="stage">
-        <img class="poster" src="art/title.webp" alt="${escapeHtml(t('title'))}">
+        <img class="poster" src="art/title-grip.webp" alt="${escapeHtml(t('title'))}">
         <img class="press" src="art/press-start.png" alt="${escapeHtml(t('pressStart'))}">
       </div>
       <div class="version">v${APP_VERSION} · ${APP_DATE}</div>
@@ -549,7 +549,7 @@ class UI {
       ['timetrial', 'setup', 'timeTrial', 'clock'],
       ['', 'multi', 'multi', 'helmets'],
     ];
-    this.show(`<header class="home-heading"><h1><img class="game-logo" src="art/interface/logo.webp" alt="EYES ON LINE"></h1></header>
+    this.show(`<header class="home-heading"><h1><img class="game-logo" src="art/interface/logo-grip.webp" alt="GRIP — Racing the Line"></h1></header>
       <div class="home-body"><nav class="mode-menu" data-pad-group aria-label="${en ? 'Game modes' : 'Modes de jeu'}">
       ${entries.map(([mode, action, label, icon]) => `<button class="mode-card mode-${mode || 'multi'}" data-action="${action}" ${mode ? `data-mode="${mode}"` : ''}>
           <span class="mode-art" aria-hidden="true"><img src="art/interface/${icon}.webp" alt=""></span>
@@ -865,7 +865,7 @@ class UI {
   bande rouge, il doit garder sa place quelle que soit la longueur du titre — « Course rapide »,
   « Contre-la-montre » ou le code d'une table. */
   paddockTopbar(titre, retour = 'menu', libelleRetour) {
-    return `<div class="topbar"><button data-action="${retour}">← ${escapeHtml(libelleRetour || this.t('back'))}</button><span class="damier titre-damier" aria-hidden="true"></span><h2>${titre}</h2><img class="paddock-logo" src="art/interface/logo.webp" alt="EYES ON LINE"></div>`;
+    return `<div class="topbar"><button data-action="${retour}">← ${escapeHtml(libelleRetour || this.t('back'))}</button><span class="damier titre-damier" aria-hidden="true"></span><h2>${titre}</h2><img class="paddock-logo" src="art/interface/logo-grip.webp" alt="GRIP — Racing the Line"></div>`;
   }
 
   /* Les chiffres de la voiture, comme sur la maquette : pictogramme, valeur, libellé en clair.

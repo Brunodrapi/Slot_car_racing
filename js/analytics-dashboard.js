@@ -126,7 +126,7 @@
       rows.push([kind, r.key, r.starts, r.laps, r.visitors, r.seconds, r.offtracks]);
     const csv = '\uFEFF' + rows.map(row => row.map(v => '"' + String(v ?? '').replace(/^[=+@-]/, "'$&").replaceAll('"','""') + '"').join(';')).join('\r\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-    const a = document.createElement('a'); a.href = url; a.download = `eyes-on-line-${$('from').value}-${$('to').value}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const a = document.createElement('a'); a.href = url; a.download = `grip-${$('from').value}-${$('to').value}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
   load();
 })();

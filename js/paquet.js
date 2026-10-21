@@ -1,4 +1,4 @@
-/* Eyes On Line — l'instantané de course, en octets.
+/* GRIP — l'instantané de course, en octets.
  *
  * L'hôte envoie la position de toutes les voitures trente fois par seconde, à chacun de ses
  * invités. Jusqu'ici en JSON : 562 octets pour dix voitures, soit 2,73 Mbit/s de voie montante à

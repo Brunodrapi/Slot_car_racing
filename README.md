@@ -1,4 +1,6 @@
-# Eyes On Line
+# GRIP — Racing the Line
+
+*(anciennement Eyes On Line)*
 
 Jeu de course 2D « un bouton, trois trajectoires », à mi-chemin entre *Pico Rally* et
 *Ultimate Racing 2D* : de vraies courses sur des circuits inspirés de vrais tracés, avec le pilotage
@@ -1436,7 +1438,7 @@ tools/                     scripts de développement (simulation IA headless, di
 
 ## L'écran-titre
 
-Le jeu s'ouvre sur l'affiche, `art/title.webp` — 941 × 1672, soit du 9:16 à un cheveu près, donc
+Le jeu s'ouvre sur l'affiche, `art/title-grip.webp` — 941 × 1672, soit du 9:16 à un cheveu près, donc
 plein écran sur un téléphone et centrée dans son cadre sur un bureau. Elle est posée en `contain`
 et non en `cover` : c'est une affiche imprimée, avec sa bordure, et la rogner reviendrait à couper
 le cadre d'un tableau.
@@ -1446,6 +1448,16 @@ aussi chargée serait illisible où qu'on le mette — et le numéro lui-même r
 sombre, sur un téléphone où l'affiche touche les bords. L'affiche porte son propre nom et sa
 propre invitation ; n'importe quelle touche, n'importe quel appui, n'importe où la passe, ce
 qu'elle dit elle-même et la seule consigne qu'un écran-titre devrait avoir besoin de donner.
+
+### Le nom, sur un bandeau collé (0.43)
+
+L'affiche peinte, `art/title.webp`, porte encore l'ancien nom du jeu, *Eyes On Line*, en grosses
+lettres sur le haut du casque. Les effacer reviendrait à repeindre le ciel, les arbres et la
+calotte dessous — le piège décrit juste après. `tools/affiche-titre.py` colle donc sur le haut de
+l'affiche un bandeau de papier déchiré qui porte le logo *GRIP — Racing the Line*
+(`art/interface/logo-grip.webp`), imprimé avec le grain du papier, et écrit `art/title-grip.webp`.
+Le bas de l'affiche, et le calque « Appuie pour commencer » avec lui, ne bougent pas. Une affiche
+repeinte avec le bon nom rendrait le bandeau inutile.
 
 ### L'invitation qui respire
 

@@ -1,4 +1,4 @@
-/* Eyes On Line — la GÉOMÉTRIE des circuits, et elle seule.
+/* GRIP — la GÉOMÉTRIE des circuits, et elle seule.
  *
  * CE FICHIER N'EST PAS SOUS LA MÊME LICENCE QUE LE RESTE DU JEU.
  *

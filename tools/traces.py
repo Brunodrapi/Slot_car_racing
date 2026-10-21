@@ -83,7 +83,7 @@ TABLE = [
 ]
 DEPART_SANS_RELATION = {'laguna': 'The Corkscrew'}
 
-ENTETE = '''/* Eyes On Line — la GÉOMÉTRIE des circuits, et elle seule.
+ENTETE = '''/* GRIP — la GÉOMÉTRIE des circuits, et elle seule.
  *
  * CE FICHIER N'EST PAS SOUS LA MÊME LICENCE QUE LE RESTE DU JEU.
  *

@@ -1,6 +1,6 @@
 {
-  "name": "Eyes On Line",
-  "short_name": "Eyes On Line",
+  "name": "GRIP — Racing the Line",
+  "short_name": "GRIP",
   "description": "Course automobile vue de dessus : choisis ta place sur la piste, du bord jaune au bord bleu.",
   "start_url": "./",
   "scope": "./",

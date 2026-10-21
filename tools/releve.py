@@ -70,7 +70,7 @@ def telecharge(bbox, cache=None, prof=0):
         return open(cache, 'rb').read().split(SEPARE)
     s, o, n, e = (float(v) for v in bbox.split(','))
     url = f'{API}?bbox={o},{s},{e},{n}'
-    r = urllib.request.Request(url, headers={'User-Agent': 'EyesOnLine/0.2 (trace de circuit)'})
+    r = urllib.request.Request(url, headers={'User-Agent': 'GRIP/0.2 (trace de circuit)'})
     try:
         with urllib.request.urlopen(r, timeout=180) as f:
             brut = [f.read()]

@@ -1,4 +1,4 @@
-/* Eyes On Line — racing together.
+/* GRIP — racing together.
  *
  * Everything rides on the presence board of `js/room-rtc.js`: each screen posts one object and
  * sees everyone else's. Nothing is stored anywhere — close the page and the table is gone.
