@@ -142,8 +142,21 @@ statistiques) et ce qu'elles chargent — ni docs, ni outils, ni images de trava
 code** (terser : commentaires et blancs retirés, variables locales renommées) et ajoute un **service
 worker** qui met tout le jeu en cache au premier lancement, environ 50 Mo. Ajouté à l'écran d'accueil
 de l'iPhone (Safari → Partager → Sur l'écran d'accueil), le jeu démarre ensuite sans réseau ; le
-multijoueur, le tableau mondial et les statistiques gardent besoin du réseau. Le cache porte un nom
-tiré du contenu des fichiers : chaque publication remplace la précédente au lancement suivant.
+multijoueur, le tableau mondial et les statistiques gardent besoin du réseau.
+
+**La mise à jour.** Chaque fichier porte son empreinte (sha-256) dans `sw.js`. Ouvert avec du réseau,
+le jeu voit qu'une nouvelle version est publiée et ne télécharge que les fichiers dont l'empreinte a
+changé — les autres sont recopiés de l'ancien cache. La nouvelle version attend ensuite d'être sur
+l'écran-titre ou dans les menus, jamais en course ni dans un salon, puis la page se recharge pour la
+montrer. Sans réseau, le jeu garde la version qu'il a. `tools/e2e-dist.js` vérifie les trois
+temps : en ligne, hors ligne, puis une mise à jour d'un seul fichier.
+
+**Publier** dans le dépôt de l'organisation (`GRIP-game/Grip-Game-`, servi par GitHub Pages) :
+
+```
+tools/publier.sh ../grip-game-      # fabrique dist/, le recopie dans ce clone et prépare le commit
+git -C ../grip-game- push origin main
+```
 
 La minification gêne la lecture, elle ne l'empêche pas : un navigateur exécute ce qu'il reçoit. Ce qui
 protège vraiment le travail, c'est de garder ce dépôt-ci privé et de ne publier que `dist/`.

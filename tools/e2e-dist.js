@@ -21,8 +21,10 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
 (async () => {
   if (!fs.existsSync(path.join(DIST, 'sw.js'))) { console.error('dist/ absent : lancer `npm run build` d’abord'); process.exit(2); }
   const manquants = new Set();
+  let journal = null;                 // les fichiers demandés au serveur, pendant la mise à jour
   const serveur = http.createServer((req, res) => {
     let u = decodeURIComponent(req.url.split('?')[0]);
+    if (journal) journal.push(u);
     if (u.endsWith('/')) u += 'index.html';
     const f = path.join(DIST, u);
     if (!f.startsWith(DIST) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { manquants.add(u); res.writeHead(404); return res.end(); }
@@ -86,7 +88,8 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
         const nom = noms.find((k) => k.startsWith('grip-'));
         if (nom) {
           n = (await (await caches.open(nom)).keys()).length;
-          attendus = (await (await fetch('sw.js')).text()).match(/const FICHIERS = (\[.*\]);/)[1].split('","').length;
+          // les fichiers, plus le manifeste des empreintes
+          attendus = Object.keys(JSON.parse((await (await fetch('sw.js')).text()).match(/const FICHIERS = (\{.*\});/)[1])).length + 1;
           if (n >= attendus) return { nom, n, attendus };
         }
         await new Promise((r) => setTimeout(r, 500));
@@ -97,7 +100,7 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
 
     console.log('Hors ligne');
     await ctx.setOffline(true);
-    await p.evaluate(() => app.quitRace && app.quitRace());
+    await p.evaluate(() => app.toMenu());
     await p.reload();
     await p.waitForFunction(() => typeof app !== 'undefined' && app.save, null, { timeout: 30000 });
     ok(true, 'la page se recharge sans réseau');
@@ -111,6 +114,35 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     await p.waitForTimeout(2500);
     ok(await p.evaluate(() => app.race.cars.length > 1 && app.race.cars.every((c) => topReady(c.cls, c.livree))), 'hors ligne : une course contre l’IA démarre, toutes les voitures dessinées');
     if (OUT) await p.screenshot({ path: path.join(OUT, 'dist-hors-ligne-course.png') });
+
+    console.log('Mise à jour');
+    /* Une nouvelle publication où un seul fichier change : la date de js/version.js. On recalcule son
+    empreinte dans sw.js comme le ferait la fabrication, et le nom du cache avec. */
+    await ctx.setOffline(false);
+    const crypto = require('crypto');
+    const fv = path.join(DIST, 'js/version.js'), fsw = path.join(DIST, 'sw.js');
+    const vAvant = fs.readFileSync(fv, 'utf8'), swAvant = fs.readFileSync(fsw, 'utf8');
+    try {
+      const vApres = vAvant.replace(/APP_DATE="[^"]*"/, 'APP_DATE="2099-01-01"');
+      fs.writeFileSync(fv, vApres);
+      const emp = crypto.createHash('sha256').update(vApres).digest('hex').slice(0, 12);
+      fs.writeFileSync(fsw, swAvant.replace(/"js\/version\.js":"[0-9a-f]+"/, `"js/version.js":"${emp}"`).replace(/const CACHE = "([^"]+)"/, 'const CACHE = "$1-maj"'));
+      // En course : la mise à jour se télécharge, mais ne s'installe pas.
+      journal = [];
+      await p.evaluate(() => navigator.serviceWorker.getRegistration().then((r) => r.update()));
+      await p.waitForFunction(() => navigator.serviceWorker.getRegistration().then((r) => !!r.waiting), null, { timeout: 30000, polling: 250 });
+      const demandes = journal.filter((u) => u !== '/sw.js');
+      ok(demandes.length === 1 && demandes[0] === '/js/version.js', `seul le fichier modifié est téléchargé (${demandes.join(', ') || 'aucun'})`);
+      await p.waitForTimeout(4000);
+      ok(await p.evaluate(() => app.state === 'race' && APP_DATE !== '2099-01-01'), 'en course, la nouvelle version attend : pas de rechargement');
+      // De retour au menu, elle se met en place et la page se recharge.
+      await Promise.all([p.waitForNavigation({ timeout: 20000 }), p.evaluate(() => app.toMenu())]);
+      await p.waitForFunction(() => typeof APP_DATE !== 'undefined', null, { timeout: 20000 });
+      ok(await p.evaluate(() => APP_DATE === '2099-01-01'), 'au menu, la page se recharge sur la nouvelle version');
+    } finally {
+      journal = null;
+      fs.writeFileSync(fv, vAvant); fs.writeFileSync(fsw, swAvant);
+    }
     ok(erreurs.length === 0, 'aucune erreur de page' + (erreurs.length ? ' : ' + erreurs.join(' | ') : ''));
   } finally {
     await browser.close(); serveur.close();

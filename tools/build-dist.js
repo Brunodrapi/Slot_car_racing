@@ -43,6 +43,28 @@ const FICHIERS = ['favicon.ico', 'site.webmanifest', 'art/Pitstop.png',
   'art/icone-512.png', 'art/icone-maskable-512.png'];
 const EXCLURE = (rel) => /_reprise\.|\.md$|LICENSE$|(^|\/)\./.test(rel);
 
+/* L'ENREGISTREMENT, injecté dans chaque page. Il fait aussi la MISE À JOUR : une nouvelle version
+téléchargée en arrière-plan attend ; on ne la met en place que sur l'écran-titre ou dans les menus,
+jamais en course ni dans un salon, puis la page se recharge pour la montrer. Une page ouverte sans
+version précédente (le tout premier lancement) ne se recharge pas. */
+const ENREGISTREMENT = `if ('serviceWorker' in navigator) addEventListener('load', () => {
+  const avait = !!navigator.serviceWorker.controller;
+  let fait = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (avait && !fait) { fait = true; location.reload(); } });
+  const mettreEnPlace = (w) => {
+    const etat = window.app && app.state;
+    if (!etat || etat === 'splash' || etat === 'menu') w.postMessage('activer');
+    else setTimeout(() => mettreEnPlace(w), 3000);
+  };
+  navigator.serviceWorker.register('sw.js').then((reg) => {
+    if (reg.waiting && avait) mettreEnPlace(reg.waiting);
+    reg.addEventListener('updatefound', () => {
+      const w = reg.installing;
+      w.addEventListener('statechange', () => { if (w.state === 'installed' && avait) mettreEnPlace(w); });
+    });
+  });
+});`.replace(/\n\s*/g, ' ');
+
 const copies = new Set();
 const lire = (rel) => fs.readFileSync(path.join(ROOT, rel));
 function ecrire(rel, contenu) {
@@ -82,7 +104,7 @@ async function main() {
     }
     // Les commentaires HTML partent comme ceux du code ; l'enregistrement du service worker arrive.
     html = html.replace(/<!--[\s\S]*?-->/g, '');
-    html = html.replace('</body>', '  <script>if (\'serviceWorker\' in navigator) addEventListener(\'load\', () => navigator.serviceWorker.register(\'sw.js\'));</script>\n</body>');
+    html = html.replace('</body>', `  <script>${ENREGISTREMENT}</script>\n</body>`);
     ecrire(page, html);
   }
 
@@ -129,20 +151,45 @@ async function main() {
   if (DOMAINE) ecrire('CNAME', DOMAINE + '\n');
 
   // --- le service worker, et la liste de ce qu'il garde ---
+  /* Chaque fichier porte son EMPREINTE (les douze premiers chiffres de son sha-256). Une mise à jour
+  ne télécharge que les fichiers dont l'empreinte a changé ; les autres sont recopiés de l'ancien
+  cache. Sans ça, changer une ligne de code faisait retélécharger les 48 Mo du jeu. */
   const liste = [...copies].filter((r) => r !== '.nojekyll' && r !== 'CNAME').sort();
+  const empreintes = {};
   const h = crypto.createHash('sha256');
-  for (const r of liste) { h.update(r); h.update(fs.readFileSync(path.join(OUT, r))); }
+  for (const r of liste) {
+    const contenu = fs.readFileSync(path.join(OUT, r));
+    empreintes[encodeURI(r)] = crypto.createHash('sha256').update(contenu).digest('hex').slice(0, 12);
+    h.update(r); h.update(contenu);
+  }
+  empreintes['./'] = empreintes['index.html'];
   const version = /APP_VERSION\s*=\s*'([^']+)'/.exec(lire('js/version.js').toString('utf8'))[1];
   const cache = `grip-${version}-${h.digest('hex').slice(0, 10)}`;
-  const urls = ['./', ...liste.map((r) => encodeURI(r))];
   const sw = `/* GRIP — le jeu hors ligne. Fabriqué par tools/build-dist.js : ne pas modifier à la main. */
 const CACHE = ${JSON.stringify(cache)};
-const FICHIERS = ${JSON.stringify(urls)};
+const FICHIERS = ${JSON.stringify(empreintes)};
+const MANIFESTE = 'grip-manifeste.json';
 self.addEventListener('install', (e) => {
-  // Fichier par fichier : un seul téléchargement raté ne doit pas faire échouer tout le reste.
-  e.waitUntil(caches.open(CACHE).then((c) => Promise.allSettled(FICHIERS.map((u) =>
-    fetch(u, { cache: 'reload' }).then((r) => { if (r.ok) return c.put(u, r); })))).then(() => self.skipWaiting()));
+  e.waitUntil((async () => {
+    const neuf = await caches.open(CACHE);
+    // La version d'avant : son cache, et l'empreinte de chacun de ses fichiers.
+    let ancien = null, avant = {};
+    for (const k of await caches.keys()) {
+      if (!k.startsWith('grip-') || k === CACHE) continue;
+      const c = await caches.open(k), m = await c.match(MANIFESTE);
+      if (m) { ancien = c; avant = await m.json(); }
+    }
+    // Fichier par fichier : un téléchargement raté ne fait pas échouer le reste.
+    await Promise.allSettled(Object.entries(FICHIERS).map(async ([u, emp]) => {
+      if (ancien && avant[u] === emp) { const r = await ancien.match(u); if (r) return neuf.put(u, r); }
+      const r = await fetch(u, { cache: 'reload' });
+      if (r.ok) await neuf.put(u, r);
+    }));
+    await neuf.put(MANIFESTE, new Response(JSON.stringify(FICHIERS), { headers: { 'Content-Type': 'application/json' } }));
+  })());
 });
+// La nouvelle version attend que la page la demande (écran-titre ou menus), ou que le jeu soit fermé.
+self.addEventListener('message', (e) => { if (e.data === 'activer') self.skipWaiting(); });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k.startsWith('grip-') && k !== CACHE)
     .map((k) => caches.delete(k)))).then(() => self.clients.claim()));
