@@ -107,6 +107,16 @@ body.desktop .screen.splash { width: 100%; max-width: none; }
 @media (prefers-reduced-motion: reduce) {
   .screen.splash .press { animation: none; }
 }
+/* L'état du jeu hors ligne, en haut de l'écran-titre (js/maj.js) : une pastille sombre, et les deux
+   boutons quand une mise à jour attend une réponse. */
+.screen.splash .maj { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+  max-width: calc(100% - 24px); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 12px;
+  padding: 7px 14px; border-radius: 18px; background: rgba(12, 14, 20, 0.78); color: #f3e6c8; font-size: 13px;
+  line-height: 1.3; text-align: center; z-index: 2; }
+.screen.splash .maj[hidden] { display: none; }
+.screen.splash .maj-a-jour, .screen.splash .maj-hors-ligne { opacity: 0.85; }
+.screen.splash .maj-choix { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.screen.splash .maj button { padding: 7px 12px; font-size: 13px; min-height: 0; }
 /* Le numéro de build, dans le coin, sur sa pastille sombre : il existe pour être lu. */
 .screen.splash .version { position: absolute; bottom: max(8px, env(safe-area-inset-bottom)); right: 10px; margin: 0; opacity: 1;
   background: rgba(10, 12, 20, 0.62); color: #dfe3ea; padding: 3px 9px; border-radius: 999px; }

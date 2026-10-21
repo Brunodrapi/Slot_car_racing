@@ -37,7 +37,7 @@ const I18N = {
     lineBleu: 'BLEU', lineRace: 'IDÉALE', lineJaune: 'JAUNE', freinage: 'Freinage', reglages: 'Réglages', regDefaut: 'Par défaut', regRegler: 'Régler', regTitre: 'Réglage du freinage', regAide: 'Pousse le levier en roulant. Trop de frein et la voiture s’arrête dans le virage ; trop peu et c’est la sortie. Le repère blanc est le réglage d’origine.', regEnreg: 'Enregistrer la configuration', regNom: 'Nom de la configuration', regIci: (v) => `freinage ×${v.toFixed(2)} ici`, regIciDefaut: 'freinage d’origine ici', regPortee: 'Seuls les réglages enregistrés pour cette voiture sur ce circuit sont proposés. Le choix est mémorisé pour ce couple.', regFait: (n) => `Configuration « ${n} » enregistrée.`, engineCut: 'MOTEUR COUPÉ', offTrack: 'SORTIE DE PISTE !', finished: 'ARRIVÉE',
     lapVoid: 'annulé',
     cupComplete: 'Coupe terminée !', cupWon: 'Champion !', cupPodium: 'Podium ! Coupe suivante débloquée.', cupFailed: 'Hors du podium… retente ta chance.',
-    newRecord: 'Nouveau record !', yourBest: 'Ton record', name: 'Nom du pilote', sound: 'Son', language: 'Langue', showLines: 'Guide de freinage', telemetry: 'Télémétrie (touche G)', ctrlSide: 'Côté du levier', sideLeft: 'Gauche', sideRight: 'Droite', camera: 'Vue', camFollow: 'Dessus, orientée piste', camFixed: 'Dessus, fixe', camAvance: 'En avance, orientée piste', camAvanceFixe: 'En avance, fixe', pullBack: 'Recul de la caméra', pullNone: 'Normal', pullSome: 'Un peu en retrait', pullMore: 'Très en retrait', aimant: 'Aimant sur la ligne', aimantOff: 'Désactivé', aimantDoux: 'Doux', aimantNormal: 'Normal', aimantFort: 'Fort', aimantTresFort: 'Très fort', aimantDouble: '×2 fort', anticip: 'Anticipation du pilote', anticipOff: 'Aucune', anticipPeu: 'Légère', anticipMoy: 'Moyenne', anticipFort: 'Forte', lapCount: 'Tours', pressStart: 'Appuie pour commencer', tapStart: 'Appuie pour commencer', resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
+    newRecord: 'Nouveau record !', yourBest: 'Ton record', name: 'Nom du pilote', sound: 'Son', language: 'Langue', showLines: 'Guide de freinage', telemetry: 'Télémétrie (touche G)', ctrlSide: 'Côté du levier', sideLeft: 'Gauche', sideRight: 'Droite', camera: 'Vue', camFollow: 'Dessus, orientée piste', camFixed: 'Dessus, fixe', camAvance: 'En avance, orientée piste', camAvanceFixe: 'En avance, fixe', pullBack: 'Recul de la caméra', pullNone: 'Normal', pullSome: 'Un peu en retrait', pullMore: 'Très en retrait', aimant: 'Aimant sur la ligne', aimantOff: 'Désactivé', aimantDoux: 'Doux', aimantNormal: 'Normal', aimantFort: 'Fort', aimantTresFort: 'Très fort', aimantDouble: '×2 fort', anticip: 'Anticipation du pilote', anticipOff: 'Aucune', anticipPeu: 'Légère', anticipMoy: 'Moyenne', anticipFort: 'Forte', lapCount: 'Tours', pressStart: 'Appuie pour commencer', tapStart: 'Appuie pour commencer', majVerif: 'Recherche de mise à jour…', majHorsLigne: (v) => `Hors ligne · version ${v} installée`, majAJour: (v) => `Jeu à jour · version ${v}`, majDispo: (n, t) => `Mise à jour disponible : version ${n} (${t})`, majLancer: 'Mettre à jour', majGarder: 'Continuer avec cette version', majInstall: (p) => `Mise à jour… ${p} %`, majPremiere: (p) => `Installation pour jouer hors ligne… ${p} %`, majEchec: (v) => `La mise à jour n’a pas abouti · version ${v} conservée`, resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
     on: 'Activé', off: 'Coupé', playerDefault: 'Vous', allUnlocked: 'Tout est débloqué. Bravo !', careerIntro: 'Tu pars dernier à chaque course. Remonte le peloton, marque des points, débloque des catégories plus rapides.',
     lapDone: (n, t) => `Tour ${n} : ${t}`, tipTitle: 'Comment jouer', yourResult: (p) => `Tu termines P${p}`,
     nameTaken: (n) => `« ${n} » est déjà pris par un autre pilote. Change de nom dans les réglages, sinon tes temps n’entreront pas au tableau mondial.`,
@@ -116,7 +116,7 @@ const I18N = {
     lineBleu: 'BLUE', lineRace: 'RACING', lineJaune: 'YELLOW', freinage: 'Braking', reglages: 'Setup', regDefaut: 'Default', regRegler: 'Tune', regTitre: 'Braking setup', regAide: 'Push the lever while driving. Too much brake and the car stops in the corner; too little and you go off. The white mark is the stock setting.', regEnreg: 'Save this setup', regNom: 'Setup name', regIci: (v) => `braking ×${v.toFixed(2)} here`, regIciDefaut: 'stock braking here', regPortee: 'Only setups saved for this car on this circuit are offered. The selection is remembered for this pairing.', regFait: (n) => `Setup “${n}” saved.`, engineCut: 'ENGINE CUT', offTrack: 'OFF TRACK!', finished: 'FINISH',
     lapVoid: 'void',
     cupComplete: 'Cup complete!', cupWon: 'Champion!', cupPodium: 'Podium! Next cup unlocked.', cupFailed: 'Missed the podium… try again.',
-    newRecord: 'New record!', yourBest: 'Your best', name: 'Driver name', sound: 'Sound', language: 'Language', showLines: 'Braking guide', telemetry: 'Telemetry (G key)', ctrlSide: 'Lever side', sideLeft: 'Left', sideRight: 'Right', camera: 'View', camFollow: 'Top-down, track-aligned', camFixed: 'Top-down, fixed', camAvance: 'Look-ahead, track-aligned', camAvanceFixe: 'Look-ahead, fixed', pullBack: 'Camera set-back', pullNone: 'Normal', pullSome: 'A little further back', pullMore: 'Much further back', aimant: 'Line magnet', aimantOff: 'Off', aimantDoux: 'Light', aimantNormal: 'Normal', aimantFort: 'Strong', aimantTresFort: 'Very strong', aimantDouble: '×2 strong', anticip: 'Driver anticipation', anticipOff: 'None', anticipPeu: 'Light', anticipMoy: 'Medium', anticipFort: 'Strong', lapCount: 'Laps', pressStart: 'Press any button to start', tapStart: 'Tap to start', resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
+    newRecord: 'New record!', yourBest: 'Your best', name: 'Driver name', sound: 'Sound', language: 'Language', showLines: 'Braking guide', telemetry: 'Telemetry (G key)', ctrlSide: 'Lever side', sideLeft: 'Left', sideRight: 'Right', camera: 'View', camFollow: 'Top-down, track-aligned', camFixed: 'Top-down, fixed', camAvance: 'Look-ahead, track-aligned', camAvanceFixe: 'Look-ahead, fixed', pullBack: 'Camera set-back', pullNone: 'Normal', pullSome: 'A little further back', pullMore: 'Much further back', aimant: 'Line magnet', aimantOff: 'Off', aimantDoux: 'Light', aimantNormal: 'Normal', aimantFort: 'Strong', aimantTresFort: 'Very strong', aimantDouble: '×2 strong', anticip: 'Driver anticipation', anticipOff: 'None', anticipPeu: 'Light', anticipMoy: 'Medium', anticipFort: 'Strong', lapCount: 'Laps', pressStart: 'Press any button to start', tapStart: 'Tap to start', majVerif: 'Checking for updates…', majHorsLigne: (v) => `Offline · version ${v} installed`, majAJour: (v) => `Up to date · version ${v}`, majDispo: (n, t) => `Update available: version ${n} (${t})`, majLancer: 'Update', majGarder: 'Keep this version', majInstall: (p) => `Updating… ${p}%`, majPremiere: (p) => `Installing for offline play… ${p}%`, majEchec: (v) => `Update failed · keeping version ${v}`, resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
     on: 'On', off: 'Off', playerDefault: 'You', allUnlocked: 'Everything unlocked. Well done!', careerIntro: 'You start every race from the back. Carve through the field, score points, unlock faster classes.',
     lapDone: (n, t) => `Lap ${n}: ${t}`, tipTitle: 'How to play', yourResult: (p) => `You finish P${p}`,
     nameTaken: (n) => `“${n}” is already taken by another driver. Change it in the settings, or your times will not reach the world board.`,
@@ -504,7 +504,33 @@ class UI {
         ${this.app.desktop ? `<div class="title-inputs">${this.lang === 'en' ? 'Keyboard · Mouse wheel · Xbox controller' : 'Clavier · Molette · Manette Xbox'}</div>` : ''}
       </div>
       <div class="version">v${APP_VERSION} · ${APP_DATE}</div>
+      <div class="maj" aria-live="polite" hidden></div>
     `, 'center splash');
+    this.majAffiche();
+  }
+
+  /* L'état du jeu hors ligne, sur l'écran-titre (voir js/maj.js) : hors ligne, à jour, ou une mise à
+  jour disponible — qu'on accepte ou non. Rien ne s'affiche dans le dépôt, où il n'y a pas de version
+  publiée. */
+  majAffiche() {
+    if (typeof MAJ === 'undefined') return;
+    if (!this._majLie) { this._majLie = true; MAJ.surChangement(() => this.majAffiche()); }
+    const el = this.root.querySelector('.splash .maj');
+    if (!el) return;
+    const t = (k, ...a) => this.t(k, ...a), m = MAJ;
+    const taille = (o) => (o >= 1e6 ? (o / 1e6).toFixed(1).replace('.', this.lang === 'en' ? '.' : ',') + (this.lang === 'en' ? ' MB' : ' Mo')
+      : Math.max(1, Math.round(o / 1e3)) + (this.lang === 'en' ? ' kB' : ' ko'));
+    let h = '';
+    if (m.etat === 'verification') h = `<span>${t('majVerif')}</span>`;
+    else if (m.etat === 'hors-ligne') h = `<span>${t('majHorsLigne', m.version)}</span>`;
+    else if (m.etat === 'a-jour') h = `<span>${t('majAJour', m.version)}</span>`;
+    else if (m.etat === 'disponible') h = `<span>${t('majDispo', m.nouvelle, taille(m.taille))}</span>
+      <span class="maj-choix"><button class="primary" data-action="majLancer">${t('majLancer')}</button><button data-action="majGarder">${t('majGarder')}</button></span>`;
+    else if (m.etat === 'installation') h = `<span>${t(m.premiere ? 'majPremiere' : 'majInstall', Math.round(m.progres * 100))}</span>`;
+    else if (m.etat === 'erreur') h = `<span>${t('majEchec', m.version || APP_VERSION)}</span>`;
+    el.innerHTML = h;
+    el.hidden = !h;
+    el.className = 'maj maj-' + m.etat;
   }
 
   /* L'écran du nom, qu'on ne traverse qu'une fois.
@@ -1255,6 +1281,8 @@ class UI {
       }
       case 'settings': this.settings(); break;
       case 'enterGame': app.leaveSplash(); break;
+      case 'majLancer': MAJ.lancer(); break;
+      case 'majGarder': MAJ.plusTard(); break;
       case 'setup': this.setupScreen(btn.dataset.mode); break;
       case 'career': this.careerScreen(); break;
       case 'cup': this.cupScreen(id); break;

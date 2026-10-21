@@ -1,14 +1,17 @@
-// La version publiée (dist/) se joue-t-elle, et se joue-t-elle HORS LIGNE ?
+// La version publiée (dist/) se joue-t-elle, hors ligne aussi, et se met-elle à jour comme on le lui dit ?
 //
 //   npm run build && NODE_PATH=$(npm root -g) node tools/e2e-dist.js [captures]
 //
-// En ligne, au format d'un iPhone : aucun fichier demandé ne manque (toutes les voitures et leurs
-// livrées, les vignettes, les drapeaux, les sons des moteurs), une course démarre, et le service
-// worker finit de tout mettre en cache. Puis le réseau est coupé et la page rechargée : le jeu doit
-// s'ouvrir et une course démarrer quand même, sans erreur de page.
+// Au format d'un iPhone :
+//   en ligne      aucun fichier ne manque (voitures, livrées, vignettes, sons), une course démarre, la
+//                 première installation remplit le cache et l'écran-titre annonce « jeu à jour » ;
+//   hors ligne    la page se recharge, l'écran-titre dit « hors ligne », une course contre l'IA démarre ;
+//   mise à jour   une publication où un seul fichier change : l'écran-titre la propose avec sa taille ;
+//                 « continuer avec cette version » ne télécharge rien ; « mettre à jour » ne télécharge
+//                 que ce fichier, attend la fin de la course pour recharger, et la nouvelle version tourne.
 'use strict';
 const { chromium } = require('playwright');
-const http = require('http'), fs = require('fs'), path = require('path');
+const http = require('http'), fs = require('fs'), path = require('path'), crypto = require('crypto');
 
 const DIST = path.join(__dirname, '..', 'dist');
 const OUT = process.argv[2] || null;
@@ -21,7 +24,10 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
 (async () => {
   if (!fs.existsSync(path.join(DIST, 'sw.js'))) { console.error('dist/ absent : lancer `npm run build` d’abord'); process.exit(2); }
   const manquants = new Set();
-  let journal = null;                 // les fichiers demandés au serveur, pendant la mise à jour
+  let journal = null;                 // les fichiers demandés au serveur, pendant une mise à jour
+  // Les fichiers du jeu, sans le manifeste (lu à chaque vérification) ni sw.js (que le navigateur relit
+  // de lui-même à chaque chargement, pour voir s'il a changé).
+  const telecharges = () => journal.filter((u) => u !== '/manifeste.json' && u !== '/sw.js');
   const serveur = http.createServer((req, res) => {
     let u = decodeURIComponent(req.url.split('?')[0]);
     if (journal) journal.push(u);
@@ -34,18 +40,20 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
   await new Promise((r) => serveur.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${serveur.address().port}/`;
   const browser = await chromium.launch();
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, locale: 'fr-FR' });
   const p = await ctx.newPage();
   const erreurs = [];
   p.on('pageerror', (e) => erreurs.push(e.message));
+  const bandeau = () => p.evaluate(() => { const el = document.querySelector('.splash .maj'); return el && !el.hidden ? el.textContent.replace(/\s+/g, ' ').trim() : ''; });
+  const etat = (e) => p.waitForFunction((e) => typeof MAJ !== 'undefined' && MAJ.etat === e, e, { timeout: 90000 });
+  const fv = path.join(DIST, 'js/version.js'), fm = path.join(DIST, 'manifeste.json');
+  const vAvant = fs.readFileSync(fv, 'utf8'), mAvant = fs.readFileSync(fm, 'utf8');
   try {
     console.log('En ligne');
     await p.goto(base);
     await p.waitForFunction(() => typeof app !== 'undefined' && app.save);
     ok(await p.evaluate(() => document.title.startsWith('GRIP')), 'la page publiée s’ouvre : ' + await p.title());
-    ok(await p.evaluate(() => !/\n\s*\/\*/.test(document.scripts[3].text || '')) && (await (await fetch(base + 'js/car.js')).text()).split('\n').length < 5,
-      'le code est minifié (js/car.js tient sur quelques lignes)');
-    // Toutes les voitures, toutes les livrées, et leurs vignettes.
+    ok((await (await fetch(base + 'js/car.js')).text()).split('\n').length < 5, 'le code est minifié (js/car.js tient sur quelques lignes)');
     const dessins = await p.evaluate(async () => {
       for (const m of MODELS) for (let i = 0; i < m.livrees.length; i++) topReady(m, i);
       const t0 = performance.now();
@@ -56,7 +64,6 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     });
     ok(dessins.vignettesRatees.length === 0 && dessins.dessinsRates.length === 0,
       `${dessins.modeles} voitures : dessins vus de dessus et vignettes chargés` + (dessins.dessinsRates.length ? ' — ratés : ' + dessins.dessinsRates.join(', ') : ''));
-    // Les sons des moteurs : chaque fichier que les fiches désignent répond.
     const sons = await p.evaluate(async () => {
       const cat = await (await fetch('sounds/engine/voitures.json')).json();
       const urls = new Set();
@@ -65,86 +72,89 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
       return { n: res.length, rates: res.filter(([, s]) => s !== 200).map(([u]) => u) };
     });
     ok(sons.rates.length === 0, `${sons.n} sons de moteur présents` + (sons.rates.length ? ' — manquent : ' + sons.rates.join(', ') : ''));
-    // Une course, comme un joueur : écran-titre, nom, menu, course rapide.
+    // La première installation : l'écran-titre la montre, puis annonce le jeu à jour.
+    await etat('a-jour');
+    const cache = await p.evaluate(async () => {
+      const m = JSON.parse(await (await fetch('manifeste.json?t=1', { cache: 'no-store' })).text());
+      const c = await caches.open(m.cache);
+      return { n: (await c.keys()).length, attendus: Object.keys(m.fichiers).length + 1, nom: m.cache };
+    });
+    ok(cache.n >= cache.attendus && cache.attendus > 100, `première installation : ${cache.n} fichiers en cache sur ${cache.attendus} (${cache.nom})`);
+    const txtAJour = await bandeau();
+    ok(/à jour/.test(txtAJour), `écran-titre : « ${txtAJour} »`);
+    if (OUT) await p.screenshot({ path: path.join(OUT, 'maj-a-jour.png') });
     await p.evaluate(() => { app.save.name = 'Bruno'; app.mondial = null; storeSave(app.save); });
     await p.touchscreen.tap(195, 420);
     await p.waitForTimeout(500);
-    for (const cat of ['gt', 'f1', 'proto']) {
-      await p.evaluate((cat) => { app.ui.setup.classId = cat; app.ui.setup.trackId = 'monza'; app.ui.setupScreen('race'); }, cat);
-      await p.waitForTimeout(400);
-    }
     await p.evaluate(() => app.startQuick('timetrial', 'gt', 'monaco'));
     await p.waitForFunction(() => app.race && app.race.state === 'racing', null, { timeout: 30000 });
     ok(true, 'une course démarre');
-    if (OUT) await p.screenshot({ path: path.join(OUT, 'dist-en-ligne.png') });
     ok(manquants.size === 0, 'aucun fichier demandé ne manque' + (manquants.size ? ' : ' + [...manquants].join(', ') : ''));
-    // Le service worker a fini de tout garder.
-    const cache = await p.evaluate(async () => {
-      await navigator.serviceWorker.ready;
-      const t0 = performance.now();
-      let n = 0, attendus = 0;
-      while (performance.now() - t0 < 60000) {
-        const noms = await caches.keys();
-        const nom = noms.find((k) => k.startsWith('grip-'));
-        if (nom) {
-          n = (await (await caches.open(nom)).keys()).length;
-          // les fichiers, plus le manifeste des empreintes
-          attendus = Object.keys(JSON.parse((await (await fetch('sw.js')).text()).match(/const FICHIERS = (\{.*\});/)[1])).length + 1;
-          if (n >= attendus) return { nom, n, attendus };
-        }
-        await new Promise((r) => setTimeout(r, 500));
-      }
-      return { n, attendus };
-    });
-    ok(cache.n >= cache.attendus && cache.attendus > 100, `service worker : ${cache.n} fichiers en cache sur ${cache.attendus} (${cache.nom})`);
 
     console.log('Hors ligne');
     await ctx.setOffline(true);
     await p.evaluate(() => app.toMenu());
     await p.reload();
     await p.waitForFunction(() => typeof app !== 'undefined' && app.save, null, { timeout: 30000 });
-    ok(true, 'la page se recharge sans réseau');
-    await p.waitForTimeout(800);
-    ok(await p.evaluate(() => !!document.querySelector('.splash .poster') && document.querySelector('.splash .poster').naturalWidth > 0), 'l’affiche du titre est là');
-    if (OUT) await p.screenshot({ path: path.join(OUT, 'dist-hors-ligne-titre.png') });
+    await etat('hors-ligne');
+    const txtHL = await bandeau();
+    ok(/Hors ligne/.test(txtHL), `écran-titre : « ${txtHL} »`);
+    ok(await p.evaluate(() => document.querySelector('.splash .poster').naturalWidth > 0), 'l’affiche du titre est là');
+    if (OUT) await p.screenshot({ path: path.join(OUT, 'maj-hors-ligne.png') });
     await p.touchscreen.tap(195, 420);
     await p.waitForTimeout(500);
     await p.evaluate(() => app.startQuick('race', 'f1', 'spa'));
     await p.waitForFunction(() => app.race && app.race.state === 'racing', null, { timeout: 30000 });
-    await p.waitForTimeout(2500);
+    await p.waitForTimeout(2000);
     ok(await p.evaluate(() => app.race.cars.length > 1 && app.race.cars.every((c) => topReady(c.cls, c.livree))), 'hors ligne : une course contre l’IA démarre, toutes les voitures dessinées');
-    if (OUT) await p.screenshot({ path: path.join(OUT, 'dist-hors-ligne-course.png') });
 
     console.log('Mise à jour');
-    /* Une nouvelle publication où un seul fichier change : la date de js/version.js. On recalcule son
-    empreinte dans sw.js comme le ferait la fabrication, et le nom du cache avec. */
+    // Une nouvelle publication où un seul fichier change : la date de js/version.js.
     await ctx.setOffline(false);
-    const crypto = require('crypto');
-    const fv = path.join(DIST, 'js/version.js'), fsw = path.join(DIST, 'sw.js');
-    const vAvant = fs.readFileSync(fv, 'utf8'), swAvant = fs.readFileSync(fsw, 'utf8');
-    try {
-      const vApres = vAvant.replace(/APP_DATE="[^"]*"/, 'APP_DATE="2099-01-01"');
-      fs.writeFileSync(fv, vApres);
-      const emp = crypto.createHash('sha256').update(vApres).digest('hex').slice(0, 12);
-      fs.writeFileSync(fsw, swAvant.replace(/"js\/version\.js":"[0-9a-f]+"/, `"js/version.js":"${emp}"`).replace(/const CACHE = "([^"]+)"/, 'const CACHE = "$1-maj"'));
-      // En course : la mise à jour se télécharge, mais ne s'installe pas.
-      journal = [];
-      await p.evaluate(() => navigator.serviceWorker.getRegistration().then((r) => r.update()));
-      await p.waitForFunction(() => navigator.serviceWorker.getRegistration().then((r) => !!r.waiting), null, { timeout: 30000, polling: 250 });
-      const demandes = journal.filter((u) => u !== '/sw.js');
-      ok(demandes.length === 1 && demandes[0] === '/js/version.js', `seul le fichier modifié est téléchargé (${demandes.join(', ') || 'aucun'})`);
-      await p.waitForTimeout(4000);
-      ok(await p.evaluate(() => app.state === 'race' && APP_DATE !== '2099-01-01'), 'en course, la nouvelle version attend : pas de rechargement');
-      // De retour au menu, elle se met en place et la page se recharge.
-      await Promise.all([p.waitForNavigation({ timeout: 20000 }), p.evaluate(() => app.toMenu())]);
-      await p.waitForFunction(() => typeof APP_DATE !== 'undefined', null, { timeout: 20000 });
-      ok(await p.evaluate(() => APP_DATE === '2099-01-01'), 'au menu, la page se recharge sur la nouvelle version');
-    } finally {
-      journal = null;
-      fs.writeFileSync(fv, vAvant); fs.writeFileSync(fsw, swAvant);
+    const vApres = vAvant.replace(/APP_DATE="[^"]*"/, 'APP_DATE="2099-01-01"');
+    fs.writeFileSync(fv, vApres);
+    const man = JSON.parse(mAvant);
+    man.fichiers['js/version.js'] = [crypto.createHash('sha256').update(vApres).digest('hex').slice(0, 12), Buffer.byteLength(vApres)];
+    man.version = man.version + '-essai'; man.cache = man.cache + '-essai';
+    fs.writeFileSync(fm, JSON.stringify(man));
+    await p.evaluate(() => app.toMenu());
+    await p.reload();
+    await p.waitForFunction(() => typeof app !== 'undefined' && app.save);
+    await etat('disponible');
+    const txtDispo = await bandeau();
+    ok(/Mise à jour disponible/.test(txtDispo) && /ko|Mo/.test(txtDispo), `écran-titre : « ${txtDispo} »`);
+    if (OUT) await p.screenshot({ path: path.join(OUT, 'maj-disponible.png') });
+    // « Continuer avec cette version » : rien ne se télécharge, l'affiche reste.
+    journal = [];
+    await p.click('[data-action="majGarder"]');
+    await p.waitForTimeout(1500);
+    ok(telecharges().length === 0 && await p.evaluate(() => app.state === 'splash' && MAJ.etat === 'reporte'),
+      'continuer avec cette version : rien ne se télécharge, on reste sur l’écran-titre');
+    // « Mettre à jour », puis une course : on ne recharge qu'au retour au menu.
+    await p.reload();
+    await p.waitForFunction(() => typeof app !== 'undefined' && app.save);
+    await etat('disponible');
+    journal = [];
+    await p.click('[data-action="majLancer"]');
+    ok(await p.evaluate(() => app.state === 'splash'), 'toucher « mettre à jour » ne passe pas l’écran-titre');
+    await p.evaluate(() => { app.leaveSplash(); app.startQuick('timetrial', 'gt', 'monza'); });
+    // waitForFunction n'attend pas une promesse : on interroge les caches d'ici.
+    for (let t0 = Date.now(); Date.now() - t0 < 30000; await p.waitForTimeout(250)) {
+      if (await p.evaluate(async () => { const ks = await caches.keys(); return ks.length === 1 && ks[0].endsWith('-essai'); })) break;
     }
+    const demandes = telecharges();
+    ok(demandes.length === 1 && demandes[0] === '/js/version.js', `seul le fichier modifié est téléchargé (${demandes.join(', ') || 'aucun'})`);
+    await p.waitForTimeout(4000);
+    ok(await p.evaluate(() => app.state === 'race' && APP_DATE !== '2099-01-01'), 'en course, la nouvelle version attend : pas de rechargement');
+    await Promise.all([p.waitForNavigation({ timeout: 20000 }), p.evaluate(() => app.toMenu())]);
+    await p.waitForFunction(() => typeof APP_DATE !== 'undefined' && typeof MAJ !== 'undefined', null, { timeout: 20000 });
+    ok(await p.evaluate(() => APP_DATE === '2099-01-01'), 'au menu, la page se recharge sur la nouvelle version');
+    await etat('a-jour');
+    ok(/à jour/.test(await bandeau()), `écran-titre : « ${await bandeau()} »`);
     ok(erreurs.length === 0, 'aucune erreur de page' + (erreurs.length ? ' : ' + erreurs.join(' | ') : ''));
   } finally {
+    journal = null;
+    fs.writeFileSync(fv, vAvant); fs.writeFileSync(fm, mAvant);
     await browser.close(); serveur.close();
   }
   console.log(fautes ? `${fautes} faute(s)` : 'OK');

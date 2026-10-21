@@ -263,7 +263,9 @@ class App {
     et le clic qui suit, au relâchement, tombait sur le bandeau apparu sous le doigt : toucher le
     milieu de l'affiche ouvrait directement le multijoueur. Ce clic-là est donc avalé — et
     seulement lui : s'il ne vient pas (le doigt a glissé), le filet se retire au bout d'un instant. */
-    window.addEventListener('pointerdown', () => {
+    window.addEventListener('pointerdown', (e) => {
+      // le bandeau de mise à jour a ses propres boutons : les toucher ne passe pas l'affiche
+      if (e.target && e.target.closest && e.target.closest('.maj')) return;
       if (!this.leaveSplash()) return;
       const avale = (e) => { e.stopPropagation(); e.preventDefault(); retire(); };
       const retire = () => window.removeEventListener('click', avale, true);

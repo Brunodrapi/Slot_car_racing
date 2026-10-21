@@ -144,12 +144,23 @@ worker** qui met tout le jeu en cache au premier lancement, environ 50 Mo. Ajout
 de l'iPhone (Safari → Partager → Sur l'écran d'accueil), le jeu démarre ensuite sans réseau ; le
 multijoueur, le tableau mondial et les statistiques gardent besoin du réseau.
 
-**La mise à jour.** Chaque fichier porte son empreinte (sha-256) dans `sw.js`. Ouvert avec du réseau,
-le jeu voit qu'une nouvelle version est publiée et ne télécharge que les fichiers dont l'empreinte a
-changé — les autres sont recopiés de l'ancien cache. La nouvelle version attend ensuite d'être sur
-l'écran-titre ou dans les menus, jamais en course ni dans un salon, puis la page se recharge pour la
-montrer. Sans réseau, le jeu garde la version qu'il a. `tools/e2e-dist.js` vérifie les trois
-temps : en ligne, hors ligne, puis une mise à jour d'un seul fichier.
+**La mise à jour.** La liste des fichiers et leur empreinte (sha-256) sont dans `manifeste.json` ;
+`sw.js`, lui, ne change jamais d'une publication à l'autre, si bien que le navigateur ne lance jamais de
+lui-même une mise à jour. C'est l'écran-titre qui dit où en est le jeu, dans une pastille en haut
+(`js/maj.js`) :
+
+- pas de réseau : **« Hors ligne · version 0.44.3 installée »**, et l'on joue cette version ;
+- du réseau, rien de neuf : **« Jeu à jour · version 0.44.3 »** ;
+- du réseau, une version plus récente publiée : **« Mise à jour disponible : version 0.44.4 (120 ko) »**
+  avec deux boutons, **Mettre à jour** et **Continuer avec cette version**.
+
+Rien ne se télécharge sans réponse, sauf la toute première installation. Mettre à jour ne télécharge
+que les fichiers dont l'empreinte a changé — les autres sont recopiés de l'ancien cache — en montrant
+l'avancement ; on peut lancer une course pendant ce temps : la nouvelle version attend l'écran-titre ou
+les menus, jamais une course ni un salon, puis la page se recharge pour la montrer. Si le
+téléchargement échoue, l'ancienne version reste entière. Continuer avec cette version ne télécharge
+rien ; la question revient au lancement suivant. `tools/e2e-dist.js` vérifie tout cela au format d'un
+iPhone : en ligne, hors ligne, puis une mise à jour d'un seul fichier, refusée puis acceptée.
 
 **Publier** dans le dépôt de l'organisation (`GRIP-game/Grip-Game-`, servi par GitHub Pages) :
 
