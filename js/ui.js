@@ -37,7 +37,7 @@ const I18N = {
     lineBleu: 'BLEU', lineRace: 'IDÉALE', lineJaune: 'JAUNE', freinage: 'Freinage', reglages: 'Réglages', regDefaut: 'Par défaut', regRegler: 'Régler', regTitre: 'Réglage du freinage', regAide: 'Pousse le levier en roulant. Trop de frein et la voiture s’arrête dans le virage ; trop peu et c’est la sortie. Le repère blanc est le réglage d’origine.', regEnreg: 'Enregistrer la configuration', regNom: 'Nom de la configuration', regIci: (v) => `freinage ×${v.toFixed(2)} ici`, regIciDefaut: 'freinage d’origine ici', regPortee: 'Seuls les réglages enregistrés pour cette voiture sur ce circuit sont proposés. Le choix est mémorisé pour ce couple.', regFait: (n) => `Configuration « ${n} » enregistrée.`, engineCut: 'MOTEUR COUPÉ', offTrack: 'SORTIE DE PISTE !', finished: 'ARRIVÉE',
     lapVoid: 'annulé',
     cupComplete: 'Coupe terminée !', cupWon: 'Champion !', cupPodium: 'Podium ! Coupe suivante débloquée.', cupFailed: 'Hors du podium… retente ta chance.',
-    newRecord: 'Nouveau record !', yourBest: 'Ton record', name: 'Nom du pilote', sound: 'Son', language: 'Langue', showLines: 'Guide de freinage', telemetry: 'Télémétrie (touche G)', ctrlSide: 'Côté du levier', sideLeft: 'Gauche', sideRight: 'Droite', camera: 'Vue', camFollow: 'Dessus, orientée piste', camFixed: 'Dessus, fixe', camAvance: 'En avance, orientée piste', camAvanceFixe: 'En avance, fixe', pullBack: 'Recul de la caméra', pullNone: 'Normal', pullSome: 'Un peu en retrait', pullMore: 'Très en retrait', aimant: 'Aimant sur la ligne', aimantOff: 'Désactivé', aimantDoux: 'Doux', aimantNormal: 'Normal', aimantFort: 'Fort', aimantTresFort: 'Très fort', aimantDouble: '×2 fort', anticip: 'Anticipation du pilote', anticipOff: 'Aucune', anticipPeu: 'Légère', anticipMoy: 'Moyenne', anticipFort: 'Forte', lapCount: 'Tours', pressStart: 'Appuie pour commencer', resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
+    newRecord: 'Nouveau record !', yourBest: 'Ton record', name: 'Nom du pilote', sound: 'Son', language: 'Langue', showLines: 'Guide de freinage', telemetry: 'Télémétrie (touche G)', ctrlSide: 'Côté du levier', sideLeft: 'Gauche', sideRight: 'Droite', camera: 'Vue', camFollow: 'Dessus, orientée piste', camFixed: 'Dessus, fixe', camAvance: 'En avance, orientée piste', camAvanceFixe: 'En avance, fixe', pullBack: 'Recul de la caméra', pullNone: 'Normal', pullSome: 'Un peu en retrait', pullMore: 'Très en retrait', aimant: 'Aimant sur la ligne', aimantOff: 'Désactivé', aimantDoux: 'Doux', aimantNormal: 'Normal', aimantFort: 'Fort', aimantTresFort: 'Très fort', aimantDouble: '×2 fort', anticip: 'Anticipation du pilote', anticipOff: 'Aucune', anticipPeu: 'Légère', anticipMoy: 'Moyenne', anticipFort: 'Forte', lapCount: 'Tours', pressStart: 'Appuie pour commencer', tapStart: 'Appuie pour commencer', resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
     on: 'Activé', off: 'Coupé', playerDefault: 'Vous', allUnlocked: 'Tout est débloqué. Bravo !', careerIntro: 'Tu pars dernier à chaque course. Remonte le peloton, marque des points, débloque des catégories plus rapides.',
     lapDone: (n, t) => `Tour ${n} : ${t}`, tipTitle: 'Comment jouer', yourResult: (p) => `Tu termines P${p}`,
     nameTaken: (n) => `« ${n} » est déjà pris par un autre pilote. Change de nom dans les réglages, sinon tes temps n’entreront pas au tableau mondial.`,
@@ -116,7 +116,7 @@ const I18N = {
     lineBleu: 'BLUE', lineRace: 'RACING', lineJaune: 'YELLOW', freinage: 'Braking', reglages: 'Setup', regDefaut: 'Default', regRegler: 'Tune', regTitre: 'Braking setup', regAide: 'Push the lever while driving. Too much brake and the car stops in the corner; too little and you go off. The white mark is the stock setting.', regEnreg: 'Save this setup', regNom: 'Setup name', regIci: (v) => `braking ×${v.toFixed(2)} here`, regIciDefaut: 'stock braking here', regPortee: 'Only setups saved for this car on this circuit are offered. The selection is remembered for this pairing.', regFait: (n) => `Setup “${n}” saved.`, engineCut: 'ENGINE CUT', offTrack: 'OFF TRACK!', finished: 'FINISH',
     lapVoid: 'void',
     cupComplete: 'Cup complete!', cupWon: 'Champion!', cupPodium: 'Podium! Next cup unlocked.', cupFailed: 'Missed the podium… try again.',
-    newRecord: 'New record!', yourBest: 'Your best', name: 'Driver name', sound: 'Sound', language: 'Language', showLines: 'Braking guide', telemetry: 'Telemetry (G key)', ctrlSide: 'Lever side', sideLeft: 'Left', sideRight: 'Right', camera: 'View', camFollow: 'Top-down, track-aligned', camFixed: 'Top-down, fixed', camAvance: 'Look-ahead, track-aligned', camAvanceFixe: 'Look-ahead, fixed', pullBack: 'Camera set-back', pullNone: 'Normal', pullSome: 'A little further back', pullMore: 'Much further back', aimant: 'Line magnet', aimantOff: 'Off', aimantDoux: 'Light', aimantNormal: 'Normal', aimantFort: 'Strong', aimantTresFort: 'Very strong', aimantDouble: '×2 strong', anticip: 'Driver anticipation', anticipOff: 'None', anticipPeu: 'Light', anticipMoy: 'Medium', anticipFort: 'Strong', lapCount: 'Laps', pressStart: 'Press any button to start', resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
+    newRecord: 'New record!', yourBest: 'Your best', name: 'Driver name', sound: 'Sound', language: 'Language', showLines: 'Braking guide', telemetry: 'Telemetry (G key)', ctrlSide: 'Lever side', sideLeft: 'Left', sideRight: 'Right', camera: 'View', camFollow: 'Top-down, track-aligned', camFixed: 'Top-down, fixed', camAvance: 'Look-ahead, track-aligned', camAvanceFixe: 'Look-ahead, fixed', pullBack: 'Camera set-back', pullNone: 'Normal', pullSome: 'A little further back', pullMore: 'Much further back', aimant: 'Line magnet', aimantOff: 'Off', aimantDoux: 'Light', aimantNormal: 'Normal', aimantFort: 'Strong', aimantTresFort: 'Very strong', aimantDouble: '×2 strong', anticip: 'Driver anticipation', anticipOff: 'None', anticipPeu: 'Light', anticipMoy: 'Medium', anticipFort: 'Strong', lapCount: 'Laps', pressStart: 'Press any button to start', tapStart: 'Tap to start', resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
     on: 'On', off: 'Off', playerDefault: 'You', allUnlocked: 'Everything unlocked. Well done!', careerIntro: 'You start every race from the back. Carve through the field, score points, unlock faster classes.',
     lapDone: (n, t) => `Lap ${n}: ${t}`, tipTitle: 'How to play', yourResult: (p) => `You finish P${p}`,
     nameTaken: (n) => `“${n}” is already taken by another driver. Change it in the settings, or your times will not reach the world board.`,
@@ -482,31 +482,25 @@ class UI {
 
   // ---------- screens ----------
 
-  /* The title card. The poster carries the name and the invitation itself, so nothing is written
-  over it but the build number: text laid on an illustration this busy would be unreadable
-  wherever it went. Any key, any tap, anywhere gets past it — which is what the poster says to do,
-  and the only instruction a title screen should need.
+  /* The title card: the poster, whole, and the invitation under it — on a computer as on a phone.
 
-  The invitation glows, and that took two goes. The obvious way — erase the printed lettering and
-  lay a new image where it was — needs the poster's background to be invented back underneath, and
-  it is a red swoosh crossing a helmet's chin bar: every attempt left either a smeared rectangle or
-  a ghost of the old words. So the glowing layer is cut from the poster itself. Same pixels, same
-  place, so it covers the printing exactly and there is nothing to erase — only the colour changes,
-  to the yellow of the cut-out, and the grain of the paper is kept by shading it with the original
-  lettering's own brightness. */
+  The poster (Montmartre, GRIP painted on the wall) is 4:5, so it never fills a screen: a phone
+  leaves room above and below it, a monitor on both sides. Cropping it to fill would cut either
+  the name or the cars, so it is shown entire and the leftover room is filled with the same poster,
+  blurred and darkened — the screen reads as one picture rather than a picture in a black box.
+
+  The invitation is not written on the poster: its bottom is the Ford's bonnet and the cobbles,
+  and text there would sit on the very thing the picture is about. It goes under it, in the
+  game's own lettering. Any key, any tap, anywhere gets past it, as before. */
   splash() {
     const t = (k, ...a) => this.t(k, ...a);
-    if (this.app.desktop) {
-      this.show(`<div class="title-copy"><img class="game-logo" src="art/interface/logo-grip.webp" alt="GRIP — Racing the Line">
-        <button class="big primary" data-action="enterGame">${t('pressStart')} <span aria-hidden="true">→</span></button>
-        <div class="title-inputs">${this.lang === 'en' ? 'Keyboard · Mouse wheel · Xbox controller' : 'Clavier · Molette · Manette Xbox'}</div>
-        <div class="version">v${APP_VERSION} · ${APP_DATE}</div></div>`, 'title-desktop scroll');
-      return;
-    }
+    const invite = this.app.desktop ? t('pressStart') : t('tapStart');
     this.show(`
+      <div class="affiche-flou" aria-hidden="true"></div>
       <div class="stage">
-        <img class="poster" src="art/title-grip.webp" alt="${escapeHtml(t('title'))}">
-        <img class="press" src="art/press-start.png" alt="${escapeHtml(t('pressStart'))}">
+        <img class="poster" src="art/affiche-titre.webp" alt="${escapeHtml(t('title'))}">
+        <div class="press">${escapeHtml(invite)}</div>
+        ${this.app.desktop ? `<div class="title-inputs">${this.lang === 'en' ? 'Keyboard · Mouse wheel · Xbox controller' : 'Clavier · Molette · Manette Xbox'}</div>` : ''}
       </div>
       <div class="version">v${APP_VERSION} · ${APP_DATE}</div>
     `, 'center splash');

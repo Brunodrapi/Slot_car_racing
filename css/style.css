@@ -28,17 +28,28 @@ canvas#game { position: fixed; inset: 0; display: block; touch-action: none; use
    explicitement : c'est au rail de défiler, pas à l'écran. */
 .screen.scroll { overflow-y: auto; overflow-x: hidden; }
 .screen.overlay { background: rgba(8, 10, 16, 0.75); width: 100%; }
-/* The title card: the poster as large as it will go without being cropped or stretched. It is a
-   printed thing with its own border, so `contain` rather than `cover` — cutting the border off
-   would be cutting the frame off a picture. */
-.screen.splash { width: 100%; height: 100%; padding: 0; gap: 0; justify-content: center; position: relative; }
-/* La scène a le rapport exact de l'affiche, et se borne à la fenêtre : elle se comporte donc
-   comme un `contain`, à ceci près qu'on sait où elle est — ce qu'il faut pour poser quelque chose
-   dessus. Une image en `contain` toute seule laisse des marges dont la taille n'est écrite nulle
-   part, et un calque posé par-dessus dérive dès qu'on change de format d'écran. */
-.screen.splash .stage,
+/* L'écran-titre : l'affiche entière, l'invitation dessous, et la même affiche floutée pour remplir
+   ce qui reste de l'écran. L'affiche est en 4:5 : sa largeur se calcule depuis la hauteur laissée
+   libre par l'invitation, et ne dépasse jamais l'écran — un `contain` dont on connaît les bords. */
+.screen.splash { width: 100%; height: 100%; padding: 0; gap: 0; justify-content: center; position: relative; overflow: hidden;
+  --bas-titre: 120px; }
+body.desktop .screen.splash { --bas-titre: 150px; width: 100%; max-width: none; }
+/* Un téléphone en paysage n'a que 350 px de haut : l'invitation se fait plus petite pour laisser
+   la hauteur à l'affiche. */
+@media (max-height: 500px) {
+  .screen.splash { --bas-titre: 64px; }
+  .screen.splash .stage { gap: 6px; }
+  .screen.splash .press { font-size: 18px; }
+}
+.screen.splash .affiche-flou { position: absolute; inset: -60px; background: #120f0c url('../art/affiche-titre.webp') center / cover no-repeat;
+  filter: blur(26px) brightness(0.42) saturate(1.15); }
+.screen.splash .stage { position: relative; display: flex; flex-direction: column; align-items: center;
+  gap: clamp(10px, 2.2vh, 20px); max-width: 100%; }
+.screen.splash .poster { display: block; width: min(100vw, calc((100dvh - var(--bas-titre)) * 1122 / 1402)); height: auto;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.6); }
+body.desktop .screen.splash .poster { border: 3px solid #f3e6c8; }
+.screen.splash .title-inputs { color: #f3e6c8; background: rgba(20, 18, 14, 0.7); padding: 6px 12px; font-size: 13px; }
 .screen.poster .stage { position: relative; aspect-ratio: 941 / 1672; max-width: 100%; max-height: 100%; overflow: hidden; }
-.screen.splash .poster,
 .screen.poster .stage .bg { width: 100%; height: 100%; display: block; }
 .screen.poster { width: 100%; height: 100%; padding: 0; gap: 0; justify-content: center; position: relative; }
 .screen.poster .version { position: absolute; bottom: max(8px, env(safe-area-inset-bottom)); right: 10px; margin: 0; opacity: 1;
@@ -72,37 +83,27 @@ canvas#game { position: fixed; inset: 0; display: block; touch-action: none; use
   .screen.poster .mi.open img { animation: none; clip-path: inset(0 0 0 0); }
 }
 
-/* L'invitation, reposée par-dessus à l'emplacement exact de celle qui était imprimée dans
-   l'affiche — en pourcentages de la scène, donc juste à toutes les tailles. */
+/* L'invitation, dans le lettrage du jeu, jaune sur le flou sombre, cernée de noir pour se lire
+   même là où le flou est clair. Une enseigne d'arcade qui clignote — allumée longtemps, éteinte
+   court — sans jamais disparaître tout à fait : on doit pouvoir la lire au moment où on la cherche. */
 .screen.splash .press {
-  position: absolute; left: 9.352%; top: 91.388%; width: 81.615%;
-  animation: press-blink 1.15s step-end infinite;
-  will-change: filter;
+  font: italic 900 clamp(22px, 3.6vh, 36px) Racing, Impact, sans-serif; text-transform: uppercase; letter-spacing: 0.03em;
+  color: #ffd84a; text-align: center; padding: 0 16px; line-height: 1.05;
+  -webkit-text-stroke: 1.5px #1b1308; paint-order: stroke fill;
+  text-shadow: 0 3px 0 #1b1308, 0 0 16px rgba(255, 196, 70, 0.7), 0 0 36px rgba(255, 140, 30, 0.45);
+  animation: press-blink 1.2s ease-in-out infinite;
 }
-
-/* Une enseigne d'arcade : allumée, éteinte, franchement, sans fondu — d'où le `step-end`.
-
-   Éteindre ne peut pas vouloir dire disparaître : le texte imprimé de l'affiche est toujours là,
-   sous le calque, et le faire passer à l'invisible ne ferait que rendre la main aux lettres crème
-   d'origine — un changement de couleur, pas un clignotement. Le temps éteint les peint donc dans
-   le brun sombre du fond, qu'elles recouvrent toujours et où elles se fondent.
-
-   Le halo est un drop-shadow et non une ombre de boîte, donc il épouse les lettres découpées au
-   lieu d'éclairer un rectangle autour d'elles. */
 @keyframes press-blink {
-  0%, 59%   { filter: brightness(1.2) saturate(1.1) drop-shadow(0 0 8px rgba(255, 219, 138, 0.95)) drop-shadow(0 0 22px rgba(255, 160, 50, 0.7)) drop-shadow(0 0 46px rgba(255, 120, 20, 0.4)); }
-  60%, 100% { filter: brightness(0.26) saturate(0.45); }
+  0%, 55%  { opacity: 1; }
+  70%, 88% { opacity: 0.22; }
+  100%     { opacity: 1; }
 }
-
-/* Quelqu'un qui a demandé moins d'animations n'a pas demandé moins de lisibilité : la lueur se
-   fige sur son point haut au lieu de disparaître. */
+/* Quelqu'un qui a demandé moins d'animations n'a pas demandé moins de lisibilité : l'invitation
+   reste allumée. */
 @media (prefers-reduced-motion: reduce) {
-  .screen.splash .press { animation: none;
-    filter: brightness(1.12) drop-shadow(0 0 8px rgba(255, 219, 138, 0.8)) drop-shadow(0 0 22px rgba(255, 150, 40, 0.5)); }
+  .screen.splash .press { animation: none; }
 }
-/* On a phone the poster reaches the edges, so the build number lands on the artwork rather than
-   on the page behind it. It gets its own dark lozenge: pale grey on a cream poster is not a
-   readout, and this number exists precisely to be read. */
+/* Le numéro de build, dans le coin, sur sa pastille sombre : il existe pour être lu. */
 .screen.splash .version { position: absolute; bottom: max(8px, env(safe-area-inset-bottom)); right: 10px; margin: 0; opacity: 1;
   background: rgba(10, 12, 20, 0.62); color: #dfe3ea; padding: 3px 9px; border-radius: 999px; }
 #ui:has(.overlay) { background: transparent; }
@@ -531,7 +532,7 @@ body.desktop .screen.overlay { overflow-y: auto; justify-content: safe center; }
 .spectator-race-clock{display:flex;align-items:center;gap:6px;font:700 12px ui-monospace,monospace;margin:4px 0 8px}
 
 /* Menu 0.37 — shared geometry for idle, hover, keyboard and controller states. */
-#ui:has(.home-screen, .title-desktop, .setup-screen, .selection-screen) {
+#ui:has(.home-screen, .setup-screen, .selection-screen) {
   background: radial-gradient(ellipse at 90% 5%, #344549 0, transparent 48%),
     radial-gradient(ellipse at 0 100%, #392c24 0, transparent 50%), #10191e;
 }
@@ -561,17 +562,9 @@ body.desktop .screen.overlay { overflow-y: auto; justify-content: safe center; }
 .mode-arrow { font-size: 24px; color: var(--mode); }
 .home-settings { display: flex; justify-content: space-between; min-height: 48px; background: #172329; border-color: #ffffff24; }
 .home-footer { display: flex; justify-content: space-between; color: #a6b8c0; font-size: 12px; gap: 12px; }
-body.desktop .title-desktop { width: 100%; max-width: 1600px; display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: clamp(32px,6vw,100px); padding: 40px 6vw; align-items: center; }
 .title-art { height: min(82dvh,900px); min-height: 0; display: flex; justify-content: center; }
 .title-art img { height: 100%; max-width: 100%; object-fit: contain; transform: rotate(-3deg); filter: drop-shadow(0 24px 30px #0007); }
-.title-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 22px; min-width: 0; }
-.title-copy h1 { color: #fff2d9; background: none; font-size: clamp(56px,7.6vw,120px); letter-spacing: -.06em; line-height: .9; }
-.title-copy h1 em { color: #e8b66b; font-style: normal; }
-.title-copy p { margin: 0; line-height: 1.6; max-width: 430px; }
 .title-tagline { font-size: clamp(18px,2vw,28px); }
-.title-copy .primary { background: #efc583; display: flex; justify-content: space-between; gap: 30px; min-width: min(100%,320px); }
-.title-inputs { color: #b7c4ca; font-size: 13px; }
-.title-copy .version { margin: 0; opacity: 1; }
 .setup-screen, .selection-screen { gap: 18px; }
 .setup-screen .topbar, .selection-screen .topbar { align-items: center; padding-bottom: 12px; border-bottom: 1px solid #ffffff20; }
 .setup-screen h2, .selection-screen h2 { font-size: clamp(20px,3vw,28px); letter-spacing: -.035em; }
@@ -619,9 +612,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
   .setup-screen .topbar, .selection-screen .topbar { gap: 10px; }
 }
 @media (max-width: 600px) {
-  body.desktop .title-desktop { grid-template-columns: 1fr; padding: 32px 24px; }
   .title-art { display: none; }
-  .title-copy h1 { font-size: 72px; }
   .setup-screen .row.end > .muted:last-of-type { flex-basis: 100%; }
   .setup-screen .row.end .primary { width: 100%; }
 }
@@ -650,7 +641,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .setup-options[hidden] { display: none !important; }
 
 /* 0.38 — racing poster and printed paddock sheets. Art never contains controls. */
-#ui:has(.home-screen, .title-desktop) { background: #142724 url('../art/interface/accueil-pc.webp?r=2') right center / cover no-repeat; }
+#ui:has(.home-screen) { background: #142724 url('../art/interface/accueil-pc.webp?r=2') right center / cover no-repeat; }
 .game-logo { display:block; width:100%; height:auto; }
 .screen.home-screen, body.desktop .screen.home-screen { width:100%; max-width:none; height:100%; max-height:none; margin:0; padding:clamp(16px,3vh,36px) 4vw max(12px,env(safe-area-inset-bottom)); gap:12px; }
 .home-heading { width:min(54vw,740px); flex-shrink:0; }
@@ -674,10 +665,6 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .pilot-button span { font-size:10px; letter-spacing:.1em; }
 .pilot-button b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .home-version { color:#fff4da; font:10px ui-monospace,monospace; text-shadow:0 1px 3px #000; }
-body.desktop .screen.title-desktop { display:flex; justify-content:center; width:100%; max-width:none; height:100%; padding:5vw; }
-.title-copy { width:min(57vw,760px); gap:22px; }
-.title-copy .primary { background:#cf3029; color:#fff2d7; border:2px solid #f5e6c7; border-radius:0; font-weight:900; text-transform:uppercase; box-shadow:5px 5px 0 #111; }
-.title-inputs, .title-copy .version { color:#fff3d8; background:#171c19e8; padding:8px 12px; }
 #ui:has(.setup-screen, .selection-screen) { background:#202822 url('../art/interface/paddock.webp?r=cartoon-1') center / cover no-repeat; }
 .setup-screen, .selection-screen { --text:#272b28; --muted:#5f6158; --accent:#b42b26; --card:#eee3ca; --card2:#ddd0b6; --panel:#f4ead5; color:var(--text); background:#e9dec8f5; border-inline:1px solid #242824; gap:16px; }
 .setup-screen .topbar, .selection-screen .topbar { background:#bd2c26; color:#fff1d5; padding:12px; border-bottom:4px solid #252824; }

@@ -1436,67 +1436,36 @@ js/main.js                 boucle de jeu, entrées, enchaînement
 tools/                     scripts de développement (simulation IA headless, diagnostics physique, tests Playwright)
 ```
 
-## L'écran-titre
+## L'écran-titre (0.43.1)
 
-Le jeu s'ouvre sur l'affiche, `art/title-grip.webp` — 941 × 1672, soit du 9:16 à un cheveu près, donc
-plein écran sur un téléphone et centrée dans son cadre sur un bureau. Elle est posée en `contain`
-et non en `cover` : c'est une affiche imprimée, avec sa bordure, et la rogner reviendrait à couper
-le cadre d'un tableau.
+Le jeu s'ouvre sur l'affiche de Montmartre, `art/affiche-titre.webp` — la rue Lepic, la Ford GT
+et la Ferrari sur les pavés, et *GRIP — Racing the Line* peint sur le mur. Le même écran sert au
+PC et au téléphone.
 
-Rien n'est écrit par-dessus sauf le numéro de build, parce qu'un texte posé sur une illustration
-aussi chargée serait illisible où qu'on le mette — et le numéro lui-même reçoit sa pastille
-sombre, sur un téléphone où l'affiche touche les bords. L'affiche porte son propre nom et sa
-propre invitation ; n'importe quelle touche, n'importe quel appui, n'importe où la passe, ce
-qu'elle dit elle-même et la seule consigne qu'un écran-titre devrait avoir besoin de donner.
+L'affiche est en **4:5** : elle ne remplit aucun écran, un téléphone lui laisse de la place dessus
+et dessous, un moniteur sur les côtés. La rogner pour remplir couperait soit le nom, soit les
+voitures ; elle est donc montrée entière, et le reste de l'écran est rempli par **la même affiche,
+floutée et assombrie** — on voit une seule image plutôt qu'un tableau dans une boîte noire. Sa
+largeur se calcule depuis la hauteur que laisse l'invitation (`--bas-titre`) et ne dépasse jamais
+l'écran : un `contain` dont on connaît les bords.
 
-### Le nom, sur un bandeau collé (0.43)
+**L'invitation** — « Appuie pour commencer », *Press any button to start* au clavier ou *Tap to
+start* au doigt en anglais — n'est pas écrite sur l'affiche : son bas, c'est le capot de la Ford et
+les pavés, et un texte posé là cacherait ce que l'image montre. Elle va dessous, dans le lettrage
+du jeu, jaune cerné de noir pour se lire sur le flou. Elle **clignote** comme une enseigne
+d'arcade, longtemps allumée et brièvement éteinte, sans disparaître tout à fait ; sous
+`prefers-reduced-motion`, elle reste allumée. Un téléphone en paysage n'a que 350 px de haut :
+l'invitation y rapetisse pour laisser la hauteur à l'affiche.
 
-L'affiche peinte, `art/title.webp`, porte encore l'ancien nom du jeu, *Eyes On Line*, en grosses
-lettres sur le haut du casque. Les effacer reviendrait à repeindre le ciel, les arbres et la
-calotte dessous — le piège décrit juste après. `tools/affiche-titre.py` colle donc sur le haut de
-l'affiche un bandeau de papier déchiré qui porte le logo *GRIP — Racing the Line*
-(`art/interface/logo-grip.webp`), imprimé avec le grain du papier, et écrit `art/title-grip.webp`.
-Le bas de l'affiche, et le calque « Appuie pour commencer » avec lui, ne bougent pas. Une affiche
-repeinte avec le bon nom rendrait le bandeau inutile.
-
-### L'invitation qui respire
-
-« Appuie pour commencer » pulse, et cela a demandé deux essais. La voie évidente — effacer le
-texte imprimé et poser une image neuve à sa place — oblige à **réinventer le fond dessous**, et ce
-fond est un lé rouge qui traverse la mentonnière d'un casque. Trois tentatives, trois échecs
-visibles : un rectangle lissé, des traînées verticales empruntées à une bande voisine, puis un
-fantôme sombre des anciennes lettres. Aucune ne tenait à l'écran.
-
-Le calque lumineux est donc **découpé dans l'affiche elle-même** : `art/press-start.png` est fait
-des pixels du texte imprimé, pris par leur clarté, avec un bord tendu entre deux seuils pour
-garder l'anticrénelage. Mêmes pixels, même place, donc il recouvre l'impression exactement et il
-n'y a plus rien à effacer. Seule la couleur change — le jaune relevé sur la découpe fournie
-(`art/press-start-source.png`) — et le grain du papier survit parce que chaque lettre est ombrée
-par sa propre clarté d'origine plutôt que peinte en aplat.
-
-La scène porte le rapport exact de l'affiche (`aspect-ratio: 941 / 1672`) et se borne à la
-fenêtre, ce qui revient à un `contain` dont on connaît les bords : le calque se place alors en
-pourcentages et reste juste à toutes les tailles. Une image en `contain` toute seule laisse des
-marges dont la taille n'est écrite nulle part, et ce qu'on pose dessus dérive dès qu'on change de
-format.
-
-Elle **clignote** comme une enseigne d'arcade : allumée, éteinte, franchement, sans fondu — d'où
-le `step-end`. Éteindre ne peut pas vouloir dire disparaître : le texte imprimé de l'affiche est
-toujours là, sous le calque, et passer celui-ci à l'invisible ne ferait que rendre la main aux
-lettres crème d'origine — un changement de couleur, pas un clignotement. Le temps éteint les
-peint donc dans le brun sombre du fond, qu'elles recouvrent toujours et où elles se fondent,
-comme les ampoules mortes d'une enseigne.
-
-La lueur est un `drop-shadow` et non une ombre de boîte, donc elle épouse les lettres au lieu
-d'éclairer un rectangle autour d'elles. Sous `prefers-reduced-motion`, elle se fige sur son temps
-allumé : qui a demandé moins d'animation n'a pas demandé moins de lisibilité.
-
-C'est aussi le geste qui autorise le son : un navigateur ne joue rien tant que personne n'a touché
-la page.
+N'importe quelle touche, n'importe quel appui, n'importe où passe l'écran. C'est aussi le geste
+qui autorise le son : un navigateur ne joue rien tant que personne n'a touché la page.
 
 Un lien qui nomme un circuit (`?track=…`) est quelqu'un qui sait déjà où il va : l'affiche
 s'efface pour lui. Les scripts de test passent l'écran comme un joueur, par une touche, et
 `tools/e2e-splash.js` le vérifie sur les deux formats.
+
+L'ancienne affiche, le casque peint (`art/title.webp`) et la découpe de son invitation
+(`art/press-start-source.png`), restent dans `art/` : elles portaient le nom *Eyes On Line*.
 
 ## Les menus de sélection (0.37.0)
 
