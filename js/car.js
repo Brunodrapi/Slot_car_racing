@@ -219,6 +219,14 @@ const FREIN_MIN = 0.5, FREIN_MAX = 1.6;
    mémoire ne pouvait pas offrir. */
 const MOTRICITE = { tauMontee: 0.22, tauRetour: 0.10, seuil: 0.12, perte: 0.38 };
 
+/* EN GLISSADE : RATTRAPER LA VOITURE D'ABORD, LA LIGNE ENSUITE.
+
+`seuilTravers` : l'angle de dérive (en radians, ≈ 9°) au-delà duquel la voiture est « en travers ».
+`freinTravers` : la part du freinage AUTOMATIQUE (pied levé) qui reste alors appliquée. Le frein
+manuel d'une manette n'est pas touché : celui qui freine exprès est obéi. Voir `update`, et le
+rapport « GRIP — Garder le contrôle d'une voiture en dérapage » pour les mesures. */
+const GLISSADE = { seuilTravers: 0.15, freinTravers: 0.3 };
+
 // Les deux seuils où l'IA lève et reprend les gaz : voir `aiThrottle`. Reprendre bien plus bas
 // qu'on ne lève est ce qui fait un à-coup plutôt qu'un tremblement.
 const AI_GLISSE = [0.28, 0.55];
@@ -883,7 +891,14 @@ class Car {
     const a = L / 2, b = L / 2;                       // CG to front / rear axle
     const kk = Math.pow(0.28 * c.length, 2) * (5 / c.laneK);   // yaw inertia (radius of gyration²)
     const engineFrac = manualBrake && !throttle ? throttleAmount(brakingInput.engineBrake) * clamp(this.offT / .1, 0, 1) : 0;
-    const brakeFrac = manualBrake ? this.brake + (1 - this.brake) * engineFrac : throttle ? 0 : clamp(this.offT / 0.1, 0, 1);
+    /* PAS DE COUP DE FREIN EN TRAVERS. Pied levé, la voiture freine d'elle-même : c'est la règle du
+    jeu à un bouton. Mais lever et freiner en pleine glissade déleste l'arrière, et c'est le geste
+    que toutes les écoles de pilotage interdisent — « lifting off the throttle or hitting the brakes
+    while changing the steering angle will spin the best handling car ». Tant que la voiture est en
+    travers, le freinage automatique ne garde donc que trente pour cent de sa force. */
+    const enTravers = Math.abs(this.beta || 0) > GLISSADE.seuilTravers;
+    const brakeFrac = manualBrake ? this.brake + (1 - this.brake) * engineFrac
+      : throttle ? 0 : clamp(this.offT / 0.1, 0, 1) * (enTravers ? GLISSADE.freinTravers : 1);
     const vv = Math.max(3, Math.abs(this.v));
     const peak = c.slipPeak * PHYS.slip;
     const gTot = this.gripAt(Math.abs(this.v)) * surface;
@@ -894,7 +909,30 @@ class Car {
     // yaw-rate correction on top; when the tail comes round the yaw rate exceeds the demand and
     // the same law gives opposite lock, like a driver catching a slide. Asking for more than the
     // tyre's peak slip is useless, so the demand is capped: past the limit the car just turns less.
-    const kDes = this._desiredCurvature();
+    let kDes = this._desiredCurvature();
+    /* EN GLISSADE, ON NE COURT PAS APRÈS LA LIGNE.
+
+    La visée compare la position à la ligne à chaque image, glissade comprise. Une voiture qui
+    glisse vers l'extérieur s'écarte de sa ligne, et la visée réclame alors un virage PLUS SERRÉ que
+    la ligne pour la rattraper : plus de rotation, demandée à des pneus qui n'en donnent déjà plus.
+    Mesuré sur une voiture qui entre trop vite (six circuits, trois catégories) : dans un tiers des
+    images où l'arrière glisse, la demande était plus serrée que la ligne elle-même.
+
+    Les pilotes font l'inverse — d'abord rattraper la voiture, ensuite seulement reprendre une
+    trajectoire, quitte à passer large — et les voitures de course autonomes de Stanford aussi :
+    leur enveloppe de stabilité passe avant le suivi de trajectoire. Tant qu'un essieu est au-delà
+    du pic de ses pneus, la courbe demandée ne dépasse donc pas celle de la ligne. Elle peut toujours
+    être plus ouverte, ou du côté opposé : c'est le contre-braquage, qu'on ne bride jamais.
+
+    Avec le freinage adouci en travers, sur cette voiture trop rapide : 40 sorties et 96 tête-à-queue
+    deviennent 20 et 26, et les tours vont plus vite. Deux fausses pistes, mesurées aussi : viser
+    depuis la direction de la vitesse au lieu du cap de la caisse (188 sorties, 267 tête-à-queue, ce
+    que Stanford avait vu : la voiture part en tête-à-queue), et garder la retenue une demi-seconde
+    après la glissade (la voiture ne revient plus sur sa ligne et sort). */
+    if (Math.abs(this.alphaR || 0) > peak || Math.abs(this.alphaF || 0) > peak) {
+      const kLigne = T.lineCurv(this.s + 3, this.selS);
+      if (Math.sign(kDes) === Math.sign(kLigne) && Math.abs(kDes) > Math.abs(kLigne)) kDes = kLigne;
+    }
     // a car cannot rotate faster than its path can bend: past that the tail only steps out
     const wLim = PHYS.wLim * gTot / vv;
     const wDes = clamp(this.v * kDes, -wLim, wLim);

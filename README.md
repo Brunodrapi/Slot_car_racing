@@ -463,6 +463,47 @@ ligne visée → braquage désiré → forces des deux trains → rotation (lace
 Les changements de trajectoire sont eux aussi progressifs : déplacer le curseur déplace l'intention, pas
 la voiture.
 
+### En glissade : rattraper la voiture d'abord, la ligne ensuite (0.44)
+
+La visée compare la position à la ligne à chaque image, glissade comprise. Une voiture qui glisse vers
+l'extérieur s'écarte de sa ligne, et la visée réclamait alors un virage **plus serré que la ligne** pour
+la rattraper — plus de rotation, demandée à des pneus qui n'en donnaient déjà plus. Mesuré sur une
+voiture qui entre trop vite : dans un tiers des images où l'arrière glisse, la demande dépassait la
+courbe de la ligne elle-même. (Les glissades sont d'ailleurs surtout à l'arrière : 93 % du temps de
+glisse, sur la voiture du joueur sans aimant.)
+
+Les pilotes font l'inverse — stabiliser d'abord, passer large ensuite — et les voitures de course
+autonomes de Stanford aussi : leur enveloppe de stabilité passe avant le suivi de trajectoire. Deux
+règles en découlent, dans `js/car.js` (`GLISSADE`) :
+
+- **Tant qu'un essieu est au-delà du pic de ses pneus, la courbe demandée ne dépasse pas celle de la
+  ligne.** Plus ouverte ou de l'autre côté, elle passe toujours : le contre-braquage n'est pas bridé.
+- **En travers (dérive au-delà de 0,15 rad), le freinage automatique pied levé ne garde que 30 % de sa
+  force.** Lever et freiner en pleine glissade déleste l'arrière : c'est le geste que toutes les écoles
+  de pilotage interdisent. Le frein manuel d'une manette n'est pas touché.
+
+`tools/glissade-banc.js` le mesure (six circuits × trois catégories, deux tours, aimant coupé, deux
+tirages) :
+
+| Allure | Moteur | Sorties | Tête-à-queue | Temps total |
+| --- | --- | --- | --- | --- |
+| Trop vite (marge 1,15) | avant | 39,5 | 96 | 3 373 s |
+| Trop vite (marge 1,15) | après | 19 | 28,5 | 3 145 s |
+| À la limite (marge 1,00) | avant | 0 | 2,5 | 3 184 s |
+| À la limite (marge 1,00) | après | 0 | 0 | 3 157 s |
+
+À la limite, la voiture s'écarte un peu plus de sa ligne en moyenne (0,77 m au lieu de 0,65) : elle
+passe large au lieu de forcer. Trois fausses pistes, essayées et écartées : viser depuis la direction de
+la vitesse plutôt que du cap de la caisse (188 sorties, 267 tête-à-queue — le résultat de Kapania et
+Gerdes, retrouvé), abaisser le plafond de dérive avant au pic (rien à gagner), et garder la retenue une
+demi-seconde après la glissade (la voiture ne revient plus sur sa ligne et sort). Le rapport complet,
+avec la littérature du pilotage : « GRIP — Garder le contrôle d'une voiture en dérapage ».
+
+Les notes de difficulté des GT (`diff`, `js/cars.js`) n'ont pas été recalculées. `tools/difficulte.js`
+donne maintenant un autre classement (Countach 3 → 0, M1 3 → 1, 240Z 3 → 2, 911 Turbo 5 → 4, Type E
+1 → 2), en partie parce que son critère de reprise — revenir à trente centimètres de la trajectoire
+d'origine en cinq secondes — compte comme un échec la voiture qui passe large exprès.
+
 ### Cadrage de la caméra
 
 La caméra cadre une **distance fixe** plutôt qu'une surface fixe, pour qu'un téléphone en portrait
