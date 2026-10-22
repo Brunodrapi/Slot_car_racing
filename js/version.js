@@ -11,5 +11,9 @@ browser to fetch the new files.
 */
 'use strict';
 
-const APP_VERSION = '0.44.3';
-const APP_DATE = '2026-10-21';
+const APP_VERSION = '0.45.0';
+const APP_DATE = '2026-10-22';
+/* Le canal : « dev » dans le dépôt, « recette » ou « prod » dans la version publiée — c'est
+`tools/build-dist.js --canal=` qui le réécrit. La recette se reconnaît à l'écran (une pastille
+RECETTE), et ses tables de multijoueur ne croisent pas celles de la prod. */
+const APP_CANAL = 'dev';

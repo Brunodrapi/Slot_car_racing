@@ -503,7 +503,7 @@ class UI {
         <div class="press">${escapeHtml(invite)}</div>
         ${this.app.desktop ? `<div class="title-inputs">${this.lang === 'en' ? 'Keyboard · Mouse wheel · Xbox controller' : 'Clavier · Molette · Manette Xbox'}</div>` : ''}
       </div>
-      <div class="version">v${APP_VERSION} · ${APP_DATE}</div>
+      <div class="version">v${APP_VERSION} · ${APP_DATE}${canalBadge()}</div>
       <div class="maj" aria-live="polite" hidden></div>
     `, 'center splash');
     this.majAffiche();
@@ -579,7 +579,7 @@ class UI {
       <footer class="home-footer"><button class="home-settings" data-action="settings"><img src="art/interface/gear.webp" alt="">${t('settings')}</button>
         <button class="pilot-button" data-action="settings"><img src="art/interface/pilot.webp" alt=""><span>${t('pilotLabel')} :</span><b>${escapeHtml(app.save.name)}</b></button>
         ${app.mondial?.erreurConnexion ? `<button class="link" data-action="google">${t('reconnect')}</button>` : ''}</footer>
-      <div class="home-version">v${APP_VERSION}</div>`, 'home-screen scroll');
+      <div class="home-version">v${APP_VERSION}${canalBadge()}</div>`, 'home-screen scroll');
   }
 
   circuitArt(trackDef) {
@@ -1475,4 +1475,6 @@ class UI {
   }
 }
 
+// La pastille du canal à côté du numéro de version : seulement en recette, pour ne jamais confondre.
+function canalBadge() { return typeof APP_CANAL !== 'undefined' && APP_CANAL === 'recette' ? ' <b class="canal">RECETTE</b>' : ''; }
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }

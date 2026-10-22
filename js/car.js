@@ -158,6 +158,10 @@ const ARRET_LIBRE = 0.55;
 
 const PHYS = { aimant: 0, ldK: 0.45, ldMin: 6, ff: 0.3, slip: 1, cliff: 1, steerRate: 6, yawK: 2, wLim: 0.95, selRate: 0.7, liftOff: 0.16, motricite: 1.25, drivePriority: 0.15, relax: 0.2, circle: 0.25 };
 
+// Le changement de ligne : la part de l'adhérence LIBRE qu'il peut prendre, et ses bornes (m/s², m/s).
+// Voir `_versLigne`.
+const LIGNE = { part: 0.5, aMin: 0.8, aMax: 6, vMax: 5 };
+
 /* LES AIDES DE L'IA, qui ne sont pas celles du joueur.
 
 `PHYS.aimant` et `PHYS.ff` portent ce que LE JOUEUR a choisi dans les réglages. Les rivales n'ont
@@ -438,6 +442,7 @@ class Car {
 
     this.sel = 0;                        // line selection -1..1 (driver's intention)
     this.selS = 0;                       // the same, eased: a driver moves across the road, he does not teleport
+    this.selV = 0;                       // how fast he is moving across, in m/s (see _versLigne)
     this.laneTarget = 0;
     this.gridLat = null;
     this.passSide = 0;
@@ -496,7 +501,7 @@ class Car {
   place(s, lat, v) {
     const T = this.track, P = T.pos(s, lat);
     this.s = T.wrap(s); this.lat = lat; this.x = P.x; this.y = P.y; this.th = T.headingAt(s);
-    this.v = v || 0; this.vl = 0; this.w = 0; this.delta = 0; this.beta = 0; this.usage = 0; this.slide = 0; this.ressenti = 0; this.Ff = 0; this.Fr = 0; this.selS = this.sel; this.accroche = true; this.aimantF = 0; this.ecartAv = null;
+    this.v = v || 0; this.vl = 0; this.w = 0; this.delta = 0; this.beta = 0; this.usage = 0; this.slide = 0; this.ressenti = 0; this.Ff = 0; this.Fr = 0; this.selS = this.sel; this.selV = 0; this.accroche = true; this.aimantF = 0; this.ecartAv = null;
     this.patine = 0; this.patineFx = 0; this.glisseArr = 0;
     this.engineCut = 0; this.engineStopped = false;
   }
@@ -1166,7 +1171,7 @@ class Car {
     chaque pas, donc une IA qui avait décidé de s'arrêter reprenait la ligne de course à l'image
     suivante et passait devant les stands sans les voir. */
     if (this.pitAsk || this.pitState) {
-      this.selS += clamp(-2 - this.selS, -PHYS.selRate * dt, PHYS.selRate * dt);
+      this.selS += clamp(-2 - this.selS, -PHYS.selRate * dt, PHYS.selRate * dt); this.selV = 0;
       this.laneTarget = T.targetLat(this.s, this.selS);
       return;
     }
@@ -1254,9 +1259,55 @@ class Car {
           this.sel = this.selS;   // on tient la position tant qu'il est là
       }
     }
-    // ease the chosen line in: changing lane is a manoeuvre, not a jump of the target
-    this.selS += clamp(this.sel - this.selS, -PHYS.selRate * dt, PHYS.selRate * dt);
+    this._versLigne(this.sel, dt);
     this.laneTarget = T.targetLat(this.s, this.selS);
+  }
+
+  /* CHANGER DE LIGNE, C'EST TRAVERSER LA PISTE — avec les pneus qu'il reste.
+
+  La ligne visée glissait d'un cran à vitesse fixe, 0,7 cran par seconde, quoi que fasse la voiture.
+  Or un cran vaut de 2,5 à 5 m selon l'endroit, deux crans (bleue ↔ jaune) jusqu'à 11 m : la voiture
+  traversait à une vitesse latérale qui dépendait du dessin des lignes, démarrait et s'arrêtait d'un
+  coup, et demandait autant d'adhérence au milieu d'un virage pris à la limite qu'en ligne droite.
+
+  La traversée suit maintenant ce qu'un pilote ferait : elle ACCÉLÈRE puis FREINE sur le côté pour se
+  poser sur la nouvelle ligne, sans à-coup, et son accélération latérale ne prend que la moitié de
+  l'adhérence encore libre — celle que ni le virage (v²·k) ni la motricité (la glisse de l'arrière)
+  n'occupent. En ligne droite elle reste vive ; à la limite dans un virage, elle se fait lentement.
+  Et on ne resserre pas sa trajectoire au-delà de ce que les pneus tiennent : la voiture garde sa
+  ligne tant que la plus serrée serait trop rapide, et y va dès que la vitesse le permet.
+
+  CE N'EST PAS LA CAUSE PRINCIPALE DES SORTIES, et la mesure l'a dit (`tools/changement-ligne-banc.js`).
+  Un joueur qui garde les gaz en grand sort 34 fois sur la ligne idéale, 86 sur la bleue et 108 sur la
+  jaune sans jamais changer — et 90 en changeant : la moyenne des lignes qu'il emprunte. Les lignes de
+  côté sont plus serrées en sortie de virage et plus près du bord ; c'est là, pleins gaz, que l'arrière
+  part. Cette traversée-ci retire ce que la manœuvre ajoutait : sur trois graines, 267 sorties et 63
+  tête-à-queue deviennent 254 et 52 avec les lignes de côté lissées (`_clampLines`). L'IA, qui change
+  de ligne pour doubler, en profite davantage : sur 36 courses à dix voitures (`tools/courses-banc.js`),
+  75 sorties et 5 tête-à-queue deviennent 37 et 2, pour autant de dépassements (2 355 contre 2 395) et
+  des courses un peu plus rapides. Deux essais écartés : suspendre la traversée tant que l'arrière glisse (aucun
+  gain, et le levier semble ne plus répondre en sortie de virage), et la seule vitesse adoucie sans le
+  reste (aucun gain non plus). */
+  _versLigne(cible, dt) {
+    const T = this.track;
+    const reste = cible - this.selS;
+    if (Math.abs(reste) < 1e-3 && Math.abs(this.selV) < 0.05) { this.selS = cible; this.selV = 0; return; }
+    // combien de mètres vaut un cran de levier, ici, entre la ligne qu'on tient et celle qu'on vise
+    const latIci = T.targetLat(this.s, this.selS), latVise = T.targetLat(this.s, cible);
+    const D = Math.max(0.5, Math.abs(reste) > 1e-3 ? Math.abs(latVise - latIci) / Math.abs(reste) : 1);
+    // l'adhérence libre : le cercle des pneus, moins la part que la motricité prend déjà à l'arrière
+    const v = Math.max(0, this.v), g = clamp(this.glisseArr || 0, 0, 1);
+    const aTot = this.gripAt(v) * Math.sqrt(1 - g * g);
+    const kIci = Math.abs(T.lineCurv(this.s, this.selS));
+    const budget = clamp(LIGNE.part * (aTot - v * v * kIci), LIGNE.aMin, LIGNE.aMax);
+    // la vitesse latérale qui permet encore de s'arrêter pile sur la ligne visée
+    const resteM = reste * D;
+    let vVoulue = Math.sign(resteM) * Math.min(LIGNE.vMax, Math.sqrt(2 * budget * Math.abs(resteM)));
+    const kApres = Math.abs(T.lineCurv(this.s, this.selS + Math.sign(reste) * 0.05));
+    if (kApres > kIci && v * v * kApres > aTot) vVoulue = 0;           // plus serré que les pneus : on attend
+    this.selV += clamp(vVoulue - this.selV, -budget * dt, budget * dt);
+    this.selS += this.selV / D * dt;
+    if ((cible - this.selS) * reste <= 0) { this.selS = cible; this.selV = 0; }   // arrivé : on se pose sur la ligne
   }
 }
 

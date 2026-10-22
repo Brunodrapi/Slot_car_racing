@@ -19,7 +19,8 @@
   'use strict';
 
   const LIB = 'https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js';
-  const PREFIX = 'slot-racer-v1-';
+  // La recette a ses propres tables : un code de la prod n'y mène pas, et inversement.
+  const PREFIX = 'slot-racer-v1-' + (typeof APP_CANAL !== 'undefined' && APP_CANAL === 'recette' ? 'recette-' : '');
   /** Optional settings, set before the game loads:
    *  `window.SLOT_RACER_RTC = { lib: '…/peerjs.min.js', peer: { host, port, path, secure } }`.
    *  Without them we take the library from cdnjs and the public PeerJS directory; with them you

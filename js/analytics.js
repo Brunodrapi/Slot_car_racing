@@ -49,7 +49,7 @@ class GameAnalytics {
   _emit(event, data = {}) {
     if (!this.enabled) return;
     const row = { id: crypto.randomUUID(), visitor: this.visitor, session: this.session.id,
-      at: new Date().toISOString(), event, device: this._device(), version: APP_VERSION,
+      at: new Date().toISOString(), event, device: this._device(), version: APP_VERSION + (typeof APP_CANAL !== 'undefined' && APP_CANAL === 'recette' ? '-recette' : ''),
       ...(this.current?.meta || {}), ...data };
     this.queue.push(row); this.queue = this.queue.slice(-200);
     this._persist();

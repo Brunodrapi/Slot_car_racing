@@ -1,6 +1,7 @@
 // La version publiée (dist/) se joue-t-elle, hors ligne aussi, et se met-elle à jour comme on le lui dit ?
 //
 //   npm run build && NODE_PATH=$(npm root -g) node tools/e2e-dist.js [captures]
+//   node tools/build-dist.js --canal=recette && NODE_PATH=$(npm root -g) node tools/e2e-dist.js   # la recette
 //
 // Au format d'un iPhone :
 //   en ligne      aucun fichier ne manque (voitures, livrées, vignettes, sons), une course démarre, la
@@ -53,6 +54,11 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     await p.goto(base);
     await p.waitForFunction(() => typeof app !== 'undefined' && app.save);
     ok(await p.evaluate(() => document.title.startsWith('GRIP')), 'la page publiée s’ouvre : ' + await p.title());
+    // Le canal : la recette porte son nom et sa pastille, la prod ni l'un ni l'autre.
+    const canal = JSON.parse(mAvant).canal;
+    const vu = await p.evaluate(() => ({ canal: APP_CANAL, titre: document.title, pastille: !!document.querySelector('.splash .version .canal') }));
+    ok(vu.canal === canal && vu.pastille === (canal === 'recette') && (canal === 'recette') === /Recette/.test(vu.titre),
+      `canal ${canal} : ${vu.pastille ? 'pastille RECETTE, ' : 'sans pastille, '}titre « ${vu.titre} »`);
     ok((await (await fetch(base + 'js/car.js')).text()).split('\n').length < 5, 'le code est minifié (js/car.js tient sur quelques lignes)');
     const dessins = await p.evaluate(async () => {
       for (const m of MODELS) for (let i = 0; i < m.livrees.length; i++) topReady(m, i);

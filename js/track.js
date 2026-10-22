@@ -86,6 +86,10 @@ function runoffProfil(zone) {
   return pts;
 }
 
+// Les lignes bleue et jaune, lissées CONTRE leurs bornes (bords de la piste, ligne idéale) : passes et
+// demi-fenêtre en mètres. Voir `_clampLines`.
+const LIGNES_COTES = { passes: 12, fenetre: 3 };
+
 class Track {
   // How fast the racing line may cross the road, in metres of lateral per metre travelled.
   static get RACING_SLOPE() { return 0.3; }
@@ -1727,10 +1731,8 @@ class Track {
 
   _clampLines() {
     const N = this.n;
-    for (const name of LINE_NAMES) {
-      const a = this.lines[name];
-      for (let i = 0; i < N; i++) a[i] = clamp(a[i], -(this.hwR[i] - 1.3), this.hwL[i] - 1.3);
-    }
+    const borner = (a) => { for (let i = 0; i < N; i++) a[i] = clamp(a[i], -(this.hwR[i] - 1.3), this.hwL[i] - 1.3); };
+    for (const name of LINE_NAMES) borner(this.lines[name]);
     /* LE LEVIER NE DOIT JAMAIS RECULER, et pour ça les deux bords doivent ENCADRER l'idéale.
 
     `targetLat` va de la bleue à l'idéale puis de l'idéale à la jaune. La course est donc monotone
@@ -1746,11 +1748,35 @@ class Track {
     Ce qu'on perd : là où l'idéale dépasse un bord, ce bord devient l'idéale elle-même, et le levier
     n'offre plus rien de ce côté-là, localement. Un levier qui ne fait rien vaut mieux qu'un levier
     qui part à l'envers. */
-    const J = this.lines.jaune, B = this.lines.bleu, R = this.lines.racing;
-    for (let i = 0; i < N; i++) {
-      if (J[i] < R[i]) J[i] = R[i];
-      if (B[i] > R[i]) B[i] = R[i];
+    const R = this.lines.racing;
+    let J = this.lines.jaune, B = this.lines.bleu;
+    const encadrer = () => {
+      borner(J); borner(B);
+      for (let i = 0; i < N; i++) {
+        if (J[i] < R[i]) J[i] = R[i];
+        if (B[i] > R[i]) B[i] = R[i];
+      }
+    };
+    encadrer();
+    /* LISSER CONTRE LES BORNES, PAS AVANT ELLES.
+
+    Les lignes de côté étaient lissées dans `_limitLines`, puis bornées ici : collées au bord de la
+    piste, et empêchées de passer de l'autre côté de l'idéale. Chacune de ces deux bornes coupe la
+    courbe là où elle s'applique, et laisse un angle — la ligne arrive en biais contre le bord ou
+    contre l'idéale et repart d'un coup. Mesuré en variation de courbure, sur six circuits : les lignes
+    de côté changeaient deux fois plus vite que l'idéale (99e centile), avec des coudes jusqu'à dix
+    fois plus vifs — 3 645 contre 383 à Spa, 1 796 contre 863 à Suzuka (millièmes par mètre carré).
+
+    On alterne donc un lissage court et les bornes, douze fois : la ligne vient s'appuyer contre le
+    bord et contre l'idéale au lieu de s'y briser. Les coudes tombent à 820 et 368, le 99e centile au
+    niveau de l'idéale, et la largeur offerte par le levier ne bouge pas (2,59 m vers l'intérieur
+    contre 2,58, `tools/curseur.js`). Un joueur qui tient la jaune pleins gaz sort 91 fois au lieu de
+    108 sur 151 km, et les tours sur les lignes de côté vont plus vite. */
+    for (let passe = 0; passe < LIGNES_COTES.passes; passe++) {
+      J = Track.smooth(J, LIGNES_COTES.fenetre); B = Track.smooth(B, LIGNES_COTES.fenetre);
+      encadrer();
     }
+    this.lines.jaune = J; this.lines.bleu = B;
   }
 
   // Real curvature of each line: the road curvature at that offset plus the bending of the line

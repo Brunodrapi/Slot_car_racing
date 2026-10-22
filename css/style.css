@@ -679,6 +679,9 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .pilot-button span { font-size:10px; letter-spacing:.1em; }
 .pilot-button b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .home-version { color:#fff4da; font:10px ui-monospace,monospace; text-shadow:0 1px 3px #000; }
+/* La recette se voit : une pastille orange à côté du numéro de version (js/ui.js, canalBadge). */
+.version .canal, .home-version .canal { margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: #ff7a1a; color: #1a0d00;
+  font: 700 0.85em/1.4 system-ui, sans-serif; letter-spacing: 0.06em; text-shadow: none; }
 #ui:has(.setup-screen, .selection-screen) { background:#202822 url('../art/interface/paddock.webp?r=cartoon-1') center / cover no-repeat; }
 .setup-screen, .selection-screen { --text:#272b28; --muted:#5f6158; --accent:#b42b26; --card:#eee3ca; --card2:#ddd0b6; --panel:#f4ead5; color:var(--text); background:#e9dec8f5; border-inline:1px solid #242824; gap:16px; }
 .setup-screen .topbar, .selection-screen .topbar { background:#bd2c26; color:#fff1d5; padding:12px; border-bottom:4px solid #252824; }

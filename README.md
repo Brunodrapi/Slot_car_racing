@@ -162,13 +162,33 @@ téléchargement échoue, l'ancienne version reste entière. Continuer avec cett
 rien ; la question revient au lancement suivant. `tools/e2e-dist.js` vérifie tout cela au format d'un
 iPhone : en ligne, hors ligne, puis une mise à jour d'un seul fichier, refusée puis acceptée.
 
-**Publier** dans le dépôt de l'organisation, `GRIP-game/grip-game.github.io` : GitHub Pages sert ce
-dépôt-là — et lui seul, à cause de son nom — à la racine de **https://grip-game.github.io** :
+**Recette, puis prod.** Deux publications du même code :
+
+| canal   | adresse                                   | dépôt                                     | nom sur l'iPhone |
+|---------|-------------------------------------------|-------------------------------------------|------------------|
+| recette | https://brunodrapi.github.io/Slot_car_racing/ | branche `recette` de ce dépôt          | GRIP Recette     |
+| prod    | https://grip-game.github.io               | `GRIP-game/grip-game.github.io`           | GRIP             |
+
+Chaque changement part d'abord en recette ; on y joue, et ce n'est que lorsqu'il est validé qu'on
+publie le même commit en prod. La recette est la même fabrication que la prod — minifiée, hors ligne,
+avec ses mises à jour proposées à l'écran-titre — et ne s'en distingue que par une pastille
+**RECETTE** à côté du numéro de version, son nom, et ses tables de multijoueur, séparées de celles de
+la prod. Les deux adresses sont des domaines différents : chacune a son cache, sa sauvegarde et son
+installation sur l'iPhone, et l'une ne touche jamais l'autre. Les statistiques marquent les parties de
+recette (`0.45.0-recette`) ; le tableau mondial, lui, est commun.
 
 ```
-tools/publier.sh ../grip-game.github.io     # fabrique dist/, le recopie dans ce clone et prépare le commit
-git -C ../grip-game.github.io push origin main
+git worktree add --orphan -b recette ../grip-recette         # une fois
+git clone https://github.com/GRIP-game/grip-game.github.io ../grip-game.github.io   # une fois
+
+tools/publier.sh recette ../grip-recette        && git -C ../grip-recette push -u origin recette
+tools/publier.sh prod ../grip-game.github.io    && git -C ../grip-game.github.io push origin main
 ```
+
+`tools/publier.sh` refuse de publier tant qu'une modification n'est pas dans un commit : chaque
+publication porte ainsi le commit source dans son message, et la prod est exactement ce que la
+recette a montré. GitHub Pages sert `grip-game.github.io` à la racine du domaine parce que le dépôt
+porte ce nom ; la recette est servie depuis la branche `recette` (Settings → Pages de ce dépôt).
 
 La minification gêne la lecture, elle ne l'empêche pas : un navigateur exécute ce qu'il reçoit. Ce qui
 protège vraiment le travail, c'est de garder ce dépôt-ci privé et de ne publier que `dist/`.
@@ -551,6 +571,46 @@ donne maintenant un autre classement (Countach 3 → 0, M1 3 → 1, 240Z 3 → 2
 1 → 2), en partie parce que son critère de reprise — revenir à trente centimètres de la trajectoire
 d'origine en cinq secondes — compte comme un échec la voiture qui passe large exprès.
 
+
+### Changer de ligne sans se mettre en travers (0.45)
+
+Changer de ligne au levier faisait-il sortir la voiture ? `tools/changement-ligne-banc.js` le mesure :
+six circuits × trois catégories, un changement de ligne tiré toutes les 120 à 300 m, et un pilote
+« humain » qui freine aux bons endroits mais garde les gaz en grand partout ailleurs — le joueur à un
+bouton. Sur 151 km :
+
+| Pilote humain | Sorties | Tête-à-queue |
+| --- | --- | --- |
+| toujours sur la ligne idéale | 34 | 26 |
+| toujours sur la bleue | 86 | 8 |
+| toujours sur la jaune | 108 | 18 |
+| en changeant de ligne | 90 | 22 |
+
+**Ce n'est pas la manœuvre qui fait sortir, ce sont les lignes de côté.** En changeant, on sort
+autant que la moyenne des lignes empruntées. Les sorties ont presque toutes lieu au même endroit :
+en sortie de virage, pleins gaz, l'arrière qui décroche (dérive de 15 à 30°) et la voiture qui passe
+le bord. Les lignes bleue et jaune y sont plus serrées que l'idéale et plus près du bord. L'IA, qui
+dose les gaz, n'y sort presque jamais.
+
+Deux corrections, qui retirent ce que les lignes et la manœuvre ajoutaient de brutal :
+
+- **Les lignes de côté sont lissées contre leurs bornes** (`_clampLines`, `js/track.js`). Elles étaient
+  collées au bord et à l'idéale APRÈS le lissage, ce qui laissait des coudes : leur courbure variait
+  deux fois plus vite que celle de l'idéale, jusqu'à dix fois plus aux pires endroits (Spa, Suzuka).
+  Lissage et bornes alternent maintenant, et elles sont aussi régulières que l'idéale, sans avoir
+  rétréci (`tools/curseur.js` : 2,59 m vers l'intérieur au lieu de 2,58).
+- **La traversée suit l'adhérence libre** (`_versLigne`, `js/car.js`). La ligne visée glissait à
+  vitesse fixe, 0,7 cran par seconde, d'un coup et quoi que fasse la voiture. Elle accélère et freine
+  maintenant sur le côté pour se poser sur la nouvelle ligne, avec la moitié de l'adhérence que ni le
+  virage ni la motricité n'occupent : vive en ligne droite, lente à la limite dans un virage, et
+  jamais plus serrée que ce que les pneus tiennent.
+
+Ensemble, sur trois tirages, le pilote humain qui change de ligne passe de 267 sorties et 63
+tête-à-queue à 254 et 52. En course à dix voitures IA (`tools/courses-banc.js`, 36 courses), 75
+sorties et 5 tête-à-queue deviennent 37 et 2, pour autant de dépassements (2 355 contre 2 395).
+
+Reste l'essentiel : sur une ligne de côté, **la sortie de virage demande de doser les gaz**. C'est
+le prix d'une ligne de dépassement ou de défense, comme en vrai.
 ### Cadrage de la caméra
 
 La caméra cadre une **distance fixe** plutôt qu'une surface fixe, pour qu'un téléphone en portrait
