@@ -99,11 +99,14 @@ const ROOT=path.resolve(__dirname,'..'),OUT=process.argv[2]||'/tmp/manette';
   await button(p,13);assert.equal((await focus(p)).action,'nomOk');await button(p,0);
   assert.equal(await p.evaluate(()=>app.save.name),'ABC','premier lancement entièrement à la manette');
   await repeat(p,13,3);assert.equal((await focus(p)).action,'settings');await button(p,0);
-  await button(p,5);assert.equal((await focus(p)).id,'inp-name');await button(p,0);await button(p,2);await button(p,1);
+  // la langue est en tête des réglages : deux boutons, Français et English
+  for(let i=0;i<12&&(await focus(p)).id!=='inp-name';i++)await button(p,5);
+  assert.equal((await focus(p)).id,'inp-name');await button(p,0);await button(p,2);await button(p,1);
   assert.equal(await p.evaluate(()=>app.save.name),'ABC','annuler la saisie conserve le pseudo');
-  await repeat(p,5,2);assert.equal((await focus(p)).id,'sel-lang');
-  await button(p,0);await button(p,13);await button(p,0);assert.equal(await p.evaluate(()=>app.save.lang),'en');
-  assert.equal((await focus(p)).id,'sel-lang','focus conservé après changement de langue');
+  for(let i=0;i<12&&!((await focus(p)).action==='lang'&&(await focus(p)).car==='en');i++)await button(p,4);
+  const langue=await focus(p);assert.equal(langue.action+':'+langue.car,'lang:en','le bouton English se rejoint à la manette');
+  await button(p,0);assert.equal(await p.evaluate(()=>app.save.lang),'en');
+  const apres=await focus(p);assert.equal(apres.action+':'+apres.car,'lang:en','focus conservé après changement de langue');
   for(let i=0;i<25&&(await focus(p)).action!=='resetAll';i++)await button(p,5);
   assert.equal((await focus(p)).action,'resetAll');await button(p,0);await button(p,1);
   assert.equal(await p.evaluate(()=>app.save.name),'ABC','B annule aussi la confirmation');

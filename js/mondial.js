@@ -137,7 +137,7 @@ class Mondial {
       if (parti && Date.now() - parti < 600000) {
         const noms = [...hq.keys(), ...q.keys()];
         this.erreurConnexion = 'vide';
-        this.retourVide = noms.length ? noms.join(', ') : 'aucun paramètre';
+        this.retourVide = noms.join(', ');   // vide : l'interface dit « aucun paramètre » dans sa langue
         try { sessionStorage.removeItem('eol.parti'); } catch (_) {}
       }
       return;

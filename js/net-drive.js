@@ -121,10 +121,11 @@ class NetLink {
     n.drive?.receive(p,pid);
   }
   ping(pid){const p=this.pings[pid];return p&&performance.now()-p.at<4000?p.ms:null;}
-  label(){
-    if(!this.net.isHost()){const p=this.ping(this.net.pid);return `Ping hôte : ${p==null?'—':p+' ms'}`;}
+  // `t` traduit les deux libellés ; sans lui (les bancs), le français
+  label(t=k=>({pingHost:'Ping hôte :',pingGuests:'Ping invités :'})[k]){
+    if(!this.net.isHost()){const p=this.ping(this.net.pid);return `${t('pingHost')} ${p==null?'—':p+' ms'}`;}
     const p=Object.keys(this.pings).map(id=>this.ping(id)).filter(v=>v!=null);
-    return p.length?`Ping invités : ${Math.min(...p)}–${Math.max(...p)} ms`:'Ping invités : —';
+    return `${t('pingGuests')} ${p.length?`${Math.min(...p)}–${Math.max(...p)} ms`:'—'}`;
   }
 }
 

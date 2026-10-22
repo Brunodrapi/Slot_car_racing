@@ -207,6 +207,10 @@ button.link { background: none; border: none; color: var(--muted); text-decorati
 .swatch.sel { outline: 3px solid #fff; outline-offset: 2px; }
 .seg { display: flex; gap: 6px; flex-wrap: wrap; }   /* six lap choices do not fit a phone on one line */
 .seg button.sel { background: var(--accent); color: #1a1400; }
+/* Le choix de la langue, en tête des réglages : son nom dans les deux langues, et deux boutons. */
+.langue { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 14px; }
+.langue > span { font-weight: 700; }
+.langue .seg button { min-width: 7.5em; }
 .bestlap { font-family: ui-monospace, monospace; font-size: 22px; }
 
 .cups { display: flex; flex-direction: column; gap: 10px; }

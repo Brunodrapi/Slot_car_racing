@@ -2707,7 +2707,7 @@ class Renderer {
     la voiture a lâché. Le mot passe donc au rouge au moment où ça lâche, et la tension suit entre
     parenthèses pour ceux qui veulent le chiffre. */
     if (PHYS.aimant > 0)
-      rows.push(['aimant', `${p.accroche ? 'tient' : 'LÂCHÉ'} (${p.aimantF.toFixed(1)})`,
+      rows.push(['aimant', `${traduit(p.accroche ? 'aimantTient' : 'aimantLache')} (${p.aimantF.toFixed(1)})`,
         p.accroche ? '#5be07a' : '#ff4b4b']);
     const w = 210, rowH = 18, h = rows.length * rowH + 24;
     x = Math.min(x, this.w - w - 14);   // stays on screen on a phone

@@ -570,6 +570,33 @@ donne maintenant un autre classement (Countach 3 → 0, M1 3 → 1, 240Z 3 → 2
 d'origine en cinq secondes — compte comme un échec la voiture qui passe large exprès.
 
 
+### Le jeu en anglais (0.48)
+
+Tout ce qu'un joueur voit existe en français et en anglais. Le choix est **en tête des réglages** :
+deux boutons, « Français » et « English », sous l'intitulé « Langue · Language » qui se lit dans les
+deux langues — c'est justement quand on ne comprend pas l'écran qu'on cherche ce réglage. Le choix
+bascule l'écran à l'instant et se garde dans la sauvegarde ; au premier lancement, le jeu prend
+l'anglais si le navigateur est en anglais, le français sinon.
+
+- **Le dictionnaire** est `I18N` dans `js/ui.js` (`t(clé)` dans l'interface). Ce qui vit hors de
+  l'interface — le spectateur et son bilan de course, le salon, le canevas — passe par
+  `traduit(clé)`, qui lit le même dictionnaire. Les erreurs du réseau naissent en français dans
+  `net.js` et `room-rtc.js` et sont dites dans la langue du joueur au moment de l'affichage
+  (`netErreur`).
+- **Les livrées** portent leur nom anglais à côté du français (`en` dans `js/cars.js`) quand elles
+  se décrivent : « Noir et or · Andretti · 1978 » → « Black and gold · Andretti · 1978 ».
+  `nomLivree(livrée, langue)` choisit. Les noms propres (voitures, circuits, pilotes, équipes) ne
+  changent pas.
+- **La page des statistiques** prend la langue de la sauvegarde ; son HTML garde le français et
+  chaque texte a sa clé (`data-i18n`).
+- Les outils de création — éditeur de circuits, éditeur de lignes, banc moteur — restent en
+  français : aucun écran du jeu n'y mène.
+
+`tools/e2e-anglais.js` règle le jeu en anglais et passe par tous les écrans, sur iPhone et sur
+ordinateur — titre, nom, accueil, réglages, préparation et records, carrière, coupe, atelier, salon,
+course (y compris ce que le canevas dessine), pause, résultats, spectateur, statistiques — à la
+recherche du moindre mot français ; il vérifie aussi le bouton « English » des réglages.
+
 ### Les noms affichés : voitures, constructeurs et circuits (0.47)
 
 Les 25 voitures et les 13 circuits portent des noms fictifs, arrêtés dans `tools/noms-affichage.json`

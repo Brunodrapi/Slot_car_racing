@@ -68,7 +68,8 @@ if (REF) {
     const lv = (avant.MODELS.find((m) => m.id === l.voiture) || { livrees: [] }).livrees.find((x) => x.id === l.id && x.nom === l.original);
     if (lv) lv.nom = l.display_name;
   }
-  const sansNom = (o, ancien, neuf) => JSON.stringify(o, (k, v) => (k === 'name' ? undefined : k === 'nom' && v === ancien ? neuf : v));
+  // `en` : la traduction anglaise des livrées, ajoutée après coup (0.48), n'est pas une donnée de jeu
+  const sansNom = (o, ancien, neuf) => JSON.stringify(o, (k, v) => (k === 'name' || k === 'en' ? undefined : k === 'nom' && v === ancien ? neuf : v));
   const vDiff = avant.MODELS.filter((a) => { const b = voitures.get(a.id); return !b || sansNom(a, a.name, '§') !== sansNom(b, b.name, '§'); });
   ok(avant.MODELS.length === ici.MODELS.length && vDiff.length === 0,
     `par rapport à ${REF} : rien d'autre ne change dans les ${ici.MODELS.length} voitures — physique, moteur, sprites, sons, livrées (hors nom de la voiture)`

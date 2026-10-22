@@ -26,6 +26,9 @@ indéfiniment. Douze secondes couvrent très largement un chargement normal, et 
 à sa place plutôt que de laisser la table en plan. */
 const NET_CHARGE_MAX = 12000;
 
+// Le nom d'un pilote qui n'en a pas donné : « Pilote 2 » ou « Driver 2 », dans la langue de cet écran.
+function traduitPilote(n) { return typeof traduit === 'function' && typeof app !== 'undefined' ? traduit('driverN', n) : 'Pilote ' + n; }
+
 function netCode() {
   return Array.from({ length: 4 }, () => NET_CODE[Math.floor(Math.random() * NET_CODE.length)]).join('');
 }
@@ -171,7 +174,7 @@ class Net {
     // Un pilote sans nom en reçoit un d'après sa place. Deux « Pilote » identiques à l'écran se
     // lisent comme deux fois soi-même, ce qui est exactement la confusion qu'on veut éviter.
     const fin = out;
-    fin.forEach((m, i) => { if (!m.name) m.name = 'Pilote ' + (i + 1); });
+    fin.forEach((m, i) => { if (!m.name) m.name = traduitPilote(i + 1); });
     return fin;
   }
 
@@ -286,7 +289,7 @@ class Net {
       // Personne ne choisit sa couleur : la place la donne. L'ordre étant celui de l'hôte, il est
       // le même sur tous les écrans, et chacun sait qui est qui sans qu'un mot passe sur le fil.
       humans: grid.map((g, i) => ({
-        name: g.n || ('Pilote ' + (i + 1)),
+        name: g.n || traduitPilote(i + 1),
         modelId: g.m || null,
         livree: g.l || 0,
         livery: i,

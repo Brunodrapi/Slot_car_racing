@@ -37,7 +37,7 @@ class RaceBroadcast {
   }
   html(race) {
     const rows = race.results || [];
-    const e = escapeHtml;
+    const e = escapeHtml, t = traduit;
     const stats = rows.map(r => {
       const c = r.car, i = race.cars.indexOf(c), clean = c.lapTimes.filter((_, n) => c.lapOk[n] !== false);
       const mean = clean.length ? clean.reduce((a,b) => a+b,0) / clean.length : null;
@@ -51,13 +51,13 @@ class RaceBroadcast {
       const points = this.history.map(row => `${20 + row[0]/last*760},${20+Math.max(0,row.slice(1).indexOf(i))*18}`).join(' ');
       return `<polyline fill="none" stroke="${colors[i % colors.length]}" stroke-width="2" points="${points}"><title>${e(c.name)}</title></polyline>`;
     }).join('');
-    return `<section class="race-analysis"><h3>Bilan de course</h3>
-      <div class="table-scroll"><table class="tbl"><thead><tr><th>Pilote</th><th>Places gagnées</th><th>Tour moyen valide</th><th>Régularité σ</th><th>Tours valides</th><th>Vitesse maxi</th><th>Sorties</th></tr></thead><tbody>${stats}</tbody></table></div>
-      <p class="muted">Régularité : écart-type des tours valides (plus petit = plus régulier), à partir de deux tours. Les places gagnées incluent les pénalités du classement final.</p>
-      <h3>Évolution des positions</h3><svg role="img" aria-label="Positions au fil de la course, première place en haut" viewBox="0 0 800 ${40+race.cars.length*18}">${lines}</svg>
+    return `<section class="race-analysis"><h3>${t('repTitle')}</h3>
+      <div class="table-scroll"><table class="tbl"><thead><tr><th>${t('driver')}</th><th>${t('repGained')}</th><th>${t('repMean')}</th><th>${t('repSigma')}</th><th>${t('repValid')}</th><th>${t('repVmax')}</th><th>${t('repOffs')}</th></tr></thead><tbody>${stats}</tbody></table></div>
+      <p class="muted">${t('repNote')}</p>
+      <h3>${t('repPositions')}</h3><svg role="img" aria-label="${e(t('repChart'))}" viewBox="0 0 800 ${40+race.cars.length*18}">${lines}</svg>
       <p>${race.cars.map((c,i)=>`<span style="color:${colors[i%colors.length]}">● ${e(c.name)}</span>`).join(' · ')}</p>
-      <p class="muted">Départ à gauche, arrivée à droite · première place en haut · positions échantillonnées toutes les 5 secondes, espacées davantage pour les longues courses.</p>
-      <details><summary>Tous les temps au tour</summary>${rows.map(r=>`<h4>${e(r.car.name)}</h4><p>${r.car.lapTimes.map((v,i)=>`${i+1} : ${fmtTime(v)}${r.car.lapOk[i] === false ? ' (annulé)' : ''}`).join(' · ') || 'Aucun tour terminé'}</p>`).join('')}</details></section>`;
+      <p class="muted">${t('repChartNote')}</p>
+      <details><summary>${t('repAllLaps')}</summary>${rows.map(r=>`<h4>${e(r.car.name)}</h4><p>${r.car.lapTimes.map((v,i)=>`${i+1} : ${fmtTime(v)}${r.car.lapOk[i] === false ? ` (${t('repVoid')})` : ''}`).join(' · ') || t('repNoLap')}</p>`).join('')}</details></section>`;
   }
 }
 
@@ -77,7 +77,8 @@ class SpectatorView {
     for(const station of bends){if(this.stations.every(s=>Math.abs(track.diff(s,station))>track.length/12))this.stations.push(station);if(this.stations.length===8)break;}
     this.stations.sort((a,b)=>a-b);
     this.root=document.createElement('aside');this.root.className='spectator-panel';
-    this.root.innerHTML=`<div class="spectator-controls"><b>Spectateur</b><select aria-label="Vue spectateur">${[['auto','Réalisateur'],['follow','Suivi pilote'],['full','Circuit complet'],['fixed','Caméras fixes'],['duel','Duel']].map(([id,label])=>`<option value="${id}">${label}</option>`).join('')}</select><button type="button" data-step="-1" aria-label="Précédent">◀</button><button type="button" data-step="1" aria-label="Suivant">▶</button><button type="button" data-hide>Chronos</button><button type="button" data-leave>Quitter</button></div><p class="spectator-status"></p><div class="spectator-race-clock"></div><canvas class="spectator-minimap" width="320" height="180" role="img" aria-label="Circuit et positions des pilotes"></canvas><div class="spectator-summary"></div><div class="spectator-timing"></div>`;
+    const t=traduit;
+    this.root.innerHTML=`<div class="spectator-controls"><b>${t('specTitle')}</b><select aria-label="${t('specView')}">${[['auto','specAuto'],['follow','specFollow'],['full','specFull'],['fixed','specFixed'],['duel','specDuel']].map(([id,label])=>`<option value="${id}">${t(label)}</option>`).join('')}</select><button type="button" data-step="-1" aria-label="${t('previous')}">◀</button><button type="button" data-step="1" aria-label="${t('next')}">▶</button><button type="button" data-hide>${t('specTiming')}</button><button type="button" data-leave>${t('specLeave')}</button></div><p class="spectator-status"></p><div class="spectator-race-clock"></div><canvas class="spectator-minimap" width="320" height="180" role="img" aria-label="${t('specMap')}"></canvas><div class="spectator-summary"></div><div class="spectator-timing"></div>`;
     document.body.append(this.root);
     this.root.querySelector('select').onchange=e=>{this.mode=e.target.value;this.paintAt=-1;};
     this.root.onclick=e=>{
@@ -146,7 +147,7 @@ class SpectatorView {
     if(!a||!b)return '—';
     if(a.finished&&b.finished)return `+${Math.max(0,(b.finishTime+Race.penalite(b))-(a.finishTime+Race.penalite(a))).toFixed(3)} s`;
     const distance=Math.max(0,a.progress-b.progress);
-    if(distance>=race.track.length)return `+${Math.floor(distance/race.track.length)} tour(s)`;
+    if(distance>=race.track.length)return traduit('lapsDown',Math.floor(distance/race.track.length));
     const pace=a.bestLap||b.bestLap;
     // même écriture que le classement en course (`fmtEcart`, js/render.js) : sans « ≈ », le dixième sous dix secondes
     return pace?`+${fmtEcart(distance/race.track.length*pace)} s`:`+${Math.round(distance)} m`;
@@ -183,12 +184,13 @@ class SpectatorView {
     if(cycle&&!this.padCycle){const modes=['auto','follow','full','fixed','duel'];this.mode=modes[(modes.indexOf(this.mode)+1)%modes.length];this.root.querySelector('select').value=this.mode;}
     if(hide&&!this.padHide)this.toggleTiming();this.padCycle=cycle;this.padHide=hide;
     if(performance.now()-this.paintAt<250)return;this.paintAt=performance.now();
-    this.root.querySelector('.spectator-status').textContent=`${race.state==='finishing'&&race.finishDeadline?'Fin dans '+Math.max(0,Math.ceil(race.finishDeadline-race.time))+' s · ':''}${c.name} · ${Math.round(c.v*3.6)} km/h · Tour ${Math.max(1,c.lap)}${app.net.silence()>2?' · ⚠ Liaison interrompue':''}`;
+    const t=traduit;
+    this.root.querySelector('.spectator-status').textContent=`${race.state==='finishing'&&race.finishDeadline?t('specEndsIn',Math.max(0,Math.ceil(race.finishDeadline-race.time)))+' · ':''}${c.name} · ${Math.round(c.v*3.6)} km/h · ${t('lap')} ${Math.max(1,c.lap)}${app.net.silence()>2?' · '+t('specLinkLost'):''}`;
     const flags=race.flags?.active(c)||[];
-    this.root.querySelector('.spectator-race-clock').innerHTML=flags.map(f=>raceFlagHTML(f,app.ui.lang)).join('')+'<time>Course '+fmtTime(Math.max(0,race.time))+'</time>';
+    this.root.querySelector('.spectator-race-clock').innerHTML=flags.map(f=>raceFlagHTML(f,app.ui.lang)).join('')+'<time>'+t('specRace')+' '+fmtTime(Math.max(0,race.time))+'</time>';
     const selectedRank=order.indexOf(c),start=Math.max(1,Math.min(order.length-5,selectedRank-2));
     const compact=mode==='full'?order:selectedRank>=4?[order[0],...order.slice(start,start+5)]:order.slice(0,6);
     this.root.querySelector('.spectator-summary').innerHTML=compact.map(car=>{const i=order.indexOf(car);return `<button class="spectator-position ${car===c?'selected':''}" data-car="${race.cars.indexOf(car)}"><span>${this.swatch(car)}${i+1}. ${escapeHtml(car.name)}</span><small>${i?this.gap(order[0],car,race):'Leader'}</small></button>`;}).join('');
-    this.root.querySelector('.spectator-timing').innerHTML=`<div class="table-scroll"><table><thead><tr><th>Pilote</th><th>Leader</th><th>Précédent</th><th>Dernier</th><th>Meilleur</th><th>En cours</th></tr></thead><tbody>${order.map((car,i)=>`<tr><td><button data-car="${race.cars.indexOf(car)}">${this.swatch(car)}${i+1}. ${escapeHtml(car.name)}</button></td><td>${i?this.gap(order[0],car,race):'—'}</td><td>${i?this.gap(order[i-1],car,race):'—'}</td><td>${car.lapTimes.length?fmtTime(car.lapTimes.at(-1))+(car.lapOk.at(-1)===false?' ×':''):'—'}</td><td>${fmtTime(car.bestLap)}</td><td>${car.started&&!car.finished?fmtTime(Math.max(0,race.time-car.lapStart)):'—'}</td></tr>`).join('')}</tbody></table></div><small>× Tour annulé<br>Manette : A vue · LB/RB pilote · X chronos</small>`;
+    this.root.querySelector('.spectator-timing').innerHTML=`<div class="table-scroll"><table><thead><tr><th>${t('driver')}</th><th>Leader</th><th>${t('specAhead')}</th><th>${t('last')}</th><th>${t('best')}</th><th>${t('specCurrent')}</th></tr></thead><tbody>${order.map((car,i)=>`<tr><td><button data-car="${race.cars.indexOf(car)}">${this.swatch(car)}${i+1}. ${escapeHtml(car.name)}</button></td><td>${i?this.gap(order[0],car,race):'—'}</td><td>${i?this.gap(order[i-1],car,race):'—'}</td><td>${car.lapTimes.length?fmtTime(car.lapTimes.at(-1))+(car.lapOk.at(-1)===false?' ×':''):'—'}</td><td>${fmtTime(car.bestLap)}</td><td>${car.started&&!car.finished?fmtTime(Math.max(0,race.time-car.lapStart)):'—'}</td></tr>`).join('')}</tbody></table></div><small>${t('specVoid')}<br>${t('specPad')}</small>`;
   }
 }

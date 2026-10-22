@@ -83,7 +83,8 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   boucles sans rien contrôler. */
   const plan = await p.evaluate(() => MODELS.filter((m) => !m.custom).map((m) => ({
     id: m.id, nom: m.name, n: m.livrees.length,
-    livrees: m.livrees.map((l) => ({ nom: l.nom, pick: l.pick, top: l.top })),
+    // le nom tel que l'écran l'affiche, dans la langue du jeu
+    livrees: m.livrees.map((l) => ({ nom: nomLivree(l, app.save.lang), pick: l.pick, top: l.top })),
   })));
   const multi = plan.filter((m) => m.n > 1);
   const simple = plan.filter((m) => m.n === 1);
@@ -174,7 +175,8 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   await p.click('[data-action="setup"][data-mode="race"]');
   await p.waitForSelector(carte('csl'));
   const apres = await lire('csl');
-  dit(apres.idx === 1 && /2\/3 Noir, vert et rouge/.test(apres.repere || ''),
+  const castrol = await p.evaluate(() => nomLivree(modelById('csl').livrees[1], app.save.lang));
+  dit(apres.idx === 1 && (apres.repere || '') === `2/3 ${castrol}`,
     `apres rechargement : « ${apres.repere} »`);
 
   /* --- 6. et la course part avec --- */

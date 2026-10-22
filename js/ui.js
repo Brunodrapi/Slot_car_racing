@@ -85,6 +85,25 @@ const I18N = {
     loadingWhy: 'On attend que tout le monde ait chargé la piste et les voitures.',
     wsIntro: 'Ajoute tes propres voitures 2D : une image PNG vue de dessus (avant vers la droite), ou un dossier de sprites Ultimate Racing 2D 2 (car_base.png, car_color.png, car_1.png…). Le calque « color » prend la couleur de ta livrée.',
     wsName: 'Nom', wsCat: 'Catégorie', wsLength: 'Longueur (m)', wsWidth: 'Largeur (m)', wsSingle: 'Image PNG unique', wsFolder: 'Dossier UR2D 2 (plusieurs PNG)', wsAdd: 'Ajouter la voiture', wsList: 'Mes voitures', wsNone: 'Aucune voiture perso pour l’instant.', wsNeedBase: 'Il faut au moins une image (car_base.png ou une image seule).', wsAdded: 'Voiture ajoutée !',
+    // le spectateur, le bilan de course, le salon et ses erreurs de réseau
+    specTitle: 'Spectateur', specView: 'Vue spectateur', specAuto: 'Réalisateur', specFollow: 'Suivi pilote', specFull: 'Circuit complet',
+    specFixed: 'Caméras fixes', specDuel: 'Duel', previous: 'Précédent', specTiming: 'Chronos', specLeave: 'Quitter',
+    specMap: 'Circuit et positions des pilotes', specEndsIn: (s) => `Fin dans ${s} s`, specLinkLost: '⚠ Liaison interrompue',
+    specRace: 'Course', specAhead: 'Précédent', specCurrent: 'En cours', specVoid: '× Tour annulé',
+    specPad: 'Manette : A vue · LB/RB pilote · X chronos', lapsDown: (n) => `+${n} tour${n > 1 ? 's' : ''}`,
+    repTitle: 'Bilan de course', repGained: 'Places gagnées', repMean: 'Tour moyen valide', repSigma: 'Régularité σ',
+    repValid: 'Tours valides', repVmax: 'Vitesse maxi', repOffs: 'Sorties',
+    repNote: 'Régularité : écart-type des tours valides (plus petit = plus régulier), à partir de deux tours. Les places gagnées incluent les pénalités du classement final.',
+    repPositions: 'Évolution des positions', repChart: 'Positions au fil de la course, première place en haut',
+    repChartNote: 'Départ à gauche, arrivée à droite · première place en haut · positions échantillonnées toutes les 5 secondes, espacées davantage pour les longues courses.',
+    repAllLaps: 'Tous les temps au tour', repVoid: 'annulé', repNoLap: 'Aucun tour terminé',
+    roundTrip: 'aller-retour', reloadAll: 'Tous les pilotes doivent recharger la dernière version du jeu.',
+    spectators: (n) => `${n} spectateur${n > 1 ? 's' : ''}`, pingHost: 'Ping hôte :', pingGuests: 'Ping invités :',
+    driverN: (n) => `Pilote ${n}`, watch: 'Regarder',
+    netErrCode: 'Le code d’une table a quatre lettres.', netErrTaken: 'Ce code est déjà pris.', netErrDirectory: 'L’annuaire des tables ne répond pas.',
+    netErrNotFound: 'Table introuvable.', netErrLib: 'Le multijoueur ne peut pas se charger (pas de réseau ?).', netErrLink: 'Liaison impossible.',
+    netErrVersion: 'Version multijoueur différente : tous les pilotes doivent recharger le jeu.', netErrOther: 'Erreur de liaison',
+    aimantTient: 'tient', aimantLache: 'LÂCHÉ', langFr: 'Français', langEn: 'English', noParam: 'aucun paramètre',
     custom: 'perso',
   },
   en: {
@@ -164,9 +183,31 @@ const I18N = {
     loadingWhy: 'Waiting for everyone to load the track and the cars.',
     wsIntro: 'Add your own 2D cars: a single top-down PNG (front to the right), or an Ultimate Racing 2D 2 sprite folder (car_base.png, car_color.png, car_1.png…). The "color" layer takes your livery colour.',
     wsName: 'Name', wsCat: 'Category', wsLength: 'Length (m)', wsWidth: 'Width (m)', wsSingle: 'Single PNG image', wsFolder: 'UR2D 2 folder (several PNGs)', wsAdd: 'Add car', wsList: 'My cars', wsNone: 'No custom car yet.', wsNeedBase: 'At least one image is required (car_base.png or a single image).', wsAdded: 'Car added!',
+    specTitle: 'Spectator', specView: 'Spectator view', specAuto: 'Director', specFollow: 'Follow a driver', specFull: 'Full circuit',
+    specFixed: 'Fixed cameras', specDuel: 'Duel', previous: 'Previous', specTiming: 'Timing', specLeave: 'Leave',
+    specMap: 'Circuit and driver positions', specEndsIn: (s) => `Ends in ${s} s`, specLinkLost: '⚠ Connection lost',
+    specRace: 'Race', specAhead: 'Interval', specCurrent: 'Current', specVoid: '× Lap voided',
+    specPad: 'Controller: A view · LB/RB driver · X timing', lapsDown: (n) => `+${n} lap${n > 1 ? 's' : ''}`,
+    repTitle: 'Race report', repGained: 'Places gained', repMean: 'Average valid lap', repSigma: 'Consistency σ',
+    repValid: 'Valid laps', repVmax: 'Top speed', repOffs: 'Offs',
+    repNote: 'Consistency: standard deviation of the valid laps (smaller = steadier), from two laps on. Places gained include the penalties of the final classification.',
+    repPositions: 'Positions through the race', repChart: 'Positions through the race, first place at the top',
+    repChartNote: 'Start on the left, finish on the right · first place at the top · positions sampled every 5 seconds, further apart in long races.',
+    repAllLaps: 'All lap times', repVoid: 'void', repNoLap: 'No lap completed',
+    roundTrip: 'round trip', reloadAll: 'Every driver has to reload the latest version of the game.',
+    spectators: (n) => `${n} spectator${n === 1 ? '' : 's'}`, pingHost: 'Host ping:', pingGuests: 'Guest ping:',
+    driverN: (n) => `Driver ${n}`, watch: 'Watch',
+    netErrCode: 'A table code has four letters.', netErrTaken: 'That code is already taken.', netErrDirectory: 'The table directory is not answering.',
+    netErrNotFound: 'Table not found.', netErrLib: 'Multiplayer could not load (no network?).', netErrLink: 'Could not connect.',
+    netErrVersion: 'Different multiplayer version: every driver has to reload the game.', netErrOther: 'Connection error',
+    aimantTient: 'holds', aimantLache: 'LET GO', langFr: 'Français', langEn: 'English', noParam: 'no parameter',
     custom: 'custom',
   },
 };
+
+/* Une traduction hors de l'interface : le spectateur, le bilan de course, le réseau. Même dictionnaire et
+même langue que `UI.t` ; la clé elle-même tant que le jeu n'est pas monté (les bancs, sous Node). */
+function traduit(cle, ...a) { return typeof app !== 'undefined' && app && app.ui ? app.ui.t(cle, ...a) : cle; }
 
 // Les pictogrammes des quatre cadrans. Des tracés et non des émojis : un émoji change de dessin
 // d'un téléphone à l'autre, et se retrouve parfois en couleur par-dessus la couleur du cadran.
@@ -225,6 +266,16 @@ class UI {
     return typeof v === 'function' ? v(...args) : (v == null ? key : v);
   }
   L(obj) { return obj[this.lang] || obj.en; }
+  /* Les erreurs du réseau naissent en français, dans net.js et room-rtc.js, où elles servent aussi de
+  repère dans les journaux ; on les dit ici dans la langue du joueur. Une erreur inconnue — un type
+  rendu tel quel par PeerJS — garde son texte, précédé d'« Erreur de liaison » en anglais. */
+  netErreur(m) {
+    const cle = { 'code à quatre lettres': 'netErrCode', 'code déjà pris': 'netErrTaken', 'annuaire injoignable': 'netErrDirectory',
+      'table introuvable': 'netErrNotFound', 'peerjs introuvable': 'netErrLib', 'peerjs absent': 'netErrLib', 'liaison impossible': 'netErrLink',
+      'Version multijoueur différente : tous les pilotes doivent recharger le jeu.': 'netErrVersion' }[m];
+    if (cle) return this.t(cle);
+    return this.lang === 'en' && m ? `${this.t('netErrOther')} (${m})` : m;
+  }
 
   /* Le message d'un refus, avec un vrai repli.
 
@@ -250,7 +301,7 @@ class UI {
     if (!m) return '';
     if (m.erreurConnexion) {
       const msg = m.erreurConnexion === 'pkce' ? t('authPkce')
-        : m.erreurConnexion === 'vide' ? t('authEmpty', escapeHtml(String(m.retourVide || '')))
+        : m.erreurConnexion === 'vide' ? t('authEmpty', escapeHtml(String(m.retourVide || t('noParam'))))
         : t('authFail', escapeHtml(String(m.erreurConnexion)));
       return ligne('warn', msg, `<button class="link" data-action="google">${t('reconnect')}</button>`);
     }
@@ -283,6 +334,7 @@ class UI {
   différents la partagent, et on arriverait sur le second à la hauteur où l'on avait laissé le
   premier. Sans clé, on repart du haut — c'est ce qu'on veut en changeant d'écran. */
   show(html, cls, cle) {
+    document.documentElement.lang = this.lang;          // la langue de la page suit celle du jeu
     const padFocus = this.gamepad.remember();
     const avant = this.root.firstElementChild;
     const garder = cle != null && cle === this._cleEcran && avant;
@@ -397,7 +449,7 @@ class UI {
     const n = model.livrees ? model.livrees.length : 1;
     if (n < 2) return '';
     const i = ((Math.round(livree) || 0) % n + n) % n;
-    return `<span class="livree"><b>${i + 1}/${n}</b> ${escapeHtml(model.livrees[i].nom)}</span>`;
+    return `<span class="livree"><b>${i + 1}/${n}</b> ${escapeHtml(nomLivree(model.livrees[i], this.lang))}</span>`;
   }
 
   /* Les quatre jauges d'une voiture.
@@ -591,7 +643,7 @@ class UI {
   carPreview(model) {
     const app = this.app;
     const lv = livreeDe(model, app.playerLivreeFor(model.id));
-    return `<div class="paddock-car"><div class="preview-copy"><span class="eyebrow">${escapeHtml(this.L(categoryById(model.catId).name))}${lv && lv.nom && lv.nom !== model.name ? ' · ' + escapeHtml(lv.nom) : ''}</span><b>${escapeHtml(model.name)}</b></div>
+    return `<div class="paddock-car"><div class="preview-copy"><span class="eyebrow">${escapeHtml(this.L(categoryById(model.catId).name))}${lv && lv.nom && lv.nom !== model.name ? ' · ' + escapeHtml(nomLivree(lv, this.lang)) : ''}</span><b>${escapeHtml(model.name)}</b></div>
       <div class="preview-car" aria-hidden="true">${this.carIcon(model, LIVERIES[app.save.livery], app.playerLivreeFor(model.id))}</div></div>`;
   }
 
@@ -616,7 +668,7 @@ class UI {
   liveryChoices(model) {
     const app = this.app, list = model.livrees || [];
     if (list.length < 2) return '';
-    return `<div class="livery-choices" data-pad-group aria-label="${this.t('livery')}">${list.map((lv,i)=>`<button class="livery-choice ${app.playerLivreeFor(model.id)===i?'sel':''}" data-action="pickLivery" data-id="${i}" aria-pressed="${app.playerLivreeFor(model.id)===i}" aria-label="${escapeHtml(lv.nom)}">${this.carIcon(model,LIVERIES[app.save.livery],i)}<span>${escapeHtml(lv.nom)}</span></button>`).join('')}</div>`;
+    return `<div class="livery-choices" data-pad-group aria-label="${this.t('livery')}">${list.map((lv,i)=>`<button class="livery-choice ${app.playerLivreeFor(model.id)===i?'sel':''}" data-action="pickLivery" data-id="${i}" aria-pressed="${app.playerLivreeFor(model.id)===i}" aria-label="${escapeHtml(nomLivree(lv, this.lang))}">${this.carIcon(model,LIVERIES[app.save.livery],i)}<span>${escapeHtml(nomLivree(lv, this.lang))}</span></button>`).join('')}</div>`;
   }
 
   selectionPreview(model, trackDef) {
@@ -625,8 +677,13 @@ class UI {
 
   settings() {
     const t = (k, ...a) => this.t(k, ...a), s = this.app.save, app = this.app;
+    /* LA LANGUE EN PREMIER, et en deux boutons. Elle était un menu déroulant au milieu de la liste,
+    après le nom et le compte : on ne la trouvait pas. Deux boutons nommés chacun dans sa propre langue
+    se lisent même quand on ne comprend pas la langue de l'écran — c'est justement le cas où on la cherche. */
     this.show(`
       <h2>${t('settings')}</h2>
+      <div class="langue"><span><span lang="fr">Langue</span> · <span lang="en">Language</span></span><div class="seg" role="group" aria-label="${t('language')}">${
+        [['fr', 'langFr'], ['en', 'langEn']].map(([l, k]) => `<button class="${s.lang === l ? 'sel' : ''}" data-action="lang" data-id="${l}" aria-pressed="${s.lang === l}" lang="${l}">${t(k)}</button>`).join('')}</div></div>
       ${this.pcControls()}
       <div class="form">
         <label>${t('name')}<input id="inp-name" maxlength="${NOM_MAX}" autocomplete="off" autocapitalize="off"
@@ -637,8 +694,6 @@ class UI {
           app.mondial && app.mondial.connecte()
             ? `<b class="ok">${t('signedIn')}</b><button class="link" data-action="signOut">${t('signOut')}</button>`
             : `<button class="link" data-action="google">${t('signIn')}</button>`}</span></label>
-        <label>${t('language')}
-          <select id="sel-lang"><option value="fr" ${s.lang === 'fr' ? 'selected' : ''}>Français</option><option value="en" ${s.lang === 'en' ? 'selected' : ''}>English</option></select></label>
         <label>${t('sound')}<select id="sel-sound"><option value="1" ${s.sound ? 'selected' : ''}>${t('on')}</option><option value="0" ${!s.sound ? 'selected' : ''}>${t('off')}</option></select></label>
         <label>${t('showLines')}<select id="sel-lines"><option value="0" ${s.showLines !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.showLines === true ? 'selected' : ''}>${t('on')}</option></select></label>
         <label>${t('telemetry')}<select id="sel-debug"><option value="0" ${s.debug !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.debug === true ? 'selected' : ''}>${t('on')}</option></select></label>
@@ -982,12 +1037,12 @@ class UI {
       this.show(`
         ${this.paddockTopbar(t('multi'))}
         <p class="muted">${t('multiIntro')}</p>
-        ${net.error ? `<p class="warn">${escapeHtml(net.error)}</p>` : ''}
-        ${msg ? `<p class="warn">${escapeHtml(msg)}</p>` : ''}
+        ${net.error ? `<p class="warn">${escapeHtml(this.netErreur(net.error))}</p>` : ''}
+        ${msg ? `<p class="warn">${escapeHtml(this.netErreur(msg))}</p>` : ''}
         <div class="row wrap">
           <button class="big primary" data-action="netCreate" ${net.busy ? 'disabled' : ''}>${t('createTable')}</button>
           <label>${t('tableCode')}<input id="inp-code" maxlength="4" size="5" autocapitalize="characters" placeholder="ABCD"></label>
-          <button class="big" data-action="netJoin" ${net.busy ? 'disabled' : ''}>${t('joinTable')}</button><button class="big" data-action="netWatch" ${net.busy ? 'disabled' : ''}>${this.lang === 'en' ? 'Watch' : 'Regarder'}</button>
+          <button class="big" data-action="netJoin" ${net.busy ? 'disabled' : ''}>${t('joinTable')}</button><button class="big" data-action="netWatch" ${net.busy ? 'disabled' : ''}>${t('watch')}</button>
         </div>
         ${net.busy ? `<p class="muted">${t('netWait')}</p>` : ''}
       `, 'scroll selection-screen lobby-entry');
@@ -1016,10 +1071,10 @@ class UI {
     const modeDesc = { race: 'mRaceDesc', duel: 'mDuelDesc', ghost: 'mGhostDesc' }[cfg.mode] || 'mRaceDesc';
     this.show(`
       ${this.paddockTopbar(`${t('yourTable')} <b class="code">${escapeHtml(net.code)}</b>`, 'netLeave', t('leaveTable'))}
-      ${net.error ? `<p class="warn">${escapeHtml(net.error)}</p>` : ''}
-      <p class="muted net-ping">${escapeHtml(net.link?.label() || 'Ping : —')} · aller-retour</p>
-      ${list.some(m => !m.q.spectator && m.q.protocol !== DRIVE_PROTOCOL) ? '<p class="warn">Tous les pilotes doivent recharger la dernière version du jeu.</p>' : ''}
-      <h3>${t('players')} <span class="muted">${list.filter(m => !m.q.spectator).length}/${NET_SEATS} · ${list.filter(m => m.q.spectator).length} spectateurs</span></h3>
+      ${net.error ? `<p class="warn">${escapeHtml(this.netErreur(net.error))}</p>` : ''}
+      <p class="muted net-ping">${escapeHtml(net.link?.label((k) => this.t(k)) || 'Ping : —')} · ${t('roundTrip')}</p>
+      ${list.some(m => !m.q.spectator && m.q.protocol !== DRIVE_PROTOCOL) ? `<p class="warn">${t('reloadAll')}</p>` : ''}
+      <h3>${t('players')} <span class="muted">${list.filter(m => !m.q.spectator).length}/${NET_SEATS} · ${t('spectators', list.filter(m => m.q.spectator).length)}</span></h3>
       <div class="grid players">
         ${list.map((m, i) => `<div class="card ${m.isMe ? 'sel' : ''}">
           <b>${escapeHtml(m.name)}</b>
@@ -1145,7 +1200,7 @@ class UI {
     const motPen = mienne && mienne.penalite > 0
       ? `<p class="warn">${t('penaltyWhy', mienne.fautes, mienne.penalite.toFixed(1))}</p>` : '';
     this.show(`
-      ${ctx.spectator ? `<h2>Résultats · ${escapeHtml(race.track.name)}</h2>` : head}
+      ${ctx.spectator ? `<h2>${t('results')} · ${escapeHtml(race.track.name)}</h2>` : head}
       <div class="cols"><div>${table}${motPen}</div>${cupPart}</div>
       ${ctx.online && race.broadcast ? race.broadcast.html(race) : ''}
       <div class="row end">
@@ -1287,6 +1342,7 @@ class UI {
       case 'career': this.careerScreen(); break;
       case 'cup': this.cupScreen(id); break;
       case 'editor': location.href = 'editor.html'; break;
+      case 'lang': if (id === 'fr' || id === 'en') { app.save.lang = id; storeSave(app.save); this.settings(); } break;
       case 'workshop': this.workshopScreen(); break;
       case 'wsAdd': this._workshopAdd().catch(err => this.workshopScreen(String(err))); break;
       case 'wsDelete': if (confirmed || confirm(this.t('confirmDelete'))) { Store.del('cars', id).then(() => { unregisterModel(id); return app.refreshCustom(); }).then(() => this.workshopScreen()); } break;
@@ -1456,7 +1512,6 @@ class UI {
       s.laps = Math.max(1, Math.min(99, Math.round(+el.value) || 5));
       storeSave(s); this.setupScreen(this.setup.mode);
     }
-    if (el.id === 'sel-lang') { s.lang = el.value; storeSave(s); this.settings(); }
     if (el.id === 'sel-sound') { s.sound = el.value === '1'; storeSave(s); this.app.audio.setEnabled(s.sound); }
     if (el.id === 'sel-lines') { s.showLines = el.value === '1'; storeSave(s); this.app.renderer.showLines = s.showLines; }
     // le côté du levier : le rendu le relit à chaque image, il n'y a rien d'autre à faire ici

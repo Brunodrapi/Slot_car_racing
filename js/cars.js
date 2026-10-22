@@ -50,7 +50,7 @@ const CATEGORIES = [
       { id: 'tyrrellp34', diff: 1, name: 'Sixpence Hexa', shape: 'wedge72',
         mul: { vmax: 0.921, accel: 1, brake: 1.07, grip: 0.993, df: 0.8, slide: 0.9 },
         colors: ['#174d9b', '#f4da38'], top: 'sprites/top/tyrrellp34.png', pick: 'sprites/pick/tyrrellp34.png',
-        livrees: [{ id: '', nom: 'Bleu · Scheckter · 1976' }],
+        livrees: [{ id: '', nom: 'Bleu · Scheckter · 1976', en: 'Blue · Scheckter · 1976' }],
         engine: { cyl: 8, redline: 10500, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
       { id: 'ferrari312t', diff: 3, name: 'Purosangue Dodici T', shape: 'wedge72',
         mul: { vmax: 0.984, accel: 1.06, brake: 1, grip: 1.038, df: 0.85, slide: 1.1 },
@@ -65,35 +65,35 @@ const CATEGORIES = [
       { id: 'lotus79', diff: 0, name: 'Bumblebee Ground 79', shape: 'wedge72',
         mul: { vmax: 0.936, accel: 0.97, brake: 1, grip: 0.903, df: 1.45, slide: 0.95 },
         colors: ['#161719', '#d4b35e'], top: 'sprites/top/lotus79.png', pick: 'sprites/pick/lotus79.png',
-        livrees: [{ id: '', nom: 'Noir et or · Andretti · 1978' }],
+        livrees: [{ id: '', nom: 'Noir et or · Andretti · 1978', en: 'Black and gold · Andretti · 1978' }],
         engine: { cyl: 8, redline: 11000, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
       { id: 'lotus72', diff: 3, name: 'Bumblebee Wedge 72', shape: 'wedge72',
         mul: { vmax: 0.936, accel: 1.08, brake: 1.03, grip: 1.055, df: 0.6, slide: 1.05 },
         colors: ['#161719', '#d4b35e'], top: 'sprites/top/lotus72.png', pick: 'sprites/pick/lotus72.png',
-        livrees: [{ id: '', nom: 'Noir et or · Fittipaldi · 1972' }],
+        livrees: [{ id: '', nom: 'Noir et or · Fittipaldi · 1972', en: 'Black and gold · Fittipaldi · 1972' }],
         engine: { cyl: 8, redline: 10000, idle: 1500, rough: 0.1, bright: 0.9, turbo: 0 } },
       { id: 'brabhambt46b', diff: 0, name: 'Boomerang Fan 46', shape: 'wedge72',
         // Ventilateur : davantage d'accroche lente, moins de dépendance à l'appui de vitesse.
         mul: { vmax: 0.927, accel: 0.97, brake: 1, grip: 1.065, df: 0.58, slide: 0.88 },
         colors: ['#e8202a', '#f4f4f4'], top: 'sprites/top/brabhambt46b.png', pick: 'sprites/pick/brabhambt46b.png',
-        livrees: [{ id: '', nom: 'Rouge · Lauda · 1978' }],
+        livrees: [{ id: '', nom: 'Rouge · Lauda · 1978', en: 'Red · Lauda · 1978' }],
         engine: { cyl: 12, redline: 12000, idle: 1700, rough: 0.05, bright: 0.96, turbo: 0 } },
       { id: 'williamsfw07', diff: 1, name: 'Windsor 07', shape: 'wedge72',
         mul: { vmax: 0.952, accel: 1.02, brake: 1.02, grip: 0.912, df: 1.35, slide: 0.97 },
         colors: ['#f4f4f4', '#1f6b3a'], top: 'sprites/top/williamsfw07.png', pick: 'sprites/pick/williamsfw07.png',
-        livrees: [{ id: '', nom: 'Blanc et vert · Jones · 1979' }],
+        livrees: [{ id: '', nom: 'Blanc et vert · Jones · 1979', en: 'White and green · Jones · 1979' }],
         engine: { cyl: 8, redline: 11000, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
       { id: 'ligierjs11', diff: 0, name: 'Le Coq Bleu 11', shape: 'wedge72',
         mul: { vmax: 0.946, accel: 0.99, brake: 1.08, grip: 0.913, df: 1.25, slide: 0.92 },
         colors: ['#2f7fd1', '#f4f4f4'], top: 'sprites/top/ligierjs11.png', pick: 'sprites/pick/ligierjs11.png',
-        livrees: [{ id: '', nom: 'Bleu et blanc · Laffite · 1979' }],
+        livrees: [{ id: '', nom: 'Bleu et blanc · Laffite · 1979', en: 'Blue and white · Laffite · 1979' }],
         engine: { cyl: 8, redline: 11000, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
       { id: 'renaultrs10', diff: 2, name: 'Somua Turbo 10', shape: 'wedge72',
         mul: { vmax: 1, accel: 0.93, brake: 0.98, grip: 1.023, df: 1, slide: 1.04 },
         // Relance douce, puis poussée soutenue : courbe de jeu selon la vitesse, sans délai de turbo.
         driveCurve: { low: 0.94, high: 1.20, from: 80 / 3.6, to: 200 / 3.6 },
         colors: ['#f2c500', '#141414'], top: 'sprites/top/renaultrs10.png', pick: 'sprites/pick/renaultrs10.png',
-        livrees: [{ id: '', nom: 'Jaune · Jabouille · 1979' }],
+        livrees: [{ id: '', nom: 'Jaune · Jabouille · 1979', en: 'Yellow · Jabouille · 1979' }],
         engine: { cyl: 6, redline: 11000, idle: 1800, rough: 0.2, bright: 0.8, turbo: 1 } },
     ],
   },
@@ -116,9 +116,9 @@ const CATEGORIES = [
         /* Trois livrées, nommées d'après ce qui est peint sur la voiture, comme pour la F40 et la
         CSL. Les deux chemins se déduisent du suffixe, comme partout ailleurs. */
         livrees: [
-          { id: '', nom: 'Bandes tricolores · 280' },
-          { id: 'BASF', nom: 'Cibles rouges · 79' },
-          { id: 'DENIM', nom: 'Bleu rayé · 81' },
+          { id: '', nom: 'Bandes tricolores · 280', en: 'Tricolour stripes · 280' },
+          { id: 'BASF', nom: 'Cibles rouges · 79', en: 'Red targets · 79' },
+          { id: 'DENIM', nom: 'Bleu rayé · 81', en: 'Blue stripes · 81' },
         ] },
       { id: 'f40', diff: 3, name: 'Purosangue Furia 40', shape: 'f40', mul: { vmax: 1, accel: 1.12, brake: 1, grip: 0.937, df: 1.5, slide: 1 }, pick: 'sprites/pick/f40.png', engine: {
         cyl: 8, redline: 7750, idle: 1000, rough: 0.15, bright: 0.8, turbo: 0.9,
@@ -133,7 +133,7 @@ const CATEGORIES = [
         F40 gardent donc l'aspect de la planche d'origine. C'est dit ici parce que c'est le genre
         d'écart qu'on découvre six mois plus tard en changeant de caméra. */
         livrees: [
-          { id: '', nom: 'Bleu · 56' },
+          { id: '', nom: 'Bleu · 56', en: 'Blue · 56' },
           { id: 'red', nom: 'Rosso' },
           { id: 'yellow', nom: 'Crawford' },
         ] },
@@ -161,9 +161,9 @@ const CATEGORIES = [
         qui regarde seule dans l'autre sens, au milieu du carrousel. Les vues de DESSUS, elles —
         celles qu'on voit en course — sont dans le bon sens et leur lettrage est juste. */
         livrees: [
-          { id: '', nom: 'Blanc rayé · 46' },
-          { id: 'swiss', nom: 'Croix suisse · 30' },
-          { id: 'valliant', nom: 'Turquoise arc-en-ciel · 5' },
+          { id: '', nom: 'Blanc rayé · 46', en: 'White stripes · 46' },
+          { id: 'swiss', nom: 'Croix suisse · 30', en: 'Swiss cross · 30' },
+          { id: 'valliant', nom: 'Turquoise arc-en-ciel · 5', en: 'Rainbow turquoise · 5' },
         ] },
       { id: 'corvette', diff: 5, name: 'Moonshine Sting', shape: 'roundGT', mul: { vmax: 0.94, accel: 1.06, brake: 0.95, grip: 1.026, df: 0.9, slide: 1.3 }, pick: 'sprites/pick/corvette.png', engine: {
         cyl: 8, redline: 6000, idle: 750, rough: 0.7, bright: 0.4, turbo: 0,
@@ -183,23 +183,23 @@ const CATEGORIES = [
         `sprites/pick/` — et un identifiant vide garde les fichiers sans suffixe, pour que la
         livrée d'origine n'ait pas à être renommée. */
         livrees: [
-          { id: '', nom: 'Bandes tricolores · 25' },
-          { id: 'castrol', nom: 'Noir, vert et rouge · 2' },
+          { id: '', nom: 'Bandes tricolores · 25', en: 'Tricolour stripes · 25' },
+          { id: 'castrol', nom: 'Noir, vert et rouge · 2', en: 'Black, green and red · 2' },
           { id: 'calder', nom: 'Calder' },
         ] },
       // Les trois GT des années soixante et soixante-dix. Moteur avant, pneus étroits, peu d'appui :
       // elles se battent avec leur pointe et leur légèreté là où les autres ont de la gomme.
       { id: '250gto', diff: 2, name: 'Purosangue Gran Corsa', shape: 'roundGT', mul: { vmax: 0.766, accel: 0.97, brake: 0.95, grip: 1.02, df: 0.5, slide: 0.95 },
         colors: ['#c8161d', '#f4f4f4'], top: 'sprites/top/250gto.png', pick: 'sprites/pick/250gto.png',
-        livrees: [{ id: '', nom: 'Rosso Corsa · 19' }, { id: 'francorchamps', nom: 'Francorchamps · jaune' }, { id: 'walker', nom: 'Rob Walker · inspiration bleue' }],
+        livrees: [{ id: '', nom: 'Rosso Corsa · 19' }, { id: 'francorchamps', nom: 'Francorchamps · jaune', en: 'Francorchamps · yellow' }, { id: 'walker', nom: 'Rob Walker · inspiration bleue', en: 'Rob Walker · blue tribute' }],
         engine: { cyl: 12, redline: 7500, idle: 900, rough: 0.05, bright: 0.85, turbo: 0 } },
       { id: 'typee', diff: 2, name: 'Moggy Longnose', shape: 'roundGT', mul: { vmax: 0.734, accel: 0.95, brake: 0.93, grip: 1.051, df: 0.45, slide: 1 },
         colors: ['#1d5c3a', '#f4f4f4'], top: 'sprites/top/typee.png', pick: 'sprites/pick/typee.png',
-        livrees: [{ id: '', nom: 'Lightweight · British Racing Green' }, { id: 'cunningham', nom: 'Cunningham · blanc et bleu' }, { id: 'ecosse', nom: 'Écurie Écosse · inspiration bleue' }],
+        livrees: [{ id: '', nom: 'Lightweight · British Racing Green' }, { id: 'cunningham', nom: 'Cunningham · blanc et bleu', en: 'Cunningham · white and blue' }, { id: 'ecosse', nom: 'Écurie Écosse · inspiration bleue', en: 'Écurie Écosse · blue tribute' }],
         engine: { cyl: 6, redline: 6500, idle: 850, rough: 0.12, bright: 0.6, turbo: 0 } },
       { id: '240z', diff: 3, name: 'Kitsune Zeta 240', shape: 'roundGT', mul: { vmax: 0.682, accel: 1.02, brake: 1.05, grip: 1.036, df: 0.7, slide: 1.05 },
         colors: ['#f4f4f4', '#d12a2a'], top: 'sprites/top/240z.png', pick: 'sprites/pick/240z.png',
-        livrees: [{ id: '', nom: 'BRE · 46' }, { id: 'sharp', nom: 'Bob Sharp · inspiration bleue' }, { id: 'dunlop', nom: 'Hommage jaune · 24' }],
+        livrees: [{ id: '', nom: 'BRE · 46' }, { id: 'sharp', nom: 'Bob Sharp · inspiration bleue', en: 'Bob Sharp · blue tribute' }, { id: 'dunlop', nom: 'Hommage jaune · 24', en: 'Yellow tribute · 24' }],
         engine: { cyl: 6, redline: 7500, idle: 950, rough: 0.12, bright: 0.66, turbo: 0 } },
     ],
   },
@@ -256,20 +256,20 @@ const CATEGORIES = [
       } },
       { id: '962', diff: 1, name: 'Breithüft Aero 62', shape: 'groupC', mul: { vmax: 0.907, accel: 1, brake: 1.02, grip: 0.981, df: 1.15, slide: 0.95 },
         colors: ['#f4f4f4', '#1b3f8f'], top: 'sprites/top/962.png', pick: 'sprites/pick/962.png',
-        livrees: [{ id: '', nom: 'Bleu, blanc et rouge · 17' }, { id: 'shell', nom: 'Jaune et rouge · 7' }, { id: 'jager', nom: 'Orange · 17' }],
+        livrees: [{ id: '', nom: 'Bleu, blanc et rouge · 17', en: 'Blue, white and red · 17' }, { id: 'shell', nom: 'Jaune et rouge · 7', en: 'Yellow and red · 7' }, { id: 'jager', nom: 'Orange · 17' }],
         engine: { cyl: 6, redline: 8200, idle: 1100, rough: 0.3, bright: 0.7, turbo: 0.95,
           sample: { ramp: 'sounds/engine/flat6-930.json', bas: 'sounds/engine/flat6-930-bas.json' } } },
       { id: 'xjr9', diff: 1, name: 'Moggy Nightfall', shape: 'groupC', mul: { vmax: 1, accel: 0.96, brake: 0.96, grip: 1, df: 1.1, slide: 0.95 },
         colors: ['#5b2a86', '#f4f4f4'], top: 'sprites/top/xjr9.png', pick: 'sprites/pick/xjr9.png',
-        livrees: [{ id: '', nom: 'Violet et blanc · 2' }, { id: 'castrol', nom: 'Vert et blanc · 60' }, { id: 'jps', nom: 'Hommage noir et or · 9' }],
+        livrees: [{ id: '', nom: 'Violet et blanc · 2', en: 'Purple and white · 2' }, { id: 'castrol', nom: 'Vert et blanc · 60', en: 'Green and white · 60' }, { id: 'jps', nom: 'Hommage noir et or · 9', en: 'Black and gold tribute · 9' }],
         engine: { cyl: 12, redline: 7200, idle: 900, rough: 0.05, bright: 0.75, turbo: 0, sample: { ramp: 'sounds/engine/v12-countach.json' } } },
       { id: '330p4', diff: 3, name: 'Purosangue Freccia', shape: 'gt40', mul: { vmax: 0.829, accel: 1.05, brake: 1.04, grip: 1.094, df: 0.6, slide: 1.05 },
         colors: ['#d0141b', '#f4f4f4'], top: 'sprites/top/330p4.png', pick: 'sprites/pick/330p4.png',
-        livrees: [{ id: '', nom: 'Daytona 1967 · 23' }, { id: 'giallo', nom: 'Équipe Nationale Belge · jaune' }, { id: 'piper', nom: 'David Piper · vert' }],
+        livrees: [{ id: '', nom: 'Daytona 1967 · 23' }, { id: 'giallo', nom: 'Équipe Nationale Belge · jaune', en: 'Équipe Nationale Belge · yellow' }, { id: 'piper', nom: 'David Piper · vert', en: 'David Piper · green' }],
         engine: { cyl: 12, redline: 8500, idle: 1000, rough: 0.05, bright: 0.9, turbo: 0, sample: { ramp: 'sounds/engine/v12-countach.json' } } },
       { id: 'p68', diff: 3, name: 'Redneck Arrow 68', shape: 'longTail', mul: { vmax: 0.904, accel: 0.99, brake: 0.97, grip: 1.142, df: 0.55, slide: 1.2 },
         colors: ['#c62026', '#d9b45a'], top: 'sprites/top/p68.png', pick: 'sprites/pick/p68.png',
-        livrees: [{ id: '', nom: 'Alan Mann Racing · 1968' }, { id: 'gulf', nom: 'Bleu ciel et orange · 7' }, { id: 'dunlop', nom: 'Hommage jaune · 68' }],
+        livrees: [{ id: '', nom: 'Alan Mann Racing · 1968' }, { id: 'gulf', nom: 'Bleu ciel et orange · 7', en: 'Sky blue and orange · 7' }, { id: 'dunlop', nom: 'Hommage jaune · 68', en: 'Yellow tribute · 68' }],
         engine: { cyl: 8, redline: 9500, idle: 1300, rough: 0.12, bright: 0.88, turbo: 0 } },
     ],
   },
@@ -292,11 +292,11 @@ const LIVERIES = [
 
 // Livrées historiques illustrées ; voir docs/livrees-historiques/README.md.
 const HISTORIC_LIVERIES = {
-  countach: [{ id: 'rainx', nom: 'Jaune · 88' }, { id: 'monaco83', nom: 'Monaco 1983 Safety Car' }],
+  countach: [{ id: 'rainx', nom: 'Jaune · 88', en: 'Yellow · 88' }, { id: 'monaco83', nom: 'Monaco 1983 Safety Car' }],
   gt40: [{ id: 'lemans1', nom: 'Le Mans 1966 · 1' }, { id: 'lemans2', nom: 'Le Mans 1966 · 2' }],
   '935': [{ id: 'jager', nom: 'Orange · 16' }, { id: 'vaillant', nom: 'Kremer · turquoise · 51' }],
-  corvette: [{ id: 'spirit76', nom: 'Spirit of Le Mans · 76' }, { id: 'bfg49', nom: 'Étoiles et bandes · 49' }],
-  '787b': [{ id: 'efini18', nom: 'Blanc et vert · 18' }, { id: 'lemans18', nom: 'Le Mans 1991 · 18' }],
+  corvette: [{ id: 'spirit76', nom: 'Spirit of Le Mans · 76' }, { id: 'bfg49', nom: 'Étoiles et bandes · 49', en: 'Stars and stripes · 49' }],
+  '787b': [{ id: 'efini18', nom: 'Blanc et vert · 18', en: 'White and green · 18' }, { id: 'lemans18', nom: 'Le Mans 1991 · 18' }],
 };
 for (const category of CATEGORIES) {
   for (const model of category.models) {
@@ -334,6 +334,13 @@ function carArtUrl(src) {
   if(!src || !src.startsWith('sprites/') || typeof APP_VERSION === 'undefined')return src;
   return src+(src.includes('?')?'&':'?')+'v='+encodeURIComponent(APP_VERSION);
 }
+
+/* Le nom d'une livrée dans la langue du joueur.
+
+`nom` est le nom français ; `en` sa traduction, quand la livrée se décrit (« Noir et or · Andretti ·
+1978 » → « Black and gold · Andretti · 1978 »). Un nom propre — un pilote, une équipe, une course,
+le nom de la voiture — se dit de la même façon dans les deux langues et n'a pas d'`en`. */
+function nomLivree(lv, lang) { return (lang === 'en' && lv && lv.en) || (lv && lv.nom) || ''; }
 
 /** La livrée `i` d'un modèle, l'indice tournant sur la liste. Toujours une livrée, jamais `null`. */
 function livreeDe(model, i) {
@@ -391,6 +398,7 @@ function resolveModel(cat, m) {
   model.livrees = (m.livrees && m.livrees.length ? m.livrees : [{ id: '', nom: m.name }]).map((lv) => ({
     id: lv.id || '',
     nom: lv.nom || m.name,
+    en: lv.en || null,
     top: lv.top || cheminLivree(m.top, lv.id),
     pick: lv.pick || cheminLivree(m.pick, lv.id),
   }));

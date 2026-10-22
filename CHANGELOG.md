@@ -4,6 +4,10 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.48.0
+- Tout le jeu en anglais : menus, course, spectateur, multijoueur, livrées et statistiques.
+- Le choix de la langue est en tête des réglages : Français ou English, d'un toucher.
+
 ## 0.47.1
 - Les livrées ne portent plus aucune marque : elles se nomment par leurs couleurs, leur numéro,
   leur pilote ou leur équipe.
