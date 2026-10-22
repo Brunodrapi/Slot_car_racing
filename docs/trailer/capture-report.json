@@ -1,0 +1,466 @@
+{
+  "version": "0.49.0",
+  "shots": [
+    {
+      "id": "01-hook-0",
+      "shot": {
+        "track": "monza",
+        "model": "ferrari312t",
+        "at": 0.37,
+        "action": "pack",
+        "duration": 5
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.0785312571253426,
+        "trackName": "Parco Reale"
+      }
+    },
+    {
+      "id": "02-line-0",
+      "shot": {
+        "track": "spa",
+        "model": "m1procar",
+        "at": 0.125,
+        "action": "line",
+        "duration": 10
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 241,
+        "maxSlip": 0.13556285595160436,
+        "trackName": "Stand de frites"
+      }
+    },
+    {
+      "id": "03-crashes-0",
+      "shot": {
+        "track": "monza",
+        "model": "f40",
+        "at": 0.375,
+        "action": "wide",
+        "duration": 2
+      },
+      "events": {
+        "offroad": 24,
+        "spin": 0,
+        "crash": 2,
+        "finish": 0,
+        "frames": 49,
+        "maxSlip": 0.29229734719171085,
+        "trackName": "Parco Reale"
+      }
+    },
+    {
+      "id": "03-crashes-1",
+      "shot": {
+        "track": "zandvoort",
+        "model": "lotus79",
+        "at": 0.34,
+        "action": "spin",
+        "duration": 2
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 20,
+        "crash": 0,
+        "finish": 0,
+        "frames": 49,
+        "maxSlip": 1.4112783006817484,
+        "trackName": "Windmolen"
+      }
+    },
+    {
+      "id": "03-crashes-2",
+      "shot": {
+        "track": "monaco",
+        "model": "gt40",
+        "at": 0.55,
+        "action": "barrier",
+        "duration": 2
+      },
+      "events": {
+        "offroad": 49,
+        "spin": 17,
+        "crash": 0,
+        "finish": 0,
+        "frames": 49,
+        "maxSlip": 1.2885539654041458,
+        "trackName": "Le Rocher"
+      }
+    },
+    {
+      "id": "03-crashes-3",
+      "shot": {
+        "track": "suzuka",
+        "model": "m1procar",
+        "at": 0.08,
+        "action": "pack",
+        "duration": 2
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 49,
+        "maxSlip": 0.06322130222698588,
+        "trackName": "Fuji Yama"
+      }
+    },
+    {
+      "id": "03-crashes-4",
+      "shot": {
+        "track": "spa",
+        "model": "962",
+        "at": 0.15,
+        "action": "barrier",
+        "duration": 2
+      },
+      "events": {
+        "offroad": 49,
+        "spin": 0,
+        "crash": 1,
+        "finish": 0,
+        "frames": 49,
+        "maxSlip": 0.6905318847838816,
+        "trackName": "Stand de frites"
+      }
+    },
+    {
+      "id": "05-mosaic-spa",
+      "shot": {
+        "track": "spa",
+        "model": "ferrari312t",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.09307271604717197,
+        "trackName": "Stand de frites"
+      }
+    },
+    {
+      "id": "05-mosaic-monza",
+      "shot": {
+        "track": "monza",
+        "model": "f40",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.18713803178746888,
+        "trackName": "Parco Reale"
+      }
+    },
+    {
+      "id": "05-mosaic-monaco",
+      "shot": {
+        "track": "monaco",
+        "model": "962",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.10806311920478585,
+        "trackName": "Le Rocher"
+      }
+    },
+    {
+      "id": "05-mosaic-suzuka",
+      "shot": {
+        "track": "suzuka",
+        "model": "ferrari312t",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.10048984954215509,
+        "trackName": "Fuji Yama"
+      }
+    },
+    {
+      "id": "05-mosaic-zandvoort",
+      "shot": {
+        "track": "zandvoort",
+        "model": "f40",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.12177233362701936,
+        "trackName": "Windmolen"
+      }
+    },
+    {
+      "id": "05-mosaic-interlagos",
+      "shot": {
+        "track": "interlagos",
+        "model": "962",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.09138385281946029,
+        "trackName": "Festival de Carnaval"
+      }
+    },
+    {
+      "id": "05-mosaic-lemans",
+      "shot": {
+        "track": "lemans",
+        "model": "ferrari312t",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.10789316733743465,
+        "trackName": "Autoroute 11"
+      }
+    },
+    {
+      "id": "05-mosaic-silverstone",
+      "shot": {
+        "track": "silverstone",
+        "model": "f40",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.10941845105114434,
+        "trackName": "Royal Air Base"
+      }
+    },
+    {
+      "id": "05-mosaic-bathurst",
+      "shot": {
+        "track": "bathurst",
+        "model": "962",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.0881361548532792,
+        "trackName": "Kangaroo Mountain"
+      }
+    },
+    {
+      "id": "05-mosaic-laguna",
+      "shot": {
+        "track": "laguna",
+        "model": "ferrari312t",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.08641237035432198,
+        "trackName": "Corkscrew Ranch"
+      }
+    },
+    {
+      "id": "05-mosaic-redbullring",
+      "shot": {
+        "track": "redbullring",
+        "model": "f40",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.15112893078940684,
+        "trackName": "Apfelstrudel Ring"
+      }
+    },
+    {
+      "id": "05-mosaic-castellet",
+      "shot": {
+        "track": "castellet",
+        "model": "962",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.08751129898080702,
+        "trackName": "Pastaga 83"
+      }
+    },
+    {
+      "id": "06-multiplayer-0",
+      "shot": {
+        "track": "monza",
+        "model": "f40",
+        "at": 0.36,
+        "view": "follow",
+        "duration": 4
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 97,
+        "maxSlip": 0.2249577005681004,
+        "trackName": "Parco Reale"
+      }
+    },
+    {
+      "id": "06-multiplayer-1",
+      "shot": {
+        "track": "spa",
+        "model": "ferrari312t",
+        "at": 0.12,
+        "view": "full",
+        "duration": 4
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 97,
+        "maxSlip": 0.040313356396281315,
+        "trackName": "Stand de frites"
+      }
+    },
+    {
+      "id": "06-multiplayer-2",
+      "shot": {
+        "track": "suzuka",
+        "model": "962",
+        "at": 0.08,
+        "view": "duel",
+        "duration": 4
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 97,
+        "maxSlip": 0.07733291036500686,
+        "trackName": "Fuji Yama"
+      }
+    },
+    {
+      "id": "07-flow-0",
+      "shot": {
+        "track": "monza",
+        "model": "f40",
+        "at": 0.66,
+        "action": "clean",
+        "duration": 6
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 145,
+        "maxSlip": 0.12916868223360387,
+        "trackName": "Parco Reale"
+      }
+    },
+    {
+      "id": "07-flow-1",
+      "shot": {
+        "track": "monza",
+        "model": "f40",
+        "at": 0.98,
+        "action": "finish",
+        "duration": 4
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 7,
+        "frames": 97,
+        "maxSlip": 0.03019435775168397,
+        "trackName": "Parco Reale"
+      }
+    }
+  ],
+  "notes": [
+    "Offline staged capture using the real renderer and physics.",
+    "Spectator shots use real UI with local AI, not an Internet session.",
+    "No captured engine audio; optional licensed music supplied separately."
+  ]
+}

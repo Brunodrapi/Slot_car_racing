@@ -1,0 +1,26 @@
+// Validate the delivered encode and motion in all twelve mosaic cells.
+const fs=require('fs'),path=require('path'),assert=require('assert/strict'),{execFileSync}=require('child_process');
+const out=path.resolve(process.argv[2]||'artifacts/trailer');
+const script=JSON.parse(fs.readFileSync(path.join(out,'script.json'))),duration=script.sections.reduce((s,x)=>s+x.duration,0);
+function probe(file){return JSON.parse(execFileSync('ffprobe',['-v','error','-show_streams','-show_format','-of','json',file],{encoding:'utf8'}));}
+for(const name of ['grip-trailer-silent.mp4','grip-trailer.mp4']){
+ const file=path.join(out,name);if(!fs.existsSync(file)){if(name.includes('silent'))throw Error('Missing silent master');continue;}
+ const p=probe(file),v=p.streams.find(s=>s.codec_type==='video');
+ assert.equal(v.width,script.width);assert.equal(v.height,script.height);assert.equal(v.codec_name,'h264');
+ assert(Math.abs(Number(p.format.duration)-duration)<.1);
+ if(!name.includes('silent'))assert(p.streams.some(s=>s.codec_type==='audio'&&s.codec_name==='aac'));
+ console.log(name,`${v.width}×${v.height}`,p.format.duration,'OK');
+}
+for(const s of script.sections)assert(Math.abs(Number(probe(path.join(out,'sections',s.id+'.mp4')).format.duration)-s.duration)<.1);
+const mosaic=path.join(out,'sections/05-mosaic.mp4');
+const frame=t=>execFileSync('ffmpeg',['-v','error','-ss',String(t),'-i',mosaic,'-frames:v','1','-f','rawvideo','-pix_fmt','gray','pipe:1'],{maxBuffer:script.width*script.height*2});
+const a=frame(4),b=frame(8),w=script.width,h=script.height;
+for(let tile=0;tile<12;tile++){
+ let changed=0,n=0;
+ for(let y=Math.floor(tile/4)*h/3+30;y<Math.min((Math.floor(tile/4)+1)*h/3-10,h-110);y++)for(let x=tile%4*w/4+5;x<(tile%4+1)*w/4-5;x++){
+  n++;if(Math.abs(a[y*w+x]-b[y*w+x])>12)changed++;
+ }
+ assert(changed>n*.02,'Frozen mosaic tile '+tile);console.log('Mosaic',tile+1,Math.round(changed/n*100)+'% changed');
+}
+const report=JSON.parse(fs.readFileSync(path.join(out,'capture-report.json')));assert(!report.errors?.length);
+console.log('Timeline, codecs, 12 moving cells and browser error report: OK');
