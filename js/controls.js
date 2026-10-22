@@ -1,5 +1,12 @@
 // Commandes PC. La molette mémorise un niveau ; RT le mesure à chaque image.
 'use strict';
+
+/* LA MANETTE EST MISE DE CÔTÉ (0.49). Le jeu revient à un seul bouton, sur ordinateur aussi : Espace
+pour les gaz, ↑ / ↓ pour la ligne — comme le pouce sur un téléphone. Tout le code de la manette et de
+la molette reste ici, entier (modes, frein LT, navigation des menus) ; il revient en passant cet
+interrupteur à `true`, et les réglages retrouvent alors leur choix de commande. */
+const MANETTE = false;
+
 class DesktopControls {
   constructor({ throttle, line, pause, activity, connected = () => {}, navigate = () => {}, brake = () => {} }) {
     this.onThrottle = throttle; this.onLine = line; this.onPause = pause; this.onActivity = activity;
@@ -11,7 +18,7 @@ class DesktopControls {
     this.reset();
   }
   setMode(mode) {
-    this.mode = ['keyboard', 'wheel', 'gamepad'].includes(mode) ? mode : 'keyboard';
+    this.mode = MANETTE && ['keyboard', 'wheel', 'gamepad'].includes(mode) ? mode : 'keyboard';
     this.reset();
   }
   reset() {
@@ -30,6 +37,7 @@ class DesktopControls {
   brake() { this.wheelThrottle = 0; this.onThrottle(0); }
   suspend() { this.blockButtons = true; this.menuDirection = ''; }
   poll(active, getPads = () => navigator.getGamepads?.(), menu = false, now = 0) {
+    if (!MANETTE) return;
     let pads;
     try { pads = getPads(); } catch (_) { /* API absente ou interdite par le navigateur. */ }
     if (!pads) {

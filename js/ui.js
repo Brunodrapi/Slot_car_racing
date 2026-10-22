@@ -14,16 +14,17 @@ const I18N = {
     padCancel: 'Annuler', padDone: 'Valider', padClear: 'Tout effacer', padDelete: 'Effacer', padSpace: 'Espace', padConfirm: 'Confirmer',
     padBrake: 'Frein manette', padBrakeSeparate: 'LT + frein moteur', padBrakeAuto: 'Automatique au relâchement', engineBrake: 'Frein moteur', brake: 'Frein',
     controlGamepadManualHint: 'RT : gaz · LT : frein progressif, prioritaire sur RT. Sans appui : frein moteur réglable. Stick / croix : trajectoire. Menu : pause.',
-    pcControls: 'Accélérateur PC', controlKeyboard: 'Clavier / clic', controlWheel: 'Molette', controlGamepad: 'Manette Xbox · RT',
-    controlKeyboardHint: 'Maintiens une touche ou le clic pour accélérer, relâche pour freiner. Flèches : trajectoire. Échap : pause.',
+    pcControls: 'Accélérateur PC', controlKeyboard: 'Espace', controlWheel: 'Molette', controlGamepad: 'Manette Xbox · RT',
+    controlKeyboardHint: 'Maintiens Espace pour accélérer, relâche pour freiner. ↑ / ↓ : trajectoire. Échap : pause.',
+    splashInputs: 'Espace : accélérer · ↑ ↓ : trajectoire', splashInputsPad: 'Clavier · Molette · Manette Xbox',
     controlWheelHint: 'Molette vers le haut : plus de gaz ; vers le bas : moins. Espace : gaz à zéro et freinage. Flèches : trajectoire.',
     controlGamepadHint: 'Gâchette RT : doser les gaz, relâcher pour freiner. Stick gauche ou croix : trajectoire. Menu : pause.',
     padReady: 'Manette connectée', padRelease: 'Relâche RT pour activer', padDisconnected: 'Connecte la manette et appuie sur un bouton', padUnsupported: 'Manette indisponible dans ce navigateur',
-    gas: 'Gaz', wheelGo: 'Molette ↑ / ↓ : doser les gaz', padGo: 'Gâchette RT : doser les gaz', lineHintPC: 'Flèches : trajectoire', lineHintPad: 'Stick / croix : trajectoire',
+    gas: 'Gaz', wheelGo: 'Molette ↑ / ↓ : doser les gaz', padGo: 'Gâchette RT : doser les gaz', lineHintPC: '↑ / ↓ : trajectoire', lineHintPad: 'Stick / croix : trajectoire',
     title: 'GRIP — RACING THE LINE',
     career: 'Carrière', quickRace: 'Course rapide', timeTrial: 'Contre-la-montre', settings: 'Réglages', statistics: 'Statistiques publiques', back: 'Retour',
     editor: 'Éditeur de circuits', workshop: 'Atelier voitures',
-    howto: 'Poser le pouce n’importe où (ou n’importe quelle touche / clic) : accélérer, relâcher pour freiner. La pastille vient se placer sous le pouce, et la vitesse se lit en haut au milieu. Pouce gauche (ou flèches / molette) : choisir sa place sur la piste — bord bleu, ligne idéale ou bord jaune. Les deux bords gardent leur couleur tout le tour. Trop vite dans un virage, c’est le bac à gravier.',
+    howto: 'Poser le pouce n’importe où (ou maintenir Espace) : accélérer, relâcher pour freiner. La pastille vient se placer sous le pouce, et la vitesse se lit en haut au milieu. Pouce gauche (ou ↑ / ↓) : choisir sa place sur la piste — bord bleu, ligne idéale ou bord jaune. Les deux bords gardent leur couleur tout le tour. Trop vite dans un virage, c’est le bac à gravier.',
     carClass: 'Catégorie', model: 'Modèle', track: 'Circuit', livery: 'Livrée', tyres: 'Gomme', damage: 'Tôle', linePit: 'STAND', wear: 'Usure et dommages', wearHint: 'Les pneus s\'usent en glissant, les chocs et les sorties abîment la voiture.', difficulty: 'Difficulté', easy: 'Facile', medium: 'Normal', hard: 'Difficile', extreme: 'Extrême', cauchemar: 'Cauchemar',
     diffTitle: 'Ce que la voiture coûte à piloter', diffLevel: (n) => `Difficulté ${n} sur 5`,
     laps: 'tours', lapCustom: 'Perso', start: 'Départ !', locked: 'Verrouillé', unlockHint: 'Termine la coupe précédente dans le top 3 pour débloquer.',
@@ -33,7 +34,7 @@ const I18N = {
     penalty: 'Pénalité', voidLap: 'annulé', voidLapTitle: 'Tour annulé : sortie de piste',
     penaltyWhy: (n, s) => `${n} sortie${n > 1 ? 's' : ''} de piste · +${s} s au classement. Le temps gagné hors piste est repris ; les vibreurs ne comptent pas.`,
     next: 'Suivant', retry: 'Rejouer', menu: 'Menu', resume: 'Reprendre', restart: 'Recommencer', quit: 'Quitter', paused: 'Pause', endSession: 'Terminer',
-    lap: 'Tour', last: 'Dernier', best: 'Meilleur', grip: 'adhérence', holdToGo: 'Maintiens une touche pour accélérer', holdToGoTouch: 'Maintiens l’écran pour accélérer', lineHintKeys: 'Flèches / molette : trajectoire', lineHintTouch: 'Pouce gauche : trajectoire',
+    lap: 'Tour', last: 'Dernier', best: 'Meilleur', grip: 'adhérence', holdToGo: 'Maintiens Espace pour accélérer', holdToGoTouch: 'Maintiens l’écran pour accélérer', lineHintKeys: '↑ / ↓ : trajectoire', lineHintTouch: 'Pouce gauche : trajectoire',
     lineBleu: 'BLEU', lineRace: 'IDÉALE', lineJaune: 'JAUNE', freinage: 'Freinage', reglages: 'Réglages', regDefaut: 'Par défaut', regRegler: 'Régler', regTitre: 'Réglage du freinage', regAide: 'Pousse le levier en roulant. Trop de frein et la voiture s’arrête dans le virage ; trop peu et c’est la sortie. Le repère blanc est le réglage d’origine.', regEnreg: 'Enregistrer la configuration', regNom: 'Nom de la configuration', regIci: (v) => `freinage ×${v.toFixed(2)} ici`, regIciDefaut: 'freinage d’origine ici', regPortee: 'Seuls les réglages enregistrés pour cette voiture sur ce circuit sont proposés. Le choix est mémorisé pour ce couple.', regFait: (n) => `Configuration « ${n} » enregistrée.`, engineCut: 'MOTEUR COUPÉ', offTrack: 'SORTIE DE PISTE !', finished: 'ARRIVÉE',
     lapVoid: 'annulé',
     cupComplete: 'Coupe terminée !', cupWon: 'Champion !', cupPodium: 'Podium ! Coupe suivante débloquée.', cupFailed: 'Hors du podium… retente ta chance.',
@@ -112,16 +113,17 @@ const I18N = {
     padCancel: 'Cancel', padDone: 'Done', padClear: 'Clear all', padDelete: 'Delete', padSpace: 'Space', padConfirm: 'Confirm',
     padBrake: 'Controller brake', padBrakeSeparate: 'LT + engine braking', padBrakeAuto: 'Automatic on release', engineBrake: 'Engine braking', brake: 'Brake',
     controlGamepadManualHint: 'RT: throttle · LT: progressive brake, with priority over RT. No input: adjustable engine braking. Stick / D-pad: racing line. Menu: pause.',
-    pcControls: 'PC throttle', controlKeyboard: 'Keyboard / click', controlWheel: 'Mouse wheel', controlGamepad: 'Xbox controller · RT',
-    controlKeyboardHint: 'Hold a key or the mouse button to accelerate; release to brake. Arrows: racing line. Esc: pause.',
+    pcControls: 'PC throttle', controlKeyboard: 'Space', controlWheel: 'Mouse wheel', controlGamepad: 'Xbox controller · RT',
+    controlKeyboardHint: 'Hold Space to accelerate; release to brake. ↑ / ↓: racing line. Esc: pause.',
+    splashInputs: 'Space: accelerate · ↑ ↓: racing line', splashInputsPad: 'Keyboard · Mouse wheel · Xbox controller',
     controlWheelHint: 'Wheel up: more throttle; down: less. Space: zero throttle and brake. Arrows: racing line.',
     controlGamepadHint: 'RT trigger: analog throttle; release to brake. Left stick or D-pad: racing line. Menu: pause.',
     padReady: 'Controller connected', padRelease: 'Release RT to enable', padDisconnected: 'Connect a controller and press a button', padUnsupported: 'Controller unavailable in this browser',
-    gas: 'Throttle', wheelGo: 'Wheel ↑ / ↓: adjust throttle', padGo: 'RT trigger: adjust throttle', lineHintPC: 'Arrows: racing line', lineHintPad: 'Stick / D-pad: racing line',
+    gas: 'Throttle', wheelGo: 'Wheel ↑ / ↓: adjust throttle', padGo: 'RT trigger: adjust throttle', lineHintPC: '↑ / ↓: racing line', lineHintPad: 'Stick / D-pad: racing line',
     title: 'GRIP — RACING THE LINE',
     career: 'Career', quickRace: 'Quick race', timeTrial: 'Time trial', settings: 'Settings', statistics: 'Public statistics', back: 'Back',
     editor: 'Track editor', workshop: 'Car workshop',
-    howto: 'Thumb anywhere (or any key / click): accelerate, release to brake. The pad follows your thumb, and the speed reads at the top centre. Left thumb (or arrows / wheel): pick your place on the road — blue edge, racing line or yellow edge. Each edge keeps its colour all the way round. Too fast into a corner and it’s the gravel.',
+    howto: 'Thumb anywhere (or hold Space): accelerate, release to brake. The pad follows your thumb, and the speed reads at the top centre. Left thumb (or ↑ / ↓): pick your place on the road — blue edge, racing line or yellow edge. Each edge keeps its colour all the way round. Too fast into a corner and it’s the gravel.',
     carClass: 'Class', model: 'Model', track: 'Track', livery: 'Livery', tyres: 'Tyres', damage: 'Body', linePit: 'PIT', wear: 'Wear and damage', wearHint: 'Tyres wear as you slide; contact and excursions damage the car.', difficulty: 'Difficulty', easy: 'Easy', medium: 'Normal', hard: 'Hard', extreme: 'Extreme', cauchemar: 'Nightmare',
     diffTitle: 'How much the car costs to drive', diffLevel: (n) => `Difficulty ${n} of 5`,
     laps: 'laps', lapCustom: 'Custom', start: 'Start!', locked: 'Locked', unlockHint: 'Finish the previous cup in the top 3 to unlock.',
@@ -131,7 +133,7 @@ const I18N = {
     penalty: 'Penalty', voidLap: 'void', voidLapTitle: 'Lap deleted: off track',
     penaltyWhy: (n, s) => `${n} excursion${n > 1 ? 's' : ''} · +${s} s on the classification. Time gained off track is taken back; kerbs do not count.`,
     next: 'Next', retry: 'Retry', menu: 'Menu', resume: 'Resume', restart: 'Restart', quit: 'Quit', paused: 'Paused', endSession: 'Finish',
-    lap: 'Lap', last: 'Last', best: 'Best', grip: 'grip', holdToGo: 'Hold a key to accelerate', holdToGoTouch: 'Hold anywhere to accelerate', lineHintKeys: 'Arrows / wheel: line', lineHintTouch: 'Left thumb: line',
+    lap: 'Lap', last: 'Last', best: 'Best', grip: 'grip', holdToGo: 'Hold Space to accelerate', holdToGoTouch: 'Hold anywhere to accelerate', lineHintKeys: '↑ / ↓: racing line', lineHintTouch: 'Left thumb: line',
     lineBleu: 'BLUE', lineRace: 'RACING', lineJaune: 'YELLOW', freinage: 'Braking', reglages: 'Setup', regDefaut: 'Default', regRegler: 'Tune', regTitre: 'Braking setup', regAide: 'Push the lever while driving. Too much brake and the car stops in the corner; too little and you go off. The white mark is the stock setting.', regEnreg: 'Save this setup', regNom: 'Setup name', regIci: (v) => `braking ×${v.toFixed(2)} here`, regIciDefaut: 'stock braking here', regPortee: 'Only setups saved for this car on this circuit are offered. The selection is remembered for this pairing.', regFait: (n) => `Setup “${n}” saved.`, engineCut: 'ENGINE CUT', offTrack: 'OFF TRACK!', finished: 'FINISH',
     lapVoid: 'void',
     cupComplete: 'Cup complete!', cupWon: 'Champion!', cupPodium: 'Podium! Next cup unlocked.', cupFailed: 'Missed the podium… try again.',
@@ -553,7 +555,7 @@ class UI {
       <div class="voile" aria-hidden="true"></div>
       <div class="stage">
         <div class="press">${escapeHtml(invite)}</div>
-        ${this.app.desktop ? `<div class="title-inputs">${this.lang === 'en' ? 'Keyboard · Mouse wheel · Xbox controller' : 'Clavier · Molette · Manette Xbox'}</div>` : ''}
+        ${this.app.desktop ? `<div class="title-inputs">${this.t(MANETTE ? 'splashInputsPad' : 'splashInputs')}</div>` : ''}
       </div>
       <div class="version">v${APP_VERSION} · ${APP_DATE}${canalBadge()}</div>
       <div class="maj" aria-live="polite" hidden></div>
@@ -731,6 +733,8 @@ class UI {
   }
   pcControls() {
     if (!this.app.desktop) return '';
+    // la manette mise de côté, il n'y a plus de commande à choisir : seulement l'aide du clavier
+    if (!MANETTE) return `<p class="muted pc-controls" data-control-help>${this.controlHelp()}</p>`;
     return `<div class="pc-controls"><label for="sel-desktop-control">${this.t('pcControls')}</label>
       <select id="sel-desktop-control">${[['keyboard', 'controlKeyboard'], ['wheel', 'controlWheel'], ['gamepad', 'controlGamepad']].map(([mode, key]) =>
         `<option value="${mode}" ${this.app.controls.mode === mode ? 'selected' : ''}>${this.t(key)}</option>`).join('')}</select>
@@ -1001,7 +1005,7 @@ class UI {
         </select><small class="reg-ici">${frein === 1 ? t('regIciDefaut') : t('regIci', frein)}</small></label>
         <button class="chip" data-action="startTune" data-pad-group>${t('regRegler')}</button>
       </div>
-      ${desktop ? `<div class="setup-chips pc-controls" data-pad-group>
+      ${desktop && MANETTE ? `<div class="setup-chips pc-controls" data-pad-group>
         <label class="chip chip-select" data-pad-group><span>${t('chipControl')} :</span><select id="sel-desktop-control">${[['keyboard', 'controlKeyboard'], ['wheel', 'controlWheel'], ['gamepad', 'controlGamepad']].map(([m, key]) =>
           `<option value="${m}" ${app.controls.mode === m ? 'selected' : ''}>${t(key)}</option>`).join('')}</select></label>
         <span class="pad-brake-options" ${gamepad ? '' : 'hidden'}>

@@ -41,26 +41,26 @@ sorties de piste. [Commandes, méthode et captures de test](docs/spectateur/READ
 
 ### Contrôles
 
-Sur PC, choisir **Accélérateur PC** depuis le menu, la préparation, les réglages ou la pause.
-Le choix est conservé sur ce navigateur. Une manette détectée au démarrage ou nouvellement
-branchée est sélectionnée automatiquement ; un choix manuel reste possible ensuite.
+**Un seul bouton, sur ordinateur comme sur téléphone (0.49).** Sur téléphone, le pouce n'importe où
+accélère et le levier choisit la ligne. Sur ordinateur :
 
-| Mode PC | Accélérer | Freiner | Trajectoire |
-| --- | --- | --- | --- |
-| Clavier / clic | maintenir une touche (Espace…) ou le clic | relâcher | flèches ; molette également disponible |
-| Molette | rouler vers le haut pour augmenter les gaz | rouler vers le bas ; `Espace` ramène immédiatement les gaz à zéro | flèches ou curseur à l'écran |
-| Xbox | doser la gâchette **RT** | **LT** progressif ; sans appui, frein moteur réglable | stick gauche, croix directionnelle, flèches ou curseur |
+| Touche | Effet |
+| --- | --- |
+| `Espace` maintenu | gaz ; relâché, la voiture freine |
+| `↑` / `↓` | un cran de ligne vers le jaune / vers le bleu (et la coche des stands sous le bleu, quand elle est ouverte) |
+| `Échap` ou `P` | pause |
+| `G` | télémétrie |
 
-`Échap` ou `P` met en pause ; le bouton Menu de la manette aussi. `G` affiche la télémétrie.
-Le tableau de bord PC indique la vitesse et les gaz demandés de **0 à 100 %**. Les niveaux partiels
-modulent réellement la poussée et le son moteur. Le clavier et la molette freinent au relâchement.
-Les pulsations rapides au clavier/tactile restent prises en compte entre deux images.
+Aucune autre touche, ni le clic, ni la molette, ne fait rien en course : on ne part plus en
+accélérant parce qu'un doigt a frôlé le clavier. Le tableau de bord rappelle les touches.
 
-À la manette, **Frein manette → LT + frein moteur** sépare les deux gâchettes. **Frein moteur**
-se règle de 0 à 100 % (15 % par défaut) : sans appui sur RT/LT, seules les pertes naturelles et ce
-frein moteur ralentissent la voiture. LT ajoute progressivement le freinage et a priorité sur RT.
-Le réglage de freinage propre au circuit/à la voiture continue de déterminer sa puissance maximale.
-L'option **Automatique au relâchement** propose également le comportement à un accélérateur.
+**La manette et la molette sont mises de côté**, pas supprimées : tout leur code reste dans
+`js/controls.js` (modes, frein LT séparé, frein moteur réglable, navigation des menus à la manette)
+derrière l'interrupteur `MANETTE = false`. Le passer à `true` rend le choix « Accélérateur PC » aux
+réglages, au paddock et à la pause, tel qu'il était : clavier/clic, molette (gaz dosés par crans),
+manette Xbox (RT dosée, LT progressif). Une sauvegarde réglée sur la manette repart au clavier en
+attendant. `tools/e2e-pc.js` vérifie le jeu à un bouton et qu'une manette branchée ne fait rien ;
+`tools/e2e-manette.js` attend le retour de la manette.
 
 Les configurations de freinage proposées au départ sont celles enregistrées pour **la voiture
 et le circuit sélectionnés**. Le choix actif, y compris « Par défaut », est mémorisé pour chaque

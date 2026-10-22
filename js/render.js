@@ -2682,7 +2682,7 @@ class Renderer {
     const status = { ready: 'padReady', release: 'padRelease', disconnected: 'padDisconnected', unsupported: 'padUnsupported' };
     const hint = mode === 'gamepad' ? t(status[app.controls.status])
       : mode === 'wheel' ? (ui.lang === 'fr' ? 'Espace : gaz à zéro · Échap : pause' : 'Space: zero throttle · Esc: pause')
-      : (ui.lang === 'fr' ? 'Maintenir : gaz · Relâcher : frein' : 'Hold: throttle · Release: brake');
+      : (ui.lang === 'fr' ? 'Espace maintenu : gaz · relâché : frein' : 'Space held: throttle · released: brake');
     g.fillStyle = mode === 'gamepad' && app.controls.status !== 'ready' ? '#ffd400' : '#aeb4c0';
     g.font = R(15); g.fillText(hint, x + 16, y + 118, w - 32);
     if (separate) g.translate(0,-32);

@@ -249,7 +249,10 @@ class App {
     const stepSel = (d) => {
       this.stepLine(d);
     };
-    const LINE_DOWN = ['ArrowDown', 'ArrowLeft', 'a', 'A', 'q', 'Q'], LINE_UP = ['ArrowUp', 'ArrowRight', 'd', 'D', 'e', 'E'];
+    /* LE JEU À UN BOUTON, sur ordinateur aussi : Espace pour les gaz, ↑ / ↓ pour la ligne. Échap (ou P)
+    met en pause, G montre la télémétrie, et aucune autre touche ne fait rien en course — on ne part
+    plus en accélérant parce qu'un doigt a frôlé le clavier. */
+    const LINE_DOWN = ['ArrowDown'], LINE_UP = ['ArrowUp'];
     window.addEventListener('keydown', (e) => {
       if (e.target?.closest('input, select, textarea, [contenteditable="true"]')) return;
       if (e.repeat) { if (this.state === 'race') e.preventDefault(); return; }
@@ -264,7 +267,8 @@ class App {
         if (e.code === 'Space' && this.controls.mode === 'wheel') this.controls.brake();
         return;
       }
-      this.gasKeys.add(e.code || e.key);
+      if (e.code !== 'Space') return;
+      this.gasKeys.add(e.code);
       on();
     });
     window.addEventListener('keyup', (e) => {
@@ -295,8 +299,8 @@ class App {
     this.canvas.addEventListener('wheel', (e) => {
       if (this.state !== 'race' || e.ctrlKey || !e.deltaY) return;
       e.preventDefault();
+      // la molette ne change plus la ligne : ↑ / ↓ seules (elle ne sert qu'au mode molette, mis de côté)
       if (this.desktop && this.controls.mode === 'wheel') this.controls.wheel(e);
-      else if (!this.desktop || this.controls.mode === 'keyboard') stepSel(e.deltaY < 0 ? 1 : -1);
     }, { passive: false });
 
     const c = this.canvas;
@@ -323,6 +327,9 @@ class App {
       const v = this.renderer.sliderValueAt(e.clientX, e.clientY, touch);
       if (v != null && this.pointers.slider == null) { this.pointers.slider = e.pointerId; poseSel(v); return; }
       if (this.desktop && this.controls.mode !== 'keyboard') return;
+      // sur ordinateur, les gaz sont Espace et rien d'autre : un clic de souris n'accélère pas (le doigt,
+      // sur un écran tactile d'ordinateur portable, si)
+      if (this.desktop && !touch) return;
       if (this.pointers.throttle == null) {
         this.pointers.throttle = e.pointerId;
         if (touch) this.renderer.anchorPouce(e.clientX, e.clientY);   // la pastille vient au pouce
@@ -468,7 +475,7 @@ class App {
     if (!opts.spectator) this.analytics.begin(this.race, { track: opts.trackDef.id, car: opts.modelId,
       category: opts.classId, livery: ((Math.round(opts.playerLivree) || 0) % livreeCount + livreeCount) % livreeCount,
       mode: opts.reglage ? 'tuning' : ctx?.online ? 'multiplayer' : opts.mode === 'timetrial' ? 'timetrial' : 'race',
-      control: this.desktop ? this.save.desktopControl : 'touch' });
+      control: this.desktop ? this.controls.mode : 'touch' });
     // Le démarreur, s'il y en a un pour cette voiture : le moteur s'allume quand la course s'ouvre,
     // avant le décompte. Une seule fois par course.
     /* La barrière repart à zéro à CHAQUE course, et pas quand le décompte s'arrête.
@@ -722,7 +729,7 @@ class App {
         if (quiet > 2) this.ui.flash = { text: this.ui.t('netLost'), until: performance.now() + 600, color: '#ffb4a2' };
       }
       this._handleEvents(race);
-      this.analytics.observe(race, elapsed, !document.hidden, this.desktop ? this.save.desktopControl : 'touch');
+      this.analytics.observe(race, elapsed, !document.hidden, this.desktop ? this.controls.mode : 'touch');
       if (this.spectator) this.spectator.update(dt);
       else this.renderer.updateCamera(race, dt);
       this.renderer.addEffects(race, dt);

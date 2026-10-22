@@ -4,6 +4,10 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.49.0
+- Sur ordinateur aussi, un seul bouton : Espace pour accélérer, ↑ / ↓ pour changer de ligne.
+- La manette est mise de côté pour le moment.
+
 ## 0.48.0
 - Tout le jeu en anglais : menus, course, spectateur, multijoueur, livrées et statistiques.
 - Le choix de la langue est en tête des réglages : Français ou English, d'un toucher.

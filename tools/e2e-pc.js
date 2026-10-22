@@ -1,4 +1,4 @@
-// Parcours PC et rotation mobile/tablette ; la manette est injectée dans la vraie Gamepad API.
+// Parcours PC et rotation mobile/tablette ; une manette est injectée dans la vraie Gamepad API (mise de côté, elle ne doit rien faire).
 // node tools/e2e-pc.js [dossier-captures]
 'use strict';
 const {chromium,devices}=require('playwright');
@@ -27,54 +27,49 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.png
  }
  async function shot(page,name){await page.screenshot({path:path.join(OUT,name+'.png'),scale:'css'});}
  try {
+  /* Le jeu à un bouton sur ordinateur (0.49) : Espace pour les gaz, ↑ / ↓ pour la ligne. La manette et la
+  molette sont mises de côté (MANETTE, js/controls.js) : une manette branchée ne fait rien, la molette ne
+  change plus la ligne, et une ancienne sauvegarde réglée sur la manette repart au clavier. */
   const {ctx,page}=await create({viewport:{width:1440,height:900}});
   assert.equal(await page.evaluate(()=>app.desktop),true);
+  await page.evaluate(()=>{app.save.desktopControl='gamepad';storeSave(app.save);});
+  await page.reload();await page.waitForFunction(()=>window.app?.controls);await page.evaluate(()=>{app.mondial=null;});
+  assert.equal(await page.evaluate(()=>app.controls.mode),'keyboard','une sauvegarde « manette » repart au clavier');
   await page.keyboard.press('Enter');await shot(page,'pc-menu');
   await page.click('[data-action="setup"][data-mode="race"]');
-  await page.selectOption('#sel-desktop-control','wheel');
+  assert.equal(await page.locator('#sel-desktop-control').count(),0,'plus de choix de commande au paddock');
   const cols=await page.locator('.setup-block').evaluateAll(a=>a.map(e=>{const r=e.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width};}));
   assert(cols[1].x>cols[0].x+cols[0].w,'préparation sur deux colonnes');
   await shot(page,'pc-depart');await start(page);
-  await page.mouse.move(720,450);await page.mouse.wheel(0,-100);
-  await page.waitForFunction(()=>Math.abs(app.race.player.throttle-.1)<.001);
-  await page.mouse.wheel(0,-200);await page.waitForFunction(()=>Math.abs(app.input.throttle-.3)<.001);
-  await page.keyboard.press('ArrowUp');assert.equal(await page.evaluate(()=>app.input.sel),1);
-  assert(Math.abs(await page.evaluate(()=>app.input.throttle)-.3)<.001,'les flèches ne modifient pas les gaz');
-  await page.mouse.click(720,450);assert(Math.abs(await page.evaluate(()=>app.input.throttle)-.3)<.001,'le clic ne force pas les gaz en mode molette');
-  await shot(page,'pc-course-molette');
-  await page.keyboard.press('Space');assert.equal(await page.evaluate(()=>app.input.throttle),0);
-  await page.mouse.wheel(0,-100);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
+  // Espace, et rien d'autre
+  await page.keyboard.down('Space');assert.equal(await page.evaluate(()=>!!app.input.throttle),true,'Espace accélère');
+  await page.keyboard.up('Space');assert.equal(await page.evaluate(()=>!!app.input.throttle),false,'Espace relâché : frein');
+  await page.keyboard.down('w');assert.equal(await page.evaluate(()=>!!app.input.throttle),false,'une autre touche n’accélère pas');await page.keyboard.up('w');
+  await page.mouse.move(720,450);await page.mouse.down();assert.equal(await page.evaluate(()=>!!app.input.throttle),false,'le clic n’accélère pas');await page.mouse.up();
+  // ↑ / ↓, et rien d'autre
+  await page.keyboard.press('ArrowUp');assert.equal(await page.evaluate(()=>app.input.sel),1,'↑ : un cran vers le jaune');
+  await page.keyboard.press('ArrowLeft');await page.keyboard.press('KeyA');assert.equal(await page.evaluate(()=>app.input.sel),1,'← et A ne changent plus la ligne');
+  await page.mouse.wheel(0,200);await page.waitForTimeout(50);assert.equal(await page.evaluate(()=>app.input.sel),1,'la molette ne change plus la ligne');
+  await page.keyboard.press('ArrowDown');await page.keyboard.press('ArrowDown');assert.equal(await page.evaluate(()=>app.input.sel),-1,'↓ ↓ : jusqu’au bleu');
+  await shot(page,'pc-course-espace');
+  // une manette branchée, gâchette enfoncée : rien ne bouge
+  await page.evaluate(()=>{window.mockPads=[{index:0,connected:true,mapping:'standard',axes:[1],buttons:Array.from({length:17},()=>({pressed:false,value:0}))}];mockPads[0].buttons[7].value=1;mockPads[0].buttons[9].pressed=true;});
+  await page.waitForTimeout(200);
+  assert.deepEqual(await page.evaluate(()=>({m:app.controls.mode,g:!!app.input.throttle,s:app.input.sel,e:app.state})),{m:'keyboard',g:false,s:-1,e:'race'},'la manette mise de côté ne fait rien');
+  await page.evaluate(()=>{window.mockPads=[];});
+  // perte de focus, pause, reprise
+  await page.keyboard.down('Space');await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
   assert.equal(await page.evaluate(()=>app.state),'paused');assert.equal(await page.evaluate(()=>app.input.throttle),0,'perte de focus : gaz coupés');
-  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  await page.keyboard.up('Space');await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  assert.match(await page.locator('.pc-controls').innerText(),/Espace/,'la pause rappelle les touches');
   await page.click('[data-action="resume"]');assert.equal(await page.evaluate(()=>app.input.throttle),0);
-  await page.keyboard.press('Escape');await page.selectOption('#sel-desktop-control','keyboard');await page.click('[data-action="resume"]');
-  await page.keyboard.down('Space');await page.keyboard.down('w');await page.keyboard.up('Space');
-  assert.equal(await page.evaluate(()=>!!app.input.throttle),true,'une seconde touche maintient les gaz');
-  await page.keyboard.up('w');assert.equal(await page.evaluate(()=>!!app.input.throttle),false);
-  await page.mouse.down();assert.equal(await page.evaluate(()=>!!app.input.throttle),true);await page.mouse.up();
-  assert.equal(await page.evaluate(()=>!!app.input.throttle),false);
-  await page.keyboard.press('Escape');await page.selectOption('#sel-desktop-control','gamepad');await page.click('[data-action="resume"]');
-  assert.equal(await page.evaluate(()=>app.controls.status),'disconnected');
-  await page.evaluate(()=>{window.mockPads=[{index:0,connected:true,mapping:'standard',axes:[0],buttons:Array.from({length:17},()=>({pressed:false,value:0}))}];mockPads[0].buttons[7].value=1;});
-  await page.waitForFunction(()=>app.controls.status==='release');assert.equal(await page.evaluate(()=>app.input.throttle),0);
-  await page.evaluate(()=>{mockPads[0].buttons[7].value=0;});await page.waitForFunction(()=>app.controls.status==='ready');
-  await page.evaluate(()=>{mockPads[0].buttons[7].value=.525;});await page.waitForFunction(()=>Math.abs(app.race.player.throttle-.5)<.001);
-  await shot(page,'pc-course-manette');
-  await page.evaluate(()=>{mockPads[0].axes[0]=-1;});await page.waitForFunction(()=>app.input.sel===0);
-  await page.evaluate(()=>{mockPads[0].buttons[9].pressed=true;});await page.waitForFunction(()=>app.state==='paused');
-  await page.waitForTimeout(100);assert.equal(await page.evaluate(()=>app.state),'paused','Menu tenu ne reprend pas tout seul');
-  await page.evaluate(()=>{mockPads[0].buttons[9].pressed=false;});await page.waitForTimeout(70);
-  await page.evaluate(()=>{mockPads[0].buttons[9].pressed=true;});await page.waitForFunction(()=>app.state==='race');
-  await page.evaluate(()=>{mockPads[0].buttons[9].pressed=false;});
-  assert.equal(await page.evaluate(()=>app.input.throttle),0,'pas de départ gâchette enfoncée après pause');
-  await page.evaluate(()=>{mockPads[0].buttons[7].value=0;});await page.waitForFunction(()=>app.controls.armed);
-  await page.evaluate(()=>{mockPads[0].buttons[7].value=1;});await page.waitForFunction(()=>app.input.throttle===1);
-  await page.evaluate(()=>{mockPads[0].connected=false;});await page.waitForFunction(()=>app.state==='paused');
-  assert.equal(await page.evaluate(()=>app.input.throttle),0);
-  await page.reload();await page.waitForFunction(()=>window.app?.controls);
-  assert.equal(await page.evaluate(()=>app.controls.mode),'gamepad','mode sauvegardé');
-  await page.keyboard.press('Enter');await page.click('[data-action="settings"]');await shot(page,'pc-reglages');
-  await ctx.close();console.log('PC : paysage, clavier/clic, molette, dosage RT, trajectoire, pause/reprise/déconnexion et sauvegarde OK.');
+  await page.keyboard.press('Escape');assert.equal(await page.evaluate(()=>app.state),'paused','Échap : pause');
+  await page.click('[data-action="resume"]');
+  await page.evaluate(()=>app.toMenu());await page.click('[data-action="settings"]');
+  assert.equal(await page.locator('#sel-desktop-control').count(),0,'plus de choix de commande dans les réglages');
+  assert.match(await page.locator('.pc-controls').innerText(),/Maintiens Espace/);
+  await shot(page,'pc-reglages');
+  await ctx.close();console.log('PC : un bouton (Espace), ↑ / ↓ seules, souris/molette/manette sans effet, pause et ancienne sauvegarde OK.');
 
   for(const [name,device] of [['mobile',devices['iPhone 13']],['tablette',devices['iPad (gen 7)']]]) {
    const {ctx,page}=await create(device);assert.equal(await page.evaluate(()=>app.desktop),false,name+' reste tactile');
