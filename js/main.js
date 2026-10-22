@@ -2,6 +2,10 @@
 // user content (custom tracks and car models).
 'use strict';
 
+// Le levier ne quitte son cran que quand le doigt a dépassé le milieu vers le suivant de 12 % de
+// l'écart entre deux crans : assez pour ne pas battre sur la frontière, trop peu pour se sentir.
+const LEVIER_CRAN = 0.62;
+
 class App {
   constructor() {
     this.save = loadSave();
@@ -206,9 +210,15 @@ class App {
   }
   stepLine(direction) {
     const bas = this.renderer.pitOpen ? -2 : -1;
-    const value = clamp(Math.round(this.input.pit ? -2 : this.input.sel) + direction, bas, 1);
-    this.input.pit = value <= -1.5;
-    this.input.sel = clamp(value, -1, 1);
+    this.poseCran(clamp(Math.round(this.input.pit ? -2 : this.input.sel) + direction, bas, 1));
+  }
+  /* Le levier ne connaît que ses crans : jaune, idéale, bleue, et les stands quand ils sont ouverts.
+  Chaque changement de cran fait son clac, au clavier, à la manette comme au doigt. */
+  poseCran(cran) {
+    const avant = this.input.pit ? -2 : this.input.sel;
+    this.input.pit = cran <= -1.5;
+    this.input.sel = clamp(cran, -1, 1);
+    if (cran !== avant && this.state === 'race') this.audio.clac(cran > avant ? 1 : -1);
   }
   _bindInput() {
     const poseGaz = value => this.setThrottle(value);
@@ -220,9 +230,19 @@ class App {
     `sel`, qui reste la trajectoire. Les deux sont posés ensemble ici pour qu'ils ne puissent pas
     diverger — un levier qui dirait « stands » pendant que la voiture vise encore l'intérieur
     serait un bug impossible à voir autrement qu'en jouant. */
+    /* LE DOIGT CHOISIT UN CRAN, JAMAIS UNE POSITION ENTRE DEUX.
+
+    Le levier suivait le doigt : entre deux crans, la poignée s'arrêtait où on la lâchait, et la
+    voiture visait un mélange des deux lignes — un état transitoire qu'on ne choisissait jamais
+    vraiment, et qu'on ne voyait pas. Maintenant la poignée reste dans son cran tant que le doigt n'a
+    pas franchi le milieu vers le suivant, d'un peu plus que la moitié de l'écart (LEVIER_CRAN) : elle
+    y saute alors d'un coup, avec son clac. Ce petit surplus empêche la poignée de battre entre deux
+    crans quand le doigt tremble sur la frontière. Un appui loin du cran actuel va droit au plus proche. */
     const poseSel = (v) => {
-      this.input.pit = v <= -1.5;
-      this.input.sel = clamp(v, -1, 1);
+      const actuel = this.input.pit ? -2 : this.input.sel;
+      if (v <= -1.5) { this.poseCran(-2); return; }
+      if (Math.abs(v - actuel) <= LEVIER_CRAN) return;
+      this.poseCran(clamp(Math.round(v), -1, 1));
     };
     // au clavier on descend d'un cran de plus quand les stands sont ouverts, sinon un joueur sur
     // ordinateur n'aurait aucun moyen de s'arrêter

@@ -3112,7 +3112,7 @@ class Renderer {
     toujours à droite, ils sortiraient de l'écran, et c'est le genre de détail qui ne se voit que
     sur l'appareil de celui qui a changé le réglage. */
     const cote = s.droite ? -1 : 1;
-    const lx = s.x + 14 * cote;
+    const lx = s.x + 19 * cote;
     g.font = `italic 900 ${this.mobile ? 13 : 15}px Racing, Impact, sans-serif`;
     /* LE FOND SE CALE SUR CE QU'IL PORTE : la même marge du côté de la poignée et du côté du plus
     long libellé, prise à mi-hauteur — là où la poignée repose, sur l'idéale. Il était posé à 18 px
@@ -3121,46 +3121,61 @@ class Renderer {
     taille du texte. Le biseau du fond décale ses bords d'un demi-biseau à mi-hauteur. */
     const larg = Math.max(...stops.map((st) => g.measureText(st.l).width), g.measureText(t('linePit')).width);
     const marge = 7, hFond = s.len + 52 + (ouvert ? 22 : 0), biseau = Math.min(9, hFond * .23);
-    const cotePoignee = 13 + marge, coteTexte = 14 + larg + marge;
+    const cotePoignee = 15 + marge, coteTexte = 19 + larg + marge;
     const gauche = s.droite ? s.x - coteTexte : s.x - cotePoignee;
     this._hudLabel(g, gauche - biseau / 2, s.y - 26, cotePoignee + coteTexte + biseau, hFond, '#171b19da');
-    // track
-    g.fillStyle = 'rgba(255,255,255,0.18)'; this._roundRect(g, s.x - 4, s.y, 8, s.len, 4); g.fill();
+    /* UNE GRILLE DE LEVIER DE VITESSE, et une poignée qui tombe dans ses crans.
+
+    Le levier était un rail et un disque qui suivait le doigt, si bien qu'on le lisait comme un
+    curseur — une valeur continue, qu'on pouvait poser entre deux lignes. Il n'a pourtant que des
+    crans (main.js, `poseSel`), et le dessin le dit maintenant : une fente sombre creusée dans le
+    panneau, un creux rond à chaque cran cerclé de la couleur de sa ligne, et un pommeau en relief qui
+    se pose dans le cran choisi. Le pommeau glisse en trente millisecondes d'un cran à l'autre : assez
+    pour que l'œil voie d'où il vient, trop peu pour qu'on le croie entre deux. */
+    const yCran = (v) => s.y + s.len / 2 - v * s.len / 2;
+    const bas = ouvert ? this.pitY : yCran(-1);
+    g.fillStyle = '#05070a';
+    this._roundRect(g, s.x - 3.5, yCran(1), 7, bas - yCran(1), 3.5); g.fill();
+    const choisi = (p.pitAsk || p.pitState) && ouvert ? -2 : Math.round(clamp(p.sel, -1, 1));
+    const cran = (y, couleur, actif) => {
+      g.fillStyle = '#05070a'; g.beginPath(); g.arc(s.x, y, 10, 0, Math.PI * 2); g.fill();
+      // le bord du creux, éclairé par en bas : il se lit comme une encoche et non comme une pastille
+      g.strokeStyle = 'rgba(255,255,255,0.16)'; g.lineWidth = 1;
+      g.beginPath(); g.arc(s.x, y, 10.5, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
+      g.strokeStyle = couleur; g.lineWidth = actif ? 3 : 2;
+      g.beginPath(); g.arc(s.x, y, 6.5, 0, Math.PI * 2); g.stroke();
+    };
     g.textAlign = s.droite ? 'right' : 'left'; g.textBaseline = 'middle';
     for (const st of stops) {
-      const y = s.y + s.len / 2 - st.v * s.len / 2;
-      g.fillStyle = st.c; g.beginPath(); g.arc(s.x, y, 7, 0, Math.PI * 2); g.fill();
-      g.fillStyle = '#e8e8ec'; g.fillText(st.l, lx, y);
+      const y = yCran(st.v);
+      cran(y, st.c, choisi === st.v);
+      g.fillStyle = choisi === st.v ? '#ffffff' : '#9aa1ad'; g.fillText(st.l, lx, y);
     }
     if (ouvert) {
-      // le rail se prolonge jusqu'à la coche, sinon elle flotte sans appartenir au levier
-      g.fillStyle = 'rgba(255,255,255,0.10)'; this._roundRect(g, s.x - 4, s.y + s.len, 8, 22, 4); g.fill();
       const actif = p.pitAsk || p.pitState;
-      g.fillStyle = actif ? '#5be07a' : '#cfa14a';
-      g.beginPath(); g.arc(s.x, this.pitY, 8, 0, Math.PI * 2); g.fill();
-      g.fillStyle = '#1a1400'; g.font = `bold ${this.mobile ? 9 : 10}px system-ui, sans-serif`;
-      g.textAlign = 'center'; g.fillText('P', s.x, this.pitY + 0.5);
-      g.textAlign = s.droite ? 'right' : 'left'; g.fillStyle = actif ? '#5be07a' : '#e8e8ec';
-      g.font = `italic 900 ${this.mobile ? 13 : 15}px Racing, Impact, sans-serif`;
+      cran(this.pitY, actif ? '#5be07a' : '#cfa14a', choisi === -2);
+      g.fillStyle = actif ? '#5be07a' : choisi === -2 ? '#ffffff' : '#9aa1ad';
       g.fillText(t('linePit'), lx, this.pitY);
     }
-    /* La poignée prend la couleur de ce qu'elle demande.
-
-    Elle était jaune en toute position, ce qui ne se voyait pas tant que les deux bouts du levier
-    s'appelaient « intérieur » et « extérieur ». Maintenant qu'ils ont une couleur et que les bords
-    de la piste la portent aussi, une poignée jaune posée sur la butée bleue dit le contraire de ce
-    qu'elle fait. Elle se dégrade donc du bleu au jaune en passant par le blanc de l'idéale, ce qui
-    la rend lisible sans lire le libellé — et au coin de l'œil, qui est la façon dont on la lit en
-    roulant. Sur la coche des stands elle reste verte, comme la coche. */
-    const hy = (p.pitAsk || p.pitState) && ouvert ? this.pitY : s.y + s.len / 2 - p.sel * s.len / 2;
-    const melange = (a, b, f) => a.map((v, i) => Math.round(v + (b[i] - v) * f));
-    const BLEU = [80, 200, 255], BLANC = [245, 246, 250], JAUNE = [255, 212, 0];
-    const u = clamp(p.sel, -1, 1);
-    const rgb = (p.pitAsk || p.pitState) && ouvert ? [91, 224, 122]
-      : u >= 0 ? melange(BLANC, JAUNE, u) : melange(BLANC, BLEU, -u);
-    g.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
-    g.beginPath(); g.arc(s.x, hy, 13, 0, Math.PI * 2); g.fill();
-    g.strokeStyle = 'rgba(12,14,22,0.85)'; g.lineWidth = 2; g.stroke();
+    /* La poignée prend la couleur de ce qu'elle demande : bleue, blanche ou jaune comme les bords de
+    la piste, verte sur la coche des stands. On la lit du coin de l'œil, sans lire le libellé. */
+    const cible = choisi === -2 ? this.pitY : yCran(choisi);
+    const maintenant = performance.now();
+    if (this._pommeau == null || this._pommeauT == null || maintenant - this._pommeauT > 500) this._pommeau = cible;
+    else this._pommeau += (cible - this._pommeau) * (1 - Math.exp(-(maintenant - this._pommeauT) / 30));
+    if (Math.abs(cible - this._pommeau) < 0.4) this._pommeau = cible;
+    this._pommeauT = maintenant;
+    const hy = this._pommeau;
+    const rgb = choisi === -2 ? [91, 224, 122] : choisi > 0 ? [255, 212, 0] : choisi < 0 ? [80, 200, 255] : [245, 246, 250];
+    const fonce = rgb.map((c) => Math.round(c * 0.45));
+    // l'ombre portée, puis la boule : un dégradé éclairé d'en haut à gauche, et un reflet
+    g.fillStyle = 'rgba(0,0,0,0.45)'; g.beginPath(); g.arc(s.x + 1.5, hy + 2.5, 14, 0, Math.PI * 2); g.fill();
+    const boule = g.createRadialGradient(s.x - 4, hy - 5, 1, s.x, hy, 14);
+    boule.addColorStop(0, '#ffffff');
+    boule.addColorStop(0.35, `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`);
+    boule.addColorStop(1, `rgb(${fonce[0]},${fonce[1]},${fonce[2]})`);
+    g.fillStyle = boule; g.beginPath(); g.arc(s.x, hy, 14, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = 'rgba(8,10,16,0.9)'; g.lineWidth = 1.5; g.stroke();
     g.textBaseline = 'top';
   }
 
@@ -3207,10 +3222,8 @@ class Renderer {
     bas que la position « intérieur » demande les stands. Elle n'est lue que si elle est dessinée,
     faute de quoi on demanderait un arrêt impossible en visant le bord du panneau. */
     if (this.pitOpen && y > s.y + s.len + 8) return -2;
-    let v = (s.y + s.len / 2 - y) / (s.len / 2);
-    v = clamp(v, -1, 1);
-    if (Math.abs(v) < 0.18) v = 0; else if (Math.abs(v) > 0.82) v = Math.sign(v);
-    return v;
+    // la position du doigt, sans aimantation : c'est main.js qui la range dans un cran
+    return clamp((s.y + s.len / 2 - y) / (s.len / 2), -1, 1);
   }
 }
 

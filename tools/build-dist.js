@@ -4,7 +4,6 @@
     npm run build                          # écrit dist/
     node tools/build-dist.js --sortie=x    # ailleurs
     node tools/build-dist.js --domaine=grip.game   # ajoute le fichier CNAME de GitHub Pages
-    node tools/build-dist.js --canal=recette       # la recette (par défaut : la prod)
 
 Le dépôt se joue tel quel, sans compilation : c'est ce qui permet de travailler vite. La version
 publiée en diffère sur trois points.
@@ -24,12 +23,11 @@ publiée en diffère sur trois points.
 Le cache porte un nom tiré du CONTENU des fichiers : une nouvelle publication se reconnaît d'elle-même,
 même si l'on a oublié de changer la version.
 
-DEUX CANAUX, LE MÊME CODE. La prod (grip-game.github.io) est ce que tout le monde joue ; la recette
-(brunodrapi.github.io/Slot_car_racing) est la même fabrication, qu'on essaie avant de la passer en
-prod. Elle ne diffère que par son nom — « GRIP Recette » sur l'écran d'accueil de l'iPhone, une
-pastille RECETTE à côté du numéro de version — et par ses tables de multijoueur, qui ne croisent pas
-celles de la prod. Les deux vivent sur des domaines différents, donc avec chacune son cache, sa
-sauvegarde et son service worker : installer l'une ne touche pas à l'autre. */
+C'EST LA PROD. La recette, elle, est le dépôt lui-même, servi tel quel (brunodrapi.github.io/
+Slot_car_racing) : code source commenté, pas de service worker, une pastille RECETTE. Ce script écrit
+« prod » dans `APP_CANAL` (js/version.js), ce qui retire la pastille et rend au jeu son nom. Les deux
+vivent sur des domaines différents, donc chacune avec sa sauvegarde : jouer à l'une ne touche pas à
+l'autre. */
 'use strict';
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const { minify } = require('terser');
@@ -39,9 +37,6 @@ const ROOT = path.join(__dirname, '..');
 const arg = (nom) => { const a = process.argv.find((x) => x.startsWith(`--${nom}=`)); return a ? a.slice(nom.length + 3) : null; };
 const OUT = path.resolve(ROOT, arg('sortie') || 'dist');
 const DOMAINE = arg('domaine');
-const CANAL = arg('canal') || 'prod';
-if (!['prod', 'recette'].includes(CANAL)) { console.error('canal inconnu : ' + CANAL + ' (prod ou recette)'); process.exit(1); }
-const RECETTE = CANAL === 'recette';
 
 // Les pages qu'on publie : le jeu, l'éditeur de circuits qu'il ouvre, la page des statistiques.
 const PAGES = ['index.html', 'editor.html', 'analytics.html'];
@@ -183,8 +178,6 @@ async function main() {
     }
     // Les commentaires HTML partent comme ceux du code. (Le service worker s'enregistre depuis js/maj.js.)
     html = html.replace(/<!--[\s\S]*?-->/g, '');
-    if (RECETTE) html = html.replace(/<title>[^<]*<\/title>/, '<title>GRIP Recette</title>')
-      .replace(/(name="apple-mobile-web-app-title" content=")[^"]*"/, '$1GRIP Recette"');
     ecrire(page, html);
   }
 
@@ -192,9 +185,9 @@ async function main() {
   for (const rel of scripts) {
     let src = lire(rel).toString('utf8');
     if (rel === 'js/version.js') {
-      const posee = src.replace(/const APP_CANAL = '[^']*'/, `const APP_CANAL = '${CANAL}'`);
-      if (posee === src && CANAL !== 'dev') throw new Error('APP_CANAL introuvable dans js/version.js');
-      src = posee;
+      const prod = src.replace(/const APP_CANAL = '[^']*'/, "const APP_CANAL = 'prod'");
+      if (prod === src && !/APP_CANAL = 'prod'/.test(src)) throw new Error('APP_CANAL introuvable dans js/version.js');
+      src = prod;
     }
     avant += src.length;
     // echarts arrive déjà minifié : le repasser ne gagne rien et coûte dix secondes.
@@ -227,10 +220,9 @@ async function main() {
     const txt = lire('sounds/engine/' + f).toString('utf8');
     for (const m of txt.matchAll(/"(?:src|source)"\s*:\s*"([^"]+)"/g)) copier(m[1]);
   }
-  // Les icônes du manifeste ; en recette, le manifeste change de nom.
+  // Les icônes du manifeste.
   const manifeste = JSON.parse(lire('site.webmanifest'));
   for (const i of manifeste.icons || []) copier(sansRequete(i.src));
-  if (RECETTE) ecrire('site.webmanifest', JSON.stringify(Object.assign(manifeste, { name: 'GRIP Recette', short_name: 'GRIP Recette' }), null, 2));
 
   // --- GitHub Pages ---
   ecrire('.nojekyll', '');
@@ -253,13 +245,13 @@ async function main() {
   }
   fichiers['./'] = fichiers['index.html'];
   const version = /APP_VERSION\s*=\s*'([^']+)'/.exec(lire('js/version.js').toString('utf8'))[1];
-  const cache = `grip-${RECETTE ? 'recette-' : ''}${version}-${h.digest('hex').slice(0, 10)}`;
-  fs.writeFileSync(path.join(OUT, 'manifeste.json'), JSON.stringify({ version, canal: CANAL, cache, fichiers }));
+  const cache = `grip-${version}-${h.digest('hex').slice(0, 10)}`;
+  fs.writeFileSync(path.join(OUT, 'manifeste.json'), JSON.stringify({ version, cache, fichiers }));
   fs.writeFileSync(path.join(OUT, 'sw.js'), SERVICE_WORKER);
 
   let total = 0;
   for (const r of liste) total += fs.statSync(path.join(OUT, r)).size;
-  console.log(`dist (${CANAL}) : ${liste.length} fichiers, ${(total / 1e6).toFixed(1)} Mo, cache ${cache}`);
+  console.log(`dist : ${liste.length} fichiers, ${(total / 1e6).toFixed(1)} Mo, cache ${cache}`);
   console.log(`code : ${(avant / 1e3).toFixed(0)} ko → ${(apres / 1e3).toFixed(0)} ko minifiés`);
 }
 main().catch((e) => { console.error(e.message || e); process.exit(1); });

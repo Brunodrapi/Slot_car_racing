@@ -283,6 +283,27 @@ class GameAudio {
     n.connect(nf); nf.connect(ng); ng.connect(this.master); n.start(t); n.stop(t + 0.32);
   }
 
+  /* LE CLAC DU LEVIER, quand la poignée tombe dans un cran.
+
+  Deux sons à la fois, comme un vrai levier de vitesse : le claquement du métal — un éclat de bruit,
+  bref et aigu — et le corps de la poignée qui tombe dans l'encoche, une note grave qui chute. Un peu
+  plus aigu en montant qu'en descendant, pour que l'oreille dise le sens sans regarder. Fabriqué ici
+  plutôt qu'enregistré : quarante millisecondes ne valent pas un fichier à télécharger. */
+  clac(sens) {
+    if (!this.started || !this.enabled) return;
+    const ctx = this.ctx, t = ctx.currentTime;
+    const n = ctx.createBufferSource(); n.buffer = this.noiseBuf;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = sens > 0 ? 3400 : 2800; bp.Q.value = 2.5;
+    const ng = ctx.createGain(); ng.gain.setValueAtTime(0.0001, t);
+    ng.gain.exponentialRampToValueAtTime(0.6, t + 0.002); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
+    n.connect(bp); bp.connect(ng); ng.connect(this.master); n.start(t, Math.random() * 0.5); n.stop(t + 0.05);
+    const o = ctx.createOscillator(); o.type = 'triangle';
+    o.frequency.setValueAtTime(sens > 0 ? 230 : 190, t); o.frequency.exponentialRampToValueAtTime(85, t + 0.055);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.4, t + 0.003); g.gain.exponentialRampToValueAtTime(0.001, t + 0.075);
+    o.connect(g); g.connect(this.master); o.start(t); o.stop(t + 0.09);
+  }
+
   beep(freq, dur, vol) {
     if (!this.started || !this.enabled) return;
     const ctx = this.ctx, t = ctx.currentTime;

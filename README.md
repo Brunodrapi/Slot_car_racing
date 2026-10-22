@@ -162,33 +162,31 @@ téléchargement échoue, l'ancienne version reste entière. Continuer avec cett
 rien ; la question revient au lancement suivant. `tools/e2e-dist.js` vérifie tout cela au format d'un
 iPhone : en ligne, hors ligne, puis une mise à jour d'un seul fichier, refusée puis acceptée.
 
-**Recette, puis prod.** Deux publications du même code :
+**Recette, puis prod.** Deux dépôts, deux publics :
 
-| canal   | adresse                                   | dépôt                                     | nom sur l'iPhone |
-|---------|-------------------------------------------|-------------------------------------------|------------------|
-| recette | https://brunodrapi.github.io/Slot_car_racing/ | branche `recette` de ce dépôt          | GRIP Recette     |
-| prod    | https://grip-game.github.io               | `GRIP-game/grip-game.github.io`           | GRIP             |
+| | adresse | ce qui est servi | dépôt | nom sur l'iPhone |
+|---|---|---|---|---|
+| recette | https://brunodrapi.github.io/Slot_car_racing/ | le code source, commenté, tel quel | ce dépôt-ci | GRIP Recette |
+| prod | https://grip-game.github.io | la version minifiée, jouable hors ligne | `GRIP-game/grip-game.github.io` | GRIP |
 
-Chaque changement part d'abord en recette ; on y joue, et ce n'est que lorsqu'il est validé qu'on
-publie le même commit en prod. La recette est la même fabrication que la prod — minifiée, hors ligne,
-avec ses mises à jour proposées à l'écran-titre — et ne s'en distingue que par une pastille
-**RECETTE** à côté du numéro de version, son nom, et ses tables de multijoueur, séparées de celles de
-la prod. Les deux adresses sont des domaines différents : chacune a son cache, sa sauvegarde et son
-installation sur l'iPhone, et l'une ne touche jamais l'autre. Les statistiques marquent les parties de
-recette (`0.45.0-recette`) ; le tableau mondial, lui, est commun.
+La recette n'a rien à fabriquer : chaque commit poussé ici y est en ligne une minute plus tard. Elle se
+reconnaît à une pastille **RECETTE** à côté du numéro de version (`APP_CANAL`, js/version.js), et ses
+tables de multijoueur ne croisent pas celles de la prod ; les statistiques marquent ses parties
+(`0.45.0-recette`), le tableau mondial est commun. Les deux adresses sont des domaines différents :
+chacune a sa sauvegarde, et jouer à l'une ne touche jamais l'autre.
+
+Quand une version est validée en recette, on la passe en prod :
 
 ```
-git worktree add --orphan -b recette ../grip-recette         # une fois
 git clone https://github.com/GRIP-game/grip-game.github.io ../grip-game.github.io   # une fois
-
-tools/publier.sh recette ../grip-recette        && git -C ../grip-recette push -u origin recette
-tools/publier.sh prod ../grip-game.github.io    && git -C ../grip-game.github.io push origin main
+tools/publier.sh ../grip-game.github.io && git -C ../grip-game.github.io push origin main
 ```
 
-`tools/publier.sh` refuse de publier tant qu'une modification n'est pas dans un commit : chaque
-publication porte ainsi le commit source dans son message, et la prod est exactement ce que la
-recette a montré. GitHub Pages sert `grip-game.github.io` à la racine du domaine parce que le dépôt
-porte ce nom ; la recette est servie depuis la branche `recette` (Settings → Pages de ce dépôt).
+**En prod, les commits sont un journal des versions, pas du code.** Leur message est tiré de
+`CHANGELOG.md` — une ligne par changement visible, sans détail technique — pour toutes les versions
+publiées depuis celle que la prod porte encore. `tools/publier.sh` refuse une version qui n'a pas son
+entrée au journal, et un dépôt où une modification n'est pas encore dans un commit. GitHub Pages sert
+`grip-game.github.io` à la racine du domaine parce que le dépôt porte ce nom.
 
 La minification gêne la lecture, elle ne l'empêche pas : un navigateur exécute ce qu'il reçoit. Ce qui
 protège vraiment le travail, c'est de garder ce dépôt-ci privé et de ne publier que `dist/`.
@@ -571,6 +569,19 @@ donne maintenant un autre classement (Countach 3 → 0, M1 3 → 1, 240Z 3 → 2
 1 → 2), en partie parce que son critère de reprise — revenir à trente centimètres de la trajectoire
 d'origine en cinq secondes — compte comme un échec la voiture qui passe large exprès.
 
+
+### Le levier de ligne : des crans, et un clac (0.46)
+
+Le levier se dessine comme une grille de levier de vitesse : une fente, un creux à chaque cran cerclé
+de la couleur de sa ligne (jaune, idéale, bleue, et la coche des stands quand elle est ouverte), et un
+pommeau qui prend la couleur du cran choisi. **Il n'a que ses crans.** Le doigt peut glisser où il
+veut : la poignée reste dans son cran jusqu'à ce qu'il ait passé le milieu vers le suivant (de 12 %
+de l'écart, pour ne pas battre sur la frontière), puis elle y saute d'un coup — la voiture ne vise
+plus jamais un mélange de deux lignes. Chaque changement de cran fait un **clac**, au doigt, au clavier
+et à la manette : un claquement de métal et un coup sourd, un peu plus aigu en montant. Le son est
+fabriqué par le jeu (`clac`, js/audio.js), sans fichier. `tools/e2e-levier.js` fait glisser le doigt
+pixel par pixel sur toute la course du levier et vérifie les trois crans, les franchissements et les
+clacs.
 
 ### Changer de ligne sans se mettre en travers (0.45)
 
