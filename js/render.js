@@ -3129,9 +3129,10 @@ class Renderer {
     Le levier était un rail et un disque qui suivait le doigt, si bien qu'on le lisait comme un
     curseur — une valeur continue, qu'on pouvait poser entre deux lignes. Il n'a pourtant que des
     crans (main.js, `poseSel`), et le dessin le dit maintenant : une fente sombre creusée dans le
-    panneau, un creux rond à chaque cran cerclé de la couleur de sa ligne, et un pommeau en relief qui
-    se pose dans le cran choisi. Le pommeau glisse en trente millisecondes d'un cran à l'autre : assez
-    pour que l'œil voie d'où il vient, trop peu pour qu'on le croie entre deux. */
+    panneau, un creux rond à chaque cran cerclé de la couleur de sa ligne, et un pommeau qui se pose
+    dans le cran choisi — un disque plat, comme le reste du HUD : Bruno le veut minimaliste. Le
+    pommeau glisse en trente millisecondes d'un cran à l'autre : assez pour que l'œil voie d'où il
+    vient, trop peu pour qu'on le croie entre deux. */
     const yCran = (v) => s.y + s.len / 2 - v * s.len / 2;
     const bas = ouvert ? this.pitY : yCran(-1);
     g.fillStyle = '#05070a';
@@ -3166,16 +3167,11 @@ class Renderer {
     if (Math.abs(cible - this._pommeau) < 0.4) this._pommeau = cible;
     this._pommeauT = maintenant;
     const hy = this._pommeau;
+    // un disque plein, sans relief : le style du reste du HUD, plat et lisible d'un coup d'œil
     const rgb = choisi === -2 ? [91, 224, 122] : choisi > 0 ? [255, 212, 0] : choisi < 0 ? [80, 200, 255] : [245, 246, 250];
-    const fonce = rgb.map((c) => Math.round(c * 0.45));
-    // l'ombre portée, puis la boule : un dégradé éclairé d'en haut à gauche, et un reflet
-    g.fillStyle = 'rgba(0,0,0,0.45)'; g.beginPath(); g.arc(s.x + 1.5, hy + 2.5, 14, 0, Math.PI * 2); g.fill();
-    const boule = g.createRadialGradient(s.x - 4, hy - 5, 1, s.x, hy, 14);
-    boule.addColorStop(0, '#ffffff');
-    boule.addColorStop(0.35, `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`);
-    boule.addColorStop(1, `rgb(${fonce[0]},${fonce[1]},${fonce[2]})`);
-    g.fillStyle = boule; g.beginPath(); g.arc(s.x, hy, 14, 0, Math.PI * 2); g.fill();
-    g.strokeStyle = 'rgba(8,10,16,0.9)'; g.lineWidth = 1.5; g.stroke();
+    g.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+    g.beginPath(); g.arc(s.x, hy, 13, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = 'rgba(12,14,22,0.85)'; g.lineWidth = 2; g.stroke();
     g.textBaseline = 'top';
   }
 

@@ -4,7 +4,7 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
-## 0.46.0
+## 0.46.1
 - Nouveau levier de ligne, façon levier de vitesse : trois crans, et un clac à chaque changement.
 - Le levier ne s'arrête plus entre deux lignes : il saute dans le cran suivant.
 
