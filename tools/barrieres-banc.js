@@ -2,7 +2,7 @@
 'use strict';
 const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
 const {contextFor}=require('./motricite-banc.js');
-const c=contextFor('live');c.assert=assert;
+const c=contextFor('live',{usure:true});c.assert=assert;   // l'usure, mise de côté dans le jeu, est rallumée ici
 vm.runInContext(fs.readFileSync(__dirname+'/../js/paquet.js','utf8'),c);
 vm.runInContext(`
 const T=new Track(TRACKS.find(t=>t.id==='spa'));

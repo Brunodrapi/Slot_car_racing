@@ -9,6 +9,12 @@
 // Nothing is ever snapped back onto the line, on or off the road.
 'use strict';
 
+/* L'USURE ET LES DÉGÂTS SONT MIS DE CÔTÉ (0.50) : la fonction n'est pas encore au point. Pneus qui
+s'usent, tôle qui se cabosse, arrêt aux stands — tout reste écrit, ici et dans race.js, et revient en
+passant cet interrupteur à `true`. D'ici là, aucune course ne s'use, quel que soit le réglage gardé dans
+une ancienne sauvegarde, et le choix disparaît du paddock. */
+const USURE_ACTIVE = false;
+
 /* L'usure et les dommages, en option et en course seulement.
 
 CE QUE FAIT L'USURE. Un pneu s'use en roulant, et beaucoup plus vite en glissant : c'est le

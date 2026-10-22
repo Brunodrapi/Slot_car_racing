@@ -1328,7 +1328,7 @@ dessin, pas du code mort. La branche `isometric` garde l'essai complet.
   de tour sont rangés sous `circuit|catégorie` et `circuit|catégorie|voiture` dans la sauvegarde,
   et le changer effacerait ceux des joueurs — mais son nom ne pouvait plus être « GT » avec une
   935 et une 787B sur la grille.
-- **Course rapide** et **contre-la-montre** (records par circuit et par voiture), 5 niveaux de difficulté, usure et dommages en option.
+- **Course rapide** et **contre-la-montre** (records par circuit et par voiture), 5 niveaux de difficulté (usure et dommages : mis de côté pour l'instant).
 - Une **carrière** existe dans le code, actuellement masquée. Elle n'a plus qu'une coupe : les
   trois autres couraient dans les catégories retirées.
 - IA qui freine selon son talent, choisit sa ligne pour dépasser, aspire dans le sillage, se touche.
@@ -2851,6 +2851,13 @@ l'échelle est redevenue monotone dans les deux sens.
 Chaque palier vaut cinq à six pour cent, soit l'écart qui séparait déjà moyen de difficile.
 
 ## Usure et dommages
+
+> **Mis de côté depuis la 0.50** : la fonction n'est pas encore au point. L'interrupteur
+> `USURE_ACTIVE = false` (`js/car.js`) l'éteint partout — aucune course ne s'use, quel que soit le
+> réglage d'une ancienne sauvegarde, le choix disparaît du paddock, et les stands, qui n'existent
+> qu'avec l'usure, ne s'ouvrent plus. Tout ce qui suit reste écrit et revient en le passant à `true`.
+> Les bancs des stands et de l'usure (`tools/stands.js`, `usure.js`, `zandvoort-stands-banc.js`,
+> `barrieres-banc.js`) la rallument dans leur bac à sable pour rester valables.
 
 En option, et **en course seulement**. Un record de contre-la-montre signé sur des pneus à moitié
 morts ne se compare à rien, et la table des records n'a pas de colonne pour dire dans quel état il

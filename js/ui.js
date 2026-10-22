@@ -718,7 +718,7 @@ class UI {
           if (s.showLines) h.push(t('horsGuide'));
           if (s.aimant) h.push(t('horsAimant'));
           if ((s.ff == null ? 0.3 : s.ff) !== 0.3) h.push(t('horsFf'));
-          if (s.wear) h.push(t('horsUsure'));
+          if (s.wear && USURE_ACTIVE) h.push(t('horsUsure'));
           return h.length ? `<p class="avert">${t('horsClassement')}${h.join(', ')}.</p>` : '';
         })()}
         <label>${t('difficulty')}<select id="sel-diff">${NIVEAUX.map(d => `<option value="${d}" ${s.difficulty === d ? 'selected' : ''}>${t(d)}</option>`).join('')}</select></label>
@@ -993,7 +993,7 @@ class UI {
         ${pastille(t('difficulty'), t(s.difficulty), `data-action="pickDiff" data-id="${suivant(NIVEAUX, s.difficulty)}"`)}
         ${pastille(t('lapCount'), s.lapsPerso ? `${t('lapCustom')}` : (s.laps || 5), `data-action="pickLaps" data-id="${suivant([2, 5, 10, 20, 'perso'], toursCourants)}"`)}
         ${s.lapsPerso ? `<label class="chip chip-input"><span>${t('lapCount')} :</span><input id="inp-laps" type="number" min="1" max="99" value="${Math.max(1, Math.min(99, s.laps || 5))}"></label>` : ''}
-        ${pastille(t('chipWear'), t(s.wear ? 'on' : 'off'), `data-action="pickWear" data-id="${s.wear ? 0 : 1}" title="${escapeHtml(t('wearHint'))}"`)}
+        ${USURE_ACTIVE ? pastille(t('chipWear'), t(s.wear ? 'on' : 'off'), `data-action="pickWear" data-id="${s.wear ? 0 : 1}" title="${escapeHtml(t('wearHint'))}"`) : ''}
       </div>` : ''}
       <!-- La liste et le choix actif sont propres au couple circuit+voiture.
            Un même nom peut conserver des valeurs pour plusieurs couples ; chacun retrouve
