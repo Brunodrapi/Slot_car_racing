@@ -570,6 +570,24 @@ donne maintenant un autre classement (Countach 3 → 0, M1 3 → 1, 240Z 3 → 2
 d'origine en cinq secondes — compte comme un échec la voiture qui passe large exprès.
 
 
+### Les noms affichés : voitures, constructeurs et circuits (0.47)
+
+Les 25 voitures et les 13 circuits portent des noms fictifs, arrêtés dans `tools/noms-affichage.json`
+(la source de vérité de la correspondance). Seul le champ `name` du registre a changé
+(`js/cars.js`, `js/tracks.js`), voiture par voiture et circuit par circuit, par identifiant : les
+`id`, les sprites, les sons, les livrées, les tracés et la physique sont intacts, si bien que les
+records (`circuit|catégorie|voiture`), les sauvegardes, les réglages et le multijoueur, qui ne
+transportent que des identifiants, retrouvent tout. Les noms sont identiques en français et en
+anglais. Les livrées qui portaient le nom de la voiture le suivent (Stallone Furioso, Moonshine
+Sting, Breithüft Langheck, Kaminari Hayate) ; celles qui nomment un sponsor, une équipe ou une
+course gardent leur désignation historique. Les commentaires du code et cette documentation
+continuent de nommer les vrais modèles et circuits quand ils servent à les identifier.
+
+`tools/e2e-noms.js` le vérifie : les 25 + 13 noms de la table, les menus identiques en français et
+en anglais, trois voitures sur quatre circuits (dessin, caractéristiques, mini-carte), un ancien
+record retrouvé par identifiants, une grille en ligne reçue par identifiants. Avec
+`--reference=<commit>`, il compare aussi tout le reste des registres à un état antérieur.
+
 ### Le levier de ligne : des crans, et un clac (0.46)
 
 Le levier se dessine comme une grille de levier de vitesse : une fente, un creux à chaque cran cerclé

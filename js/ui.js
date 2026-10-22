@@ -1206,7 +1206,7 @@ class UI {
       <p class="muted">${t('wsIntro')}</p>
       <div class="cols">
         <div class="form">
-          <label>${t('wsName')}<input id="ws-name" maxlength="24" placeholder="F40 LM"></label>
+          <label>${t('wsName')}<input id="ws-name" maxlength="24" placeholder="${escapeHtml((modelById('f40') || {}).name || '')}"></label>
           <label>${t('wsCat')}<select id="ws-cat">${playableCategories().map(c => `<option value="${c.id}">${this.L(c.name)}</option>`).join('')}</select></label>
           <label>${t('wsLength')}<input id="ws-len" type="number" step="0.1" min="2" max="8" value="4.5"></label>
           <label>${t('wsWidth')}<input id="ws-wid" type="number" step="0.1" min="1" max="4" value="2"></label>

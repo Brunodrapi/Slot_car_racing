@@ -1,0 +1,330 @@
+{
+  "projet": "GRIP — Racing the Line",
+  "source": {
+    "repo": "Brunodrapi/Slot_car_racing",
+    "files": [
+      "js/cars.js",
+      "js/tracks.js"
+    ]
+  },
+  "principe": "Modifier uniquement les noms affichés. Ne pas modifier les IDs ni les données de gameplay, images, sons, clés de stockage ou réseaux.",
+  "langues": {
+    "fr": "identique à display_name",
+    "en": "identique à display_name"
+  },
+  "constructeurs": [
+    {
+      "original": "Ferrari",
+      "nom_fictif": "Purosangue",
+      "statut": "validé"
+    },
+    {
+      "original": "Lamborghini",
+      "nom_fictif": "Stallone",
+      "statut": "validé"
+    },
+    {
+      "original": "BMW",
+      "nom_fictif": "Howitzer",
+      "statut": "validé"
+    },
+    {
+      "original": "Porsche",
+      "nom_fictif": "Breithüft",
+      "statut": "validé"
+    },
+    {
+      "original": "Mazda",
+      "nom_fictif": "Kaminari",
+      "statut": "validé"
+    },
+    {
+      "original": "Datsun",
+      "nom_fictif": "Kitsune",
+      "statut": "validé"
+    },
+    {
+      "original": "Jaguar",
+      "nom_fictif": "Moggy",
+      "statut": "validé"
+    },
+    {
+      "original": "Chevrolet / Corvette",
+      "nom_fictif": "Moonshine",
+      "statut": "validé"
+    },
+    {
+      "original": "Ford",
+      "nom_fictif": "Redneck",
+      "statut": "validé"
+    },
+    {
+      "original": "Lotus",
+      "nom_fictif": "Bumblebee",
+      "statut": "validé"
+    },
+    {
+      "original": "Williams",
+      "nom_fictif": "Windsor",
+      "statut": "validé"
+    },
+    {
+      "original": "McLaren",
+      "nom_fictif": "McHaggis",
+      "statut": "validé"
+    },
+    {
+      "original": "Tyrrell",
+      "nom_fictif": "Sixpence",
+      "statut": "validé"
+    },
+    {
+      "original": "Brabham",
+      "nom_fictif": "Boomerang",
+      "statut": "validé"
+    },
+    {
+      "original": "Ligier",
+      "nom_fictif": "Le Coq",
+      "statut": "validé"
+    },
+    {
+      "original": "Renault",
+      "nom_fictif": "Somua",
+      "statut": "validé"
+    }
+  ],
+  "voitures": [
+    {
+      "categorie": "f1",
+      "id": "tyrrellp34",
+      "original": "Tyrrell P34",
+      "display_name": "Sixpence Hexa"
+    },
+    {
+      "categorie": "f1",
+      "id": "ferrari312t",
+      "original": "Ferrari 312T",
+      "display_name": "Purosangue Dodici T"
+    },
+    {
+      "categorie": "f1",
+      "id": "mclarenm23",
+      "original": "McLaren M23",
+      "display_name": "McHaggis Arrow 23"
+    },
+    {
+      "categorie": "f1",
+      "id": "lotus79",
+      "original": "Lotus 79",
+      "display_name": "Bumblebee Ground 79"
+    },
+    {
+      "categorie": "f1",
+      "id": "lotus72",
+      "original": "Lotus 72",
+      "display_name": "Bumblebee Wedge 72"
+    },
+    {
+      "categorie": "f1",
+      "id": "brabhambt46b",
+      "original": "Brabham BT46B",
+      "display_name": "Boomerang Fan 46"
+    },
+    {
+      "categorie": "f1",
+      "id": "williamsfw07",
+      "original": "Williams FW07",
+      "display_name": "Windsor 07"
+    },
+    {
+      "categorie": "f1",
+      "id": "ligierjs11",
+      "original": "Ligier JS11",
+      "display_name": "Le Coq Bleu 11"
+    },
+    {
+      "categorie": "f1",
+      "id": "renaultrs10",
+      "original": "Renault RS10",
+      "display_name": "Somua Turbo 10"
+    },
+    {
+      "categorie": "gt",
+      "id": "m1procar",
+      "original": "M1 Procar",
+      "display_name": "Howitzer K1"
+    },
+    {
+      "categorie": "gt",
+      "id": "f40",
+      "original": "F40",
+      "display_name": "Purosangue Furia 40"
+    },
+    {
+      "categorie": "gt",
+      "id": "countach",
+      "original": "Countach LP500",
+      "display_name": "Stallone Furioso"
+    },
+    {
+      "categorie": "gt",
+      "id": "930",
+      "original": "911 Turbo",
+      "display_name": "Breithüft Turbo 9"
+    },
+    {
+      "categorie": "gt",
+      "id": "corvette",
+      "original": "Corvette",
+      "display_name": "Moonshine Sting"
+    },
+    {
+      "categorie": "gt",
+      "id": "csl",
+      "original": "3.0 CSL",
+      "display_name": "Howitzer 3.0 Leicht"
+    },
+    {
+      "categorie": "gt",
+      "id": "250gto",
+      "original": "250 GTO",
+      "display_name": "Purosangue Gran Corsa"
+    },
+    {
+      "categorie": "gt",
+      "id": "typee",
+      "original": "Type E",
+      "display_name": "Moggy Longnose"
+    },
+    {
+      "categorie": "gt",
+      "id": "240z",
+      "original": "240Z",
+      "display_name": "Kitsune Zeta 240"
+    },
+    {
+      "categorie": "proto",
+      "id": "gt40",
+      "original": "GT40 Mk II",
+      "display_name": "Redneck Endurance 40"
+    },
+    {
+      "categorie": "proto",
+      "id": "935",
+      "original": "935",
+      "display_name": "Breithüft Langheck"
+    },
+    {
+      "categorie": "proto",
+      "id": "787b",
+      "original": "787B",
+      "display_name": "Kaminari Hayate"
+    },
+    {
+      "categorie": "proto",
+      "id": "962",
+      "original": "962",
+      "display_name": "Breithüft Aero 62"
+    },
+    {
+      "categorie": "proto",
+      "id": "xjr9",
+      "original": "XJR-9",
+      "display_name": "Moggy Nightfall"
+    },
+    {
+      "categorie": "proto",
+      "id": "330p4",
+      "original": "330 P4",
+      "display_name": "Purosangue Freccia"
+    },
+    {
+      "categorie": "proto",
+      "id": "p68",
+      "original": "Ford P68",
+      "display_name": "Redneck Arrow 68"
+    }
+  ],
+  "circuits": [
+    {
+      "id": "monza",
+      "original": "Monza",
+      "display_name": "Parco Reale",
+      "statut": "validé"
+    },
+    {
+      "id": "spa",
+      "original": "Spa-Francorchamps",
+      "display_name": "Stand de frites",
+      "statut": "validé"
+    },
+    {
+      "id": "monaco",
+      "original": "Monaco",
+      "display_name": "Le Rocher",
+      "statut": "validé"
+    },
+    {
+      "id": "silverstone",
+      "original": "Silverstone",
+      "display_name": "Royal Air Base",
+      "statut": "validé"
+    },
+    {
+      "id": "suzuka",
+      "original": "Suzuka",
+      "display_name": "Fuji Yama",
+      "statut": "validé"
+    },
+    {
+      "id": "interlagos",
+      "original": "Interlagos",
+      "display_name": "Festival de Carnaval",
+      "statut": "validé"
+    },
+    {
+      "id": "laguna",
+      "original": "Laguna Seca",
+      "display_name": "Corkscrew Ranch",
+      "statut": "validé"
+    },
+    {
+      "id": "nurburgring",
+      "original": "Nürburgring GP",
+      "display_name": "Bratwurst Ring",
+      "statut": "validé"
+    },
+    {
+      "id": "lemans",
+      "original": "Le Mans",
+      "display_name": "Autoroute 11",
+      "statut": "validé"
+    },
+    {
+      "id": "bathurst",
+      "original": "Mount Panorama",
+      "display_name": "Kangaroo Mountain",
+      "statut": "validé"
+    },
+    {
+      "id": "redbullring",
+      "original": "Red Bull Ring",
+      "display_name": "Apfelstrudel Ring",
+      "statut": "validé"
+    },
+    {
+      "id": "castellet",
+      "original": "Paul Ricard",
+      "display_name": "Pastaga 83",
+      "statut": "proposition supplémentaire (à confirmer)"
+    },
+    {
+      "id": "zandvoort",
+      "original": "Zandvoort",
+      "display_name": "Windmolen",
+      "statut": "validé"
+    }
+  ],
+  "point_a_confirmer": "Le circuit castellet (Paul Ricard) est présent dans js/tracks.js en plus des 12 précédemment discutés. 'Pastaga 83' est une proposition de remplacement."
+}

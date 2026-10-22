@@ -4,6 +4,11 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.47.0
+- Les voitures et les circuits prennent leurs noms GRIP : Purosangue Furia 40, Breithüft Langheck,
+  McHaggis Arrow 23… et Stand de frites, Le Rocher, Autoroute 11, Royal Air Base… Records,
+  sauvegardes et parties en ligne sont conservés.
+
 ## 0.46.1
 - Nouveau levier de ligne, façon levier de vitesse : trois crans, et un clac à chaque changement.
 - Le levier ne s'arrête plus entre deux lignes : il saute dans le cran suivant.

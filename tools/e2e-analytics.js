@@ -40,9 +40,9 @@ const server = http.createServer((req,res)=>{
     assert.equal(await page.locator('#kpis .kpi').count(),8);
     assert.equal(await page.locator('#kpis .kpi').nth(0).locator('strong').innerText(),'2');
     assert.equal(await page.locator('#kpis .kpi').nth(3).locator('strong').innerText(),'4');
-    assert.match(await page.locator('#tracks-table').innerText(),/Spa/);
-    assert.match(await page.locator('#cars-table').innerText(),/F40/);
-    assert.match(await page.locator('#liveries-table').innerText(),/935/);
+    assert.match(await page.locator('#tracks-table').innerText(),/Stand de frites/);
+    assert.match(await page.locator('#cars-table').innerText(),/Purosangue Furia 40/);
+    assert.match(await page.locator('#liveries-table').innerText(),/Breithüft Langheck/);
     assert.equal(await page.locator('canvas').count(),6);
     assert.deepEqual(errors,[]);
     await page.selectOption('#period','custom');
