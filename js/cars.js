@@ -50,7 +50,7 @@ const CATEGORIES = [
       { id: 'tyrrellp34', diff: 1, name: 'Sixpence Hexa', shape: 'wedge72',
         mul: { vmax: 0.921, accel: 1, brake: 1.07, grip: 0.993, df: 0.8, slide: 0.9 },
         colors: ['#174d9b', '#f4da38'], top: 'sprites/top/tyrrellp34.png', pick: 'sprites/pick/tyrrellp34.png',
-        livrees: [{ id: '', nom: 'Elf · Scheckter · 1976' }],
+        livrees: [{ id: '', nom: 'Bleu · Scheckter · 1976' }],
         engine: { cyl: 8, redline: 10500, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
       { id: 'ferrari312t', diff: 3, name: 'Purosangue Dodici T', shape: 'wedge72',
         mul: { vmax: 0.984, accel: 1.06, brake: 1, grip: 1.038, df: 0.85, slide: 1.1 },
@@ -65,35 +65,35 @@ const CATEGORIES = [
       { id: 'lotus79', diff: 0, name: 'Bumblebee Ground 79', shape: 'wedge72',
         mul: { vmax: 0.936, accel: 0.97, brake: 1, grip: 0.903, df: 1.45, slide: 0.95 },
         colors: ['#161719', '#d4b35e'], top: 'sprites/top/lotus79.png', pick: 'sprites/pick/lotus79.png',
-        livrees: [{ id: '', nom: 'JPS · Andretti · 1978' }],
+        livrees: [{ id: '', nom: 'Noir et or · Andretti · 1978' }],
         engine: { cyl: 8, redline: 11000, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
       { id: 'lotus72', diff: 3, name: 'Bumblebee Wedge 72', shape: 'wedge72',
         mul: { vmax: 0.936, accel: 1.08, brake: 1.03, grip: 1.055, df: 0.6, slide: 1.05 },
         colors: ['#161719', '#d4b35e'], top: 'sprites/top/lotus72.png', pick: 'sprites/pick/lotus72.png',
-        livrees: [{ id: '', nom: 'JPS · Fittipaldi · 1972' }],
+        livrees: [{ id: '', nom: 'Noir et or · Fittipaldi · 1972' }],
         engine: { cyl: 8, redline: 10000, idle: 1500, rough: 0.1, bright: 0.9, turbo: 0 } },
       { id: 'brabhambt46b', diff: 0, name: 'Boomerang Fan 46', shape: 'wedge72',
         // Ventilateur : davantage d'accroche lente, moins de dépendance à l'appui de vitesse.
         mul: { vmax: 0.927, accel: 0.97, brake: 1, grip: 1.065, df: 0.58, slide: 0.88 },
         colors: ['#e8202a', '#f4f4f4'], top: 'sprites/top/brabhambt46b.png', pick: 'sprites/pick/brabhambt46b.png',
-        livrees: [{ id: '', nom: 'Parmalat · Lauda · 1978' }],
+        livrees: [{ id: '', nom: 'Rouge · Lauda · 1978' }],
         engine: { cyl: 12, redline: 12000, idle: 1700, rough: 0.05, bright: 0.96, turbo: 0 } },
       { id: 'williamsfw07', diff: 1, name: 'Windsor 07', shape: 'wedge72',
         mul: { vmax: 0.952, accel: 1.02, brake: 1.02, grip: 0.912, df: 1.35, slide: 0.97 },
         colors: ['#f4f4f4', '#1f6b3a'], top: 'sprites/top/williamsfw07.png', pick: 'sprites/pick/williamsfw07.png',
-        livrees: [{ id: '', nom: 'Saudia · Jones · 1979' }],
+        livrees: [{ id: '', nom: 'Blanc et vert · Jones · 1979' }],
         engine: { cyl: 8, redline: 11000, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
       { id: 'ligierjs11', diff: 0, name: 'Le Coq Bleu 11', shape: 'wedge72',
         mul: { vmax: 0.946, accel: 0.99, brake: 1.08, grip: 0.913, df: 1.25, slide: 0.92 },
         colors: ['#2f7fd1', '#f4f4f4'], top: 'sprites/top/ligierjs11.png', pick: 'sprites/pick/ligierjs11.png',
-        livrees: [{ id: '', nom: 'Gitanes · Laffite · 1979' }],
+        livrees: [{ id: '', nom: 'Bleu et blanc · Laffite · 1979' }],
         engine: { cyl: 8, redline: 11000, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
       { id: 'renaultrs10', diff: 2, name: 'Somua Turbo 10', shape: 'wedge72',
         mul: { vmax: 1, accel: 0.93, brake: 0.98, grip: 1.023, df: 1, slide: 1.04 },
         // Relance douce, puis poussée soutenue : courbe de jeu selon la vitesse, sans délai de turbo.
         driveCurve: { low: 0.94, high: 1.20, from: 80 / 3.6, to: 200 / 3.6 },
         colors: ['#f2c500', '#141414'], top: 'sprites/top/renaultrs10.png', pick: 'sprites/pick/renaultrs10.png',
-        livrees: [{ id: '', nom: 'Elf · Jabouille · 1979' }],
+        livrees: [{ id: '', nom: 'Jaune · Jabouille · 1979' }],
         engine: { cyl: 6, redline: 11000, idle: 1800, rough: 0.2, bright: 0.8, turbo: 1 } },
     ],
   },
@@ -116,9 +116,9 @@ const CATEGORIES = [
         /* Trois livrées, nommées d'après ce qui est peint sur la voiture, comme pour la F40 et la
         CSL. Les deux chemins se déduisent du suffixe, comme partout ailleurs. */
         livrees: [
-          { id: '', nom: 'Motorsport' },
-          { id: 'BASF', nom: 'BASF' },
-          { id: 'DENIM', nom: 'Denim' },
+          { id: '', nom: 'Bandes tricolores · 280' },
+          { id: 'BASF', nom: 'Cibles rouges · 79' },
+          { id: 'DENIM', nom: 'Bleu rayé · 81' },
         ] },
       { id: 'f40', diff: 3, name: 'Purosangue Furia 40', shape: 'f40', mul: { vmax: 1, accel: 1.12, brake: 1, grip: 0.937, df: 1.5, slide: 1 }, pick: 'sprites/pick/f40.png', engine: {
         cyl: 8, redline: 7750, idle: 1000, rough: 0.15, bright: 0.8, turbo: 0.9,
@@ -133,7 +133,7 @@ const CATEGORIES = [
         F40 gardent donc l'aspect de la planche d'origine. C'est dit ici parce que c'est le genre
         d'écart qu'on découvre six mois plus tard en changeant de caméra. */
         livrees: [
-          { id: '', nom: 'Pilot' },
+          { id: '', nom: 'Bleu · 56' },
           { id: 'red', nom: 'Rosso' },
           { id: 'yellow', nom: 'Crawford' },
         ] },
@@ -161,9 +161,9 @@ const CATEGORIES = [
         qui regarde seule dans l'autre sens, au milieu du carrousel. Les vues de DESSUS, elles —
         celles qu'on voit en course — sont dans le bon sens et leur lettrage est juste. */
         livrees: [
-          { id: '', nom: 'Martini' },
-          { id: 'swiss', nom: 'Swiss' },
-          { id: 'valliant', nom: 'Vaillant' },
+          { id: '', nom: 'Blanc rayé · 46' },
+          { id: 'swiss', nom: 'Croix suisse · 30' },
+          { id: 'valliant', nom: 'Turquoise arc-en-ciel · 5' },
         ] },
       { id: 'corvette', diff: 5, name: 'Moonshine Sting', shape: 'roundGT', mul: { vmax: 0.94, accel: 1.06, brake: 0.95, grip: 1.026, df: 0.9, slide: 1.3 }, pick: 'sprites/pick/corvette.png', engine: {
         cyl: 8, redline: 6000, idle: 750, rough: 0.7, bright: 0.4, turbo: 0,
@@ -183,8 +183,8 @@ const CATEGORIES = [
         `sprites/pick/` — et un identifiant vide garde les fichiers sans suffixe, pour que la
         livrée d'origine n'ait pas à être renommée. */
         livrees: [
-          { id: '', nom: 'Motorsport' },
-          { id: 'castrol', nom: 'Castrol' },
+          { id: '', nom: 'Bandes tricolores · 25' },
+          { id: 'castrol', nom: 'Noir, vert et rouge · 2' },
           { id: 'calder', nom: 'Calder' },
         ] },
       // Les trois GT des années soixante et soixante-dix. Moteur avant, pneus étroits, peu d'appui :
@@ -199,7 +199,7 @@ const CATEGORIES = [
         engine: { cyl: 6, redline: 6500, idle: 850, rough: 0.12, bright: 0.6, turbo: 0 } },
       { id: '240z', diff: 3, name: 'Kitsune Zeta 240', shape: 'roundGT', mul: { vmax: 0.682, accel: 1.02, brake: 1.05, grip: 1.036, df: 0.7, slide: 1.05 },
         colors: ['#f4f4f4', '#d12a2a'], top: 'sprites/top/240z.png', pick: 'sprites/pick/240z.png',
-        livrees: [{ id: '', nom: 'BRE · 46' }, { id: 'sharp', nom: 'Bob Sharp · inspiration bleue' }, { id: 'dunlop', nom: 'Dunlop · hommage jaune' }],
+        livrees: [{ id: '', nom: 'BRE · 46' }, { id: 'sharp', nom: 'Bob Sharp · inspiration bleue' }, { id: 'dunlop', nom: 'Hommage jaune · 24' }],
         engine: { cyl: 6, redline: 7500, idle: 950, rough: 0.12, bright: 0.66, turbo: 0 } },
     ],
   },
@@ -256,12 +256,12 @@ const CATEGORIES = [
       } },
       { id: '962', diff: 1, name: 'Breithüft Aero 62', shape: 'groupC', mul: { vmax: 0.907, accel: 1, brake: 1.02, grip: 0.981, df: 1.15, slide: 0.95 },
         colors: ['#f4f4f4', '#1b3f8f'], top: 'sprites/top/962.png', pick: 'sprites/pick/962.png',
-        livrees: [{ id: '', nom: 'Rothmans · 17' }, { id: 'shell', nom: 'Shell · Dunlop · 7' }, { id: 'jager', nom: 'Jägermeister · orange' }],
+        livrees: [{ id: '', nom: 'Bleu, blanc et rouge · 17' }, { id: 'shell', nom: 'Jaune et rouge · 7' }, { id: 'jager', nom: 'Orange · 17' }],
         engine: { cyl: 6, redline: 8200, idle: 1100, rough: 0.3, bright: 0.7, turbo: 0.95,
           sample: { ramp: 'sounds/engine/flat6-930.json', bas: 'sounds/engine/flat6-930-bas.json' } } },
       { id: 'xjr9', diff: 1, name: 'Moggy Nightfall', shape: 'groupC', mul: { vmax: 1, accel: 0.96, brake: 0.96, grip: 1, df: 1.1, slide: 0.95 },
         colors: ['#5b2a86', '#f4f4f4'], top: 'sprites/top/xjr9.png', pick: 'sprites/pick/xjr9.png',
-        livrees: [{ id: '', nom: 'Silk Cut · 2' }, { id: 'castrol', nom: 'Castrol · IMSA · vert' }, { id: 'jps', nom: 'JPS · hommage noir et or' }],
+        livrees: [{ id: '', nom: 'Violet et blanc · 2' }, { id: 'castrol', nom: 'Vert et blanc · 60' }, { id: 'jps', nom: 'Hommage noir et or · 9' }],
         engine: { cyl: 12, redline: 7200, idle: 900, rough: 0.05, bright: 0.75, turbo: 0, sample: { ramp: 'sounds/engine/v12-countach.json' } } },
       { id: '330p4', diff: 3, name: 'Purosangue Freccia', shape: 'gt40', mul: { vmax: 0.829, accel: 1.05, brake: 1.04, grip: 1.094, df: 0.6, slide: 1.05 },
         colors: ['#d0141b', '#f4f4f4'], top: 'sprites/top/330p4.png', pick: 'sprites/pick/330p4.png',
@@ -269,7 +269,7 @@ const CATEGORIES = [
         engine: { cyl: 12, redline: 8500, idle: 1000, rough: 0.05, bright: 0.9, turbo: 0, sample: { ramp: 'sounds/engine/v12-countach.json' } } },
       { id: 'p68', diff: 3, name: 'Redneck Arrow 68', shape: 'longTail', mul: { vmax: 0.904, accel: 0.99, brake: 0.97, grip: 1.142, df: 0.55, slide: 1.2 },
         colors: ['#c62026', '#d9b45a'], top: 'sprites/top/p68.png', pick: 'sprites/pick/p68.png',
-        livrees: [{ id: '', nom: 'Alan Mann Racing · 1968' }, { id: 'gulf', nom: 'Gulf · hommage bleu' }, { id: 'dunlop', nom: 'Dunlop · hommage jaune' }],
+        livrees: [{ id: '', nom: 'Alan Mann Racing · 1968' }, { id: 'gulf', nom: 'Bleu ciel et orange · 7' }, { id: 'dunlop', nom: 'Hommage jaune · 68' }],
         engine: { cyl: 8, redline: 9500, idle: 1300, rough: 0.12, bright: 0.88, turbo: 0 } },
     ],
   },
@@ -292,11 +292,11 @@ const LIVERIES = [
 
 // Livrées historiques illustrées ; voir docs/livrees-historiques/README.md.
 const HISTORIC_LIVERIES = {
-  countach: [{ id: 'rainx', nom: 'Rain-X JLOC · 88' }, { id: 'monaco83', nom: 'Monaco 1983 Safety Car' }],
+  countach: [{ id: 'rainx', nom: 'Jaune · 88' }, { id: 'monaco83', nom: 'Monaco 1983 Safety Car' }],
   gt40: [{ id: 'lemans1', nom: 'Le Mans 1966 · 1' }, { id: 'lemans2', nom: 'Le Mans 1966 · 2' }],
-  '935': [{ id: 'jager', nom: 'Jägermeister · 16' }, { id: 'vaillant', nom: 'Vaillant-Kremer · 51' }],
-  corvette: [{ id: 'spirit76', nom: 'Spirit of Le Mans · 76' }, { id: 'bfg49', nom: 'BFGoodrich · 49' }],
-  '787b': [{ id: 'efini18', nom: 'Efini Autopolis · 18' }, { id: 'lemans18', nom: 'Mazda Le Mans 1991 · 18' }],
+  '935': [{ id: 'jager', nom: 'Orange · 16' }, { id: 'vaillant', nom: 'Kremer · turquoise · 51' }],
+  corvette: [{ id: 'spirit76', nom: 'Spirit of Le Mans · 76' }, { id: 'bfg49', nom: 'Étoiles et bandes · 49' }],
+  '787b': [{ id: 'efini18', nom: 'Blanc et vert · 18' }, { id: 'lemans18', nom: 'Le Mans 1991 · 18' }],
 };
 for (const category of CATEGORIES) {
   for (const model of category.models) {

@@ -579,11 +579,15 @@ Les 25 voitures et les 13 circuits portent des noms fictifs, arrêtés dans `too
 records (`circuit|catégorie|voiture`), les sauvegardes, les réglages et le multijoueur, qui ne
 transportent que des identifiants, retrouvent tout. Les noms sont identiques en français et en
 anglais. Les livrées qui portaient le nom de la voiture le suivent (Stallone Furioso, Moonshine
-Sting, Breithüft Langheck, Kaminari Hayate) ; celles qui nomment un sponsor, une équipe ou une
-course gardent leur désignation historique. Les commentaires du code et cette documentation
+Sting, Breithüft Langheck, Kaminari Hayate), et **aucune livrée ne nomme plus de marque**, ni
+constructeur ni sponsor (0.47.1) : « JPS · Andretti · 1978 » devient « Noir et or · Andretti ·
+1978 », « Martini » devient « Blanc rayé · 46 » — la couleur du dessin, le numéro, le pilote ou
+l'équipe. Les 31 livrées renommées sont dans la même table ; leurs `id` et leurs fichiers ne
+changent pas, si bien que la livrée choisie dans une ancienne sauvegarde est retrouvée. Les dessins
+eux-mêmes n'ont pas été retouchés. Les commentaires du code et cette documentation
 continuent de nommer les vrais modèles et circuits quand ils servent à les identifier.
 
-`tools/e2e-noms.js` le vérifie : les 25 + 13 noms de la table, les menus identiques en français et
+`tools/e2e-noms.js` le vérifie : les 25 + 13 noms de la table, les livrées, aucune marque dans leurs noms, les menus identiques en français et
 en anglais, trois voitures sur quatre circuits (dessin, caractéristiques, mini-carte), un ancien
 record retrouvé par identifiants, une grille en ligne reçue par identifiants. Avec
 `--reference=<commit>`, il compare aussi tout le reste des registres à un état antérieur.

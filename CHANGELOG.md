@@ -4,6 +4,10 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.47.1
+- Les livrées ne portent plus aucune marque : elles se nomment par leurs couleurs, leur numéro,
+  leur pilote ou leur équipe.
+
 ## 0.47.0
 - Les voitures et les circuits prennent leurs noms GRIP : Purosangue Furia 40, Breithüft Langheck,
   McHaggis Arrow 23… et Stand de frites, Le Rocher, Autoroute 11, Royal Air Base… Records,

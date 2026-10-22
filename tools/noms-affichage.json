@@ -317,7 +317,7 @@
       "id": "castellet",
       "original": "Paul Ricard",
       "display_name": "Pastaga 83",
-      "statut": "proposition supplémentaire (à confirmer)"
+      "statut": "validé"
     },
     {
       "id": "zandvoort",
@@ -326,5 +326,192 @@
       "statut": "validé"
     }
   ],
-  "point_a_confirmer": "Le circuit castellet (Paul Ricard) est présent dans js/tracks.js en plus des 12 précédemment discutés. 'Pastaga 83' est une proposition de remplacement."
+  "livrees": [
+    {
+      "voiture": "tyrrellp34",
+      "id": "",
+      "original": "Elf · Scheckter · 1976",
+      "display_name": "Bleu · Scheckter · 1976"
+    },
+    {
+      "voiture": "lotus79",
+      "id": "",
+      "original": "JPS · Andretti · 1978",
+      "display_name": "Noir et or · Andretti · 1978"
+    },
+    {
+      "voiture": "lotus72",
+      "id": "",
+      "original": "JPS · Fittipaldi · 1972",
+      "display_name": "Noir et or · Fittipaldi · 1972"
+    },
+    {
+      "voiture": "brabhambt46b",
+      "id": "",
+      "original": "Parmalat · Lauda · 1978",
+      "display_name": "Rouge · Lauda · 1978"
+    },
+    {
+      "voiture": "williamsfw07",
+      "id": "",
+      "original": "Saudia · Jones · 1979",
+      "display_name": "Blanc et vert · Jones · 1979"
+    },
+    {
+      "voiture": "ligierjs11",
+      "id": "",
+      "original": "Gitanes · Laffite · 1979",
+      "display_name": "Bleu et blanc · Laffite · 1979"
+    },
+    {
+      "voiture": "renaultrs10",
+      "id": "",
+      "original": "Elf · Jabouille · 1979",
+      "display_name": "Jaune · Jabouille · 1979"
+    },
+    {
+      "voiture": "m1procar",
+      "id": "",
+      "original": "Motorsport",
+      "display_name": "Bandes tricolores · 280"
+    },
+    {
+      "voiture": "m1procar",
+      "id": "BASF",
+      "original": "BASF",
+      "display_name": "Cibles rouges · 79"
+    },
+    {
+      "voiture": "m1procar",
+      "id": "DENIM",
+      "original": "Denim",
+      "display_name": "Bleu rayé · 81"
+    },
+    {
+      "voiture": "f40",
+      "id": "",
+      "original": "Pilot",
+      "display_name": "Bleu · 56"
+    },
+    {
+      "voiture": "countach",
+      "id": "rainx",
+      "original": "Rain-X JLOC · 88",
+      "display_name": "Jaune · 88"
+    },
+    {
+      "voiture": "930",
+      "id": "",
+      "original": "Martini",
+      "display_name": "Blanc rayé · 46"
+    },
+    {
+      "voiture": "930",
+      "id": "swiss",
+      "original": "Swiss",
+      "display_name": "Croix suisse · 30"
+    },
+    {
+      "voiture": "930",
+      "id": "valliant",
+      "original": "Vaillant",
+      "display_name": "Turquoise arc-en-ciel · 5"
+    },
+    {
+      "voiture": "corvette",
+      "id": "bfg49",
+      "original": "BFGoodrich · 49",
+      "display_name": "Étoiles et bandes · 49"
+    },
+    {
+      "voiture": "csl",
+      "id": "",
+      "original": "Motorsport",
+      "display_name": "Bandes tricolores · 25"
+    },
+    {
+      "voiture": "csl",
+      "id": "castrol",
+      "original": "Castrol",
+      "display_name": "Noir, vert et rouge · 2"
+    },
+    {
+      "voiture": "240z",
+      "id": "dunlop",
+      "original": "Dunlop · hommage jaune",
+      "display_name": "Hommage jaune · 24"
+    },
+    {
+      "voiture": "935",
+      "id": "jager",
+      "original": "Jägermeister · 16",
+      "display_name": "Orange · 16"
+    },
+    {
+      "voiture": "935",
+      "id": "vaillant",
+      "original": "Vaillant-Kremer · 51",
+      "display_name": "Kremer · turquoise · 51"
+    },
+    {
+      "voiture": "787b",
+      "id": "efini18",
+      "original": "Efini Autopolis · 18",
+      "display_name": "Blanc et vert · 18"
+    },
+    {
+      "voiture": "787b",
+      "id": "lemans18",
+      "original": "Mazda Le Mans 1991 · 18",
+      "display_name": "Le Mans 1991 · 18"
+    },
+    {
+      "voiture": "962",
+      "id": "",
+      "original": "Rothmans · 17",
+      "display_name": "Bleu, blanc et rouge · 17"
+    },
+    {
+      "voiture": "962",
+      "id": "shell",
+      "original": "Shell · Dunlop · 7",
+      "display_name": "Jaune et rouge · 7"
+    },
+    {
+      "voiture": "962",
+      "id": "jager",
+      "original": "Jägermeister · orange",
+      "display_name": "Orange · 17"
+    },
+    {
+      "voiture": "xjr9",
+      "id": "",
+      "original": "Silk Cut · 2",
+      "display_name": "Violet et blanc · 2"
+    },
+    {
+      "voiture": "xjr9",
+      "id": "castrol",
+      "original": "Castrol · IMSA · vert",
+      "display_name": "Vert et blanc · 60"
+    },
+    {
+      "voiture": "xjr9",
+      "id": "jps",
+      "original": "JPS · hommage noir et or",
+      "display_name": "Hommage noir et or · 9"
+    },
+    {
+      "voiture": "p68",
+      "id": "gulf",
+      "original": "Gulf · hommage bleu",
+      "display_name": "Bleu ciel et orange · 7"
+    },
+    {
+      "voiture": "p68",
+      "id": "dunlop",
+      "original": "Dunlop · hommage jaune",
+      "display_name": "Hommage jaune · 68"
+    }
+  ]
 }

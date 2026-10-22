@@ -8,7 +8,8 @@
 //   les données   les 25 voitures et les 13 circuits existent sous leurs identifiants d'origine et
 //                 portent le nom de la table. Avec --reference, on compare aussi à un état antérieur
 //                 du dépôt : tout le reste (physique, tracés, sprites, sons, livrées) est identique,
-//                 et une livrée ne change de nom que si elle portait le nom de la voiture ;
+//                 et une livrée ne change de nom que si elle portait le nom de la voiture, ou si la
+//                 table la renomme (plus aucune marque, constructeur ou sponsor, dans les livrées) ;
 //   le multijoueur la grille d'une course en ligne voyage par identifiants (`modelId`, `trackId`), et
 //                 chaque écran retrouve le nom dans son propre registre ;
 //   l'écran       au format d'un iPhone : les menus en français et en anglais montrent les mêmes
@@ -49,10 +50,24 @@ ok(TABLE.circuits.length === 13 && cRates.length === 0, `13 circuits, chacun sou
   + (cRates.length ? ' — en défaut : ' + cRates.map((c) => c.id).join(', ') : ''));
 ok([...voitures.values(), ...circuits.values()].every((x) => typeof x.name === 'string'),
   'un seul nom par voiture et par circuit, sans variante de langue : le même en français et en anglais');
-ok(circuits.get('castellet').name === 'Pastaga 83', 'castellet → « Pastaga 83 » (proposition à confirmer)');
+ok(circuits.get('castellet').name === 'Pastaga 83', 'castellet → « Pastaga 83 »');
+// Les livrées : celles de la table ont leur nouveau nom, et aucune ne porte plus de marque.
+const lRates = TABLE.livrees.filter((l) => { const m = voitures.get(l.voiture); const lv = m && m.livrees.find((x) => x.id === l.id); return !lv || lv.nom !== l.display_name; });
+ok(lRates.length === 0, `${TABLE.livrees.length} livrées renommées selon la table` + (lRates.length ? ' — en défaut : ' + lRates.map((l) => l.voiture + '/' + l.id).join(', ') : ''));
+const MARQUES = ['Ferrari', 'Lamborghini', 'BMW', 'Porsche', 'Mazda', 'Datsun', 'Nissan', 'Jaguar', 'Chevrolet', 'Corvette', 'Ford', 'Lotus',
+  'Williams', 'McLaren', 'Tyrrell', 'Brabham', 'Ligier', 'Renault', 'Elf', 'JPS', 'Parmalat', 'Saudia', 'Gitanes', 'Motorsport', 'BASF',
+  'Denim', 'Pilot', 'Rain-X', 'JLOC', 'Martini', 'Swiss', 'Vaillant', 'BFGoodrich', 'Castrol', 'Dunlop', 'Jägermeister', 'Efini',
+  'Rothmans', 'Shell', 'Silk Cut', 'Gulf', 'IMSA'];
+const marquees = ici.MODELS.flatMap((m) => m.livrees.filter((l) => MARQUES.some((b) => new RegExp(`(^|[^\\p{L}])${b}([^\\p{L}]|$)`, 'u').test(l.nom))).map((l) => `${m.id} « ${l.nom} »`));
+ok(marquees.length === 0, 'aucune marque (constructeur ou sponsor) dans les noms de livrées' + (marquees.length ? ' — reste : ' + marquees.join(', ') : ''));
 
 if (REF) {
   const avant = registres((f) => execFileSync('git', ['show', `${REF}:${f}`], { cwd: ROOT, encoding: 'utf8' }));
+  // les livrées que la table renomme sont attendues sous leur nouveau nom
+  for (const l of TABLE.livrees) {
+    const lv = (avant.MODELS.find((m) => m.id === l.voiture) || { livrees: [] }).livrees.find((x) => x.id === l.id && x.nom === l.original);
+    if (lv) lv.nom = l.display_name;
+  }
   const sansNom = (o, ancien, neuf) => JSON.stringify(o, (k, v) => (k === 'name' ? undefined : k === 'nom' && v === ancien ? neuf : v));
   const vDiff = avant.MODELS.filter((a) => { const b = voitures.get(a.id); return !b || sansNom(a, a.name, '§') !== sansNom(b, b.name, '§'); });
   ok(avant.MODELS.length === ici.MODELS.length && vDiff.length === 0,
@@ -66,7 +81,7 @@ if (REF) {
     'les catégories sont intactes');
   const livrees = ici.MODELS.flatMap((m) => m.livrees.map((l, i) => ({ m, l, a: avant.MODELS.find((x) => x.id === m.id).livrees[i] })))
     .filter(({ l, a }) => l.nom !== a.nom);
-  console.log('        livrées renommées (elles portaient le nom de la voiture) : '
+  console.log('        livrées qui portaient le nom de la voiture, et le suivent : '
     + (livrees.map(({ m, a, l }) => `${m.id} « ${a.nom} » → « ${l.nom} »`).join(', ') || 'aucune'));
 }
 

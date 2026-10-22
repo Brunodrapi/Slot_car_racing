@@ -164,7 +164,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   await p.waitForTimeout(250);
   const retour = await lire('csl');
   dit(retour.idx === 0 && /1\/3/.test(retour.repere), `revenir rend la livree laissee (« ${retour.repere} »)`);
-  await p.click(carte('csl'));                    // → Castrol
+  await p.click(carte('csl'));                    // → la livrée « castrol », noir, vert et rouge
   await p.waitForTimeout(250);
   await p.reload();
   await p.waitForFunction(() => typeof app !== 'undefined' && app.save);
@@ -174,7 +174,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   await p.click('[data-action="setup"][data-mode="race"]');
   await p.waitForSelector(carte('csl'));
   const apres = await lire('csl');
-  dit(apres.idx === 1 && /2\/3 Castrol/.test(apres.repere || ''),
+  dit(apres.idx === 1 && /2\/3 Noir, vert et rouge/.test(apres.repere || ''),
     `apres rechargement : « ${apres.repere} »`);
 
   /* --- 6. et la course part avec --- */
