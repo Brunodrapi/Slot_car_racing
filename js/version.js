@@ -1,0 +1,1 @@
+"use strict";const APP_VERSION="0.45.0",APP_DATE="2026-10-22",APP_CANAL="recette";
