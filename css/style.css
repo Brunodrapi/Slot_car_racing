@@ -1148,3 +1148,12 @@ Bruno sur un iPhone à Dynamic Island :
 }
 #ui:has(.setup-screen, .selection-screen)::before { content:''; position:fixed; z-index:20; top:0; left:0; right:0;
   height:env(safe-area-inset-top); background:#151917; pointer-events:none; }
+
+/* Le bandeau de titre sur téléphone : le logo ne rétrécit jamais (c'est le titre qui cède, voir
+   `_ajusteBandeau` dans js/ui.js), un peu plus petit qu'avant, et « RETOUR » peut s'effacer derrière sa flèche. */
+.paddock-logo { flex-shrink:0; }
+.topbar.compacte .retour-mot { display:none; }
+@media (max-width:850px) {
+  .paddock-logo { width:72px; height:40px; margin-right:6px; }
+  .setup-screen .topbar h2, .selection-screen .topbar h2 { padding-right:24px; }
+}

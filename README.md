@@ -181,6 +181,12 @@ barre (WebKit 301108) — d'où une bande noire de 59 points en bas ; la page re
 l'écran (`min-height` plafonné à `100lvh`, voir la fin de css/style.css). Chromium ne reproduit pas ce
 défaut : il se vérifie sur un iPhone.
 
+**Le bandeau de titre tient dans la largeur (0.52.4).** « CONTRE-LA-MONTRE » poussait le logo hors de
+l'écran sur la plupart des iPhone. `_ajusteBandeau` (js/ui.js) mesure le bandeau après chaque écran,
+chaque changement de largeur et chaque police chargée, et cède de la place dans l'ordre : le titre se
+resserre jusqu'à 19 px, « ← RETOUR » devient « ← », le titre descend jusqu'à 16 px, et le logo ne
+s'efface qu'en dernier recours (aucun iPhone n'y arrive). Test : `tools/e2e-bandeau.js`.
+
 **La mise à jour.** La liste des fichiers et leur empreinte (sha-256) sont dans `manifeste.json` ;
 `sw.js`, lui, ne change jamais d'une publication à l'autre, si bien que le navigateur ne lance jamais de
 lui-même une mise à jour. C'est l'écran-titre qui dit où en est le jeu, dans une pastille en haut

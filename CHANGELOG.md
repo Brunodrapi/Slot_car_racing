@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.4
+- Sur téléphone, le logo GRIP reste entier dans le bandeau de titre, même sur « Contre-la-montre ».
+
 ## 0.52.3
 - iPhone, jeu installé : les écrans de départ ne passent plus sous l'heure et la batterie, et la
   bande noire du bas disparaît.

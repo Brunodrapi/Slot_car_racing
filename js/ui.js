@@ -340,6 +340,13 @@ class UI {
     // « change » n'arrive qu'à la sortie du champ : pour nettoyer la frappe il faut « input »
     this.root.addEventListener('input', (e) => this._onInput(e));
     this.flash = null;
+    // le bandeau de titre se réajuste quand la largeur change, et quand la police arrive
+    window.addEventListener('resize', () => this._ajusteBandeau());
+    if (document.fonts) {
+      document.fonts.ready.then(() => this._ajusteBandeau());
+      // la police des titres ne se charge qu'au premier écran qui s'en sert : mesuré avant, le titre paraît plus court
+      document.fonts.addEventListener('loadingdone', () => this._ajusteBandeau());
+    }
   }
 
   get lang() { return this.app.save.lang; }
@@ -452,6 +459,30 @@ class UI {
     this.paintIcons();
     this.updateControllerStatus();
     this.gamepad.restore(garder ? padFocus : null);
+    this._ajusteBandeau();
+  }
+
+  /* LE BANDEAU TIENT DANS LA LARGEUR, LOGO COMPRIS.
+
+  Retour, damier, titre, logo : sur un téléphone, « CONTRE-LA-MONTRE » poussait le logo hors de
+  l'écran (Bruno, sur un iPhone 15 Pro ; mesuré, le logo était coupé sur presque tous les iPhone en
+  français, et même en anglais sur un iPhone SE). Aucune taille de police fixe ne convient aux titres
+  courts et longs, dans les deux langues et de 320 à 430 points de large : on mesure. Le bandeau cède
+  de la place dans l'ordre de ce qui compte le moins — le titre se resserre jusqu'à 19 px, « ← RETOUR »
+  devient « ← », le titre descend encore jusqu'à 16 px — et le logo ne s'efface qu'en dernier, sur un
+  écran où rien d'autre ne suffit. */
+  _ajusteBandeau() {
+    const barre = this.root.querySelector('.topbar');
+    const titre = barre && barre.querySelector('h2'), logo = barre && barre.querySelector('.paddock-logo');
+    if (!titre || !logo) return;
+    titre.style.fontSize = ''; barre.classList.remove('compacte'); logo.hidden = false;
+    const deborde = () => logo.getBoundingClientRect().right > barre.getBoundingClientRect().right - 2;
+    let taille = parseFloat(getComputedStyle(titre).fontSize);
+    const resserre = (min) => { while (deborde() && taille > min) { taille -= 1; titre.style.fontSize = taille + 'px'; } };
+    resserre(19);
+    if (deborde()) barre.classList.add('compacte');
+    resserre(16);
+    if (deborde()) logo.hidden = true;
   }
 
   _centrerRail(rail) {
@@ -1105,7 +1136,9 @@ class UI {
   bande rouge, il doit garder sa place quelle que soit la longueur du titre — « Course rapide »,
   « Contre-la-montre » ou le code d'une table. */
   paddockTopbar(titre, retour = 'menu', libelleRetour) {
-    return `<div class="topbar"><button data-action="${retour}">← ${escapeHtml(libelleRetour || this.t('back'))}</button><span class="damier titre-damier" aria-hidden="true"></span><h2>${titre}</h2><img class="paddock-logo" src="art/interface/logo-grip.webp" alt="GRIP — Racing the Line"></div>`;
+    const lib = escapeHtml(libelleRetour || this.t('back'));
+    // le mot peut s'effacer quand la place manque (voir `_ajusteBandeau`) : la flèche reste, et le nom pour les lecteurs d'écran
+    return `<div class="topbar"><button data-action="${retour}" aria-label="${lib}">←<span class="retour-mot"> ${lib}</span></button><span class="damier titre-damier" aria-hidden="true"></span><h2>${titre}</h2><img class="paddock-logo" src="art/interface/logo-grip.webp" alt="GRIP — Racing the Line"></div>`;
   }
 
   /* Les chiffres de la voiture, comme sur la maquette : pictogramme, valeur, libellé en clair.
