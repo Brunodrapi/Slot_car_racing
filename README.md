@@ -209,6 +209,13 @@ qu'en course rapide (et pour l'IA qui complète une table de multijoueur) ; en c
 roule seul. Elle n'est donc plus dans les réglages, seulement en pastille sur l'écran de départ de
 la course.
 
+**itch.io (`itch/`).** La page du jeu sur itch.io ne porte pas le jeu : `itch/index.html` (ou
+`itch/itch-grip.zip`, la même page zippée) renvoie vers la prod. Le jeu ne doit pas tourner dans le
+cadre où itch.io affiche les jeux HTML : la connexion Google y est refusée. Le renvoi emmène donc
+l'onglet entier ; comme un cadre ne peut le faire qu'après un clic de l'utilisateur, la page montre
+un bouton « Jouer » quand le navigateur refuse le renvoi automatique, et ouvre un nouvel onglet si
+itch.io interdit aussi celui-là.
+
 **La mise à jour.** La liste des fichiers et leur empreinte (sha-256) sont dans `manifeste.json` ;
 `sw.js`, lui, ne change jamais d'une publication à l'autre, si bien que le navigateur ne lance jamais de
 lui-même une mise à jour. C'est l'écran-titre qui dit où en est le jeu, dans une pastille en haut

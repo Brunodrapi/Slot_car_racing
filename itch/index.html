@@ -1,0 +1,50 @@
+<!doctype html>
+<!--
+  GRIP sur itch.io : cette page ne fait que renvoyer vers le jeu publié, https://grip-game.github.io/.
+
+  À téléverser sur itch.io comme jeu HTML (seule, ou dans le ZIP itch-grip.zip à côté).
+
+  LE JEU NE DOIT PAS TOURNER DANS LE CADRE D'ITCH.IO. itch.io affiche les jeux HTML dans un cadre
+  (iframe) ; la connexion Google y est refusée — Google ne se laisse pas ouvrir dans un cadre, et le
+  navigateur y cloisonne les cookies. C'est donc l'ONGLET ENTIER qui doit partir vers la prod.
+
+  Un cadre n'a le droit de faire naviguer l'onglet qui le contient qu'après un geste de l'utilisateur
+  DANS le cadre. Le renvoi automatique est tenté (hors d'itch.io, ou si le navigateur le permet) ; sinon
+  la page montre un bouton « Jouer » : son clic fait partir l'onglet, et si itch.io l'interdit aussi,
+  ouvre le jeu dans un nouvel onglet.
+-->
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>GRIP — Racing the Line</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+      background: #0f1117; color: #fff0d2; font: italic 900 22px/1.2 Impact, 'Arial Narrow', system-ui, sans-serif;
+      text-align: center; padding: 16px; box-sizing: border-box; }
+    img { width: min(420px, 80vw); height: auto; }
+    a { display: inline-block; padding: 14px 46px; color: #fff0d2; background: #d22620; text-decoration: none;
+      text-transform: uppercase; clip-path: polygon(6% 0, 100% 0, 94% 100%, 0 100%); font-size: 32px; }
+    a:hover, a:focus-visible { background: #e33228; outline: none; }
+    small { font: 14px/1.4 system-ui, sans-serif; color: #a6b8c0; max-width: 34em; }
+    small b { white-space: nowrap; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <img src="https://grip-game.github.io/art/interface/logo-grip.webp" alt="GRIP — Racing the Line">
+  <a id="jouer" href="https://grip-game.github.io/" target="_top">Jouer · Play</a>
+  <small>Le jeu s’ouvre sur <b>grip-game.github.io</b>. · The game opens on <b>grip-game.github.io</b>.</small>
+  <script>
+    var JEU = 'https://grip-game.github.io/';
+    // Ouverte seule, la page s'efface devant le jeu ; dans un cadre, on tente d'emmener l'onglet entier.
+    if (window.top === window.self) location.replace(JEU);
+    else try { window.top.location.replace(JEU); } catch (e) { /* refusé sans geste : le bouton prend le relais */ }
+    // Le clic est le geste qu'il fallait. Si même l'onglet entier est interdit, un nouvel onglet.
+    document.getElementById('jouer').addEventListener('click', function (e) {
+      e.preventDefault();
+      try { window.top.location.href = JEU; } catch (err) { window.open(JEU, '_blank', 'noopener'); }
+    });
+  </script>
+</body>
+</html>
