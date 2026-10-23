@@ -60,6 +60,8 @@ const I18N = {
     deux libellés en « vous » sont ceux que Bruno a choisis pour le menu ; les écrans tutoient, comme
     tout le reste du jeu. Les textes d'installation portent leurs pictogrammes en argument. */
     menuHowto: 'Comment jouer', menuInstall: 'Installez-moi', menuDon: 'Faites un don', menuAide: 'Aide et soutien',
+    // le conseil affiché au premier départ sur Chrome et Edge PC (js/chromium-cache.js)
+    conseilFirefox: 'Pour une expérience optimisée, utilisez Firefox.', fermer: 'Fermer',
     howIntroTouch: 'Un doigt pour la vitesse, un pouce pour la trajectoire.',
     howIntroKeys: 'Une touche pour la vitesse, deux flèches pour la trajectoire.',
     howGasTitleTouch: 'Appuie : ça accélère', howGasTitleKeys: 'Espace enfoncée : ça accélère',
@@ -182,6 +184,7 @@ const I18N = {
     editor: 'Track editor', workshop: 'Car workshop',
     howto: 'Thumb anywhere (or hold Space): accelerate, release to brake. The pad follows your thumb, and the speed reads at the top centre. Left thumb (or ↑ / ↓): pick your place on the road — blue edge, racing line or yellow edge. Each edge keeps its colour all the way round. Too fast into a corner and it’s the gravel.',
     menuHowto: 'How to play', menuInstall: 'Install me', menuDon: 'Donate', menuAide: 'Help and support',
+    conseilFirefox: 'For the best experience, use Firefox.', fermer: 'Close',
     howIntroTouch: 'One finger for speed, one thumb for your line.',
     howIntroKeys: 'One key for speed, two arrows for your line.',
     howGasTitleTouch: 'Press: you accelerate', howGasTitleKeys: 'Hold Space: you accelerate',
