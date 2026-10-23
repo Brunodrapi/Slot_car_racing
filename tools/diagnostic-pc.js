@@ -4,7 +4,7 @@ let win,app,renderer,mode='normal',samples=[],draws=[],last=0,elapsed=0,active=f
 let savedDpr,savedDetail,auto=null,cacheStart={};
 const sequence=['normal','objects','textures','tyres','barriers','all','rubber','cache','cacheAll','normal'];
 function downloadReport(){
- const data={date:new Date().toISOString(),automatic:auto?{status:auto.status,sequence,warmupLaps:1,followedCar:0}:null,note:'Live frame intervals; no GPU readback. Manual or automatic AI spectator laps. Hidden tab excluded and automatic simulation suspended. Different laps are not identical replay.',results:[...history,...(active&&samples.length?[stats()]:[])]};
+ const data={date:new Date().toISOString(),automatic:auto?{status:auto.status,sequence,warmupLaps:1,followedCar:0}:null,note:'Live frame intervals; no GPU readback. Manual or automatic AI spectator laps. Hidden tab excluded and automatic simulation suspended. Different laps are not identical replay.',results:[...history,...(active&&samples.length&&(!auto||auto.index>=0)?[stats()]:[])]};
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='grip-diagnostic-pc.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 function autoNext(){
@@ -22,7 +22,7 @@ function stats(){
  const sorted=samples.slice().sort((a,b)=>a-b),q=p=>sorted.length?+sorted[Math.min(sorted.length-1,Math.floor(sorted.length*p))].toFixed(2):null;
  return {mode,automatic:!!auto,stage:auto?.index,lapStart:auto?.lap,measuredMs:elapsed,cacheDelta:{created:(renderer.barrierCacheStats?.created||0)-(cacheStart.created||0),evicted:(renderer.barrierCacheStats?.evicted||0)-(cacheStart.evicted||0)},frames:samples.length,medianMs:q(.5),p95Ms:q(.95),p99Ms:q(.99),over25ms:samples.filter(n=>n>25).length,over50ms:samples.filter(n=>n>50).length,meanDrawSubmissionMs:draws.length?+(draws.reduce((a,b)=>a+b,0)/draws.length).toFixed(2):null,viewport:{width:win.innerWidth,height:win.innerHeight,dpr:win.devicePixelRatio,renderDpr:renderer.dpr},detail:renderer.detail,track:app.race?.track.def.id,view:renderer.view,sceneCache:{...renderer.sceneCacheStats},cache:{...renderer.barrierCacheStats},userAgent:navigator.userAgent};
 }
-function save(){if(active&&samples.length)history.push(stats());active=false;}
+function save(){if(active&&samples.length&&(!auto||auto.index>=0))history.push(stats());active=false;}
 function choose(value){save();mode=value;renderer.testBarrierCache=mode==='cache';renderer.testSceneCache=mode==='cacheAll';if(mode==='cacheAll')renderer.resetBarrierCache();else if(mode==='cache')renderer.resetSceneCache();reset();frame.contentWindow.focus();}
 async function setup(){
  win=frame.contentWindow;
@@ -56,7 +56,7 @@ async function setup(){
   this.prepareSceneCache();
   const cg=this.circuitGraphics;
   if(cg&&!cg._pcTest){cg._pcTest=true;for(const name of ['drawRoad','drawGravel','drawRunoff','drawTerrain']){const f=cg[name];cg[name]=function(...args){if(['textures','all'].includes(mode))return;return f.apply(this,args);};}}
-  const now=performance.now(),measuring=(!auto||auto.index>=0)&&active&&app.state==='race'&&['racing','finishing'].includes(app.race?.state)&&!document.hidden;
+  const now=performance.now(),measuring=active&&app.state==='race'&&['racing','finishing'].includes(app.race?.state)&&!document.hidden;
   if(measuring){if(last){samples.push(now-last);elapsed+=now-last;}last=now;}else last=0;
   const result=draw.apply(this,args);
   if(measuring)draws.push(performance.now()-now);
@@ -98,6 +98,29 @@ async function setup(){
  by('mode').onchange=e=>choose(e.target.value);
  by('reset').onclick=()=>{save();reset();win.focus();};
  by('export').onclick=downloadReport;
- setInterval(()=>{const s=stats();by('stats').textContent=`${win.innerWidth} × ${win.innerHeight} · DPR ${renderer.dpr}\n${s.frames} images · ${active?'mesure en cours':'mesure terminée'}\nMédiane ${s.medianMs??'—'} ms · p95 ${s.p95Ms??'—'} ms\nImages >25 ms : ${s.over25ms} · >50 ms : ${s.over50ms}`;},500);
+ function refreshPanel(){
+  const s=stats(),race=app.race,car=race?.cars[0];
+  let phase=active?'Mesure en cours':'Mesure terminée';
+  if(auto?.status==='running'){
+   const pct=car?Math.max(0,Math.min(100,Math.floor(race.track.wrap(car.s)/race.track.length*100))):0;
+   const seconds=Math.floor((race?.time||0)-auto.since);
+   if(document.hidden)phase='Suspendu : onglet masqué';
+   else if(app.state==='paused')phase='En pause — reprendre la course';
+   else if(race?.state==='countdown')phase=race.attente?'Chargement des voitures…':'Départ dans '+Math.ceil(race.countdown)+' s';
+   else if(auto.index<0)phase=`Tour de chauffe · ${pct} % du circuit · ${seconds} s`;
+   else phase=`Tour mesuré ${auto.index+1}/${sequence.length} · ${pct} % · ${seconds} s · ${by('mode').selectedOptions[0].text}`;
+   by('status').textContent=phase;
+  }
+  const warm=auto?.status==='running'&&auto.index<0;
+  by('stats').textContent=`${win.innerWidth} × ${win.innerHeight} · DPR ${renderer.dpr}
+${phase}
+${s.frames} images observées${warm?' (chauffe, exclues du rapport)':''}
+Médiane ${s.medianMs??'—'} ms · p95 ${s.p95Ms??'—'} ms
+Images >25 ms : ${s.over25ms} · >50 ms : ${s.over50ms}
+${history.length}/${auto?sequence.length:'—'} mesures enregistrées`;
+  document.querySelector('summary').textContent=auto?.status==='running'?`Diagnostic · ${auto.index<0?'chauffe':`${auto.index+1}/${sequence.length}`} · ${s.frames} images`:'Diagnostic PC · RECETTE';
+ }
+ setInterval(refreshPanel,500);
+
 }
 frame.addEventListener('load',()=>setup().catch(e=>{by('status').textContent='Erreur : '+e.message;}));

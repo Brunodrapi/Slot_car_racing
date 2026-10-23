@@ -6,6 +6,8 @@ const {chromium}=require('playwright'),assert=require('assert/strict');
  const movement=await p.evaluate(()=>{const a=document.querySelector('iframe').contentWindow.app;const before=a.race.cars.map(c=>c.s);a.race.state='racing';for(let i=0;i<120;i++)a.spectator.update(1/60);return {ai:a.race.cars.every(c=>!c.isPlayer&&c.human===null),moved:a.race.cars.some((c,i)=>Math.abs(c.s-before[i])>1),spectator:!!a.spectator};});
  assert(movement.ai&&movement.moved&&movement.spectator);
  await p.evaluate(()=>{const a=document.querySelector('iframe').contentWindow.app,before=a.race.time;Object.defineProperty(document,'hidden',{configurable:true,get:()=>true});a.spectator.update(1);if(a.race.time!==before)throw Error('Hidden tab advanced simulation');delete document.hidden;});
+ await p.waitForTimeout(700);assert.match(await p.locator('#stats').innerText(),/chauffe, exclues du rapport/);
+ assert.match(await p.locator('#stats').innerText(),/[1-9][0-9]* images observées/);
  const cross=()=>p.evaluate(()=>{const a=document.querySelector('iframe').contentWindow.app;a.race.cars[0].lap++;a.renderer.draw(a.race,a.ui);});
  await cross(); // warm-up ends, first measured stage starts
  const sequence=['normal','objects','textures','tyres','barriers','all','rubber','cache','cacheAll','normal'];
