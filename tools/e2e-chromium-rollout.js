@@ -5,7 +5,7 @@ const {chromium}=require('playwright'),assert=require('assert/strict');
  ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/155.0.0.0 Safari/537.36',true],
  ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) Gecko/20100101 Firefox/158.0',false]]){
   const p=await b.newPage({userAgent:ua}),errors=[];p.on('pageerror',e=>errors.push(e.message));
-  await p.goto('http://127.0.0.1:8765/');await p.waitForFunction(()=>window.app);
+  await p.goto(process.argv[2]||'http://127.0.0.1:8765/');await p.waitForFunction(()=>window.app);
   if(enabled)await p.waitForFunction(()=>window.app.renderer.chromiumCacheFix);
   await p.evaluate(()=>{const a=window.app;a.mondial=null;a.analytics.begin=()=>{};a.analytics.observe=()=>{};a.save.sound=false;a.audio.setEnabled(false);a.startQuick('race','gt','spa');});
   assert.equal(await p.locator('#browser-performance-notice').count(),enabled?1:0);

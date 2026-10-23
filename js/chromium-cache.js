@@ -1,17 +1,10 @@
-// Recette rollout: desktop Chrome/Edge only. Diagnostic pages manage their own renderer.
+// Cache rollout: desktop Chrome/Edge only. Diagnostic pages manage their own renderer.
 window.addEventListener('DOMContentLoaded', async () => {
-  if (APP_CANAL !== 'recette' || new URLSearchParams(location.search).has('diagnostic')) return;
+  if (new URLSearchParams(location.search).has('diagnostic')) return;
   if (mobileDevice() || !/Chrome\/|Edg\//.test(navigator.userAgent) || /OPR\/|SamsungBrowser\//.test(navigator.userAgent)) return;
   const app = window.app;
   if (!app) return;
   try {
-    for (const src of ['tools/backdrop-cache-prototype.js?v=backdrop-3', 'tools/chromium-cache-fix.js?v=1']) {
-      await new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = src; script.onload = resolve; script.onerror = reject;
-        document.head.append(script);
-      });
-    }
     if (!window.installChromiumCacheFix(app, 8)) return;
   } catch (error) {
     console.warn('Cache indisponible, rendu habituel conservé.', error);

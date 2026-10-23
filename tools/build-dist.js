@@ -195,6 +195,23 @@ async function main() {
       if (prod === src && !/APP_CANAL = 'prod'/.test(src)) throw new Error('APP_CANAL introuvable dans js/version.js');
       src = prod;
     }
+    if (rel === 'js/static-backdrop.js') {
+      // Resolve the static passes BEFORE minification removes renderer markers.
+      // Emit normal functions so terser also minifies every generated pass.
+      const vm = require('vm'), captured = [];
+      const draw = vm.runInNewContext(lire('js/render.js').toString('utf8') + ';Renderer.prototype.draw');
+      const sandbox = {window: {}, Function: function(...args) {
+        const fn = new Function(...args); captured.push(fn); return fn;
+      }};
+      vm.runInNewContext(src, sandbox);
+      sandbox.window.installBackdropCachePrototype({draw});
+      if(captured.length !== 3) throw new Error('Unexpected backdrop pass count');
+      const head = src.indexOf(' const original='), tail = src.indexOf(' const CELL=');
+      if(head < 0 || tail < head) throw new Error('Backdrop build markers missing');
+      src = src.slice(0,head) + ' const original=r.draw; const base=' + captured[0].toString()
+        + ';const decor=' + captured[1].toString() + ';const compiled=' + captured[2]().toString()
+        + ';\n' + src.slice(tail);
+    }
     avant += src.length;
     // echarts arrive déjà minifié : le repasser ne gagne rien et coûte dix secondes.
     const sortie = rel.endsWith('.min.js') ? src : (await minify(src, {
