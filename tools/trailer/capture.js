@@ -58,7 +58,7 @@ window.trailerSetup = async function(shot,seed) {
   if(shot.tile)app.renderer.hudCanvas.style.visibility='hidden';
   app.renderer.rotate=false;app.renderer.cam.init=false;
   if(app.spectator){app.spectator.mode=shot.view;app.spectator.root.querySelector('select').value=shot.view;app.spectator.index=race.cars.indexOf(p);}
-  window.trailerEvents={offroad:0,spin:0,crash:0,finish:0,frames:0,maxSlip:0,difficulty:'extreme',mode:race.mode,cars:race.cars.length,initialPosition,bestPosition:initialPosition,lap:0,trackName:T.def.name};
+  window.trailerEvents={offroad:0,spin:0,crash:0,finish:0,frames:0,maxSlip:0,difficulty:Object.keys(DIFFICULTY).find(k=>DIFFICULTY[k]===race.difficulty),mobile:matchMedia('(pointer: coarse)').matches,viewport:{width:innerWidth,height:innerHeight},mode:race.mode,cars:race.cars.length,initialPosition,bestPosition:initialPosition,lap:0,trackName:T.def.name};
   window.trailerTick=(dt,t)=>{
     const steps=Math.max(1,Math.round(dt*120)),h=dt/steps;
     for(let k=0;k<steps;k++){
@@ -74,6 +74,7 @@ window.trailerSetup = async function(shot,seed) {
     trailerEvents.bestPosition=Math.min(trailerEvents.bestPosition,race.standings().indexOf(p)+1);
     trailerEvents.frames++;trailerEvents.maxSlip=Math.max(trailerEvents.maxSlip,Math.abs(p.beta));
     if(app.spectator)app.spectator.update(dt);
+    else if(shot.mobile)app.renderer.updateCamera(race,dt);
     else {
       // North-up tracking, wide enough to anticipate the bend and see the pack.
       const heading=T.headingAt(p.s),lead=8;

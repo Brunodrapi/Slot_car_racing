@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 const fs=require('fs'),path=require('path'),http=require('http'),{spawn,spawnSync}=require('child_process');
-const {chromium}=require('playwright');
+const {chromium,devices}=require('playwright');
 if(process.argv.includes('--help')){console.log('node tools/trailer/make.js [--script=file.json] [--out=directory] [--chromium=path] [--only=01-hook] [--resume] [--music=file.mp3] [--credit=file.txt] [--records=snapshot.json]');process.exit(0);}
 const ROOT=path.resolve(__dirname,'../..');
 const arg=n=>{const x=process.argv.find(a=>a.startsWith('--'+n+'='));return x?.slice(n.length+3);};
@@ -13,7 +13,7 @@ const only=arg('only'),music=arg('music'),credit=arg('credit'),resume=process.ar
 const raw=path.join(OUT,'rushes'),cuts=path.join(OUT,'sections');
 for(const d of [OUT,raw,cuts])fs.mkdirSync(d,{recursive:true});
 fs.copyFileSync(SCRIPT,path.join(OUT,'script.json'));
-if(conf.sections.reduce((a,s)=>a+s.duration,0)!==72)console.warn('Custom timeline duration differs from 72 seconds.');
+const duration=conf.sections.reduce((a,s)=>a+s.duration,0);
 for(const s of conf.sections)if(s.shots&&Math.abs(s.shots.reduce((a,x)=>a+x.duration,0)-s.duration)>.01)throw Error('Shot duration mismatch '+s.id);
 const font=path.join(ROOT,'art/interface/fonts/BarlowCondensed-BlackItalic.ttf');
 function run(args){return new Promise((resolve,reject)=>{const p=spawn('ffmpeg',['-hide_banner','-loglevel','error','-y',...args]);let err='';p.stderr.on('data',d=>err+=d);p.on('error',reject);p.on('close',c=>c?reject(Error(err)):resolve());});}
@@ -26,8 +26,8 @@ function complete(file,duration){
  try{const r=spawnSync('ffprobe',['-v','error','-show_entries','format=duration','-of','json',file],{encoding:'utf8'});return r.status===0&&Math.abs(Number(JSON.parse(r.stdout).format.duration)-duration)<.15;}catch{return false;}
 }
 let server,browser;
-async function page(w=W,h=H){
- const ctx=await browser.newContext({viewport:{width:w,height:h},deviceScaleFactor:1});
+async function page(w=W,h=H,mobile=false){
+ const ctx=await browser.newContext({...(mobile?devices['iPhone 13']:{}),viewport:{width:w,height:h},deviceScaleFactor:1});
  await ctx.addInitScript(()=>{window.requestAnimationFrame=()=>0;localStorage.setItem('slotracer.save.v2',JSON.stringify({name:'GRIP',lang:'en',sound:false}));});
  const p=await ctx.newPage();await p.route('**/*',r=>r.request().url().startsWith('http://127.0.0.1:')?r.continue():r.abort());
  p.on('pageerror',e=>{report.errors||=[];report.errors.push(e.message);});
@@ -37,12 +37,12 @@ async function page(w=W,h=H){
 async function capture(shot,id,w=W,h=H,fps=FPS){
  const dest=path.join(raw,id+'.mp4');if(resume&&complete(dest,shot.duration))return dest;
  console.log('CAPTURE',id);
- const {p,ctx}=await page(w,h);
+ const {p,ctx}=await page(shot.mobile?390:w,shot.mobile?780:h,!!shot.mobile);
  try{
  await p.evaluate(({shot,seed})=>trailerSetup(shot,seed),{shot:shot.records?{...shot,recordsSnapshot}:shot,seed:conf.seed});
  if(shot.menu||shot.end||shot.records){const png=path.join(raw,id+'.png');await p.screenshot({path:png});await run(['-loop','1','-i',png,'-t',String(shot.duration),'-vf',`scale=${W}:${H}`, ...enc,dest]);report.shots=report.shots.filter(r=>r.id!==id);report.shots.push({id,shot,static:true,recordsCount:shot.records?recordsSnapshot.records.length:undefined});}
  else{
- const proc=spawn('ffmpeg',['-hide_banner','-loglevel','error','-y','-f','image2pipe','-vcodec','mjpeg','-framerate',String(fps),'-i','pipe:0','-an','-c:v','libx264','-preset','veryfast','-crf','19','-pix_fmt','yuv420p','-threads','2',dest]);
+ const proc=spawn('ffmpeg',['-hide_banner','-loglevel','error','-y','-f','image2pipe','-vcodec','mjpeg','-framerate',String(fps),'-i','pipe:0','-an',...(shot.mobile?['-vf',`scale=${w}:${h}:force_original_aspect_ratio=decrease:force_divisible_by=2,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2:color=0x172723`]:[]),'-c:v','libx264','-preset','veryfast','-crf','19','-pix_fmt','yuv420p','-threads','2',dest]);
  let errors='';proc.stderr.on('data',d=>errors+=d);const done=new Promise((res,rej)=>{proc.on('error',rej);proc.on('close',c=>c?rej(Error(errors)):res());});
  for(let i=0;i<Math.round(shot.duration*fps);i++){
   await p.evaluate(({dt,t})=>trailerTick(dt,t),{dt:1/fps,t:i/fps});
@@ -58,7 +58,7 @@ async function capture(shot,id,w=W,h=H,fps=FPS){
 async function title(input,s,dest){
  const txt=path.join(OUT,s.id+'.txt');fs.writeFileSync(txt,s.text);
  const size=s.text.length>45?36:s.text.length>33?42:54;
- let vf=`drawbox=x=0:y=ih-108:w=iw:h=108:color=0x101815@0.85:t=fill,drawtext=fontfile='${ffpath(font)}':expansion=none:textfile='${ffpath(txt)}':fontcolor=0xf5e7c7:fontsize=${size}:x=(w-tw)/2:y=h-78`;
+ let vf=`scale=${W}:${H-108}:force_original_aspect_ratio=decrease:force_divisible_by=2,pad=${W}:${H}:(ow-iw)/2:0:color=0x101815,drawtext=fontfile='${ffpath(font)}':expansion=none:textfile='${ffpath(txt)}':fontcolor=0xf5e7c7:fontsize=${size}:x=(w-tw)/2:y=h-78`;
  if(s.end&&credit)vf+=`,drawtext=fontfile='${ffpath(font)}':expansion=none:textfile='${ffpath(path.resolve(credit))}':fontsize=18:fontcolor=0xf5e7c7:x=30:y=24:line_spacing=5`;
  if(s.end){const play=path.join(OUT,'play.txt');fs.writeFileSync(play,'PLAY NOW');vf+=`,drawtext=fontfile='${ffpath(font)}':expansion=none:textfile='${ffpath(play)}':fontsize=60:fontcolor=0xf1c744:x=(w-tw)/2:y=h*0.72`;}
  await run(['-i',input,'-t',String(s.duration),'-vf',vf,...enc,dest]);
@@ -84,7 +84,7 @@ async function title(input,s,dest){
  }
  if(!only){
  const silent=path.join(OUT,'grip-trailer-silent.mp4');await concat(conf.sections.map(s=>path.join(cuts,s.id+'.mp4')),silent);
- if(music){await run(['-i',silent,'-stream_loop','-1','-i',path.resolve(music),'-map','0:v','-map','1:a','-c:v','copy','-af','volume=0.65,afade=t=in:d=0.35,afade=t=out:st=69:d=3','-c:a','aac','-b:a','192k','-t','72','-movflags','+faststart',path.join(OUT,'grip-trailer.mp4')]);}
+ if(music){await run(['-i',silent,'-stream_loop','-1','-i',path.resolve(music),'-map','0:v','-map','1:a','-c:v','copy','-af',`volume=0.65,afade=t=in:d=0.35,afade=t=out:st=${duration-3}:d=3`,'-c:a','aac','-b:a','192k','-t',String(duration),'-movflags','+faststart',path.join(OUT,'grip-trailer.mp4')]);}
  await run(['-ss','2','-i',silent,'-frames:v','1',path.join(OUT,'poster.jpg')]);
  }
  if(report.errors?.length)throw Error('Browser errors: '+JSON.stringify(report.errors));

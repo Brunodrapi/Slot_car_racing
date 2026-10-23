@@ -1,5 +1,5 @@
 {
-  "version": "0.50.0",
+  "version": "0.52.0",
   "shots": [
     {
       "id": "01-hook-0",
@@ -18,6 +18,11 @@
         "frames": 121,
         "maxSlip": 0.15620420395372397,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -44,6 +49,11 @@
         "frames": 241,
         "maxSlip": 0.18396780221730524,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
         "mode": "timetrial",
         "cars": 1,
         "initialPosition": 1,
@@ -69,6 +79,11 @@
         "frames": 49,
         "maxSlip": 0.29229734719171085,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -94,6 +109,11 @@
         "frames": 49,
         "maxSlip": 1.4112783006817484,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -119,6 +139,11 @@
         "frames": 49,
         "maxSlip": 1.2885539654041458,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -144,6 +169,11 @@
         "frames": 49,
         "maxSlip": 0.08137932199290922,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -169,6 +199,11 @@
         "frames": 49,
         "maxSlip": 0.6905318847838816,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -419,6 +454,11 @@
         "frames": 121,
         "maxSlip": 0.10529681374431094,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -444,6 +484,11 @@
         "frames": 121,
         "maxSlip": 0.2385252384821109,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -469,6 +514,11 @@
         "frames": 121,
         "maxSlip": 0.15821409353590404,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -494,6 +544,11 @@
         "frames": 121,
         "maxSlip": 0.12854099355480464,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -519,6 +574,11 @@
         "frames": 121,
         "maxSlip": 0.10868877433933466,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -544,6 +604,11 @@
         "frames": 121,
         "maxSlip": 0.0954927193182563,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -569,6 +634,11 @@
         "frames": 121,
         "maxSlip": 0.11133193736485986,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -594,6 +664,11 @@
         "frames": 121,
         "maxSlip": 0.23719773151121618,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -619,6 +694,11 @@
         "frames": 121,
         "maxSlip": 0.17058947117793277,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -644,6 +724,11 @@
         "frames": 121,
         "maxSlip": 0.11859681923059485,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -669,6 +754,11 @@
         "frames": 121,
         "maxSlip": 0.21130598805325795,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -694,6 +784,11 @@
         "frames": 121,
         "maxSlip": 0.2000502252080038,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -719,6 +814,11 @@
         "frames": 97,
         "maxSlip": 0.22912705353207857,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -744,6 +844,11 @@
         "frames": 97,
         "maxSlip": 0.06871797112241533,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -769,6 +874,11 @@
         "frames": 97,
         "maxSlip": 0.08142596414305774,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
         "mode": "race",
         "cars": 8,
         "initialPosition": 8,
@@ -795,6 +905,11 @@
         "frames": 97,
         "maxSlip": 0.11035573712190407,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
         "mode": "timetrial",
         "cars": 1,
         "initialPosition": 1,
@@ -820,6 +935,11 @@
         "frames": 37,
         "maxSlip": 0.04413651747712696,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
         "mode": "race",
         "cars": 2,
         "initialPosition": 2,
@@ -846,6 +966,11 @@
         "frames": 37,
         "maxSlip": 0.0788466927781786,
         "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
         "mode": "timetrial",
         "cars": 1,
         "initialPosition": 1,
@@ -870,6 +995,38 @@
         "duration": 5
       },
       "static": true
+    },
+    {
+      "id": "06b-platforms-0",
+      "shot": {
+        "track": "suzuka",
+        "model": "m1procar",
+        "at": 0.055,
+        "mode": "timetrial",
+        "action": "clean",
+        "mobile": true,
+        "duration": 5
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.1181170402129913,
+        "difficulty": "extreme",
+        "mobile": true,
+        "viewport": {
+          "width": 390,
+          "height": 780
+        },
+        "mode": "timetrial",
+        "cars": 1,
+        "initialPosition": 1,
+        "bestPosition": 1,
+        "lap": 0,
+        "trackName": "Fuji Yama"
+      }
     }
   ],
   "notes": [

@@ -16,7 +16,7 @@ Sources officielles consultées le 22 octobre 2026. Les trois fiches ci-dessous 
 > “Brain Dance” — Kevin MacLeod (incompetech.com)
 > https://incompetech.com/music/royalty-free/index.html?isrc=USUAN2300006
 > Licensed under Creative Commons Attribution 4.0: https://creativecommons.org/licenses/by/4.0/
-> Extrait de 72 secondes, volume ajusté et fondus ajoutés pour la bande-annonce GRIP.
+> Extrait de 77 secondes, volume ajusté et fondus ajoutés pour la bande-annonce GRIP.
 
 Ajouter ce crédit à la description itch.io, YouTube ou du réseau où la vidéo est publiée, et le conserver avec le fichier. Pour remplacer le morceau, adapter le titre et le lien dans le crédit.
 

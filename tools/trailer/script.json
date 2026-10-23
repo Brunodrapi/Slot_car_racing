@@ -36,7 +36,7 @@
     {
       "id": "03-crashes",
       "duration": 10,
-      "text": "PUSH TOO HARD… AND YOU’LL PAY FOR IT.",
+      "text": "PUSH TOO HARD\u2026 AND YOU\u2019LL PAY FOR IT.",
       "shots": [
         {
           "track": "monza",
@@ -251,6 +251,22 @@
           "at": 0.08,
           "view": "duel",
           "duration": 4
+        }
+      ]
+    },
+    {
+      "id": "06b-platforms",
+      "duration": 5,
+      "text": "PLAY ON PC & MOBILE",
+      "shots": [
+        {
+          "track": "suzuka",
+          "model": "m1procar",
+          "at": 0.055,
+          "mode": "timetrial",
+          "action": "clean",
+          "mobile": true,
+          "duration": 5
         }
       ]
     },

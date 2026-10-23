@@ -1,6 +1,6 @@
 # Atelier vidéo GRIP
 
-Capture le **vrai jeu du dépôt**, puis monte le script de 72 secondes. Aucun asset de course généré, aucun envoi vers les serveurs de scores/analytics. L'outil sert un serveur local et bloque les requêtes externes du navigateur de tournage.
+Capture le **vrai jeu du dépôt**, puis monte le script de 77 secondes. Aucun asset de course généré, aucun envoi vers les serveurs de scores/analytics. L'outil sert un serveur local et bloque les requêtes externes du navigateur de tournage.
 
 ## Installation
 
@@ -43,7 +43,7 @@ node tools/trailer/make.js --resume --out=artifacts/trailer
 - `grip-trailer-silent.mp4` : montage complet sans son.
 - `grip-trailer.mp4` : montage avec musique si fournie.
 - `rushes/` : toutes les prises sans titres, PNG des menus et carton final.
-- `sections/` : les huit sections montées avec leurs textes.
+- `sections/` : les neuf sections montées avec leurs textes.
 - `script.json` : copie du script utilisé.
 - `capture-report.json` : événements observés et éventuelles erreurs navigateur.
 - `poster.jpg` : aperçu.
@@ -56,7 +56,7 @@ Les IA pilotent les voitures avec la physique réelle. Pour les accidents, les p
 
 Les plans spectateur montrent les vraies interfaces follow/full/duel, mais sur une **simulation locale**, pas une session publique multijoueur. Cela permet de tourner sans contacter de joueurs. Ils démontrent les caméras et le chronométrage, pas les performances réseau.
 
-La durée du script fourni est 72 secondes. Le montage est un premier assemblage reproductible : ajuster les départs de plans et les coupes pour un montage publicitaire final. Aucun achat de musique, publication de vidéo ou lancement de campagne n'est effectué.
+La durée du script fourni est 77 secondes. Le montage est un premier assemblage reproductible : ajuster les départs de plans et les coupes pour un montage publicitaire final. Aucun achat de musique, publication de vidéo ou lancement de campagne n'est effectué.
 
 `--credit` inscrit le fichier texte de crédit sur le carton final lors de son rendu. Pour changer un crédit, refaire `--only=08-end --credit=...`, puis assembler avec `--resume --music=...`. Un crédit prêt à utiliser pour Rhinoceros est fourni dans `docs/trailer/credit-rhinoceros.txt`.
 
@@ -85,3 +85,5 @@ Le navigateur de capture continue de bloquer les services externes. Seul `fetch-
 `--records` attend un JSON `{circuit, capturedAt, records:[{voiture, temps, pilote}]}`. L'outil affiche les composants réels du tableau, avec une mise en page de tournage plus lisible. Les chronos et les noms sont conservés. Le fichier utilisé est inclus dans les prises pour documenter leur date.
 
 Les courses, la mosaïque et les vues spectateur sont tournées avec des adversaires en difficulté **Extrême**. Le pilote automatique des plans solo de maîtrise conserve une marge prudente pour réussir les enchaînements sans sortie. Le réglage du joueur dans le jeu publié reste indépendant de cet outil.
+
+Les titres occupent une marge dédiée sous le jeu : la totalité de l’image est conservée et réduite proportionnellement, sans masquer le HUD. Les captures PC utilisent la dernière interface du dépôt. Le plan « PLAY ON PC & MOBILE » utilise une émulation iPhone tactile en portrait (390 × 780), avec la vraie interface mobile. Les neuf sections durent au total 77 secondes ; la durée du montage audio et son fondu suivent automatiquement le script.

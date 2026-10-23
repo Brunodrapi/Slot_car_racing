@@ -15,9 +15,11 @@ for(const s of script.sections)assert(Math.abs(Number(probe(path.join(out,'secti
 const mosaic=path.join(out,'sections/05-mosaic.mp4');
 const frame=t=>execFileSync('ffmpeg',['-v','error','-ss',String(t),'-i',mosaic,'-frames:v','1','-f','rawvideo','-pix_fmt','gray','pipe:1'],{maxBuffer:script.width*script.height*2});
 const a=frame(4),b=frame(8),w=script.width,h=script.height;
+// The complete 16:9 image sits above the dedicated 108px caption margin.
+const contentH=h-108,contentW=Math.floor(w*contentH/h/2)*2,left=(w-contentW)/2;
 for(let tile=0;tile<12;tile++){
  let changed=0,n=0;
- for(let y=Math.floor(tile/4)*h/3+30;y<Math.min((Math.floor(tile/4)+1)*h/3-10,h-110);y++)for(let x=tile%4*w/4+5;x<(tile%4+1)*w/4-5;x++){
+ for(let y=Math.ceil(Math.floor(tile/4)*contentH/3+30);y<Math.floor((Math.floor(tile/4)+1)*contentH/3-10);y++)for(let x=Math.ceil(left+tile%4*contentW/4+5);x<Math.floor(left+(tile%4+1)*contentW/4-5);x++){
   n++;if(Math.abs(a[y*w+x]-b[y*w+x])>12)changed++;
  }
  assert(changed>n*.02,'Frozen mosaic tile '+tile);console.log('Mosaic',tile+1,Math.round(changed/n*100)+'% changed');
@@ -34,6 +36,7 @@ for(const section of script.sections)for(const [i,shot] of (section.shots||[]).e
  const r=report.shots.find(r=>r.id===section.id+'-'+i);
  if(shot.mode==='timetrial'){assert.equal(r.events.mode,'timetrial');assert.equal(r.events.cars,1);if(shot.action==='clean')assert.equal(r.events.offroad,0);}
  if(shot.action==='overtake')assert(r.events.bestPosition<r.events.initialPosition,'Overtake actually occurred');
+ if(shot.mobile){assert(r.events.mobile,'Touch device emulated');assert(r.events.viewport.height>r.events.viewport.width,'Portrait mobile capture');}
  if(shot.records)assert(r.recordsCount>0,'World records snapshot populated');
 }
 console.log('Time-trial footage, overtake and public records: OK');
