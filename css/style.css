@@ -1046,3 +1046,80 @@ img.stat-ico { object-fit:contain; }
 }
 .setup-screen .rail.tracks .card > b, .selection-screen .rail.tracks .card > b { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; overflow-wrap:normal; max-width:100%; }
 @media (max-width:850px) { .setup-screen .track-card-art img { height:70px; width:auto; } .setup-screen .rail.tracks .card > b { font-size:17px; } }
+
+/* Accueil 0.52 : Comment jouer, Installez-moi, Faites un don. Trois entrées plus petites que les modes
+   de jeu, sur papier crème : on les voit sans qu'elles disputent la place aux trois façons de courir. */
+.home-extras { display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:9px; margin-top:12px; }
+.extra-card { display:flex; align-items:center; justify-content:center; gap:9px; min-height:54px; padding:6px 16px; border:2px solid #171b19; border-radius:0;
+  background:#fff0d2 url('../art/interface/ink.svg'); color:#171b19; font:italic 900 20px/1.05 Racing,Impact,sans-serif; text-transform:uppercase; text-decoration:none;
+  clip-path:polygon(5% 0,100% 0,95% 100%,0 100%); box-shadow:none; cursor:pointer; }
+.extra-card svg { width:30px; height:30px; flex:0 0 30px; }
+.extra-card:hover, .extra-card:focus-visible, .extra-card.pad-focus { background-color:#fff8e8; outline:none; box-shadow:inset 0 0 0 3px #c82520; }
+.extra-card:active { background-color:#f3e2bf; }
+@media (max-width:850px) {
+  .home-extras { margin-top:9px; gap:7px; }
+  .extra-card { flex-direction:column; gap:3px; min-height:62px; padding:6px 8px; font-size:15px; text-align:center; clip-path:polygon(6% 0,100% 0,94% 100%,0 100%); }
+  .extra-card svg { width:26px; height:26px; flex-basis:26px; }
+}
+
+/* Comment jouer. Sur papier : le titre et son numéro, l'animation tirée du jeu, puis le texte. */
+.howto-intro { margin:0; font-size:clamp(18px,2.2vw,26px); color:#272b28; background:#fff0d2 url('../art/interface/ink.svg'); padding:8px 16px;
+  border:2px solid #20251f; clip-path:polygon(0 0,100% 0,99% 100%,0 100%); }
+.howto-pas { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; flex-shrink:0; }
+.pas { display:flex; flex-direction:column; gap:10px; min-width:0; padding:12px 14px 16px; background:#fff0d2 url('../art/interface/ink.svg'); color:#20261e;
+  border:2px solid #20251f; box-shadow:5px 6px 0 #171b1955; }
+.pas h3 { display:flex; align-items:center; gap:10px; margin:0; letter-spacing:0; color:#20261e; font:italic 900 clamp(21px,2vw,28px)/1.05 Racing,Impact,sans-serif; text-transform:uppercase; }
+.pas-num { display:grid; place-items:center; flex:0 0 38px; height:38px; color:#fff1d5; background:#c82520 url('../art/interface/ink.svg'); font-size:24px;
+  clip-path:polygon(18% 0,100% 0,82% 100%,0 100%); }
+.pas-anim { margin:0; background:#171b19; border:2px solid #20251f; line-height:0; }
+.pas-anim img { display:block; width:100%; height:auto; }
+.pas p { margin:0; font-size:17px; line-height:1.35; color:#3a3f37; }
+.howto-nav { display:flex; align-items:center; justify-content:flex-end; gap:16px; }
+.howto-nav .primary { min-width:200px; }
+.howto-points { display:none; gap:8px; margin-right:auto; }
+.howto-points span { width:12px; height:12px; background:#cbbd9f; border:2px solid #20251f; transform:skewX(-14deg); transition:background .2s; }
+.howto-points span.actif { background:#c82520; }
+@media (max-width:850px) {
+  /* Un geste par écran, qu'on fait défiler du doigt : chaque fiche prend la largeur et s'y aimante. */
+  .howto-pas { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; gap:0; scrollbar-width:none; overscroll-behavior-x:contain; }
+  .howto-pas::-webkit-scrollbar { display:none; }
+  .pas { flex:0 0 100%; scroll-snap-align:center; scroll-snap-stop:always; box-shadow:none; padding:10px 12px 14px; }
+  .pas h3 { font-size:22px; }
+  /* L'animation se règle sur la hauteur de l'écran : le titre, elle, le texte et « Suivant » tiennent
+     ensemble sur un iPhone 13 sans défiler. Sur un écran plus court, la page défile. */
+  .pas-anim { align-self:center; width:min(100%, calc(37vh * 320 / 414)); }
+  .pas p { font-size:15px; line-height:1.3; }
+  .howto-intro { font-size:15px; padding:5px 12px; }
+  .howto-screen { gap:10px; }
+  .howto-points { display:flex; }
+  .howto-nav .primary { min-width:150px; font-size:26px; padding:10px 28px; }
+}
+
+/* Installez-moi : pourquoi, puis le chemin, étape par étape, avec les icônes du téléphone. */
+.install-corps { display:flex; flex-direction:column; gap:14px; max-width:720px; width:100%; margin:0 auto; }
+.fiche { margin:0; padding:12px 16px; background:#fff0d2 url('../art/interface/ink.svg'); color:#20261e; border:2px solid #20251f; box-shadow:4px 5px 0 #171b1944; }
+.install-pourquoi { display:flex; align-items:center; gap:12px; font-size:18px; line-height:1.3; }
+.install-pourquoi svg { width:40px; height:40px; flex:0 0 40px; }
+.install-fait { color:#0f7a4c; font-size:20px; }
+.install-os h3, .install-os summary { margin:0 0 8px; letter-spacing:0; font:italic 900 24px/1.1 Racing,Impact,sans-serif; text-transform:uppercase; color:#20261e; }
+.install-os summary { margin:0; cursor:pointer; }
+details.install-os[open] summary { margin-bottom:8px; }
+.etapes { margin:0; padding:0; list-style:none; counter-reset:etape; display:grid; gap:10px; }
+.etapes li { counter-increment:etape; display:flex; align-items:center; gap:12px; font-size:17px; line-height:1.35; color:#3a3f37; }
+.etapes li::before { content:counter(etape); display:grid; place-items:center; flex:0 0 32px; height:32px; color:#fff1d5; background:#c82520 url('../art/interface/ink.svg');
+  font:italic 900 20px Racing,Impact,sans-serif; clip-path:polygon(18% 0,100% 0,82% 100%,0 100%); }
+.picto-os { display:inline-block; width:24px; height:24px; vertical-align:-6px; margin:0 2px; padding:2px; background:#fff; border:1px solid #20251f33; border-radius:6px; box-sizing:content-box; }
+.install-note { margin:0; font-size:15px; line-height:1.35; color:#4a4e45; }
+.install-screen .primary.big { align-self:stretch; font-size:30px; }
+@media (min-width:851px) {
+  .install-note { color:#fff2d9; text-shadow:0 1px 3px #000; }
+}
+/* Les petits téléphones (iPhone SE : 568 px de haut) : la rangée du bas ne doit pas pousser « Réglages »
+   et le pilote hors de l'écran. Logo et cartes se serrent, les trois entrées perdent leur pictogramme. */
+@media (max-width:850px) and (max-height:620px) {
+  .home-heading .game-logo { height:17vh; }
+  .mode-card { min-height:60px; }
+  .mode-art img { height:46px; }
+  .extra-card { min-height:44px; font-size:13px; }
+  .extra-card svg { display:none; }
+}

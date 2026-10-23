@@ -66,6 +66,20 @@ class App {
     this.last = performance.now();
     this._bindInput();
     window.addEventListener('resize', () => { this.renderer.resize(); if (this.race) this.renderer._makeMinimap(); });
+    /* L'installation sur l'écran d'accueil (écran « Installez-moi »).
+
+    Chrome sur Android propose l'installation quand le jeu y a droit (manifeste et service worker en
+    place, donc en prod) : on garde l'invitation au lieu de la laisser s'afficher toute seule, et l'écran
+    d'installation en fait un bouton. Une fois installé, l'entrée du menu s'efface. Safari n'envoie ni
+    l'un ni l'autre : l'écran explique alors le chemin par Partager. */
+    this.invitInstall = null;
+    this.installe = false;
+    const rafraichit = () => {
+      if (this.ui.root.querySelector('.install-screen')) this.ui.installScreen();
+      else if (this.ui.root.querySelector('.home-screen')) this.ui.menu();
+    };
+    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); this.invitInstall = e; rafraichit(); });
+    window.addEventListener('appinstalled', () => { this.invitInstall = null; this.installe = true; rafraichit(); });
     // le tableau mondial : il se débrouille seul, et son absence n'empêche rien
     this.mondial = new Mondial();
     this.analytics = new GameAnalytics();

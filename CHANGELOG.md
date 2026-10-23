@@ -4,6 +4,11 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.0
+- Nouvelle entrée « Comment jouer » : appuyer, relâcher et changer de ligne, chacun en animation.
+- Sur téléphone, « Installez-moi » explique comment mettre GRIP sur l'écran d'accueil.
+- « Faites un don » mène à la page itch.io du jeu.
+
 ## 0.51.0
 - Sur ordinateur, nouveau tableau de bord : la vitesse en grand, une barre lumineuse (verte sous les
   gaz, rouge au freinage) et le voyant GRIP qui dit si la voiture tient ou glisse.
