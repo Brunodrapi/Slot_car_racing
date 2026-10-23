@@ -8,7 +8,7 @@ const {chromium}=require('playwright'),assert=require('assert/strict');
  await p.goto((process.argv[2]||'http://127.0.0.1:8765')+'/tools/diagnostic-pc.html');
  await p.waitForFunction(()=>!document.querySelector('#start').disabled);
  const track=process.argv[3]||'zandvoort';await p.selectOption('#track',track);await p.click('#start');
- for(const mode of ['normal','tyres','objects','textures','barriers','all','rubber','cache','normal']){
+ for(const mode of ['normal','tyres','objects','textures','barriers','all','rubber','cache','cacheAll','normal']){
   await p.selectOption('#mode',mode);
   const out=await p.evaluate(()=>{
    const w=document.querySelector('iframe').contentWindow,a=w.app,r=a.renderer,g=r.ctx;
@@ -18,7 +18,7 @@ const {chromium}=require('playwright'),assert=require('assert/strict');
    return {track:a.race.track.def.id,tires,barriers:r.barrierArt.length};
   });
   assert.equal(out.track,track);assert(out.barriers>0);
-  if(['tyres','barriers','all','cache'].includes(mode))assert.equal(out.tires,0);
+  if(['tyres','barriers','all','cache','cacheAll'].includes(mode))assert.equal(out.tires,0);
   if(mode==='normal')assert(out.tires>0);
   console.log(mode,JSON.stringify(out));
  }
