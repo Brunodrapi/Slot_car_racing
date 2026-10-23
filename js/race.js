@@ -114,7 +114,7 @@ class Race {
     signés. Mieux vaut que l'option n'existe pas là que d'avoir à l'expliquer. */
     // `opts.mode` et non `this.mode` : celui-ci n'est affecté que trente lignes plus bas, si bien
     // que le lire ici aurait rendu l'option inerte sans que rien ne le signale.
-    this.usure = opts.wear && (opts.mode || 'race') === 'race' ? USURE : null;
+    this.usure = USURE_ACTIVE && opts.wear && (opts.mode || 'race') === 'race' ? USURE : null;
     this.time = 0;
     this.state = 'countdown';                  // countdown | racing | finishing | finished
     this.countdown = 3.6;

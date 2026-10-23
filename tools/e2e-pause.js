@@ -201,7 +201,11 @@ const FORMATS = [
       slider: app.renderer.slider,
     }));
     const lues = apres.lues.t === ENC.t && apres.lues.b === ENC.b;
-    const degage = apres.b.y >= ENC.t;
+    /* Depuis la 0.52.5, le HUD remonte de 6 points DANS la marge sûre quand elle est celle d'une
+    encoche ou d'une Dynamic Island (voir `_layoutHud`) : cette marge garde une bonne dizaine de
+    points sous l'encoche, et Bruno voulait les infos « en limite de Dynamic Island ». Le bouton doit
+    donc commencer au plus 6 points au-dessus du bord sûr — sous l'encoche et l'heure, pas dessous. */
+    const degage = apres.b.y >= ENC.t - 6;
     const basDegage = apres.dial + apres.rayon <= apres.h - ENC.b;
     if (!lues || !degage || !basDegage) fautes++;
     console.log(`  ${'encoche 47/34'.padEnd(18)} lues ${JSON.stringify(apres.lues)}`

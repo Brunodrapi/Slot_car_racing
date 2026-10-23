@@ -1,0 +1,11 @@
+{
+  "name": "grip-trailer-tool",
+  "private": true,
+  "scripts": {
+    "make": "node make.js",
+    "check": "node check.js"
+  },
+  "dependencies": {
+    "playwright": "^1.56.0"
+  }
+}

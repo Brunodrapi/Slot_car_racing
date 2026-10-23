@@ -1,0 +1,1037 @@
+{
+  "version": "0.52.0",
+  "shots": [
+    {
+      "id": "01-hook-0",
+      "shot": {
+        "track": "monza",
+        "model": "ferrari312t",
+        "at": 0.37,
+        "action": "pack",
+        "duration": 5
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.15620420395372397,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 8,
+        "lap": 0,
+        "trackName": "Parco Reale"
+      }
+    },
+    {
+      "id": "02-line-0",
+      "shot": {
+        "track": "suzuka",
+        "model": "m1procar",
+        "at": 0.055,
+        "mode": "timetrial",
+        "action": "clean",
+        "duration": 10
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 241,
+        "maxSlip": 0.18396780221730524,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "mode": "timetrial",
+        "cars": 1,
+        "initialPosition": 1,
+        "bestPosition": 1,
+        "lap": 0,
+        "trackName": "Fuji Yama"
+      }
+    },
+    {
+      "id": "03-crashes-0",
+      "shot": {
+        "track": "monza",
+        "model": "f40",
+        "at": 0.375,
+        "action": "wide",
+        "duration": 2
+      },
+      "events": {
+        "offroad": 24,
+        "spin": 0,
+        "crash": 2,
+        "finish": 0,
+        "frames": 49,
+        "maxSlip": 0.29229734719171085,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 8,
+        "lap": 0,
+        "trackName": "Parco Reale"
+      }
+    },
+    {
+      "id": "03-crashes-1",
+      "shot": {
+        "track": "zandvoort",
+        "model": "lotus79",
+        "at": 0.34,
+        "action": "spin",
+        "duration": 2
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 20,
+        "crash": 0,
+        "finish": 0,
+        "frames": 49,
+        "maxSlip": 1.4112783006817484,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 8,
+        "lap": 0,
+        "trackName": "Windmolen"
+      }
+    },
+    {
+      "id": "03-crashes-2",
+      "shot": {
+        "track": "monaco",
+        "model": "gt40",
+        "at": 0.55,
+        "action": "barrier",
+        "duration": 2
+      },
+      "events": {
+        "offroad": 49,
+        "spin": 17,
+        "crash": 0,
+        "finish": 0,
+        "frames": 49,
+        "maxSlip": 1.2885539654041458,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 8,
+        "lap": 0,
+        "trackName": "Le Rocher"
+      }
+    },
+    {
+      "id": "03-crashes-3",
+      "shot": {
+        "track": "suzuka",
+        "model": "m1procar",
+        "at": 0.08,
+        "action": "pack",
+        "duration": 2
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 49,
+        "maxSlip": 0.08137932199290922,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 8,
+        "lap": 0,
+        "trackName": "Fuji Yama"
+      }
+    },
+    {
+      "id": "03-crashes-4",
+      "shot": {
+        "track": "spa",
+        "model": "962",
+        "at": 0.15,
+        "action": "barrier",
+        "duration": 2
+      },
+      "events": {
+        "offroad": 49,
+        "spin": 0,
+        "crash": 1,
+        "finish": 0,
+        "frames": 49,
+        "maxSlip": 0.6905318847838816,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 8,
+        "lap": 0,
+        "trackName": "Stand de frites"
+      }
+    },
+    {
+      "id": "04-cars-0",
+      "shot": {
+        "menu": "f1",
+        "model": "tyrrellp34",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-1",
+      "shot": {
+        "menu": "f1",
+        "model": "ferrari312t",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-2",
+      "shot": {
+        "menu": "f1",
+        "model": "mclarenm23",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-3",
+      "shot": {
+        "menu": "f1",
+        "model": "lotus79",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-4",
+      "shot": {
+        "menu": "f1",
+        "model": "lotus72",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-5",
+      "shot": {
+        "menu": "f1",
+        "model": "brabhambt46b",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-6",
+      "shot": {
+        "menu": "f1",
+        "model": "williamsfw07",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-7",
+      "shot": {
+        "menu": "f1",
+        "model": "ligierjs11",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-8",
+      "shot": {
+        "menu": "f1",
+        "model": "renaultrs10",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-9",
+      "shot": {
+        "menu": "gt",
+        "model": "m1procar",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-10",
+      "shot": {
+        "menu": "gt",
+        "model": "f40",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-11",
+      "shot": {
+        "menu": "gt",
+        "model": "countach",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-12",
+      "shot": {
+        "menu": "gt",
+        "model": "930",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-13",
+      "shot": {
+        "menu": "gt",
+        "model": "corvette",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-14",
+      "shot": {
+        "menu": "gt",
+        "model": "csl",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-15",
+      "shot": {
+        "menu": "gt",
+        "model": "250gto",
+        "duration": 0.375
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-16",
+      "shot": {
+        "menu": "gt",
+        "model": "typee",
+        "duration": 0.375
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-17",
+      "shot": {
+        "menu": "gt",
+        "model": "240z",
+        "duration": 0.375
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-18",
+      "shot": {
+        "menu": "proto",
+        "model": "gt40",
+        "duration": 0.375
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-19",
+      "shot": {
+        "menu": "proto",
+        "model": "935",
+        "duration": 0.375
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-20",
+      "shot": {
+        "menu": "proto",
+        "model": "787b",
+        "duration": 0.375
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-21",
+      "shot": {
+        "menu": "proto",
+        "model": "962",
+        "duration": 0.375
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-22",
+      "shot": {
+        "menu": "proto",
+        "model": "xjr9",
+        "duration": 0.375
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-23",
+      "shot": {
+        "menu": "proto",
+        "model": "330p4",
+        "duration": 0.375
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-24",
+      "shot": {
+        "menu": "proto",
+        "model": "p68",
+        "duration": 0.375
+      },
+      "static": true
+    },
+    {
+      "id": "05-mosaic-spa",
+      "shot": {
+        "track": "spa",
+        "model": "ferrari312t",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.10529681374431094,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 8,
+        "lap": 0,
+        "trackName": "Stand de frites"
+      }
+    },
+    {
+      "id": "05-mosaic-monza",
+      "shot": {
+        "track": "monza",
+        "model": "f40",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.2385252384821109,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 6,
+        "lap": 0,
+        "trackName": "Parco Reale"
+      }
+    },
+    {
+      "id": "05-mosaic-monaco",
+      "shot": {
+        "track": "monaco",
+        "model": "962",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.15821409353590404,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 8,
+        "lap": 0,
+        "trackName": "Le Rocher"
+      }
+    },
+    {
+      "id": "05-mosaic-suzuka",
+      "shot": {
+        "track": "suzuka",
+        "model": "ferrari312t",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.12854099355480464,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 8,
+        "lap": 0,
+        "trackName": "Fuji Yama"
+      }
+    },
+    {
+      "id": "05-mosaic-zandvoort",
+      "shot": {
+        "track": "zandvoort",
+        "model": "f40",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.10868877433933466,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 8,
+        "lap": 0,
+        "trackName": "Windmolen"
+      }
+    },
+    {
+      "id": "05-mosaic-interlagos",
+      "shot": {
+        "track": "interlagos",
+        "model": "962",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.0954927193182563,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 8,
+        "lap": 0,
+        "trackName": "Festival de Carnaval"
+      }
+    },
+    {
+      "id": "05-mosaic-lemans",
+      "shot": {
+        "track": "lemans",
+        "model": "ferrari312t",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.11133193736485986,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 8,
+        "lap": 0,
+        "trackName": "Autoroute 11"
+      }
+    },
+    {
+      "id": "05-mosaic-silverstone",
+      "shot": {
+        "track": "silverstone",
+        "model": "f40",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.23719773151121618,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 7,
+        "lap": 0,
+        "trackName": "Royal Air Base"
+      }
+    },
+    {
+      "id": "05-mosaic-bathurst",
+      "shot": {
+        "track": "bathurst",
+        "model": "962",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.17058947117793277,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 7,
+        "lap": 0,
+        "trackName": "Kangaroo Mountain"
+      }
+    },
+    {
+      "id": "05-mosaic-laguna",
+      "shot": {
+        "track": "laguna",
+        "model": "ferrari312t",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.11859681923059485,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 8,
+        "lap": 0,
+        "trackName": "Corkscrew Ranch"
+      }
+    },
+    {
+      "id": "05-mosaic-redbullring",
+      "shot": {
+        "track": "redbullring",
+        "model": "f40",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.21130598805325795,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 6,
+        "lap": 0,
+        "trackName": "Apfelstrudel Ring"
+      }
+    },
+    {
+      "id": "05-mosaic-castellet",
+      "shot": {
+        "track": "castellet",
+        "model": "962",
+        "at": 0.12,
+        "duration": 10,
+        "tile": true
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.2000502252080038,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 480,
+          "height": 360
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 7,
+        "lap": 0,
+        "trackName": "Pastaga 83"
+      }
+    },
+    {
+      "id": "06-multiplayer-0",
+      "shot": {
+        "track": "monza",
+        "model": "f40",
+        "at": 0.36,
+        "view": "follow",
+        "duration": 4
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 97,
+        "maxSlip": 0.22912705353207857,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 8,
+        "lap": 0,
+        "trackName": "Parco Reale"
+      }
+    },
+    {
+      "id": "06-multiplayer-1",
+      "shot": {
+        "track": "spa",
+        "model": "ferrari312t",
+        "at": 0.12,
+        "view": "full",
+        "duration": 4
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 97,
+        "maxSlip": 0.06871797112241533,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 8,
+        "lap": 0,
+        "trackName": "Stand de frites"
+      }
+    },
+    {
+      "id": "06-multiplayer-2",
+      "shot": {
+        "track": "suzuka",
+        "model": "962",
+        "at": 0.08,
+        "view": "duel",
+        "duration": 4
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 97,
+        "maxSlip": 0.08142596414305774,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "mode": "race",
+        "cars": 8,
+        "initialPosition": 8,
+        "bestPosition": 8,
+        "lap": 0,
+        "trackName": "Fuji Yama"
+      }
+    },
+    {
+      "id": "07-flow-0",
+      "shot": {
+        "track": "monza",
+        "model": "f40",
+        "at": 0.675,
+        "mode": "timetrial",
+        "action": "clean",
+        "duration": 4
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 97,
+        "maxSlip": 0.11035573712190407,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "mode": "timetrial",
+        "cars": 1,
+        "initialPosition": 1,
+        "bestPosition": 1,
+        "lap": 0,
+        "trackName": "Parco Reale"
+      }
+    },
+    {
+      "id": "07-flow-1",
+      "shot": {
+        "track": "monza",
+        "model": "f40",
+        "at": 0.82,
+        "action": "overtake",
+        "duration": 1.5
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 37,
+        "maxSlip": 0.04413651747712696,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "mode": "race",
+        "cars": 2,
+        "initialPosition": 2,
+        "bestPosition": 1,
+        "lap": 0,
+        "trackName": "Parco Reale"
+      }
+    },
+    {
+      "id": "07-flow-2",
+      "shot": {
+        "track": "monza",
+        "model": "f40",
+        "at": 0.994,
+        "mode": "timetrial",
+        "action": "finish",
+        "duration": 1.5
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 37,
+        "maxSlip": 0.0788466927781786,
+        "difficulty": "extreme",
+        "mobile": false,
+        "viewport": {
+          "width": 1280,
+          "height": 720
+        },
+        "mode": "timetrial",
+        "cars": 1,
+        "initialPosition": 1,
+        "bestPosition": 1,
+        "lap": 1,
+        "trackName": "Parco Reale"
+      }
+    },
+    {
+      "id": "07-flow-3",
+      "shot": {
+        "records": "monza",
+        "duration": 3
+      },
+      "static": true,
+      "recordsCount": 10
+    },
+    {
+      "id": "08-end",
+      "shot": {
+        "end": true,
+        "duration": 5
+      },
+      "static": true
+    },
+    {
+      "id": "06b-platforms-0",
+      "shot": {
+        "track": "suzuka",
+        "model": "m1procar",
+        "at": 0.055,
+        "mode": "timetrial",
+        "action": "clean",
+        "mobile": true,
+        "duration": 5
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 121,
+        "maxSlip": 0.1181170402129913,
+        "difficulty": "extreme",
+        "mobile": true,
+        "viewport": {
+          "width": 390,
+          "height": 780
+        },
+        "mode": "timetrial",
+        "cars": 1,
+        "initialPosition": 1,
+        "bestPosition": 1,
+        "lap": 0,
+        "trackName": "Fuji Yama"
+      }
+    }
+  ],
+  "notes": [
+    "Offline staged capture using the real renderer and physics.",
+    "Spectator shots use real UI with local AI, not an Internet session.",
+    "No captured engine audio; optional licensed music supplied separately."
+  ]
+}

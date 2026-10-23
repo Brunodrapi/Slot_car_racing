@@ -4,7 +4,7 @@
 //
 // On règle la langue sur l'anglais et l'on passe par tous les écrans — titre, nom du pilote, accueil,
 // réglages, préparation d'une course et d'un contre-la-montre (records compris), carrière, coupe,
-// atelier, salon multijoueur, course (HUD dessiné sur le canevas, drapeaux), pause, résultats,
+// atelier, salon multijoueur, comment jouer, installation, course (HUD dessiné sur le canevas, drapeaux), pause, résultats,
 // spectateur, page des statistiques — au format d'un iPhone et d'un ordinateur. Tout le texte visible
 // est relevé, celui du DOM comme celui que le canevas dessine (`fillText`, `strokeText`), et l'on y
 // cherche du français : des lettres accentuées, des mots courants. Les noms propres du jeu (voitures,
@@ -99,6 +99,8 @@ async function releve(p) {
       await ecran('coupe', () => app.ui.cupScreen(CUPS[0].id));
       await ecran('atelier', () => app.ui.workshopScreen());
       await ecran('salon multijoueur', () => app.ui.lobbyScreen());
+      await ecran('comment jouer', () => app.ui.howtoScreen());
+      await ecran('installez-moi', () => app.ui.installScreen());
       // La course : le décompte, le HUD, un drapeau, puis la pause et les résultats.
       await p.evaluate(() => { app.save.tutorialSeen = false; app.startQuick('race', 'gt', 'spa'); });
       await p.waitForFunction(() => app.race && app.race.state === 'racing', null, { timeout: 30000 });

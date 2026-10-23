@@ -56,7 +56,7 @@ const serveur = http.createServer((req, res) => {
     await page.waitForTimeout(500);
     const vu = await page.evaluate(() => ({
       champ: !!document.getElementById('inp-nom'),
-      bandeaux: document.querySelectorAll('.mi').length,
+      bandeaux: document.querySelectorAll('.mode-card').length,
       bouton: (document.getElementById('btn-nom') || {}).disabled,
     }));
     dit(vu.champ && vu.bandeaux === 0, `apres l'ecran-titre : le nom est demande, aucun bandeau de menu (${vu.bandeaux})`);
@@ -70,7 +70,7 @@ const serveur = http.createServer((req, res) => {
     const r = await page.evaluate(async () => {
       app.toMenu();
       await new Promise((r2) => setTimeout(r2, 250));
-      return { champ: !!document.getElementById('inp-nom'), bandeaux: document.querySelectorAll('.mi').length };
+      return { champ: !!document.getElementById('inp-nom'), bandeaux: document.querySelectorAll('.mode-card').length };
     });
     dit(r.champ && r.bandeaux === 0, `un retour au menu sans nom redemande le nom (${r.bandeaux} bandeaux)`);
     await ctx.close();
@@ -115,13 +115,13 @@ const serveur = http.createServer((req, res) => {
     await page.waitForTimeout(120);
     await page.click('#btn-nom');
     await page.waitForTimeout(400);
-    const apres = await page.evaluate(() => ({ bandeaux: document.querySelectorAll('.mi').length, nom: app.save.name }));
+    const apres = await page.evaluate(() => ({ bandeaux: document.querySelectorAll('.mode-card').length, nom: app.save.name }));
     dit(apres.bandeaux === 3 && apres.nom === 'Bruno42', `valider ouvre le menu (${apres.bandeaux} bandeaux, nom « ${apres.nom} »)`);
     await page.reload();
     await page.waitForTimeout(600);
     await page.keyboard.press('Enter');
     await page.waitForTimeout(500);
-    const revenu = await page.evaluate(() => ({ champ: !!document.getElementById('inp-nom'), bandeaux: document.querySelectorAll('.mi').length, nom: app.save.name }));
+    const revenu = await page.evaluate(() => ({ champ: !!document.getElementById('inp-nom'), bandeaux: document.querySelectorAll('.mode-card').length, nom: app.save.name }));
     dit(!revenu.champ && revenu.bandeaux === 3, `au retour, le nom n'est plus demande (« ${revenu.nom} »)`);
 
     // --- 5. les réglages ne laissent pas effacer le nom ---

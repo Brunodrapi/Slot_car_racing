@@ -7,6 +7,37 @@ n'en aurait servi qu'un des deux. L'ordre est celui des boutons, donc du plus fa
 Les coefficients, eux, sont dans `DIFFICULTY` (js/race.js). */
 const NIVEAUX = ['easy', 'medium', 'hard', 'extreme', 'cauchemar'];
 
+/* La page itch.io du jeu, où l'on peut faire un don. Une seule adresse, ici, pour la changer d'un coup. */
+const DON_URL = 'https://drapiiii.itch.io/grip-racing-the-line';
+
+/* Les pictogrammes des entrées du bas de l'accueil et de l'écran d'installation. Dessinés ici, plats
+et cernés de noir comme les cartes du menu, plutôt qu'en émoji : un émoji change de dessin d'un
+téléphone à l'autre, et le ⓘ ou le ❤️ d'Android ne ressemblent pas à ceux d'un iPhone. */
+const PICTOS = {
+  aide: '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="#f2c52c" stroke="#171b19" stroke-width="2.6"/><path d="M12.2 12.6a3.9 3.9 0 1 1 5.5 3.6c-1.1.5-1.7 1.3-1.7 2.4v.8" fill="none" stroke="#171b19" stroke-width="3" stroke-linecap="round"/><circle cx="16" cy="23.4" r="1.9" fill="#171b19"/></svg>',
+  installer: '<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="8.5" y="2.5" width="15" height="27" rx="3.2" fill="#fff0d2" stroke="#171b19" stroke-width="2.6"/><path d="M16 8.5v10m-4.2-4.2L16 18.5l4.2-4.2" fill="none" stroke="#12a96a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.6 25h4.8" stroke="#171b19" stroke-width="2.2" stroke-linecap="round"/></svg>',
+  don: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 27.5S3.5 20 3.5 11.6A6.3 6.3 0 0 1 16 9a6.3 6.3 0 0 1 12.5 2.6C28.5 20 16 27.5 16 27.5z" fill="#e33228" stroke="#171b19" stroke-width="2.6" stroke-linejoin="round"/></svg>',
+  // ceux de l'écran d'installation reprennent les icônes que le téléphone affiche, pour qu'on les y retrouve
+  partager: '<svg class="picto-os" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v11M7.8 7.6 12 3.5l4.2 4.1" fill="none" stroke="#0a7cff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 10H6.6a1.1 1.1 0 0 0-1.1 1.1v8.3a1.1 1.1 0 0 0 1.1 1.1h10.8a1.1 1.1 0 0 0 1.1-1.1v-8.3a1.1 1.1 0 0 0-1.1-1.1h-1.9" fill="none" stroke="#0a7cff" stroke-width="2" stroke-linecap="round"/></svg>',
+  ajouter: '<svg class="picto-os" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="#171b19" stroke-width="2"/><path d="M12 8.2v7.6M8.2 12h7.6" stroke="#171b19" stroke-width="2" stroke-linecap="round"/></svg>',
+  menuAndroid: '<svg class="picto-os" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5.5" r="2" fill="#171b19"/><circle cx="12" cy="12" r="2" fill="#171b19"/><circle cx="12" cy="18.5" r="2" fill="#171b19"/></svg>',
+};
+
+/* Le jeu tourne-t-il déjà depuis l'écran d'accueil ? Safari le dit par `navigator.standalone`, les
+autres par le mode d'affichage du manifeste. Sans ça, l'entrée « Installez-moi » resterait à qui l'a
+déjà fait. */
+function jeuInstalle() {
+  if (navigator.standalone === true) return true;
+  return ['standalone', 'fullscreen', 'minimal-ui'].some((m) => window.matchMedia && matchMedia(`(display-mode: ${m})`).matches);
+}
+
+// iPhone et iPad (y compris l'iPad qui se dit Mac), Android, ou autre chose
+function plateformeMobile(nav = navigator) {
+  const ua = nav.userAgent || '';
+  if (/iPhone|iPad|iPod/i.test(ua) || (nav.platform === 'MacIntel' && nav.maxTouchPoints > 1)) return 'ios';
+  return /Android/i.test(ua) ? 'android' : 'autre';
+}
+
 const I18N = {
   fr: {
     padGuide: 'Stick / croix : naviguer · A : valider · B : retour · LB / RB : rubriques',
@@ -25,6 +56,32 @@ const I18N = {
     career: 'Carrière', quickRace: 'Course rapide', timeTrial: 'Contre-la-montre', settings: 'Réglages', statistics: 'Statistiques publiques', back: 'Retour',
     editor: 'Éditeur de circuits', workshop: 'Atelier voitures',
     howto: 'Poser le pouce n’importe où (ou maintenir Espace) : accélérer, relâcher pour freiner. La pastille vient se placer sous le pouce, et la vitesse se lit en haut au milieu. Pouce gauche (ou ↑ / ↓) : choisir sa place sur la piste — bord bleu, ligne idéale ou bord jaune. Les deux bords gardent leur couleur tout le tour. Trop vite dans un virage, c’est le bac à gravier.',
+    /* Comment jouer, Installez-moi, Faites un don : les trois entrées du bas de l'accueil (0.52). Les
+    deux libellés en « vous » sont ceux que Bruno a choisis pour le menu ; les écrans tutoient, comme
+    tout le reste du jeu. Les textes d'installation portent leurs pictogrammes en argument. */
+    menuHowto: 'Comment jouer', menuInstall: 'Installez-moi', menuDon: 'Faites un don', menuAide: 'Aide et soutien',
+    howIntroTouch: 'Un doigt pour la vitesse, un pouce pour la trajectoire.',
+    howIntroKeys: 'Une touche pour la vitesse, deux flèches pour la trajectoire.',
+    howGasTitleTouch: 'Appuie : ça accélère', howGasTitleKeys: 'Espace enfoncée : ça accélère',
+    howGasTouch: 'Pose le doigt n’importe où sur l’écran, hors du levier, et garde-le appuyé : la voiture accélère. La pastille vient sous ton doigt, la vitesse s’affiche juste au-dessus.',
+    howGasKeys: 'Maintiens la barre Espace : la voiture accélère. Le tableau de bord, en bas de l’écran, donne la vitesse.',
+    howBrakeTitleTouch: 'Relâche : ça freine', howBrakeTitleKeys: 'Espace relâchée : ça freine',
+    howBrakeTouch: 'Lève le doigt : la voiture freine, et fort. Lâche avant le virage — les panneaux 150, 100, 50 l’annoncent — et réappuie quand la vitesse est tombée. Trop vite, c’est le bac à gravier.',
+    howBrakeKeys: 'Lâche Espace : la voiture freine, et fort. Lâche avant le virage — les panneaux 150, 100, 50 l’annoncent — et réappuie quand la vitesse est tombée. Trop vite, c’est le bac à gravier.',
+    howLineTitleTouch: 'Le levier : ça change de ligne', howLineTitleKeys: '↑ / ↓ : ça change de ligne',
+    howLineTouch: 'Fais glisser le levier du pouce : jaune en haut, ligne idéale au milieu, bleue en bas. Chaque cran fait clac, et la voiture glisse sur sa nouvelle ligne. L’idéale est la plus rapide ; la jaune et la bleue servent à doubler.',
+    howLineKeys: 'Chaque flèche monte ou descend le levier d’un cran : jaune en haut, ligne idéale au milieu, bleue en bas. La voiture glisse sur sa nouvelle ligne. L’idéale est la plus rapide ; la jaune et la bleue servent à doubler.',
+    howNext: 'Suivant', howPlay: 'Jouer', howStep: (n, total) => `Geste ${n} sur ${total}`,
+    installWhy: 'Sur l’écran d’accueil, GRIP s’ouvre en plein écran, sans la barre du navigateur, et se joue même sans réseau.',
+    installNow: 'Installer GRIP', installDone: 'C’est fait : GRIP est sur ton écran d’accueil.',
+    installIos: 'Sur iPhone et iPad', installAndroid: 'Sur Android',
+    installIos1: (ic) => `Touche le bouton Partager ${ic} — en bas de Safari, ou dans la barre d’adresse.`,
+    installIos2: (ic) => `Choisis « Sur l’écran d’accueil » ${ic}. Fais défiler la liste s’il n’apparaît pas.`,
+    installIos3: 'Touche « Ajouter » : l’icône GRIP rejoint tes applications.',
+    installAnd1: (ic) => `Touche le menu ${ic} en haut à droite de Chrome.`,
+    installAnd2: 'Choisis « Installer l’application » ou « Ajouter à l’écran d’accueil ».',
+    installAnd3: 'Confirme : l’icône GRIP rejoint tes applications.',
+    installInApp: 'Ouvert depuis une appli (Instagram, Messenger…) ? Ouvre d’abord la page dans Safari ou Chrome : c’est là seulement qu’on peut l’installer.',
     carClass: 'Catégorie', model: 'Modèle', track: 'Circuit', livery: 'Livrée', tyres: 'Gomme', damage: 'Tôle', linePit: 'STAND', wear: 'Usure et dommages', wearHint: 'Les pneus s\'usent en glissant, les chocs et les sorties abîment la voiture.', difficulty: 'Difficulté', easy: 'Facile', medium: 'Normal', hard: 'Difficile', extreme: 'Extrême', cauchemar: 'Cauchemar',
     diffTitle: 'Ce que la voiture coûte à piloter', diffLevel: (n) => `Difficulté ${n} sur 5`,
     laps: 'tours', lapCustom: 'Perso', start: 'Départ !', locked: 'Verrouillé', unlockHint: 'Termine la coupe précédente dans le top 3 pour débloquer.',
@@ -124,6 +181,29 @@ const I18N = {
     career: 'Career', quickRace: 'Quick race', timeTrial: 'Time trial', settings: 'Settings', statistics: 'Public statistics', back: 'Back',
     editor: 'Track editor', workshop: 'Car workshop',
     howto: 'Thumb anywhere (or hold Space): accelerate, release to brake. The pad follows your thumb, and the speed reads at the top centre. Left thumb (or ↑ / ↓): pick your place on the road — blue edge, racing line or yellow edge. Each edge keeps its colour all the way round. Too fast into a corner and it’s the gravel.',
+    menuHowto: 'How to play', menuInstall: 'Install me', menuDon: 'Donate', menuAide: 'Help and support',
+    howIntroTouch: 'One finger for speed, one thumb for your line.',
+    howIntroKeys: 'One key for speed, two arrows for your line.',
+    howGasTitleTouch: 'Press: you accelerate', howGasTitleKeys: 'Hold Space: you accelerate',
+    howGasTouch: 'Put a finger anywhere on the screen, away from the lever, and keep it down: the car accelerates. The pad comes under your finger and the speed shows just above it.',
+    howGasKeys: 'Hold the Space bar: the car accelerates. The dashboard, at the bottom of the screen, shows your speed.',
+    howBrakeTitleTouch: 'Let go: you brake', howBrakeTitleKeys: 'Release Space: you brake',
+    howBrakeTouch: 'Lift your finger: the car brakes, and hard. Let go before the bend — the 150, 100, 50 boards count it down — and press again once the speed has dropped. Too fast and you’re in the gravel.',
+    howBrakeKeys: 'Release Space: the car brakes, and hard. Let go before the bend — the 150, 100, 50 boards count it down — and press again once the speed has dropped. Too fast and you’re in the gravel.',
+    howLineTitleTouch: 'The lever: you change line', howLineTitleKeys: '↑ / ↓: you change line',
+    howLineTouch: 'Slide the lever with your thumb: yellow at the top, the racing line in the middle, blue at the bottom. Each notch clicks and the car glides onto its new line. The racing line is the fastest; yellow and blue are for overtaking.',
+    howLineKeys: 'Each arrow moves the lever up or down one notch: yellow at the top, the racing line in the middle, blue at the bottom. The car glides onto its new line. The racing line is the fastest; yellow and blue are for overtaking.',
+    howNext: 'Next', howPlay: 'Play', howStep: (n, total) => `Move ${n} of ${total}`,
+    installWhy: 'On your home screen, GRIP opens full screen, without the browser bar, and plays even offline.',
+    installNow: 'Install GRIP', installDone: 'Done: GRIP is on your home screen.',
+    installIos: 'On iPhone and iPad', installAndroid: 'On Android',
+    installIos1: (ic) => `Tap the Share button ${ic} — at the bottom of Safari, or in the address bar.`,
+    installIos2: (ic) => `Choose “Add to Home Screen” ${ic}. Scroll down the list if you don’t see it.`,
+    installIos3: 'Tap “Add”: the GRIP icon joins your apps.',
+    installAnd1: (ic) => `Tap the ${ic} menu at the top right of Chrome.`,
+    installAnd2: 'Choose “Install app” or “Add to Home screen”.',
+    installAnd3: 'Confirm: the GRIP icon joins your apps.',
+    installInApp: 'Opened from an app (Instagram, Messenger…)? Open the page in Safari or Chrome first: that’s the only place it can be installed.',
     carClass: 'Class', model: 'Model', track: 'Track', livery: 'Livery', tyres: 'Tyres', damage: 'Body', linePit: 'PIT', wear: 'Wear and damage', wearHint: 'Tyres wear as you slide; contact and excursions damage the car.', difficulty: 'Difficulty', easy: 'Easy', medium: 'Normal', hard: 'Hard', extreme: 'Extreme', cauchemar: 'Nightmare',
     diffTitle: 'How much the car costs to drive', diffLevel: (n) => `Difficulty ${n} of 5`,
     laps: 'laps', lapCustom: 'Custom', start: 'Start!', locked: 'Locked', unlockHint: 'Finish the previous cup in the top 3 to unlock.',
@@ -260,6 +340,13 @@ class UI {
     // « change » n'arrive qu'à la sortie du champ : pour nettoyer la frappe il faut « input »
     this.root.addEventListener('input', (e) => this._onInput(e));
     this.flash = null;
+    // le bandeau de titre se réajuste quand la largeur change, et quand la police arrive
+    window.addEventListener('resize', () => this._ajusteBandeau());
+    if (document.fonts) {
+      document.fonts.ready.then(() => this._ajusteBandeau());
+      // la police des titres ne se charge qu'au premier écran qui s'en sert : mesuré avant, le titre paraît plus court
+      document.fonts.addEventListener('loadingdone', () => this._ajusteBandeau());
+    }
   }
 
   get lang() { return this.app.save.lang; }
@@ -372,6 +459,30 @@ class UI {
     this.paintIcons();
     this.updateControllerStatus();
     this.gamepad.restore(garder ? padFocus : null);
+    this._ajusteBandeau();
+  }
+
+  /* LE BANDEAU TIENT DANS LA LARGEUR, LOGO COMPRIS.
+
+  Retour, damier, titre, logo : sur un téléphone, « CONTRE-LA-MONTRE » poussait le logo hors de
+  l'écran (Bruno, sur un iPhone 15 Pro ; mesuré, le logo était coupé sur presque tous les iPhone en
+  français, et même en anglais sur un iPhone SE). Aucune taille de police fixe ne convient aux titres
+  courts et longs, dans les deux langues et de 320 à 430 points de large : on mesure. Le bandeau cède
+  de la place dans l'ordre de ce qui compte le moins — le titre se resserre jusqu'à 19 px, « ← RETOUR »
+  devient « ← », le titre descend encore jusqu'à 16 px — et le logo ne s'efface qu'en dernier, sur un
+  écran où rien d'autre ne suffit. */
+  _ajusteBandeau() {
+    const barre = this.root.querySelector('.topbar');
+    const titre = barre && barre.querySelector('h2'), logo = barre && barre.querySelector('.paddock-logo');
+    if (!titre || !logo) return;
+    titre.style.fontSize = ''; barre.classList.remove('compacte'); logo.hidden = false;
+    const deborde = () => logo.getBoundingClientRect().right > barre.getBoundingClientRect().right - 2;
+    let taille = parseFloat(getComputedStyle(titre).fontSize);
+    const resserre = (min) => { while (deborde() && taille > min) { taille -= 1; titre.style.fontSize = taille + 'px'; } };
+    resserre(19);
+    if (deborde()) barre.classList.add('compacte');
+    resserre(16);
+    if (deborde()) logo.hidden = true;
   }
 
   _centrerRail(rail) {
@@ -629,11 +740,91 @@ class UI {
       ${entries.map(([mode, action, label, icon]) => `<button class="mode-card mode-${mode || 'multi'}" data-action="${action}" ${mode ? `data-mode="${mode}"` : ''}>
           <span class="mode-art" aria-hidden="true"><img src="art/interface/${icon}.webp" alt=""></span>
           <span class="mode-copy"><b>${t(label)}</b></span><span class="mode-damier" aria-hidden="true"></span></button>`).join('')}
+      </nav>
+      <nav class="home-extras" data-pad-group aria-label="${t('menuAide')}">
+        <button class="extra-card" data-action="howto">${PICTOS.aide}<span>${t('menuHowto')}</span></button>
+        ${!app.desktop && !app.installe && !jeuInstalle() ? `<button class="extra-card" data-action="install">${PICTOS.installer}<span>${t('menuInstall')}</span></button>` : ''}
+        <a class="extra-card" href="${DON_URL}" target="_blank" rel="noopener">${PICTOS.don}<span>${t('menuDon')}</span></a>
       </nav></div>
       <footer class="home-footer"><button class="home-settings" data-action="settings"><img src="art/interface/gear.webp" alt="">${t('settings')}</button>
         <button class="pilot-button" data-action="settings"><img src="art/interface/pilot.webp" alt=""><span>${t('pilotLabel')} :</span><b>${escapeHtml(app.save.name)}</b></button>
         ${app.mondial?.erreurConnexion ? `<button class="link" data-action="google">${t('reconnect')}</button>` : ''}</footer>
       <div class="home-version">v${APP_VERSION}${canalBadge()}</div>`, 'home-screen scroll');
+  }
+
+  /* COMMENT JOUER : les trois gestes, chacun avec son animation tirée du vrai jeu.
+
+  Les animations sont filmées par `tools/comment-jouer.js` : au doigt au format d'un téléphone, au
+  clavier au format d'un ordinateur, en français et en anglais — le levier et le tableau de bord portent
+  du texte. On montre celles de l'appareil qu'on tient : un doigt sur un écran d'ordinateur, ou des
+  touches sur un téléphone, expliqueraient un jeu auquel on ne joue pas.
+
+  Sur téléphone, un geste par écran, qu'on fait défiler du doigt ou avec « Suivant » : trois animations
+  empilées demandaient trois écrans de défilement, et l'on ne regardait que la première. Sur ordinateur,
+  les trois côte à côte, qui tiennent dans la fenêtre. Le dernier bouton mène à la course : on vient de
+  comprendre, on joue. */
+  howtoScreen() {
+    const t = (k, ...a) => this.t(k, ...a);
+    const clavier = this.app.desktop, f = clavier ? 'Keys' : 'Touch', lang = this.lang === 'en' ? 'en' : 'fr';
+    const pas = [['gaz', 'Gas'], ['frein', 'Brake'], ['levier', 'Line']];
+    const [w, h] = clavier ? [520, 256] : [320, 414];
+    this.show(`
+      ${this.paddockTopbar(t('menuHowto'))}
+      <p class="howto-intro">${t('howIntro' + f)}</p>
+      <div class="howto-pas ${clavier ? 'clavier' : 'tactile'}" data-howto>
+        ${pas.map(([scene, cle], i) => `<article class="pas" aria-label="${escapeHtml(t('howStep', i + 1, pas.length))}">
+          <h3><span class="pas-num">${i + 1}</span>${t(`how${cle}Title${f}`)}</h3>
+          <figure class="pas-anim"><img src="art/interface/comment-jouer/${clavier ? 'clavier' : 'tactile'}-${scene}-${lang}.webp?r=1"
+            width="${w}" height="${h}" alt="${escapeHtml(t(`how${cle}Title${f}`))}" decoding="async"></figure>
+          <p>${t(`how${cle}${f}`)}</p>
+        </article>`).join('')}
+      </div>
+      <div class="howto-nav">
+        <div class="howto-points" aria-hidden="true">${pas.map((_, i) => `<span class="${i ? '' : 'actif'}"></span>`).join('')}</div>
+        <button class="primary" data-action="howtoNext">${clavier ? t('howPlay') : t('howNext')}</button>
+      </div>
+    `, 'scroll selection-screen howto-screen', 'comment-jouer');
+    const rail = this.root.querySelector('[data-howto]');
+    if (!rail || clavier) return;
+    // les points et le bouton suivent le geste affiché, qu'on y soit venu du doigt ou par « Suivant »
+    rail.addEventListener('scroll', () => {
+      const i = this._howtoIndex(rail), dernier = i >= rail.children.length - 1;
+      this.root.querySelectorAll('.howto-points span').forEach((p, k) => p.classList.toggle('actif', k === i));
+      const b = this.root.querySelector('[data-action="howtoNext"]');
+      if (b) b.textContent = dernier ? t('howPlay') : t('howNext');
+    }, { passive: true });
+  }
+
+  _howtoIndex(rail) { return Math.round(rail.scrollLeft / Math.max(1, rail.clientWidth)); }
+
+  /* INSTALLEZ-MOI : comment poser le jeu sur l'écran d'accueil, d'où il s'ouvre en plein écran et
+  joue hors ligne.
+
+  Il n'y a pas de bouton « Installer » sur iPhone : Safari ne laisse aucune page le proposer, il faut
+  passer par Partager. On l'explique donc pas à pas, avec les icônes que le téléphone affiche. Chrome
+  sur Android, lui, offre parfois l'installation directe (`beforeinstallprompt`, capté par main.js) : le
+  bouton n'apparaît que dans ce cas. Les explications de l'appareil qu'on tient viennent en premier ;
+  les autres restent dépliables, pour qui aide un ami. */
+  installScreen() {
+    const t = (k, ...a) => this.t(k, ...a), app = this.app;
+    const os = plateformeMobile();
+    // chaque étape tient dans un seul bloc : sans lui, la ligne flexible coupait la phrase autour de l'icône
+    const etapes = (l) => `<ol class="etapes">${l.map((x) => `<li><span>${x}</span></li>`).join('')}</ol>`;
+    const ios = `<h3>${t('installIos')}</h3>${etapes([t('installIos1', PICTOS.partager), t('installIos2', PICTOS.ajouter), t('installIos3')])}`;
+    const android = `<h3>${t('installAndroid')}</h3>${etapes([t('installAnd1', PICTOS.menuAndroid), t('installAnd2'), t('installAnd3')])}`;
+    const [premier, second] = os === 'android' ? [android, ios] : [ios, android];
+    const plie = (html) => `<details class="fiche install-os"><summary>${html.match(/<h3>(.*?)<\/h3>/)[1]}</summary>${html.replace(/<h3>.*?<\/h3>/, '')}</details>`;
+    this.show(`
+      ${this.paddockTopbar(t('menuInstall'))}
+      <div class="install-corps">
+        <p class="fiche install-pourquoi">${PICTOS.installer}<span>${t('installWhy')}</span></p>
+        ${app.installe || jeuInstalle() ? `<p class="fiche install-fait">${t('installDone')}</p>`
+          : app.invitInstall ? `<button class="primary big" data-action="installNow">${t('installNow')}</button>` : ''}
+        <section class="fiche install-os">${premier}</section>
+        ${os === 'autre' ? `<section class="fiche install-os">${second}</section>` : plie(second)}
+        <p class="install-note">${t('installInApp')}</p>
+      </div>
+    `, 'scroll selection-screen install-screen', 'installer');
   }
 
   circuitArt(trackDef) {
@@ -697,18 +888,19 @@ class UI {
             ? `<b class="ok">${t('signedIn')}</b><button class="link" data-action="signOut">${t('signOut')}</button>`
             : `<button class="link" data-action="google">${t('signIn')}</button>`}</span></label>
         <label>${t('sound')}<select id="sel-sound"><option value="1" ${s.sound ? 'selected' : ''}>${t('on')}</option><option value="0" ${!s.sound ? 'selected' : ''}>${t('off')}</option></select></label>
-        <label>${t('showLines')}<select id="sel-lines"><option value="0" ${s.showLines !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.showLines === true ? 'selected' : ''}>${t('on')}</option></select></label>
-        <label>${t('telemetry')}<select id="sel-debug"><option value="0" ${s.debug !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.debug === true ? 'selected' : ''}>${t('on')}</option></select></label>
+        ${REGLAGES_AVANCES ? `<label>${t('showLines')}<select id="sel-lines"><option value="0" ${s.showLines !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.showLines === true ? 'selected' : ''}>${t('on')}</option></select></label>
+        <label>${t('telemetry')}<select id="sel-debug"><option value="0" ${s.debug !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.debug === true ? 'selected' : ''}>${t('on')}</option></select></label>` : ''}
         <label>${t('pullBack')}<select id="sel-pull">${[[1, 'pullNone'], [1.3, 'pullSome'], [1.6, 'pullMore']].map(([v, k]) => `<option value="${v}" ${Math.abs((s.pullBack || 1) - v) < 0.05 ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
         <label>${t('ctrlSide')}<select id="sel-side"><option value="left" ${(s.ctrlSide || 'left') === 'left' ? 'selected' : ''}>${t('sideLeft')}</option><option value="right" ${s.ctrlSide === 'right' ? 'selected' : ''}>${t('sideRight')}</option></select></label>
         <label>${t('camera')}<select id="sel-cam">${[['track', 'camFollow'], ['fixed', 'camFixed'], ['avance', 'camAvance'], ['avanceFixe', 'camAvanceFixe']].map(([v, k]) => `<option value="${v}" ${(s.view || 'avanceFixe') === v ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
         <!-- L'aimant est un essai : il est donc éteint par défaut et se choisit ici, pour pouvoir
-             le comparer manche par manche sans toucher au reste. -->
-        <label>${t('aimant')}<select id="sel-aimant">${[[0, 'aimantOff'], [0.6, 'aimantDoux'], [1, 'aimantNormal'], [1.6, 'aimantFort'], [2.4, 'aimantTresFort'], [3.2, 'aimantDouble']].map(([v, k]) => `<option value="${v}" ${Math.abs((s.aimant || 0) - v) < 0.05 ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
+             le comparer manche par manche sans toucher au reste. Comme l'anticipation et les deux
+             réglages du haut, il n'existe qu'en recette (REGLAGES_AVANCES, js/career.js). -->
+        ${REGLAGES_AVANCES ? `<label>${t('aimant')}<select id="sel-aimant">${[[0, 'aimantOff'], [0.6, 'aimantDoux'], [1, 'aimantNormal'], [1.6, 'aimantFort'], [2.4, 'aimantTresFort'], [3.2, 'aimantDouble']].map(([v, k]) => `<option value="${v}" ${Math.abs((s.aimant || 0) - v) < 0.05 ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
         <!-- L'anticipation : combien le pilote lit la courbure de la ligne devant lui. À zéro il est en
              pure pursuit seul, donc il coupe la corde ; au-delà de 0,5 il oscille. Réglable pour que
              Bruno tranche au pouce ce que le banc ne départage qu'à moitié. -->
-        <label>${t('anticip')}<select id="sel-ff">${[[0, 'anticipOff'], [0.3, 'anticipPeu'], [0.5, 'anticipMoy'], [1, 'anticipFort']].map(([v, k]) => `<option value="${v}" ${Math.abs((s.ff == null ? 0.3 : s.ff) - v) < 0.05 ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
+        <label>${t('anticip')}<select id="sel-ff">${[[0, 'anticipOff'], [0.3, 'anticipPeu'], [0.5, 'anticipMoy'], [1, 'anticipFort']].map(([v, k]) => `<option value="${v}" ${Math.abs((s.ff == null ? 0.3 : s.ff) - v) < 0.05 ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>` : ''}
         <!-- CE QUI EXCLUT DU TABLEAU MONDIAL SE DIT ICI, pas seulement après la course. Découvrir
              au résultat que son tour ne compte pas, c'est l'avoir couru pour rien ; la ligne
              n'apparaît que lorsqu'au moins un réglage exclut, donc elle ne pèse pas le reste du
@@ -718,10 +910,11 @@ class UI {
           if (s.showLines) h.push(t('horsGuide'));
           if (s.aimant) h.push(t('horsAimant'));
           if ((s.ff == null ? 0.3 : s.ff) !== 0.3) h.push(t('horsFf'));
-          if (s.wear) h.push(t('horsUsure'));
+          if (s.wear && USURE_ACTIVE) h.push(t('horsUsure'));
           return h.length ? `<p class="avert">${t('horsClassement')}${h.join(', ')}.</p>` : '';
         })()}
-        <label>${t('difficulty')}<select id="sel-diff">${NIVEAUX.map(d => `<option value="${d}" ${s.difficulty === d ? 'selected' : ''}>${t(d)}</option>`).join('')}</select></label>
+        <!-- La difficulté n'est plus ici : c'est le niveau des voitures de l'IA, qui n'existent qu'en
+             course rapide, et l'écran de départ de la course la porte déjà en pastille. -->
       </div>
       <div class="row wrap"><button data-action="menu">${t('back')}</button><a href="analytics.html" class="stats-link">${t('statistics')} →</a><button class="danger" data-action="resetAll">${t('resetAll')}</button></div>
     `, 'scroll settings-screen', 'reglages');
@@ -945,7 +1138,9 @@ class UI {
   bande rouge, il doit garder sa place quelle que soit la longueur du titre — « Course rapide »,
   « Contre-la-montre » ou le code d'une table. */
   paddockTopbar(titre, retour = 'menu', libelleRetour) {
-    return `<div class="topbar"><button data-action="${retour}">← ${escapeHtml(libelleRetour || this.t('back'))}</button><span class="damier titre-damier" aria-hidden="true"></span><h2>${titre}</h2><img class="paddock-logo" src="art/interface/logo-grip.webp" alt="GRIP — Racing the Line"></div>`;
+    const lib = escapeHtml(libelleRetour || this.t('back'));
+    // le mot peut s'effacer quand la place manque (voir `_ajusteBandeau`) : la flèche reste, et le nom pour les lecteurs d'écran
+    return `<div class="topbar"><button data-action="${retour}" aria-label="${lib}">←<span class="retour-mot"> ${lib}</span></button><span class="damier titre-damier" aria-hidden="true"></span><h2>${titre}</h2><img class="paddock-logo" src="art/interface/logo-grip.webp" alt="GRIP — Racing the Line"></div>`;
   }
 
   /* Les chiffres de la voiture, comme sur la maquette : pictogramme, valeur, libellé en clair.
@@ -993,7 +1188,7 @@ class UI {
         ${pastille(t('difficulty'), t(s.difficulty), `data-action="pickDiff" data-id="${suivant(NIVEAUX, s.difficulty)}"`)}
         ${pastille(t('lapCount'), s.lapsPerso ? `${t('lapCustom')}` : (s.laps || 5), `data-action="pickLaps" data-id="${suivant([2, 5, 10, 20, 'perso'], toursCourants)}"`)}
         ${s.lapsPerso ? `<label class="chip chip-input"><span>${t('lapCount')} :</span><input id="inp-laps" type="number" min="1" max="99" value="${Math.max(1, Math.min(99, s.laps || 5))}"></label>` : ''}
-        ${pastille(t('chipWear'), t(s.wear ? 'on' : 'off'), `data-action="pickWear" data-id="${s.wear ? 0 : 1}" title="${escapeHtml(t('wearHint'))}"`)}
+        ${USURE_ACTIVE ? pastille(t('chipWear'), t(s.wear ? 'on' : 'off'), `data-action="pickWear" data-id="${s.wear ? 0 : 1}" title="${escapeHtml(t('wearHint'))}"`) : ''}
       </div>` : ''}
       <!-- La liste et le choix actif sont propres au couple circuit+voiture.
            Un même nom peut conserver des valeurs pour plusieurs couples ; chacun retrouve
@@ -1339,13 +1534,32 @@ class UI {
         break;
       }
       case 'settings': this.settings(); break;
+      case 'howto': this.howtoScreen(); break;
+      case 'howtoNext': {
+        const rail = this.root.querySelector('[data-howto]');
+        const i = rail ? this._howtoIndex(rail) : 0;
+        if (!rail || app.desktop || i >= rail.children.length - 1) this.setupScreen('race');
+        else rail.scrollTo({ left: (i + 1) * rail.clientWidth, behavior: 'smooth' });
+        break;
+      }
+      case 'install': this.installScreen(); break;
+      case 'installNow': {
+        const invit = app.invitInstall;
+        if (!invit) break;
+        app.invitInstall = null;                 // une invitation ne sert qu'une fois
+        invit.prompt();
+        invit.userChoice.then((r) => { if (r && r.outcome === 'accepted') app.installe = true; })
+          .finally(() => { if (this.root.querySelector('.install-screen')) this.installScreen(); });
+        break;
+      }
       case 'enterGame': app.leaveSplash(); break;
       case 'majLancer': MAJ.lancer(); break;
       case 'majGarder': MAJ.plusTard(); break;
       case 'setup': this.setupScreen(btn.dataset.mode); break;
       case 'career': this.careerScreen(); break;
       case 'cup': this.cupScreen(id); break;
-      case 'editor': location.href = 'editor.html'; break;
+      // l'éditeur n'existe qu'en recette : la prod ne publie pas les outils (voir tools/build-dist.js)
+      case 'editor': if (typeof APP_CANAL !== 'undefined' && APP_CANAL === 'recette') location.href = 'editor.html'; break;
       case 'lang': if (id === 'fr' || id === 'en') { app.save.lang = id; storeSave(app.save); this.settings(); } break;
       case 'workshop': this.workshopScreen(); break;
       case 'wsAdd': this._workshopAdd().catch(err => this.workshopScreen(String(err))); break;
@@ -1530,7 +1744,6 @@ class UI {
     if (el.id === 'sel-aimant') { s.aimant = PHYS.aimant = +el.value; storeSave(s); }
     if (el.id === 'sel-ff') { s.ff = PHYS.ff = +el.value; storeSave(s); }
     if (el.id === 'sel-debug') { s.debug = el.value === '1'; storeSave(s); this.app.renderer.debug = s.debug; }
-    if (el.id === 'sel-diff') { s.difficulty = el.value; storeSave(s); }
   }
 }
 

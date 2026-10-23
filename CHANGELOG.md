@@ -4,6 +4,37 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.6
+- Nouveau bouton pause, dans le style des étiquettes du haut de l'écran.
+- iPhone, jeu installé : deuxième correction de la bande noire en bas de l'écran.
+
+## 0.52.5
+- Sur iPhone, le chrono, la position et la pause remontent juste sous la Dynamic Island.
+- Les réglages de mise au point (guide de freinage, télémétrie, aimant, anticipation) sont retirés.
+- La difficulté — le niveau des voitures adverses — se règle sur l'écran de départ de la course.
+
+## 0.52.4
+- Sur téléphone, le logo GRIP reste entier dans le bandeau de titre, même sur « Contre-la-montre ».
+
+## 0.52.3
+- iPhone, jeu installé : les écrans de départ ne passent plus sous l'heure et la batterie, et la
+  bande noire du bas disparaît.
+
+## 0.52.2
+- L'éditeur de circuits n'est plus dans le jeu publié.
+
+## 0.52.0
+- Nouvelle entrée « Comment jouer » : appuyer, relâcher et changer de ligne, chacun en animation.
+- Sur téléphone, « Installez-moi » explique comment mettre GRIP sur l'écran d'accueil.
+- « Faites un don » mène à la page itch.io du jeu.
+
+## 0.51.0
+- Sur ordinateur, nouveau tableau de bord : la vitesse en grand, une barre lumineuse (verte sous les
+  gaz, rouge au freinage) et le voyant GRIP qui dit si la voiture tient ou glisse.
+
+## 0.50.0
+- L'usure des pneus et les dégâts sont désactivés pour le moment, le temps de les mettre au point.
+
 ## 0.49.0
 - Sur ordinateur aussi, un seul bouton : Espace pour accélérer, ↑ / ↓ pour changer de ligne.
 - La manette est mise de côté pour le moment.

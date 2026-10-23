@@ -390,7 +390,15 @@ class Renderer {
     this.shortLandscape = H < 560 && W > H;
     const sa = this._encoches();
     // Un seul écart, mesuré depuis le bord SÛR et non depuis le bord physique.
-    const P = this.pad = { t: 14 + sa.t, r: 14 + sa.r, b: 14 + sa.b, l: 14 + sa.l };
+    /* SOUS L'ÎLOT, PAS SOUS LA MARGE (0.52.5). La marge sûre du haut d'un iPhone à encoche ou à
+    Dynamic Island garde déjà de la place sous l'îlot : 59 points pour un îlot qui s'arrête vers 48.
+    Nos 14 points par-dessus posaient chrono, position et pause à 73, un bon centimètre trop bas —
+    « les infos peuvent être un peu plus hautes, en limite de Dynamic Island ». Quand la marge du haut
+    est celle d'une encoche ou d'un îlot (40 points et plus), le HUD remonte donc à 6 points sous elle,
+    sous l'îlot et sous l'heure comme la batterie, qui sont à sa hauteur. iPhone SE, iPad et paysage
+    gardent l'écart habituel. */
+    const haut = sa.t >= 40 ? sa.t - 6 : 14 + sa.t;
+    const P = this.pad = { t: haut, r: 14 + sa.r, b: 14 + sa.b, l: 14 + sa.l };
     this.encoches = sa;
     /* LA PASTILLE DU POUCE, ET RIEN D'AUTRE EN BAS DE L'ÉCRAN.
 
@@ -1913,7 +1921,7 @@ class Renderer {
       g.scale(1 / 16, 1 / 16);
       g.textAlign = 'center'; g.textBaseline = 'middle';
       g.lineJoin = 'round';
-      // un liseré sombre sous le texte : la peinture claire sur bitume sombre a besoin d'un bord,
+      // un filet sombre sous le texte : la peinture claire sur bitume sombre a besoin d'un bord,
       // sinon elle bave sur les bandes de rive au moment où on roule dessus
       const peindre = (txt, taille, y, col) => {
         g.font = `bold ${taille}px "Trebuchet MS", "DejaVu Sans", sans-serif`;
@@ -2581,8 +2589,14 @@ class Renderer {
     return [[158, 203, 240], [166, 223, 166], [240, 224, 154], [200, 168, 234], [242, 163, 163]];
   }
 
-  static teintePastel(r) {
-    const P = Renderer.PASTEL;
+  /* Les mêmes cinq états en couleurs vives, pour le tableau de bord du PC : sur son fond sombre et
+  lumineux, le pastel paraissait éteint. Même ordre, même sens. */
+  static get VIF() {
+    return [[94, 196, 255], [82, 230, 168], [255, 214, 74], [190, 140, 255], [255, 96, 96]];
+  }
+  static teinteVive(r) { return Renderer.teintePastel(r, Renderer.VIF); }
+
+  static teintePastel(r, P = Renderer.PASTEL) {
     const x = clamp(r, 0, 1) * (P.length - 1), i = Math.min(P.length - 2, Math.floor(x)), f = x - i;
     const a = P[i], b = P[i + 1];
     return [Math.round(a[0] + (b[0] - a[0]) * f), Math.round(a[1] + (b[1] - a[1]) * f),
@@ -2648,45 +2662,93 @@ class Renderer {
 
   static gripColor(u) { return u < 0.7 ? '#5be07a' : u < 1 ? '#ffd23f' : u < 1.2 ? '#ff9f2e' : u < 1.5 ? '#ff4b4b' : '#c74bff'; }
 
+  /* LE TABLEAU DE BORD DU PC : la vitesse, une barre à segments, et le grip.
+
+  Il remplace un panneau qui se lisait comme une notice — « ESPACE », « GAZ 100 % », une jauge, et
+  deux lignes d'aide en petit. Bruno : « la partie accélération ne va plus, reviens à quelque chose de
+  plus HUD de voiture », maquette à l'appui. On garde ce qui se lit d'un coup d'œil en pilotant :
+
+    la vitesse    en très gros, chiffres à chasse fixe pour qu'elle ne tremble pas en changeant ;
+    la barre      dix segments, la vitesse rapportée à la pointe de la voiture — un compte-tours, en
+                  somme. Verts et lumineux sous les gaz, rouges dès qu'on lâche : c'est le feu stop, et
+                  le seul retour qu'il reste de la touche Espace, qui n'a plus besoin d'être écrite ;
+    GRIP          la pastille de l'état RESSENTI de la voiture, la même échelle que la pastille du pouce
+                  sur téléphone (bleu au calme, vert en appui, jaune à la limite, violet qui glisse,
+                  rouge en tête-à-queue), en couleurs vives : sur fond sombre, le pastel s'éteignait.
+
+  Les deux lignes d'aide sont parties : le décompte les donne au départ, et l'écran « Comment jouer »
+  les explique. La manette (mise de côté, voir `MANETTE`) gardait ici son état de connexion : il revient
+  à droite de la pastille si on la rallume. */
   _drawDesktopThrottle(g, p, ui) {
     const app = ui.app, t = k => ui.t(k), mode = app.controls.mode;
-    const separate = mode === 'gamepad' && app.save.gamepadBrake !== 'auto';
-    const w = Math.min(310, this.w - 32), h = separate ? 174 : 142;
-    const x = this.ctrlSide === 'right' ? this.pad.l : this.w - this.pad.r - w, y = this.h - this.pad.b - h;
-    const gas = throttleAmount(app.input.throttle);
-    this._hudLabel(g, x, y, w, h, '#171b19c9');
-    g.textAlign = 'left'; g.textBaseline = 'top';
     const R = (taille) => `italic 900 ${taille}px Racing, Impact, sans-serif`;
-    // la vitesse en grand, chiffres à chasse fixe, calée à droite d'une case de trois chiffres
-    g.fillStyle = '#fff'; g.font = R(54); g.textBaseline = 'alphabetic';
-    const case3 = g.measureText('888').width;
-    this._texteChiffres(g, String(Math.round(Math.max(0, p.speed) * 3.6)), x + 16 + case3, y + 54);
-    g.font = R(19); g.fillStyle = '#c8ced9'; g.textAlign = 'left'; g.fillText('km/h', x + 22 + case3, y + 54);
-    g.textBaseline = 'top';
-    g.font = R(16);
-    g.fillText(t({ keyboard: 'controlKeyboard', wheel: 'controlWheel', gamepad: 'controlGamepad' }[mode]).toUpperCase(), x + 150, y + 14, w - 162);
-    g.font = R(22); g.fillStyle = gas ? '#5be07a' : '#ffd400';
-    g.fillText(`${t('gas').toUpperCase()} ${Math.round(gas * 100)} %`, x + 150, y + 38);
-    g.fillStyle = '#3a3f4b'; this._roundRect(g, x + 16, y + 77, w - 32, 9, 4); g.fill();
-    if (gas > 0) { g.fillStyle = '#5be07a'; this._roundRect(g, x + 16, y + 77, (w - 32) * gas, 9, Math.min(4, (w - 32) * gas / 2)); g.fill(); }
-    if (separate) {
-      const brake = throttleAmount(app.input.brake);
-      g.font = R(16); g.fillStyle = '#ff9b88';
-      g.fillText(`LT · ${t('brake').toUpperCase()} ${Math.round(brake * 100)} %`, x + 16, y + 94);
-      g.fillStyle = '#3a3f4b'; g.fillRect(x + 16, y + 115, w - 32, 7);
-      g.fillStyle = '#ff7760'; g.fillRect(x + 16, y + 115, (w - 32) * brake, 7);
-      g.translate(0,32);
+    const L = Math.min(420, this.w - 32);                   // toute la largeur, barre comprise
+    const bloc = 150, hBloc = 86, hautB = 18, basB = 66;   // le bloc de la vitesse, et le fourreau de la barre
+    const hGrip = 38, h = hBloc + 6 + hGrip;
+    const x = this.ctrlSide === 'right' ? this.pad.l : this.w - this.pad.r - L, y = this.h - this.pad.b - h;
+    const gaz = throttleAmount(app.input.throttle) > 0;
+    const fond = '#1b1f23e8', filet = '#ffffff1f';
+
+    // une seule silhouette : le bloc penché, et le fourreau de la barre qui en sort par le haut ; le bas du
+    // bloc file sous le fourreau, pour loger « km/h »
+    this._polygoneArrondi(g, [[x + 16, y], [x + bloc - 6, y], [x + bloc + 14, y + hautB], [x + L, y + hautB],
+      [x + L - 10, y + basB], [x + bloc + 58, y + basB], [x + bloc + 42, y + hBloc], [x, y + hBloc]], 10);
+    g.fillStyle = fond; g.fill(); g.lineWidth = 1.5; g.strokeStyle = filet; g.stroke();
+
+    // la vitesse, calée à droite d'une case de trois chiffres
+    g.textBaseline = 'alphabetic';
+    g.font = R(64); g.fillStyle = '#fff';
+    const case3 = g.measureText('888').width, xNum = x + 22 + case3;
+    g.save(); g.shadowColor = '#0009'; g.shadowBlur = 6; g.shadowOffsetY = 2;
+    this._texteChiffres(g, String(Math.round(Math.max(0, p.speed) * 3.6)), xNum, y + 66);
+    g.restore();
+    g.font = R(18); g.fillStyle = '#c8ced9'; g.textAlign = 'left'; g.fillText('km/h', xNum + 4, y + hBloc - 8);
+
+    // dix segments penchés ; le dernier s'allume en proportion, pour que la barre glisse au lieu de sauter
+    const N = 10, x0 = x + bloc + 22, x1 = x + L - 22, sy = y + hautB + 9, sh = basB - hautB - 18;
+    const pas = (x1 - x0) / N, sw = pas - 5, penche = 6;
+    const part = clamp(Math.max(0, p.speed) / Math.max(1, p.cls.vmax), 0, 1) * N;
+    for (let i = 0; i < N; i++) {
+      const sx = x0 + i * pas, allume = clamp(part - i, 0, 1);
+      this._polygoneArrondi(g, [[sx + penche, sy], [sx + sw + penche, sy], [sx + sw, sy + sh], [sx, sy + sh]], 4);
+      g.fillStyle = '#383e44'; g.fill();
+      if (allume <= 0) continue;
+      g.save();
+      g.globalAlpha = 0.25 + 0.75 * allume;
+      const c = gaz ? (i === 0 ? '#62f0e6' : '#52e6a8') : '#ff6e5a';
+      g.shadowColor = c; g.shadowBlur = 12; g.fillStyle = c; g.fill();
+      g.restore();
     }
-    g.font = R(15); g.fillStyle = '#d7dbe3';
-    g.fillText(t(mode === 'gamepad' ? 'lineHintPad' : 'lineHintPC'), x + 16, y + 97, w - 32);
-    const status = { ready: 'padReady', release: 'padRelease', disconnected: 'padDisconnected', unsupported: 'padUnsupported' };
-    const hint = mode === 'gamepad' ? t(status[app.controls.status])
-      : mode === 'wheel' ? (ui.lang === 'fr' ? 'Espace : gaz à zéro · Échap : pause' : 'Space: zero throttle · Esc: pause')
-      : (ui.lang === 'fr' ? 'Espace maintenu : gaz · relâché : frein' : 'Space held: throttle · released: brake');
-    g.fillStyle = mode === 'gamepad' && app.controls.status !== 'ready' ? '#ffd400' : '#aeb4c0';
-    g.font = R(15); g.fillText(hint, x + 16, y + 118, w - 32);
-    if (separate) g.translate(0,-32);
-    this.hudZones.accelerateur = { x, y, w, h };
+
+    // GRIP, sous le bloc : la pastille et le mot, dans la couleur de l'état ressenti
+    const [r0, v0, b0] = Renderer.teinteVive(p.ressenti || 0), cGrip = `rgb(${r0},${v0},${b0})`;
+    const yG = y + hBloc + 6, lG = 128;
+    this._polygoneArrondi(g, [[x + 12, yG], [x + lG, yG], [x + lG - 12, yG + hGrip], [x, yG + hGrip]], 8);
+    g.fillStyle = fond; g.fill(); g.lineWidth = 1.5; g.strokeStyle = filet; g.stroke();
+    g.save(); g.shadowColor = cGrip; g.shadowBlur = 12; g.fillStyle = cGrip;
+    g.beginPath(); g.arc(x + 30, yG + hGrip / 2, 9, 0, Math.PI * 2); g.fill();
+    g.font = R(25); g.textBaseline = 'middle'; g.fillText('GRIP', x + 50, yG + hGrip / 2 + 1);
+    g.restore();
+
+    if (mode !== 'keyboard') {
+      const status = { ready: 'padReady', release: 'padRelease', disconnected: 'padDisconnected', unsupported: 'padUnsupported' };
+      g.font = R(15); g.textBaseline = 'middle'; g.textAlign = 'left';
+      g.fillStyle = mode === 'gamepad' && app.controls.status !== 'ready' ? '#ffd400' : '#aeb4c0';
+      g.fillText(mode === 'gamepad' ? t(status[app.controls.status]) : (ui.lang === 'fr' ? 'Espace : gaz à zéro' : 'Space: zero throttle'), x + lG + 10, yG + hGrip / 2, L - lG - 10);
+    }
+    g.textAlign = 'left'; g.textBaseline = 'top';
+    this.hudZones.accelerateur = { x, y, w: L, h };
+  }
+
+  // un polygone aux angles arrondis (les panneaux du tableau de bord)
+  _polygoneArrondi(g, pts, r) {
+    const n = pts.length;
+    g.beginPath();
+    const mi = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    const debut = mi(pts[n - 1], pts[0]);
+    g.moveTo(debut[0], debut[1]);
+    for (let i = 0; i < n; i++) { const a = pts[i], b = pts[(i + 1) % n]; g.arcTo(a[0], a[1], b[0], b[1], r); }
+    g.closePath();
   }
 
   // Telemetry: speed, slip angle (heading vs velocity), lateral velocity, grip usage (lateral
@@ -2780,6 +2842,7 @@ class Renderer {
     const wPos = mobile ? 90 : 120, headH = mobile ? 36 : 44;
     const pb = this.pauseBtn;
     pb.x = xe - pb.s; pb.y = y0;
+    this.pauseH = headH;            // le bouton a la hauteur de l'étiquette de position, sa voisine de ligne
     const pw = Math.min(mobile ? 172 : 230, Math.max(110, xe - xs - wPos - pb.s - 20));
     const px = clamp((W - pw) / 2, xs + wPos + 8, pb.x - pw - 8);
     const ph = mobile ? 27 : 32;
@@ -2794,7 +2857,7 @@ class Renderer {
     numéro du tour en gros, le total à côté. */
     const lapW = mobile ? 108 : 150, lapH = mobile ? 34 : 46;
     // sous la pause, et sous les temps quand ils lui passent au-dessus (téléphone étroit)
-    const lapY = px + pw > xe - lapW - 4 ? Math.max(y0 + pb.s + 6, y0 + ph * 2 + 12) : y0 + pb.s + 6;
+    const lapY = px + pw > xe - lapW - 4 ? Math.max(y0 + headH + 6, y0 + ph * 2 + 12) : y0 + headH + 6;
     this._hudPaper(g, xe - lapW, lapY, lapW, lapH);
     {
       const lbl = t('lap').toUpperCase(), num = String(lapShown), tot = tt ? '' : '/' + race.laps;
@@ -2852,7 +2915,7 @@ class Renderer {
     La jauge ne porte plus l'usage d'adhérence : c'est un choix de Bruno, l'information était une
     couleur de plus sur un écran qui en a déjà assez. Elle ne dit que la vitesse rapportée au maximum
     de la voiture — l'éventail disait la même chose, déroulé. Elle s'éclaircit à l'appui, parce que
-    la pastille du pouce n'a plus de liseré pour le dire. */
+    la pastille du pouce n'a plus de filet pour le dire. */
     /* LA VITESSE ET L'ADHÉRENCE ONT QUITTÉ LE BANDEAU, et sont retournées sous le pouce.
 
     Elles étaient en haut : le chiffre au centre, une jauge à sa droite dont la couleur portait
@@ -2962,12 +3025,23 @@ class Renderer {
       g.textAlign = 'left'; g.textBaseline = 'top';
     }
 
-    // bouton pause, entre les deux panneaux du haut
-    panel(pb.x, pb.y, pb.s, pb.s);
-    g.fillStyle = '#e8e8ec';
-    const bw = Math.max(3, Math.round(pb.s * 0.11)), bh = Math.round(pb.s * 0.42), ecart = Math.round(pb.s * 0.13);
-    g.fillRect(pb.x + pb.s / 2 - ecart - bw, pb.y + (pb.s - bh) / 2, bw, bh);
-    g.fillRect(pb.x + pb.s / 2 + ecart, pb.y + (pb.s - bh) / 2, bw, bh);
+    /* LE BOUTON PAUSE, DESSINÉ COMME LE RESTE DU HAUT (0.52.6).
+
+    C'était un carré sombre, plus haut que ses voisins, avec deux barres grises droites : la seule
+    pièce du haut qui ne parlait pas comme le reste — « le bouton || est moche ». Il prend maintenant
+    l'étiquette crème de la position et du tour, à leur hauteur, et ses deux barres penchent comme la
+    police du jeu. Le doigt garde sa cible : `pauseHitAt` lit toujours le carré de `pb.s` et sa marge. */
+    {
+      const h = this.pauseH;
+      this._hudPaper(g, pb.x, pb.y, pb.s, h);
+      g.fillStyle = '#20251f';
+      const bh = Math.round(h * 0.48), bw = Math.max(4, Math.round(pb.s * 0.12)), ecart = Math.round(pb.s * 0.08);
+      const pente = bh * 0.22, cx = pb.x + pb.s / 2 - 1, cy = pb.y + h / 2;
+      for (const x0 of [cx - ecart - bw, cx + ecart]) {
+        g.beginPath(); g.moveTo(x0 + pente, cy - bh / 2); g.lineTo(x0 + bw + pente, cy - bh / 2);
+        g.lineTo(x0 + bw, cy + bh / 2); g.lineTo(x0, cy + bh / 2); g.closePath(); g.fill();
+      }
+    }
 
     // line slider (left thumb)
     this._drawSlider(g, p, t);

@@ -9,3 +9,7 @@ export/
 
 # La version publiée, fabriquée par `npm run build` (tools/build-dist.js).
 dist/
+
+# Offline promotional captures (rushes may be large)
+artifacts/trailer/
+tools/trailer/node_modules/

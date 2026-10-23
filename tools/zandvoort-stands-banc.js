@@ -1,7 +1,7 @@
 // Regression: Hunserug runoff must not cover the three operational pit garages.
 'use strict';
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-const {contextFor}=require('./motricite-banc.js'),c=contextFor('live');c.assert=assert;
+const {contextFor}=require('./motricite-banc.js'),c=contextFor('live',{usure:true});c.assert=assert;   // usure rallumée : les stands n'existent qu'avec elle
 vm.runInContext(fs.readFileSync(__dirname+'/../js/props.js','utf8').replace(/if \(typeof module[^\n]*\n/g,''),c);
 vm.runInContext(`
 const d=TRACKS.find(d=>d.id==='zandvoort');

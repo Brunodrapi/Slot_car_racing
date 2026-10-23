@@ -1,0 +1,314 @@
+{
+  "width": 1280,
+  "height": 720,
+  "fps": 24,
+  "seed": 42,
+  "sections": [
+    {
+      "id": "01-hook",
+      "duration": 5,
+      "text": "ONE BUTTON. LOT OF FUN.",
+      "shots": [
+        {
+          "track": "monza",
+          "model": "ferrari312t",
+          "at": 0.37,
+          "action": "pack",
+          "duration": 5
+        }
+      ]
+    },
+    {
+      "id": "02-line",
+      "duration": 10,
+      "text": "MASTER THE RACING LINE",
+      "shots": [
+        {
+          "track": "suzuka",
+          "model": "m1procar",
+          "at": 0.055,
+          "mode": "timetrial",
+          "action": "clean",
+          "duration": 10
+        }
+      ]
+    },
+    {
+      "id": "03-crashes",
+      "duration": 10,
+      "text": "PUSH TOO HARD\u2026 AND YOU\u2019LL PAY FOR IT.",
+      "shots": [
+        {
+          "track": "monza",
+          "model": "f40",
+          "at": 0.375,
+          "action": "wide",
+          "duration": 2
+        },
+        {
+          "track": "zandvoort",
+          "model": "lotus79",
+          "at": 0.34,
+          "action": "spin",
+          "duration": 2
+        },
+        {
+          "track": "monaco",
+          "model": "gt40",
+          "at": 0.55,
+          "action": "barrier",
+          "duration": 2
+        },
+        {
+          "track": "suzuka",
+          "model": "m1procar",
+          "at": 0.08,
+          "action": "pack",
+          "duration": 2
+        },
+        {
+          "track": "spa",
+          "model": "962",
+          "at": 0.15,
+          "action": "barrier",
+          "duration": 2
+        }
+      ]
+    },
+    {
+      "id": "04-cars",
+      "duration": 10,
+      "text": "CLASSIC F1s. GT LEGENDS. PROTOTYPES. 25 CARS",
+      "shots": [
+        {
+          "menu": "f1",
+          "model": "tyrrellp34",
+          "duration": 0.4166666666666667
+        },
+        {
+          "menu": "f1",
+          "model": "ferrari312t",
+          "duration": 0.4166666666666667
+        },
+        {
+          "menu": "f1",
+          "model": "mclarenm23",
+          "duration": 0.4166666666666667
+        },
+        {
+          "menu": "f1",
+          "model": "lotus79",
+          "duration": 0.4166666666666667
+        },
+        {
+          "menu": "f1",
+          "model": "lotus72",
+          "duration": 0.4166666666666667
+        },
+        {
+          "menu": "f1",
+          "model": "brabhambt46b",
+          "duration": 0.4166666666666667
+        },
+        {
+          "menu": "f1",
+          "model": "williamsfw07",
+          "duration": 0.4166666666666667
+        },
+        {
+          "menu": "f1",
+          "model": "ligierjs11",
+          "duration": 0.4166666666666667
+        },
+        {
+          "menu": "f1",
+          "model": "renaultrs10",
+          "duration": 0.4166666666666667
+        },
+        {
+          "menu": "gt",
+          "model": "m1procar",
+          "duration": 0.4166666666666667
+        },
+        {
+          "menu": "gt",
+          "model": "f40",
+          "duration": 0.4166666666666667
+        },
+        {
+          "menu": "gt",
+          "model": "countach",
+          "duration": 0.4166666666666667
+        },
+        {
+          "menu": "gt",
+          "model": "930",
+          "duration": 0.4166666666666667
+        },
+        {
+          "menu": "gt",
+          "model": "corvette",
+          "duration": 0.4166666666666667
+        },
+        {
+          "menu": "gt",
+          "model": "csl",
+          "duration": 0.4166666666666667
+        },
+        {
+          "menu": "gt",
+          "model": "250gto",
+          "duration": 0.375
+        },
+        {
+          "menu": "gt",
+          "model": "typee",
+          "duration": 0.375
+        },
+        {
+          "menu": "gt",
+          "model": "240z",
+          "duration": 0.375
+        },
+        {
+          "menu": "proto",
+          "model": "gt40",
+          "duration": 0.375
+        },
+        {
+          "menu": "proto",
+          "model": "935",
+          "duration": 0.375
+        },
+        {
+          "menu": "proto",
+          "model": "787b",
+          "duration": 0.375
+        },
+        {
+          "menu": "proto",
+          "model": "962",
+          "duration": 0.375
+        },
+        {
+          "menu": "proto",
+          "model": "xjr9",
+          "duration": 0.375
+        },
+        {
+          "menu": "proto",
+          "model": "330p4",
+          "duration": 0.375
+        },
+        {
+          "menu": "proto",
+          "model": "p68",
+          "duration": 0.375
+        }
+      ]
+    },
+    {
+      "id": "05-mosaic",
+      "duration": 10,
+      "text": "12 TRACKS. MULTIPLE CHALLENGES.",
+      "mosaic": [
+        "spa",
+        "monza",
+        "monaco",
+        "suzuka",
+        "zandvoort",
+        "interlagos",
+        "lemans",
+        "silverstone",
+        "bathurst",
+        "laguna",
+        "redbullring",
+        "castellet"
+      ]
+    },
+    {
+      "id": "06-multiplayer",
+      "duration": 12,
+      "text": "ONLINE MULTIPLAYER RACES.",
+      "shots": [
+        {
+          "track": "monza",
+          "model": "f40",
+          "at": 0.36,
+          "view": "follow",
+          "duration": 4
+        },
+        {
+          "track": "spa",
+          "model": "ferrari312t",
+          "at": 0.12,
+          "view": "full",
+          "duration": 4
+        },
+        {
+          "track": "suzuka",
+          "model": "962",
+          "at": 0.08,
+          "view": "duel",
+          "duration": 4
+        }
+      ]
+    },
+    {
+      "id": "06b-platforms",
+      "duration": 5,
+      "text": "PLAY ON PC & MOBILE",
+      "shots": [
+        {
+          "track": "suzuka",
+          "model": "m1procar",
+          "at": 0.055,
+          "mode": "timetrial",
+          "action": "clean",
+          "mobile": true,
+          "duration": 5
+        }
+      ]
+    },
+    {
+      "id": "07-flow",
+      "duration": 10,
+      "text": "EASY TO PLAY. HARD TO MASTER.",
+      "shots": [
+        {
+          "track": "monza",
+          "model": "f40",
+          "at": 0.675,
+          "mode": "timetrial",
+          "action": "clean",
+          "duration": 4
+        },
+        {
+          "track": "monza",
+          "model": "f40",
+          "at": 0.82,
+          "action": "overtake",
+          "duration": 1.5
+        },
+        {
+          "track": "monza",
+          "model": "f40",
+          "at": 0.994,
+          "mode": "timetrial",
+          "action": "finish",
+          "duration": 1.5
+        },
+        {
+          "records": "monza",
+          "duration": 3
+        }
+      ]
+    },
+    {
+      "id": "08-end",
+      "duration": 5,
+      "text": "GRIP : RACING THE LINE",
+      "end": true
+    }
+  ]
+}

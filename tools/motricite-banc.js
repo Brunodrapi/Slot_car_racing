@@ -18,9 +18,11 @@ function reference(f) {
   return sourceCache.get(f);
 }
 
-function sourceFor(factor) {
+function sourceFor(factor, options = {}) {
   let src = FILES.map(f => (factor === 'live' ? fs.readFileSync(path.join(ROOT, 'js', f + '.js'), 'utf8') : reference(f))
     .replace(/if \(typeof module[^\n]*\n/g, '').replace(/'use strict';/g, '')).join('\n');
+  // l'usure est mise de côté dans le jeu (USURE_ACTIVE) ; les bancs des stands la rallument chez eux
+  if (options.usure) src = src.replace('const USURE_ACTIVE = false', 'const USURE_ACTIVE = true');
   function swap(a, b) {
     if (!src.includes(a)) throw Error('La physique a changé, adapter le banc : ' + a);
     src = src.replace(a, b);
@@ -47,10 +49,10 @@ function sourceFor(factor) {
   return src;
 }
 
-function contextFor(factor) {
+function contextFor(factor, options) {
   const math = Object.create(Math);
   const context = vm.createContext({ Math: math, console, Date });
-  vm.runInContext(sourceFor(factor), context);
+  vm.runInContext(sourceFor(factor, options), context);
   return context;
 }
 

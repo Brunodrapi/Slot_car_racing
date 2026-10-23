@@ -9,6 +9,12 @@
 // Nothing is ever snapped back onto the line, on or off the road.
 'use strict';
 
+/* L'USURE ET LES DÉGÂTS SONT MIS DE CÔTÉ (0.50) : la fonction n'est pas encore au point. Pneus qui
+s'usent, tôle qui se cabosse, arrêt aux stands — tout reste écrit, ici et dans race.js, et revient en
+passant cet interrupteur à `true`. D'ici là, aucune course ne s'use, quel que soit le réglage gardé dans
+une ancienne sauvegarde, et le choix disparaît du paddock. */
+const USURE_ACTIVE = false;
+
 /* L'usure et les dommages, en option et en course seulement.
 
 CE QUE FAIT L'USURE. Un pneu s'use en roulant, et beaucoup plus vite en glissant : c'est le
@@ -228,8 +234,12 @@ const MOTRICITE = { tauMontee: 0.22, tauRetour: 0.10, seuil: 0.12, perte: 0.38 }
 `seuilTravers` : l'angle de dérive (en radians, ≈ 9°) au-delà duquel la voiture est « en travers ».
 `freinTravers` : la part du freinage AUTOMATIQUE (pied levé) qui reste alors appliquée. Le frein
 manuel d'une manette n'est pas touché : celui qui freine exprès est obéi. Voir `update`, et le
-rapport « GRIP — Garder le contrôle d'une voiture en dérapage » pour les mesures. */
-const GLISSADE = { seuilTravers: 0.15, freinTravers: 0.3 };
+rapport « GRIP — Garder le contrôle d'une voiture en dérapage » pour les mesures.
+
+`rattrapage` : l'interrupteur des deux. Essayé en 0.52.1 : la recette était revenue au comportement
+d'avant la 0.44 pour comparer (40 sorties et 96 tête-à-queue au banc, contre 19 et 28,5). Verdict de
+Bruno : « c'est mieux avec la modif qu'avant, donc on garde le tout ». Il reste à `true` partout. */
+const GLISSADE = { rattrapage: true, seuilTravers: 0.15, freinTravers: 0.3 };
 
 // Les deux seuils où l'IA lève et reprend les gaz : voir `aiThrottle`. Reprendre bien plus bas
 // qu'on ne lève est ce qui fait un à-coup plutôt qu'un tremblement.
@@ -901,7 +911,7 @@ class Car {
     que toutes les écoles de pilotage interdisent — « lifting off the throttle or hitting the brakes
     while changing the steering angle will spin the best handling car ». Tant que la voiture est en
     travers, le freinage automatique ne garde donc que trente pour cent de sa force. */
-    const enTravers = Math.abs(this.beta || 0) > GLISSADE.seuilTravers;
+    const enTravers = GLISSADE.rattrapage && Math.abs(this.beta || 0) > GLISSADE.seuilTravers;
     const brakeFrac = manualBrake ? this.brake + (1 - this.brake) * engineFrac
       : throttle ? 0 : clamp(this.offT / 0.1, 0, 1) * (enTravers ? GLISSADE.freinTravers : 1);
     const vv = Math.max(3, Math.abs(this.v));
@@ -934,7 +944,7 @@ class Car {
     depuis la direction de la vitesse au lieu du cap de la caisse (188 sorties, 267 tête-à-queue, ce
     que Stanford avait vu : la voiture part en tête-à-queue), et garder la retenue une demi-seconde
     après la glissade (la voiture ne revient plus sur sa ligne et sort). */
-    if (Math.abs(this.alphaR || 0) > peak || Math.abs(this.alphaF || 0) > peak) {
+    if (GLISSADE.rattrapage && (Math.abs(this.alphaR || 0) > peak || Math.abs(this.alphaF || 0) > peak)) {
       const kLigne = T.lineCurv(this.s + 3, this.selS);
       if (Math.sign(kDes) === Math.sign(kLigne) && Math.abs(kDes) > Math.abs(kLigne)) kDes = kLigne;
     }

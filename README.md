@@ -52,7 +52,36 @@ accélère et le levier choisit la ligne. Sur ordinateur :
 | `G` | télémétrie |
 
 Aucune autre touche, ni le clic, ni la molette, ne fait rien en course : on ne part plus en
-accélérant parce qu'un doigt a frôlé le clavier. Le tableau de bord rappelle les touches.
+accélérant parce qu'un doigt a frôlé le clavier.
+
+**Le tableau de bord du PC (0.51)**, en bas à l'opposé du levier, ne garde que ce qui se lit en
+pilotant : la vitesse en très gros ; une barre de dix segments, la vitesse rapportée à la pointe de
+la voiture, verte et lumineuse sous les gaz et rouge dès qu'on lâche (le feu stop) ; et la pastille
+**GRIP**, l'état ressenti de la voiture sur la même échelle que la pastille du pouce sur téléphone —
+bleu au calme, vert en appui, jaune à la limite, violet qui glisse, rouge en tête-à-queue — en
+couleurs vives. Il remplace le panneau « ESPACE · GAZ 100 % » et ses deux lignes d'aide, que le
+décompte donne au départ.
+
+**Comment jouer, Installez-moi, Faites un don (0.52).** Trois entrées plus petites sous les modes de
+jeu de l'accueil.
+
+- *Comment jouer* montre les trois gestes — appuyer accélère, relâcher freine, le levier change de
+  ligne — chacun avec une animation tirée du vrai jeu : au doigt sur téléphone, au clavier sur
+  ordinateur, dans la langue du joueur. Sur téléphone, un geste par écran (on fait défiler, ou
+  « Suivant ») ; sur ordinateur, les trois côte à côte. Le dernier bouton mène à la course rapide.
+- *Installez-moi* n'apparaît que sur un téléphone où le jeu n'est pas installé. Il explique le
+  chemin de l'appareil (Safari : Partager → Sur l'écran d'accueil ; Chrome Android : menu ⋮ →
+  Installer l'application), l'autre restant dépliable ; quand Chrome propose l'installation
+  directe (`beforeinstallprompt`, en prod), elle devient un bouton.
+- *Faites un don* ouvre la page itch.io du jeu (`DON_URL` dans `js/ui.js`).
+
+Les douze animations (`art/interface/comment-jouer/`, 2,8 Mo en WebP animé) se refont avec
+`node tools/comment-jouer.js` : le temps du jeu est figé et avancé image par image, les gestes passent
+par les vrais écouteurs (doigt sur le canevas, touches), et un doigt ou des touches dessinés
+par-dessus montrent le geste. Le freinage lève le pied là où l'IA le lèverait et ne réappuie qu'à
+70 km/h, la vitesse de la courbe. Pourquoi des WebP et pas des vidéos : un iPhone en économie
+d'énergie refuse de lancer une vidéo seul, et le service worker ne sert pas les requêtes par morceaux
+que Safari fait pour les vidéos. Tests : `tools/e2e-comment-jouer.js`.
 
 **La manette et la molette sont mises de côté**, pas supprimées : tout leur code reste dans
 `js/controls.js` (modes, frein LT séparé, frein moteur réglable, navigation des menus à la manette)
@@ -137,12 +166,48 @@ npm run build        # écrit dist/ (option : --domaine=grip.game pour le fichie
 NODE_PATH=$(npm root -g) node tools/e2e-dist.js    # la vérifie, en ligne puis hors ligne
 ```
 
-`tools/build-dist.js` ne garde que les trois pages jouables (le jeu, l'éditeur de circuits, les
-statistiques) et ce qu'elles chargent — ni docs, ni outils, ni images de travail —, **minifie le
+`tools/build-dist.js` ne garde que les deux pages publiques (le jeu et les statistiques) et ce
+qu'elles chargent — ni docs, ni images de travail, et **aucun outil** : l'éditeur de circuits et de
+décor, l'éditeur de lignes, le banc moteur et `tools/` n'existent qu'en recette (0.52.2) —, **minifie le
 code** (terser : commentaires et blancs retirés, variables locales renommées) et ajoute un **service
 worker** qui met tout le jeu en cache au premier lancement, environ 50 Mo. Ajouté à l'écran d'accueil
 de l'iPhone (Safari → Partager → Sur l'écran d'accueil), le jeu démarre ensuite sans réseau ; le
 multijoueur, le tableau mondial et les statistiques gardent besoin du réseau.
+
+**L'iPhone, jeu installé (0.52.3).** La barre d'état est translucide (`black-translucent`) : la page
+passe dessous. Les écrans du paddock se décalent de sa hauteur et gardent une bande sombre sous
+l'heure. Et iOS 26 annonce en mode installé une fenêtre plus courte que l'écran de la hauteur de cette
+barre (WebKit 301108) — d'où une bande noire de 59 points en bas ; la page reçoit donc la hauteur de
+l'écran (`min-height` plafonné à `100lvh`, voir la fin de css/style.css). Chromium ne reproduit pas ce
+défaut : il se vérifie sur un iPhone. Premier essai (0.52.3) insuffisant sur l'iPhone de Bruno : la
+page gardait `overflow: hidden`, qui passe à la fenêtre, si bien qu'iOS ne la voyait jamais plus
+haute que sa fenêtre courte. En mode installé, la 0.52.6 lève donc ce verrou (`overflow: visible`,
+rebond bloqué par `overscroll-behavior: none`). Si la bande résiste encore, reste la barre d'état
+opaque (`black`), qui supprime le défaut au prix du plein écran en haut — et qu'iOS ne lit qu'à
+l'installation : il faudrait retirer le jeu de l'écran d'accueil et le remettre.
+
+**Le bandeau de titre tient dans la largeur (0.52.4).** « CONTRE-LA-MONTRE » poussait le logo hors de
+l'écran sur la plupart des iPhone. `_ajusteBandeau` (js/ui.js) mesure le bandeau après chaque écran,
+chaque changement de largeur et chaque police chargée, et cède de la place dans l'ordre : le titre se
+resserre jusqu'à 19 px, « ← RETOUR » devient « ← », le titre descend jusqu'à 16 px, et le logo ne
+s'efface qu'en dernier recours (aucun iPhone n'y arrive). Test : `tools/e2e-bandeau.js`.
+
+**Le HUD sous la Dynamic Island (0.52.5).** La marge sûre du haut garde déjà une dizaine de points
+sous l'encoche ou l'îlot (59 points pour un îlot qui s'arrête vers 48) : quand elle vaut 40 points ou
+plus, le HUD de course remonte à 6 points sous elle au lieu de 14 au-dessous. iPhone SE, iPad et
+paysage ne changent pas (`_layoutHud`, js/render.js ; `tools/e2e-pause.js` vérifie le bouton pause).
+
+**Réglages : ce qui reste en recette (0.52.5).** Le guide de freinage, la télémétrie (touche G),
+l'aimant et l'anticipation sont des outils de mise au point : ils n'apparaissent qu'en recette
+(`REGLAGES_AVANCES`, js/career.js). En prod ils disparaissent des réglages, la touche G ne fait rien,
+et une sauvegarde qui les avait changés revient aux valeurs d'origine à la lecture — sinon un aimant
+réglé un jour resterait actif sans pouvoir s'éteindre, et le tour sortirait du tableau mondial.
+
+**La difficulté** est le niveau des voitures de l'IA (`DIFFICULTY`, js/race.js) : leur marge sur
+l'adhérence et leur rythme, et pour les deux derniers niveaux un surcroît d'adhérence. Elle ne sert
+qu'en course rapide (et pour l'IA qui complète une table de multijoueur) ; en contre-la-montre, on
+roule seul. Elle n'est donc plus dans les réglages, seulement en pastille sur l'écran de départ de
+la course.
 
 **La mise à jour.** La liste des fichiers et leur empreinte (sha-256) sont dans `manifeste.json` ;
 `sw.js`, lui, ne change jamais d'une publication à l'autre, si bien que le navigateur ne lance jamais de
@@ -563,6 +628,12 @@ la vitesse plutôt que du cap de la caisse (188 sorties, 267 tête-à-queue — 
 Gerdes, retrouvé), abaisser le plafond de dérive avant au pic (rien à gagner), et garder la retenue une
 demi-seconde après la glissade (la voiture ne revient plus sur sa ligne et sort). Le rapport complet,
 avec la littérature du pilotage : « GRIP — Garder le contrôle d'une voiture en dérapage ».
+
+**Comparé, et gardé (0.52.1 – 0.52.2).** La recette est revenue un temps au comportement d'avant
+la 0.44 pour que Bruno compare les deux ressentis (au banc, trop vite : 39,5 sorties et 96
+tête-à-queue sans ces corrections, 19 et 28,5 avec). Verdict : « c'est mieux avec la modif qu'avant,
+donc on garde le tout ». Les deux corrections tiennent à un interrupteur, `GLISSADE.rattrapage`
+(js/car.js), resté à `true`.
 
 Les notes de difficulté des GT (`diff`, `js/cars.js`) n'ont pas été recalculées. `tools/difficulte.js`
 donne maintenant un autre classement (Countach 3 → 0, M1 3 → 1, 240Z 3 → 2, 911 Turbo 5 → 4, Type E
@@ -1328,7 +1399,7 @@ dessin, pas du code mort. La branche `isometric` garde l'essai complet.
   de tour sont rangés sous `circuit|catégorie` et `circuit|catégorie|voiture` dans la sauvegarde,
   et le changer effacerait ceux des joueurs — mais son nom ne pouvait plus être « GT » avec une
   935 et une 787B sur la grille.
-- **Course rapide** et **contre-la-montre** (records par circuit et par voiture), 5 niveaux de difficulté, usure et dommages en option.
+- **Course rapide** et **contre-la-montre** (records par circuit et par voiture), 5 niveaux de difficulté (usure et dommages : mis de côté pour l'instant).
 - Une **carrière** existe dans le code, actuellement masquée. Elle n'a plus qu'une coupe : les
   trois autres couraient dans les catégories retirées.
 - IA qui freine selon son talent, choisit sa ligne pour dépasser, aspire dans le sillage, se touche.
@@ -2851,6 +2922,13 @@ l'échelle est redevenue monotone dans les deux sens.
 Chaque palier vaut cinq à six pour cent, soit l'écart qui séparait déjà moyen de difficile.
 
 ## Usure et dommages
+
+> **Mis de côté depuis la 0.50** : la fonction n'est pas encore au point. L'interrupteur
+> `USURE_ACTIVE = false` (`js/car.js`) l'éteint partout — aucune course ne s'use, quel que soit le
+> réglage d'une ancienne sauvegarde, le choix disparaît du paddock, et les stands, qui n'existent
+> qu'avec l'usure, ne s'ouvrent plus. Tout ce qui suit reste écrit et revient en le passant à `true`.
+> Les bancs des stands et de l'usure (`tools/stands.js`, `usure.js`, `zandvoort-stands-banc.js`,
+> `barrieres-banc.js`) la rallument dans leur bac à sable pour rester valables.
 
 En option, et **en course seulement**. Un record de contre-la-montre signé sur des pneus à moitié
 morts ne se compare à rien, et la table des records n'a pas de colonne pour dire dans quel état il

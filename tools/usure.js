@@ -23,6 +23,8 @@ for (const f of ['util', 'traces', 'tracks', 'track', 'cars', 'car', 'race']) {
   src += fs.readFileSync(`${__dirname}/../js/${f}.js`, 'utf8')
     .replace(/if \(typeof module[^\n]*\n/g, '').replace(/'use strict';/g, '') + '\n';
 }
+// l'usure est mise de côté dans le jeu (USURE_ACTIVE, js/car.js) ; ce banc l'éprouve, il la rallume
+src = src.replace('const USURE_ACTIVE = false', 'const USURE_ACTIVE = true');
 
 src += `
 const which = ARGS[0] || 'all', catId = ARGS[1] || 'gt';

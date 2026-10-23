@@ -38,8 +38,14 @@ const arg = (nom) => { const a = process.argv.find((x) => x.startsWith(`--${nom}
 const OUT = path.resolve(ROOT, arg('sortie') || 'dist');
 const DOMAINE = arg('domaine');
 
-// Les pages qu'on publie : le jeu, l'éditeur de circuits qu'il ouvre, la page des statistiques.
-const PAGES = ['index.html', 'editor.html', 'analytics.html'];
+/* Les pages qu'on publie : le jeu et la page des statistiques, publique (agrégats seulement).
+
+PAS LES OUTILS. L'éditeur de circuits et de décor (editor.html), l'éditeur de lignes et de panneaux
+(lignes.html), le banc moteur (moteur.html) et tools/ restent dans la recette : « dans PROD il ne
+faut pas qu'il y ait l'outil de modif des circuits, des lignes, les tools ». Leurs scripts propres
+(editor.js, editeur-decor.js, fichier-tracks.js…) ne partent pas non plus, puisqu'on ne copie que ce
+que les pages publiées chargent. */
+const PAGES = ['index.html', 'analytics.html'];
 
 // Les ressources chargées par leur nom calculé (une voiture, une livrée, un drapeau, un circuit) :
 // des dossiers entiers, moins ce qui n'est que matière de travail.
