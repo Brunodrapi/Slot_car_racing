@@ -1,0 +1,111 @@
+{
+  "browser": "154.0.8037.57",
+  "viewport": {
+    "width": 2540,
+    "height": 1440,
+    "dpr": 1
+  },
+  "method": "Chromium headless, 3 seconds of fixed-camera motion at 30m/s. Simulation sampling at 60/144Hz is not a physical display refresh measurement. Synchronous readback all canvases. Cold and warm raster prototype; no tyre marks.",
+  "moving": [
+    {
+      "hz": 60,
+      "cache": false,
+      "pass": "cold",
+      "medianMs": 17.1,
+      "p95Ms": 19.1,
+      "maxMs": 21.9,
+      "overBudget": 121,
+      "frames": 180,
+      "buildFrames": 0,
+      "cacheStats": {
+        "bytes": 0,
+        "created": 0,
+        "hits": 0,
+        "evicted": 0
+      }
+    },
+    {
+      "hz": 60,
+      "cache": false,
+      "pass": "warm",
+      "medianMs": 17.3,
+      "p95Ms": 21.7,
+      "maxMs": 24.7,
+      "overBudget": 120,
+      "frames": 180,
+      "buildFrames": 0,
+      "cacheStats": {
+        "bytes": 0,
+        "created": 0,
+        "hits": 0,
+        "evicted": 0
+      }
+    },
+    {
+      "hz": 144,
+      "cache": false,
+      "pass": "cold",
+      "medianMs": 16.9,
+      "p95Ms": 19.5,
+      "maxMs": 30.2,
+      "overBudget": 432,
+      "frames": 432,
+      "buildFrames": 0,
+      "cacheStats": {
+        "bytes": 0,
+        "created": 0,
+        "hits": 0,
+        "evicted": 0
+      }
+    },
+    {
+      "hz": 144,
+      "cache": false,
+      "pass": "warm",
+      "medianMs": 16.9,
+      "p95Ms": 18.9,
+      "maxMs": 22.6,
+      "overBudget": 432,
+      "frames": 432,
+      "buildFrames": 0,
+      "cacheStats": {
+        "bytes": 0,
+        "created": 0,
+        "hits": 0,
+        "evicted": 0
+      }
+    }
+  ],
+  "graphics": {
+    "devices": [
+      {
+        "vendorId": 65535,
+        "deviceId": 65535,
+        "vendorString": "Google Inc. (Google)",
+        "deviceString": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)",
+        "driverVendor": "SwANGLE",
+        "driverVersion": "5.0.0"
+      }
+    ],
+    "features": {
+      "2d_canvas": "unavailable_software",
+      "direct_rendering_display_compositor": "disabled_off_ok",
+      "gpu_compositing": "disabled_software",
+      "multiple_raster_threads": "enabled_on",
+      "opengl": "disabled_off",
+      "rasterization": "disabled_software",
+      "raw_draw": "disabled_off_ok",
+      "skia_graphite": "disabled_off",
+      "trees_in_viz": "disabled_off",
+      "video_decode": "disabled_software",
+      "video_encode": "disabled_software",
+      "vulkan": "disabled_off",
+      "webgl": "unavailable_software",
+      "webgpu": "unavailable_software",
+      "webgpu_on_vk_via_gl_interop": "disabled_off",
+      "webnn": "unavailable_software"
+    },
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver-5.0.0)"
+  },
+  "light": true
+}

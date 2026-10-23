@@ -73,3 +73,7 @@ Avec Node, Playwright et Chromium installés :
 Le chemin Chromium peut être fourni via CHROMIUM_PATH. Les outils bloquent les requêtes externes, désactivent les analytics et les scores pendant le test et n'altèrent pas les réglages du joueur.
 
 Résultats : [traces](mesures.json), [Zandvoort](zandvoort.json).
+
+## Essais PC à la résolution du joueur
+
+[Comparaison du cache et du rendu actuel à 2540 × 1440](PC-2540.md). Le cache expérimental reste désactivé en production.
