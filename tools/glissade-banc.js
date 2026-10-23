@@ -2,7 +2,6 @@
 //
 //   node tools/glissade-banc.js                    # le code du dépôt
 //   node tools/glissade-banc.js --racine=<dossier>  # un autre état du dépôt, pour comparer
-//   node tools/glissade-banc.js --canal=recette     # le comportement de la recette (GLISSADE.rattrapage)
 //
 // Le pilote automatique conduit la voiture du joueur, aimant coupé (le réglage par défaut), sur
 // six circuits et dans les trois catégories, deux tours chacun. Deux allures : à la limite que
@@ -19,9 +18,7 @@ const fs = require('fs'), vm = require('vm'), path = require('path');
 const arg = process.argv.find((a) => a.startsWith('--racine='));
 const ROOT = arg ? path.resolve(arg.slice(9)) : path.join(__dirname, '..');
 
-const canal = process.argv.find((a) => a.startsWith('--canal='));
-// le jeu lit le canal dans js/version.js, que le banc ne charge pas : sans lui, c'est la prod
-let src = canal ? `const APP_CANAL = ${JSON.stringify(canal.slice(8))};\n` : '';
+let src = '';
 for (const f of ['util', 'traces', 'tracks', 'track', 'cars', 'car', 'race'])
   src += fs.readFileSync(path.join(ROOT, 'js', f + '.js'), 'utf8').replace(/if \(typeof module[^\n]*\n/g, '').replace(/'use strict';/g, '') + '\n';
 src += `

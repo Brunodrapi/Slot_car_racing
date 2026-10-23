@@ -166,8 +166,9 @@ npm run build        # écrit dist/ (option : --domaine=grip.game pour le fichie
 NODE_PATH=$(npm root -g) node tools/e2e-dist.js    # la vérifie, en ligne puis hors ligne
 ```
 
-`tools/build-dist.js` ne garde que les trois pages jouables (le jeu, l'éditeur de circuits, les
-statistiques) et ce qu'elles chargent — ni docs, ni outils, ni images de travail —, **minifie le
+`tools/build-dist.js` ne garde que les deux pages publiques (le jeu et les statistiques) et ce
+qu'elles chargent — ni docs, ni images de travail, et **aucun outil** : l'éditeur de circuits et de
+décor, l'éditeur de lignes, le banc moteur et `tools/` n'existent qu'en recette (0.52.2) —, **minifie le
 code** (terser : commentaires et blancs retirés, variables locales renommées) et ajoute un **service
 worker** qui met tout le jeu en cache au premier lancement, environ 50 Mo. Ajouté à l'écran d'accueil
 de l'iPhone (Safari → Partager → Sur l'écran d'accueil), le jeu démarre ensuite sans réseau ; le
@@ -593,18 +594,11 @@ Gerdes, retrouvé), abaisser le plafond de dérive avant au pic (rien à gagner)
 demi-seconde après la glissade (la voiture ne revient plus sur sa ligne et sort). Le rapport complet,
 avec la littérature du pilotage : « GRIP — Garder le contrôle d'une voiture en dérapage ».
 
-**En essai depuis la 0.52.1 : la recette revient à la glisse d'avant.** Bruno n'est pas complètement
-satisfait du ressenti en glisse et veut comparer. Les deux corrections ci-dessus dépendent d'un
-interrupteur, `GLISSADE.rattrapage` (js/car.js), qui suit le canal : coupé en **recette** (comportement
-d'avant la 0.44), actif en **prod** (celui de la 0.44). Une publication en prod n'emporte donc pas
-l'essai. Mesuré avec `node tools/glissade-banc.js --canal=recette` contre le même banc sans option :
-
-| Allure | Recette (sans rattrapage) | Prod (0.44) |
-| --- | --- | --- |
-| trop vite (marge 1,15) | 39,5 sorties · 96 tête-à-queue · 3373 s | 19 sorties · 28,5 tête-à-queue · 3145 s |
-| à la limite (marge 1,00) | 0 sortie · 2,5 tête-à-queue · 3184 s | 0 sortie · 0 tête-à-queue · 3157 s |
-
-Une fois tranché, on écrit `true` ou `false` dans l'interrupteur, pour les deux canaux.
+**Comparé, et gardé (0.52.1 – 0.52.2).** La recette est revenue un temps au comportement d'avant
+la 0.44 pour que Bruno compare les deux ressentis (au banc, trop vite : 39,5 sorties et 96
+tête-à-queue sans ces corrections, 19 et 28,5 avec). Verdict : « c'est mieux avec la modif qu'avant,
+donc on garde le tout ». Les deux corrections tiennent à un interrupteur, `GLISSADE.rattrapage`
+(js/car.js), resté à `true`.
 
 Les notes de difficulté des GT (`diff`, `js/cars.js`) n'ont pas été recalculées. `tools/difficulte.js`
 donne maintenant un autre classement (Countach 3 → 0, M1 3 → 1, 240Z 3 → 2, 911 Turbo 5 → 4, Type E

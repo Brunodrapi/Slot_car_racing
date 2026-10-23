@@ -4,8 +4,8 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
-## 0.52.1
-- Essai d'un autre ressenti de la glisse, en recette seulement : rien ne change dans le jeu publié.
+## 0.52.2
+- L'éditeur de circuits n'est plus dans le jeu publié.
 
 ## 0.52.0
 - Nouvelle entrée « Comment jouer » : appuyer, relâcher et changer de ligne, chacun en animation.

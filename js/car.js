@@ -236,18 +236,10 @@ const MOTRICITE = { tauMontee: 0.22, tauRetour: 0.10, seuil: 0.12, perte: 0.38 }
 manuel d'une manette n'est pas touché : celui qui freine exprès est obéi. Voir `update`, et le
 rapport « GRIP — Garder le contrôle d'une voiture en dérapage » pour les mesures.
 
-`rattrapage` : l'interrupteur des deux. EN ESSAI DEPUIS LA 0.52.1 : Bruno n'est « pas complètement
-satisfait du gameplay sur la glisse » et veut comparer avec l'ancien ressenti. La RECETTE revient donc
-au comportement d'avant la 0.44 — la visée court après la ligne pendant la glissade, et pied levé la
-voiture freine de toute sa force même en travers — tandis que la PROD garde celui de la 0.44.
-L'interrupteur suit le canal (voir js/version.js), pas une valeur écrite ici : une publication en prod
-ne peut donc pas emporter l'essai par mégarde. Les bancs, qui ne chargent pas version.js, mesurent
-le comportement de la prod ; `tools/glissade-banc.js --canal=recette` mesure celui de la recette.
-Une fois tranché, on écrit ici `true` ou `false`, pour les deux canaux. */
-const GLISSADE = {
-  rattrapage: !(typeof APP_CANAL !== 'undefined' && APP_CANAL === 'recette'),
-  seuilTravers: 0.15, freinTravers: 0.3,
-};
+`rattrapage` : l'interrupteur des deux. Essayé en 0.52.1 : la recette était revenue au comportement
+d'avant la 0.44 pour comparer (40 sorties et 96 tête-à-queue au banc, contre 19 et 28,5). Verdict de
+Bruno : « c'est mieux avec la modif qu'avant, donc on garde le tout ». Il reste à `true` partout. */
+const GLISSADE = { rattrapage: true, seuilTravers: 0.15, freinTravers: 0.3 };
 
 // Les deux seuils où l'IA lève et reprend les gaz : voir `aiThrottle`. Reprendre bien plus bas
 // qu'on ne lève est ce qui fait un à-coup plutôt qu'un tremblement.

@@ -1523,7 +1523,8 @@ class UI {
       case 'setup': this.setupScreen(btn.dataset.mode); break;
       case 'career': this.careerScreen(); break;
       case 'cup': this.cupScreen(id); break;
-      case 'editor': location.href = 'editor.html'; break;
+      // l'éditeur n'existe qu'en recette : la prod ne publie pas les outils (voir tools/build-dist.js)
+      case 'editor': if (typeof APP_CANAL !== 'undefined' && APP_CANAL === 'recette') location.href = 'editor.html'; break;
       case 'lang': if (id === 'fr' || id === 'en') { app.save.lang = id; storeSave(app.save); this.settings(); } break;
       case 'workshop': this.workshopScreen(); break;
       case 'wsAdd': this._workshopAdd().catch(err => this.workshopScreen(String(err))); break;
