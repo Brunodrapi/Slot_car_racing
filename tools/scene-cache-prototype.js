@@ -14,7 +14,15 @@ window.installSceneCachePrototype=function(r){
     const ctx=canvas.getContext('2d');ctx.scale(scale,scale);ctx.translate(-left+PAD,-top+PAD);
     ctx.lineCap='round';ctx.lineJoin='round';
     const vis={minX:left-PAD,maxX:left+CELL+PAD,minY:top-PAD,maxY:top+CELL+PAD};
-    draw(ctx,vis,args);
+    // Sprite helpers reset the canvas transform and size sprites with cam.zoom * dpr.
+    // During baking this must describe the tile, not the final screen resolution.
+    const cam=r.cam,w=r.w,h=r.h;
+    try{
+     r.cam={...cam,x:left+CELL/2,y:top+CELL/2,zoom:scale/r.dpr};
+     r.w=(CELL+2*PAD)*scale/r.dpr;r.h=r.w;
+     draw(ctx,vis,args);
+    }finally{r.cam=cam;r.w=w;r.h=h;}
+
     t={canvas,bytes:canvas.width*canvas.height*4};
     while(tiles.size&&stats.bytes+t.bytes>BUDGET){const k=tiles.keys().next().value;stats.bytes-=tiles.get(k).bytes;tiles.delete(k);stats.evicted++;}
     tiles.set(key,t);stats.bytes+=t.bytes;stats.created++;

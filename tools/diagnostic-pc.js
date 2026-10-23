@@ -4,7 +4,7 @@ let win,app,renderer,mode='normal',samples=[],draws=[],last=0,elapsed=0,active=f
 let savedDpr,savedDetail,auto=null,cacheStart={};
 const sequence=['normal','objects','textures','tyres','barriers','all','rubber','cache','cacheAll','normal'];
 function downloadReport(){
- const data={date:new Date().toISOString(),automatic:auto?{status:auto.status,sequence,warmupLaps:1,followedCar:0}:null,note:'Live frame intervals; no GPU readback. Manual or automatic AI spectator laps. Hidden tab excluded and automatic simulation suspended. Different laps are not identical replay.',results:[...history,...(active&&samples.length&&(!auto||auto.index>=0)?[stats()]:[])]};
+ const data={diagnosticVersion:'forest-scale-3',date:new Date().toISOString(),automatic:auto?{status:auto.status,sequence,warmupLaps:1,followedCar:0}:null,note:'Live frame intervals; no GPU readback. Manual or automatic AI spectator laps. Hidden tab excluded and automatic simulation suspended. Different laps are not identical replay.',results:[...history,...(active&&samples.length&&(!auto||auto.index>=0)?[stats()]:[])]};
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='grip-diagnostic-pc.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 function autoNext(){
@@ -33,7 +33,7 @@ async function setup(){
  const script=win.document.createElement('script');script.src='tools/barrier-cache-prototype.js';
  await new Promise((resolve,reject)=>{script.onload=resolve;script.onerror=reject;win.document.head.append(script);});
  win.installBarrierCachePrototype(renderer);
- const sceneScript=win.document.createElement('script');sceneScript.src='tools/scene-cache-prototype.js';
+ const sceneScript=win.document.createElement('script');sceneScript.src='tools/scene-cache-prototype.js?v=forest-scale-3';
  await new Promise((resolve,reject)=>{sceneScript.onload=resolve;sceneScript.onerror=reject;win.document.head.append(sceneScript);});
  win.installSceneCachePrototype(renderer);
  const track=renderer.setTrack;
