@@ -46,11 +46,11 @@ async function setup(){
  };
  renderer.autoRes=false;renderer.dpr=savedDpr;renderer.detail=savedDetail;
  by('status').textContent='Prêt · rendu réel dans ton navigateur';
- for(const id of ['start','mode','reset','export'])by(id).disabled=false;
+ for(const id of ['start','track','mode','reset','export'])by(id).disabled=false;
  by('start').onclick=()=>{
   save();app.mondial=null;app.analytics.begin=()=>{};app.analytics.observe=()=>{};
   app.save.difficulty='extreme';app.save.laps=20;app.save.sound=false;app.audio.setEnabled(false);
-  app.startQuick('race','gt','zandvoort');renderer.setView('avanceFixe');renderer.autoRes=false;renderer.dpr=savedDpr;renderer.detail=savedDetail;renderer.resize();reset();win.focus();
+  app.startQuick('race','gt',by('track').value);renderer.setView('avanceFixe');renderer.autoRes=false;renderer.dpr=savedDpr;renderer.detail=savedDetail;renderer.resize();reset();win.focus();
  };
  by('mode').onchange=e=>choose(e.target.value);
  by('reset').onclick=()=>{save();reset();win.focus();};

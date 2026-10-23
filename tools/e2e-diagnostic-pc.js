@@ -6,7 +6,8 @@ const {chromium}=require('playwright'),assert=require('assert/strict');
  const p=await b.newPage({viewport:{width:1280,height:720}}),errors=[];
  p.on('pageerror',e=>errors.push(e.message));
  await p.goto((process.argv[2]||'http://127.0.0.1:8765')+'/tools/diagnostic-pc.html');
- await p.waitForFunction(()=>!document.querySelector('#start').disabled);await p.click('#start');
+ await p.waitForFunction(()=>!document.querySelector('#start').disabled);
+ const track=process.argv[3]||'zandvoort';await p.selectOption('#track',track);await p.click('#start');
  for(const mode of ['normal','tyres','objects','textures','barriers','all','rubber','cache','normal']){
   await p.selectOption('#mode',mode);
   const out=await p.evaluate(()=>{
@@ -16,7 +17,7 @@ const {chromium}=require('playwright'),assert=require('assert/strict');
    try{r.draw(a.race,a.ui);}finally{g.stroke=old;}
    return {track:a.race.track.def.id,tires,barriers:r.barrierArt.length};
   });
-  assert.equal(out.track,'zandvoort');assert(out.barriers>0);
+  assert.equal(out.track,track);assert(out.barriers>0);
   if(['tyres','barriers','all','cache'].includes(mode))assert.equal(out.tires,0);
   if(mode==='normal')assert(out.tires>0);
   console.log(mode,JSON.stringify(out));
@@ -26,7 +27,7 @@ const {chromium}=require('playwright'),assert=require('assert/strict');
  await p.click('#reset');await p.waitForTimeout(1200);
  const download=p.waitForEvent('download');await p.click('#export');const d=await download;
  const stream=await d.createReadStream();let raw='';for await(const c of stream)raw+=c;
- const data=JSON.parse(raw);assert(data.results.some(r=>r.frames>0&&r.p95Ms>0));assert.deepEqual(errors,[]);
+ const data=JSON.parse(raw);assert(data.results.some(r=>r.frames>0&&r.p95Ms>0&&r.track===track));assert.deepEqual(errors,[]);
  console.log('Rendering variants, tire isolation, physical barrier data, live samples and JSON export: OK');
  }finally{await b.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
