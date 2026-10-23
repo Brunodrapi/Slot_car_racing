@@ -4,6 +4,10 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.6
+- Nouveau bouton pause, dans le style des étiquettes du haut de l'écran.
+- iPhone, jeu installé : deuxième correction de la bande noire en bas de l'écran.
+
 ## 0.52.5
 - Sur iPhone, le chrono, la position et la pause remontent juste sous la Dynamic Island.
 - Les réglages de mise au point (guide de freinage, télémétrie, aimant, anticipation) sont retirés.

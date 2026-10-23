@@ -179,7 +179,12 @@ passe dessous. Les écrans du paddock se décalent de sa hauteur et gardent une 
 l'heure. Et iOS 26 annonce en mode installé une fenêtre plus courte que l'écran de la hauteur de cette
 barre (WebKit 301108) — d'où une bande noire de 59 points en bas ; la page reçoit donc la hauteur de
 l'écran (`min-height` plafonné à `100lvh`, voir la fin de css/style.css). Chromium ne reproduit pas ce
-défaut : il se vérifie sur un iPhone.
+défaut : il se vérifie sur un iPhone. Premier essai (0.52.3) insuffisant sur l'iPhone de Bruno : la
+page gardait `overflow: hidden`, qui passe à la fenêtre, si bien qu'iOS ne la voyait jamais plus
+haute que sa fenêtre courte. En mode installé, la 0.52.6 lève donc ce verrou (`overflow: visible`,
+rebond bloqué par `overscroll-behavior: none`). Si la bande résiste encore, reste la barre d'état
+opaque (`black`), qui supprime le défaut au prix du plein écran en haut — et qu'iOS ne lit qu'à
+l'installation : il faudrait retirer le jeu de l'écran d'accueil et le remettre.
 
 **Le bandeau de titre tient dans la largeur (0.52.4).** « CONTRE-LA-MONTRE » poussait le logo hors de
 l'écran sur la plupart des iPhone. `_ajusteBandeau` (js/ui.js) mesure le bandeau après chaque écran,

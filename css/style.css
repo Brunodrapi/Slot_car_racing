@@ -1145,6 +1145,12 @@ Bruno sur un iPhone à Dynamic Island :
    installé, où la marge du haut ne vaut quelque chose que sur iPhone. */
 @media (display-mode: standalone) {
   html { min-height: min(100lvh, calc(100% + env(safe-area-inset-top))); }
+  /* SANS `overflow: hidden` (0.52.6). La 0.52.3 posait la hauteur et la bande restait — Bruno, sur son
+     iPhone. La page gardait `overflow: hidden`, qui passe du html à la fenêtre : iOS ne voyait donc
+     jamais une page plus haute que sa fenêtre courte, la seule condition qui la lui fait agrandir. Les
+     projets qui en sont venus à bout ont retiré ce verrou (LiftLog #8). Le rebond, lui, reste bloqué :
+     sans lui, tirer l'écran ferait flotter la page sous les calques fixes. */
+  html, body { overflow: visible; overscroll-behavior: none; }
 }
 #ui:has(.setup-screen, .selection-screen)::before { content:''; position:fixed; z-index:20; top:0; left:0; right:0;
   height:env(safe-area-inset-top); background:#151917; pointer-events:none; }

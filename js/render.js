@@ -2842,6 +2842,7 @@ class Renderer {
     const wPos = mobile ? 90 : 120, headH = mobile ? 36 : 44;
     const pb = this.pauseBtn;
     pb.x = xe - pb.s; pb.y = y0;
+    this.pauseH = headH;            // le bouton a la hauteur de l'étiquette de position, sa voisine de ligne
     const pw = Math.min(mobile ? 172 : 230, Math.max(110, xe - xs - wPos - pb.s - 20));
     const px = clamp((W - pw) / 2, xs + wPos + 8, pb.x - pw - 8);
     const ph = mobile ? 27 : 32;
@@ -2856,7 +2857,7 @@ class Renderer {
     numéro du tour en gros, le total à côté. */
     const lapW = mobile ? 108 : 150, lapH = mobile ? 34 : 46;
     // sous la pause, et sous les temps quand ils lui passent au-dessus (téléphone étroit)
-    const lapY = px + pw > xe - lapW - 4 ? Math.max(y0 + pb.s + 6, y0 + ph * 2 + 12) : y0 + pb.s + 6;
+    const lapY = px + pw > xe - lapW - 4 ? Math.max(y0 + headH + 6, y0 + ph * 2 + 12) : y0 + headH + 6;
     this._hudPaper(g, xe - lapW, lapY, lapW, lapH);
     {
       const lbl = t('lap').toUpperCase(), num = String(lapShown), tot = tt ? '' : '/' + race.laps;
@@ -3024,12 +3025,23 @@ class Renderer {
       g.textAlign = 'left'; g.textBaseline = 'top';
     }
 
-    // bouton pause, entre les deux panneaux du haut
-    panel(pb.x, pb.y, pb.s, pb.s);
-    g.fillStyle = '#e8e8ec';
-    const bw = Math.max(3, Math.round(pb.s * 0.11)), bh = Math.round(pb.s * 0.42), ecart = Math.round(pb.s * 0.13);
-    g.fillRect(pb.x + pb.s / 2 - ecart - bw, pb.y + (pb.s - bh) / 2, bw, bh);
-    g.fillRect(pb.x + pb.s / 2 + ecart, pb.y + (pb.s - bh) / 2, bw, bh);
+    /* LE BOUTON PAUSE, DESSINÉ COMME LE RESTE DU HAUT (0.52.6).
+
+    C'était un carré sombre, plus haut que ses voisins, avec deux barres grises droites : la seule
+    pièce du haut qui ne parlait pas comme le reste — « le bouton || est moche ». Il prend maintenant
+    l'étiquette crème de la position et du tour, à leur hauteur, et ses deux barres penchent comme la
+    police du jeu. Le doigt garde sa cible : `pauseHitAt` lit toujours le carré de `pb.s` et sa marge. */
+    {
+      const h = this.pauseH;
+      this._hudPaper(g, pb.x, pb.y, pb.s, h);
+      g.fillStyle = '#20251f';
+      const bh = Math.round(h * 0.48), bw = Math.max(4, Math.round(pb.s * 0.12)), ecart = Math.round(pb.s * 0.08);
+      const pente = bh * 0.22, cx = pb.x + pb.s / 2 - 1, cy = pb.y + h / 2;
+      for (const x0 of [cx - ecart - bw, cx + ecart]) {
+        g.beginPath(); g.moveTo(x0 + pente, cy - bh / 2); g.lineTo(x0 + bw + pente, cy - bh / 2);
+        g.lineTo(x0 + bw, cy + bh / 2); g.lineTo(x0, cy + bh / 2); g.closePath(); g.fill();
+      }
+    }
 
     // line slider (left thumb)
     this._drawSlider(g, p, t);
