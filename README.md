@@ -52,7 +52,15 @@ accélère et le levier choisit la ligne. Sur ordinateur :
 | `G` | télémétrie |
 
 Aucune autre touche, ni le clic, ni la molette, ne fait rien en course : on ne part plus en
-accélérant parce qu'un doigt a frôlé le clavier. Le tableau de bord rappelle les touches.
+accélérant parce qu'un doigt a frôlé le clavier.
+
+**Le tableau de bord du PC (0.51)**, en bas à l'opposé du levier, ne garde que ce qui se lit en
+pilotant : la vitesse en très gros ; une barre de dix segments, la vitesse rapportée à la pointe de
+la voiture, verte et lumineuse sous les gaz et rouge dès qu'on lâche (le feu stop) ; et la pastille
+**GRIP**, l'état ressenti de la voiture sur la même échelle que la pastille du pouce sur téléphone —
+bleu au calme, vert en appui, jaune à la limite, violet qui glisse, rouge en tête-à-queue — en
+couleurs vives. Il remplace le panneau « ESPACE · GAZ 100 % » et ses deux lignes d'aide, que le
+décompte donne au départ.
 
 **La manette et la molette sont mises de côté**, pas supprimées : tout leur code reste dans
 `js/controls.js` (modes, frein LT séparé, frein moteur réglable, navigation des menus à la manette)
