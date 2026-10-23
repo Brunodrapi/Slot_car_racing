@@ -593,6 +593,19 @@ Gerdes, retrouvé), abaisser le plafond de dérive avant au pic (rien à gagner)
 demi-seconde après la glissade (la voiture ne revient plus sur sa ligne et sort). Le rapport complet,
 avec la littérature du pilotage : « GRIP — Garder le contrôle d'une voiture en dérapage ».
 
+**En essai depuis la 0.52.1 : la recette revient à la glisse d'avant.** Bruno n'est pas complètement
+satisfait du ressenti en glisse et veut comparer. Les deux corrections ci-dessus dépendent d'un
+interrupteur, `GLISSADE.rattrapage` (js/car.js), qui suit le canal : coupé en **recette** (comportement
+d'avant la 0.44), actif en **prod** (celui de la 0.44). Une publication en prod n'emporte donc pas
+l'essai. Mesuré avec `node tools/glissade-banc.js --canal=recette` contre le même banc sans option :
+
+| Allure | Recette (sans rattrapage) | Prod (0.44) |
+| --- | --- | --- |
+| trop vite (marge 1,15) | 39,5 sorties · 96 tête-à-queue · 3373 s | 19 sorties · 28,5 tête-à-queue · 3145 s |
+| à la limite (marge 1,00) | 0 sortie · 2,5 tête-à-queue · 3184 s | 0 sortie · 0 tête-à-queue · 3157 s |
+
+Une fois tranché, on écrit `true` ou `false` dans l'interrupteur, pour les deux canaux.
+
 Les notes de difficulté des GT (`diff`, `js/cars.js`) n'ont pas été recalculées. `tools/difficulte.js`
 donne maintenant un autre classement (Countach 3 → 0, M1 3 → 1, 240Z 3 → 2, 911 Turbo 5 → 4, Type E
 1 → 2), en partie parce que son critère de reprise — revenir à trente centimètres de la trajectoire

@@ -234,8 +234,20 @@ const MOTRICITE = { tauMontee: 0.22, tauRetour: 0.10, seuil: 0.12, perte: 0.38 }
 `seuilTravers` : l'angle de dérive (en radians, ≈ 9°) au-delà duquel la voiture est « en travers ».
 `freinTravers` : la part du freinage AUTOMATIQUE (pied levé) qui reste alors appliquée. Le frein
 manuel d'une manette n'est pas touché : celui qui freine exprès est obéi. Voir `update`, et le
-rapport « GRIP — Garder le contrôle d'une voiture en dérapage » pour les mesures. */
-const GLISSADE = { seuilTravers: 0.15, freinTravers: 0.3 };
+rapport « GRIP — Garder le contrôle d'une voiture en dérapage » pour les mesures.
+
+`rattrapage` : l'interrupteur des deux. EN ESSAI DEPUIS LA 0.52.1 : Bruno n'est « pas complètement
+satisfait du gameplay sur la glisse » et veut comparer avec l'ancien ressenti. La RECETTE revient donc
+au comportement d'avant la 0.44 — la visée court après la ligne pendant la glissade, et pied levé la
+voiture freine de toute sa force même en travers — tandis que la PROD garde celui de la 0.44.
+L'interrupteur suit le canal (voir js/version.js), pas une valeur écrite ici : une publication en prod
+ne peut donc pas emporter l'essai par mégarde. Les bancs, qui ne chargent pas version.js, mesurent
+le comportement de la prod ; `tools/glissade-banc.js --canal=recette` mesure celui de la recette.
+Une fois tranché, on écrit ici `true` ou `false`, pour les deux canaux. */
+const GLISSADE = {
+  rattrapage: !(typeof APP_CANAL !== 'undefined' && APP_CANAL === 'recette'),
+  seuilTravers: 0.15, freinTravers: 0.3,
+};
 
 // Les deux seuils où l'IA lève et reprend les gaz : voir `aiThrottle`. Reprendre bien plus bas
 // qu'on ne lève est ce qui fait un à-coup plutôt qu'un tremblement.
@@ -907,7 +919,7 @@ class Car {
     que toutes les écoles de pilotage interdisent — « lifting off the throttle or hitting the brakes
     while changing the steering angle will spin the best handling car ». Tant que la voiture est en
     travers, le freinage automatique ne garde donc que trente pour cent de sa force. */
-    const enTravers = Math.abs(this.beta || 0) > GLISSADE.seuilTravers;
+    const enTravers = GLISSADE.rattrapage && Math.abs(this.beta || 0) > GLISSADE.seuilTravers;
     const brakeFrac = manualBrake ? this.brake + (1 - this.brake) * engineFrac
       : throttle ? 0 : clamp(this.offT / 0.1, 0, 1) * (enTravers ? GLISSADE.freinTravers : 1);
     const vv = Math.max(3, Math.abs(this.v));
@@ -940,7 +952,7 @@ class Car {
     depuis la direction de la vitesse au lieu du cap de la caisse (188 sorties, 267 tête-à-queue, ce
     que Stanford avait vu : la voiture part en tête-à-queue), et garder la retenue une demi-seconde
     après la glissade (la voiture ne revient plus sur sa ligne et sort). */
-    if (Math.abs(this.alphaR || 0) > peak || Math.abs(this.alphaF || 0) > peak) {
+    if (GLISSADE.rattrapage && (Math.abs(this.alphaR || 0) > peak || Math.abs(this.alphaF || 0) > peak)) {
       const kLigne = T.lineCurv(this.s + 3, this.selS);
       if (Math.sign(kDes) === Math.sign(kLigne) && Math.abs(kDes) > Math.abs(kLigne)) kDes = kLigne;
     }
