@@ -2,9 +2,9 @@
 const frame=document.querySelector('#game'),by=id=>document.getElementById(id);
 let win,app,renderer,mode='normal',samples=[],draws=[],last=0,elapsed=0,active=false,history=[];
 let savedDpr,savedDetail,auto=null,cacheStart={},preparing=false;
-const sequence=['normal','all','backdrop','backdrop8','backdrop10'];
+const sequence=['backdrop','backdrop8','backdrop10'];
 function downloadReport(){
- const data={diagnosticVersion:'backdrop-3',date:new Date().toISOString(),automatic:auto?{status:auto.status,sequence,warmupLaps:1,followedCar:0}:null,note:'Live frame intervals; no GPU readback. Manual or automatic AI spectator laps. Hidden tab excluded and automatic simulation suspended. Different laps are not identical replay.',results:[...history,...(active&&samples.length&&(!auto||auto.index>=0)?[stats()]:[])]};
+ const data={diagnosticVersion:'backdrop-4',date:new Date().toISOString(),automatic:auto?{status:auto.status,sequence,warmupLaps:1,followedCar:0}:null,note:'Live frame intervals; no GPU readback. Manual or automatic AI spectator laps. Hidden tab excluded and automatic simulation suspended. Different laps are not identical replay.',results:[...history,...(active&&samples.length&&(!auto||auto.index>=0)?[stats()]:[])]};
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='grip-diagnostic-pc.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 async function configureMode(){

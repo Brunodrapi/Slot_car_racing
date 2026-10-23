@@ -10,7 +10,7 @@ const {chromium}=require('playwright'),assert=require('assert/strict');
  assert.match(await p.locator('#stats').innerText(),/[1-9][0-9]* images observées/);
  const cross=()=>p.evaluate(()=>{const a=document.querySelector('iframe').contentWindow.app;a.race.cars[0].lap++;a.renderer.draw(a.race,a.ui);});
  await cross(); // warm-up ends, first measured stage starts
- const sequence=['normal','all','backdrop','backdrop8','backdrop10'];
+ const sequence=['backdrop','backdrop8','backdrop10'];
  let download;
  for(let i=0;i<sequence.length;i++){
   await p.waitForFunction(()=>!document.querySelector('#start').disabled,{},{timeout:180000});assert.equal(await p.locator('#mode').inputValue(),sequence[i]);await p.waitForTimeout(150);
@@ -18,7 +18,7 @@ const {chromium}=require('playwright'),assert=require('assert/strict');
   await cross();
  }
  const d=await download;let raw='';for await(const part of await d.createReadStream())raw+=part;
- const data=JSON.parse(raw);assert.equal(data.automatic.status,'complete');assert.equal(data.results.length,5);assert.deepEqual(data.results.map(r=>r.mode),sequence);assert(data.results.every(r=>r.frames>0));
+ const data=JSON.parse(raw);assert.equal(data.automatic.status,'complete');assert.equal(data.results.length,3);assert.deepEqual(data.results.map(r=>r.mode),sequence);assert(data.results.every(r=>r.frames>0));
  assert.equal(await p.evaluate(()=>document.querySelector('iframe').contentWindow.app.state),'paused');assert.deepEqual(errors,[]);
- console.log('All AI move; warmup, 5 lap transitions, single automatic JSON export and stop: OK');
+ console.log('All AI move; warmup, 3 lap transitions, single automatic JSON export and stop: OK');
 }finally{await b.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
