@@ -1,29 +1,43 @@
 'use strict';
 const frame=document.querySelector('#game'),by=id=>document.getElementById(id);
 let win,app,renderer,mode='normal',samples=[],draws=[],last=0,elapsed=0,active=false,history=[];
-let savedDpr,savedDetail,auto=null,cacheStart={};
-const sequence=['normal','objects','textures','tyres','barriers','all','rubber','cache','cacheAll','normal'];
+let savedDpr,savedDetail,auto=null,cacheStart={},preparing=false;
+const sequence=['normal','objects','textures','tyres','barriers','all','rubber','cache','cacheAll','backdrop','normal'];
 function downloadReport(){
- const data={diagnosticVersion:'forest-scale-3',date:new Date().toISOString(),automatic:auto?{status:auto.status,sequence,warmupLaps:1,followedCar:0}:null,note:'Live frame intervals; no GPU readback. Manual or automatic AI spectator laps. Hidden tab excluded and automatic simulation suspended. Different laps are not identical replay.',results:[...history,...(active&&samples.length&&(!auto||auto.index>=0)?[stats()]:[])]};
+ const data={diagnosticVersion:'backdrop-1',date:new Date().toISOString(),automatic:auto?{status:auto.status,sequence,warmupLaps:1,followedCar:0}:null,note:'Live frame intervals; no GPU readback. Manual or automatic AI spectator laps. Hidden tab excluded and automatic simulation suspended. Different laps are not identical replay.',results:[...history,...(active&&samples.length&&(!auto||auto.index>=0)?[stats()]:[])]};
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='grip-diagnostic-pc.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
-function autoNext(){
+async function configureMode(){
+ renderer.testBarrierCache=mode==='cache';renderer.testSceneCache=mode==='cacheAll';renderer.testBackdrop=false;
+ if(mode==='backdrop'){
+  active=false;preparing=true;const state=app.state;app.state='paused';
+  for(const id of ['auto','start','track','mode','reset'])by(id).disabled=true;
+  try{
+   renderer.resetBarrierCache();renderer.resetSceneCache();
+   if(!renderer.backdropStats.ready)await renderer.prepareBackdrop(app.race,app.ui,(n,total)=>{by('status').textContent=`Préparation du fond : ${n}/${total} zones`;});
+   renderer.testBackdrop=true;
+  }catch(e){by('status').textContent='Préparation impossible : '+e.message;mode='normal';by('mode').value=mode;}
+  finally{preparing=false;app.state=state;for(const id of ['auto','start'])by(id).disabled=false;if(!auto)for(const id of ['track','mode','reset'])by(id).disabled=false;}
+ }
+ reset();
+}
+async function autoNext(){
  if(!auto||auto.status!=='running')return;
  const lap=app.race.cars[0].lap;
  if(app.race.time-auto.since>300){save();auto.status='incomplete';active=false;by('status').textContent='Essai interrompu : tour trop long. Rapport partiel exporté.';downloadReport();return;}
  if(lap<=auto.lap)return;
  save();auto.lap=lap;auto.since=app.race.time;auto.index++;
  if(auto.index>=sequence.length){auto.status='complete';active=false;app.state='paused';by('status').textContent='Terminé — rapport téléchargé. Le bouton Exporter reste disponible.';downloadReport();return;}
- mode=sequence[auto.index];by('mode').value=mode;renderer.testBarrierCache=mode==='cache';renderer.testSceneCache=mode==='cacheAll';if(mode==='cacheAll')renderer.resetBarrierCache();else if(mode==='cache')renderer.resetSceneCache();reset();
+ mode=sequence[auto.index];by('mode').value=mode;if(mode==='cacheAll')renderer.resetBarrierCache();else if(mode==='cache')renderer.resetSceneCache();await configureMode();
  by('status').textContent=`Tour mesuré ${auto.index+1}/${sequence.length} : ${by('mode').selectedOptions[0].text}`;
 }
 function reset(){samples=[];draws=[];last=0;elapsed=0;active=true;cacheStart={...renderer?.barrierCacheStats};}
 function stats(){
  const sorted=samples.slice().sort((a,b)=>a-b),q=p=>sorted.length?+sorted[Math.min(sorted.length-1,Math.floor(sorted.length*p))].toFixed(2):null;
- return {mode,automatic:!!auto,stage:auto?.index,lapStart:auto?.lap,measuredMs:elapsed,cacheDelta:{created:(renderer.barrierCacheStats?.created||0)-(cacheStart.created||0),evicted:(renderer.barrierCacheStats?.evicted||0)-(cacheStart.evicted||0)},frames:samples.length,medianMs:q(.5),p95Ms:q(.95),p99Ms:q(.99),over25ms:samples.filter(n=>n>25).length,over50ms:samples.filter(n=>n>50).length,meanDrawSubmissionMs:draws.length?+(draws.reduce((a,b)=>a+b,0)/draws.length).toFixed(2):null,viewport:{width:win.innerWidth,height:win.innerHeight,dpr:win.devicePixelRatio,renderDpr:renderer.dpr},detail:renderer.detail,track:app.race?.track.def.id,view:renderer.view,sceneCache:{...renderer.sceneCacheStats},cache:{...renderer.barrierCacheStats},userAgent:navigator.userAgent};
+ return {mode,automatic:!!auto,stage:auto?.index,lapStart:auto?.lap,measuredMs:elapsed,cacheDelta:{created:(renderer.barrierCacheStats?.created||0)-(cacheStart.created||0),evicted:(renderer.barrierCacheStats?.evicted||0)-(cacheStart.evicted||0)},frames:samples.length,medianMs:q(.5),p95Ms:q(.95),p99Ms:q(.99),over25ms:samples.filter(n=>n>25).length,over50ms:samples.filter(n=>n>50).length,meanDrawSubmissionMs:draws.length?+(draws.reduce((a,b)=>a+b,0)/draws.length).toFixed(2):null,viewport:{width:win.innerWidth,height:win.innerHeight,dpr:win.devicePixelRatio,renderDpr:renderer.dpr},detail:renderer.detail,track:app.race?.track.def.id,view:renderer.view,backdrop:{...renderer.backdropStats},sceneCache:{...renderer.sceneCacheStats},cache:{...renderer.barrierCacheStats},userAgent:navigator.userAgent};
 }
 function save(){if(active&&samples.length&&(!auto||auto.index>=0))history.push(stats());active=false;}
-function choose(value){save();mode=value;renderer.testBarrierCache=mode==='cache';renderer.testSceneCache=mode==='cacheAll';if(mode==='cacheAll')renderer.resetBarrierCache();else if(mode==='cache')renderer.resetSceneCache();reset();frame.contentWindow.focus();}
+async function choose(value){save();mode=value;if(mode==='cacheAll')renderer.resetBarrierCache();else if(mode==='cache')renderer.resetSceneCache();await configureMode();frame.contentWindow.focus();}
 async function setup(){
  win=frame.contentWindow;
  if(!win.app?.renderer){setTimeout(setup,100);return;}
@@ -36,8 +50,11 @@ async function setup(){
  const sceneScript=win.document.createElement('script');sceneScript.src='tools/scene-cache-prototype.js?v=forest-scale-3';
  await new Promise((resolve,reject)=>{sceneScript.onload=resolve;sceneScript.onerror=reject;win.document.head.append(sceneScript);});
  win.installSceneCachePrototype(renderer);
+ const backScript=win.document.createElement('script');backScript.src='tools/backdrop-cache-prototype.js?v=backdrop-1';
+ await new Promise((resolve,reject)=>{backScript.onload=resolve;backScript.onerror=reject;win.document.head.append(backScript);});
+ win.installBackdropCachePrototype(renderer);
  const track=renderer.setTrack;
- renderer.setTrack=function(...args){this.resetBarrierCache();this.resetSceneCache();return track.apply(this,args);};
+ renderer.setTrack=function(...args){this.resetBarrierCache();this.resetSceneCache();this.resetBackdrop();return track.apply(this,args);};
  const objectMethods=['_drawTopProps','_drawImplantation','_drawImplantationSol','_drawTas'];
  for(const name of [...objectMethods,'_drawBarriers','_drawRubber']){
   const original=renderer[name];renderer[name]=function(...args){
@@ -52,7 +69,7 @@ async function setup(){
  }
  const draw=renderer.draw;
  renderer.draw=function(...args){
-  if(auto&&auto.status!=='running')return;
+  if(preparing||(auto&&auto.status!=='running'))return;
   this.prepareSceneCache();
   const cg=this.circuitGraphics;
   if(cg&&!cg._pcTest){cg._pcTest=true;for(const name of ['drawRoad','drawGravel','drawRunoff','drawTerrain']){const f=cg[name];cg[name]=function(...args){if(['textures','all'].includes(mode))return;return f.apply(this,args);};}}
@@ -89,7 +106,7 @@ async function setup(){
    this.mode='follow';this.index=0;update(dt);
    renderer.rotate=false;renderer.updateCamera(app.race,dt);
   };
-  mode='normal';by('mode').value=mode;renderer.testBarrierCache=false;renderer.testSceneCache=false;
+  mode='normal';by('mode').value=mode;renderer.testBarrierCache=false;renderer.testSceneCache=false;renderer.testBackdrop=false;
   auto={status:'running',index:-1,lap:app.race.cars[0].lap,since:app.race.time};reset();
   renderer.autoRes=false;renderer.dpr=savedDpr;renderer.detail=savedDetail;renderer.resize();
   for(const id of ['mode','track','reset'])by(id).disabled=true;
@@ -99,6 +116,7 @@ async function setup(){
  by('reset').onclick=()=>{save();reset();win.focus();};
  by('export').onclick=downloadReport;
  function refreshPanel(){
+  if(preparing)return;
   const s=stats(),race=app.race,car=race?.cars[0];
   let phase=active?'Mesure en cours':'Mesure terminée';
   if(auto?.status==='running'){
