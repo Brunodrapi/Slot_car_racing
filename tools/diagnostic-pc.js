@@ -2,20 +2,22 @@
 const frame=document.querySelector('#game'),by=id=>document.getElementById(id);
 let win,app,renderer,mode='normal',samples=[],draws=[],last=0,elapsed=0,active=false,history=[];
 let savedDpr,savedDetail,auto=null,cacheStart={},preparing=false;
-const sequence=['normal','all','backdrop'];
+const sequence=['normal','all','backdrop','backdrop8','backdrop10'];
 function downloadReport(){
- const data={diagnosticVersion:'backdrop-2',date:new Date().toISOString(),automatic:auto?{status:auto.status,sequence,warmupLaps:1,followedCar:0}:null,note:'Live frame intervals; no GPU readback. Manual or automatic AI spectator laps. Hidden tab excluded and automatic simulation suspended. Different laps are not identical replay.',results:[...history,...(active&&samples.length&&(!auto||auto.index>=0)?[stats()]:[])]};
+ const data={diagnosticVersion:'backdrop-3',date:new Date().toISOString(),automatic:auto?{status:auto.status,sequence,warmupLaps:1,followedCar:0}:null,note:'Live frame intervals; no GPU readback. Manual or automatic AI spectator laps. Hidden tab excluded and automatic simulation suspended. Different laps are not identical replay.',results:[...history,...(active&&samples.length&&(!auto||auto.index>=0)?[stats()]:[])]};
  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='grip-diagnostic-pc.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 async function configureMode(){
  renderer.testBarrierCache=mode==='cache';renderer.testSceneCache=mode==='cacheAll';renderer.testBackdrop=false;
- if(mode==='backdrop'){
+ if(mode.startsWith('backdrop')){
+  const requestedScale=mode==='backdrop10'?10:mode==='backdrop8'?8:5;
   active=false;preparing=true;const state=app.state;app.state='paused';
   for(const id of ['auto','start','track','mode','reset'])by(id).disabled=true;
   try{
    renderer.resetBarrierCache();renderer.resetSceneCache();
-   if(!renderer.backdropStats.ready)await renderer.prepareBackdrop(app.race,app.ui,(n,total)=>{by('status').textContent=`Préparation du fond : ${n}/${total} zones`;});
+   if(!renderer.backdropStats.ready||renderer.backdropStats.scale!==requestedScale)await renderer.prepareBackdrop(app.race,app.ui,(n,total)=>{by('status').textContent=`Préparation du fond : ${n}/${total} zones`;},requestedScale);
    renderer.testBackdrop=true;
+   if(!auto)by('status').textContent=`Fond prêt : ${renderer.backdropStats.scale} px/m`;
   }catch(e){by('status').textContent='Préparation impossible : '+e.message;mode='normal';by('mode').value=mode;}
   finally{preparing=false;app.state=state;for(const id of ['auto','start'])by(id).disabled=false;if(!auto)for(const id of ['track','mode','reset'])by(id).disabled=false;}
  }
@@ -50,7 +52,7 @@ async function setup(){
  const sceneScript=win.document.createElement('script');sceneScript.src='tools/scene-cache-prototype.js?v=forest-scale-3';
  await new Promise((resolve,reject)=>{sceneScript.onload=resolve;sceneScript.onerror=reject;win.document.head.append(sceneScript);});
  win.installSceneCachePrototype(renderer);
- const backScript=win.document.createElement('script');backScript.src='tools/backdrop-cache-prototype.js?v=backdrop-1';
+ const backScript=win.document.createElement('script');backScript.src='tools/backdrop-cache-prototype.js?v=backdrop-3';
  await new Promise((resolve,reject)=>{backScript.onload=resolve;backScript.onerror=reject;win.document.head.append(backScript);});
  win.installBackdropCachePrototype(renderer);
  const track=renderer.setTrack;
