@@ -1,0 +1,135 @@
+{
+  "date": "2026-10-23T11:53:14.514Z",
+  "browser": "154.0.8037.57",
+  "method": "Real Monza physics, 8 cars, extreme opponents; densest cell; 20 alternating paired complete renders, fixed DPR, no smoke, synchronous 1px readback. CPU throttling affects JS, not equivalent to iPhone GPU/Safari. Not FPS.",
+  "results": [
+    {
+      "profile": "PC 1280x720 DPR1",
+      "seconds": 0,
+      "totalSegments": 0,
+      "cells": 0,
+      "visibleSegments": 0,
+      "visibleCells": 0,
+      "on": {
+        "medianMs": 3.8,
+        "p95Ms": 4.2
+      },
+      "off": {
+        "medianMs": 3.9,
+        "p95Ms": 4.6
+      }
+    },
+    {
+      "profile": "PC 1280x720 DPR1",
+      "seconds": 60,
+      "totalSegments": 9458,
+      "cells": 39,
+      "visibleSegments": 1984,
+      "visibleCells": 6,
+      "on": {
+        "medianMs": 19.5,
+        "p95Ms": 26.8
+      },
+      "off": {
+        "medianMs": 17.1,
+        "p95Ms": 19.3
+      }
+    },
+    {
+      "profile": "PC 1280x720 DPR1",
+      "seconds": 180,
+      "totalSegments": 25932,
+      "cells": 48,
+      "visibleSegments": 6162,
+      "visibleCells": 7,
+      "on": {
+        "medianMs": 22.1,
+        "p95Ms": 23.3
+      },
+      "off": {
+        "medianMs": 15,
+        "p95Ms": 17.7
+      }
+    },
+    {
+      "profile": "PC 1280x720 DPR1",
+      "seconds": 600,
+      "totalSegments": 87728,
+      "cells": 50,
+      "visibleSegments": 15592,
+      "visibleCells": 7,
+      "on": {
+        "medianMs": 37.9,
+        "p95Ms": 47.2
+      },
+      "off": {
+        "medianMs": 16.7,
+        "p95Ms": 21.2
+      }
+    },
+    {
+      "profile": "Mobile emulated 390x844 DPR2 CPUx4 (not iPhone hardware)",
+      "seconds": 0,
+      "totalSegments": 0,
+      "cells": 0,
+      "visibleSegments": 0,
+      "visibleCells": 0,
+      "on": {
+        "medianMs": 15.5,
+        "p95Ms": 17
+      },
+      "off": {
+        "medianMs": 15.5,
+        "p95Ms": 19.2
+      }
+    },
+    {
+      "profile": "Mobile emulated 390x844 DPR2 CPUx4 (not iPhone hardware)",
+      "seconds": 60,
+      "totalSegments": 9458,
+      "cells": 39,
+      "visibleSegments": 2831,
+      "visibleCells": 8,
+      "on": {
+        "medianMs": 91,
+        "p95Ms": 101.8
+      },
+      "off": {
+        "medianMs": 77.5,
+        "p95Ms": 90.9
+      }
+    },
+    {
+      "profile": "Mobile emulated 390x844 DPR2 CPUx4 (not iPhone hardware)",
+      "seconds": 180,
+      "totalSegments": 25932,
+      "cells": 48,
+      "visibleSegments": 6162,
+      "visibleCells": 7,
+      "on": {
+        "medianMs": 89.3,
+        "p95Ms": 108.9
+      },
+      "off": {
+        "medianMs": 59.6,
+        "p95Ms": 67.6
+      }
+    },
+    {
+      "profile": "Mobile emulated 390x844 DPR2 CPUx4 (not iPhone hardware)",
+      "seconds": 600,
+      "totalSegments": 87728,
+      "cells": 50,
+      "visibleSegments": 21961,
+      "visibleCells": 9,
+      "on": {
+        "medianMs": 176,
+        "p95Ms": 198.4
+      },
+      "off": {
+        "medianMs": 78.6,
+        "p95Ms": 88.1
+      }
+    }
+  ]
+}

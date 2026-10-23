@@ -1,0 +1,520 @@
+{
+  "browser": "154.0.8037.57",
+  "method": "16 stationary positions, default fixed forward camera, 1280x720 DPR1, no tyre marks or smoke. 10 measured renders per variant in rotating order after warmup, synchronous canvas readback on all 3 layers. Component removal diagnostic, not real-device FPS. Moving sweeps: 240 frames at 30m/s, first20 excluded, fixed and rotating forward cameras.",
+  "results": [
+    {
+      "fraction": 0,
+      "zoom": 17.109144542772864,
+      "stats": {
+        "full": {
+          "medianMs": 5.8,
+          "p90Ms": 6.5
+        },
+        "noBarriers": {
+          "medianMs": 4.9,
+          "p90Ms": 6.5
+        },
+        "lowDetail": {
+          "medianMs": 5.9,
+          "p90Ms": 7.4
+        },
+        "noDecor": {
+          "medianMs": 5.2,
+          "p90Ms": 5.7
+        },
+        "noTextures": {
+          "medianMs": 5.4,
+          "p90Ms": 6.1
+        },
+        "noHud": {
+          "medianMs": 5.2,
+          "p90Ms": 5.7
+        }
+      }
+    },
+    {
+      "fraction": 0.0625,
+      "zoom": 17.109144542772864,
+      "stats": {
+        "full": {
+          "medianMs": 8,
+          "p90Ms": 8.6
+        },
+        "noBarriers": {
+          "medianMs": 4.6,
+          "p90Ms": 6.3
+        },
+        "lowDetail": {
+          "medianMs": 6.8,
+          "p90Ms": 7.4
+        },
+        "noDecor": {
+          "medianMs": 7.5,
+          "p90Ms": 9.9
+        },
+        "noTextures": {
+          "medianMs": 6.8,
+          "p90Ms": 7.3
+        },
+        "noHud": {
+          "medianMs": 7.1,
+          "p90Ms": 7.7
+        }
+      }
+    },
+    {
+      "fraction": 0.125,
+      "zoom": 17.109144542772864,
+      "stats": {
+        "full": {
+          "medianMs": 7,
+          "p90Ms": 7.6
+        },
+        "noBarriers": {
+          "medianMs": 4.2,
+          "p90Ms": 5.2
+        },
+        "lowDetail": {
+          "medianMs": 5.9,
+          "p90Ms": 9.8
+        },
+        "noDecor": {
+          "medianMs": 6.6,
+          "p90Ms": 7.7
+        },
+        "noTextures": {
+          "medianMs": 6.2,
+          "p90Ms": 6.6
+        },
+        "noHud": {
+          "medianMs": 6.3,
+          "p90Ms": 6.6
+        }
+      }
+    },
+    {
+      "fraction": 0.1875,
+      "zoom": 17.109144542772864,
+      "stats": {
+        "full": {
+          "medianMs": 10.2,
+          "p90Ms": 11.9
+        },
+        "noBarriers": {
+          "medianMs": 6.8,
+          "p90Ms": 7.4
+        },
+        "lowDetail": {
+          "medianMs": 8.6,
+          "p90Ms": 10
+        },
+        "noDecor": {
+          "medianMs": 9.3,
+          "p90Ms": 10.2
+        },
+        "noTextures": {
+          "medianMs": 9,
+          "p90Ms": 9.8
+        },
+        "noHud": {
+          "medianMs": 9.2,
+          "p90Ms": 10.6
+        }
+      }
+    },
+    {
+      "fraction": 0.25,
+      "zoom": 17.109144542772864,
+      "stats": {
+        "full": {
+          "medianMs": 5.1,
+          "p90Ms": 11
+        },
+        "noBarriers": {
+          "medianMs": 4.5,
+          "p90Ms": 9
+        },
+        "lowDetail": {
+          "medianMs": 4.9,
+          "p90Ms": 11.8
+        },
+        "noDecor": {
+          "medianMs": 5.2,
+          "p90Ms": 11.5
+        },
+        "noTextures": {
+          "medianMs": 4.8,
+          "p90Ms": 6.5
+        },
+        "noHud": {
+          "medianMs": 4.8,
+          "p90Ms": 6.6
+        }
+      }
+    },
+    {
+      "fraction": 0.3125,
+      "zoom": 17.109144542772864,
+      "stats": {
+        "full": {
+          "medianMs": 8,
+          "p90Ms": 9.2
+        },
+        "noBarriers": {
+          "medianMs": 5.8,
+          "p90Ms": 6.8
+        },
+        "lowDetail": {
+          "medianMs": 7.4,
+          "p90Ms": 8.6
+        },
+        "noDecor": {
+          "medianMs": 7.6,
+          "p90Ms": 8.3
+        },
+        "noTextures": {
+          "medianMs": 6.6,
+          "p90Ms": 8.5
+        },
+        "noHud": {
+          "medianMs": 7.1,
+          "p90Ms": 9.8
+        }
+      }
+    },
+    {
+      "fraction": 0.375,
+      "zoom": 17.109144542772864,
+      "stats": {
+        "full": {
+          "medianMs": 8.1,
+          "p90Ms": 8.6
+        },
+        "noBarriers": {
+          "medianMs": 3.8,
+          "p90Ms": 5.6
+        },
+        "lowDetail": {
+          "medianMs": 6.3,
+          "p90Ms": 6.4
+        },
+        "noDecor": {
+          "medianMs": 8,
+          "p90Ms": 9.3
+        },
+        "noTextures": {
+          "medianMs": 7.3,
+          "p90Ms": 8.3
+        },
+        "noHud": {
+          "medianMs": 7.5,
+          "p90Ms": 8
+        }
+      }
+    },
+    {
+      "fraction": 0.4375,
+      "zoom": 17.109144542772864,
+      "stats": {
+        "full": {
+          "medianMs": 11,
+          "p90Ms": 11.7
+        },
+        "noBarriers": {
+          "medianMs": 4.6,
+          "p90Ms": 6.2
+        },
+        "lowDetail": {
+          "medianMs": 8.3,
+          "p90Ms": 8.8
+        },
+        "noDecor": {
+          "medianMs": 11.1,
+          "p90Ms": 12.3
+        },
+        "noTextures": {
+          "medianMs": 10.2,
+          "p90Ms": 12
+        },
+        "noHud": {
+          "medianMs": 10.5,
+          "p90Ms": 12.2
+        }
+      }
+    },
+    {
+      "fraction": 0.5,
+      "zoom": 17.109144542772864,
+      "stats": {
+        "full": {
+          "medianMs": 7.5,
+          "p90Ms": 7.9
+        },
+        "noBarriers": {
+          "medianMs": 3.8,
+          "p90Ms": 4
+        },
+        "lowDetail": {
+          "medianMs": 5.9,
+          "p90Ms": 7
+        },
+        "noDecor": {
+          "medianMs": 7.1,
+          "p90Ms": 7.4
+        },
+        "noTextures": {
+          "medianMs": 6.6,
+          "p90Ms": 7.1
+        },
+        "noHud": {
+          "medianMs": 6.9,
+          "p90Ms": 7.6
+        }
+      }
+    },
+    {
+      "fraction": 0.5625,
+      "zoom": 17.109144542772864,
+      "stats": {
+        "full": {
+          "medianMs": 7.9,
+          "p90Ms": 8.7
+        },
+        "noBarriers": {
+          "medianMs": 4.5,
+          "p90Ms": 4.9
+        },
+        "lowDetail": {
+          "medianMs": 6.6,
+          "p90Ms": 7.8
+        },
+        "noDecor": {
+          "medianMs": 7.8,
+          "p90Ms": 9.1
+        },
+        "noTextures": {
+          "medianMs": 7,
+          "p90Ms": 7.7
+        },
+        "noHud": {
+          "medianMs": 7.4,
+          "p90Ms": 7.8
+        }
+      }
+    },
+    {
+      "fraction": 0.625,
+      "zoom": 17.109144542772864,
+      "stats": {
+        "full": {
+          "medianMs": 6.3,
+          "p90Ms": 7.1
+        },
+        "noBarriers": {
+          "medianMs": 4,
+          "p90Ms": 4.2
+        },
+        "lowDetail": {
+          "medianMs": 5.4,
+          "p90Ms": 5.8
+        },
+        "noDecor": {
+          "medianMs": 5.8,
+          "p90Ms": 6
+        },
+        "noTextures": {
+          "medianMs": 5.7,
+          "p90Ms": 6
+        },
+        "noHud": {
+          "medianMs": 5.7,
+          "p90Ms": 5.9
+        }
+      }
+    },
+    {
+      "fraction": 0.6875,
+      "zoom": 17.109144542772864,
+      "stats": {
+        "full": {
+          "medianMs": 6,
+          "p90Ms": 8.5
+        },
+        "noBarriers": {
+          "medianMs": 4.3,
+          "p90Ms": 5
+        },
+        "lowDetail": {
+          "medianMs": 5.3,
+          "p90Ms": 5.5
+        },
+        "noDecor": {
+          "medianMs": 5.4,
+          "p90Ms": 5.6
+        },
+        "noTextures": {
+          "medianMs": 5.3,
+          "p90Ms": 5.5
+        },
+        "noHud": {
+          "medianMs": 5.4,
+          "p90Ms": 6.1
+        }
+      }
+    },
+    {
+      "fraction": 0.75,
+      "zoom": 17.109144542772864,
+      "stats": {
+        "full": {
+          "medianMs": 8.3,
+          "p90Ms": 8.8
+        },
+        "noBarriers": {
+          "medianMs": 6.7,
+          "p90Ms": 7.5
+        },
+        "lowDetail": {
+          "medianMs": 7.8,
+          "p90Ms": 8.7
+        },
+        "noDecor": {
+          "medianMs": 8,
+          "p90Ms": 8.9
+        },
+        "noTextures": {
+          "medianMs": 7,
+          "p90Ms": 7.6
+        },
+        "noHud": {
+          "medianMs": 8,
+          "p90Ms": 8.6
+        }
+      }
+    },
+    {
+      "fraction": 0.8125,
+      "zoom": 17.109144542772864,
+      "stats": {
+        "full": {
+          "medianMs": 8.6,
+          "p90Ms": 9
+        },
+        "noBarriers": {
+          "medianMs": 5.8,
+          "p90Ms": 6.1
+        },
+        "lowDetail": {
+          "medianMs": 7.5,
+          "p90Ms": 7.8
+        },
+        "noDecor": {
+          "medianMs": 8,
+          "p90Ms": 9.3
+        },
+        "noTextures": {
+          "medianMs": 7.6,
+          "p90Ms": 8
+        },
+        "noHud": {
+          "medianMs": 8,
+          "p90Ms": 8.3
+        }
+      }
+    },
+    {
+      "fraction": 0.875,
+      "zoom": 17.109144542772864,
+      "stats": {
+        "full": {
+          "medianMs": 5.4,
+          "p90Ms": 8
+        },
+        "noBarriers": {
+          "medianMs": 4.3,
+          "p90Ms": 4.5
+        },
+        "lowDetail": {
+          "medianMs": 5,
+          "p90Ms": 11.4
+        },
+        "noDecor": {
+          "medianMs": 4.5,
+          "p90Ms": 9.1
+        },
+        "noTextures": {
+          "medianMs": 4.8,
+          "p90Ms": 4.9
+        },
+        "noHud": {
+          "medianMs": 4.8,
+          "p90Ms": 11.4
+        }
+      }
+    },
+    {
+      "fraction": 0.9375,
+      "zoom": 17.109144542772864,
+      "stats": {
+        "full": {
+          "medianMs": 5,
+          "p90Ms": 6.1
+        },
+        "noBarriers": {
+          "medianMs": 3.8,
+          "p90Ms": 4.1
+        },
+        "lowDetail": {
+          "medianMs": 4.6,
+          "p90Ms": 5.3
+        },
+        "noDecor": {
+          "medianMs": 4.6,
+          "p90Ms": 5.9
+        },
+        "noTextures": {
+          "medianMs": 4.6,
+          "p90Ms": 4.7
+        },
+        "noHud": {
+          "medianMs": 4.5,
+          "p90Ms": 4.6
+        }
+      }
+    }
+  ],
+  "moving": [
+    {
+      "view": "avanceFixe",
+      "barriers": true,
+      "medianMs": 10.9,
+      "p95Ms": 12.1,
+      "maxMs": 13.1,
+      "barrierCacheRebuilds": 23
+    },
+    {
+      "view": "avanceFixe",
+      "barriers": false,
+      "medianMs": 5.3,
+      "p95Ms": 6.1,
+      "maxMs": 10.7,
+      "barrierCacheRebuilds": 0
+    },
+    {
+      "view": "avance",
+      "barriers": true,
+      "medianMs": 12.9,
+      "p95Ms": 14.8,
+      "maxMs": 19,
+      "barrierCacheRebuilds": 34
+    },
+    {
+      "view": "avance",
+      "barriers": false,
+      "medianMs": 4.8,
+      "p95Ms": 5.9,
+      "maxMs": 9,
+      "barrierCacheRebuilds": 0
+    }
+  ]
+}
