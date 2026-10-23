@@ -1,0 +1,11 @@
+<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GRIP — diagnostic PC recette</title>
+<style>body{margin:0;background:#14251f;color:#f3e5c6;font:14px system-ui}iframe{position:fixed;inset:0;width:100%;height:100%;border:0}details{position:fixed;z-index:2;top:90px;left:12px;max-width:360px;background:#14251ff2;padding:12px;border:1px solid #e4ce9a;border-radius:8px}button,select{font:inherit;margin:4px 0;padding:7px;max-width:100%}p{margin:7px 0}#stats{white-space:pre-line;font-variant-numeric:tabular-nums}summary{cursor:pointer;font-weight:bold}</style>
+<iframe id="game" src="../index.html" allow="gamepad; fullscreen"></iframe>
+<details open><summary>Diagnostic PC · RECETTE</summary><p id="status">Chargement…</p>
+<button id="start" disabled>Repartir à Zandvoort</button><br>
+<select id="mode" disabled>
+<option value="normal">Normal</option><option value="objects">Sans arbres et bâtiments</option><option value="textures">Sans textures</option><option value="tyres">Sans pneus des protections</option><option value="barriers">Sans barrières visibles</option><option value="all">Sans décors, textures ni barrières</option><option value="rubber">Sans traces visibles</option><option value="cache">Cache des barrières (expérimental)</option></select>
+<p>Les collisions restent actives. Chaque changement lance une mesure de 30 s pendant la course. Résolution et détail figés pour comparer.</p>
+<button id="reset" disabled>Nouvelle mesure</button> <button id="export" disabled>Exporter les mesures</button>
+<p id="stats"></p><p>Replie ce panneau pour jouer. Compare le même virage, puis exporte le JSON. Quitter cette page rétablit le jeu habituel.</p>
+</details><script src="diagnostic-pc.js"></script></html>
