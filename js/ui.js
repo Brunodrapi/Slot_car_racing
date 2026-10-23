@@ -8,7 +8,7 @@ Les coefficients, eux, sont dans `DIFFICULTY` (js/race.js). */
 const NIVEAUX = ['easy', 'medium', 'hard', 'extreme', 'cauchemar'];
 
 /* La page itch.io du jeu, où l'on peut faire un don. Une seule adresse, ici, pour la changer d'un coup. */
-const DON_URL = 'https://grip-game.itch.io';
+const DON_URL = 'https://drapiiii.itch.io/grip-racing-the-line';
 
 /* Les pictogrammes des entrées du bas de l'accueil et de l'écran d'installation. Dessinés ici, plats
 et cernés de noir comme les cartes du menu, plutôt qu'en émoji : un émoji change de dessin d'un
