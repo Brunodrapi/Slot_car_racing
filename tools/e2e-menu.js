@@ -84,7 +84,7 @@ fs.mkdirSync(out,{recursive:true});
   assert.equal(await p.locator('[data-action="netWatch"]').count(),1);await p.screenshot({scale:'css',path:path.join(out,`${name}-multi.png`)});
   // English labels are DOM text, not baked into an illustration.
   await p.evaluate(()=>{app.save.lang='en';app.toMenu();});assert.equal(await p.locator('.mode-card').first().locator('b').textContent(),'Quick race');
-  await p.locator('.home-settings').click();assert.equal(await p.locator('#sel-diff option').count(),5);
+  await p.locator('.home-settings').click();assert.equal(await p.locator('#sel-diff').count(),0,'difficulty lives on the race setup bar, not in the settings');
   console.log(name,'navigation, alignment, selections, scroll, FR/EN: OK');await ctx.close();
  }
  const ctx=await browser.newContext({viewport:{width:1440,height:900}});

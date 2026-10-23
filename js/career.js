@@ -269,6 +269,20 @@ function poseFrein(save, nom, trackId, modelId, valeur) {
 }
 
 const FF_DEFAUT = 0.3;
+
+/* LES RÉGLAGES DE MISE AU POINT RESTENT EN RECETTE (0.52.5).
+
+Guide de freinage, télémétrie, aimant et anticipation servaient à régler le jeu, pas à y jouer :
+« en prod supprime les réglages : guide de freinage, télémétrie, aimant, anticipation ». En prod ils
+disparaissent des réglages, la touche G ne fait plus rien, et une sauvegarde qui les aurait changés est
+ramenée aux valeurs d'origine à la lecture — sans quoi un aimant réglé un jour resterait actif sans plus
+pouvoir s'éteindre, et le tour ne compterait plus au tableau mondial sans qu'on sache pourquoi. La
+recette les garde tous. Le canal se lit dans js/version.js. */
+const REGLAGES_AVANCES = typeof APP_CANAL !== 'undefined' && APP_CANAL === 'recette';
+function reglagesPublies(save) {
+  if (!REGLAGES_AVANCES) Object.assign(save, { showLines: false, debug: false, aimant: 0, ff: FF_DEFAUT });
+  return save;
+}
 function tourNet(save, race) {
   if (race && race.usure) return false;
   // un décor retouché sur ce poste (barrières, dégagements) n'est plus le circuit de tout le monde

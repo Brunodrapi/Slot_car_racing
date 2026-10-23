@@ -888,18 +888,19 @@ class UI {
             ? `<b class="ok">${t('signedIn')}</b><button class="link" data-action="signOut">${t('signOut')}</button>`
             : `<button class="link" data-action="google">${t('signIn')}</button>`}</span></label>
         <label>${t('sound')}<select id="sel-sound"><option value="1" ${s.sound ? 'selected' : ''}>${t('on')}</option><option value="0" ${!s.sound ? 'selected' : ''}>${t('off')}</option></select></label>
-        <label>${t('showLines')}<select id="sel-lines"><option value="0" ${s.showLines !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.showLines === true ? 'selected' : ''}>${t('on')}</option></select></label>
-        <label>${t('telemetry')}<select id="sel-debug"><option value="0" ${s.debug !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.debug === true ? 'selected' : ''}>${t('on')}</option></select></label>
+        ${REGLAGES_AVANCES ? `<label>${t('showLines')}<select id="sel-lines"><option value="0" ${s.showLines !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.showLines === true ? 'selected' : ''}>${t('on')}</option></select></label>
+        <label>${t('telemetry')}<select id="sel-debug"><option value="0" ${s.debug !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.debug === true ? 'selected' : ''}>${t('on')}</option></select></label>` : ''}
         <label>${t('pullBack')}<select id="sel-pull">${[[1, 'pullNone'], [1.3, 'pullSome'], [1.6, 'pullMore']].map(([v, k]) => `<option value="${v}" ${Math.abs((s.pullBack || 1) - v) < 0.05 ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
         <label>${t('ctrlSide')}<select id="sel-side"><option value="left" ${(s.ctrlSide || 'left') === 'left' ? 'selected' : ''}>${t('sideLeft')}</option><option value="right" ${s.ctrlSide === 'right' ? 'selected' : ''}>${t('sideRight')}</option></select></label>
         <label>${t('camera')}<select id="sel-cam">${[['track', 'camFollow'], ['fixed', 'camFixed'], ['avance', 'camAvance'], ['avanceFixe', 'camAvanceFixe']].map(([v, k]) => `<option value="${v}" ${(s.view || 'avanceFixe') === v ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
         <!-- L'aimant est un essai : il est donc éteint par défaut et se choisit ici, pour pouvoir
-             le comparer manche par manche sans toucher au reste. -->
-        <label>${t('aimant')}<select id="sel-aimant">${[[0, 'aimantOff'], [0.6, 'aimantDoux'], [1, 'aimantNormal'], [1.6, 'aimantFort'], [2.4, 'aimantTresFort'], [3.2, 'aimantDouble']].map(([v, k]) => `<option value="${v}" ${Math.abs((s.aimant || 0) - v) < 0.05 ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
+             le comparer manche par manche sans toucher au reste. Comme l'anticipation et les deux
+             réglages du haut, il n'existe qu'en recette (REGLAGES_AVANCES, js/career.js). -->
+        ${REGLAGES_AVANCES ? `<label>${t('aimant')}<select id="sel-aimant">${[[0, 'aimantOff'], [0.6, 'aimantDoux'], [1, 'aimantNormal'], [1.6, 'aimantFort'], [2.4, 'aimantTresFort'], [3.2, 'aimantDouble']].map(([v, k]) => `<option value="${v}" ${Math.abs((s.aimant || 0) - v) < 0.05 ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
         <!-- L'anticipation : combien le pilote lit la courbure de la ligne devant lui. À zéro il est en
              pure pursuit seul, donc il coupe la corde ; au-delà de 0,5 il oscille. Réglable pour que
              Bruno tranche au pouce ce que le banc ne départage qu'à moitié. -->
-        <label>${t('anticip')}<select id="sel-ff">${[[0, 'anticipOff'], [0.3, 'anticipPeu'], [0.5, 'anticipMoy'], [1, 'anticipFort']].map(([v, k]) => `<option value="${v}" ${Math.abs((s.ff == null ? 0.3 : s.ff) - v) < 0.05 ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
+        <label>${t('anticip')}<select id="sel-ff">${[[0, 'anticipOff'], [0.3, 'anticipPeu'], [0.5, 'anticipMoy'], [1, 'anticipFort']].map(([v, k]) => `<option value="${v}" ${Math.abs((s.ff == null ? 0.3 : s.ff) - v) < 0.05 ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>` : ''}
         <!-- CE QUI EXCLUT DU TABLEAU MONDIAL SE DIT ICI, pas seulement après la course. Découvrir
              au résultat que son tour ne compte pas, c'est l'avoir couru pour rien ; la ligne
              n'apparaît que lorsqu'au moins un réglage exclut, donc elle ne pèse pas le reste du
@@ -912,7 +913,8 @@ class UI {
           if (s.wear && USURE_ACTIVE) h.push(t('horsUsure'));
           return h.length ? `<p class="avert">${t('horsClassement')}${h.join(', ')}.</p>` : '';
         })()}
-        <label>${t('difficulty')}<select id="sel-diff">${NIVEAUX.map(d => `<option value="${d}" ${s.difficulty === d ? 'selected' : ''}>${t(d)}</option>`).join('')}</select></label>
+        <!-- La difficulté n'est plus ici : c'est le niveau des voitures de l'IA, qui n'existent qu'en
+             course rapide, et l'écran de départ de la course la porte déjà en pastille. -->
       </div>
       <div class="row wrap"><button data-action="menu">${t('back')}</button><a href="analytics.html" class="stats-link">${t('statistics')} →</a><button class="danger" data-action="resetAll">${t('resetAll')}</button></div>
     `, 'scroll settings-screen', 'reglages');
@@ -1742,7 +1744,6 @@ class UI {
     if (el.id === 'sel-aimant') { s.aimant = PHYS.aimant = +el.value; storeSave(s); }
     if (el.id === 'sel-ff') { s.ff = PHYS.ff = +el.value; storeSave(s); }
     if (el.id === 'sel-debug') { s.debug = el.value === '1'; storeSave(s); this.app.renderer.debug = s.debug; }
-    if (el.id === 'sel-diff') { s.difficulty = el.value; storeSave(s); }
   }
 }
 

@@ -4,6 +4,11 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.5
+- Sur iPhone, le chrono, la position et la pause remontent juste sous la Dynamic Island.
+- Les réglages de mise au point (guide de freinage, télémétrie, aimant, anticipation) sont retirés.
+- La difficulté — le niveau des voitures adverses — se règle sur l'écran de départ de la course.
+
 ## 0.52.4
 - Sur téléphone, le logo GRIP reste entier dans le bandeau de titre, même sur « Contre-la-montre ».
 

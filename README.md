@@ -187,6 +187,23 @@ chaque changement de largeur et chaque police chargée, et cède de la place dan
 resserre jusqu'à 19 px, « ← RETOUR » devient « ← », le titre descend jusqu'à 16 px, et le logo ne
 s'efface qu'en dernier recours (aucun iPhone n'y arrive). Test : `tools/e2e-bandeau.js`.
 
+**Le HUD sous la Dynamic Island (0.52.5).** La marge sûre du haut garde déjà une dizaine de points
+sous l'encoche ou l'îlot (59 points pour un îlot qui s'arrête vers 48) : quand elle vaut 40 points ou
+plus, le HUD de course remonte à 6 points sous elle au lieu de 14 au-dessous. iPhone SE, iPad et
+paysage ne changent pas (`_layoutHud`, js/render.js ; `tools/e2e-pause.js` vérifie le bouton pause).
+
+**Réglages : ce qui reste en recette (0.52.5).** Le guide de freinage, la télémétrie (touche G),
+l'aimant et l'anticipation sont des outils de mise au point : ils n'apparaissent qu'en recette
+(`REGLAGES_AVANCES`, js/career.js). En prod ils disparaissent des réglages, la touche G ne fait rien,
+et une sauvegarde qui les avait changés revient aux valeurs d'origine à la lecture — sinon un aimant
+réglé un jour resterait actif sans pouvoir s'éteindre, et le tour sortirait du tableau mondial.
+
+**La difficulté** est le niveau des voitures de l'IA (`DIFFICULTY`, js/race.js) : leur marge sur
+l'adhérence et leur rythme, et pour les deux derniers niveaux un surcroît d'adhérence. Elle ne sert
+qu'en course rapide (et pour l'IA qui complète une table de multijoueur) ; en contre-la-montre, on
+roule seul. Elle n'est donc plus dans les réglages, seulement en pastille sur l'écran de départ de
+la course.
+
 **La mise à jour.** La liste des fichiers et leur empreinte (sha-256) sont dans `manifeste.json` ;
 `sw.js`, lui, ne change jamais d'une publication à l'autre, si bien que le navigateur ne lance jamais de
 lui-même une mise à jour. C'est l'écran-titre qui dit où en est le jeu, dans une pastille en haut

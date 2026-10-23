@@ -390,7 +390,15 @@ class Renderer {
     this.shortLandscape = H < 560 && W > H;
     const sa = this._encoches();
     // Un seul écart, mesuré depuis le bord SÛR et non depuis le bord physique.
-    const P = this.pad = { t: 14 + sa.t, r: 14 + sa.r, b: 14 + sa.b, l: 14 + sa.l };
+    /* SOUS L'ÎLOT, PAS SOUS LA MARGE (0.52.5). La marge sûre du haut d'un iPhone à encoche ou à
+    Dynamic Island garde déjà de la place sous l'îlot : 59 points pour un îlot qui s'arrête vers 48.
+    Nos 14 points par-dessus posaient chrono, position et pause à 73, un bon centimètre trop bas —
+    « les infos peuvent être un peu plus hautes, en limite de Dynamic Island ». Quand la marge du haut
+    est celle d'une encoche ou d'un îlot (40 points et plus), le HUD remonte donc à 6 points sous elle,
+    sous l'îlot et sous l'heure comme la batterie, qui sont à sa hauteur. iPhone SE, iPad et paysage
+    gardent l'écart habituel. */
+    const haut = sa.t >= 40 ? sa.t - 6 : 14 + sa.t;
+    const P = this.pad = { t: haut, r: 14 + sa.r, b: 14 + sa.b, l: 14 + sa.l };
     this.encoches = sa;
     /* LA PASTILLE DU POUCE, ET RIEN D'AUTRE EN BAS DE L'ÉCRAN.
 

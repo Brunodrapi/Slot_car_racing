@@ -8,7 +8,7 @@ const LEVIER_CRAN = 0.62;
 
 class App {
   constructor() {
-    this.save = loadSave();
+    this.save = reglagesPublies(loadSave());
     this.desktop = !mobileDevice();
     document.body.classList.add(this.desktop ? 'desktop' : 'mobile');
     this.canvas = document.getElementById('game');
@@ -274,7 +274,7 @@ class App {
       if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { this.togglePause(); return; }
       if (this.state !== 'race' || this.spectator) return;
       e.preventDefault();
-      if (e.key === 'g' || e.key === 'G') { this.renderer.debug = !this.renderer.debug; this.save.debug = this.renderer.debug; storeSave(this.save); return; }
+      if ((e.key === 'g' || e.key === 'G') && REGLAGES_AVANCES) { this.renderer.debug = !this.renderer.debug; this.save.debug = this.renderer.debug; storeSave(this.save); return; }
       if (LINE_DOWN.includes(e.key)) { stepSel(-1); return; }
       if (LINE_UP.includes(e.key)) { stepSel(1); return; }
       if (this.desktop && this.controls.mode !== 'keyboard') {
