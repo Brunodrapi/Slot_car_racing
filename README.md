@@ -174,6 +174,13 @@ worker** qui met tout le jeu en cache au premier lancement, environ 50 Mo. Ajout
 de l'iPhone (Safari → Partager → Sur l'écran d'accueil), le jeu démarre ensuite sans réseau ; le
 multijoueur, le tableau mondial et les statistiques gardent besoin du réseau.
 
+**L'iPhone, jeu installé (0.52.3).** La barre d'état est translucide (`black-translucent`) : la page
+passe dessous. Les écrans du paddock se décalent de sa hauteur et gardent une bande sombre sous
+l'heure. Et iOS 26 annonce en mode installé une fenêtre plus courte que l'écran de la hauteur de cette
+barre (WebKit 301108) — d'où une bande noire de 59 points en bas ; la page reçoit donc la hauteur de
+l'écran (`min-height` plafonné à `100lvh`, voir la fin de css/style.css). Chromium ne reproduit pas ce
+défaut : il se vérifie sur un iPhone.
+
 **La mise à jour.** La liste des fichiers et leur empreinte (sha-256) sont dans `manifeste.json` ;
 `sw.js`, lui, ne change jamais d'une publication à l'autre, si bien que le navigateur ne lance jamais de
 lui-même une mise à jour. C'est l'écran-titre qui dit où en est le jeu, dans une pastille en haut

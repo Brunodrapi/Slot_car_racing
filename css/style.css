@@ -778,7 +778,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .home-footer button:focus-visible, .home-footer button.pad-focus { outline-offset:-3px; }
 #ui:has(.setup-screen, .selection-screen) { background-position:center; }
 body.desktop .screen.setup-screen, body.desktop .screen.selection-screen { width:min(1600px,100%); }
-.setup-screen, .selection-screen { background:transparent; border:0; padding-top:12px; }
+.setup-screen, .selection-screen { background:transparent; border:0; padding-top:max(12px, env(safe-area-inset-top)); }
 .setup-screen .topbar, .selection-screen .topbar { border:0; background:linear-gradient(105deg,#151917 0 15%,#c82520 15% 61%,#151917e8 61%); padding:8px 12px; min-height:64px; gap:22px; flex-shrink:0; }
 .setup-screen .topbar h2, .selection-screen .topbar h2 { font-size:clamp(26px,3.2vw,46px); margin:0; }
 .paddock-logo { width:190px; height:65px; object-fit:contain; margin-left:auto; }
@@ -844,7 +844,7 @@ body.desktop .screen.setup-screen, body.desktop .screen.selection-screen { width
   .home-footer img { width:25px; height:29px; }
   .home-footer .pilot-button span { font-size:12px; }
   .home-footer .pilot-button { gap:4px; }
-  .setup-screen { padding:8px 10px max(12px,env(safe-area-inset-bottom)); }
+  .setup-screen { padding:max(8px,env(safe-area-inset-top)) 10px max(12px,env(safe-area-inset-bottom)); }
   .setup-screen .topbar { padding:5px; gap:7px; min-height:50px; }
   .setup-screen .topbar h2 { font-size:25px; }
   .paddock-logo { width:85px; height:45px; }
@@ -1123,3 +1123,28 @@ details.install-os[open] summary { margin-bottom:8px; }
   .extra-card { min-height:44px; font-size:13px; }
   .extra-card svg { display:none; }
 }
+
+/* L'IPHONE, JEU INSTALLÉ SUR L'ÉCRAN D'ACCUEIL (0.52.3).
+
+La barre d'état (heure, réseau, batterie) est dessinée PAR-DESSUS la page : c'est le choix
+`black-translucent` d'index.html, qui laisse le jeu occuper tout l'écran. Deux conséquences, vues par
+Bruno sur un iPhone à Dynamic Island :
+
+1. Les écrans du paddock posaient leur bandeau de titre dessous, l'heure sur « Retour » et le logo. Ils
+   sont maintenant décalés de la hauteur de la barre (`env(safe-area-inset-top)`, 0 dans Safari et sur
+   ordinateur), et une bande sombre reste sous elle : l'heure s'écrit en blanc, et le papier crème qui
+   défile dessous l'effacerait.
+
+2. Une bande noire en bas, de 59 points — exactement la hauteur de la barre d'état. C'est un défaut
+   d'iOS 26 (WebKit 301108) : en mode installé, avec la barre translucide, la fenêtre annoncée est plus
+   courte que l'écran de la hauteur de la barre (`innerHeight`, `100%`, `100dvh` : 793 au lieu de 852),
+   alors que la page est dessinée depuis le haut. Tout ce qui est fixé en bas s'arrête donc 59 points
+   trop haut, et le fond de la page apparaît dessous. iOS ne raccourcit ainsi que les pages plus courtes
+   que l'écran : on donne à la page la hauteur de l'écran, plafonnée à `100lvh` pour ne jamais la faire
+   défiler. Correctif repris de frappe-ui (#1289, vérifié sur simulateur iOS 26.2) ; seulement en mode
+   installé, où la marge du haut ne vaut quelque chose que sur iPhone. */
+@media (display-mode: standalone) {
+  html { min-height: min(100lvh, calc(100% + env(safe-area-inset-top))); }
+}
+#ui:has(.setup-screen, .selection-screen)::before { content:''; position:fixed; z-index:20; top:0; left:0; right:0;
+  height:env(safe-area-inset-top); background:#151917; pointer-events:none; }
