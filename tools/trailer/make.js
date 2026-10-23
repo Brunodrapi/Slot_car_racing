@@ -2,12 +2,13 @@
 'use strict';
 const fs=require('fs'),path=require('path'),http=require('http'),{spawn,spawnSync}=require('child_process');
 const {chromium}=require('playwright');
-if(process.argv.includes('--help')){console.log('node tools/trailer/make.js [--script=file.json] [--out=directory] [--chromium=path] [--only=01-hook] [--resume] [--music=file.mp3] [--credit=file.txt]');process.exit(0);}
+if(process.argv.includes('--help')){console.log('node tools/trailer/make.js [--script=file.json] [--out=directory] [--chromium=path] [--only=01-hook] [--resume] [--music=file.mp3] [--credit=file.txt] [--records=snapshot.json]');process.exit(0);}
 const ROOT=path.resolve(__dirname,'../..');
 const arg=n=>{const x=process.argv.find(a=>a.startsWith('--'+n+'='));return x?.slice(n.length+3);};
 const OUT=path.resolve(arg('out')||path.join(ROOT,'artifacts/trailer'));
 const SCRIPT=path.resolve(arg('script')||path.join(__dirname,'script.json'));
 const conf=JSON.parse(fs.readFileSync(SCRIPT)),W=conf.width,H=conf.height,FPS=conf.fps;
+const recordsSnapshot=arg('records')?JSON.parse(fs.readFileSync(path.resolve(arg('records')))):null;
 const only=arg('only'),music=arg('music'),credit=arg('credit'),resume=process.argv.includes('--resume');
 const raw=path.join(OUT,'rushes'),cuts=path.join(OUT,'sections');
 for(const d of [OUT,raw,cuts])fs.mkdirSync(d,{recursive:true});
@@ -38,8 +39,8 @@ async function capture(shot,id,w=W,h=H,fps=FPS){
  console.log('CAPTURE',id);
  const {p,ctx}=await page(w,h);
  try{
- await p.evaluate(({shot,seed})=>trailerSetup(shot,seed),{shot,seed:conf.seed});
- if(shot.menu||shot.end){const png=path.join(raw,id+'.png');await p.screenshot({path:png});await run(['-loop','1','-i',png,'-t',String(shot.duration),'-vf',`scale=${W}:${H}`, ...enc,dest]);}
+ await p.evaluate(({shot,seed})=>trailerSetup(shot,seed),{shot:shot.records?{...shot,recordsSnapshot}:shot,seed:conf.seed});
+ if(shot.menu||shot.end||shot.records){const png=path.join(raw,id+'.png');await p.screenshot({path:png});await run(['-loop','1','-i',png,'-t',String(shot.duration),'-vf',`scale=${W}:${H}`, ...enc,dest]);report.shots=report.shots.filter(r=>r.id!==id);report.shots.push({id,shot,static:true,recordsCount:shot.records?recordsSnapshot.records.length:undefined});}
  else{
  const proc=spawn('ffmpeg',['-hide_banner','-loglevel','error','-y','-f','image2pipe','-vcodec','mjpeg','-framerate',String(fps),'-i','pipe:0','-an','-c:v','libx264','-preset','veryfast','-crf','19','-pix_fmt','yuv420p','-threads','2',dest]);
  let errors='';proc.stderr.on('data',d=>errors+=d);const done=new Promise((res,rej)=>{proc.on('error',rej);proc.on('close',c=>c?rej(Error(errors)):res());});

@@ -24,3 +24,16 @@ for(let tile=0;tile<12;tile++){
 }
 const report=JSON.parse(fs.readFileSync(path.join(out,'capture-report.json')));assert(!report.errors?.length);
 console.log('Timeline, codecs, 12 moving cells and browser error report: OK');
+const menuShots=script.sections.flatMap(s=>s.shots||[]).filter(s=>s.menu);
+if(menuShots.length===25){
+ const rendered=report.shots.filter(s=>s.shot.menu);
+ assert.equal(new Set(rendered.map(s=>s.shot.model)).size,25,'25 distinct car models captured');
+ console.log('All 25 models captured: OK');
+}
+for(const section of script.sections)for(const [i,shot] of (section.shots||[]).entries()){
+ const r=report.shots.find(r=>r.id===section.id+'-'+i);
+ if(shot.mode==='timetrial'){assert.equal(r.events.mode,'timetrial');assert.equal(r.events.cars,1);if(shot.action==='clean')assert.equal(r.events.offroad,0);}
+ if(shot.action==='overtake')assert(r.events.bestPosition<r.events.initialPosition,'Overtake actually occurred');
+ if(shot.records)assert(r.recordsCount>0,'World records snapshot populated');
+}
+console.log('Time-trial footage, overtake and public records: OK');

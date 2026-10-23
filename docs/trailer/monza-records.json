@@ -1,0 +1,56 @@
+{
+  "circuit": "monza",
+  "capturedAt": "2026-10-22",
+  "records": [
+    {
+      "voiture": "787b",
+      "temps": 66.7167,
+      "pilote": "Vince83"
+    },
+    {
+      "voiture": "f40",
+      "temps": 68.25,
+      "pilote": "Vince83"
+    },
+    {
+      "voiture": "countach",
+      "temps": 68.5333,
+      "pilote": "Vince83"
+    },
+    {
+      "voiture": "gt40",
+      "temps": 69.45,
+      "pilote": "Vince83"
+    },
+    {
+      "voiture": "csl",
+      "temps": 69.8167,
+      "pilote": "Vince83"
+    },
+    {
+      "voiture": "m1procar",
+      "temps": 69.825,
+      "pilote": "Vince83"
+    },
+    {
+      "voiture": "930",
+      "temps": 70.4667,
+      "pilote": "Vince83"
+    },
+    {
+      "voiture": "935",
+      "temps": 70.675,
+      "pilote": "Vince83"
+    },
+    {
+      "voiture": "corvette",
+      "temps": 70.95,
+      "pilote": "Vince83"
+    },
+    {
+      "voiture": "330p4",
+      "temps": 72.275,
+      "pilote": "Bruno"
+    }
+  ]
+}

@@ -21,25 +21,6 @@
       }
     },
     {
-      "id": "02-line-0",
-      "shot": {
-        "track": "spa",
-        "model": "m1procar",
-        "at": 0.125,
-        "action": "line",
-        "duration": 10
-      },
-      "events": {
-        "offroad": 0,
-        "spin": 0,
-        "crash": 0,
-        "finish": 0,
-        "frames": 241,
-        "maxSlip": 0.13556285595160436,
-        "trackName": "Stand de frites"
-      }
-    },
-    {
       "id": "03-crashes-0",
       "shot": {
         "track": "monza",
@@ -420,21 +401,285 @@
       }
     },
     {
-      "id": "07-flow-0",
+      "id": "02-line-0",
       "shot": {
-        "track": "monza",
-        "model": "f40",
-        "at": 0.66,
+        "track": "suzuka",
+        "model": "m1procar",
+        "at": 0.055,
+        "mode": "timetrial",
         "action": "clean",
-        "duration": 6
+        "duration": 10
       },
       "events": {
         "offroad": 0,
         "spin": 0,
         "crash": 0,
         "finish": 0,
-        "frames": 145,
-        "maxSlip": 0.12916868223360387,
+        "frames": 241,
+        "maxSlip": 0.18396780221730524,
+        "mode": "timetrial",
+        "cars": 1,
+        "initialPosition": 1,
+        "bestPosition": 1,
+        "lap": 0,
+        "trackName": "Fuji Yama"
+      }
+    },
+    {
+      "id": "04-cars-0",
+      "shot": {
+        "menu": "f1",
+        "model": "tyrrellp34",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-1",
+      "shot": {
+        "menu": "f1",
+        "model": "ferrari312t",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-2",
+      "shot": {
+        "menu": "f1",
+        "model": "mclarenm23",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-3",
+      "shot": {
+        "menu": "f1",
+        "model": "lotus79",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-4",
+      "shot": {
+        "menu": "f1",
+        "model": "lotus72",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-5",
+      "shot": {
+        "menu": "f1",
+        "model": "brabhambt46b",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-6",
+      "shot": {
+        "menu": "f1",
+        "model": "williamsfw07",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-7",
+      "shot": {
+        "menu": "f1",
+        "model": "ligierjs11",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-8",
+      "shot": {
+        "menu": "f1",
+        "model": "renaultrs10",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-9",
+      "shot": {
+        "menu": "gt",
+        "model": "m1procar",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-10",
+      "shot": {
+        "menu": "gt",
+        "model": "f40",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-11",
+      "shot": {
+        "menu": "gt",
+        "model": "countach",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-12",
+      "shot": {
+        "menu": "gt",
+        "model": "930",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-13",
+      "shot": {
+        "menu": "gt",
+        "model": "corvette",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-14",
+      "shot": {
+        "menu": "gt",
+        "model": "csl",
+        "duration": 0.4166666666666667
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-15",
+      "shot": {
+        "menu": "gt",
+        "model": "250gto",
+        "duration": 0.375
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-16",
+      "shot": {
+        "menu": "gt",
+        "model": "typee",
+        "duration": 0.375
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-17",
+      "shot": {
+        "menu": "gt",
+        "model": "240z",
+        "duration": 0.375
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-18",
+      "shot": {
+        "menu": "proto",
+        "model": "gt40",
+        "duration": 0.375
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-19",
+      "shot": {
+        "menu": "proto",
+        "model": "935",
+        "duration": 0.375
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-20",
+      "shot": {
+        "menu": "proto",
+        "model": "787b",
+        "duration": 0.375
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-21",
+      "shot": {
+        "menu": "proto",
+        "model": "962",
+        "duration": 0.375
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-22",
+      "shot": {
+        "menu": "proto",
+        "model": "xjr9",
+        "duration": 0.375
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-23",
+      "shot": {
+        "menu": "proto",
+        "model": "330p4",
+        "duration": 0.375
+      },
+      "static": true
+    },
+    {
+      "id": "04-cars-24",
+      "shot": {
+        "menu": "proto",
+        "model": "p68",
+        "duration": 0.375
+      },
+      "static": true
+    },
+    {
+      "id": "08-end",
+      "shot": {
+        "end": true,
+        "duration": 5
+      },
+      "static": true
+    },
+    {
+      "id": "07-flow-0",
+      "shot": {
+        "track": "monza",
+        "model": "f40",
+        "at": 0.675,
+        "mode": "timetrial",
+        "action": "clean",
+        "duration": 4
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 97,
+        "maxSlip": 0.11035573712190407,
+        "mode": "timetrial",
+        "cars": 1,
+        "initialPosition": 1,
+        "bestPosition": 1,
+        "lap": 0,
         "trackName": "Parco Reale"
       }
     },
@@ -443,19 +688,58 @@
       "shot": {
         "track": "monza",
         "model": "f40",
-        "at": 0.98,
-        "action": "finish",
-        "duration": 4
+        "at": 0.82,
+        "action": "overtake",
+        "duration": 1.5
       },
       "events": {
         "offroad": 0,
         "spin": 0,
         "crash": 0,
-        "finish": 7,
-        "frames": 97,
-        "maxSlip": 0.03019435775168397,
+        "finish": 0,
+        "frames": 37,
+        "maxSlip": 0.04413651747712696,
+        "mode": "race",
+        "cars": 2,
+        "initialPosition": 2,
+        "bestPosition": 1,
+        "lap": 0,
         "trackName": "Parco Reale"
       }
+    },
+    {
+      "id": "07-flow-2",
+      "shot": {
+        "track": "monza",
+        "model": "f40",
+        "at": 0.994,
+        "mode": "timetrial",
+        "action": "finish",
+        "duration": 1.5
+      },
+      "events": {
+        "offroad": 0,
+        "spin": 0,
+        "crash": 0,
+        "finish": 0,
+        "frames": 37,
+        "maxSlip": 0.0788466927781786,
+        "mode": "timetrial",
+        "cars": 1,
+        "initialPosition": 1,
+        "bestPosition": 1,
+        "lap": 1,
+        "trackName": "Parco Reale"
+      }
+    },
+    {
+      "id": "07-flow-3",
+      "shot": {
+        "records": "monza",
+        "duration": 3
+      },
+      "static": true,
+      "recordsCount": 10
     }
   ],
   "notes": [

@@ -67,3 +67,19 @@ node tools/trailer/check.js artifacts/trailer
 ```
 
 Ce contrôle vérifie la durée de chaque section, les codecs/résolutions, l'absence d'erreurs de capture et le mouvement dans les douze cases de la mosaïque. Il ne remplace pas une relecture éditoriale des prises.
+
+
+## Deuxième montage : contre-la-montre, 25 voitures et records mondiaux
+
+Le script actuel montre chaque modèle une fois dans le menu, sur dix secondes. Les durées sont réparties en nombres entiers d'images pour que la dernière voiture reste visible. `mode:"timetrial"` crée un véritable contre-la-montre à une seule voiture. `action:"overtake"` prépare un bref plan de course à deux voitures.
+
+Pour le plan des records, télécharger un instantané public (lecture seule), puis le fournir au tournage :
+
+```sh
+node tools/trailer/fetch-records.js monza monza-records.json
+node tools/trailer/make.js --records=monza-records.json --music="/chemin/Brain Dance.mp3" --credit=docs/trailer/credit-brain-dance.txt --out=artifacts/trailer-v2
+```
+
+Le navigateur de capture continue de bloquer les services externes. Seul `fetch-records.js` lit la même API publique que le jeu ; il utilise la clé publiable du client et n'envoie aucune écriture. Un instantané non vide est exigé pour ce plan. Sur certains environnements cloud, `curl` sert de solution de repli si la requête Node ne passe pas.
+
+`--records` attend un JSON `{circuit, capturedAt, records:[{voiture, temps, pilote}]}`. L'outil affiche les composants réels du tableau, avec une mise en page de tournage plus lisible. Les chronos et les noms sont conservés. Le fichier utilisé est inclus dans les prises pour documenter leur date.
