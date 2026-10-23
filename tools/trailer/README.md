@@ -83,3 +83,5 @@ node tools/trailer/make.js --records=monza-records.json --music="/chemin/Brain D
 Le navigateur de capture continue de bloquer les services externes. Seul `fetch-records.js` lit la même API publique que le jeu ; il utilise la clé publiable du client et n'envoie aucune écriture. Un instantané non vide est exigé pour ce plan. Sur certains environnements cloud, `curl` sert de solution de repli si la requête Node ne passe pas.
 
 `--records` attend un JSON `{circuit, capturedAt, records:[{voiture, temps, pilote}]}`. L'outil affiche les composants réels du tableau, avec une mise en page de tournage plus lisible. Les chronos et les noms sont conservés. Le fichier utilisé est inclus dans les prises pour documenter leur date.
+
+Les courses, la mosaïque et les vues spectateur sont tournées avec des adversaires en difficulté **Extrême**. Le pilote automatique des plans solo de maîtrise conserve une marge prudente pour réussir les enchaînements sans sortie. Le réglage du joueur dans le jeu publié reste indépendant de cet outil.

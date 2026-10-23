@@ -37,3 +37,6 @@ for(const section of script.sections)for(const [i,shot] of (section.shots||[]).e
  if(shot.records)assert(r.recordsCount>0,'World records snapshot populated');
 }
 console.log('Time-trial footage, overtake and public records: OK');
+
+for(const r of report.shots.filter(r=>r.events))assert.equal(r.events.difficulty,'extreme','Extreme AI: '+r.id);
+console.log('Extreme AI in all racing captures: OK');

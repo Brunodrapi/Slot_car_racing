@@ -2,7 +2,7 @@
 window.trailerSetup = async function(shot,seed) {
   let rng=seed>>>0;Math.random=()=>((rng=(Math.imul(rng,1664525)+1013904223)>>>0)/4294967296); app.mondial=null;app.audio.relance=()=>{};app.audio.update=()=>{};
   app.analytics.begin=()=>{};app.analytics.observe=()=>{};
-  app.save.name='GRIP';app.save.lang='en';app.save.sound=false;app.ui.lang='en';
+  app.save.difficulty='extreme';app.save.name='GRIP';app.save.lang='en';app.save.sound=false;app.ui.lang='en';
   if(shot.records){
     const snapshot=shot.recordsSnapshot;
     if(!snapshot||snapshot.circuit!==shot.records||!snapshot.records?.length)throw Error('A nonempty public records snapshot is required');
@@ -26,7 +26,7 @@ window.trailerSetup = async function(shot,seed) {
     await Promise.all([...document.images].map(i=>i.decode()));return;
   }
   const m=modelById(shot.model||'f40');
-  app._startRace({mode:shot.mode||'race',trackDef:TRACKS.find(t=>t.id===shot.track),modelId:m.id,classId:m.catId,nCars:shot.action==='overtake'?2:8,laps:3,difficulty:'medium',playerLivery:0,playerName:'GRIP',spectator:!!shot.view},{mode:'race'});
+  app._startRace({mode:shot.mode||'race',trackDef:TRACKS.find(t=>t.id===shot.track),modelId:m.id,classId:m.catId,nCars:shot.action==='overtake'?2:8,laps:3,difficulty:'extreme',playerLivery:0,playerName:'GRIP',spectator:!!shot.view},{mode:'race'});
   const race=app.race,T=race.track;
   for(const c of race.cars)topReady(c.cls,c.livree);
   const limit=Date.now()+20000;
@@ -58,11 +58,11 @@ window.trailerSetup = async function(shot,seed) {
   if(shot.tile)app.renderer.hudCanvas.style.visibility='hidden';
   app.renderer.rotate=false;app.renderer.cam.init=false;
   if(app.spectator){app.spectator.mode=shot.view;app.spectator.root.querySelector('select').value=shot.view;app.spectator.index=race.cars.indexOf(p);}
-  window.trailerEvents={offroad:0,spin:0,crash:0,finish:0,frames:0,maxSlip:0,mode:race.mode,cars:race.cars.length,initialPosition,bestPosition:initialPosition,lap:0,trackName:T.def.name};
+  window.trailerEvents={offroad:0,spin:0,crash:0,finish:0,frames:0,maxSlip:0,difficulty:'extreme',mode:race.mode,cars:race.cars.length,initialPosition,bestPosition:initialPosition,lap:0,trackName:T.def.name};
   window.trailerTick=(dt,t)=>{
     const steps=Math.max(1,Math.round(dt*120)),h=dt/steps;
     for(let k=0;k<steps;k++){
-      let throttle=aiThrottle(p,race.cars,h,race.difficulty);
+      let throttle=aiThrottle(p,race.cars,h,shot.mode==='timetrial'?DIFFICULTY.medium:race.difficulty);
       if(shot.action==='line'&&shot.mode!=='timetrial'&&t>2&&t<4)throttle=1;
       if(['wide','barrier','spin'].includes(shot.action))throttle=t<.7?1:0;
       app.input.throttle=throttle;race.update(h,throttle);

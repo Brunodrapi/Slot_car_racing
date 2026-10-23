@@ -32,3 +32,5 @@ Les titres et leur durée sont modifiables. La version fournie utilise « Brain 
 Le dossier local de sortie contient également le montage silencieux, les huit sections séparées et le rapport des captures. L'archive des prises conserve les images/MP4 sans titres, le script, les crédits et le rapport pour reprendre le montage dans un éditeur vidéo.
 
 [Instantané des records de Monza utilisé pour le tournage](monza-records.json).
+
+Les courses, la mosaïque et les vues spectateur sont tournées avec des adversaires en difficulté **Extrême**. Le pilote automatique des plans solo de maîtrise conserve une marge prudente pour réussir les enchaînements sans sortie. Le réglage du joueur dans le jeu publié reste indépendant de cet outil.
