@@ -270,15 +270,17 @@ function poseFrein(save, nom, trackId, modelId, valeur) {
 
 const FF_DEFAUT = 0.3;
 
-/* LES RÉGLAGES DE MISE AU POINT RESTENT EN RECETTE (0.52.5).
+/* LES RÉGLAGES DE MISE AU POINT SONT MIS DE CÔTÉ (0.52.5, partout depuis la 0.52.14).
 
 Guide de freinage, télémétrie, aimant et anticipation servaient à régler le jeu, pas à y jouer :
-« en prod supprime les réglages : guide de freinage, télémétrie, aimant, anticipation ». En prod ils
-disparaissent des réglages, la touche G ne fait plus rien, et une sauvegarde qui les aurait changés est
-ramenée aux valeurs d'origine à la lecture — sans quoi un aimant réglé un jour resterait actif sans plus
-pouvoir s'éteindre, et le tour ne compterait plus au tableau mondial sans qu'on sache pourquoi. La
-recette les garde tous. Le canal se lit dans js/version.js. */
-const REGLAGES_AVANCES = typeof APP_CANAL !== 'undefined' && APP_CANAL === 'recette';
+« en prod supprime les réglages : guide de freinage, télémétrie, aimant, anticipation ». Gardés d'abord
+en recette, ils en faisaient une version différente de la prod au lieu de sa suite — « pourquoi sur la
+recette il y a encore plein de réglages qu'on a virés dans la prod ». Ils disparaissent donc des deux :
+absents des réglages, touche G sans effet, et une sauvegarde qui les avait changés revient aux valeurs
+d'origine à la lecture — sans quoi un aimant réglé un jour resterait actif sans plus pouvoir s'éteindre,
+et le tour ne compterait plus au tableau mondial sans qu'on sache pourquoi. Le code reste : passer
+l'interrupteur à `true` les rend, comme `MANETTE` et `USURE_ACTIVE`. */
+const REGLAGES_AVANCES = false;
 function reglagesPublies(save) {
   if (!REGLAGES_AVANCES) Object.assign(save, { showLines: false, debug: false, aimant: 0, ff: FF_DEFAUT });
   return save;

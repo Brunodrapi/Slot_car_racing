@@ -197,11 +197,20 @@ sous l'encoche ou l'îlot (59 points pour un îlot qui s'arrête vers 48) : quan
 plus, le HUD de course remonte à 6 points sous elle au lieu de 14 au-dessous. iPhone SE, iPad et
 paysage ne changent pas (`_layoutHud`, js/render.js ; `tools/e2e-pause.js` vérifie le bouton pause).
 
-**Réglages : ce qui reste en recette (0.52.5).** Le guide de freinage, la télémétrie (touche G),
-l'aimant et l'anticipation sont des outils de mise au point : ils n'apparaissent qu'en recette
-(`REGLAGES_AVANCES`, js/career.js). En prod ils disparaissent des réglages, la touche G ne fait rien,
-et une sauvegarde qui les avait changés revient aux valeurs d'origine à la lecture — sinon un aimant
-réglé un jour resterait actif sans pouvoir s'éteindre, et le tour sortirait du tableau mondial.
+**Réglages mis de côté (0.52.5 ; partout depuis la 0.52.14).** Le guide de freinage, la télémétrie
+(touche G), l'aimant et l'anticipation sont des outils de mise au point. D'abord retirés de la prod
+seulement, ils faisaient de la recette une autre version que la prod au lieu de sa suite : ils sont
+donc retirés des deux (`REGLAGES_AVANCES = false`, js/career.js ; le code reste). Une sauvegarde qui
+les avait changés revient aux valeurs d'origine à la lecture — sinon un aimant réglé un jour resterait
+actif sans pouvoir s'éteindre, et le tour sortirait du tableau mondial.
+
+**Recette = prod + ce qui vient.** La recette ne diffère de la prod que par ce qui n'a pas encore été
+publié, et par l'infrastructure : le badge RECETTE, des tables de multijoueur à part (préfixe
+`recette-`, pour que deux versions du code ne courent pas ensemble), des statistiques marquées
+`-recette`, le code source non minifié et sans mode hors ligne (celui-ci se vérifie avec
+`tools/e2e-dist.js`), et les outils (éditeurs, banc moteur, diagnostics), qui ne sont pas des écrans du
+jeu. Vérifié en 0.52.8 : le build de la source au commit publié redonne la prod à l'octet près (254
+fichiers, mêmes empreintes).
 
 **La difficulté** est le niveau des voitures de l'IA (`DIFFICULTY`, js/race.js) : leur marge sur
 l'adhérence et leur rythme, et pour les deux derniers niveaux un surcroît d'adhérence. Elle ne sert

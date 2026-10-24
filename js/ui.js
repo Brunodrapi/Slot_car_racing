@@ -915,7 +915,7 @@ class UI {
         <label>${t('camera')}<select id="sel-cam">${[['track', 'camFollow'], ['fixed', 'camFixed'], ['avance', 'camAvance'], ['avanceFixe', 'camAvanceFixe']].map(([v, k]) => `<option value="${v}" ${(s.view || 'avanceFixe') === v ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
         <!-- L'aimant est un essai : il est donc éteint par défaut et se choisit ici, pour pouvoir
              le comparer manche par manche sans toucher au reste. Comme l'anticipation et les deux
-             réglages du haut, il n'existe qu'en recette (REGLAGES_AVANCES, js/career.js). -->
+             réglages du haut, il est mis de côté (REGLAGES_AVANCES, js/career.js). -->
         ${REGLAGES_AVANCES ? `<label>${t('aimant')}<select id="sel-aimant">${[[0, 'aimantOff'], [0.6, 'aimantDoux'], [1, 'aimantNormal'], [1.6, 'aimantFort'], [2.4, 'aimantTresFort'], [3.2, 'aimantDouble']].map(([v, k]) => `<option value="${v}" ${Math.abs((s.aimant || 0) - v) < 0.05 ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
         <!-- L'anticipation : combien le pilote lit la courbure de la ligne devant lui. À zéro il est en
              pure pursuit seul, donc il coupe la corde ; au-delà de 0,5 il oscille. Réglable pour que
