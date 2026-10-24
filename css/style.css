@@ -1172,3 +1172,32 @@ Bruno sur un iPhone à Dynamic Island :
 .lien-discord svg { width:28px; height:28px; flex:0 0 28px; }
 .lien-discord:hover, .lien-discord:focus-visible { background:#4752c4; outline:none; box-shadow:inset 0 0 0 3px #fff4; }
 .screen.center .lien-discord { align-self:center; }
+
+/* LES RÉSULTATS TIENNENT SUR UN TÉLÉPHONE (0.52.16).
+
+   Six colonnes — position, pilote, modèle, écart, pénalité, meilleur tour — demandent 420 px ; un
+   iPhone en portrait en offre 350, et en paysage l'écran de résultats héritait de la largeur portrait
+   des menus : la colonne du meilleur tour était coupée (Bruno, au sortir d'une course à Fuji Yama).
+   En paysage, les résultats prennent donc toute la largeur — ils suivent la course, qui s'y joue — ;
+   sur écran étroit, le modèle passe sous le nom du pilote au lieu de tenir sa colonne ; noms et temps
+   ne se coupent plus ; et s'il manque encore de la place, le tableau défile de côté au lieu d'être
+   tronqué. */
+.tbl-defile { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.resultats .cols > div { min-width: 0; }      /* sans quoi la grille s'élargit au tableau au lieu de le contenir */
+.resultats .cols > :only-child { grid-column: 1 / -1; }   /* hors championnat, pas de seconde colonne à garder vide */
+.resultats .tbl-defile { max-width: 760px; }                 /* sur grand écran, un tableau compact plutôt qu'étalé */
+.tbl-resultats td, .tbl-resultats th { white-space: nowrap; }
+.tbl-resultats .modele-sous { display: none; }
+@media (orientation: landscape) {
+  body.mobile #ui > .screen.resultats:not(.poster):not(.splash) { width: min(1000px, 100%); }
+}
+@media (max-width: 600px) {
+  .screen.resultats { padding-left: 12px; padding-right: 12px; }
+  .tbl-resultats { font-size: 13px; }
+  .tbl-resultats .col-modele { display: none; }
+  /* le modèle peut passer à la ligne : c'est lui qui fixait la largeur de la colonne, pas le nom */
+  .tbl-resultats .modele-sous { display: block; font-size: 11px; font-weight: 500; color: var(--muted); margin-left: 16px; white-space: normal; line-height: 1.2; }
+  .tbl-resultats td, .tbl-resultats th { padding: 6px 4px; }
+  /* les en-têtes passent sur deux lignes (« Meilleur / tour ») : ce sont eux, pas les temps, qui élargissaient */
+  .tbl-resultats th { white-space: normal; line-height: 1.15; vertical-align: bottom; }
+}

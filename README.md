@@ -218,6 +218,12 @@ qu'en course rapide (et pour l'IA qui complète une table de multijoueur) ; en c
 roule seul. Elle n'est donc plus dans les réglages, seulement en pastille sur l'écran de départ de
 la course.
 
+**Les résultats sur téléphone (0.52.16).** Six colonnes ne tiennent pas dans un iPhone en portrait,
+et en paysage l'écran de résultats héritait de la largeur portrait des menus : le meilleur tour était
+coupé. En paysage il prend toute la largeur ; sur écran étroit, le modèle passe sous le nom du pilote,
+les en-têtes vont à la ligne, et le tableau défile de côté plutôt que d'être tronqué (iPhone SE en
+portrait). Test : `tools/e2e-resultats-mobile.js`.
+
 **Discord (0.52.9).** Le serveur du jeu est proposé pour signaler un bug ou faire une demande (salon
 des bugs, `DISCORD_BUGS_URL`) dans le menu pause et dans les réglages — la pause d'abord, puisque c'est
 là qu'est le joueur quand le bug arrive (Game Developer, « In-Game Bug Reporter Best Practices » ; les

@@ -1402,8 +1402,8 @@ class UI {
     const penCell = (r) => !avecPen ? ''
       : `<td class="${r.penalite > 0 ? 'warn' : 'muted'}">${r.penalite > 0 ? `+${r.penalite.toFixed(1)}<small> (${r.fautes})</small>` : '—'}</td>`;
     const table = isTT ? `<table class="tbl"><thead><tr><th>${t('lap')}</th><th>${t('time')}</th></tr></thead><tbody>${p.lapTimes.map(tour).join('') || `<tr><td colspan="2">—</td></tr>`}</tbody></table>`
-      : `<table class="tbl"><thead><tr><th>${t('pos')}</th><th>${t('driver')}</th><th>${t('model')}</th><th>${t('gap')}</th>${avecPen ? `<th>${t('penalty')}</th>` : ''}<th>${t('bestLap')}</th>${ctx.cup ? `<th>${t('points')}</th>` : ''}</tr></thead><tbody>
-        ${res.map(r => `<tr class="${r.car.isPlayer ? 'me' : ''}"><td>${r.pos}</td><td><i class="dot" style="background:${r.car.livery.body}"></i>${escapeHtml(r.car.name)}</td><td class="muted">${escapeHtml(r.car.cls.name)}</td><td>${r.pos === 1 ? (r.time != null ? fmtTime(r.time) : '') : r.gap != null ? '+' + r.gap.toFixed(3) : t('dnf')}</td>${penCell(r)}<td>${r.bestLap != null ? fmtTime(r.bestLap) : '—'}</td>${ctx.cup ? `<td>${r.points}</td>` : ''}</tr>`).join('')}</tbody></table>`;
+      : `<table class="tbl tbl-resultats"><thead><tr><th>${t('pos')}</th><th>${t('driver')}</th><th class="col-modele">${t('model')}</th><th>${t('gap')}</th>${avecPen ? `<th>${t('penalty')}</th>` : ''}<th>${t('bestLap')}</th>${ctx.cup ? `<th>${t('points')}</th>` : ''}</tr></thead><tbody>
+        ${res.map(r => `<tr class="${r.car.isPlayer ? 'me' : ''}"><td>${r.pos}</td><td class="pilote"><i class="dot" style="background:${r.car.livery.body}"></i>${escapeHtml(r.car.name)}<small class="modele-sous">${escapeHtml(r.car.cls.name)}</small></td><td class="muted col-modele">${escapeHtml(r.car.cls.name)}</td><td>${r.pos === 1 ? (r.time != null ? fmtTime(r.time) : '') : r.gap != null ? '+' + r.gap.toFixed(3) : t('dnf')}</td>${penCell(r)}<td>${r.bestLap != null ? fmtTime(r.bestLap) : '—'}</td>${ctx.cup ? `<td>${r.points}</td>` : ''}</tr>`).join('')}</tbody></table>`;
     let cupPart = '';
     if (ctx.cup) {
       const cs = cupState(this.app.save, ctx.cup.id);
@@ -1421,13 +1421,13 @@ class UI {
       ? `<p class="warn">${t('penaltyWhy', mienne.fautes, mienne.penalite.toFixed(1))}</p>` : '';
     this.show(`
       ${ctx.spectator ? `<h2>${t('results')} · ${escapeHtml(race.track.name)}</h2>` : head}
-      <div class="cols"><div>${table}${motPen}</div>${cupPart}</div>
+      <div class="cols"><div><div class="tbl-defile">${table}</div>${motPen}</div>${cupPart}</div>
       ${ctx.online && race.broadcast ? race.broadcast.html(race) : ''}
       <div class="row end">
         <button data-action="menu">${t('menu')}</button>
         ${ctx.online ? `<button class="big primary" data-action="toLobby">${t('backToTable')}</button>` : ctx.cup ? (cupState(this.app.save, ctx.cup.id).done ? `<button class="big primary" data-action="cup" data-id="${ctx.cup.id}">${t('standings')}</button>` : `<button data-action="retryRace">${t('retry')}</button><button class="big primary" data-action="startCup" data-id="${ctx.cup.id}">${t('nextRace')}</button>`) : `<button data-action="setup" data-mode="${race.mode}">${t('back')}</button><button class="big primary" data-action="retryRace">${t('retry')}</button>`}
       </div>
-    `, 'scroll');
+    `, 'scroll resultats');
   }
 
   pauseScreen(race) {
