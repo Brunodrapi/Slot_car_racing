@@ -70,6 +70,7 @@ const I18N = {
     // le conseil affiché au premier départ sur Chrome et Edge PC (js/chromium-cache.js)
     conseilFirefox: 'Pour une expérience optimisée, utilisez Firefox.', fermer: 'Fermer',
     discordBug: 'Signaler un bug ou faire une demande sur Discord', discordJoueurs: 'Trouver des joueurs sur Discord',
+    pauseEnLigne: 'La course continue en ligne pendant que ce menu est ouvert.',
     howIntroTouch: 'Un doigt pour la vitesse, un pouce pour la trajectoire.',
     howIntroKeys: 'Une touche pour la vitesse, deux flèches pour la trajectoire.',
     howGasTitleTouch: 'Appuie : ça accélère', howGasTitleKeys: 'Espace enfoncée : ça accélère',
@@ -194,6 +195,7 @@ const I18N = {
     menuHowto: 'How to play', menuInstall: 'Install me', menuDon: 'Donate', menuAide: 'Help and support',
     conseilFirefox: 'For the best experience, use Firefox.', fermer: 'Close',
     discordBug: 'Report a bug or make a request on Discord', discordJoueurs: 'Find players on Discord',
+    pauseEnLigne: 'The race goes on online while this menu is open.',
     howIntroTouch: 'One finger for speed, one thumb for your line.',
     howIntroKeys: 'One key for speed, two arrows for your line.',
     howGasTitleTouch: 'Press: you accelerate', howGasTitleKeys: 'Hold Space: you accelerate',
@@ -1434,7 +1436,7 @@ class UI {
     const t = (k, ...a) => this.t(k, ...a);
     this.show(`
       <h2>${t('paused')}</h2>
-      ${race.netDrive ? '<p class="muted">La course continue en ligne pendant que ce menu est ouvert.</p>' : ''}
+      ${race.netDrive ? `<p class="muted">${t('pauseEnLigne')}</p>` : ''}
       <div class="menu">
         <button class="big primary" data-action="resume">${t('resume')}</button>
         ${race.mode === 'timetrial' ? `<button class="big" data-action="endTT">${t('endSession')}</button>` : ''}
@@ -1449,6 +1451,9 @@ class UI {
         ${this.app.raceCtx && this.app.raceCtx.online ? '' : `<button data-action="retryRace">${t('restart')}</button>`}
         <button data-action="${this.app.raceCtx && this.app.raceCtx.online ? 'toLobby' : 'quitRace'}">${this.app.raceCtx && this.app.raceCtx.online ? t('backToTable') : t('quit')}</button>
       </div>
+      <!-- Le signalement de bug vit AUSSI ici, et d'abord ici : c'est là qu'est le joueur quand le bug
+           arrive (voir README, « Discord »). La course reste en pause pendant qu'il écrit. -->
+      ${this.lienDiscord('discordBug', DISCORD_BUGS_URL)}
       ${this.app.desktop ? this.pcControls() : `<p class="muted">${t('howto')}</p>`}
     `, 'center overlay');
   }

@@ -209,8 +209,10 @@ qu'en course rapide (et pour l'IA qui complète une table de multijoueur) ; en c
 roule seul. Elle n'est donc plus dans les réglages, seulement en pastille sur l'écran de départ de
 la course.
 
-**Discord (0.52.9).** Le serveur du jeu est proposé aux réglages pour signaler un bug ou faire une
-demande (salon des bugs, `DISCORD_BUGS_URL`), et au multijoueur — à l'entrée, puis dans la table tant
+**Discord (0.52.9).** Le serveur du jeu est proposé pour signaler un bug ou faire une demande (salon
+des bugs, `DISCORD_BUGS_URL`) dans le menu pause et dans les réglages — la pause d'abord, puisque c'est
+là qu'est le joueur quand le bug arrive (Game Developer, « In-Game Bug Reporter Best Practices » ; les
+guides Bugnet : la pause, les réglages en repli, jamais le HUD de course) —, et au multijoueur — à l'entrée, puis dans la table tant
 qu'on y est seul pilote — pour trouver des joueurs (`DISCORD_JOUEURS_URL`, js/ui.js). Deux invitations
 permanentes depuis la 0.52.10.
 

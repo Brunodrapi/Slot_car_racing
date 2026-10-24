@@ -1171,3 +1171,4 @@ Bruno sur un iPhone à Dynamic Island :
   clip-path:polygon(4% 0,100% 0,96% 100%,0 100%); }
 .lien-discord svg { width:28px; height:28px; flex:0 0 28px; }
 .lien-discord:hover, .lien-discord:focus-visible { background:#4752c4; outline:none; box-shadow:inset 0 0 0 3px #fff4; }
+.screen.center .lien-discord { align-self:center; }
