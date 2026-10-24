@@ -218,10 +218,11 @@ const serveur = http.createServer((req, res) => {
     ['refus de google', () => { app.mondial.erreurConnexion = 'access_denied'; }, /failed|échou/i],
     ['rien a envoyer', () => { app.mondial.erreurConnexion = null;
       app.mondial.session = { token: 'x', expire: Date.now() / 1000 + 9999, sub: 'u', nom: 'B' };
-      app.mondial.envoi = { total: 0, faits: 0, rien: true }; }, /nothing to send|aucun temps/i],
+      // rien à rattraper : on dit simplement qu'on est connecté (0.52.15, « juste un connecté à Google suffirait »)
+      app.mondial.envoi = { total: 0, faits: 0, rien: true }; }, /signed in with google|connecté à google/i],
     ['envoi en cours', () => { app.mondial.envoi = { total: 4, faits: 1, rien: false }; }, /1 of 4|1 sur 4/i],
     ['envoi fini', () => { app.mondial.envoi = { total: 3, faits: 3, rien: false }; }, /3 times sent|3 temps/i],
-    ['connecte, rien de special', () => { app.mondial.envoi = null; }, /signed in as|connecté comme/i],
+    ['connecte, rien de special', () => { app.mondial.envoi = null; }, /signed in with google|connecté à google/i],
   ];
   for (const [nom, poser, attendu] of cas) {
     const txt = await page.evaluate(async (src) => {

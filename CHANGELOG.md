@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.15
+- Tableau mondial : un simple « Connecté à Google » remplace un message obscur sur les anciens records.
+
 ## 0.52.14
 - Rien ne change en jeu : mise en ordre interne.
 

@@ -111,14 +111,13 @@ const I18N = {
     lapDone: (n, t) => `Tour ${n} : ${t}`, tipTitle: 'Comment jouer', yourResult: (p) => `Tu termines P${p}`,
     nameTaken: (n) => `« ${n} » est déjà pris par un autre pilote. Change de nom dans les réglages, sinon tes temps n’entreront pas au tableau mondial.`,
     authPkce: 'La connexion est revenue sans jeton. Vérifie que l’adresse du jeu est bien dans les « Redirect URLs » de Supabase.',
-    nothingToSend: 'Aucun temps à envoyer : tes records d’avant ne disent pas avec quelle voiture ils ont été posés. Boucle un tour et il partira.',
     authTrouble: 'La connexion au tableau mondial n’a pas abouti.',
     authFail: (e) => `La connexion a échoué : ${e}`,
     authEmpty: (p) => `Tu es revenu de Google sans jeton (l’adresse portait : ${p}). C’est le signe que l’adresse du jeu manque dans les « Redirect URLs » de Supabase.`,
     sending: (a, b) => `Envoi de tes temps au tableau mondial… ${a} sur ${b}.`,
     sendingWait: (a, b, s) => `Envoi de tes temps… ${a} sur ${b}. Prochain dans ${s} s (le serveur les espace).`,
     sent: (n) => `${n} temps envoyé${n > 1 ? 's' : ''} au tableau mondial.`,
-    signedInAs: (n) => `Connecté comme ${n}. Tes meilleurs tours partent au tableau mondial.`,
+    signedInAs: 'Connecté à Google · tes meilleurs tours partent au tableau mondial.',
     reconnect: 'Se reconnecter',
     account: 'Compte',
     signedIn: 'Connecté',
@@ -236,14 +235,13 @@ const I18N = {
     lapDone: (n, t) => `Lap ${n}: ${t}`, tipTitle: 'How to play', yourResult: (p) => `You finish P${p}`,
     nameTaken: (n) => `“${n}” is already taken by another driver. Change it in the settings, or your times will not reach the world board.`,
     authPkce: 'Sign-in came back without a token. Check that the game URL is in Supabase’s Redirect URLs.',
-    nothingToSend: 'Nothing to send: your older records do not say which car set them. Run a lap and it will go up.',
     authTrouble: 'Sign-in to the world board did not complete.',
     authFail: (e) => `Sign-in failed: ${e}`,
     authEmpty: (p) => `You came back from Google without a token (the URL carried: ${p}). That usually means the game URL is missing from Supabase’s Redirect URLs.`,
     sending: (a, b) => `Sending your times to the world board… ${a} of ${b}.`,
     sendingWait: (a, b, s) => `Sending your times… ${a} of ${b}. Next in ${s} s (the server spaces them out).`,
     sent: (n) => `${n} time${n > 1 ? 's' : ''} sent to the world board.`,
-    signedInAs: (n) => `Signed in as ${n}. Your best laps go to the world board.`,
+    signedInAs: 'Signed in with Google · your best laps go to the world board.',
     reconnect: 'Sign in again',
     account: 'Account',
     signedIn: 'Signed in',
@@ -393,10 +391,11 @@ class UI {
   est indiscernable d'une panne, et le joueur finit par soupçonner le jeu entier. Cette ligne couvre
   donc tous les cas, y compris ceux où tout va bien et où il n'y a simplement rien à faire.
 
-  Le cas vide est le plus fréquent et le moins devinable : les records posés avant la version
-  0.21.48 sont rangés sous une clé à deux morceaux, sans voiture. On ne sait pas avec quoi ils ont
-  été signés, donc on ne les attribue à personne — et il n'y a rien à rattraper. Il faut boucler un
-  tour pour que le tableau se remplisse, et c'est ça qu'il faut écrire. */
+  Le cas vide — aucun ancien record à rattraper — se dit comme le cas ordinaire : « connecté à
+  Google ». Il avait sa phrase à lui, sur les records d'avant la 0.21.48 rangés sans voiture : vraie,
+  mais elle parlait de la mécanique du jeu au lieu de dire où l'on en est. Bruno : « il n'a pas de
+  sens, juste un connecté à Google suffirait ». Le joueur n'a rien à faire de plus : son prochain
+  meilleur tour partira de lui-même. */
   etatMondial() {
     const t = (k, ...a) => this.t(k, ...a), m = this.app.mondial;
     const ligne = (cls, txt, bouton) => `<p class="${cls} mondial-note">${txt}${bouton || ''}</p>`;
@@ -416,8 +415,7 @@ class UI {
         : t('sending', e.faits, e.total));
     }
     if (e && e.faits > 0) return ligne('muted', t('sent', e.faits));
-    if (e && e.rien) return ligne('muted', t('nothingToSend'));
-    return ligne('muted', t('signedInAs', escapeHtml(this.app.save.name)));
+    return ligne('muted', t('signedInAs'));
   }
 
   messageRefus(raison) {
