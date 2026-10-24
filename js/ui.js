@@ -118,6 +118,7 @@ const I18N = {
     sendingWait: (a, b, s) => `Envoi de tes temps… ${a} sur ${b}. Prochain dans ${s} s (le serveur les espace).`,
     sent: (n) => `${n} temps envoyé${n > 1 ? 's' : ''} au tableau mondial.`,
     signedInAs: 'Connecté à Google · tes meilleurs tours partent au tableau mondial.',
+    recetteHorsTableau: 'Connecté à Google · recette : tes temps restent ici, seuls ceux du jeu publié vont au tableau mondial.',
     reconnect: 'Se reconnecter',
     account: 'Compte',
     signedIn: 'Connecté',
@@ -242,6 +243,7 @@ const I18N = {
     sendingWait: (a, b, s) => `Sending your times… ${a} of ${b}. Next in ${s} s (the server spaces them out).`,
     sent: (n) => `${n} time${n > 1 ? 's' : ''} sent to the world board.`,
     signedInAs: 'Signed in with Google · your best laps go to the world board.',
+    recetteHorsTableau: 'Signed in with Google · test build: your times stay here; only the released game posts to the world board.',
     reconnect: 'Sign in again',
     account: 'Account',
     signedIn: 'Signed in',
@@ -415,6 +417,8 @@ class UI {
         : t('sending', e.faits, e.total));
     }
     if (e && e.faits > 0) return ligne('muted', t('sent', e.faits));
+    // en recette, rien ne part : le dire, plutôt que d'annoncer des envois qui n'auront pas lieu
+    if (!TEMPS_PUBLIES) return ligne('muted', t('recetteHorsTableau'));
     return ligne('muted', t('signedInAs'));
   }
 

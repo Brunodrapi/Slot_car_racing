@@ -4,9 +4,11 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.19
+- Tableau mondial : seuls les temps du jeu publié y entrent, plus ceux de la version d'essai.
+
 ## 0.52.18
 - Suzuka : sous le pont, l'ombre reste au sol et seule la barrière passe sur la voiture.
-- Les meilleurs tours enregistrés sur l'appareil repartent de zéro, comme le tableau mondial.
 
 ## 0.52.17
 - Suzuka : la voiture qui passe sous le pont ne roule plus par-dessus sa barrière.

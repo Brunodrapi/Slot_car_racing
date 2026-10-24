@@ -49,6 +49,19 @@ const LISTES_V1 = {
     'lemans', 'bathurst', 'redbullring', 'zandvoort'],
 };
 
+/* SEULE LA PROD ÉCRIT AU TABLEAU MONDIAL. La recette le lit, et c'est tout.
+
+Avant le 22 octobre 2026, la prod n'était pas ouverte : tous les temps posés jusque-là venaient de
+la recette, sur des circuits et une physique qui ont bougé depuis. Le tableau en a été vidé
+(`supabase/remise-a-zero-2026-10-22.sql`), et pour qu'ils n'y reviennent pas, la recette n'envoie
+plus rien — ni le tour qu'on vient de boucler, ni le rattrapage à la connexion. Les temps locaux
+restent où ils sont : ceux de la recette vivent sur son domaine, et la prod, ouverte depuis le 22,
+n'en a pas de plus vieux.
+
+`APP_CANAL` vaut « recette » dans le source et « prod » dans le build (`tools/build-dist.js`).
+Une variable plutôt qu'un test en place, pour que les essais du tableau puissent la lever. */
+let TEMPS_PUBLIES = typeof APP_CANAL !== 'undefined' && APP_CANAL === 'prod';
+
 class Mondial {
   constructor() {
     this.session = null;        // { token, expire, nom, sub } une fois connecté
@@ -225,6 +238,7 @@ class Mondial {
   on ne peut donc poser un nom que pour soi, et l'index unique empêche de prendre celui d'un autre
   compte. Signer un record du nom de quelqu'un d'autre reste impossible. */
   async propose(circuit, voiture, temps) {
+    if (!TEMPS_PUBLIES) return { ok: false, raison: 'recette' };
     if (!this.connecte()) return { ok: false, raison: 'anonyme' };
     try {
       const r = await fetch(`${MONDIAL_URL}/functions/v1/record`, {
@@ -286,7 +300,7 @@ class Mondial {
   que de la faire sauter. Neuf voitures prennent donc deux minutes, en arrière-plan, sans que rien
   n'attende. */
   async rattrape(bestLaps) {
-    if (!this.connecte() || this._rattrapeEnCours) return;
+    if (!TEMPS_PUBLIES || !this.connecte() || this._rattrapeEnCours) return;
     this._rattrapeEnCours = true;
     const aFaire = [];
     for (const cle of Object.keys(bestLaps || {})) {

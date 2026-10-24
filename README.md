@@ -3338,21 +3338,15 @@ rien ; effacer des temps, non.
 `tools/e2e-remise.js` vérifie les deux défauts, et c'est lui qui les a trouvés : qu'une sauvegarde
 d'avant perde bien ses temps, et qu'une sauvegarde neuve garde le premier qu'elle pose.
 
-**Une seconde fois, le 24 octobre 2026.** Bruno a fait vider le tableau mondial des temps posés
-avant le 22 octobre (`supabase/remise-a-zero-2026-10-22.sql` : 14 effacés, 6 gardés). L'appareil
-ne peut pas faire le même tri — un meilleur tour n'y est rangé qu'avec son chrono, sans date — et
-deux choses clochaient tant que les temps locaux restaient :
-
-- un vieux temps **jamais envoyé** (posé sans être connecté à Google) partait au tableau à la
-  première connexion, par `rattrape`, quelle que soit sa date ;
-- un pilote dont le temps venait d'être effacé ne revenait au tableau qu'en **battant son ancien
-  record** : seul un nouveau record personnel est proposé, et l'ancien était toujours en local.
-
-On efface donc tous les temps locaux, une fois, par le même mécanisme et le drapeau
-`tempsRemisMigrated` : le record personnel, le registre des tours nets, et `eol.envoyes`, la liste
-de ce qui est déjà parti au tableau. Le reste de la sauvegarde ne bouge pas — nom, voitures,
-livrées, coupe en cours. `tools/e2e-remise.js` le vérifie, ainsi qu'un temps posé ensuite qui
-survit au rechargement.
+**Le 24 octobre 2026, le tableau seul — et la recette n'y écrit plus.** Bruno a fait vider le
+tableau mondial des temps posés avant le 22 octobre (`supabase/remise-a-zero-2026-10-22.sql` :
+14 effacés, 6 gardés). Ils venaient tous de la recette : la prod n'était pas ouverte avant. Les
+temps locaux, eux, ne sont pas touchés — un premier essai les effaçait sur chaque appareil, faute de
+date pour trier, et Bruno a proposé plus simple : **seule la prod écrit au tableau**
+(`TEMPS_PUBLIES`, dans `js/mondial.js`, vrai quand `APP_CANAL` vaut « prod »). La recette le lit
+encore, mais n'envoie ni le tour bouclé ni le rattrapage à la connexion, et l'écran le dit. Les
+vieux temps restent sur le domaine de la recette, d'où ils ne partent plus ; la prod n'en a pas
+d'avant le 22. `tools/e2e-mondial.js` vérifie que rien ne part de la recette.
 
 ### Le plancher : trente secondes, et un banc qui le vérifie
 

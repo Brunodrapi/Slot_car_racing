@@ -117,7 +117,7 @@ ok(/m: \(x\.car && x\.car\.modelId\)/.test(net) && /trackId: t\.trackId/.test(ne
     await p.evaluate(() => {
       localStorage.setItem('slotracer.save.v2', JSON.stringify({ name: 'Bruno', lang: 'fr', bestLaps: { 'monza|gt|f40': 81.234 },
         bestLapsNets: { 'monza|gt|f40': 81.234 }, models: { gt: 'f40', proto: '935', f1: 'mclarenm23' }, livrees: { f40: 2 },
-        cat: 'gt', tutorialSeen: true, guideMigrated: true, tracesMigrated: true, tempsRemisMigrated: true, catsMigrated: true }));
+        cat: 'gt', tutorialSeen: true, guideMigrated: true, tracesMigrated: true, catsMigrated: true }));
     });
     await p.reload();
     await p.waitForFunction(() => typeof app !== 'undefined' && app.save && app.save.name === 'Bruno');

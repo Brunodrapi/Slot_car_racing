@@ -63,6 +63,8 @@ const serveur = http.createServer((req, res) => {
 
   await page.goto(base + '/index.html');
   await page.waitForFunction(() => typeof app !== 'undefined' && app.save);
+  // le source est la recette, qui n'écrit pas au tableau : on fait comme la prod, sauf en 15
+  await page.evaluate(() => { TEMPS_PUBLIES = true; });
   await page.evaluate(() => {
     app.save.name = 'Testeur'; storeSave(app.save);
     const cat = categoryById('gt'), ms = modelsOf(cat.id);
@@ -360,6 +362,35 @@ const serveur = http.createServer((req, res) => {
   dit(inc.premier.length === 1 && !inc.envoyes && inc.inconnus, 'un refus « inconnu » se range a part, pas avec les envois');
   dit(inc.second.length === 0, `il ne repart pas a l'ouverture suivante (${inc.second.length} envoi)`);
   dit(inc.apresVersion.length === 1, `il repart quand les listes du serveur changent (${inc.apresVersion.length} envoi)`);
+
+  /* --- 15. la recette n'ecrit pas au tableau, et le dit --- */
+  /* Le tableau a ete vide des temps d'avant le 22 octobre 2026, tous venus de la recette : la prod
+  n'etait pas ouverte. Pour qu'ils n'y reviennent pas, seule la prod envoie — ni le tour boucle, ni
+  le rattrapage a la connexion ne partent de la recette. Et l'ecran ne promet pas d'envoi. */
+  console.log('\nla recette');
+  const rec = await page.evaluate(async () => {
+    TEMPS_PUBLIES = false;
+    const m = app.mondial;
+    m.session = { token: 'x', expire: Date.now() / 1000 + 9999, sub: 'u1', nom: 'x' };
+    m.pseudo = 'Testeur'; m.envoyes = new Set(); m.dernierRefus = null; m.envoi = null; m.erreurConnexion = null;
+    const vrai = window.fetch;
+    let envois = 0;
+    window.fetch = async (url, opt) => {
+      if (String(url).includes('/functions/v1/record')) { envois++; return new Response('{}', { status: 200 }); }
+      return vrai(url, opt);
+    };
+    const cat = categoryById('gt'), ms = modelsOf(cat.id);
+    const p = await m.propose('monza', ms[0].id, 71.5);
+    await m.rattrape({ [`monza|${cat.id}|${ms[1].id}`]: 72 });
+    window.fetch = vrai;
+    app.ui.setupScreen('timetrial');
+    await new Promise((r) => setTimeout(r, 200));
+    const note = (document.querySelector('.mondial-note') || {}).textContent || '';
+    TEMPS_PUBLIES = true;
+    return { envois, raison: p.raison, note: note.trim() };
+  });
+  dit(rec.envois === 0 && rec.raison === 'recette', `ni le tour boucle ni le rattrapage ne partent (${rec.envois} envoi, « ${rec.raison} »)`);
+  dit(/recette|test build/i.test(rec.note), `l'ecran le dit (« ${rec.note.slice(0, 70)} »)`);
 
   await page.evaluate(() => { app.ui._mondiaux = null; app.mondial.cache.clear(); });
   await page.screenshot({ path: path.join(out, 'mondial.png'), fullPage: true });

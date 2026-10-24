@@ -3,9 +3,9 @@
 -- Joué le 24 octobre 2026, à la demande de Bruno : 14 temps effacés (du 3 au 19 octobre), les 6
 -- posés depuis le 23 sont restés. Comme la première remise à zéro, les pilotes ne sont pas touchés.
 --
--- Ces temps ne reviennent pas d'eux-mêmes : ils étaient déjà partis, donc notés dans `eol.envoyes`
--- sur l'appareil qui les a posés, et `rattrape` ne les renvoie pas. Le pilote réapparaît sur ces
--- combinaisons quand il bat son ancien meilleur tour net — seul un record personnel est proposé.
+-- Ils venaient tous de la recette : la prod n'était pas ouverte avant le 22. Pour qu'ils ne
+-- reviennent pas, la recette n'écrit plus au tableau depuis la 0.52.19 (`TEMPS_PUBLIES` dans
+-- js/mondial.js) ; seule la prod y envoie ses temps.
 --
 --   Joué une fois. Ce fichier ne sert pas deux fois.
 delete from public.records where pose_le < timestamptz '2026-10-22 00:00:00 Europe/Paris';
