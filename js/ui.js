@@ -10,10 +10,11 @@ const NIVEAUX = ['easy', 'medium', 'hard', 'extreme', 'cauchemar'];
 /* La page itch.io du jeu, où l'on peut faire un don. Une seule adresse, ici, pour la changer d'un coup. */
 const DON_URL = 'https://drapiiii.itch.io/grip-racing-the-line';
 
-/* Le serveur Discord du jeu : on y signale un bug, on y fait une demande, on y trouve des joueurs pour
-le multijoueur. Une seule adresse, ici — une invitation Discord peut expirer, et il faut alors la
-remplacer partout d'un coup. */
-const DISCORD_URL = 'https://discord.gg/z2E9CxAsy';
+/* Le serveur Discord du jeu, par ses deux salons : celui des bugs et des demandes (réglages), celui où
+l'on trouve des joueurs (multijoueur). Des invitations permanentes — une invitation Discord ordinaire
+expire, et les liens du jeu ne mèneraient plus nulle part. */
+const DISCORD_BUGS_URL = 'https://discord.gg/hbwAzncc32';
+const DISCORD_JOUEURS_URL = 'https://discord.gg/XpMp2kZVbA';
 
 /* Les pictogrammes des entrées du bas de l'accueil et de l'écran d'installation. Dessinés ici, plats
 et cernés de noir comme les cartes du menu, plutôt qu'en émoji : un émoji change de dessin d'un
@@ -808,8 +809,8 @@ class UI {
 
   /* Le lien vers le Discord du jeu (réglages : un bug, une demande ; multijoueur : des joueurs). Aux
   couleurs de Discord, pour qu'on sache où il mène avant de toucher ; il s'ouvre à côté du jeu. */
-  lienDiscord(cle) {
-    return `<a class="lien-discord" href="${DISCORD_URL}" target="_blank" rel="noopener">${PICTOS.discussion}<span>${this.t(cle)}</span></a>`;
+  lienDiscord(cle, url) {
+    return `<a class="lien-discord" href="${url}" target="_blank" rel="noopener">${PICTOS.discussion}<span>${this.t(cle)}</span></a>`;
   }
 
   _howtoIndex(rail) { return Math.round(rail.scrollLeft / Math.max(1, rail.clientWidth)); }
@@ -933,7 +934,7 @@ class UI {
         <!-- La difficulté n'est plus ici : c'est le niveau des voitures de l'IA, qui n'existent qu'en
              course rapide, et l'écran de départ de la course la porte déjà en pastille. -->
       </div>
-      ${this.lienDiscord('discordBug')}
+      ${this.lienDiscord('discordBug', DISCORD_BUGS_URL)}
       <div class="row wrap"><button data-action="menu">${t('back')}</button><a href="analytics.html" class="stats-link">${t('statistics')} →</a><button class="danger" data-action="resetAll">${t('resetAll')}</button></div>
     `, 'scroll settings-screen', 'reglages');
   }
@@ -1254,7 +1255,7 @@ class UI {
       this.show(`
         ${this.paddockTopbar(t('multi'))}
         <p class="muted">${t('multiIntro')}</p>
-        ${this.lienDiscord('discordJoueurs')}
+        ${this.lienDiscord('discordJoueurs', DISCORD_JOUEURS_URL)}
         ${net.error ? `<p class="warn">${escapeHtml(this.netErreur(net.error))}</p>` : ''}
         ${msg ? `<p class="warn">${escapeHtml(this.netErreur(msg))}</p>` : ''}
         <div class="row wrap">
@@ -1300,7 +1301,7 @@ class UI {
           <small class="${m.ready ? 'ok' : 'muted'}">${m.q.spectator ? 'Spectateur' : m.ready ? '✓ ' + t('ready') : t('waiting')}</small>
         </div>`).join('')}
       </div>
-      ${list.filter(m => !m.q.spectator).length < 2 ? this.lienDiscord('discordJoueurs') : ''}
+      ${list.filter(m => !m.q.spectator).length < 2 ? this.lienDiscord('discordJoueurs', DISCORD_JOUEURS_URL) : ''}
       ${!net.creator ? `<button data-action="netRole">${net.mine.spectator ? 'Devenir pilote' : 'Devenir spectateur'}</button>` : ''}
       <h3>${t('mFormat')}</h3>
       <div class="seg">${NET_MODES.map(m => `<button class="${cfg.mode === m ? 'sel' : ''}" data-action="netMode" data-id="${m}" ${net.creator ? '' : 'disabled'}>${t({ race: 'mRace', duel: 'mDuel', ghost: 'mGhost' }[m])}</button>`).join('')}</div>
