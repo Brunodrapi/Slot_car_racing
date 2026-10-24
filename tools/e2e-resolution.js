@@ -95,7 +95,8 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       /* Les rails du pont aussi passent par-dessus la voiture du dessous. Elle roulait sur celui du
       bord, à cheval sur le tablier, sur l'iPhone de Bruno. On la promène sur la route du dessous,
       au milieu et contre ses bords, et l'on regarde le calque des voitures là où passent les rails
-      du pont : rien ne doit y être peint. Deux stations plus loin que le pont, elle se voit. */
+      du pont : rien ne doit y être peint. Un mètre au-delà du rail, dans l'ombre du pont qui reste
+      au sol, elle doit se voir quelque part ; et seize stations avant le pont, elle se voit. */
       const surRails = (station, decale) => {
         const k = ((station % T.n) + T.n) % T.n, nx = -Math.sin(T.th[k]), ny = Math.cos(T.th[k]);
         p.s = k * T.ds; p.x = T.xs[k] + nx * decale; p.y = T.ys[k] + ny * decale; p.th = T.th[k];
@@ -104,28 +105,39 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
         r.draw(race, app.ui);
         const m = r.carCtx.getTransform(), W = r.carCanvas.width, H = r.carCanvas.height;
         const img = r.carCtx.getImageData(0, 0, W, H).data;
-        let peint = 0, total = 0;
+        let peint = 0, dehors = 0, total = 0;
+        const vu = (x, y) => {
+          const px = Math.round(m.a * x + m.c * y + m.e), py = Math.round(m.b * x + m.d * y + m.f);
+          return px >= 0 && py >= 0 && px < W && py < H && img[(py * W + px) * 4 + 3] > 0;
+        };
         for (let i = 3; i < img.length; i += 4) total += img[i] > 0;
         for (const b of T.barriers) {
           if ((b.level || 0) !== 1 || Math.abs(T.diff(b.s, crossing.over * T.ds)) > 15) continue;
+          const k = T.idx(b.s), ex = -Math.sin(T.th[k]), ey = Math.cos(T.th[k]);
           for (let f = 0; f <= 1; f += 0.25) {
             const x = b.ax + (b.bx - b.ax) * f, y = b.ay + (b.by - b.ay) * f;
-            const px = Math.round(m.a * x + m.c * y + m.e), py = Math.round(m.b * x + m.d * y + m.f);
-            if (px >= 0 && py >= 0 && px < W && py < H && img[(py * W + px) * 4 + 3] > 0) peint++;
+            const sens = Math.sign((x - T.xs[k]) * ex + (y - T.ys[k]) * ey);
+            if (vu(x, y)) peint++;
+            if (vu(x + ex * sens, y + ey * sens)) dehors++;
           }
         }
-        return { peint, total };
+        return { peint, dehors, total };
       };
       const rails = [];
-      for (let d = -10; d <= 10; d += 2) for (const decale of [-4, 0, 4]) rails.push(surRails(crossing.under + d, decale).peint);
+      let ombre = 0;
+      for (let d = -10; d <= 10; d += 2) for (const decale of [-4, 0, 4]) {
+        const v = surRails(crossing.under + d, decale);
+        rails.push(v.peint); ombre += v.dehors;
+      }
       const loin = surRails(crossing.under - 16, 0).total;
-      return { under: sample(crossing.under), over: sample(crossing.over), rails, loin };
+      return { under: sample(crossing.under), over: sample(crossing.over), rails, ombre, loin };
     });
     assert.equal(bridge.under, 0, 'la voiture apparaît à travers le pont');
     assert.ok(bridge.over > 1000, 'la voiture disparaît sur le pont');
     assert.equal(bridge.rails.reduce((a, b) => a + b, 0), 0, `la voiture du dessous passe sur les rails du pont (${bridge.rails.join(',')})`);
+    assert.ok(bridge.ombre > 0, 'la voiture disparaît dans l\'ombre du pont, avant la barrière');
     assert.ok(bridge.loin > 1000, 'la voiture disparaît avant d\'arriver sous le pont');
-    console.log('Suzuka : visibilité au-dessus et masquage au-dessous du pont, rails compris, OK');
+    console.log('Suzuka : visibilité au-dessus et masquage au-dessous du pont, rails compris, ombre au sol, OK');
     await page.close();
   } finally {
     if (browser) await browser.close();

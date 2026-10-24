@@ -34,7 +34,7 @@ function lapsFor(trackDef, cat) {
 const SAVE_KEY = 'slotracer.save.v2';
 
 function defaultSave() {
-  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, livrees: {}, desktopControl: 'keyboard', gamepadBrake: 'separate', engineBrake: .15, ctrl: 'auto', ctrlSide: 'left', camRotate: false, view: 'avanceFixe', pullBack: 1, aimant: 0, ff: 0.3, laps: 5, lapsPerso: false, showLines: false, debug: false, wear: false, guideMigrated: true, flatMigrated: false, cups: {}, bestLaps: {}, bestLapsNets: {}, tracesMigrated: true, catsMigrated: true, cat: null, filtreCat: 'all', tutorialSeen: false, racesDone: 0, reglages: { actif: null, actifs: {}, configs: [] } };
+  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, livrees: {}, desktopControl: 'keyboard', gamepadBrake: 'separate', engineBrake: .15, ctrl: 'auto', ctrlSide: 'left', camRotate: false, view: 'avanceFixe', pullBack: 1, aimant: 0, ff: 0.3, laps: 5, lapsPerso: false, showLines: false, debug: false, wear: false, guideMigrated: true, flatMigrated: false, cups: {}, bestLaps: {}, bestLapsNets: {}, tracesMigrated: true, tempsRemisMigrated: true, catsMigrated: true, cat: null, filtreCat: 'all', tutorialSeen: false, racesDone: 0, reglages: { actif: null, actifs: {}, configs: [] } };
 }
 
 function loadSave() {
@@ -104,6 +104,20 @@ function loadSave() {
   Les sauvegardes d'avant datent d'un temps sans aimant ni anticipation réglables : leurs tours sont
   nets par construction, et on les reprend tels quels. */
   if (!brut.bestLapsNets) { save.bestLapsNets = Object.assign({}, save.bestLaps); storeSave(save); }
+  /* TOUS LES TEMPS LOCAUX REMIS À ZÉRO, une fois, avec le tableau mondial du 22 octobre 2026.
+
+  Le tableau a été vidé des temps posés avant cette date (`supabase/remise-a-zero-2026-10-22.sql`).
+  L'appareil ne peut pas faire le même tri : un meilleur tour n'y est rangé qu'avec son chrono, sans
+  date. On efface donc tout, à la demande de Bruno — le record personnel, le registre des tours nets,
+  et la liste de ce qui est déjà parti au tableau (`eol.envoyes`, lue ensuite par `Mondial`). Sans
+  cela, un vieux temps jamais envoyé repartait à la première connexion, et un pilote ne revenait au
+  tableau qu'en battant un temps que le tableau n'a plus.
+
+  Même règle que `tracesMigrated` : `true` dans le défaut, lu dans `brut`. */
+  if (!brut.tempsRemisMigrated) {
+    save.bestLaps = {}; save.bestLapsNets = {}; save.tempsRemisMigrated = true; storeSave(save);
+    try { localStorage.removeItem('eol.envoyes'); } catch (_) {}
+  }
     if (!brut.catsMigrated) { migreCategories(save); save.catsMigrated = true; storeSave(save); }
     if (!save.reglages?.actifs) { migreReglages(save); storeSave(save); }
     return save;

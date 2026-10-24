@@ -123,7 +123,7 @@ const DOUBLE = `
     console.log('\nune sauvegarde d\'avant les catégories');
     const ctx2 = await nav.newContext({ viewport: { width: 1100, height: 900 } });
     const vieille = `(() => { if (localStorage.getItem('test-pose')) return; localStorage.setItem('test-pose', '1');
-      localStorage.setItem('slotracer.save.v2', JSON.stringify({ name: 'Ancien', models: { gt: 'tyrrellp34' }, tracesMigrated: true, lapsMigrated: true,
+      localStorage.setItem('slotracer.save.v2', JSON.stringify({ name: 'Ancien', models: { gt: 'tyrrellp34' }, tracesMigrated: true, tempsRemisMigrated: true, lapsMigrated: true,
         bestLaps: { 'monza|gt': 80, 'monza|gt|tyrrellp34': 80, 'monza|gt|m1procar': 90, 'spa|gt': 120 },
         bestLapsNets: { 'monza|gt|tyrrellp34': 80, 'monza|gt|m1procar': 90 } })); })()`;
     const p2 = await ouvre(ctx2, 'Ancien', vieille);

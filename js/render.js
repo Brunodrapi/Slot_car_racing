@@ -878,19 +878,26 @@ class Renderer {
         tablier.lineTo(xs[k] - nx[k] * demi, ys[k] - ny[k] * demi);
       }
       tablier.closePath();
-      /* CE QUI CACHE LES VOITURES DU DESSOUS va jusqu'aux rails, pas jusqu'au bord du tablier.
+      /* CE QUI CACHE LES VOITURES DU DESSOUS va jusqu'aux rails, et pas plus loin.
 
       Le masque n'était que le tablier, large de la piste. Or le pont continue au-delà : sa bordure
       sombre, à cheval sur le bord, puis ses rails, un mètre plus loin et jusqu'à près de trois
       vers la sortie. Une voiture qui passait dessous, à Suzuka, se faisait couper par le tablier
       mais roulait par-dessus le rail du pont. Le masque suit donc, station par station, le plus
-      éloigné des deux : la bordure, ou le rail du pont (`level` 1) relevé à cette hauteur. */
+      éloigné des deux : la bordure du tablier, ou l'extérieur du rail du pont (`level` 1) relevé à
+      cette hauteur.
+
+      L'OMBRE, ELLE, RESTE AU SOL. Le pont en projette une de chaque côté, deux mètres et demi de
+      large : la voiture qui y entre doit encore se voir, elle roule sur la route du dessous. Le
+      masque s'arrête donc au rail : la voiture passe sur l'ombre, puis sous la barrière. C'est le
+      choix de Bruno, plus simple que de peindre l'ombre sur la carrosserie. */
       const rails = track.barriers.filter((b) => (b.level || 0) === 1);
       const portee = (k, sens) => {
-        let m = demi + 2.5;                  // la bordure : un trait de cinq, à cheval sur le bord
+        let m = demi + 1.2;                  // la bordure : un trait de 2,4, à cheval sur le bord
         for (const b of rails) for (const [x, y] of [[b.ax, b.ay], [b.bx, b.by]]) {
           const dx = x - xs[k], dy = y - ys[k], lat = dx * nx[k] + dy * ny[k];
-          if (Math.abs(dx * ny[k] - dy * nx[k]) < 2 && lat * sens > 0 && Math.abs(lat) < 15) m = Math.max(m, Math.abs(lat) + 0.6);
+          // 0,3 : la moitié du rail (0,58 de large) ; son ombre portée reste au sol avec l'autre
+          if (Math.abs(dx * ny[k] - dy * nx[k]) < 2 && lat * sens > 0 && Math.abs(lat) < 15) m = Math.max(m, Math.abs(lat) + 0.3);
         }
         return m;
       };

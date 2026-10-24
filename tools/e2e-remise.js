@@ -55,6 +55,34 @@ const dit = (ok, quoi) => { if (!ok) fautes++; console.log(`  ${ok ? 'ok  ' : 'F
   s = await page.evaluate(() => app.save);
   dit(s.bestLaps['laguna|gt'] === 55.5, 'et son premier temps survit a la migration qui s\'y joue');
 
+  /* La seconde remise a zero, celle du 22 octobre 2026 : le tableau mondial a ete vide des temps
+     d'avant, et l'appareil, qui ne date pas ses tours, efface tous les siens — les deux registres,
+     et la liste de ce qui est deja parti au tableau. Une fois, et pas le reste de la sauvegarde. */
+  console.log('\nune sauvegarde d\'avant le 22 octobre');
+  await page.evaluate((cle) => {
+    localStorage.setItem(cle, JSON.stringify({
+      name: 'Testeur', lang: 'fr', guideMigrated: true, tracesMigrated: true, catsMigrated: true,
+      models: { gt: 'f40' }, cups: { coupe: { race: 2, points: { Testeur: 18 } } },
+      bestLaps: { 'monza|gt|f40': 61.2, 'monza|gt': 61.2 }, bestLapsNets: { 'monza|gt|f40': 61.2 },
+    }));
+    localStorage.setItem('eol.envoyes', JSON.stringify(['monza|f40']));
+  }, CLE);
+  await page.goto(PAGE);
+  await page.waitForFunction(() => typeof app !== 'undefined' && app.save);
+  s = await page.evaluate(() => app.save);
+  dit(!Object.keys(s.bestLaps).length && !Object.keys(s.bestLapsNets).length, 'les deux registres de temps sont vides');
+  dit(s.tempsRemisMigrated === true, 'le drapeau est pose');
+  dit(s.name === 'Testeur' && s.models.gt === 'f40' && s.cups.coupe && s.cups.coupe.race === 2, 'le reste est intact (nom, voiture, coupe en cours)');
+  const envoyes = await page.evaluate(() => JSON.parse(localStorage.getItem('eol.envoyes') || '[]'));
+  dit(envoyes.length === 0, 'la liste des temps deja envoyes au tableau est vide');
+
+  console.log('\nun temps pose apres');
+  await page.evaluate(() => { app.save.bestLaps['monza|gt|f40'] = 70.1; app.save.bestLapsNets['monza|gt|f40'] = 70.1; storeSave(app.save); });
+  await page.goto(PAGE);
+  await page.waitForFunction(() => typeof app !== 'undefined' && app.save);
+  s = await page.evaluate(() => app.save);
+  dit(s.bestLaps['monza|gt|f40'] === 70.1 && s.bestLapsNets['monza|gt|f40'] === 70.1, 'il survit au rechargement (la remise ne rejoue pas)');
+
   console.log(`\nfautes ${fautes}`);
   await b.close();
   process.exit(fautes ? 1 : 0);
