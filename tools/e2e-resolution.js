@@ -92,11 +92,40 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
         const pixels = r.carCtx.getImageData(cx - 3, cy - 3, 6, 6).data;
         return [...pixels].filter((_, i) => i % 4 === 3).reduce((sum, alpha) => sum + alpha, 0);
       };
-      return { under: sample(crossing.under), over: sample(crossing.over) };
+      /* Les rails du pont aussi passent par-dessus la voiture du dessous. Elle roulait sur celui du
+      bord, à cheval sur le tablier, sur l'iPhone de Bruno. On la promène sur la route du dessous,
+      au milieu et contre ses bords, et l'on regarde le calque des voitures là où passent les rails
+      du pont : rien ne doit y être peint. Deux stations plus loin que le pont, elle se voit. */
+      const surRails = (station, decale) => {
+        const k = ((station % T.n) + T.n) % T.n, nx = -Math.sin(T.th[k]), ny = Math.cos(T.th[k]);
+        p.s = k * T.ds; p.x = T.xs[k] + nx * decale; p.y = T.ys[k] + ny * decale; p.th = T.th[k];
+        const c = T.crossings[0].under;
+        r.cam = { x: T.xs[c], y: T.ys[c], zoom: 8, init: true };
+        r.draw(race, app.ui);
+        const m = r.carCtx.getTransform(), W = r.carCanvas.width, H = r.carCanvas.height;
+        const img = r.carCtx.getImageData(0, 0, W, H).data;
+        let peint = 0, total = 0;
+        for (let i = 3; i < img.length; i += 4) total += img[i] > 0;
+        for (const b of T.barriers) {
+          if ((b.level || 0) !== 1 || Math.abs(T.diff(b.s, crossing.over * T.ds)) > 15) continue;
+          for (let f = 0; f <= 1; f += 0.25) {
+            const x = b.ax + (b.bx - b.ax) * f, y = b.ay + (b.by - b.ay) * f;
+            const px = Math.round(m.a * x + m.c * y + m.e), py = Math.round(m.b * x + m.d * y + m.f);
+            if (px >= 0 && py >= 0 && px < W && py < H && img[(py * W + px) * 4 + 3] > 0) peint++;
+          }
+        }
+        return { peint, total };
+      };
+      const rails = [];
+      for (let d = -10; d <= 10; d += 2) for (const decale of [-4, 0, 4]) rails.push(surRails(crossing.under + d, decale).peint);
+      const loin = surRails(crossing.under - 16, 0).total;
+      return { under: sample(crossing.under), over: sample(crossing.over), rails, loin };
     });
     assert.equal(bridge.under, 0, 'la voiture apparaît à travers le pont');
     assert.ok(bridge.over > 1000, 'la voiture disparaît sur le pont');
-    console.log('Suzuka : visibilité au-dessus et masquage au-dessous du pont OK');
+    assert.equal(bridge.rails.reduce((a, b) => a + b, 0), 0, `la voiture du dessous passe sur les rails du pont (${bridge.rails.join(',')})`);
+    assert.ok(bridge.loin > 1000, 'la voiture disparaît avant d\'arriver sous le pont');
+    console.log('Suzuka : visibilité au-dessus et masquage au-dessous du pont, rails compris, OK');
     await page.close();
   } finally {
     if (browser) await browser.close();

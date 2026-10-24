@@ -3226,6 +3226,14 @@ tablier, et les autres. Les autres, puis le tablier, puis celles du dessus. Une 
 disparaît sous le pont, comme elle doit, et ressort de l'autre côté — **1,2 s à 108 km/h**, pour un
 tablier de 36 m.
 
+**Ce qui la cache va jusqu'aux rails.** Le masque était le tablier seul, large de la piste ; or le
+pont continue au-delà — sa bordure sombre, puis ses rails, à 7,4 m de l'axe et jusqu'à 9,1 m vers la
+sortie, contre 6,3 m pour le bord. À Suzuka, la voiture du dessous se faisait couper par le tablier
+et roulait par-dessus le rail du bord (vu sur l'iPhone de Bruno). Le masque suit maintenant, station
+par station, le plus éloigné des deux : la bordure, ou le rail du pont relevé à cette hauteur.
+`tools/e2e-resolution.js` promène la voiture sur la route du dessous, au milieu et contre ses bords,
+et vérifie que rien n'est peint là où passent les rails — 57 points recouverts avant, aucun après.
+
 Une passerelle piétonne est l'inverse : on passe **dessous**. Elle se peint donc après les voitures,
 et c'est tout ce qui distingue les deux à l'écran. Son ombre, elle, reste avant — posée sur
 l'asphalte, elle passe sous les voitures, et c'est la seule chose qui donne au tablier une hauteur.

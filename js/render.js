@@ -878,7 +878,33 @@ class Renderer {
         tablier.lineTo(xs[k] - nx[k] * demi, ys[k] - ny[k] * demi);
       }
       tablier.closePath();
-      return { tablier, cotes: [bord(1), bord(-1)] };
+      /* CE QUI CACHE LES VOITURES DU DESSOUS va jusqu'aux rails, pas jusqu'au bord du tablier.
+
+      Le masque n'était que le tablier, large de la piste. Or le pont continue au-delà : sa bordure
+      sombre, à cheval sur le bord, puis ses rails, un mètre plus loin et jusqu'à près de trois
+      vers la sortie. Une voiture qui passait dessous, à Suzuka, se faisait couper par le tablier
+      mais roulait par-dessus le rail du pont. Le masque suit donc, station par station, le plus
+      éloigné des deux : la bordure, ou le rail du pont (`level` 1) relevé à cette hauteur. */
+      const rails = track.barriers.filter((b) => (b.level || 0) === 1);
+      const portee = (k, sens) => {
+        let m = demi + 2.5;                  // la bordure : un trait de cinq, à cheval sur le bord
+        for (const b of rails) for (const [x, y] of [[b.ax, b.ay], [b.bx, b.by]]) {
+          const dx = x - xs[k], dy = y - ys[k], lat = dx * nx[k] + dy * ny[k];
+          if (Math.abs(dx * ny[k] - dy * nx[k]) < 2 && lat * sens > 0 && Math.abs(lat) < 15) m = Math.max(m, Math.abs(lat) + 0.6);
+        }
+        return m;
+      };
+      const masque = new Path2D();
+      for (let i = cr.over - 16; i <= cr.over + 20; i += 2) {
+        const k = (i + N) % N, m = portee(k, 1);
+        if (i === cr.over - 16) masque.moveTo(xs[k] + nx[k] * m, ys[k] + ny[k] * m); else masque.lineTo(xs[k] + nx[k] * m, ys[k] + ny[k] * m);
+      }
+      for (let i = cr.over + 20; i >= cr.over - 16; i -= 2) {
+        const k = (i + N) % N, m = portee(k, -1);
+        masque.lineTo(xs[k] - nx[k] * m, ys[k] - ny[k] * m);
+      }
+      masque.closePath();
+      return { tablier, masque, cotes: [bord(1), bord(-1)] };
     });
 
     /* LES PASSERELLES. Un tablier en travers de la piste, et son ombre portée sur l'asphalte.
@@ -1781,7 +1807,7 @@ class Renderer {
       g.strokeStyle = '#2f2f36'; g.lineWidth = 2.4;
       for (const c of b.cotes) g.stroke(c);
       g.fillStyle = '#4b4b52'; g.fill(b.tablier);
-      this._hideCars(g, b.tablier);
+      this._hideCars(g, b.masque);
       g.lineCap = 'round';
     }
     if(T.drawRoad&&pont.length)this._drawBarriers(g,vis,1);

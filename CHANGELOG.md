@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.17
+- Suzuka : la voiture qui passe sous le pont ne roule plus par-dessus sa barrière.
+
 ## 0.52.16
 - Sur téléphone, le tableau des résultats tient en entier, en portrait comme en paysage.
 
