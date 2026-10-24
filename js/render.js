@@ -3025,22 +3025,21 @@ class Renderer {
       g.textAlign = 'left'; g.textBaseline = 'top';
     }
 
-    /* LE BOUTON PAUSE, DESSINÉ COMME LE RESTE DU HAUT (0.52.6).
+    /* LE BOUTON PAUSE : NOIR, DEUX BARRES DROITES, À LA HAUTEUR DE SES VOISINS (0.52.12).
 
-    C'était un carré sombre, plus haut que ses voisins, avec deux barres grises droites : la seule
-    pièce du haut qui ne parlait pas comme le reste — « le bouton || est moche ». Il prend maintenant
-    l'étiquette crème de la position et du tour, à leur hauteur, et ses deux barres penchent comme la
-    police du jeu. Le doigt garde sa cible : `pauseHitAt` lit toujours le carré de `pb.s` et sa marge. */
+    D'abord un carré sombre plus haut que ses voisins, avec deux barres grises : « le bouton || est
+    moche ». En 0.52.6, l'étiquette crème de la position et du tour, barres penchées comme la police.
+    Bruno préfère le noir et les barres droites : il garde donc le fond sombre de la ligne du chrono
+    et des barres verticales couleur papier, mais la hauteur de l'étiquette de position, qui l'aligne
+    sur sa ligne. Le doigt garde sa cible : `pauseHitAt` lit toujours le carré de `pb.s` et sa marge. */
     {
       const h = this.pauseH;
-      this._hudPaper(g, pb.x, pb.y, pb.s, h);
-      g.fillStyle = '#20251f';
-      const bh = Math.round(h * 0.48), bw = Math.max(4, Math.round(pb.s * 0.12)), ecart = Math.round(pb.s * 0.08);
-      const pente = bh * 0.22, cx = pb.x + pb.s / 2 - 1, cy = pb.y + h / 2;
-      for (const x0 of [cx - ecart - bw, cx + ecart]) {
-        g.beginPath(); g.moveTo(x0 + pente, cy - bh / 2); g.lineTo(x0 + bw + pente, cy - bh / 2);
-        g.lineTo(x0 + bw, cy + bh / 2); g.lineTo(x0, cy + bh / 2); g.closePath(); g.fill();
-      }
+      this._hudLabel(g, pb.x, pb.y, pb.s, h, '#171b19ed');
+      g.fillStyle = '#fff0d4';
+      const bh = Math.round(h * 0.46), bw = Math.max(4, Math.round(pb.s * 0.11)), ecart = Math.round(pb.s * 0.09);
+      const cx = pb.x + pb.s / 2, y = Math.round(pb.y + (h - bh) / 2);
+      g.fillRect(Math.round(cx - ecart - bw), y, bw, bh);
+      g.fillRect(Math.round(cx + ecart), y, bw, bh);
     }
 
     // line slider (left thumb)

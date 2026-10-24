@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.12
+- Le bouton pause retrouve son fond noir et ses deux barres droites.
+
 ## 0.52.11
 - Le lien pour signaler un bug est aussi dans le menu pause.
 
