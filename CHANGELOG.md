@@ -5,7 +5,7 @@ message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesur
 et dans le README.
 
 ## 0.52.14
-- La recette n'a plus de réglages que la prod n'a pas.
+- Rien ne change en jeu : mise en ordre interne.
 
 ## 0.52.13
 - Le bouton pause est un vrai carré.
