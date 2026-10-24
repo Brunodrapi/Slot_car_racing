@@ -10,6 +10,11 @@ const NIVEAUX = ['easy', 'medium', 'hard', 'extreme', 'cauchemar'];
 /* La page itch.io du jeu, où l'on peut faire un don. Une seule adresse, ici, pour la changer d'un coup. */
 const DON_URL = 'https://drapiiii.itch.io/grip-racing-the-line';
 
+/* Le serveur Discord du jeu : on y signale un bug, on y fait une demande, on y trouve des joueurs pour
+le multijoueur. Une seule adresse, ici — une invitation Discord peut expirer, et il faut alors la
+remplacer partout d'un coup. */
+const DISCORD_URL = 'https://discord.gg/z2E9CxAsy';
+
 /* Les pictogrammes des entrées du bas de l'accueil et de l'écran d'installation. Dessinés ici, plats
 et cernés de noir comme les cartes du menu, plutôt qu'en émoji : un émoji change de dessin d'un
 téléphone à l'autre, et le ⓘ ou le ❤️ d'Android ne ressemblent pas à ceux d'un iPhone. */
@@ -17,6 +22,7 @@ const PICTOS = {
   aide: '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="#f2c52c" stroke="#171b19" stroke-width="2.6"/><path d="M12.2 12.6a3.9 3.9 0 1 1 5.5 3.6c-1.1.5-1.7 1.3-1.7 2.4v.8" fill="none" stroke="#171b19" stroke-width="3" stroke-linecap="round"/><circle cx="16" cy="23.4" r="1.9" fill="#171b19"/></svg>',
   installer: '<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="8.5" y="2.5" width="15" height="27" rx="3.2" fill="#fff0d2" stroke="#171b19" stroke-width="2.6"/><path d="M16 8.5v10m-4.2-4.2L16 18.5l4.2-4.2" fill="none" stroke="#12a96a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.6 25h4.8" stroke="#171b19" stroke-width="2.2" stroke-linecap="round"/></svg>',
   don: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 27.5S3.5 20 3.5 11.6A6.3 6.3 0 0 1 16 9a6.3 6.3 0 0 1 12.5 2.6C28.5 20 16 27.5 16 27.5z" fill="#e33228" stroke="#171b19" stroke-width="2.6" stroke-linejoin="round"/></svg>',
+  discussion: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 6.5h20a2.5 2.5 0 0 1 2.5 2.5v11a2.5 2.5 0 0 1-2.5 2.5H14l-6 5v-5H6A2.5 2.5 0 0 1 3.5 20V9A2.5 2.5 0 0 1 6 6.5z" fill="#fff" /><circle cx="11" cy="14.5" r="2" fill="#5865f2"/><circle cx="16" cy="14.5" r="2" fill="#5865f2"/><circle cx="21" cy="14.5" r="2" fill="#5865f2"/></svg>',
   // ceux de l'écran d'installation reprennent les icônes que le téléphone affiche, pour qu'on les y retrouve
   partager: '<svg class="picto-os" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v11M7.8 7.6 12 3.5l4.2 4.1" fill="none" stroke="#0a7cff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 10H6.6a1.1 1.1 0 0 0-1.1 1.1v8.3a1.1 1.1 0 0 0 1.1 1.1h10.8a1.1 1.1 0 0 0 1.1-1.1v-8.3a1.1 1.1 0 0 0-1.1-1.1h-1.9" fill="none" stroke="#0a7cff" stroke-width="2" stroke-linecap="round"/></svg>',
   ajouter: '<svg class="picto-os" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4" fill="none" stroke="#171b19" stroke-width="2"/><path d="M12 8.2v7.6M8.2 12h7.6" stroke="#171b19" stroke-width="2" stroke-linecap="round"/></svg>',
@@ -62,6 +68,7 @@ const I18N = {
     menuHowto: 'Comment jouer', menuInstall: 'Installez-moi', menuDon: 'Faites un don', menuAide: 'Aide et soutien',
     // le conseil affiché au premier départ sur Chrome et Edge PC (js/chromium-cache.js)
     conseilFirefox: 'Pour une expérience optimisée, utilisez Firefox.', fermer: 'Fermer',
+    discordBug: 'Signaler un bug ou faire une demande sur Discord', discordJoueurs: 'Trouver des joueurs sur Discord',
     howIntroTouch: 'Un doigt pour la vitesse, un pouce pour la trajectoire.',
     howIntroKeys: 'Une touche pour la vitesse, deux flèches pour la trajectoire.',
     howGasTitleTouch: 'Appuie : ça accélère', howGasTitleKeys: 'Espace enfoncée : ça accélère',
@@ -185,6 +192,7 @@ const I18N = {
     howto: 'Thumb anywhere (or hold Space): accelerate, release to brake. The pad follows your thumb, and the speed reads at the top centre. Left thumb (or ↑ / ↓): pick your place on the road — blue edge, racing line or yellow edge. Each edge keeps its colour all the way round. Too fast into a corner and it’s the gravel.',
     menuHowto: 'How to play', menuInstall: 'Install me', menuDon: 'Donate', menuAide: 'Help and support',
     conseilFirefox: 'For the best experience, use Firefox.', fermer: 'Close',
+    discordBug: 'Report a bug or make a request on Discord', discordJoueurs: 'Find players on Discord',
     howIntroTouch: 'One finger for speed, one thumb for your line.',
     howIntroKeys: 'One key for speed, two arrows for your line.',
     howGasTitleTouch: 'Press: you accelerate', howGasTitleKeys: 'Hold Space: you accelerate',
@@ -798,6 +806,12 @@ class UI {
     }, { passive: true });
   }
 
+  /* Le lien vers le Discord du jeu (réglages : un bug, une demande ; multijoueur : des joueurs). Aux
+  couleurs de Discord, pour qu'on sache où il mène avant de toucher ; il s'ouvre à côté du jeu. */
+  lienDiscord(cle) {
+    return `<a class="lien-discord" href="${DISCORD_URL}" target="_blank" rel="noopener">${PICTOS.discussion}<span>${this.t(cle)}</span></a>`;
+  }
+
   _howtoIndex(rail) { return Math.round(rail.scrollLeft / Math.max(1, rail.clientWidth)); }
 
   /* INSTALLEZ-MOI : comment poser le jeu sur l'écran d'accueil, d'où il s'ouvre en plein écran et
@@ -919,6 +933,7 @@ class UI {
         <!-- La difficulté n'est plus ici : c'est le niveau des voitures de l'IA, qui n'existent qu'en
              course rapide, et l'écran de départ de la course la porte déjà en pastille. -->
       </div>
+      ${this.lienDiscord('discordBug')}
       <div class="row wrap"><button data-action="menu">${t('back')}</button><a href="analytics.html" class="stats-link">${t('statistics')} →</a><button class="danger" data-action="resetAll">${t('resetAll')}</button></div>
     `, 'scroll settings-screen', 'reglages');
   }
@@ -1239,6 +1254,7 @@ class UI {
       this.show(`
         ${this.paddockTopbar(t('multi'))}
         <p class="muted">${t('multiIntro')}</p>
+        ${this.lienDiscord('discordJoueurs')}
         ${net.error ? `<p class="warn">${escapeHtml(this.netErreur(net.error))}</p>` : ''}
         ${msg ? `<p class="warn">${escapeHtml(this.netErreur(msg))}</p>` : ''}
         <div class="row wrap">
@@ -1284,6 +1300,7 @@ class UI {
           <small class="${m.ready ? 'ok' : 'muted'}">${m.q.spectator ? 'Spectateur' : m.ready ? '✓ ' + t('ready') : t('waiting')}</small>
         </div>`).join('')}
       </div>
+      ${list.filter(m => !m.q.spectator).length < 2 ? this.lienDiscord('discordJoueurs') : ''}
       ${!net.creator ? `<button data-action="netRole">${net.mine.spectator ? 'Devenir pilote' : 'Devenir spectateur'}</button>` : ''}
       <h3>${t('mFormat')}</h3>
       <div class="seg">${NET_MODES.map(m => `<button class="${cfg.mode === m ? 'sel' : ''}" data-action="netMode" data-id="${m}" ${net.creator ? '' : 'disabled'}>${t({ race: 'mRace', duel: 'mDuel', ghost: 'mGhost' }[m])}</button>`).join('')}</div>

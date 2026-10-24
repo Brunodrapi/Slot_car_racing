@@ -4,6 +4,10 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.9
+- Dans les réglages, un lien vers le Discord du jeu pour signaler un bug ou faire une demande.
+- En multijoueur, un lien vers le Discord pour trouver des joueurs.
+
 ## 0.52.8
 - Le conseil Firefox s'affiche aussi en anglais.
 

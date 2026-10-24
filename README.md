@@ -209,6 +209,11 @@ qu'en course rapide (et pour l'IA qui complète une table de multijoueur) ; en c
 roule seul. Elle n'est donc plus dans les réglages, seulement en pastille sur l'écran de départ de
 la course.
 
+**Discord (0.52.9).** Le serveur du jeu (`DISCORD_URL`, js/ui.js) est proposé aux réglages pour
+signaler un bug ou faire une demande, et au multijoueur — à l'entrée, puis dans la table tant qu'on y
+est seul pilote — pour trouver des joueurs. L'invitation du 24 octobre 2026 expire le 23 novembre : à
+remplacer par une invitation permanente.
+
 **itch.io (`itch/`).** La page du jeu sur itch.io ne porte pas le jeu : `itch/index.html` (ou
 `itch/itch-grip.zip`, la même page zippée) renvoie vers la prod. Le jeu ne doit pas tourner dans le
 cadre où itch.io affiche les jeux HTML : la connexion Google y est refusée. Le renvoi emmène donc
