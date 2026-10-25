@@ -348,11 +348,13 @@ const TRACKS = [
        au nœud « raceway=start-finish » d'OpenStreetMap. Les mêmes panneaux, au même endroit de la
        piste.
 
-       PLUS DE LIGNES REPRISES ICI (0.52.22). Les trois qu'il y avait suivaient l'ANCIEN tracé de
-       Monaco, d'avant le relevé OpenStreetMap : une autre forme de circuit, à 117 m de la piste
-       actuelle par endroits. Projetées sur celle-ci puis bornées à la chaussée, elles collaient au
-       bord sur tout le tour — l'idéale et la bleue sur 100 % des stations. Le jeu joue donc le
-       calcul, comme sur les circuits sans reprise, en attendant qu'elles soient redessinées. */
+       PLUS DE LIGNES REPRISES ICI (0.52.22). Les trois qu'il y avait étaient celles de SPA, posées
+       là par l'ancien export de l'éditeur : il lisait les apostrophes des commentaires comme des
+       chaînes, la découpe de la définition de Spa débordait sur celle-ci, et le bloc s'est posé à
+       la fin de Monaco (corrigé depuis dans `finObjet`). Projetées sur Monaco puis bornées à la
+       chaussée, elles collaient au bord sur tout le tour — l'idéale et la bleue sur 100 % des
+       stations. Le jeu joue donc le calcul, en attendant des lignes dessinées pour Monaco ; et
+       `Track` ignore désormais des lignes qui ne suivent pas leur circuit. */
     panneaux: [
       [0.017, 100, 1, 1],
       [0.0387, 50, 1, 1],

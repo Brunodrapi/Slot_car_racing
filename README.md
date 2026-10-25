@@ -1485,13 +1485,22 @@ zoom, pas de clic droit, et un panneau de trois cent vingt pixels qui prenait la
   stations à Monaco, jusqu'à 360 m de la piste. C'est ce que Bruno a vu (« le gros bordel »). À un
   point tous les 20 m (116 à Monaco, 212 au Mans), plus aucune station ne sort, et l'écart au calcul
   tombe sous 4 m.
-- **Monaco ne porte plus de lignes reprises.** Celles de `js/tracks.js` suivaient l'**ancien** tracé,
-  d'avant le relevé OpenStreetMap — une autre forme de circuit, à 117 m de la piste actuelle par
-  endroits. Bornées à la chaussée, elles collaient au bord sur tout le tour : l'idéale et la bleue
-  sur 100 % des stations, en recette comme en prod. Le jeu y joue donc le calcul, en attendant
-  qu'elles soient redessinées. Les autres reprises (Silverstone, Suzuka, Le Mans, Zandvoort) restent
-  — la ligne intérieure de Suzuka mériterait d'être reprise : elle change de branche près de
-  l'épingle, et la jaune y longe le bord sur 56 % du tour.
+- **Monaco ne porte plus de lignes reprises : c'étaient celles de Spa.** Bruno l'a vu sur la carte —
+  posées sur Spa, elles ne sortent de la chaussée que sur 8 % des stations, sur 70 à 100 % partout
+  ailleurs. L'ancien export de l'éditeur lisait les apostrophes des commentaires (« l'épingle ») comme
+  des chaînes ; la découpe de la définition de Spa débordait sur celle de Monaco, et le bloc s'est
+  posé à la fin de Monaco. C'est dans le tout premier état du dépôt, et `finObjet` saute les
+  commentaires depuis : l'export pose aujourd'hui chaque ligne chez son circuit, sur les treize.
+  Bornées à la chaussée de Monaco, ces lignes collaient au bord sur tout le tour — l'idéale et la
+  bleue sur 100 % des stations, en recette comme en prod. Le jeu y joue donc le calcul.
+- **Des lignes qui ne suivent pas leur circuit sont ignorées** (`Track._partHorsPiste`). Celles d'un
+  circuit sortent de la chaussée sur 8 à 14 % des stations au pire, une ligne ratée sur la moitié ;
+  celles d'un autre, sur 70 à 100 %. Au-delà de 60 % en moyenne, le jeu reprend le calcul et le dit
+  dans la console. Le même garde-fou vaut pour une reprise enregistrée dans le navigateur.
+  `tools/e2e-lignes.js` le vérifie dans les deux sens.
+- **La ligne intérieure de Suzuka** mériterait d'être reprise : elle change de branche près de
+  l'épingle, et la jaune y longe le bord sur 56 % du tour. Elle reste sous le seuil, et c'est voulu :
+  le garde-fou écarte les lignes d'un autre circuit, pas une ligne mal dessinée.
 
 ### Les panneaux
 

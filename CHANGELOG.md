@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.23
+- Rien ne change en jeu : un garde-fou empêche de jouer sur un circuit les trajectoires d'un autre.
+
 ## 0.52.22
 - Le Rocher : les voitures retrouvent de vraies trajectoires, au lieu de longer le bord de la piste.
 

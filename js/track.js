@@ -1040,6 +1040,21 @@ class Track {
     // longueur voulue, si bien que des lignes explicites auraient été projetées à côté de la piste.
     if (def.lines && def.lines.racing) this._projectLines(def.lines, this.unitScale);
     else this._autoLines();
+    /* DES LIGNES QUI NE SONT PAS CELLES DE CE CIRCUIT SONT IGNORÉES, et le calcul reprend.
+
+    Monaco a couru des semaines sur les lignes de SPA. L'ancien export de l'éditeur lisait les
+    apostrophes des commentaires comme des chaînes ; la découpe de la définition de Spa débordait
+    sur celle de Monaco, et le bloc s'y est posé (corrigé depuis dans `finObjet`). Projetées sur
+    une autre piste puis bornées à la chaussée, elles collaient au bord sur tout le tour, et rien
+    ne le disait. Des lignes dessinées pour le circuit sortent de la chaussée sur 8 à 14 % des
+    stations au pire, une ligne ratée sur la moitié ; celles d'un autre circuit, sur 70 à 100 %.
+    Au-delà de 60 % en moyenne des trois, ce ne sont pas les siennes. Seulement pour un circuit
+    qui porte sa largeur : celle d'un circuit d'éditeur se déduit justement des lignes. */
+    if (def.lines && def.lines.racing && def.width && this._partHorsPiste() > 0.6) {
+      console.warn(`${def.id} : lignes dessinées ignorées, elles ne suivent pas ce circuit`);
+      this.lignesIgnorees = true;
+      this._autoLines();
+    }
     /* Dix centimètres par mètre pour les lignes secondaires, mesuré et non choisi.
 
     Le chiffre arbitre deux choses qui tirent en sens contraire. Trop bas, la ligne intérieure
@@ -1666,6 +1681,20 @@ class Track {
   }
 
   // Editor tracks: each drawn line becomes a lateral profile by walking it along the centreline.
+  /** La part moyenne des stations où les trois lignes projetées sortent de la chaussée. */
+  _partHorsPiste() {
+    let hors = 0, tot = 0;
+    for (const nom of NOMS_AUTEUR) {
+      const t = this.tracees && this.tracees[nom];
+      if (!t) continue;
+      for (let i = 0; i < this.n; i++) {
+        tot++;
+        if (Math.abs(t[i]) > (t[i] > 0 ? this.hwL[i] : this.hwR[i]) + 0.5) hors++;
+      }
+    }
+    return tot ? hors / tot : 0;
+  }
+
   _projectLines(lines, scale) {
     const N = this.n, xs = this.xs, ys = this.ys, nx = this.nx, ny = this.ny;
     /* On projette sous les noms de l'AUTEUR, puis on range par côté.

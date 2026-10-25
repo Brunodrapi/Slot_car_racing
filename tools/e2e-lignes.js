@@ -256,6 +256,20 @@ enregistrer pour jouer : ${vu.reprises} reprise(s) relue(s) par le jeu, `
     errs++; console.log(`  ÉCHEC : repasser sur le fichier ajoute un bloc (${deuxFois.avant} → ${deuxFois.apres})`);
   } else console.log('  ok : repasser sur le fichier remplace le bloc au lieu d’en ajouter un');
 
+  /* Les lignes d'un circuit posées sur un autre sont ignorées, celles du circuit gardées.
+     Monaco a couru des semaines sur les lignes de Spa, posées là par l'ancien export ; bornées à la
+     chaussée, elles longeaient le bord sur tout le tour. On reprend les lignes de Spa telles que
+     l'éditeur les ouvre, et on les donne à Spa, puis aux douze autres. */
+  const garde = await page.evaluate(() => {
+    charger('spa', false);
+    const lignes = { racing: S.pts.racing, inside: S.pts.inside, outside: S.pts.outside };
+    return TRACKS.map((def) => ({ id: def.id, ignorees: !!new Track(Object.assign({}, def, { lines: lignes })).lignesIgnorees }));
+  });
+  const surSpa = garde.find((g) => g.id === 'spa'), gardeesAilleurs = garde.filter((g) => g.id !== 'spa' && !g.ignorees).map((g) => g.id);
+  if (surSpa.ignorees) { errs++; console.log('  ÉCHEC : les lignes de Spa sont ignorées sur Spa'); }
+  else if (gardeesAilleurs.length) { errs++; console.log(`  ÉCHEC : les lignes de Spa sont jouées sur ${gardeesAilleurs.join(', ')}`); }
+  else console.log(`  ok : les lignes de Spa sont jouées sur Spa et ignorées sur les ${garde.length - 1} autres circuits`);
+
   if (dossier) {
     await page.evaluate(() => charger('monaco', false));
     await page.waitForTimeout(250);
