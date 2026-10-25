@@ -142,13 +142,18 @@ begin
       ('liveries',case when e.car is not null then e.car||'|'||e.livery::text end),
       ('devices',e.device),('controls',e.control),('modes',e.mode),('categories',e.category),('versions',e.version)) k(kind,key)
     where key is not null group by kind,key
-  ), first_seen as (
-    select v.visitor,(select min(e.at) from public.analytics_events e where e.visitor=v.visitor) first_at
+  -- Revenus : au moins deux visites jusqu'à la fin de la période, avant elle ou pendant.
+  -- « Vu avant le début de la période » comptait nouveau un joueur venu trente fois depuis le
+  -- début de la mesure, tant que celle-ci commençait dans la fenêtre choisie.
+  ), visits as (
+    select v.visitor,(select count(distinct e.session) from public.analytics_events e
+      where e.visitor=v.visitor and e.at < ((p_to+1)::timestamp at time zone 'UTC')
+        and (p_track is null or e.track=p_track) and (p_car is null or e.car=p_car)) n
     from (select distinct visitor from current_events) v
   ), audience as (
-    select count(*) filter(where first_at >= (p_from::timestamp at time zone 'UTC')) new,
-      count(*) filter(where first_at < (p_from::timestamp at time zone 'UTC')) as "returning"
-    from first_seen where visitor in (select distinct visitor from current_events)
+    -- `definition` dit au tableau de bord quel libellé poser : l'ancien ne la renvoyait pas
+    select count(*) filter(where n < 2) new, count(*) filter(where n >= 2) as "returning",
+      'visites' as definition from visits
   )
   select jsonb_build_object(
     'generated_at',now(),'first_day',(select (min(at) at time zone 'UTC')::date from public.analytics_events),

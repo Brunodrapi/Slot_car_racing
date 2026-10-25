@@ -16,7 +16,7 @@
       thCircuit: 'Circuit', thCar: 'Voiture', thLivery: 'Livrée', thStarts: 'Départs', thLaps: 'Tours', thDrivers: 'Pilotes', thTime: 'Temps',
       kVisitors: 'Visiteurs uniques estimés', kSessions: 'Visites', kStarts: 'Départs', kLaps: 'Tours réalisés', kSeconds: 'Temps de jeu',
       kCompleted: 'Courses terminées', kAbandoned: 'Abandons explicites', kOfftracks: 'Sorties de piste', vsPrevious: 'vs période précédente',
-      audience: (n, r) => `${n} nouveaux · ${r} déjà venus`, sVisitors: 'Visiteurs', sLaps: 'Tours', sStarts: 'Départs',
+      audience: (n, r) => `${n} nouveaux · ${r} déjà venus`, audienceVisites: (n, r) => `${n} venus une fois · ${r} revenus`, sVisitors: 'Visiteurs', sLaps: 'Tours', sStarts: 'Départs',
       days: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'], startsN: (n) => `${n} départs`,
       quality: (pc, c, k) => `${pc} % de tours propres · ${c} / ${k} tours renseignés`, noLap: 'Aucun tour renseigné.',
       coverage: (a, b) => `Collecte depuis le ${a}. Dernier jour avec une activité : ${b}. Aucun historique de tours reconstitué à partir des records.`,
@@ -34,7 +34,7 @@
       thCircuit: 'Circuit', thCar: 'Car', thLivery: 'Livery', thStarts: 'Starts', thLaps: 'Laps', thDrivers: 'Drivers', thTime: 'Time',
       kVisitors: 'Estimated unique visitors', kSessions: 'Visits', kStarts: 'Starts', kLaps: 'Laps driven', kSeconds: 'Playing time',
       kCompleted: 'Races finished', kAbandoned: 'Explicit retirements', kOfftracks: 'Offs', vsPrevious: 'vs previous period',
-      audience: (n, r) => `${n} new · ${r} returning`, sVisitors: 'Visitors', sLaps: 'Laps', sStarts: 'Starts',
+      audience: (n, r) => `${n} new · ${r} returning`, audienceVisites: (n, r) => `${n} one-time · ${r} returning`, sVisitors: 'Visitors', sLaps: 'Laps', sStarts: 'Starts',
       days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], startsN: (n) => `${n} starts`,
       quality: (pc, c, k) => `${pc} % clean laps · ${c} / ${k} laps with a known state`, noLap: 'No lap recorded.',
       coverage: (a, b) => `Collected since ${a}. Last day with activity: ${b}. No lap history rebuilt from the records.`,
@@ -131,7 +131,8 @@
       return `<section class="kpi"><h2>${title}</h2><strong>${key === 'seconds' ? duration(c[key]) : num(c[key])}</strong><small><span class="delta">${delta === null ? '—' : (delta > 0 ? '+' : '') + delta.toLocaleString(LOC, { maximumFractionDigits: 0 }) + ' %'}</span>${TXT.vsPrevious}</small></section>`;
     }).join('');
     $('empty').hidden = !!c.visitors;
-    $('audience').textContent = TXT.audience(num(r.audience.new), num(r.audience.returning));
+    // « revenus » (deux visites ou plus) seulement si le serveur calcule déjà ainsi, sinon l'ancien libellé
+    $('audience').textContent = TXT[r.audience.definition === 'visites' ? 'audienceVisites' : 'audience'](num(r.audience.new), num(r.audience.returning));
     const days = [], daily = new Map(r.daily.map(d => [d.day, d]));
     for (let d = new Date($('from').value + 'T00:00:00Z'); date(d) <= $('to').value; d.setUTCDate(d.getUTCDate() + 1)) days.push(date(d));
     // la légende en haut : en bas, elle recouvrait les dates sur un téléphone

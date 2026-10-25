@@ -79,9 +79,13 @@ somme du fichier copié sont conservés dans [`vendor/echarts`](../../vendor/ech
   disponible. Ces tours sont comptés, avec temps/propreté inconnus, exclus du taux de propreté. Les temps individuels ne sont pas renvoyés par le rapport public.
 - **Classements** : circuits, voitures et livrées, triés par départs puis tours ; temps et visiteurs
   associés. Répartition des départs par support, commande choisie au départ, mode et catégorie.
-- **Nouveaux / déjà venus** : première activité connue du navigateur avant ou pendant la période.
-  Ce n’est pas une mesure de rétention J+1/J+7. Après purge d’historique, la définition porte sur les
-  événements encore conservés.
+- **Venus une fois / revenus** : un visiteur de la période est « revenu » s’il compte au moins deux
+  visites jusqu’à la fin de la période, avant elle ou pendant. L’ancienne définition (« déjà venu » =
+  vu avant le début de la période) comptait nouveau un joueur venu trente fois, tant que la mesure
+  commençait dans la fenêtre choisie. Le rapport renvoie `definition: 'visites'` avec ces chiffres ;
+  sans elle (ancienne fonction encore installée), la page garde l’ancien libellé. Ce n’est pas une
+  mesure de rétention J+1/J+7. Après purge
+  d’historique, la définition porte sur les événements encore conservés.
 
 Dates, activité quotidienne et grille horaire sont en **UTC**. La comparaison porte sur la période
 précédente de même durée. Un filtre voiture/circuit restreint tous les indicateurs, y compris
