@@ -43,10 +43,13 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   const depart = await page.evaluate(() => ({
     circuits: TRACKS.length, circuit: S.def.id,
     pts: { racing: S.pts.racing.length, inside: S.pts.inside.length, outside: S.pts.outside.length },
+    longueur: S.track.n * S.track.ds,
   }));
   console.log('au chargement :', JSON.stringify(depart));
+  // un point de contrôle tous les vingt mètres (multiple de quatre) : à 48, la ligne coupait les virages
+  const attendu = Math.max(48, Math.round(depart.longueur / 20 / 4) * 4);
   for (const nom of ['racing', 'inside', 'outside']) {
-    if (depart.pts[nom] !== 48) { errs++; console.log(`  ÉCHEC : ${nom} a ${depart.pts[nom]} points, 48 attendus`); }
+    if (depart.pts[nom] !== attendu) { errs++; console.log(`  ÉCHEC : ${nom} a ${depart.pts[nom]} points, ${attendu} attendus`); }
   }
 
   // --- les trois lignes sont-elles distinctes, et dans la piste ? ---

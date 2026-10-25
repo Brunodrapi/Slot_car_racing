@@ -1478,6 +1478,20 @@ zoom, pas de clic droit, et un panneau de trois cent vingt pixels qui prenait la
   22 au doigt. Et le rayon d'un point suit l'écartement à l'écran — posé à huit pixels, il donnait un
   collier de perles dès qu'on dézoomait, puisque quarante-huit points sur un circuit qui tient dans
   trois cents pixels sont à six pixels l'un de l'autre. On ne peut pas viser ce qu'on ne distingue pas.
+- **Un point de contrôle tous les vingt mètres**, et non quarante-huit pour tous les circuits (0.52.22).
+  À 48, la courbe passait à 48 m d'un point au suivant à Monaco, à 87 m au Mans : elle coupait les
+  épingles et les chicanes, et sa projection sur la piste partait au loin. Mesuré en reprenant les
+  lignes **calculées** : à 48 points, l'aperçu sortait de la chaussée sur les treize circuits — 3 964
+  stations à Monaco, jusqu'à 360 m de la piste. C'est ce que Bruno a vu (« le gros bordel »). À un
+  point tous les 20 m (116 à Monaco, 212 au Mans), plus aucune station ne sort, et l'écart au calcul
+  tombe sous 4 m.
+- **Monaco ne porte plus de lignes reprises.** Celles de `js/tracks.js` suivaient l'**ancien** tracé,
+  d'avant le relevé OpenStreetMap — une autre forme de circuit, à 117 m de la piste actuelle par
+  endroits. Bornées à la chaussée, elles collaient au bord sur tout le tour : l'idéale et la bleue
+  sur 100 % des stations, en recette comme en prod. Le jeu y joue donc le calcul, en attendant
+  qu'elles soient redessinées. Les autres reprises (Silverstone, Suzuka, Le Mans, Zandvoort) restent
+  — la ligne intérieure de Suzuka mériterait d'être reprise : elle change de branche près de
+  l'épingle, et la jaune y longe le bord sur 56 % du tour.
 
 ### Les panneaux
 

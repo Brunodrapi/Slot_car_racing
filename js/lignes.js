@@ -125,6 +125,16 @@ const versEditeur = (p) => (Array.isArray(p)
   : { at: +p.at, dist: +p.dist,
     note: p.note != null ? p.note : (p.kind && p.kind !== 'normal' ? p.kind : p.grade), sign: +p.sign });
 
+/* UN POINT DE CONTRÔLE TOUS LES VINGT MÈTRES, et non quarante-huit pour tous les circuits.
+
+Quarante-huit points, c'est un tous les quarante-huit mètres à Monaco, un tous les quatre-vingt-sept
+au Mans : la courbe qui passe par eux coupe les épingles et les chicanes, et sa projection sur la
+piste s'en va. Mesuré en reprenant les lignes CALCULÉES par l'éditeur lui-même : à 48 points, elles
+sortaient de la chaussée sur les treize circuits — 3 964 stations à Monaco, jusqu'à 360 m de la
+piste. À un point tous les vingt mètres, plus aucune ne sort, et l'écart au calcul tombe sous 4 m.
+Un multiple de quatre, pour le pas du champ. */
+const pointsParDefaut = (T) => Math.max(48, Math.round(T.n * T.ds / 20 / 4) * 4);
+
 function charger(id, garderPts) {
   S.def = TRACKS.find((t) => t.id === id) || TRACKS[0];
   // Le circuit est construit SANS ses lignes explicites, pour que « revenir au calcul » veuille
@@ -134,6 +144,7 @@ function charger(id, garderPts) {
   delete nu.panneaux;      // idem pour les panneaux : `boards` doit être le calcul, pas la reprise
   S.track = new Track(nu);
   $('circuit').value = S.def.id;         // le sélecteur suit, même quand on charge par code
+  if (!garderPts) $('nPts').value = pointsParDefaut(S.track);
   const n = +$('nPts').value;
   if (!garderPts) for (const nom of ['racing', 'inside', 'outside']) S.pts[nom] = autoPoints(nom, n);
   if (!garderPts) {
