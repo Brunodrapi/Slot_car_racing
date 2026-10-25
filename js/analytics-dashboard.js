@@ -134,8 +134,9 @@
     $('audience').textContent = TXT.audience(num(r.audience.new), num(r.audience.returning));
     const days = [], daily = new Map(r.daily.map(d => [d.day, d]));
     for (let d = new Date($('from').value + 'T00:00:00Z'); date(d) <= $('to').value; d.setUTCDate(d.getUTCDate() + 1)) days.push(date(d));
-    chart('daily-chart', { tooltip: { trigger: 'axis' }, legend: { textStyle: { color: '#a0afb4' } },
-      grid: { left: 50, right: 45, bottom: 42, top: 45 },
+    // la légende en haut : en bas, elle recouvrait les dates sur un téléphone
+    chart('daily-chart', { tooltip: { trigger: 'axis' }, legend: { top: 0, textStyle: { color: '#a0afb4' } },
+      grid: { left: 50, right: 45, bottom: 30, top: 45 },
       xAxis: { type: 'category', data: days.map(d => d.slice(8) + '/' + d.slice(5, 7)), boundaryGap: false },
       yAxis: [{ type: 'value', minInterval: 1, splitLine: { lineStyle: { color: '#2d383f' } } }, { type: 'value', minInterval: 1, splitLine: { show: false } }],
       series: [['visitors', TXT.sVisitors, 0], ['laps', TXT.sLaps, 1], ['starts', TXT.sStarts, 1]].map(([key, name, yAxisIndex]) => ({
