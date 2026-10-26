@@ -4090,3 +4090,30 @@ quatre mètres au-delà de l'axe et écarte l'extérieur de six : retouche accep
 5,6 m, bords à 9 et 33 cm du dessin, trajectoires dans la chaussée ; dans l'éditeur, un point tiré
 deux mètres plus loin reste sous la souris ; en course, les neuf voitures de l'ordinateur bouclent
 leur tour sans une sortie de piste.
+
+### Les trajectoires dans l'éditeur de circuits — 0.52.30
+
+« Je ne peux pas modifier les lignes sur le même tracé que l'éditeur pour tout modifier d'un coup. »
+Les trajectoires avaient leur outil à part, `lignes.html`, qui construit le circuit du fichier sans
+la reprise du décor : un virage redessiné dans « Largeur de piste » y gardait son ancien tracé, et
+il fallait passer d'un outil à l'autre, chacun avec son enregistrement et son fichier.
+
+**Le mode Décor de `editor.html` a maintenant un outil « Trajectoires ».** Corde, intérieure et
+extérieure s'y modifient point par point, sur la piste que le jeu dessine — virages redessinés
+compris : glisser un point, Maj+clic pour en ajouter un sur le segment le plus proche, Alt+clic ou
+clic droit pour en retirer un, « Revenir au calcul » pour une ligne ou les trois. Les trois
+trajectoires du jeu sont dessinées, celle qu'on modifie par-dessus avec ses points.
+
+- **Mêmes données, même place** : trois listes de points de contrôle en unités de `pts`, rangées
+  dans la base `lines` que le jeu et `lignes.html` relisent. À l'ouverture, l'outil prend celles
+  du poste, sinon celles du fichier, sinon le calcul ; un point tous les vingt mètres.
+- **Tant qu'on n'y a pas touché, ce sont celles du calcul** : elles suivent la piste retouchée — un
+  virage redessiné les emporte avec lui. Le premier point déplacé les fixe.
+- **Un seul « Annuler », un seul « Enregistrer », un seul « Fabriquer tracks.js »** pour le décor et
+  les trajectoires ; « Revenir au fichier » oublie les deux.
+- `lignes.html` reste pour les panneaux de freinage et la règle ; il ne voit pas la reprise du décor.
+
+`tools/e2e-editeur-trajectoires.js` le vérifie à Monaco, par l'interface : virage redessiné et
+trajectoires calculées qui le suivent ; un point glissé de trois mètres déplace la corde jouée ;
+annulation, enregistrement, rechargement ; le jeu joue le virage et ses trajectoires ; le fichier
+fabriqué porte les deux ; l'oubli efface les deux.

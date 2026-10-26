@@ -11,6 +11,8 @@ de l'éditeur permet de reprendre chacune de ces couches :
   Barrières   tracer une protection, la reprendre, en couper un morceau ;
   Zones       les zones d'implantation (bois, tribunes, stands, hangars, parkings, camping, vide) ;
   Stands      l'entrée, la zone d'arrêt et la sortie de la voie des stands.
+  Trajectoires  la corde, l'intérieure et l'extérieure, point par point, sur la piste telle qu'elle est
+              retouchée — virages redessinés compris — pour tout reprendre au même endroit.
 
 CE QUI EST AFFICHÉ EST CE QUE LE JEU DESSINE, parce que c'est son moteur de rendu qui le dessine : un
 `Track` construit avec la reprise, et un `Renderer` qui le peint. Les poignées d'édition passent par
@@ -49,6 +51,8 @@ const DEC = {
   sel: null, drag: null, trace: null, survol: null,
   ajout: 'mix-feuillus', gomme: 6,
   annule: [], modif: false,
+  lignes: null,                    // les trois trajectoires en cours : points de contrôle, unités de `pts`
+  ligne: 'racing',                 // celle qu'on modifie
   peintPrevu: false, refaitPrevu: null,
   pointeurs: new Map(), pince: null,
 };
@@ -90,12 +94,16 @@ function peindre() {
   });
 }
 
-function definition() { return avecDecor(DEC.def0, DEC.decor); }
+function definition() {
+  const d = avecDecor(DEC.def0, DEC.decor);
+  return DEC.lignes ? { ...d, lines: DEC.lignes } : d;
+}
 
 // Reconstruire la piste et son décor : à la fin d'un geste, pas pendant.
 function refaire(tout) {
   clearTimeout(DEC.refaitPrevu);
   DEC.refaitPrevu = setTimeout(() => {
+    DEC.calculLignes = null;                  // le calcul suit la piste retouchée
     try {
       DEC.track = new Track(definition(), ECHELLE_ROUTE);
       DEC.rendu.setTrack(DEC.track);
@@ -121,16 +129,19 @@ function cadrer() {
 
 // Toute retouche passe ici : une étape d'annulation, puis la piste reconstruite.
 function changer(fn) {
-  DEC.annule.push(JSON.stringify(DEC.decor));
+  DEC.annule.push(instantane());
   if (DEC.annule.length > 80) DEC.annule.shift();
   fn();
   nettoyer();
   DEC.modif = true;
   refaire();
 }
+// ce qu'« Annuler » rétablit : le décor et les trajectoires, qui se retouchent dans le même éditeur
+function instantane() { return JSON.stringify({ decor: DEC.decor, lignes: DEC.lignes }); }
 function annuler() {
   if (!DEC.annule.length) return;
-  DEC.decor = JSON.parse(DEC.annule.pop());
+  const e = JSON.parse(DEC.annule.pop());
+  DEC.decor = e.decor; DEC.lignes = e.lignes;
   DEC.sel = null; DEC.trace = null; DEC.modif = true;
   refaire();
 }
@@ -351,6 +362,38 @@ function ajouterLargeur(pr, deuxCotes = false) {
 
 /* ------------------------------------------------- zones d'implantation */
 
+/* ------------------------------------------------- trajectoires
+
+LES TRAJECTOIRES SE REPRENNENT ICI, SUR LA PISTE RETOUCHÉE. Elles avaient leur outil à part
+(`lignes.html`), qui construisait le circuit du fichier sans la reprise du décor : un virage redessiné
+ici y gardait son ancien tracé, et l'on ne pouvait pas reprendre la route et ses lignes d'un coup.
+Ce sont les mêmes données — trois listes de points de contrôle, en unités de `pts`, que `Track`
+projette sur l'axe — enregistrées au même endroit (la base `lines`, que le jeu et `lignes.html`
+relisent) et reportées dans `js/tracks.js` avec le décor. Un point tous les vingt mètres, comme
+dans `lignes.html` : à moins, la courbe coupe les épingles. */
+const NOMS_LIGNE = { racing: 'Corde', inside: 'Intérieure', outside: 'Extérieure' };
+const COUL_LIGNE = { racing: '#ffffff', inside: '#ff7ad9', outside: '#8ef58e' };
+const arrondiLigne = (l) => l && Object.fromEntries(['racing', 'inside', 'outside'].map((nom) => [nom, (l[nom] || []).map(([x, y]) => [Math.round(x * 1000) / 1000, Math.round(y * 1000) / 1000])]));
+// les trajectoires que le jeu calculerait sur la piste retouchée, en points de contrôle
+function lignesDuCalcul(nom) {
+  const d = { ...avecDecor(DEC.def0, DEC.decor) };
+  delete d.lines;
+  const T = new Track(d, ECHELLE_ROUTE), u = T.unitScale, n = Math.max(48, Math.round(T.n * T.ds / 20 / 4) * 4);
+  const pts = (k) => Array.from({ length: n }, (_, i) => {
+    const j = Math.round(i * T.n / n) % T.n, lat = T.tracees[k][j];
+    return [(T.xs[j] + T.nx[j] * lat) / u, (T.ys[j] + T.ny[j] * lat) / u];
+  });
+  return nom ? pts(nom) : { racing: pts('racing'), inside: pts('inside'), outside: pts('outside') };
+}
+// les points affichés : ceux qu'on a, sinon ceux du calcul (posés au premier geste)
+function pointsLigne(nom) {
+  if (DEC.lignes) return DEC.lignes[nom];
+  if (!DEC.calculLignes) DEC.calculLignes = lignesDuCalcul();
+  return DEC.calculLignes[nom];
+}
+function poserLignes() { if (!DEC.lignes) DEC.lignes = clone(DEC.calculLignes || lignesDuCalcul()); }
+const enMonde = ([x, y]) => ({ x: x * DEC.track.unitScale, y: y * DEC.track.unitScale });
+
 function zonesIm() { return DEC.decor.implantation || (DEC.decor.implantation = []); }
 /* Le contour d'une zone, pour la voir et la viser : son bord côté piste à l'aller, son bord extérieur
 au retour. Sans l'ondulation ni les tronçons de `implContour`, qui servent au dessin du sol et ne
@@ -407,6 +450,19 @@ function dessinerCalque(g) {
     g.strokeStyle = coul; g.lineWidth = l; g.stroke(); g.setLineDash([]);
   };
   const s = DEC.sel;
+  if (DEC.outil === 'lignes' && T.tracees) {
+    // les trois trajectoires telles que le jeu les jouera, celle qu'on modifie par-dessus
+    const trace = (nom) => {
+      const lat = T.tracees[nom], pts = [];
+      for (let i = 0; i <= T.n; i += 2) { const j = i % T.n; pts.push({ x: T.xs[j] + T.nx[j] * lat[j], y: T.ys[j] + T.ny[j] * lat[j] }); }
+      return pts;
+    };
+    for (const nom of ['inside', 'outside', 'racing']) if (nom !== DEC.ligne) ligne(trace(nom), COUL_LIGNE[nom], 1.5);
+    ligne(trace(DEC.ligne), COUL_LIGNE[DEC.ligne], 3);
+    const pts = pointsLigne(DEC.ligne).map(enMonde);
+    if (DEC.drag && DEC.drag.pointLigne) ligne([...pts, pts[0]], COUL_LIGNE[DEC.ligne], 1, [4, 4]);
+    pts.forEach((p, i) => poignee(p, COUL_LIGNE[DEC.ligne], s && s.point === i));
+  }
   if (DEC.outil === 'piste') largeursPiste().forEach((z,i) => {
     const pts=z.points.map((_,j)=>pointLargeur(z,j));
     const curve=z.followContour?Track.roadCurve(pts,z.points.map(p=>p[0]),z.smoothContour!==false):pts;
@@ -477,6 +533,10 @@ function dessinerCalque(g) {
 function poignéeSous(px, py) {
   const T = DEC.track, R = rayonDoigt(), s = DEC.sel;
   const pres = (p) => { const q = versEcran(p.x, p.y); return Math.hypot(q.x - px, q.y - py) <= R; };
+  if (DEC.outil === 'lignes') {
+    const i = pointsLigne(DEC.ligne).findIndex((q) => pres(enMonde(q)));
+    if (i >= 0) return { ligne: DEC.ligne, point: i };
+  }
   if(DEC.outil==='piste'){
     const order=largeursPiste().map((z,i)=>i).sort((a,b)=>(b===s?.zone)-(a===s?.zone));
     for(const zi of order){const z=largeursPiste()[zi],i=z.points.findIndex((_,j)=>pres(pointLargeur(z,j)));if(i>=0)return {largeur:zi,point:i};}
@@ -534,11 +594,41 @@ function surBas(e) {
     peindre(); majFiche(); return;
   }
 
+  if (DEC.outil === 'lignes') {
+    const u = T.unitScale;
+    if (h && h.point != null) {
+      DEC.sel = { outil: 'lignes', point: h.point };
+      if (supprPoint) {
+        if (pointsLigne(DEC.ligne).length > 12) changer(() => { poserLignes(); DEC.lignes[DEC.ligne].splice(h.point, 1); DEC.sel = null; });
+        majFiche(); return;
+      }
+      DEC.annule.push(instantane());
+      poserLignes();
+      DEC.drag = { pointLigne: { nom: DEC.ligne, i: h.point } };
+      majFiche(); peindre(); return;
+    }
+    if (e.shiftKey || DEC.mode === 'point') {
+      // un point de plus, sur le segment le plus proche de la ligne modifiée
+      const pts = pointsLigne(DEC.ligne).map(enMonde);
+      let best = 0, bd = Infinity;
+      for (let i = 0; i < pts.length; i++) {
+        const a = pts[i], b = pts[(i + 1) % pts.length], dx = b.x - a.x, dy = b.y - a.y;
+        const t = clamp(((w.x - a.x) * dx + (w.y - a.y) * dy) / ((dx * dx + dy * dy) || 1e-9), 0, 1);
+        const d = Math.hypot(w.x - a.x - t * dx, w.y - a.y - t * dy);
+        if (d < bd) { bd = d; best = i; }
+      }
+      changer(() => { poserLignes(); DEC.lignes[DEC.ligne].splice(best + 1, 0, [w.x / u, w.y / u]); DEC.sel = { outil: 'lignes', point: best + 1 }; });
+      DEC.mode = 'choisir'; majFiche(); return;
+    }
+    DEC.sel = null;
+    DEC.drag = { pan: [e.clientX, e.clientY, DEC.rendu.cam.x, DEC.rendu.cam.y] };
+    majFiche(); peindre(); return;
+  }
   if (DEC.outil === 'piste') {
     if(h?.largeur!=null){
       const z=largeursPiste()[h.largeur];DEC.sel={outil:'piste',zone:h.largeur};
       if(supprPoint){if(h.point>0&&h.point<z.points.length-1&&z.points.length>3)changer(()=>z.points.splice(h.point,1));majFiche();return;}
-      DEC.annule.push(JSON.stringify(DEC.decor));
+      DEC.annule.push(instantane());
       z.followContour=true;
       const def=definition();
       DEC.drag={pointLargeur:{zone:h.largeur,point:h.point},baseLargeur:new Track({...def,roadWidenings:largeursPiste().filter((_,i)=>i!==h.largeur)},ECHELLE_ROUTE)};
@@ -564,11 +654,11 @@ function surBas(e) {
     majFiche();peindre();return;
   }
   if (DEC.outil === 'objets') {
-    if (DEC.mode === 'gomme') { DEC.annule.push(JSON.stringify(DEC.decor)); DEC.drag = { gomme: true, n: gommer(w.x, w.y) }; return; }
+    if (DEC.mode === 'gomme') { DEC.annule.push(instantane()); DEC.drag = { gomme: true, n: gommer(w.x, w.y) }; return; }
     if (DEC.mode === 'ajouter') {
       const rec = nouvelObjet(DEC.ajout, w.x, w.y);
       if (!rec) return;
-      DEC.annule.push(JSON.stringify(DEC.decor));
+      DEC.annule.push(instantane());
       objets().ajouts.push(rec);
       DEC.drag = { seme: true, dernier: w };
       DEC.modif = true; refaire(); return;
@@ -583,13 +673,13 @@ function surBas(e) {
     if (h && h.zone != null) {
       const z = zonesHP()[h.zone];
       if (supprPoint) { if (pointsZone(z).length > 2) changer(() => enPoints(z).splice(h.point, 1)); return; }
-      DEC.annule.push(JSON.stringify(DEC.decor)); enPoints(z);
+      DEC.annule.push(instantane()); enPoints(z);
       DEC.sel = { outil: 'horspiste', zone: h.zone, point: h.point }; DEC.drag = { pointZone: h }; return;
     }
     if (h && h.pad != null) {
       const pad = padsListe()[h.pad];
       if (supprPoint) { if (pad.pts.length > 3) changer(() => pad.pts.splice(h.point, 1)); return; }
-      DEC.annule.push(JSON.stringify(DEC.decor));
+      DEC.annule.push(instantane());
       DEC.sel = { outil: 'horspiste', pad: h.pad, point: h.point }; DEC.drag = { pointPad: h }; return;
     }
     // une zone sous le pointeur ; Maj+clic sur la zone choisie y insère un point
@@ -616,7 +706,7 @@ function surBas(e) {
     if (h && h.trait != null) {
       const p = traits()[h.trait];
       if (supprPoint) { if (p.pts.length > 2) changer(() => { p.pts.splice(h.point, 1); recaleTrait(p); }); return; }
-      DEC.annule.push(JSON.stringify(DEC.decor));
+      DEC.annule.push(instantane());
       DEC.sel = { outil: 'barrieres', trait: h.trait, point: h.point }; DEC.drag = { pointTrait: h }; return;
     }
     const ti = traits().findIndex((p) => distPoly(e.clientX, e.clientY, p.pts.map(([x, y]) => ({ x, y }))) <= rayonDoigt());
@@ -636,7 +726,7 @@ function surBas(e) {
     return;
   }
   if (DEC.outil === 'zones') {
-    if (h && h.zone != null) { DEC.annule.push(JSON.stringify(DEC.decor)); DEC.drag = { poigneeZone: h }; return; }
+    if (h && h.zone != null) { DEC.annule.push(instantane()); DEC.drag = { poigneeZone: h }; return; }
     let zi = -1;
     zonesIm().forEach((z, i) => { if (contours(z).some((poly) => dansPoly(poly.map((p) => [p.x, p.y]), w.x, w.y))) zi = i; });
     DEC.sel = zi >= 0 ? { outil: 'zones', zone: zi } : null;
@@ -645,7 +735,7 @@ function surBas(e) {
     return;
   }
   if (DEC.outil === 'stands') {
-    if (h) { DEC.annule.push(JSON.stringify(DEC.decor)); DEC.sel = { outil: 'stands', role: h.role }; DEC.drag = { stand: h }; return; }
+    if (h) { DEC.annule.push(instantane()); DEC.sel = { outil: 'stands', role: h.role }; DEC.drag = { stand: h }; return; }
     DEC.drag = { pan: [e.clientX, e.clientY, DEC.rendu.cam.x, DEC.rendu.cam.y] };
   }
 }
@@ -677,6 +767,11 @@ function surMouvement(e) {
     return;
   }
   if (g.objet) { g.bouge = true; g.objet.o.x = g.x0 + w.x - g.de.x; g.objet.o.y = g.y0 + w.y - g.de.y; DEC.rendu.implantation && implIndexe(DEC.rendu.implantation); peindre(); return; }
+  if (g.pointLigne) {
+    const u = T.unitScale;
+    DEC.lignes[g.pointLigne.nom][g.pointLigne.i] = [w.x / u, w.y / u];
+    peindre(); return;
+  }
   if(g.pointLargeur){
     const z=largeursPiste()[g.pointLargeur.zone],i=g.pointLargeur.point,pts=z.points,base=axeDe(g.baseLargeur);
     const pr=base.project(w.x,w.y,base.wrap(pts[i][0]*base.length),220);
@@ -848,6 +943,12 @@ function majFiche() {
       h+=champ('Longueur de zone (m)',nombre('d-largeur-long',r2((z.points.at(-1)[0]-z.points[0][0])*axeDe(DEC.track).length),10,500,5));
       h+='<p class="help">Glisser les points pour redessiner le bord — y compris au-delà du milieu de la piste : le tracé du virage se recentre entre ses deux bords. D/F déplacent le début et la fin. Maj+clic dans la zone sélectionnée ajoute un point ; Alt+clic sur un point intérieur le retire. Les extrémités rejoignent progressivement la piste. Valeur négative : rétrécir. Les mètres correspondent à la chaussée affichée en jeu.</p><button id="d-largeur-oppose">Ajouter aussi le côté opposé</button><button id="d-suppr">Supprimer cet élargissement</button>';
     }
+  } else if (DEC.outil === 'lignes') {
+    h += `<div class="tools">${['racing', 'inside', 'outside'].map((nom) => `<button data-ligne="${nom}" class="${DEC.ligne === nom ? 'sel' : ''}"><span style="color:${COUL_LIGNE[nom]}">●</span> ${NOMS_LIGNE[nom]}</button>`).join('')}</div>`;
+    h += `<p class="help">${DEC.lignes ? `${pointsLigne(DEC.ligne).length} points. ${DEC.lignesOrigine}` : 'Trajectoires calculées par le jeu : le premier point déplacé les fixe.'}</p>`;
+    h += '<div class="tools"><button id="d-ligne-point">+ Ajouter un point</button><button id="d-ligne-calcul">Revenir au calcul</button><button id="d-lignes-calcul">Les trois au calcul</button></div>';
+    if (DEC.mode === 'point') h += '<p class="help">Clique près de la ligne : le point se pose sur le segment le plus proche.</p>';
+    h += '<p class="help">Glisser un point pour déplacer la trajectoire. Maj+clic : ajouter un point ; Alt+clic ou clic droit sur un point : le retirer. Les trajectoires suivent la piste telle qu’elle est retouchée ici — un virage redessiné dans « Largeur de piste » se reprend aussitôt. « Enregistrer » et « Fabriquer tracks.js » emportent décor et trajectoires ensemble.</p>';
   } else if (DEC.outil === 'horspiste') {
     h += champ('Gravier automatique dans les virages', `<input type="checkbox" id="d-auto" ${DEC.decor.annotatedRunoffsOnly ? '' : 'checked'}>`);
     h += `<div class="tools"><button data-nouv="asphalt">+ Bitume</button><button data-nouv="gravel">+ Gravier</button><button data-nouv="grass">+ Herbe</button><button data-nouv="pad">+ Surface liée au bord</button><button data-fill="asphalt">Combler : bitume</button><button data-fill="gravel">Combler : gravier</button></div>`;
@@ -928,6 +1029,10 @@ function brancherFiche() {
   for (const b of document.querySelectorAll('#d-fiche [data-zone]')) b.onclick = () => commencerTrace('zone', { kind: b.dataset.zone, essence: b.dataset.essence });
   for (const b of document.querySelectorAll('#d-fiche [data-fill]')) b.onclick = () => commencerTrace('pad', {free:true, surface:b.dataset.fill});
   on('d-pad-surface', 'change', ev => changer(() => { padsListe()[DEC.sel.pad].surface=ev.target.value; }, true));
+  for (const b of document.querySelectorAll('#d-fiche [data-ligne]')) b.onclick = () => { DEC.ligne = b.dataset.ligne; DEC.sel = null; DEC.mode = 'choisir'; majFiche(); peindre(); };
+  on('d-ligne-point', 'click', () => { DEC.mode = 'point'; majFiche(); });
+  on('d-ligne-calcul', 'click', () => changer(() => { poserLignes(); DEC.lignes[DEC.ligne] = lignesDuCalcul(DEC.ligne); DEC.sel = null; }));
+  on('d-lignes-calcul', 'click', () => changer(() => { DEC.lignes = lignesDuCalcul(); DEC.sel = null; }));
   on('d-largeur-ajout','click',()=>{DEC.mode='ajouter';majFiche();});
   on('d-largeur-lisse','change',e=>changer(()=>{const z=largeursPiste()[DEC.sel.zone];z.smoothContour=e.target.checked;z.followContour=true;}));
   on('d-largeur-contour','change',e=>changer(()=>{largeursPiste()[DEC.sel.zone].followContour=e.target.checked;}));
@@ -1029,8 +1134,17 @@ async function chargerCircuit(id) {
   let def0 = TRACKS.find((t) => t.id === id), perso = false, local = null;
   if (!def0) { try { def0 = await Store.get('tracks', id); perso = true; } catch (_) { /* base indisponible */ } }
   if (!def0) return;
-  if (!perso) { try { local = await Store.get('decor', id); } catch (_) { /* base indisponible */ } }
+  let lignesLocales = null;
+  if (!perso) {
+    try { local = await Store.get('decor', id); } catch (_) { /* base indisponible */ }
+    try { lignesLocales = await Store.get('lines', id); } catch (_) { /* base indisponible */ }
+  }
   DEC.id = id; DEC.perso = perso; DEC.def0 = def0; DEC.local = !!(local && local.decor);
+  // les trajectoires que le jeu joue : celles du poste, sinon celles du fichier, sinon le calcul
+  const lignes = lignesLocales && lignesLocales.lines && lignesLocales.lines.racing ? lignesLocales.lines : def0.lines;
+  DEC.lignes = lignes && lignes.racing ? clone(lignes) : null;
+  DEC.lignesOrigine = lignesLocales && lignesLocales.lines ? 'Enregistrées sur ce poste.' : def0.lines ? 'Celles du fichier.' : '';
+  DEC.calculLignes = null;
   DEC.decor = {};
   for (const k of CLES_DECOR) {
     const v = local && local.decor && k in local.decor ? local.decor[k] : def0[k];
@@ -1058,12 +1172,17 @@ async function enregistrer() {
     if (DEC.perso) {
       const def = { ...DEC.def0 };
       for (const k of CLES_DECOR) { if (DEC.decor[k] == null) delete def[k]; else def[k] = clone(DEC.decor[k]); }
+      if (DEC.lignes) def.lines = arrondiLigne(DEC.lignes);
       await Store.put('tracks', def);
       DEC.def0 = def; DEC.local = false;
     } else {
       const ecart = ecartAuFichier(DEC.def0, DEC.decor);
       if (Object.keys(ecart).length) { await Store.put('decor', { id: DEC.id, at: Date.now(), decor: ecart }); DEC.local = true; }
       else { await Store.del('decor', DEC.id); DEC.local = false; }
+      // les trajectoires, là où `lignes.html` les range et où le jeu les relit
+      const lignes = arrondiLigne(DEC.lignes);
+      if (lignes && !egal(lignes, arrondiLigne(DEC.def0.lines))) { await Store.put('lines', { id: DEC.id, at: Date.now(), lines: lignes }); DEC.lignesOrigine = 'Enregistrées sur ce poste.'; }
+      else { await Store.del('lines', DEC.id); DEC.lignesOrigine = DEC.def0.lines ? 'Celles du fichier.' : ''; }
     }
     DEC.modif = false; majFiche();
     etatDecor(`${DEC.def0.name} : enregistré${DEC.perso ? ' dans le circuit perso' : ' pour ce navigateur — « Fabriquer tracks.js » pour tout le monde'}`);
@@ -1071,8 +1190,11 @@ async function enregistrer() {
 }
 
 async function oublier() {
-  if (!confirm('Revenir au décor du fichier et oublier la retouche de ce circuit ?')) return;
-  if (!DEC.perso) { try { await Store.del('decor', DEC.id); } catch (_) { /* base indisponible */ } }
+  if (!confirm('Revenir au fichier et oublier la retouche de ce circuit — décor et trajectoires ?')) return;
+  if (!DEC.perso) {
+    try { await Store.del('decor', DEC.id); } catch (_) { /* base indisponible */ }
+    try { await Store.del('lines', DEC.id); } catch (_) { /* base indisponible */ }
+  }
   DEC.modif = false;
   await chargerCircuit(DEC.id);
 }
@@ -1081,8 +1203,14 @@ async function fabriquerFichier() {
   try {
     let recs = [];
     try { recs = await Store.list('decor'); } catch (_) { /* base indisponible */ }
-    const par = new Map(recs.filter((r) => r && r.decor && TRACKS.some((t) => t.id === r.id)).map((r) => [r.id, r.decor]));
+    const par = new Map(recs.filter((r) => r && r.decor && TRACKS.some((t) => t.id === r.id)).map((r) => [r.id, { ...r.decor }]));
     if (!DEC.perso && DEC.id) par.set(DEC.id, ecartAuFichier(DEC.def0, DEC.decor));
+    // les trajectoires du poste partent avec : celles de ce circuit telles qu'on les voit, les autres de la base
+    let lignes = [];
+    try { lignes = await Store.list('lines'); } catch (_) { /* base indisponible */ }
+    const pose = (id, l) => { const def = TRACKS.find((t) => t.id === id), a = arrondiLigne(l); if (!def || !a || egal(a, arrondiLigne(def.lines))) return; if (!par.has(id)) par.set(id, {}); par.get(id).lines = a; };
+    for (const r of lignes) if (r && r.lines && r.lines.racing && r.id !== DEC.id) pose(r.id, r.lines);
+    if (!DEC.perso && DEC.id && DEC.lignes) pose(DEC.id, DEC.lignes);
     const r = await fetch('js/tracks.js');
     if (!r.ok) throw new Error('js/tracks.js illisible (' + r.status + ')');
     let txt = await r.text();
@@ -1092,13 +1220,13 @@ async function fabriquerFichier() {
       txt = poserValeurs(txt, id, ecart);
       ids.push(id);
     }
-    if (!ids.length) { etatDecor('Aucune retouche de décor à reporter dans le fichier.'); return; }
+    if (!ids.length) { etatDecor('Aucune retouche de décor ni de trajectoire à reporter dans le fichier.'); return; }
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([txt], { type: 'text/javascript' }));
     a.download = 'tracks.js';
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-    etatDecor(`tracks.js fabriqué avec le décor de ${ids.join(', ')} — à remettre dans js/`);
+    etatDecor(`tracks.js fabriqué avec les retouches de ${ids.join(', ')} — à remettre dans js/`);
   } catch (e) { etatDecor('Fabrication impossible : ' + e.message); }
 }
 

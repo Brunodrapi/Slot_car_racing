@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.30
+- Éditeur : les trajectoires se modifient dans l'éditeur de circuits, sur la piste retouchée, avec le décor.
+
 ## 0.52.29
 - Le Rocher : nouveaux panneaux de freinage.
 - Éditeur : en tirant les bords d'un virage, on redessine son tracé, même au-delà du milieu de la piste.
