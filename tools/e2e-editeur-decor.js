@@ -41,6 +41,7 @@ const ok = (c, msg) => { console.log(`  ${c ? 'ok   ' : 'ÉCHEC'} ${msg}`); if (
 
   await p.goto(base + '/editor.html?decor=monza');
   await p.waitForFunction(() => DEC.track && DEC.rendu && DEC.id === 'monza', null, { timeout: 30000 });
+  await p.click('#d-onglets [data-onglet="objets"]');      // l'éditeur s'ouvre sur les trajectoires
   const pret = async () => { await p.waitForTimeout(80); await p.waitForFunction(() => !DEC.drag); await p.waitForTimeout(120); };
   // Le centre d'écran d'un point du monde, et une vue rapprochée sur une fraction du tour.
   const ecran = (x, y) => p.evaluate(([x, y]) => versEcran(x, y), [x, y]);
@@ -57,6 +58,8 @@ const ok = (c, msg) => { console.log(`  ${c ? 'ok   ' : 'ÉCHEC'} ${msg}`); if (
     await p.mouse.up(); await pret();
   };
   const outil = async (o, mode) => {
+    // depuis 0.52.31 ces cinq outils sont dans l'onglet « Objets »
+    await p.click('#d-onglets [data-onglet="objets"]');
     await p.click(`#d-outils [data-outil="${o}"]`);
     if (mode) await p.click(`#d-fiche [data-mode="${mode}"]`);
   };
@@ -237,22 +240,26 @@ const ok = (c, msg) => { console.log(`  ${c ? 'ok   ' : 'ÉCHEC'} ${msg}`); if (
   ok(await p.evaluate(() => tousObjets().length > 0 && DEC.decor.barrierPaths.length > 0), 'Monaco : objets et traits de barrière chargés');
   await capture('07-monaco');
 
-  /* --- Un circuit perso : son décor voyage avec lui, et le tracé ne l'efface pas --- */
+  /* --- Un circuit perso : son décor voyage avec lui ---
+     Le mode « Tracé », qui en dessinait un, est retiré depuis 0.52.31 : on en pose un dans la base,
+     tel qu'il l'enregistrait, et l'éditeur doit l'ouvrir et y ranger son décor. */
   const perso = await nav.newPage({ viewport: { width: 1440, height: 900 } });
   perso.on('pageerror', (e) => erreurs.push('perso : ' + e.message));
   perso.on('dialog', (d) => d.accept());
   await perso.goto(base + '/editor.html');
-  await perso.waitForFunction(() => typeof ed !== 'undefined' && ed.doc);
-  await perso.evaluate(() => {
-    ed.doc.name = 'Ovale e2e'; ed.doc.lengthM = 1200;
-    ed.doc.lines.racing = [[0, 0], [600, 0], [800, 200], [600, 400], [0, 400], [-200, 200]];
-    fillForm();
+  await perso.waitForFunction(() => typeof DEC !== 'undefined' && DEC.track);
+  const idPerso = await perso.evaluate(async () => {
+    const center = [[0, 0], [600, 0], [800, 200], [600, 400], [0, 400], [-200, 200]];
+    const scale = 1200 / Track.polyLength(Track.spline(center, 24)), id = 'perso-ovale-e2e';
+    const decale = (d) => center.map((q, i) => { const a = center[(i + 5) % 6], b = center[(i + 1) % 6], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy); return [q[0] + dy / l * d, q[1] - dx / l * d]; });
+    await Store.put('tracks', { id, name: 'Ovale e2e', flag: '🏁', laps: 3, custom: true, scale, center, drawRoad: true, image: null,
+      lines: { racing: center, inside: decale(-8 / scale), outside: decale(8 / scale) } });
+    return id;
   });
-  await perso.click('#btn-save'); await perso.waitForTimeout(400);
-  const idPerso = await perso.evaluate(() => ed.doc.id);
-  await perso.click('#mode-decor');
+  await perso.goto(base + '/editor.html?decor=' + idPerso);
   await perso.waitForFunction((id) => DEC.track && DEC.id === id && DEC.perso, idPerso, { timeout: 20000 });
   await perso.waitForTimeout(300);
+  await perso.click('#d-onglets [data-onglet="objets"]');
   await perso.click('#d-fiche [data-mode="ajouter"]');
   await perso.selectOption('#d-ajout', 'tribune');
   const qt = await perso.evaluate(() => { const T = DEC.track, q = T.pos(0.25 * T.length, T.hwLeftAt(0.25 * T.length) + 30); return versEcran(q.x, q.y); });
@@ -260,10 +267,9 @@ const ok = (c, msg) => { console.log(`  ${c ? 'ok   ' : 'ÉCHEC'} ${msg}`); if (
   await perso.click('#d-poser'); await perso.waitForTimeout(400);
   ok(await perso.evaluate((id) => Store.get('tracks', id).then((d) => !!(d.objets && d.objets.ajouts.some((a) => a.type === 'tribune'))), idPerso),
     'circuit perso : la tribune ajoutée est enregistrée dans le circuit');
-  await perso.click('#mode-trace'); await perso.waitForTimeout(200);
-  await perso.click('#btn-save'); await perso.waitForTimeout(400);
-  ok(await perso.evaluate((id) => Store.get('tracks', id).then((d) => !!(d.objets && d.objets.ajouts.length)), idPerso),
-    'circuit perso : réenregistrer le tracé garde le décor');
+  ok(await perso.evaluate((id) => Store.get('tracks', id).then((d) => !!(d.lines && d.lines.racing && d.lines.racing.length >= 3)), idPerso),
+    'circuit perso : ses trajectoires restent avec lui');
+  await perso.evaluate((id) => Store.del('tracks', id), idPerso);
   await perso.close();
 
   /* --- Au téléphone : le panneau en haut, la carte dessous --- */

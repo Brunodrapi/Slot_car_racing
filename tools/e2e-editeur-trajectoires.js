@@ -34,7 +34,7 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     await p.waitForFunction(() => typeof DEC !== 'undefined' && DEC.track && DEC.id === 'monaco');
 
     // --- un virage redessiné emporte les trajectoires calculées ---
-    await p.click('[data-outil="piste"]');
+    await p.click('[data-onglet="piste"]');
     const virage = await p.evaluate(() => {
       const base = new Track(DEC.def0, ECHELLE_ROUTE);
       let apex = 0; for (let i = 0; i < base.n; i++) if (Math.abs(base.k[i]) > Math.abs(base.k[apex])) apex = i;
@@ -45,7 +45,7 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
       return { apex, x: base.xs[apex], y: base.ys[apex] };
     });
     await p.waitForFunction(() => DEC.track.axeBase && DEC.track.n !== DEC.track.axeBase.n);
-    await p.click('[data-outil="lignes"]');
+    await p.click('[data-onglet="lignes"]');
     const calc = await p.evaluate(() => {
       const T = DEC.track; let hors = 0;
       for (const nom of ['racing', 'inside', 'outside']) for (let i = 0; i < T.n; i++) { const a = T.tracees[nom][i]; if (a > T.hwL[i] + 0.01 || a < -T.hwR[i] - 0.01) hors++; }

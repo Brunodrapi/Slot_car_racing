@@ -3,7 +3,7 @@ const {chromium}=require('playwright'),assert=require('assert/strict'),vm=requir
  const p=await b.newPage({viewport:{width:1440,height:900}}),errors=[];p.on('pageerror',e=>errors.push(e.message));p.on('dialog',d=>d.accept());
  await p.goto((process.argv[2]||'http://127.0.0.1:8770')+'/editor.html?decor=monza');
  await p.waitForFunction(()=>typeof DEC!=='undefined'&&DEC.track&&DEC.id==='monza');
- await p.click('[data-outil="piste"]');await p.click('#d-largeur-ajout');
+ await p.click('[data-onglet="piste"]');await p.click('#d-largeur-ajout');
  const before=await p.evaluate(()=>{const t=DEC.track,s=t.length*.2,q=t.pos(s,2),r=DEC.rendu;r.cam.zoom=5;r.cam.x=q.x-150/5;r.cam.y=q.y;peindre();return {point:versEcran(q.x,q.y),left:t.hwLeftAt(s),right:t.hwRightAt(s)};});
  await p.mouse.click(before.point.x,before.point.y);
  await p.waitForSelector('#d-largeur-m');await p.fill('#d-largeur-m','6');await p.dispatchEvent('#d-largeur-m','change');
@@ -17,7 +17,7 @@ const {chromium}=require('playwright'),assert=require('assert/strict'),vm=requir
  assert(Math.abs(await p.evaluate(()=>DEC.track.hwLeftAt(DEC.track.length*.2))-before.left-6)<.1);
  const dl=p.waitForEvent('download');await p.click('#d-fichier');const d=await dl;let text='';for await(const chunk of await d.createReadStream())text+=chunk;
  const zones=vm.runInNewContext(require('fs').readFileSync(require('path').join(__dirname,'../js/traces.js'),'utf8')+'\n'+text+';TRACKS.find(t=>t.id==="monza").roadWidenings');assert.equal(zones.at(-1).side,zone.side);zone.points.forEach((pt,i)=>pt.forEach((v,j)=>assert(Math.abs(zones.at(-1).points[i][j]-v)<.0001)));
- await p.click('[data-outil="piste"]');await p.selectOption('#d-largeur-liste',String(zones.length-1));await p.click('#d-suppr');await p.waitForTimeout(200);
+ await p.click('[data-onglet="piste"]');await p.selectOption('#d-largeur-liste',String(zones.length-1));await p.click('#d-suppr');await p.waitForTimeout(200);
  assert(Math.abs(await p.evaluate(()=>DEC.track.hwLeftAt(DEC.track.length*.2))-before.left)<.1);
  await p.click('#d-annuler');await p.waitForTimeout(200);
  assert(Math.abs(await p.evaluate(()=>DEC.track.hwLeftAt(DEC.track.length*.2))-before.left-6)<.1);
@@ -38,7 +38,7 @@ const {chromium}=require('playwright'),assert=require('assert/strict'),vm=requir
  await p.click('#d-poser');await p.waitForFunction(()=>!DEC.modif);await p.reload();await p.waitForFunction(()=>typeof DEC!=='undefined'&&DEC.track);
  const saved=await p.evaluate(()=>[DEC.track.hwLeftAt(DEC.track.length*.5),DEC.track.hwRightAt(DEC.track.length*.5)]);
  assert(Math.abs(saved[0]-widths[0])<.01);assert(Math.abs(saved[1]-widths[1])<.01);
- await p.click('[data-outil="piste"]');await p.selectOption('#d-largeur-liste',String(dual.count));
+ await p.click('[data-onglet="piste"]');await p.selectOption('#d-largeur-liste',String(dual.count));
  const drag=await p.evaluate(i=>{const z=largeursPiste()[i],q=pointLargeur(z,1),t=DEC.track,s=z.points[1][0]*t.length,r=DEC.rendu;r.cam.zoom=6;r.cam.x=q.x-25;r.cam.y=q.y;peindre();const target=t.pos(s,z.side*(bord(s,z.side)+2));return {a:versEcran(q.x,q.y),b:versEcran(target.x,target.y),width:z.points[1][1],opposite:JSON.stringify(largeursPiste()[i+1])};},dual.count);
  await p.mouse.move(drag.a.x,drag.a.y);await p.mouse.down();await p.mouse.move(drag.b.x,drag.b.y,{steps:8});await p.mouse.up();await p.waitForTimeout(250);
  const moved=await p.evaluate(i=>({width:largeursPiste()[i].points[1][1],opposite:JSON.stringify(largeursPiste()[i+1])}),dual.count);

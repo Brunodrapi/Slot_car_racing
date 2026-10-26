@@ -43,7 +43,7 @@ const DOMAINE = arg('domaine');
 PAS LES OUTILS. L'éditeur de circuits et de décor (editor.html), l'éditeur de lignes et de panneaux
 (lignes.html), le banc moteur (moteur.html) et tools/ restent dans la recette : « dans PROD il ne
 faut pas qu'il y ait l'outil de modif des circuits, des lignes, les tools ». Leurs scripts propres
-(editor.js, editeur-decor.js, fichier-tracks.js…) ne partent pas non plus, puisqu'on ne copie que ce
+(editeur-decor.js, fichier-tracks.js…) ne partent pas non plus, puisqu'on ne copie que ce
 que les pages publiées chargent. */
 const PAGES = ['index.html', 'analytics.html'];
 

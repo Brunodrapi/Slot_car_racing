@@ -80,7 +80,7 @@ const ECART = `(T, z) => {
     e.on('pageerror', (x) => err2.push(x.message));
     await e.goto(BASE + '/editor.html?decor=monaco');
     await e.waitForFunction(() => typeof DEC !== 'undefined' && DEC.track && DEC.id === 'monaco');
-    await e.click('[data-outil="piste"]');
+    await e.click('[data-onglet="piste"]');
     const prise = await e.evaluate((zonesSrc) => {
       const zones = eval(zonesSrc), base = new Track(DEC.def0, ECHELLE_ROUTE), r = zones(base);
       const n0 = largeursPiste().length;

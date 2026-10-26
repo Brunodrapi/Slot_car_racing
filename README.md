@@ -3735,7 +3735,8 @@ panne que tout ceci sert à détecter.
 ```
 node tools/sim.js [catégorie|all] [circuit|all] [easy|medium|hard] [marge]        # courses IA sans navigateur
 NODE_PATH=$(npm root -g) node tools/e2e.js <dossier> [largeur] [hauteur]          # parcours du jeu + captures
-NODE_PATH=$(npm root -g) node tools/e2e-editor.js <dossier>                        # éditeur → course
+NODE_PATH=$(npm root -g) node tools/e2e-editeur-panneaux.js                     # éditeur : onglets, panneaux et règle (serveur sur 8770)
+NODE_PATH=$(npm root -g) node tools/e2e-editeur-trajectoires.js                 # éditeur : trajectoires sur la piste retouchée (serveur sur 8770)
 NODE_PATH=$(npm root -g) node tools/e2e-lignes.js [dossier]                       # éditeur de lignes : ce qu'on voit est ce qui se joue
 NODE_PATH=$(npm root -g) node tools/e2e-panneaux.js                              # les panneaux repris a la main, de l'editeur jusqu'en course
 tools/deploie.sh [record]                                                        # met la fonction serveur en ligne (jeton dans l'environnement)
@@ -4117,3 +4118,40 @@ trajectoires du jeu sont dessinées, celle qu'on modifie par-dessus avec ses poi
 trajectoires calculées qui le suivent ; un point glissé de trois mètres déplace la corde jouée ;
 annulation, enregistrement, rechargement ; le jeu joue le virage et ses trajectoires ; le fichier
 fabriqué porte les deux ; l'oubli efface les deux.
+
+### Un seul éditeur, en quatre onglets — 0.52.31
+
+À la demande de Bruno, `editor.html` n'a plus de mode « Tracé » — celui qui dessinait un circuit
+perso à partir de rien (`js/editor.js`, retiré avec son test `tools/e2e-editor.js`). La page s'ouvre
+directement sur l'éditeur, et tout ce qui se reprend sur un circuit y est rangé en quatre onglets,
+sur la même piste, celle que le jeu dessine :
+
+| Onglet | Ce qu'on y reprend |
+|---|---|
+| **Trajectoires** | la corde, l'intérieure et l'extérieure, point par point (ex-`lignes.html`) |
+| **Largeur de piste** | élargir un virage, ou le redessiner en tirant ses bords |
+| **Panneaux** | les panneaux de freinage, et la **Mesure** (la règle) |
+| **Objets** | Objets, Hors-piste, Barrières, Zones et Stands |
+
+**Panneaux.** Les 35 panneaux de Monaco s'affichent comme le jeu les peint — `Renderer.paceArrow`,
+en carte qui garde sa taille à l'écran. Toucher un panneau le choisit : sens (gauche, droite ;
+gauche-droite pour une chicane), intensité (1 à 6, SQ, HP, AC, CH), valeur annoncée (200, 100, 50 ou
+sans chiffre), et la vérification « annoncé 50 m · réel 15 m (−35) » contre l'entrée de virage que
+le jeu découpe. Le glisser le fait courir le long du tour ; ±1 et ±10 m le placent au mètre. Un appui
+sans glisser pose le viseur ; « Ajouter au viseur » y pose un panneau ; « Revenir au calcul » reprend
+la liste que le jeu calcule sur la piste retouchée. **Mesure** : deux appuis, et la règle donne la
+distance le long du tour, dans l'autre sens et à vol d'oiseau ; elle reste affichée, plus discrète,
+dans les autres onglets.
+
+Les données ne changent pas de place : la liste `[fraction, distance, note, sens]` dans la base
+`panneaux`, que le jeu relit, et sous `panneaux` dans `js/tracks.js`. Tant qu'on n'y a pas touché, le
+jeu calcule ; la première retouche fige la liste. Un seul « Annuler », « Enregistrer », « Fabriquer
+tracks.js » et « Revenir au fichier » pour le décor, les trajectoires et les panneaux.
+
+Un circuit perso déjà enregistré s'ouvre toujours, et garde décor, trajectoires et panneaux avec
+lui. `lignes.html` reste en place mais ne voit pas la reprise du décor.
+
+`tools/e2e-editeur-panneaux.js` le vérifie à Monaco, par l'interface : quatre onglets et plus de
+« Tracé » ; les 35 panneaux du fichier ; choisir, changer sens et valeur (la piste construite les
+peint), glisser de vingt mètres ; viseur, ajout, annulation ; la règle ; enregistrement, rechargement
+et course ; le fichier fabriqué ; l'oubli.

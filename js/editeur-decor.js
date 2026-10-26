@@ -1,27 +1,32 @@
-/* L'ÉDITEUR DE DÉCOR — retoucher à la main tout ce que le jeu dessine autour de la piste.
+/* L'ÉDITEUR DE CIRCUITS — retoucher à la main tout ce que le jeu dessine et fait rouler.
 
-Le décor d'un circuit est presque entièrement déduit : les dégagements de la courbure ou des zones
-déclarées, les protections de ces dégagements, les bois, tribunes, parkings et camping-cars des
-zones d'implantation, et le semis d'arbres, de rochers et de bottes de paille d'une graine. Ce mode
-de l'éditeur permet de reprendre chacune de ces couches :
+Un circuit du jeu est presque entièrement déduit de son tracé : les trajectoires du solveur, les
+panneaux de la courbure, les dégagements de la courbure ou des zones déclarées, les protections de
+ces dégagements, les bois, tribunes, parkings et camping-cars des zones d'implantation, et le semis
+d'arbres, de rochers et de bottes de paille d'une graine. L'éditeur reprend chacune de ces couches,
+en quatre onglets, sur la même piste :
 
-  Objets      chaque arbre, rocher, tas de bois, voiture garée, camping-car ou bâtiment : le choisir,
-              le déplacer, le tourner, le changer, le supprimer, en ajouter, effacer à la gomme ;
-  Hors-piste  les zones de bitume, de gravier ou d'herbe, point par point, et les surfaces bitumées ;
-  Barrières   tracer une protection, la reprendre, en couper un morceau ;
-  Zones       les zones d'implantation (bois, tribunes, stands, hangars, parkings, camping, vide) ;
-  Stands      l'entrée, la zone d'arrêt et la sortie de la voie des stands.
-  Trajectoires  la corde, l'intérieure et l'extérieure, point par point, sur la piste telle qu'elle est
-              retouchée — virages redessinés compris — pour tout reprendre au même endroit.
+  Trajectoires      la corde, l'intérieure et l'extérieure, point par point ;
+  Largeur de piste  élargir un virage, ou le redessiner en tirant ses bords ;
+  Panneaux          les panneaux de freinage — sens, intensité, distance annoncée, position — et
+                    la règle, qui mesure le long du tour et à vol d'oiseau ;
+  Objets            Objets (arbres, rochers, véhicules, bâtiments : choisir, déplacer, tourner,
+                    ajouter, gommer), Hors-piste (zones de bitume, de gravier ou d'herbe, surfaces
+                    bitumées), Barrières (tracer, reprendre, couper), Zones (d'implantation) et
+                    Stands (entrée, zone d'arrêt, sortie).
+
+Le mode « Tracé », qui dessinait un circuit perso à partir de rien, a été retiré à la demande de
+Bruno (0.52.31) : tout se fait ici. Un circuit perso déjà enregistré s'ouvre toujours.
 
 CE QUI EST AFFICHÉ EST CE QUE LE JEU DESSINE, parce que c'est son moteur de rendu qui le dessine : un
 `Track` construit avec la reprise, et un `Renderer` qui le peint. Les poignées d'édition passent par
 le calque du HUD, au-dessus.
 
-La reprise touche les seules clés de `CLES_DECOR` (`js/tracks.js`). Elle s'enregistre dans la base
-du navigateur — le jeu la joue tout de suite, sur ce poste — et se reporte dans `js/tracks.js` avec
-« Fabriquer tracks.js », qui seul la rend valable pour tout le monde. Pour un circuit perso, elle
-s'enregistre dans le circuit lui-même. */
+La reprise du décor touche les seules clés de `CLES_DECOR` (`js/tracks.js`) ; les trajectoires et
+les panneaux ont leurs propres bases (`lines`, `panneaux`), celles que le jeu relit. Tout s'enregistre
+dans le navigateur — le jeu le joue tout de suite, sur ce poste — et se reporte dans `js/tracks.js`
+avec « Fabriquer tracks.js », qui seul le rend valable pour tout le monde. Pour un circuit perso,
+tout s'enregistre dans le circuit lui-même. */
 'use strict';
 
 const ECHELLE_ROUTE = 0.9;                     // la largeur de route de toutes les catégories (cars.js)
@@ -47,11 +52,15 @@ const DEC = {
   decor: {},                       // la reprise en cours, clés de CLES_DECOR
   local: false,                    // une reprise est enregistrée sur ce poste
   track: null,
-  outil: 'objets', mode: 'choisir',
+  outil: 'lignes', mode: 'choisir',
   sel: null, drag: null, trace: null, survol: null,
   ajout: 'mix-feuillus', gomme: 6,
   annule: [], modif: false,
   lignes: null,                    // les trois trajectoires en cours : points de contrôle, unités de `pts`
+  onglet: 'lignes',                // Trajectoires, Largeur de piste, Panneaux ou Objets
+  panneaux: null, panModif: false, // la liste reprise, et si c'en est une (sinon le jeu calcule)
+  selP: null, viseur: null,        // le panneau choisi, la station visée
+  mesure: [],                      // zéro, une ou deux stations : la règle
   ligne: 'racing',                 // celle qu'on modifie
   peintPrevu: false, refaitPrevu: null,
   pointeurs: new Map(), pince: null,
@@ -95,8 +104,10 @@ function peindre() {
 }
 
 function definition() {
-  const d = avecDecor(DEC.def0, DEC.decor);
-  return DEC.lignes ? { ...d, lines: DEC.lignes } : d;
+  const d = { ...avecDecor(DEC.def0, DEC.decor) };
+  if (DEC.lignes) d.lines = DEC.lignes;
+  if (DEC.panModif && DEC.panneaux) d.panneaux = panneauxPlats(); else delete d.panneaux;
+  return d;
 }
 
 // Reconstruire la piste et son décor : à la fin d'un geste, pas pendant.
@@ -137,11 +148,11 @@ function changer(fn) {
   refaire();
 }
 // ce qu'« Annuler » rétablit : le décor et les trajectoires, qui se retouchent dans le même éditeur
-function instantane() { return JSON.stringify({ decor: DEC.decor, lignes: DEC.lignes }); }
+function instantane() { return JSON.stringify({ decor: DEC.decor, lignes: DEC.lignes, panneaux: DEC.panneaux, panModif: DEC.panModif }); }
 function annuler() {
   if (!DEC.annule.length) return;
   const e = JSON.parse(DEC.annule.pop());
-  DEC.decor = e.decor; DEC.lignes = e.lignes;
+  DEC.decor = e.decor; DEC.lignes = e.lignes; DEC.panneaux = e.panneaux; DEC.panModif = e.panModif; DEC.selP = null;
   DEC.sel = null; DEC.trace = null; DEC.modif = true;
   refaire();
 }
@@ -394,6 +405,115 @@ function pointsLigne(nom) {
 function poserLignes() { if (!DEC.lignes) DEC.lignes = clone(DEC.calculLignes || lignesDuCalcul()); }
 const enMonde = ([x, y]) => ({ x: x * DEC.track.unitScale, y: y * DEC.track.unitScale });
 
+/* ------------------------------------------------- panneaux et mesure
+
+Repris de `lignes.html`, sur la piste retouchée : un virage redessiné y gardait son ancien tracé, et
+un panneau posé là-bas tombait à côté de celui que le jeu peint. Les données ne changent pas — une
+liste `[fraction de tour, distance annoncée, note, sens]`, rangée dans la base `panneaux` que le jeu
+relit, reportée dans `js/tracks.js` sous `panneaux`. Tant qu'on n'y a pas touché, le jeu les
+calcule ; la première retouche fige la liste, et le calcul ne la reprend plus. */
+const CHIFFRES_P = [1, 2, 3, 4, 5, 6];
+const NOMMES_P = ['square', 'hairpin', 'acute', 'chicane'];
+const DISTANCES_P = [200, 100, 50, 0];
+const PAN_TAILLE = 28;
+const noteDe = (b) => (b.kind && b.kind !== 'normal' ? b.kind : b.grade);
+// une entrée de liste, du fichier (tableau court ou objet nommé) vers l'éditeur
+const versPanneau = (p) => (Array.isArray(p)
+  ? { at: +p[0], dist: +p[1], note: p[2], sign: +p[3] }
+  : { at: +p.at, dist: +p.dist, note: p.note != null ? p.note : (p.kind && p.kind !== 'normal' ? p.kind : p.grade), sign: +p.sign });
+const panneauxPlats = () => (DEC.panneaux || []).map((p) => [r4(p.at), p.dist, p.note, p.sign]);
+// la liste affichée : la reprise, sinon ce que le jeu calcule sur la piste retouchée
+function listePanneaux() {
+  if (DEC.panModif && DEC.panneaux) return DEC.panneaux;
+  return DEC.track.boards.map((b) => ({ at: b.at, dist: b.dist, note: noteDe(b), sign: b.sign }));
+}
+function poserPanneaux() { if (!DEC.panModif) { DEC.panneaux = clone(listePanneaux()); DEC.panModif = true; } }
+function panneauxDuCalcul() {
+  const d = definition(); delete d.panneaux;
+  return new Track(d, ECHELLE_ROUTE).boards.map((b) => ({ at: b.at, dist: b.dist, note: noteDe(b), sign: b.sign }));
+}
+// où chaque panneau se peint, par le code du jeu — dans l'ordre de la liste
+const panneauxPoses = () => DEC.track._panneauxPoses(listePanneaux().map((p) => [p.at, p.dist, p.note, p.sign]));
+const stationDe = (x, y) => DEC.track.idx(projette(x, y).s);
+
+/* L'annonce contre la réalité : la distance signée entre le panneau et l'entrée de virage la plus
+   proche, devant ou derrière (voir `verifPanneau` dans `js/lignes.js`). Négative, le panneau est
+   posé dans le virage qu'il annonce. */
+function verifPanneau(b) {
+  const T = DEC.track;
+  if (!T.zonesVirages) return '';
+  const zones = T.zonesVirages(30, true);
+  if (!zones.length) return '';
+  const j = Math.round(b.at * T.n);
+  let best = Infinity;
+  for (const z of zones) {
+    let d = ((((z.from % T.n) + T.n) % T.n - j) % T.n + T.n) % T.n;
+    if (d > T.n / 2) d -= T.n;
+    if (Math.abs(d) < Math.abs(best)) best = d;
+  }
+  const reel = best * T.ds;
+  if (reel < 0) { const dedans = `posé ${(-reel).toFixed(0)} m DANS le virage`; return b.dist > 0 ? `annoncé ${b.dist} m · ${dedans}` : `sans chiffre · ${dedans}`; }
+  if (!(b.dist > 0)) return `sans chiffre · virage à ${reel.toFixed(0)} m`;
+  const ecart = reel - b.dist;
+  return `annoncé ${b.dist} m · réel ${reel.toFixed(0)} m (${ecart >= 0 ? '+' : '−'}${Math.abs(ecart).toFixed(0)})`;
+}
+
+// Un panneau dessiné par le code du jeu (`Renderer.paceArrow`), en pixels d'écran pour rester visible.
+function dessinerPanneau(g, b, choisi) {
+  const e = versEcran(b.cx, b.cy), W = PAN_TAILLE, H = W * 1.23, spec = Renderer.ARROWS[noteDe(b)] || Renderer.ARROWS[3];
+  g.save();
+  g.translate(e.x, e.y); g.rotate(b.th + Math.PI / 2);
+  g.beginPath();
+  if (g.roundRect) g.roundRect(-W / 2, -H / 2, W, H, 3.5); else g.rect(-W / 2, -H / 2, W, H);
+  g.fillStyle = '#f2f2ee'; g.fill();
+  g.lineWidth = choisi ? 3 : 1.4; g.strokeStyle = choisi ? '#7ed321' : '#11141c'; g.stroke();
+  const chiffre = b.dist > 0;
+  Renderer.paceArrow(g, { x: 0, y: H * (chiffre ? -0.24 : -0.06), w: W * 0.78, h: H * (chiffre ? 0.40 : 0.52) },
+    spec, b.sign > 0 ? 1 : -1, { col: '#2a2d36', epais: 0.78 });
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  if (chiffre) { g.fillStyle = '#11141c'; g.font = `bold ${Math.round(W * 0.31)}px "Trebuchet MS", sans-serif`; g.fillText(String(b.dist), 0, H * 0.30); }
+  if (spec.tag) { g.fillStyle = '#2a2d36'; g.font = `bold ${Math.round(W * 0.19)}px "Trebuchet MS", sans-serif`; g.fillText(spec.tag, 0, H * (chiffre ? 0.06 : 0.33)); }
+  g.restore();
+}
+
+/* La règle : le long du tour (ce qu'un panneau annonce et ce qu'une voiture parcourt) et à vol
+   d'oiseau (ce que l'œil croit lire). Elle reste dessinée, en plus discret, dans les autres onglets :
+   on mesure POUR placer un panneau. */
+function dessinerMesure(g) {
+  const T = DEC.track, m = DEC.mesure;
+  if (!m.length) return;
+  const actif = DEC.outil === 'mesure', pt = (j) => versEcran(T.xs[((j % T.n) + T.n) % T.n], T.ys[((j % T.n) + T.n) % T.n]);
+  g.save(); g.globalAlpha = actif ? 1 : 0.45;
+  if (m.length === 2) {
+    const [a, b] = m, n = ((b - a) % T.n + T.n) % T.n;
+    g.strokeStyle = '#ff9f1c'; g.lineWidth = actif ? 4 : 2.5; g.lineCap = 'round';
+    g.beginPath(); for (let i = 0; i <= n; i++) { const e = pt(a + i); i ? g.lineTo(e.x, e.y) : g.moveTo(e.x, e.y); } g.stroke();
+    const ea = pt(a), eb = pt(b);
+    g.setLineDash([5, 5]); g.lineWidth = 1.5; g.strokeStyle = 'rgba(255,255,255,0.75)';
+    g.beginPath(); g.moveTo(ea.x, ea.y); g.lineTo(eb.x, eb.y); g.stroke(); g.setLineDash([]);
+  }
+  m.forEach((j, i) => {
+    const e = pt(j);
+    g.beginPath(); g.arc(e.x, e.y, actif ? 7 : 4, 0, 7); g.fillStyle = '#ff9f1c'; g.fill();
+    g.lineWidth = 1.5; g.strokeStyle = '#11141c'; g.stroke();
+    if (actif) { g.fillStyle = '#11141c'; g.font = 'bold 10px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(i ? 'B' : 'A', e.x, e.y + 0.5); }
+  });
+  g.restore();
+}
+function mesures() {
+  const T = DEC.track, [a, b] = DEC.mesure, av = (((b - a) % T.n + T.n) % T.n) * T.ds;
+  return { long: av, retour: T.length - av, droit: Math.hypot(T.xs[b] - T.xs[a], T.ys[b] - T.ys[a]) };
+}
+// le viseur : une croix sur l'axe, à la station visée
+function dessinerViseur(g) {
+  if (DEC.viseur == null) return;
+  const T = DEC.track, j = ((DEC.viseur % T.n) + T.n) % T.n, e = versEcran(T.xs[j], T.ys[j]);
+  g.save(); g.strokeStyle = '#7ed321'; g.lineWidth = 2;
+  g.beginPath();
+  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) { g.moveTo(e.x + dx * 5, e.y + dy * 5); g.lineTo(e.x + dx * 13, e.y + dy * 13); }
+  g.stroke(); g.beginPath(); g.arc(e.x, e.y, 3, 0, 7); g.fillStyle = '#7ed321'; g.fill(); g.restore();
+}
+
 function zonesIm() { return DEC.decor.implantation || (DEC.decor.implantation = []); }
 /* Le contour d'une zone, pour la voir et la viser : son bord côté piste à l'aller, son bord extérieur
 au retour. Sans l'ondulation ni les tronçons de `implContour`, qui servent au dessin du sol et ne
@@ -450,6 +570,8 @@ function dessinerCalque(g) {
     g.strokeStyle = coul; g.lineWidth = l; g.stroke(); g.setLineDash([]);
   };
   const s = DEC.sel;
+  if (DEC.outil === 'panneaux') { panneauxPoses().forEach((b, i) => dessinerPanneau(g, b, i === DEC.selP)); dessinerViseur(g); }
+  dessinerMesure(g);
   if (DEC.outil === 'lignes' && T.tracees) {
     // les trois trajectoires telles que le jeu les jouera, celle qu'on modifie par-dessus
     const trace = (nom) => {
@@ -533,6 +655,11 @@ function dessinerCalque(g) {
 function poignéeSous(px, py) {
   const T = DEC.track, R = rayonDoigt(), s = DEC.sel;
   const pres = (p) => { const q = versEcran(p.x, p.y); return Math.hypot(q.x - px, q.y - py) <= R; };
+  if (DEC.outil === 'panneaux') {
+    let best = (PAN_TAILLE * 0.75) ** 2, k = -1;
+    panneauxPoses().forEach((b, i) => { const q = versEcran(b.cx, b.cy), d = (q.x - px) ** 2 + (q.y - py) ** 2; if (d < best) { best = d; k = i; } });
+    if (k >= 0) return { panneau: k };
+  }
   if (DEC.outil === 'lignes') {
     const i = pointsLigne(DEC.ligne).findIndex((q) => pres(enMonde(q)));
     if (i >= 0) return { ligne: DEC.ligne, point: i };
@@ -594,6 +721,18 @@ function surBas(e) {
     peindre(); majFiche(); return;
   }
 
+  if (DEC.outil === 'panneaux' || DEC.outil === 'mesure') {
+    if (DEC.outil === 'panneaux' && h && h.panneau != null) {
+      // choisir un panneau ; le glisser le fait courir le long de la piste
+      DEC.selP = h.panneau;
+      DEC.annule.push(instantane());
+      DEC.drag = { panneau: h.panneau, bouge: false };
+      majFiche(); peindre(); return;
+    }
+    // un appui qui ne glisse pas vise ou mesure ; un appui qui glisse déplace la vue
+    DEC.drag = { pan: [e.clientX, e.clientY, DEC.rendu.cam.x, DEC.rendu.cam.y], clic: [e.clientX, e.clientY] };
+    return;
+  }
   if (DEC.outil === 'lignes') {
     const u = T.unitScale;
     if (h && h.point != null) {
@@ -767,6 +906,11 @@ function surMouvement(e) {
     return;
   }
   if (g.objet) { g.bouge = true; g.objet.o.x = g.x0 + w.x - g.de.x; g.objet.o.y = g.y0 + w.y - g.de.y; DEC.rendu.implantation && implIndexe(DEC.rendu.implantation); peindre(); return; }
+  if (g.panneau != null) {
+    if (!g.bouge) { poserPanneaux(); g.bouge = true; }
+    const b = DEC.panneaux[g.panneau], j = T.idx(projette(w.x, w.y, b.at * T.length).s);
+    b.at = j / T.n; majFiche(); peindre(); return;
+  }
   if (g.pointLigne) {
     const u = T.unitScale;
     DEC.lignes[g.pointLigne.nom][g.pointLigne.i] = [w.x / u, w.y / u];
@@ -818,7 +962,9 @@ function surHaut(e) {
   if (DEC.pointeurs.size < 2) DEC.pince = null;
   const g = DEC.drag;
   DEC.drag = null;
+  if (g && g.pan && g.clic && Math.abs(e.clientX - g.clic[0]) + Math.abs(e.clientY - g.clic[1]) <= 6) { cliqueSurPiste(versMonde(e.clientX, e.clientY)); return; }
   if (!g || g.pan) return;
+  if (g.panneau != null) { if (!g.bouge) DEC.annule.pop(); else { DEC.modif = true; refaire(); } return; }
   if (g.gomme) { if (g.n) { nettoyer(); DEC.modif = true; refaire(); } else DEC.annule.pop(); return; }
   if (g.seme) { DEC.modif = true; refaire(); return; }
   if (g.objet) {
@@ -831,6 +977,14 @@ function surHaut(e) {
   if (g.pointLargeur) normaliseLargeur(largeursPiste()[g.pointLargeur.zone]);
   if (g.pointTrait) { recaleTrait(traits()[g.pointTrait.trait]); }
   nettoyer(); DEC.modif = true; refaire();
+}
+
+// Un appui sans glisser, dans l'onglet Panneaux : il pose le viseur, ou un bout de la règle.
+function cliqueSurPiste(w) {
+  const j = stationDe(w.x, w.y);
+  if (DEC.outil === 'panneaux') DEC.viseur = j;
+  else { if (DEC.mesure.length >= 2) DEC.mesure = []; DEC.mesure.push(j); }
+  majFiche(); peindre();
 }
 
 function surMolette(e) {
@@ -898,6 +1052,8 @@ const nombre = (id, v, min, max, pas) => `<input type="number" id="${id}" value=
 
 function majFiche() {
   if (!DEC.actif) return;
+  for (const b of document.querySelectorAll('#d-onglets button')) b.classList.toggle('sel', b.dataset.onglet === DEC.onglet);
+  $d('d-outils').hidden = DEC.onglet !== 'objets';
   for (const b of document.querySelectorAll('#d-outils button')) b.classList.toggle('sel', b.dataset.outil === DEC.outil);
   const el = $d('d-fiche'), s = DEC.sel;
   let h = '';
@@ -942,6 +1098,31 @@ function majFiche() {
       h+=champ('Largeur ajoutée (m)',nombre('d-largeur-m',r2(peak*ECHELLE_ROUTE),-10,30,.5));
       h+=champ('Longueur de zone (m)',nombre('d-largeur-long',r2((z.points.at(-1)[0]-z.points[0][0])*axeDe(DEC.track).length),10,500,5));
       h+='<p class="help">Glisser les points pour redessiner le bord — y compris au-delà du milieu de la piste : le tracé du virage se recentre entre ses deux bords. D/F déplacent le début et la fin. Maj+clic dans la zone sélectionnée ajoute un point ; Alt+clic sur un point intérieur le retire. Les extrémités rejoignent progressivement la piste. Valeur négative : rétrécir. Les mètres correspondent à la chaussée affichée en jeu.</p><button id="d-largeur-oppose">Ajouter aussi le côté opposé</button><button id="d-suppr">Supprimer cet élargissement</button>';
+    }
+  } else if (DEC.outil === 'panneaux' || DEC.outil === 'mesure') {
+    h += `<div class="tools"><button data-souspan="panneaux" class="${DEC.outil === 'panneaux' ? 'sel' : ''}">Panneaux</button><button data-souspan="mesure" class="${DEC.outil === 'mesure' ? 'sel' : ''}">Mesure</button></div>`;
+    const T = DEC.track;
+    if (DEC.outil === 'mesure') {
+      if (DEC.mesure.length === 2) {
+        const m = mesures();
+        h += `<p class="help"><b>${m.long.toFixed(1)} m</b> le long du tour<br>${m.retour.toFixed(1)} m dans l’autre sens<br>${m.droit.toFixed(1)} m à vol d’oiseau</p><div class="row2"><button id="d-mesure-eff">Effacer</button></div>`;
+      } else h += `<p class="help">${DEC.mesure.length ? 'Départ posé : touche l’arrivée.' : 'Touche deux points de la piste : le départ, puis l’arrivée. Un troisième recommence.'}</p>`;
+      h += '<p class="help">Le long du tour, c’est ce qu’un panneau annonce et ce qu’une voiture parcourt ; à vol d’oiseau, ce que l’œil croit lire. La règle reste affichée dans les autres onglets.</p>';
+    } else {
+      const liste = listePanneaux(), b = DEC.selP != null ? liste[DEC.selP] : null;
+      h += `<p class="help">${liste.length} panneaux — ${DEC.panModif ? DEC.panOrigine || 'liste reprise.' : 'calculés par le jeu : la première retouche fige la liste.'}</p>`;
+      if (b) {
+        const noms = b.note === 'chicane' ? { '-1': 'gauche-droite', 1: 'droite-gauche' } : { '-1': 'gauche', 1: 'droite' };
+        h += `<h3>Sens du virage</h3><div class="tools">${[-1, 1].map((v) => `<button data-sensp="${v}" class="${(b.sign > 0 ? 1 : -1) === v ? 'sel' : ''}">${v < 0 ? '↰' : '↱'} ${noms[v]}</button>`).join('')}</div>`;
+        h += `<h3>Intensité</h3><div class="grille">${CHIFFRES_P.map((n) => `<button data-notep="${n}" class="${String(b.note) === String(n) ? 'sel' : ''}">${n}</button>`).join('')}</div>`;
+        h += `<div class="grille" style="grid-template-columns:repeat(4,1fr)">${NOMMES_P.map((n) => `<button data-notep="${n}" class="${b.note === n ? 'sel' : ''}">${Renderer.ARROWS[n].tag}</button>`).join('')}</div>`;
+        h += `<h3>Valeur annoncée</h3><div class="grille" style="grid-template-columns:repeat(4,1fr)">${DISTANCES_P.map((d) => `<button data-distp="${d}" class="${b.dist === d ? 'sel' : ''}">${d || '—'}</button>`).join('')}</div>`;
+        h += `<p class="help">${esc(verifPanneau(b))}</p>`;
+        h += `<h3>Position — ${(b.at * T.length).toFixed(0)} m</h3><div class="grille" style="grid-template-columns:repeat(4,1fr)">${[-10, -1, 1, 10].map((m) => `<button data-pasp="${m}">${m > 0 ? '+' : '−'}${Math.abs(m)} m</button>`).join('')}</div>`;
+        h += `<div class="row2">${DEC.viseur != null ? '<button id="d-pan-viseur">Amener au viseur</button>' : ''}<button id="d-pan-suppr" class="danger">Supprimer ce panneau</button></div>`;
+      } else h += '<p class="help">Touche un panneau pour le reprendre ; glisse-le pour le faire courir le long de la piste.</p>';
+      h += `<h3>Viseur</h3><p class="help">${DEC.viseur == null ? 'Touche la piste sans glisser : le viseur se pose sur la station la plus proche.' : `viseur à ${(DEC.viseur * T.ds).toFixed(0)} m de la ligne`}</p>`;
+      h += `<div class="row2"><button id="d-pan-ajout"${DEC.viseur == null ? ' disabled' : ''}>Ajouter au viseur</button><button id="d-pan-calcul">Revenir au calcul</button></div>`;
     }
   } else if (DEC.outil === 'lignes') {
     h += `<div class="tools">${['racing', 'inside', 'outside'].map((nom) => `<button data-ligne="${nom}" class="${DEC.ligne === nom ? 'sel' : ''}"><span style="color:${COUL_LIGNE[nom]}">●</span> ${NOMS_LIGNE[nom]}</button>`).join('')}</div>`;
@@ -1029,6 +1210,17 @@ function brancherFiche() {
   for (const b of document.querySelectorAll('#d-fiche [data-zone]')) b.onclick = () => commencerTrace('zone', { kind: b.dataset.zone, essence: b.dataset.essence });
   for (const b of document.querySelectorAll('#d-fiche [data-fill]')) b.onclick = () => commencerTrace('pad', {free:true, surface:b.dataset.fill});
   on('d-pad-surface', 'change', ev => changer(() => { padsListe()[DEC.sel.pad].surface=ev.target.value; }, true));
+  for (const b of document.querySelectorAll('#d-fiche [data-souspan]')) b.onclick = () => { DEC.outil = b.dataset.souspan; DEC.sel = null; majFiche(); peindre(); };
+  const changerP = (fn) => { if (DEC.selP == null) return; changer(() => { poserPanneaux(); fn(DEC.panneaux[DEC.selP]); }); };
+  for (const b of document.querySelectorAll('#d-fiche [data-sensp]')) b.onclick = () => changerP((p) => { p.sign = +b.dataset.sensp; });
+  for (const b of document.querySelectorAll('#d-fiche [data-notep]')) b.onclick = () => changerP((p) => { p.note = /^\d+$/.test(b.dataset.notep) ? +b.dataset.notep : b.dataset.notep; });
+  for (const b of document.querySelectorAll('#d-fiche [data-distp]')) b.onclick = () => changerP((p) => { p.dist = +b.dataset.distp; });
+  for (const b of document.querySelectorAll('#d-fiche [data-pasp]')) b.onclick = () => changerP((p) => { const T = DEC.track, j = ((Math.round(p.at * T.n + +b.dataset.pasp / T.ds) % T.n) + T.n) % T.n; p.at = j / T.n; });
+  on('d-pan-viseur', 'click', () => changerP((p) => { p.at = DEC.viseur / DEC.track.n; }));
+  on('d-pan-suppr', 'click', () => { if (DEC.selP == null) return; changer(() => { poserPanneaux(); DEC.panneaux.splice(DEC.selP, 1); DEC.selP = null; }); });
+  on('d-pan-ajout', 'click', () => { if (DEC.viseur == null) return; changer(() => { poserPanneaux(); DEC.panneaux.push({ at: DEC.viseur / DEC.track.n, dist: 100, note: 3, sign: 1 }); DEC.selP = DEC.panneaux.length - 1; }); });
+  on('d-pan-calcul', 'click', () => changer(() => { DEC.panneaux = panneauxDuCalcul(); DEC.panModif = true; DEC.selP = null; }));
+  on('d-mesure-eff', 'click', () => { DEC.mesure = []; majFiche(); peindre(); });
   for (const b of document.querySelectorAll('#d-fiche [data-ligne]')) b.onclick = () => { DEC.ligne = b.dataset.ligne; DEC.sel = null; DEC.mode = 'choisir'; majFiche(); peindre(); };
   on('d-ligne-point', 'click', () => { DEC.mode = 'point'; majFiche(); });
   on('d-ligne-calcul', 'click', () => changer(() => { poserLignes(); DEC.lignes[DEC.ligne] = lignesDuCalcul(DEC.ligne); DEC.sel = null; }));
@@ -1134,17 +1326,25 @@ async function chargerCircuit(id) {
   let def0 = TRACKS.find((t) => t.id === id), perso = false, local = null;
   if (!def0) { try { def0 = await Store.get('tracks', id); perso = true; } catch (_) { /* base indisponible */ } }
   if (!def0) return;
-  let lignesLocales = null;
+  let lignesLocales = null, pansLocaux = null;
   if (!perso) {
     try { local = await Store.get('decor', id); } catch (_) { /* base indisponible */ }
     try { lignesLocales = await Store.get('lines', id); } catch (_) { /* base indisponible */ }
+    try { pansLocaux = await Store.get('panneaux', id); } catch (_) { /* base indisponible */ }
   }
-  DEC.id = id; DEC.perso = perso; DEC.def0 = def0; DEC.local = !!(local && local.decor);
+  DEC.id = id; DEC.perso = perso; DEC.def0 = def0;
+  // une retouche du poste : décor, trajectoires ou panneaux — « Revenir au fichier » oublie les trois
+  DEC.local = !!(local && local.decor) || !!(lignesLocales && lignesLocales.lines) || !!(pansLocaux && Array.isArray(pansLocaux.panneaux));
   // les trajectoires que le jeu joue : celles du poste, sinon celles du fichier, sinon le calcul
   const lignes = lignesLocales && lignesLocales.lines && lignesLocales.lines.racing ? lignesLocales.lines : def0.lines;
   DEC.lignes = lignes && lignes.racing ? clone(lignes) : null;
   DEC.lignesOrigine = lignesLocales && lignesLocales.lines ? 'Enregistrées sur ce poste.' : def0.lines ? 'Celles du fichier.' : '';
   DEC.calculLignes = null;
+  // les panneaux : ceux du poste, sinon ceux du fichier ; sans liste, le jeu les calcule
+  const pans = pansLocaux && Array.isArray(pansLocaux.panneaux) ? pansLocaux.panneaux : Array.isArray(def0.panneaux) ? def0.panneaux : null;
+  DEC.panneaux = pans ? pans.map(versPanneau) : null; DEC.panModif = !!pans;
+  DEC.panOrigine = pansLocaux && Array.isArray(pansLocaux.panneaux) ? 'enregistrés sur ce poste.' : pans ? 'ceux du fichier.' : '';
+  DEC.selP = null; DEC.viseur = null; DEC.mesure = [];
   DEC.decor = {};
   for (const k of CLES_DECOR) {
     const v = local && local.decor && k in local.decor ? local.decor[k] : def0[k];
@@ -1173,16 +1373,23 @@ async function enregistrer() {
       const def = { ...DEC.def0 };
       for (const k of CLES_DECOR) { if (DEC.decor[k] == null) delete def[k]; else def[k] = clone(DEC.decor[k]); }
       if (DEC.lignes) def.lines = arrondiLigne(DEC.lignes);
+      if (DEC.panModif) def.panneaux = panneauxPlats();
       await Store.put('tracks', def);
       DEC.def0 = def; DEC.local = false;
     } else {
       const ecart = ecartAuFichier(DEC.def0, DEC.decor);
-      if (Object.keys(ecart).length) { await Store.put('decor', { id: DEC.id, at: Date.now(), decor: ecart }); DEC.local = true; }
-      else { await Store.del('decor', DEC.id); DEC.local = false; }
+      let local = false;
+      if (Object.keys(ecart).length) { await Store.put('decor', { id: DEC.id, at: Date.now(), decor: ecart }); local = true; }
+      else await Store.del('decor', DEC.id);
       // les trajectoires, là où `lignes.html` les range et où le jeu les relit
       const lignes = arrondiLigne(DEC.lignes);
-      if (lignes && !egal(lignes, arrondiLigne(DEC.def0.lines))) { await Store.put('lines', { id: DEC.id, at: Date.now(), lines: lignes }); DEC.lignesOrigine = 'Enregistrées sur ce poste.'; }
+      if (lignes && !egal(lignes, arrondiLigne(DEC.def0.lines))) { await Store.put('lines', { id: DEC.id, at: Date.now(), lines: lignes }); DEC.lignesOrigine = 'Enregistrées sur ce poste.'; local = true; }
       else { await Store.del('lines', DEC.id); DEC.lignesOrigine = DEC.def0.lines ? 'Celles du fichier.' : ''; }
+      // les panneaux : une liste reprise, là où `lignes.html` les rangeait et où le jeu les relit
+      const plats = panneauxPlats(), fichier = Array.isArray(DEC.def0.panneaux) ? DEC.def0.panneaux.map(versPanneau).map((p) => [r4(p.at), p.dist, p.note, p.sign]) : null;
+      if (DEC.panModif && !egal(plats, fichier)) { await Store.put('panneaux', { id: DEC.id, at: Date.now(), panneaux: plats }); DEC.panOrigine = 'enregistrés sur ce poste.'; local = true; }
+      else { await Store.del('panneaux', DEC.id); DEC.panOrigine = fichier ? 'ceux du fichier.' : ''; }
+      DEC.local = local;
     }
     DEC.modif = false; majFiche();
     etatDecor(`${DEC.def0.name} : enregistré${DEC.perso ? ' dans le circuit perso' : ' pour ce navigateur — « Fabriquer tracks.js » pour tout le monde'}`);
@@ -1190,10 +1397,11 @@ async function enregistrer() {
 }
 
 async function oublier() {
-  if (!confirm('Revenir au fichier et oublier la retouche de ce circuit — décor et trajectoires ?')) return;
+  if (!confirm('Revenir au fichier et oublier la retouche de ce circuit — décor, trajectoires et panneaux ?')) return;
   if (!DEC.perso) {
     try { await Store.del('decor', DEC.id); } catch (_) { /* base indisponible */ }
     try { await Store.del('lines', DEC.id); } catch (_) { /* base indisponible */ }
+    try { await Store.del('panneaux', DEC.id); } catch (_) { /* base indisponible */ }
   }
   DEC.modif = false;
   await chargerCircuit(DEC.id);
@@ -1211,6 +1419,19 @@ async function fabriquerFichier() {
     const pose = (id, l) => { const def = TRACKS.find((t) => t.id === id), a = arrondiLigne(l); if (!def || !a || egal(a, arrondiLigne(def.lines))) return; if (!par.has(id)) par.set(id, {}); par.get(id).lines = a; };
     for (const r of lignes) if (r && r.lines && r.lines.racing && r.id !== DEC.id) pose(r.id, r.lines);
     if (!DEC.perso && DEC.id && DEC.lignes) pose(DEC.id, DEC.lignes);
+    // et les panneaux repris : ceux de ce circuit tels qu'on les voit, les autres de la base
+    let pans = [];
+    try { pans = await Store.list('panneaux'); } catch (_) { /* base indisponible */ }
+    const poseP = (id, liste) => {
+      const def = TRACKS.find((t) => t.id === id);
+      if (!def || !Array.isArray(liste)) return;
+      const plats = liste.map(versPanneau).map((p) => [r4(p.at), p.dist, p.note, p.sign]);
+      const fichier = Array.isArray(def.panneaux) ? def.panneaux.map(versPanneau).map((p) => [r4(p.at), p.dist, p.note, p.sign]) : null;
+      if (egal(plats, fichier)) return;
+      if (!par.has(id)) par.set(id, {}); par.get(id).panneaux = plats;
+    };
+    for (const r of pans) if (r && r.id !== DEC.id) poseP(r.id, r.panneaux);
+    if (!DEC.perso && DEC.id && DEC.panModif) poseP(DEC.id, DEC.panneaux);
     const r = await fetch('js/tracks.js');
     if (!r.ok) throw new Error('js/tracks.js illisible (' + r.status + ')');
     let txt = await r.text();
@@ -1220,7 +1441,7 @@ async function fabriquerFichier() {
       txt = poserValeurs(txt, id, ecart);
       ids.push(id);
     }
-    if (!ids.length) { etatDecor('Aucune retouche de décor ni de trajectoire à reporter dans le fichier.'); return; }
+    if (!ids.length) { etatDecor('Aucune retouche à reporter dans le fichier.'); return; }
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([txt], { type: 'text/javascript' }));
     a.download = 'tracks.js';
@@ -1254,8 +1475,14 @@ function initDecor() {
     if ((e.key === 'Delete' || e.key === 'Backspace') && DEC.sel) { e.preventDefault(); supprimerSel(); }
   });
   window.addEventListener('keyup', (e) => { if (e.code === 'Space') DEC.espace = false; });
+  // quatre onglets ; celui des objets garde ses cinq outils, et se souvient du dernier
+  for (const b of document.querySelectorAll('#d-onglets button')) b.onclick = () => {
+    DEC.onglet = b.dataset.onglet;
+    DEC.outil = DEC.onglet === 'objets' ? (DEC.outilObjets || 'objets') : DEC.onglet;
+    DEC.mode = 'choisir'; DEC.sel = null; DEC.trace = null; majFiche(); peindre();
+  };
   for (const b of document.querySelectorAll('#d-outils button')) b.onclick = () => {
-    DEC.outil = b.dataset.outil; DEC.mode = 'choisir'; DEC.sel = null; DEC.trace = null; majFiche(); peindre();
+    DEC.onglet = 'objets'; DEC.outil = DEC.outilObjets = b.dataset.outil; DEC.mode = 'choisir'; DEC.sel = null; DEC.trace = null; majFiche(); peindre();
   };
   $d('d-circuit').onchange = (e) => chargerCircuit(e.target.value);
   $d('d-poser').onclick = enregistrer;
@@ -1267,28 +1494,17 @@ function initDecor() {
   window.addEventListener('beforeunload', (e) => { if (DEC.modif) { e.preventDefault(); e.returnValue = ''; } });
 }
 
-async function modeDecor(actif) {
-  if (actif && !DEC.rendu) initDecor();
-  DEC.actif = actif;
-  $d('ed').classList.toggle('decor', actif);
-  $d('mode-trace').classList.toggle('sel', !actif);
-  $d('mode-decor').classList.toggle('sel', actif);
-  $d('p-trace').hidden = actif;
-  $d('p-decor').hidden = !actif;
-  for (const c of [DEC.cv, DEC.rendu && DEC.rendu.carCanvas, DEC.rendu && DEC.rendu.hudCanvas]) if (c) c.style.display = actif ? 'block' : 'none';
-  if (!actif) {
-    // le tracé d'un circuit perso reprend le décor qu'on vient d'y enregistrer
-    if (DEC.perso && ed.doc && ed.doc.id === DEC.id) ed.doc.decor = decorDe(DEC.def0);
-    if (typeof resize === 'function') resize();
-    return;
-  }
-  DEC.rendu.resize();
-  // le circuit perso ouvert dans le tracé, sinon le dernier regardé, sinon le premier du jeu
-  const id = (ed && ed.doc && ed.doc.id) || DEC.id || new URLSearchParams(location.search).get('decor') || TRACKS[0].id;
-  await listeCircuits(id);
-  if (id !== DEC.id || !DEC.track) await chargerCircuit(id); else { majFiche(); peindre(); }
-}
+/* ------------------------------------------------- ouvrir l'éditeur
 
-$d('mode-trace').onclick = () => modeDecor(false);
-$d('mode-decor').onclick = () => modeDecor(true);
-if (new URLSearchParams(location.search).has('decor')) modeDecor(true);
+Il n'y a plus qu'un mode : la page s'ouvre sur l'éditeur, sur le circuit de l'adresse
+(`?decor=monaco`), sinon le dernier regardé, sinon le premier du jeu. */
+async function ouvrirEditeur() {
+  initDecor();
+  DEC.actif = true;
+  for (const c of [DEC.cv, DEC.rendu.carCanvas, DEC.rendu.hudCanvas]) c.style.display = 'block';
+  DEC.rendu.resize();
+  const id = new URLSearchParams(location.search).get('decor') || TRACKS[0].id;
+  await listeCircuits(id);
+  await chargerCircuit(id);
+}
+ouvrirEditeur();
