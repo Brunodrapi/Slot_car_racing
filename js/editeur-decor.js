@@ -319,17 +319,29 @@ function normaliseLargeur(z) {
   const shift = Math.floor(z.points[0][0]);
   for (const p of z.points) p[0] -= shift;
 }
+/* LES POINTS DES BORDS SE POSENT SUR L'AXE D'ORIGINE, pas sur celui que leurs contours refont.
+
+Un contour suivi redessine la chaussée, et `Track` fait passer l'axe entre les deux bords. Converti
+sur ce nouvel axe, un point déplacé déplacerait l'axe, qui le déplacerait à son tour : la poignée
+fuirait sous la souris. `axeBase` est l'axe d'avant les contours ; un circuit d'éditeur, qui n'en a
+pas, garde le sien. Un point de contour peut passer de l'autre côté de cet axe, jusqu'à 60 m. */
+const axeDe = (t) => t.axeBase || t;
+const ECART_CONTOUR = [-60 / ECHELLE_ROUTE, 60 / ECHELLE_ROUTE];
+function projetteAxe(t, x, y, pres) {
+  const a = axeDe(t);
+  return pres == null ? a.project(x, y, 0, Math.ceil(a.n / 2) + 1) : a.project(x, y, pres, 220);
+}
 function pointLargeur(z, i) {
-  const [f,w]=z.points[i], t=DEC.track, at=t.wrap(f*t.length);
-  const drag=DEC.drag;
+  const [f,w]=z.points[i], drag=DEC.drag;
   if(drag?.pointLargeur && largeursPiste()[drag.pointLargeur.zone]===z){
-    const base=drag.baseLargeur,hw=z.side>0?base.hwLeftAt(at):base.hwRightAt(at);
-    return t.pos(at,z.side*Math.max(2.5,hw+w*ECHELLE_ROUTE));
+    const base=axeDe(drag.baseLargeur),at=base.wrap(f*base.length),hw=z.side>0?base.hwLeftAt(at):base.hwRightAt(at);
+    return base.pos(at,z.side*(base===drag.baseLargeur?Math.max(2.5,hw+w*ECHELLE_ROUTE):hw+w*ECHELLE_ROUTE));
   }
-  return t.roadEdgeControls?.get(z)?.[i] || t.pos(at,z.side*bord(at,z.side));
+  const t=axeDe(DEC.track),at=t.wrap(f*t.length);
+  return DEC.track.roadEdgeControls?.get(z)?.[i] || t.pos(at,z.side*(z.side>0?t.hwLeftAt(at):t.hwRightAt(at)));
 }
 function ajouterLargeur(pr, deuxCotes = false) {
-  const f = pr.s / DEC.track.length, d = 40 / DEC.track.length;
+  const L = axeDe(DEC.track).length, f = pr.s / L, d = 40 / L;
   const z = {side: pr.lat >= 0 ? 1 : -1, points: [[f-d,0],[f-d/2,3/ECHELLE_ROUTE],[f+d/2,3/ECHELLE_ROUTE],[f+d,0]]};
   normaliseLargeur(z);
   changer(() => { largeursPiste().push(z); if(deuxCotes)largeursPiste().push({...clone(z),side:-z.side}); });
@@ -534,19 +546,19 @@ function surBas(e) {
     }
     if((e.shiftKey||DEC.mode==='point')&&DEC.sel?.outil==='piste'){
       const z=largeursPiste()[DEC.sel.zone],ref=(z.points[0][0]+z.points.at(-1)[0])/2;
-      const pr=projette(w.x,w.y,T.wrap(ref*T.length)),f=deplie(pr.s/T.length,ref);
+      const def=definition(),base=axeDe(new Track({...def,roadWidenings:largeursPiste().filter(other=>other!==z)},ECHELLE_ROUTE));
+      const pr=base.project(w.x,w.y,base.wrap(ref*base.length),220),f=deplie(pr.s/base.length,ref);
       const i=z.points.findIndex(p=>p[0]>f);
       if(i>0&&f-z.points[i-1][0]>1e-6&&z.points[i][0]-f>1e-6){
-        const def=definition(),base=new Track({...def,roadWidenings:largeursPiste().filter(other=>other!==z)},ECHELLE_ROUTE);
-        const at=T.wrap(f*T.length),hw=z.side>0?base.hwLeftAt(at):base.hwRightAt(at);
-        const value=clamp((z.side*pr.lat-hw)/ECHELLE_ROUTE,-10/ECHELLE_ROUTE,30/ECHELLE_ROUTE);
+        const at=base.wrap(f*base.length),hw=z.side>0?base.hwLeftAt(at):base.hwRightAt(at);
+        const value=clamp((z.side*pr.lat-hw)/ECHELLE_ROUTE,...ECART_CONTOUR);
         changer(()=>{z.followContour=true;z.points.splice(i,0,[f,value]);});
       }
       return;
     }
-    const pr=projette(w.x,w.y);
+    const pr=projetteAxe(T,w.x,w.y),LA=axeDe(T).length;
     if (DEC.mode==='ajouter'||DEC.mode==='ajouter-deux') { ajouterLargeur(pr,DEC.mode==='ajouter-deux'); return; }
-    const i=largeursPiste().findIndex(z=>{let f=pr.s/T.length;if(f<z.points[0][0])f+=1;return f<=z.points.at(-1)[0]&&f>=z.points[0][0]&&(pr.lat>=0?1:-1)===z.side;});
+    const i=largeursPiste().findIndex(z=>{let f=pr.s/LA;if(f<z.points[0][0])f+=1;return f<=z.points.at(-1)[0]&&f>=z.points[0][0]&&(pr.lat>=0?1:-1)===z.side;});
     DEC.sel=i>=0?{outil:'piste',zone:i}:null;
     if(i<0)DEC.drag={pan:[e.clientX,e.clientY,DEC.rendu.cam.x,DEC.rendu.cam.y]};
     majFiche();peindre();return;
@@ -666,13 +678,13 @@ function surMouvement(e) {
   }
   if (g.objet) { g.bouge = true; g.objet.o.x = g.x0 + w.x - g.de.x; g.objet.o.y = g.y0 + w.y - g.de.y; DEC.rendu.implantation && implIndexe(DEC.rendu.implantation); peindre(); return; }
   if(g.pointLargeur){
-    const z=largeursPiste()[g.pointLargeur.zone],i=g.pointLargeur.point,pts=z.points;
-    const pr=projette(w.x,w.y,T.wrap(pts[i][0]*T.length));
-    const f=deplie(pr.s/T.length,pts[i][0]);
+    const z=largeursPiste()[g.pointLargeur.zone],i=g.pointLargeur.point,pts=z.points,base=axeDe(g.baseLargeur);
+    const pr=base.project(w.x,w.y,base.wrap(pts[i][0]*base.length),220);
+    const f=deplie(pr.s/base.length,pts[i][0]);
     const lo=i?pts[i-1][0]+1e-6:pts.at(-1)[0]-.49,hi=i<pts.length-1?pts[i+1][0]-1e-6:pts[0][0]+.49;
-    const pos=Math.max(lo,Math.min(hi,f)),at=T.wrap(pos*T.length),base=g.baseLargeur;
+    const pos=Math.max(lo,Math.min(hi,f)),at=base.wrap(pos*base.length);
     const hw=z.side>0?base.hwLeftAt(at):base.hwRightAt(at);
-    pts[i]=[pos,i===0||i===pts.length-1?0:clamp((z.side*pr.lat-hw)/ECHELLE_ROUTE,-10/ECHELLE_ROUTE,30/ECHELLE_ROUTE)];
+    pts[i]=[pos,i===0||i===pts.length-1?0:clamp((z.side*pr.lat-hw)/ECHELLE_ROUTE,...ECART_CONTOUR)];
     peindre();return;
   }
   if (g.pointZone) {
@@ -833,8 +845,8 @@ function majFiche() {
       if(DEC.track.roadEdgeInvalid?.has(z))h+=`<p class="help">${esc(DEC.track.roadEdgeInvalid.get(z))}</p>`;
       h+=champ('Côté de cette zone',`<select id="d-largeur-cote">${opt(1,'Gauche',z.side>0)}${opt(-1,'Droite',z.side<0)}</select>`);
       h+=champ('Largeur ajoutée (m)',nombre('d-largeur-m',r2(peak*ECHELLE_ROUTE),-10,30,.5));
-      h+=champ('Longueur de zone (m)',nombre('d-largeur-long',r2((z.points.at(-1)[0]-z.points[0][0])*DEC.track.length),10,500,5));
-      h+='<p class="help">Glisser les points pour redessiner le bord. D/F déplacent le début et la fin. Maj+clic dans la zone sélectionnée ajoute un point ; Alt+clic sur un point intérieur le retire. Les extrémités rejoignent progressivement la piste. Valeur négative : rétrécir. Les mètres correspondent à la chaussée affichée en jeu.</p><button id="d-largeur-oppose">Ajouter aussi le côté opposé</button><button id="d-suppr">Supprimer cet élargissement</button>';
+      h+=champ('Longueur de zone (m)',nombre('d-largeur-long',r2((z.points.at(-1)[0]-z.points[0][0])*axeDe(DEC.track).length),10,500,5));
+      h+='<p class="help">Glisser les points pour redessiner le bord — y compris au-delà du milieu de la piste : le tracé du virage se recentre entre ses deux bords. D/F déplacent le début et la fin. Maj+clic dans la zone sélectionnée ajoute un point ; Alt+clic sur un point intérieur le retire. Les extrémités rejoignent progressivement la piste. Valeur négative : rétrécir. Les mètres correspondent à la chaussée affichée en jeu.</p><button id="d-largeur-oppose">Ajouter aussi le côté opposé</button><button id="d-suppr">Supprimer cet élargissement</button>';
     }
   } else if (DEC.outil === 'horspiste') {
     h += champ('Gravier automatique dans les virages', `<input type="checkbox" id="d-auto" ${DEC.decor.annotatedRunoffsOnly ? '' : 'checked'}>`);
@@ -938,7 +950,7 @@ function brancherFiche() {
   });
   on('d-largeur-long','change',e=>{
     if(!e.target.checkValidity()||e.target.value==='')return;
-    const len=+e.target.value/DEC.track.length;
+    const len=+e.target.value/axeDe(DEC.track).length;
     changer(()=>{const z=largeursPiste()[DEC.sel.zone],a=z.points[0][0],b=z.points.at(-1)[0],mid=(a+b)/2;
       z.points.forEach(p=>p[0]=mid+(p[0]-mid)*len/(b-a));normaliseLargeur(z);});
   });

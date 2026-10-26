@@ -4052,3 +4052,41 @@ Validation géométrique sur les deux côtés du virage le plus serré de Monaco
 ### Lissage des bords — 0.52.28
 
 **Courbe lissée**, dans Largeur de piste, arrondit le contour entre les points sans les supprimer. Le contrôle et la piste utilisent la même courbe. Un contour qui boucle ou qui ne peut pas être représenté sur l'axe actuel est affiché en rouge et n'est pas appliqué à la chaussée ; les points restent modifiables. Cela remplace le repli partiel sur les anciennes largeurs qui produisait des triangles. Voir [la reproduction sur le fichier Monaco fourni](docs/monaco-contours/README.md).
+
+### Redessiner le tracé d'un virage — 0.52.29
+
+Bruno voulait « modifier directement le tracé du virage en bougeant les points », et pas seulement
+l'élargir. Jusqu'ici un bord dessiné se posait sur l'**axe d'origine** : chaque station cherchait,
+le long de sa normale, où le contour la coupait. Un contour qui passait de l'autre côté de l'axe —
+l'intérieur d'une épingle ramené vers l'extérieur — ne se laissait plus rencontrer dans l'ordre, et
+la retouche était refusée. On ne pouvait qu'élargir.
+
+**Les deux bords font maintenant la chaussée, et l'axe passe entre eux** (`Track._recentreBords`).
+Les zones à contour qui se chevauchent forment un virage ; chaque côté y a un bord — le contour
+dessiné là où il y en a un, le bord d'origine ailleurs. Les deux bords sont parcourus à la même
+allure, l'axe passe entre les points appariés (exactement sur l'axe d'origine aux deux bouts, pour
+se raccorder sans marche), puis trois passes le redressent : on reprend les bords le long de ses
+normales, on le remet au milieu. Là où il tourne plus serré que la demi-largeur intérieure, on
+l'adoucit jusqu'à ce que ses normales n'aient plus à se croiser avant le bord — sans quoi le coin
+vif d'une épingle repartait en boucle. La boucle est rééchantillonnée au mètre ; trajectoires,
+vibreurs, dégagements et barrières, construits après, suivent d'eux-mêmes.
+
+- **Fidélité** : le bord construit suit le dessin à quelques centimètres sur une courbe douce, à
+  17 cm au coin vif du contour Monaco fourni, à 33 cm sur une épingle redessinée de dix mètres.
+- **Refus** : un virage dont les bords se recoupent pour de bon (boucle de plus de 2,5 m), ou dont
+  la chaussée ne peut pas suivre le dessin à 1,5 m près — le contour Monaco reporté à l'intérieur,
+  qui boucle sur lui-même — est refusé, le contour devient rouge et l'éditeur dit pourquoi. La
+  chaussée précédente reste, et les autres virages retouchés aussi.
+- **Les points restent posés sur l'axe d'origine** (`axeBase`), en fraction de tour et en écart au
+  bord, et l'éditeur convertit ce qu'on déplace sur lui : sinon la poignée fuirait sous la souris,
+  puisque déplacer un point déplace l'axe. Un point de contour peut passer jusqu'à 60 m de l'autre
+  côté de cet axe ; le plancher de 2,5 m ne vaut plus que pour un simple élargissement.
+- **Le tour change un peu de longueur**, et ce qui se repère en fraction de tour (panneaux,
+  dégagements) glisse d'autant au pire : quelques mètres pour une épingle retouchée.
+- **Sans contour, rien ne bouge** : les treize circuits sont identiques à l'octet près.
+
+`tools/e2e-epingle-redessinee.js` prend l'épingle la plus serrée de Monaco, ramène son bord intérieur
+quatre mètres au-delà de l'axe et écarte l'extérieur de six : retouche acceptée, axe déplacé de
+5,6 m, bords à 9 et 33 cm du dessin, trajectoires dans la chaussée ; dans l'éditeur, un point tiré
+deux mètres plus loin reste sous la souris ; en course, les neuf voitures de l'ordinateur bouclent
+leur tour sans une sortie de piste.

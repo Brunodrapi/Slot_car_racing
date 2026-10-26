@@ -986,35 +986,24 @@ class Track {
         this.unitScale *= f2;
       }
     }
-    const N = Math.max(50, Math.round(Track.polyLength(raw) / this.ds));
+    // `let` : le recentrage entre deux bords dessinés (plus bas) refait l'axe, et la suite s'en sert
+    let N = Math.max(50, Math.round(Track.polyLength(raw) / this.ds));
     this.n = N; this.length = N * this.ds;
-    const { xs, ys } = Track.resample(raw, N);
+    let { xs, ys } = Track.resample(raw, N);
     this.xs = xs; this.ys = ys;
-
-    // heading, normals, curvature
-    const th = new Float32Array(N), nx = new Float32Array(N), ny = new Float32Array(N), kraw = new Float32Array(N);
-    for (let i = 0; i < N; i++) {
-      const dx = xs[(i + 1) % N] - xs[(i - 1 + N) % N], dy = ys[(i + 1) % N] - ys[(i - 1 + N) % N];
-      th[i] = Math.atan2(dy, dx);
-      const l = Math.hypot(dx, dy) || 1;
-      nx[i] = dy / l; ny[i] = -dx / l;                  // left normal (y-down)
-    }
-    for (let i = 0; i < N; i++) {
-      let d = th[(i + 1) % N] - th[(i - 1 + N) % N];
-      while (d > Math.PI) d -= 2 * Math.PI;
-      while (d < -Math.PI) d += 2 * Math.PI;
-      kraw[i] = d / (2 * this.ds);
-    }
-    this.th = th; this.nx = nx; this.ny = ny;
-    this.k = Track.smooth(kraw, 4);
+    this._normales();
 
     // road half-widths
     this.hwL = new Float32Array(N); this.hwR = new Float32Array(N);
     this.hwL.fill(baseHw); this.hwR.fill(baseHw);
 
     // Un élargissement annoté est de la chaussée, pas un dégagement peint. Une valeur négative
-    // resserre la chaussée : l'arrondi d'une corde trop pointue, par exemple.
-    if (!(def.lines && !def.width)) this._applyRoadWidenings();
+    // resserre la chaussée : l'arrondi d'une corde trop pointue, par exemple. Les bords dessinés
+    // (« suivre le contour ») redéfinissent la chaussée et l'axe avec elle : voir `_recentreBords`.
+    if (!(def.lines && !def.width)) {
+      this._applyRoadWidenings(true);
+      if (this._recentreBords()) { N = this.n; xs = this.xs; ys = this.ys; }
+    }
 
     /* De quel côté est l'intérieur du virage, en tout point — calculé ici et non dans le générateur
     de lignes, parce que le rendu s'en sert aussi : les deux bords de piste sont teintés d'après lui,
@@ -1772,19 +1761,48 @@ class Track {
     return false;
   }
 
+  /** Cap, normales (à gauche, repère y vers le bas) et courbure, depuis les stations de l'axe. */
+  _normales() {
+    const N = this.n, xs = this.xs, ys = this.ys;
+    const th = new Float32Array(N), nx = new Float32Array(N), ny = new Float32Array(N), kraw = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      const dx = xs[(i + 1) % N] - xs[(i - 1 + N) % N], dy = ys[(i + 1) % N] - ys[(i - 1 + N) % N];
+      th[i] = Math.atan2(dy, dx);
+      const l = Math.hypot(dx, dy) || 1;
+      nx[i] = dy / l; ny[i] = -dx / l;                  // left normal (y-down)
+    }
+    for (let i = 0; i < N; i++) {
+      let d = th[(i + 1) % N] - th[(i - 1 + N) % N];
+      while (d > Math.PI) d -= 2 * Math.PI;
+      while (d < -Math.PI) d += 2 * Math.PI;
+      kraw[i] = d / (2 * this.ds);
+    }
+    this.th = th; this.nx = nx; this.ny = ny;
+    this.k = Track.smooth(kraw, 4);
+  }
+
   // Apply local width adjustments after the base road width is known.
-  _applyRoadWidenings() {
+  _applyRoadWidenings(recentrer = false) {
     this.roadEdgeControls = new Map();
     this.roadEdgeMisses = 0;
     this.roadEdgeInvalid = new Map();
-    for(const zone of this.def.roadWidenings||[]){
+    this.roadContours = [];
+    /* En recentrage, les largeurs simples d'abord, les contours ensuite : un contour se pose sur la
+       chaussée qu'elles ont faite, et c'est sur elle que l'éditeur convertit ses points. */
+    const zones = this.def.roadWidenings || [];
+    const ordre = recentrer ? [...zones.filter((z) => !z.followContour), ...zones.filter((z) => z.followContour)] : zones;
+    for(const zone of ordre){
       const pts=zone.points,key=zone.side>0?this.hwL:this.hwR;
       // Convert the edited controls to world coordinates before modifying this edge.
-      const controls=pts.map(([f,w])=>this.pos(this.wrap(f*this.length),zone.side*Math.max(2.5,this._lerp(key,f*this.length)+w*this.widthScale)));
+      // Un contour qui refait l'axe peut passer de l'autre côté de l'axe d'origine : pas de plancher.
+      const plancher=recentrer&&zone.followContour?-Infinity:2.5;
+      const controls=pts.map(([f,w])=>this.pos(this.wrap(f*this.length),zone.side*Math.max(plancher,this._lerp(key,f*this.length)+w*this.widthScale)));
       this.roadEdgeControls.set(zone,controls);
       const curve=zone.followContour?Track.roadCurve(controls,pts.map(p=>p[0]),zone.smoothContour!==false):controls;
       const before=key.slice(),stations=[];let misses=0;
       if(zone.followContour&&Track.roadCrosses(curve)){this.roadEdgeInvalid.set(zone,'Le contour se croise : déplace ou retire les points qui forment une boucle.');continue;}
+      // le bord dessiné fera la chaussée, et l'axe passera entre les deux bords : `_recentreBords`
+      if(recentrer&&zone.followContour){this.roadContours.push({zone,curve,a:pts[0][0],b:pts.at(-1)[0]});continue;}
       for(let i=0;i<this.n;i++){
         let f=i/this.n;if(f<pts[0][0])f+=1;
         if(f<pts[0][0]||f>pts.at(-1)[0])continue;
@@ -1815,6 +1833,302 @@ class Track {
         this.roadEdgeInvalid.set(zone,'Ce contour ne suit pas l’ordre du virage. Rapproche les points ou ajoute des points intermédiaires. La chaussée précédente est conservée.');
       }
     }
+  }
+
+  /* LES DEUX BORDS DESSINÉS FONT LA CHAUSSÉE, ET L'AXE PASSE ENTRE EUX.
+
+  Un bord dessiné se posait sur l'axe d'origine : chaque station cherchait, le long de sa normale,
+  où le contour la coupait. Ça suffit pour élargir un virage, pas pour le redessiner. Dès qu'un
+  contour passait de l'autre côté de l'axe — l'intérieur d'une épingle ramené vers l'extérieur, la
+  forme que Bruno voulait à Monaco — les normales ne le rencontraient plus dans l'ordre, et la
+  retouche était refusée.
+
+  On renverse donc la construction, virage par virage. Les zones à contour qui se chevauchent font
+  un groupe ; sur sa longueur, chaque côté a un bord — le contour dessiné là où il y en a un, le bord
+  d'origine ailleurs. On parcourt les deux bords à la même allure (même fraction de leur longueur),
+  et l'axe passe entre les deux points appariés : au milieu au cœur du virage, et exactement sur
+  l'axe d'origine aux deux bouts, pour que la piste se raccorde sans marche. La boucle entière est
+  ensuite rééchantillonnée au mètre, normales et courbure recalculées, et chaque station du groupe
+  reprend sa largeur là où sa normale coupe les bords. Les trajectoires, les vibreurs, les
+  dégagements et les barrières, construits après, suivent d'eux-mêmes.
+
+  L'AXE D'ORIGINE EST GARDÉ (`axeBase`) : les points de l'éditeur y sont posés, en fraction de tour
+  et en écart au bord, et c'est sur lui qu'il convertit ce qu'on déplace. Sans ça, déplacer un point
+  déplaçait l'axe, qui déplaçait le point : la poignée fuyait sous la souris.
+
+  Le tour change un peu de longueur (le nouvel axe n'a pas celle de l'ancien), et tout ce qui se
+  repère en fraction de tour glisse d'autant, au pire : quelques mètres pour une épingle retouchée.
+  Un groupe dont les bords se croisent ou se rejoignent est refusé et dit pourquoi ; les autres
+  restent appliqués. Renvoie vrai si l'axe a changé. */
+  _recentreBords() {
+    this.axeBase = Object.assign(Object.create(Track.prototype), { n: this.n, ds: this.ds, length: this.length,
+      xs: this.xs, ys: this.ys, nx: this.nx, ny: this.ny, th: this.th, k: this.k,
+      hwL: this.hwL.slice(), hwR: this.hwR.slice() });
+    let contours = this.roadContours || [];
+    for (let essai = 0; essai < 8 && contours.length; essai++) {
+      const r = this._axeEntreBords(contours);
+      if (r.ok) {
+        Object.assign(this, { n: r.n, length: r.n * this.ds, xs: r.xs, ys: r.ys });
+        this._normales();
+        this.hwL = r.hwL; this.hwR = r.hwR;
+        return true;
+      }
+      for (const { c, raison } of r.rates) this.roadEdgeInvalid.set(c.zone, raison);
+      contours = contours.filter((c) => !r.rates.some((q) => q.c === c));
+    }
+    return false;
+  }
+
+  _axeEntreBords(contours) {
+    const B = this.axeBase, N = B.n, ds = this.ds;
+    const dist = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
+    // des zones qui se chevauchent sont un seul virage ; `fa`/`fb` en stations, dépliées
+    const zs = contours.map((c) => ({ c, fa: c.a * N, fb: c.b * N })).sort((p, q) => p.fa - q.fa);
+    const groupes = [];
+    for (const z of zs) {
+      const g = groupes.at(-1);
+      if (g && z.fa <= g.i1 + 2) { g.i1 = Math.max(g.i1, Math.ceil(z.fb)); g.zs.push(z); }
+      else groupes.push({ i0: Math.floor(z.fa), i1: Math.ceil(z.fb), zs: [z] });
+    }
+    if (groupes.length > 1 && groupes.at(-1).i1 >= groupes[0].i0 + N - 2) {   // par-dessus la ligne
+      const a = groupes.shift(), z = groupes.at(-1);
+      z.i1 = Math.max(z.i1, a.i1 + N);
+      for (const q of a.zs) z.zs.push({ ...q, fa: q.fa + N, fb: q.fb + N });
+    }
+    const bordBase = (k, side) => {
+      const m = ((k % N) + N) % N, hw = side > 0 ? B.hwL[m] : B.hwR[m];
+      return { x: B.xs[m] + B.nx[m] * hw * side, y: B.ys[m] + B.ny[m] * hw * side };
+    };
+    // un côté du groupe : le bord d'origine, et le contour dessiné là où il y en a un
+    const cote = (g, side) => {
+      const out = [];
+      let k = g.i0;
+      for (const z of g.zs.filter((q) => q.c.zone.side === side).sort((p, q) => p.fa - q.fa)) {
+        for (; k < z.fa; k++) out.push(bordBase(k, side));
+        for (const p of z.c.curve) out.push({ x: p.x, y: p.y });
+        k = Math.max(k, Math.floor(z.fb) + 1);
+      }
+      for (; k <= g.i1; k++) out.push(bordBase(k, side));
+      return out;
+    };
+    // le même côté, en K+1 points également espacés le long de sa longueur
+    const espace = (pts, K) => {
+      const L = [0];
+      for (let i = 1; i < pts.length; i++) L.push(L[i - 1] + dist(pts[i - 1], pts[i]));
+      const tot = L.at(-1) || 1e-6, out = [];
+      let j = 1;
+      for (let k = 0; k <= K; k++) {
+        const d = tot * k / K;
+        while (j < pts.length - 1 && L[j] < d) j++;
+        const a = pts[j - 1], b = pts[j], u = clamp((d - L[j - 1]) / ((L[j] - L[j - 1]) || 1e-6), 0, 1);
+        out.push({ x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u });
+      }
+      return out;
+    };
+    const dedans = new Uint8Array(N), points = [];
+    groupes.forEach((g, gi) => {
+      const K = Math.max(8, 4 * (g.i1 - g.i0));
+      g.K = K; g.L = espace(cote(g, 1), K); g.R = espace(cote(g, -1), K);
+      // la part du côté droit, qui place l'axe : celle d'origine aux deux bouts, au milieu entre
+      const part = (k) => { const m = ((k % N) + N) % N; return B.hwR[m] / ((B.hwL[m] + B.hwR[m]) || 1); };
+      const p0 = part(g.i0), p1 = part(g.i1);
+      g.p0 = p0; g.p1 = p1;
+      for (let k = g.i0 + 1; k < g.i1; k++) dedans[((k % N) + N) % N] = 1;
+      for (let k = 1; k < K; k++) {
+        const u = k / K, l = g.L[k], r = g.R[k], lam = p0 + (p1 - p0) * u, d = dist(l, r);
+        points.push({ g: (g.i0 + (g.i1 - g.i0) * u) % N, x: r.x + (l.x - r.x) * lam, y: r.y + (l.y - r.y) * lam,
+          hwL: d * (1 - lam), hwR: d * lam, grp: gi, u });
+      }
+    });
+    for (let i = 0; i < N; i++) if (!dedans[i]) points.push({ g: i, x: B.xs[i], y: B.ys[i], hwL: B.hwL[i], hwR: B.hwR[i], grp: -1, u: 0 });
+    points.sort((p, q) => p.g - q.g);
+    // la boucle, rééchantillonnée au mètre, largeurs et appartenance au groupe emportées avec elle
+    const reechantillonne = (pts) => {
+      const P = pts.length, L = [0];
+      for (let i = 1; i <= P; i++) L.push(L[i - 1] + dist(pts[i - 1], pts[i % P]));
+      const tot = L[P], n = Math.max(50, Math.round(tot / ds));
+      const r = { n, xs: new Float32Array(n), ys: new Float32Array(n), hwL: new Float32Array(n), hwR: new Float32Array(n),
+        grp: new Int16Array(n), u: new Float32Array(n) };
+      let j = 0;
+      for (let k = 0; k < n; k++) {
+        const d = tot * k / n;
+        while (j < P - 1 && L[j + 1] < d) j++;
+        const a = pts[j], b = pts[(j + 1) % P], t = clamp((d - L[j]) / ((L[j + 1] - L[j]) || 1e-6), 0, 1);
+        r.xs[k] = a.x + (b.x - a.x) * t; r.ys[k] = a.y + (b.y - a.y) * t;
+        r.hwL[k] = a.hwL + (b.hwL - a.hwL) * t; r.hwR[k] = a.hwR + (b.hwR - a.hwR) * t;
+        const proche = t < 0.5 ? a : b;
+        r.grp[k] = a.grp === b.grp ? a.grp : proche.grp;
+        r.u[k] = a.grp === b.grp ? a.u + (b.u - a.u) * t : proche.u;
+      }
+      return r;
+    };
+    let R = reechantillonne(points), essai;
+    const coupe = (k, side, bord, K, attendu) => {
+      const ox = R.xs[k], oy = R.ys[k], vx = essai.nx[k] * side, vy = essai.ny[k] * side;
+      const c = Math.round(R.u[k] * K), W = Math.max(8, Math.round(K / 6));
+      let best = null, bd = Infinity;
+      for (let q = Math.max(0, c - W); q < Math.min(K, c + W); q++) {
+        const p = bord[q], r = bord[q + 1], dx = r.x - p.x, dy = r.y - p.y, det = vx * dy - vy * dx;
+        if (Math.abs(det) < 1e-9) continue;
+        const ax = p.x - ox, ay = p.y - oy, t = (ax * dy - ay * dx) / det, v = (ax * vy - ay * vx) / det;
+        if (t < 0.3 || v < -1e-6 || v > 1 + 1e-6) continue;
+        if (Math.abs(t - attendu) < bd) { bd = Math.abs(t - attendu); best = t; }
+      }
+      return best;
+    };
+    /* TROIS PASSES : on adoucit l'axe, on reprend les bords le long de ses normales, on remet l'axe
+       entre eux — puis on recommence.
+
+    Le premier appariement, à la même fraction de longueur, n'est qu'un départ : là où un bord fait
+    un décrochement et pas l'autre, les points appariés ne se font plus face, et l'axe qu'on en tire
+    penche. Repris sur les normales, les bords collent au dessin ; remis au milieu, l'axe se redresse.
+    Une seule passe laissait le bord à 3,3 m du contour dessiné, trois le ramènent à quelques
+    centimètres.
+
+    L'axe apparié peut faire un coude là où un bord en fait un — le coin intérieur d'une épingle
+    avance vite quand l'autre bord tourne : on l'adoucit sur cinq stations, sans toucher aux bouts.
+    Une intersection n'est retenue que près de la largeur courante : au creux d'une épingle, les
+    normales se resserrent vers le bord intérieur et le rasent, et l'une d'elles touchait le bord
+    trois mètres plus loin. Une largeur qui s'écarte de plus d'un demi-mètre de la médiane de ses
+    cinq voisines est une dent, et prend sa valeur ; les autres restent, le sommet d'un virage avec. */
+    for (let passe = 0; passe < 3; passe++) {
+      const { n, xs, ys, hwL, hwR, grp } = R;
+      // adoucir l'axe aux stations marquées, sur cinq stations du même groupe
+      const lisser = (marque) => {
+        const x0 = xs.slice(), y0 = ys.slice();
+        for (let k = 0; k < n; k++) {
+          if (grp[k] < 0 || !marque(k)) continue;
+          let ok = true, sx = 0, sy = 0;
+          for (let q = -2; q <= 2; q++) { const m = (k + q + n) % n; if (grp[m] !== grp[k]) { ok = false; break; } sx += x0[m]; sy += y0[m]; }
+          if (ok) { xs[k] = sx / 5; ys[k] = sy / 5; }
+        }
+      };
+      // les bords repris le long des normales, puis la médiane
+      const reprendre = () => {
+        essai = Object.assign(Object.create(Track.prototype), { n, ds, length: n * ds, xs, ys });
+        essai._normales();
+        for (let k = 0; k < n; k++) {
+          if (grp[k] < 0) continue;
+          const g = groupes[grp[k]];
+          const l = coupe(k, 1, g.L, g.K, hwL[k]), r = coupe(k, -1, g.R, g.K, hwR[k]);
+          if (l != null && Math.abs(l - hwL[k]) <= Math.max(3, 0.6 * hwL[k])) hwL[k] = l;
+          if (r != null && Math.abs(r - hwR[k]) <= Math.max(3, 0.6 * hwR[k])) hwR[k] = r;
+        }
+        for (const hw of [hwL, hwR]) {
+          const brut = hw.slice(), at = (k) => brut[((k % n) + n) % n];
+          for (let k = 0; k < n; k++) {
+            if (grp[k] < 0) continue;
+            const med = [at(k - 2), at(k - 1), at(k), at(k + 1), at(k + 2)].sort((x, y) => x - y)[2];
+            if (Math.abs(brut[k] - med) > 0.5) hw[k] = med;      // une dent, pas le sommet d'un virage
+          }
+        }
+      };
+      // la demi-largeur intérieure rapportée au rayon de l'axe ; au-delà de 0,9 les normales se croisent
+      const serre = (k) => essai.k[k] * (essai.k[k] > 0 ? hwR[k] : -hwL[k]);
+      for (let lisse = 0; lisse < 3; lisse++) lisser(() => true);
+      reprendre();
+      /* L'AXE S'OUVRE LÀ OÙ IL EST PLUS SERRÉ QUE LE BORD INTÉRIEUR.
+
+      Au coin d'une épingle dessinée à angle vif des deux côtés, l'axe pris entre les deux bords
+      fait lui aussi un angle, d'un rayon de trois mètres quand la demi-largeur intérieure en fait
+      cinq : les normales se croisent avant d'atteindre le bord, qui repart en arrière en boucle.
+      Borner la largeur au rayon laissait le bord intérieur flotter au milieu de la route. On
+      adoucit donc l'AXE, là et autour, jusqu'à ce que son rayon dépasse la demi-largeur, et l'on
+      reprend chaque fois les bords sur leur dessin : un axe en arc autour du coin intérieur sait
+      tracer les deux angles, l'intérieur en éventail, l'extérieur par sa largeur. */
+      for (let tour = 0; tour < 30; tour++) {
+        const pres = new Uint8Array(n);
+        let viol = 0;
+        for (let k = 0; k < n; k++) if (grp[k] >= 0 && serre(k) > 0.9) { viol++; for (let q = -4; q <= 4; q++) pres[(k + q + n) % n] = 1; }
+        if (!viol) break;
+        lisser((k) => pres[k]);
+        reprendre();
+      }
+      // en dernier recours, la demi-largeur intérieure ne dépasse pas le rayon de l'axe
+      for (let k = 0; k < n; k++) {
+        if (grp[k] < 0) continue;
+        const kk = essai.k[k], rmax = 0.95 / Math.max(1e-6, Math.abs(kk));
+        if (kk > 0) hwR[k] = Math.min(hwR[k], rmax); else hwL[k] = Math.min(hwL[k], rmax);
+      }
+      if (passe === 2) break;
+      // l'axe revient entre les deux bords repris, dans la même proportion qu'au départ
+      const pts = [];
+      for (let k = 0; k < n; k++) {
+        if (grp[k] < 0) { pts.push({ x: xs[k], y: ys[k], hwL: hwL[k], hwR: hwR[k], grp: -1, u: 0 }); continue; }
+        const g = groupes[grp[k]], lam = g.p0 + (g.p1 - g.p0) * R.u[k];
+        const l = { x: xs[k] + essai.nx[k] * hwL[k], y: ys[k] + essai.ny[k] * hwL[k] };
+        const r = { x: xs[k] - essai.nx[k] * hwR[k], y: ys[k] - essai.ny[k] * hwR[k] }, d = dist(l, r);
+        pts.push({ x: r.x + (l.x - r.x) * lam, y: r.y + (l.y - r.y) * lam, hwL: d * (1 - lam), hwR: d * lam, grp: grp[k], u: R.u[k] });
+      }
+      R = reechantillonne(pts);
+    }
+    const { n, xs, ys, hwL, hwR, grp } = R;
+    /* Un groupe dont les bords se croisent, ou se rejoignent, ne fait pas une route. Le contrôle se
+       fait sur des points espacés d'au moins un mètre : au creux d'une épingle, le bord intérieur
+       se tasse en points à quelques centimètres, et un aller-retour de deux centimètres y passait
+       pour une boucle. */
+    const espaces = (pts) => { const out = [pts[0]]; for (const q of pts) if (dist(q, out.at(-1)) >= 1) out.push(q); return out; };
+    /* Et une boucle de moins de 2,5 m n'en est pas une : au coin vif d'une épingle, les normales se
+       rejoignent sur le même point du bord et le dépassent d'un mètre, un nœud qui disparaît sous le
+       bitume. Ce qu'on refuse, ce sont des bords qui se recoupent pour de bon. */
+    const boucle = (pts0) => {
+      const pts = espaces(pts0), cr = (a, b, c) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+      for (let i = 1; i < pts.length; i++) for (let j = i + 2; j < pts.length; j++) {
+        const a = pts[i - 1], b = pts[i], c = pts[j - 1], d = pts[j];
+        if (!(cr(a, b, c) * cr(a, b, d) < -1e-10 && cr(c, d, a) * cr(c, d, b) < -1e-10)) continue;
+        let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+        for (let q = i; q < j; q++) { x0 = Math.min(x0, pts[q].x); x1 = Math.max(x1, pts[q].x); y0 = Math.min(y0, pts[q].y); y1 = Math.max(y1, pts[q].y); }
+        if (Math.hypot(x1 - x0, y1 - y0) > 2.5) return true;
+      }
+      return false;
+    };
+    /* Et la chaussée doit suivre le dessin. Un contour qu'aucun axe ne sait border — un dessin de
+       l'extérieur d'une épingle reporté à l'intérieur, qui boucle sur lui-même — donnait une route à
+       plus de quatre mètres du trait : on la refuse plutôt que de laisser croire qu'elle le suit.
+       Le reste tient sous le demi-mètre, aux angles vifs, et sous quelques centimètres ailleurs. */
+    const ecartAuDessin = (curve, bord) => {
+      let max = 0;
+      for (let i = 0; i < curve.length; i += 2) {
+        const q = curve[i];
+        let d = Infinity;
+        for (let j = 1; j < bord.length; j++) {
+          const a = bord[j - 1], c = bord[j], dx = c.x - a.x, dy = c.y - a.y;
+          const u = clamp(((q.x - a.x) * dx + (q.y - a.y) * dy) / ((dx * dx + dy * dy) || 1e-9), 0, 1);
+          d = Math.min(d, Math.hypot(q.x - a.x - u * dx, q.y - a.y - u * dy));
+        }
+        if (d > max) max = d;
+      }
+      return max;
+    };
+    const rates = [];
+    groupes.forEach((g, gi) => {
+      const gauche = [], droite = [], axe = [], bordL = [], bordR = [];
+      let ok = true;
+      // les bords comparés au dessin débordent de dix stations : ses bouts s'y raccordent
+      const proche = new Uint8Array(n);
+      for (let k = 0; k < n; k++) if (grp[k] === gi) for (let q = -10; q <= 10; q++) proche[(k + q + n) % n] = 1;
+      let k0 = 0; while (k0 < n && !(proche[k0] && !proche[(k0 - 1 + n) % n])) k0++;
+      for (let q = 0; q < n; q++) {
+        const k = (k0 + q) % n;
+        if (!proche[k]) continue;
+        bordL.push({ x: xs[k] + essai.nx[k] * hwL[k], y: ys[k] + essai.ny[k] * hwL[k] });
+        bordR.push({ x: xs[k] - essai.nx[k] * hwR[k], y: ys[k] - essai.ny[k] * hwR[k] });
+      }
+      for (let k = 0; k < n; k++) {
+        if (grp[k] !== gi) continue;
+        if (!(hwL[k] + hwR[k] > 2) || !Number.isFinite(hwL[k] + hwR[k])) ok = false;
+        gauche.push({ x: xs[k] + essai.nx[k] * hwL[k], y: ys[k] + essai.ny[k] * hwL[k] });
+        droite.push({ x: xs[k] - essai.nx[k] * hwR[k], y: ys[k] - essai.ny[k] * hwR[k] });
+        axe.push({ x: xs[k], y: ys[k] });
+      }
+      const raison = !ok || !gauche.length || boucle(gauche) || boucle(droite) || boucle(axe)
+        ? 'Les deux bords se croisent ou se rejoignent dans ce virage : écarte les points. La chaussée précédente est conservée ici.'
+        : g.zs.some((z) => ecartAuDessin(z.c.curve, z.c.zone.side > 0 ? bordL : bordR) > 1.5)
+          ? 'La chaussée ne peut pas suivre ce dessin à 1,5 m près : adoucis l’angle ou ajoute des points. La chaussée précédente est conservée ici.'
+          : null;
+      if (raison) rates.push(...g.zs.map((z) => ({ c: z.c, raison })));
+    });
+    return rates.length ? { ok: false, rates } : { ok: true, n, xs, ys, hwL, hwR };
   }
 
   // Road edges for custom tracks: cover drawn lines plus a margin.
