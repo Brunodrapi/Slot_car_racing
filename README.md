@@ -4035,3 +4035,6 @@ Les élargissements `roadWidenings` font désormais partie des reprises enregist
 
 
 Depuis 0.52.25, **Élargir des deux côtés** crée deux zones pour le même virage. Choisir ensuite chacune dans la liste pour régler indépendamment sa largeur et sa longueur (par exemple +4 m à gauche et +7 m à droite). Pour une zone déjà créée, **Ajouter aussi le côté opposé** conserve la première et sélectionne l'autre ; si son pendant existe déjà sur le même secteur, il est sélectionné sans ajouter un doublon. Les deux côtés sont sauvegardés et exportés comme les autres élargissements.
+
+
+Depuis 0.52.26, l'outil **Largeur de piste** permet de glisser les points de chaque bord de zone. Les points intérieurs changent la largeur et leur position le long du virage ; D/F règlent les extrémités en conservant un raccord à la largeur d'origine. **Maj+clic** dans la zone sélectionnée insère un point ; **Alt+clic** ou clic droit sur un point intérieur le supprime (au moins trois points conservés). Les points restent ordonnés pour éviter un contour replié. Le contour de contrôle suit le geste, la chaussée et son décor sont reconstruits au relâchement. Les points du côté opposé sont conservés ; Ctrl+Z annule le geste. Tests souris : déplacement, annulation, insertion et suppression.

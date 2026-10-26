@@ -38,5 +38,18 @@ const {chromium}=require('playwright'),assert=require('assert/strict'),vm=requir
  await p.click('#d-poser');await p.waitForFunction(()=>!DEC.modif);await p.reload();await p.waitForFunction(()=>typeof DEC!=='undefined'&&DEC.track);
  const saved=await p.evaluate(()=>[DEC.track.hwLeftAt(DEC.track.length*.5),DEC.track.hwRightAt(DEC.track.length*.5)]);
  assert(Math.abs(saved[0]-widths[0])<.01);assert(Math.abs(saved[1]-widths[1])<.01);
+ await p.click('[data-outil="piste"]');await p.selectOption('#d-largeur-liste',String(dual.count));
+ const drag=await p.evaluate(i=>{const z=largeursPiste()[i],q=pointLargeur(z,1),t=DEC.track,s=z.points[1][0]*t.length,r=DEC.rendu;r.cam.zoom=6;r.cam.x=q.x-25;r.cam.y=q.y;peindre();const target=t.pos(s,z.side*(bord(s,z.side)+2));return {a:versEcran(q.x,q.y),b:versEcran(target.x,target.y),width:z.points[1][1],opposite:JSON.stringify(largeursPiste()[i+1])};},dual.count);
+ await p.mouse.move(drag.a.x,drag.a.y);await p.mouse.down();await p.mouse.move(drag.b.x,drag.b.y,{steps:8});await p.mouse.up();await p.waitForTimeout(250);
+ const moved=await p.evaluate(i=>({width:largeursPiste()[i].points[1][1],opposite:JSON.stringify(largeursPiste()[i+1])}),dual.count);
+ assert(Math.abs((moved.width-drag.width)*.9-2)<.2);assert.equal(moved.opposite,drag.opposite);
+ await p.click('#d-annuler');await p.waitForTimeout(200);assert(Math.abs(await p.evaluate(i=>largeursPiste()[i].points[1][1],dual.count)-drag.width)<.001);
+ await p.selectOption('#d-largeur-liste',String(dual.count));
+ const insert=await p.evaluate(i=>{const z=largeursPiste()[i],t=DEC.track,s=(z.points[1][0]+z.points[2][0])/2*t.length,q=t.pos(s,z.side*bord(s,z.side)),r=DEC.rendu;r.cam.zoom=6;r.cam.x=q.x-25;r.cam.y=q.y;peindre();return {point:versEcran(q.x,q.y),n:z.points.length};},dual.count);
+ await p.keyboard.down('Shift');await p.mouse.click(insert.point.x,insert.point.y);await p.keyboard.up('Shift');await p.waitForTimeout(200);
+ assert.equal(await p.evaluate(i=>largeursPiste()[i].points.length,dual.count),insert.n+1);
+ const added=await p.evaluate(i=>{const q=pointLargeur(largeursPiste()[i],2);return versEcran(q.x,q.y);},dual.count);
+ await p.keyboard.down('Alt');await p.mouse.click(added.x,added.y);await p.keyboard.up('Alt');await p.waitForTimeout(200);
+ assert.equal(await p.evaluate(i=>largeursPiste()[i].points.length,dual.count),insert.n);
  assert.deepEqual(errors,[]);console.log('Road width: UI edit, opposite side unchanged, save/reload, tracks export, delete/undo, start-line seam and custom track: OK');
 }finally{await b.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

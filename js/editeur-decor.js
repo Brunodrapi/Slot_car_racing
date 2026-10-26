@@ -319,6 +319,15 @@ function normaliseLargeur(z) {
   const shift = Math.floor(z.points[0][0]);
   for (const p of z.points) p[0] -= shift;
 }
+function pointLargeur(z, i) {
+  const [f,w]=z.points[i], t=DEC.track, at=t.wrap(f*t.length);
+  const drag=DEC.drag;
+  if(drag?.pointLargeur && largeursPiste()[drag.pointLargeur.zone]===z){
+    const base=drag.baseLargeur,hw=z.side>0?base.hwLeftAt(at):base.hwRightAt(at);
+    return t.pos(at,z.side*Math.max(2.5,hw+w*ECHELLE_ROUTE));
+  }
+  return t.pos(at,z.side*bord(at,z.side));
+}
 function ajouterLargeur(pr, deuxCotes = false) {
   const f = pr.s / DEC.track.length, d = 40 / DEC.track.length;
   const z = {side: pr.lat >= 0 ? 1 : -1, points: [[f-d,0],[f-d/2,3/ECHELLE_ROUTE],[f+d/2,3/ECHELLE_ROUTE],[f+d,0]]};
@@ -387,7 +396,7 @@ function dessinerCalque(g) {
   };
   const s = DEC.sel;
   if (DEC.outil === 'piste') largeursPiste().forEach((z,i) => {
-    const pts=z.points.map(([f])=>T.pos(T.wrap(f*T.length),z.side*bord(T.wrap(f*T.length),z.side)));
+    const pts=z.points.map((_,j)=>pointLargeur(z,j));
     ligne(pts, s?.zone===i?'#ffdf60':'#55caff',3);
     pts.forEach((p,j)=>poignee(p,'#ffdf60',s?.zone===i,j===0?'D':j===pts.length-1?'F':''));
   });
@@ -455,6 +464,10 @@ function dessinerCalque(g) {
 function poignéeSous(px, py) {
   const T = DEC.track, R = rayonDoigt(), s = DEC.sel;
   const pres = (p) => { const q = versEcran(p.x, p.y); return Math.hypot(q.x - px, q.y - py) <= R; };
+  if(DEC.outil==='piste'){
+    const order=largeursPiste().map((z,i)=>i).sort((a,b)=>(b===s?.zone)-(a===s?.zone));
+    for(const zi of order){const z=largeursPiste()[zi],i=z.points.findIndex((_,j)=>pres(pointLargeur(z,j)));if(i>=0)return {largeur:zi,point:i};}
+  }
   if (DEC.outil === 'horspiste') {
     if (s && s.zone != null) { const z = zonesHP()[s.zone]; if (z) { const i = pointsZone(z).findIndex(([f, w]) => pres(posZone(z, f, w))); if (i >= 0) return { zone: s.zone, point: i }; } }
     if (s && s.pad != null) { const pad = padsListe()[s.pad]; if (pad) { const i = pad.pts.findIndex(([x, y]) => pres({ x, y })); if (i >= 0) return { pad: s.pad, point: i }; } }
@@ -509,6 +522,24 @@ function surBas(e) {
   }
 
   if (DEC.outil === 'piste') {
+    if(h?.largeur!=null){
+      const z=largeursPiste()[h.largeur];DEC.sel={outil:'piste',zone:h.largeur};
+      if(supprPoint){if(h.point>0&&h.point<z.points.length-1&&z.points.length>3)changer(()=>z.points.splice(h.point,1));majFiche();return;}
+      DEC.annule.push(JSON.stringify(DEC.decor));
+      const def=definition();
+      DEC.drag={pointLargeur:{zone:h.largeur,point:h.point},baseLargeur:new Track({...def,roadWidenings:largeursPiste().filter((_,i)=>i!==h.largeur)},ECHELLE_ROUTE)};
+      majFiche();peindre();return;
+    }
+    if(e.shiftKey&&DEC.sel?.outil==='piste'){
+      const z=largeursPiste()[DEC.sel.zone],ref=(z.points[0][0]+z.points.at(-1)[0])/2;
+      const pr=projette(w.x,w.y,T.wrap(ref*T.length)),f=deplie(pr.s/T.length,ref);
+      const i=z.points.findIndex(p=>p[0]>f);
+      if(i>0&&f-z.points[i-1][0]>1e-6&&z.points[i][0]-f>1e-6){
+        const a=z.points[i-1],b=z.points[i],value=a[1]+(b[1]-a[1])*(f-a[0])/(b[0]-a[0]);
+        changer(()=>z.points.splice(i,0,[f,value]));
+      }
+      return;
+    }
     const pr=projette(w.x,w.y);
     if (DEC.mode==='ajouter'||DEC.mode==='ajouter-deux') { ajouterLargeur(pr,DEC.mode==='ajouter-deux'); return; }
     const i=largeursPiste().findIndex(z=>{let f=pr.s/T.length;if(f<z.points[0][0])f+=1;return f<=z.points.at(-1)[0]&&f>=z.points[0][0]&&(pr.lat>=0?1:-1)===z.side;});
@@ -630,6 +661,16 @@ function surMouvement(e) {
     return;
   }
   if (g.objet) { g.bouge = true; g.objet.o.x = g.x0 + w.x - g.de.x; g.objet.o.y = g.y0 + w.y - g.de.y; DEC.rendu.implantation && implIndexe(DEC.rendu.implantation); peindre(); return; }
+  if(g.pointLargeur){
+    const z=largeursPiste()[g.pointLargeur.zone],i=g.pointLargeur.point,pts=z.points;
+    const pr=projette(w.x,w.y,T.wrap(pts[i][0]*T.length));
+    const f=deplie(pr.s/T.length,pts[i][0]);
+    const lo=i?pts[i-1][0]+1e-6:pts.at(-1)[0]-.49,hi=i<pts.length-1?pts[i+1][0]-1e-6:pts[0][0]+.49;
+    const pos=Math.max(lo,Math.min(hi,f)),at=T.wrap(pos*T.length),base=g.baseLargeur;
+    const hw=z.side>0?base.hwLeftAt(at):base.hwRightAt(at);
+    pts[i]=[pos,i===0||i===pts.length-1?0:clamp((z.side*pr.lat-hw)/ECHELLE_ROUTE,-10/ECHELLE_ROUTE,30/ECHELLE_ROUTE)];
+    peindre();return;
+  }
   if (g.pointZone) {
     const z = zonesHP()[g.pointZone.zone], pts = z.points, i = g.pointZone.point;
     const ref = pts[0][0], fw = fwDepuis(z, w.x, w.y, i ? ref : pts[Math.min(1, pts.length - 1)][0], T.wrap(pts[i][0] * T.length));
@@ -676,6 +717,7 @@ function surHaut(e) {
     changer(() => { const i = modifierObjet(g.objet, { x: r2(nx), y: r2(ny) }); DEC.sel = { outil: 'objets', src: g.objet.src, i }; }, true);
     return;
   }
+  if (g.pointLargeur) normaliseLargeur(largeursPiste()[g.pointLargeur.zone]);
   if (g.pointTrait) { recaleTrait(traits()[g.pointTrait.trait]); }
   nettoyer(); DEC.modif = true; refaire();
 }
@@ -783,7 +825,7 @@ function majFiche() {
       h+=champ('Côté de cette zone',`<select id="d-largeur-cote">${opt(1,'Gauche',z.side>0)}${opt(-1,'Droite',z.side<0)}</select>`);
       h+=champ('Largeur ajoutée (m)',nombre('d-largeur-m',r2(peak*ECHELLE_ROUTE),-10,30,.5));
       h+=champ('Longueur de zone (m)',nombre('d-largeur-long',r2((z.points.at(-1)[0]-z.points[0][0])*DEC.track.length),10,500,5));
-      h+='<p class="help">Les extrémités rejoignent progressivement la piste. Valeur négative : rétrécir. Les mètres correspondent à la chaussée affichée en jeu.</p><button id="d-largeur-oppose">Ajouter aussi le côté opposé</button><button id="d-suppr">Supprimer cet élargissement</button>';
+      h+='<p class="help">Glisser les points pour redessiner le bord. D/F déplacent le début et la fin. Maj+clic dans la zone sélectionnée ajoute un point ; Alt+clic sur un point intérieur le retire. Les extrémités rejoignent progressivement la piste. Valeur négative : rétrécir. Les mètres correspondent à la chaussée affichée en jeu.</p><button id="d-largeur-oppose">Ajouter aussi le côté opposé</button><button id="d-suppr">Supprimer cet élargissement</button>';
     }
   } else if (DEC.outil === 'horspiste') {
     h += champ('Gravier automatique dans les virages', `<input type="checkbox" id="d-auto" ${DEC.decor.annotatedRunoffsOnly ? '' : 'checked'}>`);
