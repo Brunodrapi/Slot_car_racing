@@ -6,7 +6,7 @@ Jeu de course 2D « un bouton, trois trajectoires », à mi-chemin entre *Pico R
 *Ultimate Racing 2D* : de vraies courses sur des circuits inspirés de vrais tracés, avec le pilotage
 slot-racing (on gère l'accélérateur et le choix de la ligne, jamais le volant).
 
-## Jouer
+## Jouer au jeu
 
 Aucune dépendance, aucun build : ouvrir `index.html` dans un navigateur récent
 (double-clic suffit), ou servir le dossier :
