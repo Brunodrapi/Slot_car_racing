@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.34
+- Le Rocher : le port, la ville et ses monuments redessinés d'après une vue satellite — bassin et jetées, yachts amarrés aux pontons, piscine, Casino, Hôtel de Paris, immeubles et jardins.
+
 ## 0.52.33
 - Le Rocher : nouvelles trajectoires, panneaux de freinage repris et immeubles le long du boulevard.
 

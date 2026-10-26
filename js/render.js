@@ -735,6 +735,9 @@ class Renderer {
     lieu plus sûrement qu'une couleur fausse. */
     this.implantation = placeImplantation(track, seed, track.def && track.def.implantation, this.water);
     this.topProps = implEfface(track, this.implantation, this.topProps);
+    // Une ville relevée (Monaco) a ses immeubles et ses jardins : le semis de maisons, de chapelles
+    // et de rochers du thème n'y aurait pas sa place, et finissait sur les surfaces bitumées.
+    if (track.def && track.def.ville) this.topProps = [];
     this._buildBarrierArt(track);
     if(track.barriers.length)this.topProps=this.topProps.filter(p=>{
       const radius=(this.topArt[p.id]?.wm||4)*.6;
@@ -2102,6 +2105,7 @@ class Renderer {
     if (!w) return;
     const b = w.bbox;
     if (b.maxX < vis.minX || b.minX > vis.maxX || b.maxY < vis.minY || b.minY > vis.maxY) return;
+    if (w.dessine) { this._drawPort(g, vis, w); return; }
     const ring = (inner, outer) => {
       g.beginPath();
       g.moveTo(inner[0][0], inner[0][1]);
@@ -2132,10 +2136,50 @@ class Renderer {
     this._drawBoats(g, vis);
   }
 
+  /* Un port dessiné (`water.polygone`, Monaco) : pas de plage ni de ressac, des quais.
+
+  Le long des murs, une bande d'eau plus sombre — l'ombre du quai, et la profondeur qui tombe d'un
+  coup au pied d'un mur — puis la margelle claire. Les pontons par-dessus, et les bateaux. */
+  _drawPort(g, vis, w) {
+    if (!w.path) {
+      w.path = new Path2D();
+      w.polygon.forEach(([x, y], i) => (i ? w.path.lineTo(x, y) : w.path.moveTo(x, y)));
+      w.path.closePath();
+      w.pontons = new Path2D();
+      for (const m of w.spec.amarrages || []) if (m.p) { w.pontons.moveTo(m.a[0], m.a[1]); w.pontons.lineTo(m.b[0], m.b[1]); }
+    }
+    g.fillStyle = PAL.sea; g.fill(w.path);
+    g.save();
+    g.clip(w.path);
+    g.strokeStyle = PAL.seaDeep; g.globalAlpha = 0.5; g.lineWidth = 3.2; g.stroke(w.path);
+    g.restore();
+    g.strokeStyle = PAL.quai || '#f1ece1'; g.lineWidth = 0.7; g.stroke(w.path);
+    g.save();
+    g.lineCap = 'butt';
+    g.strokeStyle = '#7d6c55'; g.lineWidth = 2.1; g.stroke(w.pontons);
+    g.strokeStyle = '#cdbb98'; g.lineWidth = 1.5; g.stroke(w.pontons);
+    g.restore();
+    this._drawBoats(g, vis);
+  }
+
   _drawBoats(g, vis) {
     const art = this.boatArt;
     if (!art) return;
     for (const bt of this.boats || []) {
+      if (bt.l) {
+        // un bateau de port, dessiné à sa longueur (props.js, placeAmarrages)
+        const r = bt.l / 2;
+        if (bt.x < vis.minX - r || bt.x > vis.maxX + r || bt.y < vis.minY - r || bt.y > vis.maxY + r) continue;
+        g.save();
+        g.translate(bt.x, bt.y);
+        g.rotate(bt.th);
+        g.fillStyle = PAL.seaDeep;
+        g.beginPath(); g.ellipse(bt.l * 0.04, bt.l * 0.05, bt.l * 0.47, bt.l * (bt.id === 'superyacht' ? 0.1 : 0.15), 0, 0, Math.PI * 2); g.fill();
+        g.translate(-r, -r);
+        BOAT_PAR_ID[bt.id].draw(g, bt.l, PAL, bt.c);
+        g.restore();
+        continue;
+      }
       const a = art[bt.id];
       if (!a) continue;
       if (bt.x < vis.minX - 20 || bt.x > vis.maxX + 20 || bt.y < vis.minY - 20 || bt.y > vis.maxY + 20) continue;
@@ -2340,6 +2384,8 @@ class Renderer {
       }
       g.strokeStyle = PAL.outline; g.lineWidth = 0.3;
       g.strokeRect(-L / 2, Math.min(0, s * W), L, W);
+    } else if (o.repere && this._drawRepere(g, o)) {
+      // dessiné : piscine, casino, palace, jardin rond, auditorium (ci-dessous)
     } else if (o.type === 'voiture' && o.kind && this.vehicleArt[o.kind + ':' + o.col + ':' + (o.rem || 0)]) {
       // Vignette cuite d'avance (props.js, VEHICULES) : un seul dessin, tourné avec le véhicule.
       const v = this.vehicleArt[o.kind + ':' + o.col + ':' + (o.rem || 0)];
@@ -2380,6 +2426,104 @@ class Renderer {
       }
     }
     g.restore();
+  }
+
+  /* Les repères d'une ville relevée (Monaco, `ville.reperes`), vus du dessus.
+
+  Le repère local est celui de `_drawBati` : x le long du grand côté, l'empreinte entre y = -W et
+  y = 0. Chacun se reconnaît à ce qu'on voit d'avion : les couloirs d'un bassin olympique, les toits
+  de cuivre vert-de-gris du Casino et sa verrière, l'ardoise d'un palace, la fontaine d'un jardin
+  rond, l'hexagone multicolore d'un toit d'auditorium. */
+  _drawRepere(g, o) {
+    const L = o.l, W = o.w, y0 = -W;
+    const r = (col, x, y, w, h) => { g.fillStyle = col; g.fillRect(x, y, w, h); };
+    const disque = (col, x, y, rr) => { g.fillStyle = col; g.beginPath(); g.arc(x, y, rr, 0, Math.PI * 2); g.fill(); };
+    if (o.type === 'piscine') {
+      r(PAL.outline, -L / 2, y0, L, W);
+      r('#ece7dc', -L / 2 + 0.3, y0 + 0.3, L - 0.6, W - 0.6);
+      r('#d4cdbf', -L / 2 + 0.3, y0 + 0.3, L * 0.08, W - 0.6);               // les vestiaires
+      // le bassin de cinquante mètres, ses huit couloirs et leurs lignes de fond
+      const bx = -L / 2 + L * 0.11, bw = L * 0.6, by = y0 + W * 0.2, bh = W * 0.6;
+      r('#8fd6e8', bx - 0.35, by - 0.35, bw + 0.7, bh + 0.7);
+      r('#3fb0d5', bx, by, bw, bh);
+      g.strokeStyle = '#f6fbfb'; g.lineWidth = 0.14;
+      for (let i = 1; i < 8; i++) { g.beginPath(); g.moveTo(bx + 0.4, by + bh * i / 8); g.lineTo(bx + bw - 0.4, by + bh * i / 8); g.stroke(); }
+      g.strokeStyle = '#256f91'; g.lineWidth = 0.22;
+      for (let i = 0; i < 8; i++) { g.beginPath(); g.moveTo(bx + 1.6, by + bh * (i + 0.5) / 8); g.lineTo(bx + bw - 1.6, by + bh * (i + 0.5) / 8); g.stroke(); }
+      // la fosse de plongeon et ses plongeoirs
+      const fx = bx + bw + L * 0.05, fw = L * 0.16, fy = by + bh * 0.12, fh = bh * 0.76;
+      r('#8fd6e8', fx - 0.35, fy - 0.35, fw + 0.7, fh + 0.7);
+      r('#2a96c0', fx, fy, fw, fh);
+      for (let i = 0; i < 3; i++) r('#f6fbfb', fx + fw - 0.2, fy + fh * (0.2 + i * 0.3), 2.2, 0.5);
+      // les transats en rang le long de la plage
+      for (let x = bx + 1; x < bx + bw - 1; x += 2.2) r('#fbfaf6', x, y0 + W * 0.05, 1.1, W * 0.08);
+      return true;
+    }
+    if (o.type === 'casino') {
+      r(PAL.outline, -L / 2, y0, L, W);
+      r('#efe5cc', -L / 2 + 0.3, y0 + 0.3, L - 0.6, W - 0.6);              // les terrasses de pierre
+      r('#a8322d', -0.9, y0, 1.8, W * 0.14);                                // le tapis rouge de l'entrée
+      r('#4f7f72', -L * 0.37, y0 + W * 0.16, L * 0.74, W * 0.62);          // les toits de cuivre
+      r('#7fae9f', -L * 0.35, y0 + W * 0.18, L * 0.7, W * 0.58);
+      g.strokeStyle = '#5c8c7e'; g.lineWidth = 0.25;
+      for (let x = -L * 0.3; x <= L * 0.3; x += L * 0.1) { g.beginPath(); g.moveTo(x, y0 + W * 0.2); g.lineTo(x, y0 + W * 0.74); g.stroke(); }
+      r('#8fb8aa', -L * 0.5 + 0.6, y0 + W * 0.26, L * 0.12, W * 0.44);     // les ailes
+      r('#8fb8aa', L * 0.38 - 0.6, y0 + W * 0.26, L * 0.12, W * 0.44);
+      disque('#5c8c7e', 0, y0 + W * 0.47, W * 0.17);                        // la verrière de l'atrium
+      disque('#c9dfd6', 0, y0 + W * 0.47, W * 0.13);
+      g.strokeStyle = '#7fae9f'; g.lineWidth = 0.2;
+      for (let k = 0; k < 4; k++) { const t = k * Math.PI / 4; g.beginPath(); g.moveTo(Math.cos(t) * W * 0.13, y0 + W * 0.47 + Math.sin(t) * W * 0.13); g.lineTo(-Math.cos(t) * W * 0.13, y0 + W * 0.47 - Math.sin(t) * W * 0.13); g.stroke(); }
+      for (const sx of [-1, 1]) {                                           // les deux tourelles de la façade
+        r('#efe5cc', sx * L * 0.3 - W * 0.09, y0 + W * 0.1, W * 0.18, W * 0.18);
+        disque('#5c8c7e', sx * L * 0.3, y0 + W * 0.19, W * 0.075);
+        disque('#d8b45c', sx * L * 0.3, y0 + W * 0.19, W * 0.022);
+      }
+      for (let x = -L * 0.4; x <= L * 0.4; x += L * 0.2) disque('#6f9a5c', x, y0 + W * 0.9, 1.1);   // les buis de la terrasse
+      return true;
+    }
+    if (o.type === 'palace') {
+      r(PAL.outline, -L / 2, y0, L, W);
+      r('#6f8395', -L / 2 + 0.3, y0 + 0.3, L - 0.6, W - 0.6);              // l'ardoise des mansardes
+      r('#d9d3c6', -L / 2 + W * 0.26, y0 + W * 0.26, L - W * 0.52, W * 0.48); // les toits-terrasses du centre
+      g.fillStyle = '#ece6d8';                                              // les lucarnes
+      for (let x = -L / 2 + 1.5; x < L / 2 - 1; x += 2.4) { g.fillRect(x, y0 + 0.9, 0.9, 0.9); g.fillRect(x, -1.8, 0.9, 0.9); }
+      disque(PAL.outline, L / 2 - W * 0.22, y0 + W * 0.22, W * 0.24);       // la rotonde d'angle
+      disque('#6f8395', L / 2 - W * 0.22, y0 + W * 0.22, W * 0.22);
+      disque('#a9b7c3', L / 2 - W * 0.22, y0 + W * 0.22, W * 0.1);
+      return true;
+    }
+    if (o.type === 'rond') {
+      const cx = 0, cy = y0 + W / 2, R = Math.min(L, W) / 2;
+      disque('#efe7d6', cx, cy, R);                                         // le dallage de la place
+      disque('#83b462', cx, cy, R * 0.82);                                  // la pelouse
+      g.strokeStyle = '#e0573f'; g.lineWidth = R * 0.08; g.setLineDash([R * 0.18, R * 0.1]);
+      g.beginPath(); g.arc(cx, cy, R * 0.6, 0, Math.PI * 2); g.stroke();    // le massif de fleurs
+      g.strokeStyle = '#efc94a'; g.lineDashOffset = R * 0.14;
+      g.beginPath(); g.arc(cx, cy, R * 0.6, 0, Math.PI * 2); g.stroke();
+      g.setLineDash([]); g.lineDashOffset = 0;
+      disque('#dcd5c4', cx, cy, R * 0.3);
+      disque('#59b9d0', cx, cy, R * 0.25);                                  // la fontaine
+      disque('#e9f7fa', cx, cy, R * 0.07);
+      for (let k = 0; k < 6; k++) { const t = k / 6 * Math.PI * 2 + 0.3; disque('#4c8a4f', cx + Math.cos(t) * R * 0.88, cy + Math.sin(t) * R * 0.88, R * 0.11); }
+      return true;
+    }
+    if (o.type === 'auditorium') {
+      r(PAL.outline, -L / 2, y0, L, W);
+      r('#ece7dc', -L / 2 + 0.3, y0 + 0.3, L - 0.6, W - 0.6);
+      // le toit hexagonal : des hexagones emboîtés, chauds d'un côté et froids de l'autre
+      const cx = 0, cy = y0 + W / 2, R = Math.min(L * 0.5, W * 0.56);
+      const hexa = (rr, x0 = cx) => { g.beginPath(); for (let k = 0; k < 6; k++) { const t = k * Math.PI / 3; g.lineTo(x0 + Math.cos(t) * rr, cy + Math.sin(t) * rr * 0.86); } g.closePath(); };
+      const chauds = ['#f08a24', '#f4b733', '#e85d3a', '#f3d34a'], froids = ['#3b6fc4', '#7b5bc0', '#4aa3d8', '#9a7ad6'];
+      for (let i = 0; i < 4; i++) {
+        const rr = R * (1 - i * 0.22);
+        g.save(); g.beginPath(); g.rect(cx - R, y0, R, W); g.clip(); hexa(rr); g.fillStyle = chauds[i]; g.fill(); g.restore();
+        g.save(); g.beginPath(); g.rect(cx, y0, R, W); g.clip(); hexa(rr); g.fillStyle = froids[i]; g.fill(); g.restore();
+      }
+      hexa(R * 0.18); g.fillStyle = '#4a2f7a'; g.fill();
+      hexa(R); g.strokeStyle = PAL.outline; g.lineWidth = 0.3; g.stroke();
+      return true;
+    }
+    return false;
   }
 
   // Quatre propositions procédurales. Le choix ne change pas l'empreinte au sol.

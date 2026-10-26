@@ -1211,6 +1211,41 @@ distance à la route et la largeur au large.
 
 Les champs qu'un thème ne nomme pas viennent de `THEME_BASE`, au début de `js/render.js`.
 
+### Monaco relevé sur une vue satellite (0.52.34)
+
+Le Rocher n'a plus de baie calculée : son port, sa ville et ses monuments sont **relevés sur une
+vue satellite du Port Hercule**, calée sur le tracé du jeu. Le calage est une similitude (échelle,
+rotation, translation) fixée par deux virages faciles à reconnaître de haut — Sainte-Dévote et la
+Rascasse — et il tient à quelques mètres près sur tout le tour : la piscine tombe entre la ligne
+droite et la Piscine, l'épingle du Grand Hôtel sur la vraie épingle.
+
+- **L'eau** (`water.polygone`) est un seul contour en mètres du circuit : le bassin, la jetée
+  centrale, la jetée nord, la plateforme du quai Rainier-III, la digue et la mer. L'eau de la photo
+  est reconnue à sa couleur, le bassin et ses jetées relevés à la main (les bateaux amarrés cachent
+  le quai), puis tout ce qui tombe à moins de la protection + 4,5 m de la piste est rendu à la
+  terre : le quai suit la piste du jeu, pas celle de la photo. Dessin : l'ombre des murs de quai
+  sur l'eau et une margelle claire, sans plage ni ressac.
+- **Les bateaux** s'amarrent en épi, l'arrière contre le quai, le long des 23 pontons et quais de
+  `water.amarrages` (segment, côté, fourchette de longueurs) ; un bateau dont la coque sortirait de
+  l'eau ou mordrait sur un voisin n'est pas posé. Les trois plus gros sont posés à la main
+  (`water.navires`). Vedettes et superyachts sont dessinés à leur longueur dans le monde, pas cuits
+  en vignette.
+- **La ville** (`ville.batis`) : les terrains bâtis entre la piste, l'eau et la végétation de la
+  photo sont découpés en îlots — par les grands axes relevés à la Condamine, et ailleurs selon
+  l'orientation des façades mesurée sur la photo —, puis bâtis sur leur pourtour avec une cour au
+  milieu. Toits de tuiles là où la photo est orange (la Condamine, le Rocher), toits plats ailleurs.
+- **Les jardins** (`ville.jardins`) sont les masses vertes de la photo, plantées au chargement.
+- **Les repères** (`ville.reperes`) sont posés à la main et vérifiés hors des protections : le
+  stade nautique, le Casino et ses toits de cuivre, l'Hôtel de Paris, le jardin rond de la place,
+  le toit hexagonal de l'auditorium.
+
+L'implantation de Monaco ne garde que ce qui tient au circuit : les stands, la tribune de la
+Piscine et le parking de la chicane. Le semis de maisons du thème n'y pousse plus. Tout reste
+retouchable dans l'éditeur (onglet Objets) : un immeuble de la ville se retire ou se déplace comme
+un autre objet. `tools/marina-banc.js` vérifie qu'aucune eau ne touche la piste, qu'aucun
+bâtiment n'est dans l'eau, sur une barrière ou en deçà des protections, et qu'aucun bateau n'est à
+terre ou sur un autre.
+
 ### Les flaques
 
 **Spa** et **Silverstone** ont de l'eau sur la piste. Elle se pose là où une route se vide : le long

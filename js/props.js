@@ -1171,6 +1171,7 @@ function placeImplantation(track, id, zones, water = placeWater(track, track.def
   }
   const masque = implMasque(track);
   for (const b of batis) implMasqueBati(masque, b);
+  if (track.def && track.def.ville) implVille(track, track.def.ville, rnd, batis, occupied, sols, arbres, masque, water);
   // L'enrobé des parkings, allées comprises : pas d'arbre au milieu d'un parc de stationnement.
   for (const l of lots) for (const [u, v, w, h] of l.runs)
     for (let du = 0; du <= w; du += MASQUE_CASE * .5) for (let dv = 0; dv <= h; dv += MASQUE_CASE * .5)
@@ -1191,6 +1192,54 @@ function placeImplantation(track, id, zones, water = placeWater(track, track.def
   }
   return implIndexe({ sols, arbres, batis, nus, cell: IMPL_CELL, masque, lots, tas });
 }
+
+/* UNE VILLE RELEVÉE, et non semée le long du tour (Monaco, `def.ville`).
+
+Les bâtiments viennent d'une vue satellite calée sur le tracé : les îlots sont les terrains bâtis
+entre la piste, le port et les jardins, recoupés par les grands axes, et chacun est bâti sur son
+pourtour — une rangée d'immeubles le long de la rue, une cour au milieu — comme une ville du bord
+de mer vue d'avion. Chaque entrée est [x, y, cap, longueur, largeur, hauteur, toit], centrée ; le
+toit dit le style : 0 un immeuble, 1 des terrasses, 2 des tuiles (le Rocher, la Condamine).
+
+Les jardins sont les masses vertes de la photo : un sol de pelouse, et des arbres plantés au
+chargement sur une grille secouée, comme les bois. Ce que la piste ou un bâtiment occupe déjà
+(stands, tribune) l'emporte sur la ville. */
+const VILLE_TOITS = ['immeubles', 'terrasses', 'terrecuite'];
+const VILLE_ESSENCES = [['tree', 1], ['tree2', 1], ['palm', 0.55], ['bush', 0.5]];
+function implVille(track, ville, rnd, batis, occupied, sols, arbres, masque, water) {
+  // Les repères d'abord — la piscine, le Casino, l'Hôtel de Paris… —, posés à la main à leur
+  // place relevée et vérifiés hors des protections ; la ville s'écarte devant eux.
+  for (const r of ville.reperes || []) {
+    const b = { ...r, x: r.x - Math.sin(r.a) * r.w / 2, y: r.y + Math.cos(r.a) * r.w / 2, side: 1, ville: true, repere: true };
+    batis.push(b);
+    occupied.push(sceneryFootprint(b));
+    implMasqueBati(masque, b);
+  }
+  for (const [x, y, a, l, w, h, toit] of ville.batis || []) {
+    // L'empreinte d'un bâtiment part de sa façade (côté 1 : elle s'étend vers les y négatifs du
+    // repère tourné) ; la position relevée est le centre, on la ramène donc sur la façade.
+    const b = { type: 'hangar', x: x - Math.sin(a) * w / 2, y: y + Math.cos(a) * w / 2, a, l, w, side: 1, portes: 0,
+      teinte: varieteDe(x, y), architecture: VILLE_TOITS[toit] || 'immeubles', height: h, ville: true };
+    const fp = sceneryFootprint(b);
+    if (occupied.some(p => sceneryRectsOverlap(p, fp)) || sceneryBarrierOverlap(track, fp)) continue;
+    batis.push(b);
+    implMasqueBati(masque, b);
+  }
+  const total = VILLE_ESSENCES.reduce((t, e) => t + e[1], 0);
+  for (const j of ville.jardins || []) {
+    const pts = j.map(([x, y]) => ({ x, y })), bb = implBbox(pts);
+    sols.push({ pts, bbox: bb, kind: 'jardin', sol: PAL_JARDIN });
+    const pas = 5.6;
+    for (let x = bb.minX + pas / 2; x < bb.maxX; x += pas) for (let y = bb.minY + pas / 2; y < bb.maxY; y += pas) {
+      const px = x + (rnd() - 0.5) * pas * 0.8, py = y + (rnd() - 0.5) * pas * 0.8;
+      if (!sceneryPointInPolygon(j, px, py) || !masque.libre(px, py) || waterContains(water, px, py, 3)) continue;
+      let r = rnd() * total, id = VILLE_ESSENCES[0][0];
+      for (const e of VILLE_ESSENCES) { r -= e[1]; if (r <= 0) { id = e[0]; break; } }
+      arbres.push({ x: px, y: py, id, e: 0.7 + rnd() * 0.45 });
+    }
+  }
+}
+const PAL_JARDIN = '#a3b583';
 
 /* LE SEMIS ORDINAIRE PASSE PAR LE MÊME MASQUE, et c'est ce qui manquait.
 
@@ -1342,7 +1391,59 @@ const BOAT_KINDS = [
       g.fillRect(w * 0.5, cy - h * 0.58, w * 0.05, h * 0.5);
     },
   },
+  {
+    /* Les bateaux d'un port de plaisance, amarrés en épi (`placeAmarrages`). Poids nul : la baie
+    calculée ne les tire jamais. Ils sont dessinés à leur longueur, dans le monde, et non cuits sur
+    une vignette : un yacht de cinquante mètres ferait une image de mille deux cents pixels. L'étrave
+    est à gauche, le tableau arrière à droite, côté quai. */
+    id: 'vedette', wm: 14, weight: 0,
+    draw(g, w, pal, coque) {
+      const h = w * 0.29, cy = w / 2;
+      g.fillStyle = coque || '#fbfaf5';
+      g.beginPath();
+      g.moveTo(w * 0.02, cy); g.bezierCurveTo(w * 0.2, cy - h * 0.52, w * 0.5, cy - h * 0.5, w * 0.98, cy - h * 0.42);
+      g.lineTo(w * 0.98, cy + h * 0.42); g.bezierCurveTo(w * 0.5, cy + h * 0.5, w * 0.2, cy + h * 0.52, w * 0.02, cy);
+      g.fill();
+      g.fillStyle = '#c9a77c';                               // le pont de teck, à l'arrière
+      g.fillRect(w * 0.8, cy - h * 0.33, w * 0.15, h * 0.66);
+      g.fillStyle = '#ecebe5';
+      g.fillRect(w * 0.3, cy - h * 0.31, w * 0.48, h * 0.62);
+      g.fillStyle = '#33485a';                               // le pare-brise
+      g.fillRect(w * 0.3, cy - h * 0.25, w * 0.06, h * 0.5);
+      g.fillStyle = '#fbfaf6';                               // le flybridge
+      g.fillRect(w * 0.44, cy - h * 0.21, w * 0.24, h * 0.42);
+      g.fillStyle = '#5b6d79';
+      g.fillRect(w * 0.46, cy - h * 0.12, w * 0.05, h * 0.24);
+    },
+  },
+  {
+    id: 'superyacht', wm: 40, weight: 0,
+    draw(g, w, pal, coque) {
+      const h = w * 0.19, cy = w / 2;
+      g.fillStyle = coque || '#fdfcf8';
+      g.beginPath();
+      g.moveTo(w * 0.01, cy); g.bezierCurveTo(w * 0.16, cy - h * 0.52, w * 0.45, cy - h * 0.5, w * 0.97, cy - h * 0.45);
+      g.quadraticCurveTo(w * 0.995, cy, w * 0.97, cy + h * 0.45);
+      g.bezierCurveTo(w * 0.45, cy + h * 0.5, w * 0.16, cy + h * 0.52, w * 0.01, cy);
+      g.fill();
+      g.fillStyle = '#c9a77c';
+      g.fillRect(w * 0.84, cy - h * 0.36, w * 0.11, h * 0.72);
+      g.fillStyle = '#57c3d6';                               // la piscine du pont arrière
+      g.fillRect(w * 0.87, cy - h * 0.16, w * 0.05, h * 0.32);
+      // les ponts en gradins, chacun bordé de sa bande de vitrages
+      const ponts = [[0.2, 0.84, 0.8, '#efeee8'], [0.28, 0.76, 0.66, '#f8f7f2'], [0.36, 0.62, 0.5, '#ecebe4']];
+      for (const [x0, x1, k, col] of ponts) {
+        g.fillStyle = '#2e3f4d'; g.fillRect(w * x0, cy - h * k / 2, w * (x1 - x0), h * k);
+        g.fillStyle = col; g.fillRect(w * (x0 + 0.012), cy - h * k / 2 + h * 0.06, w * (x1 - x0 - 0.024), h * k - h * 0.12);
+      }
+      g.fillStyle = '#fdfcf8';                               // le dôme du radar
+      g.beginPath(); g.arc(w * 0.44, cy, h * 0.11, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = 'rgba(46,63,77,.55)'; g.lineWidth = w * 0.004;
+      g.beginPath(); g.arc(w * 0.11, cy, h * 0.24, 0, Math.PI * 2); g.stroke();   // l'hélisurface, à l'avant
+    },
+  },
 ];
+const BOAT_PAR_ID = Object.fromEntries(BOAT_KINDS.map((k) => [k.id, k]));
 
 // js/car.js already has a smoothstep with a different signature; this one only eases 0..1.
 function ease01(t) { return t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t); }
@@ -1350,6 +1451,15 @@ function ease01(t) { return t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t); }
 /** The outline of the bay: the shore first, then the open water back the other way. */
 function placeWater(track, spec) {
   if (!spec) return null;
+  /* Un plan d'eau dessiné : le port de Monaco, relevé sur une vue satellite calée sur le tracé
+  (quais, jetées et digue compris), puis tenu à distance de la piste et de ses protections. Le
+  polygone est en mètres du circuit ; il remplace la baie calculée le long du tour. */
+  if (spec.polygone) {
+    const polygon = spec.polygone;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const [x, y] of polygon) { minX = Math.min(minX, x); maxX = Math.max(maxX, x); minY = Math.min(minY, y); maxY = Math.max(maxY, y); }
+    return { polygon, spec, dessine: true, bbox: { minX, minY, maxX, maxY } };
+  }
   const L = track.length, side = spec.side || 1, step = 5;
   const s0 = spec.from * L, s1 = spec.to * L;
   const span = s1 - s0;
@@ -1454,6 +1564,7 @@ function waterOverlaps(w,points) {
 /** Boats at anchor, lying roughly along the shore, never on top of one another. */
 function placeBoats(track, id, water) {
   if (!water) return [];
+  if (water.dessine) return placeAmarrages(id, water);
   const rnd = propRng(seedFromId('boat-' + id));
   const spec = water.spec, L = track.length, side = spec.side || 1;
   const s0 = spec.from * L, s1 = spec.to * L, span = s1 - s0;
@@ -1489,6 +1600,49 @@ function placeBoats(track, id, water) {
     // moored boats lie roughly along the shore, with a little swing
     const th = track.th[i] + (rnd() - 0.5) * 0.9 + (rnd() < 0.5 ? 0 : Math.PI);
     out.push({ x, y, th, id: k.id });
+  }
+  return out;
+}
+
+/* Les bateaux d'un port, amarrés en épi comme en Méditerranée : l'arrière contre le quai ou le
+ponton, l'étrave vers le bassin, coque contre coque.
+
+Chaque amarrage de `water.amarrages` est un segment `a`→`b` (un ponton, ou le bord d'un quai) :
+`cote` dit de quel côté ils s'alignent (1 à gauche du sens a→b, -1 à droite, absent des deux),
+`l` la fourchette de longueurs, `p` qu'un ponton est à dessiner. Un bateau dont la coque sortirait
+de l'eau — sur un quai, sur la piste écartée du bassin — ou mordrait sur un voisin n'est pas posé :
+c'est ce qui laisse les données relevées sur la photo grossières sans rien poser à terre.
+`water.navires` pose à la main les plus gros, à quai le long de la digue. */
+function placeAmarrages(id, water) {
+  const rnd = propRng(seedFromId('amarrage-' + id)), out = [], coques = [];
+  const pose = (x, y, th, l, kind, coque) => {
+    const beam = l * (kind === 'superyacht' ? 0.2 : 0.3), c = Math.cos(th), s = Math.sin(th);
+    const pts = [[-l / 2, -beam / 2], [l / 2, -beam / 2], [l / 2, beam / 2], [-l / 2, beam / 2]].map(([u, v]) => [x + c * u - s * v, y + s * u + c * v]);
+    if (pts.some(([px, py]) => !waterContains(water, px, py))) return false;
+    for (const o of coques) if ((o.x - x) ** 2 + (o.y - y) ** 2 < ((o.l + l) / 2) ** 2 && sceneryRectsOverlap(o.pts, pts)) return false;
+    coques.push({ x, y, l, pts });
+    out.push({ x, y, th, id: kind, l, c: coque });
+    return true;
+  };
+  const coqueDe = (l) => (rnd() < (l > 22 ? 0.22 : 0.1) ? (rnd() < 0.6 ? '#1f2e45' : '#3a4650') : null);
+  for (const n of water.spec.navires || []) pose(n.x, n.y, n.a, n.l, n.id || 'superyacht', n.c || null);
+  for (const m of water.spec.amarrages || []) {
+    const [ax, ay] = m.a, [bx, by] = m.b, L = Math.hypot(bx - ax, by - ay);
+    if (L < 2) continue;
+    const ux = (bx - ax) / L, uy = (by - ay) / L, [lmin, lmax] = m.l || [8, 16], bord = m.p ? 1.2 : 0.4;
+    for (const cote of m.cote ? [m.cote] : [1, -1]) {
+      const nx = -uy * cote, ny = ux * cote;
+      for (let t = 1;;) {
+        const l = lmin + (lmax - lmin) * rnd() ** 1.3, kind = l >= 26 ? 'superyacht' : l < 9 && rnd() < 0.45 ? 'sail' : 'vedette';
+        const beam = l * (kind === 'superyacht' ? 0.2 : 0.3);
+        if (t + beam > L - 0.5) break;
+        if (rnd() > 0.08) {
+          const d = bord + l / 2, x = ax + ux * (t + beam / 2) + nx * d, y = ay + uy * (t + beam / 2) + ny * d;
+          pose(x, y, Math.atan2(-ny, -nx), l, kind, kind === 'sail' ? null : coqueDe(l));
+        }
+        t += beam + 0.7;
+      }
+    }
   }
   return out;
 }
