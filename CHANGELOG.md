@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.32
+- Le Rocher : virages redessinés, dégagements, barrières et surfaces bitumées repris.
+
 ## 0.52.31
 - Éditeur : un seul éditeur en quatre onglets — Trajectoires, Largeur de piste, Panneaux (avec la mesure), Objets.
 

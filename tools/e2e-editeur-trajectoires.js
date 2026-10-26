@@ -36,10 +36,11 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     // --- un virage redessiné emporte les trajectoires calculées ---
     await p.click('[data-onglet="piste"]');
     const virage = await p.evaluate(() => {
-      const base = new Track(DEC.def0, ECHELLE_ROUTE);
+      // sur un Monaco sans retouche de bords : le fichier peut en porter sur cette épingle (0.52.32)
+      const base = new Track({ ...DEC.def0, roadWidenings: [] }, ECHELLE_ROUTE);
       let apex = 0; for (let i = 0; i < base.n; i++) if (Math.abs(base.k[i]) > Math.abs(base.k[apex])) apex = i;
       const f = apex / base.n, d = 25 / base.length, inner = base.k[apex] > 0 ? -1 : 1, hwIn = inner > 0 ? base.hwL[apex] : base.hwR[apex];
-      changer(() => largeursPiste().push(
+      changer(() => (DEC.decor.roadWidenings = []).push(
         { side: inner, followContour: true, points: [[f - d, 0], [f - d / 2, -(hwIn + 1) / 0.9], [f, -(hwIn + 4) / 0.9], [f + d / 2, -(hwIn + 1) / 0.9], [f + d, 0]] },
         { side: -inner, followContour: true, points: [[f - d, 0], [f - d / 2, 3 / 0.9], [f, 6 / 0.9], [f + d / 2, 3 / 0.9], [f + d, 0]] }));
       return { apex, x: base.xs[apex], y: base.ys[apex] };
@@ -78,13 +79,13 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     await p.click('#d-annuler'); await p.waitForTimeout(200);
     ok(await p.evaluate(() => DEC.lignes === null), '« Annuler » rend les trajectoires calculées');
     await p.click('#d-annuler'); await p.waitForTimeout(200);
-    ok(await p.evaluate(() => !(DEC.decor.roadWidenings || []).some((z) => z.followContour)), 'puis le virage d\'origine : décor et trajectoires dans la même annulation');
+    ok(await p.evaluate(() => JSON.stringify(DEC.decor.roadWidenings || []) === JSON.stringify(DEC.def0.roadWidenings || [])), 'puis le virage d\'origine : décor et trajectoires dans la même annulation');
 
     // --- refaire les deux retouches, enregistrer, recharger ---
     await p.evaluate((v) => {
-      const base = new Track(DEC.def0, ECHELLE_ROUTE), apex = v.apex;
+      const base = new Track({ ...DEC.def0, roadWidenings: [] }, ECHELLE_ROUTE), apex = v.apex;
       const f = apex / base.n, d = 25 / base.length, inner = base.k[apex] > 0 ? -1 : 1, hwIn = inner > 0 ? base.hwL[apex] : base.hwR[apex];
-      changer(() => largeursPiste().push(
+      changer(() => (DEC.decor.roadWidenings = []).push(
         { side: inner, followContour: true, points: [[f - d, 0], [f - d / 2, -(hwIn + 1) / 0.9], [f, -(hwIn + 4) / 0.9], [f + d / 2, -(hwIn + 1) / 0.9], [f + d, 0]] },
         { side: -inner, followContour: true, points: [[f - d, 0], [f - d / 2, 3 / 0.9], [f, 6 / 0.9], [f + d / 2, 3 / 0.9], [f + d, 0]] }));
     }, virage);

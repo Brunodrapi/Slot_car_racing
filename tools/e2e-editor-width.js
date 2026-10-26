@@ -52,7 +52,7 @@ const {chromium}=require('playwright'),assert=require('assert/strict'),vm=requir
  await p.keyboard.down('Alt');await p.mouse.click(added.x,added.y);await p.keyboard.up('Alt');await p.waitForTimeout(200);
  assert.equal(await p.evaluate(i=>largeursPiste()[i].points.length,dual.count),insert.n);
  const contour=await p.evaluate(()=>{
-   const def=TRACKS.find(t=>t.id==='monaco'),base=new Track(def,.9);let apex=0;
+   const def={...TRACKS.find(t=>t.id==='monaco'),roadWidenings:[]},base=new Track(def,.9);let apex=0;
    for(let i=0;i<base.n;i++)if(Math.abs(base.k[i])>Math.abs(base.k[apex]))apex=i;
    const f=apex/base.n;let maxError=0,samples=0,misses=0;
    for(const side of [-1,1]){

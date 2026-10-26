@@ -52,8 +52,9 @@ const ECART = `(T, z) => {
     await p.waitForFunction(() => typeof app !== 'undefined' && app.save);
     const m = await p.evaluate(([zonesSrc, ecartSrc]) => {
       const zones = eval(zonesSrc), ecart = eval(ecartSrc);
-      const def = TRACKS.find((t) => t.id === 'monaco'), base = new Track(def, 0.9), r = zones(base);
-      const T = new Track({ ...def, roadWidenings: [...(def.roadWidenings || []), ...r.z] }, 0.9);
+      // un Monaco sans retouche de bords : le fichier peut en porter sur cette épingle (0.52.32)
+      const def = { ...TRACKS.find((t) => t.id === 'monaco'), roadWidenings: [] }, base = new Track(def, 0.9), r = zones(base);
+      const T = new Track({ ...def, roadWidenings: r.z }, 0.9);
       const q = base.pos(r.apex * base.ds, 0);
       let ap = 0, bd = Infinity;
       for (let i = 0; i < T.n; i++) { const d = (T.xs[i] - q.x) ** 2 + (T.ys[i] - q.y) ** 2; if (d < bd) { bd = d; ap = i; } }
@@ -82,7 +83,8 @@ const ECART = `(T, z) => {
     await e.waitForFunction(() => typeof DEC !== 'undefined' && DEC.track && DEC.id === 'monaco');
     await e.click('[data-onglet="piste"]');
     const prise = await e.evaluate((zonesSrc) => {
-      const zones = eval(zonesSrc), base = new Track(DEC.def0, ECHELLE_ROUTE), r = zones(base);
+      const zones = eval(zonesSrc), base = new Track({ ...DEC.def0, roadWidenings: [] }, ECHELLE_ROUTE), r = zones(base);
+      DEC.decor.roadWidenings = [];
       const n0 = largeursPiste().length;
       largeursPiste().push(...r.z);
       DEC.track = new Track(definition(), ECHELLE_ROUTE); DEC.rendu.setTrack(DEC.track);
@@ -110,8 +112,9 @@ const ECART = `(T, z) => {
     // --- la course ---
     console.log('la course');
     const c = await p.evaluate(async (zonesSrc) => {
-      const zones = eval(zonesSrc), def = TRACKS.find((t) => t.id === 'monaco'), r = zones(new Track(def, 0.9));
-      def.roadWidenings = [...(def.roadWidenings || []), ...r.z]; app.tracks.delete('monaco');
+      const zones = eval(zonesSrc), def = TRACKS.find((t) => t.id === 'monaco');
+      def.roadWidenings = []; const r = zones(new Track(def, 0.9));
+      def.roadWidenings = r.z; app.tracks.delete('monaco');
       app.mondial = null; app.save.name = 'Essai'; app.leaveSplash(); app.startQuick('race', 'f1', 'monaco');
       await new Promise((res) => { const w = () => (app.race && app.race.state === 'racing' ? res() : setTimeout(w, 50)); w(); });
       const ia = app.race.cars.filter((x) => !x.isPlayer);
