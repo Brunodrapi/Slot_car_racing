@@ -1014,16 +1014,7 @@ class Track {
 
     // Un élargissement annoté est de la chaussée, pas un dégagement peint. Une valeur négative
     // resserre la chaussée : l'arrondi d'une corde trop pointue, par exemple.
-    for(const zone of def.roadWidenings||[]){
-      const pts=zone.points,key=zone.side>0?this.hwL:this.hwR;
-      for(let i=0;i<N;i++){
-        let f=i/N;if(f<pts[0][0])f+=1;
-        if(f<pts[0][0]||f>pts.at(-1)[0])continue;
-        let j=0;while(j<pts.length-2&&f>pts[j+1][0])j++;
-        const [a,b]=[pts[j],pts[j+1]],u=(f-a[0])/(b[0]-a[0]);
-        key[i]=Math.max(2.5,key[i]+(a[1]+(b[1]-a[1])*u)*this.widthScale);
-      }
-    }
+    if (!(def.lines && !def.width)) this._applyRoadWidenings();
 
     /* De quel côté est l'intérieur du virage, en tout point — calculé ici et non dans le générateur
     de lignes, parce que le rendu s'en sert aussi : les deux bords de piste sont teintés d'après lui,
@@ -1068,7 +1059,7 @@ class Track {
 
     Le coude est à 0,10 : au-delà on gagne un point d'approche et on paie douze sorties. */
     this._limitLines(0.10, Track.RACING_SLOPE);
-    if (def.lines && !def.width) this._widthFromLines();
+    if (def.lines && !def.width) { this._widthFromLines(); this._applyRoadWidenings(); }
     this._clampLines();
     this._lineCurvatures();
     this._buildPits(def);
@@ -1746,7 +1737,21 @@ class Track {
     this._fusionneCotes(projete.inside, projete.outside);
   }
 
-  // road edges for editor tracks: cover the drawn lines plus a margin
+  // Apply local width adjustments after the base road width is known.
+  _applyRoadWidenings() {
+    for(const zone of this.def.roadWidenings||[]){
+      const pts=zone.points,key=zone.side>0?this.hwL:this.hwR;
+      for(let i=0;i<this.n;i++){
+        let f=i/this.n;if(f<pts[0][0])f+=1;
+        if(f<pts[0][0]||f>pts.at(-1)[0])continue;
+        let j=0;while(j<pts.length-2&&f>pts[j+1][0])j++;
+        const [a,b]=[pts[j],pts[j+1]],u=(f-a[0])/(b[0]-a[0]);
+        key[i]=Math.max(2.5,key[i]+(a[1]+(b[1]-a[1])*u)*this.widthScale);
+      }
+    }
+  }
+
+  // Road edges for custom tracks: cover drawn lines plus a margin.
   _widthFromLines() {
     const N = this.n, m = 2.2, minHw = 4.5;
     const L = new Float32Array(N), R = new Float32Array(N);

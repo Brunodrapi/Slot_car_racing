@@ -1488,9 +1488,9 @@ for(const d of TRACKS){
 if (typeof module !== 'undefined') module.exports = { TRACKS };
 
 /* LES CLÉS DU DÉCOR, celles que l'éditeur de décor (`editor.html`, mode Décor) sait reprendre. Une
-retouche locale ou un bloc fabriqué pour ce fichier ne touche qu'à celles-là : le tracé, la largeur,
+retouche locale ou un bloc fabriqué pour ce fichier ne touche qu'à celles-là : le tracé central,
 les lignes et les panneaux restent ce qu'ils sont. */
-const CLES_DECOR = ['runoffs', 'annotatedRunoffsOnly', 'implantation', 'barrierPaths', 'barrierCuts',
+const CLES_DECOR = ['roadWidenings', 'runoffs', 'annotatedRunoffsOnly', 'implantation', 'barrierPaths', 'barrierCuts',
   'asphaltPads', 'pitFrom', 'pitTo', 'pitAt', 'objets'];
 // Une définition avec une reprise de décor posée dessus ; `null` retire la clé (plus de voie
 // déplacée, plus de traits relevés…). La définition d'origine n'est pas touchée.

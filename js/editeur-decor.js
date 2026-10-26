@@ -134,7 +134,7 @@ function annuler() {
   DEC.sel = null; DEC.trace = null; DEC.modif = true;
   refaire();
 }
-const VIDES = ['barrierPaths', 'barrierCuts', 'asphaltPads'];
+const VIDES = ['roadWidenings', 'barrierPaths', 'barrierCuts', 'asphaltPads'];
 // Une liste vide ne s'écrit pas : `objets` sans retouche, c'est pas de clé du tout.
 function nettoyer() {
   const o = DEC.decor.objets;
@@ -313,6 +313,21 @@ function recaleTrait(p) {
   p.from = r4(fs[0]); p.to = r4(fs.at(-1));
 }
 
+/* Élargissements de chaussée, indépendants des trajectoires et dégagements. */
+function largeursPiste() { return DEC.decor.roadWidenings || (DEC.decor.roadWidenings = []); }
+function normaliseLargeur(z) {
+  const shift = Math.floor(z.points[0][0]);
+  for (const p of z.points) p[0] -= shift;
+}
+function ajouterLargeur(pr) {
+  const f = pr.s / DEC.track.length, d = 40 / DEC.track.length;
+  const z = {side: pr.lat >= 0 ? 1 : -1, points: [[f-d,0],[f-d/2,3/ECHELLE_ROUTE],[f+d/2,3/ECHELLE_ROUTE],[f+d,0]]};
+  normaliseLargeur(z);
+  changer(() => largeursPiste().push(z));
+  DEC.sel = {outil:'piste', zone:largeursPiste().length-1}; DEC.mode='choisir';
+  majFiche(); peindre();
+}
+
 /* ------------------------------------------------- zones d'implantation */
 
 function zonesIm() { return DEC.decor.implantation || (DEC.decor.implantation = []); }
@@ -371,6 +386,11 @@ function dessinerCalque(g) {
     g.strokeStyle = coul; g.lineWidth = l; g.stroke(); g.setLineDash([]);
   };
   const s = DEC.sel;
+  if (DEC.outil === 'piste') largeursPiste().forEach((z,i) => {
+    const pts=z.points.map(([f])=>T.pos(T.wrap(f*T.length),z.side*bord(T.wrap(f*T.length),z.side)));
+    ligne(pts, s?.zone===i?'#ffdf60':'#55caff',3);
+    pts.forEach((p,j)=>poignee(p,'#ffdf60',s?.zone===i,j===0?'D':j===pts.length-1?'F':''));
+  });
   if (DEC.outil === 'objets') {
     const e = retrouveSel();
     if (e) {
@@ -488,6 +508,14 @@ function surBas(e) {
     peindre(); majFiche(); return;
   }
 
+  if (DEC.outil === 'piste') {
+    const pr=projette(w.x,w.y);
+    if (DEC.mode==='ajouter') { ajouterLargeur(pr); return; }
+    const i=largeursPiste().findIndex(z=>{let f=pr.s/T.length;if(f<z.points[0][0])f+=1;return f<=z.points.at(-1)[0]&&f>=z.points[0][0]&&(pr.lat>=0?1:-1)===z.side;});
+    DEC.sel=i>=0?{outil:'piste',zone:i}:null;
+    if(i<0)DEC.drag={pan:[e.clientX,e.clientY,DEC.rendu.cam.x,DEC.rendu.cam.y]};
+    majFiche();peindre();return;
+  }
   if (DEC.outil === 'objets') {
     if (DEC.mode === 'gomme') { DEC.annule.push(JSON.stringify(DEC.decor)); DEC.drag = { gomme: true, n: gommer(w.x, w.y) }; return; }
     if (DEC.mode === 'ajouter') {
@@ -745,6 +773,18 @@ function majFiche() {
     const ob = DEC.decor.objets;
     h += `<p class="help">Retouches : ${ob ? ob.retires.length : 0} retiré(s), ${ob ? ob.ajouts.length : 0} ajouté(s).</p>`;
     if (ob) h += '<div class="row2"><button id="d-raz-objets">Effacer les retouches d’objets</button></div>';
+  } else if (DEC.outil === 'piste') {
+    h += '<button id="d-largeur-ajout">+ Élargir un virage</button><p class="help">Clique le côté de la piste à élargir après avoir choisi « Élargir un virage ». La chaussée et ses bordures sont recalculées, pas seulement le hors-piste.</p>';
+    if(DEC.mode==='ajouter')h+='<p class="help">Clique maintenant dans le virage, du côté à élargir.</p>';
+    h += `<select id="d-largeur-liste" size="5" style="width:100%">${!s?'<option value="" disabled selected>Choisir une zone</option>':''}${largeursPiste().map((z,i)=>opt(i,`Zone ${i+1} · ${z.side>0?'gauche':'droite'}`,s?.zone===i)).join('')}</select>`;
+    const z=s&&largeursPiste()[s.zone];
+    if(z){
+      const peak=z.points.reduce((a,p)=>Math.abs(p[1])>Math.abs(a)?p[1]:a,0);
+      h+=champ('Côté',`<select id="d-largeur-cote">${opt(1,'Gauche',z.side>0)}${opt(-1,'Droite',z.side<0)}</select>`);
+      h+=champ('Largeur ajoutée (m)',nombre('d-largeur-m',r2(peak*ECHELLE_ROUTE),-10,30,.5));
+      h+=champ('Longueur de zone (m)',nombre('d-largeur-long',r2((z.points.at(-1)[0]-z.points[0][0])*DEC.track.length),10,500,5));
+      h+='<p class="help">Les extrémités rejoignent progressivement la piste. Valeur négative : rétrécir. Les mètres correspondent à la chaussée affichée en jeu.</p><button id="d-suppr">Supprimer cet élargissement</button>';
+    }
   } else if (DEC.outil === 'horspiste') {
     h += champ('Gravier automatique dans les virages', `<input type="checkbox" id="d-auto" ${DEC.decor.annotatedRunoffsOnly ? '' : 'checked'}>`);
     h += `<div class="tools"><button data-nouv="asphalt">+ Bitume</button><button data-nouv="gravel">+ Gravier</button><button data-nouv="grass">+ Herbe</button><button data-nouv="pad">+ Surface liée au bord</button><button data-fill="asphalt">Combler : bitume</button><button data-fill="gravel">Combler : gravier</button></div>`;
@@ -825,6 +865,21 @@ function brancherFiche() {
   for (const b of document.querySelectorAll('#d-fiche [data-zone]')) b.onclick = () => commencerTrace('zone', { kind: b.dataset.zone, essence: b.dataset.essence });
   for (const b of document.querySelectorAll('#d-fiche [data-fill]')) b.onclick = () => commencerTrace('pad', {free:true, surface:b.dataset.fill});
   on('d-pad-surface', 'change', ev => changer(() => { padsListe()[DEC.sel.pad].surface=ev.target.value; }, true));
+  on('d-largeur-ajout','click',()=>{DEC.mode='ajouter';majFiche();});
+  on('d-largeur-liste','change',e=>{DEC.sel={outil:'piste',zone:+e.target.value};DEC.mode='choisir';majFiche();peindre();});
+  on('d-largeur-cote','change',e=>changer(()=>{largeursPiste()[DEC.sel.zone].side=+e.target.value;}));
+  on('d-largeur-m','change',e=>{
+    if(!e.target.checkValidity()||e.target.value==='')return;
+    const value=+e.target.value/ECHELLE_ROUTE;
+    changer(()=>{const z=largeursPiste()[DEC.sel.zone],peak=z.points.reduce((a,p)=>Math.abs(p[1])>Math.abs(a)?p[1]:a,0);
+      z.points.forEach((p,i)=>{p[1]=peak?p[1]*value/peak:(i>0&&i<z.points.length-1?value:0);});});
+  });
+  on('d-largeur-long','change',e=>{
+    if(!e.target.checkValidity()||e.target.value==='')return;
+    const len=+e.target.value/DEC.track.length;
+    changer(()=>{const z=largeursPiste()[DEC.sel.zone],a=z.points[0][0],b=z.points.at(-1)[0],mid=(a+b)/2;
+      z.points.forEach(p=>p[0]=mid+(p[0]-mid)*len/(b-a));normaliseLargeur(z);});
+  });
   on('d-finir', 'click', finirTrace);
   on('d-abandon', 'click', () => { DEC.trace = null; if (DEC.mode === 'tracer') DEC.mode = 'choisir'; majFiche(); peindre(); });
   on('d-ajout', 'change', (ev) => { DEC.ajout = ev.target.value; });
@@ -877,6 +932,7 @@ function supprimerSel() {
   const s = DEC.sel;
   if (!s) return;
   if (s.outil === 'objets') { const e = retrouveSel(); if (e) changer(() => supprimerObjet(e)); }
+  else if (s.outil === 'piste') changer(() => largeursPiste().splice(s.zone, 1));
   else if (s.outil === 'horspiste' && s.zone != null) changer(() => zonesHP().splice(s.zone, 1));
   else if (s.outil === 'horspiste' && s.pad != null) changer(() => padsListe().splice(s.pad, 1));
   else if (s.outil === 'barrieres' && s.trait != null) changer(() => traits().splice(s.trait, 1));

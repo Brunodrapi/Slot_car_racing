@@ -4023,3 +4023,12 @@ aussi la rotation et le passage sous/sur le croisement de Suzuka.
 Le rendu Retina a un coût : dans le banc Chromium à densité ×3 et processeur ralenti ×4,
 la mesure est d'environ 29 im/s contre 41 pour le rendu précédent. Ce banc simule la charge ;
 il ne mesure pas Safari sur un iPhone réel.
+
+
+### Élargir la chaussée dans un virage (éditeur recette, 0.52.24)
+
+Dans `editor.html`, ouvrir **Décor → Largeur de piste**, choisir le circuit, puis **+ Élargir un virage**. Cliquer du côté à élargir dans le virage. Régler la largeur ajoutée en mètres (valeur négative pour rétrécir), la longueur de la zone et le côté gauche/droit dans le sens de circulation. Les transitions rejoignent la chaussée progressivement. La liste permet de reprendre aussi les élargissements déjà présents, notamment à Zandvoort.
+
+**Enregistrer** applique la retouche sur ce navigateur ; **Fabriquer tracks.js** l'exporte pour l'intégrer au dépôt. Annuler et supprimer fonctionnent comme pour les autres outils. Le centre de piste et les trajectoires sauvegardées ne sont pas déplacés. Les barrières et dégagements calculés sont reconstruits ; les objets ou protections placés manuellement peuvent nécessiter une retouche si la chaussée élargie les rejoint. Les variantes locales restent hors records mondiaux.
+
+Les élargissements `roadWidenings` font désormais partie des reprises enregistrées. Pour les circuits personnalisés, ils s'appliquent après la largeur déduite des trajectoires, afin de ne plus être écrasés par celle-ci. Contrôles : modification depuis l'interface, conservation du bord opposé, longueur de zone, rechargement, export, suppression/annulation, passage de la ligne de départ et circuit personnalisé. Le test complet des autres outils de décor passe également.
