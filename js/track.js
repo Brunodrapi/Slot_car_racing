@@ -1739,14 +1739,36 @@ class Track {
 
   // Apply local width adjustments after the base road width is known.
   _applyRoadWidenings() {
+    this.roadEdgeControls = new Map();
+    this.roadEdgeMisses = 0;
     for(const zone of this.def.roadWidenings||[]){
       const pts=zone.points,key=zone.side>0?this.hwL:this.hwR;
+      // Convert the edited controls to world coordinates before modifying this edge.
+      const controls=pts.map(([f,w])=>this.pos(this.wrap(f*this.length),zone.side*Math.max(2.5,this._lerp(key,f*this.length)+w*this.widthScale)));
+      this.roadEdgeControls.set(zone,controls);
       for(let i=0;i<this.n;i++){
         let f=i/this.n;if(f<pts[0][0])f+=1;
         if(f<pts[0][0]||f>pts.at(-1)[0])continue;
         let j=0;while(j<pts.length-2&&f>pts[j+1][0])j++;
         const [a,b]=[pts[j],pts[j+1]],u=(f-a[0])/(b[0]-a[0]);
-        key[i]=Math.max(2.5,key[i]+(a[1]+(b[1]-a[1])*u)*this.widthScale);
+        let width=Math.max(2.5,key[i]+(a[1]+(b[1]-a[1])*u)*this.widthScale);
+        if(zone.followContour){
+          // Intersect this station's normal with the drawn edge, rather than interpolate
+          // offsets around a hairpin (which produces loops outside the control polygon).
+          let best=Infinity,found=null;
+          const nx=this.nx[i]*zone.side,ny=this.ny[i]*zone.side;
+          for(let k=0;k<controls.length-1;k++){
+            const p=controls[k],q=controls[k+1],dx=q.x-p.x,dy=q.y-p.y;
+            const det=nx*dy-ny*dx;if(Math.abs(det)<1e-9)continue;
+            const ax=p.x-this.xs[i],ay=p.y-this.ys[i];
+            const t=(ax*dy-ay*dx)/det,v=(ax*ny-ay*nx)/det;
+            if(t<2.5||v<-.000001||v>1.000001)continue;
+            const mapped=pts[k][0]+(pts[k+1][0]-pts[k][0])*v,score=Math.abs(mapped-f);
+            if(score<best){best=score;found=t;}
+          }
+          if(found!=null)width=found;else this.roadEdgeMisses++;
+        }
+        key[i]=width;
       }
     }
   }

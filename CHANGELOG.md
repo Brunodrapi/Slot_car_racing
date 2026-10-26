@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.27
+- Éditeur : les bords de piste peuvent suivre le contour dessiné dans les épingles, avec un bouton pour ajouter des points.
+
 ## 0.52.26
 - Éditeur : redessiner les bords des virages en déplaçant, ajoutant ou retirant des points.
 

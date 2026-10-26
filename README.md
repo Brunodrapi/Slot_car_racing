@@ -4038,3 +4038,12 @@ Depuis 0.52.25, **Élargir des deux côtés** crée deux zones pour le même vir
 
 
 Depuis 0.52.26, l'outil **Largeur de piste** permet de glisser les points de chaque bord de zone. Les points intérieurs changent la largeur et leur position le long du virage ; D/F règlent les extrémités en conservant un raccord à la largeur d'origine. **Maj+clic** dans la zone sélectionnée insère un point ; **Alt+clic** ou clic droit sur un point intérieur le supprime (au moins trois points conservés). Les points restent ordonnés pour éviter un contour replié. Le contour de contrôle suit le geste, la chaussée et son décor sont reconstruits au relâchement. Les points du côté opposé sont conservés ; Ctrl+Z annule le geste. Tests souris : déplacement, annulation, insertion et suppression.
+
+
+### Contours des épingles — 0.52.27
+
+Dans **Largeur de piste**, activer **Suivre le contour dessiné** sur une zone déjà enregistrée. Ce mode s'active aussi lorsqu'on déplace ou ajoute un point. Le calcul intersecte les normales de la piste avec les segments du contour : le bord ne se contente plus d'interpoler des décalages autour de l'ancien axe, qui pouvaient former une boucle dans une épingle. Les largeurs obtenues sont partagées par le rendu et la physique. Les anciens profils non retouchés conservent leur comportement.
+
+**Ajouter un point sur ce bord** permet de cliquer entre deux points sans clavier ; glisser ensuite le nouveau point pour affiner la forme. Le raccourci Maj+clic reste disponible. Traiter gauche et droite séparément pour dessiner la chaussée entre les deux contours. Pour un contour qui traverse l'axe ou ne rencontre pas certaines normales du secteur, l'éditeur affiche un avertissement : des points intermédiaires ou un contour ajusté sont nécessaires ; les stations non représentables gardent le profil de largeur précédent. La largeur minimale par côté reste 2,5 m. Il ne s'agit pas d'un déplacement de l'axe central.
+
+Validation géométrique sur les deux côtés du virage le plus serré de Monaco : toutes les stations testées se trouvent sur le contour dessiné à moins d'un centimètre, sans station manquante. Tests du bouton d'insertion, du glissement, de la sauvegarde et de l'export. Le dessin spécifique montré en capture est une retouche locale du navigateur : elle doit être rechargée dans l'éditeur puis passée en mode contour, elle n'a pas été remplacée dans le fichier des circuits.

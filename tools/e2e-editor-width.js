@@ -46,10 +46,31 @@ const {chromium}=require('playwright'),assert=require('assert/strict'),vm=requir
  await p.click('#d-annuler');await p.waitForTimeout(200);assert(Math.abs(await p.evaluate(i=>largeursPiste()[i].points[1][1],dual.count)-drag.width)<.001);
  await p.selectOption('#d-largeur-liste',String(dual.count));
  const insert=await p.evaluate(i=>{const z=largeursPiste()[i],t=DEC.track,s=(z.points[1][0]+z.points[2][0])/2*t.length,q=t.pos(s,z.side*bord(s,z.side)),r=DEC.rendu;r.cam.zoom=6;r.cam.x=q.x-25;r.cam.y=q.y;peindre();return {point:versEcran(q.x,q.y),n:z.points.length};},dual.count);
- await p.keyboard.down('Shift');await p.mouse.click(insert.point.x,insert.point.y);await p.keyboard.up('Shift');await p.waitForTimeout(200);
+ await p.click('#d-largeur-point');await p.mouse.click(insert.point.x,insert.point.y);await p.waitForTimeout(200);
  assert.equal(await p.evaluate(i=>largeursPiste()[i].points.length,dual.count),insert.n+1);
  const added=await p.evaluate(i=>{const q=pointLargeur(largeursPiste()[i],2);return versEcran(q.x,q.y);},dual.count);
  await p.keyboard.down('Alt');await p.mouse.click(added.x,added.y);await p.keyboard.up('Alt');await p.waitForTimeout(200);
  assert.equal(await p.evaluate(i=>largeursPiste()[i].points.length,dual.count),insert.n);
+ const contour=await p.evaluate(()=>{
+   const def=TRACKS.find(t=>t.id==='monaco'),base=new Track(def,.9);let apex=0;
+   for(let i=0;i<base.n;i++)if(Math.abs(base.k[i])>Math.abs(base.k[apex]))apex=i;
+   const f=apex/base.n;let maxError=0,samples=0,misses=0;
+   for(const side of [-1,1]){
+     const z={side,followContour:true,points:Array.from({length:9},(_,k)=>[f+(k-4)*8/base.length,k===0||k===8?0:1])};normaliseLargeur(z);
+     const t=new Track({...def,roadWidenings:[z]},.9),controls=t.roadEdgeControls.get(z);misses+=t.roadEdgeMisses;
+     for(let i=0;i<t.n;i++){
+       let at=i/t.n;if(at<z.points[0][0])at++;
+       if(at<z.points[0][0]||at>z.points.at(-1)[0])continue;
+       const q=t.pos(i*t.ds,side*(side>0?t.hwL[i]:t.hwR[i]));
+       let distance=Infinity;
+       for(let j=1;j<controls.length;j++){
+         const a=controls[j-1],b=controls[j],dx=b.x-a.x,dy=b.y-a.y,u=Math.max(0,Math.min(1,((q.x-a.x)*dx+(q.y-a.y)*dy)/(dx*dx+dy*dy)));
+         distance=Math.min(distance,Math.hypot(q.x-a.x-u*dx,q.y-a.y-u*dy));
+       }
+       maxError=Math.max(maxError,distance);samples++;
+     }
+   }
+   return {maxError,samples,misses};
+ });assert.equal(contour.misses,0);assert(contour.samples>50);assert(contour.maxError<.01,JSON.stringify(contour));
  assert.deepEqual(errors,[]);console.log('Road width: UI edit, opposite side unchanged, save/reload, tracks export, delete/undo, start-line seam and custom track: OK');
 }finally{await b.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

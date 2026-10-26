@@ -326,7 +326,7 @@ function pointLargeur(z, i) {
     const base=drag.baseLargeur,hw=z.side>0?base.hwLeftAt(at):base.hwRightAt(at);
     return t.pos(at,z.side*Math.max(2.5,hw+w*ECHELLE_ROUTE));
   }
-  return t.pos(at,z.side*bord(at,z.side));
+  return t.roadEdgeControls?.get(z)?.[i] || t.pos(at,z.side*bord(at,z.side));
 }
 function ajouterLargeur(pr, deuxCotes = false) {
   const f = pr.s / DEC.track.length, d = 40 / DEC.track.length;
@@ -526,17 +526,20 @@ function surBas(e) {
       const z=largeursPiste()[h.largeur];DEC.sel={outil:'piste',zone:h.largeur};
       if(supprPoint){if(h.point>0&&h.point<z.points.length-1&&z.points.length>3)changer(()=>z.points.splice(h.point,1));majFiche();return;}
       DEC.annule.push(JSON.stringify(DEC.decor));
+      z.followContour=true;
       const def=definition();
       DEC.drag={pointLargeur:{zone:h.largeur,point:h.point},baseLargeur:new Track({...def,roadWidenings:largeursPiste().filter((_,i)=>i!==h.largeur)},ECHELLE_ROUTE)};
       majFiche();peindre();return;
     }
-    if(e.shiftKey&&DEC.sel?.outil==='piste'){
+    if((e.shiftKey||DEC.mode==='point')&&DEC.sel?.outil==='piste'){
       const z=largeursPiste()[DEC.sel.zone],ref=(z.points[0][0]+z.points.at(-1)[0])/2;
       const pr=projette(w.x,w.y,T.wrap(ref*T.length)),f=deplie(pr.s/T.length,ref);
       const i=z.points.findIndex(p=>p[0]>f);
       if(i>0&&f-z.points[i-1][0]>1e-6&&z.points[i][0]-f>1e-6){
-        const a=z.points[i-1],b=z.points[i],value=a[1]+(b[1]-a[1])*(f-a[0])/(b[0]-a[0]);
-        changer(()=>z.points.splice(i,0,[f,value]));
+        const def=definition(),base=new Track({...def,roadWidenings:largeursPiste().filter(other=>other!==z)},ECHELLE_ROUTE);
+        const at=T.wrap(f*T.length),hw=z.side>0?base.hwLeftAt(at):base.hwRightAt(at);
+        const value=clamp((z.side*pr.lat-hw)/ECHELLE_ROUTE,-10/ECHELLE_ROUTE,30/ECHELLE_ROUTE);
+        changer(()=>{z.followContour=true;z.points.splice(i,0,[f,value]);});
       }
       return;
     }
@@ -822,6 +825,10 @@ function majFiche() {
     const z=s&&largeursPiste()[s.zone];
     if(z){
       const peak=z.points.reduce((a,p)=>Math.abs(p[1])>Math.abs(a)?p[1]:a,0);
+      h+=champ('Suivre le contour dessiné',`<input id="d-largeur-contour" type="checkbox" ${z.followContour?'checked':''}>`);
+      h+='<button id="d-largeur-point">+ Ajouter un point sur ce bord</button>';
+      if(DEC.mode==='point')h+='<p class="help">Clique entre deux points de ce bord, puis glisse le nouveau point.</p>';
+      if(DEC.track.roadEdgeMisses)h+='<p class="help">Une partie du contour ne peut pas rejoindre la piste : ajoute des points intermédiaires ou rapproche le bord de son côté de la piste.</p>';
       h+=champ('Côté de cette zone',`<select id="d-largeur-cote">${opt(1,'Gauche',z.side>0)}${opt(-1,'Droite',z.side<0)}</select>`);
       h+=champ('Largeur ajoutée (m)',nombre('d-largeur-m',r2(peak*ECHELLE_ROUTE),-10,30,.5));
       h+=champ('Longueur de zone (m)',nombre('d-largeur-long',r2((z.points.at(-1)[0]-z.points[0][0])*DEC.track.length),10,500,5));
@@ -908,6 +915,8 @@ function brancherFiche() {
   for (const b of document.querySelectorAll('#d-fiche [data-fill]')) b.onclick = () => commencerTrace('pad', {free:true, surface:b.dataset.fill});
   on('d-pad-surface', 'change', ev => changer(() => { padsListe()[DEC.sel.pad].surface=ev.target.value; }, true));
   on('d-largeur-ajout','click',()=>{DEC.mode='ajouter';majFiche();});
+  on('d-largeur-contour','change',e=>changer(()=>{largeursPiste()[DEC.sel.zone].followContour=e.target.checked;}));
+  on('d-largeur-point','click',()=>{DEC.mode='point';majFiche();});
   on('d-largeur-deux','click',()=>{DEC.mode='ajouter-deux';majFiche();});
   on('d-largeur-oppose','click',()=>{
     const z=largeursPiste()[DEC.sel.zone];
