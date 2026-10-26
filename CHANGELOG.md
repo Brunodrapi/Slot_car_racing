@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.33
+- Le Rocher : nouvelles trajectoires, panneaux de freinage repris et immeubles le long du boulevard.
+
 ## 0.52.32
 - Le Rocher : virages redessinés, dégagements, barrières et surfaces bitumées repris.
 

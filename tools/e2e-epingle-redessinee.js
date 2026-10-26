@@ -113,7 +113,8 @@ const ECART = `(T, z) => {
     console.log('la course');
     const c = await p.evaluate(async (zonesSrc) => {
       const zones = eval(zonesSrc), def = TRACKS.find((t) => t.id === 'monaco');
-      def.roadWidenings = []; const r = zones(new Track(def, 0.9));
+      // trajectoires calculées : celles que le fichier dessine (0.52.33) ignorent l'épingle refaite ici
+      def.roadWidenings = []; delete def.lines; const r = zones(new Track(def, 0.9));
       def.roadWidenings = r.z; app.tracks.delete('monaco');
       app.mondial = null; app.save.name = 'Essai'; app.leaveSplash(); app.startQuick('race', 'f1', 'monaco');
       await new Promise((res) => { const w = () => (app.race && app.race.state === 'racing' ? res() : setTimeout(w, 50)); w(); });

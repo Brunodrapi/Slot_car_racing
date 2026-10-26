@@ -23,6 +23,14 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
   const b = await chromium.launch();
   try {
     const ctx = await b.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
+    // un Monaco sans trajectoires dessinées : le fichier en porte depuis 0.52.33, et l'on veut voir les
+    // trajectoires calculées suivre le virage redessiné (le script seulement : « Fabriquer tracks.js »
+    // relit le fichier tel quel)
+    await ctx.route('**/js/tracks.js*', async (r) => {
+      if (r.request().resourceType() !== 'script') return r.continue();
+      const res = await r.fetch();
+      await r.fulfill({ response: res, body: (await res.text()) + '\n;delete TRACKS.find((t) => t.id === "monaco").lines;\n' });
+    });
     const p = await ctx.newPage();
     const erreurs = [];
     p.on('pageerror', (e) => erreurs.push(e.message));

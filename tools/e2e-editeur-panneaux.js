@@ -8,7 +8,7 @@
 // vérifie, à Monaco, par l'interface :
 // - l'éditeur s'ouvre sur les trajectoires, avec ses quatre onglets, et l'onglet « Objets » garde ses
 //   cinq outils ;
-// - l'onglet « Panneaux » montre les 35 panneaux du fichier ; toucher l'un d'eux le choisit, changer
+// - l'onglet « Panneaux » montre les panneaux du fichier ; toucher l'un d'eux le choisit, changer
 //   son sens et sa valeur se voit dans la piste construite, et le glisser le fait courir le long du
 //   tour ;
 // - un appui sans glisser pose le viseur, « Ajouter au viseur » y pose un panneau, « Annuler » l'ôte ;
@@ -49,8 +49,9 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
 
     // --- les panneaux du fichier ---
     await p.click('#d-onglets [data-onglet="panneaux"]');
-    const depart = await p.evaluate(() => ({ n: listePanneaux().length, fiche: document.getElementById('d-fiche').textContent, modif: DEC.panModif }));
-    ok(depart.n === 35 && /35 panneaux/.test(depart.fiche) && /fichier/.test(depart.fiche), `les 35 panneaux du fichier (« ${depart.fiche.match(/\d+ panneaux[^.]*\./)[0]} »)`);
+    const depart = await p.evaluate(() => ({ n: listePanneaux().length, fichier: TRACKS.find((t) => t.id === 'monaco').panneaux.length, fiche: document.getElementById('d-fiche').textContent, modif: DEC.panModif }));
+    const N = depart.fichier;
+    ok(N > 10 && depart.n === N && new RegExp(N + ' panneaux').test(depart.fiche) && /fichier/.test(depart.fiche), `les ${N} panneaux du fichier (« ${depart.fiche.match(/\d+ panneaux[^.]*\./)[0]} »)`);
     // toucher le premier panneau
     const vers = async (k) => p.evaluate((k) => {
       const q = panneauxPoses()[k], r = DEC.rendu; r.cam.zoom = 6; r.cam.x = q.cx; r.cam.y = q.cy; peindre();
@@ -81,9 +82,9 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     await p.mouse.click(vis.x, vis.y); await p.waitForTimeout(200);
     ok(await p.evaluate((j) => Math.abs(DEC.viseur - j) <= 2, vis.j), 'un appui sans glisser pose le viseur');
     await p.click('#d-pan-ajout'); await p.waitForTimeout(250);
-    ok(await p.evaluate(() => listePanneaux().length === 36 && DEC.selP === 35), '« Ajouter au viseur » pose un 36e panneau, choisi');
+    ok(await p.evaluate((N) => listePanneaux().length === N + 1 && DEC.selP === N, N), `« Ajouter au viseur » pose un ${N + 1}e panneau, choisi`);
     await p.click('#d-annuler'); await p.waitForTimeout(250);
-    ok(await p.evaluate(() => listePanneaux().length === 35), '« Annuler » l\'ôte');
+    ok(await p.evaluate((N) => listePanneaux().length === N, N), '« Annuler » l\'ôte');
 
     // --- la règle ---
     await p.click('#d-fiche [data-souspan="mesure"]');
@@ -110,7 +111,7 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     await g.goto(BASE + '/index.html');
     await g.waitForFunction(() => typeof app !== 'undefined' && app.custom && app.custom.panneaux && app.custom.panneaux.has('monaco'), null, { timeout: 15000 });
     const jeu = await g.evaluate(() => { const T = app.trackCache('monaco'); return { n: T.boards.length, b0: [T.boards[0].sign, T.boards[0].dist] }; });
-    ok(jeu.n === 35 && jeu.b0[0] === voulu[0][3] && jeu.b0[1] === 200, 'le jeu joue ces panneaux');
+    ok(jeu.n === N && jeu.b0[0] === voulu[0][3] && jeu.b0[1] === 200, 'le jeu joue ces panneaux');
     await g.close();
 
     // --- un seul fichier, puis l'oubli ---
@@ -125,7 +126,7 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
       return { base: await Store.get('panneaux', 'monaco'), n: listePanneaux().length, b0: panneauxPlats()[0] };
     });
     const fichier = await p.evaluate(() => TRACKS.find((t) => t.id === 'monaco').panneaux[0]);
-    ok(!oubli.base && oubli.n === 35 && JSON.stringify(oubli.b0) === JSON.stringify(fichier), '« Revenir au fichier » rend la liste du fichier');
+    ok(!oubli.base && oubli.n === N && JSON.stringify(oubli.b0) === JSON.stringify(fichier), '« Revenir au fichier » rend la liste du fichier');
     ok(!erreurs.length, 'aucune erreur de page' + (erreurs.length ? ' : ' + erreurs.join(' | ') : ''));
   } finally {
     await b.close();
