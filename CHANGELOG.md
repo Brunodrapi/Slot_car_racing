@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.25
+- Éditeur : élargir les deux côtés d’un virage en un clic, avec des largeurs gauche et droite réglables indépendamment.
+
 ## 0.52.24
 - Éditeur : élargir ou rétrécir localement la piste dans un virage, choisir le côté et la longueur de la zone, puis enregistrer et exporter la retouche.
 

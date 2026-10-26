@@ -23,5 +23,20 @@ const {chromium}=require('playwright'),assert=require('assert/strict'),vm=requir
  assert(Math.abs(await p.evaluate(()=>DEC.track.hwLeftAt(DEC.track.length*.2))-before.left-6)<.1);
  const seam=await p.evaluate(()=>{const z={side:1,points:[[-.01,0],[0,4],[.01,0]]};normaliseLargeur(z);const base=new Track({...DEC.def0,roadWidenings:[]},.9),t=new Track({...DEC.def0,roadWidenings:[z]},.9);return [t.hwLeftAt(0)-base.hwLeftAt(0),z.points[0][0]];});assert(Math.abs(seam[0]-3.6)<.1);assert(seam[1]>=0);
  const custom=await p.evaluate(()=>{const def={id:'test',custom:true,scale:1,center:[[0,0],[100,0],[100,100],[0,100]],lines:{racing:[[0,0],[100,0],[100,100],[0,100]]}};const a=new Track(def,.9),b=new Track({...def,roadWidenings:[{side:1,points:[[.1,0],[.2,4],[.3,0]]}]},.9);return b.hwLeftAt(b.length*.2)-a.hwLeftAt(a.length*.2);});assert(Math.abs(custom-3.6)<.1);
+ // Both sides in one gesture, then independent widths and undo.
+ await p.click('#d-largeur-deux');
+ const dual=await p.evaluate(()=>{const t=DEC.track,q=t.pos(t.length*.5,2),r=DEC.rendu;r.cam.zoom=5;r.cam.x=q.x-30;r.cam.y=q.y;peindre();return {point:versEcran(q.x,q.y),left:t.hwLeftAt(t.length*.5),right:t.hwRightAt(t.length*.5),count:largeursPiste().length};});
+ await p.mouse.click(dual.point.x,dual.point.y);await p.waitForTimeout(200);
+ assert.equal(await p.evaluate(()=>largeursPiste().length),dual.count+2);
+ await p.selectOption('#d-largeur-liste',String(dual.count));
+ await p.fill('#d-largeur-m','4');await p.dispatchEvent('#d-largeur-m','change');await p.waitForTimeout(200);
+ await p.selectOption('#d-largeur-liste',String(dual.count+1));
+ await p.fill('#d-largeur-m','7');await p.dispatchEvent('#d-largeur-m','change');await p.waitForTimeout(200);
+ const widths=await p.evaluate(()=>[DEC.track.hwLeftAt(DEC.track.length*.5),DEC.track.hwRightAt(DEC.track.length*.5)]);
+ assert(Math.abs(widths[0]-dual.left-4)<.1);assert(Math.abs(widths[1]-dual.right-7)<.1);
+ await p.click('#d-largeur-oppose');assert.equal(await p.evaluate(()=>largeursPiste().length),dual.count+2);
+ await p.click('#d-poser');await p.waitForFunction(()=>!DEC.modif);await p.reload();await p.waitForFunction(()=>typeof DEC!=='undefined'&&DEC.track);
+ const saved=await p.evaluate(()=>[DEC.track.hwLeftAt(DEC.track.length*.5),DEC.track.hwRightAt(DEC.track.length*.5)]);
+ assert(Math.abs(saved[0]-widths[0])<.01);assert(Math.abs(saved[1]-widths[1])<.01);
  assert.deepEqual(errors,[]);console.log('Road width: UI edit, opposite side unchanged, save/reload, tracks export, delete/undo, start-line seam and custom track: OK');
 }finally{await b.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

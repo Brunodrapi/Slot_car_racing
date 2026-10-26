@@ -319,11 +319,11 @@ function normaliseLargeur(z) {
   const shift = Math.floor(z.points[0][0]);
   for (const p of z.points) p[0] -= shift;
 }
-function ajouterLargeur(pr) {
+function ajouterLargeur(pr, deuxCotes = false) {
   const f = pr.s / DEC.track.length, d = 40 / DEC.track.length;
   const z = {side: pr.lat >= 0 ? 1 : -1, points: [[f-d,0],[f-d/2,3/ECHELLE_ROUTE],[f+d/2,3/ECHELLE_ROUTE],[f+d,0]]};
   normaliseLargeur(z);
-  changer(() => largeursPiste().push(z));
+  changer(() => { largeursPiste().push(z); if(deuxCotes)largeursPiste().push({...clone(z),side:-z.side}); });
   DEC.sel = {outil:'piste', zone:largeursPiste().length-1}; DEC.mode='choisir';
   majFiche(); peindre();
 }
@@ -510,7 +510,7 @@ function surBas(e) {
 
   if (DEC.outil === 'piste') {
     const pr=projette(w.x,w.y);
-    if (DEC.mode==='ajouter') { ajouterLargeur(pr); return; }
+    if (DEC.mode==='ajouter'||DEC.mode==='ajouter-deux') { ajouterLargeur(pr,DEC.mode==='ajouter-deux'); return; }
     const i=largeursPiste().findIndex(z=>{let f=pr.s/T.length;if(f<z.points[0][0])f+=1;return f<=z.points.at(-1)[0]&&f>=z.points[0][0]&&(pr.lat>=0?1:-1)===z.side;});
     DEC.sel=i>=0?{outil:'piste',zone:i}:null;
     if(i<0)DEC.drag={pan:[e.clientX,e.clientY,DEC.rendu.cam.x,DEC.rendu.cam.y]};
@@ -774,16 +774,16 @@ function majFiche() {
     h += `<p class="help">Retouches : ${ob ? ob.retires.length : 0} retiré(s), ${ob ? ob.ajouts.length : 0} ajouté(s).</p>`;
     if (ob) h += '<div class="row2"><button id="d-raz-objets">Effacer les retouches d’objets</button></div>';
   } else if (DEC.outil === 'piste') {
-    h += '<button id="d-largeur-ajout">+ Élargir un virage</button><p class="help">Clique le côté de la piste à élargir après avoir choisi « Élargir un virage ». La chaussée et ses bordures sont recalculées, pas seulement le hors-piste.</p>';
-    if(DEC.mode==='ajouter')h+='<p class="help">Clique maintenant dans le virage, du côté à élargir.</p>';
+    h += '<div class="tools"><button id="d-largeur-ajout">+ Élargir un côté</button><button id="d-largeur-deux">+ Élargir des deux côtés</button></div><p class="help">Clique le côté de la piste à élargir après avoir choisi une action. Les deux côtés créent deux zones indépendantes : sélectionne gauche ou droite dans la liste pour régler chacune. La chaussée et ses bordures sont recalculées.</p>';
+    if(DEC.mode==='ajouter'||DEC.mode==='ajouter-deux')h+='<p class="help">Clique maintenant dans le virage, du côté à élargir.</p>';
     h += `<select id="d-largeur-liste" size="5" style="width:100%">${!s?'<option value="" disabled selected>Choisir une zone</option>':''}${largeursPiste().map((z,i)=>opt(i,`Zone ${i+1} · ${z.side>0?'gauche':'droite'}`,s?.zone===i)).join('')}</select>`;
     const z=s&&largeursPiste()[s.zone];
     if(z){
       const peak=z.points.reduce((a,p)=>Math.abs(p[1])>Math.abs(a)?p[1]:a,0);
-      h+=champ('Côté',`<select id="d-largeur-cote">${opt(1,'Gauche',z.side>0)}${opt(-1,'Droite',z.side<0)}</select>`);
+      h+=champ('Côté de cette zone',`<select id="d-largeur-cote">${opt(1,'Gauche',z.side>0)}${opt(-1,'Droite',z.side<0)}</select>`);
       h+=champ('Largeur ajoutée (m)',nombre('d-largeur-m',r2(peak*ECHELLE_ROUTE),-10,30,.5));
       h+=champ('Longueur de zone (m)',nombre('d-largeur-long',r2((z.points.at(-1)[0]-z.points[0][0])*DEC.track.length),10,500,5));
-      h+='<p class="help">Les extrémités rejoignent progressivement la piste. Valeur négative : rétrécir. Les mètres correspondent à la chaussée affichée en jeu.</p><button id="d-suppr">Supprimer cet élargissement</button>';
+      h+='<p class="help">Les extrémités rejoignent progressivement la piste. Valeur négative : rétrécir. Les mètres correspondent à la chaussée affichée en jeu.</p><button id="d-largeur-oppose">Ajouter aussi le côté opposé</button><button id="d-suppr">Supprimer cet élargissement</button>';
     }
   } else if (DEC.outil === 'horspiste') {
     h += champ('Gravier automatique dans les virages', `<input type="checkbox" id="d-auto" ${DEC.decor.annotatedRunoffsOnly ? '' : 'checked'}>`);
@@ -866,6 +866,14 @@ function brancherFiche() {
   for (const b of document.querySelectorAll('#d-fiche [data-fill]')) b.onclick = () => commencerTrace('pad', {free:true, surface:b.dataset.fill});
   on('d-pad-surface', 'change', ev => changer(() => { padsListe()[DEC.sel.pad].surface=ev.target.value; }, true));
   on('d-largeur-ajout','click',()=>{DEC.mode='ajouter';majFiche();});
+  on('d-largeur-deux','click',()=>{DEC.mode='ajouter-deux';majFiche();});
+  on('d-largeur-oppose','click',()=>{
+    const z=largeursPiste()[DEC.sel.zone];
+    const opposite=largeursPiste().findIndex(other=>other.side===-z.side&&Math.abs(other.points[0][0]-z.points[0][0])<.00001&&Math.abs(other.points.at(-1)[0]-z.points.at(-1)[0])<.00001);
+    if(opposite>=0)DEC.sel={outil:'piste',zone:opposite};
+    else {changer(()=>largeursPiste().push({...clone(z),side:-z.side}));DEC.sel={outil:'piste',zone:largeursPiste().length-1};}
+    majFiche();peindre();
+  });
   on('d-largeur-liste','change',e=>{DEC.sel={outil:'piste',zone:+e.target.value};DEC.mode='choisir';majFiche();peindre();});
   on('d-largeur-cote','change',e=>changer(()=>{largeursPiste()[DEC.sel.zone].side=+e.target.value;}));
   on('d-largeur-m','change',e=>{
