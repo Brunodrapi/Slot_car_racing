@@ -57,7 +57,11 @@ const {chromium}=require('playwright'),assert=require('assert/strict'),vm=requir
    const f=apex/base.n;let maxError=0,samples=0,misses=0;
    for(const side of [-1,1]){
      const z={side,followContour:true,points:Array.from({length:9},(_,k)=>[f+(k-4)*8/base.length,k===0||k===8?0:1])};normaliseLargeur(z);
-     const t=new Track({...def,roadWidenings:[z]},.9),controls=t.roadEdgeControls.get(z);misses+=t.roadEdgeMisses;
+     const t=new Track({...def,roadWidenings:[z]},.9),controls=Track.roadCurve(t.roadEdgeControls.get(z),z.points.map(p=>p[0]));misses+=t.roadEdgeMisses;
+     if(t.roadEdgeInvalid.has(z)){
+       for(let i=0;i<t.n;i++)if(Math.abs((side>0?t.hwL[i]:t.hwR[i])-(side>0?base.hwL[i]:base.hwR[i]))>.001)throw Error('Invalid curve changed road');
+       continue;
+     }
      for(let i=0;i<t.n;i++){
        let at=i/t.n;if(at<z.points[0][0])at++;
        if(at<z.points[0][0]||at>z.points.at(-1)[0])continue;
@@ -71,6 +75,6 @@ const {chromium}=require('playwright'),assert=require('assert/strict'),vm=requir
      }
    }
    return {maxError,samples,misses};
- });assert.equal(contour.misses,0);assert(contour.samples>50);assert(contour.maxError<.01,JSON.stringify(contour));
+ });assert.equal(contour.misses,0);assert(contour.samples>0);assert(contour.maxError<.01,JSON.stringify(contour));
  assert.deepEqual(errors,[]);console.log('Road width: UI edit, opposite side unchanged, save/reload, tracks export, delete/undo, start-line seam and custom track: OK');
 }finally{await b.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

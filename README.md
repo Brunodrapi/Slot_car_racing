@@ -4047,3 +4047,8 @@ Dans **Largeur de piste**, activer **Suivre le contour dessiné** sur une zone d
 **Ajouter un point sur ce bord** permet de cliquer entre deux points sans clavier ; glisser ensuite le nouveau point pour affiner la forme. Le raccourci Maj+clic reste disponible. Traiter gauche et droite séparément pour dessiner la chaussée entre les deux contours. Pour un contour qui traverse l'axe ou ne rencontre pas certaines normales du secteur, l'éditeur affiche un avertissement : des points intermédiaires ou un contour ajusté sont nécessaires ; les stations non représentables gardent le profil de largeur précédent. La largeur minimale par côté reste 2,5 m. Il ne s'agit pas d'un déplacement de l'axe central.
 
 Validation géométrique sur les deux côtés du virage le plus serré de Monaco : toutes les stations testées se trouvent sur le contour dessiné à moins d'un centimètre, sans station manquante. Tests du bouton d'insertion, du glissement, de la sauvegarde et de l'export. Le dessin spécifique montré en capture est une retouche locale du navigateur : elle doit être rechargée dans l'éditeur puis passée en mode contour, elle n'a pas été remplacée dans le fichier des circuits.
+
+
+### Lissage des bords — 0.52.28
+
+**Courbe lissée**, dans Largeur de piste, arrondit le contour entre les points sans les supprimer. Le contrôle et la piste utilisent la même courbe. Un contour qui boucle ou qui ne peut pas être représenté sur l'axe actuel est affiché en rouge et n'est pas appliqué à la chaussée ; les points restent modifiables. Cela remplace le repli partiel sur les anciennes largeurs qui produisait des triangles. Voir [la reproduction sur le fichier Monaco fourni](docs/monaco-contours/README.md).

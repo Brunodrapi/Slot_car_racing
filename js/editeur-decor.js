@@ -397,7 +397,8 @@ function dessinerCalque(g) {
   const s = DEC.sel;
   if (DEC.outil === 'piste') largeursPiste().forEach((z,i) => {
     const pts=z.points.map((_,j)=>pointLargeur(z,j));
-    ligne(pts, s?.zone===i?'#ffdf60':'#55caff',3);
+    const curve=z.followContour?Track.roadCurve(pts,z.points.map(p=>p[0]),z.smoothContour!==false):pts;
+    ligne(curve,DEC.track.roadEdgeInvalid?.has(z)?'#ff7777':s?.zone===i?'#ffdf60':'#55caff',3);
     pts.forEach((p,j)=>poignee(p,'#ffdf60',s?.zone===i,j===0?'D':j===pts.length-1?'F':''));
   });
   if (DEC.outil === 'objets') {
@@ -826,9 +827,10 @@ function majFiche() {
     if(z){
       const peak=z.points.reduce((a,p)=>Math.abs(p[1])>Math.abs(a)?p[1]:a,0);
       h+=champ('Suivre le contour dessiné',`<input id="d-largeur-contour" type="checkbox" ${z.followContour?'checked':''}>`);
+      h+=champ('Courbe lissée',`<input id="d-largeur-lisse" type="checkbox" ${z.smoothContour!==false?'checked':''}>`);
       h+='<button id="d-largeur-point">+ Ajouter un point sur ce bord</button>';
       if(DEC.mode==='point')h+='<p class="help">Clique entre deux points de ce bord, puis glisse le nouveau point.</p>';
-      if(DEC.track.roadEdgeMisses)h+='<p class="help">Une partie du contour ne peut pas rejoindre la piste : ajoute des points intermédiaires ou rapproche le bord de son côté de la piste.</p>';
+      if(DEC.track.roadEdgeInvalid?.has(z))h+=`<p class="help">${esc(DEC.track.roadEdgeInvalid.get(z))}</p>`;
       h+=champ('Côté de cette zone',`<select id="d-largeur-cote">${opt(1,'Gauche',z.side>0)}${opt(-1,'Droite',z.side<0)}</select>`);
       h+=champ('Largeur ajoutée (m)',nombre('d-largeur-m',r2(peak*ECHELLE_ROUTE),-10,30,.5));
       h+=champ('Longueur de zone (m)',nombre('d-largeur-long',r2((z.points.at(-1)[0]-z.points[0][0])*DEC.track.length),10,500,5));
@@ -915,6 +917,7 @@ function brancherFiche() {
   for (const b of document.querySelectorAll('#d-fiche [data-fill]')) b.onclick = () => commencerTrace('pad', {free:true, surface:b.dataset.fill});
   on('d-pad-surface', 'change', ev => changer(() => { padsListe()[DEC.sel.pad].surface=ev.target.value; }, true));
   on('d-largeur-ajout','click',()=>{DEC.mode='ajouter';majFiche();});
+  on('d-largeur-lisse','change',e=>changer(()=>{const z=largeursPiste()[DEC.sel.zone];z.smoothContour=e.target.checked;z.followContour=true;}));
   on('d-largeur-contour','change',e=>changer(()=>{largeursPiste()[DEC.sel.zone].followContour=e.target.checked;}));
   on('d-largeur-point','click',()=>{DEC.mode='point';majFiche();});
   on('d-largeur-deux','click',()=>{DEC.mode='ajouter-deux';majFiche();});

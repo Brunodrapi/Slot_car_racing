@@ -1737,15 +1737,54 @@ class Track {
     this._fusionneCotes(projete.inside, projete.outside);
   }
 
+  // Shape-preserving cubic Hermite curve: no overshoot between control coordinates.
+  static roadCurve(points, fractions, smooth = true) {
+    if(!smooth)return points.map((p,i)=>({...p,f:fractions[i]}));
+    const n=points.length,h=[];
+    for(let i=0;i<n-1;i++)h.push(Math.max(.001,Math.hypot(points[i+1].x-points[i].x,points[i+1].y-points[i].y)));
+    const tangents=axis=>{
+      const d=h.map((v,i)=>(points[i+1][axis]-points[i][axis])/v),m=[d[0]];
+      for(let i=1;i<n-1;i++){
+        const a=d[i-1],b=d[i],w1=2*h[i]+h[i-1],w2=h[i]+2*h[i-1];
+        m.push(a*b<=0?0:(w1+w2)/(w1/a+w2/b));
+      }
+      m.push(d.at(-1));return m;
+    };
+    const mx=tangents('x'),my=tangents('y'),out=[];
+    for(let i=0;i<n-1;i++){
+      const steps=Math.max(4,Math.ceil(h[i]/.35));
+      for(let j=0;j<steps;j++){
+        const u=j/steps,u2=u*u,u3=u2*u;
+        const coord=(axis,m)=>(2*u3-3*u2+1)*points[i][axis]+(u3-2*u2+u)*h[i]*m[i]+(-2*u3+3*u2)*points[i+1][axis]+(u3-u2)*h[i]*m[i+1];
+        out.push({x:coord('x',mx),y:coord('y',my),f:fractions[i]+(fractions[i+1]-fractions[i])*u});
+      }
+    }
+    out.push({...points.at(-1),f:fractions.at(-1)});return out;
+  }
+
+  static roadCrosses(points) {
+    const cross=(a,b,c)=>(b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);
+    for(let i=1;i<points.length;i++)for(let j=i+2;j<points.length;j++){
+      const a=points[i-1],b=points[i],c=points[j-1],d=points[j];
+      if(Math.max(a.x,b.x)<Math.min(c.x,d.x)||Math.max(c.x,d.x)<Math.min(a.x,b.x)||Math.max(a.y,b.y)<Math.min(c.y,d.y)||Math.max(c.y,d.y)<Math.min(a.y,b.y))continue;
+      if(cross(a,b,c)*cross(a,b,d)<-1e-10&&cross(c,d,a)*cross(c,d,b)<-1e-10)return true;
+    }
+    return false;
+  }
+
   // Apply local width adjustments after the base road width is known.
   _applyRoadWidenings() {
     this.roadEdgeControls = new Map();
     this.roadEdgeMisses = 0;
+    this.roadEdgeInvalid = new Map();
     for(const zone of this.def.roadWidenings||[]){
       const pts=zone.points,key=zone.side>0?this.hwL:this.hwR;
       // Convert the edited controls to world coordinates before modifying this edge.
       const controls=pts.map(([f,w])=>this.pos(this.wrap(f*this.length),zone.side*Math.max(2.5,this._lerp(key,f*this.length)+w*this.widthScale)));
       this.roadEdgeControls.set(zone,controls);
+      const curve=zone.followContour?Track.roadCurve(controls,pts.map(p=>p[0]),zone.smoothContour!==false):controls;
+      const before=key.slice(),stations=[];let misses=0;
+      if(zone.followContour&&Track.roadCrosses(curve)){this.roadEdgeInvalid.set(zone,'Le contour se croise : déplace ou retire les points qui forment une boucle.');continue;}
       for(let i=0;i<this.n;i++){
         let f=i/this.n;if(f<pts[0][0])f+=1;
         if(f<pts[0][0]||f>pts.at(-1)[0])continue;
@@ -1757,18 +1796,23 @@ class Track {
           // offsets around a hairpin (which produces loops outside the control polygon).
           let best=Infinity,found=null;
           const nx=this.nx[i]*zone.side,ny=this.ny[i]*zone.side;
-          for(let k=0;k<controls.length-1;k++){
-            const p=controls[k],q=controls[k+1],dx=q.x-p.x,dy=q.y-p.y;
+          for(let k=0;k<curve.length-1;k++){
+            const p=curve[k],q=curve[k+1],dx=q.x-p.x,dy=q.y-p.y;
             const det=nx*dy-ny*dx;if(Math.abs(det)<1e-9)continue;
             const ax=p.x-this.xs[i],ay=p.y-this.ys[i];
             const t=(ax*dy-ay*dx)/det,v=(ax*ny-ay*nx)/det;
             if(t<2.5||v<-.000001||v>1.000001)continue;
-            const mapped=pts[k][0]+(pts[k+1][0]-pts[k][0])*v,score=Math.abs(mapped-f);
+            const mapped=curve[k].f+(curve[k+1].f-curve[k].f)*v,score=Math.abs(mapped-f);
             if(score<best){best=score;found=t;}
           }
-          if(found!=null)width=found;else this.roadEdgeMisses++;
+          if(found!=null)width=found;else {misses++;this.roadEdgeMisses++;}
         }
         key[i]=width;
+        stations.push({f,x:this.xs[i]+this.nx[i]*zone.side*width,y:this.ys[i]+this.ny[i]*zone.side*width});
+      }
+      if(zone.followContour&&(misses||Track.roadCrosses(stations.sort((a,b)=>a.f-b.f)))){
+        key.set(before);
+        this.roadEdgeInvalid.set(zone,'Ce contour ne suit pas l’ordre du virage. Rapproche les points ou ajoute des points intermédiaires. La chaussée précédente est conservée.');
       }
     }
   }

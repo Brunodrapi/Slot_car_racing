@@ -755,7 +755,7 @@ class Renderer {
     this.boats = placeBoats(track, seed, this.water);
     this.boatArt = this.water ? buildBoatArt(PAL) : null;
     const N = track.n, xs = track.xs, ys = track.ys, nx = track.nx, ny = track.ny;
-    const STEP = 3;
+    const STEP = track.def.roadWidenings?.some(z=>z.followContour) ? 1 : 3;
     const edgePt = (i, side) => {
       const k = ((i % N) + N) % N, hw = side > 0 ? track.hwL[k] : track.hwR[k];
       return [xs[k] + nx[k] * hw * side, ys[k] + ny[k] * hw * side];

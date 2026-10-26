@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.28
+- Éditeur : courbes lissées entre les points des bords de piste, avec signalement des contours qui se croisent au lieu de créer des pointes.
+
 ## 0.52.27
 - Éditeur : les bords de piste peuvent suivre le contour dessiné dans les épingles, avec un bouton pour ajouter des points.
 
