@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.37
+- Le Rocher : plus de voie des stands le long de la ligne droite, des platanes à la place.
+
 ## 0.52.36
 - Le Rocher : les anciennes retouches enregistrées sur un appareil ne remplacent plus les trajectoires du circuit.
 

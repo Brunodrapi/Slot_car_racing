@@ -1266,11 +1266,12 @@ droite et la Piscine, l'épingle du Grand Hôtel sur la vraie épingle.
   le toit hexagonal de l'auditorium.
 
 L'implantation de Monaco ne garde que ce qui tient au circuit : la tribune de la Piscine et le
-parking de la chicane. Le semis de maisons du thème n'y pousse plus. Pas de garages le long de la
-voie des stands (`garages: false` : la voie reste, les arrêts de l'usure en ont besoin) ; à leur
-place, les platanes du boulevard (`ville.alignements`, une rangée d'arbres le long du tour à
-quelques mètres de la protection) : côté Condamine tout le long de la ligne droite, côté stands le
-long de la piscine — ailleurs la Piscine touche la ligne droite. La piscine fait 68 × 17 m et
+parking de la chicane. Le semis de maisons du thème n'y pousse plus. Plus de voie des stands
+(`pitLane: false`, 0.52.37 : l'usure est coupée, la voie n'était qu'un décor) : la protection côté
+stands est rapprochée de la ligne droite (`barrierCloseZones`) et, à la place de la voie, deux
+rangées de platanes (`ville.alignements`, une rangée d'arbres le long du tour à quelques mètres de
+la protection) ; une troisième borde la ligne droite côté Condamine. Rallumer l'usure demandera de
+redonner une voie à ce circuit. La piscine fait 68 × 17 m et
 s'adosse à la barrière de la Piscine, dans son axe. Tout reste
 retouchable dans l'éditeur (onglet Objets) : un immeuble de la ville se retire ou se déplace comme
 un autre objet. `tools/marina-banc.js` vérifie qu'aucune eau ne touche la piste, qu'aucun

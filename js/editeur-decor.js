@@ -1172,7 +1172,8 @@ function majFiche() {
     } else h += '<p class="help">Clique dans une zone pour la choisir. Pour en créer une : un bouton +, puis son début et sa fin à côté de la piste.</p>';
   } else if (DEC.outil === 'stands') {
     const p = DEC.track && DEC.track.pit, L = DEC.track ? DEC.track.length : 1;
-    h += '<p class="help">Glisser E (entrée), A (zone d’arrêt) et S (sortie) le long du bord droit de la piste.</p>';
+    if (!p) h += '<p class="help">Ce circuit n’a pas de voie des stands (<code>pitLane: false</code> dans tracks.js).</p>';
+    else h += '<p class="help">Glisser E (entrée), A (zone d’arrêt) et S (sortie) le long du bord droit de la piste.</p>';
     if (p) h += `<p class="help">Entrée ${r4(p.entree / L)} · arrêt ${r4(p.boite / L)} · sortie ${r4(p.sortie / L)} · ${Math.round(p.long)} m</p>`;
     h += '<div class="row2"><button id="d-pit-auto">Placement automatique</button></div>';
   }

@@ -2322,6 +2322,10 @@ class Track {
   `pitAt` la met — les garages ne bougent pas quand seule une bretelle est reprise. */
   _buildPits(def) {
     const L = this.length;
+    // `pitLane: false` : pas de voie des stands du tout (Monaco, où Bruno veut des arbres à la
+    // place). L'usure est coupée (`USURE_ACTIVE`) : la voie n'était qu'un décor. Rallumer l'usure
+    // demandera d'en redonner une à ce circuit.
+    if (def && def.pitLane === false) { this.pit = null; return; }
     if (def && def.pitFrom != null && def.pitTo != null) {
       const entree = this.wrap(def.pitFrom * L), sortie = this.wrap(def.pitTo * L);
       const long = this.wrap(sortie - entree);
@@ -2345,8 +2349,7 @@ class Track {
 
   // Géométrie commune au rendu et aux contraintes des branches voisines.
   pitGarages() {
-    // `garages: false` : la voie reste (les arrêts de l'usure en ont besoin), sans bâtiments à côté.
-    if(!this.pit||this.def.garages===false)return [];
+    if(!this.pit)return [];
     const w=16,h=w*287/880,out=[];
     for(const dec of [-w,0,w]){
       const s=this.wrap(this.pit.boite+dec),z=this.pitAt(s);

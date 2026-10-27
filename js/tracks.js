@@ -483,21 +483,24 @@ const TRACKS = [
     /* Monaco n'a pas de dégagement : un mur, et derrière le mur la ville. Rien dans `runoffs`,
        donc — c'est précisément ce qui fait ce circuit. La ville elle-même (`ville`, plus bas) est
        relevée sur une vue satellite ; l'implantation ne garde que ce qui tient au circuit : la
-       tribune de la Piscine et le parking de la chicane. Pas de garages le long de la voie des
-       stands (`garages: false`) : Bruno y veut les platanes du boulevard (`ville.alignements`). */
+       tribune de la Piscine et le parking de la chicane. Pas de voie des stands (`pitLane: false`) :
+       Bruno y veut les platanes du boulevard (`ville.alignements`), derrière une protection
+       rapprochée de la ligne droite (`barrierCloseZones`). */
     implantation: [
       { kind: 'parking', side: -1, from: 0.6, to: 0.66, recul: 10, prof: 22 },
       { kind: 'tribune', side: 1, from: 0.8, to: 0.88, recul: 8, prof: 14, module: 24 },
     ],
-    garages: false,
+    pitLane: false,
+    barrierCloseZones: [{ side: -1, from: 0.915, to: 1.045 }],
     // La ville, relevée sur la même vue satellite : [x, y, cap, longueur, largeur, hauteur, toit]
     // (toit 0 immeuble, 1 terrasses, 2 tuiles), les jardins, et les repères posés à la main à leur
     // place relevée : la piscine, le Casino, l'Hôtel de Paris, le jardin de la place, l'auditorium.
     ville: {
-      // Les platanes du boulevard, de la Rascasse à Sainte-Dévote : côté stands (le long de la
-      // piscine, seul endroit où la Piscine laisse la place) et côté Condamine.
+      // Les platanes du boulevard, de la Rascasse à Sainte-Dévote : deux rangées côté stands, là
+      // où passait la voie des stands, et une côté Condamine.
       alignements: [
-        { from: 0.915, to: 0.045, side: -1, recul: 0.8, pas: 6.5, id: 'tree', e: 0.58 },
+        { from: 0.915, to: 0.045, side: -1, recul: 3.4, pas: 6.5, id: 'tree', e: 0.58 },
+        { from: 0.915, to: 0.045, side: -1, recul: 9, pas: 7, id: 'tree', e: 0.62 },
         { from: 0.915, to: 0.05, side: 1, recul: 3.6, pas: 7, id: 'tree', e: 0.62 },
       ],
       reperes: [
