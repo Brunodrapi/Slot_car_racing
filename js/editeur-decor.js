@@ -1179,7 +1179,9 @@ function majFiche() {
   el.innerHTML = h;
   brancherFiche();
   $d('d-oublier').disabled = !DEC.local && !DEC.modif;
-  etatDecor(`${DEC.def0 ? DEC.def0.name : ''} — ${DEC.modif ? 'modifié, non enregistré' : DEC.local ? 'retouche enregistrée sur ce poste' : 'tel que le fichier'}`);
+  const perimees = DEC.perimees && DEC.perimees.length ? ` (retouches de ce poste plus anciennes que le fichier, ignorées : ${DEC.perimees.join(', ')} — « Revenir au fichier » les efface)` : '';
+  const fraiche = DEC.local && !(DEC.perimees && DEC.perimees.length && DEC.perimees.length === 3);
+  etatDecor(`${DEC.def0 ? DEC.def0.name : ''} — ${DEC.modif ? 'modifié, non enregistré' : fraiche && !perimees ? 'retouche enregistrée sur ce poste' : 'tel que le fichier'}${perimees}`);
 }
 
 function ficheObjet(e) {
@@ -1333,8 +1335,13 @@ async function chargerCircuit(id) {
     try { pansLocaux = await Store.get('panneaux', id); } catch (_) { /* base indisponible */ }
   }
   DEC.id = id; DEC.perso = perso; DEC.def0 = def0;
+  // une retouche plus ancienne que le fichier ne compte plus : on l'écarte, en le disant
+  DEC.perimees = [];
+  if (local && !retoucheAJour(def0, local)) { DEC.perimees.push('décor'); local = null; }
+  if (lignesLocales && !retoucheAJour(def0, lignesLocales)) { DEC.perimees.push('trajectoires'); lignesLocales = null; }
+  if (pansLocaux && !retoucheAJour(def0, pansLocaux)) { DEC.perimees.push('panneaux'); pansLocaux = null; }
   // une retouche du poste : décor, trajectoires ou panneaux — « Revenir au fichier » oublie les trois
-  DEC.local = !!(local && local.decor) || !!(lignesLocales && lignesLocales.lines) || !!(pansLocaux && Array.isArray(pansLocaux.panneaux));
+  DEC.local = !!(local && local.decor) || !!(lignesLocales && lignesLocales.lines) || !!(pansLocaux && Array.isArray(pansLocaux.panneaux)) || DEC.perimees.length > 0;
   // les trajectoires que le jeu joue : celles du poste, sinon celles du fichier, sinon le calcul
   const lignes = lignesLocales && lignesLocales.lines && lignesLocales.lines.racing ? lignesLocales.lines : def0.lines;
   DEC.lignes = lignes && lignes.racing ? clone(lignes) : null;
@@ -1411,13 +1418,14 @@ async function fabriquerFichier() {
   try {
     let recs = [];
     try { recs = await Store.list('decor'); } catch (_) { /* base indisponible */ }
-    const par = new Map(recs.filter((r) => r && r.decor && TRACKS.some((t) => t.id === r.id)).map((r) => [r.id, { ...r.decor }]));
+    const aJour = (r) => r && retoucheAJour(TRACKS.find((t) => t.id === r.id), r);
+    const par = new Map(recs.filter((r) => r && r.decor && TRACKS.some((t) => t.id === r.id) && aJour(r)).map((r) => [r.id, { ...r.decor }]));
     if (!DEC.perso && DEC.id) par.set(DEC.id, ecartAuFichier(DEC.def0, DEC.decor));
     // les trajectoires du poste partent avec : celles de ce circuit telles qu'on les voit, les autres de la base
     let lignes = [];
     try { lignes = await Store.list('lines'); } catch (_) { /* base indisponible */ }
     const pose = (id, l) => { const def = TRACKS.find((t) => t.id === id), a = arrondiLigne(l); if (!def || !a || egal(a, arrondiLigne(def.lines))) return; if (!par.has(id)) par.set(id, {}); par.get(id).lines = a; };
-    for (const r of lignes) if (r && r.lines && r.lines.racing && r.id !== DEC.id) pose(r.id, r.lines);
+    for (const r of lignes) if (r && r.lines && r.lines.racing && r.id !== DEC.id && aJour(r)) pose(r.id, r.lines);
     if (!DEC.perso && DEC.id && DEC.lignes) pose(DEC.id, DEC.lignes);
     // et les panneaux repris : ceux de ce circuit tels qu'on les voit, les autres de la base
     let pans = [];
@@ -1430,7 +1438,7 @@ async function fabriquerFichier() {
       if (egal(plats, fichier)) return;
       if (!par.has(id)) par.set(id, {}); par.get(id).panneaux = plats;
     };
-    for (const r of pans) if (r && r.id !== DEC.id) poseP(r.id, r.panneaux);
+    for (const r of pans) if (r && r.id !== DEC.id && aJour(r)) poseP(r.id, r.panneaux);
     if (!DEC.perso && DEC.id && DEC.panModif) poseP(DEC.id, DEC.panneaux);
     const r = await fetch('js/tracks.js');
     if (!r.ok) throw new Error('js/tracks.js illisible (' + r.status + ')');

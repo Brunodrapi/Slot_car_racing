@@ -146,14 +146,16 @@ class App {
   async refreshCustom() {
     try {
       this.custom.tracks = (await Store.list('tracks')).map(t => ({ ...t, custom: true }));
-      const reprises = await Store.list('lines');
+      // une retouche plus ancienne que le fichier ne compte plus (`retoucheAJour`, js/tracks.js)
+      const aJour = (r) => r && retoucheAJour(TRACKS.find((t) => t.id === r.id), r);
+      const reprises = (await Store.list('lines')).filter(aJour);
       this.custom.lines = new Map(reprises.filter(r => r && r.lines && r.lines.racing).map(r => [r.id, r.lines]));
       for (const r of reprises) this.tracks.delete(r.id);      // le circuit en cache est périmé
       // Les panneaux repris : une liste VIDE compte, c'est « ce circuit n'en a aucun ».
-      const decors = await Store.list('decor');
+      const decors = (await Store.list('decor')).filter(aJour);
       this.custom.decor = new Map(decors.filter(r => r && r.decor).map(r => [r.id, r.decor]));
       for (const r of decors) this.tracks.delete(r.id);
-      const pans = await Store.list('panneaux');
+      const pans = (await Store.list('panneaux')).filter(aJour);
       this.custom.panneaux = new Map(pans.filter(r => r && Array.isArray(r.panneaux)).map(r => [r.id, r.panneaux]));
       for (const r of pans) this.tracks.delete(r.id);
       const cars = await Store.list('cars');

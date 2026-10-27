@@ -1222,6 +1222,21 @@ distance à la route et la largeur au large.
 
 Les champs qu'un thème ne nomme pas viennent de `THEME_BASE`, au début de `js/render.js`.
 
+### Une retouche du poste plus ancienne que le fichier ne compte plus (0.52.36)
+
+Une retouche enregistrée dans le navigateur — décor, trajectoires, panneaux — passe devant
+`js/tracks.js` : c'est ce qui permet d'essayer avant de publier. Mais quand le fichier de Bruno est
+repris dans le dépôt, ses retouches d'avant restent dans chaque navigateur où il les avait
+enregistrées et continuent d'écraser le fichier. À Monaco, son téléphone montrait la trace de gomme
+de l'idéale collée à l'îlot de l'épingle et au vibreur du Portier, alors que l'idéale du fichier
+passe trois mètres plus au large : le jeu y jouait d'autres trajectoires que les siennes.
+
+Un circuit repris d'un fichier porte maintenant sa date, `revision`. Une retouche enregistrée avant
+cette date ne s'applique plus, ni dans le jeu, ni dans les éditeurs, ni dans « Fabriquer
+tracks.js » ; l'éditeur de circuits le dit (« retouches de ce poste plus anciennes que le fichier,
+ignorées ») et « Revenir au fichier » les efface. Une retouche enregistrée après s'applique comme
+avant. À chaque reprise d'un fichier, on avance `revision`. Essai : `tools/e2e-retouches-perimees.js`.
+
 ### Monaco relevé sur une vue satellite (0.52.34)
 
 Le Rocher n'a plus de baie calculée : son port, sa ville et ses monuments sont **relevés sur une

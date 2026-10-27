@@ -697,8 +697,9 @@ async function fabriquerFichier() {
   try { pans = await Store.list('panneaux'); } catch (_) { /* base indisponible */ }
   const par = new Map();
   const pour = (id) => { if (!par.has(id)) par.set(id, {}); return par.get(id); };
-  for (const r of lignes) pour(r.id).lines = r.lines;
-  for (const r of pans) pour(r.id).panneaux = r.panneaux;
+  const aJour = (r) => r && retoucheAJour(TRACKS.find((t) => t.id === r.id), r);
+  for (const r of lignes) if (aJour(r)) pour(r.id).lines = r.lines;
+  for (const r of pans) if (aJour(r)) pour(r.id).panneaux = r.panneaux;
   // ce qu'on regarde compte, même si ce n'est pas encore posé
   pour(S.def.id).lines = S.pts;
   if (S.panModif) pour(S.def.id).panneaux = panneauxPlats();
@@ -757,6 +758,10 @@ async function majPose() {
   let r = null, q = null;
   try { r = await Store.get('lines', S.def.id); } catch (_) { /* base indisponible */ }
   try { q = await Store.get('panneaux', S.def.id); } catch (_) { /* base indisponible */ }
+  // une reprise plus ancienne que le fichier ne compte plus (`retoucheAJour`, js/tracks.js)
+  const fichierDef = TRACKS.find((t) => t.id === S.def.id);
+  if (r && !retoucheAJour(fichierDef, r)) r = null;
+  if (q && !retoucheAJour(fichierDef, q)) q = null;
   const el = $('pose');
   if (!r && !q) {
     el.textContent = S.def.panneaux

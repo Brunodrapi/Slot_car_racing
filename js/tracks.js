@@ -294,6 +294,7 @@ const TRACKS = [
   },
   {
     id: 'monaco', name: 'Le Rocher', country: 'MC', flag: '🇲🇨', theme: 'riviera',
+    revision: '2026-10-26T18:09:36Z',   // repris de tracks_11 : les retouches locales d'avant ne comptent plus
     runoffJoinGap: 60,
     defaultRunoff: 'asphalt', // Références monaco.jpg / monaco_2.jpg : aucun bac à gravier.
     architecture: 'immeubles',
@@ -2132,6 +2133,20 @@ retouche locale ou un bloc fabriqué pour ce fichier ne touche qu'à celles-là 
 les lignes et les panneaux restent ce qu'ils sont. */
 const CLES_DECOR = ['roadWidenings', 'runoffs', 'annotatedRunoffsOnly', 'implantation', 'barrierPaths', 'barrierCuts',
   'asphaltPads', 'pitFrom', 'pitTo', 'pitAt', 'objets'];
+/* UNE RETOUCHE DU POSTE PLUS ANCIENNE QUE LE FICHIER NE COMPTE PLUS.
+
+Une retouche enregistrée dans le navigateur (décor, trajectoires, panneaux) passe devant le fichier :
+c'est ce qui permet d'essayer avant de publier. Mais une fois le fichier de Bruno repris dans
+`js/tracks.js`, ses retouches d'avant restent dans chaque navigateur où il les a enregistrées, et
+continuent d'écraser le fichier — à Monaco, son téléphone jouait d'anciennes trajectoires, collées
+aux vibreurs, à la place de celles qu'il venait de retracer et d'envoyer. `revision` est la date à
+laquelle le circuit a été repris d'un fichier : une retouche enregistrée avant ne s'applique plus.
+L'éditeur le signale, et « Revenir au fichier » l'efface. */
+function retoucheAJour(def, rec) {
+  if (!rec) return false;
+  if (!def || !def.revision) return true;
+  return (rec.at || 0) >= Date.parse(def.revision);
+}
 // Une définition avec une reprise de décor posée dessus ; `null` retire la clé (plus de voie
 // déplacée, plus de traits relevés…). La définition d'origine n'est pas touchée.
 function avecDecor(def, decor) {
