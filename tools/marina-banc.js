@@ -19,9 +19,16 @@ for(const t of ['piscine','casino','palace','rond','auditorium'])assert.ok(ville
 for(const b of ville){
  const fp=sceneryFootprint(b);
  assert.ok(!waterOverlaps(water,fp),'bâtiment dans le port');
- assert.ok(!sceneryBarrierOverlap(T,fp),'bâtiment sur une barrière');
- for(const [x,y] of fp){const pr=implProjette(T,x,y);assert.ok(Math.abs(pr.lat)>=T.limiteProtection(pr.s,pr.lat>=0?1:-1)-.01,'bâtiment en deçà des protections');}
+ // Un repère peut s'adosser à une barrière (la piscine contre celle de la Piscine) sans la traverser.
+ assert.ok(!sceneryBarrierOverlap(T,fp,b.repere?-1.2:.8),(b.repere?b.type:'bâtiment')+' sur une barrière');
+ for(const [x,y] of fp){const pr=implProjette(T,x,y);
+  if(b.repere)assert.ok(Math.abs(pr.lat)>(pr.lat>=0?T.hwLeftAt(pr.s):T.hwRightAt(pr.s))+3,b.type+' sur la chaussée');
+  else assert.ok(Math.abs(pr.lat)>=T.limiteProtection(pr.s,pr.lat>=0?1:-1)-.01,'bâtiment en deçà des protections');}
 }
+// Les platanes du boulevard : une rangée de chaque côté de la ligne droite, plus de garages.
+const platanes=im.arbres.filter(a=>{const pr=implProjette(T,a.x,a.y),f=pr.s/T.length;return (f>.9||f<.06)&&Math.abs(pr.lat)<26;});
+assert.ok(platanes.filter(a=>implProjette(T,a.x,a.y).lat>0).length>20&&platanes.filter(a=>implProjette(T,a.x,a.y).lat<0).length>10,'les platanes du boulevard manquent');
+assert.equal(T.pitGarages().length,0,'des garages le long de la voie des stands');
 for(const a of im.arbres)assert.ok(!waterContains(water,a.x,a.y,3),'arbre dans le port');
 assert.ok(im.sols.some(z=>z.kind==='jardin'),'les jardins ont disparu');
 // Les bateaux, amarrés en épi : coque entière dans l'eau, et pas deux coques l'une sur l'autre.

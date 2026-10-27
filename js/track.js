@@ -1047,7 +1047,17 @@ class Track {
         0,10 → 84 % et 97              0,18 → 86 % et 147
 
     Le coude est à 0,10 : au-delà on gagne un point d'approche et on paie douze sorties. */
-    this._limitLines(0.10, Track.RACING_SLOPE);
+    /* DES LIGNES DESSINÉES À LA MAIN SE JOUENT PRESQUE COMME ELLES SONT DESSINÉES.
+
+    Le limiteur de 0,10 a été mesuré sur les lignes CALCULÉES. Sur celles qu'on a tracées soi-même,
+    il réécrivait l'intérieure et l'extérieure dans chaque virage serré : à Monaco, 17 % du tour à
+    plus d'un mètre du dessin, jusqu'à 5,6 m — dans les virages justement repris (Mirabeau,
+    l'épingle, la chicane, la Piscine, la Rascasse) — et Bruno ne retrouvait pas ses lignes en
+    course. Elles ont donc la liberté de l'idéale, 0,3 m par mètre : 6 % du tour à plus d'un mètre
+    du dessin. Sans limiteur du tout on ne gagne qu'un point de plus (5 %), et l'IA en course sort
+    davantage. Avec 0,3 : une sortie en quatre courses de 400 s à Monaco, comme avec 0,10, et
+    aucune en forçant trois voitures sur chacune des trois lignes. */
+    this._limitLines(def.lines && def.width ? Track.RACING_SLOPE : 0.10, Track.RACING_SLOPE);
     if (def.lines && !def.width) { this._widthFromLines(); this._applyRoadWidenings(); }
     this._clampLines();
     this._lineCurvatures();
@@ -2335,7 +2345,8 @@ class Track {
 
   // Géométrie commune au rendu et aux contraintes des branches voisines.
   pitGarages() {
-    if(!this.pit)return [];
+    // `garages: false` : la voie reste (les arrêts de l'usure en ont besoin), sans bâtiments à côté.
+    if(!this.pit||this.def.garages===false)return [];
     const w=16,h=w*287/880,out=[];
     for(const dec of [-w,0,w]){
       const s=this.wrap(this.pit.boite+dec),z=this.pitAt(s);

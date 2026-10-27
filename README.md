@@ -572,6 +572,17 @@ de l'approche réussie et de l'autre les sorties de piste en course :
 
 Le coude est à 0,10 : au-delà on gagne un point d'approche et on paie douze sorties.
 
+**Ce chiffre vaut pour les lignes calculées, pas pour celles qu'on dessine (0.52.35).** Appliqué aux
+trajectoires tracées à la main, il réécrivait l'intérieure et l'extérieure dans chaque virage serré :
+à Monaco, 17 % du tour à plus d'un mètre du dessin, jusqu'à 5,6 m, justement dans les virages que
+Bruno venait de reprendre — il ne retrouvait pas ses lignes en course. Un circuit qui porte ses
+lignes (`def.lines`) leur laisse donc la liberté de l'idéale, 0,30 m par mètre : 6 % du tour à plus
+d'un mètre du dessin. Sans aucun limiteur on ne gagne qu'un point (5 %) et l'IA sort davantage en
+course ; à 0,30, une sortie en quatre courses de 400 s à Monaco, comme à 0,10, et aucune en forçant
+trois voitures sur chacune des trois lignes pendant 200 s sur les cinq circuits à lignes dessinées.
+Ce qui reste d'écart est surtout l'endroit où l'idéale dessinée sort de l'enveloppe
+intérieure/extérieure : la ligne de côté s'y range sur l'idéale, sinon le levier reculerait.
+
 **Ce qui la retenait au milieu de la piste**, avant, n'était pas seulement la formule qu'elle
 remplace : un limiteur bornait le déplacement latéral à sept centimètres par mètre parcouru. À ce
 rythme, traverser sept mètres de route demande cent mètres — la ligne n'atteignait jamais
@@ -1235,12 +1246,17 @@ droite et la Piscine, l'épingle du Grand Hôtel sur la vraie épingle.
   l'orientation des façades mesurée sur la photo —, puis bâtis sur leur pourtour avec une cour au
   milieu. Toits de tuiles là où la photo est orange (la Condamine, le Rocher), toits plats ailleurs.
 - **Les jardins** (`ville.jardins`) sont les masses vertes de la photo, plantées au chargement.
-- **Les repères** (`ville.reperes`) sont posés à la main et vérifiés hors des protections : le
+- **Les repères** (`ville.reperes`) sont posés à la main et vérifiés hors de la chaussée : le
   stade nautique, le Casino et ses toits de cuivre, l'Hôtel de Paris, le jardin rond de la place,
   le toit hexagonal de l'auditorium.
 
-L'implantation de Monaco ne garde que ce qui tient au circuit : les stands, la tribune de la
-Piscine et le parking de la chicane. Le semis de maisons du thème n'y pousse plus. Tout reste
+L'implantation de Monaco ne garde que ce qui tient au circuit : la tribune de la Piscine et le
+parking de la chicane. Le semis de maisons du thème n'y pousse plus. Pas de garages le long de la
+voie des stands (`garages: false` : la voie reste, les arrêts de l'usure en ont besoin) ; à leur
+place, les platanes du boulevard (`ville.alignements`, une rangée d'arbres le long du tour à
+quelques mètres de la protection) : côté Condamine tout le long de la ligne droite, côté stands le
+long de la piscine — ailleurs la Piscine touche la ligne droite. La piscine fait 68 × 17 m et
+s'adosse à la barrière de la Piscine, dans son axe. Tout reste
 retouchable dans l'éditeur (onglet Objets) : un immeuble de la ville se retire ou se déplace comme
 un autre objet. `tools/marina-banc.js` vérifie qu'aucune eau ne touche la piste, qu'aucun
 bâtiment n'est dans l'eau, sur une barrière ou en deçà des protections, et qu'aucun bateau n'est à
