@@ -392,7 +392,9 @@ function resolveModel(cat, m) {
     // le moteur : celui de la catégorie, que la voiture peut reprendre champ par champ
     pick: m.pick || null,
     frontWheels: frontWheelLayout(m, cat),
-    rearWheels: ['typee','962'].includes(m.id) ? {axles:[-0.28], y:0.455, length:0.14, width:0.12} : null,
+    rearWheels: m.id === 'countach'
+      ? {axles:[-0.31], y:0.395, length:0.13, width:0.08}
+      : ['typee','962'].includes(m.id) ? {axles:[-0.28], y:0.455, length:0.14, width:0.12} : null,
     engine: Object.assign({ cyl: 8, redline: 7000, idle: 1000, rough: 0.3, bright: 0.6, turbo: 0 }, cat.engine || {}, m.engine || {}),
   };
   /* Les livrées : au moins une, toujours, et la première est le dessin d'origine.

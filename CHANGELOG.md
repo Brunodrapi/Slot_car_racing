@@ -4,6 +4,10 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.40
+- Pneus vus strictement du dessus, sans flanc ni jante apparente : F1 restantes et Kitsune corrigées, dessin des roues mobiles harmonisé.
+- Stallone : pneus arrière rentrés sous les ailes sur les trois livrées.
+
 ## 0.52.39
 - Sixpence, Dodici T et Ground 79 : vue du dessus redressée ; Stallone et Kitsune : pneus arrière sans jantes visibles.
 - Roues avant mieux rentrées sous les ailes des Furia 40, Stallone, Gran Corsa, Nightfall et Langheck ; pneus arrière légèrement visibles sur Longnose et Aero 62.

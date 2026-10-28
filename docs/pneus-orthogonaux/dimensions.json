@@ -1,0 +1,86 @@
+[
+  {
+    "file": "sprites/top/mclarenm23.png",
+    "width": 420,
+    "height": 256,
+    "inset": 0,
+    "atlas": "exec-75c1d9b2-9bf1-4415-92d9-0fe6c8ac33e6"
+  },
+  {
+    "file": "sprites/top/lotus72.png",
+    "width": 420,
+    "height": 256,
+    "inset": 0,
+    "atlas": "exec-75c1d9b2-9bf1-4415-92d9-0fe6c8ac33e6"
+  },
+  {
+    "file": "sprites/top/brabhambt46b.png",
+    "width": 420,
+    "height": 256,
+    "inset": 0,
+    "atlas": "exec-75c1d9b2-9bf1-4415-92d9-0fe6c8ac33e6"
+  },
+  {
+    "file": "sprites/top/williamsfw07.png",
+    "width": 420,
+    "height": 256,
+    "inset": 0,
+    "atlas": "exec-a324377e-8bf2-4a5e-8431-93ac70771588"
+  },
+  {
+    "file": "sprites/top/ligierjs11.png",
+    "width": 420,
+    "height": 256,
+    "inset": 0,
+    "atlas": "exec-a324377e-8bf2-4a5e-8431-93ac70771588"
+  },
+  {
+    "file": "sprites/top/renaultrs10.png",
+    "width": 420,
+    "height": 256,
+    "inset": 0,
+    "atlas": "exec-a324377e-8bf2-4a5e-8431-93ac70771588"
+  },
+  {
+    "file": "sprites/top/countach.png",
+    "width": 395,
+    "height": 203,
+    "inset": 8,
+    "atlas": "exec-7fb4daf4-c1e0-4eb2-bf7f-e86b3d9d8369"
+  },
+  {
+    "file": "sprites/top/countach_rainx.png",
+    "width": 395,
+    "height": 203,
+    "inset": 8,
+    "atlas": "exec-7fb4daf4-c1e0-4eb2-bf7f-e86b3d9d8369"
+  },
+  {
+    "file": "sprites/top/countach_monaco83.png",
+    "width": 395,
+    "height": 203,
+    "inset": 8,
+    "atlas": "exec-7fb4daf4-c1e0-4eb2-bf7f-e86b3d9d8369"
+  },
+  {
+    "file": "sprites/top/240z.png",
+    "width": 420,
+    "height": 200,
+    "inset": 0,
+    "atlas": "exec-a2424396-2006-404b-88ad-a520e3259804"
+  },
+  {
+    "file": "sprites/top/240z_dunlop.png",
+    "width": 420,
+    "height": 200,
+    "inset": 0,
+    "atlas": "exec-a2424396-2006-404b-88ad-a520e3259804"
+  },
+  {
+    "file": "sprites/top/240z_sharp.png",
+    "width": 420,
+    "height": 200,
+    "inset": 0,
+    "atlas": "exec-a2424396-2006-404b-88ad-a520e3259804"
+  }
+]

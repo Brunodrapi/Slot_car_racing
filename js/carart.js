@@ -230,13 +230,14 @@ function tirePositions(layout, w, h, opts) {
   if (!layout) return [];
   const value = Number(opts && opts.steer);
   const steer = Number.isFinite(value) ? Math.max(-0.65, Math.min(0.65, value)) : 0;
-  const length = layout.length * w, width = layout.width * h, r = Math.min(width * 0.22, length * 0.15);
+  const length = layout.length * w, width = layout.width * h, r = Math.min(width, length) * 0.04;
   const out = [];
   for (const axle of layout.axles) for (const side of [-1, 1]) out.push({ x: axle * w, y: side * layout.y * h, steer, length, width, r });
   return out;
 }
 
-// The atlas contains the body and rear wheels. Front tires are separate, underneath
+// Most atlases contain body and rear tires; models with rearWheels draw them separately.
+// Front tires are separate, underneath
 // the GT fenders or above F1 suspension, in the same local frame (+x forward).
 // Coordinates are fractions of the complete sprite, not of the collision box.
 function drawFrontWheels(g, model, w, h, opts) {
@@ -247,13 +248,18 @@ function drawTires(g, tires) {
     g.save();
     g.translate(p.x, p.y);
     g.rotate(p.steer);
-    g.fillStyle = '#171b1d';
+    // Orthographic slick tread: curvature fades along the rolling direction (+x),
+    // never a bright lateral stripe that looks like a visible sidewall or rim.
+    const tread = g.createLinearGradient(-p.length / 2, 0, p.length / 2, 0);
+    tread.addColorStop(0, '#101415');
+    tread.addColorStop(0.25, '#303536');
+    tread.addColorStop(0.75, '#303536');
+    tread.addColorStop(1, '#101415');
+    g.fillStyle = tread;
     g.beginPath();
     g.roundRect(-p.length / 2, -p.width / 2, p.length, p.width, p.r);
     g.fill();
     g.strokeStyle = '#080a0b'; g.lineWidth = Math.min(p.width, p.length) * 0.12; g.stroke();
-    g.fillStyle = '#373b3e';
-    g.fillRect(-p.length * 0.34, -p.width * 0.3, p.length * 0.68, p.width * 0.18);
     g.restore();
   }
 }

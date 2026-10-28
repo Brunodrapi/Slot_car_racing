@@ -1,0 +1,458 @@
+[
+  {
+    "id": "tyrrellp34",
+    "livery": 0,
+    "wheels": 4,
+    "left": 5702,
+    "right": 5711,
+    "shadow": 2265
+  },
+  {
+    "id": "ferrari312t",
+    "livery": 0,
+    "wheels": 2,
+    "left": 6593,
+    "right": 6589,
+    "shadow": 2309
+  },
+  {
+    "id": "mclarenm23",
+    "livery": 0,
+    "wheels": 2,
+    "left": 6590,
+    "right": 6584,
+    "shadow": 2306
+  },
+  {
+    "id": "lotus79",
+    "livery": 0,
+    "wheels": 2,
+    "left": 5817,
+    "right": 5815,
+    "shadow": 2171
+  },
+  {
+    "id": "lotus72",
+    "livery": 0,
+    "wheels": 2,
+    "left": 6584,
+    "right": 6579,
+    "shadow": 2311
+  },
+  {
+    "id": "brabhambt46b",
+    "livery": 0,
+    "wheels": 2,
+    "left": 6584,
+    "right": 6581,
+    "shadow": 2312
+  },
+  {
+    "id": "williamsfw07",
+    "livery": 0,
+    "wheels": 2,
+    "left": 6592,
+    "right": 6590,
+    "shadow": 2314
+  },
+  {
+    "id": "ligierjs11",
+    "livery": 0,
+    "wheels": 2,
+    "left": 6579,
+    "right": 6584,
+    "shadow": 2311
+  },
+  {
+    "id": "renaultrs10",
+    "livery": 0,
+    "wheels": 2,
+    "left": 6587,
+    "right": 6579,
+    "shadow": 2309
+  },
+  {
+    "id": "m1procar",
+    "livery": 0,
+    "wheels": 2,
+    "left": 2430,
+    "right": 2385,
+    "shadow": 1959
+  },
+  {
+    "id": "m1procar",
+    "livery": 1,
+    "wheels": 2,
+    "left": 2488,
+    "right": 2483,
+    "shadow": 1970
+  },
+  {
+    "id": "m1procar",
+    "livery": 2,
+    "wheels": 2,
+    "left": 2472,
+    "right": 2473,
+    "shadow": 1970
+  },
+  {
+    "id": "f40",
+    "livery": 0,
+    "wheels": 2,
+    "left": 1491,
+    "right": 1503,
+    "shadow": 1488
+  },
+  {
+    "id": "f40",
+    "livery": 1,
+    "wheels": 2,
+    "left": 1522,
+    "right": 1523,
+    "shadow": 1486
+  },
+  {
+    "id": "f40",
+    "livery": 2,
+    "wheels": 2,
+    "left": 1530,
+    "right": 1535,
+    "shadow": 1489
+  },
+  {
+    "id": "countach",
+    "livery": 0,
+    "wheels": 2,
+    "left": 1931,
+    "right": 1928,
+    "shadow": 1500
+  },
+  {
+    "id": "countach",
+    "livery": 1,
+    "wheels": 2,
+    "left": 1942,
+    "right": 1939,
+    "shadow": 1500
+  },
+  {
+    "id": "countach",
+    "livery": 2,
+    "wheels": 2,
+    "left": 1917,
+    "right": 1924,
+    "shadow": 1499
+  },
+  {
+    "id": "930",
+    "livery": 0,
+    "wheels": 2,
+    "left": 2674,
+    "right": 2666,
+    "shadow": 1968
+  },
+  {
+    "id": "930",
+    "livery": 1,
+    "wheels": 2,
+    "left": 2780,
+    "right": 2754,
+    "shadow": 1969
+  },
+  {
+    "id": "930",
+    "livery": 2,
+    "wheels": 2,
+    "left": 2716,
+    "right": 2700,
+    "shadow": 1970
+  },
+  {
+    "id": "corvette",
+    "livery": 0,
+    "wheels": 2,
+    "left": 2537,
+    "right": 2542,
+    "shadow": 1966
+  },
+  {
+    "id": "corvette",
+    "livery": 1,
+    "wheels": 2,
+    "left": 2528,
+    "right": 2519,
+    "shadow": 1966
+  },
+  {
+    "id": "corvette",
+    "livery": 2,
+    "wheels": 2,
+    "left": 2536,
+    "right": 2535,
+    "shadow": 1966
+  },
+  {
+    "id": "csl",
+    "livery": 0,
+    "wheels": 2,
+    "left": 2404,
+    "right": 2396,
+    "shadow": 1949
+  },
+  {
+    "id": "csl",
+    "livery": 1,
+    "wheels": 2,
+    "left": 2390,
+    "right": 2388,
+    "shadow": 1954
+  },
+  {
+    "id": "csl",
+    "livery": 2,
+    "wheels": 2,
+    "left": 2522,
+    "right": 2506,
+    "shadow": 1949
+  },
+  {
+    "id": "250gto",
+    "livery": 0,
+    "wheels": 2,
+    "left": 1642,
+    "right": 1650,
+    "shadow": 1443
+  },
+  {
+    "id": "250gto",
+    "livery": 1,
+    "wheels": 2,
+    "left": 1624,
+    "right": 1638,
+    "shadow": 1442
+  },
+  {
+    "id": "250gto",
+    "livery": 2,
+    "wheels": 2,
+    "left": 1634,
+    "right": 1651,
+    "shadow": 1443
+  },
+  {
+    "id": "typee",
+    "livery": 0,
+    "wheels": 2,
+    "left": 2505,
+    "right": 2483,
+    "shadow": 1957
+  },
+  {
+    "id": "typee",
+    "livery": 1,
+    "wheels": 2,
+    "left": 2460,
+    "right": 2461,
+    "shadow": 1958
+  },
+  {
+    "id": "typee",
+    "livery": 2,
+    "wheels": 2,
+    "left": 2453,
+    "right": 2438,
+    "shadow": 1960
+  },
+  {
+    "id": "240z",
+    "livery": 0,
+    "wheels": 2,
+    "left": 2469,
+    "right": 2441,
+    "shadow": 1959
+  },
+  {
+    "id": "240z",
+    "livery": 1,
+    "wheels": 2,
+    "left": 2456,
+    "right": 2430,
+    "shadow": 1962
+  },
+  {
+    "id": "240z",
+    "livery": 2,
+    "wheels": 2,
+    "left": 2456,
+    "right": 2433,
+    "shadow": 1960
+  },
+  {
+    "id": "gt40",
+    "livery": 0,
+    "wheels": 2,
+    "left": 1151,
+    "right": 1158,
+    "shadow": 1288
+  },
+  {
+    "id": "gt40",
+    "livery": 1,
+    "wheels": 2,
+    "left": 1133,
+    "right": 1136,
+    "shadow": 1288
+  },
+  {
+    "id": "gt40",
+    "livery": 2,
+    "wheels": 2,
+    "left": 1165,
+    "right": 1173,
+    "shadow": 1286
+  },
+  {
+    "id": "935",
+    "livery": 0,
+    "wheels": 2,
+    "left": 1435,
+    "right": 1437,
+    "shadow": 1496
+  },
+  {
+    "id": "935",
+    "livery": 1,
+    "wheels": 2,
+    "left": 1447,
+    "right": 1434,
+    "shadow": 1498
+  },
+  {
+    "id": "935",
+    "livery": 2,
+    "wheels": 2,
+    "left": 1423,
+    "right": 1422,
+    "shadow": 1497
+  },
+  {
+    "id": "787b",
+    "livery": 0,
+    "wheels": 2,
+    "left": 2784,
+    "right": 2778,
+    "shadow": 2019
+  },
+  {
+    "id": "787b",
+    "livery": 1,
+    "wheels": 2,
+    "left": 2812,
+    "right": 2802,
+    "shadow": 2016
+  },
+  {
+    "id": "787b",
+    "livery": 2,
+    "wheels": 2,
+    "left": 2756,
+    "right": 2757,
+    "shadow": 2020
+  },
+  {
+    "id": "962",
+    "livery": 0,
+    "wheels": 2,
+    "left": 2404,
+    "right": 2402,
+    "shadow": 1957
+  },
+  {
+    "id": "962",
+    "livery": 1,
+    "wheels": 2,
+    "left": 2424,
+    "right": 2421,
+    "shadow": 1957
+  },
+  {
+    "id": "962",
+    "livery": 2,
+    "wheels": 2,
+    "left": 2436,
+    "right": 2437,
+    "shadow": 1959
+  },
+  {
+    "id": "xjr9",
+    "livery": 0,
+    "wheels": 2,
+    "left": 1663,
+    "right": 1650,
+    "shadow": 1509
+  },
+  {
+    "id": "xjr9",
+    "livery": 1,
+    "wheels": 2,
+    "left": 1655,
+    "right": 1634,
+    "shadow": 1510
+  },
+  {
+    "id": "xjr9",
+    "livery": 2,
+    "wheels": 2,
+    "left": 1698,
+    "right": 1679,
+    "shadow": 1511
+  },
+  {
+    "id": "330p4",
+    "livery": 0,
+    "wheels": 2,
+    "left": 2543,
+    "right": 2550,
+    "shadow": 1958
+  },
+  {
+    "id": "330p4",
+    "livery": 1,
+    "wheels": 2,
+    "left": 2533,
+    "right": 2539,
+    "shadow": 1960
+  },
+  {
+    "id": "330p4",
+    "livery": 2,
+    "wheels": 2,
+    "left": 2535,
+    "right": 2539,
+    "shadow": 1958
+  },
+  {
+    "id": "p68",
+    "livery": 0,
+    "wheels": 2,
+    "left": 2695,
+    "right": 2688,
+    "shadow": 1960
+  },
+  {
+    "id": "p68",
+    "livery": 1,
+    "wheels": 2,
+    "left": 2675,
+    "right": 2687,
+    "shadow": 1959
+  },
+  {
+    "id": "p68",
+    "livery": 2,
+    "wheels": 2,
+    "left": 2711,
+    "right": 2714,
+    "shadow": 1959
+  }
+]
