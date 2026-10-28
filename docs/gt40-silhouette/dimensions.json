@@ -1,0 +1,56 @@
+[
+  {
+    "file": "sprites/top/gt40.png",
+    "before": [
+      420,
+      208
+    ],
+    "after": [
+      420,
+      208
+    ],
+    "sourceBounds": [
+      42,
+      71,
+      943,
+      427
+    ],
+    "style": "cartoon simplified"
+  },
+  {
+    "file": "sprites/top/gt40_lemans1.png",
+    "before": [
+      420,
+      208
+    ],
+    "after": [
+      420,
+      208
+    ],
+    "sourceBounds": [
+      42,
+      568,
+      943,
+      425
+    ],
+    "style": "cartoon simplified"
+  },
+  {
+    "file": "sprites/top/gt40_lemans2.png",
+    "before": [
+      420,
+      208
+    ],
+    "after": [
+      420,
+      208
+    ],
+    "sourceBounds": [
+      43,
+      1057,
+      943,
+      427
+    ],
+    "style": "cartoon simplified"
+  }
+]

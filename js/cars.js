@@ -292,7 +292,7 @@ const LIVERIES = [
 
 // Livrées historiques illustrées ; voir docs/livrees-historiques/README.md.
 const HISTORIC_LIVERIES = {
-  countach: [{ id: 'rainx', nom: 'Jaune · 88', en: 'Yellow · 88' }, { id: 'monaco83', nom: 'Monaco 1983 Safety Car' }],
+  countach: [{ id: 'rainx', nom: 'Jaune · 88', en: 'Yellow · 88' }, { id: 'monaco83', nom: 'ludes, babe', en: 'ludes, babe' }],
   gt40: [{ id: 'lemans1', nom: 'Le Mans 1966 · 1' }, { id: 'lemans2', nom: 'Le Mans 1966 · 2' }],
   '935': [{ id: 'jager', nom: 'Orange · 16' }, { id: 'vaillant', nom: 'Kremer · turquoise · 51' }],
   corvette: [{ id: 'spirit76', nom: 'Spirit of Le Mans · 76' }, { id: 'bfg49', nom: 'Étoiles et bandes · 49', en: 'Stars and stripes · 49' }],
@@ -368,6 +368,8 @@ function frontWheelLayout(m, cat) {
   if (!CARTOON_MODELS.has(m.id)) return null;
   if (m.id === 'tyrrellp34') return {axles:[0.20,0.30], y:0.30, length:0.085, width:0.18, aboveBody:true};
   if (cat.id === 'f1') return {axles:[0.30], y:0.32, length:0.15, width:0.23, aboveBody:true};
+  // GT40 tires sit inside the closed front fenders, including at full steering lock.
+  if (m.id === 'gt40') return {axles:[0.27], y:0.30, length:0.12, width:0.12};
   // Narrow M1 front fenders cover the tires; only the outer edge emerges.
   if (m.id === 'm1procar') return {axles:[0.28], y:0.41, length:0.15, width:0.16};
   return {axles:[0.25], y:0.42, length:0.15, width:0.18};

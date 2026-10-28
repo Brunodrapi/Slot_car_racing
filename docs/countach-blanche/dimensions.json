@@ -1,0 +1,28 @@
+[
+  {
+    "file": "sprites/top/countach_monaco83.png",
+    "dimensions": [
+      395,
+      203
+    ],
+    "sourceBounds": [
+      255,
+      1,
+      1000,
+      511
+    ]
+  },
+  {
+    "file": "sprites/pick/countach_monaco83.png",
+    "dimensions": [
+      420,
+      286
+    ],
+    "sourceBounds": [
+      316,
+      522,
+      864,
+      502
+    ]
+  }
+]
