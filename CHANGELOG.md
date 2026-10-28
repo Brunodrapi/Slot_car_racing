@@ -4,6 +4,10 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.39
+- Sixpence, Dodici T et Ground 79 : vue du dessus redressée ; Stallone et Kitsune : pneus arrière sans jantes visibles.
+- Roues avant mieux rentrées sous les ailes des Furia 40, Stallone, Gran Corsa, Nightfall et Langheck ; pneus arrière légèrement visibles sur Longnose et Aero 62.
+
 ## 0.52.38
 - GT40 : silhouette arrière corrigée, dessin plus minimaliste et pneus couverts par la carrosserie ; les trois livrées sont conservées.
 - Countach : la livrée rouge est remplacée par la blanche « ludes, babe », en course et au paddock.

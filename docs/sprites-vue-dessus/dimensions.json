@@ -1,0 +1,56 @@
+[
+  {
+    "file": "sprites/top/tyrrellp34.png",
+    "width": 420,
+    "height": 256,
+    "atlas": "exec-78681cea-40b0-4fe8-b465-bac5de9f1b6b"
+  },
+  {
+    "file": "sprites/top/ferrari312t.png",
+    "width": 420,
+    "height": 256,
+    "atlas": "exec-78681cea-40b0-4fe8-b465-bac5de9f1b6b"
+  },
+  {
+    "file": "sprites/top/lotus79.png",
+    "width": 420,
+    "height": 226,
+    "atlas": "exec-78681cea-40b0-4fe8-b465-bac5de9f1b6b"
+  },
+  {
+    "file": "sprites/top/countach.png",
+    "width": 395,
+    "height": 203,
+    "atlas": "exec-797bd964-4391-451d-af31-f8dbe359fcc8"
+  },
+  {
+    "file": "sprites/top/countach_rainx.png",
+    "width": 395,
+    "height": 203,
+    "atlas": "exec-797bd964-4391-451d-af31-f8dbe359fcc8"
+  },
+  {
+    "file": "sprites/top/countach_monaco83.png",
+    "width": 395,
+    "height": 203,
+    "atlas": "exec-797bd964-4391-451d-af31-f8dbe359fcc8"
+  },
+  {
+    "file": "sprites/top/240z.png",
+    "width": 420,
+    "height": 200,
+    "atlas": "exec-b804ca3d-b328-408e-9fa8-e228dad68fab"
+  },
+  {
+    "file": "sprites/top/240z_dunlop.png",
+    "width": 420,
+    "height": 200,
+    "atlas": "exec-b804ca3d-b328-408e-9fa8-e228dad68fab"
+  },
+  {
+    "file": "sprites/top/240z_sharp.png",
+    "width": 420,
+    "height": 200,
+    "atlas": "exec-b804ca3d-b328-408e-9fa8-e228dad68fab"
+  }
+]

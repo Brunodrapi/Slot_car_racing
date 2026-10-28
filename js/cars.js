@@ -372,6 +372,9 @@ function frontWheelLayout(m, cat) {
   if (m.id === 'gt40') return {axles:[0.27], y:0.30, length:0.12, width:0.12};
   // Narrow M1 front fenders cover the tires; only the outer edge emerges.
   if (m.id === 'm1procar') return {axles:[0.28], y:0.41, length:0.15, width:0.16};
+  // Closed fenders: a small tread edge, not the generic wide exposed wheels.
+  const covered = { f40:0.375, countach:0.40, '250gto':0.375, xjr9:0.37, '935':0.36 };
+  if (covered[m.id] != null) return {axles:[0.25], y:covered[m.id], length:0.13, width:0.14};
   return {axles:[0.25], y:0.42, length:0.15, width:0.18};
 }
 function resolveModel(cat, m) {
@@ -389,6 +392,7 @@ function resolveModel(cat, m) {
     // le moteur : celui de la catégorie, que la voiture peut reprendre champ par champ
     pick: m.pick || null,
     frontWheels: frontWheelLayout(m, cat),
+    rearWheels: ['typee','962'].includes(m.id) ? {axles:[-0.28], y:0.455, length:0.14, width:0.12} : null,
     engine: Object.assign({ cyl: 8, redline: 7000, idle: 1000, rough: 0.3, bright: 0.6, turbo: 0 }, cat.engine || {}, m.engine || {}),
   };
   /* Les livrées : au moins une, toujours, et la première est le dessin d'origine.

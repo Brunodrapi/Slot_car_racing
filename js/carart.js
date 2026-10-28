@@ -199,7 +199,7 @@ function drawCarShadow(g, model, livree, opts) {
   const art = topArt(model, livree);
   if (!art) return false;
   const [w, h] = topSize(model, art);
-  const pneus = frontTires(model, w, h, opts);
+  const pneus = [...frontTires(model, w, h, opts), ...rearTires(model, w, h)];
   if (!pneus.length) { g.drawImage(art.shadow, -w / 2, -h / 2, w, h); return true; }
   const roues = new Path2D();
   for (const p of pneus) {
@@ -221,7 +221,12 @@ function drawCarShadow(g, model, livree, opts) {
 
 // Where each front tire sits and how far it is turned, in the sprite's frame (+x forward).
 function frontTires(model, w, h, opts) {
-  const layout = model.frontWheels;
+  return tirePositions(model.frontWheels, w, h, opts);
+}
+function rearTires(model, w, h) {
+  return tirePositions(model.rearWheels, w, h, {steer:0});
+}
+function tirePositions(layout, w, h, opts) {
   if (!layout) return [];
   const value = Number(opts && opts.steer);
   const steer = Number.isFinite(value) ? Math.max(-0.65, Math.min(0.65, value)) : 0;
@@ -235,7 +240,10 @@ function frontTires(model, w, h, opts) {
 // the GT fenders or above F1 suspension, in the same local frame (+x forward).
 // Coordinates are fractions of the complete sprite, not of the collision box.
 function drawFrontWheels(g, model, w, h, opts) {
-  for (const p of frontTires(model, w, h, opts)) {
+  drawTires(g, frontTires(model, w, h, opts));
+}
+function drawTires(g, tires) {
+  for (const p of tires) {
     g.save();
     g.translate(p.x, p.y);
     g.rotate(p.steer);
@@ -257,6 +265,7 @@ function drawCarModel(g, model, livery, opts) {
   if (art) {
     const [w, h] = topSize(model, art);
     const wheelsAbove = model.frontWheels && model.frontWheels.aboveBody;
+    drawTires(g, rearTires(model, w, h));
     if (!wheelsAbove) drawFrontWheels(g, model, w, h, opts);
     g.drawImage(art.img, -w / 2, -h / 2, w, h);
     if (wheelsAbove) drawFrontWheels(g, model, w, h, opts);
