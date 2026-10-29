@@ -739,7 +739,8 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
   .home-version { font-size:9px; }
   .selection-preview { grid-template-columns:1fr; gap:10px; }
   .paddock-car { height:240px; }
-  .paddock-track { height:200px; }
+  /* le titre d'un circuit prend jusqu'à 125 px sur deux lignes : il en reste assez pour le tracé */
+  .paddock-track { height:280px; }
   .preview-car img, .preview-car canvas { max-height:160px; }
   .preview-track { width:48%; height:65%; }
   .setup-screen .topbar, .selection-screen .topbar { padding:8px; }
@@ -802,7 +803,11 @@ body.desktop .screen.setup-screen, body.desktop .screen.selection-screen { width
 .track-heading b { font-size:clamp(28px,3.5vw,52px); line-height:.95; overflow-wrap:normal; }
 .track-heading span { font:italic 900 18px Racing,sans-serif; }
 .circuit-flag { display:block; width:60px; height:45px; object-fit:cover; flex:0 0 60px; border:1px solid #252a2233; }
-.preview-track { left:5%; right:auto; top:27%; bottom:auto; width:90%; height:69%; background:none; border:0; filter:drop-shadow(2px 4px 0 #171c1955); }
+/* Le tracé occupe la place que laisse le titre, au lieu d'une position fixe dans la carte : un nom sur
+   deux lignes (« Festival de Carnaval » sur téléphone) recouvrait le haut du tracé. */
+.paddock-track { display:flex; flex-direction:column; }
+.track-heading { position:relative; flex:0 0 auto; }
+.preview-track { position:relative; inset:auto; flex:1 1 0; min-height:0; width:90%; height:auto; margin:4px auto 8px; background:none; border:0; filter:drop-shadow(2px 4px 0 #171c1955); }
 .track-card-art img { background:none; border:0; }
 .circuit-sheet .railbox { padding:8px 0 0; }
 .setup-screen .rail.tracks .card { padding:3px; border:2px solid #a29679; background:#fff0d2; }
