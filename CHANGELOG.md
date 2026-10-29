@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.43
+- Écran de course : le tracé du circuit n'est plus caché par le nom quand celui-ci tient sur deux lignes (téléphone, salon multijoueur).
+
 ## 0.52.42
 - Stallone : trois sprites de course repris à partir du modèle fourni et validé par le joueur.
 
