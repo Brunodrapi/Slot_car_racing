@@ -4,6 +4,10 @@ Les roues séparées du dessin ont maintenant des ancrages propres à chaque spr
 
 Chaque planche montre, de gauche à droite : **repères cyan des centres et de l’encombrement des pneus**, **roues droites**, **roues braquées**. Chaque ligne correspond à une livrée. L’avant des voitures est à droite.
 
+## Mise à jour 0.52.45 — Stallone
+
+La livrée blanche fournie par le joueur mesure 395 × 235 px. Les versions noire et jaune ont reçu le même étirement transversal (203 → 235 px, soit +15,8 %), sans changement de longueur ni de livrée. Le fichier blanc fourni est conservé tel quel. Les six paires de roues ont été recalées sur les contours ; leur largeur suit le nouveau gabarit. La planche Countach et les relevés ci-dessous montrent cette version.
+
 ## Corrections
 
 - F1 : roues avant recentrées sur les moyeux dessinés ; les quatre roues avant de la Sixpence ont leurs propres points de placement. Les bras ajoutés à la Windsor rejoignent les nouveaux centres, sous les pneus.

@@ -56,28 +56,28 @@
   {
     "sprite": "countach",
     "xPx": 320,
-    "upperFenderPx": 20,
-    "lowerFenderPx": 182,
-    "topCenterPx": 28.7448,
-    "bottomCenterPx": 173.2605,
+    "upperFenderPx": 24,
+    "lowerFenderPx": 212,
+    "topCenterPx": 34.3335,
+    "bottomCenterPx": 201.65349999999998,
     "targetExposurePx": 1.4107142857142858
   },
   {
     "sprite": "countach_rainx",
     "xPx": 320,
-    "upperFenderPx": 20,
-    "lowerFenderPx": 183,
-    "topCenterPx": 28.7448,
-    "bottomCenterPx": 174.2552,
+    "upperFenderPx": 24,
+    "lowerFenderPx": 212,
+    "topCenterPx": 34.3335,
+    "bottomCenterPx": 201.65349999999998,
     "targetExposurePx": 1.4107142857142858
   },
   {
     "sprite": "countach_monaco83",
     "xPx": 320,
-    "upperFenderPx": 20,
-    "lowerFenderPx": 183,
-    "topCenterPx": 28.7448,
-    "bottomCenterPx": 174.2552,
+    "upperFenderPx": 23,
+    "lowerFenderPx": 212,
+    "topCenterPx": 33.3465,
+    "bottomCenterPx": 201.65349999999998,
     "targetExposurePx": 1.4107142857142858
   },
   {
@@ -434,28 +434,28 @@
   {
     "sprite": "countach",
     "xPx": 85,
-    "upperFenderPx": 9,
-    "lowerFenderPx": 193,
-    "topCenterPx": 19.7722,
-    "bottomCenterPx": 182.2331,
+    "upperFenderPx": 11,
+    "lowerFenderPx": 224,
+    "topCenterPx": 23.688,
+    "bottomCenterPx": 211.312,
     "targetExposurePx": 1.4107142857142858
   },
   {
     "sprite": "countach_rainx",
     "xPx": 85,
-    "upperFenderPx": 9,
-    "lowerFenderPx": 193,
-    "topCenterPx": 19.7722,
-    "bottomCenterPx": 182.2331,
+    "upperFenderPx": 11,
+    "lowerFenderPx": 224,
+    "topCenterPx": 23.688,
+    "bottomCenterPx": 211.312,
     "targetExposurePx": 1.4107142857142858
   },
   {
     "sprite": "countach_monaco83",
     "xPx": 85,
-    "upperFenderPx": 9,
-    "lowerFenderPx": 193,
-    "topCenterPx": 19.7722,
-    "bottomCenterPx": 182.2331,
+    "upperFenderPx": 11,
+    "lowerFenderPx": 223,
+    "topCenterPx": 23.688,
+    "bottomCenterPx": 210.3015,
     "targetExposurePx": 1.4107142857142858
   },
   {

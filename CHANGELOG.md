@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.45
+- Stallone : les trois livrées partagent le gabarit élargi à 235 px fourni pour la blanche ; roues avant et arrière recalées sur les ailes.
+
 ## 0.52.44
 - Roues recalées par livrée sur les ailes et les moyeux ; pivots de braquage et ombres alignés, notamment pour les F1 et la Stallone.
 
