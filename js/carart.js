@@ -176,6 +176,9 @@ function topArt(model, livree) {
     g2.globalCompositeOperation = 'source-in';
     g2.fillStyle = '#000';
     g2.fillRect(0, 0, c.width, c.height);
+    g2.globalCompositeOperation = 'source-over';
+    g2.translate(c.width / 2, c.height / 2);
+    g2.fill(frontSuspension(model, c.width, c.height));
     e.shadow = c;
   }
   return e;
@@ -226,6 +229,21 @@ function frontTires(model, w, h, opts) {
 function rearTires(model, w, h) {
   return tirePositions(model.rearWheels, w, h, {steer:0});
 }
+// Wishbones join the chassis to each front hub, underneath the tire at any steering angle.
+// Shared by the color pass and shadow, including the previously missing Windsor axle.
+function frontSuspension(model, w, h) {
+  const path = new Path2D(), layout = model.frontWheels;
+  if (!layout || !layout.suspension) return path;
+  for (const axle of layout.axles) for (const side of [-1, 1]) {
+    for (const offset of [-0.075, 0.035]) {
+      const x = (axle + offset) * w, y = 0;
+      const hubX = axle * w, hubY = side * layout.y * h, t = h * 0.012;
+      path.moveTo(x-t, y); path.lineTo(hubX-t, hubY);
+      path.lineTo(hubX+t, hubY); path.lineTo(x+t, y); path.closePath();
+    }
+  }
+  return path;
+}
 function tirePositions(layout, w, h, opts) {
   if (!layout) return [];
   const value = Number(opts && opts.steer);
@@ -273,6 +291,9 @@ function drawCarModel(g, model, livery, opts) {
     const wheelsAbove = model.frontWheels && model.frontWheels.aboveBody;
     drawTires(g, rearTires(model, w, h));
     if (!wheelsAbove) drawFrontWheels(g, model, w, h, opts);
+    if (model.frontWheels && model.frontWheels.suspension) {
+      g.fillStyle = '#43494b'; g.fill(frontSuspension(model, w, h));
+    }
     g.drawImage(art.img, -w / 2, -h / 2, w, h);
     if (wheelsAbove) drawFrontWheels(g, model, w, h, opts);
     return;

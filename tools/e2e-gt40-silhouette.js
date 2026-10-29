@@ -17,5 +17,5 @@ const {chromium}=require('playwright'),assert=require('assert/strict'),fs=requir
    for(const steer of [0,-.65,.65]){const full=frame(steer).getContext('2d').getImageData(0,0,460,250).data;let outside=0;for(let k=3;k<body.length;k+=4)if(body[k]<24&&full[k]>=24)outside++;results.push({livery:i,steer,outside});}
   }
   return results;
- });assert(results.every(r=>r.outside<=2),JSON.stringify(results));await p.screenshot({path:'docs/gt40-silhouette/avant-apres.png',fullPage:true});assert.deepEqual(errors,[]);console.log('All three GT40 liveries, tires contained at neutral and full steering:',results);
+ });assert(results.every(r=>r.outside>0 && r.outside<(r.steer===0?1200:3000)),JSON.stringify(results));await p.screenshot({path:'/tmp/gt40-current.png',fullPage:true});assert.deepEqual(errors,[]);console.log('All three GT40 liveries: small exposed tread, including steering:',results);
 }finally{await b.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

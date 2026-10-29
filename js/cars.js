@@ -366,14 +366,20 @@ const CARTOON_MODELS = new Set([
 ]);
 function frontWheelLayout(m, cat) {
   if (!CARTOON_MODELS.has(m.id)) return null;
-  if (m.id === 'tyrrellp34') return {axles:[0.20,0.30], y:0.30, length:0.085, width:0.18, aboveBody:true};
-  if (cat.id === 'f1') return {axles:[0.30], y:0.32, length:0.15, width:0.23, aboveBody:true};
-  // GT40 tires sit inside the closed front fenders, including at full steering lock.
-  if (m.id === 'gt40') return {axles:[0.27], y:0.30, length:0.12, width:0.12};
+  if (m.id === 'tyrrellp34') return {axles:[0.20,0.30], y:0.30, length:0.085, width:0.14, aboveBody:true};
+  if (cat.id === 'f1') {
+    // Front slicks are narrower than the rear tires, especially on the 312T.
+    const widths = {ferrari312t:0.15, mclarenm23:0.17, lotus72:0.16,
+      lotus79:0.17, brabhambt46b:0.18, williamsfw07:0.17, ligierjs11:0.17, renaultrs10:0.18};
+    return {axles:[0.30], y:0.32, length:0.14, width:widths[m.id] || 0.17,
+      aboveBody:true, suspension:['williamsfw07','lotus79'].includes(m.id)};
+  }
+  // A narrow tread edge is visible beyond both closed fenders.
+  if (['gt40','935'].includes(m.id)) return {axles:[0.27], y:0.45, length:0.11, width:0.10};
   // Narrow M1 front fenders cover the tires; only the outer edge emerges.
   if (m.id === 'm1procar') return {axles:[0.28], y:0.41, length:0.15, width:0.16};
   // Closed fenders: a small tread edge, not the generic wide exposed wheels.
-  const covered = { f40:0.375, countach:0.40, '250gto':0.375, xjr9:0.37, '935':0.36 };
+  const covered = { f40:0.375, countach:0.36, '250gto':0.375, xjr9:0.37 };
   if (covered[m.id] != null) return {axles:[0.25], y:covered[m.id], length:0.13, width:0.14};
   return {axles:[0.25], y:0.42, length:0.15, width:0.18};
 }
@@ -393,7 +399,8 @@ function resolveModel(cat, m) {
     pick: m.pick || null,
     frontWheels: frontWheelLayout(m, cat),
     rearWheels: m.id === 'countach'
-      ? {axles:[-0.31], y:0.395, length:0.13, width:0.08}
+      ? {axles:[-0.24], y:0.425, length:0.13, width:0.08}
+      : ['gt40','935'].includes(m.id) ? {axles:[-0.26], y:0.45, length:0.13, width:0.10}
       : ['typee','962'].includes(m.id) ? {axles:[-0.28], y:0.455, length:0.14, width:0.12} : null,
     engine: Object.assign({ cyl: 8, redline: 7000, idle: 1000, rough: 0.3, bright: 0.6, turbo: 0 }, cat.engine || {}, m.engine || {}),
   };

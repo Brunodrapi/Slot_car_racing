@@ -1,0 +1,170 @@
+[
+  {
+    "id": "gt40",
+    "livery": 0,
+    "axle": "front",
+    "side": -1,
+    "exposed": 5
+  },
+  {
+    "id": "gt40",
+    "livery": 0,
+    "axle": "front",
+    "side": 1,
+    "exposed": 1
+  },
+  {
+    "id": "gt40",
+    "livery": 0,
+    "axle": "rear",
+    "side": -1,
+    "exposed": 2
+  },
+  {
+    "id": "gt40",
+    "livery": 0,
+    "axle": "rear",
+    "side": 1,
+    "exposed": 2
+  },
+  {
+    "id": "gt40",
+    "livery": 1,
+    "axle": "front",
+    "side": -1,
+    "exposed": 4
+  },
+  {
+    "id": "gt40",
+    "livery": 1,
+    "axle": "front",
+    "side": 1,
+    "exposed": 1
+  },
+  {
+    "id": "gt40",
+    "livery": 1,
+    "axle": "rear",
+    "side": -1,
+    "exposed": 2
+  },
+  {
+    "id": "gt40",
+    "livery": 1,
+    "axle": "rear",
+    "side": 1,
+    "exposed": 2
+  },
+  {
+    "id": "gt40",
+    "livery": 2,
+    "axle": "front",
+    "side": -1,
+    "exposed": 4
+  },
+  {
+    "id": "gt40",
+    "livery": 2,
+    "axle": "front",
+    "side": 1,
+    "exposed": 2
+  },
+  {
+    "id": "gt40",
+    "livery": 2,
+    "axle": "rear",
+    "side": -1,
+    "exposed": 2
+  },
+  {
+    "id": "gt40",
+    "livery": 2,
+    "axle": "rear",
+    "side": 1,
+    "exposed": 2
+  },
+  {
+    "id": "935",
+    "livery": 0,
+    "axle": "front",
+    "side": -1,
+    "exposed": 4
+  },
+  {
+    "id": "935",
+    "livery": 0,
+    "axle": "front",
+    "side": 1,
+    "exposed": 3
+  },
+  {
+    "id": "935",
+    "livery": 0,
+    "axle": "rear",
+    "side": -1,
+    "exposed": 2
+  },
+  {
+    "id": "935",
+    "livery": 0,
+    "axle": "rear",
+    "side": 1,
+    "exposed": 1
+  },
+  {
+    "id": "935",
+    "livery": 1,
+    "axle": "front",
+    "side": -1,
+    "exposed": 2
+  },
+  {
+    "id": "935",
+    "livery": 1,
+    "axle": "front",
+    "side": 1,
+    "exposed": 1
+  },
+  {
+    "id": "935",
+    "livery": 1,
+    "axle": "rear",
+    "side": -1,
+    "exposed": 2
+  },
+  {
+    "id": "935",
+    "livery": 1,
+    "axle": "rear",
+    "side": 1,
+    "exposed": 2
+  },
+  {
+    "id": "935",
+    "livery": 2,
+    "axle": "front",
+    "side": -1,
+    "exposed": 1
+  },
+  {
+    "id": "935",
+    "livery": 2,
+    "axle": "front",
+    "side": 1,
+    "exposed": 1
+  },
+  {
+    "id": "935",
+    "livery": 2,
+    "axle": "rear",
+    "side": -1,
+    "exposed": 2
+  },
+  {
+    "id": "935",
+    "livery": 2,
+    "axle": "rear",
+    "side": 1,
+    "exposed": 2
+  }
+]

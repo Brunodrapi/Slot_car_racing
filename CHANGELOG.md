@@ -4,6 +4,11 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.41
+- Windsor 07 et Ground 79 : suspensions avant rétablies ; pneus avant des F1 ajustés à chaque modèle, plus étroits que les pneus arrière.
+- GT40 et Langheck : léger dépassement des pneus à l'avant et à l'arrière.
+- Stallone : ailes arrière complètes, roues arrière avancées et aileron rapproché de la carrosserie, sur les trois livrées.
+
 ## 0.52.40
 - Pneus vus strictement du dessus, sans flanc ni jante apparente : F1 restantes et Kitsune corrigées, dessin des roues mobiles harmonisé.
 - Stallone : pneus arrière rentrés sous les ailes sur les trois livrées.
