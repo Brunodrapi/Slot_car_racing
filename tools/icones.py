@@ -3,38 +3,40 @@
 
     python3 tools/icones.py
 
-Entrée : `art-src/m1-procar-face.png`, l'illustration carrée sur fond noir.
+Entrée : `art-src/icone-m1-flat.png`, l'icône dessinée par Bruno (octobre 2026) : la M1 en aplats,
+sans logo ni inscription, sur une tuile sombre aux coins arrondis, elle-même sur fond noir.
 Sorties : `favicon.ico`, `art/icone-{16,32,48,180,192,512}.png`, `art/icone-maskable-512.png`.
 
 POURQUOI UN SCRIPT ET PAS SEPT FICHIERS POSÉS À LA MAIN. Les sorties doivent rester d'accord entre
 elles et avec l'illustration ; dès qu'on la retouche, les refaire à la main en oublie une, et c'est
 toujours la même — le `.ico`, que personne ne regarde.
 
-DEUX CADRAGES, PARCE QU'UNE ICÔNE N'EST PAS LUE À LA MÊME TAILLE PARTOUT. L'illustration entière
-— calandre, cocarde, bandeau « Bavarian Motor Works », phare — sert aux grandes icônes : l'écran
-d'accueil d'un téléphone (180 et 192 px) et le manifeste (512). Réduite à seize pixels pour un
-onglet, elle ne laisse qu'une tache blanche striée de noir. Les icônes d'onglet (16, 32, 48 et le
-`.ico`) prennent donc un recadrage serré sur ce qui survit à la réduction : la diagonale bleue sur
-le blanc, le phare orange et le « 42 ». Comparé sur une planche aux tailles réelles contre l'image
-entière, la calandre seule et un cadrage plus serré encore sur le phare : c'est celui qui reste une
-M1 Procar à seize pixels.
+DEUX CADRAGES, PARCE QU'UNE ICÔNE N'EST PAS LUE À LA MÊME TAILLE PARTOUT. Les grandes icônes —
+l'écran d'accueil d'un téléphone (180 et 192 px) et le manifeste (512) — prennent la tuile entière,
+sans la marge noire qui l'entoure : iOS et Android arrondissent eux-mêmes les coins, et une tuile
+déjà arrondie au milieu d'un carré noir y ferait un cadre dans le cadre. Réduite à seize pixels
+pour un onglet, la tuile ne laisse qu'une tache blanche ; les icônes d'onglet (16, 32, 48 et le
+`.ico`) prennent donc un recadrage serré sur ce qui survit à la réduction : le « 42 », le phare
+orange et l'aile bleue. Comparé sur une planche aux tailles réelles contre la tuile entière, un
+cadrage plus serré, un plus large et la calandre : c'est celui qui reste une M1 à seize pixels.
 
-AUCUN DÉTOURAGE. L'ancien casque était détouré pour flotter sur l'onglet ; cette illustration est
-coupée par les bords du cadre — la voiture sort à gauche et en bas —, son fond noir en fait partie.
-Toutes les sorties sont donc pleines, ce qui règle au passage ce qu'il fallait traiter à part pour
-iOS, qui compose mal la transparence.
+AUCUN DÉTOURAGE. La voiture est coupée par les bords de la tuile et son fond sombre en fait partie :
+toutes les sorties sont pleines, ce qui règle au passage ce qu'il fallait traiter à part pour iOS,
+qui compose mal la transparence.
 
-L'ICÔNE « MASKABLE » d'Android ne garde que le disque central de 80 % : l'illustration y est posée
-pleine page, et ce qui tombe hors du masque n'est que du bord de cadre.
+L'ICÔNE « MASKABLE » d'Android ne garde que le disque central de 80 % : la tuile y est posée pleine
+page, le « 42 » et le phare tombent dedans, et ce qui tombe hors du masque n'est que du fond.
 """
 import os
 from PIL import Image
 
 RACINE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
-SOURCE = os.path.join(RACINE, 'art-src', 'm1-procar-face.png')
-# Le cadrage des icônes d'onglet, en proportion du côté de l'illustration : le « 42 », le phare
-# et l'aile bleue (gauche, haut, droite, bas).
-ONGLET = (0.335, 0.20, 1.0, 0.865)
+SOURCE = os.path.join(RACINE, 'art-src', 'icone-m1-flat.png')
+# Les cadrages, en proportion du côté de l'image (gauche, haut, droite, bas). La tuile arrondie,
+# mesurée sur l'image de 1254 px : de 43 à 1210 en x, de 42 à 1209 en y.
+TUILE = (43 / 1254, 42 / 1254, 1210 / 1254, 1209 / 1254)
+# Les icônes d'onglet : le « 42 », le phare et l'aile bleue.
+ONGLET = (420 / 1254, 330 / 1254, 1170 / 1254, 1080 / 1254)
 
 
 def carre(img, boite):
@@ -46,7 +48,7 @@ def carre(img, boite):
 
 def main():
     src = Image.open(SOURCE).convert('RGB')
-    entiere = carre(src, (0, 0, 1, 1))
+    entiere = carre(src, TUILE)
     onglet = carre(src, ONGLET)
     art = os.path.join(RACINE, 'art')
     for taille in (512, 192, 180):

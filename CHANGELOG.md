@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.23.2
+- Nouvelle icône : la M1 dessinée en aplats, dans l'onglet du navigateur et sur l'écran d'accueil du téléphone.
+
 ## 0.52.23.1
 - Écran de course : le tracé du circuit n'est plus caché par le nom quand celui-ci tient sur deux lignes (téléphone, salon multijoueur).
 
