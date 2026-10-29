@@ -71,6 +71,9 @@ et dans le README.
 ## 0.52.24
 - Éditeur : élargir ou rétrécir localement la piste dans un virage, choisir le côté et la longueur de la zone, puis enregistrer et exporter la retouche.
 
+## 0.52.23.1
+- Écran de course : le tracé du circuit n'est plus caché par le nom quand celui-ci tient sur deux lignes (téléphone, salon multijoueur). Correctif publié seul en prod, sur la 0.52.23 (branche `prod-correctif-0.52.23.1`) ; la recette le porte depuis 0.52.43.
+
 ## 0.52.23
 - Rien ne change en jeu : un garde-fou empêche de jouer sur un circuit les trajectoires d'un autre.
 
