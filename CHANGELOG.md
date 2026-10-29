@@ -80,6 +80,9 @@ et dans le README.
 ## 0.52.24
 - Éditeur : élargir ou rétrécir localement la piste dans un virage, choisir le côté et la longueur de la zone, puis enregistrer et exporter la retouche.
 
+## 0.52.23.2
+- Nouvelle icône : la M1 dessinée en aplats, dans l'onglet du navigateur et sur l'écran d'accueil du téléphone. Publiée seule en prod, sur la 0.52.23.1 (branche `prod-correctif-0.52.23.1`) ; la recette la porte depuis 0.52.46.
+
 ## 0.52.23.1
 - Écran de course : le tracé du circuit n'est plus caché par le nom quand celui-ci tient sur deux lignes (téléphone, salon multijoueur). Correctif publié seul en prod, sur la 0.52.23 (branche `prod-correctif-0.52.23.1`) ; la recette le porte depuis 0.52.43.
 
