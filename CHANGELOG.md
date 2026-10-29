@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.46
+- Nouvelle icône : la M1 dessinée en aplats, dans l'onglet du navigateur et sur l'écran d'accueil du téléphone.
+
 ## 0.52.45
 - Stallone : les trois livrées partagent le gabarit élargi à 235 px fourni pour la blanche ; roues avant et arrière recalées sur les ailes.
 
