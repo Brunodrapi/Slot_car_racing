@@ -364,25 +364,98 @@ const CARTOON_MODELS = new Set([
   'm1procar', 'f40', 'countach', '930', 'corvette', 'csl', '250gto', 'typee', '240z',
   'gt40', '935', '787b', '962', 'xjr9', '330p4', 'p68'
 ]);
-function frontWheelLayout(m, cat) {
-  if (!CARTOON_MODELS.has(m.id)) return null;
-  if (m.id === 'tyrrellp34') return {axles:[0.20,0.30], y:0.30, length:0.085, width:0.14, aboveBody:true};
-  if (cat.id === 'f1') {
-    // Front slicks are narrower than the rear tires, especially on the 312T.
-    const widths = {ferrari312t:0.15, mclarenm23:0.17, lotus72:0.16,
-      lotus79:0.17, brabhambt46b:0.18, williamsfw07:0.17, ligierjs11:0.17, renaultrs10:0.18};
-    return {axles:[0.30], y:0.32, length:0.14, width:widths[m.id] || 0.17,
-      aboveBody:true, suspension:['williamsfw07','lotus79'].includes(m.id)};
-  }
-  // A narrow tread edge is visible beyond both closed fenders.
-  if (['gt40','935'].includes(m.id)) return {axles:[0.27], y:0.45, length:0.11, width:0.10};
-  // Narrow M1 front fenders cover the tires; only the outer edge emerges.
-  if (m.id === 'm1procar') return {axles:[0.28], y:0.41, length:0.15, width:0.16};
-  // Closed fenders: a small tread edge, not the generic wide exposed wheels.
-  const covered = { f40:0.375, countach:0.36, '250gto':0.375, xjr9:0.37 };
-  if (covered[m.id] != null) return {axles:[0.25], y:covered[m.id], length:0.13, width:0.14};
-  return {axles:[0.25], y:0.42, length:0.15, width:0.18};
+// Anchors measured in the individual PNG frame: x left→right, y top→bottom.
+// The two sides need not be symmetric: some approved drawings are slightly offset.
+// Keep these illustration coordinates independent of physics and collision dimensions.
+function spriteAxle(x, top, bottom, length, width, aboveBody = false, suspension = false) {
+  return {axles:[x-.5], centers:[{x:x-.5,y:top-.5},{x:x-.5,y:bottom-.5}],
+    length, width, aboveBody, suspension};
 }
+const WHEEL_SPRITES = {};
+function registerWheelSprite(name, front, rear = null) { WHEEL_SPRITES[name] = {front, rear}; }
+// F1: centers sit on the visible suspension hubs, not a category-wide axle.
+registerWheelSprite('ferrari312t', spriteAxle(.800,.200,.885,.14,.15,true));
+registerWheelSprite('mclarenm23', spriteAxle(.779,.204,.868,.14,.17,true));
+registerWheelSprite('lotus72', spriteAxle(.782,.217,.809,.14,.16,true));
+registerWheelSprite('lotus79', spriteAxle(.794,.196,.847,.14,.17,true));
+registerWheelSprite('brabhambt46b', spriteAxle(.782,.251,.817,.14,.18,true));
+registerWheelSprite('williamsfw07', spriteAxle(.790,.230,.790,.14,.17,true,true));
+registerWheelSprite('ligierjs11', spriteAxle(.792,.191,.885,.14,.17,true));
+registerWheelSprite('renaultrs10', spriteAxle(.795,.213,.813,.14,.18,true));
+const p34Front = spriteAxle(.722,.285,.817,.085,.14,true);
+p34Front.axles.push(.313);
+p34Front.centers.push({x:.313,y:-.215},{x:.313,y:.317});
+registerWheelSprite('tyrrellp34',p34Front);
+// Closed bodies: anchor at the fender shoulder, with the tread tucked underneath.
+// [sprite, front x, upper y, lower y, tire length, tire width]
+for (const r of [
+  ['m1procar',0.802,0.1029,0.919,0.14,0.14],
+  ['m1procar_BASF',0.802,0.1073,0.9103,0.14,0.14],
+  ['m1procar_DENIM',0.803,0.1073,0.9103,0.14,0.14],
+  ['f40',0.825,0.0959,0.9089,0.13,0.12],
+  ['f40_red',0.825,0.1007,0.9041,0.13,0.12],
+  ['f40_yellow',0.823,0.0959,0.9041,0.13,0.12],
+  ['countach',0.81,0.1416,0.8535,0.125,0.1],
+  ['countach_rainx',0.81,0.1416,0.8584,0.125,0.1],
+  ['countach_monaco83',0.81,0.1416,0.8584,0.125,0.1],
+  ['930',0.79,0.078,0.9176,0.15,0.16],
+  ['930_swiss',0.78,0.0869,0.9176,0.15,0.16],
+  ['930_valliant',0.8,0.078,0.9176,0.15,0.16],
+  ['corvette',0.8,0.0725,0.9225,0.14,0.14],
+  ['corvette_bfg49',0.81,0.0725,0.9176,0.14,0.14],
+  ['corvette_spirit76',0.8,0.0725,0.9176,0.14,0.14],
+  ['csl',0.82,0.0725,0.9225,0.14,0.15],
+  ['csl_calder',0.81,0.0775,0.9175,0.14,0.15],
+  ['csl_castrol',0.825,0.0775,0.9174,0.14,0.15],
+  ['250gto',0.81,0.1025,0.9225,0.14,0.1],
+  ['250gto_francorchamps',0.81,0.0975,0.9175,0.14,0.1],
+  ['250gto_walker',0.815,0.1025,0.9175,0.14,0.1],
+  ['typee',0.79,0.0825,0.9175,0.14,0.14],
+  ['typee_cunningham',0.8,0.0825,0.9225,0.14,0.14],
+  ['typee_ecosse',0.795,0.0825,0.9225,0.14,0.14],
+  ['240z',0.81,0.0725,0.9375,0.14,0.12],
+  ['240z_dunlop',0.81,0.0725,0.9375,0.14,0.12],
+  ['240z_sharp',0.805,0.0725,0.9375,0.14,0.12],
+  ['gt40',0.81,0.0768,0.9376,0.11,0.12],
+  ['gt40_lemans1',0.805,0.072,0.9376,0.11,0.12],
+  ['gt40_lemans2',0.81,0.072,0.9328,0.11,0.12],
+  ['935',0.81,0.0816,0.9184,0.11,0.14],
+  ['935_jager',0.815,0.0862,0.9184,0.11,0.14],
+  ['935_vaillant',0.815,0.0723,0.9231,0.11,0.14],
+  ['787b',0.81,0.0752,0.9248,0.13,0.12],
+  ['787b_efini18',0.815,0.0752,0.9204,0.13,0.12],
+  ['787b_lemans18',0.82,0.0709,0.9248,0.13,0.12],
+  ['962',0.82,0.0675,0.9225,0.13,0.14],
+  ['962_jager',0.82,0.0725,0.9225,0.13,0.14],
+  ['962_shell',0.82,0.0725,0.9275,0.13,0.14],
+  ['xjr9',0.84,0.1214,0.8877,0.13,0.12],
+  ['xjr9_castrol',0.835,0.1259,0.8877,0.13,0.12],
+  ['xjr9_jps',0.84,0.1259,0.8786,0.13,0.12],
+  ['330p4',0.77,0.0725,0.9175,0.14,0.12],
+  ['330p4_giallo',0.78,0.0725,0.9175,0.14,0.12],
+  ['330p4_piper',0.78,0.0725,0.9175,0.14,0.12],
+  ['p68',0.81,0.0925,0.9025,0.14,0.14],
+  ['p68_dunlop',0.815,0.1025,0.8975,0.14,0.14],
+  ['p68_gulf',0.815,0.0975,0.9025,0.14,0.14]
+]) registerWheelSprite(r[0],spriteAxle(...r.slice(1)));
+for (const r of [
+  ['countach',0.215,0.0974,0.8977,0.14,0.12],
+  ['countach_rainx',0.215,0.0974,0.8977,0.14,0.12],
+  ['countach_monaco83',0.215,0.0974,0.8977,0.14,0.12],
+  ['gt40',0.19,0.0576,0.9376,0.13,0.12],
+  ['gt40_lemans1',0.19,0.0576,0.9376,0.13,0.12],
+  ['gt40_lemans2',0.19,0.0576,0.9376,0.13,0.12],
+  ['935',0.28,0.0677,0.9277,0.13,0.14],
+  ['935_jager',0.275,0.0677,0.9277,0.13,0.14],
+  ['935_vaillant',0.28,0.0677,0.9277,0.13,0.14],
+  ['typee',0.22,0.0675,0.9275,0.14,0.14],
+  ['typee_cunningham',0.215,0.0675,0.9275,0.14,0.14],
+  ['typee_ecosse',0.215,0.0675,0.9275,0.14,0.14],
+  ['962',0.25,0.0725,0.9125,0.14,0.14],
+  ['962_jager',0.25,0.0725,0.9125,0.14,0.14],
+  ['962_shell',0.25,0.0725,0.9175,0.14,0.14]
+]) WHEEL_SPRITES[r[0]].rear=spriteAxle(...r.slice(1));
+function frontWheelLayout(m) { return WHEEL_SPRITES[m.id]?.front || null; }
 function resolveModel(cat, m) {
   const b = cat.base, mul = m.mul || {};
   const model = {
@@ -398,10 +471,7 @@ function resolveModel(cat, m) {
     // le moteur : celui de la catégorie, que la voiture peut reprendre champ par champ
     pick: m.pick || null,
     frontWheels: frontWheelLayout(m, cat),
-    rearWheels: m.id === 'countach'
-      ? {axles:[-0.24], y:0.425, length:0.13, width:0.08}
-      : ['gt40','935'].includes(m.id) ? {axles:[-0.26], y:0.45, length:0.13, width:0.10}
-      : ['typee','962'].includes(m.id) ? {axles:[-0.28], y:0.455, length:0.14, width:0.12} : null,
+    rearWheels: WHEEL_SPRITES[m.id]?.rear || null,
     engine: Object.assign({ cyl: 8, redline: 7000, idle: 1000, rough: 0.3, bright: 0.6, turbo: 0 }, cat.engine || {}, m.engine || {}),
   };
   /* Les livrées : au moins une, toujours, et la première est le dessin d'origine.
@@ -417,6 +487,10 @@ function resolveModel(cat, m) {
     top: lv.top || cheminLivree(m.top, lv.id),
     pick: lv.pick || cheminLivree(m.pick, lv.id),
   }));
+
+  model.wheelLayouts = model.livrees.map(lv =>
+    WHEEL_SPRITES[(lv.top || '').split('/').pop().replace(/\.png$/, '')] ||
+    {front:model.frontWheels, rear:model.rearWheels});
 
   /* Une voiture sans prise à elle joue quand même un vrai moteur.
 

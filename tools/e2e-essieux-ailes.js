@@ -34,7 +34,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict');
             const g=body.getContext('2d');g.translate(240,140);g.scale(420/w,420/w);
             g.drawImage(topArt(m,i).img,-w/2,-h/2,w,h);
             const original=g.getImageData(0,0,480,280).data;
-            for(const tire of [...frontTires(m,w,h,{steer:0}),...rearTires(m,w,h)]){
+            for(const tire of [...frontTires(m,w,h,{steer:0,livree:i}),...rearTires(m,w,h,{livree:i})]){
               const x=Math.round(240+tire.x*420/w),cy=Math.round(140+tire.y*420/w);
               let exposed=0;
               for(let y=cy-20;y<=cy+20;y++){

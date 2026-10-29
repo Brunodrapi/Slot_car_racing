@@ -41,7 +41,7 @@ fs.mkdirSync(out,{recursive:true});
       function frame(m,i,steer,shadow=false,wheelsOnly=false){
         const c=document.createElement('canvas');c.width=480;c.height=320;
         const g=c.getContext('2d');g.translate(240,160);g.scale(400/m.length,400/m.length);
-        if(wheelsOnly){const [w,h]=topSize(m,topArt(m,i));drawFrontWheels(g,m,w,h,{steer});}
+        if(wheelsOnly){const [w,h]=topSize(m,topArt(m,i));drawFrontWheels(g,m,w,h,{steer,livree:i});}
         else if(shadow)drawCarShadow(g,m,i,{steer});else drawCarModel(g,m,LIVERIES[0],{livree:i,steer});
         return c;
       }

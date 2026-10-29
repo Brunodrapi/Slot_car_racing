@@ -1,0 +1,569 @@
+[
+  {
+    "sprite": "m1procar",
+    "xPx": 337,
+    "upperFenderPx": 9,
+    "lowerFenderPx": 224,
+    "topCenterPx": 23.4612,
+    "bottomCenterPx": 209.532,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "m1procar_BASF",
+    "xPx": 337,
+    "upperFenderPx": 10,
+    "lowerFenderPx": 222,
+    "topCenterPx": 24.4644,
+    "bottomCenterPx": 207.5484,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "m1procar_DENIM",
+    "xPx": 337,
+    "upperFenderPx": 10,
+    "lowerFenderPx": 222,
+    "topCenterPx": 24.4644,
+    "bottomCenterPx": 207.5484,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "f40",
+    "xPx": 347,
+    "upperFenderPx": 9,
+    "lowerFenderPx": 201,
+    "topCenterPx": 20.0431,
+    "bottomCenterPx": 189.9601,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "f40_red",
+    "xPx": 347,
+    "upperFenderPx": 10,
+    "lowerFenderPx": 200,
+    "topCenterPx": 21.0463,
+    "bottomCenterPx": 188.9569,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "f40_yellow",
+    "xPx": 346,
+    "upperFenderPx": 9,
+    "lowerFenderPx": 200,
+    "topCenterPx": 20.0431,
+    "bottomCenterPx": 188.9569,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "countach",
+    "xPx": 320,
+    "upperFenderPx": 20,
+    "lowerFenderPx": 182,
+    "topCenterPx": 28.7448,
+    "bottomCenterPx": 173.2605,
+    "targetExposurePx": 1.4107142857142858
+  },
+  {
+    "sprite": "countach_rainx",
+    "xPx": 320,
+    "upperFenderPx": 20,
+    "lowerFenderPx": 183,
+    "topCenterPx": 28.7448,
+    "bottomCenterPx": 174.2552,
+    "targetExposurePx": 1.4107142857142858
+  },
+  {
+    "sprite": "countach_monaco83",
+    "xPx": 320,
+    "upperFenderPx": 20,
+    "lowerFenderPx": 183,
+    "topCenterPx": 28.7448,
+    "bottomCenterPx": 174.2552,
+    "targetExposurePx": 1.4107142857142858
+  },
+  {
+    "sprite": "930",
+    "xPx": 321,
+    "upperFenderPx": 1,
+    "lowerFenderPx": 223,
+    "topCenterPx": 17.55,
+    "bottomCenterPx": 206.45999999999998,
+    "targetExposurePx": 1.45
+  },
+  {
+    "sprite": "930_swiss",
+    "xPx": 317,
+    "upperFenderPx": 3,
+    "lowerFenderPx": 223,
+    "topCenterPx": 19.552500000000002,
+    "bottomCenterPx": 206.45999999999998,
+    "targetExposurePx": 1.45
+  },
+  {
+    "sprite": "930_valliant",
+    "xPx": 325,
+    "upperFenderPx": 1,
+    "lowerFenderPx": 223,
+    "topCenterPx": 17.55,
+    "bottomCenterPx": 206.45999999999998,
+    "targetExposurePx": 1.45
+  },
+  {
+    "sprite": "corvette",
+    "xPx": 333,
+    "upperFenderPx": 2,
+    "lowerFenderPx": 200,
+    "topCenterPx": 14.7175,
+    "bottomCenterPx": 187.26749999999998,
+    "targetExposurePx": 1.4857142857142858
+  },
+  {
+    "sprite": "corvette_bfg49",
+    "xPx": 337,
+    "upperFenderPx": 2,
+    "lowerFenderPx": 199,
+    "topCenterPx": 14.7175,
+    "bottomCenterPx": 186.2728,
+    "targetExposurePx": 1.4857142857142858
+  },
+  {
+    "sprite": "corvette_spirit76",
+    "xPx": 333,
+    "upperFenderPx": 2,
+    "lowerFenderPx": 199,
+    "topCenterPx": 14.7175,
+    "bottomCenterPx": 186.2728,
+    "targetExposurePx": 1.4857142857142858
+  },
+  {
+    "sprite": "csl",
+    "xPx": 344,
+    "upperFenderPx": 1,
+    "lowerFenderPx": 197,
+    "topCenterPx": 14.427499999999998,
+    "bottomCenterPx": 183.5775,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "csl_calder",
+    "xPx": 340,
+    "upperFenderPx": 2,
+    "lowerFenderPx": 196,
+    "topCenterPx": 15.4225,
+    "bottomCenterPx": 182.5825,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "csl_castrol",
+    "xPx": 347,
+    "upperFenderPx": 2,
+    "lowerFenderPx": 195,
+    "topCenterPx": 15.345,
+    "bottomCenterPx": 181.6452,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "250gto",
+    "xPx": 340,
+    "upperFenderPx": 12,
+    "lowerFenderPx": 193,
+    "topCenterPx": 20.5,
+    "bottomCenterPx": 184.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "250gto_francorchamps",
+    "xPx": 340,
+    "upperFenderPx": 11,
+    "lowerFenderPx": 192,
+    "topCenterPx": 19.5,
+    "bottomCenterPx": 183.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "250gto_walker",
+    "xPx": 342,
+    "upperFenderPx": 12,
+    "lowerFenderPx": 192,
+    "topCenterPx": 20.5,
+    "bottomCenterPx": 183.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "typee",
+    "xPx": 332,
+    "upperFenderPx": 4,
+    "lowerFenderPx": 196,
+    "topCenterPx": 16.5,
+    "bottomCenterPx": 183.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "typee_cunningham",
+    "xPx": 336,
+    "upperFenderPx": 4,
+    "lowerFenderPx": 197,
+    "topCenterPx": 16.5,
+    "bottomCenterPx": 184.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "typee_ecosse",
+    "xPx": 334,
+    "upperFenderPx": 4,
+    "lowerFenderPx": 197,
+    "topCenterPx": 16.5,
+    "bottomCenterPx": 184.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "240z",
+    "xPx": 340,
+    "upperFenderPx": 4,
+    "lowerFenderPx": 198,
+    "topCenterPx": 14.499999999999998,
+    "bottomCenterPx": 187.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "240z_dunlop",
+    "xPx": 340,
+    "upperFenderPx": 4,
+    "lowerFenderPx": 198,
+    "topCenterPx": 14.499999999999998,
+    "bottomCenterPx": 187.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "240z_sharp",
+    "xPx": 338,
+    "upperFenderPx": 4,
+    "lowerFenderPx": 198,
+    "topCenterPx": 14.499999999999998,
+    "bottomCenterPx": 187.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "gt40",
+    "xPx": 340,
+    "upperFenderPx": 5,
+    "lowerFenderPx": 206,
+    "topCenterPx": 15.9744,
+    "bottomCenterPx": 195.0208,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "gt40_lemans1",
+    "xPx": 338,
+    "upperFenderPx": 4,
+    "lowerFenderPx": 206,
+    "topCenterPx": 14.975999999999999,
+    "bottomCenterPx": 195.0208,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "gt40_lemans2",
+    "xPx": 340,
+    "upperFenderPx": 4,
+    "lowerFenderPx": 205,
+    "topCenterPx": 14.975999999999999,
+    "bottomCenterPx": 194.0224,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "935",
+    "xPx": 340,
+    "upperFenderPx": 4,
+    "lowerFenderPx": 212,
+    "topCenterPx": 17.625600000000002,
+    "bottomCenterPx": 198.3744,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "935_jager",
+    "xPx": 342,
+    "upperFenderPx": 5,
+    "lowerFenderPx": 212,
+    "topCenterPx": 18.6192,
+    "bottomCenterPx": 198.3744,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "935_vaillant",
+    "xPx": 342,
+    "upperFenderPx": 2,
+    "lowerFenderPx": 213,
+    "topCenterPx": 15.616800000000001,
+    "bottomCenterPx": 199.3896,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "787b",
+    "xPx": 340,
+    "upperFenderPx": 5,
+    "lowerFenderPx": 225,
+    "topCenterPx": 17.296,
+    "bottomCenterPx": 212.70399999999998,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "787b_efini18",
+    "xPx": 342,
+    "upperFenderPx": 5,
+    "lowerFenderPx": 224,
+    "topCenterPx": 17.296,
+    "bottomCenterPx": 211.692,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "787b_lemans18",
+    "xPx": 344,
+    "upperFenderPx": 4,
+    "lowerFenderPx": 225,
+    "topCenterPx": 16.307000000000002,
+    "bottomCenterPx": 212.70399999999998,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "962",
+    "xPx": 344,
+    "upperFenderPx": 1,
+    "lowerFenderPx": 197,
+    "topCenterPx": 13.5,
+    "bottomCenterPx": 184.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "962_jager",
+    "xPx": 344,
+    "upperFenderPx": 2,
+    "lowerFenderPx": 197,
+    "topCenterPx": 14.499999999999998,
+    "bottomCenterPx": 184.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "962_shell",
+    "xPx": 344,
+    "upperFenderPx": 2,
+    "lowerFenderPx": 198,
+    "topCenterPx": 14.499999999999998,
+    "bottomCenterPx": 185.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "xjr9",
+    "xPx": 353,
+    "upperFenderPx": 15,
+    "lowerFenderPx": 207,
+    "topCenterPx": 26.708,
+    "bottomCenterPx": 195.294,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "xjr9_castrol",
+    "xPx": 351,
+    "upperFenderPx": 16,
+    "lowerFenderPx": 207,
+    "topCenterPx": 27.698000000000004,
+    "bottomCenterPx": 195.294,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "xjr9_jps",
+    "xPx": 353,
+    "upperFenderPx": 16,
+    "lowerFenderPx": 205,
+    "topCenterPx": 27.698000000000004,
+    "bottomCenterPx": 193.292,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "330p4",
+    "xPx": 323,
+    "upperFenderPx": 4,
+    "lowerFenderPx": 194,
+    "topCenterPx": 14.499999999999998,
+    "bottomCenterPx": 183.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "330p4_giallo",
+    "xPx": 328,
+    "upperFenderPx": 4,
+    "lowerFenderPx": 194,
+    "topCenterPx": 14.499999999999998,
+    "bottomCenterPx": 183.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "330p4_piper",
+    "xPx": 328,
+    "upperFenderPx": 4,
+    "lowerFenderPx": 194,
+    "topCenterPx": 14.499999999999998,
+    "bottomCenterPx": 183.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "p68",
+    "xPx": 340,
+    "upperFenderPx": 6,
+    "lowerFenderPx": 193,
+    "topCenterPx": 18.5,
+    "bottomCenterPx": 180.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "p68_dunlop",
+    "xPx": 342,
+    "upperFenderPx": 8,
+    "lowerFenderPx": 192,
+    "topCenterPx": 20.5,
+    "bottomCenterPx": 179.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "p68_gulf",
+    "xPx": 342,
+    "upperFenderPx": 7,
+    "lowerFenderPx": 193,
+    "topCenterPx": 19.5,
+    "bottomCenterPx": 180.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "countach",
+    "xPx": 85,
+    "upperFenderPx": 9,
+    "lowerFenderPx": 193,
+    "topCenterPx": 19.7722,
+    "bottomCenterPx": 182.2331,
+    "targetExposurePx": 1.4107142857142858
+  },
+  {
+    "sprite": "countach_rainx",
+    "xPx": 85,
+    "upperFenderPx": 9,
+    "lowerFenderPx": 193,
+    "topCenterPx": 19.7722,
+    "bottomCenterPx": 182.2331,
+    "targetExposurePx": 1.4107142857142858
+  },
+  {
+    "sprite": "countach_monaco83",
+    "xPx": 85,
+    "upperFenderPx": 9,
+    "lowerFenderPx": 193,
+    "topCenterPx": 19.7722,
+    "bottomCenterPx": 182.2331,
+    "targetExposurePx": 1.4107142857142858
+  },
+  {
+    "sprite": "gt40",
+    "xPx": 80,
+    "upperFenderPx": 1,
+    "lowerFenderPx": 206,
+    "topCenterPx": 11.9808,
+    "bottomCenterPx": 195.0208,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "gt40_lemans1",
+    "xPx": 80,
+    "upperFenderPx": 1,
+    "lowerFenderPx": 206,
+    "topCenterPx": 11.9808,
+    "bottomCenterPx": 195.0208,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "gt40_lemans2",
+    "xPx": 80,
+    "upperFenderPx": 1,
+    "lowerFenderPx": 206,
+    "topCenterPx": 11.9808,
+    "bottomCenterPx": 195.0208,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "935",
+    "xPx": 118,
+    "upperFenderPx": 1,
+    "lowerFenderPx": 214,
+    "topCenterPx": 14.623199999999999,
+    "bottomCenterPx": 200.3832,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "935_jager",
+    "xPx": 116,
+    "upperFenderPx": 1,
+    "lowerFenderPx": 214,
+    "topCenterPx": 14.623199999999999,
+    "bottomCenterPx": 200.3832,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "935_vaillant",
+    "xPx": 118,
+    "upperFenderPx": 1,
+    "lowerFenderPx": 214,
+    "topCenterPx": 14.623199999999999,
+    "bottomCenterPx": 200.3832,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "typee",
+    "xPx": 92,
+    "upperFenderPx": 1,
+    "lowerFenderPx": 198,
+    "topCenterPx": 13.5,
+    "bottomCenterPx": 185.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "typee_cunningham",
+    "xPx": 90,
+    "upperFenderPx": 1,
+    "lowerFenderPx": 198,
+    "topCenterPx": 13.5,
+    "bottomCenterPx": 185.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "typee_ecosse",
+    "xPx": 90,
+    "upperFenderPx": 1,
+    "lowerFenderPx": 198,
+    "topCenterPx": 13.5,
+    "bottomCenterPx": 185.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "962",
+    "xPx": 105,
+    "upperFenderPx": 2,
+    "lowerFenderPx": 195,
+    "topCenterPx": 14.499999999999998,
+    "bottomCenterPx": 182.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "962_jager",
+    "xPx": 105,
+    "upperFenderPx": 2,
+    "lowerFenderPx": 195,
+    "topCenterPx": 14.499999999999998,
+    "bottomCenterPx": 182.5,
+    "targetExposurePx": 1.5
+  },
+  {
+    "sprite": "962_shell",
+    "xPx": 105,
+    "upperFenderPx": 2,
+    "lowerFenderPx": 196,
+    "topCenterPx": 14.499999999999998,
+    "bottomCenterPx": 183.5,
+    "targetExposurePx": 1.5
+  }
+]

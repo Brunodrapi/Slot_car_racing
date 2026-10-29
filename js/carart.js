@@ -178,7 +178,7 @@ function topArt(model, livree) {
     g2.fillRect(0, 0, c.width, c.height);
     g2.globalCompositeOperation = 'source-over';
     g2.translate(c.width / 2, c.height / 2);
-    g2.fill(frontSuspension(model, c.width, c.height));
+    g2.fill(frontSuspension(model, c.width, c.height, {livree}));
     e.shadow = c;
   }
   return e;
@@ -202,7 +202,8 @@ function drawCarShadow(g, model, livree, opts) {
   const art = topArt(model, livree);
   if (!art) return false;
   const [w, h] = topSize(model, art);
-  const pneus = [...frontTires(model, w, h, opts), ...rearTires(model, w, h)];
+  const wheelOpts = {...opts, livree};
+  const pneus = [...frontTires(model, w, h, wheelOpts), ...rearTires(model, w, h, wheelOpts)];
   if (!pneus.length) { g.drawImage(art.shadow, -w / 2, -h / 2, w, h); return true; }
   const roues = new Path2D();
   for (const p of pneus) {
@@ -222,22 +223,29 @@ function drawCarShadow(g, model, livree, opts) {
   return true;
 }
 
+function wheelLayout(model, opts) {
+  const layouts = model.wheelLayouts;
+  if (!layouts || !layouts.length) return {front:model.frontWheels, rear:model.rearWheels};
+  const i = Math.round(Number(opts && opts.livree)) || 0;
+  return layouts[((i % layouts.length) + layouts.length) % layouts.length];
+}
+
 // Where each front tire sits and how far it is turned, in the sprite's frame (+x forward).
 function frontTires(model, w, h, opts) {
-  return tirePositions(model.frontWheels, w, h, opts);
+  return tirePositions(wheelLayout(model, opts).front, w, h, opts);
 }
-function rearTires(model, w, h) {
-  return tirePositions(model.rearWheels, w, h, {steer:0});
+function rearTires(model, w, h, opts) {
+  return tirePositions(wheelLayout(model, opts).rear, w, h, {steer:0});
 }
 // Wishbones join the chassis to each front hub, underneath the tire at any steering angle.
 // Shared by the color pass and shadow, including the previously missing Windsor axle.
-function frontSuspension(model, w, h) {
-  const path = new Path2D(), layout = model.frontWheels;
+function frontSuspension(model, w, h, opts) {
+  const path = new Path2D(), layout = wheelLayout(model, opts).front;
   if (!layout || !layout.suspension) return path;
-  for (const axle of layout.axles) for (const side of [-1, 1]) {
+  for (const hub of tirePositions(layout, w, h, {steer:0})) {
     for (const offset of [-0.075, 0.035]) {
-      const x = (axle + offset) * w, y = 0;
-      const hubX = axle * w, hubY = side * layout.y * h, t = h * 0.012;
+      const x = hub.x + offset * w, y = 0;
+      const hubX = hub.x, hubY = hub.y, t = h * 0.012;
       path.moveTo(x-t, y); path.lineTo(hubX-t, hubY);
       path.lineTo(hubX+t, hubY); path.lineTo(x+t, y); path.closePath();
     }
@@ -250,7 +258,8 @@ function tirePositions(layout, w, h, opts) {
   const steer = Number.isFinite(value) ? Math.max(-0.65, Math.min(0.65, value)) : 0;
   const length = layout.length * w, width = layout.width * h, r = Math.min(width, length) * 0.04;
   const out = [];
-  for (const axle of layout.axles) for (const side of [-1, 1]) out.push({ x: axle * w, y: side * layout.y * h, steer, length, width, r });
+  const centers = layout.centers || layout.axles.flatMap(x => [-1,1].map(side => ({x,y:side*layout.y})));
+  for (const center of centers) out.push({x:center.x*w, y:center.y*h, steer, length, width, r});
   return out;
 }
 
@@ -288,11 +297,12 @@ function drawCarModel(g, model, livery, opts) {
   const art = topArt(model, opts && opts.livree);
   if (art) {
     const [w, h] = topSize(model, art);
-    const wheelsAbove = model.frontWheels && model.frontWheels.aboveBody;
-    drawTires(g, rearTires(model, w, h));
+    const layout = wheelLayout(model, opts).front;
+    const wheelsAbove = layout && layout.aboveBody;
+    drawTires(g, rearTires(model, w, h, opts));
     if (!wheelsAbove) drawFrontWheels(g, model, w, h, opts);
-    if (model.frontWheels && model.frontWheels.suspension) {
-      g.fillStyle = '#43494b'; g.fill(frontSuspension(model, w, h));
+    if (layout && layout.suspension) {
+      g.fillStyle = '#43494b'; g.fill(frontSuspension(model, w, h, opts));
     }
     g.drawImage(art.img, -w / 2, -h / 2, w, h);
     if (wheelsAbove) drawFrontWheels(g, model, w, h, opts);
