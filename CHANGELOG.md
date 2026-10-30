@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.47
+- Le jeu se déclare sombre : les extensions de mode sombre (Darker, Noir, Dark Reader…) n'assombrissent plus ses menus.
+
 ## 0.52.46
 - Nouvelle icône : la M1 dessinée en aplats, dans l'onglet du navigateur et sur l'écran d'accueil du téléphone.
 
