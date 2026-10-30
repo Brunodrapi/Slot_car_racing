@@ -1205,7 +1205,9 @@ Bruno sur un iPhone à Dynamic Island :
    l'écran des résultats quand on vient d'en gagner un. */
 .trophee { display:inline-block; flex:none; vertical-align:middle; }
 .records.palmares .rline, .records.palmares .rhead { grid-template-columns:76px 1fr 130px 96px; }
-.records.palmares .trophee-cell { display:flex; align-items:center; justify-content:flex-end; gap:6px; font:italic 900 15px Racing,system-ui,sans-serif; }
+/* Médailles alignées à gauche, l'une sous l'autre : la colonne se lit comme une rangée de vitrine. */
+.records.palmares .trophee-cell { display:flex; align-items:center; justify-content:flex-start; gap:6px; font:italic 900 15px Racing,system-ui,sans-serif; text-align:left; }
+.records.palmares .rhead .col-trophee { text-align:left; }
 .records.palmares .rline.vierge .rline-img { opacity:.55; }
 .records.palmares .rline-t { font-family:Racing,system-ui,sans-serif; font-style:italic; font-weight:900; }
 @media (max-width:640px) {

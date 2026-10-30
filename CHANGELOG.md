@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.49
+- Palmarès : les médailles alignées à gauche, l'une sous l'autre.
+
 ## 0.52.48
 - Palmarès : gagne une course rapide pour décrocher le trophée de son niveau, du chocolat (facile) au crâne (cauchemar), pour chaque circuit et chaque voiture ; il s'affiche sous la course rapide et peut se garder sur ton compte Google.
 - La note de pilotage des voitures (les pneus) est retirée.

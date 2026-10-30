@@ -1085,7 +1085,7 @@ class UI {
       <div class="records palmares">
         <div class="rhead">
           <span></span><b></b>
-          <span class="rline-t">${t('palmaresTrophee')}</span>
+          <span class="rline-t col-trophee">${t('palmaresTrophee')}</span>
           <span class="rline-t">${t('palmaresNiveau')}</span>
         </div>
         ${lignes.map(({ md, n }) => `<div class="rline ${md.id === choisie.id ? 'sel' : ''} ${n < 0 ? 'vierge' : ''}">
