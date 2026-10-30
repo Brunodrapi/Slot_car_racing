@@ -104,6 +104,32 @@ function tropheeSVG(rang, taille = 28, titre = '') {
   return `<svg class="trophee trophee-${nom}" viewBox="0 0 32 32" width="${taille}" height="${taille}" role="img"${titre ? ` aria-label="${titre}"` : ' aria-hidden="true"'}>${ruban}${face}</svg>`;
 }
 
+/* Le nuage, comme celui de OneDrive : il dit où vit le palmarès, sans phrase à lire.
+
+  gris          seulement sur cet appareil (pas connecté, ou la base n'a pas encore la fonction)
+  blanc ⟳       envoi en cours
+  blanc         enregistré sur le compte Google
+  blanc + « ! » l'envoi a échoué : le palmarès reste sur l'appareil, et repartira
+
+Un contour sombre autour du blanc, sinon un nuage blanc disparaîtrait sur le papier crème des écrans. */
+const NUAGE = 'M10.5 21H27a5.5 5.5 0 0 0 .9-10.93A8 8 0 0 0 12.6 8.4 6.3 6.3 0 0 0 10.5 21z';
+function nuageSVG(etat, taille = 30) {
+  const gris = etat === 'local', trait = gris ? '#8b877d' : '#171c19';
+  const corps = `<path d="${NUAGE}" fill="${gris ? '#d3cfc5' : '#fff'}" stroke="${trait}" stroke-width="1.6" stroke-linejoin="round"/>`;
+  let plus = '';
+  if (etat === 'synchro') plus = `<g class="nuage-tourne"><path d="M15.3 14.6a3.6 3.6 0 0 1 6.2-2.3" fill="none" stroke="#2f6db5" stroke-width="1.7" stroke-linecap="round"/>
+      <path d="M22.2 10.4l-.3 2.6-2.5-.6z" fill="#2f6db5"/><path d="M22.7 15.4a3.6 3.6 0 0 1-6.2 2.3" fill="none" stroke="#2f6db5" stroke-width="1.7" stroke-linecap="round"/>
+      <path d="M15.8 19.6l.3-2.6 2.5.6z" fill="#2f6db5"/></g>`;
+  if (etat === 'erreur') plus = '<circle cx="28" cy="18" r="5" fill="#c92c23" stroke="#171c19" stroke-width="1.2"/><path d="M28 15.1v3.4" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/><circle cx="28" cy="20.6" r="1" fill="#fff"/>';
+  return `<svg class="nuage" viewBox="0 0 36 26" width="${taille}" height="${Math.round(taille * 26 / 36)}" aria-hidden="true">${corps}${plus}</svg>`;
+}
+/** L'état du nuage : 'local', 'synchro', 'ok' ou 'erreur'. */
+function etatNuage(mondial) {
+  if (!mondial || !mondial.connecte()) return 'local';
+  const e = PalmaresSync.etat;
+  return e === 'ok' ? 'ok' : e === 'erreur' ? 'erreur' : e === 'indisponible' ? 'local' : 'synchro';
+}
+
 /* La synchronisation avec le compte.
 
 `etat` vaut null (pas tentée), 'en-cours', 'ok', 'indisponible' (la base n'a pas encore la fonction :
@@ -151,4 +177,4 @@ const PalmaresSync = {
   },
 };
 
-if (typeof module !== 'undefined') module.exports = { TROPHEES, NIVEAUX_TROPHEE, TOURS_MIN_TROPHEE, rangTrophee, tropheeDe, attribueTrophee, tropheeSVG };
+if (typeof module !== 'undefined') module.exports = { TROPHEES, NIVEAUX_TROPHEE, TOURS_MIN_TROPHEE, rangTrophee, tropheeDe, attribueTrophee, tropheeSVG, nuageSVG };

@@ -80,11 +80,13 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
       app._onRaceFinished();
       await new Promise((res) => setTimeout(res, 300));
       const g = document.querySelector('.trophee-gagne');
-      return { cle: `monza|${r.cls.id}`, n: app.save.palmares[`monza|${r.cls.id}`], banniere: g ? g.textContent.trim() : null, svg: !!(g && g.querySelector('svg.trophee-or')),
+      return { cle: `monza|${r.cls.id}`, n: app.save.palmares[`monza|${r.cls.id}`], banniere: g ? g.querySelector('b').textContent.trim() : null, svg: !!(g && g.querySelector('svg.trophee-or')),
+        nuage: g && g.querySelector('.nuage-etat') ? g.querySelector('.nuage-etat').className : null,
         stocke: JSON.parse(localStorage.getItem(SAVE_KEY)).palmares[`monza|${r.cls.id}`] };
     });
     ok(fin.n === 3 && fin.stocke === 3, `une course gagnée en Extrême : l’or entre dans la sauvegarde (${fin.cle})`);
     ok(fin.svg && /Nouveau trophée : Or \(Extrême\)/.test(fin.banniere || ''), `et s’affiche en grand sur les résultats (« ${fin.banniere} »)`);
+    ok(/nuage-local/.test(fin.nuage || ''), 'hors connexion, le trophée gagné porte le nuage gris');
 
     // --- l'écran de course rapide ---
     const ecran = await p.evaluate(async () => {
@@ -95,7 +97,8 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
       const premiere = lignes[0];
       const course = { titre: bloc.querySelector('h3').textContent, n: lignes.length, premiere: premiere ? premiere.textContent.replace(/\s+/g, ' ').trim() : '',
         or: !!(premiere && premiere.querySelector('svg.trophee-or')), records: !!bloc.querySelector('.records:not(.palmares)'),
-        pneus: document.querySelectorAll('.tyres, .stat-pilotage').length, compte: bloc.textContent.includes('Connecte-toi pour garder ton palmarès') };
+        pneus: document.querySelectorAll('.tyres, .stat-pilotage').length,
+        compte: !!bloc.querySelector('.palmares-tete .nuage-etat.nuage-local [data-action="google"]') && bloc.querySelector('.nuage-etat').textContent.includes('Sur cet appareil') };
       app.ui.setupScreen('timetrial');
       await new Promise((res) => setTimeout(res, 300));
       const b2 = document.querySelector('.setup-records');
@@ -103,7 +106,7 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     });
     ok(ecran.course.titre === 'Ton palmarès' && ecran.course.n >= 9 && !ecran.course.records, `sous la course rapide : « Ton palmarès », ${ecran.course.n} voitures`);
     ok(ecran.course.or && /Or/.test(ecran.course.premiere) && /Extrême/.test(ecran.course.premiere), `la voiture titrée en tête, avec son or (« ${ecran.course.premiere} »)`);
-    ok(ecran.course.compte, 'hors connexion, il invite à se connecter pour garder son palmarès');
+    ok(ecran.course.compte, 'hors connexion : nuage gris « Sur cet appareil », et de quoi se connecter');
     ok(ecran.cm.titre !== 'Ton palmarès' && !ecran.cm.palmares && ecran.cm.records, 'le contre-la-montre garde ses records');
     ok(ecran.course.pneus === 0, 'plus aucune note de pilotage (pneus) à l’écran');
 
@@ -115,14 +118,36 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     });
     ok(recu && recu.p_canal === 'recette' && recu.p_lignes.some((l) => l.c === 'monza' && l.n === 3), `l’appareil envoie son palmarès (canal « ${recu && recu.p_canal} », ${recu ? recu.p_lignes.length : 0} ligne(s))`);
     ok(synchro.etat === 'ok' && synchro.change && synchro.monzaF40 === 4 && synchro.stocke === 4, 'et récupère ce que le compte a gagné ailleurs (le crâne à Monza en Furia 40)');
+    const nuageOk = await p.evaluate(() => { app.ui.setupScreen('race'); const n = document.querySelector('.palmares-tete .nuage-etat'); return n ? n.className + ' ' + n.textContent.trim() : ''; });
+    ok(/nuage-ok/.test(nuageOk) && /Enregistré sur ton compte/.test(nuageOk), `connecté et enregistré : nuage blanc (« ${nuageOk.replace(/.*nuage-ok\s*/, '')} »)`);
+    // à l'arrivée, connecté : le nuage tourne pendant l'envoi, puis devient blanc, sans repeindre l'écran
+    let relache; const attente = new Promise((r) => { relache = r; });
+    await ctx.unroute('**/rest/v1/rpc/synchro_palmares');
+    await ctx.route('**/rest/v1/rpc/synchro_palmares', async (r) => { await attente; await r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }); });
+    const pendant = await p.evaluate(async () => {
+      app.save.difficulty = 'cauchemar'; app.save.laps = 3; app.startQuick('race', 'gt', 'spa');
+      await new Promise((res) => { const w = () => (app.race && app.race.state === 'racing' ? res() : setTimeout(w, 50)); w(); });
+      const r = app.race, moi = r.player; moi.finished = true; moi.finishTime = 300; r.state = 'finished';
+      r.results = [{ car: moi, pos: 1, points: 0, time: 300, brut: 300, penalite: 0, fautes: 0, bestLap: 99, gap: null }];
+      app._onRaceFinished(); await new Promise((res) => setTimeout(res, 200));
+      window.__ecran = document.querySelector('.trophee-gagne');
+      return document.querySelector('.trophee-gagne .nuage-etat').className;
+    });
+    relache();
+    await p.waitForFunction(() => /nuage-ok/.test((document.querySelector('.trophee-gagne .nuage-etat') || {}).className || ''), null, { timeout: 5000 }).catch(() => {});
+    const apres = await p.evaluate(() => ({ cls: document.querySelector('.trophee-gagne .nuage-etat').className, meme: window.__ecran === document.querySelector('.trophee-gagne') }));
+    ok(/nuage-synchro/.test(pendant) && /nuage-ok/.test(apres.cls) && apres.meme, 'à l’arrivée, connecté : le nuage tourne pendant l’envoi puis devient blanc, sans repeindre l’écran');
+    // la base sans la fonction : le serveur répond 404
+    await ctx.unroute('**/rest/v1/rpc/synchro_palmares');
+    await ctx.route('**/rest/v1/rpc/synchro_palmares', (r) => r.fulfill({ status: 404, body: '{}' }));
     absent = true;
     const indispo = await p.evaluate(async () => {
       const avant = JSON.stringify(app.save.palmares);
       await PalmaresSync.synchronise(app.mondial, app.save);
       app.ui.setupScreen('race'); await new Promise((res) => setTimeout(res, 200));
-      return { etat: PalmaresSync.etat, intact: JSON.stringify(app.save.palmares) === avant, dit: document.querySelector('.setup-records').textContent.includes('pas encore ouvert') };
+      return { etat: PalmaresSync.etat, intact: JSON.stringify(app.save.palmares) === avant, dit: !!document.querySelector('.palmares-tete .nuage-etat.nuage-local') };
     });
-    ok(indispo.etat === 'indisponible' && indispo.intact && indispo.dit, 'base sans la fonction (404) : le palmarès local reste, et l’écran le dit');
+    ok(indispo.etat === 'indisponible' && indispo.intact && indispo.dit, 'base sans la fonction (404) : le palmarès local reste, nuage gris');
     await p.evaluate(() => { app.mondial.sortir(); app.save.palmares = {}; storeSave(app.save); });
     ok(!erreurs.length, 'aucune erreur de page' + (erreurs.length ? ' : ' + erreurs.join(' | ') : ''));
   } finally {

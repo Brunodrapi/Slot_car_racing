@@ -1231,3 +1231,16 @@ Bruno sur un iPhone à Dynamic Island :
 @keyframes trophee-arrivee { from { transform:scale(.2) rotate(-25deg); opacity:0; } to { transform:none; opacity:1; } }
 @media (prefers-reduced-motion: reduce) { .trophee-gagne .trophee { animation:none; } }
 .trophee-note { display:flex; align-items:center; gap:6px; margin:4px 0 8px; }
+
+/* Le nuage du palmarès : gris sur l'appareil, blanc sur le compte (js/palmares.js, `nuageSVG`). */
+.palmares-tete { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.palmares-tete h3 { margin:0; }
+.nuage-etat { display:inline-flex; align-items:center; gap:6px; font:italic 900 13px Racing,system-ui,sans-serif; color:#3a4038; }
+.nuage-etat.nuage-local { color:#7b776e; }
+.nuage-etat.nuage-erreur { color:#a8261f; }
+.nuage-etat .nuage { flex:none; }
+.nuage-etat .link { margin-left:4px; }
+.nuage-tourne { transform-origin:19px 15px; animation:nuage-tourne 1.2s linear infinite; }
+@keyframes nuage-tourne { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .nuage-tourne { animation:none; } }
+.trophee-gagne > div { display:flex; flex-direction:column; gap:6px; }

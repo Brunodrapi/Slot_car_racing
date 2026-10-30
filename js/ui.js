@@ -143,6 +143,7 @@ const I18N = {
     palmaresErreur: 'Palmarès pas enregistré en ligne pour l’instant : il reste sur cet appareil.',
     tropheeNouveau: (n) => `Nouveau trophée : ${n} !`, tropheeAcquis: (n) => `Trophée déjà gagné : ${n}.`,
     tropheeTours: (n) => `Victoire en moins de ${n} tours : pas de trophée.`,
+    nuage_local: 'Sur cet appareil', nuage_synchro: 'Enregistrement…', nuage_ok: 'Enregistré sur ton compte', nuage_erreur: 'Pas enregistré en ligne',
     nameTitle: 'Ton nom de pilote', nameGo: 'C’est parti',
     nameWhy: 'Il signera tes temps, ici et au tableau des records.',
     nameRule: (a, b) => `Lettres et chiffres uniquement, de ${a} à ${b} caractères.`,
@@ -276,6 +277,7 @@ const I18N = {
     palmaresErreur: 'Trophies not saved online for now: they stay on this device.',
     tropheeNouveau: (n) => `New trophy: ${n}!`, tropheeAcquis: (n) => `Trophy already won: ${n}.`,
     tropheeTours: (n) => `Won in fewer than ${n} laps: no trophy.`,
+    nuage_local: 'On this device', nuage_synchro: 'Saving…', nuage_ok: 'Saved to your account', nuage_erreur: 'Not saved online',
     nameTitle: 'Your driver name', nameGo: 'Let’s go',
     nameWhy: 'It will sign your times, here and on the record board.',
     nameRule: (a, b) => `Letters and digits only, ${a} to ${b} characters.`,
@@ -1064,24 +1066,31 @@ class UI {
   Une ligne par voiture de la catégorie, et sur chacune le plus haut trophée gagné sur ce circuit —
   du chocolat (facile) au crâne (cauchemar). Rangées du meilleur au moins bon, les vierges à la fin :
   c'est un tableau de chasse, comme celui des temps. Pas de colonne « monde » : on ne compare
-  personne. Connecté avec Google, le palmarès suit le compte d'un appareil à l'autre ; la ligne
-  d'état dit où il en est (voir `PalmaresSync`, js/palmares.js). */
+  personne. Connecté avec Google, le palmarès suit le compte d'un appareil à l'autre ; le nuage à
+  côté du titre dit où il en est (voir `nuagePalmares`). */
+  /* Où vit le palmarès, en un nuage gris ou blanc et deux mots (voir `nuageSVG`, js/palmares.js).
+  La phrase complète reste en info-bulle ; sur un téléphone, qui n'en a pas, les deux mots suffisent.
+  `avecBouton` ajoute « Se connecter avec Google » au nuage gris d'un joueur pas connecté. */
+  nuagePalmares(avecBouton) {
+    const t = (k, ...a) => this.t(k, ...a), m = this.app.mondial, e = etatNuage(m);
+    const longue = !m || !m.connecte() ? t('palmaresCompte')
+      : t({ ok: 'palmaresOk', erreur: 'palmaresErreur', synchro: 'palmaresSynchro' }[e] || 'palmaresIndispo');
+    const connecter = avecBouton && m && !m.connecte() ? `<button class="link" data-action="google">${t('signIn')}</button>` : '';
+    return `<span class="nuage-etat nuage-${e}" title="${escapeHtml(longue)}" data-avec-bouton="${avecBouton ? 1 : 0}">${nuageSVG(e)}<span>${t('nuage_' + e)}</span>${connecter}</span>`;
+  }
+  /** Repeindre les nuages affichés, sans repeindre l'écran (l'envoi finit pendant qu'on lit les résultats). */
+  majNuage() {
+    for (const el of document.querySelectorAll('.nuage-etat')) el.outerHTML = this.nuagePalmares(el.dataset.avecBouton === '1');
+  }
+
   palmaresListe(trackId, cat, choisie, livery) {
     const t = (k, ...a) => this.t(k, ...a), s = this.app.save, m = this.app.mondial;
     const lignes = modelsOf(cat.id)
       .map((md, i) => ({ md, i, n: tropheeDe(s, trackId, md.id) }))
       .sort((x, y) => y.n - x.n || x.i - y.i);
-    const ligne = (cls, txt, bouton) => `<p class="${cls} mondial-note">${txt}${bouton || ''}</p>`;
-    let etat = '';
-    if (m && m.erreurConnexion) etat = this.etatMondial();
-    else if (m && !m.connecte()) etat = ligne('muted', t('palmaresCompte'), `<button class="link" data-action="google">${t('signIn')}</button>`);
-    else if (m) {
-      const e = PalmaresSync.etat;
-      etat = ligne('muted', t(e === 'en-cours' || e == null ? 'palmaresSynchro' : e === 'ok' ? 'palmaresOk' : e === 'indisponible' ? 'palmaresIndispo' : 'palmaresErreur'));
-    }
-    return `<h3>${t('palmares')}</h3>
+    return `<div class="palmares-tete"><h3>${t('palmares')}</h3>${this.nuagePalmares(true)}</div>
+      ${m && m.erreurConnexion ? this.etatMondial() : ''}
       <p class="muted mondial-note">${t('palmaresRegle', TOURS_MIN_TROPHEE)}</p>
-      ${etat}
       <div class="records palmares">
         <div class="rhead">
           <span></span><b></b>
@@ -1481,7 +1490,7 @@ class UI {
     if (!tr) return '';
     const t = (k, ...a) => this.t(k, ...a), nom = (n) => `${t('trophee_' + TROPHEES[n])} (${t(NIVEAUX_TROPHEE[n])})`;
     if (tr.raison === 'tours') return `<p class="muted trophee-note">${t('tropheeTours', TOURS_MIN_TROPHEE)}</p>`;
-    if (tr.nouveau) return `<div class="trophee-gagne">${tropheeSVG(tr.rang, 72, t('trophee_' + TROPHEES[tr.rang]))}<b>${t('tropheeNouveau', nom(tr.rang))}</b></div>`;
+    if (tr.nouveau) return `<div class="trophee-gagne">${tropheeSVG(tr.rang, 72, t('trophee_' + TROPHEES[tr.rang]))}<div><b>${t('tropheeNouveau', nom(tr.rang))}</b>${this.nuagePalmares(true)}</div></div>`;
     return `<p class="muted trophee-note">${tropheeSVG(tr.ancien, 22)} ${t('tropheeAcquis', nom(tr.ancien))}</p>`;
   }
 

@@ -11,7 +11,7 @@ browser to fetch the new files.
 */
 'use strict';
 
-const APP_VERSION = '0.52.49';
+const APP_VERSION = '0.52.50';
 const APP_DATE = '2026-10-30';
 /* Le canal. Le dépôt, tel quel, EST la recette : c'est lui que sert brunodrapi.github.io/Slot_car_racing,
 code source commenté compris. La prod est la version fabriquée par `tools/build-dist.js`, qui écrit

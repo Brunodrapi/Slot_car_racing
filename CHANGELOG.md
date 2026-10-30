@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.50
+- Palmarès : un nuage dit s'il est enregistré sur ton compte (blanc) ou seulement sur cet appareil (gris), à côté du palmarès et sous un trophée qu'on vient de gagner.
+
 ## 0.52.49
 - Palmarès : les médailles alignées à gauche, l'une sous l'autre.
 

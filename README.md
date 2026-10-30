@@ -2069,6 +2069,11 @@ premier**, au plus haut niveau possible. Chaque niveau a son trophée — chocol
   tableau mondial : chacun ne lit que le sien, d'où une fonction de la base bornée à `auth.uid()`
   plutôt qu'une fonction serveur. Recette et prod ont chacune leur palmarès (`canal`). Tant que la
   base n'a pas la fonction, l'écran dit que le palmarès reste sur l'appareil, et rien ne casse.
+- **Le nuage, comme OneDrive** (0.52.50) : à côté du titre « Ton palmarès » et sous un trophée
+  qu'on vient de gagner, un nuage dit où vit le palmarès — gris « Sur cet appareil » (pas connecté,
+  avec le bouton Google), blanc avec deux flèches qui tournent « Enregistrement… », blanc
+  « Enregistré sur ton compte », blanc marqué d'un « ! » rouge « Pas enregistré en ligne ». Sur
+  l'écran des résultats il change tout seul quand l'envoi aboutit, sans repeindre l'écran.
 
 `tools/e2e-palmares.js` vérifie les règles, une fin de course gagnée, les deux écrans et la
 synchronisation contre un serveur simulé.

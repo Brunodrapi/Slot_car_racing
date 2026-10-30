@@ -105,7 +105,7 @@ class App {
     /* Le palmarès du compte, fusionné avec celui de l'appareil au démarrage : les trophées gagnés
     sur un autre appareil arrivent ici, ceux d'ici partent là-bas. L'écran de course repeint sa
     ligne d'état et sa liste quand la réponse arrive. */
-    PalmaresSync.onEtat = () => { if (this.ui._cleEcran === 'depart:race') this.ui.setupScreen('race'); };
+    PalmaresSync.onEtat = () => { if (this.ui._cleEcran === 'depart:race') this.ui.setupScreen('race'); else this.ui.majNuage(); };
     if (this.mondial.connecte()) PalmaresSync.synchronise(this.mondial, this.save).catch(() => {});
     this.ui.splash();
     this.refreshCustom().then(() => {
