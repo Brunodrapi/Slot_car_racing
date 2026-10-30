@@ -3438,6 +3438,12 @@ encore, mais n'envoie ni le tour bouclé ni le rattrapage à la connexion, et l'
 vieux temps restent sur le domaine de la recette, d'où ils ne partent plus ; la prod n'en a pas
 d'avant le 22. `tools/e2e-mondial.js` vérifie que rien ne part de la recette.
 
+**Le 30 octobre 2026, le Rocher seul.** La 0.52.47 publie en prod le Rocher repris par Bruno (bords
+de piste, axe et trajectoires) : un temps posé sur l'ancien tracé ne se compare plus. Le seul qu'il
+y avait — Bruno, Howitzer K1, 1:41.1, du 25 octobre — est effacé
+(`supabase/remise-a-zero-monaco-2026-10-30.sql`) ; les autres circuits et les pilotes n'ont pas
+bougé. À refaire ainsi chaque fois qu'un circuit change de tracé en prod.
+
 ### Le plancher : trente secondes, et un banc qui le vérifie
 
 Le serveur refuse tout temps sous **trente secondes**, pour tous les circuits et toutes les voitures.
