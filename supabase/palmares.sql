@@ -40,6 +40,9 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+-- les colonnes rendues (circuit, voiture, niveau) portent les noms de celles de la table : sans cette
+-- directive, PL/pgSQL refuse l'`on conflict (…, circuit, voiture)` comme ambigu
+#variable_conflict use_column
 declare
   qui uuid := auth.uid();
   l jsonb;
