@@ -78,29 +78,11 @@ const serveur = http.createServer((req, res) => {
   const plein = lu.flatMap((v) => v.cadrans.filter((g) => g.arc >= 100).map((g) => `${v.nom} ${g.unite}`));
   console.log(plein.length ? 'CADRAN PLEIN : ' + plein.join(', ') : 'aucun cadran plein (max ' +
     Math.max(...lu.flatMap((v) => v.cadrans.map((g) => g.arc))) + ' %)');
-  /* Les pneus de difficulté : ce qui est dessiné doit être ce qui est mesuré.
-
-  On relève ce que la page affiche — cinq pneus par carte, dont n pleins — et on le confronte au
-  `diff` du modèle. Compter les pneus à l'écran plutôt que relire la donnée est tout l'intérêt :
-  c'est le seul moyen de voir un décalage entre le classement et son affichage. */
-  const pneus = await page.evaluate(() => [...document.querySelectorAll('.models .card')].map((c) => {
-    const nom = (c.querySelector('b') || {}).textContent || '';
-    const m = (typeof MODELS !== 'undefined' ? MODELS : []).find((x) => nom.startsWith(x.name));
-    return { nom: nom.trim(), attendu: m ? m.diff : null,
-             total: c.querySelectorAll('.tyres .tyre').length,
-             pleins: c.querySelectorAll('.tyres .tyre.on').length,
-             lu: (c.querySelector('.tyres .sr') || {}).textContent || '' };
-  }));
-  console.log('\nles pneus de difficulté :');
-  for (const p of pneus) {
-    const ok = p.total === 5 && p.pleins === p.attendu;
-    if (!ok) errs++;
-    console.log(`  ${ok ? 'ok  ' : 'ÉCHEC'} ${p.nom.padEnd(18)} ${'●'.repeat(p.pleins)}${'○'.repeat(Math.max(0, p.total - p.pleins))}`
-      + `  mesuré ${p.attendu}, affiché ${p.pleins} sur ${p.total}   «${p.lu.trim()}»`);
-  }
-  if (pneus.length && pneus.every((p) => p.pleins === pneus[0].pleins)) {
-    errs++; console.log('  ÉCHEC : toutes les voitures portent le même nombre de pneus — le classement ne classe rien');
-  }
+  /* Les pneus de difficulté ont été retirés (0.52.48) : le palmarès les remplace (js/palmares.js).
+  On vérifie qu'il n'en reste aucun sur les cartes ni dans la fiche de la voiture. */
+  const pneus = await page.evaluate(() => document.querySelectorAll('.tyres, .stat-pilotage').length);
+  console.log(pneus ? `\nÉCHEC : ${pneus} note(s) de difficulté encore affichée(s)` : '\nplus de note de difficulté (pneus) à l’écran');
+  if (pneus) errs++;
   /* Zéro carte est un ÉCHEC, pas un essai réussi sur rien.
 
   La grille des voitures est devenue un rail, et le sélecteur `.grid.models .card` a cessé de

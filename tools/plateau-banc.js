@@ -182,7 +182,8 @@ if (!isMainThread) {
       Chacune est ramenée à sa place dans le plateau, de 0 à 1, puis moyennée, et l'échelle va de
       zéro pneu (la plus docile) à cinq (la plus exigeante) sur les TROIS catégories à la fois : une
       F1 à trois pneus est aussi exigeante qu'une GT à trois, y compris dans le rail « Toutes ».
-      C'est la mesure qui fixe `diff` dans `js/cars.js`.
+      C'était la mesure qui fixait `diff` dans `js/cars.js` ; la note (les pneus) n'est plus affichée
+      depuis la 0.52.48, remplacée par le palmarès, et `diff` a été retiré des voitures.
 
       `tools/difficulte.js` faisait ce travail, et ne le fait plus : depuis le modèle de motricité,
       son coup de lacet n'est encaissé par presque aucune voiture (0,00 rad/s), et sa dérive sature

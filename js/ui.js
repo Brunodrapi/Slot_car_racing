@@ -94,7 +94,6 @@ const I18N = {
     installAnd3: 'Confirme : l’icône GRIP rejoint tes applications.',
     installInApp: 'Ouvert depuis une appli (Instagram, Messenger…) ? Ouvre d’abord la page dans Safari ou Chrome : c’est là seulement qu’on peut l’installer.',
     carClass: 'Catégorie', model: 'Modèle', track: 'Circuit', livery: 'Livrée', tyres: 'Gomme', damage: 'Tôle', linePit: 'STAND', wear: 'Usure et dommages', wearHint: 'Les pneus s\'usent en glissant, les chocs et les sorties abîment la voiture.', difficulty: 'Difficulté', easy: 'Facile', medium: 'Normal', hard: 'Difficile', extreme: 'Extrême', cauchemar: 'Cauchemar',
-    diffTitle: 'Ce que la voiture coûte à piloter', diffLevel: (n) => `Difficulté ${n} sur 5`,
     laps: 'tours', lapCustom: 'Perso', start: 'Départ !', locked: 'Verrouillé', unlockHint: 'Termine la coupe précédente dans le top 3 pour débloquer.',
     cup: 'Coupe', races: 'courses', raceOf: (a, b) => `Course ${a} / ${b}`, standings: 'Classement', nextRace: 'Prochaine course', startRace: 'Lancer la course',
     done: 'Terminée', inProgress: 'En cours', notStarted: 'Pas commencée', resetCup: 'Recommencer cette coupe', finalPos: (p) => `Classement final : P${p}`,
@@ -135,6 +134,15 @@ const I18N = {
     refus_reseau: 'Pas de réseau au moment de l’envoi. Ton temps est gardé ici.',
     refus_autre: (r) => `Temps non retenu par le serveur (${r}).`,
     worldBest: 'Monde', worldNeedsAccount: 'Connecte-toi pour inscrire tes temps au tableau mondial.', signIn: 'Se connecter avec Google', signOut: 'Se déconnecter',
+    palmares: 'Ton palmarès', palmaresTrophee: 'Trophée', palmaresNiveau: 'Niveau',
+    trophee_chocolat: 'Chocolat', trophee_bronze: 'Bronze', trophee_argent: 'Argent', trophee_or: 'Or', trophee_crane: 'Crâne',
+    palmaresRegle: (n) => `Gagne une course d’au moins ${n} tours : le niveau de difficulté donne le trophée.`,
+    palmaresCompte: 'Connecte-toi pour garder ton palmarès sur tous tes appareils.',
+    palmaresSynchro: 'Enregistrement du palmarès…', palmaresOk: 'Palmarès enregistré sur ton compte.',
+    palmaresIndispo: 'L’enregistrement en ligne n’est pas encore ouvert : ton palmarès reste sur cet appareil.',
+    palmaresErreur: 'Palmarès pas enregistré en ligne pour l’instant : il reste sur cet appareil.',
+    tropheeNouveau: (n) => `Nouveau trophée : ${n} !`, tropheeAcquis: (n) => `Trophée déjà gagné : ${n}.`,
+    tropheeTours: (n) => `Victoire en moins de ${n} tours : pas de trophée.`,
     nameTitle: 'Ton nom de pilote', nameGo: 'C’est parti',
     nameWhy: 'Il signera tes temps, ici et au tableau des records.',
     nameRule: (a, b) => `Lettres et chiffres uniquement, de ${a} à ${b} caractères.`,
@@ -142,7 +150,7 @@ const I18N = {
     multi: 'Multijoueur', multiIntro: 'Ouvre une table et donne son code à quatre lettres, ou saisis celui qu’on t’a donné. Tout passe directement d’un appareil à l’autre : rien n’est conservé, fermer la page ferme la table.',
     createTable: 'Ouvrir une table', joinTable: 'Rejoindre', tableCode: 'Code de la table', yourTable: 'Ta table', waiting: 'En attente…',
     mFormat: 'Format', mRace: 'Course', mDuel: 'Duel', mGhost: 'Contre-la-montre',
-    enPiste: 'En piste !', statVmax: 'Vitesse max.', statA100: 'Accélération', statB100: 'Freinage', statGrip: 'Adhérence', pilotage: 'Pilotage', chipWear: 'Usure', chipControl: 'Commande', pilotLabel: 'Pilote',
+    enPiste: 'En piste !', statVmax: 'Vitesse max.', statA100: 'Accélération', statB100: 'Freinage', statGrip: 'Adhérence', chipWear: 'Usure', chipControl: 'Commande', pilotLabel: 'Pilote',
     catAll: 'Toutes', mCat: 'Catégorie', mCatDesc: 'L\'hôte peut réserver la table à une catégorie : chacun choisit alors sa voiture dans celle-ci.', mCatOpen: 'Chacun prend la voiture qu\'il veut ; l\'IA court dans la catégorie de l\'hôte.',
     mRaceDesc: 'Tout le monde sur la grille, complétée par des IA, avec les contacts.',
     mDuelDesc: 'Les humains et personne d’autre.', mGhostDesc: 'Même circuit, chacun son tour, les voitures se traversent.',
@@ -219,7 +227,6 @@ const I18N = {
     installAnd3: 'Confirm: the GRIP icon joins your apps.',
     installInApp: 'Opened from an app (Instagram, Messenger…)? Open the page in Safari or Chrome first: that’s the only place it can be installed.',
     carClass: 'Class', model: 'Model', track: 'Track', livery: 'Livery', tyres: 'Tyres', damage: 'Body', linePit: 'PIT', wear: 'Wear and damage', wearHint: 'Tyres wear as you slide; contact and excursions damage the car.', difficulty: 'Difficulty', easy: 'Easy', medium: 'Normal', hard: 'Hard', extreme: 'Extreme', cauchemar: 'Nightmare',
-    diffTitle: 'How much the car costs to drive', diffLevel: (n) => `Difficulty ${n} of 5`,
     laps: 'laps', lapCustom: 'Custom', start: 'Start!', locked: 'Locked', unlockHint: 'Finish the previous cup in the top 3 to unlock.',
     cup: 'Cup', races: 'races', raceOf: (a, b) => `Race ${a} / ${b}`, standings: 'Standings', nextRace: 'Next race', startRace: 'Start race',
     done: 'Complete', inProgress: 'In progress', notStarted: 'Not started', resetCup: 'Restart this cup', finalPos: (p) => `Final standing: P${p}`,
@@ -260,6 +267,15 @@ const I18N = {
     refus_reseau: 'No network when sending. Your time is kept here.',
     refus_autre: (r) => `Time not kept by the server (${r}).`,
     worldBest: 'World', worldNeedsAccount: 'Sign in to put your times on the world board.', signIn: 'Sign in with Google', signOut: 'Sign out',
+    palmares: 'Your trophies', palmaresTrophee: 'Trophy', palmaresNiveau: 'Level',
+    trophee_chocolat: 'Chocolate', trophee_bronze: 'Bronze', trophee_argent: 'Silver', trophee_or: 'Gold', trophee_crane: 'Skull',
+    palmaresRegle: (n) => `Win a race of at least ${n} laps: the difficulty level gives the trophy.`,
+    palmaresCompte: 'Sign in to keep your trophies on all your devices.',
+    palmaresSynchro: 'Saving your trophies…', palmaresOk: 'Trophies saved to your account.',
+    palmaresIndispo: 'Online saving is not open yet: your trophies stay on this device.',
+    palmaresErreur: 'Trophies not saved online for now: they stay on this device.',
+    tropheeNouveau: (n) => `New trophy: ${n}!`, tropheeAcquis: (n) => `Trophy already won: ${n}.`,
+    tropheeTours: (n) => `Won in fewer than ${n} laps: no trophy.`,
     nameTitle: 'Your driver name', nameGo: 'Let’s go',
     nameWhy: 'It will sign your times, here and on the record board.',
     nameRule: (a, b) => `Letters and digits only, ${a} to ${b} characters.`,
@@ -267,7 +283,7 @@ const I18N = {
     multi: 'Multiplayer', multiIntro: 'Open a table and pass on its four-letter code, or type the one you were given. Everything goes straight from one device to the other: nothing is stored, closing the page closes the table.',
     createTable: 'Open a table', joinTable: 'Join', tableCode: 'Table code', yourTable: 'Your table', waiting: 'Waiting…',
     mFormat: 'Format', mRace: 'Race', mDuel: 'Duel', mGhost: 'Time trial',
-    enPiste: 'On track!', statVmax: 'Top speed', statA100: 'Acceleration', statB100: 'Braking', statGrip: 'Grip', pilotage: 'Handling', chipWear: 'Wear', chipControl: 'Control', pilotLabel: 'Driver',
+    enPiste: 'On track!', statVmax: 'Top speed', statA100: 'Acceleration', statB100: 'Braking', statGrip: 'Grip', chipWear: 'Wear', chipControl: 'Control', pilotLabel: 'Driver',
     catAll: 'All', mCat: 'Class', mCatDesc: 'The host can keep the table to one class: everyone then picks a car from it.', mCatOpen: 'Everyone takes any car; the AI races in the host\'s class.',
     mRaceDesc: 'Everyone on the grid, filled up with AI cars, contact on.',
     mDuelDesc: 'The people and nobody else.', mGhostDesc: 'Same circuit, each on their own lap, cars pass through each other.',
@@ -600,18 +616,6 @@ class UI {
 
   Le pneu est un anneau : deux cercles concentriques et quatre entailles, ce qui reste lisible à
   douze pixels là où un dessin de bande de roulement se brouille. */
-  tyres(m) {
-    const n = Math.max(0, Math.min(5, m.diff == null ? 2 : m.diff));
-    const t = this.t.bind(this);
-    const un = (plein) => `<svg viewBox="0 0 16 16" class="tyre ${plein ? 'on' : 'off'}" aria-hidden="true">
-        <circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="3.2"
-                stroke-dasharray="3.6 1.4"/>
-      </svg>`;
-    return `<span class="tyres" title="${t('diffTitle')}">
-      <span class="sr">${t('diffLevel', n)}</span>
-      ${Array.from({ length: 5 }, (_, i) => un(i < n)).join('')}
-    </span>`;
-  }
 
   gauges(m) {
     const ARC = 84.8;   // les 270° d'ouverture, sur les 113,1 de circonférence d'un rayon 18
@@ -1055,6 +1059,44 @@ class UI {
       </div>`;
   }
 
+  /* Le palmarès, sous la course rapide, comme les records sous le contre-la-montre.
+
+  Une ligne par voiture de la catégorie, et sur chacune le plus haut trophée gagné sur ce circuit —
+  du chocolat (facile) au crâne (cauchemar). Rangées du meilleur au moins bon, les vierges à la fin :
+  c'est un tableau de chasse, comme celui des temps. Pas de colonne « monde » : on ne compare
+  personne. Connecté avec Google, le palmarès suit le compte d'un appareil à l'autre ; la ligne
+  d'état dit où il en est (voir `PalmaresSync`, js/palmares.js). */
+  palmaresListe(trackId, cat, choisie, livery) {
+    const t = (k, ...a) => this.t(k, ...a), s = this.app.save, m = this.app.mondial;
+    const lignes = modelsOf(cat.id)
+      .map((md, i) => ({ md, i, n: tropheeDe(s, trackId, md.id) }))
+      .sort((x, y) => y.n - x.n || x.i - y.i);
+    const ligne = (cls, txt, bouton) => `<p class="${cls} mondial-note">${txt}${bouton || ''}</p>`;
+    let etat = '';
+    if (m && m.erreurConnexion) etat = this.etatMondial();
+    else if (m && !m.connecte()) etat = ligne('muted', t('palmaresCompte'), `<button class="link" data-action="google">${t('signIn')}</button>`);
+    else if (m) {
+      const e = PalmaresSync.etat;
+      etat = ligne('muted', t(e === 'en-cours' || e == null ? 'palmaresSynchro' : e === 'ok' ? 'palmaresOk' : e === 'indisponible' ? 'palmaresIndispo' : 'palmaresErreur'));
+    }
+    return `<h3>${t('palmares')}</h3>
+      <p class="muted mondial-note">${t('palmaresRegle', TOURS_MIN_TROPHEE)}</p>
+      ${etat}
+      <div class="records palmares">
+        <div class="rhead">
+          <span></span><b></b>
+          <span class="rline-t">${t('palmaresTrophee')}</span>
+          <span class="rline-t">${t('palmaresNiveau')}</span>
+        </div>
+        ${lignes.map(({ md, n }) => `<div class="rline ${md.id === choisie.id ? 'sel' : ''} ${n < 0 ? 'vierge' : ''}">
+          <span class="rline-img">${this.carIcon(md, livery, this.app.playerLivreeFor(md.id))}</span>
+          <b>${escapeHtml(md.name)}</b>
+          <span class="rline-t trophee-cell">${n < 0 ? '<span class="muted">—</span>' : `${tropheeSVG(n, 26)}<span>${t('trophee_' + TROPHEES[n])}</span>`}</span>
+          <span class="rline-t ${n < 0 ? 'muted' : ''}">${n < 0 ? '—' : t(NIVEAUX_TROPHEE[n])}</span>
+        </div>`).join('')}
+      </div>`;
+  }
+
   /* Aller chercher les temps du monde, puis repeindre — et une seule fois.
 
   Le drapeau `_enCours` n'est pas une optimisation : `records()` est appelé à chaque rendu de
@@ -1135,7 +1177,6 @@ class UI {
             ${this.carIcon(m, livery, app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}${m.custom ? ` <small>(${t('custom')})</small>` : ''}</b>
             ${filtre === 'all' ? this.etiquetteCat(m) : ''}
             ${this.repereLivree(m, app.playerLivreeFor(m.id))}
-            ${this.tyres(m)}
             ${this.gauges(m)}</button>`).join(''))}
       </section><section class="setup-block circuit-sheet">${this.trackPreview(trackDef, race ? laps : null)}
       ${this.rail('tracks', 'tracks', TRACKS.map(tr => {
@@ -1149,7 +1190,7 @@ class UI {
            menu, si bien que la liste était soit vide, soit le musée des essais d'un ancien
            réglage. Les tracés enregistrés ne sont pas effacés pour autant — ils restent dans le
            navigateur et l'éditeur y mène encore par son adresse. -->
-      ${race ? '' : `<div class="setup-records">${this.records(st.trackId, cat, model, livery)}</div>`}
+      <div class="setup-records">${race ? this.palmaresListe(st.trackId, cat, model, livery) : this.records(st.trackId, cat, model, livery)}</div>
       </section></div>
       ${this.setupBar(race, model, trackDef, laps)}
     `, 'scroll setup-screen', 'depart:' + mode);
@@ -1179,7 +1220,6 @@ class UI {
       ${item(GAUGE_ICONS.acc, '0-100 : ' + n(m.perf.a100, 1), 's', t('statA100'))}
       ${item(GAUGE_ICONS.brk, n(m.perf.b100, 1), 'm', t('statB100'))}
       ${item(GAUGE_ICONS.grp, n(m.perf.gripG, 2), 'g', t('statGrip'))}
-      <div class="stat stat-pilotage"><img class="stat-ico" src="art/interface/wheel.webp" alt=""><div><b>${this.tyres(m)}</b><span>${t('pilotage')}</span></div></div>
     </div>`;
   }
 
@@ -1320,7 +1360,7 @@ class UI {
       <h3>${t('model')}</h3>
       ${this.rail('netModels', 'models', this.modelesVisibles(tcat).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelNet" data-id="${m.id}">
           ${this.carIcon(m, livery, app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}</b>${tcat === 'all' ? this.etiquetteCat(m) : ''}
-          ${this.repereLivree(m, app.playerLivreeFor(m.id))}${this.tyres(m)}</button>`).join(''))}
+          ${this.repereLivree(m, app.playerLivreeFor(m.id))}</button>`).join(''))}
       <div class="row end">
         <span class="muted">${trackDef ? `${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ` : ''}${escapeHtml(model.name)}</span>
         <button class="${net.mine.ready ? '' : 'primary'}" data-action="netReady" ${net.mine.spectator ? 'disabled' : ''}>${net.mine.ready ? t('notReady') : t('ready')}</button>
@@ -1389,7 +1429,7 @@ class UI {
     const isTT = race.mode === 'timetrial';
     let head = '';
     if (isTT) head = `<h2>${t('timeTrial')} · ${escapeHtml(race.track.name)}</h2><div class="bigstat">${t('bestLap')}: ${fmtTime(p.bestLap)} ${ctx.newRecord ? `<span class="rec">${t('newRecord')}</span>` : ''}</div>`;
-    else head = `<h2>${t('results')} · ${escapeHtml(race.track.name)}</h2><div class="bigstat">${t('yourResult', race.positionOf(p))} ${ctx.newRecord ? `<span class="rec">${t('newRecord')}</span>` : ''}</div>`;
+    else head = `<h2>${t('results')} · ${escapeHtml(race.track.name)}</h2><div class="bigstat">${t('yourResult', race.positionOf(p))} ${ctx.newRecord ? `<span class="rec">${t('newRecord')}</span>` : ''}</div>${this.tropheeResultat(ctx.trophee)}`;
     /* Un tour annulé reste AFFICHÉ, barré, avec son chrono.
 
     Le retirer de la liste aurait été plus simple et beaucoup moins clair : le joueur aurait vu ses
@@ -1432,6 +1472,17 @@ class UI {
         ${ctx.online ? `<button class="big primary" data-action="toLobby">${t('backToTable')}</button>` : ctx.cup ? (cupState(this.app.save, ctx.cup.id).done ? `<button class="big primary" data-action="cup" data-id="${ctx.cup.id}">${t('standings')}</button>` : `<button data-action="retryRace">${t('retry')}</button><button class="big primary" data-action="startCup" data-id="${ctx.cup.id}">${t('nextRace')}</button>`) : `<button data-action="setup" data-mode="${race.mode}">${t('back')}</button><button class="big primary" data-action="retryRace">${t('retry')}</button>`}
       </div>
     `, 'scroll resultats');
+  }
+
+  /* Ce que la victoire rapporte, sous le classement : un trophée neuf se montre en grand, un trophée
+  déjà gagné ou une victoire trop courte se disent en une ligne — sans quoi le joueur qui gagne en
+  deux tours chercherait sa médaille sans comprendre. */
+  tropheeResultat(tr) {
+    if (!tr) return '';
+    const t = (k, ...a) => this.t(k, ...a), nom = (n) => `${t('trophee_' + TROPHEES[n])} (${t(NIVEAUX_TROPHEE[n])})`;
+    if (tr.raison === 'tours') return `<p class="muted trophee-note">${t('tropheeTours', TOURS_MIN_TROPHEE)}</p>`;
+    if (tr.nouveau) return `<div class="trophee-gagne">${tropheeSVG(tr.rang, 72, t('trophee_' + TROPHEES[tr.rang]))}<b>${t('tropheeNouveau', nom(tr.rang))}</b></div>`;
+    return `<p class="muted trophee-note">${tropheeSVG(tr.ancien, 22)} ${t('tropheeAcquis', nom(tr.ancien))}</p>`;
   }
 
   pauseScreen(race) {

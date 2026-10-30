@@ -173,13 +173,9 @@ button.link { background: none; border: none; color: var(--muted); text-decorati
 /* Les pneus de difficulté. Cinq toujours dessinés, les inutilisés en creux : le rang se lit comme
    une jauge, sans compter. L'écart entre plein et creux ne repose pas sur la teinte seule — le creux
    est aussi plus transparent — pour rester lisible en vision des couleurs déficiente. */
-.tyres { display: flex; gap: 3px; align-items: center; justify-content: center; margin-top: 2px; }
-.tyres .tyre { width: 13px; height: 13px; flex: none; }
 /* Une teinte chaude, propre à la difficulté : le vert d'accent se confondait avec le cadran
    d'adhérence placé juste en dessous, deux anneaux verts l'un au-dessus de l'autre se lisant comme
    une même série alors qu'ils ne mesurent rien de commun. */
-.tyres .tyre.on { color: #ff8c4a; opacity: 1; }
-.tyres .tyre.off { color: var(--muted); opacity: 0.26; }
 /* Le texte réservé aux lecteurs d'écran : un pictogramme répété n'a pas de sens lu à voix haute. */
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
@@ -814,7 +810,7 @@ body.desktop .screen.setup-screen, body.desktop .screen.selection-screen { width
 .setup-screen .rail.tracks .card.sel { border:3px solid #c92c23; }
 .setup-screen .rail.tracks .card b { font:italic 900 21px Racing,sans-serif; text-transform:uppercase; }
 .setup-screen .rail.models .card { padding:5px; background:#fff0d2; border:2px solid #b4a68b; min-height:0; }
-.setup-screen .rail.models .card .gauges, .setup-screen .rail.models .card .tyres, .setup-screen .rail.models .card .livree, .setup-screen .rail.models .card .cat-label { display:none; }
+.setup-screen .rail.models .card .gauges, .setup-screen .rail.models .card .livree, .setup-screen .rail.models .card .cat-label { display:none; }
 .setup-screen .rail.models .card > img, .setup-screen .rail.models .card > canvas { height:66px; }
 .setup-screen .rail.models .card > b { font:italic 900 17px Racing,sans-serif; }
 .car-sheet .model-caption { font:italic 900 18px Racing,sans-serif; background:#fff0d2; margin:0; padding:5px 12px; }
@@ -909,8 +905,6 @@ img.stat-ico { object-fit:contain; }
 .hero-performance .stat b { font-size:28px; color:#20261e; white-space:nowrap; }
 .hero-performance .stat b small { font-size:17px; margin-left:3px; }
 .hero-performance .stat > div > span { font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:#4b4e44; }
-.hero-performance .stat-pilotage .tyres { display:flex; gap:3px; }
-.hero-performance .stat-pilotage .tyre { width:20px; height:20px; }
 .hero-performance + .railbox { margin-top:0; }
 
 /* Les livrées et les rails, dans la même police. */
@@ -1206,3 +1200,32 @@ Bruno sur un iPhone à Dynamic Island :
   /* les en-têtes passent sur deux lignes (« Meilleur / tour ») : ce sont eux, pas les temps, qui élargissaient */
   .tbl-resultats th { white-space: normal; line-height: 1.15; vertical-align: bottom; }
 }
+
+/* Le palmarès (js/palmares.js) : les trophées dans la liste sous la course rapide, et en grand sur
+   l'écran des résultats quand on vient d'en gagner un. */
+.trophee { display:inline-block; flex:none; vertical-align:middle; }
+.records.palmares .rline, .records.palmares .rhead { grid-template-columns:76px 1fr 130px 96px; }
+.records.palmares .trophee-cell { display:flex; align-items:center; justify-content:flex-end; gap:6px; font:italic 900 15px Racing,system-ui,sans-serif; }
+.records.palmares .rline.vierge .rline-img { opacity:.55; }
+.records.palmares .rline-t { font-family:Racing,system-ui,sans-serif; font-style:italic; font-weight:900; }
+@media (max-width:640px) {
+  .records.palmares .rline, .records.palmares .rhead { grid-template-columns:48px 1fr 104px 74px; }
+  .records.palmares .trophee-cell { font-size:13px; gap:4px; }
+  .records.palmares .trophee-cell .trophee { width:22px; height:22px; }
+}
+/* Petit téléphone (iPhone SE) : le nom du trophée s'efface, la médaille et le niveau suffisent. */
+@media (max-width:380px) {
+  .records.palmares .rline, .records.palmares .rhead { grid-template-columns:40px minmax(0,1fr) 30px 70px; gap:6px; }
+  .records.palmares .trophee-cell > span:not(.muted) { display:none; }
+  .records.palmares .rline-img canvas.caricon { width:40px; height:18px; }
+  .records.palmares .rline-img img.carpick { width:40px; }
+  .records.palmares .rline b { font-size:12px; overflow-wrap:anywhere; }
+  .records.palmares .rline-t { font-size:12px; }
+  .trophee-gagne { font-size:19px; gap:10px; }
+  .trophee-gagne .trophee { width:56px; height:56px; }
+}
+.trophee-gagne { display:flex; align-items:center; gap:14px; margin:6px 0 10px; padding:8px 14px; background:#fff0d2; color:#20261e; border:2px solid #252b24; font:italic 900 24px Racing,system-ui,sans-serif; }
+.trophee-gagne .trophee { animation:trophee-arrivee .6s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes trophee-arrivee { from { transform:scale(.2) rotate(-25deg); opacity:0; } to { transform:none; opacity:1; } }
+@media (prefers-reduced-motion: reduce) { .trophee-gagne .trophee { animation:none; } }
+.trophee-note { display:flex; align-items:center; gap:6px; margin:4px 0 8px; }

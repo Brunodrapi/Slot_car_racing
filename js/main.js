@@ -102,6 +102,11 @@ class App {
       contrainte a disparu avec l'écriture : on pose le nom, et c'est tout. */
       this.mondial.rattrape(this.save.bestLapsNets).catch(() => {});
     }
+    /* Le palmarès du compte, fusionné avec celui de l'appareil au démarrage : les trophées gagnés
+    sur un autre appareil arrivent ici, ceux d'ici partent là-bas. L'écran de course repeint sa
+    ligne d'état et sa liste quand la réponse arrive. */
+    PalmaresSync.onEtat = () => { if (this.ui._cleEcran === 'depart:race') this.ui.setupScreen('race'); };
+    if (this.mondial.connecte()) PalmaresSync.synchronise(this.mondial, this.save).catch(() => {});
     this.ui.splash();
     this.refreshCustom().then(() => {
       const params = new URLSearchParams(location.search);
@@ -654,6 +659,9 @@ class App {
         this.mondial.dernierRefus = { raison: race.usure ? 'usure' : race.track.def.decorLocal ? 'decor' : 'aides',
                                       circuit: race.track.id, voiture: race.cls.id };
     }
+    // le palmarès : une victoire en course rapide rapporte le trophée de son niveau (js/palmares.js)
+    const trophee = attribueTrophee(save, race, ctx);
+    if (trophee && trophee.nouveau && this.mondial) PalmaresSync.synchronise(this.mondial, save).catch(() => {});
     save.racesDone++;
     if (ctx.cup) {
       const cs = cupState(save, ctx.cup.id);
@@ -667,7 +675,7 @@ class App {
       save.cups[ctx.cup.id] = cs;
     }
     storeSave(save);
-    this.ui.resultsScreen(race, { ...ctx, newRecord });
+    this.ui.resultsScreen(race, { ...ctx, newRecord, trophee });
   }
 
   // ---------- loop ----------

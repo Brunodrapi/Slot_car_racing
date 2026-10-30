@@ -2046,6 +2046,33 @@ avec `overflow-x: hidden`, `scrollLeft` reste modifiable par programme, et une m
 contente de l'écrire puis de le relire retrouve sa valeur — elle aurait conclu que rien n'était
 corrigé. C'est le geste qui doit rester sans effet, donc c'est le geste qu'on fait.
 
+### Le palmarès : du chocolat au crâne (0.52.48)
+
+La note de pilotage des voitures (les cinq pneus) est retirée : elle disait ce qu'une voiture coûte
+à conduire, sans rien donner à faire. À la place, un but par circuit et par voiture : **finir
+premier**, au plus haut niveau possible. Chaque niveau a son trophée — chocolat (facile), bronze
+(normal), argent (difficile), or (extrême), crâne (cauchemar) — dessiné en SVG dans
+`js/palmares.js`, lisible de 16 à 72 px sur tous les fonds.
+
+- **Ce qui compte** : la course rapide seulement (ni contre-la-montre, ni multijoueur, ni
+  championnat, ni séance de réglage), premier après pénalités, **trois tours au moins** (une
+  course d'un tour se gagne au départ). Les aides sont permises : on ne compare personne.
+- **On garde le meilleur** : gagner en normal après l'or laisse l'or.
+- **Où on le voit** : sous la course rapide, à la place des records du contre-la-montre, une ligne
+  par voiture de la catégorie avec son trophée sur ce circuit, rangées du crâne aux vierges ; sur
+  l'écran des résultats, « Nouveau trophée : Or (Extrême) ! » en grand, ou une ligne qui dit qu'il
+  était déjà gagné, ou qu'une victoire en moins de trois tours ne rapporte rien.
+- **Où il vit** : dans la sauvegarde de l'appareil (`save.palmares`, `circuit|voiture` → 0 à 4).
+  Connecté avec Google, il est fusionné avec celui du compte par `synchro_palmares`
+  (`supabase/palmares.sql`) : un appel envoie ce que l'appareil a de mieux et rend tout le palmarès
+  du compte, gagné ici ou ailleurs, au démarrage et à chaque nouveau trophée. Ce n'est pas un
+  tableau mondial : chacun ne lit que le sien, d'où une fonction de la base bornée à `auth.uid()`
+  plutôt qu'une fonction serveur. Recette et prod ont chacune leur palmarès (`canal`). Tant que la
+  base n'a pas la fonction, l'écran dit que le palmarès reste sur l'appareil, et rien ne casse.
+
+`tools/e2e-palmares.js` vérifie les règles, une fin de course gagnée, les deux écrans et la
+synchronisation contre un serveur simulé.
+
 ### Les records, une ligne par voiture
 
 L'écran du contre-la-montre n'affichait qu'un chiffre : le meilleur tour du circuit, toutes
