@@ -329,6 +329,16 @@ function round(g, x, y, w, h, r) {
   if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h);
 }
 
+// Les arbres à feuilles, ceux qui changent de couleur à l'automne (voir `pal.feuillages`).
+const FEUILLUS = new Set(['tree', 'tree2', 'bush']);
+/* Le feuillage d'un arbre : tiré de sa position, donc le même d'une partie à l'autre. Un tirage par
+arbre plutôt qu'un dégradé le long du tour : une vraie forêt d'automne mélange les essences, et deux
+arbres voisins n'ont aucune raison d'avoir viré ensemble. */
+function poseFeuillages(arbres, n) {
+  if (!n) return;
+  for (const o of arbres || []) if (FEUILLUS.has(o.id) && o.v == null) o.v = 'f' + Math.min(n - 1, Math.floor(varieteDe(o.x * 1.7 + 3.1, o.y * 0.6 - 7.3) * n));
+}
+
 // Bake each object once per palette. The shadow is baked in with it: one offset ellipse under the
 // whole thing, as if the sun sat high and behind the camera's right shoulder.
 function buildTopArt(pal) {
@@ -351,6 +361,13 @@ function buildTopArt(pal) {
     g.drawImage(sil, pad - w * 0.09, pad + w * 0.11);
     g.save(); g.translate(pad, pad); k.draw(g, w, pal); g.restore();
     art[k.id] = { canvas: c, wm: k.wm * (c.width / w) };
+  }
+  /* Les feuillages d'automne (`pal.feuillages`, une liste de triplets de couronne) : chaque feuillu et
+  chaque buisson est cuit une fois par feuillage, sous `id#fN`. Sans eux, tous les arbres d'un circuit
+  portent la même couronne ; avec, un bois devient la mosaïque vert, olive, rouge, orange, moutarde et
+  jaune d'une forêt en octobre. Les conifères ne changent pas : ils restent verts à l'automne. */
+  if (pal.feuillages) for (const k of TOP_KINDS.filter(k => FEUILLUS.has(k.id))) {
+    pal.feuillages.forEach((canopy, n) => { art[k.id + '#f' + n] = buildTopArt.cuire(k, { ...pal, canopy }); });
   }
   // Les variantes de teinte, cuites une fois chacune : `id#n`.
   for (const k of TOP_KINDS.filter(k => k.teintes)) {

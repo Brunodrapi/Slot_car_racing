@@ -753,6 +753,8 @@ class Renderer {
     // Les retouches de l'éditeur de décor : objets retirés, déplacés ou ajoutés à la main.
     if(track.def.objets){const r=appliqueObjets(track.def.objets,{impl:this.implantation,props:this.topProps,tas:this.tas});
       this.implantation=r.impl;this.topProps=r.props;this.tas=r.tas;}
+    // Un circuit d'automne : chaque feuillu reçoit son feuillage (props.js, `poseFeuillages`).
+    if (PAL.feuillages) { poseFeuillages(this.topProps, PAL.feuillages.length); poseFeuillages(this.implantation && this.implantation.arbres, PAL.feuillages.length); }
     this.patches = []; // les anciens ovales de terre ne font plus partie du décor
     this.puddles = placePuddles(track, seed, track.puddles);
     this.boats = placeBoats(track, seed, this.water);

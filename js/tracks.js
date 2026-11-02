@@ -171,9 +171,29 @@ const TRACKS = [
         {from:.348,to:.3509,side:-1},{from:.3486,to:.3509,side:1},
         {from:.8871,to:.8891,side:-1},{from:.963,to:.9709,side:-1},
         {from:.9671,to:.9709,side:1}],
-      materials: { barrierBlocks: ['#C92F32','#E6E6DF','#28639C'], grass: '#547B46', grassLight: '#638952', grassDark: '#41683B',
-        grassDry: '#98965F', canopy: ['#315638', '#416B43', '#294D34'],
-        pine: ['#294D3B', '#365E46'], sousBois: '#304F35' },
+      /* ESSAI D'AUTOMNE (0.52.51), d'après la palette de Bruno (forêt en octobre) : une prairie
+         d'arrière-saison, un sous-bois couleur litière, des sapins qui restent verts, et des feuillus
+         qui virent chacun de leur côté — vert, olive, rouge, orange, moutarde, jaune. Les teintes
+         chaudes reviennent plus souvent dans la liste, comme dans la photo : le vert y est minoritaire.
+         Chaque triplet est une couronne (base, éclaircie, ombre). Retirer `feuillages` et remettre
+         les verts d'avant suffit à revenir à l'été :
+           grass '#547B46', grassLight '#638952', grassDark '#41683B', grassDry '#98965F',
+           canopy ['#315638','#416B43','#294D34'], pine ['#294D3B','#365E46'], sousBois '#304F35'. */
+      materials: { barrierBlocks: ['#C92F32','#E6E6DF','#28639C'], grass: '#7A9047', grassLight: '#879B51', grassDark: '#687E3D',
+        grassDry: '#A6A757', canopy: ['#6C834F', '#7E9459', '#56693F'],
+        pine: ['#2E4B33', '#3A5B3D'], sousBois: '#4E4A2A',
+        feuillages: [
+          ['#6C834F', '#80985A', '#55693F'],   // vert qui résiste
+          ['#A6A757', '#B8B866', '#878A45'],   // olive
+          ['#D3633D', '#E0784E', '#AE4D2F'],   // rouge orangé
+          ['#EC9850', '#F4AE68', '#C97B3C'],   // orange
+          ['#D19A36', '#DEAE4C', '#AD7D2A'],   // moutarde
+          ['#E4BC43', '#EECD5E', '#BF9A33'],   // jaune
+          ['#D19A36', '#DEAE4C', '#AD7D2A'],
+          ['#E4BC43', '#EECD5E', '#BF9A33'],
+          ['#EC9850', '#F4AE68', '#C97B3C'],
+          ['#A6A757', '#B8B866', '#878A45'],
+        ] },
       grid: { rows: 6, offset: 12, pitch: 8 },
       wearZones: [0.0615,0.1691,0.3509,0.3847,0.4359,0.4762,0.5506,0.6453,0.7118,0.7406,0.9709]
         .map(at=>({at,approach:65,exit:25})),
