@@ -1,0 +1,54 @@
+[
+  {
+    "file": "sprites/top/neon.png",
+    "before": [
+      420,
+      200
+    ],
+    "after": [
+      420,
+      200
+    ],
+    "generatedAspect": 1.8177083333333333,
+    "source": "atlas-cartoon.png"
+  },
+  {
+    "file": "sprites/top/neon_rose.png",
+    "before": [
+      420,
+      200
+    ],
+    "after": [
+      420,
+      200
+    ],
+    "generatedAspect": 1.8177083333333333,
+    "source": "atlas-cartoon.png"
+  },
+  {
+    "file": "sprites/pick/neon.png",
+    "before": [
+      420,
+      171
+    ],
+    "after": [
+      420,
+      192
+    ],
+    "generatedAspect": 2.18562874251497,
+    "source": "atlas-cartoon.png"
+  },
+  {
+    "file": "sprites/pick/neon_rose.png",
+    "before": [
+      420,
+      172
+    ],
+    "after": [
+      420,
+      192
+    ],
+    "generatedAspect": 2.188622754491018,
+    "source": "atlas-cartoon.png"
+  }
+]
