@@ -101,7 +101,7 @@ const CATEGORIES = [
     // L'identifiant reste `gt` : les records de tour sont rangés sous `circuit|catégorie|voiture`
     // dans la sauvegarde, et les GT y gardent donc les leurs sans migration.
     id: 'gt', name: { fr: 'GT', en: 'GT' },
-    desc: { fr: 'Les grand tourisme, des classiques aux concepts futuristes : lourdes, puissantes, joueuses.', en: 'Grand tourers, from classics to futuristic concepts: heavy, powerful, playful.' },
+    desc: { fr: 'Les grand tourisme, des années soixante aux années quatre-vingt : lourdes, puissantes, joueuses.', en: 'Grand tourers from the sixties to the eighties: heavy, powerful, playful.' },
     engine: { cyl: 8, redline: 7000, idle: 1000, rough: 0.35, bright: 0.6, turbo: 0 },
     base: { vmax: 368 / 3.6, accel: 8, brake: 17, grip: 13.5, df: 0.0015, slide: 0.6, laneK: 6, rearBias: 1.06, cliff: 0.18, slipPeak: 0.12, length: 4.5, width: 2.0 },
     drivers: 10, roadScale: 0.9, zoom: 1.15,
@@ -144,14 +144,6 @@ const CATEGORIES = [
         // synthèse — la plage enregistrée couvre à elle seule tout ce qu'on entend en course.
         sample: { ramp: 'sounds/engine/v12-countach.json' },
       }, colors: ['#ffd400', '#22242b'], top: 'sprites/top/countach.png' },
-      { id: 'neon', name: 'GT Néon', shape: 'wedgeGT',
-        mul: { vmax: 0.86, accel: 1.1, brake: 1.03, grip: 1.015, df: 1.1, slide: 0.95 },
-        colors: ['#bbc0c7', '#dc91b1'], top: 'sprites/top/neon.png', pick: 'sprites/pick/neon.png',
-        livrees: [
-          { id: '', nom: 'Gris métal brossé', en: 'Brushed silver' },
-          { id: 'rose', nom: 'Rose métallisé', en: 'Metallic pink' },
-        ],
-        engine: { cyl: 6, redline: 8000, idle: 950, rough: 0.12, bright: 0.78, turbo: 0.6 } },
       // La prise vient d'une 911 RSR, la seule 911 du plateau étant celle-ci. Un RSR est atmosphérique
       // là où la Turbo ne l'est pas : le sifflement reste à la synthèse, la matière du plat-six est
       // celle de l'enregistrement.
@@ -406,8 +398,6 @@ for (const r of [
   ['countach',0.81,0.1461,0.8581,0.125,0.1],
   ['countach_rainx',0.81,0.1461,0.8581,0.125,0.1],
   ['countach_monaco83',0.81,0.1419,0.8581,0.125,0.1],
-  ['neon',0.80,0.105,0.895,0.12,0.10],
-  ['neon_rose',0.80,0.105,0.895,0.12,0.10],
   ['930',0.79,0.078,0.9176,0.15,0.16],
   ['930_swiss',0.78,0.0869,0.9176,0.15,0.16],
   ['930_valliant',0.8,0.078,0.9176,0.15,0.16],

@@ -279,25 +279,17 @@ recette il y a encore plein de réglages qu'on a virés dans la prod ». Ils dis
 absents des réglages, touche G sans effet, et une sauvegarde qui les avait changés revient aux valeurs
 d'origine à la lecture — sans quoi un aimant réglé un jour resterait actif sans plus pouvoir s'éteindre,
 et le tour ne compterait plus au tableau mondial sans qu'on sache pourquoi. Le code reste : passer
-l'interrupteur à `true` les rend, comme `MANETTE` et `USURE_ACTIVE`.
-
-LE GUIDE DE FREINAGE REVIENT SEUL, comme aide pour débuter (0.52.54) : « rajoute dans le menu
-l'option pour savoir quand freiner (mode débutant) ; il ne faut pas qu'on puisse faire des records
-mondiaux avec l'option activée ». Il est donc réglable partout, et `tourNet` l'exclut toujours. La
-télémétrie, l'aimant et l'anticipation restent derrière l'interrupteur. */
+l'interrupteur à `true` les rend, comme `MANETTE` et `USURE_ACTIVE`. */
 const REGLAGES_AVANCES = false;
 function reglagesPublies(save) {
-  if (!REGLAGES_AVANCES) Object.assign(save, { debug: false, aimant: 0, ff: FF_DEFAUT });
+  if (!REGLAGES_AVANCES) Object.assign(save, { showLines: false, debug: false, aimant: 0, ff: FF_DEFAUT });
   return save;
 }
 function tourNet(save, race) {
   if (race && race.usure) return false;
   // un décor retouché sur ce poste (barrières, dégagements) n'est plus le circuit de tout le monde
   if (race && race.track && race.track.def && race.track.def.decorLocal) return false;
-  /* Le guide se lit sur la sauvegarde ET sur la course : `race.guide` est pris au départ. Les
-  réglages ne s'ouvrent pas en course aujourd'hui, mais un tour couru guide allumé ne doit pas
-  devenir net parce qu'on l'a éteint avant la fin. */
-  if (save.showLines || (race && race.guide)) return false;
+  if (save.showLines) return false;
   if ((save.aimant || 0) !== 0) return false;
   if ((save.ff == null ? FF_DEFAUT : save.ff) !== FF_DEFAUT) return false;
   return true;

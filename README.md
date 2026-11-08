@@ -202,10 +202,7 @@ paysage ne changent pas (`_layoutHud`, js/render.js ; `tools/e2e-pause.js` véri
 seulement, ils faisaient de la recette une autre version que la prod au lieu de sa suite : ils sont
 donc retirés des deux (`REGLAGES_AVANCES = false`, js/career.js ; le code reste). Une sauvegarde qui
 les avait changés revient aux valeurs d'origine à la lecture — sinon un aimant réglé un jour resterait
-actif sans pouvoir s'éteindre, et le tour sortirait du tableau mondial. Le guide de freinage est
-revenu seul en 0.52.54, comme aide pour débuter (« Guide de freinage (débutant) ») : il se garde à
-la lecture, la course retient s'il était allumé au départ (`race.guide`), et `tourNet` l'exclut
-toujours du tableau mondial (`tools/e2e-guide.js`).
+actif sans pouvoir s'éteindre, et le tour sortirait du tableau mondial.
 
 **Recette = prod + ce qui vient.** La recette ne diffère de la prod que par ce qui n'a pas encore été
 publié, et par l'infrastructure : le badge RECETTE, des tables de multijoueur à part (préfixe
