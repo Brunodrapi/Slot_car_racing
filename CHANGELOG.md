@@ -4,6 +4,10 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.57
+- Jeu hors ligne : il ne se télécharge plus tout seul. L'écran-titre le propose avec sa taille (51,3 Mo), « Non merci » ne le repropose plus ; les réglages permettent de le télécharger ou de le supprimer (la progression est gardée).
+- La version et la taille du jeu s'affichent ensemble, téléchargé ou non : sur l'écran-titre et dans les réglages.
+
 ## 0.52.56
 - Menus sur PC : les flèches des rails prennent le clic sur toute la hauteur des cartes, et plus seulement sur le petit onglet sombre ; au survol, la bande s'assombrit.
 

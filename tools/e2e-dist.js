@@ -3,12 +3,15 @@
 //   npm run build && NODE_PATH=$(npm root -g) node tools/e2e-dist.js [captures]
 //
 // Au format d'un iPhone :
-//   en ligne      aucun fichier ne manque (voitures, livrées, vignettes, sons), une course démarre, la
-//                 première installation remplit le cache et l'écran-titre annonce « jeu à jour » ;
+//   en ligne      aucun fichier ne manque (voitures, livrées, vignettes, sons), une course démarre ;
+//   proposé       rien ne se télécharge de soi-même : l'écran-titre PROPOSE le jeu avec sa taille ;
+//                 « Non merci » ne le repropose plus ; les réglages le téléchargent (version et taille
+//                 affichées), et l'écran-titre annonce alors « à jour » avec la version et la taille ;
 //   hors ligne    la page se recharge, l'écran-titre dit « hors ligne », une course contre l'IA démarre ;
 //   mise à jour   une publication où un seul fichier change : l'écran-titre la propose avec sa taille ;
 //                 « continuer avec cette version » ne télécharge rien ; « mettre à jour » ne télécharge
-//                 que ce fichier, attend la fin de la course pour recharger, et la nouvelle version tourne.
+//                 que ce fichier, attend la fin de la course pour recharger, et la nouvelle version tourne ;
+//   suppression   le bouton des réglages vide le cache, le jeu reste jouable en ligne, rien n'est reproposé.
 'use strict';
 const { chromium } = require('playwright');
 const http = require('http'), fs = require('fs'), path = require('path'), crypto = require('crypto');
@@ -75,16 +78,47 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
       return { n: res.length, rates: res.filter(([, s]) => s !== 200).map(([u]) => u) };
     });
     ok(sons.rates.length === 0, `${sons.n} sons de moteur présents` + (sons.rates.length ? ' — manquent : ' + sons.rates.join(', ') : ''));
-    // La première installation : l'écran-titre la montre, puis annonce le jeu à jour.
+    console.log('Proposé, pas imposé');
+    const grip = () => p.evaluate(async () => (await caches.keys()).filter((k) => k.startsWith('grip-')).length);
+    await etat('absent');
+    await p.waitForTimeout(1500);
+    ok(await grip() === 0, 'rien ne se télécharge de soi-même : aucun cache du jeu');
+    const txtPropose = await bandeau();
+    ok(/Télécharge le jeu \(\d+,\d Mo\)/.test(txtPropose), `écran-titre : « ${txtPropose} »`);
+    if (OUT) await p.screenshot({ path: path.join(OUT, 'hl-propose.png') });
+    await p.click('[data-action="hlNonMerci"]');
+    await p.waitForTimeout(300);
+    const txtNon = await bandeau();
+    ok(/non téléchargée/.test(txtNon) && /\d+,\d Mo/.test(txtNon) && await p.evaluate(() => app.state === 'splash'),
+      `« Non merci » : « ${txtNon} », on reste sur l’écran-titre`);
+    await p.reload();
+    await p.waitForFunction(() => typeof app !== 'undefined' && app.save);
+    await etat('absent');
+    ok(!(await p.$('[data-action="hlTelecharger"]')) && /non téléchargée/.test(await bandeau()), 'au lancement suivant, l’écran-titre ne repropose pas');
+    const ligne = () => p.evaluate(() => { const l = document.querySelector('.settings-screen .horsligne-ligne'); return l && !l.hidden ? l.textContent.replace(/\s+/g, ' ').trim() : ''; });
+    await p.evaluate(() => { app.leaveSplash(); app.ui.settings(); });
+    const txtReg = await ligne();
+    ok(/Non téléchargé · version [\d.]+ · \d+,\d Mo/.test(txtReg) && /Télécharger/.test(txtReg), `réglages : « ${txtReg} »`);
+    if (OUT) await p.screenshot({ path: path.join(OUT, 'hl-reglages-absent.png') });
+    await p.click('.horsligne-ligne [data-action="hlTelecharger"]');
+    await p.waitForFunction(() => MAJ.etat === 'installation' && MAJ.progres > 0, null, { timeout: 30000 }).catch(() => {});
+    const txtEnCours = await ligne();
+    ok(/Téléchargement pour jouer hors ligne… \d+ %/.test(txtEnCours), `pendant le téléchargement : « ${txtEnCours} »`);
     await etat('a-jour');
+    const txtFait = await ligne();
+    ok(/Téléchargé · version [\d.]+ · \d+,\d Mo/.test(txtFait) && /Supprimer/.test(txtFait), `réglages : « ${txtFait} »`);
+    if (OUT) await p.screenshot({ path: path.join(OUT, 'hl-reglages-telecharge.png') });
     const cache = await p.evaluate(async () => {
       const m = JSON.parse(await (await fetch('manifeste.json?t=1', { cache: 'no-store' })).text());
       const c = await caches.open(m.cache);
       return { n: (await c.keys()).length, attendus: Object.keys(m.fichiers).length + 1, nom: m.cache };
     });
-    ok(cache.n >= cache.attendus && cache.attendus > 100, `première installation : ${cache.n} fichiers en cache sur ${cache.attendus} (${cache.nom})`);
+    ok(cache.n >= cache.attendus && cache.attendus > 100, `téléchargement : ${cache.n} fichiers en cache sur ${cache.attendus} (${cache.nom})`);
+    await p.reload();
+    await p.waitForFunction(() => typeof app !== 'undefined' && app.save);
+    await etat('a-jour');
     const txtAJour = await bandeau();
-    ok(/à jour/.test(txtAJour), `écran-titre : « ${txtAJour} »`);
+    ok(/à jour · version [\d.]+ · \d+,\d Mo/.test(txtAJour), `écran-titre : « ${txtAJour} »`);
     if (OUT) await p.screenshot({ path: path.join(OUT, 'maj-a-jour.png') });
     await p.evaluate(() => { app.save.name = 'Bruno'; app.mondial = null; storeSave(app.save); });
     await p.touchscreen.tap(195, 420);
@@ -101,7 +135,7 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     await p.waitForFunction(() => typeof app !== 'undefined' && app.save, null, { timeout: 30000 });
     await etat('hors-ligne');
     const txtHL = await bandeau();
-    ok(/Hors ligne/.test(txtHL), `écran-titre : « ${txtHL} »`);
+    ok(/Hors ligne · version [\d.]+ téléchargée · \d+,\d Mo/.test(txtHL), `écran-titre : « ${txtHL} »`);
     ok(await p.evaluate(() => document.querySelector('.splash .poster').naturalWidth > 0), 'l’affiche du titre est là');
     if (OUT) await p.screenshot({ path: path.join(OUT, 'maj-hors-ligne.png') });
     await p.touchscreen.tap(195, 420);
@@ -154,6 +188,20 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     ok(await p.evaluate(() => APP_DATE === '2099-01-01'), 'au menu, la page se recharge sur la nouvelle version');
     await etat('a-jour');
     ok(/à jour/.test(await bandeau()), `écran-titre : « ${await bandeau()} »`);
+
+    console.log('Suppression');
+    p.once('dialog', (d) => d.accept());
+    await p.evaluate(() => { app.leaveSplash(); app.ui.settings(); });
+    await p.click('.horsligne-ligne [data-action="hlSupprimer"]');
+    await etat('absent');
+    ok(await grip() === 0, 'supprimer : plus aucun cache du jeu');
+    const txtSuppr = await ligne();
+    ok(/Non téléchargé · version [\w.-]+ · \d+,\d Mo/.test(txtSuppr), `réglages : « ${txtSuppr} »`);
+    ok(await p.evaluate(() => !!app.save && app.save.name === 'Bruno'), 'la sauvegarde est intacte');
+    await p.reload();
+    await p.waitForFunction(() => typeof app !== 'undefined' && app.save);
+    await etat('absent');
+    ok(/non téléchargée/.test(await bandeau()) && await grip() === 0, `le jeu se joue en ligne, sans rien reproposer : « ${await bandeau()} »`);
     ok(erreurs.length === 0, 'aucune erreur de page' + (erreurs.length ? ' : ' + erreurs.join(' | ') : ''));
   } finally {
     journal = null;

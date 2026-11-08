@@ -238,23 +238,33 @@ l'onglet entier ; comme un cadre ne peut le faire qu'après un clic de l'utilisa
 un bouton « Jouer » quand le navigateur refuse le renvoi automatique, et ouvre un nouvel onglet si
 itch.io interdit aussi celui-là.
 
-**La mise à jour.** La liste des fichiers et leur empreinte (sha-256) sont dans `manifeste.json` ;
-`sw.js`, lui, ne change jamais d'une publication à l'autre, si bien que le navigateur ne lance jamais de
-lui-même une mise à jour. C'est l'écran-titre qui dit où en est le jeu, dans une pastille en haut
-(`js/maj.js`) :
+**Le jeu hors ligne, proposé et non imposé (0.52.57).** Le jeu publié pèse une cinquantaine de
+mégaoctets ; il ne se télécharge plus de lui-même au premier lancement. Sans téléchargement, il se joue
+en ligne comme une page ordinaire. L'écran-titre le propose, avec sa taille : **« Jouer sans réseau ?
+Télécharge le jeu (51,3 Mo). »** avec **Télécharger** et **Non merci** (qui ne le repropose plus sur
+l'écran-titre). Les réglages portent une ligne **Jeu hors ligne** : « Non téléchargé · version 0.52.57 ·
+51,3 Mo » avec **Télécharger**, ou « Téléchargé · version 0.52.57 · 51,3 Mo » avec **Supprimer**, qui
+vide le cache sans toucher à la sauvegarde. La taille suit aussi le numéro de version en bas de
+l'affiche. Rien de tout cela n'apparaît en recette, qui n'a pas de mode hors ligne.
 
-- pas de réseau : **« Hors ligne · version 0.44.3 installée »**, et l'on joue cette version ;
-- du réseau, rien de neuf : **« Jeu à jour · version 0.44.3 »** ;
-- du réseau, une version plus récente publiée : **« Mise à jour disponible : version 0.44.4 (120 ko) »**
+**La mise à jour.** La liste des fichiers et leur empreinte (sha-256) sont dans `manifeste.json` ;
+`sw.js`, lui, ne change pas d'une publication à l'autre (il a changé une fois, en 0.52.57, pour ne plus
+télécharger de lui-même), si bien que le navigateur ne lance jamais de lui-même une mise à jour. C'est
+l'écran-titre qui dit où en est le jeu téléchargé, dans une pastille en haut (`js/maj.js`) :
+
+- pas de réseau : **« Hors ligne · version 0.52.57 téléchargée · 51,3 Mo »**, et l'on joue cette version ;
+- du réseau, rien de neuf : **« Jeu téléchargé et à jour · version 0.52.57 · 51,3 Mo »** ;
+- du réseau, une version plus récente publiée : **« Mise à jour disponible : version 0.52.58 (120 ko) »**
   avec deux boutons, **Mettre à jour** et **Continuer avec cette version**.
 
-Rien ne se télécharge sans réponse, sauf la toute première installation. Mettre à jour ne télécharge
-que les fichiers dont l'empreinte a changé — les autres sont recopiés de l'ancien cache — en montrant
-l'avancement ; on peut lancer une course pendant ce temps : la nouvelle version attend l'écran-titre ou
-les menus, jamais une course ni un salon, puis la page se recharge pour la montrer. Si le
-téléchargement échoue, l'ancienne version reste entière. Continuer avec cette version ne télécharge
-rien ; la question revient au lancement suivant. `tools/e2e-dist.js` vérifie tout cela au format d'un
-iPhone : en ligne, hors ligne, puis une mise à jour d'un seul fichier, refusée puis acceptée.
+Rien ne se télécharge sans réponse. Mettre à jour ne télécharge que les fichiers dont l'empreinte a
+changé — les autres sont recopiés de l'ancien cache — en montrant l'avancement ; on peut lancer une
+course pendant ce temps : la nouvelle version attend l'écran-titre ou les menus, jamais une course ni
+un salon, puis la page se recharge pour la montrer. Si le téléchargement échoue, l'ancienne version
+reste entière. Continuer avec cette version ne télécharge rien ; la question revient au lancement
+suivant. `tools/e2e-dist.js` vérifie tout cela au format d'un iPhone : proposé et refusé, téléchargé
+depuis les réglages, en ligne, hors ligne, une mise à jour d'un seul fichier refusée puis acceptée,
+puis la suppression.
 
 **Recette, puis prod.** Deux dépôts, deux publics :
 

@@ -15,10 +15,11 @@ publiée en diffère sur trois points.
    reçoit se lit avec de la patience. La vraie protection, c'est le dépôt source en privé.
 2. SEULS PARTENT LES FICHIERS DU JEU. Ni docs, ni outils, ni images de travail (`*-src`, reprises
    annotées, anciennes affiches) : la liste est celle des pages jouables et de ce qu'elles chargent.
-3. LE JEU SE JOUE HORS LIGNE. Un service worker (`sw.js`) met tout le jeu en cache au premier
-   lancement ; ajouté à l'écran d'accueil de l'iPhone, il démarre ensuite sans réseau. Le multijoueur,
-   le tableau mondial et les statistiques gardent besoin du réseau. Les mises à jour se proposent sur
-   l'écran-titre et ne se font que si on les accepte (`js/maj.js`).
+3. LE JEU PEUT SE JOUER HORS LIGNE. Un service worker (`sw.js`) met tout le jeu en cache QUAND ON LE
+   DEMANDE : l'écran-titre le propose avec sa taille, les réglages le permettent et permettent de le
+   supprimer (`js/maj.js`). Téléchargé, il démarre ensuite sans réseau, ajouté ou non à l'écran
+   d'accueil. Le multijoueur, le tableau mondial et les statistiques gardent besoin du réseau. Les
+   mises à jour se proposent sur l'écran-titre et ne se font que si on les accepte.
 
 Le cache porte un nom tiré du CONTENU des fichiers : une nouvelle publication se reconnaît d'elle-même,
 même si l'on a oublié de changer la version.
@@ -58,11 +59,18 @@ const EXCLURE = (rel) => /_reprise\.|\.md$|LICENSE$|(^|\/)\./.test(rel);
 
 /* LE SERVICE WORKER — le même texte à chaque publication (voir le manifeste plus bas).
 
-Première installation : il télécharge tout ce que le manifeste publié énumère. Ensuite il ne
-télécharge plus rien de lui-même : la page lui demande une mise à jour (`mettre-a-jour`) quand on l'a
-acceptée. Il bâtit alors le nouveau cache à côté de l'ancien, en recopiant les fichiers inchangés, et
-ne lâche l'ancien qu'une fois le nouveau complet — un téléchargement coupé laisse le jeu tel qu'il
-était. Un cache est complet quand il contient son manifeste, posé en dernier. */
+IL NE TÉLÉCHARGE RIEN DE LUI-MÊME, pas même la première fois (0.52.57) : « le téléchargement se fait
+automatiquement, je veux qu'il soit proposé mais pas imposé ». Cinquante mégaoctets d'office, sur un
+téléphone, c'était trop. Sans cache, il laisse passer chaque requête vers le réseau : le jeu se joue en
+ligne comme une page ordinaire. La page lui demande `telecharger` (la première fois, quand le joueur
+l'accepte), `mettre-a-jour` (une version plus récente, acceptée) ou `supprimer` (vider le cache, le
+jeu redevient une page en ligne). Pour une mise à jour, il bâtit le nouveau cache à côté de
+l'ancien, en recopiant les fichiers inchangés, et ne lâche l'ancien qu'une fois le nouveau complet —
+un téléchargement coupé laisse le jeu tel qu'il était. Un cache est complet quand il contient son
+manifeste, posé en dernier.
+
+Son texte a changé une fois, pour cela : le navigateur installe donc ce nouveau service worker de
+lui-même chez ceux qui avaient l'ancien, et leur cache, déjà téléchargé, reste en place. */
 const SERVICE_WORKER = `/* GRIP — le jeu hors ligne. Fabriqué par tools/build-dist.js : ne pas modifier à la main. */
 const MANIFESTE = 'grip-manifeste.json';
 let actif = null;
@@ -100,7 +108,7 @@ async function installer(premiere) {
       await neuf.put(u, r);
       fait += t;
       const p = fait / total;
-      if (p - dernier > 0.02 || p >= 1) { dernier = p; annoncer({ type: 'progres', progres: Math.min(1, p), premiere }); }
+      if (p - dernier > 0.02 || p >= 1) { dernier = p; annoncer({ type: 'progres', progres: Math.min(1, p), premiere, fait, total }); }
     }
   };
   try {
@@ -114,9 +122,14 @@ async function installer(premiere) {
   actif = distant.cache;
   await annoncer({ type: 'pret', premiere });
 }
+async function supprimer() {
+  actif = null;
+  for (const k of await caches.keys()) if (k.startsWith('grip-')) await caches.delete(k);
+  await annoncer({ type: 'supprime' });
+}
 self.addEventListener('install', (e) => {
-  // Un nouveau texte de service worker garde le cache en place ; seule la toute première fois télécharge.
-  e.waitUntil(cacheActif().then((nom) => (nom ? null : installer(true))).then(() => self.skipWaiting()));
+  // Rien ne se télécharge à l'installation : un cache déjà là reste en place, et sinon on attend qu'on le demande.
+  e.waitUntil(self.skipWaiting());
 });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then(async (ks) => {
@@ -124,7 +137,10 @@ self.addEventListener('activate', (e) => {
   }).then(() => self.clients.claim()));
 });
 self.addEventListener('message', (e) => {
-  if (e.data && e.data.type === 'mettre-a-jour') e.waitUntil(installer(false).catch(() => annoncer({ type: 'echec' })));
+  const type = e.data && e.data.type;
+  if (type === 'telecharger') e.waitUntil(installer(true).catch(() => annoncer({ type: 'echec', premiere: true })));
+  else if (type === 'mettre-a-jour') e.waitUntil(installer(false).catch(() => annoncer({ type: 'echec' })));
+  else if (type === 'supprimer') e.waitUntil(supprimer());
 });
 self.addEventListener('fetch', (e) => {
   const req = e.request;

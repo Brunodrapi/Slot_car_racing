@@ -105,7 +105,13 @@ const I18N = {
     lineBleu: 'BLEU', lineRace: 'IDÉALE', lineJaune: 'JAUNE', freinage: 'Freinage', reglages: 'Réglages', regDefaut: 'Par défaut', regRegler: 'Régler', regTitre: 'Réglage du freinage', regAide: 'Pousse le levier en roulant. Trop de frein et la voiture s’arrête dans le virage ; trop peu et c’est la sortie. Le repère blanc est le réglage d’origine.', regEnreg: 'Enregistrer la configuration', regNom: 'Nom de la configuration', regIci: (v) => `freinage ×${v.toFixed(2)} ici`, regIciDefaut: 'freinage d’origine ici', regPortee: 'Seuls les réglages enregistrés pour cette voiture sur ce circuit sont proposés. Le choix est mémorisé pour ce couple.', regFait: (n) => `Configuration « ${n} » enregistrée.`, engineCut: 'MOTEUR COUPÉ', offTrack: 'SORTIE DE PISTE !', finished: 'ARRIVÉE',
     lapVoid: 'annulé',
     cupComplete: 'Coupe terminée !', cupWon: 'Champion !', cupPodium: 'Podium ! Coupe suivante débloquée.', cupFailed: 'Hors du podium… retente ta chance.',
-    newRecord: 'Nouveau record !', yourBest: 'Ton record', name: 'Nom du pilote', sound: 'Son', language: 'Langue', showLines: 'Guide de freinage', telemetry: 'Télémétrie (touche G)', ctrlSide: 'Côté du levier', sideLeft: 'Gauche', sideRight: 'Droite', camera: 'Vue', camFollow: 'Dessus, orientée piste', camFixed: 'Dessus, fixe', camAvance: 'En avance, orientée piste', camAvanceFixe: 'En avance, fixe', pullBack: 'Recul de la caméra', pullNone: 'Normal', pullSome: 'Un peu en retrait', pullMore: 'Très en retrait', aimant: 'Aimant sur la ligne', aimantOff: 'Désactivé', aimantDoux: 'Doux', aimantNormal: 'Normal', aimantFort: 'Fort', aimantTresFort: 'Très fort', aimantDouble: '×2 fort', anticip: 'Anticipation du pilote', anticipOff: 'Aucune', anticipPeu: 'Légère', anticipMoy: 'Moyenne', anticipFort: 'Forte', lapCount: 'Tours', pressStart: 'Appuie pour commencer', tapStart: 'Appuie pour commencer', majVerif: 'Recherche de mise à jour…', majHorsLigne: (v) => `Hors ligne · version ${v} installée`, majAJour: (v) => `Jeu à jour · version ${v}`, majDispo: (n, t) => `Mise à jour disponible : version ${n} (${t})`, majLancer: 'Mettre à jour', majGarder: 'Continuer avec cette version', majInstall: (p) => `Mise à jour… ${p} %`, majPremiere: (p) => `Installation pour jouer hors ligne… ${p} %`, majEchec: (v) => `La mise à jour n’a pas abouti · version ${v} conservée`, resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
+    newRecord: 'Nouveau record !', yourBest: 'Ton record', name: 'Nom du pilote', sound: 'Son', language: 'Langue', showLines: 'Guide de freinage', telemetry: 'Télémétrie (touche G)', ctrlSide: 'Côté du levier', sideLeft: 'Gauche', sideRight: 'Droite', camera: 'Vue', camFollow: 'Dessus, orientée piste', camFixed: 'Dessus, fixe', camAvance: 'En avance, orientée piste', camAvanceFixe: 'En avance, fixe', pullBack: 'Recul de la caméra', pullNone: 'Normal', pullSome: 'Un peu en retrait', pullMore: 'Très en retrait', aimant: 'Aimant sur la ligne', aimantOff: 'Désactivé', aimantDoux: 'Doux', aimantNormal: 'Normal', aimantFort: 'Fort', aimantTresFort: 'Très fort', aimantDouble: '×2 fort', anticip: 'Anticipation du pilote', anticipOff: 'Aucune', anticipPeu: 'Légère', anticipMoy: 'Moyenne', anticipFort: 'Forte', lapCount: 'Tours', pressStart: 'Appuie pour commencer', tapStart: 'Appuie pour commencer', majVerif: 'Recherche de mise à jour…', majHorsLigne: (v, t) => `Hors ligne · version ${v} téléchargée · ${t}`, majAJour: (v, t) => `Jeu téléchargé et à jour · version ${v} · ${t}`,
+    hlPropose: (t) => `Jouer sans réseau ? Télécharge le jeu (${t}).`, hlTelecharger: 'Télécharger', hlNonMerci: 'Non merci',
+    hlEnLigne: (v, t) => `Version ${v} · ${t} · non téléchargée`, hlEnLigneSeul: (v) => `Version ${v}`,
+    hlEnCours: (p, f, t) => `Téléchargement pour jouer hors ligne… ${p} % (${f} sur ${t})`,
+    hlEchec: 'Le téléchargement n’a pas abouti : le jeu reste jouable en ligne.',
+    hlTitre: 'Jeu hors ligne', hlNonTelecharge: (v, t) => `Non téléchargé · version ${v} · ${t}`, hlTelechargeV: (v, t) => `Téléchargé · version ${v} · ${t}`,
+    hlSupprimer: 'Supprimer', hlConfirm: 'Supprimer la version téléchargée ? Le jeu restera jouable avec du réseau, et ta progression est conservée.', majDispo: (n, t) => `Mise à jour disponible : version ${n} (${t})`, majLancer: 'Mettre à jour', majGarder: 'Continuer avec cette version', majInstall: (p) => `Mise à jour… ${p} %`, majEchec: (v) => `La mise à jour n’a pas abouti · version ${v} conservée`, resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
     on: 'Activé', off: 'Coupé', playerDefault: 'Vous', allUnlocked: 'Tout est débloqué. Bravo !', careerIntro: 'Tu pars dernier à chaque course. Remonte le peloton, marque des points, débloque des catégories plus rapides.',
     lapDone: (n, t) => `Tour ${n} : ${t}`, tipTitle: 'Comment jouer', yourResult: (p) => `Tu termines P${p}`,
     nameTaken: (n) => `« ${n} » est déjà pris par un autre pilote. Change de nom dans les réglages, sinon tes temps n’entreront pas au tableau mondial.`,
@@ -239,7 +245,13 @@ const I18N = {
     lineBleu: 'BLUE', lineRace: 'RACING', lineJaune: 'YELLOW', freinage: 'Braking', reglages: 'Setup', regDefaut: 'Default', regRegler: 'Tune', regTitre: 'Braking setup', regAide: 'Push the lever while driving. Too much brake and the car stops in the corner; too little and you go off. The white mark is the stock setting.', regEnreg: 'Save this setup', regNom: 'Setup name', regIci: (v) => `braking ×${v.toFixed(2)} here`, regIciDefaut: 'stock braking here', regPortee: 'Only setups saved for this car on this circuit are offered. The selection is remembered for this pairing.', regFait: (n) => `Setup “${n}” saved.`, engineCut: 'ENGINE CUT', offTrack: 'OFF TRACK!', finished: 'FINISH',
     lapVoid: 'void',
     cupComplete: 'Cup complete!', cupWon: 'Champion!', cupPodium: 'Podium! Next cup unlocked.', cupFailed: 'Missed the podium… try again.',
-    newRecord: 'New record!', yourBest: 'Your best', name: 'Driver name', sound: 'Sound', language: 'Language', showLines: 'Braking guide', telemetry: 'Telemetry (G key)', ctrlSide: 'Lever side', sideLeft: 'Left', sideRight: 'Right', camera: 'View', camFollow: 'Top-down, track-aligned', camFixed: 'Top-down, fixed', camAvance: 'Look-ahead, track-aligned', camAvanceFixe: 'Look-ahead, fixed', pullBack: 'Camera set-back', pullNone: 'Normal', pullSome: 'A little further back', pullMore: 'Much further back', aimant: 'Line magnet', aimantOff: 'Off', aimantDoux: 'Light', aimantNormal: 'Normal', aimantFort: 'Strong', aimantTresFort: 'Very strong', aimantDouble: '×2 strong', anticip: 'Driver anticipation', anticipOff: 'None', anticipPeu: 'Light', anticipMoy: 'Medium', anticipFort: 'Strong', lapCount: 'Laps', pressStart: 'Press any button to start', tapStart: 'Tap to start', majVerif: 'Checking for updates…', majHorsLigne: (v) => `Offline · version ${v} installed`, majAJour: (v) => `Up to date · version ${v}`, majDispo: (n, t) => `Update available: version ${n} (${t})`, majLancer: 'Update', majGarder: 'Keep this version', majInstall: (p) => `Updating… ${p}%`, majPremiere: (p) => `Installing for offline play… ${p}%`, majEchec: (v) => `Update failed · keeping version ${v}`, resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
+    newRecord: 'New record!', yourBest: 'Your best', name: 'Driver name', sound: 'Sound', language: 'Language', showLines: 'Braking guide', telemetry: 'Telemetry (G key)', ctrlSide: 'Lever side', sideLeft: 'Left', sideRight: 'Right', camera: 'View', camFollow: 'Top-down, track-aligned', camFixed: 'Top-down, fixed', camAvance: 'Look-ahead, track-aligned', camAvanceFixe: 'Look-ahead, fixed', pullBack: 'Camera set-back', pullNone: 'Normal', pullSome: 'A little further back', pullMore: 'Much further back', aimant: 'Line magnet', aimantOff: 'Off', aimantDoux: 'Light', aimantNormal: 'Normal', aimantFort: 'Strong', aimantTresFort: 'Very strong', aimantDouble: '×2 strong', anticip: 'Driver anticipation', anticipOff: 'None', anticipPeu: 'Light', anticipMoy: 'Medium', anticipFort: 'Strong', lapCount: 'Laps', pressStart: 'Press any button to start', tapStart: 'Tap to start', majVerif: 'Checking for updates…', majHorsLigne: (v, t) => `Offline · version ${v} downloaded · ${t}`, majAJour: (v, t) => `Downloaded and up to date · version ${v} · ${t}`,
+    hlPropose: (t) => `Play without a connection? Download the game (${t}).`, hlTelecharger: 'Download', hlNonMerci: 'No thanks',
+    hlEnLigne: (v, t) => `Version ${v} · ${t} · not downloaded`, hlEnLigneSeul: (v) => `Version ${v}`,
+    hlEnCours: (p, f, t) => `Downloading for offline play… ${p}% (${f} of ${t})`,
+    hlEchec: 'The download did not complete: the game still plays online.',
+    hlTitre: 'Offline play', hlNonTelecharge: (v, t) => `Not downloaded · version ${v} · ${t}`, hlTelechargeV: (v, t) => `Downloaded · version ${v} · ${t}`,
+    hlSupprimer: 'Delete', hlConfirm: 'Delete the downloaded version? The game will still play online, and your progress is kept.', majDispo: (n, t) => `Update available: version ${n} (${t})`, majLancer: 'Update', majGarder: 'Keep this version', majInstall: (p) => `Updating… ${p}%`, majEchec: (v) => `Update failed · keeping version ${v}`, resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
     on: 'On', off: 'Off', playerDefault: 'You', allUnlocked: 'Everything unlocked. Well done!', careerIntro: 'You start every race from the back. Carve through the field, score points, unlock faster classes.',
     lapDone: (n, t) => `Lap ${n}: ${t}`, tipTitle: 'How to play', yourResult: (p) => `You finish P${p}`,
     nameTaken: (n) => `“${n}” is already taken by another driver. Change it in the settings, or your times will not reach the world board.`,
@@ -724,34 +736,77 @@ class UI {
         <div class="press">${escapeHtml(invite)}</div>
         ${this.app.desktop ? `<div class="title-inputs">${this.t(MANETTE ? 'splashInputsPad' : 'splashInputs')}</div>` : ''}
       </div>
-      <div class="version">v${APP_VERSION} · ${APP_DATE}${canalBadge()}</div>
+      <div class="version">v${APP_VERSION} · ${APP_DATE}<span class="version-poids"></span>${canalBadge()}</div>
       <div class="maj" aria-live="polite" hidden></div>
     `, 'center splash');
     this.majAffiche();
   }
 
-  /* L'état du jeu hors ligne, sur l'écran-titre (voir js/maj.js) : hors ligne, à jour, ou une mise à
-  jour disponible — qu'on accepte ou non. Rien ne s'affiche dans le dépôt, où il n'y a pas de version
-  publiée. */
+  /* L'état du jeu hors ligne, sur l'écran-titre (voir js/maj.js) : le téléchargement PROPOSÉ avec sa
+  taille quand le jeu n'est pas téléchargé, puis la version et la taille une fois qu'il l'est, et les
+  mises à jour — qu'on accepte ou non. Les réglages portent la même ligne, avec le bouton pour
+  télécharger ou supprimer (`horsLigneLigne`). Rien ne s'affiche dans le dépôt, où il n'y a pas de
+  version publiée. */
   majAffiche() {
     if (typeof MAJ === 'undefined') return;
     if (!this._majLie) { this._majLie = true; MAJ.surChangement(() => this.majAffiche()); }
+    const ligne = this.root.querySelector('.settings-screen .horsligne-ligne');
+    if (ligne) ligne.outerHTML = this.horsLigneLigne();
     const el = this.root.querySelector('.splash .maj');
     if (!el) return;
-    const t = (k, ...a) => this.t(k, ...a), m = MAJ;
-    const taille = (o) => (o >= 1e6 ? (o / 1e6).toFixed(1).replace('.', this.lang === 'en' ? '.' : ',') + (this.lang === 'en' ? ' MB' : ' Mo')
-      : Math.max(1, Math.round(o / 1e3)) + (this.lang === 'en' ? ' kB' : ' ko'));
+    const t = (k, ...a) => this.t(k, ...a), m = MAJ, o = (n) => this.octets(n);
+    // la taille du jeu suit aussi le numéro de version, en bas de l'affiche, téléchargé ou non
+    const poids = this.root.querySelector('.splash .version-poids');
+    if (poids) poids.textContent = m.poids ? ' · ' + o(m.poids) : '';
     let h = '';
-    if (m.etat === 'verification') h = `<span>${t('majVerif')}</span>`;
-    else if (m.etat === 'hors-ligne') h = `<span>${t('majHorsLigne', m.version)}</span>`;
-    else if (m.etat === 'a-jour') h = `<span>${t('majAJour', m.version)}</span>`;
-    else if (m.etat === 'disponible') h = `<span>${t('majDispo', m.nouvelle, taille(m.taille))}</span>
+    if (m.etat === 'verification') h = m.telecharge ? `<span>${t('majVerif')}</span>` : '';
+    else if (m.etat === 'absent') h = !MAJ.refuse() && m.poids
+      ? `<span>${t('hlPropose', o(m.poids))}</span>
+        <span class="maj-choix"><button class="primary" data-action="hlTelecharger">${t('hlTelecharger')}</button><button data-action="hlNonMerci">${t('hlNonMerci')}</button></span>`
+      : `<span>${m.poids ? t('hlEnLigne', m.version, o(m.poids)) : t('hlEnLigneSeul', m.version)}</span>`;
+    else if (m.etat === 'hors-ligne') h = `<span>${t('majHorsLigne', m.version, o(m.poids))}</span>`;
+    else if (m.etat === 'a-jour') h = `<span>${t('majAJour', m.version, o(m.poids))}</span>`;
+    else if (m.etat === 'disponible') h = `<span>${t('majDispo', m.nouvelle, o(m.taille))}</span>
       <span class="maj-choix"><button class="primary" data-action="majLancer">${t('majLancer')}</button><button data-action="majGarder">${t('majGarder')}</button></span>`;
-    else if (m.etat === 'installation') h = `<span>${t(m.premiere ? 'majPremiere' : 'majInstall', Math.round(m.progres * 100))}</span>`;
-    else if (m.etat === 'erreur') h = `<span>${t('majEchec', m.version || APP_VERSION)}</span>`;
+    else if (m.etat === 'installation') h = `<span>${this.majProgres()}</span>`;
+    else if (m.etat === 'erreur') h = `<span>${m.premiere ? t('hlEchec') : t('majEchec', m.version || APP_VERSION)}</span>`;
     el.innerHTML = h;
     el.hidden = !h;
     el.className = 'maj maj-' + m.etat;
+  }
+
+  /** Des octets lisibles : « 51,3 Mo », « 120 ko ». */
+  octets(o) {
+    const en = this.lang === 'en';
+    // espace insécable : « 51,3 » et « Mo » ne se séparent pas en fin de ligne
+    return o >= 1e6 ? (o / 1e6).toFixed(1).replace('.', en ? '.' : ',') + (en ? '\u00a0MB' : '\u00a0Mo')
+      : Math.max(1, Math.round(o / 1e3)) + (en ? '\u00a0kB' : '\u00a0ko');
+  }
+
+  majProgres() {
+    const m = MAJ, p = Math.round(m.progres * 100);
+    return m.premiere ? this.t('hlEnCours', p, this.octets(m.fait || m.progres * m.total), this.octets(m.total || m.poids))
+      : this.t('majInstall', p);
+  }
+
+  /* LA LIGNE « JEU HORS LIGNE » DES RÉGLAGES : ce qui est sur l'appareil, sa version et sa taille, et
+  le bouton qui va avec — télécharger quand rien ne l'est, supprimer sinon. Un `div` et non un
+  `label` : un label renvoie le clic de toute la ligne à son bouton, et toucher le texte « Jeu hors
+  ligne » aurait supprimé le jeu téléchargé. */
+  horsLigneLigne() {
+    if (typeof MAJ === 'undefined' || MAJ.etat === 'dev') return '<div class="horsligne-ligne" hidden></div>';
+    const t = (k, ...a) => this.t(k, ...a), m = MAJ, o = (n) => this.octets(n);
+    let etat, bouton = '';
+    if (m.etat === 'installation') etat = this.majProgres();
+    else if (m.etat === 'verification' && !m.telecharge) etat = t('majVerif');
+    else if (!m.telecharge) {
+      etat = m.etat === 'erreur' ? t('hlEchec') : m.poids ? t('hlNonTelecharge', m.version, o(m.poids)) : t('hlEnLigneSeul', m.version);
+      bouton = `<button class="link" data-action="hlTelecharger">${t('hlTelecharger')}</button>`;
+    } else {
+      etat = t('hlTelechargeV', m.version, o(m.poids));
+      bouton = `<button class="link danger" data-action="hlSupprimer">${t('hlSupprimer')}</button>`;
+    }
+    return `<div class="horsligne-ligne"><span>${t('hlTitre')}</span><span class="horsligne">${etat}${bouton}</span></div>`;
   }
 
   /* L'écran du nom, qu'on ne traverse qu'une fois.
@@ -950,6 +1005,7 @@ class UI {
             ? `<b class="ok">${t('signedIn')}</b><button class="link" data-action="signOut">${t('signOut')}</button>`
             : `<button class="link" data-action="google">${t('signIn')}</button>`}</span></label>
         <label>${t('sound')}<select id="sel-sound"><option value="1" ${s.sound ? 'selected' : ''}>${t('on')}</option><option value="0" ${!s.sound ? 'selected' : ''}>${t('off')}</option></select></label>
+        ${this.horsLigneLigne()}
         ${REGLAGES_AVANCES ? `<label>${t('showLines')}<select id="sel-lines"><option value="0" ${s.showLines !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.showLines === true ? 'selected' : ''}>${t('on')}</option></select></label>
         <label>${t('telemetry')}<select id="sel-debug"><option value="0" ${s.debug !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.debug === true ? 'selected' : ''}>${t('on')}</option></select></label>` : ''}
         <label>${t('pullBack')}<select id="sel-pull">${[[1, 'pullNone'], [1.3, 'pullSome'], [1.6, 'pullMore']].map(([v, k]) => `<option value="${v}" ${Math.abs((s.pullBack || 1) - v) < 0.05 ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
@@ -1676,6 +1732,9 @@ class UI {
       }
       case 'enterGame': app.leaveSplash(); break;
       case 'majLancer': MAJ.lancer(); break;
+      case 'hlTelecharger': MAJ.telecharger(); break;
+      case 'hlNonMerci': MAJ.nonMerci(); break;
+      case 'hlSupprimer': if (confirmed || confirm(this.t('hlConfirm'))) MAJ.supprimer(); break;
       case 'majGarder': MAJ.plusTard(); break;
       case 'setup': this.setupScreen(btn.dataset.mode); break;
       case 'career': this.careerScreen(); break;
