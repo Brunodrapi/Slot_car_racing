@@ -37,6 +37,21 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     let e = await etat();
     ok(e.g && !e.d, 'au début : la flèche gauche est estompée, la droite non');
 
+    /* La flèche prend le clic sur toute la hauteur des cartes : Bruno cliquait au-dessus de l'onglet
+       sombre, et le clic tombait sur la carte (25 × 40 px de zone sur son écran). */
+    const zone = await p.evaluate(() => {
+      const r = document.querySelector('[data-rail="tracks"]'), a = r.closest('.railbox').querySelector('.railarrow.droite');
+      const carte = r.querySelector('.card').getBoundingClientRect(), f = a.getBoundingClientRect(), x = f.left + f.width / 2;
+      const prend = (y) => document.elementFromPoint(x, y) === a;
+      const g = r.closest('.railbox').querySelector('.railarrow.gauche').getBoundingClientRect();
+      const sousGauche = document.elementFromPoint(g.left + g.width / 2, carte.top + carte.height / 2);
+      return { haut: prend(carte.top + 4), milieu: prend(carte.top + carte.height / 2), bas: prend(carte.bottom - 4),
+        l: Math.round(f.width), h: Math.round(f.height), gaucheLaissePasser: !!(sousGauche && sousGauche.closest('.card')) };
+    });
+    ok(zone.haut && zone.milieu && zone.bas && zone.l >= 40, `zone de la flèche : ${zone.l} × ${zone.h} px, du haut au bas des cartes`
+      + (zone.haut && zone.milieu && zone.bas ? '' : ` (haut ${zone.haut}, milieu ${zone.milieu}, bas ${zone.bas})`));
+    ok(zone.gaucheLaissePasser, 'au bout, la flèche estompée laisse passer le clic vers la carte');
+
     // trois clics rapides = trois pas (au calage des cartes près)
     for (const pause of [150, 60]) {
       await ouvre('race');
@@ -57,7 +72,8 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     ok(Math.abs(e.sl - e.pas) < e.pas * 0.3, `repeint pendant le défilement : ${Math.round(e.sl)} px (un pas ≈ ${Math.round(e.pas)})`);
 
     // au bout : la flèche droite s'estompe et ne fait rien
-    for (let i = 0; i < 8; i++) { await p.click(droite); await p.waitForTimeout(120); }
+    // estompée, la flèche laisse passer le clic : on s'arrête de cliquer quand elle l'est
+    for (let i = 0; i < 12 && !(await etat()).d; i++) { await p.click(droite); await p.waitForTimeout(350); }
     await p.waitForTimeout(1000);
     e = await etat();
     ok(e.sl >= e.max - 1 && e.d && !e.g, `au bout : ${Math.round(e.sl)}/${Math.round(e.max)} px, flèche droite estompée`);

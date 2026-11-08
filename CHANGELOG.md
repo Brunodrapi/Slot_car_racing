@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.56
+- Menus sur PC : les flèches des rails prennent le clic sur toute la hauteur des cartes, et plus seulement sur le petit onglet sombre ; au survol, la bande s'assombrit.
+
 ## 0.52.55
 - Menus sur PC : chaque clic sur les flèches des rails (circuits, voitures) avance d'un cran, même en cliquant vite ou quand les temps du monde arrivent pendant le défilement ; la flèche s'estompe au bout du rail.
 - (0.52.52 à 0.52.54 annulées en recette : numéros sautés pour ne pas resservir des fichiers en cache.)

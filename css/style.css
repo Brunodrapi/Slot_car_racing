@@ -418,7 +418,32 @@ body.desktop .screen.overlay { overflow-y: auto; justify-content: safe center; }
 .railarrow.droite { right: -6px; }
 .railarrow:hover { background: rgba(28,32,44,0.95); }
 .railarrow.bout { opacity: .3; cursor: default; }
-@media (hover: hover) and (pointer: fine) { .railarrow { display: grid; } }
+/* LA FLÈCHE EST UNE BANDE SUR TOUTE LA HAUTEUR DU RAIL, pas une pastille.
+
+   « J'ai l'impression que c'est quand on clique trop haut sur la flèche, il faut augmenter la zone
+   cliquable. » Mesuré sur son écran : la pastille, retaillée par le style des boutons du paddock et
+   rognée par le bord du panneau, ne prenait le clic que sur 25 × 40 px ; dix pixels au-dessus de
+   l'onglet sombre, le clic tombait sur la carte. La bande prend maintenant toute la hauteur du rail
+   sur 44 px de large, et l'onglet visible reste au milieu ; au
+   survol, la bande s'assombrit pour montrer jusqu'où elle va. Au bout du rail, elle laisse passer le
+   clic vers la carte du dessous, puisqu'elle n'a plus rien à faire. */
+.railbox > .railarrow {
+  position: absolute; top: 0; bottom: 0; transform: none;
+  width: 44px; height: auto; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 0;
+  display: none; place-items: center; background: transparent; color: #f4efe2;
+  font-size: 22px; line-height: 1; cursor: pointer; z-index: 2;
+}
+.railbox > .railarrow.gauche { left: 0; }
+.railbox > .railarrow.droite { right: 0; }
+.railbox > .railarrow::before {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 30px; height: 46px; transform: translate(-50%, -50%);
+  background: rgba(22, 26, 24, .88); border-radius: 3px; z-index: -1; transition: background .12s;
+}
+.railbox > .railarrow.gauche:hover { background: linear-gradient(to right, rgba(0, 0, 0, .3), transparent); }
+.railbox > .railarrow.droite:hover { background: linear-gradient(to left, rgba(0, 0, 0, .3), transparent); }
+.railbox > .railarrow:hover::before { background: #0b0d0c; }
+.railbox > .railarrow.bout { opacity: .3; cursor: default; pointer-events: none; }
+@media (hover: hover) and (pointer: fine) { .railbox > .railarrow { display: grid; } }
 
 /* ---------- records : un temps par voiture ---------- */
 /* La vignette à gauche parce qu'une liste de noms se lit, là où une liste de voitures se
