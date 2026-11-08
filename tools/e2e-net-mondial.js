@@ -20,6 +20,7 @@ const CAS = [
   ['usure (course)',               {},                     { usure: {} },   false],
   ['télémétrie seule',             { debug: true },        null,            true],
   ['aimant ET guide',              { showLines: true, aimant: 1 }, null,    false],
+  ['guide pris au départ, éteint', {},                     { guide: true }, false],
 ];
 const O = [];
 for (const [nom, delta, race, attendu] of CAS) {
@@ -27,6 +28,10 @@ for (const [nom, delta, race, attendu] of CAS) {
   const got = tourNet(save, race || {});
   O.push({ nom, got, attendu, ok: got === attendu });
 }
+// le guide est publié (aide débutant) : la lecture de la sauvegarde le garde, et remet le reste à zéro
+const lu = reglagesPublies(Object.assign({}, base, { showLines: true, aimant: 1, ff: 0, debug: true }));
+const garde = lu.showLines === true && lu.aimant === 0 && lu.ff === 0.3 && lu.debug === false;
+O.push({ nom: "la lecture garde le guide, pas l'aimant", got: garde, attendu: true, ok: garde });
 RESULTAT.v = O;
 `;
 const RESULTAT = { v: null };
@@ -46,13 +51,16 @@ const verifs = [
   ['le rattrapage lit le registre NET', main.includes('rattrape(this.save.bestLapsNets)')],
   ['il ne lit plus le registre personnel', !main.includes('rattrape(this.save.bestLaps)')],
   ['un temps aidé n\'entre pas dans le registre net', main.includes('if (net && (save.bestLapsNets[keyCar] == null')],
-  ['le motif de refus est posé quand ce n\'est pas net', main.includes("raison: race.usure ? 'usure' : 'aides'")],
+  ['le motif de refus est posé quand ce n\'est pas net', main.includes("raison: race.usure ? 'usure' : race.track.def.decorLocal ? 'decor' : 'aides'")],
 ];
 const car = fs.readFileSync(path.join(R, 'js', 'career.js'), 'utf8');
 verifs.push(['les anciennes sauvegardes sont reprises', car.includes('save.bestLapsNets = Object.assign({}, save.bestLaps)')]);
 const ui = fs.readFileSync(path.join(R, 'js', 'ui.js'), 'utf8');
 verifs.push(['le refus a un message FR et EN', (ui.match(/refus_aides:/g) || []).length === 2]);
 verifs.push(['l\'écran des réglages avertit', ui.includes("t('horsClassement')")]);
+verifs.push(['le guide est dans les réglages, hors interrupteur', /\n\s*<label>\$\{t\('showLines'\)\}<select id="sel-lines">/.test(ui)]);
+verifs.push(['la course retient le guide du départ', main.includes('this.race.guide = this.save.showLines === true')]);
+verifs.push(['le départ prévient quand le guide est allumé', (ui.match(/guideActif:/g) || []).length === 2 && ui.includes("t('guideActif')")]);
 console.log();
 for (const [quoi, ok] of verifs) { if (!ok) faux++; console.log((ok ? '  ok   ' : '  FAUX ') + quoi); }
 console.log('\n' + faux + ' faute(s)');

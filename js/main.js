@@ -486,6 +486,8 @@ class App {
     this.raceCtx = ctx;
     this.spectator?.close();
     this.race = new Race(opts);
+    // le guide de freinage allumé au départ exclut la course du tableau mondial (tourNet, js/career.js)
+    this.race.guide = this.save.showLines === true;
     if (ctx?.online) {
       this.race.broadcast = new RaceBroadcast(this.race);
       this.net.drive = new NetDrive(this.net, this.race);

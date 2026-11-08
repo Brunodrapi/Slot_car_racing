@@ -456,6 +456,8 @@ body.desktop .screen.overlay { overflow-y: auto; justify-content: safe center; }
   text-transform: uppercase; color: var(--muted); text-align: right; }
 .mondial-note { font-size: 13px; margin: 0 0 4px; }
 .mondial-note .link { margin-left: 6px; }
+/* le saumon de `.warn` est fait pour le fond sombre ; sur le papier du paddock il ne se lisait pas */
+.setup-screen .mondial-note.warn { color: #a3261c; font-weight: 600; }
 @media (max-width: 700px) {
   .rail .card { width: 136px; }
   .rail.tracks .card { width: 108px; }

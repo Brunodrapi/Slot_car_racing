@@ -105,7 +105,7 @@ const I18N = {
     lineBleu: 'BLEU', lineRace: 'IDÉALE', lineJaune: 'JAUNE', freinage: 'Freinage', reglages: 'Réglages', regDefaut: 'Par défaut', regRegler: 'Régler', regTitre: 'Réglage du freinage', regAide: 'Pousse le levier en roulant. Trop de frein et la voiture s’arrête dans le virage ; trop peu et c’est la sortie. Le repère blanc est le réglage d’origine.', regEnreg: 'Enregistrer la configuration', regNom: 'Nom de la configuration', regIci: (v) => `freinage ×${v.toFixed(2)} ici`, regIciDefaut: 'freinage d’origine ici', regPortee: 'Seuls les réglages enregistrés pour cette voiture sur ce circuit sont proposés. Le choix est mémorisé pour ce couple.', regFait: (n) => `Configuration « ${n} » enregistrée.`, engineCut: 'MOTEUR COUPÉ', offTrack: 'SORTIE DE PISTE !', finished: 'ARRIVÉE',
     lapVoid: 'annulé',
     cupComplete: 'Coupe terminée !', cupWon: 'Champion !', cupPodium: 'Podium ! Coupe suivante débloquée.', cupFailed: 'Hors du podium… retente ta chance.',
-    newRecord: 'Nouveau record !', yourBest: 'Ton record', name: 'Nom du pilote', sound: 'Son', language: 'Langue', showLines: 'Guide de freinage', telemetry: 'Télémétrie (touche G)', ctrlSide: 'Côté du levier', sideLeft: 'Gauche', sideRight: 'Droite', camera: 'Vue', camFollow: 'Dessus, orientée piste', camFixed: 'Dessus, fixe', camAvance: 'En avance, orientée piste', camAvanceFixe: 'En avance, fixe', pullBack: 'Recul de la caméra', pullNone: 'Normal', pullSome: 'Un peu en retrait', pullMore: 'Très en retrait', aimant: 'Aimant sur la ligne', aimantOff: 'Désactivé', aimantDoux: 'Doux', aimantNormal: 'Normal', aimantFort: 'Fort', aimantTresFort: 'Très fort', aimantDouble: '×2 fort', anticip: 'Anticipation du pilote', anticipOff: 'Aucune', anticipPeu: 'Légère', anticipMoy: 'Moyenne', anticipFort: 'Forte', lapCount: 'Tours', pressStart: 'Appuie pour commencer', tapStart: 'Appuie pour commencer', majVerif: 'Recherche de mise à jour…', majHorsLigne: (v) => `Hors ligne · version ${v} installée`, majAJour: (v) => `Jeu à jour · version ${v}`, majDispo: (n, t) => `Mise à jour disponible : version ${n} (${t})`, majLancer: 'Mettre à jour', majGarder: 'Continuer avec cette version', majInstall: (p) => `Mise à jour… ${p} %`, majPremiere: (p) => `Installation pour jouer hors ligne… ${p} %`, majEchec: (v) => `La mise à jour n’a pas abouti · version ${v} conservée`, resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
+    newRecord: 'Nouveau record !', yourBest: 'Ton record', name: 'Nom du pilote', sound: 'Son', language: 'Langue', showLines: 'Guide de freinage (débutant)', telemetry: 'Télémétrie (touche G)', ctrlSide: 'Côté du levier', sideLeft: 'Gauche', sideRight: 'Droite', camera: 'Vue', camFollow: 'Dessus, orientée piste', camFixed: 'Dessus, fixe', camAvance: 'En avance, orientée piste', camAvanceFixe: 'En avance, fixe', pullBack: 'Recul de la caméra', pullNone: 'Normal', pullSome: 'Un peu en retrait', pullMore: 'Très en retrait', aimant: 'Aimant sur la ligne', aimantOff: 'Désactivé', aimantDoux: 'Doux', aimantNormal: 'Normal', aimantFort: 'Fort', aimantTresFort: 'Très fort', aimantDouble: '×2 fort', anticip: 'Anticipation du pilote', anticipOff: 'Aucune', anticipPeu: 'Légère', anticipMoy: 'Moyenne', anticipFort: 'Forte', lapCount: 'Tours', pressStart: 'Appuie pour commencer', tapStart: 'Appuie pour commencer', majVerif: 'Recherche de mise à jour…', majHorsLigne: (v) => `Hors ligne · version ${v} installée`, majAJour: (v) => `Jeu à jour · version ${v}`, majDispo: (n, t) => `Mise à jour disponible : version ${n} (${t})`, majLancer: 'Mettre à jour', majGarder: 'Continuer avec cette version', majInstall: (p) => `Mise à jour… ${p} %`, majPremiere: (p) => `Installation pour jouer hors ligne… ${p} %`, majEchec: (v) => `La mise à jour n’a pas abouti · version ${v} conservée`, resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
     on: 'Activé', off: 'Coupé', playerDefault: 'Vous', allUnlocked: 'Tout est débloqué. Bravo !', careerIntro: 'Tu pars dernier à chaque course. Remonte le peloton, marque des points, débloque des catégories plus rapides.',
     lapDone: (n, t) => `Tour ${n} : ${t}`, tipTitle: 'Comment jouer', yourResult: (p) => `Tu termines P${p}`,
     nameTaken: (n) => `« ${n} » est déjà pris par un autre pilote. Change de nom dans les réglages, sinon tes temps n’entreront pas au tableau mondial.`,
@@ -129,6 +129,7 @@ const I18N = {
     refus_session: 'Ta session a expiré. Reconnecte-toi pour inscrire tes temps.',
     refus_usure: 'Les tours courus avec l’usure n’entrent pas au tableau mondial : ils ne se comparent à rien.',
     refus_aides: 'Ce tour n’entre pas au tableau mondial : il a été couru avec une aide ou un réglage de conduite. Remets-les à zéro pour inscrire tes temps.',
+    guideActif: 'Guide de freinage activé : tes tours ne comptent pas pour le tableau mondial.',
     refus_decor: 'Ce tour n’entre pas au tableau mondial : le décor de ce circuit a été retouché dans l’éditeur, sur ce poste. Oublie la retouche pour inscrire tes temps.',
     horsClassement: 'Hors tableau mondial : ', horsGuide: 'guide de freinage', horsAimant: 'aimant', horsFf: 'anticipation', horsUsure: 'usure',
     refus_reseau: 'Pas de réseau au moment de l’envoi. Ton temps est gardé ici.',
@@ -239,7 +240,7 @@ const I18N = {
     lineBleu: 'BLUE', lineRace: 'RACING', lineJaune: 'YELLOW', freinage: 'Braking', reglages: 'Setup', regDefaut: 'Default', regRegler: 'Tune', regTitre: 'Braking setup', regAide: 'Push the lever while driving. Too much brake and the car stops in the corner; too little and you go off. The white mark is the stock setting.', regEnreg: 'Save this setup', regNom: 'Setup name', regIci: (v) => `braking ×${v.toFixed(2)} here`, regIciDefaut: 'stock braking here', regPortee: 'Only setups saved for this car on this circuit are offered. The selection is remembered for this pairing.', regFait: (n) => `Setup “${n}” saved.`, engineCut: 'ENGINE CUT', offTrack: 'OFF TRACK!', finished: 'FINISH',
     lapVoid: 'void',
     cupComplete: 'Cup complete!', cupWon: 'Champion!', cupPodium: 'Podium! Next cup unlocked.', cupFailed: 'Missed the podium… try again.',
-    newRecord: 'New record!', yourBest: 'Your best', name: 'Driver name', sound: 'Sound', language: 'Language', showLines: 'Braking guide', telemetry: 'Telemetry (G key)', ctrlSide: 'Lever side', sideLeft: 'Left', sideRight: 'Right', camera: 'View', camFollow: 'Top-down, track-aligned', camFixed: 'Top-down, fixed', camAvance: 'Look-ahead, track-aligned', camAvanceFixe: 'Look-ahead, fixed', pullBack: 'Camera set-back', pullNone: 'Normal', pullSome: 'A little further back', pullMore: 'Much further back', aimant: 'Line magnet', aimantOff: 'Off', aimantDoux: 'Light', aimantNormal: 'Normal', aimantFort: 'Strong', aimantTresFort: 'Very strong', aimantDouble: '×2 strong', anticip: 'Driver anticipation', anticipOff: 'None', anticipPeu: 'Light', anticipMoy: 'Medium', anticipFort: 'Strong', lapCount: 'Laps', pressStart: 'Press any button to start', tapStart: 'Tap to start', majVerif: 'Checking for updates…', majHorsLigne: (v) => `Offline · version ${v} installed`, majAJour: (v) => `Up to date · version ${v}`, majDispo: (n, t) => `Update available: version ${n} (${t})`, majLancer: 'Update', majGarder: 'Keep this version', majInstall: (p) => `Updating… ${p}%`, majPremiere: (p) => `Installing for offline play… ${p}%`, majEchec: (v) => `Update failed · keeping version ${v}`, resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
+    newRecord: 'New record!', yourBest: 'Your best', name: 'Driver name', sound: 'Sound', language: 'Language', showLines: 'Braking guide (beginner)', telemetry: 'Telemetry (G key)', ctrlSide: 'Lever side', sideLeft: 'Left', sideRight: 'Right', camera: 'View', camFollow: 'Top-down, track-aligned', camFixed: 'Top-down, fixed', camAvance: 'Look-ahead, track-aligned', camAvanceFixe: 'Look-ahead, fixed', pullBack: 'Camera set-back', pullNone: 'Normal', pullSome: 'A little further back', pullMore: 'Much further back', aimant: 'Line magnet', aimantOff: 'Off', aimantDoux: 'Light', aimantNormal: 'Normal', aimantFort: 'Strong', aimantTresFort: 'Very strong', aimantDouble: '×2 strong', anticip: 'Driver anticipation', anticipOff: 'None', anticipPeu: 'Light', anticipMoy: 'Medium', anticipFort: 'Strong', lapCount: 'Laps', pressStart: 'Press any button to start', tapStart: 'Tap to start', majVerif: 'Checking for updates…', majHorsLigne: (v) => `Offline · version ${v} installed`, majAJour: (v) => `Up to date · version ${v}`, majDispo: (n, t) => `Update available: version ${n} (${t})`, majLancer: 'Update', majGarder: 'Keep this version', majInstall: (p) => `Updating… ${p}%`, majPremiere: (p) => `Installing for offline play… ${p}%`, majEchec: (v) => `Update failed · keeping version ${v}`, resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
     on: 'On', off: 'Off', playerDefault: 'You', allUnlocked: 'Everything unlocked. Well done!', careerIntro: 'You start every race from the back. Carve through the field, score points, unlock faster classes.',
     lapDone: (n, t) => `Lap ${n}: ${t}`, tipTitle: 'How to play', yourResult: (p) => `You finish P${p}`,
     nameTaken: (n) => `“${n}” is already taken by another driver. Change it in the settings, or your times will not reach the world board.`,
@@ -263,6 +264,7 @@ const I18N = {
     refus_session: 'Your session has expired. Sign in again to post your times.',
     refus_usure: 'Laps run with wear do not reach the world board: they compare to nothing.',
     refus_aides: 'This lap does not reach the world board: it was driven with an aid or a driving setting. Turn them off to post your times.',
+    guideActif: 'Braking guide on: your laps do not count for the world board.',
     refus_decor: 'This lap does not reach the world board: this circuit’s scenery was edited in the editor on this device. Forget the edit to post your times.',
     horsClassement: 'Outside the world board: ', horsGuide: 'braking guide', horsAimant: 'magnet', horsFf: 'anticipation', horsUsure: 'tyre wear',
     refus_reseau: 'No network when sending. Your time is kept here.',
@@ -524,7 +526,10 @@ class UI {
     if (!sel) return;
     rail.scrollLeft = Math.max(0, sel.offsetLeft - (rail.clientWidth - sel.offsetWidth) / 2);
   }
-  hide() { this.root.classList.add('hidden'); this.root.innerHTML = ''; }
+  /* Masquer oublie aussi la clé de l'écran. Sans cela, une réponse lente arrivée après « EN PISTE »
+  — les temps du monde, le palmarès du compte — croyait le joueur encore au départ et repeignait
+  l'écran du paddock PAR-DESSUS la course qui roulait. */
+  hide() { this.root.classList.add('hidden'); this.root.innerHTML = ''; this._cleEcran = null; }
 
   // ---------- thumbnails ----------
   thumb(trackDef, size) {
@@ -916,8 +921,10 @@ class UI {
             ? `<b class="ok">${t('signedIn')}</b><button class="link" data-action="signOut">${t('signOut')}</button>`
             : `<button class="link" data-action="google">${t('signIn')}</button>`}</span></label>
         <label>${t('sound')}<select id="sel-sound"><option value="1" ${s.sound ? 'selected' : ''}>${t('on')}</option><option value="0" ${!s.sound ? 'selected' : ''}>${t('off')}</option></select></label>
-        ${REGLAGES_AVANCES ? `<label>${t('showLines')}<select id="sel-lines"><option value="0" ${s.showLines !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.showLines === true ? 'selected' : ''}>${t('on')}</option></select></label>
-        <label>${t('telemetry')}<select id="sel-debug"><option value="0" ${s.debug !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.debug === true ? 'selected' : ''}>${t('on')}</option></select></label>` : ''}
+        <!-- Le guide de freinage est la seule aide publiée : pour débuter, il montre où freiner. Le
+             tour couru avec lui ne va pas au tableau mondial (tourNet, js/career.js). -->
+        <label>${t('showLines')}<select id="sel-lines"><option value="0" ${s.showLines !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.showLines === true ? 'selected' : ''}>${t('on')}</option></select></label>
+        ${REGLAGES_AVANCES ? `<label>${t('telemetry')}<select id="sel-debug"><option value="0" ${s.debug !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.debug === true ? 'selected' : ''}>${t('on')}</option></select></label>` : ''}
         <label>${t('pullBack')}<select id="sel-pull">${[[1, 'pullNone'], [1.3, 'pullSome'], [1.6, 'pullMore']].map(([v, k]) => `<option value="${v}" ${Math.abs((s.pullBack || 1) - v) < 0.05 ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
         <label>${t('ctrlSide')}<select id="sel-side"><option value="left" ${(s.ctrlSide || 'left') === 'left' ? 'selected' : ''}>${t('sideLeft')}</option><option value="right" ${s.ctrlSide === 'right' ? 'selected' : ''}>${t('sideRight')}</option></select></label>
         <label>${t('camera')}<select id="sel-cam">${[['track', 'camFollow'], ['fixed', 'camFixed'], ['avance', 'camAvance'], ['avanceFixe', 'camAvanceFixe']].map(([v, k]) => `<option value="${v}" ${(s.view || 'avanceFixe') === v ? 'selected' : ''}>${t(k)}</option>`).join('')}</select></label>
@@ -1043,7 +1050,10 @@ class UI {
             ${RECONNEXION.has(app.mondial.dernierRefus.raison)
               ? `<button class="link" data-action="google">${t('reconnect')}</button>` : ''}
             ${REGLAGES.has(app.mondial.dernierRefus.raison)
-              ? `<button class="link" data-action="settings">${t('settings')}</button>` : ''}</p>` : ''}
+              ? `<button class="link" data-action="settings">${t('settings')}</button>` : ''}</p>`
+        /* le guide allumé se dit AVANT de courir : découvrir au résultat que le tour ne compte pas,
+           c'est l'avoir couru pour rien */
+        : s.showLines ? `<p class="warn mondial-note">${t('guideActif')} <button class="link" data-action="settings">${t('settings')}</button></p>` : ''}
       <div class="records">
         <div class="rhead">
           <span></span><b></b>
@@ -1819,7 +1829,8 @@ class UI {
       storeSave(s); this.setupScreen(this.setup.mode);
     }
     if (el.id === 'sel-sound') { s.sound = el.value === '1'; storeSave(s); this.app.audio.setEnabled(s.sound); }
-    if (el.id === 'sel-lines') { s.showLines = el.value === '1'; storeSave(s); this.app.renderer.showLines = s.showLines; }
+    // l'écran se redessine pour dire tout de suite que le tableau mondial est exclu (ou ne l'est plus)
+    if (el.id === 'sel-lines') { s.showLines = el.value === '1'; storeSave(s); this.app.renderer.showLines = s.showLines; this.settings(); }
     // le côté du levier : le rendu le relit à chaque image, il n'y a rien d'autre à faire ici
     if (el.id === 'sel-side') { s.ctrlSide = el.value === 'right' ? 'right' : 'left'; storeSave(s); }
     if (el.id === 'sel-reglage') {

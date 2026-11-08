@@ -4,6 +4,10 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.54
+- Réglages : le guide de freinage revient, comme aide pour débuter — un ruban sur la piste montre où freiner. Les tours courus avec lui ne vont pas au tableau mondial ; l'écran du contre-la-montre le rappelle avant de partir.
+- Correction : l'écran de départ pouvait réapparaître par-dessus la course quand les temps du monde arrivaient après « EN PISTE ».
+
 ## 0.52.51
 - Stand de frites (essai) : décor d'automne — feuillus rouges, orange, moutarde et jaunes, sapins verts, prairie d'arrière-saison.
 
