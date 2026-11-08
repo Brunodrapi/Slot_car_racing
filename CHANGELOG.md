@@ -4,6 +4,10 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.55
+- Menus sur PC : chaque clic sur les flèches des rails (circuits, voitures) avance d'un cran, même en cliquant vite ou quand les temps du monde arrivent pendant le défilement ; la flèche s'estompe au bout du rail.
+- (0.52.52 à 0.52.54 annulées en recette : numéros sautés pour ne pas resservir des fichiers en cache.)
+
 ## 0.52.51
 - Stand de frites (essai) : décor d'automne — feuillus rouges, orange, moutarde et jaunes, sapins verts, prairie d'arrière-saison.
 

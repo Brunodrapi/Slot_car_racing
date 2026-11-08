@@ -417,6 +417,7 @@ body.desktop .screen.overlay { overflow-y: auto; justify-content: safe center; }
 .railarrow.gauche { left: -6px; }
 .railarrow.droite { right: -6px; }
 .railarrow:hover { background: rgba(28,32,44,0.95); }
+.railarrow.bout { opacity: .3; cursor: default; }
 @media (hover: hover) and (pointer: fine) { .railarrow { display: grid; } }
 
 /* ---------- records : un temps par voiture ---------- */

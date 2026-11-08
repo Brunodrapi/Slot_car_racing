@@ -368,6 +368,8 @@ class UI {
     this.icons = new Map();
     this.setup = { mode: 'race', classId: 'gt', trackId: 'zandvoort' };
     this.root.addEventListener('click', (e) => this._onClick(e));
+    // le défilement ne remonte pas : on l'écoute à la capture pour tous les rails à la fois
+    this.root.addEventListener('scroll', (e) => { if (e.target.dataset && e.target.dataset.rail) this._majFleches(e.target); }, { capture: true, passive: true });
     this.root.addEventListener('change', (e) => this._onChange(e));
     // « change » n'arrive qu'à la sortie du champ : pour nettoyer la frappe il faut « input »
     this.root.addEventListener('input', (e) => this._onInput(e));
@@ -479,7 +481,10 @@ class UI {
     à la première : on se serait retrouvé devant la M1 après avoir choisi la CSL, avec la marque
     de sélection hors champ. Le réglage aurait marché et l'écran aurait dit le contraire. */
     const rails = {};
-    if (garder) for (const r of avant.querySelectorAll('[data-rail]')) rails[r.dataset.rail] = r.scrollLeft;
+    /* Un rail en plein défilement garde sa place VISÉE, pas celle du milieu de l'animation : les
+    temps du monde qui arrivent pendant un clic de flèche repeignaient l'écran et l'arrêtaient en
+    route (en contre-la-montre, le deuxième clic n'avançait que d'un tiers de pas). */
+    if (garder) for (const r of avant.querySelectorAll('[data-rail]')) rails[r.dataset.rail] = r._cible != null ? r._cible : r.scrollLeft;
     this.root.innerHTML = `<div class="screen ${cls || ''}">${html}</div>`;
     this._cleEcran = cle == null ? null : cle;
     if (y) this.root.firstElementChild.scrollTop = y;
@@ -487,6 +492,7 @@ class UI {
       // à la première ouverture, on se place sur ce qui est déjà choisi plutôt qu'au début
       if (rails[r.dataset.rail] != null) r.scrollLeft = rails[r.dataset.rail];
       else this._centrerRail(r);
+      this._majFleches(r);
     }
     this.root.classList.remove('hidden');
     for (const button of this.root.querySelectorAll('button.card, .seg button')) button.setAttribute('aria-pressed', String(button.classList.contains('sel')));
@@ -517,6 +523,34 @@ class UI {
     if (deborde()) barre.classList.add('compacte');
     resserre(16);
     if (deborde()) logo.hidden = true;
+  }
+
+  /* UNE FLÈCHE VISE UNE PLACE, pas un écart depuis là où le rail se trouve.
+
+  « Les flèches ne fonctionnent pas toujours très bien, il faut appuyer plusieurs fois. » Mesuré :
+  `scrollBy` repart de la position du moment, donc du milieu de l'animation quand on reclique
+  avant qu'elle finisse — trois clics à 150 ms n'avançaient que de deux pas, à 60 ms d'à peine
+  plus d'un. On garde donc la place visée (`_cible`) tant que l'animation court, et le clic
+  suivant part d'elle. Les clics s'additionnent, quelle que soit leur cadence. */
+  _defileRail(rail, dir) {
+    const max = Math.max(0, rail.scrollWidth - rail.clientWidth);
+    const depart = rail._cible != null ? rail._cible : rail.scrollLeft;
+    const cible = Math.max(0, Math.min(max, depart + dir * Math.max(180, rail.clientWidth * 0.8)));
+    rail._cible = cible;
+    clearTimeout(rail._finCible);
+    rail._finCible = setTimeout(() => { rail._cible = null; }, 800);
+    rail.scrollTo({ left: cible, behavior: 'smooth' });
+  }
+
+  /* Au bout du rail, la flèche de ce côté s'estompe : cliquer dessus ne fait rien, et sans signe
+  on croyait qu'elle n'avait pas pris le clic. */
+  _majFleches(rail) {
+    const box = rail.closest('.railbox');
+    if (!box) return;
+    const max = rail.scrollWidth - rail.clientWidth;
+    const g = box.querySelector('.railarrow.gauche'), d = box.querySelector('.railarrow.droite');
+    if (g) g.classList.toggle('bout', rail.scrollLeft <= 1);
+    if (d) d.classList.toggle('bout', rail.scrollLeft >= max - 1);
   }
 
   _centrerRail(rail) {
@@ -1688,7 +1722,7 @@ class UI {
          défilement referait les vignettes et rejouerait le placement, pour déplacer une barre. */
       case 'railTo': {
         const rail = this.root.querySelector(`[data-rail="${id}"]`);
-        if (rail) rail.scrollBy({ left: (+btn.dataset.dir) * Math.max(180, rail.clientWidth * 0.8), behavior: 'smooth' });
+        if (rail) this._defileRail(rail, +btn.dataset.dir);
         break;
       }
       case 'pickWear': app.save.wear = id === '1'; storeSave(app.save); this.setupScreen(this.setup.mode); break;
