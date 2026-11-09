@@ -1,1 +1,1 @@
-"use strict";const APP_VERSION="0.52.57",APP_DATE="2026-11-08",APP_CANAL="recette";if("undefined"!=typeof document){const e=document.querySelector('meta[name="apple-mobile-web-app-title"]');e&&(e.content="GRIP Recette",document.title="GRIP Recette")}
+"use strict";const APP_VERSION="0.52.59",APP_DATE="2026-11-09",APP_CANAL="recette";if("undefined"!=typeof document){const e=document.querySelector('meta[name="apple-mobile-web-app-title"]');e&&(e.content="GRIP Recette",document.title="GRIP Recette")}

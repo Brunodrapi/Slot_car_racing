@@ -14,6 +14,9 @@ Les états :
   disponible    téléchargé, une version plus récente est publiée — la télécharger ou continuer
   reporte       « continuer avec cette version » : on n'en parle plus pour cette partie
   erreur        le téléchargement n'a pas abouti : on garde ce qu'on avait
+  indisponible  la version publiée, mais un navigateur sans service worker (sur iPhone, une page
+                ouverte depuis une autre app plutôt que dans Safari) : on dit la version, la taille,
+                et pourquoi il n'y a rien à télécharger, au lieu de ne rien montrer
 
 RIEN NE SE TÉLÉCHARGE SANS ACCORD, pas même la première fois (0.52.57) : « le téléchargement se fait
 automatiquement, je veux qu'il soit proposé mais pas imposé ». Le jeu publié pèse une cinquantaine de
@@ -24,7 +27,7 @@ une mise à jour en douce. */
 'use strict';
 
 const MAJ = {
-  etat: 'dev',          // dev, verification, absent, installation, hors-ligne, a-jour, disponible, reporte, erreur
+  etat: 'dev',          // dev, verification, absent, installation, hors-ligne, a-jour, disponible, reporte, erreur, indisponible
   telecharge: false,    // une version est dans le cache de l'appareil
   version: null,        // la version téléchargée, ou la version publiée quand rien n'est téléchargé
   poids: 0,             // octets du jeu entier : la version téléchargée, ou celle qu'on téléchargerait
@@ -120,8 +123,18 @@ const MAJ = {
     else setTimeout(() => this._recharger(), 3000);
   },
 
+  /* Pas de service worker ici. Dans le dépôt (la recette), c'est normal : il n'y a pas de manifeste,
+  l'état reste « dev » et les réglages renvoient à l'aperçu. Dans une version publiée, c'est le
+  navigateur qui ne sait pas : « Sur iPhone je ne vois rien » — rien du tout, ni la proposition, ni la
+  taille, ni la ligne des réglages, et aucune explication. On le dit donc. */
+  async _sansServiceWorker(raison) {
+    this._poser({ sansServiceWorker: true, raison });
+    const distant = await this.publie();
+    if (distant) this._poser({ etat: 'indisponible', version: distant.version, poids: this.poidsDe(distant) });
+  },
+
   demarrer() {
-    if (!('serviceWorker' in navigator)) { this.sansServiceWorker = true; return; }
+    if (!('serviceWorker' in navigator) || typeof caches === 'undefined') { this._sansServiceWorker('api absente'); return; }
     navigator.serviceWorker.addEventListener('message', (e) => {
       const m = e.data || {};
       if (m.type === 'progres') this._poser({ etat: 'installation', progres: m.progres, premiere: !!m.premiere,
@@ -132,8 +145,8 @@ const MAJ = {
       else if (m.type === 'supprime') this.verifier();
     });
     navigator.serviceWorker.register('sw.js').then(() => this.verifier())
-      .catch(() => this._poser({ sansServiceWorker: true }));   // pas de sw.js : le dépôt, pas la version publiée
+      .catch((e) => this._sansServiceWorker(String((e && e.message) || e)));   // le dépôt, ou un navigateur qui refuse
   },
 };
 
-if (typeof window !== 'undefined') MAJ.demarrer();
+if (typeof window !== 'undefined' && typeof navigator !== 'undefined') MAJ.demarrer();

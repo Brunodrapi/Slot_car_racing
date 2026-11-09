@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.59
+- Jeu hors ligne : dans un navigateur qui ne le permet pas (sur iPhone, une page ouverte depuis une autre app plutôt que dans Safari), l'écran-titre et les réglages le disent, avec la version et la taille, au lieu de ne rien montrer.
+
 ## 0.52.58
 - Recette : la ligne « Jeu hors ligne » des réglages mène à l'aperçu (apercu/), seul endroit de la recette où le téléchargement existe.
 

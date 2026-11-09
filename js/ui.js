@@ -111,6 +111,9 @@ const I18N = {
     hlEnCours: (p, f, t) => `Téléchargement pour jouer hors ligne… ${p} % (${f} sur ${t})`,
     hlEchec: 'Le téléchargement n’a pas abouti : le jeu reste jouable en ligne.',
     hlTitre: 'Jeu hors ligne', hlNonTelecharge: (v, t) => `Non téléchargé · version ${v} · ${t}`, hlTelechargeV: (v, t) => `Téléchargé · version ${v} · ${t}`,
+    hlIndispo: (v, t) => `Version ${v} · ${t} · pas de jeu hors ligne dans ce navigateur`,
+    hlIndispoReg: (v, t) => `Impossible dans ce navigateur · version ${v} · ${t}`, hlIndispoSeul: 'Impossible dans ce navigateur',
+    hlIndispoAide: 'Sur iPhone, ouvre la page dans Safari, pas depuis une autre app.',
     hlRecette: 'Seulement dans la version publiée', hlApercu: 'Essayer dans l’aperçu →',
     hlSupprimer: 'Supprimer', hlConfirm: 'Supprimer la version téléchargée ? Le jeu restera jouable avec du réseau, et ta progression est conservée.', majDispo: (n, t) => `Mise à jour disponible : version ${n} (${t})`, majLancer: 'Mettre à jour', majGarder: 'Continuer avec cette version', majInstall: (p) => `Mise à jour… ${p} %`, majEchec: (v) => `La mise à jour n’a pas abouti · version ${v} conservée`, resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
     on: 'Activé', off: 'Coupé', playerDefault: 'Vous', allUnlocked: 'Tout est débloqué. Bravo !', careerIntro: 'Tu pars dernier à chaque course. Remonte le peloton, marque des points, débloque des catégories plus rapides.',
@@ -252,6 +255,9 @@ const I18N = {
     hlEnCours: (p, f, t) => `Downloading for offline play… ${p}% (${f} of ${t})`,
     hlEchec: 'The download did not complete: the game still plays online.',
     hlTitre: 'Offline play', hlNonTelecharge: (v, t) => `Not downloaded · version ${v} · ${t}`, hlTelechargeV: (v, t) => `Downloaded · version ${v} · ${t}`,
+    hlIndispo: (v, t) => `Version ${v} · ${t} · no offline play in this browser`,
+    hlIndispoReg: (v, t) => `Not possible in this browser · version ${v} · ${t}`, hlIndispoSeul: 'Not possible in this browser',
+    hlIndispoAide: 'On iPhone, open the page in Safari, not from inside another app.',
     hlRecette: 'Only in the published version', hlApercu: 'Try it in the preview →',
     hlSupprimer: 'Delete', hlConfirm: 'Delete the downloaded version? The game will still play online, and your progress is kept.', majDispo: (n, t) => `Update available: version ${n} (${t})`, majLancer: 'Update', majGarder: 'Keep this version', majInstall: (p) => `Updating… ${p}%`, majEchec: (v) => `Update failed · keeping version ${v}`, resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
     on: 'On', off: 'Off', playerDefault: 'You', allUnlocked: 'Everything unlocked. Well done!', careerIntro: 'You start every race from the back. Carve through the field, score points, unlock faster classes.',
@@ -772,6 +778,7 @@ class UI {
       <span class="maj-choix"><button class="primary" data-action="majLancer">${t('majLancer')}</button><button data-action="majGarder">${t('majGarder')}</button></span>`;
     else if (m.etat === 'installation') h = `<span>${this.majProgres()}</span>`;
     else if (m.etat === 'erreur') h = `<span>${m.premiere ? t('hlEchec') : t('majEchec', m.version || APP_VERSION)}</span>`;
+    else if (m.etat === 'indisponible') h = `<span>${t('hlIndispo', m.version, o(m.poids))}</span>`;
     el.innerHTML = h;
     el.hidden = !h;
     el.className = 'maj maj-' + m.etat;
@@ -799,11 +806,14 @@ class UI {
     /* EN RECETTE, la ligne mène à l'aperçu. « Je ne vois pas la différence sur recette » : la recette
     sert le code source, sans service worker, donc sans rien à télécharger ; l'essai se fait dans
     `apercu/`, la version publiée servie à côté (README, « L'aperçu en recette »). */
-    if (typeof MAJ !== 'undefined' && MAJ.sansServiceWorker && typeof APP_CANAL !== 'undefined' && APP_CANAL === 'recette')
+    if (typeof MAJ !== 'undefined' && MAJ.sansServiceWorker && MAJ.etat === 'dev' && typeof APP_CANAL !== 'undefined' && APP_CANAL === 'recette')
       return `<div class="horsligne-ligne"><span>${this.t('hlTitre')}</span><span class="horsligne">${this.t('hlRecette')}<a class="link" href="apercu/">${this.t('hlApercu')}</a></span></div>`;
     if (typeof MAJ === 'undefined' || MAJ.etat === 'dev') return '<div class="horsligne-ligne" hidden></div>';
     const t = (k, ...a) => this.t(k, ...a), m = MAJ, o = (n) => this.octets(n);
     let etat, bouton = '';
+    if (m.etat === 'indisponible') return `<div class="horsligne-ligne"><span>${t('hlTitre')}</span><span class="horsligne">`
+      + `<span title="${escapeHtml(String(m.raison || ''))}">${m.poids ? t('hlIndispoReg', m.version, o(m.poids)) : t('hlIndispoSeul')}`
+      + `<br><small class="muted">${t('hlIndispoAide')}</small></span></span></div>`;
     if (m.etat === 'installation') etat = this.majProgres();
     else if (m.etat === 'verification' && !m.telecharge) etat = t('majVerif');
     else if (!m.telecharge) {
