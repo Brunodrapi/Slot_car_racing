@@ -645,6 +645,17 @@ ligne visée → braquage désiré → forces des deux trains → rotation (lace
   recollé à la ligne, ni sur la route ni dans le bac à gravier : la voiture y entre et en sort sur sa
   vraie trajectoire, avec sa vraie vitesse.
 - Résultat visé : un **drift quatre roues** visible à la limite, sans le moindre coup de volant du joueur.
+- **L'appui est à l'échelle des circuits (0.52.60).** Voitures et routes sont à taille réelle, mais les
+  circuits n'ont qu'environ la moitié de leur longueur (médiane 0,56) : les virages ont la moitié de leur
+  rayon, on y passe 0,75 fois moins vite, et l'appui, qui va comme le carré de la vitesse, n'apportait
+  presque plus rien (16 à 25 % de l'adhérence d'une F1 en virage, 87 % du temps en virage sous 150 km/h).
+  `APPUI_ECHELLE = 1,8` (js/cars.js) calcule l'appui sur la vitesse qu'aurait la voiture dans le vrai
+  virage ; le plafond (1,8 fois l'adhérence mécanique) ne bouge pas.
+- **Des pneus par catégorie (0.52.60).** Les F1 atteignent leur pic plus tôt (`slipPeak` 0,08 rad), ont
+  l'arrière plus tenu et un décrochage plus doux ; les protos sont entre les deux ; les GT gardent leur
+  glisse. Dérive au 95e centile en virage, au pilote automatique sur six circuits : F1 3,2 à 4,8° (6,4 à
+  9,0° avant), protos 4,9 à 6,7°, GT vers 8,6°, sans aucune sortie de plus. Les mesures :
+  `docs/appui/README.md`.
 - **Hors piste**, l'herbe et le gravier freinent le vecteur vitesse entier : une voiture qui arrive en
   travers est ralentie en travers. Après 8 secondes d'ensablement, les commissaires la remettent au bord
   de la piste, dans le bon sens et au pas.
@@ -2142,7 +2153,7 @@ la loi que le jeu applique vraiment en course, dans `perfOf` :
 | accélération | secondes de 0 à 100 km/h | intégration de `a(v) = accel · (1 − (v/vmax)^2,5)`, la formule de `car.js` |
 | vitesse | km/h | `vmax`, tel quel |
 | freinage | mètres de 100 km/h à l'arrêt | `v²/2a` avec la décélération de `car.js`, `1,5 + brake` |
-| adhérence | g en virage à 180 km/h | `grip + appui × 2500`, appui aérodynamique compris |
+| adhérence | g en virage à 180 km/h | `grip + appui × 2500`, appui aérodynamique compris — celui de la vraie voiture sur un vrai circuit, sans `APPUI_ECHELLE` |
 
 L'intérêt de passer par les lois plutôt que par un second jeu de valeurs : retoucher un `mul` se
 lit aussitôt sur les cadrans, et il n'y a jamais deux vérités à tenir d'accord.

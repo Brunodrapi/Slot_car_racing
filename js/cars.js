@@ -39,12 +39,41 @@ La largeur de route (`roadScale`) et le cadrage (`zoom`) sont LES MÊMES pour le
 de route décide où passent les trois trajectoires, et les panneaux de freinage, les lignes reprises
 à la main et les bancs des circuits sont tous calés dessus : une catégorie qui la changerait
 roulerait sur un autre circuit que celui qu'on a dessiné. */
+/* L'APPUI EST À L'ÉCHELLE DES CIRCUITS (0.52.60).
+
+« J'ai l'impression que les F1 glissent autant que les GT. Certainement lié au fait qu'on est obligé de
+prendre les virages moins vite qu'en vrai. » C'est cela. Les voitures et la largeur des routes sont à
+taille réelle, mais les circuits n'ont que la moitié environ de leur longueur (médiane 0,56 : Monza
+2,9 km pour 5,8, Spa 3,4 pour 7,0) : les virages ont donc à peu près la moitié de leur rayon, et à
+adhérence égale on y passe √0,56 ≈ 0,75 fois moins vite. L'appui variant comme le carré de la vitesse,
+il n'y apportait presque plus rien. Mesuré au pilote automatique sur six circuits : 87 % du temps en
+virage sous 150 km/h, et l'appui ne fournissait que 16 à 25 % de l'adhérence d'une F1 dans les virages,
+7 à 10 % d'une GT. Une F1 vivait de ses pneus, comme une GT, et dérivait autant (9° au 95e centile pour
+la Purosangue Dodici T, 8,7° pour la Howitzer K1).
+
+On calcule donc l'appui sur la vitesse qu'aurait la voiture dans le vrai virage : multiplier `df` par
+1 / 0,56 ≈ 1,8 revient exactement à cela, puisque v² · R est le même. Les valeurs `df` des catégories et
+des voitures restent celles d'un circuit à l'échelle 1 ; `APPUI_ECHELLE` les met à la nôtre, pour tout le
+monde (IA, profils de vitesse, guide, fiches, voitures de l'atelier). Le plafond de 1,8 fois l'adhérence
+mécanique (`gripAt`, js/car.js) ne bouge pas : il est atteint à une vitesse 0,75 fois plus basse, celle
+qui correspond, dans nos virages, à la vitesse réelle où il l'était. Après : 39 % de l'adhérence en
+virage pour une F1 à effet de sol, 26 % pour une F1 à ailerons, 28 % pour un Groupe C, 12 à 18 % pour une
+GT. */
+const APPUI_ECHELLE = 1.8;
+
 const CATEGORIES = [
   {
     id: 'f1', name: { fr: 'F1', en: 'F1' },
     desc: { fr: 'Les monoplaces des années soixante-dix : légères, collées, et qui freinent tard.', en: 'Seventies single-seaters: light, glued down, braking late.' },
     engine: { cyl: 8, redline: 10800, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 },
-    base: { vmax: 315 / 3.6, accel: 9.1, brake: 18.6, grip: 14.6, df: 0.0042, slide: 0.56, laneK: 6, rearBias: 1.06, cliff: 0.2, slipPeak: 0.11, length: 4.2, width: 2.0 },
+    /* DES PNEUS DE MONOPLACE, pas ceux d'une GT (0.52.60). Ils étaient réglés presque pareil — pic à
+    6,3° contre 6,9°, même décrochage, même équilibre — et rien ne rendait la F1 plus incisive ni
+    plus posée. Pic plus tôt (`slipPeak` 0,11 → 0,08 rad, 4,6°), arrière plus tenu (`rearBias`
+    1,06 → 1,12), décrochage plus doux au-delà (`cliff` 0,2 → 0,14). Avec l'appui à l'échelle, la
+    dérive au 95e centile en virage, au pilote automatique sur six circuits, passe de 6,4° à 3,2°
+    pour la Bumblebee Ground 79, de 9,0° à 4,8° pour la Purosangue Dodici T, de 3,5° pour la
+    Sixpence Hexa ; les GT restent vers 8,6°, sans aucune sortie de plus. */
+    base: { vmax: 315 / 3.6, accel: 9.1, brake: 18.6, grip: 14.6, df: 0.0042, slide: 0.56, laneK: 6, rearBias: 1.12, cliff: 0.14, slipPeak: 0.08, length: 4.2, width: 2.0 },
     drivers: 10, roadScale: 0.9, zoom: 1.15,
     models: [
       { id: 'tyrrellp34', name: 'Sixpence Hexa', shape: 'wedge72',
@@ -120,7 +149,7 @@ const CATEGORIES = [
           { id: 'BASF', nom: 'Cibles rouges · 79', en: 'Red targets · 79' },
           { id: 'DENIM', nom: 'Bleu rayé · 81', en: 'Blue stripes · 81' },
         ] },
-      { id: 'f40', name: 'Purosangue Furia 40', shape: 'f40', mul: { vmax: 1, accel: 1.12, brake: 1, grip: 0.937, df: 1.5, slide: 1 }, pick: 'sprites/pick/f40.png', engine: {
+      { id: 'f40', name: 'Purosangue Furia 40', shape: 'f40', mul: { vmax: 1, accel: 1.12, brake: 1, grip: 0.928, df: 1.5, slide: 1 }, pick: 'sprites/pick/f40.png', engine: {
         cyl: 8, redline: 7750, idle: 1000, rough: 0.15, bright: 0.8, turbo: 0.9,
         sample: { ramp: 'sounds/engine/v8-f40.json' },
       }, colors: ['#e0262c', '#22242b'], top: 'sprites/top/f40.png',
@@ -189,11 +218,11 @@ const CATEGORIES = [
         ] },
       // Les trois GT des années soixante et soixante-dix. Moteur avant, pneus étroits, peu d'appui :
       // elles se battent avec leur pointe et leur légèreté là où les autres ont de la gomme.
-      { id: '250gto', name: 'Purosangue Gran Corsa', shape: 'roundGT', mul: { vmax: 0.766, accel: 0.97, brake: 0.95, grip: 1.02, df: 0.5, slide: 0.95 },
+      { id: '250gto', name: 'Purosangue Gran Corsa', shape: 'roundGT', mul: { vmax: 0.766, accel: 0.97, brake: 0.95, grip: 1.037, df: 0.5, slide: 0.95 },
         colors: ['#c8161d', '#f4f4f4'], top: 'sprites/top/250gto.png', pick: 'sprites/pick/250gto.png',
         livrees: [{ id: '', nom: 'Rosso Corsa · 19' }, { id: 'francorchamps', nom: 'Francorchamps · jaune', en: 'Francorchamps · yellow' }, { id: 'walker', nom: 'Rob Walker · inspiration bleue', en: 'Rob Walker · blue tribute' }],
         engine: { cyl: 12, redline: 7500, idle: 900, rough: 0.05, bright: 0.85, turbo: 0 } },
-      { id: 'typee', name: 'Moggy Longnose', shape: 'roundGT', mul: { vmax: 0.734, accel: 0.95, brake: 0.93, grip: 1.051, df: 0.45, slide: 1 },
+      { id: 'typee', name: 'Moggy Longnose', shape: 'roundGT', mul: { vmax: 0.734, accel: 0.95, brake: 0.93, grip: 1.066, df: 0.45, slide: 1 },
         colors: ['#1d5c3a', '#f4f4f4'], top: 'sprites/top/typee.png', pick: 'sprites/pick/typee.png',
         livrees: [{ id: '', nom: 'Lightweight · British Racing Green' }, { id: 'cunningham', nom: 'Cunningham · blanc et bleu', en: 'Cunningham · white and blue' }, { id: 'ecosse', nom: 'Écurie Écosse · inspiration bleue', en: 'Écurie Écosse · blue tribute' }],
         engine: { cyl: 6, redline: 6500, idle: 850, rough: 0.12, bright: 0.6, turbo: 0 } },
@@ -207,7 +236,9 @@ const CATEGORIES = [
     id: 'proto', name: { fr: 'Proto', en: 'Prototypes' },
     desc: { fr: 'Les voitures du Mans : les plus rapides en ligne droite, et l\'appui pour le payer en virage.', en: 'Le Mans cars: the fastest in a straight line, with the downforce to pay for it in the corners.' },
     engine: { cyl: 8, redline: 7500, idle: 1000, rough: 0.3, bright: 0.65, turbo: 0 },
-    base: { vmax: 386 / 3.6, accel: 8.6, brake: 17.8, grip: 13.6, df: 0.0034, slide: 0.6, laneK: 6, rearBias: 1.06, cliff: 0.18, slipPeak: 0.12, length: 4.5, width: 2.0 },
+    // Entre la GT et la monoplace, pour les pneus aussi (0.52.60) : dérive au 95e centile 4,9° pour
+    // la Breithüft Aero 62 (6,9° avant), 6,7° pour la Redneck Endurance 40, qui reste la plus joueuse.
+    base: { vmax: 386 / 3.6, accel: 8.6, brake: 17.8, grip: 13.6, df: 0.0034, slide: 0.6, laneK: 6, rearBias: 1.09, cliff: 0.15, slipPeak: 0.105, length: 4.5, width: 2.0 },
     drivers: 10, roadScale: 0.9, zoom: 1.15,
     models: [
       { id: 'gt40', name: 'Redneck Endurance 40', shape: 'gt40', mul: { vmax: 0.876, accel: 1.07, brake: 0.97, grip: 1.101, df: 0.7, slide: 1.1 }, pick: 'sprites/pick/gt40.png', engine: {
@@ -461,7 +492,7 @@ function resolveModel(cat, m) {
   const model = {
     id: m.id, catId: cat.id, name: m.name, shape: m.shape, colors: m.colors, custom: !!m.custom, sprite: m.sprite || null, top: m.top || null,
     vmax: b.vmax * (mul.vmax || 1), accel: b.accel * (mul.accel || 1), brake: b.brake * (mul.brake || 1),
-    grip: b.grip * (mul.grip || 1), df: b.df * (mul.df || 1), slide: b.slide * (mul.slide || 1), laneK: b.laneK,
+    grip: b.grip * (mul.grip || 1), df: b.df * (mul.df || 1) * APPUI_ECHELLE, slide: b.slide * (mul.slide || 1), laneK: b.laneK,
     // handling balance: a model's `slide` multiplier above 1 makes it more tail-happy
     rearBias: (b.rearBias || 1.04) / Math.pow(mul.slide || 1, 0.5), cliff: b.cliff == null ? 0.25 : b.cliff, slipPeak: (b.slipPeak || 0.1) * Math.pow(mul.slide || 1, 0.5),
     length: m.length || b.length, width: m.width || b.width,
@@ -537,7 +568,10 @@ function perfOf(c) {
     b100: 27.78 * 27.78 / (2 * (1.5 + c.brake)), // mètres de 100 km/h à l'arrêt
     // L'adhérence latérale disponible à 50 m/s, appui aérodynamique compris : c'est la vitesse à
     // laquelle les virages se jouent, et une voiture à gros appui mérite d'y être jugée.
-    gripG: (c.grip + c.df * 2500) / 9.81,        // g
+    // LA FICHE DÉCRIT LA VRAIE VOITURE, à 180 km/h sur un vrai circuit : l'appui sans `APPUI_ECHELLE`,
+    // qui ne sert qu'à nos virages à moitié de rayon. Les cadrans gardent ainsi leurs bornes et leur
+    // lecture (voir PERF_RANGE) ; la piste, elle, roule avec l'appui à l'échelle.
+    gripG: (c.grip + c.df / APPUI_ECHELLE * 2500) / 9.81,        // g
   };
 }
 

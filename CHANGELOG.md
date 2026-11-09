@@ -4,6 +4,11 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.60
+- Appui aérodynamique à l'échelle des circuits : les virages du jeu ont environ la moitié du rayon des vrais, l'appui se calcule désormais sur la vitesse qu'aurait la voiture dans le vrai virage. Les F1 et les protos tiennent nettement mieux dans les virages moyens et rapides.
+- Pneus propres à chaque catégorie : les F1 sont plus incisives et plus posées, les protos entre les deux, les GT gardent leur glisse.
+- Les temps au tour baissent (F1 et protos surtout) : les records d'avant ne se comparent plus tout à fait.
+
 ## 0.52.59
 - Jeu hors ligne : dans un navigateur qui ne le permet pas (sur iPhone, une page ouverte depuis une autre app plutôt que dans Safari), l'écran-titre et les réglages le disent, avec la version et la taille, au lieu de ne rien montrer.
 

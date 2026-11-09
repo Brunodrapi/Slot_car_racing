@@ -1,31 +1,31 @@
 {
-  "version": "0.35.0",
-  "date": "2026-10-19",
+  "version": "0.52.60",
+  "date": "2026-11-09",
   "transport": "BroadcastChannel double, delay on each directed hop; not a public WebRTC measurement",
   "measurements": [
     {
       "oneWayMs": 0,
-      "pingMs": 5,
-      "brakeVisibleMs": 21,
-      "pulseSpeed": 0.05767557738377056
+      "pingMs": 16,
+      "brakeVisibleMs": 25,
+      "pulseSpeed": 0.05570071454898802
     },
     {
       "oneWayMs": 30,
-      "pingMs": 70,
-      "brakeVisibleMs": 72,
-      "pulseSpeed": 0.06064142429717124
+      "pingMs": 69,
+      "brakeVisibleMs": 69,
+      "pulseSpeed": 0.06077846379246978
     },
     {
       "oneWayMs": 60,
-      "pingMs": 122,
-      "brakeVisibleMs": 139,
-      "pulseSpeed": 0.06566521648822193
+      "pingMs": 134,
+      "brakeVisibleMs": 135,
+      "pulseSpeed": 0.06535790083669737
     },
     {
       "oneWayMs": 100,
       "pingMs": 202,
-      "brakeVisibleMs": 222,
-      "pulseSpeed": 0.06861187303448521
+      "brakeVisibleMs": 218,
+      "pulseSpeed": 0.06804388785346945
     }
   ],
   "errors": []
