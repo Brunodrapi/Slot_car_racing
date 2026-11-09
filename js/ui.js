@@ -111,6 +111,7 @@ const I18N = {
     hlEnCours: (p, f, t) => `Téléchargement pour jouer hors ligne… ${p} % (${f} sur ${t})`,
     hlEchec: 'Le téléchargement n’a pas abouti : le jeu reste jouable en ligne.',
     hlTitre: 'Jeu hors ligne', hlNonTelecharge: (v, t) => `Non téléchargé · version ${v} · ${t}`, hlTelechargeV: (v, t) => `Téléchargé · version ${v} · ${t}`,
+    hlRecette: 'Seulement dans la version publiée', hlApercu: 'Essayer dans l’aperçu →',
     hlSupprimer: 'Supprimer', hlConfirm: 'Supprimer la version téléchargée ? Le jeu restera jouable avec du réseau, et ta progression est conservée.', majDispo: (n, t) => `Mise à jour disponible : version ${n} (${t})`, majLancer: 'Mettre à jour', majGarder: 'Continuer avec cette version', majInstall: (p) => `Mise à jour… ${p} %`, majEchec: (v) => `La mise à jour n’a pas abouti · version ${v} conservée`, resetAll: 'Effacer la progression', resetConfirm: 'Effacer toute la progression ?',
     on: 'Activé', off: 'Coupé', playerDefault: 'Vous', allUnlocked: 'Tout est débloqué. Bravo !', careerIntro: 'Tu pars dernier à chaque course. Remonte le peloton, marque des points, débloque des catégories plus rapides.',
     lapDone: (n, t) => `Tour ${n} : ${t}`, tipTitle: 'Comment jouer', yourResult: (p) => `Tu termines P${p}`,
@@ -251,6 +252,7 @@ const I18N = {
     hlEnCours: (p, f, t) => `Downloading for offline play… ${p}% (${f} of ${t})`,
     hlEchec: 'The download did not complete: the game still plays online.',
     hlTitre: 'Offline play', hlNonTelecharge: (v, t) => `Not downloaded · version ${v} · ${t}`, hlTelechargeV: (v, t) => `Downloaded · version ${v} · ${t}`,
+    hlRecette: 'Only in the published version', hlApercu: 'Try it in the preview →',
     hlSupprimer: 'Delete', hlConfirm: 'Delete the downloaded version? The game will still play online, and your progress is kept.', majDispo: (n, t) => `Update available: version ${n} (${t})`, majLancer: 'Update', majGarder: 'Keep this version', majInstall: (p) => `Updating… ${p}%`, majEchec: (v) => `Update failed · keeping version ${v}`, resetAll: 'Erase progress', resetConfirm: 'Erase all progress?',
     on: 'On', off: 'Off', playerDefault: 'You', allUnlocked: 'Everything unlocked. Well done!', careerIntro: 'You start every race from the back. Carve through the field, score points, unlock faster classes.',
     lapDone: (n, t) => `Lap ${n}: ${t}`, tipTitle: 'How to play', yourResult: (p) => `You finish P${p}`,
@@ -794,6 +796,11 @@ class UI {
   `label` : un label renvoie le clic de toute la ligne à son bouton, et toucher le texte « Jeu hors
   ligne » aurait supprimé le jeu téléchargé. */
   horsLigneLigne() {
+    /* EN RECETTE, la ligne mène à l'aperçu. « Je ne vois pas la différence sur recette » : la recette
+    sert le code source, sans service worker, donc sans rien à télécharger ; l'essai se fait dans
+    `apercu/`, la version publiée servie à côté (README, « L'aperçu en recette »). */
+    if (typeof MAJ !== 'undefined' && MAJ.sansServiceWorker && typeof APP_CANAL !== 'undefined' && APP_CANAL === 'recette')
+      return `<div class="horsligne-ligne"><span>${this.t('hlTitre')}</span><span class="horsligne">${this.t('hlRecette')}<a class="link" href="apercu/">${this.t('hlApercu')}</a></span></div>`;
     if (typeof MAJ === 'undefined' || MAJ.etat === 'dev') return '<div class="horsligne-ligne" hidden></div>';
     const t = (k, ...a) => this.t(k, ...a), m = MAJ, o = (n) => this.octets(n);
     let etat, bouton = '';

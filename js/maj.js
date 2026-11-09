@@ -33,6 +33,7 @@ const MAJ = {
   progres: 0,           // 0..1 pendant un téléchargement
   fait: 0, total: 0,    // octets reçus et attendus pendant un téléchargement
   premiere: false,      // vrai pendant le premier téléchargement
+  sansServiceWorker: false,  // pas de `sw.js` ici : la recette, servie telle quelle (voir `horsLigneLigne`)
   ecouteurs: [],
   surChangement(f) { this.ecouteurs.push(f); },
   _poser(champs) { Object.assign(this, champs); for (const f of this.ecouteurs) { try { f(this); } catch (_) { /* l'interface se débrouille */ } } },
@@ -120,7 +121,7 @@ const MAJ = {
   },
 
   demarrer() {
-    if (!('serviceWorker' in navigator)) return;
+    if (!('serviceWorker' in navigator)) { this.sansServiceWorker = true; return; }
     navigator.serviceWorker.addEventListener('message', (e) => {
       const m = e.data || {};
       if (m.type === 'progres') this._poser({ etat: 'installation', progres: m.progres, premiere: !!m.premiere,
@@ -131,7 +132,7 @@ const MAJ = {
       else if (m.type === 'supprime') this.verifier();
     });
     navigator.serviceWorker.register('sw.js').then(() => this.verifier())
-      .catch(() => { /* pas de sw.js : le dépôt, pas la version publiée */ });
+      .catch(() => this._poser({ sansServiceWorker: true }));   // pas de sw.js : le dépôt, pas la version publiée
   },
 };
 
