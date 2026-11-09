@@ -4,6 +4,7 @@
     npm run build                          # écrit dist/
     node tools/build-dist.js --sortie=x    # ailleurs
     node tools/build-dist.js --domaine=grip.game   # ajoute le fichier CNAME de GitHub Pages
+    npm run apercu                         # l'aperçu en recette : apercu/, canal recette (voir plus bas)
 
 Le dépôt se joue tel quel, sans compilation : c'est ce qui permet de travailler vite. La version
 publiée en diffère sur trois points.
@@ -38,6 +39,13 @@ const ROOT = path.join(__dirname, '..');
 const arg = (nom) => { const a = process.argv.find((x) => x.startsWith(`--${nom}=`)); return a ? a.slice(nom.length + 3) : null; };
 const OUT = path.resolve(ROOT, arg('sortie') || 'dist');
 const DOMAINE = arg('domaine');
+/* L'APERÇU EN RECETTE : la version publiée, servie dans `apercu/` de la recette, pour essayer ce qui
+n'existe que là — le jeu hors ligne, son téléchargement, sa suppression. « Je suis bien en 0.52.57 sur
+la recette mais je ne vois pas les nouvelles options pour le téléchargement » : la recette sert le code
+source, sans service worker. L'aperçu garde le canal RECETTE (pastille, tables du multijoueur, records
+et statistiques de la recette) : il ne touche à rien de la prod. */
+const CANAL = arg('canal') || 'prod';
+if (!['prod', 'recette'].includes(CANAL)) throw new Error('--canal=prod ou --canal=recette');
 
 /* Les pages qu'on publie : le jeu et la page des statistiques, publique (agrégats seulement).
 
@@ -207,8 +215,8 @@ async function main() {
   for (const rel of scripts) {
     let src = lire(rel).toString('utf8');
     if (rel === 'js/version.js') {
-      const prod = src.replace(/const APP_CANAL = '[^']*'/, "const APP_CANAL = 'prod'");
-      if (prod === src && !/APP_CANAL = 'prod'/.test(src)) throw new Error('APP_CANAL introuvable dans js/version.js');
+      const prod = src.replace(/const APP_CANAL = '[^']*'/, `const APP_CANAL = '${CANAL}'`);
+      if (!new RegExp(`APP_CANAL = '${CANAL}'`).test(prod)) throw new Error('APP_CANAL introuvable dans js/version.js');
       src = prod;
     }
     if (rel === 'js/static-backdrop.js') {

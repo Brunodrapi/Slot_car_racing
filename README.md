@@ -245,7 +245,8 @@ Télécharge le jeu (51,3 Mo). »** avec **Télécharger** et **Non merci** (qui
 l'écran-titre). Les réglages portent une ligne **Jeu hors ligne** : « Non téléchargé · version 0.52.57 ·
 51,3 Mo » avec **Télécharger**, ou « Téléchargé · version 0.52.57 · 51,3 Mo » avec **Supprimer**, qui
 vide le cache sans toucher à la sauvegarde. La taille suit aussi le numéro de version en bas de
-l'affiche. Rien de tout cela n'apparaît en recette, qui n'a pas de mode hors ligne.
+l'affiche. Rien de tout cela n'apparaît en recette, qui n'a pas de mode hors ligne : pour l'essayer,
+il y a l'**aperçu** (ci-dessous).
 
 **La mise à jour.** La liste des fichiers et leur empreinte (sha-256) sont dans `manifeste.json` ;
 `sw.js`, lui, ne change pas d'une publication à l'autre (il a changé une fois, en 0.52.57, pour ne plus
@@ -265,6 +266,14 @@ reste entière. Continuer avec cette version ne télécharge rien ; la question 
 suivant. `tools/e2e-dist.js` vérifie tout cela au format d'un iPhone : proposé et refusé, téléchargé
 depuis les réglages, en ligne, hors ligne, une mise à jour d'un seul fichier refusée puis acceptée,
 puis la suppression.
+
+**L'aperçu en recette (`apercu/`).** La version publiée, compilée et jouable hors ligne, servie dans la
+recette à brunodrapi.github.io/Slot_car_racing/apercu/ pour essayer ce qui n'existe qu'en prod : le
+téléchargement, le jeu sans réseau, la suppression, les mises à jour. Elle garde le canal RECETTE
+(pastille, tables du multijoueur, records et statistiques de la recette) et ne touche à rien de la
+prod. Elle ne se refait pas toute seule : `npm run apercu` la reconstruit, puis on la pousse. Ses images
+et ses sons sont les mêmes fichiers que ceux du dépôt, que git ne stocke qu'une fois : un aperçu coûte
+au dépôt le code minifié, quelques centaines de kilo-octets. L'éditeur n'y est pas, comme en prod.
 
 **Recette, puis prod.** Deux dépôts, deux publics :
 
