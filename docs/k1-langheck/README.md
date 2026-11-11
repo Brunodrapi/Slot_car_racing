@@ -4,7 +4,7 @@
 - Langheck : jantes rouges pour la tricolore n° 43, dorées pour la turquoise n° 51, renommée « Valliance ». Le suffixe `vaillant` reste stable pour les choix sauvegardés.
 - Quatrième livrée Langheck : Lemon Computer n° 71, blanche à bandes arc-en-ciel, disque avant bleu foncé et disque arrière doré, d'après les deux photographies fournies. Les pommes sont remplacées par des citrons arc-en-ciel. Vue de dessus et vignette isométrique ; ancrages des pneus indépendants enregistrés dans `js/cars.js`.
 
-Les illustrations sont éditées avec ImageGen, puis les silhouettes transparentes sont isolées et redimensionnées avec les outils existants. Les dimensions des vues de dessus K1 sont conservées. La version 0.52.61 renouvelle le cache des scripts et des sprites.
+Les illustrations sont éditées avec ImageGen, puis les silhouettes transparentes sont isolées et redimensionnées avec les outils existants. Les dimensions des vues de dessus K1 sont conservées. La version 0.52.62 renouvelle le cache des scripts et des sprites.
 
 Le texte de la carrosserie et du sélecteur devient « lemon computer ». Six propositions de logos en tranche de citron sont conservées dans `propositions-logos-lemon.png` ; le logo 4A, demi-tranche naturelle à six quartiers arc-en-ciel et pépin, est retenu et appliqué aux deux vues. Le suffixe technique `apple` reste stable.
 
@@ -15,3 +15,5 @@ Orientation du citron sur le toit : base de la demi-tranche vers l’arrière da
 Vue isométrique : remplacement du motif vertical incomplet sur le flanc arrière par le logo 4A posé à plat sur la surface supérieure de l’aile arrière.
 
 Le citron arrière est finalement retiré à la demande de l’utilisateur ; seul le logo de toit est conservé.
+
+Correction en recette : les trois vues isométriques K1 à aileron élargi et profond sont rétablies, avec aileron noir pour la tricolore. La vue isométrique Lemon Computer est recalée sur la carrosserie et la caméra de la Langheck tricolore.
