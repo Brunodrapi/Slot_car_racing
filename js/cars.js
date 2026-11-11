@@ -325,7 +325,7 @@ const LIVERIES = [
 const HISTORIC_LIVERIES = {
   countach: [{ id: 'rainx', nom: 'Jaune · 88', en: 'Yellow · 88' }, { id: 'monaco83', nom: 'ludes, babe', en: 'ludes, babe' }],
   gt40: [{ id: 'lemans1', nom: 'Le Mans 1966 · 1' }, { id: 'lemans2', nom: 'Le Mans 1966 · 2' }],
-  '935': [{ id: 'jager', nom: 'Orange · 16' }, { id: 'vaillant', nom: 'Kremer · turquoise · 51' }],
+  '935': [{ id: 'jager', nom: 'Orange · 16' }, { id: 'vaillant', nom: 'Valliance · 51' }, { id: 'apple', nom: 'Lemon Computer · 71' }],
   corvette: [{ id: 'spirit76', nom: 'Spirit of Le Mans · 76' }, { id: 'bfg49', nom: 'Étoiles et bandes · 49', en: 'Stars and stripes · 49' }],
   '787b': [{ id: 'efini18', nom: 'Blanc et vert · 18', en: 'White and green · 18' }, { id: 'lemans18', nom: 'Le Mans 1991 · 18' }],
 };
@@ -453,6 +453,7 @@ for (const r of [
   ['935',0.81,0.0816,0.9184,0.11,0.14],
   ['935_jager',0.815,0.0862,0.9184,0.11,0.14],
   ['935_vaillant',0.815,0.0723,0.9231,0.11,0.14],
+  ['935_apple',0.81,0.0816,0.9184,0.11,0.14],
   ['787b',0.81,0.0752,0.9248,0.13,0.12],
   ['787b_efini18',0.815,0.0752,0.9204,0.13,0.12],
   ['787b_lemans18',0.82,0.0709,0.9248,0.13,0.12],
@@ -479,6 +480,7 @@ for (const r of [
   ['935',0.28,0.0677,0.9277,0.13,0.14],
   ['935_jager',0.275,0.0677,0.9277,0.13,0.14],
   ['935_vaillant',0.28,0.0677,0.9277,0.13,0.14],
+  ['935_apple',0.28,0.0677,0.9277,0.13,0.14],
   ['typee',0.22,0.0675,0.9275,0.14,0.14],
   ['typee_cunningham',0.215,0.0675,0.9275,0.14,0.14],
   ['typee_ecosse',0.215,0.0675,0.9275,0.14,0.14],
