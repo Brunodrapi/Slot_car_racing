@@ -157,7 +157,11 @@ const I18N = {
     nameTitle: 'Ton nom de pilote', nameGo: 'C’est parti',
     nameWhy: 'Il signera tes temps, ici et au tableau des records.',
     nameRule: (a, b) => `Lettres et chiffres uniquement, de ${a} à ${b} caractères.`,
-    ttIntro: 'Seul en piste. Bats ton meilleur tour.', deleteTrack: 'Supprimer', confirmDelete: 'Supprimer définitivement ?',
+    ttIntro: 'Seul en piste. Bats ton meilleur tour.',
+    training: 'Entraînement', trainingIntro: 'Guide de freinage et fantôme en piste.',
+    trainingNote: 'Le guide de freinage est allumé et un fantôme roule avec toi, au niveau cauchemar. Tes tours comptent pour ton record, pas pour le tableau mondial.',
+    ghost: 'Fantôme', ghostBest: 'Meilleur tour du fantôme',
+    refus_entrainement: 'Ce tour n’entre pas au tableau mondial : il a été couru à l’entraînement, avec le guide de freinage. Bats-le en contre-la-montre pour l’inscrire.', deleteTrack: 'Supprimer', confirmDelete: 'Supprimer définitivement ?',
     multi: 'Multijoueur', multiIntro: 'Ouvre une table et donne son code à quatre lettres, ou saisis celui qu’on t’a donné. Tout passe directement d’un appareil à l’autre : rien n’est conservé, fermer la page ferme la table.',
     createTable: 'Ouvrir une table', joinTable: 'Rejoindre', tableCode: 'Code de la table', yourTable: 'Ta table', waiting: 'En attente…',
     mFormat: 'Format', mRace: 'Course', mDuel: 'Duel', mGhost: 'Contre-la-montre',
@@ -301,7 +305,11 @@ const I18N = {
     nameTitle: 'Your driver name', nameGo: 'Let’s go',
     nameWhy: 'It will sign your times, here and on the record board.',
     nameRule: (a, b) => `Letters and digits only, ${a} to ${b} characters.`,
-    ttIntro: 'Alone on track. Beat your best lap.', deleteTrack: 'Delete', confirmDelete: 'Delete permanently?',
+    ttIntro: 'Alone on track. Beat your best lap.',
+    training: 'Practice', trainingIntro: 'Braking guide and a ghost car on track.',
+    trainingNote: 'The braking guide is on and a ghost car drives with you, at nightmare level. Your laps count for your own best, not for the world board.',
+    ghost: 'Ghost', ghostBest: 'Ghost’s best lap',
+    refus_entrainement: 'This lap does not reach the world board: it was driven in practice, with the braking guide. Beat it in time trial to post it.', deleteTrack: 'Delete', confirmDelete: 'Delete permanently?',
     multi: 'Multiplayer', multiIntro: 'Open a table and pass on its four-letter code, or type the one you were given. Everything goes straight from one device to the other: nothing is stored, closing the page closes the table.',
     createTable: 'Open a table', joinTable: 'Join', tableCode: 'Table code', yourTable: 'Your table', waiting: 'Waiting…',
     mFormat: 'Format', mRace: 'Race', mDuel: 'Duel', mGhost: 'Time trial',
@@ -578,7 +586,10 @@ class UI {
     if (!sel) return;
     rail.scrollLeft = Math.max(0, sel.offsetLeft - (rail.clientWidth - sel.offsetWidth) / 2);
   }
-  hide() { this.root.classList.add('hidden'); this.root.innerHTML = ''; }
+  /* Masquer oublie aussi la clé de l'écran. Sans cela, une réponse lente arrivée après « EN PISTE »
+  — les temps du monde, le palmarès du compte — croyait le joueur encore au départ et repeignait
+  l'écran du paddock PAR-DESSUS la course qui roulait. */
+  hide() { this.root.classList.add('hidden'); this.root.innerHTML = ''; this._cleEcran = null; }
 
   // ---------- thumbnails ----------
   thumb(trackDef, size) {
@@ -861,12 +872,14 @@ class UI {
     const entries = [
       ['race', 'setup', 'quickRace', 'wheel'],
       ['timetrial', 'setup', 'timeTrial', 'clock'],
+      // l'entraînement : un contre-la-montre avec le guide de freinage et un fantôme (js/race.js, FANTOME)
+      ['training', 'setup', 'training', 'cone.svg'],
       ['', 'multi', 'multi', 'helmets'],
     ];
     this.show(`<header class="home-heading"><h1><img class="game-logo" src="art/interface/logo-grip.webp" alt="GRIP — Racing the Line"></h1></header>
       <div class="home-body"><nav class="mode-menu" data-pad-group aria-label="${en ? 'Game modes' : 'Modes de jeu'}">
       ${entries.map(([mode, action, label, icon]) => `<button class="mode-card mode-${mode || 'multi'}" data-action="${action}" ${mode ? `data-mode="${mode}"` : ''}>
-          <span class="mode-art" aria-hidden="true"><img src="art/interface/${icon}.webp" alt=""></span>
+          <span class="mode-art" aria-hidden="true"><img src="art/interface/${icon.includes('.') ? icon : icon + '.webp'}" alt=""></span>
           <span class="mode-copy"><b>${t(label)}</b></span><span class="mode-damier" aria-hidden="true"></span></button>`).join('')}
       </nav>
       <nav class="home-extras" data-pad-group aria-label="${t('menuAide')}">
@@ -1228,7 +1241,8 @@ class UI {
     for (const l of lignes) if (!par[l.voiture] || l.temps < par[l.voiture].temps) par[l.voiture] = l;
     this._mondiaux = { circuit: trackId, par };
     // on ne repeint que si le joueur est toujours devant le même écran et le même circuit
-    if (this._cleEcran === 'depart:timetrial' && this.setup.trackId === trackId) this.setupScreen('timetrial');
+    // le contre-la-montre et l'entraînement montrent tous deux les records
+    if ((this._cleEcran === 'depart:timetrial' || this._cleEcran === 'depart:training') && this.setup.trackId === trackId) this.setupScreen(this.setup.mode);
   }
 
   /* Le filtre de catégorie posé au-dessus d'un rail de voitures.
@@ -1281,9 +1295,9 @@ class UI {
     const trackDef = app.trackDefById(st.trackId);
     const laps = s.laps || lapsFor(trackDef, cat);
     const livery = LIVERIES[s.livery];
-    const race = mode === 'race';
+    const race = mode === 'race', entrainement = mode === 'training';
     this.show(`
-      ${this.paddockTopbar(race ? t('quickRace') : t('timeTrial'))}
+      ${this.paddockTopbar(race ? t('quickRace') : entrainement ? t('training') : t('timeTrial'))}
       <div class="setup-columns"><section class="setup-block car-sheet">
       ${this.filtreCat('pickCat', filtre)}
       ${this.carPreview(model)}
@@ -1306,7 +1320,7 @@ class UI {
            menu, si bien que la liste était soit vide, soit le musée des essais d'un ancien
            réglage. Les tracés enregistrés ne sont pas effacés pour autant — ils restent dans le
            navigateur et l'éditeur y mène encore par son adresse. -->
-      <div class="setup-records">${race ? this.palmaresListe(st.trackId, cat, model, livery) : this.records(st.trackId, cat, model, livery)}</div>
+      <div class="setup-records">${entrainement ? `<p class="entrainement-note">${t('trainingNote')}</p>` : ''}${race ? this.palmaresListe(st.trackId, cat, model, livery) : this.records(st.trackId, cat, model, livery)}</div>
       </section></div>
       ${this.setupBar(race, model, trackDef, laps)}
     `, 'scroll setup-screen', 'depart:' + mode);
@@ -1395,7 +1409,7 @@ class UI {
       </div>` : ''}
       </div>
       <div class="row end setup-launch">
-        <span class="muted launch-resume">${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ${escapeHtml(model.name)} · ${race ? `${laps} ${t('laps')}` : t('ttIntro')}</span>
+        <span class="muted launch-resume">${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ${escapeHtml(model.name)} · ${race ? `${laps} ${t('laps')}` : st.mode === 'training' ? t('trainingIntro') : t('ttIntro')}</span>
         <span class="damier launch-damier" aria-hidden="true"></span><button class="big primary" data-action="startQuick">${t('enPiste')} <span aria-hidden="true">→</span></button>
       </div>
     </div>`;
@@ -1544,7 +1558,12 @@ class UI {
     const res = race.results, p = race.player;
     const isTT = race.mode === 'timetrial';
     let head = '';
-    if (isTT) head = `<h2>${t('timeTrial')} · ${escapeHtml(race.track.name)}</h2><div class="bigstat">${t('bestLap')}: ${fmtTime(p.bestLap)} ${ctx.newRecord ? `<span class="rec">${t('newRecord')}</span>` : ''}</div>`;
+    /* À l'entraînement, le fantôme est la référence : son meilleur tour sous le sien, et l'écart. */
+    const f = race.fantome;
+    const ecartF = f && f.bestLap != null && p.bestLap != null ? p.bestLap - f.bestLap : null;
+    const ligneFantome = f ? `<p class="fantome-resultat">${t('ghostBest')} : <b>${f.bestLap != null ? fmtTime(f.bestLap) : '--:--.---'}</b>${
+      ecartF == null ? '' : ` · <span class="${ecartF <= 0 ? 'ok' : 'warn'}">${ecartF <= 0 ? '−' : '+'}${Math.abs(ecartF).toFixed(3)} s</span>`}</p>` : '';
+    if (isTT) head = `<h2>${t(f ? 'training' : 'timeTrial')} · ${escapeHtml(race.track.name)}</h2><div class="bigstat">${t('bestLap')}: ${fmtTime(p.bestLap)} ${ctx.newRecord ? `<span class="rec">${t('newRecord')}</span>` : ''}</div>${ligneFantome}`;
     else head = `<h2>${t('results')} · ${escapeHtml(race.track.name)}</h2><div class="bigstat">${t('yourResult', race.positionOf(p))} ${ctx.newRecord ? `<span class="rec">${t('newRecord')}</span>` : ''}</div>${this.tropheeResultat(ctx.trophee)}`;
     /* Un tour annulé reste AFFICHÉ, barré, avec son chrono.
 
@@ -1554,14 +1573,16 @@ class UI {
     const tour = (lt, i) => {
       const nul = p.lapOk && p.lapOk[i] === false;
       return `<tr class="${!nul && lt === p.bestLap ? 'me' : ''}${nul ? ' nul' : ''}"><td>${i + 1}</td>`
-        + `<td>${fmtTime(lt)}${nul ? ` <span class="mark" title="${escapeHtml(t('voidLapTitle'))}">${t('voidLap')}</span>` : ''}</td></tr>`;
+        + `<td>${fmtTime(lt)}${nul ? ` <span class="mark" title="${escapeHtml(t('voidLapTitle'))}">${t('voidLap')}</span>` : ''}</td>`
+        // le même tour du fantôme, en face : c'est ce qu'on avait devant soi
+        + (f ? `<td class="muted">${f.lapTimes[i] != null ? fmtTime(f.lapTimes[i]) : '—'}</td>` : '') + `</tr>`;
     };
     // la pénalité ne prend une colonne QUE si quelqu'un en a une : une colonne de tirets sur dix
     // lignes occupe la moitié du tableau pour ne rien dire
     const avecPen = !isTT && res.some(r => r.penalite > 0);
     const penCell = (r) => !avecPen ? ''
       : `<td class="${r.penalite > 0 ? 'warn' : 'muted'}">${r.penalite > 0 ? `+${r.penalite.toFixed(1)}<small> (${r.fautes})</small>` : '—'}</td>`;
-    const table = isTT ? `<table class="tbl"><thead><tr><th>${t('lap')}</th><th>${t('time')}</th></tr></thead><tbody>${p.lapTimes.map(tour).join('') || `<tr><td colspan="2">—</td></tr>`}</tbody></table>`
+    const table = isTT ? `<table class="tbl"><thead><tr><th>${t('lap')}</th><th>${t('time')}</th>${f ? `<th>${t('ghost')}</th>` : ''}</tr></thead><tbody>${p.lapTimes.map(tour).join('') || `<tr><td colspan="${f ? 3 : 2}">—</td></tr>`}</tbody></table>`
       : `<table class="tbl tbl-resultats"><thead><tr><th>${t('pos')}</th><th>${t('driver')}</th><th class="col-modele">${t('model')}</th><th>${t('gap')}</th>${avecPen ? `<th>${t('penalty')}</th>` : ''}<th>${t('bestLap')}</th>${ctx.cup ? `<th>${t('points')}</th>` : ''}</tr></thead><tbody>
         ${res.map(r => `<tr class="${r.car.isPlayer ? 'me' : ''}"><td>${r.pos}</td><td class="pilote"><i class="dot" style="background:${r.car.livery.body}"></i>${escapeHtml(r.car.name)}<small class="modele-sous">${escapeHtml(r.car.cls.name)}</small></td><td class="muted col-modele">${escapeHtml(r.car.cls.name)}</td><td>${r.pos === 1 ? (r.time != null ? fmtTime(r.time) : '') : r.gap != null ? '+' + r.gap.toFixed(3) : t('dnf')}</td>${penCell(r)}<td>${r.bestLap != null ? fmtTime(r.bestLap) : '—'}</td>${ctx.cup ? `<td>${r.points}</td>` : ''}</tr>`).join('')}</tbody></table>`;
     let cupPart = '';
@@ -1585,7 +1606,7 @@ class UI {
       ${ctx.online && race.broadcast ? race.broadcast.html(race) : ''}
       <div class="row end">
         <button data-action="menu">${t('menu')}</button>
-        ${ctx.online ? `<button class="big primary" data-action="toLobby">${t('backToTable')}</button>` : ctx.cup ? (cupState(this.app.save, ctx.cup.id).done ? `<button class="big primary" data-action="cup" data-id="${ctx.cup.id}">${t('standings')}</button>` : `<button data-action="retryRace">${t('retry')}</button><button class="big primary" data-action="startCup" data-id="${ctx.cup.id}">${t('nextRace')}</button>`) : `<button data-action="setup" data-mode="${race.mode}">${t('back')}</button><button class="big primary" data-action="retryRace">${t('retry')}</button>`}
+        ${ctx.online ? `<button class="big primary" data-action="toLobby">${t('backToTable')}</button>` : ctx.cup ? (cupState(this.app.save, ctx.cup.id).done ? `<button class="big primary" data-action="cup" data-id="${ctx.cup.id}">${t('standings')}</button>` : `<button data-action="retryRace">${t('retry')}</button><button class="big primary" data-action="startCup" data-id="${ctx.cup.id}">${t('nextRace')}</button>`) : `<button data-action="setup" data-mode="${race.entrainement ? 'training' : race.mode}">${t('back')}</button><button class="big primary" data-action="retryRace">${t('retry')}</button>`}
       </div>
     `, 'scroll resultats');
   }

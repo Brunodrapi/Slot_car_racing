@@ -213,6 +213,8 @@ const PARK_TEINTES = ['#d9d9dc', '#ececed', '#9b9ba1', '#6e6e76', '#3b3c42', '#2
 // barrières qu'elle longe (`_drawBarriers`) et des tas de bois — les valeurs d'avant, qui
 // étaient seulement posées dans le mauvais repère.
 const OMBRE_VOITURE = [0.25, 0.35];
+// l'opacité du fantôme de l'entraînement : assez pour le suivre des yeux, assez peu pour voir à travers
+const FANTOME_ALPHA = 0.42;
 // Le faisceau des feux stop, en mètres : sa longueur, sa demi-largeur au bout et au feu, l'écart
 // des deux feux d'une GT (en fraction de la largeur du dessin), l'ouverture de leurs cônes vers
 // l'extérieur, et la part cachée sous la carrosserie.
@@ -1486,6 +1488,8 @@ class Renderer {
 
   addEffects(race, dt) {
     for (const car of race.cars) {
+      // un fantôme ne laisse ni gomme, ni fumée, ni poussière : la trace sur la piste est celle du joueur
+      if (car.fantome) continue;
       const pos = car.pos, h = car.heading, c = car.cls;
       const cs = Math.cos(h), sn = Math.sin(h), lx = Math.cos(h + Math.PI / 2), ly = Math.sin(h + Math.PI / 2);
       // the two rear contact patches, where everything a tyre does happens
@@ -2666,7 +2670,11 @@ class Renderer {
     g.imageSmoothingEnabled = true;
     const c = car.cls, pos = car.pos, h = car.heading;
     g.save();
-    if(car.blueFlag)g.globalAlpha*=.45;
+    /* LE FANTÔME de l'entraînement se voit à travers : la piste, ses lignes et sa propre voiture
+    restent lisibles quand il passe dessus. Son ombre s'allège avec lui — une ombre franche sous une
+    voiture transparente la reposait au sol. */
+    const voile = car.fantome ? FANTOME_ALPHA : car.blueFlag ? .45 : 1;
+    g.globalAlpha *= voile;
     g.translate(pos.x, pos.y);
     g.rotate(h);
     // Inclure le contour du dessin, les rétroviseurs, l'ombre et les feux — et, au freinage, le
@@ -2695,7 +2703,7 @@ class Renderer {
     g.rotate(-h);
     g.translate(OMBRE_VOITURE[0], OMBRE_VOITURE[1]);
     g.rotate(h);
-    g.globalAlpha = 0.3;
+    g.globalAlpha = car.fantome ? 0.3 * FANTOME_ALPHA : 0.3;
     // a drawn car casts its own outline; a vector one only has a box to offer
     if (!drawCarShadow(g, c, car.livree, { steer: car.steerAngle })) { g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width); }
     g.restore();
@@ -3028,7 +3036,8 @@ class Renderer {
     this._hudPaper(g, xs, y0, wPos, headH);
     g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillStyle = '#20251f';
     g.font = `italic 900 ${mobile ? 24 : 32}px Racing, sans-serif`;
-    g.fillText(tt ? 'TT' : `P ${pos}/${n}`, xs + 10, y0 + headH / 2, wPos - 18);
+    // à l'entraînement, la place se lit contre le fantôme, comme en course : « P 2/2 »
+    g.fillText(tt && !race.entrainement ? 'TT' : `P ${pos}/${n}`, xs + 10, y0 + headH / 2, wPos - 18);
     /* LE TOUR, en grand et dans la police de la position — c'est le second chiffre qu'on cherche.
 
     Il était écrit en petit, en police système, dans une étiquette de 90 px : le seul texte du haut
@@ -3245,14 +3254,17 @@ class Renderer {
       for (const car of race.cars) {
         const wp = car.pos, q = this.mmPoint(wp.x, wp.y);
         // pas de cerne ici non plus : le bleu ciel du joueur se distingue tout seul des livrées
-        g.fillStyle = car.isPlayer ? '#7fd4ff' : car.livery.body;
+        g.fillStyle = car.isPlayer ? '#7fd4ff' : car.fantome ? '#fff8e6' : car.livery.body;
+        if (car.fantome) g.globalAlpha = 0.75;     // le fantôme : une pastille claire, voilée
         g.beginPath(); g.arc(mx + q.x, my + q.y, car.isPlayer ? 9 : 6, 0, Math.PI * 2); g.fill();
+        g.globalAlpha = 1;
       }
       drawMapRaceFlags(g,race,p=>{const q=this.mmPoint(p.x,p.y);return{x:mx+q.x,y:my+q.y};},7);
     }
 
     // Relative standings: always show the player and adjacent competitors.
-    if (race.mode !== 'timetrial') {
+    // L'entraînement est un contre-la-montre, mais il a un fantôme : l'écart se lit comme en course.
+    if (race.mode !== 'timetrial' || race.entrainement) {
       const order = race.standings(), index = order.indexOf(p);
       const start = Math.max(0, Math.min(index - 1, order.length - 3));
       const st = mobile ? order.slice(Math.max(0,index-1), Math.max(0,index-1)+2) : order.slice(start, start + 3);
@@ -3263,12 +3275,17 @@ class Renderer {
       st.forEach((car, i) => {
         const y = by + i * rowH;
         this._hudLabel(g,bx,y,bw,rowH-2,car.isPlayer&&!mobile?'#f2e6ca':'#171b19df');
-        g.textAlign = 'left'; g.fillStyle = car.livery.body; g.fillRect(bx + 10, y + (rowH - 12) / 2, 10, 10);
+        // le fantôme porte la livrée du joueur : sa pastille est claire, pour ne pas en faire deux pareilles
+        g.textAlign = 'left'; g.fillStyle = car.fantome ? '#fff8e6aa' : car.livery.body; g.fillRect(bx + 10, y + (rowH - 12) / 2, 10, 10);
         g.strokeStyle = '#394137'; g.strokeRect(bx + 10, y + (rowH - 12) / 2, 10, 10);
         g.fillStyle = car.isPlayer && !mobile ? '#242b25' : '#f2e6ca';
         g.fillText(`${order.indexOf(car) + 1}  ${String(car.name).toUpperCase()}`, bx + 26, y + 4, mobile ? 92 : 140);
         let gap = t('you').toUpperCase();
-        if (car !== p) {
+        if (car.fantome) {
+          // contre le fantôme, l'écart est mesuré en temps (Race.ecartFantome), dès le départ
+          const e = race.ecartFantome();
+          gap = `${e >= 0 ? '+' : '−'}${fmtEcart(Math.abs(e))} s`;
+        } else if (car !== p) {
           const distance = Math.abs(car.progress - p.progress), pace = p.bestLap || car.bestLap;
           const sign = car.progress >= p.progress ? '+' : '−';
           gap = pace ? `${sign}${fmtEcart(distance / race.track.length * pace)} s` : `${sign}${Math.round(distance)} m`;

@@ -193,6 +193,7 @@ aides et aux réglages de conduite.
 Ce qui exclut, et pourquoi :
   — l'USURE, parce qu'un tour sur des pneus morts ne se compare à rien (règle d'origine) ;
   — le GUIDE DE FREINAGE, qui montre où freiner : c'est précisément ce qu'on vient chercher ;
+  — l'ENTRAÎNEMENT (0.52.63), où le guide est toujours allumé ;
   — l'AIMANT, qui tient la voiture sur la ligne ;
   — l'ANTICIPATION hors de sa valeur par défaut. Celle-là n'est pas une aide — à zéro elle rend la
     voiture PLUS difficile — mais elle change le pilote intégré, donc la physique. Un temps posé
@@ -287,6 +288,8 @@ function reglagesPublies(save) {
 }
 function tourNet(save, race) {
   if (race && race.usure) return false;
+  // l'entraînement roule avec le guide de freinage (et un fantôme) : record personnel, jamais mondial
+  if (race && race.entrainement) return false;
   // un décor retouché sur ce poste (barrières, dégagements) n'est plus le circuit de tout le monde
   if (race && race.track && race.track.def && race.track.def.decorLocal) return false;
   if (save.showLines) return false;

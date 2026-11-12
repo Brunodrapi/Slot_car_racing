@@ -20,7 +20,7 @@ fs.mkdirSync(out,{recursive:true});
     const settings=document.querySelector('.home-settings').getBoundingClientRect(), pilot=document.querySelector('.pilot-button').getBoundingClientRect();
     return {visible:settings.top>=0&&settings.bottom<=innerHeight&&pilot.top>=0&&pilot.bottom<=innerHeight, name:document.querySelector('.pilot-button').textContent};
   });assert(home.visible,'settings and driver visible without scrolling');assert(home.name.includes('Pilote'));
-  const before=await p.evaluate(geometry); assert.equal(before.length,3); assert(before.every(r=>r[0]===before[0][0]&&r[2]===before[0][2]));
+  const before=await p.evaluate(geometry); assert.equal(before.length,4); assert(before.every(r=>r[0]===before[0][0]&&r[2]===before[0][2]));
   await p.locator('.mode-card').first().focus();await p.waitForTimeout(250);assert.deepEqual(await p.evaluate(geometry),before,'focus must not shift buttons');
   await p.screenshot({scale:'css',path:path.join(out,`${name}-menu.png`)});
   await p.locator('[data-mode="race"]').click();await p.waitForSelector('.setup-screen');

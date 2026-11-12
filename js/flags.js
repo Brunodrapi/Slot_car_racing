@@ -27,6 +27,8 @@ class RaceFlags {
     const active=r.state==='racing'||r.state==='finishing';
     this.zones=[];
     r.cars.forEach((c,i)=>{
+      // le fantôme de l'entraînement n'existe pour personne : ni drapeau jaune quand il sort, ni bleu
+      if(c.fantome){c.blueFlag=false;return;}
       this.inspect(c);
       if(active&&c.state==='grass'&&!c.inPit&&!c.finished){
         if(!this.offSince.has(i))this.offSince.set(i,now);

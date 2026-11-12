@@ -123,7 +123,7 @@ Graphiques libres Apache ECharts, données dans Supabase. La migration doit êtr
 que les mesures commencent : [installation et aperçus](docs/analytics/README.md).
 
 > **Version allégée.** Le jeu se limite pour l'instant à la **course rapide**, au
-> **contre-la-montre** et au multijoueur, avec **vingt-cinq voitures en trois catégories** — F1, GT
+> **contre-la-montre**, à l'**entraînement** (voir [L'entraînement](#lentraînement-05263)) et au multijoueur, avec **vingt-cinq voitures en trois catégories** — F1, GT
 > et prototypes (voir [Trois catégories](#trois-catégories)). La carrière reste dans le code sans être
 > proposée.
 
@@ -1896,10 +1896,53 @@ s'efface pour lui. Les scripts de test passent l'écran comme un joueur, par une
 L'ancienne affiche, le casque peint (`art/title.webp`) et la découpe de son invitation
 (`art/press-start-source.png`), restent dans `art/` : elles portaient le nom *Eyes On Line*.
 
+## L'entraînement (0.52.63)
+
+> « L'entraînement est comme un contre-la-montre sauf que : 1/ l'option guide est activée. 2/ la même
+> voiture que nous mais avec le sprite semi-transparent (le fantôme) joue en mode cauchemar. Le fantôme
+> part du même emplacement que nous, n'a pas de collision avec nous, prend la ligne idéale. 3/ ça
+> affiche comme en course rapide le temps contre ce fantôme. » — Bruno
+
+Quatrième entrée du menu principal. Pour le moteur de course c'est un contre-la-montre (pas de tours
+comptés, pas de contact, « Terminer la session » à la pause) lancé avec `entrainement: true`
+(`startQuick('training', …)`, js/main.js) :
+
+- **Le guide de freinage** est allumé pour la manche (`renderer.showLines`), quel que soit le réglage :
+  le ruban vert, jaune ou rouge devant la voiture, et la barre du point de freinage.
+- **Le fantôme** (`FANTOME`, `Race._poseFantome`, js/race.js) est une vraie voiture de l'IA, pas un
+  enregistrement : le modèle et la livrée du joueur, le pilote **cauchemar** (adhérence ×1,30
+  comprise), le même emplacement de départ. Il est peint à 42 % d'opacité, sous la voiture du joueur.
+  Il n'existe pour personne : ni contact, ni aspiration, ni gêne, ni drapeau jaune quand il sort, ni
+  gomme ni fumée. Il ne voit personne non plus — il garde la ligne idéale et ne lève pour personne — et
+  n'a pas d'élastique : c'est une référence, il roule son rythme. Sa course est identique au centimètre
+  que le joueur reste sur la grille ou roule dans ses roues (`tools/e2e-entrainement.js`).
+- **L'écart** s'affiche comme en course : « P 2/2 » en haut à gauche, et le tableau « 1 FANTÔME +1.2 s /
+  2 TOI ». Il est mesuré en temps dès le départ (`Race.ecartFantome`) : le temps écoulé depuis que celui
+  de devant est passé là où se trouve celui de derrière, lu dans un sillage échantillonné tous les
+  dixièmes de seconde — et non la distance convertie au rythme du meilleur tour, qui donne des mètres
+  tant qu'aucun tour n'est bouclé.
+- **Les records** : un tour d'entraînement compte pour le record personnel, jamais pour le tableau
+  mondial (`tourNet`, js/career.js) — il est couru avec le guide. Le paddock le dit avant de partir, et
+  le contre-la-montre l'explique après (« couru à l'entraînement… bats-le en contre-la-montre »).
+- **Les résultats** donnent le meilleur tour du fantôme sous celui du joueur, avec l'écart, et ses
+  tours en face de ceux du joueur.
+
+**Ce que vaut le fantôme** (`node tools/fantome-banc.js`, seul en piste, six circuits, quatre tours) :
+aucune sortie, quel que soit le talent du pilote ; au talent médian retenu (0,5), il boucle ces six
+circuits 10 à 12 % plus vite que le pilote automatique mené à la limite de la même voiture sans la
+triche d'adhérence (Bumblebee Ground 79 : 446,8 s contre 495,4 ; Howitzer K1 : 499,0 contre 570,2).
+Ses vitesses de passage en virage ne sont pas à la portée de la voiture du joueur : il montre la ligne,
+son rythme est une cible qu'on n'atteint pas. Changer de niveau tient en une ligne (`FANTOME.niveau`).
+
+Les statistiques comptent l'entraînement comme un contre-la-montre (la table n'accepte que quatre
+modes). Le pictogramme du menu (`art/interface/cone.svg`) est un dessin vectoriel provisoire, dans la
+palette des autres ; il se remplace par une illustration du même nom.
+
 ## Les menus de sélection (0.37.0)
 
-Le menu principal utilise trois cartes DOM illustrées : course rapide, contre-la-montre et
-multijoueur. Le nom de chaque mode reste visible. Les états repos, survol et focus partagent
+Le menu principal utilise quatre cartes DOM illustrées : course rapide, contre-la-montre,
+entraînement (depuis la 0.52.63 ; la hauteur des cartes suit celle de l'écran pour que « Réglages » et
+le pilote restent visibles sans défiler) et multijoueur. Le nom de chaque mode reste visible. Les états repos, survol et focus partagent
 la même géométrie ; une ouverture visuelle du fond remplace la superposition des anciens
 bandeaux peints. Le clic lance immédiatement le mode. Les anciens dessins sont conservés
 comme sources, mais ne servent plus de cibles interactives.

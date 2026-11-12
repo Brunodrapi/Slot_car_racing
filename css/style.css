@@ -701,6 +701,10 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .mode-card { --mode:#e33228; display:grid; grid-template-columns:88px minmax(0,1fr) 24px; gap:12px; min-height:clamp(80px,13vh,116px); padding:8px 20px 8px 12px; border:2px solid #fff0d0; border-right:8px solid #181c19; border-radius:0; color:#fff5dd; background:var(--mode); box-shadow:5px 5px 0 #111b; }
 .mode-card.mode-timetrial { --mode:#f2c52c; color:#171b19; }
 .mode-card.mode-multi { --mode:#12b974; color:#101b17; }
+.mode-card.mode-training { --mode:#2f7fd6; }
+.entrainement-note { margin:0 0 6px; font-size:13px; line-height:1.3; color:#3b4a5e; }
+.fantome-resultat { margin:-4px 0 10px; }
+.fantome-resultat .ok { color:var(--accent2); }
 .mode-card::before { background:repeating-conic-gradient(#00000009 0% 25%,transparent 0% 50%) 0 0 / 38px 38px; transform:none; }
 .mode-card:hover:not(:disabled), .mode-card:focus-visible, .mode-card.pad-focus { background:var(--mode); box-shadow:5px 5px 0 #111b,inset 0 0 0 3px #fff4d7; filter:brightness(1.08); }
 .mode-card:active:not(:disabled) { background:var(--mode); transform:none; }
@@ -1156,6 +1160,22 @@ details.install-os[open] summary { margin-bottom:8px; }
   .mode-art img { height:46px; }
   .extra-card { min-height:44px; font-size:13px; }
   .extra-card svg { display:none; }
+}
+
+/* QUATRE ENTRÉES AU MENU (0.52.63) : l'entraînement s'ajoute à la course, au contre-la-montre et au
+   multijoueur. Les cartes avaient une hauteur fixée par leur pictogramme (88 px) : à quatre, « Réglages »
+   et le pilote sortaient de l'écran sur un portable (768 px de haut) et sur un iPhone 13. La hauteur des
+   cartes et de leur pictogramme suit donc celle de l'écran ; le logo cède un peu de la sienne. Les petits
+   téléphones gardent la règle ci-dessus, qui tenait déjà. (Un téléphone couché défile, comme avant :
+   l'écran y est limité à la largeur d'un portrait, et deux colonnes y coupaient les titres.) */
+@media (min-width:851px) {
+  .home-heading .game-logo { max-height:21vh; }
+  .mode-card { min-height:clamp(62px,10.4vh,116px); }
+  .mode-art img { height:clamp(42px,7.6vh,88px); }
+}
+@media (max-width:850px) and (min-height:621px) {
+  .mode-card { min-height:clamp(60px,9.6vh,92px); }
+  .mode-art img { height:clamp(46px,7.6vh,66px); }
 }
 
 /* L'IPHONE, JEU INSTALLÉ SUR L'ÉCRAN D'ACCUEIL (0.52.3).

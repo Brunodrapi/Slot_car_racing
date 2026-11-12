@@ -20,6 +20,7 @@ const CAS = [
   ['usure (course)',               {},                     { usure: {} },   false],
   ['télémétrie seule',             { debug: true },        null,            true],
   ['aimant ET guide',              { showLines: true, aimant: 1 }, null,    false],
+  ['entraînement (guide, fantôme)', {},                    { entrainement: true }, false],
 ];
 const O = [];
 for (const [nom, delta, race, attendu] of CAS) {
@@ -46,12 +47,13 @@ const verifs = [
   ['le rattrapage lit le registre NET', main.includes('rattrape(this.save.bestLapsNets)')],
   ['il ne lit plus le registre personnel', !main.includes('rattrape(this.save.bestLaps)')],
   ['un temps aidé n\'entre pas dans le registre net', main.includes('if (net && (save.bestLapsNets[keyCar] == null')],
-  ['le motif de refus est posé quand ce n\'est pas net', main.includes("raison: race.usure ? 'usure' : 'aides'")],
+  ['le motif de refus est posé quand ce n\'est pas net', main.includes("raison: race.entrainement ? 'entrainement' : race.usure ? 'usure' : race.track.def.decorLocal ? 'decor' : 'aides'")],
 ];
 const car = fs.readFileSync(path.join(R, 'js', 'career.js'), 'utf8');
 verifs.push(['les anciennes sauvegardes sont reprises', car.includes('save.bestLapsNets = Object.assign({}, save.bestLaps)')]);
 const ui = fs.readFileSync(path.join(R, 'js', 'ui.js'), 'utf8');
 verifs.push(['le refus a un message FR et EN', (ui.match(/refus_aides:/g) || []).length === 2]);
+verifs.push(['le refus de l\'entraînement a un message FR et EN', (ui.match(/refus_entrainement:/g) || []).length === 2]);
 verifs.push(['l\'écran des réglages avertit', ui.includes("t('horsClassement')")]);
 console.log();
 for (const [quoi, ok] of verifs) { if (!ok) faux++; console.log((ok ? '  ok   ' : '  FAUX ') + quoi); }

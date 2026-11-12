@@ -4,6 +4,11 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.63
+- Nouveau mode Entraînement, au menu principal : un contre-la-montre avec le guide de freinage allumé et un fantôme — ta voiture, en transparence, pilotée au niveau cauchemar sur la ligne idéale, sans contact. L'écart au fantôme s'affiche en temps, comme en course.
+- Les tours d'entraînement comptent pour ton record personnel, pas pour le tableau mondial.
+- Correction : l'écran de départ pouvait réapparaître par-dessus la course quand les temps du monde arrivaient après « EN PISTE ».
+
 ## 0.52.60
 - Appui aérodynamique à l'échelle des circuits : les virages du jeu ont environ la moitié du rayon des vrais, l'appui se calcule désormais sur la vitesse qu'aurait la voiture dans le vrai virage. Les F1 et les protos tiennent nettement mieux dans les virages moyens et rapides.
 - Pneus propres à chaque catégorie : les F1 sont plus incisives et plus posées, les protos entre les deux, les GT gardent leur glisse.

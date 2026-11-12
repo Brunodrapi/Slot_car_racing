@@ -86,6 +86,34 @@ const POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
    niveau d'un appui vraiment malheureux, et sans commune mesure avec ce que coûte déjà le gravier. */
 const PENALITE_FIXE = 1.0;
 
+/* LE FANTÔME DE L'ENTRAÎNEMENT (0.52.63).
+
+« L'entraînement est comme un contre-la-montre sauf que : le guide est activé ; la même voiture que
+nous, semi-transparente (le fantôme), joue en mode cauchemar — elle part du même emplacement, n'a pas
+de collision avec nous, prend la ligne idéale ; et ça affiche comme en course rapide le temps contre ce
+fantôme. »
+
+C'est une vraie voiture de l'IA, au niveau cauchemar (son adhérence ×1,30 comprise), pas un
+enregistrement : elle roule en même temps que le joueur, sur la même physique. Mais elle n'existe
+pour personne — ni contact (le contre-la-montre n'en résout aucun), ni aspiration, ni gêne, ni drapeau
+jaune quand elle sort, ni gomme ni fumée (js/render.js). Elle ne voit personne non plus : elle garde
+la ligne idéale et ne lève jamais pour une autre voiture.
+
+`skill` : le talent du pilote, de 0 à 1, qui décale sa marge (`marginSpread`). Mesuré seul en piste
+sur six circuits, quatre tours, trois voitures (`tools/fantome-banc.js`) : aucune sortie quel que soit
+le talent, et 3,5 % d'écart entre le moins et le plus doué. On prend le pilote médian, 0,5.
+
+CE QU'IL VAUT : il boucle ces six circuits 10 à 12 % plus vite que le pilote automatique mené à la
+limite de la même voiture SANS la triche (Bumblebee Ground 79 : 446,8 s contre 495,4 ; Breithüft
+Aero 62 : 464,3 contre 520,1 ; Howitzer K1 : 499,0 contre 570,2). C'est le niveau cauchemar, tel que
+demandé : ses vitesses de passage en virage (adhérence ×1,30, donc ×1,14 en vitesse) ne sont pas à la
+portée de la voiture du joueur. Il montre la ligne ; son rythme, lui, est une cible qu'on n'atteint pas.
+
+PAS D'ÉLASTIQUE. En course, l'IA ralentit quand elle mène de loin et accélère quand elle traîne.
+Un fantôme est une référence : il roule son rythme, que le joueur soit devant ou derrière. */
+const FANTOME = { niveau: 'cauchemar', skill: 0.5 };
+const SANS_TRAFIC = [];
+
 // race state, as one number, for the snapshots sent over the wire
 const NET_FINISH_GRACE = 30; // seconds after the first finisher, multiplayer only
 const STATE_CODE = { countdown: 0, racing: 1, finishing: 2, finished: 3 };
@@ -105,6 +133,9 @@ class Race {
     this.cls = choisie || modelsOf(this.cat.id)[0];   // player's model
     this.track = new Track(opts.trackDef, this.cat.roadScale || 1);
     this.mode = opts.mode || 'race';           // race | timetrial
+    // l'entraînement : un contre-la-montre avec un fantôme (voir FANTOME) ; jamais en ligne
+    this.entrainement = !!opts.entrainement && this.mode === 'timetrial' && !opts.humans;
+    this.fantome = null;
     this.laps = opts.laps || this.track.laps;
     this.difficulty = DIFFICULTY[opts.difficulty] || DIFFICULTY.medium;
     /* L'usure et les dommages : en option, et en COURSE seulement.
@@ -213,6 +244,57 @@ class Race {
       this.player.laneTarget = 0;
       this.player.gridLat = 0;
     }
+    if (solo && this.entrainement) this._poseFantome();
+    // ce que les voitures réelles voient du trafic : tout le monde, sauf le fantôme
+    this._sansFantome = this.fantome ? this.cars.filter(c2 => !c2.fantome) : this.cars;
+  }
+
+  /* Le fantôme : la voiture du joueur, sa livrée, sa place sur la grille — et le pilote cauchemar.
+
+  La classe est celle du MODÈLE (`this.cls`), pas celle du joueur : celle-ci est clonée et porte son
+  réglage de frein (`poseFrein`), qui est le sien. */
+  _poseFantome() {
+    const T = this.track, p = this.player, niveau = DIFFICULTY[FANTOME.niveau];
+    const car = new Car(T, this.cls, {
+      name: this.opts.ghostName || 'Fantôme',
+      livery: p.livery, livree: p.livree,
+      isPlayer: false, skill: FANTOME.skill,
+      gripBoost: niveau.grip || 1,
+      usure: null, number: p.number,
+      s: T.length - 40, lat: 0,
+    });
+    car.fantome = true;
+    car.human = null;
+    car.place(T.length - 40, 0);
+    car.laneTarget = 0; car.gridLat = 0;
+    this.fantome = car;
+    this.cars.push(car);
+    // le sillage : où était chacun, tous les dixièmes de seconde (voir `ecartFantome`)
+    this._sillage = { pas: 0.1, n: 0, joueur: [], fantome: [] };
+  }
+
+  /* L'ÉCART AU FANTÔME, EN TEMPS, et dès le premier mètre.
+
+  En course, l'écart du tableau est une distance convertie au rythme du meilleur tour — donc des
+  mètres tant qu'aucun tour n'est bouclé, et une estimation ensuite. Contre un fantôme, l'écart est
+  LE chiffre qu'on regarde : on le mesure pour de bon. C'est le temps écoulé depuis que celui qui
+  est devant est passé là où se trouve maintenant celui qui est derrière, lu dans son sillage.
+
+  Positif : le fantôme est devant. Nul sans fantôme. */
+  ecartFantome() {
+    const f = this.fantome, p = this.player, S = this._sillage;
+    if (!f || !S || S.n < 2) return f ? 0 : null;
+    const fDevant = f.progress >= p.progress;
+    const trace = fDevant ? S.fantome : S.joueur, ici = fDevant ? p.progress : f.progress;
+    let k = S.n - 1;
+    while (k > 0 && trace[k] > ici) k--;
+    // entre l'échantillon k et le suivant — ou, après le dernier, la position du moment, à l'instant présent
+    const dernier = k + 1 >= S.n;
+    const suite = dernier ? (fDevant ? f.progress : p.progress) : trace[k + 1];
+    const tSuite = dernier ? this.time : (k + 1) * S.pas;
+    const part = suite > trace[k] ? clamp((ici - trace[k]) / (suite - trace[k]), 0, 1) : 0;
+    const ecart = Math.max(0, this.time - (k * S.pas + part * (tSuite - k * S.pas)));
+    return fDevant ? ecart : -ecart;
   }
 
   /* Changer le frein du joueur, en course et sans tout reconstruire.
@@ -316,6 +398,9 @@ class Race {
 
   _simulate(dt, throttleInput, brakingInput = null) {
     const T = this.track;
+    // le sillage de l'entraînement : l'échantillon k est pris au temps k × pas
+    const S = this._sillage;
+    if (S && this.time >= S.n * S.pas) { S.joueur.push(this.player.progress); S.fantome.push(this.fantome.progress); S.n++; }
     this.time += dt;
     if (this.netDrive && this.finishDeadline && this.time > this.finishDeadline) return;
     this.flags?.update();
@@ -329,7 +414,8 @@ class Race {
       `car.aiDriven` sert aussi à la voie des stands, où l'IA freine pour la zone d'arrêt alors que
       le joueur freine lui-même ; la dupliquer aurait fini par la faire diverger. */
       car.aiDriven = car.human == null && !car.isPlayer ? true : !!this.opts.playerAI;
-      car.steer(this.cars, dt, car.aiDriven);
+      // le fantôme ne voit personne, et personne ne le voit : ni gêneur, ni voisin, ni aspiration
+      car.steer(car.fantome ? SANS_TRAFIC : this._sansFantome, dt, car.aiDriven);
       if (this.usure && car.aiDriven && !car.finished) this._decidePit(car);
       let throttle;
       if (car.isPlayer) throttle = car.finished ? car.v < 15 : throttleInput;
@@ -340,6 +426,8 @@ class Race {
         car.sel = clamp(net.sel || 0, -1, 1);
         if (this.usure) car.pitAsk = !!net.pit;
         throttle = car.finished ? car.v < 15 : throttleAmount(net.thr);
+      } else if (car.fantome) {
+        throttle = aiThrottle(car, SANS_TRAFIC, dt, DIFFICULTY[FANTOME.niveau]);
       } else {
         const gapM = car.progress - pp;
         const rubber = car.finished || this.player.finished ? 0 : clamp(-gapM / 4000, -0.05, 0.03);
@@ -662,4 +750,4 @@ function makeRoster(count, playerLivery, seed, catId) {
 }
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
-if (typeof module !== 'undefined') module.exports = { Race, DIFFICULTY, POINTS, makeRoster };
+if (typeof module !== 'undefined') module.exports = { Race, DIFFICULTY, POINTS, makeRoster, FANTOME };

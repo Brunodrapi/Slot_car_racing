@@ -406,10 +406,15 @@ class App {
     const trackDef = this.trackDefById(trackId), cat = categoryById(classId);
     if (!trackDef) return;
     const modelId = this.playerModelFor(classId).id;
+    /* L'ENTRAÎNEMENT est un contre-la-montre pour le moteur de course — pas de tours comptés, pas de
+    contact — avec un fantôme en plus (`entrainement`, js/race.js). L'écran, lui, garde son nom
+    (`ctx.mode`) pour revenir au bon paddock. */
+    const entrainement = mode === 'training';
     this._startRace({
       reglage: !!reglage,
       frein: freinDe(this.save, trackId, modelId),
-      mode, trackDef, classId, modelId,
+      mode: entrainement ? 'timetrial' : mode, entrainement, ghostName: this.ui.t('ghost'),
+      trackDef, classId, modelId,
       playerLivree: this.playerLivreeFor(modelId),
       // The circuit's own suggestion unless the player has asked for a number; a championship
       // round keeps the suggestion, since its length is part of the championship, not a setting.
@@ -486,6 +491,8 @@ class App {
     this.raceCtx = ctx;
     this.spectator?.close();
     this.race = new Race(opts);
+    // le guide de freinage : toujours allumé à l'entraînement, sinon selon le réglage (mis de côté)
+    this.renderer.showLines = !!this.race.entrainement || this.save.showLines === true;
     if (ctx?.online) {
       this.race.broadcast = new RaceBroadcast(this.race);
       this.net.drive = new NetDrive(this.net, this.race);
@@ -656,7 +663,7 @@ class App {
       tableau est cassé. On nomme donc le motif — l'usure, ou la configuration — même quand il n'y a
       rien eu à envoyer. */
       if (!net && this.mondial && this.mondial.connecte())
-        this.mondial.dernierRefus = { raison: race.usure ? 'usure' : race.track.def.decorLocal ? 'decor' : 'aides',
+        this.mondial.dernierRefus = { raison: race.entrainement ? 'entrainement' : race.usure ? 'usure' : race.track.def.decorLocal ? 'decor' : 'aides',
                                       circuit: race.track.id, voiture: race.cls.id };
     }
     // le palmarès : une victoire en course rapide rapporte le trophée de son niveau (js/palmares.js)
