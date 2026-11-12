@@ -703,6 +703,10 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .mode-card.mode-multi { --mode:#12b974; color:#101b17; }
 .mode-card.mode-training { --mode:#2f7fd6; }
 .entrainement-note { margin:0 0 6px; font-size:13px; line-height:1.3; color:#3b4a5e; }
+.guide-legende { display:flex; flex-wrap:wrap; align-items:center; gap:4px 12px; margin:0 0 8px; font-size:13px; line-height:1.2; color:#2b302a; }
+.guide-legende b { font-weight:900; }
+.guide-signe { display:inline-flex; align-items:center; gap:5px; white-space:nowrap; }
+.guide-signe svg { width:34px; height:11px; flex:0 0 34px; background:#3a3d40; border-radius:2px; }
 .fantome-resultat { margin:-4px 0 10px; }
 .fantome-resultat .ok { color:var(--accent2); }
 .mode-card::before { background:repeating-conic-gradient(#00000009 0% 25%,transparent 0% 50%) 0 0 / 38px 38px; transform:none; }

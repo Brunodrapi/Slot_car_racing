@@ -4,6 +4,10 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.65
+- Entraînement : nouveau guide, qui dit au doigt quoi faire. Bande rouge : lâche le bouton. Tirets rouges : dose par petits appuis. Chevrons verts : remets les gaz. Rien : plein gaz. Les zones suivent ta vitesse, et le mot de la consigne (LÂCHE, DOSE, GAZ) s'affiche près de la commande.
+- L'ancien ruban vert, jaune et rouge et sa barre en travers de la piste sont retirés.
+
 ## 0.52.64
 - Entraînement : le fantôme roule au niveau difficile au lieu de cauchemar. Il n'a plus d'adhérence en plus : c'est ta voiture menée à sa limite, un rythme qu'on peut suivre et battre.
 

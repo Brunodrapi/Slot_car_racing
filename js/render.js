@@ -269,7 +269,8 @@ class Renderer {
     this._implTag = 0;   // numéro d'image, pour ne dessiner qu'une fois un arbre à cheval sur deux cases
     this.touch = mobileDevice();
     this.mobileDevice = this.touch;
-    this.showLines = false;   // braking guide, off unless enabled in the settings
+    this.showLines = false;   // le guide de freinage : allumé à l'entraînement (js/main.js)
+    this.consigne = null;     // ce que le guide demande au doigt à cet instant (GUIDE_GAZ, _DOSE, _LEVE)
     this.debug = false;       // vehicle telemetry overlay (speed, slip angle, lateral velocity, grip usage)
     this.poucePress = 0;      // appui lissé de 0 à 1 sur la pastille du pouce
     this.reglageZone = null;  // le rail du levier de freinage, en mode réglage seulement
@@ -1864,55 +1865,93 @@ class Renderer {
     }
   }
 
-  // Optional braking guide (off by default): the ribbon ahead is coloured by the reference speed
-  // profile (green where the car can be flat out, red for a slow corner) and a transverse bar marks
-  // where braking must start at the current speed. No driving lines are drawn on the road.
-  _drawGuide(g, race) {
-    const T = race.track, p = race.player;
-    // le vert dit « plein gaz » : proche de la pointe qu'on atteint en jeu, pas de celle de la fiche
-    const ahead = 240, step = 4, vmax = vitesseEcran(p.cls);
+  /* LE GUIDE : CE QUE LE DOIGT DOIT FAIRE, peint sur la ligne choisie (voir GUIDE, js/race.js).
 
-    // selected line ahead, in three colour runs by reference speed
-    const pt = (d) => { const i = T.idx(p.s + d), lat = T.targetLat(p.s + d, p.selS); return [T.xs[i] + T.nx[i] * lat, T.ys[i] + T.ny[i] * lat]; };
-    const runs = { '#5be07a': [], '#ffd23f': [], '#ff6b4b': [] };
-    let prev = pt(0);
-    for (let d = step; d <= ahead; d += step) {
-      const now = pt(d);
-      const r = race.profileAt(p.s + d - step / 2, p.selS) / vmax;
-      runs[r > 0.88 ? '#5be07a' : r > 0.62 ? '#ffd23f' : '#ff6b4b'].push([prev, now]);
+  Trois signes, et un seul sens chacun :
+    — rouge plein      lâche : la voiture freine seule
+    — rouge pointillé  dose : petits appuis, on tient la vitesse dans le virage
+    — chevrons verts   à la sortie d'une zone : remets les gaz
+  Hors de ces signes il n'y a rien à lire : plein gaz.
+
+  Comme le ruban adhésif qu'on colle au bord d'une piste de slot pour marquer où lever le doigt — sauf
+  que celui-ci se déplace avec la vitesse du joueur : la zone commence là où IL doit lever, pas là où
+  lèverait un autre.
+
+  Le rouge et le vert ne se distinguent pas que par la couleur : une bande, des tirets, des chevrons.
+  Quand le joueur appuie dans le rouge plein, la bande bat : c'est le seul reproche que fait le guide. */
+  _drawGuide(g, race) {
+    const T = race.track, p = race.player, G = race.guide(p);
+    const pas = G.pas, N = G.n, E = G.etats;
+    const pt = (i) => { const s = G.s0 + i * pas, k = T.idx(s), lat = T.targetLat(s, p.selS); return [T.xs[k] + T.nx[k] * lat, T.ys[k] + T.ny[k] * lat, k]; };
+    const plein = new Path2D(), tirets = new Path2D();
+    // la bande ne commence pas sous la voiture : le premier tronçon part de son nez
+    let prev = pt(1), rouge = false, dose = false;
+    const sorties = [];
+    for (let i = 1; i < N; i++) {
+      const now = pt(i + 1), e = E[i];
+      if (e === GUIDE_LEVE) { plein.moveTo(prev[0], prev[1]); plein.lineTo(now[0], now[1]); rouge = true; }
+      else if (e === GUIDE_DOSE) {
+        // des tirets calés sur le circuit, un pas peint pour un pas vide : ils ne défilent pas avec la voiture
+        if (Math.round((G.s0 + i * pas) / pas) % 2 === 0) { tirets.moveTo(prev[0], prev[1]); tirets.lineTo(now[0], now[1]); dose = true; }
+      } else if (E[i - 1] !== GUIDE_GAZ) sorties.push(i);     // une zone vient de finir : on remet les gaz ici
       prev = now;
     }
-    g.lineCap = 'round';
-    for (const col of ['#5be07a', '#ffd23f', '#ff6b4b']) {
-      const segs = runs[col];
-      if (!segs.length) continue;
-      const path = new Path2D();
-      for (const [a, b] of segs) { path.moveTo(a[0], a[1]); path.lineTo(b[0], b[1]); }
-      g.globalAlpha = 0.16; g.strokeStyle = col; g.lineWidth = 2.4; g.stroke(path);
-      g.globalAlpha = 0.7; g.lineWidth = 0.5; g.stroke(path);
+    g.lineJoin = 'round';
+    const faute = G.maintenant === GUIDE_LEVE && throttleAmount(p.throttle) > 0;
+    const bat = faute ? 0.75 + 0.25 * Math.sin(performance.now() / 70) : 0.62;
+    if (rouge) {
+      g.lineCap = 'butt';
+      g.globalAlpha = bat * 0.55; g.strokeStyle = '#ff3b30'; g.lineWidth = 2.6; g.stroke(plein);
+      g.globalAlpha = Math.min(1, bat + 0.25); g.strokeStyle = '#ff5a4a'; g.lineWidth = 0.6; g.stroke(plein);
     }
-    g.globalAlpha = 1;
+    if (dose) {
+      g.lineCap = 'butt';
+      g.globalAlpha = 0.5; g.strokeStyle = '#ff3b30'; g.lineWidth = 1.5; g.stroke(tirets);
+    }
+    // les chevrons de sortie : trois, pointés vers l'avant, sur `GUIDE.vert` mètres
+    g.lineCap = 'round'; g.strokeStyle = '#37d67a'; g.lineWidth = 0.55; g.globalAlpha = 0.95;
+    const nChev = 3, ecart = Math.max(1, Math.round(GUIDE.vert / pas / nChev));
+    for (const i0 of sorties) for (let c = 0; c < nChev; c++) {
+      const i = i0 + c * ecart;
+      if (i >= N || E[i] !== GUIDE_GAZ) break;
+      const [x, y, k] = pt(i + 1), th = T.th[k];
+      g.save(); g.translate(x, y); g.rotate(th);
+      g.beginPath(); g.moveTo(-1.3, -1.25); g.lineTo(0, 0); g.lineTo(-1.3, 1.25); g.stroke();
+      g.restore();
+    }
+    g.globalAlpha = 1; g.lineCap = 'round';
+    /* Le mot près de la commande (voir _drawConsigne) : la consigne de la zone, tenue un quart de
+    seconde avant de se relâcher. « Lâche » s'affiche tout de suite — c'est le mot qui presse — ; revenir
+    à « dose » ou à « gaz » attend que ce soit vrai un moment, pour qu'un mot ne dure jamais un éclair. */
+    const t = performance.now(), M = this._mot || (this._mot = { etat: GUIDE_GAZ, vu: GUIDE_GAZ, depuis: t });
+    if (G.zone !== M.vu) { M.vu = G.zone; M.depuis = t; }
+    if (G.zone > M.etat || t - M.depuis > 250) M.etat = G.zone;
+    this.consigne = M.etat;
+  }
 
-    // braking point: the distance at which the most demanding corner ahead forces a lift
-    const brake = p.cls.brake * 0.9, v2 = p.v * p.v;
-    let slack = Infinity;
-    for (let d = 0; d <= ahead; d += step) {
-      const vp = race.profileAt(p.s + d, p.selS);
-      if (vp * vp >= v2) continue;
-      const need = (v2 - vp * vp) / (2 * brake);
-      if (d - need < slack) slack = d - need;
+  /* LE MOT DE LA CONSIGNE, près de la commande : « GAZ », « DOSE », « LÂCHE ».
+
+  Gran Turismo double sa zone de freinage d'un témoin au compteur ; ici le témoin est un mot, parce
+  que le jeu n'a qu'un geste. Il sert surtout de légende : on voit le rouge arriver sous la voiture et
+  le mot changer au même instant, et le sens des couleurs s'apprend sans qu'on l'explique. */
+  _drawConsigne(g, x, y, t) {
+    const e = this.consigne;
+    if (e == null) return;
+    const mot = t(e === GUIDE_LEVE ? 'guideLeve' : e === GUIDE_DOSE ? 'guideDose' : 'guideGaz').toUpperCase();
+    const fond = e === GUIDE_LEVE ? '#e0261c' : e === GUIDE_DOSE ? '#171b19e6' : '#12a35c';
+    const taille = this.mobile ? 17 : 20, h = taille + 10;
+    g.font = `italic 900 ${taille}px Racing, Impact, sans-serif`;
+    const w = Math.max(this.mobile ? 78 : 92, g.measureText(mot).width + 26);
+    this._hudLabel(g, x - w / 2, y - h, w, h, fond);
+    if (e === GUIDE_DOSE) {           // le pointillé de la piste, repris en liseré
+      g.save(); g.setLineDash([6, 5]); g.strokeStyle = '#ff5a4a'; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(x - w / 2 + 8, y - 3); g.lineTo(x + w / 2 - 8, y - 3); g.stroke(); g.restore();
     }
-    if (slack === Infinity || slack > 180) return;
-    const at = Math.max(4, slack);   // never sit on top of the car
-    const i = T.idx(p.s + at), lat = T.targetLat(p.s + at, p.selS);
-    const x = T.xs[i] + T.nx[i] * lat, y = T.ys[i] + T.ny[i] * lat;
-    const late = slack <= 0;
-    const col = late ? '#ff4b4b' : slack < 25 ? '#ffd23f' : '#f2f2f2';
-    const w = 2.6, th = T.th[i];
-    g.save(); g.translate(x, y); g.rotate(th);
-    g.globalAlpha = late ? 0.6 + 0.4 * Math.sin(performance.now() / 90) : 0.9;
-    g.fillStyle = col; g.fillRect(-0.3, -w, 0.6, w * 2);
-    g.globalAlpha = 1; g.restore();
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = e === GUIDE_DOSE ? '#ffb4a8' : '#fff8ea';
+    g.fillText(mot, x, y - h / 2 + (e === GUIDE_DOSE ? -1 : 1));
+    g.textAlign = 'left'; g.textBaseline = 'top';
+    this.hudZones = this.hudZones || {};
+    this.hudZones.consigne = { x: x - w / 2, y: y - h, w, h, mot };
   }
 
   /* LES INDICATIONS SE PEIGNENT SUR LA PISTE, pas sur un panneau au bord.
@@ -2825,6 +2864,8 @@ class Renderer {
     this.hudZones = this.hudZones || {};
     this.hudZones.vitesse = { x: x0, w: wNum + 4 + wU, y: yT - hT, h: hT };
     g.textAlign = 'left'; g.textBaseline = 'top';
+    // la consigne du guide, juste au-dessus de la vitesse : au-dessus de la main, donc lisible sans la chercher
+    if (this.showLines && this.tHud) this._drawConsigne(g, cx, yT - hT - 10, this.tHud);
   }
 
   // La pastille vient sous le pouce, et reste entière à l'écran.
@@ -3264,7 +3305,8 @@ class Renderer {
 
     // Relative standings: always show the player and adjacent competitors.
     // L'entraînement est un contre-la-montre, mais il a un fantôme : l'écart se lit comme en course.
-    if (race.mode !== 'timetrial' || race.entrainement) {
+    // (pas pendant les feux de l'entraînement : il n'y a pas encore d'écart, et le tableau passait sous les feux)
+    if (race.mode !== 'timetrial' || (race.entrainement && race.state !== 'countdown')) {
       const order = race.standings(), index = order.indexOf(p);
       const start = Math.max(0, Math.min(index - 1, order.length - 3));
       const st = mobile ? order.slice(Math.max(0,index-1), Math.max(0,index-1)+2) : order.slice(start, start + 3);
@@ -3296,8 +3338,17 @@ class Renderer {
     }
 
     // la pastille du pouce passe au-dessus de la carte et du classement : c'est la commande vive
-    if (ui.app.desktop) this._drawDesktopThrottle(g, p, ui);
-    else this._drawPouce(g, p);
+    this.tHud = t;
+    if (!this.showLines || race.state === 'countdown') this.consigne = null;
+    if (ui.app.desktop) {
+      this._drawDesktopThrottle(g, p, ui);
+      // la consigne du guide, posée sur le bloc de la vitesse (même géométrie que `_drawDesktopThrottle`)
+      if (this.showLines) {
+        const L = Math.min(420, this.w - 32), hBloc = 86, h = hBloc + 6 + 38;
+        const x = this.ctrlSide === 'right' ? this.pad.l : this.w - this.pad.r - L, y = this.h - this.pad.b - h;
+        this._drawConsigne(g, x + 80, y - 8, t);
+      }
+    } else this._drawPouce(g, p);
 
     // telemetry overlay (G key or settings): the four numbers that describe the car's state
     // la carte n'est plus réservée au téléphone en haut : la télémétrie passe sous elle partout

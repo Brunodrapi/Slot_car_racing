@@ -86,6 +86,43 @@ const POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
    niveau d'un appui vraiment malheureux, et sans commune mesure avec ce que coûte déjà le gravier. */
 const PENALITE_FIXE = 1.0;
 
+/* LE GUIDE : CE QUE LE DOIGT DOIT FAIRE (0.52.65).
+
+Le premier guide coloriait la ligne devant la voiture selon la VITESSE DE RÉFÉRENCE de l'endroit —
+vert au-dessus de 88 % de la pointe, jaune de 62 à 88 %, rouge en dessous — et posait une barre en
+travers là où il fallait lever à la vitesse du moment, blanche, jaune puis rouge. Deux codes de couleur
+qui se recouvrent, dont l'un décrit le circuit et l'autre le joueur : « je ne comprends ni le sens de
+la couleur de la ligne, ni le sens des barres qui s'affichent ».
+
+Les jeux de référence ont tous quitté ce modèle. La ligne de Forza dit quoi FAIRE (bleu : accélère,
+rouge : ralentis), calculé sur la vitesse du joueur, et son mode « freinage seul » ne peint que le
+rouge ; la « zone de freinage » de Gran Turismo 7 est une zone rouge dont la taille suit la vitesse
+d'entrée, doublée d'un témoin près du compteur. Et en slot, où il n'y a pas de frein, tout se joue au
+doigt : on lève à un repère posé au bord de la piste, on remet du courant à un autre.
+
+Ce jeu se joue à un bouton : la seule question est « appuyer ou lâcher ». Le guide y répond, et ne
+dit rien d'autre :
+
+  LEVE   le doigt doit être levé (la voiture freine seule)        zone rouge pleine
+  DOSE   tenir la vitesse par petits appuis (virage à la limite)   zone rouge en pointillé
+  GAZ    plein gaz                                                rien — et des chevrons verts à la
+                                                                  sortie d'une zone : « remets les gaz »
+
+C'EST CALCULÉ SUR LA VOITURE DU JOUEUR, À SA VITESSE. On part de sa vitesse réelle et on roule devant
+elle, pas à pas, un pilote à un bouton : il accélère tant que la cible le permet, lève quand il la
+dépasse, dose quand la cible demande moins que les pleins gaz. La cible est le profil de vitesse de la
+ligne choisie à `marge` de la limite, repassé par le frein réel du joueur (son réglage compris). Qui
+arrive moins vite voit donc la zone commencer plus tard ; qui arrive trop vite la voit commencer sous
+ses roues.
+
+`marge` 0,95 : le rythme du fantôme (difficile, 0,96), un rien en dessous — un humain qui suit un
+repère est moins précis que l'IA. Essayé à 0,98 : un pour cent plus vite, mais six sorties pour la GT
+dès que le pilote réagit avec 300 ms de retard ; à 0,95, aucune. `reaction` : les zones sont avancées de ce que la voiture parcourt
+pendant ce temps, pour que lever EN VOYANT le rouge arriver sous le nez soit lever à temps.
+Validé par un pilote qui obéit au guide et rien d'autre (`tools/guide-banc.js`). */
+const GUIDE = { marge: 0.95, frein: 0.9, portee: 261, pas: 3, reaction: 0.15, vert: 15 };
+const GUIDE_GAZ = 0, GUIDE_DOSE = 1, GUIDE_LEVE = 2;
+
 /* LE FANTÔME DE L'ENTRAÎNEMENT (0.52.63).
 
 « L'entraînement est comme un contre-la-montre sauf que : le guide est activé ; la même voiture que
@@ -621,6 +658,71 @@ class Race {
     return r + (this.profiles.jaune[i] - r) * Math.min(1, sel);
   }
 
+  /** La vitesse cible du guide à l'abscisse `s`, sur la ligne `sel` (voir GUIDE). */
+  _cibleGuide(s, sel) {
+    if (!this._profilsGuide) {
+      this._profilsGuide = {};
+      for (const name of LINE_NAMES) this._profilsGuide[name] = speedProfile(this.track, this.cls, name, GUIDE.marge);
+    }
+    const P = this._profilsGuide, i = this.track.idx(s), r = P.racing[i];
+    if (sel < 0) return r + (P.bleu[i] - r) * Math.min(1, -sel);
+    return r + (P.jaune[i] - r) * Math.min(1, sel);
+  }
+
+  /* La consigne du doigt sur les `GUIDE.portee` mètres devant la voiture (voir GUIDE).
+
+  Rend `{ pas, n, s0, etats, cibles, maintenant, zone }` : `etats[i]` vaut GUIDE_GAZ, GUIDE_DOSE ou
+  GUIDE_LEVE pour le tronçon qui commence à `s0 + i × pas`, déjà avancé du temps de réaction ;
+  `maintenant` est la consigne à l'endroit de la voiture. La grille est calée sur le circuit (`s0` est
+  un multiple de `pas`), pas sur la voiture : les zones ne frémissent pas quand elle avance.
+
+  `zone` est la consigne telle qu'on la DIT (le mot près de la commande), lue sur les dix-huit mètres
+  devant : dans un virage tenu à la limite, `maintenant` bat entre lever et appuyer deux à trois fois
+  par seconde — c'est le dosage même —, et un mot qui clignote à ce rythme ne se lit pas. Un vrai
+  freinage (quatre tronçons sur six à lever) se dit « lâche », un mélange se dit « dose ». */
+  guide(car = this.player) {
+    const c = car.cls, pas = GUIDE.pas, N = Math.round(GUIDE.portee / pas), b = c.brake * GUIDE.frein;
+    const G = this._guide || (this._guide = { pas, n: N, s0: 0, maintenant: GUIDE_GAZ, zone: GUIDE_GAZ, cibles: new Float32Array(N + 1), etats: new Uint8Array(N), brut: new Uint8Array(N) });
+    const s0 = Math.floor(car.s / pas) * pas, cible = G.cibles, brut = G.brut;
+    for (let i = 0; i <= N; i++) cible[i] = this._cibleGuide(s0 + i * pas, car.selS);
+    // le frein du joueur, son réglage compris : la cible ne demande jamais plus qu'il ne sait ralentir
+    for (let i = N - 1; i >= 0; i--) { const lim = Math.sqrt(cible[i + 1] * cible[i + 1] + 2 * b * pas); if (lim < cible[i]) cible[i] = lim; }
+    let v = Math.max(0, car.v), avant = GUIDE_GAZ;
+    for (let i = 0; i < N; i++) {
+      const aMax = c.accel * driveFactor(c, v) * Math.max(0, 1 - Math.pow(v / c.vmax, 2.5));
+      const aReq = (cible[i + 1] * cible[i + 1] - v * v) / (2 * pas);       // ce qu'il faut pour être à la cible au pas suivant
+      let e;
+      if (v > cible[i] * 1.005 + 0.3 || aReq < -0.3 * b) {
+        e = GUIDE_LEVE;
+        v = Math.max(Math.sqrt(Math.max(0, v * v - 2 * b * pas)), Math.min(v, cible[i + 1]));
+      } else if (aReq >= (avant === GUIDE_GAZ ? 0.55 : 0.8) * aMax) {
+        // la cible laisse (presque) tous les gaz ; le seuil dépend de l'état d'avant, pour ne pas clignoter
+        e = GUIDE_GAZ;
+        v = Math.min(Math.sqrt(v * v + 2 * aMax * pas), cible[i + 1]);
+      } else {
+        e = GUIDE_DOSE;
+        v = Math.min(cible[i + 1], Math.sqrt(v * v + 2 * aMax * pas));
+      }
+      brut[i] = avant = e;
+    }
+    // une trouée de plein gaz de moins de neuf mètres entre deux zones n'est pas une consigne : on la comble
+    for (let i = 0; i < N; i++) {
+      if (brut[i] !== GUIDE_GAZ || i === 0 || brut[i - 1] === GUIDE_GAZ) continue;
+      let j = i; while (j < N && brut[j] === GUIDE_GAZ) j++;
+      if (j < N && j - i < 3) for (let k = i; k < j; k++) brut[k] = GUIDE_DOSE;
+      i = j;
+    }
+    // le temps de réaction : chaque consigne est avancée de ce que la voiture parcourt pendant ce temps
+    const k = Math.round(Math.max(0, car.v) * GUIDE.reaction / pas), etats = G.etats;
+    for (let i = 0; i < N; i++) etats[i] = brut[Math.min(N - 1, i + k)];
+    G.s0 = s0;
+    G.maintenant = etats[Math.min(N - 1, Math.max(0, Math.floor((car.s - s0) / pas)))];
+    let nL = 0, nD = 0;
+    for (let i = 0; i < 6; i++) { if (etats[i] === GUIDE_LEVE) nL++; else if (etats[i] === GUIDE_DOSE) nD++; }
+    G.zone = nL >= 4 ? GUIDE_LEVE : nL + nD >= 2 ? GUIDE_DOSE : GUIDE_GAZ;
+    return G;
+  }
+
   /* LA PÉNALITÉ D'UNE SORTIE DE PISTE : on reprend ce qu'elle a rapporté.
 
   Bruno veut un malus en secondes au classement, « ça évite la triche en coupant les chicanes ». Le
@@ -755,4 +857,4 @@ function makeRoster(count, playerLivery, seed, catId) {
 }
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
-if (typeof module !== 'undefined') module.exports = { Race, DIFFICULTY, POINTS, makeRoster, FANTOME };
+if (typeof module !== 'undefined') module.exports = { Race, DIFFICULTY, POINTS, makeRoster, FANTOME, GUIDE, GUIDE_GAZ, GUIDE_DOSE, GUIDE_LEVE };

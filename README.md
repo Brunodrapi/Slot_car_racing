@@ -1907,8 +1907,8 @@ Quatrième entrée du menu principal. Pour le moteur de course c'est un contre-l
 comptés, pas de contact, « Terminer la session » à la pause) lancé avec `entrainement: true`
 (`startQuick('training', …)`, js/main.js) :
 
-- **Le guide de freinage** est allumé pour la manche (`renderer.showLines`), quel que soit le réglage :
-  le ruban vert, jaune ou rouge devant la voiture, et la barre du point de freinage.
+- **Le guide** est allumé pour la manche (`renderer.showLines`), quel que soit le réglage. Il dit au
+  doigt quoi faire — voir [Le guide](#le-guide--ce-que-le-doigt-doit-faire-05265) ci-dessous.
 - **Le fantôme** (`FANTOME`, `Race._poseFantome`, js/race.js) est une vraie voiture de l'IA, pas un
   enregistrement : le modèle et la livrée du joueur, le pilote **difficile** (depuis la 0.52.64 ;
   aucune triche d'adhérence à ce niveau), le même emplacement de départ. Il est peint à 42 % d'opacité, sous la voiture du joueur.
@@ -1941,6 +1941,68 @@ ligne (`FANTOME.niveau`), et le banc en essaie un autre sans toucher au code (qu
 Les statistiques comptent l'entraînement comme un contre-la-montre (la table n'accepte que quatre
 modes). Le pictogramme du menu (`art/interface/cone.svg`) est un dessin vectoriel provisoire, dans la
 palette des autres ; il se remplace par une illustration du même nom.
+
+### Le guide : ce que le doigt doit faire (0.52.65)
+
+> « Je ne comprends ni le sens de la couleur de la ligne, ni le sens des barres qui s'affichent.
+> Explique. Mais surtout trouve mieux vis-à-vis de l'état de l'art. En gardant à l'esprit que c'est du
+> slot racing dans l'esprit. » — Bruno
+
+**Ce que faisait le premier guide.** Un ruban sur la ligne choisie, colorié selon la *vitesse de
+référence de l'endroit* rapportée à la pointe de la voiture — vert au-dessus de 88 %, jaune de 62 à
+88 %, rouge en dessous — et une barre en travers de la piste là où il fallait lever *à la vitesse du
+moment* : blanche à plus de 25 m, jaune en dessous, rouge clignotante quand c'était trop tard. Deux
+codes de couleur qui se recouvrent, l'un décrivant le circuit (et ne changeant jamais), l'autre le
+joueur (et sautant d'un virage au suivant). Ni l'un ni l'autre ne disait quoi faire.
+
+**L'état de l'art.** Les jeux de référence colorent l'ACTION, pas la vitesse, et la calculent sur le
+joueur : la ligne de Forza passe au bleu quand il faut accélérer et au rouge quand il faut ralentir,
+et son mode « freinage seul » ne peint que le rouge ; la « zone de freinage » de Gran Turismo 7 est
+une zone rouge dont la taille suit la vitesse d'entrée, doublée d'un témoin au compteur qui rougit puis
+clignote ; Forza Motorsport ajoute des signaux sonores (quand freiner, et combien). En slot, où il n'y a
+pas de frein, tout se joue au doigt : on pose des repères au bord de la piste pour savoir où lever, et
+d'autres pour savoir où remettre du courant.
+
+**Le guide.** Le jeu se joue à un bouton : la seule question est « appuyer ou lâcher ». Trois signes
+peints sur la ligne choisie, un seul sens chacun (`Renderer._drawGuide`) :
+
+| signe | consigne | mot affiché |
+|---|---|---|
+| bande rouge pleine | lâche le bouton : la voiture freine seule | LÂCHE |
+| tirets rouges | dose par petits appuis : on tient la vitesse dans le virage | DOSE |
+| chevrons verts, à la sortie d'une zone | remets les gaz | GAZ |
+| rien | plein gaz | GAZ |
+
+Le rouge et le vert ne se distinguent pas que par la couleur (une bande, des tirets, des chevrons). Le
+mot de la consigne s'affiche près de la commande — au-dessus de la vitesse — et sert de légende : on
+voit le rouge arriver sous la voiture et le mot changer au même instant. Quand le joueur appuie dans le
+rouge plein, la bande bat. Le paddock de l'entraînement donne la légende avant de partir.
+
+**Comment c'est calculé** (`Race.guide`, js/race.js — de la logique pure, sans dessin). On part de la
+vitesse réelle de la voiture et on fait rouler devant elle, par pas de 3 m sur 261 m, un pilote à un
+bouton : il accélère tant que la cible le permet, lève quand il la dépasse, dose quand elle demande
+moins que les pleins gaz. La cible est le profil de vitesse de la ligne choisie à 95 % de la limite
+(`GUIDE.marge` ; le fantôme roule à 96 %), repassé par le frein du joueur, son réglage compris. Qui
+arrive moins vite voit la zone commencer plus tard (à Monza, vers la première chicane : à 150 m à
+207 km/h, à 186 m à 124 km/h) ; qui arrive trop vite la voit commencer sous ses roues. Les zones sont
+avancées de 150 ms de trajet (`GUIDE.reaction`), pour que lever en voyant le rouge arriver sous le nez
+soit lever à temps. La grille est calée sur le circuit, pas sur la voiture : les zones ne frémissent
+pas. Le mot, lui, se lit sur les 18 m devant et tient un quart de seconde, sans quoi il clignoterait
+au rythme du dosage (de 120 à 166 changements par minute pour la consigne instantanée, 34 à 53 pour le
+mot).
+
+**Tient-il ce qu'il dit ?** `node tools/guide-banc.js` fait rouler un pilote qui ne sait que lire la
+consigne à l'endroit de sa voiture, avec un retard de réaction et sans geste de moins de 80 ms. Six
+circuits, trois voitures, trois tours lancés chacun :
+
+| retard | sorties | écart au fantôme (F1 / proto / GT) |
+|---|---|---|
+| 0 ms | 0 | 6,3 % / 5,2 % / 3,6 % |
+| 150 ms | 0 | 8,3 % / 7,1 % / 5,4 % |
+| 300 ms | 0 | 9,0 % / 8,1 % / 6,6 % |
+
+Un débutant qui suit le guide boucle ses tours proprement, quelques pour cent derrière le fantôme ; le
+reste est ce qu'il lui reste à apprendre.
 
 ## Les menus de sélection (0.37.0)
 

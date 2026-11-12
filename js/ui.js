@@ -159,8 +159,10 @@ const I18N = {
     nameRule: (a, b) => `Lettres et chiffres uniquement, de ${a} à ${b} caractères.`,
     ttIntro: 'Seul en piste. Bats ton meilleur tour.',
     training: 'Entraînement', trainingIntro: 'Guide de freinage et fantôme en piste.',
-    trainingNote: 'Le guide de freinage est allumé et un fantôme roule avec toi, au niveau difficile. Tes tours comptent pour ton record, pas pour le tableau mondial.',
+    trainingNote: 'Un fantôme roule avec toi, au niveau difficile, et le guide te dit quand lâcher. Tes tours comptent pour ton record, pas pour le tableau mondial.',
     ghost: 'Fantôme', ghostBest: 'Meilleur tour du fantôme',
+    guideGaz: 'Gaz', guideDose: 'Dose', guideLeve: 'Lâche',
+    guideLegende: 'Le guide', guideLegLeve: 'lâche le bouton', guideLegDose: 'dose par petits appuis', guideLegGaz: 'remets les gaz',
     refus_entrainement: 'Ce tour n’entre pas au tableau mondial : il a été couru à l’entraînement, avec le guide de freinage. Bats-le en contre-la-montre pour l’inscrire.', deleteTrack: 'Supprimer', confirmDelete: 'Supprimer définitivement ?',
     multi: 'Multijoueur', multiIntro: 'Ouvre une table et donne son code à quatre lettres, ou saisis celui qu’on t’a donné. Tout passe directement d’un appareil à l’autre : rien n’est conservé, fermer la page ferme la table.',
     createTable: 'Ouvrir une table', joinTable: 'Rejoindre', tableCode: 'Code de la table', yourTable: 'Ta table', waiting: 'En attente…',
@@ -307,8 +309,10 @@ const I18N = {
     nameRule: (a, b) => `Letters and digits only, ${a} to ${b} characters.`,
     ttIntro: 'Alone on track. Beat your best lap.',
     training: 'Practice', trainingIntro: 'Braking guide and a ghost car on track.',
-    trainingNote: 'The braking guide is on and a ghost car drives with you, at hard level. Your laps count for your own best, not for the world board.',
+    trainingNote: 'A ghost car drives with you, at hard level, and the guide tells you when to lift. Your laps count for your own best, not for the world board.',
     ghost: 'Ghost', ghostBest: 'Ghost’s best lap',
+    guideGaz: 'Go', guideDose: 'Feather', guideLeve: 'Lift',
+    guideLegende: 'The guide', guideLegLeve: 'lift off the button', guideLegDose: 'feather with short taps', guideLegGaz: 'back on the power',
     refus_entrainement: 'This lap does not reach the world board: it was driven in practice, with the braking guide. Beat it in time trial to post it.', deleteTrack: 'Delete', confirmDelete: 'Delete permanently?',
     multi: 'Multiplayer', multiIntro: 'Open a table and pass on its four-letter code, or type the one you were given. Everything goes straight from one device to the other: nothing is stored, closing the page closes the table.',
     createTable: 'Open a table', joinTable: 'Join', tableCode: 'Table code', yourTable: 'Your table', waiting: 'Waiting…',
@@ -1320,10 +1324,21 @@ class UI {
            menu, si bien que la liste était soit vide, soit le musée des essais d'un ancien
            réglage. Les tracés enregistrés ne sont pas effacés pour autant — ils restent dans le
            navigateur et l'éditeur y mène encore par son adresse. -->
-      <div class="setup-records">${entrainement ? `<p class="entrainement-note">${t('trainingNote')}</p>` : ''}${race ? this.palmaresListe(st.trackId, cat, model, livery) : this.records(st.trackId, cat, model, livery)}</div>
+      <div class="setup-records">${entrainement ? `<p class="entrainement-note">${t('trainingNote')}</p>${this.legendeGuide()}` : ''}${race ? this.palmaresListe(st.trackId, cat, model, livery) : this.records(st.trackId, cat, model, livery)}</div>
       </section></div>
       ${this.setupBar(race, model, trackDef, laps)}
     `, 'scroll setup-screen', 'depart:' + mode);
+  }
+
+  /* LA LÉGENDE DU GUIDE, au paddock de l'entraînement : les trois signes tels qu'ils sont peints sur
+  la piste (js/render.js, `_drawGuide`), chacun avec son seul sens. */
+  legendeGuide() {
+    const t = (k) => this.t(k);
+    const signe = (svg, texte) => `<span class="guide-signe"><svg viewBox="0 0 44 14" aria-hidden="true">${svg}</svg>${texte}</span>`;
+    return `<p class="guide-legende"><b>${t('guideLegende')}</b>
+      ${signe('<rect x="1" y="3" width="42" height="8" rx="1" fill="#ff3b30"/>', t('guideLegLeve'))}
+      ${signe('<rect x="1" y="3" width="11" height="8" rx="1" fill="#ff3b30"/><rect x="17" y="3" width="11" height="8" rx="1" fill="#ff3b30"/><rect x="33" y="3" width="10" height="8" rx="1" fill="#ff3b30"/>', t('guideLegDose'))}
+      ${signe('<path d="M6 2l7 5-7 5M19 2l7 5-7 5M32 2l7 5-7 5" fill="none" stroke="#12a35c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>', t('guideLegGaz'))}</p>`;
   }
 
   /* La barre de titre des écrans de préparation : retour, damier, titre sur sa bande rouge, logo.

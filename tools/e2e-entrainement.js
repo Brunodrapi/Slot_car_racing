@@ -5,6 +5,9 @@
 //
 // On vérifie :
 // - le menu principal a l'entrée « Entraînement » ; elle ouvre son paddock, qui dit ce qu'est le mode ;
+// - le guide (0.52.65) dit au doigt quoi faire — rouge : lâche, pointillé : dose, chevrons verts : gaz — et
+//   le calcule sur la vitesse du joueur ; un pilote qui lui obéit boucle ses tours sans sortir ; le
+//   paddock en donne la légende, et le mot de la consigne s'affiche près de la commande ;
 // - en piste : un contre-la-montre à deux voitures, le guide de freinage peint, et le fantôme — la même
 //   voiture et la même livrée que le joueur, au niveau difficile (sans triche d'adhérence), parti du même emplacement, sur la
 //   ligne idéale, peint en transparence ;
@@ -21,6 +24,7 @@ const { chromium } = require('playwright');
 const path = require('path');
 const BASE = process.argv[2] || 'http://127.0.0.1:8770';
 const OUT = process.argv[3] || null;
+const GUIDE_LEVE_ATTENDU = 2;         // GUIDE_LEVE (js/race.js)
 const DIFFICULTE_ATTENDUE = 0.93;     // la marge de base du niveau difficile (DIFFICULTY.hard, js/race.js)
 let fautes = 0;
 const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) fautes++; };
@@ -43,8 +47,11 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     const paddock = await p.evaluate(() => ({ titre: document.querySelector('.topbar h2').textContent.trim(), note: (document.querySelector('.entrainement-note') || {}).textContent || '', cle: app.ui._cleEcran,
       records: !!document.querySelector('.setup-records .records') }));
     ok(/Entraînement/i.test(paddock.titre) && paddock.cle === 'depart:training', `paddock « ${paddock.titre} »`);
-    ok(/guide de freinage/.test(paddock.note) && /fantôme/.test(paddock.note) && /niveau difficile/.test(paddock.note) && /pas pour le tableau mondial/.test(paddock.note), `il dit ce qu'est le mode : « ${paddock.note} »`);
+    ok(/guide/.test(paddock.note) && /fantôme/.test(paddock.note) && /niveau difficile/.test(paddock.note) && /pas pour le tableau mondial/.test(paddock.note), `il dit ce qu'est le mode : « ${paddock.note} »`);
     ok(paddock.records, 'il montre les records, comme le contre-la-montre');
+    const legende = await p.evaluate(() => { const l = document.querySelector('.guide-legende'); return l ? { texte: l.textContent.replace(/\s+/g, ' ').trim(), signes: l.querySelectorAll('.guide-signe svg').length } : null; });
+    ok(legende && legende.signes === 3 && /lâche le bouton/.test(legende.texte) && /dose/.test(legende.texte) && /remets les gaz/.test(legende.texte),
+      `la légende du guide : « ${legende && legende.texte} »`);
     if (OUT) await p.screenshot({ path: path.join(OUT, 'entrainement-paddock.png') });
 
     // --- en piste ---
@@ -81,6 +88,8 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
         res({ guide, textes: [...new Set(textes)], alphaF: (alphas.find((a) => a[0] === 'fantome') || [])[1], alphaJ: (alphas.find((a) => a[0] === 'joueur') || [])[1] }); }, 500);
     }));
     ok(peint.guide > 5, `le guide se peint (${peint.guide} images en 0,5 s)`);
+    const mot = peint.textes.find((t) => /^(GAZ|DOSE|LÂCHE)$/.test(t));
+    ok(!!mot, `le mot de la consigne est affiché près de la commande (« ${mot} »)`);
     ok(peint.alphaF > 0.2 && peint.alphaF < 0.6 && peint.alphaJ === 1, `le fantôme est peint en transparence (opacité ${peint.alphaF}, le joueur ${peint.alphaJ})`);
     const place = peint.textes.find((t) => /^P [12]\/2$/.test(t)), ligne = peint.textes.find((t) => /FANTÔME/.test(t)), ecart = peint.textes.find((t) => /^[+−]\d+(\.\d)? s$/.test(t));
     ok(!!place && !!ligne && !!ecart, `l'écran affiche « ${place} », « ${ligne} », « ${ecart} »`);
@@ -102,6 +111,40 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
       return { devant, derriere: r.ecartFantome() };
     });
     ok(Math.abs(juste.devant - 3) < 0.25 && juste.derriere < 0, `parti 3 s après le fantôme, le joueur lit ${juste.devant.toFixed(2)} s ; fantôme derrière : ${juste.derriere.toFixed(2)} s`);
+
+    // --- le guide : ce que le doigt doit faire, calculé sur la vitesse du joueur ---
+    const guide = await p.evaluate(() => {
+      const piste = () => new Race({ trackDef: TRACKS.find((t) => t.id === 'monza'), classId: 'gt', modelId: 'm1procar', mode: 'timetrial', entrainement: true });
+      const r = piste(), j = r.player;
+      // la distance de la voiture au début de la première zone à lever
+      const debut = (G) => { for (let i = 0; i < G.n; i++) if (G.etats[i] === GUIDE_LEVE) return G.s0 + i * G.pas - j.s; return Infinity; };
+      while (r.state !== 'racing') r.update(r.dt, { throttle: 0, sel: 0 });
+      const depart = r.guide();
+      const departLibre = depart.maintenant === GUIDE_GAZ && depart.zone === GUIDE_GAZ;
+      // plein gaz vers la première chicane, jusqu'à voir la zone rouge entre 60 et 150 m
+      let vite = Infinity;
+      while (r.time < 40) { r.update(r.dt, { throttle: 1, sel: 0 }); vite = debut(r.guide()); if (vite > 60 && vite < 150) break; }
+      const v0 = j.v;
+      j.v = v0 * 0.6; const lent = debut(r.guide());          // au même endroit, moins vite : on lève plus tard
+      j.v = v0;
+      // et sans lever : la zone arrive sous la voiture, la consigne devient « lâche »
+      let sous = null;
+      while (r.time < 60 && j.state === 'ok') { r.update(r.dt, { throttle: 1, sel: 0 }); const G = r.guide(); if (G.maintenant === GUIDE_LEVE) { sous = { d: debut(G), zone: G.zone }; break; } }
+      // un pilote qui obéit au guide, avec 150 ms de retard, boucle un tour lancé sans sortir
+      const o = piste(), q = o.player, file = [];
+      while (q.lap < 2 && o.time < 400) {
+        let voulu = 0;
+        if (o.state === 'racing') { const G = o.guide(); voulu = G.maintenant === GUIDE_GAZ ? 1 : G.maintenant === GUIDE_DOSE ? (q.v < G.cibles[0] - 0.3 ? 1 : 0) : 0; }
+        file.push(voulu);
+        o.update(o.dt, { throttle: file.length > 18 ? file.shift() : 0, sel: 0 });
+      }
+      return { departLibre, vite, v0, lent, sous, tours: q.lap, sorties: q.crashes || 0, tour: q.lapTimes[1], fantome: o.fantome.lapTimes[1] };
+    });
+    ok(guide.departLibre, 'au départ, rien à lever : plein gaz');
+    ok(guide.vite > 60 && guide.vite < 150 && guide.lent > guide.vite + 15,
+      `la zone rouge suit la vitesse : elle commence à ${Math.round(guide.vite)} m à ${Math.round(guide.v0 * 3.6)} km/h, à ${guide.lent === Infinity ? 'rien' : Math.round(guide.lent) + ' m'} à ${Math.round(guide.v0 * 0.6 * 3.6)} km/h`);
+    ok(guide.sous && guide.sous.d <= 3 && guide.sous.zone === GUIDE_LEVE_ATTENDU, 'sans lever, le rouge arrive sous la voiture et la consigne devient « lâche »');
+    ok(guide.tours >= 2 && guide.sorties === 0, `un pilote qui obéit au guide (150 ms de retard) boucle ses tours sans sortir : ${guide.tour && guide.tour.toFixed(1)} s, le fantôme ${guide.fantome && guide.fantome.toFixed(1)} s`);
 
     // une sortie du fantôme ne lève pas de drapeau jaune
     const jaune = await p.evaluate(async () => { const r = app.race, f = r.fantome; f.state = 'grass'; r.flags.offSince.clear();
