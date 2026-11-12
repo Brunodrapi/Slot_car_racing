@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.64
+- Entraînement : le fantôme roule au niveau difficile au lieu de cauchemar. Il n'a plus d'adhérence en plus : c'est ta voiture menée à sa limite, un rythme qu'on peut suivre et battre.
+
 ## 0.52.63
 - Nouveau mode Entraînement, au menu principal : un contre-la-montre avec le guide de freinage allumé et un fantôme — ta voiture, en transparence, pilotée au niveau cauchemar sur la ligne idéale, sans contact. L'écart au fantôme s'affiche en temps, comme en course.
 - Les tours d'entraînement comptent pour ton record personnel, pas pour le tableau mondial.

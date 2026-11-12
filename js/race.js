@@ -93,25 +93,30 @@ nous, semi-transparente (le fantôme), joue en mode cauchemar — elle part du m
 de collision avec nous, prend la ligne idéale ; et ça affiche comme en course rapide le temps contre ce
 fantôme. »
 
-C'est une vraie voiture de l'IA, au niveau cauchemar (son adhérence ×1,30 comprise), pas un
-enregistrement : elle roule en même temps que le joueur, sur la même physique. Mais elle n'existe
-pour personne — ni contact (le contre-la-montre n'en résout aucun), ni aspiration, ni gêne, ni drapeau
-jaune quand elle sort, ni gomme ni fumée (js/render.js). Elle ne voit personne non plus : elle garde
-la ligne idéale et ne lève jamais pour une autre voiture.
+C'est une vraie voiture de l'IA, pas un enregistrement : elle roule en même temps que le joueur, sur la
+même physique. Mais elle n'existe pour personne — ni contact (le contre-la-montre n'en résout aucun), ni
+aspiration, ni gêne, ni drapeau jaune quand elle sort, ni gomme ni fumée (js/render.js). Elle ne voit
+personne non plus : elle garde la ligne idéale et ne lève jamais pour une autre voiture.
 
-`skill` : le talent du pilote, de 0 à 1, qui décale sa marge (`marginSpread`). Mesuré seul en piste
-sur six circuits, quatre tours, trois voitures (`tools/fantome-banc.js`) : aucune sortie quel que soit
-le talent, et 3,5 % d'écart entre le moins et le plus doué. On prend le pilote médian, 0,5.
+AU NIVEAU DIFFICILE, ET NON CAUCHEMAR (0.52.64). Le premier fantôme roulait en cauchemar, comme
+demandé. Mesuré seul en piste sur six circuits, quatre tours, trois voitures (`tools/fantome-banc.js`),
+il les bouclait 10 à 12 % plus vite que le pilote automatique mené à la limite de la même voiture sans
+la triche (Bumblebee Ground 79 : 446,8 s contre 495,4 ; Howitzer K1 : 499,0 contre 570,2) : avec son
+adhérence ×1,30, ses vitesses de passage n'étaient pas à la portée de la voiture du joueur. « Niveau
+cauchemar c'est trop je pense. Mets-le en difficile plutôt. »
 
-CE QU'IL VAUT : il boucle ces six circuits 10 à 12 % plus vite que le pilote automatique mené à la
-limite de la même voiture SANS la triche (Bumblebee Ground 79 : 446,8 s contre 495,4 ; Breithüft
-Aero 62 : 464,3 contre 520,1 ; Howitzer K1 : 499,0 contre 570,2). C'est le niveau cauchemar, tel que
-demandé : ses vitesses de passage en virage (adhérence ×1,30, donc ×1,14 en vitesse) ne sont pas à la
-portée de la voiture du joueur. Il montre la ligne ; son rythme, lui, est une cible qu'on n'atteint pas.
+En difficile il n'a AUCUNE triche d'adhérence : c'est la voiture du joueur, menée à sa limite. Mêmes
+six circuits : 500,1 s pour la Bumblebee Ground 79 (495,4 au pilote automatique à la limite), 524,6
+pour la Breithüft Aero 62 (520,1), 571,3 pour la Howitzer K1 (570,2) — à moins de 1 % de ce que la
+voiture sait faire, sans une sortie. Ce qu'il fait, le joueur peut le faire : il montre la ligne ET un
+rythme qu'on peut battre.
+
+`skill` : le talent du pilote, de 0 à 1, qui décale sa marge (`marginSpread`). Aucune sortie quel que
+soit le talent, et 2,3 % d'écart entre le moins et le plus doué. On prend le pilote médian, 0,5.
 
 PAS D'ÉLASTIQUE. En course, l'IA ralentit quand elle mène de loin et accélère quand elle traîne.
 Un fantôme est une référence : il roule son rythme, que le joueur soit devant ou derrière. */
-const FANTOME = { niveau: 'cauchemar', skill: 0.5 };
+const FANTOME = { niveau: 'hard', skill: 0.5 };
 const SANS_TRAFIC = [];
 
 // race state, as one number, for the snapshots sent over the wire
@@ -249,7 +254,7 @@ class Race {
     this._sansFantome = this.fantome ? this.cars.filter(c2 => !c2.fantome) : this.cars;
   }
 
-  /* Le fantôme : la voiture du joueur, sa livrée, sa place sur la grille — et le pilote cauchemar.
+  /* Le fantôme : la voiture du joueur, sa livrée, sa place sur la grille — et le pilote de `FANTOME`.
 
   La classe est celle du MODÈLE (`this.cls`), pas celle du joueur : celle-ci est clonée et porte son
   réglage de frein (`poseFrein`), qui est le sien. */

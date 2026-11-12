@@ -1,9 +1,10 @@
 // Le fantôme de l'entraînement : que vaut-il, et à quel talent le régler ?
 //
-//   node tools/fantome-banc.js [voitures] [circuits] [tours]
-//   node tools/fantome-banc.js lotus79,962,m1procar monza,spa,suzuka,silverstone,zandvoort,monaco 4
+//   node tools/fantome-banc.js [voitures] [circuits] [tours] [niveau]
+//   node tools/fantome-banc.js lotus79,962,m1procar monza,spa,suzuka,silverstone,zandvoort,monaco 4 hard
 //
-// Le fantôme est une voiture de l'IA au niveau cauchemar (js/race.js, FANTOME). Son talent (`skill`,
+// Le fantôme est une voiture de l'IA (js/race.js, FANTOME) ; le niveau est celui du jeu sauf si le
+// quatrième argument en essaie un autre (easy, medium, hard, extreme, cauchemar). Son talent (`skill`,
 // de 0 à 1) décale sa marge : plus haut, il demande plus à ses pneus — et sort plus souvent. On le fait
 // rouler seul, le joueur restant sur la grille, et on relève pour chaque talent : le meilleur tour, le
 // tour moyen (sorties comprises : c'est ce que le joueur a devant lui), les sorties de piste, et
@@ -18,6 +19,8 @@ const { TRACKS, Race, FANTOME, categoryOfModel, speedProfile } = c.__T;
 const cars = (process.argv[2] || 'lotus79,962,m1procar').split(',');
 const tracks = (process.argv[3] || 'monza,spa,suzuka,silverstone,zandvoort,monaco').split(',');
 const TOURS = +process.argv[4] || 4;
+if (process.argv[5]) FANTOME.niveau = process.argv[5];
+console.log('niveau : ' + FANTOME.niveau);
 console.log(`talent  voiture     meilleur tour (somme)  tour moyen (somme)  sorties  tours bouclés   écart au tour idéal`);
 for (const skill of [0, 0.25, 0.5, 0.75, 1]) for (const car of cars) {
   FANTOME.skill = skill;

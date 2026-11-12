@@ -6,7 +6,7 @@
 // On vérifie :
 // - le menu principal a l'entrée « Entraînement » ; elle ouvre son paddock, qui dit ce qu'est le mode ;
 // - en piste : un contre-la-montre à deux voitures, le guide de freinage peint, et le fantôme — la même
-//   voiture et la même livrée que le joueur, au niveau cauchemar, parti du même emplacement, sur la
+//   voiture et la même livrée que le joueur, au niveau difficile (sans triche d'adhérence), parti du même emplacement, sur la
 //   ligne idéale, peint en transparence ;
 // - le fantôme n'existe pour personne : sa course est IDENTIQUE, au centimètre, que le joueur reste sur
 //   la grille ou roule dans ses roues ; le joueur n'en reçoit ni aspiration ni gêne ; une sortie du
@@ -21,6 +21,7 @@ const { chromium } = require('playwright');
 const path = require('path');
 const BASE = process.argv[2] || 'http://127.0.0.1:8770';
 const OUT = process.argv[3] || null;
+const DIFFICULTE_ATTENDUE = 0.93;     // la marge de base du niveau difficile (DIFFICULTY.hard, js/race.js)
 let fautes = 0;
 const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) fautes++; };
 
@@ -42,7 +43,7 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     const paddock = await p.evaluate(() => ({ titre: document.querySelector('.topbar h2').textContent.trim(), note: (document.querySelector('.entrainement-note') || {}).textContent || '', cle: app.ui._cleEcran,
       records: !!document.querySelector('.setup-records .records') }));
     ok(/Entraînement/i.test(paddock.titre) && paddock.cle === 'depart:training', `paddock « ${paddock.titre} »`);
-    ok(/guide de freinage/.test(paddock.note) && /fantôme/.test(paddock.note) && /pas pour le tableau mondial/.test(paddock.note), `il dit ce qu'est le mode : « ${paddock.note} »`);
+    ok(/guide de freinage/.test(paddock.note) && /fantôme/.test(paddock.note) && /niveau difficile/.test(paddock.note) && /pas pour le tableau mondial/.test(paddock.note), `il dit ce qu'est le mode : « ${paddock.note} »`);
     ok(paddock.records, 'il montre les records, comme le contre-la-montre');
     if (OUT) await p.screenshot({ path: path.join(OUT, 'entrainement-paddock.png') });
 
@@ -53,11 +54,11 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     const depart = await p.evaluate(() => { const r = app.race, f = r.fantome, j = r.player;
       return { mode: r.mode, entr: r.entrainement, n: r.cars.length, memeModele: f.cls.id === j.cls.id, memeLivree: f.livree === j.livree && f.livery === j.livery,
         memePlace: Math.abs(f.s - j.s) < 0.01 && Math.abs(f.lat - j.lat) < 0.01 && Math.abs(f.x - j.x) < 0.01 && Math.abs(f.y - j.y) < 0.01,
-        grip: f.gripBoost, cauchemar: DIFFICULTY.cauchemar.grip, nom: f.name, guide: app.renderer.showLines, ecran: document.querySelector('#ui').classList.contains('hidden') }; });
+        grip: f.gripBoost, niveau: FANTOME.niveau, marge: DIFFICULTY[FANTOME.niveau].marginBase, nom: f.name, guide: app.renderer.showLines, ecran: document.querySelector('#ui').classList.contains('hidden') }; });
     ok(depart.mode === 'timetrial' && depart.entr && depart.n === 2, `un contre-la-montre à deux voitures (${depart.mode}, ${depart.n})`);
     ok(depart.memeModele && depart.memeLivree, 'le fantôme a la voiture et la livrée du joueur');
     ok(depart.memePlace, 'il part du même emplacement');
-    ok(depart.grip === depart.cauchemar && depart.grip > 1, `il roule au niveau cauchemar (adhérence ×${depart.grip})`);
+    ok(depart.niveau === 'hard' && depart.grip === 1 && depart.marge === DIFFICULTE_ATTENDUE, `il roule au niveau difficile, sans triche d'adhérence (×${depart.grip}, marge ${depart.marge})`);
     ok(depart.nom === 'Fantôme', `il s'appelle « ${depart.nom} »`);
     ok(depart.guide === true, 'le guide de freinage est allumé');
     await p.waitForFunction(() => app.race.state === 'racing', null, { timeout: 30000 });

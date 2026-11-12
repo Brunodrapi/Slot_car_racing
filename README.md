@@ -1910,8 +1910,8 @@ comptés, pas de contact, « Terminer la session » à la pause) lancé avec `en
 - **Le guide de freinage** est allumé pour la manche (`renderer.showLines`), quel que soit le réglage :
   le ruban vert, jaune ou rouge devant la voiture, et la barre du point de freinage.
 - **Le fantôme** (`FANTOME`, `Race._poseFantome`, js/race.js) est une vraie voiture de l'IA, pas un
-  enregistrement : le modèle et la livrée du joueur, le pilote **cauchemar** (adhérence ×1,30
-  comprise), le même emplacement de départ. Il est peint à 42 % d'opacité, sous la voiture du joueur.
+  enregistrement : le modèle et la livrée du joueur, le pilote **difficile** (depuis la 0.52.64 ;
+  aucune triche d'adhérence à ce niveau), le même emplacement de départ. Il est peint à 42 % d'opacité, sous la voiture du joueur.
   Il n'existe pour personne : ni contact, ni aspiration, ni gêne, ni drapeau jaune quand il sort, ni
   gomme ni fumée. Il ne voit personne non plus — il garde la ligne idéale et ne lève pour personne — et
   n'a pas d'élastique : c'est une référence, il roule son rythme. Sa course est identique au centimètre
@@ -1927,12 +1927,16 @@ comptés, pas de contact, « Terminer la session » à la pause) lancé avec `en
 - **Les résultats** donnent le meilleur tour du fantôme sous celui du joueur, avec l'écart, et ses
   tours en face de ceux du joueur.
 
-**Ce que vaut le fantôme** (`node tools/fantome-banc.js`, seul en piste, six circuits, quatre tours) :
-aucune sortie, quel que soit le talent du pilote ; au talent médian retenu (0,5), il boucle ces six
-circuits 10 à 12 % plus vite que le pilote automatique mené à la limite de la même voiture sans la
-triche d'adhérence (Bumblebee Ground 79 : 446,8 s contre 495,4 ; Howitzer K1 : 499,0 contre 570,2).
-Ses vitesses de passage en virage ne sont pas à la portée de la voiture du joueur : il montre la ligne,
-son rythme est une cible qu'on n'atteint pas. Changer de niveau tient en une ligne (`FANTOME.niveau`).
+**Ce que vaut le fantôme** (`node tools/fantome-banc.js`, seul en piste, six circuits, quatre tours).
+Il a d'abord roulé au niveau cauchemar, comme demandé : 10 à 12 % plus vite que le pilote automatique
+mené à la limite de la même voiture sans la triche d'adhérence (Bumblebee Ground 79 : 446,8 s contre
+495,4 ; Howitzer K1 : 499,0 contre 570,2), avec des vitesses de passage hors de portée de la voiture du
+joueur. « Niveau cauchemar c'est trop je pense. Mets-le en difficile plutôt » : depuis la 0.52.64 il
+roule au niveau **difficile**, sans aucune triche — c'est la voiture du joueur menée à sa limite. Mêmes
+circuits, au talent médian retenu (0,5) : 500,1 s pour la Bumblebee Ground 79 (495,4 au pilote
+automatique à la limite), 524,6 pour la Breithüft Aero 62 (520,1), 571,3 pour la Howitzer K1 (570,2),
+sans une sortie. Il montre la ligne et un rythme qu'on peut battre. Changer de niveau tient en une
+ligne (`FANTOME.niveau`), et le banc en essaie un autre sans toucher au code (quatrième argument).
 
 Les statistiques comptent l'entraînement comme un contre-la-montre (la table n'accepte que quatre
 modes). Le pictogramme du menu (`art/interface/cone.svg`) est un dessin vectoriel provisoire, dans la
