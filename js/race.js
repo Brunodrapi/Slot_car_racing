@@ -110,17 +110,23 @@ dit rien d'autre :
 
 C'EST CALCULÉ SUR LA VOITURE DU JOUEUR, À SA VITESSE. On part de sa vitesse réelle et on roule devant
 elle, pas à pas, un pilote à un bouton : il accélère tant que la cible le permet, lève quand il la
-dépasse, dose quand la cible demande moins que les pleins gaz. La cible est le profil de vitesse de la
-ligne choisie à `marge` de la limite, repassé par le frein réel du joueur (son réglage compris). Qui
-arrive moins vite voit donc la zone commencer plus tard ; qui arrive trop vite la voit commencer sous
-ses roues.
+dépasse, dose quand le virage prend déjà l'adhérence (`usage`, le seuil de l'IA) ou que la cible
+demande moins que les pleins gaz. La cible est la vitesse de passage de la trajectoire que la voiture
+suit vraiment, à `marge` de la limite (`Race._limitesGuide`), repassée par le frein réel du joueur (son
+réglage compris). Qui arrive moins vite voit donc la zone commencer plus tard ; qui arrive trop vite la
+voit commencer sous ses roues.
 
 `marge` 0,95 : le rythme du fantôme (difficile, 0,96), un rien en dessous — un humain qui suit un
 repère est moins précis que l'IA. Essayé à 0,98 : un pour cent plus vite, mais six sorties pour la GT
-dès que le pilote réagit avec 300 ms de retard ; à 0,95, aucune. `reaction` : les zones sont avancées de ce que la voiture parcourt
+dès que le pilote réagit avec 300 ms de retard ; à 0,95, aucune. `traite`, `coude`, `bref`, `garde`,
+`ecart` et `repit` règlent l'essai des enchaînements : voir `Race._limitesGuide`. `reaction` 0,2 s : à 0,15,
+un pilote qui réagit en 300 ms manquait le freinage de l'épingle de Pastaga 83, au bout de sa longue
+ligne droite (trois sorties en trois tours pour le proto) ; à 0,2, plus aucune, pour un demi pour cent
+de temps au tour chez celui qui réagit sans retard. `reaction` : les zones sont avancées de ce que la voiture parcourt
 pendant ce temps, pour que lever EN VOYANT le rouge arriver sous le nez soit lever à temps.
 Validé par un pilote qui obéit au guide et rien d'autre (`tools/guide-banc.js`). */
-const GUIDE = { marge: 0.95, frein: 0.9, portee: 261, pas: 3, reaction: 0.15, vert: 15 };
+const GUIDE = { marge: 0.95, frein: 0.9, portee: 261, pas: 3, reaction: 0.2, vert: 15, usage: 0.8,
+  traite: 1.05, coude: 1.5, bref: 0.5, garde: 1.5, ecart: 0.4, repit: 0.8 };
 const GUIDE_GAZ = 0, GUIDE_DOSE = 1, GUIDE_LEVE = 2;
 
 /* LE FANTÔME DE L'ENTRAÎNEMENT (0.52.63).
@@ -200,6 +206,13 @@ class Race {
     this.profiles = {};
     for (const name of LINE_NAMES) this.profiles[name] = speedProfile(this.track, this.cls, name, 0.98);
     this._buildGrid();
+    /* Le guide de l'entraînement se prépare ICI, pendant le chargement, et non à la première image :
+    la ligne idéale tout de suite, les deux autres juste après, pendant les feux. Elles se calculent
+    de toute façon à la première demande si le joueur change de ligne avant. */
+    if (this.entrainement) {
+      this._limLigne('racing');
+      if (typeof setTimeout === 'function') for (const name of ['bleu', 'jaune']) setTimeout(() => this._limLigne(name), 0);
+    }
     this.flags = typeof RaceFlags === 'undefined' ? null : new RaceFlags(this);
   }
 
@@ -658,15 +671,121 @@ class Race {
     return r + (this.profiles.jaune[i] - r) * Math.min(1, sel);
   }
 
-  /** La vitesse cible du guide à l'abscisse `s`, sur la ligne `sel` (voir GUIDE). */
-  _cibleGuide(s, sel) {
-    if (!this._profilsGuide) {
-      this._profilsGuide = {};
-      for (const name of LINE_NAMES) this._profilsGuide[name] = speedProfile(this.track, this.cls, name, GUIDE.marge);
+  /* LA VITESSE DE PASSAGE DU GUIDE, station par station : celle de la courbure — sauf là où ça passe à fond.
+
+  « Sur Stand de frites je ne comprends pas pourquoi ça demande de freiner dans la ligne droite après la
+  première chicane. Et d'ailleurs le freinage est trop fort dans la chicane où on peut quasiment passer
+  à fond. » Deux défauts du premier calcul, qui reprenait le profil de vitesse de l'IA.
+
+  1. LA PASSE D'ACCÉLÉRATION N'EST PAS UNE LIMITE. Ce profil plafonne aussi la vitesse par ce que le
+     moteur sait reprendre en sortant du virage : c'est une prévision, et celui qui sort plus vite que
+     prévu n'a rien à lever. C'était la zone rouge de la ligne droite. La cible n'a plus que la limite
+     du virage, et le freinage qui y mène (repassé dans `guide`).
+
+  2. UN ENCHAÎNEMENT N'EST PAS UN VIRAGE. Dans le Raidillon la ligne ondule, quatre changements de
+     courbure en cent vingt mètres, des rayons de 52 à 94 m : de quoi demander 100 à 130 km/h à la
+     Howitzer K1. Elle y passe à 229-247 km/h pied au plancher, sans sortir. Le pilote ne suit pas la
+     ligne point par point — il vise un point devant lui, d'autant plus loin qu'il va vite
+     (`Car._desiredCurvature`) — et quand il demande plus que les pneus ne donnent, la voiture ne sort
+     pas, elle élargit : le coude suivant la ramène avant le bord. La limite y est la LARGEUR DE LA
+     PISTE, pas l'adhérence.
+
+  On parcourt donc le circuit pied au plancher, depuis son virage le plus lent. Chaque tronçon où la
+  courbure demanderait de lever est ESSAYÉ : un point le traverse à vitesse constante, `traite` fois
+  plus vite que la voiture ne peut y arriver, piloté comme elle (même poursuite, même anticipation), sa
+  courbure plafonnée par l'adhérence. S'il reste à `garde` mètres des bords — ou sur la ligne, là où
+  elle va elle-même chercher le vibreur —, et si ce sont des coudes brefs (la courbure y demande moins
+  de 1/`coude` de cette vitesse, ou le tronçon se traverse en moins de `bref` seconde), le tronçon se
+  prend à fond. Sinon il garde la limite de sa courbure.
+
+  L'ESSAI NE SERT À RIEN D'AUTRE, et c'est voulu. Essayé comme juge de tous les virages, il s'est montré
+  bien trop généreux : ce point n'a ni inertie ni pneus, et annonçait 106 km/h dans un virage de
+  Windmolen qui se prend à 70 — quinze sorties en trois tours pour le pilote qui l'écoutait. Un virage
+  tenu se juge à sa courbure, qui a fait ses preuves ; l'essai ne répond qu'à « est-ce que ça passe à
+  fond ? », avec de la marge des deux côtés. */
+  _limitesGuide(name) {
+    const T = this.track, N = T.n, c = this.cls, lat = T.lines[name], ff = PHYS.ff, lineK = T.lineK[name];
+    const x = new Float32Array(N), y = new Float32Array(N), v = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      x[i] = T.xs[i] + T.nx[i] * lat[i]; y[i] = T.ys[i] + T.ny[i] * lat[i];
+      v[i] = Math.min(c.vmax, cornerSpeedFor(c, Math.abs(lineK[i])) * GUIDE.marge);
     }
-    const P = this._profilsGuide, i = this.track.idx(s), r = P.racing[i];
-    if (sel < 0) return r + (P.bleu[i] - r) * Math.min(1, -sel);
-    return r + (P.jaune[i] - r) * Math.min(1, sel);
+    const cap = (i) => Math.atan2(y[(i + 1) % N] - y[(i - 1 + N) % N], x[(i + 1) % N] - x[(i - 1 + N) % N]);
+    const tol = c.width * 0.3, pasE = 2;
+    // l'essai : un point à vitesse constante `vv` de la station `i0` à la station `i1`, parti `elan` avant
+    const passe = (i0, i1, vv) => {
+      const Ld = clamp(PHYS.ldK * vv + 4, PHYS.ldMin, 45), elan = Math.round((Ld + 30) / T.ds);
+      const kmax = GUIDE.marge * GUIDE.marge * (c.grip + Math.min(c.df * vv * vv, c.grip * 1.8)) / (vv * vv);
+      const d = (i0 - elan + N) % N, longueur = ((i1 - d + N) % N + 30) * T.ds;
+      let px = x[d], py = y[d], th = cap(d), s = d * T.ds, fait = 0;
+      while (fait < longueur) {
+        const i = T.idx(s), j = (i + Math.round(Ld / T.ds)) % N;
+        const dx = x[j] - px, dy = y[j] - py, alpha = wrapAngle(Math.atan2(dy, dx) - th);
+        const kP = Math.abs(alpha) > Math.PI / 2 ? Math.sign(alpha) * 0.25 : 2 * Math.sin(alpha) / (Math.hypot(dx, dy) || 1e-6);
+        const k = clamp(kP + ff * lineK[(i + Math.round(Ld * 0.4 / T.ds)) % N], -kmax, kmax);
+        th += k * pasE; px += Math.cos(th) * pasE; py += Math.sin(th) * pasE;
+        const pr = T.project(px, py, s), i2 = T.idx(pr.s), avance = T.diff(s, pr.s);
+        if (avance < 0.2) return false;
+        fait += avance; s = pr.s;
+        const l = lat[i2], haut = T.hwL[i2] + T.kerb[i2] + tol, bas = -(T.hwR[i2] + T.kerb[i2] + tol);
+        if (pr.lat > Math.max(haut - GUIDE.garde, Math.min(haut, l + GUIDE.ecart))
+          || pr.lat < Math.min(bas + GUIDE.garde, Math.max(bas, l - GUIDE.ecart))) return false;
+      }
+      return true;
+    };
+    const plein = (vv) => Math.min(c.vmax, Math.sqrt(vv * vv + 2 * T.ds * c.accel * driveFactor(c, vv) * Math.max(0, 1 - Math.pow(vv / c.vmax, 2.5))));
+    // le virage le plus lent : c'est de lui qu'on repart, sûr qu'il faut y lever
+    let depart = 0;
+    for (let i = 1; i < N; i++) if (v[i] < v[depart]) depart = i;
+    const out = Float32Array.from(v);
+    let vr = v[depart];
+    for (let n = 1; n < N; n++) {
+      const i = (depart + n) % N;
+      vr = plein(vr);
+      if (v[i] >= vr) continue;
+      // un tronçon où la courbure demanderait de lever : jusqu'où, pied au plancher ?
+      let fin = n, vf = vr, vTop = vr, vCoude = v[i];
+      while (fin < N && fin - n < 500 / T.ds) {
+        const j = (depart + fin) % N;
+        /* Le tronçon ne finit que là où la ligne laisse rouler à fond pendant `repit` seconde. Sans
+        cela le Raidillon se découpait en trois coudes séparés de vingt mètres, et l'essai du troisième
+        partait du milieu du deuxième — posé sur la ligne au creux d'une ondulation, à 280 km/h, dans un
+        état que la voiture n'a jamais : il échouait là où la voiture passe. Un enchaînement s'essaie
+        d'une traite, depuis la ligne droite qui y mène. */
+        if (v[j] >= vf && fin > n) {
+          let libre = true, vq = vf;
+          for (let q = 1, G = Math.max(40, vf * GUIDE.repit) / T.ds; q <= G && libre; q++) { vq = plein(vq); if (v[(j + q) % N] < vq) libre = false; }
+          if (libre) break;
+        }
+        if (v[j] < vCoude) vCoude = v[j];
+        vf = plein(vf); if (vf > vTop) vTop = vf;
+        fin++;
+      }
+      const j1 = (depart + fin - 1 + N) % N;
+      /* Des coudes brefs : soit la courbure y est franche (elle demande moins de 1/`coude` de la
+      vitesse), soit le tronçon est si court qu'on le traverse en moins de `bref` seconde. La seconde
+      porte est là pour les plis de la ligne : au milieu de la ligne droite qui suit le Raidillon, quatre
+      mètres de rayon 146 m demandaient 192 km/h à une voiture qui y passe à 267. */
+      const brefs = vCoude * GUIDE.coude <= vTop || (fin - n) * T.ds <= vTop * GUIDE.bref;
+      if (fin < N && brefs && passe(i, j1, Math.min(c.vmax * 1.05, vTop * GUIDE.traite))) {
+        for (let q = n; q < fin; q++) out[(depart + q) % N] = c.vmax;        // il se prend à fond
+        vr = vf;
+      } else {
+        for (let q = n; q < fin; q++) { const j = (depart + q) % N; vr = Math.min(plein(vr), v[j]); }
+      }
+      n = fin - 1;
+    }
+    return out;
+  }
+
+  /** Les vitesses de passage d'une ligne, calculées à la première demande (quelques millisecondes). */
+  _limLigne(name) { const L = this._limGuide || (this._limGuide = {}); return L[name] || (L[name] = this._limitesGuide(name)); }
+
+  /** La vitesse de passage du guide à l'abscisse `s` sur la ligne `sel`. */
+  _limiteGuide(s, sel) {
+    const i = this.track.idx(s), r = this._limLigne('racing')[i];
+    if (!sel) return r;
+    return r + (this._limLigne(sel < 0 ? 'bleu' : 'jaune')[i] - r) * Math.min(1, Math.abs(sel));
   }
 
   /* La consigne du doigt sur les `GUIDE.portee` mètres devant la voiture (voir GUIDE).
@@ -682,26 +801,41 @@ class Race {
   freinage (quatre tronçons sur six à lever) se dit « lâche », un mélange se dit « dose ». */
   guide(car = this.player) {
     const c = car.cls, pas = GUIDE.pas, N = Math.round(GUIDE.portee / pas), b = c.brake * GUIDE.frein;
-    const G = this._guide || (this._guide = { pas, n: N, s0: 0, maintenant: GUIDE_GAZ, zone: GUIDE_GAZ, cibles: new Float32Array(N + 1), etats: new Uint8Array(N), brut: new Uint8Array(N) });
-    const s0 = Math.floor(car.s / pas) * pas, cible = G.cibles, brut = G.brut;
-    for (let i = 0; i <= N; i++) cible[i] = this._cibleGuide(s0 + i * pas, car.selS);
+    const G = this._guide || (this._guide = { pas, n: N, s0: 0, maintenant: GUIDE_GAZ, zone: GUIDE_GAZ, cibles: new Float32Array(N + 1),
+      passages: new Float32Array(N + 1), etats: new Uint8Array(N), brut: new Uint8Array(N) });
+    const s0 = Math.floor(car.s / pas) * pas, cible = G.cibles, vc = G.passages, brut = G.brut;
+    for (let i = 0; i <= N; i++) {
+      // la plus basse des stations du tronçon : un pas de trois mètres ne doit pas enjamber le point dur
+      let vv = Infinity;
+      for (let d = 0; d < pas; d++) vv = Math.min(vv, this._limiteGuide(s0 + i * pas + d, car.selS));
+      cible[i] = vc[i] = vv;
+    }
     // le frein du joueur, son réglage compris : la cible ne demande jamais plus qu'il ne sait ralentir
     for (let i = N - 1; i >= 0; i--) { const lim = Math.sqrt(cible[i + 1] * cible[i + 1] + 2 * b * pas); if (lim < cible[i]) cible[i] = lim; }
     let v = Math.max(0, car.v), avant = GUIDE_GAZ;
+    const libre = c.vmax - 0.5;                     // une station qui se passe à la pointe n'est pas un virage
     for (let i = 0; i < N; i++) {
       const aMax = c.accel * driveFactor(c, v) * Math.max(0, 1 - Math.pow(v / c.vmax, 2.5));
       const aReq = (cible[i + 1] * cible[i + 1] - v * v) / (2 * pas);       // ce qu'il faut pour être à la cible au pas suivant
+      /* La part d'adhérence que le virage prend déjà, lue sur la vitesse de passage de l'endroit : à
+      cette vitesse-là les pneus sont à `marge`² de leur limite, et l'usage va comme le carré de la
+      vitesse. Ce qui reste est ce que le moteur peut passer. */
+      const virage = vc[i] < libre, part = virage ? v / vc[i] : 0;
+      const usage = Math.min(1, part * part * GUIDE.marge * GUIDE.marge);
+      const aDispo = aMax * Math.sqrt(1 - usage * usage);
       let e;
       if (v > cible[i] * 1.005 + 0.3 || aReq < -0.3 * b) {
         e = GUIDE_LEVE;
         v = Math.max(Math.sqrt(Math.max(0, v * v - 2 * b * pas)), Math.min(v, cible[i + 1]));
-      } else if (aReq >= (avant === GUIDE_GAZ ? 0.55 : 0.8) * aMax) {
-        // la cible laisse (presque) tous les gaz ; le seuil dépend de l'état d'avant, pour ne pas clignoter
+      } else if (usage <= GUIDE.usage && aReq >= (avant === GUIDE_GAZ ? 0.55 : 0.8) * aMax) {
+        // le virage laisse de l'adhérence et la cible laisse (presque) tous les gaz ; le seuil dépend de
+        // l'état d'avant, pour ne pas clignoter
         e = GUIDE_GAZ;
-        v = Math.min(Math.sqrt(v * v + 2 * aMax * pas), cible[i + 1]);
+        v = Math.min(Math.sqrt(v * v + 2 * aDispo * pas), cible[i + 1]);
       } else {
+        // à la limite du virage, ou sous une cible qui ne monte pas : on tient la vitesse par petits appuis
         e = GUIDE_DOSE;
-        v = Math.min(cible[i + 1], Math.sqrt(v * v + 2 * aMax * pas));
+        v = Math.min(cible[i + 1], Math.sqrt(v * v + 2 * aDispo * pas));
       }
       brut[i] = avant = e;
     }

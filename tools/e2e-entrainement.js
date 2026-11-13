@@ -146,6 +146,31 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     ok(guide.sous && guide.sous.d <= 3 && guide.sous.zone === GUIDE_LEVE_ATTENDU, 'sans lever, le rouge arrive sous la voiture et la consigne devient « lâche »');
     ok(guide.tours >= 2 && guide.sorties === 0, `un pilote qui obéit au guide (150 ms de retard) boucle ses tours sans sortir : ${guide.tour && guide.tour.toFixed(1)} s, le fantôme ${guide.fantome && guide.fantome.toFixed(1)} s`);
 
+    /* Stand de frites (0.52.66) : « ça demande de freiner dans la ligne droite après la première
+       chicane, et le freinage est trop fort dans la chicane où on peut quasiment passer à fond ». Le
+       pilote qui obéit au guide traverse l'enchaînement du Raidillon (stations 540 à 680) et la ligne
+       droite qui suit sans qu'on lui demande de lever, et sans sortir ; il lève avant le virage d'après.
+       Les stations sont celles du tracé actuel : à revoir si le circuit est redessiné. */
+    const spa = await p.evaluate(() => {
+      const o = new Race({ trackDef: TRACKS.find((t) => t.id === 'spa'), classId: 'gt', modelId: 'm1procar', mode: 'timetrial', entrainement: true });
+      const q = o.player, T = o.track, file = [];
+      let rouge = 0, vues = 0, vmin = Infinity, plusLoin = false, sorti = false;
+      while (q.lap < 2 && o.time < 400) {
+        let voulu = 0;
+        if (o.state === 'racing') {
+          const G = o.guide(); voulu = G.maintenant === GUIDE_GAZ ? 1 : G.maintenant === GUIDE_DOSE ? (q.v < G.cibles[0] - 0.3 ? 1 : 0) : 0;
+          const s = T.wrap(q.s);
+          if (q.lap === 1 && s > 540 && s < 950) { vues++; if (G.maintenant !== GUIDE_GAZ) rouge++; vmin = Math.min(vmin, q.v * 3.6); if (q.state !== 'ok') sorti = true; }
+          if (q.lap === 1 && s > 1000 && s < 1200 && G.maintenant === GUIDE_LEVE) plusLoin = true;
+        }
+        file.push(voulu);
+        o.update(o.dt, { throttle: file.length > 18 ? file.shift() : 0, sel: 0 });
+      }
+      return { rouge, vues, vmin, plusLoin, sorti, sorties: q.crashes || 0 };
+    });
+    ok(spa.vues > 100 && spa.rouge === 0 && !spa.sorti, `Stand de frites : rien à lever dans le Raidillon ni dans la ligne droite qui suit (vitesse minimale ${Math.round(spa.vmin)} km/h, ${spa.rouge} consigne(s) de lever sur ${spa.vues})`);
+    ok(spa.plusLoin && spa.sorties === 0, 'et le guide fait bien lever avant le virage suivant, sans une sortie sur le tour');
+
     // une sortie du fantôme ne lève pas de drapeau jaune
     const jaune = await p.evaluate(async () => { const r = app.race, f = r.fantome; f.state = 'grass'; r.flags.offSince.clear();
       const t0 = r.time; while (r.time < t0 + 4) { f.state = 'grass'; await new Promise((res) => setTimeout(res, 100)); }

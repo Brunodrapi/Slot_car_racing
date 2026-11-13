@@ -1980,29 +1980,47 @@ rouge plein, la bande bat. Le paddock de l'entraînement donne la légende avant
 
 **Comment c'est calculé** (`Race.guide`, js/race.js — de la logique pure, sans dessin). On part de la
 vitesse réelle de la voiture et on fait rouler devant elle, par pas de 3 m sur 261 m, un pilote à un
-bouton : il accélère tant que la cible le permet, lève quand il la dépasse, dose quand elle demande
-moins que les pleins gaz. La cible est le profil de vitesse de la ligne choisie à 95 % de la limite
-(`GUIDE.marge` ; le fantôme roule à 96 %), repassé par le frein du joueur, son réglage compris. Qui
-arrive moins vite voit la zone commencer plus tard (à Monza, vers la première chicane : à 150 m à
-207 km/h, à 186 m à 124 km/h) ; qui arrive trop vite la voit commencer sous ses roues. Les zones sont
-avancées de 150 ms de trajet (`GUIDE.reaction`), pour que lever en voyant le rouge arriver sous le nez
-soit lever à temps. La grille est calée sur le circuit, pas sur la voiture : les zones ne frémissent
-pas. Le mot, lui, se lit sur les 18 m devant et tient un quart de seconde, sans quoi il clignoterait
-au rythme du dosage (de 120 à 166 changements par minute pour la consigne instantanée, 34 à 53 pour le
-mot).
+bouton : il accélère tant que la cible le permet, lève quand il la dépasse, dose quand le virage prend
+déjà l'adhérence ou que la cible demande moins que les pleins gaz. La cible est la vitesse de passage
+de chaque station à 95 % de la limite (`GUIDE.marge` ; le fantôme roule à 96 %), repassée par le frein
+du joueur, son réglage compris. Qui arrive moins vite voit la zone commencer plus tard ; qui arrive trop
+vite la voit commencer sous ses roues. Les zones sont avancées de 200 ms de trajet (`GUIDE.reaction`),
+pour que lever en voyant le rouge arriver sous le nez soit lever à temps. La grille est calée sur le
+circuit, pas sur la voiture : les zones ne frémissent pas. Le mot, lui, se lit sur les 18 m devant et
+tient un quart de seconde, sans quoi il clignoterait au rythme du dosage.
+
+**La vitesse de passage** (`Race._limitesGuide`, 0.52.66). Le premier calcul reprenait le profil de
+vitesse de l'IA, et Bruno en a vu les deux défauts à Stand de frites : « ça demande de freiner dans la
+ligne droite après la première chicane, et le freinage est trop fort dans la chicane où on peut
+quasiment passer à fond ».
+
+- *La ligne droite.* Ce profil plafonne aussi la vitesse par ce que le moteur sait reprendre en sortant
+  du virage. Ce n'est pas une limite, c'est une prévision : qui sort plus vite que prévu n'a rien à
+  lever. La cible n'a plus que la limite du virage et le freinage qui y mène.
+- *L'enchaînement.* Dans le Raidillon la ligne ondule — quatre changements de courbure en 120 m, des
+  rayons de 52 à 94 m, de quoi demander 100 à 130 km/h — et les voitures y passent pied au plancher :
+  la K1 à 225-247 km/h avec 0,7 m de marge au bord, la Bumblebee Ground 79 à 226-251 avec 2,4 m, la
+  Breithüft Aero 62 à 235-265 avec 2,1 m. Le pilote vise un point loin devant, qui gomme l'ondulation,
+  et quand il demande plus que les pneus ne donnent la voiture élargit sans sortir : la limite y est la
+  largeur de la piste, pas l'adhérence.
+
+On parcourt donc le circuit pied au plancher depuis son virage le plus lent, et chaque tronçon où la
+courbure demanderait de lever est **essayé** : un point le traverse d'une traite, 5 % plus vite que la
+voiture ne peut y arriver, piloté comme elle, sa courbure plafonnée par l'adhérence. S'il reste à 1,5 m
+des bords, et si ce sont des coudes brefs (la courbure y demande moins des deux tiers de cette
+vitesse, ou le tronçon se traverse en moins d'une demi-seconde), le tronçon se prend à fond ; sinon il
+garde la limite de sa courbure. Selon la voiture, de zéro à cinq tronçons par circuit sont reconnus
+ainsi.
+
+L'essai ne juge rien d'autre, et c'est voulu : employé pour tous les virages, il annonçait 106 km/h
+dans un virage de Windmolen qui se prend à 70 (ce point n'a ni inertie ni pneus), et le pilote qui
+l'écoutait sortait quinze fois en trois tours.
 
 **Tient-il ce qu'il dit ?** `node tools/guide-banc.js` fait rouler un pilote qui ne sait que lire la
-consigne à l'endroit de sa voiture, avec un retard de réaction et sans geste de moins de 80 ms. Six
-circuits, trois voitures, trois tours lancés chacun :
-
-| retard | sorties | écart au fantôme (F1 / proto / GT) |
-|---|---|---|
-| 0 ms | 0 | 6,3 % / 5,2 % / 3,6 % |
-| 150 ms | 0 | 8,3 % / 7,1 % / 5,4 % |
-| 300 ms | 0 | 9,0 % / 8,1 % / 6,6 % |
-
-Un débutant qui suit le guide boucle ses tours proprement, quelques pour cent derrière le fantôme ; le
-reste est ce qu'il lui reste à apprendre.
+consigne à l'endroit de sa voiture, avec un retard de réaction et sans geste de moins de 80 ms. Les
+treize circuits, trois voitures (Bumblebee Ground 79, Breithüft Aero 62, Howitzer K1), deux tours
+lancés chacun : aucune sortie, à 0, 150 comme à 300 ms de retard, et 2 à 4,5 % derrière le fantôme.
+Le détail, et les réglages essayés puis écartés, sont dans `docs/guide/README.md`.
 
 ## Les menus de sélection (0.37.0)
 
