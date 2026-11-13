@@ -877,7 +877,7 @@ class UI {
       ['race', 'setup', 'quickRace', 'wheel'],
       ['timetrial', 'setup', 'timeTrial', 'clock'],
       // l'entraînement : un contre-la-montre avec le guide de freinage et un fantôme (js/race.js, FANTOME)
-      ['training', 'setup', 'training', 'cone.svg'],
+      ['training', 'setup', 'training', 'plaque-l.svg'],
       ['', 'multi', 'multi', 'helmets'],
     ];
     this.show(`<header class="home-heading"><h1><img class="game-logo" src="art/interface/logo-grip.webp" alt="GRIP — Racing the Line"></h1></header>

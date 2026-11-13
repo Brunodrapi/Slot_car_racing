@@ -1939,8 +1939,10 @@ sans une sortie. Il montre la ligne et un rythme qu'on peut battre. Changer de n
 ligne (`FANTOME.niveau`), et le banc en essaie un autre sans toucher au code (quatrième argument).
 
 Les statistiques comptent l'entraînement comme un contre-la-montre (la table n'accepte que quatre
-modes). Le pictogramme du menu (`art/interface/cone.svg`) est un dessin vectoriel provisoire, dans la
-palette des autres ; il se remplace par une illustration du même nom.
+modes). Le pictogramme du menu est une plaque « L » d'apprenti (`art/interface/plaque-l.svg`, 0.52.68 ;
+un plot de chantier avant) : « mettre une L plate qui montre le côté apprentissage ». Un dessin
+vectoriel dans la palette des autres — encre, crème, rouge —, qui se remplace par une illustration du
+même nom.
 
 ### Le guide : ce que le doigt doit faire (0.52.65)
 

@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.68
+- Menu : l'entraînement a pour pictogramme une plaque « L » d'apprenti.
+
 ## 0.52.67
 - Guide de l'entraînement : il fait de nouveau freiner là où le fantôme freine, Raidillon compris. Le guide et le fantôme disent la même chose.
 
