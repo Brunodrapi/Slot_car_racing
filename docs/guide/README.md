@@ -12,23 +12,40 @@ geste tenu moins de 80 ms. Il ne voit ni la courbure, ni l'adhérence, ni la gli
 il sort. Les treize circuits, deux tours lancés chacun, le fantôme (niveau difficile) roulant en même
 temps.
 
-Réglage de la 0.52.66 (`marge` 0,95 · `reaction` 0,2 s · `traite` 1,05 · `coude` 1,5 · `bref` 0,5 s ·
-`garde` 1,5 m) :
+Réglage de la 0.52.67 (`marge` 0,95 · `reaction` 0,2 s ; vitesse de passage = limite de courbure,
+la règle de l'IA) :
 
 | retard | voiture | sorties | tours | écart au fantôme |
 |---|---|---|---|---|
-| 0 ms | Bumblebee Ground 79 (F1) | 0 | 26 | +1,7 % |
-| 0 ms | Breithüft Aero 62 (proto) | 0 | 26 | +1,7 % |
-| 0 ms | Howitzer K1 (GT) | 0 | 26 | +2,8 % |
-| 150 ms | Bumblebee Ground 79 | 0 | 26 | +3,4 % |
-| 150 ms | Breithüft Aero 62 | 0 | 26 | +3,5 % |
-| 150 ms | Howitzer K1 | 0 | 26 | +4,1 % |
-| 300 ms | Bumblebee Ground 79 | 0 | 26 | +4,1 % |
-| 300 ms | Breithüft Aero 62 | 0 | 26 | +4,4 % |
-| 300 ms | Howitzer K1 | 0 | 26 | +4,4 % |
+| 0 ms | Bumblebee Ground 79 (F1) | 0 | 26 | +3,3 % |
+| 0 ms | Breithüft Aero 62 (proto) | 0 | 26 | +3,4 % |
+| 0 ms | Howitzer K1 (GT) | 0 | 26 | +3,9 % |
+| 150 ms | Bumblebee Ground 79 | 0 | 26 | +5,3 % |
+| 150 ms | Breithüft Aero 62 | 0 | 26 | +5,3 % |
+| 150 ms | Howitzer K1 | 0 | 26 | +5,2 % |
+| 300 ms | Bumblebee Ground 79 | 0 | 26 | +6,2 % |
+| 300 ms | Breithüft Aero 62 | 0 | 26 | +6,4 % |
+| 300 ms | Howitzer K1 | 0 | 26 | +5,7 % |
 
-Avant la 0.52.66 (cible = profil de vitesse de l'IA, six circuits) : aucune sortie non plus, mais 4 à
-9 % derrière le fantôme — le guide faisait lever là où il ne fallait pas.
+La 0.52.66, qui laissait le guide à fond dans les enchaînements où les voitures passent sans lever
+(le Raidillon), donnait 1,7 à 4,4 % : plus rapide, mais le guide n'y disait plus ce que fait le
+fantôme. Retirée à la demande de Bruno.
+
+## Le guide dit-il ce que fait le fantôme ?
+
+Le guide calculé pour la voiture du fantôme, comparé à ce que le fantôme fait (cinq circuits — Stand de
+frites, Parco Reale, Le Rocher, Fuji Yama, Windmolen —, trois voitures, un tour lancé) :
+
+- 622 des 680 freinages du fantôme sont annoncés par une zone rouge à moins de 80 m (47 sur 50 sur un
+  tour de Stand de frites) ;
+- la zone commence en moyenne 14 m avant que le fantôme lève : c'est l'avance de 200 ms laissée pour
+  réagir ;
+- quand le guide dit « lâche », le fantôme a le pied levé 71 % du temps ; le reste, il dose (il remet
+  de brefs coups de gaz en fin de freinage) ;
+- il lève sous « gaz » pendant 2,9 % du tour.
+
+Copier exactement ses réglages (marge 0,96 au lieu de 0,95, frein 0,88 au lieu de 0,9) ne change rien à
+ces chiffres.
 
 ## Ce qui a été essayé et écarté
 
@@ -41,6 +58,14 @@ Avant la 0.52.66 (cible = profil de vitesse de l'IA, six circuits) : aucune sort
 | `traite` 1,10 au lieu de 1,05 | le Raidillon n'est plus reconnu « à fond » pour les F1 |
 | sans la porte `bref` (tronçon traversé en moins d'une demi-seconde) | un pli de la ligne au milieu de la ligne droite de Stand de frites — 4 m de rayon 146 m — faisait lever de 260 à 192 km/h |
 
+## Ce que la 0.52.66 avait essayé : les enchaînements à fond (retiré en 0.52.67)
+
+Chaque tronçon où la courbure demandait de lever était essayé d'une traite par un point piloté comme la
+voiture, 5 % plus vite qu'elle ne peut y arriver ; s'il restait à 1,5 m des bords et si les coudes
+étaient brefs, le tronçon se prenait à fond. Zéro à cinq tronçons par circuit étaient reconnus ainsi
+(tableau ci-dessous). Aucune sortie au banc, des tours 1,5 à 2 % plus rapides — mais le fantôme, qui
+roule comme l'IA, freinait là où le guide disait « gaz ».
+
 ## Le Raidillon de Stand de frites, pied au plancher (la voiture réelle)
 
 | voiture | vitesse | marge minimale au bord | écart maximal à la ligne |
@@ -52,10 +77,9 @@ Avant la 0.52.66 (cible = profil de vitesse de l'IA, six circuits) : aucune sort
 | Breithüft Aero 62 | 235-265 km/h | 2,1 m | 2,5 m |
 | Moggy Nightfall | 236-270 km/h | 2,1 m | 2,5 m |
 
-La courbure de la ligne y demandait 100 à 130 km/h. L'IA, elle, y freine toujours : son profil de
-vitesse n'a pas changé.
+La courbure de la ligne y demande 100 à 130 km/h. L'IA y freine, et le guide avec elle.
 
-## Les tronçons reconnus « à fond », par circuit
+## Les tronçons que la 0.52.66 reconnaissait « à fond », par circuit
 
 Nombre de tronçons où la courbure demanderait de lever, et entre parenthèses ceux que l'essai laisse
 passer pied au plancher (ligne idéale) :

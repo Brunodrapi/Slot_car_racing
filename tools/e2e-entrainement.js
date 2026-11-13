@@ -146,30 +146,57 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     ok(guide.sous && guide.sous.d <= 3 && guide.sous.zone === GUIDE_LEVE_ATTENDU, 'sans lever, le rouge arrive sous la voiture et la consigne devient « lâche »');
     ok(guide.tours >= 2 && guide.sorties === 0, `un pilote qui obéit au guide (150 ms de retard) boucle ses tours sans sortir : ${guide.tour && guide.tour.toFixed(1)} s, le fantôme ${guide.fantome && guide.fantome.toFixed(1)} s`);
 
-    /* Stand de frites (0.52.66) : « ça demande de freiner dans la ligne droite après la première
-       chicane, et le freinage est trop fort dans la chicane où on peut quasiment passer à fond ». Le
-       pilote qui obéit au guide traverse l'enchaînement du Raidillon (stations 540 à 680) et la ligne
-       droite qui suit sans qu'on lui demande de lever, et sans sortir ; il lève avant le virage d'après.
+    /* Stand de frites (0.52.67). Deux remarques de Bruno, dans l'ordre :
+       — « ça demande de freiner dans la ligne droite après la première chicane » : le pilote qui obéit
+         au guide n'a rien à lever dans la ligne droite après le Raidillon (stations 680 à 1000), sauf
+         au pli de la ligne au milieu, là où le fantôme lève aussi ;
+       — « ça crée une incohérence entre ce que fait le fantôme et le guide » : le guide fait lever avant
+         le Raidillon, comme le fantôme, et chaque freinage du fantôme est annoncé par une zone rouge du
+         guide calculé pour sa voiture.
        Les stations sont celles du tracé actuel : à revoir si le circuit est redessiné. */
     const spa = await p.evaluate(() => {
-      const o = new Race({ trackDef: TRACKS.find((t) => t.id === 'spa'), classId: 'gt', modelId: 'm1procar', mode: 'timetrial', entrainement: true });
-      const q = o.player, T = o.track, file = [];
-      let rouge = 0, vues = 0, vmin = Infinity, plusLoin = false, sorti = false;
+      const piste = () => new Race({ trackDef: TRACKS.find((t) => t.id === 'spa'), classId: 'gt', modelId: 'm1procar', mode: 'timetrial', entrainement: true });
+      const o = piste(), q = o.player, T = o.track, file = [];
+      let vues = 0, leveRaidillon = false, sorti = false;
+      const leveDroite = [];
       while (q.lap < 2 && o.time < 400) {
         let voulu = 0;
         if (o.state === 'racing') {
           const G = o.guide(); voulu = G.maintenant === GUIDE_GAZ ? 1 : G.maintenant === GUIDE_DOSE ? (q.v < G.cibles[0] - 0.3 ? 1 : 0) : 0;
           const s = T.wrap(q.s);
-          if (q.lap === 1 && s > 540 && s < 950) { vues++; if (G.maintenant !== GUIDE_GAZ) rouge++; vmin = Math.min(vmin, q.v * 3.6); if (q.state !== 'ok') sorti = true; }
-          if (q.lap === 1 && s > 1000 && s < 1200 && G.maintenant === GUIDE_LEVE) plusLoin = true;
+          if (q.lap === 1 && s > 440 && s < 640 && G.maintenant === GUIDE_LEVE) leveRaidillon = true;
+          if (q.lap === 1 && s > 680 && s < 1000) { vues++; if (G.maintenant === GUIDE_LEVE) leveDroite.push(s); if (q.state !== 'ok') sorti = true; }
         }
         file.push(voulu);
         o.update(o.dt, { throttle: file.length > 18 ? file.shift() : 0, sel: 0 });
       }
-      return { rouge, vues, vmin, plusLoin, sorti, sorties: q.crashes || 0 };
+      // le fantôme seul, et le guide calculé pour SA voiture : ses freinages sont-ils annoncés ?
+      const r = piste(), f = r.fantome, freins = [], zones = [], piedLeve = [];
+      let leve = 0, debut = null, zone = false;
+      while (f.lap < 2 && r.time < 400) {
+        r.update(r.dt, { throttle: 0, sel: 0 });
+        if (r.state !== 'racing' || f.lap < 1) continue;
+        const G = r.guide(f), s = T.wrap(f.s), gaz = !!f.throttle;
+        if (!gaz && f.braking && s > 680 && s < 1000) piedLeve.push(s);
+        leve = !gaz && f.braking ? leve + r.dt : 0;
+        if (leve > 0.1 && debut == null) debut = s;
+        if (gaz && debut != null) { freins.push(debut); debut = null; }
+        const L = G.maintenant === GUIDE_LEVE;
+        if (L && !zone) zones.push(s);
+        zone = L || (zone && G.maintenant === GUIDE_DOSE);
+      }
+      const annonces = freins.filter((sf) => zones.some((sz) => Math.abs(T.diff(sf, sz)) < 80)).length;
+      const raidillon = freins.some((sf) => sf > 440 && sf < 660) && zones.some((sz) => sz > 400 && sz < 660);
+      // dans la ligne droite, le joueur ne lève que là où le fantôme lève (à 25 m près)
+      const horsFantome = leveDroite.filter((sj) => !piedLeve.some((sf) => Math.abs(sf - sj) < 25)).length;
+      const ou = leveDroite.length ? `${Math.round(Math.min(...leveDroite))}-${Math.round(Math.max(...leveDroite))}` : '—';
+      const ouF = piedLeve.length ? `${Math.round(Math.min(...piedLeve))}-${Math.round(Math.max(...piedLeve))}` : '—';
+      return { leve: leveDroite.length, horsFantome, ou, ouF, vues, leveRaidillon, sorti, sorties: q.crashes || 0, annonces, freins: freins.length, raidillon };
     });
-    ok(spa.vues > 100 && spa.rouge === 0 && !spa.sorti, `Stand de frites : rien à lever dans le Raidillon ni dans la ligne droite qui suit (vitesse minimale ${Math.round(spa.vmin)} km/h, ${spa.rouge} consigne(s) de lever sur ${spa.vues})`);
-    ok(spa.plusLoin && spa.sorties === 0, 'et le guide fait bien lever avant le virage suivant, sans une sortie sur le tour');
+    ok(spa.vues > 100 && spa.horsFantome === 0 && !spa.sorti,
+      `Stand de frites, ligne droite après le Raidillon : on ne lève qu'au pli de la ligne, là où le fantôme lève (joueur ${spa.ou}, fantôme ${spa.ouF})`);
+    ok(spa.leveRaidillon && spa.raidillon && spa.sorties === 0, 'le guide fait lever avant le Raidillon, là où le fantôme freine, sans une sortie sur le tour');
+    ok(spa.annonces >= spa.freins * 0.9, `les freinages du fantôme sont annoncés par une zone rouge du guide : ${spa.annonces} sur ${spa.freins}`);
 
     // une sortie du fantôme ne lève pas de drapeau jaune
     const jaune = await p.evaluate(async () => { const r = app.race, f = r.fantome; f.state = 'grass'; r.flags.offSince.clear();

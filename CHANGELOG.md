@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.67
+- Guide de l'entraînement : il fait de nouveau freiner là où le fantôme freine, Raidillon compris. Le guide et le fantôme disent la même chose.
+
 ## 0.52.66
 - Guide de l'entraînement : il ne demande plus de lever dans une ligne droite après une chicane prise plus vite que prévu.
 - Les enchaînements qui se passent pied au plancher (le Raidillon de Stand de frites, par exemple) ne demandent plus de freiner.

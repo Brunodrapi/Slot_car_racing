@@ -1989,32 +1989,27 @@ pour que lever en voyant le rouge arriver sous le nez soit lever à temps. La gr
 circuit, pas sur la voiture : les zones ne frémissent pas. Le mot, lui, se lit sur les 18 m devant et
 tient un quart de seconde, sans quoi il clignoterait au rythme du dosage.
 
-**La vitesse de passage** (`Race._limitesGuide`, 0.52.66). Le premier calcul reprenait le profil de
-vitesse de l'IA, et Bruno en a vu les deux défauts à Stand de frites : « ça demande de freiner dans la
-ligne droite après la première chicane, et le freinage est trop fort dans la chicane où on peut
-quasiment passer à fond ».
+**La vitesse de passage** (`Race._limitesGuide`). C'est celle que vise l'IA, donc le fantôme : la
+limite de la courbure de la ligne, à 95 % de l'adhérence — la règle même de `aiThrottle`. Le guide et le
+fantôme disent la même chose : calculé pour la voiture du fantôme, le guide annonce par une zone rouge
+47 de ses 50 freinages sur un tour de Stand de frites, et la zone commence en moyenne 14 m avant que le
+fantôme lève (c'est l'avance de 200 ms pour réagir).
 
-- *La ligne droite.* Ce profil plafonne aussi la vitesse par ce que le moteur sait reprendre en sortant
-  du virage. Ce n'est pas une limite, c'est une prévision : qui sort plus vite que prévu n'a rien à
-  lever. La cible n'a plus que la limite du virage et le freinage qui y mène.
-- *L'enchaînement.* Dans le Raidillon la ligne ondule — quatre changements de courbure en 120 m, des
-  rayons de 52 à 94 m, de quoi demander 100 à 130 km/h — et les voitures y passent pied au plancher :
-  la K1 à 225-247 km/h avec 0,7 m de marge au bord, la Bumblebee Ground 79 à 226-251 avec 2,4 m, la
-  Breithüft Aero 62 à 235-265 avec 2,1 m. Le pilote vise un point loin devant, qui gomme l'ondulation,
-  et quand il demande plus que les pneus ne donnent la voiture élargit sans sortir : la limite y est la
-  largeur de la piste, pas l'adhérence.
+Deux corrections, à Stand de frites :
 
-On parcourt donc le circuit pied au plancher depuis son virage le plus lent, et chaque tronçon où la
-courbure demanderait de lever est **essayé** : un point le traverse d'une traite, 5 % plus vite que la
-voiture ne peut y arriver, piloté comme elle, sa courbure plafonnée par l'adhérence. S'il reste à 1,5 m
-des bords, et si ce sont des coudes brefs (la courbure y demande moins des deux tiers de cette
-vitesse, ou le tronçon se traverse en moins d'une demi-seconde), le tronçon se prend à fond ; sinon il
-garde la limite de sa courbure. Selon la voiture, de zéro à cinq tronçons par circuit sont reconnus
-ainsi.
-
-L'essai ne juge rien d'autre, et c'est voulu : employé pour tous les virages, il annonçait 106 km/h
-dans un virage de Windmolen qui se prend à 70 (ce point n'a ni inertie ni pneus), et le pilote qui
-l'écoutait sortait quinze fois en trois tours.
+- *0.52.66 — la ligne droite.* « Ça demande de freiner dans la ligne droite après la première
+  chicane. » Le premier calcul reprenait le profil de vitesse de l'IA tel quel, qui plafonne aussi la
+  vitesse par ce que le moteur sait reprendre en sortant du virage. Ce n'est pas une limite, c'est une
+  prévision, et l'IA ne s'en sert pas pour lever. Retirée : qui sort plus vite que prévu n'a rien à
+  lever. Il reste un coup de pied levé au pli de la ligne au milieu de cette ligne droite, là où le
+  fantôme lève aussi.
+- *0.52.67 — le Raidillon.* « Le freinage est trop fort dans la chicane où on peut quasiment passer à
+  fond. » C'est vrai : la ligne y ondule (rayons de 52 à 94 m, de quoi demander 100 à 130 km/h) et
+  toutes les voitures y passent pied au plancher, la Howitzer K1 à 225-247 km/h avec 0,7 m de marge au
+  bord. La 0.52.66 laissait donc le guide à fond dans les enchaînements de ce genre. Mais le fantôme,
+  qui roule comme l'IA, y freine : « ça crée une incohérence entre ce que fait le fantôme et le guide.
+  Remets les lignes de freinage comme ce que fait l'IA, tant pis. » C'est fait, sur tous les circuits.
+  Le jour où l'IA apprendra à passer ces enchaînements à fond, le guide suivra : il n'y a qu'une règle.
 
 **Tient-il ce qu'il dit ?** `node tools/guide-banc.js` fait rouler un pilote qui ne sait que lire la
 consigne à l'endroit de sa voiture, avec un retard de réaction et sans geste de moins de 80 ms. Les
