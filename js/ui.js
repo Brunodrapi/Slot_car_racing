@@ -880,7 +880,7 @@ class UI {
       ['training', 'setup', 'training', 'plaque-l.svg'],
       ['', 'multi', 'multi', 'helmets'],
     ];
-    this.show(`<header class="home-heading"><h1><img class="game-logo" src="art/interface/logo-grip.webp" alt="GRIP — Racing the Line"></h1></header>
+    this.show(`<header class="home-heading"><h1><img class="game-logo" src="art/interface/logo-grip.webp?r=2" alt="GRIP — Racing the Line"></h1></header>
       <div class="home-body"><nav class="mode-menu" data-pad-group aria-label="${en ? 'Game modes' : 'Modes de jeu'}">
       ${entries.map(([mode, action, label, icon]) => `<button class="mode-card mode-${mode || 'multi'}" data-action="${action}" ${mode ? `data-mode="${mode}"` : ''}>
           <span class="mode-art" aria-hidden="true"><img src="art/interface/${icon.includes('.') ? icon : icon + '.webp'}" alt=""></span>
@@ -1349,7 +1349,7 @@ class UI {
   paddockTopbar(titre, retour = 'menu', libelleRetour) {
     const lib = escapeHtml(libelleRetour || this.t('back'));
     // le mot peut s'effacer quand la place manque (voir `_ajusteBandeau`) : la flèche reste, et le nom pour les lecteurs d'écran
-    return `<div class="topbar"><button data-action="${retour}" aria-label="${lib}">←<span class="retour-mot"> ${lib}</span></button><span class="damier titre-damier" aria-hidden="true"></span><h2>${titre}</h2><img class="paddock-logo" src="art/interface/logo-grip.webp" alt="GRIP — Racing the Line"></div>`;
+    return `<div class="topbar"><button data-action="${retour}" aria-label="${lib}">←<span class="retour-mot"> ${lib}</span></button><span class="damier titre-damier" aria-hidden="true"></span><h2>${titre}</h2><img class="paddock-logo" src="art/interface/logo-grip.webp?r=2" alt="GRIP — Racing the Line"></div>`;
   }
 
   /* Les chiffres de la voiture, comme sur la maquette : pictogramme, valeur, libellé en clair.
