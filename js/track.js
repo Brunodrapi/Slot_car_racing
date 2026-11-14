@@ -249,6 +249,9 @@ class Track {
   _joinRunoffs() {
     const gap=this.def.runoffJoinGap;
     if(!gap)return;
+    // Un circuit sans zones déclarées n'a que les bacs tirés des virages, calculés plus tard à la
+    // demande (`largeurBac`) : on les calcule ici pour pouvoir les relier aussi (Watkins Glen).
+    if(!this.bacW)this.bacW=this._profilBac();
     const r=Math.ceil(gap/2);
     for(const layer of [this.bacW,this.asphaltW])if(layer)for(const key of ['L','R']){
       const a=layer[key],N=a.length,dilated=new Float32Array(N),closed=new Float32Array(N);

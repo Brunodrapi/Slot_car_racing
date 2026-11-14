@@ -4324,6 +4324,13 @@ autres (qui sont des illustrations générées) : les rails bleus de l'Armco, la
 camping-cars sur la colline, les collines boisées des Finger Lakes et le lac Seneca, la route qui
 remonte en S vers les Esses. La source est `art-src/circuits/watkins.svg`.
 
+**Les bacs à gravier reliés (0.52.78).** Les bacs tirés des virages s'y morcelaient : l'Outer Loop,
+le haut du Boot et le Heel donnaient trois ou quatre lobes de sable séparés de quelques mètres, chacun
+avec son bout de mur. « Relie-les pour faire de grands bacs à gravier » : `runoffJoinGap: 70`, la
+fermeture de Monaco et de Bathurst, qui comble les creux de moins de 70 m entre deux bacs d'un même
+côté. Elle ne touchait que les zones déclarées ; elle s'applique maintenant aussi aux bacs calculés
+(`Track._joinRunoffs`), ce qui ne change rien aux autres circuits — aucun n'a l'option sans zones.
+
 **Le nom est provisoire** (« Boot Hill »), en attendant le choix de Bruno.
 
 ### Voitures nettes sur écran Retina

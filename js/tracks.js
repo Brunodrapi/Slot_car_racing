@@ -2116,6 +2116,11 @@ const TRACKS = [
        une voie parallèle à l'intérieur d'un 90° se replierait sur elle-même, elle rejoint donc la
        piste avant le virage. Entrée et garages relevés dans OpenStreetMap. */
     pitFrom: 0.947, pitTo: 0.04, pitAt: 0.975,
+    /* Les bacs tirés des virages s'y morcelaient : l'Outer Loop, le Boot et ses enchaînements
+       donnaient trois ou quatre lobes de sable séparés de quelques mètres, chacun avec son bout de
+       mur. Bruno : « relie-les pour faire de grands bacs à gravier ». Les creux de moins de 70 m
+       entre deux bacs d'un même côté sont comblés (comme à Monaco et Bathurst). */
+    runoffJoinGap: 70,
     /* Le décor vient d'OpenStreetMap là où il y est (tribunes, parkings, bâtiments, la passerelle)
        et des photos de Bruno pour le reste : des bois tout autour, et des campings partout — le
        Glen est célèbre pour ça. Fractions du tour, côté -1 = droite = l'intérieur (sens horaire). */
