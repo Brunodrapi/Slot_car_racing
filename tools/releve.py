@@ -464,6 +464,17 @@ def main():
         print(f'  depart pose a {frac*100:.0f} % de « {nom} » (stations {a % len(r)} a {b % len(r)}, '
               f'point {j})')
 
+    # 2c. UN POINT DECLARE, « lat,lon ». Pour le circuit dont la ligne droite des stands n a pas de nom
+    #    a elle : a Watkins Glen, elle s appelle « Watkins Glen International », comme cinq autres
+    #    voies du tour, et la voie des stands ressort apres The Ninety — la grille se formait donc
+    #    entre le premier et le deuxieme virage. Le point se lit sur une carte du circuit ; d ou il
+    #    vient se note dans `tools/traces.py`. Il l emporte, comme `--depart-voie`.
+    if 'depart-point' in o:
+        rl, ro = (float(v) for v in o['depart-point'].split(','))
+        cible = metres([{'lat': rl, 'lon': ro}], lat0)[0]
+        j = min(range(len(r)), key=lambda i: math.dist(r[i], cible))
+        print(f'  depart pose au point declare {rl},{ro} (point {j}, a {math.dist(r[j], cible):.1f} m de l axe)')
+
     # 2b. LA VOIE DES STANDS. `--stands` dit laquelle : un circuit en porte souvent plusieurs, et
     #    « pit|box|stand » attrapait a Spa la « Support Pit Lane » de l ancien paddock — la grille se
     #    formait a Eau Rouge. Nommer la bonne est une donnee du circuit, pas un reglage.

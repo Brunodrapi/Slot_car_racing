@@ -40,8 +40,10 @@ const MONDIAL_KEY = 'sb_publishable_O5veQvYKXfUt6e7iKtrDUg_rqPC_CS9';
 tour refusé comme « inconnu » n'est pas renvoyé à chaque ouverture, mais seulement tant que cette
 version n'a pas changé. Sans ce numéro, le refus était définitif — et les tours en F1 ou à Paul
 Ricard, refusés tant que le serveur ne les connaissait pas, ne seraient jamais repartis après sa
-correction. 2 : les vingt-cinq voitures et les treize circuits. */
-const LISTES_SERVEUR = 2;
+correction. 2 : les vingt-cinq voitures et les treize circuits. 3 : Watkins Glen (0.52.77) — la
+fonction `record` doit être redéployée AVANT que la prod porte le circuit, sinon les tours qui y
+partent sont refusés et retenus comme inconnus sous ce numéro. */
+const LISTES_SERVEUR = 3;
 // Ce que connaissait la version 1 : tout tour hors de ces listes n'a pu qu'être refusé.
 const LISTES_V1 = {
   voitures: ['m1procar', 'f40', 'countach', '930', 'gt40', '935', 'corvette', '787b', 'csl'],

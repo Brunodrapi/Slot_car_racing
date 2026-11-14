@@ -65,7 +65,7 @@ demande aucune mesure — juste de penser à y ajouter une voiture quand on en a
 // refusés comme « inconnus ».
 const CIRCUITS = new Set(['monza', 'spa', 'monaco', 'silverstone', 'suzuka', 'interlagos',
                           'laguna', 'nurburgring', 'lemans', 'bathurst', 'redbullring', 'castellet',
-                          'zandvoort']);
+                          'zandvoort', 'watkins']);
 const VOITURES = new Set([
   // F1
   'tyrrellp34', 'ferrari312t', 'mclarenm23', 'lotus79', 'lotus72', 'brabhambt46b', 'williamsfw07',

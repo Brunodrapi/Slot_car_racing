@@ -2,6 +2,7 @@
 """Refabrique `js/traces.js` : un relevé OpenStreetMap par circuit, et la table qui les décrit.
 
     python3 tools/traces.py [--cache=<dossier>] [--points=600] [--decimales=3] [circuit...]
+    python3 tools/traces.py --insere watkins     # relève ce circuit seul et l'insère, sans toucher aux autres
 
 CE QUE CETTE TABLE DIT. Pour chaque circuit : où regarder, quelle relation lire, ce qu'il faut
 écarter, et la longueur officielle. Rien n'y est un réglage de confort — chaque valeur a été obtenue
@@ -80,6 +81,12 @@ TABLE = [
     # La boîte déborde largement le circuit : serrée au plus juste, elle coupait le virage de
     # l'hôtel à l'ouest et la chaîne ne se refermait pas — dix-sept voies sur vingt et une.
     ('castellet',   '43.240,5.770,43.265,5.810',  'Circuit Paul Ricard Piste GP',        'Pit Lane',       5842, 0.5, 'horaire', 118.0, '', ''),
+    # Le grand tour, avec le Boot et l'Inner Loop : 5473 m relevés pour 3,4 miles (5472 m). La carte
+    # de référence (LapMeta, fournie par Bruno) est orientée au nord, et le relevé brut s'y superpose
+    # tel quel. Le départ est déclaré : la ligne droite des stands porte le nom de cinq autres voies,
+    # et la voie des stands ressort après The Ninety. Le damier de la carte est à 43 % de la ligne
+    # droite en partant du virage 1, soit à mi-longueur de la voie des stands.
+    ('watkins',     '42.325,-76.940,42.350,-76.910', 'Watkins Glen Long Course',          'Pit Lane',       5472, 0.5, 'horaire', 0.0, '', '@42.341192,-76.928815'),
 ]
 DEPART_SANS_RELATION = {'laguna': 'The Corkscrew'}
 
@@ -133,7 +140,9 @@ def releve(ligne, cache, points, dec):
         cmd.append(f'--sauf={sauf}')
     if stands:
         cmd.append(f'--stands={stands}')
-    if depart:
+    if depart.startswith('@'):
+        cmd.append(f'--depart-point={depart[1:]}')
+    elif depart:
         cmd.append(f'--depart-voie={depart}')
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode != 0:
@@ -165,8 +174,27 @@ def main():
                      f'     {mesure.replace("longueur relevee", "longueur relevée")}.\n'
                      f'     {points} points · sens {ligne[6]} · posé à {ligne[7]}° · départ sur la ligne droite des stands. */\n'
                      f'  {ligne[0]}: [\n' + '\n'.join(pts) + '\n  ],\n')
+    if choisis and not o.get('insere'):
+        print('\n  (relevé partiel : js/traces.js n’est pas réécrit ; --insere y place les circuits choisis)')
+        return 0
     if choisis:
-        print('\n  (relevé partiel : js/traces.js n’est pas réécrit)')
+        # RELEVÉ PARTIEL INSÉRÉ (--insere) : seuls les circuits choisis sont remplacés ou ajoutés, les
+        # autres restent tels qu'ils ont été relevés. Tout refaire relirait OpenStreetMap tel qu'il est
+        # aujourd'hui : un contributeur qui a retouché un virage de Monza depuis changerait sa forme,
+        # et avec elle ses records.
+        chemin = os.path.join(RACINE, 'js', 'traces.js')
+        texte = open(chemin, encoding='utf-8').read()
+        for bloc, cid in zip(corps, choisis):
+            debut = texte.find(f'\n  {cid}: [')
+            if debut >= 0:
+                debut = texte.rfind('\n  /* ', 0, debut) + 1
+                fin = texte.index('\n  ],\n', debut) + len('\n  ],\n')
+                texte = texte[:debut] + bloc + texte[fin:]
+            else:
+                pos = texte.rindex('\n};\n\nif (typeof module') + 1      # la fin de l'objet TRACES
+                texte = texte[:pos] + '\n' + bloc + texte[pos:]
+        open(chemin, 'w', encoding='utf-8').write(texte)
+        print(f'\n  js/traces.js : {", ".join(choisis)} inséré(s), les autres circuits inchangés')
         return 0
     with open(os.path.join(RACINE, 'js', 'traces.js'), 'w', encoding='utf-8') as f:
         f.write(ENTETE + '\n'.join(corps) + '};\n\n'

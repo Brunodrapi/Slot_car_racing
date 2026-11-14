@@ -24,7 +24,7 @@ dans `js/engine-audio.js`. Les prises de moteur en viennent également.
 ## La géométrie des circuits — ODbL 1.0
 
 Les suites de points de `js/traces.js` viennent d'ailleurs. **Ce fichier, et lui seul, porte cette
-licence** ; les douze circuits sont relevés dans OpenStreetMap.
+licence** ; les quatorze circuits sont relevés dans OpenStreetMap.
 
 Chacun vient d'une relation d'OpenStreetMap, qui est la liste officielle des voies formant le tour ;
 Laguna Seca n'en a pas et se lit par la seule étiquette `highway=raceway`. L'écart à la longueur
@@ -44,6 +44,8 @@ officielle du circuit est ce qui atteste le relevé :
 | Mount Panorama | Mount Panorama Circuit | 6 197 / 6 213 m |
 | Red Bull Ring | Red Bull Ring | 4 300 / 4 318 m |
 | Zandvoort | Grand Prix Formule 1 van Nederland | 4 253 / 4 259 m |
+| Paul Ricard | Circuit Paul Ricard Piste GP | 5 765 / 5 842 m |
+| Watkins Glen | Watkins Glen Long Course | 5 473 / 5 472 m |
 
 © les contributeurs d'OpenStreetMap, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/).
 

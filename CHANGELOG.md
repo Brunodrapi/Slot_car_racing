@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.77
+- Nouveau circuit : Boot Hill, aux États-Unis (Watkins Glen, le grand tour avec le Boot), avec son décor de bois, de campings et de rails bleus.
+
 ## 0.52.76
 - F1 : sur toutes les monoplaces, les deux roues arrière ont la même taille et dépassent autant du ponton, et les deux roues avant dépassent autant de l'aileron avant.
 

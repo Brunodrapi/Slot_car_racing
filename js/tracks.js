@@ -2103,6 +2103,56 @@ const TRACKS = [
       ],
     },
   },
+  {
+    /* Watkins Glen, État de New York (0.52.77). Le grand tour — le Boot et l'Inner Loop —, relevé
+       dans OpenStreetMap (`tools/traces.py`) : 5473 m pour 3,4 miles. Le nom est provisoire. */
+    id: 'watkins', name: 'Boot Hill', country: 'US', flag: '🇺🇸', theme: 'glen',
+    architecture: 'pavillons',
+    barriers: true,   // les rails bleus de l'Armco, partout
+    kerb: DRAPEAUX.us,
+    length: 3000, width: 12,
+    pts: TRACES.watkins,
+    /* La voie des stands longe la ligne droite par l'intérieur. La vraie ressort après The Ninety ;
+       une voie parallèle à l'intérieur d'un 90° se replierait sur elle-même, elle rejoint donc la
+       piste avant le virage. Entrée et garages relevés dans OpenStreetMap. */
+    pitFrom: 0.947, pitTo: 0.04, pitAt: 0.975,
+    /* Le décor vient d'OpenStreetMap là où il y est (tribunes, parkings, bâtiments, la passerelle)
+       et des photos de Bruno pour le reste : des bois tout autour, et des campings partout — le
+       Glen est célèbre pour ça. Fractions du tour, côté -1 = droite = l'intérieur (sens horaire). */
+    implantation: [
+      { kind: 'stands', side: -1, from: 0.952, to: 0.995, recul: 12, prof: 24, module: 44 },
+      { kind: 'tribune', side: 1, from: 0.955, to: 0.03, recul: 11, prof: 18, module: 32 },
+      { kind: 'tribune', side: 1, from: 0.042, to: 0.07, recul: 18, prof: 20, module: 30 },
+      { kind: 'tribune', side: 1, from: 0.104, to: 0.118, recul: 16, prof: 16, module: 26 },
+      { kind: 'tribune', side: -1, from: 0.178, to: 0.19, recul: 16, prof: 16, module: 26 },
+      { kind: 'tribune', side: -1, from: 0.86, to: 0.876, recul: 22, prof: 18, module: 26 },
+      { kind: 'hangars', side: -1, from: 0.955, to: 0.968, recul: 50, prof: 40, module: 40 },
+      { kind: 'hangars', side: 1, from: 0.985, to: 0.008, recul: 34, prof: 30, module: 38 },
+      { kind: 'parking', side: -1, from: 0.93, to: 0.0, recul: 40, prof: 70 },
+      { kind: 'parking', side: -1, from: 0.008, to: 0.03, recul: 70, prof: 30 },
+      { kind: 'parking', side: -1, from: 0.095, to: 0.17, recul: 85, prof: 40 },
+      // les bois : à l'est derrière la ligne droite du fond, autour de la pointe du Boot, au nord
+      // derrière The Ninety, et à l'ouest derrière les campings de la ligne droite des stands
+      { kind: 'bois', side: 1, from: 0.07, to: 0.105, recul: 40, prof: 60, densite: 0.6 },
+      { kind: 'bois', side: 1, from: 0.25, to: 0.34, recul: 18, prof: 80, densite: 0.75 },
+      { kind: 'bois', side: 1, from: 0.39, to: 0.47, recul: 20, prof: 70, densite: 0.7 },
+      { kind: 'bois', side: 1, from: 0.56, to: 0.66, recul: 18, prof: 70, densite: 0.7 },
+      { kind: 'bois', side: 1, from: 0.68, to: 0.74, recul: 18, prof: 60, densite: 0.6 },
+      { kind: 'bois', side: 1, from: 0.88, to: 0.94, recul: 60, prof: 50, densite: 0.5 },
+      // l'étang et la rocaille de l'extérieur des Esses
+      { kind: 'nu', side: 1, from: 0.12, to: 0.14, prof: 60 },
+      // l'intérieur, entre les Esses et la ligne droite du fond : des voitures et des camping-cars
+      { kind: 'parking', side: -1, from: 0.205, to: 0.33, recul: 28, prof: 70 },
+      // les campings, en rangs derrière la protection
+      { kind: 'camping', side: -1, from: 0.2, to: 0.245, recul: 2.5 },
+      { kind: 'camping', side: 1, from: 0.142, to: 0.17, recul: 2.5 },
+      { kind: 'camping', side: -1, from: 0.6, to: 0.7, recul: 2.5 },
+      { kind: 'camping', side: 1, from: 0.75, to: 0.78, recul: 2.5 },
+      { kind: 'camping', side: 1, from: 0.895, to: 0.93, recul: 2.5 },
+    ],
+    // La passerelle piétonne qui enjambe la ligne droite, relevée dans OpenStreetMap.
+    passerelles: [0.9467],
+  },
 ];
 
 // Les tabliers bitumés peuvent précéder un bac : ne pas traiter tout le dégagement
@@ -2132,6 +2182,7 @@ const CIRCUIT_STYLES = {
   redbullring: { colors:['#448C58','#F1F0E8'], grass:['#709452','#81A464','#587B42','#AAA16A'] },
   castellet: { colors:[], grass:['#A6A16E','#B8B280','#908D5B','#C1AF77'] },
   zandvoort: { colors:['#ED782C','#F1F0E8'], grass:['#BCB67D','#CCC58D','#A5A06B','#D5BF82'] },
+  watkins: { colors:['#2769A3','#F1F0E8'], grass:['#7FA663','#8FB571','#6A8F52','#A9A56C'] },
 };
 for(const d of TRACKS){
   if(d.graphics)continue;

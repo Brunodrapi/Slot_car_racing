@@ -5,7 +5,7 @@
 // La table `tools/noms-affichage.json` donne, pour chaque identifiant, le nom à afficher — en français
 // comme en anglais, à l'identique. Le test le vérifie en trois temps :
 //
-//   les données   les 25 voitures et les 13 circuits existent sous leurs identifiants d'origine et
+//   les données   les 25 voitures et les 14 circuits existent sous leurs identifiants d'origine et
 //                 portent le nom de la table. Avec --reference, on compare aussi à un état antérieur
 //                 du dépôt : tout le reste (physique, tracés, sprites, sons, livrées) est identique,
 //                 et une livrée ne change de nom que si elle portait le nom de la voiture, ou si la
@@ -46,7 +46,7 @@ const vRates = TABLE.voitures.filter((v) => !voitures.has(v.id) || voitures.get(
 ok(TABLE.voitures.length === 25 && vRates.length === 0, `25 voitures, chacune sous son identifiant d'origine et dans sa catégorie, avec le nom de la table`
   + (vRates.length ? ' — en défaut : ' + vRates.map((v) => v.id).join(', ') : ''));
 const cRates = TABLE.circuits.filter((c) => !circuits.has(c.id) || circuits.get(c.id).name !== c.display_name);
-ok(TABLE.circuits.length === 13 && cRates.length === 0, `13 circuits, chacun sous son identifiant d'origine, avec le nom de la table`
+ok(TABLE.circuits.length === 14 && cRates.length === 0, `14 circuits, chacun sous son identifiant d'origine, avec le nom de la table`
   + (cRates.length ? ' — en défaut : ' + cRates.map((c) => c.id).join(', ') : ''));
 ok([...voitures.values(), ...circuits.values()].every((x) => typeof x.name === 'string'),
   'un seul nom par voiture et par circuit, sans variante de langue : le même en français et en anglais');
@@ -141,8 +141,8 @@ ok(/m: \(x\.car && x\.car\.modelId\)/.test(net) && /trackId: t\.trackId/.test(ne
     }
     const attendusCircuits = TABLE.circuits.map((c) => c.display_name);
     ok(JSON.stringify(menus.fr) === JSON.stringify(menus.en), 'français et anglais montrent exactement les mêmes noms de voitures et de circuits');
-    ok(attendusCircuits.every((n) => menus.fr.circuits.includes(n)) && menus.fr.circuits.length >= 13,
-      `les 13 circuits du menu portent leur nouveau nom (${menus.fr.circuits.slice(0, 4).join(', ')}…)`);
+    ok(attendusCircuits.every((n) => menus.fr.circuits.includes(n)) && menus.fr.circuits.length >= 14,
+      `les 14 circuits du menu portent leur nouveau nom (${menus.fr.circuits.slice(0, 4).join(', ')}…)`);
     for (const cat of ['gt', 'proto', 'f1']) {
       const attendues = TABLE.voitures.filter((v) => v.categorie === cat).map((v) => v.display_name);
       ok(attendues.every((n) => menus.fr[cat].includes(n)), `${cat} : les ${attendues.length} voitures du menu portent leur nouveau nom`);

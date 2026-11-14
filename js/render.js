@@ -79,6 +79,16 @@ const THEME_DEFS = {
     sousBois: '#23431f',
     props: { pine: 3, tree: 1.4, bales: 0, palm: 0 },
   },
+  /* Les Finger Lakes, en été : une herbe d'un vert franc, entre le gazon pâle du parc royal et le
+  sous-bois des Ardennes, et des bois de feuillus — érables, chênes — piqués de quelques pins. */
+  glen: {
+    patches: 0.45,
+    grass: '#86ae6b', grassLight: '#93ba77', grassDark: '#789f5f',
+    earth: '#a78e62', earthDark: '#937b53',
+    canopy: ['#3e7b37', '#4b8d40', '#30692d'], pine: ['#29584a', '#306756'],
+    sousBois: '#2b4e26',
+    props: { pine: 1.2, tree: 1.6, bales: 0.3, logs: 0.4, palm: 0 },
+  },
   // Stubble and ochre earth.
   autumn: {
     patches: 0.7,

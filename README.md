@@ -4279,6 +4279,53 @@ Ajouter une entrée dans `js/tracks.js` : une liste de points `[x, y]` formant u
 et le nombre de tours de référence. Les trois trajectoires sont générées automatiquement. Un circuit
 dessiné dans l'éditeur peut aussi être exporté en JSON et copié dans ce fichier.
 
+La marche suivie pour Watkins Glen (0.52.77), le quatorzième :
+
+1. **Le tracé**, relevé dans OpenStreetMap : une ligne dans la table de `tools/traces.py` (boîte,
+   relation, longueur officielle, sens, angle, départ), puis `python3 tools/traces.py --insere <id>`,
+   qui place ce seul circuit dans `js/traces.js` sans relire les autres — les relire prendrait
+   OpenStreetMap tel qu'il est aujourd'hui, et un virage retouché depuis par un contributeur changerait
+   des records. Le relevé doit tomber sur la longueur officielle (5473 m pour 5472) ; ajouter la ligne
+   à `LICENCES.md`.
+2. **L'entrée** de `js/tracks.js` : thème, vibreurs (`DRAPEAUX`), longueur du jeu (environ 0,55 de la
+   vraie), largeur, voie des stands (`pitFrom`, `pitTo`, `pitAt`), décor (`implantation`,
+   `passerelles`), et une ligne dans `CIRCUIT_STYLES`. Panneaux et bacs se calculent tout seuls.
+3. **Le fond de la carte**, `art/interface/circuits/<id>.webp`, 960 × 640.
+4. **Le serveur des records** : l'identifiant dans `supabase/functions/record/index.ts`
+   (`node tools/serveur-listes.js` le vérifie), `LISTES_SERVEUR` relevé dans `js/mondial.js`, et la
+   fonction redéployée (`tools/deploie.sh`) AVANT la publication en prod qui porte le circuit.
+5. **Le nom**, dans `tools/noms-affichage.json` ; `tools/e2e-noms.js` compte les circuits.
+6. **Les bancs** : `node tools/decor-banc.js <id>` (pas d'arbre sur la piste ni dans un bac),
+   `node tools/niveaux-banc.js . medium <id>` (l'IA boucle sans sortir), `node tools/guide-banc.js`.
+
+### Watkins Glen (0.52.77)
+
+Le grand tour, avec le Boot et l'Inner Loop, relevé sur la relation « Watkins Glen Long Course » :
+5473 m pour 3,4 miles. La carte de référence (LapMeta, fournie par Bruno) est orientée au nord, et le
+relevé s'y superpose sans rotation. Ramené à 3000 m de jeu, 12 m de large, sens horaire.
+
+**Le départ est déclaré** (`--depart-point`, nouvelle option de `tools/releve.py`) : la ligne droite
+des stands porte le même nom que cinq autres voies du tour, et la voie des stands ressort après
+The Ninety — déduite d'elle, la grille se formait entre le premier et le deuxième virage. Le damier de
+la carte est à 43 % de la ligne droite en partant du virage 1. **La voie des stands** longe la ligne
+droite par l'intérieur, de l'entrée relevée à 0,947 du tour jusqu'avant The Ninety : la vraie passe à
+l'intérieur du 90°, qu'une voie parallèle ne sait pas suivre sans se replier.
+
+**Le décor** vient d'OpenStreetMap là où il y est — tribunes en face des stands, au virage 1, dans les
+Esses et au Fast Lefthander ; parkings de l'intérieur ; hangars ; la passerelle qui enjambe la ligne
+droite — et des photos de Bruno pour le reste : des bois tout autour, le Boot au milieu des arbres, et
+des camping-cars partout, le Glen étant célèbre pour ça. Un thème à lui (`glen`, js/render.js) : une
+herbe d'un vert franc et des feuillus d'été, entre le parc pâle de Monza et le sous-bois des Ardennes.
+Bancs : 1410 arbres, aucun sur la piste ni dans un bac ; l'IA en course (moyen et difficile, trois
+catégories) sans une sortie ni un tête-à-queue ; le guide suivi à 0, 150 et 300 ms sans sortie.
+
+**Le fond de la carte** est dessiné en vectoriel par `tools/fond-watkins.py`, dans l'esprit des douze
+autres (qui sont des illustrations générées) : les rails bleus de l'Armco, la passerelle, les
+camping-cars sur la colline, les collines boisées des Finger Lakes et le lac Seneca, la route qui
+remonte en S vers les Esses. La source est `art-src/circuits/watkins.svg`.
+
+**Le nom est provisoire** (« Boot Hill »), en attendant le choix de Bruno.
+
 ### Voitures nettes sur écran Retina
 
 Depuis la version 0.22.0, la résolution adaptative concerne le décor. Les voitures

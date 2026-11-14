@@ -324,6 +324,12 @@
       "original": "Zandvoort",
       "display_name": "Windmolen",
       "statut": "validé"
+    },
+    {
+      "id": "watkins",
+      "original": "Watkins Glen",
+      "display_name": "Boot Hill",
+      "statut": "proposé"
     }
   ],
   "livrees": [
