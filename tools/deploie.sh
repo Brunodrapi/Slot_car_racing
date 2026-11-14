@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # Déploie la fonction serveur `record` sur Supabase.
 #
-#   tools/deploie.sh [nom-de-fonction]
+#   tools/deploie.sh [nom-de-fonction] [--yes]
+#
+# `--yes` est passé au CLI : depuis 2026, `supabase functions deploy` lancé par un agent refuse de
+# toucher la prod sans lui (« HostedMutationConsentRequiredError … ask the user before re-running
+# with --yes »). Ne le passer qu'avec l'accord de Bruno pour CE déploiement.
 #
 # POURQUOI UN SCRIPT POUR UNE COMMANDE. Parce que ce n'est pas une commande, c'est une commande plus
 # trois choses qu'on oublie : le bon numéro de projet, le jeton au bon endroit, et le fait que le
@@ -17,6 +21,7 @@
 set -euo pipefail
 
 FONCTION="${1:-record}"
+shift || true
 PROJET="${SUPABASE_PROJECT_REF:-fyaifqvghkvrydcldiup}"
 RACINE="$(cd "$(dirname "$0")/.." && pwd)"
 
@@ -42,7 +47,7 @@ cd "$RACINE"
 echo "  déploiement de « $FONCTION » sur le projet $PROJET"
 # `npx` plutôt qu'une installation : le conteneur est recréé à chaque session, et une dépendance
 # installée dans l'image serait à remettre à jour sans que personne ne le voie.
-npx --yes supabase@latest functions deploy "$FONCTION" --project-ref "$PROJET"
+npx --yes supabase@latest functions deploy "$FONCTION" --project-ref "$PROJET" "$@"
 echo
 echo "  déployé. Ce que ça NE dit pas : que la fonction accepte un vrai temps. Elle exige un jeton"
 echo "  Google, donc un navigateur et un vrai compte — il faut poser un tour dans le jeu pour le voir."
