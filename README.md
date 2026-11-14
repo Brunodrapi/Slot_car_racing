@@ -1271,6 +1271,29 @@ tracks.js » ; l'éditeur de circuits le dit (« retouches de ce poste plus anci
 ignorées ») et « Revenir au fichier » les efface. Une retouche enregistrée après s'applique comme
 avant. À chaque reprise d'un fichier, on avance `revision`. Essai : `tools/e2e-retouches-perimees.js`.
 
+### Les vibreurs aux couleurs des vrais (0.52.82)
+
+« Fais une petite recherche pour adapter les vibreurs aux différentes couleurs réelles des circuits. »
+Le profil graphique des circuits (`CIRCUIT_STYLES`, js/tracks.js) les peignait tous en rouge et blanc,
+par-dessus les couleurs de drapeau de `DRAPEAUX` ; une ligne peut maintenant nommer les siennes
+(`kerb`), et seuls les circuits dont les vrais vibreurs ont d'autres couleurs le font :
+
+| circuit | vibreurs | d'après |
+|---|---|---|
+| Parco Reale (Monza) | vert, blanc, rouge | déjà en place ; aux couleurs de l'Italie |
+| Stand de frites (Spa) | rouge et jaune | [Flow Racers](https://flowracers.com/blog/why-f1-tracks-have-kerbs/) |
+| Festival de Carnaval (Interlagos) | vert, jaune et blanc | [Flow Racers](https://flowracers.com/blog/why-f1-tracks-have-kerbs/) |
+| Windmolen (Zandvoort) | orange et blanc | [Motor Sport Magazine](https://www.motorsportmagazine.com/articles/single-seaters/f1/zandvoorts-all-about-big-bks-not-drs-passes-says-circuit-designer) |
+| Camping Glen (Watkins Glen) | jaune et rouge | Bruno (les sources trouvées ne disent rien de sûr) |
+
+Les autres gardent le rouge et blanc : c'est ce que disent les sources pour Monaco, Suzuka, Le Mans, le
+Red Bull Ring (ses « saucisses » jaunes ne sont pas dessinées), Laguna Seca (du bleu et blanc au seul
+Corkscrew) et Paul Ricard, dont le bleu et le rouge célèbres sont ceux des DÉGAGEMENTS, pas des
+vibreurs ; Silverstone, bleu et blanc dans les années 1990 selon des souvenirs de forum, est rouge et
+blanc aujourd'hui ([guides de pilotage](https://www.tracktitan.io/post/silverstone-track-guide-sector-1-f1-2021)).
+Pour le Nürburgring et Bathurst, rien de sûr : on garde le défaut. Seule la couleur change — ni la
+largeur des vibreurs, ni la physique.
+
 ### Monaco relevé sur une vue satellite (0.52.34)
 
 Le Rocher n'a plus de baie calculée : son port, sa ville et ses monuments sont **relevés sur une

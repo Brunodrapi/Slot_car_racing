@@ -163,7 +163,8 @@ const TRACKS = [
     // Même langage de matériaux que Monza, adapté à la forêt ardennaise.
     // Les zones de dégagement annotées et tous les repères de gameplay sont conservés.
     graphics: { profile: 'circuit', roadOutlineWidth: 0.35, kerbBlock: 1,
-      kerb: ['#C9282E','#F1F0E8'], kerbOutlineWidth: 0.12, proceduralPit: true, paintedRunoff: false,
+      // rouges et jaunes, comme les vrais (0.52.82)
+      kerb: ['#C9282E','#E9BE37'], kerbOutlineWidth: 0.12, proceduralPit: true, paintedRunoff: false,
       runoffColors: ['#E9BE37','#C9282E','#E9BE37','#C9282E'],
       greenAprons: [{from:.1671,to:.2064,side:1},{from:.3486,to:.3835,side:1},
         {from:.9671,to:.992,side:1}],
@@ -2174,20 +2175,26 @@ for(const id of ['interlagos','redbullring']){
   d.runoffs.push(...aprons);
 }
 
+/* LES VIBREURS AUX COULEURS DES VRAIS (0.52.82). Rouge et blanc par défaut — c'est la norme presque
+partout — et, là où le vrai circuit en a d'autres : Monza vert-blanc-rouge, Spa rouge et jaune,
+Interlagos vert, jaune et blanc, Zandvoort orange et blanc, Watkins Glen jaune et rouge. Ailleurs, la
+recherche dit rouge et blanc (Monaco, Suzuka, Le Mans, Red Bull Ring, Paul Ricard — dont le bleu et
+le rouge sont ceux des dégagements, pas des vibreurs —, Silverstone aujourd'hui) ou ne dit rien de sûr
+(Nürburgring, Bathurst), et l'on garde le défaut. Les sources : README, « Les vibreurs ». */
 // Profils artistiques configurés : les couleurs ne changent aucune surface physique.
 // Une palette est une proposition visuelle, pas une certification des peintures réelles.
 const CIRCUIT_STYLES = {
   monaco: { colors:['#C9282E','#F1F0E8'], grass:['#DCD4C7','#E3DCCF','#CDC6BA','#D9CBAF'] },
   silverstone: { colors:['#448C58','#F1F0E8'], grass:['#79945C','#88A16C','#657F4D','#ACA36E'] },
   suzuka: { colors:['#448C58','#F1F0E8'], grass:['#6D9652','#80A565','#557944','#A2A06A'] },
-  interlagos: { colors:['#448C58','#E9BE37'], grass:['#669A4C','#78AB5C','#51823E','#A4A267'] },
+  interlagos: { colors:['#448C58','#E9BE37'], grass:['#669A4C','#78AB5C','#51823E','#A4A267'], kerb:['#448C58','#E9BE37','#F1F0E8'] },
   laguna: { colors:['#2769A3','#F1F0E8'], grass:['#B9AD71','#C8BD83','#A29963','#D0BD7A'] },
   nurburgring: { colors:['#448C58','#F1F0E8'], grass:['#547B46','#638952','#41683B','#98965F'] },
   lemans: { colors:['#2769A3','#E9BE37'], grass:['#77935A','#8BA66D','#637D4A','#ACA16C'] },
   bathurst: { colors:['#448C58','#E9BE37'], grass:['#93965C','#A6A36C','#7D834C','#B6A46B'] },
   redbullring: { colors:['#448C58','#F1F0E8'], grass:['#709452','#81A464','#587B42','#AAA16A'] },
   castellet: { colors:[], grass:['#A6A16E','#B8B280','#908D5B','#C1AF77'] },
-  zandvoort: { colors:['#ED782C','#F1F0E8'], grass:['#BCB67D','#CCC58D','#A5A06B','#D5BF82'] },
+  zandvoort: { colors:['#ED782C','#F1F0E8'], grass:['#BCB67D','#CCC58D','#A5A06B','#D5BF82'], kerb:['#ED782C','#F1F0E8'] },
   // Watkins Glen : des vibreurs jaunes et rouges, comme les vrais (Bruno, 0.52.80).
   watkins: { colors:['#2769A3','#F1F0E8'], grass:['#7FA663','#8FB571','#6A8F52','#A9A56C'], kerb:['#E9BE37','#C9282E'] },
 };
