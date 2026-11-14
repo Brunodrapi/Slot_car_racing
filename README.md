@@ -91,6 +91,10 @@ manette Xbox (RT dosée, LT progressif). Une sauvegarde réglée sur la manette 
 attendant. `tools/e2e-pc.js` vérifie le jeu à un bouton et qu'une manette branchée ne fait rien ;
 `tools/e2e-manette.js` attend le retour de la manette.
 
+**La pause ne rappelle plus les commandes** (0.52.70) : « dans tous les menus pauses : supprime » le
+pavé « Poser le pouce n'importe où… », et sur PC la ligne « Maintiens Espace… » qui en était le
+pendant. Elles sont dans « Comment jouer », et l'aide du clavier reste dans les réglages.
+
 Les configurations de freinage proposées au départ sont celles enregistrées pour **la voiture
 et le circuit sélectionnés**. Le choix actif, y compris « Par défaut », est mémorisé pour chaque
 couple. Les configurations déjà enregistrées sont conservées lors de la mise à jour.
@@ -1922,8 +1926,14 @@ comptés, pas de contact, « Terminer la session » à la pause) lancé avec `en
   dixièmes de seconde — et non la distance convertie au rythme du meilleur tour, qui donne des mètres
   tant qu'aucun tour n'est bouclé.
 - **Les records** : un tour d'entraînement compte pour le record personnel, jamais pour le tableau
-  mondial (`tourNet`, js/career.js) — il est couru avec le guide. Le paddock le dit avant de partir, et
-  le contre-la-montre l'explique après (« couru à l'entraînement… bats-le en contre-la-montre »).
+  mondial (`tourNet`, js/career.js) — il est couru avec le guide. La pause le dit, et le
+  contre-la-montre l'explique après (« couru à l'entraînement… bats-le en contre-la-montre »). Le
+  paddock de l'entraînement n'affiche donc ni « Se connecter avec Google » ni l'état du tableau
+  mondial, ni ses refus (0.52.70 : « la connexion Google ne sert à rien ») ; il garde la colonne du
+  monde, qui est le temps à viser.
+- **La pause** dit ce qu'est le mode et donne la légende du guide, sur un papier (`.pause-entrainement`) :
+  elles étaient au paddock jusqu'à la 0.52.69 ; « n'a pas lieu d'apparaître ici, mets-le dans le menu
+  pause en entraînement ». C'est en roulant qu'on se demande ce que veut dire une bande rouge.
 - **Les résultats** donnent le meilleur tour du fantôme sous celui du joueur, avec l'écart, et ses
   tours en face de ceux du joueur.
 
@@ -1978,7 +1988,7 @@ peints sur la ligne choisie, un seul sens chacun (`Renderer._drawGuide`) :
 Le rouge et le vert ne se distinguent pas que par la couleur (une bande, des tirets, des chevrons). Le
 mot de la consigne s'affiche près de la commande — au-dessus de la vitesse — et sert de légende : on
 voit le rouge arriver sous la voiture et le mot changer au même instant. Quand le joueur appuie dans le
-rouge plein, la bande bat. Le paddock de l'entraînement donne la légende avant de partir.
+rouge plein, la bande bat. La pause de l'entraînement en donne la légende.
 
 **Comment c'est calculé** (`Race.guide`, js/race.js — de la logique pure, sans dessin). On part de la
 vitesse réelle de la voiture et on fait rouler devant elle, par pas de 3 m sur 261 m, un pilote à un

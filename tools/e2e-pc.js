@@ -61,7 +61,8 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.png
   await page.keyboard.down('Space');await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
   assert.equal(await page.evaluate(()=>app.state),'paused');assert.equal(await page.evaluate(()=>app.input.throttle),0,'perte de focus : gaz coupés');
   await page.keyboard.up('Space');await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
-  assert.match(await page.locator('.pc-controls').innerText(),/Espace/,'la pause rappelle les touches');
+  // 0.52.70 : plus de rappel des commandes dans la pause (il reste dans les réglages, vérifié plus bas)
+  assert.equal(await page.locator('.pc-controls').count(),0,'la pause ne rappelle plus les touches');
   await page.click('[data-action="resume"]');assert.equal(await page.evaluate(()=>app.input.throttle),0);
   await page.keyboard.press('Escape');assert.equal(await page.evaluate(()=>app.state),'paused','Échap : pause');
   await page.click('[data-action="resume"]');
@@ -95,6 +96,7 @@ const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.png
    assert(await page.evaluate(()=>Math.abs(app.renderer.pouce.cx-app.renderer.slider.x)>app.renderer.pouce.r+30),'pastille opposée au levier droit');
    await page.evaluate(()=>app.togglePause());await shot(page,name+'-pause-paysage');
    assert.equal(await page.locator('#sel-desktop-control').count(),0);
+   assert(!/Poser le pouce|Thumb anywhere/.test(await page.locator('#ui').innerText()),'pause mobile sans le pavé « Poser le pouce… » (0.52.70)');
    assert(await page.locator('.screen').evaluate(e=>e.clientWidth<=Math.min(innerWidth,innerHeight)+1&&e.scrollWidth<=e.clientWidth),'menu mobile en colonne sans débordement');
    await page.evaluate(()=>{app.toMenu();app.ui.setupScreen('race');});
    assert(await page.locator('.setup-columns').evaluate(e=>{const [a,b]=[...e.children].map(c=>c.getBoundingClientRect());return a.height>50&&b.height>50&&b.top>=a.bottom&&Math.abs(a.left-b.left)<1;}),'menus restent en colonne en paysage');

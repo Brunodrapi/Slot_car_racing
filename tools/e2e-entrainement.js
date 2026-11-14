@@ -4,10 +4,12 @@
 //   NODE_PATH=$(npm root -g) node tools/e2e-entrainement.js [http://127.0.0.1:8770] [dossier de captures]
 //
 // On vérifie :
-// - le menu principal a l'entrée « Entraînement » ; elle ouvre son paddock, qui dit ce qu'est le mode ;
+// - le menu principal a l'entrée « Entraînement » ; elle ouvre son paddock, sans connexion Google ni état
+//   du tableau mondial (aucun tour n'y part), ni note ni légende (0.52.70) : elles sont dans la pause, qui
+//   dit ce qu'est le mode, sur un papier, et n'a plus le rappel des commandes ;
 // - le guide (0.52.65) dit au doigt quoi faire — rouge : lâche, pointillé : dose, chevrons verts : gaz — et
-//   le calcule sur la vitesse du joueur ; un pilote qui lui obéit boucle ses tours sans sortir ; le
-//   paddock en donne la légende, et le mot de la consigne s'affiche près de la commande ;
+//   le calcule sur la vitesse du joueur ; un pilote qui lui obéit boucle ses tours sans sortir ; la
+//   pause en donne la légende, et le mot de la consigne s'affiche près de la commande ;
 // - en piste : un contre-la-montre à deux voitures, le guide de freinage peint, et le fantôme — la même
 //   voiture et la même livrée que le joueur, au niveau difficile (sans triche d'adhérence), parti du même emplacement, sur la
 //   ligne idéale, peint en transparence ;
@@ -44,14 +46,16 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     ok(carte && /Entraînement/i.test(carte.texte), `le menu principal a l'entrée « ${carte && carte.texte} »`);
     await p.click('.mode-card.mode-training');
     await p.waitForSelector('.setup-screen');
-    const paddock = await p.evaluate(() => ({ titre: document.querySelector('.topbar h2').textContent.trim(), note: (document.querySelector('.entrainement-note') || {}).textContent || '', cle: app.ui._cleEcran,
-      records: !!document.querySelector('.setup-records .records') }));
+    const paddock = await p.evaluate(() => ({ titre: document.querySelector('.topbar h2').textContent.trim(), cle: app.ui._cleEcran,
+      records: !!document.querySelector('.setup-records .records'), monde: document.querySelectorAll('.records .rline .monde').length,
+      note: !!document.querySelector('.entrainement-note'), legende: !!document.querySelector('.guide-legende'),
+      mondial: !!app.mondial, google: !!document.querySelector('.setup-records [data-action="google"]'), etat: document.querySelectorAll('.setup-records .mondial-note').length }));
     ok(/Entraînement/i.test(paddock.titre) && paddock.cle === 'depart:training', `paddock « ${paddock.titre} »`);
-    ok(/guide/.test(paddock.note) && /fantôme/.test(paddock.note) && /niveau difficile/.test(paddock.note) && /pas pour le tableau mondial/.test(paddock.note), `il dit ce qu'est le mode : « ${paddock.note} »`);
-    ok(paddock.records, 'il montre les records, comme le contre-la-montre');
-    const legende = await p.evaluate(() => { const l = document.querySelector('.guide-legende'); return l ? { texte: l.textContent.replace(/\s+/g, ' ').trim(), signes: l.querySelectorAll('.guide-signe svg').length } : null; });
-    ok(legende && legende.signes === 3 && /lâche le bouton/.test(legende.texte) && /dose/.test(legende.texte) && /remets les gaz/.test(legende.texte),
-      `la légende du guide : « ${legende && legende.texte} »`);
+    ok(paddock.records && paddock.monde > 0, 'il montre les records et la colonne du monde, comme le contre-la-montre');
+    // 0.52.70 : « la connexion Google ne sert à rien » — aucun tour n'y part
+    ok(paddock.mondial && !paddock.google && paddock.etat === 0, 'ni « Se connecter avec Google » ni l\'état du tableau mondial');
+    // 0.52.70 : la note et la légende sont passées dans la pause
+    ok(!paddock.note && !paddock.legende, 'ni la note ni la légende du guide au paddock');
     if (OUT) await p.screenshot({ path: path.join(OUT, 'entrainement-paddock.png') });
 
     // --- en piste ---
@@ -69,6 +73,22 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     ok(depart.nom === 'Fantôme', `il s'appelle « ${depart.nom} »`);
     ok(depart.guide === true, 'le guide de freinage est allumé');
     await p.waitForFunction(() => app.race.state === 'racing', null, { timeout: 30000 });
+
+    // la pause de l'entraînement : ce qu'est le mode, et la légende du guide
+    await p.evaluate(() => app.togglePause());
+    const pause = await p.evaluate(() => { const b = document.querySelector('.pause-entrainement'), l = b && b.querySelector('.guide-legende');
+      return { etat: app.state, note: b ? (b.querySelector('.entrainement-note') || {}).textContent || '' : '', legende: l ? l.textContent.replace(/\s+/g, ' ').trim() : '',
+        signes: l ? l.querySelectorAll('.guide-signe svg').length : 0, aide: /Maintiens Espace|Poser le pouce/.test(document.querySelector('#ui').textContent),
+        fond: b ? getComputedStyle(b).backgroundColor : '' }; });
+    ok(pause.etat === 'paused' && /guide/.test(pause.note) && /fantôme/.test(pause.note) && /niveau difficile/.test(pause.note) && /pas pour le tableau mondial/.test(pause.note),
+      `la pause dit ce qu'est le mode : « ${pause.note} »`);
+    ok(pause.signes === 3 && /lâche le bouton/.test(pause.legende) && /dose/.test(pause.legende) && /remets les gaz/.test(pause.legende),
+      `la pause a la légende du guide : « ${pause.legende} »`);
+    ok(pause.fond === 'rgb(244, 236, 214)', `sur un papier, lisible sur le voile sombre (${pause.fond})`);
+    ok(!pause.aide, 'plus de rappel des commandes dans la pause');
+    if (OUT) await p.screenshot({ path: path.join(OUT, 'entrainement-pause.png') });
+    await p.click('[data-action="resume"]');
+    await p.waitForFunction(() => app.state === 'race');
 
     // le joueur roule : pilote automatique, pour rester à portée du fantôme
     await p.evaluate(() => { const r = app.race, orig = r.update.bind(r);
@@ -247,6 +267,8 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     ok(entr.colonnes.includes('Fantôme'), `le tableau des tours a la colonne du fantôme (${entr.colonnes.join(', ')})`);
     ok(entr.retour === 'training', `« Retour » ramène au paddock de l'entraînement (${entr.retour})`);
     if (OUT) await p.screenshot({ path: path.join(OUT, 'entrainement-resultats.png') });
+    const auPaddock = await p.evaluate(() => { app.ui.setupScreen('training'); return document.querySelectorAll('.setup-records .mondial-note').length; });
+    ok(auPaddock === 0, 'le paddock de l\'entraînement ne répète pas le refus');
     const message = await p.evaluate(() => { app.ui.setupScreen('timetrial'); return [...document.querySelectorAll('.mondial-note')].map((n) => n.textContent).join(' | '); });
     ok(/à l’entraînement/.test(message), `le contre-la-montre l'explique : « ${message.trim().slice(0, 110)}… »`);
 

@@ -4,6 +4,11 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.70
+- Entraînement : le paddock ne propose plus de se connecter à Google (aucun tour d'entraînement ne va au tableau mondial).
+- Entraînement : l'explication du mode et la légende du guide sont passées du paddock à la pause.
+- Pause : le rappel des commandes (« Poser le pouce n'importe où… », « Maintiens Espace… ») est retiré.
+
 ## 0.52.69
 - Logo : la zone beige entre le P et la piste est passée en noir.
 

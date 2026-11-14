@@ -62,7 +62,6 @@ const I18N = {
     title: 'GRIP — RACING THE LINE',
     career: 'Carrière', quickRace: 'Course rapide', timeTrial: 'Contre-la-montre', settings: 'Réglages', statistics: 'Statistiques publiques', back: 'Retour',
     editor: 'Éditeur de circuits', workshop: 'Atelier voitures',
-    howto: 'Poser le pouce n’importe où (ou maintenir Espace) : accélérer, relâcher pour freiner. La pastille vient se placer sous le pouce, et la vitesse se lit en haut au milieu. Pouce gauche (ou ↑ / ↓) : choisir sa place sur la piste — bord bleu, ligne idéale ou bord jaune. Les deux bords gardent leur couleur tout le tour. Trop vite dans un virage, c’est le bac à gravier.',
     /* Comment jouer, Installez-moi, Faites un don : les trois entrées du bas de l'accueil (0.52). Les
     deux libellés en « vous » sont ceux que Bruno a choisis pour le menu ; les écrans tutoient, comme
     tout le reste du jeu. Les textes d'installation portent leurs pictogrammes en argument. */
@@ -216,7 +215,6 @@ const I18N = {
     title: 'GRIP — RACING THE LINE',
     career: 'Career', quickRace: 'Quick race', timeTrial: 'Time trial', settings: 'Settings', statistics: 'Public statistics', back: 'Back',
     editor: 'Track editor', workshop: 'Car workshop',
-    howto: 'Thumb anywhere (or hold Space): accelerate, release to brake. The pad follows your thumb, and the speed reads at the top centre. Left thumb (or ↑ / ↓): pick your place on the road — blue edge, racing line or yellow edge. Each edge keeps its colour all the way round. Too fast into a corner and it’s the gravel.',
     menuHowto: 'How to play', menuInstall: 'Install me', menuDon: 'Donate', menuAide: 'Help and support',
     conseilFirefox: 'For the best experience, use Firefox.', fermer: 'Close',
     discordBug: 'Report a bug or make a request on Discord', discordJoueurs: 'Find players on Discord',
@@ -1145,7 +1143,11 @@ class UI {
 
   Rangées par temps, les vierges à la fin : un classement, pas un catalogue. Et la vignette à
   gauche parce qu'une liste de noms se lit, là où une liste de voitures se reconnaît. */
-  records(trackId, cat, choisie, livery) {
+  /* À l'entraînement (`entrainement`), ni l'état du tableau mondial ni ses refus : aucun tour n'y part,
+  si bien que « Connecte-toi pour inscrire tes temps » proposait une connexion qui ne sert à rien
+  (Bruno : « la connexion Google ne sert à rien »). La colonne du monde reste : c'est le temps à
+  viser. */
+  records(trackId, cat, choisie, livery, entrainement = false) {
     const t = (k, ...a) => this.t(k, ...a), s = this.app.save, app = this.app;
     /* Les temps du monde arrivent APRÈS l'écran, jamais avant lui.
 
@@ -1160,8 +1162,8 @@ class UI {
       .sort((x, y) => (x.b == null ? 1 : 0) - (y.b == null ? 1 : 0) || (x.b || 0) - (y.b || 0));
     const cell = (v) => v == null ? `<span class="muted">--:--.---</span>` : fmtTime(v);
     return `<h3>${t('yourBest')}</h3>
-      ${this.etatMondial()}
-      ${app.mondial && app.mondial.dernierRefus
+      ${entrainement ? '' : this.etatMondial()}
+      ${!entrainement && app.mondial && app.mondial.dernierRefus
         ? `<p class="warn mondial-note">${this.messageRefus(app.mondial.dernierRefus.raison)}${
             app.mondial.detailRefus ? ` <small class="detail">${escapeHtml(String(app.mondial.detailRefus))}</small>` : ''}
             ${RECONNEXION.has(app.mondial.dernierRefus.raison)
@@ -1324,14 +1326,16 @@ class UI {
            menu, si bien que la liste était soit vide, soit le musée des essais d'un ancien
            réglage. Les tracés enregistrés ne sont pas effacés pour autant — ils restent dans le
            navigateur et l'éditeur y mène encore par son adresse. -->
-      <div class="setup-records">${entrainement ? `<p class="entrainement-note">${t('trainingNote')}</p>${this.legendeGuide()}` : ''}${race ? this.palmaresListe(st.trackId, cat, model, livery) : this.records(st.trackId, cat, model, livery)}</div>
+      <div class="setup-records">${race ? this.palmaresListe(st.trackId, cat, model, livery) : this.records(st.trackId, cat, model, livery, entrainement)}</div>
       </section></div>
       ${this.setupBar(race, model, trackDef, laps)}
     `, 'scroll setup-screen', 'depart:' + mode);
   }
 
-  /* LA LÉGENDE DU GUIDE, au paddock de l'entraînement : les trois signes tels qu'ils sont peints sur
-  la piste (js/render.js, `_drawGuide`), chacun avec son seul sens. */
+  /* LA LÉGENDE DU GUIDE, dans la pause de l'entraînement : les trois signes tels qu'ils sont peints sur
+  la piste (js/render.js, `_drawGuide`), chacun avec son seul sens. Elle était au paddock (0.52.65) ;
+  Bruno : « n'a pas lieu d'apparaître ici, mets-le dans le menu pause en entraînement » — c'est en
+  roulant qu'on se demande ce que veut dire une bande rouge. */
   legendeGuide() {
     const t = (k) => this.t(k);
     const signe = (svg, texte) => `<span class="guide-signe"><svg viewBox="0 0 44 14" aria-hidden="true">${svg}</svg>${texte}</span>`;
@@ -1642,6 +1646,7 @@ class UI {
     this.show(`
       <h2>${t('paused')}</h2>
       ${race.netDrive ? `<p class="muted">${t('pauseEnLigne')}</p>` : ''}
+      ${race.entrainement ? `<div class="pause-entrainement"><p class="entrainement-note">${t('trainingNote')}</p>${this.legendeGuide()}</div>` : ''}
       <div class="menu">
         <button class="big primary" data-action="resume">${t('resume')}</button>
         ${race.mode === 'timetrial' ? `<button class="big" data-action="endTT">${t('endSession')}</button>` : ''}
@@ -1659,7 +1664,10 @@ class UI {
       <!-- Le signalement de bug vit AUSSI ici, et d'abord ici : c'est là qu'est le joueur quand le bug
            arrive (voir README, « Discord »). La course reste en pause pendant qu'il écrit. -->
       ${this.lienDiscord('discordBug', DISCORD_BUGS_URL)}
-      ${this.app.desktop ? this.pcControls() : `<p class="muted">${t('howto')}</p>`}
+      <!-- Plus de rappel des commandes ici (0.52.70) : Bruno, « dans tous les menus pauses :
+           supprime » le pavé « Poser le pouce n'importe où… ». Il est dans « Comment jouer », et sur
+           PC dans les réglages. Seul un vrai choix de commande y reviendrait, avec la manette. -->
+      ${this.app.desktop && MANETTE ? this.pcControls() : ''}
     `, 'center overlay');
   }
 
