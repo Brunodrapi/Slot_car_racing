@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.74
+- Windsor 07 : la roue avant de droite dépasse de l'aileron autant que celle de gauche, et la roue arrière de gauche a la même taille que celle de droite.
+
 ## 0.52.73
 - F1 : les dessins vus de dessus et leurs roues restent ceux d'origine (une retouche essayée en recette est retirée).
 

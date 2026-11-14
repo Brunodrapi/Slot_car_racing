@@ -410,7 +410,7 @@ registerWheelSprite('mclarenm23', spriteAxle(.779,.204,.868,.14,.17,true));
 registerWheelSprite('lotus72', spriteAxle(.782,.217,.809,.14,.16,true));
 registerWheelSprite('lotus79', spriteAxle(.794,.196,.847,.14,.17,true));
 registerWheelSprite('brabhambt46b', spriteAxle(.782,.251,.817,.14,.18,true));
-registerWheelSprite('williamsfw07', spriteAxle(.790,.230,.790,.14,.17,true,true));
+registerWheelSprite('williamsfw07', spriteAxle(.790,.230,.8755,.14,.17,true,true));
 registerWheelSprite('ligierjs11', spriteAxle(.792,.191,.885,.14,.17,true));
 registerWheelSprite('renaultrs10', spriteAxle(.795,.213,.813,.14,.18,true));
 const p34Front = spriteAxle(.722,.285,.817,.085,.14,true);
