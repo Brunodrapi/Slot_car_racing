@@ -9,7 +9,7 @@ Images, dans `itch/devlog-3/` :
 - `0-couverture.png` (696 × 512, image de couverture du billet)
 - `1-entrainement.png`, après le premier paragraphe de l'entraînement
 - `2-camping-glen-illustration.jpg`, après le premier paragraphe de Camping Glen
-- `3-camping-glen-course.png`, en fin de section Camping Glen (facultative)
+- `3-camping-glen-circuit.png`, le circuit entier vu de dessus, en fin de section Camping Glen
 - `4-vibreurs.png`, dans la section des vibreurs
 
 ---
@@ -54,7 +54,7 @@ red kerbs.
 It's open right away in every mode, with its own trophies: that's 14 circuits × 25 cars, so 350
 trophies to collect now.
 
-*[image : 3-camping-glen-course.png]*
+*[image : 3-camping-glen-circuit.png]*
 
 🏁 **Kerbs in Their Real Colours**
 
