@@ -205,27 +205,19 @@ function drawCarShadow(g, model, livree, opts) {
   const wheelOpts = {...opts, livree};
   const pneus = [...frontTires(model, w, h, wheelOpts), ...rearTires(model, w, h, wheelOpts)];
   if (!pneus.length) { g.drawImage(art.shadow, -w / 2, -h / 2, w, h); return true; }
-  const roues = new Path2D(), unes = [];
+  const roues = new Path2D();
   for (const p of pneus) {
     const t = new Path2D();
     t.roundRect(-p.length / 2, -p.width / 2, p.length, p.width, p.r);
-    const placee = new Path2D();
-    placee.addPath(t, new DOMMatrix().translateSelf(p.x, p.y).rotateSelf(p.steer * 180 / Math.PI));
-    roues.addPath(placee);
-    unes.push(placee);
+    roues.addPath(t, new DOMMatrix().translateSelf(p.x, p.y).rotateSelf(p.steer * 180 / Math.PI));
   }
   g.fillStyle = '#000';
   g.fill(roues);
-  /* Hors de CHAQUE pneu, un découpage par pneu (les découpages se cumulent) : un seul « pair-impair »
-  sur tous les pneus à la fois rouvrait l'ombre là où deux pneus se chevauchent — les deux roues
-  avant d'un même côté de la Sixpence Hexa, en braquant —, et ces pixels-là recevaient deux couches. */
+  const horsRoues = new Path2D();
+  horsRoues.rect(-w, -h, 2 * w, 2 * h);
+  horsRoues.addPath(roues);
   g.save();
-  for (const t of unes) {
-    const horsRoue = new Path2D();
-    horsRoue.rect(-w, -h, 2 * w, 2 * h);
-    horsRoue.addPath(t);
-    g.clip(horsRoue, 'evenodd');
-  }
+  g.clip(horsRoues, 'evenodd');
   g.drawImage(art.shadow, -w / 2, -h / 2, w, h);
   g.restore();
   return true;

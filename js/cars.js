@@ -404,27 +404,19 @@ function spriteAxle(x, top, bottom, length, width, aboveBody = false, suspension
 }
 const WHEEL_SPRITES = {};
 function registerWheelSprite(name, front, rear = null) { WHEEL_SPRITES[name] = {front, rear}; }
-/* F1 (0.52.71-72, `tools/f1-roues.py`) : les QUATRE roues sont dessinées par le jeu, symétriques autour
-de l'axe de la carrosserie — « les roues arrière ne font pas la même taille et les roues avant ne sont
-pas centrées ». Les illustrations étaient penchées (l'avant plus bas, jusqu'à 1,8°), parfois cintrées
-(ailerons décalés de 3 à 7 px), et leur carrosserie 2 à 10 px sous le milieu du cadre, alors que leurs
-roues arrière, peintes dedans, y étaient centrées. Elles sont redressées, décintrées et recentrées, sans
-roues arrière ; celles-ci passent sous la carrosserie, les avant au-dessus de la suspension, sur les
-moyeux, à l'écart moyen des deux. Le bloc entre les repères est écrit par le script. */
-// <f1-roues> (tools/f1-roues.py)
-const p34Front = spriteAxle(0.7189,0.2407,0.7632,0.085,0.14,true);
-p34Front.axles.push(0.3083);
-p34Front.centers.push({x:0.3083,y:-0.2593},{x:0.3083,y:0.2632});
-registerWheelSprite('tyrrellp34', p34Front, spriteAxle(0.1655,0.1367,0.8672,0.169,0.2422));
-registerWheelSprite('ferrari312t', spriteAxle(0.7951,0.1621,0.834,0.14,0.15,true), spriteAxle(0.1643,0.1289,0.8672,0.1762,0.2188));
-registerWheelSprite('mclarenm23', spriteAxle(0.7746,0.1715,0.8246,0.14,0.17,true), spriteAxle(0.1857,0.1445,0.8516,0.1905,0.25));
-registerWheelSprite('lotus79', spriteAxle(0.794,0.1745,0.8255,0.14,0.17,true), spriteAxle(0.1619,0.1283,0.8717,0.1762,0.2478));
-registerWheelSprite('lotus72', spriteAxle(0.7791,0.2091,0.7948,0.14,0.16,true), spriteAxle(0.1762,0.1289,0.875,0.2,0.2344));
-registerWheelSprite('brabhambt46b', spriteAxle(0.7781,0.2188,0.7773,0.14,0.18,true), spriteAxle(0.1952,0.1367,0.8594,0.2048,0.25));
-registerWheelSprite('williamsfw07', spriteAxle(0.7856,0.2263,0.7776,0.14,0.17,true,true), spriteAxle(0.1738,0.1387,0.8652,0.1476,0.2539));
-registerWheelSprite('ligierjs11', spriteAxle(0.7887,0.1553,0.8408,0.14,0.17,true), spriteAxle(0.1786,0.1328,0.8633,0.1476,0.25));
-registerWheelSprite('renaultrs10', spriteAxle(0.795,0.198,0.798,0.14,0.18,true), spriteAxle(0.1774,0.1367,0.8594,0.1595,0.2578));
-// </f1-roues>
+// F1: centers sit on the visible suspension hubs, not a category-wide axle.
+registerWheelSprite('ferrari312t', spriteAxle(.800,.200,.885,.14,.15,true));
+registerWheelSprite('mclarenm23', spriteAxle(.779,.204,.868,.14,.17,true));
+registerWheelSprite('lotus72', spriteAxle(.782,.217,.809,.14,.16,true));
+registerWheelSprite('lotus79', spriteAxle(.794,.196,.847,.14,.17,true));
+registerWheelSprite('brabhambt46b', spriteAxle(.782,.251,.817,.14,.18,true));
+registerWheelSprite('williamsfw07', spriteAxle(.790,.230,.790,.14,.17,true,true));
+registerWheelSprite('ligierjs11', spriteAxle(.792,.191,.885,.14,.17,true));
+registerWheelSprite('renaultrs10', spriteAxle(.795,.213,.813,.14,.18,true));
+const p34Front = spriteAxle(.722,.285,.817,.085,.14,true);
+p34Front.axles.push(.313);
+p34Front.centers.push({x:.313,y:-.215},{x:.313,y:.317});
+registerWheelSprite('tyrrellp34',p34Front);
 // Closed bodies: anchor at the fender shoulder, with the tread tucked underneath.
 // [sprite, front x, upper y, lower y, tire length, tire width]
 for (const r of [
