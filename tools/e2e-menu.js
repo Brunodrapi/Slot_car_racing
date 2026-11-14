@@ -27,7 +27,7 @@ fs.mkdirSync(out,{recursive:true});
   for(const mode of ['race','timetrial']) {
    if(mode==='timetrial'){await p.locator('[data-action="menu"]').click();await p.locator('[data-mode="timetrial"]').click();}
    assert.equal(await p.evaluate(()=>app.ui.setup.mode),mode);
-   const background=await p.locator('.paddock-track').evaluate(el=>getComputedStyle(el).backgroundImage);
+   const background=await p.locator('.paddock-art').evaluate(el=>getComputedStyle(el).backgroundImage);
    assert(background.includes('/art/interface/circuits/'),'selected circuit artwork present');
    const bgUrl=background.match(/url\(["']?(.*?)["']?\)/)[1];
    assert((await p.request.get(bgUrl)).ok(),'selected circuit artwork resolves');

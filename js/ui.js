@@ -1002,9 +1002,13 @@ class UI {
     // La maquette porte le nombre de tours sous le nom : c'est la course qu'on va courir, pas
     // seulement le circuit. Hors course, la longueur seule.
     const detail = [country, this.longueur(trackDef), tours ? `${tours} ${this.t('laps')}` : ''].filter(Boolean).join(' · ');
-    return `<div class="paddock-track" ${bg ? `style="background-image:url('${bg}')"` : ''}>
+    /* L'illustration commence SOUS le bandeau du nom, et non derrière lui (0.52.83) : le bandeau,
+    opaque, en cachait le tiers du haut — la tour et le ciel de Camping Glen, le haut des tribunes
+    ailleurs. Bruno : « baisse le visuel pour mieux voir le haut de l'image ». Elle couvre maintenant
+    la seule zone visible, rognée de quelques pour cent selon l'écran. */
+    return `<div class="paddock-track">
       <div class="track-heading"><div><b>${escapeHtml(trackDef.name)}</b><span>${escapeHtml(detail)}</span></div>${this.circuitFlag(trackDef)}</div>
-      <img class="preview-track" src="${this.thumb(trackDef, 360)}" alt="${escapeHtml(this.t('track') + ' : ' + trackDef.name)}"></div>`;
+      <div class="paddock-art" ${bg ? `style="background-image:url('${bg}')"` : ''}><img class="preview-track" src="${this.thumb(trackDef, 360)}" alt="${escapeHtml(this.t('track') + ' : ' + trackDef.name)}"></div></div>`;
   }
 
   liveryChoices(model) {

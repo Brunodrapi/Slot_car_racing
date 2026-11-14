@@ -1294,6 +1294,15 @@ blanc aujourd'hui ([guides de pilotage](https://www.tracktitan.io/post/silversto
 Pour le Nürburgring et Bathurst, rien de sûr : on garde le défaut. Seule la couleur change — ni la
 largeur des vibreurs, ni la physique.
 
+### L'illustration du circuit sous son nom, au paddock (0.52.83)
+
+« Baisse le visuel sur la vue du dessus pour mieux en voir le haut, ou dézoome-le. » Dans l'aperçu du
+circuit choisi (`trackPreview`, js/ui.js), l'illustration était le fond de toute la boîte et le
+bandeau du nom, opaque, en cachait le tiers du haut : la tour et le ciel de Camping Glen, le haut des
+tribunes ailleurs. Elle est maintenant dans son propre cadre (`.paddock-art`), qui commence sous le
+bandeau ; `cover` la rogne encore un peu selon l'écran, et le cadrage `50% 30%` garde plutôt le haut
+que le bas (la piste, au premier plan, reste visible). Vaut pour tous les circuits.
+
 ### Monaco relevé sur une vue satellite (0.52.34)
 
 Le Rocher n'a plus de baie calculée : son port, sa ville et ses monuments sont **relevés sur une
