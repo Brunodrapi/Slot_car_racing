@@ -4,11 +4,14 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.79
+- Le nouveau circuit américain prend son nom définitif : Camping Glen.
+
 ## 0.52.78
-- Boot Hill : les bacs à gravier voisins sont reliés en grands bacs, avec un mur continu derrière.
+- Camping Glen : les bacs à gravier voisins sont reliés en grands bacs, avec un mur continu derrière.
 
 ## 0.52.77
-- Nouveau circuit : Boot Hill, aux États-Unis (Watkins Glen, le grand tour avec le Boot), avec son décor de bois, de campings et de rails bleus.
+- Nouveau circuit : Camping Glen, aux États-Unis (Watkins Glen, le grand tour avec le Boot), avec son décor de bois, de campings et de rails bleus.
 
 ## 0.52.76
 - F1 : sur toutes les monoplaces, les deux roues arrière ont la même taille et dépassent autant du ponton, et les deux roues avant dépassent autant de l'aileron avant.

@@ -2105,8 +2105,9 @@ const TRACKS = [
   },
   {
     /* Watkins Glen, État de New York (0.52.77). Le grand tour — le Boot et l'Inner Loop —, relevé
-       dans OpenStreetMap (`tools/traces.py`) : 5473 m pour 3,4 miles. Le nom est provisoire. */
-    id: 'watkins', name: 'Boot Hill', country: 'US', flag: '🇺🇸', theme: 'glen',
+       dans OpenStreetMap (`tools/traces.py`) : 5473 m pour 3,4 miles. « Camping Glen » : le Glen est
+       célèbre pour ses campings autant que pour sa course (nom choisi par Bruno). */
+    id: 'watkins', name: 'Camping Glen', country: 'US', flag: '🇺🇸', theme: 'glen',
     architecture: 'pavillons',
     barriers: true,   // les rails bleus de l'Armco, partout
     kerb: DRAPEAUX.us,

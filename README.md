@@ -4331,7 +4331,8 @@ fermeture de Monaco et de Bathurst, qui comble les creux de moins de 70 m entre 
 côté. Elle ne touchait que les zones déclarées ; elle s'applique maintenant aussi aux bacs calculés
 (`Track._joinRunoffs`), ce qui ne change rien aux autres circuits — aucun n'a l'option sans zones.
 
-**Le nom est provisoire** (« Boot Hill »), en attendant le choix de Bruno.
+**Le nom** : « Camping Glen », choisi par Bruno parmi six propositions (0.52.79) — le Glen est célèbre
+pour ses campings autant que pour sa course.
 
 ### Voitures nettes sur écran Retina
 
