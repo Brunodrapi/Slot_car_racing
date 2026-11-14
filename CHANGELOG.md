@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.81
+- Camping Glen : sa nouvelle illustration dans les menus.
+
 ## 0.52.80
 - Camping Glen : des vibreurs jaunes et rouges, comme les vrais.
 

@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-"""Le fond de la carte du circuit de Watkins Glen, dessiné en vectoriel (0.52.77).
+"""Le fond PROVISOIRE de la carte du circuit de Watkins Glen, dessiné en vectoriel (0.52.77).
+
+LE FOND EN PLACE N'EST PLUS CELUI-CI : depuis la 0.52.81, c'est l'illustration générée par Bruno
+(`art-src/circuits/watkins.png`, réduite en `art/interface/circuits/watkins.webp`). Ce script ne
+l'écrase pas : `--webp` écrit `art-src/circuits/watkins-vectoriel.webp`.
 
     python3 tools/fond-watkins.py            # écrit art-src/circuits/watkins.svg
     python3 tools/fond-watkins.py --webp     # et le rend (Chromium, tools/svg-en-png.js) en
-                                             # art/interface/circuits/watkins.webp, 960 × 640
+                                             # art-src/circuits/watkins-vectoriel.webp, 960 × 640
 
 Les douze premiers fonds (`art/interface/circuits/`) sont des illustrations générées, à plat, cernées
 de sombre, en perspective depuis le bord de la piste. Celui-ci est dessiné dans le même esprit, mais
@@ -273,6 +277,6 @@ if __name__ == '__main__':
         racine_npm = subprocess.run(['npm', 'root', '-g'], capture_output=True, text=True).stdout.strip()
         subprocess.run(['node', os.path.join(RACINE, 'tools', 'svg-en-png.js'), chemin_svg, png], check=True,
                        env={**os.environ, 'NODE_PATH': racine_npm})
-        webp = os.path.join(RACINE, 'art', 'interface', 'circuits', 'watkins.webp')
+        webp = os.path.join(RACINE, 'art-src', 'circuits', 'watkins-vectoriel.webp')
         Image.open(png).convert('RGB').save(webp, quality=88, method=6)
         print(webp)

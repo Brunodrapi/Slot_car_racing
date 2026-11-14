@@ -4319,10 +4319,12 @@ herbe d'un vert franc et des feuillus d'été, entre le parc pâle de Monza et l
 Bancs : 1410 arbres, aucun sur la piste ni dans un bac ; l'IA en course (moyen et difficile, trois
 catégories) sans une sortie ni un tête-à-queue ; le guide suivi à 0, 150 et 300 ms sans sortie.
 
-**Le fond de la carte** est dessiné en vectoriel par `tools/fond-watkins.py`, dans l'esprit des douze
-autres (qui sont des illustrations générées) : les rails bleus de l'Armco, la passerelle, les
-camping-cars sur la colline, les collines boisées des Finger Lakes et le lac Seneca, la route qui
-remonte en S vers les Esses. La source est `art-src/circuits/watkins.svg`.
+**Le fond de la carte** est l'illustration générée par Bruno (0.52.81) : un virage bordé de vibreurs
+jaunes et rouges et de rails bleus, la tour rouge, et le panneau « Camping Glenn — Virages inclus ! ».
+L'original (1536 × 1024) est dans `art-src/circuits/watkins.png`, réduit en 960 × 640 dans
+`art/interface/circuits/watkins.webp`. Le fond provisoire qui l'a précédé, dessiné en vectoriel par
+`tools/fond-watkins.py` (source `art-src/circuits/watkins.svg`), reste dans le dépôt ; le script
+n'écrit plus dans `art/interface/`.
 
 **Les bacs à gravier reliés (0.52.78).** Les bacs tirés des virages s'y morcelaient : l'Outer Loop,
 le haut du Boot et le Heel donnaient trois ou quatre lobes de sable séparés de quelques mètres, chacun
@@ -4333,7 +4335,7 @@ côté. Elle ne touchait que les zones déclarées ; elle s'applique maintenant 
 
 **Les vibreurs sont jaunes et rouges (0.52.80)**, comme les vrais — Bruno. Le profil graphique des
 circuits (`CIRCUIT_STYLES`) imposait le rouge et blanc partout ; une ligne peut maintenant nommer
-ses couleurs (`kerb`), et seul Camping Glen le fait. Le fond provisoire de la carte suit.
+ses couleurs (`kerb`), et seul Camping Glen le fait.
 
 **Le nom** : « Camping Glen », choisi par Bruno parmi six propositions (0.52.79) — le Glen est célèbre
 pour ses campings autant que pour sa course.
