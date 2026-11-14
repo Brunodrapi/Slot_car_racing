@@ -9,7 +9,7 @@ const NIVEAUX = ['easy', 'medium', 'hard', 'extreme', 'cauchemar'];
 
 /* La page itch.io du jeu, où l'on peut faire un don. Une seule adresse, ici, pour la changer d'un coup. */
 const DON_URL = 'https://drapiiii.itch.io/grip-racing-the-line';
-/* LE DERNIER DEVLOG, à l'accueil (0.52.85). Bruno : « mettre le titre du devlog le plus récent et un
+/* LE DERNIER DEVLOG, sur l'affiche de l'écran-titre (0.52.85-86). Bruno : « mettre le titre du devlog le plus récent et un
 lien vers la page itch.io où on le trouve ». Le jeu ne peut pas lire le flux d'itch.io lui-même : la
 page ne l'autorise pas aux autres sites (pas d'en-tête CORS), et le jeu tourne aussi hors ligne. Le
 titre est donc écrit ici, et se met à jour à chaque billet avec
@@ -757,6 +757,15 @@ class UI {
   that the painted name and the two cars stay in frame.
   The invitation lies on a dark fade at the bottom, in the game's own lettering, so it reads
   whatever part of the cobbles it lands on. Any key, any tap, anywhere gets past it, as before. */
+  /* Le dernier devlog, sur l'affiche, sous l'invitation (DERNIER_DEVLOG, plus haut). Le toucher ouvre
+  itch.io sans passer l'affiche : l'appui qui fait entrer dans le jeu l'épargne (js/main.js), comme le
+  bandeau du jeu hors ligne. */
+  devlogLien() {
+    const d = DERNIER_DEVLOG;
+    return `<a class="splash-devlog" href="${d.url}" target="_blank" rel="noopener" aria-label="${escapeHtml(this.t('devlogLabel', d.numero, d.titre))}">`
+      + `<span class="splash-devlog-tag">Devlog #${d.numero}</span><b>${escapeHtml(d.titre)}</b><span class="splash-devlog-fleche" aria-hidden="true">→</span></a>`;
+  }
+
   splash() {
     const t = (k, ...a) => this.t(k, ...a);
     const invite = this.app.desktop ? t('pressStart') : t('tapStart');
@@ -769,6 +778,7 @@ class UI {
       <div class="stage">
         <div class="press">${escapeHtml(invite)}</div>
         ${this.app.desktop ? `<div class="title-inputs">${this.t(MANETTE ? 'splashInputsPad' : 'splashInputs')}</div>` : ''}
+        ${this.devlogLien()}
       </div>
       <div class="version">v${APP_VERSION} · ${APP_DATE}<span class="version-poids"></span>${canalBadge()}</div>
       <div class="maj" aria-live="polite" hidden></div>
@@ -905,9 +915,7 @@ class UI {
       <footer class="home-footer"><button class="home-settings" data-action="settings"><img src="art/interface/gear.webp" alt="">${t('settings')}</button>
         <button class="pilot-button" data-action="settings"><img src="art/interface/pilot.webp" alt=""><span>${t('pilotLabel')} :</span><b>${escapeHtml(app.save.name)}</b></button>
         ${app.mondial?.erreurConnexion ? `<button class="link" data-action="google">${t('reconnect')}</button>` : ''}</footer>
-      <div class="home-version">v${APP_VERSION}${canalBadge()}</div>
-      <nav class="home-news" data-pad-group aria-label="Devlog"><a class="home-devlog" href="${DERNIER_DEVLOG.url}" target="_blank" rel="noopener"
-        aria-label="${escapeHtml(t('devlogLabel', DERNIER_DEVLOG.numero, DERNIER_DEVLOG.titre))}"><span class="home-devlog-tag">Devlog #${DERNIER_DEVLOG.numero}</span><b>${escapeHtml(DERNIER_DEVLOG.titre)}</b><span class="home-devlog-fleche" aria-hidden="true">→</span></a></nav>`, 'home-screen scroll');
+      <div class="home-version">v${APP_VERSION}${canalBadge()}</div>`, 'home-screen scroll');
   }
 
   /* COMMENT JOUER : les trois gestes, chacun avec son animation tirée du vrai jeu.

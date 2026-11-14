@@ -276,6 +276,8 @@ class App {
     const LINE_DOWN = ['ArrowDown'], LINE_UP = ['ArrowUp'];
     window.addEventListener('keydown', (e) => {
       if (e.target?.closest('input, select, textarea, [contenteditable="true"]')) return;
+      // Entrée sur le lien du dernier devlog (atteint au clavier) l'ouvre, sans passer l'affiche
+      if (e.target?.closest('.splash-devlog')) return;
       if (e.repeat) { if (this.state === 'race') e.preventDefault(); return; }
       if (this.leaveSplash()) return;
       if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { this.togglePause(); return; }
@@ -310,7 +312,8 @@ class App {
     seulement lui : s'il ne vient pas (le doigt a glissé), le filet se retire au bout d'un instant. */
     window.addEventListener('pointerdown', (e) => {
       // le bandeau de mise à jour a ses propres boutons : les toucher ne passe pas l'affiche
-      if (e.target && e.target.closest && e.target.closest('.maj')) return;
+      // ni le lien du dernier devlog (0.52.86) : il ouvre itch.io, et l'affiche reste
+      if (e.target && e.target.closest && e.target.closest('.maj, .splash-devlog')) return;
       if (!this.leaveSplash()) return;
       const avale = (e) => { e.stopPropagation(); e.preventDefault(); retire(); };
       const retire = () => window.removeEventListener('click', avale, true);

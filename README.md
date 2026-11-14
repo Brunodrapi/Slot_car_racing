@@ -74,16 +74,6 @@ jeu de l'accueil.
   Installer l'application), l'autre restant dépliable ; quand Chrome propose l'installation
   directe (`beforeinstallprompt`, en prod), elle devient un bouton.
 - *Faites un don* ouvre la page itch.io du jeu (`DON_URL` dans `js/ui.js`).
-- **Le dernier devlog (0.52.85)** : son numéro et son titre, en lien vers itch.io. Sur ordinateur, une
-  étiquette en haut à droite, dans le ciel de l'illustration ; sur téléphone, où l'écran est plein, la
-  ligne du bas, à droite de la version, sur une seule ligne (le titre se raccourcit si la place manque :
-  sur un iPhone SE, en recette, où la pastille RECETTE prend de la place). Le jeu ne peut pas lire le
-  flux d'itch.io lui-même — pas d'en-tête CORS, et il tourne aussi hors ligne —, donc le titre est
-  écrit dans `js/ui.js` (`DERNIER_DEVLOG`). **À chaque nouveau billet**, une fois posté :
-  `curl -s https://drapiiii.itch.io/grip-racing-the-line/devlog.rss | node tools/dernier-devlog.js`
-  y met le numéro, le titre et l'adresse du billet le plus récent, puis version, recette, prod. Un
-  billet annoncé avant d'être posté mène à la page des devlogs ; l'outil ne recule jamais vers un
-  numéro plus ancien. `tools/e2e-menu.js` vérifie le lien et qu'il ne recouvre rien, sur six écrans.
 
 Les douze animations (`art/interface/comment-jouer/`, 2,8 Mo en WebP animé) se refont avec
 `node tools/comment-jouer.js` : le temps du jeu est figé et avancé image par image, les gestes passent
@@ -244,6 +234,20 @@ là qu'est le joueur quand le bug arrive (Game Developer, « In-Game Bug Reporte
 guides Bugnet : la pause, les réglages en repli, jamais le HUD de course) —, et au multijoueur — à l'entrée, puis dans la table tant
 qu'on y est seul pilote — pour trouver des joueurs (`DISCORD_JOUEURS_URL`, js/ui.js). Deux invitations
 permanentes depuis la 0.52.10.
+
+**Le dernier devlog, sur l'affiche (0.52.85-86).** Sous « Appuie pour commencer », un ticket crème :
+son numéro sur une étiquette rouge, son titre, en lien vers itch.io (Bruno : « le titre du devlog le
+plus récent et un lien vers la page itch.io où on le trouve », sur l'écran d'avant le menu ; la 0.52.85
+l'avait mis sur le menu). Le toucher ouvre itch.io dans un nouvel onglet SANS passer l'affiche :
+l'appui qui fait entrer dans le jeu l'épargne, comme le bandeau du jeu hors ligne (js/main.js), et
+Entrée sur le lien l'ouvre. Le jeu ne peut pas lire le flux d'itch.io lui-même — pas d'en-tête CORS,
+et il tourne aussi hors ligne —, donc le titre est écrit dans `js/ui.js` (`DERNIER_DEVLOG`). **À chaque
+nouveau billet**, une fois posté :
+`curl -s https://drapiiii.itch.io/grip-racing-the-line/devlog.rss | node tools/dernier-devlog.js`
+y met le numéro, le titre et l'adresse du billet le plus récent, puis version, recette, prod. Un billet
+annoncé avant d'être posté mène à la page des devlogs ; l'outil ne recule jamais vers un numéro plus
+ancien. `tools/e2e-menu.js` vérifie, sur six écrans, le lien, qu'il ne recouvre rien, et que le toucher
+laisse l'affiche.
 
 **itch.io (`itch/`).** La page du jeu sur itch.io ne porte pas le jeu : `itch/index.html` (ou
 `itch/itch-grip.zip`, la même page zippée) renvoie vers la prod. Le jeu ne doit pas tourner dans le
