@@ -9,6 +9,14 @@ const NIVEAUX = ['easy', 'medium', 'hard', 'extreme', 'cauchemar'];
 
 /* La page itch.io du jeu, où l'on peut faire un don. Une seule adresse, ici, pour la changer d'un coup. */
 const DON_URL = 'https://drapiiii.itch.io/grip-racing-the-line';
+/* LE DERNIER DEVLOG, à l'accueil (0.52.85). Bruno : « mettre le titre du devlog le plus récent et un
+lien vers la page itch.io où on le trouve ». Le jeu ne peut pas lire le flux d'itch.io lui-même : la
+page ne l'autorise pas aux autres sites (pas d'en-tête CORS), et le jeu tourne aussi hors ligne. Le
+titre est donc écrit ici, et se met à jour à chaque billet avec
+  curl -s https://drapiiii.itch.io/grip-racing-the-line/devlog.rss | node tools/dernier-devlog.js
+qui y met le numéro, le titre et l'adresse du billet le plus récent. Sans adresse de billet (billet pas
+encore en ligne), le lien mène à la page des devlogs, où le dernier est en tête. */
+const DERNIER_DEVLOG = { numero: 3, titre: 'Practice Mode & Camping Glen', url: 'https://drapiiii.itch.io/grip-racing-the-line/devlog' };
 
 /* Le serveur Discord du jeu, par ses deux salons : celui des bugs et des demandes (réglages), celui où
 l'on trouve des joueurs (multijoueur). Des invitations permanentes — une invitation Discord ordinaire
@@ -66,6 +74,7 @@ const I18N = {
     deux libellés en « vous » sont ceux que Bruno a choisis pour le menu ; les écrans tutoient, comme
     tout le reste du jeu. Les textes d'installation portent leurs pictogrammes en argument. */
     menuHowto: 'Comment jouer', menuInstall: 'Installez-moi', menuDon: 'Faites un don', menuAide: 'Aide et soutien',
+    devlogLabel: (n, titre) => `Dernier devlog, n° ${n} : ${titre} (sur itch.io)`,
     // le conseil affiché au premier départ sur Chrome et Edge PC (js/chromium-cache.js)
     conseilFirefox: 'Pour une expérience optimisée, utilisez Firefox.', fermer: 'Fermer',
     discordBug: 'Signaler un bug ou faire une demande sur Discord', discordJoueurs: 'Trouver des joueurs sur Discord',
@@ -216,6 +225,7 @@ const I18N = {
     career: 'Career', quickRace: 'Quick race', timeTrial: 'Time trial', settings: 'Settings', statistics: 'Public statistics', back: 'Back',
     editor: 'Track editor', workshop: 'Car workshop',
     menuHowto: 'How to play', menuInstall: 'Install me', menuDon: 'Donate', menuAide: 'Help and support',
+    devlogLabel: (n, titre) => `Latest devlog, #${n}: ${titre} (on itch.io)`,
     conseilFirefox: 'For the best experience, use Firefox.', fermer: 'Close',
     discordBug: 'Report a bug or make a request on Discord', discordJoueurs: 'Find players on Discord',
     pauseEnLigne: 'The race goes on online while this menu is open.',
@@ -895,7 +905,9 @@ class UI {
       <footer class="home-footer"><button class="home-settings" data-action="settings"><img src="art/interface/gear.webp" alt="">${t('settings')}</button>
         <button class="pilot-button" data-action="settings"><img src="art/interface/pilot.webp" alt=""><span>${t('pilotLabel')} :</span><b>${escapeHtml(app.save.name)}</b></button>
         ${app.mondial?.erreurConnexion ? `<button class="link" data-action="google">${t('reconnect')}</button>` : ''}</footer>
-      <div class="home-version">v${APP_VERSION}${canalBadge()}</div>`, 'home-screen scroll');
+      <div class="home-version">v${APP_VERSION}${canalBadge()}</div>
+      <nav class="home-news" data-pad-group aria-label="Devlog"><a class="home-devlog" href="${DERNIER_DEVLOG.url}" target="_blank" rel="noopener"
+        aria-label="${escapeHtml(t('devlogLabel', DERNIER_DEVLOG.numero, DERNIER_DEVLOG.titre))}"><span class="home-devlog-tag">Devlog #${DERNIER_DEVLOG.numero}</span><b>${escapeHtml(DERNIER_DEVLOG.titre)}</b><span class="home-devlog-fleche" aria-hidden="true">→</span></a></nav>`, 'home-screen scroll');
   }
 
   /* COMMENT JOUER : les trois gestes, chacun avec son animation tirée du vrai jeu.

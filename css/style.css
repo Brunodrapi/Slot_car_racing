@@ -726,6 +726,25 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 .pilot-button span { font-size:10px; letter-spacing:.1em; }
 .pilot-button b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .home-version { color:#fff4da; font:10px ui-monospace,monospace; text-shadow:0 1px 3px #000; }
+/* Le dernier devlog (0.52.85, js/ui.js DERNIER_DEVLOG) : sur ordinateur, une étiquette en haut à droite,
+   dans le ciel de l'illustration ; sur téléphone, où l'écran est plein, la ligne du bas, à droite de la version. */
+.home-news { position:absolute; top:clamp(16px,3vh,36px); right:4vw; z-index:1; max-width:min(38vw,440px); }
+.home-devlog { display:flex; align-items:center; gap:10px; padding:8px 14px 8px 8px; background:#fff0d2 url('../art/interface/ink.svg'); color:#171b19; text-decoration:none;
+  border:2px solid #171b19; box-shadow:4px 4px 0 #111b; font:italic 900 21px/1.05 Racing,Impact,sans-serif; }
+.home-devlog-tag { flex:0 0 auto; padding:3px 10px; background:#d22620; color:#fff0d2; font-size:16px; text-transform:uppercase; clip-path:polygon(6% 0,100% 0,94% 100%,0 100%); }
+.home-devlog b { min-width:0; font-weight:900; }
+.home-devlog-fleche { flex:0 0 auto; color:#d22620; }
+.home-devlog:hover, .home-devlog:focus-visible, .home-devlog.pad-focus { background-color:#fff7e3; outline:3px solid #fff4d7; outline-offset:2px; }
+@media (max-width:850px) {
+  /* une seule ligne, à droite de la version (et de la pastille RECETTE, plus large) : le titre se
+     raccourcit plutôt que de passer à la ligne et de mordre sur les réglages */
+  .home-news { top:auto; right:16px; bottom:max(6px,env(safe-area-inset-bottom)); max-width:calc(100% - 92px); }
+  .home-screen:has(.home-version .canal) .home-news { max-width:calc(100% - 150px); }
+  .home-devlog { gap:6px; padding:3px 8px 3px 4px; border-width:1px; box-shadow:2px 2px 0 #111b; font-size:12.5px; }
+  .home-devlog b { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .home-devlog-tag { padding:1px 6px; font-size:10.5px; }
+}
+@media (max-width:359px) { .home-devlog { font-size:11.5px; } .home-devlog-tag { font-size:10px; } }
 /* La recette se voit : une pastille orange à côté du numéro de version (js/ui.js, canalBadge). */
 .version .canal, .home-version .canal { margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: #ff7a1a; color: #1a0d00;
   font: 700 0.85em/1.4 system-ui, sans-serif; letter-spacing: 0.06em; text-shadow: none; }

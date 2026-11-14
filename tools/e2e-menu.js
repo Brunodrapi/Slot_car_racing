@@ -20,6 +20,16 @@ fs.mkdirSync(out,{recursive:true});
     const settings=document.querySelector('.home-settings').getBoundingClientRect(), pilot=document.querySelector('.pilot-button').getBoundingClientRect();
     return {visible:settings.top>=0&&settings.bottom<=innerHeight&&pilot.top>=0&&pilot.bottom<=innerHeight, name:document.querySelector('.pilot-button').textContent};
   });assert(home.visible,'settings and driver visible without scrolling');assert(home.name.includes('Pilote'));
+  // 0.52.85 : le dernier devlog, lien vers itch.io, entier à l'écran et sans rien recouvrir
+  const devlog=await p.evaluate(()=>{
+    const a=document.querySelector('.home-devlog');if(!a)return null;const r=a.getBoundingClientRect();
+    const v=document.createRange(),t=document.querySelector('.home-version').firstChild;v.selectNodeContents(t);
+    const autres=[...document.querySelectorAll('.game-logo,.mode-card,.extra-card,.home-footer,.home-version .canal')].map(e=>e.getBoundingClientRect()).concat([v.getBoundingClientRect()]);
+    const touche=autres.some(o=>o.width&&o.left<r.right&&r.left<o.right&&o.top<r.bottom&&r.top<o.bottom);
+    return {href:a.href,blank:a.target==='_blank',dedans:r.left>=0&&r.top>=0&&r.right<=innerWidth&&r.bottom<=innerHeight,touche,titre:a.querySelector('b').textContent};
+  });
+  assert(devlog&&/^https:\/\/drapiiii\.itch\.io\/grip-racing-the-line\/devlog/.test(devlog.href)&&devlog.blank,'latest devlog links to its itch.io page');
+  assert(devlog.dedans&&!devlog.touche&&devlog.titre.length>3,`latest devlog visible and clear of the menu (${JSON.stringify(devlog)})`);
   const before=await p.evaluate(geometry); assert.equal(before.length,4); assert(before.every(r=>r[0]===before[0][0]&&r[2]===before[0][2]));
   await p.locator('.mode-card').first().focus();await p.waitForTimeout(250);assert.deepEqual(await p.evaluate(geometry),before,'focus must not shift buttons');
   await p.screenshot({scale:'css',path:path.join(out,`${name}-menu.png`)});

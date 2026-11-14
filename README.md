@@ -74,6 +74,16 @@ jeu de l'accueil.
   Installer l'application), l'autre restant dépliable ; quand Chrome propose l'installation
   directe (`beforeinstallprompt`, en prod), elle devient un bouton.
 - *Faites un don* ouvre la page itch.io du jeu (`DON_URL` dans `js/ui.js`).
+- **Le dernier devlog (0.52.85)** : son numéro et son titre, en lien vers itch.io. Sur ordinateur, une
+  étiquette en haut à droite, dans le ciel de l'illustration ; sur téléphone, où l'écran est plein, la
+  ligne du bas, à droite de la version, sur une seule ligne (le titre se raccourcit si la place manque :
+  sur un iPhone SE, en recette, où la pastille RECETTE prend de la place). Le jeu ne peut pas lire le
+  flux d'itch.io lui-même — pas d'en-tête CORS, et il tourne aussi hors ligne —, donc le titre est
+  écrit dans `js/ui.js` (`DERNIER_DEVLOG`). **À chaque nouveau billet**, une fois posté :
+  `curl -s https://drapiiii.itch.io/grip-racing-the-line/devlog.rss | node tools/dernier-devlog.js`
+  y met le numéro, le titre et l'adresse du billet le plus récent, puis version, recette, prod. Un
+  billet annoncé avant d'être posté mène à la page des devlogs ; l'outil ne recule jamais vers un
+  numéro plus ancien. `tools/e2e-menu.js` vérifie le lien et qu'il ne recouvre rien, sur six écrans.
 
 Les douze animations (`art/interface/comment-jouer/`, 2,8 Mo en WebP animé) se refont avec
 `node tools/comment-jouer.js` : le temps du jeu est figé et avancé image par image, les gestes passent

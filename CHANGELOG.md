@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.85
+- Accueil : le titre du dernier devlog, en lien vers sa page sur itch.io.
+
 ## 0.52.84
 - Paddock : les autres circuits retrouvent leur illustration d'avant ; seul Camping Glen garde la sienne sous son nom.
 
