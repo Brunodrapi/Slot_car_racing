@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.71
+- F1 : les quatre roues sont symétriques — les deux roues arrière ont la même taille, les roues avant sont centrées (Windsor 07, Dodici T, Sixpence Hexa surtout), et la carrosserie est centrée sur la voiture.
+
 ## 0.52.70
 - Entraînement : le paddock ne propose plus de se connecter à Google (aucun tour d'entraînement ne va au tableau mondial).
 - Entraînement : l'explication du mode et la légende du guide sont passées du paddock à la pause.

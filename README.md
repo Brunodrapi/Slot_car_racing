@@ -3053,6 +3053,16 @@ dimensions, le rectangle occupé et le recouvrement des silhouettes, séparémen
 `art-src/voitures/` restent disponibles ; `tools/dessins-voitures.js` conserve les PNG illustrés
 existants, sauf demande explicite `--force-vector`.
 
+**Les roues des F1, d'aplomb (0.52.71).** « Sur au moins une F1 les roues arrière ne font pas la
+même taille et les roues avant ne sont pas centrées ! » Les neuf vues de dessus avaient la carrosserie
+de 2 à 10 px sous le milieu de l'image, et leurs roues arrière, peintes dedans, restées centrées sur
+le cadre — souvent rognées en haut : l'une sortait plus loin que l'autre et paraissait plus grosse.
+Les roues avant, posées par le jeu sur les moyeux dessinés, héritaient de leur dissymétrie (7 px sur
+la Windsor 07). `tools/f1-roues.py` ôte les roues arrière des images, les recale sur l'axe de la
+carrosserie, et donne au jeu les gabarits des QUATRE roues, symétriques (`registerWheelSprite`,
+js/cars.js) : arrière de même taille, sous la carrosserie, avant à l'écart moyen des deux moyeux. Les
+images d'origine restent dans `art-src/voitures/f1-roues/`. [Planches avant/après](docs/f1-roues/README.md).
+
 La Datsun est la **240Z** : il n'a jamais existé de « 250Z », et la 240Z est celle qui a couru, en
 particulier sous les couleurs de BRE.
 
