@@ -405,17 +405,20 @@ function spriteAxle(x, top, bottom, length, width, aboveBody = false, suspension
 const WHEEL_SPRITES = {};
 function registerWheelSprite(name, front, rear = null) { WHEEL_SPRITES[name] = {front, rear}; }
 // F1: centers sit on the visible suspension hubs, not a category-wide axle.
+// 0.52.76 : sur les Sixpence, Ground 79, Wedge 72, Fan 46, Coq Bleu et Turbo 10, la roue avant qui
+// dépassait le moins du bout de l'aileron avant est écartée jusqu'à dépasser autant que l'autre
+// (comme la Windsor en 0.52.74) ; Dodici T et Arrow 23 : 1 et 2,5 px d'écart, laissés.
 registerWheelSprite('ferrari312t', spriteAxle(.800,.200,.885,.14,.15,true));
 registerWheelSprite('mclarenm23', spriteAxle(.779,.204,.868,.14,.17,true));
-registerWheelSprite('lotus72', spriteAxle(.782,.217,.809,.14,.16,true));
-registerWheelSprite('lotus79', spriteAxle(.794,.196,.847,.14,.17,true));
-registerWheelSprite('brabhambt46b', spriteAxle(.782,.251,.817,.14,.18,true));
+registerWheelSprite('lotus72', spriteAxle(.782,.217,.8258,.14,.16,true));
+registerWheelSprite('lotus79', spriteAxle(.794,.1796,.847,.14,.17,true));
+registerWheelSprite('brabhambt46b', spriteAxle(.782,.2065,.817,.14,.18,true));
 registerWheelSprite('williamsfw07', spriteAxle(.790,.230,.8755,.14,.17,true,true));
-registerWheelSprite('ligierjs11', spriteAxle(.792,.191,.885,.14,.17,true));
-registerWheelSprite('renaultrs10', spriteAxle(.795,.213,.813,.14,.18,true));
-const p34Front = spriteAxle(.722,.285,.817,.085,.14,true);
+registerWheelSprite('ligierjs11', spriteAxle(.792,.1777,.885,.14,.17,true));
+registerWheelSprite('renaultrs10', spriteAxle(.795,.1868,.813,.14,.18,true));
+const p34Front = spriteAxle(.722,.2729,.817,.085,.14,true);
 p34Front.axles.push(.313);
-p34Front.centers.push({x:.313,y:-.215},{x:.313,y:.317});
+p34Front.centers.push({x:.313,y:-.2271},{x:.313,y:.317});
 registerWheelSprite('tyrrellp34',p34Front);
 // Closed bodies: anchor at the fender shoulder, with the tread tucked underneath.
 // [sprite, front x, upper y, lower y, tire length, tire width]
