@@ -3053,15 +3053,19 @@ dimensions, le rectangle occupé et le recouvrement des silhouettes, séparémen
 `art-src/voitures/` restent disponibles ; `tools/dessins-voitures.js` conserve les PNG illustrés
 existants, sauf demande explicite `--force-vector`.
 
-**Les roues des F1, d'aplomb (0.52.71).** « Sur au moins une F1 les roues arrière ne font pas la
+**Les roues des F1, d'aplomb (0.52.71-72).** « Sur au moins une F1 les roues arrière ne font pas la
 même taille et les roues avant ne sont pas centrées ! » Les neuf vues de dessus avaient la carrosserie
 de 2 à 10 px sous le milieu de l'image, et leurs roues arrière, peintes dedans, restées centrées sur
-le cadre — souvent rognées en haut : l'une sortait plus loin que l'autre et paraissait plus grosse.
-Les roues avant, posées par le jeu sur les moyeux dessinés, héritaient de leur dissymétrie (7 px sur
-la Windsor 07). `tools/f1-roues.py` ôte les roues arrière des images, les recale sur l'axe de la
-carrosserie, et donne au jeu les gabarits des QUATRE roues, symétriques (`registerWheelSprite`,
-js/cars.js) : arrière de même taille, sous la carrosserie, avant à l'écart moyen des deux moyeux. Les
-images d'origine restent dans `art-src/voitures/f1-roues/`. [Planches avant/après](docs/f1-roues/README.md).
+le cadre — souvent rognées en haut : l'une sortait plus loin et paraissait plus grosse. La première
+reprise (0.52.71) recentrait la carrosserie et symétrisait les roues ; elle ne suffisait pas (« sur la
+Windsor et Le Coq les roues avant ne sont toujours pas équilibrées, Purosangue pareil ; les roues
+arrière ne dépassent pas équitablement du châssis ») : les dessins sont aussi PENCHÉS, l'avant plus
+bas de 0,9 à 1,8°, et certains CINTRÉS, les ailerons de 3 à 7 px du même côté. `tools/f1-roues.py`
+redresse chaque dessin, le décintre (ailerons et nez ramenés sur la carrosserie), ôte les roues
+arrière, recentre l'axe, et écrit dans js/cars.js les gabarits des QUATRE roues, symétriques : arrière
+de même taille, sous la carrosserie, avant à l'écart moyen des deux moyeux. Après coup, l'aileron
+arrière, les pontons, le nez et l'aileron avant de chaque F1 sont à 1,5 px au plus de l'axe des roues.
+Les images d'origine restent dans `art-src/voitures/f1-roues/`. [Planches avant/après](docs/f1-roues/README.md).
 
 La Datsun est la **240Z** : il n'a jamais existé de « 250Z », et la 240Z est celle qui a couru, en
 particulier sous les couleurs de BRE.

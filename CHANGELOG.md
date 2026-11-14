@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.72
+- F1 : les dessins penchés ou cintrés sont redressés — roues avant équilibrées (Windsor 07, Le Coq Bleu 11, Purosangue Dodici T…) et roues arrière qui dépassent autant des deux côtés.
+
 ## 0.52.71
 - F1 : les quatre roues sont symétriques — les deux roues arrière ont la même taille, les roues avant sont centrées (Windsor 07, Dodici T, Sixpence Hexa surtout), et la carrosserie est centrée sur la voiture.
 

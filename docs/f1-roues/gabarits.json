@@ -2,156 +2,192 @@
  {
   "nom": "tyrrellp34",
   "h": 256,
-  "axe": 135.0,
-  "iou": 0.975,
-  "recale_px": -7,
-  "cadre_agrandi": false,
+  "inclinaison": 1.63,
+  "redresse": 1.63,
+  "echelle": 0.9825,
+  "cintre_px": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "axe": 128.5,
+  "iou": 0.971,
+  "hors_cadre": 0,
   "arriere_mesure": {
    "haut": {
-    "y0": 0,
-    "y1": 65,
-    "x0": 35,
-    "x1": 105,
-    "touche_le_bord": true
+    "y0": 10.0,
+    "y1": 76.0,
+    "x0": 34,
+    "x1": 107,
+    "touche_le_bord": false
    },
    "bas": {
-    "y0": 197,
-    "y1": 256,
-    "x0": 35,
-    "x1": 105,
-    "touche_le_bord": true
+    "y0": 203.0,
+    "y1": 261.0,
+    "x0": 41,
+    "x1": 110,
+    "touche_le_bord": false
    },
    "ecart_int": [
-    70.0,
-    62.0
+    62.5,
+    64.5
    ]
   },
   "arriere": {
-   "x": 0.1667,
+   "x": 0.1655,
    "haut": 0.1367,
-   "bas": 0.8633,
-   "longueur": 0.1667,
+   "bas": 0.8672,
+   "longueur": 0.169,
    "largeur": 0.2422
   },
   "avant": {
-   "x": 0.722,
-   "haut": 0.234,
-   "bas": 0.766,
+   "x": 0.7189,
+   "haut": 0.2407,
+   "bas": 0.7632,
+   "decalage_px": 3.2,
    "longueur": 0.085,
    "largeur": 0.14,
    "dessus": true,
-   "suspension": false,
-   "decalage_px": 6.1
+   "suspension": false
+  },
+  "avant2": {
+   "x": 0.8083,
+   "haut": 0.2407,
+   "bas": 0.7632,
+   "decalage_px": 2.2
   }
  },
  {
   "nom": "ferrari312t",
   "h": 256,
-  "axe": 133.5,
-  "iou": 0.963,
-  "recale_px": -6,
-  "cadre_agrandi": false,
+  "inclinaison": 1.82,
+  "redresse": 1.82,
+  "echelle": 0.9813,
+  "cintre_px": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "axe": 127.5,
+  "iou": 0.983,
+  "hors_cadre": 0,
   "arriere_mesure": {
    "haut": {
-    "y0": 0,
-    "y1": 58,
-    "x0": 34,
-    "x1": 105,
-    "touche_le_bord": true
+    "y0": 11.0,
+    "y1": 71.0,
+    "x0": 32,
+    "x1": 107,
+    "touche_le_bord": false
    },
    "bas": {
-    "y0": 202,
-    "y1": 255,
-    "x0": 32,
-    "x1": 106,
+    "y0": 209.0,
+    "y1": 261.0,
+    "x0": 40,
+    "x1": 113,
     "touche_le_bord": false
    },
    "ecart_int": [
-    75.5,
-    68.5
+    66.5,
+    71.5
    ]
   },
   "arriere": {
-   "x": 0.1619,
-   "haut": 0.1211,
-   "bas": 0.875,
-   "longueur": 0.1714,
+   "x": 0.1643,
+   "haut": 0.1289,
+   "bas": 0.8672,
+   "longueur": 0.1762,
    "largeur": 0.2188
   },
   "avant": {
-   "x": 0.8,
-   "haut": 0.1555,
-   "bas": 0.8405,
+   "x": 0.7951,
+   "haut": 0.1621,
+   "bas": 0.834,
+   "decalage_px": 1.2,
    "longueur": 0.14,
    "largeur": 0.15,
    "dessus": true,
-   "suspension": false,
-   "decalage_px": 5.4
-  }
+   "suspension": false
+  },
+  "avant2": null
  },
  {
   "nom": "mclarenm23",
   "h": 256,
-  "axe": 137.0,
-  "iou": 0.983,
-  "recale_px": -9,
-  "cadre_agrandi": false,
+  "inclinaison": 1.68,
+  "redresse": 1.68,
+  "echelle": 0.9825,
+  "cintre_px": [
+   -2.5,
+   -2.9,
+   -3.0
+  ],
+  "axe": 127.5,
+  "iou": 0.978,
+  "hors_cadre": 0,
   "arriere_mesure": {
    "haut": {
-    "y0": 0,
-    "y1": 64,
-    "x0": 37,
-    "x1": 117,
-    "touche_le_bord": true
+    "y0": 10.0,
+    "y1": 74.0,
+    "x0": 38,
+    "x1": 118,
+    "touche_le_bord": false
    },
    "bas": {
-    "y0": 193,
-    "y1": 256,
-    "x0": 38,
-    "x1": 117,
-    "touche_le_bord": true
+    "y0": 198.0,
+    "y1": 262.0,
+    "x0": 44,
+    "x1": 124,
+    "touche_le_bord": false
    },
    "ecart_int": [
-    73.0,
-    56.0
+    65.5,
+    58.5
    ]
   },
   "arriere": {
-   "x": 0.1833,
-   "haut": 0.1562,
-   "bas": 0.8438,
+   "x": 0.1857,
+   "haut": 0.1445,
+   "bas": 0.8516,
    "longueur": 0.1905,
    "largeur": 0.25
   },
   "avant": {
-   "x": 0.779,
-   "haut": 0.168,
-   "bas": 0.832,
+   "x": 0.7746,
+   "haut": 0.1715,
+   "bas": 0.8246,
+   "decalage_px": -1.6,
    "longueur": 0.14,
    "largeur": 0.17,
    "dessus": true,
-   "suspension": false,
-   "decalage_px": 0.2
-  }
+   "suspension": false
+  },
+  "avant2": null
  },
  {
   "nom": "lotus79",
   "h": 226,
-  "axe": 116.0,
+  "inclinaison": 0.24,
+  "redresse": 0.0,
+  "echelle": 1.0,
+  "cintre_px": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "axe": 113.0,
   "iou": 0.993,
-  "recale_px": -3,
-  "cadre_agrandi": false,
+  "hors_cadre": 0,
   "arriere_mesure": {
    "haut": {
-    "y0": 0,
-    "y1": 58,
+    "y0": 0.0,
+    "y1": 58.0,
     "x0": 31,
     "x1": 106,
     "touche_le_bord": true
    },
    "bas": {
-    "y0": 172,
-    "y1": 226,
+    "y0": 172.0,
+    "y1": 226.0,
     "x0": 34,
     "x1": 106,
     "touche_le_bord": true
@@ -172,211 +208,251 @@
    "x": 0.794,
    "haut": 0.1745,
    "bas": 0.8255,
+   "decalage_px": 1.9,
    "longueur": 0.14,
    "largeur": 0.17,
    "dessus": true,
-   "suspension": false,
-   "decalage_px": 1.9
-  }
+   "suspension": false
+  },
+  "avant2": null
  },
  {
   "nom": "lotus72",
   "h": 256,
-  "axe": 130.5,
-  "iou": 0.983,
-  "recale_px": -2,
-  "cadre_agrandi": false,
+  "inclinaison": 0.93,
+  "redresse": 0.93,
+  "echelle": 0.9894,
+  "cintre_px": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "axe": 128.5,
+  "iou": 0.986,
+  "hors_cadre": 0,
   "arriere_mesure": {
    "haut": {
-    "y0": 0,
-    "y1": 63,
-    "x0": 35,
-    "x1": 116,
-    "touche_le_bord": true
+    "y0": 5.0,
+    "y1": 67.0,
+    "x0": 32,
+    "x1": 117,
+    "touche_le_bord": false
    },
    "bas": {
-    "y0": 197,
-    "y1": 256,
-    "x0": 35,
-    "x1": 116,
-    "touche_le_bord": true
-   },
-   "ecart_int": [
-    67.5,
-    66.5
-   ]
-  },
-  "arriere": {
-   "x": 0.1798,
-   "haut": 0.123,
-   "bas": 0.8809,
-   "longueur": 0.1929,
-   "largeur": 0.2383
-  },
-  "avant": {
-   "x": 0.782,
-   "haut": 0.206,
-   "bas": 0.798,
-   "longueur": 0.14,
-   "largeur": 0.16,
-   "dessus": true,
-   "suspension": false,
-   "decalage_px": 0.8
-  }
- },
- {
-  "nom": "brabhambt46b",
-  "h": 256,
-  "axe": 134.0,
-  "iou": 0.984,
-  "recale_px": -6,
-  "cadre_agrandi": false,
-  "arriere_mesure": {
-   "haut": {
-    "y0": 0,
-    "y1": 66,
-    "x0": 39,
-    "x1": 125,
-    "touche_le_bord": true
-   },
-   "bas": {
-    "y0": 193,
-    "y1": 256,
-    "x0": 37,
-    "x1": 125,
-    "touche_le_bord": true
-   },
-   "ecart_int": [
-    68.0,
-    59.0
-   ]
-  },
-  "arriere": {
-   "x": 0.1917,
-   "haut": 0.1445,
-   "bas": 0.8555,
-   "longueur": 0.2071,
-   "largeur": 0.25
-  },
-  "avant": {
-   "x": 0.782,
-   "haut": 0.217,
-   "bas": 0.783,
-   "longueur": 0.14,
-   "largeur": 0.18,
-   "dessus": true,
-   "suspension": false,
-   "decalage_px": 2.7
-  }
- },
- {
-  "nom": "williamsfw07",
-  "h": 256,
-  "axe": 137.5,
-  "iou": 0.987,
-  "recale_px": -10,
-  "cadre_agrandi": false,
-  "arriere_mesure": {
-   "haut": {
-    "y0": 0,
-    "y1": 72,
-    "x0": 43,
-    "x1": 103,
-    "touche_le_bord": true
-   },
-   "bas": {
-    "y0": 197,
-    "y1": 256,
-    "x0": 43,
-    "x1": 107,
-    "touche_le_bord": true
+    "y0": 200.0,
+    "y1": 259.0,
+    "x0": 36,
+    "x1": 118,
+    "touche_le_bord": false
    },
    "ecart_int": [
     65.5,
-    59.5
+    67.5
    ]
   },
   "arriere": {
    "x": 0.1762,
-   "haut": 0.1367,
-   "bas": 0.8594,
-   "longueur": 0.1476,
-   "largeur": 0.2578
+   "haut": 0.1289,
+   "bas": 0.875,
+   "longueur": 0.2,
+   "largeur": 0.2344
   },
   "avant": {
-   "x": 0.79,
-   "haut": 0.218,
-   "bas": 0.778,
+   "x": 0.7791,
+   "haut": 0.2091,
+   "bas": 0.7948,
+   "decalage_px": -1.1,
+   "longueur": 0.14,
+   "largeur": 0.16,
+   "dessus": true,
+   "suspension": false
+  },
+  "avant2": null
+ },
+ {
+  "nom": "brabhambt46b",
+  "h": 256,
+  "inclinaison": 1.46,
+  "redresse": 1.46,
+  "echelle": 0.9848,
+  "cintre_px": [
+   -2.8,
+   -6.9,
+   -7.0
+  ],
+  "axe": 127.5,
+  "iou": 0.968,
+  "hors_cadre": 0,
+  "arriere_mesure": {
+   "haut": {
+    "y0": 9.0,
+    "y1": 74.0,
+    "x0": 39,
+    "x1": 124,
+    "touche_le_bord": false
+   },
+   "bas": {
+    "y0": 198.0,
+    "y1": 261.0,
+    "x0": 41,
+    "x1": 128,
+    "touche_le_bord": false
+   },
+   "ecart_int": [
+    63.5,
+    60.5
+   ]
+  },
+  "arriere": {
+   "x": 0.1952,
+   "haut": 0.1367,
+   "bas": 0.8594,
+   "longueur": 0.2048,
+   "largeur": 0.25
+  },
+  "avant": {
+   "x": 0.7781,
+   "haut": 0.2188,
+   "bas": 0.7773,
+   "decalage_px": 0.5,
+   "longueur": 0.14,
+   "largeur": 0.18,
+   "dessus": true,
+   "suspension": false
+  },
+  "avant2": null
+ },
+ {
+  "nom": "williamsfw07",
+  "h": 256,
+  "inclinaison": 1.38,
+  "redresse": 1.38,
+  "echelle": 0.9848,
+  "cintre_px": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "axe": 128.5,
+  "iou": 0.984,
+  "hors_cadre": 0,
+  "arriere_mesure": {
+   "haut": {
+    "y0": 8.0,
+    "y1": 79.0,
+    "x0": 42,
+    "x1": 103,
+    "touche_le_bord": false
+   },
+   "bas": {
+    "y0": 201.0,
+    "y1": 260.0,
+    "x0": 47,
+    "x1": 111,
+    "touche_le_bord": false
+   },
+   "ecart_int": [
+    61.5,
+    60.5
+   ]
+  },
+  "arriere": {
+   "x": 0.1738,
+   "haut": 0.1387,
+   "bas": 0.8652,
+   "longueur": 0.1476,
+   "largeur": 0.2539
+  },
+  "avant": {
+   "x": 0.7856,
+   "haut": 0.2263,
+   "bas": 0.7776,
+   "decalage_px": -9.9,
    "longueur": 0.14,
    "largeur": 0.17,
    "dessus": true,
-   "suspension": true,
-   "decalage_px": -6.9
-  }
+   "suspension": true
+  },
+  "avant2": null
  },
  {
   "nom": "ligierjs11",
   "h": 256,
-  "axe": 137.5,
-  "iou": 0.981,
-  "recale_px": -10,
-  "cadre_agrandi": false,
+  "inclinaison": 1.25,
+  "redresse": 1.25,
+  "echelle": 0.9871,
+  "cintre_px": [
+   0.0,
+   -2.5,
+   -2.7
+  ],
+  "axe": 127.5,
+  "iou": 0.977,
+  "hors_cadre": 0,
   "arriere_mesure": {
    "haut": {
-    "y0": 0,
-    "y1": 69,
-    "x0": 44,
-    "x1": 104,
-    "touche_le_bord": true
-   },
-   "bas": {
-    "y0": 196,
-    "y1": 255,
+    "y0": 7.0,
+    "y1": 76.0,
     "x0": 44,
     "x1": 106,
     "touche_le_bord": false
    },
+   "bas": {
+    "y0": 201.0,
+    "y1": 260.0,
+    "x0": 48,
+    "x1": 110,
+    "touche_le_bord": false
+   },
    "ecart_int": [
-    68.5,
-    58.5
+    61.5,
+    63.5
    ]
   },
   "arriere": {
-   "x": 0.1774,
-   "haut": 0.1445,
-   "bas": 0.8516,
-   "longueur": 0.1452,
+   "x": 0.1786,
+   "haut": 0.1328,
+   "bas": 0.8633,
+   "longueur": 0.1476,
    "largeur": 0.25
   },
   "avant": {
-   "x": 0.792,
-   "haut": 0.151,
-   "bas": 0.845,
+   "x": 0.7887,
+   "haut": 0.1553,
+   "bas": 0.8408,
+   "decalage_px": 1.0,
    "longueur": 0.14,
    "largeur": 0.17,
    "dessus": true,
-   "suspension": false,
-   "decalage_px": 0.2
-  }
+   "suspension": false
+  },
+  "avant2": null
  },
  {
   "nom": "renaultrs10",
   "h": 256,
-  "axe": 131.5,
+  "inclinaison": 0.17,
+  "redresse": 0.0,
+  "echelle": 1.0,
+  "cintre_px": [
+   -5.5,
+   -3.4,
+   -4.0
+  ],
+  "axe": 127.5,
   "iou": 0.995,
-  "recale_px": -4,
-  "cadre_agrandi": false,
+  "hors_cadre": 0,
   "arriere_mesure": {
    "haut": {
-    "y0": 0,
-    "y1": 67,
+    "y0": 0.0,
+    "y1": 67.0,
     "x0": 41,
     "x1": 103,
     "touche_le_bord": true
    },
    "bas": {
-    "y0": 191,
-    "y1": 256,
+    "y0": 191.0,
+    "y1": 256.0,
     "x0": 41,
     "x1": 113,
     "touche_le_bord": true
@@ -397,11 +473,12 @@
    "x": 0.795,
    "haut": 0.198,
    "bas": 0.798,
+   "decalage_px": 0.6,
    "longueur": 0.14,
    "largeur": 0.18,
    "dessus": true,
-   "suspension": false,
-   "decalage_px": -0.2
-  }
+   "suspension": false
+  },
+  "avant2": null
  }
 ]
