@@ -389,6 +389,9 @@ const NOM_MAX = 14, NOM_MIN = 2;
 function nomPropre(v) { return String(v == null ? '' : v).replace(/[^A-Za-z0-9]/g, '').slice(0, NOM_MAX); }
 function nomValide(v) { return new RegExp(`^[A-Za-z0-9]{${NOM_MIN},${NOM_MAX}}$`).test(String(v == null ? '' : v)); }
 
+/* Circuits dont l'illustration du paddock commence sous le bandeau du nom (voir trackPreview). */
+const ART_SOUS_LE_NOM = new Set(['watkins']);
+
 class UI {
   constructor(app) {
     this.app = app;
@@ -1002,13 +1005,18 @@ class UI {
     // La maquette porte le nombre de tours sous le nom : c'est la course qu'on va courir, pas
     // seulement le circuit. Hors course, la longueur seule.
     const detail = [country, this.longueur(trackDef), tours ? `${tours} ${this.t('laps')}` : ''].filter(Boolean).join(' · ');
-    /* L'illustration commence SOUS le bandeau du nom, et non derrière lui (0.52.83) : le bandeau,
-    opaque, en cachait le tiers du haut — la tour et le ciel de Camping Glen, le haut des tribunes
-    ailleurs. Bruno : « baisse le visuel pour mieux voir le haut de l'image ». Elle couvre maintenant
-    la seule zone visible, rognée de quelques pour cent selon l'écran. */
-    return `<div class="paddock-track">
-      <div class="track-heading"><div><b>${escapeHtml(trackDef.name)}</b><span>${escapeHtml(detail)}</span></div>${this.circuitFlag(trackDef)}</div>
-      <div class="paddock-art" ${bg ? `style="background-image:url('${bg}')"` : ''}><img class="preview-track" src="${this.thumb(trackDef, 360)}" alt="${escapeHtml(this.t('track') + ' : ' + trackDef.name)}"></div></div>`;
+    const img = `<img class="preview-track" src="${this.thumb(trackDef, 360)}" alt="${escapeHtml(this.t('track') + ' : ' + trackDef.name)}">`;
+    const heading = `<div class="track-heading"><div><b>${escapeHtml(trackDef.name)}</b><span>${escapeHtml(detail)}</span></div>${this.circuitFlag(trackDef)}</div>`;
+    /* Camping Glen seul : son illustration commence SOUS le bandeau du nom, et non derrière lui
+    (0.52.83) — le bandeau, opaque, cachait la tour, le ciel et le haut du panneau. Bruno : « baisse
+    le visuel pour mieux en voir le haut ». Les autres circuits gardent leur cadrage (0.52.84 : Bruno
+    ne voulait le changement que pour celui-là). */
+    if (ART_SOUS_LE_NOM.has(trackDef.id)) return `<div class="paddock-track">
+      ${heading}
+      <div class="paddock-art" ${bg ? `style="background-image:url('${bg}')"` : ''}>${img}</div></div>`;
+    return `<div class="paddock-track" ${bg ? `style="background-image:url('${bg}')"` : ''}>
+      ${heading}
+      ${img}</div>`;
   }
 
   liveryChoices(model) {

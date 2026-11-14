@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.84
+- Paddock : les autres circuits retrouvent leur illustration d'avant ; seul Camping Glen garde la sienne sous son nom.
+
 ## 0.52.83
 - Paddock : l'illustration du circuit commence sous son nom au lieu d'être cachée derrière ; on en voit le haut.
 

@@ -1301,7 +1301,11 @@ circuit choisi (`trackPreview`, js/ui.js), l'illustration était le fond de tout
 bandeau du nom, opaque, en cachait le tiers du haut : la tour et le ciel de Camping Glen, le haut des
 tribunes ailleurs. Elle est maintenant dans son propre cadre (`.paddock-art`), qui commence sous le
 bandeau ; `cover` la rogne encore un peu selon l'écran, et le cadrage `50% 30%` garde plutôt le haut
-que le bas (la piste, au premier plan, reste visible). Vaut pour tous les circuits.
+que le bas (la piste, au premier plan, reste visible).
+
+**Camping Glen seul (0.52.84).** La 0.52.83 l'avait appliqué à tous les circuits ; Bruno ne l'avait
+demandé que pour celui-là. La liste `ART_SOUS_LE_NOM` (js/ui.js) nomme les circuits concernés —
+`watkins` seul — et les autres sont rendus exactement comme en 0.52.82 (captures identiques au pixel).
 
 ### Monaco relevé sur une vue satellite (0.52.34)
 

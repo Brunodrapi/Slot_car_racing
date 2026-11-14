@@ -850,9 +850,10 @@ body.desktop .screen.setup-screen, body.desktop .screen.selection-screen { width
    deux lignes (« Festival de Carnaval » sur téléphone) recouvrait le haut du tracé. */
 .paddock-track { display:flex; flex-direction:column; }
 .track-heading { position:relative; flex:0 0 auto; }
-/* l'illustration du circuit, sous le bandeau du nom et non derrière (0.52.83) */
+/* Camping Glen seul : l'illustration sous le bandeau du nom et non derrière (0.52.83-84) */
 .paddock-art { position:relative; flex:1 1 0; min-height:0; display:flex; flex-direction:column; margin-top:-10px; background:#6b8171 50% 30% / cover no-repeat; }
-.preview-track { position:relative; inset:auto; flex:1 1 0; min-height:0; width:90%; height:auto; margin:14px auto 8px; background:none; border:0; filter:drop-shadow(2px 4px 0 #171c1955); }
+.preview-track { position:relative; inset:auto; flex:1 1 0; min-height:0; width:90%; height:auto; margin:4px auto 8px; background:none; border:0; filter:drop-shadow(2px 4px 0 #171c1955); }
+.paddock-art .preview-track { margin:14px auto 8px; }
 .track-card-art img { background:none; border:0; }
 .circuit-sheet .railbox { padding:8px 0 0; }
 .setup-screen .rail.tracks .card { padding:3px; border:2px solid #a29679; background:#fff0d2; }
