@@ -2110,7 +2110,7 @@ const TRACKS = [
     id: 'watkins', name: 'Camping Glen', country: 'US', flag: '🇺🇸', theme: 'glen',
     architecture: 'pavillons',
     barriers: true,   // les rails bleus de l'Armco, partout
-    kerb: DRAPEAUX.us,
+    kerb: ['#E9BE37', '#C9282E'],   // jaunes et rouges, comme les vrais (voir CIRCUIT_STYLES)
     length: 3000, width: 12,
     pts: TRACES.watkins,
     /* La voie des stands longe la ligne droite par l'intérieur. La vraie ressort après The Ninety ;
@@ -2188,13 +2188,15 @@ const CIRCUIT_STYLES = {
   redbullring: { colors:['#448C58','#F1F0E8'], grass:['#709452','#81A464','#587B42','#AAA16A'] },
   castellet: { colors:[], grass:['#A6A16E','#B8B280','#908D5B','#C1AF77'] },
   zandvoort: { colors:['#ED782C','#F1F0E8'], grass:['#BCB67D','#CCC58D','#A5A06B','#D5BF82'] },
-  watkins: { colors:['#2769A3','#F1F0E8'], grass:['#7FA663','#8FB571','#6A8F52','#A9A56C'] },
+  // Watkins Glen : des vibreurs jaunes et rouges, comme les vrais (Bruno, 0.52.80).
+  watkins: { colors:['#2769A3','#F1F0E8'], grass:['#7FA663','#8FB571','#6A8F52','#A9A56C'], kerb:['#E9BE37','#C9282E'] },
 };
 for(const d of TRACKS){
   if(d.graphics)continue;
   const style=CIRCUIT_STYLES[d.id];
   d.graphics={ profile:'circuit',roadOutlineWidth:.35,kerbBlock:1,
-    kerb:['#C9282E','#F1F0E8'],kerbOutlineWidth:.12,proceduralPit:true,
+    // rouge et blanc partout, sauf là où le circuit nomme les siens
+    kerb:style.kerb||['#C9282E','#F1F0E8'],kerbOutlineWidth:.12,proceduralPit:true,
     paintedRunoff:false,runoffColors:style.colors,
     materials:{grass:style.grass[0],grassLight:style.grass[1],grassDark:style.grass[2],grassDry:style.grass[3],
       barrierBlocks:['#C92F32','#E6E6DF','#28639C']},

@@ -4331,6 +4331,10 @@ fermeture de Monaco et de Bathurst, qui comble les creux de moins de 70 m entre 
 côté. Elle ne touchait que les zones déclarées ; elle s'applique maintenant aussi aux bacs calculés
 (`Track._joinRunoffs`), ce qui ne change rien aux autres circuits — aucun n'a l'option sans zones.
 
+**Les vibreurs sont jaunes et rouges (0.52.80)**, comme les vrais — Bruno. Le profil graphique des
+circuits (`CIRCUIT_STYLES`) imposait le rouge et blanc partout ; une ligne peut maintenant nommer
+ses couleurs (`kerb`), et seul Camping Glen le fait. Le fond provisoire de la carte suit.
+
 **Le nom** : « Camping Glen », choisi par Bruno parmi six propositions (0.52.79) — le Glen est célèbre
 pour ses campings autant que pour sa course.
 

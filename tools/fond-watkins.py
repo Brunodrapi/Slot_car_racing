@@ -212,7 +212,7 @@ def dessine():
         ligne = [(x + signe * (30 * pers(y) + .5), y) for x, y in bord]
         out.append(f'<path d="{chemin(ligne, False)}" fill="none" stroke="#f3f1ea" stroke-width="3" opacity=".9"/>')
 
-    # LES VIBREURS, rouges et blancs, à la corde de chaque courbe
+    # LES VIBREURS, jaunes et rouges comme à Watkins Glen, à la corde de chaque courbe
     def vibreur(bord, signe, de, a, larg):
         s = ''
         for j, i in enumerate(range(de, a, 2)):
@@ -220,7 +220,7 @@ def dessine():
             x1, y1 = bord[i + 2]
             p0, p1 = pers(y0), pers(y1)
             pts = [(x0, y0), (x1, y1), (x1 + signe * larg * p1, y1), (x0 + signe * larg * p0, y0)]
-            s += poly(pts, '#d8333c' if j % 2 else '#f4f1e8', sw=1.4)
+            s += poly(pts, '#d8333c' if j % 2 else '#f2c230', sw=1.4)     # jaunes et rouges, comme les vrais
         return s
     out.append(vibreur(droite, -1, 0, 46, 70))
     out.append(vibreur(gauche, 1, 60, 118, 70))
@@ -229,7 +229,7 @@ def dessine():
     esses = [(590, 300), (560, 296), (520, 291), (480, 286), (440, 279), (405, 270)]
     out.append(f'<path d="{chemin(esses, False)}" fill="none" stroke="{TRAIT}" stroke-width="9" stroke-linecap="round"/>')
     out.append(f'<path d="{chemin(esses, False)}" fill="none" stroke="#5a606c" stroke-width="6" stroke-linecap="round"/>')
-    out.append(f'<path d="{chemin(esses, False)}" fill="none" stroke="#d8333c" stroke-width="2" stroke-dasharray="4 4" transform="translate(0,3)"/>')
+    out.append(f'<path d="{chemin(esses, False)}" fill="none" stroke="#f2c230" stroke-width="2" stroke-dasharray="4 4" transform="translate(0,3)"/>')
 
     # LA PASSERELLE, une poutre bleue en treillis qui enjambe la piste
     i = 92
