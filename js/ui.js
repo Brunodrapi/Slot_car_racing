@@ -30,7 +30,8 @@ téléphone à l'autre, et le ⓘ ou le ❤️ d'Android ne ressemblent pas à c
 const PICTOS = {
   aide: '<svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="#f2c52c" stroke="#171b19" stroke-width="2.6"/><path d="M12.2 12.6a3.9 3.9 0 1 1 5.5 3.6c-1.1.5-1.7 1.3-1.7 2.4v.8" fill="none" stroke="#171b19" stroke-width="3" stroke-linecap="round"/><circle cx="16" cy="23.4" r="1.9" fill="#171b19"/></svg>',
   installer: '<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="8.5" y="2.5" width="15" height="27" rx="3.2" fill="#fff0d2" stroke="#171b19" stroke-width="2.6"/><path d="M16 8.5v10m-4.2-4.2L16 18.5l4.2-4.2" fill="none" stroke="#12a96a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.6 25h4.8" stroke="#171b19" stroke-width="2.2" stroke-linecap="round"/></svg>',
-  don: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 27.5S3.5 20 3.5 11.6A6.3 6.3 0 0 1 16 9a6.3 6.3 0 0 1 12.5 2.6C28.5 20 16 27.5 16 27.5z" fill="#e33228" stroke="#171b19" stroke-width="2.6" stroke-linejoin="round"/></svg>',
+  // « Buy me a tea » (0.52.88) : la tasse de thé du dessin de Bruno, redessinée au trait des autres
+  the: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M11 9.6c-1.4-1.6 1.4-3 0-4.6m5 4.6c-1.4-1.6 1.4-3 0-4.6m5 4.6c-1.4-1.6 1.4-3 0-4.6" fill="none" stroke="#171b19" stroke-width="1.6" stroke-linecap="round"/><path d="M23.6 15.4h2a3.2 3.2 0 0 1 0 6.4h-3.2" fill="none" stroke="#171b19" stroke-width="4.4" stroke-linecap="round"/><path d="M23.6 15.4h2a3.2 3.2 0 0 1 0 6.4h-3.2" fill="none" stroke="#cfd3d8" stroke-width="1.6" stroke-linecap="round"/><path d="M4.6 12.6h20.8v2.8c0 5.5-4.4 9.8-9.9 9.8h-1c-5.5 0-9.9-4.3-9.9-9.8z" fill="#f39a1e" stroke="#171b19" stroke-width="2" stroke-linejoin="round"/><path d="M5.7 13.6h18.6v2.3H5.7z" fill="#fff6e2"/><path d="M15 12.8v6" stroke="#171b19" stroke-width="1.1"/><path d="M13.3 19.5l1.7-1.4 1.7 1.4v3.3h-3.4z" fill="#8a4a24" stroke="#171b19" stroke-width="1.2" stroke-linejoin="round"/><path d="M3 26.4h26c0 1.8-1.8 3.1-4 3.1H7c-2.2 0-4-1.3-4-3.1z" fill="#e4e1da" stroke="#171b19" stroke-width="1.8" stroke-linejoin="round"/></svg>',
   discussion: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 6.5h20a2.5 2.5 0 0 1 2.5 2.5v11a2.5 2.5 0 0 1-2.5 2.5H14l-6 5v-5H6A2.5 2.5 0 0 1 3.5 20V9A2.5 2.5 0 0 1 6 6.5z" fill="#fff" /><circle cx="11" cy="14.5" r="2" fill="#5865f2"/><circle cx="16" cy="14.5" r="2" fill="#5865f2"/><circle cx="21" cy="14.5" r="2" fill="#5865f2"/></svg>',
   // ceux de l'écran d'installation reprennent les icônes que le téléphone affiche, pour qu'on les y retrouve
   partager: '<svg class="picto-os" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v11M7.8 7.6 12 3.5l4.2 4.1" fill="none" stroke="#0a7cff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.5 10H6.6a1.1 1.1 0 0 0-1.1 1.1v8.3a1.1 1.1 0 0 0 1.1 1.1h10.8a1.1 1.1 0 0 0 1.1-1.1v-8.3a1.1 1.1 0 0 0-1.1-1.1h-1.9" fill="none" stroke="#0a7cff" stroke-width="2" stroke-linecap="round"/></svg>',
@@ -70,10 +71,10 @@ const I18N = {
     title: 'GRIP — RACING THE LINE',
     career: 'Carrière', quickRace: 'Course rapide', timeTrial: 'Contre-la-montre', settings: 'Réglages', statistics: 'Statistiques publiques', back: 'Retour',
     editor: 'Éditeur de circuits', workshop: 'Atelier voitures',
-    /* Comment jouer, Installez-moi, Faites un don : les trois entrées du bas de l'accueil (0.52). Les
+    /* Comment jouer, Installez-moi, Buy me a tea (« Faites un don » jusqu'à la 0.52.87) : les trois entrées du bas de l'accueil (0.52). Les
     deux libellés en « vous » sont ceux que Bruno a choisis pour le menu ; les écrans tutoient, comme
     tout le reste du jeu. Les textes d'installation portent leurs pictogrammes en argument. */
-    menuHowto: 'Comment jouer', menuInstall: 'Installez-moi', menuDon: 'Faites un don', menuAide: 'Aide et soutien',
+    menuHowto: 'Comment jouer', menuInstall: 'Installez-moi', menuDon: 'Buy me a tea', menuAide: 'Aide et soutien',
     devlogLabel: (n, titre) => `Dernier devlog, n° ${n} : ${titre} (sur itch.io)`,
     // le conseil affiché au premier départ sur Chrome et Edge PC (js/chromium-cache.js)
     conseilFirefox: 'Pour une expérience optimisée, utilisez Firefox.', fermer: 'Fermer',
@@ -224,7 +225,7 @@ const I18N = {
     title: 'GRIP — RACING THE LINE',
     career: 'Career', quickRace: 'Quick race', timeTrial: 'Time trial', settings: 'Settings', statistics: 'Public statistics', back: 'Back',
     editor: 'Track editor', workshop: 'Car workshop',
-    menuHowto: 'How to play', menuInstall: 'Install me', menuDon: 'Donate', menuAide: 'Help and support',
+    menuHowto: 'How to play', menuInstall: 'Install me', menuDon: 'Buy me a tea', menuAide: 'Help and support',
     devlogLabel: (n, titre) => `Latest devlog, #${n}: ${titre} (on itch.io)`,
     conseilFirefox: 'For the best experience, use Firefox.', fermer: 'Close',
     discordBug: 'Report a bug or make a request on Discord', discordJoueurs: 'Find players on Discord',
@@ -910,7 +911,7 @@ class UI {
       <nav class="home-extras" data-pad-group aria-label="${t('menuAide')}">
         <button class="extra-card" data-action="howto">${PICTOS.aide}<span>${t('menuHowto')}</span></button>
         ${!app.desktop && !app.installe && !jeuInstalle() ? `<button class="extra-card" data-action="install">${PICTOS.installer}<span>${t('menuInstall')}</span></button>` : ''}
-        <a class="extra-card" href="${DON_URL}" target="_blank" rel="noopener">${PICTOS.don}<span>${t('menuDon')}</span></a>
+        <a class="extra-card" href="${DON_URL}" target="_blank" rel="noopener">${PICTOS.the}<span>${t('menuDon')}</span></a>
       </nav></div>
       <footer class="home-footer"><button class="home-settings" data-action="settings"><img src="art/interface/gear.webp" alt="">${t('settings')}</button>
         <button class="pilot-button" data-action="settings"><img src="art/interface/pilot.webp" alt=""><span>${t('pilotLabel')} :</span><b>${escapeHtml(app.save.name)}</b></button>

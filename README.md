@@ -62,7 +62,7 @@ bleu au calme, vert en appui, jaune à la limite, violet qui glisse, rouge en t�
 couleurs vives. Il remplace le panneau « ESPACE · GAZ 100 % » et ses deux lignes d'aide, que le
 décompte donne au départ.
 
-**Comment jouer, Installez-moi, Faites un don (0.52).** Trois entrées plus petites sous les modes de
+**Comment jouer, Installez-moi, Buy me a tea (0.52).** Trois entrées plus petites sous les modes de
 jeu de l'accueil.
 
 - *Comment jouer* montre les trois gestes — appuyer accélère, relâcher freine, le levier change de
@@ -73,7 +73,8 @@ jeu de l'accueil.
   chemin de l'appareil (Safari : Partager → Sur l'écran d'accueil ; Chrome Android : menu ⋮ →
   Installer l'application), l'autre restant dépliable ; quand Chrome propose l'installation
   directe (`beforeinstallprompt`, en prod), elle devient un bouton.
-- *Faites un don* ouvre la page itch.io du jeu (`DON_URL` dans `js/ui.js`).
+- *Buy me a tea* (« Faites un don » jusqu'à la 0.52.87 ; en anglais dans les deux langues, à la demande de
+  Bruno, avec une tasse de thé redessinée d'après la sienne) ouvre la page itch.io du jeu (`DON_URL` dans `js/ui.js`).
 
 Les douze animations (`art/interface/comment-jouer/`, 2,8 Mo en WebP animé) se refont avec
 `node tools/comment-jouer.js` : le temps du jeu est figé et avancé image par image, les gestes passent

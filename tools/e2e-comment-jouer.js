@@ -1,12 +1,12 @@
-// Les trois entrées du bas de l'accueil : Comment jouer, Installez-moi, Faites un don.
+// Les trois entrées du bas de l'accueil : Comment jouer, Installez-moi, Buy me a tea (ex-« Faites un don »).
 //
 //   NODE_PATH=$(npm root -g) node tools/e2e-comment-jouer.js [dossier des captures]
 //
 // Sur iPhone, Android et ordinateur, en français et en anglais :
-// - l'accueil montre « Comment jouer » et « Faites un don » partout, « Installez-moi » seulement sur un
+// - l'accueil montre « Comment jouer » et « Buy me a tea » partout, « Installez-moi » seulement sur un
 //   téléphone où le jeu n'est pas déjà installé (ni lancé depuis l'écran d'accueil, ni installé à
 //   l'instant) ;
-// - « Faites un don » est un lien vers la page itch.io, ouvert dans un nouvel onglet ;
+// - « Buy me a tea » est un lien vers la page itch.io, ouvert dans un nouvel onglet ;
 // - « Comment jouer » montre les trois gestes avec les animations de l'appareil et de la langue, qui se
 //   chargent toutes ; sur téléphone « Suivant » passe d'un geste au suivant, les points suivent, et le
 //   dernier bouton mène à la course rapide ;
