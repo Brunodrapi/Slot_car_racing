@@ -1929,12 +1929,17 @@ de l'écran (`<picture>`) : `art/affiche-titre-portrait.webp` en 9:16 pour un t�
 
 L'affiche **remplit l'écran** (`object-fit: cover`) et il ne reste presque rien à rogner.
 `object-position` dit où rogner ce qui reste : `65% 60%` debout, `60% 10%` couché — le nom peint et
-les deux voitures restent dans le cadre. Couchée, l'affiche a la Ford au milieu du bas : l'invitation
-se pose à gauche, sur les pavés.
+les deux voitures restent dans le cadre. Couchée, l'affiche a la Ford au milieu du bas : les commandes
+et le dernier devlog se posent à gauche, sur les pavés.
 
 **L'invitation** — « Appuie pour commencer », *Press any button to start* au clavier ou *Tap to
-start* au doigt en anglais — se pose en bas de l'écran, dans le lettrage du jeu, jaune cerné de
-noir, sur un fondu sombre qui monte du bas. Elle **clignote** comme une enseigne d'arcade,
+start* au doigt en anglais — se pose **au centre de la largeur, juste au-dessus de la voiture
+rouge** (0.52.89 ; en bas jusque-là, à gauche couché), dans le lettrage du jeu, jaune cerné de noir.
+Bruno : « relève Appuie pour commencer et mets-le au centre de la page », puis « trop haut, mets-le
+juste au-dessus de la voiture rouge ». L'affiche étant rognée différemment selon l'écran,
+`placeInvitation` (js/ui.js) refait le calcul de `object-fit: cover` pour trouver le toit de la
+Ferrari (y = 523 px sur l'affiche couchée, 1030 sur la debout), au chargement de l'image et à chaque
+changement de taille. Elle **clignote** comme une enseigne d'arcade,
 longtemps allumée et brièvement éteinte, sans disparaître tout à fait ; sous
 `prefers-reduced-motion`, elle reste allumée. Un téléphone en paysage n'a que 350 px de haut :
 l'invitation y rapetisse.

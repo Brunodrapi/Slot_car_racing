@@ -776,8 +776,8 @@ class UI {
         <img class="poster" src="art/affiche-titre-portrait.webp" alt="${escapeHtml(t('title'))}">
       </picture>
       <div class="voile" aria-hidden="true"></div>
+      <div class="press">${escapeHtml(invite)}</div>
       <div class="stage">
-        <div class="press">${escapeHtml(invite)}</div>
         ${this.app.desktop ? `<div class="title-inputs">${this.t(MANETTE ? 'splashInputsPad' : 'splashInputs')}</div>` : ''}
         ${this.devlogLien()}
       </div>
@@ -785,6 +785,26 @@ class UI {
       <div class="maj" aria-live="polite" hidden></div>
     `, 'center splash');
     this.majAffiche();
+    const affiche = this.root.querySelector('.splash .poster');
+    // à chaque image chargée : l'affiche couchée remplace la debout quand on tourne le téléphone
+    if (affiche) affiche.addEventListener('load', () => this.placeInvitation());
+    if (!this._invitationLiee) { this._invitationLiee = true; addEventListener('resize', () => this.placeInvitation()); }
+    this.placeInvitation();
+  }
+
+  /* « APPUIE POUR COMMENCER », JUSTE AU-DESSUS DE LA VOITURE ROUGE (0.52.89). Bruno : « relève-le et
+  mets-le au centre de la page », puis « trop haut, mets-le juste au-dessus de la voiture rouge ». Au
+  centre de la largeur, donc, et à la hauteur du toit de la Ferrari. L'affiche remplit l'écran en étant
+  rognée (`object-fit: cover`), et pas de la même façon sur un téléphone et sur un ordinateur : on refait
+  le calcul de `cover` pour savoir où tombe le toit, mesuré sur les deux affiches (en pixels de l'image). */
+  placeInvitation() {
+    const img = this.root.querySelector('.splash .poster'), press = this.root.querySelector('.splash .press');
+    if (!img || !press || !img.naturalWidth) return;
+    const toitY = /paysage/.test(img.currentSrc || img.src) ? 523 : 1030;   // affiche couchée : 1672 × 941 ; debout : 941 × 1672
+    const r = img.getBoundingClientRect(), echelle = Math.max(r.width / img.naturalWidth, r.height / img.naturalHeight);
+    const py = parseFloat(getComputedStyle(img).objectPosition.split(' ')[1]) / 100;
+    const y = (r.height - img.naturalHeight * echelle) * (Number.isFinite(py) ? py : 0.5) + toitY * echelle;
+    press.style.setProperty('--toit', `${Math.round(y)}px`);
   }
 
   /* L'état du jeu hors ligne, sur l'écran-titre (voir js/maj.js) : le téléchargement PROPOSÉ avec sa

@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.89
+- Écran-titre : « Appuie pour commencer » remonte, au centre de l'écran, juste au-dessus de la voiture rouge.
+
 ## 0.52.88
 - Menu : « Faites un don » devient « Buy me a tea », avec une tasse de thé.
 

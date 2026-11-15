@@ -38,7 +38,8 @@ canvas#game { position: fixed; inset: 0; display: block; touch-action: none; use
 body.desktop .screen.splash { width: 100%; max-width: none; }
 .screen.splash .poster { position: absolute; inset: 0; width: 100%; height: 100%; display: block;
   object-fit: cover; object-position: 65% 60%; }
-/* Couchée, l'affiche a la Ford au milieu du bas : l'invitation se pose à gauche, sur les pavés. */
+/* Couchée, l'affiche a la Ford au milieu du bas : les commandes et le dernier devlog se posent à gauche,
+   sur les pavés (l'invitation, elle, est au centre de l'écran depuis la 0.52.89). */
 @media (orientation: landscape) {
   .screen.splash .poster { object-position: 60% 10%; }
   .screen.splash .stage { align-self: flex-start; align-items: flex-start; padding-left: max(5vw, env(safe-area-inset-left)); }
@@ -90,7 +91,12 @@ body.desktop .screen.splash { width: 100%; max-width: none; }
 /* L'invitation, dans le lettrage du jeu, jaune sur le flou sombre, cernée de noir pour se lire
    même là où le flou est clair. Une enseigne d'arcade qui clignote — allumée longtemps, éteinte
    court — sans jamais disparaître tout à fait : on doit pouvoir la lire au moment où on la cherche. */
+/* L'invitation au centre de la largeur, posée juste au-dessus du toit de la voiture rouge (0.52.89) :
+   js/ui.js (placeInvitation) calcule où tombe ce toit sur l'affiche rognée et le met dans --toit.
+   Les commandes et le dernier devlog restent en bas. */
 .screen.splash .press {
+  position: absolute; left: 50%; top: var(--toit, 58%); transform: translate(-50%, calc(-100% - 8px)); z-index: 1;
+  width: max-content; max-width: calc(100% - 32px); pointer-events: none;
   font: italic 900 clamp(22px, 3.6vh, 36px) Racing, Impact, sans-serif; text-transform: uppercase; letter-spacing: 0.03em;
   color: #ffd84a; text-align: center; padding: 0 16px; line-height: 1.05;
   -webkit-text-stroke: 1.5px #1b1308; paint-order: stroke fill;
