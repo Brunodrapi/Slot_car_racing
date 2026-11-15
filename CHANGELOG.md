@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.52.87
+- Écran-titre : le lien mène au Devlog #2 (Practice Mode & Camping Glen), qui vient de paraître sur itch.io.
+
 ## 0.52.86
 - Le lien du dernier devlog passe du menu à l'écran-titre, sous « Appuie pour commencer ».
 

@@ -245,8 +245,9 @@ et il tourne aussi hors ligne —, donc le titre est écrit dans `js/ui.js` (`DE
 nouveau billet**, une fois posté :
 `curl -s https://drapiiii.itch.io/grip-racing-the-line/devlog.rss | node tools/dernier-devlog.js`
 y met le numéro, le titre et l'adresse du billet le plus récent, puis version, recette, prod. Un billet
-annoncé avant d'être posté mène à la page des devlogs ; l'outil ne recule jamais vers un numéro plus
-ancien. `tools/e2e-menu.js` vérifie, sur six écrans, le lien, qu'il ne recouvre rien, et que le toucher
+annoncé avant d'être posté mène à la page des devlogs ; l'outil ne recule pas vers un numéro plus
+ancien, sauf avec `--force`, quand le billet a paru sous un autre numéro que celui annoncé (0.52.87 :
+annoncé n° 3, posté n° 2). `tools/e2e-menu.js` vérifie, sur six écrans, le lien, qu'il ne recouvre rien, et que le toucher
 laisse l'affiche.
 
 **itch.io (`itch/`).** La page du jeu sur itch.io ne porte pas le jeu : `itch/index.html` (ou

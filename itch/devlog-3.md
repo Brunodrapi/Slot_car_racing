@@ -1,5 +1,11 @@
 # GRIP Devlog #3 — Practice Mode & Camping Glen
 
+**Publié par Bruno le 15 novembre 2026 sous le titre « GRIP Devlog #2 — Practice Mode & Camping
+Glen »** (le devlog #2 du dépôt, trophées et automne, n'a jamais paru) :
+https://drapiiii.itch.io/grip-racing-the-line/devlog/1778451/grip-devlog-2-practice-mode-camping-glen
+Le billet affiche les images de `itch/devlog-3/` par leur adresse en recette : ne pas déplacer ce
+dossier.
+
 Ce que couvre ce billet : tout ce qui a changé pour le joueur depuis le devlog #2 (0.52.51), jusqu'à
 la 0.52.84. La prod est en 0.52.59 : à poster APRÈS la prochaine publication en prod (et le
 redéploiement de la fonction des records, sans lequel les temps de Camping Glen seraient refusés).
