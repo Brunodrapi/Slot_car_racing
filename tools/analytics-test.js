@@ -34,7 +34,7 @@ const { randomUUID } = require('crypto'), assert = require('assert/strict'), fs 
   assert.equal(await ingest([row('visit'), row('lap',{...a,lap:1,lap_s:81})]),0,'déduplication métier au-delà des identifiants de transport');
   const result = await report();
   assert.deepEqual(result.current,{visitors:2,sessions:3,starts:2,laps:3,seconds:90,completed:1,abandoned:1,tt_ended:0,offtracks:2,clean_laps:2,known_laps:3});
-  assert.equal(result.previous.laps,1); assert.deepEqual(result.audience,{new:1,returning:1});
+  assert.equal(result.previous.laps,1); assert.deepEqual(result.audience,{new:1,returning:1,definition:'visites'});
   assert.equal(result.rankings.tracks.find(t=>t.key==='spa').laps,2);
   assert.equal(result.rankings.cars.find(t=>t.key==='f40').starts,1);
   assert.equal(result.rankings.liveries.find(t=>t.key==='935|1').starts,1);
@@ -85,6 +85,10 @@ const { randomUUID } = require('crypto'), assert = require('assert/strict'), fs 
   const spam = randomUUID(); let accepted=0;
   for(let i=0;i<6;i++) accepted+=await ingest(Array.from({length:25},()=>row('visit',{visitor:spam,session:randomUUID()})));
   assert.equal(accepted,120);
+  const gt3 = {...a,race:randomUUID(),car:'porsche991gt3r',category:'gt3',livery:1};
+  assert.equal(await ingest([row('race_start',gt3),row('lap',{...gt3,lap:1,lap_s:82,clean:true})]),2,'la nouvelle catégorie GT3 accepte ses départs et tours');
+  assert.equal((await report(null,'porsche991gt3r')).current.starts,1,'la GT3 figure dans les agrégats');
+  assert.equal(await ingest([row('race_start',{...gt3,race:randomUUID(),category:'unknown'})]),0,'les catégories inconnues restent refusées');
   fs.writeFileSync('/tmp/slot-analytics-fixture.json',JSON.stringify(after,null,2));
   await db.close(); console.log('OK : migration rejouable, agrégats publics sans identité, accès anonyme/connecté, événements bruts protégés, filtres, périodes, déduplication, quota et données invalides.');
 })().catch(e=>{console.error(e.message, e.where || '', e.position || '');process.exitCode=1;});

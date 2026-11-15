@@ -72,6 +72,9 @@ const VOITURES = new Set([
   'ligierjs11', 'renaultrs10',
   // GT
   'm1procar', 'f40', 'countach', '930', 'corvette', 'csl', '250gto', 'typee', '240z',
+  // GT3
+  'porsche991gt3r', 'ferrari488gt3', 'huracangt3', 'audir8lms', 'amggt3',
+  'bmwm6gt3', 'bentleygt3', 'nissangtrgt3', 'mclaren650sgt3', 'v12vantagegt3',
   // Proto
   'gt40', '935', '787b', '962', 'xjr9', '330p4', 'p68',
 ]);

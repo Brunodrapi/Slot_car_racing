@@ -270,6 +270,7 @@ button.link.danger { color: var(--danger); }
   color: #10131b; background: var(--muted); }
 .card .cattag.cat-f1 { background: #ff6b5b; }
 .card .cattag.cat-gt { background: #5bb8ff; }
+.card .cattag.cat-gt3 { background: #ffba59; }
 .card .cattag.cat-proto { background: #5be07a; }
 
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: middle; }

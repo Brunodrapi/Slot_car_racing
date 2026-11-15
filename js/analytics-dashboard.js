@@ -27,7 +27,7 @@
       failed: 'Actualisation échouée. Les données précédentes restent affichées.',
       csv: ['Type', 'Élément', 'Départs', 'Tours', 'Visiteurs', 'Secondes de jeu', 'Sorties de piste'],
       labels: { desktop: 'Ordinateur', mobile: 'Téléphone', tablet: 'Tablette', touch: 'Tactile', keyboard: 'Clavier / clic', wheel: 'Molette',
-        gamepad: 'Manette', race: 'Course', timetrial: 'Contre-la-montre', tuning: 'Réglage', multiplayer: 'Multijoueur', f1: 'F1', gt: 'GT', proto: 'Prototypes' },
+        gamepad: 'Manette', race: 'Course', timetrial: 'Contre-la-montre', tuning: 'Réglage', multiplayer: 'Multijoueur', f1: 'F1', gt: 'GT', gt3: 'GT3', proto: 'Prototypes' },
     },
     en: {
       docTitle: 'Statistics · GRIP', noData: 'No data for this period.',
@@ -45,7 +45,7 @@
       failed: 'Refresh failed. The previous data stay on screen.',
       csv: ['Type', 'Item', 'Starts', 'Laps', 'Visitors', 'Seconds played', 'Offs'],
       labels: { desktop: 'Computer', mobile: 'Phone', tablet: 'Tablet', touch: 'Touch', keyboard: 'Keyboard / click', wheel: 'Mouse wheel',
-        gamepad: 'Controller', race: 'Race', timetrial: 'Time trial', tuning: 'Setup', multiplayer: 'Multiplayer', f1: 'F1', gt: 'GT', proto: 'Prototypes' },
+        gamepad: 'Controller', race: 'Race', timetrial: 'Time trial', tuning: 'Setup', multiplayer: 'Multiplayer', f1: 'F1', gt: 'GT', gt3: 'GT3', proto: 'Prototypes' },
       // le texte du HTML
       back: 'Back to the game ↗', eyebrow: 'THE GAME IN NUMBERS', h1: 'Audience & driving', intro: 'How the game is played, in numbers.',
       badge: 'Public statistics', period: 'Period', p7: 'Last 7 days', p30: 'Last 30 days', p90: 'Last 90 days', custom: 'Custom',

@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.53.0
+- Nouvelle catégorie GT3 : dix voitures et trente livrées choisies sur photos, dont Pink Pig, Rexy, Haribo, le dragon P1 et l’Aston vert foncé et jaune, dans les menus comme en course. Les ailes arrière restent complètes et les pneus dépassent discrètement.
+
 ## 0.52.89
 - Écran-titre : « Appuie pour commencer » remonte, au centre de l'écran, juste au-dessus de la voiture rouge.
 

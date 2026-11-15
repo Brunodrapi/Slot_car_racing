@@ -57,7 +57,7 @@ begin
         if r is null or coalesce(e->>'track','') !~ '^[a-z0-9_-]{1,40}$'
           or coalesce(e->>'car','') !~ '^[a-z0-9_-]{1,40}$'
           or not (coalesce(e->>'mode','') = any(array['race','timetrial','tuning','multiplayer']))
-          or not (coalesce(e->>'category','') = any(array['gt','f1','proto']))
+          or not (coalesce(e->>'category','') = any(array['gt','gt3','f1','proto']))
           or not (coalesce(e->>'control','') = any(array['keyboard','wheel','gamepad','touch'])) then continue; end if;
       end if;
       if e->>'event'='lap' and (coalesce((e->>'lap')::integer,0) not between 1 and 999

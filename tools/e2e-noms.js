@@ -43,7 +43,7 @@ console.log('Les données');
 const voitures = new Map(ici.MODELS.map((m) => [m.id, m]));
 const circuits = new Map(ici.TRACKS.map((t) => [t.id, t]));
 const vRates = TABLE.voitures.filter((v) => !voitures.has(v.id) || voitures.get(v.id).name !== v.display_name || voitures.get(v.id).catId !== v.categorie);
-ok(TABLE.voitures.length === 25 && vRates.length === 0, `25 voitures, chacune sous son identifiant d'origine et dans sa catégorie, avec le nom de la table`
+ok(TABLE.voitures.length === 35 && vRates.length === 0, `35 voitures, chacune sous son identifiant d'origine et dans sa catégorie, avec le nom de la table`
   + (vRates.length ? ' — en défaut : ' + vRates.map((v) => v.id).join(', ') : ''));
 const cRates = TABLE.circuits.filter((c) => !circuits.has(c.id) || circuits.get(c.id).name !== c.display_name);
 ok(TABLE.circuits.length === 14 && cRates.length === 0, `14 circuits, chacun sous son identifiant d'origine, avec le nom de la table`
@@ -58,7 +58,9 @@ const MARQUES = ['Ferrari', 'Lamborghini', 'BMW', 'Porsche', 'Mazda', 'Datsun', 
   'Williams', 'McLaren', 'Tyrrell', 'Brabham', 'Ligier', 'Renault', 'Elf', 'JPS', 'Parmalat', 'Saudia', 'Gitanes', 'Motorsport', 'BASF',
   'Denim', 'Pilot', 'Rain-X', 'JLOC', 'Martini', 'Swiss', 'Vaillant', 'BFGoodrich', 'Castrol', 'Dunlop', 'Jägermeister', 'Efini',
   'Rothmans', 'Shell', 'Silk Cut', 'Gulf', 'IMSA'];
-const marquees = ici.MODELS.flatMap((m) => m.livrees.filter((l) => MARQUES.some((b) => new RegExp(`(^|[^\\p{L}])${b}([^\\p{L}]|$)`, 'u').test(l.nom))).map((l) => `${m.id} « ${l.nom} »`));
+// Les dix GT3 sont demandées sous leurs noms réels et leurs inspirations de livrées.
+// Le renommage historique reste inchangé pour les 25 modèles précédents.
+const marquees = ici.MODELS.filter(m => m.catId !== 'gt3').flatMap((m) => m.livrees.filter((l) => MARQUES.some((b) => new RegExp(`(^|[^\\p{L}])${b}([^\\p{L}]|$)`, 'u').test(l.nom))).map((l) => `${m.id} « ${l.nom} »`));
 ok(marquees.length === 0, 'aucune marque (constructeur ou sponsor) dans les noms de livrées' + (marquees.length ? ' — reste : ' + marquees.join(', ') : ''));
 
 if (REF) {

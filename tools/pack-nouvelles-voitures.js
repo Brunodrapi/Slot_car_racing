@@ -8,18 +8,18 @@ const fs = require('node:fs');
 const path = require('node:path');
 const ROOT = path.resolve(__dirname, '..');
 
-async function elements(file, count) {
+async function elements(file, count, alphaThreshold = 24) {
   const {data, info: {width: w, height: h}} = await sharp(file).ensureAlpha().raw().toBuffer({resolveWithObject: true});
   const seen = new Uint8Array(w*h), parts = [];
   for (let p = 0; p < w*h; p++) {
-    if (seen[p] || data[p*4+3] < 24) continue;
+    if (seen[p] || data[p*4+3] < alphaThreshold) continue;
     const pixels = [p]; seen[p] = 1;
     let x0 = w, y0 = h, x1 = 0, y1 = 0;
     for (let k = 0; k < pixels.length; k++) {
       const q = pixels[k], x = q%w, y = Math.floor(q/w);
       x0 = Math.min(x0,x); x1 = Math.max(x1,x); y0 = Math.min(y0,y); y1 = Math.max(y1,y);
       for (const n of [x>0?q-1:-1, x<w-1?q+1:-1, y>0?q-w:-1, y<h-1?q+w:-1]) {
-        if (n>=0 && !seen[n] && data[n*4+3]>=24) { seen[n]=1; pixels.push(n); }
+        if (n>=0 && !seen[n] && data[n*4+3]>=alphaThreshold) { seen[n]=1; pixels.push(n); }
       }
     }
     if (pixels.length>1000) parts.push({pixels,x0,y0,x1,y1});

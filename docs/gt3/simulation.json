@@ -1,0 +1,312 @@
+{
+ "mesure": "autopilote",
+ "tours": 2,
+ "marge": 0.95,
+ "circuits": [
+  "monza",
+  "spa",
+  "zandvoort"
+ ],
+ "rows": [
+  {
+   "car": "porsche991gt3r",
+   "track": "monza",
+   "brut": 71.80000000002241,
+   "propre": 71.80000000002241,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 266.5001785324106
+  },
+  {
+   "car": "ferrari488gt3",
+   "track": "monza",
+   "brut": 71.86666666668887,
+   "propre": 71.86666666668887,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 2,
+   "kmh": 267.73960816459714
+  },
+  {
+   "car": "porsche991gt3r",
+   "track": "spa",
+   "brut": 96.31666666669175,
+   "propre": 96.31666666669175,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 251.37502271624558
+  },
+  {
+   "car": "ferrari488gt3",
+   "track": "spa",
+   "brut": 96.11666666662848,
+   "propre": 96.11666666662848,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 251.5301030880294
+  },
+  {
+   "car": "porsche991gt3r",
+   "track": "zandvoort",
+   "brut": 79.80000000000422,
+   "propre": 79.80000000000422,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 6,
+   "kmh": 231.4537571322232
+  },
+  {
+   "car": "huracangt3",
+   "track": "monza",
+   "brut": 71.79166666668944,
+   "propre": 71.79166666668944,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 265.55081264301407
+  },
+  {
+   "car": "huracangt3",
+   "track": "spa",
+   "brut": 95.75833333329528,
+   "propre": 95.75833333329528,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 250.4142475434593
+  },
+  {
+   "car": "huracangt3",
+   "track": "zandvoort",
+   "brut": 78.69166666667256,
+   "propre": 78.69166666667256,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 4,
+   "kmh": 229.5631766712744
+  },
+  {
+   "car": "ferrari488gt3",
+   "track": "zandvoort",
+   "brut": 79.16666666667172,
+   "propre": 79.16666666667172,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 4,
+   "kmh": 229.643474068817
+  },
+  {
+   "car": "audir8lms",
+   "track": "spa",
+   "brut": 95.62499999996253,
+   "propre": 95.62499999996253,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 249.97216517288197
+  },
+  {
+   "car": "audir8lms",
+   "track": "monza",
+   "brut": 71.93333333335536,
+   "propre": 71.93333333335536,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 2,
+   "kmh": 265.27674360772335
+  },
+  {
+   "car": "audir8lms",
+   "track": "zandvoort",
+   "brut": 77.93333333334137,
+   "propre": 77.93333333334137,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 230.21835252071614
+  },
+  {
+   "car": "amggt3",
+   "track": "monza",
+   "brut": 71.9083333333552,
+   "propre": 71.9083333333552,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 2,
+   "kmh": 267.0568185478172
+  },
+  {
+   "car": "bmwm6gt3",
+   "track": "monza",
+   "brut": 71.91666666668854,
+   "propre": 71.91666666668854,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 2,
+   "kmh": 268.66081136563673
+  },
+  {
+   "car": "amggt3",
+   "track": "spa",
+   "brut": 95.54999999996254,
+   "propre": 95.54999999996254,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 251.37856848732542
+  },
+  {
+   "car": "bentleygt3",
+   "track": "monza",
+   "brut": 71.7250000000225,
+   "propre": 71.7250000000225,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 2,
+   "kmh": 268.70911024895753
+  },
+  {
+   "car": "bmwm6gt3",
+   "track": "spa",
+   "brut": 95.66666666662898,
+   "propre": 95.66666666662898,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 251.63185823646674
+  },
+  {
+   "car": "bmwm6gt3",
+   "track": "zandvoort",
+   "brut": 78.47500000000664,
+   "propre": 78.47500000000664,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 230.56439013998457
+  },
+  {
+   "car": "nissangtrgt3",
+   "track": "monza",
+   "brut": 72.05833333335539,
+   "propre": 72.05833333335539,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 2,
+   "kmh": 269.274464869071
+  },
+  {
+   "car": "bentleygt3",
+   "track": "spa",
+   "brut": 95.51666666662975,
+   "propre": 95.51666666662975,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 2,
+   "kmh": 249.06905243736455
+  },
+  {
+   "car": "amggt3",
+   "track": "zandvoort",
+   "brut": 78.20000000000773,
+   "propre": 78.20000000000773,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 228.7034545777529
+  },
+  {
+   "car": "nissangtrgt3",
+   "track": "spa",
+   "brut": 95.91666666669143,
+   "propre": 95.91666666669143,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 253.36350622010767
+  },
+  {
+   "car": "mclaren650sgt3",
+   "track": "spa",
+   "brut": 95.72499999996236,
+   "propre": 95.72499999996236,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 249.72443905033802
+  },
+  {
+   "car": "mclaren650sgt3",
+   "track": "monza",
+   "brut": 72.07500000002189,
+   "propre": 72.07500000002189,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 2,
+   "kmh": 265.18784636177537
+  },
+  {
+   "car": "nissangtrgt3",
+   "track": "zandvoort",
+   "brut": 79.016666666672,
+   "propre": 79.016666666672,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 4,
+   "kmh": 230.99544628258337
+  },
+  {
+   "car": "mclaren650sgt3",
+   "track": "zandvoort",
+   "brut": 78.46666666667275,
+   "propre": 78.46666666667275,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 4,
+   "kmh": 228.90169265572965
+  },
+  {
+   "car": "v12vantagegt3",
+   "track": "monza",
+   "brut": 71.90000000002166,
+   "propre": 71.90000000002166,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 266.1548800289452
+  },
+  {
+   "car": "bentleygt3",
+   "track": "zandvoort",
+   "brut": 78.28333333334079,
+   "propre": 78.28333333334079,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 231.23988984349745
+  },
+  {
+   "car": "v12vantagegt3",
+   "track": "spa",
+   "brut": 95.79999999996231,
+   "propre": 95.79999999996231,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 3,
+   "kmh": 250.3096782956593
+  },
+  {
+   "car": "v12vantagegt3",
+   "track": "zandvoort",
+   "brut": 78.87500000000581,
+   "propre": 78.87500000000581,
+   "sorties": 0,
+   "tours": 2,
+   "derive": 4,
+   "kmh": 229.73833080180844
+  }
+ ]
+}

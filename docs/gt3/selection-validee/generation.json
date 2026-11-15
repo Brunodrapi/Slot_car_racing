@@ -1,0 +1,172 @@
+[
+  {
+    "model": "porsche991gt3r",
+    "name": "Porsche 911 GT3 R (991)",
+    "codes": [
+      "POR1",
+      "POR2",
+      "POR6"
+    ],
+    "prompt": "EDIT THE SUPPLIED GAME SPRITES, repaint only. The first two images are the approved overhead and menu sprite of Porsche 911 GT3 R (991); their OUTLINE, proportions, fenders, headlights, cockpit, vents and rear wing must remain the same. The next three images are the real liveries to adapt in order.\nProduce ONE TRANSPARENT SPRITE ATLAS, square canvas, exactly SIX isolated complete cars: THREE ROWS and TWO COLUMNS. Row 1 livery A, row 2 livery B, row 3 livery C. LEFT column: exact orthographic vertical overhead view, car horizontal, NOSE POINTING RIGHT. RIGHT column: same original front-three-quarter view, NOSE POINTING LEFT. Match the source sprites' cameras, not the photos' cameras. Align car centers on each row. Keep all six cars fully separated by wide transparent gutters, no cropping. Car art only, no captions, labels, frames, ground, glow or cast shadow.\nSTYLE: same clean hand-drawn vector/cartoon game art as supplied sprites: thick black exterior contour, 3-5 principal paint colors, one flat shade, dark windows, simple bold motifs, NO photorealistic reflections, no gradients or tiny sponsorship text. Racing numbers and essential large motifs/logo shapes are clear. Do not simplify away identifying artwork such as faces, bear, watch or lion.\nCRITICAL REAR FENDERS: the overhead rear wheels are NOT exposed open-wheel blocks. Keep full continuous PAINTED bodywork over and around BOTH rear wheel arches, just as approved source. All overhead tires sit UNDER the body; at most a hairline (about 2 pixels at 420px car length) peeks outside the fenders. Do not cut holes or black recesses through the rear fenders; do not narrow the rear body. Front tires will be drawn separately by the game. Menu views retain complete visible wheels. Preserve this same full silhouette in every livery.\nROW 1 / A: Pink Pig #92: salmon pink paint and dark red dashed butcher-cut contours following hood, roof, fenders, doors. No ordinary solid racing stripes.\nROW 2 / B: Grello #911: fluorescent yellow-green body, green flowing graphic accents and green rear/roof details, orange mirrors, black wing and wheels. Yellow dominant, as actual Manthey reference.\nROW 3 / C: Rexy #56: bright dinosaur green with giant white triangular teeth around the black nose/grille and flank mouth, stylized dinosaur eyes on hood. Keep distinctive cartoon dinosaur face, not merely green paint.\nEvery row's left/right car has identical paint layout and racing number. Preserve true left/right layout across views; no mirrored lettering. Transparent background.",
+    "references": [
+      "/workspace/Slot_car_racing/sprites/top/porsche991gt3r.png",
+      "/workspace/Slot_car_racing/sprites/pick/porsche991gt3r.png",
+      "/workspace/Slot_car_racing/choix-livrees/photos/POR1.jpg",
+      "/workspace/Slot_car_racing/choix-livrees/photos/POR2.jpg",
+      "/workspace/Slot_car_racing/choix-livrees/photos/POR6.jpg"
+    ]
+  },
+  {
+    "model": "ferrari488gt3",
+    "name": "Ferrari 488 GT3",
+    "codes": [
+      "FER1",
+      "FER4",
+      "FER5"
+    ],
+    "prompt": "EDIT THE SUPPLIED GAME SPRITES, repaint only. The first two images are the approved overhead and menu sprite of Ferrari 488 GT3; their OUTLINE, proportions, fenders, headlights, cockpit, vents and rear wing must remain the same. The next three images are the real liveries to adapt in order.\nProduce ONE TRANSPARENT SPRITE ATLAS, square canvas, exactly SIX isolated complete cars: THREE ROWS and TWO COLUMNS. Row 1 livery A, row 2 livery B, row 3 livery C. LEFT column: exact orthographic vertical overhead view, car horizontal, NOSE POINTING RIGHT. RIGHT column: same original front-three-quarter view, NOSE POINTING LEFT. Match the source sprites' cameras, not the photos' cameras. Align car centers on each row. Keep all six cars fully separated by wide transparent gutters, no cropping. Car art only, no captions, labels, frames, ground, glow or cast shadow.\nSTYLE: same clean hand-drawn vector/cartoon game art as supplied sprites: thick black exterior contour, 3-5 principal paint colors, one flat shade, dark windows, simple bold motifs, NO photorealistic reflections, no gradients or tiny sponsorship text. Racing numbers and essential large motifs/logo shapes are clear. Do not simplify away identifying artwork such as faces, bear, watch or lion.\nCRITICAL REAR FENDERS: the overhead rear wheels are NOT exposed open-wheel blocks. Keep full continuous PAINTED bodywork over and around BOTH rear wheel arches, just as approved source. All overhead tires sit UNDER the body; at most a hairline (about 2 pixels at 420px car length) peeks outside the fenders. Do not cut holes or black recesses through the rear fenders; do not narrow the rear body. Front tires will be drawn separately by the game. Menu views retain complete visible wheels. Preserve this same full silhouette in every livery.\nROW 1 / A: AF Corse #51: racing red, wide Italian green/white central longitudinal flag stripe across hood and roof, white angled flank panel.\nROW 2 / B: Garage Italia / Hublot #07: bold three-color asymmetrical Italian flag panels: turquoise green, white central area, bright red opposite body panels, gold wheels; large HUBLOT wordmark if legible.\nROW 3 / C: SMP #72: royal blue nose/roof, large diagonal white central flank, red rear quarter. Preserve the blue-white-red angular composition.\nEvery row's left/right car has identical paint layout and racing number. Preserve true left/right layout across views; no mirrored lettering. Transparent background.",
+    "references": [
+      "/workspace/Slot_car_racing/sprites/top/ferrari488gt3.png",
+      "/workspace/Slot_car_racing/sprites/pick/ferrari488gt3.png",
+      "/workspace/Slot_car_racing/choix-livrees/photos/FER1.jpg",
+      "/workspace/Slot_car_racing/choix-livrees/photos/FER4.jpg",
+      "/workspace/Slot_car_racing/choix-livrees/photos/FER5.jpg"
+    ]
+  },
+  {
+    "model": "huracangt3",
+    "name": "Lamborghini Huracán GT3",
+    "codes": [
+      "LAM1",
+      "LAM2",
+      "LAM6"
+    ],
+    "prompt": "EDIT THE SUPPLIED GAME SPRITES, repaint only. The first two images are the approved overhead and menu sprite of Lamborghini Huracán GT3; their OUTLINE, proportions, fenders, headlights, cockpit, vents and rear wing must remain the same. The next three images are the real liveries to adapt in order.\nProduce ONE TRANSPARENT SPRITE ATLAS, square canvas, exactly SIX isolated complete cars: THREE ROWS and TWO COLUMNS. Row 1 livery A, row 2 livery B, row 3 livery C. LEFT column: exact orthographic vertical overhead view, car horizontal, NOSE POINTING RIGHT. RIGHT column: same original front-three-quarter view, NOSE POINTING LEFT. Match the source sprites' cameras, not the photos' cameras. Align car centers on each row. Keep all six cars fully separated by wide transparent gutters, no cropping. Car art only, no captions, labels, frames, ground, glow or cast shadow.\nSTYLE: same clean hand-drawn vector/cartoon game art as supplied sprites: thick black exterior contour, 3-5 principal paint colors, one flat shade, dark windows, simple bold motifs, NO photorealistic reflections, no gradients or tiny sponsorship text. Racing numbers and essential large motifs/logo shapes are clear. Do not simplify away identifying artwork such as faces, bear, watch or lion.\nCRITICAL REAR FENDERS: the overhead rear wheels are NOT exposed open-wheel blocks. Keep full continuous PAINTED bodywork over and around BOTH rear wheel arches, just as approved source. All overhead tires sit UNDER the body; at most a hairline (about 2 pixels at 420px car length) peeks outside the fenders. Do not cut holes or black recesses through the rear fenders; do not narrow the rear body. Front tires will be drawn separately by the game. Menu views retain complete visible wheels. Preserve this same full silhouette in every livery.\nROW 1 / A: Grasser #63: saturated Lamborghini green body, black upper bonnet and carbon panels, white number squares, thin red splitter trim.\nROW 2 / B: FFF Roger Dubuis #7: charcoal black body, orange copper outlines, large simplified circular watch/dial motif on bonnet and door, orange rear wing endplates.\nROW 3 / C: Attempto blueconsult #100: royal blue, black lower flanks with a large white graphic panel, gold pinstripes and wheel edging, large NEC wordmark.\nEvery row's left/right car has identical paint layout and racing number. Preserve true left/right layout across views; no mirrored lettering. Transparent background.",
+    "references": [
+      "/workspace/Slot_car_racing/sprites/top/huracangt3.png",
+      "/workspace/Slot_car_racing/sprites/pick/huracangt3.png",
+      "/workspace/Slot_car_racing/choix-livrees/photos/LAM1.jpg",
+      "/workspace/Slot_car_racing/choix-livrees/photos/LAM2.jpg",
+      "/workspace/Slot_car_racing/choix-livrees/photos/LAM6.jpg"
+    ]
+  },
+  {
+    "model": "audir8lms",
+    "name": "Audi R8 LMS",
+    "codes": [
+      "AUD1",
+      "AUD4",
+      "AUD7"
+    ],
+    "prompt": "EDIT THE SUPPLIED GAME SPRITES, repaint only. The first two images are the approved overhead and menu sprite of Audi R8 LMS; their OUTLINE, proportions, fenders, headlights, cockpit, vents and rear wing must remain the same. The next three images are the real liveries to adapt in order.\nProduce ONE TRANSPARENT SPRITE ATLAS, square canvas, exactly SIX isolated complete cars: THREE ROWS and TWO COLUMNS. Row 1 livery A, row 2 livery B, row 3 livery C. LEFT column: exact orthographic vertical overhead view, car horizontal, NOSE POINTING RIGHT. RIGHT column: same original front-three-quarter view, NOSE POINTING LEFT. Match the source sprites' cameras, not the photos' cameras. Align car centers on each row. Keep all six cars fully separated by wide transparent gutters, no cropping. Car art only, no captions, labels, frames, ground, glow or cast shadow.\nSTYLE: same clean hand-drawn vector/cartoon game art as supplied sprites: thick black exterior contour, 3-5 principal paint colors, one flat shade, dark windows, simple bold motifs, NO photorealistic reflections, no gradients or tiny sponsorship text. Racing numbers and essential large motifs/logo shapes are clear. Do not simplify away identifying artwork such as faces, bear, watch or lion.\nCRITICAL REAR FENDERS: the overhead rear wheels are NOT exposed open-wheel blocks. Keep full continuous PAINTED bodywork over and around BOTH rear wheel arches, just as approved source. All overhead tires sit UNDER the body; at most a hairline (about 2 pixels at 420px car length) peeks outside the fenders. Do not cut holes or black recesses through the rear fenders; do not narrow the rear body. Front tires will be drawn separately by the game. Menu views retain complete visible wheels. Preserve this same full silhouette in every livery.\nROW 1 / A: WRT #3: silver-grey main body and roof, black bonnet sections, black lower side panel, small bright blue diagonal nose graphic and red accents at rear wing/endplates. This selected WRT is SILVER/BLACK/BLUE, not the common red-and-white WRT.\nROW 2 / B: BWT Mücke #26: dominant pastel pink, black/navy lower body, strong white diagonal shapes, large blue BWT lettering.\nROW 3 / C: Magnus #44: medium grey upper body and roof, black lower sides and bonnet fields, vivid GREEN edging, roof blocks and mirrors, black wing with green endplate. Use GREY/BLACK/GREEN, no red or blue paint.\nEvery row's left/right car has identical paint layout and racing number. Preserve true left/right layout across views; no mirrored lettering. Transparent background.",
+    "references": [
+      "/workspace/Slot_car_racing/sprites/top/audir8lms.png",
+      "/workspace/Slot_car_racing/sprites/pick/audir8lms.png",
+      "/workspace/Slot_car_racing/choix-livrees/photos/AUD1.jpg",
+      "/workspace/Slot_car_racing/choix-livrees/photos/AUD4.jpg",
+      "/workspace/Slot_car_racing/choix-livrees/photos/AUD7.jpg"
+    ]
+  },
+  {
+    "model": "amggt3",
+    "name": "Mercedes-AMG GT3",
+    "codes": [
+      "AMG1",
+      "AMG2",
+      "AMG4"
+    ],
+    "prompt": "EDIT THE SUPPLIED GAME SPRITES, repaint only. The first two images are the approved overhead and menu sprite of Mercedes-AMG GT3; their OUTLINE, proportions, fenders, headlights, cockpit, vents and rear wing must remain the same. The next three images are the real liveries to adapt in order.\nProduce ONE TRANSPARENT SPRITE ATLAS, square canvas, exactly SIX isolated complete cars: THREE ROWS and TWO COLUMNS. Row 1 livery A, row 2 livery B, row 3 livery C. LEFT column: exact orthographic vertical overhead view, car horizontal, NOSE POINTING RIGHT. RIGHT column: same original front-three-quarter view, NOSE POINTING LEFT. Match the source sprites' cameras, not the photos' cameras. Align car centers on each row. Keep all six cars fully separated by wide transparent gutters, no cropping. Car art only, no captions, labels, frames, ground, glow or cast shadow.\nSTYLE: same clean hand-drawn vector/cartoon game art as supplied sprites: thick black exterior contour, 3-5 principal paint colors, one flat shade, dark windows, simple bold motifs, NO photorealistic reflections, no gradients or tiny sponsorship text. Racing numbers and essential large motifs/logo shapes are clear. Do not simplify away identifying artwork such as faces, bear, watch or lion.\nCRITICAL REAR FENDERS: the overhead rear wheels are NOT exposed open-wheel blocks. Keep full continuous PAINTED bodywork over and around BOTH rear wheel arches, just as approved source. All overhead tires sit UNDER the body; at most a hairline (about 2 pixels at 420px car length) peeks outside the fenders. Do not cut holes or black recesses through the rear fenders; do not narrow the rear body. Front tires will be drawn separately by the game. Menu views retain complete visible wheels. Preserve this same full silhouette in every livery.\nROW 1 / A: Mann-Filter Mamba #47: fluorescent yellow, green snake-scale polygon pattern on bonnet/roof/flanks, green lower trim, large MANN FILTER blocks.\nROW 2 / B: Haribo #8: midnight blue nearly black body, huge gold/yellow gummy bear icon on hood and door, red HARIBO logo accents. The bear must be recognizable.\nROW 3 / C: P1 Dragon #71: black/charcoal rear and roof, vivid acid-green/yellow dragon-monster head on bonnet and front fenders, red eye accents around headlights, white pointed teeth along grille edge, green/acid flame/dragon contours on sides. Copy recognizable face from reference, not generic camouflage.\nEvery row's left/right car has identical paint layout and racing number. Preserve true left/right layout across views; no mirrored lettering. Transparent background.",
+    "references": [
+      "/workspace/Slot_car_racing/sprites/top/amggt3.png",
+      "/workspace/Slot_car_racing/sprites/pick/amggt3.png",
+      "/workspace/Slot_car_racing/choix-livrees/photos/AMG1.jpg",
+      "/workspace/Slot_car_racing/choix-livrees/photos/AMG2.jpg",
+      "/workspace/Slot_car_racing/choix-livrees/photos/AMG4.jpg"
+    ]
+  },
+  {
+    "model": "bmwm6gt3",
+    "name": "BMW M6 GT3",
+    "codes": [
+      "BMW1",
+      "BMW3",
+      "BMW7"
+    ],
+    "prompt": "EDIT THE SUPPLIED GAME SPRITES, repaint only. The first two images are the approved overhead and menu sprite of BMW M6 GT3; their OUTLINE, proportions, fenders, headlights, cockpit, vents and rear wing must remain the same. The next three images are the real liveries to adapt in order.\nProduce ONE TRANSPARENT SPRITE ATLAS, square canvas, exactly SIX isolated complete cars: THREE ROWS and TWO COLUMNS. Row 1 livery A, row 2 livery B, row 3 livery C. LEFT column: exact orthographic vertical overhead view, car horizontal, NOSE POINTING RIGHT. RIGHT column: same original front-three-quarter view, NOSE POINTING LEFT. Match the source sprites' cameras, not the photos' cameras. Align car centers on each row. Keep all six cars fully separated by wide transparent gutters, no cropping. Car art only, no captions, labels, frames, ground, glow or cast shadow.\nSTYLE: same clean hand-drawn vector/cartoon game art as supplied sprites: thick black exterior contour, 3-5 principal paint colors, one flat shade, dark windows, simple bold motifs, NO photorealistic reflections, no gradients or tiny sponsorship text. Racing numbers and essential large motifs/logo shapes are clear. Do not simplify away identifying artwork such as faces, bear, watch or lion.\nCRITICAL REAR FENDERS: the overhead rear wheels are NOT exposed open-wheel blocks. Keep full continuous PAINTED bodywork over and around BOTH rear wheel arches, just as approved source. All overhead tires sit UNDER the body; at most a hairline (about 2 pixels at 420px car length) peeks outside the fenders. Do not cut holes or black recesses through the rear fenders; do not narrow the rear body. Front tires will be drawn separately by the game. Menu views retain complete visible wheels. Preserve this same full silhouette in every livery.\nROW 1 / A: ROWE #99: white main body, yellow lower bumper, sills and roof/hood pinstripes, black grille and bonnet vent framing, large red ROWE lettering. No broad green paint panels.\nROW 2 / B: Falken #33: deep blue and turquoise sweeping bands through bonnet and flank, black wing, white number panel.\nROW 3 / C: Schnitzer #42: white base, bold BMW M light-blue/dark-blue/red diagonal ribbons across bonnet/roof/flanks, black rear panels.\nEvery row's left/right car has identical paint layout and racing number. Preserve true left/right layout across views; no mirrored lettering. Transparent background.",
+    "references": [
+      "/workspace/Slot_car_racing/sprites/top/bmwm6gt3.png",
+      "/workspace/Slot_car_racing/sprites/pick/bmwm6gt3.png",
+      "/workspace/Slot_car_racing/choix-livrees/photos/BMW1.jpg",
+      "/workspace/Slot_car_racing/choix-livrees/photos/BMW3.jpg",
+      "/workspace/Slot_car_racing/choix-livrees/photos/BMW7.jpg"
+    ]
+  },
+  {
+    "model": "bentleygt3",
+    "name": "Bentley Continental GT3",
+    "codes": [
+      "BEN1",
+      "BEN5",
+      "BEN6"
+    ],
+    "prompt": "EDIT THE SUPPLIED GAME SPRITES, repaint only. The first two images are the approved overhead and menu sprite of Bentley Continental GT3; their OUTLINE, proportions, fenders, headlights, cockpit, vents and rear wing must remain the same. The next three images are the real liveries to adapt in order.\nProduce ONE TRANSPARENT SPRITE ATLAS, square canvas, exactly SIX isolated complete cars: THREE ROWS and TWO COLUMNS. Row 1 livery A, row 2 livery B, row 3 livery C. LEFT column: exact orthographic vertical overhead view, car horizontal, NOSE POINTING RIGHT. RIGHT column: same original front-three-quarter view, NOSE POINTING LEFT. Match the source sprites' cameras, not the photos' cameras. Align car centers on each row. Keep all six cars fully separated by wide transparent gutters, no cropping. Car art only, no captions, labels, frames, ground, glow or cast shadow.\nSTYLE: same clean hand-drawn vector/cartoon game art as supplied sprites: thick black exterior contour, 3-5 principal paint colors, one flat shade, dark windows, simple bold motifs, NO photorealistic reflections, no gradients or tiny sponsorship text. Racing numbers and essential large motifs/logo shapes are clear. Do not simplify away identifying artwork such as faces, bear, watch or lion.\nCRITICAL REAR FENDERS: the overhead rear wheels are NOT exposed open-wheel blocks. Keep full continuous PAINTED bodywork over and around BOTH rear wheel arches, just as approved source. All overhead tires sit UNDER the body; at most a hairline (about 2 pixels at 420px car length) peeks outside the fenders. Do not cut holes or black recesses through the rear fenders; do not narrow the rear body. Front tires will be drawn separately by the game. Menu views retain complete visible wheels. Preserve this same full silhouette in every livery.\nROW 1 / A: M-Sport #7: dominant WHITE body and roof, thin British racing green lines outlining the fenders and lower sides, small green bonnet patch, black lower nose, green mirrors. Keep mostly white, not mostly green.\nROW 2 / B: ABT #7: dominant vivid YELLOW body and roof, black rear quarter and sills, large black ABT graphic on hood/roof, black rear wing. This chosen ABT livery is YELLOW/BLACK, no green paint.\nROW 3 / C: Absolute Singha #7: dominant ANTHRACITE GREY and BLACK, thin fluorescent YELLOW lines across hood edges, roof rails, fenders and sides. White Singha lion emblem on door and SINGHA on windshield. No white/green main body; this chosen Singha is dark grey and yellow.\nEvery row's left/right car has identical paint layout and racing number. Preserve true left/right layout across views; no mirrored lettering. Transparent background.",
+    "references": [
+      "/workspace/Slot_car_racing/sprites/top/bentleygt3.png",
+      "/workspace/Slot_car_racing/sprites/pick/bentleygt3.png",
+      "/workspace/Slot_car_racing/choix-livrees/photos/BEN1.jpg",
+      "/workspace/Slot_car_racing/choix-livrees/photos/BEN5.jpg",
+      "/workspace/Slot_car_racing/choix-livrees/photos/BEN6.jpg"
+    ]
+  },
+  {
+    "model": "nissangtrgt3",
+    "name": "Nissan GT-R Nismo GT3",
+    "codes": [
+      "NIS1",
+      "NIS2",
+      "NIS3"
+    ],
+    "prompt": "EDIT THE SUPPLIED GAME SPRITES, repaint only. The first two images are the approved overhead and menu sprite of Nissan GT-R Nismo GT3; their OUTLINE, proportions, fenders, headlights, cockpit, vents and rear wing must remain the same. The next three images are the real liveries to adapt in order.\nProduce ONE TRANSPARENT SPRITE ATLAS, square canvas, exactly SIX isolated complete cars: THREE ROWS and TWO COLUMNS. Row 1 livery A, row 2 livery B, row 3 livery C. LEFT column: exact orthographic vertical overhead view, car horizontal, NOSE POINTING RIGHT. RIGHT column: same original front-three-quarter view, NOSE POINTING LEFT. Match the source sprites' cameras, not the photos' cameras. Align car centers on each row. Keep all six cars fully separated by wide transparent gutters, no cropping. Car art only, no captions, labels, frames, ground, glow or cast shadow.\nSTYLE: same clean hand-drawn vector/cartoon game art as supplied sprites: thick black exterior contour, 3-5 principal paint colors, one flat shade, dark windows, simple bold motifs, NO photorealistic reflections, no gradients or tiny sponsorship text. Racing numbers and essential large motifs/logo shapes are clear. Do not simplify away identifying artwork such as faces, bear, watch or lion.\nCRITICAL REAR FENDERS: the overhead rear wheels are NOT exposed open-wheel blocks. Keep full continuous PAINTED bodywork over and around BOTH rear wheel arches, just as approved source. All overhead tires sit UNDER the body; at most a hairline (about 2 pixels at 420px car length) peeks outside the fenders. Do not cut holes or black recesses through the rear fenders; do not narrow the rear body. Front tires will be drawn separately by the game. Menu views retain complete visible wheels. Preserve this same full silhouette in every livery.\nROW 1 / A: Nismo GT Academy #35: white body, red roof/bonnet geometric bands and black lower nose/sides, dark wheels.\nROW 2 / B: KCMG #18: metallic-like light blue rendered as flat light blue, deep blue hood/roof geometry, white angular flank and hood panels.\nROW 3 / C: B-MAX NDDP #3: WHITE main body, silver/grey and black diagonal bonnet/roof/flank sections, vivid red diagonal lines and red B-MAX lettering, black wheels. White/grey/black dominant, red only accents.\nEvery row's left/right car has identical paint layout and racing number. Preserve true left/right layout across views; no mirrored lettering. Transparent background.",
+    "references": [
+      "/workspace/Slot_car_racing/sprites/top/nissangtrgt3.png",
+      "/workspace/Slot_car_racing/sprites/pick/nissangtrgt3.png",
+      "/workspace/Slot_car_racing/choix-livrees/photos/NIS1.jpg",
+      "/workspace/Slot_car_racing/choix-livrees/photos/NIS2.jpg",
+      "/workspace/Slot_car_racing/choix-livrees/photos/NIS3.jpg"
+    ]
+  },
+  {
+    "model": "mclaren650sgt3",
+    "name": "McLaren 650S GT3",
+    "codes": [
+      "MCL1",
+      "MCL2",
+      "MCL3"
+    ],
+    "prompt": "EDIT THE SUPPLIED GAME SPRITES, repaint only. The first two images are the approved overhead and menu sprite of McLaren 650S GT3; their OUTLINE, proportions, fenders, headlights, cockpit, vents and rear wing must remain the same. The next three images are the real liveries to adapt in order.\nProduce ONE TRANSPARENT SPRITE ATLAS, square canvas, exactly SIX isolated complete cars: THREE ROWS and TWO COLUMNS. Row 1 livery A, row 2 livery B, row 3 livery C. LEFT column: exact orthographic vertical overhead view, car horizontal, NOSE POINTING RIGHT. RIGHT column: same original front-three-quarter view, NOSE POINTING LEFT. Match the source sprites' cameras, not the photos' cameras. Align car centers on each row. Keep all six cars fully separated by wide transparent gutters, no cropping. Car art only, no captions, labels, frames, ground, glow or cast shadow.\nSTYLE: same clean hand-drawn vector/cartoon game art as supplied sprites: thick black exterior contour, 3-5 principal paint colors, one flat shade, dark windows, simple bold motifs, NO photorealistic reflections, no gradients or tiny sponsorship text. Racing numbers and essential large motifs/logo shapes are clear. Do not simplify away identifying artwork such as faces, bear, watch or lion.\nCRITICAL REAR FENDERS: the overhead rear wheels are NOT exposed open-wheel blocks. Keep full continuous PAINTED bodywork over and around BOTH rear wheel arches, just as approved source. All overhead tires sit UNDER the body; at most a hairline (about 2 pixels at 420px car length) peeks outside the fenders. Do not cut holes or black recesses through the rear fenders; do not narrow the rear body. Front tires will be drawn separately by the game. Menu views retain complete visible wheels. Preserve this same full silhouette in every livery.\nROW 1 / A: Tekno #59: vivid McLaren orange body, black hood/roof/rear panels, restrained white number squares.\nROW 2 / B: Garage 59 #60: dominant WHITE body and roof, RED nose corners and lower sides, large green checkerboard squares across hood and doors, black rear wing. Include the green checker motif, not a generic white/red livery.\nROW 3 / C: K-PAX #9: vivid YELLOW upper body/roof and fenders, BLACK hood center and lower sides, white angular number panel at rear side, large white K-PAX mark on black door. Selected 2017 reference is YELLOW/BLACK, no blue paint.\nEvery row's left/right car has identical paint layout and racing number. Preserve true left/right layout across views; no mirrored lettering. Transparent background.",
+    "references": [
+      "/workspace/Slot_car_racing/sprites/top/mclaren650sgt3.png",
+      "/workspace/Slot_car_racing/sprites/pick/mclaren650sgt3.png",
+      "/workspace/Slot_car_racing/choix-livrees/photos/MCL1.jpg",
+      "/workspace/Slot_car_racing/choix-livrees/photos/MCL2.jpg",
+      "/workspace/Slot_car_racing/choix-livrees/photos/MCL3.jpg"
+    ]
+  },
+  {
+    "model": "v12vantagegt3",
+    "name": "Aston Martin V12 Vantage GT3",
+    "codes": [
+      "AST4",
+      "AST6",
+      "AST8"
+    ],
+    "prompt": "EDIT THE SUPPLIED GAME SPRITES, repaint only. The first two images are the approved overhead and menu sprite of Aston Martin V12 Vantage GT3; their OUTLINE, proportions, fenders, headlights, cockpit, vents and rear wing must remain the same. The next three images are the real liveries to adapt in order.\nProduce ONE TRANSPARENT SPRITE ATLAS, square canvas, exactly SIX isolated complete cars: THREE ROWS and TWO COLUMNS. Row 1 livery A, row 2 livery B, row 3 livery C. LEFT column: exact orthographic vertical overhead view, car horizontal, NOSE POINTING RIGHT. RIGHT column: same original front-three-quarter view, NOSE POINTING LEFT. Match the source sprites' cameras, not the photos' cameras. Align car centers on each row. Keep all six cars fully separated by wide transparent gutters, no cropping. Car art only, no captions, labels, frames, ground, glow or cast shadow.\nSTYLE: same clean hand-drawn vector/cartoon game art as supplied sprites: thick black exterior contour, 3-5 principal paint colors, one flat shade, dark windows, simple bold motifs, NO photorealistic reflections, no gradients or tiny sponsorship text. Racing numbers and essential large motifs/logo shapes are clear. Do not simplify away identifying artwork such as faces, bear, watch or lion.\nCRITICAL REAR FENDERS: the overhead rear wheels are NOT exposed open-wheel blocks. Keep full continuous PAINTED bodywork over and around BOTH rear wheel arches, just as approved source. All overhead tires sit UNDER the body; at most a hairline (about 2 pixels at 420px car length) peeks outside the fenders. Do not cut holes or black recesses through the rear fenders; do not narrow the rear body. Front tires will be drawn separately by the game. Menu views retain complete visible wheels. Preserve this same full silhouette in every livery.\nROW 1 / A: TF Sport #10: charcoal black and grey, fine fluorescent yellow outline and bonnet/roof edge stripes, dark wheels.\nROW 2 / B: R-Motorsport #62: matte dark grey body, black carbon hood panels and wing, small cyan/turquoise roof and nose accent strips, white number panel.\nROW 3 / C: AMR dark green/yellow presentation livery: dark metallic-green simplified to flat muted deep green, single yellow longitudinal stripe over bonnet and roof, bright yellow grille outline and roof rails, black rear wing with yellow endplates. NO invented racing number. Follow exact supplied real photo.\nEvery row's left/right car has identical paint layout and racing number. Preserve true left/right layout across views; no mirrored lettering. Transparent background.",
+    "references": [
+      "/workspace/Slot_car_racing/sprites/top/v12vantagegt3.png",
+      "/workspace/Slot_car_racing/sprites/pick/v12vantagegt3.png",
+      "/workspace/Slot_car_racing/choix-livrees/photos/AST4.jpg",
+      "/workspace/Slot_car_racing/choix-livrees/photos/AST6.jpg",
+      "/workspace/Slot_car_racing/choix-livrees/photos/AST8.webp"
+    ]
+  }
+]

@@ -244,6 +244,66 @@
       "id": "p68",
       "original": "Ford P68",
       "display_name": "Redneck Arrow 68"
+    },
+    {
+      "categorie": "gt3",
+      "id": "porsche991gt3r",
+      "original": "Porsche 911 GT3 R (991)",
+      "display_name": "Porsche 911 GT3 R (991)"
+    },
+    {
+      "categorie": "gt3",
+      "id": "ferrari488gt3",
+      "original": "Ferrari 488 GT3",
+      "display_name": "Ferrari 488 GT3"
+    },
+    {
+      "categorie": "gt3",
+      "id": "huracangt3",
+      "original": "Lamborghini Huracán GT3",
+      "display_name": "Lamborghini Huracán GT3"
+    },
+    {
+      "categorie": "gt3",
+      "id": "audir8lms",
+      "original": "Audi R8 LMS",
+      "display_name": "Audi R8 LMS"
+    },
+    {
+      "categorie": "gt3",
+      "id": "amggt3",
+      "original": "Mercedes-AMG GT3",
+      "display_name": "Mercedes-AMG GT3"
+    },
+    {
+      "categorie": "gt3",
+      "id": "bmwm6gt3",
+      "original": "BMW M6 GT3",
+      "display_name": "BMW M6 GT3"
+    },
+    {
+      "categorie": "gt3",
+      "id": "bentleygt3",
+      "original": "Bentley Continental GT3",
+      "display_name": "Bentley Continental GT3"
+    },
+    {
+      "categorie": "gt3",
+      "id": "nissangtrgt3",
+      "original": "Nissan GT-R Nismo GT3",
+      "display_name": "Nissan GT-R Nismo GT3"
+    },
+    {
+      "categorie": "gt3",
+      "id": "mclaren650sgt3",
+      "original": "McLaren 650S GT3",
+      "display_name": "McLaren 650S GT3"
+    },
+    {
+      "categorie": "gt3",
+      "id": "v12vantagegt3",
+      "original": "Aston Martin V12 Vantage GT3",
+      "display_name": "Aston Martin V12 Vantage GT3"
     }
   ],
   "circuits": [

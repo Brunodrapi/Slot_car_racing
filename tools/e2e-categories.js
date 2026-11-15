@@ -86,10 +86,10 @@ const DOUBLE = `
     await p.click('[data-action="setup"][data-mode="race"]');
     await p.waitForSelector('[data-rail="models"] .card');
     const effectifs = await p.evaluate(() => Object.fromEntries(CATEGORIES.map((c) => [c.id, modelsOf(c.id).length])));
-    dit(effectifs.f1 === 9 && effectifs.gt === 9 && effectifs.proto === 7, `neuf F1, neuf GT, sept prototypes (${JSON.stringify(effectifs)})`);
+    dit(effectifs.f1 === 9 && effectifs.gt === 9 && effectifs.gt3 === 10 && effectifs.proto === 7, `neuf F1, neuf GT, dix GT3, sept prototypes (${JSON.stringify(effectifs)})`);
     const toutes = await cartes(p, 'models');
-    dit(toutes.length === 25, `« Toutes » montre les vingt-cinq voitures (${toutes.length})`);
-    for (const cat of ['f1', 'gt', 'proto']) {
+    dit(toutes.length === 35, `« Toutes » montre les trente-cinq voitures (${toutes.length})`);
+    for (const cat of ['f1', 'gt', 'gt3', 'proto']) {
       await p.click(`[data-action="pickCat"][data-id="${cat}"]`);
       await p.waitForTimeout(250);
       const ids = await cartes(p, 'models');
@@ -161,8 +161,19 @@ const DOUBLE = `
     await hote.waitForTimeout(800);
     const ouverte = await invite.evaluate(() => ({ cartes: document.querySelectorAll('[data-rail="netModels"] .card').length,
       voiture: app.net.mine.car && app.net.mine.car.modelId, verrou: [...document.querySelectorAll('[data-action="netCat"]')].every((b) => b.disabled) }));
-    dit(ouverte.cartes === 25 && ouverte.voiture === 'lotus72', `table ouverte : l'invité voit les 25 voitures et garde sa Lotus 72 (${ouverte.voiture})`);
+    dit(ouverte.cartes === 35 && ouverte.voiture === 'lotus72', `table ouverte : l'invité voit les 35 voitures et garde sa Lotus 72 (${ouverte.voiture})`);
     dit(ouverte.verrou, 'l\'invité ne peut pas changer la catégorie de la table');
+    // La nouvelle catégorie doit aussi contraindre les voitures des deux joueurs.
+    await hote.click('[data-action="netCat"][data-id="gt3"]');
+    await hote.waitForTimeout(800);
+    await invite.evaluate(() => app.ui.lobbyScreen());
+    const gt3Reservee = await invite.evaluate(() => ({
+      ids:[...document.querySelectorAll('[data-rail="netModels"] .card')].map(c=>c.dataset.id),
+      car:app.net.mine.car.modelId, ready:app.net.mine.ready
+    }));
+    const gt3Only = await invite.evaluate(ids => ids.every(id=>modelById(id).catId==='gt3'),gt3Reservee.ids);
+    dit(gt3Reservee.ids.length===10 && gt3Only && !gt3Reservee.ready,
+      'table GT3 : dix choix, voiture adaptée et invitation à se redéclarer prêt');
     // L'hôte réserve la table aux prototypes.
     await hote.click('[data-action="netCat"][data-id="proto"]');
     await hote.waitForTimeout(800);

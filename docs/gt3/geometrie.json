@@ -1,0 +1,1396 @@
+{
+  "sprites": [
+    {
+      "model": "porsche991gt3r",
+      "livery": "",
+      "view": "top",
+      "file": "sprites/top/porsche991gt3r.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      }
+    },
+    {
+      "model": "porsche991gt3r",
+      "livery": "",
+      "view": "pick",
+      "file": "sprites/pick/porsche991gt3r.png",
+      "width": 420,
+      "height": 268,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 268
+      }
+    },
+    {
+      "model": "porsche991gt3r",
+      "livery": "grello",
+      "view": "top",
+      "file": "sprites/top/porsche991gt3r_grello.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      },
+      "silhouetteIoU": 0.9916883677627407
+    },
+    {
+      "model": "porsche991gt3r",
+      "livery": "grello",
+      "view": "pick",
+      "file": "sprites/pick/porsche991gt3r_grello.png",
+      "width": 420,
+      "height": 268,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 268
+      },
+      "silhouetteIoU": 0.9934662329357467
+    },
+    {
+      "model": "porsche991gt3r",
+      "livery": "rexy",
+      "view": "top",
+      "file": "sprites/top/porsche991gt3r_rexy.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      },
+      "silhouetteIoU": 0.9927458900131033
+    },
+    {
+      "model": "porsche991gt3r",
+      "livery": "rexy",
+      "view": "pick",
+      "file": "sprites/pick/porsche991gt3r_rexy.png",
+      "width": 420,
+      "height": 268,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 268
+      },
+      "silhouetteIoU": 0.9921999694660727
+    },
+    {
+      "model": "ferrari488gt3",
+      "livery": "",
+      "view": "top",
+      "file": "sprites/top/ferrari488gt3.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      }
+    },
+    {
+      "model": "ferrari488gt3",
+      "livery": "",
+      "view": "pick",
+      "file": "sprites/pick/ferrari488gt3.png",
+      "width": 420,
+      "height": 225,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 225
+      }
+    },
+    {
+      "model": "ferrari488gt3",
+      "livery": "garageitalia",
+      "view": "top",
+      "file": "sprites/top/ferrari488gt3_garageitalia.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      },
+      "silhouetteIoU": 0.9926569993311608
+    },
+    {
+      "model": "ferrari488gt3",
+      "livery": "garageitalia",
+      "view": "pick",
+      "file": "sprites/pick/ferrari488gt3_garageitalia.png",
+      "width": 420,
+      "height": 225,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 225
+      },
+      "silhouetteIoU": 0.992225931839809
+    },
+    {
+      "model": "ferrari488gt3",
+      "livery": "smp",
+      "view": "top",
+      "file": "sprites/top/ferrari488gt3_smp.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      },
+      "silhouetteIoU": 0.9916505461993628
+    },
+    {
+      "model": "ferrari488gt3",
+      "livery": "smp",
+      "view": "pick",
+      "file": "sprites/pick/ferrari488gt3_smp.png",
+      "width": 420,
+      "height": 225,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 225
+      },
+      "silhouetteIoU": 0.9900733220530175
+    },
+    {
+      "model": "huracangt3",
+      "livery": "",
+      "view": "top",
+      "file": "sprites/top/huracangt3.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      }
+    },
+    {
+      "model": "huracangt3",
+      "livery": "",
+      "view": "pick",
+      "file": "sprites/pick/huracangt3.png",
+      "width": 420,
+      "height": 201,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 201
+      }
+    },
+    {
+      "model": "huracangt3",
+      "livery": "fff",
+      "view": "top",
+      "file": "sprites/top/huracangt3_fff.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      },
+      "silhouetteIoU": 0.9934260939705586
+    },
+    {
+      "model": "huracangt3",
+      "livery": "fff",
+      "view": "pick",
+      "file": "sprites/pick/huracangt3_fff.png",
+      "width": 420,
+      "height": 201,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 201
+      },
+      "silhouetteIoU": 0.9826524902070509
+    },
+    {
+      "model": "huracangt3",
+      "livery": "attempto",
+      "view": "top",
+      "file": "sprites/top/huracangt3_attempto.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      },
+      "silhouetteIoU": 0.9938638774386723
+    },
+    {
+      "model": "huracangt3",
+      "livery": "attempto",
+      "view": "pick",
+      "file": "sprites/pick/huracangt3_attempto.png",
+      "width": 420,
+      "height": 201,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 201
+      },
+      "silhouetteIoU": 0.9847202797202798
+    },
+    {
+      "model": "audir8lms",
+      "livery": "",
+      "view": "top",
+      "file": "sprites/top/audir8lms.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      }
+    },
+    {
+      "model": "audir8lms",
+      "livery": "",
+      "view": "pick",
+      "file": "sprites/pick/audir8lms.png",
+      "width": 420,
+      "height": 225,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 225
+      }
+    },
+    {
+      "model": "audir8lms",
+      "livery": "bwt",
+      "view": "top",
+      "file": "sprites/top/audir8lms_bwt.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      },
+      "silhouetteIoU": 0.9873076399291842
+    },
+    {
+      "model": "audir8lms",
+      "livery": "bwt",
+      "view": "pick",
+      "file": "sprites/pick/audir8lms_bwt.png",
+      "width": 420,
+      "height": 225,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 225
+      },
+      "silhouetteIoU": 0.9926603296835519
+    },
+    {
+      "model": "audir8lms",
+      "livery": "magnus",
+      "view": "top",
+      "file": "sprites/top/audir8lms_magnus.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      },
+      "silhouetteIoU": 0.9919278707364791
+    },
+    {
+      "model": "audir8lms",
+      "livery": "magnus",
+      "view": "pick",
+      "file": "sprites/pick/audir8lms_magnus.png",
+      "width": 420,
+      "height": 225,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 225
+      },
+      "silhouetteIoU": 0.9935392539268987
+    },
+    {
+      "model": "amggt3",
+      "livery": "",
+      "view": "top",
+      "file": "sprites/top/amggt3.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      }
+    },
+    {
+      "model": "amggt3",
+      "livery": "",
+      "view": "pick",
+      "file": "sprites/pick/amggt3.png",
+      "width": 420,
+      "height": 217,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 217
+      }
+    },
+    {
+      "model": "amggt3",
+      "livery": "haribo",
+      "view": "top",
+      "file": "sprites/top/amggt3_haribo.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      },
+      "silhouetteIoU": 0.9951164488089709
+    },
+    {
+      "model": "amggt3",
+      "livery": "haribo",
+      "view": "pick",
+      "file": "sprites/pick/amggt3_haribo.png",
+      "width": 420,
+      "height": 217,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 217
+      },
+      "silhouetteIoU": 0.9946516334200636
+    },
+    {
+      "model": "amggt3",
+      "livery": "dragon",
+      "view": "top",
+      "file": "sprites/top/amggt3_dragon.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      },
+      "silhouetteIoU": 0.9911263433361229
+    },
+    {
+      "model": "amggt3",
+      "livery": "dragon",
+      "view": "pick",
+      "file": "sprites/pick/amggt3_dragon.png",
+      "width": 420,
+      "height": 217,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 217
+      },
+      "silhouetteIoU": 0.9936592021831607
+    },
+    {
+      "model": "bmwm6gt3",
+      "livery": "",
+      "view": "top",
+      "file": "sprites/top/bmwm6gt3.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      }
+    },
+    {
+      "model": "bmwm6gt3",
+      "livery": "",
+      "view": "pick",
+      "file": "sprites/pick/bmwm6gt3.png",
+      "width": 420,
+      "height": 233,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 233
+      }
+    },
+    {
+      "model": "bmwm6gt3",
+      "livery": "falken",
+      "view": "top",
+      "file": "sprites/top/bmwm6gt3_falken.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      },
+      "silhouetteIoU": 0.9948348332520786
+    },
+    {
+      "model": "bmwm6gt3",
+      "livery": "falken",
+      "view": "pick",
+      "file": "sprites/pick/bmwm6gt3_falken.png",
+      "width": 420,
+      "height": 233,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 233
+      },
+      "silhouetteIoU": 0.9943317067364913
+    },
+    {
+      "model": "bmwm6gt3",
+      "livery": "schnitzer",
+      "view": "top",
+      "file": "sprites/top/bmwm6gt3_schnitzer.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      },
+      "silhouetteIoU": 0.9950660070372233
+    },
+    {
+      "model": "bmwm6gt3",
+      "livery": "schnitzer",
+      "view": "pick",
+      "file": "sprites/pick/bmwm6gt3_schnitzer.png",
+      "width": 420,
+      "height": 233,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 233
+      },
+      "silhouetteIoU": 0.9912905191504541
+    },
+    {
+      "model": "bentleygt3",
+      "livery": "",
+      "view": "top",
+      "file": "sprites/top/bentleygt3.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      }
+    },
+    {
+      "model": "bentleygt3",
+      "livery": "",
+      "view": "pick",
+      "file": "sprites/pick/bentleygt3.png",
+      "width": 420,
+      "height": 224,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 224
+      }
+    },
+    {
+      "model": "bentleygt3",
+      "livery": "abt",
+      "view": "top",
+      "file": "sprites/top/bentleygt3_abt.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      },
+      "silhouetteIoU": 0.9933080437047525
+    },
+    {
+      "model": "bentleygt3",
+      "livery": "abt",
+      "view": "pick",
+      "file": "sprites/pick/bentleygt3_abt.png",
+      "width": 420,
+      "height": 224,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 224
+      },
+      "silhouetteIoU": 0.990304275948349
+    },
+    {
+      "model": "bentleygt3",
+      "livery": "singha",
+      "view": "top",
+      "file": "sprites/top/bentleygt3_singha.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      },
+      "silhouetteIoU": 0.9910760734723278
+    },
+    {
+      "model": "bentleygt3",
+      "livery": "singha",
+      "view": "pick",
+      "file": "sprites/pick/bentleygt3_singha.png",
+      "width": 420,
+      "height": 224,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 224
+      },
+      "silhouetteIoU": 0.9894708624361476
+    },
+    {
+      "model": "nissangtrgt3",
+      "livery": "",
+      "view": "top",
+      "file": "sprites/top/nissangtrgt3.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      }
+    },
+    {
+      "model": "nissangtrgt3",
+      "livery": "",
+      "view": "pick",
+      "file": "sprites/pick/nissangtrgt3.png",
+      "width": 420,
+      "height": 237,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 237
+      }
+    },
+    {
+      "model": "nissangtrgt3",
+      "livery": "kcmg",
+      "view": "top",
+      "file": "sprites/top/nissangtrgt3_kcmg.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      },
+      "silhouetteIoU": 0.9933548610925783
+    },
+    {
+      "model": "nissangtrgt3",
+      "livery": "kcmg",
+      "view": "pick",
+      "file": "sprites/pick/nissangtrgt3_kcmg.png",
+      "width": 420,
+      "height": 237,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 237
+      },
+      "silhouetteIoU": 0.991614730878187
+    },
+    {
+      "model": "nissangtrgt3",
+      "livery": "nddp",
+      "view": "top",
+      "file": "sprites/top/nissangtrgt3_nddp.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      },
+      "silhouetteIoU": 0.9928836095616465
+    },
+    {
+      "model": "nissangtrgt3",
+      "livery": "nddp",
+      "view": "pick",
+      "file": "sprites/pick/nissangtrgt3_nddp.png",
+      "width": 420,
+      "height": 237,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 237
+      },
+      "silhouetteIoU": 0.9941312391023914
+    },
+    {
+      "model": "mclaren650sgt3",
+      "livery": "",
+      "view": "top",
+      "file": "sprites/top/mclaren650sgt3.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      }
+    },
+    {
+      "model": "mclaren650sgt3",
+      "livery": "",
+      "view": "pick",
+      "file": "sprites/pick/mclaren650sgt3.png",
+      "width": 420,
+      "height": 207,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 207
+      }
+    },
+    {
+      "model": "mclaren650sgt3",
+      "livery": "garage59",
+      "view": "top",
+      "file": "sprites/top/mclaren650sgt3_garage59.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      },
+      "silhouetteIoU": 0.9933790109219185
+    },
+    {
+      "model": "mclaren650sgt3",
+      "livery": "garage59",
+      "view": "pick",
+      "file": "sprites/pick/mclaren650sgt3_garage59.png",
+      "width": 420,
+      "height": 207,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 207
+      },
+      "silhouetteIoU": 0.9940453847466303
+    },
+    {
+      "model": "mclaren650sgt3",
+      "livery": "kpax",
+      "view": "top",
+      "file": "sprites/top/mclaren650sgt3_kpax.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      },
+      "silhouetteIoU": 0.9944159884787305
+    },
+    {
+      "model": "mclaren650sgt3",
+      "livery": "kpax",
+      "view": "pick",
+      "file": "sprites/pick/mclaren650sgt3_kpax.png",
+      "width": 420,
+      "height": 207,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 207
+      },
+      "silhouetteIoU": 0.9923017968151239
+    },
+    {
+      "model": "v12vantagegt3",
+      "livery": "",
+      "view": "top",
+      "file": "sprites/top/v12vantagegt3.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      }
+    },
+    {
+      "model": "v12vantagegt3",
+      "livery": "",
+      "view": "pick",
+      "file": "sprites/pick/v12vantagegt3.png",
+      "width": 420,
+      "height": 230,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 230
+      }
+    },
+    {
+      "model": "v12vantagegt3",
+      "livery": "rmotorsport",
+      "view": "top",
+      "file": "sprites/top/v12vantagegt3_rmotorsport.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      },
+      "silhouetteIoU": 0.9965427947775864
+    },
+    {
+      "model": "v12vantagegt3",
+      "livery": "rmotorsport",
+      "view": "pick",
+      "file": "sprites/pick/v12vantagegt3_rmotorsport.png",
+      "width": 420,
+      "height": 230,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 230
+      },
+      "silhouetteIoU": 0.9904305510222249
+    },
+    {
+      "model": "v12vantagegt3",
+      "livery": "amr",
+      "view": "top",
+      "file": "sprites/top/v12vantagegt3_amr.png",
+      "width": 420,
+      "height": 200,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 200
+      },
+      "silhouetteIoU": 0.991408146749393
+    },
+    {
+      "model": "v12vantagegt3",
+      "livery": "amr",
+      "view": "pick",
+      "file": "sprites/pick/v12vantagegt3_amr.png",
+      "width": 420,
+      "height": 230,
+      "bbox": {
+        "left": 0,
+        "top": 0,
+        "width": 420,
+        "height": 230
+      },
+      "silhouetteIoU": 0.9905004013914905
+    }
+  ],
+  "anchors": [
+    {
+      "id": "porsche991gt3r",
+      "front": [
+        0.82,
+        0.06,
+        0.935,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.22,
+        0.055,
+        0.935,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "porsche991gt3r_grello",
+      "front": [
+        0.82,
+        0.065,
+        0.935,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.22,
+        0.055,
+        0.94,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "porsche991gt3r_rexy",
+      "front": [
+        0.82,
+        0.065,
+        0.935,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.22,
+        0.055,
+        0.94,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "ferrari488gt3",
+      "front": [
+        0.82,
+        0.115,
+        0.9,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.23,
+        0.105,
+        0.905,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "ferrari488gt3_garageitalia",
+      "front": [
+        0.82,
+        0.12,
+        0.9,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.23,
+        0.11,
+        0.905,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "ferrari488gt3_smp",
+      "front": [
+        0.82,
+        0.12,
+        0.9,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.23,
+        0.105,
+        0.9,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "huracangt3",
+      "front": [
+        0.82,
+        0.095,
+        0.91,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.23,
+        0.07,
+        0.92,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "huracangt3_fff",
+      "front": [
+        0.82,
+        0.095,
+        0.905,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.23,
+        0.075,
+        0.92,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "huracangt3_attempto",
+      "front": [
+        0.82,
+        0.095,
+        0.91,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.23,
+        0.075,
+        0.92,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "audir8lms",
+      "front": [
+        0.82,
+        0.105,
+        0.895,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.23,
+        0.095,
+        0.905,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "audir8lms_bwt",
+      "front": [
+        0.82,
+        0.1,
+        0.905,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.23,
+        0.085,
+        0.91,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "audir8lms_magnus",
+      "front": [
+        0.82,
+        0.1,
+        0.905,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.23,
+        0.09,
+        0.905,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "amggt3",
+      "front": [
+        0.79,
+        0.07,
+        0.94,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.22,
+        0.07,
+        0.93,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "amggt3_haribo",
+      "front": [
+        0.79,
+        0.07,
+        0.935,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.22,
+        0.07,
+        0.93,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "amggt3_dragon",
+      "front": [
+        0.79,
+        0.07,
+        0.935,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.22,
+        0.07,
+        0.925,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "bmwm6gt3",
+      "front": [
+        0.82,
+        0.07,
+        0.93,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.22,
+        0.055,
+        0.935,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "bmwm6gt3_falken",
+      "front": [
+        0.82,
+        0.07,
+        0.935,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.22,
+        0.06,
+        0.935,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "bmwm6gt3_schnitzer",
+      "front": [
+        0.82,
+        0.07,
+        0.93,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.22,
+        0.06,
+        0.93,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "bentleygt3",
+      "front": [
+        0.82,
+        0.075,
+        0.93,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.22,
+        0.075,
+        0.925,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "bentleygt3_abt",
+      "front": [
+        0.82,
+        0.075,
+        0.935,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.22,
+        0.075,
+        0.93,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "bentleygt3_singha",
+      "front": [
+        0.82,
+        0.08,
+        0.93,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.22,
+        0.08,
+        0.93,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "nissangtrgt3",
+      "front": [
+        0.82,
+        0.09,
+        0.91,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.22,
+        0.07,
+        0.92,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "nissangtrgt3_kcmg",
+      "front": [
+        0.82,
+        0.085,
+        0.91,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.22,
+        0.065,
+        0.92,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "nissangtrgt3_nddp",
+      "front": [
+        0.82,
+        0.09,
+        0.91,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.22,
+        0.065,
+        0.92,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "mclaren650sgt3",
+      "front": [
+        0.82,
+        0.095,
+        0.915,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.22,
+        0.085,
+        0.92,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "mclaren650sgt3_garage59",
+      "front": [
+        0.82,
+        0.09,
+        0.915,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.22,
+        0.08,
+        0.92,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "mclaren650sgt3_kpax",
+      "front": [
+        0.82,
+        0.09,
+        0.915,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.22,
+        0.085,
+        0.92,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "v12vantagegt3",
+      "front": [
+        0.82,
+        0.09,
+        0.925,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.23,
+        0.075,
+        0.925,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "v12vantagegt3_rmotorsport",
+      "front": [
+        0.82,
+        0.09,
+        0.92,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.23,
+        0.075,
+        0.925,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "v12vantagegt3_amr",
+      "front": [
+        0.82,
+        0.085,
+        0.92,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.23,
+        0.065,
+        0.92,
+        0.135,
+        0.13
+      ]
+    }
+  ]
+}

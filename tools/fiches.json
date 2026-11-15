@@ -176,6 +176,76 @@
       "fiabilite": "secondaire",
       "source": "320 km/h (conceptcarz.com, carrozzieri-italiani.com)",
       "config": "1967"
+    },
+    "porsche991gt3r": {
+      "nom": "Porsche 911 GT3 R (991)",
+      "vmax_kmh": null,
+      "fiabilite": "non vérifiée",
+      "source": null,
+      "config": "GT3 : la pointe du jeu est un réglage de plateau, variable en réalité avec BoP, rapports et appui."
+    },
+    "ferrari488gt3": {
+      "nom": "Ferrari 488 GT3",
+      "vmax_kmh": null,
+      "fiabilite": "non vérifiée",
+      "source": null,
+      "config": "GT3 : la pointe du jeu est un réglage de plateau, variable en réalité avec BoP, rapports et appui."
+    },
+    "huracangt3": {
+      "nom": "Lamborghini Huracán GT3",
+      "vmax_kmh": null,
+      "fiabilite": "non vérifiée",
+      "source": null,
+      "config": "GT3 : la pointe du jeu est un réglage de plateau, variable en réalité avec BoP, rapports et appui."
+    },
+    "audir8lms": {
+      "nom": "Audi R8 LMS",
+      "vmax_kmh": null,
+      "fiabilite": "non vérifiée",
+      "source": null,
+      "config": "GT3 : la pointe du jeu est un réglage de plateau, variable en réalité avec BoP, rapports et appui."
+    },
+    "amggt3": {
+      "nom": "Mercedes-AMG GT3",
+      "vmax_kmh": null,
+      "fiabilite": "non vérifiée",
+      "source": null,
+      "config": "GT3 : la pointe du jeu est un réglage de plateau, variable en réalité avec BoP, rapports et appui."
+    },
+    "bmwm6gt3": {
+      "nom": "BMW M6 GT3",
+      "vmax_kmh": null,
+      "fiabilite": "non vérifiée",
+      "source": null,
+      "config": "GT3 : la pointe du jeu est un réglage de plateau, variable en réalité avec BoP, rapports et appui."
+    },
+    "bentleygt3": {
+      "nom": "Bentley Continental GT3",
+      "vmax_kmh": null,
+      "fiabilite": "non vérifiée",
+      "source": null,
+      "config": "GT3 : la pointe du jeu est un réglage de plateau, variable en réalité avec BoP, rapports et appui."
+    },
+    "nissangtrgt3": {
+      "nom": "Nissan GT-R Nismo GT3",
+      "vmax_kmh": null,
+      "fiabilite": "non vérifiée",
+      "source": null,
+      "config": "GT3 : la pointe du jeu est un réglage de plateau, variable en réalité avec BoP, rapports et appui."
+    },
+    "mclaren650sgt3": {
+      "nom": "McLaren 650S GT3",
+      "vmax_kmh": null,
+      "fiabilite": "non vérifiée",
+      "source": null,
+      "config": "GT3 : la pointe du jeu est un réglage de plateau, variable en réalité avec BoP, rapports et appui."
+    },
+    "v12vantagegt3": {
+      "nom": "Aston Martin V12 Vantage GT3",
+      "vmax_kmh": null,
+      "fiabilite": "non vérifiée",
+      "source": null,
+      "config": "GT3 : la pointe du jeu est un réglage de plateau, variable en réalité avec BoP, rapports et appui."
     }
   }
 }

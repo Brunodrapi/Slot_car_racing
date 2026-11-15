@@ -1,0 +1,242 @@
+[
+  {
+    "car": "porsche991gt3r",
+    "livery": "",
+    "rearTireBodyCoverage": [
+      0.8349577647823262,
+      0.926450742240216
+    ]
+  },
+  {
+    "car": "porsche991gt3r",
+    "livery": "grello",
+    "rearTireBodyCoverage": [
+      0.8278102664067576,
+      0.8987854251012146
+    ]
+  },
+  {
+    "car": "porsche991gt3r",
+    "livery": "rexy",
+    "rearTireBodyCoverage": [
+      0.8265107212475633,
+      0.9014844804318488
+    ]
+  },
+  {
+    "car": "ferrari488gt3",
+    "livery": "",
+    "rearTireBodyCoverage": [
+      0.8512020792722547,
+      0.9291497975708503
+    ]
+  },
+  {
+    "car": "ferrari488gt3",
+    "livery": "garageitalia",
+    "rearTireBodyCoverage": [
+      0.8635477582846004,
+      0.9244264507422402
+    ]
+  },
+  {
+    "car": "ferrari488gt3",
+    "livery": "smp",
+    "rearTireBodyCoverage": [
+      0.847953216374269,
+      0.9365721997300944
+    ]
+  },
+  {
+    "car": "huracangt3",
+    "livery": "",
+    "rearTireBodyCoverage": [
+      0.8927125506072875,
+      0.9446693657219973
+    ]
+  },
+  {
+    "car": "huracangt3",
+    "livery": "fff",
+    "rearTireBodyCoverage": [
+      0.9055330634278003,
+      0.9392712550607287
+    ]
+  },
+  {
+    "car": "huracangt3",
+    "livery": "attempto",
+    "rearTireBodyCoverage": [
+      0.9122807017543859,
+      0.9385964912280702
+    ]
+  },
+  {
+    "car": "audir8lms",
+    "livery": "",
+    "rearTireBodyCoverage": [
+      0.8706952566601689,
+      0.9385964912280702
+    ]
+  },
+  {
+    "car": "audir8lms",
+    "livery": "bwt",
+    "rearTireBodyCoverage": [
+      0.8882391163092918,
+      0.9446693657219973
+    ]
+  },
+  {
+    "car": "audir8lms",
+    "livery": "magnus",
+    "rearTireBodyCoverage": [
+      0.8609486679662118,
+      0.9493927125506073
+    ]
+  },
+  {
+    "car": "amggt3",
+    "livery": "",
+    "rearTireBodyCoverage": [
+      0.8724696356275303,
+      0.9197031039136302
+    ]
+  },
+  {
+    "car": "amggt3",
+    "livery": "haribo",
+    "rearTireBodyCoverage": [
+      0.8758434547908233,
+      0.9311740890688259
+    ]
+  },
+  {
+    "car": "amggt3",
+    "livery": "dragon",
+    "rearTireBodyCoverage": [
+      0.8738191632928475,
+      0.9149797570850202
+    ]
+  },
+  {
+    "car": "bmwm6gt3",
+    "livery": "",
+    "rearTireBodyCoverage": [
+      0.8512020792722547,
+      0.9345479082321188
+    ]
+  },
+  {
+    "car": "bmwm6gt3",
+    "livery": "falken",
+    "rearTireBodyCoverage": [
+      0.9055330634278003,
+      0.9473684210526315
+    ]
+  },
+  {
+    "car": "bmwm6gt3",
+    "livery": "schnitzer",
+    "rearTireBodyCoverage": [
+      0.8940620782726046,
+      0.9541160593792173
+    ]
+  },
+  {
+    "car": "bentleygt3",
+    "livery": "",
+    "rearTireBodyCoverage": [
+      0.8751686909581646,
+      0.9426450742240216
+    ]
+  },
+  {
+    "car": "bentleygt3",
+    "livery": "abt",
+    "rearTireBodyCoverage": [
+      0.8805668016194332,
+      0.926450742240216
+    ]
+  },
+  {
+    "car": "bentleygt3",
+    "livery": "singha",
+    "rearTireBodyCoverage": [
+      0.8921377517868746,
+      0.9244264507422402
+    ]
+  },
+  {
+    "car": "nissangtrgt3",
+    "livery": "",
+    "rearTireBodyCoverage": [
+      0.8954116059379217,
+      0.956140350877193
+    ]
+  },
+  {
+    "car": "nissangtrgt3",
+    "livery": "kcmg",
+    "rearTireBodyCoverage": [
+      0.9149797570850202,
+      0.9507422402159245
+    ]
+  },
+  {
+    "car": "nissangtrgt3",
+    "livery": "nddp",
+    "rearTireBodyCoverage": [
+      0.8987854251012146,
+      0.951417004048583
+    ]
+  },
+  {
+    "car": "mclaren650sgt3",
+    "livery": "",
+    "rearTireBodyCoverage": [
+      0.8888888888888888,
+      0.9392712550607287
+    ]
+  },
+  {
+    "car": "mclaren650sgt3",
+    "livery": "garage59",
+    "rearTireBodyCoverage": [
+      0.8869395711500975,
+      0.9392712550607287
+    ]
+  },
+  {
+    "car": "mclaren650sgt3",
+    "livery": "kpax",
+    "rearTireBodyCoverage": [
+      0.917478882391163,
+      0.941970310391363
+    ]
+  },
+  {
+    "car": "v12vantagegt3",
+    "livery": "",
+    "rearTireBodyCoverage": [
+      0.9149797570850202,
+      0.9345479082321188
+    ]
+  },
+  {
+    "car": "v12vantagegt3",
+    "livery": "rmotorsport",
+    "rearTireBodyCoverage": [
+      0.9163292847503374,
+      0.9345479082321188
+    ]
+  },
+  {
+    "car": "v12vantagegt3",
+    "livery": "amr",
+    "rearTireBodyCoverage": [
+      0.8954116059379217,
+      0.9500674763832658
+    ]
+  }
+]

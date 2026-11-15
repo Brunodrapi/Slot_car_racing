@@ -20,7 +20,7 @@
 //    turbo    0 to 1, the whistle and the blow-off on lift
 'use strict';
 
-/* TROIS CATÉGORIES, ET DEUX ÉQUILIBRES QUI NE SONT PAS LE MÊME.
+/* CATÉGORIES, ET DEUX ÉQUILIBRES QUI NE SONT PAS LE MÊME.
 
 Dans une catégorie, les voitures se valent au tour et diffèrent par le caractère : une différence de
 caractère est un choix offert au joueur, cinq secondes au tour n'en est pas un. ENTRE catégories,
@@ -233,6 +233,67 @@ const CATEGORIES = [
     ],
   },
   {
+    id: 'gt3', name: { fr: 'GT3', en: 'GT3' },
+    desc: { fr: 'Les GT modernes : dix silhouettes, de vrais ailerons et des caractères moteur bien distincts.', en: 'Modern GT racers: ten silhouettes, big wings and distinctive engines.' },
+    // Plateau de jeu équilibré, pas une homologation BoP ni des pointes constructeur.
+    // Même route et même cadrage que les catégories historiques.
+    engine: { cyl: 8, redline: 7500, idle: 1200, rough: 0.2, bright: 0.8, turbo: 0 },
+    base: { vmax: 290 / 3.6, accel: 9, brake: 19, grip: 14.2, df: 0.0027, slide: 0.56, laneK: 6, rearBias: 1.10, cliff: 0.16, slipPeak: 0.10, length: 4.6, width: 2.04 },
+    drivers: 10, roadScale: 0.9, zoom: 1.15,
+    models: [
+      { id: 'porsche991gt3r', name: 'Porsche 911 GT3 R (991)', shape: 'roundGT', length: 4.60, width: 2.03,
+        mul: { vmax: 0.99, accel: 1.03, brake: 1.02, grip: 1.00, df: 0.98, slide: 1.08 },
+        colors: ["#f4a7a3", "#a51e28"], top: 'sprites/top/porsche991gt3r.png', pick: 'sprites/pick/porsche991gt3r.png',
+        livrees: [{"id": "", "nom": "Pink Pig · rose et pointillés rouges · 92", "en": "Pink Pig · pink and red dashed cuts · 92"}, {"id": "grello", "nom": "Manthey Grello · 911"}, {"id": "rexy", "nom": "Rexy · dinosaure · 56", "en": "Rexy · dinosaur · 56"}],
+        engine: { cyl: 6, redline: 9000, idle: 1500, rough: 0.22, bright: 0.88, turbo: 0, sample: { ramp: 'sounds/engine/flat6-930.json', bas: 'sounds/engine/flat6-930-bas.json' } } },
+      { id: 'ferrari488gt3', name: 'Ferrari 488 GT3', shape: 'f40', length: 4.63, width: 2.05,
+        mul: { vmax: 1, accel: 1.02, brake: 1.01, grip: 0.99, df: 1.02, slide: 1.02 },
+        colors: ["#e0262c", "#ffffff"], top: 'sprites/top/ferrari488gt3.png', pick: 'sprites/pick/ferrari488gt3.png',
+        livrees: [{"id": "", "nom": "AF Corse · rouge tricolore · 51"}, {"id": "garageitalia", "nom": "Garage Italia / Hublot · 07"}, {"id": "smp", "nom": "SMP Racing · 72"}],
+        engine: { cyl: 8, redline: 7500, idle: 1200, rough: 0.12, bright: 0.82, turbo: 0.8, sample: { ramp: 'sounds/engine/v8-f40.json' } } },
+      { id: 'huracangt3', name: 'Lamborghini Huracán GT3', shape: 'wedgeGT', length: 4.61, width: 2.05,
+        mul: { vmax: 0.99, accel: 1.01, brake: 1.02, grip: 1.01, df: 1, slide: 1.05 },
+        colors: ["#75ce16", "#191d21"], top: 'sprites/top/huracangt3.png', pick: 'sprites/pick/huracangt3.png',
+        livrees: [{"id": "", "nom": "Grasser Racing · 63"}, {"id": "fff", "nom": "FFF / Roger Dubuis · montre · 7"}, {"id": "attempto", "nom": "Attempto / blueconsult · 100"}],
+        engine: { cyl: 10, redline: 8500, idle: 1400, rough: 0.08, bright: 0.94, turbo: 0 } },
+      { id: 'audir8lms', name: 'Audi R8 LMS', shape: 'wedgeGT', length: 4.58, width: 2.00,
+        mul: { vmax: 0.99, accel: 1, brake: 1.03, grip: 1.01, df: 1.01, slide: 0.96 },
+        colors: ["#aeb3bc", "#2166d8"], top: 'sprites/top/audir8lms.png', pick: 'sprites/pick/audir8lms.png',
+        livrees: [{"id": "", "nom": "WRT · argent, noir et bleu · 3", "en": "WRT · silver, black and blue · 3"}, {"id": "bwt", "nom": "BWT Mücke · rose · 26", "en": "BWT Mücke · pink · 26"}, {"id": "magnus", "nom": "Magnus Racing · gris et vert · 44", "en": "Magnus Racing · grey and green · 44"}],
+        engine: { cyl: 10, redline: 8500, idle: 1400, rough: 0.10, bright: 0.92, turbo: 0 } },
+      { id: 'amggt3', name: 'Mercedes-AMG GT3', shape: 'gtBoxy', length: 4.75, width: 2.05,
+        mul: { vmax: 1, accel: 1.01, brake: 0.99, grip: 1.01, df: 0.99, slide: 0.96 },
+        colors: ["#f2ef18", "#419c37"], top: 'sprites/top/amggt3.png', pick: 'sprites/pick/amggt3.png',
+        livrees: [{"id": "", "nom": "Mann-Filter Mamba · 47"}, {"id": "haribo", "nom": "Haribo · ours doré · 8", "en": "Haribo · golden bear · 8"}, {"id": "dragon", "nom": "P1 Motorsports · dragon · 71"}],
+        engine: { cyl: 8, redline: 7500, idle: 1100, rough: 0.65, bright: 0.65, turbo: 0, sample: { ramp: 'sounds/engine/v8-corvette.json' } } },
+      { id: 'bmwm6gt3', name: 'BMW M6 GT3', shape: 'gtBoxy', length: 4.94, width: 2.05,
+        mul: { vmax: 1.01, accel: 1.02, brake: 0.98, grip: 1, df: 0.99, slide: 0.97 },
+        colors: ["#ffffff", "#e4c32c"], top: 'sprites/top/bmwm6gt3.png', pick: 'sprites/pick/bmwm6gt3.png',
+        livrees: [{"id": "", "nom": "ROWE Racing · 99"}, {"id": "falken", "nom": "Falken Motorsports · 33"}, {"id": "schnitzer", "nom": "BMW Team Schnitzer · 42"}],
+        engine: { cyl: 8, redline: 7200, idle: 1100, rough: 0.35, bright: 0.7, turbo: 0.85, sample: { ramp: 'sounds/engine/v8-f40.json' } } },
+      { id: 'bentleygt3', name: 'Bentley Continental GT3', shape: 'gtBoxy', length: 4.95, width: 2.03,
+        mul: { vmax: 1.01, accel: 1.02, brake: 0.97, grip: 1.01, df: 0.97, slide: 0.94 },
+        colors: ["#ffffff", "#185c43"], top: 'sprites/top/bentleygt3.png', pick: 'sprites/pick/bentleygt3.png',
+        livrees: [{"id": "", "nom": "Bentley M-Sport · blanc et vert · 7", "en": "Bentley M-Sport · white and green · 7"}, {"id": "abt", "nom": "Bentley Team ABT · jaune et noir · 7", "en": "Bentley Team ABT · yellow and black · 7"}, {"id": "singha", "nom": "Absolute / Singha · gris et jaune · 7", "en": "Absolute / Singha · grey and yellow · 7"}],
+        engine: { cyl: 8, redline: 7000, idle: 1100, rough: 0.5, bright: 0.6, turbo: 0.8, sample: { ramp: 'sounds/engine/v8-corvette.json' } } },
+      { id: 'nissangtrgt3', name: 'Nissan GT-R Nismo GT3', shape: 'gtBoxy', length: 4.78, width: 2.04,
+        mul: { vmax: 1.01, accel: 1.03, brake: 0.99, grip: 0.99, df: 1, slide: 1.02 },
+        colors: ["#ffffff", "#e0262c"], top: 'sprites/top/nissangtrgt3.png', pick: 'sprites/pick/nissangtrgt3.png',
+        livrees: [{"id": "", "nom": "Nismo / GT Academy · 35"}, {"id": "kcmg", "nom": "KCMG · 18"}, {"id": "nddp", "nom": "B-MAX NDDP · 3"}],
+        engine: { cyl: 6, redline: 7500, idle: 1200, rough: 0.3, bright: 0.75, turbo: 0.9 } },
+      { id: 'mclaren650sgt3', name: 'McLaren 650S GT3', shape: 'wedgeGT', length: 4.58, width: 2.04,
+        mul: { vmax: 0.99, accel: 1, brake: 1.02, grip: 1, df: 1.04, slide: 1 },
+        colors: ["#ff8c1a", "#191d21"], top: 'sprites/top/mclaren650sgt3.png', pick: 'sprites/pick/mclaren650sgt3.png',
+        livrees: [{"id": "", "nom": "Tekno Autosports · 59"}, {"id": "garage59", "nom": "Garage 59 · blanc, rouge et damier vert · 60", "en": "Garage 59 · white, red and green checks · 60"}, {"id": "kpax", "nom": "K-PAX Racing · jaune et noir · 9", "en": "K-PAX Racing · yellow and black · 9"}],
+        engine: { cyl: 8, redline: 8500, idle: 1300, rough: 0.12, bright: 0.88, turbo: 0.85, sample: { ramp: 'sounds/engine/v8-f40.json' } } },
+      { id: 'v12vantagegt3', name: 'Aston Martin V12 Vantage GT3', shape: 'roundGT', length: 4.46, width: 1.98,
+        mul: { vmax: 0.99, accel: 1.02, brake: 1, grip: 1, df: 1.01, slide: 1.03 },
+        colors: ["#222832", "#d6ee29"], top: 'sprites/top/v12vantagegt3.png', pick: 'sprites/pick/v12vantagegt3.png',
+        livrees: [{"id": "", "nom": "TF Sport · 10"}, {"id": "rmotorsport", "nom": "R-Motorsport · 62"}, {"id": "amr", "nom": "AMR · vert foncé et jaune", "en": "AMR · dark green and yellow"}],
+        engine: { cyl: 12, redline: 7750, idle: 1200, rough: 0.06, bright: 0.9, turbo: 0, sample: { ramp: 'sounds/engine/v12-countach.json' } } },
+    ],
+  },
+  {
     id: 'proto', name: { fr: 'Proto', en: 'Prototypes' },
     desc: { fr: 'Les voitures du Mans : les plus rapides en ligne droite, et l\'appui pour le payer en virage.', en: 'Le Mans cars: the fastest in a straight line, with the downforce to pay for it in the corners.' },
     engine: { cyl: 8, redline: 7500, idle: 1000, rough: 0.3, bright: 0.65, turbo: 0 },
@@ -393,7 +454,9 @@ const CARTOON_MODELS = new Set([
   'tyrrellp34', 'ferrari312t', 'mclarenm23', 'lotus79', 'lotus72',
   'brabhambt46b', 'williamsfw07', 'ligierjs11', 'renaultrs10',
   'm1procar', 'f40', 'countach', '930', 'corvette', 'csl', '250gto', 'typee', '240z',
-  'gt40', '935', '787b', '962', 'xjr9', '330p4', 'p68'
+  'gt40', '935', '787b', '962', 'xjr9', '330p4', 'p68',
+  'porsche991gt3r', 'ferrari488gt3', 'huracangt3', 'audir8lms', 'amggt3',
+  'bmwm6gt3', 'bentleygt3', 'nissangtrgt3', 'mclaren650sgt3', 'v12vantagegt3'
 ]);
 // Anchors measured in the individual PNG frame: x left→right, y top→bottom.
 // The two sides need not be symmetric: some approved drawings are slightly offset.
@@ -491,6 +554,38 @@ for (const r of [
   ['962_jager',0.25,0.0725,0.9125,0.14,0.14],
   ['962_shell',0.25,0.0725,0.9175,0.14,0.14]
 ]) WHEEL_SPRITES[r[0]].rear=spriteAxle(...r.slice(1));
+// GT3_WHEELS_BEGIN
+registerWheelSprite('porsche991gt3r', spriteAxle(0.82,0.06,0.935,0.125,0.12), spriteAxle(0.22,0.055,0.935,0.135,0.13));
+registerWheelSprite('porsche991gt3r_grello', spriteAxle(0.82,0.065,0.935,0.125,0.12), spriteAxle(0.22,0.055,0.94,0.135,0.13));
+registerWheelSprite('porsche991gt3r_rexy', spriteAxle(0.82,0.065,0.935,0.125,0.12), spriteAxle(0.22,0.055,0.94,0.135,0.13));
+registerWheelSprite('ferrari488gt3', spriteAxle(0.82,0.115,0.9,0.125,0.12), spriteAxle(0.23,0.105,0.905,0.135,0.13));
+registerWheelSprite('ferrari488gt3_garageitalia', spriteAxle(0.82,0.12,0.9,0.125,0.12), spriteAxle(0.23,0.11,0.905,0.135,0.13));
+registerWheelSprite('ferrari488gt3_smp', spriteAxle(0.82,0.12,0.9,0.125,0.12), spriteAxle(0.23,0.105,0.9,0.135,0.13));
+registerWheelSprite('huracangt3', spriteAxle(0.82,0.095,0.91,0.125,0.12), spriteAxle(0.23,0.07,0.92,0.135,0.13));
+registerWheelSprite('huracangt3_fff', spriteAxle(0.82,0.095,0.905,0.125,0.12), spriteAxle(0.23,0.075,0.92,0.135,0.13));
+registerWheelSprite('huracangt3_attempto', spriteAxle(0.82,0.095,0.91,0.125,0.12), spriteAxle(0.23,0.075,0.92,0.135,0.13));
+registerWheelSprite('audir8lms', spriteAxle(0.82,0.105,0.895,0.125,0.12), spriteAxle(0.23,0.095,0.905,0.135,0.13));
+registerWheelSprite('audir8lms_bwt', spriteAxle(0.82,0.1,0.905,0.125,0.12), spriteAxle(0.23,0.085,0.91,0.135,0.13));
+registerWheelSprite('audir8lms_magnus', spriteAxle(0.82,0.1,0.905,0.125,0.12), spriteAxle(0.23,0.09,0.905,0.135,0.13));
+registerWheelSprite('amggt3', spriteAxle(0.79,0.07,0.94,0.125,0.12), spriteAxle(0.22,0.07,0.93,0.135,0.13));
+registerWheelSprite('amggt3_haribo', spriteAxle(0.79,0.07,0.935,0.125,0.12), spriteAxle(0.22,0.07,0.93,0.135,0.13));
+registerWheelSprite('amggt3_dragon', spriteAxle(0.79,0.07,0.935,0.125,0.12), spriteAxle(0.22,0.07,0.925,0.135,0.13));
+registerWheelSprite('bmwm6gt3', spriteAxle(0.82,0.07,0.93,0.125,0.12), spriteAxle(0.22,0.055,0.935,0.135,0.13));
+registerWheelSprite('bmwm6gt3_falken', spriteAxle(0.82,0.07,0.935,0.125,0.12), spriteAxle(0.22,0.06,0.935,0.135,0.13));
+registerWheelSprite('bmwm6gt3_schnitzer', spriteAxle(0.82,0.07,0.93,0.125,0.12), spriteAxle(0.22,0.06,0.93,0.135,0.13));
+registerWheelSprite('bentleygt3', spriteAxle(0.82,0.075,0.93,0.125,0.12), spriteAxle(0.22,0.075,0.925,0.135,0.13));
+registerWheelSprite('bentleygt3_abt', spriteAxle(0.82,0.075,0.935,0.125,0.12), spriteAxle(0.22,0.075,0.93,0.135,0.13));
+registerWheelSprite('bentleygt3_singha', spriteAxle(0.82,0.08,0.93,0.125,0.12), spriteAxle(0.22,0.08,0.93,0.135,0.13));
+registerWheelSprite('nissangtrgt3', spriteAxle(0.82,0.09,0.91,0.125,0.12), spriteAxle(0.22,0.07,0.92,0.135,0.13));
+registerWheelSprite('nissangtrgt3_kcmg', spriteAxle(0.82,0.085,0.91,0.125,0.12), spriteAxle(0.22,0.065,0.92,0.135,0.13));
+registerWheelSprite('nissangtrgt3_nddp', spriteAxle(0.82,0.09,0.91,0.125,0.12), spriteAxle(0.22,0.065,0.92,0.135,0.13));
+registerWheelSprite('mclaren650sgt3', spriteAxle(0.82,0.095,0.915,0.125,0.12), spriteAxle(0.22,0.085,0.92,0.135,0.13));
+registerWheelSprite('mclaren650sgt3_garage59', spriteAxle(0.82,0.09,0.915,0.125,0.12), spriteAxle(0.22,0.08,0.92,0.135,0.13));
+registerWheelSprite('mclaren650sgt3_kpax', spriteAxle(0.82,0.09,0.915,0.125,0.12), spriteAxle(0.22,0.085,0.92,0.135,0.13));
+registerWheelSprite('v12vantagegt3', spriteAxle(0.82,0.09,0.925,0.125,0.12), spriteAxle(0.23,0.075,0.925,0.135,0.13));
+registerWheelSprite('v12vantagegt3_rmotorsport', spriteAxle(0.82,0.09,0.92,0.125,0.12), spriteAxle(0.23,0.075,0.925,0.135,0.13));
+registerWheelSprite('v12vantagegt3_amr', spriteAxle(0.82,0.085,0.92,0.125,0.12), spriteAxle(0.23,0.065,0.92,0.135,0.13));
+// GT3_WHEELS_END
 function frontWheelLayout(m) { return WHEEL_SPRITES[m.id]?.front || null; }
 function resolveModel(cat, m) {
   const b = cat.base, mul = m.mul || {};

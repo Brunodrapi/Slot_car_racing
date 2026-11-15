@@ -9,8 +9,8 @@ vm.runInContext(fs.readFileSync(path.join(ROOT,'js/cars.js'),'utf8')+'\nthis.mod
 const additions=['lotus72','brabhambt46b','williamsfw07','ligierjs11','renaultrs10','250gto','typee','240z','962','xjr9','330p4','p68'];
 (async()=>{
   const report=[],all=c.models.filter(m=>!m.custom);
-  assert.equal(all.length,25);
-  assert.equal(all.flatMap(m=>m.livrees).length,57);
+  assert.equal(all.length,35);
+  assert.equal(all.flatMap(m=>m.livrees).length,88);
   for(const m of all) for(const l of m.livrees) for(const kind of ['top','pick']) {
     assert(l[kind],`${m.id}/${l.id}: ${kind} absent`);
     const f=path.join(ROOT,l[kind]);assert(fs.existsSync(f),f);
@@ -47,7 +47,7 @@ const additions=['lotus72','brabhambt46b','williamsfw07','ligierjs11','renaultrs
     if(r.view==='top') { assert.equal(actual.width,r.before.width);assert.equal(actual.height,Math.round(r.before.height*factor)); }
   }
   if(process.argv[2])fs.writeFileSync(process.argv[2],JSON.stringify(report,null,2)+'\n');
-  console.log(`${all.length} modèles, 57 livrées, 114 images présentes ; 52 nouveaux sprites contrôlés.`);
+  console.log(`${all.length} modèles, 88 livrées, 176 images présentes ; 52 sprites historiques contrôlés.`);
   console.log('24 sprites élargis contrôlés : neuf F1 et trois livrées XJR-9, deux vues chacune.');
   const variants=report.filter(r=>r.silhouetteIoU);
   for(const kind of ['top','pick'])console.log(`${kind}: silhouette minimale ${Math.min(...variants.filter(r=>r.view===kind).map(r=>r.silhouetteIoU)).toFixed(3)}`);

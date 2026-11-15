@@ -128,8 +128,8 @@ Graphiques libres Apache ECharts, données dans Supabase. La migration doit êtr
 que les mesures commencent : [installation et aperçus](docs/analytics/README.md).
 
 > **Version allégée.** Le jeu se limite pour l'instant à la **course rapide**, au
-> **contre-la-montre**, à l'**entraînement** (voir [L'entraînement](#lentraînement-05263)) et au multijoueur, avec **vingt-cinq voitures en trois catégories** — F1, GT
-> et prototypes (voir [Trois catégories](#trois-catégories)). La carrière reste dans le code sans être
+> **contre-la-montre**, à l'**entraînement** (voir [L'entraînement](#lentraînement-05263)) et au multijoueur, avec **trente-cinq voitures en quatre catégories** — F1, GT, GT3
+> et prototypes (voir [Quatre catégories](#quatre-catégories)). La carrière reste dans le code sans être
 > proposée.
 
 Quatre vues dans les réglages, deux cadrages × deux orientations :
@@ -2904,15 +2904,20 @@ mesure annonçait un mouvement parfaitement lisse. L'essai vérifie donc que la 
 avant de conclure quoi que ce soit — et il fait rouler tout le monde pendant la mesure, pour libérer
 la piste.
 
-## Trois catégories
+## Quatre catégories
 
-Vingt-cinq voitures en trois catégories, chacune avec son propre plateau :
+Trente-cinq voitures en quatre catégories, chacune avec son propre plateau :
 
-| F1 | GT | Proto |
-| --- | --- | --- |
-| Tyrrell P34, Ferrari 312T, McLaren M23, Lotus 79, **Lotus 72**, **Brabham BT46B**, **Williams FW07**, **Ligier JS11**, **Renault RS10** | M1 Procar, 3.0 CSL, 911 Turbo, F40, Countach, Corvette, **250 GTO**, **Type E**, **240Z** | GT40 Mk II, 935, 787B, **Porsche 962** (Rothmans, Shell), **XJR-9** (Silk Cut), **330 P4** (rouge, jaune), **Ford P68** |
+| F1 | GT | GT3 | Proto |
+| --- | --- | --- | --- |
+| Tyrrell P34, Ferrari 312T, McLaren M23, Lotus 79, **Lotus 72**, **Brabham BT46B**, **Williams FW07**, **Ligier JS11**, **Renault RS10** | M1 Procar, 3.0 CSL, 911 Turbo, F40, Countach, Corvette, **250 GTO**, **Type E**, **240Z** | Porsche 911 GT3 R (991), Ferrari 488 GT3, Lamborghini Huracán GT3, Audi R8 LMS, Mercedes-AMG GT3, BMW M6 GT3, Bentley Continental GT3, Nissan GT-R Nismo GT3, McLaren 650S GT3, Aston Martin V12 Vantage GT3 | GT40 Mk II, 935, 787B, **Porsche 962** (Rothmans, Shell), **XJR-9** (Silk Cut), **330 P4** (rouge, jaune), **Ford P68** |
 
-En gras, les douze voitures ajoutées avec les catégories.
+En gras, les douze voitures ajoutées avec les catégories historiques.
+
+Les dix GT3 (0.53.0) ont chacune trois livrées inspirées de décorations emblématiques, dont la
+Porsche Pink Pig rose à pointillés rouges. Les vues de course gardent leurs ailes complètes et
+laissent dépasser les pneus arrière de quelques pixels seulement.
+[Choix des livrées, planche et contrôles](docs/gt3/README.md).
 
 ### Ce que la catégorie décide
 
@@ -2921,7 +2926,7 @@ une F1 part avec des F1, une GT avec des GT. C'est la **voiture** qui porte la c
 l'écran : `Race` la déduit du modèle et non du `classId` qu'on lui passe, si bien qu'aucun écran
 qui garderait une catégorie périmée ne peut envoyer une F1 contre un plateau de GT.
 
-**Ce que montre le menu.** Un filtre au-dessus du rail des voitures — Toutes, F1, GT, Proto. Il
+**Ce que montre le menu.** Un filtre au-dessus du rail des voitures — Toutes, F1, GT, GT3, Proto. Il
 ne fait que restreindre le rail ; la catégorie, elle, suit la voiture choisie. Filtrer sur une
 catégorie qui ne contient pas la voiture du moment y reprend la dernière voiture choisie dans
 celle-ci, sans quoi la marque de sélection serait hors du rail et l'écran annoncerait au départ une
@@ -2978,7 +2983,7 @@ E, sans appui mais avec de l'adhérence, y sont plus à l'aise qu'à Monza, où 
 reprennent l'avantage.
 
 | F1 | pointe | 0-100 | 100-0 | g à 180 | caractère |
-| --- | --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | --- | --- |
 | Tyrrell P34 | 290 km/h | 3,12 s | 18,0 m | 2,33 | six roues : freinage et adhérence mécanique, peu de pointe |
 | Ferrari 312T | 310 | 2,93 | 19,2 | 2,45 | le flat-12 : la pointe et les reprises, un arrière à doser |
 | McLaren M23 | 300 | 3,02 | 19,2 | 2,49 | le compromis |
@@ -3155,7 +3160,7 @@ sur les deux écrans.
 ## L'équilibre entre les voitures
 
 *Cette section date du plateau unique ; l'équilibre par catégorie est décrit dans
-[Trois catégories](#trois-catégories), et `tools/plateau-banc.js` y remplace `tools/models.js`.*
+[Quatre catégories](#quatre-catégories), et `tools/plateau-banc.js` y remplace `tools/models.js`.*
 
 Une différence de caractère est un choix offert au joueur ; cinq secondes au tour n'en est pas un,
 c'est un piège. `node tools/models.js [catégorie]` met chaque voiture seule en piste sur cinq
@@ -4067,7 +4072,7 @@ NODE_PATH=$(npm root -g) node tools/e2e-lignes.js [dossier]                     
 NODE_PATH=$(npm root -g) node tools/e2e-panneaux.js                              # les panneaux repris a la main, de l'editeur jusqu'en course
 tools/deploie.sh [record]                                                        # met la fonction serveur en ligne (jeton dans l'environnement)
 node tools/plateau-banc.js [--sim]                                               # l'équilibre du plateau, et ce que chaque voiture coûte à piloter, en pneus
-node tools/difficulte.js [catégorie]                                             # l'ancien banc des pneus, hors d'usage (voir « Trois catégories »)
+node tools/difficulte.js [catégorie]                                             # l'ancien banc des pneus, hors d'usage (voir « Quatre catégories »)
 NODE_PATH=$(npm root -g) node tools/e2e-workshop.js <dossier>                      # import de sprites → course
 node tools/step.js <circuit> <catégorie> [marge] [-v]                             # suivi de ligne d'une voiture seule
 node tools/sweep.js '[{},{"yawK":4}]'                                             # balayage des réglages physiques
