@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the local or deployed GT3 livery picker, including its 70 hosted photos."""
+"""Check the GT3 picker, its 71 hosted photos and the 30 confirmed selections."""
 import argparse
 import functools
 import http.server
@@ -44,34 +44,46 @@ with sync_playwright() as p:
       return [...document.images].map(image => ({loaded: image.naturalWidth > 0,
         local: new URL(image.currentSrc).origin === location.origin}));
     }''')
-    assert len(photos) == 70 and all(photo['loaded'] and photo['local'] for photo in photos)
+    assert len(photos) == 71 and all(photo['loaded'] and photo['local'] for photo in photos)
     assert page.locator('#catalogue section').count() == 10
+    confirmed = json.loads(page.locator('#confirmed-data').text_content())['ids']
+    selected = page.locator('[data-choose][aria-pressed="true"]').evaluate_all(
+        '(buttons) => buttons.map(button => button.dataset.choose)')
+    assert len(confirmed) == 30 and set(selected) == set(confirmed)
+    assert page.locator('[data-choose="AST8"]').get_attribute('aria-pressed') == 'true'
+    assert page.locator('[data-id="AST8"] .meta').inner_text().find('n°') == -1
     rows = page.locator('#livery-data').text_content()
     rows = json.loads(rows)
     groups = list(dict.fromkeys(row['model'] for row in rows))
     for group in groups:
         entries = [row for row in rows if row['model'] == group]
-        assert len(entries) == 7
-        for entry in entries[:3]:
-            page.locator(f'[data-choose="{entry["id"]}"]').click()
-        page.locator(f'[data-choose="{entries[3]["id"]}"]').click()
+        assert len(entries) == (8 if group == 'aston' else 7)
+        extra = next(entry for entry in entries if entry['id'] not in confirmed)
+        page.locator(f'[data-choose="{extra["id"]}"]').click()
         assert page.locator(f'#{group} [aria-pressed="true"]').count() == 3
     assert page.locator('#total').inner_text() == '30 / 30 choix'
     recap = page.locator('#choices').input_value()
     assert len(recap.splitlines()) == 10
+    page.locator('[data-choose="POR1"]').click()
+    page.locator('[data-choose="POR7"]').click()
     page.reload()
     assert page.locator('[data-choose][aria-pressed="true"]').count() == 30
-    assert page.locator('#choices').input_value() == recap
+    assert page.locator('[data-choose="POR7"]').get_attribute('aria-pressed') == 'true'
+    page.locator('[data-choose="POR7"]').click()
     page.locator('[data-choose="POR1"]').click()
-    page.locator('[data-choose="POR6"]').click()
-    assert page.locator('[data-choose="POR6"]').get_attribute('aria-pressed') == 'true'
+    assert page.locator('#choices').input_value() == recap
     assert page.locator('#total').inner_text() == '30 / 30 choix'
     page.set_viewport_size({'width': 390, 'height': 844})
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+    page.locator('[data-choose][aria-pressed="true"]').evaluate_all(
+        '(buttons) => buttons.forEach(button => button.click())')
+    page.reload()
+    assert page.locator('[data-choose][aria-pressed="true"]').count() == 0
     assert not errors, errors
     assert not bad_responses, bad_responses
     print(json.dumps({'url': address, 'photos': len(photos), 'sameOrigin': True,
                       'models': len(groups), 'limitThree': True, 'thirtySelections': True,
+                      'confirmedDefaults': True, 'astonGreenYellow': True, 'emptySelectionPersists': True,
                       'persistence': True, 'replaceSelection': True, 'mobileOverflow': False,
                       'errors': errors, 'badResponses': bad_responses}, ensure_ascii=False))
     browser.close()
