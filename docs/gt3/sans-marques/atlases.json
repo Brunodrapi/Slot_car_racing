@@ -1,0 +1,52 @@
+[
+  {
+    "model": "porsche991gt3r",
+    "source": "/workspace/generated_images/exec-52f69868-0560-481a-bdcd-f82310d56c3e.png",
+    "output": "art-src/voitures/gt3/sans-marques/porsche991gt3r-menus.png"
+  },
+  {
+    "model": "ferrari488gt3",
+    "source": "/workspace/generated_images/exec-0c1a4a10-9c45-43d1-9e69-c566cf1f6cc3.png",
+    "output": "art-src/voitures/gt3/sans-marques/ferrari488gt3-atlas.png"
+  },
+  {
+    "model": "huracangt3",
+    "source": "/workspace/generated_images/exec-fb01744d-1f89-460d-bd78-7dcb91a88342.png",
+    "output": "art-src/voitures/gt3/sans-marques/huracangt3-atlas.png"
+  },
+  {
+    "model": "audir8lms",
+    "source": "/workspace/generated_images/exec-5c600f9d-a743-4f8c-bf3d-1fe4f236d2f2.png",
+    "output": "art-src/voitures/gt3/sans-marques/audir8lms-atlas.png"
+  },
+  {
+    "model": "amggt3",
+    "source": "/workspace/generated_images/exec-55b50d7e-5c74-4393-a081-43d4110a642d.png",
+    "output": "art-src/voitures/gt3/sans-marques/amggt3-atlas.png"
+  },
+  {
+    "model": "bmwm6gt3",
+    "source": "/workspace/generated_images/exec-85f82b40-ca6d-42b3-8fc7-491f7e9eaef0.png",
+    "output": "art-src/voitures/gt3/sans-marques/bmwm6gt3-atlas.png"
+  },
+  {
+    "model": "bentleygt3",
+    "source": "/workspace/generated_images/exec-083827e9-f398-492c-83ce-a14afd1f033f.png",
+    "output": "art-src/voitures/gt3/sans-marques/bentleygt3-atlas.png"
+  },
+  {
+    "model": "nissangtrgt3",
+    "source": "/workspace/generated_images/exec-6eeabc36-f7cf-4ed8-be67-c922acd46fe9.png",
+    "output": "art-src/voitures/gt3/sans-marques/nissangtrgt3-atlas.png"
+  },
+  {
+    "model": "mclaren650sgt3",
+    "source": "/workspace/generated_images/exec-1f941a3f-84a8-4fc4-bce0-61067889ad53.png",
+    "output": "art-src/voitures/gt3/sans-marques/mclaren650sgt3-atlas.png"
+  },
+  {
+    "model": "v12vantagegt3",
+    "source": "/workspace/generated_images/exec-62894744-e1c8-460c-b36b-021dc642a417.png",
+    "output": "art-src/voitures/gt3/sans-marques/v12vantagegt3-atlas.png"
+  }
+]

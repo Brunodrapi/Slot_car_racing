@@ -4547,3 +4547,12 @@ lui. `lignes.html` reste en place mais ne voit pas la reprise du décor.
 « Tracé » ; les 35 panneaux du fichier ; choisir, changer sens et valeur (la piste construite les
 peint), glisser de vingt mètres ; viseur, ajout, annulation ; la règle ; enregistrement, rechargement
 et course ; le fichier fabriqué ; l'oubli.
+
+
+### GT3 : noms fictifs et décors retouchés (0.53.1)
+
+Les dix nouvelles voitures rejoignent les familles de noms fictifs du jeu. Les livrées utilisent
+Donut’s et son donut, AWG, BMT et les autres sponsors fictifs du [dossier GT3](docs/gt3/README.md).
+Le donut du capot est tourné d’un quart de tour pour correspondre à la vue isométrique.
+Les trois vues de menu de la Breithüft Apex R sont affinées sans modifier ses vues de course.
+Les identifiants, sauvegardes et caractéristiques des voitures sont conservés.

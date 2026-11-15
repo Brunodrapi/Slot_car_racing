@@ -92,6 +92,31 @@
       "original": "Renault",
       "nom_fictif": "Somua",
       "statut": "validé"
+    },
+    {
+      "original": "Audi",
+      "nom_fictif": "Autobahn",
+      "statut": "appliqué"
+    },
+    {
+      "original": "Mercedes-AMG",
+      "nom_fictif": "Stern",
+      "statut": "appliqué"
+    },
+    {
+      "original": "Bentley",
+      "nom_fictif": "Bramley",
+      "statut": "appliqué"
+    },
+    {
+      "original": "Nissan",
+      "nom_fictif": "Kitsune",
+      "statut": "appliqué"
+    },
+    {
+      "original": "Aston Martin",
+      "nom_fictif": "Ashford",
+      "statut": "appliqué"
     }
   ],
   "voitures": [
@@ -249,61 +274,61 @@
       "categorie": "gt3",
       "id": "porsche991gt3r",
       "original": "Porsche 911 GT3 R (991)",
-      "display_name": "Porsche 911 GT3 R (991)"
+      "display_name": "Breithüft Apex R"
     },
     {
       "categorie": "gt3",
       "id": "ferrari488gt3",
       "original": "Ferrari 488 GT3",
-      "display_name": "Ferrari 488 GT3"
+      "display_name": "Purosangue Furia 48"
     },
     {
       "categorie": "gt3",
       "id": "huracangt3",
       "original": "Lamborghini Huracán GT3",
-      "display_name": "Lamborghini Huracán GT3"
+      "display_name": "Stallone Fulmine"
     },
     {
       "categorie": "gt3",
       "id": "audir8lms",
       "original": "Audi R8 LMS",
-      "display_name": "Audi R8 LMS"
+      "display_name": "Autobahn Acht GT3"
     },
     {
       "categorie": "gt3",
       "id": "amggt3",
       "original": "Mercedes-AMG GT3",
-      "display_name": "Mercedes-AMG GT3"
+      "display_name": "Stern AWG GT3"
     },
     {
       "categorie": "gt3",
       "id": "bmwm6gt3",
       "original": "BMW M6 GT3",
-      "display_name": "BMW M6 GT3"
+      "display_name": "Howitzer K6 GT3"
     },
     {
       "categorie": "gt3",
       "id": "bentleygt3",
       "original": "Bentley Continental GT3",
-      "display_name": "Bentley Continental GT3"
+      "display_name": "Bramley Grand Tourer"
     },
     {
       "categorie": "gt3",
       "id": "nissangtrgt3",
       "original": "Nissan GT-R Nismo GT3",
-      "display_name": "Nissan GT-R Nismo GT3"
+      "display_name": "Kitsune Raijin"
     },
     {
       "categorie": "gt3",
       "id": "mclaren650sgt3",
       "original": "McLaren 650S GT3",
-      "display_name": "McLaren 650S GT3"
+      "display_name": "McHaggis Blade 650"
     },
     {
       "categorie": "gt3",
       "id": "v12vantagegt3",
       "original": "Aston Martin V12 Vantage GT3",
-      "display_name": "Aston Martin V12 Vantage GT3"
+      "display_name": "Ashford V12"
     }
   ],
   "circuits": [
@@ -578,6 +603,186 @@
       "id": "dunlop",
       "original": "Dunlop · hommage jaune",
       "display_name": "Hommage jaune · 68"
+    },
+    {
+      "voiture": "porsche991gt3r",
+      "id": "",
+      "original": "Pink Pig · rose et pointillés rouges · 92",
+      "display_name": "Cochon rose · 92"
+    },
+    {
+      "voiture": "porsche991gt3r",
+      "id": "grello",
+      "original": "Manthey Grello · 911",
+      "display_name": "Jaune fluo et vert · 911"
+    },
+    {
+      "voiture": "porsche991gt3r",
+      "id": "rexy",
+      "original": "Rexy · dinosaure · 56",
+      "display_name": "Dinosaure vert · 56"
+    },
+    {
+      "voiture": "ferrari488gt3",
+      "id": "",
+      "original": "AF Corse · rouge tricolore · 51",
+      "display_name": "Rouge tricolore · 51"
+    },
+    {
+      "voiture": "ferrari488gt3",
+      "id": "garageitalia",
+      "original": "Garage Italia / Hublot · 07",
+      "display_name": "CHRONO · 07"
+    },
+    {
+      "voiture": "ferrari488gt3",
+      "id": "smp",
+      "original": "SMP Racing · 72",
+      "display_name": "RMP Racing · 72"
+    },
+    {
+      "voiture": "huracangt3",
+      "id": "",
+      "original": "Grasser Racing · 63",
+      "display_name": "Vert et carbone · 63"
+    },
+    {
+      "voiture": "huracangt3",
+      "id": "fff",
+      "original": "FFF / Roger Dubuis · montre · 7",
+      "display_name": "Chronographe · 7"
+    },
+    {
+      "voiture": "huracangt3",
+      "id": "attempto",
+      "original": "Attempto / blueconsult · 100",
+      "display_name": "NET · 100"
+    },
+    {
+      "voiture": "audir8lms",
+      "id": "",
+      "original": "WRT · argent, noir et bleu · 3",
+      "display_name": "Argent, noir et bleu · 3"
+    },
+    {
+      "voiture": "audir8lms",
+      "id": "bwt",
+      "original": "BWT Mücke · rose · 26",
+      "display_name": "BMT · rose · 26"
+    },
+    {
+      "voiture": "audir8lms",
+      "id": "magnus",
+      "original": "Magnus Racing · gris et vert · 44",
+      "display_name": "Magnet Racing · 44"
+    },
+    {
+      "voiture": "amggt3",
+      "id": "",
+      "original": "Mann-Filter Mamba · 47",
+      "display_name": "Fan Filter · 47"
+    },
+    {
+      "voiture": "amggt3",
+      "id": "haribo",
+      "original": "Haribo · ours doré · 8",
+      "display_name": "Donut’s · 8"
+    },
+    {
+      "voiture": "amggt3",
+      "id": "dragon",
+      "original": "P1 Motorsports · dragon · 71",
+      "display_name": "Dragon · 71"
+    },
+    {
+      "voiture": "bmwm6gt3",
+      "id": "",
+      "original": "ROWE Racing · 99",
+      "display_name": "RAVE · 99"
+    },
+    {
+      "voiture": "bmwm6gt3",
+      "id": "falken",
+      "original": "Falken Motorsports · 33",
+      "display_name": "WAVES · 33"
+    },
+    {
+      "voiture": "bmwm6gt3",
+      "id": "schnitzer",
+      "original": "BMW Team Schnitzer · 42",
+      "display_name": "Bandes tricolores · 42"
+    },
+    {
+      "voiture": "bentleygt3",
+      "id": "",
+      "original": "Bentley M-Sport · blanc et vert · 7",
+      "display_name": "Blanc et vert · 7"
+    },
+    {
+      "voiture": "bentleygt3",
+      "id": "abt",
+      "original": "Bentley Team ABT · jaune et noir · 7",
+      "display_name": "APT · jaune et noir · 7"
+    },
+    {
+      "voiture": "bentleygt3",
+      "id": "singha",
+      "original": "Absolute / Singha · gris et jaune · 7",
+      "display_name": "SIMBA · gris et jaune · 7"
+    },
+    {
+      "voiture": "nissangtrgt3",
+      "id": "",
+      "original": "Nismo / GT Academy · 35",
+      "display_name": "Kitsune · blanc et rouge · 35"
+    },
+    {
+      "voiture": "nissangtrgt3",
+      "id": "kcmg",
+      "original": "KCMG · 18",
+      "display_name": "KCRG · 18"
+    },
+    {
+      "voiture": "nissangtrgt3",
+      "id": "nddp",
+      "original": "B-MAX NDDP · 3",
+      "display_name": "B-MIX · 3"
+    },
+    {
+      "voiture": "mclaren650sgt3",
+      "id": "",
+      "original": "Tekno Autosports · 59",
+      "display_name": "TEKTO · orange · 59"
+    },
+    {
+      "voiture": "mclaren650sgt3",
+      "id": "garage59",
+      "original": "Garage 59 · blanc, rouge et damier vert · 60",
+      "display_name": "Damier vert · 60"
+    },
+    {
+      "voiture": "mclaren650sgt3",
+      "id": "kpax",
+      "original": "K-PAX Racing · jaune et noir · 9",
+      "display_name": "K-FOX · jaune et noir · 9"
+    },
+    {
+      "voiture": "v12vantagegt3",
+      "id": "",
+      "original": "TF Sport · 10",
+      "display_name": "Filets fluo · 10"
+    },
+    {
+      "voiture": "v12vantagegt3",
+      "id": "rmotorsport",
+      "original": "R-Motorsport · 62",
+      "display_name": "Liserés cyan · 62"
+    },
+    {
+      "voiture": "v12vantagegt3",
+      "id": "amr",
+      "original": "AMR · vert foncé et jaune",
+      "display_name": "Vert foncé et jaune"
     }
   ]
 }

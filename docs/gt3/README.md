@@ -1,4 +1,4 @@
-# GT3 — 0.53.0
+# GT3 — 0.53.1
 
 Dix nouveaux modèles, trois livrées chacun, **60 PNG** : vue orthographique de course nez à droite
 et vue trois-quarts de sélection nez à gauche. Le jeu compte maintenant 35 modèles et 88 livrées
@@ -7,7 +7,40 @@ et vue trois-quarts de sélection nez à gauche. Le jeu compte maintenant 35 mod
 [Planche des 30 livrées, rendue avec le moteur du jeu](planche.png) ·
 [Porsche, les trois livrées](porsche-livrees.png) · [Menu PC](menu-pc.png) · [Menu mobile](menu-mobile.png).
 
-## Livrées retenues et intégrées
+## Noms fictifs et sprites sans marques (0.53.1)
+
+Les dix GT3 utilisent les noms ci-dessous dans les deux langues. Les références photographiques
+restent identifiées par leur vrai modèle dans le catalogue documentaire. Les identifiants des
+modèles et variantes restent stables, ainsi que les sauvegardes, moteurs et comportements.
+
+| Référence | Nom dans le jeu |
+|---|---|
+| Porsche 911 GT3 R (991) | Breithüft Apex R |
+| Ferrari 488 GT3 | Purosangue Furia 48 |
+| Lamborghini Huracán GT3 | Stallone Fulmine |
+| Audi R8 LMS | Autobahn Acht GT3 |
+| Mercedes-AMG GT3 | Stern AWG GT3 |
+| BMW M6 GT3 | Howitzer K6 GT3 |
+| Bentley Continental GT3 | Bramley Grand Tourer |
+| Nissan GT-R Nismo GT3 | Kitsune Raijin |
+| McLaren 650S GT3 | McHaggis Blade 650 |
+| Aston Martin V12 Vantage GT3 | Ashford V12 |
+
+Les sponsors et emblèmes des sprites ont été remplacés : Donut’s avec le donut fourni
+remplace l’ours, AWG remplace AMG et BMT remplace BWT. Les autres mots et logos sont fictifs
+ou retirés : Fan Filter, CHRONO, RMP, NET, Magnet Racing, RAVE, WAVES, APT, SIMBA,
+RAIJIN, KCRG, B-MIX, TEKTO et K-FOX. Les noms des livrées suivent ces décors.
+
+Le donut du capot vu du dessus est tourné de 90° : la partie orange pointe vers le nez de la
+voiture. La vue isométrique conserve son orientation. Les nouvelles planches se trouvent dans
+`art-src/voitures/gt3/sans-marques/`, avec leurs [consignes](sans-marques/generation.json).
+
+Les trois vues de menu de l’Apex R sont redessinées : profil moins massif, phares mieux
+proportionnés, contours plus précis et jantes à branches. Une planche séparée préserve ses trois
+vues de dessus à l’octet près. Le cadre des menus reste à 420 × 268 pixels ; le dessin est
+ajusté sans déformation avec des marges transparentes, au lieu d’être étiré en hauteur.
+
+## Références photographiques retenues
 
 Les trente références ont été choisies dans le [catalogue de recette](https://brunodrapi.github.io/Slot_car_racing/choix-livrees/).
 Le [manifeste validé](selection-validee.json) conserve les photos, les codes et les crédits.
@@ -63,8 +96,8 @@ des sources générées. Les angles sont obtenus par génération, sans miroir d
 ## Intégration et mesures
 
 GT3 est une catégorie indépendante, disponible dans les filtres, la sauvegarde et le salon
-multijoueur. L'IA court dans la catégorie de la voiture choisie. Les noms réels demandés sont
-conservés pour ces dix modèles ; les noms historiques du jeu sont inchangés.
+multijoueur. L'IA court dans la catégorie de la voiture choisie. Les noms affichés sont fictifs pour ces dix modèles ; les noms historiques du jeu restent
+ceux qui ont déjà été validés.
 
 Même largeur de route et même cadrage que le plateau existant. Les pointes 287–293 km/h sont des
 **réglages de jeu**, pas des vitesses constructeur : `tools/fiches.json` les indique non vérifiées.

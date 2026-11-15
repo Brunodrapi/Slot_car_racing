@@ -37,7 +37,8 @@ const ROOT=path.resolve(__dirname,'..');
   for(const r of geometryReport.sprites.filter(r=>r.silhouetteIoU))
     assert(r.silhouetteIoU>=(r.view==='top'?.97:.90),r.file+': silhouette mismatch');
   // Pink Pig is now the first of the three references the user selected.
-  const pig=models[0].livrees.find(l=>l.nom.startsWith('Pink Pig'));assert(pig);
+  const references=JSON.parse(fs.readFileSync(path.join(ROOT,'docs/gt3/sources.json')));
+  const pig=models[0].livrees[references.porsche991gt3r.references.indexOf('POR1')];assert(pig);
   const g=await geometry(path.join(ROOT,pig.top));let pink=0,red=0;
   for(let k=0;k<g.data.length;k+=4)if(g.data[k+3]>=180){
     const [r,bg,b]=g.data.subarray(k,k+3);

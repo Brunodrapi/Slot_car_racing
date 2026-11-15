@@ -27,6 +27,7 @@ async function main(manifest = 'docs/gt3/sources.json') {
     const s = sources[m.id];
     if (!s) throw Error('Missing source: ' + m.id);
     const selected = s.atlas ? await parts(s.atlas, 6, 2) : null;
+    const menus = s.menus ? await parts(s.menus.file, s.menus.count, s.menus.columns) : null;
     const base = selected ? null : await parts(s.base, 2, 1);
     const variants = selected ? null : await parts(s.variants, 4, 2);
     const overhead = selected ? null : await parts(s.overhead.file, s.overhead.count, s.overhead.columns);
@@ -34,11 +35,13 @@ async function main(manifest = 'docs/gt3/sources.json') {
     const pickHeight = s.frame?.pick?.[1] || Math.round(420 * base[1].height / base[1].width);
     for (let i = 0; i < 3; i++) for (const kind of ['top', 'pick']) {
       const override = !selected && kind === 'top' && s.overhead.overrides && s.overhead.overrides[i];
-      const p = selected ? selected[i * 2 + (kind === 'pick' ? 1 : 0)] :
+      const p = kind === 'pick' && menus ? menus[i] : selected ? selected[i * 2 + (kind === 'pick' ? 1 : 0)] :
         override ? (await parts(override, 1, 1))[0] : kind === 'top' ? overhead[s.overhead.offset + i] : i ? variants[i + 1] : base[1];
       const file = m.livrees[i][kind];
       await sharp(p.rgba, {raw:{width:p.width,height:p.height,channels:4}})
-        .resize(420, kind === 'top' ? 200 : pickHeight, {fit:'fill'}).png().toFile(absolute(file));
+        .resize(420, kind === 'top' ? 200 : pickHeight,
+          {fit:kind === 'pick' && s.pickFit === 'contain' ? 'contain' : 'fill', background:{r:0,g:0,b:0,alpha:0}})
+        .png().toFile(absolute(file));
       const g = await geometry(absolute(file));
       const row = {model:m.id,livery:m.livrees[i].id,view:kind,file,width:g.width,height:g.height,bbox:g.bbox};
       if (i) {

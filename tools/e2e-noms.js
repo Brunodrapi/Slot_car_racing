@@ -46,7 +46,7 @@ const vRates = TABLE.voitures.filter((v) => !voitures.has(v.id) || voitures.get(
 ok(TABLE.voitures.length === 35 && vRates.length === 0, `35 voitures, chacune sous son identifiant d'origine et dans sa catégorie, avec le nom de la table`
   + (vRates.length ? ' — en défaut : ' + vRates.map((v) => v.id).join(', ') : ''));
 const cRates = TABLE.circuits.filter((c) => !circuits.has(c.id) || circuits.get(c.id).name !== c.display_name);
-ok(TABLE.circuits.length === 14 && cRates.length === 0, `14 circuits, chacun sous son identifiant d'origine, avec le nom de la table`
+ok(TABLE.circuits.length === ici.TRACKS.length && cRates.length === 0, `${TABLE.circuits.length} circuits, chacun sous son identifiant d'origine, avec le nom de la table`
   + (cRates.length ? ' — en défaut : ' + cRates.map((c) => c.id).join(', ') : ''));
 ok([...voitures.values(), ...circuits.values()].every((x) => typeof x.name === 'string'),
   'un seul nom par voiture et par circuit, sans variante de langue : le même en français et en anglais');
@@ -57,10 +57,17 @@ ok(lRates.length === 0, `${TABLE.livrees.length} livrées renommées selon la ta
 const MARQUES = ['Ferrari', 'Lamborghini', 'BMW', 'Porsche', 'Mazda', 'Datsun', 'Nissan', 'Jaguar', 'Chevrolet', 'Corvette', 'Ford', 'Lotus',
   'Williams', 'McLaren', 'Tyrrell', 'Brabham', 'Ligier', 'Renault', 'Elf', 'JPS', 'Parmalat', 'Saudia', 'Gitanes', 'Motorsport', 'BASF',
   'Denim', 'Pilot', 'Rain-X', 'JLOC', 'Martini', 'Swiss', 'Vaillant', 'BFGoodrich', 'Castrol', 'Dunlop', 'Jägermeister', 'Efini',
-  'Rothmans', 'Shell', 'Silk Cut', 'Gulf', 'IMSA'];
-// Les dix GT3 sont demandées sous leurs noms réels et leurs inspirations de livrées.
-// Le renommage historique reste inchangé pour les 25 modèles précédents.
-const marquees = ici.MODELS.filter(m => m.catId !== 'gt3').flatMap((m) => m.livrees.filter((l) => MARQUES.some((b) => new RegExp(`(^|[^\\p{L}])${b}([^\\p{L}]|$)`, 'u').test(l.nom))).map((l) => `${m.id} « ${l.nom} »`));
+  'Rothmans', 'Shell', 'Silk Cut', 'Gulf', 'IMSA', 'Audi', 'Mercedes', 'AMG', 'Bentley', 'Aston Martin',
+  'Haribo', 'BWT', 'Mann', 'Hublot', 'SMP', 'Falken', 'ROWE', 'Schnitzer', 'ABT', 'Singha',
+  'Nismo', 'KCMG', 'B-MAX', 'Tekno', 'K-PAX', 'Magnus', 'Grasser', 'Roger Dubuis', 'AF Corse'];
+// Même règle pour les GT3 : noms fictifs dans les menus, références réelles dans les documents.
+const containsBrand = (text, brands = MARQUES) => brands.some(b => new RegExp(`(^|[^\\p{L}])${b}([^\\p{L}]|$)`, 'iu').test(text));
+// Conserver les références historiques déjà validées des 25 anciennes voitures.
+const historicalBrands = MARQUES.slice(0, MARQUES.indexOf('Audi'));
+const marquees = ici.MODELS.flatMap(m => m.livrees.filter(l => m.catId === 'gt3'
+  ? containsBrand(l.nom) || containsBrand(l.en || '')
+  : containsBrand(l.nom, historicalBrands)).map(l => `${m.id} « ${l.nom} »`));
+ok(ici.MODELS.every(m => !containsBrand(m.name)), 'aucune marque réelle dans les noms affichés des voitures');
 ok(marquees.length === 0, 'aucune marque (constructeur ou sponsor) dans les noms de livrées' + (marquees.length ? ' — reste : ' + marquees.join(', ') : ''));
 
 if (REF) {
@@ -103,13 +110,22 @@ ok(/m: \(x\.car && x\.car\.modelId\)/.test(net) && /trackId: t\.trackId/.test(ne
 
 (async () => {
   const { chromium, devices } = require('playwright');
+  const server = require('http').createServer((req, res) => {
+    const file = path.resolve(ROOT, '.' + decodeURIComponent(req.url.split('?')[0]));
+    if (!file.startsWith(ROOT + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+      res.writeHead(404); return res.end();
+    }
+    res.setHeader('Content-Type', ({'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png','.json':'application/json','.svg':'image/svg+xml','.webp':'image/webp'})[path.extname(file)] || 'application/octet-stream');
+    fs.createReadStream(file).pipe(res);
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const browser = await chromium.launch();
   try {
     const ctx = await browser.newContext({ ...devices['iPhone 13'], locale: 'fr-FR' });
     const p = await ctx.newPage();
     const erreurs = [];
     p.on('pageerror', (e) => erreurs.push(e.message));
-    const url = 'file://' + path.join(ROOT, 'index.html');
+    const url = `http://127.0.0.1:${server.address().port}/index.html`;
 
     // Une ancienne sauvegarde : un record rangé sous `circuit|catégorie|voiture`, une voiture et une
     // livrée choisies par identifiant — exactement ce que le jeu écrivait avant le renommage (0.46.1),
@@ -132,7 +148,7 @@ ok(/m: \(x\.car && x\.car\.modelId\)/.test(net) && /trackId: t\.trackId/.test(ne
       menus[lang] = await p.evaluate((lang) => {
         app.save.lang = lang;
         const lu = {};
-        for (const cat of ['gt', 'proto', 'f1']) {
+        for (const cat of ['gt', 'proto', 'f1', 'gt3']) {
           app.save.cat = cat; app.save.filtreCat = cat; app.ui.setup.trackId = 'monza';
           app.ui.setupScreen('timetrial');
           lu[cat] = [...document.querySelectorAll('[data-action="pickModel"] b, .models .card b')].map((b) => b.textContent.trim());
@@ -145,7 +161,7 @@ ok(/m: \(x\.car && x\.car\.modelId\)/.test(net) && /trackId: t\.trackId/.test(ne
     ok(JSON.stringify(menus.fr) === JSON.stringify(menus.en), 'français et anglais montrent exactement les mêmes noms de voitures et de circuits');
     ok(attendusCircuits.every((n) => menus.fr.circuits.includes(n)) && menus.fr.circuits.length >= 14,
       `les 14 circuits du menu portent leur nouveau nom (${menus.fr.circuits.slice(0, 4).join(', ')}…)`);
-    for (const cat of ['gt', 'proto', 'f1']) {
+    for (const cat of ['gt', 'proto', 'f1', 'gt3']) {
       const attendues = TABLE.voitures.filter((v) => v.categorie === cat).map((v) => v.display_name);
       ok(attendues.every((n) => menus.fr[cat].includes(n)), `${cat} : les ${attendues.length} voitures du menu portent leur nouveau nom`);
     }
@@ -190,6 +206,7 @@ ok(/m: \(x\.car && x\.car\.modelId\)/.test(net) && /trackId: t\.trackId/.test(ne
     ok(erreurs.length === 0, 'aucune erreur de page' + (erreurs.length ? ' : ' + erreurs.join(' | ') : ''));
   } finally {
     await browser.close();
+    await new Promise(resolve => server.close(resolve));
   }
   console.log(fautes ? `${fautes} faute(s)` : 'OK');
   process.exitCode = fautes ? 1 : 0;

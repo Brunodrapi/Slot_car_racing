@@ -4,6 +4,10 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.53.1
+- Les dix GT3 portent des noms fictifs. Les marques des livrées sont remplacées, dont Donut’s avec son donut, AWG et BMT ; le donut du capot est orienté comme sur la vue isométrique.
+- Les trois vues de menu de la Breithüft Apex R sont affinées, avec des phares mieux proportionnés et des jantes détaillées.
+
 ## 0.53.0
 - Nouvelle catégorie GT3 : dix voitures et trente livrées choisies sur photos, dont Pink Pig, Rexy, Haribo, le dragon P1 et l’Aston vert foncé et jaune, dans les menus comme en course. Les ailes arrière restent complètes et les pneus dépassent discrètement.
 

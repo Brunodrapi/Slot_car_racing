@@ -23,9 +23,9 @@
       "height": 268,
       "bbox": {
         "left": 0,
-        "top": 0,
+        "top": 18,
         "width": 420,
-        "height": 268
+        "height": 231
       }
     },
     {
@@ -52,11 +52,11 @@
       "height": 268,
       "bbox": {
         "left": 0,
-        "top": 0,
+        "top": 18,
         "width": 420,
-        "height": 268
+        "height": 231
       },
-      "silhouetteIoU": 0.9934662329357467
+      "silhouetteIoU": 0.9982737813354516
     },
     {
       "model": "porsche991gt3r",
@@ -82,11 +82,11 @@
       "height": 268,
       "bbox": {
         "left": 0,
-        "top": 0,
+        "top": 18,
         "width": 420,
-        "height": 268
+        "height": 231
       },
-      "silhouetteIoU": 0.9921999694660727
+      "silhouetteIoU": 0.9976027972455072
     },
     {
       "model": "ferrari488gt3",
@@ -129,7 +129,7 @@
         "width": 420,
         "height": 200
       },
-      "silhouetteIoU": 0.9926569993311608
+      "silhouetteIoU": 0.9879351749327735
     },
     {
       "model": "ferrari488gt3",
@@ -144,7 +144,7 @@
         "width": 420,
         "height": 225
       },
-      "silhouetteIoU": 0.992225931839809
+      "silhouetteIoU": 0.9853516410991098
     },
     {
       "model": "ferrari488gt3",
@@ -159,7 +159,7 @@
         "width": 420,
         "height": 200
       },
-      "silhouetteIoU": 0.9916505461993628
+      "silhouetteIoU": 0.9894199038962542
     },
     {
       "model": "ferrari488gt3",
@@ -174,7 +174,7 @@
         "width": 420,
         "height": 225
       },
-      "silhouetteIoU": 0.9900733220530175
+      "silhouetteIoU": 0.99109012986176
     },
     {
       "model": "huracangt3",
@@ -217,7 +217,7 @@
         "width": 420,
         "height": 200
       },
-      "silhouetteIoU": 0.9934260939705586
+      "silhouetteIoU": 0.9917078145126664
     },
     {
       "model": "huracangt3",
@@ -232,7 +232,7 @@
         "width": 420,
         "height": 201
       },
-      "silhouetteIoU": 0.9826524902070509
+      "silhouetteIoU": 0.989012532032155
     },
     {
       "model": "huracangt3",
@@ -247,7 +247,7 @@
         "width": 420,
         "height": 200
       },
-      "silhouetteIoU": 0.9938638774386723
+      "silhouetteIoU": 0.9907460727725623
     },
     {
       "model": "huracangt3",
@@ -262,7 +262,7 @@
         "width": 420,
         "height": 201
       },
-      "silhouetteIoU": 0.9847202797202798
+      "silhouetteIoU": 0.9859553027510051
     },
     {
       "model": "audir8lms",
@@ -305,7 +305,7 @@
         "width": 420,
         "height": 200
       },
-      "silhouetteIoU": 0.9873076399291842
+      "silhouetteIoU": 0.9900513128445876
     },
     {
       "model": "audir8lms",
@@ -320,7 +320,7 @@
         "width": 420,
         "height": 225
       },
-      "silhouetteIoU": 0.9926603296835519
+      "silhouetteIoU": 0.9916822655636737
     },
     {
       "model": "audir8lms",
@@ -335,7 +335,7 @@
         "width": 420,
         "height": 200
       },
-      "silhouetteIoU": 0.9919278707364791
+      "silhouetteIoU": 0.995671529347305
     },
     {
       "model": "audir8lms",
@@ -350,7 +350,7 @@
         "width": 420,
         "height": 225
       },
-      "silhouetteIoU": 0.9935392539268987
+      "silhouetteIoU": 0.9925896859294586
     },
     {
       "model": "amggt3",
@@ -393,7 +393,7 @@
         "width": 420,
         "height": 200
       },
-      "silhouetteIoU": 0.9951164488089709
+      "silhouetteIoU": 0.9953336258126271
     },
     {
       "model": "amggt3",
@@ -408,7 +408,7 @@
         "width": 420,
         "height": 217
       },
-      "silhouetteIoU": 0.9946516334200636
+      "silhouetteIoU": 0.9901940363077022
     },
     {
       "model": "amggt3",
@@ -423,7 +423,7 @@
         "width": 420,
         "height": 200
       },
-      "silhouetteIoU": 0.9911263433361229
+      "silhouetteIoU": 0.995862986365148
     },
     {
       "model": "amggt3",
@@ -438,7 +438,7 @@
         "width": 420,
         "height": 217
       },
-      "silhouetteIoU": 0.9936592021831607
+      "silhouetteIoU": 0.9908296593186373
     },
     {
       "model": "bmwm6gt3",
@@ -481,7 +481,7 @@
         "width": 420,
         "height": 200
       },
-      "silhouetteIoU": 0.9948348332520786
+      "silhouetteIoU": 0.9944574520152916
     },
     {
       "model": "bmwm6gt3",
@@ -496,7 +496,7 @@
         "width": 420,
         "height": 233
       },
-      "silhouetteIoU": 0.9943317067364913
+      "silhouetteIoU": 0.993036933880502
     },
     {
       "model": "bmwm6gt3",
@@ -511,7 +511,7 @@
         "width": 420,
         "height": 200
       },
-      "silhouetteIoU": 0.9950660070372233
+      "silhouetteIoU": 0.9966506286716819
     },
     {
       "model": "bmwm6gt3",
@@ -526,7 +526,7 @@
         "width": 420,
         "height": 233
       },
-      "silhouetteIoU": 0.9912905191504541
+      "silhouetteIoU": 0.9910078347578347
     },
     {
       "model": "bentleygt3",
@@ -569,7 +569,7 @@
         "width": 420,
         "height": 200
       },
-      "silhouetteIoU": 0.9933080437047525
+      "silhouetteIoU": 0.9938121132570785
     },
     {
       "model": "bentleygt3",
@@ -584,7 +584,7 @@
         "width": 420,
         "height": 224
       },
-      "silhouetteIoU": 0.990304275948349
+      "silhouetteIoU": 0.9924887925659829
     },
     {
       "model": "bentleygt3",
@@ -599,7 +599,7 @@
         "width": 420,
         "height": 200
       },
-      "silhouetteIoU": 0.9910760734723278
+      "silhouetteIoU": 0.992206748794858
     },
     {
       "model": "bentleygt3",
@@ -614,7 +614,7 @@
         "width": 420,
         "height": 224
       },
-      "silhouetteIoU": 0.9894708624361476
+      "silhouetteIoU": 0.9905701005360935
     },
     {
       "model": "nissangtrgt3",
@@ -657,7 +657,7 @@
         "width": 420,
         "height": 200
       },
-      "silhouetteIoU": 0.9933548610925783
+      "silhouetteIoU": 0.9937861232464115
     },
     {
       "model": "nissangtrgt3",
@@ -672,7 +672,7 @@
         "width": 420,
         "height": 237
       },
-      "silhouetteIoU": 0.991614730878187
+      "silhouetteIoU": 0.9933272071817346
     },
     {
       "model": "nissangtrgt3",
@@ -687,7 +687,7 @@
         "width": 420,
         "height": 200
       },
-      "silhouetteIoU": 0.9928836095616465
+      "silhouetteIoU": 0.9914456800684346
     },
     {
       "model": "nissangtrgt3",
@@ -702,7 +702,7 @@
         "width": 420,
         "height": 237
       },
-      "silhouetteIoU": 0.9941312391023914
+      "silhouetteIoU": 0.9923023686106128
     },
     {
       "model": "mclaren650sgt3",
@@ -745,7 +745,7 @@
         "width": 420,
         "height": 200
       },
-      "silhouetteIoU": 0.9933790109219185
+      "silhouetteIoU": 0.9963230788086775
     },
     {
       "model": "mclaren650sgt3",
@@ -760,7 +760,7 @@
         "width": 420,
         "height": 207
       },
-      "silhouetteIoU": 0.9940453847466303
+      "silhouetteIoU": 0.9938280047871431
     },
     {
       "model": "mclaren650sgt3",
@@ -775,7 +775,7 @@
         "width": 420,
         "height": 200
       },
-      "silhouetteIoU": 0.9944159884787305
+      "silhouetteIoU": 0.9954828936774158
     },
     {
       "model": "mclaren650sgt3",
@@ -790,7 +790,7 @@
         "width": 420,
         "height": 207
       },
-      "silhouetteIoU": 0.9923017968151239
+      "silhouetteIoU": 0.9916514434978574
     },
     {
       "model": "v12vantagegt3",
@@ -833,7 +833,7 @@
         "width": 420,
         "height": 200
       },
-      "silhouetteIoU": 0.9965427947775864
+      "silhouetteIoU": 0.9960565054155525
     },
     {
       "model": "v12vantagegt3",
@@ -848,7 +848,7 @@
         "width": 420,
         "height": 230
       },
-      "silhouetteIoU": 0.9904305510222249
+      "silhouetteIoU": 0.988485621865448
     },
     {
       "model": "v12vantagegt3",
@@ -863,7 +863,7 @@
         "width": 420,
         "height": 200
       },
-      "silhouetteIoU": 0.991408146749393
+      "silhouetteIoU": 0.9927378358750908
     },
     {
       "model": "v12vantagegt3",
@@ -878,7 +878,7 @@
         "width": 420,
         "height": 230
       },
-      "silhouetteIoU": 0.9905004013914905
+      "silhouetteIoU": 0.9911480726601901
     }
   ],
   "anchors": [
@@ -937,15 +937,15 @@
       "id": "ferrari488gt3",
       "front": [
         0.82,
-        0.115,
-        0.9,
+        0.125,
+        0.895,
         0.125,
         0.12
       ],
       "rear": [
         0.23,
-        0.105,
-        0.905,
+        0.115,
+        0.9,
         0.135,
         0.13
       ]
@@ -954,15 +954,15 @@
       "id": "ferrari488gt3_garageitalia",
       "front": [
         0.82,
-        0.12,
-        0.9,
+        0.125,
+        0.895,
         0.125,
         0.12
       ],
       "rear": [
         0.23,
         0.11,
-        0.905,
+        0.9,
         0.135,
         0.13
       ]
@@ -971,15 +971,15 @@
       "id": "ferrari488gt3_smp",
       "front": [
         0.82,
-        0.12,
-        0.9,
+        0.125,
+        0.89,
         0.125,
         0.12
       ],
       "rear": [
         0.23,
-        0.105,
-        0.9,
+        0.115,
+        0.895,
         0.135,
         0.13
       ]
@@ -1005,7 +1005,7 @@
       "id": "huracangt3_fff",
       "front": [
         0.82,
-        0.095,
+        0.1,
         0.905,
         0.125,
         0.12
@@ -1022,8 +1022,8 @@
       "id": "huracangt3_attempto",
       "front": [
         0.82,
-        0.095,
-        0.91,
+        0.1,
+        0.905,
         0.125,
         0.12
       ],
@@ -1039,15 +1039,15 @@
       "id": "audir8lms",
       "front": [
         0.82,
-        0.105,
-        0.895,
+        0.1,
+        0.905,
         0.125,
         0.12
       ],
       "rear": [
         0.23,
-        0.095,
-        0.905,
+        0.09,
+        0.915,
         0.135,
         0.13
       ]
@@ -1057,7 +1057,7 @@
       "front": [
         0.82,
         0.1,
-        0.905,
+        0.895,
         0.125,
         0.12
       ],
@@ -1081,7 +1081,7 @@
       "rear": [
         0.23,
         0.09,
-        0.905,
+        0.91,
         0.135,
         0.13
       ]
@@ -1090,8 +1090,8 @@
       "id": "amggt3",
       "front": [
         0.79,
-        0.07,
-        0.94,
+        0.075,
+        0.945,
         0.125,
         0.12
       ],
@@ -1107,7 +1107,7 @@
       "id": "amggt3_haribo",
       "front": [
         0.79,
-        0.07,
+        0.075,
         0.935,
         0.125,
         0.12
@@ -1125,14 +1125,14 @@
       "front": [
         0.79,
         0.07,
-        0.935,
+        0.94,
         0.125,
         0.12
       ],
       "rear": [
         0.22,
-        0.07,
-        0.925,
+        0.075,
+        0.93,
         0.135,
         0.13
       ]
@@ -1141,14 +1141,14 @@
       "id": "bmwm6gt3",
       "front": [
         0.82,
-        0.07,
+        0.075,
         0.93,
         0.125,
         0.12
       ],
       "rear": [
         0.22,
-        0.055,
+        0.06,
         0.935,
         0.135,
         0.13
@@ -1175,14 +1175,14 @@
       "id": "bmwm6gt3_schnitzer",
       "front": [
         0.82,
-        0.07,
-        0.93,
+        0.075,
+        0.925,
         0.125,
         0.12
       ],
       "rear": [
         0.22,
-        0.06,
+        0.065,
         0.93,
         0.135,
         0.13
@@ -1192,14 +1192,14 @@
       "id": "bentleygt3",
       "front": [
         0.82,
-        0.075,
+        0.08,
         0.93,
         0.125,
         0.12
       ],
       "rear": [
         0.22,
-        0.075,
+        0.085,
         0.925,
         0.135,
         0.13
@@ -1209,7 +1209,7 @@
       "id": "bentleygt3_abt",
       "front": [
         0.82,
-        0.075,
+        0.08,
         0.935,
         0.125,
         0.12
@@ -1227,7 +1227,7 @@
       "front": [
         0.82,
         0.08,
-        0.93,
+        0.935,
         0.125,
         0.12
       ],
@@ -1243,8 +1243,25 @@
       "id": "nissangtrgt3",
       "front": [
         0.82,
-        0.09,
+        0.095,
         0.91,
+        0.125,
+        0.12
+      ],
+      "rear": [
+        0.22,
+        0.075,
+        0.92,
+        0.135,
+        0.13
+      ]
+    },
+    {
+      "id": "nissangtrgt3_kcmg",
+      "front": [
+        0.82,
+        0.09,
+        0.905,
         0.125,
         0.12
       ],
@@ -1257,35 +1274,18 @@
       ]
     },
     {
-      "id": "nissangtrgt3_kcmg",
-      "front": [
-        0.82,
-        0.085,
-        0.91,
-        0.125,
-        0.12
-      ],
-      "rear": [
-        0.22,
-        0.065,
-        0.92,
-        0.135,
-        0.13
-      ]
-    },
-    {
       "id": "nissangtrgt3_nddp",
       "front": [
         0.82,
-        0.09,
-        0.91,
+        0.095,
+        0.905,
         0.125,
         0.12
       ],
       "rear": [
         0.22,
-        0.065,
-        0.92,
+        0.075,
+        0.915,
         0.135,
         0.13
       ]
@@ -1301,7 +1301,7 @@
       ],
       "rear": [
         0.22,
-        0.085,
+        0.09,
         0.92,
         0.135,
         0.13
@@ -1311,14 +1311,14 @@
       "id": "mclaren650sgt3_garage59",
       "front": [
         0.82,
-        0.09,
+        0.095,
         0.915,
         0.125,
         0.12
       ],
       "rear": [
         0.22,
-        0.08,
+        0.09,
         0.92,
         0.135,
         0.13
@@ -1328,14 +1328,14 @@
       "id": "mclaren650sgt3_kpax",
       "front": [
         0.82,
-        0.09,
-        0.915,
+        0.095,
+        0.91,
         0.125,
         0.12
       ],
       "rear": [
         0.22,
-        0.085,
+        0.09,
         0.92,
         0.135,
         0.13
@@ -1345,15 +1345,15 @@
       "id": "v12vantagegt3",
       "front": [
         0.82,
-        0.09,
+        0.085,
         0.925,
         0.125,
         0.12
       ],
       "rear": [
         0.23,
-        0.075,
-        0.925,
+        0.065,
+        0.93,
         0.135,
         0.13
       ]
@@ -1362,14 +1362,14 @@
       "id": "v12vantagegt3_rmotorsport",
       "front": [
         0.82,
-        0.09,
+        0.085,
         0.92,
         0.125,
         0.12
       ],
       "rear": [
         0.23,
-        0.075,
+        0.07,
         0.925,
         0.135,
         0.13
@@ -1380,7 +1380,7 @@
       "front": [
         0.82,
         0.085,
-        0.92,
+        0.925,
         0.125,
         0.12
       ],
