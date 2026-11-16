@@ -42,6 +42,26 @@ Les optiques sont propres à chaque modèle : leur emplacement suit le dessin de
 avec des ronds, des doubles projecteurs, des barrettes, des signatures courbes ou des rectangles.
 Les feux stop utilisent les mêmes points d’attache de jour. Les F1 gardent un feu stop central.
 
+**Les feux avant recalés sur le dessin (0.55.2).** Une revue des 26 voitures à phares, nez agrandi,
+sur toutes les livrées, a trouvé trois défauts, corrigés dans `CAR_LIGHT_PROFILES` (js/carart.js) :
+
+- **le feu droit tourné dans le mauvais sens** (Furia 48, Fulmine, Autobahn Acht, Stern AWG, Raijin,
+  Blade 650, Nightfall) : il était fait du gauche en inversant l’angle seulement, ce qui revient au
+  même pour un rond ou un rectangle, pas pour une lame, une flèche ou une virgule. Il est maintenant
+  retourné en miroir (`miroir`, `drawLightLens`) ;
+- **le feu droit à côté du phare dessiné** : plusieurs dessins sont peints 2 à 8 px plus bas que le
+  milieu de leur image, et le feu droit, mis en miroir autour du milieu, tombait trop haut.
+  `lightPair(…, droite)` le descend de l’écart mesuré (l’image du phare gauche, retournée, cherchée de
+  l’autre côté, sur chaque livrée) : 16 voitures, de 1 à 4 % de la hauteur du dessin ;
+- **des formes qui ne suivaient pas le dessin**, relevées au pixel : les deux blocs superposés de la
+  Moonshine Sting, la grosse ampoule, la petite et la barrette de la Moggy Nightfall, les deux
+  ampoules de la Purosangue Freccia, la virgule de la McHaggis Blade 650 (nouvelle forme `virgule`),
+  le carré de la Howitzer K1, la seule partie blanche du phare de la Stallone Furioso (sans le
+  clignotant), le phare rond de la Breithüft Turbo 9 (5 px trop en avant), la capsule de la
+  Breithüft Langheck, et sa livrée n° 16 dont les phares sont dessinés plus en arrière (`parDessin`).
+
+Planches : `node tools/visual-car-lights.js` (docs/feux), contrôle `node tools/e2e-car-lights.js`.
+
 La Purosangue Gran Corsa conserve ses points d’essieu et sa direction, avec des pneus avant élargis
 pour retrouver la largeur visuelle des pneus arrière sur les trois livrées.
 

@@ -1,4 +1,9 @@
-# Feux selon la carrosserie — 0.55.1
+# Feux selon la carrosserie — 0.55.2
+
+**0.55.2 :** le feu droit est le miroir exact du gauche (une lame, une flèche ou une virgule n’est
+plus tournée dans le mauvais sens), il est posé sur le phare dessiné même quand le dessin n’est pas
+centré dans son image, et sept voitures ont des optiques refaites d’après leur dessin (Sting,
+Nightfall, Freccia, Blade 650, K1, Furioso, Langheck n° 16). Détails dans le README du jeu.
 
 Les 35 modèles ont des points d’attache propres, mesurés dans le repère de leur dessin : les
 phares ronds des Breithüft et Moggy, les rectangles des anciennes Howitzer et Stallone, les

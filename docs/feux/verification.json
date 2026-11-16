@@ -154,21 +154,21 @@
       "livree": 0,
       "front": 2,
       "rear": 2,
-      "shape": "twin"
+      "shape": "cluster"
     },
     {
       "model": "corvette",
       "livree": 1,
       "front": 2,
       "rear": 2,
-      "shape": "twin"
+      "shape": "cluster"
     },
     {
       "model": "corvette",
       "livree": 2,
       "front": 2,
       "rear": 2,
-      "shape": "twin"
+      "shape": "cluster"
     },
     {
       "model": "csl",
@@ -427,21 +427,21 @@
       "livree": 0,
       "front": 2,
       "rear": 2,
-      "shape": "arc"
+      "shape": "virgule"
     },
     {
       "model": "mclaren650sgt3",
       "livree": 1,
       "front": 2,
       "rear": 2,
-      "shape": "arc"
+      "shape": "virgule"
     },
     {
       "model": "mclaren650sgt3",
       "livree": 2,
       "front": 2,
       "rear": 2,
-      "shape": "arc"
+      "shape": "virgule"
     },
     {
       "model": "v12vantagegt3",
@@ -560,42 +560,42 @@
       "livree": 0,
       "front": 2,
       "rear": 2,
-      "shape": "triple"
+      "shape": "cluster"
     },
     {
       "model": "xjr9",
       "livree": 1,
       "front": 2,
       "rear": 2,
-      "shape": "triple"
+      "shape": "cluster"
     },
     {
       "model": "xjr9",
       "livree": 2,
       "front": 2,
       "rear": 2,
-      "shape": "triple"
+      "shape": "cluster"
     },
     {
       "model": "330p4",
       "livree": 0,
       "front": 2,
       "rear": 2,
-      "shape": "twin"
+      "shape": "cluster"
     },
     {
       "model": "330p4",
       "livree": 1,
       "front": 2,
       "rear": 2,
-      "shape": "twin"
+      "shape": "cluster"
     },
     {
       "model": "330p4",
       "livree": 2,
       "front": 2,
       "rear": 2,
-      "shape": "twin"
+      "shape": "cluster"
     },
     {
       "model": "p68",

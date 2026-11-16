@@ -51,13 +51,13 @@ fs.mkdirSync(OUT,{recursive:true});
       const yy=92+i*133;g.fillStyle=braking?'#b52b25':'#515c67';g.font='bold 13px sans-serif';g.fillText(braking?'FREINAGE':'NUIT · SANS FREINER',288,yy-6);g.drawImage(scene,288,yy);
      }
     }
-    const footer=document.createElement('p');footer.textContent='Rendu du jeu 0.55.1 · même échelle et même exposition pour les deux vues de nuit · première livrée de chaque modèle · aucun lampadaire dans ces aperçus';footer.style.cssText='font:14px sans-serif;margin:16px 0 0';document.body.append(footer);
+    const footer=document.createElement('p');footer.textContent='Rendu du jeu '+APP_VERSION+' · même échelle et même exposition pour les deux vues de nuit · première livrée de chaque modèle · aucun lampadaire dans ces aperçus';footer.style.cssText='font:14px sans-serif;margin:16px 0 0';document.body.append(footer);
     return models.length;
    },cat);
    await page.screenshot({path:path.join(OUT,`phares-${cat}.png`),fullPage:true});
   }
   if(errors.length)throw Error(errors.join('\n'));
-  fs.writeFileSync(path.join(OUT,'visuels.json'),JSON.stringify({version:'0.55.1',models:Object.values(counts).reduce((a,b)=>a+b,0),categories:counts,errors},null,2)+'\n');
+  fs.writeFileSync(path.join(OUT,'visuels.json'),JSON.stringify({version:await page.evaluate(()=>APP_VERSION),models:Object.values(counts).reduce((a,b)=>a+b,0),categories:counts,errors},null,2)+'\n');
   console.log(JSON.stringify({counts,errors}));
  }finally{await browser.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exitCode=1;});

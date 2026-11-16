@@ -193,44 +193,77 @@ function topSize(model, art) {
 
 // Lamp anchors in each drawing's own PNG frame (nose +X). These are illustration
 // coordinates, independent of the collision box, wheels and handling statistics.
-function lightPair(x, y, shape, w, h, angle, rearX, rearY) {
-  return {front:[{x,y,w,h,shape,angle},{x,y:1-y,w,h,shape,angle:-angle}],
+//
+// LE FEU DROIT EST LE MIROIR DU GAUCHE (0.55.2). Le feu droit était fait du gauche en inversant son
+// angle seulement : pour une forme symétrique (rond, ovale, rectangle) c'est la même chose, mais une
+// lame, une flèche ou une virgule restaient tournées dans le mauvais sens — le feu droit de la
+// Stallone Fulmine, vu par Bruno. Il est maintenant RETOURNÉ (`miroir`, drawLightLens).
+//
+// ET IL EST POSÉ SUR LE PHARE DESSINÉ. Plusieurs dessins ne sont pas tout à fait centrés dans leur
+// image : la voiture est peinte 2 à 8 px plus bas que le milieu, et le feu droit, mis en miroir autour
+// du milieu, tombait trop haut, à côté du phare. `droite` dit de combien (en fraction de la hauteur
+// de l'image) le phare droit est dessiné plus bas que le miroir exact du gauche. Mesuré sur chaque
+// livrée en cherchant où l'image du phare gauche, retournée, colle le mieux de l'autre côté ; on
+// retient les écarts d'au moins 2 px, identiques d'une livrée à l'autre.
+function lightPair(x, y, shape, w, h, angle, rearX, rearY, droite = 0) {
+  return {front:[{x,y,w,h,shape,angle},{x,y:1-y+droite,w,h,shape,angle:-angle,miroir:true}],
     rear:[{x:rearX,y:rearY},{x:rearX,y:1-rearY}]};
 }
 const CAR_LIGHT_PROFILES = {
-  m1procar: lightPair(.925,.275,'rect',.045,.095,0,.105,.27),
+  // 0.55.2 : le carré du phare (relevé au pixel), un peu plus grand, plus en avant et plus haut
+  m1procar: lightPair(.9345,.2566,'rect',.0476,.092,0,.105,.27,.031),
   f40: lightPair(.901,.212,'rect',.060,.085,.30,.115,.25),
-  countach: lightPair(.930,.255,'rect',.053,.070,0,.135,.28),
-  '930': lightPair(.938,.215,'oval',.032,.105,.15,.105,.27),
+  // 0.55.2 : la seule partie blanche du phare, sans le clignotant orange
+  countach: lightPair(.943,.2574,'rect',.0253,.085,0,.135,.28),
+  // 0.55.2 : sur le phare rond (il était 5 px trop en avant), penché comme lui
+  '930': lightPair(.923,.215,'oval',.028,.100,-.12,.105,.27,.027),
   corvette: lightPair(.934,.245,'twin',.062,.090,.12,.060,.27),
   csl: lightPair(.967,.262,'round',.026,.065,0,.075,.27),
-  '250gto': lightPair(.920,.232,'oval',.064,.100,.55,.055,.29),
-  typee: lightPair(.902,.223,'oval',.085,.115,.50,.060,.25),
-  '240z': lightPair(.916,.209,'oval',.065,.105,.45,.065,.27),
+  '250gto': lightPair(.920,.232,'oval',.064,.100,.55,.055,.29,.030),
+  typee: lightPair(.902,.223,'oval',.085,.115,.50,.060,.25,.025),
+  '240z': lightPair(.916,.209,'oval',.065,.105,.45,.065,.27,.040),
   porsche991gt3r: lightPair(.897,.175,'oval',.072,.100,.48,.130,.255),
-  ferrari488gt3: lightPair(.900,.224,'blade',.085,.070,.45,.140,.27),
-  huracangt3: lightPair(.883,.235,'chevron',.082,.068,.34,.135,.27),
-  audir8lms: lightPair(.921,.245,'blade',.070,.072,.30,.130,.25),
-  amggt3: lightPair(.922,.215,'blade',.072,.080,.38,.110,.24),
+  ferrari488gt3: lightPair(.900,.224,'blade',.085,.070,.45,.140,.27,.030),
+  huracangt3: lightPair(.883,.235,'chevron',.082,.068,.34,.135,.27,.025),
+  audir8lms: lightPair(.921,.245,'blade',.070,.072,.30,.130,.25,.020),
+  amggt3: lightPair(.922,.215,'blade',.072,.080,.38,.110,.24,.020),
   bmwm6gt3: lightPair(.924,.240,'twin',.067,.080,.20,.125,.25),
   bentleygt3: lightPair(.918,.255,'doubleRound',.043,.145,.10,.130,.25),
   nissangtrgt3: lightPair(.888,.195,'blade',.085,.080,.35,.125,.28),
-  mclaren650sgt3: lightPair(.889,.208,'arc',.085,.125,.32,.125,.26),
-  v12vantagegt3: lightPair(.899,.191,'oval',.041,.070,.35,.115,.25),
-  gt40: lightPair(.920,.248,'oval',.066,.110,.45,.045,.29),
-  '935': lightPair(.938,.196,'oval',.036,.065,.28,.120,.26),
+  // 0.55.2 : une virgule fine qui suit la marque blanche dessinée, et non un demi-cercle
+  mclaren650sgt3: lightPair(.8798,.2075,'virgule',.069,.125,0,.125,.26,.020),
+  v12vantagegt3: lightPair(.899,.191,'oval',.041,.070,.35,.115,.25,.020),
+  gt40: lightPair(.920,.248,'oval',.066,.110,.45,.045,.29,.038),
+  // 0.55.2 : le phare blanc en capsule, penché comme le dessin (livrée n° 43)
+  '935': lightPair(.938,.196,'oval',.026,.088,-.40,.120,.26),
   '787b': lightPair(.901,.183,'doubleRound',.027,.123,0,.100,.24),
   '962': lightPair(.903,.158,'doubleRound',.026,.130,0,.135,.23),
   xjr9: lightPair(.920,.190,'triple',.074,.095,.55,.135,.24),
   '330p4': lightPair(.905,.171,'twin',.070,.090,.55,.045,.29),
-  p68: lightPair(.890,.198,'oval',.052,.100,.50,.060,.28),
+  p68: lightPair(.890,.198,'oval',.052,.100,.50,.060,.28,.010),
 };
-// Four circular bulbs follow the fender curvature on these two models.
-for(const [id,x,y,bulbs]of [
-  ['bmwm6gt3',.900,.1885,[{x:-.008,y:-.0365,w:.018,h:.040},{x:.008,y:.0365,w:.018,h:.040}]],
-  ['bentleygt3',.9015,.204,[{x:-.0145,y:-.049,w:.030,h:.060},{x:.0145,y:.049,w:.028,h:.056}]],
+// Les livrées dont le dessin diffère du modèle (0.55.2) : la Langheck n° 16 a ses phares ronds jaunes
+// plus en arrière que les autres. Repérées par le nom de leur dessin.
+CAR_LIGHT_PROFILES['935'].parDessin = {
+  '935_jager': lightPair(.914,.203,'oval',.026,.078,-.10,.120,.26),
+};
+// Plusieurs ampoules par phare, relevées sur le dessin : leurs positions par rapport au centre du
+// phare, leurs tailles, et le `droite` du modèle. Le côté droit est le miroir du gauche.
+//  - Howitzer K6 et Bramley : quatre ampoules rondes qui suivent la courbe de l'aile ;
+//  - Moonshine Sting (0.55.2) : deux blocs l'un au-dessus de l'autre, une ampoule chacun (l'optique
+//    mettait deux feux côte à côte dans le seul bloc extérieur) ;
+//  - Moggy Nightfall (0.55.2) : une grosse ampoule, une petite et un petit feu blanc en barrette
+//    (l'optique avait deux feux égaux et le troisième dans un endroit vide) ;
+//  - Purosangue Freccia (0.55.2) : ses deux ampoules, relevées au pixel.
+for(const [id,x,y,bulbs,droite=0]of [
+  ['bmwm6gt3',.900,.1885,[{x:-.008,y:-.0365,w:.018,h:.040},{x:.008,y:.0365,w:.018,h:.040}],.010],
+  ['bentleygt3',.9015,.204,[{x:-.0145,y:-.049,w:.030,h:.060},{x:.0145,y:.049,w:.028,h:.056}],.025],
+  ['corvette',.9255,.2931,[{x:-.0024,y:-.0468,w:.028,h:.070},{x:.0024,y:.0468,w:.028,h:.070}]],
+  // Purosangue Freccia (0.55.2) : ses deux ampoules, 4 px plus en arrière et plus écartées que l'ancienne paire
+  ['330p4',.896,.167,[{x:-.0188,y:-.0215,w:.029,h:.060},{x:.0188,y:.0215,w:.029,h:.060}]],
+  ['xjr9',.9214,.2136,[{x:-.0155,y:-.0405,w:.038,h:.077},{x:.0183,y:.003,w:.017,h:.032},{x:.0245,y:.056,w:.029,h:.027}],.014],
 ]){
-  CAR_LIGHT_PROFILES[id].front=[-1,1].map(side=>({x,y:side<0?y:1-y,shape:'cluster',
+  CAR_LIGHT_PROFILES[id].front=[-1,1].map(side=>({x,y:side<0?y:1-y+droite,shape:'cluster',
     bulbs:bulbs.map(b=>({...b,y:side<0?b.y:-b.y}))}));
 }
 // Open-wheel cars keep no headlights. Their existing central stop cue stays central.
@@ -243,7 +276,8 @@ function carLightLayout(model, livree = 0) {
   const art = topArt(model, livree), L = model.length, H = art ? topSize(model, art)[1] : model.width;
   const key = (topSrc(model, livree) || model.id) + ':' + L + ':' + H;
   if (_carLightCache.has(key)) return _carLightCache.get(key);
-  const profile = CAR_LIGHT_PROFILES[model.id] || (model.catId === 'f1'
+  const base = CAR_LIGHT_PROFILES[model.id], dessin = (topSrc(model, livree) || '').split('/').pop().replace(/\.\w+$/, '');
+  const profile = base?.parDessin?.[dessin] || base || (model.catId === 'f1'
     ? {front:[],rear:[{x:.06,y:.5}],brakeOnly:true}
     : lightPair(.94,.22,model.shape === 'roundGT' ? 'oval' : 'rect',.045,.09,0,.08,.25));
   const point = p => ({...p,x:(p.x-.5)*L,y:(p.y-.5)*H,
@@ -255,7 +289,8 @@ function carLightLayout(model, livree = 0) {
 }
 function drawLightLens(g, lens) {
   const w=lens.w,h=lens.h;
-  g.save();g.rotate(lens.angle||0);g.fillStyle=lens.color;
+  // le feu droit est le miroir du gauche : retourné, et pas seulement tourné (0.55.2)
+  g.save();g.rotate(lens.angle||0);if(lens.miroir)g.scale(1,-1);g.fillStyle=lens.color;
   const oval=(x,y,rx,ry)=>{g.beginPath();g.ellipse(x,y,rx,ry,0,0,Math.PI*2);g.fill();};
   if(lens.shape==='cluster'){for(const b of lens.bulbs)oval(b.x,b.y,b.w/2,b.h/2);}
   else if(lens.shape==='oval'||lens.shape==='round') oval(0,0,w/2,h/2);
@@ -264,9 +299,10 @@ function drawLightLens(g, lens) {
     if(lens.shape==='triple')oval(0,h*.33,w*.13,h*.20);
   }else if(lens.shape==='doubleRound'){
     oval(0,-h*.26,w*.46,h*.22);oval(0,h*.26,w*.46,h*.22);
-  }else if(lens.shape==='arc'){
-    g.strokeStyle=lens.color;g.lineWidth=Math.min(w,h)*.23;g.lineCap='round';g.beginPath();
-    g.moveTo(-w*.45,-h*.40);g.bezierCurveTo(w*.5,-h*.5,w*.5,h*.5,-w*.3,h*.42);g.stroke();
+  }else if(lens.shape==='virgule'){
+    // un trait fin et à peine courbé, d'un coin à l'autre (la marque blanche de la McHaggis Blade 650)
+    g.strokeStyle=lens.color;g.lineWidth=h*.16;g.lineCap='round';g.beginPath();
+    g.moveTo(-w/2,-h/2);g.quadraticCurveTo(w*.12,-h*.2,w/2,h/2);g.stroke();
   }else if(lens.shape==='blade'||lens.shape==='chevron'){
     g.beginPath();g.moveTo(-w/2,-h/2);g.lineTo(w/2,-h*.15);g.lineTo(w*.30,h/2);
     g.lineTo(lens.shape==='chevron'?0:-w/2,lens.shape==='chevron'?0:h*.15);g.closePath();g.fill();

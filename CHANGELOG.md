@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.55.2
+- Feux avant : le feu droit est le vrai miroir du gauche et se pose sur le phare dessiné ; formes refaites d’après le dessin sur sept voitures (Moonshine Sting, Moggy Nightfall, Purosangue Freccia, McHaggis Blade 650, Howitzer K1, Stallone Furioso, Breithüft Langheck n° 16).
+
 ## 0.55.1
 - Export itch.io : seule l’adresse grip-game.github.io est un bouton ; la phrase d’explication reste du texte.
 
