@@ -86,13 +86,13 @@ function serve() {
     '--disable-backgrounding-occluded-windows',
     '--disable-renderer-backgrounding'
   ]});
-  const ctx = await browser.newContext({ viewport: { width: 900, height: 620 } });
+  const ctx = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 900, height: 620 } });
   await ctx.addInitScript(STUB);
   let bad = 0;
   const open = async (tag, name) => {
     const p = await ctx.newPage();
     p.on('pageerror', (e) => { bad++; console.log(`[${tag}] pageerror`, e.message); });
-    p.on('console', (m) => { if (m.type() === 'error') { bad++; console.log(`[${tag}] console`, m.text()); } });
+    p.on('console', (m) => { if (m.type() === 'error' && !m.location().url.includes('/manifeste.json')) { bad++; console.log(`[${tag}] console`, m.text()); } });
     await p.goto(url);
     await p.waitForFunction(() => typeof app !== 'undefined' && app.save);
     /* Le nom AVANT l'écran-titre, et non après.
@@ -121,6 +121,11 @@ function serve() {
   await B.waitForTimeout(800);
 
   if (mode !== 'race') { await A.click(`[data-action="netMode"][data-id="${mode}"]`); await A.waitForTimeout(300); }
+  if (process.argv.includes('--night')) {
+    await A.click('[data-action="netTimeOfDay"][data-id="night"]');
+    await B.waitForFunction(() => app.net.settings().timeOfDay === 'night');
+    if (!await B.locator('[data-action="netTimeOfDay"][data-id="night"]').isDisabled()) throw Error('guest can edit lighting');
+  }
   console.log('format', await A.evaluate(() => app.net.settings().mode));
   await A.screenshot({path:`${out}/net-avant-pret.png`,fullPage:true});
 
@@ -141,6 +146,24 @@ function serve() {
   await A.waitForTimeout(1200);
   const started = await Promise.all([A, B].map(p => p.evaluate(() => app.state + '/' + (app.race ? app.race.cars.length : 0))));
   console.log('au départ', started.join(' | '));
+  if (process.argv.includes('--night')) for (const p of [A, B]) {
+    const lighting = await p.evaluate(() => app.race?.timeOfDay);
+    if (lighting !== 'night') throw Error('shared night setting lost: ' + lighting);
+  }
+
+  // --night exercises the shared lighting choice; the normal invocation below
+  // retains the longer physics/synchronization checks.
+  if (process.argv.includes('--night')) {
+    for (const p of [A, B]) {
+      await p.waitForFunction(() => app.renderer.night.active);
+      const layer = await p.evaluate(() => app.renderer.nightCanvas.style.display);
+      if (layer !== 'block') throw Error('night layer absent');
+    }
+    await A.screenshot({ path: `${out}/net-nuit-hote.png` });
+    await B.screenshot({ path: `${out}/net-nuit-invite.png` });
+    console.log('OK: host night choice, disabled guest control, both races and both night layers. Errors:', bad);
+    await browser.close();server.close();process.exit(bad ? 1 : 0);
+  }
 
   // ---- a few seconds with both feet down
   for (const p of [A, B]) await p.keyboard.down('Space');

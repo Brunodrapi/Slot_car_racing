@@ -1,8 +1,9 @@
 'use strict';
 
-// Protocol 3: owner physics + one signed byte of steering for animated tires.
+// Protocol 4: every peer understands the shared day/night choice.
+// Movement retains owner physics + one signed byte of steering for animated tires.
 // Monotonic timestamps use the host's clock, estimated by round-trip probes.
-const DRIVE_PROTOCOL = 3;
+const DRIVE_PROTOCOL = 4;
 const DRIVE_FULL_BYTES = 40, DRIVE_FAR_BYTES = 14;
 
 function driveFlags(c) {

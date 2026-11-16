@@ -19,6 +19,21 @@ Fonctionne sur ordinateur (clavier, molette ou manette Xbox) et sur mobile/table
 à ajouter à l'écran d'accueil). Le PC dispose de menus en paysage. Les menus mobiles gardent leur
 présentation portrait ; **la course accepte le portrait et le paysage**, en tournant l'appareil.
 
+### Jour / Nuit
+
+Dans la préparation d’une course, d’un contre-la-montre ou d’un entraînement, le bouton
+**Jour / Nuit** change l’éclairage et conserve le choix sur l’appareil. Dans un salon multijoueur,
+l’hôte choisit pour tous les pilotes et spectateurs. Les anciennes sauvegardes restent en Jour.
+
+La nuit, des lampadaires alternent en bord de piste, les GT/GT3 et prototypes éclairent devant eux
+avec leurs phares. **Les F1 n’ont pas de phares** et dépendent des lampadaires. Les parties non
+éclairées restent presque noires, sans mémoire d’exploration ; les adversaires éloignés ou dans
+l’obscurité disparaissent de la mini-carte du pilote. Le tracé et les commandes restent lisibles.
+Le comportement des voitures, les chronos et les réglages de conduite sont identiques au jour.
+
+Vérification : `node tools/e2e-night.js` (Playwright/Chromium), et
+`node tools/e2e-net.js /tmp/grip-night-net race --night` pour le choix partagé de l’hôte.
+
 ### Drapeaux en course
 
 Un carré près du chrono signale le bleu, le jaune ou une sanction en noir et blanc. Le damier

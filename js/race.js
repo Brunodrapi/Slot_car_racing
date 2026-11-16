@@ -168,6 +168,7 @@ const STATE_NAME = ['countdown', 'racing', 'finishing', 'finished'];
 class Race {
   constructor(opts) {
     this.opts = opts;
+    this.timeOfDay = opts.timeOfDay === 'night' ? 'night' : 'day';
     /* La catégorie est celle de la VOITURE du joueur, pas celle qu'on a passée.
 
     C'est elle qui décide contre qui l'on court : une F1 part avec des F1, une GT avec des GT. La

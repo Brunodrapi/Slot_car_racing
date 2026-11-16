@@ -102,6 +102,7 @@ const I18N = {
     installAnd2: 'Choisis « Installer l’application » ou « Ajouter à l’écran d’accueil ».',
     installAnd3: 'Confirme : l’icône GRIP rejoint tes applications.',
     installInApp: 'Ouvert depuis une appli (Instagram, Messenger…) ? Ouvre d’abord la page dans Safari ou Chrome : c’est là seulement qu’on peut l’installer.',
+    timeOfDay: 'Jour / Nuit', day: 'Jour', night: 'Nuit', nightHint: 'Visibilité réduite : phares et éclairage du circuit.', nightF1Hint: 'F1 sans phares : éclairage du circuit uniquement.',
     carClass: 'Catégorie', model: 'Modèle', track: 'Circuit', livery: 'Livrée', tyres: 'Gomme', damage: 'Tôle', linePit: 'STAND', wear: 'Usure et dommages', wearHint: 'Les pneus s\'usent en glissant, les chocs et les sorties abîment la voiture.', difficulty: 'Difficulté', easy: 'Facile', medium: 'Normal', hard: 'Difficile', extreme: 'Extrême', cauchemar: 'Cauchemar',
     laps: 'tours', lapCustom: 'Perso', start: 'Départ !', locked: 'Verrouillé', unlockHint: 'Termine la coupe précédente dans le top 3 pour débloquer.',
     cup: 'Coupe', races: 'courses', raceOf: (a, b) => `Course ${a} / ${b}`, standings: 'Classement', nextRace: 'Prochaine course', startRace: 'Lancer la course',
@@ -252,6 +253,7 @@ const I18N = {
     installAnd2: 'Choose “Install app” or “Add to Home screen”.',
     installAnd3: 'Confirm: the GRIP icon joins your apps.',
     installInApp: 'Opened from an app (Instagram, Messenger…)? Open the page in Safari or Chrome first: that’s the only place it can be installed.',
+    timeOfDay: 'Day / Night', day: 'Day', night: 'Night', nightHint: 'Limited visibility: headlights and circuit lighting.', nightF1Hint: 'F1 has no headlights: circuit lighting only.',
     carClass: 'Class', model: 'Model', track: 'Track', livery: 'Livery', tyres: 'Tyres', damage: 'Body', linePit: 'PIT', wear: 'Wear and damage', wearHint: 'Tyres wear as you slide; contact and excursions damage the car.', difficulty: 'Difficulty', easy: 'Easy', medium: 'Normal', hard: 'Hard', extreme: 'Extreme', cauchemar: 'Nightmare',
     laps: 'laps', lapCustom: 'Custom', start: 'Start!', locked: 'Locked', unlockHint: 'Finish the previous cup in the top 3 to unlock.',
     cup: 'Cup', races: 'races', raceOf: (a, b) => `Race ${a} / ${b}`, standings: 'Standings', nextRace: 'Next race', startRace: 'Start race',
@@ -1449,6 +1451,10 @@ class UI {
     const desktop = app.desktop;
     const gamepad = desktop && app.controls.mode === 'gamepad';
     return `<div class="setup-bar"><div class="setup-reglages">
+      <div class="setup-chips" data-pad-group>
+        ${pastille(t('timeOfDay'), t(s.timeOfDay === 'night' ? 'night' : 'day'), `data-action="pickTimeOfDay" data-id="${s.timeOfDay === 'night' ? 'day' : 'night'}" aria-pressed="${s.timeOfDay === 'night'}"`)}
+        ${s.timeOfDay === 'night' ? `<small class="muted night-hint">${t(model.catId === 'f1' ? 'nightF1Hint' : 'nightHint')}</small>` : ''}
+      </div>
       ${race ? `<div class="setup-chips" data-pad-group>
         ${pastille(t('difficulty'), t(s.difficulty), `data-action="pickDiff" data-id="${suivant(NIVEAUX, s.difficulty)}"`)}
         ${pastille(t('lapCount'), s.lapsPerso ? `${t('lapCustom')}` : (s.laps || 5), `data-action="pickLaps" data-id="${suivant([2, 5, 10, 20, 'perso'], toursCourants)}"`)}
@@ -1552,6 +1558,9 @@ class UI {
       <h3>${t('mFormat')}</h3>
       <div class="seg">${NET_MODES.map(m => `<button class="${cfg.mode === m ? 'sel' : ''}" data-action="netMode" data-id="${m}" ${net.creator ? '' : 'disabled'}>${t({ race: 'mRace', duel: 'mDuel', ghost: 'mGhost' }[m])}</button>`).join('')}</div>
       <p class="muted">${t(modeDesc)}</p>
+      <h3>${t('timeOfDay')}</h3>
+      <div class="seg">${['day', 'night'].map(v => `<button class="${(cfg.timeOfDay || 'day') === v ? 'sel' : ''}" data-action="netTimeOfDay" data-id="${v}" aria-pressed="${(cfg.timeOfDay || 'day') === v}" ${net.creator ? '' : 'disabled'}>${t(v)}</button>`).join('')}</div>
+      ${cfg.timeOfDay === 'night' ? `<p class="muted">${t(model.catId === 'f1' ? 'nightF1Hint' : 'nightHint')}</p>` : ''}
       <h3>${t('mCat')}</h3>
       ${this.filtreCat('netCat', tcat, !net.creator)}
       <p class="muted">${t(tcat === 'all' ? 'mCatOpen' : 'mCatDesc')}</p>
@@ -1898,6 +1907,7 @@ class UI {
         if (rail) this._defileRail(rail, +btn.dataset.dir);
         break;
       }
+      case 'pickTimeOfDay': app.save.timeOfDay = id === 'night' ? 'night' : 'day'; storeSave(app.save); this.setupScreen(this.setup.mode); break;
       case 'pickWear': app.save.wear = id === '1'; storeSave(app.save); this.setupScreen(this.setup.mode); break;
       case 'startQuick': app.startQuick(this.setup.mode, this.setup.classId, this.setup.trackId); break;
       case 'startTune': app.startQuick(this.setup.mode, this.setup.classId, this.setup.trackId, true); break;
@@ -1908,6 +1918,7 @@ class UI {
       case 'netWatch': this._netOpen(false, true); break;
       case 'netRole': app.net.setMine({ spectator: !app.net.mine.spectator, ready: false }); app.net.pump(); break;
       case 'netLeave': app.toMenu(); break;
+      case 'netTimeOfDay': app.net.setTable({ timeOfDay: id === 'night' ? 'night' : 'day' }); break;
       case 'netMode': app.net.setTable({ mode: id }); break;
       case 'netTrack': app.net.setTable({ trackId: id, laps: lapsFor(app.trackDefById(id), categoryById(this.setup.classId)) }); break;
       case 'netReady': this._netReady(!app.net.mine.ready); break;

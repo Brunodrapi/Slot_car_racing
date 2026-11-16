@@ -1,0 +1,37 @@
+{
+  "results": [
+    {
+      "mobile": false,
+      "ahead": 81,
+      "behind": 252,
+      "side": 252,
+      "turned": 81,
+      "oldAhead": 252,
+      "tracks": 14,
+      "categories": [
+        "gt",
+        "gt3",
+        "proto"
+      ],
+      "nightMs": 2.0066666666573534,
+      "dayMs": 1.4600000000093132
+    },
+    {
+      "mobile": true,
+      "ahead": 81,
+      "behind": 252,
+      "side": 252,
+      "turned": 81,
+      "oldAhead": 252,
+      "tracks": 14,
+      "categories": [
+        "gt",
+        "gt3",
+        "proto"
+      ],
+      "nightMs": 3.9066666666728755,
+      "dayMs": 2.12666666667598
+    }
+  ],
+  "errors": []
+}

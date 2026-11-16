@@ -34,7 +34,7 @@ function lapsFor(trackDef, cat) {
 const SAVE_KEY = 'slotracer.save.v2';
 
 function defaultSave() {
-  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, difficulty: 'medium', livery: 0, name: '', models: {}, livrees: {}, desktopControl: 'keyboard', gamepadBrake: 'separate', engineBrake: .15, ctrl: 'auto', ctrlSide: 'left', camRotate: false, view: 'avanceFixe', pullBack: 1, aimant: 0, ff: 0.3, laps: 5, lapsPerso: false, showLines: false, debug: false, wear: false, guideMigrated: true, flatMigrated: false, cups: {}, bestLaps: {}, bestLapsNets: {}, palmares: {}, tracesMigrated: true, catsMigrated: true, cat: null, filtreCat: 'all', tutorialSeen: false, racesDone: 0, reglages: { actif: null, actifs: {}, configs: [] } };
+  return { lang: (navigator.language || 'fr').toLowerCase().startsWith('en') ? 'en' : 'fr', sound: true, timeOfDay: 'day', difficulty: 'medium', livery: 0, name: '', models: {}, livrees: {}, desktopControl: 'keyboard', gamepadBrake: 'separate', engineBrake: .15, ctrl: 'auto', ctrlSide: 'left', camRotate: false, view: 'avanceFixe', pullBack: 1, aimant: 0, ff: 0.3, laps: 5, lapsPerso: false, showLines: false, debug: false, wear: false, guideMigrated: true, flatMigrated: false, cups: {}, bestLaps: {}, bestLapsNets: {}, palmares: {}, tracesMigrated: true, catsMigrated: true, cat: null, filtreCat: 'all', tutorialSeen: false, racesDone: 0, reglages: { actif: null, actifs: {}, configs: [] } };
 }
 
 function loadSave() {
@@ -43,6 +43,7 @@ function loadSave() {
     if (!raw) return defaultSave();
     const brut = JSON.parse(raw);
     const save = Object.assign(defaultSave(), brut);
+    save.timeOfDay = save.timeOfDay === 'night' ? 'night' : 'day';
     // the driving lines used to be drawn on the road; turn the guide off once for existing saves
     if (!save.guideMigrated) { save.showLines = false; save.guideMigrated = true; }
     /* La caméra était un interrupteur à deux positions ; c'est maintenant un choix de vue.

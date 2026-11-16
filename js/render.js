@@ -231,23 +231,161 @@ const FANTOME_ALPHA = 0.42;
 const FEU_STOP = { long: 3.2, demi: 0.95, source: 0.16, ecart: 0.3, ouvre: 0.45, dedans: 0.35 };
 const LINE_COLORS = { bleu: 'rgba(80,200,255,0.55)', racing: 'rgba(255,255,255,0.5)', jaune: 'rgba(255,200,60,0.55)' };
 
+/* A mask above BOTH the road and the native-resolution car layer. HUD and menus
+   stay above it. Light fields are also used by the minimap: darkness must not
+   reveal competitors through a second view. Distances below are world metres. */
+class NightLighting {
+  constructor() { this.lamps = []; this.fields = []; this.active = false; }
+
+  static beamStrength(x, y) {
+    if (x <= 0 || x >= 36) return 0;
+    const edge = Math.abs(y) / (.9 + x * .31);
+    if (edge >= 1) return 0;
+    const t = Math.max(0, (edge - .5) * 2);
+    return Math.pow(1 - x / 36, .7) * (1 - t * t * (3 - 2 * t)) * Math.min(1, x / .65);
+  }
+
+  beamMask() {
+    if (this._beamMask) return this._beamMask;
+    const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 160;
+    const g = canvas.getContext('2d'), pixels = g.createImageData(canvas.width, canvas.height);
+    for (let y = 0; y < canvas.height; y++) for (let x = 0; x < canvas.width; x++) {
+      pixels.data[(y * canvas.width + x) * 4 + 3] = Math.round(255 * NightLighting.beamStrength(
+        (x + .5) / canvas.width * 36, ((y + .5) / canvas.height - .5) * 24));
+    }
+    g.putImageData(pixels, 0, 0); this._beamMask = canvas; return canvas;
+  }
+
+  setTrack(track) {
+    this.lamps = [];
+    const count = Math.max(1, Math.ceil(track.length / 30));
+    for (let i = 0; i < count; i++) {
+      const s = i * track.length / count, side = i % 2 ? -1 : 1;
+      const hw = side > 0 ? track.hwLeftAt(s) : track.hwRightAt(s);
+      const p = track.pos(s, side * (hw + 2.8));
+      // Tunnel lamps are closer to the roadway and do not grow outdoor poles.
+      const k = track.idx(s), tunnel = track.tunnels.some(t => (k - t.from + track.n) % track.n < t.n);
+      const light = track.pos(s, side * (tunnel ? hw * .72 : hw + .4));
+      this.lamps.push({ x: light.x, y: light.y, poleX: p.x, poleY: p.y,
+        radius: Math.max(12, hw * 2 + 5), power: .78, tunnel });
+    }
+    this.fields = [];
+  }
+
+  prepare(race, cam, reach) {
+    this.active = race.timeOfDay === 'night';
+    this.observer = race.opts.spectator ? cam : race.player.pos;
+    this.fields = [];
+    this.visibleLamps = [];
+    if (!this.active) return;
+    const near = (p, r) => Math.abs(p.x - cam.x) < reach + r && Math.abs(p.y - cam.y) < reach + r;
+    for (const lamp of this.lamps) if (near(lamp, lamp.radius)) {
+      this.visibleLamps.push(lamp); this.fields.push(lamp);
+    }
+    for (const car of race.cars) {
+      if (car.fantome || !near(car.pos, 40)) continue;
+      const p = car.pos, h = car.heading, c = car.cls;
+      // Ambient light keeps the body legible, including a stopped/off-track F1.
+      // It is a small, dim pool, never a forward beam for an open-wheel car.
+      if (car.isPlayer) this.fields.push({ x: p.x, y: p.y, radius: 4, power: .48 });
+      if (c.catId === 'f1') continue;
+      this.fields.push({ x: p.x + Math.cos(h) * c.length * .44,
+        y: p.y + Math.sin(h) * c.length * .44, heading: h, beam: true,
+        length: 36, width: 9, power: .93 });
+    }
+  }
+
+  canSee(p) {
+    if (!this.active) return true;
+    if (Math.hypot(p.x - this.observer.x, p.y - this.observer.y) > 45) return false;
+    for (const f of this.fields) {
+      let x = p.x - f.x, y = p.y - f.y, d;
+      if (f.beam) {
+        const c = Math.cos(f.heading), s = Math.sin(f.heading);
+        const u = x * c + y * s, v = -x * s + y * c;
+        if (f.power * NightLighting.beamStrength(u, v) > .18) return true;
+        continue;
+      } else d = Math.hypot(x, y) / f.radius;
+      if (d < 1 && f.power * (1 - d) > .18) return true;
+    }
+    return false;
+  }
+
+  fixtures(g) {
+    if (!this.active) return;
+    g.save(); g.lineWidth = .16;
+    for (const l of this.visibleLamps) {
+      if (!l.tunnel) {
+        g.strokeStyle = '#586779';
+        g.beginPath(); g.moveTo(l.poleX, l.poleY); g.lineTo(l.x, l.y); g.stroke();
+        g.fillStyle = '#303b4a'; g.fillRect(l.poleX - .22, l.poleY - .22, .44, .44);
+      }
+      g.fillStyle = '#fff0b7'; g.beginPath(); g.arc(l.x, l.y, .27, 0, Math.PI * 2); g.fill();
+    }
+    g.restore();
+  }
+
+  draw(renderer, matrix) {
+    const canvas = renderer.nightCanvas, g = renderer.nightCtx;
+    canvas.style.display = this.active ? 'block' : 'none';
+    if (!this.active) return;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, canvas.width, canvas.height);
+    g.fillStyle = 'rgba(3,7,18,.988)'; g.fillRect(0, 0, canvas.width, canvas.height);
+    g.setTransform(matrix);
+    g.save(); g.globalCompositeOperation = 'destination-out';
+    for (const f of this.fields) {
+      g.save(); g.translate(f.x, f.y);
+      if (f.beam) {
+        g.rotate(f.heading);
+        g.globalAlpha = f.power; g.drawImage(this.beamMask(), 0, -12, 36, 24);
+        g.restore(); continue;
+      } else g.scale(f.radius, f.radius);
+      const gradient = g.createRadialGradient(0, 0, 0, 0, 0, 1);
+      gradient.addColorStop(0, `rgba(0,0,0,${f.power})`);
+      gradient.addColorStop(.35, `rgba(0,0,0,${f.power * .68})`);
+      gradient.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = gradient; g.beginPath(); g.arc(0, 0, 1, 0, Math.PI * 2); g.fill(); g.restore();
+    }
+    g.restore();
+    // Warm lamps, cool headlights. No expensive full-screen blur or pixel readback.
+    for (const f of this.fields) {
+      if (f.beam) {
+        g.save(); g.translate(f.x, f.y); g.rotate(f.heading);
+        g.fillStyle = '#e1f0ff';
+        for (const y of [-.65, .65]) { g.beginPath(); g.ellipse(0, y, .12, .23, 0, 0, Math.PI * 2); g.fill(); }
+        g.restore(); continue;
+      }
+      const gradient = g.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.radius);
+      gradient.addColorStop(0, 'rgba(255,192,100,.09)'); gradient.addColorStop(1, 'rgba(255,192,100,0)');
+      g.fillStyle = gradient; g.fillRect(f.x - f.radius, f.y - f.radius, f.radius * 2, f.radius * 2);
+    }
+    this.fixtures(g);
+  }
+}
+
 class Renderer {
   constructor(canvas) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.carCanvas = document.createElement('canvas');
     this.carCtx = this.carCanvas.getContext('2d');
+    this.nightCanvas = document.createElement('canvas');
+    this.nightCanvas.dataset.layer = 'night';
+    this.nightCtx = this.nightCanvas.getContext('2d');
+    this.night = new NightLighting();
     this.hudCanvas = document.createElement('canvas');
     this.hudCtx = this.hudCanvas.getContext('2d');
     this.carRects = [];
-    for (const layer of [this.carCanvas, this.hudCanvas]) {
+    for (const layer of [this.carCanvas, this.nightCanvas, this.hudCanvas]) {
       layer.setAttribute('aria-hidden', 'true');
       layer.style.cssText = 'position:fixed;inset:0;display:block;pointer-events:none;user-select:none;';
     }
     // Même ordre que le rendu initial : décor, voitures, HUD, puis menus DOM.
     if (canvas.parentNode) {
       canvas.after(this.carCanvas);
-      this.carCanvas.after(this.hudCanvas);
+      this.carCanvas.after(this.nightCanvas);
+      this.nightCanvas.after(this.hudCanvas);
     }
     /* La résolution s'adapte à ce que la machine tient.
 
@@ -359,7 +497,7 @@ class Renderer {
     this.canvas.style.width = w + 'px';
     this.canvas.style.height = h + 'px';
     this.nativeDpr = Math.max(1, window.devicePixelRatio || 1);
-    for (const [layer, scale] of [[this.carCanvas, this.nativeDpr], [this.hudCanvas, this.dpr]]) {
+    for (const [layer, scale] of [[this.carCanvas, this.nativeDpr], [this.nightCanvas, this.dpr], [this.hudCanvas, this.dpr]]) {
       const width = Math.round(w * scale), height = Math.round(h * scale);
       if (layer.width !== width || layer.height !== height) {
         layer.width = width; layer.height = height;
@@ -707,6 +845,7 @@ class Renderer {
 
   setTrack(track) {
     this.track = track;
+    this.night.setTrack(track);
     this.rubber = new Map();
     this.particles = [];
     this.wets = [];
@@ -1669,6 +1808,7 @@ class Renderer {
     // conservative square view box: valid whatever the camera rotation
     const reach = Math.hypot(W, H) / 2 / cam.zoom + 60;
     const vis = { minX: cam.x - reach, maxX: cam.x + reach, minY: cam.y - reach, maxY: cam.y + reach };
+    this.night.prepare(race, cam, reach);
     const inView = (b) => !(b.maxX < vis.minX || b.minX > vis.maxX || b.maxY < vis.minY || b.minY > vis.maxY);
 
     // background
@@ -1859,7 +1999,9 @@ class Renderer {
       }
     }
     if(!race.opts.spectator||ui.app.spectator?.effectiveMode!=='full')drawMapRaceFlags(g,race,p=>p,7/cam.zoom,true);
+    const nightMatrix = g.getTransform();
     g.restore();
+    this.night.draw(this, nightMatrix);
 
     const hud = this.hudCtx;
     hud.setTransform(1, 0, 0, 1, 0, 0);
@@ -3303,6 +3445,7 @@ class Renderer {
       en un dixième de seconde. Le jaune, lui, servait déjà au curseur de ligne et à la poignée du
       levier ; le bleu ciel n'est utilisé nulle part ailleurs pour une voiture. */
       for (const car of race.cars) {
+        if (!car.isPlayer && !this.night.canSee(car.pos)) continue;
         const wp = car.pos, q = this.mmPoint(wp.x, wp.y);
         // pas de cerne ici non plus : le bleu ciel du joueur se distingue tout seul des livrées
         g.fillStyle = car.isPlayer ? '#7fd4ff' : car.fantome ? '#fff8e6' : car.livery.body;
@@ -3310,7 +3453,7 @@ class Renderer {
         g.beginPath(); g.arc(mx + q.x, my + q.y, car.isPlayer ? 9 : 6, 0, Math.PI * 2); g.fill();
         g.globalAlpha = 1;
       }
-      drawMapRaceFlags(g,race,p=>{const q=this.mmPoint(p.x,p.y);return{x:mx+q.x,y:my+q.y};},7);
+      drawMapRaceFlags(g,race,p=>{const q=this.mmPoint(p.x,p.y);return{x:mx+q.x,y:my+q.y};},7,false,c=>c.isPlayer||this.night.canSee(c.pos));
     }
 
     // Relative standings: always show the player and adjacent competitors.

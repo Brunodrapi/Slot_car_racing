@@ -107,9 +107,10 @@ function drawYellowFlagZones(g,race,point,width,opacity=.24){
   g.stroke();g.restore();
 }
 
-function drawMapRaceFlags(g,race,point,size=7,world=false){
+function drawMapRaceFlags(g,race,point,size=7,world=false,visible=null){
   if(!race.flags)return;
   for(const c of race.cars){
+    if(visible&&!visible(c))continue;
     const flag=race.flags.personal(c);if(!flag)continue;
     const p=point(c.pos),clearance=world?Math.hypot(c.cls.length,c.cls.width)/2:0;
     drawRaceFlag(g,flag,p.x+size+clearance,p.y-size*1.8-clearance,size);

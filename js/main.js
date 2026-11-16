@@ -397,6 +397,7 @@ class App {
     if (this.net) this.net.leave();
     this.state = 'menu';
     this.race = null;
+    this.renderer.nightCanvas.style.display = 'none';
     this.raceCtx = null;
     this.audio.idle();
     this.ui.menu();
@@ -479,6 +480,7 @@ class App {
       modelId: mine.modelId || this.playerModelFor(cat.id).id,
       laps: cfg.laps || lapsFor(trackDef, cat),
       difficulty: cfg.difficulty || this.save.difficulty,
+      timeOfDay: cfg.timeOfDay === 'night' ? 'night' : 'day',
       playerLivery: mine.livery || 0,
       playerLivree: this.playerLivreeFor(mine.modelId || this.playerModelFor(cat.id).id),
       playerName: mine.name || this.playerName(),
@@ -490,6 +492,7 @@ class App {
   }
 
   _startRace(opts, ctx) {
+    opts = { ...opts, timeOfDay: (ctx?.online ? opts.timeOfDay : opts.timeOfDay || this.save.timeOfDay) === 'night' ? 'night' : 'day' };
     this.raceOpts = opts;
     this.raceCtx = ctx;
     this.spectator?.close();
@@ -542,6 +545,7 @@ class App {
     this.resetInput();
     if (this.net) this.net.backToLobby();
     this.race = null;
+    this.renderer.nightCanvas.style.display = 'none';
     this.raceCtx = null;
     this.audio.idle();
     this.state = 'lobby';
