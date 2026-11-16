@@ -237,12 +237,15 @@ const LINE_COLORS = { bleu: 'rgba(80,200,255,0.55)', racing: 'rgba(255,255,255,0
 class NightLighting {
   constructor() { this.lamps = []; this.fields = []; this.active = false; }
 
+  static smooth(t) { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }
+
   static beamStrength(x, y) {
     if (x <= 0 || x >= 36) return 0;
-    const edge = Math.abs(y) / (.9 + x * .31);
+    const edge = Math.abs(y) / (.16 + x * .15);
     if (edge >= 1) return 0;
-    const t = Math.max(0, (edge - .5) * 2);
-    return Math.pow(1 - x / 36, .7) * (1 - t * t * (3 - 2 * t)) * Math.min(1, x / .65);
+    // Fade early, with a zero slope at the far end and soft lateral shoulders.
+    return (1 - NightLighting.smooth((x / 36 - .06) / .94))
+      * (1 - NightLighting.smooth((edge - .12) / .88)) * NightLighting.smooth(x / .5);
   }
 
   beamMask() {
@@ -251,18 +254,26 @@ class NightLighting {
     const g = canvas.getContext('2d'), pixels = g.createImageData(canvas.width, canvas.height);
     for (let y = 0; y < canvas.height; y++) for (let x = 0; x < canvas.width; x++) {
       pixels.data[(y * canvas.width + x) * 4 + 3] = Math.round(255 * NightLighting.beamStrength(
-        (x + .5) / canvas.width * 36, ((y + .5) / canvas.height - .5) * 24));
+        (x + .5) / canvas.width * 36, ((y + .5) / canvas.height - .5) * 12));
     }
     g.putImageData(pixels, 0, 0); this._beamMask = canvas; return canvas;
+  }
+
+  tailMask() {
+    if (this._tailMask) return this._tailMask;
+    const source = this.beamMask(), canvas = document.createElement('canvas');
+    canvas.width = source.width; canvas.height = source.height;
+    const g = canvas.getContext('2d'); g.drawImage(source, 0, 0);
+    g.globalCompositeOperation = 'source-in'; g.fillStyle = '#ff241c';
+    g.fillRect(0, 0, canvas.width, canvas.height); this._tailMask = canvas; return canvas;
   }
 
   static floodStrength(x, y) {
     if (x <= 0 || x >= 1) return 0;
     const edge = Math.abs(y) / (.18 + .82 * x);
     if (edge >= 1) return 0;
-    const smooth = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
-    return smooth(x / .22) * (1 - smooth((x - .62) / .38))
-      * (1 - smooth((edge - .55) / .45));
+    return NightLighting.smooth(x / .25) * (1 - NightLighting.smooth((x - .22) / .78))
+      * (1 - NightLighting.smooth((edge - .12) / .88));
   }
 
   floodMask() {
@@ -320,9 +331,17 @@ class NightLighting {
       if (car.fantome || !near(car.pos, 40)) continue;
       const p = car.pos, h = car.heading, c = car.cls;
       if (c.catId === 'f1') continue;
-      this.fields.push({ x: p.x + Math.cos(h) * c.length * .44,
-        y: p.y + Math.sin(h) * c.length * .44, heading: h, beam: true,
-        length: 36, width: 9, power: .93, carLength: c.length, carWidth: c.width, braking: car.braking });
+      const cos = Math.cos(h), sin = Math.sin(h), offset = c.width * .31;
+      const braking = car.braking && car.state === 'ok';
+      for (const side of [-1, 1]) {
+        const x = p.x - sin * side * offset, y = p.y + cos * side * offset;
+        this.fields.push({ x: x + cos * c.length * .44, y: y + sin * c.length * .44,
+          heading: h + side * .035, beam: true, length: 36, width: 6, power: .82 });
+        this.fields.push({ x: x - cos * c.length * .46, y: y - sin * c.length * .46,
+          heading: h + Math.PI - side * .06, tail: true,
+          length: braking ? 6.5 : 4.2, width: braking ? 1.1 : .7,
+          power: braking ? .16 : .025, tint: braking ? .28 : .075 });
+      }
     }
   }
 
@@ -333,6 +352,7 @@ class NightLighting {
       const x = p.x - f.x, y = p.y - f.y, c = Math.cos(f.heading), s = Math.sin(f.heading);
       const u = x * c + y * s, v = -x * s + y * c;
       const strength = f.flood ? NightLighting.floodStrength(u / f.length, v / f.width)
+        : f.tail ? NightLighting.beamStrength(u / f.length * 36, v / f.width * 6)
         : NightLighting.beamStrength(u, v);
       if (f.power * strength > .18) return true;
     }
@@ -365,22 +385,17 @@ class NightLighting {
     for (const f of this.fields) {
       g.save(); g.translate(f.x, f.y); g.rotate(f.heading); g.globalAlpha = f.power;
       if (f.flood) g.drawImage(this.floodMask(), 0, -f.width, f.length, f.width * 2);
-      else g.drawImage(this.beamMask(), 0, -12, 36, 24);
+      else if (f.tail) g.drawImage(this.tailMask(), 0, -f.width, f.length, f.width * 2);
+      else g.drawImage(this.beamMask(), 0, -6, 36, 12);
       g.restore();
     }
     g.restore();
-    // Directional warm spill and self-lit light lenses, never a circular car aura.
+    // Light projected onto the ground, without rectangular lenses or a car aura.
     for (const f of this.fields) {
+      if (!f.flood && !f.tail) continue;
       g.save(); g.translate(f.x, f.y); g.rotate(f.heading);
-      if (f.flood) {
-        g.globalAlpha = .065; g.drawImage(this.floodMask(), 0, -f.width, f.length, f.width * 2);
-      } else {
-        const offset = f.carWidth * .3;
-        g.fillStyle = '#e1f0ff';
-        for (const y of [-offset, offset]) g.fillRect(-.07, y - .13, .12, .26);
-        g.fillStyle = f.braking ? '#ff402c' : '#db241c';
-        for (const y of [-offset, offset]) g.fillRect(-f.carLength * .88, y - .14, .12, .28);
-      }
+      g.globalAlpha = f.flood ? .065 : f.tint;
+      g.drawImage(f.flood ? this.floodMask() : this.tailMask(), 0, -f.width, f.length, f.width * 2);
       g.restore();
     }
     this.fixtures(g);
@@ -2921,7 +2936,7 @@ class Renderer {
     // a drawn car casts its own outline; a vector one only has a box to offer
     if (!drawCarShadow(g, c, car.livree, { steer: car.steerAngle })) { g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width); }
     g.restore();
-    if (freine) this._feuxStop(g, c, art);
+    if (freine && (!this.night.active || c.catId === 'f1')) this._feuxStop(g, c, art);
     drawCarModel(g, c, car.livery, { number: car.number, steer: car.steerAngle, livree: car.livree });
     g.restore();
     /* Pas de cercle autour de la voiture du joueur.

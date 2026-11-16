@@ -42,13 +42,14 @@ fs.mkdirSync(OUT,{recursive:true});
    const check=await page.evaluate(()=>{
     const r=app.renderer,race=app.race,n=r.night;
     const render=()=>r.draw(race,app.ui);
-    const alphaAt=(x,y)=>{
+    const pixelAt=(x,y)=>{
      let dx=x-r.cam.x,dy=y-r.cam.y;
      if(r.rotate){const a=-r.camAngle-Math.PI/2,c=Math.cos(a),s=Math.sin(a);[dx,dy]=[dx*c-dy*s,dx*s+dy*c];}
      const px=Math.round((r.w/2+dx*r.cam.zoom)*r.dpr),py=Math.round((r.h/2+dy*r.cam.zoom)*r.dpr);
      if(px<0||py<0||px>=r.nightCanvas.width||py>=r.nightCanvas.height)return null;
-     return r.nightCtx.getImageData(px,py,1,1).data[3];
+     return Array.from(r.nightCtx.getImageData(px,py,1,1).data);
     };
+    const alphaAt=(x,y)=>pixelAt(x,y)?.[3];
     r.shake=0;render();
     if(!n.fields.some(f=>f.beam))throw Error('GT3 headlights absent');
     // Isolate a car far from circuit lighting to measure a beam against darkness.
@@ -58,13 +59,25 @@ fs.mkdirSync(OUT,{recursive:true});
     const ahead=alphaAt(p.x+15,p.y),behind=alphaAt(p.x-15,p.y),side=alphaAt(p.x+15,p.y+15);
     if(!(ahead<150&&behind>245&&side>245))throw Error(`fog/beam ${ahead}/${behind}/${side}`);
     const noHalo=alphaAt(p.x,p.y+3);if(noHalo<245)throw Error('round car aura remains: '+noHalo);
-    if(n.fields.some(f=>!f.beam&&!f.flood))throw Error('non-directional light field');
+    if(n.fields.some(f=>!f.beam&&!f.flood&&!f.tail))throw Error('non-directional light field');
     const farSeen=n.canSee({x:p.x-20,y:p.y});if(farSeen)throw Error('unlit opponent revealed');
+    if(n.fields.filter(f=>f.beam).length!==2||n.fields.filter(f=>f.tail).length!==2)throw Error('two front and two rear cones required');
+    const rearX=p.x-p.cls.length*.46,offset=p.cls.width*.31;
+    const tailIdle=pixelAt(rearX-1.5,p.y+offset+.09),lens=pixelAt(rearX,p.y+offset);
+    const brakeOld={braking:p.braking,state:p.state};p.braking=true;p.state='ok';render();
+    const tailBrake=pixelAt(rearX-1.5,p.y+offset+.09);
+    if(!(tailIdle[0]>tailIdle[1]+3&&tailBrake[0]>tailIdle[0]+10))throw Error('red tail/brake projection '+JSON.stringify({tailIdle,tailBrake}));
+    if(lens[0]>20)throw Error('rectangular rear lens still visible');
+    if(n.fields.filter(f=>f.tail).some(f=>f.power>=n.fields.find(f=>f.beam).power))throw Error('brakes as bright as headlights');
+    p.braking=brakeOld.braking;p.state=brakeOld.state;render();
+    const fade=[26,30,33,35,35.8].map(x=>NightLighting.beamStrength(x,0));
+    const floodFade=[.65,.8,.9,.98].map(x=>NightLighting.floodStrength(x,0));
+    for(const v of [fade,floodFade])if(!v.every((x,i)=>x>0&&(!i||x<v[i-1]))||v.at(-1)>.005)throw Error('abrupt beam falloff');
     p.th=Math.PI/2;render();
     const turned=alphaAt(p.x,p.y+15),oldAhead=alphaAt(p.x+15,p.y);
     if(!(turned<150&&oldAhead>245))throw Error('headlight does not follow yaw');
     const ghost=Object.assign(Object.create(p),{fantome:true,isPlayer:false});race.cars=[ghost];render();
-    if(n.fields.some(f=>f.beam))throw Error('ghost casts light');
+    if(n.fields.some(f=>f.beam||f.tail))throw Error('ghost casts light');
     // A floodlight illuminates in front of the fixture, without a radial pool.
     const lamps=n.lamps;n.lamps=[{x:p.x,y:p.y,heading:0,length:20,width:12,radius:24,power:.84,flood:true}];
     race.cars=[];render();
@@ -93,7 +106,7 @@ fs.mkdirSync(OUT,{recursive:true});
     race.timeOfDay='day';render();if(r.nightCanvas.style.display!=='none')throw Error('day mask persists');
     const day=performance.now();for(let i=0;i<15;i++)render();const dayMs=(performance.now()-day)/15;
     race.timeOfDay='night';render();
-    return{ahead,behind,side,noHalo,turned,oldAhead,floodAhead,floodBehind,floodSide,trackLighting:tracks,tracks:tracks.length,categories:categories.map(c=>c.id),nightMs,dayMs};
+    return{ahead,behind,side,noHalo,tailIdle,tailBrake,lens,fade,floodFade,turned,oldAhead,floodAhead,floodBehind,floodSide,trackLighting:tracks,tracks:tracks.length,categories:categories.map(c=>c.id),nightMs,dayMs};
    });
    await page.evaluate(()=>{
     document.querySelector('#browser-performance-notice button')?.click();
@@ -123,6 +136,15 @@ fs.mkdirSync(OUT,{recursive:true});
     r.draw(race,app.ui);
    },mobile);
    await page.screenshot({path:path.join(OUT,mobile?'spa-gravier-mobile.png':'spa-gravier-pc.png')});
+   await page.evaluate(mobile=>{
+    app.startQuick('timetrial','gt3','monza');app.state='paused';app.ui.hide();
+    const r=app.renderer,race=app.race,p=race.player;p.place(0,0,12);p.braking=false;race.cars=[p];race.state='racing';race.time=10;race.countdown=0;
+    r.night.lamps=[];r.rotate=true;r.camAngle=p.heading;r.cam.zoom=mobile?11:17;
+    r.cam.x=p.x+Math.cos(p.heading)*10;r.cam.y=p.y+Math.sin(p.heading)*10;r.shake=0;r.draw(race,app.ui);
+   },mobile);
+   await page.screenshot({path:path.join(OUT,mobile?'feux-roulants-mobile.png':'feux-roulants-pc.png')});
+   await page.evaluate(()=>{app.race.player.braking=true;app.renderer.draw(app.race,app.ui);});
+   await page.screenshot({path:path.join(OUT,mobile?'feux-freinage-mobile.png':'feux-freinage-pc.png')});
    await page.evaluate(()=>{
     app.startQuick('timetrial','f1','monza');app.state='paused';app.ui.hide();
     app.race.state='racing';app.race.countdown=0;app.renderer.updateCamera(app.race,1);app.renderer.draw(app.race,app.ui);

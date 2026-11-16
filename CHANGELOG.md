@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.54.2
+- Nuit : deux cônes par paire de phares et deux projections rouges très discrètes à l’arrière, renforcées au freinage sans rectangles lumineux. La lumière des phares et des projecteurs s’éteint plus progressivement.
+
 ## 0.54.1
 - Nuit : suppression du halo autour du joueur. Des projecteurs dirigés vers les bacs à gravier remplacent les lampadaires circulaires le long de la piste ; les portions non éclairées restent sombres et les feux arrière sont visibles.
 
