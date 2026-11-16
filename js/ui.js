@@ -16,7 +16,7 @@ titre est donc écrit ici, et se met à jour à chaque billet avec
   curl -s https://drapiiii.itch.io/grip-racing-the-line/devlog.rss | node tools/dernier-devlog.js
 qui y met le numéro, le titre et l'adresse du billet le plus récent. Sans adresse de billet (billet pas
 encore en ligne), le lien mène à la page des devlogs, où le dernier est en tête. */
-const DERNIER_DEVLOG = { numero: 2, titre: 'Practice Mode & Camping Glen', url: 'https://drapiiii.itch.io/grip-racing-the-line/devlog/1778451/grip-devlog-2-practice-mode-camping-glen' };
+const DERNIER_DEVLOG = { numero: 3, titre: 'Practice Mode & Camping Glen', url: 'https://drapiiii.itch.io/grip-racing-the-line/devlog/1778451/grip-devlog-3-practice-mode-camping-glen' };
 
 /* Le serveur Discord du jeu, par ses deux salons : celui des bugs et des demandes (réglages), celui où
 l'on trouve des joueurs (multijoueur). Des invitations permanentes — une invitation Discord ordinaire
