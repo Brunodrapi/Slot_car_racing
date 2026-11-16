@@ -151,7 +151,7 @@ const I18N = {
     horsClassement: 'Hors tableau mondial : ', horsGuide: 'guide de freinage', horsAimant: 'aimant', horsFf: 'anticipation', horsUsure: 'usure',
     refus_reseau: 'Pas de réseau au moment de l’envoi. Ton temps est gardé ici.',
     refus_autre: (r) => `Temps non retenu par le serveur (${r}).`,
-    onlineRecords: 'Pour avoir accès aux records mondiaux, jouer sur la version en ligne grip-game.github.io', onlineRecordsShort: 'Records mondiaux ↗', worldBest: 'Monde', worldNeedsAccount: 'Connecte-toi pour inscrire tes temps au tableau mondial.', signIn: 'Se connecter avec Google', signOut: 'Se déconnecter',
+    onlineRecords: 'Pour avoir accès aux records mondiaux, jouer sur la version en ligne', onlineRecordsShort: 'Records mondiaux ↗', worldBest: 'Monde', worldNeedsAccount: 'Connecte-toi pour inscrire tes temps au tableau mondial.', signIn: 'Se connecter avec Google', signOut: 'Se déconnecter',
     palmares: 'Ton palmarès', palmaresTrophee: 'Trophée', palmaresNiveau: 'Niveau',
     trophee_chocolat: 'Chocolat', trophee_bronze: 'Bronze', trophee_argent: 'Argent', trophee_or: 'Or', trophee_crane: 'Crâne',
     palmaresRegle: (n) => `Gagne une course d’au moins ${n} tours : le niveau de difficulté donne le trophée.`,
@@ -300,7 +300,7 @@ const I18N = {
     horsClassement: 'Outside the world board: ', horsGuide: 'braking guide', horsAimant: 'magnet', horsFf: 'anticipation', horsUsure: 'tyre wear',
     refus_reseau: 'No network when sending. Your time is kept here.',
     refus_autre: (r) => `Time not kept by the server (${r}).`,
-    onlineRecords: 'To access world records, play the online version at grip-game.github.io', onlineRecordsShort: 'World records ↗', worldBest: 'World', worldNeedsAccount: 'Sign in to put your times on the world board.', signIn: 'Sign in with Google', signOut: 'Sign out',
+    onlineRecords: 'To access world records, play the online version', onlineRecordsShort: 'World records ↗', worldBest: 'World', worldNeedsAccount: 'Sign in to put your times on the world board.', signIn: 'Sign in with Google', signOut: 'Sign out',
     palmares: 'Your trophies', palmaresTrophee: 'Trophy', palmaresNiveau: 'Level',
     trophee_chocolat: 'Chocolate', trophee_bronze: 'Bronze', trophee_argent: 'Silver', trophee_or: 'Gold', trophee_crane: 'Skull',
     palmaresRegle: (n) => `Win a race of at least ${n} laps: the difficulty level gives the trophy.`,
@@ -461,7 +461,8 @@ class UI {
   sens, juste un connecté à Google suffirait ». Le joueur n'a rien à faire de plus : son prochain
   meilleur tour partira de lui-même. */
   worldVersionLink(compact = false) {
-    return `<a class="${compact ? 'extra-card' : 'world-online-link'}" data-world-online href="https://grip-game.github.io/" target="_blank" rel="noopener" title="${escapeHtml(this.t('onlineRecords'))}"><span>${escapeHtml(this.t(compact ? 'onlineRecordsShort' : 'onlineRecords'))}</span></a>`;
+    const link = `<a class="${compact ? 'extra-card' : 'world-online-button'}" data-world-online href="https://grip-game.github.io/" target="_blank" rel="noopener" title="${escapeHtml(this.t('onlineRecords'))}">grip-game.github.io</a>`;
+    return compact ? link : `<span class="world-online-notice"><span class="world-online-copy">${escapeHtml(this.t('onlineRecords'))}</span>${link}</span>`;
   }
 
   etatMondial() {

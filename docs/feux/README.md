@@ -1,4 +1,4 @@
-# Feux selon la carrosserie — 0.55.0
+# Feux selon la carrosserie — 0.55.1
 
 Les 35 modèles ont des points d’attache propres, mesurés dans le repère de leur dessin : les
 phares ronds des Breithüft et Moggy, les rectangles des anciennes Howitzer et Stallone, les

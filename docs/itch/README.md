@@ -1,15 +1,16 @@
-# Édition itch.io — 0.55.0
+# Édition itch.io — 0.55.1
 
-L’export dédié conserve les records locaux et remplace l’accès au tableau mondial par un bouton :
-**Pour avoir accès aux records mondiaux, jouer sur la version en ligne grip-game.github.io**.
+L’export dédié conserve les records locaux. Une phrase simple indique : « Pour avoir accès aux
+records mondiaux, jouer sur la version en ligne ». Seul **grip-game.github.io** est un bouton.
 Le lien ouvre **https://grip-game.github.io/** dans un nouvel onglet. Le menu propose aussi une
 entrée « Records mondiaux ». La connexion Google n’est pas lancée depuis cette édition.
 
 Les réglages de taille et de plein écran restent ceux d’itch.io : aucune modification du HUD,
 des menus ou du comportement de lancement en plein écran n’est ajoutée pour cette intégration.
 
-- [Branche itch-io du dépôt PROD](https://github.com/GRIP-game/grip-game.github.io/tree/itch-io)
-- [ZIP HTML5 prêt à charger](https://github.com/GRIP-game/grip-game.github.io/raw/refs/heads/itch-io/grip-itch-0.55.0.zip)
+La branche `itch-io` et le ZIP `grip-itch.zip` sont préparés dans le checkout PROD local.
+Leur publication sur `GRIP-game/grip-game.github.io` reste bloquée par un refus GitHub 403
+avec les accès disponibles. La branche `main` de PROD reste inchangée.
 - [Aperçu du bouton dans les records](itch-records.png)
 - [Contrôles de l’export](verification.json)
 

@@ -1,4 +1,4 @@
-# Jour / Nuit — 0.55.0
+# Jour / Nuit — 0.55.1
 
 Choisir **Nuit** dans la préparation ou, pour tous les participants, dans le salon de l’hôte.
 Les F1 n’ont pas de phares. Les GT, GT3 et prototypes éclairent devant leur carrosserie ; les

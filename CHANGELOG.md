@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.55.1
+- Export itch.io : seule l’adresse grip-game.github.io est un bouton ; la phrase d’explication reste du texte.
+
 ## 0.55.0
 - Purosangue Gran Corsa : pneus avant élargis comme les pneus arrière, sur ses trois livrées.
 - Le message technique de retour Google n’apparaît plus. L’export itch.io propose les records locaux et un bouton vers grip-game.github.io pour les records mondiaux.

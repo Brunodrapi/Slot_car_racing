@@ -1332,7 +1332,8 @@ Bruno sur un iPhone à Dynamic Island :
 .trophee-gagne > div { display:flex; flex-direction:column; gap:6px; }
 
 /* The itch export keeps local times and links to the hosted world leaderboard. */
-.world-online-link { display:block; padding:10px 14px; margin:6px 0; color:#fff5df; background:#b52b25; border:2px solid #252b24; text-decoration:none; font:italic 900 18px/1.2 Racing,Impact,sans-serif; }
-.world-online-link:hover,.world-online-link:focus-visible { background:#96211e; outline:2px solid #e7b954; }
+.world-online-notice { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; margin:6px 0; font:14px/1.4 system-ui,sans-serif; }
+.world-online-button { display:inline-flex; padding:7px 12px; color:#fff5df; background:#b52b25; border:2px solid #252b24; text-decoration:none; font:italic 900 18px/1.2 Racing,Impact,sans-serif; }
+.world-online-button:hover,.world-online-button:focus-visible { background:#96211e; outline:2px solid #e7b954; }
 .records.local-records .rhead,.records.local-records .rline { grid-template-columns:76px minmax(0,1fr) 106px; }
 @media(max-width:500px){.records.local-records .rhead,.records.local-records .rline{grid-template-columns:58px minmax(0,1fr) 90px;}}
