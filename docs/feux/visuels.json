@@ -1,0 +1,11 @@
+{
+  "version": "0.55.1",
+  "models": 35,
+  "categories": {
+    "gt3": 10,
+    "gt": 9,
+    "proto": 7,
+    "f1": 9
+  },
+  "errors": []
+}

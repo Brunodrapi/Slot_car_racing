@@ -2,23 +2,25 @@
 
 L’export dédié conserve les records locaux. Une phrase simple indique : « Pour avoir accès aux
 records mondiaux, jouer sur la version en ligne ». Seul **grip-game.github.io** est un bouton.
-Le lien ouvre **https://grip-game.github.io/** dans un nouvel onglet. Le menu propose aussi une
-entrée « Records mondiaux ». La connexion Google n’est pas lancée depuis cette édition.
+Le lien ouvre **https://grip-game.github.io/** dans un nouvel onglet. Le menu propose aussi ce bouton. La connexion Google n’est pas lancée depuis cette édition.
 
 Les réglages de taille et de plein écran restent ceux d’itch.io : aucune modification du HUD,
 des menus ou du comportement de lancement en plein écran n’est ajoutée pour cette intégration.
 
-La branche `itch-io` et le ZIP `grip-itch.zip` sont préparés dans le checkout PROD local.
-Leur publication sur `GRIP-game/grip-game.github.io` reste bloquée par un refus GitHub 403
-avec les accès disponibles. La branche `main` de PROD reste inchangée.
+- [Branche itch-io du dépôt REC](https://github.com/Brunodrapi/Slot_car_racing/tree/itch-io)
+- [ZIP HTML5 prêt à charger](https://github.com/Brunodrapi/Slot_car_racing/raw/refs/heads/itch-io/grip-itch.zip)
+
+Le ZIP est publié sur une branche séparée du dépôt REC. L’accès en écriture au dépôt PROD
+`GRIP-game/grip-game.github.io` reste refusé par GitHub (403) ; son site reste inchangé.
+
 - [Aperçu du bouton dans les records](itch-records.png)
 - [Contrôles de l’export](verification.json)
 
 Génération : `npm run build:itch`. Le ZIP est produit dans `dist-itch/`, avec `index.html` à la racine,
 les ressources du jeu et `APP_DISTRIBUTION = 'itch'`. L’export web normal conserve
 `APP_DISTRIBUTION = 'web'` et son tableau mondial. Les outils d’édition et les documents ne sont
-pas inclus dans le ZIP. La branche `itch-io` reçoit les fichiers minifiés et le ZIP, en dehors de
-la branche `main` publiée sur grip-game.github.io.
+pas inclus dans le ZIP. La branche `itch-io` du dépôt REC reçoit les fichiers minifiés et le ZIP, séparément de
+la branche de recette publiée et du site PROD grip-game.github.io.
 
 `tools/e2e-itch-records.js` vérifie les deux distributions, le retour Google avec un paramètre `v`,
 l’absence du commentaire technique, la conservation d’un temps local, l’absence de connexion
