@@ -28,8 +28,8 @@ l’hôte choisit pour tous les pilotes et spectateurs. Les anciennes sauvegarde
 La nuit, des projecteurs espacés éclairent principalement les bacs à gravier, dans une direction
 précise. La piste reste largement sombre ; les GT/GT3 et prototypes éclairent devant eux avec leurs
 phares en deux faisceaux, sans halo autour de la voiture. Deux cônes rouges discrets remplacent
-les rectangles des feux arrière ; ils s’allongent et éclairent davantage le sol au freinage, avec
-une intensité inférieure à l’avant. Les phares et projecteurs s’éteignent progressivement. **Les F1 n’ont pas de
+les rectangles des feux arrière ; leur rouge et l’éclairage du sol sont nettement renforcés au
+freinage. Les deux rectangles blancs des phares avant restent visibles. Les phares et projecteurs s’éteignent progressivement. **Les F1 n’ont pas de
 phares** et dépendent des projecteurs. Les parties non
 éclairées restent presque noires, sans mémoire d’exploration ; les adversaires éloignés ou dans
 l’obscurité disparaissent de la mini-carte du pilote. Le tracé et les commandes restent lisibles.
@@ -37,6 +37,12 @@ Le comportement des voitures, les chronos et les réglages de conduite sont iden
 
 Vérification : `node tools/e2e-night.js` (Playwright/Chromium), et
 `node tools/e2e-net.js /tmp/grip-night-net race --night` pour le choix partagé de l’hôte.
+
+### Bip de passage de tour
+
+Un bip net signale chaque tour bouclé par le joueur en course, contre-la-montre et entraînement,
+y compris le dernier tour. Le signal respecte le réglage **Son** ; un meilleur tour prend une note
+plus aiguë. Vérification : `node tools/e2e-lap-beep.js`.
 
 ### Drapeaux en course
 

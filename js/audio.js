@@ -304,6 +304,19 @@ class GameAudio {
     o.connect(g); g.connect(this.master); o.start(t); o.stop(t + 0.09);
   }
 
+  // A held tone cuts through the engine better than the short decaying UI beep.
+  // Triggered only by a completed player lap, including invalid laps and the last lap.
+  lapBeep(best = false) {
+    if (!this.started || !this.enabled) return;
+    const ctx = this.ctx, t = ctx.currentTime;
+    const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = best ? 1480 : 1200;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(.45, t + .006);
+    g.gain.setValueAtTime(.45, t + .11);
+    g.gain.exponentialRampToValueAtTime(.001, t + .21);
+    o.connect(g); g.connect(this.master); o.start(t); o.stop(t + .23);
+  }
+
   beep(freq, dur, vol) {
     if (!this.started || !this.enabled) return;
     const ctx = this.ctx, t = ctx.currentTime;

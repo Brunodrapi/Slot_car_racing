@@ -264,7 +264,7 @@ class NightLighting {
     const source = this.beamMask(), canvas = document.createElement('canvas');
     canvas.width = source.width; canvas.height = source.height;
     const g = canvas.getContext('2d'); g.drawImage(source, 0, 0);
-    g.globalCompositeOperation = 'source-in'; g.fillStyle = '#ff241c';
+    g.globalCompositeOperation = 'source-in'; g.fillStyle = '#ff1808';
     g.fillRect(0, 0, canvas.width, canvas.height); this._tailMask = canvas; return canvas;
   }
 
@@ -340,7 +340,7 @@ class NightLighting {
         this.fields.push({ x: x - cos * c.length * .46, y: y - sin * c.length * .46,
           heading: h + Math.PI - side * .06, tail: true,
           length: braking ? 6.5 : 4.2, width: braking ? 1.1 : .7,
-          power: braking ? .16 : .025, tint: braking ? .28 : .075 });
+          power: braking ? .4 : .035, tint: braking ? .78 : .24 });
       }
     }
   }
@@ -390,12 +390,15 @@ class NightLighting {
       g.restore();
     }
     g.restore();
-    // Light projected onto the ground, without rectangular lenses or a car aura.
+    // White front lenses and red light projected behind, without a car aura.
     for (const f of this.fields) {
-      if (!f.flood && !f.tail) continue;
       g.save(); g.translate(f.x, f.y); g.rotate(f.heading);
-      g.globalAlpha = f.flood ? .065 : f.tint;
-      g.drawImage(f.flood ? this.floodMask() : this.tailMask(), 0, -f.width, f.length, f.width * 2);
+      if (f.beam) {
+        g.fillStyle = '#e1f0ff'; g.fillRect(-.07, -.16, .14, .32);
+      } else {
+        g.globalAlpha = f.flood ? .065 : f.tint;
+        g.drawImage(f.flood ? this.floodMask() : this.tailMask(), 0, -f.width, f.length, f.width * 2);
+      }
       g.restore();
     }
     this.fixtures(g);

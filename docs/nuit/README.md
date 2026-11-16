@@ -1,11 +1,12 @@
-# Jour / Nuit — 0.54.2
+# Jour / Nuit — 0.54.3
 
 Choisir **Nuit** dans la préparation ou, pour tous les participants, dans le salon de l’hôte.
 Les F1 n’ont pas de phares. Les GT, GT3 et prototypes éclairent devant leur carrosserie ; les
 projecteurs proches des bacs à gravier éclairent devant eux, sans halo circulaire. La piste est
 principalement éclairée par les phares ; aucun halo ne suit le joueur. Les feux
-arrière sont deux cônes rouges très légers, sans rectangles lumineux. Au freinage, ils
-s’allongent et éclairent davantage le sol, tout en restant moins intenses que les phares. Les
+arrière sont deux cônes rouges, sans rectangles lumineux. Au freinage, ils s’allongent et leur
+rouge ainsi que l’éclairage du sol deviennent nettement plus forts que les feux arrière normaux.
+Les deux rectangles blancs des phares avant sont visibles. Les
 phares avant ont aussi deux faisceaux ; leur extrémité et celle des projecteurs s’estompent plus
 progressivement. L’obscurité revient en
 quittant la lumière,
@@ -25,7 +26,7 @@ restent lisibles ; les positions des adversaires éloignés/non éclairés ne so
 Contrôles : choix et sauvegarde, reprise des anciennes sauvegardes, course/entraînement/chrono,
 phares selon catégorie, orientation avec le cap, masque presque opaque hors éclairage, fantôme
 sans lumière, deux faisceaux avant et arrière, freinage rouge plus intense, absence de rectangles
-lumineux, décroissance progressive des phares et projecteurs, absence de halo joueur, projecteurs éclairant uniquement devant eux, emplacement
+arrière lumineux, rectangles blancs à l’avant, rouge arrière renforcé au freinage, décroissance progressive des phares et projecteurs, absence de halo joueur, projecteurs éclairant uniquement devant eux, emplacement
 sur les zones de gravier et absence de rangée de lampadaires continue, 14 circuits, quatre caméras,
 redimensionnement/DPR, retour Jour et sortie de course.
 Le test à deux navigateurs (`tools/e2e-net.js … race --night`) vérifie le choix imposé par l’hôte,

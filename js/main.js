@@ -788,7 +788,7 @@ class App {
         const lt = ev.car.lapTimes[ev.car.lapTimes.length - 1];
         const isBest = ev.car.bestLap === lt && ev.car.lapTimes.length > 1;
         this.ui.flash = { text: t('lapDone', ev.car.lap, fmtTime(lt)), until: performance.now() + 2500, color: isBest ? '#b48cff' : '#fff' };
-        this.audio.beep(isBest ? 1320 : 990, 0.12, 0.15);
+        this.audio.lapBeep(isBest);
       }
       if (ev.type === 'finish' && ev.car.isPlayer) this.audio.beep(660, 0.6, 0.3);
     }

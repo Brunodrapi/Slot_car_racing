@@ -4,6 +4,10 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.54.3
+- Nuit : retour des rectangles blancs des phares avant, cônes arrière plus rouges et éclairage nettement renforcé au freinage.
+- Un bip de passage de tour plus net et plus audible accompagne chaque tour bouclé par le joueur, en respectant le réglage du son.
+
 ## 0.54.2
 - Nuit : deux cônes par paire de phares et deux projections rouges très discrètes à l’arrière, renforcées au freinage sans rectangles lumineux. La lumière des phares et des projecteurs s’éteint plus progressivement.
 

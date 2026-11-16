@@ -1,0 +1,49 @@
+{
+  "modes": [
+    {
+      "mode": "race",
+      "completedLaps": 3,
+      "beeps": 3,
+      "bestLapTone": true
+    },
+    {
+      "mode": "timetrial",
+      "completedLaps": 3,
+      "beeps": 3,
+      "bestLapTone": true
+    },
+    {
+      "mode": "training",
+      "completedLaps": 3,
+      "beeps": 3,
+      "bestLapTone": true
+    }
+  ],
+  "audio": [
+    {
+      "kind": "normal",
+      "heldRms": 0.3181979738669857,
+      "tailRms": 0,
+      "frequency": 1200
+    },
+    {
+      "kind": "best",
+      "heldRms": 0.3183137171023656,
+      "tailRms": 0,
+      "frequency": 1475
+    },
+    {
+      "kind": "muted",
+      "heldRms": 0,
+      "tailRms": 0,
+      "frequency": 0
+    },
+    {
+      "kind": "notStarted",
+      "heldRms": 0,
+      "tailRms": 0,
+      "frequency": 0
+    }
+  ],
+  "errors": []
+}
