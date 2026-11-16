@@ -32,7 +32,7 @@ const double=/const DOUBLE = `([\s\S]*?)`;/m.exec(fs.readFileSync(path.join(__di
         assert(result.types.includes(flag));assert(result.pixel[3]>0);
         if(flag==='blue')assert(result.pixel[2]>result.pixel[0]+60&&result.blue,'actual blue HUD square');
         if(flag==='yellow')assert(result.pixel[0]>180&&result.pixel[1]>120&&result.pixel[2]<100&&result.zones===1,'actual yellow HUD square and painted zone');
-        await solo.screenshot({path:path.join(out,`${flag}-${viewport.width}.png`)});
+        await solo.screenshot({timeout:90000,path:path.join(out,`${flag}-${viewport.width}.png`)});
       }
     }
     const h=await open(),g=await open(),s=await open();
@@ -48,7 +48,7 @@ const double=/const DOUBLE = `([\s\S]*?)`;/m.exec(fs.readFileSync(path.join(__di
     await s.waitForFunction(()=>app.race.cars.some(c=>c.human===1&&c.blueFlag));
     await s.evaluate(()=>{app.spectator.index=app.race.cars.findIndex(c=>c.human===1);app.spectator.paintAt=-Infinity;});
     await s.waitForFunction(()=>document.querySelector('.spectator-race-clock .race-flag-blue'));
-    await s.locator('select').selectOption('full');await s.waitForTimeout(200);await s.screenshot({path:path.join(out,'multi-bleu-top-view.png')});
+    await s.locator('select').selectOption('full');await s.waitForTimeout(200);await s.screenshot({timeout:90000,path:path.join(out,'multi-bleu-top-view.png')});
     // Keep a real owner's incident stable while the host measures its three seconds off track.
     await g.evaluate(()=>{const c=app.race.player;c.v=0;c.vl=0;c.state='grass';c.update=()=>{c.state='grass';};});
     await h.evaluate(()=>{app.race.player.place(250,0,0);});
@@ -57,14 +57,14 @@ const double=/const DOUBLE = `([\s\S]*?)`;/m.exec(fs.readFileSync(path.join(__di
     On laisse donc 45 s réelles, la règle restant vérifiée en temps de course par le jeu lui-même. */
     await s.waitForFunction(()=>app.race.flags.zones.length>0,{},{timeout:45000});
     await s.waitForFunction(()=>document.querySelector('.spectator-race-clock .race-flag-yellow'));
-    await s.screenshot({path:path.join(out,'multi-jaune-top-view.png')});
-    await s.locator('select').selectOption('follow');await s.waitForTimeout(200);await s.screenshot({path:path.join(out,'multi-jaune-minicarte.png')});
+    await s.screenshot({timeout:90000,path:path.join(out,'multi-jaune-top-view.png')});
+    await s.locator('select').selectOption('follow');await s.waitForTimeout(200);await s.screenshot({timeout:90000,path:path.join(out,'multi-jaune-minicarte.png')});
     await g.evaluate(()=>app.race.player.fautes++);
     await s.waitForFunction(()=>document.querySelector('.spectator-race-clock .race-flag-penalty'));
     await h.evaluate(()=>{const c=app.race.player;c.lap=2;c.lapTimes=[1,1];c.lapOk=[true,true];});
     await s.waitForFunction(()=>document.querySelector('.spectator-race-clock .race-flag-chequered'));
     assert(await s.locator('.spectator-race-clock .race-flag-penalty').count());
-    await s.screenshot({path:path.join(out,'multi-sanction-et-damier.png')});
+    await s.screenshot({timeout:90000,path:path.join(out,'multi-sanction-et-damier.png')});
     assert.equal(errors.length,0,errors.join('\n'));
     console.log('OK: solo/mobile HUD pixels, four flags, invalid TT lap, world/map highlights, network blue/yellow/penalty/finish, spectator full/mini views; zero browser errors.');
   }finally{await browser.close();await new Promise(r=>server.close(r));}

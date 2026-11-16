@@ -85,10 +85,16 @@ const DOUBLE = /const DOUBLE = `([\s\S]*?)`;/m.exec(fs.readFileSync(path.join(__
   /* L'hôte envoie l'état de la course à chaque image par la conduite en ligne (NetDrive.afterFrame,
   js/net-drive.js) ; `hostTick` ne sert plus qu'aux résultats. C'est donc là qu'on le fait taire — le
   bloquer à l'ancien endroit laissait l'hôte parler, et l'essai ne reproduisait plus rien. */
+  /* Le silence part de la PREMIÈRE image de course de l'hôte, et non du moment où on le prépare : sur une
+  machine chargée, le départ prend plusieurs secondes et un silence compté trop tôt finissait pendant la
+  mesure. Sept secondes couvrent les 3,2 + 0,9 s d'observation de l'invité avec de la marge. */
   await hote.evaluate(() => {
     const vrai = NetDrive.prototype.afterFrame;
-    const t0 = performance.now();
-    NetDrive.prototype.afterFrame = function (input) { if (this.host && performance.now() - t0 < 5000) return; return vrai.call(this, input); };
+    let t0 = null;
+    NetDrive.prototype.afterFrame = function (input) {
+      if (this.host) { if (t0 === null) t0 = performance.now(); if (performance.now() - t0 < 7000) return; }
+      return vrai.call(this, input);
+    };
   });
   await hote.evaluate(() => app.net.start());
   await Promise.all([hote, invite].map((p) => p.waitForFunction(() => app.state === 'race', { timeout: 20000 })));

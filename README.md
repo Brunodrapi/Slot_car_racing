@@ -2005,7 +2005,10 @@ au menu (4 depuis l'entraînement), 25 voitures (35 avec les GT3), l'ancien mess
 celui de `e2e-duo`), un hôte « lent » simulé à un endroit par où il n'envoie plus rien
 (`hostTick` → `NetDrive.afterFrame`), une touche envoyée à `window` (le jeu lit `e.target.closest`),
 une manette mise de côté (`MANETTE = false` : l'essai vérifie qu'une manette branchée ne prend pas la
-main), un circuit qui téléchargeait encore son fond, et 10 s réelles pour 3 s de course à trois pages.
+main), un circuit qui téléchargeait encore son fond, 10 s réelles pour 3 s de course à trois pages, et
+des délais comptés trop tôt ou trop courts sur une machine chargée (le silence de l'hôte part de sa
+première image de course, les captures des drapeaux ont 90 s). Série complète, deux à la fois :
+64 essais sur 66 passent.
 Les 404 de `sw.js` et `manifeste.json`, absents du dépôt, ne comptent plus comme des erreurs. Aucun
 essai n'a été affaibli sur ce qu'il vérifie ; deux exceptions sont nommées : le pivot des roues avant
 des Boomerang Fan 46 et Somua Turbo 10, juste au-delà de la suspension dessinée depuis la 0.52.76 (caché
