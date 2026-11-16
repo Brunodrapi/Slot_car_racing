@@ -1,4 +1,4 @@
-# GRIP — édition itch.io 0.55.2
+# GRIP — édition itch.io 0.55.3
 
 Cette branche `itch-io` du dépôt REC contient le jeu minifié destiné à itch.io et son export ZIP.
 
@@ -22,3 +22,7 @@ Export reproductible depuis les sources : `npm run build:itch` (`tools/pack-itch
 `itch`). Le hash du ZIP figure dans [archive-itch.json](archive-itch.json).
 
 Cette branche de distribution reste séparée de la branche de recette publiée et du site PROD https://grip-game.github.io/.
+
+Version 0.55.3 : ailes arrière corrigées sur les trois livrées de Kitsune Zeta 240 et de Purosangue Freccia, avec pneus presque entièrement couverts.
+
+[Comparatif avant / après](https://brunodrapi.github.io/Slot_car_racing/docs/ailes-kitsune-freccia/avant-apres.png)
