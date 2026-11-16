@@ -330,17 +330,18 @@ class NightLighting {
     for (const car of race.cars) {
       if (car.fantome || !near(car.pos, 40)) continue;
       const p = car.pos, h = car.heading, c = car.cls;
-      if (c.catId === 'f1') continue;
-      const cos = Math.cos(h), sin = Math.sin(h), offset = c.width * .31;
-      const braking = car.braking && car.state === 'ok';
-      for (const side of [-1, 1]) {
-        const x = p.x - sin * side * offset, y = p.y + cos * side * offset;
-        this.fields.push({ x: x + cos * c.length * .44, y: y + sin * c.length * .44,
-          heading: h + side * .035, beam: true, length: 36, width: 6, power: .82 });
-        this.fields.push({ x: x - cos * c.length * .46, y: y - sin * c.length * .46,
-          heading: h + Math.PI - side * .06, tail: true,
-          length: braking ? 6.5 : 4.2, width: braking ? 1.1 : .7,
-          power: braking ? .4 : .035, tint: braking ? .78 : .24 });
+      const cos=Math.cos(h),sin=Math.sin(h),layout=carLightLayout(c,car.livree);
+      const braking=car.braking&&car.state==='ok';
+      const world=q=>({x:p.x+cos*q.x-sin*q.y,y:p.y+sin*q.x+cos*q.y});
+      for(const q of layout.front){
+        const side=Math.sign(q.y),splay=side*.035;
+        this.fields.push({...world(q),heading:h+splay,beam:true,length:36,width:6,power:.82,
+          lens:{...q,angle:(q.angle||0)-splay}});
+      }
+      if(!layout.brakeOnly||braking)for(const q of layout.rear){
+        this.fields.push({...world(q),heading:h+Math.PI-Math.sign(q.y)*.06,tail:true,
+          length:braking?6.5:4.2,width:braking?1.1:.7,
+          power:braking?.4:.035,tint:braking?.78:.24});
       }
     }
   }
@@ -394,7 +395,7 @@ class NightLighting {
     for (const f of this.fields) {
       g.save(); g.translate(f.x, f.y); g.rotate(f.heading);
       if (f.beam) {
-        g.fillStyle = '#e1f0ff'; g.fillRect(-.07, -.16, .14, .32);
+        drawLightLens(g, f.lens);
       } else {
         g.globalAlpha = f.flood ? .065 : f.tint;
         g.drawImage(f.flood ? this.floodMask() : this.tailMask(), 0, -f.width, f.length, f.width * 2);
@@ -2939,7 +2940,7 @@ class Renderer {
     // a drawn car casts its own outline; a vector one only has a box to offer
     if (!drawCarShadow(g, c, car.livree, { steer: car.steerAngle })) { g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width); }
     g.restore();
-    if (freine && (!this.night.active || c.catId === 'f1')) this._feuxStop(g, c, art);
+    if (freine && !this.night.active) this._feuxStop(g, c, art, car.livree);
     drawCarModel(g, c, car.livery, { number: car.number, steer: car.steerAngle, livree: car.livree });
     g.restore();
     /* Pas de cercle autour de la voiture du joueur.
@@ -2950,36 +2951,14 @@ class Renderer {
     de couleur du classement la désigne déjà. */
   }
 
-  /* LES FEUX STOP : un faisceau rouge qui part de l'arrière et s'éteint en trois mètres.
-
-  Il remplace une barre rouge peinte en travers du pare-chocs, qui se lisait comme un trait de
-  dessin plus que comme une lumière. Deux cônes pour une GT, un feu par côté ; un seul au milieu
-  pour un proto et une F1, comme le feu central d'une monoplace. Chaque cône s'écarte un peu de
-  l'axe, comme un phare, et s'estompe vite : très rouge au feu, presque rien à mi-longueur. Il se
-  peint SOUS la voiture, pour sortir de derrière la carrosserie au lieu de s'y poser dessus.
-
-  Le dégradé est créé une fois, dans le repère du feu : la couleur ne dépend que de la distance
-  au feu, et toutes les voitures le partagent. */
-  _feuxStop(g, c, art) {
-    const F = FEU_STOP, W = art ? topSize(c, art)[1] : c.width;
-    if (!this._degradeFeu || this._degradeFeuCtx !== g) {
-      const d = g.createLinearGradient(0, 0, -F.long, 0);
-      d.addColorStop(0, 'rgba(255,36,28,0.62)');
-      d.addColorStop(0.22, 'rgba(255,36,28,0.3)');
-      d.addColorStop(0.55, 'rgba(255,36,28,0.08)');
-      d.addColorStop(1, 'rgba(255,36,28,0)');
-      this._degradeFeu = d; this._degradeFeuCtx = g;
-    }
-    const feux = c.catId === 'gt' ? [-W * F.ecart, W * F.ecart] : [0];
-    g.save();
-    g.translate(-c.length / 2 + F.dedans, 0);
-    g.fillStyle = this._degradeFeu;
-    for (const y of feux) {
-      const ouvre = Math.sign(y) * F.ouvre;             // un cône de côté s'écarte de l'axe
-      g.beginPath();
-      g.moveTo(0, y - F.source); g.lineTo(-F.long, y + ouvre - F.demi);
-      g.lineTo(-F.long, y + ouvre + F.demi); g.lineTo(0, y + F.source);
-      g.closePath(); g.fill();
+  // Daytime stop projections use the same measured rear anchors as night lights.
+  // Closed-body cars have two sources; the F1 stop cue remains central.
+  _feuxStop(g, c, art, livree) {
+    const F=FEU_STOP;
+    g.save();g.globalAlpha*=.62;
+    for(const q of carLightLayout(c,livree).rear){
+      g.save();g.translate(q.x,q.y);g.rotate(Math.PI-Math.sign(q.y)*.06);
+      g.drawImage(this.night.tailMask(),0,-F.demi,F.long,F.demi*2);g.restore();
     }
     g.restore();
   }

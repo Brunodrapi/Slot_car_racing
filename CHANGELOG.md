@@ -4,6 +4,11 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.55.0
+- Purosangue Gran Corsa : pneus avant élargis comme les pneus arrière, sur ses trois livrées.
+- Le message technique de retour Google n’apparaît plus. L’export itch.io propose les records locaux et un bouton vers grip-game.github.io pour les records mondiaux.
+- Chaque voiture possède ses propres emplacements et formes de feux : optiques rondes, doubles, barrettes ou courbes. Les F1 restent sans phares avant.
+
 ## 0.54.3
 - Nuit : retour des rectangles blancs des phares avant, cônes arrière plus rouges et éclairage nettement renforcé au freinage.
 - Un bip de passage de tour plus net et plus audible accompagne chaque tour bouclé par le joueur, en respectant le réglage du son.

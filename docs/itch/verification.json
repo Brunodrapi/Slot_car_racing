@@ -1,0 +1,17 @@
+{
+  "results": [
+    {
+      "distribution": "web",
+      "technicalWarning": false,
+      "worldLink": false,
+      "localRecordRetained": false
+    },
+    {
+      "distribution": "itch",
+      "technicalWarning": false,
+      "worldLink": true,
+      "localRecordRetained": true
+    }
+  ],
+  "errors": []
+}

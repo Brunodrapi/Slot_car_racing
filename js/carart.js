@@ -191,6 +191,89 @@ function topSize(model, art) {
   return [L, L * art.img.naturalHeight / art.img.naturalWidth];
 }
 
+// Lamp anchors in each drawing's own PNG frame (nose +X). These are illustration
+// coordinates, independent of the collision box, wheels and handling statistics.
+function lightPair(x, y, shape, w, h, angle, rearX, rearY) {
+  return {front:[{x,y,w,h,shape,angle},{x,y:1-y,w,h,shape,angle:-angle}],
+    rear:[{x:rearX,y:rearY},{x:rearX,y:1-rearY}]};
+}
+const CAR_LIGHT_PROFILES = {
+  m1procar: lightPair(.925,.275,'rect',.045,.095,0,.105,.27),
+  f40: lightPair(.901,.212,'rect',.060,.085,.30,.115,.25),
+  countach: lightPair(.930,.255,'rect',.053,.070,0,.135,.28),
+  '930': lightPair(.938,.215,'oval',.032,.105,.15,.105,.27),
+  corvette: lightPair(.934,.245,'twin',.062,.090,.12,.060,.27),
+  csl: lightPair(.967,.262,'round',.026,.065,0,.075,.27),
+  '250gto': lightPair(.920,.232,'oval',.064,.100,.55,.055,.29),
+  typee: lightPair(.902,.223,'oval',.085,.115,.50,.060,.25),
+  '240z': lightPair(.916,.209,'oval',.065,.105,.45,.065,.27),
+  porsche991gt3r: lightPair(.897,.175,'oval',.072,.100,.48,.130,.255),
+  ferrari488gt3: lightPair(.900,.224,'blade',.085,.070,.45,.140,.27),
+  huracangt3: lightPair(.883,.235,'chevron',.082,.068,.34,.135,.27),
+  audir8lms: lightPair(.921,.245,'blade',.070,.072,.30,.130,.25),
+  amggt3: lightPair(.922,.215,'blade',.072,.080,.38,.110,.24),
+  bmwm6gt3: lightPair(.924,.240,'twin',.067,.080,.20,.125,.25),
+  bentleygt3: lightPair(.918,.255,'doubleRound',.043,.145,.10,.130,.25),
+  nissangtrgt3: lightPair(.888,.195,'blade',.085,.080,.35,.125,.28),
+  mclaren650sgt3: lightPair(.889,.208,'arc',.085,.125,.32,.125,.26),
+  v12vantagegt3: lightPair(.899,.191,'oval',.041,.070,.35,.115,.25),
+  gt40: lightPair(.920,.248,'oval',.066,.110,.45,.045,.29),
+  '935': lightPair(.938,.196,'oval',.036,.065,.28,.120,.26),
+  '787b': lightPair(.901,.183,'doubleRound',.027,.123,0,.100,.24),
+  '962': lightPair(.903,.158,'doubleRound',.026,.130,0,.135,.23),
+  xjr9: lightPair(.920,.190,'triple',.074,.095,.55,.135,.24),
+  '330p4': lightPair(.905,.171,'twin',.070,.090,.55,.045,.29),
+  p68: lightPair(.890,.198,'oval',.052,.100,.50,.060,.28),
+};
+// Four circular bulbs follow the fender curvature on these two models.
+for(const [id,x,y,bulbs]of [
+  ['bmwm6gt3',.900,.1885,[{x:-.008,y:-.0365,w:.018,h:.040},{x:.008,y:.0365,w:.018,h:.040}]],
+  ['bentleygt3',.9015,.204,[{x:-.0145,y:-.049,w:.030,h:.060},{x:.0145,y:.049,w:.028,h:.056}]],
+]){
+  CAR_LIGHT_PROFILES[id].front=[-1,1].map(side=>({x,y:side<0?y:1-y,shape:'cluster',
+    bulbs:bulbs.map(b=>({...b,y:side<0?b.y:-b.y}))}));
+}
+// Open-wheel cars keep no headlights. Their existing central stop cue stays central.
+for (const [id,x] of Object.entries({tyrrellp34:.085,ferrari312t:.115,mclarenm23:.100,
+  lotus79:.100,lotus72:.105,brabhambt46b:.075,williamsfw07:.105,ligierjs11:.085,renaultrs10:.100})) {
+  CAR_LIGHT_PROFILES[id] = {front:[],rear:[{x,y:.5}],brakeOnly:true};
+}
+const _carLightCache = new Map();
+function carLightLayout(model, livree = 0) {
+  const art = topArt(model, livree), L = model.length, H = art ? topSize(model, art)[1] : model.width;
+  const key = (topSrc(model, livree) || model.id) + ':' + L + ':' + H;
+  if (_carLightCache.has(key)) return _carLightCache.get(key);
+  const profile = CAR_LIGHT_PROFILES[model.id] || (model.catId === 'f1'
+    ? {front:[],rear:[{x:.06,y:.5}],brakeOnly:true}
+    : lightPair(.94,.22,model.shape === 'roundGT' ? 'oval' : 'rect',.045,.09,0,.08,.25));
+  const point = p => ({...p,x:(p.x-.5)*L,y:(p.y-.5)*H,
+    w:(p.w || .04)*L,h:(p.h || .08)*H,
+    bulbs:p.bulbs?.map(b=>({x:b.x*L,y:b.y*H,w:b.w*L,h:b.h*H})),color:model.catId==='gt'?'#fff1d0':'#e1f0ff'});
+  const layout = {front:profile.front.map(point),rear:profile.rear.map(point),brakeOnly:!!profile.brakeOnly};
+  if (art || !topSrc(model, livree)) _carLightCache.set(key, layout);
+  return layout;
+}
+function drawLightLens(g, lens) {
+  const w=lens.w,h=lens.h;
+  g.save();g.rotate(lens.angle||0);g.fillStyle=lens.color;
+  const oval=(x,y,rx,ry)=>{g.beginPath();g.ellipse(x,y,rx,ry,0,0,Math.PI*2);g.fill();};
+  if(lens.shape==='cluster'){for(const b of lens.bulbs)oval(b.x,b.y,b.w/2,b.h/2);}
+  else if(lens.shape==='oval'||lens.shape==='round') oval(0,0,w/2,h/2);
+  else if(lens.shape==='twin'||lens.shape==='triple'){
+    oval(-w*.24,0,w*.22,h*.44);oval(w*.24,0,w*.22,h*.44);
+    if(lens.shape==='triple')oval(0,h*.33,w*.13,h*.20);
+  }else if(lens.shape==='doubleRound'){
+    oval(0,-h*.26,w*.46,h*.22);oval(0,h*.26,w*.46,h*.22);
+  }else if(lens.shape==='arc'){
+    g.strokeStyle=lens.color;g.lineWidth=Math.min(w,h)*.23;g.lineCap='round';g.beginPath();
+    g.moveTo(-w*.45,-h*.40);g.bezierCurveTo(w*.5,-h*.5,w*.5,h*.5,-w*.3,h*.42);g.stroke();
+  }else if(lens.shape==='blade'||lens.shape==='chevron'){
+    g.beginPath();g.moveTo(-w/2,-h/2);g.lineTo(w/2,-h*.15);g.lineTo(w*.30,h/2);
+    g.lineTo(lens.shape==='chevron'?0:-w/2,lens.shape==='chevron'?0:h*.15);g.closePath();g.fill();
+  }else g.fillRect(-w/2,-h/2,w,h);
+  g.restore();
+}
+
 /** The car's own outline, filled dark, for the shadow. Returns false if this model has no drawing.
 
 ONE COAT OF SHADOW, NOT TWO. The front tires and the body were each laid down at the caller's
@@ -256,7 +339,7 @@ function tirePositions(layout, w, h, opts) {
   if (!layout) return [];
   const value = Number(opts && opts.steer);
   const steer = Number.isFinite(value) ? Math.max(-0.65, Math.min(0.65, value)) : 0;
-  const length = layout.length * w, width = layout.width * h, r = Math.min(width, length) * 0.04;
+  const length = layout.length * w, width = layout.width * h, r = Math.min(width, length) * (layout.rounding ?? 0.04);
   const out = [];
   const centers = layout.centers || layout.axles.flatMap(x => [-1,1].map(side => ({x,y:side*layout.y})));
   for (const center of centers) out.push({x:center.x*w, y:center.y*h, steer, length, width, r});

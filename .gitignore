@@ -13,3 +13,6 @@ dist/
 # Offline promotional captures (rushes may be large)
 artifacts/trailer/
 tools/trailer/node_modules/
+
+# Export HTML5 itch.io régénérable.
+dist-itch/

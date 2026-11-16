@@ -39,6 +39,8 @@ const ROOT = path.join(__dirname, '..');
 const arg = (nom) => { const a = process.argv.find((x) => x.startsWith(`--${nom}=`)); return a ? a.slice(nom.length + 3) : null; };
 const OUT = path.resolve(ROOT, arg('sortie') || 'dist');
 const DOMAINE = arg('domaine');
+const DISTRIBUTION = arg('distribution') || 'web';
+if(!['web','itch'].includes(DISTRIBUTION))throw new Error('--distribution=web ou --distribution=itch');
 /* L'APERÇU EN RECETTE : la version publiée, servie dans `apercu/` de la recette, pour essayer ce qui
 n'existe que là — le jeu hors ligne, son téléchargement, sa suppression. « Je suis bien en 0.52.57 sur
 la recette mais je ne vois pas les nouvelles options pour le téléchargement » : la recette sert le code
@@ -217,7 +219,7 @@ async function main() {
     if (rel === 'js/version.js') {
       const prod = src.replace(/const APP_CANAL = '[^']*'/, `const APP_CANAL = '${CANAL}'`);
       if (!new RegExp(`APP_CANAL = '${CANAL}'`).test(prod)) throw new Error('APP_CANAL introuvable dans js/version.js');
-      src = prod;
+      src = prod.replace(/const APP_DISTRIBUTION = '[^']*'/, `const APP_DISTRIBUTION = '${DISTRIBUTION}'`);
     }
     if (rel === 'js/static-backdrop.js') {
       // Resolve the static passes BEFORE minification removes renderer markers.

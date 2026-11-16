@@ -129,10 +129,8 @@ const I18N = {
     on: 'Activé', off: 'Coupé', playerDefault: 'Vous', allUnlocked: 'Tout est débloqué. Bravo !', careerIntro: 'Tu pars dernier à chaque course. Remonte le peloton, marque des points, débloque des catégories plus rapides.',
     lapDone: (n, t) => `Tour ${n} : ${t}`, tipTitle: 'Comment jouer', yourResult: (p) => `Tu termines P${p}`,
     nameTaken: (n) => `« ${n} » est déjà pris par un autre pilote. Change de nom dans les réglages, sinon tes temps n’entreront pas au tableau mondial.`,
-    authPkce: 'La connexion est revenue sans jeton. Vérifie que l’adresse du jeu est bien dans les « Redirect URLs » de Supabase.',
     authTrouble: 'La connexion au tableau mondial n’a pas abouti.',
     authFail: (e) => `La connexion a échoué : ${e}`,
-    authEmpty: (p) => `Tu es revenu de Google sans jeton (l’adresse portait : ${p}). C’est le signe que l’adresse du jeu manque dans les « Redirect URLs » de Supabase.`,
     sending: (a, b) => `Envoi de tes temps au tableau mondial… ${a} sur ${b}.`,
     sendingWait: (a, b, s) => `Envoi de tes temps… ${a} sur ${b}. Prochain dans ${s} s (le serveur les espace).`,
     sent: (n) => `${n} temps envoyé${n > 1 ? 's' : ''} au tableau mondial.`,
@@ -153,7 +151,7 @@ const I18N = {
     horsClassement: 'Hors tableau mondial : ', horsGuide: 'guide de freinage', horsAimant: 'aimant', horsFf: 'anticipation', horsUsure: 'usure',
     refus_reseau: 'Pas de réseau au moment de l’envoi. Ton temps est gardé ici.',
     refus_autre: (r) => `Temps non retenu par le serveur (${r}).`,
-    worldBest: 'Monde', worldNeedsAccount: 'Connecte-toi pour inscrire tes temps au tableau mondial.', signIn: 'Se connecter avec Google', signOut: 'Se déconnecter',
+    onlineRecords: 'Pour avoir accès aux records mondiaux, jouer sur la version en ligne grip-game.github.io', onlineRecordsShort: 'Records mondiaux ↗', worldBest: 'Monde', worldNeedsAccount: 'Connecte-toi pour inscrire tes temps au tableau mondial.', signIn: 'Se connecter avec Google', signOut: 'Se déconnecter',
     palmares: 'Ton palmarès', palmaresTrophee: 'Trophée', palmaresNiveau: 'Niveau',
     trophee_chocolat: 'Chocolat', trophee_bronze: 'Bronze', trophee_argent: 'Argent', trophee_or: 'Or', trophee_crane: 'Crâne',
     palmaresRegle: (n) => `Gagne une course d’au moins ${n} tours : le niveau de difficulté donne le trophée.`,
@@ -280,10 +278,8 @@ const I18N = {
     on: 'On', off: 'Off', playerDefault: 'You', allUnlocked: 'Everything unlocked. Well done!', careerIntro: 'You start every race from the back. Carve through the field, score points, unlock faster classes.',
     lapDone: (n, t) => `Lap ${n}: ${t}`, tipTitle: 'How to play', yourResult: (p) => `You finish P${p}`,
     nameTaken: (n) => `“${n}” is already taken by another driver. Change it in the settings, or your times will not reach the world board.`,
-    authPkce: 'Sign-in came back without a token. Check that the game URL is in Supabase’s Redirect URLs.',
     authTrouble: 'Sign-in to the world board did not complete.',
     authFail: (e) => `Sign-in failed: ${e}`,
-    authEmpty: (p) => `You came back from Google without a token (the URL carried: ${p}). That usually means the game URL is missing from Supabase’s Redirect URLs.`,
     sending: (a, b) => `Sending your times to the world board… ${a} of ${b}.`,
     sendingWait: (a, b, s) => `Sending your times… ${a} of ${b}. Next in ${s} s (the server spaces them out).`,
     sent: (n) => `${n} time${n > 1 ? 's' : ''} sent to the world board.`,
@@ -304,7 +300,7 @@ const I18N = {
     horsClassement: 'Outside the world board: ', horsGuide: 'braking guide', horsAimant: 'magnet', horsFf: 'anticipation', horsUsure: 'tyre wear',
     refus_reseau: 'No network when sending. Your time is kept here.',
     refus_autre: (r) => `Time not kept by the server (${r}).`,
-    worldBest: 'World', worldNeedsAccount: 'Sign in to put your times on the world board.', signIn: 'Sign in with Google', signOut: 'Sign out',
+    onlineRecords: 'To access world records, play the online version at grip-game.github.io', onlineRecordsShort: 'World records ↗', worldBest: 'World', worldNeedsAccount: 'Sign in to put your times on the world board.', signIn: 'Sign in with Google', signOut: 'Sign out',
     palmares: 'Your trophies', palmaresTrophee: 'Trophy', palmaresNiveau: 'Level',
     trophee_chocolat: 'Chocolate', trophee_bronze: 'Bronze', trophee_argent: 'Silver', trophee_or: 'Gold', trophee_crane: 'Skull',
     palmaresRegle: (n) => `Win a race of at least ${n} laps: the difficulty level gives the trophy.`,
@@ -464,16 +460,18 @@ class UI {
   mais elle parlait de la mécanique du jeu au lieu de dire où l'on en est. Bruno : « il n'a pas de
   sens, juste un connecté à Google suffirait ». Le joueur n'a rien à faire de plus : son prochain
   meilleur tour partira de lui-même. */
+  worldVersionLink(compact = false) {
+    return `<a class="${compact ? 'extra-card' : 'world-online-link'}" data-world-online href="https://grip-game.github.io/" target="_blank" rel="noopener" title="${escapeHtml(this.t('onlineRecords'))}"><span>${escapeHtml(this.t(compact ? 'onlineRecordsShort' : 'onlineRecords'))}</span></a>`;
+  }
+
   etatMondial() {
+    if(this.app.isItch)return this.worldVersionLink();
     const t = (k, ...a) => this.t(k, ...a), m = this.app.mondial;
     const ligne = (cls, txt, bouton) => `<p class="${cls} mondial-note">${txt}${bouton || ''}</p>`;
     const entrer = `<button class="link" data-action="google">${t('signIn')}</button>`;
     if (!m) return '';
-    if (m.erreurConnexion) {
-      const msg = m.erreurConnexion === 'pkce' ? t('authPkce')
-        : m.erreurConnexion === 'vide' ? t('authEmpty', escapeHtml(String(m.retourVide || t('noParam'))))
-        : t('authFail', escapeHtml(String(m.erreurConnexion)));
-      return ligne('warn', msg, `<button class="link" data-action="google">${t('reconnect')}</button>`);
+    if (m.erreurConnexion && !['pkce','vide'].includes(m.erreurConnexion)) {
+      return ligne('warn', t('authFail', escapeHtml(String(m.erreurConnexion))), `<button class="link" data-action="google">${t('reconnect')}</button>`);
     }
     if (!m.connecte()) return ligne('muted', t('worldNeedsAccount'), entrer);
     const e = m.envoi;
@@ -931,13 +929,14 @@ class UI {
           <span class="mode-copy"><b>${t(label)}</b></span><span class="mode-damier" aria-hidden="true"></span></button>`).join('')}
       </nav>
       <nav class="home-extras" data-pad-group aria-label="${t('menuAide')}">
+        ${app.isItch ? this.worldVersionLink(true) : ''}
         <button class="extra-card" data-action="howto">${PICTOS.aide}<span>${t('menuHowto')}</span></button>
         ${!app.desktop && !app.installe && !jeuInstalle() ? `<button class="extra-card" data-action="install">${PICTOS.installer}<span>${t('menuInstall')}</span></button>` : ''}
         <a class="extra-card" href="${DON_URL}" target="_blank" rel="noopener">${PICTOS.the}<span>${t('menuDon')}</span></a>
       </nav></div>
       <footer class="home-footer"><button class="home-settings" data-action="settings"><img src="art/interface/gear.webp" alt="">${t('settings')}</button>
         <button class="pilot-button" data-action="settings"><img src="art/interface/pilot.webp" alt=""><span>${t('pilotLabel')} :</span><b>${escapeHtml(app.save.name)}</b></button>
-        ${app.mondial?.erreurConnexion ? `<button class="link" data-action="google">${t('reconnect')}</button>` : ''}</footer>
+        ${app.mondial?.erreurConnexion && !['pkce','vide'].includes(app.mondial.erreurConnexion) ? `<button class="link" data-action="google">${t('reconnect')}</button>` : ''}</footer>
       <div class="home-version">v${APP_VERSION}${canalBadge()}</div>`, 'home-screen scroll');
   }
 
@@ -1088,7 +1087,7 @@ class UI {
         <!-- Le compte se gère ICI, et pas seulement depuis un message d'erreur. Sans cette ligne,
              se déconnecter était impossible et changer de compte demandait de vider le navigateur. -->
         <label>${t('account')}<span class="compte">${
-          app.mondial && app.mondial.connecte()
+          app.isItch ? this.worldVersionLink() : app.mondial && app.mondial.connecte()
             ? `<b class="ok">${t('signedIn')}</b><button class="link" data-action="signOut">${t('signOut')}</button>`
             : `<button class="link" data-action="google">${t('signIn')}</button>`}</span></label>
         <label>${t('sound')}<select id="sel-sound"><option value="1" ${s.sound ? 'selected' : ''}>${t('on')}</option><option value="0" ${!s.sound ? 'selected' : ''}>${t('off')}</option></select></label>
@@ -1225,19 +1224,19 @@ class UI {
               ? `<button class="link" data-action="google">${t('reconnect')}</button>` : ''}
             ${REGLAGES.has(app.mondial.dernierRefus.raison)
               ? `<button class="link" data-action="settings">${t('settings')}</button>` : ''}</p>` : ''}
-      <div class="records">
+      <div class="records${app.isItch ? ' local-records' : ''}">
         <div class="rhead">
           <span></span><b></b>
           <span class="rline-t">${t('yourBest')}</span>
-          <span class="rline-t">${t('worldBest')}</span>
+          ${app.isItch ? '' : `<span class="rline-t">${t('worldBest')}</span>`}
         </div>
         ${lignes.map(({ m, b, w }) => `<div class="rline ${m.id === choisie.id ? 'sel' : ''}">
           <span class="rline-img">${this.carIcon(m, livery, this.app.playerLivreeFor(m.id))}</span>
           <b>${escapeHtml(m.name)}</b>
           <span class="rline-t ${b == null ? 'muted' : ''}">${b == null ? '--:--.---' : fmtTime(b)}</span>
-          <span class="rline-t monde" title="${w ? escapeHtml(w.pilote || '') : ''}">${
+          ${app.isItch ? '' : `<span class="rline-t monde" title="${w ? escapeHtml(w.pilote || '') : ''}">${
             mondiaux || !app.mondial ? cell(w && w.temps) : `<span class="muted">…</span>`}${
-            w && w.pilote ? `<small>${escapeHtml(w.pilote)}</small>` : ''}</span>
+            w && w.pilote ? `<small>${escapeHtml(w.pilote)}</small>` : ''}</span>`}
         </div>`).join('')}
       </div>`;
   }
@@ -1253,6 +1252,7 @@ class UI {
   La phrase complète reste en info-bulle ; sur un téléphone, qui n'en a pas, les deux mots suffisent.
   `avecBouton` ajoute « Se connecter avec Google » au nuage gris d'un joueur pas connecté. */
   nuagePalmares(avecBouton) {
+    if(this.app.isItch)return '';
     const t = (k, ...a) => this.t(k, ...a), m = this.app.mondial, e = etatNuage(m);
     const longue = !m || !m.connecte() ? t('palmaresCompte')
       : t({ ok: 'palmaresOk', erreur: 'palmaresErreur', synchro: 'palmaresSynchro' }[e] || 'palmaresIndispo');

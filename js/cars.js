@@ -504,9 +504,9 @@ for (const r of [
   ['csl',0.82,0.0725,0.9225,0.14,0.15],
   ['csl_calder',0.81,0.0775,0.9175,0.14,0.15],
   ['csl_castrol',0.825,0.0775,0.9174,0.14,0.15],
-  ['250gto',0.81,0.1025,0.9225,0.14,0.1],
-  ['250gto_francorchamps',0.81,0.0975,0.9175,0.14,0.1],
-  ['250gto_walker',0.815,0.1025,0.9175,0.14,0.1],
+  ['250gto',0.81,0.1025,0.9225,0.17,0.16],
+  ['250gto_francorchamps',0.81,0.0975,0.9175,0.17,0.16],
+  ['250gto_walker',0.815,0.1025,0.9175,0.17,0.16],
   ['typee',0.79,0.0825,0.9175,0.14,0.14],
   ['typee_cunningham',0.8,0.0825,0.9225,0.14,0.14],
   ['typee_ecosse',0.795,0.0825,0.9225,0.14,0.14],
@@ -536,6 +536,8 @@ for (const r of [
   ['p68_dunlop',0.815,0.1025,0.8975,0.14,0.14],
   ['p68_gulf',0.815,0.0975,0.9025,0.14,0.14]
 ]) registerWheelSprite(r[0],spriteAxle(...r.slice(1)));
+// Match the rounded 32 px rear tires painted into the three Gran Corsa drawings.
+for(const id of ['250gto','250gto_francorchamps','250gto_walker'])WHEEL_SPRITES[id].front.rounding=.20;
 for (const r of [
   ['countach',0.215,0.1008,0.8992,0.14,0.12],
   ['countach_rainx',0.215,0.1008,0.8992,0.14,0.12],

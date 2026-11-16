@@ -81,7 +81,8 @@ class App {
     window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); this.invitInstall = e; rafraichit(); });
     window.addEventListener('appinstalled', () => { this.invitInstall = null; this.installe = true; rafraichit(); });
     // le tableau mondial : il se débrouille seul, et son absence n'empêche rien
-    this.mondial = new Mondial();
+    this.isItch = typeof APP_DISTRIBUTION !== 'undefined' && APP_DISTRIBUTION === 'itch';
+    this.mondial = this.isItch ? null : new Mondial();
     this.analytics = new GameAnalytics();
     /* Au retour d'une connexion Google, on déclare son pseudo tout de suite.
 
@@ -93,8 +94,8 @@ class App {
     Le poser seulement quand on est déjà connecté laissait sans nom celui qui se connecte en cours
     de partie : ses temps partaient avec une chaîne vide et le serveur les refusait pour « forme du
     pseudo », ce qui n'a aucun sens vu de l'écran. Poser une chaîne ne coûte rien. */
-    this.mondial.poseNom(this.playerName());
-    if (this.mondial.connecte() && this.save.name) {
+    this.mondial?.poseNom(this.playerName());
+    if (this.mondial?.connecte() && this.save.name) {
       /* Plus d'ordre à respecter : le nom voyage AVEC chaque temps.
 
       Il fallait auparavant l'écrire en base avant de proposer quoi que ce soit, sous peine de voir
@@ -106,7 +107,7 @@ class App {
     sur un autre appareil arrivent ici, ceux d'ici partent là-bas. L'écran de course repeint sa
     ligne d'état et sa liste quand la réponse arrive. */
     PalmaresSync.onEtat = () => { if (this.ui._cleEcran === 'depart:race') this.ui.setupScreen('race'); else this.ui.majNuage(); };
-    if (this.mondial.connecte()) PalmaresSync.synchronise(this.mondial, this.save).catch(() => {});
+    if (this.mondial?.connecte()) PalmaresSync.synchronise(this.mondial, this.save).catch(() => {});
     this.ui.splash();
     this.refreshCustom().then(() => {
       const params = new URLSearchParams(location.search);

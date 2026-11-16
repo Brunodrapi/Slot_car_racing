@@ -38,6 +38,21 @@ Le comportement des voitures, les chronos et les réglages de conduite sont iden
 Vérification : `node tools/e2e-night.js` (Playwright/Chromium), et
 `node tools/e2e-net.js /tmp/grip-night-net race --night` pour le choix partagé de l’hôte.
 
+Les optiques sont propres à chaque modèle : leur emplacement suit le dessin de la carrosserie,
+avec des ronds, des doubles projecteurs, des barrettes, des signatures courbes ou des rectangles.
+Les feux stop utilisent les mêmes points d’attache de jour. Les F1 gardent un feu stop central.
+
+La Purosangue Gran Corsa conserve ses points d’essieu et sa direction, avec des pneus avant élargis
+pour retrouver la largeur visuelle des pneus arrière sur les trois livrées.
+
+### Export itch.io
+
+`npm run build:itch` fabrique une édition dédiée dans `dist-itch/` et un ZIP avec `index.html` à
+sa racine. Cette édition garde les temps locaux et remplace la connexion Google et l’accès au
+tableau mondial par un bouton vers **https://grip-game.github.io/**. La distribution web normale
+conserve sa connexion et son tableau mondial. Les réglages d’affichage restent gérés par itch.io.
+La branche `itch-io` du dépôt PROD contient cet export, séparé de sa branche publiée.
+
 ### Bip de passage de tour
 
 Un bip net signale chaque tour bouclé par le joueur en course, contre-la-montre et entraînement,
