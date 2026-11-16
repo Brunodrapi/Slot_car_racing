@@ -1,4 +1,4 @@
-# Édition itch.io — 0.55.2
+# Édition itch.io — 0.55.3
 
 > **À venir avec la 0.56.0 (en recette, pas encore exportée).** Le tableau mondial arrive sur
 > itch.io : la colonne « Monde » sans compte, et la connexion Google dans un nouvel onglet, par un
@@ -17,9 +17,11 @@ des menus ou du comportement de lancement en plein écran n’est ajoutée pour 
 - [ZIP HTML5 prêt à charger](https://github.com/Brunodrapi/Slot_car_racing/raw/refs/heads/itch-io/grip-itch.zip)
 
 Le ZIP garde le même nom à chaque version (`grip-itch.zip`) : le lien ci-dessus mène toujours au
-dernier export. 0.55.2 : feux avant recalés sur le dessin de chaque voiture.
+dernier export. 0.55.3 : ailes arrière corrigées sur les trois livrées de Kitsune Zeta 240 et de
+Purosangue Freccia ; les feux suivent les nouveaux dessins.
 
-Le ZIP est publié sur une branche séparée du dépôt REC. La prod, elle, est publiée par `tools/publier.sh` (0.55.2 en ligne sur grip-game.github.io).
+Le ZIP est publié sur une branche séparée du dépôt REC. Le site PROD grip-game.github.io
+est publié séparément par `tools/publier.sh`.
 
 - [Aperçu du bouton dans les records](itch-records.png)
 - [Contrôles de l’export](verification.json)

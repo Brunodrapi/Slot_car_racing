@@ -556,6 +556,12 @@ for (const r of [
   ['962_jager',0.25,0.0725,0.9125,0.14,0.14],
   ['962_shell',0.25,0.0725,0.9175,0.14,0.14]
 ]) WHEEL_SPRITES[r[0]].rear=spriteAxle(...r.slice(1));
+// 0.56.1: the repainted rear fenders cover the tread. Rear tires now sit below
+// the body, with only a 1–3 px lip visible at the axle in the 420 × 200 sprite.
+for(const id of ['240z','240z_sharp','240z_dunlop','330p4','330p4_giallo','330p4_piper']) {
+  WHEEL_SPRITES[id].rear=spriteAxle(.21,.0575,.9375,.13,.12);
+  WHEEL_SPRITES[id].rear.rounding=.20;
+}
 // GT3_WHEELS_BEGIN
 registerWheelSprite('porsche991gt3r', spriteAxle(0.82,0.06,0.935,0.125,0.12), spriteAxle(0.22,0.055,0.935,0.135,0.13));
 registerWheelSprite('porsche991gt3r_grello', spriteAxle(0.82,0.065,0.935,0.125,0.12), spriteAxle(0.22,0.055,0.94,0.135,0.13));

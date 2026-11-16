@@ -221,7 +221,8 @@ const CAR_LIGHT_PROFILES = {
   csl: lightPair(.967,.262,'round',.026,.065,0,.075,.27),
   '250gto': lightPair(.920,.232,'oval',.064,.100,.55,.055,.29,.030),
   typee: lightPair(.902,.223,'oval',.085,.115,.50,.060,.25,.025),
-  '240z': lightPair(.916,.209,'oval',.065,.105,.45,.065,.27,.040),
+  // 0.56.1 : centres des optiques sur les trois nouvelles carrosseries à ailes pleines.
+  '240z': lightPair(.916,.205,'oval',.065,.105,.45,.065,.27,.028),
   porsche991gt3r: lightPair(.897,.175,'oval',.072,.100,.48,.130,.255),
   ferrari488gt3: lightPair(.900,.224,'blade',.085,.070,.45,.140,.27,.030),
   huracangt3: lightPair(.883,.235,'chevron',.082,.068,.34,.135,.27,.025),
@@ -259,8 +260,8 @@ for(const [id,x,y,bulbs,droite=0]of [
   ['bmwm6gt3',.900,.1885,[{x:-.008,y:-.0365,w:.018,h:.040},{x:.008,y:.0365,w:.018,h:.040}],.010],
   ['bentleygt3',.9015,.204,[{x:-.0145,y:-.049,w:.030,h:.060},{x:.0145,y:.049,w:.028,h:.056}],.025],
   ['corvette',.9255,.2931,[{x:-.0024,y:-.0468,w:.028,h:.070},{x:.0024,y:.0468,w:.028,h:.070}]],
-  // Purosangue Freccia (0.55.2) : ses deux ampoules, 4 px plus en arrière et plus écartées que l'ancienne paire
-  ['330p4',.896,.167,[{x:-.0188,y:-.0215,w:.029,h:.060},{x:.0188,y:.0215,w:.029,h:.060}]],
+  // Purosangue Freccia (0.56.1) : ampoules mesurées sur les trois dessins aux ailes élargies.
+  ['330p4',.904,.1925,[{x:-.0176,y:-.0235,w:.029,h:.060},{x:.0176,y:.0235,w:.029,h:.060}],.009],
   ['xjr9',.9214,.2136,[{x:-.0155,y:-.0405,w:.038,h:.077},{x:.0183,y:.003,w:.017,h:.032},{x:.0245,y:.056,w:.029,h:.027}],.014],
 ]){
   CAR_LIGHT_PROFILES[id].front=[-1,1].map(side=>({x,y:side<0?y:1-y+droite,shape:'cluster',

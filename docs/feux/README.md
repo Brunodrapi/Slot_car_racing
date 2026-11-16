@@ -1,9 +1,12 @@
-# Feux selon la carrosserie — 0.55.2
+# Feux selon la carrosserie — 0.56.1
 
 **0.55.2 :** le feu droit est le miroir exact du gauche (une lame, une flèche ou une virgule n’est
 plus tournée dans le mauvais sens), il est posé sur le phare dessiné même quand le dessin n’est pas
 centré dans son image, et sept voitures ont des optiques refaites d’après leur dessin (Sting,
 Nightfall, Freccia, Blade 650, K1, Furioso, Langheck n° 16). Détails dans le README du jeu.
+
+**0.56.1 :** les planches reprennent les nouvelles ailes de la Kitsune Zeta et de la Freccia.
+[Comparatif des six livrées](../ailes-kitsune-freccia/avant-apres.png).
 
 Les 35 modèles ont des points d’attache propres, mesurés dans le repère de leur dessin : les
 phares ronds des Breithüft et Moggy, les rectangles des anciennes Howitzer et Stallone, les

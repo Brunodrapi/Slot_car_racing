@@ -1,0 +1,206 @@
+[
+  {
+    "file": "sprites/top/240z.png",
+    "atlas": "art-src/voitures/ailes-kitsune-freccia/kitsune.png",
+    "sourceBox": {
+      "left": 32,
+      "top": 73,
+      "width": 955,
+      "height": 456
+    },
+    "width": 420,
+    "height": 200,
+    "contours": {
+      "0.2": [
+        1,
+        198
+      ],
+      "0.21": [
+        0,
+        198
+      ],
+      "0.77": [
+        2,
+        198
+      ],
+      "0.78": [
+        2,
+        198
+      ],
+      "0.81": [
+        3,
+        197
+      ]
+    }
+  },
+  {
+    "file": "sprites/top/240z_sharp.png",
+    "atlas": "art-src/voitures/ailes-kitsune-freccia/kitsune.png",
+    "sourceBox": {
+      "left": 32,
+      "top": 561,
+      "width": 955,
+      "height": 456
+    },
+    "width": 420,
+    "height": 200,
+    "contours": {
+      "0.2": [
+        0,
+        199
+      ],
+      "0.21": [
+        0,
+        199
+      ],
+      "0.77": [
+        1,
+        198
+      ],
+      "0.78": [
+        2,
+        198
+      ],
+      "0.81": [
+        3,
+        197
+      ]
+    }
+  },
+  {
+    "file": "sprites/top/240z_dunlop.png",
+    "atlas": "art-src/voitures/ailes-kitsune-freccia/kitsune.png",
+    "sourceBox": {
+      "left": 33,
+      "top": 1051,
+      "width": 954,
+      "height": 456
+    },
+    "width": 420,
+    "height": 200,
+    "contours": {
+      "0.2": [
+        1,
+        198
+      ],
+      "0.21": [
+        0,
+        199
+      ],
+      "0.77": [
+        2,
+        198
+      ],
+      "0.78": [
+        2,
+        198
+      ],
+      "0.81": [
+        3,
+        197
+      ]
+    }
+  },
+  {
+    "file": "sprites/top/330p4.png",
+    "atlas": "art-src/voitures/ailes-kitsune-freccia/freccia.png",
+    "sourceBox": {
+      "left": 12,
+      "top": 24,
+      "width": 1000,
+      "height": 472
+    },
+    "width": 420,
+    "height": 200,
+    "contours": {
+      "0.2": [
+        1,
+        198
+      ],
+      "0.21": [
+        1,
+        198
+      ],
+      "0.77": [
+        2,
+        198
+      ],
+      "0.78": [
+        2,
+        198
+      ],
+      "0.81": [
+        3,
+        196
+      ]
+    }
+  },
+  {
+    "file": "sprites/top/330p4_giallo.png",
+    "atlas": "art-src/voitures/ailes-kitsune-freccia/freccia.png",
+    "sourceBox": {
+      "left": 12,
+      "top": 536,
+      "width": 1000,
+      "height": 472
+    },
+    "width": 420,
+    "height": 200,
+    "contours": {
+      "0.2": [
+        1,
+        198
+      ],
+      "0.21": [
+        1,
+        198
+      ],
+      "0.77": [
+        2,
+        198
+      ],
+      "0.78": [
+        2,
+        198
+      ],
+      "0.81": [
+        3,
+        196
+      ]
+    }
+  },
+  {
+    "file": "sprites/top/330p4_piper.png",
+    "atlas": "art-src/voitures/ailes-kitsune-freccia/freccia.png",
+    "sourceBox": {
+      "left": 12,
+      "top": 1048,
+      "width": 1000,
+      "height": 472
+    },
+    "width": 420,
+    "height": 200,
+    "contours": {
+      "0.2": [
+        1,
+        198
+      ],
+      "0.21": [
+        1,
+        198
+      ],
+      "0.77": [
+        2,
+        198
+      ],
+      "0.78": [
+        2,
+        197
+      ],
+      "0.81": [
+        3,
+        196
+      ]
+    }
+  }
+]

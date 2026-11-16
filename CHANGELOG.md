@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.56.1
+- Kitsune Zeta 240 et Purosangue Freccia : ailes arrière pleines sur les trois livrées, pneus presque entièrement couverts ; la Freccia retrouve ses ailes larges et arrondies. Correction également disponible dans l’export itch.io 0.55.3.
+
 ## 0.56.0
 - itch.io : le tableau mondial arrive. La colonne « Monde » s’affiche sans compte, et « Se connecter avec Google » ouvre un onglet pour inscrire ses temps.
 

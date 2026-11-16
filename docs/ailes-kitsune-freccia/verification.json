@@ -1,0 +1,132 @@
+{
+  "version": "0.56.1",
+  "rows": [
+    {
+      "model": "240z",
+      "livery": 0,
+      "width": 420,
+      "height": 200,
+      "rearTreadPixels": [
+        2,
+        2
+      ],
+      "steeringPixels": [
+        2043,
+        2011
+      ]
+    },
+    {
+      "model": "240z",
+      "livery": 1,
+      "width": 420,
+      "height": 200,
+      "rearTreadPixels": [
+        2,
+        1
+      ],
+      "steeringPixels": [
+        1978,
+        1951
+      ]
+    },
+    {
+      "model": "240z",
+      "livery": 2,
+      "width": 420,
+      "height": 200,
+      "rearTreadPixels": [
+        2,
+        1
+      ],
+      "steeringPixels": [
+        2062,
+        2007
+      ]
+    },
+    {
+      "model": "330p4",
+      "livery": 0,
+      "width": 420,
+      "height": 200,
+      "rearTreadPixels": [
+        3,
+        2
+      ],
+      "steeringPixels": [
+        1797,
+        1816
+      ]
+    },
+    {
+      "model": "330p4",
+      "livery": 1,
+      "width": 420,
+      "height": 200,
+      "rearTreadPixels": [
+        3,
+        2
+      ],
+      "steeringPixels": [
+        1790,
+        1820
+      ]
+    },
+    {
+      "model": "330p4",
+      "livery": 2,
+      "width": 420,
+      "height": 200,
+      "rearTreadPixels": [
+        3,
+        2
+      ],
+      "steeringPixels": [
+        1812,
+        1843
+      ]
+    },
+    {
+      "model": "nissangtrgt3",
+      "livery": 0,
+      "width": 420,
+      "height": 200,
+      "rearTreadPixels": [
+        3,
+        2
+      ],
+      "steeringPixels": [
+        1708,
+        1693
+      ]
+    },
+    {
+      "model": "nissangtrgt3",
+      "livery": 1,
+      "width": 420,
+      "height": 200,
+      "rearTreadPixels": [
+        3,
+        2
+      ],
+      "steeringPixels": [
+        1691,
+        1667
+      ]
+    },
+    {
+      "model": "nissangtrgt3",
+      "livery": 2,
+      "width": 420,
+      "height": 200,
+      "rearTreadPixels": [
+        3,
+        2
+      ],
+      "steeringPixels": [
+        1702,
+        1679
+      ]
+    }
+  ],
+  "errors": []
+}
