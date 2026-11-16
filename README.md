@@ -1,8 +1,8 @@
 # GRIP — édition itch.io 0.55.1
 
-Cette branche `itch-io` contient le jeu minifié destiné à itch.io et son export ZIP.
+Cette branche `itch-io` du dépôt REC contient le jeu minifié destiné à itch.io et son export ZIP.
 
-**[Télécharger le ZIP HTML5 prêt à charger sur itch.io](https://github.com/GRIP-game/grip-game.github.io/raw/refs/heads/itch-io/grip-itch.zip)**
+**[Télécharger le ZIP HTML5 prêt à charger sur itch.io](https://github.com/Brunodrapi/Slot_car_racing/raw/refs/heads/itch-io/grip-itch.zip)**
 
 Le ZIP contient `index.html` à sa racine. Charger ce ZIP dans itch.io et le marquer jouable
 **dans le navigateur**. La taille et le plein écran restent configurés dans itch.io.
@@ -18,4 +18,4 @@ Corsa élargis comme les pneus arrière. Le commentaire technique sur le retour 
 Export reproductible depuis les sources : `npm run build:itch` (`tools/pack-itch.js`, distribution
 `itch`). Le hash du ZIP figure dans [archive-itch.json](archive-itch.json).
 
-Cette branche est distincte de `main`, utilisée par la version web publiée.
+Cette branche de distribution reste séparée de la branche de recette publiée et du site PROD https://grip-game.github.io/.
