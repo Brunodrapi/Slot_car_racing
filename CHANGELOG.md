@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.54.1
+- Nuit : suppression du halo autour du joueur. Des projecteurs dirigés vers les bacs à gravier remplacent les lampadaires circulaires le long de la piste ; les portions non éclairées restent sombres et les feux arrière sont visibles.
+
 ## 0.54.0
 - Option Jour / Nuit avant le départ et dans les salons : lampadaires, phares des GT et prototypes, visibilité limitée dans les zones sombres. Les F1 roulent sans phares et dépendent de l’éclairage du circuit.
 

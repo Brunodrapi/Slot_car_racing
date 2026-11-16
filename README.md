@@ -25,8 +25,10 @@ Dans la préparation d’une course, d’un contre-la-montre ou d’un entraîne
 **Jour / Nuit** change l’éclairage et conserve le choix sur l’appareil. Dans un salon multijoueur,
 l’hôte choisit pour tous les pilotes et spectateurs. Les anciennes sauvegardes restent en Jour.
 
-La nuit, des lampadaires alternent en bord de piste, les GT/GT3 et prototypes éclairent devant eux
-avec leurs phares. **Les F1 n’ont pas de phares** et dépendent des lampadaires. Les parties non
+La nuit, des projecteurs espacés éclairent principalement les bacs à gravier, dans une direction
+précise. La piste reste largement sombre ; les GT/GT3 et prototypes éclairent devant eux avec leurs
+phares, sans halo autour de la voiture. Leurs feux arrière restent visibles. **Les F1 n’ont pas de
+phares** et dépendent des projecteurs. Les parties non
 éclairées restent presque noires, sans mémoire d’exploration ; les adversaires éloignés ou dans
 l’obscurité disparaissent de la mini-carte du pilote. Le tracé et les commandes restent lisibles.
 Le comportement des voitures, les chronos et les réglages de conduite sont identiques au jour.

@@ -256,18 +256,52 @@ class NightLighting {
     g.putImageData(pixels, 0, 0); this._beamMask = canvas; return canvas;
   }
 
+  static floodStrength(x, y) {
+    if (x <= 0 || x >= 1) return 0;
+    const edge = Math.abs(y) / (.18 + .82 * x);
+    if (edge >= 1) return 0;
+    const smooth = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+    return smooth(x / .22) * (1 - smooth((x - .62) / .38))
+      * (1 - smooth((edge - .55) / .45));
+  }
+
+  floodMask() {
+    if (this._floodMask) return this._floodMask;
+    const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 192;
+    const g = canvas.getContext('2d'), pixels = g.createImageData(canvas.width, canvas.height);
+    for (let y = 0; y < canvas.height; y++) for (let x = 0; x < canvas.width; x++) {
+      const i = (y * canvas.width + x) * 4;
+      pixels.data[i] = 255; pixels.data[i + 1] = 212; pixels.data[i + 2] = 145;
+      pixels.data[i + 3] = Math.round(255 * NightLighting.floodStrength(
+        (x + .5) / canvas.width, (y + .5) / canvas.height * 2 - 1));
+    }
+    g.putImageData(pixels, 0, 0); this._floodMask = canvas; return canvas;
+  }
+
   setTrack(track) {
-    this.lamps = [];
-    const count = Math.max(1, Math.ceil(track.length / 30));
-    for (let i = 0; i < count; i++) {
-      const s = i * track.length / count, side = i % 2 ? -1 : 1;
+    // Floodlights belong to gravel traps, not a repeating necklace around the road.
+    // Use the same final runoff geometry/surfaces as the renderer and the physics.
+    const candidates = [];
+    for (let s = 0; s < track.length; s += 6) for (const side of [-1, 1]) {
+      const k = track.idx(s), w = track.largeurBac(k, side);
+      if (w < 5 || track.tunnels.some(t => (k - t.from + track.n) % track.n < t.n)) continue;
       const hw = side > 0 ? track.hwLeftAt(s) : track.hwRightAt(s);
-      const p = track.pos(s, side * (hw + 2.8));
-      // Tunnel lamps are closer to the roadway and do not grow outdoor poles.
-      const k = track.idx(s), tunnel = track.tunnels.some(t => (k - t.from + track.n) % track.n < t.n);
-      const light = track.pos(s, side * (tunnel ? hw * .72 : hw + .4));
-      this.lamps.push({ x: light.x, y: light.y, poleX: p.x, poleY: p.y,
-        radius: Math.max(12, hw * 2 + 5), power: .78, tunnel });
+      const targetLat = side * (hw + w * .55);
+      if (track.runoffSurfaceAt(s, targetLat) !== 'gravel') continue;
+      const target = track.pos(s, targetLat), source = track.pos(s, side * (hw + w + 2.5));
+      const length = w + 5, width = Math.min(22, Math.max(12, w * .85));
+      candidates.push({ x: source.x, y: source.y, heading: Math.atan2(target.y - source.y, target.x - source.x),
+        s, side, target, length, width, radius: Math.hypot(length, width), power: .84, flood: true });
+    }
+    candidates.sort((a, b) => b.length - a.length || a.s - b.s);
+    this.lamps = [];
+    for (const lamp of candidates) {
+      if (this.lamps.some(l => {
+        const ds = Math.abs(l.s - lamp.s);
+        return (l.side === lamp.side && Math.min(ds, track.length - ds) < 70)
+          || Math.hypot(l.x - lamp.x, l.y - lamp.y) < 36;
+      })) continue;
+      this.lamps.push(lamp);
     }
     this.fields = [];
   }
@@ -285,13 +319,10 @@ class NightLighting {
     for (const car of race.cars) {
       if (car.fantome || !near(car.pos, 40)) continue;
       const p = car.pos, h = car.heading, c = car.cls;
-      // Ambient light keeps the body legible, including a stopped/off-track F1.
-      // It is a small, dim pool, never a forward beam for an open-wheel car.
-      if (car.isPlayer) this.fields.push({ x: p.x, y: p.y, radius: 4, power: .48 });
       if (c.catId === 'f1') continue;
       this.fields.push({ x: p.x + Math.cos(h) * c.length * .44,
         y: p.y + Math.sin(h) * c.length * .44, heading: h, beam: true,
-        length: 36, width: 9, power: .93 });
+        length: 36, width: 9, power: .93, carLength: c.length, carWidth: c.width, braking: car.braking });
     }
   }
 
@@ -299,14 +330,11 @@ class NightLighting {
     if (!this.active) return true;
     if (Math.hypot(p.x - this.observer.x, p.y - this.observer.y) > 45) return false;
     for (const f of this.fields) {
-      let x = p.x - f.x, y = p.y - f.y, d;
-      if (f.beam) {
-        const c = Math.cos(f.heading), s = Math.sin(f.heading);
-        const u = x * c + y * s, v = -x * s + y * c;
-        if (f.power * NightLighting.beamStrength(u, v) > .18) return true;
-        continue;
-      } else d = Math.hypot(x, y) / f.radius;
-      if (d < 1 && f.power * (1 - d) > .18) return true;
+      const x = p.x - f.x, y = p.y - f.y, c = Math.cos(f.heading), s = Math.sin(f.heading);
+      const u = x * c + y * s, v = -x * s + y * c;
+      const strength = f.flood ? NightLighting.floodStrength(u / f.length, v / f.width)
+        : NightLighting.beamStrength(u, v);
+      if (f.power * strength > .18) return true;
     }
     return false;
   }
@@ -315,12 +343,12 @@ class NightLighting {
     if (!this.active) return;
     g.save(); g.lineWidth = .16;
     for (const l of this.visibleLamps) {
-      if (!l.tunnel) {
-        g.strokeStyle = '#586779';
-        g.beginPath(); g.moveTo(l.poleX, l.poleY); g.lineTo(l.x, l.y); g.stroke();
-        g.fillStyle = '#303b4a'; g.fillRect(l.poleX - .22, l.poleY - .22, .44, .44);
-      }
-      g.fillStyle = '#fff0b7'; g.beginPath(); g.arc(l.x, l.y, .27, 0, Math.PI * 2); g.fill();
+      g.save(); g.translate(l.x, l.y); g.rotate(l.heading);
+      g.strokeStyle = '#586779'; g.beginPath(); g.moveTo(-1.8, .7); g.lineTo(0, 0); g.stroke();
+      g.fillStyle = '#303b4a'; g.fillRect(-2, .5, .4, .4);
+      g.fillStyle = '#333a42'; g.fillRect(-.4, -.7, .55, 1.4);
+      g.fillStyle = '#fff0cf'; g.fillRect(.08, -.55, .12, 1.1);
+      g.restore();
     }
     g.restore();
   }
@@ -335,30 +363,25 @@ class NightLighting {
     g.setTransform(matrix);
     g.save(); g.globalCompositeOperation = 'destination-out';
     for (const f of this.fields) {
-      g.save(); g.translate(f.x, f.y);
-      if (f.beam) {
-        g.rotate(f.heading);
-        g.globalAlpha = f.power; g.drawImage(this.beamMask(), 0, -12, 36, 24);
-        g.restore(); continue;
-      } else g.scale(f.radius, f.radius);
-      const gradient = g.createRadialGradient(0, 0, 0, 0, 0, 1);
-      gradient.addColorStop(0, `rgba(0,0,0,${f.power})`);
-      gradient.addColorStop(.35, `rgba(0,0,0,${f.power * .68})`);
-      gradient.addColorStop(1, 'rgba(0,0,0,0)');
-      g.fillStyle = gradient; g.beginPath(); g.arc(0, 0, 1, 0, Math.PI * 2); g.fill(); g.restore();
+      g.save(); g.translate(f.x, f.y); g.rotate(f.heading); g.globalAlpha = f.power;
+      if (f.flood) g.drawImage(this.floodMask(), 0, -f.width, f.length, f.width * 2);
+      else g.drawImage(this.beamMask(), 0, -12, 36, 24);
+      g.restore();
     }
     g.restore();
-    // Warm lamps, cool headlights. No expensive full-screen blur or pixel readback.
+    // Directional warm spill and self-lit light lenses, never a circular car aura.
     for (const f of this.fields) {
-      if (f.beam) {
-        g.save(); g.translate(f.x, f.y); g.rotate(f.heading);
+      g.save(); g.translate(f.x, f.y); g.rotate(f.heading);
+      if (f.flood) {
+        g.globalAlpha = .065; g.drawImage(this.floodMask(), 0, -f.width, f.length, f.width * 2);
+      } else {
+        const offset = f.carWidth * .3;
         g.fillStyle = '#e1f0ff';
-        for (const y of [-.65, .65]) { g.beginPath(); g.ellipse(0, y, .12, .23, 0, 0, Math.PI * 2); g.fill(); }
-        g.restore(); continue;
+        for (const y of [-offset, offset]) g.fillRect(-.07, y - .13, .12, .26);
+        g.fillStyle = f.braking ? '#ff402c' : '#db241c';
+        for (const y of [-offset, offset]) g.fillRect(-f.carLength * .88, y - .14, .12, .28);
       }
-      const gradient = g.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.radius);
-      gradient.addColorStop(0, 'rgba(255,192,100,.09)'); gradient.addColorStop(1, 'rgba(255,192,100,0)');
-      g.fillStyle = gradient; g.fillRect(f.x - f.radius, f.y - f.radius, f.radius * 2, f.radius * 2);
+      g.restore();
     }
     this.fixtures(g);
   }

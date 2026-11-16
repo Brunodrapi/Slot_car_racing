@@ -5,32 +5,156 @@
       "ahead": 81,
       "behind": 252,
       "side": 252,
+      "noHalo": 252,
       "turned": 81,
       "oldAhead": 252,
+      "floodAhead": 55,
+      "floodBehind": 252,
+      "floodSide": 252,
+      "trackLighting": [
+        {
+          "id": "monza",
+          "lamps": 14
+        },
+        {
+          "id": "spa",
+          "lamps": 9
+        },
+        {
+          "id": "monaco",
+          "lamps": 0
+        },
+        {
+          "id": "silverstone",
+          "lamps": 11
+        },
+        {
+          "id": "suzuka",
+          "lamps": 20
+        },
+        {
+          "id": "interlagos",
+          "lamps": 15
+        },
+        {
+          "id": "laguna",
+          "lamps": 12
+        },
+        {
+          "id": "nurburgring",
+          "lamps": 9
+        },
+        {
+          "id": "lemans",
+          "lamps": 16
+        },
+        {
+          "id": "bathurst",
+          "lamps": 19
+        },
+        {
+          "id": "redbullring",
+          "lamps": 12
+        },
+        {
+          "id": "castellet",
+          "lamps": 0
+        },
+        {
+          "id": "zandvoort",
+          "lamps": 8
+        },
+        {
+          "id": "watkins",
+          "lamps": 14
+        }
+      ],
       "tracks": 14,
       "categories": [
         "gt",
         "gt3",
         "proto"
       ],
-      "nightMs": 2.0066666666573534,
-      "dayMs": 1.4600000000093132
+      "nightMs": 2.75333333335196,
+      "dayMs": 2.5600000000248353
     },
     {
       "mobile": true,
       "ahead": 81,
       "behind": 252,
       "side": 252,
+      "noHalo": 252,
       "turned": 81,
       "oldAhead": 252,
+      "floodAhead": 55,
+      "floodBehind": 252,
+      "floodSide": 252,
+      "trackLighting": [
+        {
+          "id": "monza",
+          "lamps": 14
+        },
+        {
+          "id": "spa",
+          "lamps": 9
+        },
+        {
+          "id": "monaco",
+          "lamps": 0
+        },
+        {
+          "id": "silverstone",
+          "lamps": 11
+        },
+        {
+          "id": "suzuka",
+          "lamps": 20
+        },
+        {
+          "id": "interlagos",
+          "lamps": 15
+        },
+        {
+          "id": "laguna",
+          "lamps": 12
+        },
+        {
+          "id": "nurburgring",
+          "lamps": 9
+        },
+        {
+          "id": "lemans",
+          "lamps": 16
+        },
+        {
+          "id": "bathurst",
+          "lamps": 19
+        },
+        {
+          "id": "redbullring",
+          "lamps": 12
+        },
+        {
+          "id": "castellet",
+          "lamps": 0
+        },
+        {
+          "id": "zandvoort",
+          "lamps": 8
+        },
+        {
+          "id": "watkins",
+          "lamps": 14
+        }
+      ],
       "tracks": 14,
       "categories": [
         "gt",
         "gt3",
         "proto"
       ],
-      "nightMs": 3.9066666666728755,
-      "dayMs": 2.12666666667598
+      "nightMs": 10.413333333314707,
+      "dayMs": 3.2333333333333334
     }
   ],
   "errors": []

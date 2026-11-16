@@ -57,21 +57,34 @@ fs.mkdirSync(OUT,{recursive:true});
     const cars=race.cars;race.cars=[p];render();
     const ahead=alphaAt(p.x+15,p.y),behind=alphaAt(p.x-15,p.y),side=alphaAt(p.x+15,p.y+15);
     if(!(ahead<150&&behind>245&&side>245))throw Error(`fog/beam ${ahead}/${behind}/${side}`);
+    const noHalo=alphaAt(p.x,p.y+3);if(noHalo<245)throw Error('round car aura remains: '+noHalo);
+    if(n.fields.some(f=>!f.beam&&!f.flood))throw Error('non-directional light field');
     const farSeen=n.canSee({x:p.x-20,y:p.y});if(farSeen)throw Error('unlit opponent revealed');
     p.th=Math.PI/2;render();
     const turned=alphaAt(p.x,p.y+15),oldAhead=alphaAt(p.x+15,p.y);
     if(!(turned<150&&oldAhead>245))throw Error('headlight does not follow yaw');
     const ghost=Object.assign(Object.create(p),{fantome:true,isPlayer:false});race.cars=[ghost];render();
     if(n.fields.some(f=>f.beam))throw Error('ghost casts light');
-    race.cars=cars;p.x=old.x;p.y=old.y;p.th=old.h;
+    // A floodlight illuminates in front of the fixture, without a radial pool.
+    const lamps=n.lamps;n.lamps=[{x:p.x,y:p.y,heading:0,length:20,width:12,radius:24,power:.84,flood:true}];
+    race.cars=[];render();
+    const floodAhead=alphaAt(p.x+10,p.y),floodBehind=alphaAt(p.x-10,p.y),floodSide=alphaAt(p.x,p.y+10);
+    if(!(floodAhead<150&&floodBehind>245&&floodSide>245))throw Error(`flood direction ${floodAhead}/${floodBehind}/${floodSide}`);
+    n.lamps=lamps;race.cars=cars;p.x=old.x;p.y=old.y;p.th=old.h;
     // All categories preserve their physics; headlights are a visual property.
     const f1=new Race({trackDef:TRACKS[0],classId:'f1',timeOfDay:'night'});
-    n.setTrack(f1.track);n.prepare(f1,r.cam,100);if(n.fields.some(f=>f.beam))throw Error('F1 headlights');
-    const lamp=n.lamps.reduce((a,b)=>Math.hypot(a.x-f1.player.x,a.y-f1.player.y)<Math.hypot(b.x-f1.player.x,b.y-f1.player.y)?a:b);n.prepare(f1,{x:lamp.x,y:lamp.y},100);
-    if(!n.canSee(lamp))throw Error('F1 cannot see circuit light');
+    n.setTrack(f1.track);n.prepare(f1,r.cam,100);if(n.fields.some(f=>f.beam)||n.fields.some(f=>!f.flood))throw Error('F1 headlights');
+    const lamp=n.lamps[0];
+    if(lamp){f1.player.x=lamp.target.x;f1.player.y=lamp.target.y;n.prepare(f1,lamp.target,100);if(!n.canSee(lamp.target))throw Error('F1 cannot see lit gravel');}
     const categories=playableCategories().filter(c=>c.id!=='f1');
     for(const c of categories){const rr=new Race({trackDef:TRACKS[0],classId:c.id,timeOfDay:'night'});n.prepare(rr,rr.player.pos,100);if(!n.fields.some(f=>f.beam))throw Error(c.id+' headlights');}
-    const tracks=TRACKS.map(t=>{const l=new NightLighting();l.setTrack(new Track(t));if(!l.lamps.length||l.lamps.some(p=>![p.x,p.y,p.radius].every(Number.isFinite)))throw Error('bad lamps '+t.id);return t.id;});
+    const tracks=TRACKS.map(t=>{
+     const l=new NightLighting(),tr=new Track(t);l.setTrack(tr);
+     if(l.lamps.some(p=>![p.x,p.y,p.heading,p.length,p.width].every(Number.isFinite)||!p.flood))throw Error('bad floodlights '+t.id);
+     for(const p of l.lamps){const hw=p.side>0?tr.hwLeftAt(p.s):tr.hwRightAt(p.s),w=tr.largeurBac(tr.idx(p.s),p.side);if(tr.runoffSurfaceAt(p.s,p.side*(hw+w*.55))!=='gravel')throw Error('lamp outside gravel '+t.id);}
+     if(l.lamps.length>=tr.length/45)throw Error('continuous circuit lighting '+t.id);
+     return {id:t.id,lamps:l.lamps.length};
+    });
     n.setTrack(race.track);
     // Restore realistic framing for captures; check all four camera transforms.
     for(const view of ['fixed','track','avance','avanceFixe']){r.setView(view);r.updateCamera(race,1);render();if(r.nightCanvas.width!==Math.round(r.w*r.dpr))throw Error('mask resolution');}
@@ -80,7 +93,7 @@ fs.mkdirSync(OUT,{recursive:true});
     race.timeOfDay='day';render();if(r.nightCanvas.style.display!=='none')throw Error('day mask persists');
     const day=performance.now();for(let i=0;i<15;i++)render();const dayMs=(performance.now()-day)/15;
     race.timeOfDay='night';render();
-    return{ahead,behind,side,turned,oldAhead,tracks:tracks.length,categories:categories.map(c=>c.id),nightMs,dayMs};
+    return{ahead,behind,side,noHalo,turned,oldAhead,floodAhead,floodBehind,floodSide,trackLighting:tracks,tracks:tracks.length,categories:categories.map(c=>c.id),nightMs,dayMs};
    });
    await page.evaluate(()=>{
     document.querySelector('#browser-performance-notice button')?.click();
@@ -100,6 +113,16 @@ fs.mkdirSync(OUT,{recursive:true});
    await page.screenshot({path:path.join(OUT,mobile?'nuit-mobile.png':'nuit-pc.png')});
    await page.evaluate(()=>{app.race.timeOfDay='day';app.renderer.draw(app.race,app.ui);});
    await page.screenshot({path:path.join(OUT,mobile?'jour-mobile.png':'jour-pc.png')});
+   await page.evaluate(mobile=>{
+    app.startQuick('timetrial','gt3','spa');app.state='paused';app.ui.hide();
+    const r=app.renderer,race=app.race;
+    const lamp=r.night.lamps.find(l=>l.s/race.track.length>.54&&l.s/race.track.length<.61)||r.night.lamps[0];
+    if(!lamp)throw Error('Spa gravel floodlights missing');
+    race.player.place(lamp.s-10,0,0);race.state='racing';race.countdown=0;
+    r.setView('fixed');r.cam.x=(race.player.x+lamp.target.x)/2;r.cam.y=(race.player.y+lamp.target.y)/2;r.cam.zoom=mobile?7:11;
+    r.draw(race,app.ui);
+   },mobile);
+   await page.screenshot({path:path.join(OUT,mobile?'spa-gravier-mobile.png':'spa-gravier-pc.png')});
    await page.evaluate(()=>{
     app.startQuick('timetrial','f1','monza');app.state='paused';app.ui.hide();
     app.race.state='racing';app.race.countdown=0;app.renderer.updateCamera(app.race,1);app.renderer.draw(app.race,app.ui);
