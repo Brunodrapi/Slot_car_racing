@@ -1,4 +1,4 @@
-# Édition itch.io — 0.55.1
+# Édition itch.io — 0.55.2
 
 L’export dédié conserve les records locaux. Une phrase simple indique : « Pour avoir accès aux
 records mondiaux, jouer sur la version en ligne ». Seul **grip-game.github.io** est un bouton.
@@ -10,8 +10,10 @@ des menus ou du comportement de lancement en plein écran n’est ajoutée pour 
 - [Branche itch-io du dépôt REC](https://github.com/Brunodrapi/Slot_car_racing/tree/itch-io)
 - [ZIP HTML5 prêt à charger](https://github.com/Brunodrapi/Slot_car_racing/raw/refs/heads/itch-io/grip-itch.zip)
 
-Le ZIP est publié sur une branche séparée du dépôt REC. L’accès en écriture au dépôt PROD
-`GRIP-game/grip-game.github.io` reste refusé par GitHub (403) ; son site reste inchangé.
+Le ZIP garde le même nom à chaque version (`grip-itch.zip`) : le lien ci-dessus mène toujours au
+dernier export. 0.55.2 : feux avant recalés sur le dessin de chaque voiture.
+
+Le ZIP est publié sur une branche séparée du dépôt REC. La prod, elle, est publiée par `tools/publier.sh` (0.55.2 en ligne sur grip-game.github.io).
 
 - [Aperçu du bouton dans les records](itch-records.png)
 - [Contrôles de l’export](verification.json)
