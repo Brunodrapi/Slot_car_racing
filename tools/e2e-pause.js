@@ -80,26 +80,34 @@ const FORMATS = [
     gênait. Le rendu publie `hudZones` : la position à gauche, les temps à droite. */
     const geo = await page.evaluate(() => {
       const r = app.renderer, b = r.pauseBtn, z = r.hudZones;
-      return { b, pos: z.pos, temps: z.temps, lap: z.lap, h: r.h, W: r.w };
+      return { b, dessin: r.pauseH, pos: z.pos, temps: z.temps, lap: z.lap, h: r.h, W: r.w };
     });
-    /* Les trois vides du haut, et non plus seulement l'absence de chevauchement.
+    /* LE HAUT TEL QU'IL EST AUJOURD'HUI (js/render.js, _drawHUD) : la position à gauche, les temps au
+    milieu (centrés quand la place le permet, sinon collés à la position), la pause au bord droit, et
+    le tour en dessous, à droite. L'ancienne mesure supposait la pause ENTRE la position et les temps
+    et accusait un chevauchement qui n'existait pas.
 
-    L'essai se contentait de vérifier que le bouton ne passait sous rien. Il passait le contrôle
-    avec quarante pixels d'un côté et dix de l'autre, ce qui est exactement le défaut qu'on a
-    corrigé : un alignement peut être parfaitement disjoint et parfaitement bancal. On mesure donc
-    la répartition elle-même. Le vide du milieu est volontairement petit — la pause et les temps se
-    lisent d'un seul tenant — ce sont les deux vides extérieurs qui doivent se valoir. */
-    const g1 = geo.b.x - (geo.pos.x + geo.pos.w);
-    const g2 = geo.temps.x - (geo.b.x + geo.b.s);
-    const g3 = geo.lap.x - (geo.temps.x + geo.temps.w);
-    const place = Math.min(g1, g2, g3) >= 0;
-    const equilibre = Math.abs(g1 - g3) <= 1.5;
+    On vérifie donc : aucun bloc n'en recouvre un autre, les deux bords extérieurs se valent (le haut
+    n'est pas bancal), et la pause reste assez grande pour un pouce. */
+    const r = (z, s) => ({ x: z.x, y: z.y, w: s ?? z.w, h: s ?? z.h });
+    /* La pause se mesure telle qu'elle est DESSINÉE : à la hauteur de l'étiquette de position (pauseH).
+    Sa zone tactile, carrée et plus haute (44 px), déborde de 2 px sur l'étiquette du tour en paysage :
+    sans effet, l'étiquette ne réagit pas au toucher. */
+    const blocs = { position: r(geo.pos), temps: r(geo.temps), pause: { x: geo.b.x, y: geo.b.y, w: geo.b.s, h: geo.dessin || geo.b.s }, tour: r(geo.lap) };
+    const touchent = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+    const noms = Object.keys(blocs), collisions = [];
+    for (let a = 0; a < noms.length; a++) for (let b = a + 1; b < noms.length; b++)
+      if (touchent(blocs[noms[a]], blocs[noms[b]])) collisions.push(noms[a] + '/' + noms[b]);
+    const bordG = geo.pos.x, bordD = geo.W - (geo.b.x + geo.b.s);
+    const g1 = geo.temps.x - (geo.pos.x + geo.pos.w), g2 = geo.b.x - (geo.temps.x + geo.temps.w);
+    const place = collisions.length === 0;
+    const equilibre = Math.abs(bordG - bordD) <= 1.5;
     const assezGros = geo.b.s >= 34;
     if (!place || !assezGros || !equilibre) fautes++;
     console.log(`  ${nom.padEnd(18)} bouton ${geo.b.s} px à x=${Math.round(geo.b.x)}`
-      + ` | vides ${g1.toFixed(1)} / ${g2.toFixed(1)} / ${g3.toFixed(1)}`
-      + (place ? '' : '  ← DEUX BLOCS SE CHEVAUCHENT')
-      + (equilibre ? '' : `  ← HAUT BANCAL : ${Math.abs(g1 - g3).toFixed(1)} px d'écart entre les bords`)
+      + ` | bords ${bordG.toFixed(1)} / ${bordD.toFixed(1)} | vides ${g1.toFixed(1)} / ${g2.toFixed(1)}`
+      + (place ? '' : `  ← CHEVAUCHEMENT : ${collisions.join(', ')}`)
+      + (equilibre ? '' : `  ← HAUT BANCAL : ${Math.abs(bordG - bordD).toFixed(1)} px d'écart entre les bords`)
       + (assezGros ? '' : '  ← TROP PETIT POUR UN POUCE'));
 
     const cx = geo.b.x + geo.b.s / 2, cy = geo.b.y + geo.b.s / 2;

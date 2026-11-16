@@ -68,10 +68,11 @@ const ROOT=path.resolve(__dirname,'..');
      app.last=base;app.race.acc=0;app.input.throttle=false;app.throttlePulses.reset();
      app.race._step=function(dt,on){if(on)gas+=dt;return step.call(this,dt,on);};
      now=base+10;
-     if(kind==='keyboard')window.dispatchEvent(new KeyboardEvent('keydown',{key:' ',code:'Space',bubbles:true}));
+     // la touche part d'un élément, comme dans un navigateur (le jeu lit e.target.closest pour ignorer les champs)
+     if(kind==='keyboard')document.body.dispatchEvent(new KeyboardEvent('keydown',{key:' ',code:'Space',bubbles:true}));
      else app.canvas.dispatchEvent(new PointerEvent('pointerdown',{pointerId:42,pointerType:'touch',clientX:300,clientY:500,bubbles:true}));
      now=base+60;
-     if(kind==='keyboard')window.dispatchEvent(new KeyboardEvent('keyup',{key:' ',code:'Space',bubbles:true}));
+     if(kind==='keyboard')document.body.dispatchEvent(new KeyboardEvent('keyup',{key:' ',code:'Space',bubbles:true}));
      else window.dispatchEvent(new PointerEvent('pointerup',{pointerId:42,pointerType:'touch',bubbles:true}));
      now=base+70;app._frame(now);
      results.push({kind,gas,held:app.input.throttle});

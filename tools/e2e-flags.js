@@ -52,7 +52,10 @@ const double=/const DOUBLE = `([\s\S]*?)`;/m.exec(fs.readFileSync(path.join(__di
     // Keep a real owner's incident stable while the host measures its three seconds off track.
     await g.evaluate(()=>{const c=app.race.player;c.v=0;c.vl=0;c.state='grass';c.update=()=>{c.state='grass';};});
     await h.evaluate(()=>{app.race.player.place(250,0,0);});
-    await s.waitForFunction(()=>app.race.flags.zones.length>0,{},{timeout:10000});
+    /* La règle est de 3 s de COURSE hors piste (FLAG_YELLOW_DELAY) ; avec trois pages qui font tourner le jeu
+    de nuit en même temps, la course avance bien moins vite que la montre (15 s mesurées dans un conteneur).
+    On laisse donc 45 s réelles, la règle restant vérifiée en temps de course par le jeu lui-même. */
+    await s.waitForFunction(()=>app.race.flags.zones.length>0,{},{timeout:45000});
     await s.waitForFunction(()=>document.querySelector('.spectator-race-clock .race-flag-yellow'));
     await s.screenshot({path:path.join(out,'multi-jaune-top-view.png')});
     await s.locator('select').selectOption('follow');await s.waitForTimeout(200);await s.screenshot({path:path.join(out,'multi-jaune-minicarte.png')});

@@ -41,7 +41,9 @@ const serveur = http.createServer((req, res) => {
   const page = await browser.newPage();
   let errs = 0, fautes = 0;
   page.on('pageerror', (e) => { errs++; console.log('[pageerror]', e.message); });
-  page.on('console', (m) => { if (m.type() === 'error') { errs++; console.log('[console]', m.text()); } });
+  // le dépôt n'a ni sw.js ni manifeste.json (seule la version publiée en a) : leurs 404 sont prévus (js/maj.js)
+  const absentDuDepot = (m) => /(sw|manifeste)\.js(on)?(\?|$)/.test(m.location()?.url || '') || /fetching the script/.test(m.text());
+  page.on('console', (m) => { if (m.type() === 'error' && !absentDuDepot(m)) { errs++; console.log('[console]', m.text()); } });
   await page.goto(`${base}/index.html`);
   await page.waitForTimeout(600);
 

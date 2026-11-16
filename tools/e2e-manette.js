@@ -28,6 +28,25 @@ const ROOT=path.resolve(__dirname,'..'),OUT=process.argv[2]||'/tmp/manette';
  const focus = page=>page.evaluate(()=>({id:document.activeElement.id,action:document.activeElement.dataset.action,car:document.activeElement.dataset.id,tag:document.activeElement.tagName}));
  const shot=(page,name)=>page.screenshot({path:path.join(OUT,name+'.png'),scale:'css'});
  try {
+  /* LA MANETTE EST MISE DE CÔTÉ (MANETTE = false, js/controls.js, 0.49) : le jeu est à un bouton, sur
+  ordinateur aussi. Tant que l'interrupteur est coupé, on vérifie ce qui est vrai — une manette branchée
+  ne prend PAS la main, le jeu reste au clavier — et le parcours complet ci-dessous attend qu'on le
+  rallume (il repasse alors tel quel). */
+  {
+   const ctx=await browser.newContext({viewport:{width:1440,height:900}});
+   await ctx.addInitScript(()=>{window.pad={index:0,id:'Xbox test',connected:true,mapping:'standard',axes:[0,0],buttons:Array.from({length:17},()=>({pressed:false,value:0}))};
+    Object.defineProperty(navigator,'getGamepads',{value:()=>[window.pad],configurable:true});});
+   const page=await ctx.newPage();page.on('pageerror',e=>errors.push(e.message));
+   await page.goto(url);await page.waitForFunction(()=>window.app?.controls);await page.waitForTimeout(800);
+   const etat=await page.evaluate(()=>({manette:MANETTE,mode:app.controls.mode}));
+   await ctx.close();
+   if(!etat.manette){
+    assert.equal(etat.mode,'keyboard','manette mise de côté : une manette branchée ne doit pas prendre la main');
+    assert.deepEqual(errors,[]);
+    console.log('OK : manette mise de côté (MANETTE = false) — une manette branchée laisse le jeu au clavier. Parcours manette non joué tant que l’option est coupée.');
+    return;
+   }
+  }
   const {ctx,page}=await create('PilotePad');
   assert.equal(await page.evaluate(()=>app.save.desktopControl),'gamepad','priorité à la manette branchée au démarrage');
   await button(page,0,500);assert(await page.locator('.home-screen [data-action="setup"]').count()>0,'A maintenu ne traverse pas deux écrans');

@@ -89,8 +89,9 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   const multi = plan.filter((m) => m.n > 1);
   const simple = plan.filter((m) => m.n === 1);
   dit(multi.length > 0, `${multi.length} voiture(s) a plusieurs livrees : ${multi.map((m) => `${m.nom} (${m.n})`).join(', ')}`);
-  dit(plan.length === 25 && multi.length === 16 && multi.every((m) => m.n === (m.id === '935' ? 4 : 3)) && simple.length === 9,
-    'vingt-cinq modèles : Langheck à quatre livrées, quinze GT/prototypes à trois, neuf F1 à une seule');
+  // 0.53.0 : dix GT3 à trois livrées s'ajoutent — 35 modèles, dont 26 à plusieurs livrées
+  dit(plan.length === 35 && multi.length === 26 && multi.every((m) => m.n === (m.id === '935' ? 4 : 3)) && simple.length === 9,
+    `trente-cinq modèles : Langheck à quatre livrées, vingt-cinq GT, GT3 et prototypes à trois, neuf F1 à une seule (${plan.length}, ${multi.length}, ${simple.length})`);
   const attendues = ['250gto', 'typee', '240z', '962', 'xjr9', '330p4', 'p68'];
   dit(attendues.every((id) => plan.find((m) => m.id === id)?.n === 3), 'les sept nouvelles GT/prototypes ont chacune trois livrées');
   dit(plan.every((m) => m.livrees.every((l) => l.top && l.pick)), 'chaque livrée a sa vue de course ET sa vignette de sélection');
@@ -105,7 +106,9 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       image.src = src;
     })));
   });
-  dit(images.length === 116 && images.every((i) => i.ok), `les 116 images de course et de menu sont chargees (${images.filter((i) => !i.ok).map((i) => i.src).join(', ') || 'toutes'})`);
+  // deux images par livrée — la vue de course et la vignette de menu — sans doublon ni oubli
+  const livrees = plan.reduce((n, m) => n + m.n, 0);
+  dit(images.length === 2 * livrees && images.every((i) => i.ok), `les ${2 * livrees} images de course et de menu (${livrees} livrées) sont chargees (${images.length} demandees ; ${images.filter((i) => !i.ok).map((i) => i.src).join(', ') || 'toutes'})`);
 
   /* --- 1 a 3. choisir, puis faire tourner, et aller chercher le bon dessin --- */
   for (const m of multi) {

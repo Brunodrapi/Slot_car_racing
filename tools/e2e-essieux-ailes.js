@@ -1,7 +1,7 @@
 // Real renderer review: all affected liveries, with and without steering.
 const {chromium}=require('playwright'),assert=require('node:assert/strict');
 (async()=>{
-  const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});
+  const browser=await chromium.launch({executablePath:(p=>require('fs').existsSync(p)?p:undefined)(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),args:['--no-sandbox']});
   try {
     const page=await browser.newPage({viewport:{width:1000,height:1000}});
     await page.goto((process.argv[2]||'http://127.0.0.1:8771')+'/index.html?diagnostic=1');
@@ -47,10 +47,12 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict');
       }
       return checks;
     });
-    assert(checks.every(c=>c.exposed>=1&&c.exposed<=8),JSON.stringify(checks));
+    // seules les roues hors de la règle, et non les vingt-huit : le message d'échec doit dire laquelle
+    const horsRegle=checks.filter(c=>!(c.exposed>=1&&c.exposed<=8));
+    assert(horsRegle.length===0,'pneu invisible ou trop visible au neutre : '+JSON.stringify(horsRegle));
     for(const id of ['ferrari312t','williamsfw07','lotus79','countach','gt40','935'])
       await page.locator('#review-'+id).screenshot({path:`docs/essieux-ailes/${id}.png`});
     require('fs').writeFileSync('docs/essieux-ailes/pneus-visibles.json',JSON.stringify(checks,null,2)+'\n');
-    console.log('24 wheel centers: visible tread between 1 and 8 pixels at 420px car length.');
+    console.log(`${checks.length} wheel centers: visible tread between 1 and 8 pixels at 420px car length.`);
   }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

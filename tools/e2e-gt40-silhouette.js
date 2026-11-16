@@ -1,5 +1,5 @@
 const {chromium}=require('playwright'),assert=require('assert/strict'),fs=require('fs');
-(async()=>{const b=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});try{
+(async()=>{const b=await chromium.launch({executablePath:(p=>require('fs').existsSync(p)?p:undefined)(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),args:['--no-sandbox']});try{
  const p=await b.newPage({viewport:{width:1200,height:940}}),errors=[];p.on('pageerror',e=>errors.push(e.message));
  await p.goto((process.argv[2]||'http://127.0.0.1:8771')+'/index.html?diagnostic=1');await p.waitForFunction(()=>window.app);
  const results=await p.evaluate(async()=>{

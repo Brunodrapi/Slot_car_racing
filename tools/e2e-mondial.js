@@ -216,7 +216,8 @@ const serveur = http.createServer((req, res) => {
   console.log('\nl\'etat du tableau mondial');
   const cas = [
     ['deconnecte', () => { app.mondial.session = null; app.mondial.envoi = null; }, /sign in|connecte-toi/i],
-    ['retour sans jeton', () => { app.mondial.erreurConnexion = 'pkce'; }, /without a token|sans jeton/i],
+    // 0.55.0 : un retour sans jeton ne montre plus de message technique — l'invitation ordinaire à se connecter
+    ['retour sans jeton', () => { app.mondial.erreurConnexion = 'pkce'; }, /^(?!.*(without a token|sans jeton)).*(sign in|connecte-toi)/i],
     ['refus de google', () => { app.mondial.erreurConnexion = 'access_denied'; }, /failed|échou/i],
     ['rien a envoyer', () => { app.mondial.erreurConnexion = null;
       app.mondial.session = { token: 'x', expire: Date.now() / 1000 + 9999, sub: 'u', nom: 'B' };
@@ -241,29 +242,34 @@ const serveur = http.createServer((req, res) => {
   }
 
 
-  /* --- 11. un retour de connexion rate doit se voir SUR L'AFFICHE --- */
-  /* Au retour de Google on atterrit sur l'affiche, et le message vivait sur l'écran des records,
-  quatre écrans plus loin : le joueur revenait à l'accueil, ne voyait rien, et n'avait aucun moyen
-  de recommencer. On vérifie aussi que l'affiche reste muette quand tout va bien. */
-  console.log('\nun retour rate, sur l\'affiche');
+  /* --- 11. un retour de connexion rate doit se voir AU MENU --- */
+  /* Au retour de Google on atterrit sur l'affiche, puis le menu : un refus de Google y laisse le bouton
+  « Se reconnecter », à côté des réglages, et le menu reste muet quand tout va bien. Depuis la 0.55.0,
+  un retour sans jeton (« vide », « pkce ») ne montre plus rien de technique : ce n'est pas un refus du
+  joueur, et le message parlait de la configuration de Supabase. (L'ancien avis `.menu-auth` de
+  l'affiche n'existe plus ; c'est le pied du menu qui porte le bouton.) */
+  console.log('\nun retour rate, au menu');
   const affiche = await page.evaluate(async () => {
     const lire = async () => {
       app.ui.menu();
       await new Promise((r) => setTimeout(r, 200));
-      const n = document.querySelector('.menu-auth');
-      return { vu: !!n, bouton: !!(n && n.querySelector('[data-action="google"]')),
-               reglages: !!(n && n.querySelector('[data-action="settings"]')) };
+      const pied = document.querySelector('.home-footer');
+      return { vu: !!(pied && pied.querySelector('[data-action="google"]')), bouton: !!(pied && pied.querySelector('[data-action="google"]')),
+               reglages: !!(pied && pied.querySelector('[data-action="settings"]')) };
     };
     app.mondial.erreurConnexion = null;
     const sain = await lire();
-    app.mondial.erreurConnexion = 'vide'; app.mondial.retourVide = 'code, state';
+    app.mondial.erreurConnexion = 'access_denied';
     const casse = await lire();
+    app.mondial.erreurConnexion = 'vide'; app.mondial.retourVide = 'code, state';
+    const vide = await lire();
     app.mondial.erreurConnexion = null;
-    return { sain, casse };
+    return { sain, casse, vide };
   });
-  dit(!affiche.sain.vu, 'rien sur l\'affiche quand tout va bien');
-  dit(affiche.casse.vu, 'un avis apparait quand la connexion a echoue');
+  dit(!affiche.sain.vu, 'rien au menu quand tout va bien');
+  dit(affiche.casse.vu, 'un refus de Google laisse « Se reconnecter » au menu');
   dit(affiche.casse.bouton && affiche.casse.reglages, 'avec de quoi recommencer, et de quoi aller aux reglages');
+  dit(!affiche.vide.vu, 'un retour sans jeton ne montre rien de technique (0.55.0)');
 
   /* --- 12. un retour VIDE est un echec, pas un chargement ordinaire --- */
   /* Sans la marque posée au départ, revenir les mains vides est indiscernable d'une ouverture

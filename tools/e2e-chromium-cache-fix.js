@@ -1,5 +1,5 @@
 const {chromium}=require('playwright'),assert=require('assert/strict');
-(async()=>{const b=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});try{
+(async()=>{const b=await chromium.launch({executablePath:(p=>require('fs').existsSync(p)?p:undefined)(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),args:['--no-sandbox']});try{
  for(const [ua,expected] of [
  ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0',true],
  ['Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/155.0.0.0 Safari/537.36',true],

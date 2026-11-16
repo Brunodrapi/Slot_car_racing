@@ -1,7 +1,7 @@
 // Inspect each livery in the real renderer. The guide column exposes the actual pivot
 // and tire footprint so visual placement can be reviewed independently of test results.
 const {chromium}=require('playwright'),fs=require('fs'),assert=require('assert/strict');
-(async()=>{const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});try{
+(async()=>{const browser=await chromium.launch({executablePath:(p=>require('fs').existsSync(p)?p:undefined)(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),args:['--no-sandbox']});try{
  fs.mkdirSync('docs/ancrages-roues',{recursive:true});
  const page=await browser.newPage({viewport:{width:1460,height:1100}});
  await page.goto((process.argv[2]||'http://127.0.0.1:8771')+'/index.html?diagnostic=1');await page.waitForFunction(()=>window.app);
@@ -36,6 +36,12 @@ const {chromium}=require('playwright'),fs=require('fs'),assert=require('assert/s
  for(const id of new Set(data.map(r=>r.model)))await page.locator('#anchors-'+id).screenshot({path:'docs/ancrages-roues/'+id+'.png'});
  assert(data.every(r=>r.pivotStable),'Steering moved a pivot');
  assert(data.filter(r=>!r.f1).every(r=>r.centeredInsideBody),'Tire center outside a closed fender: '+JSON.stringify(data.filter(r=>!r.f1&&!r.centeredInsideBody)));
- assert(data.filter(r=>r.f1&&r.model!=='williamsfw07').every(r=>r.centeredInsideBody),'F1 pivot outside the native suspension hub');
+ /* Le pivot d'une F1 doit tomber sur sa suspension dessinée. Exceptions voulues : la Windsor 07, et la roue
+ avant des Boomerang Fan 46 et Somua Turbo 10 depuis la 0.52.76 — Bruno a fait dépasser les deux roues avant
+ autant de l'aileron, et leur centre tombe juste au-delà du bout des bras, caché sous le pneu (droit comme
+ braqué). Toute autre roue F1 hors de sa suspension reste une faute. */
+ const pivotsAdmis=new Set(['brabhambt46b:front','renaultrs10:front']);
+ const pivotsHors=data.filter(r=>r.f1&&r.model!=='williamsfw07'&&!pivotsAdmis.has(r.model+':'+r.axle)&&!r.centeredInsideBody);
+ assert(pivotsHors.length===0,'F1 pivot outside the native suspension hub: '+JSON.stringify(pivotsHors.map(r=>[r.model,r.axle,Math.round(r.xPx),Math.round(r.yPx)])));
  console.log('57 liveries: fixed steering pivots and all closed-body tire centers under fenders. Review guides exported.');
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

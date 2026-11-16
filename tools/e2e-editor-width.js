@@ -1,5 +1,5 @@
 const {chromium}=require('playwright'),assert=require('assert/strict'),vm=require('vm');
-(async()=>{const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});try{
+(async()=>{const b=await chromium.launch({executablePath:(p=>require('fs').existsSync(p)?p:undefined)(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),args:['--no-sandbox']});try{
  const p=await b.newPage({viewport:{width:1440,height:900}}),errors=[];p.on('pageerror',e=>errors.push(e.message));p.on('dialog',d=>d.accept());
  await p.goto((process.argv[2]||'http://127.0.0.1:8770')+'/editor.html?decor=monza');
  await p.waitForFunction(()=>typeof DEC!=='undefined'&&DEC.track&&DEC.id==='monza');

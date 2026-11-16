@@ -37,7 +37,10 @@ const serveur = http.createServer((req, res) => {
   const page = await ctx.newPage();
   let errs = 0;
   page.on('pageerror', (e) => { if (errs++ < 4) console.log('[pageerror]', e.message); });
-  page.on('console', (m) => { if (m.type() === 'error') { errs++; console.log('[console]', m.text()); } });
+  /* Le dépôt n'a ni sw.js ni manifeste.json (seule la version publiée en a) : leurs requêtes échouent en
+  404, et le jeu le prévoit (js/maj.js). Ce ne sont pas des erreurs de la page. */
+  const swAbsent = (m) => /(sw|manifeste)\.js(on)?(\?|$)/.test(m.location()?.url || '') || /fetching the script/.test(m.text());
+  page.on('console', (m) => { if (m.type() === 'error' && !swAbsent(m)) { errs++; console.log('[console]', m.text()); } });
   await page.goto(`${base}/index.html`);
   /* Un joueur nommé. Le menu ne s'ouvre plus sans nom, et un essai doit faire ce que fait un
   joueur. On attend que `app` existe : `goto` rend la main au chargement, pas à l'initialisation. */
@@ -53,7 +56,8 @@ const serveur = http.createServer((req, res) => {
   await page.waitForTimeout(400);
   await page.keyboard.press('Enter');
   await page.waitForTimeout(400);
-  await page.click('.screen.poster .mi:nth-of-type(1)');
+  // la course rapide, au menu : les cartes des voitures et leurs cadrans sont dans son paddock
+  await page.click('.mode-card[data-mode="race"]');
   await page.waitForTimeout(2500);
   const lu = await page.evaluate(() => [...document.querySelectorAll('.models .card')].map((c) => ({
     nom: c.querySelector('b').textContent.trim(),

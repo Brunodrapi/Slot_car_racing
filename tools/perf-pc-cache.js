@@ -14,7 +14,7 @@ const ROOT=path.resolve(__dirname,'..');
  await new Promise(r=>server.listen(0,'127.0.0.1',r));
  let browser;
  try{
- browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
+ browser=await chromium.launch({executablePath:(p=>require('fs').existsSync(p)?p:undefined)(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),args:['--no-sandbox']});
 
  const system=await (await browser.newBrowserCDPSession()).send('SystemInfo.getInfo');
  const graphics={devices:system.gpu.devices,features:system.gpu.featureStatus};

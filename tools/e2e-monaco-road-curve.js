@@ -1,5 +1,5 @@
 const {chromium}=require('playwright'),assert=require('assert/strict'),zones=require('./fixtures/monaco-road-edges.json');
-(async()=>{const b=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']});try{
+(async()=>{const b=await chromium.launch({executablePath:(p=>require('fs').existsSync(p)?p:undefined)(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),args:['--no-sandbox']});try{
  const p=await b.newPage({viewport:{width:1280,height:1000}}),errors=[];p.on('pageerror',e=>errors.push(e.message));
  await p.goto((process.argv[2]||'http://127.0.0.1:8770')+'/editor.html?decor=monaco');await p.waitForFunction(()=>typeof DEC!=='undefined'&&DEC.track);
  const result=await p.evaluate(zones=>{

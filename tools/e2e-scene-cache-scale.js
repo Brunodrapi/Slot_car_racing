@@ -1,6 +1,6 @@
 // Regression: screen-aligned tree sprites must keep their world size when baked into tiles.
 const {chromium}=require('playwright'),assert=require('assert/strict');
-(async()=>{const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});try{
+(async()=>{const b=await chromium.launch({executablePath:(p=>require('fs').existsSync(p)?p:undefined)(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),args:['--no-sandbox']});try{
  const p=await b.newPage();await p.goto((process.argv[2]||'http://127.0.0.1:8765')+'/tools/diagnostic-pc.html');await p.waitForFunction(()=>!document.querySelector('#start').disabled);await p.click('#start');
  const rows=await p.evaluate(()=>{
   const w=document.querySelector('iframe').contentWindow,a=w.app,r=a.renderer;a.state='paused';

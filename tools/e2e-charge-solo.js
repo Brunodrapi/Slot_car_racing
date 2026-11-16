@@ -173,7 +173,10 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     return { avant, retenue, libre: app.race.attente,
              repart: app.race.countdown < cd0 || app.race.state !== 'countdown' };
   }, base);
-  dit(decor.avant > 0, `le circuit a bien des dessins en route a attendre (${decor.avant})`);
+  /* Depuis que les quatorze circuits sont peints par le jeu (fond et stands compris), aucun ne fait plus
+  descendre de dessin au départ : la liste est vide, et c'est normal. La barrière, elle, existe toujours
+  et se vérifie juste après avec une image lente posée exprès. */
+  dit(Number.isInteger(decor.avant), `la liste des dessins en route existe (${decor.avant} pour ce circuit, peint par le jeu)`);
   dit(decor.retenue === true, `un dessin en route retient la course (attente ${decor.retenue})`);
   dit(decor.libre === false && decor.repart, `elle repart quand il arrive (attente ${decor.libre})`);
 

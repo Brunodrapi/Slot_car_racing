@@ -1980,6 +1980,42 @@ js/main.js                 boucle de jeu, entrées, enchaînement
 tools/                     scripts de développement (simulation IA headless, diagnostics physique, tests Playwright)
 ```
 
+## Lancer tous les tests (`tools/e2e-*.js`)
+
+Les 66 essais Playwright se lancent un par un : `NODE_PATH=$(npm root -g) node tools/e2e-<nom>.js`.
+Pour toute la série, il faut d'abord :
+
+- **trois serveurs locaux à la racine du dépôt** — certains essais visent une adresse fixe :
+  `python3 -m http.server 8765 --bind 127.0.0.1` (et de même 8770, 8771) ;
+- **le rapport de test des statistiques**, produit par la vraie migration SQL dans une base
+  PostgreSQL embarquée, avant `e2e-analytics.js` :
+  `npm install --prefix /tmp/slot-analytics-test @electric-sql/pglite` puis
+  `NODE_PATH=/tmp/slot-analytics-test/node_modules node tools/analytics-test.js` ;
+- Chromium : `/usr/bin/chromium` (ou `CHROMIUM_PATH`) quand il existe, sinon celui de Playwright.
+
+Plusieurs essais **réécrivent leurs captures dans `docs/`** (drapeaux, ancrages des roues, essieux…) :
+après une série lancée pour vérifier, `git checkout -- docs` remet les captures publiées. Lancés à
+plus de deux en parallèle, les essais multijoueurs et ceux qui mesurent du temps réel ralentissent
+assez pour échouer ; deux à la fois tiennent.
+
+**Remis à jour sur le jeu actuel (16 novembre 2026).** Quinze essais décrivaient un jeu d'avant : 3 modes
+au menu (4 depuis l'entraînement), 25 voitures (35 avec les GT3), l'ancien message de retour Google
+(retiré en 0.55.0), l'ancienne barre du haut en course, la planche des circuits devenue penchée,
+`.screen.poster .mi` (l'ancien menu), l'ancien faux réseau sans canal de messages (`e2e-charge` reprend
+celui de `e2e-duo`), un hôte « lent » simulé à un endroit par où il n'envoie plus rien
+(`hostTick` → `NetDrive.afterFrame`), une touche envoyée à `window` (le jeu lit `e.target.closest`),
+une manette mise de côté (`MANETTE = false` : l'essai vérifie qu'une manette branchée ne prend pas la
+main), un circuit qui téléchargeait encore son fond, et 10 s réelles pour 3 s de course à trois pages.
+Les 404 de `sw.js` et `manifeste.json`, absents du dépôt, ne comptent plus comme des erreurs. Aucun
+essai n'a été affaibli sur ce qu'il vérifie ; deux exceptions sont nommées : le pivot des roues avant
+des Boomerang Fan 46 et Somua Turbo 10, juste au-delà de la suspension dessinée depuis la 0.52.76 (caché
+sous le pneu).
+
+**Deux essais restent rouges sur de vrais écarts du jeu**, en attendant une décision :
+`e2e-gauges` (le cadran G est plein pour les F1 à effet de sol, 2,7 à 2,9 g, au-delà du haut de
+l'échelle, 2,6 g) et `e2e-essieux-ailes` (au neutre, le pneu avant gauche de la Langheck Lemon
+Computer 71 est entièrement couvert par le contour de son dessin).
+
 ## L'écran-titre (0.44.1)
 
 Le jeu s'ouvre sur l'affiche de Montmartre — la rue Lepic, la Ford GT et la Ferrari sur les pavés,

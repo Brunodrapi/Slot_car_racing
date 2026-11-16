@@ -101,7 +101,10 @@ const serveur = http.createServer((req, res) => {
       const m = await page.evaluate((n) => {
         const el = document.querySelector(`[data-rail="${n}"]`);
         const cartes = el.querySelectorAll('.card');
-        const hauteurs = new Set([...cartes].map(c => Math.round(c.getBoundingClientRect().top)));
+        /* La ligne se lit dans la mise en page (offsetTop), pas à l'écran : sur ordinateur la planche des
+        circuits est penchée (rotate(-.7deg), css/style.css), et chaque carte y est à une hauteur
+        différente de quelques pixels, sans quitter sa ligne. */
+        const hauteurs = new Set([...cartes].map(c => c.offsetTop));
         return { deborde: el.scrollWidth - el.clientWidth, n: cartes.length, lignes: hauteurs.size };
       }, r);
       dit(m.deborde > 50, `rail ${r} : ${m.n} cartes, ${m.deborde} px a faire defiler`);

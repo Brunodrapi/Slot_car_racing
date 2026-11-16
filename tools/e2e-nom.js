@@ -37,6 +37,7 @@ const serveur = http.createServer((req, res) => {
   const base = 'http://127.0.0.1:' + serveur.address().port;
   const nav = await chromium.launch();
   let fautes = 0, erreurs = 0;
+  const MODES_AU_MENU = 4;
   const dit = (ok, txt) => { if (!ok) fautes++; console.log(`  ${ok ? 'ok  ' : 'FAUX'}  ${txt}`); };
 
   const neuf = async () => {
@@ -116,13 +117,14 @@ const serveur = http.createServer((req, res) => {
     await page.click('#btn-nom');
     await page.waitForTimeout(400);
     const apres = await page.evaluate(() => ({ bandeaux: document.querySelectorAll('.mode-card').length, nom: app.save.name }));
-    dit(apres.bandeaux === 3 && apres.nom === 'Bruno42', `valider ouvre le menu (${apres.bandeaux} bandeaux, nom « ${apres.nom} »)`);
+    // quatre modes au menu depuis l'entraînement (0.52.63) : course rapide, contre-la-montre, entraînement, multijoueur
+    dit(apres.bandeaux === MODES_AU_MENU && apres.nom === 'Bruno42', `valider ouvre le menu (${apres.bandeaux} bandeaux, nom « ${apres.nom} »)`);
     await page.reload();
     await page.waitForTimeout(600);
     await page.keyboard.press('Enter');
     await page.waitForTimeout(500);
     const revenu = await page.evaluate(() => ({ champ: !!document.getElementById('inp-nom'), bandeaux: document.querySelectorAll('.mode-card').length, nom: app.save.name }));
-    dit(!revenu.champ && revenu.bandeaux === 3, `au retour, le nom n'est plus demande (« ${revenu.nom} »)`);
+    dit(!revenu.champ && revenu.bandeaux === MODES_AU_MENU, `au retour, le nom n'est plus demande (« ${revenu.nom} »)`);
 
     // --- 5. les réglages ne laissent pas effacer le nom ---
     const vide = await page.evaluate(async () => {

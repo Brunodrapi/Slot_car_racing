@@ -1,7 +1,7 @@
 // Run against a local HTTP server: node tools/e2e-diagnostic-pc.js http://127.0.0.1:8765
 const {chromium}=require('playwright'),assert=require('assert/strict');
 (async()=>{
- const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});
+ const b=await chromium.launch({executablePath:(p=>require('fs').existsSync(p)?p:undefined)(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),args:['--no-sandbox']});
  try{
  const p=await b.newPage({viewport:{width:1280,height:720}}),errors=[];
  p.on('pageerror',e=>errors.push(e.message));

@@ -1,5 +1,5 @@
 const {chromium}=require('playwright'),assert=require('assert/strict');
-(async()=>{const b=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});try{
+(async()=>{const b=await chromium.launch({executablePath:(p=>require('fs').existsSync(p)?p:undefined)(process.env.CHROMIUM_PATH||'/usr/bin/chromium'),args:['--no-sandbox']});try{
  const p=await b.newPage({viewport:{width:1280,height:720}}),errors=[];p.on('pageerror',e=>errors.push(e.message));
  await p.goto((process.argv[2]||'http://127.0.0.1:8765')+'/tools/diagnostic-pc.html');await p.waitForFunction(()=>!document.querySelector('#start').disabled);await p.click('#start');
  for(const [mode,scale] of [['backdrop',5],['backdrop8',8],['backdrop10',10]]){

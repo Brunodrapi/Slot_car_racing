@@ -30,42 +30,10 @@ const ROOT = path.join(__dirname, '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.wav': 'audio/wav',
   '.json': 'application/json', '.png': 'image/png', '.webp': 'image/webp', '.mp3': 'audio/mpeg' };
 
-const DOUBLE = `
-(() => {
-  class RoomBC {
-    static available() { return true; }
-    constructor() { this.mine = {}; this.others = new Map(); this.label = null; this.h = []; this.ch = null; this.relayer = true; }
-    claim(code, asHost) {
-      this.label = (asHost ? '0-' : '1-') + Math.random().toString(36).slice(2, 7);
-      this.ch = new BroadcastChannel('eol-chg-' + code);
-      this.ch.onmessage = (e) => {
-        const m = e.data;
-        if (m.from === this.label) return;
-        if (m.type === 'bonjour') this.envoi();
-        this.others.set(m.from, { presence: m.p, updatedAt: Date.now() });
-        this.fire();
-      };
-      this.ch.postMessage({ type: 'bonjour', from: this.label, p: this.mine });
-      setTimeout(() => this.fire(), 0);
-      return Promise.resolve();
-    }
-    envoi() { this.ch.postMessage({ type: 'p', from: this.label, p: this.mine }); }
-    presence(patch) {
-      for (const k in patch) { if (patch[k] === null) delete this.mine[k]; else this.mine[k] = patch[k]; }
-      this.envoi(); this.fire(); return Promise.resolve();
-    }
-    peers() {
-      const l = [{ peer: this.label, isMe: true, presence: this.mine, updatedAt: Date.now() }];
-      for (const [k, v] of this.others) l.push({ peer: k, isMe: false, presence: v.presence, updatedAt: v.updatedAt });
-      return l;
-    }
-    fire() { const p = this.peers(); for (const h of this.h) h({ peers: p, joined: p, left: [], updated: [] }); }
-    onPeers(h) { this.h.push(h); setTimeout(() => h({ peers: this.peers(), joined: this.peers(), left: [], updated: [] }), 0); return () => {}; }
-    close() { if (this.ch) this.ch.close(); this.others.clear(); }
-  }
-  window.RoomRTC = RoomBC;
-})();
-`;
+/* Le faux réseau (RoomRTC sur BroadcastChannel) est celui de e2e-duo.js, tenu à jour avec le jeu : la copie
+qui vivait ici n'avait pas le canal de messages qu'utilise la conduite en ligne (net-drive.js), et l'hôte
+s'arrêtait sur « Cannot read properties of null (reading 'peers') ». Une seule copie, comme e2e-flags.js. */
+const DOUBLE = /const DOUBLE = `([\s\S]*?)`;/m.exec(fs.readFileSync(path.join(__dirname, 'e2e-duo.js'), 'utf8'))[1];
 
 (async () => {
   const serveur = http.createServer((req, res) => {
@@ -114,10 +82,13 @@ const DOUBLE = `
   qui construit son circuit et décode ses vignettes, et c'est deux fois et demie le seuil au-delà
   duquel l'invité criait à la perte. */
   console.log('\nun hote lent a demarrer');
+  /* L'hôte envoie l'état de la course à chaque image par la conduite en ligne (NetDrive.afterFrame,
+  js/net-drive.js) ; `hostTick` ne sert plus qu'aux résultats. C'est donc là qu'on le fait taire — le
+  bloquer à l'ancien endroit laissait l'hôte parler, et l'essai ne reproduisait plus rien. */
   await hote.evaluate(() => {
-    const vrai = app.net.hostTick.bind(app.net);
+    const vrai = NetDrive.prototype.afterFrame;
     const t0 = performance.now();
-    app.net.hostTick = (race) => { if (performance.now() - t0 > 5000) return vrai(race); };
+    NetDrive.prototype.afterFrame = function (input) { if (this.host && performance.now() - t0 < 5000) return; return vrai.call(this, input); };
   });
   await hote.evaluate(() => app.net.start());
   await Promise.all([hote, invite].map((p) => p.waitForFunction(() => app.state === 'race', { timeout: 20000 })));
