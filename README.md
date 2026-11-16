@@ -1,4 +1,4 @@
-# GRIP — édition itch.io 0.55.1
+# GRIP — édition itch.io 0.55.2
 
 Cette branche `itch-io` du dépôt REC contient le jeu minifié destiné à itch.io et son export ZIP.
 
@@ -11,6 +11,9 @@ L’édition garde les temps locaux. La phrase « Pour avoir accès aux records 
 la version en ligne » est du texte simple. Seul **grip-game.github.io** est un bouton : il ouvre
 https://grip-game.github.io/ dans un nouvel onglet. La connexion Google au tableau mondial
 n’est pas proposée depuis itch.io.
+
+**0.55.2 :** les feux avant sont recalés sur le dessin de chaque voiture (le feu droit est le vrai
+miroir du gauche et se pose sur le phare dessiné ; sept voitures ont des optiques refaites).
 
 Cette édition comprend les feux adaptés aux 35 voitures et les pneus avant de la Purosangue Gran
 Corsa élargis comme les pneus arrière. Le commentaire technique sur le retour de Google a été retiré.
