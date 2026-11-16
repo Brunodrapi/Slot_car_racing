@@ -1,5 +1,11 @@
 # Édition itch.io — 0.55.2
 
+> **À venir avec la 0.56.0 (en recette, pas encore exportée).** Le tableau mondial arrive sur
+> itch.io : la colonne « Monde » sans compte, et la connexion Google dans un nouvel onglet, par un
+> pont servi par la prod (`itch.html`). Le renvoi vers la version en ligne décrit ci-dessous
+> disparaît. La prod doit être publiée AVANT de charger le nouveau ZIP sur itch.io. Détails dans le
+> README du jeu, « Le tableau mondial sur itch.io ».
+
 L’export dédié conserve les records locaux. Une phrase simple indique : « Pour avoir accès aux
 records mondiaux, jouer sur la version en ligne ». Seul **grip-game.github.io** est un bouton.
 Le lien ouvre **https://grip-game.github.io/** dans un nouvel onglet. Le menu propose aussi ce bouton. La connexion Google n’est pas lancée depuis cette édition.

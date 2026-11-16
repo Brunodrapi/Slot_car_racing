@@ -82,7 +82,17 @@ class App {
     window.addEventListener('appinstalled', () => { this.invitInstall = null; this.installe = true; rafraichit(); });
     // le tableau mondial : il se débrouille seul, et son absence n'empêche rien
     this.isItch = typeof APP_DISTRIBUTION !== 'undefined' && APP_DISTRIBUTION === 'itch';
-    this.mondial = this.isItch ? null : new Mondial();
+    /* Sur itch.io aussi (0.56.0) : le tableau se lit d'ici, et la session vit dans le pont servi par la
+    prod (js/mondial.js, PONT_URL). La connexion s'y fait dans un nouvel onglet, sans recharger le jeu :
+    quand elle aboutit, on fait ce que le web fait au chargement — le nom, puis le rattrapage. */
+    this.mondial = new Mondial({ itch: this.isItch });
+    this.mondial.onConnexion = () => {
+      if (this.mondial.connecte()) {
+        this.mondial.poseNom(this.playerName());
+        if (this.save.name) this.mondial.rattrape(this.save.bestLapsNets).catch(() => {});
+      }
+      this.ui.repeintMondial();
+    };
     this.analytics = new GameAnalytics();
     /* Au retour d'une connexion Google, on déclare son pseudo tout de suite.
 
@@ -107,7 +117,7 @@ class App {
     sur un autre appareil arrivent ici, ceux d'ici partent là-bas. L'écran de course repeint sa
     ligne d'état et sa liste quand la réponse arrive. */
     PalmaresSync.onEtat = () => { if (this.ui._cleEcran === 'depart:race') this.ui.setupScreen('race'); else this.ui.majNuage(); };
-    if (this.mondial?.connecte()) PalmaresSync.synchronise(this.mondial, this.save).catch(() => {});
+    if (this.mondial?.connecte()) PalmaresSync.synchronise(this.mondial, this.save).catch(() => {});   // (le web seul, voir palmares.js)
     this.ui.splash();
     this.refreshCustom().then(() => {
       const params = new URLSearchParams(location.search);

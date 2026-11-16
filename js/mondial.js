@@ -64,8 +64,26 @@ n'en a pas de plus vieux.
 Une variable plutôt qu'un test en place, pour que les essais du tableau puissent la lever. */
 let TEMPS_PUBLIES = typeof APP_CANAL !== 'undefined' && APP_CANAL === 'prod';
 
+/* SUR ITCH.IO, LA SESSION VIT DANS UN PONT, PAS DANS LE JEU (0.56.0).
+
+Là-bas le jeu tourne dans un cadre servi par html-classic.itch.zone. Google refuse de s'afficher dans un
+cadre, et cette adresse est partagée par TOUS les jeux HTML5 d'itch.io : un jeton rangé par le jeu — il
+porte l'e-mail et le nom Google du joueur — serait lisible par n'importe lequel d'entre eux.
+
+Le jeu embarque donc `itch.html`, servi par la prod : un cadre invisible, sur l'origine
+grip-game.github.io, qui garde la session et pose les temps à sa place. La connexion Google se fait
+dans un nouvel onglet, sur cette même page, qui remet la session au pont et à lui seul. Le jeu n'en
+connaît que « connecté : oui ou non ». Le détail est en tête d'itch.html. La LECTURE du tableau, elle,
+est publique et se fait d'ici, comme sur le web. */
+const PONT_URL = 'https://grip-game.github.io/itch.html';
+const PONT_ORIGINE = 'https://grip-game.github.io';
+
 class Mondial {
-  constructor() {
+  constructor(options = {}) {
+    this.itch = !!options.itch;    // l'édition itch.io : la session est dans le pont (voir PONT_URL)
+    this.pontConnecte = false;     // ce que le pont dit de sa session
+    this.enCours = false;          // une connexion est en cours dans un autre onglet
+    this.onConnexion = () => {};   // la connexion vient de changer : à qui le dire
     this.session = null;        // { token, expire, nom, sub } une fois connecté
     this.cache = new Map();     // circuit → { t, lignes } : une lecture par circuit, pas par ligne
     this.erreur = null;
@@ -98,8 +116,76 @@ class Mondial {
         localStorage.setItem('eol.inconnus', JSON.stringify({ v: LISTES_SERVEUR, cles: [] }));
       }
     } catch (_) {}
-    this._litSession();
-    this._litRetour();
+    if (this.itch) this._ouvrePont();
+    else { this._litSession(); this._litRetour(); }
+  }
+
+  /* ------------------------------------------------------------------ le pont d'itch.io */
+
+  _ouvrePont() {
+    this._attentes = new Map(); this._numero = 0;
+    this._pontPret = new Promise((res) => { this._pontDit = res; });
+    const f = document.createElement('iframe');
+    f.src = PONT_URL; f.title = 'GRIP'; f.tabIndex = -1; f.setAttribute('aria-hidden', 'true');
+    f.style.cssText = 'position:absolute;width:0;height:0;border:0;visibility:hidden';
+    window.addEventListener('message', (e) => this._duPont(e));
+    (document.body || document.documentElement).appendChild(f);
+    this._pont = f;
+  }
+
+  // Une demande au pont, et sa réponse. Sans pont (prod injoignable), elle échoue après le délai.
+  _auPont(type, corps, delai = 20000) {
+    return new Promise((res, rej) => {
+      const id = ++this._numero;
+      const t = setTimeout(() => { this._attentes.delete(id); rej(new Error('pont')); }, delai);
+      this._attentes.set(id, { res, t });
+      this._pontPret.then(() => this._pont.contentWindow.postMessage({ grip: 'pont', v: 1, id, type, corps }, PONT_ORIGINE));
+    });
+  }
+
+  // On n'écoute que le pont : ce cadre-là, et cette origine-là.
+  _duPont(e) {
+    if (!this._pont || e.source !== this._pont.contentWindow || e.origin !== PONT_ORIGINE) return;
+    const m = e.data;
+    if (!m || m.grip !== 'pont' || m.v !== 1) return;
+    if (m.type === 'pret') { this._pontDit(); this._auPont('etat').catch(() => {}); return; }
+    const a = m.id != null && this._attentes.get(m.id);
+    if (a) { this._attentes.delete(m.id); clearTimeout(a.t); a.res(m); }
+    if (m.type === 'etat') this._etatPont(m);
+  }
+
+  _etatPont(m) {
+    const avant = this.pontConnecte;
+    this.pontConnecte = !!m.connecte;
+    if (m.erreur) { this.erreurConnexion = String(m.erreur); this._finOnglet(); }
+    else if (this.pontConnecte) { this.erreurConnexion = null; this._finOnglet(); }
+    if (avant !== this.pontConnecte || m.erreur) this.onConnexion();
+  }
+
+  /* La connexion, dans un NOUVEL ONGLET. `window.open` part dans le geste du joueur, sans rien attendre
+  avant, sinon le navigateur le bloque ; et sans `noopener` : c'est par ce lien que la page de retour
+  retrouve le pont. Si l'onglet est fermé sans connexion, on cesse d'attendre. */
+  _entrerParOnglet() {
+    this.erreurConnexion = null;
+    let w = null;
+    try { w = window.open(PONT_URL + '?entrer=1', '_blank'); } catch (_) {}
+    if (!w) { this.erreurConnexion = 'onglet'; this.onConnexion(); return; }
+    this._finOnglet();
+    this._onglet = w; this.enCours = true;
+    this._veille = setInterval(() => {
+      let ferme = true;
+      try { ferme = w.closed; } catch (_) {}
+      if (!ferme) return;
+      clearInterval(this._veille);
+      // le pont annonce la connexion juste avant que l'onglet se ferme : on lui laisse le temps d'arriver
+      setTimeout(() => { if (this._onglet === w && this.enCours) { this._finOnglet(); this.onConnexion(); } }, 1500);
+    }, 700);
+    this.onConnexion();
+  }
+  _finOnglet() { this.enCours = false; clearInterval(this._veille); this._onglet = null; }
+  annuler() {
+    if (this._onglet) try { this._onglet.close(); } catch (_) {}
+    this._finOnglet(); this.onConnexion();
   }
 
   /* La session, relue du navigateur puis du fragment d'URL.
@@ -173,13 +259,17 @@ class Mondial {
     history.replaceState(null, '', location.pathname + location.search);
   }
 
-  connecte() { return !!(this.session && this.session.expire > Date.now() / 1000 + 60); }
+  connecte() {
+    if (this.itch) return this.pontConnecte;
+    return !!(this.session && this.session.expire > Date.now() / 1000 + 60);
+  }
 
   /* Partir se connecter chez Google, et revenir ici même.
 
   `redirect_to` doit être déclaré dans le tableau de bord Supabase, sinon la redirection est
   refusée au retour — c'est la protection qui empêche un site tiers de récupérer les jetons. */
   entrer() {
+    if (this.itch) return this._entrerParOnglet();
     const retour = location.origin + location.pathname;
     /* On MARQUE le départ, pour pouvoir juger le retour.
 
@@ -193,6 +283,11 @@ class Mondial {
   }
 
   sortir() {
+    if (this.itch) {
+      if (this.pontConnecte) this._auPont('sortir').catch(() => {});
+      this.pontConnecte = false;
+      return;
+    }
     this.session = null;
     try { localStorage.removeItem('eol.session'); } catch (_) {}
   }
@@ -243,18 +338,11 @@ class Mondial {
     if (!TEMPS_PUBLIES) return { ok: false, raison: 'recette' };
     if (!this.connecte()) return { ok: false, raison: 'anonyme' };
     try {
-      const r = await fetch(`${MONDIAL_URL}/functions/v1/record`, {
-        method: 'POST',
-        headers: {
-          apikey: MONDIAL_KEY,
-          Authorization: `Bearer ${this.session.token}`,
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({ circuit, voiture, temps, pilote: this.pseudo || '' }),
-      });
-      const rep = await r.json().catch(() => ({}));
+      const r = await this._poste({ circuit, voiture, temps, pilote: this.pseudo || '' });
+      const rep = r.rep;
       if (r.ok) this.cache.delete(circuit);   // le tableau vient de changer : on le relira
       if (r.status === 401) this.sortir();    // session périmée : on redemandera la connexion
+      if (this.itch && rep.raison === 'anonyme') this.pontConnecte = false;   // le pont n'a plus de session
       const raison = rep.raison || rep.message || ('HTTP ' + r.status);
       /* Le DÉTAIL du serveur, gardé et montré.
 
@@ -276,6 +364,25 @@ class Mondial {
       this.dernierRefus = { raison: 'reseau', circuit, voiture };
       return { ok: false, raison: 'reseau' };
     }
+  }
+
+  /* Le temps part : d'ici avec le jeton sur le web, par le pont sur itch.io (qui a le jeton, pas nous).
+  Dans les deux cas : { ok, status, rep }, la réponse du serveur des records. */
+  async _poste(corps) {
+    if (this.itch) {
+      const m = await this._auPont('poser', corps);
+      return { ok: !!m.ok, status: m.status || 0, rep: m.rep || {} };
+    }
+    const r = await fetch(`${MONDIAL_URL}/functions/v1/record`, {
+      method: 'POST',
+      headers: {
+        apikey: MONDIAL_KEY,
+        Authorization: `Bearer ${this.session.token}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify(corps),
+    });
+    return { ok: r.ok, status: r.status, rep: await r.json().catch(() => ({})) };
   }
 
   /* Ce qui est déjà parti, pour ne pas le renvoyer à chaque ouverture. */

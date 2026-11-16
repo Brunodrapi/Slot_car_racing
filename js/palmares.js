@@ -140,7 +140,9 @@ const PalmaresSync = {
   canal() { return typeof APP_CANAL !== 'undefined' && APP_CANAL === 'prod' ? 'prod' : 'recette'; },
 
   async synchronise(mondial, save) {
-    if (!mondial || !mondial.connecte() || this._enCours) return false;
+    // Sur itch.io le palmarès reste sur l'appareil : le jeu n'y a pas de jeton (il est dans le pont,
+    // js/mondial.js), et le pont ne pose que des temps.
+    if (!mondial || mondial.itch || !mondial.connecte() || this._enCours) return false;
     this._enCours = true;
     this.etat = 'en-cours'; this.onEtat();
     try {

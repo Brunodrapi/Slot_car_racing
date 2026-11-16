@@ -68,10 +68,47 @@ pour retrouver la largeur visuelle des pneus arrière sur les trois livrées.
 ### Export itch.io
 
 `npm run build:itch` fabrique une édition dédiée dans `dist-itch/` et un ZIP avec `index.html` à
-sa racine. Cette édition garde les temps locaux et remplace la connexion Google et l’accès au
-tableau mondial par un bouton vers **https://grip-game.github.io/**. La distribution web normale
-conserve sa connexion et son tableau mondial. Les réglages d’affichage restent gérés par itch.io.
-La branche `itch-io` du dépôt PROD contient cet export, séparé de sa branche publiée.
+sa racine. Les réglages d’affichage restent gérés par itch.io. La branche `itch-io` du dépôt de
+recette contient cet export, séparé de sa branche publiée.
+
+**Le tableau mondial sur itch.io (0.56.0).** Jusqu’à la 0.55 l’édition itch.io renvoyait vers la
+version en ligne : « la connexion Google ne fonctionne pas ». Deux raisons. Sur itch.io le jeu tourne
+dans un cadre servi par `html-classic.itch.zone`, et Google refuse de s’afficher dans un cadre. Et
+cette adresse est **partagée par tous les jeux HTML5 d’itch.io** : un jeton que le jeu y rangerait —
+il porte l’e-mail et le nom Google du joueur — serait lisible par n’importe lequel d’entre eux.
+
+- **Lire** le tableau ne demande pas de compte : la colonne « Monde » est là comme sur le web.
+- **Écrire** passe par un **pont** : `itch.html`, servi par la prod, que le jeu embarque dans un
+  cadre invisible (`PONT_URL`, js/mondial.js). C’est lui qui garde la session, la rafraîchit et pose
+  les temps ; le jeu lui parle par messages et n’en apprend que « connecté : oui ou non ».
+- **Se connecter** ouvre un nouvel onglet sur cette même page : elle envoie chez Google, reçoit la
+  session au retour et la remet au pont — un message adressé à l’origine grip-game.github.io, que le
+  navigateur ne livre à aucune autre —, puis se ferme. Le jeu n’a pas rechargé ; les temps d’avant le
+  compte partent (rattrapage), comme sur le web.
+- La session reste dans le stockage du pont : on se connecte une fois (Chrome, Firefox ; Safari
+  l’efface à la fermeture, il faudra y recliquer).
+
+Rien n’a changé chez Supabase : toute adresse du même hôte que le « Site URL » est un retour permis
+(vérifié : un refus simulé revient bien sur `itch.html`). Le palmarès, lui, reste sur l’appareil sur
+itch.io : le pont ne pose que des temps.
+
+Ce qu’un autre jeu d’itch.io peut encore faire : embarquer le pont et lui faire poser un temps au nom
+du joueur connecté — rien que chacun ne puisse déjà faire avec son propre compte. Il ne peut lire ni
+jeton, ni e-mail, et ne peut pas glisser sa propre session.
+
+À savoir :
+- **la prod doit porter `itch.html` avant que l’export serve** (`tools/build-dist.js` l’écrit hors du
+  jeu hors ligne, et le service worker ne la sert jamais depuis son cache) ;
+- sur itch.io, **ne pas cocher « SharedArrayBuffer support »** : l’onglet de connexion perdrait son
+  lien avec le jeu ;
+- un joueur qui a téléchargé le jeu hors ligne sur grip-game.github.io AVANT cette version verra le
+  jeu s’ouvrir dans l’onglet de connexion la première fois ; le service worker se met à jour à ce
+  moment-là, et le deuxième essai passe.
+
+Essais : `npm run build:itch && node tools/e2e-itch-mondial.js` rejoue tout aux vraies adresses
+(itch.io, itch.zone, la prod, de faux Google et Supabase) : la lecture sans compte, l’onglet, le
+rattrapage posé par le pont, le rafraîchissement du jeton, l’absence de jeton côté jeu et côté
+itch.io, un jeu voisin qui n’obtient rien, le rechargement, la déconnexion.
 
 ### Bip de passage de tour
 

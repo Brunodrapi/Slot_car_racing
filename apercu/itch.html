@@ -1,0 +1,222 @@
+<!doctype html>
+
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src https://fyaifqvghkvrydcldiup.supabase.co; base-uri 'none'; form-action 'none'">
+<title>GRIP — itch.io</title>
+<style>
+  html, body { margin: 0; height: 100%; }
+  body { display: grid; place-items: center; background: #1b201c; color: #232922; font: 17px/1.45 system-ui, sans-serif; }
+  main { box-sizing: border-box; width: min(92vw, 440px); padding: 22px 24px 24px; background: #fff0d2; border: 3px solid #171b19; box-shadow: 6px 7px 0 #0008; text-align: center; }
+  main[hidden] { display: none; }
+  img { width: 200px; max-width: 70%; height: auto; }
+  h1 { margin: 12px 0 6px; font: italic 900 26px/1.1 Impact, 'Arial Narrow', system-ui, sans-serif; text-transform: uppercase; }
+  p { margin: 8px 0 0; }
+  .ok { color: #1c7a43; } .ko { color: #b52b25; }
+  a, button { display: inline-block; margin-top: 14px; padding: 9px 16px; background: #d22620; color: #fff0d2; border: 2px solid #171b19; font: italic 900 18px/1.2 Impact, 'Arial Narrow', system-ui, sans-serif; text-decoration: none; text-transform: uppercase; cursor: pointer; }
+</style>
+</head>
+<body>
+<main id="carte" hidden>
+  <img src="art/interface/logo-grip.webp" alt="GRIP — Racing the Line">
+  <h1 id="titre"></h1>
+  <p id="texte"></p>
+  <p id="suite"></p>
+</main>
+<script>
+(() => {
+  'use strict';
+  const SUPABASE = 'https://fyaifqvghkvrydcldiup.supabase.co';
+  // La clé PUBLIABLE du projet, la même que js/mondial.js : elle est faite pour vivre dans une page.
+  const CLE = 'sb_publishable_O5veQvYKXfUt6e7iKtrDUg_rqPC_CS9';
+  const ICI = location.origin + location.pathname;
+  // Le pont ne parle qu'à un jeu servi par itch.io (html-classic.itch.zone, html.itch.zone).
+  const PARENTS = /^https:\/\/[a-z0-9-]+\.itch\.zone$/;
+  const RANGE = 'grip.itch.session';
+  const maintenant = () => Date.now() / 1000;
+
+  if (window.parent !== window) pont(); else onglet();
+
+  /* ------------------------------------------------------------------ 1. le pont, dans le jeu */
+  function pont() {
+    let origineJeu = null;                 // connue au premier message valide du jeu
+    let session = lit();                   // { a: jeton d'accès, r: jeton de rafraîchissement, e: expiration }
+    let enRafraichissement = null;
+
+    /* Le stockage d'un cadre tiers est cloisonné par le navigateur (et parfois refusé, ou effacé à la
+    fermeture, sur Safari) : on s'en sert quand il est là, et la session vit en mémoire sinon. */
+    function lit() {
+      try { const s = JSON.parse(localStorage.getItem(RANGE) || 'null'); return s && s.a && s.r && s.e ? s : null; } catch (_) { return null; }
+    }
+    function range() {
+      try { if (session) localStorage.setItem(RANGE, JSON.stringify(session)); else localStorage.removeItem(RANGE); } catch (_) {}
+    }
+    // deux ponts ouverts (deux onglets du jeu) partagent ce stockage : on suit ce que l'autre y écrit
+    window.addEventListener('storage', (e) => { if (e.key === RANGE) { const avant = !!session; session = lit(); if (avant !== !!session) versJeu({ type: 'etat', connecte: !!session }); } });
+
+    function versJeu(m) { if (origineJeu) window.parent.postMessage({ grip: 'pont', v: 1, ...m }, origineJeu); }
+    function oublie() { session = null; range(); versJeu({ type: 'etat', connecte: false }); }
+
+    /* Un jeton d'accès valide, rafraîchi s'il arrive à son heure. Le jeton de rafraîchissement ne sert
+    qu'une fois : un seul rafraîchissement à la fois, et on relit d'abord le stockage au cas où un autre
+    pont viendrait de le faire. */
+    async function jeton() {
+      if (!session) return { raison: 'anonyme' };
+      if (session.e > maintenant() + 90) return { jeton: session.a };
+      if (!enRafraichissement) enRafraichissement = (async () => {
+        const autre = lit();
+        if (autre && autre.e > maintenant() + 90) { session = autre; return; }
+        try {
+          const r = await fetch(`${SUPABASE}/auth/v1/token?grant_type=refresh_token`, {
+            method: 'POST', headers: { apikey: CLE, 'content-type': 'application/json' },
+            body: JSON.stringify({ refresh_token: session.r }),
+          });
+          if (r.ok) {
+            const j = await r.json();
+            session = { a: j.access_token, r: j.refresh_token, e: +j.expires_at || Math.floor(maintenant()) + (+j.expires_in || 3600) };
+            range();
+          } else if (r.status >= 400 && r.status < 500) oublie();   // session révoquée ou périmée : il faudra se reconnecter
+        } catch (_) { /* panne de réseau : la session reste, on réessaiera */ }
+      })().finally(() => { enRafraichissement = null; });
+      await enRafraichissement;
+      if (!session) return { raison: 'anonyme' };
+      return session.e > maintenant() + 5 ? { jeton: session.a } : { raison: 'reseau' };
+    }
+
+    async function poser(c) {
+      const j = await jeton();
+      if (!j.jeton) return { ok: false, status: 0, rep: { raison: j.raison } };
+      try {
+        const r = await fetch(`${SUPABASE}/functions/v1/record`, {
+          method: 'POST',
+          headers: { apikey: CLE, Authorization: `Bearer ${j.jeton}`, 'content-type': 'application/json' },
+          body: JSON.stringify({ circuit: String(c.circuit || ''), voiture: String(c.voiture || ''), temps: Number(c.temps), pilote: String(c.pilote || '') }),
+        });
+        const rep = await r.json().catch(() => ({}));
+        if (r.status === 401) oublie();
+        return { ok: r.ok, status: r.status, rep };
+      } catch (_) { return { ok: false, status: 0, rep: { raison: 'reseau' } }; }
+    }
+
+    async function sortir() {
+      const s = session;
+      session = null; range();
+      // la session est révoquée chez Supabase quand c'est possible ; sinon elle s'éteint d'elle-même
+      if (s) try { await fetch(`${SUPABASE}/auth/v1/logout?scope=local`, { method: 'POST', headers: { apikey: CLE, Authorization: `Bearer ${s.a}` } }); } catch (_) {}
+    }
+
+    window.addEventListener('message', async (e) => {
+      const m = e.data;
+      if (!m || typeof m !== 'object' || m.v !== 1) return;
+      // --- le jeu, juste au-dessus, et seulement s'il est servi par itch.io ---
+      if (e.source === window.parent && m.grip === 'pont') {
+        if (!PARENTS.test(e.origin)) return;
+        origineJeu = e.origin;
+        const rep = (x) => window.parent.postMessage({ grip: 'pont', v: 1, id: m.id, ...x }, origineJeu);
+        if (m.type === 'etat') rep({ type: 'etat', connecte: !!session });
+        else if (m.type === 'poser') rep({ type: 'poser', ...(await poser(m.corps || {})) });
+        else if (m.type === 'sortir') { await sortir(); rep({ type: 'etat', connecte: false }); }
+        return;
+      }
+      // --- l'onglet de connexion : même origine que cette page, et aucune autre ---
+      if (e.origin === location.origin && m.grip === 'retour' && e.source) {
+        // sans jeu d'itch.io au-dessus de nous, on ne prend rien
+        if (!origineJeu) { e.source.postMessage({ grip: 'retour-recu', v: 1, ok: false }, location.origin); return; }
+        const s = m.session;
+        if (s && typeof s.a === 'string' && typeof s.r === 'string' && s.e > maintenant()) { session = { a: s.a, r: s.r, e: +s.e }; range(); }
+        e.source.postMessage({ grip: 'retour-recu', v: 1, ok: true }, location.origin);
+        versJeu({ type: 'etat', connecte: !!session, erreur: m.erreur ? String(m.erreur).slice(0, 200) : null });
+      }
+    });
+
+    // « prêt » ne porte rien : il peut partir sans connaître l'origine du jeu
+    window.parent.postMessage({ grip: 'pont', v: 1, type: 'pret' }, '*');
+  }
+
+  /* -------------------------------------------------------- 2 et 3. l'onglet : départ, puis retour */
+  function onglet() {
+    const fr = /^fr/i.test(navigator.language || '');
+    const T = fr ? {
+      vers: 'Connexion…', versTxt: 'Direction Google.',
+      ok: 'C’est fait !', okTxt: 'GRIP est connecté sur itch.io. Tu peux fermer cet onglet et retourner au jeu.',
+      refus: 'Connexion refusée', refusTxt: 'La connexion n’a pas abouti : ',
+      perdu: 'Lien perdu', perduTxt: 'Cet onglet n’est plus relié au jeu. Ferme-le, retourne sur itch.io et clique de nouveau sur « Se connecter avec Google ».',
+      muet: 'Pas de réponse', muetTxt: 'Le jeu sur itch.io n’a pas répondu. Ferme cet onglet, vérifie que le jeu est toujours ouvert, puis réessaie.',
+      vide: 'Rien reçu', videTxt: 'Google n’a rien renvoyé. Ferme cet onglet et réessaie depuis le jeu.',
+      seul: 'Connexion pour itch.io', seulTxt: 'Cette page relie le jeu ouvert sur itch.io au tableau mondial. Lance la connexion depuis le jeu.', jouer: 'Jouer à GRIP',
+    } : {
+      vers: 'Signing in…', versTxt: 'Heading to Google.',
+      ok: 'All set!', okTxt: 'GRIP is signed in on itch.io. You can close this tab and go back to the game.',
+      refus: 'Sign-in refused', refusTxt: 'Sign-in failed: ',
+      perdu: 'Link lost', perduTxt: 'This tab is no longer linked to the game. Close it, go back to itch.io and click “Sign in with Google” again.',
+      muet: 'No answer', muetTxt: 'The game on itch.io did not answer. Close this tab, check the game is still open, then try again.',
+      vide: 'Nothing received', videTxt: 'Google sent nothing back. Close this tab and try again from the game.',
+      seul: 'Sign-in for itch.io', seulTxt: 'This page links the game running on itch.io to the world board. Start signing in from the game.', jouer: 'Play GRIP',
+    };
+    document.documentElement.lang = fr ? 'fr' : 'en';
+    const montre = (titre, texte, classe, lien) => {
+      document.getElementById('titre').textContent = titre;
+      const p = document.getElementById('texte'); p.textContent = texte; p.className = classe || '';
+      const s = document.getElementById('suite'); s.textContent = '';
+      if (lien) { const a = document.createElement('a'); a.href = './'; a.textContent = lien; s.appendChild(a); }
+      document.getElementById('carte').hidden = false;
+    };
+
+    const q = new URLSearchParams(location.search), h = new URLSearchParams(location.hash.slice(1));
+
+    // --- le départ ---
+    if (q.has('entrer')) {
+      try { sessionStorage.setItem('grip.itch.parti', String(Date.now())); } catch (_) {}
+      montre(T.vers, T.versTxt);
+      location.replace(`${SUPABASE}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(ICI)}`);
+      return;
+    }
+
+    // --- le retour : on lit, et on NETTOIE L'ADRESSE tout de suite (un jeton n'a rien à y faire) ---
+    const acces = h.get('access_token'), rafr = h.get('refresh_token');
+    const erreur = h.get('error_description') || h.get('error') || q.get('error_description') || q.get('error');
+    const expire = +h.get('expires_at') || Math.floor(maintenant()) + (+h.get('expires_in') || 3600);
+    let parti = 0;
+    try { parti = +(sessionStorage.getItem('grip.itch.parti') || 0); sessionStorage.removeItem('grip.itch.parti'); } catch (_) {}
+    try { history.replaceState(null, '', location.pathname); } catch (_) {}
+
+    if (!(acces && rafr) && !erreur) {
+      if (parti && Date.now() - parti < 600000) montre(T.vide, T.videTxt, 'ko');
+      else montre(T.seul, T.seulTxt, '', T.jouer);
+      return;
+    }
+
+    const jeu = window.opener;
+    if (!jeu || jeu.closed) { montre(T.perdu, T.perduTxt, 'ko'); return; }
+
+    /* La session va AU PONT et à lui seul. On l'adresse à chaque cadre du jeu, mais avec notre origine
+    pour destinataire : le navigateur ne la livre qu'à un cadre servi par grip-game.github.io. Le jeu
+    lui-même, et tout autre jeu d'itch.io, ne la reçoit pas. */
+    const message = { grip: 'retour', v: 1, session: acces && rafr ? { a: acces, r: rafr, e: expire } : null, erreur: erreur || null };
+    let recu = false;
+    const envoie = () => {
+      let n = 0;
+      try { n = jeu.length; } catch (_) {}
+      for (let i = 0; i < n; i++) { try { jeu.frames[i].postMessage(message, location.origin); } catch (_) {} }
+    };
+    window.addEventListener('message', (e) => {
+      if (recu || e.origin !== location.origin || !e.data || e.data.grip !== 'retour-recu') return;
+      recu = true;
+      if (!e.data.ok) { montre(T.muet, T.muetTxt, 'ko'); return; }
+      if (erreur) { montre(T.refus, T.refusTxt + erreur, 'ko'); return; }
+      montre(T.ok, T.okTxt, 'ok');
+      setTimeout(() => { try { window.close(); } catch (_) {} }, 1200);
+    });
+    montre(T.vers, '');
+    envoie();
+    const relance = setInterval(() => { if (recu) clearInterval(relance); else envoie(); }, 400);
+    setTimeout(() => { clearInterval(relance); if (!recu) montre(T.muet, T.muetTxt, 'ko'); }, 6000);
+  }
+})();
+</script>
+</body>
+</html>

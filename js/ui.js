@@ -135,6 +135,8 @@ const I18N = {
     sendingWait: (a, b, s) => `Envoi de tes temps… ${a} sur ${b}. Prochain dans ${s} s (le serveur les espace).`,
     sent: (n) => `${n} temps envoyé${n > 1 ? 's' : ''} au tableau mondial.`,
     signedInAs: 'Connecté à Google · tes meilleurs tours partent au tableau mondial.',
+    signInTab: 'Connexion en cours dans l’autre onglet…', signInCancel: 'Annuler',
+    authPopup: 'Le navigateur a bloqué l’onglet de connexion. Autorise les fenêtres pour cette page, puis réessaie.',
     recetteHorsTableau: 'Connecté à Google · recette : tes temps restent ici, seuls ceux du jeu publié vont au tableau mondial.',
     reconnect: 'Se reconnecter',
     account: 'Compte',
@@ -151,7 +153,7 @@ const I18N = {
     horsClassement: 'Hors tableau mondial : ', horsGuide: 'guide de freinage', horsAimant: 'aimant', horsFf: 'anticipation', horsUsure: 'usure',
     refus_reseau: 'Pas de réseau au moment de l’envoi. Ton temps est gardé ici.',
     refus_autre: (r) => `Temps non retenu par le serveur (${r}).`,
-    onlineRecords: 'Pour avoir accès aux records mondiaux, jouer sur la version en ligne', onlineRecordsShort: 'Records mondiaux ↗', worldBest: 'Monde', worldNeedsAccount: 'Connecte-toi pour inscrire tes temps au tableau mondial.', signIn: 'Se connecter avec Google', signOut: 'Se déconnecter',
+    worldBest: 'Monde', worldNeedsAccount: 'Connecte-toi pour inscrire tes temps au tableau mondial.', signIn: 'Se connecter avec Google', signOut: 'Se déconnecter',
     palmares: 'Ton palmarès', palmaresTrophee: 'Trophée', palmaresNiveau: 'Niveau',
     trophee_chocolat: 'Chocolat', trophee_bronze: 'Bronze', trophee_argent: 'Argent', trophee_or: 'Or', trophee_crane: 'Crâne',
     palmaresRegle: (n) => `Gagne une course d’au moins ${n} tours : le niveau de difficulté donne le trophée.`,
@@ -284,6 +286,8 @@ const I18N = {
     sendingWait: (a, b, s) => `Sending your times… ${a} of ${b}. Next in ${s} s (the server spaces them out).`,
     sent: (n) => `${n} time${n > 1 ? 's' : ''} sent to the world board.`,
     signedInAs: 'Signed in with Google · your best laps go to the world board.',
+    signInTab: 'Signing in in the other tab…', signInCancel: 'Cancel',
+    authPopup: 'The browser blocked the sign-in tab. Allow pop-ups for this page, then try again.',
     recetteHorsTableau: 'Signed in with Google · test build: your times stay here; only the released game posts to the world board.',
     reconnect: 'Sign in again',
     account: 'Account',
@@ -300,7 +304,7 @@ const I18N = {
     horsClassement: 'Outside the world board: ', horsGuide: 'braking guide', horsAimant: 'magnet', horsFf: 'anticipation', horsUsure: 'tyre wear',
     refus_reseau: 'No network when sending. Your time is kept here.',
     refus_autre: (r) => `Time not kept by the server (${r}).`,
-    onlineRecords: 'To access world records, play the online version', onlineRecordsShort: 'World records ↗', worldBest: 'World', worldNeedsAccount: 'Sign in to put your times on the world board.', signIn: 'Sign in with Google', signOut: 'Sign out',
+    worldBest: 'World', worldNeedsAccount: 'Sign in to put your times on the world board.', signIn: 'Sign in with Google', signOut: 'Sign out',
     palmares: 'Your trophies', palmaresTrophee: 'Trophy', palmaresNiveau: 'Level',
     trophee_chocolat: 'Chocolate', trophee_bronze: 'Bronze', trophee_argent: 'Silver', trophee_or: 'Gold', trophee_crane: 'Skull',
     palmaresRegle: (n) => `Win a race of at least ${n} laps: the difficulty level gives the trophy.`,
@@ -460,17 +464,15 @@ class UI {
   mais elle parlait de la mécanique du jeu au lieu de dire où l'on en est. Bruno : « il n'a pas de
   sens, juste un connecté à Google suffirait ». Le joueur n'a rien à faire de plus : son prochain
   meilleur tour partira de lui-même. */
-  worldVersionLink(compact = false) {
-    const link = `<a class="${compact ? 'extra-card' : 'world-online-button'}" data-world-online href="https://grip-game.github.io/" target="_blank" rel="noopener" title="${escapeHtml(this.t('onlineRecords'))}">grip-game.github.io</a>`;
-    return compact ? link : `<span class="world-online-notice"><span class="world-online-copy">${escapeHtml(this.t('onlineRecords'))}</span>${link}</span>`;
-  }
-
   etatMondial() {
-    if(this.app.isItch)return this.worldVersionLink();
     const t = (k, ...a) => this.t(k, ...a), m = this.app.mondial;
     const ligne = (cls, txt, bouton) => `<p class="${cls} mondial-note">${txt}${bouton || ''}</p>`;
     const entrer = `<button class="link" data-action="google">${t('signIn')}</button>`;
     if (!m) return '';
+    /* Sur itch.io la connexion se fait dans un autre onglet (js/mondial.js) : tant qu'il est ouvert on le
+    dit, avec de quoi renoncer ; et si le navigateur a refusé de l'ouvrir, on dit pourquoi. */
+    if (m.enCours) return ligne('muted', t('signInTab'), `<button class="link" data-action="googleCancel">${t('signInCancel')}</button>`);
+    if (m.erreurConnexion === 'onglet') return ligne('warn', t('authPopup'), `<button class="link" data-action="google">${t('reconnect')}</button>`);
     if (m.erreurConnexion && !['pkce','vide'].includes(m.erreurConnexion)) {
       return ligne('warn', t('authFail', escapeHtml(String(m.erreurConnexion))), `<button class="link" data-action="google">${t('reconnect')}</button>`);
     }
@@ -485,6 +487,15 @@ class UI {
     // en recette, rien ne part : le dire, plutôt que d'annoncer des envois qui n'auront pas lieu
     if (!TEMPS_PUBLIES) return ligne('muted', t('recetteHorsTableau'));
     return ligne('muted', t('signedInAs'));
+  }
+
+  /* La connexion vient de changer sans que la page se recharge (itch.io : elle se fait dans un autre
+  onglet). On repeint l'écran affiché s'il en parle : un paddock, les réglages, le menu. */
+  repeintMondial() {
+    const cle = this._cleEcran || '';
+    if (cle.startsWith('depart:')) this.setupScreen(this.setup.mode);
+    else if (cle === 'reglages') this.settings();
+    else if (this.root.querySelector('.home-screen')) this.menu();
   }
 
   messageRefus(raison) {
@@ -930,7 +941,6 @@ class UI {
           <span class="mode-copy"><b>${t(label)}</b></span><span class="mode-damier" aria-hidden="true"></span></button>`).join('')}
       </nav>
       <nav class="home-extras" data-pad-group aria-label="${t('menuAide')}">
-        ${app.isItch ? this.worldVersionLink(true) : ''}
         <button class="extra-card" data-action="howto">${PICTOS.aide}<span>${t('menuHowto')}</span></button>
         ${!app.desktop && !app.installe && !jeuInstalle() ? `<button class="extra-card" data-action="install">${PICTOS.installer}<span>${t('menuInstall')}</span></button>` : ''}
         <a class="extra-card" href="${DON_URL}" target="_blank" rel="noopener">${PICTOS.the}<span>${t('menuDon')}</span></a>
@@ -1088,9 +1098,11 @@ class UI {
         <!-- Le compte se gère ICI, et pas seulement depuis un message d'erreur. Sans cette ligne,
              se déconnecter était impossible et changer de compte demandait de vider le navigateur. -->
         <label>${t('account')}<span class="compte">${
-          app.isItch ? this.worldVersionLink() : app.mondial && app.mondial.connecte()
+          app.mondial && app.mondial.connecte()
             ? `<b class="ok">${t('signedIn')}</b><button class="link" data-action="signOut">${t('signOut')}</button>`
-            : `<button class="link" data-action="google">${t('signIn')}</button>`}</span></label>
+            : app.mondial && app.mondial.enCours
+              ? `<span class="muted">${t('signInTab')}</span><button class="link" data-action="googleCancel">${t('signInCancel')}</button>`
+              : `<button class="link" data-action="google">${t('signIn')}</button>`}</span></label>
         <label>${t('sound')}<select id="sel-sound"><option value="1" ${s.sound ? 'selected' : ''}>${t('on')}</option><option value="0" ${!s.sound ? 'selected' : ''}>${t('off')}</option></select></label>
         ${this.horsLigneLigne()}
         ${REGLAGES_AVANCES ? `<label>${t('showLines')}<select id="sel-lines"><option value="0" ${s.showLines !== true ? 'selected' : ''}>${t('off')}</option><option value="1" ${s.showLines === true ? 'selected' : ''}>${t('on')}</option></select></label>
@@ -1225,19 +1237,19 @@ class UI {
               ? `<button class="link" data-action="google">${t('reconnect')}</button>` : ''}
             ${REGLAGES.has(app.mondial.dernierRefus.raison)
               ? `<button class="link" data-action="settings">${t('settings')}</button>` : ''}</p>` : ''}
-      <div class="records${app.isItch ? ' local-records' : ''}">
+      <div class="records">
         <div class="rhead">
           <span></span><b></b>
           <span class="rline-t">${t('yourBest')}</span>
-          ${app.isItch ? '' : `<span class="rline-t">${t('worldBest')}</span>`}
+          <span class="rline-t">${t('worldBest')}</span>
         </div>
         ${lignes.map(({ m, b, w }) => `<div class="rline ${m.id === choisie.id ? 'sel' : ''}">
           <span class="rline-img">${this.carIcon(m, livery, this.app.playerLivreeFor(m.id))}</span>
           <b>${escapeHtml(m.name)}</b>
           <span class="rline-t ${b == null ? 'muted' : ''}">${b == null ? '--:--.---' : fmtTime(b)}</span>
-          ${app.isItch ? '' : `<span class="rline-t monde" title="${w ? escapeHtml(w.pilote || '') : ''}">${
+          <span class="rline-t monde" title="${w ? escapeHtml(w.pilote || '') : ''}">${
             mondiaux || !app.mondial ? cell(w && w.temps) : `<span class="muted">…</span>`}${
-            w && w.pilote ? `<small>${escapeHtml(w.pilote)}</small>` : ''}</span>`}
+            w && w.pilote ? `<small>${escapeHtml(w.pilote)}</small>` : ''}</span>
         </div>`).join('')}
       </div>`;
   }
@@ -1253,6 +1265,7 @@ class UI {
   La phrase complète reste en info-bulle ; sur un téléphone, qui n'en a pas, les deux mots suffisent.
   `avecBouton` ajoute « Se connecter avec Google » au nuage gris d'un joueur pas connecté. */
   nuagePalmares(avecBouton) {
+    // sur itch.io le palmarès reste sur l'appareil (pas de synchronisation par compte, voir palmares.js)
     if(this.app.isItch)return '';
     const t = (k, ...a) => this.t(k, ...a), m = this.app.mondial, e = etatNuage(m);
     const longue = !m || !m.connecte() ? t('palmaresCompte')
@@ -1826,6 +1839,7 @@ class UI {
       /* On SORT avant d'entrer. Une session périmée encore en mémoire ferait revenir le joueur
          sur la même session morte, et le bouton n'aurait servi à rien d'autre qu'à l'y renvoyer. */
       case 'google': if (app.mondial) { app.mondial.sortir(); app.mondial.entrer(); } break;
+      case 'googleCancel': if (app.mondial && app.mondial.annuler) app.mondial.annuler(); break;
       case 'signOut': if (app.mondial) { app.mondial.sortir(); this.settings(); } break;
       case 'nomOk': {
         const champ = document.getElementById('inp-nom');

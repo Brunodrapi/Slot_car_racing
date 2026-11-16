@@ -157,7 +157,9 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;               // réseau, records, salons : jamais en cache
-  if (/\\/(manifeste\\.json|sw\\.js)$/.test(url.pathname)) return;   // toujours la version publiée
+  // toujours la version publiée — et itch.html, le pont d'itch.io : une page hors du cache retombait
+  // sur index.html, et l'onglet de connexion aurait ouvert le jeu à la place du pont
+  if (/\\/(manifeste\\.json|sw\\.js|itch\\.html)$/.test(url.pathname)) return;
   e.respondWith((async () => {
     const nom = await cacheActif();
     const c = nom ? await caches.open(nom) : null;
@@ -297,6 +299,11 @@ async function main() {
   const cache = `grip-${version}-${h.digest('hex').slice(0, 10)}`;
   fs.writeFileSync(path.join(OUT, 'manifeste.json'), JSON.stringify({ version, cache, fichiers }));
   fs.writeFileSync(path.join(OUT, 'sw.js'), SERVICE_WORKER);
+  /* Le pont d'itch.io (itch.html) : la prod le sert au jeu d'itch.io, qui l'embarque dans un cadre et y
+  ouvre l'onglet de connexion Google (js/mondial.js, PONT_URL). Écrit APRÈS le manifeste, comme sw.js :
+  il ne fait pas partie du jeu hors ligne, et le service worker ne le sert jamais depuis un cache. L'export
+  itch.io n'en a pas besoin : c'est celui de la prod qu'il appelle. */
+  if (DISTRIBUTION !== 'itch') fs.writeFileSync(path.join(OUT, 'itch.html'), lire('itch.html').toString('utf8').replace(/<!--[\s\S]*?-->/g, ''));
 
   let total = 0;
   for (const r of liste) total += fs.statSync(path.join(OUT, r)).size;
