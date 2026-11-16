@@ -74,7 +74,9 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;               // réseau, records, salons : jamais en cache
-  if (/\/(manifeste\.json|sw\.js)$/.test(url.pathname)) return;   // toujours la version publiée
+  // toujours la version publiée — et itch.html, le pont d'itch.io : une page hors du cache retombait
+  // sur index.html, et l'onglet de connexion aurait ouvert le jeu à la place du pont
+  if (/\/(manifeste\.json|sw\.js|itch\.html)$/.test(url.pathname)) return;
   e.respondWith((async () => {
     const nom = await cacheActif();
     const c = nom ? await caches.open(nom) : null;

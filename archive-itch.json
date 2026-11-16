@@ -1,8 +1,8 @@
 {
-  "version": "0.55.3",
+  "version": "0.56.2",
   "distribution": "itch",
-  "bytes": 55592753,
-  "sha256": "995a65e32686e21c7fd45584b3921029a973ffe8d767464e15f155599f6583e6",
+  "bytes": 55593732,
+  "sha256": "981f48901ee278baf5c77561ac44923f55e7ce41f85a0bb307c03b89335bdeeb",
   "files": 321,
   "indexAtRoot": true
 }
