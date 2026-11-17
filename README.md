@@ -3440,6 +3440,11 @@ Chaque palier vaut cinq à six pour cent, soit l'écart qui séparait déjà moy
 > `js/degats.js` (le dessin), `DEGATS` et `_marque` dans `js/car.js` (le coût et les chocs notés),
 > `_degats` dans `js/render.js` (les étincelles, les débris, la fumée), et l'option `deforme` de
 > `drawCarModel` et `drawCarShadow` (`js/carart.js`). Essai : `tools/e2e-degats.js`.
+>
+> **Pour y jouer** : une copie compilée de cette branche est posée dans la recette, à
+> brunodrapi.github.io/Slot_car_racing/essais/degats/ (voir « Les essais jouables » dans le README de la
+> recette). Après un changement ici : `node tools/build-dist.js --sortie=/tmp/essai --canal=recette`,
+> puis, sur la recette, remplacer `essais/degats/` par `/tmp/essai` et pousser.
 
 La demande : que les contacts abîment les voitures **à l'écran**, en plus de leur coûter des
 performances, sans compliquer.
