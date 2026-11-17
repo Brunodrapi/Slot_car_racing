@@ -7,6 +7,11 @@ itch.io et essayé la connexion Google : la section « World Records on itch.io 
 Une fois le billet posté : `curl -s https://drapiiii.itch.io/grip-racing-the-line/devlog.rss | node
 tools/dernier-devlog.js` met son titre et son lien sur l'écran-titre.
 
+**Pour coller dans itch.io** (son éditeur refuse le BBCode et le HTML collés comme du texte) : la page
+https://brunodrapi.github.io/Slot_car_racing/itch/devlog-4/ montre le billet mis en forme, avec un bouton
+« Copier le billet » qui met dans le presse-papiers sa version enrichie (titres, gras, liste, images par
+leur adresse). On colle ensuite dans le corps du billet sur itch.io.
+
 Images, dans `itch/devlog-4/` (le billet les affiche par leur adresse en recette : ne pas déplacer ce
 dossier) :
 

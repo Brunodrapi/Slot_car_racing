@@ -1,0 +1,171 @@
+<!doctype html>
+<!--
+Le devlog #4, mis en forme, à COPIER dans l'éditeur de billets d'itch.io.
+
+itch.io refuse le BBCode et le HTML collés comme du texte : son éditeur veut du texte enrichi. Cette page
+montre le billet tel qu'il doit paraître ; « Copier le billet » met dans le presse-papiers sa version
+enrichie (titres, gras, liste, liens, images par leur adresse) et sa version texte. On colle ensuite dans
+le corps du billet sur itch.io. Les images restent hébergées ici, en recette : ne pas déplacer ce dossier.
+
+La partie copiée est seulement <article id="billet"> : ce qui est autour (le mode d'emploi) ne part pas.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>GRIP Devlog #4 — à copier dans itch.io</title>
+<style>
+  @font-face { font-family: Racing; src: url('../../art/interface/fonts/BarlowCondensed-BlackItalic.ttf') format('truetype'); font-weight: 900; font-style: italic; font-display: swap; }
+  :root { --papier: #fff0d2; --encre: #20261e; --rouge: #c92c23; --gris: #6c6658; --fond: #e9dfc8; }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--fond); color: var(--encre); font: 17px/1.55 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+  .mode { position: sticky; top: 0; z-index: 2; background: #171b19; color: #fff0d2; padding: 12px 16px 14px; box-shadow: 0 3px 0 #0003; }
+  .mode h1 { margin: 0 0 6px; font: italic 900 24px/1.1 Racing, Impact, sans-serif; text-transform: uppercase; }
+  .mode ol { margin: 0 0 10px; padding-left: 20px; font-size: 15px; line-height: 1.45; }
+  .mode li { margin: 2px 0; }
+  .mode code { background: #ffffff1a; padding: 0 5px; border-radius: 3px; }
+  .boutons { display: flex; flex-wrap: wrap; gap: 8px; }
+  button, .lien { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 8px 14px; border: 2px solid #fff0d2; background: var(--rouge); color: #fff0d2; font: italic 900 18px/1.1 Racing, Impact, sans-serif; text-transform: uppercase; text-decoration: none; cursor: pointer; }
+  button.second, .lien { background: transparent; }
+  button:focus-visible, .lien:focus-visible { outline: 3px solid #e7b954; outline-offset: 2px; }
+  #etat { min-height: 1.4em; margin: 8px 0 0; font-size: 15px; color: #a8e0b8; }
+  #etat.ko { color: #ffb3a8; }
+  main { max-width: 760px; margin: 18px auto 40px; padding: 0 16px; }
+  .champ { margin: 0 0 14px; padding: 10px 14px; background: #fff7e6; border: 2px dashed #b6aa91; font-size: 15px; }
+  .champ b { display: block; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--gris); }
+  .champ img { display: block; width: 100%; max-width: 348px; height: auto; margin-top: 6px; border: 2px solid #171b19; }
+  article { background: var(--papier); border: 3px solid #171b19; box-shadow: 6px 7px 0 #171b1955; padding: 18px 22px 24px; overflow-wrap: anywhere; }
+  article h2 { margin: 26px 0 8px; font-size: 24px; line-height: 1.2; }
+  article p { margin: 10px 0; }
+  article ul { margin: 10px 0; padding-left: 24px; }
+  article img { display: block; width: 100%; height: auto; margin: 14px 0; border: 2px solid #171b19; }
+  article a { color: var(--rouge); }
+  .images { margin-top: 22px; font-size: 15px; }
+  .images ul { padding-left: 20px; }
+  .images a { color: var(--rouge); }
+  /* sur un téléphone, le mode d'emploi défile avec la page au lieu de lui prendre un tiers de l'écran */
+  @media (max-width: 700px), (max-height: 600px) { .mode { position: static; } }
+</style>
+</head>
+<body>
+<header class="mode">
+  <h1>Devlog #4 — à coller dans itch.io</h1>
+  <ol>
+    <li>Sur itch.io : <b>Edit game → Devlog → New post</b>. Colle le titre et choisis l'image de couverture (plus bas).</li>
+    <li>Ici, appuie sur <b>Copier le billet</b>.</li>
+    <li>Sur itch.io, clique dans le corps du billet et colle (<code>Ctrl+V</code>, ou appui long → <b>Coller</b> sur téléphone) : titres, gras, liste et images arrivent mis en forme.</li>
+  </ol>
+  <div class="boutons">
+    <button type="button" id="copier">📋 Copier le billet</button>
+    <button type="button" class="second" id="copierTitre">Copier le titre</button>
+  </div>
+  <p id="etat" role="status" aria-live="polite"></p>
+</header>
+
+<main>
+  <div class="champ"><b>Titre</b><span id="titre">GRIP Devlog #4 — GT3, Night Racing &amp; World Records on itch.io</span></div>
+  <div class="champ"><b>Image de couverture (champ « Cover image » du billet)</b>
+    <a href="0-couverture.png" download>Télécharger la couverture</a>
+    <img src="0-couverture.png" alt="Couverture du devlog #4"></div>
+
+  <article id="billet">
+<p>A new GRIP update is live!</p>
+<p>Three big things this time: a brand new category, racing at night, and the world board on itch.io.</p>
+
+<h2>🏁 New Category: GT3</h2>
+<p>Ten modern GT cars join the grid, each with three liveries to choose from: thirty in total. GT3 races are GT3 only, so you fight cars of your own kind.</p>
+<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-4/1-gt3.png" alt="The ten GT3 cars and their thirty liveries"></p>
+<p>With 35 cars and 14 circuits, there are now <strong>490 trophies</strong> to collect.</p>
+
+<h2>🌙 Racing at Night</h2>
+<p>Pick <strong>Day or Night</strong> before the start, in solo and in online lobbies. At night the track goes dark: floodlights pick out the gravel traps, headlights cut through the corners, and brake lights glow red when the pack slows down.</p>
+<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-4/2-jour-nuit.png" alt="The same corner, by day and by night"></p>
+<p>GT, GT3 and prototypes have headlights, each car with its own shape. The old F1 cars have none: they rely on the circuit lights. The cars and the lap times don't change, only what you can see.</p>
+<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-4/3-nuit-monza.png" alt="GT3 cars braking into a chicane at night"></p>
+
+<h2>🌍 World Records on itch.io</h2>
+<p>The world board now works right here on itch.io. The best time of every car is shown without an account. <strong>Sign in with Google</strong> (it opens in a new tab) and your best laps go on the board, just like on the web version.</p>
+<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-4/4-itch-records.png" alt="The world board on itch.io: before signing in, the sign-in tab, and signed in"></p>
+
+<h2>🔧 And Also</h2>
+<ul>
+<li>A crisp beep now marks every lap you complete.</li>
+<li>Kitsune Zeta 240 and Purosangue Freccia: redrawn rear fenders on all their liveries.</li>
+<li>The title screen links to the latest devlog.</li>
+</ul>
+
+<h2>🚦 What's Next?</h2>
+<p>I'm still refining the cars, the circuits and the driving. Tell me how night racing feels, and which GT3 is your favourite!</p>
+<p>Play the latest version here: <a href="https://grip-game.github.io/">https://grip-game.github.io/</a></p>
+<p>Feedback, suggestions and bug reports are always welcome!</p>
+<p><strong>SEE YOU ON THE TRACK!</strong></p>
+  </article>
+
+  <div class="images">
+    <p><b>Si itch.io n'affiche pas les images après le collage</b>, ajoute-les avec son bouton « image » (en envoyant le fichier), à la place de chaque image manquante :</p>
+    <ul>
+      <li><a href="1-gt3.png" download>1-gt3.png</a> — après « …cars of your own kind. »</li>
+      <li><a href="2-jour-nuit.png" download>2-jour-nuit.png</a> — après « …when the pack slows down. »</li>
+      <li><a href="3-nuit-monza.png" download>3-nuit-monza.png</a> — après « …only what you can see. » (facultative)</li>
+      <li><a href="4-itch-records.png" download>4-itch-records.png</a> — après « …just like on the web version. »</li>
+    </ul>
+  </div>
+</main>
+
+<script>
+(() => {
+  'use strict';
+  const etat = document.getElementById('etat');
+  const dit = (txt, ko) => { etat.textContent = txt; etat.className = ko ? 'ko' : ''; };
+
+  // Le HTML propre du billet, sans les espaces de mise en page entre balises.
+  const billet = () => {
+    const a = document.getElementById('billet');
+    return { html: a.innerHTML.replace(/>\s+</g, '><').trim(), texte: a.innerText.replace(/\n{3,}/g, '\n\n').trim() };
+  };
+
+  // Le presse-papiers enrichi d'abord (text/html + text/plain), puis l'ancienne méthode : sélection et copie.
+  async function copie(html, texte) {
+    if (navigator.clipboard && window.ClipboardItem) {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([texte], { type: 'text/plain' }),
+        })]);
+        return true;
+      } catch (_) { /* refusé : on essaie l'ancienne méthode */ }
+    }
+    const zone = document.createElement('div');
+    zone.contentEditable = 'true'; zone.innerHTML = html;
+    zone.style.cssText = 'position:fixed;left:-9999px;top:0;white-space:pre-wrap';
+    document.body.appendChild(zone);
+    const r = document.createRange(); r.selectNodeContents(zone);
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (_) {}
+    s.removeAllRanges(); zone.remove();
+    return ok;
+  }
+
+  document.getElementById('copier').addEventListener('click', async () => {
+    const b = billet();
+    if (await copie(b.html, b.texte)) dit('Billet copié ✓ — colle-le dans le corps du billet sur itch.io.');
+    else {
+      // dernier recours : le billet sélectionné à l'écran, à copier à la main
+      const r = document.createRange(); r.selectNodeContents(document.getElementById('billet'));
+      const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+      dit('Le navigateur refuse la copie automatique : le billet est sélectionné, copie-le à la main (Ctrl+C, ou appui long → Copier).', true);
+    }
+  });
+  document.getElementById('copierTitre').addEventListener('click', async () => {
+    const t = document.getElementById('titre').textContent;
+    let ok = false;
+    try { await navigator.clipboard.writeText(t); ok = true; } catch (_) { ok = await copie(t, t); }
+    dit(ok ? 'Titre copié ✓' : 'Copie refusée : sélectionne le titre à la main.', !ok);
+  });
+})();
+</script>
+</body>
+</html>
