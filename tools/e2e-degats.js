@@ -4,10 +4,14 @@
 //
 // 1. Quatre voitures, quatre chocs posés à la main (nez, flanc, arrière, coin) : chacune a sa tôle,
 //    la bosse se fige, les débris tombent. Captures avant, pendant (la tôle tremble), après.
-// 2. Un rail pris à 38 m/s en course : la voiture perd de la pointe (DEGATS), sa tôle est enfoncée.
+// 2. Un rail pris à 60 km/h en course : la voiture perd de la pointe (DEGATS), sa tôle est enfoncée,
+//    mais pas plus de 30 cm — les voitures sont résistantes — et elle n'abandonne pas.
 // 3. Le coût du dessin : dix voitures cabossées de partout ne doivent pas coûter beaucoup plus que
 //    dix intactes — la caisse déformée est gardée en cache (Carrosserie.dessine).
 // 4. De nuit : un phare dont le coin a reculé s'éteint, celui d'en face reste allumé.
+// 5. À 120 km/h droit dans le rail : l'abandon. Le moteur ne repart plus, le nez rentre, la course se
+//    termine sans le joueur ; il est classé dernier, « Abandon », sans points, et tous les autres ont
+//    une arrivée (projetée) — personne n'est resté coincé derrière l'épave.
 'use strict';
 const assert = require('node:assert/strict'), fs = require('node:fs'), http = require('node:http'), path = require('node:path');
 const { chromium } = require('playwright');
@@ -71,8 +75,8 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
       if (t) for (let k = 0; k < t.tx.length; k++) creux = Math.max(creux, Math.hypot(t.tx[k], t.ty[k]));
       return { tole: !!t, calme: t ? t.calme : null, creux, peau: !!(t && t.peau) };
     }));
-    for (const v of vitrine) assert.ok(v.tole && v.calme && v.peau && v.creux > 0.15, 'une voiture touchée sans bosse figée : ' + JSON.stringify(v));
-    assert.ok(await page.evaluate(() => app.renderer.eclats.debris.length > 10), 'pas de débris après quatre chocs');
+    for (const v of vitrine) assert.ok(v.tole && v.calme && v.peau && v.creux > 0.05 && v.creux <= 0.3 + 1e-6, 'une voiture touchée sans bosse figée, ou trop enfoncée : ' + JSON.stringify(v));
+    assert.ok(await page.evaluate(() => app.renderer.eclats.debris.length > 4), 'pas de débris après quatre chocs');
 
     // 2. le rail, en course
     const rail = await page.evaluate(() => {
@@ -82,12 +86,15 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
       R.carrosseries = new WeakMap();
       p.state = 'ok'; p.damage = 0; p.gridLat = null; p.engineStopped = false;
       const x = (b.ax + b.bx) / 2 + b.nx * (p.cls.length / 2 + b.half + 2), y = (b.ay + b.by) / 2 + b.ny * (p.cls.length / 2 + b.half + 2);
-      const pr = T.project(x, y, b.s, 20); p.place(pr.s, pr.lat, 38); p.x = x; p.y = y; p.th = Math.atan2(-b.ny, -b.nx) + 0.5;
+      const pr = T.project(x, y, b.s, 20); p.place(pr.s, pr.lat, 20); p.x = x; p.y = y; p.th = Math.atan2(-b.ny, -b.nx) + 0.5;
       for (let i = 0; i < 120; i++) { p.update(1 / 120, true, r.time + i / 120); if (i % 2) R.addEffects(r, 1 / 60); }
       for (let i = 0; i < 90; i++) R.addEffects(r, 1 / 60);
-      return { degats: !!r.degats, damage: p.damage, facteur: p.damageFactor(), tole: !!R.carrosseries.get(p) };
+      const t = R.carrosseries.get(p);
+      let creux = 0;
+      if (t) for (let k = 0; k < t.tx.length; k++) creux = Math.max(creux, Math.hypot(t.tx[k], t.ty[k]));
+      return { degats: !!r.degats, damage: p.damage, facteur: p.damageFactor(), tole: !!t, creux, abandon: p.abandon };
     });
-    assert.ok(rail.degats && rail.damage > 0.1 && rail.facteur < 0.99 && rail.tole, 'le rail ne coûte rien : ' + JSON.stringify(rail));
+    assert.ok(rail.degats && rail.damage > 0.1 && rail.facteur < 0.99 && rail.tole && !rail.abandon && rail.creux <= 0.3 + 1e-6, 'le rail à 60 km/h : ' + JSON.stringify(rail));
     await capture('4-rail.png', 1);
 
     // 3. le coût du dessin
@@ -117,15 +124,47 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
       const avant = phares();
       // un coin avant enfoncé : le phare de ce côté-là s'éteint
       const lay = carLightLayout(p.cls, p.livree), cote = Math.sign(lay.front[0].y);
-      p.chocs.push({ nx: -0.75, ny: -0.66 * cote, v: 20, frotte: 0, sorte: 'voiture' });   // la tôle rentre vers l'autre côté
+      p.chocs.push({ nx: -0.75, ny: -0.66 * cote, v: 26, frotte: 0, sorte: 'voiture' });   // la tôle rentre vers l'autre côté
       for (let i = 0; i < 90; i++) R.addEffects(r, 1 / 60);
       return { avant, apres: phares() };
     });
     assert.ok(nuit.avant >= 2 && nuit.apres === nuit.avant - 1, 'un coin enfoncé devait éteindre un phare, et un seul : ' + JSON.stringify(nuit));
     await capture('6-nuit.png', 1);
 
+    // 5. l'abandon
+    const dnf = await page.evaluate(() => {
+      const r = app.race, T = r.track, p = r.player, R = app.renderer;
+      r.timeOfDay = 'day';
+      R.carrosseries = new WeakMap();
+      const b = T.barriers.find((b) => b.kind === 'rail' && b.side === 1 && b.s > 600 && Math.abs(T.curvAt(b.s)) < .003);
+      for (const o of r.cars) if (o !== p) o.place(b.s - 150 - o.number * 10, 0, 30);
+      p.state = 'ok'; p.damage = 0; p.gridLat = null;
+      const x = (b.ax + b.bx) / 2 + b.nx * (p.cls.length / 2 + b.half + 2), y = (b.ay + b.by) / 2 + b.ny * (p.cls.length / 2 + b.half + 2);
+      const pr = T.project(x, y, b.s, 20); p.place(pr.s, pr.lat, 34); p.x = x; p.y = y; p.th = Math.atan2(-b.ny, -b.nx) + 0.15;
+      for (let i = 0; i < 120; i++) { p.update(1 / 120, true, r.time + i / 120); if (i % 2) R.addEffects(r, 1 / 60); }
+      for (let i = 0; i < 60; i++) R.addEffects(r, 1 / 60);
+      const t = R.carrosseries.get(p);
+      let creux = 0;
+      if (t) for (let k = 0; k < t.tx.length; k++) creux = Math.max(creux, Math.hypot(t.tx[k], t.ty[k]));
+      const juste = { abandon: p.abandon, coupe: p.engineCut, creux, capot: R.eclats.debris.some((d) => d.l > 0.6) };
+      for (let i = 0; i < 160; i++) R.updateCamera(r, 1 / 60);
+      R.draw(r, app.ui);
+      return juste;
+    });
+    await page.screenshot({ path: path.join(OUT, '7-abandon.png') });
+    assert.ok(dnf.abandon && dnf.coupe === Infinity && dnf.creux > 0.4 && dnf.capot, 'à 120 km/h dans le rail, pas d\'abandon : ' + JSON.stringify(dnf));
+    const fin = await page.evaluate(() => {
+      const r = app.race;
+      for (let i = 0; i < 2000 && r.state !== 'finished'; i++) r.update(1 / 60, { throttle: 0, sel: 0 });
+      const res = r.results || [], moi = res.find((x) => x.car === r.player);
+      return { etat: r.state, n: res.length, moi: moi && { pos: moi.pos, abandon: moi.abandon, points: moi.points },
+        arrives: res.filter((x) => x.car !== r.player && x.time != null).length, roule: r.player.v };
+    });
+    assert.ok(fin.etat === 'finished' && fin.moi && fin.moi.abandon && fin.moi.points === 0 && fin.moi.pos === fin.n && fin.arrives === fin.n - 1,
+      'l\'abandon ne termine pas la course comme il faut : ' + JSON.stringify(fin));
+
     assert.deepEqual(errors, []);
-    console.log('  dégâts visibles : bosses figées, rail coûteux, dessin en cache, phare cassé — OK');
+    console.log('  dégâts visibles : bosses figées et limitées, rail coûteux, dessin en cache, phare cassé, abandon à 120 km/h — OK');
   } finally {
     await browser.close(); server.close();
   }

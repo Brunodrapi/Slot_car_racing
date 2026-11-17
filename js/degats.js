@@ -38,14 +38,22 @@ du tout — elle se dessine exactement comme avant. */
 const DEGATS_VISU = {
   points: 32,                 // sommets par anneau
   retraits: [0, 0.42, 0.9],   // m : chaque anneau, mesuré depuis le bord du dessin ; le dernier est fixe
-  creuxMax: [0.75, 0.42, 0],  // m : ce que chaque anneau peut rentrer au plus
+  /* DES VOITURES RÉSISTANTES. « Le cabossage est trop fort : les voitures ne vont pas être
+  détruites, ce n'est pas Destruction Derby. » La première version enfonçait 4,5 cm par m/s, jusqu'à
+  75 cm : un accrochage à 30 km/h d'écart froissait déjà tout un nez. Il en faut maintenant trois fois
+  plus pour la même bosse, et un coin ne perd jamais plus de 30 cm — sauf l'abandon (`epave`). */
+  creuxMax: [0.3, 0.15, 0],   // m : ce que chaque anneau peut rentrer au plus
   seuil: 3.5,                 // m/s : en dessous, un contact ne cabosse rien (le seuil de la tôle)
-  creux: 0.045,               // m de tôle enfoncée par m/s au-delà du seuil
-  rayon: 0.75,                // m : portée d'un petit choc ; jusqu'au double pour un gros
+  creux: 0.015,               // m de tôle enfoncée par m/s au-delà du seuil
+  rayon: 0.6,                 // m : portée d'un petit choc ; un peu plus pour un gros
+  /* L'ABANDON : 100 km/h droit dans un mur (ABANDON_VITESSE, js/car.js). Le capot n'existe plus : le
+  nez rentre aussi loin que l'habitacle le permet, et le compartiment moteur paraît à sa place. */
+  epaveMax: [0.95, 0.55, 0],
+  epaveCreux: 1.1, epaveRayon: 1.5,
   ressort: 260, amorti: 7,    // la tôle qui tremble, puis se fige
   etincelles: 2,              // m/s : au-dessus, un contact contre du métal crache des étincelles
   frotte: 9,                  // m/s de glisse le long d'un rail : ça crache aussi
-  debris: 3,                  // m/s au-delà du seuil : des morceaux tombent
+  debris: 5,                  // m/s au-delà du seuil : des morceaux tombent
   fumee: 0.3,                 // dommages (0..1) à partir desquels la voiture fume
   debrisVie: 45,              // s sur la piste avant de s'effacer
   debrisMax: 400,
@@ -86,12 +94,14 @@ class Carrosserie {
     this.fx = 0; this.fy = 0; this.fw = 0;   // le foyer des chocs : d'où sort la fumée
   }
 
-  /* Un choc en (px, py), sur le bord ; (nx, ny) : vers où la tôle rentre ; `force` : m/s au-delà du seuil. */
-  choc(px, py, nx, ny, force) {
-    const V = DEGATS_VISU, N = this.N, r = V.rayon * (1 + Math.min(1, force / 10));
-    const prof = V.creux * force;
+  /* Un choc en (px, py), sur le bord ; (nx, ny) : vers où la tôle rentre ; `force` : m/s au-delà du
+  seuil ; `epave` : l'abandon, le nez part. */
+  choc(px, py, nx, ny, force, epave = false) {
+    const V = DEGATS_VISU, N = this.N;
+    const r = epave ? V.epaveRayon : V.rayon * (1 + Math.min(0.6, force / 15));
+    const prof = epave ? V.epaveCreux : V.creux * force, max = epave ? V.epaveMax : V.creuxMax;
     for (let k = 0; k < N * this.R; k++) {
-      const anneau = (k / N) | 0, lim = V.creuxMax[anneau];
+      const anneau = (k / N) | 0, lim = max[anneau];
       if (!lim) continue;
       const dist = Math.hypot(this.rx[k] - px, this.ry[k] - py);
       if (dist >= r) continue;
@@ -100,7 +110,7 @@ class Carrosserie {
       this.tx[k] += nx * p; this.ty[k] += ny * p;
       const m = Math.hypot(this.tx[k], this.ty[k]);
       if (m > lim) { this.tx[k] *= lim / m; this.ty[k] *= lim / m; }
-      this.vx[k] += nx * p * 4; this.vy[k] += ny * p * 4;     // le coup qui fait trembler
+      this.vx[k] += nx * p * 2; this.vy[k] += ny * p * 2;     // le coup qui fait trembler
     }
     this._ordonne(this.tx, this.ty);
     this.touche = true; this.calme = false; this.version++;
@@ -148,18 +158,27 @@ class Carrosserie {
     }
   }
 
-  /* Le déplacement d'un point quelconque du dessin (les roues) : la moyenne des sommets voisins,
-  pesée par la distance, et retenue par un poids nul au centre pour qu'une roue loin du choc ne
-  bouge pas. */
-  decale(x, y, part = 0.7) {
-    let sx = 0, sy = 0, sw = 0.15;
-    for (let k = 0; k < this.N * this.R; k++) {
-      const d2 = (this.rx[k] - x) ** 2 + (this.ry[k] - y) ** 2;
-      if (d2 > 1.2) continue;
-      const wk = Math.exp(-d2 / 0.18);
-      sx += this.dx[k] * wk; sy += this.dy[k] * wk; sw += wk;
+  /* Le déplacement d'un point quelconque du dessin (une roue, un feu) : exactement celui que le dessin
+  subit à cet endroit, interpolé dans le triangle du maillage qui le contient. Une moyenne des
+  sommets voisins, d'abord essayée, comptait l'anneau fixe et sous-estimait des deux tiers ce qui
+  se passe entre deux anneaux — là où sont les phares. Dans le cœur, rien ne bouge. */
+  decale(x, y, part = 1) {
+    const N = this.N, rx = this.rx, ry = this.ry;
+    for (let r = 0; r < this.R - 1; r++) {
+      for (let i = 0; i < N; i++) {
+        const a = r * N + i, b = r * N + (i + 1) % N, c = b + N, d = a + N;
+        for (const [p0, p1, p2] of [[a, b, c], [a, c, d]]) {
+          const x0 = rx[p0], y0 = ry[p0], x1 = rx[p1] - x0, y1 = ry[p1] - y0, x2 = rx[p2] - x0, y2 = ry[p2] - y0;
+          const det = x1 * y2 - x2 * y1;
+          if (Math.abs(det) < 1e-9) continue;
+          const u = ((x - x0) * y2 - x2 * (y - y0)) / det, v = (x1 * (y - y0) - (x - x0) * y1) / det;
+          if (u < -1e-6 || v < -1e-6 || u + v > 1 + 1e-6) continue;
+          const w0 = 1 - u - v;
+          return [part * (w0 * this.dx[p0] + u * this.dx[p1] + v * this.dx[p2]), part * (w0 * this.dy[p0] + u * this.dy[p1] + v * this.dy[p2])];
+        }
+      }
     }
-    return [part * sx / sw, part * sy / sw];
+    return [0, 0];
   }
 
   /* La couleur de la carrosserie, juste à l'intérieur du point touché : celle des débris. */
@@ -186,24 +205,26 @@ class Carrosserie {
   `source-atop` : rien ne déborde du dessin, la peinture ne tombe que sur la voiture. Tailles en
   mètres : une voiture fait cinquante à cent pixels à l'écran, un trait plus fin qu'un décimètre ne
   se verrait pas. */
-  marque(img, px, py, nx, ny, force) {
+  marque(img, px, py, nx, ny, force, epave = false) {
     const c = this._peau(img), g = c.getContext('2d'), k = c.width / this.w;
     const u = (px + this.w / 2) * k, v = (py + this.h / 2) * k;
-    const R = Math.min(1.25, 0.32 + force * 0.06) * k;   // la zone touchée, en pixels du dessin
+    // la zone touchée, en pixels du dessin
+    const R = (epave ? 1.35 : Math.min(0.85, 0.22 + force * 0.03)) * k;
     const tu = -ny, tv = nx;                               // le long du bord
     g.save();
     g.globalCompositeOperation = 'source-atop';
     g.lineCap = 'round'; g.lineJoin = 'round';
-    // le creux : sombre au bord, comme le compartiment qu'on devine sous le capot enfoncé
+    if (epave) this._compartiment(g, u, v, nx, ny, R, k);
+    // le creux : une ombre légère au bord ; profonde seulement pour l'épave
     const cu = u + nx * R * 0.25, cv = v + ny * R * 0.25;
     const fond = g.createRadialGradient(cu, cv, 0, cu, cv, R);
-    const a = Math.min(0.75, 0.25 + force * 0.035);
+    const a = epave ? 0.6 : Math.min(0.42, 0.1 + force * 0.018);
     fond.addColorStop(0, `rgba(38,40,38,${a})`);
     fond.addColorStop(0.55, `rgba(38,40,38,${a * 0.55})`);
     fond.addColorStop(1, 'rgba(38,40,38,0)');
     g.fillStyle = fond; g.fillRect(cu - R, cv - R, 2 * R, 2 * R);
     // les plis, en travers de la poussée : un trait sombre et son arête claire
-    const plis = 2 + Math.min(4, Math.floor(force / 3));
+    const plis = epave ? 6 : 1 + Math.min(2, Math.floor(force / 6));
     for (let i = 0; i < plis; i++) {
       const d = R * (0.08 + 0.7 * Math.random()), o = (Math.random() - 0.5) * R * 0.9;
       const L = R * (0.35 + 0.45 * Math.random());
@@ -217,13 +238,30 @@ class Carrosserie {
       g.strokeStyle = 'rgba(240,240,244,0.45)'; g.lineWidth = 0.06 * k; trace(nx * 0.08 * k, ny * 0.08 * k);
     }
     // le bord éraflé : la peinture partie, le métal nu
-    g.strokeStyle = 'rgba(214,218,222,0.7)'; g.lineWidth = 0.09 * k;
+    g.strokeStyle = `rgba(214,218,222,${epave ? 0.8 : Math.min(0.6, 0.25 + force * 0.025)})`; g.lineWidth = 0.08 * k;
     g.beginPath();
     g.moveTo(u + nx * 0.12 * k - tu * R * 0.55, v + ny * 0.12 * k - tv * R * 0.55);
     g.lineTo(u + nx * 0.16 * k + tu * R * 0.55, v + ny * 0.16 * k + tv * R * 0.55);
     g.stroke();
     g.restore();
     this.version++;
+  }
+
+  /* LE CAPOT ARRACHÉ : le compartiment moteur à sa place, comme sur la voiture blanche de la vidéo de
+  Destructor2D. Un fond sombre, le bloc et deux pièces plus claires, et le bord déchiré de ce qui
+  reste du capot, plus clair, en travers. Rien de propre à une voiture : c'est le même pour toutes. */
+  _compartiment(g, u, v, nx, ny, R, k) {
+    const tu = -ny, tv = nx, P = (d, t) => [u + nx * d + tu * t, v + ny * d + tv * t];
+    const zone = (d0, d1, t0, t1) => { g.beginPath(); for (const [d, t] of [[d0, t0], [d0, t1], [d1, t1], [d1, t0]]) g.lineTo(...P(d, t)); g.closePath(); };
+    g.fillStyle = 'rgba(46,50,48,0.95)'; zone(-0.2 * k, R * 0.72, -R * 0.62, R * 0.62); g.fill();
+    g.fillStyle = 'rgba(96,101,104,0.95)'; zone(R * 0.18, R * 0.5, -R * 0.26, R * 0.26); g.fill();      // le bloc
+    g.fillStyle = 'rgba(70,74,77,0.95)'; zone(R * 0.06, R * 0.16, -R * 0.42, -R * 0.12); g.fill();     // le radiateur, de travers
+    g.fillStyle = 'rgba(128,132,134,0.9)'; zone(R * 0.52, R * 0.6, -R * 0.18, R * 0.22); g.fill();
+    // le bord déchiré du capot, en dents de scie
+    g.strokeStyle = 'rgba(226,229,232,0.85)'; g.lineWidth = 0.07 * k;
+    g.beginPath();
+    for (let i = 0; i <= 8; i++) { const t = -R * 0.62 + R * 1.24 * i / 8, d = R * (0.72 + (i % 2 ? 0.07 : -0.04) + (Math.random() - 0.5) * 0.06); g.lineTo(...P(d, t)); }
+    g.stroke();
   }
 
   /* LE DESSIN TENDU SUR L'ANNEAU, GARDÉ EN CACHE.
@@ -326,8 +364,14 @@ class Eclats {
     }
   }
 
-  eclate(x, y, vx, vy, ox, oy, n, couleur) {
+  eclate(x, y, vx, vy, ox, oy, n, couleur, capot = false) {
     const V = DEGATS_VISU, cap = Math.atan2(oy, ox);
+    if (capot) {
+      if (this.debris.length >= V.debrisMax) this.debris.shift();
+      const a = cap + (Math.random() - 0.5) * 1.2, s = 3 + Math.random() * 3;
+      this.debris.push({ x, y, vx: vx * 0.4 + Math.cos(a) * s, vy: vy * 0.4 + Math.sin(a) * s, ang: Math.random() * Math.PI * 2,
+        va: (Math.random() - 0.5) * 8, l: 1.0 + Math.random() * 0.2, e: 0.7 + Math.random() * 0.15, col: couleur, age: 0 });
+    }
     for (let i = 0; i < n; i++) {
       if (this.debris.length >= V.debrisMax) this.debris.shift();
       const q = Math.random(), a = cap + (Math.random() - 0.5) * 2.8, s = 2 + Math.random() * 8;
@@ -370,6 +414,7 @@ class Eclats {
       g.lineTo(d.x - c * l + s * e, d.y - s * l - c * e);
       g.lineTo(d.x + c * l + s * e, d.y + s * l - c * e);
       g.closePath(); g.fill();
+      if (d.l > 0.6) { g.strokeStyle = 'rgba(20,20,24,0.6)'; g.lineWidth = 0.06; g.stroke(); }   // le capot, détouré
     }
     g.globalAlpha = a0;
   }

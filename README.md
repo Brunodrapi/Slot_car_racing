@@ -3472,13 +3472,42 @@ l'intérieur) ; le dernier ne bouge jamais, et l'habitacle et le numéro restent
 au-delà de 3,5 m/s :
 
 - **enfonce** les sommets proches, avec un peu de hasard pour que le bord se froisse au lieu de rentrer
-  d'un bloc (jusqu'à 75 cm au bord), et la tôle **tremble** une demi-seconde avant de se figer ;
+  d'un bloc, et la tôle **tremble** une demi-seconde avant de se figer ;
 - **peint** sur une copie du dessin, propre à la voiture, un creux sombre et des plis en travers de la
   poussée — c'est l'équivalent générique du capot arraché de Destructor2D ;
 - fait tomber des **débris** (la couleur de la carrosserie, prise sous le point touché, du carbone, du
   verre) qui restent 45 s sur la piste ;
-- **casse les feux** du coin qui a reculé de plus de 30 cm : de nuit le phare s'éteint, de jour le feu
-  stop ne s'allume plus.
+- **casse les feux** qui ont reculé de plus de 7 cm : de nuit le phare s'éteint, de jour le feu stop ne
+  s'allume plus. Le recul se lit exactement là où le feu est dessiné, dans le triangle du maillage
+  qui le contient ; une moyenne des sommets voisins, essayée d'abord, le sous-estimait des deux tiers.
+
+**Des voitures résistantes.** « Le cabossage est trop fort : les voitures ne vont pas être détruites, ce
+n'est pas Destruction Derby. » La première version enfonçait 4,5 cm de tôle par m/s au-delà du seuil,
+jusqu'à 75 cm : un accrochage à 30 km/h d'écart froissait tout un nez. Il en faut maintenant trois fois
+plus (1,5 cm par m/s), et un coin ne perd jamais plus de 30 cm. Les plis et le creux sombre sont plus
+discrets, les débris plus rares (au-delà de 5 m/s au-dessus du seuil, huit au plus).
+
+**L'abandon.** « Par contre si une voiture fonce à 100 km/h droit dans un mur, elle n'a plus de capot :
+elle ne démarre plus et ça fait un DNF. » Ce qui compte est la vitesse qui **rentre** dans la protection
+(la composante normale, comme pour la coupure moteur) : longer un rail vite n'est pas foncer dedans.
+Contre des pneus, qui amortissent (×0,55), il faut 180 km/h droit dedans. Entre voitures, jamais.
+`ABANDON_VITESSE` (`js/car.js`) :
+
+- le moteur ne repart plus ; la voiture est classée derrière toutes celles qui roulent, « Abandon »
+  (« DNF » en anglais), sans points ;
+- à l'écran, le nez rentre aussi loin que l'habitacle le permet, le compartiment moteur paraît à la
+  place du capot (le même dessin pour toutes les voitures), et le capot part en un morceau ;
+- l'épave fume six secondes là où elle s'est arrêtée, puis s'efface en deux — les commissaires l'ont
+  enlevée. Elle ne se touche plus dès l'abandon, et l'IA ne la voit plus dans le trafic : une voiture
+  arrêtée pour de bon que l'IA prendrait pour un gêneur la ferait attendre derrière, et la course ne
+  finirait plus ;
+- si c'est le joueur, « ABANDON — MOTEUR DÉTRUIT » s'affiche, la course se termine trois secondes et
+  demie plus tard, et l'arrivée des autres est **projetée** au rythme moyen que chacun a tenu : finir à
+  leur place un abandon au premier tour de Spa, c'est plus de dix minutes de course à calculer d'un
+  bloc, l'écran figé le temps du calcul. L'ordre est celui de la piste, les écarts sont plausibles.
+
+En ligne, pas d'abandon pour cet essai : il devrait passer par le réseau. Un choc à 100 km/h y coupe le
+moteur comme avant.
 
 Tout contact contre du métal (un rail, un mur, une autre voiture) crache des **étincelles**, même sous
 le seuil, et un frottement le long d'un rail aussi. Contre des pneus, non. Une voiture abîmée à plus de
@@ -3506,7 +3535,7 @@ Une voiture intacte n'a pas de maillage et se dessine exactement comme avant. Un
 découpe son dessin en triangles là où l'anneau a bougé, et seulement là. Mesuré sans précaution, dix
 voitures cabossées de partout faisaient passer une image de 2 à 34 ms. La caisse déformée est donc
 **gardée en cache**, à la résolution du dessin, et retendue seulement pendant la seconde où la tôle
-tremble : dix voitures cabossées coûtent 1,2 ms, contre 1,0 ms intactes.
+tremble : dix voitures cabossées coûtent 1,2 ms, contre 0,7 à 1,0 ms intactes.
 
 ### Ce qui n'est pas fait
 
@@ -3514,7 +3543,7 @@ tremble : dix voitures cabossées coûtent 1,2 ms, contre 1,0 ms intactes.
 - **En ligne**, chaque écran calcule ses bosses à partir des chocs qu'il voit ; les dommages, eux,
   passent par le réseau comme avant (l'octet `damage` de `js/net-drive.js`). Deux joueurs peuvent donc
   voir des bosses un peu différentes. Non essayé à deux écrans.
-- **Pas de pièce qui se détache** (un aileron arraché qui reste au sol) : seulement des débris.
+- **Pas de pièce qui se détache** en dehors du capot de l'abandon : seulement des débris.
 
 ## Usure et dommages
 

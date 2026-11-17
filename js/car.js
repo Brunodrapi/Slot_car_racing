@@ -76,6 +76,16 @@ const DEGATS_ACTIVE = true;
 const DEGATS = { chocSeuil: USURE.chocSeuil, chocParVitesse: USURE.chocParVitesse, vmax: USURE.vmax };
 const FLANC_SEUIL = 6;    // m/s de rapprochement latéral avant qu'un coup de flanc ne casse (voir resolveCollisions)
 const FLANC_COUT = 0.5;   // et ce qu'il coûte, rapporté à un choc de face de même vitesse
+/* L'ABANDON. « Les voitures ne vont pas être détruites, ce n'est pas Destruction Derby : il faut
+qu'elles soient assez résistantes. Par contre si une voiture fonce à 100 km/h droit dans un mur, elle
+n'a plus de capot, elle ne démarre plus et ça fait un DNF. » (Bruno)
+
+Ce qui compte est la vitesse qui RENTRE dans la protection (la composante normale), comme pour la
+coupure moteur : longer un rail à 200 km/h n'est pas foncer dedans. Les pneus amortissent (×0,55,
+comme pour la coupure) : il faut 180 km/h droit dans un mur de pneus pour la même chose. Entre
+voitures, jamais d'abandon : un accrochage reste un accrochage. En course seulement, et pas en ligne
+pour cet essai (l'abandon devrait passer par le réseau). */
+const ABANDON_VITESSE = 100 / 3.6;   // m/s
 
 /* L'arrêt au stand.
 
@@ -425,6 +435,8 @@ class Car {
     vide à chaque image ; rien ici ne pèse sur la course. */
     this.chocs = [];
     this.reculChoc = 0;  // pas de physique avant qu'un frottement de flanc puisse recompter
+    this.abandon = false; // le moteur ne repartira plus (ABANDON_VITESSE)
+    this.abandonT = 0;    // depuis combien de temps
     this.pitsDone = 0;
     /* `pitAsk` est l'INTENTION, `sel` reste la ligne.
 
@@ -561,10 +573,10 @@ class Car {
   /* UN CHOC, POUR CE QUI SE VOIT. (nx, ny) : la direction dans laquelle la tôle rentre — de
   l'obstacle vers la voiture —, dans le monde ; on la garde dans le repère de la voiture, où le
   dessin la cherchera. `vitesse` : l'écart qui fait le choc ; `frotte` : ce qui glisse le long. */
-  _marque(nx, ny, vitesse, frotte, sorte) {
+  _marque(nx, ny, vitesse, frotte, sorte, epave = false) {
     if (this.chocs.length >= 12 || this.fantome) return;
     const cs = Math.cos(this.th), sn = Math.sin(this.th);
-    this.chocs.push({ nx: nx * cs + ny * sn, ny: -nx * sn + ny * cs, v: vitesse, frotte: frotte || 0, sorte });
+    this.chocs.push({ nx: nx * cs + ny * sn, ny: -nx * sn + ny * cs, v: vitesse, frotte: frotte || 0, sorte, epave });
   }
 
   get progress() { return (this.lap - (this.started ? 0 : 1)) * this.track.length + this.track.wrap(this.s); }
@@ -743,6 +755,7 @@ class Car {
     this.v=wx*cs+wy*sn; this.vl=wx*sn-wy*cs;
     this.w*=BARRIERE.lacet;this.Ff=0;this.Fr=0;
     this.slide=0;this.patine=0;this.patineFx=0;this.throttle=false;this.braking=false;this.brake=0;
+    let fatal=false;
     if(!this.engineStopped){
       const effective=impact*(pneus?.55:1);
       this.barrierHits++;
@@ -755,8 +768,13 @@ class Car {
       this._leaveTrack(false); // une excursion et son impact ne comptent pas deux fautes
       const u=this.tole;
       if(u)this.damage=clamp(this.damage+u.chocParVitesse*Math.max(0,effective-u.chocSeuil),0,1);
+      // l'abandon (ABANDON_VITESSE) : le moteur ne repartira plus
+      if(u&&u.abandon&&effective>=ABANDON_VITESSE){
+        fatal=true;this.abandon=true;this.damage=1;
+        this.engineCut=Infinity;this.engineStopped=true;this.lastBarrierImpact.cut=Infinity;
+      }
     }
-    this._marque(hit.nx,hit.ny,impact*(pneus?.55:1),Math.abs(vt),hit.barrier.kind);
+    this._marque(hit.nx,hit.ny,impact*(pneus?.55:1),Math.abs(vt),hit.barrier.kind,fatal);
     const pr=this.track.project(this.x,this.y,this.s,30);
     const ds=this.track.diff(this.s,pr.s);
     if(raceTime!=null&&ds>0&&ds<6)this._advance(ds,raceTime);else this.s=pr.s;
@@ -766,6 +784,7 @@ class Car {
 
   update(dt, throttle, raceTime, brakingInput = null) {
     const T = this.track, c = this.cls;
+    if (this.abandon) this.abandonT += dt;
     const wasStopped = this.engineStopped;
     this.engineCut = Math.max(0, this.engineCut - dt);
     this.engineStopped = this.engineCut > 1e-6;
@@ -1452,6 +1471,8 @@ function resolveCollisions(cars, track) {
     for (let j = i + 1; j < n; j++) {
       const b = cars[j];
       if (a.blueFlag || b.blueFlag) continue;
+      // une épave (abandon) ne se touche plus : on la contourne, ou on la traverse le temps qu'on l'enlève
+      if (a.abandon || b.abandon) continue;
       /* Pas de contact dans la voie des stands, ni avec la piste depuis la voie.
 
       Deux raisons, et la seconde compte plus que la première. D'abord c'est juste : un vrai

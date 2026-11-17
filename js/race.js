@@ -194,7 +194,8 @@ class Race {
     // que le lire ici aurait rendu l'option inerte sans que rien ne le signale.
     this.usure = USURE_ACTIVE && opts.wear && (opts.mode || 'race') === 'race' ? USURE : null;
     // les dégâts seuls (essai, js/car.js) : en course aussi, et sans option à cocher pour l'essai
-    this.degats = DEGATS_ACTIVE && !this.usure && (opts.mode || 'race') === 'race' ? DEGATS : null;
+    // l'abandon (ABANDON_VITESSE, js/car.js) en solo seulement pour l'essai : en ligne il devrait passer par le réseau
+    this.degats = DEGATS_ACTIVE && !this.usure && (opts.mode || 'race') === 'race' ? { ...DEGATS, abandon: !opts.humans } : null;
     this.time = 0;
     this.state = 'countdown';                  // countdown | racing | finishing | finished
     this.countdown = 3.6;
@@ -420,12 +421,16 @@ class Race {
     }
     if (this.state === 'finished') return;
     this._simulate(dt, throttleInput, brakingInput);
+    // le joueur a abandonné : on laisse voir l'épave un instant, puis la course se termine sans lui
+    if (this.state === 'racing' && this.player.abandon && !this.netDrive) {
+      this.state = 'finishing'; this.finishTimer = 3.5; this.finishDeadline = this.time + this.finishTimer;
+    }
     if (this.state === 'finishing' && (!this.netDrive || this.netDrive.host)) {
       if (this.netDrive) this.finishTimer = Math.max(0, this.finishDeadline - this.time);
       else this.finishTimer -= dt;
       const competitors = this.opts.humans ? this.cars.filter(c => c.human != null) : this.cars;
       const expired = this.finishTimer <= 0 && (!this.netDrive || this.netDrive.canFinalize());
-      if (expired || competitors.every(c => c.finished)) this._finish();
+      if (expired || competitors.every(c => c.finished || c.abandon)) this._finish();
     }
   }
 
@@ -463,6 +468,9 @@ class Race {
     this.flags?.update();
     // rubber-banding: slow leaders that are far ahead of the player, help stragglers a little
     const pp = this.player.progress;
+    /* Le trafic que l'IA regarde : ni le fantôme, ni une épave. Une voiture arrêtée pour de bon que
+    l'IA prendrait pour un gêneur la ferait attendre derrière elle, et la course ne finirait plus. */
+    const trafic = this._sansFantome.some((c) => c.abandon) ? this._sansFantome.filter((c) => !c.abandon) : this._sansFantome;
     for (const car of this.cars) {
       if (this.netDrive && !this.netDrive.owns(car)) continue;
       // The third argument is "let the AI pick the line". A person's car never does, wherever
@@ -472,7 +480,7 @@ class Race {
       le joueur freine lui-même ; la dupliquer aurait fini par la faire diverger. */
       car.aiDriven = car.human == null && !car.isPlayer ? true : !!this.opts.playerAI;
       // le fantôme ne voit personne, et personne ne le voit : ni gêneur, ni voisin, ni aspiration
-      car.steer(car.fantome ? SANS_TRAFIC : this._sansFantome, dt, car.aiDriven);
+      car.steer(car.fantome ? SANS_TRAFIC : trafic, dt, car.aiDriven);
       if (this.usure && car.aiDriven && !car.finished) this._decidePit(car);
       let throttle;
       if (car.isPlayer) throttle = car.finished ? car.v < 15 : throttleInput;
@@ -488,7 +496,7 @@ class Race {
       } else {
         const gapM = car.progress - pp;
         const rubber = car.finished || this.player.finished ? 0 : clamp(-gapM / 4000, -0.05, 0.03);
-        throttle = aiThrottle(car, this.cars, dt, { ...this.difficulty, rubber }) && !car.finished;
+        throttle = aiThrottle(car, trafic, dt, { ...this.difficulty, rubber }) && !car.finished;
         if (car.finished) throttle = car.v < 15;
       }
       const wasOff = car.state === 'grass', hitsBefore = car.barrierHits;
@@ -827,6 +835,8 @@ class Race {
 
   standings() {
     return this.cars.slice().sort((a, b) => {
+      // une épave est classée derrière tous ceux qui roulent encore, et entre épaves au plus loin allé
+      if (!!a.abandon !== !!b.abandon) return a.abandon ? 1 : -1;
       if (a.finished && b.finished) return this.tempsClasse(a) - this.tempsClasse(b);
       if (a.finished !== b.finished) return a.finished ? -1 : 1;
       return b.progress - a.progress;
@@ -839,12 +849,14 @@ class Race {
     // Solo may complete AI laps offscreen. Online, keep only actually completed laps;
     // fast-forwarding would freeze every guest and invent finishes for absent players.
     let extra = 0;
-    while (!this.opts.humans && !this.cars.every(c => c.finished) && extra < 180) { this._simulate(this.dt, false); extra += this.dt; }
+    const abandon = this.player.abandon && !this.opts.humans;
+    while (!abandon && !this.opts.humans && !this.cars.every(c => c.finished || c.abandon) && extra < 180) { this._simulate(this.dt, false); extra += this.dt; }
+    if (abandon) this._projetteArrivees();
     this.events.length = 0;
     this.state = 'finished';
     const order = this.standings();
     this.results = order.map((car, i) => ({
-      car, pos: i + 1, points: POINTS[i] || 0,
+      car, pos: i + 1, points: car.abandon ? 0 : POINTS[i] || 0, abandon: !!car.abandon,
       // `time` est le temps QUI CLASSE, pénalités comprises : c'est lui qui a décidé de l'ordre, donc
       // c'est lui qu'il faut montrer. Le chrono brut et la pénalité sont donnés à côté, sans quoi un
       // joueur verrait son classement bouger sans pouvoir le relier à quoi que ce soit.
@@ -858,11 +870,28 @@ class Race {
     return this.results;
   }
 
+  /* LE JOUEUR A ABANDONNÉ (essai des dégâts) : la fin de course se projette au lieu de se simuler.
+
+  Finir la course à sa place, c'est souvent des minutes de course à calculer d'un bloc — un abandon
+  au premier tour de Spa en laisse plus de dix — et l'écran resterait figé le temps du calcul. La
+  simulation de fin habituelle s'arrête à 180 s ; au-delà, tout le monde serait « non classé ». On
+  fait finir chaque voiture encore en course au rythme moyen qu'elle a tenu jusqu'ici : l'ordre est
+  celui de la piste, et les écarts sont plausibles. */
+  _projetteArrivees() {
+    const total = this.laps * this.track.length;
+    for (const c of this.cars) {
+      if (c.finished || c.abandon) continue;
+      const moyenne = Math.max(5, c.progress / Math.max(1, this.time));
+      c.finishTime = this.time + Math.max(0, total - c.progress) / moyenne;
+      c.finished = true;
+    }
+  }
+
   /** Le classement d'un invité, bâti sur l'instantané reçu et non sur une simulation. */
   _classeRecu() {
     const order = this.standings();
     this.results = order.map((car, i) => ({
-      car, pos: i + 1, points: POINTS[i] || 0,
+      car, pos: i + 1, points: car.abandon ? 0 : POINTS[i] || 0, abandon: !!car.abandon,
       time: this.tempsClasse(car),
       brut: car.finished ? car.finishTime : null,
       penalite: Race.penalite(car),

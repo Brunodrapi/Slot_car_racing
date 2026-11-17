@@ -334,12 +334,12 @@ class NightLighting {
       const braking=car.braking&&car.state==='ok';
       const world=q=>({x:p.x+cos*q.x-sin*q.y,y:p.y+sin*q.x+cos*q.y});
       /* La tôle froissée (essai, js/degats.js) : un feu suit son coin quand il recule, et s'éteint
-      quand le coin a reculé de plus de trente centimètres — le phare est cassé. */
+      quand il a reculé de plus de sept centimètres — le phare est cassé. */
       const tole=this.toleDe&&this.toleDe(car);
       const suit=q=>{
         if(!tole||!tole.touche)return q;
         const [ox,oy]=tole.decale(q.x,q.y,1);
-        return Math.hypot(ox,oy)>.3?null:{...q,x:q.x+ox,y:q.y+oy};
+        return Math.hypot(ox,oy)>.07||(car.abandon&&car.abandonT>6)?null:{...q,x:q.x+ox,y:q.y+oy};
       };
       for(const q0 of layout.front){
         const q=suit(q0);if(!q)continue;
@@ -1716,10 +1716,12 @@ class Renderer {
             if (art) {
               if (!tole) { tole = new Carrosserie(w, h); this.carrosseries.set(car, tole); }
               couleur = tole.teinte(art.img, px, py, e.nx, e.ny) || couleur;
-              tole.choc(px, py, e.nx, e.ny, force);
-              tole.marque(art.img, px, py, e.nx, e.ny, force);
+              tole.choc(px, py, e.nx, e.ny, force, e.epave);
+              tole.marque(art.img, px, py, e.nx, e.ny, force, e.epave);
             }
-            if (force > V.debris) this.eclats.eclate(X, Y, vx, vy, ox, oy, Math.min(16, 2 + Math.round(force * 0.8)), couleur);
+            // l'abandon : le capot part en un morceau, et beaucoup d'éclats avec lui
+            if (e.epave) this.eclats.eclate(X, Y, vx, vy, ox, oy, 18, couleur, true);
+            else if (force > V.debris) this.eclats.eclate(X, Y, vx, vy, ox, oy, Math.min(8, 1 + Math.round(force * 0.4)), couleur);
           }
           // contre des pneus, pas d'étincelles : du caoutchouc ne crache rien
           if (e.sorte !== 'tyres' && gerbes < 24 && (e.v > V.etincelles || e.frotte > V.frotte)) {
@@ -1732,7 +1734,7 @@ class Renderer {
       if (!tole) continue;
       tole.pas(dt);
       // la fumée d'une voiture très abîmée sort de là où elle a pris les coups
-      if (roule && !car.fantome && car.damage > V.fumee) {
+      if (roule && !car.fantome && car.damage > V.fumee && !(car.abandon && car.abandonT > 7)) {
         const q = clamp((car.damage - V.fumee) / (1 - V.fumee), 0, 1);
         const attendu = (4 + 16 * q) * Math.min(dt, 0.1);
         const n = Math.floor(attendu) + (Math.random() < attendu % 1 ? 1 : 0);
@@ -2986,7 +2988,12 @@ class Renderer {
     /* LE FANTÔME de l'entraînement se voit à travers : la piste, ses lignes et sa propre voiture
     restent lisibles quand il passe dessus. Son ombre s'allège avec lui — une ombre franche sous une
     voiture transparente la reposait au sol. */
-    const voile = car.fantome ? FANTOME_ALPHA : car.blueFlag ? .45 : 1;
+    /* UNE ÉPAVE S'EFFACE (essai des dégâts) : elle reste six secondes là où elle s'est arrêtée,
+    fumante, puis disparaît en deux — les commissaires l'ont enlevée. Elle ne se touche plus dès
+    l'abandon (resolveCollisions) : sans quoi l'IA s'arrêterait derrière, ou foncerait dedans. */
+    const enleve = car.abandon ? clamp(1 - (car.abandonT - 6) / 2, 0, 1) : 1;
+    if (enleve <= 0) { g.restore(); return; }
+    const voile = (car.fantome ? FANTOME_ALPHA : car.blueFlag ? .45 : 1) * enleve;
     g.globalAlpha *= voile;
     g.translate(pos.x, pos.y);
     g.rotate(h);
@@ -3040,9 +3047,9 @@ class Renderer {
     const F=FEU_STOP;
     g.save();g.globalAlpha*=.62;
     for(const q0 of carLightLayout(c,livree).rear){
-      // un feu dont le coin a reculé de plus de trente centimètres est cassé (essai, js/degats.js)
+      // un feu qui a reculé de plus de sept centimètres est cassé (essai, js/degats.js)
       let q=q0;
-      if(tole){const [ox,oy]=tole.decale(q0.x,q0.y,1);if(Math.hypot(ox,oy)>.3)continue;q={...q0,x:q0.x+ox,y:q0.y+oy};}
+      if(tole){const [ox,oy]=tole.decale(q0.x,q0.y,1);if(Math.hypot(ox,oy)>.07)continue;q={...q0,x:q0.x+ox,y:q0.y+oy};}
       g.save();g.translate(q.x,q.y);g.rotate(Math.PI-Math.sign(q.y)*.06);
       g.drawImage(this.night.tailMask(),0,-F.demi,F.long,F.demi*2);g.restore();
     }
@@ -3651,7 +3658,10 @@ class Renderer {
       g.textAlign = 'center'; g.fillStyle = '#5be07a'; g.font = 'italic 900 80px Racing, Impact, sans-serif';
       g.globalAlpha = 1 - race.time / 1.2; g.fillText('GO!', W / 2, H * 0.18); g.globalAlpha = 1;
     }
-    if (p.state === 'grass') { g.textAlign = 'center'; g.fillStyle = '#ff6b6b'; g.font = 'italic 900 36px Racing, Impact, sans-serif'; g.fillText(t('offTrack'), W / 2, H * 0.3);
+    // l'abandon (essai des dégâts) : à la place de « sortie de piste, moteur coupé », qui promet de repartir
+    if (p.abandon) { g.textAlign = 'center'; g.fillStyle = '#ff6b6b'; g.font = 'italic 900 52px Racing, Impact, sans-serif'; g.fillText(t('abandon'), W / 2, H * 0.3);
+      g.fillStyle = '#ffcf5c'; g.font = 'italic 900 24px Racing, Impact, sans-serif'; g.fillText(t('abandonSous'), W / 2, H * .3 + 34); }
+    else if (p.state === 'grass') { g.textAlign = 'center'; g.fillStyle = '#ff6b6b'; g.font = 'italic 900 36px Racing, Impact, sans-serif'; g.fillText(t('offTrack'), W / 2, H * 0.3);
       if(p.engineStopped){g.fillStyle='#ffcf5c';g.font='italic 900 24px Racing, Impact, sans-serif';g.fillText(t('engineCut'),W/2,H*.3+30);} }
     if (p.finished && race.state !== 'finished') { g.textAlign = 'center'; g.fillStyle = '#ffd400'; g.font = 'italic 900 52px Racing, Impact, sans-serif'; g.fillText(`${t('finished')} — P${race.positionOf(p)}`, W / 2, H * 0.3); }
     /* Le temps au tour se pose sous TOUT ce qui occupe le haut, et non à une hauteur fixe.
