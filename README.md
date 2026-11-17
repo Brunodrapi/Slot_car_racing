@@ -392,6 +392,21 @@ prod. Elle ne se refait pas toute seule : `npm run apercu` la reconstruit, puis 
 et ses sons sont les mêmes fichiers que ceux du dépôt, que git ne stocke qu'une fois : un aperçu coûte
 au dépôt le code minifié, quelques centaines de kilo-octets. L'éditeur n'y est pas, comme en prod.
 
+**Les essais jouables (`essais/`).** Un essai vit sur sa propre branche ; GitHub Pages ne sert que la
+recette, et une autre branche n'a donc pas d'adresse où jouer. On en pose une copie compilée, comme
+l'aperçu, dans un sous-dossier de la recette — tout reste sur ce dépôt, sans service tiers. Le jeu de la
+recette n'en est pas changé, et ni la prod ni l'aperçu ne l'emportent : la fabrication ne copie que ce
+que les pages chargent. Même canal RECETTE, même sauvegarde que la recette (même adresse) ; le service
+worker de l'essai ne couvre que son dossier.
+
+- `essais/degats/` — les dégâts qui se voient, branche `claude/degats-visuels` (tôle qui se froisse,
+  étincelles, débris, fumée, feux cassés, perte de vitesse en course) :
+  brunodrapi.github.io/Slot_car_racing/essais/degats/. Le détail est dans le README de la branche.
+
+Refaire un essai après un changement de sa branche : sur la branche, `node tools/build-dist.js
+--sortie=/tmp/essai --canal=recette` ; puis sur la recette, remplacer `essais/<nom>/` par `/tmp/essai`
+et pousser. Le retirer : supprimer son dossier.
+
 **Recette, puis prod.** Deux dépôts, deux publics :
 
 | | adresse | ce qui est servi | dépôt | nom sur l'iPhone |
