@@ -62,6 +62,21 @@ const USURE = {
   vmax: 0.18,        // vitesse de pointe perdue sur une voiture au maximum des dommages
 };
 
+/* LES DÉGÂTS SANS L'USURE — essai de la branche claude/degats-visuels.
+
+L'usure reste éteinte (`USURE_ACTIVE`), et les dommages vivaient avec elle. Ici ils en sortent : un
+choc franc contre une voiture ou une protection cabosse la voiture À L'ÉCRAN (js/degats.js) et lui
+coûte de la pointe et de la reprise, avec les réglages de la tôle ci-dessus — même seuil, même coût
+par m/s, même perte de vitesse au maximum. Jamais d'adhérence.
+
+En COURSE seulement, comme l'usure : en contre-la-montre et à l'entraînement le choc se voit mais ne
+coûte rien, un record ne se signe pas sur une voiture que les tours précédents ont abîmée. Il n'y a
+pas de stand pour réparer : ce qui est cassé le reste jusqu'au drapeau. */
+const DEGATS_ACTIVE = true;
+const DEGATS = { chocSeuil: USURE.chocSeuil, chocParVitesse: USURE.chocParVitesse, vmax: USURE.vmax };
+const FLANC_SEUIL = 6;    // m/s de rapprochement latéral avant qu'un coup de flanc ne casse (voir resolveCollisions)
+const FLANC_COUT = 0.5;   // et ce qu'il coûte, rapporté à un choc de face de même vitesse
+
 /* L'arrêt au stand.
 
 Ce qu'il coûte est le cœur du réglage. Trop court, il n'y a aucune raison de ne pas s'arrêter ;
@@ -401,8 +416,15 @@ class Car {
     permet de couper la fonctionnalité SANS toucher au reste du code : `tyre` et `damage` existent
     toujours, ils ne bougent simplement jamais, et tout ce qui les lit trouve 1 et 0. */
     this.usure = opts.usure || null;
+    /* `degats` : la tôle seule, sans les pneus ni les stands (essai, voir DEGATS). */
+    this.degats = opts.degats || null;
     this.tyre = 1;      // 1 = neuf, 0 = mort
     this.damage = 0;    // 0 = intact, 1 = épave
+    /* Les chocs de l'image en cours, pour le DESSIN seulement (js/degats.js) : vers où la tôle a été
+    enfoncée, dans le repère de la voiture, à quelle vitesse, et ce qui a été touché. Le rendu les
+    vide à chaque image ; rien ici ne pèse sur la course. */
+    this.chocs = [];
+    this.reculChoc = 0;  // pas de physique avant qu'un frottement de flanc puisse recompter
     this.pitsDone = 0;
     /* `pitAsk` est l'INTENTION, `sel` reste la ligne.
 
@@ -532,7 +554,18 @@ class Car {
   cornerSpeed(k) { return cornerSpeedFor(this.cls, k, this.gripBoost * this.tyreGrip()); }
 
   // une voiture cabossée traîne : elle perd de la pointe et de la reprise, jamais de l'adhérence
-  damageFactor() { return this.usure ? 1 - this.usure.vmax * this.damage : 1; }
+  damageFactor() { const u = this.tole; return u ? 1 - u.vmax * this.damage : 1; }
+  // le réglage de la tôle en vigueur : celui de l'usure si elle est là, sinon celui des dégâts seuls
+  get tole() { return this.usure || this.degats; }
+
+  /* UN CHOC, POUR CE QUI SE VOIT. (nx, ny) : la direction dans laquelle la tôle rentre — de
+  l'obstacle vers la voiture —, dans le monde ; on la garde dans le repère de la voiture, où le
+  dessin la cherchera. `vitesse` : l'écart qui fait le choc ; `frotte` : ce qui glisse le long. */
+  _marque(nx, ny, vitesse, frotte, sorte) {
+    if (this.chocs.length >= 12 || this.fantome) return;
+    const cs = Math.cos(this.th), sn = Math.sin(this.th);
+    this.chocs.push({ nx: nx * cs + ny * sn, ny: -nx * sn + ny * cs, v: vitesse, frotte: frotte || 0, sorte });
+  }
 
   get progress() { return (this.lap - (this.started ? 0 : 1)) * this.track.length + this.track.wrap(this.s); }
   get pos() { return { x: this.x, y: this.y }; }
@@ -720,8 +753,10 @@ class Car {
         this.lastBarrierImpact.cut=this.engineCut;
       }
       this._leaveTrack(false); // une excursion et son impact ne comptent pas deux fautes
-      if(this.usure)this.damage=clamp(this.damage+this.usure.chocParVitesse*Math.max(0,effective-this.usure.chocSeuil),0,1);
+      const u=this.tole;
+      if(u)this.damage=clamp(this.damage+u.chocParVitesse*Math.max(0,effective-u.chocSeuil),0,1);
     }
+    this._marque(hit.nx,hit.ny,impact*(pneus?.55:1),Math.abs(vt),hit.barrier.kind);
     const pr=this.track.project(this.x,this.y,this.s,30);
     const ds=this.track.diff(this.s,pr.s);
     if(raceTime!=null&&ds>0&&ds<6)this._advance(ds,raceTime);else this.s=pr.s;
@@ -1411,6 +1446,7 @@ function aiThrottle(car, cars, dt, opts) {
 // car-to-car contact, resolved in world space along the track tangent / normal
 function resolveCollisions(cars, track) {
   const n = cars.length;
+  for (const c of cars) if (c.reculChoc > 0) c.reculChoc--;
   for (let i = 0; i < n; i++) {
     const a = cars[i];
     for (let j = i + 1; j < n; j++) {
@@ -1438,9 +1474,14 @@ function resolveCollisions(cars, track) {
         if (rear.v > front.v) {
           const dv = rear.v - front.v;
           // le choc abîme les deux, à proportion de ce qui dépasse le seuil de simple frottement
-          const fort = Math.max(0, dv - (rear.usure ? rear.usure.chocSeuil : 0));
-          if (rear.usure && fort > 0) rear.damage = Math.min(1, rear.damage + rear.usure.chocParVitesse * fort);
-          if (front.usure && fort > 0) front.damage = Math.min(1, front.damage + front.usure.chocParVitesse * fort * 0.6);
+          const ur = rear.tole, uf = front.tole;
+          const fort = Math.max(0, dv - (ur ? ur.chocSeuil : 0));
+          if (ur && fort > 0) rear.damage = Math.min(1, rear.damage + ur.chocParVitesse * fort);
+          if (uf && fort > 0) front.damage = Math.min(1, front.damage + uf.chocParVitesse * fort * 0.6);
+          // ce qui se voit : l'avant de l'une rentre vers l'arrière, l'arrière de l'autre vers l'avant
+          const ux = front.x - rear.x, uy = front.y - rear.y, ul = Math.hypot(ux, uy) || 1;
+          rear._marque(-ux / ul, -uy / ul, dv, 0, 'voiture');
+          front._marque(ux / ul, uy / ul, dv, 0, 'voiture');
           front.v += dv * 0.35;
           rear.v = front.v - dv * 0.1;
           const push = Math.min(longOverlap / 2, 0.1);
@@ -1449,6 +1490,34 @@ function resolveCollisions(cars, track) {
         }
       } else {
         const dir = dl >= 0 ? 1 : -1, sep = Math.min(latOverlap / 2, 0.1);
+        /* LE COUP DE FLANC (essai des dégâts). Jusqu'ici il ne cassait rien : une poussette, plafonnée.
+        On mesure maintenant à quelle vitesse les deux flancs se rapprochaient, dans le monde.
+
+        Son seuil est PLUS HAUT que celui d'un choc par l'arrière (FLANC_SEUIL, 6 m/s contre 3,5).
+        Deux voitures qui se serrent dans un virage se rapprochent vite sur le côté rien que parce
+        que leurs caps diffèrent de quelques degrés — à 60 m/s, trois degrés font déjà 3 m/s — et le
+        jeu traite ce contact en poussette, pas en accident. Au seuil commun, mesuré sur 25 s de
+        départ à Spa, les flancs faisaient les deux tiers de la tôle, et deux voitures finissaient
+        détruites. Ce qui passe le seuil coûte en outre moins qu'un choc de face (FLANC_COUT).
+
+        Un contact dure plusieurs pas de physique tant que les voitures se chevauchent : `reculChoc`
+        l'empêche de compter à chaque pas. */
+        if (a.reculChoc <= 0 && b.reculChoc <= 0) {
+          const vxa = a.v * Math.cos(a.th) + a.vl * Math.sin(a.th), vya = a.v * Math.sin(a.th) - a.vl * Math.cos(a.th);
+          const vxb = b.v * Math.cos(b.th) + b.vl * Math.sin(b.th), vyb = b.v * Math.sin(b.th) - b.vl * Math.cos(b.th);
+          const rapproche = ((vxa - vxb) * nx + (vya - vyb) * ny) * dir;
+          const glisse = Math.abs((vxa - vxb) * tx + (vya - vyb) * ty);
+          if (rapproche > 1.5 || glisse > 6) {
+            for (const [c, sg] of [[a, -1], [b, 1]]) {
+              const u = c.tole, fort = Math.max(0, rapproche - FLANC_SEUIL);
+              if (u && fort > 0) c.damage = Math.min(1, c.damage + u.chocParVitesse * fort * FLANC_COUT);
+              // pour le dessin, le même décalage : une bosse de flanc ne se creuse qu'au-delà de FLANC_SEUIL
+              const vu = Math.max(0, rapproche - (FLANC_SEUIL - (u ? u.chocSeuil : USURE.chocSeuil)));
+              c._marque(nx * dir * sg, ny * dir * sg, vu, glisse, 'voiture');
+              c.reculChoc = 30;
+            }
+          }
+        }
         a.x -= nx * dir * sep; a.y -= ny * dir * sep;
         b.x += nx * dir * sep; b.y += ny * dir * sep;
         // a nudge is a perturbation: a little lateral velocity and yaw, capped

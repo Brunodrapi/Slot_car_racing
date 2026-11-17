@@ -193,6 +193,8 @@ class Race {
     // `opts.mode` et non `this.mode` : celui-ci n'est affecté que trente lignes plus bas, si bien
     // que le lire ici aurait rendu l'option inerte sans que rien ne le signale.
     this.usure = USURE_ACTIVE && opts.wear && (opts.mode || 'race') === 'race' ? USURE : null;
+    // les dégâts seuls (essai, js/car.js) : en course aussi, et sans option à cocher pour l'essai
+    this.degats = DEGATS_ACTIVE && !this.usure && (opts.mode || 'race') === 'race' ? DEGATS : null;
     this.time = 0;
     this.state = 'countdown';                  // countdown | racing | finishing | finished
     this.countdown = 3.6;
@@ -266,6 +268,7 @@ class Race {
         pilotage, et une voiture qui tient plus doit aussi glisser moins quand elle est touchée. */
         gripBoost: isHuman || h ? 1 : (this.difficulty.grip || 1),
         usure: this.usure,
+        degats: this.degats,
         number: isHuman ? 1 + (hIdx || 0) : 2 + i,
         s, lat,
       });

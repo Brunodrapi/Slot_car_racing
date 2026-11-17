@@ -333,12 +333,22 @@ class NightLighting {
       const cos=Math.cos(h),sin=Math.sin(h),layout=carLightLayout(c,car.livree);
       const braking=car.braking&&car.state==='ok';
       const world=q=>({x:p.x+cos*q.x-sin*q.y,y:p.y+sin*q.x+cos*q.y});
-      for(const q of layout.front){
+      /* La tôle froissée (essai, js/degats.js) : un feu suit son coin quand il recule, et s'éteint
+      quand le coin a reculé de plus de trente centimètres — le phare est cassé. */
+      const tole=this.toleDe&&this.toleDe(car);
+      const suit=q=>{
+        if(!tole||!tole.touche)return q;
+        const [ox,oy]=tole.decale(q.x,q.y,1);
+        return Math.hypot(ox,oy)>.3?null:{...q,x:q.x+ox,y:q.y+oy};
+      };
+      for(const q0 of layout.front){
+        const q=suit(q0);if(!q)continue;
         const side=Math.sign(q.y),splay=side*.035;
         this.fields.push({...world(q),heading:h+splay,beam:true,length:36,width:6,power:.82,
           lens:{...q,angle:(q.angle||0)-splay}});
       }
-      if(!layout.brakeOnly||braking)for(const q of layout.rear){
+      if(!layout.brakeOnly||braking)for(const q0 of layout.rear){
+        const q=suit(q0);if(!q)continue;
         this.fields.push({...world(q),heading:h+Math.PI-Math.sign(q.y)*.06,tail:true,
           length:braking?6.5:4.2,width:braking?1.1:.7,
           power:braking?.4:.035,tint:braking?.78:.24});
@@ -416,6 +426,8 @@ class Renderer {
     this.nightCanvas.dataset.layer = 'night';
     this.nightCtx = this.nightCanvas.getContext('2d');
     this.night = new NightLighting();
+    // la tôle d'une voiture, pour que ses feux suivent les bosses (essai, js/degats.js)
+    this.night.toleDe = (car) => this.carrosseries && this.carrosseries.get(car);
     this.hudCanvas = document.createElement('canvas');
     this.hudCtx = this.hudCanvas.getContext('2d');
     this.carRects = [];
@@ -449,6 +461,9 @@ class Renderer {
     this.rubber = new Map();   // rubber laid on the road, kept for the whole race
     this.pullBack = 1;         // how far the camera sits back, 1 = normal, above it wider
     this.particles = [];
+    // les dégâts qui se voient (essai, js/degats.js) : la tôle de chaque voiture, les étincelles, les débris
+    this.carrosseries = new WeakMap();
+    this.eclats = typeof Eclats !== 'undefined' ? new Eclats() : null;
     this.wets = [];            // damp tyre tracks, carried out of a puddle
     this.damp = new Map();     // metres of water each car still has on its tyres
     this.puddles = [];
@@ -1671,6 +1686,63 @@ class Renderer {
     return this.pullBack;
   }
 
+  /* LES DÉGÂTS QUI SE VOIENT (essai, js/degats.js). Les chocs que la physique a notés depuis la
+  dernière image (`car.chocs`) deviennent une bosse sur la tôle, des plis peints, une gerbe
+  d'étincelles et des débris ; une voiture très abîmée fume. Le point touché se prend sur le bord du
+  DESSIN, du côté d'où vient le choc — au coin quand il arrive en biais. */
+  _degats(race, dt) {
+    const V = DEGATS_VISU;
+    if (this._courseDegats !== race) { this._courseDegats = race; this.eclats.vide(); this.carrosseries = new WeakMap(); }
+    const roule = race.state === 'racing' || race.state === 'finishing' || race.state === 'finished';
+    for (const car of race.cars) {
+      const chocs = car.chocs;
+      if (!chocs) continue;
+      let tole = this.carrosseries.get(car);
+      const art = chocs.length || tole ? topArt(car.cls, car.livree) : null;
+      if (chocs.length && art && !car.fantome) {
+        const [w, h] = topSize(car.cls, art);
+        const cs = Math.cos(car.heading), sn = Math.sin(car.heading);
+        const vx = car.v * cs + car.vl * sn, vy = car.v * sn - car.vl * cs;
+        let gerbes = 0;
+        for (const e of chocs) {
+          const px = -clamp(e.nx * 1.8, -1, 1) * w / 2, py = -clamp(e.ny * 1.8, -1, 1) * h / 2;
+          const X = car.x + px * cs - py * sn, Y = car.y + px * sn + py * cs;
+          const ox = -(e.nx * cs - e.ny * sn), oy = -(e.nx * sn + e.ny * cs);   // vers l'extérieur, dans le monde
+          const force = e.v - V.seuil;
+          if (force > 0) {
+            if (!tole) { tole = new Carrosserie(w, h); this.carrosseries.set(car, tole); }
+            const couleur = tole.teinte(art.img, px, py, e.nx, e.ny) || '#8a8f96';
+            tole.choc(px, py, e.nx, e.ny, force);
+            tole.marque(art.img, px, py, e.nx, e.ny, force);
+            if (force > V.debris) this.eclats.eclate(X, Y, vx, vy, ox, oy, Math.min(16, 2 + Math.round(force * 0.8)), couleur);
+          }
+          // contre des pneus, pas d'étincelles : du caoutchouc ne crache rien
+          if (e.sorte !== 'tyres' && gerbes < 24 && (e.v > V.etincelles || e.frotte > V.frotte)) {
+            const n = Math.min(12, Math.round(1 + Math.max(0, e.v - V.etincelles) * 0.9 + Math.max(0, e.frotte - V.frotte) * 0.08));
+            this.eclats.gerbe(X, Y, vx, vy, ox, oy, n); gerbes += n;
+          }
+        }
+      }
+      chocs.length = 0;
+      if (!tole) continue;
+      tole.pas(dt);
+      // la fumée d'une voiture très abîmée sort de là où elle a pris les coups
+      if (roule && !car.fantome && car.damage > V.fumee) {
+        const q = clamp((car.damage - V.fumee) / (1 - V.fumee), 0, 1);
+        const attendu = (4 + 16 * q) * Math.min(dt, 0.1);
+        const n = Math.floor(attendu) + (Math.random() < attendu % 1 ? 1 : 0);
+        const cs = Math.cos(car.heading), sn = Math.sin(car.heading);
+        for (let i = 0; i < n; i++) {
+          const fx = tole.fx * 0.8, fy = tole.fy * 0.8;
+          this._puff(car.x + fx * cs - fy * sn + (Math.random() - 0.5) * 0.5, car.y + fx * sn + fy * cs + (Math.random() - 0.5) * 0.5,
+            (Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1.5,
+            0.35 + q * 0.4 + Math.random() * 0.25, 0.8 + q * 0.8, q > 0.5 ? '78,78,84' : '150,150,156');
+        }
+      }
+    }
+    this.eclats.pas(dt);
+  }
+
   // A puff of smoke: one soft ball that grows and thins as it drifts. Several at once make the
   // cloud, which is how a cartoon draws smoke — not one blob but a bunch of round ones.
   _puff(x, y, vx, vy, r, life, col) {
@@ -1720,6 +1792,7 @@ class Renderer {
       }
       this._water(car, pos, h, cs, sn, wheel, dt);
     }
+    if (this.eclats) this._degats(race, dt);
     if (this.wets.length > 700) this.wets.splice(0, this.wets.length - 700);
     for (const w of this.wets) w.alpha -= dt * 0.1;
     if (this.wets.length && this.wets[0].alpha <= 0) this.wets = this.wets.filter(w => w.alpha > 0);
@@ -1976,6 +2049,8 @@ class Renderer {
       g.fillStyle = `rgba(${p.col},${(Math.min(1, t * 2.5) * 0.42).toFixed(3)})`;
       g.beginPath(); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); g.fill();
     }
+    // les débris restent au sol, les étincelles volent — sous les voitures, comme la fumée
+    if (this.eclats) { this.eclats.dessineSol(g); this.eclats.dessineEtincelles(g); }
     this._drawTas(g, vis);              // sous les couronnes : un feuillage passe au-dessus d'une pile
     this._drawImplantation(g, vis);
     this._drawTopProps(g, vis);
@@ -2938,10 +3013,13 @@ class Renderer {
     g.rotate(h);
     g.globalAlpha = car.fantome ? 0.3 * FANTOME_ALPHA : 0.3;
     // a drawn car casts its own outline; a vector one only has a box to offer
-    if (!drawCarShadow(g, c, car.livree, { steer: car.steerAngle })) { g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width); }
+    // la tôle froissée (essai, js/degats.js) : une voiture intacte n'a pas de maillage et se dessine comme avant
+    const tole = this.carrosseries && this.carrosseries.get(car);
+    const deforme = tole && tole.touche ? tole : null;
+    if (!drawCarShadow(g, c, car.livree, { steer: car.steerAngle, deforme })) { g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width); }
     g.restore();
-    if (freine && !this.night.active) this._feuxStop(g, c, art, car.livree);
-    drawCarModel(g, c, car.livery, { number: car.number, steer: car.steerAngle, livree: car.livree });
+    if (freine && !this.night.active) this._feuxStop(g, c, art, car.livree, deforme);
+    drawCarModel(g, c, car.livery, { number: car.number, steer: car.steerAngle, livree: car.livree, deforme });
     g.restore();
     /* Pas de cercle autour de la voiture du joueur.
 
@@ -2953,10 +3031,13 @@ class Renderer {
 
   // Daytime stop projections use the same measured rear anchors as night lights.
   // Closed-body cars have two sources; the F1 stop cue remains central.
-  _feuxStop(g, c, art, livree) {
+  _feuxStop(g, c, art, livree, tole) {
     const F=FEU_STOP;
     g.save();g.globalAlpha*=.62;
-    for(const q of carLightLayout(c,livree).rear){
+    for(const q0 of carLightLayout(c,livree).rear){
+      // un feu dont le coin a reculé de plus de trente centimètres est cassé (essai, js/degats.js)
+      let q=q0;
+      if(tole){const [ox,oy]=tole.decale(q0.x,q0.y,1);if(Math.hypot(ox,oy)>.3)continue;q={...q0,x:q0.x+ox,y:q0.y+oy};}
       g.save();g.translate(q.x,q.y);g.rotate(Math.PI-Math.sign(q.y)*.06);
       g.drawImage(this.night.tailMask(),0,-F.demi,F.long,F.demi*2);g.restore();
     }

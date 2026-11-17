@@ -3434,6 +3434,82 @@ l'échelle est redevenue monotone dans les deux sens.
 
 Chaque palier vaut cinq à six pour cent, soit l'écart qui séparait déjà moyen de difficile.
 
+## Les dégâts visibles (essai, branche `claude/degats-visuels`)
+
+> **Un essai, sur sa propre branche.** Ni la recette ni la prod ne l'ont. Tout tient dans
+> `js/degats.js` (le dessin), `DEGATS` et `_marque` dans `js/car.js` (le coût et les chocs notés),
+> `_degats` dans `js/render.js` (les étincelles, les débris, la fumée), et l'option `deforme` de
+> `drawCarModel` et `drawCarShadow` (`js/carart.js`). Essai : `tools/e2e-degats.js`.
+
+La demande : que les contacts abîment les voitures **à l'écran**, en plus de leur coûter des
+performances, sans compliquer.
+
+### Ce qui se fait ailleurs
+
+- **Destructor2D** (sur Steam, sortie prévue en 2028), que Bruno a montré : ses voitures vues de dessus
+  se froissent. Sa vue de mise au point trace autour de chaque voiture un **anneau de points** (une
+  carrosserie en « corps mou », roues comprises), et le dessin est tendu sur cet anneau. Dans sa vidéo,
+  la voiture qui a tapé a le nez raccourci, un bord de tôle clair et froissé, et le compartiment moteur
+  sombre à la place du capot. Il y a aussi de la fumée, des débris qui restent au sol et des traces.
+- **GTA 2** peignait à la main des vignettes de bosses (ses *deltas*) pour chaque coin de chaque
+  voiture, posées par-dessus le dessin. Avec 35 voitures et leurs livrées, c'est hors de portée.
+- **Un vrai corps mou** (JellyCar : des masses reliées par des ressorts) changerait la conduite et les
+  collisions, pas seulement l'image.
+- **La déformation par distance** (forums Unity et Construct, article *Scalable Real-Time Vehicle
+  Deformation*) : on recule les sommets proches du point d'impact, d'autant plus qu'ils sont près.
+
+### Ce qui est retenu
+
+L'anneau de Destructor2D, mais **pour le dessin seulement** : la conduite et les collisions restent un
+rectangle rigide. Trois rectangles emboîtés de 32 sommets (le bord du dessin, puis 0,42 m et 0,9 m à
+l'intérieur) ; le dernier ne bouge jamais, et l'habitacle et le numéro restent nets. Chaque choc
+au-delà de 3,5 m/s :
+
+- **enfonce** les sommets proches, avec un peu de hasard pour que le bord se froisse au lieu de rentrer
+  d'un bloc (jusqu'à 75 cm au bord), et la tôle **tremble** une demi-seconde avant de se figer ;
+- **peint** sur une copie du dessin, propre à la voiture, un creux sombre et des plis en travers de la
+  poussée — c'est l'équivalent générique du capot arraché de Destructor2D ;
+- fait tomber des **débris** (la couleur de la carrosserie, prise sous le point touché, du carbone, du
+  verre) qui restent 45 s sur la piste ;
+- **casse les feux** du coin qui a reculé de plus de 30 cm : de nuit le phare s'éteint, de jour le feu
+  stop ne s'allume plus.
+
+Tout contact contre du métal (un rail, un mur, une autre voiture) crache des **étincelles**, même sous
+le seuil, et un frottement le long d'un rail aussi. Contre des pneus, non. Une voiture abîmée à plus de
+30 % **fume**, depuis l'endroit où elle a pris les coups.
+
+### Ce que ça coûte en course
+
+Les dommages vivaient avec l'usure, éteinte depuis la 0.50. Ici ils en sortent (`DEGATS_ACTIVE`), avec
+les réglages de la tôle de l'usure : même seuil (3,5 m/s), même coût (0,018 par m/s au-delà), jusqu'à
+18 % de vitesse de pointe et de reprise en moins sur une épave, jamais d'adhérence. **En course
+seulement** : en contre-la-montre et à l'entraînement, les bosses se voient mais ne coûtent rien.
+Pas de stand, donc pas de réparation.
+
+**Le coup de flanc** ne cassait rien jusqu'ici. Compté au même seuil qu'un choc par l'arrière, il
+faisait les deux tiers de la tôle sur 25 s de départ à Spa, et deux voitures finissaient détruites :
+deux voitures qui se serrent dans un virage se rapprochent vite sur le côté rien que parce que leurs caps
+diffèrent de quelques degrés. Il ne casse donc qu'au-delà de 6 m/s (`FLANC_SEUIL`), et deux fois moins
+qu'un choc de face. Ce qui reste vient des chocs par l'arrière au premier virage, et varie énormément
+d'un départ à l'autre (de 16 à 150 m/s cumulés au-delà du seuil en 25 s), que les dommages coûtent de
+la vitesse ou non : ce sont de vrais carambolages de l'IA à La Source.
+
+### Ce que ça coûte au dessin
+
+Une voiture intacte n'a pas de maillage et se dessine exactement comme avant. Une voiture touchée
+découpe son dessin en triangles là où l'anneau a bougé, et seulement là. Mesuré sans précaution, dix
+voitures cabossées de partout faisaient passer une image de 2 à 34 ms. La caisse déformée est donc
+**gardée en cache**, à la résolution du dessin, et retendue seulement pendant la seconde où la tôle
+tremble : dix voitures cabossées coûtent 1,2 ms, contre 1,0 ms intactes.
+
+### Ce qui n'est pas fait
+
+- **Pas de jauge de tôle** : la voiture montre elle-même son état, et la fumée dit quand ça devient grave.
+- **En ligne**, chaque écran calcule ses bosses à partir des chocs qu'il voit ; les dommages, eux,
+  passent par le réseau comme avant (l'octet `damage` de `js/net-drive.js`). Deux joueurs peuvent donc
+  voir des bosses un peu différentes. Non essayé à deux écrans.
+- **Pas de pièce qui se détache** (un aileron arraché qui reste au sol) : seulement des débris.
+
 ## Usure et dommages
 
 > **Mis de côté depuis la 0.50** : la fonction n'est pas encore au point. L'interrupteur
