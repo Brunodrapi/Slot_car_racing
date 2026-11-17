@@ -1,4 +1,4 @@
-# Édition itch.io — 0.56.2
+# Édition itch.io — 0.56.4
 
 **Le tableau mondial est sur itch.io.** La colonne « Monde » s’affiche sans compte. « Se connecter
 avec Google » ouvre un nouvel onglet sur grip-game.github.io ; une fois connecté, les meilleurs tours
@@ -22,7 +22,7 @@ des menus ou du comportement de lancement en plein écran n’est ajoutée pour 
 - [ZIP HTML5 prêt à charger](https://github.com/Brunodrapi/Slot_car_racing/raw/refs/heads/itch-io/grip-itch.zip)
 
 Le ZIP garde le même nom à chaque version (`grip-itch.zip`) : le lien ci-dessus mène toujours au
-dernier export. 0.56.2 : le tableau mondial ; il comprend les ailes arrière corrigées de la Kitsune
+dernier export. 0.56.4 : le lien du Devlog #4 et les panneaux repris de trois circuits ; 0.56.2 : le tableau mondial ; il comprend les ailes arrière corrigées de la Kitsune
 Zeta 240 et de la Purosangue Freccia (0.55.3), dont les feux suivent les nouveaux dessins.
 
 Le ZIP est publié sur une branche séparée du dépôt REC. Le site PROD grip-game.github.io
