@@ -1,4 +1,4 @@
-# GRIP — édition itch.io 0.56.2
+# GRIP — édition itch.io 0.56.4
 
 Cette branche `itch-io` du dépôt REC contient le jeu minifié destiné à itch.io et son export ZIP.
 
@@ -8,6 +8,9 @@ Le ZIP contient `index.html` à sa racine. Charger ce ZIP dans itch.io et le mar
 **dans le navigateur**. La taille et le plein écran restent configurés dans itch.io ; l'orientation
 est réglée sur **Portrait**, et « SharedArrayBuffer support » doit rester **décoché** (sinon l'onglet
 de connexion Google perd son lien avec le jeu).
+
+**0.56.4** : l’écran-titre mène au Devlog #4, et les panneaux de freinage de Camping Glen, Royal Air Base
+et Pastaga 83 sont repris à la main (0.56.3).
 
 **0.56.2 : le tableau mondial arrive sur itch.io.** La colonne « Monde » s'affiche sans compte.
 « Se connecter avec Google » ouvre un nouvel onglet sur grip-game.github.io ; une fois connecté, les
