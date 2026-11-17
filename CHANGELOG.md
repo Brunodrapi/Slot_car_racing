@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.56.3
+- Panneaux de freinage repris à la main sur Camping Glen, Royal Air Base et Pastaga 83 : chaque virage annoncé à la bonne distance, avec la bonne flèche.
+
 ## 0.56.2
 - Écran-titre : le lien du devlog suit sa nouvelle numérotation (Devlog #3).
 
