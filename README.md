@@ -3446,17 +3446,18 @@ performances, sans compliquer.
 
 ### Ce qui se fait ailleurs
 
-- **Destructor2D** (sur Steam, sortie prévue en 2028), que Bruno a montré : ses voitures vues de dessus
+- **[Destructor2D](https://store.steampowered.com/app/4660070)** (sur Steam, sortie prévue en 2028), que Bruno a montré : ses voitures vues de dessus
   se froissent. Sa vue de mise au point trace autour de chaque voiture un **anneau de points** (une
   carrosserie en « corps mou », roues comprises), et le dessin est tendu sur cet anneau. Dans sa vidéo,
   la voiture qui a tapé a le nez raccourci, un bord de tôle clair et froissé, et le compartiment moteur
   sombre à la place du capot. Il y a aussi de la fumée, des débris qui restent au sol et des traces.
-- **GTA 2** peignait à la main des vignettes de bosses (ses *deltas*) pour chaque coin de chaque
+- **GTA 2** peignait à la main des vignettes de bosses (ses *deltas*, [wikigta](https://en.wikigta.org/wiki/Creating_vehicles_(GTA2))) pour chaque coin de chaque
   voiture, posées par-dessus le dessin. Avec 35 voitures et leurs livrées, c'est hors de portée.
-- **Un vrai corps mou** (JellyCar : des masses reliées par des ressorts) changerait la conduite et les
+- **Un vrai corps mou** ([JellyCar](https://gamedeveloper.com/programming/deep-dive-the-soft-body-physics-of-jelly-car-explained) : des masses reliées par des ressorts) changerait la conduite et les
   collisions, pas seulement l'image.
-- **La déformation par distance** (forums Unity et Construct, article *Scalable Real-Time Vehicle
-  Deformation*) : on recule les sommets proches du point d'impact, d'autant plus qu'ils sont près.
+- **La déformation par distance** (forums [Unity](https://discussions.unity.com/t/now-with-source-mesh-deformation-on-impact/414788)
+  et [Construct](https://construct.net/en/forum/construct-classic/help-support-using-construct-38/deforming-car-impact-39878),
+  article [*Scalable Real-Time Vehicle Deformation*](https://arxiv.org/pdf/2304.05045)) : on recule les sommets proches du point d'impact, d'autant plus qu'ils sont près.
 
 ### Ce qui est retenu
 

@@ -1698,9 +1698,11 @@ class Renderer {
       const chocs = car.chocs;
       if (!chocs) continue;
       let tole = this.carrosseries.get(car);
-      const art = chocs.length || tole ? topArt(car.cls, car.livree) : null;
-      if (chocs.length && art && !car.fantome) {
-        const [w, h] = topSize(car.cls, art);
+      if (chocs.length && !car.fantome) {
+        // une voiture d'atelier, dessinée en vecteurs, n'a pas de dessin à froisser : elle garde ses
+        // étincelles et ses débris, mesurés sur sa boîte
+        const art = topArt(car.cls, car.livree);
+        const [w, h] = art ? topSize(car.cls, art) : [car.cls.length, car.cls.width];
         const cs = Math.cos(car.heading), sn = Math.sin(car.heading);
         const vx = car.v * cs + car.vl * sn, vy = car.v * sn - car.vl * cs;
         let gerbes = 0;
@@ -1710,10 +1712,13 @@ class Renderer {
           const ox = -(e.nx * cs - e.ny * sn), oy = -(e.nx * sn + e.ny * cs);   // vers l'extérieur, dans le monde
           const force = e.v - V.seuil;
           if (force > 0) {
-            if (!tole) { tole = new Carrosserie(w, h); this.carrosseries.set(car, tole); }
-            const couleur = tole.teinte(art.img, px, py, e.nx, e.ny) || '#8a8f96';
-            tole.choc(px, py, e.nx, e.ny, force);
-            tole.marque(art.img, px, py, e.nx, e.ny, force);
+            let couleur = car.livery && car.livery.body || '#8a8f96';
+            if (art) {
+              if (!tole) { tole = new Carrosserie(w, h); this.carrosseries.set(car, tole); }
+              couleur = tole.teinte(art.img, px, py, e.nx, e.ny) || couleur;
+              tole.choc(px, py, e.nx, e.ny, force);
+              tole.marque(art.img, px, py, e.nx, e.ny, force);
+            }
             if (force > V.debris) this.eclats.eclate(X, Y, vx, vy, ox, oy, Math.min(16, 2 + Math.round(force * 0.8)), couleur);
           }
           // contre des pneus, pas d'étincelles : du caoutchouc ne crache rien
