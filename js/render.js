@@ -3065,7 +3065,7 @@ class Renderer {
     g.restore();
     if (freine && !this.night.active) this._feuxStop(g, c, art, car.livree, deforme);
     drawCarModel(g, c, car.livery, { number: car.number, steer: car.steerAngle, livree: car.livree, deforme });
-    if (car._scotch) this._scotch(g, c, art, car._scotch);
+    if (car._patchs && car._patchs.length) this._scotch(g, car, deforme);
     g.restore();
     /* Pas de cercle autour de la voiture du joueur.
 
@@ -3075,26 +3075,54 @@ class Renderer {
     de couleur du classement la désigne déjà. */
   }
 
-  /* LE SCOTCH SUR LA CARROSSERIE (essai, js/mecanos.js). « Les mécanos doivent poser du scotch devant et
-  derrière. » Deux bandes grises en travers du nez, deux en travers de l'arrière, qui se déroulent pendant
-  l'arrêt à mesure que les mécaniciens du scotch travaillent (`car._scotch`, de 0 à 1), puis restent : la
-  réparation est faite, la voiture repart rafistolée. Dans le repère de la voiture, +x vers l'avant. */
-  _scotch(g, c, art, s) {
-    const L = (art ? topSize(c, art)[0] : c.length) / 2, W = (art ? topSize(c, art)[1] : c.width) / 2 * 0.86;
-    const bandes = [
-      { x: L - 0.36, a: 0.2, p: s.avant, d: 0 }, { x: L - 0.7, a: -0.16, p: s.avant, d: 0.45 },
-      { x: -L + 0.34, a: -0.18, p: s.arriere, d: 0 }, { x: -L + 0.68, a: 0.14, p: s.arriere, d: 0.45 },
-    ];
-    for (const b of bandes) {
-      const f = clamp((b.p - b.d) / 0.55, 0, 1);
+  /* LE SCOTCH SUR LA CARROSSERIE (essai, js/mecanos.js). « Des patchs de scotch plus petits en
+  différentes zones, aléatoirement sur la zone réparée, et qui s'accumulent au fil des passages. » Les
+  patchs de l'arrêt en cours apparaissent un à un, à mesure que les mécaniciens du scotch travaillent
+  (`car._scotch`, de 0 à 1 pour l'avant et pour l'arrière) ; ceux des arrêts précédents restent. Chaque
+  bande a sa teinte, ses bouts déchirés et son pli, tirés au hasard (`Equipes._tirePatch`). Sur une tôle
+  encore cabossée, le patch suit la bosse. Dans le repère de la voiture. */
+  _scotch(g, car, tole) {
+    const s = car._scotch || { avant: 1, arriere: 1 };
+    for (const q of car._patchs) {
+      let f = 1;
+      if (q.cetArret) {
+        const p = q.avant ? s.avant : s.arriere;
+        f = clamp((p - q.debut) / Math.max(1e-6, q.seuil - q.debut), 0, 1);
+      }
       if (f <= 0) continue;
-      const long = 2 * W * f;
-      g.save(); g.translate(b.x, 0); g.rotate(b.a);
-      g.fillStyle = 'rgba(160,163,167,0.95)'; g.fillRect(-0.09, -W, 0.18, long);
-      g.fillStyle = 'rgba(255,255,255,0.28)'; g.fillRect(-0.09, -W, 0.05, long);
-      g.strokeStyle = 'rgba(70,72,76,0.8)'; g.lineWidth = 0.025; g.strokeRect(-0.09, -W, 0.18, long);
+      const [ox, oy] = tole ? tole.decale(q.x, q.y, 1) : [0, 0];
+      g.save(); g.translate(q.x + ox, q.y + oy);
+      const n = q.bandes.length;
+      q.bandes.forEach((b, i) => {
+        const fb = clamp(f * n - i, 0, 1);   // les bandes d'un même patch, l'une après l'autre
+        if (fb > 0) { g.save(); g.translate(b.dx, b.dy); this._bandeScotch(g, b, fb); g.restore(); }
+      });
       g.restore();
     }
+  }
+
+  /* Une bande de scotch, centrée : un ruban gris aux bouts déchirés, un contour sombre, un reflet clair en
+  haut, une ombre en bas, un pli. Déroulée à `f` depuis son bout gauche. */
+  _bandeScotch(g, b, f) {
+    const l = b.l, h = b.w, u = h / 9, r = b.bouts;
+    g.save(); g.rotate(b.a);
+    if (f < 1) { g.beginPath(); g.rect(-l / 2 - 2 * u, -h, l * f + 2 * u, 2 * h); g.clip(); }
+    const bord = new Path2D();
+    bord.moveTo(-l / 2 + r[0] * u, -h / 2 + u); bord.lineTo(-l / 2 + 2 * u, -h / 2);
+    bord.lineTo(l / 2 - (0.5 + r[1]) * u, -h / 2); bord.lineTo(l / 2 - (1 + 2 * r[2]) * u, -h / 2 + (1 + 2 * r[3]) * u);
+    bord.lineTo(l / 2, -h / 2 + (3 + 2 * r[4]) * u); bord.lineTo(l / 2 - u, h / 2);
+    bord.lineTo(-l / 2 + u, h / 2); bord.lineTo(-l / 2 + (1 + 2 * r[5]) * u, h / 2 - 2 * u);
+    bord.closePath();
+    g.fillStyle = b.teinte; g.fill(bord);
+    g.strokeStyle = '#303436'; g.lineWidth = 1.5 * u; g.lineJoin = 'round'; g.stroke(bord);
+    g.save(); g.clip(bord);
+    g.fillStyle = 'rgba(255,255,255,0.32)'; g.fillRect(-l / 2 + 2 * u, -h / 2 + u, l - 4 * u, 2 * u);
+    g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(-l / 2 + 2 * u, h / 2 - 2 * u, l - 4 * u, 1.5 * u);
+    g.strokeStyle = 'rgba(255,255,255,0.3)'; g.lineWidth = u;
+    const p = -l / 2 + l * b.pli;
+    g.beginPath(); g.moveTo(p, -h / 2 + u); g.lineTo(p + l * 0.07, h / 2 - u); g.stroke();
+    g.restore();
+    g.restore();
   }
 
   /* Les mécaniciens du scotch (essai, js/mecanos.js), dans la couche des voitures et par-dessus elles :

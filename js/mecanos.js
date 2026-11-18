@@ -122,6 +122,67 @@ const MecanoSprites = {
   },
 };
 
+/* OÙ L'ON PEUT COLLER DU SCOTCH, lu sur le dessin propre de la voiture (`topArt`).
+
+Un point convient s'il tombe sur la voiture (pixel opaque) et ni sur une vitre ni sur une roue. Sur les
+dessins vus de dessus, les vitres et les pneus sont SOMBRES : un pixel sombre est refusé au milieu de
+l'habitacle (le pare-brise, le toit vitré, la lunette) et sur les côtés au niveau des essieux (les pneus).
+Ailleurs un pixel sombre est permis — l'aileron, tout à l'arrière, et le bas du nez. Les phares, clairs,
+passent d'eux-mêmes. Une voiture à la livrée noire y perd des endroits, pas tous : le nez, l'arrière,
+l'aileron et le milieu des portières restent. L'image est lue une fois par dessin. */
+const ScotchMasque = {
+  _cache: new Map(),
+  de(car) {
+    if (typeof topArt !== 'function') return null;
+    const art = topArt(car.cls, car.livree);
+    if (!art || !art.img || !art.img.naturalWidth) return null;
+    const cle = art.img.src;
+    let e = this._cache.get(cle);
+    if (!e) {
+      try {
+        const c = document.createElement('canvas');
+        c.width = art.img.naturalWidth; c.height = art.img.naturalHeight;
+        const g = c.getContext('2d'); g.drawImage(art.img, 0, 0);
+        e = { d: g.getImageData(0, 0, c.width, c.height).data, iw: c.width, ih: c.height };
+      } catch (_) { return null; }
+      this._cache.set(cle, e);
+    }
+    const [w, h] = topSize(car.cls, art);
+    return { ...e, w, h, accepte: (q) => this._accepte(e, w, h, q) };
+  },
+  /* Un point (x, y) de la voiture, en mètres, +x vers l'avant. */
+  point(e, w, h, x, y) {
+    const u = Math.round((x / w + 0.5) * (e.iw - 1)), v = Math.round((y / h + 0.5) * (e.ih - 1));
+    if (u < 0 || v < 0 || u >= e.iw || v >= e.ih) return false;
+    const i = (v * e.iw + u) * 4, d = e.d;
+    if (d[i + 3] < 200) return false;                                  // pas sur la voiture
+    /* Une SURFACE sombre, pas un trait : les contours et les pointillés du dessin sont sombres eux aussi,
+    et les prendre pour une vitre ou un pneu chassait les patchs des ailes et des flancs. On regarde neuf
+    points autour, à trois pixels d'écart : sombre si au moins six le sont. */
+    let sombres = 0;
+    for (const du of [-3, 0, 3]) for (const dv of [-3, 0, 3]) {
+      const uu = Math.min(e.iw - 1, Math.max(0, u + du)), vv = Math.min(e.ih - 1, Math.max(0, v + dv)), j = (vv * e.iw + uu) * 4;
+      if (d[j + 3] < 200 || 0.3 * d[j] + 0.59 * d[j + 1] + 0.11 * d[j + 2] < 75) sombres++;
+    }
+    if (sombres < 6) return true;                                       // la carrosserie, un phare
+    const fx = Math.abs(x / (w / 2)), fy = Math.abs(y / (h / 2));
+    if (fx < 0.62 && fy < 0.8) return false;                            // une vitre
+    if (fy > 0.45 && fx > 0.3 && fx < 0.88) return false;              // un pneu
+    return true;                                                        // l'aileron, le bas du nez
+  },
+  // toutes les bandes du patch, chacune sur sa longueur et à ses deux bords
+  _accepte(e, w, h, q) {
+    for (const b of q.bandes) {
+      const c = Math.cos(b.a), s = Math.sin(b.a);
+      for (const t of [-0.5, -0.25, 0, 0.25, 0.5]) for (const o of [-0.45, 0.45]) {
+        const x = q.x + b.dx + c * t * b.l - s * o * b.w, y = q.y + b.dy + s * t * b.l + c * o * b.w;
+        if (!this.point(e, w, h, x, y)) return false;
+      }
+    }
+    return true;
+  },
+};
+
 class Equipes {
   /* Les douze boxes de la voie, et leurs équipes. */
   constructor(track) {
@@ -194,6 +255,76 @@ class Equipes {
     return pts;
   }
 
+  /* LES PATCHS DE SCOTCH. « Des patchs de scotch plus petits en différentes zones, aléatoirement sur la
+  zone réparée, et qui s'accumulent au fil des passages » ; « de l'aléa dans le placement des patchs et dans
+  leur apparence, sans qu'ils soient trop gros ; sur la carrosserie, l'aileron ou les phares, pas sur les
+  fenêtres ni les roues. » (Bruno)
+
+  Les zones sont celles des points de vie (`ENFONCE`, js/car.js : le nez, les coins, les flancs,
+  l'arrière). Seules les zones vraiment touchées sont scotchées — un choc enfonce aussi un peu ses deux
+  voisines, et les scotcher toutes couvrait la voiture dès le premier arrêt : un patch par zone, deux si
+  elle est enfoncée à fond, trois au plus par arrêt.
+
+  TOUT EST TIRÉ AU HASARD : l'endroit dans la zone, la forme (une bande, deux en croix, deux qui se
+  chevauchent, trois en éventail), l'angle, la longueur (30 à 50 cm), la largeur (12 à 16 cm), la teinte
+  du gris, les bouts déchirés et le pli. Chaque patch tiré est ensuite ÉPROUVÉ sur le dessin de la voiture
+  (`ScotchMasque`) : tous les points de ses bandes doivent tomber sur la voiture, et pas sur une vitre ni
+  une roue. Sinon on en tire un autre, jusqu'à trente fois.
+
+  Ceux de l'avant sont posés par le mécanicien du nez, ceux de l'arrière par celui de l'arrière, l'un
+  après l'autre. Les patchs des arrêts précédents restent ; les plus vieux partent au-delà de vingt. Dans
+  le repère de la voiture, en mètres. */
+  static patchs(car) {
+    const zones = car.enfoncement || [], n = zones.length;
+    const tous = car._patchs || (car._patchs = []), neufs = [];
+    const masque = ScotchMasque.de(car);
+    const max = Math.max(0, ...zones), touchees = [];
+    for (let k = 0; k < n; k++) if (zones[k] > 0.03 && zones[k] >= max * 0.6) touchees.push(k);
+    touchees.sort((a, b) => zones[b] - zones[a]);
+    let place = 3;
+    for (const k of touchees) {
+      const nb = Math.min(place, zones[k] > 0.2 ? 2 : 1);
+      for (let i = 0; i < nb; i++) {
+        const q = Equipes._tirePatch(car, k, n, masque);
+        if (q) { neufs.push(q); place--; }
+      }
+      if (place <= 0) break;
+    }
+    for (const cote of [true, false]) {
+      const liste = neufs.filter((q) => q.avant === cote);
+      liste.forEach((q, i) => { q.seuil = (i + 1) / liste.length; q.debut = i / liste.length; });
+    }
+    tous.push(...neufs);
+    if (tous.length > 20) tous.splice(0, tous.length - 20);
+  }
+
+  /* Un patch au hasard dans la zone `k`, éprouvé sur le dessin ; `null` si rien ne convient. */
+  static _tirePatch(car, k, n, masque) {
+    const L = masque ? masque.w / 2 : car.cls.length / 2, W = masque ? masque.h / 2 : car.cls.width / 2;
+    const R = Math.random, gris = () => { const v = 140 + Math.floor(R() * 40); return `rgb(${v},${v + 2},${v + 1})`; };
+    for (let essai = 0; essai < 30; essai++) {
+      const ouvre = essai < 20 ? 0.5 : 0.9;   // on élargit la zone si elle ne veut rien
+      const a = k * 2 * Math.PI / n + (R() - 0.5) * 2 * ouvre;
+      const cx = Math.cos(a), cy = Math.sin(a), s = 1 / Math.max(Math.abs(cx), Math.abs(cy)), r = 0.55 + R() * 0.38;
+      const x = cx * s * L * r, y = cy * s * W * r;
+      const forme = R(), base = R() * Math.PI, teinte = gris();
+      const bande = (dx, dy, ang, f = 1) => ({
+        dx, dy, a: ang, l: (0.3 + R() * 0.2) * f, w: 0.12 + R() * 0.04, teinte: R() < 0.7 ? teinte : gris(),
+        bouts: Array.from({ length: 6 }, () => R()), pli: 0.15 + R() * 0.35,
+      });
+      let bandes;
+      if (forme < 0.35) bandes = [bande(0, 0, base)];
+      else if (forme < 0.7) bandes = [bande(0, 0, base), bande((R() - 0.5) * 0.06, (R() - 0.5) * 0.06, base + 0.7 + R() * 0.7, 0.9)];
+      else if (forme < 0.88) {
+        const o = 0.06 + R() * 0.05;
+        bandes = [bande(-Math.sin(base) * o, Math.cos(base) * o, base), bande(Math.sin(base) * o, -Math.cos(base) * o, base + (R() - 0.5) * 0.25, 0.9)];
+      } else bandes = [-1, 0, 1].map((j) => bande(j * 0.03, j * 0.03, base + j * (0.35 + R() * 0.2), 0.8));
+      const q = { x, y, bandes, avant: x >= 0, cetArret: true, seuil: 0, debut: 0 };
+      if (!masque || masque.accepte(q)) return q;
+    }
+    return null;
+  }
+
   pas(race, dt) {
     const M = MECANOS, T = this.track;
     // les voitures qui viennent de s'arrêter prennent un box
@@ -202,13 +333,16 @@ class Equipes {
         const libres = this.boxes.filter((b) => !b.voiture);
         const choix = (libres.length ? libres : this.boxes).reduce((m, b) => Math.abs(T.diff(car.s, b.s)) < Math.abs(T.diff(car.s, m.s)) ? b : m);
         choix.voiture = car; car._box = choix;
-        // le scotch de cet arrêt : il se déroule sur le nez et l'arrière, et reste quand la voiture repart
+        // le scotch de cet arrêt : des patchs sur les zones à réparer, qui restent quand la voiture repart
         car._scotch = { avant: 0, arriere: 0 };
+        Equipes.patchs(car);
         choix.cote = Math.sign(Equipes.local(car, choix.equipe[0].home.x, choix.equipe[0].home.y).y) || 1;
       }
       if (car._box && car.pitState !== 'arret') {
-        // repartie : l'équipe rentre au garage, par l'arrière pour ceux de l'autre flanc
+        // repartie : l'équipe rentre au garage, par l'arrière pour ceux de l'autre flanc ; le scotch
+        // de cet arrêt est posé pour de bon
         const b = car._box; b.voiture = null; car._box = null;
+        for (const q of car._patchs || []) q.cetArret = false;
         for (const m of b.equipe) if (m.etat !== 'attente') { m.etat = 'retour'; m.route = Equipes.chemin(car, m, m.home, m.home.a, b.cote); }
       }
     }
@@ -242,8 +376,8 @@ class Equipes {
               m.x = w.x; m.y = w.y; m.a = face;
               // au nez et à l'arrière, le scotch ; aux roues, les deux mains sous la caisse
               m.pose = p.scotch ? POSE.SCOTCH : (Math.floor(m.t * M.geste + m.place) % 2 ? POSE.REPARE_B : POSE.REPARE_A);
-              /* Le scotch se déroule sur la carrosserie (Renderer._scotch) : deux bandes au nez, deux à
-              l'arrière, posées pendant ce qu'il reste de réparation avant le dégagement. */
+              /* Le scotch se pose sur la carrosserie (Renderer._scotch) : les patchs de l'avant par
+              celui du nez, ceux de l'arrière par celui de l'arrière, finis pile au dégagement. */
               if (p.scotch && car._scotch) {
                 // ce qui reste à dérouler, au rythme qui le finit pile au dégagement
                 const k = p.x > 0 ? 'avant' : 'arriere', reste = Math.max(dt, car.pitT - M.degage);

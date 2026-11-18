@@ -3588,11 +3588,23 @@ accroupis, les mains sous la carrosserie — ceux-là sont dessinés sous la voi
 par-dessus. **Personne ne passe devant la voiture** : on longe le flanc côté garage, et l'autre flanc se
 gagne par l'arrière. 0,7 s avant la fin de la réparation, tous se redressent et se dégagent — celui du
 nez sur le côté, celui de l'arrière en reculant, ceux des roues en s'éloignant de la voiture —, puis ils
-rentrent au box, par l'arrière pour ceux de l'autre flanc. **Le scotch se voit** : deux bandes grises en travers du nez et
-deux en travers de l'arrière se déroulent pendant l'arrêt, à mesure que les deux mécaniciens du scotch
-travaillent, et restent quand la voiture repart — réparée, mais rafistolée (`car._scotch`,
-`Renderer._scotch`). Le rouleau seul, dans la main d'un mécanicien d'un mètre, ne se voyait pas à la
-distance du jeu. Les sept poses sont celles de la planche de Bruno ; tant que sa planche n'est
+rentrent au box, par l'arrière pour ceux de l'autre flanc.
+
+**Le scotch se voit, par patchs, et s'accumule.** « Des patchs de scotch plus petits en différentes zones,
+aléatoirement sur la zone réparée, et qui s'accumulent au fil des passages » ; « de l'aléa dans le
+placement et dans l'apparence, sans qu'ils soient trop gros ; sur la carrosserie, l'aileron ou les phares,
+pas sur les fenêtres ni les roues. » À chaque arrêt, les zones vraiment enfoncées (celles des points de
+vie) reçoivent un patch, deux si elles le sont à fond, trois au plus par arrêt (`Equipes.patchs`). Tout est
+tiré au hasard : l'endroit dans la zone, la forme (une bande, deux en croix, deux qui se chevauchent, trois
+en éventail), l'angle, la taille (30 à 50 cm sur 12 à 16), le gris, les bouts déchirés et le pli. Chaque
+patch tiré est éprouvé sur le dessin de la voiture (`ScotchMasque`) : tous les points de ses bandes doivent
+tomber sur la voiture, et pas sur une **surface** sombre au milieu de l'habitacle (une vitre) ni sur les
+côtés au niveau des essieux (un pneu) — un trait sombre, contour ou pointillé, ne compte pas, sans quoi les
+ailes et les flancs n'en recevaient jamais. L'aileron, tout à l'arrière, et les phares, clairs, sont
+permis. Les patchs apparaissent un à un pendant l'arrêt, posés par les mécaniciens du nez et de l'arrière,
+et restent : au cinquième arrêt la voiture est rafistolée de partout ; au-delà de vingt, les plus vieux
+partent. Le dessin de la bande vient de la planche que Bruno a mise au point avec ChatGPT
+(`grip-cinq-arrets.html`). Les sept poses sont celles de la planche de Bruno ; tant que sa planche n'est
 pas dans le dépôt, elles sont dessinées par le code dans le même style (`MecanoSprites`). Un mécanicien
 fait 1,1 m à l'écran, un peu plus que nature, pour se lire à la distance du jeu. Le temps de réparation
 qui reste s'affiche au-dessus de la jauge.
