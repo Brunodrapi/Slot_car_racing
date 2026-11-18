@@ -67,13 +67,16 @@ const USURE = {
 L'usure reste éteinte (`USURE_ACTIVE`), et les dommages vivaient avec elle. Ici ils en sortent : un
 choc franc contre une voiture ou une protection cabosse la voiture À L'ÉCRAN (js/degats.js) et lui
 coûte de la pointe et de la reprise, avec les réglages de la tôle ci-dessus — même seuil, même coût
-par m/s, même perte de vitesse au maximum. Jamais d'adhérence.
+par m/s. Jamais d'adhérence.
+
+LA PERTE DE VITESSE MONTE À 35 % au maximum des dommages, contre 18 % pour la tôle de l'usure :
+« la perte de vitesse peut être augmentée à 35 % » (Bruno), maintenant que les stands réparent.
 
 En COURSE seulement, comme l'usure : en contre-la-montre et à l'entraînement le choc se voit mais ne
 coûte rien, un record ne se signe pas sur une voiture que les tours précédents ont abîmée. Il n'y a
 pas de stand pour réparer : ce qui est cassé le reste jusqu'au drapeau. */
 const DEGATS_ACTIVE = true;
-const DEGATS = { chocSeuil: USURE.chocSeuil, chocParVitesse: USURE.chocParVitesse, vmax: USURE.vmax };
+const DEGATS = { chocSeuil: USURE.chocSeuil, chocParVitesse: USURE.chocParVitesse, vmax: 0.35 };
 const FLANC_SEUIL = 6;    // m/s de rapprochement latéral avant qu'un coup de flanc ne casse (voir resolveCollisions)
 const FLANC_COUT = 0.5;   // et ce qu'il coûte, rapporté à un choc de face de même vitesse
 /* L'ABANDON. « Les voitures ne vont pas être détruites, ce n'est pas Destruction Derby : il faut

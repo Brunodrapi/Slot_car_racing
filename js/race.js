@@ -196,8 +196,9 @@ class Race {
     // les dégâts seuls (essai, js/car.js) : en course aussi, et sans option à cocher pour l'essai
     // l'abandon (ABANDON_VITESSE, js/car.js) en solo seulement pour l'essai : en ligne il devrait passer par le réseau
     this.degats = DEGATS_ACTIVE && !this.usure && (opts.mode || 'race') === 'race' ? { ...DEGATS, abandon: !opts.humans } : null;
-    // les stands : avec l'usure (pneus et tôle), ou avec les dégâts seuls (la tôle)
-    this.stands = !!(this.usure || this.degats);
+    // les stands : avec l'usure (pneus et tôle), ou avec les dégâts seuls (la tôle) — et pas sur un
+    // circuit qui n'a pas de voie (Monaco, `pitLane: false`) : la coche n'y mènerait nulle part
+    this.stands = !!(this.usure || this.degats) && !!this.track.pit;
     this.time = 0;
     this.state = 'countdown';                  // countdown | racing | finishing | finished
     this.countdown = 3.6;
@@ -458,9 +459,9 @@ class Race {
     const reste = this.laps - car.lap;
     if (reste < 3) return;                       // trop tard pour rembourser
     const seuil = 0.24 + car.skill * 0.16;       // 0,24 à 0,40 selon le pilote
-    /* La tôle seule (essai des dégâts) : une voiture abîmée à moitié perd neuf pour cent de pointe,
-    trois à quatre secondes au tour ; l'arrêt en coûte une douzaine. Il se rembourse donc en trois
-    ou quatre tours — d'où le même « reste au moins trois tours » que pour les pneus. */
+    /* La tôle seule (essai des dégâts) : une voiture abîmée à moitié perd dix-sept pour cent de
+    pointe, plusieurs secondes au tour ; l'arrêt en coûte une douzaine. Il se rembourse donc en deux
+    ou trois tours — on garde le « reste au moins trois tours » des pneus, par prudence. */
     const seuilTole = this.usure ? 0.75 : 0.45;
     if (car.tyre < seuil || car.damage > seuilTole) car.pitAsk = true;
   }

@@ -3769,7 +3769,7 @@ class Renderer {
     const s = this.slider;
     /* Avec les dégâts seuls (essai), la coche ne s'ouvre que sur une voiture abîmée : s'arrêter pour
     réparer une voiture intacte, c'est la coche qui ne fait rien. */
-    const ouvert = !!(p.tole && p.lap >= 1 && !p.pitServi && !p.finished && !p.abandon && (p.usure || p.damage > 0.02 || p.pitAsk || p.pitState));
+    const ouvert = !!(p.tole && p.track.pit && p.lap >= 1 && !p.pitServi && !p.finished && !p.abandon && (p.usure || p.damage > 0.02 || p.pitAsk || p.pitState));
     this.pitOpen = ouvert;
     this.pitY = s.y + s.len + 22;
     const stops = [{ v: 1, c: LINE_COLORS.jaune, l: t('lineJaune') }, { v: 0, c: LINE_COLORS.racing, l: t('lineRace') }, { v: -1, c: LINE_COLORS.bleu, l: t('lineBleu') }];

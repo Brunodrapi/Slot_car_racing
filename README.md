@@ -3522,8 +3522,10 @@ le seuil, et un frottement le long d'un rail aussi. Contre des pneus, non. Une v
 ### Ce que ça coûte en course
 
 Les dommages vivaient avec l'usure, éteinte depuis la 0.50. Ici ils en sortent (`DEGATS_ACTIVE`), avec
-les réglages de la tôle de l'usure : même seuil (3,5 m/s), même coût (0,018 par m/s au-delà), jusqu'à
-18 % de vitesse de pointe et de reprise en moins sur une épave, jamais d'adhérence. **En course
+les réglages de la tôle de l'usure : même seuil (3,5 m/s), même coût (0,018 par m/s au-delà), jamais
+d'adhérence. Mais **jusqu'à 35 % de vitesse de pointe et de reprise en moins** sur une épave, contre 18 %
+pour la tôle de l'usure : « la perte de vitesse peut être augmentée à 35 % », maintenant que les stands
+réparent. **En course
 seulement** : en contre-la-montre et à l'entraînement, les bosses se voient mais ne coûtent rien.
 
 **Le coup de flanc** ne cassait rien jusqu'ici. Deux voitures qui se serrent dans un virage se
@@ -3551,13 +3553,21 @@ zout. » Les stands n'existaient qu'avec l'usure ; ils reviennent avec les dég�
   des dommages (`STAND.reparation`). Le temps qui reste s'affiche sous la jauge. Au bout, la tôle est à
   zéro, la vitesse revient, et la carrosserie repart neuve — bosses, plis et feux cassés compris.
 - **L'IA s'arrête d'elle-même** au-delà de 45 % de dommages, s'il reste au moins trois tours : une
-  voiture abîmée à moitié perd neuf pour cent de pointe, trois à quatre secondes au tour, et l'arrêt en
+  voiture abîmée à moitié perd dix-sept pour cent de pointe, plusieurs secondes au tour, et l'arrêt en
   coûte une douzaine.
 - **Les bruits** : tant que la voiture est arrêtée, l'équipe travaille — des clés qui tintent (trois
   partiels inharmoniques, comme une barre de métal frappée), des pièces qu'on claque (un éclat de bruit et
   un choc sourd), et la visseuse à chocs, deux coups, une dent de scie grave hachée trente fois par
   seconde. Elle ouvre toujours le bal ; la suite est tirée au hasard. Fabriqués dans `js/audio.js`, sans
   fichier, comme le clac du levier.
+
+**Les stands des quatorze circuits** sont sur `docs/degats/stands-circuits.jpg` : chaque circuit en entier,
+la voie en rose et la zone d'arrêt en jaune, et la voie vue de près à côté. Treize circuits en ont une.
+**Le Rocher n'en a pas** (`pitLane: false`, des arbres à la place) : les stands y restent fermés
+(`race.stands`), la coche ne s'ouvre pas, l'IA ne s'arrête pas. Sept voies ont été placées à la main
+(`pitAt`) ; **six sont placées d'office**, juste avant la ligne — Royal Air Base, Fuji Yama, Festival
+de Carnaval, Bratwurst Ring, Autoroute 11 et Kangaroo Mountain — et celle de Kangaroo Mountain passe
+dans le virage de la ligne de départ.
 
 ### La jauge
 
