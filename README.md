@@ -400,8 +400,8 @@ que les pages chargent. Même canal RECETTE, même sauvegarde que la recette (m�
 worker de l'essai ne couvre que son dossier.
 
 - `essais/degats/` — les dégâts qui se voient, branche `claude/degats-visuels` (tôle qui se froisse un
-  peu, étincelles, débris, fumée, feux cassés, perte de vitesse en course, abandon à 100 km/h droit
-  dans un mur) :
+  peu, étincelles, débris, fumée, feux cassés, perte de vitesse en course, jauge de tôle, stands pour
+  réparer et leurs bruits, abandon à 100 km/h droit dans un mur avec son écran façon WASTED) :
   brunodrapi.github.io/Slot_car_racing/essais/degats/. Le détail est dans le README de la branche.
 
 Refaire un essai après un changement de sa branche : sur la branche, `node tools/build-dist.js
