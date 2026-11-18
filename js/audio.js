@@ -262,17 +262,23 @@ class GameAudio {
 
   Tant que la voiture est arrêtée dans sa case, l'équipe travaille : des clés qui tintent (cling),
   des pièces qu'on claque (clac), et la visseuse à chocs, deux coups (zout zout). Elle ouvre toujours
-  le bal ; la suite est tirée au hasard, à quelques dixièmes de seconde d'écart, jusqu'à ce que la
-  voiture reparte. Fabriqués ici, sans fichier, comme le clac du levier : quelques dixièmes de
+  le bal, puis deux ou trois outils, puis de nouveau la visseuse, à quelques dixièmes de seconde
+  d'écart, jusqu'à ce que la voiture reparte. Fabriqués ici, sans fichier, comme le clac du levier : quelques dixièmes de
   seconde ne valent pas un téléchargement. */
   _stand(car, t) {
     if (car.pitState !== 'arret') { this.standProchain = null; return; }
-    if (this.standProchain == null) { this.standProchain = t + 0.15; this.standN = 0; }
+    if (this.standProchain == null) { this.standProchain = t + 0.15; this.standN = 0; this.standOutils = 99; }
     if (t < this.standProchain) return;
-    const n = this.standN++, r = Math.random();
-    if (n === 0 || r < 0.25) { this.zout(t); this.standProchain = t + 0.8 + Math.random() * 0.3; }
-    else if (r < 0.65) { this.cling(t); this.standProchain = t + 0.18 + Math.random() * 0.32; }
-    else { this.clacStand(t); this.standProchain = t + 0.22 + Math.random() * 0.32; }
+    this.standN++;
+    /* Le rythme d'une équipe : la visseuse, puis deux ou trois outils, puis la visseuse… Tiré tout au
+    hasard, il arrivait d'enchaîner cinq visseuses sans une clé. */
+    if (this.standOutils >= 2 + (Math.random() < 0.5 ? 1 : 0)) {
+      this.zout(t); this.standOutils = 0; this.standProchain = t + 0.8 + Math.random() * 0.3;
+    } else {
+      this.standOutils++;
+      if (Math.random() < 0.55) { this.cling(t); this.standProchain = t + 0.18 + Math.random() * 0.32; }
+      else { this.clacStand(t); this.standProchain = t + 0.22 + Math.random() * 0.32; }
+    }
   }
 
   // Une clé qui tinte : trois partiels inharmoniques, comme une barre de métal frappée, l'aigu

@@ -3065,6 +3065,7 @@ class Renderer {
     g.restore();
     if (freine && !this.night.active) this._feuxStop(g, c, art, car.livree, deforme);
     drawCarModel(g, c, car.livery, { number: car.number, steer: car.steerAngle, livree: car.livree, deforme });
+    if (car._scotch) this._scotch(g, c, art, car._scotch);
     g.restore();
     /* Pas de cercle autour de la voiture du joueur.
 
@@ -3072,6 +3073,28 @@ class Renderer {
     anneau qui n'existe pas dans le monde, posé sur la seule voiture qu'on regarde, casse
     l'immersion. La voiture se retrouve autrement — c'est elle que la caméra suit, et la pastille
     de couleur du classement la désigne déjà. */
+  }
+
+  /* LE SCOTCH SUR LA CARROSSERIE (essai, js/mecanos.js). « Les mécanos doivent poser du scotch devant et
+  derrière. » Deux bandes grises en travers du nez, deux en travers de l'arrière, qui se déroulent pendant
+  l'arrêt à mesure que les mécaniciens du scotch travaillent (`car._scotch`, de 0 à 1), puis restent : la
+  réparation est faite, la voiture repart rafistolée. Dans le repère de la voiture, +x vers l'avant. */
+  _scotch(g, c, art, s) {
+    const L = (art ? topSize(c, art)[0] : c.length) / 2, W = (art ? topSize(c, art)[1] : c.width) / 2 * 0.86;
+    const bandes = [
+      { x: L - 0.36, a: 0.2, p: s.avant, d: 0 }, { x: L - 0.7, a: -0.16, p: s.avant, d: 0.45 },
+      { x: -L + 0.34, a: -0.18, p: s.arriere, d: 0 }, { x: -L + 0.68, a: 0.14, p: s.arriere, d: 0.45 },
+    ];
+    for (const b of bandes) {
+      const f = clamp((b.p - b.d) / 0.55, 0, 1);
+      if (f <= 0) continue;
+      const long = 2 * W * f;
+      g.save(); g.translate(b.x, 0); g.rotate(b.a);
+      g.fillStyle = 'rgba(160,163,167,0.95)'; g.fillRect(-0.09, -W, 0.18, long);
+      g.fillStyle = 'rgba(255,255,255,0.28)'; g.fillRect(-0.09, -W, 0.05, long);
+      g.strokeStyle = 'rgba(70,72,76,0.8)'; g.lineWidth = 0.025; g.strokeRect(-0.09, -W, 0.18, long);
+      g.restore();
+    }
   }
 
   /* Les mécaniciens du scotch (essai, js/mecanos.js), dans la couche des voitures et par-dessus elles :

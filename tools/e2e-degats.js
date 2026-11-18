@@ -193,11 +193,12 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
       // repartie, l'équipe rentre : trois secondes après, tout le monde attend devant son box
       for (let i = 0; i < 180; i++) { r.update(1 / 60, { throttle: 1, sel: 0, pit: false }); R.addEffects(r, 1 / 60); }
       const enAttente = R.equipes ? R.equipes.boxes.every((b) => b.equipe.every((m) => m.etat === 'attente')) : false;
+      const scotch = p._scotch ? [p._scotch.avant, p._scotch.arriere] : null;   // posé devant et derrière, et resté
       const equipes = R.equipes ? R.equipes.boxes.length : 0;
       // une IA abîmée décide d'elle-même
       const ia = r.cars.find((c) => c !== p); ia.lap = 1; ia.damage = 0.6; ia.pitAsk = false; r._decidePit(ia);
       return { arrive, chocs: p.barrierHits - hits, dommagesArrivee, duree, arret, servi: p.pitsDone > 0, damage: p.damage,
-        toleAvant, toleApres: !!R.carrosseries.get(p), sons, iaAuStand: ia.pitAsk, stands: r.stands, equipes, auTravail, enAttente };
+        toleAvant, toleApres: !!R.carrosseries.get(p), sons, iaAuStand: ia.pitAsk, stands: r.stands, equipes, auTravail, enAttente, scotch };
     });
     console.log('  stand : ' + JSON.stringify(stand));
     assert.ok(stand.stands && stand.arrive && stand.chocs === 0 && Math.abs(stand.dommagesArrivee - 0.5) < 1e-9, 'la voiture n\'arrive pas proprement au stand : ' + JSON.stringify(stand));
@@ -205,6 +206,7 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
     assert.ok(stand.servi && stand.damage === 0 && stand.toleAvant && !stand.toleApres, 'la voiture ne ressort pas réparée : ' + JSON.stringify(stand));
     assert.ok(stand.sons.zout >= 1 && stand.sons.cling + stand.sons.clacStand >= 2, 'l\'équipe ne fait pas ses bruits : ' + JSON.stringify(stand.sons));
     assert.ok(stand.iaAuStand, 'une IA abîmée à 60 % ne décide pas de s\'arrêter');
+    assert.ok(stand.scotch && stand.scotch[0] > 0.95 && stand.scotch[1] > 0.95, 'le scotch n\'est pas posé devant et derrière : ' + JSON.stringify(stand.scotch));
     assert.ok(stand.equipes === 12 && stand.auTravail === 6 && stand.enAttente, 'les mécaniciens ne viennent pas, ou ne rentrent pas : ' + JSON.stringify(stand));
     await page.evaluate(() => { const r = app.race, R = app.renderer; r.player.damage = 0.62; for (let i = 0; i < 60; i++) R.updateCamera(r, 1 / 60); R.draw(r, app.ui); });
     await page.screenshot({ path: path.join(OUT, '8-jauge.png') });

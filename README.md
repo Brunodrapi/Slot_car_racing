@@ -3588,7 +3588,11 @@ accroupis, les mains sous la carrosserie — ceux-là sont dessinés sous la voi
 par-dessus. **Personne ne passe devant la voiture** : on longe le flanc côté garage, et l'autre flanc se
 gagne par l'arrière. 0,7 s avant la fin de la réparation, tous se redressent et se dégagent — celui du
 nez sur le côté, celui de l'arrière en reculant, ceux des roues en s'éloignant de la voiture —, puis ils
-rentrent au box, par l'arrière pour ceux de l'autre flanc. Les sept poses sont celles de la planche de Bruno ; tant que sa planche n'est
+rentrent au box, par l'arrière pour ceux de l'autre flanc. **Le scotch se voit** : deux bandes grises en travers du nez et
+deux en travers de l'arrière se déroulent pendant l'arrêt, à mesure que les deux mécaniciens du scotch
+travaillent, et restent quand la voiture repart — réparée, mais rafistolée (`car._scotch`,
+`Renderer._scotch`). Le rouleau seul, dans la main d'un mécanicien d'un mètre, ne se voyait pas à la
+distance du jeu. Les sept poses sont celles de la planche de Bruno ; tant que sa planche n'est
 pas dans le dépôt, elles sont dessinées par le code dans le même style (`MecanoSprites`). Un mécanicien
 fait 1,1 m à l'écran, un peu plus que nature, pour se lire à la distance du jeu. Le temps de réparation
 qui reste s'affiche au-dessus de la jauge.

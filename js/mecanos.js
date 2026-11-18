@@ -202,6 +202,8 @@ class Equipes {
         const libres = this.boxes.filter((b) => !b.voiture);
         const choix = (libres.length ? libres : this.boxes).reduce((m, b) => Math.abs(T.diff(car.s, b.s)) < Math.abs(T.diff(car.s, m.s)) ? b : m);
         choix.voiture = car; car._box = choix;
+        // le scotch de cet arrêt : il se déroule sur le nez et l'arrière, et reste quand la voiture repart
+        car._scotch = { avant: 0, arriere: 0 };
         choix.cote = Math.sign(Equipes.local(car, choix.equipe[0].home.x, choix.equipe[0].home.y).y) || 1;
       }
       if (car._box && car.pitState !== 'arret') {
@@ -238,9 +240,15 @@ class Equipes {
             if (m.etat === 'aller' && this._marche(m, dt)) { m.etat = 'travail'; m.t = 0; }
             if (m.etat === 'travail') {
               m.x = w.x; m.y = w.y; m.a = face;
-              // le scotch, puis on appuie dessus ; aux roues, les deux mains sous la caisse
-              m.pose = p.scotch ? ((m.t % 1.9) < 1.4 ? POSE.SCOTCH : POSE.REPARE_A)
-                : (Math.floor(m.t * M.geste + m.place) % 2 ? POSE.REPARE_B : POSE.REPARE_A);
+              // au nez et à l'arrière, le scotch ; aux roues, les deux mains sous la caisse
+              m.pose = p.scotch ? POSE.SCOTCH : (Math.floor(m.t * M.geste + m.place) % 2 ? POSE.REPARE_B : POSE.REPARE_A);
+              /* Le scotch se déroule sur la carrosserie (Renderer._scotch) : deux bandes au nez, deux à
+              l'arrière, posées pendant ce qu'il reste de réparation avant le dégagement. */
+              if (p.scotch && car._scotch) {
+                // ce qui reste à dérouler, au rythme qui le finit pile au dégagement
+                const k = p.x > 0 ? 'avant' : 'arriere', reste = Math.max(dt, car.pitT - M.degage);
+                car._scotch[k] = Math.min(1, car._scotch[k] + (1 - car._scotch[k]) * Math.min(1, dt / reste));
+              }
             }
           }
           m.dessus = !!p.scotch && m.etat === 'travail';
