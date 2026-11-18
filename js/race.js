@@ -196,6 +196,8 @@ class Race {
     // les dégâts seuls (essai, js/car.js) : en course aussi, et sans option à cocher pour l'essai
     // l'abandon (ABANDON_VITESSE, js/car.js) en solo seulement pour l'essai : en ligne il devrait passer par le réseau
     this.degats = DEGATS_ACTIVE && !this.usure && (opts.mode || 'race') === 'race' ? { ...DEGATS, abandon: !opts.humans } : null;
+    // les stands : avec l'usure (pneus et tôle), ou avec les dégâts seuls (la tôle)
+    this.stands = !!(this.usure || this.degats);
     this.time = 0;
     this.state = 'countdown';                  // countdown | racing | finishing | finished
     this.countdown = 3.6;
@@ -376,7 +378,7 @@ class Race {
     if (!input || typeof input !== 'object') input = { throttle: throttleAmount(input), sel: this.player.sel };
     this.player.sel = clamp(input.sel == null ? 0 : input.sel, -1, 1);
     // la coche des stands : une intention, pas une quatrième position de ligne (voir Car.pitAsk)
-    if (this.usure && input.pit != null) this.player.pitAsk = !!input.pit;
+    if (this.stands && input.pit != null) this.player.pitAsk = !!input.pit;
     this.acc += Math.min(frameDt, 0.1);
     const brakingInput = input.brake == null ? null : { brake: throttleAmount(input.brake), engineBrake: throttleAmount(input.engineBrake) };
     while (this.acc >= this.dt) {
@@ -423,7 +425,8 @@ class Race {
     this._simulate(dt, throttleInput, brakingInput);
     // le joueur a abandonné : on laisse voir l'épave un instant, puis la course se termine sans lui
     if (this.state === 'racing' && this.player.abandon && !this.netDrive) {
-      this.state = 'finishing'; this.finishTimer = 3.5; this.finishDeadline = this.time + this.finishTimer;
+      // sept secondes : le temps de l'écran ABANDON (Renderer._ecranAbandon), comme le WASTED de GTA
+      this.state = 'finishing'; this.finishTimer = 7; this.finishDeadline = this.time + this.finishTimer;
     }
     if (this.state === 'finishing' && (!this.netDrive || this.netDrive.host)) {
       if (this.netDrive) this.finishTimer = Math.max(0, this.finishDeadline - this.time);
@@ -451,11 +454,15 @@ class Race {
   du talent, donc il est stable d'une course à l'autre : le même pilote a toujours la même
   stratégie, ce qui se remarque quand on joue plusieurs fois. */
   _decidePit(car) {
-    if (car.pitAsk || car.pitState || car.tyre > 0.999) return;
+    if (car.pitAsk || car.pitState || (car.tyre > 0.999 && car.damage < 0.001)) return;
     const reste = this.laps - car.lap;
     if (reste < 3) return;                       // trop tard pour rembourser
     const seuil = 0.24 + car.skill * 0.16;       // 0,24 à 0,40 selon le pilote
-    if (car.tyre < seuil || car.damage > 0.75) car.pitAsk = true;
+    /* La tôle seule (essai des dégâts) : une voiture abîmée à moitié perd neuf pour cent de pointe,
+    trois à quatre secondes au tour ; l'arrêt en coûte une douzaine. Il se rembourse donc en trois
+    ou quatre tours — d'où le même « reste au moins trois tours » que pour les pneus. */
+    const seuilTole = this.usure ? 0.75 : 0.45;
+    if (car.tyre < seuil || car.damage > seuilTole) car.pitAsk = true;
   }
 
   _simulate(dt, throttleInput, brakingInput = null) {
@@ -481,7 +488,7 @@ class Race {
       car.aiDriven = car.human == null && !car.isPlayer ? true : !!this.opts.playerAI;
       // le fantôme ne voit personne, et personne ne le voit : ni gêneur, ni voisin, ni aspiration
       car.steer(car.fantome ? SANS_TRAFIC : trafic, dt, car.aiDriven);
-      if (this.usure && car.aiDriven && !car.finished) this._decidePit(car);
+      if (this.stands && car.aiDriven && !car.finished && !car.abandon) this._decidePit(car);
       let throttle;
       if (car.isPlayer) throttle = car.finished ? car.v < 15 : throttleInput;
       else if (car.human != null) {
@@ -489,7 +496,7 @@ class Race {
         // predicted — this only ever runs on the host, which is the one simulating.
         const net = this.netInput[car.human] || { thr: false, sel: 0 };
         car.sel = clamp(net.sel || 0, -1, 1);
-        if (this.usure) car.pitAsk = !!net.pit;
+        if (this.stands) car.pitAsk = !!net.pit;
         throttle = car.finished ? car.v < 15 : throttleAmount(net.thr);
       } else if (car.fantome) {
         throttle = aiThrottle(car, SANS_TRAFIC, dt, DIFFICULTY[FANTOME.niveau]);

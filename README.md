@@ -3501,8 +3501,14 @@ Contre des pneus, qui amortissent (×0,55), il faut 180 km/h droit dedans. Entre
   enlevée. Elle ne se touche plus dès l'abandon, et l'IA ne la voit plus dans le trafic : une voiture
   arrêtée pour de bon que l'IA prendrait pour un gêneur la ferait attendre derrière, et la course ne
   finirait plus ;
-- si c'est le joueur, « ABANDON — MOTEUR DÉTRUIT » s'affiche, la course se termine trois secondes et
-  demie plus tard, et l'arrivée des autres est **projetée** au rythme moyen que chacun a tenu : finir à
+- si c'est le joueur, l'écran **ABANDON** s'affiche, **façon WASTED de GTA** : « ABANDON doit
+  apparaître plus longtemps, comme le WASTED de GTA, avec un fond transparent rouge, la caméra faisant de
+  petites ondulations autour de la voiture. » Un voile rouge monte sur tout l'écran, plus sombre sur les
+  bords ; le mot tombe en grand avec un léger rebond, sur une bande sombre comme celle de GTA V, au-dessus
+  de l'épave pour la laisser voir, avec « MOTEUR DÉTRUIT » dessous. La caméra quitte l'avance, se pose sur
+  l'épave jusqu'à n'en montrer que seize mètres, et ondule autour — un roulis lent, un souffle de zoom, un
+  léger flottement, posés au dessin pour ne jamais dériver. La course se termine **sept secondes** après
+  le choc, et l'arrivée des autres est **projetée** au rythme moyen que chacun a tenu : finir à
   leur place un abandon au premier tour de Spa, c'est plus de dix minutes de course à calculer d'un
   bloc, l'écran figé le temps du calcul. L'ordre est celui de la piste, les écarts sont plausibles.
 
@@ -3519,15 +3525,44 @@ Les dommages vivaient avec l'usure, éteinte depuis la 0.50. Ici ils en sortent 
 les réglages de la tôle de l'usure : même seuil (3,5 m/s), même coût (0,018 par m/s au-delà), jusqu'à
 18 % de vitesse de pointe et de reprise en moins sur une épave, jamais d'adhérence. **En course
 seulement** : en contre-la-montre et à l'entraînement, les bosses se voient mais ne coûtent rien.
-Pas de stand, donc pas de réparation.
 
-**Le coup de flanc** ne cassait rien jusqu'ici. Compté au même seuil qu'un choc par l'arrière, il
-faisait les deux tiers de la tôle sur 25 s de départ à Spa, et deux voitures finissaient détruites :
-deux voitures qui se serrent dans un virage se rapprochent vite sur le côté rien que parce que leurs caps
-diffèrent de quelques degrés. Il ne casse donc qu'au-delà de 6 m/s (`FLANC_SEUIL`), et deux fois moins
-qu'un choc de face. Ce qui reste vient des chocs par l'arrière au premier virage, et varie énormément
-d'un départ à l'autre (de 16 à 150 m/s cumulés au-delà du seuil en 25 s), que les dommages coûtent de
-la vitesse ou non : ce sont de vrais carambolages de l'IA à La Source.
+**Le coup de flanc** ne cassait rien jusqu'ici. Deux voitures qui se serrent dans un virage se
+rapprochent vite sur le côté rien que parce que leurs caps diffèrent de quelques degrés ; compté au même
+seuil qu'un choc par l'arrière, il faisait plus de la moitié de la tôle sur 25 s de départ à Spa (26 à
+30 m/s cumulés au-delà du seuil, contre 12 à 22 par l'arrière ; 6 à 7 % de tôle en moyenne). Il ne casse
+donc qu'au-delà de 6 m/s (`FLANC_SEUIL`), et deux fois moins qu'un choc de face : 2 à 5 % de tôle en
+moyenne au même moment, 8 à 19 % pour la plus touchée.
+
+> **Une première mesure était fausse.** Elle annonçait deux voitures détruites au premier virage et des
+> carambolages de 150 m/s : dans le banc, la voiture du joueur, pilotée par l'IA, recevait l'accélérateur
+> au plancher en permanence — l'IA tournait le volant, pas la pédale — et sortait à chaque virage en
+> emportant les autres. Le banc donne maintenant au joueur l'accélérateur que l'IA choisirait
+> (`aiThrottle`), comme `tools/e2e-degats.js`.
+
+### Les stands, pour réparer
+
+« Remets les stands pour réparer la voiture, avec le bruit de réparation au stand : cling, clac, zout
+zout. » Les stands n'existaient qu'avec l'usure ; ils reviennent avec les dégâts seuls (`race.stands`).
+
+- **La coche du levier** ne s'ouvre que sur une voiture abîmée (plus de 2 %), après le premier tour,
+  et pas deux fois dans le même passage : s'arrêter pour réparer une voiture intacte, c'est la coche
+  qui ne fait rien.
+- **La réparation dure selon ce qu'il y a à réparer** : 1,5 s, plus 6,5 s pour une voiture au maximum
+  des dommages (`STAND.reparation`). Le temps qui reste s'affiche sous la jauge. Au bout, la tôle est à
+  zéro, la vitesse revient, et la carrosserie repart neuve — bosses, plis et feux cassés compris.
+- **L'IA s'arrête d'elle-même** au-delà de 45 % de dommages, s'il reste au moins trois tours : une
+  voiture abîmée à moitié perd neuf pour cent de pointe, trois à quatre secondes au tour, et l'arrêt en
+  coûte une douzaine.
+- **Les bruits** : tant que la voiture est arrêtée, l'équipe travaille — des clés qui tintent (trois
+  partiels inharmoniques, comme une barre de métal frappée), des pièces qu'on claque (un éclat de bruit et
+  un choc sourd), et la visseuse à chocs, deux coups, une dent de scie grave hachée trente fois par
+  seconde. Elle ouvre toujours le bal ; la suite est tirée au hasard. Fabriqués dans `js/audio.js`, sans
+  fichier, comme le clac du levier.
+
+### La jauge
+
+Le cadran de tôle de l'usure revient seul au-dessus du levier, sans celui des pneus : il dit combien il
+reste de voiture, en pour cent, vert puis orange puis rouge.
 
 ### Ce que ça coûte au dessin
 
@@ -3539,7 +3574,6 @@ tremble : dix voitures cabossées coûtent 1,2 ms, contre 0,7 à 1,0 ms intactes
 
 ### Ce qui n'est pas fait
 
-- **Pas de jauge de tôle** : la voiture montre elle-même son état, et la fumée dit quand ça devient grave.
 - **En ligne**, chaque écran calcule ses bosses à partir des chocs qu'il voit ; les dommages, eux,
   passent par le réseau comme avant (l'octet `damage` de `js/net-drive.js`). Deux joueurs peuvent donc
   voir des bosses un peu différentes. Non essayé à deux écrans.

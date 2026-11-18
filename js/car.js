@@ -101,6 +101,10 @@ elle coupe légèrement par l'extérieur — et tout le monde s'y arrêterait à
 const STAND = {
   vitesse: 22,       // m/s dans la voie, environ 80 km/h
   service: 3.2,      // secondes à l'arrêt dans la case
+  /* La réparation seule (essai des dégâts, sans usure) : elle dure selon ce qu'il y a à réparer.
+  Une aile froissée se redresse en deux secondes, une voiture en morceaux en demande huit. */
+  reparationBase: 1.5,
+  reparation: 6.5,   // secondes de plus pour une voiture au maximum des dommages
   seuilArret: 3,     // m/s en dessous desquels on considère la voiture arrêtée dans la case
   demiBoite: 9,      // demi-longueur de la case d'arrêt, en mètres
 };
@@ -810,7 +814,8 @@ class Car {
     Une première version exigeait en plus d'être déjà sur la droite de la piste, ce qui ne pouvait
     jamais arriver : la voiture ne se décale que parce qu'elle vise la voie, et elle ne visait la
     voie que si elle était déjà décalée. Personne n'entrait jamais aux stands. */
-    const zone = this.usure ? T.pitAt(this.s) : null;
+    // les stands existent avec l'usure, et avec les dégâts seuls (essai) : on y répare la tôle
+    const zone = this.tole ? T.pitAt(this.s) : null;
     this.inPit = !!(zone && (this.pitAsk || this.pitState));
     if (this.inPit) {
       if (!this.pitState) this.pitState = 'voie';
@@ -822,7 +827,8 @@ class Car {
       fasse resservir à l'image suivante, indéfiniment. */
       if (this.pitState === 'voie' && !this.pitServi && zone.dansZone && Math.abs(this.v) < STAND.seuilArret) {
         this.pitState = 'arret';
-        this.pitT = STAND.service;
+        this.pitT = this.usure ? STAND.service : STAND.reparationBase + STAND.reparation * this.damage;
+        this.pitT0 = this.pitT;   // pour le compte à rebours de l'écran
       }
     } else if (this.pitState === 'voie' && !zone) {
       /* Sorti de la voie : on retombe au neutre, et la demande s'éteint AVEC la sortie.

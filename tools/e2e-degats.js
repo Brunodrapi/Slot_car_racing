@@ -9,9 +9,14 @@
 // 3. Le coût du dessin : dix voitures cabossées de partout ne doivent pas coûter beaucoup plus que
 //    dix intactes — la caisse déformée est gardée en cache (Carrosserie.dessine).
 // 4. De nuit : un phare dont le coin a reculé s'éteint, celui d'en face reste allumé.
-// 5. À 120 km/h droit dans le rail : l'abandon. Le moteur ne repart plus, le nez rentre, la course se
-//    termine sans le joueur ; il est classé dernier, « Abandon », sans points, et tous les autres ont
-//    une arrivée (projetée) — personne n'est resté coincé derrière l'épave.
+// 5. Les stands : une voiture abîmée à moitié y entre (pilotée par l'IA, sans rien toucher), s'arrête
+//    le temps de la réparation (1,5 s + 6,5 s × dommages), en ressort réparée, la tôle à neuf ; pendant
+//    l'arrêt, en temps réel, l'équipe fait ses bruits (cling, clac, zout zout). Une IA abîmée à plus de
+//    45 % décide d'elle-même de s'arrêter.
+// 6. À 120 km/h droit dans le rail : l'abandon. Le moteur ne repart plus, le nez rentre ; l'écran
+//    ABANDON, façon WASTED, et la caméra posée sur l'épave ; la course se termine sept secondes après,
+//    sans le joueur : il est classé dernier, « Abandon », sans points, et tous les autres ont une
+//    arrivée (projetée) — personne n'est resté coincé derrière l'épave.
 'use strict';
 const assert = require('node:assert/strict'), fs = require('node:fs'), http = require('node:http'), path = require('node:path');
 const { chromium } = require('playwright');
@@ -26,14 +31,15 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
     fs.createReadStream(file).pipe(res);
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
-  const browser = await chromium.launch({ executablePath: ((p) => fs.existsSync(p) ? p : undefined)(process.env.CHROMIUM_PATH || '/usr/bin/chromium') });
+  const browser = await chromium.launch({ executablePath: ((p) => fs.existsSync(p) ? p : undefined)(process.env.CHROMIUM_PATH || '/usr/bin/chromium'),
+    args: ['--autoplay-policy=no-user-gesture-required'] });
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto('http://127.0.0.1:' + server.address().port);
     await page.waitForFunction(() => window.app && app.renderer);
-    await page.evaluate(() => { app.mondial = null; app.save.name = 'Testeur'; app.save.lang = 'fr'; app.startQuick('race', 'gt3', 'spa'); });
+    await page.evaluate(() => { app.mondial = null; app.save.name = 'Testeur'; app.save.lang = 'fr'; app.save.laps = 5; app.startQuick('race', 'gt3', 'spa'); });
     await page.waitForFunction(() => app.race && app.race.state === 'racing', null, { timeout: 30000 });
     await page.waitForTimeout(800);
     const capture = async (nom, pas) => {
@@ -131,14 +137,60 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
     assert.ok(nuit.avant >= 2 && nuit.apres === nuit.avant - 1, 'un coin enfoncé devait éteindre un phare, et un seul : ' + JSON.stringify(nuit));
     await capture('6-nuit.png', 1);
 
-    // 5. l'abandon
+    // 5. les stands
+    const stand = await page.evaluate(async () => {
+      const r = app.race, T = r.track, p = r.player, R = app.renderer;
+      r.timeOfDay = 'day'; r.opts.playerAI = true;
+      app.audio.start(); app.audio.resume();
+      R.carrosseries = new WeakMap();
+      p.lap = 1; p.damage = 0.5; p.gridLat = null; p.state = 'ok'; p.pitServi = false; p.pitState = null; p.pitAsk = false;
+      p.chocs.push({ nx: -1, ny: 0, v: 20, frotte: 0, sorte: 'voiture' }); R.addEffects(r, 1 / 60);
+      const toleAvant = !!R.carrosseries.get(p);
+      p.place(T.wrap(T.pit.entree - 700), 0, 15);
+      for (const o of r.cars) if (o !== p) { o.gridLat = null; o.place(T.wrap(T.pit.entree - 1500 - o.number * 15), 0, 0); }
+      const hits = p.barrierHits;
+      // le joueur conduit par l'IA : sa propre pédale, pas le pied au plancher
+      const gaz = () => p.inPit ? 1 : aiThrottle(p, r.cars, 1 / 60, { ...r.difficulty, rubber: 0 });
+      let k = 0;
+      while (k < 60 * 90 && p.pitState !== 'arret') { r.update(1 / 60, { throttle: gaz(), sel: 0, pit: true }); R.addEffects(r, 1 / 60); k++; }
+      const arrive = p.pitState === 'arret', duree = p.pitT0, dommagesArrivee = p.damage;
+      const sons = { cling: 0, clacStand: 0, zout: 0 };
+      for (const n of Object.keys(sons)) { const f = app.audio[n].bind(app.audio); app.audio[n] = (t) => { sons[n]++; return f(t); }; }
+      let arret = 0;
+      if (arrive) await new Promise((fin) => {
+        let prec = performance.now();
+        const pas = () => {
+          const now = performance.now(), dt = Math.min(0.05, (now - prec) / 1000); prec = now;
+          r.update(dt, { throttle: 1, sel: 0, pit: true }); R.addEffects(r, dt); app.audio.update(p, true);
+          if (p.pitState === 'arret') arret += dt;
+          if (p.pitsDone > 0 || arret > 15) { fin(); return; }
+          requestAnimationFrame(pas);
+        };
+        requestAnimationFrame(pas);
+      });
+      // une IA abîmée décide d'elle-même
+      const ia = r.cars.find((c) => c !== p); ia.lap = 1; ia.damage = 0.6; ia.pitAsk = false; r._decidePit(ia);
+      return { arrive, chocs: p.barrierHits - hits, dommagesArrivee, duree, arret, servi: p.pitsDone > 0, damage: p.damage,
+        toleAvant, toleApres: !!R.carrosseries.get(p), sons, iaAuStand: ia.pitAsk, stands: r.stands };
+    });
+    console.log('  stand : ' + JSON.stringify(stand));
+    assert.ok(stand.stands && stand.arrive && stand.chocs === 0 && Math.abs(stand.dommagesArrivee - 0.5) < 1e-9, 'la voiture n\'arrive pas proprement au stand : ' + JSON.stringify(stand));
+    assert.ok(Math.abs(stand.duree - (1.5 + 6.5 * 0.5)) < 1e-6 && Math.abs(stand.arret - stand.duree) < 0.3, 'la réparation ne dure pas ce qu\'elle doit : ' + JSON.stringify(stand));
+    assert.ok(stand.servi && stand.damage === 0 && stand.toleAvant && !stand.toleApres, 'la voiture ne ressort pas réparée : ' + JSON.stringify(stand));
+    assert.ok(stand.sons.zout >= 1 && stand.sons.cling + stand.sons.clacStand >= 2, 'l\'équipe ne fait pas ses bruits : ' + JSON.stringify(stand.sons));
+    assert.ok(stand.iaAuStand, 'une IA abîmée à 60 % ne décide pas de s\'arrêter');
+    await page.evaluate(() => { const r = app.race, R = app.renderer; r.player.damage = 0.62; for (let i = 0; i < 60; i++) R.updateCamera(r, 1 / 60); R.draw(r, app.ui); });
+    await page.screenshot({ path: path.join(OUT, '8-jauge.png') });
+
+    // 6. l'abandon
     const dnf = await page.evaluate(() => {
       const r = app.race, T = r.track, p = r.player, R = app.renderer;
       r.timeOfDay = 'day';
       R.carrosseries = new WeakMap();
       const b = T.barriers.find((b) => b.kind === 'rail' && b.side === 1 && b.s > 600 && Math.abs(T.curvAt(b.s)) < .003);
       for (const o of r.cars) if (o !== p) o.place(b.s - 150 - o.number * 10, 0, 30);
-      p.state = 'ok'; p.damage = 0; p.gridLat = null;
+      r.opts.playerAI = false;
+      p.state = 'ok'; p.damage = 0; p.gridLat = null; p.pitState = null; p.pitAsk = false; p.inPit = false;
       const x = (b.ax + b.bx) / 2 + b.nx * (p.cls.length / 2 + b.half + 2), y = (b.ay + b.by) / 2 + b.ny * (p.cls.length / 2 + b.half + 2);
       const pr = T.project(x, y, b.s, 20); p.place(pr.s, pr.lat, 34); p.x = x; p.y = y; p.th = Math.atan2(-b.ny, -b.nx) + 0.15;
       for (let i = 0; i < 120; i++) { p.update(1 / 120, true, r.time + i / 120); if (i % 2) R.addEffects(r, 1 / 60); }
@@ -153,6 +205,17 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
     });
     await page.screenshot({ path: path.join(OUT, '7-abandon.png') });
     assert.ok(dnf.abandon && dnf.coupe === Infinity && dnf.creux > 0.4 && dnf.capot, 'à 120 km/h dans le rail, pas d\'abandon : ' + JSON.stringify(dnf));
+    // l'écran ABANDON, deux secondes et demie après : la course attend, la caméra est sur l'épave
+    const wasted = await page.evaluate(() => {
+      const r = app.race, R = app.renderer, p = r.player;
+      let i = 0;
+      for (; i < 60 * 2.5; i++) { r.update(1 / 60, { throttle: 0, sel: 0 }); R.addEffects(r, 1 / 60); R.updateCamera(r, 1 / 60); }
+      R.draw(r, app.ui);
+      return { etat: r.state, reste: r.finishTimer, ecart: Math.hypot(R.cam.x - p.x, R.cam.y - p.y), cadre: R.framing };
+    });
+    await page.screenshot({ path: path.join(OUT, '7b-wasted.png') });
+    assert.ok(wasted.etat === 'finishing' && wasted.reste > 3.5 && wasted.reste < 5 && wasted.ecart < 1.5 && wasted.cadre < 20,
+      'l\'écran d\'abandon ne tient pas, ou la caméra n\'est pas sur l\'épave : ' + JSON.stringify(wasted));
     const fin = await page.evaluate(() => {
       const r = app.race;
       for (let i = 0; i < 2000 && r.state !== 'finished'; i++) r.update(1 / 60, { throttle: 0, sel: 0 });
@@ -164,7 +227,7 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
       'l\'abandon ne termine pas la course comme il faut : ' + JSON.stringify(fin));
 
     assert.deepEqual(errors, []);
-    console.log('  dégâts visibles : bosses figées et limitées, rail coûteux, dessin en cache, phare cassé, abandon à 120 km/h — OK');
+    console.log('  dégâts visibles : bosses figées et limitées, rail coûteux, dessin en cache, phare cassé, stands et leurs bruits, abandon à 120 km/h et son écran — OK');
   } finally {
     await browser.close(); server.close();
   }

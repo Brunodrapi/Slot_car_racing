@@ -1500,6 +1500,8 @@ class Renderer {
   }
 
   updateCamera(race, dt) {
+    // l'abandon du joueur : la caméra va se poser sur l'épave (voir _ecranAbandon)
+    if (race.player.abandon && this.cam.init) { this._cameraEpave(race, dt); return; }
     const p = race.player, T = race.track, pos = p.pos;
     const h = T.headingAt(p.s);
     // rapportée à la pointe que le jeu laisse atteindre (`vitesseEcran`), pas à celle de la fiche
@@ -1678,6 +1680,17 @@ class Renderer {
   }
 
 
+  /* LA CAMÉRA DE L'ABANDON : elle quitte l'avance, se recentre sur l'épave et s'en approche jusqu'à
+  ne plus montrer que seize mètres. L'ondulation elle-même se pose au dessin (`draw`), par-dessus. */
+  _cameraEpave(race, dt) {
+    const pos = race.player.pos, k = Math.min(1, dt * 3);
+    const zoom = (this.rotate ? this.h : Math.min(this.w, this.h)) / 16;
+    this.cam.x += (pos.x - this.cam.x) * k; this.cam.y += (pos.y - this.cam.y) * k;
+    this.cam.zoom += (zoom - this.cam.zoom) * Math.min(1, dt * 1.6);
+    this.cam.ox = this.cam.x - pos.x; this.cam.oy = this.cam.y - pos.y;
+    this.framing = (this.rotate ? this.h : Math.min(this.w, this.h)) / this.cam.zoom;
+  }
+
   // How far back the camera sits, on top of the speed. 1 is the framing above; higher widens it.
   // There is no way to go closer: twenty metres on the grid is already as close as the game is
   // meant to be, and the only thing worth offering is room for someone who wants to see more.
@@ -1698,6 +1711,8 @@ class Renderer {
       const chocs = car.chocs;
       if (!chocs) continue;
       let tole = this.carrosseries.get(car);
+      // réparée au stand : la tôle repart neuve
+      if (tole && car.pitsDone !== tole.pitsVu) { this.carrosseries.delete(car); tole = null; }
       if (chocs.length && !car.fantome) {
         // une voiture d'atelier, dessinée en vecteurs, n'a pas de dessin à froisser : elle garde ses
         // étincelles et ses débris, mesurés sur sa boîte
@@ -1714,7 +1729,7 @@ class Renderer {
           if (force > 0) {
             let couleur = car.livery && car.livery.body || '#8a8f96';
             if (art) {
-              if (!tole) { tole = new Carrosserie(w, h); this.carrosseries.set(car, tole); }
+              if (!tole) { tole = new Carrosserie(w, h); tole.pitsVu = car.pitsDone; this.carrosseries.set(car, tole); }
               couleur = tole.teinte(art.img, px, py, e.nx, e.ny) || couleur;
               tole.choc(px, py, e.nx, e.ny, force, e.epave);
               tole.marque(art.img, px, py, e.nx, e.ny, force, e.epave);
@@ -1905,7 +1920,7 @@ class Renderer {
     this.carRects = [];
     // la voie ne se dessine que quand elle sert : une voie peinte qui ne mène à rien est pire
     // qu'une voie absente, on la vise et il ne se passe rien
-    this.showPit = !!race.usure;
+    this.showPit = !!race.stands;
     /* La carte est une image en cache : si la voie des stands apparaît, il faut la repeindre.
     Sans ça, activer l'usure ajoutait la voie au monde mais pas à la carte, qui gardait le tracé
     peint au chargement du circuit — une carte qui décrit un autre réglage que celui qu'on joue. */
@@ -1923,12 +1938,22 @@ class Renderer {
 
     g.save();
     g.translate(W / 2 + sx, H / 2 + sy);
+    /* L'ABANDON : de petites ondulations autour de l'épave — un roulis lent, un souffle de zoom, un
+    léger flottement — qui montent en une seconde. Posées ici, au dessin, sans toucher à la caméra :
+    elles ne dérivent jamais, et tout ce qui se calcule d'après la caméra reste juste. */
+    let ondZ = 1, ondX = 0, ondY = 0;
+    if (race.player.abandon) {
+      const ta = race.player.abandonT, fo = Math.min(1, ta / 1.2);
+      g.rotate(fo * (0.055 * Math.sin(ta * 0.9) + 0.018 * Math.sin(ta * 2.3 + 0.7)));
+      ondZ = 1 + fo * 0.05 * Math.sin(ta * 0.7);
+      ondX = fo * 0.8 * Math.sin(ta * 0.6); ondY = fo * 0.6 * Math.sin(ta * 0.85 + 1);
+    }
 
     if (this.rotate) g.rotate(-this.camAngle - Math.PI / 2);
-    g.scale(cam.zoom, cam.zoom);
-    g.translate(-cam.x, -cam.y);
+    g.scale(cam.zoom * ondZ, cam.zoom * ondZ);
+    g.translate(-cam.x - ondX, -cam.y - ondY);
     // conservative square view box: valid whatever the camera rotation
-    const reach = Math.hypot(W, H) / 2 / cam.zoom + 60;
+    const reach = Math.hypot(W, H) / 2 / (cam.zoom * ondZ) + 60;
     const vis = { minX: cam.x - reach, maxX: cam.x + reach, minY: cam.y - reach, maxY: cam.y + reach };
     this.night.prepare(race, cam, reach);
     const inView = (b) => !(b.maxX < vis.minX || b.minX > vis.maxX || b.maxY < vis.minY || b.minY > vis.maxY);
@@ -3319,6 +3344,8 @@ class Renderer {
 
     // Printed information labels keep the existing HUD geometry and touch targets.
     const usure = !!p.usure;
+    // les dégâts seuls (essai) : la jauge de tôle, sans celle des pneus
+    const toleSeule = !usure && !!p.degats;
     const boxH = this.hudBox.h;
     /* L'origine de la carte, calculée ICI et non au moment de la peindre.
 
@@ -3472,13 +3499,14 @@ class Renderer {
     Aucune information ne repose sur la couleur seule : chaque cadran porte son pictogramme et son
     chiffre. Le vert ne veut rien dire tout seul, c'est le passage à l'orange puis au rouge qui
     porte l'alerte — et le chiffre la porte aussi pour qui ne distingue pas les deux. */
-    if (usure) {
+    if (usure || toleSeule) {
       const J = this.jauges, r = J.r;
       /* Leur propre fond : posés à même le décor, deux anneaux fins se perdaient sur le sable.
 
       Il descend plus bas qu'il ne monte, parce que le chiffre est passé sous l'arc : un fond
       symétrique laissait le dernier chiffre à cheval sur le bord. */
-      this._hudPaper(g, J.x - r - 7, J.y1 - r - 8, (r + 7) * 2, (J.y2 - J.y1) + r * 2.2 + 16);
+      if (usure) this._hudPaper(g, J.x - r - 7, J.y1 - r - 8, (r + 7) * 2, (J.y2 - J.y1) + r * 2.2 + 16);
+      else this._hudPaper(g, J.x - r - 7, J.y2 - r - 8, (r + 7) * 2, r * 2.2 + 16);
       const cadran = (cx, cy, frac, dessine) => {
         const f = Math.max(0, Math.min(1, frac));
         const A0 = Math.PI * 0.75, SPAN = Math.PI * 1.5;
@@ -3514,8 +3542,14 @@ class Renderer {
         this._roundRect(g, -2.3, -2.6, 4.6, 3.2, 1); g.fill();
       };
       // en colonne : la gomme au-dessus, la tôle en dessous, dans l'ordre où on s'en soucie
-      cadran(J.x, J.y1, p.tyre, pneu);
+      if (usure) cadran(J.x, J.y1, p.tyre, pneu);
       cadran(J.x, J.y2, 1 - p.damage, tole);
+      // à l'arrêt au stand, le temps de réparation qui reste, sous le cadran
+      if (p.pitState === 'arret' && p.pitT > 0) {
+        g.fillStyle = '#fff0d2'; g.textAlign = 'center'; g.textBaseline = 'top';
+        g.font = `italic 900 ${Math.round(r * 0.8)}px Racing, Impact, sans-serif`;
+        g.fillText(p.pitT.toFixed(1) + ' s', J.x, J.y2 + r * 1.25 + 10);
+      }
       g.textAlign = 'left'; g.textBaseline = 'top';
     }
 
@@ -3658,9 +3692,9 @@ class Renderer {
       g.textAlign = 'center'; g.fillStyle = '#5be07a'; g.font = 'italic 900 80px Racing, Impact, sans-serif';
       g.globalAlpha = 1 - race.time / 1.2; g.fillText('GO!', W / 2, H * 0.18); g.globalAlpha = 1;
     }
-    // l'abandon (essai des dégâts) : à la place de « sortie de piste, moteur coupé », qui promet de repartir
-    if (p.abandon) { g.textAlign = 'center'; g.fillStyle = '#ff6b6b'; g.font = 'italic 900 52px Racing, Impact, sans-serif'; g.fillText(t('abandon'), W / 2, H * 0.3);
-      g.fillStyle = '#ffcf5c'; g.font = 'italic 900 24px Racing, Impact, sans-serif'; g.fillText(t('abandonSous'), W / 2, H * .3 + 34); }
+    // l'abandon (essai des dégâts) a son propre écran, à la fin du HUD : plus de « sortie de piste,
+    // moteur coupé », qui promettrait de repartir
+    if (p.abandon) { /* _ecranAbandon */ }
     else if (p.state === 'grass') { g.textAlign = 'center'; g.fillStyle = '#ff6b6b'; g.font = 'italic 900 36px Racing, Impact, sans-serif'; g.fillText(t('offTrack'), W / 2, H * 0.3);
       if(p.engineStopped){g.fillStyle='#ffcf5c';g.font='italic 900 24px Racing, Impact, sans-serif';g.fillText(t('engineCut'),W/2,H*.3+30);} }
     if (p.finished && race.state !== 'finished') { g.textAlign = 'center'; g.fillStyle = '#ffd400'; g.font = 'italic 900 52px Racing, Impact, sans-serif'; g.fillText(`${t('finished')} — P${race.positionOf(p)}`, W / 2, H * 0.3); }
@@ -3679,7 +3713,46 @@ class Renderer {
       g.fillStyle='#f0d885';g.fillText(label,W/2,y);g.restore();
     }
     if (ui.flash && ui.flash.until > performance.now()) { g.textAlign = 'center'; g.fillStyle = ui.flash.color || '#fff'; g.font = 'italic 900 32px Racing, Impact, sans-serif'; g.fillText(ui.flash.text, W / 2, Math.max(H * 0.12, pb.y + pb.s + 14, P.t + boxH + 14)); }
+    // par-dessus tout le reste, comme le WASTED de GTA
+    if (p.abandon && race.state !== 'finished') this._ecranAbandon(g, p, t, W, H);
     g.textBaseline = 'alphabetic';
+  }
+
+  /* L'ABANDON, FAÇON « WASTED » DE GTA (essai des dégâts).
+
+  « ABANDON doit apparaître plus longtemps, comme le WASTED de GTA, avec un fond transparent rouge, la
+  caméra faisant de petites ondulations autour de la voiture. » (Bruno)
+
+  Un temps après le choc — le temps de voir la voiture s'arrêter —, un voile rouge monte sur tout
+  l'écran, plus sombre sur les bords. Le mot tombe en grand avec un léger rebond, sur une bande
+  sombre comme celle de GTA V, au-dessus de l'épave pour la laisser voir, et le reste jusqu'aux
+  résultats : sept secondes après le choc
+  (`Race.update`). La caméra, elle, se rapproche de l'épave et ondule autour (`updateCamera`, `draw`). */
+  _ecranAbandon(g, p, t, W, H) {
+    const a = p.abandonT, f = clamp((a - 0.45) / 0.7, 0, 1);
+    if (f <= 0) return;
+    g.save();
+    g.fillStyle = `rgba(150,14,18,${(0.34 * f).toFixed(3)})`; g.fillRect(0, 0, W, H);
+    const bord = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.22, W / 2, H / 2, Math.hypot(W, H) * 0.62);
+    bord.addColorStop(0, 'rgba(50,0,0,0)'); bord.addColorStop(1, `rgba(50,0,0,${(0.5 * f).toFixed(3)})`);
+    g.fillStyle = bord; g.fillRect(0, 0, W, H);
+    const m = clamp((a - 0.75) / 0.35, 0, 1);
+    if (m > 0) {
+      // au-dessus de l'épave, qui est au centre de l'écran : le mot ne doit pas la cacher
+      const taille = Math.round(Math.min(W * 0.16, H * 0.17, 150)), y = H * 0.22;
+      g.globalAlpha = m;
+      g.fillStyle = 'rgba(0,0,0,0.5)'; g.fillRect(0, y - taille * 0.66, W, taille * 1.32);
+      const rebond = 1 + 0.32 * (1 - m) * (1 - m);
+      g.translate(W / 2, y); g.scale(rebond, rebond);
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = `italic 900 ${taille}px Racing, Impact, sans-serif`;
+      g.lineJoin = 'round'; g.lineWidth = Math.max(3, taille * 0.08); g.strokeStyle = 'rgba(16,0,0,0.9)';
+      g.strokeText(t('abandon'), 0, 0);
+      g.fillStyle = '#e8352b'; g.fillText(t('abandon'), 0, 0);
+      g.font = `italic 900 ${Math.round(taille * 0.24)}px Racing, Impact, sans-serif`;
+      g.fillStyle = '#fff0d2'; g.fillText(t('abandonSous'), 0, taille * 0.86);
+    }
+    g.restore();
   }
 
   /* Le levier, et la coche des stands en dessous.
@@ -3694,7 +3767,9 @@ class Renderer {
   coche grise qui ne fait rien est pire qu'une coche absente — on la vise et il ne se passe rien. */
   _drawSlider(g, p, t) {
     const s = this.slider;
-    const ouvert = !!(p.usure && p.lap >= 1 && !p.pitServi && !p.finished);
+    /* Avec les dégâts seuls (essai), la coche ne s'ouvre que sur une voiture abîmée : s'arrêter pour
+    réparer une voiture intacte, c'est la coche qui ne fait rien. */
+    const ouvert = !!(p.tole && p.lap >= 1 && !p.pitServi && !p.finished && !p.abandon && (p.usure || p.damage > 0.02 || p.pitAsk || p.pitState));
     this.pitOpen = ouvert;
     this.pitY = s.y + s.len + 22;
     const stops = [{ v: 1, c: LINE_COLORS.jaune, l: t('lineJaune') }, { v: 0, c: LINE_COLORS.racing, l: t('lineRace') }, { v: -1, c: LINE_COLORS.bleu, l: t('lineBleu') }];
