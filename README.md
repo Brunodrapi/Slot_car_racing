@@ -3565,9 +3565,12 @@ zout. » Les stands n'existaient qu'avec l'usure ; ils reviennent avec les dég�
 la voie en rose et la zone d'arrêt en jaune, et la voie vue de près à côté. Treize circuits en ont une.
 **Le Rocher n'en a pas** (`pitLane: false`, des arbres à la place) : les stands y restent fermés
 (`race.stands`), la coche ne s'ouvre pas, l'IA ne s'arrête pas. Sept voies ont été placées à la main
-(`pitAt`) ; **six sont placées d'office**, juste avant la ligne — Royal Air Base, Fuji Yama, Festival
-de Carnaval, Bratwurst Ring, Autoroute 11 et Kangaroo Mountain — et celle de Kangaroo Mountain passe
-dans le virage de la ligne de départ.
+(`pitAt`) ; **cinq sont placées d'office**, juste avant la ligne — Royal Air Base, Fuji Yama, Festival
+de Carnaval, Bratwurst Ring et Autoroute 11. Celle de **Kangaroo Mountain**, placée d'office elle aussi,
+passait dans le virage à angle droit d'avant la ligne : « ça ne va pas, il faut en ligne droite, tant pis
+si ça fait passer la ligne d'arrivée ». Elle tient maintenant sur la droite de la ligne (`pitFrom`,
+`pitTo`), de la sortie du virage à 216 m après la ligne, avec ses bâtiments ; une voiture abîmée y entre,
+s'y fait réparer et en ressort sans rien toucher.
 
 ### La jauge
 

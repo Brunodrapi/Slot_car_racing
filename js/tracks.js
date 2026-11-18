@@ -1703,6 +1703,13 @@ const TRACKS = [
   {
     id: 'bathurst', name: 'Kangaroo Mountain', country: 'AU', flag: '🇦🇺', theme: 'bush',
     runoffJoinGap: 60,
+    /* LA VOIE DES STANDS EN LIGNE DROITE (essai des dégâts). Placée d'office, elle partait de la
+       droite d'avant le dernier virage, passait DANS ce virage à angle droit, et ne finissait qu'après
+       la ligne : « ça ne va pas, il faut en ligne droite, tant pis si ça fait passer la ligne
+       d'arrivée » (Bruno). Elle tient maintenant sur la droite de la ligne, de la sortie du virage
+       (20 m avant la ligne) à 216 m après, avant le léger virage qui suit : 236 m, la zone d'arrêt au
+       milieu. Les bâtiments des stands (`stands`, plus bas) la suivent. */
+    pitFrom: 0.9944, pitTo: 0.06, pitAt: 0.0272,
     architecture: 'pavillons',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.au,
@@ -1784,7 +1791,7 @@ const TRACKS = [
       { name: 'Murrays Corner', surface: 'gravel', side: -1, from: 0.882, to: 0.922, w: 14 },
     ],
     implantation: [
-      { kind: 'stands', side: -1, from: 0.955, to: 0.045, recul: 10, prof: 20, module: 36 },
+      { kind: 'stands', side: -1, from: 0.995, to: 0.06, recul: 10, prof: 20, module: 36 },
       { kind: 'tribune', side: 1, from: 0.96, to: 0.05, recul: 9, prof: 17, module: 28 },
       { kind: 'parking', side: -1, from: 0.06, to: 0.12, recul: 16, prof: 32 },
       { kind: 'bois', side: 1, from: 0.1, to: 0.24, recul: 10, prof: 44, densite: 0.4 },
