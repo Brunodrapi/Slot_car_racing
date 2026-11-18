@@ -1501,7 +1501,7 @@ class Renderer {
 
   updateCamera(race, dt) {
     // l'abandon du joueur : la caméra va se poser sur l'épave (voir _ecranAbandon)
-    if (race.player.abandon && this.cam.init) { this._cameraEpave(race, dt); return; }
+    if (race.player && race.player.abandon && this.cam.init) { this._cameraEpave(race, dt); return; }
     const p = race.player, T = race.track, pos = p.pos;
     const h = T.headingAt(p.s);
     // rapportée à la pointe que le jeu laisse atteindre (`vitesseEcran`), pas à celle de la fiche
@@ -1942,7 +1942,7 @@ class Renderer {
     léger flottement — qui montent en une seconde. Posées ici, au dessin, sans toucher à la caméra :
     elles ne dérivent jamais, et tout ce qui se calcule d'après la caméra reste juste. */
     let ondZ = 1, ondX = 0, ondY = 0;
-    if (race.player.abandon) {
+    if (race.player && race.player.abandon) {
       const ta = race.player.abandonT, fo = Math.min(1, ta / 1.2);
       g.rotate(fo * (0.055 * Math.sin(ta * 0.9) + 0.018 * Math.sin(ta * 2.3 + 0.7)));
       ondZ = 1 + fo * 0.05 * Math.sin(ta * 0.7);

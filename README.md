@@ -1454,7 +1454,9 @@ parking de la chicane. Le semis de maisons du thème n'y pousse plus. Plus de vo
 stands est rapprochée de la ligne droite (`barrierCloseZones`) et, à la place de la voie, deux
 rangées de platanes (`ville.alignements`, une rangée d'arbres le long du tour à quelques mètres de
 la protection) ; une troisième borde la ligne droite côté Condamine. Rallumer l'usure demandera de
-redonner une voie à ce circuit. La piscine fait 68 × 17 m et
+redonner une voie à ce circuit. *(Sur la branche `claude/degats-visuels`, les stands réparent les dégâts,
+et la voie est revenue : une rangée de platanes entre la piste et la voie — voir « Les dégâts
+visibles ».)* La piscine fait 68 × 17 m et
 s'adosse à la barrière de la Piscine, dans son axe. Tout reste
 retouchable dans l'éditeur (onglet Objets) : un immeuble de la ville se retire ou se déplace comme
 un autre objet. `tools/marina-banc.js` vérifie qu'aucune eau ne touche la piste, qu'aucun
@@ -3562,9 +3564,14 @@ zout. » Les stands n'existaient qu'avec l'usure ; ils reviennent avec les dég�
   fichier, comme le clac du levier.
 
 **Les stands des quatorze circuits** sont sur `docs/degats/stands-circuits.jpg` : chaque circuit en entier,
-la voie en rose et la zone d'arrêt en jaune, et la voie vue de près à côté. Treize circuits en ont une.
-**Le Rocher n'en a pas** (`pitLane: false`, des arbres à la place) : les stands y restent fermés
-(`race.stands`), la coche ne s'ouvre pas, l'IA ne s'arrête pas. Sept voies ont été placées à la main
+la voie en rose et la zone d'arrêt en jaune, et la voie vue de près à côté. Un circuit sans voie
+(`pitLane: false`) garde ses stands fermés (`race.stands`) : la coche ne s'ouvre pas, l'IA ne s'arrête
+pas. **Le Rocher** était dans ce cas — sa voie avait été retirée pour les platanes du boulevard. Elle y
+est revenue, sur le boulevard, côté port, comme au vrai Monaco : « mets les arbres entre la piste et les
+stands, ce n'est pas grave s'ils débordent sur les deux ». Une rangée de platanes court donc dans la
+bande de 1,2 m qui sépare la piste de la voie (`ville.alignements`, `depuis: 'bord'`, mesurée depuis le
+bord de la piste et non depuis la protection), le feuillage sur les deux ; la seconde rangée, côté port,
+est partie avec le retour de la voie. Sept voies ont été placées à la main
 (`pitAt`) ; **cinq sont placées d'office**, juste avant la ligne — Royal Air Base, Fuji Yama, Festival
 de Carnaval, Bratwurst Ring et Autoroute 11. Celle de **Kangaroo Mountain**, placée d'office elle aussi,
 passait dans le virage à angle droit d'avant la ligne : « ça ne va pas, il faut en ligne droite, tant pis

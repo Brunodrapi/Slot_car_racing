@@ -504,24 +504,29 @@ const TRACKS = [
     /* Monaco n'a pas de dégagement : un mur, et derrière le mur la ville. Rien dans `runoffs`,
        donc — c'est précisément ce qui fait ce circuit. La ville elle-même (`ville`, plus bas) est
        relevée sur une vue satellite ; l'implantation ne garde que ce qui tient au circuit : la
-       tribune de la Piscine et le parking de la chicane. Pas de voie des stands (`pitLane: false`) :
-       Bruno y veut les platanes du boulevard (`ville.alignements`), derrière une protection
-       rapprochée de la ligne droite (`barrierCloseZones`). */
+       tribune de la Piscine et le parking de la chicane.
+
+       LA VOIE DES STANDS EST REVENUE (essai des dégâts) sur le boulevard, côté port, comme au vrai
+       Monaco : sans elle, une voiture abîmée n'avait aucun moyen de réparer. Elle avait été retirée
+       (`pitLane: false`) pour les platanes du boulevard ; ils sont gardés ENTRE LA PISTE ET LA VOIE,
+       une rangée qui déborde sur les deux (`ville.alignements`, `depuis: 'bord'`). La protection
+       rapprochée de la ligne droite (`barrierCloseZones`) reste. */
     implantation: [
       { kind: 'parking', side: -1, from: 0.6, to: 0.66, recul: 10, prof: 22 },
       { kind: 'tribune', side: 1, from: 0.8, to: 0.88, recul: 8, prof: 14, module: 24 },
     ],
-    pitLane: false,
+    pitFrom: 0.918, pitTo: 0.042, pitAt: 0.98,
     barrierCloseZones: [{ side: -1, from: 0.915, to: 1.045 }],
     // La ville, relevée sur la même vue satellite : [x, y, cap, longueur, largeur, hauteur, toit]
     // (toit 0 immeuble, 1 terrasses, 2 tuiles), les jardins, et les repères posés à la main à leur
     // place relevée : la piscine, le Casino, l'Hôtel de Paris, le jardin de la place, l'auditorium.
     ville: {
-      // Les platanes du boulevard, de la Rascasse à Sainte-Dévote : deux rangées côté stands, là
-      // où passait la voie des stands, et une côté Condamine.
+      // Les platanes du boulevard, de la Rascasse à Sainte-Dévote : une rangée entre la piste et
+      // la voie des stands, à 60 cm du bord de la piste (dans la bande de 1,2 m qui les sépare, le
+      // feuillage déborde sur les deux), et une côté Condamine. Avant le retour des stands, il y en
+      // avait deux côté port, à 3,4 et 9 m derrière la protection, là où passe la voie.
       alignements: [
-        { from: 0.915, to: 0.045, side: -1, recul: 3.4, pas: 6.5, id: 'tree', e: 0.58 },
-        { from: 0.915, to: 0.045, side: -1, recul: 9, pas: 7, id: 'tree', e: 0.62 },
+        { from: 0.918, to: 0.042, side: -1, depuis: 'bord', recul: 0.6, pas: 6.5, id: 'tree', e: 0.58 },
         { from: 0.915, to: 0.05, side: 1, recul: 3.6, pas: 7, id: 'tree', e: 0.62 },
       ],
       reperes: [

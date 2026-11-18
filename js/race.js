@@ -197,7 +197,7 @@ class Race {
     // l'abandon (ABANDON_VITESSE, js/car.js) en solo seulement pour l'essai : en ligne il devrait passer par le réseau
     this.degats = DEGATS_ACTIVE && !this.usure && (opts.mode || 'race') === 'race' ? { ...DEGATS, abandon: !opts.humans } : null;
     // les stands : avec l'usure (pneus et tôle), ou avec les dégâts seuls (la tôle) — et pas sur un
-    // circuit qui n'a pas de voie (Monaco, `pitLane: false`) : la coche n'y mènerait nulle part
+    // circuit qui n'a pas de voie (`pitLane: false`) : la coche n'y mènerait nulle part
     this.stands = !!(this.usure || this.degats) && !!this.track.pit;
     this.time = 0;
     this.state = 'countdown';                  // countdown | racing | finishing | finished

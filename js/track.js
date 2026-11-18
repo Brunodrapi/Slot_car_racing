@@ -2325,9 +2325,8 @@ class Track {
   `pitAt` la met — les garages ne bougent pas quand seule une bretelle est reprise. */
   _buildPits(def) {
     const L = this.length;
-    // `pitLane: false` : pas de voie des stands du tout (Monaco, où Bruno veut des arbres à la
-    // place). L'usure est coupée (`USURE_ACTIVE`) : la voie n'était qu'un décor. Rallumer l'usure
-    // demandera d'en redonner une à ce circuit.
+    // `pitLane: false` : pas de voie des stands du tout. Monaco en a eu une (des arbres à la place) ;
+    // l'essai des dégâts la lui a rendue, sur le boulevard, les platanes entre la piste et la voie.
     if (def && def.pitLane === false) { this.pit = null; return; }
     if (def && def.pitFrom != null && def.pitTo != null) {
       const entree = this.wrap(def.pitFrom * L), sortie = this.wrap(def.pitTo * L);
