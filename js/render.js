@@ -2119,6 +2119,8 @@ class Renderer {
       const sur = pont.some((cr) => ((k - (cr.over - 16)) % T.n + T.n) % T.n <= 36);
       (sur ? dessus : dessous).push(car);
     }
+    // les mécaniciens au sol, sous les voitures : ceux des roues y glissent les mains sous la caisse
+    if (this.equipes) { g.imageSmoothingEnabled = true; this.equipes.dessine(g, 'dessous'); }
     for (const car of dessous) this._drawCar(g, car);
     this._drawMecanos(g);
     if (T.drawRoad) for (const b of this.paths.bridges) {
@@ -3072,15 +3074,17 @@ class Renderer {
     de couleur du classement la désigne déjà. */
   }
 
-  /* Les mécaniciens (essai, js/mecanos.js), dans la couche des voitures et par-dessus elles : leurs
-  mains se posent sur la carrosserie. Cette couche ne s'efface que par morceaux (`carRects`) : on y
-  ajoute le leur. */
+  /* Les mécaniciens du scotch (essai, js/mecanos.js), dans la couche des voitures et par-dessus elles :
+  le rouleau se pose sur la carrosserie. Les autres sont au sol, sous les voitures (`draw`). Cette couche
+  ne s'efface que par morceaux (`carRects`) : on y ajoute le leur. */
   _drawMecanos(g) {
     const E = this.equipes;
     if (!E) return;
+    const b = E.emprise('dessus');
+    if (!b) return;
     const m = g.getTransform(), k = this.nativeDpr / this.dpr, c = this.carCtx;
     c.setTransform(m.a * k, m.b * k, m.c * k, m.d * k, m.e * k, m.f * k);
-    const b = E.emprise(), T = c.getTransform(), xs = [], ys = [];
+    const T = c.getTransform(), xs = [], ys = [];
     for (const [x, y] of [[b.minX, b.minY], [b.maxX, b.minY], [b.minX, b.maxY], [b.maxX, b.maxY]]) {
       xs.push(T.a * x + T.c * y + T.e); ys.push(T.b * x + T.d * y + T.f);
     }
@@ -3089,7 +3093,7 @@ class Renderer {
     if (x1 <= x0 || y1 <= y0) return;
     this.carRects.push({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
     c.imageSmoothingEnabled = true;
-    E.dessine(c, null);
+    E.dessine(c, 'dessus');
   }
 
   // Daytime stop projections use the same measured rear anchors as night lights.

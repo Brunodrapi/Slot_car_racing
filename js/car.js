@@ -90,6 +90,29 @@ voitures, jamais d'abandon : un accrochage reste un accrochage. En course seulem
 pour cet essai (l'abandon devrait passer par le réseau). */
 const ABANDON_VITESSE = 100 / 3.6;   // m/s
 
+/* LES POINTS DE VIE SUIVENT LA ZONE LA PLUS ENFONCÉE (essai des dégâts).
+
+« Les dégâts doivent être proportionnels à l'enfoncement de la caisse : un petit coup à l'avant et un
+petit coup à l'arrière, pas grave ; l'avant complètement enfoncé, là c'est grave. Je baserais les points
+de vie sur la zone la plus enfoncée. » (Bruno)
+
+Jusqu'ici chaque choc AJOUTAIT ses dommages, où qu'il tombe : dix petits coups répartis sur toute la
+voiture valaient un gros coup dans le nez. La caisse est maintenant découpée en huit zones — le nez, les
+quatre coins, les deux flancs, l'arrière — et chaque choc enfonce la sienne, et un peu ses deux voisines,
+de la même quantité que la tôle dessinée (js/degats.js : 1,5 cm par m/s au-delà du seuil, jamais plus de
+30 cm). Les dommages, ceux qui coûtent de la vitesse et que montre la jauge, sont l'enfoncement de la zone
+LA PLUS ENFONCÉE rapporté à ces 30 cm : un coin enfoncé à fond, c'est 100 %. Deux petits coups aux deux bouts
+ne font que le plus gros des deux ; deux coups au même endroit s'additionnent.
+
+Le calcul est fait ici, sans hasard, et non lu sur le dessin : la course doit donner le même résultat avec
+ou sans écran. */
+const ENFONCE = {
+  zones: 8,
+  creux: 0.015,     // m par m/s au-delà du seuil, comme la tôle dessinée
+  max: 0.3,         // m : une zone « complètement enfoncée »
+  voisines: 0.35,   // ce qu'un choc enfonce des deux zones d'à côté
+};
+
 /* L'arrêt au stand.
 
 Ce qu'il coûte est le cœur du réglage. Trop court, il n'y a aucune raison de ne pas s'arrêter ;
@@ -436,7 +459,8 @@ class Car {
     /* `degats` : la tôle seule, sans les pneus ni les stands (essai, voir DEGATS). */
     this.degats = opts.degats || null;
     this.tyre = 1;      // 1 = neuf, 0 = mort
-    this.damage = 0;    // 0 = intact, 1 = épave
+    this.damage = 0;    // 0 = intact, 1 = épave — l'enfoncement de la zone la plus touchée (ENFONCE)
+    this.enfoncement = new Float32Array(ENFONCE.zones);   // m, par zone, depuis le nez dans le sens trigonométrique
     /* Les chocs de l'image en cours, pour le DESSIN seulement (js/degats.js) : vers où la tôle a été
     enfoncée, dans le repère de la voiture, à quelle vitesse, et ce qui a été touché. Le rendu les
     vide à chaque image ; rien ici ne pèse sur la course. */
@@ -580,6 +604,21 @@ class Car {
   /* UN CHOC, POUR CE QUI SE VOIT. (nx, ny) : la direction dans laquelle la tôle rentre — de
   l'obstacle vers la voiture —, dans le monde ; on la garde dans le repère de la voiture, où le
   dessin la cherchera. `vitesse` : l'écart qui fait le choc ; `frotte` : ce qui glisse le long. */
+  /* Un choc qui enfonce la caisse : (nx, ny), la direction dans laquelle la tôle rentre, dans le monde ;
+  `force`, les m/s au-delà du seuil. Le point touché se prend comme pour le dessin : sur le bord de la
+  caisse, du côté d'où vient le choc, au coin quand il arrive en biais. */
+  _enfonce(nx, ny, force) {
+    if (!(force > 0)) return;
+    const E = ENFONCE, cs = Math.cos(this.th), sn = Math.sin(this.th);
+    const lx = nx * cs + ny * sn, ly = -nx * sn + ny * cs;
+    const px = -clamp(lx * 1.8, -1, 1), py = -clamp(ly * 1.8, -1, 1);
+    const k = ((Math.round(Math.atan2(py, px) / (2 * Math.PI / E.zones)) % E.zones) + E.zones) % E.zones;
+    const creux = E.creux * force;
+    for (const [z, part] of [[k, 1], [(k + 1) % E.zones, E.voisines], [(k + E.zones - 1) % E.zones, E.voisines]])
+      this.enfoncement[z] = Math.min(E.max, this.enfoncement[z] + creux * part);
+    this.damage = clamp(Math.max(...this.enfoncement) / E.max, 0, 1);
+  }
+
   _marque(nx, ny, vitesse, frotte, sorte, epave = false) {
     if (this.chocs.length >= 12 || this.fantome) return;
     const cs = Math.cos(this.th), sn = Math.sin(this.th);
@@ -774,10 +813,10 @@ class Car {
       }
       this._leaveTrack(false); // une excursion et son impact ne comptent pas deux fautes
       const u=this.tole;
-      if(u)this.damage=clamp(this.damage+u.chocParVitesse*Math.max(0,effective-u.chocSeuil),0,1);
+      if(u)this._enfonce(hit.nx,hit.ny,effective-u.chocSeuil);
       // l'abandon (ABANDON_VITESSE) : le moteur ne repartira plus
       if(u&&u.abandon&&effective>=ABANDON_VITESSE){
-        fatal=true;this.abandon=true;this.damage=1;
+        fatal=true;this.abandon=true;this.damage=1;this.enfoncement.fill(ENFONCE.max);
         this.engineCut=Infinity;this.engineStopped=true;this.lastBarrierImpact.cut=Infinity;
       }
     }
@@ -883,7 +922,7 @@ class Car {
       this.pitT -= dt;
       this.v = 0; this.vl = 0; this.w = 0;
       if (this.pitT <= 0) {
-        this.tyre = 1; this.damage = 0; this.pitsDone++;
+        this.tyre = 1; this.damage = 0; this.enfoncement.fill(0); this.pitsDone++;
         this.pitState = 'voie';
         this.pitAsk = false;     // servi : on ressort, et on ne redemande pas au tour suivant
         this.pitServi = true;
@@ -1506,10 +1545,10 @@ function resolveCollisions(cars, track) {
           // le choc abîme les deux, à proportion de ce qui dépasse le seuil de simple frottement
           const ur = rear.tole, uf = front.tole;
           const fort = Math.max(0, dv - (ur ? ur.chocSeuil : 0));
-          if (ur && fort > 0) rear.damage = Math.min(1, rear.damage + ur.chocParVitesse * fort);
-          if (uf && fort > 0) front.damage = Math.min(1, front.damage + uf.chocParVitesse * fort * 0.6);
-          // ce qui se voit : l'avant de l'une rentre vers l'arrière, l'arrière de l'autre vers l'avant
+          // l'avant de l'une rentre vers l'arrière, l'arrière de l'autre vers l'avant
           const ux = front.x - rear.x, uy = front.y - rear.y, ul = Math.hypot(ux, uy) || 1;
+          if (ur) rear._enfonce(-ux / ul, -uy / ul, fort);
+          if (uf) front._enfonce(ux / ul, uy / ul, fort * 0.6);
           rear._marque(-ux / ul, -uy / ul, dv, 0, 'voiture');
           front._marque(ux / ul, uy / ul, dv, 0, 'voiture');
           front.v += dv * 0.35;
@@ -1540,7 +1579,7 @@ function resolveCollisions(cars, track) {
           if (rapproche > 1.5 || glisse > 6) {
             for (const [c, sg] of [[a, -1], [b, 1]]) {
               const u = c.tole, fort = Math.max(0, rapproche - FLANC_SEUIL);
-              if (u && fort > 0) c.damage = Math.min(1, c.damage + u.chocParVitesse * fort * FLANC_COUT);
+              if (u) c._enfonce(nx * dir * sg, ny * dir * sg, fort * FLANC_COUT);
               // pour le dessin, le même décalage : une bosse de flanc ne se creuse qu'au-delà de FLANC_SEUIL
               const vu = Math.max(0, rapproche - (FLANC_SEUIL - (u ? u.chocSeuil : USURE.chocSeuil)));
               c._marque(nx * dir * sg, ny * dir * sg, vu, glisse, 'voiture');

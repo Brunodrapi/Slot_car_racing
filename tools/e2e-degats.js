@@ -6,6 +6,9 @@
 //    la bosse se fige, les débris tombent. Captures avant, pendant (la tôle tremble), après.
 // 2. Un rail pris à 60 km/h en course : la voiture perd de la pointe (DEGATS), sa tôle est enfoncée,
 //    mais pas plus de 30 cm — les voitures sont résistantes — et elle n'abandonne pas.
+// 2b. Les points de vie suivent la zone la plus enfoncée (ENFONCE, js/car.js) : un petit coup devant et
+//    un petit derrière ne comptent que pour le plus gros des deux ; quatre au même endroit l'enfoncent à
+//    fond, et c'est 100 %.
 // 3. Le coût du dessin : dix voitures cabossées de partout ne doivent pas coûter beaucoup plus que
 //    dix intactes — la caisse déformée est gardée en cache (Carrosserie.dessine).
 // 4. De nuit : un phare dont le coin a reculé s'éteint, celui d'en face reste allumé.
@@ -104,6 +107,22 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
     assert.ok(rail.degats && rail.damage > 0.1 && rail.facteur < 0.99 && rail.tole && !rail.abandon && rail.creux <= 0.3 + 1e-6, 'le rail à 60 km/h : ' + JSON.stringify(rail));
     await capture('4-rail.png', 1);
 
+    // 2b. la zone la plus enfoncée
+    const zones = await page.evaluate(() => {
+      const p = app.race.player, cs = Math.cos(p.th), sn = Math.sin(p.th);
+      p.enfoncement.fill(0); p.damage = 0;
+      p._enfonce(-cs, -sn, 5);                 // un petit coup dans le nez (la tôle rentre vers l'arrière)
+      const unCoup = p.damage;
+      p._enfonce(cs, sn, 5);                   // et un petit coup à l'arrière
+      const deuxBouts = p.damage;
+      for (let i = 0; i < 3; i++) p._enfonce(-cs, -sn, 5);   // trois de plus dans le nez
+      const nezAFond = p.damage, zonesTouchees = Array.from(p.enfoncement).filter((z) => z > 0).length;
+      p.enfoncement.fill(0); p.damage = 0;
+      return { unCoup, deuxBouts, nezAFond, zonesTouchees };
+    });
+    assert.ok(Math.abs(zones.unCoup - 0.25) < 1e-6 && Math.abs(zones.deuxBouts - 0.25) < 1e-6 && zones.nezAFond === 1,
+      'les points de vie ne suivent pas la zone la plus enfoncée : ' + JSON.stringify(zones));
+
     // 3. le coût du dessin
     const cout = await page.evaluate(() => {
       const r = app.race, R = app.renderer, p = r.player;
@@ -186,7 +205,7 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
     assert.ok(stand.servi && stand.damage === 0 && stand.toleAvant && !stand.toleApres, 'la voiture ne ressort pas réparée : ' + JSON.stringify(stand));
     assert.ok(stand.sons.zout >= 1 && stand.sons.cling + stand.sons.clacStand >= 2, 'l\'équipe ne fait pas ses bruits : ' + JSON.stringify(stand.sons));
     assert.ok(stand.iaAuStand, 'une IA abîmée à 60 % ne décide pas de s\'arrêter');
-    assert.ok(stand.equipes === 12 && stand.auTravail === 4 && stand.enAttente, 'les mécaniciens ne viennent pas, ou ne rentrent pas : ' + JSON.stringify(stand));
+    assert.ok(stand.equipes === 12 && stand.auTravail === 6 && stand.enAttente, 'les mécaniciens ne viennent pas, ou ne rentrent pas : ' + JSON.stringify(stand));
     await page.evaluate(() => { const r = app.race, R = app.renderer; r.player.damage = 0.62; for (let i = 0; i < 60; i++) R.updateCamera(r, 1 / 60); R.draw(r, app.ui); });
     await page.screenshot({ path: path.join(OUT, '8-jauge.png') });
 
@@ -235,7 +254,7 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
       'l\'abandon ne termine pas la course comme il faut : ' + JSON.stringify(fin));
 
     assert.deepEqual(errors, []);
-    console.log('  dégâts visibles : bosses figées et limitées, rail coûteux, dessin en cache, phare cassé, stands, leurs mécaniciens et leurs bruits, abandon à 120 km/h et son écran — OK');
+    console.log('  dégâts visibles : bosses figées et limitées, rail coûteux, points de vie de la zone la plus enfoncée, dessin en cache, phare cassé, stands, leurs mécaniciens et leurs bruits, abandon à 120 km/h et son écran — OK');
   } finally {
     await browser.close(); server.close();
   }

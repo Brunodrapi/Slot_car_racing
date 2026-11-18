@@ -3524,10 +3524,22 @@ le seuil, et un frottement le long d'un rail aussi. Contre des pneus, non. Une v
 ### Ce que ça coûte en course
 
 Les dommages vivaient avec l'usure, éteinte depuis la 0.50. Ici ils en sortent (`DEGATS_ACTIVE`), avec
-les réglages de la tôle de l'usure : même seuil (3,5 m/s), même coût (0,018 par m/s au-delà), jamais
-d'adhérence. Mais **jusqu'à 35 % de vitesse de pointe et de reprise en moins** sur une épave, contre 18 %
-pour la tôle de l'usure : « la perte de vitesse peut être augmentée à 35 % », maintenant que les stands
-réparent. **En course
+le seuil de la tôle de l'usure (3,5 m/s), jamais d'adhérence, et **jusqu'à 35 % de vitesse de pointe et
+de reprise en moins** sur une épave, contre 18 % pour la tôle de l'usure : « la perte de vitesse peut être
+augmentée à 35 % », maintenant que les stands réparent.
+
+**Les points de vie suivent la zone la plus enfoncée** (`ENFONCE`, `_enfonce`). « Les dégâts doivent être
+proportionnels à l'enfoncement de la caisse : un petit coup à l'avant et un petit coup à l'arrière, pas
+grave ; l'avant complètement enfoncé, là c'est grave. » Chaque choc ajoutait d'abord ses dommages où qu'il
+tombe (0,018 par m/s au-delà du seuil) : dix petits coups répartis valaient un gros coup dans le nez. La
+caisse a maintenant huit zones — le nez, les quatre coins, les deux flancs, l'arrière — et chaque choc
+enfonce la sienne (et ses deux voisines, au tiers) de ce qu'enfonce la tôle dessinée, 1,5 cm par m/s,
+jamais plus de 30 cm. Les dommages sont l'enfoncement de la zone la plus touchée rapporté à ces 30 cm : un
+petit coup devant et un derrière ne comptent que pour le plus gros des deux, quatre au même endroit
+l'enfoncent à fond, et c'est 100 %. Le calcul est fait par la physique, sans le hasard du dessin : la
+course donne le même résultat avec ou sans écran. Sur 25 s de départ à Spa, la tôle moyenne passe ainsi de
+2-5 % à 6-7 %, et la plus touchée de 8-19 % à 21-31 % : un choc franc pèse plus lourd, des contacts
+répartis ne s'additionnent plus. **En course
 seulement** : en contre-la-montre et à l'entraînement, les bosses se voient mais ne coûtent rien.
 
 **Le coup de flanc** ne cassait rien jusqu'ici. Deux voitures qui se serrent dans un virage se
@@ -3552,8 +3564,9 @@ zout. » Les stands n'existaient qu'avec l'usure ; ils reviennent avec les dég�
   et pas deux fois dans le même passage : s'arrêter pour réparer une voiture intacte, c'est la coche
   qui ne fait rien.
 - **La réparation dure selon ce qu'il y a à réparer** : 1,5 s, plus 6,5 s pour une voiture au maximum
-  des dommages (`STAND.reparation`). Le temps qui reste s'affiche sous la jauge. Au bout, la tôle est à
-  zéro, la vitesse revient, et la carrosserie repart neuve — bosses, plis et feux cassés compris.
+  des dommages (`STAND.reparation`). Le temps qui reste s'affiche au-dessus de la jauge. Au bout, toutes
+  les zones sont à zéro, la vitesse revient, et la carrosserie repart neuve — bosses, plis et feux cassés
+  compris.
 - **L'IA s'arrête d'elle-même** au-delà de 45 % de dommages, s'il reste au moins trois tours : une
   voiture abîmée à moitié perd dix-sept pour cent de pointe, plusieurs secondes au tour, et l'arrêt en
   coûte une douzaine.
@@ -3565,14 +3578,17 @@ zout. » Les stands n'existaient qu'avec l'usure ; ils reviennent avec les dég�
 
 **Les mécaniciens** (`js/mecanos.js`). « Des mécaniciens qui viennent autour de la voiture quand on la
 répare, qui s'affairent puis qui la laissent partir, en plusieurs couleurs, chacune correspondant à un
-box. » La voie a douze boxes de quatre mètres (les trois rangées de garages, `Track.pitGarages`), chacun
-avec sa couleur et son équipe de quatre, qui attend devant son garage en deux rangs de deux, tournée vers
-la piste. Quand une voiture s'arrête, l'équipe du box le plus proche (ou du plus proche qui soit libre)
-court à elle — en contournant la voiture par le bout le plus proche, jamais à travers —, se place au
-nez, aux deux flancs et à l'arrière, et travaille : réparation A et B en alternance, et le scotch pour
-celui du nez. Une demi-seconde avant la fin de la réparation, tous se redressent et se dégagent — celui
-du nez s'écarte vers le garage au lieu de reculer, sinon il resterait devant la voiture qui repart —,
-puis ils rentrent au box. Les sept poses sont celles de la planche de Bruno ; tant que sa planche n'est
+box. » Puis : « ils doivent toujours passer par l'arrière ou les côtés pour s'écarter ; ils doivent poser
+du scotch devant et derrière, et sur les côtés s'occuper des roues, et donc avoir les mains sous la
+carrosserie. » La voie a douze boxes de quatre mètres (les trois rangées de garages, `Track.pitGarages`),
+chacun avec sa couleur et son équipe de six, qui attend devant son garage en deux rangs de trois, tournée
+vers la piste. Quand une voiture s'arrête, l'équipe du box le plus proche (ou du plus proche qui soit
+libre) court à elle et se place : le scotch au nez et à l'arrière, une roue chacun pour les quatre autres,
+accroupis, les mains sous la carrosserie — ceux-là sont dessinés sous la voiture, ceux du scotch
+par-dessus. **Personne ne passe devant la voiture** : on longe le flanc côté garage, et l'autre flanc se
+gagne par l'arrière. 0,7 s avant la fin de la réparation, tous se redressent et se dégagent — celui du
+nez sur le côté, celui de l'arrière en reculant, ceux des roues en s'éloignant de la voiture —, puis ils
+rentrent au box, par l'arrière pour ceux de l'autre flanc. Les sept poses sont celles de la planche de Bruno ; tant que sa planche n'est
 pas dans le dépôt, elles sont dessinées par le code dans le même style (`MecanoSprites`). Un mécanicien
 fait 1,1 m à l'écran, un peu plus que nature, pour se lire à la distance du jeu. Le temps de réparation
 qui reste s'affiche au-dessus de la jauge.
