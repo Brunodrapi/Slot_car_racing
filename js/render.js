@@ -1815,6 +1815,11 @@ class Renderer {
       this._water(car, pos, h, cs, sn, wheel, dt);
     }
     if (this.eclats) this._degats(race, dt);
+    // les mécaniciens des stands (essai, js/mecanos.js) : une équipe par box, quand les stands sont ouverts
+    if (race.stands && typeof Equipes !== 'undefined') {
+      if (this._courseEquipes !== race) { this._courseEquipes = race; this.equipes = new Equipes(race.track); }
+      this.equipes.pas(race, dt);
+    } else this.equipes = null;
     if (this.wets.length > 700) this.wets.splice(0, this.wets.length - 700);
     for (const w of this.wets) w.alpha -= dt * 0.1;
     if (this.wets.length && this.wets[0].alpha <= 0) this.wets = this.wets.filter(w => w.alpha > 0);
@@ -2115,6 +2120,7 @@ class Renderer {
       (sur ? dessus : dessous).push(car);
     }
     for (const car of dessous) this._drawCar(g, car);
+    this._drawMecanos(g);
     if (T.drawRoad) for (const b of this.paths.bridges) {
       // bouts francs : c'est tout l'intérêt de ne border que les côtés
       g.lineCap = 'butt'; g.lineJoin = 'round';
@@ -3066,6 +3072,26 @@ class Renderer {
     de couleur du classement la désigne déjà. */
   }
 
+  /* Les mécaniciens (essai, js/mecanos.js), dans la couche des voitures et par-dessus elles : leurs
+  mains se posent sur la carrosserie. Cette couche ne s'efface que par morceaux (`carRects`) : on y
+  ajoute le leur. */
+  _drawMecanos(g) {
+    const E = this.equipes;
+    if (!E) return;
+    const m = g.getTransform(), k = this.nativeDpr / this.dpr, c = this.carCtx;
+    c.setTransform(m.a * k, m.b * k, m.c * k, m.d * k, m.e * k, m.f * k);
+    const b = E.emprise(), T = c.getTransform(), xs = [], ys = [];
+    for (const [x, y] of [[b.minX, b.minY], [b.maxX, b.minY], [b.minX, b.maxY], [b.maxX, b.maxY]]) {
+      xs.push(T.a * x + T.c * y + T.e); ys.push(T.b * x + T.d * y + T.f);
+    }
+    const x0 = Math.max(0, Math.floor(Math.min(...xs)) - 2), y0 = Math.max(0, Math.floor(Math.min(...ys)) - 2);
+    const x1 = Math.min(this.carCanvas.width, Math.ceil(Math.max(...xs)) + 2), y1 = Math.min(this.carCanvas.height, Math.ceil(Math.max(...ys)) + 2);
+    if (x1 <= x0 || y1 <= y0) return;
+    this.carRects.push({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
+    c.imageSmoothingEnabled = true;
+    E.dessine(c, null);
+  }
+
   // Daytime stop projections use the same measured rear anchors as night lights.
   // Closed-body cars have two sources; the F1 stop cue remains central.
   _feuxStop(g, c, art, livree, tole) {
@@ -3544,11 +3570,15 @@ class Renderer {
       // en colonne : la gomme au-dessus, la tôle en dessous, dans l'ordre où on s'en soucie
       if (usure) cadran(J.x, J.y1, p.tyre, pneu);
       cadran(J.x, J.y2, 1 - p.damage, tole);
-      // à l'arrêt au stand, le temps de réparation qui reste, sous le cadran
+      /* À l'arrêt au stand, le temps de réparation qui reste, AU-DESSUS du cadran : dessous, il
+      mordait sur le panneau du levier. Sur un fond à lui, pour se lire sur la voie comme sur l'herbe. */
       if (p.pitState === 'arret' && p.pitT > 0) {
-        g.fillStyle = '#fff0d2'; g.textAlign = 'center'; g.textBaseline = 'top';
-        g.font = `italic 900 ${Math.round(r * 0.8)}px Racing, Impact, sans-serif`;
-        g.fillText(p.pitT.toFixed(1) + ' s', J.x, J.y2 + r * 1.25 + 10);
+        const taille = Math.round(r * 0.8), txt = p.pitT.toFixed(1) + ' s';
+        g.font = `italic 900 ${taille}px Racing, Impact, sans-serif`;
+        const lw = g.measureText(txt).width + 12, yb = (usure ? J.y1 : J.y2) - r - 12 - taille;
+        this._hudPaper(g, J.x - lw / 2, yb - 3, lw, taille + 6);
+        g.fillStyle = '#242b25'; g.textAlign = 'center'; g.textBaseline = 'top';
+        g.fillText(txt, J.x, yb);
       }
       g.textAlign = 'left'; g.textBaseline = 'top';
     }

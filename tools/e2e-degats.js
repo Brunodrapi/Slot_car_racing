@@ -11,8 +11,9 @@
 // 4. De nuit : un phare dont le coin a reculé s'éteint, celui d'en face reste allumé.
 // 5. Les stands : une voiture abîmée à moitié y entre (pilotée par l'IA, sans rien toucher), s'arrête
 //    le temps de la réparation (1,5 s + 6,5 s × dommages), en ressort réparée, la tôle à neuf ; pendant
-//    l'arrêt, en temps réel, l'équipe fait ses bruits (cling, clac, zout zout). Une IA abîmée à plus de
-//    45 % décide d'elle-même de s'arrêter.
+//    l'arrêt, en temps réel, l'équipe fait ses bruits (cling, clac, zout zout). Les mécaniciens du box
+//    (js/mecanos.js) viennent travailler autour de la voiture, puis rentrent tous à leur box. Une IA
+//    abîmée à plus de 45 % décide d'elle-même de s'arrêter.
 // 6. À 120 km/h droit dans le rail : l'abandon. Le moteur ne repart plus, le nez rentre ; l'écran
 //    ABANDON, façon WASTED, et la caméra posée sur l'épave ; la course se termine sept secondes après,
 //    sans le joueur : il est classé dernier, « Abandon », sans points, et tous les autres ont une
@@ -156,22 +157,28 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
       const arrive = p.pitState === 'arret', duree = p.pitT0, dommagesArrivee = p.damage;
       const sons = { cling: 0, clacStand: 0, zout: 0 };
       for (const n of Object.keys(sons)) { const f = app.audio[n].bind(app.audio); app.audio[n] = (t) => { sons[n]++; return f(t); }; }
-      let arret = 0;
+      let arret = 0, auTravail = 0;
+      const box = () => p._box;
       if (arrive) await new Promise((fin) => {
         let prec = performance.now();
         const pas = () => {
           const now = performance.now(), dt = Math.min(0.05, (now - prec) / 1000); prec = now;
           r.update(dt, { throttle: 1, sel: 0, pit: true }); R.addEffects(r, dt); app.audio.update(p, true);
+          if (box()) auTravail = Math.max(auTravail, box().equipe.filter((m) => m.etat === 'travail').length);
           if (p.pitState === 'arret') arret += dt;
           if (p.pitsDone > 0 || arret > 15) { fin(); return; }
           requestAnimationFrame(pas);
         };
         requestAnimationFrame(pas);
       });
+      // repartie, l'équipe rentre : trois secondes après, tout le monde attend devant son box
+      for (let i = 0; i < 180; i++) { r.update(1 / 60, { throttle: 1, sel: 0, pit: false }); R.addEffects(r, 1 / 60); }
+      const enAttente = R.equipes ? R.equipes.boxes.every((b) => b.equipe.every((m) => m.etat === 'attente')) : false;
+      const equipes = R.equipes ? R.equipes.boxes.length : 0;
       // une IA abîmée décide d'elle-même
       const ia = r.cars.find((c) => c !== p); ia.lap = 1; ia.damage = 0.6; ia.pitAsk = false; r._decidePit(ia);
       return { arrive, chocs: p.barrierHits - hits, dommagesArrivee, duree, arret, servi: p.pitsDone > 0, damage: p.damage,
-        toleAvant, toleApres: !!R.carrosseries.get(p), sons, iaAuStand: ia.pitAsk, stands: r.stands };
+        toleAvant, toleApres: !!R.carrosseries.get(p), sons, iaAuStand: ia.pitAsk, stands: r.stands, equipes, auTravail, enAttente };
     });
     console.log('  stand : ' + JSON.stringify(stand));
     assert.ok(stand.stands && stand.arrive && stand.chocs === 0 && Math.abs(stand.dommagesArrivee - 0.5) < 1e-9, 'la voiture n\'arrive pas proprement au stand : ' + JSON.stringify(stand));
@@ -179,6 +186,7 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
     assert.ok(stand.servi && stand.damage === 0 && stand.toleAvant && !stand.toleApres, 'la voiture ne ressort pas réparée : ' + JSON.stringify(stand));
     assert.ok(stand.sons.zout >= 1 && stand.sons.cling + stand.sons.clacStand >= 2, 'l\'équipe ne fait pas ses bruits : ' + JSON.stringify(stand.sons));
     assert.ok(stand.iaAuStand, 'une IA abîmée à 60 % ne décide pas de s\'arrêter');
+    assert.ok(stand.equipes === 12 && stand.auTravail === 4 && stand.enAttente, 'les mécaniciens ne viennent pas, ou ne rentrent pas : ' + JSON.stringify(stand));
     await page.evaluate(() => { const r = app.race, R = app.renderer; r.player.damage = 0.62; for (let i = 0; i < 60; i++) R.updateCamera(r, 1 / 60); R.draw(r, app.ui); });
     await page.screenshot({ path: path.join(OUT, '8-jauge.png') });
 
@@ -227,7 +235,7 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
       'l\'abandon ne termine pas la course comme il faut : ' + JSON.stringify(fin));
 
     assert.deepEqual(errors, []);
-    console.log('  dégâts visibles : bosses figées et limitées, rail coûteux, dessin en cache, phare cassé, stands et leurs bruits, abandon à 120 km/h et son écran — OK');
+    console.log('  dégâts visibles : bosses figées et limitées, rail coûteux, dessin en cache, phare cassé, stands, leurs mécaniciens et leurs bruits, abandon à 120 km/h et son écran — OK');
   } finally {
     await browser.close(); server.close();
   }

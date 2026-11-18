@@ -3563,6 +3563,20 @@ zout. » Les stands n'existaient qu'avec l'usure ; ils reviennent avec les dég�
   seconde. Elle ouvre toujours le bal ; la suite est tirée au hasard. Fabriqués dans `js/audio.js`, sans
   fichier, comme le clac du levier.
 
+**Les mécaniciens** (`js/mecanos.js`). « Des mécaniciens qui viennent autour de la voiture quand on la
+répare, qui s'affairent puis qui la laissent partir, en plusieurs couleurs, chacune correspondant à un
+box. » La voie a douze boxes de quatre mètres (les trois rangées de garages, `Track.pitGarages`), chacun
+avec sa couleur et son équipe de quatre, qui attend devant son garage en deux rangs de deux, tournée vers
+la piste. Quand une voiture s'arrête, l'équipe du box le plus proche (ou du plus proche qui soit libre)
+court à elle — en contournant la voiture par le bout le plus proche, jamais à travers —, se place au
+nez, aux deux flancs et à l'arrière, et travaille : réparation A et B en alternance, et le scotch pour
+celui du nez. Une demi-seconde avant la fin de la réparation, tous se redressent et se dégagent — celui
+du nez s'écarte vers le garage au lieu de reculer, sinon il resterait devant la voiture qui repart —,
+puis ils rentrent au box. Les sept poses sont celles de la planche de Bruno ; tant que sa planche n'est
+pas dans le dépôt, elles sont dessinées par le code dans le même style (`MecanoSprites`). Un mécanicien
+fait 1,1 m à l'écran, un peu plus que nature, pour se lire à la distance du jeu. Le temps de réparation
+qui reste s'affiche au-dessus de la jauge.
+
 **Les stands des quatorze circuits** sont sur `docs/degats/stands-circuits.jpg` : chaque circuit en entier,
 la voie en rose et la zone d'arrêt en jaune, et la voie vue de près à côté. Un circuit sans voie
 (`pitLane: false`) garde ses stands fermés (`race.stands`) : la coche ne s'ouvre pas, l'IA ne s'arrête
