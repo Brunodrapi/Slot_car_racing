@@ -7,8 +7,8 @@
 // 2. Un rail pris à 60 km/h en course : la voiture perd de la pointe (DEGATS), sa tôle est enfoncée,
 //    mais pas plus de 30 cm — les voitures sont résistantes — et elle n'abandonne pas.
 // 2b. Les points de vie suivent la zone la plus enfoncée (ENFONCE, js/car.js) : un petit coup devant et
-//    un petit derrière ne comptent que pour le plus gros des deux ; quatre au même endroit l'enfoncent à
-//    fond, et c'est 100 %.
+//    un petit derrière ne comptent que pour le plus gros des deux ; des coups répétés au même endroit
+//    l'enfoncent à fond, et c'est 100 %. Un pare-chocs est dur, un flanc mou (ENFONCE.durete).
 // 3. Le coût du dessin : dix voitures cabossées de partout ne doivent pas coûter beaucoup plus que
 //    dix intactes — la caisse déformée est gardée en cache (Carrosserie.dessine).
 // 4. De nuit : un phare dont le coin a reculé s'éteint, celui d'en face reste allumé.
@@ -85,7 +85,7 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
       if (t) for (let k = 0; k < t.tx.length; k++) creux = Math.max(creux, Math.hypot(t.tx[k], t.ty[k]));
       return { tole: !!t, calme: t ? t.calme : null, creux, peau: !!(t && t.peau) };
     }));
-    for (const v of vitrine) assert.ok(v.tole && v.calme && v.peau && v.creux > 0.05 && v.creux <= 0.3 + 1e-6, 'une voiture touchée sans bosse figée, ou trop enfoncée : ' + JSON.stringify(v));
+    for (const v of vitrine) assert.ok(v.tole && v.calme && v.peau && v.creux > 0.02 && v.creux <= 0.3 + 1e-6, 'une voiture touchée sans bosse figée, ou trop enfoncée : ' + JSON.stringify(v));
     assert.ok(await page.evaluate(() => app.renderer.eclats.debris.length > 4), 'pas de débris après quatre chocs');
 
     // 2. le rail, en course
@@ -107,21 +107,26 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
     assert.ok(rail.degats && rail.damage > 0.1 && rail.facteur < 0.99 && rail.tole && !rail.abandon && rail.creux <= 0.3 + 1e-6, 'le rail à 60 km/h : ' + JSON.stringify(rail));
     await capture('4-rail.png', 1);
 
-    // 2b. la zone la plus enfoncée
+    // 2b. la zone la plus enfoncée, et la dureté de chaque zone
     const zones = await page.evaluate(() => {
-      const p = app.race.player, cs = Math.cos(p.th), sn = Math.sin(p.th);
-      p.enfoncement.fill(0); p.damage = 0;
+      const p = app.race.player, cs = Math.cos(p.th), sn = Math.sin(p.th), E = ENFONCE;
+      const vide = () => { p.enfoncement.fill(0); p.damage = 0; };
+      vide();
       p._enfonce(-cs, -sn, 5);                 // un petit coup dans le nez (la tôle rentre vers l'arrière)
-      const unCoup = p.damage;
+      const unCoup = p.damage, attendu = E.creux * 5 * E.durete[0] / E.max;
       p._enfonce(cs, sn, 5);                   // et un petit coup à l'arrière
       const deuxBouts = p.damage;
-      for (let i = 0; i < 3; i++) p._enfonce(-cs, -sn, 5);   // trois de plus dans le nez
-      const nezAFond = p.damage, zonesTouchees = Array.from(p.enfoncement).filter((z) => z > 0).length;
-      p.enfoncement.fill(0); p.damage = 0;
-      return { unCoup, deuxBouts, nezAFond, zonesTouchees };
+      vide(); p._enfonce(sn, -cs, 5);          // le même coup sur le flanc gauche
+      const flanc = p.damage;
+      vide(); let n = 0;
+      while (p.damage < 1 && n < 20) { p._enfonce(-cs, -sn, 20); n++; }   // le nez, jusqu'au bout
+      const nezAFond = p.damage;
+      vide();
+      return { unCoup, attendu, deuxBouts, flanc, nezAFond, coupsPourLeNez: n, durete: E.durete };
     });
-    assert.ok(Math.abs(zones.unCoup - 0.25) < 1e-6 && Math.abs(zones.deuxBouts - 0.25) < 1e-6 && zones.nezAFond === 1,
+    assert.ok(Math.abs(zones.unCoup - zones.attendu) < 1e-6 && Math.abs(zones.deuxBouts - zones.unCoup) < 1e-6 && zones.nezAFond === 1,
       'les points de vie ne suivent pas la zone la plus enfoncée : ' + JSON.stringify(zones));
+    assert.ok(zones.flanc > zones.unCoup * 3, 'un flanc devait être bien plus fragile qu\'un pare-chocs : ' + JSON.stringify(zones));
 
     // 3. le coût du dessin
     const cout = await page.evaluate(() => {

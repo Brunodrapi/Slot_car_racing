@@ -99,7 +99,10 @@ class Carrosserie {
   choc(px, py, nx, ny, force, epave = false) {
     const V = DEGATS_VISU, N = this.N;
     const r = epave ? V.epaveRayon : V.rayon * (1 + Math.min(0.6, force / 15));
-    const prof = epave ? V.epaveCreux : V.creux * force, max = epave ? V.epaveMax : V.creuxMax;
+    // la dureté de la zone touchée, la même que pour les points de vie (ENFONCE.durete, js/car.js) :
+    // un pare-chocs se cabosse moins qu'un flanc
+    const durete = typeof zoneEnfonce === 'function' ? ENFONCE.durete[zoneEnfonce(nx, ny)] : 1;
+    const prof = epave ? V.epaveCreux : V.creux * force * durete, max = epave ? V.epaveMax : V.creuxMax;
     for (let k = 0; k < N * this.R; k++) {
       const anneau = (k / N) | 0, lim = max[anneau];
       if (!lim) continue;

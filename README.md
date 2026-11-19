@@ -3542,12 +3542,28 @@ course donne le même résultat avec ou sans écran. Sur 25 s de départ à Spa,
 répartis ne s'additionnent plus. **En course
 seulement** : en contre-la-montre et à l'entraînement, les bosses se voient mais ne coûtent rien.
 
+**Des pare-chocs durs, des flancs mous** (`ENFONCE.durete`). « Les tampons avant et arrière doivent faire
+perdre moins de points de vie, c'est quand même assez régulier : les voitures doivent être plus dures à
+l'avant et à l'arrière — c'est logique, il y a les pare-chocs. Pour les coups de côté, quelque chose de
+plus fragile, de plus mou. » Chaque zone s'enfonce selon sa dureté : 0,3 pour le nez et l'arrière (un
+pare-chocs encaisse trois fois mieux), 0,6 pour les quatre coins, 1,4 pour les flancs. La tôle dessinée
+suit les mêmes duretés : un pare-chocs se cabosse moins, un flanc davantage.
+
+Il a fallu d'abord que les tampons tombent **sur les pare-chocs**. Le choc par l'arrière prenait la
+direction d'un centre à l'autre, qui penche de 20 à 40° dès que les deux voitures sont un peu décalées —
+presque toujours — et le calcul le mettait au coin dès 13° : mesuré, les pare-chocs ne prenaient presque
+rien, les coins presque tout. Quand les deux voitures se recouvrent sur plus de la moitié de leur largeur,
+c'est maintenant pare-chocs contre pare-chocs, chacune dans son propre axe (l'axe de la piste ne suffisait
+pas : dans l'épingle de La Source, les voitures sont en biais sur elle) ; décalées davantage, c'est un
+coin. Sur 8 départs de 60 s à Spa, la tôle moyenne du peloton passe de 9,5 % (3 à 15 %) à 4,6 % (0,4 à
+9 %), et la voiture la plus touchée de 27 % en moyenne (jusqu'à 36 %) à 11 % (jusqu'à 20 %).
+
 **Le coup de flanc** ne cassait rien jusqu'ici. Deux voitures qui se serrent dans un virage se
 rapprochent vite sur le côté rien que parce que leurs caps diffèrent de quelques degrés ; compté au même
 seuil qu'un choc par l'arrière, il faisait plus de la moitié de la tôle sur 25 s de départ à Spa (26 à
 30 m/s cumulés au-delà du seuil, contre 12 à 22 par l'arrière ; 6 à 7 % de tôle en moyenne). Il ne casse
-donc qu'au-delà de 6 m/s (`FLANC_SEUIL`), et deux fois moins qu'un choc de face : 2 à 5 % de tôle en
-moyenne au même moment, 8 à 19 % pour la plus touchée.
+donc qu'au-delà de 6 m/s (`FLANC_SEUIL`). Il coûtait d'abord, en plus, deux fois moins qu'un choc de face ;
+c'est maintenant la dureté du flanc, la zone la plus molle, qui décide : rare, mais cher.
 
 > **Une première mesure était fausse.** Elle annonçait deux voitures détruites au premier virage et des
 > carambolages de 150 m/s : dans le banc, la voiture du joueur, pilotée par l'IA, recevait l'accélérateur

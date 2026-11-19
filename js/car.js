@@ -78,7 +78,6 @@ pas de stand pour réparer : ce qui est cassé le reste jusqu'au drapeau. */
 const DEGATS_ACTIVE = true;
 const DEGATS = { chocSeuil: USURE.chocSeuil, chocParVitesse: USURE.chocParVitesse, vmax: 0.35 };
 const FLANC_SEUIL = 6;    // m/s de rapprochement latéral avant qu'un coup de flanc ne casse (voir resolveCollisions)
-const FLANC_COUT = 0.5;   // et ce qu'il coûte, rapporté à un choc de face de même vitesse
 /* L'ABANDON. « Les voitures ne vont pas être détruites, ce n'est pas Destruction Derby : il faut
 qu'elles soient assez résistantes. Par contre si une voiture fonce à 100 km/h droit dans un mur, elle
 n'a plus de capot, elle ne démarre plus et ça fait un DNF. » (Bruno)
@@ -108,10 +107,26 @@ Le calcul est fait ici, sans hasard, et non lu sur le dessin : la course doit do
 ou sans écran. */
 const ENFONCE = {
   zones: 8,
-  creux: 0.015,     // m par m/s au-delà du seuil, comme la tôle dessinée
+  creux: 0.015,     // m par m/s au-delà du seuil, pour une zone de dureté 1 — comme la tôle dessinée
   max: 0.3,         // m : une zone « complètement enfoncée »
   voisines: 0.35,   // ce qu'un choc enfonce des deux zones d'à côté
+  /* LA DURETÉ DE CHAQUE ZONE : ce qu'elle s'enfonce, rapporté à `creux`. « Les tampons avant et arrière
+  doivent faire perdre moins de points de vie, c'est quand même assez régulier : les voitures doivent être
+  plus dures à l'avant et à l'arrière — c'est logique, il y a les pare-chocs. Pour les coups de côté, je
+  verrais quelque chose de plus fragile, de plus mou. » (Bruno) Dans l'ordre des zones : le nez, le coin
+  avant gauche, le flanc gauche, le coin arrière gauche, l'arrière, puis l'autre côté. Un pare-chocs
+  encaisse donc deux fois mieux qu'avant, un flanc s'enfonce une fois et demie plus ; les coins sont entre
+  les deux. La tôle dessinée suit les mêmes duretés (js/degats.js). */
+  durete: [0.3, 0.6, 1.4, 0.6, 0.3, 0.6, 1.4, 0.6],
 };
+
+/* La zone de la caisse que touche un choc : (lx, ly), la direction dans laquelle la tôle rentre, dans le
+repère de la voiture. Le point touché se prend sur le bord, du côté d'où vient le choc, au coin quand il
+arrive en biais — le même calcul que le dessin (`Renderer._degats`). */
+function zoneEnfonce(lx, ly) {
+  const n = ENFONCE.zones, px = -clamp(lx * 1.8, -1, 1), py = -clamp(ly * 1.8, -1, 1);
+  return ((Math.round(Math.atan2(py, px) / (2 * Math.PI / n)) % n) + n) % n;
+}
 
 /* L'arrêt au stand.
 
@@ -611,11 +626,10 @@ class Car {
     if (!(force > 0)) return;
     const E = ENFONCE, cs = Math.cos(this.th), sn = Math.sin(this.th);
     const lx = nx * cs + ny * sn, ly = -nx * sn + ny * cs;
-    const px = -clamp(lx * 1.8, -1, 1), py = -clamp(ly * 1.8, -1, 1);
-    const k = ((Math.round(Math.atan2(py, px) / (2 * Math.PI / E.zones)) % E.zones) + E.zones) % E.zones;
-    const creux = E.creux * force;
+    const k = zoneEnfonce(lx, ly), creux = E.creux * force;
+    // chaque zone s'enfonce selon sa propre dureté, les voisines comprises
     for (const [z, part] of [[k, 1], [(k + 1) % E.zones, E.voisines], [(k + E.zones - 1) % E.zones, E.voisines]])
-      this.enfoncement[z] = Math.min(E.max, this.enfoncement[z] + creux * part);
+      this.enfoncement[z] = Math.min(E.max, this.enfoncement[z] + creux * part * E.durete[z]);
     this.damage = clamp(Math.max(...this.enfoncement) / E.max, 0, 1);
   }
 
@@ -1545,12 +1559,24 @@ function resolveCollisions(cars, track) {
           // le choc abîme les deux, à proportion de ce qui dépasse le seuil de simple frottement
           const ur = rear.tole, uf = front.tole;
           const fort = Math.max(0, dv - (ur ? ur.chocSeuil : 0));
-          // l'avant de l'une rentre vers l'arrière, l'arrière de l'autre vers l'avant
+          /* L'avant de l'une rentre vers l'arrière, l'arrière de l'autre vers l'avant. PARE-CHOCS CONTRE
+          PARE-CHOCS quand les deux voitures se recouvrent sur plus de la moitié de leur largeur : chacune
+          prend alors le choc dans son propre axe. La direction d'un centre à l'autre, prise d'abord, penchait
+          de 20 à 40° dès que les voitures étaient un peu décalées — presque toujours — et le choc tombait au
+          coin : les « tampons », qui devaient toucher les pare-chocs, durs, touchaient les coins
+          (ENFONCE.durete). L'axe de la piste ne suffisait pas non plus : dans une épingle, les voitures sont
+          en biais sur elle.
+          Décalées de plus d'une demi-largeur, c'est bien un coin qui prend, et la direction d'un centre à
+          l'autre le dit. */
+          const enFace = latOverlap > 0.5 * Math.min(a.cls.width, b.cls.width);
           const ux = front.x - rear.x, uy = front.y - rear.y, ul = Math.hypot(ux, uy) || 1;
-          if (ur) rear._enfonce(-ux / ul, -uy / ul, fort);
-          if (uf) front._enfonce(ux / ul, uy / ul, fort * 0.6);
-          rear._marque(-ux / ul, -uy / ul, dv, 0, 'voiture');
-          front._marque(ux / ul, uy / ul, dv, 0, 'voiture');
+          // en face, chacune prend le choc dans son propre axe : le nez de l'une, l'arrière de l'autre
+          const [rx, ry] = enFace ? [-Math.cos(rear.th), -Math.sin(rear.th)] : [-ux / ul, -uy / ul];
+          const [fx, fy] = enFace ? [Math.cos(front.th), Math.sin(front.th)] : [ux / ul, uy / ul];
+          if (ur) rear._enfonce(rx, ry, fort);
+          if (uf) front._enfonce(fx, fy, fort * 0.6);
+          rear._marque(rx, ry, dv, 0, 'voiture');
+          front._marque(fx, fy, dv, 0, 'voiture');
           front.v += dv * 0.35;
           rear.v = front.v - dv * 0.1;
           const push = Math.min(longOverlap / 2, 0.1);
@@ -1567,7 +1593,9 @@ function resolveCollisions(cars, track) {
         que leurs caps diffèrent de quelques degrés — à 60 m/s, trois degrés font déjà 3 m/s — et le
         jeu traite ce contact en poussette, pas en accident. Au seuil commun, mesuré sur 25 s de
         départ à Spa, les flancs faisaient les deux tiers de la tôle, et deux voitures finissaient
-        détruites. Ce qui passe le seuil coûte en outre moins qu'un choc de face (FLANC_COUT).
+        détruites. Ce qui passe le seuil, en revanche, coûte cher : un flanc est la zone la plus molle de
+        la caisse (ENFONCE.durete). Il coûtait d'abord deux fois moins qu'un choc de face ; « pour les coups
+        de côté, quelque chose de plus fragile » — c'est la dureté du flanc qui décide maintenant.
 
         Un contact dure plusieurs pas de physique tant que les voitures se chevauchent : `reculChoc`
         l'empêche de compter à chaque pas. */
@@ -1579,7 +1607,7 @@ function resolveCollisions(cars, track) {
           if (rapproche > 1.5 || glisse > 6) {
             for (const [c, sg] of [[a, -1], [b, 1]]) {
               const u = c.tole, fort = Math.max(0, rapproche - FLANC_SEUIL);
-              if (u) c._enfonce(nx * dir * sg, ny * dir * sg, fort * FLANC_COUT);
+              if (u) c._enfonce(nx * dir * sg, ny * dir * sg, fort);
               // pour le dessin, le même décalage : une bosse de flanc ne se creuse qu'au-delà de FLANC_SEUIL
               const vu = Math.max(0, rapproche - (FLANC_SEUIL - (u ? u.chocSeuil : USURE.chocSeuil)));
               c._marque(nx * dir * sg, ny * dir * sg, vu, glisse, 'voiture');
