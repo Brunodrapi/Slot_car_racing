@@ -155,7 +155,8 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
       const avant = phares();
       // un coin avant enfoncé : le phare de ce côté-là s'éteint
       const lay = carLightLayout(p.cls, p.livree), cote = Math.sign(lay.front[0].y);
-      p.chocs.push({ nx: -0.75, ny: -0.66 * cote, v: 26, frotte: 0, sorte: 'voiture' });   // la tôle rentre vers l'autre côté
+      // un coup franc (36 m/s) : le coin est plus dur depuis ENFONCE.durete, et la bosse dessinée a sa part de hasard
+      p.chocs.push({ nx: -0.75, ny: -0.66 * cote, v: 36, frotte: 0, sorte: 'voiture' });   // la tôle rentre vers l'autre côté
       for (let i = 0; i < 90; i++) R.addEffects(r, 1 / 60);
       return { avant, apres: phares() };
     });
@@ -218,7 +219,7 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
     assert.ok(stand.iaAuStand, 'une IA abîmée à 60 % ne décide pas de s\'arrêter');
     assert.ok(stand.scotch && stand.scotch[0] > 0.95 && stand.scotch[1] > 0.95, 'le scotch n\'est pas posé devant et derrière : ' + JSON.stringify(stand.scotch));
     assert.ok(stand.patchsOk, 'les patchs de scotch ne sont pas sur la zone réparée, ou débordent sur une vitre ou une roue : ' + JSON.stringify(stand));
-    assert.ok(stand.equipes === 12 && stand.auTravail === 6 && stand.enAttente, 'les mécaniciens ne viennent pas, ou ne rentrent pas : ' + JSON.stringify(stand));
+    assert.ok(stand.equipes === 6 && stand.auTravail === 6 && stand.enAttente, 'les mécaniciens ne viennent pas, ou ne rentrent pas : ' + JSON.stringify(stand));
     await page.evaluate(() => { const r = app.race, R = app.renderer; r.player.damage = 0.62; for (let i = 0; i < 60; i++) R.updateCamera(r, 1 / 60); R.draw(r, app.ui); });
     await page.screenshot({ path: path.join(OUT, '8-jauge.png') });
 

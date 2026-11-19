@@ -6,8 +6,8 @@ stand. » Puis : « ils doivent toujours passer par l'arrière ou les côtés po
 poser du scotch devant et derrière, et sur les côtés s'occuper des roues — et donc avoir les mains sous la
 carrosserie. » (Bruno)
 
-LES BOXES. La voie a trois rangées de garages de seize mètres (`Track.pitGarages`), quatre boxes de quatre
-mètres chacune : douze boxes, qui couvrent la zone d'arrêt. Chaque box a sa couleur et son équipe de six,
+LES BOXES. La voie a trois rangées de garages de seize mètres (`Track.pitGarages`), deux boxes de huit
+mètres chacune : six boxes, qui couvrent la zone d'arrêt. Chaque box a sa couleur et son équipe de six,
 qui attend devant son garage en deux rangs de trois, au bord de la voie, tournée vers la piste.
 
 UN ARRÊT. Quand une voiture s'immobilise dans la zone (`pitState === 'arret'`), l'équipe du box le plus
@@ -33,7 +33,11 @@ ensuite d'un seul `drawImage`. */
 
 const MECANOS = {
   parBox: 6,
-  largeurBox: 4,       // m, un quart de rangée de garages
+  /* Six équipes, une pour deux boxes : « tu peux mettre moins d'équipages au stand, diviser par deux le
+  nombre d'équipages » (Bruno). Il y en avait une par box, douze, soit soixante-douze mécaniciens alignés
+  le long de la voie. */
+  parGarage: 2,        // équipes par rangée de garages (seize mètres, trois rangées)
+  largeurBox: 8,       // m : la part de rangée qui revient à chaque équipe
   taille: 1.1,         // m : le sprite, un peu plus grand que nature pour se lire à l'écran
   marche: 5,           // m/s : une équipe de stand court
   cadence: 7,          // pas par seconde à la marche (2 ↔ 3)
@@ -184,14 +188,14 @@ const ScotchMasque = {
 };
 
 class Equipes {
-  /* Les douze boxes de la voie, et leurs équipes. */
+  /* Les six boxes de la voie, et leurs équipes. */
   constructor(track) {
     this.track = track;
     this.boxes = [];
     const T = track, M = MECANOS;
     for (const gr of T.pitGarages()) {
-      for (let k = 0; k < 4; k++) {
-        const s = T.wrap(gr.s + (k - 1.5) * M.largeurBox);
+      for (let k = 0; k < M.parGarage; k++) {
+        const s = T.wrap(gr.s + (k - (M.parGarage - 1) / 2) * M.largeurBox);
         if (T.pitAt(s)) this.boxes.push({ s, couleur: null, voiture: null, cote: 1, equipe: [] });
       }
     }

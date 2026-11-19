@@ -3596,8 +3596,8 @@ zout. » Les stands n'existaient qu'avec l'usure ; ils reviennent avec les dég�
 répare, qui s'affairent puis qui la laissent partir, en plusieurs couleurs, chacune correspondant à un
 box. » Puis : « ils doivent toujours passer par l'arrière ou les côtés pour s'écarter ; ils doivent poser
 du scotch devant et derrière, et sur les côtés s'occuper des roues, et donc avoir les mains sous la
-carrosserie. » La voie a douze boxes de quatre mètres (les trois rangées de garages, `Track.pitGarages`),
-chacun avec sa couleur et son équipe de six, qui attend devant son garage en deux rangs de trois, tournée
+carrosserie. » La voie a six boxes de huit mètres (les trois rangées de garages, `Track.pitGarages`) —
+douze d'abord, « divise par deux le nombre d'équipages » —, chacun avec sa couleur et son équipe de six, qui attend devant son garage en deux rangs de trois, tournée
 vers la piste. Quand une voiture s'arrête, l'équipe du box le plus proche (ou du plus proche qui soit
 libre) court à elle et se place : le scotch au nez et à l'arrière, une roue chacun pour les quatre autres,
 accroupis, les mains sous la carrosserie — ceux-là sont dessinés sous la voiture, ceux du scotch
