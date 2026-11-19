@@ -3606,6 +3606,11 @@ gagne par l'arrière. 0,7 s avant la fin de la réparation, tous se redressent e
 nez sur le côté, celui de l'arrière en reculant, ceux des roues en s'éloignant de la voiture —, puis ils
 rentrent au box, par l'arrière pour ceux de l'autre flanc.
 
+**Les boxes sont marqués au sol** : « indique plus clairement les zones des boxes, mets une bande blanche
+tous les deux boxes ». Une bande blanche de 30 cm traverse la voie à chaque limite de box d'équipe, tous
+les deux garages du dessin (huit mètres), de la première rangée de garages à la dernière ; chaque équipe
+attend au milieu du sien. Seulement quand les stands servent (`showPit`), comme la voie elle-même.
+
 **Le scotch se voit, par patchs, et s'accumule.** « Des patchs de scotch plus petits en différentes zones,
 aléatoirement sur la zone réparée, et qui s'accumulent au fil des passages » ; « de l'aléa dans le
 placement et dans l'apparence, sans qu'ils soient trop gros ; sur la carrosserie, l'aileron ou les phares,

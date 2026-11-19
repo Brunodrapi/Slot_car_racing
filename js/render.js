@@ -1358,7 +1358,23 @@ class Renderer {
         const r=Math.hypot(gr.w,gr.h)/2;
         voir({x:gr.x-r,y:gr.y-r});voir({x:gr.x+r,y:gr.y+r});
       }
-      return { surface, ligne, zone, garages, bbox: { minX: minX - 16, minY: minY - 16, maxX: maxX + 16, maxY: maxY + 16 } };
+      /* LES BOXES, MARQUÉS AU SOL (essai des dégâts) : « indique plus clairement les zones des boxes, mets
+      une bande blanche tous les deux boxes » (Bruno). Une bande blanche de 30 cm en travers de la voie à
+      chaque limite de box d'équipe — tous les deux garages du dessin, huit mètres —, de la première
+      rangée de garages à la dernière. Les mêmes boxes que les équipes de mécaniciens (js/mecanos.js). */
+      const boxes = new Path2D(), M = typeof MECANOS !== 'undefined' ? MECANOS : { parGarage: 2, largeurBox: 8 };
+      const limites = new Set();
+      for (const gr of garages) for (let k = 0; k <= M.parGarage; k++)
+        limites.add(Math.round((gr.s + (k - M.parGarage / 2) * M.largeurBox) * 10) / 10);
+      for (const s0 of limites) {
+        const s = track.wrap(s0), z = track.pitAt(s);
+        if (!z) continue;
+        const h = track.headingAt(s), ex = Math.cos(h) * 0.15, ey = Math.sin(h) * 0.15;
+        const a = track.pos(s, z.interne - 0.15), b = track.pos(s, z.externe + 0.1);
+        boxes.moveTo(a.x - ex, a.y - ey); boxes.lineTo(b.x - ex, b.y - ey);
+        boxes.lineTo(b.x + ex, b.y + ey); boxes.lineTo(a.x + ex, a.y + ey); boxes.closePath();
+      }
+      return { surface, ligne, zone, boxes, garages, bbox: { minX: minX - 16, minY: minY - 16, maxX: maxX + 16, maxY: maxY + 16 } };
     })() : null;
 
     this.paths = { center, mid, road, left, right, corners, bridges, passerelles, tunnels, lines, chunks, pit };
@@ -2038,6 +2054,8 @@ class Renderer {
         g.fillStyle = PAL.pitBox || 'rgba(255,212,0,0.16)'; g.fill(vp.zone);
         g.strokeStyle = PAL.pitBoxLine || '#ffd400'; g.lineWidth = 0.5; g.stroke(vp.zone);
         g.strokeStyle = PAL.edgeLine; g.lineWidth = 0.5; g.stroke(vp.ligne);
+        // les limites des boxes, en blanc, seulement quand les stands servent
+        if (vp.boxes && this.showPit) { g.fillStyle = 'rgba(244,244,240,0.92)'; g.fill(vp.boxes); }
         if(this.circuitGraphics)this.circuitGraphics.drawPitGarages(g,vp.garages);
         if (this.pitImg) {
           for (const gr of vp.garages) {
