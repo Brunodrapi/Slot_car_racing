@@ -267,8 +267,33 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
     assert.ok(fin.etat === 'finished' && fin.moi && fin.moi.abandon && fin.moi.points === 0 && fin.moi.pos === fin.n && fin.arrives === fin.n - 1,
       'l\'abandon ne termine pas la course comme il faut : ' + JSON.stringify(fin));
 
+    // 7. l'option : le choix du paddock, et une course sans dégâts
+    const option = await page.evaluate(async () => {
+      app.save.degats = true; app.toMenu && app.toMenu();
+      app.ui.setupScreen('race');
+      const puce = () => document.querySelector('[data-action="pickDegats"]');
+      const avant = !!puce(); if (puce()) puce().click();
+      const coupe = app.save.degats === false;
+      app.startQuick('race', 'gt3', 'spa');
+      return { puce: avant, coupe };
+    });
+    await page.waitForFunction(() => app.race && app.race.state === 'racing', null, { timeout: 30000 });
+    const sans = await page.evaluate(() => {
+      app.state = 'paused'; app.ui.hide();
+      const r = app.race, p = r.player, R = app.renderer;
+      p.chocs.push({ nx: -1, ny: 0, v: 20, frotte: 0, sorte: 'voiture' });
+      R.addEffects(r, 1 / 60);
+      const etincelles = R.eclats.etincelles.length;   // elles vivent moins d'une demi-seconde
+      for (let i = 0; i < 30; i++) R.addEffects(r, 1 / 60);
+      return { degats: r.degats, visu: r.degatsVisu, stands: r.stands, tole: !!R.carrosseries.get(p), etincelles, debris: R.eclats.debris.length, equipes: !!R.equipes };
+    });
+    await page.evaluate(() => { app.save.degats = true; storeSave(app.save); });
+    assert.ok(option.puce && option.coupe, 'le choix des dégâts n\'est pas au paddock, ou ne se coupe pas : ' + JSON.stringify(option));
+    assert.ok(sans.degats === null && sans.visu === false && !sans.stands && !sans.tole && sans.debris === 0 && !sans.equipes && sans.etincelles > 0,
+      'dégâts coupés, la course en a encore : ' + JSON.stringify(sans));
+
     assert.deepEqual(errors, []);
-    console.log('  dégâts visibles : bosses figées et limitées, rail coûteux, points de vie de la zone la plus enfoncée, dessin en cache, phare cassé, stands, leurs mécaniciens et leurs bruits, abandon à 120 km/h et son écran — OK');
+    console.log('  dégâts visibles : bosses figées et limitées, rail coûteux, points de vie de la zone la plus enfoncée, dessin en cache, phare cassé, stands, leurs mécaniciens et leurs bruits, abandon à 120 km/h et son écran, et l’option pour tout couper — OK');
   } finally {
     await browser.close(); server.close();
   }

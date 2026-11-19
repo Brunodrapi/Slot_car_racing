@@ -1742,7 +1742,8 @@ class Renderer {
           const X = car.x + px * cs - py * sn, Y = car.y + px * sn + py * cs;
           const ox = -(e.nx * cs - e.ny * sn), oy = -(e.nx * sn + e.ny * cs);   // vers l'extérieur, dans le monde
           const force = e.v - V.seuil;
-          if (force > 0) {
+          // dégâts coupés (l'option du paddock) : pas de bosse, pas de débris — les étincelles restent
+          if (force > 0 && race.degatsVisu !== false) {
             let couleur = car.livery && car.livery.body || '#8a8f96';
             if (art) {
               if (!tole) { tole = new Carrosserie(w, h); tole.pitsVu = car.pitsDone; this.carrosseries.set(car, tole); }

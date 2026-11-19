@@ -437,6 +437,7 @@ class App {
       laps: this.save.laps || 5,
       difficulty: this.save.difficulty,
       wear: this.save.wear,
+      degats: this.save.degats !== false,   // les dégâts (essai), en option : oui par défaut
       playerLivery: this.save.livery,
       playerName: this.playerName(),
     }, { cup: null, mode, classId, trackId });
@@ -456,6 +457,7 @@ class App {
       laps: lapsFor(trackDef, cat),
       difficulty: this.save.difficulty,
       wear: this.save.wear,
+      degats: this.save.degats !== false,   // les dégâts (essai), en option : oui par défaut
       playerLivery: this.save.livery,
       playerName: this.playerName(),
       roster,
@@ -492,6 +494,7 @@ class App {
       laps: cfg.laps || lapsFor(trackDef, cat),
       difficulty: cfg.difficulty || this.save.difficulty,
       timeOfDay: cfg.timeOfDay === 'night' ? 'night' : 'day',
+      degats: cfg.degats !== false,   // le choix de l'hôte, le même pour tous
       playerLivery: mine.livery || 0,
       playerLivree: this.playerLivreeFor(mine.modelId || this.playerModelFor(cat.id).id),
       playerName: mine.name || this.playerName(),

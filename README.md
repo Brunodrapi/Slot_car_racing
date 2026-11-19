@@ -3521,6 +3521,19 @@ Tout contact contre du métal (un rail, un mur, une autre voiture) crache des **
 le seuil, et un frottement le long d'un rail aussi. Contre des pneus, non. Une voiture abîmée à plus de
 30 % **fume**, depuis l'endroit où elle a pris les coups.
 
+### Une option
+
+« Les dégâts doivent être une option. » Le paddock de course a son choix, **Dégâts : Activé / Coupé**, à
+côté des tours, enregistré avec les autres réglages (`save.degats`, activé par défaut pour l'essai). Le
+championnat suit le même choix. En ligne, c'est **l'hôte** qui choisit, dans le salon, comme Jour / Nuit :
+chacun pilote sa voiture sur son propre écran, et un réglage propre à chacun laisserait l'un cabosser et
+l'autre pas (`table.degats`, transmis au départ).
+
+Coupés, il n'y a plus ni bosses, ni débris, ni fumée, ni feux cassés, ni perte de vitesse, ni abandon, ni
+jauge, ni stands — rien à réparer, donc ni voie ni mécaniciens. Les étincelles restent : elles disent
+qu'il y a eu contact, pas qu'il y a eu dégât. `race.degatsVisu` dit si les bosses se voient (en course
+comme en contre-la-montre, où elles ne coûtent rien), `race.degats` si elles coûtent (en course).
+
 ### Ce que ça coûte en course
 
 Les dommages vivaient avec l'usure, éteinte depuis la 0.50. Ici ils en sortent (`DEGATS_ACTIVE`), avec

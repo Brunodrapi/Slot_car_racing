@@ -177,7 +177,7 @@ const I18N = {
     multi: 'Multijoueur', multiIntro: 'Ouvre une table et donne son code à quatre lettres, ou saisis celui qu’on t’a donné. Tout passe directement d’un appareil à l’autre : rien n’est conservé, fermer la page ferme la table.',
     createTable: 'Ouvrir une table', joinTable: 'Rejoindre', tableCode: 'Code de la table', yourTable: 'Ta table', waiting: 'En attente…',
     mFormat: 'Format', mRace: 'Course', mDuel: 'Duel', mGhost: 'Contre-la-montre',
-    enPiste: 'En piste !', statVmax: 'Vitesse max.', statA100: 'Accélération', statB100: 'Freinage', statGrip: 'Adhérence', chipWear: 'Usure', chipControl: 'Commande', pilotLabel: 'Pilote',
+    enPiste: 'En piste !', statVmax: 'Vitesse max.', statA100: 'Accélération', statB100: 'Freinage', statGrip: 'Adhérence', chipWear: 'Usure', chipDegats: 'Dégâts', degatsHint: 'Les chocs cabossent la voiture et lui coûtent de la vitesse ; les stands la réparent.', chipControl: 'Commande', pilotLabel: 'Pilote',
     catAll: 'Toutes', mCat: 'Catégorie', mCatDesc: 'L\'hôte peut réserver la table à une catégorie : chacun choisit alors sa voiture dans celle-ci.', mCatOpen: 'Chacun prend la voiture qu\'il veut ; l\'IA court dans la catégorie de l\'hôte.',
     mRaceDesc: 'Tout le monde sur la grille, complétée par des IA, avec les contacts.',
     mDuelDesc: 'Les humains et personne d’autre.', mGhostDesc: 'Même circuit, chacun son tour, les voitures se traversent.',
@@ -328,7 +328,7 @@ const I18N = {
     multi: 'Multiplayer', multiIntro: 'Open a table and pass on its four-letter code, or type the one you were given. Everything goes straight from one device to the other: nothing is stored, closing the page closes the table.',
     createTable: 'Open a table', joinTable: 'Join', tableCode: 'Table code', yourTable: 'Your table', waiting: 'Waiting…',
     mFormat: 'Format', mRace: 'Race', mDuel: 'Duel', mGhost: 'Time trial',
-    enPiste: 'On track!', statVmax: 'Top speed', statA100: 'Acceleration', statB100: 'Braking', statGrip: 'Grip', chipWear: 'Wear', chipControl: 'Control', pilotLabel: 'Driver',
+    enPiste: 'On track!', statVmax: 'Top speed', statA100: 'Acceleration', statB100: 'Braking', statGrip: 'Grip', chipWear: 'Wear', chipDegats: 'Damage', degatsHint: 'Impacts dent the car and cost it speed; the pits repair it.', chipControl: 'Control', pilotLabel: 'Driver',
     catAll: 'All', mCat: 'Class', mCatDesc: 'The host can keep the table to one class: everyone then picks a car from it.', mCatOpen: 'Everyone takes any car; the AI races in the host\'s class.',
     mRaceDesc: 'Everyone on the grid, filled up with AI cars, contact on.',
     mDuelDesc: 'The people and nobody else.', mGhostDesc: 'Same circuit, each on their own lap, cars pass through each other.',
@@ -1474,6 +1474,7 @@ class UI {
         ${pastille(t('lapCount'), s.lapsPerso ? `${t('lapCustom')}` : (s.laps || 5), `data-action="pickLaps" data-id="${suivant([2, 5, 10, 20, 'perso'], toursCourants)}"`)}
         ${s.lapsPerso ? `<label class="chip chip-input"><span>${t('lapCount')} :</span><input id="inp-laps" type="number" min="1" max="99" value="${Math.max(1, Math.min(99, s.laps || 5))}"></label>` : ''}
         ${USURE_ACTIVE ? pastille(t('chipWear'), t(s.wear ? 'on' : 'off'), `data-action="pickWear" data-id="${s.wear ? 0 : 1}" title="${escapeHtml(t('wearHint'))}"`) : ''}
+        ${DEGATS_ACTIVE && !(USURE_ACTIVE && s.wear) ? pastille(t('chipDegats'), t(s.degats !== false ? 'on' : 'off'), `data-action="pickDegats" data-id="${s.degats !== false ? 0 : 1}" aria-pressed="${s.degats !== false}" title="${escapeHtml(t('degatsHint'))}"`) : ''}
       </div>` : ''}
       <!-- La liste et le choix actif sont propres au couple circuit+voiture.
            Un même nom peut conserver des valeurs pour plusieurs couples ; chacun retrouve
@@ -1575,6 +1576,9 @@ class UI {
       <h3>${t('timeOfDay')}</h3>
       <div class="seg">${['day', 'night'].map(v => `<button class="${(cfg.timeOfDay || 'day') === v ? 'sel' : ''}" data-action="netTimeOfDay" data-id="${v}" aria-pressed="${(cfg.timeOfDay || 'day') === v}" ${net.creator ? '' : 'disabled'}>${t(v)}</button>`).join('')}</div>
       ${cfg.timeOfDay === 'night' ? `<p class="muted">${t(model.catId === 'f1' ? 'nightF1Hint' : 'nightHint')}</p>` : ''}
+      ${DEGATS_ACTIVE ? `<h3>${t('chipDegats')}</h3>
+      <div class="seg">${[['1', 'on'], ['0', 'off']].map(([v, k]) => `<button class="${(cfg.degats !== false) === (v === '1') ? 'sel' : ''}" data-action="netDegats" data-id="${v}" aria-pressed="${(cfg.degats !== false) === (v === '1')}" ${net.creator ? '' : 'disabled'}>${t(k)}</button>`).join('')}</div>
+      <p class="muted">${t('degatsHint')}</p>` : ''}
       <h3>${t('mCat')}</h3>
       ${this.filtreCat('netCat', tcat, !net.creator)}
       <p class="muted">${t(tcat === 'all' ? 'mCatOpen' : 'mCatDesc')}</p>
@@ -1924,6 +1928,7 @@ class UI {
       }
       case 'pickTimeOfDay': app.save.timeOfDay = id === 'night' ? 'night' : 'day'; storeSave(app.save); this.setupScreen(this.setup.mode); break;
       case 'pickWear': app.save.wear = id === '1'; storeSave(app.save); this.setupScreen(this.setup.mode); break;
+      case 'pickDegats': app.save.degats = id === '1'; storeSave(app.save); this.setupScreen(this.setup.mode); break;
       case 'startQuick': app.startQuick(this.setup.mode, this.setup.classId, this.setup.trackId); break;
       case 'startTune': app.startQuick(this.setup.mode, this.setup.classId, this.setup.trackId, true); break;
       case 'regEnreg': this.enregistreReglage(); break;
@@ -1934,6 +1939,7 @@ class UI {
       case 'netRole': app.net.setMine({ spectator: !app.net.mine.spectator, ready: false }); app.net.pump(); break;
       case 'netLeave': app.toMenu(); break;
       case 'netTimeOfDay': app.net.setTable({ timeOfDay: id === 'night' ? 'night' : 'day' }); break;
+      case 'netDegats': app.net.setTable({ degats: id === '1' }); break;
       case 'netMode': app.net.setTable({ mode: id }); break;
       case 'netTrack': app.net.setTable({ trackId: id, laps: lapsFor(app.trackDefById(id), categoryById(this.setup.classId)) }); break;
       case 'netReady': this._netReady(!app.net.mine.ready); break;

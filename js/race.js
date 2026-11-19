@@ -193,9 +193,15 @@ class Race {
     // `opts.mode` et non `this.mode` : celui-ci n'est affecté que trente lignes plus bas, si bien
     // que le lire ici aurait rendu l'option inerte sans que rien ne le signale.
     this.usure = USURE_ACTIVE && opts.wear && (opts.mode || 'race') === 'race' ? USURE : null;
-    // les dégâts seuls (essai, js/car.js) : en course aussi, et sans option à cocher pour l'essai
-    // l'abandon (ABANDON_VITESSE, js/car.js) en solo seulement pour l'essai : en ligne il devrait passer par le réseau
-    this.degats = DEGATS_ACTIVE && !this.usure && (opts.mode || 'race') === 'race' ? { ...DEGATS, abandon: !opts.humans } : null;
+    /* LES DÉGÂTS SONT UNE OPTION (essai, js/car.js) : « les dégâts doivent être une option » (Bruno). Le
+    paddock la propose, oui par défaut (`save.degats`) ; en ligne, c'est l'hôte qui choisit. Sans elle,
+    ni bosses, ni débris, ni fumée, ni perte de vitesse, ni abandon, ni jauge, ni stands — rien à
+    réparer. Les étincelles restent : elles disent qu'il y a eu contact, pas qu'il y a eu dégât.
+    `degatsVisu` : les bosses se voient, en course comme en contre-la-montre (où elles ne coûtent rien).
+    `degats` : elles coûtent, en course seulement. L'abandon (ABANDON_VITESSE) en solo seulement pour
+    l'essai : en ligne il devrait passer par le réseau. */
+    this.degatsVisu = DEGATS_ACTIVE && !!opts.degats;
+    this.degats = this.degatsVisu && !this.usure && (opts.mode || 'race') === 'race' ? { ...DEGATS, abandon: !opts.humans } : null;
     // les stands : avec l'usure (pneus et tôle), ou avec les dégâts seuls (la tôle) — et pas sur un
     // circuit qui n'a pas de voie (`pitLane: false`) : la coche n'y mènerait nulle part
     this.stands = !!(this.usure || this.degats) && !!this.track.pit;
