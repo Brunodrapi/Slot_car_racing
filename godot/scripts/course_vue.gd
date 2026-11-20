@@ -10,6 +10,9 @@ var course: Course
 var decor: Decor
 var vues: Array[VoitureVue] = []
 var camera: Camera2D
+var effets: Effets
+var son: Son
+var secousse := 0.0
 var hud: Hud
 var pause: Pause
 var prec: Array[PackedFloat64Array] = []
@@ -43,6 +46,11 @@ func _ready() -> void:
 	decor = Decor.new()
 	decor.charge("res://donnees/circuits/%s-decor" % R.circuit)
 	add_child(decor)
+	effets = Effets.new()
+	add_child(effets)
+	son = Son.new()
+	add_child(son)
+	son.voiture(R.voiture)
 	RenderingServer.set_default_clear_color(decor.fond)
 	tourne = R.vue == "avance"
 	_actions()
@@ -90,6 +98,8 @@ func _depart() -> void:
 	camInit = false
 	finieDepuis = -1.0
 	enPause = false
+	effets.vide()
+	son.silence()
 	pause.visible = false
 	hud.nouvelleCourse(course)
 
@@ -115,7 +125,9 @@ func basculePause() -> void:
 	if course.state == "finished": return
 	enPause = not enPause
 	pause.visible = enPause
-	if enPause: pause.ouvre()
+	if enPause:
+		pause.ouvre()
+		son.silence()
 
 
 func recommence() -> void:
@@ -132,8 +144,8 @@ func _unhandled_input(e: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if enPause: return
-	if e.is_action_pressed("ligne_haut"): ligne = clampf(roundf(ligne) + 1, -1, 1)
-	elif e.is_action_pressed("ligne_bas"): ligne = clampf(roundf(ligne) - 1, -1, 1)
+	if e.is_action_pressed("ligne_haut"): _ligne(clampf(roundf(ligne) + 1, -1, 1))
+	elif e.is_action_pressed("ligne_bas"): _ligne(clampf(roundf(ligne) - 1, -1, 1))
 	elif e.is_action_pressed("vue"):
 		tourne = not tourne; camInit = false
 		App.reglages.vue = "avance" if tourne else "avanceFixe"; App.sauve()
@@ -145,7 +157,7 @@ func _unhandled_input(e: InputEvent) -> void:
 		if e.pressed and hud.toucheePause(p):
 			basculePause()
 		elif e.pressed and hud.dansLevier(p):
-			doigtLevier = e.index; ligne = hud.levierVers(p)
+			doigtLevier = e.index; _ligne(hud.levierVers(p))
 		elif e.pressed:
 			doigtsGaz[e.index] = true
 		else:
@@ -153,9 +165,16 @@ func _unhandled_input(e: InputEvent) -> void:
 			if e.index == doigtLevier: doigtLevier = -1
 	elif e is InputEventScreenDrag and e.index == doigtLevier:
 		var p: Vector2 = hud.get_global_transform_with_canvas().affine_inverse() * e.position
-		ligne = hud.levierVers(p)
+		_ligne(hud.levierVers(p))
 	elif e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT and hud.toucheePause(e.position):
 		basculePause()
+
+
+## Le levier change de cran : un clac (main.js), vers le haut ou vers le bas.
+func _ligne(v: float) -> void:
+	var avant := roundi(ligne)
+	ligne = v
+	if roundi(v) != avant and course.state != "countdown": son.joue("clac+" if roundi(v) > avant else "clac-")
 
 
 func _commandes() -> void:
@@ -164,7 +183,7 @@ func _commandes() -> void:
 	if gachette > 0.05: g = maxf(g, gachette)
 	gaz = g
 	var stick := -Input.get_joy_axis(0, JOY_AXIS_LEFT_Y)
-	if absf(stick) > 0.3: ligne = clampf(stick, -1, 1)
+	if absf(stick) > 0.3: _ligne(clampf(stick, -1, 1))
 
 
 func _physics_process(_delta: float) -> void:
@@ -179,9 +198,24 @@ func _physics_process(_delta: float) -> void:
 	course.step(gaz)
 	coutPas = coutPas * 0.98 + float(Time.get_ticks_usec() - t0) * 0.02
 	hud.evenements(course.evenements)
+	_sons(course.evenements)
 	if course.player.lap != tourAvant: _record()
 	if course.state == "finished" and finieDepuis < 0:
 		finieDepuis = 0.0
+
+
+## Les événements de la course, en sons et en secousse (main.js, _handleEvents).
+func _sons(evts: Array) -> void:
+	for e in evts:
+		if e.type == "go": son.joue("go")
+		elif e.type == "crash" and e.car == course.player: son.joue("thud"); secousse = 1.0
+		elif e.type == "lap" and e.car == course.player:
+			var p := course.player
+			var lt: float = p.lapTimes[-1]
+			var meilleur := p.bestLap == lt and p.lapTimes.size() > 1
+			son.joue("record" if meilleur else "tour")
+			hud.annonce("TOUR %d · %s" % [p.lap, Style.temps(lt)], Color("#b48cff") if meilleur else Color.WHITE)
+		elif e.type == "finish" and e.car == course.player: son.joue("arrivee")
 
 
 ## Le meilleur tour propre de l'appareil, par circuit et par voiture.
@@ -219,6 +253,14 @@ func _process(dt: float) -> void:
 		vues[i].place(Vector2(x, y), th, c.delta, z)
 		if c == course.player: px = x; py = y
 	_camera(dt, px, py)
+	if not enPause:
+		effets.ajoute(course, dt)
+		son.maj(course.player, course.state != "countdown", dt)
+	if secousse > 0:
+		secousse = maxf(0, secousse - dt * 2)
+		camera.offset = Vector2((randf() - 0.5) * secousse * 8, (randf() - 0.5) * secousse * 8) / camZoom
+	else:
+		camera.offset = Vector2.ZERO
 	dureesImage.append(dt)
 	if dureesImage.size() > 120: dureesImage.pop_front()
 	pireImage = 0.0
