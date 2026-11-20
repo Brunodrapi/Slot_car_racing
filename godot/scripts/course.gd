@@ -264,6 +264,11 @@ func _finish() -> void:
 		extra += dt
 	evenements.clear()
 	state = "finished"
+	_classe()
+
+
+## Le classement final (race._finish, après la fin de la course).
+func _classe() -> void:
 	var ordre := standings()
 	results = []
 	for i in ordre.size():

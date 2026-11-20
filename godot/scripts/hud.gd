@@ -217,7 +217,7 @@ func _draw() -> void:
 		Style.texte(self, flash, Vector2(0, maxf(H * 0.12, 120) + 30), 32, flashCouleur, HORIZONTAL_ALIGNMENT_CENTER, W)
 	# La mesure de fluidité, discrète, sous la minicarte
 	var appels := Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
-	Style.texte(self, "%d i/s · pire image %.1f ms · course %.2f ms/pas · %d appels" % [Engine.get_frames_per_second(), jeu.pireImage * 1000, jeu.coutPas / 1000.0, appels],
+	Style.texte(self, "%d i/s · pire image %.1f ms · course %.2f ms/pas (%s) · %d appels" % [Engine.get_frames_per_second(), jeu.pireImage * 1000, jeu.coutPas / 1000.0, "C++" if course is CourseNative else "GDScript", appels],
 		Vector2(P + 2, P + 56 + taille + 18), 13, Color(1, 1, 1, 0.55))
 
 

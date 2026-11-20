@@ -41,7 +41,13 @@ func _init() -> void:
 		var etats := a.slice(4 + n * 2)
 		echec = _isole(piste, modele, champs, n, L, entrees, etats, nom) or echec
 		echec = _libre(piste, modele, champs, n, L, entrees, etats, nom) or echec
-	echec = _course(piste) or echec
+		if CourseNative.disponible():
+			echec = _natifSeul(piste, modele, champs, n, L, entrees, etats, nom) or echec
+	echec = _course(piste, false) or echec
+	if CourseNative.disponible():
+		echec = _course(piste, true) or echec
+	else:
+		print("  (moteur C++ absent : seule la version GDScript est vérifiée)")
 	print("PARITÉ ", "ÉCHOUÉE" if echec else "OK")
 	quit(1 if echec else 0)
 
@@ -162,7 +168,7 @@ static func _sci(x: float) -> String:
 
 
 ## Une course entière, IA comprise, avec le hasard du jeu web.
-func _course(piste: Piste) -> bool:
+func _course(piste: Piste, natif: bool) -> bool:
 	if not FileAccess.file_exists("res://donnees/ref/course.bin"):
 		print("  course : enregistrement absent")
 		return true
@@ -175,13 +181,15 @@ func _course(piste: Piste) -> bool:
 	var suivi := a.slice(3 + n * 2)
 	var ref: Array = meta.roster
 	var h := Hasard.new(1)
-	var course := Course.new(piste, {
+	var classe = CourseNative if natif else Course
+	var course: Course = classe.new(piste, {
 		modele = Catalogue.modele("porsche991gt3r"), difficulte = Catalogue.difficulte("medium"), mode = "race", laps = 2,
 		nCars = N, roster = ref.map(func(r): return { nom = r.nom, modele = r.modele, livery = r.livery, livree = r.livree, skill = r.skill }),
 		modeleDe = func(id, _i): return Catalogue.modele(id) }, h)
 	for i in N:
 		course.cars[i].aiTimer = ref[i].aiTimer
 	h.etat = int(meta.graineApres)
+	if natif: course.reverse()
 	var t0 := Time.get_ticks_usec()
 	var pire := 0.0
 	var pireVoiture := -1
@@ -207,10 +215,64 @@ func _course(piste: Piste) -> bool:
 		if r.car.numero != int(res[i].numero): memeOrdre = false
 		if res[i].temps != null: pireTemps = maxf(pireTemps, absf(r.temps - float(res[i].temps)))
 	ok = ok and memeOrdre and pireTemps < 1e-6 and h.etat == int(meta.hasardFin)
-	print("  course  %d voitures, %d pas : pire écart de position %s m (voiture %d), dépasse 1e-6 m %s ; tours et arrivées identiques %s ; classement identique %s, pire écart de temps %s s ; hasard au même point %s ; %.0f µs par pas  %s" % [
-		N, n, _sci(pire), pireVoiture, ("jamais" if premier < 0 else "à %.2f s" % (premier / 120.0)), ("oui" if premierTour < 0 else "non (pas %d)" % premierTour),
+	print("  course %s %d voitures, %d pas : pire écart de position %s m (voiture %d), dépasse 1e-6 m %s ; tours et arrivées identiques %s ; classement identique %s, pire écart de temps %s s ; hasard au même point %s ; %.0f µs par pas  %s" % [
+		"C++ " if natif else "GDS ", N, n, _sci(pire), pireVoiture, ("jamais" if premier < 0 else "à %.2f s" % (premier / 120.0)), ("oui" if premierTour < 0 else "non (pas %d)" % premierTour),
 		("oui" if memeOrdre else "NON"), _sci(pireTemps), ("oui" if h.etat == int(meta.hasardFin) else "non"), float(us) / n, "ok" if ok else "ÉCHEC"])
 	if course.results.size():
 		var g: Dictionary = course.results[0]
 		print("          vainqueur n° %d %s en %.3f s (web : n° %d en %.3f s)" % [g.car.numero, g.car.nom, g.temps, int(res[0].numero), float(res[0].temps)])
+	return not ok
+
+
+
+## Le moteur C++ seul en piste : le pas isolé, puis la course libre, sur les mêmes commandes.
+func _natifSeul(piste: Piste, modele: Voiture.Modele, champs: Array, n: int, L: int, entrees: PackedFloat64Array, etats: PackedFloat64Array, nom: String) -> bool:
+	var m: Object = ClassDB.instantiate("MoteurNatif")
+	var noms: PackedStringArray = m.champs()
+	var K := noms.size()
+	m.piste(piste.pourNatif())
+	var car := _neuve(piste, modele)
+	m.ajoute(CourseNative.modeleNatif(modele), CourseNative.etatNatif(car, noms))
+	m.regle({ modeCourse = false, laps = 3, entrainement = false, player = 0, fantome = -1, difficulte = {}, difficile = {},
+		profil = PackedFloat64Array(), hasard = 1, countdown = 0.0, time = 0.0, state = 1 })
+	m.prepare()
+	var iRef := {}
+	for j in champs.size(): iRef[champs[j]] = j
+	var iNat := {}
+	for j in noms.size(): iNat[noms[j]] = j
+	var dt := 1.0 / 120
+	# 1. Pas isolé : chaque pas repris de l'état exact du jeu web.
+	var pire := 0.0
+	var temps := 0.0
+	for i in n:
+		if i > 0:
+			var e := {}
+			for cle in champs: e[cle] = etats[(i - 1) * L + iRef[cle]]
+			m.pose(0, e)
+		temps += dt
+		m.pas_seul(entrees[i * 2], entrees[i * 2 + 1], temps)
+		var a: PackedFloat64Array = m.etats()
+		for cle in ["x", "y", "v", "vl", "w", "delta", "Ff", "Fr", "selS"]:
+			pire = maxf(pire, absf(a[iNat[cle]] - etats[i * L + iRef[cle]]))
+	# 2. Course libre.
+	var m2: Object = ClassDB.instantiate("MoteurNatif")
+	m2.piste(piste.pourNatif())
+	m2.ajoute(CourseNative.modeleNatif(modele), CourseNative.etatNatif(_neuve(piste, modele), noms))
+	m2.regle({ modeCourse = false, laps = 3, entrainement = false, player = 0, fantome = -1, difficulte = {}, difficile = {},
+		profil = PackedFloat64Array(), hasard = 1, countdown = 0.0, time = 0.0, state = 1 })
+	m2.prepare()
+	temps = 0.0
+	var pirePos := 0.0
+	var t0 := Time.get_ticks_usec()
+	for i in n:
+		temps += dt
+		m2.pas_seul(entrees[i * 2], entrees[i * 2 + 1], temps)
+	var us := Time.get_ticks_usec() - t0
+	var a2: PackedFloat64Array = m2.etats()
+	var f := (n - 1) * L
+	pirePos = Piste.hypot(a2[iNat.x] - etats[f + iRef.x], a2[iNat.y] - etats[f + iRef.y])
+	var memes: bool = int(a2[iNat.crashes]) == int(etats[f + iRef.crashes]) and int(a2[iNat.barrierHits]) == int(etats[f + iRef.barrierHits]) and int(a2[iNat.lap]) == int(etats[f + iRef.lap])
+	var ok := pire < 1e-6 and memes and pirePos < 1e-3
+	print("  %-7s C++         %6d pas : pire écart sur un pas %s, écart final de position %s m, sorties et chocs identiques %s ; %.1f µs par pas  %s" % [
+		nom, n, _sci(pire), _sci(pirePos), "oui" if memes else "NON", float(us) / n, "ok" if ok else "ÉCHEC"])
 	return not ok

@@ -26,7 +26,10 @@ contenu du jeu y est, repris du code web et non réinventé :
   - le choc, le clac du levier, les bips ;
 - **les effets** : traces de gomme, fumée, poussière, secousse au choc ;
 - **la caméra** du jeu web : vue « devant, nord en haut », ou vue qui tourne avec la piste (touche C ou
-  réglages), avec le recul réglable.
+  réglages), avec le recul réglable ;
+- **la nuit** de `js/render.js` : phares, feux arrière, projecteurs des bacs à gravier, faite avec les
+  lumières 2D de Godot ; le jour, les feux stop au freinage ;
+- **le français et l'anglais**, avec les mots du jeu web.
 
 Le meilleur tour propre est gardé sur l'appareil, par circuit et par voiture.
 
@@ -91,9 +94,40 @@ les commandes enregistrées. Résultat sur 27 567 pas :
 - l'écart de position ne dépasse jamais 1,3 mm : les arrondis du sinus finissent par jouer dans les
   contacts, sans jamais changer une décision.
 
-Un pas de physique coûte environ 65 µs par voiture en GDScript, donc une course à dix voitures
-prend environ 12 % d'un cœur. C'est bien sur ordinateur, mais un peu lourd pour un téléphone : la
-physique devra passer en C++ (GDExtension) avant la version mobile.
+## La physique en C++
+
+La course existe en deux langages, qui donnent la même course :
+
+- **en GDScript** (`scripts/voiture.gd`, `scripts/course.gd`) : la référence lisible, et celle de
+  la version web, qui ne charge pas de code natif ;
+- **en C++** (`natif/src/`, une GDExtension) : la même transcription, dans le même ordre
+  d'opérations, pour l'ordinateur et le téléphone.
+
+L'écran de course prend le moteur C++ quand il est là (`CourseNative`) et revient à GDScript
+sinon. La grille, le classement, les résultats et le guide restent en GDScript. Seuls les pas de
+1/120 s passent en C++, et l'état des voitures est relu après chaque pas pour les écrans.
+
+Le test de parité vérifie les deux contre le jeu web :
+
+| | GDScript | C++ |
+|---|---|---|
+| une voiture seule, par pas | 136 µs | 1,2 µs |
+| course à dix voitures, par pas (relais vers les écrans compris) | 1 708 µs | 71 µs |
+| écarts au jeu web | ceux du tableau plus haut | les mêmes, au dernier chiffre près |
+
+À 120 pas par seconde, une course à dix voitures prend donc moins de 1 % d'un cœur en C++, contre
+12 % en GDScript.
+
+Le C++ est compilé avec `-ffp-contract=off`. Sans cela, le compilateur fusionnerait sur les
+processeurs ARM des téléphones des multiplications-additions en une seule instruction, et les
+arrondis ne seraient plus ceux de GDScript ni du jeu web.
+
+```
+bash natif/construit.sh [linux|windows|android|tout]
+```
+
+Ce script reconstruit les bibliothèques de `natif/bin/`, qui sont gardées dans le dépôt : on n'a
+besoin d'aucun outil C++ pour jouer ni pour exporter le jeu.
 
 ## Le décor : du jeu web à la carte graphique
 
@@ -130,12 +164,10 @@ rien redessiner image par image.
 
 ## Ce qui n'y est pas encore
 
-- la nuit (phares, éclairage) ;
 - le jeu en ligne et le tableau mondial des records ;
-- l'anglais ;
 - l'usure, les dégâts et les stands, qui sont encore des essais du jeu web ;
-- la physique en C++, pour les téléphones ;
-- les exports Android et iPhone, et Steamworks (succès, classement).
+- les exports Android et iPhone (le moteur C++ est prêt pour Android) ;
+- Steamworks (succès, classement).
 
 ## Les choix techniques
 

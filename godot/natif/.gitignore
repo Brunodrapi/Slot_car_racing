@@ -1,0 +1,7 @@
+# Les objets intermédiaires de SCons ; les bibliothèques de bin/ sont gardées.
+*.os
+*.o
+*.obj
+.sconsign.dblite
+bin/*.exp
+bin/*.lib

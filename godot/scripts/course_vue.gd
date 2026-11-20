@@ -111,7 +111,9 @@ func _depart() -> void:
 	var modele := Catalogue.modele(R.voiture)
 	var cat: String = Catalogue.voiture(R.voiture).cat
 	var n := int(R.adversaires) if R.mode == "race" else 1
-	course = Course.new(piste, {
+	# Le moteur C++ quand il est là (ordinateur, téléphone) ; sinon Course, en GDScript (web).
+	var classe = CourseNative if CourseNative.disponible() and App.reglages.get("natif", true) else Course
+	course = classe.new(piste, {
 		modele = modele, difficulte = Catalogue.difficulte(R.difficulte), mode = "timetrial" if R.mode == "training" else R.mode, laps = int(R.tours),
 		entrainement = R.mode == "training", difficultes = Catalogue.donnees.difficultes,
 		nCars = n, roster = Catalogue.roster(maxi(n, 2), 0, cat, h), livree = int(R.livree), nomJoueur = R.nom,

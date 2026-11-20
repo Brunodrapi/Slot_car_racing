@@ -1,0 +1,20 @@
+#!/usr/bin/env python
+# La physique de GRIP en C++ (GDExtension).
+#
+#   scons platform=linux target=template_debug godot_cpp=/chemin/godot-cpp custom_api_file=.../extension_api.json
+#   scons platform=windows ...   (MinGW)   ·   scons platform=android arch=arm64 ...   ·   scons platform=web ...
+#
+# -ffp-contract=off : le compilateur ne fusionne pas a*b+c en une seule instruction (FMA). Sur les
+# processeurs ARM des téléphones il le ferait de lui-même, et les arrondis ne seraient plus ceux de
+# GDScript ni du jeu web — la course ne se rejouerait plus à l'identique.
+import os
+godot_cpp = ARGUMENTS.get("godot_cpp", os.environ.get("GODOT_CPP", "/root/godot/godot-cpp"))
+env = SConscript(os.path.join(godot_cpp, "SConstruct"))
+env.Append(CPPPATH=["src/"])
+if env.get("is_msvc", False):
+    env.Append(CCFLAGS=["/fp:precise"])
+else:
+    env.Append(CCFLAGS=["-ffp-contract=off", "-fno-fast-math"])
+sources = Glob("src/*.cpp")
+library = env.SharedLibrary("bin/libgrip{}{}".format(env["suffix"], env["SHLIBSUFFIX"]), source=sources)
+Default(library)

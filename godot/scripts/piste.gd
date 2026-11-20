@@ -416,3 +416,26 @@ func barrierHit(car, fx: float, fy: float, fth: float) -> PackedFloat64Array:
 
 func lineLat(nomLigne: String, s: float) -> float:
 	return _lerp(lines[nomLigne], s)
+
+
+
+## Tout ce que le moteur C++ (natif/) doit connaître du circuit.
+func pourNatif() -> Dictionary:
+	var b := PackedFloat64Array()
+	b.resize(nBarrieres * 14)
+	for i in nBarrieres:
+		var o := i * 14
+		b[o] = b_ax[i]; b[o + 1] = b_ay[i]; b[o + 2] = b_bx[i]; b[o + 3] = b_by[i]; b[o + 4] = b_tx[i]; b[o + 5] = b_ty[i]
+		b[o + 6] = b_nx[i]; b[o + 7] = b_ny[i]; b[o + 8] = b_len[i]; b[o + 9] = b_half[i]; b[o + 10] = b_s[i]; b[o + 11] = b_side[i]
+		b[o + 12] = b_level[i]; b[o + 13] = b_pneus[i]
+	var pl := PackedFloat64Array()
+	for p in plaques:
+		pl.append(1.0 if p.gravier else 0.0); pl.append(p.poly.size() / 2)
+		for q in p.bbox: pl.append(q)
+		pl.append_array(p.poly)
+	return { n = n, ds = ds, length = length, halfWidth = halfWidth, barrierCell = barrierCell, asphalte = asphalte,
+		xs = xs, ys = ys, th = th, nx = nx, ny = ny, k = k, hwL = hwL, hwR = hwR, kerb = kerb,
+		ligne_racing = lines.racing, ligne_jaune = lines.jaune, ligne_bleu = lines.bleu,
+		lineK_racing = lineK.racing, lineK_jaune = lineK.jaune, lineK_bleu = lineK.bleu,
+		asphaltW_L = asphaltW.L, asphaltW_R = asphaltW.R, bacW_L = bacW.L, bacW_R = bacW.R,
+		croisements = crossings, barrieres = b, plaques = pl }

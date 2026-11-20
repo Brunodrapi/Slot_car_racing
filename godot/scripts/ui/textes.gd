@@ -71,8 +71,13 @@ const PAYS := {
 }
 
 
+## La langue des réglages. Lue par le nœud /root/App plutôt que par son nom, pour que les
+## scripts de calcul (Course, ses tests) se chargent aussi sans l'application.
 static func langue() -> String:
-	return "en" if App.reglages.get("langue", "fr") == "en" else "fr"
+	var boucle := Engine.get_main_loop() as SceneTree
+	var app: Node = boucle.root.get_node_or_null("App") if boucle else null
+	if app == null: return "fr"
+	return "en" if app.reglages.get("langue", "fr") == "en" else "fr"
 
 
 static func t(cle: String, args = null) -> String:
