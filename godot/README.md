@@ -127,7 +127,12 @@ bash natif/construit.sh [linux|windows|android|tout]
 ```
 
 Ce script reconstruit les bibliothèques de `natif/bin/`, qui sont gardées dans le dépôt : on n'a
-besoin d'aucun outil C++ pour jouer ni pour exporter le jeu.
+besoin d'aucun outil C++ pour jouer ni pour exporter le jeu. Elles existent pour Linux, Windows
+(MinGW, sans autre dépendance que les DLL système) et Android arm64 (NDK r27).
+
+La version Android n'a pas encore tourné sur un téléphone. Sa bibliothèque mathématique (bionic)
+n'arrondit pas le sinus exactement comme celle de Linux : on retrouvera donc des écarts du même
+ordre qu'entre Godot et le navigateur, que le test de parité montre sans effet sur la course.
 
 ## Le décor : du jeu web à la carte graphique
 
@@ -166,7 +171,8 @@ rien redessiner image par image.
 
 - le jeu en ligne et le tableau mondial des records ;
 - l'usure, les dégâts et les stands, qui sont encore des essais du jeu web ;
-- les exports Android et iPhone (le moteur C++ est prêt pour Android) ;
+- les exports Android et iPhone : le moteur C++ est compilé pour Android, il reste à faire
+  l'application (SDK, signature) ; l'iPhone demande un Mac et Xcode ;
 - Steamworks (succès, classement).
 
 ## Les choix techniques
