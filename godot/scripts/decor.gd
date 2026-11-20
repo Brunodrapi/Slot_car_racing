@@ -30,6 +30,8 @@ func charge(chemin: String) -> void:
 		var mi := MeshInstance2D.new()
 		mi.mesh = maille
 		mi.texture = atlas
+		# 0 sous toutes les voitures, 1 le tablier d'un croisement, 2 par-dessus toutes.
+		mi.z_index = [0, 2, 4][int(c.get("couche", 0))]
 		add_child(mi)
 		nCarreaux += 1
 		nTriangles += int(c.triangles)

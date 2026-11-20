@@ -1,0 +1,2048 @@
+{
+ "categories": [
+  {
+   "id": "f1",
+   "nom": {
+    "fr": "F1",
+    "en": "F1"
+   },
+   "desc": {
+    "fr": "Les monoplaces des années soixante-dix : légères, collées, et qui freinent tard.",
+    "en": "Seventies single-seaters: light, glued down, braking late."
+   },
+   "drivers": 10,
+   "roadScale": 0.9,
+   "zoom": 1.15
+  },
+  {
+   "id": "gt",
+   "nom": {
+    "fr": "GT",
+    "en": "GT"
+   },
+   "desc": {
+    "fr": "Les grand tourisme, des années soixante aux années quatre-vingt : lourdes, puissantes, joueuses.",
+    "en": "Grand tourers from the sixties to the eighties: heavy, powerful, playful."
+   },
+   "drivers": 10,
+   "roadScale": 0.9,
+   "zoom": 1.15
+  },
+  {
+   "id": "gt3",
+   "nom": {
+    "fr": "GT3",
+    "en": "GT3"
+   },
+   "desc": {
+    "fr": "Les GT modernes : dix silhouettes, de vrais ailerons et des caractères moteur bien distincts.",
+    "en": "Modern GT racers: ten silhouettes, big wings and distinctive engines."
+   },
+   "drivers": 10,
+   "roadScale": 0.9,
+   "zoom": 1.15
+  },
+  {
+   "id": "proto",
+   "nom": {
+    "fr": "Proto",
+    "en": "Prototypes"
+   },
+   "desc": {
+    "fr": "Les voitures du Mans : les plus rapides en ligne droite, et l'appui pour le payer en virage.",
+    "en": "Le Mans cars: the fastest in a straight line, with the downforce to pay for it in the corners."
+   },
+   "drivers": 10,
+   "roadScale": 0.9,
+   "zoom": 1.15
+  }
+ ],
+ "voitures": [
+  {
+   "id": "tyrrellp34",
+   "cat": "f1",
+   "nom": "Sixpence Hexa",
+   "shape": "wedge72",
+   "colors": [
+    "#174d9b",
+    "#f4da38"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.117999999999878,
+    "vmax": 290.115,
+    "b100": 18.029352396972246,
+    "gripG": 2.3341284403669724
+   },
+   "engine": {
+    "cyl": 8,
+    "redline": 10500,
+    "idle": 1600,
+    "rough": 0.1,
+    "bright": 0.92,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/six-inline.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Bleu · Scheckter · 1976",
+     "en": "Blue · Scheckter · 1976",
+     "top": "sprites/top/tyrrellp34.png",
+     "pick": "sprites/pick/tyrrellp34.png"
+    }
+   ]
+  },
+  {
+   "id": "ferrari312t",
+   "cat": "f1",
+   "nom": "Purosangue Dodici T",
+   "shape": "wedge72",
+   "colors": [
+    "#dc282d",
+    "#f5f3e9"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 2.9319999999998987,
+    "vmax": 309.96,
+    "b100": 19.197223880597015,
+    "gripG": 2.454617737003058
+   },
+   "engine": {
+    "cyl": 12,
+    "redline": 12500,
+    "idle": 1700,
+    "rough": 0.06,
+    "bright": 0.98,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/six-inline.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Lauda · 1975 · 12",
+     "en": null,
+     "top": "sprites/top/ferrari312t.png",
+     "pick": "sprites/pick/ferrari312t.png"
+    }
+   ]
+  },
+  {
+   "id": "mclarenm23",
+   "cat": "f1",
+   "nom": "McHaggis Arrow 23",
+   "shape": "wedge72",
+   "colors": [
+    "#e3352d",
+    "#f5f3e9"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.0219999999998888,
+    "vmax": 299.88,
+    "b100": 19.197223880597015,
+    "gripG": 2.4872375127421
+   },
+   "engine": {
+    "cyl": 8,
+    "redline": 10800,
+    "idle": 1600,
+    "rough": 0.1,
+    "bright": 0.92,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/six-inline.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Hunt · 1976 · 11",
+     "en": null,
+     "top": "sprites/top/mclarenm23.png",
+     "pick": "sprites/pick/mclarenm23.png"
+    }
+   ]
+  },
+  {
+   "id": "lotus79",
+   "cat": "f1",
+   "nom": "Bumblebee Ground 79",
+   "shape": "wedge72",
+   "colors": [
+    "#161719",
+    "#d4b35e"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.209999999999868,
+    "vmax": 294.84000000000003,
+    "b100": 19.197223880597015,
+    "gripG": 2.8959021406727823
+   },
+   "engine": {
+    "cyl": 8,
+    "redline": 11000,
+    "idle": 1600,
+    "rough": 0.1,
+    "bright": 0.92,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/six-inline.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Noir et or · Andretti · 1978",
+     "en": "Black and gold · Andretti · 1978",
+     "top": "sprites/top/lotus79.png",
+     "pick": "sprites/pick/lotus79.png"
+    }
+   ]
+  },
+  {
+   "id": "lotus72",
+   "cat": "f1",
+   "nom": "Bumblebee Wedge 72",
+   "shape": "wedge72",
+   "colors": [
+    "#161719",
+    "#d4b35e"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 2.883999999999904,
+    "vmax": 294.84000000000003,
+    "b100": 18.67868138251525,
+    "gripG": 2.212334352701325
+   },
+   "engine": {
+    "cyl": 8,
+    "redline": 10000,
+    "idle": 1500,
+    "rough": 0.1,
+    "bright": 0.9,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/six-inline.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Noir et or · Fittipaldi · 1972",
+     "en": "Black and gold · Fittipaldi · 1972",
+     "top": "sprites/top/lotus72.png",
+     "pick": "sprites/pick/lotus72.png"
+    }
+   ]
+  },
+  {
+   "id": "brabhambt46b",
+   "cat": "f1",
+   "nom": "Boomerang Fan 46",
+   "shape": "wedge72",
+   "colors": [
+    "#e8202a",
+    "#f4f4f4"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.211999999999868,
+    "vmax": 292.005,
+    "b100": 19.197223880597015,
+    "gripG": 2.205810397553517
+   },
+   "engine": {
+    "cyl": 12,
+    "redline": 12000,
+    "idle": 1700,
+    "rough": 0.05,
+    "bright": 0.96,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/six-inline.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Rouge · Lauda · 1978",
+     "en": "Red · Lauda · 1978",
+     "top": "sprites/top/brabhambt46b.png",
+     "pick": "sprites/pick/brabhambt46b.png"
+    }
+   ]
+  },
+  {
+   "id": "williamsfw07",
+   "cat": "f1",
+   "nom": "Windsor 07",
+   "shape": "wedge72",
+   "colors": [
+    "#f4f4f4",
+    "#1f6b3a"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.0499999999998857,
+    "vmax": 299.88,
+    "b100": 18.848388042203986,
+    "gripG": 2.802262996941896
+   },
+   "engine": {
+    "cyl": 8,
+    "redline": 11000,
+    "idle": 1600,
+    "rough": 0.1,
+    "bright": 0.92,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/six-inline.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Blanc et vert · Jones · 1979",
+     "en": "White and green · Jones · 1979",
+     "top": "sprites/top/williamsfw07.png",
+     "pick": "sprites/pick/williamsfw07.png"
+    }
+   ]
+  },
+  {
+   "id": "ligierjs11",
+   "cat": "f1",
+   "nom": "Le Coq Bleu 11",
+   "shape": "wedge72",
+   "colors": [
+    "#2f7fd1",
+    "#f4f4f4"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.1439999999998753,
+    "vmax": 297.98999999999995,
+    "b100": 17.874013340744856,
+    "gripG": 2.6967176350662587
+   },
+   "engine": {
+    "cyl": 8,
+    "redline": 11000,
+    "idle": 1600,
+    "rough": 0.1,
+    "bright": 0.92,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/six-inline.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Bleu et blanc · Laffite · 1979",
+     "en": "Blue and white · Laffite · 1979",
+     "top": "sprites/top/ligierjs11.png",
+     "pick": "sprites/pick/ligierjs11.png"
+    }
+   ]
+  },
+  {
+   "id": "renaultrs10",
+   "cat": "f1",
+   "nom": "Somua Turbo 10",
+   "shape": "wedge72",
+   "colors": [
+    "#f2c500",
+    "#141414"
+   ],
+   "drivers": 10,
+   "driveCurve": {
+    "low": 0.94,
+    "high": 1.2,
+    "from": 22.22222222222222,
+    "to": 55.55555555555556
+   },
+   "perf": {
+    "a100": 3.545999999999831,
+    "vmax": 315,
+    "b100": 19.559215328467154,
+    "gripG": 2.592844036697248
+   },
+   "engine": {
+    "cyl": 6,
+    "redline": 11000,
+    "idle": 1800,
+    "rough": 0.2,
+    "bright": 0.8,
+    "turbo": 1,
+    "sample": {
+     "ramp": "sounds/engine/six-inline.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Jaune · Jabouille · 1979",
+     "en": "Yellow · Jabouille · 1979",
+     "top": "sprites/top/renaultrs10.png",
+     "pick": "sprites/pick/renaultrs10.png"
+    }
+   ]
+  },
+  {
+   "id": "m1procar",
+   "cat": "gt",
+   "nom": "Howitzer K1",
+   "shape": "gtBoxy",
+   "colors": [
+    "#f4f4f4",
+    "#2166d8"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.3339999999998544,
+    "vmax": 309.856,
+    "b100": 20.297958968963705,
+    "gripG": 1.7116207951070337
+   },
+   "engine": {
+    "cyl": 6,
+    "redline": 9000,
+    "idle": 1100,
+    "rough": 0.15,
+    "bright": 0.78,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/six-inline.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Bandes tricolores · 280",
+     "en": "Tricolour stripes · 280",
+     "top": "sprites/top/m1procar.png",
+     "pick": "sprites/pick/m1procar.png"
+    },
+    {
+     "id": "BASF",
+     "nom": "Cibles rouges · 79",
+     "en": "Red targets · 79",
+     "top": "sprites/top/m1procar_BASF.png",
+     "pick": "sprites/pick/m1procar_BASF.png"
+    },
+    {
+     "id": "DENIM",
+     "nom": "Bleu rayé · 81",
+     "en": "Blue stripes · 81",
+     "top": "sprites/top/m1procar_DENIM.png",
+     "pick": "sprites/pick/m1procar_DENIM.png"
+    }
+   ]
+  },
+  {
+   "id": "f40",
+   "cat": "gt",
+   "nom": "Purosangue Furia 40",
+   "shape": "f40",
+   "colors": [
+    "#e0262c",
+    "#22242b"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.135999999999876,
+    "vmax": 368,
+    "b100": 20.857524324324327,
+    "gripG": 1.8504587155963304
+   },
+   "engine": {
+    "cyl": 8,
+    "redline": 7750,
+    "idle": 1000,
+    "rough": 0.15,
+    "bright": 0.8,
+    "turbo": 0.9,
+    "sample": {
+     "ramp": "sounds/engine/v8-f40.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Bleu · 56",
+     "en": "Blue · 56",
+     "top": "sprites/top/f40.png",
+     "pick": "sprites/pick/f40.png"
+    },
+    {
+     "id": "red",
+     "nom": "Rosso",
+     "en": null,
+     "top": "sprites/top/f40_red.png",
+     "pick": "sprites/pick/f40_red.png"
+    },
+    {
+     "id": "yellow",
+     "nom": "Crawford",
+     "en": null,
+     "top": "sprites/top/f40_yellow.png",
+     "pick": "sprites/pick/f40_yellow.png"
+    }
+   ]
+  },
+  {
+   "id": "countach",
+   "cat": "gt",
+   "nom": "Stallone Furioso",
+   "shape": "wedgeGT",
+   "colors": [
+    "#ffd400",
+    "#22242b"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.217999999999867,
+    "vmax": 299.91999999999996,
+    "b100": 21.861994334277625,
+    "gripG": 1.714373088685015
+   },
+   "engine": {
+    "cyl": 12,
+    "redline": 7500,
+    "idle": 900,
+    "rough": 0.05,
+    "bright": 0.88,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/v12-countach.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Stallone Furioso",
+     "en": null,
+     "top": "sprites/top/countach.png",
+     "pick": "sprites/pick/countach.png"
+    },
+    {
+     "id": "rainx",
+     "nom": "Jaune · 88",
+     "en": "Yellow · 88",
+     "top": "sprites/top/countach_rainx.png",
+     "pick": "sprites/pick/countach_rainx.png"
+    },
+    {
+     "id": "monaco83",
+     "nom": "ludes, babe",
+     "en": "ludes, babe",
+     "top": "sprites/top/countach_monaco83.png",
+     "pick": "sprites/pick/countach_monaco83.png"
+    }
+   ]
+  },
+  {
+   "id": "930",
+   "cat": "gt",
+   "nom": "Breithüft Turbo 9",
+   "shape": "roundGT",
+   "colors": [
+    "#c9ced6",
+    "#e0262c"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.2499999999998637,
+    "vmax": 295.136,
+    "b100": 20.857524324324327,
+    "gripG": 1.794189602446483
+   },
+   "engine": {
+    "cyl": 6,
+    "redline": 7000,
+    "idle": 950,
+    "rough": 0.3,
+    "bright": 0.6,
+    "turbo": 0.85,
+    "sample": {
+     "ramp": "sounds/engine/flat6-930.json",
+     "bas": "sounds/engine/flat6-930-bas.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Blanc rayé · 46",
+     "en": "White stripes · 46",
+     "top": "sprites/top/930.png",
+     "pick": "sprites/pick/930.png"
+    },
+    {
+     "id": "swiss",
+     "nom": "Croix suisse · 30",
+     "en": "Swiss cross · 30",
+     "top": "sprites/top/930_swiss.png",
+     "pick": "sprites/pick/930_swiss.png"
+    },
+    {
+     "id": "valliant",
+     "nom": "Turquoise arc-en-ciel · 5",
+     "en": "Rainbow turquoise · 5",
+     "top": "sprites/top/930_valliant.png",
+     "pick": "sprites/pick/930_valliant.png"
+    }
+   ]
+  },
+  {
+   "id": "corvette",
+   "cat": "gt",
+   "nom": "Moonshine Sting",
+   "shape": "roundGT",
+   "colors": [
+    "#d8dce2",
+    "#e0262c"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.319999999999856,
+    "vmax": 345.91999999999996,
+    "b100": 21.861994334277625,
+    "gripG": 1.7559633027522934
+   },
+   "engine": {
+    "cyl": 8,
+    "redline": 6000,
+    "idle": 750,
+    "rough": 0.7,
+    "bright": 0.4,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/v8-corvette.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Moonshine Sting",
+     "en": null,
+     "top": "sprites/top/corvette.png",
+     "pick": "sprites/pick/corvette.png"
+    },
+    {
+     "id": "spirit76",
+     "nom": "Spirit of Le Mans · 76",
+     "en": null,
+     "top": "sprites/top/corvette_spirit76.png",
+     "pick": "sprites/pick/corvette_spirit76.png"
+    },
+    {
+     "id": "bfg49",
+     "nom": "Étoiles et bandes · 49",
+     "en": "Stars and stripes · 49",
+     "top": "sprites/top/corvette_bfg49.png",
+     "pick": "sprites/pick/corvette_bfg49.png"
+    }
+   ]
+  },
+  {
+   "id": "csl",
+   "cat": "gt",
+   "nom": "Howitzer 3.0 Leicht",
+   "shape": "gtBoxy",
+   "colors": [
+    "#f7f7f7",
+    "#2166d8"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.4899999999998372,
+    "vmax": 270.11199999999997,
+    "b100": 20.297958968963705,
+    "gripG": 1.8568807339449542
+   },
+   "engine": {
+    "cyl": 6,
+    "redline": 7000,
+    "idle": 950,
+    "rough": 0.1,
+    "bright": 0.68,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/six-inline.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Bandes tricolores · 25",
+     "en": "Tricolour stripes · 25",
+     "top": "sprites/top/csl.png",
+     "pick": "sprites/pick/csl.png"
+    },
+    {
+     "id": "castrol",
+     "nom": "Noir, vert et rouge · 2",
+     "en": "Black, green and red · 2",
+     "top": "sprites/top/csl_castrol.png",
+     "pick": "sprites/pick/csl_castrol.png"
+    },
+    {
+     "id": "calder",
+     "nom": "Calder",
+     "en": null,
+     "top": "sprites/top/csl_calder.png",
+     "pick": "sprites/pick/csl_calder.png"
+    }
+   ]
+  },
+  {
+   "id": "250gto",
+   "cat": "gt",
+   "nom": "Purosangue Gran Corsa",
+   "shape": "roundGT",
+   "colors": [
+    "#c8161d",
+    "#f4f4f4"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.6619999999998183,
+    "vmax": 281.888,
+    "b100": 21.861994334277625,
+    "gripG": 1.618195718654434
+   },
+   "engine": {
+    "cyl": 12,
+    "redline": 7500,
+    "idle": 900,
+    "rough": 0.05,
+    "bright": 0.85,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/six-inline.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Rosso Corsa · 19",
+     "en": null,
+     "top": "sprites/top/250gto.png",
+     "pick": "sprites/pick/250gto.png"
+    },
+    {
+     "id": "francorchamps",
+     "nom": "Francorchamps · jaune",
+     "en": "Francorchamps · yellow",
+     "top": "sprites/top/250gto_francorchamps.png",
+     "pick": "sprites/pick/250gto_francorchamps.png"
+    },
+    {
+     "id": "walker",
+     "nom": "Rob Walker · inspiration bleue",
+     "en": "Rob Walker · blue tribute",
+     "top": "sprites/top/250gto_walker.png",
+     "pick": "sprites/pick/250gto_walker.png"
+    }
+   ]
+  },
+  {
+   "id": "typee",
+   "cat": "gt",
+   "nom": "Moggy Longnose",
+   "shape": "roundGT",
+   "colors": [
+    "#1d5c3a",
+    "#f4f4f4"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.747999999999809,
+    "vmax": 270.11199999999997,
+    "b100": 22.291403812824957,
+    "gripG": 1.6389908256880732
+   },
+   "engine": {
+    "cyl": 6,
+    "redline": 6500,
+    "idle": 850,
+    "rough": 0.12,
+    "bright": 0.6,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/six-inline.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Lightweight · British Racing Green",
+     "en": null,
+     "top": "sprites/top/typee.png",
+     "pick": "sprites/pick/typee.png"
+    },
+    {
+     "id": "cunningham",
+     "nom": "Cunningham · blanc et bleu",
+     "en": "Cunningham · white and blue",
+     "top": "sprites/top/typee_cunningham.png",
+     "pick": "sprites/pick/typee_cunningham.png"
+    },
+    {
+     "id": "ecosse",
+     "nom": "Écurie Écosse · inspiration bleue",
+     "en": "Écurie Écosse · blue tribute",
+     "top": "sprites/top/typee_ecosse.png",
+     "pick": "sprites/pick/typee_ecosse.png"
+    }
+   ]
+  },
+  {
+   "id": "240z",
+   "cat": "gt",
+   "nom": "Kitsune Zeta 240",
+   "shape": "roundGT",
+   "colors": [
+    "#f4f4f4",
+    "#d12a2a"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.5079999999998353,
+    "vmax": 250.976,
+    "b100": 19.941302325581397,
+    "gripG": 1.6932721712538226
+   },
+   "engine": {
+    "cyl": 6,
+    "redline": 7500,
+    "idle": 950,
+    "rough": 0.12,
+    "bright": 0.66,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/six-inline.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "BRE · 46",
+     "en": null,
+     "top": "sprites/top/240z.png",
+     "pick": "sprites/pick/240z.png"
+    },
+    {
+     "id": "sharp",
+     "nom": "Bob Sharp · inspiration bleue",
+     "en": "Bob Sharp · blue tribute",
+     "top": "sprites/top/240z_sharp.png",
+     "pick": "sprites/pick/240z_sharp.png"
+    },
+    {
+     "id": "dunlop",
+     "nom": "Hommage jaune · 24",
+     "en": "Yellow tribute · 24",
+     "top": "sprites/top/240z_dunlop.png",
+     "pick": "sprites/pick/240z_dunlop.png"
+    }
+   ]
+  },
+  {
+   "id": "porsche991gt3r",
+   "cat": "gt3",
+   "nom": "Breithüft Apex R",
+   "shape": "roundGT",
+   "colors": [
+    "#f4a7a3",
+    "#a51e28"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.0619999999998844,
+    "vmax": 287.1,
+    "b100": 18.480086206896555,
+    "gripG": 2.121814475025484
+   },
+   "engine": {
+    "cyl": 6,
+    "redline": 9000,
+    "idle": 1500,
+    "rough": 0.22,
+    "bright": 0.88,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/flat6-930.json",
+     "bas": "sounds/engine/flat6-930-bas.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Cochon rose · 92",
+     "en": "Pink butcher cuts · 92",
+     "top": "sprites/top/porsche991gt3r.png",
+     "pick": "sprites/pick/porsche991gt3r.png"
+    },
+    {
+     "id": "grello",
+     "nom": "Jaune fluo et vert · 911",
+     "en": "Neon yellow and green · 911",
+     "top": "sprites/top/porsche991gt3r_grello.png",
+     "pick": "sprites/pick/porsche991gt3r_grello.png"
+    },
+    {
+     "id": "rexy",
+     "nom": "Dinosaure vert · 56",
+     "en": "Green dinosaur · 56",
+     "top": "sprites/top/porsche991gt3r_rexy.png",
+     "pick": "sprites/pick/porsche991gt3r_rexy.png"
+    }
+   ]
+  },
+  {
+   "id": "ferrari488gt3",
+   "cat": "gt3",
+   "nom": "Purosangue Furia 48",
+   "shape": "f40",
+   "colors": [
+    "#e0262c",
+    "#ffffff"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.0899999999998813,
+    "vmax": 290,
+    "b100": 18.6497921701305,
+    "gripG": 2.134862385321101
+   },
+   "engine": {
+    "cyl": 8,
+    "redline": 7500,
+    "idle": 1200,
+    "rough": 0.12,
+    "bright": 0.82,
+    "turbo": 0.8,
+    "sample": {
+     "ramp": "sounds/engine/v8-f40.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Rouge tricolore · 51",
+     "en": "Red tricolour · 51",
+     "top": "sprites/top/ferrari488gt3.png",
+     "pick": "sprites/pick/ferrari488gt3.png"
+    },
+    {
+     "id": "garageitalia",
+     "nom": "CHRONO · 07",
+     "en": null,
+     "top": "sprites/top/ferrari488gt3_garageitalia.png",
+     "pick": "sprites/pick/ferrari488gt3_garageitalia.png"
+    },
+    {
+     "id": "smp",
+     "nom": "RMP Racing · 72",
+     "en": null,
+     "top": "sprites/top/ferrari488gt3_smp.png",
+     "pick": "sprites/pick/ferrari488gt3_smp.png"
+    }
+   ]
+  },
+  {
+   "id": "huracangt3",
+   "cat": "gt3",
+   "nom": "Stallone Fulmine",
+   "shape": "wedgeGT",
+   "colors": [
+    "#75ce16",
+    "#191d21"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.1219999999998778,
+    "vmax": 287.1,
+    "b100": 18.480086206896555,
+    "gripG": 2.150050968399592
+   },
+   "engine": {
+    "cyl": 10,
+    "redline": 8500,
+    "idle": 1400,
+    "rough": 0.08,
+    "bright": 0.94,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/six-inline.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Vert et carbone · 63",
+     "en": "Green and carbon · 63",
+     "top": "sprites/top/huracangt3.png",
+     "pick": "sprites/pick/huracangt3.png"
+    },
+    {
+     "id": "fff",
+     "nom": "Chronographe · 7",
+     "en": "Chronograph · 7",
+     "top": "sprites/top/huracangt3_fff.png",
+     "pick": "sprites/pick/huracangt3_fff.png"
+    },
+    {
+     "id": "attempto",
+     "nom": "NET · 100",
+     "en": null,
+     "top": "sprites/top/huracangt3_attempto.png",
+     "pick": "sprites/pick/huracangt3_attempto.png"
+    }
+   ]
+  },
+  {
+   "id": "audir8lms",
+   "cat": "gt3",
+   "nom": "Autobahn Acht GT3",
+   "shape": "wedgeGT",
+   "colors": [
+    "#aeb3bc",
+    "#2166d8"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.1539999999998742,
+    "vmax": 287.1,
+    "b100": 18.31344091124822,
+    "gripG": 2.1569317023445462
+   },
+   "engine": {
+    "cyl": 10,
+    "redline": 8500,
+    "idle": 1400,
+    "rough": 0.1,
+    "bright": 0.92,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/six-inline.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Argent, noir et bleu · 3",
+     "en": "Silver, black and blue · 3",
+     "top": "sprites/top/audir8lms.png",
+     "pick": "sprites/pick/audir8lms.png"
+    },
+    {
+     "id": "bwt",
+     "nom": "BMT · rose · 26",
+     "en": "BMT · pink · 26",
+     "top": "sprites/top/audir8lms_bwt.png",
+     "pick": "sprites/pick/audir8lms_bwt.png"
+    },
+    {
+     "id": "magnus",
+     "nom": "Magnet Racing · 44",
+     "en": null,
+     "top": "sprites/top/audir8lms_magnus.png",
+     "pick": "sprites/pick/audir8lms_magnus.png"
+    }
+   ]
+  },
+  {
+   "id": "amggt3",
+   "cat": "gt3",
+   "nom": "Stern AWG GT3",
+   "shape": "gtBoxy",
+   "colors": [
+    "#f2ef18",
+    "#419c37"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.119999999999878,
+    "vmax": 290,
+    "b100": 18.99872968980798,
+    "gripG": 2.143170234454638
+   },
+   "engine": {
+    "cyl": 8,
+    "redline": 7500,
+    "idle": 1100,
+    "rough": 0.65,
+    "bright": 0.65,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/v8-corvette.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Fan Filter · 47",
+     "en": null,
+     "top": "sprites/top/amggt3.png",
+     "pick": "sprites/pick/amggt3.png"
+    },
+    {
+     "id": "haribo",
+     "nom": "Donut’s · 8",
+     "en": null,
+     "top": "sprites/top/amggt3_haribo.png",
+     "pick": "sprites/pick/amggt3_haribo.png"
+    },
+    {
+     "id": "dragon",
+     "nom": "Dragon · 71",
+     "en": null,
+     "top": "sprites/top/amggt3_dragon.png",
+     "pick": "sprites/pick/amggt3_dragon.png"
+    }
+   ]
+  },
+  {
+   "id": "bmwm6gt3",
+   "cat": "gt3",
+   "nom": "Howitzer K6 GT3",
+   "shape": "gtBoxy",
+   "colors": [
+    "#ffffff",
+    "#e4c32c"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.0879999999998815,
+    "vmax": 292.90000000000003,
+    "b100": 19.178141153081512,
+    "gripG": 2.1286952089704383
+   },
+   "engine": {
+    "cyl": 8,
+    "redline": 7200,
+    "idle": 1100,
+    "rough": 0.35,
+    "bright": 0.7,
+    "turbo": 0.85,
+    "sample": {
+     "ramp": "sounds/engine/v8-f40.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "RAVE · 99",
+     "en": null,
+     "top": "sprites/top/bmwm6gt3.png",
+     "pick": "sprites/pick/bmwm6gt3.png"
+    },
+    {
+     "id": "falken",
+     "nom": "WAVES · 33",
+     "en": null,
+     "top": "sprites/top/bmwm6gt3_falken.png",
+     "pick": "sprites/pick/bmwm6gt3_falken.png"
+    },
+    {
+     "id": "schnitzer",
+     "nom": "Bandes tricolores · 42",
+     "en": "Tricolour stripes · 42",
+     "top": "sprites/top/bmwm6gt3_schnitzer.png",
+     "pick": "sprites/pick/bmwm6gt3_schnitzer.png"
+    }
+   ]
+  },
+  {
+   "id": "bentleygt3",
+   "cat": "gt3",
+   "nom": "Bramley Grand Tourer",
+   "shape": "gtBoxy",
+   "colors": [
+    "#ffffff",
+    "#185c43"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.0879999999998815,
+    "vmax": 292.90000000000003,
+    "b100": 19.360973406924238,
+    "gripG": 2.1294087665647297
+   },
+   "engine": {
+    "cyl": 8,
+    "redline": 7000,
+    "idle": 1100,
+    "rough": 0.5,
+    "bright": 0.6,
+    "turbo": 0.8,
+    "sample": {
+     "ramp": "sounds/engine/v8-corvette.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Blanc et vert · 7",
+     "en": "White and green · 7",
+     "top": "sprites/top/bentleygt3.png",
+     "pick": "sprites/pick/bentleygt3.png"
+    },
+    {
+     "id": "abt",
+     "nom": "APT · jaune et noir · 7",
+     "en": "APT · yellow and black · 7",
+     "top": "sprites/top/bentleygt3_abt.png",
+     "pick": "sprites/pick/bentleygt3_abt.png"
+    },
+    {
+     "id": "singha",
+     "nom": "SIMBA · gris et jaune · 7",
+     "en": "SIMBA · grey and yellow · 7",
+     "top": "sprites/top/bentleygt3_singha.png",
+     "pick": "sprites/pick/bentleygt3_singha.png"
+    }
+   ]
+  },
+  {
+   "id": "nissangtrgt3",
+   "cat": "gt3",
+   "nom": "Kitsune Raijin",
+   "shape": "gtBoxy",
+   "colors": [
+    "#ffffff",
+    "#e0262c"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.057999999999885,
+    "vmax": 292.90000000000003,
+    "b100": 18.99872968980798,
+    "gripG": 2.1211009174311926
+   },
+   "engine": {
+    "cyl": 6,
+    "redline": 7500,
+    "idle": 1200,
+    "rough": 0.3,
+    "bright": 0.75,
+    "turbo": 0.9,
+    "sample": {
+     "ramp": "sounds/engine/six-inline.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Kitsune · blanc et rouge · 35",
+     "en": "Kitsune · white and red · 35",
+     "top": "sprites/top/nissangtrgt3.png",
+     "pick": "sprites/pick/nissangtrgt3.png"
+    },
+    {
+     "id": "kcmg",
+     "nom": "KCRG · 18",
+     "en": null,
+     "top": "sprites/top/nissangtrgt3_kcmg.png",
+     "pick": "sprites/pick/nissangtrgt3_kcmg.png"
+    },
+    {
+     "id": "nddp",
+     "nom": "B-MIX · 3",
+     "en": null,
+     "top": "sprites/top/nissangtrgt3_nddp.png",
+     "pick": "sprites/pick/nissangtrgt3_nddp.png"
+    }
+   ]
+  },
+  {
+   "id": "mclaren650sgt3",
+   "cat": "gt3",
+   "nom": "McHaggis Blade 650",
+   "shape": "wedgeGT",
+   "colors": [
+    "#ff8c1a",
+    "#191d21"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.1539999999998742,
+    "vmax": 287.1,
+    "b100": 18.480086206896555,
+    "gripG": 2.163098878695209
+   },
+   "engine": {
+    "cyl": 8,
+    "redline": 8500,
+    "idle": 1300,
+    "rough": 0.12,
+    "bright": 0.88,
+    "turbo": 0.85,
+    "sample": {
+     "ramp": "sounds/engine/v8-f40.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "TEKTO · orange · 59",
+     "en": null,
+     "top": "sprites/top/mclaren650sgt3.png",
+     "pick": "sprites/pick/mclaren650sgt3.png"
+    },
+    {
+     "id": "garage59",
+     "nom": "Damier vert · 60",
+     "en": "Green checks · 60",
+     "top": "sprites/top/mclaren650sgt3_garage59.png",
+     "pick": "sprites/pick/mclaren650sgt3_garage59.png"
+    },
+    {
+     "id": "kpax",
+     "nom": "K-FOX · jaune et noir · 9",
+     "en": "K-FOX · yellow and black · 9",
+     "top": "sprites/top/mclaren650sgt3_kpax.png",
+     "pick": "sprites/pick/mclaren650sgt3_kpax.png"
+    }
+   ]
+  },
+  {
+   "id": "v12vantagegt3",
+   "cat": "gt3",
+   "nom": "Ashford V12",
+   "shape": "roundGT",
+   "colors": [
+    "#222832",
+    "#d6ee29"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.091999999999881,
+    "vmax": 287.1,
+    "b100": 18.822643902439026,
+    "gripG": 2.142456676860346
+   },
+   "engine": {
+    "cyl": 12,
+    "redline": 7750,
+    "idle": 1200,
+    "rough": 0.06,
+    "bright": 0.9,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/v12-countach.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Filets fluo · 10",
+     "en": "Neon pinstripes · 10",
+     "top": "sprites/top/v12vantagegt3.png",
+     "pick": "sprites/pick/v12vantagegt3.png"
+    },
+    {
+     "id": "rmotorsport",
+     "nom": "Liserés cyan · 62",
+     "en": "Cyan accents · 62",
+     "top": "sprites/top/v12vantagegt3_rmotorsport.png",
+     "pick": "sprites/pick/v12vantagegt3_rmotorsport.png"
+    },
+    {
+     "id": "amr",
+     "nom": "Vert foncé et jaune",
+     "en": "Dark green and yellow",
+     "top": "sprites/top/v12vantagegt3_amr.png",
+     "pick": "sprites/pick/v12vantagegt3_amr.png"
+    }
+   ]
+  },
+  {
+   "id": "gt40",
+   "cat": "proto",
+   "nom": "Redneck Endurance 40",
+   "shape": "gt40",
+   "colors": [
+    "#c9a348",
+    "#202321"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.0619999999998844,
+    "vmax": 338.13599999999997,
+    "b100": 20.56187786422253,
+    "gripG": 2.1328848114169214
+   },
+   "engine": {
+    "cyl": 8,
+    "redline": 6200,
+    "idle": 800,
+    "rough": 0.6,
+    "bright": 0.45,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/v8-gt40.json",
+     "haut": "sounds/engine/v8-gt40-haut.json",
+     "bas": "sounds/engine/v8-gt40-bas.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Holman Moody · 1966 · 5",
+     "en": null,
+     "top": "sprites/top/gt40.png",
+     "pick": "sprites/pick/gt40.png"
+    },
+    {
+     "id": "lemans1",
+     "nom": "Le Mans 1966 · 1",
+     "en": null,
+     "top": "sprites/top/gt40_lemans1.png",
+     "pick": "sprites/pick/gt40_lemans1.png"
+    },
+    {
+     "id": "lemans2",
+     "nom": "Le Mans 1966 · 2",
+     "en": null,
+     "top": "sprites/top/gt40_lemans2.png",
+     "pick": "sprites/pick/gt40_lemans2.png"
+    }
+   ]
+  },
+  {
+   "id": "935",
+   "cat": "proto",
+   "nom": "Breithüft Langheck",
+   "shape": "longTail",
+   "colors": [
+    "#f4f4f4",
+    "#e0262c"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.2679999999998617,
+    "vmax": 365.928,
+    "b100": 20.959489407930473,
+    "gripG": 2.281223241590214
+   },
+   "engine": {
+    "cyl": 6,
+    "redline": 8000,
+    "idle": 1100,
+    "rough": 0.35,
+    "bright": 0.7,
+    "turbo": 0.9,
+    "sample": {
+     "ramp": "sounds/engine/six-inline.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Breithüft Langheck",
+     "en": null,
+     "top": "sprites/top/935.png",
+     "pick": "sprites/pick/935.png"
+    },
+    {
+     "id": "jager",
+     "nom": "Orange · 16",
+     "en": null,
+     "top": "sprites/top/935_jager.png",
+     "pick": "sprites/pick/935_jager.png"
+    },
+    {
+     "id": "vaillant",
+     "nom": "Valliance · 51",
+     "en": null,
+     "top": "sprites/top/935_vaillant.png",
+     "pick": "sprites/pick/935_vaillant.png"
+    },
+    {
+     "id": "apple",
+     "nom": "Lemon Computer · 71",
+     "en": null,
+     "top": "sprites/top/935_apple.png",
+     "pick": "sprites/pick/935_apple.png"
+    }
+   ]
+  },
+  {
+   "id": "787b",
+   "cat": "proto",
+   "nom": "Kaminari Hayate",
+   "shape": "groupC",
+   "colors": [
+    "#ff8c1a",
+    "#1f6b3a"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.145999999999875,
+    "vmax": 350.102,
+    "b100": 19.111649331352154,
+    "gripG": 2.384852191641182
+   },
+   "engine": {
+    "cyl": 8,
+    "redline": 9000,
+    "idle": 1300,
+    "rough": 0.04,
+    "bright": 1,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/r26b-787b.json",
+     "bas": "sounds/engine/r26b-787b-bas.json",
+     "start": "sounds/engine/r26b-787b-start.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Kaminari Hayate",
+     "en": null,
+     "top": "sprites/top/787b.png",
+     "pick": "sprites/pick/787b.png"
+    },
+    {
+     "id": "efini18",
+     "nom": "Blanc et vert · 18",
+     "en": "White and green · 18",
+     "top": "sprites/top/787b_efini18.png",
+     "pick": "sprites/pick/787b_efini18.png"
+    },
+    {
+     "id": "lemans18",
+     "nom": "Le Mans 1991 · 18",
+     "en": null,
+     "top": "sprites/top/787b_lemans18.png",
+     "pick": "sprites/pick/787b_lemans18.png"
+    }
+   ]
+  },
+  {
+   "id": "962",
+   "cat": "proto",
+   "nom": "Breithüft Aero 62",
+   "shape": "groupC",
+   "colors": [
+    "#f4f4f4",
+    "#1b3f8f"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.2719999999998612,
+    "vmax": 350.102,
+    "b100": 19.630860805860806,
+    "gripG": 2.356432212028542
+   },
+   "engine": {
+    "cyl": 6,
+    "redline": 8200,
+    "idle": 1100,
+    "rough": 0.3,
+    "bright": 0.7,
+    "turbo": 0.95,
+    "sample": {
+     "ramp": "sounds/engine/flat6-930.json",
+     "bas": "sounds/engine/flat6-930-bas.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Bleu, blanc et rouge · 17",
+     "en": "Blue, white and red · 17",
+     "top": "sprites/top/962.png",
+     "pick": "sprites/pick/962.png"
+    },
+    {
+     "id": "shell",
+     "nom": "Jaune et rouge · 7",
+     "en": "Yellow and red · 7",
+     "top": "sprites/top/962_shell.png",
+     "pick": "sprites/pick/962_shell.png"
+    },
+    {
+     "id": "jager",
+     "nom": "Orange · 17",
+     "en": null,
+     "top": "sprites/top/962_jager.png",
+     "pick": "sprites/pick/962_jager.png"
+    }
+   ]
+  },
+  {
+   "id": "xjr9",
+   "cat": "proto",
+   "nom": "Moggy Nightfall",
+   "shape": "groupC",
+   "colors": [
+    "#5b2a86",
+    "#f4f4f4"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.399999999999847,
+    "vmax": 386,
+    "b100": 20.758779857972886,
+    "gripG": 2.3394495412844036
+   },
+   "engine": {
+    "cyl": 12,
+    "redline": 7200,
+    "idle": 900,
+    "rough": 0.05,
+    "bright": 0.75,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/v12-countach.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Violet et blanc · 2",
+     "en": "Purple and white · 2",
+     "top": "sprites/top/xjr9.png",
+     "pick": "sprites/pick/xjr9.png"
+    },
+    {
+     "id": "castrol",
+     "nom": "Vert et blanc · 60",
+     "en": "Green and white · 60",
+     "top": "sprites/top/xjr9_castrol.png",
+     "pick": "sprites/pick/xjr9_castrol.png"
+    },
+    {
+     "id": "jps",
+     "nom": "Hommage noir et or · 9",
+     "en": "Black and gold tribute · 9",
+     "top": "sprites/top/xjr9_jps.png",
+     "pick": "sprites/pick/xjr9_jps.png"
+    }
+   ]
+  },
+  {
+   "id": "330p4",
+   "cat": "proto",
+   "nom": "Purosangue Freccia",
+   "shape": "gt40",
+   "colors": [
+    "#d0141b",
+    "#f4f4f4"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.1259999999998773,
+    "vmax": 319.99399999999997,
+    "b100": 19.28164101539077,
+    "gripG": 2.0365341488277267
+   },
+   "engine": {
+    "cyl": 12,
+    "redline": 8500,
+    "idle": 1000,
+    "rough": 0.05,
+    "bright": 0.9,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/v12-countach.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Daytona 1967 · 23",
+     "en": null,
+     "top": "sprites/top/330p4.png",
+     "pick": "sprites/pick/330p4.png"
+    },
+    {
+     "id": "giallo",
+     "nom": "Équipe Nationale Belge · jaune",
+     "en": "Équipe Nationale Belge · yellow",
+     "top": "sprites/top/330p4_giallo.png",
+     "pick": "sprites/pick/330p4_giallo.png"
+    },
+    {
+     "id": "piper",
+     "nom": "David Piper · vert",
+     "en": "David Piper · green",
+     "top": "sprites/top/330p4_piper.png",
+     "pick": "sprites/pick/330p4_piper.png"
+    }
+   ]
+  },
+  {
+   "id": "p68",
+   "cat": "proto",
+   "nom": "Redneck Arrow 68",
+   "shape": "longTail",
+   "colors": [
+    "#c62026",
+    "#d9b45a"
+   ],
+   "drivers": 10,
+   "driveCurve": null,
+   "perf": {
+    "a100": 3.3059999999998575,
+    "vmax": 348.94399999999996,
+    "b100": 20.56187786422253,
+    "gripG": 2.059755351681957
+   },
+   "engine": {
+    "cyl": 8,
+    "redline": 9500,
+    "idle": 1300,
+    "rough": 0.12,
+    "bright": 0.88,
+    "turbo": 0,
+    "sample": {
+     "ramp": "sounds/engine/six-inline.json"
+    }
+   },
+   "livrees": [
+    {
+     "id": "",
+     "nom": "Alan Mann Racing · 1968",
+     "en": null,
+     "top": "sprites/top/p68.png",
+     "pick": "sprites/pick/p68.png"
+    },
+    {
+     "id": "gulf",
+     "nom": "Bleu ciel et orange · 7",
+     "en": "Sky blue and orange · 7",
+     "top": "sprites/top/p68_gulf.png",
+     "pick": "sprites/pick/p68_gulf.png"
+    },
+    {
+     "id": "dunlop",
+     "nom": "Hommage jaune · 68",
+     "en": "Yellow tribute · 68",
+     "top": "sprites/top/p68_dunlop.png",
+     "pick": "sprites/pick/p68_dunlop.png"
+    }
+   ]
+  }
+ ],
+ "livreries": [
+  {
+   "name": "Rosso",
+   "body": "#e0262c",
+   "accent": "#ffffff"
+  },
+  {
+   "name": "Azure",
+   "body": "#2166d8",
+   "accent": "#ffd400"
+  },
+  {
+   "name": "Lime",
+   "body": "#7ed321",
+   "accent": "#1b1b1b"
+  },
+  {
+   "name": "Sunset",
+   "body": "#ff8c1a",
+   "accent": "#1b1b1b"
+  },
+  {
+   "name": "Silver",
+   "body": "#c9ced6",
+   "accent": "#e0262c"
+  },
+  {
+   "name": "Night",
+   "body": "#22242b",
+   "accent": "#ffd400"
+  },
+  {
+   "name": "Violet",
+   "body": "#8a3ffc",
+   "accent": "#ffffff"
+  },
+  {
+   "name": "Teal",
+   "body": "#12b5a8",
+   "accent": "#ffffff"
+  },
+  {
+   "name": "Gold",
+   "body": "#e6b422",
+   "accent": "#22242b"
+  },
+  {
+   "name": "Pink",
+   "body": "#ff4fa3",
+   "accent": "#ffffff"
+  },
+  {
+   "name": "Racing Green",
+   "body": "#1f6b3a",
+   "accent": "#ffd400"
+  },
+  {
+   "name": "White",
+   "body": "#f4f4f4",
+   "accent": "#2166d8"
+  }
+ ],
+ "pilotes": [
+  "L. Moreau",
+  "K. Tanaka",
+  "M. Rossi",
+  "A. Silva",
+  "J. Becker",
+  "S. Novak",
+  "D. Okafor",
+  "E. Lindqvist",
+  "R. Castillo",
+  "T. Nguyen",
+  "P. Dubois",
+  "H. Weber",
+  "N. Petrov",
+  "C. Ferreira",
+  "B. Andersen",
+  "Y. Sato",
+  "F. Marchetti",
+  "G. Larsen",
+  "I. Kovács",
+  "O. Haddad"
+ ],
+ "difficultes": {
+  "easy": {
+   "marginBase": 0.7,
+   "marginSpread": 0.1,
+   "paceBase": 0.8,
+   "paceSpread": 0.08
+  },
+  "medium": {
+   "marginBase": 0.83,
+   "marginSpread": 0.09,
+   "paceBase": 0.9,
+   "paceSpread": 0.07
+  },
+  "hard": {
+   "marginBase": 0.93,
+   "marginSpread": 0.06,
+   "paceBase": 0.99,
+   "paceSpread": 0.02
+  },
+  "extreme": {
+   "marginBase": 0.98,
+   "marginSpread": 0.1,
+   "paceBase": 1,
+   "paceSpread": 0.02,
+   "grip": 1.14,
+   "maxMargin": 1.25
+  },
+  "cauchemar": {
+   "marginBase": 1.02,
+   "marginSpread": 0.12,
+   "paceBase": 1,
+   "paceSpread": 0.02,
+   "grip": 1.3,
+   "maxMargin": 1.3
+  }
+ },
+ "points": [
+  25,
+  18,
+  15,
+  12,
+  10,
+  8,
+  6,
+  4,
+  2,
+  1
+ ],
+ "penaliteFixe": 1,
+ "perfBornes": {
+  "a100": [
+   5,
+   2.5
+  ],
+  "vmax": [
+   150,
+   400
+  ],
+  "b100": [
+   30,
+   12
+  ],
+  "gripG": [
+   1,
+   2.6
+  ]
+ },
+ "vmaxEcran": 80.55555555555556,
+ "defaut": "gt",
+ "circuits": [
+  {
+   "id": "monza",
+   "nom": "Parco Reale",
+   "pays": "IT",
+   "drapeau": "🇮🇹",
+   "theme": "park"
+  },
+  {
+   "id": "spa",
+   "nom": "Stand de frites",
+   "pays": "BE",
+   "drapeau": "🇧🇪",
+   "theme": "forest"
+  },
+  {
+   "id": "monaco",
+   "nom": "Le Rocher",
+   "pays": "MC",
+   "drapeau": "🇲🇨",
+   "theme": "riviera"
+  },
+  {
+   "id": "silverstone",
+   "nom": "Royal Air Base",
+   "pays": "GB",
+   "drapeau": "🇬🇧",
+   "theme": "autumn"
+  },
+  {
+   "id": "suzuka",
+   "nom": "Fuji Yama",
+   "pays": "JP",
+   "drapeau": "🇯🇵",
+   "theme": "japan"
+  },
+  {
+   "id": "interlagos",
+   "nom": "Festival de Carnaval",
+   "pays": "BR",
+   "drapeau": "🇧🇷",
+   "theme": "tropical"
+  },
+  {
+   "id": "laguna",
+   "nom": "Corkscrew Ranch",
+   "pays": "US",
+   "drapeau": "🇺🇸",
+   "theme": "california"
+  },
+  {
+   "id": "nurburgring",
+   "nom": "Bratwurst Ring",
+   "pays": "DE",
+   "drapeau": "🇩🇪",
+   "theme": "forest"
+  },
+  {
+   "id": "lemans",
+   "nom": "Autoroute 11",
+   "pays": "FR",
+   "drapeau": "🇫🇷",
+   "theme": "lemans"
+  },
+  {
+   "id": "bathurst",
+   "nom": "Kangaroo Mountain",
+   "pays": "AU",
+   "drapeau": "🇦🇺",
+   "theme": "bush"
+  },
+  {
+   "id": "redbullring",
+   "nom": "Apfelstrudel Ring",
+   "pays": "AT",
+   "drapeau": "🇦🇹",
+   "theme": "alpine"
+  },
+  {
+   "id": "castellet",
+   "nom": "Pastaga 83",
+   "pays": "FR",
+   "drapeau": "🇫🇷",
+   "theme": "lemans"
+  },
+  {
+   "id": "zandvoort",
+   "nom": "Windmolen",
+   "pays": "NL",
+   "drapeau": "🇳🇱",
+   "theme": "dunes"
+  },
+  {
+   "id": "watkins",
+   "nom": "Camping Glen",
+   "pays": "US",
+   "drapeau": "🇺🇸",
+   "theme": "glen"
+  }
+ ],
+ "champsNombres": [
+  "vmax",
+  "accel",
+  "brake",
+  "grip",
+  "df",
+  "slide",
+  "laneK",
+  "rearBias",
+  "cliff",
+  "slipPeak",
+  "length",
+  "width",
+  "zoom",
+  "drivers",
+  "dcFrom",
+  "dcTo",
+  "dcLow",
+  "dcHigh"
+ ]
+}

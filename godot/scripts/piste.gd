@@ -48,10 +48,14 @@ var b_pneus: PackedByteArray
 var nBarrieres: int = 0
 var barrierGrid := {}  # Vector2i -> PackedInt32Array, dans l'ordre de track.js
 
-# La voiture du joueur et son point de départ, sortis du même export.
-var voiture := {}
-var depart: PackedFloat64Array
-var dt: float
+var width: float
+var asphalte := true    # faux : le circuit n'a pas de dégagement bitumé (asphaltW absent)
+var tours := 3
+var pays := ""
+var drapeau := ""
+var theme := ""
+# Les plaques posées à la main (track.pads) : surface (0 bitume, 1 gravier), boîte, polygone.
+var plaques: Array = []
 
 
 static func charge(chemin: String) -> Piste:
@@ -61,10 +65,15 @@ static func charge(chemin: String) -> Piste:
 	var lit := func(cle: String) -> PackedFloat64Array:
 		var r: Array = meta.index[cle]
 		return blob.slice(int(r[0]), int(r[0]) + int(r[1]))
-	p.id = meta.circuit.id
-	p.nom = meta.circuit.nom
+	p.id = meta.id
+	p.nom = meta.nom
+	p.tours = int(meta.tours)
+	p.pays = meta.get("pays", "")
+	p.drapeau = meta.get("drapeau", "")
+	p.theme = meta.get("theme", "")
+	p.asphalte = meta.get("asphalte", true)
 	var sc: PackedFloat64Array = lit.call("scalaires")
-	p.n = int(sc[0]); p.ds = sc[1]; p.length = sc[2]; p.halfWidth = sc[3]; p.barrierCell = sc[4]; p.dt = sc[5]
+	p.n = int(sc[0]); p.ds = sc[1]; p.length = sc[2]; p.halfWidth = sc[3]; p.barrierCell = sc[4]; p.width = sc[5]
 	p.xs = lit.call("xs"); p.ys = lit.call("ys"); p.th = lit.call("th")
 	p.nx = lit.call("nx"); p.ny = lit.call("ny"); p.k = lit.call("k")
 	p.hwL = lit.call("hwL"); p.hwR = lit.call("hwR"); p.kerb = lit.call("kerb")
@@ -75,15 +84,12 @@ static func charge(chemin: String) -> Piste:
 		p.asphaltW[c] = lit.call("asphaltW_" + c)
 		p.bacW[c] = lit.call("bacW_" + c)
 	p.crossings = lit.call("croisements")
-	var champs: Array = meta.voiture.champs
-	var vals: PackedFloat64Array = lit.call("voiture")
-	for i in champs.size():
-		p.voiture[champs[i]] = vals[i]
-	p.voiture["id"] = meta.voiture.id
-	p.voiture["nom"] = meta.voiture.nom
-	p.voiture["freinRatio"] = sc[6]
-	p.voiture["gripBoost"] = sc[7]
-	p.depart = lit.call("depart")
+	var pl: PackedFloat64Array = lit.call("plaques")
+	var o := 0
+	while o < pl.size():
+		var nb := int(pl[o + 1])
+		p.plaques.append({ gravier = pl[o] == 1, bbox = [pl[o + 2], pl[o + 3], pl[o + 4], pl[o + 5]], poly = pl.slice(o + 6, o + 6 + nb * 2) })
+		o += 6 + nb * 2
 	p._chargeBarrieres(lit.call("barrieres"), (meta.barriere.champs as Array).size())
 	return p
 
@@ -269,22 +275,46 @@ func diff(a: float, b: float) -> float:
 	return d
 
 
-func runoffAsphaltAt(s: float, lat: float) -> bool:
-	var gauche := lat >= 0
-	var d := absf(lat) - (hwLeftAt(s) if gauche else hwRightAt(s))
-	if d <= 0:
-		return true
-	return d <= _lerp(asphaltW["L" if gauche else "R"], s)
-
-
+## La surface hors de la chaussée (track.runoffSurfaceAt) : asphalt, gravel ou grass.
 func surfaceAt(s: float, lat: float) -> String:
 	var gauche := lat >= 0
 	var d := absf(lat) - (hwLeftAt(s) if gauche else hwRightAt(s))
 	if d <= 0: return "asphalt"
+	if not plaques.is_empty():
+		var q := pos2(s, lat)
+		var sur := padAt(q[0], q[1])
+		if sur != "": return sur
 	var c := "L" if gauche else "R"
-	if d <= _lerp(asphaltW[c], s): return "asphalt"
+	if asphalte and d <= _lerp(asphaltW[c], s): return "asphalt"
 	if d <= _lerp(bacW[c], s): return "gravel"
 	return "grass"
+
+
+## car.runoffAsphalt : un dégagement où l'on garde de l'adhérence.
+func runoffAsphaltAt(s: float, lat: float) -> bool:
+	if not asphalte: return false
+	return surfaceAt(s, lat) == "asphalt"
+
+
+func padAt(x: float, y: float) -> String:
+	for k in range(plaques.size() - 1, -1, -1):
+		var p: Dictionary = plaques[k]
+		var b: Array = p.bbox
+		if x < b[0] or x > b[1] or y < b[2] or y > b[3]: continue
+		var poly: PackedFloat64Array = p.poly
+		var m := poly.size() / 2
+		var dedans := false
+		var j := m - 1
+		for i in m:
+			var xi := poly[i * 2]
+			var yi := poly[i * 2 + 1]
+			var xj := poly[j * 2]
+			var yj := poly[j * 2 + 1]
+			if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+				dedans = not dedans
+			j = i
+		if dedans: return "gravel" if p.gravier else "asphalt"
+	return ""
 
 
 # ---------- les protections ----------

@@ -1,0 +1,76 @@
+## Les résultats : le classement, les temps, les écarts, les pénalités et les meilleurs tours.
+class_name Resultats
+extends Control
+
+var course: Course
+var fond: Texture2D
+var boutons: Array[Bouton] = []
+
+
+func _init(c: Course) -> void:
+	course = c
+
+
+func _ready() -> void:
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	fond = load("res://images/interface/paddock.webp")
+	for d in [["REJOUER", Style.ROUGE, func(): App.aller("course")], ["PADDOCK", Style.NUIT_PLEINE, func(): App.aller("paddock", { mode = App.reglages.mode })]]:
+		var b := Bouton.new(d[0], d[1], Style.CREME, 26)
+		b.centre = true
+		b.pressed.connect(d[2])
+		add_child(b)
+		boutons.append(b)
+	resized.connect(_place)
+	_place()
+	boutons[0].grab_focus.call_deferred()
+
+
+func _unhandled_input(e: InputEvent) -> void:
+	if e.is_action_pressed("ui_cancel"): App.aller("paddock", { mode = App.reglages.mode })
+
+
+func _cadre() -> Rect2:
+	var w := minf(900, size.x - 40)
+	return Rect2((size.x - w) / 2, 20, w, size.y - 110)
+
+
+func _place() -> void:
+	var r := _cadre()
+	boutons[0].size = Vector2(220, 56); boutons[0].position = Vector2(r.end.x - 220, size.y - 76)
+	boutons[1].size = Vector2(200, 56); boutons[1].position = Vector2(r.end.x - 440, size.y - 76)
+	queue_redraw()
+
+
+func _draw() -> void:
+	Style.couvre(self, fond, Rect2(Vector2.ZERO, size), 0.4)
+	draw_rect(Rect2(Vector2.ZERO, size), Color(0.08, 0.09, 0.1, 0.55))
+	var r := _cadre()
+	Style.biseau(self, Rect2(r.position.x, r.position.y, r.size.x, 64), Style.NUIT_PLEINE, 0)
+	Style.damier(self, Rect2(r.position.x + 4, r.position.y, 70, 64), 4, Style.CREME, Style.NUIT_PLEINE)
+	var p := course.player
+	var titre := "CONTRE-LA-MONTRE" if course.mode == "timetrial" else "ARRIVÉE — P%d / %d" % [course.positionOf(p), course.cars.size()]
+	Style.texte(self, titre, r.position + Vector2(90, 46), 38, Style.CREME)
+	Style.texte(self, str(course.track.nom).to_upper(), r.position + Vector2(90, 46), 22, Style.PAPIER, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 104)
+	var y := r.position.y + 80
+	var cols := [0.0, 50.0, 400.0, 520.0, 630.0, 740.0]
+	var tetes := ["", "PILOTE", "TEMPS", "ÉCART", "PÉNALITÉ", "MEILLEUR TOUR"]
+	for i in tetes.size():
+		Style.texte(self, tetes[i], Vector2(r.position.x + 14 + cols[i], y + 18), 16, Style.PAPIER)
+	y += 28
+	var h := minf(40, (r.end.y - y) / maxf(1, course.results.size()))
+	for res in course.results:
+		var c: Voiture = res.car
+		var moi := c == p
+		Style.biseau(self, Rect2(r.position.x, y, r.size.x, h - 4), Style.PAPIER if moi else Color("#171b19e6"))
+		var ink := Style.ENCRE if moi else Style.PAPIER
+		var b := y + h / 2 + 6
+		var sz := int(minf(22, h * 0.55))
+		Style.texte(self, str(res.pos), Vector2(r.position.x + 18, b), sz, ink)
+		draw_rect(Rect2(r.position.x + 50, y + h / 2 - 8, 12, 12), Color(Catalogue.donnees.livreries[c.livery].body))
+		Style.texte(self, str(c.nom).to_upper(), Vector2(r.position.x + 70, b), sz, ink)
+		Style.texte(self, str(c.cls.nom).to_upper(), Vector2(r.position.x + 70 + 130, b), int(sz * 0.75), Color(ink, 0.75), HORIZONTAL_ALIGNMENT_LEFT, 190)
+		Style.texte(self, Style.temps(res.temps), Vector2(r.position.x + 14 + cols[2], b), sz, ink)
+		Style.texte(self, "+%.3f" % res.ecart if res.ecart > 0 else "", Vector2(r.position.x + 14 + cols[3], b), sz, ink)
+		Style.texte(self, "+%.1f s" % res.penalite if res.penalite > 0.05 else "", Vector2(r.position.x + 14 + cols[4], b), sz, Color("#e2533f") if res.penalite > 0.05 else ink)
+		Style.texte(self, Style.temps(res.meilleur), Vector2(r.position.x + 14 + cols[5], b), sz, ink)
+		y += h

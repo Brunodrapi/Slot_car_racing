@@ -25,6 +25,13 @@ class Modele:
 	var length: float
 	var width: float
 	var zoom: float
+	var drivers: int = 10
+	var cat: String
+	var aCourbe := false     # driveCurve : la poussée qui change avec la vitesse (certaines voitures)
+	var dcFrom := 0.0
+	var dcTo := 0.0
+	var dcLow := 1.0
+	var dcHigh := 1.0
 
 	static func depuis(d: Dictionary) -> Modele:
 		var m := Modele.new()
@@ -32,20 +39,85 @@ class Modele:
 			m.set(cle, d[cle])
 		m.id = d.id
 		m.nom = d.nom
+		if d.has("drivers"): m.drivers = int(d.drivers)
+		if d.has("cat"): m.cat = d.cat
+		if d.has("dcFrom") and (d.dcFrom != 0 or d.dcTo != 0):
+			m.aCourbe = true
+			m.dcFrom = d.dcFrom; m.dcTo = d.dcTo; m.dcLow = d.dcLow; m.dcHigh = d.dcHigh
 		return m
+
+	func copie() -> Modele:
+		var m := Modele.new()
+		for p in get_property_list():
+			if p.usage & PROPERTY_USAGE_SCRIPT_VARIABLE:
+				m.set(p.name, get(p.name))
+		return m
+
+	## js/cars.js, driveFactor.
+	func driveFactor(speed: float) -> float:
+		if not aCourbe:
+			return 1.0
+		var t := maxf(0, minf(1, (speed - dcFrom) / (dcTo - dcFrom)))
+		return dcLow + (dcHigh - dcLow) * t * t * (3 - 2 * t)
 
 # ---------- les constantes de js/car.js ----------
 const KERB_ADHERENCE := 0.88
 const BARRIERE := { rebond = 1.05, douceur = 9.0, pneus = 0.62, glisseRail = 0.78, glissePneus = 0.52, lacet = 0.35, seuil = 5.0 }
+const BARRIERE_rebond := 1.05
+const BARRIERE_douceur := 9.0
+const BARRIERE_pneus := 0.62
+const BARRIERE_glisseRail := 0.78
+const BARRIERE_glissePneus := 0.52
+const BARRIERE_lacet := 0.35
+const BARRIERE_seuil := 5.0
 const ARRET_LIBRE := 0.55
 const PHYS := { aimant = 0.0, ldK = 0.45, ldMin = 6.0, ff = 0.3, slip = 1.0, cliff = 1.0, steerRate = 6.0, yawK = 2.0, wLim = 0.95, selRate = 0.7, liftOff = 0.16, motricite = 1.25, drivePriority = 0.15, relax = 0.2, circle = 0.25 }
+const PHYS_aimant := 0.0
+const PHYS_ldK := 0.45
+const PHYS_ldMin := 6.0
+const PHYS_ff := 0.3
+const PHYS_slip := 1.0
+const PHYS_cliff := 1.0
+const PHYS_steerRate := 6.0
+const PHYS_yawK := 2.0
+const PHYS_wLim := 0.95
+const PHYS_selRate := 0.7
+const PHYS_liftOff := 0.16
+const PHYS_motricite := 1.25
+const PHYS_drivePriority := 0.15
+const PHYS_relax := 0.2
+const PHYS_circle := 0.25
 const LIGNE := { part = 0.5, aMin = 0.8, aMax = 6.0, vMax = 5.0 }
+const LIGNE_part := 0.5
+const LIGNE_aMin := 0.8
+const LIGNE_aMax := 6.0
+const LIGNE_vMax := 5.0
 const FREIN_MIN := 0.5
 const FREIN_MAX := 1.6
 const MOTRICITE := { tauMontee = 0.22, tauRetour = 0.10, seuil = 0.12, perte = 0.38 }
+const MOTRICITE_tauMontee := 0.22
+const MOTRICITE_tauRetour := 0.10
+const MOTRICITE_seuil := 0.12
+const MOTRICITE_perte := 0.38
 const GLISSADE := { rattrapage = true, seuilTravers = 0.15, freinTravers = 0.3 }
+const GLISSADE_rattrapage := true
+const GLISSADE_seuilTravers := 0.15
+const GLISSADE_freinTravers := 0.3
 const TRANSFERT_AV := 0.62
 const RESSENTI := [[0.00, 0.62], [0.80, 1.30], [1.30, 2.50], [0.44, 0.87]]
+const AIMANT := { k = 1.4, c = 1.0, devant = 0.0, max = 0.3, lache = 1.0, reprend = 0.5, derive = 1.3 }
+const AIMANT_k := 1.4
+const AIMANT_c := 1.0
+const AIMANT_devant := 0.0
+const AIMANT_max := 0.3
+const AIMANT_lache := 1.0
+const AIMANT_reprend := 0.5
+const AIMANT_derive := 1.3
+const AIDES_IA := { aimant = 1.0, ff = 0.3 }
+const AIDES_IA_aimant := 1.0
+const AIDES_IA_ff := 0.3
+const AI_GLISSE := [0.28, 0.55]
+const AI_USAGE := 0.8
 
 var track: Piste
 var cls: Modele
@@ -96,11 +168,73 @@ var throttle := 0.0
 var offT := 0.0
 var braking := false
 
+# La course (js/car.js, constructeur) : qui conduit, sa place, ses temps.
+var nom := ""
+var numero := 1
+var livery := 0
+var livree := 0
+var isPlayer := false
+var skill := 0.5
+var finished := false
+var finishTime := -1.0
+var fautes := 0
+var repris := 0.0
+var sortieS0 := NAN        # null en JavaScript
+var sortieT := 0.0
+var sortieI := 0
+var lapOk: Array[bool] = []
+var bestLapBrut := -1.0
+var blueFlag := false
+var draft := false
+var gridLat := NAN         # null en JavaScript : la place sur la grille, tenue jusqu'au départ
+var passSide := 0
+var passTimer := 0.0
+var blocker: Voiture = null
+var voisin: Voiture = null
+var aiTimer := 0.0
+var aiNoise := 0.0
+var aiAllow := INF
+var aiLeve := false
+var aiDriven := false
+var accroche := true
+var ecartAv := NAN
+var aimantF := 0.0
+var hasard: Hasard = null
 
-func _init(piste: Piste, modele: Modele, s0: float, lat0: float) -> void:
+
+func _init(piste: Piste, modele: Modele, s0: float, lat0: float, h: Hasard = null) -> void:
 	track = piste
 	cls = modele
-	place(s0, lat0, 0)
+	hasard = h
+	# Le constructeur de car.js pose la voiture sans tout remettre à zéro (place le fait ensuite).
+	var P := piste.pos2(s0, lat0)
+	s = s0; lat = lat0; x = P[0]; y = P[1]; th = piste.headingAt(s0)
+	aiTimer = (h.random() if h else 0.0) * 0.15
+	if h == null:
+		place(s0, lat0, 0)
+
+
+## Les aides de pilotage : le joueur n'a pas d'aimant, l'IA si.
+func _aimant() -> float:
+	return 0.0 if isPlayer else AIDES_IA_aimant
+
+
+func cornerSpeed(kk: float) -> float:
+	return Voiture.cornerSpeedFor(cls, kk, gripBoost)
+
+
+static func cornerSpeedFor(c: Modele, kk: float, boost: float = 1.0) -> float:
+	if kk < 1e-5:
+		return INF
+	var g := c.grip * boost
+	var capped := sqrt(2.8 * g / kk)
+	if kk - c.df > 1e-6:
+		return minf(sqrt(g / (kk - c.df)), capped)
+	return capped
+
+
+func progress() -> float:
+	return (lap - (0 if started else 1)) * track.length + track.wrap_(s)
 
 
 func place(s0: float, lat0: float, v0: float) -> void:
@@ -108,7 +242,7 @@ func place(s0: float, lat0: float, v0: float) -> void:
 	var P := T.pos2(s0, lat0)
 	s = T.wrap_(s0); lat = lat0; x = P[0]; y = P[1]; th = T.headingAt(s0)
 	v = v0; vl = 0; w = 0; delta = 0; beta = 0; usage = 0; slide = 0; ressenti = 0; Ff = 0; Fr = 0
-	selS = sel; selV = 0
+	selS = sel; selV = 0; accroche = true; aimantF = 0; ecartAv = NAN
 	patine = 0; patineFx = 0; glisseArr = 0
 	engineCut = 0; engineStopped = false
 
@@ -146,6 +280,9 @@ func _advance(dss: float, raceTime: float) -> void:
 	var T := track
 	var before := T.wrap_(s)
 	var after := before + dss
+	if finished:
+		s = T.wrap_(after)
+		return
 	if before < T.length / 2 and after >= T.length / 2:
 		checkpoint = true
 	if after >= T.length:
@@ -156,8 +293,11 @@ func _advance(dss: float, raceTime: float) -> void:
 		if started:
 			var lt := raceTime - lapStart
 			lapTimes.append(lt)
+			lapOk.append(not lapSale)
 			if not lapSale and (bestLap < 0 or lt < bestLap):
 				bestLap = lt
+			if bestLapBrut < 0 or lt < bestLapBrut:
+				bestLapBrut = lt
 			lap += 1
 			lapSale = false
 		else:
@@ -170,9 +310,9 @@ func _advance(dss: float, raceTime: float) -> void:
 func _desiredCurvature() -> float:
 	var T := track
 	var sp := maxf(0, v)
-	var Ld := Piste.clamp_(PHYS.ldK * sp + 4, PHYS.ldMin, 45)
+	var Ld := Piste.clamp_(PHYS_ldK * sp + 4, PHYS_ldMin, 45)
 	var sAhead := s + Ld
-	var latT := T.targetLat(sAhead, selS)
+	var latT := gridLat if not is_nan(gridLat) else T.targetLat(sAhead, selS)
 	var P := T.pos2(sAhead, latT)
 	var dx := P[0] - x
 	var dy := P[1] - y
@@ -182,7 +322,7 @@ func _desiredCurvature() -> float:
 	if absf(alpha) > PI / 2:
 		return sgn(alpha) * 0.25
 	var kPursuit := 2 * sin(alpha) / dist
-	var ff: float = PHYS.ff
+	var ff: float = PHYS_ff
 	var kFF := T.lineCurv(s + Ld * 0.4, selS) if ff else 0.0
 	return Piste.clamp_(kPursuit + ff * kFF, -0.25, 0.25)
 
@@ -191,6 +331,7 @@ func _leaveTrack() -> void:
 	if herbe:
 		return
 	herbe = true; grassT = 0; crashes += 1
+	if not finished: fautes += 1
 	lapSale = true
 
 
@@ -212,20 +353,20 @@ func _barrierContact(fx: float, fy: float, fth: float, raceTime: float) -> bool:
 	var tx := -hny
 	var ty := hnx
 	var vt := vx * tx + vy * ty
-	var rendu: float = impact * BARRIERE.rebond * exp(-impact / BARRIERE.douceur) * (BARRIERE.pneus if pneus else 1.0)
-	var glisse: float = vt * (BARRIERE.glissePneus if pneus else BARRIERE.glisseRail)
+	var rendu: float = impact * BARRIERE_rebond * exp(-impact / BARRIERE_douceur) * (BARRIERE_pneus if pneus else 1.0)
+	var glisse: float = vt * (BARRIERE_glissePneus if pneus else BARRIERE_glisseRail)
 	var wx := hnx * rendu + tx * glisse
 	var wy := hny * rendu + ty * glisse
 	var cs := cos(th)
 	var sn := sin(th)
 	v = wx * cs + wy * sn; vl = wx * sn - wy * cs
-	w *= BARRIERE.lacet; Ff = 0; Fr = 0
+	w *= BARRIERE_lacet; Ff = 0; Fr = 0
 	slide = 0; patine = 0; patineFx = 0; throttle = 0; braking = false
 	if not engineStopped:
 		var effective := impact * (.55 if pneus else 1.0)
 		barrierHits += 1
 		lastImpact = impact
-		if impact > BARRIERE.seuil:
+		if impact > BARRIERE_seuil:
 			engineCut = Piste.clamp_(.25 + 2 * pow(effective / 20, 2), .25, 5)
 			engineStopped = true
 		_leaveTrack()
@@ -295,47 +436,47 @@ func update(dt: float, throttleIn: float, raceTime: float) -> void:
 	var a := L / 2
 	var b := L / 2
 	var kk := pow(0.28 * c.length, 2) * (5 / c.laneK)
-	var enTravers: bool = GLISSADE.rattrapage and absf(beta) > GLISSADE.seuilTravers
-	var brakeFrac: float = 0.0 if thr != 0.0 else Piste.clamp_(offT / 0.1, 0, 1) * (GLISSADE.freinTravers if enTravers else 1.0)
+	var enTravers: bool = GLISSADE_rattrapage and absf(beta) > GLISSADE_seuilTravers
+	var brakeFrac: float = 0.0 if thr != 0.0 else Piste.clamp_(offT / 0.1, 0, 1) * (GLISSADE_freinTravers if enTravers else 1.0)
 	var vv := maxf(3, absf(v))
-	var peak: float = c.slipPeak * PHYS.slip
+	var peak: float = c.slipPeak * PHYS_slip
 	var gTot := gripAt(absf(v)) * surface
 	var kDes := _desiredCurvature()
-	if GLISSADE.rattrapage and (absf(alphaR) > peak or absf(alphaF) > peak):
+	if GLISSADE_rattrapage and (absf(alphaR) > peak or absf(alphaF) > peak):
 		var kLigne := T.lineCurv(s + 3, selS)
 		if sgn(kDes) == sgn(kLigne) and absf(kDes) > absf(kLigne):
 			kDes = kLigne
-	var wLim: float = PHYS.wLim * gTot / vv
+	var wLim: float = PHYS_wLim * gTot / vv
 	var wDes := Piste.clamp_(v * kDes, -wLim, wLim)
 	var gAxle := gTot * 0.5 / minf(1, c.rearBias)
 	var ayFront := v * v * kDes * 0.5
 	var aFff := peak * ayFront / maxf(1e-3, gAxle)
-	var aFdes := Piste.clamp_(aFff + PHYS.yawK * peak * (wDes - w), -peak * 1.3, peak * 1.3)
+	var aFdes := Piste.clamp_(aFff + PHYS_yawK * peak * (wDes - w), -peak * 1.3, peak * 1.3)
 	var ufront := (vl - a * w) / vv
 	var steerTarget := atan(tan(aFdes) - ufront * _dir())
 	var dMax := 0.5
-	var rate: float = PHYS.steerRate
+	var rate: float = PHYS_steerRate
 	delta += Piste.clamp_(Piste.clamp_(steerTarget, -dMax, dMax) - delta, -rate * dt, rate * dt)
 	usage = v * v * absf(kDes) / maxf(1e-3, gTot)
 	var aF := atan((vl - a * w + v * tan(delta)) / vv)
 	var aR := atan((vl + b * w) / vv)
 	var base := gAxle
-	var cliffF: float = 1 - c.cliff * PHYS.cliff * smoothstep_(absf(aF), peak * 1.5, peak * 5)
-	var cliffR: float = 1 - c.cliff * PHYS.cliff * smoothstep_(absf(aR), peak * 1.5, peak * 5)
-	var vmax := c.vmax
-	var accDem := thr * c.accel * maxf(0, 1 - pow(maxf(0, v) / vmax, 2.5)) if thr != 0.0 else 0.0
-	var transfert: float = PHYS.liftOff * brakeFrac * Piste.clamp_(freinRatio if freinRatio != 0.0 else 1.0, FREIN_MIN, FREIN_MAX)
+	var cliffF: float = 1 - c.cliff * PHYS_cliff * smoothstep_(absf(aF), peak * 1.5, peak * 5)
+	var cliffR: float = 1 - c.cliff * PHYS_cliff * smoothstep_(absf(aR), peak * 1.5, peak * 5)
+	var vmax := c.vmax * (1.05 if draft else 1.0)
+	var accDem := thr * c.accel * c.driveFactor(maxf(0, v)) * maxf(0, 1 - pow(maxf(0, v) / vmax, 2.5)) * (1.08 if draft else 1.0) if thr != 0.0 else 0.0
+	var transfert: float = PHYS_liftOff * brakeFrac * Piste.clamp_(freinRatio if freinRatio != 0.0 else 1.0, FREIN_MIN, FREIN_MAX)
 	var gF := base * cliffF * (1 + transfert * TRANSFERT_AV)
 	var gArrBrut := base * c.rearBias * (1 - transfert)
 	var latPris := minf(1, absf(aR) / peak)
-	var longDispo: float = gArrBrut * PHYS.motricite * sqrt(maxf(0, 1 - latPris * latPris))
+	var longDispo: float = gArrBrut * PHYS_motricite * sqrt(maxf(0, 1 - latPris * latPris))
 	var qy := Piste.clamp_(aR / peak, -1, 1)
-	var qx: float = accDem / maxf(1e-3, gArrBrut * cliffR * PHYS.motricite)
+	var qx: float = accDem / maxf(1e-3, gArrBrut * cliffR * PHYS_motricite)
 	var share := 1.0 if loose else 1 / maxf(1, Piste.hypot(qx, qy))
-	var sature: float = 0.0 if loose or accDem <= 0 else Piste.clamp_((1 - share) / MOTRICITE.seuil, 0, 1)
-	var tau: float = MOTRICITE.tauMontee if sature > glisseArr else MOTRICITE.tauRetour
+	var sature: float = 0.0 if loose or accDem <= 0 else Piste.clamp_((1 - share) / MOTRICITE_seuil, 0, 1)
+	var tau: float = MOTRICITE_tauMontee if sature > glisseArr else MOTRICITE_tauRetour
 	glisseArr += (sature - glisseArr) * (1 - exp(-dt / tau))
-	var priority: float = PHYS.drivePriority
+	var priority: float = PHYS_drivePriority
 	var safeDrive := minf(accDem, longDispo * cliffR)
 	var accReel := accDem if loose else safeDrive * (1 - priority) + accDem * share * priority
 	patine = 0.0 if loose or accDem <= 0 else Piste.clamp_(1 - accReel / accDem, 0, 1)
@@ -343,22 +484,44 @@ func update(dt: float, throttleIn: float, raceTime: float) -> void:
 	var spinTau := 0.035 if spinFx > patineFx else 0.08
 	patineFx += (spinFx - patineFx) * (1 - exp(-dt / spinTau))
 	var gR: float = gArrBrut * cliffR * (1.0 if loose else 1 - priority + priority * share) \
-		* (1.0 if loose else 1 - MOTRICITE.perte * glisseArr)
+		* (1.0 if loose else 1 - MOTRICITE_perte * glisseArr)
 	var FfT := -gF * Piste.clamp_(aF / peak, -1, 1)
 	var FrT := -gR * Piste.clamp_(aR / peak, -1, 1)
-	var relax := minf(1, dt * vv / PHYS.relax)
+	var relax := minf(1, dt * vv / PHYS_relax)
 	Ff += (FfT - Ff) * relax
 	Fr += (FrT - Fr) * relax
-	# L'aimant ne sert qu'à l'IA (PHYS.aimant = 0 pour le joueur) : Fm reste nul.
+	# L'aimant : l'IA seulement (PHYS_aimant = 0 pour le joueur).
+	var Fm := 0.0
+	var aimant := _aimant()
+	if aimant > 0 and not off and absf(v) > 3:
+		var latCible := gridLat if not is_nan(gridLat) else T.targetLat(s, selS)
+		var ecart := latCible - lat
+		var dEcart := 0.0 if is_nan(ecartAv) else (ecart - ecartAv) / maxf(1e-4, dt)
+		var plafond: float = AIMANT_max * gTot * aimant
+		var tension: float = AIMANT_k * ecart
+		var demande: float = tension + AIMANT_c * dEcart
+		if accroche:
+			if absf(tension) > plafond * AIMANT_lache: accroche = false
+			else: Fm = Piste.clamp_(demande, -plafond, plafond)
+		elif absf(tension) < plafond * AIMANT_reprend and absf(aR) < peak * AIMANT_derive:
+			accroche = true
+			Fm = Piste.clamp_(demande, -plafond, plafond)
+		ecartAv = ecart
+	else:
+		accroche = true; ecartAv = NAN
+	aimantF = Fm
+	var aAim := L / 2
+	var FmAv: float = Fm * (1 + AIMANT_devant / aAim) / 2
+	var FmAr: float = Fm * (1 - AIMANT_devant / aAim) / 2
 	var useF := absf(Ff) / maxf(1e-3, gF)
 	var useR := absf(Fr) / maxf(1e-3, gR)
 	var u := minf(1, maxf(useF, useR))
 	var acc: float
 	var dir := _dir()
 	if thr != 0.0:
-		acc = accReel * (maxf(0.3, 1 - PHYS.circle * u * u) if loose else 1.0)
+		acc = accReel * (maxf(0.3, 1 - PHYS_circle * u * u) if loose else 1.0)
 	else:
-		acc = -(1.5 + c.brake * brakeFrac) * (1 - PHYS.circle * u * u) * (1.0 if v > 1 else maxf(0, v))
+		acc = -(1.5 + c.brake * brakeFrac) * (1 - PHYS_circle * u * u) * (1.0 if v > 1 else maxf(0, v))
 	var latDrag := 0.0
 	if loose:
 		var sp := Piste.hypot(v, vl)
@@ -370,13 +533,13 @@ func update(dt: float, throttleIn: float, raceTime: float) -> void:
 	var bx0 := x
 	var by0 := y
 	var bth0 := th
-	var wDot := (-a * (Ff + 0.0) + b * (Fr + 0.0)) / kk
+	var wDot := (-a * (Ff + FmAv) + b * (Fr + FmAr)) / kk
 	w = Piste.clamp_(w + wDot * dt, -4, 4)
 	th = wrapAngle(th + w * dt)
 	var v0 := v
 	var vl0 := vl
 	v = Piste.clamp_(v0 + (acc - vl0 * w) * dt, -0.25 * c.vmax, c.vmax * 1.05)
-	vl = vl0 + (v0 * w + Ff + 0.0 + Fr) * dt
+	vl = vl0 + (v0 * w + Ff + Fm + Fr) * dt
 	if latDrag != 0.0:
 		vl += Piste.clamp_(latDrag * dt, -absf(vl0), absf(vl0))
 	beta = atan2(vl, vv) * _dir()
@@ -410,11 +573,70 @@ static func _pente(val: float, i: int) -> float:
 	return Piste.clamp_((val - r[0]) / (r[1] - r[0]), 0, 1)
 
 
-## Le levier de ligne du joueur : la voiture glisse vers la ligne demandée au rythme que son
-## adhérence permet (js/car.js, `steer` puis `_versLigne`, sans trafic).
-func steer(dt: float) -> void:
+## La ligne : la voiture glisse vers celle qu'on lui demande au rythme que son adhérence permet.
+## Avant, le trafic : la voiture de devant (aspiration, dépassement de l'IA) et celle d'à côté
+## (js/car.js, steer).
+func steer(cars: Array, dt: float, ai: bool) -> void:
+	var T := track
+	var c := cls
+	if not is_nan(gridLat):
+		laneTarget = gridLat; selS = sel
+		return
+	var bl: Voiture = null
+	var bd := INF
+	var vo: Voiture = null
+	var vdl := INF
+	var portee := c.length * 3 + maxf(0, v) * 1.0
+	for o: Voiture in cars:
+		if o == self or blueFlag or o.blueFlag: continue
+		var d := T.diff(s, o.s)
+		if d > portee: continue
+		var lenSum := (c.length + o.cls.length) / 2
+		var dl := o.lat - lat
+		var demiLarg := (c.width + o.cls.width) / 2
+		if absf(d) < lenSum:
+			if absf(dl) < demiLarg + 0.6 and absf(dl) < absf(vdl):
+				vo = o; vdl = dl
+			continue
+		if d < lenSum or d >= bd: continue
+		if o.v > v + 2.5 and d > c.length * 1.5: continue
+		if absf(dl) < demiLarg * 1.5 + 0.4:
+			bl = o; bd = d
+	blocker = bl
+	voisin = vo
+	draft = bl != null and bd < c.length * 3.5 and absf(bl.lat - lat) < c.width * 0.9
+	if ai:
+		passTimer -= dt
+		if bl:
+			if passSide == 0 or passTimer <= 0:
+				var sAv := s + 15
+				var meilleur := 0
+				var place_ := -INF
+				for cote in [-1, 1]:
+					var latC := T.targetLat(sAv, cote)
+					var room := absf(latC - T.targetLat(sAv, bl.selS))
+					for o: Voiture in cars:
+						if o == self or o == bl: continue
+						var d := T.diff(s, o.s)
+						if d > -c.length * 2 and d < 40:
+							room = minf(room, absf(latC - T.targetLat(sAv, o.selS)))
+					# cand.sort((a, b) => b.room - a.room) : à égalité, -1 reste devant.
+					if room > place_:
+						place_ = room; meilleur = cote
+				passSide = meilleur if place_ > c.width * 0.9 else 0
+				passTimer = 2 + hasard.random() * 1.5
+			sel = passSide
+		elif passSide != 0 and passTimer <= 0:
+			passSide = 0; sel = 0
+		elif bl == null and passSide == 0:
+			sel = 0
+		if vo:
+			var versVoisin := sgn(vdl)
+			var latVise := T.targetLat(s, sel)
+			if sgn(latVise - lat) == versVoisin and absf(latVise - lat) > absf(vdl) - (c.width + vo.cls.width) / 2:
+				sel = selS
 	_versLigne(sel, dt)
-	laneTarget = track.targetLat(s, selS)
+	laneTarget = T.targetLat(s, selS)
 
 
 func _versLigne(cible: float, dt: float) -> void:
@@ -430,9 +652,9 @@ func _versLigne(cible: float, dt: float) -> void:
 	var g := Piste.clamp_(glisseArr, 0, 1)
 	var aTot := gripAt(vp) * sqrt(1 - g * g)
 	var kIci := absf(T.lineCurv(s, selS))
-	var budget := Piste.clamp_(LIGNE.part * (aTot - vp * vp * kIci), LIGNE.aMin, LIGNE.aMax)
+	var budget := Piste.clamp_(LIGNE_part * (aTot - vp * vp * kIci), LIGNE_aMin, LIGNE_aMax)
 	var resteM := reste * D
-	var vVoulue: float = sgn(resteM) * minf(LIGNE.vMax, sqrt(2 * budget * absf(resteM)))
+	var vVoulue: float = sgn(resteM) * minf(LIGNE_vMax, sqrt(2 * budget * absf(resteM)))
 	var kApres := absf(T.lineCurv(s, selS + sgn(reste) * 0.05))
 	if kApres > kIci and vp * vp * kApres > aTot:
 		vVoulue = 0

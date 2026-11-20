@@ -7,9 +7,13 @@ config_version=5
 
 config/name="GRIP — prototype Godot"
 config/description="Stand de frites et la Breithüft Apex R, avec la physique du jeu web portée en GDScript."
-run/main_scene="res://scenes/jeu.tscn"
+run/main_scene="res://scenes/demarrage.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
+
+[autoload]
+
+App="*res://scripts/app.gd"
 
 [display]
 

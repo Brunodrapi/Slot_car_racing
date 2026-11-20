@@ -1,16 +1,20 @@
 ## La physique portée est-elle celle du jeu web ?
 ##
-##   node tools/godot-exporte.js                                   # depuis la racine du dépôt
+##   node tools/godot-exporte.js spa                               # depuis la racine du dépôt
 ##   godot --headless --path godot --script res://tests/parite.gd
 ##
-## Trois parcours enregistrés par le jeu web (godot/donnees/ref-*.bin) sont rejoués ici avec les
-## mêmes commandes, pas à pas. Deux mesures :
+## Trois parcours enregistrés par le jeu web (godot/donnees/ref/seule-*.bin) sont rejoués ici avec
+## les mêmes commandes, pas à pas. Deux mesures :
 ##
 ## - « pas isolé » : avant chaque pas, la voiture Godot reprend l'état exact du jeu web, fait un pas,
 ##   et l'on compare. C'est l'erreur du portage lui-même, sans accumulation.
 ## - « course libre » : la voiture Godot roule seule du début à la fin, sur les seules commandes.
 ##   L'écart y grandit forcément un peu : Godot et le navigateur n'arrondissent pas le sinus de la
 ##   même façon à la dernière décimale (voir README).
+##
+## Puis une course entière (ref/course.bin) : dix voitures, l'IA en difficulté normale, deux tours,
+## contacts et drapeaux, avec le même hasard que le jeu web. On compare chaque voiture à chaque pas,
+## et le classement final.
 extends SceneTree
 
 const PARCOURS := ["propre", "brutal", "hasard"]
@@ -18,13 +22,13 @@ const POSITION := ["x", "y"]
 
 
 func _init() -> void:
-	var piste := Piste.charge("res://donnees/spa")
-	var champs: Array = JSON.parse_string(FileAccess.get_file_as_string("res://donnees/ref-champs.json"))
-	var modele := Voiture.Modele.depuis(piste.voiture)
+	var piste := Piste.charge("res://donnees/circuits/spa")
+	var champs: Array = JSON.parse_string(FileAccess.get_file_as_string("res://donnees/ref/champs.json"))
+	var modele := Catalogue.modele("porsche991gt3r")
 	var echec := false
 	print("Circuit ", piste.nom, " : ", piste.n, " points, ", piste.nBarrieres, " protections. Voiture ", modele.nom, ".")
 	for nom in PARCOURS:
-		var chemin := "res://donnees/ref-%s.bin" % nom
+		var chemin := "res://donnees/ref/seule-%s.bin" % nom
 		if not FileAccess.file_exists(chemin):
 			print("  ", nom, " : enregistrement absent — lancer d'abord node tools/godot-exporte.js")
 			echec = true
@@ -32,18 +36,22 @@ func _init() -> void:
 		var a := FileAccess.get_file_as_bytes(chemin).to_float64_array()
 		var n := int(a[0])
 		var L := int(a[1])
-		var entrees := a.slice(2, 2 + n * 2)
-		var etats := a.slice(2 + n * 2)
+		depart = PackedFloat64Array([a[2], a[3]])
+		var entrees := a.slice(4, 4 + n * 2)
+		var etats := a.slice(4 + n * 2)
 		echec = _isole(piste, modele, champs, n, L, entrees, etats, nom) or echec
 		echec = _libre(piste, modele, champs, n, L, entrees, etats, nom) or echec
+	echec = _course(piste) or echec
 	print("PARITÉ ", "ÉCHOUÉE" if echec else "OK")
 	quit(1 if echec else 0)
 
 
+var depart: PackedFloat64Array
+
+
 func _neuve(piste: Piste, modele: Voiture.Modele) -> Voiture:
-	var car := Voiture.new(piste, modele, piste.depart[0], piste.depart[1])
-	car.freinRatio = piste.voiture.freinRatio
-	car.gripBoost = piste.voiture.gripBoost
+	var car := Voiture.new(piste, modele, depart[0], depart[1])
+	car.isPlayer = true
 	return car
 
 
@@ -84,7 +92,7 @@ func _ecart(car: Voiture, champs: Array, etats: PackedFloat64Array, o: int) -> D
 ## Chaque pas, repris de l'état exact du jeu web.
 func _isole(piste: Piste, modele: Voiture.Modele, champs: Array, n: int, L: int, entrees: PackedFloat64Array, etats: PackedFloat64Array, nom: String) -> bool:
 	var car := _neuve(piste, modele)
-	var dt := piste.dt
+	var dt := 1.0 / 120
 	var temps := 0.0
 	var pire := 0.0
 	var pireCle := ""
@@ -96,7 +104,7 @@ func _isole(piste: Piste, modele: Voiture.Modele, champs: Array, n: int, L: int,
 			_pose(car, champs, etats, (i - 1) * L)
 		temps += dt
 		car.sel = entrees[i * 2 + 1]
-		car.steer(dt)
+		car.steer([car], dt, false)
 		car.update(dt, entrees[i * 2], temps)
 		var e := _ecart(car, champs, etats, i * L)
 		if e.discret != "": sauts += 1
@@ -111,7 +119,7 @@ func _isole(piste: Piste, modele: Voiture.Modele, champs: Array, n: int, L: int,
 ## La course entière, sur les seules commandes.
 func _libre(piste: Piste, modele: Voiture.Modele, champs: Array, n: int, L: int, entrees: PackedFloat64Array, etats: PackedFloat64Array, nom: String) -> bool:
 	var car := _neuve(piste, modele)
-	var dt := piste.dt
+	var dt := 1.0 / 120
 	var temps := 0.0
 	var seuils := [1e-9, 1e-6, 1e-3, 0.1]
 	var franchi := [-1, -1, -1, -1]
@@ -121,7 +129,7 @@ func _libre(piste: Piste, modele: Voiture.Modele, champs: Array, n: int, L: int,
 	for i in n:
 		temps += dt
 		car.sel = entrees[i * 2 + 1]
-		car.steer(dt)
+		car.steer([car], dt, false)
 		car.update(dt, entrees[i * 2], temps)
 		var o := i * L
 		var dp := Piste.hypot(car.x - etats[o], car.y - etats[o + 1])
@@ -150,3 +158,59 @@ static func _sci(x: float) -> String:
 	if e >= -2 and e <= 3:
 		return "%.3f" % x
 	return "%.2fe%d" % [x / pow(10.0, e), e]
+
+
+
+## Une course entière, IA comprise, avec le hasard du jeu web.
+func _course(piste: Piste) -> bool:
+	if not FileAccess.file_exists("res://donnees/ref/course.bin"):
+		print("  course : enregistrement absent")
+		return true
+	var meta: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://donnees/ref/course.json"))
+	var a := FileAccess.get_file_as_bytes("res://donnees/ref/course.bin").to_float64_array()
+	var n := int(a[0])
+	var N := int(a[1])
+	var K := int(a[2])
+	var entrees := a.slice(3, 3 + n * 2)
+	var suivi := a.slice(3 + n * 2)
+	var ref: Array = meta.roster
+	var h := Hasard.new(1)
+	var course := Course.new(piste, {
+		modele = Catalogue.modele("porsche991gt3r"), difficulte = Catalogue.difficulte("medium"), mode = "race", laps = 2,
+		nCars = N, roster = ref.map(func(r): return { nom = r.nom, modele = r.modele, livery = r.livery, livree = r.livree, skill = r.skill }),
+		modeleDe = func(id, _i): return Catalogue.modele(id) }, h)
+	for i in N:
+		course.cars[i].aiTimer = ref[i].aiTimer
+	h.etat = int(meta.graineApres)
+	var t0 := Time.get_ticks_usec()
+	var pire := 0.0
+	var pireVoiture := -1
+	var premier := -1
+	var premierTour := -1
+	for k in n:
+		course.player.sel = entrees[k * 2 + 1]
+		course.step(entrees[k * 2])
+		for i in N:
+			var c: Voiture = course.cars[i]
+			var o := (k * N + i) * K
+			var e := Piste.hypot(c.x - suivi[o], c.y - suivi[o + 1])
+			if e > pire: pire = e; pireVoiture = i
+			if premier < 0 and e > 1e-6: premier = k
+			if premierTour < 0 and c.lap + (1000 if c.finished else 0) != int(suivi[o + 5]): premierTour = k
+	var us := Time.get_ticks_usec() - t0
+	var ok := course.state == "finished" and premierTour < 0 and pire < 1e-2
+	var res: Array = meta.resultats
+	var memeOrdre := course.results.size() == res.size()
+	var pireTemps := 0.0
+	for i in mini(course.results.size(), res.size()):
+		var r: Dictionary = course.results[i]
+		if r.car.numero != int(res[i].numero): memeOrdre = false
+		if res[i].temps != null: pireTemps = maxf(pireTemps, absf(r.temps - float(res[i].temps)))
+	ok = ok and memeOrdre and pireTemps < 1e-6 and h.etat == int(meta.hasardFin)
+	print("  course  %d voitures, %d pas : pire écart de position %s m (voiture %d), dépasse 1e-6 m %s ; tours et arrivées identiques %s ; classement identique %s, pire écart de temps %s s ; hasard au même point %s ; %.0f µs par pas  %s" % [
+		N, n, _sci(pire), pireVoiture, ("jamais" if premier < 0 else "à %.2f s" % (premier / 120.0)), ("oui" if premierTour < 0 else "non (pas %d)" % premierTour),
+		("oui" if memeOrdre else "NON"), _sci(pireTemps), ("oui" if h.etat == int(meta.hasardFin) else "non"), float(us) / n, "ok" if ok else "ÉCHEC"])
+	if course.results.size():
+		var g: Dictionary = course.results[0]
+		print("          vainqueur n° %d %s en %.3f s (web : n° %d en %.3f s)" % [g.car.numero, g.car.nom, g.temps, int(res[0].numero), float(res[0].temps)])
+	return not ok

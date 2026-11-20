@@ -1,5 +1,6 @@
-## Le dessin de la voiture, comme js/carart.js : l'ombre, les pneus (ceux de devant braquent),
-## puis la carrosserie. Les cotes viennent du jeu web (donnees/voiture-*.json).
+## Le dessin d'une voiture, comme js/carart.js : l'ombre, les pneus (ceux de devant braquent), les
+## bras de suspension des monoplaces, puis la carrosserie. Les cotes viennent du jeu web
+## (donnees/dessins.json, godot/outils/capture-voitures.js).
 class_name VoitureVue
 extends Node2D
 
@@ -7,21 +8,22 @@ var corps: Sprite2D
 var ombre: Sprite2D
 var cotes: Dictionary
 var braquage := 0.0
-var bande: Texture2D        # la bande de roulement : sombre aux bords, plus claire au milieu
+var bande: Texture2D
 var decalageOmbre := Vector2(0.25, 0.35)
+var avant: Node2D          # les roues de devant quand elles passent par-dessus la carrosserie
 
 
-func _init(chemin: String) -> void:
-	cotes = JSON.parse_string(FileAccess.get_file_as_string(chemin))
-	var w: float = cotes.w
-	var h: float = cotes.h
-	decalageOmbre = Vector2(cotes.ombre[0], cotes.ombre[1])
+func _init(d: Dictionary) -> void:
+	cotes = d
+	var w: float = d.w
+	var h: float = d.h
+	decalageOmbre = Vector2(d.ombre_[0], d.ombre_[1])
 	ombre = Sprite2D.new()
-	ombre.texture = load("res://images/%s-ombre.png" % cotes.id)
+	ombre.texture = load("res://images/voitures/%s-%d-ombre.png" % [d.id, d.livree])
 	ombre.scale = Vector2(w / ombre.texture.get_width(), h / ombre.texture.get_height())
-	ombre.modulate = Color(1, 1, 1, cotes.ombreAlpha)
+	ombre.modulate = Color(1, 1, 1, d.ombreAlpha)
 	corps = Sprite2D.new()
-	corps.texture = load("res://images/%s.png" % cotes.id)
+	corps.texture = load("res://images/voitures/%s-%d.png" % [d.id, d.livree])
 	corps.scale = Vector2(w / corps.texture.get_width(), h / corps.texture.get_height())
 	var g := Gradient.new()
 	g.offsets = PackedFloat32Array([0.0, 0.25, 0.75, 1.0])
@@ -33,38 +35,47 @@ func _init(chemin: String) -> void:
 
 
 func _ready() -> void:
-	# L'ombre tombe du même côté dans le monde quel que soit le cap : elle est posée par le jeu,
-	# hors de la voiture (voir place()), et dessinée avant elle.
 	get_parent().add_child.call_deferred(ombre)
-	get_parent().move_child.call_deferred(ombre, get_index())
 	add_child(corps)
-	corps.z_index = 1
+	if cotes.dessus:
+		avant = Node2D.new()
+		avant.draw.connect(_roues.bind(avant, true))
+		add_child(avant)
 
 
-func place(p: Vector2, cap: float, delta: float) -> void:
+func place(p: Vector2, cap: float, delta: float, z: int) -> void:
 	position = p
 	rotation = cap
+	z_index = z
+	ombre.z_index = z
 	ombre.position = p + decalageOmbre
 	ombre.rotation = cap
 	var b := clampf(delta, -0.65, 0.65)
-	if b != braquage:
+	if absf(b - braquage) > 0.004:
 		braquage = b
 		queue_redraw()
+		if avant: avant.queue_redraw()
 
 
 func _draw() -> void:
-	for r in cotes.arriere:
-		_pneu(r, 0.0)
-	if not cotes.dessus:
-		for r in cotes.avant:
-			_pneu(r, braquage)
+	_roues(self, false)
 
 
-func _pneu(r: Dictionary, angle: float) -> void:
+func _roues(ci: CanvasItem, seulementAvant: bool) -> void:
+	if not seulementAvant:
+		for r in cotes.arriere: _pneu(ci, r, 0.0)
+	if seulementAvant or not cotes.dessus:
+		for r in cotes.avant: _pneu(ci, r, braquage)
+	if not seulementAvant:
+		for q in cotes.get("suspension", []):
+			ci.draw_colored_polygon(PackedVector2Array([Vector2(q[0], q[1]), Vector2(q[2], q[3]), Vector2(q[4], q[5]), Vector2(q[6], q[7])]), Color("#43494b"))
+
+
+func _pneu(ci: CanvasItem, r: Dictionary, angle: float) -> void:
 	var L: float = r.longueur
 	var W: float = r.largeur
-	draw_set_transform(Vector2(r.x, r.y), angle)
+	ci.draw_set_transform(Vector2(r.x, r.y), angle)
 	var rect := Rect2(-L / 2, -W / 2, L, W)
-	draw_texture_rect(bande, rect, false)
-	draw_rect(rect, Color("#080a0b"), false, minf(L, W) * 0.12)
-	draw_set_transform(Vector2.ZERO, 0)
+	ci.draw_texture_rect(bande, rect, false)
+	ci.draw_rect(rect, Color("#080a0b"), false, minf(L, W) * 0.12)
+	ci.draw_set_transform(Vector2.ZERO, 0)

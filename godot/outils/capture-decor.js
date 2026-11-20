@@ -62,6 +62,15 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     const prelude = 'const T=race.track,cam=this.cam,W=this.w,H=this.h;const inView=b=>!(b.maxX<vis.minX||b.minX>vis.maxX||b.maxY<vis.minY||b.minY>vis.maxY);';
     const sol = new Function('g', 'vis', 'race', 'ui', prelude + source.slice(debut, fin).replace('drawYellowFlagZones(g,race,p=>p,T.halfWidth*2,.55);', '') + grille);
     const decor = new Function('g', 'vis', 'race', 'ui', prelude + source.slice(ds, de));
+    /* Deux couches de plus, pour les circuits qui passent au-dessus d'eux-mêmes : le tablier d'un
+    croisement, peint par-dessus les voitures qui passent dessous et sous celles qui roulent
+    dessus ; puis les passerelles et les têtes de tunnel, par-dessus toutes les voitures. */
+    const pd = source.indexOf('    if (T.drawRoad) for (const b of this.paths.bridges) {'), pf = source.indexOf('    for (const car of dessus) this._drawCar(g, car);', pd);
+    const hd = pf + '    for (const car of dessus) this._drawCar(g, car);'.length, hf = source.indexOf('    if(!race.opts.spectator||', hd);
+    if (pd < de || pf < pd || hf < hd) throw Error('Renderer.draw a changé : repères des ponts introuvables');
+    const prePont = prelude + 'const pont=this.paths.bridges.length?T.crossings:[];';
+    const ponts = new Function('g', 'vis', 'race', 'ui', prePont + source.slice(pd, pf));
+    const dessus = new Function('g', 'vis', 'race', 'ui', prePont + source.slice(hd, hf));
     // Le cadre : la route, ses dégagements et les protections, plus une marge pour le décor.
     const b = { ...T.bounds };
     const inclure = (x, y) => { b.minX = Math.min(b.minX, x); b.maxX = Math.max(b.maxX, x); b.minY = Math.min(b.minY, y); b.maxY = Math.max(b.maxY, y); };
@@ -80,7 +89,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
       // assez grand pour couvrir tout le circuit les laisse tout peindre.
       r.w = r.h = 2 * ZOOM * Math.hypot(vis.maxX - vis.minX, vis.maxY - vis.minY);
       r.testBarrierCache = r.testSceneCache = false; r._barrFusionCle = null;
-      for (const [nom, fn] of [['sol', sol], ['decor', decor]]) {
+      for (const [nom, fn] of [['sol', sol], ['decor', decor], ['ponts', ponts], ['dessus', dessus]]) {
         const n0 = g.prims.length;
         g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
         fn.call(r, g, vis, race, null);
@@ -128,25 +137,6 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   fs.writeFileSync(path.join(OUT, `decor-${CIRCUIT}-atlas.png`), Buffer.from(res.atlas.png, 'base64'));
   console.log(`atlas ${res.atlas.w} × ${res.atlas.h}`);
   if (verifier) await verifie(page, res);
-  // La voiture : son dessin, son ombre et la place de ses roues, pour godot/scripts/voiture_vue.gd.
-  const v = await page.evaluate(async (id) => {
-    const m = modelById(id);
-    for (let k = 0; k < 100 && !topArt(m, 0)?.img?.naturalWidth; k++) { topArt(m, 0); await new Promise((r) => setTimeout(r, 50)); }
-    const art = topArt(m, 0), [w, h] = topSize(m, art);
-    const png = (img) => { const c = document.createElement('canvas'); c.width = img.naturalWidth || img.width; c.height = img.naturalHeight || img.height;
-      c.getContext('2d').drawImage(img, 0, 0); return c.toDataURL('image/png').split(',')[1]; };
-    const roues = (l) => l.map((p) => ({ x: p.x, y: p.y, longueur: p.length, largeur: p.width, r: p.r }));
-    return { id, nom: m.name, w, h, ombre: OMBRE_VOITURE, ombreAlpha: 0.3,
-      arriere: roues(rearTires(m, w, h, { livree: 0 })), avant: roues(frontTires(m, w, h, { livree: 0, steer: 0 })),
-      dessus: !!(wheelLayout(m, { livree: 0 }).front || {}).aboveBody,
-      img: png(art.img), ombreImg: png(art.shadow), ombreTaille: [art.shadow.width, art.shadow.height] };
-  }, 'porsche991gt3r');
-  const IMAGES = path.join(ROOT, 'godot', 'images');
-  fs.writeFileSync(path.join(IMAGES, `${v.id}.png`), Buffer.from(v.img, 'base64'));
-  fs.writeFileSync(path.join(IMAGES, `${v.id}-ombre.png`), Buffer.from(v.ombreImg, 'base64'));
-  delete v.img; delete v.ombreImg;
-  fs.writeFileSync(path.join(ROOT, 'godot', 'donnees', `voiture-${v.id}.json`), JSON.stringify(v, null, 1) + '\n');
-  console.log('voiture', v.nom, v.w.toFixed(2), '×', v.h.toFixed(2), 'm, ombre', v.ombreTaille.join('×'));
   delete res.atlas.png;
   for (const im of res.images) delete im.png;
   const fichier = path.join(OUT, `decor-${CIRCUIT}.json`);

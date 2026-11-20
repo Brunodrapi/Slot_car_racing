@@ -22,7 +22,7 @@ const fs = require('fs'), path = require('path'), os = require('os');
 const ClipperLib = require('clipper-lib'), earcut = require('earcut'), zlib = require('zlib');
 const CIRCUIT = process.argv[2] || 'spa';
 const TMP = process.env.DECOR_TMP || path.join(os.tmpdir(), 'grip-decor');
-const OUT = path.join(__dirname, '..', 'donnees');
+const OUT = path.join(__dirname, '..', 'donnees', 'circuits');
 const K = 1000;          // Clipper travaille en entiers : le millimètre
 const CARREAU = 64;      // mètres
 const d = JSON.parse(fs.readFileSync(path.join(TMP, `decor-${CIRCUIT}.json`)));
@@ -101,14 +101,21 @@ function trait(p) {
 }
 
 // ---------- les carreaux ----------
-const v0 = d.vis, nx = Math.ceil((v0.maxX - v0.minX) / CARREAU), ny = Math.ceil((v0.maxY - v0.minY) / CARREAU);
-const ox = Math.floor(v0.minX / CARREAU) * CARREAU, oy = Math.floor(v0.minY / CARREAU) * CARREAU;
+// Rien hors du cadre du circuit : une mer ou un fond peuvent s'étendre à des kilomètres.
+const v0 = d.vis, ox = Math.floor(v0.minX / CARREAU) * CARREAU, oy = Math.floor(v0.minY / CARREAU) * CARREAU;
+const nx = Math.ceil((v0.maxX - ox) / CARREAU), ny = Math.ceil((v0.maxY - oy) / CARREAU);
+/* Les couches : 0 sous toutes les voitures (le sol et le décor), 1 le tablier des croisements
+(par-dessus les voitures qui passent dessous), 2 par-dessus toutes (passerelles, têtes de
+tunnel). Chaque couche a ses propres carreaux. */
 const carreaux = new Map();
+let couche = 0;
 const carreau = (i, j) => {
-  const k = i + ',' + j;
-  if (!carreaux.has(k)) carreaux.set(k, { i, j, pos: [], uv: [], col: [], idx: [], n: 0 });
+  const k = couche + ':' + i + ',' + j;
+  if (!carreaux.has(k)) carreaux.set(k, { couche, i, j, pos: [], uv: [], col: [], idx: [], n: 0 });
   return carreaux.get(k);
 };
+const COUCHE = (k) => (d.couches.ponts && k >= d.couches.ponts[0] && k < d.couches.ponts[1] ? 1
+  : d.couches.dessus && k >= d.couches.dessus[0] && k < d.couches.dessus[1] ? 2 : 0);
 const rect = (i, j) => { const x0 = (ox + i * CARREAU) * K, y0 = (oy + j * CARREAU) * K, x1 = x0 + CARREAU * K, y1 = y0 + CARREAU * K;
   return [{ X: x0, Y: y0 }, { X: x1, Y: y0 }, { X: x1, Y: y1 }, { X: x0, Y: y1 }]; };
 const A = d.atlas, BLANC = [(A.blanc[0] + 0.5) / A.w, (A.blanc[1] + 0.5) / A.h];
@@ -117,14 +124,25 @@ const A = d.atlas, BLANC = [(A.blanc[0] + 0.5) / A.w, (A.blanc[1] + 0.5) / A.h];
 coordonnée d'atlas d'un point (une constante pour une couleur unie). */
 function pose(paths, couleur, uvDe) {
   if (!paths.length) return 0;
-  let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
-  for (const p of paths) for (const q of p) { if (q.X < bx0) bx0 = q.X; if (q.X > bx1) bx1 = q.X; if (q.Y < by0) by0 = q.Y; if (q.Y > by1) by1 = q.Y; }
-  const i0 = Math.floor((bx0 / K - ox) / CARREAU), i1 = Math.floor((bx1 / K - ox) / CARREAU);
-  const j0 = Math.floor((by0 / K - oy) / CARREAU), j1 = Math.floor((by1 / K - oy) / CARREAU);
+  // Chaque contour n'est confié qu'aux carreaux que sa boîte touche : un trait de pneus qui fait le
+  // tour du circuit compte des milliers de disques, et chaque carreau n'en voit qu'une poignée.
+  // Rien hors du cadre du circuit : une mer ou un fond peuvent s'étendre à des kilomètres.
+  const parCarreau = new Map();
+  for (const p of paths) {
+    let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
+    for (const q of p) { if (q.X < bx0) bx0 = q.X; if (q.X > bx1) bx1 = q.X; if (q.Y < by0) by0 = q.Y; if (q.Y > by1) by1 = q.Y; }
+    const i0 = Math.floor((bx0 / K - ox) / CARREAU), i1 = Math.floor((bx1 / K - ox) / CARREAU);
+    const j0 = Math.floor((by0 / K - oy) / CARREAU), j1 = Math.floor((by1 / K - oy) / CARREAU);
+    for (let i = Math.max(i0, 0); i <= Math.min(i1, nx - 1); i++) for (let j = Math.max(j0, 0); j <= Math.min(j1, ny - 1); j++) {
+      const k = i + ',' + j;
+      if (!parCarreau.has(k)) parCarreau.set(k, { i, j, paths: [] });
+      parCarreau.get(k).paths.push(p);
+    }
+  }
   let tri = 0;
-  for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
+  for (const { i, j, paths: sous } of parCarreau.values()) {
     const cl = new ClipperLib.Clipper(), arbre = new ClipperLib.PolyTree();
-    cl.AddPaths(paths, ClipperLib.PolyType.ptSubject, true);
+    cl.AddPaths(sous, ClipperLib.PolyType.ptSubject, true);
     cl.AddPath(rect(i, j), ClipperLib.PolyType.ptClip, true);
     cl.Execute(ClipperLib.ClipType.ctIntersection, arbre, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
     const c = carreau(i, j);
@@ -154,7 +172,9 @@ function pose(paths, couleur, uvDe) {
 const t0 = Date.now();
 let triangles = 0, sansDecoupe = 0;
 const rgba = (c) => [c[0], c[1], c[2], Math.round(Math.min(1, c[3]) * 255)];
-for (const p of d.prims) {
+for (let k = 0; k < d.prims.length; k++) {
+  const p = d.prims[k];
+  couche = COUCHE(k);
   const clip = zoneClip(p.clip);
   if (p.t === 'f') {
     triangles += pose(nettoie(p.subs.map(versClip), p.regle, clip), rgba(p.c), () => BLANC);
@@ -186,7 +206,7 @@ le nombre d'éléments, puis les données), pour que `bytes_to_var` le rende tel
 GDScript. Le tout est compressé (deflate, comme FileAccess.COMPRESSION_DEFLATE). */
 const VARIANT = { PackedInt32Array: 30, PackedVector2Array: 35, PackedColorArray: 37 };
 const variant = (type, n, data) => { const h = Buffer.alloc(8); h.writeUInt32LE(VARIANT[type], 0); h.writeUInt32LE(n, 4); return Buffer.concat([h, Buffer.from(data.buffer, data.byteOffset, data.byteLength)]); };
-const liste = [...carreaux.values()].filter((c) => c.idx.length).sort((a, b) => a.j - b.j || a.i - b.i);
+const liste = [...carreaux.values()].filter((c) => c.idx.length).sort((a, b) => a.couche - b.couche || a.j - b.j || a.i - b.i);
 const morceaux = [], index = [];
 let octets = 0;
 for (const c of liste) {
@@ -194,14 +214,14 @@ for (const c of liste) {
   for (let k = 0; k < c.n * 4; k++) col[k] = c.col[k] / 255;
   const blocs = [variant('PackedVector2Array', c.n, Float32Array.from(c.pos)), variant('PackedVector2Array', c.n, Float32Array.from(c.uv)),
     variant('PackedColorArray', c.n, col), variant('PackedInt32Array', c.idx.length, Uint32Array.from(c.idx))];
-  const ent = { x: ox + c.i * CARREAU, y: oy + c.j * CARREAU, sommets: c.n, triangles: c.idx.length / 3, blocs: [] };
+  const ent = { couche: c.couche, x: ox + c.i * CARREAU, y: oy + c.j * CARREAU, sommets: c.n, triangles: c.idx.length / 3, blocs: [] };
   for (const b of blocs) { ent.blocs.push([octets, b.length]); morceaux.push(b); octets += b.length; }
   index.push(ent);
 }
 const brut = Buffer.concat(morceaux), zip = zlib.deflateSync(brut, { level: 9 });
-fs.writeFileSync(path.join(OUT, `decor-${CIRCUIT}.bin`), zip);
-fs.writeFileSync(path.join(OUT, `decor-${CIRCUIT}.json`), JSON.stringify({ circuit: d.circuit, nom: d.nom, carreau: CARREAU, taille: brut.length,
-  atlas: { w: A.w, h: A.h, image: `res://donnees/decor-${CIRCUIT}.png` }, fond: d.fond, cadre: d.vis, carreaux: index }) + '\n');
-fs.copyFileSync(path.join(TMP, `decor-${CIRCUIT}-atlas.png`), path.join(OUT, `decor-${CIRCUIT}.png`));
+fs.writeFileSync(path.join(OUT, `${CIRCUIT}-decor.bin`), zip);
+fs.writeFileSync(path.join(OUT, `${CIRCUIT}-decor.json`), JSON.stringify({ circuit: d.circuit, nom: d.nom, carreau: CARREAU, taille: brut.length,
+  atlas: { w: A.w, h: A.h, image: `res://donnees/circuits/${CIRCUIT}-decor.png` }, fond: d.fond, cadre: d.vis, carreaux: index }) + '\n');
+fs.copyFileSync(path.join(TMP, `decor-${CIRCUIT}-atlas.png`), path.join(OUT, `${CIRCUIT}-decor.png`));
 const sommets = liste.reduce((a, c) => a + c.n, 0);
 console.log(`${d.nom} : ${d.prims.length} ordres → ${triangles} triangles, ${sommets} sommets, ${liste.length} carreaux de ${CARREAU} m ; ${(octets / 1e6).toFixed(1)} Mo, ${(zip.length / 1e6).toFixed(1)} Mo compressés, en ${((Date.now() - t0) / 1000).toFixed(1)} s` + (sansDecoupe ? ` ; ${sansDecoupe} images posées sans leur découpe` : ''));
