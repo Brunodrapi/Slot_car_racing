@@ -8,7 +8,7 @@ config_version=5
 config/name="GRIP — prototype Godot"
 config/description="Stand de frites et la Breithüft Apex R, avec la physique du jeu web portée en GDScript."
 run/main_scene="res://scenes/jeu.tscn"
-config/features=PackedStringArray("4.7", "GL Compatibility")
+config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://icon.svg"
 
 [display]
@@ -31,8 +31,12 @@ common/max_physics_steps_per_frame=12
 
 [rendering]
 
-renderer/rendering_method="gl_compatibility"
-renderer/rendering_method.mobile="gl_compatibility"
+; Le moteur « Mobile » (Vulkan, Metal, Direct3D 12) sur ordinateur et téléphone : c'est lui qui
+; lisse les bords des formes en 2D (MSAA). La version web garde « Compatibility » (WebGL 2), qui ne
+; le fait pas encore.
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+renderer/rendering_method.web="gl_compatibility"
 textures/canvas_textures/default_texture_filter=1
 anti_aliasing/quality/msaa_2d=2
 2d/snap/snap_2d_transforms_to_pixel=false

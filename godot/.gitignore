@@ -5,3 +5,5 @@
 donnees/ref-*.bin
 # Les versions exportées.
 exports/
+# Les modules des outils (npm install dans godot/outils).
+outils/node_modules/

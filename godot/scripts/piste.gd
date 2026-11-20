@@ -382,3 +382,7 @@ func barrierHit(car, fx: float, fy: float, fth: float) -> PackedFloat64Array:
 				best = hit
 				best.append(b)
 	return best
+
+
+func lineLat(nomLigne: String, s: float) -> float:
+	return _lerp(lines[nomLigne], s)
