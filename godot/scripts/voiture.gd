@@ -196,6 +196,7 @@ var aiNoise := 0.0
 var aiAllow := INF
 var aiLeve := false
 var aiDriven := false
+var fantome := false
 var accroche := true
 var ecartAv := NAN
 var aimantF := 0.0

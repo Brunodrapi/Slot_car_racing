@@ -10,6 +10,7 @@ var dossier := "user://"
 var t := 0.0
 var etape := 0
 var n := 0
+var mode := "race"
 
 
 func _ready() -> void:
@@ -17,6 +18,7 @@ func _ready() -> void:
 	if args.size() > 0: dossier = args[0]
 	if args.size() > 1: App.reglages.circuit = args[1]
 	if args.size() > 2: App.reglages.voiture = args[2]; App.reglages.cat = Catalogue.voiture(args[2]).cat
+	if args.size() > 3: mode = args[3]
 	App.reglages.tours = 1
 	App.reglages.adversaires = 8
 	App.reglages.difficulte = "medium"
@@ -49,7 +51,9 @@ func _process(dt: float) -> void:
 	n += 1
 	_pilote()
 	match etape:
-		0: if n == 30: _photo("1-accueil"); App.aller("paddock", { mode = "race" }); etape = 1; n = 0
+		0: if n == 30: _photo("1-accueil"); App.aller("reglages"); etape = 10; n = 0
+		10: if n == 20: _photo("1b-reglages"); App.aller("comment"); etape = 11; n = 0
+		11: if n == 20: _photo("1c-comment"); App.reglages.mode = mode; App.aller("paddock", { mode = mode }); etape = 1; n = 0
 		1: if n == 30: _photo("2-paddock"); App.aller("course"); etape = 2; n = 0
 		2: if n == 40: _photo("3-depart"); etape = 3; n = 0
 		3: if n == 300: _photo("4-course"); etape = 4; n = 0
@@ -59,6 +63,8 @@ func _process(dt: float) -> void:
 		_photo("5-pause"); App.ecran.basculePause(); etape = 5; n = 0
 		Engine.max_physics_steps_per_frame = 40
 		Engine.time_scale = 4.0
+	if etape == 5 and mode != "race" and n == 1500:
+		_photo("6-entrainement"); get_tree().quit()
 	if etape == 5 and App.ecran is Resultats and n > 5:
 		Engine.time_scale = 1.0
 		_photo("6-resultats"); etape = 6; n = 0

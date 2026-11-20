@@ -13,6 +13,7 @@ var flashCouleur := Color.WHITE
 var flashJusqua := 0.0
 var pommeau := NAN
 var tactile := false
+var consigne := -1                # le mot du guide : gaz, dose, lâche (-1 : pas de guide)
 const P := 14.0                   # la marge (this.pad)
 const VIF := [Color8(94, 196, 255), Color8(82, 230, 168), Color8(255, 214, 74), Color8(190, 140, 255), Color8(255, 96, 96)]
 const C_JAUNE := Color8(255, 212, 0)
@@ -54,10 +55,14 @@ func annonce(t: String, c: Color) -> void:
 
 
 # ---------- la géométrie (js/render.js, _layoutHud) ----------
+func _droite() -> bool:
+	return App.reglages.cote == "right"
+
+
 func _levier() -> Dictionary:
 	var H := size.y
 	var len := clampf(H * 0.19, 64, 160)
-	return { x = P + 22, y = H - P - 30 - len, len = len }
+	return { x = size.x - P - 22 if _droite() else P + 22, y = H - P - 30 - len, len = len }
 
 
 func _pause() -> Rect2:
@@ -69,7 +74,7 @@ func toucheePause(p: Vector2) -> bool:
 
 
 func dansLevier(p: Vector2) -> bool:
-	return p.x < size.x * 0.42 and p.y > size.y * 0.35
+	return (p.x > size.x * 0.58 if _droite() else p.x < size.x * 0.42) and p.y > size.y * 0.35
 
 
 func levierVers(p: Vector2) -> float:
@@ -101,7 +106,7 @@ func _draw() -> void:
 	var pb := _pause()
 	# La position
 	Style.biseau(self, Rect2(xs, y0, wPos, headH), Style.PAPIER)
-	Style.texte(self, "TT" if tt else "P %d/%d" % [pos, n], Vector2(xs + 10, y0 + headH / 2 + 11), 32, Style.ENCRE)
+	Style.texte(self, "TT" if tt and not course.entrainement else "P %d/%d" % [pos, n], Vector2(xs + 10, y0 + headH / 2 + 11), 32, Style.ENCRE)
 	# Les chronos
 	var pw := minf(230, maxf(110, xe - xs - wPos - pb.size.x - 20))
 	var px := clampf((W - pw) / 2, xs + wPos + 8, pb.position.x - pw - 8)
@@ -140,7 +145,7 @@ func _draw() -> void:
 	Style.texte(self, num, Vector2(x, base + 2), 40, Style.ENCRE); x += wn + 2
 	if tot != "": Style.texte(self, tot, Vector2(x, base), 25, Style.ENCRE)
 	# Le classement autour du joueur
-	if not tt:
+	if not tt or (course.entrainement and course.state != "countdown"):
 		var ordre := course.standings()
 		var i0 := ordre.find(p)
 		var debut := maxi(0, mini(i0 - 1, ordre.size() - 3))
@@ -153,13 +158,16 @@ func _draw() -> void:
 			var yy := by + (k - debut) * rowH
 			var moi := c == p
 			Style.biseau(self, Rect2(bx, yy, bwid, rowH - 2), Style.PAPIER if moi else Color("#171b19df"))
-			var couleur := Color(Catalogue.donnees.livreries[c.livery].body)
+			var couleur := Color("#fff8e6aa") if c.fantome else Color(Catalogue.donnees.livreries[c.livery].body)
 			draw_rect(Rect2(bx + 10, yy + (rowH - 12) / 2, 10, 10), couleur)
 			draw_rect(Rect2(bx + 10, yy + (rowH - 12) / 2, 10, 10), Color("#394137"), false, 1)
 			var ink := Style.ENCRE if moi else Style.PAPIER
 			Style.texte(self, "%d  %s" % [k + 1, str(c.nom).to_upper()], Vector2(bx + 26, yy + 22), 18, ink)
 			var ecart := "TOI"
-			if not moi:
+			if c.fantome:
+				var e := course.ecartFantome()
+				ecart = "%s%s s" % ["+" if e >= 0 else "−", _fmtEcart(absf(e))]
+			elif not moi:
 				var dist := absf(c.progress() - p.progress())
 				var allure := p.bestLap if p.bestLap > 0 else c.bestLap
 				var signe := "+" if c.progress() >= p.progress() else "−"
@@ -177,11 +185,12 @@ func _draw() -> void:
 	for c in course.cars:
 		var q := mo + _mmPoint(c.x, c.y, taille)
 		if c == p: continue
-		draw_circle(q, 6, Color(Catalogue.donnees.livreries[c.livery].body))
+		draw_circle(q, 6, Color("#fff8e6bf") if c.fantome else Color(Catalogue.donnees.livreries[c.livery].body))
 	draw_circle(mo + _mmPoint(p.x, p.y, taille), 9, Color("#7fd4ff"))
 	# Le levier, la vitesse
 	_levierDessin(p)
 	_vitesse(p)
+	if consigne >= 0 and course.state != "countdown": _consigne()
 	if tactile: _pouce(p)
 	# Le départ
 	if course.state == "countdown":
@@ -208,6 +217,31 @@ func _draw() -> void:
 	var appels := Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
 	Style.texte(self, "%d i/s · pire image %.1f ms · course %.2f ms/pas · %d appels" % [Engine.get_frames_per_second(), jeu.pireImage * 1000, jeu.coutPas / 1000.0, appels],
 		Vector2(P + 2, P + 56 + taille + 18), 13, Color(1, 1, 1, 0.55))
+
+
+static func _fmtEcart(s: float) -> String:
+	var d := roundf(s * 10) / 10
+	return "%.1f" % d if d < 10 else str(roundi(s))
+
+
+## Le mot du guide, au-dessus de la vitesse (js/render.js, _drawConsigne).
+func _consigne() -> void:
+	var L := minf(420, size.x - 32)
+	var h0 := 86.0 + 6 + 38
+	var x := (P if _droite() else size.x - P - L) + 80
+	var y := size.y - P - h0 - 8
+	var mot: String = ["GAZ", "DOSE", "LÂCHE"][consigne]
+	var fond: Color = [Color("#12a35c"), Color("#171b19e6"), Color("#e0261c")][consigne]
+	var taille := 20
+	var h := taille + 10.0
+	var w := maxf(92, Style.largeur(mot, taille) + 26)
+	Style.biseau(self, Rect2(x - w / 2, y - h, w, h), fond)
+	if consigne == Course.GUIDE_DOSE:
+		var xx := x - w / 2 + 8
+		while xx < x + w / 2 - 8:
+			draw_line(Vector2(xx, y - 3), Vector2(minf(xx + 6, x + w / 2 - 8), y - 3), Color("#ff5a4a"), 2)
+			xx += 11
+	Style.texte(self, mot, Vector2(x - w / 2, y - h / 2 + 7), taille, Color("#ffb4a8") if consigne == Course.GUIDE_DOSE else Color("#fff8ea"), HORIZONTAL_ALIGNMENT_CENTER, w)
 
 
 func _chrono(x: float, y: float, w: float, h: float, label: String, valeur: String, sombre: bool, drapeaux: Array, nul: bool) -> void:
@@ -238,11 +272,12 @@ func _drapeau(type: String, p: Vector2, s: float) -> void:
 func _levierDessin(p: Voiture) -> void:
 	var s := _levier()
 	var crans := [[1.0, C_JAUNE, "JAUNE"], [0.0, C_IDEALE, "IDÉALE"], [-1.0, C_BLEU, "BLEUE"]]
-	var lx: float = s.x + 19
+	var cote := -1.0 if _droite() else 1.0
+	var lx: float = s.x + 19 * cote
 	var larg := Style.largeur("IDÉALE", 15)
 	var hFond: float = s.len + 52
 	var biseau := minf(9, hFond * .23)
-	var gauche: float = s.x - 22
+	var gauche: float = s.x - (19 + larg + 7) if _droite() else s.x - 22
 	Style.biseau(self, Rect2(gauche - biseau / 2, s.y - 26, 22 + 19 + larg + 7 + biseau, hFond), Color("#171b19da"))
 	var yCran := func(v: float) -> float: return s.y + s.len / 2 - v * s.len / 2
 	draw_rect(Rect2(s.x - 3.5, yCran.call(1.0), 7, yCran.call(-1.0) - yCran.call(1.0)), Color("#05070a"))
@@ -251,7 +286,8 @@ func _levierDessin(p: Voiture) -> void:
 		var y: float = yCran.call(c[0])
 		draw_circle(Vector2(s.x, y), 10, Color("#05070a"))
 		draw_arc(Vector2(s.x, y), 6.5, 0, TAU, 24, c[1], 3.0 if choisi == int(c[0]) else 2.0, true)
-		Style.texte(self, c[2], Vector2(lx, y + 5), 15, Color.WHITE if choisi == int(c[0]) else Style.GRIS)
+		if _droite(): Style.texte(self, c[2], Vector2(lx - 80, y + 5), 15, Color.WHITE if choisi == int(c[0]) else Style.GRIS, HORIZONTAL_ALIGNMENT_RIGHT, 80)
+		else: Style.texte(self, c[2], Vector2(lx, y + 5), 15, Color.WHITE if choisi == int(c[0]) else Style.GRIS)
 	var cible: float = yCran.call(float(choisi))
 	if is_nan(pommeau): pommeau = cible
 	pommeau += (cible - pommeau) * (1 - exp(-get_process_delta_time() * 1000 / 30))
@@ -271,7 +307,7 @@ func _vitesse(p: Voiture) -> void:
 	var basB := 66.0
 	var hGrip := 38.0
 	var h := hBloc + 6 + hGrip
-	var x := size.x - P - L
+	var x := P if _droite() else size.x - P - L
 	var y := size.y - P - h
 	var fond := Color("#1b1f23e8")
 	var forme := PackedVector2Array([Vector2(x + 16, y), Vector2(x + bloc - 6, y), Vector2(x + bloc + 14, y + hautB), Vector2(x + L, y + hautB),

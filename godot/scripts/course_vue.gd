@@ -11,6 +11,7 @@ var decor: Decor
 var vues: Array[VoitureVue] = []
 var camera: Camera2D
 var effets: Effets
+var guide: GuideVue
 var son: Son
 var secousse := 0.0
 var hud: Hud
@@ -48,6 +49,9 @@ func _ready() -> void:
 	add_child(decor)
 	effets = Effets.new()
 	add_child(effets)
+	guide = GuideVue.new()
+	guide.jeu = self
+	add_child(guide)
 	son = Son.new()
 	add_child(son)
 	son.voiture(R.voiture)
@@ -85,13 +89,18 @@ func _depart() -> void:
 	var cat: String = Catalogue.voiture(R.voiture).cat
 	var n := int(R.adversaires) if R.mode == "race" else 1
 	course = Course.new(piste, {
-		modele = modele, difficulte = Catalogue.difficulte(R.difficulte), mode = R.mode, laps = int(R.tours),
+		modele = modele, difficulte = Catalogue.difficulte(R.difficulte), mode = "timetrial" if R.mode == "training" else R.mode, laps = int(R.tours),
+		entrainement = R.mode == "training", difficultes = Catalogue.donnees.difficultes,
 		nCars = n, roster = Catalogue.roster(maxi(n, 2), 0, cat, h), livree = int(R.livree), nomJoueur = R.nom,
 		modeleDe = func(id, i): return Catalogue.modele(id) if id != "" else Catalogue.modele(Catalogue.voituresDe(cat)[i % Catalogue.voituresDe(cat).size()].id),
 	}, h)
 	prec.clear()
 	for car in course.cars:
 		var vue := VoitureVue.new(Catalogue.dessin(car.cls.id, car.livree))
+		if car.fantome:
+			# Le fantôme se voit à travers (FANTOME_ALPHA), son ombre aussi.
+			vue.modulate = Color(1, 1, 1, 0.42)
+			vue.ombre.modulate.a *= 0.42
 		add_child(vue)
 		vues.append(vue)
 		prec.append(PackedFloat64Array([car.x, car.y, car.th]))
@@ -253,6 +262,8 @@ func _process(dt: float) -> void:
 		vues[i].place(Vector2(x, y), th, c.delta, z)
 		if c == course.player: px = x; py = y
 	_camera(dt, px, py)
+	guide.visible = course.entrainement or App.reglages.guide
+	if guide.visible: guide.queue_redraw()
 	if not enPause:
 		effets.ajoute(course, dt)
 		son.maj(course.player, course.state != "countdown", dt)
@@ -289,7 +300,7 @@ func _camera(dt: float, px: float, py: float) -> void:
 	var vf := minf(1.0, car.v / minf(car.cls.vmax, VMAX_ECRAN))
 	var near := 30.0 if tourne else 20.0
 	var far := 75.0 if tourne else 50.0
-	var metres := (near + (far - near) * vf) * 1.35
+	var metres := (near + (far - near) * vf) * float(App.reglages.recul) * 1.35
 	var zoomCible := (H if tourne else minf(W, H)) / metres
 	var D := metres * ((0.32 + 0.58 * vf) if tourne else (0.24 + 0.40 * vf))
 	var somme := Vector2.ZERO
@@ -327,3 +338,65 @@ func _camera(dt: float, px: float, py: float) -> void:
 	camera.position = cam
 	camera.zoom = Vector2(camZoom, camZoom)
 	camera.rotation = (camAngle + PI / 2) if tourne else 0.0
+
+
+
+## Le guide de freinage, sur la piste devant la voiture (js/render.js, _drawGuide) : rouge plein là
+## où il faut lâcher, rouge en tirets là où il faut doser, des chevrons verts à la reprise des gaz.
+class GuideVue extends Node2D:
+	var jeu
+	var etat := 0
+	var vu := 0
+	var depuis := 0.0
+
+	func _draw() -> void:
+		var course: Course = jeu.course
+		var T := course.track
+		var p := course.player
+		var G := course.guide(p)
+		var pas: int = G.pas
+		var N: int = G.n
+		var E: PackedByteArray = G.etats
+		var pt := func(i: int) -> Vector3:
+			var s: float = G.s0 + i * pas
+			var k := T.idx(s)
+			var lat := T.targetLat(s, p.selS)
+			return Vector3(T.xs[k] + T.nx[k] * lat, T.ys[k] + T.ny[k] * lat, k)
+		var plein := PackedVector2Array()
+		var tirets := PackedVector2Array()
+		var sorties := []
+		var prev: Vector3 = pt.call(1)
+		for i in range(1, N):
+			var now: Vector3 = pt.call(i + 1)
+			var e := E[i]
+			if e == Course.GUIDE_LEVE:
+				plein.append(Vector2(prev.x, prev.y)); plein.append(Vector2(now.x, now.y))
+			elif e == Course.GUIDE_DOSE:
+				if roundi((G.s0 + i * pas) / pas) % 2 == 0:
+					tirets.append(Vector2(prev.x, prev.y)); tirets.append(Vector2(now.x, now.y))
+			elif E[i - 1] != Course.GUIDE_GAZ:
+				sorties.append(i)
+			prev = now
+		var faute: bool = G.maintenant == Course.GUIDE_LEVE and p.throttle > 0
+		var bat := 0.75 + 0.25 * sin(Time.get_ticks_msec() / 70.0) if faute else 0.62
+		if plein.size():
+			draw_multiline(plein, Color(Color("#ff3b30"), bat * 0.55), 2.6)
+			draw_multiline(plein, Color(Color("#ff5a4a"), minf(1, bat + 0.25)), 0.6)
+		if tirets.size():
+			draw_multiline(tirets, Color(Color("#ff3b30"), 0.5), 1.5)
+		var nChev := 3
+		var ecart := maxi(1, roundi(Course.GUIDE.vert / float(pas) / nChev))
+		for i0 in sorties:
+			for c in nChev:
+				var i: int = i0 + c * ecart
+				if i >= N or E[i] != Course.GUIDE_GAZ: break
+				var q: Vector3 = pt.call(i + 1)
+				var th := T.th[int(q.z)]
+				var o := Vector2(q.x, q.y)
+				var r := func(v: Vector2) -> Vector2: return o + v.rotated(th)
+				draw_polyline(PackedVector2Array([r.call(Vector2(-1.3, -1.25)), o, r.call(Vector2(-1.3, 1.25))]), Color(Color("#37d67a"), 0.95), 0.55)
+		# La consigne qui s'affiche au tableau de bord, avec un quart de seconde de patience.
+		var t := Time.get_ticks_msec()
+		if G.zone != vu: vu = G.zone; depuis = t
+		if G.zone > etat or t - depuis > 250: etat = G.zone
+		jeu.hud.consigne = etat

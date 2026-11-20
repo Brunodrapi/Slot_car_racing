@@ -223,7 +223,7 @@ func _dessine() -> void:
 	Style.biseau(ci, Rect2(18, 10, W - 36, 64), Style.NUIT_PLEINE, 0)
 	Style.damier(ci, Rect2(140, 10, 80, 64), 4, Style.CREME, Style.NUIT_PLEINE, 0)
 	Style.biseau(ci, Rect2(214, 10, 320, 64), Style.ROUGE, 22)
-	Style.texte(ci, "COURSE RAPIDE" if mode == "race" else "CONTRE-LA-MONTRE", Vector2(236, 58), 38, Style.CREME)
+	Style.texte(ci, { race = "COURSE RAPIDE", timetrial = "CONTRE-LA-MONTRE", training = "ENTRAÎNEMENT" }.get(mode, ""), Vector2(236, 58), 38, Style.CREME)
 	var logo := Style.tex("res://images/interface/logo-grip.webp")
 	if not portrait:
 		ci.draw_texture_rect(logo, Rect2(W - 210, 16, 190, 190 * logo.get_height() / logo.get_width()), false)

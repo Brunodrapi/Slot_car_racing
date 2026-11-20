@@ -8,6 +8,10 @@ const POINTS := [25, 18, 15, 12, 10, 8, 6, 4, 2, 1]
 const PENALITE_FIXE := 1.0
 const FLAG_YELLOW_DELAY := 3.0
 const FLAG_PENALTY_DURATION := 5.0
+const GUIDE := { marge = 0.95, frein = 0.9, portee = 261, pas = 3, reaction = 0.2, vert = 15, usage = 0.8 }
+const GUIDE_GAZ := 0
+const GUIDE_DOSE := 1
+const GUIDE_LEVE := 2
 
 var track: Piste
 var cls: Voiture.Modele           # la voiture du joueur
@@ -34,6 +38,14 @@ var penalties := {}
 var blueUntil := {}
 var zones: Array = []
 var chequered := false
+# L'entraînement : un fantôme (le pilote « difficile » dans la voiture du joueur) et le guide.
+var entrainement := false
+var fantome: Voiture = null
+var sansFantome: Array = []
+var sillage := {}
+var _guide := {}
+var _limGuide := {}
+var difficultes := {}
 
 
 ## `opts` : modele (Modele), difficulte (Dictionary du catalogue), mode, laps, nCars, roster
@@ -45,6 +57,8 @@ func _init(piste: Piste, opts: Dictionary, h: Hasard) -> void:
 	mode = opts.get("mode", "race")
 	laps = int(opts.get("laps", 3))
 	difficulte = opts.difficulte
+	entrainement = opts.get("entrainement", false) and mode == "timetrial"
+	difficultes = opts.get("difficultes", {})
 	profilRacing = Course.speedProfile(track, cls, "racing", 0.98)
 	_buildGrid(opts)
 
@@ -81,6 +95,45 @@ func _buildGrid(opts: Dictionary) -> void:
 		player.place(T.length - 40, 0, 0)
 		player.laneTarget = 0
 		player.gridLat = 0
+	if solo and entrainement:
+		_poseFantome()
+	sansFantome = cars.filter(func(k): return k != fantome)
+
+
+func _poseFantome() -> void:
+	var T := track
+	var p := player
+	var niveau: Dictionary = difficultes.get("hard", difficulte)
+	var car := Voiture.new(T, cls, T.length - 40, 0, hasard)
+	car.nom = "Fantôme"
+	car.livery = p.livery; car.livree = p.livree
+	car.isPlayer = false; car.skill = 0.5
+	car.gripBoost = float(niveau.get("grip", 1.0))
+	car.numero = p.numero
+	car.fantome = true
+	car.place(T.length - 40, 0, 0)
+	car.laneTarget = 0; car.gridLat = 0
+	fantome = car
+	cars.append(car)
+	sillage = { pas = 0.1, n = 0, joueur = PackedFloat64Array(), fantome = PackedFloat64Array() }
+
+
+## L'écart au fantôme, en temps (race.ecartFantome) : positif s'il est devant.
+func ecartFantome() -> float:
+	var f := fantome
+	var p := player
+	if f == null or sillage.n < 2: return 0.0
+	var fDevant := f.progress() >= p.progress()
+	var trace: PackedFloat64Array = sillage.fantome if fDevant else sillage.joueur
+	var ici := p.progress() if fDevant else f.progress()
+	var k: int = sillage.n - 1
+	while k > 0 and trace[k] > ici: k -= 1
+	var dernier: bool = k + 1 >= sillage.n
+	var suite: float = (f.progress() if fDevant else p.progress()) if dernier else trace[k + 1]
+	var tSuite: float = time if dernier else (k + 1) * sillage.pas
+	var part := Piste.clamp_((ici - trace[k]) / (suite - trace[k]), 0, 1) if suite > trace[k] else 0.0
+	var ecart := maxf(0, time - (k * sillage.pas + part * (tSuite - k * sillage.pas)))
+	return ecart if fDevant else -ecart
 
 
 ## Un pas de 1/120 s (race._step). `gaz` est l'accélérateur du joueur, de 0 à 1.
@@ -106,16 +159,20 @@ func step(gaz: float) -> void:
 
 func _simulate(gaz: float) -> void:
 	var T := track
+	if fantome and time >= sillage.n * sillage.pas:
+		sillage.joueur.append(player.progress()); sillage.fantome.append(fantome.progress()); sillage.n += 1
 	time += dt
 	_flagsUpdate()
 	var pp := player.progress()
 	for ic in cars.size():
 		var car := cars[ic]
 		car.aiDriven = not car.isPlayer
-		car.steer(cars, dt, car.aiDriven)
+		car.steer([] if car.fantome else sansFantome, dt, car.aiDriven)
 		var thr: float
 		if car.isPlayer:
 			thr = (1.0 if car.v < 15 else 0.0) if car.finished else gaz
+		elif car.fantome:
+			thr = 1.0 if Course.aiThrottle(car, [], dt, difficultes.get("hard", difficulte)) else 0.0
 		else:
 			var gapM := car.progress() - pp
 			var rubber := 0.0 if car.finished or player.finished else Piste.clamp_(-gapM / 4000, -0.05, 0.03)
@@ -242,6 +299,9 @@ func _flagsUpdate() -> void:
 	zones = []
 	for i in cars.size():
 		var c := cars[i]
+		if c.fantome:
+			c.blueFlag = false
+			continue
 		_flagsInspect(c, i)
 		if actif and c.herbe and not c.finished:
 			if not offSince.has(i): offSince[i] = now
@@ -388,3 +448,89 @@ static func speedProfile(T: Piste, m: Voiture.Modele, nomLigne: String, margin: 
 			var lim := sqrt(v[j] * v[j] + 2 * a * ds)
 			if lim < v[i]: v[i] = lim
 	return v
+
+
+# ---------- le guide de l'entraînement (race.guide) ----------
+func _limLigne(nom: String) -> PackedFloat32Array:
+	if not _limGuide.has(nom):
+		var lk: PackedFloat64Array = track.lineK[nom]
+		var v := PackedFloat32Array()
+		v.resize(track.n)
+		for i in track.n: v[i] = minf(cls.vmax, Voiture.cornerSpeedFor(cls, absf(lk[i])) * GUIDE.marge)
+		_limGuide[nom] = v
+	return _limGuide[nom]
+
+
+func _limiteGuide(s: float, sel: float) -> float:
+	var i := track.idx(s)
+	var r := _limLigne("racing")[i]
+	if sel == 0: return r
+	return r + (_limLigne("bleu" if sel < 0 else "jaune")[i] - r) * minf(1, absf(sel))
+
+
+## Pas à pas sur 261 m devant la voiture : gaz, dose ou lâche, avec le temps de réaction.
+func guide(car: Voiture = null) -> Dictionary:
+	if car == null: car = player
+	var c := car.cls
+	var pas: int = GUIDE.pas
+	var N := roundi(GUIDE.portee / float(pas))
+	var b: float = c.brake * GUIDE.frein
+	if _guide.is_empty():
+		var z := PackedFloat32Array(); z.resize(N + 1)
+		var e := PackedByteArray(); e.resize(N)
+		_guide = { pas = pas, n = N, s0 = 0.0, maintenant = GUIDE_GAZ, zone = GUIDE_GAZ, cibles = z, passages = z.duplicate(), etats = e, brut = e.duplicate() }
+	var G := _guide
+	var s0 := floorf(car.s / pas) * pas
+	var cible: PackedFloat32Array = G.cibles
+	var vc: PackedFloat32Array = G.passages
+	var brut: PackedByteArray = G.brut
+	for i in N + 1:
+		var vv := INF
+		for d in pas: vv = minf(vv, _limiteGuide(s0 + i * pas + d, car.selS))
+		cible[i] = vv; vc[i] = vv
+	for i in range(N - 1, -1, -1):
+		var lim := sqrt(cible[i + 1] * cible[i + 1] + 2 * b * pas)
+		if lim < cible[i]: cible[i] = lim
+	var v := maxf(0, car.v)
+	var avant := GUIDE_GAZ
+	var libre := c.vmax - 0.5
+	for i in N:
+		var aMax := c.accel * c.driveFactor(v) * maxf(0, 1 - pow(v / c.vmax, 2.5))
+		var aReq := (cible[i + 1] * cible[i + 1] - v * v) / (2 * pas)
+		var virage := vc[i] < libre
+		var part := v / vc[i] if virage else 0.0
+		var usage := minf(1, part * part * GUIDE.marge * GUIDE.marge)
+		var aDispo := aMax * sqrt(1 - usage * usage)
+		var e: int
+		if v > cible[i] * 1.005 + 0.3 or aReq < -0.3 * b:
+			e = GUIDE_LEVE
+			v = maxf(sqrt(maxf(0, v * v - 2 * b * pas)), minf(v, cible[i + 1]))
+		elif usage <= GUIDE.usage and aReq >= (0.55 if avant == GUIDE_GAZ else 0.8) * aMax:
+			e = GUIDE_GAZ
+			v = minf(sqrt(v * v + 2 * aDispo * pas), cible[i + 1])
+		else:
+			e = GUIDE_DOSE
+			v = minf(cible[i + 1], sqrt(v * v + 2 * aDispo * pas))
+		brut[i] = e; avant = e
+	var i := 0
+	while i < N:
+		if brut[i] != GUIDE_GAZ or i == 0 or brut[i - 1] == GUIDE_GAZ:
+			i += 1
+			continue
+		var j := i
+		while j < N and brut[j] == GUIDE_GAZ: j += 1
+		if j < N and j - i < 3:
+			for k in range(i, j): brut[k] = GUIDE_DOSE
+		i = j + 1
+	var kk := roundi(maxf(0, car.v) * GUIDE.reaction / pas)
+	var etats: PackedByteArray = G.etats
+	for q in N: etats[q] = brut[mini(N - 1, q + kk)]
+	G.s0 = s0
+	G.maintenant = etats[mini(N - 1, maxi(0, int(floorf((car.s - s0) / pas))))]
+	var nL := 0
+	var nD := 0
+	for q in 6:
+		if etats[q] == GUIDE_LEVE: nL += 1
+		elif etats[q] == GUIDE_DOSE: nD += 1
+	G.zone = GUIDE_LEVE if nL >= 4 else (GUIDE_DOSE if nL + nD >= 2 else GUIDE_GAZ)
+	return G
