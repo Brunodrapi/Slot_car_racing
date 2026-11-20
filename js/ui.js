@@ -1467,6 +1467,7 @@ class UI {
     return `<div class="setup-bar"><div class="setup-reglages">
       <div class="setup-chips" data-pad-group>
         ${pastille(t('timeOfDay'), t(s.timeOfDay === 'night' ? 'night' : 'day'), `data-action="pickTimeOfDay" data-id="${s.timeOfDay === 'night' ? 'day' : 'night'}" aria-pressed="${s.timeOfDay === 'night'}"`)}
+        ${race && DEGATS_ACTIVE && !(USURE_ACTIVE && s.wear) ? pastille(t('chipDegats'), t(s.degats !== false ? 'on' : 'off'), `data-action="pickDegats" data-id="${s.degats !== false ? 0 : 1}" aria-pressed="${s.degats !== false}" title="${escapeHtml(t('degatsHint'))}"`) : ''}
         ${s.timeOfDay === 'night' ? `<small class="muted night-hint">${t(model.catId === 'f1' ? 'nightF1Hint' : 'nightHint')}</small>` : ''}
       </div>
       ${race ? `<div class="setup-chips" data-pad-group>
@@ -1474,7 +1475,6 @@ class UI {
         ${pastille(t('lapCount'), s.lapsPerso ? `${t('lapCustom')}` : (s.laps || 5), `data-action="pickLaps" data-id="${suivant([2, 5, 10, 20, 'perso'], toursCourants)}"`)}
         ${s.lapsPerso ? `<label class="chip chip-input"><span>${t('lapCount')} :</span><input id="inp-laps" type="number" min="1" max="99" value="${Math.max(1, Math.min(99, s.laps || 5))}"></label>` : ''}
         ${USURE_ACTIVE ? pastille(t('chipWear'), t(s.wear ? 'on' : 'off'), `data-action="pickWear" data-id="${s.wear ? 0 : 1}" title="${escapeHtml(t('wearHint'))}"`) : ''}
-        ${DEGATS_ACTIVE && !(USURE_ACTIVE && s.wear) ? pastille(t('chipDegats'), t(s.degats !== false ? 'on' : 'off'), `data-action="pickDegats" data-id="${s.degats !== false ? 0 : 1}" aria-pressed="${s.degats !== false}" title="${escapeHtml(t('degatsHint'))}"`) : ''}
       </div>` : ''}
       <!-- La liste et le choix actif sont propres au couple circuit+voiture.
            Un même nom peut conserver des valeurs pour plusieurs couples ; chacun retrouve
