@@ -1,0 +1,143 @@
+{
+ "circuit": {
+  "id": "spa",
+  "nom": "Stand de frites",
+  "theme": "forest"
+ },
+ "voiture": {
+  "id": "porsche991gt3r",
+  "nom": "Breithüft Apex R",
+  "champs": [
+   "vmax",
+   "accel",
+   "brake",
+   "grip",
+   "df",
+   "slide",
+   "laneK",
+   "rearBias",
+   "cliff",
+   "slipPeak",
+   "length",
+   "width",
+   "zoom"
+  ],
+  "sprite": "res://images/porsche991gt3r.png"
+ },
+ "barriere": {
+  "champs": [
+   "ax",
+   "ay",
+   "bx",
+   "by",
+   "tx",
+   "ty",
+   "nx",
+   "ny",
+   "len",
+   "half",
+   "s",
+   "side",
+   "level",
+   "pneus"
+  ]
+ },
+ "index": {
+  "xs": [
+   0,
+   3400
+  ],
+  "ys": [
+   3400,
+   3400
+  ],
+  "th": [
+   6800,
+   3400
+  ],
+  "nx": [
+   10200,
+   3400
+  ],
+  "ny": [
+   13600,
+   3400
+  ],
+  "k": [
+   17000,
+   3400
+  ],
+  "hwL": [
+   20400,
+   3400
+  ],
+  "hwR": [
+   23800,
+   3400
+  ],
+  "kerb": [
+   27200,
+   3400
+  ],
+  "ligne_racing": [
+   30600,
+   3400
+  ],
+  "lineK_racing": [
+   34000,
+   3400
+  ],
+  "ligne_jaune": [
+   37400,
+   3400
+  ],
+  "lineK_jaune": [
+   40800,
+   3400
+  ],
+  "ligne_bleu": [
+   44200,
+   3400
+  ],
+  "lineK_bleu": [
+   47600,
+   3400
+  ],
+  "asphaltW_L": [
+   51000,
+   3400
+  ],
+  "bacW_L": [
+   54400,
+   3400
+  ],
+  "asphaltW_R": [
+   57800,
+   3400
+  ],
+  "bacW_R": [
+   61200,
+   3400
+  ],
+  "barrieres": [
+   64600,
+   30142
+  ],
+  "croisements": [
+   94742,
+   0
+  ],
+  "voiture": [
+   94742,
+   13
+  ],
+  "depart": [
+   94755,
+   5
+  ],
+  "scalaires": [
+   94760,
+   8
+  ]
+ }
+}
