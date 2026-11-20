@@ -1,14 +1,15 @@
-## La nuit, d'après js/render.js (NightLighting) : une obscurité presque totale, percée par les
+## La nuit, d'après js/render.js (NightLighting) : une obscurité de 90 %, percée par les
 ## faisceaux des phares (36 m), les feux arrière (plus longs et plus forts au freinage) et les
-## projecteurs posés face aux bacs à gravier. Le jeu web peint un calque noir et y découpe les
-## lumières ; Godot fait la même chose sur la carte graphique, avec une teinte d'obscurité
+## projecteurs posés face aux bacs à gravier. Le jeu web multiplie l'image par une teinte sombre et
+## y découpe les lumières ; Godot fait la même chose sur la carte graphique, avec la même teinte
 ## (CanvasModulate) et des lumières 2D aux mêmes formes, calculées avec les mêmes formules.
 class_name Nuit
 extends Node2D
 
-# Le calque du jeu web : rgba(3, 7, 18, .988) par-dessus tout. Hors des lumières il ne reste que
-# 1,2 % de l'image et ce bleu presque noir ; en teinte multipliée, cela donne à peu près ceci.
-const OBSCURITE := Color(0.024, 0.039, 0.082)
+# La teinte que le jeu web multiplie à l'image (NUIT_TEINTE, js/render.js), la même ici : une
+# obscurité de 90 %, l'image garde un dixième de sa clarté, teintée de bleu. Bruno l'a voulue pour
+# les deux versions (« 90 % pour tous ») ; elle était avant de 96 %, Color(0.024, 0.039, 0.082).
+const OBSCURITE := Color8(16, 26, 54)
 const ROUGE_FEU := Color("#ff1808")
 const FLOOD := Color8(255, 212, 145)
 

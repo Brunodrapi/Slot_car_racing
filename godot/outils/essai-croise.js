@@ -58,7 +58,7 @@ const AUTO_WEB = () => {
 
 // Une course entière, Godot hôte puis le web hôte : mêmes tours, même classement des deux côtés.
 async function course(web, god, note, etatG, ordre, format) {
-  for (const hoteGodot of [true, false]) {
+  for (const hoteGodot of (process.env.HOTES === 'web' ? [false] : process.env.HOTES === 'godot' ? [true] : [true, false])) {
     const quoi = `${format}, ${hoteGodot ? 'Godot' : 'le web'} hôte`;
     await ordre({ op: 'nom', nom: 'Godot', langue: 'fr' });
     await ordre({ op: 'voiture', id: 'porsche991gt3r', livree: 0 });
@@ -70,11 +70,16 @@ async function course(web, god, note, etatG, ordre, format) {
       await ordre({ op: 'table', patch: reglages });
       await web.evaluate((c) => app.net.open('Navigateur', false, c), code);
     } else {
+      // Le jeu web garde `table.go` de la course précédente quand on quitte la table (leave) : la
+      // table suivante partirait dès l'arrivée du second pilote. On repart d'une table neuve.
+      await web.evaluate(() => { app.net.table.go = 0; });
       await web.evaluate(() => app.net.open('Navigateur', true));
       code = await web.evaluate(() => app.net.code);
       await web.evaluate((r) => app.net.setTable(r), reglages);
       await ordre({ op: 'open', host: false, code, name: 'Godot' });
-      await attends(async () => (await etatG()).state === 'lobby', 'Godot rejoint');
+      await attends(async () => (await etatG()).state === 'lobby', 'Godot rejoint').catch(async (e) => {
+        const g = await etatG(); console.error('état de Godot :', JSON.stringify({ state: g.state, error: g.error, busy: g.busy, code: g.code, ecran: g.script }));
+        throw e; });
     }
     await ordre({ op: 'mine', patch: { car: { modelId: 'porsche991gt3r', livree: 0 }, ready: true } });
     await web.evaluate(() => app.net.setMine({ car: { modelId: 'bmwm6gt3', livree: 0 }, ready: true }));

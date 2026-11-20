@@ -90,6 +90,10 @@ func open(nom: String, asHost: bool, code_: String = "", spectator := false) -> 
 	else:
 		creator = asHost
 		completedGo = 0
+		# Une nouvelle table part sans départ donné. (Le jeu web garde l'heure du départ de la course
+		# précédente quand on quitte la table puis qu'on en rouvre une : la nouvelle partait alors dès
+		# qu'un second pilote s'asseyait.)
+		if asHost: table.go = 0
 		mine = { pid = pid, protocol = DRIVE_PROTOCOL, name = nom if nom != "" else "Pilote", car = null, ready = false,
 			spectator = not asHost and spectator }
 		room.onPeers(func(_p) -> void: peers = room.peers(); pump())
