@@ -5,7 +5,6 @@ class_name Paddock
 extends Control
 
 const DIFFICULTES := [["easy", "easy"], ["medium", "medium"], ["hard", "hard"], ["extreme", "extreme"], ["cauchemar", "cauchemar"]]
-const VUES := [["avanceFixe", "viewFixed"], ["avance", "viewTrack"]]
 
 var mode := "race"
 var cadre: Control
@@ -179,7 +178,6 @@ func _construit() -> void:
 		reglagesBas.append([Textes.t("difficulty", dif), func(): App.reglages.difficulte = _suivant(DIFFICULTES, App.reglages.difficulte); App.sauve(); _construit(), "difficulte"])
 		reglagesBas.append([Textes.t("laps", int(App.reglages.tours)), func(): App.reglages.tours = int(App.reglages.tours) % 10 + 1; App.sauve(); _construit(), "tours"])
 		reglagesBas.append([Textes.t("opponents", int(App.reglages.adversaires) - 1), func(): App.reglages.adversaires = (int(App.reglages.adversaires) - 1) % 11 + 2; App.sauve(); _construit(), "adversaires"])
-	reglagesBas.append([Textes.t("view", _nom(VUES, App.reglages.vue)), func(): App.reglages.vue = _suivant(VUES, App.reglages.vue); App.sauve(); _construit(), "vue"])
 	for r in reglagesBas:
 		var w := Style.largeur(r[0], 20) + 36
 		var b := _bouton(r[0], Rect2(x, yb, w, 48), Style.NUIT_PLEINE, Style.CREME, 20, r[1])
@@ -227,12 +225,15 @@ func _enPiste() -> void:
 
 
 # ---------- le dessin ----------
+## Le fond du menu : l'image du paddock sur tout l'écran, comme le jeu web (#ui, center / cover).
+func _draw() -> void:
+	Style.couvre(self, fondPaddock, Rect2(Vector2.ZERO, size), 0.5)
+
+
 func _dessine() -> void:
 	var ci := cadre
 	var dx := 0.0 if not portrait else 18.0 - 790.0
 	var dy := 0.0 if not portrait else 640.0
-	Style.couvre(ci, fondPaddock, Rect2(-2000, -200, 5000, hauteur + 400), 0.4)
-	ci.draw_rect(Rect2(-2000, -200, 5000, hauteur + 400), Color(0.95, 0.89, 0.74, 0.35))
 	# En-tête
 	var W := cadre.size.x
 	Style.biseau(ci, Rect2(18, 10, W - 36, 64), Style.NUIT_PLEINE, 0)
@@ -254,12 +255,17 @@ func _dessine() -> void:
 	Style.biseau(ci, Rect2(18, 148, 744, 70), Style.PAPIER, 14)
 	Style.texte(ci, str(v.nom).to_upper(), Vector2(32, 194), 44, Style.ENCRE)
 	Style.texte(ci, "%s · %s" % [cat, Textes.livree(livrees[li]).to_upper()], Vector2(34, 213), 17, Color(Style.ENCRE, 0.8))
+	# La voiture dans le garage (.paddock-car) : un cadre dont le fond est l'image du paddock,
+	# la voiture posée sur le sol, devant les servantes et les pneus.
+	var scene := Rect2(18, 222, 744, 130)
+	Style.couvre(ci, fondPaddock, scene, 0.5)
+	ci.draw_rect(scene, Style.NUIT_PLEINE, false, 2)
 	var d := Catalogue.dessin(v.id, li)
 	if d.get("vignette"):
 		var tex := Style.tex("res://images/vignettes/" + d.vignette)
-		var h := 128.0
+		var h := 124.0
 		var w := h * tex.get_width() / tex.get_height()
-		ci.draw_texture_rect(tex, Rect2(260, 222, w, h), false)
+		ci.draw_texture_rect(tex, Rect2(scene.position.x + (scene.size.x - w) / 2, scene.end.y - h - 2, w, h), false)
 	# Les caractéristiques
 	Style.biseau(ci, Rect2(18, 450, 744, 54), Style.PAPIER, 12)
 	var p: Dictionary = v.perf

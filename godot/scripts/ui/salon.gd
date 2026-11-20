@@ -417,8 +417,7 @@ func _suitFocus(c: Control) -> void:
 # ---------------------------------------------------------------- le dessin
 
 func _draw() -> void:
-	Style.couvre(self, fond, Rect2(Vector2.ZERO, size), 0.4)
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0.95, 0.89, 0.74, 0.35))
+	Style.couvre(self, fond, Rect2(Vector2.ZERO, size), 0.5)
 
 
 func _dessine() -> void:

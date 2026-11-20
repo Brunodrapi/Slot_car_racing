@@ -64,4 +64,4 @@ func _draw() -> void:
 	if choisi or has_focus():
 		var o := Color(Style.LIGNE_JAUNE if has_focus() else Style.ROUGE)
 		var cut := minf(9, size.y * .23) if coupe < 0 else coupe
-		draw_polyline(PackedVector2Array([Vector2(cut, 1), Vector2(size.x - 1, 1), Vector2(size.x - cut, size.y - 1), Vector2(1, size.y - 1), Vector2(cut, 1)]), o, 3)
+		draw_polyline(PackedVector2Array([Vector2(cut, 1), Vector2(size.x - 1, 1), Vector2(size.x - cut, size.y - 1), Vector2(1, size.y - 1), Vector2(cut, 1)]), o, 3, true)

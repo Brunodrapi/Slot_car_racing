@@ -247,6 +247,13 @@ func progress() -> float:
 	return (lap - (0 if started else 1)) * track.length + track.wrap_(s)
 
 
+## Hors de la chaussée mais sur un dégagement asphalté (car.runoffAsphalt) : la voiture y garde
+## son adhérence, et le son comme la fumée sont ceux de la route. Les effets et le son la
+## demandaient ; elle manquait, et chaque sortie de piste les arrêtait sur une erreur.
+func runoffAsphalt() -> bool:
+	return track.runoffAsphaltAt(s, lat)
+
+
 func place(s0: float, lat0: float, v0: float) -> void:
 	var T := track
 	var P := T.pos2(s0, lat0)

@@ -319,7 +319,10 @@ func _vitesse(p: Voiture) -> void:
 	draw_polyline(ferme, Color(1, 1, 1, 0.12), 1.5, true)
 	var kmh := roundi(maxf(0, p.speed()) * 3.6)
 	var case3 := Style.largeur("888", 64)
-	Style.texte(self, str(kmh), Vector2(x + 22, y + 66), 64, Color.WHITE, HORIZONTAL_ALIGNMENT_RIGHT, case3)
+	# Aligné à droite à la main : une largeur donnée à draw_string COUPE le texte qui la dépasse,
+	# et « 262 » est plus large que « 888 » dans cette police — le compteur affichait « 26 ».
+	var t := str(kmh)
+	Style.texte(self, t, Vector2(x + 22 + case3 - Style.largeur(t, 64), y + 66), 64, Color.WHITE)
 	Style.texte(self, "km/h", Vector2(x + 26 + case3, y + hBloc - 8), 18, Color("#c8ced9"))
 	var N := 10
 	var x0 := x + bloc + 22

@@ -71,7 +71,10 @@ func place(p: Vector2, cap: float, delta: float, z: int) -> void:
 	position = p
 	rotation = cap
 	z_index = z
-	ombre.z_index = z
+	# L'ombre se pose un cran SOUS les voitures : au même cran, ajoutée après la voiture, elle se
+	# dessinait par-dessus et couvrait le toit. Un cran plus bas, elle reste au-dessus du décor
+	# (ou du tablier d'un croisement), qui se dessine avant elle.
+	ombre.z_index = z - 1
 	ombre.position = p + decalageOmbre
 	ombre.rotation = cap
 	var b := clampf(delta, -0.65, 0.65)

@@ -55,7 +55,9 @@ static func biseau(ci: CanvasItem, r: Rect2, c: Color, coupe := -1.0) -> void:
 	var y := r.position.y
 	var w := r.size.x
 	var h := r.size.y
-	ci.draw_colored_polygon(PackedVector2Array([Vector2(x + cut, y), Vector2(x + w, y), Vector2(x + w - cut, y + h), Vector2(x, y + h)]), c)
+	var pts := PackedVector2Array([Vector2(x + cut, y), Vector2(x + w, y), Vector2(x + w - cut, y + h), Vector2(x, y + h)])
+	ci.draw_colored_polygon(pts, c)
+	Style.bord(ci, pts, c)
 
 
 ## Un damier de `n` lignes dans un parallélogramme (le drapeau des en-têtes et des cartes).
@@ -71,7 +73,18 @@ static func damier(ci: CanvasItem, r: Rect2, n: int, c1: Color, c2: Color, pench
 			var d0 := penche * (1 - float(j) / n)
 			var d1 := penche * (1 - float(j + 1) / n)
 			var x1 := minf(x0 + cote, r.end.x)
-			ci.draw_colored_polygon(PackedVector2Array([Vector2(x0 + d0, y0), Vector2(x1 + d0, y0), Vector2(x1 + d1, y0 + cote), Vector2(x0 + d1, y0 + cote)]), c)
+			var pts := PackedVector2Array([Vector2(x0 + d0, y0), Vector2(x1 + d0, y0), Vector2(x1 + d1, y0 + cote), Vector2(x0 + d1, y0 + cote)])
+			ci.draw_colored_polygon(pts, c)
+			if penche != 0: Style.bord(ci, pts, c)
+
+
+## Un bord lissé autour d'une forme pleine. Un polygone de Godot a des bords en escalier dès que
+## l'antialiasing de la carte graphique manque (la version web n'en a pas en 2D) : un trait
+## antialiasé de la même couleur, posé sur le contour, adoucit la marche.
+static func bord(ci: CanvasItem, pts: PackedVector2Array, c: Color) -> void:
+	var ferme := pts.duplicate()
+	ferme.append(pts[0])
+	ci.draw_polyline(ferme, c, 1.0, true)
 
 
 static func texte(ci: CanvasItem, t: String, p: Vector2, taille: int, c: Color, align := HORIZONTAL_ALIGNMENT_LEFT, largeur := -1.0) -> void:
