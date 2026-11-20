@@ -405,13 +405,15 @@ worker de l'essai ne couvre que son dossier.
   WASTED ; stands
   en ligne droite à Kangaroo Mountain, et rendus à Monaco, les platanes entre la piste et la voie) :
   brunodrapi.github.io/Slot_car_racing/essais/degats/. Le détail est dans le README de la branche.
-- `essais/godot/` — le prototype Godot, branche `claude/godot-prototype` : Stand de frites en Breithüft
-  Apex R, la physique du jeu web portée en GDScript (et prouvée identique), son décor capté dans le
-  navigateur et peint par la carte graphique, sa caméra. Ce n'est pas une copie du jeu web mais
-  l'export web de Godot (WebGL 2) : brunodrapi.github.io/Slot_car_racing/essais/godot/. La version
-  Windows est à côté, `essais/godot/GRIP-prototype-windows.zip`. Le détail est dans `godot/README.md`
-  de la branche ; le refaire : `godot --headless --path godot --export-release Web` (et `Windows`),
-  puis remplacer le dossier.
+- `essais/godot/` — la version Godot, branche `claude/godot-prototype` : les 14 circuits, les 35 voitures et
+  leurs livrées, l'IA, la course rapide, le contre-la-montre et l'entraînement (fantôme et guide), les
+  menus, le son et les effets ; la physique et la course du jeu web portées en GDScript et prouvées
+  identiques. Ce n'est pas une copie du jeu web mais l'export web de Godot (WebGL 2) :
+  brunodrapi.github.io/Slot_car_racing/essais/godot/. Le décor d'un circuit (`decors/`) se télécharge
+  la première fois qu'on y roule. La version Windows est à côté, `essais/godot/GRIP-windows.zip`. Le
+  détail est dans `godot/README.md` de la branche ; le refaire : `godot --headless --path godot
+  --export-release Web` (et `Windows`), puis remplacer le dossier, décors compris
+  (`godot/donnees/circuits/*-decor.*` dans `decors/`).
 
 Refaire un essai après un changement de sa branche : sur la branche, `node tools/build-dist.js
 --sortie=/tmp/essai --canal=recette` ; puis sur la recette, remplacer `essais/<nom>/` par `/tmp/essai`
