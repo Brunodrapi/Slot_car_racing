@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.56.7
+- Tunnels : de jour, la nuit tombe quand on passe sous un tunnel (Monaco), phares allumés, et le jour revient à la sortie.
+
 ## 0.56.6
 - Nuit un peu moins sombre : l'obscurité passe à 90 %, le décor et les voitures se voient mieux hors des phares.
 

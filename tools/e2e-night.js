@@ -163,11 +163,38 @@ fs.mkdirSync(OUT,{recursive:true});
    });
    await page.screenshot({path:path.join(OUT,mobile?'f1-nuit-mobile.png':'f1-nuit-pc.png')});
    await page.evaluate(()=>{app.startQuick('training','gt3','monza');app.state='paused';app.ui.hide();app.renderer.updateCamera(app.race,1);app.renderer.draw(app.race,app.ui);if(app.race.timeOfDay!=='night'||!app.race.entrainement)throw Error('training night');});
+   // De jour, la nuit tombe sous le tunnel de Monaco, en fondu, et se lève à la sortie.
+   const tunnel=await page.evaluate(()=>{
+    app.startQuick('timetrial','gt3','monaco');app.state='paused';app.ui.hide();
+    const r=app.renderer,race=app.race,n=r.night,T=race.track;race.timeOfDay='day';
+    const tu=T.tunnels[0];if(!tu)throw Error('Monaco sans tunnel');
+    race.state='racing';race.countdown=0;
+    const pose=(k)=>{race.player.place(k*T.ds,0,0);r.updateCamera(race,1);};
+    // une image « dans le temps » : on recule l'horloge du fondu d'un dixième de seconde
+    const image=()=>{n._t=performance.now()-100;r.draw(race,app.ui);};
+    pose((tu.from+tu.n+120)%T.n);image();       // la course commence dehors, au jour
+    if(n.force!==0)throw Error('nuit hors du tunnel');
+    pose((tu.from+60)%T.n);image();
+    const premier=n.force;                       // le premier pas du fondu, pas tout le noir d'un coup
+    for(let i=0;i<6;i++)image();
+    const dedans={force:n.force,affiche:r.nightCanvas.style.display,nuit:n.nuit,
+     voitLoin:n.canSee({x:race.player.x+400,y:race.player.y+400})};
+    const px=r.nightCtx.getImageData(Math.round(r.w*r.dpr*0.05),Math.round(r.h*r.dpr*0.95),1,1).data;
+    pose((tu.from+tu.n+120)%T.n);image();const sortie1=n.force;
+    for(let i=0;i<6;i++)image();
+    return {premier,dedans,pixel:Array.from(px),sortie1,dehors:n.force,afficheDehors:r.nightCanvas.style.display};
+   });
+   if(!(tunnel.premier>0&&tunnel.premier<0.5))throw Error('pas de fondu à l’entrée du tunnel '+JSON.stringify(tunnel));
+   if(tunnel.dedans.force!==1||tunnel.dedans.affiche!=='block'||tunnel.dedans.nuit)throw Error('pas de nuit sous le tunnel '+JSON.stringify(tunnel));
+   if(!tunnel.dedans.voitLoin)throw Error('la minicarte perd les voitures sous le tunnel');
+   if(!(tunnel.sortie1<1&&tunnel.sortie1>0.5&&tunnel.dehors===0&&tunnel.afficheDehors==='none'))throw Error('le jour ne revient pas à la sortie '+JSON.stringify(tunnel));
+   await page.evaluate(()=>{const r=app.renderer,race=app.race,T=race.track,tu=T.tunnels[0];race.player.place(((tu.from+60)%T.n)*T.ds,0,0);r.updateCamera(race,1);for(let i=0;i<6;i++){r.night._t=performance.now()-100;r.draw(race,app.ui);}});
+   await page.screenshot({path:path.join(OUT,mobile?'tunnel-mobile.png':'tunnel-pc.png')});
    // Resize while night is active; menu navigation must clear the effect.
    await page.evaluate(()=>{app.race.timeOfDay='night';});
    await page.setViewportSize(mobile?{width:844,height:390}:{width:1100,height:720});
    await page.evaluate(()=>{app.renderer.draw(app.race,app.ui);if(app.renderer.nightCanvas.width!==Math.round(innerWidth*app.renderer.dpr))throw Error('resize');app.toMenu();if(app.renderer.nightCanvas.style.display!=='none')throw Error('menu overlay');});
-   results.push({mobile,...check});await context.close();
+   results.push({mobile,...check,tunnel});await context.close();
   }
   assert.deepEqual(errors,[]);fs.writeFileSync(path.join(OUT,'verification.json'),JSON.stringify({results,errors},null,2));console.log(JSON.stringify({results,errors},null,2));
  }finally{await browser.close();await new Promise(r=>server.close(r));}

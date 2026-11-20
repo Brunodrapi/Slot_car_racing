@@ -249,6 +249,15 @@ const LINE_COLORS = { bleu: 'rgba(80,200,255,0.55)', racing: 'rgba(255,255,255,0
    de lumière : multipliés, ils assombriraient au lieu d'éclairer. Ils sont donc peints
    par-dessus, sur le calque du HUD (`glows`). */
 const NUIT_TEINTE = 'rgb(16,26,54)';
+const NUIT_TEINTE_RVB = [16, 26, 54];
+/* SOUS UN TUNNEL, LA NUIT TOMBE.
+
+De jour, quand la voiture du joueur entre sous un tunnel, l'écran passe à la nuit — la même teinte,
+les phares allumés — et le jour revient à la sortie. Un fondu d'un tiers de seconde fait l'entrée
+et la sortie, comme l'œil qui s'habitue ; il ne joue qu'en roulant (le départ sous un tunnel
+commence déjà dans le noir). La minicarte garde ses règles de jour : on ne perd pas de vue les
+autres parce qu'on est passé sous la roche. */
+const NUIT_FONDU = 0.35;
 class NightLighting {
   constructor() { this.lamps = []; this.fields = []; this.active = false; }
 
@@ -332,8 +341,22 @@ class NightLighting {
     this.fields = [];
   }
 
+  /** La voiture est-elle sous un tunnel ? Les mêmes bornes que le décor et les projecteurs. */
+  static sousTunnel(track, s) {
+    const k = track.idx(s);
+    return (track.tunnels || []).some(t => (k - t.from + track.n) % track.n < t.n);
+  }
+
   prepare(race, cam, reach) {
-    this.active = race.timeOfDay === 'night';
+    this.nuit = race.timeOfDay === 'night';
+    const t = performance.now(), dt = Math.min(0.1, Math.max(0, (t - (this._t ?? t)) / 1000));
+    this._t = t;
+    const dedans = !this.nuit && !race.opts.spectator && race.player && NightLighting.sousTunnel(race.track, race.player.s);
+    if (this._race !== race) { this._race = race; this.tunnel = dedans ? 1 : 0; }
+    this.tunnel = clamp((this.tunnel || 0) + (dedans ? 1 : -1) * dt / NUIT_FONDU, 0, 1);
+    // `force` : 1 la nuit, de 0 à 1 sous un tunnel de jour. C'est elle que l'obscurité et les feux suivent.
+    this.force = this.nuit ? 1 : this.tunnel;
+    this.active = this.force > 0;
     this.observer = race.opts.spectator ? cam : race.player.pos;
     this.fields = [];
     this.visibleLamps = [];
@@ -362,7 +385,7 @@ class NightLighting {
   }
 
   canSee(p) {
-    if (!this.active) return true;
+    if (!this.nuit) return true;
     if (Math.hypot(p.x - this.observer.x, p.y - this.observer.y) > 45) return false;
     for (const f of this.fields) {
       const x = p.x - f.x, y = p.y - f.y, c = Math.cos(f.heading), s = Math.sin(f.heading);
@@ -395,7 +418,10 @@ class NightLighting {
     if (!this.active) return;
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.clearRect(0, 0, canvas.width, canvas.height);
-    g.fillStyle = NUIT_TEINTE; g.fillRect(0, 0, canvas.width, canvas.height);
+    // multiplier par le blanc ne change rien : le fondu va du blanc à la teinte de la nuit
+    const f = this.force ?? 1, mix = (c) => Math.round(255 + (c - 255) * f);
+    g.fillStyle = f >= 1 ? NUIT_TEINTE : `rgb(${NUIT_TEINTE_RVB.map(mix).join(',')})`;
+    g.fillRect(0, 0, canvas.width, canvas.height);
     g.setTransform(matrix);
     g.save(); g.globalCompositeOperation = 'destination-out';
     for (const f of this.fields) {
@@ -412,14 +438,15 @@ class NightLighting {
    *  normal (le HUD dans le jeu), dans le même repère que le calque de nuit. */
   glows(g, matrix) {
     if (!this.active) return;
-    g.save(); g.setTransform(matrix);
+    const force = this.force ?? 1;
+    g.save(); g.setTransform(matrix); g.globalAlpha = force;
     // White front lenses and red light projected behind, without a car aura.
     for (const f of this.fields) {
       g.save(); g.translate(f.x, f.y); g.rotate(f.heading);
       if (f.beam) {
         drawLightLens(g, f.lens);
       } else {
-        g.globalAlpha = f.flood ? .065 : f.tint;
+        g.globalAlpha = (f.flood ? .065 : f.tint) * force;
         g.drawImage(f.flood ? this.floodMask() : this.tailMask(), 0, -f.width, f.length, f.width * 2);
       }
       g.restore();
