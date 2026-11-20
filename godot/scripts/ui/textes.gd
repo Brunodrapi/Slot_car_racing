@@ -33,6 +33,24 @@ const FR := {
 	h2b = "Idéale au milieu, jaune à l'extérieur, bleue à l'intérieur : pour doubler ou se protéger.",
 	h3 = "3  LE GRIP", h3a = "La pastille GRIP dit ce que font les pneus.",
 	h3b = "Bleu, tout va bien ; vert, ça travaille ; jaune, ça glisse ; violet puis rouge, tu perds la voiture.",
+	# le multijoueur : les mots de js/ui.js
+	multi = "MULTIJOUEUR", multiIntro = "Ouvre une table et donne son code à quatre lettres, ou saisis celui qu’on t’a donné. Tout passe directement d’un appareil à l’autre : rien n’est conservé, fermer le jeu ferme la table. Les joueurs du jeu web s’assoient aux mêmes tables.",
+	createTable = "OUVRIR UNE TABLE", joinTable = "REJOINDRE", tableCode = "CODE DE LA TABLE", watch = "REGARDER",
+	netWait = "Connexion…", yourTable = "TA TABLE %s", leaveTable = "QUITTER LA TABLE", roundTrip = "aller-retour",
+	reloadAll = "Tous les pilotes doivent recharger la dernière version du jeu.", players = "PILOTES %d/%d · %s",
+	spectatorsN = "%d spectateur(s)", hostTag = "hôte", youTag = "toi", ready = "PRÊT", notReady = "PAS PRÊT", waiting = "En attente…",
+	spectatorTag = "Spectateur", becomeSpectator = "DEVENIR SPECTATEUR", becomeDriver = "DEVENIR PILOTE",
+	mFormat = "FORMAT : %s", mRace = "COURSE", mDuel = "DUEL", mGhost = "CONTRE-LA-MONTRE",
+	mRaceDesc = "Tout le monde sur la grille, complétée par des IA, avec les contacts.", mDuelDesc = "Les humains et personne d’autre.",
+	mGhostDesc = "Même circuit, chacun son tour, les voitures se traversent.",
+	mCat = "CATÉGORIE : %s", mCatOpen = "Chacun prend la voiture qu'il veut ; l'IA court dans la catégorie de l'hôte.",
+	mCatDesc = "L'hôte peut réserver la table à une catégorie : chacun choisit alors sa voiture dans celle-ci.",
+	startRace = "DÉPART !", startWhenReady = "Tout le monde doit être prêt", pingHost = "Ping hôte :", pingGuests = "Ping invités :",
+	driverN = "Pilote %d", netLost = "Liaison perdue avec l’hôte…", netOff = "Le multijoueur a besoin de WebRTC, que cette version n’a pas.",
+	netErrCode = "Le code d’une table a quatre lettres.", netErrTaken = "Ce code est déjà pris.", netErrDirectory = "L’annuaire des tables ne répond pas.",
+	netErrNotFound = "Table introuvable.", netErrLink = "Liaison impossible.", netErrVersion = "Version multijoueur différente : tous les pilotes doivent recharger le jeu.",
+	netErrOther = "Erreur de liaison", backToTable = "RETOUR À LA TABLE", waitLoad = "On attend %d pilote(s)…", spectating = "EN SPECTATEUR",
+	codeHint = "Tape les quatre lettres au clavier",
 }
 const EN := {
 	quickRace = "QUICK RACE", timeTrial = "TIME TRIAL", training = "PRACTICE",
@@ -64,6 +82,23 @@ const EN := {
 	h2b = "Racing in the middle, yellow on the outside, blue on the inside: to overtake or to defend.",
 	h3 = "3  GRIP", h3a = "The GRIP dot tells you what the tyres are doing.",
 	h3b = "Blue, all good; green, working; yellow, sliding; purple then red, you are losing the car.",
+	multi = "MULTIPLAYER", multiIntro = "Open a table and pass on its four-letter code, or type the one you were given. Everything goes straight from one device to the other: nothing is stored, closing the game closes the table. Players of the web game sit at the same tables.",
+	createTable = "OPEN A TABLE", joinTable = "JOIN", tableCode = "TABLE CODE", watch = "WATCH",
+	netWait = "Connecting…", yourTable = "YOUR TABLE %s", leaveTable = "LEAVE THE TABLE", roundTrip = "round trip",
+	reloadAll = "Every driver has to reload the latest version of the game.", players = "DRIVERS %d/%d · %s",
+	spectatorsN = "%d spectator(s)", hostTag = "host", youTag = "you", ready = "READY", notReady = "NOT READY", waiting = "Waiting…",
+	spectatorTag = "Spectator", becomeSpectator = "WATCH INSTEAD", becomeDriver = "DRIVE INSTEAD",
+	mFormat = "FORMAT: %s", mRace = "RACE", mDuel = "DUEL", mGhost = "TIME TRIAL",
+	mRaceDesc = "Everyone on the grid, filled up with AI cars, contact on.", mDuelDesc = "The people and nobody else.",
+	mGhostDesc = "Same circuit, each on their own lap, cars pass through each other.",
+	mCat = "CLASS: %s", mCatOpen = "Everyone takes any car; the AI races in the host's class.",
+	mCatDesc = "The host can keep the table to one class: everyone then picks a car from it.",
+	startRace = "START!", startWhenReady = "Everyone has to be ready", pingHost = "Host ping:", pingGuests = "Guest ping:",
+	driverN = "Driver %d", netLost = "Lost the host…", netOff = "Multiplayer needs WebRTC, which this build does not have.",
+	netErrCode = "A table code has four letters.", netErrTaken = "That code is already taken.", netErrDirectory = "The table directory is not answering.",
+	netErrNotFound = "Table not found.", netErrLink = "Could not connect.", netErrVersion = "Different multiplayer version: every driver has to reload the game.",
+	netErrOther = "Connection error", backToTable = "BACK TO THE TABLE", waitLoad = "Waiting for %d driver(s)…", spectating = "WATCHING",
+	codeHint = "Type the four letters on the keyboard",
 }
 const PAYS := {
 	fr = { IT = "Italie", BE = "Belgique", MC = "Monaco", GB = "Royaume-Uni", JP = "Japon", BR = "Brésil", US = "États-Unis", DE = "Allemagne", FR = "France", AU = "Australie", AT = "Autriche", NL = "Pays-Bas" },
@@ -85,6 +120,15 @@ static func t(cle: String, args = null) -> String:
 	var s: String = d.get(cle, FR.get(cle, cle))
 	if args == null: return s
 	return s % args
+
+
+## Les erreurs du réseau naissent en français (net.gd, salle_rtc.gd), comme dans le jeu web.
+static func netErreur(m: String) -> String:
+	var cle = { "code à quatre lettres": "netErrCode", "code déjà pris": "netErrTaken", "annuaire injoignable": "netErrDirectory",
+		"table introuvable": "netErrNotFound", "liaison impossible": "netErrLink",
+		"Version multijoueur différente : tous les pilotes doivent recharger le jeu.": "netErrVersion" }.get(m)
+	if cle: return t(cle)
+	return "%s (%s)" % [t("netErrOther"), m] if langue() == "en" and m != "" else m
 
 
 static func pays(code: String) -> String:

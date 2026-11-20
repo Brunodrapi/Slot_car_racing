@@ -16,12 +16,14 @@ func _ready() -> void:
 	logo = load("res://images/interface/logo-grip.webp")
 	var modes := [[Textes.t("quickRace"), Style.ROUGE, Style.CREME, "wheel.webp", "race"],
 		[Textes.t("timeTrial"), Style.JAUNE, Style.ENCRE, "clock.webp", "timetrial"],
-		[Textes.t("training"), Style.BLEU, Style.CREME, "plaque-l.svg", "training"]]
+		[Textes.t("training"), Style.BLEU, Style.CREME, "plaque-l.svg", "training"],
+		[Textes.t("multi"), Style.NUIT_PLEINE, Style.CREME, "helmets.webp", "multi"]]
 	for m in modes:
 		var b := Bouton.new(m[0], m[1], m[2], 34)
 		b.icone = load("res://images/interface/" + m[3])
 		b.avecDamier = true
-		b.pressed.connect(func(): App.reglages.mode = m[4]; App.sauve(); App.aller("paddock", { mode = m[4] }))
+		if m[4] == "multi": b.pressed.connect(func(): App.aller("salon"))
+		else: b.pressed.connect(func(): App.reglages.mode = m[4]; App.sauve(); App.aller("paddock", { mode = m[4] }))
 		add_child(b)
 		boutons.append(b)
 	var comment := Bouton.new(Textes.t("howto"), Style.PAPIER, Style.ENCRE, 22)
@@ -59,8 +61,8 @@ func _ready() -> void:
 func _changeNom() -> void:
 	nom.text = App.reglages.nom
 	nom.visible = true
-	nom.position = boutons[5].position + Vector2(140, 6)
-	nom.size = Vector2(boutons[5].size.x - 150, boutons[5].size.y - 12)
+	nom.position = boutons[6].position + Vector2(140, 6)
+	nom.size = Vector2(boutons[6].size.x - 150, boutons[6].size.y - 12)
 	nom.grab_focus()
 	nom.select_all()
 
@@ -70,8 +72,8 @@ func _valideNom(t: String) -> void:
 	if t != "": App.reglages.nom = t
 	App.sauve()
 	nom.visible = false
-	boutons[5].libelle(Textes.t("pilot", str(App.reglages.nom).to_upper()))
-	boutons[5].grab_focus()
+	boutons[6].libelle(Textes.t("pilot", str(App.reglages.nom).to_upper()))
+	boutons[6].grab_focus()
 
 
 func _place() -> void:
@@ -79,19 +81,19 @@ func _place() -> void:
 	var k := minf(size.x / 1280.0, size.y / 720.0) if not portrait else size.x / 640.0
 	var x := 52 * k
 	var w := minf(540 * k, size.x - 2 * x)
-	var y := (180 * k) if not portrait else size.y * 0.36
-	var h := 70 * k
-	for i in 3:
-		boutons[i].position = Vector2(x, y + i * (h + 12 * k))
+	var y := (168 * k) if not portrait else size.y * 0.33
+	var h := 62 * k
+	for i in 4:
+		boutons[i].position = Vector2(x, y + i * (h + 10 * k))
 		boutons[i].size = Vector2(w, h)
-		boutons[i].taille = int(32 * k)
-	y += 3 * (h + 12 * k) + 4 * k
-	var hp := 52 * k
-	boutons[3].position = Vector2(x, y); boutons[3].size = Vector2(w * 0.49, hp); boutons[3].taille = int(21 * k)
-	boutons[4].position = Vector2(x + w * 0.51, y); boutons[4].size = Vector2(w * 0.49, hp); boutons[4].taille = int(21 * k)
+		boutons[i].taille = int(30 * k)
+	y += 4 * (h + 10 * k) + 4 * k
+	var hp := 50 * k
+	boutons[4].position = Vector2(x, y); boutons[4].size = Vector2(w * 0.49, hp); boutons[4].taille = int(21 * k)
+	boutons[5].position = Vector2(x + w * 0.51, y); boutons[5].size = Vector2(w * 0.49, hp); boutons[5].taille = int(21 * k)
 	y += hp + 10 * k
-	boutons[5].position = Vector2(x, y); boutons[5].size = Vector2(w * 0.68, hp); boutons[5].taille = int(21 * k)
-	boutons[6].position = Vector2(x + w * 0.7, y); boutons[6].size = Vector2(w * 0.3, hp); boutons[6].taille = int(21 * k)
+	boutons[6].position = Vector2(x, y); boutons[6].size = Vector2(w * 0.68, hp); boutons[6].taille = int(21 * k)
+	boutons[7].position = Vector2(x + w * 0.7, y); boutons[7].size = Vector2(w * 0.3, hp); boutons[7].taille = int(21 * k)
 	queue_redraw()
 
 

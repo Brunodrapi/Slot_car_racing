@@ -46,6 +46,18 @@ var sillage := {}
 var _guide := {}
 var _limGuide := {}
 var difficultes := {}
+# En ligne (js/race.js, opts.humans) : la grille des humains, l'IA pour compléter, les contacts
+# coupés au contre-la-montre partagé, la conduite réseau (NetDrive), l'attente des retardataires.
+var humans = null
+var aiFill := false
+var noContact := false
+var spectator := false
+var netDrive = null
+var broadcast = null
+var attente := false
+var finishDeadline := NAN
+var _evenementsEnAttente: Array = []
+const NET_FINISH_GRACE := 30.0
 
 
 ## `opts` : modele (Modele), difficulte (Dictionary du catalogue), mode, laps, nCars, roster
@@ -59,6 +71,10 @@ func _init(piste: Piste, opts: Dictionary, h: Hasard) -> void:
 	difficulte = opts.difficulte
 	entrainement = opts.get("entrainement", false) and mode == "timetrial"
 	difficultes = opts.get("difficultes", {})
+	humans = opts.get("humans")
+	aiFill = opts.get("aiFill", false)
+	noContact = opts.get("noContact", false)
+	spectator = opts.get("spectator", false)
 	profilRacing = Course.speedProfile(track, cls, "racing", 0.98)
 	_buildGrid(opts)
 
@@ -66,28 +82,53 @@ func _init(piste: Piste, opts: Dictionary, h: Hasard) -> void:
 func _buildGrid(opts: Dictionary) -> void:
 	var T := track
 	var c := cls
-	var solo := mode == "timetrial"
-	var n := 1 if solo else maxi(2, mini(int(opts.get("nCars", c.drivers)), 12))
-	var roster: Array = opts.roster
+	# `humans` fait une grille en ligne : une place par personne, dans l'ordre que la table a gelé
+	# au départ, aux dernières places. Une seule est `local` : la voiture que cet écran conduit.
+	var nh: int = (humans as Array).size() if humans != null else 1
+	var solo := mode == "timetrial" and humans == null
+	var n: int
+	if solo: n = 1
+	elif humans != null and not aiFill: n = nh
+	else: n = maxi(nh + 1, mini(int(opts.get("nCars", c.drivers)), 12))
+	var roster: Array = opts.roster if opts.get("roster") is Array and (opts.roster as Array).size() else [{ nom = "IA", modele = "", livery = 0, livree = 0, skill = 0.5 }]
 	var gap := c.length * 2.2
 	for i in n:
-		var humain := i == n - 1
+		var hIdx: int = i - (n - nh) if humans != null else (0 if i == n - 1 else -1)
+		var h = humans[hIdx] if hIdx >= 0 and humans != null else null
+		var humain := hIdx >= 0
+		var joueur: bool = (h != null and bool(h.get("local", false))) if humans != null else humain
 		var s0 := T.length - 8 - i * gap
 		var lat0 := (1.0 if i % 2 == 0 else -1.0) * minf(T.halfWidth * 0.45, c.width * 0.9)
 		var ai: Dictionary = roster[i % roster.size()]
-		var modele: Voiture.Modele = c if humain else opts.modeleDe.call(ai.modele, i)
+		var modele: Voiture.Modele
+		if h != null:
+			# Le repli d'un pilote en ligne ne dépend que de sa place, jamais de l'écran qui dessine.
+			var mid = h.get("modelId")
+			if mid is String and not Catalogue.voiture(mid).is_empty(): modele = Catalogue.modele(mid)
+			else: modele = opts.modeleDe.call("", hIdx + 1)
+		elif humain: modele = c
+		else: modele = opts.modeleDe.call(ai.modele, i)
 		var car := Voiture.new(T, modele, s0, lat0, hasard)
-		car.nom = opts.get("nomJoueur", "Vous") if humain else ai.nom
-		car.livery = int(opts.get("livery", 0)) if humain else int(ai.livery)
-		car.livree = int(opts.get("livree", 0)) if humain else int(ai.livree)
-		car.isPlayer = humain
+		if h != null: car.nom = String(h.get("name", "")) if h.get("name") else Textes.t("driverDefault")
+		else: car.nom = opts.get("nomJoueur", "Vous") if humain else ai.nom
+		var nLiv: int = maxi(1, int(opts.get("nLivreries", 1)))
+		if h != null: car.livery = int(h.get("livery", 0)) % nLiv
+		else: car.livery = int(opts.get("livery", 0)) if humain else int(ai.livery)
+		if h != null: car.livree = int(h.get("livree", 0)) if h.get("livree") != null else 0
+		else: car.livree = int(opts.get("livree", 0)) if humain else int(ai.livree)
+		car.isPlayer = joueur
 		car.skill = 1.0 if humain else float(ai.skill)
-		car.gripBoost = 1.0 if humain else float(difficulte.get("grip", 1.0))
-		car.numero = 1 if humain else 2 + i
+		car.gripBoost = 1.0 if humain or h != null else float(difficulte.get("grip", 1.0))
+		car.numero = 1 + hIdx if humain else 2 + i
+		car.human = hIdx if humain and humans != null else -1
 		car.laneTarget = lat0
 		car.gridLat = lat0
 		cars.append(car)
 	player = cars[cars.size() - 1]
+	for k in cars:
+		if k.isPlayer:
+			player = k
+			break
 	# Le réglage de frein du joueur (poseFrein à 1) : sa classe est une copie.
 	player.cls = player.cls.copie()
 	player.freinRatio = 1.0
@@ -139,7 +180,17 @@ func ecartFantome() -> float:
 ## Un pas de 1/120 s (race._step). `gaz` est l'accélérateur du joueur, de 0 à 1.
 func step(gaz: float) -> void:
 	evenements.clear()
+	evenements.append_array(_evenementsEnAttente)
+	_evenementsEnAttente.clear()
 	if state == "countdown":
+		if netDrive != null:
+			# L'époque partagée de l'horloge de l'hôte change la phase, dans beforeFrame : faire
+			# rugir le moteur n'avance ni le décompte ni la voiture.
+			for car in cars:
+				if netDrive.owns(car): car.throttle = gaz if car.isPlayer else (1.0 if countdown < 1.2 else 0.0)
+			return
+		# Le décompte attend que tout le monde ait fini de charger (voir race.js, `attente`).
+		if attente: return
 		countdown -= dt
 		if countdown <= 0:
 			state = "racing"
@@ -151,10 +202,18 @@ func step(gaz: float) -> void:
 	if state == "finished":
 		return
 	_simulate(gaz)
-	if state == "finishing":
-		finishTimer -= dt
-		if finishTimer <= 0 or cars.all(func(k): return k.finished):
+	if state == "finishing" and (netDrive == null or netDrive.host):
+		if netDrive != null: finishTimer = maxf(0, finishDeadline - time)
+		else: finishTimer -= dt
+		var concurrents := cars.filter(func(k): return k.human >= 0) if humans != null else cars
+		var echu: bool = finishTimer <= 0 and (netDrive == null or netDrive.canFinalize())
+		if echu or concurrents.all(func(k): return k.finished):
 			_finish()
+
+
+## Un événement venu du réseau (un tour, un choc, le départ) : il sort au prochain pas.
+func ajouteEvenement(e: Dictionary) -> void:
+	_evenementsEnAttente.append(e)
 
 
 func _simulate(gaz: float) -> void:
@@ -162,15 +221,20 @@ func _simulate(gaz: float) -> void:
 	if fantome and time >= sillage.n * sillage.pas:
 		sillage.joueur.append(player.progress()); sillage.fantome.append(fantome.progress()); sillage.n += 1
 	time += dt
+	if netDrive != null and not is_nan(finishDeadline) and time > finishDeadline: return
 	_flagsUpdate()
 	var pp := player.progress()
 	for ic in cars.size():
 		var car := cars[ic]
-		car.aiDriven = not car.isPlayer
+		if netDrive != null and not netDrive.owns(car): continue
+		car.aiDriven = car.human < 0 and not car.isPlayer
 		car.steer([] if car.fantome else sansFantome, dt, car.aiDriven)
 		var thr: float
 		if car.isPlayer:
 			thr = (1.0 if car.v < 15 else 0.0) if car.finished else gaz
+		elif car.human >= 0:
+			# la voiture d'une autre personne n'est simulée que chez elle (NetDrive)
+			thr = 0.0
 		elif car.fantome:
 			thr = 1.0 if Course.aiThrottle(car, [], dt, difficultes.get("hard", difficulte)) else 0.0
 		else:
@@ -192,11 +256,14 @@ func _simulate(gaz: float) -> void:
 				car.finished = true
 				car.finishTime = time
 				evenements.append({ type = "finish", car = car })
-				if car.isPlayer and state == "racing":
+				if (netDrive == null or netDrive.host) and (humans != null or car.isPlayer) and state == "racing":
 					state = "finishing"
-					finishTimer = 4.0
+					finishTimer = NET_FINISH_GRACE if humans != null else 4.0
+					finishDeadline = time + finishTimer
 	_flagsUpdate()
-	if mode == "race":
+	if mode == "race" and not noContact and netDrive != null:
+		netDrive.resolveContacts(dt)
+	elif mode == "race" and not noContact:
 		var avant: Array = []
 		if T.nBarrieres:
 			for k in cars: avant.append(PackedFloat64Array([k.x, k.y, k.th]))
@@ -258,8 +325,9 @@ func positionOf(car: Voiture) -> int:
 
 
 func _finish() -> void:
+	# En solo, l'IA finit ses tours hors de l'écran ; en ligne on garde les tours vraiment bouclés.
 	var extra := 0.0
-	while not cars.all(func(k): return k.finished) and extra < 180:
+	while humans == null and not cars.all(func(k): return k.finished) and extra < 180:
 		_simulate(0.0)
 		extra += dt
 	evenements.clear()
@@ -277,6 +345,11 @@ func _classe() -> void:
 			temps = tempsClasse(car), brut = car.finishTime if car.finished else -1.0,
 			penalite = Course.penalite(car), fautes = car.fautes, meilleur = car.bestLap,
 			ecart = tempsClasse(car) - tempsClasse(ordre[0]) if car.finished and ordre[0].finished else -1.0 })
+
+
+## Le classement d'un invité, bâti sur ce qu'il a reçu et non sur une simulation.
+func _classeRecu() -> void:
+	_classe()
 
 
 ## Le contre-la-montre se termine quand le joueur le décide.
@@ -299,6 +372,9 @@ func _flagsInspect(c: Voiture, i: int = -1) -> void:
 
 
 func _flagsUpdate() -> void:
+	if netDrive != null and not netDrive.host:
+		if not spectator: _flagsInspect(player)
+		return
 	var now := time
 	var actif := state == "racing" or state == "finishing"
 	zones = []
@@ -310,7 +386,7 @@ func _flagsUpdate() -> void:
 		_flagsInspect(c, i)
 		if actif and c.herbe and not c.finished:
 			if not offSince.has(i): offSince[i] = now
-			if now - offSince[i] >= FLAG_YELLOW_DELAY: zones.append({ id = i, s = c.s })
+			if now - offSince[i] >= FLAG_YELLOW_DELAY: zones.append({ id = i, s = c.s, before = 35, after = 15 })
 		else:
 			offSince.erase(i)
 		var bleu := false
@@ -340,6 +416,35 @@ func _flagsUpdate() -> void:
 			if c.started and c.lap >= laps - 1:
 				chequered = true
 				break
+
+
+## Les drapeaux sur le fil (js/flags.js : packet, key, receive), aux noms du jeu web.
+func flagsPacket() -> Dictionary:
+	var bleus := []
+	for i in cars.size():
+		if cars[i].blueFlag: bleus.append(i)
+	var pens := []
+	for i in penalties:
+		if penalties[i] > time: pens.append([i, penalties[i]])
+	return { blue = bleus, penalties = pens, zones = zones, chequered = chequered }
+
+
+func flagsKey() -> String:
+	var p := flagsPacket()
+	return JSON.stringify([p.blue, p.penalties, p.zones.map(func(z): return z.id), p.chequered])
+
+
+func flagsReceive(p: Dictionary) -> void:
+	if not (p.get("blue") is Array and p.get("zones") is Array and p.get("penalties") is Array): return
+	for i in cars.size(): cars[i].blueFlag = (p.blue as Array).has(i) or (p.blue as Array).has(float(i))
+	for e in p.penalties:
+		if e is Array and e.size() >= 2 and int(e[0]) < cars.size() and (e[1] is float or e[1] is int):
+			penalties[int(e[0])] = maxf(float(e[1]), penalties.get(int(e[0]), 0.0))
+	zones = []
+	for z in p.zones:
+		if z is Dictionary and int(z.get("id", -1)) < cars.size() and (z.get("s") is float or z.get("s") is int):
+			zones.append({ id = int(z.id), s = float(z.s), before = 35, after = 15 })
+	chequered = bool(p.get("chequered", false))
 
 
 ## Le drapeau qui concerne une voiture : pénalité, bleu, ou rien.

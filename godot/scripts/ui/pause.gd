@@ -8,9 +8,13 @@ var boutons: Array[Bouton] = []
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for d in [[Textes.t("resume"), Color("#ffd400"), Style.ENCRE, func(): jeu.basculePause()],
+	var choix := [[Textes.t("resume"), Color("#ffd400"), Style.ENCRE, func(): jeu.basculePause()],
 			[Textes.t("restart"), Style.NUIT_PLEINE, Style.CREME, func(): jeu.recommence()],
-			[Textes.t("quit"), Style.NUIT_PLEINE, Style.CREME, func(): jeu.quitte()]]:
+			[Textes.t("quit"), Style.NUIT_PLEINE, Style.CREME, func(): jeu.quitte()]]
+	if jeu.enLigne != null:
+		# en ligne, on ne recommence pas seul : on reprend, ou on retourne à la table
+		choix = [choix[0], [Textes.t("backToTable"), Style.NUIT_PLEINE, Style.CREME, func(): jeu.quitte()]]
+	for d in choix:
 		var b := Bouton.new(d[0], d[1], d[2], 24)
 		b.centre = true
 		b.pressed.connect(d[3])

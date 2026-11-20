@@ -14,6 +14,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 App="*res://scripts/app.gd"
+Reseau="*res://scripts/reseau/reseau.gd"
 
 [display]
 
@@ -54,3 +55,6 @@ anti_aliasing/quality/msaa_2d=2
 
 ; Où une version qui n'embarque pas les décors (web, essai pour ordinateur) va les chercher.
 decors_url="https://brunodrapi.github.io/Slot_car_racing/essais/godot/"
+; Les tables en ligne : celles de la recette du jeu web (slot-racer-v1-recette-…) ou celles de la
+; prod (slot-racer-v1-…). Une version vendue prendra « prod ».
+canal="recette"

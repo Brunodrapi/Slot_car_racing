@@ -11,6 +11,7 @@ var reglages := {
 }
 var ecran: Node = null
 var derniereCourse: Course = null      # pour l'écran des résultats
+var enLigne = null                     # la course de la table en ligne (Net.onStart), ou null
 
 
 func _ready() -> void:
@@ -54,4 +55,23 @@ func aller(nom: String, opts: Dictionary = {}) -> void:
 		"resultats": ecran = Resultats.new(derniereCourse)
 		"reglages": ecran = Reglages.new()
 		"comment": ecran = CommentJouer.new()
+		"salon": ecran = Salon.new()
 	get_tree().root.add_child.call_deferred(ecran)
+
+
+## L'hôte a donné le départ : tous les écrans de la table partent en course en même temps.
+func demarreEnLigne(cfg: Dictionary) -> void:
+	if Catalogue.circuits().filter(func(c): return c.id == cfg.trackId).is_empty():
+		# un circuit que cette version n'a pas (un circuit perso du jeu web) : on reste au salon
+		Reseau.net.error = "table introuvable"
+		Reseau.net.backToLobby()
+		return
+	enLigne = cfg
+	aller("course")
+
+
+## Après le drapeau, ou en quittant une course en ligne : la table reste ouverte.
+func retourTable() -> void:
+	enLigne = null
+	Reseau.net.backToLobby()
+	aller("salon")

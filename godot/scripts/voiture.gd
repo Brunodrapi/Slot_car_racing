@@ -201,6 +201,15 @@ var accroche := true
 var ecartAv := NAN
 var aimantF := 0.0
 var hasard: Hasard = null
+# En ligne (js/net-drive.js) : la place dans la grille des humains (-1 pour l'IA), une voiture tenue
+# par un autre écran, le dernier numéro d'état reçu. Les stands, l'usure et les dégâts n'existent
+# pas encore ici : jamais aux stands, pneus neufs, carrosserie intacte — sur le fil comme ailleurs.
+var human := -1
+var netRemote := false
+var netSeq := 0
+var inPit := false
+var damage := 0.0
+var tyre := 1.0
 
 
 func _init(piste: Piste, modele: Modele, s0: float, lat0: float, h: Hasard = null) -> void:

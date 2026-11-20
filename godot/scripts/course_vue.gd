@@ -43,13 +43,36 @@ var coutPas := 0.0
 
 
 var chargement: Label
+# En ligne : la course de la table (App.enLigne, donnée par Net.onStart), ou rien.
+var enLigne = null
+var circuitId := ""
+var voitureId := ""
+var _attenteAnnoncee := 0.0
+
+
+## Le circuit, la voiture et l'heure : ceux de la table en ligne, sinon ceux des réglages.
+func _choix() -> void:
+	var R: Dictionary = App.reglages
+	enLigne = App.enLigne
+	circuitId = R.circuit
+	voitureId = R.voiture
+	if enLigne != null:
+		circuitId = String(enLigne.trackId)
+		var moi = enLigne.humans.filter(func(h): return h.local)
+		var h = moi[0] if moi.size() else enLigne.humans[0]
+		if h.modelId is String and not Catalogue.voiture(h.modelId).is_empty(): voitureId = h.modelId
+
+
+func _nuit() -> bool:
+	return enLigne.timeOfDay == "night" if enLigne != null else bool(App.reglages.get("nuit", false))
 
 
 func _ready() -> void:
 	var R: Dictionary = App.reglages
 	_actions()
-	piste = Piste.charge("res://donnees/circuits/" + R.circuit)
-	var chemin := Decor.cheminDe(R.circuit)
+	_choix()
+	piste = Piste.charge("res://donnees/circuits/" + circuitId)
+	var chemin := Decor.cheminDe(circuitId)
 	if chemin == "":
 		# La version web ne porte pas les décors : celui du circuit se télécharge une fois.
 		var couche0 := CanvasLayer.new()
@@ -61,12 +84,12 @@ func _ready() -> void:
 		chargement.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		chargement.text = Textes.t("loading", 0)
 		couche0.add_child(chargement)
-		var ok: bool = await Decor.telecharge(R.circuit, self, func(f): chargement.text = Textes.t("loading", roundi(f * 100)))
+		var ok: bool = await Decor.telecharge(circuitId, self, func(f): chargement.text = Textes.t("loading", roundi(f * 100)))
 		if not ok:
 			chargement.text = Textes.t("loadFailed")
 			return
 		couche0.queue_free()
-		chemin = Decor.cheminDe(R.circuit)
+		chemin = Decor.cheminDe(circuitId)
 	decor = Decor.new()
 	decor.charge(chemin)
 	add_child(decor)
@@ -78,7 +101,7 @@ func _ready() -> void:
 	add_child(guide)
 	son = Son.new()
 	add_child(son)
-	son.voiture(R.voiture)
+	son.voiture(voitureId)
 	RenderingServer.set_default_clear_color(decor.fond)
 	tourne = R.vue == "avance"
 	camera = Camera2D.new()
@@ -108,12 +131,14 @@ func _depart() -> void:
 		v.queue_free()
 	vues.clear()
 	var h := Hasard.new()
-	var modele := Catalogue.modele(R.voiture)
-	var cat: String = Catalogue.voiture(R.voiture).cat
+	var modele := Catalogue.modele(voitureId)
+	var cat: String = Catalogue.voiture(voitureId).cat
 	var n := int(R.adversaires) if R.mode == "race" else 1
 	# Le moteur C++ quand il est là (ordinateur, téléphone) ; sinon Course, en GDScript (web).
 	var classe = CourseNative if CourseNative.disponible() and App.reglages.get("natif", true) else Course
-	course = classe.new(piste, {
+	if enLigne != null:
+		course = _courseEnLigne(modele, cat, h)
+	else: course = classe.new(piste, {
 		modele = modele, difficulte = Catalogue.difficulte(R.difficulte), mode = "timetrial" if R.mode == "training" else R.mode, laps = int(R.tours),
 		entrainement = R.mode == "training", difficultes = Catalogue.donnees.difficultes,
 		nCars = n, roster = Catalogue.roster(maxi(n, 2), 0, cat, h), livree = int(R.livree), nomJoueur = R.nom,
@@ -123,12 +148,12 @@ func _depart() -> void:
 	if nuit:
 		nuit.queue_free()
 		nuit = null
-	if R.get("nuit", false):
+	if _nuit():
 		nuit = Nuit.new(self)
 		add_child(nuit)
 	for car in course.cars:
 		var vue := VoitureVue.new(Catalogue.dessin(car.cls.id, car.livree))
-		vue.nuit = R.get("nuit", false)
+		vue.nuit = _nuit()
 		if car.fantome:
 			# Le fantôme se voit à travers (FANTOME_ALPHA), son ombre aussi.
 			vue.modulate = Color(1, 1, 1, 0.42)
@@ -144,6 +169,55 @@ func _depart() -> void:
 	son.silence()
 	pause.visible = false
 	hud.nouvelleCourse(course)
+
+
+## La course d'une table en ligne (main.js, startOnline) : la grille de l'hôte, l'IA tirée à la
+## graine du coup d'envoi, la conduite réseau. Toujours en GDScript : chaque écran ne simule que
+## ses voitures, et le C++ n'y gagnerait presque rien.
+func _courseEnLigne(modele: Voiture.Modele, cat: String, h: Hasard) -> Course:
+	var L: Dictionary = enLigne
+	var hote: Dictionary = L.humans[0]
+	var catIA: String = String(L.cat) if L.get("cat", "all") != "all" else (String(Catalogue.voiture(hote.modelId).cat) if hote.get("modelId") is String and not Catalogue.voiture(hote.modelId).is_empty() else cat)
+	var pilotes := 10
+	for k in Catalogue.categories():
+		if k.id == catIA: pilotes = int(k.get("drivers", 10))
+	var places := maxi((L.humans as Array).size() + 1, mini(pilotes, 12))
+	var roster: Array = Catalogue.roster(places, 0, catIA, HasardGraine.new(int(L.go) % 100000 if int(L.go) else 1)) if L.mode == "race" else []
+	var moi = L.humans.filter(func(x): return x.local)
+	var m: Dictionary = moi[0] if moi.size() else {}
+	var modeles := Catalogue.voituresDe(cat)
+	var c := Course.new(piste, {
+		modele = modele, difficulte = Catalogue.difficulte(String(L.get("difficulty", "medium"))), mode = "race",
+		laps = int(L.get("laps", 3)), difficultes = Catalogue.donnees.difficultes, humans = L.humans,
+		aiFill = L.mode == "race", noContact = L.mode == "ghost", spectator = bool(L.get("spectator", false)),
+		roster = roster, nLivreries = (Catalogue.donnees.livreries as Array).size(), nomJoueur = m.get("name", App.reglages.nom),
+		livree = int(m.get("livree", 0)),
+		modeleDe = func(id, i): return Catalogue.modele(id) if id is String and id != "" and Catalogue.modele(id) else Catalogue.modele(modeles[i % modeles.size()].id),
+	}, h)
+	var net: Net = Reseau.net
+	c.broadcast = RaceBroadcast.new(c)
+	net.drive = NetDrive.new(net, c)
+	net.focus = func(): return null
+	net.viewRadius = func(): return roundi(get_viewport().get_visible_rect().size.length() / maxf(.5, camZoom) / 2)
+	return c
+
+
+## La barrière de chargement, tenue pendant le décompte (main.js) : chacun annonce qu'il est prêt,
+## l'hôte retient le départ tant qu'il en manque un.
+func _barriere() -> void:
+	var net: Net = Reseau.net
+	if course.state == "countdown":
+		net.setCharge(net.isHost() or net.link.ping(net.pid) != null)
+		if net.isHost():
+			var a := net.attendus()
+			course.attente = a.reste > 0
+			if course.attente and Time.get_ticks_msec() - _attenteAnnoncee > 1000:
+				_attenteAnnoncee = Time.get_ticks_msec()
+				hud.annonce(Textes.t("waitLoad", a.reste), Style.CREME)
+		else:
+			course.attente = false
+	else:
+		course.attente = false
 
 
 func _actions() -> void:
@@ -169,14 +243,18 @@ func basculePause() -> void:
 	pause.visible = enPause
 	if enPause:
 		pause.ouvre()
-		son.silence()
+		if enLigne == null: son.silence()
 
 
 func recommence() -> void:
+	if enLigne != null: return
 	_depart()
 
 
 func quitte() -> void:
+	if enLigne != null:
+		App.retourTable()
+		return
 	App.aller("paddock", { mode = App.reglages.mode })
 
 
@@ -223,6 +301,9 @@ func _ligne(v: float) -> void:
 
 
 func _commandes() -> void:
+	if Reseau.autopilote:
+		gaz = 1.0 if PiloteAuto.gaz(course.player) else 0.0
+		return
 	var g := 1.0 if Input.is_action_pressed("gaz") or not doigtsGaz.is_empty() else 0.0
 	var gachette := Input.get_joy_axis(0, JOY_AXIS_TRIGGER_RIGHT)
 	if gachette > 0.05: g = maxf(g, gachette)
@@ -232,19 +313,36 @@ func _commandes() -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	if enPause or course == null: return
-	_commandes()
+	if course == null: return
+	# En ligne, la course ne s'arrête pas pendant la pause : les autres roulent.
+	var drive = course.netDrive
+	if enPause and drive == null: return
+	if enPause: gaz = 0.0
+	else: _commandes()
 	for i in course.cars.size():
 		var c := course.cars[i]
 		prec[i][0] = c.x; prec[i][1] = c.y; prec[i][2] = c.th
 	var t0 := Time.get_ticks_usec()
-	course.player.sel = ligne
+	if drive != null:
+		_barriere()
+		drive.beforeFrame(course.dt)
+	if not course.spectator: course.player.sel = ligne
 	var tourAvant := course.player.lap
-	course.step(gaz)
+	if course.spectator:
+		if drive.link.synchronized and drive.epoch != null:
+			course.time = maxf(0, (drive.link.now() - float(drive.epoch)) / 1000.0)
+	else:
+		course.step(gaz)
+	if drive != null:
+		if Reseau.net.isHost(): course.broadcast.sample(course)
+		drive.afterFrame(gaz, ligne)
+		if Reseau.net.silence() > 2 and Time.get_ticks_msec() - _attenteAnnoncee > 600:
+			_attenteAnnoncee = Time.get_ticks_msec()
+			hud.annonce(Textes.t("netLost"), Color("#ffb4a2"))
 	coutPas = coutPas * 0.98 + float(Time.get_ticks_usec() - t0) * 0.02
 	hud.evenements(course.evenements)
 	_sons(course.evenements)
-	if course.player.lap != tourAvant: _record()
+	if course.player.lap != tourAvant and enLigne == null: _record()
 	if course.state == "finished" and finieDepuis < 0:
 		finieDepuis = 0.0
 
@@ -284,6 +382,7 @@ func _process(dt: float) -> void:
 	var px := 0.0
 	var py := 0.0
 	var poses := []
+	var suivie := _suivie()
 	for i in course.cars.size():
 		var c := course.cars[i]
 		var q := prec[i]
@@ -299,7 +398,7 @@ func _process(dt: float) -> void:
 		vues[i].place(Vector2(x, y), th, c.delta, z)
 		vues[i].freine(c.braking and not c.herbe)
 		poses.append([Vector2(x, y), th])
-		if c == course.player: px = x; py = y
+		if c == suivie: px = x; py = y
 	if nuit: nuit.maj(poses)
 	_camera(dt, px, py)
 	guide.visible = course.entrainement or App.reglages.guide
@@ -326,6 +425,13 @@ func _process(dt: float) -> void:
 			finieDepuis = -100.0
 
 
+## La voiture que la caméra suit : la sienne, ou celle de tête pour un spectateur.
+func _suivie() -> Voiture:
+	if course.spectator:
+		return course.standings()[0]
+	return course.player
+
+
 func _surLigne(s: float) -> Vector2:
 	var u := piste.wrap_(s)
 	return piste.pos(u, piste.lineLat("racing", u))
@@ -334,7 +440,7 @@ func _surLigne(s: float) -> Vector2:
 ## La caméra en avance de js/render.js : elle vise le barycentre de la ligne idéale à venir, lisse
 ## l'ÉCART voiture-caméra plutôt que la position, et ne laisse jamais la voiture sortir du cadre.
 func _camera(dt: float, px: float, py: float) -> void:
-	var car := course.player
+	var car := _suivie()
 	var ecran := get_viewport().get_visible_rect().size
 	var W := ecran.x
 	var H := ecran.y

@@ -14,7 +14,11 @@ func _init(c: Course) -> void:
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	fond = load("res://images/interface/paddock.webp")
-	for d in [[Textes.t("retry"), Style.ROUGE, func(): App.aller("course")], [Textes.t("paddock"), Style.NUIT_PLEINE, func(): App.aller("paddock", { mode = App.reglages.mode })]]:
+	var choix := [[Textes.t("retry"), Style.ROUGE, func(): App.aller("course")], [Textes.t("paddock"), Style.NUIT_PLEINE, func(): App.aller("paddock", { mode = App.reglages.mode })]]
+	if course.netDrive != null:
+		# en ligne : la table reste ouverte, et c'est l'hôte qui relance
+		choix = [[Textes.t("backToTable"), Style.ROUGE, func(): App.retourTable()], [Textes.t("leaveTable"), Style.NUIT_PLEINE, func(): Reseau.net.leave(); App.enLigne = null; App.aller("accueil")]]
+	for d in choix:
 		var b := Bouton.new(d[0], d[1], Style.CREME, 26)
 		b.centre = true
 		b.pressed.connect(d[2])
@@ -26,7 +30,15 @@ func _ready() -> void:
 
 
 func _unhandled_input(e: InputEvent) -> void:
-	if e.is_action_pressed("ui_cancel"): App.aller("paddock", { mode = App.reglages.mode })
+	if e.is_action_pressed("ui_cancel"):
+		if course.netDrive != null: App.retourTable()
+		else: App.aller("paddock", { mode = App.reglages.mode })
+
+
+## L'hôte continue d'envoyer le classement aux invités pendant que les résultats s'affichent.
+func _process(_dt: float) -> void:
+	var d = course.netDrive
+	if d != null and d.host and Reseau.net.state == "playing": d.afterFrame(0.0, 0.0)
 
 
 func _cadre() -> Rect2:
