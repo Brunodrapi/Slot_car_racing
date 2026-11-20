@@ -29,7 +29,9 @@ contenu du jeu y est, repris du code web et non réinventé :
   réglages), avec le recul réglable ;
 - **la nuit** de `js/render.js` : phares, feux arrière, projecteurs des bacs à gravier, faite avec les
   lumières 2D de Godot ; le jour, les feux stop au freinage ;
-- **le français et l'anglais**, avec les mots du jeu web.
+- **le français et l'anglais**, avec les mots du jeu web ;
+- **le multijoueur**, aux mêmes tables que le jeu web : un joueur Godot et un joueur dans le
+  navigateur courent ensemble. La version Steam passe, elle, par les salons de Steam.
 
 Le meilleur tour propre est gardé sur l'appareil, par circuit et par voiture.
 
@@ -167,13 +169,77 @@ Cela se fait en deux étapes.
 Le résultat est le rendu du jeu web, mais peint par la carte graphique, net à tous les zooms, sans
 rien redessiner image par image.
 
+## Le multijoueur
+
+Il y a deux réseaux, selon la version :
+
+- **La version Steam** passe par Steam (`scripts/reseau/salle_steam.gd`) :
+  - la table est un salon Steam marqué de son code ;
+  - on y entre par le code ou par l'invitation d'un ami ;
+  - les messages passent par le réseau de Valve, avec ses relais ;
+  - les joueurs Steam courent entre eux.
+- **Toutes les autres versions** (navigateur, Windows hors Steam, téléphones) s'assoient aux tables
+  du jeu web (`scripts/reseau/salle_rtc.gd`) :
+  - même annuaire PeerJS et même WebRTC ;
+  - même code à quatre lettres, mêmes formules : course, duel, contre-la-montre.
+
+Au-dessus du réseau, c'est le code du jeu web, transcrit ligne pour ligne :
+
+| | |
+|---|---|
+| `scripts/reseau/net.gd` | la table, le salon, la grille gelée par l'hôte (js/net.js) |
+| `scripts/reseau/net_link.gd` | l'aller-retour et l'horloge de l'hôte (NetLink) |
+| `scripts/reseau/net_drive.gd` | la course : chacun simule sa voiture, l'hôte l'IA, les contacts, l'arrivée (NetDrive) |
+| `scripts/reseau/race_broadcast.gd` | le relevé de course envoyé avec le classement |
+| `scripts/reseau/binarypack.gd` | BinaryPack, le format des messages de PeerJS |
+| `scripts/reseau/course_en_ligne.gd` | la course d'une table : grille des humains, IA tirée à la graine du départ |
+| `scripts/ui/salon.gd` | l'écran : ouvrir, rejoindre, regarder ; réglages de l'hôte, voiture, prêt, départ |
+
+Les messages sont ceux du jeu web, octet pour octet :
+
+- les présences et les paquets de course (protocole 4) ;
+- les états de 40 octets (`driveEncode`) ;
+- les drapeaux et le relevé.
+
+La grille de l'IA est tirée au même générateur que `makeRoster`, avec la graine du coup d'envoi.
+
+**Les essais**
+
+| | ce qui est vérifié |
+|---|---|
+| `tests/binarypack.gd` | BinaryPack écrit et relit les mêmes octets que la bibliothèque de PeerJS (58 cas) |
+| `tests/roster.gd` | la grille de l'IA est celle du jeu web pour la même graine |
+| `tests/salle_annuaire.gd` | ouvrir une table dans un annuaire PeerJS, et le refus d'un code pris |
+| `tests/salle_steam.gd` | deux Godot, un faux Steam, duel et course avec l'IA : même classement des deux côtés |
+| `outils/essai-croise.js` | la version web de Godot et le jeu web dans Chromium : salon, puis duel et course avec l'IA, Godot hôte puis web hôte ; même classement au millième |
+
+```
+npx peerjs --port 9000 --host 127.0.0.1                     # un annuaire local
+NODE_PATH=$(npm root -g) node godot/outils/essai-croise.js <recette> godot/exports/web <peerjs.min.js> /tmp/croise course
+```
+
+**Ce qu'il faut ajouter**
+
+- **Sur ordinateur et téléphone, WebRTC vient de l'extension officielle de Godot.**
+  - `bash godot/outils/webrtc.sh` l'installe dans `addons/webrtc_native`.
+  - Elle n'est pas encore dans le dépôt, et ces versions n'ont pas encore été essayées en ligne.
+  - Sans elle, le salon dit que le multijoueur manque.
+- **La version Steam demande :**
+  - l'extension GodotSteam (GDExtension 4.x, codeberg.org/godotsteam), dans `addons/godotsteam` ;
+  - l'identifiant de l'application GRIP sur Steam (`grip/steam_app_id`, 480 en attendant, l'application d'essai de Valve) ;
+  - le préréglage d'export « Steam (Windows) », qui pose l'étiquette `steam`.
+
+  Elle n'a tourné que contre le faux Steam de `tests/salle_steam.gd`.
+- **Le canal.** Les tables sont celles de la recette du jeu web (`grip/canal`). Une version vendue
+  prendra « prod ».
+
 ## Ce qui n'y est pas encore
 
-- le jeu en ligne et le tableau mondial des records ;
+- le tableau mondial des records ;
 - l'usure, les dégâts et les stands, qui sont encore des essais du jeu web ;
 - les exports Android et iPhone : le moteur C++ est compilé pour Android, il reste à faire
   l'application (SDK, signature) ; l'iPhone demande un Mac et Xcode ;
-- Steamworks (succès, classement).
+- Steamworks au-delà du multijoueur : les succès et les classements.
 
 ## Les choix techniques
 
@@ -202,6 +268,7 @@ rien redessiner image par image.
 | `scripts/hud.gd` | le tableau de bord |
 | `scripts/son.gd`, `scripts/effets.gd` | le son, la gomme et la fumée |
 | `scripts/app.gd`, `scripts/ui/` | les réglages gardés et les écrans |
+| `scripts/reseau/` | le multijoueur (voir plus haut) |
 | `tests/parite.gd` | la preuve de la physique et de la course |
 | `tests/visite.tscn` | une visite photographiée des écrans (Xvfb) |
 | `donnees/`, `images/`, `sons/` | tout ce que les outils sortent du jeu web |

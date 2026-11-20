@@ -50,7 +50,7 @@ var onStart: Callable = func(_cfg: Dictionary) -> void: pass
 var focus: Callable = func(): return null
 var viewRadius: Callable = func(): return 110
 ## Fabrique la salle : SalleRTC pour les tables du jeu web, la salle Steam dans la version Steam.
-var fabriqueSalle: Callable = func(): return SalleRTC.new()
+var fabriqueSalle: Callable = func(): return SalleSteam.new() if SalleSteam.active() else SalleRTC.new()
 
 
 static func netCode() -> String:
@@ -70,7 +70,7 @@ static func now() -> float:
 
 
 func available() -> bool:
-	return SalleRTC.available()
+	return SalleSteam.active() or SalleRTC.available()
 
 
 func isHost() -> bool:

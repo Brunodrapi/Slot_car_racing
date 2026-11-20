@@ -58,3 +58,6 @@ decors_url="https://brunodrapi.github.io/Slot_car_racing/essais/godot/"
 ; Les tables en ligne : celles de la recette du jeu web (slot-racer-v1-recette-…) ou celles de la
 ; prod (slot-racer-v1-…). Une version vendue prendra « prod ».
 canal="recette"
+; La version Steam (étiquette d'export « steam ») : l'identifiant de l'application sur Steam.
+; 480 est l'application d'essai de Valve, en attendant celle de GRIP.
+steam_app_id=480

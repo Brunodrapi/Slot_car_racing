@@ -50,7 +50,7 @@ const FR := {
 	netErrCode = "Le code d’une table a quatre lettres.", netErrTaken = "Ce code est déjà pris.", netErrDirectory = "L’annuaire des tables ne répond pas.",
 	netErrNotFound = "Table introuvable.", netErrLink = "Liaison impossible.", netErrVersion = "Version multijoueur différente : tous les pilotes doivent recharger le jeu.",
 	netErrOther = "Erreur de liaison", backToTable = "RETOUR À LA TABLE", waitLoad = "On attend %d pilote(s)…", spectating = "EN SPECTATEUR",
-	codeHint = "Tape les quatre lettres au clavier",
+	codeHint = "Tape les quatre lettres au clavier", inviteFriend = "INVITER UN AMI",
 }
 const EN := {
 	quickRace = "QUICK RACE", timeTrial = "TIME TRIAL", training = "PRACTICE",
@@ -98,7 +98,7 @@ const EN := {
 	netErrCode = "A table code has four letters.", netErrTaken = "That code is already taken.", netErrDirectory = "The table directory is not answering.",
 	netErrNotFound = "Table not found.", netErrLink = "Could not connect.", netErrVersion = "Different multiplayer version: every driver has to reload the game.",
 	netErrOther = "Connection error", backToTable = "BACK TO THE TABLE", waitLoad = "Waiting for %d driver(s)…", spectating = "WATCHING",
-	codeHint = "Type the four letters on the keyboard",
+	codeHint = "Type the four letters on the keyboard", inviteFriend = "INVITE A FRIEND",
 }
 const PAYS := {
 	fr = { IT = "Italie", BE = "Belgique", MC = "Monaco", GB = "Royaume-Uni", JP = "Japon", BR = "Brésil", US = "États-Unis", DE = "Allemagne", FR = "France", AU = "Australie", AT = "Autriche", NL = "Pays-Bas" },

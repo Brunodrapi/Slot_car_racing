@@ -58,9 +58,7 @@ func _choix() -> void:
 	voitureId = R.voiture
 	if enLigne != null:
 		circuitId = String(enLigne.trackId)
-		var moi = enLigne.humans.filter(func(h): return h.local)
-		var h = moi[0] if moi.size() else enLigne.humans[0]
-		if h.modelId is String and not Catalogue.voiture(h.modelId).is_empty(): voitureId = h.modelId
+		voitureId = CourseEnLigne.voitureDe(enLigne, voitureId)
 
 
 func _nuit() -> bool:
@@ -171,32 +169,9 @@ func _depart() -> void:
 	hud.nouvelleCourse(course)
 
 
-## La course d'une table en ligne (main.js, startOnline) : la grille de l'hôte, l'IA tirée à la
-## graine du coup d'envoi, la conduite réseau. Toujours en GDScript : chaque écran ne simule que
-## ses voitures, et le C++ n'y gagnerait presque rien.
-func _courseEnLigne(modele: Voiture.Modele, cat: String, h: Hasard) -> Course:
-	var L: Dictionary = enLigne
-	var hote: Dictionary = L.humans[0]
-	var catIA: String = String(L.cat) if L.get("cat", "all") != "all" else (String(Catalogue.voiture(hote.modelId).cat) if hote.get("modelId") is String and not Catalogue.voiture(hote.modelId).is_empty() else cat)
-	var pilotes := 10
-	for k in Catalogue.categories():
-		if k.id == catIA: pilotes = int(k.get("drivers", 10))
-	var places := maxi((L.humans as Array).size() + 1, mini(pilotes, 12))
-	var roster: Array = Catalogue.roster(places, 0, catIA, HasardGraine.new(int(L.go) % 100000 if int(L.go) else 1)) if L.mode == "race" else []
-	var moi = L.humans.filter(func(x): return x.local)
-	var m: Dictionary = moi[0] if moi.size() else {}
-	var modeles := Catalogue.voituresDe(cat)
-	var c := Course.new(piste, {
-		modele = modele, difficulte = Catalogue.difficulte(String(L.get("difficulty", "medium"))), mode = "race",
-		laps = int(L.get("laps", 3)), difficultes = Catalogue.donnees.difficultes, humans = L.humans,
-		aiFill = L.mode == "race", noContact = L.mode == "ghost", spectator = bool(L.get("spectator", false)),
-		roster = roster, nLivreries = (Catalogue.donnees.livreries as Array).size(), nomJoueur = m.get("name", App.reglages.nom),
-		livree = int(m.get("livree", 0)),
-		modeleDe = func(id, i): return Catalogue.modele(id) if id is String and id != "" and Catalogue.modele(id) else Catalogue.modele(modeles[i % modeles.size()].id),
-	}, h)
+func _courseEnLigne(_modele: Voiture.Modele, _cat: String, h: Hasard) -> Course:
 	var net: Net = Reseau.net
-	c.broadcast = RaceBroadcast.new(c)
-	net.drive = NetDrive.new(net, c)
+	var c := CourseEnLigne.cree(piste, enLigne, voitureId, net, h)
 	net.focus = func(): return null
 	net.viewRadius = func(): return roundi(get_viewport().get_visible_rect().size.length() / maxf(.5, camZoom) / 2)
 	return c

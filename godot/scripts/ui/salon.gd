@@ -45,6 +45,8 @@ func _ready() -> void:
 	_b("role", "", Style.NUIT_PLEINE, Style.CREME, func(): net.setMine({ spectator = not net.mine.get("spectator", false), ready = false }); net.pump())
 	_b("pret", "", Style.JAUNE, Style.ENCRE, func(): _pret(not net.mine.get("ready", false)))
 	_b("depart", Textes.t("startRace"), Style.ROUGE, Style.CREME, func(): net.start())
+	# la version Steam : inviter un ami par Steam plutôt que de lui dicter le code
+	_b("inviter", Textes.t("inviteFriend"), Style.BLEU, Style.CREME, func(): if net.room is SalleSteam: net.room.invite())
 	resized.connect(_place)
 	_maj()
 
@@ -80,6 +82,12 @@ func _ouvre(hote: bool, spectateur := false) -> void:
 		_voitureNet()
 		_pret(false)
 	_maj()
+
+
+## Rejoindre la table d'un ami (l'invitation de Steam donne son code).
+func rejoins(c: String) -> void:
+	code.text = c
+	_ouvre(false)
 
 
 func _tours(circuit: String) -> int:
@@ -140,7 +148,7 @@ func _maj() -> void:
 	var dansTable := net.state != "off"
 	for n in ["ouvrir", "rejoindre", "regarder"]: boutons[n].visible = not dansTable
 	code.visible = not dansTable
-	for n in ["format", "heure", "cat", "circuitM", "circuitP", "tours", "diff", "voitureM", "voitureP", "pret", "depart", "role"]:
+	for n in ["format", "heure", "cat", "circuitM", "circuitP", "tours", "diff", "voitureM", "voitureP", "pret", "depart", "role", "inviter"]:
 		boutons[n].visible = dansTable
 	boutons.retour.libelle(Textes.t("leaveTable") if dansTable else Textes.t("back"))
 	if dansTable:
@@ -156,6 +164,7 @@ func _maj() -> void:
 		boutons.depart.visible = hote
 		boutons.depart.disabled = not net.canStart()
 		boutons.role.visible = not hote
+		boutons.inviter.visible = net.room is SalleSteam
 		boutons.role.libelle(Textes.t("becomeDriver") if net.mine.get("spectator", false) else Textes.t("becomeSpectator"))
 	if etatVu != net.state:
 		etatVu = net.state
@@ -206,6 +215,8 @@ func _place() -> void:
 		boutons.depart.position = Vector2(xr + wr * 0.44, y); boutons.depart.size = Vector2(wr * 0.56, 56 * k); boutons.depart.taille = int(24 * k)
 		boutons.role.position = Vector2(colG.position.x, 140 * k + 8 * 44 * k + 20 * k)
 		boutons.role.size = Vector2(minf(colG.size.x, 320 * k), 44 * k); boutons.role.taille = int(17 * k)
+		boutons.inviter.position = boutons.role.position + Vector2(0, 52 * k)
+		boutons.inviter.size = boutons.role.size; boutons.inviter.taille = int(17 * k)
 	queue_redraw()
 
 

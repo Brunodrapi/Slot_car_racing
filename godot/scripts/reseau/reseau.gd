@@ -16,9 +16,23 @@ var _depuis := 0.0
 
 func _ready() -> void:
 	net.onStart = func(cfg: Dictionary) -> void: App.demarreEnLigne(cfg)
+	# La version Steam : Steam s'ouvre au démarrage, et l'invitation d'un ami mène à sa table.
+	if SalleSteam.active() and SalleSteam.initialise():
+		SalleSteam.singleton().join_requested.connect(func(lobby: int, _ami: int) -> void: _invite(lobby))
 	if OS.has_feature("web"):
 		# un booléen JavaScript revient en entier (0 ou 1)
 		_essai = bool(JavaScriptBridge.eval("Array.isArray(window.GRIP_ESSAI)", true))
+
+
+## Un ami nous invite dans son salon Steam : on quitte ce qu'on faisait et on s'assoit à sa table.
+func _invite(lobby: int) -> void:
+	var code := SalleSteam.new().codeDe(lobby)
+	if code == "": return
+	if net.state != "off": net.leave()
+	App.enLigne = null
+	App.aller("salon")
+	await get_tree().process_frame
+	if App.ecran is Salon: App.ecran.rejoins(code)
 
 
 func _process(delta: float) -> void:
