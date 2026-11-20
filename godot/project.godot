@@ -13,8 +13,13 @@ config/icon="res://icon.svg"
 
 [display]
 
-window/size/viewport_width=1280
+; Le cadre de référence est carré : une fenêtre de 1280 × 720 le montre à l'échelle 1, et un
+; téléphone en portrait garde une largeur lisible au lieu de tout rétrécir pour y faire tenir
+; 1280 points. La fenêtre de bureau s'ouvre, elle, en 1280 × 720.
+window/size/viewport_width=720
 window/size/viewport_height=720
+window/size/window_width_override=1280
+window/size/window_height_override=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=4

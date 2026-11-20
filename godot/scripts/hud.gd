@@ -91,9 +91,14 @@ func _draw() -> void:
 	draw_circle(Vector2(xl, ys), 9, CREME)
 	var yv := haut + (1 - car.sel) / 2 * (bas - haut)
 	draw_circle(Vector2(xl, yv), 12, CREME, false, 2)
-	# --- la mesure
+	# --- la mesure, sous les temps (elle tient aussi sur un téléphone en portrait)
 	var fps := Engine.get_frames_per_second()
-	var t := "Godot %s · %d i/s · pire image %.1f ms · pas de physique %.0f µs · %d carreaux, %d k triangles" % [
-		Engine.get_version_info().string, fps, jeu.pireImage * 1000, jeu.coutPas, jeu.decor.nCarreaux, jeu.decor.nTriangles / 1000]
-	_texte(t, Vector2(W - 760, 30), 14, Color(CREME, 0.75), HORIZONTAL_ALIGNMENT_RIGHT, 744)
-	_texte("Espace : gaz · ↑ ↓ : ligne · C : vue · R : rejouer · F : plein écran", Vector2(W - 760, 50), 13, Color(CREME, 0.55), HORIZONTAL_ALIGNMENT_RIGHT, 744)
+	var appels := Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+	var prims := Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME)
+	var gris := Color(CREME, 0.75)
+	_texte("%d i/s · pire image %.1f ms · physique %.0f µs/pas" % [fps, jeu.pireImage * 1000, jeu.coutPas], Vector2(18, 112), 14, gris)
+	_texte("%d appels de dessin · %d k triangles · Godot %s · %s" % [appels, prims / 1000, Engine.get_version_info().string, RenderingServer.get_current_rendering_method()], Vector2(18, 130), 13, Color(gris, 0.7))
+	if OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios"):
+		_texte("doigt à gauche : ligne · ailleurs : gaz", Vector2(18, 148), 13, Color(gris, 0.6))
+	else:
+		_texte("Espace : gaz · flèches haut et bas : ligne · C : vue · R : rejouer · F : plein écran", Vector2(18, 148), 13, Color(gris, 0.6))

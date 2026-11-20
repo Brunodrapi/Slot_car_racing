@@ -40,7 +40,10 @@ func _process(_dt: float) -> bool:
 	if n in PHOTOS:
 		var img := root.get_viewport().get_texture().get_image()
 		img.save_png("%s/godot-%d.png" % [dossier, n])
-		print("photo ", n, " v=", roundi(jeu.car.v * 3.6), " km/h s=", roundi(jeu.car.s))
+		print("photo ", n, " v=", roundi(jeu.car.v * 3.6), " km/h s=", roundi(jeu.car.s), " · appels ",
+			Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), " · triangles ",
+			Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME), " · objets ",
+			Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME))
 	if n > PHOTOS[-1]:
 		quit()
 	return false
