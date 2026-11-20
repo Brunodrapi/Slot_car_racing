@@ -3032,6 +3032,16 @@ class Renderer {
 
   _drawCar(g, car) {
     const m = g.getTransform(), scale = this.nativeDpr / this.dpr;
+    /* UNE VOITURE HORS DE L'ÉCRAN NE SE DESSINE PAS. Les dix l'étaient à chaque image, quel que soit le
+    cadre : mesuré à Spa sur un téléphone, 5,5 en moyenne étaient à l'écran pendant les 40 premières
+    secondes, peloton groupé, et deux ou trois une fois la course étirée. Une voiture cabossée hors de
+    l'écran retendait même sa tôle. La marge couvre la voiture, son ombre et ses feux stop : douze
+    mètres autour de son centre. */
+    {
+      const cx = m.a * car.x + m.c * car.y + m.e, cy = m.b * car.x + m.d * car.y + m.f;
+      const marge = 12 * Math.hypot(m.a, m.b), W = this.canvas.width, H = this.canvas.height;
+      if (cx < -marge || cy < -marge || cx > W + marge || cy > H + marge) return;
+    }
     g = this.carCtx;
     g.setTransform(m.a * scale, m.b * scale, m.c * scale, m.d * scale, m.e * scale, m.f * scale);
     g.imageSmoothingEnabled = true;

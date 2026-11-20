@@ -116,7 +116,7 @@ class Carrosserie {
       this.vx[k] += nx * p * 2; this.vy[k] += ny * p * 2;     // le coup qui fait trembler
     }
     this._ordonne(this.tx, this.ty);
-    this.touche = true; this.calme = false; this.version++;
+    this.touche = true; this.calme = false; this.version++; this.bosses = (this.bosses || 0) + 1;
     this.fx = (this.fx * this.fw + px * force) / (this.fw + force);
     this.fy = (this.fy * this.fw + py * force) / (this.fw + force);
     this.fw += force;
@@ -247,7 +247,7 @@ class Carrosserie {
     g.lineTo(u + nx * 0.16 * k + tu * R * 0.55, v + ny * 0.16 * k + tv * R * 0.55);
     g.stroke();
     g.restore();
-    this.version++;
+    this.version++; this.bosses = (this.bosses || 0) + 1;
   }
 
   /* LE CAPOT ARRACHÉ : le compartiment moteur à sa place, comme sur la voiture blanche de la vidéo de
@@ -284,7 +284,14 @@ class Carrosserie {
       cv.width = iw + 2 * mx; cv.height = ih + 2 * my;
       c = this.caches[cle] = { cv, img, version: -1 };
     }
-    if (c.version !== this.version) {
+    /* Pendant que la tôle tremble, on ne la retend que trente fois par seconde : à soixante, plusieurs
+    voitures touchées ensemble au départ allongeaient l'image de 15 à 30 ms sur un téléphone, pour un
+    tremblement qui dure une demi-seconde et ne se lit pas mieux. Une bosse neuve ou figée se retend
+    toujours tout de suite. */
+    const maintenant = typeof performance !== 'undefined' ? performance.now() : 0;
+    const tremble = !this.calme && c.version >= 0 && c.version !== this.version && maintenant - (c.quand || 0) < 33 && c.bosses === this.bosses;
+    if (c.version !== this.version && !tremble) {
+      c.quand = maintenant; c.bosses = this.bosses;
       const gc = c.cv.getContext('2d');
       gc.setTransform(1, 0, 0, 1, 0, 0);
       gc.clearRect(0, 0, c.cv.width, c.cv.height);
