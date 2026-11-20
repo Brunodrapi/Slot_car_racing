@@ -186,6 +186,8 @@ for (const { def, T, projecteurs } of circuits) {
     plaques: (T.pads || []).length,
     barriere: { champs: [...BF, 'pneus'] }, bornes: T.bounds, index,
     projecteurs: projecteurs.map((l) => ({ x: l.x, y: l.y, cap: l.heading, longueur: l.length, largeur: l.width, puissance: l.power })),
+    // les tunnels (track.tunnels) : premier point et nombre de points couverts — la nuit y tombe
+    tunnels: (T.tunnels || []).map((t) => [t.from, t.n]),
   }) + '\n');
   console.log(T.id.padEnd(12), T.name.padEnd(22), T.n, 'points,', T.barriers.length, 'protections,', T.crossings.length, 'croisement(s),', projecteurs.length, 'projecteurs,', T.laps, 'tours');
 }

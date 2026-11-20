@@ -10,7 +10,7 @@ var tactile := false
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	fond = load("res://images/interface/accueil-pc.webp")
-	tactile = OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
+	tactile = Style.tactile()
 	for d in [[Textes.t("back"), Style.NUIT_PLEINE, func(): App.aller("accueil")], [Textes.t("onTrack"), Style.ROUGE, func(): App.aller("paddock", { mode = "training" })]]:
 		var b := Bouton.new(d[0], d[1], Style.CREME, 26)
 		b.centre = true

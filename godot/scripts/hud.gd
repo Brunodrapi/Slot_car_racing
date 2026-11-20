@@ -13,6 +13,11 @@ var flashCouleur := Color.WHITE
 var flashJusqua := 0.0
 var pommeau := NAN
 var tactile := false
+# La pastille du pouce (js/render.js, pouce) : elle vient sous le doigt qui accélère.
+var pouce := { cx = 0.0, cy = 0.0, r = 46.0 }
+var pouceAncre := false
+var poucePress := 0.0
+const PASTEL := [Color8(158, 203, 240), Color8(166, 223, 166), Color8(240, 224, 154), Color8(200, 168, 234), Color8(242, 163, 163)]
 var consigne := -1                # le mot du guide : gaz, dose, lâche (-1 : pas de guide)
 const P := 14.0                   # la marge (this.pad)
 const VIF := [Color8(94, 196, 255), Color8(82, 230, 168), Color8(255, 214, 74), Color8(190, 140, 255), Color8(255, 96, 96)]
@@ -22,13 +27,26 @@ const C_IDEALE := Color8(245, 246, 250)
 
 
 func _ready() -> void:
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tactile = OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
+	tactile = Style.tactile()
+	resized.connect(homePouce)
+	get_viewport().size_changed.connect(_cadre)
+	_cadre()
+
+
+## La taille du tableau de bord : l'écran entier, agrandi au doigt (Style.echelleTactile).
+func _cadre() -> void:
+	var vp := get_viewport_rect().size
+	var k := Style.echelleTactile(vp) if tactile else 1.0
+	set_anchors_preset(Control.PRESET_TOP_LEFT)
+	position = Vector2.ZERO
+	scale = Vector2(k, k)
+	size = vp / k
 
 
 func nouvelleCourse(c: Course) -> void:
 	course = c
+	homePouce.call_deferred()
 	go = -1.0
 	flash = ""
 	var T := c.track
@@ -59,18 +77,59 @@ func _droite() -> bool:
 	return App.reglages.cote == "right"
 
 
+## Téléphone ou écran étroit : les tailles serrées du jeu web (render.js, `mobile`).
+func _mobile() -> bool:
+	return tactile or size.x < 700
+
+
+## Paysage écrasé d'un téléphone (render.js, shortLandscape) : carte et levier plus courts.
+func _paysageCourt() -> bool:
+	return size.y < 560 and size.x > size.y
+
+
 func _levier() -> Dictionary:
 	var H := size.y
-	var len := clampf(H * 0.19, 64, 160)
+	var len := clampf(H * (0.14 if _paysageCourt() else 0.19), 64, 160)
 	return { x = size.x - P - 22 if _droite() else P + 22, y = H - P - 30 - len, len = len }
 
 
+## Le rayon de la pastille et sa place de repos : au milieu du bas en portrait, du côté opposé au
+## levier en paysage (render.js, pouceHome).
+func _pouceRepos() -> Dictionary:
+	var W := size.x
+	var H := size.y
+	var r := clampf(minf(W * 0.12, H * 0.08), 32, 60)
+	var cx := W / 2
+	if W > H: cx = P + r + 22 if _droite() else W - P - r - 22
+	return { cx = cx, cy = H - P - r, r = r }
+
+
+func homePouce() -> void:
+	pouce = _pouceRepos()
+	pouceAncre = false
+
+
+## La pastille vient sous le pouce, et reste entière à l'écran (render.js, anchorPouce) : jamais
+## sur la colonne du levier, et assez bas pour que la vitesse tienne au-dessus.
+func anchorPouce(p: Vector2) -> void:
+	var r: float = _pouceRepos().r
+	var m := 8.0
+	var sl := _levier()
+	var lo: float = r + m if _droite() else sl.x + 30 + r
+	var hi: float = sl.x - 30 - r if _droite() else size.x - r - m
+	pouce = { cx = clampf(p.x, lo, hi) if hi > lo else hi, cy = clampf(p.y, r + 42 + m, size.y - r - m), r = r }
+	pouceAncre = true
+
+
+## Le bouton pause a la hauteur de l'étiquette de position, sa voisine de ligne (render.js,
+## pauseH) ; le doigt garde son carré de 44 px.
 func _pause() -> Rect2:
-	return Rect2(size.x - P - 2 - 44, P + 2, 44, 44)
+	var c := 36.0 if _mobile() else 44.0
+	return Rect2(size.x - P - 2 - c, P + 2, c, c)
 
 
 func toucheePause(p: Vector2) -> bool:
-	return _pause().grow(6).has_point(p)
+	return Rect2(size.x - P - 2 - 44, P + 2, 44, 44).grow(6).has_point(p)
 
 
 func dansLevier(p: Vector2) -> bool:
@@ -101,16 +160,18 @@ func _draw() -> void:
 	var y0 := P + 2
 	var xs := P + 2
 	var xe := W - P - 2
-	var wPos := 120.0
-	var headH := 44.0
+	var mobile := _mobile()
+	var wPos := 90.0 if mobile else 120.0
+	var headH := 36.0 if mobile else 44.0
 	var pb := _pause()
 	# La position
 	Style.biseau(self, Rect2(xs, y0, wPos, headH), Style.PAPIER)
-	Style.texte(self, "TT" if tt and not course.entrainement else "P %d/%d" % [pos, n], Vector2(xs + 10, y0 + headH / 2 + 11), 32, Style.ENCRE)
-	# Les chronos
-	var pw := minf(230, maxf(110, xe - xs - wPos - pb.size.x - 20))
-	var px := clampf((W - pw) / 2, xs + wPos + 8, pb.position.x - pw - 8)
-	var ph := 32.0
+	var fPos := 24 if mobile else 32
+	Style.texte(self, "TT" if tt and not course.entrainement else "P %d/%d" % [pos, n], Vector2(xs + 10, y0 + headH / 2 + fPos * 0.34), fPos, Style.ENCRE)
+	# Les chronos (la place du bouton pause comptée sur son carré de 44 px, comme render.js pb.s)
+	var pw := minf(172.0 if mobile else 230.0, maxf(110, xe - xs - wPos - 44 - 20))
+	var px := clampf((W - pw) / 2, xs + wPos + 8, xe - 44 - pw - 8)
+	var ph := 27.0 if mobile else 32.0
 	var nul := p.lapSale
 	var drapeaux := []
 	if course.state != "countdown":
@@ -119,8 +180,8 @@ func _draw() -> void:
 		elif course.zones.size(): drapeaux.append("yellow")
 		if course.chequered: drapeaux.append("chequered")
 	var enTour := 0.0 if course.state == "countdown" else course.time - p.lapStart
-	_chrono(px, y0, pw, ph, Textes.t("lapVoid") if nul else Textes.t("lap"), Style.temps(enTour), true, drapeaux, nul)
-	_chrono(px, y0 + ph + 4, pw, ph, Textes.t("best"), Style.temps(p.bestLap), false, [], false)
+	_chrono(px, y0, pw, ph, Textes.t("lapVoid") if nul else Textes.t("lap"), Style.temps(enTour), true, drapeaux, nul, mobile)
+	_chrono(px, y0 + ph + 4, pw, ph, Textes.t("best"), Style.temps(p.bestLap), false, [], false, mobile)
 	# Le bouton de pause
 	draw_rect(pb, Style.NUIT)
 	var bh := roundf(pb.size.y * 0.46)
@@ -130,39 +191,51 @@ func _draw() -> void:
 	draw_rect(Rect2(cx - ec - bw, pb.position.y + (pb.size.y - bh) / 2, bw, bh), Color("#fff0d4"))
 	draw_rect(Rect2(cx + ec, pb.position.y + (pb.size.y - bh) / 2, bw, bh), Color("#fff0d4"))
 	# Le tour
-	var lapW := 150.0
-	var lapH := 46.0
+	var lapW := 108.0 if mobile else 150.0
+	var lapH := 34.0 if mobile else 46.0
 	var lapY := maxf(y0 + headH + 6, y0 + ph * 2 + 12) if px + pw > xe - lapW - 4 else y0 + headH + 6
 	Style.biseau(self, Rect2(xe - lapW, lapY, lapW, lapH), Style.PAPIER)
 	var num := str(p.lap + 1 if tt else mini(course.laps, p.lap + 1))
 	var tot := "" if tt else "/%d" % course.laps
-	var wl := Style.largeur(Textes.t("lap"), 19)
-	var wn := Style.largeur(num, 40)
-	var wt := Style.largeur(tot, 25)
+	var fGrand := 30 if mobile else 40
+	var fMoyen := 19 if mobile else 25
+	var fPetit := 15 if mobile else 19
+	var wl := Style.largeur(Textes.t("lap"), fPetit)
+	var wn := Style.largeur(num, fGrand)
+	var wt := Style.largeur(tot, fMoyen)
 	var x := xe - lapW + maxf(8, (lapW - (wl + 6 + wn + 2 + wt)) / 2)
 	var base := lapY + lapH * 0.82
-	Style.texte(self, Textes.t("lap"), Vector2(x, base), 19, Style.ENCRE); x += wl + 6
-	Style.texte(self, num, Vector2(x, base + 2), 40, Style.ENCRE); x += wn + 2
-	if tot != "": Style.texte(self, tot, Vector2(x, base), 25, Style.ENCRE)
+	Style.texte(self, Textes.t("lap"), Vector2(x, base), fPetit, Style.ENCRE); x += wl + 6
+	Style.texte(self, num, Vector2(x, base + (1 if mobile else 2)), fGrand, Style.ENCRE); x += wn + 2
+	if tot != "": Style.texte(self, tot, Vector2(x, base), fMoyen, Style.ENCRE)
+	# La carte, sous la position : son origine sert aussi au classement du téléphone (render.js, mmY, mmBas)
+	var taille := 76.0 if _paysageCourt() else minf(180, maxf(110, W * 0.18))
+	var mo := Vector2(P + 2, P + (46 if mobile else 56))
+	var mmBas := mo.y + taille
 	# Le classement autour du joueur
 	if not tt or (course.entrainement and course.state != "countdown"):
 		var ordre := course.standings()
 		var i0 := ordre.find(p)
-		var debut := maxi(0, mini(i0 - 1, ordre.size() - 3))
-		var rowH := 32.0
-		var bwid := 250.0
-		var bx := W - P - bwid
-		var by := maxf(P + 100, lapY + lapH + 8)
-		for k in range(debut, mini(debut + 3, ordre.size())):
+		# Au téléphone : deux lignes (celui de devant et soi), à gauche sous la carte, toutes sombres
+		var debut := maxi(0, i0 - 1) if mobile else maxi(0, mini(i0 - 1, ordre.size() - 3))
+		var lignes := 2 if mobile else 3
+		var rowH := 26.0 if mobile else 32.0
+		var bwid := 180.0 if mobile else 250.0
+		var bx := P + 2 if tactile else W - P - bwid
+		var by := mmBas + 4 if tactile else maxf(P + 100, lapY + lapH + 8)
+		var fCl := 15 if mobile else 18
+		for k in range(debut, mini(debut + lignes, ordre.size())):
 			var c: Voiture = ordre[k]
 			var yy := by + (k - debut) * rowH
 			var moi := c == p
-			Style.biseau(self, Rect2(bx, yy, bwid, rowH - 2), Style.PAPIER if moi else Color("#171b19df"))
+			var clair := moi and not mobile
+			Style.biseau(self, Rect2(bx, yy, bwid, rowH - 2), Style.PAPIER if clair else Color("#171b19df"))
 			var couleur := Color("#fff8e6aa") if c.fantome else Color(Catalogue.donnees.livreries[c.livery].body)
 			draw_rect(Rect2(bx + 10, yy + (rowH - 12) / 2, 10, 10), couleur)
 			draw_rect(Rect2(bx + 10, yy + (rowH - 12) / 2, 10, 10), Color("#394137"), false, 1)
-			var ink := Style.ENCRE if moi else Style.PAPIER
-			Style.texte(self, "%d  %s" % [k + 1, str(c.nom).to_upper()], Vector2(bx + 26, yy + 22), 18, ink)
+			var ink := Style.ENCRE if clair else Style.PAPIER
+			var bas := yy + rowH / 2 + fCl * 0.36
+			Style.texte(self, "%d  %s" % [k + 1, str(c.nom).to_upper()], Vector2(bx + 26, bas), fCl, ink, HORIZONTAL_ALIGNMENT_LEFT, 92 if mobile else 140)
 			var ecart := Textes.t("you")
 			if c.fantome:
 				var e := course.ecartFantome()
@@ -172,10 +245,9 @@ func _draw() -> void:
 				var allure := p.bestLap if p.bestLap > 0 else c.bestLap
 				var signe := "+" if c.progress() >= p.progress() else "−"
 				ecart = "%s%.1f s" % [signe, dist / course.track.length * allure] if allure > 0 else "%s%d m" % [signe, roundi(dist)]
-			Style.texte(self, ecart, Vector2(bx + bwid - 94, yy + 22), 18, ink, HORIZONTAL_ALIGNMENT_RIGHT, 80)
+			var lE := 60.0 if mobile else 80.0
+			Style.texte(self, ecart, Vector2(bx + bwid - 14 - lE, bas), fCl, ink, HORIZONTAL_ALIGNMENT_RIGHT, lE)
 	# La minicarte
-	var taille := minf(180, maxf(110, W * 0.18))
-	var mo := Vector2(P + 2, P + 56)
 	var pts := PackedVector2Array()
 	var T := course.track
 	for i in range(0, T.n, 6): pts.append(mo + _mmPoint(T.xs[i], T.ys[i], taille))
@@ -191,9 +263,11 @@ func _draw() -> void:
 	draw_circle(mo + _mmPoint(p.x, p.y, taille), 9, Color("#7fd4ff"))
 	# Le levier, la vitesse
 	_levierDessin(p)
-	_vitesse(p)
-	if consigne >= 0 and course.state != "countdown": _consigne()
+	# Au doigt, pas de tableau de bord du PC : la vitesse est au-dessus de la pastille du pouce.
 	if tactile: _pouce(p)
+	else:
+		_vitesse(p)
+		if consigne >= 0 and course.state != "countdown": _consigne()
 	# Le départ
 	if course.state == "countdown":
 		var cnt := course.countdown
@@ -217,8 +291,17 @@ func _draw() -> void:
 		Style.texte(self, flash, Vector2(0, maxf(H * 0.12, 120) + 30), 32, flashCouleur, HORIZONTAL_ALIGNMENT_CENTER, W)
 	# La mesure de fluidité, discrète, sous la minicarte
 	var appels := Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
-	Style.texte(self, "%d i/s · pire image %.1f ms · course %.2f ms/pas (%s) · %d appels" % [Engine.get_frames_per_second(), jeu.pireImage * 1000, jeu.coutPas / 1000.0, "C++" if course is CourseNative else "GDScript", appels],
-		Vector2(P + 2, P + 56 + taille + 18), 13, Color(1, 1, 1, 0.55))
+	var mesure1 := "%d i/s · pire image %.1f ms" % [Engine.get_frames_per_second(), jeu.pireImage * 1000]
+	var mesure2 := "course %.2f ms/pas (%s) · %d appels" % [jeu.coutPas / 1000.0, "C++" if course is CourseNative else "GDScript", appels]
+	var gris := Color(1, 1, 1, 0.55)
+	if tactile:
+		# Au doigt, la colonne de gauche est pleine (carte, classement, levier) : la mesure se range à
+		# droite de la carte, sous le compteur de tours, sur deux lignes.
+		var mx := mo.x + taille + 8
+		Style.texte(self, mesure1, Vector2(mx, lapY + lapH + 14), 11, gris, HORIZONTAL_ALIGNMENT_LEFT, W - P - mx)
+		Style.texte(self, mesure2, Vector2(mx, lapY + lapH + 27), 11, gris, HORIZONTAL_ALIGNMENT_LEFT, W - P - mx)
+	else:
+		Style.texte(self, mesure1 + " · " + mesure2, Vector2(P + 2, mmBas + 18), 13, gris)
 
 
 static func _fmtEcart(s: float) -> String:
@@ -227,11 +310,12 @@ static func _fmtEcart(s: float) -> String:
 
 
 ## Le mot du guide, au-dessus de la vitesse (js/render.js, _drawConsigne).
-func _consigne() -> void:
-	var L := minf(420, size.x - 32)
-	var h0 := 86.0 + 6 + 38
-	var x := (P if _droite() else size.x - P - L) + 80
-	var y := size.y - P - h0 - 8
+func _consigne(x := NAN, y := NAN) -> void:
+	if is_nan(x):
+		var L := minf(420, size.x - 32)
+		var h0 := 86.0 + 6 + 38
+		x = (P if _droite() else size.x - P - L) + 80
+		y = size.y - P - h0 - 8
 	var mot: String = Textes.t(["guideGaz", "guideDose", "guideLeve"][consigne])
 	var fond: Color = [Color("#12a35c"), Color("#171b19e6"), Color("#e0261c")][consigne]
 	var taille := 20
@@ -246,16 +330,18 @@ func _consigne() -> void:
 	Style.texte(self, mot, Vector2(x - w / 2, y - h / 2 + 7), taille, Color("#ffb4a8") if consigne == Course.GUIDE_DOSE else Color("#fff8ea"), HORIZONTAL_ALIGNMENT_CENTER, w)
 
 
-func _chrono(x: float, y: float, w: float, h: float, label: String, valeur: String, sombre: bool, drapeaux: Array, nul: bool) -> void:
+func _chrono(x: float, y: float, w: float, h: float, label: String, valeur: String, sombre: bool, drapeaux: Array, nul: bool, mobile := false) -> void:
 	Style.biseau(self, Rect2(x, y, w, h), Style.NUIT if sombre else Style.PAPIER)
 	var t := 10.0 if drapeaux.size() > 1 else 12.0
 	for i in drapeaux.size():
 		_drapeau(drapeaux[i], Vector2(x + 8 + i * (t + 3), y + (h - t) / 2), t)
 	var ink := (Color("#ffb59c") if nul else Color("#fff0d4")) if sombre else Color("#33372e")
 	var lw := drapeaux.size() * (t + 3)
-	if w - 24 - Style.largeur(valeur, 24) - lw > 36:
-		Style.texte(self, label, Vector2(x + 11 + lw, y + h / 2 + 6), 16, Color("#f6eacf") if sombre else Color("#34392f"))
-	Style.texte(self, valeur, Vector2(x, y + h / 2 + 8), 24, ink, HORIZONTAL_ALIGNMENT_RIGHT, w - 12)
+	var fL := 13 if mobile else 16
+	var fV := 19 if mobile else 24
+	if w - 24 - Style.largeur(valeur, fV) - lw > 36:
+		Style.texte(self, label, Vector2(x + 11 + lw, y + h / 2 + fL * 0.37), fL, Color("#f6eacf") if sombre else Color("#34392f"))
+	Style.texte(self, valeur, Vector2(x, y + h / 2 + fV * 0.34), fV, ink, HORIZONTAL_ALIGNMENT_RIGHT, w - 12)
 
 
 func _drapeau(type: String, p: Vector2, s: float) -> void:
@@ -355,11 +441,28 @@ func _vitesse(p: Voiture) -> void:
 
 
 ## L'accélérateur au doigt : un disque translucide, sans rien à lire (js/render.js, _drawPouce).
+## La pastille du pouce (render.js, _drawPouce) : un disque sombre cerclé de crème, l'état ressenti
+## en pastel dedans, l'appui qui la fait légèrement rentrer ; la vitesse juste au-dessus, qui suit
+## la main ; et la consigne du guide au-dessus de la vitesse.
 func _pouce(p: Voiture) -> void:
-	var r := clampf(minf(size.x * 0.12, size.y * 0.08), 32, 60)
-	var c := Vector2(size.x / 2, size.y - P - r)
+	if not pouceAncre and pouce.r != _pouceRepos().r: homePouce()
+	var c := Vector2(pouce.cx, pouce.cy)
+	poucePress += ((1.0 if p.throttle > 0 else 0.0) - poucePress) * 0.25
+	var pr: float = pouce.r * (1 - 0.06 * poucePress)
+	draw_circle(c, pr, Color("#171b19d9"))
+	draw_arc(c, pr, 0, TAU, 64, Color("#f2e6ca"), 2, true)
 	var x5 := clampf(p.ressenti, 0, 1) * 4
 	var k := mini(3, int(x5))
-	var col: Color = VIF[k].lerp(VIF[k + 1], x5 - k)
-	col.a = 0.32 if p.throttle > 0 else 0.18
-	draw_circle(c, r * (0.94 if p.throttle > 0 else 1.0), col)
+	var col: Color = PASTEL[k].lerp(PASTEL[k + 1], x5 - k)
+	col.a = 0.62 + 0.14 * poucePress
+	draw_circle(c, pr * 0.77, col)
+	var kmh := str(roundi(maxf(0, p.speed()) * 3.6))
+	var hT := 28.0                     # les mesures « téléphone » du jeu web
+	var yT := c.y - pr - 10
+	var wNum := Style.largeur(kmh, int(hT + 4))
+	var wU := Style.largeur("km/h", 15)
+	var x0 := c.x - (wNum + 4 + wU) / 2
+	Style.biseau(self, Rect2(x0 - 8, yT - hT - 4, wNum + 4 + wU + 16, hT + 10), Color("#171b19c9"))
+	Style.texte(self, kmh, Vector2(x0, yT), int(hT + 4), Color("#fff0d4"))
+	Style.texte(self, "km/h", Vector2(x0 + wNum + 4, yT), 15, Color("#f2e6ca"))
+	if consigne >= 0 and course.state != "countdown": _consigne(c.x, yT - hT - 10)

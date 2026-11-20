@@ -19,7 +19,9 @@ contenu du jeu y est, repris du code web et non réinventé :
 - **les écrans** :
   - l'accueil, le paddock (catégorie, voiture, livrée, caractéristiques, circuit, réglages) ;
   - la pause, les résultats, les réglages, « Comment jouer » ;
-  - le tableau de bord de course de `js/render.js` ;
+  - le tableau de bord de course de `js/render.js`, avec sa version téléphone : la pastille du pouce
+    qui vient sous le doigt et porte la vitesse, le classement à gauche sous la carte, les tailles
+    serrées du téléphone ;
 - **le son** de `js/engine-audio.js` et `js/audio.js` :
   - le moteur simulé et sa boîte, qui accordent les boucles enregistrées ;
   - les crissements, le gravier, le vent ;
@@ -28,7 +30,8 @@ contenu du jeu y est, repris du code web et non réinventé :
 - **la caméra** du jeu web : vue « devant, nord en haut », ou vue qui tourne avec la piste (touche C ou
   réglages), avec le recul réglable ;
 - **la nuit** de `js/render.js` : phares, feux arrière, projecteurs des bacs à gravier, faite avec les
-  lumières 2D de Godot ; le jour, les feux stop au freinage ;
+  lumières 2D de Godot ; le jour, les feux stop au freinage. Sous un tunnel, la nuit tombe en
+  0,35 s et se lève à la sortie, comme dans le jeu web ;
 - **le français et l'anglais**, avec les mots du jeu web ;
 - **le multijoueur**, aux mêmes tables que le jeu web : un joueur Godot et un joueur dans le
   navigateur courent ensemble. La version Steam passe, elle, par les salons de Steam.

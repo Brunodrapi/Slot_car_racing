@@ -17,6 +17,14 @@ static var tBeam: Texture2D        # beamMask : 36 m sur 12 m
 static var tTail: Texture2D        # le même, en rouge (tailMask)
 static var tFlood: Texture2D       # floodMask
 var jeu
+var nuit := true                  # la vraie nuit ; sinon, seulement sous les tunnels
+var force := 1.0                  # 1 la nuit ; de 0 à 1 sous un tunnel, de jour
+var _tunnel := 0.0
+var _premier := true
+var _baseEnergie := {}            # lumière -> son énergie pleine
+var _lueursAlpha := {}            # lueur -> son alpha plein
+var _matsNoeud: Node2D = null
+const FONDU := 0.35               # NUIT_FONDU du jeu web : l'entrée et la sortie d'un tunnel
 var modulateur: CanvasModulate
 var parVoiture: Array = []        # { phares: [PointLight2D], feux: [PointLight2D], lueurs: [Sprite2D], verres: Node2D }
 var champs: Array = []            # pour canSee : { x, y, cap, type, longueur, largeur, puissance }
@@ -79,19 +87,23 @@ static func _sansOmbre() -> CanvasItemMaterial:
 	return m
 
 
-func _init(j) -> void:
+func _init(j, laNuit := true) -> void:
 	jeu = j
+	nuit = laNuit
+	force = 1.0 if nuit else 0.0
 	_textures()
 
 
 func _ready() -> void:
 	modulateur = CanvasModulate.new()
-	modulateur.color = OBSCURITE
+	modulateur.color = OBSCURITE if nuit else Color.WHITE
+	visible = nuit
 	add_child(modulateur)
 	# Les projecteurs du circuit : une lumière, sa lueur chaude, et le mât.
 	var meta: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://donnees/circuits/%s.json" % jeu.piste.id))
 	for p in meta.get("projecteurs", []):
 		var l := _lumiere(tFlood, p.longueur, p.largeur, p.puissance)
+		_baseEnergie[l] = p.puissance
 		l.position = Vector2(p.x, p.y)
 		l.rotation = p.cap
 		add_child(l)
@@ -103,6 +115,7 @@ func _ready() -> void:
 		lueur.position = l.position
 		lueur.rotation = l.rotation
 		lueur.modulate = Color(FLOOD, 0.065)
+		_lueursAlpha[lueur] = 0.065
 		lueur.material = _sansOmbre()
 		lueur.z_index = 5
 		add_child(lueur)
@@ -110,6 +123,7 @@ func _ready() -> void:
 		champs.append({ x = p.x, y = p.y, cap = p.cap, type = "flood", longueur = p.longueur, largeur = p.largeur, puissance = p.puissance })
 	var mats := Node2D.new()
 	mats.material = _sansOmbre()
+	_matsNoeud = mats
 	mats.z_index = 5
 	mats.draw.connect(_mats.bind(mats))
 	add_child(mats)
@@ -169,8 +183,32 @@ func _verres(ci: CanvasItem, feux: Dictionary) -> void:
 				elif pts.size() >= 2: ci.draw_polyline(pts, c, p.w)
 
 
+## De jour, sous un tunnel, la nuit tombe en fondu, et se lève à la sortie (js/render.js,
+## NightLighting.prepare). Un départ sous le tunnel commence dans le noir.
+func _fondu() -> void:
+	if nuit:
+		force = 1.0
+		return
+	var c: Course = jeu.course
+	var dedans: bool = not c.spectator and jeu.piste.sousTunnel(c.player.s)
+	if _premier:
+		_premier = false
+		_tunnel = 1.0 if dedans else 0.0
+	_tunnel = clampf(_tunnel + (1.0 if dedans else -1.0) * minf(0.1, get_process_delta_time()) / FONDU, 0, 1)
+	force = _tunnel
+	visible = force > 0
+	modulateur.color = Color.WHITE.lerp(OBSCURITE, force)
+	for l in _baseEnergie: l.energy = _baseEnergie[l] * force
+	for s in _lueursAlpha: s.modulate.a = _lueursAlpha[s] * force
+	if _matsNoeud: _matsNoeud.modulate.a = force
+
+
 ## Chaque image : les lumières suivent les voitures (position interpolée, comme leur dessin).
 func maj(poses: Array) -> void:
+	_fondu()
+	for e in parVoiture:
+		if e.has("verres"): e.verres.visible = force > 0; e.verres.modulate.a = force
+	if force <= 0: return
 	champs = champs.filter(func(f): return f.type == "flood")
 	for i in parVoiture.size():
 		var e: Dictionary = parVoiture[i]
@@ -188,6 +226,7 @@ func maj(poses: Array) -> void:
 			var l: PointLight2D = e.phares[k]
 			l.position = monde.call(q)
 			l.rotation = h + cote * .035
+			l.energy = .82 * force
 			champs.append({ x = l.position.x, y = l.position.y, cap = l.rotation, type = "beam", longueur = 36.0, largeur = 6.0, puissance = .82 })
 		var freine := car.braking and not car.herbe
 		var arriere: Array = e.feuxDef.arriere
@@ -204,14 +243,15 @@ func maj(poses: Array) -> void:
 			var cap := h + PI - signf(q.y) * .06
 			l.position = pos; l.rotation = cap
 			l.scale = Vector2(longueur / tBeam.get_width(), largeur * 2 / tBeam.get_height())
-			l.energy = .4 if freine else .035
+			l.energy = (.4 if freine else .035) * force
 			s.position = pos; s.rotation = cap; s.scale = l.scale
-			s.modulate = Color(1, 1, 1, .78 if freine else .24)
+			s.modulate = Color(1, 1, 1, (.78 if freine else .24) * force)
 			champs.append({ x = pos.x, y = pos.y, cap = cap, type = "tail", longueur = longueur, largeur = largeur, puissance = l.energy })
 
 
 ## NightLighting.canSee : à moins de 45 m du joueur, et dans une lumière.
 func voit(p: Vector2, observateur: Vector2) -> bool:
+	if not nuit: return true                # sous un tunnel, la minicarte garde ses règles de jour
 	if p.distance_to(observateur) > 45: return false
 	for f in champs:
 		var x: float = p.x - f.x

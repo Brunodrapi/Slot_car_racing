@@ -49,6 +49,7 @@ var nBarrieres: int = 0
 var barrierGrid := {}  # Vector2i -> PackedInt32Array, dans l'ordre de track.js
 
 var width: float
+var tunnels: Array = []    # [premier point, nombre de points] : la nuit tombe dessous
 var asphalte := true    # faux : le circuit n'a pas de dégagement bitumé (asphaltW absent)
 var tours := 3
 var pays := ""
@@ -72,6 +73,7 @@ static func charge(chemin: String) -> Piste:
 	p.drapeau = meta.get("drapeau", "")
 	p.theme = meta.get("theme", "")
 	p.asphalte = meta.get("asphalte", true)
+	p.tunnels = meta.get("tunnels", [])
 	var sc: PackedFloat64Array = lit.call("scalaires")
 	p.n = int(sc[0]); p.ds = sc[1]; p.length = sc[2]; p.halfWidth = sc[3]; p.barrierCell = sc[4]; p.width = sc[5]
 	p.xs = lit.call("xs"); p.ys = lit.call("ys"); p.th = lit.call("th")
@@ -288,6 +290,14 @@ func surfaceAt(s: float, lat: float) -> String:
 	if asphalte and d <= _lerp(asphaltW[c], s): return "asphalt"
 	if d <= _lerp(bacW[c], s): return "gravel"
 	return "grass"
+
+
+## Sous un tunnel (les mêmes bornes que le décor et les projecteurs du jeu web).
+func sousTunnel(s: float) -> bool:
+	var k := idx(s)
+	for t in tunnels:
+		if ((k - int(t[0])) % n + n) % n < int(t[1]): return true
+	return false
 
 
 ## car.runoffAsphalt : un dégagement où l'on garde de l'adhérence.

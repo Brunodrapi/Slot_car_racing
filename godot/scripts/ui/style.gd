@@ -87,6 +87,38 @@ static func bord(ci: CanvasItem, pts: PackedVector2Array, c: Color) -> void:
 	ci.draw_polyline(ferme, c, 1.0, true)
 
 
+static var _tactile = null
+
+
+## Un écran tactile : la règle du jeu web (mobileDevice, js/util.js), lue dans le navigateur
+## pour la version web — un téléphone, une tablette, un iPad qui se dit Mac, ou un écran qu'on
+## pointe du doigt sans souris. Godot ne reconnaît pas toujours un téléphone de lui-même.
+static func tactile() -> bool:
+	if _tactile != null: return _tactile
+	var t := OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
+	if not t and OS.has_feature("web"):
+		t = bool(JavaScriptBridge.eval("""(function(){var n=navigator,m=window.matchMedia.bind(window);
+			return !!((n.userAgentData&&n.userAgentData.mobile)||/Android|iPhone|iPad|iPod/i.test(n.userAgent||'')
+			||(n.platform==='MacIntel'&&n.maxTouchPoints>1)||(m('(pointer: coarse)').matches&&!m('(hover: hover)').matches));})()""", true))
+	_tactile = t
+	return t
+
+
+## Au doigt, le tableau de bord se dessine à la taille du jeu web : un point du tableau vaut un
+## pixel d'écran du navigateur (390 de large sur un iPhone), au lieu d'un 720e de l'image. Sans cela,
+## tout y était deux fois plus petit que dans le jeu web. Jamais en dessous de 1 (tablette, PC).
+static func echelleTactile(vp: Vector2) -> float:
+	var court := minf(vp.x, vp.y)
+	var css := 0.0
+	if OS.has_feature("web"):
+		css = float(JavaScriptBridge.eval("Math.min(window.innerWidth, window.innerHeight)", true))
+	else:
+		var ecran := DisplayServer.screen_get_size()
+		css = minf(ecran.x, ecran.y) / maxf(1.0, DisplayServer.screen_get_dpi() / 160.0)
+	if css <= 0: return 1.0
+	return clampf(court / css, 1.0, 3.0)
+
+
 static func texte(ci: CanvasItem, t: String, p: Vector2, taille: int, c: Color, align := HORIZONTAL_ALIGNMENT_LEFT, largeur := -1.0) -> void:
 	ci.draw_string(racing(), p, t, align, largeur, taille, c)
 

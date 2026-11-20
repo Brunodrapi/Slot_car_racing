@@ -146,8 +146,9 @@ func _depart() -> void:
 	if nuit:
 		nuit.queue_free()
 		nuit = null
-	if _nuit():
-		nuit = Nuit.new(self)
+	# La nuit, ou un circuit à tunnel : la nuit y tombe de jour, sous le tunnel.
+	if _nuit() or piste.tunnels.size():
+		nuit = Nuit.new(self, _nuit())
 		add_child(nuit)
 	for car in course.cars:
 		var vue := VoitureVue.new(Catalogue.dessin(car.cls.id, car.livree))
@@ -258,12 +259,15 @@ func _unhandled_input(e: InputEvent) -> void:
 			doigtLevier = e.index; _ligne(hud.levierVers(p))
 		elif e.pressed:
 			doigtsGaz[e.index] = true
+			hud.anchorPouce(p)                 # la pastille vient au pouce
 		else:
 			doigtsGaz.erase(e.index)
 			if e.index == doigtLevier: doigtLevier = -1
 	elif e is InputEventScreenDrag and e.index == doigtLevier:
 		var p: Vector2 = hud.get_global_transform_with_canvas().affine_inverse() * e.position
 		_ligne(hud.levierVers(p))
+	elif e is InputEventScreenDrag and doigtsGaz.has(e.index):
+		hud.anchorPouce(hud.get_global_transform_with_canvas().affine_inverse() * e.position)
 	elif e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT and hud.toucheePause(e.position):
 		basculePause()
 
@@ -371,7 +375,7 @@ func _process(dt: float) -> void:
 			for over in pont:
 				if ((k - (int(over) - 16)) % piste.n + piste.n) % piste.n <= 36: z = 3
 		vues[i].place(Vector2(x, y), th, c.delta, z)
-		vues[i].freine(c.braking and not c.herbe)
+		vues[i].freine(c.braking and not c.herbe and (nuit == null or nuit.force <= 0))
 		poses.append([Vector2(x, y), th])
 		if c == suivie: px = x; py = y
 	if nuit: nuit.maj(poses)
