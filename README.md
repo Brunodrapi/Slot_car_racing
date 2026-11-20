@@ -407,8 +407,8 @@ worker de l'essai ne couvre que son dossier.
   brunodrapi.github.io/Slot_car_racing/essais/degats/. Le détail est dans le README de la branche.
 - `essais/godot/` — la version Godot, branche `claude/godot-prototype` : les 14 circuits, les 35 voitures et
   leurs livrées, l'IA, la course rapide, le contre-la-montre et l'entraînement (fantôme et guide), les
-  menus, le son et les effets ; la physique et la course du jeu web portées en GDScript et prouvées
-  identiques. Ce n'est pas une copie du jeu web mais l'export web de Godot (WebGL 2) :
+  menus, le son et les effets, la nuit, le français et l'anglais ; la physique et la course du jeu web
+  portées en GDScript et en C++ (la version Windows prend le C++), et prouvées identiques. Ce n'est pas une copie du jeu web mais l'export web de Godot (WebGL 2) :
   brunodrapi.github.io/Slot_car_racing/essais/godot/. Le décor d'un circuit (`decors/`) se télécharge
   la première fois qu'on y roule. La version Windows est à côté, `essais/godot/GRIP-windows.zip`. Le
   détail est dans `godot/README.md` de la branche ; le refaire : `godot --headless --path godot
