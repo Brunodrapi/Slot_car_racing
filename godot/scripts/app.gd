@@ -6,7 +6,7 @@ const FICHIER := "user://grip.json"
 var reglages := {
 	nom = "Pilote", mode = "race", cat = "gt3", voiture = "porsche991gt3r", livree = 0,
 	circuit = "spa", difficulte = "medium", tours = 3, vue = "avanceFixe", adversaires = 10,
-	son = true, volume = 0.8, recul = 1.0, cote = "left", guide = false,
+	son = true, volume = 0.8, recul = 1.0, cote = "left", guide = false, nuit = false,
 }
 var ecran: Node = null
 var derniereCourse: Course = null      # pour l'écran des résultats

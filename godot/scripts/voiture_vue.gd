@@ -11,6 +11,8 @@ var braquage := 0.0
 var bande: Texture2D
 var decalageOmbre := Vector2(0.25, 0.35)
 var avant: Node2D          # les roues de devant quand elles passent par-dessus la carrosserie
+var nuit := false
+var stops: Array[Sprite2D] = []
 
 
 func _init(d: Dictionary) -> void:
@@ -37,10 +39,32 @@ func _init(d: Dictionary) -> void:
 func _ready() -> void:
 	get_parent().add_child.call_deferred(ombre)
 	add_child(corps)
+	# Les feux stop du jour (js/render.js, _feuxStop) : la lueur rouge derrière, au freinage. La
+	# nuit les remplace par ses propres feux arrière.
+	var F: Dictionary = cotes.get("feuStop", { long = 3.2, demi = 0.95 })
+	if not nuit:
+		Nuit._textures()
+		for q in cotes.get("feux", {}).get("arriere", []):
+			var s := Sprite2D.new()
+			s.texture = Nuit.tTail
+			s.centered = false
+			s.offset = Vector2(0, -Nuit.tTail.get_height() / 2.0)
+			s.scale = Vector2(F.long / Nuit.tTail.get_width(), F.demi * 2 / Nuit.tTail.get_height())
+			s.position = Vector2(q.x, q.y)
+			s.rotation = PI - signf(q.y) * .06
+			s.modulate = Color(1, 1, 1, .62)
+			s.visible = false
+			s.show_behind_parent = true
+			add_child(s)
+			stops.append(s)
 	if cotes.dessus:
 		avant = Node2D.new()
 		avant.draw.connect(_roues.bind(avant, true))
 		add_child(avant)
+
+
+func freine(oui: bool) -> void:
+	for s in stops: s.visible = oui
 
 
 func place(p: Vector2, cap: float, delta: float, z: int) -> void:

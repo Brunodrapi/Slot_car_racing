@@ -12,6 +12,7 @@ var vues: Array[VoitureVue] = []
 var camera: Camera2D
 var effets: Effets
 var guide: GuideVue
+var nuit: Nuit
 var son: Son
 var secousse := 0.0
 var hud: Hud
@@ -117,14 +118,22 @@ func _depart() -> void:
 		modeleDe = func(id, i): return Catalogue.modele(id) if id != "" else Catalogue.modele(Catalogue.voituresDe(cat)[i % Catalogue.voituresDe(cat).size()].id),
 	}, h)
 	prec.clear()
+	if nuit:
+		nuit.queue_free()
+		nuit = null
+	if R.get("nuit", false):
+		nuit = Nuit.new(self)
+		add_child(nuit)
 	for car in course.cars:
 		var vue := VoitureVue.new(Catalogue.dessin(car.cls.id, car.livree))
+		vue.nuit = R.get("nuit", false)
 		if car.fantome:
 			# Le fantôme se voit à travers (FANTOME_ALPHA), son ombre aussi.
 			vue.modulate = Color(1, 1, 1, 0.42)
 			vue.ombre.modulate.a *= 0.42
 		add_child(vue)
 		vues.append(vue)
+		if nuit: nuit.ajouteVoiture(vue, car)
 		prec.append(PackedFloat64Array([car.x, car.y, car.th]))
 	camInit = false
 	finieDepuis = -1.0
@@ -272,6 +281,7 @@ func _process(dt: float) -> void:
 	var pont := piste.crossings
 	var px := 0.0
 	var py := 0.0
+	var poses := []
 	for i in course.cars.size():
 		var c := course.cars[i]
 		var q := prec[i]
@@ -284,9 +294,11 @@ func _process(dt: float) -> void:
 			var k := piste.idx(c.s)
 			for over in pont:
 				if ((k - (int(over) - 16)) % piste.n + piste.n) % piste.n <= 36: z = 3
-		if c.isPlayer: z += 0
 		vues[i].place(Vector2(x, y), th, c.delta, z)
+		vues[i].freine(c.braking and not c.herbe)
+		poses.append([Vector2(x, y), th])
 		if c == course.player: px = x; py = y
+	if nuit: nuit.maj(poses)
 	_camera(dt, px, py)
 	guide.visible = course.entrainement or App.reglages.guide
 	if guide.visible: guide.queue_redraw()

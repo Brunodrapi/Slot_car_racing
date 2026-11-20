@@ -45,9 +45,35 @@ const catalogue = {
 };
 // Les nombres de chaque voiture, à part (catalogue.bin) : ce sont eux que lit la physique.
 const nombresVoitures = MODELS.flatMap((m) => { const q = m.driveCurve; return [...NUM.map((k) => m[k]), q ? q.from : 0, q ? q.to : 0, q ? q.low : 1, q ? q.high : 1]; });
+/* Les projecteurs de la nuit (js/render.js, NightLighting.setTrack) : un tous les soixante-dix
+mètres au plus, de chaque côté, là où un bac à gravier assez large borde la piste, tourné vers lui. */
+function projecteurs(track) {
+  const candidates = [];
+  for (let s = 0; s < track.length; s += 6) for (const side of [-1, 1]) {
+    const k = track.idx(s), w = track.largeurBac(k, side);
+    if (w < 5 || track.tunnels.some((t) => (k - t.from + track.n) % track.n < t.n)) continue;
+    const hw = side > 0 ? track.hwLeftAt(s) : track.hwRightAt(s);
+    const targetLat = side * (hw + w * .55);
+    if (track.runoffSurfaceAt(s, targetLat) !== 'gravel') continue;
+    const target = track.pos(s, targetLat), source = track.pos(s, side * (hw + w + 2.5));
+    const length = w + 5, width = Math.min(22, Math.max(12, w * .85));
+    candidates.push({ x: source.x, y: source.y, heading: Math.atan2(target.y - source.y, target.x - source.x),
+      s, side, length, width, radius: Math.hypot(length, width), power: .84 });
+  }
+  candidates.sort((a, b) => b.length - a.length || a.s - b.s);
+  const lamps = [];
+  for (const lamp of candidates) {
+    if (lamps.some((l) => {
+      const ds = Math.abs(l.s - lamp.s);
+      return (l.side === lamp.side && Math.min(ds, track.length - ds) < 70) || Math.hypot(l.x - lamp.x, l.y - lamp.y) < 36;
+    })) continue;
+    lamps.push(lamp);
+  }
+  return lamps;
+}
 const circuits = TRACKS.filter((t) => !SEUL || t.id === SEUL).map((def) => {
   const T = new Track(def, CATEGORIES[0].roadScale);
-  return { def, T };
+  return { def, T, projecteurs: projecteurs(T) };
 });
 
 /* Les courses de référence, à Stand de frites.
@@ -132,7 +158,7 @@ fs.writeFileSync(path.join(OUT, 'catalogue.bin'), Buffer.from(Float64Array.from(
 
 // ---------- les circuits ----------
 const BF = ['ax', 'ay', 'bx', 'by', 'tx', 'ty', 'nx', 'ny', 'len', 'half', 's', 'side', 'level'];
-for (const { def, T } of circuits) {
+for (const { def, T, projecteurs } of circuits) {
   const morceaux = [], index = {};
   let pos = 0;
   const pose = (nom, valeurs) => {
@@ -159,8 +185,9 @@ for (const { def, T } of circuits) {
     id: T.id, nom: T.name, pays: def.country, drapeau: def.flag, theme: T.theme, tours: T.laps, asphalte: !!T.asphaltW,
     plaques: (T.pads || []).length,
     barriere: { champs: [...BF, 'pneus'] }, bornes: T.bounds, index,
+    projecteurs: projecteurs.map((l) => ({ x: l.x, y: l.y, cap: l.heading, longueur: l.length, largeur: l.width, puissance: l.power })),
   }) + '\n');
-  console.log(T.id.padEnd(12), T.name.padEnd(22), T.n, 'points,', T.barriers.length, 'protections,', T.crossings.length, 'croisement(s),', T.laps, 'tours');
+  console.log(T.id.padEnd(12), T.name.padEnd(22), T.n, 'points,', T.barriers.length, 'protections,', T.crossings.length, 'croisement(s),', projecteurs.length, 'projecteurs,', T.laps, 'tours');
 }
 
 // ---------- les courses de référence ----------

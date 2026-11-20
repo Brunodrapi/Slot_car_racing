@@ -25,6 +25,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
   await new Promise((r) => srv.listen(0, '127.0.0.1', r));
   const nav = await chromium.launch();
   const page = await nav.newPage({ viewport: { width: 800, height: 600 } });
+  await page.addInitScript({ path: path.join(__dirname, 'enregistreur.js') });
   await page.goto(`http://127.0.0.1:${srv.address().port}`);
   await page.waitForFunction(() => typeof MODELS !== 'undefined' && typeof topArt === 'function');
   const liste = await page.evaluate(() => MODELS.map((m) => ({ id: m.id, n: Math.max(1, (m.livrees || []).length) })));
@@ -47,7 +48,17 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
         susp.push([x - t, 0, hub.x - t, hub.y, hub.x + t, hub.y, x + t, 0]);
       }
       const lv = livreeDe(m, li);
-      return { w, h, arriere: roues(rearTires(m, w, h, { livree: li })), avant: roues(frontTires(m, w, h, { livree: li, steer: 0 })),
+      /* Les feux (carLightLayout) : les phares, avec la forme de leur verre notée par
+      l'enregistreur (drawLightLens), pour la nuit ; les feux arrière, pour le freinage. */
+      const L = carLightLayout(m, li);
+      const verre = (q) => {
+        const g = new EnregistreurCtx(100, 100, 1);
+        drawLightLens(g, q);
+        return g.prims.map((p) => p.t === 'f' ? { t: 'f', c: p.c, subs: p.subs } : { t: 's', c: p.c, w: p.w, subs: p.subs.map((u) => u.pts) });
+      };
+      const feux = { avant: L.front.map((q) => ({ x: q.x, y: q.y, angle: q.angle || 0, verre: verre(q) })),
+        arriere: L.rear.map((q) => ({ x: q.x, y: q.y })), freinSeul: !!L.brakeOnly };
+      return { w, h, feux, arriere: roues(rearTires(m, w, h, { livree: li })), avant: roues(frontTires(m, w, h, { livree: li, steer: 0 })),
         dessus: !!lay.aboveBody, suspension: susp, pick: lv.pick || m.pick || null, img: png(art.img), ombre: png(art.shadow) };
     }, { id, li });
     if (!d) { console.log('  sans dessin :', id, li); continue; }
@@ -62,7 +73,8 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     dessins[`${id}/${li}`] = { ...d, vignette };
     images++;
   }
-  fs.writeFileSync(path.join(ROOT, 'godot', 'donnees', 'dessins.json'), JSON.stringify({ ombre: [0.25, 0.35], ombreAlpha: 0.3, dessins }) + '\n');
+  const FS = await page.evaluate(() => FEU_STOP);
+  fs.writeFileSync(path.join(ROOT, 'godot', 'donnees', 'dessins.json'), JSON.stringify({ ombre: [0.25, 0.35], ombreAlpha: 0.3, feuStop: FS, dessins }) + '\n');
   console.log(`${images} livrées dessinées → godot/images/voitures, ${fs.readdirSync(VIG).length} vignettes`);
   await nav.close(); srv.close();
 })();

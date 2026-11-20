@@ -160,6 +160,7 @@ func _construit() -> void:
 	var dif := _nom(DIFFICULTES, App.reglages.difficulte)
 	x = 30.0
 	var reglagesBas := []
+	reglagesBas.append(["JOUR / NUIT : " + ("NUIT" if App.reglages.nuit else "JOUR"), func(): App.reglages.nuit = not App.reglages.nuit; App.sauve(); _construit(), "nuit"])
 	if mode == "race":
 		reglagesBas.append(["DIFFICULTÉ : " + dif, func(): App.reglages.difficulte = _suivant(DIFFICULTES, App.reglages.difficulte); App.sauve(); _construit(), "difficulte"])
 		reglagesBas.append(["TOURS : %d" % int(App.reglages.tours), func(): App.reglages.tours = int(App.reglages.tours) % 10 + 1; App.sauve(); _construit(), "tours"])

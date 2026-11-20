@@ -185,6 +185,8 @@ func _draw() -> void:
 	for c in course.cars:
 		var q := mo + _mmPoint(c.x, c.y, taille)
 		if c == p: continue
+		# La nuit, la carte ne montre que les voitures qu'on voit (NightLighting.canSee).
+		if jeu.nuit and not jeu.nuit.voit(Vector2(c.x, c.y), Vector2(p.x, p.y)): continue
 		draw_circle(q, 6, Color("#fff8e6bf") if c.fantome else Color(Catalogue.donnees.livreries[c.livery].body))
 	draw_circle(mo + _mmPoint(p.x, p.y, taille), 9, Color("#7fd4ff"))
 	# Le levier, la vitesse

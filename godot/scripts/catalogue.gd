@@ -64,7 +64,7 @@ static func dessin(id: String, livree: int) -> Dictionary:
 	var d: Dictionary = _dessins.dessins.get("%s/%d" % [id, li], {})
 	d = d.duplicate()
 	d.id = id; d.livree = li
-	d.ombre_ = _dessins.ombre; d.ombreAlpha = _dessins.ombreAlpha
+	d.ombre_ = _dessins.ombre; d.ombreAlpha = _dessins.ombreAlpha; d.feuStop = _dessins.get("feuStop", {})
 	return d
 
 
