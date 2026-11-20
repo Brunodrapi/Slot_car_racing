@@ -301,12 +301,14 @@ func _construit() -> void:
 			if iv >= 0 and (iv < debutVoitures or iv >= debutVoitures + nv): debutVoitures = iv - nv / 2
 			_suivre = false
 		debutCircuits = clampi(debutCircuits, 0, maxi(0, circuits.size() - nc))
-		_b("‹", Rect2(M, y + 62, 28, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutCircuits = maxi(0, debutCircuits - nc); _maj(), "c-gauche")
-		_b("›", Rect2(W - M - 28, y + 62, 28, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutCircuits += nc; _maj(), "c-droite")
+		# les flèches collées aux cartes, la rangée centrée
+		var xc := _rangee(nc, 134.0, 10.0)
+		_b("‹", Rect2(xc - 34, y + 62, 28, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutCircuits = maxi(0, debutCircuits - nc); _maj(), "c-gauche")
+		_b("›", Rect2(xc + nc * 134 - 10 + 6, y + 62, 28, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutCircuits += nc; _maj(), "c-droite")
 		var choisi := String(t.get("trackId", ""))
 		for i in mini(nc, circuits.size() - debutCircuits):
 			var c: Dictionary = circuits[debutCircuits + i]
-			var b := _b(str(c.nom).to_upper(), Rect2(M + 34 + i * 134, y, 124, 170), Style.PAPIER, Style.ENCRE, 15,
+			var b := _b(str(c.nom).to_upper(), Rect2(xc + i * 134, y, 124, 170), Style.PAPIER, Style.ENCRE, 15,
 				func(): net.setTable({ trackId = c.id, laps = _tours(c.id) }), "circuit-" + c.id)
 			b.choisi = c.id == choisi
 			b.disabled = not net.creator
@@ -317,11 +319,12 @@ func _construit() -> void:
 		# La rangée des voitures
 		z.voitureTitre = Vector2(M, y + 14); y += 26
 		debutVoitures = clampi(debutVoitures, 0, maxi(0, liste.size() - nv))
-		_b("‹", Rect2(M, y + 80, 28, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutVoitures = maxi(0, debutVoitures - nv); _maj(), "v-gauche")
-		_b("›", Rect2(W - M - 28, y + 80, 28, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutVoitures += nv; _maj(), "v-droite")
+		var xv := _rangee(nv, 158.0, 8.0)
+		_b("‹", Rect2(xv - 34, y + 80, 28, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutVoitures = maxi(0, debutVoitures - nv); _maj(), "v-gauche")
+		_b("›", Rect2(xv + nv * 158 - 8 + 6, y + 80, 28, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutVoitures += nv; _maj(), "v-droite")
 		for i in mini(nv, liste.size() - debutVoitures):
 			var c: Dictionary = liste[debutVoitures + i]
-			var b := _b(str(c.nom).to_upper(), Rect2(M + 34 + i * 158, y, 150, 206), Style.PAPIER, Style.ENCRE, 16, func(): _voiture(c.id), "voiture-" + c.id)
+			var b := _b(str(c.nom).to_upper(), Rect2(xv + i * 158, y, 150, 206), Style.PAPIER, Style.ENCRE, 16, func(): _voiture(c.id), "voiture-" + c.id)
 			b.choisi = c.id == App.reglages.voiture
 			b.set_meta("voiture", c)
 			b.ligne = 128
@@ -357,6 +360,12 @@ func _construit() -> void:
 			if c.is_queued_for_deletion() or not (c is BaseButton) or c.disabled or c.position.y < 90: continue
 			if cible == null or c.position.y < cible.position.y or (c.position.y == cible.position.y and c.position.x < cible.position.x): cible = c
 	if cible and not (cible is BaseButton and cible.disabled): cible.grab_focus.call_deferred()
+
+
+## Où commence une rangée de `n` cartes (pas `pas`, écart `ecart`), centrée entre ses deux flèches.
+func _rangee(n: int, pas: float, ecart: float) -> float:
+	var large := 34.0 + n * pas - ecart + 34.0
+	return M + (W - 2 * M - large) / 2 + 34.0
 
 
 ## La pastille ✓ de la carte choisie (.card.sel::after).
