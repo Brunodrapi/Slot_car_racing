@@ -51,6 +51,12 @@ const FR := {
 	netErrNotFound = "Table introuvable.", netErrLink = "Liaison impossible.", netErrVersion = "Version multijoueur différente : tous les pilotes doivent recharger le jeu.",
 	netErrOther = "Erreur de liaison", backToTable = "RETOUR À LA TABLE", waitLoad = "On attend %d pilote(s)…", spectating = "EN SPECTATEUR",
 	codeHint = "Tape les quatre lettres au clavier", inviteFriend = "INVITER UN AMI",
+	# le salon, avec les mots et la casse de l'écran web
+	discordPlayers = "TROUVER DES JOUEURS SUR DISCORD", tableCodeLabel = "Code de la table", joinBtn = "Rejoindre", watchBtn = "Regarder",
+	mRaceSeg = "COURSE", mDuelSeg = "DUEL", mGhostSeg = "CONTRE-LA-MONTRE", daySeg = "JOUR", nightSeg = "NUIT",
+	playersTitle = "PILOTES %d/%d · %s", spectatorOne = "%d spectateur", spectatorMany = "%d spectateurs", readyTag = "Prêt",
+	mFormatTitle = "FORMAT", dayNightTitle = "JOUR / NUIT", mCatTitle = "CATÉGORIE", trackTitle = "CIRCUIT", modelTitle = "MODÈLE",
+	nightHint = "Visibilité réduite : phares et éclairage du circuit.", nightF1Hint = "F1 sans phares : éclairage du circuit uniquement.",
 }
 const EN := {
 	quickRace = "QUICK RACE", timeTrial = "TIME TRIAL", training = "PRACTICE",
@@ -99,6 +105,11 @@ const EN := {
 	netErrNotFound = "Table not found.", netErrLink = "Could not connect.", netErrVersion = "Different multiplayer version: every driver has to reload the game.",
 	netErrOther = "Connection error", backToTable = "BACK TO THE TABLE", waitLoad = "Waiting for %d driver(s)…", spectating = "WATCHING",
 	codeHint = "Type the four letters on the keyboard", inviteFriend = "INVITE A FRIEND",
+	discordPlayers = "FIND PLAYERS ON DISCORD", tableCodeLabel = "Table code", joinBtn = "Join", watchBtn = "Watch",
+	mRaceSeg = "RACE", mDuelSeg = "DUEL", mGhostSeg = "TIME TRIAL", daySeg = "DAY", nightSeg = "NIGHT",
+	playersTitle = "DRIVERS %d/%d · %s", spectatorOne = "%d spectator", spectatorMany = "%d spectators", readyTag = "Ready",
+	mFormatTitle = "FORMAT", dayNightTitle = "DAY / NIGHT", mCatTitle = "CLASS", trackTitle = "TRACK", modelTitle = "MODEL",
+	nightHint = "Limited visibility: headlights and circuit lighting.", nightF1Hint = "F1 has no headlights: circuit lighting only.",
 }
 const PAYS := {
 	fr = { IT = "Italie", BE = "Belgique", MC = "Monaco", GB = "Royaume-Uni", JP = "Japon", BR = "Brésil", US = "États-Unis", DE = "Allemagne", FR = "France", AU = "Australie", AT = "Autriche", NL = "Pays-Bas" },

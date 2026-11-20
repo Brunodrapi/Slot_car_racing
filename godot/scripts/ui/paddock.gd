@@ -26,6 +26,24 @@ func _init(m: String) -> void:
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	fondPaddock = load("res://images/interface/paddock.webp")
+	infoCircuits = Paddock.infosCircuits()
+	if Catalogue.voiture(App.reglages.voiture).is_empty(): App.reglages.voiture = "porsche991gt3r"
+	filtre = App.reglages.cat
+	Paddock.precharge()
+	cadre = Control.new()
+	cadre.draw.connect(_dessine)
+	add_child(cadre)
+	resized.connect(_construit)
+	_construit()
+
+
+static var _infos := {}
+
+
+## Le nom, le pays, la longueur, les tours, le contour et l'image de chaque circuit, lus une fois
+## (le paddock et le salon du multijoueur s'en servent).
+static func infosCircuits() -> Dictionary:
+	if not _infos.is_empty(): return _infos
 	for c in Catalogue.circuits():
 		var meta: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://donnees/circuits/%s.json" % c.id))
 		var sc: Array = meta.index.scalaires
@@ -36,22 +54,20 @@ func _ready() -> void:
 		var contour := PackedVector2Array()
 		for i in range(0, n, 8): contour.append(Vector2(xs[i], ys[i]))
 		contour.append(contour[0])
-		infoCircuits[c.id] = { nom = c.nom, pays = meta.pays, longueur = blob[int(sc[0]) + 2], tours = int(meta.tours), contour = contour, bornes = meta.bornes,
+		_infos[c.id] = { nom = c.nom, pays = meta.pays, longueur = blob[int(sc[0]) + 2], tours = int(meta.tours), contour = contour, bornes = meta.bornes,
 			image = load("res://images/interface/circuits/%s.webp" % c.id) }
-	if Catalogue.voiture(App.reglages.voiture).is_empty(): App.reglages.voiture = "porsche991gt3r"
-	filtre = App.reglages.cat
-	# Tout ce qui se dessine est chargé avant le premier dessin.
+	return _infos
+
+
+## Tout ce qui se dessine est chargé avant le premier dessin.
+static func precharge() -> void:
 	Style.tex("res://images/interface/logo-grip.webp")
 	for v in Catalogue.donnees.voitures:
 		for i in (v.livrees as Array).size():
 			var d := Catalogue.dessin(v.id, i)
 			if d.get("vignette"): Style.tex("res://images/vignettes/" + d.vignette)
-	for c in Catalogue.circuits(): Style.drapeau(infoCircuits[c.id].pays)
-	cadre = Control.new()
-	cadre.draw.connect(_dessine)
-	add_child(cadre)
-	resized.connect(_construit)
-	_construit()
+	var infos := Paddock.infosCircuits()
+	for c in Catalogue.circuits(): Style.drapeau(infos[c.id].pays)
 
 
 func _input(e: InputEvent) -> void:
@@ -138,7 +154,7 @@ func _construit() -> void:
 		b.set_meta("voiture", c)
 		b.centre = true
 		b.ligne = 84
-		b.dessinPlus = _carteVoiture.bind(b)
+		b.dessinPlus = Paddock._carteVoiture.bind(b)
 	# Circuits
 	var circuits := Catalogue.circuits()
 	debutCircuits = clampi(debutCircuits, 0, maxi(0, circuits.size() - 3))
@@ -152,7 +168,7 @@ func _construit() -> void:
 		b.set_meta("circuit", c.id)
 		b.centre = true
 		b.ligne = 112
-		b.dessinPlus = _carteCircuit.bind(b)
+		b.dessinPlus = Paddock._carteCircuit.bind(b)
 	# La barre du bas
 	var yb := 654.0 if not portrait else 1250.0
 	var dif := _nom(DIFFICULTES, App.reglages.difficulte)
@@ -267,7 +283,7 @@ func _dessine() -> void:
 		r.position + Vector2(14, 82), 18, Color(Style.ENCRE, 0.85))
 	var ir := Rect2(r.position.x + 2, r.position.y + 94, r.size.x - 4, 96)
 	Style.couvre(ci, info.image, ir, 0.5)
-	_contour(ci, info, ir.grow(-8))
+	Paddock._contour(ci, info, ir.grow(-8))
 	# Le record de l'appareil
 	var rec := _record(cid, v.id)
 	Style.texte(ci, Textes.t("myBest"), r.position + Vector2(14, 512), 18, Style.ENCRE)
@@ -279,7 +295,7 @@ func _dessine() -> void:
 	Style.damier(ci, Rect2((980 if not portrait else 500), yb - 4, 76, 56), 4, Style.NUIT_PLEINE, Color(0, 0, 0, 0), 0)
 
 
-func _contour(ci: CanvasItem, info: Dictionary, r: Rect2) -> void:
+static func _contour(ci: CanvasItem, info: Dictionary, r: Rect2) -> void:
 	var b: Dictionary = info.bornes
 	var w: float = b.maxX - b.minX
 	var h: float = b.maxY - b.minY
@@ -305,7 +321,7 @@ func _vignetteLivree(b: Bouton) -> void:
 		b.draw_texture_rect(tex, Rect2((b.size.x - w) / 2, 4, w, h), false)
 
 
-func _carteVoiture(b: Bouton) -> void:
+static func _carteVoiture(b: Bouton) -> void:
 	var c: Dictionary = b.get_meta("voiture")
 	var d := Catalogue.dessin(c.id, 0)
 	if d.get("vignette"):
@@ -320,11 +336,11 @@ func _carteVoiture(b: Bouton) -> void:
 	Style.texte(b, chip, Vector2(0, b.size.y - 10), 13, Style.ENCRE, HORIZONTAL_ALIGNMENT_CENTER, b.size.x)
 
 
-func _carteCircuit(b: Bouton) -> void:
-	var info: Dictionary = infoCircuits[b.get_meta("circuit")]
+static func _carteCircuit(b: Bouton) -> void:
+	var info: Dictionary = Paddock.infosCircuits()[b.get_meta("circuit")]
 	var ir := Rect2(6, 6, b.size.x - 12, 76)
 	Style.couvre(b, info.image, ir, 0.5)
-	_contour(b, info, ir.grow(-10))
+	Paddock._contour(b, info, ir.grow(-10))
 	var dr := Style.drapeau(info.pays)
 	if dr: b.draw_texture_rect(dr, Rect2(20, b.size.y - 30, 22, 15), false)
 	Style.texte(b, "%d m" % roundi(info.longueur), Vector2(48, b.size.y - 17), 15, Style.ENCRE)

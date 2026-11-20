@@ -17,7 +17,7 @@ func _ready() -> void:
 	var modes := [[Textes.t("quickRace"), Style.ROUGE, Style.CREME, "wheel.webp", "race"],
 		[Textes.t("timeTrial"), Style.JAUNE, Style.ENCRE, "clock.webp", "timetrial"],
 		[Textes.t("training"), Style.BLEU, Style.CREME, "plaque-l.svg", "training"],
-		[Textes.t("multi"), Style.NUIT_PLEINE, Style.CREME, "helmets.webp", "multi"]]
+		[Textes.t("multi"), Color("#12b974"), Color("#101b17"), "helmets.webp", "multi"]]   # .mode-card.mode-multi
 	for m in modes:
 		var b := Bouton.new(m[0], m[1], m[2], 34)
 		b.icone = load("res://images/interface/" + m[3])

@@ -26,7 +26,13 @@ func _process(_dt: float) -> void:
 		0: if n == 30: _photo("1-accueil"); App.aller("salon"); etape = 1; n = 0
 		1: if n == 20: _photo("2-salon"); App.ecran._ouvre(true); etape = 2; n = 0
 		2: if Reseau.net.state == "lobby" and n > 30: _photo("3-table"); etape = 3; n = 0
-		3: if n == 5: App.ecran._voiture(1); App.ecran._pret(true)
+		3: if n == 5: App.ecran._voiture("bmwm6gt3"); App.ecran._pret(true)
 		_: pass
-	if etape == 3 and n == 30: _photo("4-pret"); get_tree().quit()
+	if etape == 3 and n == 30: _photo("4-pret"); etape = 4; n = 0
+	# l'écran entier, en trois hauteurs de défilement
+	if etape == 4:
+		if n == 2: App.ecran.defile = 0; App.ecran._defile(0)
+		if n == 8: _photo("5-haut"); App.ecran._defile(560)
+		if n == 14: _photo("6-milieu"); App.ecran._defile(560)
+		if n == 20: _photo("7-bas"); get_tree().quit()
 	if n > 2000: print("délai"); get_tree().quit()
