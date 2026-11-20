@@ -15,9 +15,9 @@ dest_files=["res://.godot/imported/bmwm6gt3-0-ombre.png-4cbc35e19a9c3b6e413cb54d
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.88
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

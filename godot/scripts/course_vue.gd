@@ -41,16 +41,38 @@ var pireImage := 0.0
 var coutPas := 0.0
 
 
+var chargement: Label
+
+
 func _ready() -> void:
 	var R: Dictionary = App.reglages
 	piste = Piste.charge("res://donnees/circuits/" + R.circuit)
+	var chemin := Decor.cheminDe(R.circuit)
+	if chemin == "":
+		# La version web ne porte pas les décors : celui du circuit se télécharge une fois.
+		var couche0 := CanvasLayer.new()
+		add_child(couche0)
+		chargement = Label.new()
+		chargement.add_theme_font_size_override("font_size", 34)
+		chargement.add_theme_color_override("font_color", Style.CREME)
+		chargement.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+		chargement.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		chargement.text = "CHARGEMENT DU CIRCUIT…"
+		couche0.add_child(chargement)
+		var ok: bool = await Decor.telecharge(R.circuit, self, func(f): chargement.text = "CHARGEMENT DU CIRCUIT… %d %%" % roundi(f * 100))
+		if not ok:
+			chargement.text = "LE CIRCUIT N'A PAS PU SE CHARGER.\nVÉRIFIE LA CONNEXION, PUIS ÉCHAP."
+			return
+		couche0.queue_free()
+		chemin = Decor.cheminDe(R.circuit)
 	decor = Decor.new()
-	decor.charge("res://donnees/circuits/%s-decor" % R.circuit)
+	decor.charge(chemin)
 	add_child(decor)
 	effets = Effets.new()
 	add_child(effets)
 	guide = GuideVue.new()
 	guide.jeu = self
+	guide.visible = false
 	add_child(guide)
 	son = Son.new()
 	add_child(son)
@@ -148,6 +170,9 @@ func quitte() -> void:
 
 
 func _unhandled_input(e: InputEvent) -> void:
+	if course == null:
+		if e.is_action_pressed("pause") or e.is_action_pressed("ui_cancel"): App.aller("paddock", { mode = App.reglages.mode })
+		return
 	if e.is_action_pressed("pause"):
 		basculePause()
 		get_viewport().set_input_as_handled()
@@ -196,7 +221,7 @@ func _commandes() -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	if enPause: return
+	if enPause or course == null: return
 	_commandes()
 	for i in course.cars.size():
 		var c := course.cars[i]
@@ -242,6 +267,7 @@ func _record() -> void:
 
 
 func _process(dt: float) -> void:
+	if course == null: return
 	var a := 0.0 if enPause else Engine.get_physics_interpolation_fraction()
 	var pont := piste.crossings
 	var px := 0.0
@@ -264,6 +290,7 @@ func _process(dt: float) -> void:
 	_camera(dt, px, py)
 	guide.visible = course.entrainement or App.reglages.guide
 	if guide.visible: guide.queue_redraw()
+	else: hud.consigne = -1
 	if not enPause:
 		effets.ajoute(course, dt)
 		son.maj(course.player, course.state != "countdown", dt)

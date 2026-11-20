@@ -15,9 +15,9 @@ dest_files=["res://.godot/imported/gt40-1-ombre.png-d3c7405ca661c31eb208c0765b2c
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.88
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

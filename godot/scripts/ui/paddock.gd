@@ -102,7 +102,7 @@ func _construit() -> void:
 	var dx := 0.0 if not portrait else 18.0 - 790.0     # le panneau du circuit, sous la colonne en portrait
 	var dy := 0.0 if not portrait else 640.0
 	# En-tête
-	_bouton("← RETOUR", Rect2(18, 10, 120, 64), Style.NUIT_PLEINE, Style.CREME, 22, func(): App.aller("accueil")).set_meta("cle", "retour")
+	_bouton("‹ RETOUR", Rect2(18, 10, 120, 64), Style.NUIT_PLEINE, Style.CREME, 22, func(): App.aller("accueil")).set_meta("cle", "retour")
 	# Onglets
 	var onglets := [["tous", "TOUTES"]]
 	for c in Catalogue.categories(): onglets.append([c.id, str(c.nom.fr).to_upper()])
@@ -171,7 +171,7 @@ func _construit() -> void:
 		b.centre = true
 		b.set_meta("cle", r[2])
 		x += w + 10
-	var go := _bouton("EN PISTE !  →", Rect2((1050 if not portrait else 572), yb - 4, 200, 56), Style.ROUGE, Style.CREME, 30, _enPiste)
+	var go := _bouton("EN PISTE !  ›", Rect2((1050 if not portrait else 572), yb - 4, 200, 56), Style.ROUGE, Style.CREME, 30, _enPiste)
 	go.centre = true
 	go.set_meta("cle", "go")
 	cadre.queue_redraw()

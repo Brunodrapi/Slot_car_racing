@@ -202,7 +202,7 @@ func _draw() -> void:
 		for k in 4:
 			draw_circle(Vector2(ccx - 75 + k * 50, ccy), 16, Color("#ff3b3b") if k < feux else Color(1, 1, 1, 0.15))
 		Style.texte(self, "Doigt hors du levier pour accélérer" if tactile else "Maintiens Espace pour accélérer", Vector2(0, ccy + 58), 24, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, W)
-		Style.texte(self, "Levier à gauche : trajectoire" if tactile else "↑ ↓ : trajectoire   ·   manette : RT et stick", Vector2(0, ccy + 84), 16, Color("#cfd3dc"), HORIZONTAL_ALIGNMENT_CENTER, W)
+		Style.texte(self, "Levier à gauche : trajectoire" if tactile else "Flèches haut et bas : trajectoire   ·   manette : RT et stick", Vector2(0, ccy + 84), 16, Color("#cfd3dc"), HORIZONTAL_ALIGNMENT_CENTER, W)
 	elif go > 0:
 		Style.texte(self, "GO !", Vector2(0, H * 0.18 + 60), 80, Color(Color("#5be07a"), go / 1.2), HORIZONTAL_ALIGNMENT_CENTER, W)
 		go -= get_process_delta_time()

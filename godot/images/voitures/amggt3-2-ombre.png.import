@@ -15,9 +15,9 @@ dest_files=["res://.godot/imported/amggt3-2-ombre.png-5eb5c511f6e4b4720b791b460f
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.88
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

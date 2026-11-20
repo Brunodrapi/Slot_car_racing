@@ -5,7 +5,7 @@ config_version=5
 
 [application]
 
-config/name="GRIP — prototype Godot"
+config/name="GRIP — Racing the Line"
 config/description="Stand de frites et la Breithüft Apex R, avec la physique du jeu web portée en GDScript."
 run/main_scene="res://scenes/demarrage.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
@@ -49,3 +49,8 @@ renderer/rendering_method.web="gl_compatibility"
 textures/canvas_textures/default_texture_filter=1
 anti_aliasing/quality/msaa_2d=2
 2d/snap/snap_2d_transforms_to_pixel=false
+
+[grip]
+
+; Où une version qui n'embarque pas les décors (web, essai pour ordinateur) va les chercher.
+decors_url="https://brunodrapi.github.io/Slot_car_racing/essais/godot/"

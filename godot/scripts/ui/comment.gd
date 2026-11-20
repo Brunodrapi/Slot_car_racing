@@ -11,7 +11,7 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	fond = load("res://images/interface/accueil-pc.webp")
 	tactile = OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
-	for d in [["← RETOUR", Style.NUIT_PLEINE, func(): App.aller("accueil")], ["EN PISTE !  →", Style.ROUGE, func(): App.aller("paddock", { mode = "training" })]]:
+	for d in [["‹ RETOUR", Style.NUIT_PLEINE, func(): App.aller("accueil")], ["EN PISTE !  ›", Style.ROUGE, func(): App.aller("paddock", { mode = "training" })]]:
 		var b := Bouton.new(d[0], d[1], Style.CREME, 26)
 		b.centre = true
 		b.pressed.connect(d[2])

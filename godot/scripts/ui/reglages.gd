@@ -35,7 +35,7 @@ func _ready() -> void:
 	nom.add_theme_font_size_override("font_size", 24)
 	nom.text_changed.connect(func(t): if t.strip_edges() != "": R.nom = t.strip_edges(); App.sauve())
 	add_child(nom)
-	var retour := Bouton.new("← RETOUR", Style.ROUGE, Style.CREME, 24)
+	var retour := Bouton.new("‹ RETOUR", Style.ROUGE, Style.CREME, 24)
 	retour.centre = true
 	retour.pressed.connect(func(): App.aller("accueil"))
 	add_child(retour)

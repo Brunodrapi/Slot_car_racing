@@ -1,39 +1,57 @@
-# GRIP — le prototype Godot
+# GRIP — la version Godot
 
-Un circuit, une voiture : **Stand de frites** en **Breithüft Apex R**, dans Godot 4.7. Il sert à
-juger si Godot donne la version payante voulue (Steam et téléphone) : une image régulière, sans à-coups, et
-le même jeu qu'en ligne.
+La migration du jeu web dans Godot 4.7, pour une version payante sur Steam et sur téléphone. Tout le
+contenu du jeu y est, repris du code web et non réinventé :
 
-Ce qui est repris du jeu web, sans rien réinventer :
+- **la physique** de `js/car.js` et **la course** de `js/race.js`, portées ligne pour ligne en GDScript :
+  - grille et départ ;
+  - pilote de l'IA, aimant, dépassements, aspiration ;
+  - contacts, drapeaux, pénalités ;
+  - arrivée et classement ;
+- **les 14 circuits** tels que `js/track.js` les calcule, et **leur décor**, capté ordre de dessin par
+  ordre de dessin dans le navigateur, puis peint par la carte graphique ;
+- **les 35 voitures et leurs 88 livrées** : nombres, dessin, ombre, pneus qui braquent, suspension des
+  monoplaces, vignettes du menu ;
+- **les modes** :
+  - la course rapide, contre 1 à 11 adversaires, en cinq difficultés ;
+  - le contre-la-montre ;
+  - l'entraînement, avec le fantôme du pilote « difficile » et le guide de freinage ;
+- **les écrans** :
+  - l'accueil, le paddock (catégorie, voiture, livrée, caractéristiques, circuit, réglages) ;
+  - la pause, les résultats, les réglages, « Comment jouer » ;
+  - le tableau de bord de course de `js/render.js` ;
+- **le son** de `js/engine-audio.js` et `js/audio.js` :
+  - le moteur simulé et sa boîte, qui accordent les boucles enregistrées ;
+  - les crissements, le gravier, le vent ;
+  - le choc, le clac du levier, les bips ;
+- **les effets** : traces de gomme, fumée, poussière, secousse au choc ;
+- **la caméra** du jeu web : vue « devant, nord en haut », ou vue qui tourne avec la piste (touche C ou
+  réglages), avec le recul réglable.
 
-- **la physique** de `js/car.js`, portée ligne pour ligne en GDScript (`scripts/voiture.gd`) ;
-- **le circuit** tel que `js/track.js` le calcule : tracé, largeurs, lignes, vibreurs, protections ;
-- **le décor**, capté ordre de dessin par ordre de dessin dans le navigateur, puis peint par la carte graphique ;
-- **la voiture** : son dessin, son ombre et ses pneus avant qui braquent ;
-- **la caméra** de `js/render.js`, en vue « devant, nord en haut ». La touche C passe à la vue qui
-  tourne avec la piste.
+Le meilleur tour propre est gardé sur l'appareil, par circuit et par voiture.
 
 ## L'essayer
 
 | Où | Comment |
 |---|---|
-| Windows | `GRIP-prototype-windows.zip` : décompresser, lancer `GRIP-prototype.exe` |
-| Navigateur (ordinateur ou téléphone) | la page `essais/godot/` de la recette |
+| Navigateur, sur ordinateur ou téléphone | la page `essais/godot/` de la recette |
+| Windows | `essais/godot/GRIP-windows.zip` : décompresser, lancer `GRIP.exe` |
 | Godot 4.7 | Projet > Importer > `godot/project.godot`, puis F5 |
+
+La version web pèse 21 Mo, plus le moteur de Godot (40 Mo, mis en cache par le navigateur). La version
+d'essai pour Windows n'embarque pas les décors non plus. Celui d'un circuit (3 à 6 Mo) se télécharge
+la première fois qu'on y roule, puis reste sur l'appareil. Une version vendue les embarquera.
 
 Les commandes :
 
-- **Clavier** : Espace pour les gaz, flèches haut et bas pour la ligne (jaune, idéale, bleue), C pour
-  la vue, R pour rejouer, F pour le plein écran.
-- **Manette** : RT pour les gaz, dosables ; le stick gauche ou la croix pour la ligne.
-- **Doigt** : le levier en bas à gauche pour la ligne (on peut le glisser), n'importe où ailleurs pour les gaz.
-
-En haut à gauche, sous les temps, s'affiche la mesure de fluidité :
-
-- les images par seconde ;
-- la pire image de la dernière seconde ;
-- le coût d'un pas de physique ;
-- les appels de dessin et les triangles envoyés à la carte graphique.
+- **Clavier** :
+  - Espace pour les gaz, flèches haut et bas pour la ligne ;
+  - C pour la vue, Échap ou P pour la pause, F pour le plein écran ;
+  - dans les menus, les flèches, Entrée et Échap.
+- **Manette** : RT pour les gaz, dosables ; le stick gauche ou la croix pour la ligne ; Start pour la
+  pause ; A et B dans les menus.
+- **Doigt** : le levier en bas à gauche (ou à droite, selon les réglages) pour la ligne, n'importe où
+  ailleurs pour les gaz.
 
 ## La physique est la même : la preuve
 
@@ -42,7 +60,7 @@ node tools/godot-exporte.js                                   # depuis la racine
 godot --headless --path godot --script res://tests/parite.gd
 ```
 
-Le jeu web enregistre trois parcours de la voiture du joueur, chacun avec ses commandes pas à pas :
+Le jeu web enregistre trois parcours de la voiture du joueur seule, chacun avec ses commandes pas à pas :
 
 - **propre** : 190 s, levier changé toutes les sept secondes ;
 - **brutal** : 90 s pied au plancher, avec sorties, rails, moteur calé et retour en piste ;
@@ -63,14 +81,28 @@ avec compensation, et un simple `sqrt(x² + y²)` différait dans un tiers des c
 course la plus chahutée, l'écart reste sous le milliardième de millimètre, et aucune décision ne
 change : ni sortie de piste, ni choc, ni tour compté.
 
-Un pas de physique coûte environ 85 µs en GDScript pour une voiture. À 120 pas par seconde, cela
-fait 1 % d'un cœur de processeur.
+Puis **une course entière** : dix voitures, l'IA en difficulté normale, deux tours, contacts et
+drapeaux. Le hasard est tiré d'un même générateur (xorshift32) des deux côtés, et le joueur rejoue
+les commandes enregistrées. Résultat sur 27 567 pas :
+
+- les mêmes tours, les mêmes arrivées et le même classement ;
+- les temps sont les mêmes à 3·10⁻¹⁴ s près ;
+- le hasard est au même point à la fin ;
+- l'écart de position ne dépasse jamais 1,3 mm : les arrondis du sinus finissent par jouer dans les
+  contacts, sans jamais changer une décision.
+
+Un pas de physique coûte environ 65 µs par voiture en GDScript, donc une course à dix voitures
+prend environ 12 % d'un cœur. C'est bien sur ordinateur, mais un peu lourd pour un téléphone : la
+physique devra passer en C++ (GDExtension) avant la version mobile.
 
 ## Le décor : du jeu web à la carte graphique
 
 ```
+node tools/godot-exporte.js                                         # circuits, catalogue, références
+NODE_PATH=$(npm root -g) node godot/outils/capture-voitures.js       # dessins des voitures
 NODE_PATH=$(npm root -g) node godot/outils/capture-decor.js spa [--verifie]
 node godot/outils/maille-decor.js spa
+node godot/outils/sons.js                                           # boucles du moteur en Ogg
 ```
 
 Cela se fait en deux étapes.
@@ -87,25 +119,23 @@ Cela se fait en deux étapes.
      avec jonctions et bouts, tirets (les pneus sont des tirets nuls), découpes.
    - Le tout est rangé en carreaux de 64 m, sans recouvrement. Dans un carreau, les triangles gardent
      l'ordre du peintre.
-   - Pour Spa, cela donne 388 000 triangles en 391 carreaux, soit 5,2 Mo compressés.
-   - À l'écran, il y a 33 à 37 appels de dessin et 6 000 à 30 000 triangles par image.
+   - Les couches à part : le tablier d'un croisement (Suzuka) passe par-dessus les voitures qui roulent
+     dessous, les passerelles par-dessus toutes.
+   - Pour un circuit, cela donne 240 000 à 475 000 triangles, en 144 à 663 carreaux, soit 3 à 6 Mo
+     compressés.
+   - À l'écran, il y a environ 35 appels de dessin et 6 000 à 30 000 triangles par image.
 
 Le résultat est le rendu du jeu web, mais peint par la carte graphique, net à tous les zooms, sans
 rien redessiner image par image.
 
 ## Ce qui n'y est pas encore
 
-- le son ;
-- les adversaires et leur pilote automatique ;
-- les menus ;
-- les autres circuits et voitures ;
-- l'usure, les dégâts et les stands ;
-- la nuit ;
-- la fumée et les traces de pneus ;
-- le jeu en ligne.
-
-Tout cela est du travail de portage, sans inconnue technique. Le décor d'un autre circuit se
-capture avec la même commande.
+- la nuit (phares, éclairage) ;
+- le jeu en ligne et le tableau mondial des records ;
+- l'anglais ;
+- l'usure, les dégâts et les stands, qui sont encore des essais du jeu web ;
+- la physique en C++, pour les téléphones ;
+- les exports Android et iPhone, et Steamworks (succès, classement).
 
 ## Les choix techniques
 
@@ -125,12 +155,17 @@ capture avec la même commande.
 |---|---|
 | `scripts/piste.gd` | le circuit et ses lectures (track.js) |
 | `scripts/voiture.gd` | la physique (car.js) |
-| `scripts/decor.gd` | le chargement des carreaux du décor |
-| `scripts/voiture_vue.gd` | le dessin de la voiture |
-| `scripts/jeu.gd` | la boucle, la caméra, les commandes |
+| `scripts/course.gd` | la course, l'IA, les contacts, les drapeaux, le guide (race.js, flags.js) |
+| `scripts/hasard.gd` | le hasard reproductible des courses de référence |
+| `scripts/catalogue.gd` | les voitures, livrées, pilotes, difficultés |
+| `scripts/decor.gd` | les carreaux du décor, et leur téléchargement à la demande |
+| `scripts/voiture_vue.gd` | le dessin d'une voiture |
+| `scripts/course_vue.gd` | l'écran de course : boucle, caméra, commandes, guide |
 | `scripts/hud.gd` | le tableau de bord |
-| `tests/parite.gd` | la preuve de la physique |
-| `tests/photo.gd` | des photos sans écran (Xvfb) |
-| `donnees/` | le circuit, la voiture et le décor exportés |
-| `outils/` | la capture et le maillage du décor |
-| `../tools/godot-exporte.js` | l'export du circuit, de la voiture et des parcours de référence |
+| `scripts/son.gd`, `scripts/effets.gd` | le son, la gomme et la fumée |
+| `scripts/app.gd`, `scripts/ui/` | les réglages gardés et les écrans |
+| `tests/parite.gd` | la preuve de la physique et de la course |
+| `tests/visite.tscn` | une visite photographiée des écrans (Xvfb) |
+| `donnees/`, `images/`, `sons/` | tout ce que les outils sortent du jeu web |
+| `outils/` | les captures, le maillage, les sons |
+| `../tools/godot-exporte.js` | l'export des circuits, du catalogue et des courses de référence |
