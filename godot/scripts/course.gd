@@ -105,7 +105,7 @@ func _poseFantome() -> void:
 	var p := player
 	var niveau: Dictionary = difficultes.get("hard", difficulte)
 	var car := Voiture.new(T, cls, T.length - 40, 0, hasard)
-	car.nom = "Fantôme"
+	car.nom = Textes.t("ghost")
 	car.livery = p.livery; car.livree = p.livree
 	car.isPlayer = false; car.skill = 0.5
 	car.gripBoost = float(niveau.get("grip", 1.0))

@@ -14,9 +14,9 @@ func _ready() -> void:
 	fond = load("res://images/interface/accueil-pc.webp")
 	fondPortrait = load("res://images/interface/accueil-mobile.webp")
 	logo = load("res://images/interface/logo-grip.webp")
-	var modes := [["COURSE RAPIDE", Style.ROUGE, Style.CREME, "wheel.webp", "race"],
-		["CONTRE-LA-MONTRE", Style.JAUNE, Style.ENCRE, "clock.webp", "timetrial"],
-		["ENTRAÎNEMENT", Style.BLEU, Style.CREME, "plaque-l.svg", "training"]]
+	var modes := [[Textes.t("quickRace"), Style.ROUGE, Style.CREME, "wheel.webp", "race"],
+		[Textes.t("timeTrial"), Style.JAUNE, Style.ENCRE, "clock.webp", "timetrial"],
+		[Textes.t("training"), Style.BLEU, Style.CREME, "plaque-l.svg", "training"]]
 	for m in modes:
 		var b := Bouton.new(m[0], m[1], m[2], 34)
 		b.icone = load("res://images/interface/" + m[3])
@@ -24,22 +24,22 @@ func _ready() -> void:
 		b.pressed.connect(func(): App.reglages.mode = m[4]; App.sauve(); App.aller("paddock", { mode = m[4] }))
 		add_child(b)
 		boutons.append(b)
-	var comment := Bouton.new("COMMENT JOUER", Style.PAPIER, Style.ENCRE, 22)
+	var comment := Bouton.new(Textes.t("howto"), Style.PAPIER, Style.ENCRE, 22)
 	comment.centre = true
 	comment.pressed.connect(func(): App.aller("comment"))
 	add_child(comment)
 	boutons.append(comment)
-	var reglages := Bouton.new("RÉGLAGES", Style.NUIT_PLEINE, Style.CREME, 22)
+	var reglages := Bouton.new(Textes.t("settings"), Style.NUIT_PLEINE, Style.CREME, 22)
 	reglages.icone = load("res://images/interface/gear.webp")
 	reglages.pressed.connect(func(): App.aller("reglages"))
 	add_child(reglages)
 	boutons.append(reglages)
-	var pilote := Bouton.new("PILOTE : " + str(App.reglages.nom).to_upper(), Style.NUIT_PLEINE, Style.CREME, 22)
+	var pilote := Bouton.new(Textes.t("pilot", str(App.reglages.nom).to_upper()), Style.NUIT_PLEINE, Style.CREME, 22)
 	pilote.icone = load("res://images/interface/pilot.webp")
 	pilote.pressed.connect(_changeNom)
 	add_child(pilote)
 	boutons.append(pilote)
-	var quitter := Bouton.new("QUITTER", Style.NUIT_PLEINE, Style.CREME, 22)
+	var quitter := Bouton.new(Textes.t("quit"), Style.NUIT_PLEINE, Style.CREME, 22)
 	quitter.centre = true
 	quitter.pressed.connect(func(): get_tree().quit())
 	quitter.visible = not OS.has_feature("web") and not OS.has_feature("mobile")
@@ -70,7 +70,7 @@ func _valideNom(t: String) -> void:
 	if t != "": App.reglages.nom = t
 	App.sauve()
 	nom.visible = false
-	boutons[5].libelle("PILOTE : " + str(App.reglages.nom).to_upper())
+	boutons[5].libelle(Textes.t("pilot", str(App.reglages.nom).to_upper()))
 	boutons[5].grab_focus()
 
 
@@ -101,5 +101,5 @@ func _draw() -> void:
 	var k := minf(size.x / 1280.0, size.y / 720.0) if not portrait else size.x / 640.0
 	var lw := 560 * k
 	draw_texture_rect(logo, Rect2(60 * k, 14 * k, lw, lw * logo.get_height() / logo.get_width()), false)
-	Style.texte(self, "Prototype Godot · %d circuits · %d voitures" % [Catalogue.circuits().size(), Catalogue.donnees.voitures.size()],
+	Style.texte(self, Textes.t("proto", [Catalogue.circuits().size(), Catalogue.donnees.voitures.size()]),
 		Vector2(52 * k, size.y - 18 * k), int(15 * k), Color(1, 1, 1, 0.8))

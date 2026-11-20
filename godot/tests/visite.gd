@@ -20,6 +20,7 @@ func _ready() -> void:
 	if args.size() > 2: App.reglages.voiture = args[2]; App.reglages.cat = Catalogue.voiture(args[2]).cat
 	if args.size() > 3: mode = args[3]
 	App.reglages.nuit = args.size() > 4 and args[4] == "nuit"
+	if args.size() > 5: App.reglages.langue = args[5]
 	App.reglages.tours = 1
 	App.reglages.adversaires = 8
 	App.reglages.difficulte = "medium"

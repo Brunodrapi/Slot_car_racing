@@ -11,7 +11,7 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	fond = load("res://images/interface/accueil-pc.webp")
 	tactile = OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
-	for d in [["‹ RETOUR", Style.NUIT_PLEINE, func(): App.aller("accueil")], ["EN PISTE !  ›", Style.ROUGE, func(): App.aller("paddock", { mode = "training" })]]:
+	for d in [[Textes.t("back"), Style.NUIT_PLEINE, func(): App.aller("accueil")], [Textes.t("onTrack"), Style.ROUGE, func(): App.aller("paddock", { mode = "training" })]]:
 		var b := Bouton.new(d[0], d[1], Style.CREME, 26)
 		b.centre = true
 		b.pressed.connect(d[2])
@@ -35,14 +35,11 @@ func _place() -> void:
 func _draw() -> void:
 	Style.couvre(self, fond, Rect2(Vector2.ZERO, size), 0.5)
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.06, 0.07, 0.08, 0.6))
-	Style.texte(self, "COMMENT JOUER", Vector2(0, 74), 52, Style.CREME, HORIZONTAL_ALIGNMENT_CENTER, size.x)
+	Style.texte(self, Textes.t("howto"), Vector2(0, 74), 52, Style.CREME, HORIZONTAL_ALIGNMENT_CENTER, size.x)
 	var gestes := [
-		["1  LES GAZ", "Tiens le doigt posé, ailleurs que sur le levier." if tactile else "Tiens Espace enfoncée (ou RT à la manette).",
-			"Lâche avant le virage : la voiture freine seule. Trop vite, elle glisse et sort."],
-		["2  LA LIGNE", "Glisse le levier à gauche de l'écran." if tactile else "Flèches haut et bas (ou le stick).",
-			"Idéale au milieu, jaune à l'extérieur, bleue à l'intérieur : pour doubler ou se protéger."],
-		["3  LE GRIP", "La pastille GRIP dit ce que font les pneus.",
-			"Bleu, tout va bien ; vert, ça travaille ; jaune, ça glisse ; violet puis rouge, tu perds la voiture."],
+		[Textes.t("h1"), Textes.t("h1t" if tactile else "h1a"), Textes.t("h1b")],
+		[Textes.t("h2"), Textes.t("h2t" if tactile else "h2a"), Textes.t("h2b")],
+		[Textes.t("h3"), Textes.t("h3a"), Textes.t("h3b")],
 	]
 	var portrait := size.x < size.y
 	var n := gestes.size()

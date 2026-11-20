@@ -4,9 +4,10 @@ extends Node
 
 const FICHIER := "user://grip.json"
 var reglages := {
-	nom = "Pilote", mode = "race", cat = "gt3", voiture = "porsche991gt3r", livree = 0,
+	nom = "", mode = "race", cat = "gt3", voiture = "porsche991gt3r", livree = 0,
 	circuit = "spa", difficulte = "medium", tours = 3, vue = "avanceFixe", adversaires = 10,
 	son = true, volume = 0.8, recul = 1.0, cote = "left", guide = false, nuit = false,
+	langue = "",
 }
 var ecran: Node = null
 var derniereCourse: Course = null      # pour l'écran des résultats
@@ -18,6 +19,9 @@ func _ready() -> void:
 		var lu = JSON.parse_string(FileAccess.get_file_as_string(FICHIER))
 		if lu is Dictionary:
 			for k in lu: reglages[k] = lu[k]
+	# La langue : celle de l'appareil au premier lancement, le français ou l'anglais.
+	if reglages.langue == "": reglages.langue = "fr" if OS.get_locale_language() == "fr" else "en"
+	if reglages.nom == "": reglages.nom = "Pilote" if reglages.langue == "fr" else "Driver"
 	# Le JSON rend des nombres décimaux : les réglages entiers redeviennent entiers.
 	for k in ["livree", "tours", "adversaires"]: reglages[k] = int(reglages[k])
 	appliqueSon()

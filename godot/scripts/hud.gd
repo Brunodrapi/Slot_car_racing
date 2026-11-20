@@ -45,7 +45,7 @@ func evenements(evts: Array) -> void:
 	for e in evts:
 		if e.type == "go": go = 1.2
 		elif e.type == "lap" and e.car == course.player and course.mode == "race" and course.player.lap == course.laps - 1:
-			annonce("DERNIER TOUR", Style.LIGNE_JAUNE)
+			annonce(Textes.t("lastLap"), Style.LIGNE_JAUNE)
 
 
 func annonce(t: String, c: Color) -> void:
@@ -119,8 +119,8 @@ func _draw() -> void:
 		elif course.zones.size(): drapeaux.append("yellow")
 		if course.chequered: drapeaux.append("chequered")
 	var enTour := 0.0 if course.state == "countdown" else course.time - p.lapStart
-	_chrono(px, y0, pw, ph, "TOUR NUL" if nul else "TOUR", Style.temps(enTour), true, drapeaux, nul)
-	_chrono(px, y0 + ph + 4, pw, ph, "MEILLEUR", Style.temps(p.bestLap), false, [], false)
+	_chrono(px, y0, pw, ph, Textes.t("lapVoid") if nul else Textes.t("lap"), Style.temps(enTour), true, drapeaux, nul)
+	_chrono(px, y0 + ph + 4, pw, ph, Textes.t("best"), Style.temps(p.bestLap), false, [], false)
 	# Le bouton de pause
 	draw_rect(pb, Style.NUIT)
 	var bh := roundf(pb.size.y * 0.46)
@@ -136,12 +136,12 @@ func _draw() -> void:
 	Style.biseau(self, Rect2(xe - lapW, lapY, lapW, lapH), Style.PAPIER)
 	var num := str(p.lap + 1 if tt else mini(course.laps, p.lap + 1))
 	var tot := "" if tt else "/%d" % course.laps
-	var wl := Style.largeur("TOUR", 19)
+	var wl := Style.largeur(Textes.t("lap"), 19)
 	var wn := Style.largeur(num, 40)
 	var wt := Style.largeur(tot, 25)
 	var x := xe - lapW + maxf(8, (lapW - (wl + 6 + wn + 2 + wt)) / 2)
 	var base := lapY + lapH * 0.82
-	Style.texte(self, "TOUR", Vector2(x, base), 19, Style.ENCRE); x += wl + 6
+	Style.texte(self, Textes.t("lap"), Vector2(x, base), 19, Style.ENCRE); x += wl + 6
 	Style.texte(self, num, Vector2(x, base + 2), 40, Style.ENCRE); x += wn + 2
 	if tot != "": Style.texte(self, tot, Vector2(x, base), 25, Style.ENCRE)
 	# Le classement autour du joueur
@@ -163,7 +163,7 @@ func _draw() -> void:
 			draw_rect(Rect2(bx + 10, yy + (rowH - 12) / 2, 10, 10), Color("#394137"), false, 1)
 			var ink := Style.ENCRE if moi else Style.PAPIER
 			Style.texte(self, "%d  %s" % [k + 1, str(c.nom).to_upper()], Vector2(bx + 26, yy + 22), 18, ink)
-			var ecart := "TOI"
+			var ecart := Textes.t("you")
 			if c.fantome:
 				var e := course.ecartFantome()
 				ecart = "%s%s s" % ["+" if e >= 0 else "−", _fmtEcart(absf(e))]
@@ -203,16 +203,16 @@ func _draw() -> void:
 		Style.biseau(self, Rect2(ccx - 120, ccy - 30, 240, 60), Style.NUIT)
 		for k in 4:
 			draw_circle(Vector2(ccx - 75 + k * 50, ccy), 16, Color("#ff3b3b") if k < feux else Color(1, 1, 1, 0.15))
-		Style.texte(self, "Doigt hors du levier pour accélérer" if tactile else "Maintiens Espace pour accélérer", Vector2(0, ccy + 58), 24, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, W)
-		Style.texte(self, "Levier à gauche : trajectoire" if tactile else "Flèches haut et bas : trajectoire   ·   manette : RT et stick", Vector2(0, ccy + 84), 16, Color("#cfd3dc"), HORIZONTAL_ALIGNMENT_CENTER, W)
+		Style.texte(self, Textes.t("holdToGoTouch" if tactile else "holdToGo"), Vector2(0, ccy + 58), 24, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, W)
+		Style.texte(self, Textes.t("lineHintTouch" if tactile else "lineHintPC"), Vector2(0, ccy + 84), 16, Color("#cfd3dc"), HORIZONTAL_ALIGNMENT_CENTER, W)
 	elif go > 0:
-		Style.texte(self, "GO !", Vector2(0, H * 0.18 + 60), 80, Color(Color("#5be07a"), go / 1.2), HORIZONTAL_ALIGNMENT_CENTER, W)
+		Style.texte(self, Textes.t("go"), Vector2(0, H * 0.18 + 60), 80, Color(Color("#5be07a"), go / 1.2), HORIZONTAL_ALIGNMENT_CENTER, W)
 		go -= get_process_delta_time()
 	if p.herbe:
-		Style.texte(self, "HORS PISTE !", Vector2(0, H * 0.3 + 30), 36, Color("#ff6b6b"), HORIZONTAL_ALIGNMENT_CENTER, W)
-		if p.engineStopped: Style.texte(self, "MOTEUR COUPÉ", Vector2(0, H * 0.3 + 60), 24, Color("#ffcf5c"), HORIZONTAL_ALIGNMENT_CENTER, W)
+		Style.texte(self, Textes.t("offTrack"), Vector2(0, H * 0.3 + 30), 36, Color("#ff6b6b"), HORIZONTAL_ALIGNMENT_CENTER, W)
+		if p.engineStopped: Style.texte(self, Textes.t("engineCut"), Vector2(0, H * 0.3 + 60), 24, Color("#ffcf5c"), HORIZONTAL_ALIGNMENT_CENTER, W)
 	if p.finished and course.state != "finished":
-		Style.texte(self, "ARRIVÉE — P%d" % pos, Vector2(0, H * 0.3 + 40), 52, Color("#ffd400"), HORIZONTAL_ALIGNMENT_CENTER, W)
+		Style.texte(self, Textes.t("finished", pos), Vector2(0, H * 0.3 + 40), 52, Color("#ffd400"), HORIZONTAL_ALIGNMENT_CENTER, W)
 	if flash != "" and Time.get_ticks_msec() / 1000.0 < flashJusqua:
 		Style.texte(self, flash, Vector2(0, maxf(H * 0.12, 120) + 30), 32, flashCouleur, HORIZONTAL_ALIGNMENT_CENTER, W)
 	# La mesure de fluidité, discrète, sous la minicarte
@@ -232,7 +232,7 @@ func _consigne() -> void:
 	var h0 := 86.0 + 6 + 38
 	var x := (P if _droite() else size.x - P - L) + 80
 	var y := size.y - P - h0 - 8
-	var mot: String = ["GAZ", "DOSE", "LÂCHE"][consigne]
+	var mot: String = Textes.t(["guideGaz", "guideDose", "guideLeve"][consigne])
 	var fond: Color = [Color("#12a35c"), Color("#171b19e6"), Color("#e0261c")][consigne]
 	var taille := 20
 	var h := taille + 10.0
@@ -273,10 +273,10 @@ func _drapeau(type: String, p: Vector2, s: float) -> void:
 
 func _levierDessin(p: Voiture) -> void:
 	var s := _levier()
-	var crans := [[1.0, C_JAUNE, "JAUNE"], [0.0, C_IDEALE, "IDÉALE"], [-1.0, C_BLEU, "BLEUE"]]
+	var crans := [[1.0, C_JAUNE, Textes.t("lineJaune")], [0.0, C_IDEALE, Textes.t("lineRace")], [-1.0, C_BLEU, Textes.t("lineBleu")]]
 	var cote := -1.0 if _droite() else 1.0
 	var lx: float = s.x + 19 * cote
-	var larg := Style.largeur("IDÉALE", 15)
+	var larg := maxf(Style.largeur(Textes.t("lineRace"), 15), Style.largeur(Textes.t("lineJaune"), 15))
 	var hFond: float = s.len + 52
 	var biseau := minf(9, hFond * .23)
 	var gauche: float = s.x - (19 + larg + 7) if _droite() else s.x - 22

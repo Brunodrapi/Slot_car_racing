@@ -14,7 +14,7 @@ func _init(c: Course) -> void:
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	fond = load("res://images/interface/paddock.webp")
-	for d in [["REJOUER", Style.ROUGE, func(): App.aller("course")], ["PADDOCK", Style.NUIT_PLEINE, func(): App.aller("paddock", { mode = App.reglages.mode })]]:
+	for d in [[Textes.t("retry"), Style.ROUGE, func(): App.aller("course")], [Textes.t("paddock"), Style.NUIT_PLEINE, func(): App.aller("paddock", { mode = App.reglages.mode })]]:
 		var b := Bouton.new(d[0], d[1], Style.CREME, 26)
 		b.centre = true
 		b.pressed.connect(d[2])
@@ -48,12 +48,12 @@ func _draw() -> void:
 	Style.biseau(self, Rect2(r.position.x, r.position.y, r.size.x, 64), Style.NUIT_PLEINE, 0)
 	Style.damier(self, Rect2(r.position.x + 4, r.position.y, 70, 64), 4, Style.CREME, Style.NUIT_PLEINE)
 	var p := course.player
-	var titre := "CONTRE-LA-MONTRE" if course.mode == "timetrial" else "ARRIVÉE — P%d / %d" % [course.positionOf(p), course.cars.size()]
+	var titre := Textes.t("training" if course.entrainement else "timeTrial") if course.mode == "timetrial" else Textes.t("finishPos", [course.positionOf(p), course.cars.size()])
 	Style.texte(self, titre, r.position + Vector2(90, 46), 38, Style.CREME)
 	Style.texte(self, str(course.track.nom).to_upper(), r.position + Vector2(90, 46), 22, Style.PAPIER, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 104)
 	var y := r.position.y + 80
 	var cols := [0.0, 50.0, 400.0, 520.0, 630.0, 740.0]
-	var tetes := ["", "PILOTE", "TEMPS", "ÉCART", "PÉNALITÉ", "MEILLEUR TOUR"]
+	var tetes := ["", Textes.t("colDriver"), Textes.t("colTime"), Textes.t("colGap"), Textes.t("colPenalty"), Textes.t("colBest")]
 	for i in tetes.size():
 		Style.texte(self, tetes[i], Vector2(r.position.x + 14 + cols[i], y + 18), 16, Style.PAPIER)
 	y += 28

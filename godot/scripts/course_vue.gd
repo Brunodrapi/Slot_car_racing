@@ -59,11 +59,11 @@ func _ready() -> void:
 		chargement.add_theme_color_override("font_color", Style.CREME)
 		chargement.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
 		chargement.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		chargement.text = "CHARGEMENT DU CIRCUIT…"
+		chargement.text = Textes.t("loading", 0)
 		couche0.add_child(chargement)
-		var ok: bool = await Decor.telecharge(R.circuit, self, func(f): chargement.text = "CHARGEMENT DU CIRCUIT… %d %%" % roundi(f * 100))
+		var ok: bool = await Decor.telecharge(R.circuit, self, func(f): chargement.text = Textes.t("loading", roundi(f * 100)))
 		if not ok:
-			chargement.text = "LE CIRCUIT N'A PAS PU SE CHARGER.\nVÉRIFIE LA CONNEXION, PUIS ÉCHAP."
+			chargement.text = Textes.t("loadFailed")
 			return
 		couche0.queue_free()
 		chemin = Decor.cheminDe(R.circuit)
@@ -257,7 +257,7 @@ func _sons(evts: Array) -> void:
 			var lt: float = p.lapTimes[-1]
 			var meilleur := p.bestLap == lt and p.lapTimes.size() > 1
 			son.joue("record" if meilleur else "tour")
-			hud.annonce("TOUR %d · %s" % [p.lap, Style.temps(lt)], Color("#b48cff") if meilleur else Color.WHITE)
+			hud.annonce(Textes.t("lapDone", [p.lap, Style.temps(lt)]), Color("#b48cff") if meilleur else Color.WHITE)
 		elif e.type == "finish" and e.car == course.player: son.joue("arrivee")
 
 
@@ -272,7 +272,7 @@ func _record() -> void:
 	if not R.records.has(cle) or t < float(R.records[cle]):
 		R.records[cle] = t
 		App.sauve()
-		hud.annonce("RECORD PERSONNEL  " + Style.temps(t), Style.LIGNE_JAUNE)
+		hud.annonce(Textes.t("newRecord", Style.temps(t)), Style.LIGNE_JAUNE)
 
 
 func _process(dt: float) -> void:

@@ -8,9 +8,9 @@ var boutons: Array[Bouton] = []
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for d in [["REPRENDRE", Color("#ffd400"), Style.ENCRE, func(): jeu.basculePause()],
-			["RECOMMENCER", Style.NUIT_PLEINE, Style.CREME, func(): jeu.recommence()],
-			["QUITTER", Style.NUIT_PLEINE, Style.CREME, func(): jeu.quitte()]]:
+	for d in [[Textes.t("resume"), Color("#ffd400"), Style.ENCRE, func(): jeu.basculePause()],
+			[Textes.t("restart"), Style.NUIT_PLEINE, Style.CREME, func(): jeu.recommence()],
+			[Textes.t("quit"), Style.NUIT_PLEINE, Style.CREME, func(): jeu.quitte()]]:
 		var b := Bouton.new(d[0], d[1], d[2], 24)
 		b.centre = true
 		b.pressed.connect(d[3])
@@ -32,4 +32,4 @@ func _place() -> void:
 
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.05, 0.06, 0.09, 0.62))
-	Style.texte(self, "PAUSE", Vector2(0, size.y * 0.38 - 26), 44, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, size.x)
+	Style.texte(self, Textes.t("pause"), Vector2(0, size.y * 0.38 - 26), 44, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, size.x)

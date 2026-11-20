@@ -4,10 +4,8 @@
 class_name Paddock
 extends Control
 
-const PAYS := { IT = "Italie", BE = "Belgique", MC = "Monaco", GB = "Royaume-Uni", JP = "Japon", BR = "Brésil",
-	US = "États-Unis", DE = "Allemagne", FR = "France", AU = "Australie", AT = "Autriche", NL = "Pays-Bas" }
-const DIFFICULTES := [["easy", "FACILE"], ["medium", "NORMAL"], ["hard", "DIFFICILE"], ["extreme", "EXTRÊME"], ["cauchemar", "CAUCHEMAR"]]
-const VUES := [["avanceFixe", "DEVANT"], ["avance", "TOURNANTE"]]
+const DIFFICULTES := [["easy", "easy"], ["medium", "medium"], ["hard", "hard"], ["extreme", "extreme"], ["cauchemar", "cauchemar"]]
+const VUES := [["avanceFixe", "viewFixed"], ["avance", "viewTrack"]]
 
 var mode := "race"
 var cadre: Control
@@ -102,10 +100,10 @@ func _construit() -> void:
 	var dx := 0.0 if not portrait else 18.0 - 790.0     # le panneau du circuit, sous la colonne en portrait
 	var dy := 0.0 if not portrait else 640.0
 	# En-tête
-	_bouton("‹ RETOUR", Rect2(18, 10, 120, 64), Style.NUIT_PLEINE, Style.CREME, 22, func(): App.aller("accueil")).set_meta("cle", "retour")
+	_bouton(Textes.t("back"), Rect2(18, 10, 120, 64), Style.NUIT_PLEINE, Style.CREME, 22, func(): App.aller("accueil")).set_meta("cle", "retour")
 	# Onglets
-	var onglets := [["tous", "TOUTES"]]
-	for c in Catalogue.categories(): onglets.append([c.id, str(c.nom.fr).to_upper()])
+	var onglets := [["tous", Textes.t("all")]]
+	for c in Catalogue.categories(): onglets.append([c.id, Textes.nom(c.nom).to_upper()])
 	var x := 30.0
 	for o in onglets:
 		var w := Style.largeur(o[1], 24) + 34
@@ -119,7 +117,7 @@ func _construit() -> void:
 	var lw := (744.0 - 8 * (livrees.size() - 1)) / livrees.size() if livrees.size() > 1 else 240.0
 	for i in livrees.size():
 		var d := Catalogue.dessin(v.id, i)
-		var b := _bouton(str(livrees[i].nom).to_upper(), Rect2(26 + i * (lw + 8), 358, lw, 82), Style.NUIT_PLEINE, Style.CREME, 15, func(): App.reglages.livree = i; App.sauve(); _construit())
+		var b := _bouton(Textes.livree(livrees[i]).to_upper(), Rect2(26 + i * (lw + 8), 358, lw, 82), Style.NUIT_PLEINE, Style.CREME, 15, func(): App.reglages.livree = i; App.sauve(); _construit())
 		b.choisi = int(App.reglages.livree) % livrees.size() == i
 		b.set_meta("cle", "livree-%d" % i)
 		b.set_meta("vignette", d.get("vignette"))
@@ -160,19 +158,19 @@ func _construit() -> void:
 	var dif := _nom(DIFFICULTES, App.reglages.difficulte)
 	x = 30.0
 	var reglagesBas := []
-	reglagesBas.append(["JOUR / NUIT : " + ("NUIT" if App.reglages.nuit else "JOUR"), func(): App.reglages.nuit = not App.reglages.nuit; App.sauve(); _construit(), "nuit"])
+	reglagesBas.append([Textes.t("dayNight", Textes.t("night" if App.reglages.nuit else "day")), func(): App.reglages.nuit = not App.reglages.nuit; App.sauve(); _construit(), "nuit"])
 	if mode == "race":
-		reglagesBas.append(["DIFFICULTÉ : " + dif, func(): App.reglages.difficulte = _suivant(DIFFICULTES, App.reglages.difficulte); App.sauve(); _construit(), "difficulte"])
-		reglagesBas.append(["TOURS : %d" % int(App.reglages.tours), func(): App.reglages.tours = int(App.reglages.tours) % 10 + 1; App.sauve(); _construit(), "tours"])
-		reglagesBas.append(["ADVERSAIRES : %d" % (int(App.reglages.adversaires) - 1), func(): App.reglages.adversaires = (int(App.reglages.adversaires) - 1) % 11 + 2; App.sauve(); _construit(), "adversaires"])
-	reglagesBas.append(["VUE : " + _nom(VUES, App.reglages.vue), func(): App.reglages.vue = _suivant(VUES, App.reglages.vue); App.sauve(); _construit(), "vue"])
+		reglagesBas.append([Textes.t("difficulty", dif), func(): App.reglages.difficulte = _suivant(DIFFICULTES, App.reglages.difficulte); App.sauve(); _construit(), "difficulte"])
+		reglagesBas.append([Textes.t("laps", int(App.reglages.tours)), func(): App.reglages.tours = int(App.reglages.tours) % 10 + 1; App.sauve(); _construit(), "tours"])
+		reglagesBas.append([Textes.t("opponents", int(App.reglages.adversaires) - 1), func(): App.reglages.adversaires = (int(App.reglages.adversaires) - 1) % 11 + 2; App.sauve(); _construit(), "adversaires"])
+	reglagesBas.append([Textes.t("view", _nom(VUES, App.reglages.vue)), func(): App.reglages.vue = _suivant(VUES, App.reglages.vue); App.sauve(); _construit(), "vue"])
 	for r in reglagesBas:
 		var w := Style.largeur(r[0], 20) + 36
 		var b := _bouton(r[0], Rect2(x, yb, w, 48), Style.NUIT_PLEINE, Style.CREME, 20, r[1])
 		b.centre = true
 		b.set_meta("cle", r[2])
 		x += w + 10
-	var go := _bouton("EN PISTE !  ›", Rect2((1050 if not portrait else 572), yb - 4, 200, 56), Style.ROUGE, Style.CREME, 30, _enPiste)
+	var go := _bouton(Textes.t("onTrack"), Rect2((1050 if not portrait else 572), yb - 4, 200, 56), Style.ROUGE, Style.CREME, 30, _enPiste)
 	go.centre = true
 	go.set_meta("cle", "go")
 	cadre.queue_redraw()
@@ -188,8 +186,8 @@ func _construit() -> void:
 
 static func _nom(liste: Array, id: String) -> String:
 	for e in liste:
-		if e[0] == id: return e[1]
-	return liste[0][1]
+		if e[0] == id: return Textes.t(e[1])
+	return Textes.t(liste[0][1])
 
 
 static func _suivant(liste: Array, id: String) -> String:
@@ -224,7 +222,7 @@ func _dessine() -> void:
 	Style.biseau(ci, Rect2(18, 10, W - 36, 64), Style.NUIT_PLEINE, 0)
 	Style.damier(ci, Rect2(140, 10, 80, 64), 4, Style.CREME, Style.NUIT_PLEINE, 0)
 	Style.biseau(ci, Rect2(214, 10, 320, 64), Style.ROUGE, 22)
-	Style.texte(ci, { race = "COURSE RAPIDE", timetrial = "CONTRE-LA-MONTRE", training = "ENTRAÎNEMENT" }.get(mode, ""), Vector2(236, 58), 38, Style.CREME)
+	Style.texte(ci, Textes.t({ race = "quickRace", timetrial = "timeTrial", training = "training" }.get(mode, "quickRace")), Vector2(236, 58), 38, Style.CREME)
 	var logo := Style.tex("res://images/interface/logo-grip.webp")
 	if not portrait:
 		ci.draw_texture_rect(logo, Rect2(W - 210, 16, 190, 190 * logo.get_height() / logo.get_width()), false)
@@ -234,12 +232,12 @@ func _dessine() -> void:
 	var v := Catalogue.voiture(App.reglages.voiture)
 	var cat := ""
 	for c in Catalogue.categories():
-		if c.id == v.cat: cat = str(c.nom.fr).to_upper()
+		if c.id == v.cat: cat = Textes.nom(c.nom).to_upper()
 	var livrees: Array = v.livrees
 	var li: int = int(App.reglages.livree) % maxi(1, livrees.size())
 	Style.biseau(ci, Rect2(18, 148, 744, 70), Style.PAPIER, 14)
 	Style.texte(ci, str(v.nom).to_upper(), Vector2(32, 194), 44, Style.ENCRE)
-	Style.texte(ci, "%s · %s" % [cat, str(livrees[li].nom).to_upper()], Vector2(34, 213), 17, Color(Style.ENCRE, 0.8))
+	Style.texte(ci, "%s · %s" % [cat, Textes.livree(livrees[li]).to_upper()], Vector2(34, 213), 17, Color(Style.ENCRE, 0.8))
 	var d := Catalogue.dessin(v.id, li)
 	if d.get("vignette"):
 		var tex := Style.tex("res://images/vignettes/" + d.vignette)
@@ -249,7 +247,7 @@ func _dessine() -> void:
 	# Les caractéristiques
 	Style.biseau(ci, Rect2(18, 450, 744, 54), Style.PAPIER, 12)
 	var p: Dictionary = v.perf
-	var stats := [["%d km/h" % roundi(p.vmax), "VITESSE MAX."], ["%.1f s" % p.a100, "0-100 KM/H"], ["%.1f m" % p.b100, "FREINAGE 100-0"], ["%.2f g" % p.gripG, "ADHÉRENCE"]]
+	var stats := [["%d km/h" % roundi(p.vmax), Textes.t("statVmax")], ["%.1f s" % p.a100, Textes.t("statA100")], ["%.1f m" % p.b100, Textes.t("statB100")], ["%.2f g" % p.gripG, Textes.t("statGrip")]]
 	for i in 4:
 		var x := 36 + i * 186
 		Style.texte(ci, stats[i][0], Vector2(x, 478), 26, Style.ENCRE)
@@ -265,16 +263,16 @@ func _dessine() -> void:
 	Style.texte(ci, str(info.nom).to_upper(), r.position + Vector2(14, 52), 40, Style.ENCRE)
 	var dr := Style.drapeau(info.pays)
 	if dr: ci.draw_texture_rect(dr, Rect2(r.end.x - 82, r.position.y + 16, 62, 42), false)
-	Style.texte(ci, "%s · %d M · %d TOURS" % [str(PAYS.get(info.pays, info.pays)).to_upper(), roundi(info.longueur), int(App.reglages.tours) if mode == "race" else 0],
+	Style.texte(ci, Textes.t("trackInfo", [Textes.pays(info.pays).to_upper(), roundi(info.longueur), int(App.reglages.tours) if mode == "race" else 0]),
 		r.position + Vector2(14, 82), 18, Color(Style.ENCRE, 0.85))
 	var ir := Rect2(r.position.x + 2, r.position.y + 94, r.size.x - 4, 96)
 	Style.couvre(ci, info.image, ir, 0.5)
 	_contour(ci, info, ir.grow(-8))
 	# Le record de l'appareil
 	var rec := _record(cid, v.id)
-	Style.texte(ci, "TON MEILLEUR TOUR ICI", r.position + Vector2(14, 512), 18, Style.ENCRE)
+	Style.texte(ci, Textes.t("myBest"), r.position + Vector2(14, 512), 18, Style.ENCRE)
 	Style.texte(ci, Style.temps(rec), r.position + Vector2(r.size.x - 160, 512), 22, Style.ENCRE)
-	Style.texte(ci, "avec cette voiture, sur cet appareil", r.position + Vector2(14, 532), 13, Color(Style.ENCRE, 0.7))
+	Style.texte(ci, Textes.t("myBestHint"), r.position + Vector2(14, 532), 13, Color(Style.ENCRE, 0.7))
 	# La barre du bas
 	var yb := 654.0 if not portrait else 1250.0
 	ci.draw_rect(Rect2(18, yb - 6, W - 36, 3), Style.NUIT_PLEINE)
