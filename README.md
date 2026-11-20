@@ -31,9 +31,9 @@ phares en deux faisceaux, sans halo autour de la voiture. Deux cônes rouges dis
 les rectangles des feux arrière ; leur rouge et l’éclairage du sol sont nettement renforcés au
 freinage. Les deux rectangles blancs des phares avant restent visibles. Les phares et projecteurs s’éteignent progressivement. **Les F1 n’ont pas de
 phares** et dépendent des projecteurs. Les parties non
-éclairées restent sombres sans être noires : l’obscurité multiplie l’image par un bleu très sombre
+éclairées restent sombres sans être noires : l’obscurité multiplie l’image par un bleu sombre
 au lieu de la couvrir d’un voile, si bien que le décor s’y devine avec ses contrastes, comme dans
-la version Godot. Il n’y a pas de mémoire d’exploration ; les adversaires éloignés ou dans
+la version Godot. Elle est de 90 % : l’image garde un dixième de sa clarté. Il n’y a pas de mémoire d’exploration ; les adversaires éloignés ou dans
 l’obscurité disparaissent de la mini-carte du pilote. Le tracé et les commandes restent lisibles.
 Le comportement des voitures, les chronos et les réglages de conduite sont identiques au jour.
 

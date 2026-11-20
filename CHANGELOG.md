@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.56.6
+- Nuit un peu moins sombre : l'obscurité passe à 90 %, le décor et les voitures se voient mieux hors des phares.
+
 ## 0.56.5
 - Nuit : sombre sans être noire. Le décor se devine dans l'obscurité, teinté de bleu, comme dans la version Godot.
 

@@ -69,7 +69,9 @@ fs.mkdirSync(OUT,{recursive:true});
     if(n.fields.filter(f=>f.beam).length!==2||n.fields.filter(f=>f.tail).length!==2)throw Error('two front and two rear cones required');
     const rear=n.fields.find(f=>f.tail&&f.y>p.y),front=n.fields.find(f=>f.beam&&f.y>p.y);
     const rearX=rear.x,offset=rear.y-p.y;
-    const dark=pixelAt(p.x-15,p.y);if(dark.join()!=='6,10,21,255')throw Error('unlit tint '+dark);
+    // hors des faisceaux, la teinte de la nuit, opaque : une obscurité de 90 % (luminance 10 %)
+    const dark=pixelAt(p.x-15,p.y),luma=(.2126*dark[0]+.7152*dark[1]+.0722*dark[2])/255;
+    if(dark[3]!==255||Math.abs(luma-.10)>.005||!(dark[2]>dark[1]&&dark[1]>dark[0]))throw Error('unlit tint '+dark);
     const tailIdle=glowAt(rearX-1.5,p.y+offset+.09),lens=glowAt(rearX,p.y+offset);
     const frontLens=glowAt(front.x,front.y);
     if(!(frontLens[0]>170&&frontLens[1]>170))throw Error('front white lens missing: '+frontLens);

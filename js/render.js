@@ -237,15 +237,18 @@ const LINE_COLORS = { bleu: 'rgba(80,200,255,0.55)', racing: 'rgba(255,255,255,0
 
    L'obscurité MULTIPLIE l'image au lieu de la recouvrir. Le calque de nuit est en
    `mix-blend-mode: multiply` : chaque couleur du décor et des voitures est multipliée par
-   NUIT_TEINTE, un bleu très sombre. Un voile presque opaque (98,8 %, ce qu'il y avait avant)
+   NUIT_TEINTE, un bleu sombre. Un voile presque opaque (98,8 %, ce qu'il y avait avant)
    ramenait tout à la même couleur, et la nuit était un aplat noir ; multiplié, le décor
    garde ses contrastes et se devine dans le noir, teinté de bleu. C'est le calcul de la
-   version Godot (un CanvasModulate de la même couleur), que Bruno a préférée.
+   version Godot (un CanvasModulate), que Bruno a préférée.
+   L'obscurité est de 90 % : la teinte a 10 % de luminance (0,2126 R + 0,7152 V + 0,0722 B),
+   l'image garde donc un dixième de sa clarté. C'est le bleu de Godot (0.024, 0.039, 0.082,
+   soit 96 %), éclairci à la demande de Bruno (« réduire encore, teste 90 % »).
    Les phares, eux, découpent ce calque comme avant (destination-out) : là où un faisceau
    passe, l'image reparaît. Les verres, les lueurs rouges et les projecteurs sont des sources
    de lumière : multipliés, ils assombriraient au lieu d'éclairer. Ils sont donc peints
    par-dessus, sur le calque du HUD (`glows`). */
-const NUIT_TEINTE = 'rgb(6,10,21)';
+const NUIT_TEINTE = 'rgb(16,26,54)';
 class NightLighting {
   constructor() { this.lamps = []; this.fields = []; this.active = false; }
 
