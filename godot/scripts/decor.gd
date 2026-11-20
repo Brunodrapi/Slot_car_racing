@@ -68,6 +68,9 @@ static func telecharge(id: String, parent: Node, progres: Callable) -> bool:
 	var fichiers := ["%s-decor.json" % id, "%s-decor.png" % id, "%s-decor.bin" % id]
 	for i in fichiers.size():
 		var req := HTTPRequest.new()
+		# Le navigateur décompresse déjà ce que le serveur envoie en gzip (GitHub Pages le fait) :
+		# Godot ne doit pas recommencer, sinon la requête échoue.
+		req.accept_gzip = not OS.has_feature("web")
 		parent.add_child(req)
 		var fini := [false, 0, 0, PackedByteArray()]
 		# Le corps est écrit à la main : `download_file` n'écrit rien dans la version web.

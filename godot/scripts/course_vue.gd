@@ -46,6 +46,7 @@ var chargement: Label
 
 func _ready() -> void:
 	var R: Dictionary = App.reglages
+	_actions()
 	piste = Piste.charge("res://donnees/circuits/" + R.circuit)
 	var chemin := Decor.cheminDe(R.circuit)
 	if chemin == "":
@@ -79,7 +80,6 @@ func _ready() -> void:
 	son.voiture(R.voiture)
 	RenderingServer.set_default_clear_color(decor.fond)
 	tourne = R.vue == "avance"
-	_actions()
 	camera = Camera2D.new()
 	camera.ignore_rotation = false
 	add_child(camera)
