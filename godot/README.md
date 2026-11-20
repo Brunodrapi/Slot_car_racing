@@ -38,6 +38,29 @@ contenu du jeu y est, repris du code web et non réinventé :
 
 Le meilleur tour propre est gardé sur l'appareil, par circuit et par voiture.
 
+## Le tableau mondial
+
+`scripts/mondial.gd` (l'autoload `Mondial`) reprend `js/mondial.js`, sur la même base Supabase :
+
+- **la lecture** est publique : le paddock montre le record du monde de la voiture sur le circuit,
+  et son pilote, dans toutes les versions (y compris la version web de Godot) ;
+- **l'écriture** passe par la même fonction serveur `record` que le jeu web, qui vérifie tout ;
+  seuls les tours nets partent (sans le guide de freinage, hors entraînement), et seule la version
+  publiée (`grip/canal = "prod"`) écrit — la recette lit, comme le jeu web ;
+- **la connexion Google** (paddock ou réglages) s'ouvre dans le navigateur de l'appareil et revient
+  au jeu par une adresse locale (`http://localhost:<port>`, déjà autorisée dans Supabase) : c'est le
+  flux PKCE, et la session se renouvelle seule. Les tours nets d'avant la connexion sont rattrapés,
+  espacés de seize secondes comme sur le web. La version web de Godot ne se connecte pas : elle lit.
+
+Pour Steam, l'identité Steam remplacera Google ; il faudra pour cela la clé Web API de l'éditeur,
+une table de correspondance et une branche de plus dans la fonction `record` (rien ne change pour
+les joueurs Google).
+
+```
+node godot/outils/faux-supabase.js 54321 /tmp/faux.json &        # un faux Supabase
+GRIP_MONDIAL_URL=http://127.0.0.1:54321 GRIP_MONDIAL_PUBLIE=1 godot --headless --path godot tests/mondial.tscn
+```
+
 ## L'essayer
 
 | Où | Comment |
@@ -215,18 +238,22 @@ La grille de l'IA est tirée au même générateur que `makeRoster`, avec la gra
 | `tests/salle_annuaire.gd` | ouvrir une table dans un annuaire PeerJS, et le refus d'un code pris |
 | `tests/salle_steam.gd` | deux Godot, un faux Steam, duel et course avec l'IA : même classement des deux côtés |
 | `outils/essai-croise.js` | la version web de Godot et le jeu web dans Chromium : salon, puis duel et course avec l'IA, Godot hôte puis web hôte ; même classement au millième |
+| `outils/essai-croise.js … natif:godot` | la même chose avec Godot hors navigateur, et l'extension WebRTC officielle |
+| `tests/rtc_boucle.gd` | deux connexions WebRTC natives reliées à la main : le canal de données passe |
 
 ```
 npx peerjs --port 9000 --host 127.0.0.1                     # un annuaire local
 NODE_PATH=$(npm root -g) node godot/outils/essai-croise.js <recette> godot/exports/web <peerjs.min.js> /tmp/croise course
+NODE_PATH=$(npm root -g) node godot/outils/essai-croise.js <recette> natif:godot <peerjs.min.js> /tmp/croise-natif course
 ```
 
 **Ce qu'il faut ajouter**
 
-- **Sur ordinateur et téléphone, WebRTC vient de l'extension officielle de Godot.**
-  - `bash godot/outils/webrtc.sh` l'installe dans `addons/webrtc_native`.
-  - Elle n'est pas encore dans le dépôt, et ces versions n'ont pas encore été essayées en ligne.
-  - Sans elle, le salon dit que le multijoueur manque.
+- **Sur ordinateur et téléphone, WebRTC vient de l'extension officielle de Godot**
+  (godotengine/webrtc-native 1.2.2), dans `addons/webrtc_native` : Windows, Linux et Android.
+  - Godot hors navigateur a couru contre le jeu web, salon et courses, hôte et invité : même
+    classement au millième.
+  - `bash godot/outils/webrtc.sh` réinstalle l'extension complète (Mac, iPhone, ARM…).
 - **La version Steam demande :**
   - l'extension GodotSteam (GDExtension 4.x, codeberg.org/godotsteam), dans `addons/godotsteam` ;
   - l'identifiant de l'application GRIP sur Steam (`grip/steam_app_id`, 480 en attendant, l'application d'essai de Valve) ;
@@ -238,7 +265,7 @@ NODE_PATH=$(npm root -g) node godot/outils/essai-croise.js <recette> godot/expor
 
 ## Ce qui n'y est pas encore
 
-- le tableau mondial des records ;
+- l'identité Steam pour le tableau mondial (Google y est) ;
 - l'usure, les dégâts et les stands, qui sont encore des essais du jeu web ;
 - les exports Android et iPhone : le moteur C++ est compilé pour Android, il reste à faire
   l'application (SDK, signature) ; l'iPhone demande un Mac et Xcode ;

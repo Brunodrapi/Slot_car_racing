@@ -21,6 +21,10 @@ func _ready() -> void:
 		["sSide", func(): return Textes.t("left" if R.cote == "left" else "right"), func(): R.cote = "right" if R.cote == "left" else "left"],
 		["sGuide", func(): return Textes.t("shown" if R.guide else "hidden"), func(): R.guide = not R.guide],
 	]
+	# Le compte se gère ici (js/ui.js, settings) : se connecter avec Google, ou se déconnecter.
+	if Mondial.connexionPossible():
+		lignes.append(["account", func(): return (Textes.t("signedIn") + " · " + Textes.t("signOut")) if Mondial.connecte() else (Textes.t("signInCancel") if Mondial.enCours else Textes.t("signIn")),
+			func(): (Mondial.sortir() if Mondial.connecte() else (Mondial.annuler() if Mondial.enCours else Mondial.entrer()))])
 	if not OS.has_feature("web") and not OS.has_feature("mobile"):
 		lignes.append(["sFull", func(): return Textes.t("yes" if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN else "no"),
 			func(): DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)])
@@ -42,8 +46,14 @@ func _ready() -> void:
 	add_child(retour)
 	boutons.append(retour)
 	resized.connect(_place)
+	# la connexion revient du navigateur pendant qu'on est là : la ligne du compte suit
+	Mondial.change.connect(_relibelle)
 	_place()
 	boutons[0].grab_focus.call_deferred()
+
+
+func _relibelle() -> void:
+	for i in lignes.size(): boutons[i].libelle(lignes[i][1].call())
 
 
 func _unhandled_input(e: InputEvent) -> void:

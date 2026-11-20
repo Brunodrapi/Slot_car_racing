@@ -12,6 +12,7 @@ var net := Net.new()
 var autopilote := false        # le pilote automatique des bancs d'essai (PiloteAuto)
 var _essai := false
 var _depuis := 0.0
+var _dossier := ""          # le banc hors navigateur (GRIP_ESSAI_DOSSIER)
 
 
 func _ready() -> void:
@@ -22,6 +23,10 @@ func _ready() -> void:
 	if OS.has_feature("web"):
 		# un booléen JavaScript revient en entier (0 ou 1)
 		_essai = bool(JavaScriptBridge.eval("Array.isArray(window.GRIP_ESSAI)", true))
+	elif OS.get_environment("GRIP_ESSAI_DOSSIER") != "":
+		# Hors navigateur, le banc passe par un dossier : il y dépose ordres.json, on y écrit etat.json.
+		_dossier = OS.get_environment("GRIP_ESSAI_DOSSIER")
+		_essai = true
 
 
 ## Un ami nous invite dans son salon Steam : on quitte ce qu'on faisait et on s'assoit à sa table.
@@ -44,10 +49,21 @@ func _process(delta: float) -> void:
 			_banc()
 
 
-func _banc() -> void:
-	var j = JavaScriptBridge.eval("JSON.stringify(window.GRIP_ESSAI.splice(0))", true)
+func _ordres() -> Array:
+	var j = null
+	if _dossier == "":
+		j = JavaScriptBridge.eval("JSON.stringify(window.GRIP_ESSAI.splice(0))", true)
+	else:
+		var f := _dossier.path_join("ordres.json")
+		if FileAccess.file_exists(f):
+			j = FileAccess.get_file_as_string(f)
+			DirAccess.remove_absolute(f)
 	var ordres = JSON.parse_string(j) if j is String else []
-	for o in (ordres if ordres is Array else []):
+	return ordres if ordres is Array else []
+
+
+func _banc() -> void:
+	for o in _ordres():
 		match String(o.get("op", "")):
 			"open": net.open(String(o.get("name", "Godot")), bool(o.get("host", false)), String(o.get("code", "")), bool(o.get("spectator", false)))
 			"mine": net.setMine(o.get("patch", {}))
@@ -64,4 +80,13 @@ func _banc() -> void:
 		members = net.members().map(func(m): return { pid = m.pid, name = m.name, ready = m.ready, car = m.car, isMe = m.isMe,
 			protocol = m.q.get("protocol"), spectator = m.q.get("spectator", false) }) }
 	if net.drive: etat.course = net.drive.resume()
-	JavaScriptBridge.eval("window.gripEtat = %s" % JSON.stringify(etat), true)
+	if _dossier == "":
+		JavaScriptBridge.eval("window.gripEtat = %s" % JSON.stringify(etat), true)
+	else:
+		# écrit à côté puis renommé : le banc ne lit jamais un fichier à moitié écrit
+		var tmp := _dossier.path_join("etat.json.tmp")
+		var f := FileAccess.open(tmp, FileAccess.WRITE)
+		if f:
+			f.store_string(JSON.stringify(etat))
+			f.close()
+			DirAccess.rename_absolute(tmp, _dossier.path_join("etat.json"))

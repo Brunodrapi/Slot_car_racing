@@ -33,6 +33,8 @@ func _ready() -> void:
 	cadre.draw.connect(_dessine)
 	add_child(cadre)
 	resized.connect(_construit)
+	# le tableau mondial arrive après l'écran, et la connexion revient du navigateur : on repeint
+	Mondial.change.connect(_construit)
 	_construit()
 
 
@@ -168,6 +170,13 @@ func _construit() -> void:
 		b.centre = true
 		b.ligne = 112
 		b.dessinPlus = Paddock._carteCircuit.bind(b)
+	# Le tableau mondial : se connecter avec Google, ou renoncer à la connexion en cours
+	if Mondial.connexionPossible() and (Mondial.enCours or not Mondial.connecte()):
+		var txt := Textes.t("signInCancel") if Mondial.enCours else Textes.t("signIn")
+		var bg := _bouton(txt, Rect2(804 + dx, 554 + dy, Style.largeur(txt, 15) + 28, 30), Style.NUIT_PLEINE, Style.CREME, 15,
+			func(): (Mondial.annuler() if Mondial.enCours else Mondial.entrer()))
+		bg.centre = true
+		bg.set_meta("cle", "google")
 	# La barre du bas
 	var yb := 654.0 if not portrait else 1250.0
 	var dif := _nom(DIFFICULTES, App.reglages.difficulte)
@@ -290,6 +299,15 @@ func _dessine() -> void:
 	var ir := Rect2(r.position.x + 2, r.position.y + 94, r.size.x - 4, 96)
 	Style.couvre(ci, info.image, ir, 0.5)
 	Paddock._contour(ci, info, ir.grow(-8))
+	# Le record du monde de cette voiture sur ce circuit (js/ui.js, records : la colonne « Monde »)
+	var par = Mondial.meilleurs(cid)
+	var w: Dictionary = par.get(v.id, {}) if par is Dictionary else {}
+	Style.texte(ci, Textes.t("worldBest"), r.position + Vector2(14, 410), 18, Style.ENCRE)
+	Style.texte(ci, "…" if par == null else (Style.temps(float(w.temps)) if w else "--:--.---"), r.position + Vector2(r.size.x - 160, 410), 22, Style.ENCRE)
+	Style.texte(ci, String(w.get("pilote", "")).to_upper() if w else ("" if par == null else Textes.t("noWorld")), r.position + Vector2(14, 428), 13, Color(Style.ENCRE, 0.75))
+	var et := Mondial.etat()
+	ci.draw_multiline_string(Style.racing(), r.position + Vector2(14, 446), et.texte, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 28, 13, 2,
+		Color("#a3271c") if et.alerte else Color(Style.ENCRE, 0.8))
 	# Le record de l'appareil
 	var rec := _record(cid, v.id)
 	Style.texte(ci, Textes.t("myBest"), r.position + Vector2(14, 512), 18, Style.ENCRE)

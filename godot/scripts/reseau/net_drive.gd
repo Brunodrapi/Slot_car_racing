@@ -187,6 +187,8 @@ func beforeFrame(dt: float) -> void:
 
 
 func afterFrame(gaz: float, sel: float) -> void:
+	# la table vient d'être quittée : la course tourne encore une image, sans personne à qui parler
+	if net.roster == null or net.roster.is_empty(): return
 	var r := race
 	var t := link.now()
 	if host:

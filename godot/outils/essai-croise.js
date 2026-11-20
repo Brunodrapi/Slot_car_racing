@@ -7,12 +7,17 @@
 //   npx peerjs --port 9000 --host 127.0.0.1          (dans un autre terminal)
 //   NODE_PATH=$(npm root -g) node godot/outils/essai-croise.js <jeu web> <export web Godot> <peerjs.min.js> [sortie] [scénario]
 //
+// Avec « natif:<projet Godot> » à la place de l'export web, c'est Godot hors navigateur qui
+// s'assoit à la table (l'extension WebRTC officielle) : lancé sans fenêtre, il lit ses ordres et
+// écrit son état dans un dossier (GRIP_ESSAI_DOSSIER), et trouve l'annuaire par GRIP_ANNUAIRE.
+//
 // Scénarios : salon (par défaut) — le web ouvre la table, Godot la rejoint, puis l'inverse.
 //             course — une course entière, Godot hôte puis web hôte.
 'use strict';
-const http = require('http'), fs = require('fs'), path = require('path');
+const http = require('http'), fs = require('fs'), path = require('path'), { spawn } = require('child_process');
 const { chromium } = require('playwright');
-const [WEB, GODOT, PEERJS] = process.argv.slice(2, 5).map((p) => p && path.resolve(p));
+const NATIF = String(process.argv[3] || '').startsWith('natif:');
+const [WEB, GODOT, PEERJS] = process.argv.slice(2, 5).map((p) => p && path.resolve(p.replace(/^natif:/, '')));
 const SORTIE = path.resolve(process.argv[5] || '/tmp/grip-croise');
 const SCENARIO = process.argv[6] || 'salon';
 if (!WEB || !GODOT || !PEERJS) { console.error('usage : essai-croise.js <jeu web> <export Godot> <peerjs.min.js> [sortie] [scénario]'); process.exit(2); }
@@ -128,7 +133,8 @@ async function course(web, god, note, etatG, ordre, format) {
 }
 
 (async () => {
-  const sw = await sert(WEB), sg = await sert(GODOT);
+  const sw = await sert(WEB), sg = NATIF ? null : await sert(GODOT);
+  let proc = null;
   const rtc = { lib: `http://127.0.0.1:${sw.address().port}/peerjs.min.js`,
     peer: { host: '127.0.0.1', port: 9000, path: '/', secure: false, config: { iceServers: [] } } };
   const nav = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
@@ -138,23 +144,41 @@ async function course(web, god, note, etatG, ordre, format) {
   const note = (m) => { console.log(m); bilan.etapes.push(m); };
   try {
     const web = await (await nav.newContext({ viewport: { width: 1100, height: 700 } })).newPage();
-    const god = await (await nav.newContext({ viewport: { width: 1100, height: 700 } })).newPage();
-    for (const [p, n] of [[web, 'web'], [god, 'godot']]) {
+    const god = NATIF ? null : await (await nav.newContext({ viewport: { width: 1100, height: 700 } })).newPage();
+    for (const [p, n] of [[web, 'web'], [god, 'godot']].filter(([p]) => p)) {
       p.on('pageerror', (e) => journal.push(`${n} ERREUR ${e.message}`));
       p.on('console', (m) => { if (m.type() === 'error' || /SCRIPT ERROR|ERROR:/.test(m.text())) journal.push(`${n} ${m.text()}`); });
     }
     await web.addInitScript((c) => { window.SLOT_RACER_RTC = c; }, rtc);
-    await god.addInitScript((c) => { window.SLOT_RACER_RTC = c; window.GRIP_ESSAI = []; }, rtc);
+    if (god) await god.addInitScript((c) => { window.SLOT_RACER_RTC = c; window.GRIP_ESSAI = []; }, rtc);
     await web.goto(`http://127.0.0.1:${sw.address().port}/index.html`);
     await web.waitForFunction(() => typeof app !== 'undefined' && app.save && app.net);
     await web.evaluate(() => { app.save.name = 'Navigateur'; app.save.lang = 'fr'; app.ui.lang = 'fr'; app.mondial = null; app.leaveSplash?.(); });
-    await god.goto(`http://127.0.0.1:${sg.address().port}/index.html`);
-    await attends(() => god.evaluate(() => !!window.gripEtat), 'Godot démarre', 90000);
-    note('les deux pages sont prêtes');
-    const etatG = () => god.evaluate(() => window.gripEtat);
-    const ordre = (o) => god.evaluate((x) => window.GRIP_ESSAI.push(x), o);
+    let etatG, ordre, godot = god;
+    if (NATIF) {
+      const dossier = fs.mkdtempSync(path.join(SORTIE, 'banc-'));
+      proc = spawn(process.env.GODOT || 'godot', ['--headless', '--max-fps', '120', '--path', GODOT],
+        { env: { ...process.env, GRIP_ESSAI_DOSSIER: dossier, GRIP_ANNUAIRE: `ws://${rtc.peer.host}:${rtc.peer.port}${rtc.peer.path}` }, stdio: ['ignore', 'pipe', 'pipe'] });
+      const log = fs.createWriteStream(path.join(SORTIE, 'godot.log'));
+      for (const flux of [proc.stdout, proc.stderr]) flux.on('data', (d) => { log.write(d); String(d).split('\n').forEach((l) => { if (/SCRIPT ERROR|^ERROR:/.test(l)) journal.push(`godot ${l}`); }); });
+      const fEtat = path.join(dossier, 'etat.json'), fOrdres = path.join(dossier, 'ordres.json');
+      etatG = async () => { try { return JSON.parse(fs.readFileSync(fEtat, 'utf8')); } catch { return null; } };
+      ordre = async (o) => {
+        await attends(async () => !fs.existsSync(fOrdres), 'Godot lit ses ordres', 10000);
+        fs.writeFileSync(fOrdres + '.tmp', JSON.stringify([o])); fs.renameSync(fOrdres + '.tmp', fOrdres);
+      };
+      godot = { screenshot: async () => {} };     // sans fenêtre, pas de photo
+      await attends(async () => !!(await etatG()), 'Godot démarre', 90000);
+      note('le jeu web et Godot (hors navigateur, WebRTC natif) sont prêts');
+    } else {
+      await god.goto(`http://127.0.0.1:${sg.address().port}/index.html`);
+      await attends(() => god.evaluate(() => !!window.gripEtat), 'Godot démarre', 90000);
+      note('les deux pages sont prêtes');
+      etatG = () => god.evaluate(() => window.gripEtat);
+      ordre = (o) => god.evaluate((x) => window.GRIP_ESSAI.push(x), o);
+    }
 
-    if (SCENARIO === 'course') { await course(web, god, note, etatG, ordre, 'duel'); await course(web, god, note, etatG, ordre, 'race'); bilan.ok = true; return; }
+    if (SCENARIO === 'course') { await course(web, godot, note, etatG, ordre, 'duel'); await course(web, godot, note, etatG, ordre, 'race'); bilan.ok = true; return; }
     // 1. Le web ouvre la table, Godot la rejoint.
     await web.evaluate(() => app.net.open('Navigateur', true));
     const code = await web.evaluate(() => app.net.code);
@@ -189,7 +213,7 @@ async function course(web, god, note, etatG, ordre, format) {
     note(`le web lit la table de Godot : ${t3.trackId}, ${t3.mode} ; ${await web.evaluate(() => app.net.link.label())}`);
     await attends(() => web.evaluate(() => /\d+ ms/.test(app.net.link.label())), 'l’horloge du web se règle sur celle de Godot', 15000);
     note(`horloge : ${await web.evaluate(() => app.net.link.label())} · côté Godot : ${(await etatG()).link}`);
-    await god.screenshot({ path: path.join(SORTIE, 'godot.png') });
+    await godot.screenshot({ path: path.join(SORTIE, 'godot.png') });
     bilan.ok = true;
   } catch (e) {
     bilan.ok = false; bilan.erreur = e.message; console.error('ÉCHEC', e.message);
@@ -197,7 +221,7 @@ async function course(web, god, note, etatG, ordre, format) {
     bilan.journal = journal.slice(0, 40);
     fs.writeFileSync(path.join(SORTIE, 'bilan.json'), JSON.stringify(bilan, null, 2));
     if (journal.length) console.log(journal.slice(0, 20).join('\n'));
-    await nav.close(); sw.close(); sg.close();
+    await nav.close(); sw.close(); if (sg) sg.close(); if (proc) proc.kill();
     process.exitCode = bilan.ok ? 0 : 1;
   }
 })();

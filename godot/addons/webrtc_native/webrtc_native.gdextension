@@ -1,0 +1,20 @@
+; L'extension WebRTC officielle de Godot (godotengine/webrtc-native 1.2.2-stable), qui donne
+; WebRTCPeerConnection à la version ordinateur et téléphone. La version web s'en passe : le
+; navigateur a le sien (exclude_tags). Seules les bibliothèques des versions essayées sont dans le
+; dépôt ; `outils/webrtc.sh` les installe toutes (Mac, iPhone, ARM...).
+
+[configuration]
+
+entry_symbol = "webrtc_extension_init"
+compatibility_minimum = 4.3
+
+exclude_tags = ["web", "no-webrtc"]
+
+[libraries]
+
+linux.debug.x86_64 = "lib/libwebrtc_native.linux.template_release.x86_64.so"
+linux.release.x86_64 = "lib/libwebrtc_native.linux.template_release.x86_64.so"
+windows.debug.x86_64 = "lib/libwebrtc_native.windows.template_release.x86_64.dll"
+windows.release.x86_64 = "lib/libwebrtc_native.windows.template_release.x86_64.dll"
+android.debug.arm64 = "lib/libwebrtc_native.android.template_release.arm64.so"
+android.release.arm64 = "lib/libwebrtc_native.android.template_release.arm64.so"

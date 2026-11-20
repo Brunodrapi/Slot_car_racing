@@ -348,6 +348,8 @@ func _record() -> void:
 	var R: Dictionary = App.reglages
 	if not R.has("records"): R.records = {}
 	var cle: String = R.circuit + "/" + R.voiture
+	# le tableau mondial ne regarde que les tours nets : sans guide, hors entraînement (Mondial.tourNet)
+	Mondial.tourNet(R.circuit, R.voiture, t, course.entrainement)
 	if not R.records.has(cle) or t < float(R.records[cle]):
 		R.records[cle] = t
 		App.sauve()
