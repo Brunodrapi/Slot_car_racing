@@ -233,7 +233,19 @@ const LINE_COLORS = { bleu: 'rgba(80,200,255,0.55)', racing: 'rgba(255,255,255,0
 
 /* A mask above BOTH the road and the native-resolution car layer. HUD and menus
    stay above it. Light fields are also used by the minimap: darkness must not
-   reveal competitors through a second view. Distances below are world metres. */
+   reveal competitors through a second view. Distances below are world metres.
+
+   L'obscurité MULTIPLIE l'image au lieu de la recouvrir. Le calque de nuit est en
+   `mix-blend-mode: multiply` : chaque couleur du décor et des voitures est multipliée par
+   NUIT_TEINTE, un bleu très sombre. Un voile presque opaque (98,8 %, ce qu'il y avait avant)
+   ramenait tout à la même couleur, et la nuit était un aplat noir ; multiplié, le décor
+   garde ses contrastes et se devine dans le noir, teinté de bleu. C'est le calcul de la
+   version Godot (un CanvasModulate de la même couleur), que Bruno a préférée.
+   Les phares, eux, découpent ce calque comme avant (destination-out) : là où un faisceau
+   passe, l'image reparaît. Les verres, les lueurs rouges et les projecteurs sont des sources
+   de lumière : multipliés, ils assombriraient au lieu d'éclairer. Ils sont donc peints
+   par-dessus, sur le calque du HUD (`glows`). */
+const NUIT_TEINTE = 'rgb(6,10,21)';
 class NightLighting {
   constructor() { this.lamps = []; this.fields = []; this.active = false; }
 
@@ -380,7 +392,7 @@ class NightLighting {
     if (!this.active) return;
     g.setTransform(1, 0, 0, 1, 0, 0);
     g.clearRect(0, 0, canvas.width, canvas.height);
-    g.fillStyle = 'rgba(3,7,18,.988)'; g.fillRect(0, 0, canvas.width, canvas.height);
+    g.fillStyle = NUIT_TEINTE; g.fillRect(0, 0, canvas.width, canvas.height);
     g.setTransform(matrix);
     g.save(); g.globalCompositeOperation = 'destination-out';
     for (const f of this.fields) {
@@ -391,6 +403,13 @@ class NightLighting {
       g.restore();
     }
     g.restore();
+  }
+
+  /** Les sources de lumière, peintes par-dessus l'image déjà assombrie : `g` est un calque
+   *  normal (le HUD dans le jeu), dans le même repère que le calque de nuit. */
+  glows(g, matrix) {
+    if (!this.active) return;
+    g.save(); g.setTransform(matrix);
     // White front lenses and red light projected behind, without a car aura.
     for (const f of this.fields) {
       g.save(); g.translate(f.x, f.y); g.rotate(f.heading);
@@ -403,6 +422,7 @@ class NightLighting {
       g.restore();
     }
     this.fixtures(g);
+    g.restore();
   }
 }
 
@@ -423,6 +443,8 @@ class Renderer {
       layer.setAttribute('aria-hidden', 'true');
       layer.style.cssText = 'position:fixed;inset:0;display:block;pointer-events:none;user-select:none;';
     }
+    // l'obscurité multiplie le décor et les voitures (voir NightLighting)
+    this.nightCanvas.style.mixBlendMode = 'multiply';
     // Même ordre que le rendu initial : décor, voitures, HUD, puis menus DOM.
     if (canvas.parentNode) {
       canvas.after(this.carCanvas);
@@ -2048,6 +2070,7 @@ class Renderer {
     const hud = this.hudCtx;
     hud.setTransform(1, 0, 0, 1, 0, 0);
     hud.clearRect(0, 0, this.hudCanvas.width, this.hudCanvas.height);
+    this.night.glows(hud, nightMatrix);
     hud.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     if (!race.opts.spectator) this._drawHUD(hud, race, ui);
     else ui.app.spectator?.drawMap(hud, race);

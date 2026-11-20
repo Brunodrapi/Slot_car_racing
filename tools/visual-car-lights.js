@@ -47,7 +47,9 @@ fs.mkdirSync(OUT,{recursive:true});
       const overlay=document.createElement('canvas');overlay.width=w;overlay.height=h;
       const n=new NightLighting(),car={cls:m,livree:0,pos:{x:0,y:0},heading:0,braking,state:'ok'};
       n.prepare({timeOfDay:'night',opts:{spectator:true},cars:[car]},{x:0,y:0},100);
-      n.draw({nightCanvas:overlay,nightCtx:overlay.getContext('2d')},new DOMMatrix([s,0,0,s,x,y]));q.drawImage(overlay,0,0);
+      const M=new DOMMatrix([s,0,0,s,x,y]);n.draw({nightCanvas:overlay,nightCtx:overlay.getContext('2d')},M);
+      // comme dans le jeu : l'obscurité multiplie la scène, puis les sources de lumière par-dessus
+      q.save();q.globalCompositeOperation='multiply';q.drawImage(overlay,0,0);q.restore();n.glows(q,M);
       const yy=92+i*133;g.fillStyle=braking?'#b52b25':'#515c67';g.font='bold 13px sans-serif';g.fillText(braking?'FREINAGE':'NUIT · SANS FREINER',288,yy-6);g.drawImage(scene,288,yy);
      }
     }

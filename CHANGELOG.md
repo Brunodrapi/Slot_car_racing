@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.56.5
+- Nuit : sombre sans être noire. Le décor se devine dans l'obscurité, teinté de bleu, comme dans la version Godot.
+
 ## 0.56.4
 - Écran-titre : le lien mène au Devlog #4 (GT3, Night Racing & World Records on itch.io), qui vient de paraître sur itch.io.
 

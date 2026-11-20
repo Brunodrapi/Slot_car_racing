@@ -42,16 +42,21 @@ fs.mkdirSync(OUT,{recursive:true});
    const check=await page.evaluate(()=>{
     const r=app.renderer,race=app.race,n=r.night;
     const render=()=>r.draw(race,app.ui);
-    const pixelAt=(x,y)=>{
+    const screen=(x,y)=>{
      let dx=x-r.cam.x,dy=y-r.cam.y;
      if(r.rotate){const a=-r.camAngle-Math.PI/2,c=Math.cos(a),s=Math.sin(a);[dx,dy]=[dx*c-dy*s,dx*s+dy*c];}
      const px=Math.round((r.w/2+dx*r.cam.zoom)*r.dpr),py=Math.round((r.h/2+dy*r.cam.zoom)*r.dpr);
-     if(px<0||py<0||px>=r.nightCanvas.width||py>=r.nightCanvas.height)return null;
-     return Array.from(r.nightCtx.getImageData(px,py,1,1).data);
+     return px<0||py<0||px>=r.nightCanvas.width||py>=r.nightCanvas.height?null:[px,py];
     };
+    const pixelAt=(x,y)=>{const q=screen(x,y);return q&&Array.from(r.nightCtx.getImageData(q[0],q[1],1,1).data);};
     const alphaAt=(x,y)=>pixelAt(x,y)?.[3];
+    // Les sources de lumière (verres, lueurs rouges) sont peintes sur le calque du HUD,
+    // par-dessus l'image assombrie : on y lit leur couleur prémultipliée (ce qu'elles ajoutent).
+    const glowAt=(x,y)=>{const q=screen(x,y);if(!q)return null;const d=r.hudCtx.getImageData(q[0],q[1],1,1).data;return [0,1,2].map(i=>Math.round(d[i]*d[3]/255));};
     r.shake=0;render();
     if(!n.fields.some(f=>f.beam))throw Error('GT3 headlights absent');
+    // L'obscurité multiplie l'image (comme la version Godot) au lieu de la couvrir d'un voile.
+    if(getComputedStyle(r.nightCanvas).mixBlendMode!=='multiply')throw Error('night layer must multiply');
     // Isolate a car far from circuit lighting to measure a beam against darkness.
     const p=race.player,old={x:p.x,y:p.y,h:p.heading};
     p.x=10000;p.y=10000;p.th=0;r.cam.x=p.x;r.cam.y=p.y;r.cam.zoom=10;r.rotate=false;
@@ -64,11 +69,12 @@ fs.mkdirSync(OUT,{recursive:true});
     if(n.fields.filter(f=>f.beam).length!==2||n.fields.filter(f=>f.tail).length!==2)throw Error('two front and two rear cones required');
     const rear=n.fields.find(f=>f.tail&&f.y>p.y),front=n.fields.find(f=>f.beam&&f.y>p.y);
     const rearX=rear.x,offset=rear.y-p.y;
-    const tailIdle=pixelAt(rearX-1.5,p.y+offset+.09),lens=pixelAt(rearX,p.y+offset);
-    const frontLens=pixelAt(front.x,front.y);
+    const dark=pixelAt(p.x-15,p.y);if(dark.join()!=='6,10,21,255')throw Error('unlit tint '+dark);
+    const tailIdle=glowAt(rearX-1.5,p.y+offset+.09),lens=glowAt(rearX,p.y+offset);
+    const frontLens=glowAt(front.x,front.y);
     if(!(frontLens[0]>170&&frontLens[1]>170))throw Error('front white lens missing: '+frontLens);
     const brakeOld={braking:p.braking,state:p.state};p.braking=true;p.state='ok';render();
-    const tailBrake=pixelAt(rearX-1.5,p.y+offset+.09);
+    const tailBrake=glowAt(rearX-1.5,p.y+offset+.09);
     if(!(tailIdle[0]>tailIdle[1]*3&&tailIdle[0]>tailIdle[2]*2&&tailBrake[0]>tailIdle[0]*2))throw Error('red tail/brake projection '+JSON.stringify({tailIdle,tailBrake}));
     if(lens[0]>20)throw Error('rectangular rear lens still visible');
     if(n.fields.filter(f=>f.tail).some(f=>f.power>=n.fields.find(f=>f.beam).power))throw Error('brakes as bright as headlights');
