@@ -351,6 +351,9 @@ func _physics_process(_delta: float) -> void:
 	if course.player.lap != tourAvant and enLigne == null: _record()
 	if course.state == "finished" and finieDepuis < 0:
 		finieDepuis = 0.0
+		# le palmarès : une victoire en course rapide rapporte le trophée de son niveau
+		App.dernierTrophee = Palmares.attribue(course, String(App.reglages.difficulte)) if enLigne == null else {}
+		if App.dernierTrophee.get("nouveau", false): Mondial.synchroPalmares()
 
 
 ## Les événements de la course, en sons et en secousse (main.js, _handleEvents).

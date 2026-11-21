@@ -38,12 +38,16 @@ var _clients: Array = []          # [{ c: StreamPeerTCP, recu: String }]
 var _verificateur := ""
 var _depuis := 0.0
 var _rattrapeEnCours := false
+# Le palmarès du compte (js/palmares.js, PalmaresSync) : "" pas tenté, en-cours, ok, indisponible, erreur.
+var etatPalmares := ""
+var _palmaresEnCours := false
 # Ouvre la page de connexion dans le navigateur de l'appareil ; un essai la remplace par une requête.
 var ouvreLien := func(u: String) -> void: OS.shell_open(u)
 
 
 func _ready() -> void:
 	_charge()
+	if connecte(): synchroPalmares.call_deferred()
 
 
 ## L'adresse du service : celle de Supabase, ou un faux service local pour les essais.
@@ -200,6 +204,7 @@ func _echange(code: String, verif: String) -> void:
 	if r.ok and r.rep is Dictionary and r.rep.has("access_token"):
 		_prendSession(r.rep)
 		rattrape()
+		synchroPalmares()
 	else:
 		erreurConnexion = String((r.rep if r.rep is Dictionary else {}).get("error_description", "HTTP %d" % r.status))
 	change.emit()
@@ -308,6 +313,60 @@ func tourNet(circuit: String, voiture: String, temps: float, entrainement: bool)
 	App.sauve()
 	envoyes.erase(circuit + "|" + voiture)
 	if connecte(): propose(circuit, voiture, temps)
+
+
+# ------------------------------------------------------------------ le palmarès du compte
+
+## Un seul appel envoie ce que l'appareil a de mieux et rend tout le palmarès du compte, gagné ici
+## ou ailleurs (la fonction synchro_palmares de la base, la même que le jeu web). La recette et le
+## jeu publié ont chacun le leur.
+func synchroPalmares() -> void:
+	if not connecte() or _palmaresEnCours: return
+	_palmaresEnCours = true
+	etatPalmares = "en-cours"
+	change.emit()
+	if not await _jetonFrais():
+		_palmaresEnCours = false
+		etatPalmares = "erreur"
+		change.emit()
+		return
+	var lignes := []
+	var p: Dictionary = App.reglages.get("palmares", {})
+	for cle in p:
+		var cv := String(cle).split("|")
+		if cv.size() == 2 and int(p[cle]) >= 0 and int(p[cle]) < Palmares.TROPHEES.size():
+			lignes.append({ c = cv[0], v = cv[1], n = int(p[cle]) })
+	var r := await _http(HTTPClient.METHOD_POST, url() + "/rest/v1/rpc/synchro_palmares",
+		["apikey: " + CLE, "Authorization: Bearer " + String(session.token), "Content-Type: application/json"],
+		JSON.stringify({ p_canal = "prod" if publie() else "recette", p_lignes = lignes }))
+	_palmaresEnCours = false
+	if r.status == 401: sortir()
+	if r.status == 404:
+		etatPalmares = "indisponible"
+	elif r.ok and r.rep is Array:
+		if not App.reglages.has("palmares"): App.reglages.palmares = {}
+		var modifie := false
+		for l in r.rep:
+			var cle := "%s|%s" % [l.get("circuit", ""), l.get("voiture", "")]
+			var n := int(l.get("niveau", -1))
+			if n >= 0 and n < Palmares.TROPHEES.size() and not (int(App.reglages.palmares.get(cle, -1)) >= n):
+				App.reglages.palmares[cle] = n
+				modifie = true
+		if modifie: App.sauve()
+		etatPalmares = "ok"
+	else:
+		etatPalmares = "erreur"
+	change.emit()
+
+
+## L'état du nuage : local, synchro, ok ou erreur.
+func nuage() -> String:
+	if not connecte(): return "local"
+	match etatPalmares:
+		"ok": return "ok"
+		"erreur": return "erreur"
+		"indisponible", "": return "local" if etatPalmares == "indisponible" else "synchro"
+	return "synchro"
 
 
 # ------------------------------------------------------------------ ce que l'écran en dit

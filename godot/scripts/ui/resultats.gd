@@ -86,3 +86,18 @@ func _draw() -> void:
 		Style.texte(self, "+%.1f s" % res.penalite if res.penalite > 0.05 else "", Vector2(r.position.x + 14 + cols[4], b), sz, Color("#e2533f") if res.penalite > 0.05 else ink)
 		Style.texte(self, Style.temps(res.meilleur), Vector2(r.position.x + 14 + cols[5], b), sz, ink)
 		y += h
+	# le palmarès (js/ui.js, tropheeResultat) : le trophée gagné, ou ce qui manquait
+	var tr: Dictionary = App.dernierTrophee if App.derniereCourse == course else {}
+	if not tr.is_empty():
+		var yb := size.y - 76
+		if tr.raison == "tours":
+			Style.texte(self, Textes.t("tropheeTours", Palmares.TOURS_MIN), Vector2(r.position.x, yb + 34), 18, Style.PAPIER)
+		elif tr.nouveau:
+			draw_texture_rect(Palmares.texture(tr.rang, 56), Rect2(r.position.x, yb, 56, 56), false)
+			Style.texte(self, Textes.t("tropheeNouveau", Palmares.nom(tr.rang)), Vector2(r.position.x + 64, yb + 26), 20, Style.CREME, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 520)
+			var e := Mondial.nuage()
+			draw_texture_rect(Palmares.nuage(e, 26), Rect2(r.position.x + 64, yb + 34, 26, 19), false)
+			Style.texte(self, Textes.t("nuage_" + e), Vector2(r.position.x + 96, yb + 50), 15, Style.PAPIER)
+		else:
+			draw_texture_rect(Palmares.texture(tr.ancien, 28), Rect2(r.position.x, yb + 14, 28, 28), false)
+			Style.texte(self, Textes.t("tropheeAcquis", Palmares.nom(tr.ancien)), Vector2(r.position.x + 34, yb + 34), 18, Style.PAPIER, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 480)

@@ -9,7 +9,9 @@ func _ready() -> void:
 	A.reglages.voiture = "porsche991gt3r"
 	A.reglages.cat = "gt3"
 	await get_tree().create_timer(1.0).timeout
-	A.aller("paddock", { mode = "timetrial" })
+	var mode := "race" if OS.get_environment("GRIP_PADDOCK") == "race" else "timetrial"
+	if mode == "race": A.reglages.palmares = { "spa|porsche991gt3r": 2 }
+	A.aller("paddock", { mode = mode })
 	await get_tree().create_timer(4.0).timeout
 	var args := OS.get_cmdline_user_args()
 	get_viewport().get_texture().get_image().save_png(args[0] if args.size() else "user://paddock.png")

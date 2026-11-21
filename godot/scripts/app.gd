@@ -11,6 +11,7 @@ var reglages := {
 }
 var ecran: Node = null
 var derniereCourse: Course = null      # pour l'écran des résultats
+var dernierTrophee := {}               # ce que la dernière course a rapporté au palmarès (Palmares.attribue)
 var enLigne = null                     # la course de la table en ligne (Net.onStart), ou null
 
 

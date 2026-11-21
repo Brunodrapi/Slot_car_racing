@@ -302,15 +302,21 @@ func _dessine() -> void:
 	var ir := Rect2(r.position.x + 2, r.position.y + 94, r.size.x - 4, 96)
 	Style.couvre(ci, info.image, ir, 0.5)
 	Paddock._contour(ci, info, ir.grow(-8))
-	# Le record du monde de cette voiture sur ce circuit (js/ui.js, records : la colonne « Monde »)
-	var par = Mondial.meilleurs(cid)
-	var w: Dictionary = par.get(v.id, {}) if par is Dictionary else {}
-	Style.texte(ci, Textes.t("worldBest"), r.position + Vector2(14, 410), 18, Style.ENCRE)
-	Style.texte(ci, "…" if par == null else (Style.temps(float(w.temps)) if w else "--:--.---"), r.position + Vector2(r.size.x - 160, 410), 22, Style.ENCRE)
-	Style.texte(ci, String(w.get("pilote", "")).to_upper() if w else ("" if par == null else Textes.t("noWorld")), r.position + Vector2(14, 428), 13, Color(Style.ENCRE, 0.75))
-	var et := Mondial.etat()
-	ci.draw_multiline_string(Style.racing(), r.position + Vector2(14, 446), et.texte, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 28, 13, 2,
-		Color("#a3271c") if et.alerte else Color(Style.ENCRE, 0.8))
+	if mode == "race":
+		# La course rapide : le palmarès de cette voiture sur ce circuit (js/ui.js, palmaresListe)
+		Style.texte(ci, Textes.t("palmares"), r.position + Vector2(14, 410), 18, Style.ENCRE)
+		var n: int = Palmares.de(cid, v.id)
+		if n >= 0:
+			ci.draw_texture_rect(Palmares.texture(n, 40), Rect2(r.position + Vector2(r.size.x - 210, 382), Vector2(40, 40)), false)
+			Style.texte(ci, Palmares.nom(n).to_upper(), r.position + Vector2(r.size.x - 164, 410), 18, Style.ENCRE)
+		else:
+			Style.texte(ci, Textes.t("palmaresAucun"), r.position + Vector2(r.size.x - 210, 410), 16, Color(Style.ENCRE, 0.6))
+		var e := Mondial.nuage()
+		ci.draw_texture_rect(Palmares.nuage(e, 22), Rect2(r.position + Vector2(14, 418), Vector2(22, 16)), false)
+		Style.texte(ci, Textes.t("nuage_" + e), r.position + Vector2(42, 431), 13, Color(Style.ENCRE, 0.75))
+		ci.draw_multiline_string(Style.racing(), r.position + Vector2(14, 450), Textes.t("palmaresRegle", Palmares.TOURS_MIN), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 28, 13, 2, Color(Style.ENCRE, 0.8))
+	else:
+		_mondial(ci, r, cid, v)
 	# Le record de l'appareil
 	var rec := _record(cid, v.id)
 	Style.texte(ci, Textes.t("myBest"), r.position + Vector2(14, 512), 18, Style.ENCRE)
@@ -320,6 +326,18 @@ func _dessine() -> void:
 	var yb := 654.0 if not portrait else 1250.0
 	ci.draw_rect(Rect2(18, yb - 6, W - 36, 3), Style.NUIT_PLEINE)
 	Style.damier(ci, Rect2((980 if not portrait else 500), yb - 4, 76, 56), 4, Style.NUIT_PLEINE, Color(0, 0, 0, 0), 0)
+
+
+## Le record du monde de cette voiture sur ce circuit (js/ui.js, records : la colonne « Monde »).
+func _mondial(ci: CanvasItem, r: Rect2, cid: String, v: Dictionary) -> void:
+	var par = Mondial.meilleurs(cid)
+	var w: Dictionary = par.get(v.id, {}) if par is Dictionary else {}
+	Style.texte(ci, Textes.t("worldBest"), r.position + Vector2(14, 410), 18, Style.ENCRE)
+	Style.texte(ci, "…" if par == null else (Style.temps(float(w.temps)) if w else "--:--.---"), r.position + Vector2(r.size.x - 160, 410), 22, Style.ENCRE)
+	Style.texte(ci, String(w.get("pilote", "")).to_upper() if w else ("" if par == null else Textes.t("noWorld")), r.position + Vector2(14, 428), 13, Color(Style.ENCRE, 0.75))
+	var et := Mondial.etat()
+	ci.draw_multiline_string(Style.racing(), r.position + Vector2(14, 446), et.texte, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 28, 13, 2,
+		Color("#a3271c") if et.alerte else Color(Style.ENCRE, 0.8))
 
 
 static func _contour(ci: CanvasItem, info: Dictionary, r: Rect2) -> void:
