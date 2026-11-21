@@ -271,8 +271,7 @@ func _unhandled_input(e: InputEvent) -> void:
 		tourne = not tourne; camInit = false
 		App.reglages.vue = "avance" if tourne else "avanceFixe"; App.sauve()
 	elif e.is_action_pressed("plein_ecran"):
-		var plein := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if plein else DisplayServer.WINDOW_MODE_FULLSCREEN)
+		App.basculeAffichage()
 	elif e is InputEventScreenTouch:
 		var p: Vector2 = hud.get_global_transform_with_canvas().affine_inverse() * e.position
 		if e.pressed and hud.toucheePause(p):

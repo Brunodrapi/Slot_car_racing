@@ -25,9 +25,11 @@ func _ready() -> void:
 	if Mondial.connexionPossible():
 		lignes.append(["account", func(): return (Textes.t("signedIn") + " · " + Textes.t("signOut")) if Mondial.connecte() else (Textes.t("signInCancel") if Mondial.enCours else Textes.t("signIn")),
 			func(): (Mondial.sortir() if Mondial.connecte() else (Mondial.annuler() if Mondial.enCours else Mondial.entrer()))])
-	if not OS.has_feature("web") and not OS.has_feature("mobile"):
-		lignes.append(["sFull", func(): return Textes.t("yes" if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN else "no"),
-			func(): DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)])
+	# La version de bureau : plein écran ou fenêtre, et la taille de la fenêtre (App.appliqueAffichage)
+	if App.bureau():
+		lignes.append(["sDisplay", func(): return Textes.t("windowed" if R.affichage == "fenetre" else "fullscreen"),
+			func(): App.basculeAffichage(); _relibelle()])
+		lignes.append(["sResolution", Reglages._resolution, _resolutionSuivante])
 	for l in lignes:
 		var b := Bouton.new(l[1].call(), Style.NUIT_PLEINE, Style.CREME, 22)
 		b.centre = true
@@ -50,6 +52,25 @@ func _ready() -> void:
 	Mondial.change.connect(_relibelle)
 	_place()
 	boutons[0].grab_focus.call_deferred()
+
+
+## La taille de la fenêtre : celle de l'écran (en plein écran, toujours), ou celle choisie.
+static func _resolution() -> String:
+	var R: Dictionary = App.reglages
+	if R.affichage != "fenetre" or R.resolution == "" or not App.resolutions().has(R.resolution):
+		var e := App.resolutionEcran()
+		return Textes.t("resScreen", [e.x, e.y])
+	return String(R.resolution).replace("x", " × ")
+
+
+## La taille suivante ; choisir une taille, c'est vouloir une fenêtre.
+func _resolutionSuivante() -> void:
+	var R: Dictionary = App.reglages
+	var liste := App.resolutions()
+	R.resolution = liste[(liste.find(R.resolution) + 1) % liste.size()] if R.affichage == "fenetre" else R.resolution
+	R.affichage = "fenetre"
+	App.appliqueAffichage()
+	_relibelle()
 
 
 func _relibelle() -> void:
