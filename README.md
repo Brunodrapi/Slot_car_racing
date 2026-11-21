@@ -416,7 +416,9 @@ worker de l'essai ne couvre que son dossier.
   la recette (un joueur Godot et un joueur du jeu web à la même table) ; la physique et la course du jeu web
   portées en GDScript et en C++ (la version Windows prend le C++), et prouvées identiques. Ce n'est pas une copie du jeu web mais l'export web de Godot (WebGL 2) :
   brunodrapi.github.io/Slot_car_racing/essais/godot/. Le décor d'un circuit (`decors/`) se télécharge
-  la première fois qu'on y roule. La version Windows est à côté, `essais/godot/GRIP-windows.zip`. Le
+  la première fois qu'on y roule. La version Windows est à côté, `essais/godot/GRIP-windows.zip` : elle
+  a en plus le multijoueur hors navigateur (l'extension WebRTC de Godot) et la connexion Google par le
+  navigateur de l'ordinateur ; les dégâts, les stands et le palmarès sont dans les deux. Le
   détail est dans `godot/README.md` de la branche ; le refaire : `godot --headless --path godot
   --export-release Web` (et `Windows`), puis remplacer le dossier, décors compris
   (`godot/donnees/circuits/*-decor.*` dans `decors/`).
