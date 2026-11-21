@@ -435,6 +435,10 @@ static func messageRefus(raison: String) -> String:
 func _http(methode: int, adresse: String, entetes: PackedStringArray, corps := "") -> Dictionary:
 	var h := HTTPRequest.new()
 	h.timeout = 20
+	# Dans un navigateur, fetch() décompresse déjà la réponse mais laisse « Content-Encoding: gzip » :
+	# HTTPRequest la décompresserait une seconde fois, échouerait, et le tableau resterait vide
+	# (comme pour les décors, decor.gd).
+	h.accept_gzip = not OS.has_feature("web")
 	add_child(h)
 	if h.request(adresse, entetes, methode, corps) != OK:
 		h.queue_free()
