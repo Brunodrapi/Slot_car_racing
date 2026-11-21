@@ -16,6 +16,10 @@ var fondPaddock: Texture2D
 var infoCircuits := {}     # id -> { nom, pays, longueur, tours, contour }
 var defile := 0.0
 var hauteur := 720.0
+# La mise en page, calculée par _construit et relue par le dessin : le panneau du circuit (à droite en
+# paysage, sous la voiture et sur toute la largeur en portrait) et la première ligne de la barre du bas.
+var carte := Rect2(790, 92, 468, 548)
+var ybas := 654.0
 
 
 func _init(m: String) -> void:
@@ -114,8 +118,9 @@ func _construit() -> void:
 	cadre.size = Vector2(W, hauteur)
 	cadre.position = Vector2((size.x - W * k) / 2, 0 if portrait else (size.y - hauteur * k) / 2)
 	defile = 0.0
-	var dx := 0.0 if not portrait else 18.0 - 790.0     # le panneau du circuit, sous la colonne en portrait
-	var dy := 0.0 if not portrait else 640.0
+	# le panneau du circuit : à droite en paysage ; en portrait, sous la voiture, sur toute la largeur
+	carte = Rect2(790, 92, 468, 548) if not portrait else Rect2(18, 650, 744, 548)
+	var nc := 3 if not portrait else 5          # les circuits visibles dans la rangée
 	# En-tête
 	_bouton(Textes.t("back"), Rect2(18, 10, 120, 64), Style.NUIT_PLEINE, Style.CREME, 22, func(): App.aller("accueil")).set_meta("cle", "retour")
 	# Onglets
@@ -158,12 +163,14 @@ func _construit() -> void:
 		b.dessinPlus = Paddock._carteVoiture.bind(b)
 	# Circuits
 	var circuits := Catalogue.circuits()
-	debutCircuits = clampi(debutCircuits, 0, maxi(0, circuits.size() - 3))
-	_bouton("‹", Rect2(800 + dx, 362 + dy, 26, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutCircuits -= 3; _construit()).set_meta("cle", "c-gauche")
-	_bouton("›", Rect2(1222 + dx, 362 + dy, 26, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutCircuits += 3; _construit()).set_meta("cle", "c-droite")
-	for i in mini(3, circuits.size() - debutCircuits):
+	debutCircuits = clampi(debutCircuits, 0, maxi(0, circuits.size() - nc))
+	var cx := carte.position.x
+	var cy := carte.position.y
+	_bouton("‹", Rect2(cx + 10, cy + 270, 26, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutCircuits -= nc; _construit()).set_meta("cle", "c-gauche")
+	_bouton("›", Rect2(carte.end.x - 36, cy + 270, 26, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutCircuits += nc; _construit()).set_meta("cle", "c-droite")
+	for i in mini(nc, circuits.size() - debutCircuits):
 		var c: Dictionary = circuits[debutCircuits + i]
-		var b := _bouton(str(c.nom).to_upper(), Rect2(830 + i * 130 + dx, 300 + dy, 124, 170), Style.PAPIER, Style.ENCRE, 15, func(): App.reglages.circuit = c.id; App.reglages.tours = infoCircuits[c.id].tours; App.sauve(); _construit())
+		var b := _bouton(str(c.nom).to_upper(), Rect2(cx + 40 + i * 130, cy + 208, 124, 170), Style.PAPIER, Style.ENCRE, 15, func(): App.reglages.circuit = c.id; App.reglages.tours = infoCircuits[c.id].tours; App.sauve(); _construit())
 		b.choisi = c.id == App.reglages.circuit
 		b.set_meta("cle", "circuit-" + c.id)
 		b.set_meta("circuit", c.id)
@@ -173,12 +180,13 @@ func _construit() -> void:
 	# Le tableau mondial : se connecter avec Google, ou renoncer à la connexion en cours
 	if Mondial.connexionPossible() and (Mondial.enCours or not Mondial.connecte()):
 		var txt := Textes.t("signInCancel") if Mondial.enCours else Textes.t("signIn")
-		var bg := _bouton(txt, Rect2(804 + dx, 554 + dy, Style.largeur(txt, 15) + 28, 30), Style.NUIT_PLEINE, Style.CREME, 15,
+		var bg := _bouton(txt, Rect2(cx + 14, cy + 462, Style.largeur(txt, 15) + 28, 30), Style.NUIT_PLEINE, Style.CREME, 15,
 			func(): (Mondial.annuler() if Mondial.enCours else Mondial.entrer()))
 		bg.centre = true
 		bg.set_meta("cle", "google")
 	# La barre du bas
-	var yb := 654.0 if not portrait else 1250.0
+	ybas = 654.0 if not portrait else carte.end.y + 22
+	var yb := ybas
 	var dif := _nom(DIFFICULTES, App.reglages.difficulte)
 	x = 30.0
 	var reglagesBas := []
@@ -192,11 +200,19 @@ func _construit() -> void:
 		reglagesBas.append([Textes.t("opponents", int(App.reglages.adversaires) - 1), func(): App.reglages.adversaires = (int(App.reglages.adversaires) - 1) % 11 + 2; App.sauve(); _construit(), "adversaires"])
 	for r in reglagesBas:
 		var w := Style.largeur(r[0], 20) + 36
+		# en portrait, les réglages passent à la ligne au lieu de sortir de l'écran
+		if portrait and x > 30 and x + w > W - 18:
+			x = 30.0; yb += 58
 		var b := _bouton(r[0], Rect2(x, yb, w, 48), Style.NUIT_PLEINE, Style.CREME, 20, r[1])
 		b.centre = true
 		b.set_meta("cle", r[2])
 		x += w + 10
-	var go := _bouton(Textes.t("onTrack"), Rect2((1050 if not portrait else 572), yb - 4, 200, 56), Style.ROUGE, Style.CREME, 30, _enPiste)
+	# « En piste » : à droite de la barre en paysage ; en portrait, sur toute la largeur, dessous
+	var rGo := Rect2(1050, ybas - 4, 200, 56) if not portrait else Rect2(18, yb + 64, W - 36, 60)
+	if portrait:
+		hauteur = rGo.end.y + 24
+		cadre.size = Vector2(W, hauteur)
+	var go := _bouton(Textes.t("onTrack"), rGo, Style.ROUGE, Style.CREME, 30, _enPiste)
 	go.centre = true
 	go.set_meta("cle", "go")
 	cadre.queue_redraw()
@@ -244,8 +260,6 @@ func _draw() -> void:
 
 func _dessine() -> void:
 	var ci := cadre
-	var dx := 0.0 if not portrait else 18.0 - 790.0
-	var dy := 0.0 if not portrait else 640.0
 	# En-tête
 	var W := cadre.size.x
 	Style.biseau(ci, Rect2(18, 10, W - 36, 64), Style.NUIT_PLEINE, 0)
@@ -290,7 +304,7 @@ func _dessine() -> void:
 	# Le circuit
 	var cid: String = App.reglages.circuit
 	var info: Dictionary = infoCircuits.get(cid, infoCircuits.values()[0])
-	var r := Rect2(790 + dx, 92 + dy, 468, 548 if not portrait else 520)
+	var r := carte
 	ci.draw_rect(Rect2(r.position + Vector2(4, 4), r.size), Color(0, 0, 0, 0.35))
 	ci.draw_rect(r, Style.PAPIER)
 	ci.draw_rect(r, Style.NUIT_PLEINE, false, 3)
@@ -323,9 +337,8 @@ func _dessine() -> void:
 	Style.texte(ci, Style.temps(rec), r.position + Vector2(r.size.x - 160, 512), 22, Style.ENCRE)
 	Style.texte(ci, Textes.t("myBestHint"), r.position + Vector2(14, 532), 13, Color(Style.ENCRE, 0.7))
 	# La barre du bas
-	var yb := 654.0 if not portrait else 1250.0
-	ci.draw_rect(Rect2(18, yb - 6, W - 36, 3), Style.NUIT_PLEINE)
-	Style.damier(ci, Rect2((980 if not portrait else 500), yb - 4, 76, 56), 4, Style.NUIT_PLEINE, Color(0, 0, 0, 0), 0)
+	ci.draw_rect(Rect2(18, ybas - 6, W - 36, 3), Style.NUIT_PLEINE)
+	if not portrait: Style.damier(ci, Rect2(980, ybas - 4, 76, 56), 4, Style.NUIT_PLEINE, Color(0, 0, 0, 0), 0)
 
 
 ## Le record du monde de cette voiture sur ce circuit (js/ui.js, records : la colonne « Monde »).

@@ -218,8 +218,8 @@ func _construit() -> void:
 	var y := 92.0
 	code.visible = not dansTable
 	if not dansTable:
-		z.intro = Vector2(M, y + 16)
-		y += _hauteurTexte(Textes.t("multiIntro"), W - 2 * M, 17) + 14
+		z.intro = Vector2(M + 12, y + 18)
+		y += _hauteurTexte(Textes.t("multiIntro"), W - 2 * M - 24, 17) + 20
 		_b(Textes.t("discordPlayers"), Rect2(M, y, 360, 46), BLEU_DISCORD, Color.WHITE, 18, func(): OS.shell_open(DISCORD), "discord")
 		y += 62
 		var hp := 104.0 if not portrait else 176.0
@@ -441,7 +441,12 @@ func _dessine() -> void:
 	if not portrait:
 		ci.draw_texture_rect(logo, Rect2(W - 210, 16, 190, 190 * logo.get_height() / logo.get_width()), false)
 	if not dansTable:
-		_paragraphe(Textes.t("multiIntro"), z.intro, W - 2 * M, 17, MUET)
+		# le texte d'introduction sur son fond, comme le panneau : posé sur la photo du paddock, il ne
+		# se lisait pas (surtout en portrait, où il passe sur les projecteurs)
+		var hi := _hauteurTexte(Textes.t("multiIntro"), W - 2 * M - 24, 17)
+		ci.draw_rect(Rect2(M, z.intro.y - 18, W - 2 * M, hi + 12), PANNEAU)
+		ci.draw_rect(Rect2(M, z.intro.y - 18, W - 2 * M, hi + 12), PANNEAU_BORD, false, 1)
+		_paragraphe(Textes.t("multiIntro"), z.intro, W - 2 * M - 24, 17, MUET)
 		var p: Rect2 = z.panneau
 		ci.draw_rect(p, PANNEAU)
 		ci.draw_rect(p, PANNEAU_BORD, false, 1)
