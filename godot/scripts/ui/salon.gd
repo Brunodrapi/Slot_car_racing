@@ -169,7 +169,7 @@ func _maj() -> void:
 		_circuitVu = String(t.get("trackId", "")); _suivre = true
 	# Les boutons ne se refont que si ce qu'ils montrent a changé ; le reste se redessine.
 	var pilotes := net.members().filter(func(m): return not m.q.get("spectator", false)).size()
-	var s := JSON.stringify([net.state, net.busy, net.creator, t.get("mode"), t.get("timeOfDay"), cat, t.get("trackId"),
+	var s := JSON.stringify([net.state, net.busy, net.creator, t.get("mode"), t.get("timeOfDay"), t.get("degats"), cat, t.get("trackId"),
 		net.mine.get("ready"), net.mine.get("spectator"), App.reglages.voiture, App.reglages.livree, net.canStart(),
 		pilotes < 2, debutCircuits, debutVoitures, size, net.members().size(), _suivre])
 	if s != _signature:
@@ -269,6 +269,13 @@ func _construit() -> void:
 		y = z.heure + 8
 		if t.get("timeOfDay") == "night":
 			z.nuitDesc = Vector2(M, y + 14); y += 30
+		# Les dégâts (essai du jeu web) : l'hôte choisit pour tout le monde. Une table du jeu web publié
+		# ne les connaît pas : coupés tant que l'hôte ne les active pas.
+		z.degatsTitre = Vector2(M, y + 14); y += 24
+		_seg([["1", Textes.t("on")], ["0", Textes.t("off")]], "1" if t.get("degats", false) == true else "0", y, net.creator,
+			func(id): net.setTable({ degats = id == "1" }), "degats")
+		y = z.degats + 8
+		z.degatsDesc = Vector2(M, y + 14); y += 30
 		# La catégorie
 		z.catTitre = Vector2(M, y + 14); y += 24
 		var cats := [["all", Textes.t("all")]]
@@ -481,6 +488,9 @@ func _dessine() -> void:
 	if z.has("nuitDesc"):
 		var f1: bool = Catalogue.voiture(App.reglages.voiture).get("cat") == "f1"
 		Style.texte(ci, Textes.t("nightF1Hint" if f1 else "nightHint"), z.nuitDesc, 15, MUET)
+	if z.has("degatsTitre"):
+		_titre(Textes.t("chipDegats"), z.degatsTitre)
+		Style.texte(ci, Textes.t("degatsHint"), z.degatsDesc, 15, MUET)
 	_titre(Textes.t("mCatTitle"), z.catTitre)
 	var cat := String(t.get("cat", "all")) if t.get("cat") else "all"
 	Style.texte(ci, Textes.t("mCatOpen") if cat == "all" else Textes.t("mCatDesc"), z.catDesc, 15, MUET)

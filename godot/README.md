@@ -32,11 +32,42 @@ contenu du jeu y est, repris du code web et non réinventé :
 - **la nuit** de `js/render.js` : phares, feux arrière, projecteurs des bacs à gravier, faite avec les
   lumières 2D de Godot ; le jour, les feux stop au freinage. Sous un tunnel, la nuit tombe en
   0,35 s et se lève à la sortie, comme dans le jeu web ;
+- **les dégâts et les stands** de l'essai du jeu web (branche `claude/degats-visuels`) — voir plus
+  bas ;
 - **le français et l'anglais**, avec les mots du jeu web ;
 - **le multijoueur**, aux mêmes tables que le jeu web : un joueur Godot et un joueur dans le
   navigateur courent ensemble. La version Steam passe, elle, par les salons de Steam.
 
 Le meilleur tour propre est gardé sur l'appareil, par circuit et par voiture.
+
+## Les dégâts et les stands
+
+Repris de l'essai du jeu web (branche `claude/degats-visuels`, fusionnée dans cette branche pour
+l'export) ; une option du paddock de la course rapide, **activée par défaut**, et en ligne le
+choix de l'hôte (coupée sur une table du jeu web publié, qui ne la connaît pas).
+
+- **La physique** (`voiture.gd`, `course.gd`, et le moteur C++) : la caisse en huit zones qui
+  s'enfoncent selon leur dureté (pare-chocs durs, flancs mous) ; les dommages sont la zone la plus
+  enfoncée, jusqu'à 35 % de pointe et de reprise en moins, jamais d'adhérence ; le coup de flanc
+  au-delà de 6 m/s ; l'**abandon** à 100 km/h droit dans un mur (en solo), classé derrière tous,
+  sans points, l'arrivée des autres projetée ; la **voie des stands** de chaque circuit (`pitAt`),
+  la coche STAND sous le levier, l'arrêt dans la zone et une réparation de 1,5 s + 6,5 s selon les
+  dommages ; l'IA s'arrête au-delà de 45 % s'il reste trois tours.
+- **Le dessin** (`degats_vue.gd`, `voiture_vue.gd`) : la tôle en anneaux tendue sur le dessin de la
+  voiture, qui tremble puis se fige ; plis, creux et éraflure peints sur une copie du dessin ; les
+  roues et les feux suivent la tôle, un feu qui recule de plus de 7 cm est cassé ; étincelles,
+  débris qui restent 45 s, fumée au-delà de 30 % ; l'épave qui fume six secondes puis s'efface ;
+  l'écran **ABANDON** façon WASTED, la caméra posée sur l'épave qui ondule.
+- **Le stand** (`mecanos.gd`, `son.gd`) : six équipes de couleur, une par box marqué de blanc, qui
+  courent à la voiture sans passer devant, scotchent le nez et l'arrière, s'occupent des roues, se
+  dégagent et rentrent ; le scotch qui s'accumule d'un arrêt à l'autre ; les clés qui tintent, les
+  pièces qu'on claque et la visseuse à chocs ; la jauge de tôle et le temps de réparation.
+
+**La preuve** : `tests/parite.gd` rejoue une course de trois tours à Spa avec dégâts et un arrêt au
+stand, enregistrée par le jeu web (`node tools/godot-exporte.js spa`) — identique en GDScript et en
+C++ (positions, dommages, tours, arrêt) jusqu'à la dérive d'arrondi du sinus, après l'arrêt.
+`tests/degats_photo.tscn` et `tests/stand_photo.tscn` photographient les dégâts, l'abandon et un
+arrêt au stand dans le vrai écran de course.
 
 ## Le tableau mondial
 
@@ -266,7 +297,7 @@ NODE_PATH=$(npm root -g) node godot/outils/essai-croise.js <recette> natif:godot
 ## Ce qui n'y est pas encore
 
 - l'identité Steam pour le tableau mondial (Google y est) ;
-- l'usure, les dégâts et les stands, qui sont encore des essais du jeu web ;
+- l'usure des pneus, éteinte dans le jeu web ;
 - les exports Android et iPhone : le moteur C++ est compilé pour Android, il reste à faire
   l'application (SDK, signature) ; l'iPhone demande un Mac et Xcode ;
 - Steamworks au-delà du multijoueur : les succès et les classements.
