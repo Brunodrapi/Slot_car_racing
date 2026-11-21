@@ -714,6 +714,8 @@ class App {
       this.ui.gamepad.sync();
     }
     if (this.desktop && this.state === 'paused') this.ui.updateControllerStatus();
+    // la musique des menus : partout sauf en course (js/audio.js, MUSIQUE)
+    this.audio.musique(this.state === 'menu' || this.state === 'lobby' || this.state === 'results', dt);
     if (!this.race) return;
     const race = this.race;
     if (this.state === 'race' || this.state === 'paused' && this.raceCtx?.online) {

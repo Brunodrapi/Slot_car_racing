@@ -79,6 +79,7 @@ const I18N = {
     // le conseil affiché au premier départ sur Chrome et Edge PC (js/chromium-cache.js)
     conseilFirefox: 'Pour une expérience optimisée, utilisez Firefox.', fermer: 'Fermer',
     discordBug: 'Signaler un bug ou faire une demande sur Discord', discordJoueurs: 'Trouver des joueurs sur Discord',
+    creditMusique: 'Musique des menus : « Too Cool », Kevin MacLeod (incompetech.com), licence Creative Commons BY 4.0.',
     pauseEnLigne: 'La course continue en ligne pendant que ce menu est ouvert.',
     howIntroTouch: 'Un doigt pour la vitesse, un pouce pour la trajectoire.',
     howIntroKeys: 'Une touche pour la vitesse, deux flèches pour la trajectoire.',
@@ -230,6 +231,7 @@ const I18N = {
     devlogLabel: (n, titre) => `Latest devlog, #${n}: ${titre} (on itch.io)`,
     conseilFirefox: 'For the best experience, use Firefox.', fermer: 'Close',
     discordBug: 'Report a bug or make a request on Discord', discordJoueurs: 'Find players on Discord',
+    creditMusique: 'Menu music: “Too Cool” by Kevin MacLeod (incompetech.com), licensed under Creative Commons BY 4.0.',
     pauseEnLigne: 'The race goes on online while this menu is open.',
     howIntroTouch: 'One finger for speed, one thumb for your line.',
     howIntroKeys: 'One key for speed, two arrows for your line.',
@@ -1134,6 +1136,7 @@ class UI {
              course rapide, et l'écran de départ de la course la porte déjà en pastille. -->
       </div>
       ${this.lienDiscord('discordBug', DISCORD_BUGS_URL)}
+      <p class="muted credit-musique">${t('creditMusique')}</p>
       <div class="row wrap"><button data-action="menu">${t('back')}</button><a href="analytics.html" class="stats-link">${t('statistics')} →</a><button class="danger" data-action="resetAll">${t('resetAll')}</button></div>
     `, 'scroll settings-screen', 'reglages');
   }

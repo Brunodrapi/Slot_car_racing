@@ -26,6 +26,13 @@ et du glissement, et il avait raison. */
 
 // Le catalogue : quelle voiture joue quel jeu de prises. Voir `_catalogue`.
 const CATALOGUE_URL = 'sounds/engine/voitures.json';
+/* LA MUSIQUE DES MENUS. « Ajoute cette musique dans les menus avec un niveau sonore très faible. »
+(Bruno) « Too Cool », Kevin MacLeod (incompetech.com), sous licence Creative Commons BY 4.0 : le crédit
+est aux réglages. Elle boucle à l'accueil, au paddock, aux réglages, au salon et aux résultats, se tait
+en course (et à la pause, qui est la course), et suit le réglage du son. Elle passe par le contexte audio
+et son volume général, pas par le volume de la balise : sur iPhone, celui-ci ne se règle pas. Réencodée
+à 96 kb/s (2,2 Mo) : à ce volume, la différence ne s'entend pas. */
+const MUSIQUE = { url: 'sounds/musique/too-cool.mp3', volume: 0.12, fondu: 1.2 };
 
 class GameAudio {
   constructor() {
@@ -321,6 +328,31 @@ class GameAudio {
     const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(0.16, t + 0.002); g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
     o.connect(g); g.connect(this.master); o.start(t); o.stop(t + 0.05);
+  }
+
+  /* La musique des menus (MUSIQUE) : appelée à chaque image, avec ce que l'écran veut ; elle monte et
+  descend en fondu, et ne se met en pause qu'une fois tue. */
+  musique(veut, dt) {
+    if (!this.started || !this.ctx) return;
+    veut = veut && this.enabled && !document.hidden;
+    if (!this.musiqueEl) {
+      if (!veut) return;
+      try {
+        const el = new Audio(MUSIQUE.url);
+        el.loop = true; el.preload = 'auto';
+        this.musiqueEl = el;
+        this.musiqueGain = this.ctx.createGain(); this.musiqueGain.gain.value = 0;
+        this.ctx.createMediaElementSource(el).connect(this.musiqueGain);
+        this.musiqueGain.connect(this.master);
+        this.musiqueNiveau = 0;
+      } catch (e) { this.musiqueEl = false; return; }
+    }
+    if (this.musiqueEl === false) return;
+    const el = this.musiqueEl, pas = Math.min(0.1, dt || 0) / MUSIQUE.fondu;
+    this.musiqueNiveau = Math.max(0, Math.min(1, this.musiqueNiveau + (veut ? pas : -2 * pas)));
+    this.musiqueGain.gain.value = MUSIQUE.volume * this.musiqueNiveau;
+    if (veut && el.paused) el.play().catch(() => {});
+    else if (!veut && this.musiqueNiveau === 0 && !el.paused) el.pause();
   }
 
   // A held tone cuts through the engine better than the short decaying UI beep.

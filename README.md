@@ -925,6 +925,14 @@ fabriqué par le jeu (`clac`, js/audio.js), sans fichier. `tools/e2e-levier.js` 
 pixel par pixel sur toute la course du levier et vérifie les trois crans, les franchissements et les
 clacs.
 
+**La musique des menus (0.56.9).** « Too Cool », de Kevin MacLeod (incompetech.com), sous licence
+Creative Commons BY 4.0 — le crédit est en bas des réglages. Elle boucle à l'accueil, au paddock, aux
+réglages, au salon et aux résultats, très bas (0,12 sous le volume général de 0,5), monte et descend en
+fondu, se tait en course et suit le réglage du son (`musique`, js/audio.js). Elle passe par le contexte
+audio : sur iPhone, le volume d'une balise audio ne se règle pas. Réencodée à 96 kb/s
+(`sounds/musique/too-cool.mp3`, 2,2 Mo). `tools/e2e-musique.js` la vérifie au menu, en course, au retour
+et son coupé.
+
 **Les menus cliquent (0.56.8).** Chaque bouton des menus, et chaque choix d'une liste des réglages,
 fait un petit clic sec, de la famille du clac mais deux fois plus court et plus discret (`clic`,
 js/audio.js) ; à la souris, au doigt, au clavier et à la manette, puisque tout passe par `_act`. Le

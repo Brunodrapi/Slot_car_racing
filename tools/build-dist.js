@@ -60,7 +60,7 @@ const PAGES = ['index.html', 'analytics.html'];
 
 // Les ressources chargées par leur nom calculé (une voiture, une livrée, un drapeau, un circuit) :
 // des dossiers entiers, moins ce qui n'est que matière de travail.
-const DOSSIERS = ['art/interface', 'sprites/top', 'sprites/pick', 'sprites/environnement', 'sounds/engine'];
+const DOSSIERS = ['art/interface', 'sprites/top', 'sprites/pick', 'sprites/environnement', 'sounds/engine', 'sounds/musique'];
 const FICHIERS = ['favicon.ico', 'site.webmanifest', 'art/Pitstop.png',
   'art/affiche-titre-portrait.webp', 'art/affiche-titre-paysage.webp',
   'art/icone-16.png', 'art/icone-32.png', 'art/icone-48.png', 'art/icone-180.png', 'art/icone-192.png',
