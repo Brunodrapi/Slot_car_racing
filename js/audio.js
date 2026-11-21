@@ -304,6 +304,25 @@ class GameAudio {
     o.connect(g); g.connect(this.master); o.start(t); o.stop(t + 0.09);
   }
 
+  /* LE CLIC DES MENUS. « Il faut, dans les deux versions, des clics dans les menus. » (Bruno) Chaque
+  bouton, chaque choix d'une liste : un petit clic sec, de la famille du clac du levier mais deux fois
+  plus court et plus discret — un éclat de bruit aigu et une note brève qui tombe. Fabriqué ici, sans
+  fichier, comme le clac. Le même son dans la version Godot (son.gd, `clic`). */
+  clic() {
+    if (!this.started || !this.enabled) return;
+    const ctx = this.ctx, t = ctx.currentTime;
+    const n = ctx.createBufferSource(); n.buffer = this.noiseBuf;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 4200; bp.Q.value = 3;
+    const ng = ctx.createGain(); ng.gain.setValueAtTime(0.0001, t);
+    ng.gain.exponentialRampToValueAtTime(0.35, t + 0.0015); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.018);
+    n.connect(bp); bp.connect(ng); ng.connect(this.master); n.start(t, Math.random() * 0.5); n.stop(t + 0.03);
+    const o = ctx.createOscillator(); o.type = 'triangle';
+    o.frequency.setValueAtTime(1300, t); o.frequency.exponentialRampToValueAtTime(520, t + 0.03);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.16, t + 0.002); g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+    o.connect(g); g.connect(this.master); o.start(t); o.stop(t + 0.05);
+  }
+
   // A held tone cuts through the engine better than the short decaying UI beep.
   // Triggered only by a completed player lap, including invalid laps and the last lap.
   lapBeep(best = false) {

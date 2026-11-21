@@ -925,6 +925,12 @@ fabriqué par le jeu (`clac`, js/audio.js), sans fichier. `tools/e2e-levier.js` 
 pixel par pixel sur toute la course du levier et vérifie les trois crans, les franchissements et les
 clacs.
 
+**Les menus cliquent (0.56.8).** Chaque bouton des menus, et chaque choix d'une liste des réglages,
+fait un petit clic sec, de la famille du clac mais deux fois plus court et plus discret (`clic`,
+js/audio.js) ; à la souris, au doigt, au clavier et à la manette, puisque tout passe par `_act`. Le
+même son dans la version Godot. `tools/e2e-clics.js` compte un clic par geste et vérifie qu'il se tait
+quand le son est coupé.
+
 ### Changer de ligne sans se mettre en travers (0.45)
 
 Changer de ligne au levier faisait-il sortir la voiture ? `tools/changement-ligne-banc.js` le mesure :

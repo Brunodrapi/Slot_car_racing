@@ -1834,6 +1834,7 @@ class UI {
   _act(btn, confirmed = false) {
     const a = btn.dataset.action, id = btn.dataset.id, app = this.app;
     app.audio.start(); app.audio.resume();
+    app.audio.clic();   // chaque bouton des menus clique (js/audio.js, `clic`)
     switch (a) {
       case 'menu': app.toMenu(); break;
       /* On SORT avant d'entrer. Une session périmée encore en mémoire ferait revenir le joueur
@@ -2033,6 +2034,7 @@ class UI {
 
   _onChange(e) {
     const el = e.target, s = this.app.save;
+    if (el.tagName === 'SELECT' || el.type === 'checkbox') this.app.audio.clic();   // un choix de liste clique aussi
     if (el.id === 'sel-pad-brake' || el.id === 'sel-engine-brake') {
       if (el.id === 'sel-pad-brake') s.gamepadBrake = el.value === 'auto' ? 'auto' : 'separate';
       else s.engineBrake = throttleAmount(+el.value);
