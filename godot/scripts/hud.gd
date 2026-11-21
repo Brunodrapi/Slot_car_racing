@@ -12,6 +12,7 @@ var flash := ""
 var flashCouleur := Color.WHITE
 var flashJusqua := 0.0
 var pommeau := NAN
+var _bordRouge: GradientTexture2D
 var tactile := false
 # La pastille du pouce (js/render.js, pouce) : elle vient sous le doigt qui accélère.
 var pouce := { cx = 0.0, cy = 0.0, r = 46.0 }
@@ -138,7 +139,46 @@ func dansLevier(p: Vector2) -> bool:
 
 func levierVers(p: Vector2) -> float:
 	var s := _levier()
+	# la coche des stands vit SOUS le rail : un doigt qui descend plus bas demande les stands
+	if course and course.standOuvert() and p.y > s.y + s.len + 8: return -2.0
 	return clampf((s.y + s.len / 2 - p.y) / (s.len / 2), -1, 1)
+
+
+## Les cadrans au-dessus du levier (render.js, jauges) : ici la tôle seule.
+func _jauges() -> Dictionary:
+	var s := _levier()
+	var rj := 14.0 if _paysageCourt() else (19.0 if _mobile() else 22.0)
+	if _paysageCourt():
+		return { r = rj, x = s.x + (-85.0 if _droite() else 85.0), y2 = size.y - P - 42 }
+	return { r = rj, x = s.x, y2 = s.y - 26 - rj - 10 }
+
+
+## Le cadran de tôle : combien il reste de voiture, vert puis orange puis rouge ; au stand, le
+## temps de réparation qui reste au-dessus (render.js).
+func _jaugeTole(p: Voiture) -> void:
+	var J := _jauges()
+	var r: float = J.r
+	var c := Vector2(J.x, J.y2)
+	Style.biseau(self, Rect2(c.x - r - 7, c.y - r - 8, (r + 7) * 2, r * 2.2 + 16), Style.PAPIER, 0)
+	var f := clampf(1 - p.damage, 0, 1)
+	var A0 := PI * 0.75
+	var SPAN := PI * 1.5
+	draw_arc(c, r * 0.78, A0, A0 + SPAN, 32, Color("#cec4ad"), r * 0.30, true)
+	var col := Color("#39864c") if f > 0.5 else (Color("#a36b08") if f > 0.22 else Color("#bd2d22"))
+	if f > 0.001: draw_arc(c, r * 0.78, A0, A0 + SPAN * f, 32, col, r * 0.30, true)
+	# la carrosserie, vue de dessus, capot en haut, avec son pare-brise
+	var k := r / 15
+	var o := c + Vector2(0, -r * 0.04)
+	draw_rect(Rect2(o + Vector2(-3.6, -5.2) * k, Vector2(7.2, 10.4) * k), Color("#364333"))
+	draw_rect(Rect2(o + Vector2(-2.3, -2.6) * k, Vector2(4.6, 3.2) * k), Color(20 / 255.0, 24 / 255.0, 34 / 255.0, 0.85))
+	Style.texte(self, str(roundi(f * 100)), Vector2(c.x - r, c.y + r * 0.72 + r * 0.24), roundi(r * 0.66), Color("#242b25"), HORIZONTAL_ALIGNMENT_CENTER, r * 2)
+	if p.pitState == "arret" and p.pitT > 0:
+		var taille := roundi(r * 0.8)
+		var txt := "%.1f s" % p.pitT
+		var lw := Style.largeur(txt, taille) + 12
+		var yb := c.y - r - 12 - taille
+		Style.biseau(self, Rect2(c.x - lw / 2, yb - 3, lw, taille + 6), Style.PAPIER, 0)
+		Style.texte(self, txt, Vector2(c.x - lw / 2, yb + taille * 0.85), taille, Color("#242b25"), HORIZONTAL_ALIGNMENT_CENTER, lw)
 
 
 func _mmPoint(x: float, y: float, taille: float) -> Vector2:
@@ -263,6 +303,8 @@ func _draw() -> void:
 	draw_circle(mo + _mmPoint(p.x, p.y, taille), 9, Color("#7fd4ff"))
 	# Le levier, la vitesse
 	_levierDessin(p)
+	# la jauge de tôle, quand les dégâts coûtent (render.js, toleSeule)
+	if not course.degats.is_empty(): _jaugeTole(p)
 	# Au doigt, pas de tableau de bord du PC : la vitesse est au-dessus de la pastille du pouce.
 	if tactile: _pouce(p)
 	else:
@@ -282,7 +324,8 @@ func _draw() -> void:
 	elif go > 0:
 		Style.texte(self, Textes.t("go"), Vector2(0, H * 0.18 + 60), 80, Color(Color("#5be07a"), go / 1.2), HORIZONTAL_ALIGNMENT_CENTER, W)
 		go -= get_process_delta_time()
-	if p.herbe:
+	# l'abandon a son propre écran : plus de « sortie de piste, moteur coupé », qui promettrait de repartir
+	if p.herbe and not p.abandon:
 		Style.texte(self, Textes.t("offTrack"), Vector2(0, H * 0.3 + 30), 36, Color("#ff6b6b"), HORIZONTAL_ALIGNMENT_CENTER, W)
 		if p.engineStopped: Style.texte(self, Textes.t("engineCut"), Vector2(0, H * 0.3 + 60), 24, Color("#ffcf5c"), HORIZONTAL_ALIGNMENT_CENTER, W)
 	if p.finished and course.state != "finished":
@@ -302,6 +345,46 @@ func _draw() -> void:
 		Style.texte(self, mesure2, Vector2(mx, lapY + lapH + 27), 11, gris, HORIZONTAL_ALIGNMENT_LEFT, W - P - mx)
 	else:
 		Style.texte(self, mesure1 + " · " + mesure2, Vector2(P + 2, mmBas + 18), 13, gris)
+	# par-dessus tout le reste, comme le WASTED de GTA
+	if p.abandon and course.state != "finished": _ecranAbandon(p)
+
+
+## L'ABANDON, FAÇON « WASTED » DE GTA (render.js, _ecranAbandon) : un voile rouge monte sur tout
+## l'écran, plus sombre sur les bords ; le mot tombe en grand avec un léger rebond, sur une bande
+## sombre, au-dessus de l'épave pour la laisser voir, avec « MOTEUR DÉTRUIT » dessous.
+func _ecranAbandon(p: Voiture) -> void:
+	var W := size.x
+	var H := size.y
+	var a := p.abandonT
+	var f := clampf((a - 0.45) / 0.7, 0, 1)
+	if f <= 0: return
+	draw_rect(Rect2(0, 0, W, H), Color(150 / 255.0, 14 / 255.0, 18 / 255.0, 0.34 * f))
+	if _bordRouge == null:
+		var g := Gradient.new()
+		g.offsets = PackedFloat32Array([0.0, 0.35, 1.0])
+		g.colors = PackedColorArray([Color(50 / 255.0, 0, 0, 0), Color(50 / 255.0, 0, 0, 0), Color(50 / 255.0, 0, 0, 1)])
+		_bordRouge = GradientTexture2D.new()
+		_bordRouge.gradient = g
+		_bordRouge.fill = GradientTexture2D.FILL_RADIAL
+		_bordRouge.fill_from = Vector2(0.5, 0.5)
+		_bordRouge.fill_to = Vector2(1.0, 0.5)
+	draw_texture_rect(_bordRouge, Rect2(W / 2 - Vector2(W, H).length() * 0.62, H / 2 - Vector2(W, H).length() * 0.62, Vector2(W, H).length() * 1.24, Vector2(W, H).length() * 1.24), false, Color(1, 1, 1, 0.5 * f))
+	var m := clampf((a - 0.75) / 0.35, 0, 1)
+	if m <= 0: return
+	var taille := roundi(minf(minf(W * 0.16, H * 0.17), 150))
+	var y := H * 0.22
+	draw_rect(Rect2(0, y - taille * 0.66, W, taille * 1.32), Color(0, 0, 0, 0.5 * m))
+	var rebond := 1 + 0.32 * (1 - m) * (1 - m)
+	draw_set_transform(Vector2(W / 2, y), 0, Vector2(rebond, rebond))
+	var mot := Textes.t("abandon")
+	var lw := Style.largeur(mot, taille)
+	var base := taille * 0.36
+	Style.racing().draw_string_outline(get_canvas_item(), Vector2(-lw / 2, base), mot, HORIZONTAL_ALIGNMENT_LEFT, -1, taille, maxi(3, roundi(taille * 0.08)), Color(16 / 255.0, 0, 0, 0.9 * m))
+	Style.texte(self, mot, Vector2(-lw / 2, base), taille, Color(Color("#e8352b"), m))
+	var t2 := roundi(taille * 0.24)
+	var sous := Textes.t("abandonSous")
+	Style.texte(self, sous, Vector2(-Style.largeur(sous, t2) / 2, taille * 0.86 + t2 * 0.36), t2, Color(Color("#fff0d2"), m))
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
 
 static func _fmtEcart(s: float) -> String:
@@ -362,24 +445,35 @@ func _levierDessin(p: Voiture) -> void:
 	var crans := [[1.0, C_JAUNE, Textes.t("lineJaune")], [0.0, C_IDEALE, Textes.t("lineRace")], [-1.0, C_BLEU, Textes.t("lineBleu")]]
 	var cote := -1.0 if _droite() else 1.0
 	var lx: float = s.x + 19 * cote
-	var larg := maxf(Style.largeur(Textes.t("lineRace"), 15), Style.largeur(Textes.t("lineJaune"), 15))
-	var hFond: float = s.len + 52
+	var larg := maxf(maxf(Style.largeur(Textes.t("lineRace"), 15), Style.largeur(Textes.t("lineJaune"), 15)), Style.largeur(Textes.t("linePit"), 15))
+	# la coche des stands, sous le rail, quand elle sert (render.js, _drawSlider)
+	var ouvert := course.standOuvert()
+	var pitY: float = s.y + s.len + 22
+	var hFond: float = s.len + 52 + (22.0 if ouvert else 0.0)
 	var biseau := minf(9, hFond * .23)
 	var gauche: float = s.x - (19 + larg + 7) if _droite() else s.x - 22
 	Style.biseau(self, Rect2(gauche - biseau / 2, s.y - 26, 22 + 19 + larg + 7 + biseau, hFond), Color("#171b19da"))
 	var yCran := func(v: float) -> float: return s.y + s.len / 2 - v * s.len / 2
-	draw_rect(Rect2(s.x - 3.5, yCran.call(1.0), 7, yCran.call(-1.0) - yCran.call(1.0)), Color("#05070a"))
-	var choisi := roundi(clampf(p.sel, -1, 1))
+	var bas: float = pitY if ouvert else yCran.call(-1.0)
+	draw_rect(Rect2(s.x - 3.5, yCran.call(1.0), 7, bas - yCran.call(1.0)), Color("#05070a"))
+	var actif := p.pitAsk or p.pitState != ""
+	var choisi := -2 if actif and ouvert else roundi(clampf(p.sel, -1, 1))
 	for c in crans:
 		var y: float = yCran.call(c[0])
 		draw_circle(Vector2(s.x, y), 10, Color("#05070a"))
 		draw_arc(Vector2(s.x, y), 6.5, 0, TAU, 24, c[1], 3.0 if choisi == int(c[0]) else 2.0, true)
 		if _droite(): Style.texte(self, c[2], Vector2(lx - 80, y + 5), 15, Color.WHITE if choisi == int(c[0]) else Style.GRIS, HORIZONTAL_ALIGNMENT_RIGHT, 80)
 		else: Style.texte(self, c[2], Vector2(lx, y + 5), 15, Color.WHITE if choisi == int(c[0]) else Style.GRIS)
-	var cible: float = yCran.call(float(choisi))
+	if ouvert:
+		draw_circle(Vector2(s.x, pitY), 10, Color("#05070a"))
+		draw_arc(Vector2(s.x, pitY), 6.5, 0, TAU, 24, Color("#5be07a") if actif else Color("#cfa14a"), 3.0 if choisi == -2 else 2.0, true)
+		var cp := Color("#5be07a") if actif else (Color.WHITE if choisi == -2 else Style.GRIS)
+		if _droite(): Style.texte(self, Textes.t("linePit"), Vector2(lx - 80, pitY + 5), 15, cp, HORIZONTAL_ALIGNMENT_RIGHT, 80)
+		else: Style.texte(self, Textes.t("linePit"), Vector2(lx, pitY + 5), 15, cp)
+	var cible: float = pitY if choisi == -2 else yCran.call(float(choisi))
 	if is_nan(pommeau): pommeau = cible
 	pommeau += (cible - pommeau) * (1 - exp(-get_process_delta_time() * 1000 / 30))
-	var rgb := C_JAUNE if choisi > 0 else (C_BLEU if choisi < 0 else C_IDEALE)
+	var rgb := Color8(91, 224, 122) if choisi == -2 else (C_JAUNE if choisi > 0 else (C_BLEU if choisi < 0 else C_IDEALE))
 	draw_circle(Vector2(s.x, pommeau), 13, rgb)
 	draw_arc(Vector2(s.x, pommeau), 13, 0, TAU, 32, Color(0.05, 0.05, 0.09, 0.85), 2, true)
 	# La position réelle de la voiture entre les lignes : un petit trait.

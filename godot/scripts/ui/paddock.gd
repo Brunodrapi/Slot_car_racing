@@ -184,6 +184,9 @@ func _construit() -> void:
 	var reglagesBas := []
 	reglagesBas.append([Textes.t("dayNight", Textes.t("night" if App.reglages.nuit else "day")), func(): App.reglages.nuit = not App.reglages.nuit; App.sauve(); _construit(), "nuit"])
 	if mode == "race":
+		# les dégâts, une option (oui par défaut), comme le paddock du jeu web
+		var dg := bool(App.reglages.get("degats", true))
+		reglagesBas.append([Textes.t("chipDegats") + " : " + Textes.t("on" if dg else "off"), func(): App.reglages.degats = not dg; App.sauve(); _construit(), "degats"])
 		reglagesBas.append([Textes.t("difficulty", dif), func(): App.reglages.difficulte = _suivant(DIFFICULTES, App.reglages.difficulte); App.sauve(); _construit(), "difficulte"])
 		reglagesBas.append([Textes.t("laps", int(App.reglages.tours)), func(): App.reglages.tours = int(App.reglages.tours) % 10 + 1; App.sauve(); _construit(), "tours"])
 		reglagesBas.append([Textes.t("opponents", int(App.reglages.adversaires) - 1), func(): App.reglages.adversaires = (int(App.reglages.adversaires) - 1) % 11 + 2; App.sauve(); _construit(), "adversaires"])

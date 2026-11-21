@@ -11,6 +11,7 @@ var decor: Decor
 var vues: Array[VoitureVue] = []
 var camera: Camera2D
 var effets: Effets
+var degatsVue: DegatsVue
 var guide: GuideVue
 var nuit: Nuit
 var son: Son
@@ -31,6 +32,7 @@ const VMAX_ECRAN := 290 / 3.6
 # Les commandes
 var gaz := 0.0
 var ligne := 0.0
+var stand := false          # la coche des stands (main.js, input.pit) : une intention, pas une ligne
 var doigtsGaz := {}
 var doigtLevier := -1
 var enPause := false
@@ -93,6 +95,9 @@ func _ready() -> void:
 	add_child(decor)
 	effets = Effets.new()
 	add_child(effets)
+	degatsVue = DegatsVue.new()
+	degatsVue.jeu = self
+	add_child(degatsVue)
 	guide = GuideVue.new()
 	guide.jeu = self
 	guide.visible = false
@@ -139,6 +144,7 @@ func _depart() -> void:
 	else: course = classe.new(piste, {
 		modele = modele, difficulte = Catalogue.difficulte(R.difficulte), mode = "timetrial" if R.mode == "training" else R.mode, laps = int(R.tours),
 		entrainement = R.mode == "training", difficultes = Catalogue.donnees.difficultes,
+		degats = bool(R.get("degats", true)),
 		nCars = n, roster = Catalogue.roster(maxi(n, 2), 0, cat, h), livree = int(R.livree), nomJoueur = R.nom,
 		modeleDe = func(id, i): return Catalogue.modele(id) if id != "" else Catalogue.modele(Catalogue.voituresDe(cat)[i % Catalogue.voituresDe(cat).size()].id),
 	}, h)
@@ -164,7 +170,9 @@ func _depart() -> void:
 	camInit = false
 	finieDepuis = -1.0
 	enPause = false
+	stand = false
 	effets.vide()
+	degatsVue.nouvelleCourse(course)
 	son.silence()
 	pause.visible = false
 	hud.nouvelleCourse(course)
@@ -243,8 +251,9 @@ func _unhandled_input(e: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if enPause: return
-	if e.is_action_pressed("ligne_haut"): _ligne(clampf(roundf(ligne) + 1, -1, 1))
-	elif e.is_action_pressed("ligne_bas"): _ligne(clampf(roundf(ligne) - 1, -1, 1))
+	# au clavier on descend d'un cran de plus quand les stands sont ouverts (main.js, stepLine)
+	if e.is_action_pressed("ligne_haut"): _ligne(clampf((-2.0 if stand else roundf(ligne)) + 1, -2.0 if course.standOuvert() else -1.0, 1))
+	elif e.is_action_pressed("ligne_bas"): _ligne(clampf((-2.0 if stand else roundf(ligne)) - 1, -2.0 if course.standOuvert() else -1.0, 1))
 	elif e.is_action_pressed("vue"):
 		tourne = not tourne; camInit = false
 		App.reglages.vue = "avance" if tourne else "avanceFixe"; App.sauve()
@@ -272,11 +281,14 @@ func _unhandled_input(e: InputEvent) -> void:
 		basculePause()
 
 
-## Le levier change de cran : un clac (main.js), vers le haut ou vers le bas.
+## Le levier change de cran : un clac (main.js, poseCran), vers le haut ou vers le bas. -2 : la
+## coche des stands, sous le rail.
 func _ligne(v: float) -> void:
-	var avant := roundi(ligne)
-	ligne = v
-	if roundi(v) != avant and course.state != "countdown": son.joue("clac+" if roundi(v) > avant else "clac-")
+	var avant := -2 if stand else roundi(ligne)
+	stand = v <= -1.5
+	ligne = clampf(v, -1, 1)
+	var apres := -2 if stand else roundi(ligne)
+	if apres != avant and course.state != "countdown": son.joue("clac+" if apres > avant else "clac-")
 
 
 func _commandes() -> void:
@@ -305,7 +317,9 @@ func _physics_process(_delta: float) -> void:
 	if drive != null:
 		_barriere()
 		drive.beforeFrame(course.dt)
-	if not course.spectator: course.player.sel = ligne
+	if not course.spectator:
+		course.player.sel = ligne
+		course.demandeStand(stand)
 	var tourAvant := course.player.lap
 	if course.spectator:
 		if drive.link.synchronized and drive.epoch != null:
@@ -377,6 +391,8 @@ func _process(dt: float) -> void:
 			for over in pont:
 				if ((k - (int(over) - 16)) % piste.n + piste.n) % piste.n <= 36: z = 3
 		vues[i].place(Vector2(x, y), th, c.delta, z)
+		# une épave reste six secondes, fumante, puis s'efface en deux : les commissaires l'ont enlevée
+		if c.abandon: vues[i].voile(clampf(1 - (c.abandonT - 6) / 2, 0, 1))
 		vues[i].freine(c.braking and not c.herbe and (nuit == null or nuit.force <= 0))
 		poses.append([Vector2(x, y), th])
 		if c == suivie: px = x; py = y
@@ -387,6 +403,7 @@ func _process(dt: float) -> void:
 	else: hud.consigne = -1
 	if not enPause:
 		effets.ajoute(course, dt)
+		degatsVue.maj(course, vues, dt)
 		son.maj(course.player, course.state != "countdown", dt)
 	if secousse > 0:
 		secousse = maxf(0, secousse - dt * 2)
@@ -422,6 +439,10 @@ func _surLigne(s: float) -> Vector2:
 ## l'ÉCART voiture-caméra plutôt que la position, et ne laisse jamais la voiture sortir du cadre.
 func _camera(dt: float, px: float, py: float) -> void:
 	var car := _suivie()
+	# l'abandon du joueur : la caméra va se poser sur l'épave, et ondule autour (render.js)
+	if not course.spectator and car.abandon and camInit:
+		_cameraEpave(dt, Vector2(px, py), car)
+		return
 	var ecran := get_viewport().get_visible_rect().size
 	var W := ecran.x
 	var H := ecran.y
@@ -467,6 +488,25 @@ func _camera(dt: float, px: float, py: float) -> void:
 	camera.zoom = Vector2(camZoom, camZoom)
 	camera.rotation = (camAngle + PI / 2) if tourne else 0.0
 
+
+
+## LA CAMÉRA DE L'ABANDON : elle quitte l'avance, se recentre sur l'épave et s'en approche jusqu'à
+## n'en montrer que seize mètres ; un roulis lent, un souffle de zoom, un léger flottement montent
+## en une seconde, comme le WASTED de GTA (render.js, _cameraEpave et draw).
+func _cameraEpave(dt: float, pos: Vector2, car: Voiture) -> void:
+	var ecran := get_viewport().get_visible_rect().size
+	var k := minf(1, dt * 3)
+	var zoom := (ecran.y if tourne else minf(ecran.x, ecran.y)) / 16
+	cam += (pos - cam) * k
+	camZoom += (zoom - camZoom) * minf(1, dt * 1.6)
+	camOff = cam - pos
+	var ta := car.abandonT
+	var fo := minf(1, ta / 1.2)
+	var roulis := fo * (0.055 * sin(ta * 0.9) + 0.018 * sin(ta * 2.3 + 0.7))
+	var ondZ := 1 + fo * 0.05 * sin(ta * 0.7)
+	camera.position = cam + Vector2(fo * 0.8 * sin(ta * 0.6), fo * 0.6 * sin(ta * 0.85 + 1))
+	camera.zoom = Vector2.ONE * camZoom * ondZ
+	camera.rotation = ((camAngle + PI / 2) if tourne else 0.0) - roulis
 
 
 ## Le guide de freinage, sur la piste devant la voiture (js/render.js, _drawGuide) : rouge plein là

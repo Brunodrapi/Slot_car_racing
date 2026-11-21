@@ -262,6 +262,7 @@ func pump() -> void:
 			livery = i, local = x.p == pid })
 	onStart.call({ mode = t.get("mode", "race"), trackId = t.get("trackId", "monza"), laps = t.get("laps", 3),
 		difficulty = t.get("difficulty", "medium"), timeOfDay = "night" if t.get("timeOfDay") == "night" else "day",
+		degats = t.get("degats", false) == true,
 		cat = t.get("cat", "all") if t.get("cat") else "all", go = go, spectator = bool(mine.get("spectator", false)),
 		humans = humans })
 

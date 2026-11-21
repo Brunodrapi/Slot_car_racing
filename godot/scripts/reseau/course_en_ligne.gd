@@ -30,6 +30,8 @@ static func cree(piste: Piste, L: Dictionary, voitureId: String, net: Net, h: Ha
 		aiFill = L.mode == "race", noContact = L.mode == "ghost", spectator = bool(L.get("spectator", false)),
 		roster = roster, nLivreries = (Catalogue.donnees.livreries as Array).size(), nomJoueur = m.get("name", "Pilote"),
 		livree = int(m.get("livree", 0)),
+		# les dégâts : le choix de l'hôte ; une table du jeu web publié ne le porte pas, et n'en a pas
+		degats = L.get("degats", false) == true,
 		modeleDe = func(id, i): return Catalogue.modele(id) if id is String and id != "" and Catalogue.modele(id) else Catalogue.modele(modeles[i % modeles.size()].id),
 	}, h if h != null else Hasard.new())
 	c.broadcast = RaceBroadcast.new(c)

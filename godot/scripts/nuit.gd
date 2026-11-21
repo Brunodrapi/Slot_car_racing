@@ -220,10 +220,14 @@ func maj(poses: Array) -> void:
 		var sn := sin(h)
 		var monde := func(q) -> Vector2: return p + Vector2(cs * q.x - sn * q.y, sn * q.x + cs * q.y)
 		var avant: Array = e.feuxDef.avant
+		var vue: VoitureVue = e.vue
 		for k in avant.size():
-			var q: Dictionary = avant[k]
-			var cote := signf(q.y)
+			# la tôle froissée : un feu suit son coin, et s'éteint s'il a reculé de plus de 7 cm
+			var q: Dictionary = vue.feu(avant[k], car)
 			var l: PointLight2D = e.phares[k]
+			l.visible = not q.is_empty()
+			if q.is_empty(): continue
+			var cote := signf(q.y)
 			l.position = monde.call(q)
 			l.rotation = h + cote * .035
 			l.energy = .82 * force
@@ -232,11 +236,11 @@ func maj(poses: Array) -> void:
 		var arriere: Array = e.feuxDef.arriere
 		var allumes: bool = not e.feuxDef.freinSeul or freine
 		for k in arriere.size():
-			var q: Dictionary = arriere[k]
+			var q: Dictionary = vue.feu(arriere[k], car)
 			var l: PointLight2D = e.feux[k]
 			var s: Sprite2D = e.lueurs[k]
-			l.visible = allumes; s.visible = allumes
-			if not allumes: continue
+			l.visible = allumes and not q.is_empty(); s.visible = l.visible
+			if not l.visible: continue
 			var longueur := 6.5 if freine else 4.2
 			var largeur := 1.1 if freine else .7
 			var pos: Vector2 = monde.call(q)

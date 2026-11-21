@@ -81,7 +81,7 @@ func _draw() -> void:
 		draw_rect(Rect2(r.position.x + 50, y + h / 2 - 8, 12, 12), Color(Catalogue.donnees.livreries[c.livery].body))
 		Style.texte(self, str(c.nom).to_upper(), Vector2(r.position.x + 70, b), sz, ink)
 		Style.texte(self, str(c.cls.nom).to_upper(), Vector2(r.position.x + 70 + 130, b), int(sz * 0.75), Color(ink, 0.75), HORIZONTAL_ALIGNMENT_LEFT, 190)
-		Style.texte(self, Style.temps(res.temps), Vector2(r.position.x + 14 + cols[2], b), sz, ink)
+		Style.texte(self, Textes.t("abandonRes") if res.get("abandon", false) else Style.temps(res.temps), Vector2(r.position.x + 14 + cols[2], b), sz, Color("#e2533f") if res.get("abandon", false) else ink)
 		Style.texte(self, "+%.3f" % res.ecart if res.ecart > 0 else "", Vector2(r.position.x + 14 + cols[3], b), sz, ink)
 		Style.texte(self, "+%.1f s" % res.penalite if res.penalite > 0.05 else "", Vector2(r.position.x + 14 + cols[4], b), sz, Color("#e2533f") if res.penalite > 0.05 else ink)
 		Style.texte(self, Style.temps(res.meilleur), Vector2(r.position.x + 14 + cols[5], b), sz, ink)
