@@ -33,6 +33,11 @@ en course (et à la pause, qui est la course), et suit le réglage du son. Elle 
 et son volume général, pas par le volume de la balise : sur iPhone, celui-ci ne se règle pas. Réencodée
 à 96 kb/s (2,2 Mo) : à ce volume, la différence ne s'entend pas. */
 const MUSIQUE = { url: 'sounds/musique/too-cool.mp3', volume: 0.12, fondu: 1.2 };
+/* LE MOTEUR QUI DÉMARRE. « En piste : je veux un son de moteur qui démarre. » (Bruno) Le démarreur, le
+moteur qui prend, deux coups de gaz et le ralenti, cinq secondes et demie, au moment où l'on appuie sur
+« En piste » : il couvre le chargement de la course et s'éteint quand le moteur du jeu prend le relais.
+Le fichier est chargé dès que le son s'ouvre, pour partir sans attendre. */
+const DEMARRAGE = { url: 'sounds/effets/demarrage.mp3', volume: 0.9 };
 
 class GameAudio {
   constructor() {
@@ -142,6 +147,7 @@ class GameAudio {
       this.rate = false;           // ou ne viendront-elles jamais ?
       this.catalogue = null;
       this._catalogue();
+      this._chargeDemarrage();
       // --- pneus : deux bandes, l'une aiguë qui chante, l'autre plus basse qui racle ---
       this.tyreSrc = noise();
       this.sq1 = ctx.createBiquadFilter(); this.sq1.type = 'bandpass'; this.sq1.frequency.value = 1700; this.sq1.Q.value = 9;
@@ -328,6 +334,30 @@ class GameAudio {
     const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(0.16, t + 0.002); g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
     o.connect(g); g.connect(this.master); o.start(t); o.stop(t + 0.05);
+  }
+
+  _chargeDemarrage() {
+    if (this.demarrageBuf !== undefined || !this.ctx) return;
+    this.demarrageBuf = null;
+    fetch(DEMARRAGE.url).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error('HTTP ' + r.status))))
+      .then((a) => new Promise((ok, ko) => this.ctx.decodeAudioData(a, ok, ko)))
+      .then((b) => {
+        this.demarrageBuf = b;
+        // demandé pendant le chargement, il y a moins d'une seconde : il part quand même
+        if (this._demarrageVoulu && performance.now() - this._demarrageVoulu < 1000) this.demarre();
+      })
+      .catch(() => { this.demarrageBuf = false; });
+  }
+
+  /* « En piste » : le moteur démarre (DEMARRAGE). */
+  demarre() {
+    if (!this.started || !this.enabled || !this.ctx) return;
+    if (!this.demarrageBuf) { this._demarrageVoulu = performance.now(); return; }
+    this._demarrageVoulu = 0;
+    const ctx = this.ctx, s = ctx.createBufferSource(), g = ctx.createGain();
+    s.buffer = this.demarrageBuf; g.gain.value = DEMARRAGE.volume;
+    s.connect(g); g.connect(this.master); s.start();
+    this.demarrages = (this.demarrages || 0) + 1;
   }
 
   /* La musique des menus (MUSIQUE) : appelée à chaque image, avec ce que l'écran veut ; elle monte et

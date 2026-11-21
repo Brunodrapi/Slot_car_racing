@@ -1928,8 +1928,9 @@ class UI {
       }
       case 'pickTimeOfDay': app.save.timeOfDay = id === 'night' ? 'night' : 'day'; storeSave(app.save); this.setupScreen(this.setup.mode); break;
       case 'pickWear': app.save.wear = id === '1'; storeSave(app.save); this.setupScreen(this.setup.mode); break;
-      case 'startQuick': app.startQuick(this.setup.mode, this.setup.classId, this.setup.trackId); break;
-      case 'startTune': app.startQuick(this.setup.mode, this.setup.classId, this.setup.trackId, true); break;
+      // « En piste » (et « Régler », qui va aussi en piste) : le moteur démarre (js/audio.js, DEMARRAGE)
+      case 'startQuick': app.audio.demarre(); app.startQuick(this.setup.mode, this.setup.classId, this.setup.trackId); break;
+      case 'startTune': app.audio.demarre(); app.startQuick(this.setup.mode, this.setup.classId, this.setup.trackId, true); break;
       case 'regEnreg': this.enregistreReglage(); break;
       case 'multi': app.state = 'lobby'; this.lobbyScreen(); break;
       case 'netCreate': this._netOpen(true); break;

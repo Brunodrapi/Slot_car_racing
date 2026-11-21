@@ -925,6 +925,12 @@ fabriqué par le jeu (`clac`, js/audio.js), sans fichier. `tools/e2e-levier.js` 
 pixel par pixel sur toute la course du levier et vérifie les trois crans, les franchissements et les
 clacs.
 
+**Le moteur démarre sur « En piste » (0.56.10).** Le démarreur, le moteur qui prend, deux coups de gaz
+et le ralenti, cinq secondes et demie (`sounds/effets/demarrage.mp3`, le silence du début ôté) : il
+part au clic, couvre le chargement de la course et s'éteint quand le moteur du jeu prend le relais
+(`demarre`, js/audio.js). Chargé dès que le son s'ouvre, pour partir sans attendre.
+`tools/e2e-demarrage.js` le vérifie, servi en http.
+
 **La musique des menus (0.56.9).** « Too Cool », de Kevin MacLeod (incompetech.com), sous licence
 Creative Commons BY 4.0 — le crédit est en bas des réglages. Elle boucle à l'accueil, au paddock, aux
 réglages, au salon et aux résultats, très bas (0,12 sous le volume général de 0,5), monte et descend en

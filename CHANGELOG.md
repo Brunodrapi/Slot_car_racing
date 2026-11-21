@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.56.10
+- « En piste ! » : on entend le moteur démarrer.
+
 ## 0.56.9
 - Une musique dans les menus, très bas : « Too Cool » de Kevin MacLeod (crédit aux réglages).
 
