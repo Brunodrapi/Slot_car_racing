@@ -176,7 +176,9 @@ func aller(nom: String, opts: Dictionary = {}) -> void:
 	match nom:
 		"accueil": ecran = Accueil.new()
 		"paddock": ecran = Paddock.new(opts.get("mode", reglages.mode))
-		"course": ecran = load("res://scenes/course.tscn").instantiate()
+		"course":
+			ecran = load("res://scenes/course.tscn").instantiate()
+			ecran.set("reglageDemande", bool(opts.get("reglage", false)))
 		"resultats": ecran = Resultats.new(derniereCourse)
 		"reglages": ecran = Reglages.new()
 		"comment": ecran = CommentJouer.new()

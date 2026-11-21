@@ -33,6 +33,7 @@ public:
 	int hasard() const { return int(c.hasard.etat); }
 	void pose_hasard(int64_t e) { c.hasard.etat = uint32_t(e); }
 	void demande_stand(bool oui);
+	void frein(int i, double brake, double ratio);
 	PackedFloat64Array chocs();
 };
 

@@ -9,8 +9,8 @@
 class_name ReglageFrein
 extends RefCounted
 
-const MIN := 0.5
-const MAX := 1.6
+const MIN := Voiture.FREIN_MIN
+const MAX := Voiture.FREIN_MAX
 
 
 static func _r() -> Dictionary:

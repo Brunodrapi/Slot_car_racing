@@ -182,6 +182,50 @@ func _toucheEspace(c: Vector2, appuie: bool) -> void:
 		draw_polyline(PackedVector2Array([o + Vector2(-7, 0), o + Vector2(-2, 5.5), o + Vector2(7.5, -6)]), Color("#171c19"), 3.5, true)
 
 
+## LE LEVIER DE FREINAGE, en mode réglage seulement (render.js, reglageZone) : horizontal, en haut, sous la
+## minicarte ; le repère blanc du réglage d'origine ; jaune sous 1, bleu au-dessus ; « FREINAGE ×1,00 ».
+var zoneFrein := Rect2()
+
+
+func _leverFreinDessin(mmBas: float) -> void:
+	if not course.reglage:
+		zoneFrein = Rect2()
+		return
+	var mobile := _mobile()
+	var f := clampf(course.frein, ReglageFrein.MIN, ReglageFrein.MAX)
+	var u := (f - ReglageFrein.MIN) / (ReglageFrein.MAX - ReglageFrein.MIN)
+	var wR := minf(size.x - 2 * P - 8, 300.0 if mobile else 420.0)
+	var hR := 16.0 if mobile else 18.0
+	var xR := roundf((size.x - wR) / 2)
+	var yR := mmBas + (16.0 if mobile else 20.0)
+	zoneFrein = Rect2(xR, yR - 14, wR, hR + 28)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(10 / 255.0, 12 / 255.0, 20 / 255.0, 0.7)
+	sb.set_corner_radius_all(10)
+	draw_style_box(sb, Rect2(xR - 10, yR - 14, wR + 20, hR + 30))
+	sb.bg_color = Color(1, 1, 1, 0.16)
+	sb.set_corner_radius_all(roundi(hR / 2))
+	draw_style_box(sb, Rect2(xR, yR, wR, hR))
+	var xD := xR + wR * (1 - ReglageFrein.MIN) / (ReglageFrein.MAX - ReglageFrein.MIN)
+	draw_rect(Rect2(roundf(xD) - 1, yR - 4, 2, hR + 8), Color(1, 1, 1, 0.45))
+	sb.bg_color = Color("#f0e09a") if f < 1 else Color("#9ecbf0")
+	draw_style_box(sb, Rect2(xR, yR, maxf(hR, wR * u), hR))
+	var k := Vector2(xR + wR * u, yR + hR / 2)
+	draw_circle(k, hR * 0.78, Color("#f5f6fa"))
+	draw_arc(k, hR * 0.78, 0, TAU, 24, Color(12 / 255.0, 14 / 255.0, 22 / 255.0, 0.85), 2, true)
+	Style.texte(self, Textes.t("freinage") + "  ×" + ("%.2f" % f).replace(".", "," if Textes.langue() == "fr" else "."),
+		Vector2(xR, yR + hR + 17), 12 if mobile else 13, Color("#e8e8ec"), HORIZONTAL_ALIGNMENT_CENTER, wR)
+
+
+## Le freinage demandé par un appui sur le levier, ou null hors de lui (render.js, reglageValeurAt) ;
+## `tenu` : le doigt le tient déjà, il peut déborder.
+func freinVers(p: Vector2, tenu := false):
+	if zoneFrein.size.x <= 0: return null
+	if not tenu and not zoneFrein.grow_individual(14, 0, 14, 0).has_point(p): return null
+	var u := clampf((p.x - zoneFrein.position.x) / maxf(1, zoneFrein.size.x), 0, 1)
+	return roundf((ReglageFrein.MIN + u * (ReglageFrein.MAX - ReglageFrein.MIN)) * 100) / 100
+
+
 func _jaugeTole(p: Voiture) -> void:
 	var J := _jauges()
 	var r: float = J.r
@@ -279,6 +323,7 @@ func _draw() -> void:
 	var taille := 76.0 if _paysageCourt() else minf(180, maxf(110, W * 0.18))
 	var mo := Vector2(P + 2, P + (46 if mobile else 56))
 	var mmBas := mo.y + taille
+	_leverFreinDessin(mmBas)
 	# Le classement autour du joueur
 	if not tt or (course.entrainement and course.state != "countdown"):
 		var ordre := course.standings()

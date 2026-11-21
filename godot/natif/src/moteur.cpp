@@ -125,6 +125,14 @@ void MoteurNatif::regle(const Dictionary &p) {
 	c.stands = bool(p.get("stands", false));
 }
 
+// Le réglage de frein du joueur, en roulant (Race.poseFrein) : la puissance de freinage de sa classe
+// et le facteur lui-même, qui règle aussi le transfert de masse.
+void MoteurNatif::frein(int i, double brake, double ratio) {
+	if (i < 0 || i >= int(c.cars.size())) return;
+	c.cars[i]->cls.brake = brake;
+	c.cars[i]->freinRatio = ratio;
+}
+
 void MoteurNatif::demande_stand(bool oui) { if (c.stands && c.player >= 0) c.cars[c.player]->pitAsk = oui; }
 
 // Les chocs notés depuis le dernier appel, pour le dessin : [voiture, nx, ny, v, frotte, sorte, épave]…
@@ -214,4 +222,5 @@ void MoteurNatif::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("pose_hasard", "e"), &MoteurNatif::pose_hasard);
 	ClassDB::bind_method(D_METHOD("demande_stand", "oui"), &MoteurNatif::demande_stand);
 	ClassDB::bind_method(D_METHOD("chocs"), &MoteurNatif::chocs);
+	ClassDB::bind_method(D_METHOD("frein", "i", "brake", "ratio"), &MoteurNatif::frein);
 }

@@ -126,5 +126,11 @@ func demandeStand(oui: bool) -> void:
 	moteur.demande_stand(oui)
 
 
+## Le levier de réglage du frein : la classe du joueur, et le moteur avec elle.
+func poseFrein(f: float) -> void:
+	super.poseFrein(f)
+	if moteur and player: moteur.frein(cars.find(player), player.cls.brake, player.freinRatio)
+
+
 func ecartFantome() -> float:
 	return moteur.ecart_fantome()

@@ -56,6 +56,10 @@ var _attenteAnnoncee := 0.0
 
 
 ## Le circuit, la voiture et l'heure : ceux de la table en ligne, sinon ceux des réglages.
+# « Régler » au paddock : la course s'ouvre en mode réglage (App.aller, opts.reglage)
+var reglageDemande := false
+var doigtFrein := -1                 # le doigt (ou -2 : la souris) qui tient le levier du frein
+
 func _choix() -> void:
 	var R: Dictionary = App.reglages
 	enLigne = App.enLigne
@@ -156,6 +160,8 @@ func _depart() -> void:
 		modele = modele, difficulte = Catalogue.difficulte(R.difficulte), mode = "timetrial" if R.mode == "training" else R.mode, laps = int(R.tours),
 		entrainement = R.mode == "training", difficultes = Catalogue.donnees.difficultes,
 		degats = bool(R.get("degats", true)),
+		# le frein du couple circuit + voiture (la pastille FREINAGE), et le mode RÉGLER
+		frein = ReglageFrein.frein(String(R.circuit), voitureId), reglage = reglageDemande,
 		nCars = n, roster = Catalogue.roster(maxi(n, 2), 0, cat, h), livree = int(R.livree), nomJoueur = R.nom,
 		modeleDe = func(id, i): return Catalogue.modele(id) if id != "" else Catalogue.modele(Catalogue.voituresDe(cat)[i % Catalogue.voituresDe(cat).size()].id),
 	}, h)
@@ -272,6 +278,8 @@ func _unhandled_input(e: InputEvent) -> void:
 		App.reglages.vue = "avance" if tourne else "avanceFixe"; App.sauve()
 	elif e.is_action_pressed("plein_ecran"):
 		App.basculeAffichage()
+	elif _leverFrein(e):
+		pass
 	elif e is InputEventScreenTouch:
 		var p: Vector2 = hud.get_global_transform_with_canvas().affine_inverse() * e.position
 		if e.pressed and hud.toucheePause(p):
@@ -291,6 +299,42 @@ func _unhandled_input(e: InputEvent) -> void:
 		hud.anchorPouce(hud.get_global_transform_with_canvas().affine_inverse() * e.position)
 	elif e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT and hud.toucheePause(e.position):
 		basculePause()
+
+
+## LE LEVIER DU FREIN, en mode réglage (main.js, pointers.reglage) : il passe avant tout le reste et
+## retient son doigt — on ne règle pas son frein en accélérant. La souris le prend aussi.
+func _leverFrein(e: InputEvent) -> bool:
+	if not course.reglage: return false
+	var doigt := -1
+	var appui := false
+	var lache := false
+	var pos := Vector2.ZERO
+	if e is InputEventScreenTouch:
+		doigt = e.index; appui = e.pressed; lache = not e.pressed; pos = e.position
+	elif e is InputEventScreenDrag:
+		doigt = e.index; pos = e.position
+	elif e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
+		doigt = -2; appui = e.pressed; lache = not e.pressed; pos = e.position
+	elif e is InputEventMouseMotion:
+		doigt = -2; pos = e.position
+	else:
+		return false
+	var p: Vector2 = hud.get_global_transform_with_canvas().affine_inverse() * pos
+	if lache:
+		if doigt == doigtFrein:
+			doigtFrein = -1
+			return true
+		return false
+	var v = hud.freinVers(p)
+	if appui and v != null and doigtFrein == -1:
+		doigtFrein = doigt
+		course.poseFrein(v)
+		return true
+	if doigt == doigtFrein and not appui and not lache:
+		var w = hud.freinVers(p, true)
+		if w != null: course.poseFrein(w)
+		return true
+	return false
 
 
 ## Le levier change de cran : un clac (main.js, poseCran), vers le haut ou vers le bas. -2 : la

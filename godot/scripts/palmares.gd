@@ -30,7 +30,7 @@ static func de(circuit: String, voiture: String) -> int:
 ## Ce que la course qui vient de finir rapporte, et l'inscrire (attribueTrophee) : vide si elle ne
 ## compte pas (autre mode, en ligne, pas premier), sinon { rang, ancien, nouveau, raison }.
 static func attribue(course: Course, difficulte: String) -> Dictionary:
-	if course == null or course.mode != "race" or course.humans != null: return {}
+	if course == null or course.mode != "race" or course.humans != null or course.reglage: return {}
 	var moi = null
 	for r in course.results:
 		if r.car == course.player: moi = r

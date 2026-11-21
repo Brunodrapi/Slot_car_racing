@@ -67,6 +67,22 @@ const NET_FINISH_GRACE := 30.0
 
 ## `opts` : modele (Modele), difficulte (Dictionary du catalogue), mode, laps, nCars, roster
 ## (pilotes de l'IA : nom, modele, livery, livree, skill), catalogue (Callable id -> Modele).
+# Le réglage de frein du joueur (js/race.js, poseFrein) et le mode RÉGLER (`reglage` : un levier de
+# freinage en haut de l'écran, et la pause propose d'enregistrer la configuration).
+var reglage := false
+var frein := 1.0
+var freinBase := 0.0
+
+
+## Changer le frein du joueur, en course et sans tout reconstruire : toujours depuis `freinBase`, jamais
+## depuis la valeur courante, sinon le réglage dériverait à chaque pixel du levier.
+func poseFrein(f: float) -> void:
+	frein = clampf(f, Voiture.FREIN_MIN, Voiture.FREIN_MAX)
+	if player == null: return
+	player.cls.brake = freinBase * frein
+	player.freinRatio = frein
+
+
 func _init(piste: Piste, opts: Dictionary, h: Hasard) -> void:
 	track = piste
 	hasard = h
@@ -81,6 +97,7 @@ func _init(piste: Piste, opts: Dictionary, h: Hasard) -> void:
 	noContact = opts.get("noContact", false)
 	spectator = opts.get("spectator", false)
 	degatsVisu = bool(opts.get("degats", false))
+	reglage = bool(opts.get("reglage", false))
 	if degatsVisu and mode == "race":
 		degats = Voiture.DEGATS.duplicate()
 		degats.abandon = humans == null      # l'abandon en solo seulement : en ligne il devrait passer par le réseau
@@ -141,9 +158,10 @@ func _buildGrid(opts: Dictionary) -> void:
 		if k.isPlayer:
 			player = k
 			break
-	# Le réglage de frein du joueur (poseFrein à 1) : sa classe est une copie.
+	# Le réglage de frein du joueur (poseFrein) : sa classe est une copie.
 	player.cls = player.cls.copie()
-	player.freinRatio = 1.0
+	freinBase = player.cls.brake
+	poseFrein(float(opts.get("frein", 1.0)))
 	if solo:
 		player.place(T.length - 40, 0, 0)
 		player.laneTarget = 0
