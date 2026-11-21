@@ -51,7 +51,14 @@ func _ready() -> void:
 	_verifie(A._musique != null and A._musique.playing and absf(A._musique.volume_db - linear_to_db(A.MUSIQUE_VOLUME)) < 0.5,
 		"au menu, la musique joue, très bas (%s dB)" % (snappedf(A._musique.volume_db, 0.1) if A._musique else "—"))
 	A.reglages.mode = "timetrial"
-	A.aller("course")
+	A.aller("paddock")
+	await get_tree().create_timer(0.8).timeout
+	var go: Bouton = null
+	for b in _boutons(): if b.get_meta("cle", "") == "go": go = b
+	var d0: int = A.demarrages
+	await _clique(go)
+	await get_tree().create_timer(0.3).timeout
+	_verifie(A.demarrages == d0 + 1 and A._demarrage != null and A._demarrage.playing, "« En piste » : le moteur démarre")
 	await get_tree().create_timer(1.5).timeout
 	_verifie(A._musique != null and not A._musique.playing, "en course, elle se tait")
 	print("CLICS ", "OK" if echecs.is_empty() else "ÉCHEC %s" % [echecs])

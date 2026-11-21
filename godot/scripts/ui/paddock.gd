@@ -288,6 +288,7 @@ func _choisitVoiture(id: String) -> void:
 func _enPiste() -> void:
 	App.reglages.mode = mode
 	App.sauve()
+	App.demarre()          # le moteur démarre
 	App.aller("course")
 
 

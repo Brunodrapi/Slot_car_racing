@@ -85,6 +85,24 @@ func musique(veut: bool) -> void:
 		_fonduMusique.tween_callback(_musique.stop)
 
 
+## LE MOTEUR QUI DÉMARRE (js/audio.js, DEMARRAGE). « En piste : je veux un son de moteur qui démarre. »
+## Le démarreur, le moteur qui prend, deux coups de gaz et le ralenti, cinq secondes et demie : il part
+## sur « En piste », couvre le chargement de la course et s'éteint quand le moteur du jeu prend le relais.
+var _demarrage: AudioStreamPlayer
+var demarrages := 0
+
+
+func demarre() -> void:
+	demarrages += 1
+	if DisplayServer.get_name() == "headless": return
+	if _demarrage == null:
+		_demarrage = AudioStreamPlayer.new()
+		_demarrage.stream = load("res://sons/demarrage.ogg")
+		_demarrage.volume_db = linear_to_db(0.5 * 0.9)     # sous le volume général du jeu web (0,5)
+		add_child(_demarrage)
+	_demarrage.play()
+
+
 ## Le volume général : le bus Master de Godot.
 func appliqueSon() -> void:
 	var m := AudioServer.get_bus_index("Master")
