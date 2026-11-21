@@ -22,6 +22,11 @@ var traits: Traits = null
 var _version := -1
 var _image: Image = null
 var _stopsQ: Array = []             # la place de chaque feu stop, au repos
+# Le scotch des arrêts au stand (Mecanos) : les patchs restent d'un arrêt à l'autre (vingt au plus) ;
+# ceux de l'arrêt en cours se déroulent à mesure (`scotch`, de 0 à 1 devant et derrière).
+var patchs: Array = []
+var scotch := {}
+var scotchNoeud: Node2D
 
 
 func _init(d: Dictionary) -> void:
@@ -71,6 +76,9 @@ func _ready() -> void:
 		avant = Node2D.new()
 		avant.draw.connect(_roues.bind(avant, true))
 		add_child(avant)
+	scotchNoeud = Node2D.new()
+	scotchNoeud.draw.connect(_scotch)
+	add_child(scotchNoeud)
 
 
 func freine(oui: bool) -> void:
@@ -158,9 +166,7 @@ func feu(q: Dictionary, car: Voiture) -> Dictionary:
 
 ## La couleur de la carrosserie juste à l'intérieur du point touché : celle des débris.
 func teinte(px: float, py: float, nx: float, ny: float) -> Color:
-	if _image == null:
-		_image = corps.texture.get_image()
-		if _image and _image.is_compressed(): _image.decompress()
+	image()
 	var defaut := Color("#8a8f96")
 	if _image == null: return defaut
 	var k := _image.get_width() / float(cotes.w)
@@ -186,6 +192,129 @@ func cabosse(px: float, py: float, nx: float, ny: float, force: float, epave: bo
 	tole.choc(px, py, nx, ny, force, epave)
 	_peau().marque(px, py, nx, ny, force, epave)
 	peau.render_target_update_mode = SubViewport.UPDATE_ONCE
+
+
+## L'image du dessin propre, lue une fois (teinte des débris, place du scotch).
+func image() -> Image:
+	if _image == null:
+		_image = corps.texture.get_image()
+		if _image and _image.is_compressed(): _image.decompress()
+	return _image
+
+
+## LES PATCHS DE SCOTCH d'un arrêt : les zones vraiment enfoncées (les points de vie) reçoivent un
+## patch, deux si elles le sont à fond, trois au plus par arrêt ; chacun éprouvé sur le dessin
+## (ni vitre ni roue). Ceux de l'avant posés par le mécanicien du nez, l'arrière par l'autre.
+func patchsNeufs(car: Voiture) -> void:
+	var zones := car.enfoncement
+	var n := zones.size()
+	var mx := 0.0
+	for z in zones: mx = maxf(mx, z)
+	var touchees := []
+	for k in n:
+		if zones[k] > 0.03 and zones[k] >= mx * 0.6: touchees.append(k)
+	touchees.sort_custom(func(a, b): return zones[a] > zones[b])
+	var neufs := []
+	var place := 3
+	var L: float = cotes.w / 2.0
+	var W: float = cotes.h / 2.0
+	for k in touchees:
+		var nb := mini(place, 2 if zones[k] > 0.2 else 1)
+		for i in nb:
+			var q := Mecanos.tirePatch(L, W, k, n, _accepte)
+			if not q.is_empty(): neufs.append(q); place -= 1
+		if place <= 0: break
+	for cote in [true, false]:
+		var liste := neufs.filter(func(q): return q.avant == cote)
+		for i in liste.size():
+			liste[i].seuil = (i + 1) / float(liste.size()); liste[i].debut = i / float(liste.size())
+	patchs.append_array(neufs)
+	if patchs.size() > 20: patchs = patchs.slice(patchs.size() - 20)
+	scotchNoeud.queue_redraw()
+
+
+## Un patch convient si toutes ses bandes tombent sur la voiture, et pas sur une vitre ni une roue.
+func _accepte(q: Dictionary) -> bool:
+	var im := image()
+	if im == null: return true
+	for b in q.bandes:
+		var c := cos(b.a)
+		var s := sin(b.a)
+		for t in [-0.5, -0.25, 0.0, 0.25, 0.5]:
+			for o in [-0.45, 0.45]:
+				var x: float = q.x + b.dx + c * t * b.l - s * o * b.w
+				var y: float = q.y + b.dy + s * t * b.l + c * o * b.w
+				if not _surCarrosserie(im, x, y): return false
+	return true
+
+
+func _surCarrosserie(im: Image, x: float, y: float) -> bool:
+	var w: float = cotes.w
+	var h: float = cotes.h
+	var iw := im.get_width()
+	var ih := im.get_height()
+	var u := roundi((x / w + 0.5) * (iw - 1))
+	var v := roundi((y / h + 0.5) * (ih - 1))
+	if u < 0 or v < 0 or u >= iw or v >= ih: return false
+	if im.get_pixel(u, v).a < 200 / 255.0: return false
+	# une SURFACE sombre, pas un trait : neuf points autour, sombre si six le sont
+	var sombres := 0
+	for du in [-3, 0, 3]:
+		for dv in [-3, 0, 3]:
+			var c := im.get_pixel(clampi(u + du, 0, iw - 1), clampi(v + dv, 0, ih - 1))
+			if c.a < 200 / 255.0 or 0.3 * c.r + 0.59 * c.g + 0.11 * c.b < 75 / 255.0: sombres += 1
+	if sombres < 6: return true
+	var fx := absf(x / (w / 2))
+	var fy := absf(y / (h / 2))
+	if fx < 0.62 and fy < 0.8: return false        # une vitre
+	if fy > 0.45 and fx > 0.3 and fx < 0.88: return false   # un pneu
+	return true
+
+
+## Le scotch sur la carrosserie (render.js, _scotch) : ceux de l'arrêt en cours apparaissent un à un ;
+## sur une tôle encore cabossée, le patch suit la bosse.
+func _scotch() -> void:
+	for q in patchs:
+		var f := 1.0
+		if q.cetArret:
+			var p: float = scotch.get("avant" if q.avant else "arriere", 1.0)
+			f = clampf((p - q.debut) / maxf(1e-6, q.seuil - q.debut), 0, 1)
+		if f <= 0: continue
+		var o := decale(Vector2(q.x, q.y))
+		var n: int = q.bandes.size()
+		for i in n:
+			var b: Dictionary = q.bandes[i]
+			var fb := clampf(f * n - i, 0, 1)
+			if fb > 0: _bande(Vector2(q.x + o.x + b.dx, q.y + o.y + b.dy), b, fb)
+	scotchNoeud.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+
+
+## Une bande de scotch : un ruban gris aux bouts déchirés, un contour sombre, un reflet clair en
+## haut, une ombre en bas, un pli ; déroulée à `f` depuis son bout gauche.
+func _bande(c: Vector2, b: Dictionary, f: float) -> void:
+	var g := scotchNoeud
+	var l: float = b.l
+	var h: float = b.w
+	var u := h / 9
+	var r: Array = b.bouts
+	var fin := -l / 2 + l * f
+	g.draw_set_transform(c, b.a, Vector2.ONE)
+	var bord := PackedVector2Array([Vector2(-l / 2 + r[0] * u, -h / 2 + u), Vector2(-l / 2 + 2 * u, -h / 2),
+		Vector2(l / 2 - (0.5 + r[1]) * u, -h / 2), Vector2(l / 2 - (1 + 2 * r[2]) * u, -h / 2 + (1 + 2 * r[3]) * u),
+		Vector2(l / 2, -h / 2 + (3 + 2 * r[4]) * u), Vector2(l / 2 - u, h / 2),
+		Vector2(-l / 2 + u, h / 2), Vector2(-l / 2 + (1 + 2 * r[5]) * u, h / 2 - 2 * u)])
+	if f < 1:
+		for i in bord.size(): bord[i].x = minf(bord[i].x, fin)
+	g.draw_colored_polygon(bord, b.teinte)
+	var ferme := bord.duplicate()
+	ferme.append(bord[0])
+	g.draw_polyline(ferme, Color("#303436"), 1.5 * u)
+	var x1 := minf(l / 2 - 2 * u, fin)
+	if x1 > -l / 2 + 2 * u:
+		g.draw_rect(Rect2(-l / 2 + 2 * u, -h / 2 + u, x1 - (-l / 2 + 2 * u), 2 * u), Color(1, 1, 1, 0.32))
+		g.draw_rect(Rect2(-l / 2 + 2 * u, h / 2 - 2 * u, x1 - (-l / 2 + 2 * u), 1.5 * u), Color(0, 0, 0, 0.2))
+	var p: float = -l / 2 + l * b.pli
+	if p + l * 0.07 < fin: g.draw_line(Vector2(p, -h / 2 + u), Vector2(p + l * 0.07, h / 2 - u), Color(1, 1, 1, 0.3), u)
 
 
 ## Réparée : la tôle repart neuve, plis compris.
@@ -228,6 +357,7 @@ func majTole() -> void:
 	maille.polygon = p
 	ombreMaille.polygon = p
 	queue_redraw()
+	scotchNoeud.queue_redraw()
 	if avant: avant.queue_redraw()
 
 

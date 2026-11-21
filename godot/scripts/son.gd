@@ -60,6 +60,11 @@ func _ready() -> void:
 	brefs.record = _bref(_synthBip(1480, 0.21, 0.45, true))
 	brefs.go = _bref(_synthBip(880, 0.4, 0.3, false))
 	brefs.arrivee = _bref(_synthBip(660, 0.6, 0.3, false))
+	# les bruits du stand (audio.js, _stand) : quelques variantes de chaque, tirées au hasard
+	for i in 4: brefs["cling%d" % i] = _bref(_synthCling(1900 + randf() * 900))
+	for i in 3: brefs["clacStand%d" % i] = _bref(_synthClacStand(1300 + randf() * 500))
+	brefs.zout = _bref(_synthZout())
+	for k in brefs: brefs[k].max_polyphony = 3
 
 
 func _bus(nom: String, effets: Array) -> void:
@@ -252,6 +257,7 @@ func _vise(cle: String, cible: float, tau: float, dt: float) -> float:
 
 ## Une image de son : la voiture du joueur, et si la course roule.
 func maj(car: Voiture, enCourse: bool, dt: float) -> void:
+	_stand(car, dt)
 	if e.is_empty(): return
 	temps += dt
 	var dtm := clampf(dt, 1.0 / 240, 0.05)
@@ -301,6 +307,114 @@ func silence() -> void:
 	for k in bruits: bruits[k].volume_db = -80
 	for k in gains: gains[k] = 0.0
 	if not e.is_empty(): _initMoteur()
+
+
+# ---------- les bruits du stand ----------
+var _tStand := 0.0
+var _standProchain := -1.0
+var _standOutils := 99
+
+
+## Tant que la voiture est arrêtée dans sa case, l'équipe travaille : la visseuse ouvre le bal, puis
+## deux ou trois outils (une clé qui tinte, une pièce qu'on claque), puis la visseuse… (audio.js)
+func _stand(car: Voiture, dt: float) -> void:
+	_tStand += dt
+	if car.pitState != "arret":
+		_standProchain = -1.0
+		return
+	if _standProchain < 0:
+		_standProchain = _tStand + 0.15
+		_standOutils = 99
+	if _tStand < _standProchain: return
+	if _standOutils >= 2 + (1 if randf() < 0.5 else 0):
+		joue("zout"); _standOutils = 0; _standProchain = _tStand + 0.8 + randf() * 0.3
+	else:
+		_standOutils += 1
+		if randf() < 0.55: joue("cling%d" % (randi() % 4)); _standProchain = _tStand + 0.18 + randf() * 0.32
+		else: joue("clacStand%d" % (randi() % 3)); _standProchain = _tStand + 0.22 + randf() * 0.32
+
+
+## Une rampe exponentielle de WebAudio : de v0 à v1 en T secondes.
+static func _rampe(v0: float, v1: float, t: float, T: float) -> float:
+	return v0 * pow(v1 / v0, clampf(t / T, 0, 1))
+
+
+## Un filtre passe-bande (BiquadFilter de WebAudio), échantillon par échantillon.
+class PasseBande:
+	var b0: float
+	var b2: float
+	var a1: float
+	var a2: float
+	var x1 := 0.0
+	var x2 := 0.0
+	var y1 := 0.0
+	var y2 := 0.0
+	func _init(f: float, q: float) -> void:
+		var w0 := TAU * f / TAUX
+		var al := sin(w0) / (2 * q)
+		var a0 := 1 + al
+		b0 = al / a0; b2 = -al / a0; a1 = -2 * cos(w0) / a0; a2 = (1 - al) / a0
+	func pas(x: float) -> float:
+		var y := b0 * x + b2 * x2 - a1 * y1 - a2 * y2
+		x2 = x1; x1 = x; y2 = y1; y1 = y
+		return y
+
+
+## Une clé qui tinte : trois partiels inharmoniques, l'aigu s'éteignant le premier.
+static func _synthCling(f: float) -> AudioStreamWAV:
+	var n := int(TAUX * 0.36)
+	var a := PackedFloat32Array(); a.resize(n)
+	for i in n:
+		var t := float(i) / TAUX
+		var v := 0.0
+		for p in [[1.0, 0.2, 0.32], [2.76, 0.11, 0.18], [5.4, 0.05, 0.1]]:
+			if t > p[2]: continue
+			var g := _rampe(0.0001, p[1], t, 0.002) if t < 0.002 else _rampe(p[1], 0.0001, t - 0.002, p[2] - 0.002)
+			v += sin(TAU * f * p[0] * t) * g
+		a[i] = v
+	return _wav(a)
+
+
+## Une pièce qu'on claque : un éclat de bruit, et le choc sourd de ce qui retombe en place.
+static func _synthClacStand(fc: float) -> AudioStreamWAV:
+	var n := int(TAUX * 0.12)
+	var a := PackedFloat32Array(); a.resize(n)
+	var bp := PasseBande.new(fc, 2.2)
+	var phase := 0.0
+	for i in n:
+		var t := float(i) / TAUX
+		var gn := 0.0
+		if t < 0.07: gn = _rampe(0.0001, 0.55, t, 0.002) if t < 0.002 else _rampe(0.55, 0.001, t - 0.002, 0.048)
+		var f := _rampe(170, 70, t, 0.08)
+		phase += f / TAUX
+		var tri := 4 * absf(phase - floor(phase + 0.5)) - 1
+		var go := _rampe(0.0001, 0.45, t, 0.003) if t < 0.003 else _rampe(0.45, 0.001, t - 0.003, 0.097)
+		a[i] = bp.pas(randf() * 2 - 1) * gn + tri * go
+	return _wav(a)
+
+
+## La visseuse à chocs : deux coups, zout zout — une dent de scie grave qui monte un peu, hachée
+## trente-deux fois par seconde, et un souffle d'air par-dessus.
+static func _synthZout() -> AudioStreamWAV:
+	var n := int(TAUX * 0.56)
+	var a := PackedFloat32Array(); a.resize(n)
+	var dur := 0.22
+	for d0 in [0.0, 0.3]:
+		var bp := PasseBande.new(900, 1.2)
+		var bn := PasseBande.new(3000, 1.0)
+		var phase := 0.0
+		for i in range(int(d0 * TAUX), mini(n, int((d0 + dur + 0.02) * TAUX))):
+			var t: float = float(i) / TAUX - d0
+			var env: float
+			if t < 0.015: env = _rampe(0.0001, 0.42, t, 0.015)
+			elif t < dur - 0.04: env = 0.42
+			else: env = _rampe(0.42, 0.0001, t - (dur - 0.04), 0.04)
+			var f := 95 + (150 - 95) * clampf(t / dur, 0, 1)
+			phase += f / TAUX
+			var scie: float = 2 * (phase - floor(phase + 0.5))
+			var hache := 0.5 + 0.5 * (1.0 if fmod(t * 32, 1.0) < 0.5 else -1.0)
+			a[i] += (bp.pas(scie) + bn.pas(randf() * 2 - 1) * 0.25) * hache * env
+	return _wav(a)
 
 
 # ---------- les sons synthétisés ----------

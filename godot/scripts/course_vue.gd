@@ -12,6 +12,9 @@ var vues: Array[VoitureVue] = []
 var camera: Camera2D
 var effets: Effets
 var degatsVue: DegatsVue
+var mecanos: Mecanos = null            # les équipes des stands, quand les stands servent
+var mecanosDessous: Node2D
+var mecanosDessus: Node2D
 var guide: GuideVue
 var nuit: Nuit
 var son: Son
@@ -98,6 +101,14 @@ func _ready() -> void:
 	degatsVue = DegatsVue.new()
 	degatsVue.jeu = self
 	add_child(degatsVue)
+	# les mécaniciens : au sol sous les voitures (les mains sous la caisse), ceux du scotch par-dessus
+	mecanosDessous = Node2D.new()
+	mecanosDessous.draw.connect(func(): if mecanos: mecanos.dessine(mecanosDessous, false))
+	add_child(mecanosDessous)
+	mecanosDessus = Node2D.new()
+	mecanosDessus.z_index = 2
+	mecanosDessus.draw.connect(func(): if mecanos: mecanos.dessine(mecanosDessus, true))
+	add_child(mecanosDessus)
 	guide = GuideVue.new()
 	guide.jeu = self
 	guide.visible = false
@@ -173,6 +184,8 @@ func _depart() -> void:
 	stand = false
 	effets.vide()
 	degatsVue.nouvelleCourse(course)
+	mecanos = Mecanos.new(piste) if course.stands else null
+	mecanosDessous.queue_redraw(); mecanosDessus.queue_redraw()
 	son.silence()
 	pause.visible = false
 	hud.nouvelleCourse(course)
@@ -404,6 +417,8 @@ func _process(dt: float) -> void:
 	if not enPause:
 		effets.ajoute(course, dt)
 		degatsVue.maj(course, vues, dt)
+		if mecanos and mecanos.pas(course, vues, dt):
+			mecanosDessous.queue_redraw(); mecanosDessus.queue_redraw()
 		son.maj(course.player, course.state != "countdown", dt)
 	if secousse > 0:
 		secousse = maxf(0, secousse - dt * 2)
