@@ -6,11 +6,48 @@ namespace grip {
 void Voiture::update(double dt, double throttleIn, double raceTime, std::vector<int> &cand) {
 	const Piste &T = *track;
 	const Modele &c = cls;
+	if (abandon) abandonT += dt;
 	bool wasStopped = engineStopped;
 	engineCut = maxf(0, engineCut - dt);
 	engineStopped = engineCut > 1e-6;
 	if (wasStopped && !engineStopped) { th = T.headingAt(s); delta = 0; Ff = 0; Fr = 0; }
 	double thr = throttleIn;
+	// la voie des stands, AVANT l'accélérateur (voir voiture.gd)
+	ZoneStand zone = degats.ok ? T.pitAt(s) : ZoneStand();
+	inPit = zone.ok && (pitAsk || pitState != 0);
+	if (inPit) {
+		if (pitState == 0) pitState = 1;
+		if (pitState == 1 && !pitServi && zone.dansZone && std::fabs(v) < K::S_seuilArret) {
+			pitState = 2;
+			pitT = K::S_reparationBase + K::S_reparation * damage;
+			pitT0 = pitT;
+		}
+	} else if (pitState == 1 && !zone.ok) {
+		pitState = 0;
+		pitAsk = false;
+	}
+	if (!zone.ok) pitServi = false;
+	if (inPit && aiDriven) {
+		if (pitState == 1 && zone.boite < 0 && !pitServi) {
+			double reste = maxf(0, -zone.boite);
+			double vCible = minf(K::S_vitesse, std::sqrt(2 * c.brake * 0.8 * reste));
+			thr = v < vCible * 0.92 ? 1.0 : 0.0;
+		} else if (pitState == 1) thr = v < K::S_vitesse * 0.95 ? 1.0 : 0.0;
+		else thr = 0.0;
+	}
+	if (inPit && pitState != 2 && v > K::S_vitesse) thr = 0.0;
+	if (pitState == 2) {
+		pitT -= dt;
+		v = 0; vl = 0; w = 0;
+		if (pitT <= 0) {
+			tyre = 1; damage = 0;
+			for (int z = 0; z < K::E_zones; z++) enfoncement[z] = 0;
+			pitsDone += 1;
+			pitState = 1;
+			pitAsk = false;
+			pitServi = true;
+		}
+	}
 	if (engineStopped) thr = 0;
 	thr = clamp_(thr, 0, 1);
 	throttle = thr;
@@ -18,8 +55,8 @@ void Voiture::update(double dt, double throttleIn, double raceTime, std::vector<
 	braking = thr == 0.0 && offT > 0.05 && v > 2;
 	double hwLs = T.hwLeftAt(s), hwRs = T.hwRightAt(s), kb = T.kerbAt(s);
 	double marge = c.width * 0.3;
-	bool horsRoute = lat > hwLs + marge || lat < -(hwRs + marge);
-	bool off = lat > hwLs + kb + marge || lat < -(hwRs + kb + marge);
+	bool horsRoute = !inPit && (lat > hwLs + marge || lat < -(hwRs + marge));
+	bool off = !inPit && (lat > hwLs + kb + marge || lat < -(hwRs + kb + marge));
 	bool loose = off && !T.runoffAsphaltAt(s, lat);
 	surKerb = horsRoute && !off;
 	if (off) leaveTrack();
@@ -76,8 +113,9 @@ void Voiture::update(double dt, double throttleIn, double raceTime, std::vector<
 	double base = gAxle;
 	double cliffF = 1 - c.cliff * K::P_cliff * smoothstep_(std::fabs(aF), peak * 1.5, peak * 5);
 	double cliffR = 1 - c.cliff * K::P_cliff * smoothstep_(std::fabs(aR), peak * 1.5, peak * 5);
-	double vmax = c.vmax * (draft ? 1.05 : 1.0);
-	double accDem = thr != 0.0 ? thr * c.accel * c.driveFactor(maxf(0, v)) * maxf(0, 1 - std::pow(maxf(0, v) / vmax, 2.5)) * (draft ? 1.08 : 1.0) : 0.0;
+	double dmg = damageFactor();
+	double vmax = c.vmax * dmg * (draft ? 1.05 : 1.0);
+	double accDem = thr != 0.0 ? thr * c.accel * c.driveFactor(maxf(0, v)) * dmg * maxf(0, 1 - std::pow(maxf(0, v) / vmax, 2.5)) * (draft ? 1.08 : 1.0) : 0.0;
 	double transfert = K::P_liftOff * brakeFrac * clamp_(freinRatio != 0.0 ? freinRatio : 1.0, K::FREIN_MIN, K::FREIN_MAX);
 	double gF = base * cliffF * (1 + transfert * K::TRANSFERT_AV);
 	double gArrBrut = base * c.rearBias * (1 - transfert);
@@ -93,7 +131,7 @@ void Voiture::update(double dt, double throttleIn, double raceTime, std::vector<
 	double safeDrive = minf(accDem, longDispo * cliffR);
 	double accReel = loose ? accDem : safeDrive * (1 - priority) + accDem * share * priority;
 	patine = (loose || accDem <= 0) ? 0.0 : clamp_(1 - accReel / accDem, 0, 1);
-	double spinFx = (!loose && accDem > 0) ? clamp_(1 - accReel / accDem, 0, 1) : 0.0;
+	double spinFx = (!loose && !inPit && accDem > 0) ? clamp_(1 - accReel / accDem, 0, 1) : 0.0;
 	double spinTau = spinFx > patineFx ? 0.035 : 0.08;
 	patineFx += (spinFx - patineFx) * (1 - std::exp(-dt / spinTau));
 	double gR = gArrBrut * cliffR * (loose ? 1.0 : 1 - priority + priority * share) * (loose ? 1.0 : 1 - K::M_perte * glisseArr);
@@ -104,7 +142,7 @@ void Voiture::update(double dt, double throttleIn, double raceTime, std::vector<
 	Fr += (FrT - Fr) * relax;
 	double Fm = 0.0;
 	double aim = aimant();
-	if (aim > 0 && !off && std::fabs(v) > 3) {
+	if (aim > 0 && !off && std::fabs(v) > 3 && !inPit) {
 		double latCible = !std::isnan(gridLat) ? gridLat : T.targetLat(s, selS);
 		double ecart = latCible - lat;
 		double dEcart = std::isnan(ecartAv) ? 0.0 : (ecart - ecartAv) / maxf(1e-4, dt);
@@ -144,7 +182,9 @@ void Voiture::update(double dt, double throttleIn, double raceTime, std::vector<
 	w = clamp_(w + wDot * dt, -4, 4);
 	th = wrapAngle(th + w * dt);
 	double v0 = v, vl0 = vl;
-	v = clamp_(v0 + (acc - vl0 * w) * dt, -0.25 * c.vmax, c.vmax * 1.05);
+	v = clamp_(v0 + (acc - vl0 * w) * dt, -0.25 * c.vmax, c.vmax * dmg * 1.05);
+	if (inPit && v > K::S_vitesse) v = K::S_vitesse;
+	if (pitState == 2) v = 0;
 	vl = vl0 + (v0 * w + Ff + Fm + Fr) * dt;
 	if (latDrag != 0.0) vl += clamp_(latDrag * dt, -std::fabs(vl0), std::fabs(vl0));
 	beta = std::atan2(vl, vv) * dir();
@@ -174,6 +214,11 @@ void Voiture::steer(const std::vector<Voiture *> &cars, double dt, bool ai) {
 	const Piste &T = *track;
 	const Modele &c = cls;
 	if (!std::isnan(gridLat)) { laneTarget = gridLat; selS = sel; return; }
+	if (pitAsk || pitState != 0) {
+		selS += clamp_(-2 - selS, -K::P_selRate * dt, K::P_selRate * dt); selV = 0;
+		laneTarget = T.targetLat(s, selS);
+		return;
+	}
 	Voiture *bl = nullptr, *vo = nullptr;
 	double bd = INFINITY, vdl = INFINITY;
 	double portee = c.length * 3 + maxf(0, v) * 1.0;

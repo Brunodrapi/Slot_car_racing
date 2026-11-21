@@ -31,7 +31,7 @@ namespace K {
 const double KERB_ADHERENCE = 0.88, ARRET_LIBRE = 0.55, TRANSFERT_AV = 0.62, FREIN_MIN = 0.5, FREIN_MAX = 1.6;
 const double B_rebond = 1.05, B_douceur = 9.0, B_pneus = 0.62, B_glisseRail = 0.78, B_glissePneus = 0.52, B_lacet = 0.35, B_seuil = 5.0;
 const double P_ldK = 0.45, P_ldMin = 6.0, P_ff = 0.3, P_slip = 1.0, P_cliff = 1.0, P_steerRate = 6.0, P_yawK = 2.0, P_wLim = 0.95,
-	P_liftOff = 0.16, P_motricite = 1.25, P_drivePriority = 0.15, P_relax = 0.2, P_circle = 0.25;
+	P_liftOff = 0.16, P_motricite = 1.25, P_drivePriority = 0.15, P_relax = 0.2, P_circle = 0.25, P_selRate = 0.7;
 const double L_part = 0.5, L_aMin = 0.8, L_aMax = 6.0, L_vMax = 5.0;
 const double M_tauMontee = 0.22, M_tauRetour = 0.10, M_seuil = 0.12, M_perte = 0.38;
 const bool G_rattrapage = true;
@@ -40,6 +40,25 @@ const double A_k = 1.4, A_c = 1.0, A_devant = 0.0, A_max = 0.3, A_lache = 1.0, A
 const double IA_aimant = 1.0;
 const double AI_GLISSE0 = 0.28, AI_GLISSE1 = 0.55, AI_USAGE = 0.8;
 const double RESSENTI[4][2] = {{0.00, 0.62}, {0.80, 1.30}, {1.30, 2.50}, {0.44, 0.87}};
+// les dégâts et les stands (js/car.js, essai des dégâts)
+const double FLANC_SEUIL = 6.0, ABANDON_VITESSE = 100.0 / 3.6, CHOC_SEUIL_USURE = 3.5;
+const int E_zones = 8;
+const double E_creux = 0.015, E_max = 0.3, E_voisines = 0.35;
+const double E_durete[8] = {0.3, 0.6, 1.4, 0.6, 0.3, 0.6, 1.4, 0.6};
+const double S_vitesse = 22.0, S_reparationBase = 1.5, S_reparation = 6.5, S_seuilArret = 3.0;
+}
+
+// La tôle (DEGATS) : vide quand la course n'a pas de dégâts.
+struct Tole { bool ok = false; double chocSeuil = 3.5, vmax = 0.35; bool abandon = false; };
+// Un choc, pour le dessin seulement (le rendu les lit puis les vide) : dans le repère de la voiture.
+struct Choc { double nx, ny, v, frotte; int sorte; bool epave; };   // sorte : 0 rail, 1 pneus, 2 voiture
+
+// js/car.js, zoneEnfonce ; Math.round : le demi vers +∞.
+inline int zoneEnfonce(double lx, double ly) {
+	int n = K::E_zones;
+	double px = -clamp_(lx * 1.8, -1, 1), py = -clamp_(ly * 1.8, -1, 1);
+	int z = int(std::floor(std::atan2(py, px) / (2 * PI_ / n) + 0.5));
+	return ((z % n) + n) % n;
 }
 
 struct Voiture {
@@ -67,6 +86,37 @@ struct Voiture {
 	double skill = 0.5, finishTime = -1.0, repris = 0, sortieS0 = NAN, sortieT = 0;
 	int fautes = 0, sortieI = 0, passSide = 0;
 	double bestLapBrut = -1.0, gridLat = NAN, passTimer = 0, aiTimer = 0, aiNoise = 0, aiAllow = INFINITY, ecartAv = NAN, aimantF = 0;
+	// les dégâts et les stands
+	Tole degats;
+	float enfoncement[8] = {0, 0, 0, 0, 0, 0, 0, 0};   // Float32Array dans le jeu web
+	double damage = 0, tyre = 1, abandonT = 0, pitT = 0, pitT0 = 0;
+	bool abandon = false, pitAsk = false, pitServi = false, inPit = false;
+	int pitState = 0;   // 0 aucun, 1 voie, 2 arrêt
+	int pitsDone = 0, reculChoc = 0;
+	std::vector<Choc> chocs;
+
+	double damageFactor() const { return degats.ok ? 1.0 - degats.vmax * damage : 1.0; }
+	void enfonce(double nx, double ny, double force) {
+		if (!(force > 0)) return;
+		double cs = std::cos(th), sn = std::sin(th);
+		double lx = nx * cs + ny * sn, ly = -nx * sn + ny * cs;
+		int k = zoneEnfonce(lx, ly);
+		double creux = K::E_creux * force;
+		int zs[3] = {k, (k + 1) % K::E_zones, (k + K::E_zones - 1) % K::E_zones};
+		double parts[3] = {1.0, K::E_voisines, K::E_voisines};
+		for (int q = 0; q < 3; q++) {
+			int z = zs[q];
+			enfoncement[z] = float(minf(K::E_max, double(enfoncement[z]) + creux * parts[q] * K::E_durete[z]));
+		}
+		double m = 0;
+		for (int z = 0; z < K::E_zones; z++) m = maxf(m, double(enfoncement[z]));
+		damage = clamp_(m / K::E_max, 0, 1);
+	}
+	void marque(double nx, double ny, double vitesse, double frotte, int sorte, bool epave = false) {
+		if (chocs.size() >= 12 || fantome) return;
+		double cs = std::cos(th), sn = std::sin(th);
+		chocs.push_back({nx * cs + ny * sn, -nx * sn + ny * cs, vitesse, frotte, sorte, epave});
+	}
 
 	static double wrapAngle(double a) { while (a > PI_) a -= 2 * PI_; while (a < -PI_) a += 2 * PI_; return a; }
 	static double smoothstep_(double xx, double a, double b) { double t = clamp_((xx - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }
@@ -181,6 +231,7 @@ struct Voiture {
 		v = wx * cs + wy * sn; vl = wx * sn - wy * cs;
 		w *= K::B_lacet; Ff = 0; Fr = 0;
 		slide = 0; patine = 0; patineFx = 0; throttle = 0; braking = false;
+		bool fatal = false;
 		if (!engineStopped) {
 			double effective = impact * (pneus ? .55 : 1.0);
 			barrierHits += 1;
@@ -190,7 +241,16 @@ struct Voiture {
 				engineStopped = true;
 			}
 			leaveTrack();
+			if (degats.ok) {
+				enfonce(hnx, hny, effective - degats.chocSeuil);
+				if (degats.abandon && effective >= K::ABANDON_VITESSE) {
+					fatal = true; abandon = true; damage = 1.0;
+					for (int z = 0; z < K::E_zones; z++) enfoncement[z] = float(K::E_max);
+					engineCut = INFINITY; engineStopped = true;
+				}
+			}
 		}
+		marque(hnx, hny, impact * (pneus ? .55 : 1.0), std::fabs(vt), pneus ? 1 : 0, fatal);
 		Projection pr = T.project(x, y, s, 30);
 		double dss = T.diff(s, pr.s);
 		if (raceTime >= 0 && dss > 0 && dss < 6) advance(dss, raceTime);

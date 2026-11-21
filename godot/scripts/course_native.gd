@@ -26,6 +26,12 @@ static func etatNatif(car: Voiture, noms: PackedStringArray) -> Dictionary:
 	var e := {}
 	for n in noms:
 		if n == "nTours": continue
+		if n == "pitState":
+			e[n] = float(["", "voie", "arret"].find(car.pitState))
+			continue
+		if n.begins_with("enf"):
+			e[n] = float(car.enfoncement[int(n.substr(3))])
+			continue
 		var v = car.get(n)
 		e[n] = float(v) if v is bool or v is int else v
 	e.isPlayer = car.isPlayer; e.fantome = car.fantome; e.skill = car.skill
@@ -49,7 +55,7 @@ func _init(piste: Piste, opts: Dictionary, h: Hasard) -> void:
 	var hard: Dictionary = difficultes.get("hard", difficulte)
 	moteur.regle({ modeCourse = mode == "race", laps = laps, entrainement = entrainement, player = cars.find(player),
 		fantome = cars.find(fantome) if fantome else -1, difficulte = difficulte, difficile = hard,
-		profil = profilRacing, hasard = h.etat, countdown = countdown, time = time, state = 0 })
+		profil = profilRacing, hasard = h.etat, countdown = countdown, time = time, state = 0, degats = degats, stands = stands })
 	moteur.prepare()
 
 
@@ -62,6 +68,12 @@ func reverse() -> void:
 func step(gaz: float) -> void:
 	var ev: PackedInt32Array = moteur.pas(gaz, player.sel)
 	_relit()
+	# les chocs du pas, pour le dessin (Voiture.chocs, que le rendu vide)
+	var ch: PackedFloat64Array = moteur.chocs()
+	for k in range(0, ch.size(), 7):
+		var c: Voiture = cars[int(ch[k])]
+		if c.chocs.size() < 12:
+			c.chocs.append({ nx = ch[k + 1], ny = ch[k + 2], v = ch[k + 3], frotte = ch[k + 4], sorte = ["rail", "tyres", "voiture"][int(ch[k + 5])], epave = ch[k + 6] != 0 })
 	evenements.clear()
 	for k in range(0, ev.size(), 2):
 		var type: String = ["go", "crash", "lap", "finish"][ev[k]]
@@ -90,6 +102,10 @@ func _relit() -> void:
 		c.surKerb = e[o + 51] != 0; c.draft = e[o + 52] != 0; c.accroche = e[o + 53] != 0; c.aiLeve = e[o + 54] != 0
 		c.lap = int(e[o + 55]); c.crashes = int(e[o + 56]); c.barrierHits = int(e[o + 57]); c.fautes = int(e[o + 58])
 		c.rejoined = int(e[o + 59]); c.passSide = int(e[o + 60]); c.sortieI = int(e[o + 61])
+		c.damage = e[o + 62]; c.tyre = e[o + 63]; c.abandonT = e[o + 64]; c.pitT = e[o + 65]; c.pitT0 = e[o + 66]
+		c.abandon = e[o + 67] != 0; c.pitAsk = e[o + 68] != 0; c.pitServi = e[o + 69] != 0; c.inPit = e[o + 70] != 0
+		c.pitState = ["", "voie", "arret"][int(e[o + 71])]; c.pitsDone = int(e[o + 72]); c.reculChoc = int(e[o + 73])
+		for z in 8: c.enfoncement[z] = e[o + 74 + z]
 		if int(e[o + iTours]) != c.lapTimes.size():
 			var t: PackedFloat64Array = moteur.tours(i)
 			c.lapTimes.clear(); c.lapOk.clear()
@@ -103,6 +119,11 @@ func _relit() -> void:
 	penalties.clear()
 	for i in pen.size():
 		if pen[i] >= 0: penalties[i] = pen[i]
+
+
+func demandeStand(oui: bool) -> void:
+	super.demandeStand(oui)
+	moteur.demande_stand(oui)
 
 
 func ecartFantome() -> float:

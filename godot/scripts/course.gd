@@ -56,6 +56,11 @@ var netDrive = null
 var broadcast = null
 var attente := false
 var finishDeadline := NAN
+# Les dégâts (js/race.js, essai) : `degatsVisu`, les bosses se voient (course et contre-la-montre) ;
+# `degats`, elles coûtent (en course seulement) ; `stands`, la voie sert à réparer.
+var degatsVisu := false
+var degats := {}
+var stands := false
 var _evenementsEnAttente: Array = []
 const NET_FINISH_GRACE := 30.0
 
@@ -75,6 +80,12 @@ func _init(piste: Piste, opts: Dictionary, h: Hasard) -> void:
 	aiFill = opts.get("aiFill", false)
 	noContact = opts.get("noContact", false)
 	spectator = opts.get("spectator", false)
+	degatsVisu = bool(opts.get("degats", false))
+	if degatsVisu and mode == "race":
+		degats = Voiture.DEGATS.duplicate()
+		degats.abandon = humans == null      # l'abandon en solo seulement : en ligne il devrait passer par le réseau
+	# les stands, et pas sur un circuit sans voie : la coche n'y mènerait nulle part
+	stands = not degats.is_empty() and not track.pit.is_empty()
 	profilRacing = Course.speedProfile(track, cls, "racing", 0.98)
 	_buildGrid(opts)
 
@@ -123,6 +134,7 @@ func _buildGrid(opts: Dictionary) -> void:
 		car.human = hIdx if humain and humans != null else -1
 		car.laneTarget = lat0
 		car.gridLat = lat0
+		car.degats = degats
 		cars.append(car)
 	player = cars[cars.size() - 1]
 	for k in cars:
@@ -202,13 +214,38 @@ func step(gaz: float) -> void:
 	if state == "finished":
 		return
 	_simulate(gaz)
+	# le joueur a abandonné : on laisse voir l'épave sept secondes (l'écran ABANDON), puis la course
+	# se termine sans lui
+	if state == "racing" and player.abandon and netDrive == null:
+		state = "finishing"; finishTimer = 7.0; finishDeadline = time + finishTimer
 	if state == "finishing" and (netDrive == null or netDrive.host):
 		if netDrive != null: finishTimer = maxf(0, finishDeadline - time)
 		else: finishTimer -= dt
 		var concurrents := cars.filter(func(k): return k.human >= 0) if humans != null else cars
 		var echu: bool = finishTimer <= 0 and (netDrive == null or netDrive.canFinalize())
-		if echu or concurrents.all(func(k): return k.finished):
+		if echu or concurrents.all(func(k): return k.finished or k.abandon):
 			_finish()
+
+
+## La coche des stands du joueur : une intention, pas une quatrième position de ligne.
+func demandeStand(oui: bool) -> void:
+	if stands: player.pitAsk = oui
+
+
+## La coche s'ouvre sur une voiture abîmée (plus de 2 %), après le premier tour, et pas deux fois
+## dans le même passage (render.js, _drawSlider).
+func standOuvert() -> bool:
+	var p := player
+	return stands and p.lap >= 1 and not p.pitServi and not p.finished and not p.abandon and (p.damage > 0.02 or p.pitAsk or p.pitState != "")
+
+
+## Une IA s'arrête d'elle-même au-delà de 45 % de dommages, s'il reste au moins trois tours.
+func _decidePit(car: Voiture) -> void:
+	if car.pitAsk or car.pitState != "" or (car.tyre > 0.999 and car.damage < 0.001): return
+	var reste := laps - car.lap
+	if reste < 3: return
+	var seuil := 0.24 + car.skill * 0.16
+	if car.tyre < seuil or car.damage > 0.45: car.pitAsk = true
 
 
 ## Un événement venu du réseau (un tour, un choc, le départ) : il sort au prochain pas.
@@ -224,11 +261,18 @@ func _simulate(gaz: float) -> void:
 	if netDrive != null and not is_nan(finishDeadline) and time > finishDeadline: return
 	_flagsUpdate()
 	var pp := player.progress()
+	# le trafic que l'IA regarde : ni le fantôme, ni une épave (elle attendrait derrière pour toujours)
+	var trafic := sansFantome
+	for k in sansFantome:
+		if k.abandon:
+			trafic = sansFantome.filter(func(q): return not q.abandon)
+			break
 	for ic in cars.size():
 		var car := cars[ic]
 		if netDrive != null and not netDrive.owns(car): continue
 		car.aiDriven = car.human < 0 and not car.isPlayer
-		car.steer([] if car.fantome else sansFantome, dt, car.aiDriven)
+		car.steer([] if car.fantome else trafic, dt, car.aiDriven)
+		if stands and car.aiDriven and not car.finished and not car.abandon: _decidePit(car)
 		var thr: float
 		if car.isPlayer:
 			thr = (1.0 if car.v < 15 else 0.0) if car.finished else gaz
@@ -240,7 +284,7 @@ func _simulate(gaz: float) -> void:
 		else:
 			var gapM := car.progress() - pp
 			var rubber := 0.0 if car.finished or player.finished else Piste.clamp_(-gapM / 4000, -0.05, 0.03)
-			thr = 1.0 if Course.aiThrottle(car, cars, dt, difficulte, rubber) and not car.finished else 0.0
+			thr = 1.0 if Course.aiThrottle(car, trafic, dt, difficulte, rubber) and not car.finished else 0.0
 			if car.finished: thr = 1.0 if car.v < 15 else 0.0
 		var wasOff := car.herbe
 		var hitsBefore := car.barrierHits
@@ -314,6 +358,8 @@ func tempsClasse(car: Voiture) -> float:
 func standings() -> Array[Voiture]:
 	var l: Array[Voiture] = cars.duplicate()
 	l.sort_custom(func(a: Voiture, b: Voiture) -> bool:
+		# une épave derrière tous ceux qui roulent encore
+		if a.abandon != b.abandon: return not a.abandon
 		if a.finished and b.finished: return tempsClasse(a) < tempsClasse(b)
 		if a.finished != b.finished: return a.finished
 		return b.progress() < a.progress())
@@ -327,9 +373,13 @@ func positionOf(car: Voiture) -> int:
 func _finish() -> void:
 	# En solo, l'IA finit ses tours hors de l'écran ; en ligne on garde les tours vraiment bouclés.
 	var extra := 0.0
-	while humans == null and not cars.all(func(k): return k.finished) and extra < 180:
+	# le joueur a abandonné : l'arrivée des autres se projette au rythme qu'ils ont tenu, au lieu de
+	# simuler parfois des minutes de course d'un bloc
+	var parti := player.abandon and humans == null
+	while not parti and humans == null and not cars.all(func(k): return k.finished or k.abandon) and extra < 180:
 		_simulate(0.0)
 		extra += dt
+	if parti: _projetteArrivees()
 	evenements.clear()
 	state = "finished"
 	_classe()
@@ -341,10 +391,20 @@ func _classe() -> void:
 	results = []
 	for i in ordre.size():
 		var car := ordre[i]
-		results.append({ car = car, pos = i + 1, points = POINTS[i] if i < POINTS.size() else 0,
+		results.append({ car = car, pos = i + 1, points = 0 if car.abandon else (POINTS[i] if i < POINTS.size() else 0), abandon = car.abandon,
 			temps = tempsClasse(car), brut = car.finishTime if car.finished else -1.0,
 			penalite = Course.penalite(car), fautes = car.fautes, meilleur = car.bestLap,
 			ecart = tempsClasse(car) - tempsClasse(ordre[0]) if car.finished and ordre[0].finished else -1.0 })
+
+
+## Le joueur a abandonné : chaque voiture encore en course finit au rythme moyen qu'elle a tenu.
+func _projetteArrivees() -> void:
+	var total := laps * track.length
+	for c in cars:
+		if c.finished or c.abandon: continue
+		var moyenne := maxf(5, c.progress() / maxf(1, time))
+		c.finishTime = time + maxf(0, total - c.progress()) / moyenne
+		c.finished = true
 
 
 ## Le classement d'un invité, bâti sur ce qu'il a reçu et non sur une simulation.
@@ -495,11 +555,16 @@ static func aiThrottle(car: Voiture, cars_: Array, dt_: float, opts: Dictionary,
 # ---------- les contacts (js/car.js, resolveCollisions) ----------
 static func resolveCollisions(cs: Array, T: Piste) -> void:
 	var n := cs.size()
+	for c in cs:
+		if c.reculChoc > 0: c.reculChoc -= 1
 	for i in n:
 		var a: Voiture = cs[i]
 		for j in range(i + 1, n):
 			var b: Voiture = cs[j]
 			if a.blueFlag or b.blueFlag: continue
+			# une épave ne se touche plus ; et pas de contact dans la voie des stands
+			if a.abandon or b.abandon: continue
+			if a.inPit or b.inPit: continue
 			var d := T.diff(a.s, b.s)
 			var lenSum := (a.cls.length + b.cls.length) / 2
 			if absf(d) >= lenSum: continue
@@ -518,6 +583,24 @@ static func resolveCollisions(cs: Array, T: Piste) -> void:
 				var front: Voiture = b if d > 0 else a
 				if rear.v > front.v:
 					var dv := rear.v - front.v
+					# le choc abîme les deux, à proportion de ce qui dépasse le seuil du frottement ;
+					# pare-chocs contre pare-chocs quand elles se recouvrent sur plus d'une demi-largeur
+					var ur := rear.degats
+					var uf := front.degats
+					var fort := maxf(0, dv - (float(ur.chocSeuil) if not ur.is_empty() else 0.0))
+					var enFace := latOverlap > 0.5 * minf(a.cls.width, b.cls.width)
+					var ux := front.x - rear.x
+					var uy := front.y - rear.y
+					var ul := Piste.hypot(ux, uy)
+					if ul == 0.0: ul = 1
+					var rx := -cos(rear.th) if enFace else -ux / ul
+					var ry := -sin(rear.th) if enFace else -uy / ul
+					var fx := cos(front.th) if enFace else ux / ul
+					var fy := sin(front.th) if enFace else uy / ul
+					if not ur.is_empty(): rear._enfonce(rx, ry, fort)
+					if not uf.is_empty(): front._enfonce(fx, fy, fort * 0.6)
+					rear._marque(rx, ry, dv, 0, "voiture")
+					front._marque(fx, fy, dv, 0, "voiture")
 					front.v += dv * 0.35
 					rear.v = front.v - dv * 0.1
 					var push := minf(longOverlap / 2, 0.1)
@@ -526,6 +609,25 @@ static func resolveCollisions(cs: Array, T: Piste) -> void:
 			else:
 				var dir := 1.0 if dl >= 0 else -1.0
 				var sep := minf(latOverlap / 2, 0.1)
+				# le coup de flanc : il ne casse qu'au-delà de FLANC_SEUIL, et ne compte qu'une fois
+				# par contact (reculChoc)
+				if a.reculChoc <= 0 and b.reculChoc <= 0:
+					var vxa := a.v * cos(a.th) + a.vl * sin(a.th)
+					var vya := a.v * sin(a.th) - a.vl * cos(a.th)
+					var vxb := b.v * cos(b.th) + b.vl * sin(b.th)
+					var vyb := b.v * sin(b.th) - b.vl * cos(b.th)
+					var rapproche := ((vxa - vxb) * nx + (vya - vyb) * ny) * dir
+					var glisse := absf((vxa - vxb) * tx + (vya - vyb) * ty)
+					if rapproche > 1.5 or glisse > 6:
+						for cs_ in [[a, -1.0], [b, 1.0]]:
+							var c: Voiture = cs_[0]
+							var sg: float = cs_[1]
+							var u := c.degats
+							var fort := maxf(0, rapproche - Voiture.FLANC_SEUIL)
+							if not u.is_empty(): c._enfonce(nx * dir * sg, ny * dir * sg, fort)
+							var vu := maxf(0, rapproche - (Voiture.FLANC_SEUIL - (float(u.chocSeuil) if not u.is_empty() else Voiture.CHOC_SEUIL_USURE)))
+							c._marque(nx * dir * sg, ny * dir * sg, vu, glisse, "voiture")
+							c.reculChoc = 30
 				a.x -= nx * dir * sep; a.y -= ny * dir * sep
 				b.x += nx * dir * sep; b.y += ny * dir * sep
 				a.vl = Piste.clamp_(a.vl - dir * 0.25, -3, 3); b.vl = Piste.clamp_(b.vl + dir * 0.25, -3, 3)

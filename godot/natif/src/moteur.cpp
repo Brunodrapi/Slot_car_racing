@@ -48,6 +48,9 @@ void MoteurNatif::piste(const Dictionary &d) {
 		o += 6 + nb * 2;
 	}
 	T.construitGrille();
+	std::vector<double> st = vec(d.get("stands", PackedFloat64Array()));
+	T.aStand = st.size() == 7;
+	if (T.aStand) { T.pEntree = st[0]; T.pBoite = st[1]; T.pSortie = st[2]; T.pLong = st[3]; T.pSeparation = st[4]; T.pLargeur = st[5]; T.pZone = st[6]; }
 }
 
 // Les champs d'état d'une voiture, dans l'ordre de etats() et de pose().
@@ -56,7 +59,9 @@ static const char *CHAMPS[] = {
 	"usage", "ressenti", "Ff", "Fr", "alphaF", "alphaR", "offT", "grassT", "engineCut", "throttle", "lapStart", "bestLap", "bestLapBrut",
 	"finishTime", "repris", "sortieT", "sortieS0", "laneTarget", "gridLat", "aiTimer", "aiNoise", "aiAllow", "passTimer", "ecartAv", "aimantF",
 	"lastImpact", "herbe", "engineStopped", "braking", "started", "checkpoint", "lapSale", "finished", "blueFlag", "surKerb", "draft", "accroche",
-	"aiLeve", "lap", "crashes", "barrierHits", "fautes", "rejoined", "passSide", "sortieI", "nTours"
+	"aiLeve", "lap", "crashes", "barrierHits", "fautes", "rejoined", "passSide", "sortieI",
+	"damage", "tyre", "abandonT", "pitT", "pitT0", "abandon", "pitAsk", "pitServi", "inPit", "pitState", "pitsDone", "reculChoc",
+	"enf0", "enf1", "enf2", "enf3", "enf4", "enf5", "enf6", "enf7", "nTours"
 };
 static const int NCHAMPS = sizeof(CHAMPS) / sizeof(CHAMPS[0]);
 
@@ -67,12 +72,18 @@ static const int NCHAMPS = sizeof(CHAMPS) / sizeof(CHAMPS[0]);
 #define CHAMPS_BOOLS(X) X(herbe) X(engineStopped) X(braking) X(started) X(checkpoint) X(lapSale) X(finished) X(blueFlag) X(surKerb) X(draft) \
 	X(accroche) X(aiLeve)
 #define CHAMPS_INTS(X) X(lap) X(crashes) X(barrierHits) X(fautes) X(rejoined) X(passSide) X(sortieI)
+// les dégâts et les stands, après les entiers et dans l'ordre de CHAMPS
+#define CHAMPS_DEGATS_D(X) X(damage) X(tyre) X(abandonT) X(pitT) X(pitT0)
+#define CHAMPS_DEGATS_B(X) X(abandon) X(pitAsk) X(pitServi) X(inPit)
+#define CHAMPS_DEGATS_I(X) X(pitState) X(pitsDone) X(reculChoc)
 
 static void litEtat(grip::Voiture &v, const Dictionary &e) {
 #define LD(n) if (e.has(#n)) v.n = double(e[#n]);
 #define LB(n) if (e.has(#n)) v.n = bool(e[#n]);
 #define LI(n) if (e.has(#n)) v.n = int(e[#n]);
 	CHAMPS_DOUBLES(LD) CHAMPS_BOOLS(LB) CHAMPS_INTS(LI)
+	CHAMPS_DEGATS_D(LD) CHAMPS_DEGATS_B(LB) CHAMPS_DEGATS_I(LI)
+	for (int z = 0; z < 8; z++) { String k = String("enf") + String::num_int64(z); if (e.has(k)) v.enfoncement[z] = float(double(e[k])); }
 	if (e.has("isPlayer")) v.isPlayer = bool(e["isPlayer"]);
 	if (e.has("fantome")) v.fantome = bool(e["fantome"]);
 	if (e.has("skill")) v.skill = double(e["skill"]);
@@ -108,6 +119,23 @@ void MoteurNatif::regle(const Dictionary &p) {
 	c.profilRacing = vec(p["profil"]);
 	c.hasard.etat = uint32_t(int64_t(p["hasard"]));
 	c.countdown = p["countdown"]; c.time = p["time"]; c.state = int(p["state"]);
+	Dictionary dg = p.get("degats", Dictionary());
+	c.degats.ok = !dg.is_empty();
+	if (c.degats.ok) { c.degats.chocSeuil = dg.get("chocSeuil", 3.5); c.degats.vmax = dg.get("vmax", 0.35); c.degats.abandon = bool(dg.get("abandon", false)); }
+	c.stands = bool(p.get("stands", false));
+}
+
+void MoteurNatif::demande_stand(bool oui) { if (c.stands && c.player >= 0) c.cars[c.player]->pitAsk = oui; }
+
+// Les chocs notés depuis le dernier appel, pour le dessin : [voiture, nx, ny, v, frotte, sorte, épave]…
+PackedFloat64Array MoteurNatif::chocs() {
+	PackedFloat64Array a;
+	for (int i = 0; i < int(c.cars.size()); i++) {
+		grip::Voiture &v = *c.cars[i];
+		for (auto &k : v.chocs) { a.push_back(i); a.push_back(k.nx); a.push_back(k.ny); a.push_back(k.v); a.push_back(k.frotte); a.push_back(k.sorte); a.push_back(k.epave ? 1 : 0); }
+		v.chocs.clear();
+	}
+	return a;
 }
 
 void MoteurNatif::prepare() { c.prepare(); }
@@ -140,6 +168,8 @@ PackedFloat64Array MoteurNatif::etats() const {
 #define EB(n) *p++ = v->n ? 1.0 : 0.0;
 #define EI(n) *p++ = double(v->n);
 		CHAMPS_DOUBLES(ED) CHAMPS_BOOLS(EB) CHAMPS_INTS(EI)
+		CHAMPS_DEGATS_D(ED) CHAMPS_DEGATS_B(EB) CHAMPS_DEGATS_I(EI)
+		for (int z = 0; z < 8; z++) *p++ = double(v->enfoncement[z]);
 		*p++ = double(v->lapTimes.size());
 	}
 	return a;
@@ -182,4 +212,6 @@ void MoteurNatif::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("pose", "i", "e"), &MoteurNatif::pose);
 	ClassDB::bind_method(D_METHOD("hasard"), &MoteurNatif::hasard);
 	ClassDB::bind_method(D_METHOD("pose_hasard", "e"), &MoteurNatif::pose_hasard);
+	ClassDB::bind_method(D_METHOD("demande_stand", "oui"), &MoteurNatif::demande_stand);
+	ClassDB::bind_method(D_METHOD("chocs"), &MoteurNatif::chocs);
 }

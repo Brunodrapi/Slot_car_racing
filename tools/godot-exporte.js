@@ -145,11 +145,50 @@ if (!SEUL || SEUL === 'spa') {
     resultats: race.results.map((r) => ({ numero: r.car.number, nom: r.car.name, pos: r.pos, temps: r.time, brut: r.brut, penalite: r.penalite, fautes: r.fautes, meilleur: r.bestLap })),
     hasardFin: ETAT() };
 }
-resultat = { catalogue, nombresVoitures, circuits, refs, course, REF_CHAMPS: [...REF_CHAMPS, ...REF_DRAPEAUX] };
+/* LA COURSE AVEC LES DÉGÂTS (essai) : trois tours de Spa, dégâts et stands, l'IA en difficulté
+difficile pour qu'il y ait des contacts ; le joueur demande les stands dès que sa voiture est abîmée
+de plus de 2 % après le premier tour, comme la coche du levier le lui permettrait. On suit en plus
+les dommages et les arrêts de chaque voiture. */
+let courseDegats = null;
+if (!SEUL || SEUL === 'spa') {
+  GRAINE(4242);
+  const race = new Race({ trackDef: TRACKS.find((t) => t.id === 'spa'), modelId: 'porsche991gt3r', difficulty: 'hard', playerLivery: 0, mode: 'race', laps: 3, degats: true });
+  const roster = race.cars.map((c) => ({ nom: c.name, modele: c.cls.id, livery: LIVERIES.indexOf(c.livery), livree: c.livree, skill: c.skill, numero: c.number, joueur: c.isPlayer, aiTimer: c.aiTimer }));
+  const graineApres = ETAT();
+  let etatJoueur = 77;
+  const LEVIER = [0, -1, 1, 0, -1, 1, 0.5, -0.5];
+  const p = race.player, N = race.cars.length, K = 9;
+  const entrees = [], suivi = [];
+  let pas = 0, arrets = 0;
+  while (race.state !== 'finished' && pas < 120 * 600) {
+    let thr = false;
+    if (race.state === 'racing' || race.state === 'finishing') {
+      const sv = ETAT(); POSE_ETAT(etatJoueur);
+      thr = aiThrottle(p, race.cars, race.dt, { marginBase: 0.99, marginSpread: 0, maxMargin: 2 });
+      etatJoueur = ETAT(); POSE_ETAT(sv);
+      // dans la voie, le joueur dose comme l'IA le ferait : freiner pour la zone, s'y arrêter, repartir
+      const z = p.pitState === 'voie' ? race.track.pitAt(p.s) : null;
+      if (z) thr = z.boite < 0 && !p.pitServi ? p.v < Math.min(22, Math.sqrt(2 * p.cls.brake * 0.8 * Math.max(0, -z.boite))) * 0.92 : p.v < 22 * 0.95;
+    } else thr = race.countdown < 1.2;
+    const sel = LEVIER[Math.floor(race.time / 7) % LEVIER.length];
+    p.sel = sel;
+    const pit = race.stands && p.lap >= 1 && !p.pitServi && !p.finished && p.damage > 0.02 && !p.pitAsk && !p.pitState;
+    if (pit) p.pitAsk = true;
+    race._step(race.dt, thr ? 1 : 0, null);
+    entrees.push(thr ? 1 : 0, sel, pit ? 1 : 0);
+    for (const c of race.cars) suivi.push(c.x, c.y, c.th, c.v, c.s, c.lap + (c.finished ? 1000 : 0), c.damage, c.pitsDone, c.abandon ? 1 : 0);
+    pas++;
+  }
+  for (const c of race.cars) arrets += c.pitsDone;
+  courseDegats = { n: pas, voitures: N, champs: K, entrees: Float64Array.from(entrees), suivi: Float64Array.from(suivi), roster, graineApres, arrets,
+    resultats: race.results.map((r) => ({ numero: r.car.number, nom: r.car.name, pos: r.pos, temps: r.time, abandon: !!r.abandon, damage: r.car.damage, pits: r.car.pitsDone })),
+    hasardFin: ETAT() };
+}
+resultat = { catalogue, nombresVoitures, circuits, refs, course, courseDegats, REF_CHAMPS: [...REF_CHAMPS, ...REF_DRAPEAUX] };
 `;
 GRAINE(1);
 vm.runInNewContext(src, ctx, { filename: 'godot-exporte' });
-const { catalogue, nombresVoitures, circuits, refs, course, REF_CHAMPS: CHAMPS } = ctx.resultat;
+const { catalogue, nombresVoitures, circuits, refs, course, courseDegats, REF_CHAMPS: CHAMPS } = ctx.resultat;
 
 fs.mkdirSync(path.join(OUT, 'circuits'), { recursive: true });
 fs.mkdirSync(path.join(OUT, 'ref'), { recursive: true });
@@ -180,6 +219,9 @@ for (const { def, T, projecteurs } of circuits) {
   pose('barrieres', T.barriers.flatMap((b) => [...BF.map((f) => b[f] || 0), b.kind === 'tyres' ? 1 : 0]));
   pose('croisements', T.crossings.map((c) => c.over));
   pose('scalaires', [T.n, T.ds, T.length, T.halfWidth, T.barrierCell, T.width]);
+  // la voie des stands (track._buildPits) : entrée, boîte, sortie, longueur, séparation, largeur, zone
+  const P = T.pit;
+  pose('stands', P ? [P.entree, P.boite, P.sortie, P.long, P.separation, P.largeur, P.zone] : []);
   fs.writeFileSync(path.join(OUT, 'circuits', T.id + '.bin'), Buffer.concat(morceaux));
   fs.writeFileSync(path.join(OUT, 'circuits', T.id + '.json'), JSON.stringify({
     id: T.id, nom: T.name, pays: def.country, drapeau: def.flag, theme: T.theme, tours: T.laps, asphalte: !!T.asphaltW,
@@ -204,5 +246,12 @@ if (course) {
   fs.writeFileSync(path.join(OUT, 'ref', 'course.json'), JSON.stringify({ roster: course.roster, resultats: course.resultats, graineApres: course.graineApres, hasardFin: course.hasardFin }, null, 1) + '\n');
   const g = course.resultats[0];
   console.log(`course de référence : ${course.voitures} voitures, ${course.n} pas ; vainqueur n° ${g.numero} ${g.nom} en ${g.temps.toFixed(3)} s`);
+}
+if (courseDegats) {
+  const c = courseDegats, tete = Buffer.from(Float64Array.from([c.n, c.voitures, c.champs]).buffer);
+  fs.writeFileSync(path.join(OUT, 'ref', 'course-degats.bin'), Buffer.concat([tete, Buffer.from(c.entrees.buffer), Buffer.from(c.suivi.buffer)]));
+  fs.writeFileSync(path.join(OUT, 'ref', 'course-degats.json'), JSON.stringify({ roster: c.roster, resultats: c.resultats, graineApres: c.graineApres, hasardFin: c.hasardFin }, null, 1) + '\n');
+  const g = c.resultats[0], d = c.resultats.map((r) => Math.round(r.damage * 100)).join(' ');
+  console.log(`course avec dégâts : ${c.voitures} voitures, ${c.n} pas, ${c.arrets} arrêts au stand ; vainqueur n° ${g.numero} en ${g.temps.toFixed(3)} s ; dommages finaux (%) ${d}`);
 }
 console.log(`catalogue : ${catalogue.categories.length} catégories, ${catalogue.voitures.length} voitures, ${catalogue.voitures.reduce((a, v) => a + v.livrees.length, 0)} livrées`);

@@ -16,9 +16,29 @@ void Course::step(double gaz) {
 	}
 	if (state == 3) return;
 	simulate(gaz);
+	// le joueur a abandonné : l'épave reste à l'écran sept secondes, puis la course se termine
+	if (state == 1 && cars[player]->abandon) { state = 2; finishTimer = 7.0; }
 	if (state == 2) {
 		finishTimer -= dt;
 		if (finishTimer <= 0 || tousArrives()) finish();
+	}
+}
+
+void Course::decidePit(Voiture &car) {
+	if (car.pitAsk || car.pitState != 0 || (car.tyre > 0.999 && car.damage < 0.001)) return;
+	int reste = laps - car.lap;
+	if (reste < 3) return;
+	double seuil = 0.24 + car.skill * 0.16;
+	if (car.tyre < seuil || car.damage > 0.45) car.pitAsk = true;
+}
+
+void Course::projetteArrivees() {
+	double total = laps * track.length;
+	for (auto *c : cars) {
+		if (c->finished || c->abandon) continue;
+		double moyenne = maxf(5, c->progress() / maxf(1, time));
+		c->finishTime = time + maxf(0, total - c->progress()) / moyenne;
+		c->finished = true;
 	}
 }
 
@@ -31,17 +51,24 @@ void Course::simulate(double gaz) {
 	time += dt;
 	flagsUpdate();
 	double pp = P.progress();
+	// le trafic que l'IA regarde : ni le fantôme, ni une épave
+	bool epave = false;
+	for (auto *k : sansFantome) if (k->abandon) { epave = true; break; }
+	std::vector<Voiture *> filtre;
+	if (epave) for (auto *k : sansFantome) if (!k->abandon) filtre.push_back(k);
+	const std::vector<Voiture *> &trafic = epave ? filtre : sansFantome;
 	for (int ic = 0; ic < int(cars.size()); ic++) {
 		Voiture &car = *cars[ic];
 		car.aiDriven = !car.isPlayer;
-		car.steer(car.fantome ? vide : sansFantome, dt, car.aiDriven);
+		car.steer(car.fantome ? vide : trafic, dt, car.aiDriven);
+		if (stands && car.aiDriven && !car.finished && !car.abandon) decidePit(car);
 		double thr;
 		if (car.isPlayer) thr = car.finished ? (car.v < 15 ? 1.0 : 0.0) : gaz;
 		else if (car.fantome) thr = aiThrottle(car, vide, dt, difficile, 0.0) ? 1.0 : 0.0;
 		else {
 			double gapM = car.progress() - pp;
 			double rubber = (car.finished || P.finished) ? 0.0 : clamp_(-gapM / 4000, -0.05, 0.03);
-			thr = (aiThrottle(car, cars, dt, difficulte, rubber) && !car.finished) ? 1.0 : 0.0;
+			thr = (aiThrottle(car, trafic, dt, difficulte, rubber) && !car.finished) ? 1.0 : 0.0;
 			if (car.finished) thr = car.v < 15 ? 1.0 : 0.0;
 		}
 		bool wasOff = car.herbe;
@@ -79,7 +106,9 @@ void Course::simulate(double gaz) {
 
 void Course::finish() {
 	double extra = 0.0;
-	while (!tousArrives() && extra < 180) { simulate(0.0); extra += dt; }
+	bool parti = cars[player]->abandon;
+	while (!parti && !tousArrives() && extra < 180) { simulate(0.0); extra += dt; }
+	if (parti) projetteArrivees();
 	evenements.clear();
 	state = 3;
 }
@@ -210,11 +239,14 @@ bool Course::aiThrottle(Voiture &car, const std::vector<Voiture *> &cars_, doubl
 
 void Course::resolveCollisions(std::vector<Voiture *> &cs, const Piste &T) {
 	int n = int(cs.size());
+	for (auto *c : cs) if (c->reculChoc > 0) c->reculChoc--;
 	for (int i = 0; i < n; i++) {
 		Voiture &a = *cs[i];
 		for (int j = i + 1; j < n; j++) {
 			Voiture &b = *cs[j];
 			if (a.blueFlag || b.blueFlag) continue;
+			if (a.abandon || b.abandon) continue;
+			if (a.inPit || b.inPit) continue;
 			double d = T.diff(a.s, b.s);
 			double lenSum = (a.cls.length + b.cls.length) / 2;
 			if (std::fabs(d) >= lenSum) continue;
@@ -228,6 +260,17 @@ void Course::resolveCollisions(std::vector<Voiture *> &cs, const Piste &T) {
 				Voiture &rear = d > 0 ? a : b, &front = d > 0 ? b : a;
 				if (rear.v > front.v) {
 					double dv = rear.v - front.v;
+					const Tole &ur = rear.degats, &uf = front.degats;
+					double fort = maxf(0, dv - (ur.ok ? ur.chocSeuil : 0.0));
+					bool enFace = latOverlap > 0.5 * minf(a.cls.width, b.cls.width);
+					double ux = front.x - rear.x, uy = front.y - rear.y, ul = hypot_(ux, uy);
+					if (ul == 0.0) ul = 1;
+					double rx = enFace ? -std::cos(rear.th) : -ux / ul, ry = enFace ? -std::sin(rear.th) : -uy / ul;
+					double fx = enFace ? std::cos(front.th) : ux / ul, fy = enFace ? std::sin(front.th) : uy / ul;
+					if (ur.ok) rear.enfonce(rx, ry, fort);
+					if (uf.ok) front.enfonce(fx, fy, fort * 0.6);
+					rear.marque(rx, ry, dv, 0, 2);
+					front.marque(fx, fy, dv, 0, 2);
 					front.v += dv * 0.35;
 					rear.v = front.v - dv * 0.1;
 					double push = minf(longOverlap / 2, 0.1);
@@ -236,6 +279,26 @@ void Course::resolveCollisions(std::vector<Voiture *> &cs, const Piste &T) {
 				}
 			} else {
 				double dir = dl >= 0 ? 1.0 : -1.0, sep = minf(latOverlap / 2, 0.1);
+				if (a.reculChoc <= 0 && b.reculChoc <= 0) {
+					double vxa = a.v * std::cos(a.th) + a.vl * std::sin(a.th), vya = a.v * std::sin(a.th) - a.vl * std::cos(a.th);
+					double vxb = b.v * std::cos(b.th) + b.vl * std::sin(b.th), vyb = b.v * std::sin(b.th) - b.vl * std::cos(b.th);
+					double rapproche = ((vxa - vxb) * nx + (vya - vyb) * ny) * dir;
+					double glisse = std::fabs((vxa - vxb) * tx + (vya - vyb) * ty);
+					if (rapproche > 1.5 || glisse > 6) {
+						Voiture *paire[2] = {&a, &b};
+						double sgs[2] = {-1.0, 1.0};
+						for (int q = 0; q < 2; q++) {
+							Voiture &c = *paire[q];
+							double sg = sgs[q];
+							const Tole &u = c.degats;
+							double fort = maxf(0, rapproche - K::FLANC_SEUIL);
+							if (u.ok) c.enfonce(nx * dir * sg, ny * dir * sg, fort);
+							double vu = maxf(0, rapproche - (K::FLANC_SEUIL - (u.ok ? u.chocSeuil : K::CHOC_SEUIL_USURE)));
+							c.marque(nx * dir * sg, ny * dir * sg, vu, glisse, 2);
+							c.reculChoc = 30;
+						}
+					}
+				}
 				a.x -= nx * dir * sep; a.y -= ny * dir * sep;
 				b.x += nx * dir * sep; b.y += ny * dir * sep;
 				a.vl = clamp_(a.vl - dir * 0.25, -3, 3); b.vl = clamp_(b.vl + dir * 0.25, -3, 3);

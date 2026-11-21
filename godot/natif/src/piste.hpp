@@ -30,6 +30,8 @@ inline double hypot_(double a, double b) {
 }
 
 struct Coup { double t, nx, ny, depth; int b; bool ok = false; };
+// Où est la voie des stands à une abscisse (track.js, pitAt) : ok = faux hors de la voie.
+struct ZoneStand { bool ok = false; double u = 0, ecart = 0, interne = 0, externe = 0, lat = 0, boite = 0; bool dansZone = false; };
 struct Projection { double s; int i; double lat; };
 
 struct Piste {
@@ -48,6 +50,9 @@ struct Piste {
 	mutable int tampon = 0;
 	struct Plaque { bool gravier; double b[4]; std::vector<double> poly; };
 	std::vector<Plaque> plaques;
+	// la voie des stands (track.pit) : absente si `aStand` est faux
+	bool aStand = false;
+	double pEntree = 0, pBoite = 0, pSortie = 0, pLong = 0, pSeparation = 1.2, pLargeur = 6, pZone = 26;
 
 	static int64_t cle(int x, int y) { return (int64_t(x) << 32) ^ int64_t(uint32_t(y)); }
 
@@ -84,10 +89,30 @@ struct Piste {
 	double kerbAt(double s) const { return lerp_(kerb, s); }
 	double hwLeftAt(double s) const { return lerp_(hwL, s); }
 	double hwRightAt(double s) const { return lerp_(hwR, s); }
+	ZoneStand pitAt(double s) const {
+		ZoneStand z;
+		if (!aStand) return z;
+		double span = wrap_(pSortie - pEntree), d = wrap_(s - pEntree);
+		if (d > span) return z;
+		double u = d / span;
+		double ecart = minf(1, minf(u / 0.12, (1 - u) / 0.14));
+		double dBoite = wrap_(s - pBoite);
+		double bord = hwRightAt(s);
+		double interne = -(bord + pSeparation * ecart);
+		double externe = interne - pLargeur * (0.4 + 0.6 * ecart);
+		double boite = dBoite > length / 2 ? dBoite - length : dBoite;
+		z.ok = true; z.u = u; z.ecart = ecart; z.interne = interne; z.externe = externe; z.lat = (interne + externe) / 2;
+		z.boite = boite; z.dansZone = std::fabs(boite) < pZone;
+		return z;
+	}
 	double targetLat(double s, double sel) const {
 		double r = lerp_(lRacing, s);
 		if (sel >= 0) return r + (lerp_(lJaune, s) - r) * minf(1, sel);
-		return r + (lerp_(lBleu, s) - r) * minf(1, -sel);
+		double dedans = r + (lerp_(lBleu, s) - r) * minf(1, -sel);
+		if (sel > -1) return dedans;
+		ZoneStand p = pitAt(s);
+		if (!p.ok) return dedans;
+		return dedans + (p.lat - dedans) * minf(1, -sel - 1);
 	}
 	double lineCurv(double s, double sel) const {
 		double r = lerp_(kRacing, s);

@@ -1,8 +1,8 @@
 ## La voiture : la physique de js/car.js, ligne pour ligne.
 ##
-## Les noms sont ceux du jeu web, à dessein : chaque calcul se relit à côté de son original. Ce qui
-## n'est pas porté ici n'existe pas dans le prototype — l'usure, les dégâts, les stands, l'aimant
-## de l'IA et le pilote automatique.
+## Les noms sont ceux du jeu web, à dessein : chaque calcul se relit à côté de son original. Les
+## dégâts et les stands viennent de l'essai du jeu web (branche claude/degats-visuels) ; l'usure des
+## pneus, éteinte dans le jeu web (USURE_ACTIVE), n'est pas portée.
 ##
 ## Tout se calcule en flottants 64 bits, comme JavaScript. Aucune grandeur physique ne passe par
 ## Vector2, qui est en simple précision dans Godot.
@@ -71,6 +71,41 @@ const BARRIERE_glissePneus := 0.52
 const BARRIERE_lacet := 0.35
 const BARRIERE_seuil := 5.0
 const ARRET_LIBRE := 0.55
+
+# ---------- les dégâts et les stands (js/car.js, essai des dégâts) ----------
+## La tôle seule : un choc franc cabosse la voiture et lui coûte de la pointe et de la reprise,
+## jusqu'à 35 % au maximum des dommages ; jamais d'adhérence. `abandon` : en solo seulement.
+const DEGATS := { chocSeuil = 3.5, chocParVitesse = 0.018, vmax = 0.35 }
+const FLANC_SEUIL := 6.0                 # m/s de rapprochement latéral avant qu'un coup de flanc ne casse
+const ABANDON_VITESSE := 100.0 / 3.6     # m/s qui RENTRENT dans une protection : le moteur est détruit
+const CHOC_SEUIL_USURE := 3.5            # USURE.chocSeuil, pour le dessin d'un choc sans dégâts
+## La caisse en huit zones (le nez, les quatre coins, les deux flancs, l'arrière) : chaque choc
+## enfonce la sienne et un peu ses voisines ; les dommages sont la zone la plus enfoncée.
+const ENFONCE_zones := 8
+const ENFONCE_creux := 0.015
+const ENFONCE_max := 0.3
+const ENFONCE_voisines := 0.35
+const ENFONCE_durete := [0.3, 0.6, 1.4, 0.6, 0.3, 0.6, 1.4, 0.6]
+## L'arrêt au stand : la vitesse de la voie, la réparation (selon ce qu'il y a à réparer).
+const STAND_vitesse := 22.0
+const STAND_service := 3.2
+const STAND_reparationBase := 1.5
+const STAND_reparation := 6.5
+const STAND_seuilArret := 3.0
+const STAND_demiBoite := 9.0
+
+
+## La zone de la caisse que touche un choc, (lx, ly) dans le repère de la voiture (zoneEnfonce).
+static func zoneEnfonce(lx: float, ly: float) -> int:
+	var n := ENFONCE_zones
+	var px := -Piste.clamp_(lx * 1.8, -1, 1)
+	var py := -Piste.clamp_(ly * 1.8, -1, 1)
+	return ((int(roundf_js(atan2(py, px) / (2 * PI / n))) % n) + n) % n
+
+
+## Math.round de JavaScript : le demi va vers +∞.
+static func roundf_js(xx: float) -> float:
+	return floorf(xx + 0.5)
 const PHYS := { aimant = 0.0, ldK = 0.45, ldMin = 6.0, ff = 0.3, slip = 1.0, cliff = 1.0, steerRate = 6.0, yawK = 2.0, wLim = 0.95, selRate = 0.7, liftOff = 0.16, motricite = 1.25, drivePriority = 0.15, relax = 0.2, circle = 0.25 }
 const PHYS_aimant := 0.0
 const PHYS_ldK := 0.45
@@ -208,8 +243,22 @@ var human := -1
 var netRemote := false
 var netSeq := 0
 var inPit := false
-var damage := 0.0
+var damage := 0.0           # 0 = intacte, 1 = épave : l'enfoncement de la zone la plus touchée
 var tyre := 1.0
+# Les dégâts (essai) : `degats` est le réglage de la tôle (DEGATS, et `abandon`), ou vide si la
+# course n'en a pas. `chocs` : les chocs de l'image, pour le dessin seulement — le rendu les vide.
+var degats := {}
+var enfoncement := PackedFloat32Array([0, 0, 0, 0, 0, 0, 0, 0])   # Float32Array dans le jeu web : même arrondi
+var chocs: Array = []
+var reculChoc := 0
+var abandon := false
+var abandonT := 0.0
+var pitsDone := 0
+var pitAsk := false         # l'intention ; la ligne reste `sel`
+var pitState := ""          # "" | "voie" | "arret"
+var pitServi := false
+var pitT := 0.0
+var pitT0 := 0.0
 
 
 func _init(piste: Piste, modele: Modele, s0: float, lat0: float, h: Hasard = null) -> void:
@@ -227,6 +276,37 @@ func _init(piste: Piste, modele: Modele, s0: float, lat0: float, h: Hasard = nul
 ## Les aides de pilotage : le joueur n'a pas d'aimant, l'IA si.
 func _aimant() -> float:
 	return 0.0 if isPlayer else AIDES_IA_aimant
+
+
+## Une voiture cabossée traîne : de la pointe et de la reprise, jamais de l'adhérence.
+func damageFactor() -> float:
+	return 1.0 - float(degats.vmax) * damage if not degats.is_empty() else 1.0
+
+
+## Un choc qui enfonce la caisse : (nx, ny) la direction dans laquelle la tôle rentre, dans le
+## monde ; `force` les m/s au-delà du seuil.
+func _enfonce(nx: float, ny: float, force: float) -> void:
+	if not (force > 0): return
+	var cs := cos(th)
+	var sn := sin(th)
+	var lx := nx * cs + ny * sn
+	var ly := -nx * sn + ny * cs
+	var k := Voiture.zoneEnfonce(lx, ly)
+	var creux := ENFONCE_creux * force
+	for zp in [[k, 1.0], [(k + 1) % ENFONCE_zones, ENFONCE_voisines], [(k + ENFONCE_zones - 1) % ENFONCE_zones, ENFONCE_voisines]]:
+		var z: int = zp[0]
+		enfoncement[z] = minf(ENFONCE_max, enfoncement[z] + creux * zp[1] * ENFONCE_durete[z])
+	var m := 0.0
+	for e in enfoncement: m = maxf(m, e)
+	damage = Piste.clamp_(m / ENFONCE_max, 0, 1)
+
+
+## Un choc, pour ce qui se voit (le dessin le lit puis vide la liste) : dans le repère de la voiture.
+func _marque(nx: float, ny: float, vitesse: float, frotte: float, sorte: String, epave := false) -> void:
+	if chocs.size() >= 12 or fantome: return
+	var cs := cos(th)
+	var sn := sin(th)
+	chocs.append({ nx = nx * cs + ny * sn, ny = -nx * sn + ny * cs, v = vitesse, frotte = frotte, sorte = sorte, epave = epave })
 
 
 func cornerSpeed(kk: float) -> float:
@@ -379,6 +459,7 @@ func _barrierContact(fx: float, fy: float, fth: float, raceTime: float) -> bool:
 	v = wx * cs + wy * sn; vl = wx * sn - wy * cs
 	w *= BARRIERE_lacet; Ff = 0; Fr = 0
 	slide = 0; patine = 0; patineFx = 0; throttle = 0; braking = false
+	var fatal := false
 	if not engineStopped:
 		var effective := impact * (.55 if pneus else 1.0)
 		barrierHits += 1
@@ -387,6 +468,13 @@ func _barrierContact(fx: float, fy: float, fth: float, raceTime: float) -> bool:
 			engineCut = Piste.clamp_(.25 + 2 * pow(effective / 20, 2), .25, 5)
 			engineStopped = true
 		_leaveTrack()
+		if not degats.is_empty():
+			_enfonce(hnx, hny, effective - float(degats.chocSeuil))
+			# l'abandon : 100 km/h droit dans un mur, le moteur ne repartira plus
+			if degats.get("abandon", false) and effective >= ABANDON_VITESSE:
+				fatal = true; abandon = true; damage = 1.0; enfoncement.fill(ENFONCE_max)
+				engineCut = INF; engineStopped = true
+	_marque(hnx, hny, impact * (.55 if pneus else 1.0), absf(vt), "tyres" if pneus else "rail", fatal)
 	var pr := T.project(x, y, s, 30)
 	var dss := T.diff(s, pr[0])
 	if raceTime >= 0 and dss > 0 and dss < 6:
@@ -401,12 +489,48 @@ func _barrierContact(fx: float, fy: float, fth: float, raceTime: float) -> bool:
 func update(dt: float, throttleIn: float, raceTime: float) -> void:
 	var T := track
 	var c := cls
+	if abandon: abandonT += dt
 	var wasStopped := engineStopped
 	engineCut = maxf(0, engineCut - dt)
 	engineStopped = engineCut > 1e-6
 	if wasStopped and not engineStopped:
 		th = T.headingAt(s); delta = 0; Ff = 0; Fr = 0
 	var thr := throttleIn
+	# --- la voie des stands (js/car.js) : AVANT l'accélérateur, qui commande aussi le freinage ---
+	# On y est quand on l'a demandée ET qu'on est dans sa portion de circuit ; il suffit de
+	# s'arrêter dans la zone. Les stands n'existent qu'avec les dégâts.
+	var zone := T.pitAt(s) if not degats.is_empty() else {}
+	inPit = not zone.is_empty() and (pitAsk or pitState != "")
+	if inPit:
+		if pitState == "": pitState = "voie"
+		if pitState == "voie" and not pitServi and zone.dansZone and absf(v) < STAND_seuilArret:
+			pitState = "arret"
+			pitT = STAND_reparationBase + STAND_reparation * damage
+			pitT0 = pitT
+	elif pitState == "voie" and zone.is_empty():
+		# sorti de la voie : la demande s'éteint avec la sortie
+		pitState = ""
+		pitAsk = false
+	if zone.is_empty(): pitServi = false
+	# dans la voie, l'IA freine pour la zone comme pour un virage ; le joueur se conduit lui-même
+	if inPit and aiDriven:
+		if pitState == "voie" and float(zone.boite) < 0 and not pitServi:
+			var reste := maxf(0, -float(zone.boite))
+			var vCible := minf(STAND_vitesse, sqrt(2 * c.brake * 0.8 * reste))
+			thr = 1.0 if v < vCible * 0.92 else 0.0
+		elif pitState == "voie":
+			thr = 1.0 if v < STAND_vitesse * 0.95 else 0.0
+		else:
+			thr = 0.0
+	if inPit and pitState != "arret" and v > STAND_vitesse: thr = 0.0
+	if pitState == "arret":
+		pitT -= dt
+		v = 0; vl = 0; w = 0
+		if pitT <= 0:
+			tyre = 1; damage = 0; enfoncement.fill(0); pitsDone += 1
+			pitState = "voie"
+			pitAsk = false
+			pitServi = true
 	if engineStopped: thr = 0
 	thr = Piste.clamp_(thr, 0, 1)
 	throttle = thr
@@ -416,8 +540,9 @@ func update(dt: float, throttleIn: float, raceTime: float) -> void:
 	var hwRs := T.hwRightAt(s)
 	var kb := T.kerbAt(s)
 	var marge := c.width * 0.3
-	var horsRoute := lat > hwLs + marge or lat < -(hwRs + marge)
-	var off := lat > hwLs + kb + marge or lat < -(hwRs + kb + marge)
+	# dans la voie des stands on est hors de la piste sans être hors piste : ni gravier, ni faute
+	var horsRoute := not inPit and (lat > hwLs + marge or lat < -(hwRs + marge))
+	var off := not inPit and (lat > hwLs + kb + marge or lat < -(hwRs + kb + marge))
 	var loose := off and not T.runoffAsphaltAt(s, lat)
 	surKerb = horsRoute and not off
 	if off: _leaveTrack()
@@ -480,8 +605,9 @@ func update(dt: float, throttleIn: float, raceTime: float) -> void:
 	var base := gAxle
 	var cliffF: float = 1 - c.cliff * PHYS_cliff * smoothstep_(absf(aF), peak * 1.5, peak * 5)
 	var cliffR: float = 1 - c.cliff * PHYS_cliff * smoothstep_(absf(aR), peak * 1.5, peak * 5)
-	var vmax := c.vmax * (1.05 if draft else 1.0)
-	var accDem := thr * c.accel * c.driveFactor(maxf(0, v)) * maxf(0, 1 - pow(maxf(0, v) / vmax, 2.5)) * (1.08 if draft else 1.0) if thr != 0.0 else 0.0
+	var dmg := damageFactor()
+	var vmax := c.vmax * dmg * (1.05 if draft else 1.0)
+	var accDem := thr * c.accel * c.driveFactor(maxf(0, v)) * dmg * maxf(0, 1 - pow(maxf(0, v) / vmax, 2.5)) * (1.08 if draft else 1.0) if thr != 0.0 else 0.0
 	var transfert: float = PHYS_liftOff * brakeFrac * Piste.clamp_(freinRatio if freinRatio != 0.0 else 1.0, FREIN_MIN, FREIN_MAX)
 	var gF := base * cliffF * (1 + transfert * TRANSFERT_AV)
 	var gArrBrut := base * c.rearBias * (1 - transfert)
@@ -497,7 +623,7 @@ func update(dt: float, throttleIn: float, raceTime: float) -> void:
 	var safeDrive := minf(accDem, longDispo * cliffR)
 	var accReel := accDem if loose else safeDrive * (1 - priority) + accDem * share * priority
 	patine = 0.0 if loose or accDem <= 0 else Piste.clamp_(1 - accReel / accDem, 0, 1)
-	var spinFx := Piste.clamp_(1 - accReel / accDem, 0, 1) if not loose and accDem > 0 else 0.0
+	var spinFx := Piste.clamp_(1 - accReel / accDem, 0, 1) if not loose and not inPit and accDem > 0 else 0.0
 	var spinTau := 0.035 if spinFx > patineFx else 0.08
 	patineFx += (spinFx - patineFx) * (1 - exp(-dt / spinTau))
 	var gR: float = gArrBrut * cliffR * (1.0 if loose else 1 - priority + priority * share) \
@@ -510,7 +636,7 @@ func update(dt: float, throttleIn: float, raceTime: float) -> void:
 	# L'aimant : l'IA seulement (PHYS_aimant = 0 pour le joueur).
 	var Fm := 0.0
 	var aimant := _aimant()
-	if aimant > 0 and not off and absf(v) > 3:
+	if aimant > 0 and not off and absf(v) > 3 and not inPit:
 		var latCible := gridLat if not is_nan(gridLat) else T.targetLat(s, selS)
 		var ecart := latCible - lat
 		var dEcart := 0.0 if is_nan(ecartAv) else (ecart - ecartAv) / maxf(1e-4, dt)
@@ -555,7 +681,10 @@ func update(dt: float, throttleIn: float, raceTime: float) -> void:
 	th = wrapAngle(th + w * dt)
 	var v0 := v
 	var vl0 := vl
-	v = Piste.clamp_(v0 + (acc - vl0 * w) * dt, -0.25 * c.vmax, c.vmax * 1.05)
+	v = Piste.clamp_(v0 + (acc - vl0 * w) * dt, -0.25 * c.vmax, c.vmax * dmg * 1.05)
+	# la limitation de la voie : sans elle, la voie serait un raccourci
+	if inPit and v > STAND_vitesse: v = STAND_vitesse
+	if pitState == "arret": v = 0
 	vl = vl0 + (v0 * w + Ff + Fm + Fr) * dt
 	if latDrag != 0.0:
 		vl += Piste.clamp_(latDrag * dt, -absf(vl0), absf(vl0))
@@ -598,6 +727,11 @@ func steer(cars: Array, dt: float, ai: bool) -> void:
 	var c := cls
 	if not is_nan(gridLat):
 		laneTarget = gridLat; selS = sel
+		return
+	# une voiture qui rentre aux stands ne double plus personne : elle vise la voie (sel = -2)
+	if pitAsk or pitState != "":
+		selS += Piste.clamp_(-2 - selS, -PHYS_selRate * dt, PHYS_selRate * dt); selV = 0
+		laneTarget = T.targetLat(s, selS)
 		return
 	var bl: Voiture = null
 	var bd := INF

@@ -18,6 +18,9 @@ struct Course {
 	Hasard hasard;
 	Niveau difficulte, difficile;
 	bool modeCourse = true, entrainement = false;
+	// les dégâts (js/race.js, essai) : la tôle partagée par toutes les voitures, et les stands
+	Tole degats;
+	bool stands = false;
 	int laps = 3;
 	double time = 0, countdown = 3.6, finishTimer = 0, dt = 1.0 / 120;
 	int state = 0;   // 0 countdown, 1 racing, 2 finishing, 3 finished
@@ -39,12 +42,14 @@ struct Course {
 
 	void prepare() {
 		cars.clear(); sansFantome.clear();
-		for (auto &v : voitures) { v.track = &track; v.hasard = &hasard; cars.push_back(&v); }
+		for (auto &v : voitures) { v.track = &track; v.hasard = &hasard; v.degats = degats; cars.push_back(&v); }
 		for (int i = 0; i < int(cars.size()); i++) if (i != fantome) sansFantome.push_back(cars[i]);
 		obsFautes.assign(cars.size(), 0); obsRepris.assign(cars.size(), 0); obsInvalid.assign(cars.size(), 0);
 	}
 
-	bool tousArrives() const { for (auto *c : cars) if (!c->finished) return false; return true; }
+	bool tousArrives() const { for (auto *c : cars) if (!c->finished && !c->abandon) return false; return true; }
+	void decidePit(Voiture &car);
+	void projetteArrivees();
 
 	void step(double gaz);
 	void simulate(double gaz);

@@ -44,8 +44,10 @@ func _init() -> void:
 		if CourseNative.disponible():
 			echec = _natifSeul(piste, modele, champs, n, L, entrees, etats, nom) or echec
 	echec = _course(piste, false) or echec
+	echec = _courseDegats(piste, false) or echec
 	if CourseNative.disponible():
 		echec = _course(piste, true) or echec
+		echec = _courseDegats(piste, true) or echec
 	else:
 		print("  (moteur C++ absent : seule la version GDScript est vérifiée)")
 	print("PARITÉ ", "ÉCHOUÉE" if echec else "OK")
@@ -223,6 +225,65 @@ func _course(piste: Piste, natif: bool) -> bool:
 		print("          vainqueur n° %d %s en %.3f s (web : n° %d en %.3f s)" % [g.car.numero, g.car.nom, g.temps, int(res[0].numero), float(res[0].temps)])
 	return not ok
 
+
+
+## La course avec les dégâts (essai) : trois tours de Spa, dégâts et stands, l'IA difficile ; le
+## joueur demande les stands quand le jeu web les lui a demandés. Positions, tours, dommages et
+## arrêts de chaque voiture, à chaque pas, jusqu'à la dérive d'arrondi du sinus (voir README) : les
+## chocs la grossissent, et au-delà la course peut prendre un autre chemin. L'arrêt au stand doit
+## tomber avant elle.
+func _courseDegats(piste: Piste, natif: bool) -> bool:
+	if not FileAccess.file_exists("res://donnees/ref/course-degats.bin"):
+		print("  course avec dégâts : enregistrement absent")
+		return true
+	var meta: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://donnees/ref/course-degats.json"))
+	var a := FileAccess.get_file_as_bytes("res://donnees/ref/course-degats.bin").to_float64_array()
+	var n := int(a[0])
+	var N := int(a[1])
+	var K := int(a[2])
+	var entrees := a.slice(3, 3 + n * 3)
+	var suivi := a.slice(3 + n * 3)
+	var ref: Array = meta.roster
+	var h := Hasard.new(1)
+	var classe = CourseNative if natif else Course
+	var course: Course = classe.new(piste, {
+		modele = Catalogue.modele("porsche991gt3r"), difficulte = Catalogue.difficulte("hard"), mode = "race", laps = 3, degats = true,
+		nCars = N, roster = ref.map(func(r): return { nom = r.nom, modele = r.modele, livery = r.livery, livree = r.livree, skill = r.skill }),
+		modeleDe = func(id, _i): return Catalogue.modele(id) }, h)
+	for i in N:
+		course.cars[i].aiTimer = ref[i].aiTimer
+	h.etat = int(meta.graineApres)
+	if natif: course.reverse()
+	var pire := 0.0
+	var pireVoiture := -1
+	var premier := -1
+	var premierTour := -1
+	var premierDegat := -1
+	var pireDegat := 0.0
+	var arrets := 0
+	var dernierArret := 0          # le dernier pas où un arrêt au stand se termine dans le jeu web
+	for k in n:
+		course.player.sel = entrees[k * 3 + 1]
+		if entrees[k * 3 + 2] == 1: course.demandeStand(true)
+		course.step(entrees[k * 3])
+		for i in N:
+			var c: Voiture = course.cars[i]
+			var o := (k * N + i) * K
+			if k > 0 and suivi[o + 7] != suivi[((k - 1) * N + i) * K + 7]: dernierArret = k
+			if premier >= 0: continue      # après la dérive d'arrondi, la course peut bifurquer
+			var e := Piste.hypot(c.x - suivi[o], c.y - suivi[o + 1])
+			if e > pire: pire = e; pireVoiture = i
+			if e > 1e-6: premier = k
+			if premierTour < 0 and (c.lap + (1000 if c.finished else 0) != int(suivi[o + 5]) or c.pitsDone != int(suivi[o + 7]) or int(c.abandon) != int(suivi[o + 8])): premierTour = k
+			var ed := absf(c.damage - suivi[o + 6])
+			pireDegat = maxf(pireDegat, ed)
+	for c in course.cars: arrets += c.pitsDone
+	var derive := premier if premier >= 0 else n
+	var ok: bool = premierTour < 0 and pireDegat < 1e-9 and derive > dernierArret
+	print("  dégâts %s %d voitures, %d pas : identique au jeu web jusqu'à %s (positions, dommages à %s près, tours, arrêts, abandons) ; l'arrêt au stand du jeu web finit à %.2f s, rejoué %s  %s" % [
+		"C++" if natif else "GDS", N, n, ("la fin" if premier < 0 else "%.2f s, où l'arrondi du sinus fait dériver la course" % (premier / 120.0)), _sci(pireDegat),
+		dernierArret / 120.0, ("à l'identique" if derive > dernierArret and premierTour < 0 else "NON"), "ok" if ok else "ÉCHEC"])
+	return not ok
 
 
 ## Le moteur C++ seul en piste : le pas isolé, puis la course libre, sur les mêmes commandes.

@@ -50,6 +50,9 @@ var barrierGrid := {}  # Vector2i -> PackedInt32Array, dans l'ordre de track.js
 
 var width: float
 var tunnels: Array = []    # [premier point, nombre de points] : la nuit tombe dessous
+## La voie des stands (track.pit) : vide si le circuit n'en a pas. entree, boite, sortie, long,
+## separation (bande neutre), largeur, zone (demi-longueur de la zone d'arrêt).
+var pit := {}
 var asphalte := true    # faux : le circuit n'a pas de dégagement bitumé (asphaltW absent)
 var tours := 3
 var pays := ""
@@ -86,6 +89,10 @@ static func charge(chemin: String) -> Piste:
 		p.asphaltW[c] = lit.call("asphaltW_" + c)
 		p.bacW[c] = lit.call("bacW_" + c)
 	p.crossings = lit.call("croisements")
+	if (meta.index as Dictionary).has("stands"):
+		var st: PackedFloat64Array = lit.call("stands")
+		if st.size() == 7:
+			p.pit = { entree = st[0], boite = st[1], sortie = st[2], long = st[3], separation = st[4], largeur = st[5], zone = st[6] }
 	var pl: PackedFloat64Array = lit.call("plaques")
 	var o := 0
 	while o < pl.size():
@@ -195,13 +202,52 @@ func hwRightAt(s: float) -> float:
 	return _lerp(hwR, s)
 
 
-## La voie des stands (sel < -1) n'est pas portée : le joueur ne quitte jamais [-1, 1], et à -1
-## track.js rend la même valeur que la ligne intérieure.
+## Où viser pour la position de levier demandée : de -1 (corde) à +1 (extérieur), et au-delà de
+## -1 la voie des stands, mêlée à la ligne intérieure pour un rabattement progressif (track.js).
 func targetLat(s: float, sel: float) -> float:
 	var r := _lerp(lines.racing, s)
 	if sel >= 0:
 		return r + (_lerp(lines.jaune, s) - r) * minf(1, sel)
-	return r + (_lerp(lines.bleu, s) - r) * minf(1, -sel)
+	var dedans := r + (_lerp(lines.bleu, s) - r) * minf(1, -sel)
+	if sel > -1: return dedans
+	var p := pitAt(s)
+	if p.is_empty(): return dedans
+	return dedans + (float(p.lat) - dedans) * minf(1, -sel - 1)
+
+
+## Où est la voie des stands à cette abscisse (track.js, pitAt) : vide hors de la voie. Une voie
+## parallèle au bord droit de la piste, avec deux courtes bretelles ; `boite` est la distance signée
+## à la zone d'arrêt, `dansZone` dit qu'on y est.
+func pitAt(s: float) -> Dictionary:
+	if pit.is_empty(): return {}
+	var p := pit
+	var span := wrap_(float(p.sortie) - float(p.entree))
+	var d := wrap_(s - float(p.entree))
+	if d > span: return {}
+	var u := d / span
+	var ecart := minf(1, minf(u / 0.12, (1 - u) / 0.14))
+	var dBoite := wrap_(s - float(p.boite))
+	var bord := hwRightAt(s)
+	var interne := -(bord + float(p.separation) * ecart)
+	var externe := interne - float(p.largeur) * (0.4 + 0.6 * ecart)
+	var boite := dBoite - length if dBoite > length / 2 else dBoite
+	return { u = u, ecart = ecart, interne = interne, externe = externe, lat = (interne + externe) / 2,
+		boite = boite, dansZone = absf(boite) < float(p.zone) }
+
+
+## Les garages (track.pitGarages) : trois, au fond de la voie, centrés sur la boîte.
+func pitGarages() -> Array:
+	if pit.is_empty(): return []
+	var w := 16.0
+	var h := w * 287 / 880
+	var out := []
+	for dec in [-w, 0.0, w]:
+		var ss := wrap_(float(pit.boite) + dec)
+		var z := pitAt(ss)
+		if z.is_empty(): continue
+		var c := pos2(ss, float(z.externe) - h / 2)
+		out.append({ x = c[0], y = c[1], a = headingAt(ss) + PI, w = w, h = h, s = ss })
+	return out
 
 
 func lineCurv(s: float, sel: float) -> float:
@@ -443,7 +489,10 @@ func pourNatif() -> Dictionary:
 		pl.append(1.0 if p.gravier else 0.0); pl.append(p.poly.size() / 2)
 		for q in p.bbox: pl.append(q)
 		pl.append_array(p.poly)
-	return { n = n, ds = ds, length = length, halfWidth = halfWidth, barrierCell = barrierCell, asphalte = asphalte,
+	var st := PackedFloat64Array()
+	if not pit.is_empty():
+		st = PackedFloat64Array([pit.entree, pit.boite, pit.sortie, pit.long, pit.separation, pit.largeur, pit.zone])
+	return { n = n, ds = ds, length = length, halfWidth = halfWidth, barrierCell = barrierCell, asphalte = asphalte, stands = st,
 		xs = xs, ys = ys, th = th, nx = nx, ny = ny, k = k, hwL = hwL, hwR = hwR, kerb = kerb,
 		ligne_racing = lines.racing, ligne_jaune = lines.jaune, ligne_bleu = lines.bleu,
 		lineK_racing = lineK.racing, lineK_jaune = lineK.jaune, lineK_bleu = lineK.bleu,

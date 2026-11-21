@@ -32,6 +32,8 @@ public:
 	void pose(int i, const Dictionary &e);
 	int hasard() const { return int(c.hasard.etat); }
 	void pose_hasard(int64_t e) { c.hasard.etat = uint32_t(e); }
+	void demande_stand(bool oui);
+	PackedFloat64Array chocs();
 };
 
 } // namespace godot
