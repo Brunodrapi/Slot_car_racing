@@ -66,6 +66,22 @@ func _ready() -> void:
 	A.reglages.nom = "Bruno"
 	M.sortir()
 	_verifie(not M.connecte(), "déconnecté")
+	# 6. La version Steam : le ticket de Steam contre une session, puis un tour net au tableau
+	var faux := FauxSteam.new()
+	M.entrerSteam(faux)
+	await _attends(func(): return M.connecte(), 5.0)
+	_verifie(M.connecte() and M.session.get("fournisseur") == "steam", "connecté par le ticket Steam")
+	A.reglages.recordsNets = {}
+	M.envoyes = {}
+	M.tourNet("spa", "porsche991gt3r", 139.0, false)
+	await _attends(func(): return M.envoyes.has("spa|porsche991gt3r"), 5.0)
+	_verifie(M.envoyes.has("spa|porsche991gt3r"), "le tour du joueur Steam part au même tableau")
+	faux.bon = false
+	M.sortir()
+	M.entrerSteam(faux)
+	await _attends(func(): return not M.enCours, 5.0)
+	_verifie(not M.connecte() and M.erreurConnexion == "steam", "un ticket refusé se dit")
+	M.sortir()
 	print("MONDIAL ", "OK" if echecs.is_empty() else "ÉCHEC %s" % [echecs])
 	get_tree().quit(0 if echecs.is_empty() else 1)
 
@@ -80,3 +96,17 @@ func _attends(f: Callable, s: float) -> void:
 	while not f.call() and t < s:
 		await get_tree().create_timer(0.1).timeout
 		t += 0.1
+
+
+
+## Un faux Steam : il délivre un ticket pour l'API web, bon (c0ffee…) ou non.
+class FauxSteam:
+	extends RefCounted
+	signal get_ticket_for_web_api(auth_ticket: int, result: int, ticket_size: int, ticket_buffer: PackedByteArray)
+	var bon := true
+
+	func getAuthTicketForWebApi(identite: String) -> int:
+		assert(identite == "grip-records")
+		var t := PackedByteArray([0xc0, 0xff, 0xee, 1, 2, 3, 4, 5, 6, 7, 8, 9]) if bon else PackedByteArray([0xba, 0xad, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+		get_ticket_for_web_api.emit.call_deferred(7, 1, t.size(), t)
+		return 7

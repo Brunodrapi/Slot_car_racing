@@ -83,9 +83,23 @@ arrêt au stand dans le vrai écran de course.
   flux PKCE, et la session se renouvelle seule. Les tours nets d'avant la connexion sont rattrapés,
   espacés de seize secondes comme sur le web. La version web de Godot ne se connecte pas : elle lit.
 
-Pour Steam, l'identité Steam remplacera Google ; il faudra pour cela la clé Web API de l'éditeur,
-une table de correspondance et une branche de plus dans la fonction `record` (rien ne change pour
-les joueurs Google).
+**La version Steam se connecte toute seule**, par le ticket Steam du joueur : la fonction
+`supabase/functions/steam` le fait vérifier par Valve, donne au joueur un compte à lui (table
+`comptes_steam`, `supabase/steam.sql`) et une session — après quoi tout passe par les mêmes chemins
+qu'une connexion Google : la fonction `record`, inchangée, et le palmarès du compte. Un seul tableau
+mondial et un seul palmarès pour le web, Godot et Steam ; rien ne change pour les joueurs Google.
+Un joueur Steam qui préfère son compte Google (celui du jeu web) peut toujours se connecter avec.
+
+À faire le jour où l'application Steam existe (rien n'est déployé avant) :
+1. jouer `supabase/steam.sql` dans la base ;
+2. poser les secrets `STEAM_CLE_WEB` (clé Web API d'éditeur) et `STEAM_APP_ID` dans Supabase
+   (Edge Functions → Secrets) ;
+3. `bash tools/deploie.sh steam --yes --no-verify-jwt` (le joueur n'a pas encore de jeton : c'est
+   le ticket Steam qui le prouve), avec l'accord de Bruno ;
+4. poser un tour depuis la version Steam et le voir au tableau.
+
+`tests/mondial.tscn` vérifie le chemin de la version Steam contre le faux Supabase (un faux Steam
+délivre le ticket) ; la vérification par Valve, elle, ne s'essaie qu'avec la vraie clé.
 
 ```
 node godot/outils/faux-supabase.js 54321 /tmp/faux.json &        # un faux Supabase
@@ -299,7 +313,8 @@ NODE_PATH=$(npm root -g) node godot/outils/essai-croise.js <recette> natif:godot
 
 ## Ce qui n'y est pas encore
 
-- l'identité Steam pour le tableau mondial (Google y est) ;
+- l'identité Steam au tableau mondial est prête mais pas déployée (il faut l'application Steam et
+  sa clé, voir « Le tableau mondial ») ;
 - l'usure des pneus, éteinte dans le jeu web ;
 - les exports Android et iPhone : le moteur C++ est compilé pour Android, il reste à faire
   l'application (SDK, signature) ; l'iPhone demande un Mac et Xcode ;

@@ -48,6 +48,8 @@ var ouvreLien := func(u: String) -> void: OS.shell_open(u)
 func _ready() -> void:
 	_charge()
 	if connecte(): synchroPalmares.call_deferred()
+	# la version Steam se connecte toute seule, par le ticket Steam du joueur
+	elif SalleSteam.active(): entrerSteam.call_deferred()
 
 
 ## L'adresse du service : celle de Supabase, ou un faux service local pour les essais.
@@ -130,6 +132,39 @@ func entrer() -> void:
 	ouvreLien.call("%s/auth/v1/authorize?provider=google&redirect_to=%s&code_challenge=%s&code_challenge_method=s256" % [url(), retour.uri_encode(), defi])
 	enCours = true
 	_depuis = 0.0
+	change.emit()
+
+
+## LA VERSION STEAM : la session vient du ticket Steam du joueur, vérifié par Valve côté serveur
+## (fonction `steam`, supabase/functions/steam) — sans navigateur ni compte à créer. Ensuite tout
+## passe par les mêmes chemins qu'une connexion Google : un seul tableau mondial, un seul palmarès.
+func entrerSteam(st = null) -> void:
+	var s = st if st != null else SalleSteam.singleton()
+	if s == null or enCours: return
+	enCours = true
+	erreurConnexion = ""
+	change.emit()
+	s.get_ticket_for_web_api.connect(_ticketSteam, CONNECT_ONE_SHOT)
+	s.getAuthTicketForWebApi("grip-records")
+
+
+func _ticketSteam(_ticket, resultat, _taille, tampon) -> void:
+	enCours = false
+	var octets := PackedByteArray(tampon) if tampon is Array else (tampon as PackedByteArray)
+	if int(resultat) != 1 or octets.is_empty():
+		erreurConnexion = "steam"
+		change.emit()
+		return
+	var r := await _http(HTTPClient.METHOD_POST, url() + "/functions/v1/steam", ["apikey: " + CLE, "Content-Type: application/json"],
+		JSON.stringify({ ticket = octets.hex_encode() }))
+	if r.ok and r.rep is Dictionary and r.rep.has("access_token"):
+		_prendSession(r.rep)
+		session.fournisseur = "steam"
+		_sauve()
+		rattrape()
+		synchroPalmares()
+	else:
+		erreurConnexion = "steam"
 	change.emit()
 
 
@@ -377,6 +412,7 @@ func etat() -> Dictionary:
 	if enCours: return { texte = Textes.t("signInTab"), alerte = false }
 	if erreurConnexion == "port": return { texte = Textes.t("authPort"), alerte = true }
 	if erreurConnexion == "delai": return { texte = Textes.t("authDelai"), alerte = true }
+	if erreurConnexion == "steam": return { texte = Textes.t("authSteam"), alerte = true }
 	if erreurConnexion != "": return { texte = Textes.t("authFail", erreurConnexion), alerte = true }
 	if not connexionPossible(): return { texte = Textes.t("worldFromApp"), alerte = false }
 	if not connecte(): return { texte = Textes.t("worldNeedsAccount"), alerte = false }
@@ -385,7 +421,7 @@ func etat() -> Dictionary:
 		return { texte = Textes.t("sendingWait", [envoi.faits, envoi.total, envoi.attente]) if int(envoi.attente) > 0 else Textes.t("sending", [envoi.faits, envoi.total]), alerte = false }
 	if not envoi.is_empty() and int(envoi.faits) > 0: return { texte = Textes.t("sent", int(envoi.faits)), alerte = false }
 	if not publie(): return { texte = Textes.t("recetteHorsTableau"), alerte = false }
-	return { texte = Textes.t("signedInAs"), alerte = false }
+	return { texte = Textes.t("signedInSteam" if session.get("fournisseur") == "steam" else "signedInAs"), alerte = false }
 
 
 ## Une raison du serveur dite au joueur ; une raison inconnue est nommée telle quelle.

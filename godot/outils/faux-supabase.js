@@ -49,6 +49,14 @@ http.createServer((q, r) => {
         return json(r, 200, session());
       }
     }
+    // la version Steam : un ticket (en hexadécimal) contre une session ; le faux Valve connaît c0ffee…
+    if (q.method === 'POST' && u.pathname === '/functions/v1/steam') {
+      const b = JSON.parse(corps || '{}');
+      journal.steam = (journal.steam || 0) + 1; note();
+      if (!/^c0ffee/.test(b.ticket || '')) return json(r, 401, { raison: 'ticket' });
+      const s = session(); s.user.user_metadata = { full_name: 'Steam', fournisseur: 'steam' };
+      return json(r, 200, s);
+    }
     if (q.method === 'POST' && u.pathname === '/functions/v1/record') {
       const t = (q.headers.authorization || '').replace(/^Bearer /, '');
       if (!jetons.has(t)) return json(r, 401, { raison: 'session' });
