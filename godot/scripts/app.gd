@@ -55,6 +55,36 @@ func clic() -> void:
 	_clic.play()
 
 
+## LA MUSIQUE DES MENUS (js/audio.js, MUSIQUE). « Ajoute cette musique dans les menus avec un niveau
+## sonore très faible. » « Too Cool », Kevin MacLeod (incompetech.com), licence Creative Commons BY 4.0 :
+## le crédit est aux réglages. Elle boucle dans tous les écrans sauf la course, en fondu, très bas
+## (0,06 : le 0,12 du jeu web sous son volume général de 0,5), par le bus Master : le son coupé la coupe.
+const MUSIQUE_VOLUME := 0.06
+var _musique: AudioStreamPlayer
+var _fonduMusique: Tween
+
+
+func musique(veut: bool) -> void:
+	if DisplayServer.get_name() == "headless": return
+	if _musique == null:
+		if not veut: return
+		var flux = load("res://sons/musique-too-cool.ogg")
+		if flux == null: return
+		flux.loop = true
+		_musique = AudioStreamPlayer.new()
+		_musique.stream = flux
+		_musique.volume_db = -60.0
+		add_child(_musique)
+	if _fonduMusique: _fonduMusique.kill()
+	_fonduMusique = create_tween()
+	if veut:
+		if not _musique.playing: _musique.play()
+		_fonduMusique.tween_property(_musique, "volume_db", linear_to_db(MUSIQUE_VOLUME), 1.2).set_trans(Tween.TRANS_SINE)
+	else:
+		_fonduMusique.tween_property(_musique, "volume_db", -60.0, 0.4)
+		_fonduMusique.tween_callback(_musique.stop)
+
+
 ## Le volume général : le bus Master de Godot.
 func appliqueSon() -> void:
 	var m := AudioServer.get_bus_index("Master")
@@ -123,6 +153,8 @@ func sauve() -> void:
 func aller(nom: String, opts: Dictionary = {}) -> void:
 	if ecran:
 		ecran.queue_free()
+	# la musique des menus : partout sauf en course
+	musique(nom != "course")
 	match nom:
 		"accueil": ecran = Accueil.new()
 		"paddock": ecran = Paddock.new(opts.get("mode", reglages.mode))

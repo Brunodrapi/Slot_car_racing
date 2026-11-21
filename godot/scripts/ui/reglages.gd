@@ -112,3 +112,5 @@ func _draw() -> void:
 	for i in lignes.size():
 		Style.texte(self, Textes.t(lignes[i][0]), r.position + Vector2(20, 84 + (i + 1) * h + h * 0.62), 22, Style.ENCRE)
 	Style.texte(self, Textes.t("sHint"), Vector2(r.position.x + 236, r.end.y - 34), 15, Color(Style.ENCRE, 0.7))
+	# le crédit de la musique des menus (licence Creative Commons BY 4.0)
+	Style.texte(self, Textes.t("creditMusique"), Vector2(r.position.x + 236, r.end.y - 14), 12, Color(Style.ENCRE, 0.6), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 252)

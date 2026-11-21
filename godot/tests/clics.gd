@@ -45,5 +45,14 @@ func _ready() -> void:
 		var nom: String = b.get_meta("texte", "")
 		await _clique(b)
 		_verifie(A.clics == avant + 1, "%s : un clic de souris sur « %s », un clic (%d)" % [ecran, nom, A.clics - avant])
+	# la musique des menus : elle joue ici, très bas, et se tait en course
+	A.aller("accueil")
+	await get_tree().create_timer(1.8).timeout
+	_verifie(A._musique != null and A._musique.playing and absf(A._musique.volume_db - linear_to_db(A.MUSIQUE_VOLUME)) < 0.5,
+		"au menu, la musique joue, très bas (%s dB)" % (snappedf(A._musique.volume_db, 0.1) if A._musique else "—"))
+	A.reglages.mode = "timetrial"
+	A.aller("course")
+	await get_tree().create_timer(1.5).timeout
+	_verifie(A._musique != null and not A._musique.playing, "en course, elle se tait")
 	print("CLICS ", "OK" if echecs.is_empty() else "ÉCHEC %s" % [echecs])
 	get_tree().quit(0 if echecs.is_empty() else 1)
