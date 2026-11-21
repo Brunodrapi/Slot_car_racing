@@ -194,6 +194,19 @@ func cabosse(px: float, py: float, nx: float, ny: float, force: float, epave: bo
 	peau.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 
+## Les zones enfoncées (les points de vie) : la tôle rentre là où la voiture a pris ses coups.
+func ecrase(enf: PackedFloat32Array, pitsDone: int) -> void:
+	if tole == null:
+		var rien := true
+		for e in enf:
+			if e > 0: rien = false
+		if rien: return
+		tole = DegatsVue.Carrosserie.new(float(cotes.w), float(cotes.h))
+		tole.pitsVu = pitsDone
+		_peau()
+	tole.ecrase(enf)
+
+
 ## L'image du dessin propre, lue une fois (teinte des débris, place du scotch).
 func image() -> Image:
 	if _image == null:

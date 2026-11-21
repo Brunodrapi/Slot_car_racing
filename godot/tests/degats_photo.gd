@@ -12,6 +12,8 @@ func _ready() -> void:
 	var A = get_node("/root/App")
 	A.reglages.mode = "race"; A.reglages.circuit = "spa"; A.reglages.voiture = "porsche991gt3r"
 	A.reglages.adversaires = 6; A.reglages.degats = true; A.reglages.tours = 3
+	# GRIP_NATIF=0 : la course en GDScript, comme la version web (les zones s'enfoncent ici, à la main)
+	if OS.get_environment("GRIP_NATIF") == "0": A.reglages.natif = false
 	await get_tree().create_timer(0.5).timeout
 	A.aller("course")
 	await get_tree().create_timer(2.0).timeout
@@ -30,7 +32,10 @@ func _ready() -> void:
 		for k in 3:
 			var d: Vector2 = dirs[(i + k) % dirs.size()]
 			c.chocs.append({ nx = d.x, ny = d.y, v = 9.0 + 4 * k, frotte = 10.0, sorte = "rail", epave = false })
-		c.damage = 0.2 + 0.1 * i
+			# la physique enfonce la zone touchée comme elle le ferait (la tôle suit les points de vie)
+			var cs := cos(c.th)
+			var sn := sin(c.th)
+			c._enfonce(d.x * cs - d.y * sn, d.x * sn + d.y * cs, 9.0 + 4 * k - float(c.degats.get("chocSeuil", 3.5)) + 6 * i)
 	print("chocs posés")
 	await get_tree().create_timer(0.15).timeout
 	get_viewport().get_texture().get_image().save_png(dossier.path_join("degats-1.png"))

@@ -43,7 +43,7 @@ const double RESSENTI[4][2] = {{0.00, 0.62}, {0.80, 1.30}, {1.30, 2.50}, {0.44, 
 // les dégâts et les stands (js/car.js, essai des dégâts)
 const double FLANC_SEUIL = 6.0, ABANDON_VITESSE = 100.0 / 3.6, CHOC_SEUIL_USURE = 3.5;
 const int E_zones = 8;
-const double E_creux = 0.015, E_max = 0.3, E_voisines = 0.35;
+const double E_creux = 0.0075, E_max = 0.3, E_voisines = 0.35;
 const double E_durete[8] = {0.3, 0.6, 1.4, 0.6, 0.3, 0.6, 1.4, 0.6};
 const double S_vitesse = 22.0, S_reparationBase = 1.5, S_reparation = 6.5, S_seuilArret = 3.0;
 }

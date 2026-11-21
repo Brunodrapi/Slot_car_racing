@@ -15,9 +15,19 @@ const POINTS := 32                       # sommets par anneau
 const RETRAITS := [0.0, 0.42, 0.9]       # m : chaque anneau depuis le bord du dessin ; le dernier est fixe
 const CREUX_MAX := [0.3, 0.15, 0.0]      # m : ce que chaque anneau peut rentrer au plus
 const SEUIL := 3.5                       # m/s : en dessous, un contact ne cabosse rien
-const CREUX := 0.015                     # m de tôle par m/s au-delà du seuil
+const CREUX := 0.0075                    # m de tôle par m/s au-delà du seuil (Voiture.ENFONCE_creux)
 const RAYON := 0.6
 const EPAVE_MAX := [0.95, 0.55, 0.0]
+## LA TÔLE SUIT LES POINTS DE VIE. « Quand on est à 12 %, on doit avoir un côté complètement enfoncé :
+## visuellement ça doit se voir beaucoup plus. » (Bruno) Les bosses des chocs ne marquent que l'endroit
+## touché ; en plus, chaque zone de la caisse (Voiture.zoneEnfonce : le nez, les coins, les flancs,
+## l'arrière) rentre à proportion de ce qu'elle a pris (car.enfoncement), jusqu'à ces fractions de la
+## demi-longueur (le nez, l'arrière) ou de la demi-largeur (les flancs) quand elle est à fond.
+const ECRASE := [0.36, 0.5, 0.7, 0.5, 0.32, 0.5, 0.7, 0.5]
+const ECRASE_ANNEAU := 0.5               # l'anneau du milieu suit à moitié : le pli reste lisse
+const ECRASE_COURBE := 0.8               # < 1 : un enfoncement moyen se voit déjà bien
+const BOSSES := 0.6                      # la part des bosses locales, par-dessus les zones
+const FROISSE := 0.45                    # l'irrégularité du bord enfoncé : de la tôle froissée, pas une voiture plus petite
 const EPAVE_CREUX := 1.1
 const EPAVE_RAYON := 1.5
 const RESSORT := 260.0
@@ -112,6 +122,9 @@ func maj(course: Course, vues: Array, dt: float) -> void:
 					_gerbe(X, Y, vx, vy, ox, oy, n)
 					gerbes += n
 		car.chocs.clear()
+		# la tôle suit les points de vie, zone par zone (figée à l'abandon : l'épave a son propre choc)
+		if course.degatsVisu and not car.fantome and not car.abandon and not car.degats.is_empty():
+			vue.ecrase(car.enfoncement, car.pitsDone)
 		if vue.tole == null: continue
 		vue.tole.pas(dt)
 		vue.majTole()
@@ -218,6 +231,12 @@ class Carrosserie:
 	var ry := PackedFloat32Array()
 	var tx := PackedFloat32Array()      # la bosse qui restera
 	var ty := PackedFloat32Array()
+	var bx := PackedFloat32Array()      # les bosses des chocs, à l'endroit touché
+	var by := PackedFloat32Array()
+	var zx := PackedFloat32Array()      # les zones enfoncées (les points de vie)
+	var zy := PackedFloat32Array()
+	var _vu := PackedFloat32Array()     # les points de vie déjà dessinés
+	var froisse := PackedFloat32Array() # par sommet du bord, tiré une fois : chaque voiture se froisse à sa façon
 	var dx := PackedFloat32Array()      # la bosse de l'instant
 	var dy := PackedFloat32Array()
 	var vx := PackedFloat32Array()
@@ -235,6 +254,9 @@ class Carrosserie:
 		var n := N * R
 		# (les tableaux Packed se copient : chacun se dimensionne lui-même)
 		rx.resize(n); ry.resize(n); tx.resize(n); ty.resize(n); dx.resize(n); dy.resize(n); vx.resize(n); vy.resize(n)
+		bx.resize(n); by.resize(n); zx.resize(n); zy.resize(n)
+		froisse.resize(N)
+		for i in N: froisse[i] = 1 - FROISSE / 2 + FROISSE * randf()
 		var hw := w / 2
 		var hh := h / 2
 		var cote := maxi(2, roundi(N / 2.0 * h / (w + h)))
@@ -270,15 +292,60 @@ class Carrosserie:
 			var f := 1 - (dist * dist) / (r * r)
 			f *= f
 			var p := prof * f * (0.65 + 0.7 * randf())
-			tx[k] += nx * p; ty[k] += ny * p
-			var m := Vector2(tx[k], ty[k]).length()
-			if m > lim: tx[k] *= lim / m; ty[k] *= lim / m
+			bx[k] += nx * p; by[k] += ny * p
+			var m := Vector2(bx[k], by[k]).length()
+			if m > lim: bx[k] *= lim / m; by[k] *= lim / m
 			vx[k] += nx * p * 2; vy[k] += ny * p * 2
-		_ordonne(tx, ty)
-		touche = true; calme = false; version += 1
+		_cible()
 		fx = (fx * fw + px * force) / (fw + force)
 		fy = (fy * fw + py * force) / (fw + force)
 		fw += force
+
+	## Les zones de la caisse rentrent selon leurs points de vie (car.enfoncement, en m, 0,3 = à fond).
+	## Chaque sommet du bord prend la zone où il se trouve, fondue avec la voisine pour que le pli
+	## reste lisse, et rentre droit vers l'intérieur de son côté ; dans les coins, en biais.
+	func ecrase(enf: PackedFloat32Array) -> void:
+		if enf == _vu: return
+		_vu = enf.duplicate()
+		var hw := w / 2
+		var hh := h / 2
+		var niveaux := []
+		for z in 8:
+			niveaux.append(float(ECRASE[z]) * pow(clampf(enf[z] / Voiture.ENFONCE_max, 0, 1), ECRASE_COURBE))
+		for i in N:
+			var qx := rx[i] / hw
+			var qy := ry[i] / hh
+			# la zone du sommet (le même découpage que la physique : ±22,5° autour de son centre), fondue
+			# avec la voisine sur ses bords seulement, pour que tout le flanc rentre, pas son milieu
+			var zf := fposmod(atan2(qy, qx) / (PI / 4), 8.0)
+			var zc := roundi(zf) % 8
+			var d := zf - roundf(zf)
+			var voisine := (zc + (1 if d > 0 else 7)) % 8
+			var part := 0.5 * smoothstep(0.2, 0.5, absf(d))
+			var fr: float = lerpf(niveaux[zc], niveaux[voisine], part) * froisse[i]
+			# vers l'intérieur de son côté : droit sur un flanc ou le nez, en biais dans un coin
+			var ex := signf(qx) * pow(absf(qx), 6)
+			var ey := signf(qy) * pow(absf(qy), 6)
+			var el := Vector2(ex, ey).length()
+			if el == 0: el = 1
+			var ux := -ex / el * hw * fr
+			var uy := -ey / el * hh * fr
+			zx[i] = ux; zy[i] = uy
+			zx[N + i] = ux * ECRASE_ANNEAU; zy[N + i] = uy * ECRASE_ANNEAU
+		_cible()
+
+	## Ce que la tôle doit rejoindre : les zones, plus les bosses des chocs ; jamais plus loin que
+	## l'épave, et jamais un anneau à travers l'autre.
+	func _cible() -> void:
+		for k in N * R:
+			var lim: float = EPAVE_MAX[k / N]
+			var cx := zx[k] + bx[k] * BOSSES
+			var cy := zy[k] + by[k] * BOSSES
+			var m := Vector2(cx, cy).length()
+			if m > lim and m > 0: cx *= lim / m; cy *= lim / m
+			tx[k] = cx; ty[k] = cy
+		_ordonne(tx, ty)
+		touche = true; calme = false; version += 1
 
 	## Un anneau ne passe jamais à travers le suivant, sinon les triangles se retournent.
 	func _ordonne(ox: PackedFloat32Array, oy: PackedFloat32Array) -> void:

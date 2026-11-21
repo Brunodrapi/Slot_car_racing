@@ -82,7 +82,7 @@ const CHOC_SEUIL_USURE := 3.5            # USURE.chocSeuil, pour le dessin d'un 
 ## La caisse en huit zones (le nez, les quatre coins, les deux flancs, l'arrière) : chaque choc
 ## enfonce la sienne et un peu ses voisines ; les dommages sont la zone la plus enfoncée.
 const ENFONCE_zones := 8
-const ENFONCE_creux := 0.015
+const ENFONCE_creux := 0.0075          # deux fois moins qu'avant : « la voiture perd sa vie trop rapidement » (Bruno)
 const ENFONCE_max := 0.3
 const ENFONCE_voisines := 0.35
 const ENFONCE_durete := [0.3, 0.6, 1.4, 0.6, 0.3, 0.6, 1.4, 0.6]
