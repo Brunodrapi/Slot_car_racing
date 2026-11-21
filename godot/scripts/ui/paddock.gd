@@ -18,8 +18,12 @@ var defile := 0.0
 var hauteur := 720.0
 # La mise en page, calculée par _construit et relue par le dessin : le panneau du circuit (à droite en
 # paysage, sous la voiture et sur toute la largeur en portrait) et la première ligne de la barre du bas.
-var carte := Rect2(790, 92, 468, 548)
-var ybas := 654.0
+var carte := Rect2(790, 92, 468, 392)
+var liste := Rect2(790, 494, 468, 300)      # sous le circuit : les temps (ou le palmarès) de toute la catégorie
+var ybas := 0.0
+var barre: Control                          # la barre du bas, fixe : « En piste » reste à portée du doigt
+var _haut := 0.0
+const LIGNE := 44.0                         # la hauteur d'une ligne de la liste
 
 
 func _init(m: String) -> void:
@@ -36,9 +40,13 @@ func _ready() -> void:
 	cadre = Control.new()
 	cadre.draw.connect(_dessine)
 	add_child(cadre)
+	barre = Control.new()
+	barre.draw.connect(_dessineBarre)
+	add_child(barre)
 	resized.connect(_construit)
 	# le tableau mondial arrive après l'écran, et la connexion revient du navigateur : on repeint
 	Mondial.change.connect(_construit)
+	get_viewport().gui_focus_changed.connect(_montre)
 	_construit()
 
 
@@ -76,21 +84,38 @@ static func precharge() -> void:
 
 
 func _input(e: InputEvent) -> void:
-	if not portrait: return
 	if e is InputEventMouseButton and e.pressed and (e.button_index == MOUSE_BUTTON_WHEEL_DOWN or e.button_index == MOUSE_BUTTON_WHEEL_UP):
 		_defile(60.0 if e.button_index == MOUSE_BUTTON_WHEEL_DOWN else -60.0)
 	elif e is InputEventScreenDrag:
 		_defile(-e.relative.y / cadre.scale.y)
 
 
+## La manette (stick droit) et le clavier (page précédente, page suivante) font aussi défiler ;
+## un bouton qui prend le focus hors de l'écran est ramené dans la vue.
+func _process(dt: float) -> void:
+	var a := Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y)
+	if absf(a) > 0.25: _defile(a * 900.0 * dt)
+
+
+func _montre(c: Control) -> void:
+	if c == null or c.get_parent() != cadre: return
+	var k := cadre.scale.y
+	var vue := (size.y - barre.size.y * k) / k          # ce qu'on voit du cadre, au-dessus de la barre
+	if c.position.y < defile + 10: _defile(c.position.y - 10 - defile)
+	elif c.position.y + c.size.y > defile + vue - 10: _defile(c.position.y + c.size.y - (defile + vue - 10))
+
+
 func _defile(d: float) -> void:
-	defile = clampf(defile + d, 0, maxf(0, hauteur - size.y / cadre.scale.y))
-	cadre.position.y = -defile * cadre.scale.y
+	var k := cadre.scale.y
+	defile = clampf(defile + d, 0, maxf(0, hauteur - (size.y - _haut) / k))
+	cadre.position.y = _haut - defile * k
 
 
 func _unhandled_input(e: InputEvent) -> void:
 	if e.is_action_pressed("ui_cancel"):
 		App.aller("accueil")
+	elif e is InputEventKey and e.pressed and (e.keycode == KEY_PAGEDOWN or e.keycode == KEY_PAGEUP):
+		_defile(400.0 if e.keycode == KEY_PAGEDOWN else -400.0)
 
 
 # ---------- la construction des boutons ----------
@@ -107,19 +132,24 @@ func _construit() -> void:
 	var focus := get_viewport().gui_get_focus_owner() if is_inside_tree() else null
 	var cle: String = focus.get_meta("cle", "") if focus else ""
 	for c in cadre.get_children(): c.queue_free()
+	for c in barre.get_children(): c.queue_free()
 	portrait = size.x < size.y
-	var W := 1280.0
-	hauteur = 720.0
-	if portrait:
-		W = 780.0
-		hauteur = 1320.0
-	var k := minf(size.x / W, size.y / hauteur) if not portrait else size.x / W
+	var W := 1280.0 if not portrait else 780.0
+	# le cadre de référence fait 720 de haut en paysage ; ce qui dépasse (la liste) défile, comme la
+	# page du jeu web, sous la barre du bas qui, elle, reste en place
+	var k := minf(size.x / W, size.y / 720.0) if not portrait else size.x / W
+	var hBarre := 74.0 if not portrait else 84.0
+	var x0 := (size.x - W * k) / 2
+	_haut = 0.0
 	cadre.scale = Vector2(k, k)
-	cadre.size = Vector2(W, hauteur)
-	cadre.position = Vector2((size.x - W * k) / 2, 0 if portrait else (size.y - hauteur * k) / 2)
-	defile = 0.0
-	# le panneau du circuit : à droite en paysage ; en portrait, sous la voiture, sur toute la largeur
-	carte = Rect2(790, 92, 468, 548) if not portrait else Rect2(18, 650, 744, 548)
+	barre.scale = Vector2(k, k)
+	barre.size = Vector2(W, hBarre)
+	barre.position = Vector2(x0, size.y - hBarre * k)
+	# le panneau du circuit : à droite en paysage ; en portrait, sous la voiture, sur toute la largeur ;
+	# dessous, la liste de toute la catégorie (js/ui.js, records et palmaresListe)
+	carte = Rect2(790, 92, 468, 392) if not portrait else Rect2(18, 650, 744, 392)
+	var nListe := Catalogue.voituresDe(String(Catalogue.voiture(App.reglages.voiture).get("cat", ""))).size()
+	liste = Rect2(carte.position.x, carte.end.y + 12, carte.size.x, Paddock.teteListe(mode) + nListe * LIGNE + 10)
 	var nc := 3 if not portrait else 5          # les circuits visibles dans la rangée
 	# En-tête
 	_bouton(Textes.t("back"), Rect2(18, 10, 120, 64), Style.NUIT_PLEINE, Style.CREME, 22, func(): App.aller("accueil")).set_meta("cle", "retour")
@@ -147,13 +177,13 @@ func _construit() -> void:
 		b.ligne = 72
 		b.dessinPlus = _vignetteLivree.bind(b)
 	# Voitures
-	var liste: Array = Catalogue.donnees.voitures.filter(func(c): return filtre == "tous" or c.cat == filtre)
+	var rail: Array = Catalogue.donnees.voitures.filter(func(c): return filtre == "tous" or c.cat == filtre)
 	var visibles := 5
-	debutVoitures = clampi(debutVoitures, 0, maxi(0, liste.size() - visibles))
+	debutVoitures = clampi(debutVoitures, 0, maxi(0, rail.size() - visibles))
 	_bouton("‹", Rect2(18, 552, 30, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutVoitures -= visibles; _construit()).set_meta("cle", "v-gauche")
 	_bouton("›", Rect2(734, 552, 30, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutVoitures += visibles; _construit()).set_meta("cle", "v-droite")
-	for i in mini(visibles, liste.size() - debutVoitures):
-		var c: Dictionary = liste[debutVoitures + i]
+	for i in mini(visibles, rail.size() - debutVoitures):
+		var c: Dictionary = rail[debutVoitures + i]
 		var b := _bouton(str(c.nom).to_upper(), Rect2(52 + i * 136, 516, 130, 118), Style.PAPIER, Style.ENCRE, 16, func(): _choisitVoiture(c.id))
 		b.choisi = c.id == App.reglages.voiture
 		b.set_meta("cle", "voiture-" + c.id)
@@ -180,12 +210,15 @@ func _construit() -> void:
 	# Le tableau mondial : se connecter avec Google, ou renoncer à la connexion en cours
 	if Mondial.connexionPossible() and (Mondial.enCours or not Mondial.connecte()):
 		var txt := Textes.t("signInCancel") if Mondial.enCours else Textes.t("signIn")
-		var bg := _bouton(txt, Rect2(cx + 14, cy + 462, Style.largeur(txt, 15) + 28, 30), Style.NUIT_PLEINE, Style.CREME, 15,
+		var lb := Style.largeur(txt, 15) + 28
+		var bg := _bouton(txt, Rect2(liste.end.x - lb - 14, liste.position.y + 12, lb, 30), Style.NUIT_PLEINE, Style.CREME, 15,
 			func(): (Mondial.annuler() if Mondial.enCours else Mondial.entrer()))
 		bg.centre = true
 		bg.set_meta("cle", "google")
 	# La barre du bas
-	ybas = 654.0 if not portrait else carte.end.y + 22
+	# la barre : les réglages et « En piste » en paysage, fixes en bas ; en portrait, les réglages
+	# suivent la liste et seul « En piste » reste en bas
+	ybas = 13.0 if not portrait else liste.end.y + 22
 	var yb := ybas
 	var dif := _nom(DIFFICULTES, App.reglages.difficulte)
 	x = 30.0
@@ -204,25 +237,31 @@ func _construit() -> void:
 		if portrait and x > 30 and x + w > W - 18:
 			x = 30.0; yb += 58
 		var b := _bouton(r[0], Rect2(x, yb, w, 48), Style.NUIT_PLEINE, Style.CREME, 20, r[1])
+		if not portrait:
+			b.reparent(barre, false)
 		b.centre = true
 		b.set_meta("cle", r[2])
 		x += w + 10
-	# « En piste » : à droite de la barre en paysage ; en portrait, sur toute la largeur, dessous
-	var rGo := Rect2(1050, ybas - 4, 200, 56) if not portrait else Rect2(18, yb + 64, W - 36, 60)
-	if portrait:
-		hauteur = rGo.end.y + 24
-		cadre.size = Vector2(W, hauteur)
+	# « En piste » : à droite de la barre en paysage ; en portrait, sur toute la largeur
+	var rGo := Rect2(1050, 9, 200, 56) if not portrait else Rect2(18, 12, W - 36, 60)
+	hauteur = maxf(720.0 if not portrait else 0.0, (yb + 48 + 24 if portrait else liste.end.y + 20) + hBarre)
+	cadre.size = Vector2(W, hauteur)
+	cadre.position.x = x0
+	_defile(0)          # la page garde sa place quand on la refait (le tableau mondial qui arrive, un choix)
 	var go := _bouton(Textes.t("onTrack"), rGo, Style.ROUGE, Style.CREME, 30, _enPiste)
+	go.reparent(barre, false)
 	go.centre = true
 	go.set_meta("cle", "go")
 	cadre.queue_redraw()
+	barre.queue_redraw()
 	# Le focus revient où il était (la manette et le clavier ne perdent pas leur place).
 	var cible: Control = null
-	for c in cadre.get_children():
+	var tous := cadre.get_children() + barre.get_children()
+	for c in tous:
 		if c.get_meta("cle", "") == cle and not c.is_queued_for_deletion(): cible = c
 	if cible == null:
-		for c in cadre.get_children():
-			if c.get_meta("cle", "") == "go": cible = c
+		for c in tous:
+			if c.get_meta("cle", "") == "go" and not c.is_queued_for_deletion(): cible = c
 	if cible: cible.grab_focus.call_deferred()
 
 
@@ -316,41 +355,106 @@ func _dessine() -> void:
 	var ir := Rect2(r.position.x + 2, r.position.y + 94, r.size.x - 4, 96)
 	Style.couvre(ci, info.image, ir, 0.5)
 	Paddock._contour(ci, info, ir.grow(-8))
-	if mode == "race":
-		# La course rapide : le palmarès de cette voiture sur ce circuit (js/ui.js, palmaresListe)
-		Style.texte(ci, Textes.t("palmares"), r.position + Vector2(14, 410), 18, Style.ENCRE)
-		var n: int = Palmares.de(cid, v.id)
-		if n >= 0:
-			ci.draw_texture_rect(Palmares.texture(n, 40), Rect2(r.position + Vector2(r.size.x - 210, 382), Vector2(40, 40)), false)
-			Style.texte(ci, Palmares.nom(n).to_upper(), r.position + Vector2(r.size.x - 164, 410), 18, Style.ENCRE)
-		else:
-			Style.texte(ci, Textes.t("palmaresAucun"), r.position + Vector2(r.size.x - 210, 410), 16, Color(Style.ENCRE, 0.6))
+	# Sous le circuit, toute la catégorie : les temps (contre-la-montre, entraînement) ou le palmarès
+	_liste(ci, cid, v)
+	if portrait: ci.draw_rect(Rect2(18, ybas - 10, W - 36, 3), Style.NUIT_PLEINE)
+
+
+## La barre du bas, fixe : un fond papier bordé d'encre, comme la barre collante du jeu web sur
+## téléphone ; en paysage, le damier entre les réglages et « En piste ».
+func _dessineBarre() -> void:
+	var W := barre.size.x
+	var fond := Rect2(Vector2.ZERO, barre.size + Vector2(0, 40))
+	barre.draw_rect(fond, Color(Style.PAPIER, 0.96))
+	barre.draw_rect(Rect2(0, 0, W, 3), Style.NUIT_PLEINE)
+	if not portrait: Style.damier(barre, Rect2(980, 9, 76, 56), 4, Style.NUIT_PLEINE, Color(0, 0, 0, 0), 0)
+
+
+## La hauteur de l'en-tête de la liste : le titre et l'état du tableau ; en course, le nuage et la règle.
+static func teteListe(m: String) -> float:
+	return 118.0 if m == "race" else 100.0
+
+
+## LA LISTE DE LA CATÉGORIE (js/ui.js, records et palmaresListe) : une ligne par voiture.
+## Au contre-la-montre et à l'entraînement, ton meilleur tour et le record du monde, les voitures où
+## tu as un temps d'abord ; en course rapide, le trophée gagné et son niveau, du meilleur au moins bon.
+func _liste(ci: CanvasItem, cid: String, v: Dictionary) -> void:
+	var r := liste
+	ci.draw_rect(Rect2(r.position + Vector2(4, 4), r.size), Color(0, 0, 0, 0.35))
+	ci.draw_rect(r, Style.PAPIER)
+	ci.draw_rect(r, Style.NUIT_PLEINE, false, 3)
+	var x := r.position.x
+	var y := r.position.y
+	var lw := r.size.x
+	var course := mode == "race"
+	var titre := Textes.t("palmares") if course else Textes.t("yourBestTitle")
+	Style.texte(ci, titre, Vector2(x + 14, y + 34), 22, Style.ENCRE)
+	var muet := Color(Style.ENCRE, 0.75)
+	if course:
 		var e := Mondial.nuage()
-		ci.draw_texture_rect(Palmares.nuage(e, 22), Rect2(r.position + Vector2(14, 418), Vector2(22, 16)), false)
-		Style.texte(ci, Textes.t("nuage_" + e), r.position + Vector2(42, 431), 13, Color(Style.ENCRE, 0.75))
-		ci.draw_multiline_string(Style.racing(), r.position + Vector2(14, 450), Textes.t("palmaresRegle", Palmares.TOURS_MIN), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 28, 13, 2, Color(Style.ENCRE, 0.8))
+		ci.draw_texture_rect(Palmares.nuage(e, 24), Rect2(x + 14, y + 46, 24, 17), false)
+		Style.texte(ci, Textes.t("nuage_" + e), Vector2(x + 44, y + 60), 14, muet)
+		ci.draw_multiline_string(Style.racing(), Vector2(x + 14, y + 82), Textes.t("palmaresRegle", Palmares.TOURS_MIN), HORIZONTAL_ALIGNMENT_LEFT, lw - 28, 13, 2, muet)
 	else:
-		_mondial(ci, r, cid, v)
-	# Le record de l'appareil
-	var rec := _record(cid, v.id)
-	Style.texte(ci, Textes.t("myBest"), r.position + Vector2(14, 512), 18, Style.ENCRE)
-	Style.texte(ci, Style.temps(rec), r.position + Vector2(r.size.x - 160, 512), 22, Style.ENCRE)
-	Style.texte(ci, Textes.t("myBestHint"), r.position + Vector2(14, 532), 13, Color(Style.ENCRE, 0.7))
-	# La barre du bas
-	ci.draw_rect(Rect2(18, ybas - 6, W - 36, 3), Style.NUIT_PLEINE)
-	if not portrait: Style.damier(ci, Rect2(980, ybas - 4, 76, 56), 4, Style.NUIT_PLEINE, Color(0, 0, 0, 0), 0)
-
-
-## Le record du monde de cette voiture sur ce circuit (js/ui.js, records : la colonne « Monde »).
-func _mondial(ci: CanvasItem, r: Rect2, cid: String, v: Dictionary) -> void:
-	var par = Mondial.meilleurs(cid)
-	var w: Dictionary = par.get(v.id, {}) if par is Dictionary else {}
-	Style.texte(ci, Textes.t("worldBest"), r.position + Vector2(14, 410), 18, Style.ENCRE)
-	Style.texte(ci, "…" if par == null else (Style.temps(float(w.temps)) if w else "--:--.---"), r.position + Vector2(r.size.x - 160, 410), 22, Style.ENCRE)
-	Style.texte(ci, String(w.get("pilote", "")).to_upper() if w else ("" if par == null else Textes.t("noWorld")), r.position + Vector2(14, 428), 13, Color(Style.ENCRE, 0.75))
-	var et := Mondial.etat()
-	ci.draw_multiline_string(Style.racing(), r.position + Vector2(14, 446), et.texte, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 28, 13, 2,
-		Color("#a3271c") if et.alerte else Color(Style.ENCRE, 0.8))
+		var et := Mondial.etat()
+		ci.draw_multiline_string(Style.racing(), Vector2(x + 14, y + 60), et.texte, HORIZONTAL_ALIGNMENT_LEFT, lw - 28, 14, 2,
+			Color("#a3271c") if et.alerte else muet)
+	# les têtes de colonnes
+	var c1 := lw - 210.0          # ton record, ou le trophée
+	var c2 := lw - 100.0          # le monde, ou le niveau
+	var tete := Paddock.teteListe(mode)
+	Style.texte(ci, Textes.t("palmaresTrophee" if course else "colRecord"), Vector2(x + c1, y + tete - 8), 13, muet, HORIZONTAL_ALIGNMENT_LEFT, 110)
+	Style.texte(ci, Textes.t("palmaresNiveau" if course else "colMonde"), Vector2(x + c2, y + tete - 8), 13, muet, HORIZONTAL_ALIGNMENT_LEFT, 90)
+	# les voitures de la catégorie
+	var voitures := Catalogue.voituresDe(String(v.get("cat", "")))
+	var lignes := []
+	for i in voitures.size():
+		var m: Dictionary = voitures[i]
+		lignes.append({ m = m, i = i, b = _record(cid, m.id), n = Palmares.de(cid, m.id) })
+	if course:
+		lignes.sort_custom(func(a, b): return a.n > b.n if a.n != b.n else a.i < b.i)
+	else:
+		lignes.sort_custom(func(a, b):
+			if (a.b < 0) != (b.b < 0): return a.b >= 0
+			if a.b != b.b: return a.b < b.b
+			return a.i < b.i)
+	var par = null if course else Mondial.meilleurs(cid)
+	var yl := y + tete
+	for l in lignes:
+		var m: Dictionary = l.m
+		var choisie: bool = m.id == v.id
+		var rl := Rect2(x + 10, yl, lw - 20, LIGNE - 6)
+		ci.draw_rect(rl, Color("#e3d6b8") if choisie else Color("#efe4c9"))
+		if choisie: ci.draw_rect(rl, Style.ROUGE, false, 2.5)
+		var d := Catalogue.dessin(m.id, int(App.reglages.livree) if choisie else 0)
+		if d.get("vignette"):
+			var tex := Style.tex("res://images/vignettes/" + d.vignette)
+			var h := 30.0
+			var w := minf(56.0, h * tex.get_width() / tex.get_height())
+			ci.draw_texture_rect(tex, Rect2(x + 18, yl + (LIGNE - 6 - h) / 2, w, h), false)
+		var bas := yl + (LIGNE - 6) / 2 + 6
+		Style.texte(ci, str(m.nom), Vector2(x + 82, bas), 16, Style.ENCRE, HORIZONTAL_ALIGNMENT_LEFT, c1 - 92)
+		if course:
+			var n: int = l.n
+			if n >= 0:
+				ci.draw_texture_rect(Palmares.texture(n, 28), Rect2(x + c1, yl + 4, 28, 28), false)
+				Style.texte(ci, Textes.t("trophee_" + Palmares.TROPHEES[n]), Vector2(x + c1 + 32, bas), 14, Style.ENCRE, HORIZONTAL_ALIGNMENT_LEFT, c2 - c1 - 36)
+				Style.texte(ci, Textes.t(Palmares.NIVEAUX[n]).capitalize(), Vector2(x + c2, bas), 14, Style.ENCRE, HORIZONTAL_ALIGNMENT_LEFT, 90)
+			else:
+				Style.texte(ci, "—", Vector2(x + c1, bas), 16, muet)
+				Style.texte(ci, "—", Vector2(x + c2, bas), 16, muet)
+		else:
+			var b: float = l.b
+			Style.texte(ci, Style.temps(b) if b >= 0 else "--:--.---", Vector2(x + c1, bas), 16, Style.ENCRE if b >= 0 else muet, HORIZONTAL_ALIGNMENT_LEFT, 100)
+			var wd: Dictionary = par.get(m.id, {}) if par is Dictionary else {}
+			if par == null:
+				Style.texte(ci, "…", Vector2(x + c2, bas), 16, muet)
+			elif wd.is_empty():
+				Style.texte(ci, "--:--.---", Vector2(x + c2, bas), 16, muet, HORIZONTAL_ALIGNMENT_LEFT, 90)
+			else:
+				Style.texte(ci, Style.temps(float(wd.temps)), Vector2(x + c2, bas - 6), 16, Style.ENCRE, HORIZONTAL_ALIGNMENT_LEFT, 90)
+				Style.texte(ci, String(wd.get("pilote", "")), Vector2(x + c2, bas + 8), 11, muet, HORIZONTAL_ALIGNMENT_LEFT, 90)
+		yl += LIGNE
 
 
 static func _contour(ci: CanvasItem, info: Dictionary, r: Rect2) -> void:
