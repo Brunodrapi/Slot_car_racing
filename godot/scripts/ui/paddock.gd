@@ -38,6 +38,7 @@ const PC_BORD := Color("#b4a68b")
 const PC_ENCRE := Color("#262c26")
 const PC_MUET := Color("#5f6158")
 const CATS := { f1 = "#ff6b5b", gt = "#5bb8ff", gt3 = "#ffba59", proto = "#5be07a" }
+const LISTE := "\u0001"                      # une valeur qui est une liste : la petite flèche est dessinée (la police web ne l'a pas)
 const PC_LIGNE := 79.0                      # une ligne de la liste (80 de haut, 6 d'écart)
 var listeVue: Control                       # la liste de la catégorie, qui défile seule, avec sa barre
 var listeDefile := 0.0
@@ -267,7 +268,7 @@ func _construit() -> void:
 		reglagesBas.append([Textes.t("opponentsLabel"), str(int(App.reglages.adversaires) - 1), func(): App.reglages.adversaires = (int(App.reglages.adversaires) - 1) % 11 + 2; App.sauve(); _construit(), "adversaires"])
 	var vid := String(App.reglages.voiture)
 	var cfg := ReglageFrein.active(App.reglages.circuit, vid)
-	reglagesBas.append([Textes.t("freinage"), (String(cfg.nom) if not cfg.is_empty() else Textes.t("regDefaut")) + " ▾",
+	reglagesBas.append([Textes.t("freinage"), (String(cfg.nom) if not cfg.is_empty() else Textes.t("regDefaut")) + LISTE,
 		func(): ReglageFrein.suivante(App.reglages.circuit, vid); App.sauve(); _construit(), "freinage"])
 	reglagesBas.append([Textes.t("regRegler"), "", _regler, "regler"])
 	for r in reglagesBas:
@@ -709,7 +710,7 @@ func _construitPC(cle: String) -> void:
 		pastilles.append([Textes.t("lapsLabel"), str(int(App.reglages.tours)), func(): App.reglages.tours = int(App.reglages.tours) % 10 + 1; App.sauve(); _construit(), "tours"])
 		pastilles.append([Textes.t("opponentsLabel"), str(int(App.reglages.adversaires) - 1), func(): App.reglages.adversaires = (int(App.reglages.adversaires) - 1) % 11 + 2; App.sauve(); _construit(), "adversaires"])
 	var cfg := ReglageFrein.active(App.reglages.circuit, v.id)
-	pastilles.append([Textes.t("freinage"), (String(cfg.nom) if not cfg.is_empty() else Textes.t("regDefaut")) + " ▾",
+	pastilles.append([Textes.t("freinage"), (String(cfg.nom) if not cfg.is_empty() else Textes.t("regDefaut")) + LISTE,
 		func(): ReglageFrein.suivante(App.reglages.circuit, v.id); App.sauve(); _construit(), "freinage"])
 	x = 12.0
 	for p in pastilles:
@@ -933,17 +934,25 @@ static func _carteCircuitPC(b: Bouton) -> void:
 
 ## Une pastille de réglage (js/ui.js, setupBar) : le nom en crème, la valeur sur fond vert.
 static func largeurPastille(nom: String, valeur: String, t: int) -> float:
-	return 14 + Style.largeur(nom + " :", t) + 8 + Style.largeur(valeur, t) + 16 + 10
+	var liste := valeur.ends_with(LISTE)
+	return 14 + Style.largeur(nom + " :", t) + 8 + Style.largeur(valeur.trim_suffix(LISTE), t) + 16 + 10 + (t * 0.8 if liste else 0.0)
 
 
 static func _pastille(b: Bouton, nom: String, valeur: String, t: int) -> void:
 	var y := b.size.y / 2 + t * 0.36
 	Style.texte(b, nom + " :", Vector2(14, y), t, Color("#fff0d2"))
+	var liste := valeur.ends_with(LISTE)
+	var v := valeur.trim_suffix(LISTE)
 	var xv := 14 + Style.largeur(nom + " :", t) + 8
-	var wv := Style.largeur(valeur, t) + 16
+	var wv := Style.largeur(v, t) + 16 + (t * 0.8 if liste else 0.0)
 	var hv := b.size.y - 14
 	b.draw_rect(Rect2(xv, 7, wv, hv), PC_VERT)
-	Style.texte(b, valeur, Vector2(xv + 8, y), t, Color("#171c19"))
+	Style.texte(b, v, Vector2(xv + 8, y), t, Color("#171c19"))
+	if liste:
+		# la flèche d'une liste, comme celle d'un <select>
+		var c := Vector2(xv + wv - 8 - t * 0.3, b.size.y / 2 + 1)
+		var a := t * 0.26
+		b.draw_colored_polygon(PackedVector2Array([c + Vector2(-a, -a * 0.6), c + Vector2(a, -a * 0.6), c + Vector2(0, a * 0.6)]), Color("#171c19"))
 
 
 ## LA LISTE DE LA CATÉGORIE, SUR ORDINATEUR : une carte par voiture (80 de haut), dans sa propre vue,
