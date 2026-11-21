@@ -37,6 +37,24 @@ func _ready() -> void:
 	aller.call_deferred("accueil")
 
 
+## LE CLIC DES MENUS. « Il faut, dans les deux versions, des clics dans les menus. » (Bruno) Chaque
+## Bouton le joue quand on le prend (souris, doigt, clavier, manette) ; le même son que le jeu web
+## (Son._synthClic). Il passe par le bus Master : le son coupé le coupe aussi.
+var _clic: AudioStreamPlayer
+var clics := 0                        # combien, depuis le lancement (les essais le comptent)
+
+
+func clic() -> void:
+	clics += 1
+	if _clic == null:
+		_clic = AudioStreamPlayer.new()
+		_clic.stream = Son._synthClic()
+		_clic.volume_db = linear_to_db(0.5)       # le volume général du jeu web (master.gain = 0,5)
+		_clic.max_polyphony = 3
+		add_child(_clic)
+	_clic.play()
+
+
 ## Le volume général : le bus Master de Godot.
 func appliqueSon() -> void:
 	var m := AudioServer.get_bus_index("Master")

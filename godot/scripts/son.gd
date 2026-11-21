@@ -483,6 +483,28 @@ static func _synthClac(sens: int) -> AudioStreamWAV:
 	return _wav(a)
 
 
+## LE CLIC DES MENUS (js/audio.js, clic) : de la famille du clac du levier, deux fois plus court et
+## plus discret — un éclat de bruit aigu (4,2 kHz) et une note brève qui tombe de 1300 à 520 Hz.
+static func _synthClic() -> AudioStreamWAV:
+	var n := int(TAUX * 0.05)
+	var a := PackedFloat32Array(); a.resize(n)
+	var phase := 0.0
+	var bp := 0.0
+	var bp2 := 0.0
+	var k := 2 * sin(PI * 4200.0 / TAUX)
+	for i in n:
+		var t := float(i) / TAUX
+		var x := randf() * 2 - 1
+		bp += k * (x - bp - bp2 * 0.33); bp2 += k * bp
+		var gn := 0.35 * (t / 0.0015 if t < 0.0015 else pow(0.001 / 0.35, minf(1, (t - 0.0015) / 0.0165))) if t < 0.03 else 0.0
+		var f := 1300.0 * pow(520.0 / 1300.0, minf(1, t / 0.03))
+		phase += f / TAUX
+		var tri := 4 * absf(phase - floor(phase + 0.5)) - 1
+		var go := 0.16 * (t / 0.002 if t < 0.002 else pow(0.001 / 0.16, minf(1, (t - 0.002) / 0.038)))
+		a[i] = bp * gn + tri * go
+	return _wav(a)
+
+
 static func _synthBip(f: float, duree: float, vol: float, tenu: bool) -> AudioStreamWAV:
 	var n := int(TAUX * (duree + 0.05))
 	var a := PackedFloat32Array(); a.resize(n)

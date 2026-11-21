@@ -27,6 +27,8 @@ func _init(t := "", f := Style.NUIT_PLEINE, e := Style.CREME, sz := 22) -> void:
 	focus_exited.connect(queue_redraw)
 	button_down.connect(queue_redraw)
 	button_up.connect(queue_redraw)
+	# chaque bouton clique (App.clic), avant de faire ce qu'il fait
+	pressed.connect(func(): App.clic())
 
 
 func libelle(t: String) -> void:
