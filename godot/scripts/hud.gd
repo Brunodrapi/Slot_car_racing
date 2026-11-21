@@ -155,6 +155,33 @@ func _jauges() -> Dictionary:
 
 ## Le cadran de tôle : combien il reste de voiture, vert puis orange puis rouge ; au stand, le
 ## temps de réparation qui reste au-dessus (render.js).
+## LA TOUCHE ESPACE DU DÉPART (js/render.js, _toucheEspace) : beige, verte quand on appuie, et alors
+## un V dans un rond à sa droite. Au repos, elle respire, pour inviter à appuyer.
+var toucheEspaceVue := false              # ce que la touche montre (les essais le lisent)
+
+
+func _toucheEspace(c: Vector2, appuie: bool) -> void:
+	toucheEspaceVue = appuie
+	var k := 1.0 if appuie else 1.0 + 0.045 * sin(Time.get_ticks_msec() / 1000.0 * 5)
+	var w := 150.0 * k
+	var h := 34.0 * k
+	var r := Rect2(c - Vector2(w, h) / 2, Vector2(w, h))
+	var sb := StyleBoxFlat.new()
+	sb.set_corner_radius_all(roundi(7 * k))
+	sb.bg_color = Color(0, 0, 0, 0.35)
+	draw_style_box(sb, Rect2(r.position + Vector2(2, 3), r.size))
+	sb.bg_color = Color("#5fdc7f") if appuie else Color("#fbf1dc")
+	sb.border_color = Color("#171c19")
+	sb.set_border_width_all(3)
+	draw_style_box(sb, r)
+	Style.texte(self, Textes.t("padSpace").to_upper(), Vector2(r.position.x, c.y + 6 * k), roundi(16 * k), Color("#171c19"), HORIZONTAL_ALIGNMENT_CENTER, w)
+	if appuie:
+		var o := c + Vector2(w / 2 + 26, 0)
+		draw_circle(o, 15, Color("#5fdc7f"))
+		draw_arc(o, 15, 0, TAU, 32, Color("#171c19"), 2.5, true)
+		draw_polyline(PackedVector2Array([o + Vector2(-7, 0), o + Vector2(-2, 5.5), o + Vector2(7.5, -6)]), Color("#171c19"), 3.5, true)
+
+
 func _jaugeTole(p: Voiture) -> void:
 	var J := _jauges()
 	var r: float = J.r
@@ -319,8 +346,13 @@ func _draw() -> void:
 		Style.biseau(self, Rect2(ccx - 120, ccy - 30, 240, 60), Style.NUIT)
 		for k in 4:
 			draw_circle(Vector2(ccx - 75 + k * 50, ccy), 16, Color("#ff3b3b") if k < feux else Color(1, 1, 1, 0.15))
-		Style.texte(self, Textes.t("holdToGoTouch" if tactile else "holdToGo"), Vector2(0, ccy + 58), 24, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, W)
-		Style.texte(self, Textes.t("lineHintTouch" if tactile else "lineHintPC"), Vector2(0, ccy + 84), 16, Color("#cfd3dc"), HORIZONTAL_ALIGNMENT_CENTER, W)
+		# Au clavier, plus de consignes écrites (js/render.js, _toucheEspace) : la touche ESPACE, beige,
+		# verte avec un V dans un rond quand on la tient. Au doigt, les consignes restent.
+		if tactile:
+			Style.texte(self, Textes.t("holdToGoTouch"), Vector2(0, ccy + 58), 24, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, W)
+			Style.texte(self, Textes.t("lineHintTouch"), Vector2(0, ccy + 84), 16, Color("#cfd3dc"), HORIZONTAL_ALIGNMENT_CENTER, W)
+		else:
+			_toucheEspace(Vector2(ccx, ccy + 58), Input.is_action_pressed("gaz"))
 	elif go > 0:
 		Style.texte(self, Textes.t("go"), Vector2(0, H * 0.18 + 60), 80, Color(Color("#5be07a"), go / 1.2), HORIZONTAL_ALIGNMENT_CENTER, W)
 		go -= get_process_delta_time()
