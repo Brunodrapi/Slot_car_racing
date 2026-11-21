@@ -50,7 +50,11 @@ var onStart: Callable = func(_cfg: Dictionary) -> void: pass
 var focus: Callable = func(): return null
 var viewRadius: Callable = func(): return 110
 ## Fabrique la salle : SalleRTC pour les tables du jeu web, la salle Steam dans la version Steam.
-var fabriqueSalle: Callable = func(): return SalleSteam.new() if SalleSteam.active() else SalleRTC.new()
+## La version Steam porte aussi WebRTC : elle ouvre les deux à la fois (SallePont), si bien que ses
+## joueurs courent avec leurs amis Steam ET avec le jeu web, à la même table.
+var fabriqueSalle: Callable = func():
+	if SalleSteam.active(): return SallePont.new() if SalleRTC.available() else SalleSteam.new()
+	return SalleRTC.new()
 
 
 static func netCode() -> String:

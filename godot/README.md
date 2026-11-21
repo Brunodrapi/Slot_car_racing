@@ -230,11 +230,12 @@ rien redessiner image par image.
 
 Il y a deux réseaux, selon la version :
 
-- **La version Steam** passe par Steam (`scripts/reseau/salle_steam.gd`) :
-  - la table est un salon Steam marqué de son code ;
-  - on y entre par le code ou par l'invitation d'un ami ;
-  - les messages passent par le réseau de Valve, avec ses relais ;
-  - les joueurs Steam courent entre eux.
+- **La version Steam** ouvre sa table sur les deux réseaux à la fois (`scripts/reseau/salle_pont.gd`) :
+  - un salon Steam marqué du code (`salle_steam.gd`) : amis, invitations, relais de Valve ;
+  - et la table de l'annuaire PeerJS sous le même code : le jeu web et les autres versions de Godot
+    s'y assoient ;
+  - l'hôte relaie les présences d'un réseau à l'autre ; un invité Steam qui tape un code cherche un
+    salon Steam, puis une table de l'annuaire. Joueurs Steam et hors Steam courent ensemble.
 - **Toutes les autres versions** (navigateur, Windows hors Steam, téléphones) s'assoient aux tables
   du jeu web (`scripts/reseau/salle_rtc.gd`) :
   - même annuaire PeerJS et même WebRTC ;
@@ -268,6 +269,7 @@ La grille de l'IA est tirée au même générateur que `makeRoster`, avec la gra
 | `tests/roster.gd` | la grille de l'IA est celle du jeu web pour la même graine |
 | `tests/salle_annuaire.gd` | ouvrir une table dans un annuaire PeerJS, et le refus d'un code pris |
 | `tests/salle_steam.gd` | deux Godot, un faux Steam, duel et course avec l'IA : même classement des deux côtés |
+| `tests/salle_pont.gd` | l'hôte Steam (salon et table à code), un ami Steam et un joueur hors Steam : chacun voit les deux autres, même classement sur les trois écrans |
 | `outils/essai-croise.js` | la version web de Godot et le jeu web dans Chromium : salon, puis duel et course avec l'IA, Godot hôte puis web hôte ; même classement au millième |
 | `outils/essai-croise.js … natif:godot` | la même chose avec Godot hors navigateur, et l'extension WebRTC officielle |
 | `tests/rtc_boucle.gd` | deux connexions WebRTC natives reliées à la main : le canal de données passe |
@@ -286,7 +288,8 @@ NODE_PATH=$(npm root -g) node godot/outils/essai-croise.js <recette> natif:godot
     classement au millième.
   - `bash godot/outils/webrtc.sh` réinstalle l'extension complète (Mac, iPhone, ARM…).
 - **La version Steam demande :**
-  - l'extension GodotSteam (GDExtension 4.x, codeberg.org/godotsteam), dans `addons/godotsteam` ;
+  - l'extension GodotSteam 4.24 (codeberg.org/godotsteam), dans `addons/godotsteam` (Windows ; le
+    Steam Deck lance la version Windows) — `bash godot/outils/godotsteam.sh` réinstalle tout ;
   - l'identifiant de l'application GRIP sur Steam (`grip/steam_app_id`, 480 en attendant, l'application d'essai de Valve) ;
   - le préréglage d'export « Steam (Windows) », qui pose l'étiquette `steam`.
 

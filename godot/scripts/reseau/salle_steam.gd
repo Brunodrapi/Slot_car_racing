@@ -28,6 +28,8 @@ var steam = null                   # le singleton GodotSteam (ou un faux, dans l
 var label := ""
 var host := false
 var relayer := true
+# Le pont de la version Steam (SallePont) : ce que l'hôte relaie ici part aussi sur l'autre réseau.
+var relaisExterne := Callable()
 var open := false
 var error := ""
 var mine := {}
@@ -193,6 +195,7 @@ func _jeu(c: Dictionary, d: Dictionary) -> void:
 	if relayer:
 		for o in conns:
 			if o != c and o.open: _envoieBrut(o, d, true)
+		if relaisExterne.is_valid(): relaisExterne.call(d)
 	_fire()
 
 
@@ -213,6 +216,12 @@ func _envoie(c: Dictionary, presence: Dictionary) -> void:
 func _envoieBrut(c: Dictionary, d: Dictionary, fiable: bool) -> void:
 	var drapeaux := _constante("NETWORKING_SEND_RELIABLE", 8) if fiable else _constante("NETWORKING_SEND_UNRELIABLE_NO_DELAY", 5)
 	steam.sendMessageToUser(c.id, BinaryPack.pack(d), drapeaux, CANAL)
+
+
+## Une présence venue de l'autre réseau du pont, relayée telle quelle à tous les pairs d'ici.
+func relaie(d: Dictionary) -> void:
+	for o in conns:
+		if o.open: _envoieBrut(o, d, true)
 
 
 func onMessage(h: Callable) -> void:

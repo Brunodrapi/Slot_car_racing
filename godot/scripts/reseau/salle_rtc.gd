@@ -40,6 +40,8 @@ var id := ""                      # notre nom dans l'annuaire
 var label := ""                   # notre étiquette de présence : 0-… pour l'hôte, 1-… pour un invité
 var host := false
 var relayer := true
+# Le pont de la version Steam (SallePont) : ce que l'hôte relaie ici part aussi sur l'autre réseau.
+var relaisExterne := Callable()
 var open := false
 var error := ""
 var mine := {}
@@ -369,6 +371,7 @@ func _jeu(c: Dictionary, d: Dictionary) -> void:
 	if relayer:
 		for o in conns:
 			if o != c and o.open: _envoieBrut(o, d)
+		if relaisExterne.is_valid(): relaisExterne.call(d)
 	_fire()
 
 
@@ -412,6 +415,12 @@ func _envoieBrut(c: Dictionary, d: Dictionary) -> void:
 		var part := o.slice(i * MORCEAU, mini(o.size(), (i + 1) * MORCEAU))
 		ch.put_packet(BinaryPack.pack({ "__peerData": _morceauxN, "n": i, "data": part, "total": total }))
 	_morceauxN += 1
+
+
+## Une présence venue de l'autre réseau du pont, relayée telle quelle à tous les pairs d'ici.
+func relaie(d: Dictionary) -> void:
+	for o in conns:
+		if o.open: _envoieBrut(o, d)
 
 
 func onMessage(h: Callable) -> void:

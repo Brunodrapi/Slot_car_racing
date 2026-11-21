@@ -248,7 +248,7 @@ func _construit() -> void:
 		if pilotes.size() < 2:
 			_b(Textes.t("discordPlayers"), Rect2(xb, y, 360, 46), BLEU_DISCORD, Color.WHITE, 18, func(): OS.shell_open(DISCORD), "discord")
 			xb += 372
-		if net.room is SalleSteam:
+		if net.room is SalleSteam or (net.room is SallePont and net.room.steam.open):
 			_b(Textes.t("inviteFriend"), Rect2(xb, y, 250, 46), Style.BLEU, Style.CREME, 18, func(): net.room.invite(), "inviter")
 			xb += 262
 		if xb > M: y += 58
