@@ -41,9 +41,9 @@ const double IA_aimant = 1.0;
 const double AI_GLISSE0 = 0.28, AI_GLISSE1 = 0.55, AI_USAGE = 0.8;
 const double RESSENTI[4][2] = {{0.00, 0.62}, {0.80, 1.30}, {1.30, 2.50}, {0.44, 0.87}};
 // les dégâts et les stands (js/car.js, essai des dégâts)
-const double FLANC_SEUIL = 6.0, ABANDON_VITESSE = 100.0 / 3.6, CHOC_SEUIL_USURE = 3.5;
+const double FLANC_SEUIL = 6.0, ABANDON_VITESSE = 100.0 / 3.6, ABANDON_PNEUS = 0.8, CHOC_SEUIL_USURE = 3.5;
 const int E_zones = 8;
-const double E_creux = 0.0075, E_max = 0.3, E_voisines = 0.35;
+const double E_creux = 0.011, E_max = 0.3, E_voisines = 0.35;
 const double E_durete[8] = {0.3, 0.6, 1.4, 0.6, 0.3, 0.6, 1.4, 0.6};
 const double S_vitesse = 22.0, S_reparationBase = 1.5, S_reparation = 6.5, S_seuilArret = 3.0;
 }
@@ -111,6 +111,12 @@ struct Voiture {
 		double m = 0;
 		for (int z = 0; z < K::E_zones; z++) m = maxf(m, double(enfoncement[z]));
 		damage = clamp_(m / K::E_max, 0, 1);
+		if (damage >= 1 && degats.abandon && !abandon) abandonne();   // plus de vie : l'abandon
+	}
+	void abandonne() {
+		abandon = true; damage = 1.0;
+		for (int z = 0; z < K::E_zones; z++) enfoncement[z] = float(K::E_max);
+		engineCut = INFINITY; engineStopped = true;
 	}
 	void marque(double nx, double ny, double vitesse, double frotte, int sorte, bool epave = false) {
 		if (chocs.size() >= 12 || fantome) return;
@@ -242,12 +248,10 @@ struct Voiture {
 			}
 			leaveTrack();
 			if (degats.ok) {
+				bool etait = abandon;
 				enfonce(hnx, hny, effective - degats.chocSeuil);
-				if (degats.abandon && effective >= K::ABANDON_VITESSE) {
-					fatal = true; abandon = true; damage = 1.0;
-					for (int z = 0; z < K::E_zones; z++) enfoncement[z] = float(K::E_max);
-					engineCut = INFINITY; engineStopped = true;
-				}
+				if (degats.abandon && !abandon && impact * (pneus ? K::ABANDON_PNEUS : 1.0) >= K::ABANDON_VITESSE) abandonne();
+				fatal = abandon && !etait;
 			}
 		}
 		marque(hnx, hny, impact * (pneus ? .55 : 1.0), std::fabs(vt), pneus ? 1 : 0, fatal);

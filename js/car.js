@@ -83,11 +83,20 @@ qu'elles soient assez résistantes. Par contre si une voiture fonce à 100 km/h 
 n'a plus de capot, elle ne démarre plus et ça fait un DNF. » (Bruno)
 
 Ce qui compte est la vitesse qui RENTRE dans la protection (la composante normale), comme pour la
-coupure moteur : longer un rail à 200 km/h n'est pas foncer dedans. Les pneus amortissent (×0,55,
-comme pour la coupure) : il faut 180 km/h droit dans un mur de pneus pour la même chose. Entre
-voitures, jamais d'abandon : un accrochage reste un accrochage. En course seulement, et pas en ligne
-pour cet essai (l'abandon devrait passer par le réseau). */
+coupure moteur : longer un rail à 200 km/h n'est pas foncer dedans.
+
+« Plein gaz dans une ligne droite, la voiture ne casse pas. » (Bruno) Les pneus amortissaient l'abandon
+comme la coupure (×0,55) : il fallait 180 km/h droit dans un mur de pneus, et une voiture sortie plein
+gaz au bout d'une ligne droite, qui y rentre à 150-180 km/h, repartait. Pour l'abandon, un mur de pneus
+ne retient plus qu'un cinquième du choc (ABANDON_PNEUS) : 125 km/h dedans, et c'est fini. Ils amortissent
+toujours la tôle et la coupure.
+
+« Quand la vie arrive à zéro, c'est aussi un abandon. » (Bruno) La zone la plus enfoncée à fond, contre un
+mur comme contre une voiture (`_enfonce`), et c'est l'écran ABANDON : un accrochage ne tue pas, une suite
+de coups, si. En course seulement, et pas en ligne pour cet essai (l'abandon devrait passer par le
+réseau). */
 const ABANDON_VITESSE = 100 / 3.6;   // m/s
+const ABANDON_PNEUS = 0.8;           // ce qu'un mur de pneus laisse passer du choc, pour l'abandon
 
 /* LES POINTS DE VIE SUIVENT LA ZONE LA PLUS ENFONCÉE (essai des dégâts).
 
@@ -107,9 +116,10 @@ Le calcul est fait ici, sans hasard, et non lu sur le dessin : la course doit do
 ou sans écran. */
 const ENFONCE = {
   zones: 8,
-  /* « La voiture perd sa vie trop rapidement. » (Bruno, sur la version Godot) Deux fois moins par choc
-  qu'au premier essai (1,5 cm par m/s) : un gros coup de flanc dans un mur coûte 40 % au lieu de 80 %. */
-  creux: 0.0075,    // m par m/s au-delà du seuil, pour une zone de dureté 1
+  /* « La voiture perd sa vie trop rapidement. » puis « deux fois plus lent, c'est trop ! » (Bruno) Entre
+  les deux : 1,1 cm par m/s au lieu de 1,5 au premier essai et 0,75 au deuxième. Un gros coup de flanc
+  dans un mur coûte environ 60 %. */
+  creux: 0.011,     // m par m/s au-delà du seuil, pour une zone de dureté 1 — comme la tôle dessinée
   max: 0.3,         // m : une zone « complètement enfoncée »
   voisines: 0.35,   // ce qu'un choc enfonce des deux zones d'à côté
   /* LA DURETÉ DE CHAQUE ZONE : ce qu'elle s'enfonce, rapporté à `creux`. « Les tampons avant et arrière
@@ -633,6 +643,15 @@ class Car {
     for (const [z, part] of [[k, 1], [(k + 1) % E.zones, E.voisines], [(k + E.zones - 1) % E.zones, E.voisines]])
       this.enfoncement[z] = Math.min(E.max, this.enfoncement[z] + creux * part * E.durete[z]);
     this.damage = clamp(Math.max(...this.enfoncement) / E.max, 0, 1);
+    // plus de vie : c'est l'abandon, contre un mur comme contre une voiture
+    const u = this.tole;
+    if (this.damage >= 1 && u && u.abandon && !this.abandon) this._abandonne();
+  }
+
+  /* L'abandon : le moteur ne repartira plus (l'écran ABANDON, l'épave). */
+  _abandonne() {
+    this.abandon = true; this.damage = 1; this.enfoncement.fill(ENFONCE.max);
+    this.engineCut = Infinity; this.engineStopped = true;
   }
 
   _marque(nx, ny, vitesse, frotte, sorte, epave = false) {
@@ -829,12 +848,12 @@ class Car {
       }
       this._leaveTrack(false); // une excursion et son impact ne comptent pas deux fautes
       const u=this.tole;
+      const etait=this.abandon;
       if(u)this._enfonce(hit.nx,hit.ny,effective-u.chocSeuil);
-      // l'abandon (ABANDON_VITESSE) : le moteur ne repartira plus
-      if(u&&u.abandon&&effective>=ABANDON_VITESSE){
-        fatal=true;this.abandon=true;this.damage=1;this.enfoncement.fill(ENFONCE.max);
-        this.engineCut=Infinity;this.engineStopped=true;this.lastBarrierImpact.cut=Infinity;
-      }
+      // l'abandon (ABANDON_VITESSE, ABANDON_PNEUS), ou la vie à zéro (_enfonce) : le moteur ne repartira plus
+      if(u&&u.abandon&&!this.abandon&&impact*(pneus?ABANDON_PNEUS:1)>=ABANDON_VITESSE)this._abandonne();
+      fatal=this.abandon&&!etait;
+      if(fatal)this.lastBarrierImpact.cut=Infinity;
     }
     this._marque(hit.nx,hit.ny,impact*(pneus?.55:1),Math.abs(vt),hit.barrier.kind,fatal);
     const pr=this.track.project(this.x,this.y,this.s,30);
@@ -1575,10 +1594,12 @@ function resolveCollisions(cars, track) {
           // en face, chacune prend le choc dans son propre axe : le nez de l'une, l'arrière de l'autre
           const [rx, ry] = enFace ? [-Math.cos(rear.th), -Math.sin(rear.th)] : [-ux / ul, -uy / ul];
           const [fx, fy] = enFace ? [Math.cos(front.th), Math.sin(front.th)] : [ux / ul, uy / ul];
+          const ra = rear.abandon, fa = front.abandon;
           if (ur) rear._enfonce(rx, ry, fort);
           if (uf) front._enfonce(fx, fy, fort * 0.6);
-          rear._marque(rx, ry, dv, 0, 'voiture');
-          front._marque(fx, fy, dv, 0, 'voiture');
+          // la vie à zéro sur ce choc : l'épave
+          rear._marque(rx, ry, dv, 0, 'voiture', rear.abandon && !ra);
+          front._marque(fx, fy, dv, 0, 'voiture', front.abandon && !fa);
           front.v += dv * 0.35;
           rear.v = front.v - dv * 0.1;
           const push = Math.min(longOverlap / 2, 0.1);
@@ -1609,10 +1630,11 @@ function resolveCollisions(cars, track) {
           if (rapproche > 1.5 || glisse > 6) {
             for (const [c, sg] of [[a, -1], [b, 1]]) {
               const u = c.tole, fort = Math.max(0, rapproche - FLANC_SEUIL);
+              const ca = c.abandon;
               if (u) c._enfonce(nx * dir * sg, ny * dir * sg, fort);
               // pour le dessin, le même décalage : une bosse de flanc ne se creuse qu'au-delà de FLANC_SEUIL
               const vu = Math.max(0, rapproche - (FLANC_SEUIL - (u ? u.chocSeuil : USURE.chocSeuil)));
-              c._marque(nx * dir * sg, ny * dir * sg, vu, glisse, 'voiture');
+              c._marque(nx * dir * sg, ny * dir * sg, vu, glisse, 'voiture', c.abandon && !ca);
               c.reculChoc = 30;
             }
           }

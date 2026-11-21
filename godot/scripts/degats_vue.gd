@@ -15,7 +15,7 @@ const POINTS := 32                       # sommets par anneau
 const RETRAITS := [0.0, 0.42, 0.9]       # m : chaque anneau depuis le bord du dessin ; le dernier est fixe
 const CREUX_MAX := [0.3, 0.15, 0.0]      # m : ce que chaque anneau peut rentrer au plus
 const SEUIL := 3.5                       # m/s : en dessous, un contact ne cabosse rien
-const CREUX := 0.0075                    # m de tôle par m/s au-delà du seuil (Voiture.ENFONCE_creux)
+const CREUX := 0.011                     # m de tôle par m/s au-delà du seuil (Voiture.ENFONCE_creux)
 const RAYON := 0.6
 const EPAVE_MAX := [0.95, 0.55, 0.0]
 ## LA TÔLE SUIT LES POINTS DE VIE. « Quand on est à 12 %, on doit avoir un côté complètement enfoncé :

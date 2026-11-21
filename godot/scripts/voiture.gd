@@ -78,11 +78,12 @@ const ARRET_LIBRE := 0.55
 const DEGATS := { chocSeuil = 3.5, chocParVitesse = 0.018, vmax = 0.35 }
 const FLANC_SEUIL := 6.0                 # m/s de rapprochement latéral avant qu'un coup de flanc ne casse
 const ABANDON_VITESSE := 100.0 / 3.6     # m/s qui RENTRENT dans une protection : le moteur est détruit
+const ABANDON_PNEUS := 0.8               # ce qu'un mur de pneus laisse passer, pour l'abandon (js/car.js)
 const CHOC_SEUIL_USURE := 3.5            # USURE.chocSeuil, pour le dessin d'un choc sans dégâts
 ## La caisse en huit zones (le nez, les quatre coins, les deux flancs, l'arrière) : chaque choc
 ## enfonce la sienne et un peu ses voisines ; les dommages sont la zone la plus enfoncée.
 const ENFONCE_zones := 8
-const ENFONCE_creux := 0.0075          # deux fois moins qu'avant : « la voiture perd sa vie trop rapidement » (Bruno)
+const ENFONCE_creux := 0.011           # entre les deux essais : 0,015 partait trop vite, 0,0075 trop lentement (Bruno)
 const ENFONCE_max := 0.3
 const ENFONCE_voisines := 0.35
 const ENFONCE_durete := [0.3, 0.6, 1.4, 0.6, 0.3, 0.6, 1.4, 0.6]
@@ -299,6 +300,14 @@ func _enfonce(nx: float, ny: float, force: float) -> void:
 	var m := 0.0
 	for e in enfoncement: m = maxf(m, e)
 	damage = Piste.clamp_(m / ENFONCE_max, 0, 1)
+	# plus de vie : c'est l'abandon, contre un mur comme contre une voiture
+	if damage >= 1 and degats.get("abandon", false) and not abandon: _abandonne()
+
+
+## L'abandon : le moteur ne repartira plus (l'écran ABANDON, l'épave).
+func _abandonne() -> void:
+	abandon = true; damage = 1.0; enfoncement.fill(ENFONCE_max)
+	engineCut = INF; engineStopped = true
 
 
 ## Un choc, pour ce qui se voit (le dessin le lit puis vide la liste) : dans le repère de la voiture.
@@ -469,11 +478,13 @@ func _barrierContact(fx: float, fy: float, fth: float, raceTime: float) -> bool:
 			engineStopped = true
 		_leaveTrack()
 		if not degats.is_empty():
+			var etait := abandon
 			_enfonce(hnx, hny, effective - float(degats.chocSeuil))
-			# l'abandon : 100 km/h droit dans un mur, le moteur ne repartira plus
-			if degats.get("abandon", false) and effective >= ABANDON_VITESSE:
-				fatal = true; abandon = true; damage = 1.0; enfoncement.fill(ENFONCE_max)
-				engineCut = INF; engineStopped = true
+			# l'abandon : 100 km/h qui rentrent dans un mur (les pneus n'en retiennent qu'un cinquième),
+			# ou la vie à zéro (_enfonce) ; le moteur ne repartira plus
+			if degats.get("abandon", false) and not abandon and impact * (ABANDON_PNEUS if pneus else 1.0) >= ABANDON_VITESSE:
+				_abandonne()
+			fatal = abandon and not etait
 	_marque(hnx, hny, impact * (.55 if pneus else 1.0), absf(vt), "tyres" if pneus else "rail", fatal)
 	var pr := T.project(x, y, s, 30)
 	var dss := T.diff(s, pr[0])

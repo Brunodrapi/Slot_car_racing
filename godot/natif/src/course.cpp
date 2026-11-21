@@ -267,10 +267,11 @@ void Course::resolveCollisions(std::vector<Voiture *> &cs, const Piste &T) {
 					if (ul == 0.0) ul = 1;
 					double rx = enFace ? -std::cos(rear.th) : -ux / ul, ry = enFace ? -std::sin(rear.th) : -uy / ul;
 					double fx = enFace ? std::cos(front.th) : ux / ul, fy = enFace ? std::sin(front.th) : uy / ul;
+					bool ra = rear.abandon, fa = front.abandon;
 					if (ur.ok) rear.enfonce(rx, ry, fort);
 					if (uf.ok) front.enfonce(fx, fy, fort * 0.6);
-					rear.marque(rx, ry, dv, 0, 2);
-					front.marque(fx, fy, dv, 0, 2);
+					rear.marque(rx, ry, dv, 0, 2, rear.abandon && !ra);
+					front.marque(fx, fy, dv, 0, 2, front.abandon && !fa);
 					front.v += dv * 0.35;
 					rear.v = front.v - dv * 0.1;
 					double push = minf(longOverlap / 2, 0.1);
@@ -292,9 +293,10 @@ void Course::resolveCollisions(std::vector<Voiture *> &cs, const Piste &T) {
 							double sg = sgs[q];
 							const Tole &u = c.degats;
 							double fort = maxf(0, rapproche - K::FLANC_SEUIL);
+							bool ca = c.abandon;
 							if (u.ok) c.enfonce(nx * dir * sg, ny * dir * sg, fort);
 							double vu = maxf(0, rapproche - (K::FLANC_SEUIL - (u.ok ? u.chocSeuil : K::CHOC_SEUIL_USURE)));
-							c.marque(nx * dir * sg, ny * dir * sg, vu, glisse, 2);
+							c.marque(nx * dir * sg, ny * dir * sg, vu, glisse, 2, c.abandon && !ca);
 							c.reculChoc = 30;
 						}
 					}

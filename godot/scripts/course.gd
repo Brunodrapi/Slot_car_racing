@@ -597,10 +597,13 @@ static func resolveCollisions(cs: Array, T: Piste) -> void:
 					var ry := -sin(rear.th) if enFace else -uy / ul
 					var fx := cos(front.th) if enFace else ux / ul
 					var fy := sin(front.th) if enFace else uy / ul
+					var ra := rear.abandon
+					var fa := front.abandon
 					if not ur.is_empty(): rear._enfonce(rx, ry, fort)
 					if not uf.is_empty(): front._enfonce(fx, fy, fort * 0.6)
-					rear._marque(rx, ry, dv, 0, "voiture")
-					front._marque(fx, fy, dv, 0, "voiture")
+					# la vie à zéro sur ce choc : l'épave
+					rear._marque(rx, ry, dv, 0, "voiture", rear.abandon and not ra)
+					front._marque(fx, fy, dv, 0, "voiture", front.abandon and not fa)
 					front.v += dv * 0.35
 					rear.v = front.v - dv * 0.1
 					var push := minf(longOverlap / 2, 0.1)
@@ -624,9 +627,10 @@ static func resolveCollisions(cs: Array, T: Piste) -> void:
 							var sg: float = cs_[1]
 							var u := c.degats
 							var fort := maxf(0, rapproche - Voiture.FLANC_SEUIL)
+							var ca := c.abandon
 							if not u.is_empty(): c._enfonce(nx * dir * sg, ny * dir * sg, fort)
 							var vu := maxf(0, rapproche - (Voiture.FLANC_SEUIL - (float(u.chocSeuil) if not u.is_empty() else Voiture.CHOC_SEUIL_USURE)))
-							c._marque(nx * dir * sg, ny * dir * sg, vu, glisse, "voiture")
+							c._marque(nx * dir * sg, ny * dir * sg, vu, glisse, "voiture", c.abandon and not ca)
 							c.reculChoc = 30
 				a.x -= nx * dir * sep; a.y -= ny * dir * sep
 				b.x += nx * dir * sep; b.y += ny * dir * sep
