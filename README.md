@@ -925,6 +925,12 @@ fabriqué par le jeu (`clac`, js/audio.js), sans fichier. `tools/e2e-levier.js` 
 pixel par pixel sur toute la course du levier et vérifie les trois crans, les franchissements et les
 clacs.
 
+**La touche ESPACE au départ (0.56.11).** Au clavier, les feux ne portent plus de consignes écrites
+(« Maintiens Espace pour accélérer », « ↑ / ↓ : trajectoire ») : à la place, la touche ESPACE des
+animations de « Comment jouer », beige, qui respire tant qu'on n'y a pas touché et devient verte, avec
+un V dans un rond à côté, quand on la tient (`_toucheEspace`, js/render.js). Au doigt, à la molette et à
+la manette, les consignes restent. `tools/e2e-espace.js` le vérifie et la photographie.
+
 **Le moteur démarre sur « En piste » (0.56.10).** Le démarreur, le moteur qui prend, deux coups de gaz
 et le ralenti, cinq secondes et demie (`sounds/effets/demarrage.mp3`, le silence du début ôté) : il
 part au clic, couvre le chargement de la course et s'éteint quand le moteur du jeu prend le relais

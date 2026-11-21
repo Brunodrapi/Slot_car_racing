@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.56.11
+- Départ au clavier : la touche ESPACE remplace les consignes ; elle devient verte, avec un V, quand on appuie.
+
 ## 0.56.10
 - « En piste ! » : on entend le moteur démarrer.
 

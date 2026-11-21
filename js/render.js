@@ -3016,6 +3016,27 @@ class Renderer {
     g.restore();
   }
 
+  /* La touche ESPACE du départ (voir le compte à rebours) : beige, verte quand on appuie, et alors un V
+  dans un rond à sa droite. Au repos, elle respire, pour inviter à appuyer. */
+  _toucheEspace(g, cx, cy, appuie, nom) {
+    const w = 150, h = 34;
+    const k = appuie ? 1 : 1 + 0.045 * Math.sin(performance.now() / 1000 * 5);
+    g.save();
+    g.translate(cx, cy); g.scale(k, k);
+    g.fillStyle = 'rgba(0,0,0,0.35)'; this._roundRect(g, -w / 2 + 2, -h / 2 + 3, w, h, 7); g.fill();
+    g.fillStyle = appuie ? '#5fdc7f' : '#fbf1dc'; this._roundRect(g, -w / 2, -h / 2, w, h, 7); g.fill();
+    g.lineWidth = 2.5; g.strokeStyle = '#171c19'; g.stroke();
+    g.fillStyle = '#171c19'; g.font = 'italic 900 16px Racing, Impact, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(String(nom).toUpperCase(), 0, 1);
+    if (appuie) {
+      const x = w / 2 + 26;
+      g.fillStyle = '#5fdc7f'; g.beginPath(); g.arc(x, 0, 15, 0, Math.PI * 2); g.fill(); g.stroke();
+      g.lineWidth = 3.5; g.lineCap = 'round'; g.lineJoin = 'round';
+      g.beginPath(); g.moveTo(x - 7, 0); g.lineTo(x - 2, 5.5); g.lineTo(x + 7.5, -6); g.stroke();
+    }
+    g.restore();
+  }
+
   _roundRect(g, x, y, w, h, r) {
     g.beginPath();
     g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.quadraticCurveTo(x + w, y, x + w, y + r);
@@ -3611,9 +3632,16 @@ class Renderer {
       for (let i = 0; i < 4; i++) { g.fillStyle = i < lights ? '#ff3b3b' : 'rgba(255,255,255,0.15)'; g.beginPath(); g.arc(cx - 75 + i * 50, cy, 16, 0, Math.PI * 2); g.fill(); }
       g.textAlign = 'center'; g.fillStyle = '#fff'; g.font = 'italic 900 24px Racing, Impact, sans-serif';
       const mode = ui.app.desktop ? ui.app.controls.mode : 'touch';
-      g.fillText(t(mode === 'wheel' ? 'wheelGo' : mode === 'gamepad' ? 'padGo' : mode === 'touch' ? 'holdToGoTouch' : 'holdToGo'), cx, cy + 40);
-      g.font = '14px system-ui, sans-serif'; g.fillStyle = '#cfd3dc';
-      g.fillText(t(mode === 'gamepad' ? 'lineHintPad' : mode === 'touch' ? 'lineHintTouch' : 'lineHintPC'), cx, cy + 66);
+      /* Au clavier, plus de consignes écrites : « supprime les commentaires maintiens Espace pour
+      accélérer et la trajectoire ; à la place, la barre d'espace beige qui devient verte si le joueur
+      appuie sur Espace, avec un V dans un rond à côté » (Bruno). La touche des animations de « Comment
+      jouer », qui respire tant qu'on n'y a pas touché. */
+      if (mode === 'keyboard') this._toucheEspace(g, cx, cy + 58, throttleAmount(ui.app.input && ui.app.input.throttle) > 0, t('padSpace'));
+      else {
+        g.fillText(t(mode === 'wheel' ? 'wheelGo' : mode === 'gamepad' ? 'padGo' : 'holdToGoTouch'), cx, cy + 40);
+        g.font = '14px system-ui, sans-serif'; g.fillStyle = '#cfd3dc';
+        g.fillText(t(mode === 'gamepad' ? 'lineHintPad' : 'lineHintTouch'), cx, cy + 66);
+      }
     } else if (race.time < 1.2 && race.state === 'racing') {
       g.textAlign = 'center'; g.fillStyle = '#5be07a'; g.font = 'italic 900 80px Racing, Impact, sans-serif';
       g.globalAlpha = 1 - race.time / 1.2; g.fillText('GO!', W / 2, H * 0.18); g.globalAlpha = 1;
