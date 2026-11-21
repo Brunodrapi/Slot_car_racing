@@ -1472,7 +1472,9 @@ parking de la chicane. Le semis de maisons du thème n'y pousse plus. Plus de vo
 stands est rapprochée de la ligne droite (`barrierCloseZones`) et, à la place de la voie, deux
 rangées de platanes (`ville.alignements`, une rangée d'arbres le long du tour à quelques mètres de
 la protection) ; une troisième borde la ligne droite côté Condamine. Rallumer l'usure demandera de
-redonner une voie à ce circuit. La piscine fait 68 × 17 m et
+redonner une voie à ce circuit. *(Sur la branche `claude/degats-visuels`, les stands réparent les dégâts,
+et la voie est revenue : une rangée de platanes entre la piste et la voie — voir « Les dégâts
+visibles ».)* La piscine fait 68 × 17 m et
 s'adosse à la barrière de la Piscine, dans son axe. Tout reste
 retouchable dans l'éditeur (onglet Objets) : un immeuble de la ville se retire ou se déplace comme
 un autre objet. `tools/marina-banc.js` vérifie qu'aucune eau ne touche la piste, qu'aucun
@@ -3451,6 +3453,249 @@ l'échelle est redevenue monotone dans les deux sens.
 | cauchemar | 73,08 s | 8,8 | ×1,30 |
 
 Chaque palier vaut cinq à six pour cent, soit l'écart qui séparait déjà moyen de difficile.
+
+## Les dégâts visibles (essai, branche `claude/degats-visuels`)
+
+> **Un essai, sur sa propre branche.** Ni la recette ni la prod ne l'ont. Tout tient dans
+> `js/degats.js` (le dessin), `DEGATS` et `_marque` dans `js/car.js` (le coût et les chocs notés),
+> `_degats` dans `js/render.js` (les étincelles, les débris, la fumée), et l'option `deforme` de
+> `drawCarModel` et `drawCarShadow` (`js/carart.js`). Essai : `tools/e2e-degats.js`.
+>
+> **Pour y jouer** : une copie compilée de cette branche est posée dans la recette, à
+> brunodrapi.github.io/Slot_car_racing/essais/degats/ (voir « Les essais jouables » dans le README de la
+> recette). Après un changement ici : `node tools/build-dist.js --sortie=/tmp/essai --canal=recette`,
+> puis, sur la recette, remplacer `essais/degats/` par `/tmp/essai` et pousser.
+
+La demande : que les contacts abîment les voitures **à l'écran**, en plus de leur coûter des
+performances, sans compliquer.
+
+### Ce qui se fait ailleurs
+
+- **[Destructor2D](https://store.steampowered.com/app/4660070)** (sur Steam, sortie prévue en 2028), que Bruno a montré : ses voitures vues de dessus
+  se froissent. Sa vue de mise au point trace autour de chaque voiture un **anneau de points** (une
+  carrosserie en « corps mou », roues comprises), et le dessin est tendu sur cet anneau. Dans sa vidéo,
+  la voiture qui a tapé a le nez raccourci, un bord de tôle clair et froissé, et le compartiment moteur
+  sombre à la place du capot. Il y a aussi de la fumée, des débris qui restent au sol et des traces.
+- **GTA 2** peignait à la main des vignettes de bosses (ses *deltas*, [wikigta](https://en.wikigta.org/wiki/Creating_vehicles_(GTA2))) pour chaque coin de chaque
+  voiture, posées par-dessus le dessin. Avec 35 voitures et leurs livrées, c'est hors de portée.
+- **Un vrai corps mou** ([JellyCar](https://gamedeveloper.com/programming/deep-dive-the-soft-body-physics-of-jelly-car-explained) : des masses reliées par des ressorts) changerait la conduite et les
+  collisions, pas seulement l'image.
+- **La déformation par distance** (forums [Unity](https://discussions.unity.com/t/now-with-source-mesh-deformation-on-impact/414788)
+  et [Construct](https://construct.net/en/forum/construct-classic/help-support-using-construct-38/deforming-car-impact-39878),
+  article [*Scalable Real-Time Vehicle Deformation*](https://arxiv.org/pdf/2304.05045)) : on recule les sommets proches du point d'impact, d'autant plus qu'ils sont près.
+
+### Ce qui est retenu
+
+L'anneau de Destructor2D, mais **pour le dessin seulement** : la conduite et les collisions restent un
+rectangle rigide. Trois rectangles emboîtés de 32 sommets (le bord du dessin, puis 0,42 m et 0,9 m à
+l'intérieur) ; le dernier ne bouge jamais, et l'habitacle et le numéro restent nets. Chaque choc
+au-delà de 3,5 m/s :
+
+- **enfonce** les sommets proches, avec un peu de hasard pour que le bord se froisse au lieu de rentrer
+  d'un bloc, et la tôle **tremble** une demi-seconde avant de se figer ;
+- **peint** sur une copie du dessin, propre à la voiture, un creux sombre et des plis en travers de la
+  poussée — c'est l'équivalent générique du capot arraché de Destructor2D ;
+- fait tomber des **débris** (la couleur de la carrosserie, prise sous le point touché, du carbone, du
+  verre) qui restent 45 s sur la piste ;
+- **casse les feux** qui ont reculé de plus de 7 cm : de nuit le phare s'éteint, de jour le feu stop ne
+  s'allume plus. Le recul se lit exactement là où le feu est dessiné, dans le triangle du maillage
+  qui le contient ; une moyenne des sommets voisins, essayée d'abord, le sous-estimait des deux tiers.
+
+**Des voitures résistantes.** « Le cabossage est trop fort : les voitures ne vont pas être détruites, ce
+n'est pas Destruction Derby. » La première version enfonçait 4,5 cm de tôle par m/s au-delà du seuil,
+jusqu'à 75 cm : un accrochage à 30 km/h d'écart froissait tout un nez. Il en faut maintenant trois fois
+plus (1,5 cm par m/s), et un coin ne perd jamais plus de 30 cm. Les plis et le creux sombre sont plus
+discrets, les débris plus rares (au-delà de 5 m/s au-dessus du seuil, huit au plus).
+
+**L'abandon.** « Par contre si une voiture fonce à 100 km/h droit dans un mur, elle n'a plus de capot :
+elle ne démarre plus et ça fait un DNF. » Ce qui compte est la vitesse qui **rentre** dans la protection
+(la composante normale, comme pour la coupure moteur) : longer un rail vite n'est pas foncer dedans.
+Contre des pneus, qui amortissent (×0,55), il faut 180 km/h droit dedans. Entre voitures, jamais.
+`ABANDON_VITESSE` (`js/car.js`) :
+
+- le moteur ne repart plus ; la voiture est classée derrière toutes celles qui roulent, « Abandon »
+  (« DNF » en anglais), sans points ;
+- à l'écran, le nez rentre aussi loin que l'habitacle le permet, le compartiment moteur paraît à la
+  place du capot (le même dessin pour toutes les voitures), et le capot part en un morceau ;
+- l'épave fume six secondes là où elle s'est arrêtée, puis s'efface en deux — les commissaires l'ont
+  enlevée. Elle ne se touche plus dès l'abandon, et l'IA ne la voit plus dans le trafic : une voiture
+  arrêtée pour de bon que l'IA prendrait pour un gêneur la ferait attendre derrière, et la course ne
+  finirait plus ;
+- si c'est le joueur, l'écran **ABANDON** s'affiche, **façon WASTED de GTA** : « ABANDON doit
+  apparaître plus longtemps, comme le WASTED de GTA, avec un fond transparent rouge, la caméra faisant de
+  petites ondulations autour de la voiture. » Un voile rouge monte sur tout l'écran, plus sombre sur les
+  bords ; le mot tombe en grand avec un léger rebond, sur une bande sombre comme celle de GTA V, au-dessus
+  de l'épave pour la laisser voir, avec « MOTEUR DÉTRUIT » dessous. La caméra quitte l'avance, se pose sur
+  l'épave jusqu'à n'en montrer que seize mètres, et ondule autour — un roulis lent, un souffle de zoom, un
+  léger flottement, posés au dessin pour ne jamais dériver. La course se termine **sept secondes** après
+  le choc, et l'arrivée des autres est **projetée** au rythme moyen que chacun a tenu : finir à
+  leur place un abandon au premier tour de Spa, c'est plus de dix minutes de course à calculer d'un
+  bloc, l'écran figé le temps du calcul. L'ordre est celui de la piste, les écarts sont plausibles.
+
+En ligne, pas d'abandon pour cet essai : il devrait passer par le réseau. Un choc à 100 km/h y coupe le
+moteur comme avant.
+
+Tout contact contre du métal (un rail, un mur, une autre voiture) crache des **étincelles**, même sous
+le seuil, et un frottement le long d'un rail aussi. Contre des pneus, non. Une voiture abîmée à plus de
+30 % **fume**, depuis l'endroit où elle a pris les coups.
+
+### Une option
+
+« Les dégâts doivent être une option. » Le paddock de course a son choix, **Dégâts : Activé / Coupé**, à
+côté des tours, enregistré avec les autres réglages (`save.degats`, activé par défaut pour l'essai). Le
+championnat suit le même choix. En ligne, c'est **l'hôte** qui choisit, dans le salon, comme Jour / Nuit :
+chacun pilote sa voiture sur son propre écran, et un réglage propre à chacun laisserait l'un cabosser et
+l'autre pas (`table.degats`, transmis au départ).
+
+Coupés, il n'y a plus ni bosses, ni débris, ni fumée, ni feux cassés, ni perte de vitesse, ni abandon, ni
+jauge, ni stands — rien à réparer, donc ni voie ni mécaniciens. Les étincelles restent : elles disent
+qu'il y a eu contact, pas qu'il y a eu dégât. `race.degatsVisu` dit si les bosses se voient (en course
+comme en contre-la-montre, où elles ne coûtent rien), `race.degats` si elles coûtent (en course).
+
+### Ce que ça coûte en course
+
+Les dommages vivaient avec l'usure, éteinte depuis la 0.50. Ici ils en sortent (`DEGATS_ACTIVE`), avec
+le seuil de la tôle de l'usure (3,5 m/s), jamais d'adhérence, et **jusqu'à 35 % de vitesse de pointe et
+de reprise en moins** sur une épave, contre 18 % pour la tôle de l'usure : « la perte de vitesse peut être
+augmentée à 35 % », maintenant que les stands réparent.
+
+**Les points de vie suivent la zone la plus enfoncée** (`ENFONCE`, `_enfonce`). « Les dégâts doivent être
+proportionnels à l'enfoncement de la caisse : un petit coup à l'avant et un petit coup à l'arrière, pas
+grave ; l'avant complètement enfoncé, là c'est grave. » Chaque choc ajoutait d'abord ses dommages où qu'il
+tombe (0,018 par m/s au-delà du seuil) : dix petits coups répartis valaient un gros coup dans le nez. La
+caisse a maintenant huit zones — le nez, les quatre coins, les deux flancs, l'arrière — et chaque choc
+enfonce la sienne (et ses deux voisines, au tiers) de ce qu'enfonce la tôle dessinée, 1,5 cm par m/s,
+jamais plus de 30 cm. Les dommages sont l'enfoncement de la zone la plus touchée rapporté à ces 30 cm : un
+petit coup devant et un derrière ne comptent que pour le plus gros des deux, quatre au même endroit
+l'enfoncent à fond, et c'est 100 %. Le calcul est fait par la physique, sans le hasard du dessin : la
+course donne le même résultat avec ou sans écran. Sur 25 s de départ à Spa, la tôle moyenne passe ainsi de
+2-5 % à 6-7 %, et la plus touchée de 8-19 % à 21-31 % : un choc franc pèse plus lourd, des contacts
+répartis ne s'additionnent plus. **En course
+seulement** : en contre-la-montre et à l'entraînement, les bosses se voient mais ne coûtent rien.
+
+**Des pare-chocs durs, des flancs mous** (`ENFONCE.durete`). « Les tampons avant et arrière doivent faire
+perdre moins de points de vie, c'est quand même assez régulier : les voitures doivent être plus dures à
+l'avant et à l'arrière — c'est logique, il y a les pare-chocs. Pour les coups de côté, quelque chose de
+plus fragile, de plus mou. » Chaque zone s'enfonce selon sa dureté : 0,3 pour le nez et l'arrière (un
+pare-chocs encaisse trois fois mieux), 0,6 pour les quatre coins, 1,4 pour les flancs. La tôle dessinée
+suit les mêmes duretés : un pare-chocs se cabosse moins, un flanc davantage.
+
+Il a fallu d'abord que les tampons tombent **sur les pare-chocs**. Le choc par l'arrière prenait la
+direction d'un centre à l'autre, qui penche de 20 à 40° dès que les deux voitures sont un peu décalées —
+presque toujours — et le calcul le mettait au coin dès 13° : mesuré, les pare-chocs ne prenaient presque
+rien, les coins presque tout. Quand les deux voitures se recouvrent sur plus de la moitié de leur largeur,
+c'est maintenant pare-chocs contre pare-chocs, chacune dans son propre axe (l'axe de la piste ne suffisait
+pas : dans l'épingle de La Source, les voitures sont en biais sur elle) ; décalées davantage, c'est un
+coin. Sur 8 départs de 60 s à Spa, la tôle moyenne du peloton passe de 9,5 % (3 à 15 %) à 4,6 % (0,4 à
+9 %), et la voiture la plus touchée de 27 % en moyenne (jusqu'à 36 %) à 11 % (jusqu'à 20 %).
+
+**Le coup de flanc** ne cassait rien jusqu'ici. Deux voitures qui se serrent dans un virage se
+rapprochent vite sur le côté rien que parce que leurs caps diffèrent de quelques degrés ; compté au même
+seuil qu'un choc par l'arrière, il faisait plus de la moitié de la tôle sur 25 s de départ à Spa (26 à
+30 m/s cumulés au-delà du seuil, contre 12 à 22 par l'arrière ; 6 à 7 % de tôle en moyenne). Il ne casse
+donc qu'au-delà de 6 m/s (`FLANC_SEUIL`). Il coûtait d'abord, en plus, deux fois moins qu'un choc de face ;
+c'est maintenant la dureté du flanc, la zone la plus molle, qui décide : rare, mais cher.
+
+> **Une première mesure était fausse.** Elle annonçait deux voitures détruites au premier virage et des
+> carambolages de 150 m/s : dans le banc, la voiture du joueur, pilotée par l'IA, recevait l'accélérateur
+> au plancher en permanence — l'IA tournait le volant, pas la pédale — et sortait à chaque virage en
+> emportant les autres. Le banc donne maintenant au joueur l'accélérateur que l'IA choisirait
+> (`aiThrottle`), comme `tools/e2e-degats.js`.
+
+### Les stands, pour réparer
+
+« Remets les stands pour réparer la voiture, avec le bruit de réparation au stand : cling, clac, zout
+zout. » Les stands n'existaient qu'avec l'usure ; ils reviennent avec les dégâts seuls (`race.stands`).
+
+- **La coche du levier** ne s'ouvre que sur une voiture abîmée (plus de 2 %), après le premier tour,
+  et pas deux fois dans le même passage : s'arrêter pour réparer une voiture intacte, c'est la coche
+  qui ne fait rien.
+- **La réparation dure selon ce qu'il y a à réparer** : 1,5 s, plus 6,5 s pour une voiture au maximum
+  des dommages (`STAND.reparation`). Le temps qui reste s'affiche au-dessus de la jauge. Au bout, toutes
+  les zones sont à zéro, la vitesse revient, et la carrosserie repart neuve — bosses, plis et feux cassés
+  compris.
+- **L'IA s'arrête d'elle-même** au-delà de 45 % de dommages, s'il reste au moins trois tours : une
+  voiture abîmée à moitié perd dix-sept pour cent de pointe, plusieurs secondes au tour, et l'arrêt en
+  coûte une douzaine.
+- **Les bruits** : tant que la voiture est arrêtée, l'équipe travaille — des clés qui tintent (trois
+  partiels inharmoniques, comme une barre de métal frappée), des pièces qu'on claque (un éclat de bruit et
+  un choc sourd), et la visseuse à chocs, deux coups, une dent de scie grave hachée trente fois par
+  seconde. Elle ouvre toujours le bal ; la suite est tirée au hasard. Fabriqués dans `js/audio.js`, sans
+  fichier, comme le clac du levier.
+
+**Les mécaniciens** (`js/mecanos.js`). « Des mécaniciens qui viennent autour de la voiture quand on la
+répare, qui s'affairent puis qui la laissent partir, en plusieurs couleurs, chacune correspondant à un
+box. » Puis : « ils doivent toujours passer par l'arrière ou les côtés pour s'écarter ; ils doivent poser
+du scotch devant et derrière, et sur les côtés s'occuper des roues, et donc avoir les mains sous la
+carrosserie. » La voie a six boxes de huit mètres (les trois rangées de garages, `Track.pitGarages`) —
+douze d'abord, « divise par deux le nombre d'équipages » —, chacun avec sa couleur et son équipe de six, qui attend devant son garage en deux rangs de trois, tournée
+vers la piste. Quand une voiture s'arrête, l'équipe du box le plus proche (ou du plus proche qui soit
+libre) court à elle et se place : le scotch au nez et à l'arrière, une roue chacun pour les quatre autres,
+accroupis, les mains sous la carrosserie — ceux-là sont dessinés sous la voiture, ceux du scotch
+par-dessus. **Personne ne passe devant la voiture** : on longe le flanc côté garage, et l'autre flanc se
+gagne par l'arrière. 0,7 s avant la fin de la réparation, tous se redressent et se dégagent — celui du
+nez sur le côté, celui de l'arrière en reculant, ceux des roues en s'éloignant de la voiture —, puis ils
+rentrent au box, par l'arrière pour ceux de l'autre flanc.
+
+**Les boxes sont marqués au sol** : « indique plus clairement les zones des boxes, mets une bande blanche
+tous les deux boxes ». Une bande blanche de 30 cm traverse la voie à chaque limite de box d'équipe, tous
+les deux garages du dessin (huit mètres), de la première rangée de garages à la dernière ; chaque équipe
+attend au milieu du sien. Seulement quand les stands servent (`showPit`), comme la voie elle-même.
+
+**Le scotch se voit, par patchs, et s'accumule.** « Des patchs de scotch plus petits en différentes zones,
+aléatoirement sur la zone réparée, et qui s'accumulent au fil des passages » ; « de l'aléa dans le
+placement et dans l'apparence, sans qu'ils soient trop gros ; sur la carrosserie, l'aileron ou les phares,
+pas sur les fenêtres ni les roues. » À chaque arrêt, les zones vraiment enfoncées (celles des points de
+vie) reçoivent un patch, deux si elles le sont à fond, trois au plus par arrêt (`Equipes.patchs`). Tout est
+tiré au hasard : l'endroit dans la zone, la forme (une bande, deux en croix, deux qui se chevauchent, trois
+en éventail), l'angle, la taille (30 à 50 cm sur 12 à 16), le gris, les bouts déchirés et le pli. Chaque
+patch tiré est éprouvé sur le dessin de la voiture (`ScotchMasque`) : tous les points de ses bandes doivent
+tomber sur la voiture, et pas sur une **surface** sombre au milieu de l'habitacle (une vitre) ni sur les
+côtés au niveau des essieux (un pneu) — un trait sombre, contour ou pointillé, ne compte pas, sans quoi les
+ailes et les flancs n'en recevaient jamais. L'aileron, tout à l'arrière, et les phares, clairs, sont
+permis. Les patchs apparaissent un à un pendant l'arrêt, posés par les mécaniciens du nez et de l'arrière,
+et restent : au cinquième arrêt la voiture est rafistolée de partout ; au-delà de vingt, les plus vieux
+partent. Le dessin de la bande vient de la planche que Bruno a mise au point avec ChatGPT
+(`grip-cinq-arrets.html`). Les sept poses sont celles de la planche de Bruno ; tant que sa planche n'est
+pas dans le dépôt, elles sont dessinées par le code dans le même style (`MecanoSprites`). Un mécanicien
+fait 1,1 m à l'écran, un peu plus que nature, pour se lire à la distance du jeu. Le temps de réparation
+qui reste s'affiche au-dessus de la jauge.
+
+**Les stands des quatorze circuits** sont sur `docs/degats/stands-circuits.jpg` : chaque circuit en entier,
+la voie en rose et la zone d'arrêt en jaune, et la voie vue de près à côté. Un circuit sans voie
+(`pitLane: false`) garde ses stands fermés (`race.stands`) : la coche ne s'ouvre pas, l'IA ne s'arrête
+pas. **Le Rocher** était dans ce cas — sa voie avait été retirée pour les platanes du boulevard. Elle y
+est revenue, sur le boulevard, côté port, comme au vrai Monaco : « mets les arbres entre la piste et les
+stands, ce n'est pas grave s'ils débordent sur les deux ». Une rangée de platanes court donc dans la
+bande de 1,2 m qui sépare la piste de la voie (`ville.alignements`, `depuis: 'bord'`, mesurée depuis le
+bord de la piste et non depuis la protection), le feuillage sur les deux ; la seconde rangée, côté port,
+est partie avec le retour de la voie. Sept voies ont été placées à la main
+(`pitAt`) ; **cinq sont placées d'office**, juste avant la ligne — Royal Air Base, Fuji Yama, Festival
+de Carnaval, Bratwurst Ring et Autoroute 11. Celle de **Kangaroo Mountain**, placée d'office elle aussi,
+passait dans le virage à angle droit d'avant la ligne : « ça ne va pas, il faut en ligne droite, tant pis
+si ça fait passer la ligne d'arrivée ». Elle tient maintenant sur la droite de la ligne (`pitFrom`,
+`pitTo`), de la sortie du virage à 216 m après la ligne, avec ses bâtiments ; une voiture abîmée y entre,
+s'y fait réparer et en ressort sans rien toucher.
+
+### La jauge
+
+Le cadran de tôle de l'usure revient seul au-dessus du levier, sans celui des pneus : il dit combien il
+reste de voiture, en pour cent, vert puis orange puis rouge.
+
+### Ce que ça coûte au dessin
+
+Une voiture intacte n'a pas de maillage et se dessine exactement comme avant. Une voiture touchée
+découpe son dessin en triangles là où l'anneau a bougé, et seulement là. Mesuré sans précaution, dix
+voitures cabossées de partout faisaient passer une image de 2 à 34 ms. La caisse déformée est donc
+**gardée en cache**, à la résolution du dessin, et retendue seulement pendant la seconde où la tôle
+tremble : dix voitures cabossées coûtent 1,2 ms, contre 0,7 à 1,0 ms intactes.
+
+### Ce qui n'est pas fait
+
+- **En ligne**, chaque écran calcule ses bosses à partir des chocs qu'il voit ; les dommages, eux,
+  passent par le réseau comme avant (l'octet `damage` de `js/net-drive.js`). Deux joueurs peuvent donc
+  voir des bosses un peu différentes. Non essayé à deux écrans.
+- **Pas de pièce qui se détache** en dehors du capot de l'abandon : seulement des débris.
 
 ## Usure et dommages
 

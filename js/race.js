@@ -193,6 +193,18 @@ class Race {
     // `opts.mode` et non `this.mode` : celui-ci n'est affecté que trente lignes plus bas, si bien
     // que le lire ici aurait rendu l'option inerte sans que rien ne le signale.
     this.usure = USURE_ACTIVE && opts.wear && (opts.mode || 'race') === 'race' ? USURE : null;
+    /* LES DÉGÂTS SONT UNE OPTION (essai, js/car.js) : « les dégâts doivent être une option » (Bruno). Le
+    paddock la propose, oui par défaut (`save.degats`) ; en ligne, c'est l'hôte qui choisit. Sans elle,
+    ni bosses, ni débris, ni fumée, ni perte de vitesse, ni abandon, ni jauge, ni stands — rien à
+    réparer. Les étincelles restent : elles disent qu'il y a eu contact, pas qu'il y a eu dégât.
+    `degatsVisu` : les bosses se voient, en course comme en contre-la-montre (où elles ne coûtent rien).
+    `degats` : elles coûtent, en course seulement. L'abandon (ABANDON_VITESSE) en solo seulement pour
+    l'essai : en ligne il devrait passer par le réseau. */
+    this.degatsVisu = DEGATS_ACTIVE && !!opts.degats;
+    this.degats = this.degatsVisu && !this.usure && (opts.mode || 'race') === 'race' ? { ...DEGATS, abandon: !opts.humans } : null;
+    // les stands : avec l'usure (pneus et tôle), ou avec les dégâts seuls (la tôle) — et pas sur un
+    // circuit qui n'a pas de voie (`pitLane: false`) : la coche n'y mènerait nulle part
+    this.stands = !!(this.usure || this.degats) && !!this.track.pit;
     this.time = 0;
     this.state = 'countdown';                  // countdown | racing | finishing | finished
     this.countdown = 3.6;
@@ -266,6 +278,7 @@ class Race {
         pilotage, et une voiture qui tient plus doit aussi glisser moins quand elle est touchée. */
         gripBoost: isHuman || h ? 1 : (this.difficulty.grip || 1),
         usure: this.usure,
+        degats: this.degats,
         number: isHuman ? 1 + (hIdx || 0) : 2 + i,
         s, lat,
       });
@@ -372,7 +385,7 @@ class Race {
     if (!input || typeof input !== 'object') input = { throttle: throttleAmount(input), sel: this.player.sel };
     this.player.sel = clamp(input.sel == null ? 0 : input.sel, -1, 1);
     // la coche des stands : une intention, pas une quatrième position de ligne (voir Car.pitAsk)
-    if (this.usure && input.pit != null) this.player.pitAsk = !!input.pit;
+    if (this.stands && input.pit != null) this.player.pitAsk = !!input.pit;
     this.acc += Math.min(frameDt, 0.1);
     const brakingInput = input.brake == null ? null : { brake: throttleAmount(input.brake), engineBrake: throttleAmount(input.engineBrake) };
     while (this.acc >= this.dt) {
@@ -417,12 +430,17 @@ class Race {
     }
     if (this.state === 'finished') return;
     this._simulate(dt, throttleInput, brakingInput);
+    // le joueur a abandonné : on laisse voir l'épave un instant, puis la course se termine sans lui
+    if (this.state === 'racing' && this.player.abandon && !this.netDrive) {
+      // sept secondes : le temps de l'écran ABANDON (Renderer._ecranAbandon), comme le WASTED de GTA
+      this.state = 'finishing'; this.finishTimer = 7; this.finishDeadline = this.time + this.finishTimer;
+    }
     if (this.state === 'finishing' && (!this.netDrive || this.netDrive.host)) {
       if (this.netDrive) this.finishTimer = Math.max(0, this.finishDeadline - this.time);
       else this.finishTimer -= dt;
       const competitors = this.opts.humans ? this.cars.filter(c => c.human != null) : this.cars;
       const expired = this.finishTimer <= 0 && (!this.netDrive || this.netDrive.canFinalize());
-      if (expired || competitors.every(c => c.finished)) this._finish();
+      if (expired || competitors.every(c => c.finished || c.abandon)) this._finish();
     }
   }
 
@@ -443,11 +461,15 @@ class Race {
   du talent, donc il est stable d'une course à l'autre : le même pilote a toujours la même
   stratégie, ce qui se remarque quand on joue plusieurs fois. */
   _decidePit(car) {
-    if (car.pitAsk || car.pitState || car.tyre > 0.999) return;
+    if (car.pitAsk || car.pitState || (car.tyre > 0.999 && car.damage < 0.001)) return;
     const reste = this.laps - car.lap;
     if (reste < 3) return;                       // trop tard pour rembourser
     const seuil = 0.24 + car.skill * 0.16;       // 0,24 à 0,40 selon le pilote
-    if (car.tyre < seuil || car.damage > 0.75) car.pitAsk = true;
+    /* La tôle seule (essai des dégâts) : une voiture abîmée à moitié perd dix-sept pour cent de
+    pointe, plusieurs secondes au tour ; l'arrêt en coûte une douzaine. Il se rembourse donc en deux
+    ou trois tours — on garde le « reste au moins trois tours » des pneus, par prudence. */
+    const seuilTole = this.usure ? 0.75 : 0.45;
+    if (car.tyre < seuil || car.damage > seuilTole) car.pitAsk = true;
   }
 
   _simulate(dt, throttleInput, brakingInput = null) {
@@ -460,6 +482,9 @@ class Race {
     this.flags?.update();
     // rubber-banding: slow leaders that are far ahead of the player, help stragglers a little
     const pp = this.player.progress;
+    /* Le trafic que l'IA regarde : ni le fantôme, ni une épave. Une voiture arrêtée pour de bon que
+    l'IA prendrait pour un gêneur la ferait attendre derrière elle, et la course ne finirait plus. */
+    const trafic = this._sansFantome.some((c) => c.abandon) ? this._sansFantome.filter((c) => !c.abandon) : this._sansFantome;
     for (const car of this.cars) {
       if (this.netDrive && !this.netDrive.owns(car)) continue;
       // The third argument is "let the AI pick the line". A person's car never does, wherever
@@ -469,8 +494,8 @@ class Race {
       le joueur freine lui-même ; la dupliquer aurait fini par la faire diverger. */
       car.aiDriven = car.human == null && !car.isPlayer ? true : !!this.opts.playerAI;
       // le fantôme ne voit personne, et personne ne le voit : ni gêneur, ni voisin, ni aspiration
-      car.steer(car.fantome ? SANS_TRAFIC : this._sansFantome, dt, car.aiDriven);
-      if (this.usure && car.aiDriven && !car.finished) this._decidePit(car);
+      car.steer(car.fantome ? SANS_TRAFIC : trafic, dt, car.aiDriven);
+      if (this.stands && car.aiDriven && !car.finished && !car.abandon) this._decidePit(car);
       let throttle;
       if (car.isPlayer) throttle = car.finished ? car.v < 15 : throttleInput;
       else if (car.human != null) {
@@ -478,14 +503,14 @@ class Race {
         // predicted — this only ever runs on the host, which is the one simulating.
         const net = this.netInput[car.human] || { thr: false, sel: 0 };
         car.sel = clamp(net.sel || 0, -1, 1);
-        if (this.usure) car.pitAsk = !!net.pit;
+        if (this.stands) car.pitAsk = !!net.pit;
         throttle = car.finished ? car.v < 15 : throttleAmount(net.thr);
       } else if (car.fantome) {
         throttle = aiThrottle(car, SANS_TRAFIC, dt, DIFFICULTY[FANTOME.niveau]);
       } else {
         const gapM = car.progress - pp;
         const rubber = car.finished || this.player.finished ? 0 : clamp(-gapM / 4000, -0.05, 0.03);
-        throttle = aiThrottle(car, this.cars, dt, { ...this.difficulty, rubber }) && !car.finished;
+        throttle = aiThrottle(car, trafic, dt, { ...this.difficulty, rubber }) && !car.finished;
         if (car.finished) throttle = car.v < 15;
       }
       const wasOff = car.state === 'grass', hitsBefore = car.barrierHits;
@@ -824,6 +849,8 @@ class Race {
 
   standings() {
     return this.cars.slice().sort((a, b) => {
+      // une épave est classée derrière tous ceux qui roulent encore, et entre épaves au plus loin allé
+      if (!!a.abandon !== !!b.abandon) return a.abandon ? 1 : -1;
       if (a.finished && b.finished) return this.tempsClasse(a) - this.tempsClasse(b);
       if (a.finished !== b.finished) return a.finished ? -1 : 1;
       return b.progress - a.progress;
@@ -836,12 +863,14 @@ class Race {
     // Solo may complete AI laps offscreen. Online, keep only actually completed laps;
     // fast-forwarding would freeze every guest and invent finishes for absent players.
     let extra = 0;
-    while (!this.opts.humans && !this.cars.every(c => c.finished) && extra < 180) { this._simulate(this.dt, false); extra += this.dt; }
+    const abandon = this.player.abandon && !this.opts.humans;
+    while (!abandon && !this.opts.humans && !this.cars.every(c => c.finished || c.abandon) && extra < 180) { this._simulate(this.dt, false); extra += this.dt; }
+    if (abandon) this._projetteArrivees();
     this.events.length = 0;
     this.state = 'finished';
     const order = this.standings();
     this.results = order.map((car, i) => ({
-      car, pos: i + 1, points: POINTS[i] || 0,
+      car, pos: i + 1, points: car.abandon ? 0 : POINTS[i] || 0, abandon: !!car.abandon,
       // `time` est le temps QUI CLASSE, pénalités comprises : c'est lui qui a décidé de l'ordre, donc
       // c'est lui qu'il faut montrer. Le chrono brut et la pénalité sont donnés à côté, sans quoi un
       // joueur verrait son classement bouger sans pouvoir le relier à quoi que ce soit.
@@ -855,11 +884,28 @@ class Race {
     return this.results;
   }
 
+  /* LE JOUEUR A ABANDONNÉ (essai des dégâts) : la fin de course se projette au lieu de se simuler.
+
+  Finir la course à sa place, c'est souvent des minutes de course à calculer d'un bloc — un abandon
+  au premier tour de Spa en laisse plus de dix — et l'écran resterait figé le temps du calcul. La
+  simulation de fin habituelle s'arrête à 180 s ; au-delà, tout le monde serait « non classé ». On
+  fait finir chaque voiture encore en course au rythme moyen qu'elle a tenu jusqu'ici : l'ordre est
+  celui de la piste, et les écarts sont plausibles. */
+  _projetteArrivees() {
+    const total = this.laps * this.track.length;
+    for (const c of this.cars) {
+      if (c.finished || c.abandon) continue;
+      const moyenne = Math.max(5, c.progress / Math.max(1, this.time));
+      c.finishTime = this.time + Math.max(0, total - c.progress) / moyenne;
+      c.finished = true;
+    }
+  }
+
   /** Le classement d'un invité, bâti sur l'instantané reçu et non sur une simulation. */
   _classeRecu() {
     const order = this.standings();
     this.results = order.map((car, i) => ({
-      car, pos: i + 1, points: POINTS[i] || 0,
+      car, pos: i + 1, points: car.abandon ? 0 : POINTS[i] || 0, abandon: !!car.abandon,
       time: this.tempsClasse(car),
       brut: car.finished ? car.finishTime : null,
       penalite: Race.penalite(car),

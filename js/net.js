@@ -51,7 +51,9 @@ class Net {
     this.busy = false;
     this.mine = { pid: this.pid, name: '', car: null, ready: false };
     // `cat` : la catégorie imposée par l'hôte, ou 'all' pour laisser chacun prendre ce qu'il veut
-    this.table = { timeOfDay: 'day', mode: 'race', trackId: 'monza', laps: 3, difficulty: 'medium', cat: 'all', go: 0 };
+    // `degats` : les dégâts (essai), choisis par l'hôte pour tout le monde — chacun pilote sa voiture
+    // sur son écran, un réglage propre à chacun laisserait l'un cabosser et l'autre pas
+    this.table = { timeOfDay: 'day', degats: true, mode: 'race', trackId: 'monza', laps: 3, difficulty: 'medium', cat: 'all', go: 0 };
     this.grid = null;              // frozen at kick-off by the host: [{p, n, m}, …], host first
     this.roster = null;            // the same list, pids only: [pid, …]
     this.seat = -1;
@@ -285,7 +287,7 @@ class Net {
     this.post();
     this.onStart({
       mode: t.mode, trackId: t.trackId, laps: t.laps, difficulty: t.difficulty,
-      timeOfDay: t.timeOfDay === 'night' ? 'night' : 'day',
+      timeOfDay: t.timeOfDay === 'night' ? 'night' : 'day', degats: t.degats !== false,
       cat: t.cat || 'all', go: t.go, spectator: !!this.mine.spectator,
       // Personne ne choisit sa couleur : la place la donne. L'ordre étant celui de l'hôte, il est
       // le même sur tous les écrans, et chacun sait qui est qui sans qu'un mot passe sur le fil.

@@ -333,12 +333,22 @@ class NightLighting {
       const cos=Math.cos(h),sin=Math.sin(h),layout=carLightLayout(c,car.livree);
       const braking=car.braking&&car.state==='ok';
       const world=q=>({x:p.x+cos*q.x-sin*q.y,y:p.y+sin*q.x+cos*q.y});
-      for(const q of layout.front){
+      /* La tôle froissée (essai, js/degats.js) : un feu suit son coin quand il recule, et s'éteint
+      quand il a reculé de plus de sept centimètres — le phare est cassé. */
+      const tole=this.toleDe&&this.toleDe(car);
+      const suit=q=>{
+        if(!tole||!tole.touche)return q;
+        const [ox,oy]=tole.decale(q.x,q.y,1);
+        return Math.hypot(ox,oy)>.07||(car.abandon&&car.abandonT>6)?null:{...q,x:q.x+ox,y:q.y+oy};
+      };
+      for(const q0 of layout.front){
+        const q=suit(q0);if(!q)continue;
         const side=Math.sign(q.y),splay=side*.035;
         this.fields.push({...world(q),heading:h+splay,beam:true,length:36,width:6,power:.82,
           lens:{...q,angle:(q.angle||0)-splay}});
       }
-      if(!layout.brakeOnly||braking)for(const q of layout.rear){
+      if(!layout.brakeOnly||braking)for(const q0 of layout.rear){
+        const q=suit(q0);if(!q)continue;
         this.fields.push({...world(q),heading:h+Math.PI-Math.sign(q.y)*.06,tail:true,
           length:braking?6.5:4.2,width:braking?1.1:.7,
           power:braking?.4:.035,tint:braking?.78:.24});
@@ -416,6 +426,8 @@ class Renderer {
     this.nightCanvas.dataset.layer = 'night';
     this.nightCtx = this.nightCanvas.getContext('2d');
     this.night = new NightLighting();
+    // la tôle d'une voiture, pour que ses feux suivent les bosses (essai, js/degats.js)
+    this.night.toleDe = (car) => this.carrosseries && this.carrosseries.get(car);
     this.hudCanvas = document.createElement('canvas');
     this.hudCtx = this.hudCanvas.getContext('2d');
     this.carRects = [];
@@ -449,6 +461,9 @@ class Renderer {
     this.rubber = new Map();   // rubber laid on the road, kept for the whole race
     this.pullBack = 1;         // how far the camera sits back, 1 = normal, above it wider
     this.particles = [];
+    // les dégâts qui se voient (essai, js/degats.js) : la tôle de chaque voiture, les étincelles, les débris
+    this.carrosseries = new WeakMap();
+    this.eclats = typeof Eclats !== 'undefined' ? new Eclats() : null;
     this.wets = [];            // damp tyre tracks, carried out of a puddle
     this.damp = new Map();     // metres of water each car still has on its tyres
     this.puddles = [];
@@ -1343,7 +1358,23 @@ class Renderer {
         const r=Math.hypot(gr.w,gr.h)/2;
         voir({x:gr.x-r,y:gr.y-r});voir({x:gr.x+r,y:gr.y+r});
       }
-      return { surface, ligne, zone, garages, bbox: { minX: minX - 16, minY: minY - 16, maxX: maxX + 16, maxY: maxY + 16 } };
+      /* LES BOXES, MARQUÉS AU SOL (essai des dégâts) : « indique plus clairement les zones des boxes, mets
+      une bande blanche tous les deux boxes » (Bruno). Une bande blanche de 30 cm en travers de la voie à
+      chaque limite de box d'équipe — tous les deux garages du dessin, huit mètres —, de la première
+      rangée de garages à la dernière. Les mêmes boxes que les équipes de mécaniciens (js/mecanos.js). */
+      const boxes = new Path2D(), M = typeof MECANOS !== 'undefined' ? MECANOS : { parGarage: 2, largeurBox: 8 };
+      const limites = new Set();
+      for (const gr of garages) for (let k = 0; k <= M.parGarage; k++)
+        limites.add(Math.round((gr.s + (k - M.parGarage / 2) * M.largeurBox) * 10) / 10);
+      for (const s0 of limites) {
+        const s = track.wrap(s0), z = track.pitAt(s);
+        if (!z) continue;
+        const h = track.headingAt(s), ex = Math.cos(h) * 0.15, ey = Math.sin(h) * 0.15;
+        const a = track.pos(s, z.interne - 0.15), b = track.pos(s, z.externe + 0.1);
+        boxes.moveTo(a.x - ex, a.y - ey); boxes.lineTo(b.x - ex, b.y - ey);
+        boxes.lineTo(b.x + ex, b.y + ey); boxes.lineTo(a.x + ex, a.y + ey); boxes.closePath();
+      }
+      return { surface, ligne, zone, boxes, garages, bbox: { minX: minX - 16, minY: minY - 16, maxX: maxX + 16, maxY: maxY + 16 } };
     })() : null;
 
     this.paths = { center, mid, road, left, right, corners, bridges, passerelles, tunnels, lines, chunks, pit };
@@ -1485,6 +1516,8 @@ class Renderer {
   }
 
   updateCamera(race, dt) {
+    // l'abandon du joueur : la caméra va se poser sur l'épave (voir _ecranAbandon)
+    if (race.player && race.player.abandon && this.cam.init) { this._cameraEpave(race, dt); return; }
     const p = race.player, T = race.track, pos = p.pos;
     const h = T.headingAt(p.s);
     // rapportée à la pointe que le jeu laisse atteindre (`vitesseEcran`), pas à celle de la fiche
@@ -1663,12 +1696,90 @@ class Renderer {
   }
 
 
+  /* LA CAMÉRA DE L'ABANDON : elle quitte l'avance, se recentre sur l'épave et s'en approche jusqu'à
+  ne plus montrer que seize mètres. L'ondulation elle-même se pose au dessin (`draw`), par-dessus. */
+  _cameraEpave(race, dt) {
+    const pos = race.player.pos, k = Math.min(1, dt * 3);
+    const zoom = (this.rotate ? this.h : Math.min(this.w, this.h)) / 16;
+    this.cam.x += (pos.x - this.cam.x) * k; this.cam.y += (pos.y - this.cam.y) * k;
+    this.cam.zoom += (zoom - this.cam.zoom) * Math.min(1, dt * 1.6);
+    this.cam.ox = this.cam.x - pos.x; this.cam.oy = this.cam.y - pos.y;
+    this.framing = (this.rotate ? this.h : Math.min(this.w, this.h)) / this.cam.zoom;
+  }
+
   // How far back the camera sits, on top of the speed. 1 is the framing above; higher widens it.
   // There is no way to go closer: twenty metres on the grid is already as close as the game is
   // meant to be, and the only thing worth offering is room for someone who wants to see more.
   setPullBack(v) {
     this.pullBack = clamp(+v || 1, 1, 2);
     return this.pullBack;
+  }
+
+  /* LES DÉGÂTS QUI SE VOIENT (essai, js/degats.js). Les chocs que la physique a notés depuis la
+  dernière image (`car.chocs`) deviennent une bosse sur la tôle, des plis peints, une gerbe
+  d'étincelles et des débris ; une voiture très abîmée fume. Le point touché se prend sur le bord du
+  DESSIN, du côté d'où vient le choc — au coin quand il arrive en biais. */
+  _degats(race, dt) {
+    const V = DEGATS_VISU;
+    if (this._courseDegats !== race) { this._courseDegats = race; this.eclats.vide(); this.carrosseries = new WeakMap(); }
+    const roule = race.state === 'racing' || race.state === 'finishing' || race.state === 'finished';
+    for (const car of race.cars) {
+      const chocs = car.chocs;
+      if (!chocs) continue;
+      let tole = this.carrosseries.get(car);
+      // réparée au stand : la tôle repart neuve
+      if (tole && car.pitsDone !== tole.pitsVu) { this.carrosseries.delete(car); tole = null; }
+      if (chocs.length && !car.fantome) {
+        // une voiture d'atelier, dessinée en vecteurs, n'a pas de dessin à froisser : elle garde ses
+        // étincelles et ses débris, mesurés sur sa boîte
+        const art = topArt(car.cls, car.livree);
+        const [w, h] = art ? topSize(car.cls, art) : [car.cls.length, car.cls.width];
+        const cs = Math.cos(car.heading), sn = Math.sin(car.heading);
+        const vx = car.v * cs + car.vl * sn, vy = car.v * sn - car.vl * cs;
+        let gerbes = 0;
+        for (const e of chocs) {
+          const px = -clamp(e.nx * 1.8, -1, 1) * w / 2, py = -clamp(e.ny * 1.8, -1, 1) * h / 2;
+          const X = car.x + px * cs - py * sn, Y = car.y + px * sn + py * cs;
+          const ox = -(e.nx * cs - e.ny * sn), oy = -(e.nx * sn + e.ny * cs);   // vers l'extérieur, dans le monde
+          const force = e.v - V.seuil;
+          // dégâts coupés (l'option du paddock) : pas de bosse, pas de débris — les étincelles restent
+          if (force > 0 && race.degatsVisu !== false) {
+            let couleur = car.livery && car.livery.body || '#8a8f96';
+            if (art) {
+              if (!tole) { tole = new Carrosserie(w, h); tole.pitsVu = car.pitsDone; this.carrosseries.set(car, tole); }
+              couleur = tole.teinte(art.img, px, py, e.nx, e.ny) || couleur;
+              tole.choc(px, py, e.nx, e.ny, force, e.epave);
+              tole.marque(art.img, px, py, e.nx, e.ny, force, e.epave);
+            }
+            // l'abandon : le capot part en un morceau, et beaucoup d'éclats avec lui
+            if (e.epave) this.eclats.eclate(X, Y, vx, vy, ox, oy, 18, couleur, true);
+            else if (force > V.debris) this.eclats.eclate(X, Y, vx, vy, ox, oy, Math.min(8, 1 + Math.round(force * 0.4)), couleur);
+          }
+          // contre des pneus, pas d'étincelles : du caoutchouc ne crache rien
+          if (e.sorte !== 'tyres' && gerbes < 24 && (e.v > V.etincelles || e.frotte > V.frotte)) {
+            const n = Math.min(12, Math.round(1 + Math.max(0, e.v - V.etincelles) * 0.9 + Math.max(0, e.frotte - V.frotte) * 0.08));
+            this.eclats.gerbe(X, Y, vx, vy, ox, oy, n); gerbes += n;
+          }
+        }
+      }
+      chocs.length = 0;
+      if (!tole) continue;
+      tole.pas(dt);
+      // la fumée d'une voiture très abîmée sort de là où elle a pris les coups
+      if (roule && !car.fantome && car.damage > V.fumee && !(car.abandon && car.abandonT > 7)) {
+        const q = clamp((car.damage - V.fumee) / (1 - V.fumee), 0, 1);
+        const attendu = (4 + 16 * q) * Math.min(dt, 0.1);
+        const n = Math.floor(attendu) + (Math.random() < attendu % 1 ? 1 : 0);
+        const cs = Math.cos(car.heading), sn = Math.sin(car.heading);
+        for (let i = 0; i < n; i++) {
+          const fx = tole.fx * 0.8, fy = tole.fy * 0.8;
+          this._puff(car.x + fx * cs - fy * sn + (Math.random() - 0.5) * 0.5, car.y + fx * sn + fy * cs + (Math.random() - 0.5) * 0.5,
+            (Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1.5,
+            0.35 + q * 0.4 + Math.random() * 0.25, 0.8 + q * 0.8, q > 0.5 ? '78,78,84' : '150,150,156');
+        }
+      }
+    }
+    this.eclats.pas(dt);
   }
 
   // A puff of smoke: one soft ball that grows and thins as it drifts. Several at once make the
@@ -1720,6 +1831,12 @@ class Renderer {
       }
       this._water(car, pos, h, cs, sn, wheel, dt);
     }
+    if (this.eclats) this._degats(race, dt);
+    // les mécaniciens des stands (essai, js/mecanos.js) : une équipe par box, quand les stands sont ouverts
+    if (race.stands && typeof Equipes !== 'undefined') {
+      if (this._courseEquipes !== race) { this._courseEquipes = race; this.equipes = new Equipes(race.track); }
+      this.equipes.pas(race, dt);
+    } else this.equipes = null;
     if (this.wets.length > 700) this.wets.splice(0, this.wets.length - 700);
     for (const w of this.wets) w.alpha -= dt * 0.1;
     if (this.wets.length && this.wets[0].alpha <= 0) this.wets = this.wets.filter(w => w.alpha > 0);
@@ -1825,7 +1942,7 @@ class Renderer {
     this.carRects = [];
     // la voie ne se dessine que quand elle sert : une voie peinte qui ne mène à rien est pire
     // qu'une voie absente, on la vise et il ne se passe rien
-    this.showPit = !!race.usure;
+    this.showPit = !!race.stands;
     /* La carte est une image en cache : si la voie des stands apparaît, il faut la repeindre.
     Sans ça, activer l'usure ajoutait la voie au monde mais pas à la carte, qui gardait le tracé
     peint au chargement du circuit — une carte qui décrit un autre réglage que celui qu'on joue. */
@@ -1843,12 +1960,22 @@ class Renderer {
 
     g.save();
     g.translate(W / 2 + sx, H / 2 + sy);
+    /* L'ABANDON : de petites ondulations autour de l'épave — un roulis lent, un souffle de zoom, un
+    léger flottement — qui montent en une seconde. Posées ici, au dessin, sans toucher à la caméra :
+    elles ne dérivent jamais, et tout ce qui se calcule d'après la caméra reste juste. */
+    let ondZ = 1, ondX = 0, ondY = 0;
+    if (race.player && race.player.abandon) {
+      const ta = race.player.abandonT, fo = Math.min(1, ta / 1.2);
+      g.rotate(fo * (0.055 * Math.sin(ta * 0.9) + 0.018 * Math.sin(ta * 2.3 + 0.7)));
+      ondZ = 1 + fo * 0.05 * Math.sin(ta * 0.7);
+      ondX = fo * 0.8 * Math.sin(ta * 0.6); ondY = fo * 0.6 * Math.sin(ta * 0.85 + 1);
+    }
 
     if (this.rotate) g.rotate(-this.camAngle - Math.PI / 2);
-    g.scale(cam.zoom, cam.zoom);
-    g.translate(-cam.x, -cam.y);
+    g.scale(cam.zoom * ondZ, cam.zoom * ondZ);
+    g.translate(-cam.x - ondX, -cam.y - ondY);
     // conservative square view box: valid whatever the camera rotation
-    const reach = Math.hypot(W, H) / 2 / cam.zoom + 60;
+    const reach = Math.hypot(W, H) / 2 / (cam.zoom * ondZ) + 60;
     const vis = { minX: cam.x - reach, maxX: cam.x + reach, minY: cam.y - reach, maxY: cam.y + reach };
     this.night.prepare(race, cam, reach);
     const inView = (b) => !(b.maxX < vis.minX || b.minX > vis.maxX || b.maxY < vis.minY || b.minY > vis.maxY);
@@ -1928,6 +2055,8 @@ class Renderer {
         g.fillStyle = PAL.pitBox || 'rgba(255,212,0,0.16)'; g.fill(vp.zone);
         g.strokeStyle = PAL.pitBoxLine || '#ffd400'; g.lineWidth = 0.5; g.stroke(vp.zone);
         g.strokeStyle = PAL.edgeLine; g.lineWidth = 0.5; g.stroke(vp.ligne);
+        // les limites des boxes, en blanc, seulement quand les stands servent
+        if (vp.boxes && this.showPit) { g.fillStyle = 'rgba(244,244,240,0.92)'; g.fill(vp.boxes); }
         if(this.circuitGraphics)this.circuitGraphics.drawPitGarages(g,vp.garages);
         if (this.pitImg) {
           for (const gr of vp.garages) {
@@ -1976,6 +2105,8 @@ class Renderer {
       g.fillStyle = `rgba(${p.col},${(Math.min(1, t * 2.5) * 0.42).toFixed(3)})`;
       g.beginPath(); g.arc(p.x, p.y, p.r, 0, Math.PI * 2); g.fill();
     }
+    // les débris restent au sol, les étincelles volent — sous les voitures, comme la fumée
+    if (this.eclats) { this.eclats.dessineSol(g); this.eclats.dessineEtincelles(g); }
     this._drawTas(g, vis);              // sous les couronnes : un feuillage passe au-dessus d'une pile
     this._drawImplantation(g, vis);
     this._drawTopProps(g, vis);
@@ -2007,7 +2138,10 @@ class Renderer {
       const sur = pont.some((cr) => ((k - (cr.over - 16)) % T.n + T.n) % T.n <= 36);
       (sur ? dessus : dessous).push(car);
     }
+    // les mécaniciens au sol, sous les voitures : ceux des roues y glissent les mains sous la caisse
+    if (this.equipes) { g.imageSmoothingEnabled = true; this.equipes.dessine(g, 'dessous'); }
     for (const car of dessous) this._drawCar(g, car);
+    this._drawMecanos(g);
     if (T.drawRoad) for (const b of this.paths.bridges) {
       // bouts francs : c'est tout l'intérêt de ne border que les côtés
       g.lineCap = 'butt'; g.lineJoin = 'round';
@@ -2898,6 +3032,16 @@ class Renderer {
 
   _drawCar(g, car) {
     const m = g.getTransform(), scale = this.nativeDpr / this.dpr;
+    /* UNE VOITURE HORS DE L'ÉCRAN NE SE DESSINE PAS. Les dix l'étaient à chaque image, quel que soit le
+    cadre : mesuré à Spa sur un téléphone, 5,5 en moyenne étaient à l'écran pendant les 40 premières
+    secondes, peloton groupé, et deux ou trois une fois la course étirée. Une voiture cabossée hors de
+    l'écran retendait même sa tôle. La marge couvre la voiture, son ombre et ses feux stop : douze
+    mètres autour de son centre. */
+    {
+      const cx = m.a * car.x + m.c * car.y + m.e, cy = m.b * car.x + m.d * car.y + m.f;
+      const marge = 12 * Math.hypot(m.a, m.b), W = this.canvas.width, H = this.canvas.height;
+      if (cx < -marge || cy < -marge || cx > W + marge || cy > H + marge) return;
+    }
     g = this.carCtx;
     g.setTransform(m.a * scale, m.b * scale, m.c * scale, m.d * scale, m.e * scale, m.f * scale);
     g.imageSmoothingEnabled = true;
@@ -2906,7 +3050,12 @@ class Renderer {
     /* LE FANTÔME de l'entraînement se voit à travers : la piste, ses lignes et sa propre voiture
     restent lisibles quand il passe dessus. Son ombre s'allège avec lui — une ombre franche sous une
     voiture transparente la reposait au sol. */
-    const voile = car.fantome ? FANTOME_ALPHA : car.blueFlag ? .45 : 1;
+    /* UNE ÉPAVE S'EFFACE (essai des dégâts) : elle reste six secondes là où elle s'est arrêtée,
+    fumante, puis disparaît en deux — les commissaires l'ont enlevée. Elle ne se touche plus dès
+    l'abandon (resolveCollisions) : sans quoi l'IA s'arrêterait derrière, ou foncerait dedans. */
+    const enleve = car.abandon ? clamp(1 - (car.abandonT - 6) / 2, 0, 1) : 1;
+    if (enleve <= 0) { g.restore(); return; }
+    const voile = (car.fantome ? FANTOME_ALPHA : car.blueFlag ? .45 : 1) * enleve;
     g.globalAlpha *= voile;
     g.translate(pos.x, pos.y);
     g.rotate(h);
@@ -2938,10 +3087,14 @@ class Renderer {
     g.rotate(h);
     g.globalAlpha = car.fantome ? 0.3 * FANTOME_ALPHA : 0.3;
     // a drawn car casts its own outline; a vector one only has a box to offer
-    if (!drawCarShadow(g, c, car.livree, { steer: car.steerAngle })) { g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width); }
+    // la tôle froissée (essai, js/degats.js) : une voiture intacte n'a pas de maillage et se dessine comme avant
+    const tole = this.carrosseries && this.carrosseries.get(car);
+    const deforme = tole && tole.touche ? tole : null;
+    if (!drawCarShadow(g, c, car.livree, { steer: car.steerAngle, deforme })) { g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width); }
     g.restore();
-    if (freine && !this.night.active) this._feuxStop(g, c, art, car.livree);
-    drawCarModel(g, c, car.livery, { number: car.number, steer: car.steerAngle, livree: car.livree });
+    if (freine && !this.night.active) this._feuxStop(g, c, art, car.livree, deforme);
+    drawCarModel(g, c, car.livery, { number: car.number, steer: car.steerAngle, livree: car.livree, deforme });
+    if (car._patchs && car._patchs.length) this._scotch(g, car, deforme);
     g.restore();
     /* Pas de cercle autour de la voiture du joueur.
 
@@ -2951,12 +3104,87 @@ class Renderer {
     de couleur du classement la désigne déjà. */
   }
 
+  /* LE SCOTCH SUR LA CARROSSERIE (essai, js/mecanos.js). « Des patchs de scotch plus petits en
+  différentes zones, aléatoirement sur la zone réparée, et qui s'accumulent au fil des passages. » Les
+  patchs de l'arrêt en cours apparaissent un à un, à mesure que les mécaniciens du scotch travaillent
+  (`car._scotch`, de 0 à 1 pour l'avant et pour l'arrière) ; ceux des arrêts précédents restent. Chaque
+  bande a sa teinte, ses bouts déchirés et son pli, tirés au hasard (`Equipes._tirePatch`). Sur une tôle
+  encore cabossée, le patch suit la bosse. Dans le repère de la voiture. */
+  _scotch(g, car, tole) {
+    const s = car._scotch || { avant: 1, arriere: 1 };
+    for (const q of car._patchs) {
+      let f = 1;
+      if (q.cetArret) {
+        const p = q.avant ? s.avant : s.arriere;
+        f = clamp((p - q.debut) / Math.max(1e-6, q.seuil - q.debut), 0, 1);
+      }
+      if (f <= 0) continue;
+      const [ox, oy] = tole ? tole.decale(q.x, q.y, 1) : [0, 0];
+      g.save(); g.translate(q.x + ox, q.y + oy);
+      const n = q.bandes.length;
+      q.bandes.forEach((b, i) => {
+        const fb = clamp(f * n - i, 0, 1);   // les bandes d'un même patch, l'une après l'autre
+        if (fb > 0) { g.save(); g.translate(b.dx, b.dy); this._bandeScotch(g, b, fb); g.restore(); }
+      });
+      g.restore();
+    }
+  }
+
+  /* Une bande de scotch, centrée : un ruban gris aux bouts déchirés, un contour sombre, un reflet clair en
+  haut, une ombre en bas, un pli. Déroulée à `f` depuis son bout gauche. */
+  _bandeScotch(g, b, f) {
+    const l = b.l, h = b.w, u = h / 9, r = b.bouts;
+    g.save(); g.rotate(b.a);
+    if (f < 1) { g.beginPath(); g.rect(-l / 2 - 2 * u, -h, l * f + 2 * u, 2 * h); g.clip(); }
+    const bord = new Path2D();
+    bord.moveTo(-l / 2 + r[0] * u, -h / 2 + u); bord.lineTo(-l / 2 + 2 * u, -h / 2);
+    bord.lineTo(l / 2 - (0.5 + r[1]) * u, -h / 2); bord.lineTo(l / 2 - (1 + 2 * r[2]) * u, -h / 2 + (1 + 2 * r[3]) * u);
+    bord.lineTo(l / 2, -h / 2 + (3 + 2 * r[4]) * u); bord.lineTo(l / 2 - u, h / 2);
+    bord.lineTo(-l / 2 + u, h / 2); bord.lineTo(-l / 2 + (1 + 2 * r[5]) * u, h / 2 - 2 * u);
+    bord.closePath();
+    g.fillStyle = b.teinte; g.fill(bord);
+    g.strokeStyle = '#303436'; g.lineWidth = 1.5 * u; g.lineJoin = 'round'; g.stroke(bord);
+    g.save(); g.clip(bord);
+    g.fillStyle = 'rgba(255,255,255,0.32)'; g.fillRect(-l / 2 + 2 * u, -h / 2 + u, l - 4 * u, 2 * u);
+    g.fillStyle = 'rgba(0,0,0,0.2)'; g.fillRect(-l / 2 + 2 * u, h / 2 - 2 * u, l - 4 * u, 1.5 * u);
+    g.strokeStyle = 'rgba(255,255,255,0.3)'; g.lineWidth = u;
+    const p = -l / 2 + l * b.pli;
+    g.beginPath(); g.moveTo(p, -h / 2 + u); g.lineTo(p + l * 0.07, h / 2 - u); g.stroke();
+    g.restore();
+    g.restore();
+  }
+
+  /* Les mécaniciens du scotch (essai, js/mecanos.js), dans la couche des voitures et par-dessus elles :
+  le rouleau se pose sur la carrosserie. Les autres sont au sol, sous les voitures (`draw`). Cette couche
+  ne s'efface que par morceaux (`carRects`) : on y ajoute le leur. */
+  _drawMecanos(g) {
+    const E = this.equipes;
+    if (!E) return;
+    const b = E.emprise('dessus');
+    if (!b) return;
+    const m = g.getTransform(), k = this.nativeDpr / this.dpr, c = this.carCtx;
+    c.setTransform(m.a * k, m.b * k, m.c * k, m.d * k, m.e * k, m.f * k);
+    const T = c.getTransform(), xs = [], ys = [];
+    for (const [x, y] of [[b.minX, b.minY], [b.maxX, b.minY], [b.minX, b.maxY], [b.maxX, b.maxY]]) {
+      xs.push(T.a * x + T.c * y + T.e); ys.push(T.b * x + T.d * y + T.f);
+    }
+    const x0 = Math.max(0, Math.floor(Math.min(...xs)) - 2), y0 = Math.max(0, Math.floor(Math.min(...ys)) - 2);
+    const x1 = Math.min(this.carCanvas.width, Math.ceil(Math.max(...xs)) + 2), y1 = Math.min(this.carCanvas.height, Math.ceil(Math.max(...ys)) + 2);
+    if (x1 <= x0 || y1 <= y0) return;
+    this.carRects.push({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
+    c.imageSmoothingEnabled = true;
+    E.dessine(c, 'dessus');
+  }
+
   // Daytime stop projections use the same measured rear anchors as night lights.
   // Closed-body cars have two sources; the F1 stop cue remains central.
-  _feuxStop(g, c, art, livree) {
+  _feuxStop(g, c, art, livree, tole) {
     const F=FEU_STOP;
     g.save();g.globalAlpha*=.62;
-    for(const q of carLightLayout(c,livree).rear){
+    for(const q0 of carLightLayout(c,livree).rear){
+      // un feu qui a reculé de plus de sept centimètres est cassé (essai, js/degats.js)
+      let q=q0;
+      if(tole){const [ox,oy]=tole.decale(q0.x,q0.y,1);if(Math.hypot(ox,oy)>.07)continue;q={...q0,x:q0.x+ox,y:q0.y+oy};}
       g.save();g.translate(q.x,q.y);g.rotate(Math.PI-Math.sign(q.y)*.06);
       g.drawImage(this.night.tailMask(),0,-F.demi,F.long,F.demi*2);g.restore();
     }
@@ -3226,6 +3454,8 @@ class Renderer {
 
     // Printed information labels keep the existing HUD geometry and touch targets.
     const usure = !!p.usure;
+    // les dégâts seuls (essai) : la jauge de tôle, sans celle des pneus
+    const toleSeule = !usure && !!p.degats;
     const boxH = this.hudBox.h;
     /* L'origine de la carte, calculée ICI et non au moment de la peindre.
 
@@ -3379,13 +3609,14 @@ class Renderer {
     Aucune information ne repose sur la couleur seule : chaque cadran porte son pictogramme et son
     chiffre. Le vert ne veut rien dire tout seul, c'est le passage à l'orange puis au rouge qui
     porte l'alerte — et le chiffre la porte aussi pour qui ne distingue pas les deux. */
-    if (usure) {
+    if (usure || toleSeule) {
       const J = this.jauges, r = J.r;
       /* Leur propre fond : posés à même le décor, deux anneaux fins se perdaient sur le sable.
 
       Il descend plus bas qu'il ne monte, parce que le chiffre est passé sous l'arc : un fond
       symétrique laissait le dernier chiffre à cheval sur le bord. */
-      this._hudPaper(g, J.x - r - 7, J.y1 - r - 8, (r + 7) * 2, (J.y2 - J.y1) + r * 2.2 + 16);
+      if (usure) this._hudPaper(g, J.x - r - 7, J.y1 - r - 8, (r + 7) * 2, (J.y2 - J.y1) + r * 2.2 + 16);
+      else this._hudPaper(g, J.x - r - 7, J.y2 - r - 8, (r + 7) * 2, r * 2.2 + 16);
       const cadran = (cx, cy, frac, dessine) => {
         const f = Math.max(0, Math.min(1, frac));
         const A0 = Math.PI * 0.75, SPAN = Math.PI * 1.5;
@@ -3421,8 +3652,18 @@ class Renderer {
         this._roundRect(g, -2.3, -2.6, 4.6, 3.2, 1); g.fill();
       };
       // en colonne : la gomme au-dessus, la tôle en dessous, dans l'ordre où on s'en soucie
-      cadran(J.x, J.y1, p.tyre, pneu);
+      if (usure) cadran(J.x, J.y1, p.tyre, pneu);
       cadran(J.x, J.y2, 1 - p.damage, tole);
+      /* À l'arrêt au stand, le temps de réparation qui reste, AU-DESSUS du cadran : dessous, il
+      mordait sur le panneau du levier. Sur un fond à lui, pour se lire sur la voie comme sur l'herbe. */
+      if (p.pitState === 'arret' && p.pitT > 0) {
+        const taille = Math.round(r * 0.8), txt = p.pitT.toFixed(1) + ' s';
+        g.font = `italic 900 ${taille}px Racing, Impact, sans-serif`;
+        const lw = g.measureText(txt).width + 12, yb = (usure ? J.y1 : J.y2) - r - 12 - taille;
+        this._hudPaper(g, J.x - lw / 2, yb - 3, lw, taille + 6);
+        g.fillStyle = '#242b25'; g.textAlign = 'center'; g.textBaseline = 'top';
+        g.fillText(txt, J.x, yb);
+      }
       g.textAlign = 'left'; g.textBaseline = 'top';
     }
 
@@ -3565,7 +3806,10 @@ class Renderer {
       g.textAlign = 'center'; g.fillStyle = '#5be07a'; g.font = 'italic 900 80px Racing, Impact, sans-serif';
       g.globalAlpha = 1 - race.time / 1.2; g.fillText('GO!', W / 2, H * 0.18); g.globalAlpha = 1;
     }
-    if (p.state === 'grass') { g.textAlign = 'center'; g.fillStyle = '#ff6b6b'; g.font = 'italic 900 36px Racing, Impact, sans-serif'; g.fillText(t('offTrack'), W / 2, H * 0.3);
+    // l'abandon (essai des dégâts) a son propre écran, à la fin du HUD : plus de « sortie de piste,
+    // moteur coupé », qui promettrait de repartir
+    if (p.abandon) { /* _ecranAbandon */ }
+    else if (p.state === 'grass') { g.textAlign = 'center'; g.fillStyle = '#ff6b6b'; g.font = 'italic 900 36px Racing, Impact, sans-serif'; g.fillText(t('offTrack'), W / 2, H * 0.3);
       if(p.engineStopped){g.fillStyle='#ffcf5c';g.font='italic 900 24px Racing, Impact, sans-serif';g.fillText(t('engineCut'),W/2,H*.3+30);} }
     if (p.finished && race.state !== 'finished') { g.textAlign = 'center'; g.fillStyle = '#ffd400'; g.font = 'italic 900 52px Racing, Impact, sans-serif'; g.fillText(`${t('finished')} — P${race.positionOf(p)}`, W / 2, H * 0.3); }
     /* Le temps au tour se pose sous TOUT ce qui occupe le haut, et non à une hauteur fixe.
@@ -3583,7 +3827,46 @@ class Renderer {
       g.fillStyle='#f0d885';g.fillText(label,W/2,y);g.restore();
     }
     if (ui.flash && ui.flash.until > performance.now()) { g.textAlign = 'center'; g.fillStyle = ui.flash.color || '#fff'; g.font = 'italic 900 32px Racing, Impact, sans-serif'; g.fillText(ui.flash.text, W / 2, Math.max(H * 0.12, pb.y + pb.s + 14, P.t + boxH + 14)); }
+    // par-dessus tout le reste, comme le WASTED de GTA
+    if (p.abandon && race.state !== 'finished') this._ecranAbandon(g, p, t, W, H);
     g.textBaseline = 'alphabetic';
+  }
+
+  /* L'ABANDON, FAÇON « WASTED » DE GTA (essai des dégâts).
+
+  « ABANDON doit apparaître plus longtemps, comme le WASTED de GTA, avec un fond transparent rouge, la
+  caméra faisant de petites ondulations autour de la voiture. » (Bruno)
+
+  Un temps après le choc — le temps de voir la voiture s'arrêter —, un voile rouge monte sur tout
+  l'écran, plus sombre sur les bords. Le mot tombe en grand avec un léger rebond, sur une bande
+  sombre comme celle de GTA V, au-dessus de l'épave pour la laisser voir, et le reste jusqu'aux
+  résultats : sept secondes après le choc
+  (`Race.update`). La caméra, elle, se rapproche de l'épave et ondule autour (`updateCamera`, `draw`). */
+  _ecranAbandon(g, p, t, W, H) {
+    const a = p.abandonT, f = clamp((a - 0.45) / 0.7, 0, 1);
+    if (f <= 0) return;
+    g.save();
+    g.fillStyle = `rgba(150,14,18,${(0.34 * f).toFixed(3)})`; g.fillRect(0, 0, W, H);
+    const bord = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.22, W / 2, H / 2, Math.hypot(W, H) * 0.62);
+    bord.addColorStop(0, 'rgba(50,0,0,0)'); bord.addColorStop(1, `rgba(50,0,0,${(0.5 * f).toFixed(3)})`);
+    g.fillStyle = bord; g.fillRect(0, 0, W, H);
+    const m = clamp((a - 0.75) / 0.35, 0, 1);
+    if (m > 0) {
+      // au-dessus de l'épave, qui est au centre de l'écran : le mot ne doit pas la cacher
+      const taille = Math.round(Math.min(W * 0.16, H * 0.17, 150)), y = H * 0.22;
+      g.globalAlpha = m;
+      g.fillStyle = 'rgba(0,0,0,0.5)'; g.fillRect(0, y - taille * 0.66, W, taille * 1.32);
+      const rebond = 1 + 0.32 * (1 - m) * (1 - m);
+      g.translate(W / 2, y); g.scale(rebond, rebond);
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = `italic 900 ${taille}px Racing, Impact, sans-serif`;
+      g.lineJoin = 'round'; g.lineWidth = Math.max(3, taille * 0.08); g.strokeStyle = 'rgba(16,0,0,0.9)';
+      g.strokeText(t('abandon'), 0, 0);
+      g.fillStyle = '#e8352b'; g.fillText(t('abandon'), 0, 0);
+      g.font = `italic 900 ${Math.round(taille * 0.24)}px Racing, Impact, sans-serif`;
+      g.fillStyle = '#fff0d2'; g.fillText(t('abandonSous'), 0, taille * 0.86);
+    }
+    g.restore();
   }
 
   /* Le levier, et la coche des stands en dessous.
@@ -3598,7 +3881,9 @@ class Renderer {
   coche grise qui ne fait rien est pire qu'une coche absente — on la vise et il ne se passe rien. */
   _drawSlider(g, p, t) {
     const s = this.slider;
-    const ouvert = !!(p.usure && p.lap >= 1 && !p.pitServi && !p.finished);
+    /* Avec les dégâts seuls (essai), la coche ne s'ouvre que sur une voiture abîmée : s'arrêter pour
+    réparer une voiture intacte, c'est la coche qui ne fait rien. */
+    const ouvert = !!(p.tole && p.track.pit && p.lap >= 1 && !p.pitServi && !p.finished && !p.abandon && (p.usure || p.damage > 0.02 || p.pitAsk || p.pitState));
     this.pitOpen = ouvert;
     this.pitY = s.y + s.len + 22;
     const stops = [{ v: 1, c: LINE_COLORS.jaune, l: t('lineJaune') }, { v: 0, c: LINE_COLORS.racing, l: t('lineRace') }, { v: -1, c: LINE_COLORS.bleu, l: t('lineBleu') }];

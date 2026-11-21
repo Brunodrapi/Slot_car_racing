@@ -1249,15 +1249,23 @@ function implVille(track, ville, rnd, batis, occupied, sols, arbres, masque, wat
   const empreintes = batis.filter(b => b.type !== 'voiture').map(b => sceneryFootprint(b));
   // les bâtiments posés à la main dans l'éditeur arrivent plus tard (`appliqueObjets`) : on les compte déjà
   for (const a of (track.def.objets && track.def.objets.ajouts) || []) if (a.k === 'bati') empreintes.push(sceneryFootprint(a));
+  /* `depuis: 'bord'` : la rangée se mesure depuis le BORD DE LA PISTE, et non depuis la protection, et
+  passe outre le contrôle de la protection et des barrières. C'est la rangée de platanes de Monaco
+  entre la piste et la voie des stands (essai des dégâts) : « mets les arbres entre la piste et les
+  stands, ce n'est pas grave s'ils débordent sur les deux » (Bruno). Le feuillage déborde donc sur
+  l'asphalte d'un côté et sur la voie de l'autre ; ce n'est que du décor, les voitures passent dessous. */
   for (const al of ville.alignements || []) {
     const L = track.length, s0 = al.from * L, span = track.wrap(al.to * L - s0) || L;
     const kind = TOP_KINDS.find(k => k.id === (al.id || 'tree')), e = al.e || 0.65, r = (kind ? kind.wm : 8) * e / 2;
+    const bord = al.depuis === 'bord';
     for (let d = 0; d <= span; d += al.pas || 7) {
-      const s = track.wrap(s0 + d), lat = al.side * (track.limiteProtection(s, al.side) + (al.recul || 2) + r * 0.5);
+      const s = track.wrap(s0 + d);
+      const lat = bord ? al.side * ((al.side > 0 ? track.hwLeftAt(s) : track.hwRightAt(s)) + (al.recul || 0))
+        : al.side * (track.limiteProtection(s, al.side) + (al.recul || 2) + r * 0.5);
       const p = track.pos(s, lat), pr = implProjette(track, p.x, p.y);
-      if (Math.abs(pr.lat) < track.limiteProtection(pr.s, pr.lat >= 0 ? 1 : -1)) continue;
+      if (!bord && Math.abs(pr.lat) < track.limiteProtection(pr.s, pr.lat >= 0 ? 1 : -1)) continue;
       // même marge que le tri final des arbres de l'implantation, sinon il les retirerait après coup
-      if (waterContains(water, p.x, p.y, Math.max(r, 5)) || sceneryCircleNearBarrier(track, p, r * 1.1)) continue;
+      if (waterContains(water, p.x, p.y, Math.max(r, 5)) || (!bord && sceneryCircleNearBarrier(track, p, r * 1.1))) continue;
       const carre = [[p.x - r * 0.7, p.y - r * 0.7], [p.x + r * 0.7, p.y - r * 0.7], [p.x + r * 0.7, p.y + r * 0.7], [p.x - r * 0.7, p.y + r * 0.7]];
       if (empreintes.some(f => sceneryRectsOverlap(f, carre))) continue;
       arbres.push({ x: p.x, y: p.y, id: al.id || 'tree', e: e * (0.92 + rnd() * 0.16) });
