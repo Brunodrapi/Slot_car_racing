@@ -107,7 +107,9 @@ Le calcul est fait ici, sans hasard, et non lu sur le dessin : la course doit do
 ou sans écran. */
 const ENFONCE = {
   zones: 8,
-  creux: 0.015,     // m par m/s au-delà du seuil, pour une zone de dureté 1 — comme la tôle dessinée
+  /* « La voiture perd sa vie trop rapidement. » (Bruno) Deux fois moins par choc qu'au premier essai
+  (1,5 cm par m/s) : un gros coup de flanc dans un mur coûte 40 % au lieu de 80 %. */
+  creux: 0.0075,    // m par m/s au-delà du seuil, pour une zone de dureté 1 — comme la tôle dessinée
   max: 0.3,         // m : une zone « complètement enfoncée »
   voisines: 0.35,   // ce qu'un choc enfonce des deux zones d'à côté
   /* LA DURETÉ DE CHAQUE ZONE : ce qu'elle s'enfonce, rapporté à `creux`. « Les tampons avant et arrière

@@ -1763,6 +1763,14 @@ class Renderer {
         }
       }
       chocs.length = 0;
+      // la tôle suit les points de vie, zone par zone (figée à l'abandon : l'épave a son propre choc)
+      if (car.enfoncement && race.degatsVisu !== false && !car.fantome && !car.abandon && car.degats) {
+        const art = topArt(car.cls, car.livree);
+        if (art && (tole || car.enfoncement.some((e) => e > 0))) {
+          if (!tole) { const [w, h] = topSize(car.cls, art); tole = new Carrosserie(w, h); tole.pitsVu = car.pitsDone; this.carrosseries.set(car, tole); }
+          tole.ecrase(car.enfoncement);
+        }
+      }
       if (!tole) continue;
       tole.pas(dt);
       // la fumée d'une voiture très abîmée sort de là où elle a pris les coups
