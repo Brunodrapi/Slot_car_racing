@@ -10,7 +10,7 @@
 //    de la demi-largeur (DEGATS_VISU.ecrase).
 // 2b. Les points de vie suivent la zone la plus enfoncée (ENFONCE, js/car.js) : un petit coup devant et
 //    un petit derrière ne comptent que pour le plus gros des deux ; des coups répétés au même endroit
-//    l'enfoncent à fond, et c'est 100 %. Un pare-chocs est dur, un flanc mou (ENFONCE.durete).
+//    l'enfoncent à fond, et c'est 100 % — et l'abandon. Un pare-chocs est dur, un flanc mou (ENFONCE.durete).
 // 3. Le coût du dessin : dix voitures cabossées de partout ne doivent pas coûter beaucoup plus que
 //    dix intactes — la caisse déformée est gardée en cache (Carrosserie.dessine).
 // 4. De nuit : un phare dont le coin a reculé s'éteint, celui d'en face reste allumé.
@@ -113,7 +113,7 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
     // 2b. la zone la plus enfoncée, et la dureté de chaque zone
     const zones = await page.evaluate(() => {
       const p = app.race.player, cs = Math.cos(p.th), sn = Math.sin(p.th), E = ENFONCE;
-      const vide = () => { p.enfoncement.fill(0); p.damage = 0; };
+      const vide = () => { p.enfoncement.fill(0); p.damage = 0; p.abandon = false; p.abandonT = 0; p.engineStopped = false; p.engineCut = 0; };
       vide();
       p._enfonce(-cs, -sn, 5);                 // un petit coup dans le nez (la tôle rentre vers l'arrière)
       const unCoup = p.damage, attendu = E.creux * 5 * E.durete[0] / E.max;
@@ -123,13 +123,14 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
       const flanc = p.damage;
       vide(); let n = 0;
       while (p.damage < 1 && n < 20) { p._enfonce(-cs, -sn, 20); n++; }   // le nez, jusqu'au bout
-      const nezAFond = p.damage;
+      const nezAFond = p.damage, abandonAZero = p.abandon && p.engineCut === Infinity;   // la vie à zéro : l'abandon
       vide();
-      return { unCoup, attendu, deuxBouts, flanc, nezAFond, coupsPourLeNez: n, durete: E.durete };
+      return { unCoup, attendu, deuxBouts, flanc, nezAFond, abandonAZero, coupsPourLeNez: n, durete: E.durete };
     });
     assert.ok(Math.abs(zones.unCoup - zones.attendu) < 1e-6 && Math.abs(zones.deuxBouts - zones.unCoup) < 1e-6 && zones.nezAFond === 1,
       'les points de vie ne suivent pas la zone la plus enfoncée : ' + JSON.stringify(zones));
     assert.ok(zones.flanc > zones.unCoup * 3, 'un flanc devait être bien plus fragile qu\'un pare-chocs : ' + JSON.stringify(zones));
+    assert.ok(zones.abandonAZero, 'la vie à zéro devait être un abandon : ' + JSON.stringify(zones));
 
     // 2c. la tôle suit les points de vie : « à 12 %, un côté complètement enfoncé » (Bruno). Le flanc
     // gauche pris à 30 %, puis à 88 % ; on mesure de combien le milieu du flanc est rentré.

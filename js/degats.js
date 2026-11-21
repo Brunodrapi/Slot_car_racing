@@ -44,7 +44,7 @@ const DEGATS_VISU = {
   plus pour la même bosse, et un coin ne perd jamais plus de 30 cm — sauf l'abandon (`epave`). */
   creuxMax: [0.3, 0.15, 0],   // m : ce que chaque anneau peut rentrer au plus
   seuil: 3.5,                 // m/s : en dessous, un contact ne cabosse rien (le seuil de la tôle)
-  creux: 0.0075,              // m de tôle enfoncée par m/s au-delà du seuil (ENFONCE.creux, js/car.js)
+  creux: 0.011,               // m de tôle enfoncée par m/s au-delà du seuil (ENFONCE.creux, js/car.js)
   rayon: 0.6,                 // m : portée d'un petit choc ; un peu plus pour un gros
   /* L'ABANDON : 100 km/h droit dans un mur (ABANDON_VITESSE, js/car.js). Le capot n'existe plus : le
   nez rentre aussi loin que l'habitacle le permet, et le compartiment moteur paraît à sa place. */
