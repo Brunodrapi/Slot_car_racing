@@ -96,6 +96,8 @@ static var _tactile = null
 static func tactile() -> bool:
 	if _tactile != null: return _tactile
 	var t := OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
+	# les essais sans écran se disent tactiles pour photographier ce que voit un téléphone
+	if OS.get_environment("GRIP_TACTILE") == "1": t = true
 	if not t and OS.has_feature("web"):
 		t = bool(JavaScriptBridge.eval("""(function(){var n=navigator,m=window.matchMedia.bind(window);
 			return !!((n.userAgentData&&n.userAgentData.mobile)||/Android|iPhone|iPad|iPod/i.test(n.userAgent||'')

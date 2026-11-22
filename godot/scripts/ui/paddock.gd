@@ -831,7 +831,7 @@ func _construitTel(cle: String) -> void:
 	var br := _bouton("", Rect2(10, 8, 73, 64), Color(0, 0, 0, 0), PC_CREME, 14, func(): App.aller("accueil"))
 	br.coupe = 0
 	br.set_meta("cle", "retour")
-	br.dessinPlus = Paddock._retourTel.bind(br)
+	br.dessinPlus = BarreTitre.retourTel.bind(br)
 	# Les onglets de catégorie, qui passent à la ligne
 	var onglets := [["tous", Textes.t("all")]]
 	for c in Catalogue.categories(): onglets.append([c.id, Textes.nom(c.nom).to_upper()])
@@ -1146,19 +1146,6 @@ static func _coupe(t: String, taille: int, largeur: float) -> String:
 	return t.strip_edges() + "…"
 
 
-## Une flèche (← ou →), dessinée : la police du jeu ne l'a pas.
-static func _fleche(ci: CanvasItem, a: Vector2, b: Vector2, c: Color, ep: float, tete: float) -> void:
-	ci.draw_line(a, b, c, ep, true)
-	var u := (b - a).normalized()
-	var n := Vector2(-u.y, u.x)
-	ci.draw_polyline(PackedVector2Array([b - u * tete + n * tete * 0.75, b, b - u * tete - n * tete * 0.75]), c, ep, true)
-
-
-static func _retourTel(b: Bouton) -> void:
-	_fleche(b, Vector2(21.5, 33), Vector2(12.5, 33), Color("#fff1d5"), 1.4, 3.5)
-	Style.texte(b, Textes.t("backWord").to_upper(), Vector2(24, 37.3), 14, Color("#fff1d5"))
-
-
 static func _lienTel(b: Bouton, txt: String) -> void:
 	Style.texte(b, txt, Vector2(2, 14.5), 13, T_MUET)
 	b.draw_line(Vector2(2, 16.5), Vector2(b.size.x - 2, 16.5), T_MUET, 1.0)
@@ -1170,7 +1157,7 @@ static func _enPisteTel(b: Bouton) -> void:
 	var x := (b.size.x - (wt + 14 + 30)) / 2
 	Style.texte(b, t, Vector2(x, 35.3), 30, Color("#fff2da"))
 	var ya := 30.0
-	_fleche(b, Vector2(x + wt + 20, ya), Vector2(x + wt + 38, ya), Color("#fff2da"), 1.6, 5.5)
+	BarreTitre.fleche(b, Vector2(x + wt + 20, ya), Vector2(x + wt + 38, ya), Color("#fff2da"), 1.6, 5.5)
 
 
 static func _livreeTel(b: Bouton) -> void:
@@ -1269,13 +1256,7 @@ func _dessineTel() -> void:
 	var race := mode == "race"
 	var v := Catalogue.voiture(App.reglages.voiture)
 	# La barre du titre : le noir, le damier penché, le titre sur sa bande rouge, le logo
-	ci.draw_rect(Rect2(10, 8, 370, 64), T_NOIR)
-	Style.damier(ci, Rect2(75, 8, 34, 64), 13, PC_CREME, T_NOIR, 16)
-	ci.draw_colored_polygon(PackedVector2Array([Vector2(125, 8), Vector2(287, 8), Vector2(259, 72), Vector2(111, 72)]), PC_ROUGE)
-	Style.texte(ci, Textes.t({ race = "quickRace", timetrial = "timeTrial", training = "training" }.get(mode, "quickRace")), Vector2(127, 49), 24, Color("#fff1d5"))
-	var logo := Style.tex("res://images/interface/logo-slotless.webp")
-	var lh := 72.0 * logo.get_height() / logo.get_width()
-	ci.draw_texture_rect(logo, Rect2(302, 40 - lh / 2, 72, lh), false)
+	BarreTitre.tel(ci, Rect2(10, 8, 370, 64), Textes.t({ race = "quickRace", timetrial = "timeTrial", training = "training" }.get(mode, "quickRace")))
 	# Les onglets
 	ci.draw_rect(T.onglets, PC_CREME)
 	# La voiture : le paddock derrière, le nom sur son papier penché
