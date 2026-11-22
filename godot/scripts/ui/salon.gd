@@ -42,6 +42,7 @@ var _signature := ""
 var _suivre := true                # la prochaine construction montre le circuit et la voiture choisis
 var _circuitVu := ""
 var z := {}                        # les rectangles de la mise en page, pour le dessin
+var doigt: Doigt                   # au téléphone : les glissés de la page et des rails
 
 
 func _ready() -> void:
@@ -53,6 +54,7 @@ func _ready() -> void:
 	cadre = Control.new()
 	cadre.draw.connect(_dessine)
 	add_child(cadre)
+	doigt = Doigt.new(cadre, _defile)
 	code = LineEdit.new()
 	code.max_length = 4
 	code.placeholder_text = "A B C D"
@@ -178,14 +180,14 @@ func _maj() -> void:
 	cadre.queue_redraw()
 
 
-func _b(t: String, r: Rect2, f: Color, e: Color, taille: int, action: Callable, cle: String) -> Bouton:
+func _b(t: String, r: Rect2, f: Color, e: Color, taille: int, action: Callable, cle: String, parent: Control = null) -> Bouton:
 	var b := Bouton.new(t, f, e, taille)
 	b.position = r.position
 	b.size = r.size
 	b.centre = true
 	b.pressed.connect(action)
 	b.set_meta("cle", cle)
-	cadre.add_child(b)
+	(parent if parent else cadre).add_child(b)
 	return b
 
 
@@ -209,8 +211,13 @@ func _construit() -> void:
 	for c in cadre.get_children():
 		if not c.has_meta("garde"): c.queue_free()
 	portrait = size.x < size.y
-	W = 780.0 if portrait else 1280.0
 	z = {}
+	if portrait:
+		_construitTel(cle)
+		return
+	W = 1280.0
+	code.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	code.add_theme_font_size_override("font_size", 24)
 	var t := net.settings()
 	var dansTable := net.state != "off"
 	# Le bandeau
@@ -356,9 +363,15 @@ func _construit() -> void:
 	cadre.size = Vector2(W, hauteur)
 	cadre.position.x = (size.x - W * k) / 2
 	_defile(0)
-	# Le focus revient où il était (la manette et le clavier ne perdent pas leur place).
+	_rendFocus(cle)
+
+
+## Le focus revient où il était (la manette et le clavier ne perdent pas leur place). Au doigt, pas de
+## cadre jaune : le jeu web n'en montre qu'au clavier et à la manette.
+func _rendFocus(cle: String) -> void:
+	if portrait and Style.tactile(): return
 	var cible: Control = null
-	for c in cadre.get_children():
+	for c in cadre.find_children("*", "Control", true, false):
 		if c.is_queued_for_deletion() or not (c is Control) or not c.visible: continue
 		if c.get_meta("cle", "") == cle and cle != "": cible = c
 	if cible == null:
@@ -404,8 +417,14 @@ func _carteVoiture(b: Bouton) -> void:
 func _input(e: InputEvent) -> void:
 	if e is InputEventMouseButton and e.pressed and (e.button_index == MOUSE_BUTTON_WHEEL_DOWN or e.button_index == MOUSE_BUTTON_WHEEL_UP):
 		_defile(60.0 if e.button_index == MOUSE_BUTTON_WHEEL_DOWN else -60.0)
+	elif portrait:
+		doigt.entree(e)
 	elif e is InputEventScreenDrag:
 		_defile(-e.relative.y / cadre.scale.y)
+
+
+func _process(dt: float) -> void:
+	if portrait: doigt.avance(dt)
 
 
 func _defile(d: float) -> void:
@@ -416,18 +435,27 @@ func _defile(d: float) -> void:
 ## La manette et le clavier font défiler jusqu'au bouton qu'ils prennent.
 func _suitFocus(c: Control) -> void:
 	if c == null or not cadre.is_ancestor_of(c): return
+	# seulement au clavier et à la manette : une carte touchée du doigt ne fait pas sauter la page
+	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or doigt.actif(): return
+	doigt.montre(c)
 	var vue := size.y / cadre.scale.y
-	if c.position.y < defile + 90: _defile(c.position.y - 90 - defile)
-	elif c.position.y + c.size.y > defile + vue - 20: _defile(c.position.y + c.size.y - (defile + vue - 20))
+	var haut := (cadre.get_global_transform().affine_inverse() * c.get_global_transform().origin).y
+	if haut < defile + 90: _defile(haut - 90 - defile)
+	elif haut + c.size.y > defile + vue - 20: _defile(haut + c.size.y - (defile + vue - 20))
 
 
 # ---------------------------------------------------------------- le dessin
 
 func _draw() -> void:
-	Style.couvre(self, fond, Rect2(Vector2.ZERO, size), 0.5)
+	# au téléphone, du papier (css/style.css sous 850 px) ; sur ordinateur, le paddock
+	if size.x < size.y: draw_rect(Rect2(Vector2.ZERO, size), Paddock.T_FOND)
+	else: Style.couvre(self, fond, Rect2(Vector2.ZERO, size), 0.5)
 
 
 func _dessine() -> void:
+	if portrait:
+		_dessineTel()
+		return
 	var ci := cadre
 	var dansTable := net.state != "off"
 	# Le bandeau du paddock : retour, damier, le titre dans la bande rouge, le logo.
@@ -581,3 +609,428 @@ func _paragraphe(t: String, p: Vector2, largeur: float, taille: int, c: Color) -
 	for l in _lignes(t, largeur, taille):
 		Style.texte(cadre, l, Vector2(p.x, y), taille, c)
 		y += taille * 1.4
+
+
+# =====================================================================================================
+# AU TÉLÉPHONE : la page du jeu web sur un iPhone (390 de large), mesurée bloc par bloc (js/ui.js,
+# lobbyScreen ; css/style.css sous 850 px) : un point du cadre vaut un pixel CSS. La page défile au
+# doigt ; les circuits et les voitures défilent de côté, dans leurs rails.
+# =====================================================================================================
+const T_PAPIER := Color("#fff0d2")
+const T_CARTE := Color("#eee3cc")
+const T_BORD := Color("#b6aa91")
+const T_SOMBRE := Color("#222825")
+const T_PETIT := Color("#555d50")
+
+
+## Un titre de section (h3) : en capitales espacées.
+static func _h3(ci: CanvasItem, t: String, p: Vector2, c := TITRE) -> float:
+	return Paddock._espace(ci, t.to_upper(), p, 15, c, 1.5)
+
+
+func _construitTel(cle: String) -> void:
+	W = 390.0
+	var k := size.x / W
+	cadre.scale = Vector2(k, k)
+	cadre.position.x = 0
+	doigt.rails.clear()
+	var t := net.settings()
+	var dansTable := net.state != "off"
+	code.visible = not dansTable
+	if not dansTable:
+		var br := _b("", Rect2(14, 12, 73, 64), Color(0, 0, 0, 0), BarreTitre.TEXTE, 14, _retour, "retour")
+		br.coupe = 0
+		br.dessinPlus = BarreTitre.retourTel.bind(br)
+		z.intro = Paddock._lignes(Textes.t("multiIntro"), 16, 362)
+		var y := 108.0 + 19.2 * (z.intro as PackedStringArray).size() + 32
+		_discordTel(y)
+		y += 48 + 16
+		z.panneau = Rect2(14, y, 362, 286)
+		var wo := Style.largeur(Textes.t("createTable"), 34) + 76
+		var bo := _b(Textes.t("createTable"), Rect2(39, y + 25, wo, 67), Color("#d22620"), Color("#fff2da"), 34, func(): _ouvre(true), "ouvrir")
+		bo.coupe = wo * 0.06
+		bo.disabled = net.busy
+		z.etiquette = Vector2(39, y + 116 + 15.6)
+		code.position = Vector2(39, y + 143)
+		code.size = Vector2(150, 44)
+		code.add_theme_font_size_override("font_size", 20)
+		code.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		for d in [[Textes.t("joinBtn"), Vector2(213, y + 137), func(): _ouvre(false), "rejoindre"], [Textes.t("watchBtn"), Vector2(39, y + 211), func(): _ouvre(false, true), "regarder"]]:
+			var w := Style.largeur(d[0], 17) + 42
+			var b := _b(d[0], Rect2(d[1], Vector2(w, 50)), T_SOMBRE, Color("#f9efd9"), 17, d[2], d[3])
+			b.coupe = 0
+			b.disabled = net.busy
+			b.dessinPlus = Salon._bordTel.bind(b)
+		y += 286 + 16
+		z.message = Vector2(14, y + 15.6)
+		hauteur = y + 40
+	else:
+		var m := net.members()
+		var pilotes := m.filter(func(e): return not e.q.get("spectator", false))
+		var br := _b("", Rect2(14, 12, 34, 64), Color(0, 0, 0, 0), BarreTitre.TEXTE, 14, _retour, "retour")
+		br.coupe = 0
+		br.dessinPlus = func(): BarreTitre.fleche(br, Vector2(22, 33), Vector2(13, 33), BarreTitre.TEXTE, 1.4, 3.5)
+		var y := 92.0
+		z.ping = y
+		y += 24 + 24
+		z.joueursTitre = y
+		y += 18 + 20
+		z.cartes = y
+		y += ceili(maxf(1, m.size()) / 2.0) * 89.0 - 10
+		var xb := 14.0
+		if pilotes.size() < 2:
+			_discordTel(y + 16)
+			y += 16 + 48
+		if net.room is SalleSteam or (net.room is SallePont and net.room.steam.open):
+			var wi := Style.largeur(Textes.t("inviteFriend"), 18) + 44
+			var bi := _b(Textes.t("inviteFriend"), Rect2(xb, y + 16, wi, 48), Style.BLEU, Style.CREME, 18, func(): net.room.invite(), "inviter")
+			bi.coupe = wi * 0.04
+			y += 16 + 48
+		if not net.creator:
+			var tr := Textes.t("becomeDriver") if net.mine.get("spectator", false) else Textes.t("becomeSpectator")
+			var wr := Style.largeur(tr, 18) + 44
+			var bs := _b(tr, Rect2(14, y + 16, wr, 44), T_SOMBRE, Color("#f9efd9"), 18,
+				func(): net.setMine({ spectator = not net.mine.get("spectator", false), ready = false }); net.pump(), "role")
+			bs.coupe = wr * 0.08
+			y += 16 + 44
+		# Le format
+		y += 24
+		z.formatTitre = y
+		y = _segTel([["race", Textes.t("mRaceSeg")], ["duel", Textes.t("mDuelSeg")], ["ghost", Textes.t("mGhostSeg")]], String(t.get("mode", "race")), y + 38, net.creator,
+			func(id): net.setTable({ mode = id }), "mode")
+		var mode := String(t.get("mode", "race"))
+		z.formatDesc = [y + 16, Paddock._lignes(Textes.t({ race = "mRaceDesc", duel = "mDuelDesc", ghost = "mGhostDesc" }.get(mode, "mRaceDesc")), 16, 362)]
+		y += 16 + 24.0 * (z.formatDesc[1] as PackedStringArray).size()
+		# Le jour ou la nuit
+		y += 24
+		z.heureTitre = y
+		y = _segTel([["day", Textes.t("daySeg")], ["night", Textes.t("nightSeg")]], "night" if t.get("timeOfDay") == "night" else "day", y + 38, net.creator,
+			func(id): net.setTable({ timeOfDay = id }), "heure")
+		if t.get("timeOfDay") == "night":
+			var f1: bool = Catalogue.voiture(App.reglages.voiture).get("cat") == "f1"
+			z.nuitDesc = [y + 16, Paddock._lignes(Textes.t("nightF1Hint" if f1 else "nightHint"), 16, 362)]
+			y += 16 + 24.0 * (z.nuitDesc[1] as PackedStringArray).size()
+		# Les dégâts (essai du jeu web) : l'hôte choisit pour tout le monde
+		y += 24
+		z.degatsTitre = y
+		y = _segTel([["1", Textes.t("on")], ["0", Textes.t("off")]], "1" if t.get("degats", false) == true else "0", y + 38, net.creator,
+			func(id): net.setTable({ degats = id == "1" }), "degats")
+		z.degatsDesc = [y + 16, Paddock._lignes(Textes.t("degatsHint"), 16, 362)]
+		y += 16 + 24.0 * (z.degatsDesc[1] as PackedStringArray).size()
+		# La catégorie
+		y += 24
+		z.catTitre = y
+		var cats := [["all", Textes.t("all")]]
+		for c in Catalogue.categories(): cats.append([c.id, Textes.nom(c.nom).to_upper()])
+		cats.sort_custom(func(a, b): return CATS.find(a[0]) < CATS.find(b[0]))
+		var cat := String(t.get("cat", "all")) if t.get("cat") else "all"
+		y = _segTel(cats, cat, y + 38, net.creator, func(id): net.setTable({ cat = id }), "cat") + 8
+		z.catDesc = [y + 16, Paddock._lignes(Textes.t("mCatOpen") if cat == "all" else Textes.t("mCatDesc"), 16, 362)]
+		y += 16 + 24.0 * (z.catDesc[1] as PackedStringArray).size()
+		# L'aperçu de la voiture et du circuit
+		y += 16
+		var v := Catalogue.voiture(App.reglages.voiture)
+		z.nomVoiture = Paddock._lignes(str(v.nom).to_upper(), 40, 322)
+		z.apercuVoiture = Rect2(14, y, 362, 240)
+		var info: Dictionary = infos.get(String(t.get("trackId", "")), infos.values()[0])
+		z.nomCircuit = Paddock._lignes(str(info.nom).to_upper(), 36, 277)
+		z.apercuCircuit = Rect2(14, y + 250, 362, 280)
+		y += 530
+		# La rangée des circuits
+		y += 24
+		z.circuitTitre = y
+		var circuits := Catalogue.circuits()
+		var choisi := String(t.get("trackId", ""))
+		var ic := maxi(0, circuits.map(func(c): return c.id).find(choisi))
+		if _suivre: doigt.railX.erase("circuits")
+		var rc := doigt.rail("circuits", Rect2(14, y + 38, 362, 169), 4 + circuits.size() * 118 - 10, 2 + ic * 118 + 54)
+		for i in circuits.size():
+			var c: Dictionary = circuits[i]
+			var b := _b("", Rect2(2 + i * 118, 2, 108, 157), T_CARTE, PC_ENCRE(), 17, func(): net.setTable({ trackId = c.id, laps = _tours(c.id) }), "circuit-" + c.id, rc)
+			b.coupe = 0
+			b.disabled = not net.creator
+			b.set_meta("circuit", c.id)
+			b.set_meta("sel", c.id == choisi)
+			b.dessinPlus = Salon._carteCircuitTel.bind(b)
+		y += 38 + 169
+		# La rangée des voitures
+		y += 24
+		z.voitureTitre = y
+		var liste := _modeles()
+		var iv := maxi(0, liste.map(func(c): return c.id).find(App.reglages.voiture))
+		if _suivre: doigt.railX.erase("voitures")
+		_suivre = false
+		var avecCat := cat == "all"
+		var rv := doigt.rail("voitures", Rect2(14, y + 38, 362, 215), 4 + liste.size() * 146 - 10, 2 + iv * 146 + 68)
+		for i in liste.size():
+			var c: Dictionary = liste[i]
+			var b := _b("", Rect2(2 + i * 146, 2, 136, 203), T_CARTE, PC_ENCRE(), 17, func(): _voiture(c.id), "voiture-" + c.id, rv)
+			b.coupe = 0
+			b.set_meta("voiture", c)
+			b.set_meta("sel", c.id == App.reglages.voiture)
+			b.set_meta("livree", _livreeDe(c.id))
+			b.dessinPlus = Salon._carteVoitureTel.bind(b, avecCat)
+		y += 38 + 215
+		# La barre du bas : Prêt, et pour l'hôte Départ !
+		y += 26
+		var pret: bool = net.mine.get("ready", false)
+		var tp := Textes.t("notReady") if pret else Textes.t("ready")
+		var wp := Style.largeur(tp, 38) + 80
+		var bp := _b(tp, Rect2(359 - wp, y + 17, wp, 58), T_SOMBRE if pret else Color("#d22620"), Color("#fff2da"), 38,
+			func(): _pret(not net.mine.get("ready", false)), "pret")
+		bp.coupe = wp * 0.06
+		bp.disabled = net.mine.get("spectator", false)
+		var hb := 16 + 58 + 16 + 2.0
+		if net.creator:
+			var td := Textes.t("startRace")
+			var wd := Style.largeur(td, 38) + 80
+			var bd := _b(td, Rect2(359 - wd, y + 87, wd, 58), Color("#d22620"), Color("#fff2da"), 38, func(): net.start(), "depart")
+			bd.coupe = wd * 0.06
+			bd.disabled = not net.canStart()
+			if bd.disabled:
+				# un bouton éteint du jeu web : à demi transparent, sans s'assombrir
+				bd.set_meta("fane", true)
+				bd.modulate = Color(1, 1, 1, 0.45)
+			hb += 70
+		else:
+			z.attendre = y + 87 + 15
+			hb += 30
+		z.barre = Rect2(14, y, 362, hb)
+		hauteur = y + hb + 20
+	cadre.size = Vector2(W, hauteur)
+	_defile(0)
+	_rendFocus(cle)
+
+
+static func PC_ENCRE() -> Color:
+	return Color("#262c26")
+
+
+## Le lien Discord du jeu web (.lien-discord) : bleu Discord, penché, la bulle et le texte.
+func _discordTel(y: float) -> void:
+	var tx := Textes.t("discordPlayers")
+	var w := 16 + 28 + 10 + Style.largeur(tx, 18) + 22
+	var b := _b("", Rect2(14, y, w, 48), BLEU_DISCORD, Color.WHITE, 18, func(): OS.shell_open(DISCORD), "discord")
+	b.coupe = w * 0.04
+	b.dessinPlus = func():
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color.WHITE
+		sb.set_corner_radius_all(4)
+		b.draw_style_box(sb, Rect2(19, 15, 22, 15))
+		b.draw_colored_polygon(PackedVector2Array([Vector2(22, 29), Vector2(29, 29), Vector2(22, 34)]), Color.WHITE)
+		for cx in [25.0, 30.0, 35.0]: b.draw_circle(Vector2(cx, 22.5), 1.9, BLEU_DISCORD)
+		Style.texte(b, tx, Vector2(54, 30.75), 18, Color.WHITE)
+
+
+## Les boutons à choix du téléphone (.seg) : 44 de haut, penchés, qui passent à la ligne. Rend le bas.
+func _segTel(choix: Array, actuel: String, y: float, actif: bool, action: Callable, prefixe: String) -> float:
+	var x := 14.0
+	for c in choix:
+		var w := maxf(70.0, Style.largeur(c[1], 22) + 50)
+		if x > 14 and x + w > 376:
+			x = 14.0
+			y += 50
+		var sel: bool = c[0] == actuel
+		var b := _b(c[1], Rect2(x, y, w, 44), ROUGE_SEL if sel else T_SOMBRE, CARTE_SEL if sel else Color("#f9efd9"), 22,
+			func(): action.call(c[0]), prefixe + str(c[0]))
+		b.coupe = w * 0.08
+		b.disabled = not actif
+		x += w + 6
+	return y + 44
+
+
+## Le liseré d'un bouton du panneau (button.big : bord de 1, sans biseau).
+static func _bordTel(b: Bouton) -> void:
+	b.draw_rect(Rect2(Vector2(0.5, 0.5), b.size - Vector2(1, 1)), Color("#494a40"), false, 1)
+
+
+static func _carteCircuitTel(b: Bouton) -> void:
+	var info: Dictionary = Paddock.infosCircuits()[b.get_meta("circuit")]
+	var sel: bool = b.get_meta("sel", false)
+	if sel: b.draw_rect(Rect2(Vector2.ZERO, b.size), CARTE_SEL)
+	var art := Rect2(10, 12, 88, 88)
+	Style.couvre(b, info.image, art, 0.5)
+	Paddock._contour(b, info, art.grow(-8), true, 3.8)
+	var nom := Paddock._coupe(str(info.nom).to_upper(), 17, 88)
+	Style.texte(b, nom, Vector2(0, 120.4), 17, PC_ENCRE(), HORIZONTAL_ALIGNMENT_CENTER, b.size.x)
+	var dr := Style.drapeau(info.pays)
+	var txt := "%d m" % roundi(info.longueur)
+	var w := 20.0 + Style.largeur(txt, 13)
+	var x := (b.size.x - w) / 2
+	if dr: b.draw_texture_rect(dr, Rect2(x, 130.5, 17, 12), false)
+	Style.texte(b, txt, Vector2(x + 20, 141.3), 13, T_PETIT)
+	b.draw_rect(Rect2(Vector2(1, 1), b.size - Vector2(2, 2)), BORD_SEL if sel else T_BORD, false, 2)
+	if sel:
+		b.draw_rect(Rect2(2, b.size.y - 6, b.size.x - 4, 4), BORD_SEL)
+		Paddock._coche(b, Vector2(b.size.x - 17, 17))
+
+
+static func _carteVoitureTel(b: Bouton, avecCat: bool) -> void:
+	var c: Dictionary = b.get_meta("voiture")
+	var sel: bool = b.get_meta("sel", false)
+	if sel: b.draw_rect(Rect2(Vector2.ZERO, b.size), CARTE_SEL)
+	var li := int(b.get_meta("livree", 0))
+	var d := Catalogue.dessin(c.id, li)
+	if d.get("vignette"):
+		var tex := Style.tex("res://images/vignettes/" + d.vignette)
+		var e := minf(116.0 / tex.get_width(), 87.0 / tex.get_height())
+		var t := Vector2(tex.get_width(), tex.get_height()) * e
+		b.draw_texture_rect(tex, Rect2(Vector2(10 + (116 - t.x) / 2, 12 + (87 - t.y) / 2), t), false)
+	var lignes := Paddock._lignes(str(c.nom).to_upper(), 17, 116)
+	for i in lignes.size():
+		Style.texte(b, lignes[i], Vector2(0, 103 + 20 * i + 16.4), 17, PC_ENCRE(), HORIZONTAL_ALIGNMENT_CENTER, b.size.x)
+	var y := 103 + 20.0 * lignes.size() + 6
+	if avecCat:
+		var tag := str(c.cat).to_upper()
+		var w := Style.largeur(tag, 13) + 14
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(Paddock.CATS.get(c.cat, "#9aa1ad"))
+		sb.set_corner_radius_all(8)
+		b.draw_style_box(sb, Rect2((b.size.x - w) / 2, y, w, 19))
+		Style.texte(b, tag, Vector2(0, y + 14.4), 13, T_PETIT, HORIZONTAL_ALIGNMENT_CENTER, b.size.x)
+		y += 19 + 6
+	# la livrée : « 1/3 » en rouge, puis son nom (js/ui.js, le repère du salon)
+	var l: Array = c.livrees
+	if l.size() > 1:
+		var n := "%d/%d" % [li % l.size() + 1, l.size()]
+		var nom := Paddock._coupe(Textes.livree(l[li % l.size()]), 11, 116 - Style.largeur(n, 14) - 4)
+		var wt := Style.largeur(n, 14) + 4 + Style.largeur(nom, 11)
+		var x := (b.size.x - wt) / 2
+		Style.texte(b, n, Vector2(x, y + 13.5), 14, Color("#b42b26"))
+		Style.texte(b, nom, Vector2(x + Style.largeur(n, 14) + 4, y + 13), 11, Color("#5f6158"))
+	b.draw_rect(Rect2(Vector2(1, 1), b.size - Vector2(2, 2)), BORD_SEL if sel else T_BORD, false, 2)
+	if sel:
+		b.draw_rect(Rect2(2, b.size.y - 6, b.size.x - 4, 4), BORD_SEL)
+		Paddock._coche(b, Vector2(b.size.x - 17, 17))
+
+
+func _dessineTel() -> void:
+	var ci := cadre
+	var dansTable := net.state != "off"
+	if not dansTable:
+		BarreTitre.tel(ci, Rect2(14, 12, 362, 64), Textes.t("multi"))
+		var l: PackedStringArray = z.intro
+		for i in l.size(): Style.texte(ci, l[i], Vector2(14, 108 + 19.2 * i + 15.6), 16, MUET)
+		var p: Rect2 = z.panneau
+		ci.draw_rect(p, PANNEAU)
+		ci.draw_rect(p.grow(-0.5), PANNEAU_BORD, false, 1)
+		Style.texte(ci, Textes.t("tableCodeLabel"), z.etiquette, 16, TITRE)
+		var msg := ""
+		var c := TITRE
+		if net.busy: msg = Textes.t("netWait")
+		elif net.error != "": msg = Textes.netErreur(net.error); c = Color("#b3261e")
+		Style.texte(ci, msg, z.message, 16, c)
+		return
+	# la barre du titre, compacte : la flèche seule, « TA TABLE » et le code
+	ci.draw_rect(Rect2(14, 12, 362, 64), BarreTitre.NOIR)
+	Style.damier(ci, Rect2(40, 12, 34, 64), 13, BarreTitre.CREME, BarreTitre.NOIR, 16)
+	var titre := Textes.t("yourTable", "").strip_edges()
+	var cs := net.code
+	var wc := Paddock._largeurEspace(cs, 19, 4.2)
+	var wt := 16 + Style.largeur(titre, 19) + 10 + wc + 24
+	ci.draw_colored_polygon(PackedVector2Array([Vector2(90, 12), Vector2(76 + wt, 12), Vector2(76 + wt - 28, 76), Vector2(76, 76)]), BarreTitre.ROUGE)
+	Style.texte(ci, titre, Vector2(92, 51), 19, BarreTitre.TEXTE)
+	Paddock._espace(ci, cs, Vector2(92 + Style.largeur(titre, 19) + 10, 51), 19, BarreTitre.TEXTE, 4.2)
+	var logo := Style.tex("res://images/interface/logo-slotless.webp")
+	var lh := 72.0 * logo.get_height() / logo.get_width()
+	ci.draw_texture_rect(logo, Rect2(298, 44 - lh / 2, 72, lh), false)
+	var t := net.settings()
+	var m := net.members()
+	var pilotes := m.filter(func(e): return not e.q.get("spectator", false))
+	var yp: float = z.ping
+	Style.texte(ci, "%s · %s" % [net.link.label() if net.link else "Ping : —", Textes.t("roundTrip")], Vector2(14, yp + 18), 16, MUET)
+	var alerte := Textes.netErreur(net.error) if net.error != "" else ""
+	if m.any(func(e): return not e.q.get("spectator", false) and int(e.q.get("protocol", 0)) != Net.DRIVE_PROTOCOL): alerte = Textes.t("reloadAll")
+	if alerte != "": Style.texte(ci, alerte, Vector2(14, yp + 42), 14, Color("#b3261e"), HORIZONTAL_ALIGNMENT_LEFT, 362)
+	# « PILOTES » et, en gris, le compte
+	var ns := m.size() - pilotes.size()
+	var pluriel := ns > 1 if Textes.langue() == "fr" else ns != 1
+	var tj := Textes.t("playersTitle", [pilotes.size(), Net.NET_SEATS, Textes.t("spectatorMany" if pluriel else "spectatorOne", ns)]).to_upper()
+	var mots := tj.split(" ", true, 1)
+	var x0 := 14 + _h3(ci, mots[0], Vector2(14, float(z.joueursTitre) + 14.6)) + 6
+	if mots.size() > 1: Paddock._espace(ci, mots[1], Vector2(x0, float(z.joueursTitre) + 14.6), 15, MUET, 1.5)
+	# les cartes des pilotes, deux par ligne
+	for i in m.size():
+		var e: Dictionary = m[i]
+		var r := Rect2(14 + (i % 2) * 186, float(z.cartes) + (i / 2) * 89, 176, 79)
+		ci.draw_rect(r, Color("#ddd0b6") if e.isMe else T_CARTE)
+		ci.draw_rect(r.grow(-1), Color("#b42b26") if e.isMe else T_BORD, false, 2)
+		Style.texte(ci, str(e.name), r.position + Vector2(14, 25.75), 14, Color("#272b28"), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 24)
+		var tags := []
+		if i == 0: tags.append(Textes.t("hostTag"))
+		if e.isMe: tags.append(Textes.t("youTag"))
+		if i > 0 and net.link:
+			var p = net.link.ping(e.pid)
+			tags.append("%s ms" % ("—" if p == null else str(p)))
+		Style.texte(ci, " · ".join(tags), r.position + Vector2(14, 44.3), 13, T_PETIT)
+		var etat := Textes.t("spectatorTag") if e.q.get("spectator", false) else (Textes.t("readyTag") if e.ready else Textes.t("waiting"))
+		Style.texte(ci, etat, r.position + Vector2(14, 63.3), 13, VERT if e.ready else T_PETIT)
+	# les titres et les phrases
+	for cle in [["formatTitre", "mFormatTitle"], ["heureTitre", "dayNightTitle"], ["degatsTitre", "chipDegats"], ["catTitre", "mCatTitle"], ["circuitTitre", "trackTitle"], ["voitureTitre", "modelTitle"]]:
+		if z.has(cle[0]): _h3(ci, Textes.t(cle[1]), Vector2(14, float(z[cle[0]]) + 14.6))
+	for cle in ["formatDesc", "nuitDesc", "degatsDesc", "catDesc"]:
+		if not z.has(cle): continue
+		var d: Array = z[cle]
+		var l: PackedStringArray = d[1]
+		for i in l.size(): Style.texte(ci, l[i], Vector2(14, float(d[0]) + 24 * i + 18), 16, MUET)
+	_apercuVoitureTel(ci, z.apercuVoiture)
+	var info: Dictionary = infos.get(String(t.get("trackId", "")), infos.values()[0])
+	_apercuCircuitTel(ci, z.apercuCircuit, info)
+	# la barre du bas
+	var b: Rect2 = z.barre
+	ci.draw_rect(b, PANNEAU)
+	ci.draw_rect(b.grow(-0.5), PANNEAU_BORD, false, 1)
+	var dr := Style.drapeau(info.pays)
+	if dr: ci.draw_texture_rect(dr, Rect2(31, b.position.y + 40, 17, 12), false)
+	var v := Catalogue.voiture(App.reglages.voiture)
+	Style.texte(ci, Paddock._coupe("%s · %s" % [Textes.nom(info.nom), Textes.nom(v.get("nom", ""))], 14, 140), Vector2(51, b.position.y + 51), 14, MUET)
+	if z.has("attendre"):
+		var at := Textes.t("startWhenReady")
+		Style.texte(ci, at, Vector2(359 - Style.largeur(at, 14), z.attendre), 14, MUET)
+
+
+## L'aperçu de la voiture (selectionPreview) : comme au paddock du téléphone, 240 de haut.
+func _apercuVoitureTel(ci: CanvasItem, r: Rect2) -> void:
+	var v := Catalogue.voiture(App.reglages.voiture)
+	var l: Array = v.livrees
+	var li := _livreeDe(v.id) % maxi(1, l.size())
+	ci.draw_rect(r, Color("#c8baa0"))
+	Style.couvre(ci, fond, r.grow(-2), 0.5)
+	var lignes: PackedStringArray = z.nomVoiture
+	var hc := 8.0 + 40.0 * lignes.size() + 20 + 16
+	var pc := Rect2(r.position.x + 2, r.position.y + 2, r.size.x - 4, hc)
+	ci.draw_colored_polygon(PackedVector2Array([pc.position, Vector2(pc.end.x, pc.position.y), Vector2(pc.position.x + pc.size.x * 0.99, pc.position.y + hc * 0.91), Vector2(pc.position.x, pc.end.y)]), T_PAPIER)
+	for i in lignes.size(): Style.texte(ci, lignes[i], Vector2(r.position.x + 20, pc.position.y + 8 + 40 * i + 35), 40, Color("#20271f"))
+	var cat := ""
+	for c in Catalogue.categories():
+		if c.id == v.cat: cat = Textes.nom(c.nom).to_upper()
+	Paddock._espace(ci, "%s · %s" % [cat, Textes.livree(l[li]).to_upper()], Vector2(r.position.x + 20, pc.position.y + 8 + 40 * lignes.size() + 16.4), 17, Color("#252a22"), 0.51)
+	var d := Catalogue.dessin(v.id, li)
+	if d.get("vignette"):
+		var tex := Style.tex("res://images/vignettes/" + d.vignette)
+		var zone := Rect2(r.position.x + 7, pc.end.y, r.size.x - 14, r.size.y - 4 - hc)
+		var e := minf(zone.size.x / tex.get_width(), zone.size.y / tex.get_height())
+		var tt := Vector2(tex.get_width(), tex.get_height()) * e
+		ci.draw_texture_rect(tex, Rect2(zone.get_center() - tt / 2, tt), false)
+	ci.draw_rect(r.grow(-1), Color("#20251f"), false, 2)
+
+
+## L'aperçu du circuit : le titre sur son papier penché, puis le tracé sur l'image du circuit.
+func _apercuCircuitTel(ci: CanvasItem, r: Rect2, info: Dictionary) -> void:
+	ci.draw_rect(r, Color("#6b8171"))
+	Style.couvre(ci, info.image, r.grow(-2), 0.5)
+	var lc: PackedStringArray = z.nomCircuit
+	var ht := 12 + 34.2 * lc.size() + 7 + 22 + 14
+	var rp := Rect2(r.position.x + 2, r.position.y + 2, r.size.x - 4, ht)
+	ci.draw_colored_polygon(PackedVector2Array([rp.position, Vector2(rp.end.x, rp.position.y), Vector2(rp.end.x, rp.position.y + ht * 0.93), Vector2(rp.position.x, rp.end.y)]), T_PAPIER)
+	for i in lc.size(): Style.texte(ci, lc[i], Vector2(r.position.x + 14, rp.position.y + 12 + 34.2 * i + 30.6), 36, Color("#272b28"))
+	var ys := rp.position.y + 12 + 34.2 * lc.size() + 7
+	Paddock._espace(ci, Paddock.infoPiste(info, false), Vector2(r.position.x + 14, ys + 17.75), 18, Color("#272b28"), 0.36)
+	var dr := Style.drapeau(info.pays)
+	if dr:
+		var rd := Rect2(r.end.x - 59, rp.position.y + 12, 45, 34)
+		Style.couvre(ci, dr, rd, 0.5)
+		ci.draw_rect(rd, Color(0.145, 0.165, 0.133, 0.2), false, 1)
+	var im := Rect2(r.position.x + 20, rp.end.y + 4, r.size.x - 40, r.size.y - ht - 4 - 12)
+	Paddock._contour(ci, info, im.grow(-18), false, 4.6, true)
+	ci.draw_rect(r.grow(-1), Color("#33392f"), false, 2)

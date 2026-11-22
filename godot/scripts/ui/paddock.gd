@@ -60,6 +60,9 @@ func _ready() -> void:
 	cadre = Control.new()
 	cadre.draw.connect(_dessine)
 	add_child(cadre)
+	doigt = Doigt.new(cadre, _defile)
+	rails = doigt.rails
+	railX = doigt.railX
 	barre = Control.new()
 	barre.draw.connect(_dessineBarre)
 	add_child(barre)
@@ -107,7 +110,7 @@ func _input(e: InputEvent) -> void:
 	if e is InputEventMouseButton and e.pressed and (e.button_index == MOUSE_BUTTON_WHEEL_DOWN or e.button_index == MOUSE_BUTTON_WHEEL_UP):
 		_defile(60.0 if e.button_index == MOUSE_BUTTON_WHEEL_DOWN else -60.0)
 	elif portrait:
-		_doigtTel(e)
+		doigt.entree(e)
 
 
 ## La manette (stick droit) et le clavier (page précédente, page suivante) font aussi défiler ;
@@ -119,25 +122,15 @@ func _process(dt: float) -> void:
 		# sur ordinateur, la page ne défile pas : c'est la liste de la catégorie
 		if not portrait and listeVue: _defileListe(a * 900.0 * dt)
 		else: _defile(a * 900.0 * dt)
-	if portrait and _elan != Vector2.ZERO and not _doigt.get("actif", false):
-		if _elanRail != "": _poseRail(_elanRail, float(railX.get(_elanRail, 0.0)) + _elan.x * dt)
-		else: _defile(_elan.y * dt)
-		_elan *= pow(0.135, dt)
-		if _elan.length() < 20: _elan = Vector2.ZERO
+	if portrait: doigt.avance(dt)
 
 
 func _montre(c: Control) -> void:
 	if c == null or not cadre.is_ancestor_of(c): return
 	# seulement au clavier et à la manette : une carte touchée du doigt ou cliquée ne fait pas sauter la page
-	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or _doigt.get("actif", false): return
+	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or doigt.actif(): return
 	# une carte d'un rail : le rail se pousse pour la montrer
-	for nom in rails:
-		var R: Dictionary = rails[nom]
-		if (R.contenu as Control).is_ancestor_of(c):
-			var x: float = railX.get(nom, 0.0)
-			var w: float = (R.vue as Control).size.x
-			if c.position.x < x + 4: _poseRail(nom, c.position.x - 4)
-			elif c.position.x + c.size.x > x + w - 4: _poseRail(nom, c.position.x + c.size.x - w + 4)
+	doigt.montre(c)
 	var k := cadre.scale.y
 	var vue := (size.y - barre.size.y * k * float(barre.visible)) / k          # ce qu'on voit du cadre, au-dessus de la barre
 	var haut := (cadre.get_global_transform().affine_inverse() * c.get_global_transform().origin).y
@@ -804,11 +797,9 @@ const T_NOIR := Color("#151917")
 const T_CARTE := Color("#171c19")
 const T_MUET := Color("#5e6055")
 var T := {}                                  # la mise en page du téléphone, relue par le dessin
-var rails := {}                              # livrees, voitures, circuits -> { vue, contenu, maxi }
-var railX := {}                              # leur défilement ; absent : centré sur ce qui est choisi
-var _doigt := {}                             # le doigt posé : départ, axe choisi, rail dessous, vitesse
-var _elan := Vector2.ZERO                    # la page (y) ou le rail (x) qui file encore, en px CSS/s
-var _elanRail := ""
+var doigt: Doigt                             # les glissés : la page, et les rails livrees, voitures, circuits
+var rails := {}                              # ceux de doigt (le même dictionnaire)
+var railX := {}
 
 
 func _construitTel(cle: String) -> void:
@@ -868,7 +859,7 @@ func _construitTel(cle: String) -> void:
 			var lignes := Paddock._lignes(Textes.livree(livrees[i]).to_upper(), 16, lw - 2 * bord - 8)
 			hc = maxf(hc, 65 + 3 + 19 * lignes.size() + 8 + 2 * bord)
 		T.livrees = Rect2(10, y, 370, hc + 16)
-		var cont := _rail("livrees", T.livrees, 16 + n * lw + (n - 1) * 8, 8 + li * (lw + 8) + lw / 2)
+		var cont := doigt.rail("livrees", T.livrees, 16 + n * lw + (n - 1) * 8, 8 + li * (lw + 8) + lw / 2)
 		for i in n:
 			var d := Catalogue.dessin(v.id, i)
 			var b := _bouton("", Rect2(8 + i * (lw + 8), 8, lw, hc), T_CARTE, PC_CREME, 16,
@@ -893,7 +884,7 @@ func _construitTel(cle: String) -> void:
 		if rail[i].id == v.id: iSel = i
 	var hv := 2 + 5 + 66 + 4 + 20.0 * nl + (6 + 19 if avecCat else 0) + 5 + 2
 	T.rail = Rect2(10, y, 370, hv + 12)
-	var contV := _rail("voitures", T.rail, 4 + rail.size() * 146 - 10, 2 + iSel * 146 + 68)
+	var contV := doigt.rail("voitures", T.rail, 4 + rail.size() * 146 - 10, 2 + iSel * 146 + 68)
 	for i in rail.size():
 		var c: Dictionary = rail[i]
 		var b := _bouton("", Rect2(2 + i * 146, 2, 136, hv), PC_CREME, PC_ENCRE, 17, func(): _choisitVoiture(c.id), contV)
@@ -915,7 +906,7 @@ func _construitTel(cle: String) -> void:
 	for i in circuits.size():
 		if circuits[i].id == cid: iC = i
 	var rc := Rect2(15, ys + 5 + 300 + 12 + 8, 360, 149)
-	var contC := _rail("circuits", rc, 4 + circuits.size() * 118 - 10, 2 + iC * 118 + 54)
+	var contC := doigt.rail("circuits", rc, 4 + circuits.size() * 118 - 10, 2 + iC * 118 + 54)
 	for i in circuits.size():
 		var c: Dictionary = circuits[i]
 		var b := _bouton("", Rect2(2 + i * 118, 2, 108, 137), PC_CREME, PC_ENCRE, 17,
@@ -1026,89 +1017,6 @@ func _construitTel(cle: String) -> void:
 	cadre.queue_redraw()
 	barre.queue_redraw()
 	_rendFocus(cle)
-
-
-## Un rail qui défile de côté : une vue qui coupe ce qui dépasse, et dedans les cartes. `centre` est le
-## milieu de la carte choisie ; à la première ouverture, le rail se place dessus (js/ui.js, _centrerRail).
-func _rail(nom: String, r: Rect2, largeur: float, centre: float) -> Control:
-	var vue := Control.new()
-	vue.clip_contents = true
-	vue.mouse_filter = Control.MOUSE_FILTER_PASS
-	vue.position = r.position
-	vue.size = r.size
-	cadre.add_child(vue)
-	var contenu := Control.new()
-	contenu.mouse_filter = Control.MOUSE_FILTER_PASS
-	contenu.size = Vector2(largeur, r.size.y)
-	vue.add_child(contenu)
-	rails[nom] = { vue = vue, contenu = contenu, maxi = maxf(0, largeur - r.size.x) }
-	_poseRail(nom, float(railX.get(nom, centre - r.size.x / 2)))
-	return contenu
-
-
-func _poseRail(nom: String, x: float) -> void:
-	if not rails.has(nom): return
-	var R: Dictionary = rails[nom]
-	x = clampf(x, 0, R.maxi)
-	if (x <= 0 or x >= R.maxi) and nom == _elanRail: _elan = Vector2.ZERO
-	railX[nom] = x
-	(R.contenu as Control).position.x = -x
-
-
-## Le doigt, au téléphone : un glissé de côté sur un rail fait défiler le rail, tout autre glissé fait
-## défiler la page ; dès que le doigt glisse, la carte qu'il avait touchée ne se choisit plus (comme une
-## page web qu'on fait défiler). Lâché, ce qui défilait file encore et ralentit.
-func _doigtTel(e: InputEvent) -> void:
-	var k := cadre.scale.x
-	if e is InputEventScreenTouch and e.index == 0:
-		if e.pressed:
-			_elan = Vector2.ZERO
-			_doigt = { actif = true, depart = e.position, axe = "", rail = _railSous(e.position), t = Time.get_ticks_usec(), v = Vector2.ZERO }
-		else:
-			if _doigt.get("axe", "") != "":
-				_elanRail = _doigt.rail if _doigt.axe == "x" else ""
-				_elan = _doigt.v if Time.get_ticks_usec() - int(_doigt.t) < 100000 else Vector2.ZERO
-			_doigt.actif = false
-	elif e is InputEventScreenDrag and e.index == 0 and _doigt.get("actif", false):
-		var d: Vector2 = e.position - _doigt.depart
-		if _doigt.axe == "":
-			if d.length() < 8.0 * k: return
-			_doigt.axe = "x" if absf(d.x) > absf(d.y) and _doigt.rail != "" else "y"
-			_annuleAppui.call_deferred()
-		var maintenant := Time.get_ticks_usec()
-		var dt := maxf(0.004, (maintenant - int(_doigt.t)) / 1e6)
-		_doigt.t = maintenant
-		var pas: Vector2 = -e.relative / k
-		_doigt.v = (_doigt.v as Vector2).lerp(pas / dt, 0.6)
-		if _doigt.axe == "x": _poseRail(_doigt.rail, float(railX.get(_doigt.rail, 0.0)) + pas.x)
-		else: _defile(pas.y)
-
-
-func _railSous(p: Vector2) -> String:
-	for nom in rails:
-		var vue: Control = rails[nom].vue
-		var t := vue.get_global_transform()
-		if Rect2(t.origin, vue.size * t.get_scale()).has_point(p): return nom
-	return ""
-
-
-## La carte touchée par un doigt qui glisse ne se choisit pas : on lui fait lâcher le bouton hors de
-## lui, avant que le doigt ne se lève.
-func _annuleAppui() -> void:
-	var vp := get_viewport()
-	if vp == null: return
-	vp.gui_release_focus()
-	var m := InputEventMouseMotion.new()
-	m.position = Vector2(-10000, -10000)
-	m.global_position = m.position
-	m.button_mask = MOUSE_BUTTON_MASK_LEFT
-	vp.push_input(m)
-	var r := InputEventMouseButton.new()
-	r.button_index = MOUSE_BUTTON_LEFT
-	r.pressed = false
-	r.position = m.position
-	r.global_position = m.position
-	vp.push_input(r)
 
 
 ## Les lignes d'un texte coupé à la largeur, mot par mot, comme le retour à la ligne du navigateur.

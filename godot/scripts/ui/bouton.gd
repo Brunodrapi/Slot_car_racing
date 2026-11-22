@@ -41,7 +41,8 @@ func _draw() -> void:
 	var c := fond
 	if is_hovered() or has_focus(): c = c.lightened(0.12)
 	if button_pressed or (is_pressed() and toggle_mode): c = c.darkened(0.1)
-	if disabled: c = c.darkened(0.3)
+	# éteint, il s'assombrit, sauf s'il pâlit (meta « fane » : le jeu web le rend à demi transparent)
+	if disabled and not get_meta("fane", false): c = c.darkened(0.3)
 	Style.biseau(self, r, c, coupe)
 	if avecDamier:
 		var dr := Rect2(size.x * 0.62, 0, size.x * 0.34, size.y)
