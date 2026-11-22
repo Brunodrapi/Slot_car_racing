@@ -31,13 +31,21 @@ const CATALOGUE_URL = 'sounds/engine/voitures.json';
 est aux réglages. Elle boucle à l'accueil, au paddock, aux réglages, au salon et aux résultats, se tait
 en course (et à la pause, qui est la course), et suit le réglage du son. Elle passe par le contexte audio
 et son volume général, pas par le volume de la balise : sur iPhone, celui-ci ne se règle pas. Réencodée
-à 96 kb/s (2,2 Mo) : à ce volume, la différence ne s'entend pas. */
+à 64 kb/s (1,4 Mo) : à ce volume, la différence ne s'entend pas.
+« La musique doit commencer dès le menu de sélection. » (Bruno) Elle ne venait qu'après : le fichier ne
+se chargeait qu'au premier son, et sur iPhone une balise audio ne démarre que dans le geste même du
+joueur, jamais à l'image suivante. Elle se précharge donc dès l'ouverture du jeu (`prechargeMusique`),
+et démarre DANS le geste qui quitte l'affiche ou qui prend un bouton (`musique(…, geste)`). */
 const MUSIQUE = { url: 'sounds/musique/too-cool.mp3', volume: 0.12, fondu: 1.2 };
 /* LE MOTEUR QUI DÉMARRE. « En piste : je veux un son de moteur qui démarre. » (Bruno) Le démarreur, le
 moteur qui prend, deux coups de gaz et le ralenti, cinq secondes et demie, au moment où l'on appuie sur
 « En piste » : il couvre le chargement de la course et s'éteint quand le moteur du jeu prend le relais.
 Le fichier est chargé dès que le son s'ouvre, pour partir sans attendre. */
-const DEMARRAGE = { url: 'sounds/effets/demarrage.mp3', volume: 0.9 };
+const DEMARRAGE = { url: 'sounds/effets/demarrage.mp3', volume: 0.9, tient: 3.6, relais: 1.4 };
+/* « Je n'entends pas le moteur quand on clique sur En piste, juste le clic. » (Bruno) Il jouait, mais le
+moteur de la course le couvrait une seconde plus tard : ses boucles partent au ralenti dès le compte à
+rebours, plus fortes que le fichier. Le fichier est remonté (crête à -1,6 dB), et le moteur de la course
+se tait le temps du démarrage (`tient`, en secondes), puis prend le relais en fondu (`relais`). */
 
 class GameAudio {
   constructor() {
@@ -248,7 +256,7 @@ class GameAudio {
       this.sampler.applique(this.vehicule.engine);
       this.rpm = this.vehicule.engine.rpm;
       this.gear = this.vehicule.drivetrain.gear;
-      this.engGain.gain.setTargetAtTime(this.pret && !car.engineStopped ? 0.85 : 0, t, 0.04);
+      this.engGain.gain.setTargetAtTime(this.pret && !car.engineStopped ? 0.85 * this.partMoteur(t) : 0, t, 0.04);
     }
 
     // pneus : la hauteur monte avec la vitesse, le volume avec le glissement
@@ -357,32 +365,53 @@ class GameAudio {
     const ctx = this.ctx, s = ctx.createBufferSource(), g = ctx.createGain();
     s.buffer = this.demarrageBuf; g.gain.value = DEMARRAGE.volume;
     s.connect(g); g.connect(this.master); s.start();
+    this.demarrageT0 = ctx.currentTime;
     this.demarrages = (this.demarrages || 0) + 1;
+  }
+
+  /* La part du moteur de la course pendant le démarrage : rien, puis le relais en fondu. */
+  partMoteur(t) {
+    if (this.demarrageT0 == null) return 1;
+    return clamp((t - this.demarrageT0 - DEMARRAGE.tient) / DEMARRAGE.relais, 0, 1);
   }
 
   /* La musique des menus (MUSIQUE) : appelée à chaque image, avec ce que l'écran veut ; elle monte et
   descend en fondu, et ne se met en pause qu'une fois tue. */
-  musique(veut, dt) {
-    if (!this.started || !this.ctx) return;
+  /* Le fichier de la musique se charge dès l'ouverture du jeu, avant tout geste : il est prêt quand le
+  joueur quitte l'affiche. */
+  prechargeMusique(force = false) {
+    if (this.musiqueEl !== undefined || !(this.enabled || force)) return;
+    try { const el = new Audio(MUSIQUE.url); el.loop = true; el.preload = 'auto'; el.load(); this.musiqueEl = el; }
+    catch (e) { this.musiqueEl = false; }
+  }
+
+  /* `geste` : appelée dans le geste du joueur (un clic, une touche) — c'est là, et seulement là, qu'un
+  iPhone laisse une balise audio démarrer. À chaque image, elle ne fait que suivre (fondu, pause). */
+  musique(veut, dt, geste = false) {
+    if (!this.started || !this.ctx || this.musiqueEl === false) return;
     veut = veut && this.enabled && !document.hidden;
-    if (!this.musiqueEl) {
+    if (this.musiqueEl === undefined) {
       if (!veut) return;
+      this.prechargeMusique(true);
+      if (!this.musiqueEl) return;
+    }
+    const el = this.musiqueEl;
+    if (!this.musiqueGain) {
       try {
-        const el = new Audio(MUSIQUE.url);
-        el.loop = true; el.preload = 'auto';
-        this.musiqueEl = el;
         this.musiqueGain = this.ctx.createGain(); this.musiqueGain.gain.value = 0;
         this.ctx.createMediaElementSource(el).connect(this.musiqueGain);
         this.musiqueGain.connect(this.master);
         this.musiqueNiveau = 0;
       } catch (e) { this.musiqueEl = false; return; }
     }
-    if (this.musiqueEl === false) return;
-    const el = this.musiqueEl, pas = Math.min(0.1, dt || 0) / MUSIQUE.fondu;
+    const pas = Math.min(0.1, dt || 0) / MUSIQUE.fondu;
     this.musiqueNiveau = Math.max(0, Math.min(1, this.musiqueNiveau + (veut ? pas : -2 * pas)));
     this.musiqueGain.gain.value = MUSIQUE.volume * this.musiqueNiveau;
-    if (veut && el.paused) el.play().catch(() => {});
-    else if (!veut && this.musiqueNiveau === 0 && !el.paused) el.pause();
+    const maintenant = performance.now();
+    if (veut && el.paused && (geste || !(maintenant - (this._musiqueEssai || 0) < 1000))) {
+      this._musiqueEssai = maintenant;
+      el.play().catch(() => {});
+    } else if (!veut && this.musiqueNiveau === 0 && !el.paused) el.pause();
   }
 
   // A held tone cuts through the engine better than the short decaying UI beep.

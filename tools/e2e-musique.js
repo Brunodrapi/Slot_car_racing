@@ -17,8 +17,10 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     await p.goto('file://' + path.join(__dirname, '..', 'index.html'));
     await p.waitForFunction(() => typeof app !== 'undefined' && app.save);
     await p.evaluate(() => { app.save.name = 'Bruno'; app.save.sound = true; app.audio.enabled = true; app.mondial = null; });
+    ok(await p.evaluate(() => !!app.audio.musiqueEl && app.audio.musiqueEl.preload === 'auto' && app.state === 'splash'), 'le fichier se précharge dès l\'affiche, avant tout geste');
     await p.mouse.click(640, 400);            // le geste qui ouvre le son (et quitte l'affiche)
     await p.evaluate(() => { if (app.state === 'splash') app.leaveSplash(); });
+    ok(await p.evaluate(() => app.state === 'menu' && !app.audio.musiqueEl.paused), 'elle démarre dans le geste même qui quitte l\'affiche, au menu de sélection');
     await p.waitForTimeout(2500);
     const menu = await p.evaluate(() => { const a = app.audio; return { el: !!a.musiqueEl, joue: a.musiqueEl && !a.musiqueEl.paused, gain: a.musiqueGain && a.musiqueGain.gain.value, src: a.musiqueEl && a.musiqueEl.currentSrc, temps: a.musiqueEl && a.musiqueEl.currentTime }; });
     ok(menu.el && menu.joue && /too-cool\.mp3$/.test(menu.src), 'au menu, la musique joue : ' + JSON.stringify(menu));

@@ -32,6 +32,9 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     await p.locator('[data-action="startQuick"]').click();
     await p.waitForTimeout(300);
     ok(await p.evaluate(() => app.audio.demarrages === 1), '« En piste » : le moteur démarre, une fois');
+    // le moteur de la course se tait le temps du démarrage, puis prend le relais
+    const parts = await p.evaluate(() => { const a = app.audio, t0 = a.demarrageT0; return [a.partMoteur(t0 + 1), a.partMoteur(t0 + 3.5), a.partMoteur(t0 + 4.3), a.partMoteur(t0 + 5.2)]; });
+    ok(parts[0] === 0 && parts[1] === 0 && parts[2] > 0 && parts[2] < 1 && parts[3] === 1, 'le moteur de la course laisse passer le démarrage, puis prend le relais : ' + parts.map((x) => x.toFixed(2)).join(' → '));
     await p.waitForFunction(() => app.race && app.state === 'race', null, { timeout: 30000 });
     ok(erreurs.length === 0, 'pas d\'erreur dans la page' + (erreurs.length ? ' : ' + erreurs.join(' | ') : ''));
   } catch (e) { console.error(e); fautes++; }

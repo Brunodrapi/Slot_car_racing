@@ -936,6 +936,15 @@ et le ralenti, cinq secondes et demie (`sounds/effets/demarrage.mp3`, le silence
 part au clic, couvre le chargement de la course et s'éteint quand le moteur du jeu prend le relais
 (`demarre`, js/audio.js). Chargé dès que le son s'ouvre, pour partir sans attendre.
 `tools/e2e-demarrage.js` le vérifie, servi en http.
+En 0.56.12 (« je n'entends pas le moteur, juste le clic ») : il jouait, mais les boucles du moteur de la
+course partaient au ralenti une seconde plus tard et le couvraient. Le fichier est remonté (crête à
+-1,6 dB) et le moteur de la course se tait 3,6 s, puis prend le relais en 1,4 s (`partMoteur`).
+
+**La musique dès le menu, et la pastille FREINAGE (0.56.12).** La musique ne venait qu'après le menu :
+son fichier ne se chargeait qu'au premier son, et un iPhone ne laisse partir une balise audio que dans
+le geste du joueur. Elle se précharge à l'ouverture du jeu (64 kb/s, 1,4 Mo) et démarre dans le geste
+qui quitte l'affiche ou prend un bouton. La liste du FREINAGE est dessinée comme les autres valeurs
+vertes (`appearance:none`, la flèche en SVG) : un iPhone la dessinait à sa façon, plus haute.
 
 **La musique des menus (0.56.9).** « Too Cool », de Kevin MacLeod (incompetech.com), sous licence
 Creative Commons BY 4.0 — le crédit est en bas des réglages. Elle boucle à l'accueil, au paddock, aux

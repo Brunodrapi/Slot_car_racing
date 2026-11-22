@@ -21,6 +21,7 @@ class App {
     this.renderer.debug = this.save.debug === true;
     this.audio = new GameAudio();
     this.audio.enabled = this.save.sound;
+    this.audio.prechargeMusique();     // la musique des menus est prête quand on quitte l'affiche
     this.ui = new UI(this);
     this.tracks = new Map();
     this.custom = { tracks: [], cars: [], lines: new Map(), panneaux: new Map(), decor: new Map() };
@@ -571,6 +572,7 @@ class App {
     this.state = 'menu';
     this.audio.start();
     this.audio.resume();
+    this.audio.musique(true, 0, true);     // dans le geste : la musique part dès le menu
     this.ui.menu();
     return true;
   }

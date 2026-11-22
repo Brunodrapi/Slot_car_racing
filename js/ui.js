@@ -1838,6 +1838,8 @@ class UI {
     const a = btn.dataset.action, id = btn.dataset.id, app = this.app;
     app.audio.start(); app.audio.resume();
     app.audio.clic();   // chaque bouton des menus clique (js/audio.js, `clic`)
+    // dans le geste, la musique des menus peut démarrer (un iPhone ne la laisse partir qu'ici)
+    app.audio.musique(app.state === 'menu' || app.state === 'lobby' || app.state === 'results', 0, true);
     switch (a) {
       case 'menu': app.toMenu(); break;
       /* On SORT avant d'entrer. Une session périmée encore en mémoire ferait revenir le joueur

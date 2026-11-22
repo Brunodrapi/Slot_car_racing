@@ -994,8 +994,15 @@ img.stat-ico { object-fit:contain; }
 .setup-screen .chip > span { color:#fff0d2; }
 .setup-screen .chip > b { color:#171c19; background:#21b56f; padding:2px 10px; margin-right:-6px; clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%); }
 .setup-screen .chip select, .setup-screen .chip input { min-height:0; padding:2px 8px; color:#171c19; background:#21b56f; border:0; border-radius:0; font-size:19px; text-transform:uppercase; }
+/* La liste du FREINAGE a l'allure des autres valeurs vertes (`.chip > b`) : « Freinage doit faire la même
+   taille que les autres boutons » (Bruno). Sans `appearance:none`, un iPhone dessinait sa propre liste,
+   arrondie, grise, plus haute, dans sa police à lui. La flèche est dessinée. */
+.setup-screen .chip select { -webkit-appearance:none; appearance:none; font:inherit; line-height:inherit; height:auto; margin:0 -6px 0 0;
+  padding:2px 26px 2px 10px; clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);
+  background:#21b56f url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23171c19'/%3E%3C/svg%3E") no-repeat right 11px center / 10px 6px; }
 .setup-screen .chip input { width:64px; }
-.setup-screen .chip .reg-ici { font-size:13px; color:#cfc6ae; text-transform:none; }
+/* le rappel « freinage ×… ici » allongeait la seule pastille FREINAGE : il reste en info-bulle */
+.setup-screen .chip .reg-ici { display:none; }
 .setup-screen button.chip:hover:not(:disabled) { background-color:#2c332d; }
 .setup-screen .chip:focus-within, .setup-screen .chip:focus-visible, .setup-screen .chip.pad-focus { outline:none!important; box-shadow:inset 0 0 0 3px #e6b13c; }
 .setup-screen .setup-launch.row.end, body.desktop .setup-screen .setup-launch.row.end { position:static; display:flex; align-items:stretch; flex-wrap:nowrap; gap:0; margin:0 0 0 auto; padding:0; background:none; border:0; box-shadow:none; }
