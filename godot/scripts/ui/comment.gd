@@ -333,11 +333,12 @@ func _dessineFiches() -> void:
 func _input(e: InputEvent) -> void:
 	if not portrait: return
 	var k := cadre.scale.x
-	if e is InputEventScreenTouch and e.index == 0:
+	# le doigt qui s'est posé le premier, quel que soit son numéro (Safari sur iPhone ne commence pas à 0)
+	if e is InputEventScreenTouch:
 		if e.pressed:
-			_doigt = { actif = true, depart = e.position, axe = "", sur = _surRail(e.position), v = 0.0, t = Time.get_ticks_usec() }
+			_doigt = { actif = true, index = e.index, depart = e.position, axe = "", sur = _surRail(e.position), v = 0.0, t = Time.get_ticks_usec() }
 			if _tween: _tween.kill()
-		elif _doigt.get("actif", false):
+		elif _doigt.get("actif", false) and e.index == int(_doigt.index):
 			_doigt.actif = false
 			if _doigt.axe == "x":
 				# un coup sec passe à la fiche voisine, sinon la plus proche
@@ -345,7 +346,7 @@ func _input(e: InputEvent) -> void:
 				var p := roundi(page)
 				if absf(v) > 400: p = int(floor(page)) + (1 if v > 0 else 0)
 				_va(p)
-	elif e is InputEventScreenDrag and e.index == 0 and _doigt.get("actif", false):
+	elif e is InputEventScreenDrag and _doigt.get("actif", false) and e.index == int(_doigt.index):
 		var d: Vector2 = e.position - _doigt.depart
 		if _doigt.axe == "":
 			if d.length() < 8.0 * k: return

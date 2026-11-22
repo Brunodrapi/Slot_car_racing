@@ -66,16 +66,20 @@ func montre(c: Control) -> void:
 
 func entree(e: InputEvent) -> void:
 	var k := cadre.scale.x
-	if e is InputEventScreenTouch and e.index == 0:
+	# Le doigt suivi est celui qui s'est posé le premier, quel que soit son numéro : la version web de
+	# Godot donne le numéro du navigateur, et Safari sur iPhone ne commence pas à 0 (filtrer le doigt 0
+	# empêchait toute la page de défiler sur iPhone).
+	if e is InputEventScreenTouch:
 		if e.pressed:
+			# un nouveau doigt prend la main (un doigt dont on n'aurait pas su qu'il s'est levé ne bloque rien)
 			elan = Vector2.ZERO
-			etat = { actif = true, depart = e.position, axe = "", rail = _railSous(e.position), t = Time.get_ticks_usec(), v = Vector2.ZERO }
-		elif actif():
+			etat = { actif = true, index = e.index, depart = e.position, axe = "", rail = _railSous(e.position), t = Time.get_ticks_usec(), v = Vector2.ZERO }
+		elif actif() and e.index == int(etat.index):
 			if etat.axe != "":
 				elanRail = etat.rail if etat.axe == "x" else ""
 				elan = etat.v if Time.get_ticks_usec() - int(etat.t) < 100000 else Vector2.ZERO
 			etat.actif = false
-	elif e is InputEventScreenDrag and e.index == 0 and actif():
+	elif e is InputEventScreenDrag and actif() and e.index == int(etat.index):
 		var d: Vector2 = e.position - etat.depart
 		if etat.axe == "":
 			if d.length() < 8.0 * k: return

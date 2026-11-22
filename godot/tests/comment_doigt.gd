@@ -3,6 +3,9 @@
 ##   GRIP_TACTILE=1 xvfb-run -a godot --path godot --resolution 780x1688 tests/comment_doigt.tscn
 extends Node
 
+## Le numéro du doigt : Safari sur iPhone ne commence pas à 0 (la version web de Godot donne son numéro).
+const DOIGT := 37
+
 var app: Node
 var echecs := 0
 
@@ -43,6 +46,7 @@ func _verifie(ok: bool, quoi: String) -> void:
 
 func _glisse(a: Vector2, b: Vector2) -> void:
 	var e := InputEventScreenTouch.new()
+	e.index = DOIGT
 	e.position = a
 	e.pressed = true
 	Input.parse_input_event(e)
@@ -51,12 +55,14 @@ func _glisse(a: Vector2, b: Vector2) -> void:
 	for i in range(1, 11):
 		var p := a.lerp(b, i / 10.0)
 		var d := InputEventScreenDrag.new()
+		d.index = DOIGT
 		d.position = p
 		d.relative = p - avant
 		avant = p
 		Input.parse_input_event(d)
 		await get_tree().process_frame
 	var f := InputEventScreenTouch.new()
+	f.index = DOIGT
 	f.position = b
 	f.pressed = false
 	Input.parse_input_event(f)

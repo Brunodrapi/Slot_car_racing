@@ -3,6 +3,9 @@
 ##   xvfb-run -a godot --path godot --resolution 780x1688 tests/paddock_doigt.tscn
 extends Node
 
+## Le numéro du doigt : Safari sur iPhone ne commence pas à 0 (la version web de Godot donne son numéro).
+const DOIGT := 37
+
 var app: Node
 var echecs := 0
 
@@ -58,7 +61,7 @@ func _verifie(ok: bool, quoi: String) -> void:
 
 func _touche(pos: Vector2, appuye: bool) -> void:
 	var e := InputEventScreenTouch.new()
-	e.index = 0
+	e.index = DOIGT
 	e.position = pos
 	e.pressed = appuye
 	Input.parse_input_event(e)
@@ -72,7 +75,7 @@ func _glisse(a: Vector2, b: Vector2) -> void:
 	for i in range(1, n + 1):
 		var p := a.lerp(b, float(i) / n)
 		var e := InputEventScreenDrag.new()
-		e.index = 0
+		e.index = DOIGT
 		e.position = p
 		e.relative = p - avant
 		avant = p
