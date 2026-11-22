@@ -437,9 +437,11 @@ func _dessine() -> void:
 	var lt := Style.largeur(titre, 38) + 60
 	Style.biseau(ci, Rect2(296, 10, lt, 64), Style.ROUGE, 22)
 	Style.texte(ci, titre, Vector2(320, 58), 38, Style.CREME)
-	var logo := Style.tex("res://images/interface/logo-grip.webp")
+	var logo := Style.tex("res://images/interface/logo-slotless.webp")
 	if not portrait:
-		ci.draw_texture_rect(logo, Rect2(W - 210, 16, 190, 190 * logo.get_height() / logo.get_width()), false)
+		var lh := 52.0
+		var lw := lh * logo.get_width() / logo.get_height()
+		ci.draw_texture_rect(logo, Rect2(W - 20 - lw, 16, lw, lh), false)
 	if not dansTable:
 		# le texte d'introduction sur son fond, comme le panneau : posé sur la photo du paddock, il ne
 		# se lisait pas (surtout en portrait, où il passe sur les projecteurs)

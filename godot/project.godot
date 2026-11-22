@@ -1,11 +1,11 @@
-; Le prototype Godot de GRIP — Racing the Line : un circuit, une voiture.
+; SLOTLESS — Slot-Racing Unleashed : la version Godot du jeu web GRIP, pour Steam et iOS.
 ; Ouvrir ce dossier dans Godot 4.7 (Projet > Importer > project.godot).
 
 config_version=5
 
 [application]
 
-config/name="GRIP — Racing the Line"
+config/name="SLOTLESS"
 config/description="Stand de frites et la Breithüft Apex R, avec la physique du jeu web portée en GDScript."
 run/main_scene="res://scenes/demarrage.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
@@ -60,5 +60,5 @@ decors_url="https://brunodrapi.github.io/Slot_car_racing/essais/godot/"
 ; prod (slot-racer-v1-…). Une version vendue prendra « prod ».
 canal="recette"
 ; La version Steam (étiquette d'export « steam ») : l'identifiant de l'application sur Steam.
-; 480 est l'application d'essai de Valve, en attendant celle de GRIP.
+; 480 est l'application d'essai de Valve, en attendant celle de SLOTLESS.
 steam_app_id=480

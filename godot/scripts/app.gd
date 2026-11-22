@@ -19,6 +19,7 @@ var enLigne = null                     # la course de la table en ligne (Net.onS
 
 
 func _ready() -> void:
+	_repriseGrip()
 	Catalogue.charge()
 	if FileAccess.file_exists(FICHIER):
 		var lu = JSON.parse_string(FileAccess.get_file_as_string(FICHIER))
@@ -114,6 +115,29 @@ func demarre() -> void:
 		_demarrage.volume_db = linear_to_db(0.5 * 0.9)     # sous le volume général du jeu web (0,5)
 		add_child(_demarrage)
 	_demarrage.play()
+
+
+## LE JEU S'APPELAIT GRIP — Racing the Line. Le dossier des sauvegardes porte le nom du projet : passé à
+## SLOTLESS, il change. Au premier lancement sous ce nom, on reprend ce que l'ancien dossier gardait —
+## réglages, records, palmarès, compte, décors téléchargés — pour ne rien perdre.
+const ANCIEN_NOM := "GRIP — Racing the Line"
+
+
+static func _repriseGrip() -> void:
+	if OS.has_feature("web") or OS.has_feature("mobile"): return
+	var neuf := OS.get_user_data_dir()
+	var ancien := neuf.get_base_dir().path_join(ANCIEN_NOM)
+	if ancien == neuf or not DirAccess.dir_exists_absolute(ancien) or FileAccess.file_exists(FICHIER): return
+	_copieDossier(ancien, neuf)
+
+
+static func _copieDossier(de: String, vers: String) -> void:
+	DirAccess.make_dir_recursive_absolute(vers)
+	var d := DirAccess.open(de)
+	if d == null: return
+	for f in d.get_files(): DirAccess.copy_absolute(de.path_join(f), vers.path_join(f))
+	for sd in d.get_directories():
+		if not sd.begins_with("."): _copieDossier(de.path_join(sd), vers.path_join(sd))
 
 
 ## Le volume général : le bus Master de Godot.

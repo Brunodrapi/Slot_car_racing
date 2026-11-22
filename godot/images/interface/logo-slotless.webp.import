@@ -2,22 +2,22 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://qdbr2xdp15kp"
-path="res://.godot/imported/logo-grip.webp-ba1dcf6cd332073955f178c2fae4396e.ctex"
+uid="uid://cs50rh0lx1q1q"
+path="res://.godot/imported/logo-slotless.webp-9c453c4b1402514f8e25e528f2ab5d92.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://images/interface/logo-grip.webp"
-dest_files=["res://.godot/imported/logo-grip.webp-ba1dcf6cd332073955f178c2fae4396e.ctex"]
+source_file="res://images/interface/logo-slotless.webp"
+dest_files=["res://.godot/imported/logo-slotless.webp-9c453c4b1402514f8e25e528f2ab5d92.ctex"]
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
-compress/lossy_quality=0.88
+compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1

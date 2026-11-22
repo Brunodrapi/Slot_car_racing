@@ -96,7 +96,7 @@ static func infosCircuits() -> Dictionary:
 
 ## Tout ce qui se dessine est chargé avant le premier dessin.
 static func precharge() -> void:
-	Style.tex("res://images/interface/logo-grip.webp")
+	Style.tex("res://images/interface/logo-slotless.webp")
 	for v in Catalogue.donnees.voitures:
 		for i in (v.livrees as Array).size():
 			var d := Catalogue.dessin(v.id, i)
@@ -381,7 +381,7 @@ func _dessine() -> void:
 	Style.damier(ci, Rect2(140, 10, 80, 64), 4, Style.CREME, Style.NUIT_PLEINE, 0)
 	Style.biseau(ci, Rect2(214, 10, 320, 64), Style.ROUGE, 22)
 	Style.texte(ci, Textes.t({ race = "quickRace", timetrial = "timeTrial", training = "training" }.get(mode, "quickRace")), Vector2(236, 58), 38, Style.CREME)
-	var logo := Style.tex("res://images/interface/logo-grip.webp")
+	var logo := Style.tex("res://images/interface/logo-slotless.webp")
 	if not portrait:
 		ci.draw_texture_rect(logo, Rect2(W - 210, 16, 190, 190 * logo.get_height() / logo.get_width()), false)
 	# Onglets
@@ -752,7 +752,7 @@ func _dessinePC() -> void:
 	Style.damier(ci, Rect2(116, 10, 90, 65), 4, PC_CREME, Style.NUIT_PLEINE, 0)
 	Style.biseau(ci, Rect2(206, 10, 351, 65), PC_ROUGE, 22)
 	Style.texte(ci, Textes.t({ race = "quickRace", timetrial = "timeTrial", training = "training" }.get(mode, "quickRace")), Vector2(228, 60), 46, Color("#fff1d5"))
-	var logo := Style.tex("res://images/interface/logo-grip.webp")
+	var logo := Style.tex("res://images/interface/logo-slotless.webp")
 	var lh := 61.0
 	var lwl := lh * logo.get_width() / logo.get_height()
 	ci.draw_texture_rect(logo, Rect2(PC_W - 10 - lwl, 12, lwl, lh), false)
