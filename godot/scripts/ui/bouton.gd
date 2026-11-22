@@ -64,7 +64,8 @@ func _draw() -> void:
 		Style.texte(self, t, Vector2(0, ty), sz, encre, HORIZONTAL_ALIGNMENT_CENTER, size.x)
 	else:
 		Style.texte(self, t, Vector2(x, ty), sz, encre)
-	if choisi or has_focus():
+	# un bouton qui dessine lui-même son cadre de focus (meta « sansCadre ») n'a pas celui-ci
+	if (choisi or has_focus()) and not get_meta("sansCadre", false):
 		var o := Color(Style.LIGNE_JAUNE if has_focus() else Style.ROUGE)
 		var cut := minf(9, size.y * .23) if coupe < 0 else coupe
 		draw_polyline(PackedVector2Array([Vector2(cut, 1), Vector2(size.x - 1, 1), Vector2(size.x - cut, size.y - 1), Vector2(1, size.y - 1), Vector2(cut, 1)]), o, 3, true)
