@@ -269,7 +269,8 @@ func maj(car: Voiture, enCourse: bool, dt: float) -> void:
 	# EASampler.applique
 	var r := _fondu(rpm, 3000, 6500)
 	var g := _fondu(float(e.throttle), 0, 1)
-	var moteur := _vise("moteur", 0.0 if car.engineStopped else 0.85, 0.04, dt) * 0.5
+	# le moteur de la course laisse passer le démarrage d'« En piste » (App.partMoteur), puis prend le relais
+	var moteur := _vise("moteur", 0.0 if car.engineStopped else 0.85 * App.partMoteur(), 0.04, dt) * 0.5
 	var pose := func(cle: String, gain: float, accorde: bool) -> void:
 		if not voix.has(cle): return
 		var s: Dictionary = voix[cle]

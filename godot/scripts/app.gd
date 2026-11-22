@@ -90,10 +90,23 @@ func musique(veut: bool) -> void:
 ## sur « En piste », couvre le chargement de la course et s'éteint quand le moteur du jeu prend le relais.
 var _demarrage: AudioStreamPlayer
 var demarrages := 0
+## « Je n'entends pas le moteur, juste le clic » (js/audio.js, partMoteur) : les boucles du moteur de la
+## course partaient au ralenti et le couvraient. Le fichier est remonté, et le moteur de la course se tait
+## 3,6 s puis prend le relais en 1,4 s.
+const DEMARRAGE_TIENT := 3.6
+const DEMARRAGE_RELAIS := 1.4
+var demarrageT0 := -1.0
+
+
+## La part du moteur de la course pendant le démarrage : rien, puis le relais en fondu.
+func partMoteur() -> float:
+	if demarrageT0 < 0: return 1.0
+	return clampf((Time.get_ticks_msec() / 1000.0 - demarrageT0 - DEMARRAGE_TIENT) / DEMARRAGE_RELAIS, 0, 1)
 
 
 func demarre() -> void:
 	demarrages += 1
+	demarrageT0 = Time.get_ticks_msec() / 1000.0
 	if DisplayServer.get_name() == "headless": return
 	if _demarrage == null:
 		_demarrage = AudioStreamPlayer.new()

@@ -59,6 +59,7 @@ func _ready() -> void:
 	await _clique(go)
 	await get_tree().create_timer(0.3).timeout
 	_verifie(A.demarrages == d0 + 1 and A._demarrage != null and A._demarrage.playing, "« En piste » : le moteur démarre")
+	_verifie(A.partMoteur() == 0.0, "le moteur de la course laisse passer le démarrage")
 	await get_tree().create_timer(1.5).timeout
 	_verifie(A._musique != null and not A._musique.playing, "en course, elle se tait")
 	print("CLICS ", "OK" if echecs.is_empty() else "ÉCHEC %s" % [echecs])
