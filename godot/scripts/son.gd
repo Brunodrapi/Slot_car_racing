@@ -43,9 +43,14 @@ func _ready() -> void:
 		comp.threshold = -14; comp.ratio = 4; comp.attack_us = 4000; comp.release_ms = 120
 		AudioServer.add_bus_effect(master, comp)
 	var bruit := _bruit()
-	for b in [["crisse1", "Crisse1"], ["crisse2", "Crisse2"], ["gravier", "Gravier"], ["vent", "Vent"]]:
+	# Dans un navigateur, Godot joue les sons par la Web Audio du navigateur (la lecture par échantillons),
+	# qui ne passe pas par les effets des bus : le bruit y part déjà filtré, aux réglages des filtres du jeu
+	# web (js/audio.js : 1700 Hz Q 9, 780 Hz Q 3, passe-bas 700 Hz, 500 Hz Q 0,5), sans quoi on
+	# entendrait un souffle blanc.
+	var web := OS.has_feature("web")
+	for b in [["crisse1", "Crisse1", 1700.0, 9.0, false], ["crisse2", "Crisse2", 780.0, 3.0, false], ["gravier", "Gravier", 700.0, 1.0, true], ["vent", "Vent", 500.0, 0.5, false]]:
 		var l := AudioStreamPlayer.new()
-		l.stream = bruit
+		l.stream = Son._bruitFiltre(b[2], b[3], b[4]) if web else bruit
 		l.bus = b[1]
 		l.volume_db = -80
 		add_child(l)
@@ -444,6 +449,39 @@ static func _bruit() -> AudioStreamWAV:
 	a.resize(TAUX)
 	for i in TAUX: a[i] = randf() * 2 - 1
 	return _wav(a, true)
+
+
+## Le bruit déjà passé dans son filtre (passe-bande, ou passe-bas), en boucle sans couture : le filtre
+## tourne deux fois sur la seconde de bruit et ne garde que le second tour. Le niveau baisse comme il
+## baisserait sous le filtre en direct.
+static func _bruitFiltre(f: float, q: float, passeBas := false) -> AudioStreamWAV:
+	var brut := PackedFloat32Array()
+	brut.resize(TAUX)
+	for i in TAUX: brut[i] = randf() * 2 - 1
+	var w0 := TAU * f / TAUX
+	var al := sin(w0) / (2 * q)
+	var a0 := 1 + al
+	var c := cos(w0)
+	var b0 := ((1 - c) / 2 if passeBas else al) / a0
+	var b1 := ((1 - c) if passeBas else 0.0) / a0
+	var b2 := ((1 - c) / 2 if passeBas else -al) / a0
+	var a1 := -2 * c / a0
+	var a2 := (1 - al) / a0
+	var x1 := 0.0; var x2 := 0.0; var y1 := 0.0; var y2 := 0.0
+	var out := PackedFloat32Array()
+	out.resize(TAUX)
+	for tour in 2:
+		for i in TAUX:
+			var x := brut[i]
+			var y := b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2
+			x2 = x1; x1 = x; y2 = y1; y1 = y
+			if tour == 1: out[i] = y
+	# le pic reste sous 1 (le WAV est en 16 bits)
+	var pic := 0.0
+	for y in out: pic = maxf(pic, absf(y))
+	if pic > 0.99:
+		for i in TAUX: out[i] *= 0.99 / pic
+	return _wav(out, true)
 
 
 static func _synthThud() -> AudioStreamWAV:

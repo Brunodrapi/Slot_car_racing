@@ -110,12 +110,21 @@ func demarre() -> void:
 	demarrages += 1
 	demarrageT0 = Time.get_ticks_msec() / 1000.0
 	if DisplayServer.get_name() == "headless": return
-	if _demarrage == null:
-		_demarrage = AudioStreamPlayer.new()
-		_demarrage.stream = load("res://sons/demarrage.ogg")
-		_demarrage.volume_db = linear_to_db(0.5 * 0.9)     # sous le volume général du jeu web (0,5)
-		add_child(_demarrage)
+	prepareDemarrage()
 	_demarrage.play()
+
+
+## Le son du démarrage, prêt d'avance (le paddock l'appelle) : dans un navigateur, Godot le décode et le
+## confie à la Web Audio la première fois qu'on le joue ; sur un téléphone, ce travail tombait sur le
+## toucher de « En piste », au moment où la course se charge, et le son partait mal.
+func prepareDemarrage() -> void:
+	if _demarrage != null or DisplayServer.get_name() == "headless": return
+	_demarrage = AudioStreamPlayer.new()
+	_demarrage.stream = load("res://sons/demarrage.ogg")
+	_demarrage.volume_db = linear_to_db(0.5 * 0.9)     # sous le volume général du jeu web (0,5)
+	add_child(_demarrage)
+	if OS.has_feature("web") and AudioServer.has_method("register_stream_as_sample"):
+		AudioServer.register_stream_as_sample(_demarrage.stream)
 
 
 ## LE JEU S'APPELAIT GRIP — Racing the Line. Le dossier des sauvegardes porte le nom du projet : passé à

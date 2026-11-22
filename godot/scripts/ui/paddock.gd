@@ -70,6 +70,7 @@ func _ready() -> void:
 	# le tableau mondial arrive après l'écran, et la connexion revient du navigateur : on repeint
 	Mondial.change.connect(_construit)
 	get_viewport().gui_focus_changed.connect(_montre)
+	App.prepareDemarrage()
 	_construit()
 
 
