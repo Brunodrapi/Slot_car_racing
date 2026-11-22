@@ -1,8 +1,4 @@
-## L'accueil : l'affiche de SLOTLESS et les modes de jeu.
-##
-## « Le jeu devient SLOTLESS sur la future version Steam et iOS. » (Bruno) Les deux affiches portent déjà
-## le titre et ses trois voitures, sur fond blanc : l'accueil ne pose plus de logo par-dessus, et les
-## boutons se rangent à côté de l'affiche (paysage) ou dessous (portrait), pour ne cacher aucune voiture.
+## L'accueil : l'illustration, le logo, et les modes de jeu (js/ui.js, l'écran home).
 class_name Accueil
 extends Control
 
@@ -80,45 +76,12 @@ func _valideNom(t: String) -> void:
 	boutons[6].grab_focus()
 
 
-# La partie de chaque affiche qu'on montre : le titre et les voitures, sans le blanc du haut ni le bas
-# des bandes (en pixels de l'image).
-const CADRE_PC := Rect2(0, 56, 1448, 990)
-const CADRE_MOBILE := Rect2(0, 360, 941, 990)
-const BLANC := Color("#fefefe")
-var _affiche := Rect2()          # où l'affiche se dessine
-
-
-## La mise en page : en paysage, une colonne de boutons à gauche et l'affiche à droite ; en portrait,
-## l'affiche en haut et les boutons dessous. L'affiche rapetisse s'il le faut, les boutons jamais.
-func _mise() -> Dictionary:
-	var portrait := size.x < size.y
-	if not portrait:
-		var k := size.y / 720.0
-		var col := 390.0 * k                          # la colonne des boutons
-		var cadre := CADRE_PC
-		var ph := minf(size.y, (size.x - col) * cadre.size.y / cadre.size.x)
-		var pw := ph * cadre.size.x / cadre.size.y
-		# calée en bas : les bandes de la piste rejoignent le bord de l'écran
-		_affiche = Rect2(size.x - pw - (size.x - col - pw) / 2, size.y - ph, pw, ph)
-		var bloc := 4 * 72 * k + 4 * k + 2 * 60 * k
-		return { portrait = false, k = k, x = 26 * k, w = col - 52 * k, y = (size.y - bloc) / 2 }
-	var k2 := minf(size.x / 640.0, size.y / 1100.0)
-	var bloc2 := 4 * 72 * k2 + 4 * k2 + 2 * 60 * k2
-	var cadre2 := CADRE_MOBILE
-	var ph2 := minf(size.x * cadre2.size.y / cadre2.size.x, size.y - bloc2 - 70 * k2)
-	var pw2 := ph2 * cadre2.size.x / cadre2.size.y
-	var haut := (size.y - ph2 - bloc2 - 24 * k2) / 2
-	_affiche = Rect2((size.x - pw2) / 2, haut, pw2, ph2)
-	var w2 := minf(560 * k2, size.x - 2 * 30 * k2)
-	return { portrait = true, k = k2, x = (size.x - w2) / 2, w = w2, y = haut + ph2 + 24 * k2 }
-
-
 func _place() -> void:
-	var m := _mise()
-	var k: float = m.k
-	var x: float = m.x
-	var w: float = m.w
-	var y: float = m.y
+	var portrait := size.x < size.y
+	var k := minf(size.x / 1280.0, size.y / 720.0) if not portrait else size.x / 640.0
+	var x := 52 * k
+	var w := minf(540 * k, size.x - 2 * x)
+	var y := (168 * k) if not portrait else size.y * 0.33
 	var h := 62 * k
 	for i in 4:
 		boutons[i].position = Vector2(x, y + i * (h + 10 * k))
@@ -135,16 +98,10 @@ func _place() -> void:
 
 
 func _draw() -> void:
-	var m := _mise()
-	var k: float = m.k
-	draw_rect(Rect2(Vector2.ZERO, size), BLANC)
-	draw_texture_rect_region(fondPortrait if m.portrait else fond, _affiche, CADRE_MOBILE if m.portrait else CADRE_PC)
-	# en portrait, les bandes se fondent dans le blanc au-dessus des boutons au lieu de s'arrêter net
-	if m.portrait:
-		var a := _affiche
-		var h := a.size.y * 0.16
-		var t := Color(BLANC, 0.0)
-		draw_polygon(PackedVector2Array([Vector2(a.position.x, a.end.y - h), Vector2(a.end.x, a.end.y - h), a.end, Vector2(a.position.x, a.end.y)]),
-			PackedColorArray([t, t, BLANC, BLANC]))
+	var portrait := size.x < size.y
+	Style.couvre(self, fondPortrait if portrait else fond, Rect2(Vector2.ZERO, size), 0.5)
+	var k := minf(size.x / 1280.0, size.y / 720.0) if not portrait else size.x / 640.0
+	var lw := 560 * k
+	draw_texture_rect(logo, Rect2(60 * k, 14 * k, lw, lw * logo.get_height() / logo.get_width()), false)
 	Style.texte(self, Textes.t("proto", [Catalogue.circuits().size(), Catalogue.donnees.voitures.size()]),
-		Vector2(m.x, size.y - 14 * k), int(15 * k), Color(Style.ENCRE, 0.6))
+		Vector2(52 * k, size.y - 18 * k), int(15 * k), Color(1, 1, 1, 0.8))

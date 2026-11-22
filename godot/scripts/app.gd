@@ -35,7 +35,8 @@ func _ready() -> void:
 	if Catalogue.voiture(reglages.voiture).is_empty(): reglages.voiture = "porsche991gt3r"
 	RenderingServer.set_default_clear_color(Color("#17171c"))
 	get_tree().root.theme = Style.theme()
-	aller.call_deferred("accueil")
+	# au lancement, l'écran titre « Appuie pour commencer » (js/ui.js, splash), puis les menus
+	aller.call_deferred("titre")
 
 
 ## LE CLIC DES MENUS. « Il faut, dans les deux versions, des clics dans les menus. » (Bruno) Chaque
@@ -211,6 +212,7 @@ func aller(nom: String, opts: Dictionary = {}) -> void:
 	# la musique des menus : partout sauf en course
 	musique(nom != "course")
 	match nom:
+		"titre": ecran = Titre.new()
 		"accueil": ecran = Accueil.new()
 		"paddock": ecran = Paddock.new(opts.get("mode", reglages.mode))
 		"course":
