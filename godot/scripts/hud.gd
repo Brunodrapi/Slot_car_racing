@@ -422,8 +422,97 @@ func _draw() -> void:
 		Style.texte(self, mesure2, Vector2(mx, lapY + lapH + 27), 11, gris, HORIZONTAL_ALIGNMENT_LEFT, W - P - mx)
 	else:
 		Style.texte(self, mesure1 + " · " + mesure2, Vector2(P + 2, mmBas + 18), 13, gris)
+	if course.mode == "race" and jeu.enLigne == null and not course.reglage and not p.abandon:
+		_radar()
 	# par-dessus tout le reste, comme le WASTED de GTA
 	if p.abandon and course.state != "finished": _ecranAbandon(p)
+
+
+## Distance au bord visible en mètres ; position du repère dans les coordonnées du HUD.
+func _reperesRadar() -> Array[Dictionary]:
+	var reperes: Array[Dictionary] = []
+	var bords := [[], [], [], []] # gauche, droite, haut, bas
+	var mobile := _mobile()
+	var tailleMax := 24.0 if mobile else 32.0
+	var demiMarque := 9.0 if mobile else 11.0
+	var marge := Vector2.ONE * (ceilf(tailleMax * 0.58) + 2)
+	var fin := size - marge
+	if fin.x <= marge.x or fin.y <= marge.y: return reperes
+	var versHud := get_global_transform_with_canvas().affine_inverse()
+	var p := course.player
+	var joueur: VoitureVue = jeu.vues[course.cars.find(p)]
+	var origine := (versHud * joueur.get_global_transform_with_canvas().origin).clamp(marge, fin)
+	var devant: Voiture = null
+	var portee := clampf(p.v * 1.5, 18, 90)
+	for i in course.cars.size():
+		var c := course.cars[i]
+		if c == p or c.abandon or c.fantome: continue
+		var ecart := course.track.diff(p.s, c.s)
+		if not c.finished and not c.inPit and not c.herbe and ecart >= (p.cls.length + c.cls.length) / 2 and ecart < portee:
+			portee = ecart
+			devant = c
+		var vue: VoitureVue = jeu.vues[i]
+		var pose := versHud * vue.get_global_transform_with_canvas()
+		var demi := Vector2(vue.cotes.w, vue.cotes.h) / 2 + Vector2.ONE * 0.7
+		var caisse := pose * Rect2(-demi, 2 * demi)
+		var hors := Vector2.ZERO.max(-caisse.end).max(caisse.position - size)
+		var metres := hors.length() / pose.x.length()
+		if metres <= 0 or metres >= 35: continue
+		var dir := pose.origin - origine
+		var tx := ((marge.x if dir.x < 0 else fin.x) - origine.x) / dir.x if dir.x != 0 else INF
+		var ty := ((marge.y if dir.y < 0 else fin.y) - origine.y) / dir.y if dir.y != 0 else INF
+		var bord := (0 if dir.x < 0 else 1) if tx < ty else (2 if dir.y < 0 else 3)
+		var impact := origine + minf(tx, ty) * dir
+		var longueur := lerpf(tailleMax, 12.0 if mobile else 14.0, metres / 35)
+		bords[bord].append({voiture = c, cible = pose.origin, taille = longueur, leLong = impact.y if bord < 2 else impact.x})
+	# La flèche et le signe partagent une place sur le bord ; un seul avertissement pour la voiture qui précède.
+	var alerte := devant != null and devant.braking and not p.inPit and not p.finished and course.state in ["racing", "finishing"]
+	for bord in bords.size():
+		var groupe: Array = bords[bord]
+		if groupe.is_empty(): continue
+		var vertical := bord < 2
+		var debut := marge.y if vertical else marge.x * 2
+		var limite := fin.y if vertical else fin.x - marge.x
+		var somme := 0.0
+		for m in groupe:
+			m.freine = alerte and m.voiture == devant
+			m.rayon = m.taille * 0.45 + 2 * demiMarque + 5 if m.freine else m.taille * 0.58 + 2
+			somme += 2 * m.rayon
+		var espacement := clampf((limite - debut) / somme, 0, 1)
+		groupe.sort_custom(func(a, b): return a.leLong < b.leLong)
+		var curseur := debut
+		for m in groupe:
+			m.rayon *= espacement
+			m.leLong = maxf(m.leLong, curseur + m.rayon)
+			curseur = m.leLong + m.rayon
+		curseur = limite
+		for i in range(groupe.size() - 1, -1, -1):
+			var m: Dictionary = groupe[i]
+			var u := maxf(debut, minf(m.leLong, curseur - m.rayon))
+			curseur = u - m.rayon
+			m.centre = Vector2(marge.x if bord == 0 else fin.x, u) if vertical else Vector2(u, marge.y if bord == 2 else fin.y)
+			reperes.append(m)
+	return reperes
+
+
+func _radar() -> void:
+	for m in _reperesRadar():
+		var centre: Vector2 = m.centre
+		var taille: float = m.taille
+		var dir := centre.direction_to(m.cible)
+		var base := centre - dir * (0.45 * taille)
+		var cote := dir.orthogonal() * (0.34 * taille)
+		var triangle := PackedVector2Array([centre + dir * (0.55 * taille), base + cote, base - cote])
+		draw_colored_polygon(triangle, Color(Catalogue.donnees.livreries[m.voiture.livery].body))
+		triangle.append(triangle[0])
+		draw_polyline(triangle, Color("#20251f"), 2, true)
+		if m.freine:
+			var h := 9.0 if _mobile() else 11.0
+			var o := base - dir * (3 + h)
+			var rouge := Color("#ff3939")
+			draw_colored_polygon(PackedVector2Array([o + Vector2(-0.31, -1) * h, o + Vector2(0.31, -1) * h,
+				o + Vector2(0.23, 0.30) * h, o + Vector2(-0.23, 0.30) * h]), rouge)
+			draw_rect(Rect2(o + Vector2(-0.25, 0.52) * h, Vector2(0.5, 0.48) * h), rouge)
 
 
 ## L'ABANDON, FAÇON « WASTED » DE GTA (render.js, _ecranAbandon) : un voile rouge monte sur tout
