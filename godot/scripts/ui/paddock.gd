@@ -1,7 +1,7 @@
 ## Le paddock (js/ui.js, l'écran de préparation) : la catégorie, la voiture et sa livrée, ses
 ## caractéristiques, le circuit, la difficulté et le nombre de tours. Sur ordinateur (paysage), la page
-## du jeu web sur un écran de PC, mesurée bloc par bloc (cadre de 1564 × 990, ramené à l'écran) ; en
-## portrait, les deux colonnes s'empilent et la page défile.
+## du jeu web sur un écran de PC, mesurée bloc par bloc (cadre de 1564 × 990, ramené à l'écran) ; au
+## téléphone (portrait), la page du jeu web sur un iPhone, à la même taille, qui défile.
 class_name Paddock
 extends Control
 
@@ -21,10 +21,8 @@ var hauteur := 720.0
 # paysage, sous la voiture et sur toute la largeur en portrait) et la première ligne de la barre du bas.
 var carte := Rect2(790, 92, 468, 392)
 var liste := Rect2(790, 494, 468, 300)      # sous le circuit : les temps (ou le palmarès) de toute la catégorie
-var ybas := 0.0
 var barre: Control                          # la barre du bas, fixe : « En piste » reste à portée du doigt
 var _haut := 0.0
-const LIGNE := 44.0                         # la hauteur d'une ligne de la liste
 # --- sur ordinateur : la page du jeu web à 2000 × 1000, mesurée (setupScreen et style.css)
 const PC_W := 1564.0
 const PC_H := 990.0
@@ -108,26 +106,43 @@ static func precharge() -> void:
 func _input(e: InputEvent) -> void:
 	if e is InputEventMouseButton and e.pressed and (e.button_index == MOUSE_BUTTON_WHEEL_DOWN or e.button_index == MOUSE_BUTTON_WHEEL_UP):
 		_defile(60.0 if e.button_index == MOUSE_BUTTON_WHEEL_DOWN else -60.0)
-	elif e is InputEventScreenDrag:
-		_defile(-e.relative.y / cadre.scale.y)
+	elif portrait:
+		_doigtTel(e)
 
 
 ## La manette (stick droit) et le clavier (page précédente, page suivante) font aussi défiler ;
-## un bouton qui prend le focus hors de l'écran est ramené dans la vue.
+## un bouton qui prend le focus hors de l'écran est ramené dans la vue. Au téléphone, la page ou le
+## rail lâché file encore un peu, comme une page de Safari.
 func _process(dt: float) -> void:
 	var a := Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y)
 	if absf(a) > 0.25:
 		# sur ordinateur, la page ne défile pas : c'est la liste de la catégorie
 		if not portrait and listeVue: _defileListe(a * 900.0 * dt)
 		else: _defile(a * 900.0 * dt)
+	if portrait and _elan != Vector2.ZERO and not _doigt.get("actif", false):
+		if _elanRail != "": _poseRail(_elanRail, float(railX.get(_elanRail, 0.0)) + _elan.x * dt)
+		else: _defile(_elan.y * dt)
+		_elan *= pow(0.135, dt)
+		if _elan.length() < 20: _elan = Vector2.ZERO
 
 
 func _montre(c: Control) -> void:
-	if c == null or c.get_parent() != cadre: return
+	if c == null or not cadre.is_ancestor_of(c): return
+	# seulement au clavier et à la manette : une carte touchée du doigt ou cliquée ne fait pas sauter la page
+	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or _doigt.get("actif", false): return
+	# une carte d'un rail : le rail se pousse pour la montrer
+	for nom in rails:
+		var R: Dictionary = rails[nom]
+		if (R.contenu as Control).is_ancestor_of(c):
+			var x: float = railX.get(nom, 0.0)
+			var w: float = (R.vue as Control).size.x
+			if c.position.x < x + 4: _poseRail(nom, c.position.x - 4)
+			elif c.position.x + c.size.x > x + w - 4: _poseRail(nom, c.position.x + c.size.x - w + 4)
 	var k := cadre.scale.y
-	var vue := (size.y - barre.size.y * k) / k          # ce qu'on voit du cadre, au-dessus de la barre
-	if c.position.y < defile + 10: _defile(c.position.y - 10 - defile)
-	elif c.position.y + c.size.y > defile + vue - 10: _defile(c.position.y + c.size.y - (defile + vue - 10))
+	var vue := (size.y - barre.size.y * k * float(barre.visible)) / k          # ce qu'on voit du cadre, au-dessus de la barre
+	var haut := (cadre.get_global_transform().affine_inverse() * c.get_global_transform().origin).y
+	if haut < defile + 10: _defile(haut - 10 - defile)
+	elif haut + c.size.y > defile + vue - 10: _defile(haut + c.size.y - (defile + vue - 10))
 
 
 func _defile(d: float) -> void:
@@ -144,12 +159,12 @@ func _unhandled_input(e: InputEvent) -> void:
 
 
 # ---------- la construction des boutons ----------
-func _bouton(t: String, r: Rect2, f: Color, e: Color, taille: int, action: Callable) -> Bouton:
+func _bouton(t: String, r: Rect2, f: Color, e: Color, taille: int, action: Callable, parent: Control = null) -> Bouton:
 	var b := Bouton.new(t, f, e, taille)
 	b.position = r.position
 	b.size = r.size
 	b.pressed.connect(action)
-	cadre.add_child(b)
+	(parent if parent else cadre).add_child(b)
 	return b
 
 
@@ -161,149 +176,8 @@ func _construit() -> void:
 		if c != listeVue: c.queue_free()
 	for c in barre.get_children(): c.queue_free()
 	portrait = size.x < size.y
-	if not portrait:
-		_construitPC(cle)
-		return
-	barre.visible = true
-	if listeVue:
-		listeVue.queue_free()
-		listeVue = null
-	var W := 1280.0 if not portrait else 780.0
-	# le cadre de référence fait 720 de haut en paysage ; ce qui dépasse (la liste) défile, comme la
-	# page du jeu web, sous la barre du bas qui, elle, reste en place
-	var k := minf(size.x / W, size.y / 720.0) if not portrait else size.x / W
-	var hBarre := 74.0 if not portrait else 84.0
-	var x0 := (size.x - W * k) / 2
-	_haut = 0.0
-	cadre.scale = Vector2(k, k)
-	barre.scale = Vector2(k, k)
-	barre.size = Vector2(W, hBarre)
-	barre.position = Vector2(x0, size.y - hBarre * k)
-	# le panneau du circuit : à droite en paysage ; en portrait, sous la voiture, sur toute la largeur ;
-	# dessous, la liste de toute la catégorie (js/ui.js, records et palmaresListe)
-	carte = Rect2(790, 92, 468, 392) if not portrait else Rect2(18, 650, 744, 392)
-	var nListe := Catalogue.voituresDe(String(Catalogue.voiture(App.reglages.voiture).get("cat", ""))).size()
-	liste = Rect2(carte.position.x, carte.end.y + 12, carte.size.x, Paddock.teteListe(mode) + nListe * LIGNE + 10)
-	var nc := 3 if not portrait else 5          # les circuits visibles dans la rangée
-	# En-tête
-	_bouton(Textes.t("back"), Rect2(18, 10, 120, 64), Style.NUIT_PLEINE, Style.CREME, 22, func(): App.aller("accueil")).set_meta("cle", "retour")
-	# Onglets
-	var onglets := [["tous", Textes.t("all")]]
-	for c in Catalogue.categories(): onglets.append([c.id, Textes.nom(c.nom).to_upper()])
-	var x := 30.0
-	for o in onglets:
-		var w := Style.largeur(o[1], 24) + 34
-		var b := _bouton(o[1], Rect2(x, 90, w, 44), Style.ROUGE if filtre == o[0] else Style.NUIT_PLEINE, Style.CREME, 24, func(): _choisitCategorie(o[0]))
-		b.centre = true
-		b.set_meta("cle", "onglet-" + o[0])
-		x += w + 6
-	# Livrées
-	var v := Catalogue.voiture(App.reglages.voiture)
-	var livrees: Array = v.livrees
-	var lw := (744.0 - 8 * (livrees.size() - 1)) / livrees.size() if livrees.size() > 1 else 240.0
-	for i in livrees.size():
-		var d := Catalogue.dessin(v.id, i)
-		var b := _bouton(Textes.livree(livrees[i]).to_upper(), Rect2(26 + i * (lw + 8), 358, lw, 82), Style.NUIT_PLEINE, Style.CREME, 15, func(): App.reglages.livree = i; App.sauve(); _construit())
-		b.choisi = int(App.reglages.livree) % livrees.size() == i
-		b.set_meta("cle", "livree-%d" % i)
-		b.set_meta("vignette", d.get("vignette"))
-		b.centre = true
-		b.ligne = 72
-		b.dessinPlus = _vignetteLivree.bind(b)
-	# Voitures
-	var rail: Array = Catalogue.donnees.voitures.filter(func(c): return filtre == "tous" or c.cat == filtre)
-	var visibles := 5
-	debutVoitures = clampi(debutVoitures, 0, maxi(0, rail.size() - visibles))
-	_bouton("‹", Rect2(18, 552, 30, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutVoitures -= visibles; _construit()).set_meta("cle", "v-gauche")
-	_bouton("›", Rect2(734, 552, 30, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutVoitures += visibles; _construit()).set_meta("cle", "v-droite")
-	for i in mini(visibles, rail.size() - debutVoitures):
-		var c: Dictionary = rail[debutVoitures + i]
-		var b := _bouton(str(c.nom).to_upper(), Rect2(52 + i * 136, 516, 130, 118), Style.PAPIER, Style.ENCRE, 16, func(): _choisitVoiture(c.id))
-		b.choisi = c.id == App.reglages.voiture
-		b.set_meta("cle", "voiture-" + c.id)
-		b.set_meta("voiture", c)
-		b.centre = true
-		b.ligne = 84
-		b.dessinPlus = Paddock._carteVoiture.bind(b)
-	# Circuits
-	var circuits := Catalogue.circuits()
-	debutCircuits = clampi(debutCircuits, 0, maxi(0, circuits.size() - nc))
-	var cx := carte.position.x
-	var cy := carte.position.y
-	_bouton("‹", Rect2(cx + 10, cy + 270, 26, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutCircuits -= nc; _construit()).set_meta("cle", "c-gauche")
-	_bouton("›", Rect2(carte.end.x - 36, cy + 270, 26, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutCircuits += nc; _construit()).set_meta("cle", "c-droite")
-	for i in mini(nc, circuits.size() - debutCircuits):
-		var c: Dictionary = circuits[debutCircuits + i]
-		var b := _bouton(str(c.nom).to_upper(), Rect2(cx + 40 + i * 130, cy + 208, 124, 170), Style.PAPIER, Style.ENCRE, 15, func(): App.reglages.circuit = c.id; App.reglages.tours = infoCircuits[c.id].tours; App.sauve(); _construit())
-		b.choisi = c.id == App.reglages.circuit
-		b.set_meta("cle", "circuit-" + c.id)
-		b.set_meta("circuit", c.id)
-		b.centre = true
-		b.ligne = 112
-		b.dessinPlus = Paddock._carteCircuit.bind(b)
-	# Le tableau mondial : se connecter avec Google, ou renoncer à la connexion en cours
-	if Mondial.connexionPossible() and (Mondial.enCours or not Mondial.connecte()):
-		var txt := Textes.t("signInCancel") if Mondial.enCours else Textes.t("signIn")
-		var lb := Style.largeur(txt, 15) + 28
-		var bg := _bouton(txt, Rect2(liste.end.x - lb - 14, liste.position.y + 12, lb, 30), Style.NUIT_PLEINE, Style.CREME, 15,
-			func(): (Mondial.annuler() if Mondial.enCours else Mondial.entrer()))
-		bg.centre = true
-		bg.set_meta("cle", "google")
-	# La barre du bas
-	# la barre : les réglages et « En piste » en paysage, fixes en bas ; en portrait, les réglages
-	# suivent la liste et seul « En piste » reste en bas
-	ybas = 13.0 if not portrait else liste.end.y + 22
-	var yb := ybas
-	var dif := _nom(DIFFICULTES, App.reglages.difficulte)
-	x = 30.0
-	# chaque pastille : son nom, sa valeur (en vert, comme le jeu web), son action
-	var reglagesBas := []
-	reglagesBas.append([Textes.t("dayNightLabel"), Textes.t("night" if App.reglages.nuit else "day"), func(): App.reglages.nuit = not App.reglages.nuit; App.sauve(); _construit(), "nuit"])
-	if mode == "race":
-		# les dégâts, une option (oui par défaut), comme le paddock du jeu web
-		var dg := bool(App.reglages.get("degats", true))
-		reglagesBas.append([Textes.t("chipDegats"), Textes.t("on" if dg else "off"), func(): App.reglages.degats = not dg; App.sauve(); _construit(), "degats"])
-		reglagesBas.append([Textes.t("difficultyLabel"), dif, func(): App.reglages.difficulte = _suivant(DIFFICULTES, App.reglages.difficulte); App.sauve(); _construit(), "difficulte"])
-		reglagesBas.append([Textes.t("lapsLabel"), str(int(App.reglages.tours)), func(): App.reglages.tours = int(App.reglages.tours) % 10 + 1; App.sauve(); _construit(), "tours"])
-		reglagesBas.append([Textes.t("opponentsLabel"), str(int(App.reglages.adversaires) - 1), func(): App.reglages.adversaires = (int(App.reglages.adversaires) - 1) % 11 + 2; App.sauve(); _construit(), "adversaires"])
-	var vid := String(App.reglages.voiture)
-	var cfg := ReglageFrein.active(App.reglages.circuit, vid)
-	reglagesBas.append([Textes.t("freinage"), (String(cfg.nom) if not cfg.is_empty() else Textes.t("regDefaut")) + LISTE,
-		func(): ReglageFrein.suivante(App.reglages.circuit, vid); App.sauve(); _construit(), "freinage"])
-	reglagesBas.append([Textes.t("regRegler"), "", _regler, "regler"])
-	for r in reglagesBas:
-		var w := Paddock.largeurPastille(r[0], r[1], 20) if r[1] != "" else Style.largeur(r[0], 20) + 36
-		# en portrait, les réglages passent à la ligne au lieu de sortir de l'écran
-		if portrait and x > 30 and x + w > W - 18:
-			x = 30.0; yb += 58
-		var b := _bouton("" if r[1] != "" else r[0], Rect2(x, yb, w, 48), Style.NUIT_PLEINE, Style.CREME, 20, r[2])
-		if not portrait:
-			b.reparent(barre, false)
-		b.centre = true
-		b.set_meta("cle", r[3])
-		if r[1] != "": b.dessinPlus = Paddock._pastille.bind(b, r[0], r[1], 20)
-		x += w + 10
-	# « En piste » : à droite de la barre en paysage ; en portrait, sur toute la largeur
-	var rGo := Rect2(1050, 9, 200, 56) if not portrait else Rect2(18, 12, W - 36, 60)
-	hauteur = maxf(720.0 if not portrait else 0.0, (yb + 48 + 24 if portrait else liste.end.y + 20) + hBarre)
-	cadre.size = Vector2(W, hauteur)
-	cadre.position.x = x0
-	_defile(0)          # la page garde sa place quand on la refait (le tableau mondial qui arrive, un choix)
-	var go := _bouton(Textes.t("onTrack"), rGo, Style.ROUGE, Style.CREME, 30, _enPiste)
-	go.reparent(barre, false)
-	go.centre = true
-	go.set_meta("cle", "go")
-	cadre.queue_redraw()
-	barre.queue_redraw()
-	# Le focus revient où il était (la manette et le clavier ne perdent pas leur place).
-	var cible: Control = null
-	var tous := cadre.get_children() + barre.get_children()
-	for c in tous:
-		if c.get_meta("cle", "") == cle and not c.is_queued_for_deletion(): cible = c
-	if cible == null:
-		for c in tous:
-			if c.get_meta("cle", "") == "go" and not c.is_queued_for_deletion(): cible = c
-	if cible: cible.grab_focus.call_deferred()
+	if portrait: _construitTel(cle)
+	else: _construitPC(cle)
 
 
 static func _nom(liste: Array, id: String) -> String:
@@ -319,6 +193,7 @@ static func _suivant(liste: Array, id: String) -> String:
 
 
 func _choisitVoiture(id: String) -> void:
+	if id != App.reglages.voiture: railX.erase("livrees")
 	App.reglages.voiture = id
 	App.reglages.cat = Catalogue.voiture(id).cat
 	App.reglages.livree = 0
@@ -335,6 +210,8 @@ func _choisitCategorie(id: String) -> void:
 	filtre = id
 	debutVoitures = 0
 	_railLibre = false
+	railX.erase("voitures")          # au téléphone, le rail se recentre sur la voiture de la catégorie
+	railX.erase("livrees")
 	if id != "tous":
 		var liste := Catalogue.voituresDe(id)
 		var retenue := String(App.reglages.get("voituresCat", {}).get(id, ""))
@@ -367,174 +244,25 @@ func _enPiste() -> void:
 # ---------- le dessin ----------
 ## Le fond du menu : l'image du paddock sur tout l'écran, comme le jeu web (#ui, center / cover).
 func _draw() -> void:
-	Style.couvre(self, fondPaddock, Rect2(Vector2.ZERO, size), 0.5)
+	# au téléphone, du papier ; le paddock n'est que derrière la voiture (css/style.css, 0.39)
+	if size.x < size.y: draw_rect(Rect2(Vector2.ZERO, size), T_FOND)
+	else: Style.couvre(self, fondPaddock, Rect2(Vector2.ZERO, size), 0.5)
 
 
 func _dessine() -> void:
-	if not portrait:
-		_dessinePC()
-		return
-	var ci := cadre
-	# En-tête
-	var W := cadre.size.x
-	Style.biseau(ci, Rect2(18, 10, W - 36, 64), Style.NUIT_PLEINE, 0)
-	Style.damier(ci, Rect2(140, 10, 80, 64), 4, Style.CREME, Style.NUIT_PLEINE, 0)
-	Style.biseau(ci, Rect2(214, 10, 320, 64), Style.ROUGE, 22)
-	Style.texte(ci, Textes.t({ race = "quickRace", timetrial = "timeTrial", training = "training" }.get(mode, "quickRace")), Vector2(236, 58), 38, Style.CREME)
-	var logo := Style.tex("res://images/interface/logo-slotless.webp")
-	if not portrait:
-		ci.draw_texture_rect(logo, Rect2(W - 210, 16, 190, 190 * logo.get_height() / logo.get_width()), false)
-	# Onglets
-	Style.biseau(ci, Rect2(18, 84, 744, 54), Style.PAPIER, 12)
-	# La voiture
-	var v := Catalogue.voiture(App.reglages.voiture)
-	var cat := ""
-	for c in Catalogue.categories():
-		if c.id == v.cat: cat = Textes.nom(c.nom).to_upper()
-	var livrees: Array = v.livrees
-	var li: int = int(App.reglages.livree) % maxi(1, livrees.size())
-	Style.biseau(ci, Rect2(18, 148, 744, 70), Style.PAPIER, 14)
-	Style.texte(ci, str(v.nom).to_upper(), Vector2(32, 194), 44, Style.ENCRE)
-	Style.texte(ci, "%s · %s" % [cat, Textes.livree(livrees[li]).to_upper()], Vector2(34, 213), 17, Color(Style.ENCRE, 0.8))
-	# La voiture dans le garage (.paddock-car) : un cadre dont le fond est l'image du paddock,
-	# la voiture posée sur le sol, devant les servantes et les pneus.
-	var scene := Rect2(18, 222, 744, 130)
-	Style.couvre(ci, fondPaddock, scene, 0.5)
-	ci.draw_rect(scene, Style.NUIT_PLEINE, false, 2)
-	var d := Catalogue.dessin(v.id, li)
-	if d.get("vignette"):
-		var tex := Style.tex("res://images/vignettes/" + d.vignette)
-		var h := 124.0
-		var w := h * tex.get_width() / tex.get_height()
-		ci.draw_texture_rect(tex, Rect2(scene.position.x + (scene.size.x - w) / 2, scene.end.y - h - 2, w, h), false)
-	# Les caractéristiques
-	Style.biseau(ci, Rect2(18, 450, 744, 54), Style.PAPIER, 12)
-	var p: Dictionary = v.perf
-	var stats := [["%d km/h" % roundi(p.vmax), Textes.t("statVmax")], ["%.1f s" % p.a100, Textes.t("statA100")], ["%.1f m" % p.b100, Textes.t("statB100")], ["%.2f g" % p.gripG, Textes.t("statGrip")]]
-	for i in 4:
-		var x := 36 + i * 186
-		Style.texte(ci, stats[i][0], Vector2(x, 478), 26, Style.ENCRE)
-		Style.texte(ci, stats[i][1], Vector2(x, 497), 13, Color(Style.ENCRE, 0.75))
-	ci.draw_rect(Rect2(18, 506, 744, 3), Style.NUIT_PLEINE)
-	# Le circuit
-	var cid: String = App.reglages.circuit
-	var info: Dictionary = infoCircuits.get(cid, infoCircuits.values()[0])
-	var r := carte
-	ci.draw_rect(Rect2(r.position + Vector2(4, 4), r.size), Color(0, 0, 0, 0.35))
-	ci.draw_rect(r, Style.PAPIER)
-	ci.draw_rect(r, Style.NUIT_PLEINE, false, 3)
-	Style.texte(ci, str(info.nom).to_upper(), r.position + Vector2(14, 52), 40, Style.ENCRE)
-	var dr := Style.drapeau(info.pays)
-	if dr: ci.draw_texture_rect(dr, Rect2(r.end.x - 82, r.position.y + 16, 62, 42), false)
-	Style.texte(ci, Textes.t("trackInfo", [Textes.pays(info.pays).to_upper(), roundi(info.longueur), int(App.reglages.tours) if mode == "race" else 0]),
-		r.position + Vector2(14, 82), 18, Color(Style.ENCRE, 0.85))
-	var ir := Rect2(r.position.x + 2, r.position.y + 94, r.size.x - 4, 96)
-	Style.couvre(ci, info.image, ir, 0.5)
-	Paddock._contour(ci, info, ir.grow(-8), false)
-	# Sous le circuit, toute la catégorie : les temps (contre-la-montre, entraînement) ou le palmarès
-	_liste(ci, cid, v)
-	if portrait: ci.draw_rect(Rect2(18, ybas - 10, W - 36, 3), Style.NUIT_PLEINE)
+	if portrait: _dessineTel()
+	else: _dessinePC()
 
 
-## La barre du bas, fixe : un fond papier bordé d'encre, comme la barre collante du jeu web sur
-## téléphone ; en paysage, le damier entre les réglages et « En piste ».
-func _dessineBarre() -> void:
-	var W := barre.size.x
-	var fond := Rect2(Vector2.ZERO, barre.size + Vector2(0, 40))
-	barre.draw_rect(fond, Color(Style.PAPIER, 0.96))
-	barre.draw_rect(Rect2(0, 0, W, 3), Style.NUIT_PLEINE)
-	if not portrait: Style.damier(barre, Rect2(980, 9, 76, 56), 4, Style.NUIT_PLEINE, Color(0, 0, 0, 0), 0)
-
-
-## La hauteur de l'en-tête de la liste : le titre et l'état du tableau ; en course, le nuage et la règle.
-static func teteListe(m: String) -> float:
-	return 118.0 if m == "race" else 100.0
-
-
-## LA LISTE DE LA CATÉGORIE (js/ui.js, records et palmaresListe) : une ligne par voiture.
-## Au contre-la-montre et à l'entraînement, ton meilleur tour et le record du monde, les voitures où
-## tu as un temps d'abord ; en course rapide, le trophée gagné et son niveau, du meilleur au moins bon.
-func _liste(ci: CanvasItem, cid: String, v: Dictionary) -> void:
-	var r := liste
-	ci.draw_rect(Rect2(r.position + Vector2(4, 4), r.size), Color(0, 0, 0, 0.35))
-	ci.draw_rect(r, Style.PAPIER)
-	ci.draw_rect(r, Style.NUIT_PLEINE, false, 3)
-	var x := r.position.x
-	var y := r.position.y
-	var lw := r.size.x
-	var course := mode == "race"
-	var titre := Textes.t("palmares") if course else Textes.t("yourBestTitle")
-	Style.texte(ci, titre, Vector2(x + 14, y + 34), 22, Style.ENCRE)
-	var muet := Color(Style.ENCRE, 0.75)
-	if course:
-		var e := Mondial.nuage()
-		ci.draw_texture_rect(Palmares.nuage(e, 24), Rect2(x + 14, y + 46, 24, 17), false)
-		Style.texte(ci, Textes.t("nuage_" + e), Vector2(x + 44, y + 60), 14, muet)
-		ci.draw_multiline_string(Style.racing(), Vector2(x + 14, y + 82), Textes.t("palmaresRegle", Palmares.TOURS_MIN), HORIZONTAL_ALIGNMENT_LEFT, lw - 28, 13, 2, muet)
-	else:
-		var et := Mondial.etat()
-		ci.draw_multiline_string(Style.racing(), Vector2(x + 14, y + 60), et.texte, HORIZONTAL_ALIGNMENT_LEFT, lw - 28, 14, 2,
-			Color("#a3271c") if et.alerte else muet)
-	# les têtes de colonnes
-	var c1 := lw - 210.0          # ton record, ou le trophée
-	var c2 := lw - 100.0          # le monde, ou le niveau
-	var tete := Paddock.teteListe(mode)
-	Style.texte(ci, Textes.t("palmaresTrophee" if course else "colRecord"), Vector2(x + c1, y + tete - 8), 13, muet, HORIZONTAL_ALIGNMENT_LEFT, 110)
-	Style.texte(ci, Textes.t("palmaresNiveau" if course else "colMonde"), Vector2(x + c2, y + tete - 8), 13, muet, HORIZONTAL_ALIGNMENT_LEFT, 90)
-	# les voitures de la catégorie
-	var voitures := Catalogue.voituresDe(String(v.get("cat", "")))
-	var lignes := []
-	for i in voitures.size():
-		var m: Dictionary = voitures[i]
-		lignes.append({ m = m, i = i, b = _record(cid, m.id), n = Palmares.de(cid, m.id) })
-	if course:
-		lignes.sort_custom(func(a, b): return a.n > b.n if a.n != b.n else a.i < b.i)
-	else:
-		lignes.sort_custom(func(a, b):
-			if (a.b < 0) != (b.b < 0): return a.b >= 0
-			if a.b != b.b: return a.b < b.b
-			return a.i < b.i)
-	var par = null if course else Mondial.meilleurs(cid)
-	var yl := y + tete
-	for l in lignes:
-		var m: Dictionary = l.m
-		var choisie: bool = m.id == v.id
-		var rl := Rect2(x + 10, yl, lw - 20, LIGNE - 6)
-		ci.draw_rect(rl, Color("#e3d6b8") if choisie else Color("#efe4c9"))
-		if choisie: ci.draw_rect(rl, Style.ROUGE, false, 2.5)
-		var d := Catalogue.dessin(m.id, int(App.reglages.livree) if choisie else 0)
-		if d.get("vignette"):
-			var tex := Style.tex("res://images/vignettes/" + d.vignette)
-			var h := 30.0
-			var w := minf(56.0, h * tex.get_width() / tex.get_height())
-			ci.draw_texture_rect(tex, Rect2(x + 18, yl + (LIGNE - 6 - h) / 2, w, h), false)
-		var bas := yl + (LIGNE - 6) / 2 + 6
-		Style.texte(ci, str(m.nom), Vector2(x + 82, bas), 16, Style.ENCRE, HORIZONTAL_ALIGNMENT_LEFT, c1 - 92)
-		if course:
-			var n: int = l.n
-			if n >= 0:
-				ci.draw_texture_rect(Palmares.texture(n, 28), Rect2(x + c1, yl + 4, 28, 28), false)
-				Style.texte(ci, Textes.t("trophee_" + Palmares.TROPHEES[n]), Vector2(x + c1 + 32, bas), 14, Style.ENCRE, HORIZONTAL_ALIGNMENT_LEFT, c2 - c1 - 36)
-				Style.texte(ci, Textes.t(Palmares.NIVEAUX[n]).capitalize(), Vector2(x + c2, bas), 14, Style.ENCRE, HORIZONTAL_ALIGNMENT_LEFT, 90)
-			else:
-				Style.texte(ci, "—", Vector2(x + c1, bas), 16, muet)
-				Style.texte(ci, "—", Vector2(x + c2, bas), 16, muet)
-		else:
-			var b: float = l.b
-			Style.texte(ci, Style.temps(b) if b >= 0 else "--:--.---", Vector2(x + c1, bas), 16, Style.ENCRE if b >= 0 else muet, HORIZONTAL_ALIGNMENT_LEFT, 100)
-			var wd: Dictionary = par.get(m.id, {}) if par is Dictionary else {}
-			if par == null:
-				Style.texte(ci, "…", Vector2(x + c2, bas), 16, muet)
-			elif wd.is_empty():
-				Style.texte(ci, "--:--.---", Vector2(x + c2, bas), 16, muet, HORIZONTAL_ALIGNMENT_LEFT, 90)
-			else:
-				Style.texte(ci, Style.temps(float(wd.temps)), Vector2(x + c2, bas - 6), 16, Style.ENCRE, HORIZONTAL_ALIGNMENT_LEFT, 90)
-				Style.texte(ci, String(wd.get("pilote", "")), Vector2(x + c2, bas + 8), 11, muet, HORIZONTAL_ALIGNMENT_LEFT, 90)
-		yl += LIGNE
+## Le pays et la longueur du circuit ; en course, le nombre de tours (le contre-la-montre et
+## l'entraînement n'en ont pas, comme le jeu web).
+static func infoPiste(info: Dictionary, race: bool) -> String:
+	if race: return Textes.t("trackInfo", [Textes.pays(info.pays).to_upper(), roundi(info.longueur), int(App.reglages.tours)])
+	return Textes.t("trackInfoSeul", [Textes.pays(info.pays).to_upper(), roundi(info.longueur)])
 
 
 ## Le tracé d'un circuit (js/ui.js, thumb) : noir sur un liseré crème, et le point rouge du départ.
-static func _contour(ci: CanvasItem, info: Dictionary, r: Rect2, petit := false) -> void:
+static func _contour(ci: CanvasItem, info: Dictionary, r: Rect2, petit := false, ep := -1.0, ombre := false) -> void:
 	var b: Dictionary = info.bornes
 	var w: float = b.maxX - b.minX
 	var h: float = b.maxY - b.minY
@@ -542,23 +270,21 @@ static func _contour(ci: CanvasItem, info: Dictionary, r: Rect2, petit := false)
 	var o := r.position + (r.size - Vector2(w, h) * k) / 2
 	var pts := PackedVector2Array()
 	for p in info.contour: pts.append(o + (p - Vector2(b.minX, b.minY)) * k)
-	ci.draw_polyline(pts, Color("#fff0cd"), 5.0 if petit else 12.0, true)
-	ci.draw_polyline(pts, Color("#171c19"), 2.5 if petit else 6.0, true)
-	if pts.size(): ci.draw_circle(pts[0], 2.5 if petit else 5.0, Color("#c72d24"))
+	var noir := ep if ep > 0 else (2.5 if petit else 6.0)
+	var creme := noir + (1.8 if petit else 3.0) if ep > 0 else (5.0 if petit else 12.0)
+	# l'ombre portée du tracé (drop-shadow 2px 4px du jeu web)
+	if ombre:
+		var dec := PackedVector2Array()
+		for p in pts: dec.append(p + Vector2(2, 4))
+		ci.draw_polyline(dec, Color(0.09, 0.11, 0.1, 0.33), creme, true)
+	ci.draw_polyline(pts, Color("#fff0cd"), creme, true)
+	ci.draw_polyline(pts, Color("#171c19"), noir, true)
+	if pts.size(): ci.draw_circle(pts[0], noir * 0.3 if ep > 0 else (2.5 if petit else 5.0), Color("#c72d24"))
 
 
 func _record(circuit: String, voiture: String) -> float:
 	var recs: Dictionary = App.reglages.get("records", {})
 	return float(recs.get(circuit + "/" + voiture, -1.0))
-
-
-func _vignetteLivree(b: Bouton) -> void:
-	var v = b.get_meta("vignette")
-	if v:
-		var tex := Style.tex("res://images/vignettes/" + v)
-		var h := b.size.y * 0.55
-		var w := h * tex.get_width() / tex.get_height()
-		b.draw_texture_rect(tex, Rect2((b.size.x - w) / 2, 4, w, h), false)
 
 
 static func _carteVoiture(b: Bouton) -> void:
@@ -734,8 +460,10 @@ func _construitPC(cle: String) -> void:
 
 ## Le focus revient où il était (la manette et le clavier ne perdent pas leur place).
 func _rendFocus(cle: String) -> void:
+	# au doigt, pas de cadre jaune : le jeu web n'en montre qu'au clavier et à la manette
+	if portrait and Style.tactile(): return
 	var cible: Control = null
-	var tous := cadre.get_children() + barre.get_children()
+	var tous := cadre.find_children("*", "Button", true, false) + barre.get_children()
 	for c in tous:
 		if c is Bouton and c.get_meta("cle", "") == cle and not c.is_queued_for_deletion(): cible = c
 	if cible == null:
@@ -795,7 +523,7 @@ func _dessinePC() -> void:
 	Style.texte(ci, tnom, r.position + Vector2(20, 58), tc, Color("#272b28"))
 	var dr := Style.drapeau(info.pays)
 	if dr: ci.draw_texture_rect(dr, Rect2(r.end.x - 87, r.position.y + 18, 61, 46), false)
-	Style.texte(ci, Textes.t("trackInfo", [Textes.pays(info.pays).to_upper(), roundi(info.longueur), int(App.reglages.tours) if race else 0]),
+	Style.texte(ci, Paddock.infoPiste(info, race),
 		r.position + Vector2(20, 92), 18, Color("#272b28"))
 	var ir := Rect2(r.position.x + 5, 200, r.size.x - 10, 214)
 	Style.couvre(ci, info.image, ir, 0.5)
@@ -874,9 +602,10 @@ static func _icone(ci: CanvasItem, nom: String, c: Vector2, taille: float) -> vo
 
 
 ## La coche d'une carte choisie : un rond rouge, un V crème.
-static func _coche(ci: CanvasItem, c: Vector2) -> void:
-	ci.draw_circle(c, 10, Color("#c82e27"))
-	ci.draw_polyline(PackedVector2Array([c + Vector2(-4.5, 0.5), c + Vector2(-1.2, 3.8), c + Vector2(4.8, -3.6)]), Color("#fff8e7"), 2.4, true)
+static func _coche(ci: CanvasItem, c: Vector2, r := 10.0) -> void:
+	var e := r / 10.0
+	ci.draw_circle(c, r, Color("#c82e27"))
+	ci.draw_polyline(PackedVector2Array([c + Vector2(-4.5, 0.5) * e, c + Vector2(-1.2, 3.8) * e, c + Vector2(4.8, -3.6) * e]), Color("#fff8e7"), 2.4 * e, true)
 
 
 static func _livreePC(b: Bouton) -> void:
@@ -1060,3 +789,679 @@ func _barreVers(y: float) -> void:
 	var f := clampf((y - 2 - ph / 2) / maxf(1, h - 4 - ph), 0, 1)
 	listeDefile = f * maxf(0, listeContenu - h)
 	listeVue.queue_redraw()
+
+
+# =====================================================================================================
+# AU TÉLÉPHONE : la page du jeu web sur un iPhone (390 de large), mesurée bloc par bloc (js/ui.js
+# setupScreen, css/style.css sous 850 px). Un point du cadre vaut un pixel CSS : chaque chose a la taille
+# qu'elle a dans le jeu web. La page défile au doigt ; les livrées, les voitures et les circuits défilent
+# de côté, chacun dans son rail ; « En piste ! » et son damier restent collés en bas.
+# =====================================================================================================
+const T_W := 390.0
+const T_BARRE := 69.0
+const T_FOND := Color("#efe2c4")
+const T_NOIR := Color("#151917")
+const T_CARTE := Color("#171c19")
+const T_MUET := Color("#5e6055")
+var T := {}                                  # la mise en page du téléphone, relue par le dessin
+var rails := {}                              # livrees, voitures, circuits -> { vue, contenu, maxi }
+var railX := {}                              # leur défilement ; absent : centré sur ce qui est choisi
+var _doigt := {}                             # le doigt posé : départ, axe choisi, rail dessous, vitesse
+var _elan := Vector2.ZERO                    # la page (y) ou le rail (x) qui file encore, en px CSS/s
+var _elanRail := ""
+
+
+func _construitTel(cle: String) -> void:
+	var k := size.x / T_W
+	cadre.scale = Vector2(k, k)
+	cadre.position.x = 0
+	barre.visible = true
+	barre.scale = Vector2(k, k)
+	barre.size = Vector2(T_W, T_BARRE)
+	barre.position = Vector2(0, size.y - T_BARRE * k)
+	if listeVue:
+		listeVue.queue_free()
+		listeVue = null
+	_haut = 0.0
+	rails.clear()
+	T.clear()
+	var race := mode == "race"
+	var v := Catalogue.voiture(App.reglages.voiture)
+	# La barre du titre : le retour (le damier, le titre et le logo sont dessinés)
+	var br := _bouton("", Rect2(10, 8, 73, 64), Color(0, 0, 0, 0), PC_CREME, 14, func(): App.aller("accueil"))
+	br.coupe = 0
+	br.set_meta("cle", "retour")
+	br.dessinPlus = Paddock._retourTel.bind(br)
+	# Les onglets de catégorie, qui passent à la ligne
+	var onglets := [["tous", Textes.t("all")]]
+	for c in Catalogue.categories(): onglets.append([c.id, Textes.nom(c.nom).to_upper()])
+	var x := 22.0
+	var y := 95.0
+	for o in onglets:
+		var w := maxf(70.0, Style.largeur(o[1], 22) + 34)
+		if x > 22 and x + w > 368:
+			x = 22.0
+			y += 47.0
+		var choisi: bool = filtre == o[0]
+		var b := _bouton(o[1], Rect2(x, y, w, 44), PC_ONGLET if choisi else Color("#222825"), Color("#fff5df") if choisi else Color("#f9efd9"), 22,
+			func(): _choisitCategorie(o[0]))
+		b.coupe = w * 0.08
+		b.centre = true
+		b.set_meta("cle", "onglet-" + o[0])
+		x += w + 3
+	T.onglets = Rect2(10, 88, 370, y + 44 - 88)
+	y += 44 + 12
+	# La voiture : son nom (sur deux lignes s'il le faut), puis la voiture dans le paddock
+	T.nom = Paddock._lignes(str(v.nom).to_upper(), 40, 330)
+	T.copie = 8.0 + 40.0 * (T.nom as PackedStringArray).size() + 20 + 16
+	T.voiture = Rect2(10, y, 370, 270)
+	y += 270 + 12
+	# Les livrées : une carte chacune, la rangée défile si elles ne tiennent pas
+	var livrees: Array = v.livrees
+	var n := livrees.size()
+	if n >= 2:
+		var lw := maxf(100.0, (354.0 - 8 * (n - 1)) / n)
+		var hc := 0.0
+		var li := int(App.reglages.livree) % n
+		for i in n:
+			var bord := 3.0 if i == li else 2.0
+			var lignes := Paddock._lignes(Textes.livree(livrees[i]).to_upper(), 16, lw - 2 * bord - 8)
+			hc = maxf(hc, 65 + 3 + 19 * lignes.size() + 8 + 2 * bord)
+		T.livrees = Rect2(10, y, 370, hc + 16)
+		var cont := _rail("livrees", T.livrees, 16 + n * lw + (n - 1) * 8, 8 + li * (lw + 8) + lw / 2)
+		for i in n:
+			var d := Catalogue.dessin(v.id, i)
+			var b := _bouton("", Rect2(8 + i * (lw + 8), 8, lw, hc), T_CARTE, PC_CREME, 16,
+				func(): App.reglages.livree = i; App.sauve(); _construit(), cont)
+			b.coupe = 0
+			b.set_meta("cle", "livree-%d" % i)
+			b.set_meta("vignette", d.get("vignette"))
+			b.set_meta("sel", i == li)
+			b.set_meta("nom", Textes.livree(livrees[i]).to_upper())
+			b.dessinPlus = Paddock._livreeTel.bind(b)
+		y += hc + 16 + 12
+	# Les caractéristiques, trois par ligne
+	T.stats = Rect2(10, y, 370, 88)
+	y += 88
+	# Le rail des voitures : la voiture choisie au milieu, à la première ouverture
+	var rail: Array = Catalogue.donnees.voitures.filter(func(c): return filtre == "tous" or c.cat == filtre)
+	var avecCat := filtre == "tous"
+	var nl := 1
+	var iSel := 0
+	for i in rail.size():
+		nl = maxi(nl, Paddock._lignes(str(rail[i].nom).to_upper(), 17, 122).size())
+		if rail[i].id == v.id: iSel = i
+	var hv := 2 + 5 + 66 + 4 + 20.0 * nl + (6 + 19 if avecCat else 0) + 5 + 2
+	T.rail = Rect2(10, y, 370, hv + 12)
+	var contV := _rail("voitures", T.rail, 4 + rail.size() * 146 - 10, 2 + iSel * 146 + 68)
+	for i in rail.size():
+		var c: Dictionary = rail[i]
+		var b := _bouton("", Rect2(2 + i * 146, 2, 136, hv), PC_CREME, PC_ENCRE, 17, func(): _choisitVoiture(c.id), contV)
+		b.coupe = 0
+		b.set_meta("cle", "voiture-" + c.id)
+		b.set_meta("voiture", c)
+		b.set_meta("sel", c.id == v.id)
+		b.dessinPlus = Paddock._carteVoitureTel.bind(b, avecCat)
+	y += hv + 12 + 36
+	# La feuille du circuit : le titre et le tracé, le rail des circuits, la liste de la catégorie
+	var cid: String = App.reglages.circuit
+	var info: Dictionary = infoCircuits.get(cid, infoCircuits.values()[0])
+	var ys := y
+	T.nomC = Paddock._lignes(str(info.nom).to_upper(), 36, 279)
+	T.tete = 12 + 34.2 * (T.nomC as PackedStringArray).size() + 7 + 22 + 14
+	T.piste = Rect2(15, ys + 5, 360, 300)
+	var circuits := Catalogue.circuits()
+	var iC := 0
+	for i in circuits.size():
+		if circuits[i].id == cid: iC = i
+	var rc := Rect2(15, ys + 5 + 300 + 12 + 8, 360, 149)
+	var contC := _rail("circuits", rc, 4 + circuits.size() * 118 - 10, 2 + iC * 118 + 54)
+	for i in circuits.size():
+		var c: Dictionary = circuits[i]
+		var b := _bouton("", Rect2(2 + i * 118, 2, 108, 137), PC_CREME, PC_ENCRE, 17,
+			func(): App.reglages.circuit = c.id; App.reglages.tours = infoCircuits[c.id].tours; App.sauve(); _construit(), contC)
+		b.coupe = 0
+		b.set_meta("cle", "circuit-" + c.id)
+		b.set_meta("circuit", c.id)
+		b.set_meta("sel", c.id == cid)
+		b.dessinPlus = Paddock._carteCircuitTel.bind(b)
+	# l'en-tête de la liste : le palmarès (course) ou ton record (contre-la-montre, entraînement)
+	var yl := rc.end.y + 12
+	T.liste = yl
+	var lien := Mondial.connexionPossible() and (Mondial.enCours or not Mondial.connecte())
+	var txtLien := Textes.t("signInCancel").capitalize() if Mondial.enCours else Textes.t("signInLien")
+	var lb := Style.largeur(txtLien, 13) + 4
+	var rLien := Rect2()
+	var yn := yl + 26.0
+	if race:
+		T.note = Paddock._lignes(Textes.t("palmaresRegle", Palmares.TOURS_MIN), 13, 360)
+		if lien:
+			# dans le nuage (js/ui.js, nuagePalmares) : à droite de « Sur cet appareil » s'il y a la place
+			var etat := Textes.t("nuage_" + Mondial.nuage())
+			var place := 360 - _largeurEspace(Textes.t("palmares").to_upper(), 15, 1.5) - 8 - 36 - Style.largeur(etat, 13) - 6
+			if lb <= place:
+				rLien = Rect2(375 - lb, yl + 5, lb, 20)
+				T.decaleNuage = lb + 6
+			else:
+				rLien = Rect2(375 - lb, yl + 26, lb, 20)
+				yn += 22
+	else:
+		yn = yl + 34.0
+		var et := Mondial.etat()
+		T.note = Paddock._lignes(String(et.texte), 13, 360) if String(et.texte) != "" else PackedStringArray()
+		T.alerte = bool(et.alerte)
+	T.yNote = yn
+	var yh := yn + 16.0 * (T.note as PackedStringArray).size()
+	if lien and not race:
+		# après la phrase du tableau mondial, à la ligne
+		rLien = Rect2(13, yh, lb, 20)
+		yh += 22
+	if (T.note as PackedStringArray).size() or (lien and not race): yh += 4
+	T.yTete = yh
+	var nv := Catalogue.voituresDe(String(v.get("cat", ""))).size()
+	T.yLignes = yh + 18
+	var finListe: float = T.yLignes + nv * 58 - 6 + 12
+	if lien:
+		# « Se connecter avec Google » : le lien du jeu web
+		var bg := _bouton("", rLien, Color(0, 0, 0, 0), T_MUET, 13, func(): (Mondial.annuler() if Mondial.enCours else Mondial.entrer()))
+		bg.coupe = 0
+		bg.set_meta("cle", "google")
+		bg.dessinPlus = Paddock._lienTel.bind(bg, txtLien)
+	T.feuille = Rect2(10, ys, 370, finListe + 5 - ys)
+	y = T.feuille.end.y + 16
+	# Les réglages, en pastilles, par groupes qui passent à la ligne (js/ui.js, setupBar)
+	var groupes := []
+	var g1 := [[Textes.t("dayNightLabel"), Textes.t("night" if App.reglages.nuit else "day"), func(): App.reglages.nuit = not App.reglages.nuit; App.sauve(); _construit(), "nuit"]]
+	if race:
+		var dg := bool(App.reglages.get("degats", true))
+		g1.append([Textes.t("chipDegats"), Textes.t("on" if dg else "off"), func(): App.reglages.degats = not dg; App.sauve(); _construit(), "degats"])
+	groupes.append(g1)
+	if race:
+		groupes.append([[Textes.t("difficultyLabel"), _nom(DIFFICULTES, App.reglages.difficulte), func(): App.reglages.difficulte = _suivant(DIFFICULTES, App.reglages.difficulte); App.sauve(); _construit(), "difficulte"],
+			[Textes.t("lapsLabel"), str(int(App.reglages.tours)), func(): App.reglages.tours = int(App.reglages.tours) % 10 + 1; App.sauve(); _construit(), "tours"],
+			[Textes.t("opponentsLabel"), str(int(App.reglages.adversaires) - 1), func(): App.reglages.adversaires = (int(App.reglages.adversaires) - 1) % 11 + 2; App.sauve(); _construit(), "adversaires"]])
+	var cfg := ReglageFrein.active(cid, v.id)
+	groupes.append([[Textes.t("freinage"), (String(cfg.nom) if not cfg.is_empty() else Textes.t("regDefaut")) + LISTE,
+		func(): ReglageFrein.suivante(App.reglages.circuit, v.id); App.sauve(); _construit(), "freinage"],
+		[Textes.t("regRegler"), "", _regler, "regler"]])
+	var yr := y
+	x = 18.0
+	y = yr + 13
+	var basLigne := y + 40
+	for g in groupes:
+		var lg := -8.0
+		for p in g: lg += Paddock.largeurPastilleTel(p[0], p[1]) + 8
+		# un groupe qui ne tient pas au bout de la ligne passe à la suivante
+		if x > 18 and x + lg > 372:
+			x = 18.0
+			y = basLigne + 6
+		for p in g:
+			var w := Paddock.largeurPastilleTel(p[0], p[1])
+			if x > 18 and x + w > 372:
+				x = 18.0
+				y = basLigne + 6
+			var b := _bouton("" if p[1] != "" else p[0], Rect2(x, y, w, 40), T_CARTE, PC_CREME, 15, p[2])
+			b.coupe = 9
+			b.centre = true
+			b.set_meta("cle", p[3])
+			if p[1] != "": b.dessinPlus = Paddock._pastilleTel.bind(b, p[0], p[1])
+			basLigne = y + 40
+			x += w + 8
+		x += 2          # entre deux groupes, 10 au lieu de 8
+		if g == g1 and App.reglages.nuit:
+			# la nuit : la phrase sur la visibilité, sous le jour / nuit
+			T.nuitTexte = Paddock._lignes(Textes.t("nightF1Hint" if v.cat == "f1" else "nightHint"), 13, 354)
+			T.nuitY = basLigne + 6
+			basLigne += 6 + 16 * (T.nuitTexte as PackedStringArray).size()
+			x = 400.0
+	T.reglages = Rect2(10, yr, 370, basLigne + 10 - yr)
+	hauteur = T.reglages.end.y + 16 + T_BARRE
+	cadre.size = Vector2(T_W, hauteur)
+	_defile(0)          # la page garde sa place quand on la refait (le tableau mondial qui arrive, un choix)
+	# « En piste ! », collé en bas avec son damier
+	var go := _bouton("", Rect2(54, 11, 326, 48), Color("#d22620"), Color("#fff2da"), 30, _enPiste, barre)
+	go.coupe = 326 * 0.06
+	go.set_meta("cle", "go")
+	go.dessinPlus = Paddock._enPisteTel.bind(go)
+	cadre.queue_redraw()
+	barre.queue_redraw()
+	_rendFocus(cle)
+
+
+## Un rail qui défile de côté : une vue qui coupe ce qui dépasse, et dedans les cartes. `centre` est le
+## milieu de la carte choisie ; à la première ouverture, le rail se place dessus (js/ui.js, _centrerRail).
+func _rail(nom: String, r: Rect2, largeur: float, centre: float) -> Control:
+	var vue := Control.new()
+	vue.clip_contents = true
+	vue.mouse_filter = Control.MOUSE_FILTER_PASS
+	vue.position = r.position
+	vue.size = r.size
+	cadre.add_child(vue)
+	var contenu := Control.new()
+	contenu.mouse_filter = Control.MOUSE_FILTER_PASS
+	contenu.size = Vector2(largeur, r.size.y)
+	vue.add_child(contenu)
+	rails[nom] = { vue = vue, contenu = contenu, maxi = maxf(0, largeur - r.size.x) }
+	_poseRail(nom, float(railX.get(nom, centre - r.size.x / 2)))
+	return contenu
+
+
+func _poseRail(nom: String, x: float) -> void:
+	if not rails.has(nom): return
+	var R: Dictionary = rails[nom]
+	x = clampf(x, 0, R.maxi)
+	if (x <= 0 or x >= R.maxi) and nom == _elanRail: _elan = Vector2.ZERO
+	railX[nom] = x
+	(R.contenu as Control).position.x = -x
+
+
+## Le doigt, au téléphone : un glissé de côté sur un rail fait défiler le rail, tout autre glissé fait
+## défiler la page ; dès que le doigt glisse, la carte qu'il avait touchée ne se choisit plus (comme une
+## page web qu'on fait défiler). Lâché, ce qui défilait file encore et ralentit.
+func _doigtTel(e: InputEvent) -> void:
+	var k := cadre.scale.x
+	if e is InputEventScreenTouch and e.index == 0:
+		if e.pressed:
+			_elan = Vector2.ZERO
+			_doigt = { actif = true, depart = e.position, axe = "", rail = _railSous(e.position), t = Time.get_ticks_usec(), v = Vector2.ZERO }
+		else:
+			if _doigt.get("axe", "") != "":
+				_elanRail = _doigt.rail if _doigt.axe == "x" else ""
+				_elan = _doigt.v if Time.get_ticks_usec() - int(_doigt.t) < 100000 else Vector2.ZERO
+			_doigt.actif = false
+	elif e is InputEventScreenDrag and e.index == 0 and _doigt.get("actif", false):
+		var d: Vector2 = e.position - _doigt.depart
+		if _doigt.axe == "":
+			if d.length() < 8.0 * k: return
+			_doigt.axe = "x" if absf(d.x) > absf(d.y) and _doigt.rail != "" else "y"
+			_annuleAppui.call_deferred()
+		var maintenant := Time.get_ticks_usec()
+		var dt := maxf(0.004, (maintenant - int(_doigt.t)) / 1e6)
+		_doigt.t = maintenant
+		var pas: Vector2 = -e.relative / k
+		_doigt.v = (_doigt.v as Vector2).lerp(pas / dt, 0.6)
+		if _doigt.axe == "x": _poseRail(_doigt.rail, float(railX.get(_doigt.rail, 0.0)) + pas.x)
+		else: _defile(pas.y)
+
+
+func _railSous(p: Vector2) -> String:
+	for nom in rails:
+		var vue: Control = rails[nom].vue
+		var t := vue.get_global_transform()
+		if Rect2(t.origin, vue.size * t.get_scale()).has_point(p): return nom
+	return ""
+
+
+## La carte touchée par un doigt qui glisse ne se choisit pas : on lui fait lâcher le bouton hors de
+## lui, avant que le doigt ne se lève.
+func _annuleAppui() -> void:
+	var vp := get_viewport()
+	if vp == null: return
+	vp.gui_release_focus()
+	var m := InputEventMouseMotion.new()
+	m.position = Vector2(-10000, -10000)
+	m.global_position = m.position
+	m.button_mask = MOUSE_BUTTON_MASK_LEFT
+	vp.push_input(m)
+	var r := InputEventMouseButton.new()
+	r.button_index = MOUSE_BUTTON_LEFT
+	r.pressed = false
+	r.position = m.position
+	r.global_position = m.position
+	vp.push_input(r)
+
+
+## Les lignes d'un texte coupé à la largeur, mot par mot, comme le retour à la ligne du navigateur.
+static func _lignes(t: String, taille: int, largeur: float) -> PackedStringArray:
+	var out := PackedStringArray()
+	var ligne := ""
+	for mot in t.split(" ", false):
+		var essai: String = mot if ligne == "" else ligne + " " + mot
+		if ligne != "" and Style.largeur(essai, taille) > largeur:
+			out.append(ligne)
+			ligne = mot
+		else:
+			ligne = essai
+	if ligne != "": out.append(ligne)
+	return out
+
+
+## Un texte espacé (letter-spacing) ; rend sa largeur.
+## Chaque lettre est posée là où la mettrait le texte entier (l'approche des paires est gardée), plus
+## l'espacement.
+static func _espace(ci: CanvasItem, t: String, p: Vector2, taille: int, c: Color, ls: float) -> float:
+	for i in t.length():
+		Style.texte(ci, t[i], Vector2(p.x + Style.largeur(t.substr(0, i), taille) + i * ls, p.y), taille, c)
+	return _largeurEspace(t, taille, ls)
+
+
+static func _largeurEspace(t: String, taille: int, ls: float) -> float:
+	return Style.largeur(t, taille) + maxf(0, t.length() - 1) * ls
+
+
+## Un texte trop long finit par « … » (text-overflow: ellipsis).
+static func _coupe(t: String, taille: int, largeur: float) -> String:
+	if Style.largeur(t, taille) <= largeur: return t
+	while t.length() > 1 and Style.largeur(t + "…", taille) > largeur: t = t.substr(0, t.length() - 1)
+	return t.strip_edges() + "…"
+
+
+## Une flèche (← ou →), dessinée : la police du jeu ne l'a pas.
+static func _fleche(ci: CanvasItem, a: Vector2, b: Vector2, c: Color, ep: float, tete: float) -> void:
+	ci.draw_line(a, b, c, ep, true)
+	var u := (b - a).normalized()
+	var n := Vector2(-u.y, u.x)
+	ci.draw_polyline(PackedVector2Array([b - u * tete + n * tete * 0.75, b, b - u * tete - n * tete * 0.75]), c, ep, true)
+
+
+static func _retourTel(b: Bouton) -> void:
+	_fleche(b, Vector2(21.5, 33), Vector2(12.5, 33), Color("#fff1d5"), 1.4, 3.5)
+	Style.texte(b, Textes.t("backWord").to_upper(), Vector2(24, 37.3), 14, Color("#fff1d5"))
+
+
+static func _lienTel(b: Bouton, txt: String) -> void:
+	Style.texte(b, txt, Vector2(2, 14.5), 13, T_MUET)
+	b.draw_line(Vector2(2, 16.5), Vector2(b.size.x - 2, 16.5), T_MUET, 1.0)
+
+
+static func _enPisteTel(b: Bouton) -> void:
+	var t := Textes.t("onTrack").replace("›", "").strip_edges()
+	var wt := Style.largeur(t, 30)
+	var x := (b.size.x - (wt + 14 + 30)) / 2
+	Style.texte(b, t, Vector2(x, 35.3), 30, Color("#fff2da"))
+	var ya := 30.0
+	_fleche(b, Vector2(x + wt + 20, ya), Vector2(x + wt + 38, ya), Color("#fff2da"), 1.6, 5.5)
+
+
+static func _livreeTel(b: Bouton) -> void:
+	var sel: bool = b.get_meta("sel", false)
+	var bord := 3.0 if sel else 2.0
+	var lignes := Paddock._lignes(String(b.get_meta("nom", "")), 16, b.size.x - 2 * bord - 8)
+	var hc := 65.0 + 3 + 19 * lignes.size()
+	var y := (b.size.y - hc) / 2
+	var v = b.get_meta("vignette")
+	if v:
+		var tex := Style.tex("res://images/vignettes/" + v)
+		var zone := Rect2(bord + 4, y, b.size.x - 2 * bord - 8, 65)
+		var e := minf(zone.size.x / tex.get_width(), zone.size.y / tex.get_height())
+		var t := Vector2(tex.get_width(), tex.get_height()) * e
+		b.draw_texture_rect(tex, Rect2(zone.get_center() - t / 2, t), false)
+	for i in lignes.size():
+		Style.texte(b, lignes[i], Vector2(0, y + 68 + 19 * i + 15.5), 16, PC_CREME, HORIZONTAL_ALIGNMENT_CENTER, b.size.x)
+	# le bord déborde d'un demi-point : il couvre le liseré sombre du fond du bouton
+	b.draw_rect(Rect2(Vector2(bord, bord) / 2 - Vector2(0.5, 0.5), b.size - Vector2(bord, bord) + Vector2(1, 1)), Color("#ca2b22") if sel else Color("#f5e7c6"), false, bord + 1)
+	if sel: Paddock._coche(b, Vector2(b.size.x - bord - 11.7, bord + 11.7), 11.7)
+
+
+static func _carteVoitureTel(b: Bouton, avecCat: bool) -> void:
+	var c: Dictionary = b.get_meta("voiture")
+	var sel: bool = b.get_meta("sel", false)
+	var d := Catalogue.dessin(c.id, int(App.reglages.livree) if sel else 0)
+	if d.get("vignette"):
+		var tex := Style.tex("res://images/vignettes/" + d.vignette)
+		var e := minf(122.0 / tex.get_width(), 66.0 / tex.get_height())
+		var t := Vector2(tex.get_width(), tex.get_height()) * e
+		b.draw_texture_rect(tex, Rect2(Vector2(7 + (122 - t.x) / 2, 7 + (66 - t.y) / 2), t), false)
+	var lignes := Paddock._lignes(str(c.nom).to_upper(), 17, 122)
+	for i in lignes.size():
+		Style.texte(b, lignes[i], Vector2(0, 77 + 20 * i + 16.4), 17, PC_ENCRE, HORIZONTAL_ALIGNMENT_CENTER, b.size.x)
+	if avecCat:
+		var tag := str(c.cat).to_upper()
+		var w := Style.largeur(tag, 13) + 14
+		var yt := 77 + 20.0 * lignes.size() + 6
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(CATS.get(c.cat, "#9aa1ad"))
+		sb.set_corner_radius_all(8)
+		b.draw_style_box(sb, Rect2((b.size.x - w) / 2, yt, w, 19))
+		Style.texte(b, tag, Vector2(0, yt + 14.4), 13, Color("#555d50"), HORIZONTAL_ALIGNMENT_CENTER, b.size.x)
+	b.draw_rect(Rect2(Vector2(1, 1), b.size - Vector2(2, 2)), PC_BORD, false, 2)
+	if sel:
+		b.draw_rect(Rect2(2, b.size.y - 6, b.size.x - 4, 4), Color("#ba2924"))
+		Paddock._coche(b, Vector2(b.size.x - 17, 17))
+
+
+static func _carteCircuitTel(b: Bouton) -> void:
+	var info: Dictionary = Paddock.infosCircuits()[b.get_meta("circuit")]
+	var sel: bool = b.get_meta("sel", false)
+	var bord := 3.0 if sel else 2.0
+	var art := Rect2(bord + 3, bord + 3, b.size.x - 2 * bord - 6, 82)
+	Style.couvre(b, info.image, art, 0.5)
+	Paddock._contour(b, info, Rect2(art.get_center() - Vector2(33, 33), Vector2(66, 66)), true, 3.8)
+	var nom := Paddock._coupe(str(info.nom).to_upper(), 17, b.size.x - 2 * bord - 6)
+	Style.texte(b, nom, Vector2(0, bord + 104.4), 17, PC_ENCRE, HORIZONTAL_ALIGNMENT_CENTER, b.size.x)
+	var dr := Style.drapeau(info.pays)
+	var txt := "%d m" % roundi(info.longueur)
+	var w := 20.0 + Style.largeur(txt, 13)
+	var x := (b.size.x - w) / 2
+	if dr: b.draw_texture_rect(dr, Rect2(x, bord + 113.5, 17, 12), false)
+	Style.texte(b, txt, Vector2(x + 20, bord + 124.4), 13, Color("#555d50"))
+	b.draw_rect(Rect2(Vector2(bord, bord) / 2, b.size - Vector2(bord, bord)), Color("#c92c23") if sel else Color("#a29679"), false, bord)
+	if sel:
+		b.draw_rect(Rect2(bord, b.size.y - bord - 4, b.size.x - 2 * bord, 4), Color("#ba2924"))
+		Paddock._coche(b, Vector2(b.size.x - 19, 17))
+
+
+## Une pastille du téléphone (css/style.css sous 850 px) : 40 de haut, le nom en crème, la valeur
+## sur son biseau vert ; une liste a sa petite flèche.
+static func largeurPastilleTel(nom: String, valeur: String) -> float:
+	if valeur == "": return Style.largeur(nom, 15) + 40
+	var liste := valeur.ends_with(LISTE)
+	return Style.largeur(nom + " :", 15) + Style.largeur(valeur.trim_suffix(LISTE), 15) + 48 + (16.0 if liste else 0.0)
+
+
+static func _pastilleTel(b: Bouton, nom: String, valeur: String) -> void:
+	Style.texte(b, nom + " :", Vector2(12, 25.6), 15, PC_CREME)
+	var liste := valeur.ends_with(LISTE)
+	var v := valeur.trim_suffix(LISTE)
+	var xv := 12 + Style.largeur(nom + " :", 15) + 8
+	var wv := Style.largeur(v, 15) + 20 + (16.0 if liste else 0.0)
+	var r := Rect2(xv, 9, wv, 22)
+	var pts := PackedVector2Array([Vector2(r.position.x + 6, r.position.y), Vector2(r.end.x, r.position.y), Vector2(r.end.x - 6, r.end.y), Vector2(r.position.x, r.end.y)])
+	b.draw_colored_polygon(pts, PC_VERT)
+	Style.texte(b, v, Vector2(xv + 10, 25.6), 15, Color("#171c19"))
+	if liste:
+		var c := Vector2(r.end.x - 16, 20)
+		b.draw_colored_polygon(PackedVector2Array([c + Vector2(-5, -3), c + Vector2(5, -3), c + Vector2(0, 3)]), Color("#171c19"))
+
+
+func _dessineTel() -> void:
+	var ci := cadre
+	var race := mode == "race"
+	var v := Catalogue.voiture(App.reglages.voiture)
+	# La barre du titre : le noir, le damier penché, le titre sur sa bande rouge, le logo
+	ci.draw_rect(Rect2(10, 8, 370, 64), T_NOIR)
+	Style.damier(ci, Rect2(75, 8, 34, 64), 13, PC_CREME, T_NOIR, 16)
+	ci.draw_colored_polygon(PackedVector2Array([Vector2(125, 8), Vector2(287, 8), Vector2(259, 72), Vector2(111, 72)]), PC_ROUGE)
+	Style.texte(ci, Textes.t({ race = "quickRace", timetrial = "timeTrial", training = "training" }.get(mode, "quickRace")), Vector2(127, 49), 24, Color("#fff1d5"))
+	var logo := Style.tex("res://images/interface/logo-slotless.webp")
+	var lh := 72.0 * logo.get_height() / logo.get_width()
+	ci.draw_texture_rect(logo, Rect2(302, 40 - lh / 2, 72, lh), false)
+	# Les onglets
+	ci.draw_rect(T.onglets, PC_CREME)
+	# La voiture : le paddock derrière, le nom sur son papier penché
+	var rv: Rect2 = T.voiture
+	ci.draw_rect(rv, Color("#c8baa0"))
+	Style.couvre(ci, fondPaddock, rv.grow(-2), 0.5)
+	var hc: float = T.copie
+	var pc := Rect2(rv.position.x + 2, rv.position.y + 2, 366, hc)
+	ci.draw_colored_polygon(PackedVector2Array([pc.position, Vector2(pc.end.x, pc.position.y), Vector2(pc.position.x + pc.size.x * 0.99, pc.position.y + hc * 0.91), Vector2(pc.position.x, pc.end.y)]), PC_CREME)
+	var lignes: PackedStringArray = T.nom
+	for i in lignes.size():
+		Style.texte(ci, lignes[i], Vector2(30, pc.position.y + 8 + 40 * i + 35), 40, Color("#20271f"))
+	var cat := ""
+	for c in Catalogue.categories():
+		if c.id == v.cat: cat = Textes.nom(c.nom).to_upper()
+	var livrees: Array = v.livrees
+	var li: int = int(App.reglages.livree) % maxi(1, livrees.size())
+	Paddock._espace(ci, "%s · %s" % [cat, Textes.livree(livrees[li]).to_upper()], Vector2(30, pc.position.y + 8 + 40 * lignes.size() + 16.4), 17, Color("#252a22"), 0.51)
+	var d := Catalogue.dessin(v.id, li)
+	if d.get("vignette"):
+		var tex := Style.tex("res://images/vignettes/" + d.vignette)
+		var zone := Rect2(rv.position.x + 7, pc.end.y, 356, rv.size.y - 4 - hc)
+		var e := minf(zone.size.x / tex.get_width(), zone.size.y / tex.get_height())
+		var t := Vector2(tex.get_width(), tex.get_height()) * e
+		ci.draw_texture_rect(tex, Rect2(zone.get_center() - t / 2, t), false)
+	ci.draw_rect(rv.grow(-1), Color("#20251f"), false, 2)
+	# Les livrées
+	if T.has("livrees"): ci.draw_rect(T.livrees, PC_CREME)
+	# Les caractéristiques : trois par ligne, sans pictogramme au téléphone
+	var rs: Rect2 = T.stats
+	ci.draw_rect(rs, PC_CREME)
+	ci.draw_rect(Rect2(rs.position.x, rs.end.y - 2, rs.size.x, 2), PC_TRAIT)
+	var p: Dictionary = v.perf
+	var fr := Textes.langue() == "fr"
+	var nb := func(x: float, n: int) -> String: return (("%." + str(n) + "f") % x).replace(".", "," if fr else ".")
+	var items := [[str(roundi(p.vmax)), "km/h", Textes.t("statVmax")], ["0-100 : " + nb.call(p.a100, 1), "s", Textes.t("statAcc")],
+		[nb.call(p.b100, 1), "m", Textes.t("statFrein")], [nb.call(p.gripG, 2), "g", Textes.t("statGrip")]]
+	for i in items.size():
+		var x := 18.0 + (i % 3) * 120
+		var y := rs.position.y + 8 + (i / 3) * 39
+		Style.texte(ci, items[i][0], Vector2(x, y + 18.3), 20, Color("#20261e"))
+		Style.texte(ci, items[i][1], Vector2(x + Style.largeur(items[i][0], 20) + 3, y + 18.3), 13, Color("#20261e"))
+		Paddock._espace(ci, String(items[i][2]).to_upper(), Vector2(x, y + 30.3), 11, Color("#4b4e44"), 0.66)
+	# Le rail des voitures
+	ci.draw_rect(T.rail, PC_CREME)
+	# La feuille du circuit : son liseré d'encre, son ombre, son papier
+	var f: Rect2 = T.feuille
+	ci.draw_rect(Rect2(f.position + Vector2(5, 7), f.size), Color(0.09, 0.106, 0.098, 0.4))
+	ci.draw_rect(f.grow(2), Color("#20251f"))
+	ci.draw_rect(f, PC_FEUILLE)
+	var cid: String = App.reglages.circuit
+	var info: Dictionary = infoCircuits.get(cid, infoCircuits.values()[0])
+	var rp: Rect2 = T.piste
+	var ht: float = T.tete
+	ci.draw_rect(rp, Color("#6b8171"))
+	Style.couvre(ci, info.image, rp, 0.5)
+	ci.draw_colored_polygon(PackedVector2Array([rp.position, Vector2(rp.end.x, rp.position.y), Vector2(rp.end.x, rp.position.y + ht * 0.93), Vector2(rp.position.x, rp.position.y + ht)]), PC_CREME)
+	var lc: PackedStringArray = T.nomC
+	for i in lc.size():
+		Style.texte(ci, lc[i], Vector2(27, rp.position.y + 12 + 34.2 * i + 30.6), 36, Color("#272b28"))
+	var ysous := rp.position.y + 12 + 34.2 * lc.size() + 7
+	Paddock._espace(ci, Paddock.infoPiste(info, race),
+		Vector2(27, ysous + 17.75), 18, Color("#272b28"), 0.36)
+	var dr := Style.drapeau(info.pays)
+	if dr:
+		var rd := Rect2(318, rp.position.y + 12, 45, 34)
+		Style.couvre(ci, dr, rd, 0.5)
+		ci.draw_rect(rd, Color(0.145, 0.165, 0.133, 0.2), false, 1)
+	var im := Rect2(rp.position.x + 18, rp.position.y + ht + 4, 324, rp.size.y - ht - 12)
+	Paddock._contour(ci, info, im.grow(-10), false, 5.0, true)
+	# La liste de la catégorie
+	_listeTel(ci, cid, v)
+	# Les réglages
+	var rr: Rect2 = T.reglages
+	ci.draw_rect(rr, PC_CREME)
+	ci.draw_rect(Rect2(rr.position.x, rr.position.y, rr.size.x, 3), PC_TRAIT)
+	if T.has("nuitTexte"):
+		var nt: PackedStringArray = T.nuitTexte
+		for i in nt.size(): Style.texte(ci, nt[i], Vector2(18, float(T.nuitY) + 16 * i + 12.9), 13, T_MUET)
+
+
+## LA LISTE DE LA CATÉGORIE, AU TÉLÉPHONE (js/ui.js, records et palmaresListe) : l'en-tête, puis une
+## ligne arrondie par voiture (52 de haut, 6 d'écart), dans la page qui défile.
+func _listeTel(ci: CanvasItem, cid: String, v: Dictionary) -> void:
+	var course := mode == "race"
+	var yl: float = T.liste
+	var encre := Color("#262b26")
+	if course:
+		_espace(ci, Textes.t("palmares").to_upper(), Vector2(15, yl + 20.6), 15, encre, 1.5)
+		var e := Mondial.nuage()
+		var tx := Textes.t("nuage_" + e)
+		var xt := 375 - float(T.get("decaleNuage", 0.0)) - Style.largeur(tx, 13)
+		ci.draw_texture_rect(Palmares.nuage(e, 90), Rect2(xt - 36, yl + 4, 30, 22), false)
+		Style.texte(ci, tx, Vector2(xt, yl + 19.9), 13, Color("#7b776e"))
+	else:
+		_espace(ci, Textes.t("yourBestTitle").to_upper(), Vector2(15, yl + 26.6), 15, encre, 1.5)
+	var note: PackedStringArray = T.note
+	var cn := Color("#a3271c") if T.get("alerte", false) else T_MUET
+	for i in note.size(): Style.texte(ci, note[i], Vector2(15, float(T.yNote) + 16 * i + 12.9), 13, cn)
+	# les têtes de colonnes
+	var yh: float = T.yTete
+	var muet := PC_MUET
+	if course:
+		_espace(ci, Textes.t("palmaresTrophee").to_upper(), Vector2(175, yh + 9.75), 10, muet, 0.8)
+		var tn := Textes.t("palmaresNiveau").to_upper()
+		_espace(ci, tn, Vector2(361 - _largeurEspace(tn, 10, 0.8), yh + 9.75), 10, muet, 0.8)
+	else:
+		# la police du système (system-ui 700), comme le jeu web
+		var sys := ThemeDB.fallback_font
+		for c in [[Textes.t("colRecord").to_upper(), 269.0], [Textes.t("colMonde").to_upper(), 361.0]]:
+			var lib: String = c[0]
+			var w := sys.get_string_size(lib, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + (lib.length() - 1) * 0.8
+			var xc: float = c[1] - w
+			for i in lib.length():
+				ci.draw_string(sys, Vector2(xc + sys.get_string_size(lib.substr(0, i), HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + i * 0.8, yh + 10), lib[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 10, muet)
+	# les voitures de la catégorie : en course, du meilleur trophée au moins bon ; sinon tes temps d'abord
+	var voitures := Catalogue.voituresDe(String(v.get("cat", "")))
+	var lignes := []
+	for i in voitures.size():
+		var m: Dictionary = voitures[i]
+		lignes.append({ m = m, i = i, b = _record(cid, m.id), n = Palmares.de(cid, m.id) })
+	if course:
+		lignes.sort_custom(func(a, b): return a.n > b.n if a.n != b.n else a.i < b.i)
+	else:
+		lignes.sort_custom(func(a, b):
+			if (a.b < 0) != (b.b < 0): return a.b >= 0
+			if a.b != b.b: return a.b < b.b
+			return a.i < b.i)
+	var par = null if course else Mondial.meilleurs(cid)
+	var y: float = T.yLignes
+	for l in lignes:
+		var m: Dictionary = l.m
+		var choisie: bool = m.id == v.id
+		var sb := StyleBoxFlat.new()
+		sb.set_corner_radius_all(12)
+		sb.bg_color = Color("#ddd0b6") if choisie else Color("#eee3ca")
+		if choisie:
+			sb.border_color = Color("#b42b26")
+			sb.set_border_width_all(2)
+		ci.draw_style_box(sb, Rect2(15, y, 360, 52))
+		var d := Catalogue.dessin(m.id, int(App.reglages.livree) if choisie else 0)
+		if d.get("vignette"):
+			var tex := Style.tex("res://images/vignettes/" + d.vignette)
+			var e := minf(48.0 / tex.get_width(), 36.0 / tex.get_height())
+			var t := Vector2(tex.get_width(), tex.get_height()) * e
+			# une voiture sans trophée est à demi effacée (.rline.vierge)
+			var voile := Color(1, 1, 1, 0.55) if course and int(l.n) < 0 else Color.WHITE
+			ci.draw_texture_rect(tex, Rect2(Vector2(25 + (48 - t.x) / 2, y + 8 + (36 - t.y) / 2), t), false, voile)
+		var nl := Paddock._lignes(str(m.nom), 12, 84 if course else 94)
+		var yn := y + 26 - nl.size() * 7.0
+		for i in nl.size(): Style.texte(ci, nl[i], Vector2(81, yn + 14 * i + 11.5), 12, Color("#272b28"))
+		var bas := y + 30.0
+		if course:
+			var n: int = l.n
+			if n >= 0:
+				ci.draw_texture_rect(Palmares.texture(n, 78), Rect2(173, y + 13, 26, 26), false)
+				Style.texte(ci, _coupe(Textes.t("trophee_" + Palmares.TROPHEES[n]), 13, 74), Vector2(203, bas), 13, Color("#272b28"))
+				var nv := Textes.t(Palmares.NIVEAUX[n]).capitalize()
+				Style.texte(ci, nv, Vector2(359 - Style.largeur(nv, 13), bas), 13, Color("#272b28"))
+			else:
+				Style.texte(ci, "—", Vector2(173, bas), 13, T_MUET)
+				Style.texte(ci, "—", Vector2(359 - Style.largeur("—", 13), bas), 13, T_MUET)
+		else:
+			var b: float = l.b
+			var tb := Style.temps(b) if b >= 0 else "--:--.---"
+			Style.texte(ci, tb, Vector2(267 - Style.largeur(tb, 13), bas), 13, Color("#272b28") if b >= 0 else T_MUET)
+			var wd: Dictionary = par.get(m.id, {}) if par is Dictionary else {}
+			if par == null:
+				Style.texte(ci, "…", Vector2(359 - Style.largeur("…", 13), bas), 13, T_MUET)
+			elif wd.is_empty():
+				Style.texte(ci, "--:--.---", Vector2(359 - Style.largeur("--:--.---", 13), bas), 13, T_MUET)
+			else:
+				var tw := Style.temps(float(wd.temps))
+				Style.texte(ci, tw, Vector2(359 - Style.largeur(tw, 13), bas - 5), 13, Color("#b48cff"))
+				var pil := _coupe(String(wd.get("pilote", "")), 10, 84)
+				Style.texte(ci, pil, Vector2(359 - Style.largeur(pil, 10), bas + 7), 10, T_MUET)
+		y += 58
+
+
+## La barre collée en bas, au téléphone : le papier bordé d'encre, son ombre, le damier penché.
+func _dessineBarre() -> void:
+	if not portrait: return
+	var W := barre.size.x
+	for i in 20:
+		var a := 0.2 * pow(1.0 - i / 20.0, 2) * 0.35
+		barre.draw_rect(Rect2(0, -i - 1, W, 1), Color(0, 0, 0, a))
+	barre.draw_rect(Rect2(0, 0, W, T_BARRE + 60), PC_CREME)
+	barre.draw_rect(Rect2(0, 0, W, 3), PC_TRAIT)
+	Style.damier(barre, Rect2(4, 11, 58, 48), 8, PC_CREME, T_NOIR, 12)
