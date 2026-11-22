@@ -2148,7 +2148,8 @@ class Renderer {
     }
     // les mécaniciens au sol, sous les voitures : ceux des roues y glissent les mains sous la caisse
     if (this.equipes) { g.imageSmoothingEnabled = true; this.equipes.dessine(g, 'dessous'); }
-    for (const car of dessous) this._drawCar(g, car);
+    const radar = race.opts.opponentRadar && !race.player.abandon ? { markers: [], brakingCar: this._brakingCarAhead(race) } : null;
+    for (const car of dessous) this._drawCar(g, car, radar);
     this._drawMecanos(g);
     if (T.drawRoad) for (const b of this.paths.bridges) {
       // bouts francs : c'est tout l'intérêt de ne border que les côtés
@@ -2162,7 +2163,7 @@ class Renderer {
       g.lineCap = 'round';
     }
     if(T.drawRoad&&pont.length)this._drawBarriers(g,vis,1);
-    for (const car of dessus) this._drawCar(g, car);
+    for (const car of dessus) this._drawCar(g, car, radar);
     // et le tablier par-dessus les voitures : c'est ce qui dit qu'on passe dessous
     for (const p of this.paths.passerelles) {
       if (!inView(p.bbox)) continue;
@@ -2193,6 +2194,7 @@ class Renderer {
     hud.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     if (!race.opts.spectator) this._drawHUD(hud, race, ui);
     else ui.app.spectator?.drawMap(hud, race);
+    if (radar && radar.markers.length) this._drawOpponentRadar(hud, radar);
     if (race.netDrive && ui.app.net?.link) {
       const label = ui.app.net.link.label(), x = this.w - 10, y = this.h - 10;
       hud.save(); hud.font = 'bold 11px system-ui'; hud.textAlign = 'right'; hud.textBaseline = 'bottom';
@@ -3038,7 +3040,7 @@ class Renderer {
     ctx.restore();
   }
 
-  _drawCar(g, car) {
+  _drawCar(g, car, radar) {
     const m = g.getTransform(), scale = this.nativeDpr / this.dpr;
     /* UNE VOITURE HORS DE L'ÉCRAN NE SE DESSINE PAS. Les dix l'étaient à chaque image, quel que soit le
     cadre : mesuré à Spa sur un téléphone, 5,5 en moyenne étaient à l'écran pendant les 40 premières
@@ -3048,6 +3050,24 @@ class Renderer {
     {
       const cx = m.a * car.x + m.c * car.y + m.e, cy = m.b * car.x + m.d * car.y + m.f;
       const marge = 12 * Math.hypot(m.a, m.b), W = this.canvas.width, H = this.canvas.height;
+      if (radar && car.isPlayer) {
+        radar.playerX = cx / this.dpr;
+        radar.playerY = cy / this.dpr;
+      } else if (radar && !car.abandon && (cx < 0 || cy < 0 || cx > W || cy > H)) {
+        const zoom = Math.hypot(m.a, m.b);
+        const angle = car.heading + Math.atan2(m.b, m.a);
+        const cs = Math.abs(Math.cos(angle)), sn = Math.abs(Math.sin(angle));
+        const art = topArt(car.cls, car.livree);
+        const halfL = car.cls.length / 2 + 0.7;
+        const halfW = (art ? topSize(car.cls, art)[1] : car.cls.width) / 2 + 0.7;
+        const dx = Math.max(0, -cx, cx - W) / zoom - cs * halfL - sn * halfW;
+        const dy = Math.max(0, -cy, cy - H) / zoom - sn * halfL - cs * halfW;
+        const metres = Math.hypot(Math.max(0, dx), Math.max(0, dy));
+        if (metres > 0 && metres < 35) {
+          radar.markers.push({ x: cx / this.dpr, y: cy / this.dpr, proximity: 1 - metres / 35,
+            color: car.livery.body, braking: car === radar.brakingCar });
+        }
+      }
       if (cx < -marge || cy < -marge || cx > W + marge || cy > H + marge) return;
     }
     g = this.carCtx;
@@ -3454,6 +3474,109 @@ class Renderer {
   }
 
   // ---------- HUD ----------
+  _brakingCarAhead(race) {
+    const p = race.player;
+    if (p.finished || p.inPit || (race.state !== 'racing' && race.state !== 'finishing')) return null;
+    let lead = null, range = clamp(p.v * 1.5, 18, 90);
+    for (const car of race.cars) {
+      if (car === p || car.abandon || car.finished || car.inPit || car.state !== 'ok' || car.fantome) continue;
+      // Écart sur la piste, y compris de part et d'autre de la ligne d'arrivée.
+      const gap = race.track.diff(p.s, car.s);
+      if (gap >= (p.cls.length + car.cls.length) / 2 && gap < range) {
+        lead = car;
+        range = gap;
+      }
+    }
+    return lead?.braking ? lead : null;
+  }
+
+  _drawBrakeMark(g, halfHeight) {
+    g.scale(halfHeight, halfHeight);
+    g.fillStyle = '#ff3939';
+    g.beginPath();
+    g.moveTo(-0.31, -1);
+    g.lineTo(0.31, -1);
+    g.lineTo(0.23, 0.30);
+    g.lineTo(-0.23, 0.30);
+    g.closePath();
+    g.rect(-0.25, 0.52, 0.50, 0.48);
+    g.fill();
+  }
+
+  _drawOpponentRadar(g, radar) {
+    const maxSize = this.mobile ? 24 : 32, minSize = this.mobile ? 12 : 14;
+    const markHalfHeight = this.mobile ? 9 : 11;
+    const margin = Math.ceil(maxSize * 0.58) + 2;
+    const safe = this.encoches;
+    const left = safe.l + margin, right = this.w - safe.r - margin;
+    const top = safe.t + margin, bottom = this.h - safe.b - margin;
+    if (right <= left || bottom <= top) return;
+    const ox = clamp(radar.playerX, left, right), oy = clamp(radar.playerY, top, bottom);
+    const edges = [[], [], [], []]; // gauche, droite, haut, bas
+    for (const m of radar.markers) {
+      const dx = m.x - ox, dy = m.y - oy;
+      const tx = dx ? ((dx < 0 ? left : right) - ox) / dx : Infinity;
+      const ty = dy ? ((dy < 0 ? top : bottom) - oy) / dy : Infinity;
+      const vertical = tx < ty;
+      const edge = vertical ? (dx < 0 ? 0 : 1) : (dy < 0 ? 2 : 3);
+      m.size = minSize + (maxSize - minSize) * m.proximity;
+      m.base = -0.45 * m.size;
+      m.markX = m.base - 3 - markHalfHeight;
+      m.radius = m.size * 0.58 + 2;
+      if (m.braking) m.radius = markHalfHeight - m.markX + 2;
+      m.along = vertical ? oy + tx * dy : ox + ty * dx;
+      edges[edge].push(m);
+    }
+
+    g.save();
+    g.lineJoin = 'round';
+    g.lineWidth = 2;
+    g.strokeStyle = '#20251f';
+    edges.forEach((markers, edge) => {
+      if (!markers.length) return;
+      const vertical = edge < 2;
+      // Les coins sont réservés aux flèches horizontales (bords gauche et droit).
+      const lo = vertical ? top : left + margin, hi = vertical ? bottom : right - margin;
+      // Sur un petit écran, répartir tout le peloton sur le bord s'il manque de la place.
+      const span = markers.reduce((sum, m) => sum + 2 * m.radius, 0);
+      const spacing = clamp((hi - lo) / span, 0, 1);
+      markers.sort((a, b) => a.along - b.along);
+      let cursor = lo;
+      for (const m of markers) {
+        m.radius *= spacing;
+        m.along = Math.max(m.along, cursor + m.radius);
+        cursor = m.along + m.radius;
+      }
+      cursor = hi;
+      for (let i = markers.length - 1; i >= 0; i--) {
+        const m = markers[i];
+        m.along = Math.max(lo, Math.min(m.along, cursor - m.radius));
+        cursor = m.along - m.radius;
+        const x = vertical ? (edge === 0 ? left : right) : m.along;
+        const y = vertical ? m.along : (edge === 2 ? top : bottom);
+        const angle = Math.atan2(m.y - y, m.x - x);
+        g.save();
+        g.translate(x, y);
+        g.rotate(angle);
+        g.beginPath();
+        g.moveTo(0.55 * m.size, 0);
+        g.lineTo(m.base, 0.34 * m.size);
+        g.lineTo(m.base, -0.34 * m.size);
+        g.closePath();
+        g.fillStyle = m.color;
+        g.fill();
+        g.stroke();
+        if (m.braking) {
+          g.translate(m.markX, 0);
+          g.rotate(-angle);
+          this._drawBrakeMark(g, markHalfHeight);
+        }
+        g.restore();
+      }
+    });
+    g.restore();
+  }
+
   _drawHUD(g, race, ui) {
     const W = this.w, H = this.h, p = race.player, t = (k, ...a) => ui.t(k, ...a);
     const mobile = this.mobile, P = this.pad, pad0 = this.pad;

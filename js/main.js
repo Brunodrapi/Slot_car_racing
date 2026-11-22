@@ -426,6 +426,7 @@ class App {
     (`ctx.mode`) pour revenir au bon paddock. */
     const entrainement = mode === 'training';
     this._startRace({
+      opponentRadar: mode === 'race' && !reglage,
       reglage: !!reglage,
       frein: freinDe(this.save, trackId, modelId),
       mode: entrainement ? 'timetrial' : mode, entrainement, ghostName: this.ui.t('ghost'),
