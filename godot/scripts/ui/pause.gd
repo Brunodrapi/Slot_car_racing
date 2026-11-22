@@ -77,6 +77,11 @@ func _place() -> void:
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.05, 0.06, 0.09, 0.62))
 	var y0 := size.y * (0.24 if regNom else 0.38)
+	# le logo du jeu, au-dessus du titre (« le logo SLOTLESS doit aussi être repris dans les menus »)
+	var logo := Style.tex("res://images/interface/logo-slotless.webp")
+	var lw := minf(300.0, size.x * 0.6)
+	var lh := lw * logo.get_height() / logo.get_width()
+	if y0 - 74 - lh > 8: draw_texture_rect(logo, Rect2((size.x - lw) / 2, y0 - 74 - lh, lw, lh), false)
 	Style.texte(self, Textes.t("pause"), Vector2(0, y0 - 26), 44, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, size.x)
 	if regNom and jeu.course:
 		var y := y0 + boutons.size() * 58 + 50

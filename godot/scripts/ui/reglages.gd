@@ -314,6 +314,11 @@ func _dessine() -> void:
 	var ci := cadre
 	var x0: float = L.x0
 	ci.draw_string(_gras, Vector2(x0, float(L.titre) + (7.5 if portrait else 9.75)), Textes.t("rgTitre"), HORIZONTAL_ALIGNMENT_LEFT, -1, 20 if portrait else 26, TEXTE)
+	# le logo du jeu, en face du titre (« le logo SLOTLESS doit aussi être repris dans les menus »)
+	var logo := Style.tex("res://images/interface/logo-slotless.webp")
+	var lw := 120.0 if portrait else 190.0
+	var lh := lw * logo.get_height() / logo.get_width()
+	ci.draw_texture_rect(logo, Rect2(x0 + float(L.larg) - lw, float(L.titre) - lh / 2, lw, lh), false)
 	ci.draw_string(_gras, Vector2(x0, float(L.langueY) + 5.5), "Langue · Language", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, TEXTE)
 	if (L.aide as PackedStringArray).size():
 		var r: Rect2 = L.aideR

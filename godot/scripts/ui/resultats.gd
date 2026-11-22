@@ -62,7 +62,12 @@ func _draw() -> void:
 	var p := course.player
 	var titre := Textes.t("training" if course.entrainement else "timeTrial") if course.mode == "timetrial" else Textes.t("finishPos", [course.positionOf(p), course.cars.size()])
 	Style.texte(self, titre, r.position + Vector2(90, 46), 38, Style.CREME)
-	Style.texte(self, str(course.track.nom).to_upper(), r.position + Vector2(90, 46), 22, Style.PAPIER, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 104)
+	# le logo du jeu au bout du bandeau, comme la barre du titre des menus ; le circuit à sa gauche
+	var logo := Style.tex("res://images/interface/logo-slotless.webp")
+	var lw := minf(150.0, r.size.x * 0.22)
+	var lh := lw * logo.get_height() / logo.get_width()
+	draw_texture_rect(logo, Rect2(r.end.x - 12 - lw, r.position.y + 32 - lh / 2, lw, lh), false)
+	Style.texte(self, str(course.track.nom).to_upper(), r.position + Vector2(90, 46), 22, Style.PAPIER, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 104 - lw - 16)
 	var y := r.position.y + 80
 	var cols := [0.0, 50.0, 400.0, 520.0, 630.0, 740.0]
 	var tetes := ["", Textes.t("colDriver"), Textes.t("colTime"), Textes.t("colGap"), Textes.t("colPenalty"), Textes.t("colBest")]
