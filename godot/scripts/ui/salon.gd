@@ -174,7 +174,7 @@ func _maj() -> void:
 	var pilotes := net.members().filter(func(m): return not m.q.get("spectator", false)).size()
 	var s := JSON.stringify([net.state, net.busy, net.creator, t.get("mode"), t.get("timeOfDay"), t.get("degats"), cat, t.get("trackId"),
 		net.mine.get("ready"), net.mine.get("spectator"), App.reglages.voiture, App.reglages.livree, net.canStart(),
-		pilotes, t.get("laps"), t.get("aiCount"), t.get("championnat"), ReglageFrein.active(_circuitVu, App.reglages.voiture).get("nom"), debutCircuits, debutVoitures, size, net.members().size(), _suivre])
+		pilotes, t.get("laps"), t.get("aiCount"), t.get("championnat"), t.get("programme"), ReglageFrein.active(_circuitVu, App.reglages.voiture).get("nom"), debutCircuits, debutVoitures, size, net.members().size(), _suivre])
 	if s != _signature:
 		_signature = s
 		_construit()
@@ -195,18 +195,21 @@ func _b(t: String, r: Rect2, f: Color, e: Color, taille: int, action: Callable, 
 	return b
 
 
-## Une rangée de boutons à choix (.seg) : le choisi en rouge, les autres sombres.
-func _seg(choix: Array, actuel: String, y: float, actif: bool, action: Callable, prefixe: String) -> void:
-	var x := M
+func _choix(choix: Array, actuel: String, rect: Rect2, actif: bool, action: Callable, prefixe: String) -> float:
+	var x := rect.position.x
+	var y := rect.position.y
 	for c in choix:
-		var w := Style.largeur(c[1], 22) + 50
-		if x + w > W - M:
-			x = M; y += 52
-		var b := _b(c[1], Rect2(x, y, w, 44), VERT if c[0] == actuel else Style.NUIT_PLEINE, Color.WHITE if c[0] == actuel else Style.CREME, 22,
+		var w := minf(rect.size.x, Style.largeur(c[1], 18) + 26)
+		if x > rect.position.x and x + w > rect.end.x:
+			x = rect.position.x
+			y += 38
+		var sel: bool = c[0] == actuel
+		var b := _b(c[1], Rect2(x, y, w, 34), VERT if sel else Style.NUIT_PLEINE, Color.WHITE if sel else Style.CREME, 18,
 			func(): action.call(c[0]), prefixe + str(c[0]))
 		b.disabled = not actif
-		x += w + 6
-	z[prefixe] = y + 44
+		if sel or b.get_meta("cle") == "heurenight": b.set_meta("fane", true)
+		x += w + 5
+	return y + 40
 
 
 func _compteur(titre: String, valeur: String, rect: Rect2, cle: String, moins: Callable, plus: Callable, minAtteint: bool, maxAtteint: bool) -> void:
@@ -214,20 +217,19 @@ func _compteur(titre: String, valeur: String, rect: Rect2, cle: String, moins: C
 	var y := rect.position.y
 	var w := rect.size.x
 	var editable: bool = net.creator and net.settings().get("championnat", {}).is_empty()
-	var gauche := _b("−", Rect2(x, y, 44, 44), Style.NUIT_PLEINE, Style.CREME, 24, moins, cle + "-")
-	gauche.disabled = not editable or minAtteint
 	var label := Label.new()
 	label.text = titre
-	label.position = Vector2(x + 48, y)
-	label.size = Vector2(w - 170, 44)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.position = Vector2(x, y)
+	label.size = Vector2(w - 160, 36)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_color_override("font_color", TITRE)
+	label.add_theme_font_size_override("font_size", 17)
 	cadre.add_child(label)
-	var capsule := _b(valeur, Rect2(x + w - 118, y + 5, 68, 34), VERT, Color.WHITE, 19, func(): pass, cle + "-valeur")
+	var gauche := _b("−", Rect2(x + w - 152, y, 40, 36), Style.NUIT_PLEINE, Style.CREME, 22, moins, cle + "-")
+	gauche.disabled = not editable or minAtteint
+	var capsule := _b(valeur, Rect2(x + w - 107, y, 62, 36), VERT, Color.WHITE, 19, func(): pass, cle + "-valeur")
 	capsule.disabled = true
 	capsule.set_meta("fane", true)
-	var droite := _b("+", Rect2(x + w - 44, y, 44, 44), Style.NUIT_PLEINE, Style.CREME, 24, plus, cle + "+")
+	var droite := _b("+", Rect2(x + w - 40, y, 40, 36), Style.NUIT_PLEINE, Style.CREME, 22, plus, cle + "+")
 	droite.disabled = not editable or maxAtteint
 
 
@@ -235,25 +237,94 @@ func _compteur(titre: String, valeur: String, rect: Rect2, cle: String, moins: C
 func _optionsPilote(t: Dictionary, pilotes: int, y: float, x: float, largeur: float) -> float:
 	if t.get("mode", "race") == "race":
 		var tours := int(t.get("laps", 3))
-		_compteur(Textes.t("lapsLabel"), str(tours), Rect2(x, y, largeur, 44), "tours",
+		_compteur(Textes.t("lapsLabel"), str(tours), Rect2(x, y, largeur, 36), "tours",
 			func(): net.setTable({ laps = tours - 1 }), func(): net.setTable({ laps = tours + 1 }), tours <= 1, tours >= 10)
-		y += 50
+		y += 41
 		var maxiIA := maxi(0, 12 - mini(pilotes, Net.NET_SEATS))
 		var ia := clampi(int(t.get("aiCount", -1)), -1, maxiIA)
 		var valeur := "Auto" if ia < 0 else str(ia)
-		_compteur(Textes.t("adversairesIA"), valeur, Rect2(x, y, largeur, 44), "adversaires",
+		_compteur(Textes.t("adversairesIA"), valeur, Rect2(x, y, largeur, 36), "adversaires",
 			func(): net.setTable({ aiCount = ia - 1 }), func(): net.setTable({ aiCount = ia + 1 }), ia <= -1, ia >= maxiIA)
-		y += 50
+		y += 41
 	if not net.mine.get("spectator", false):
 		var circuit := String(Championnat.manche(t.get("championnat", {})).get("circuit", t.get("trackId", "monza")))
 		var voiture := String(App.reglages.voiture)
 		var cfg := ReglageFrein.active(circuit, voiture)
-		var valeur := Paddock._coupe(str(cfg.get("nom", Textes.t("regDefaut"))), 17, largeur - 136) + Paddock.LISTE
-		var b := _b("", Rect2(x, y, largeur, 44), Style.NUIT_PLEINE, Style.CREME, 19,
+		var valeur := Paddock._coupe(str(cfg.get("nom", Textes.t("regDefaut"))), 17, largeur - 150) + Paddock.LISTE
+		var b := _b("", Rect2(x, y, largeur, 36), Style.NUIT_PLEINE, Style.CREME, 19,
 			func(): ReglageFrein.suivante(circuit, voiture); App.sauve(); _maj(), "freinage")
 		b.dessinPlus = Paddock._pastille.bind(b, Textes.t("freinage"), valeur, 17)
-		y += 50
+		y += 41
 	return y
+
+
+func _parametres(t: Dictionary, pilotes: int, y: float, manche: Dictionary, cat: String) -> float:
+	var x := 14.0 if portrait else M
+	var total := 362.0 if portrait else W - 2 * M
+	var largeur := total - 24 if portrait else (total - 48) / 2
+	var haut := y
+	x += 12
+	y += 12
+	var libre := manche.is_empty()
+	var editable := net.creator and libre
+	var mode := String(t.get("mode", "race"))
+	z.formatTitre = Vector2(x, y + 15)
+	y = _choix([["race", Textes.t("mRaceSeg")], ["duel", Textes.t("mDuelSeg")], ["ghost", Textes.t("mGhostSeg")]], mode,
+		Rect2(x, y + 20, largeur, 0), editable, func(id): net.setTable({ mode = id }), "mode")
+	y = _optionsPilote(t, pilotes, y + 2, x, minf(largeur, 380))
+	var bas := y
+	if not portrait:
+		x += largeur + 24
+		y = haut + 12
+	z.catTitre = Vector2(x, y + 15)
+	var cats := [["all", Textes.t("all")]]
+	for c in Catalogue.categories(): cats.append([c.id, Textes.nom(c.nom).to_upper()])
+	cats.sort_custom(func(a, b): return CATS.find(a[0]) < CATS.find(b[0]))
+	y = _choix(cats, cat, Rect2(x, y + 20, largeur, 0), editable, func(id): net.setTable({ cat = id }), "cat")
+	var demi := (largeur - 8) / 2
+	z.heureTitre = Vector2(x, y + 15)
+	z.degatsTitre = Vector2(x + demi + 8, y + 15)
+	var basHeure := _choix([["day", Textes.t("daySeg")], ["night", Textes.t("nightSeg")]], String(t.get("timeOfDay", "day")),
+		Rect2(x, y + 20, demi, 0), editable, func(id): net.setTable({ timeOfDay = id }), "heure")
+	var basDegats := _choix([["1", Textes.t("on")], ["0", Textes.t("off")]], "1" if t.get("degats", false) == true else "0",
+		Rect2(x + demi + 8, y + 20, demi, 0), editable, func(id): net.setTable({ degats = id == "1" }), "degats")
+	y = maxf(basHeure, basDegats)
+	if t.get("timeOfDay") == "night":
+		var f1: bool = Catalogue.voiture(App.reglages.voiture).get("cat") == "f1"
+		z.nuitDesc = [Vector2(x, y + 12), Paddock._lignes(Textes.t("nightF1Hint" if f1 else "nightHint"), 15, largeur), ROUGE_SEL if f1 else MUET]
+		y += 8 + 17 * z.nuitDesc[1].size()
+	if not libre:
+		var phase := String(manche.phase)
+		var nomCircuit: String = infos.get(manche.circuit, {}).get("nom", manche.circuit)
+		var prochain := _b(Textes.t("courseSession" if phase == "course" else phase) + " · " + nomCircuit,
+			Rect2(x, y + 3, minf(largeur, 380), 38), VERT, Color.WHITE, 19, func(): pass, "session")
+		prochain.disabled = true
+		prochain.set_meta("fane", true)
+		y += 44
+		if net.creator:
+			_b(Textes.t("annulerChampionnat"), Rect2(x, y, minf(largeur, 380), 38), Style.NUIT_PLEINE, Style.CREME, 19,
+				func(): net.setTable({ championnat = {} }), "annulerChampionnat")
+			y += 44
+	elif mode in ["race", "duel"]:
+		var actif := Championnat.actif(t.get("programme", {}))
+		_b(Textes.t("programmeCourse"), Rect2(x, y + 3, minf(largeur, 260), 38), VERT if actif else Style.NUIT_PLEINE, Style.CREME, 19,
+			func(): App.aller("programme"), "programme")
+		y += 44
+	y = maxf(y, bas) + 12
+	z.options = Rect2(14 if portrait else M, haut, total, y - haut)
+	return y + 12
+
+
+func _dessineOptions(ci: CanvasItem) -> void:
+	var panneau: Rect2 = z.options
+	ci.draw_rect(panneau, Style.PAPIER)
+	ci.draw_rect(panneau, PANNEAU_BORD, false, 1)
+	for cle in [["formatTitre", "mFormatTitle"], ["catTitre", "mCatTitle"], ["heureTitre", "dayNightTitle"], ["degatsTitre", "chipDegats"]]:
+		Style.texte(ci, Textes.t(cle[1]), z[cle[0]], 15, TITRE)
+	if z.has("nuitDesc"):
+		var note: Array = z.nuitDesc
+		var p: Vector2 = note[0]
+		for i in note[1].size(): Style.texte(ci, note[1][i], p + Vector2(0, 17 * i), 15, note[2])
 
 
 func _construit() -> void:
@@ -370,50 +441,7 @@ func _construit() -> void:
 			b.ligne = 128
 			b.dessinPlus = _carteVoiture.bind(b)
 		y += 230
-		# Le format
-		z.formatTitre = Vector2(M, y + 14); y += 24
-		_seg([["race", Textes.t("mRaceSeg")], ["duel", Textes.t("mDuelSeg")], ["ghost", Textes.t("mGhostSeg")]], String(t.get("mode", "race")), y, net.creator and libre,
-			func(id): net.setTable({ mode = id }), "mode")
-		y = z.mode + 8
-		z.formatDesc = Vector2(M, y + 14); y += 30
-		y = _optionsPilote(t, pilotes.size(), y, M, minf(362, W - 2 * M))
-		# Le jour ou la nuit
-		z.heureTitre = Vector2(M, y + 14); y += 24
-		_seg([["day", Textes.t("daySeg")], ["night", Textes.t("nightSeg")]], "night" if t.get("timeOfDay") == "night" else "day", y, net.creator and libre,
-			func(id): net.setTable({ timeOfDay = id }), "heure")
-		y = z.heure + 8
-		if t.get("timeOfDay") == "night":
-			z.nuitDesc = Vector2(M, y + 14); y += 30
-		# Les dégâts (essai du jeu web) : l'hôte choisit pour tout le monde. Une table du jeu web publié
-		# ne les connaît pas : coupés tant que l'hôte ne les active pas.
-		z.degatsTitre = Vector2(M, y + 14); y += 24
-		_seg([["1", Textes.t("on")], ["0", Textes.t("off")]], "1" if t.get("degats", false) == true else "0", y, net.creator and libre,
-			func(id): net.setTable({ degats = id == "1" }), "degats")
-		y = z.degats + 8
-		z.degatsDesc = Vector2(M, y + 14); y += 30
-		# La catégorie
-		z.catTitre = Vector2(M, y + 14); y += 24
-		var cats := [["all", Textes.t("all")]]
-		for c in Catalogue.categories(): cats.append([c.id, Textes.nom(c.nom).to_upper()])
-		cats.sort_custom(func(a, b): return CATS.find(a[0]) < CATS.find(b[0]))
-		_seg(cats, cat, y, net.creator and libre, func(id): net.setTable({ cat = id }), "cat")
-		y = z.cat + 8
-		z.catDesc = Vector2(M, y + 14); y += 34
-		if not libre:
-			var phase := String(manche.phase)
-			var nomPhase := Textes.t("courseSession" if phase == "course" else phase)
-			var nomCircuit: String = infos.get(manche.circuit, {}).get("nom", manche.circuit)
-			var prochain := _b(nomPhase + " · " + nomCircuit, Rect2(M, y + 8, 360, 44), VERT, Color.WHITE, 19, func(): pass, "session")
-			prochain.disabled = true
-			y += 54
-			if net.creator:
-				_b(Textes.t("annulerChampionnat"), Rect2(M, y + 8, 360, 44), Style.NUIT_PLEINE, Style.CREME, 19,
-					func(): net.setTable({ championnat = {} }), "annulerChampionnat")
-				y += 54
-		elif t.get("mode", "race") in ["race", "duel"]:
-			_b(Textes.t("programmeCourse"), Rect2(M, y + 8, 260, 44), Style.NUIT_PLEINE, Color("#9eeac5"), 19,
-				func(): App.aller("programme"), "programme")
-			y += 60
+		y = _parametres(t, pilotes.size(), y, manche, cat)
 		# La barre du bas
 		z.barre = Rect2(M, y, W - 2 * M, 92)
 		var pret: bool = net.mine.get("ready", false)
@@ -585,25 +613,12 @@ func _dessine() -> void:
 		Style.texte(ci, " · ".join(tags), r.position + Vector2(12, 44), 12, MUET)
 		var etat := Textes.t("spectatorTag") if e.q.get("spectator", false) else ("✓ " + Textes.t("readyTag") if e.ready else Textes.t("waiting"))
 		Style.texte(ci, etat, r.position + Vector2(12, 64), 12, VERT if e.ready else MUET)
-	# Le format, l'heure, la catégorie
-	_titre(Textes.t("mFormatTitle"), z.formatTitre)
-	var mode := String(t.get("mode", "race"))
-	Style.texte(ci, Textes.t({ race = "mRaceDesc", duel = "mDuelDesc", ghost = "mGhostDesc" }.get(mode, "mRaceDesc")), z.formatDesc, 15, MUET)
-	_titre(Textes.t("dayNightTitle"), z.heureTitre)
-	if z.has("nuitDesc"):
-		var f1: bool = Catalogue.voiture(App.reglages.voiture).get("cat") == "f1"
-		Style.texte(ci, Textes.t("nightF1Hint" if f1 else "nightHint"), z.nuitDesc, 15, ROUGE_SEL if f1 else MUET)
-	if z.has("degatsTitre"):
-		_titre(Textes.t("chipDegats"), z.degatsTitre)
-		Style.texte(ci, Textes.t("degatsHint"), z.degatsDesc, 15, MUET)
-	_titre(Textes.t("mCatTitle"), z.catTitre)
-	var cat := String(t.get("cat", "all")) if t.get("cat") else "all"
-	Style.texte(ci, Textes.t("mCatOpen") if cat == "all" else Textes.t("mCatDesc"), z.catDesc, 15, MUET)
 	_apercuVoiture(ci, z.apercuVoiture)
 	var info: Dictionary = infos.get(_circuitVu, infos.values()[0])
 	_apercuCircuit(ci, z.apercuCircuit, info)
 	_titre(Textes.t("trackTitle"), z.circuitTitre)
 	_titre(Textes.t("modelTitle"), z.voitureTitre)
+	_dessineOptions(ci)
 	# La barre du bas
 	var b: Rect2 = z.barre
 	ci.draw_rect(b, PANNEAU)
@@ -813,54 +828,7 @@ func _construitTel(cle: String) -> void:
 			b.set_meta("livree", _livreeDe(c.id))
 			b.dessinPlus = Salon._carteVoitureTel.bind(b, avecCat)
 		y += 38 + 215
-		y += 18
-		z.formatTitre = y
-		y = _segTel([["race", Textes.t("mRaceSeg")], ["duel", Textes.t("mDuelSeg")], ["ghost", Textes.t("mGhostSeg")]], String(t.get("mode", "race")), y + 38, net.creator and libre,
-			func(id): net.setTable({ mode = id }), "mode")
-		var mode := String(t.get("mode", "race"))
-		z.formatDesc = [y + 16, Paddock._lignes(Textes.t({ race = "mRaceDesc", duel = "mDuelDesc", ghost = "mGhostDesc" }.get(mode, "mRaceDesc")), 16, 362)]
-		y += 16 + 24.0 * (z.formatDesc[1] as PackedStringArray).size()
-		y = _optionsPilote(t, pilotes.size(), y + 8, 14, 362)
-		# Le jour ou la nuit
-		y += 24
-		z.heureTitre = y
-		y = _segTel([["day", Textes.t("daySeg")], ["night", Textes.t("nightSeg")]], "night" if t.get("timeOfDay") == "night" else "day", y + 38, net.creator and libre,
-			func(id): net.setTable({ timeOfDay = id }), "heure")
-		if t.get("timeOfDay") == "night":
-			var f1: bool = Catalogue.voiture(App.reglages.voiture).get("cat") == "f1"
-			z.nuitDesc = [y + 16, Paddock._lignes(Textes.t("nightF1Hint" if f1 else "nightHint"), 16, 362)]
-			y += 16 + 24.0 * (z.nuitDesc[1] as PackedStringArray).size()
-		# Les dégâts (essai du jeu web) : l'hôte choisit pour tout le monde
-		y += 24
-		z.degatsTitre = y
-		y = _segTel([["1", Textes.t("on")], ["0", Textes.t("off")]], "1" if t.get("degats", false) == true else "0", y + 38, net.creator and libre,
-			func(id): net.setTable({ degats = id == "1" }), "degats")
-		z.degatsDesc = [y + 16, Paddock._lignes(Textes.t("degatsHint"), 16, 362)]
-		y += 16 + 24.0 * (z.degatsDesc[1] as PackedStringArray).size()
-		# La catégorie
-		y += 24
-		z.catTitre = y
-		var cats := [["all", Textes.t("all")]]
-		for c in Catalogue.categories(): cats.append([c.id, Textes.nom(c.nom).to_upper()])
-		cats.sort_custom(func(a, b): return CATS.find(a[0]) < CATS.find(b[0]))
-		y = _segTel(cats, cat, y + 38, net.creator and libre, func(id): net.setTable({ cat = id }), "cat") + 8
-		z.catDesc = [y + 16, Paddock._lignes(Textes.t("mCatOpen") if cat == "all" else Textes.t("mCatDesc"), 16, 362)]
-		y += 16 + 24.0 * (z.catDesc[1] as PackedStringArray).size()
-		if not libre:
-			var phase := String(manche.phase)
-			var nomPhase := Textes.t("courseSession" if phase == "course" else phase)
-			var nomCircuit: String = infos.get(manche.circuit, {}).get("nom", manche.circuit)
-			var prochain := _b(nomPhase + " · " + nomCircuit, Rect2(14, y + 8, 360, 44), VERT, Color.WHITE, 19, func(): pass, "session")
-			prochain.disabled = true
-			y += 54
-			if net.creator:
-				_b(Textes.t("annulerChampionnat"), Rect2(14, y + 8, 360, 44), Style.NUIT_PLEINE, Style.CREME, 19,
-					func(): net.setTable({ championnat = {} }), "annulerChampionnat")
-				y += 54
-		elif t.get("mode", "race") in ["race", "duel"]:
-			_b(Textes.t("programmeCourse"), Rect2(14, y + 8, 260, 44), Style.NUIT_PLEINE, Color("#9eeac5"), 19,
-				func(): App.aller("programme"), "programme")
-			y += 60
+		y = _parametres(t, pilotes.size(), y + 16, manche, cat)
 		# La barre du bas : Prêt, et pour l'hôte Départ !
 		y += 26
 		var pret: bool = net.mine.get("ready", false)
@@ -913,22 +881,6 @@ func _discordTel(y: float) -> void:
 
 
 ## Les boutons à choix du téléphone (.seg) : 44 de haut, penchés, qui passent à la ligne. Rend le bas.
-func _segTel(choix: Array, actuel: String, y: float, actif: bool, action: Callable, prefixe: String) -> float:
-	var x := 14.0
-	for c in choix:
-		var w := maxf(70.0, Style.largeur(c[1], 22) + 50)
-		if x > 14 and x + w > 376:
-			x = 14.0
-			y += 50
-		var sel: bool = c[0] == actuel
-		var b := _b(c[1], Rect2(x, y, w, 44), VERT if sel else T_SOMBRE, Color.WHITE if sel else Color("#f9efd9"), 22,
-			func(): action.call(c[0]), prefixe + str(c[0]))
-		b.coupe = w * 0.08
-		b.disabled = not actif
-		x += w + 6
-	return y + 44
-
-
 ## Le liseré d'un bouton du panneau (button.big : bord de 1, sans biseau).
 static func _bordTel(b: Bouton) -> void:
 	b.draw_rect(Rect2(Vector2(0.5, 0.5), b.size - Vector2(1, 1)), Color("#494a40"), false, 1)
@@ -1055,15 +1007,9 @@ func _dessineTel() -> void:
 		Style.texte(ci, " · ".join(tags), r.position + Vector2(14, 44.3), 13, T_PETIT)
 		var etat := Textes.t("spectatorTag") if e.q.get("spectator", false) else (Textes.t("readyTag") if e.ready else Textes.t("waiting"))
 		Style.texte(ci, etat, r.position + Vector2(14, 63.3), 13, VERT if e.ready else T_PETIT)
-	# les titres et les phrases
-	for cle in [["formatTitre", "mFormatTitle"], ["heureTitre", "dayNightTitle"], ["degatsTitre", "chipDegats"], ["catTitre", "mCatTitle"], ["circuitTitre", "trackTitle"], ["voitureTitre", "modelTitle"]]:
-		if z.has(cle[0]): _h3(ci, Textes.t(cle[1]), Vector2(14, float(z[cle[0]]) + 14.6))
-	for cle in ["formatDesc", "nuitDesc", "degatsDesc", "catDesc"]:
-		if not z.has(cle): continue
-		var d: Array = z[cle]
-		var l: PackedStringArray = d[1]
-		var f1: bool = cle == "nuitDesc" and Catalogue.voiture(App.reglages.voiture).get("cat") == "f1"
-		for i in l.size(): Style.texte(ci, l[i], Vector2(14, float(d[0]) + 24 * i + 18), 16, ROUGE_SEL if f1 else MUET)
+	for cle in [["circuitTitre", "trackTitle"], ["voitureTitre", "modelTitle"]]:
+		_h3(ci, Textes.t(cle[1]), Vector2(14, float(z[cle[0]]) + 14.6))
+	_dessineOptions(ci)
 	_apercuVoitureTel(ci, z.apercuVoiture)
 	var info: Dictionary = infos.get(_circuitVu, infos.values()[0])
 	_apercuCircuitTel(ci, z.apercuCircuit, info)

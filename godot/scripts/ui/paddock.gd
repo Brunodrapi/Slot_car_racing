@@ -446,7 +446,7 @@ func _construitPC(cle: String) -> void:
 	rg.centre = true
 	rg.set_meta("cle", "regler")
 	if race:
-		var programme := _bouton(Textes.t("programmeCourse"), Rect2(1291, 875, 273, 42), Style.NUIT_PLEINE, PC_CREME, 20, func(): App.aller("programme"))
+		var programme := _bouton(Textes.t("programmeCourse"), Rect2(1291, 875, 273, 42), Style.VERT if Championnat.actif(App.reglages.get("programme", {})) else Style.NUIT_PLEINE, PC_CREME, 20, func(): App.aller("programme"))
 		programme.centre = true
 		programme.set_meta("cle", "programme")
 	var go := _bouton(Textes.t("onTrack"), Rect2(1291, 932, 273, 58), Color("#d22620"), Color("#fff2da"), 38, _enPiste)
@@ -1002,6 +1002,7 @@ func _construitTel(cle: String) -> void:
 			b.coupe = 9
 			b.centre = true
 			b.set_meta("cle", p[3])
+			if p[3] == "programme" and Championnat.actif(App.reglages.get("programme", {})): b.fond = Style.VERT
 			if p[1] != "": b.dessinPlus = Paddock._pastilleTel.bind(b, p[0], p[1], p[3] == "nuit" and App.reglages.nuit and v.cat == "f1")
 			basLigne = y + 40
 			x += w + 8
