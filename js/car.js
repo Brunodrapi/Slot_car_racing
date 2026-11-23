@@ -494,6 +494,7 @@ class Car {
     this.chocs = [];
     this.reculChoc = 0;  // pas de physique avant qu'un frottement de flanc puisse recompter
     this.abandon = false; // le moteur ne repartira plus (ABANDON_VITESSE)
+    this.grosChocFatal = false;
     this.abandonT = 0;    // depuis combien de temps
     this.pitsDone = 0;
     /* `pitAsk` est l'INTENTION, `sel` reste la ligne.
@@ -655,6 +656,8 @@ class Car {
   }
 
   _marque(nx, ny, vitesse, frotte, sorte, epave = false) {
+    // La marque de tôle utilise ×0,55 pour les pneus ; le seuil d'abandon utilise ABANDON_PNEUS.
+    if (epave) this.grosChocFatal = vitesse >= ABANDON_VITESSE * (sorte === 'tyres' ? 0.55 / ABANDON_PNEUS : 1);
     if (this.chocs.length >= 12 || this.fantome) return;
     const cs = Math.cos(this.th), sn = Math.sin(this.th);
     this.chocs.push({ nx: nx * cs + ny * sn, ny: -nx * sn + ny * cs, v: vitesse, frotte: frotte || 0, sorte, epave });

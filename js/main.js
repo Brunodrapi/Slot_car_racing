@@ -537,7 +537,7 @@ class App {
     this.chargement = null;
     // Le son est remis d'aplomb ICI : contexte repris s'il avait été suspendu, prises rechargées si
     // leur téléchargement avait échoué. Voir `GameAudio.relance`.
-    this.audio.relance();
+    this.audio.relance(!!this.race.degats?.abandon);
     this.renderer.setTrack(this.race.track);
     this.renderer.cam.init = false;
     this.renderer.homePouce();
@@ -721,6 +721,7 @@ class App {
     if (!this.race) return;
     const race = this.race;
     if (this.state === 'race' || this.state === 'paused' && this.raceCtx?.online) {
+      const dejaAbandonne = race.player.abandon;
       const net = this.net, online = net && net.state === 'playing';
       /* La barrière de chargement, tenue pendant le décompte.
 
@@ -782,6 +783,7 @@ class App {
         if (quiet > 2) this.ui.flash = { text: this.ui.t('netLost'), until: performance.now() + 600, color: '#ffb4a2' };
       }
       this._handleEvents(race);
+      if (!dejaAbandonne && race.player.abandon) this.audio.joueAbandon(race.player.grosChocFatal);
       this.analytics.observe(race, elapsed, !document.hidden, this.desktop ? this.controls.mode : 'touch');
       if (this.spectator) this.spectator.update(dt);
       else this.renderer.updateCamera(race, dt);

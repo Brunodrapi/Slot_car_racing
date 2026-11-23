@@ -32,6 +32,8 @@ class GameAudio {
     this.ctx = null;
     this.enabled = true;
     this.started = false;
+    this.prisesAbandon = new Map();
+    this.commentaireId = 0;
     this.rpm = 0;           // lu par le HUD et par les mesures
     this.gear = 0;
   }
@@ -194,13 +196,50 @@ class GameAudio {
 
   Une course qui démarre est le bon moment pour tout remettre d'aplomb : c'est là que le son compte,
   et c'est un geste du joueur, donc un contexte autorisé à reprendre. */
-  relance() {
+  relance(avecAbandon = false) {
+    this.arreteCommentaire();
     this.start();
+    if (avecAbandon && this.ctx && this.enabled) {
+      this._priseAbandon('big_shock');
+      this._priseAbandon('too_much_hits');
+    }
     this.resume();
     if (this.rate) { this.rate = false; this.jeu = null; this.clsId = null; }
   }
 
+  _priseAbandon(nom) {
+    if (!this.prisesAbandon.has(nom)) {
+      const prise = fetch('sounds/abandon/' + nom + '.mp3')
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+        .then(data => this.ctx.decodeAudioData(data))
+        .catch(() => { this.prisesAbandon.delete(nom); return null; });
+      this.prisesAbandon.set(nom, prise);
+    }
+    return this.prisesAbandon.get(nom);
+  }
+
+  async joueAbandon(grosChoc) {
+    if (!this.started || !this.enabled) return;
+    this.arreteCommentaire();
+    const id = this.commentaireId;
+    const prise = await this._priseAbandon(grosChoc ? 'big_shock' : 'too_much_hits');
+    if (!prise || id !== this.commentaireId) return;
+    const source = this.ctx.createBufferSource();
+    source.buffer = prise;
+    source.connect(this.master);
+    source.onended = () => { if (this.commentaire === source) this.commentaire = null; };
+    this.commentaire = source;
+    source.start();
+  }
+
+  arreteCommentaire() {
+    this.commentaireId++;
+    if (this.commentaire) this.commentaire.stop();
+    this.commentaire = null;
+  }
+
   setEnabled(on) {
+    if (!on) this.arreteCommentaire();
     this.enabled = on;
     if (this.master) this.master.gain.setTargetAtTime(on ? 0.5 : 0, this.ctx.currentTime, 0.05);
   }
@@ -338,6 +377,7 @@ class GameAudio {
   }
 
   idle() {
+    this.arreteCommentaire();
     if (!this.started) return;
     const t = this.ctx.currentTime;
     for (const g of [this.engGain, this.sqGain, this.grvGain, this.windGain]) {
