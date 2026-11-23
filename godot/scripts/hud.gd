@@ -443,15 +443,21 @@ func _reperesRadar() -> Array[Dictionary]:
 	var joueur: VoitureVue = jeu.vues[course.cars.find(p)]
 	var origine := (versHud * joueur.get_global_transform_with_canvas().origin).clamp(marge, fin)
 	var devant: Voiture = null
-	var portee := clampf(p.v * 1.5, 18, 90)
-	for i in course.cars.size():
-		var c := course.cars[i]
-		if c == p or c.abandon or c.fantome: continue
+	var derriere: Voiture = null
+	var distanceAvant := INF
+	var distanceArriere := INF
+	for c in course.cars:
+		if c == p or c.abandon or c.finished or c.inPit or c.fantome: continue
 		var ecart := course.track.diff(p.s, c.s)
-		if not c.finished and not c.inPit and not c.herbe and ecart >= (p.cls.length + c.cls.length) / 2 and ecart < portee:
-			portee = ecart
+		if ecart > 0 and ecart < distanceAvant:
 			devant = c
-		var vue: VoitureVue = jeu.vues[i]
+			distanceAvant = ecart
+		if ecart < 0 and -ecart < distanceArriere:
+			derriere = c
+			distanceArriere = -ecart
+	for c: Voiture in [devant, derriere]:
+		if c == null: continue
+		var vue: VoitureVue = jeu.vues[course.cars.find(c)]
 		var pose := versHud * vue.get_global_transform_with_canvas()
 		var demi := Vector2(vue.cotes.w, vue.cotes.h) / 2 + Vector2.ONE * 0.7
 		var caisse := pose * Rect2(-demi, 2 * demi)
@@ -466,7 +472,9 @@ func _reperesRadar() -> Array[Dictionary]:
 		var longueur := lerpf(tailleMax, 12.0 if mobile else 14.0, metres / 35)
 		bords[bord].append({voiture = c, cible = pose.origin, taille = longueur, leLong = impact.y if bord < 2 else impact.x})
 	# La flèche et le signe partagent une place sur le bord ; un seul avertissement pour la voiture qui précède.
-	var alerte := devant != null and devant.braking and not p.inPit and not p.finished and course.state in ["racing", "finishing"]
+	var alerte := false
+	if devant != null and not p.inPit and not p.finished and course.state in ["racing", "finishing"]:
+		alerte = devant.braking or _vitesseSurPiste(p) - _vitesseSurPiste(devant) > 0.5
 	for bord in bords.size():
 		var groupe: Array = bords[bord]
 		if groupe.is_empty(): continue
@@ -475,8 +483,8 @@ func _reperesRadar() -> Array[Dictionary]:
 		var limite := fin.y if vertical else fin.x - marge.x
 		var somme := 0.0
 		for m in groupe:
-			m.freine = alerte and m.voiture == devant
-			m.rayon = m.taille * 0.45 + 2 * demiMarque + 5 if m.freine else m.taille * 0.58 + 2
+			m.alerte = alerte and m.voiture == devant
+			m.rayon = m.taille * 0.45 + 2 * demiMarque + 5 if m.alerte else m.taille * 0.58 + 2
 			somme += 2 * m.rayon
 		var espacement := clampf((limite - debut) / somme, 0, 1)
 		groupe.sort_custom(func(a, b): return a.leLong < b.leLong)
@@ -495,6 +503,11 @@ func _reperesRadar() -> Array[Dictionary]:
 	return reperes
 
 
+func _vitesseSurPiste(c: Voiture) -> float:
+	var angle := c.th - course.track.headingAt(c.s)
+	return c.v * cos(angle) + c.vl * sin(angle)
+
+
 func _radar() -> void:
 	for m in _reperesRadar():
 		var centre: Vector2 = m.centre
@@ -506,7 +519,7 @@ func _radar() -> void:
 		draw_colored_polygon(triangle, Color(Catalogue.donnees.livreries[m.voiture.livery].body))
 		triangle.append(triangle[0])
 		draw_polyline(triangle, Color("#20251f"), 2, true)
-		if m.freine:
+		if m.alerte:
 			var h := 9.0 if _mobile() else 11.0
 			var o := base - dir * (3 + h)
 			var rouge := Color("#ff3939")

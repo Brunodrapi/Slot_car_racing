@@ -2140,7 +2140,7 @@ class Renderer {
     }
     // les mécaniciens au sol, sous les voitures : ceux des roues y glissent les mains sous la caisse
     if (this.equipes) { g.imageSmoothingEnabled = true; this.equipes.dessine(g, 'dessous'); }
-    const radar = race.opts.opponentRadar && !race.player.abandon ? { markers: [], brakingCar: this._brakingCarAhead(race) } : null;
+    const radar = race.opts.opponentRadar && !race.player.abandon ? this._opponentRadar(race) : null;
     for (const car of dessous) this._drawCar(g, car, radar);
     this._drawMecanos(g);
     if (T.drawRoad) for (const b of this.paths.bridges) {
@@ -3045,7 +3045,7 @@ class Renderer {
       if (radar && car.isPlayer) {
         radar.playerX = cx / this.dpr;
         radar.playerY = cy / this.dpr;
-      } else if (radar && !car.abandon && (cx < 0 || cy < 0 || cx > W || cy > H)) {
+      } else if (radar && (car === radar.ahead || car === radar.behind) && (cx < 0 || cy < 0 || cx > W || cy > H)) {
         const zoom = Math.hypot(m.a, m.b);
         const angle = car.heading + Math.atan2(m.b, m.a);
         const cs = Math.abs(Math.cos(angle)), sn = Math.abs(Math.sin(angle));
@@ -3057,7 +3057,7 @@ class Renderer {
         const metres = Math.hypot(Math.max(0, dx), Math.max(0, dy));
         if (metres > 0 && metres < 35) {
           radar.markers.push({ x: cx / this.dpr, y: cy / this.dpr, proximity: 1 - metres / 35,
-            color: car.livery.body, braking: car === radar.brakingCar });
+            color: car.livery.body, warning: car === radar.ahead && radar.warnAhead });
         }
       }
       if (cx < -marge || cy < -marge || cx > W + marge || cy > H + marge) return;
@@ -3466,20 +3466,26 @@ class Renderer {
   }
 
   // ---------- HUD ----------
-  _brakingCarAhead(race) {
+  _opponentRadar(race) {
     const p = race.player;
-    if (p.finished || p.inPit || (race.state !== 'racing' && race.state !== 'finishing')) return null;
-    let lead = null, range = clamp(p.v * 1.5, 18, 90);
+    let ahead = null, behind = null, frontGap = Infinity, rearGap = Infinity;
+    // Choisir les voisines avant de regarder si elles sont visibles, même au passage de la ligne.
     for (const car of race.cars) {
-      if (car === p || car.abandon || car.finished || car.inPit || car.state !== 'ok' || car.fantome) continue;
-      // Écart sur la piste, y compris de part et d'autre de la ligne d'arrivée.
+      if (car === p || car.abandon || car.finished || car.inPit || car.fantome) continue;
       const gap = race.track.diff(p.s, car.s);
-      if (gap >= (p.cls.length + car.cls.length) / 2 && gap < range) {
-        lead = car;
-        range = gap;
-      }
+      if (gap > 0 && gap < frontGap) { ahead = car; frontGap = gap; }
+      if (gap < 0 && -gap < rearGap) { behind = car; rearGap = -gap; }
     }
-    return lead?.braking ? lead : null;
+    let warnAhead = false;
+    if (ahead && !p.finished && !p.inPit && (race.state === 'racing' || race.state === 'finishing')) {
+      // Projeter la vitesse du châssis et la glisse latérale sur la tangente locale du circuit.
+      const trackSpeed = car => {
+        const angle = car.th - race.track.headingAt(car.s);
+        return car.v * Math.cos(angle) + car.vl * Math.sin(angle);
+      };
+      warnAhead = ahead.braking || trackSpeed(p) - trackSpeed(ahead) > 0.5;
+    }
+    return { ahead, behind, warnAhead, markers: [] };
   }
 
   _drawBrakeMark(g, halfHeight) {
@@ -3515,7 +3521,7 @@ class Renderer {
       m.base = -0.45 * m.size;
       m.markX = m.base - 3 - markHalfHeight;
       m.radius = m.size * 0.58 + 2;
-      if (m.braking) m.radius = markHalfHeight - m.markX + 2;
+      if (m.warning) m.radius = markHalfHeight - m.markX + 2;
       m.along = vertical ? oy + tx * dy : ox + ty * dx;
       edges[edge].push(m);
     }
@@ -3558,7 +3564,7 @@ class Renderer {
         g.fillStyle = m.color;
         g.fill();
         g.stroke();
-        if (m.braking) {
+        if (m.warning) {
           g.translate(m.markX, 0);
           g.rotate(-angle);
           this._drawBrakeMark(g, markHalfHeight);
