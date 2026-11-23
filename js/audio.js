@@ -376,8 +376,8 @@ class GameAudio {
     }
   }
 
-  idle() {
-    this.arreteCommentaire();
+  idle({ laisserFinirCommentaire = false } = {}) {
+    if (!laisserFinirCommentaire) this.arreteCommentaire();
     if (!this.started) return;
     const t = this.ctx.currentTime;
     for (const g of [this.engGain, this.sqGain, this.grvGain, this.windGain]) {

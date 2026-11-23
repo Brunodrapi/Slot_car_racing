@@ -39,6 +39,23 @@ func _ready() -> void:
 	aller.call_deferred("titre")
 
 
+# L'annonce se termine pendant le classement, même après la libération de la scène de course.
+var _commentaire: AudioStreamPlayer
+
+
+func joueAbandon(grosChoc: bool) -> void:
+	if _commentaire == null:
+		_commentaire = AudioStreamPlayer.new()
+		_commentaire.volume_db = linear_to_db(0.5)
+		add_child(_commentaire)
+	_commentaire.stream = preload("res://sons/big_shock.mp3") if grosChoc else preload("res://sons/too_much_hits.mp3")
+	_commentaire.play()
+
+
+func arreteCommentaire() -> void:
+	if _commentaire != null: _commentaire.stop()
+
+
 ## LE CLIC DES MENUS. « Il faut, dans les deux versions, des clics dans les menus. » (Bruno) Chaque
 ## Bouton le joue quand on le prend (souris, doigt, clavier, manette) ; le même son que le jeu web
 ## (Son._synthClic). Il passe par le bus Master : le son coupé le coupe aussi.
@@ -216,6 +233,7 @@ func sauve() -> void:
 
 ## Change d'écran. `nom` : accueil, paddock, course, resultats.
 func aller(nom: String, opts: Dictionary = {}) -> void:
+	if nom != "resultats": arreteCommentaire()
 	if ecran:
 		ecran.queue_free()
 	# la musique des menus : partout sauf en course

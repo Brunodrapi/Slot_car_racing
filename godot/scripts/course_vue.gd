@@ -393,7 +393,7 @@ func _physics_process(_delta: float) -> void:
 	hud.evenements(course.evenements)
 	_sons(course.evenements)
 	if not dejaAbandonne and course.player.abandon:
-		son.joue("big_shock" if course.player.grosChocFatal else "too_much_hits")
+		App.joueAbandon(course.player.grosChocFatal)
 	if course.player.lap != tourAvant and enLigne == null: _record()
 	if course.state == "finished" and finieDepuis < 0:
 		finieDepuis = 0.0

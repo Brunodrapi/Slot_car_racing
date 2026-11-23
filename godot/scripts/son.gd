@@ -58,8 +58,6 @@ func _ready() -> void:
 		bruits[b[0]] = l
 		gains[b[0]] = 0.0
 	gains.moteur = 0.0
-	brefs.big_shock = _bref(preload("res://sons/big_shock.mp3"))
-	brefs.too_much_hits = _bref(preload("res://sons/too_much_hits.mp3"))
 	brefs.thud = _bref(_synthThud())
 	brefs["clac+"] = _bref(_synthClac(1))
 	brefs["clac-"] = _bref(_synthClac(-1))
@@ -311,8 +309,7 @@ func _filtre(bus: String, hz: float) -> void:
 
 
 func silence() -> void:
-	brefs.big_shock.stop()
-	brefs.too_much_hits.stop()
+	App.arreteCommentaire()
 	for k in voix: voix[k].lecteur.volume_db = -80
 	for k in bruits: bruits[k].volume_db = -80
 	for k in gains: gains[k] = 0.0
