@@ -72,6 +72,7 @@ func step(gaz: float) -> void:
 	var ch: PackedFloat64Array = moteur.chocs()
 	for k in range(0, ch.size(), 7):
 		var c: Voiture = cars[int(ch[k])]
+		if ch[k + 6] != 0: c.noteChocFatal(ch[k + 3], int(ch[k + 5]) == 1)
 		if c.chocs.size() < 12:
 			c.chocs.append({ nx = ch[k + 1], ny = ch[k + 2], v = ch[k + 3], frotte = ch[k + 4], sorte = ["rail", "tyres", "voiture"][int(ch[k + 5])], epave = ch[k + 6] != 0 })
 	evenements.clear()

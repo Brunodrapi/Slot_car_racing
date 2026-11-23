@@ -376,6 +376,7 @@ func _physics_process(_delta: float) -> void:
 	if not course.spectator:
 		course.player.sel = ligne
 		course.demandeStand(stand)
+	var dejaAbandonne := course.player.abandon
 	var tourAvant := course.player.lap
 	if course.spectator:
 		if drive.link.synchronized and drive.epoch != null:
@@ -391,6 +392,8 @@ func _physics_process(_delta: float) -> void:
 	coutPas = coutPas * 0.98 + float(Time.get_ticks_usec() - t0) * 0.02
 	hud.evenements(course.evenements)
 	_sons(course.evenements)
+	if not dejaAbandonne and course.player.abandon:
+		son.joue("big_shock" if course.player.grosChocFatal else "too_much_hits")
 	if course.player.lap != tourAvant and enLigne == null: _record()
 	if course.state == "finished" and finieDepuis < 0:
 		finieDepuis = 0.0

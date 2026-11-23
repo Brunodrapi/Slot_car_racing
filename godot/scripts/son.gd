@@ -58,6 +58,8 @@ func _ready() -> void:
 		bruits[b[0]] = l
 		gains[b[0]] = 0.0
 	gains.moteur = 0.0
+	brefs.big_shock = _bref(preload("res://sons/big_shock.mp3"))
+	brefs.too_much_hits = _bref(preload("res://sons/too_much_hits.mp3"))
 	brefs.thud = _bref(_synthThud())
 	brefs["clac+"] = _bref(_synthClac(1))
 	brefs["clac-"] = _bref(_synthClac(-1))
@@ -81,7 +83,7 @@ func _bus(nom: String, effets: Array) -> void:
 	for fx in effets: AudioServer.add_bus_effect(i, fx)
 
 
-func _bref(s: AudioStreamWAV) -> AudioStreamPlayer:
+func _bref(s: AudioStream) -> AudioStreamPlayer:
 	var l := AudioStreamPlayer.new()
 	l.stream = s
 	l.volume_db = linear_to_db(0.5)       # le volume général du jeu web (master.gain = 0,5)
@@ -309,6 +311,8 @@ func _filtre(bus: String, hz: float) -> void:
 
 
 func silence() -> void:
+	brefs.big_shock.stop()
+	brefs.too_much_hits.stop()
 	for k in voix: voix[k].lecteur.volume_db = -80
 	for k in bruits: bruits[k].volume_db = -80
 	for k in gains: gains[k] = 0.0

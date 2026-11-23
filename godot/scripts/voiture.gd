@@ -252,6 +252,7 @@ var degats := {}
 var enfoncement := PackedFloat32Array([0, 0, 0, 0, 0, 0, 0, 0])   # Float32Array dans le jeu web : même arrondi
 var chocs: Array = []
 var reculChoc := 0
+var grosChocFatal := false
 var abandon := false
 var abandonT := 0.0
 var pitsDone := 0
@@ -311,7 +312,13 @@ func _abandonne() -> void:
 
 
 ## Un choc, pour ce qui se voit (le dessin le lit puis vide la liste) : dans le repère de la voiture.
+func noteChocFatal(vitesse: float, pneus: bool) -> void:
+	# Le dessin amortit le choc sur pneus à 55 %, le seuil d'abandon à ABANDON_PNEUS.
+	grosChocFatal = vitesse >= ABANDON_VITESSE * (0.55 / ABANDON_PNEUS if pneus else 1.0)
+
+
 func _marque(nx: float, ny: float, vitesse: float, frotte: float, sorte: String, epave := false) -> void:
+	if epave: noteChocFatal(vitesse, sorte == "tyres")
 	if chocs.size() >= 12 or fantome: return
 	var cs := cos(th)
 	var sn := sin(th)
