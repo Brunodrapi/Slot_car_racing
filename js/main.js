@@ -631,7 +631,7 @@ class App {
       : this.race?.player.finished ? 'completed' : 'abandoned');
     const race = this.race, ctx = this.raceCtx || {};
     this.state = 'results';
-    this.audio.idle();
+    this.audio.idle({ laisserFinirCommentaire: true });
     this.spectator?.close();
     if (ctx.spectator) { this.ui.resultsScreen(race, ctx); return; }
     const save = this.save;
