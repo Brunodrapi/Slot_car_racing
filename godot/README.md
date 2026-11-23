@@ -30,8 +30,8 @@ contenu du jeu y est, repris du code web et non réinventé :
 - **la caméra** du jeu web : vue « devant, nord en haut », ou vue qui tourne avec la piste (touche C ou
   réglages), avec le recul réglable ;
 - **la nuit** de `js/render.js` : phares, feux arrière, projecteurs des bacs à gravier, faite avec les
-  lumières 2D de Godot ; le jour, les feux stop au freinage. Sous un tunnel, la nuit tombe en
-  0,35 s et se lève à la sortie, comme dans le jeu web ;
+  lumières 2D de Godot ; le jour, les feux stop au freinage. À Monaco, le tunnel laisse entrer le jour côté mer et reste éclairé la nuit.
+  La transition se fait sur les 20 mètres qui suivent l’entrée et précèdent la sortie ;
 - **les dégâts et les stands** de l'essai du jeu web (branche `claude/degats-visuels`) — voir plus
   bas ;
 - **le français et l'anglais**, avec les mots du jeu web ;

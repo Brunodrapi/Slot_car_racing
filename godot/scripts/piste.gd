@@ -49,7 +49,8 @@ var nBarrieres: int = 0
 var barrierGrid := {}  # Vector2i -> PackedInt32Array, dans l'ordre de track.js
 
 var width: float
-var tunnels: Array = []    # [premier point, nombre de points] : la nuit tombe dessous
+var tunnels: Array = []    # [premier point, nombre de points]
+var lumiereTunnel := {}
 ## La voie des stands (track.pit) : vide si le circuit n'en a pas. entree, boite, sortie, long,
 ## separation (bande neutre), largeur, zone (demi-longueur de la zone d'arrêt).
 var pit := {}
@@ -77,6 +78,7 @@ static func charge(chemin: String) -> Piste:
 	p.theme = meta.get("theme", "")
 	p.asphalte = meta.get("asphalte", true)
 	p.tunnels = meta.get("tunnels", [])
+	p.lumiereTunnel = meta.get("lumiereTunnel", {})
 	var sc: PackedFloat64Array = lit.call("scalaires")
 	p.n = int(sc[0]); p.ds = sc[1]; p.length = sc[2]; p.halfWidth = sc[3]; p.barrierCell = sc[4]; p.width = sc[5]
 	p.xs = lit.call("xs"); p.ys = lit.call("ys"); p.th = lit.call("th")

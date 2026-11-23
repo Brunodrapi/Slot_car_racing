@@ -183,19 +183,34 @@ func _verres(ci: CanvasItem, feux: Dictionary) -> void:
 				elif pts.size() >= 2: ci.draw_polyline(pts, c, p.w)
 
 
-## De jour, sous un tunnel, la nuit tombe en fondu, et se lève à la sortie (js/render.js,
-## NightLighting.prepare). Un départ sous le tunnel commence dans le noir.
+## Dans la galerie de Monaco, l'ouverture sur la mer (+lat) laisse entrer le jour.
+## Les luminaires prennent le relais la nuit. Le passage aux portails suit la distance parcourue.
 func _fondu() -> void:
-	if nuit:
-		force = 1.0
-		return
 	var c: Course = jeu.course
-	var dedans: bool = not c.spectator and jeu.piste.sousTunnel(c.player.s)
-	if _premier:
-		_premier = false
-		_tunnel = 1.0 if dedans else 0.0
-	_tunnel = clampf(_tunnel + (1.0 if dedans else -1.0) * minf(0.1, get_process_delta_time()) / FONDU, 0, 1)
-	force = _tunnel
+	var piste: Piste = jeu.piste
+	var lumiere := piste.lumiereTunnel
+	if not lumiere.is_empty():
+		force = 1.0 if nuit else 0.0
+		if not c.spectator:
+			var car := c.player
+			for tunnel in piste.tunnels:
+				var d := piste.wrap_(car.s - float(tunnel[0]) * piste.ds)
+				var profondeur := minf(d, float(tunnel[1]) * piste.ds - d)
+				if profondeur <= 0: continue
+				var k := piste.idx(car.s)
+				var mer := lisse((car.lat + piste.hwR[k]) / (piste.hwL[k] + piste.hwR[k]))
+				var interieur := float(lumiere.nuit) if nuit else lerpf(lumiere.mur, lumiere.mer, mer)
+				force = lerpf(force, interieur, lisse(profondeur / float(lumiere.portail)))
+				break
+	elif nuit:
+		return
+	else:
+		var dedans := not c.spectator and piste.sousTunnel(c.player.s)
+		if _premier:
+			_premier = false
+			_tunnel = 1.0 if dedans else 0.0
+		_tunnel = clampf(_tunnel + (1.0 if dedans else -1.0) * minf(0.1, get_process_delta_time()) / FONDU, 0, 1)
+		force = _tunnel
 	visible = force > 0
 	modulateur.color = Color.WHITE.lerp(OBSCURITE, force)
 	for l in _baseEnergie: l.energy = _baseEnergie[l] * force

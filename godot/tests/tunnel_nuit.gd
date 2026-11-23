@@ -1,4 +1,4 @@
-## Sous le tunnel de Monaco, de jour : la nuit tombe en fondu, et se lève à la sortie.
+## Sous le tunnel de Monaco, de jour : le jour entre côté mer et aux deux portails.
 ##
 ##   xvfb-run -a -s "-screen 0 1280x720x24" godot --path godot res://tests/tunnel_nuit.tscn -- <dossier>
 extends Node
@@ -29,20 +29,43 @@ func _physics_process(_dt: float) -> void:
 	var c: Course = jeu.course
 	var T := c.track
 	var tu: Array = T.tunnels[0]
+	var entree := float(tu[0]) * T.ds
+	var sortie := entree + float(tu[1]) * T.ds
+	var milieu := (entree + sortie) / 2
 	if n == 20:
 		bilan.dehorsAuDepart = jeu.nuit.force
 		c.state = "racing"; c.countdown = 0
-		c.player.place((int(tu[0]) + 80) * T.ds, 0, 0)
-	if n == 30: bilan.entree = jeu.nuit.force          # le fondu commence (quelques images plus tard)
+		c.player.place(entree + 10, 0, 0)
+	if n == 40:
+		bilan.entree = jeu.nuit.force
+		c.player.place(milieu, 0, 0)
 	if n == 120:
-		bilan.dedans = jeu.nuit.force; bilan.minicarte = jeu.nuit.voit(Vector2(c.player.x + 500, c.player.y), Vector2(c.player.x, c.player.y))
+		bilan.dedans = jeu.nuit.force
+		bilan.minicarte = jeu.nuit.voit(Vector2(c.player.x + 500, c.player.y), Vector2(c.player.x, c.player.y))
 		_photo("tunnel-dedans")
-		c.player.place((int(tu[0]) + int(tu[1]) + 150) * T.ds, 0, 0)
-	if n == 125: bilan.sortie = jeu.nuit.force
-	if n == 220:
+		c.player.place(milieu, T.hwL[T.idx(milieu)] * 0.8, 0)
+	if n == 140:
+		bilan.mer = jeu.nuit.force
+		c.player.place(milieu, -T.hwR[T.idx(milieu)] * 0.8, 0)
+	if n == 160:
+		bilan.mur = jeu.nuit.force
+		c.player.place(sortie - 10, 0, 0)
+	if n == 180:
+		bilan.sortie = jeu.nuit.force
+		c.player.place(sortie + 50, 0, 0)
+	if n == 240:
 		bilan.dehors = jeu.nuit.force
 		_photo("tunnel-dehors")
-		var ok: bool = bilan.dehorsAuDepart == 0 and bilan.entree > 0 and bilan.entree < 1 and bilan.dedans == 1 and bilan.minicarte \
-			and bilan.sortie < 1 and bilan.sortie > 0 and bilan.dehors == 0
+		jeu.nuit.nuit = true
+	if n == 260:
+		bilan.nuitDehors = jeu.nuit.force
+		c.player.place(milieu, 0, 0)
+	if n == 295:
+		bilan.nuitDedans = jeu.nuit.force
+		_photo("tunnel-nuit")
+		var ok: bool = bilan.dehorsAuDepart == 0 and bilan.dehors == 0 and bilan.minicarte \
+			and bilan.entree > 0 and bilan.entree < bilan.dedans and bilan.sortie > 0 and bilan.sortie < bilan.dedans \
+			and bilan.mer < bilan.dedans and bilan.dedans < bilan.mur and bilan.mur < 0.4 \
+			and bilan.nuitDehors == 1 and bilan.nuitDedans > bilan.mur and bilan.nuitDedans < 1
 		print("TUNNEL ", "OK" if ok else "ÉCHEC", " ", bilan)
-		get_tree().quit()
+		get_tree().quit(0 if ok else 1)
