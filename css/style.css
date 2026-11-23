@@ -1357,3 +1357,36 @@ Bruno sur un iPhone à Dynamic Island :
 @keyframes nuage-tourne { to { transform:rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .nuage-tourne { animation:none; } }
 .trophee-gagne > div { display:flex; flex-direction:column; gap:6px; }
+
+/* Programme de course et réglages partagés du salon. */
+.programme-bouton.programme-actif, .setup-chips .programme-bouton.programme-actif {
+  background: #2d8a4e;
+  color: #fff8e6;
+}
+.seg button.nuit-f1, .chip.nuit-f1 b { background: #bb2b26; color: #fff8e6; }
+.programme-ecran .programme-colonnes, .lobby-reglages {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.programme-ecran .programme-colonnes { max-width: 920px; margin: 14px auto; }
+.programme-carte { background: #fff6df; color: #20251f; padding: 14px; border: 1px solid #ab9d81; }
+.programme-carte h3 { margin: 4px 0 8px; }
+.programme-carte select { max-width: 100%; }
+.programme-carte ol { padding-inline-start: 26px; }
+.programme-ligne { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; }
+.programme-ligne input, .programme-ligne select, [data-programme-circuit] { min-height: 40px; }
+.programme-ligne input { width: 5em; }
+.programme-actions { display: flex; gap: 4px; }
+.programme-actions button { min-width: 44px; min-height: 44px; }
+.lobby-reglages { margin-block: 14px; }
+.lobby-reglages .chip { margin: 4px 4px 0 0; }
+.lobby-reglages-paire { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.lobby-reglages-paire > div { min-width: 120px; }
+.lobby-reglages .seg button.sel:not(.nuit-f1), .lobby-reglages .chip select, .lobby-reglages .chip input {
+  background: #2d8a4e;
+  color: #fff8e6;
+}
+@media (max-width: 700px) {
+  .programme-ecran .programme-colonnes, .lobby-reglages { grid-template-columns: 1fr; }
+}

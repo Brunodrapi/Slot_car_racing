@@ -30,7 +30,7 @@ class App {
     // two things: who is on the grid, and what the others are doing.
     this.net = typeof Net === 'undefined' ? null : new Net();
     if (this.net) {
-      this.net.onPeers = () => { if (this.state === 'lobby') this.ui.lobbyScreen(); };
+      this.net.onPeers = () => { if (this.state === 'lobby' && this.ui._cleEcran !== 'programme:multi') this.ui.lobbyScreen(); };
       this.net.onStart = (cfg) => this.startOnline(cfg);
     }
     this.raceCtx = null;
@@ -418,8 +418,14 @@ class App {
   /* `reglage` ouvre la course en MODE RÉGLAGE : un levier de freinage apparaît en haut, et la pause
   propose d'enregistrer la configuration sous un nom. La course elle-même ne change pas — c'est le
   seul moyen de régler un frein honnêtement, en roulant. */
-  startQuick(mode, classId, trackId, reglage) {
-    const trackDef = this.trackDefById(trackId), cat = categoryById(classId);
+  startQuick(mode, classId, trackId, reglage, championnat) {
+    const cat = categoryById(classId);
+    if (!reglage && mode === 'race' && !championnat && Championnat.actif(this.save.programme)) {
+      championnat = Championnat.programme(this.save.programme, trackId, this.save.laps || 5, Math.floor(Math.random() * 100000), cat.id);
+    }
+    const manche = Championnat.manche(championnat);
+    trackId = manche.circuit || trackId;
+    const trackDef = this.trackDefById(trackId);
     if (!trackDef) return;
     const modelId = this.playerModelFor(classId).id;
     /* L'ENTRAÎNEMENT est un contre-la-montre pour le moteur de course — pas de tours comptés, pas de
@@ -427,6 +433,9 @@ class App {
     (`ctx.mode`) pour revenir au bon paddock. */
     const entrainement = mode === 'training';
     this._startRace({
+      championnat,
+      nCars: this.save.adversaires ? 1 + this.save.adversaires : undefined,
+      roster: manche.phase ? makeRoster(this.save.adversaires ? 1 + this.save.adversaires : Math.min(cat.drivers, 12), this.save.livery, championnat.graine, cat.id) : undefined,
       opponentRadar: mode === 'race' && !reglage,
       reglage: !!reglage,
       frein: freinDe(this.save, trackId, modelId),
@@ -436,13 +445,13 @@ class App {
       // The circuit's own suggestion unless the player has asked for a number; a championship
       // round keeps the suggestion, since its length is part of the championship, not a setting.
       // le joueur choisit sa longueur ; la proposition du circuit ne sert plus que de filet
-      laps: this.save.laps || 5,
+      laps: manche.tours || this.save.laps || 5,
       difficulty: this.save.difficulty,
       wear: this.save.wear,
       degats: this.save.degats !== false,   // les dégâts (essai), en option : oui par défaut
       playerLivery: this.save.livery,
       playerName: this.playerName(),
-    }, { cup: null, mode, classId, trackId });
+    }, { cup: null, mode, classId, trackId, championnat });
   }
 
   startCupRace(cupId) {
@@ -487,13 +496,13 @@ class App {
       : hote.modelId ? categoryOfModel(hote.modelId) : cat;
     const places = cfg.aiCount >= 0 ? Math.min(12, cfg.humans.length + cfg.aiCount)
       : Math.max(cfg.humans.length + 1, Math.min(catIA.drivers || 10, 12));
-    const roster = cfg.mode === 'race' ? makeRoster(places, 0, (cfg.go || 1) % 100000, catIA.id) : null;
+    const roster = cfg.mode === 'race' ? makeRoster(places, 0, cfg.championnat?.graine ?? ((cfg.go || 1) % 100000), catIA.id) : null;
     this._startRace({
       // A shared time trial is a race with the contact turned off: everyone on the same lap
       // counter, nobody able to knock anybody off.
       mode: cfg.mode === 'ghost' ? 'race' : 'race',
       noContact: cfg.mode === 'ghost',
-      aiFill: cfg.mode === 'race', aiCount: cfg.aiCount,
+      aiFill: cfg.mode === 'race', aiCount: cfg.aiCount, nCars: places, championnat: cfg.championnat,
       trackDef,
       classId: cat.id,
       modelId: mine.modelId || this.playerModelFor(cat.id).id,
@@ -508,7 +517,7 @@ class App {
       spectator: cfg.spectator,
       humans: cfg.humans,
       roster,
-    }, { cup: null, mode: 'race', classId: cat.id, trackId: cfg.trackId, online: cfg.mode, spectator: cfg.spectator });
+    }, { cup: null, mode: 'race', classId: cat.id, trackId: cfg.trackId, online: cfg.mode, spectator: cfg.spectator, championnat: cfg.championnat });
   }
 
   _startRace(opts, ctx) {
@@ -554,6 +563,21 @@ class App {
     this.ui.flash = null;
     this.spectator = opts.spectator ? new SpectatorView(this) : null;
     this.last = performance.now();
+  }
+
+  sessionSuivante() {
+    const ctx = this.raceCtx;
+    const suite = Championnat.avance(ctx.resultatChampionnat);
+    if (ctx.online) {
+      if (this.net.creator) this.net.table.championnat = suite;
+      this.toLobby();
+    } else if (Championnat.manche(suite).phase) {
+      this.startQuick(ctx.mode, ctx.classId, ctx.trackId, false, suite);
+    } else {
+      this.state = 'menu';
+      this.audio.idle();
+      this.ui.setupScreen(ctx.mode);
+    }
   }
 
   retry() { if (this.raceOpts) this._startRace(this.raceOpts, this.raceCtx); }
@@ -639,6 +663,7 @@ class App {
     this.state = 'results';
     this.audio.idle({ laisserFinirCommentaire: true });
     this.spectator?.close();
+    if (Championnat.manche(ctx.championnat).phase) ctx.resultatChampionnat = Championnat.attribue(ctx.championnat, race);
     if (ctx.spectator) { this.ui.resultsScreen(race, ctx); return; }
     const save = this.save;
     /* Deux clés pour un même tour : le circuit, et le circuit avec la voiture.
@@ -695,7 +720,7 @@ class App {
                                       circuit: race.track.id, voiture: race.cls.id };
     }
     // le palmarès : une victoire en course rapide rapporte le trophée de son niveau (js/palmares.js)
-    const trophee = attribueTrophee(save, race, ctx);
+    const trophee = ctx.mode === 'race' ? null : attribueTrophee(save, race, ctx);
     if (trophee && trophee.nouveau && this.mondial) PalmaresSync.synchronise(this.mondial, save).catch(() => {});
     save.racesDone++;
     if (ctx.cup) {

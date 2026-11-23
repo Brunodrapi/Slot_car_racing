@@ -277,8 +277,9 @@ class NetDrive {
     // No changing a previously accepted lap, no backwards lap counter.
     if(c.lapTimes.some((v,i)=>Math.abs(v-m.laps[i][0])>.001)||m.lap<c.lap)return;
     const wasFinished=c.finished,oldLap=c.lap;
+    if (this.race.dureeSession && m.lapStart > this.race.dureeSession) return;
     this.applyMeta(c,m);
-    c.finished=m.lap>=this.race.laps;
+    c.finished=!this.race.dureeSession&&m.lap>=this.race.laps;
     if(c.finished){
       c.finishTime=m.lapStart;
       if(this.race.finishDeadline&&c.finishTime>this.race.finishDeadline){c.finished=false;c.finishTime=null;}

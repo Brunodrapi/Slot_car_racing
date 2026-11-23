@@ -113,6 +113,11 @@ const I18N = {
     penaltyWhy: (n, s) => `${n} sortie${n > 1 ? 's' : ''} de piste · +${s} s au classement. Le temps gagné hors piste est repris ; les vibreurs ne comptent pas.`,
     next: 'Suivant', retry: 'Rejouer', menu: 'Menu', resume: 'Reprendre', restart: 'Recommencer', quit: 'Quitter', paused: 'Pause', endSession: 'Terminer',
     lap: 'Tour', last: 'Dernier', best: 'Meilleur', grip: 'adhérence', holdToGo: 'Maintiens Espace pour accélérer', holdToGoTouch: 'Maintiens l’écran pour accélérer', lineHintKeys: '↑ / ↓ : trajectoire', lineHintTouch: 'Pouce gauche : trajectoire',
+    programmeCourse: 'Programme de course', essais: 'Essais libres', qualifications: 'Qualifications', championnat: 'Championnat',
+    grilleDepart: 'Grille de départ', ajouterCircuit: 'Ajouter un circuit', monterCircuit: 'Remonter le circuit', retirerCircuit: 'Retirer le circuit',
+    programmeHint: '0 min désactive la séance.', bareme_f1: 'F1 · 25 pts pour la victoire. La qualification fixe la grille.',
+    bareme_gt: 'GT Sprint · 16,5 pts pour la victoire et 1 pt pour la pole.', bareme_lemans: 'Le Mans · 50 pts pour la victoire et 1 pt pour la pole.',
+    mancheSuivante: 'Session suivante', annulerChampionnat: 'Terminer le championnat', adversairesIA: 'Adversaires IA', auto: 'Auto',
     lineBleu: 'BLEU', lineRace: 'IDÉALE', lineJaune: 'JAUNE', freinage: 'Freinage', reglages: 'Réglages', regDefaut: 'Par défaut', regRegler: 'Régler', regTitre: 'Réglage du freinage', regAide: 'Pousse le levier en roulant. Trop de frein et la voiture s’arrête dans le virage ; trop peu et c’est la sortie. Le repère blanc est le réglage d’origine.', regEnreg: 'Enregistrer la configuration', regNom: 'Nom de la configuration', regIci: (v) => `freinage ×${v.toFixed(2)} ici`, regIciDefaut: 'freinage d’origine ici', regPortee: 'Seuls les réglages enregistrés pour cette voiture sur ce circuit sont proposés. Le choix est mémorisé pour ce couple.', regFait: (n) => `Configuration « ${n} » enregistrée.`, engineCut: 'MOTEUR COUPÉ', offTrack: 'SORTIE DE PISTE !', finished: 'ARRIVÉE',
     lapVoid: 'annulé',
     cupComplete: 'Coupe terminée !', cupWon: 'Champion !', cupPodium: 'Podium ! Coupe suivante débloquée.', cupFailed: 'Hors du podium… retente ta chance.',
@@ -265,6 +270,11 @@ const I18N = {
     penaltyWhy: (n, s) => `${n} excursion${n > 1 ? 's' : ''} · +${s} s on the classification. Time gained off track is taken back; kerbs do not count.`,
     next: 'Next', retry: 'Retry', menu: 'Menu', resume: 'Resume', restart: 'Restart', quit: 'Quit', paused: 'Paused', endSession: 'Finish',
     lap: 'Lap', last: 'Last', best: 'Best', grip: 'grip', holdToGo: 'Hold Space to accelerate', holdToGoTouch: 'Hold anywhere to accelerate', lineHintKeys: '↑ / ↓: racing line', lineHintTouch: 'Left thumb: line',
+    programmeCourse: 'Race programme', essais: 'Free practice', qualifications: 'Qualifying', championnat: 'Championship',
+    grilleDepart: 'Starting grid', ajouterCircuit: 'Add a track', monterCircuit: 'Move track up', retirerCircuit: 'Remove track',
+    programmeHint: '0 min disables the session.', bareme_f1: 'F1 · 25 pts for the win. Qualifying sets the grid.',
+    bareme_gt: 'GT Sprint · 16.5 pts for the win and 1 pt for pole.', bareme_lemans: 'Le Mans · 50 pts for the win and 1 pt for pole.',
+    mancheSuivante: 'Next session', annulerChampionnat: 'End championship', adversairesIA: 'AI opponents', auto: 'Auto',
     lineBleu: 'BLUE', lineRace: 'RACING', lineJaune: 'YELLOW', freinage: 'Braking', reglages: 'Setup', regDefaut: 'Default', regRegler: 'Tune', regTitre: 'Braking setup', regAide: 'Push the lever while driving. Too much brake and the car stops in the corner; too little and you go off. The white mark is the stock setting.', regEnreg: 'Save this setup', regNom: 'Setup name', regIci: (v) => `braking ×${v.toFixed(2)} here`, regIciDefaut: 'stock braking here', regPortee: 'Only setups saved for this car on this circuit are offered. The selection is remembered for this pairing.', regFait: (n) => `Setup “${n}” saved.`, engineCut: 'ENGINE CUT', offTrack: 'OFF TRACK!', finished: 'FINISH',
     lapVoid: 'void',
     cupComplete: 'Cup complete!', cupWon: 'Champion!', cupPodium: 'Podium! Next cup unlocked.', cupFailed: 'Missed the podium… try again.',
@@ -1459,17 +1469,72 @@ class UI {
   CHAQUE LISTE EST SON PROPRE GROUPE pour la manette. Sur une liste, la croix gauche/droite change
   la valeur au lieu de passer à la voisine : deux listes rangées côte à côte dans un même groupe,
   la seconde n'aurait plus été atteignable qu'à la souris. RB/LB passe donc d'une liste à l'autre. */
+  boutonProgramme(options, enLigne) {
+    const actif = Championnat.actif(options);
+    return `<button class="chip programme-bouton ${actif ? 'programme-actif' : ''}" data-action="programme" data-id="${enLigne ? 'multi' : 'solo'}" aria-pressed="${actif}">${this.t('programmeCourse')}</button>`;
+  }
+
+  programmeScreen(enLigne) {
+    const app = this.app, net = app.net, t = k => this.t(k);
+    const table = enLigne ? net.settings() : {};
+    const options = (enLigne ? table.programme : app.save.programme) || {};
+    const editable = !enLigne || (net.creator && !Championnat.manche(table.championnat).phase);
+    const verrou = editable ? '' : 'disabled';
+    const circuit = table.trackId || this.setup.trackId;
+    const pilotes = enLigne ? net.members().filter(m => !m.q.spectator).slice(0, NET_SEATS)
+      : [{ pid: 'joueur', name: app.playerName(), car: { modelId: app.playerModelFor(this.setup.classId).id } }];
+    const categorie = categoryById(Championnat.categorieTable(table, pilotes[0]?.car?.modelId));
+    const maximum = !enLigne ? (app.save.adversaires || Math.min(11, categorie.drivers - 1)) + 1
+      : table.mode === 'duel' ? pilotes.length : table.aiCount >= 0 ? Math.min(12, pilotes.length + table.aiCount)
+        : Math.max(pilotes.length + 1, Math.min(categorie.drivers, 12));
+    const calendrier = options.circuits || [], places = options.positions || {};
+    const disponibles = TRACKS.filter(tr => !calendrier.includes(tr.id));
+    const phases = ['essais', 'qualifications'];
+    const nomCircuit = id => escapeHtml(app.trackDefById(id)?.name || id);
+    this.show(`
+      ${this.paddockTopbar(t('programmeCourse'), 'programmeRetour', t('back'))}
+      <div class="programme-colonnes">
+        <section class="programme-carte">
+          ${phases.map(phase => `<label class="programme-ligne">${t(phase)} <span><input type="number" min="0" max="60" value="${Number(options[phase]) || 0}" data-programme-duree="${phase}" ${verrou}> min</span></label>`).join('')}
+          <p class="muted">${t('programmeHint')} ${t('bareme_' + Championnat.cleBareme(categorie.id))}</p>
+          <h3>${t('grilleDepart')}</h3>
+          ${pilotes.map(p => `<label class="programme-ligne">${escapeHtml(p.name)}<select data-programme-pilote="${escapeHtml(p.pid)}" ${verrou}>
+            <option value="0">${t('auto')}</option>${Array.from({length: maximum}, (_, i) => i + 1).map(i => `<option value="${i}" ${places[p.pid] === i ? 'selected' : ''}>${i}</option>`).join('')}
+          </select></label>`).join('')}
+        </section>
+        <section class="programme-carte">
+          <h3>${t('championnat')}</h3>
+          ${calendrier.length ? `<ol>${calendrier.map((id,i) => `<li><div class="programme-ligne"><span>${nomCircuit(id)}</span><div class="programme-actions">
+            <button data-action="programmeMonter" data-id="${i}" aria-label="${t('monterCircuit')}" ${i === 0 ? 'disabled' : verrou}>↑</button>
+            <button data-action="programmeRetirer" data-id="${i}" aria-label="${t('retirerCircuit')}" ${verrou}>×</button></div></div></li>`).join('')}</ol>` : `<p>${nomCircuit(circuit)}</p>`}
+          <select data-programme-circuit aria-label="${t('ajouterCircuit')}" ${disponibles.length ? verrou : 'disabled'}><option value="">${t('ajouterCircuit')}</option>
+            ${disponibles.map(tr => `<option value="${escapeHtml(tr.id)}">${nomCircuit(tr.id)}</option>`).join('')}</select>
+        </section>
+      </div>`, 'scroll selection-screen programme-ecran', enLigne ? 'programme:multi' : 'programme:solo');
+  }
+
+  editeProgramme(action) {
+    const enLigne = this._cleEcran === 'programme:multi';
+    const app = this.app, table = enLigne ? app.net.settings() : null;
+    if (enLigne && (!app.net.creator || Championnat.manche(table.championnat).phase)) return;
+    const options = structuredClone((enLigne ? table.programme : app.save.programme) || {});
+    action(options);
+    if (enLigne) app.net.setTable({ programme: options });
+    else { app.save.programme = options; storeSave(app.save); }
+    this.programmeScreen(enLigne);
+  }
+
   setupBar(race, model, trackDef, laps) {
     const t = (k, ...a) => this.t(k, ...a), s = this.app.save, st = this.setup, app = this.app;
     const suivant = (liste, cur) => liste[(liste.indexOf(cur) + 1) % liste.length];
-    const pastille = (libelle, valeur, attrs) => `<button class="chip" ${attrs}><span>${libelle} :</span> <b>${valeur}</b></button>`;
+    const pastille = (libelle, valeur, attrs, type = '') => `<button class="chip ${type}" ${attrs}><span>${libelle} :</span> <b>${valeur}</b></button>`;
     const toursCourants = s.lapsPerso ? 'perso' : (s.laps || 5);
     const frein = freinDe(s, st.trackId, model.id);
     const desktop = app.desktop;
     const gamepad = desktop && app.controls.mode === 'gamepad';
     return `<div class="setup-bar"><div class="setup-reglages">
       <div class="setup-chips" data-pad-group>
-        ${pastille(t('timeOfDay'), t(s.timeOfDay === 'night' ? 'night' : 'day'), `data-action="pickTimeOfDay" data-id="${s.timeOfDay === 'night' ? 'day' : 'night'}" aria-pressed="${s.timeOfDay === 'night'}"`)}
+        ${pastille(t('timeOfDay'), t(s.timeOfDay === 'night' ? 'night' : 'day'), `data-action="pickTimeOfDay" data-id="${s.timeOfDay === 'night' ? 'day' : 'night'}" aria-pressed="${s.timeOfDay === 'night'}"`, s.timeOfDay === 'night' && model.catId === 'f1' ? 'nuit-f1' : '')}
         ${race && DEGATS_ACTIVE && !(USURE_ACTIVE && s.wear) ? pastille(t('chipDegats'), t(s.degats !== false ? 'on' : 'off'), `data-action="pickDegats" data-id="${s.degats !== false ? 0 : 1}" aria-pressed="${s.degats !== false}" title="${escapeHtml(t('degatsHint'))}"`) : ''}
         ${s.timeOfDay === 'night' ? `<small class="muted night-hint">${t(model.catId === 'f1' ? 'nightF1Hint' : 'nightHint')}</small>` : ''}
       </div>
@@ -1477,6 +1542,9 @@ class UI {
         ${pastille(t('difficulty'), t(s.difficulty), `data-action="pickDiff" data-id="${suivant(NIVEAUX, s.difficulty)}"`)}
         ${pastille(t('lapCount'), s.lapsPerso ? `${t('lapCustom')}` : (s.laps || 5), `data-action="pickLaps" data-id="${suivant([2, 5, 10, 20, 'perso'], toursCourants)}"`)}
         ${s.lapsPerso ? `<label class="chip chip-input"><span>${t('lapCount')} :</span><input id="inp-laps" type="number" min="1" max="99" value="${Math.max(1, Math.min(99, s.laps || 5))}"></label>` : ''}
+        <label class="chip chip-select"><span>${t('adversairesIA')} :</span><select id="solo-ai"><option value="0">${t('auto')}</option>
+          ${Array.from({length: 11}, (_, i) => i + 1).map(i => `<option value="${i}" ${s.adversaires === i ? 'selected' : ''}>${i}</option>`).join('')}</select></label>
+        ${this.boutonProgramme(s.programme, false)}
         ${USURE_ACTIVE ? pastille(t('chipWear'), t(s.wear ? 'on' : 'off'), `data-action="pickWear" data-id="${s.wear ? 0 : 1}" title="${escapeHtml(t('wearHint'))}"`) : ''}
       </div>` : ''}
       <!-- La liste et le choix actif sont propres au couple circuit+voiture.
@@ -1556,13 +1624,20 @@ class UI {
     const list = net.members();
     const ut = unlockedTracks(s);
     const tracks = app.allTracks().filter(tr => tr.custom || ut.has(tr.id));
-    const trackDef = app.trackDefById(cfg.trackId) || tracks[0];
-    const modeDesc = { race: 'mRaceDesc', duel: 'mDuelDesc', ghost: 'mGhostDesc' }[cfg.mode] || 'mRaceDesc';
+    const manche = Championnat.manche(cfg.championnat);
+    const libre = !manche.phase;
+    const editable = net.creator && libre;
+    const trackDef = app.trackDefById(manche.circuit || cfg.trackId) || tracks[0];
+    const verrou = editable ? '' : 'disabled';
+    const bouton = (action, id, label, actif, option = '') =>
+      `<button class="${actif ? 'sel' : ''} ${option}" data-action="${action}" data-id="${id}" ${verrou}>${label}</button>`;
+    const maxIA = Math.max(0, 12 - Math.min(NET_SEATS, list.filter(m => !m.q.spectator).length));
+    const frein = configActive(s, trackDef.id, model.id);
     this.show(`
       ${this.paddockTopbar(`${t('yourTable')} <b class="code">${escapeHtml(net.code)}</b>`, 'netLeave', t('leaveTable'))}
       ${net.error ? `<p class="warn">${escapeHtml(this.netErreur(net.error))}</p>` : ''}
       <p class="muted net-ping">${escapeHtml(net.link?.label((k) => this.t(k)) || 'Ping : —')} · ${t('roundTrip')}</p>
-      ${list.some(m => !m.q.spectator && m.q.protocol !== DRIVE_PROTOCOL) ? `<p class="warn">${t('reloadAll')}</p>` : ''}
+      ${(!net.grilleCompatible(cfg) || list.some(m => !m.q.spectator && m.q.protocol !== DRIVE_PROTOCOL)) ? `<p class="warn">${t('reloadAll')}</p>` : ''}
       <h3>${t('players')} <span class="muted">${list.filter(m => !m.q.spectator).length}/${NET_SEATS} · ${t('spectators', list.filter(m => m.q.spectator).length)}</span></h3>
       <div class="grid players">
         ${list.map((m, i) => `<div class="card ${m.isMe ? 'sel' : ''}">
@@ -1573,26 +1648,33 @@ class UI {
       </div>
       ${list.filter(m => !m.q.spectator).length < 2 ? this.lienDiscord('discordJoueurs', DISCORD_JOUEURS_URL) : ''}
       ${!net.creator ? `<button data-action="netRole">${net.mine.spectator ? 'Devenir pilote' : 'Devenir spectateur'}</button>` : ''}
-      <h3>${t('mFormat')}</h3>
-      <div class="seg">${NET_MODES.map(m => `<button class="${cfg.mode === m ? 'sel' : ''}" data-action="netMode" data-id="${m}" ${net.creator ? '' : 'disabled'}>${t({ race: 'mRace', duel: 'mDuel', ghost: 'mGhost' }[m])}</button>`).join('')}</div>
-      <p class="muted">${t(modeDesc)}</p>
-      <h3>${t('timeOfDay')}</h3>
-      <div class="seg">${['day', 'night'].map(v => `<button class="${(cfg.timeOfDay || 'day') === v ? 'sel' : ''}" data-action="netTimeOfDay" data-id="${v}" aria-pressed="${(cfg.timeOfDay || 'day') === v}" ${net.creator ? '' : 'disabled'}>${t(v)}</button>`).join('')}</div>
-      ${cfg.timeOfDay === 'night' ? `<p class="muted">${t(model.catId === 'f1' ? 'nightF1Hint' : 'nightHint')}</p>` : ''}
-      ${DEGATS_ACTIVE ? `<h3>${t('chipDegats')}</h3>
-      <div class="seg">${[['1', 'on'], ['0', 'off']].map(([v, k]) => `<button class="${(cfg.degats !== false) === (v === '1') ? 'sel' : ''}" data-action="netDegats" data-id="${v}" aria-pressed="${(cfg.degats !== false) === (v === '1')}" ${net.creator ? '' : 'disabled'}>${t(k)}</button>`).join('')}</div>
-      <p class="muted">${t('degatsHint')}</p>` : ''}
-      <h3>${t('mCat')}</h3>
-      ${this.filtreCat('netCat', tcat, !net.creator)}
-      <p class="muted">${t(tcat === 'all' ? 'mCatOpen' : 'mCatDesc')}</p>
       ${this.selectionPreview(model, trackDef)}
       <h3>${t('track')}</h3>
-      ${this.rail('netTracks', 'tracks', tracks.map(tr => `<button class="card ${tr.id === cfg.trackId ? 'sel' : ''}" data-action="netTrack" data-id="${tr.id}" ${net.creator ? '' : 'disabled'}>
+      ${this.rail('netTracks', 'tracks', tracks.map(tr => `<button class="card ${tr.id === trackDef.id ? 'sel' : ''}" data-action="netTrack" data-id="${tr.id}" ${verrou}>
           <span class="track-card-art" ${this.circuitArt(tr) ? `style="background-image:url('${this.circuitArt(tr)}')"` : ''}><img alt="" src="${this.thumb(tr, 90)}"></span><b>${escapeHtml(tr.name)}</b><small>${tr.flag || '🏁'} ${this.longueur(tr)}</small></button>`).join(''))}
       <h3>${t('model')}</h3>
-      ${this.rail('netModels', 'models', this.modelesVisibles(tcat).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelNet" data-id="${m.id}">
+      ${this.rail('netModels', 'models', this.modelesVisibles(tcat).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelNet" data-id="${m.id}" ${libre ? '' : 'disabled'}>
           ${this.carIcon(m, livery, app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}</b>${tcat === 'all' ? this.etiquetteCat(m) : ''}
           ${this.repereLivree(m, app.playerLivreeFor(m.id))}</button>`).join(''))}
+      <section class="programme-carte lobby-reglages">
+        <div><h3>${t('mFormat')}</h3><div class="seg">
+          ${NET_MODES.map(m => bouton('netMode', m, t({race: 'mRace', duel: 'mDuel', ghost: 'mGhost'}[m]), cfg.mode === m)).join('')}</div>
+          ${cfg.mode === 'race' ? `<label class="chip chip-input"><span>${t('lapCount')}</span><input id="net-laps" type="number" min="1" max="10" value="${Number(cfg.laps) || 3}" ${verrou}></label>
+          <label class="chip chip-select"><span>${t('adversairesIA')}</span><select id="net-ai" ${verrou}>
+            <option value="-1">${t('auto')}</option>${Array.from({length: maxIA + 1}, (_, i) => `<option value="${i}" ${cfg.aiCount === i ? 'selected' : ''}>${i}</option>`).join('')}</select></label>` : ''}
+          ${!net.mine.spectator ? `<label class="chip chip-select"><span>${t('freinage')}</span><select id="net-frein" data-track="${escapeHtml(trackDef.id)}" data-model="${escapeHtml(model.id)}">
+            <option value="">${t('regDefaut')}</option>${reglagesPour(s, trackDef.id, model.id).map(c => `<option value="${escapeHtml(c.nom)}" ${c.nom === frein?.nom ? 'selected' : ''}>${escapeHtml(c.nom)}</option>`).join('')}</select></label>` : ''}
+        </div>
+        <div><h3>${t('mCat')}</h3>${this.filtreCat('netCat', tcat, !editable)}
+          <div class="lobby-reglages-paire">
+            <div><h3>${t('timeOfDay')}</h3><div class="seg">${['day','night'].map(v => bouton('netTimeOfDay', v, t(v), (cfg.timeOfDay || 'day') === v, v === 'night' && model.catId === 'f1' ? 'nuit-f1' : '')).join('')}</div></div>
+            ${DEGATS_ACTIVE ? `<div><h3>${t('chipDegats')}</h3><div class="seg">${[['1','on'],['0','off']].map(([v,k]) => bouton('netDegats', v, t(k), (cfg.degats !== false) === (v === '1'))).join('')}</div></div>` : ''}
+          </div>
+          ${cfg.timeOfDay === 'night' && model.catId === 'f1' ? `<p class="warn">${t('nightF1Hint')}</p>` : ''}
+          ${libre ? (cfg.mode !== 'ghost' ? this.boutonProgramme(cfg.programme, true) : '') : `<div class="row"><strong>${t(manche.phase === 'course' ? 'mRace' : manche.phase)} · ${escapeHtml(trackDef.name)}</strong>
+            ${net.creator ? `<button data-action="netAnnulerChampionnat">${t('annulerChampionnat')}</button>` : ''}</div>`}
+        </div>
+      </section>
       <div class="row end">
         <span class="muted">${trackDef ? `${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ` : ''}${escapeHtml(model.name)}</span>
         <button class="${net.mine.ready ? '' : 'primary'}" data-action="netReady" ${net.mine.spectator ? 'disabled' : ''}>${net.mine.ready ? t('notReady') : t('ready')}</button>
@@ -1659,6 +1741,9 @@ class UI {
     const t = (k, ...a) => this.t(k, ...a);
     const res = race.results, p = race.player;
     const isTT = race.mode === 'timetrial';
+    const championnat = ctx.resultatChampionnat;
+    const points = n => Number(n).toLocaleString(this.app.save.lang === 'en' ? 'en-GB' : 'fr-FR');
+    const titre = race.dureeSession ? t(race.phase) : t('results');
     let head = '';
     /* À l'entraînement, le fantôme est la référence : son meilleur tour sous le sien, et l'écart. */
     const f = race.fantome;
@@ -1666,7 +1751,7 @@ class UI {
     const ligneFantome = f ? `<p class="fantome-resultat">${t('ghostBest')} : <b>${f.bestLap != null ? fmtTime(f.bestLap) : '--:--.---'}</b>${
       ecartF == null ? '' : ` · <span class="${ecartF <= 0 ? 'ok' : 'warn'}">${ecartF <= 0 ? '−' : '+'}${Math.abs(ecartF).toFixed(3)} s</span>`}</p>` : '';
     if (isTT) head = `<h2>${t(f ? 'training' : 'timeTrial')} · ${escapeHtml(race.track.name)}</h2><div class="bigstat">${t('bestLap')}: ${fmtTime(p.bestLap)} ${ctx.newRecord ? `<span class="rec">${t('newRecord')}</span>` : ''}</div>${ligneFantome}`;
-    else head = `<h2>${t('results')} · ${escapeHtml(race.track.name)}</h2><div class="bigstat">${t('yourResult', race.positionOf(p))} ${ctx.newRecord ? `<span class="rec">${t('newRecord')}</span>` : ''}</div>${this.tropheeResultat(ctx.trophee)}`;
+    else head = `<h2>${titre} · ${escapeHtml(race.track.name)}</h2><div class="bigstat">${t('yourResult', race.positionOf(p))} ${ctx.newRecord ? `<span class="rec">${t('newRecord')}</span>` : ''}</div>${this.tropheeResultat(ctx.trophee)}`;
     /* Un tour annulé reste AFFICHÉ, barré, avec son chrono.
 
     Le retirer de la liste aurait été plus simple et beaucoup moins clair : le joueur aurait vu ses
@@ -1685,9 +1770,14 @@ class UI {
     const penCell = (r) => !avecPen ? ''
       : `<td class="${r.penalite > 0 ? 'warn' : 'muted'}">${r.penalite > 0 ? `+${r.penalite.toFixed(1)}<small> (${r.fautes})</small>` : '—'}</td>`;
     const table = isTT ? `<table class="tbl"><thead><tr><th>${t('lap')}</th><th>${t('time')}</th>${f ? `<th>${t('ghost')}</th>` : ''}</tr></thead><tbody>${p.lapTimes.map(tour).join('') || `<tr><td colspan="${f ? 3 : 2}">—</td></tr>`}</tbody></table>`
-      : `<table class="tbl tbl-resultats"><thead><tr><th>${t('pos')}</th><th>${t('driver')}</th><th class="col-modele">${t('model')}</th><th>${t('gap')}</th>${avecPen ? `<th>${t('penalty')}</th>` : ''}<th>${t('bestLap')}</th>${ctx.cup ? `<th>${t('points')}</th>` : ''}</tr></thead><tbody>
-        ${res.map(r => `<tr class="${r.car.isPlayer ? 'me' : ''}"><td>${r.pos}</td><td class="pilote"><i class="dot" style="background:${r.car.livery.body}"></i>${escapeHtml(r.car.name)}<small class="modele-sous">${escapeHtml(r.car.cls.name)}</small></td><td class="muted col-modele">${escapeHtml(r.car.cls.name)}</td><td>${r.abandon ? t('abandonRes') : r.pos === 1 ? (r.time != null ? fmtTime(r.time) : '') : r.gap != null ? '+' + r.gap.toFixed(3) : t('dnf')}</td>${penCell(r)}<td>${r.bestLap != null ? fmtTime(r.bestLap) : '—'}</td>${ctx.cup ? `<td>${r.points}</td>` : ''}</tr>`).join('')}</tbody></table>`;
+      : `<table class="tbl tbl-resultats"><thead><tr><th>${t('pos')}</th><th>${t('driver')}</th><th class="col-modele">${t('model')}</th><th>${t('gap')}</th>${avecPen ? `<th>${t('penalty')}</th>` : ''}<th>${t('bestLap')}</th>${ctx.cup || championnat ? `<th>${t('points')}</th>` : ''}</tr></thead><tbody>
+        ${res.map(r => `<tr class="${r.car.isPlayer ? 'me' : ''}"><td>${r.pos}</td><td class="pilote"><i class="dot" style="background:${r.car.livery.body}"></i>${escapeHtml(r.car.name)}<small class="modele-sous">${escapeHtml(r.car.cls.name)}</small></td><td class="muted col-modele">${escapeHtml(r.car.cls.name)}</td><td>${r.abandon ? t('abandonRes') : r.pos === 1 ? (r.time != null ? fmtTime(r.time) : '') : r.gap != null ? '+' + r.gap.toFixed(3) : t('dnf')}</td>${penCell(r)}<td>${r.bestLap != null ? fmtTime(r.bestLap) : '—'}</td>${ctx.cup || championnat ? `<td>${points(r.points)}</td>` : ''}</tr>`).join('')}</tbody></table>`;
     let cupPart = '';
+    if (championnat) {
+      const ordre = Object.values(championnat.points).sort((a,b) => b.total - a.total);
+      cupPart = `<div><h3>${t('championnat')}</h3><table class="tbl"><tbody>
+        ${ordre.map((p,i) => `<tr><td>${i + 1}</td><td>${escapeHtml(p.nom)}</td><td>${points(p.total)}</td></tr>`).join('')}</tbody></table></div>`;
+    }
     if (ctx.cup) {
       const cs = cupState(this.app.save, ctx.cup.id);
       let banner = '';
@@ -1708,7 +1798,8 @@ class UI {
       ${ctx.online && race.broadcast ? race.broadcast.html(race) : ''}
       <div class="row end">
         <button data-action="menu">${t('menu')}</button>
-        ${ctx.online ? `<button class="big primary" data-action="toLobby">${t('backToTable')}</button>` : ctx.cup ? (cupState(this.app.save, ctx.cup.id).done ? `<button class="big primary" data-action="cup" data-id="${ctx.cup.id}">${t('standings')}</button>` : `<button data-action="retryRace">${t('retry')}</button><button class="big primary" data-action="startCup" data-id="${ctx.cup.id}">${t('nextRace')}</button>`) : `<button data-action="setup" data-mode="${race.entrainement ? 'training' : race.mode}">${t('back')}</button><button class="big primary" data-action="retryRace">${t('retry')}</button>`}
+        ${championnat ? `<button class="big primary" data-action="sessionSuivante">${(!ctx.online || this.app.net.creator) && Championnat.suite(championnat) ? t('mancheSuivante') : t(ctx.online ? 'backToTable' : 'back')}</button>`
+        : ctx.online ? `<button class="big primary" data-action="toLobby">${t('backToTable')}</button>` : ctx.cup ? (cupState(this.app.save, ctx.cup.id).done ? `<button class="big primary" data-action="cup" data-id="${ctx.cup.id}">${t('standings')}</button>` : `<button data-action="retryRace">${t('retry')}</button><button class="big primary" data-action="startCup" data-id="${ctx.cup.id}">${t('nextRace')}</button>`) : `<button data-action="setup" data-mode="${race.entrainement ? 'training' : race.mode}">${t('back')}</button><button class="big primary" data-action="retryRace">${t('retry')}</button>`}
       </div>
     `, 'scroll resultats');
   }
@@ -1949,6 +2040,19 @@ class UI {
       case 'netDegats': app.net.setTable({ degats: id === '1' }); break;
       case 'netMode': app.net.setTable({ mode: id }); break;
       case 'netTrack': app.net.setTable({ trackId: id, laps: lapsFor(app.trackDefById(id), categoryById(this.setup.classId)) }); break;
+      case 'programme':
+        this.programmeDefilement = this.root.firstElementChild?.scrollTop || 0;
+        this.programmeScreen(id === 'multi');
+        break;
+      case 'programmeRetour':
+        if (this._cleEcran === 'programme:multi') this.lobbyScreen();
+        else this.setupScreen(this.setup.mode);
+        this.root.firstElementChild.scrollTop = this.programmeDefilement || 0;
+        break;
+      case 'programmeMonter': this.editeProgramme(o => { const i = Number(id); [o.circuits[i - 1], o.circuits[i]] = [o.circuits[i], o.circuits[i - 1]]; }); break;
+      case 'programmeRetirer': this.editeProgramme(o => o.circuits.splice(Number(id), 1)); break;
+      case 'sessionSuivante': app.sessionSuivante(); break;
+      case 'netAnnulerChampionnat': app.net.setTable({ championnat: {} }); break;
       case 'netReady': this._netReady(!app.net.mine.ready); break;
       case 'netStart': app.net.start(); break;
       case 'pickModelNet': { this._choisitOuTourne(id, app.playerModelFor(this.setup.classId).id, true); this._netCar(); this.lobbyScreen(); break; }
@@ -2069,6 +2173,17 @@ class UI {
     if (el.id === 'sel-lines') { s.showLines = el.value === '1'; storeSave(s); this.app.renderer.showLines = s.showLines; }
     // le côté du levier : le rendu le relit à chaque image, il n'y a rien d'autre à faire ici
     if (el.id === 'sel-side') { s.ctrlSide = el.value === 'right' ? 'right' : 'left'; storeSave(s); }
+    if (el.dataset.programmeDuree) this.editeProgramme(o => { o[el.dataset.programmeDuree] = clamp(Math.round(Number(el.value) || 0), 0, 60); });
+    if (el.hasAttribute('data-programme-circuit') && el.value) this.editeProgramme(o => { (o.circuits ||= []).push(el.value); });
+    if (el.dataset.programmePilote) this.editeProgramme(o => {
+      const positions = o.positions ||= {}, pid = el.dataset.programmePilote, place = Number(el.value);
+      for (const [id, pos] of Object.entries(positions)) if (id === pid || pos === place) delete positions[id];
+      if (place) positions[pid] = place;
+    });
+    if (el.id === 'net-laps') this.app.net.setTable({ laps: clamp(Math.round(Number(el.value) || 3), 1, 10) });
+    if (el.id === 'net-ai') this.app.net.setTable({ aiCount: Number(el.value) });
+    if (el.id === 'solo-ai') { s.adversaires = Number(el.value); storeSave(s); }
+    if (el.id === 'net-frein') { choisitReglage(s, el.dataset.track, el.dataset.model, el.value); storeSave(s); }
     if (el.id === 'sel-reglage') {
       const st = this.setup;
       choisitReglage(s, st.trackId, this.app.playerModelFor(st.classId).id, el.value);

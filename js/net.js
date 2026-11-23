@@ -82,7 +82,8 @@ class Net {
       if (!asHost && !/^[A-Z0-9]{4}$/.test(this.code)) throw new Error('code à quatre lettres');
       this.creator = !!asHost;
       this.completedGo = 0;
-      this.mine = { pid: this.pid, protocol: DRIVE_PROTOCOL, grilleIA: true, name: name || 'Pilote', car: null, ready: false, spectator: !asHost && spectator };
+      if (asHost) { this.table.go = 0; this.table.championnat = {}; }
+      this.mine = { pid: this.pid, protocol: DRIVE_PROTOCOL, grilleIA: true, programmeCourse: 2, name: name || 'Pilote', car: null, ready: false, spectator: !asHost && spectator };
       this.room.onPeers(() => { this.peers = this.room.peers(); this.pump(); });
       await this.room.claim(this.code, asHost);
       this.state = 'lobby';
@@ -199,6 +200,17 @@ class Net {
     this.onPeers();
   }
 
+  grilleCompatible(t) {
+    const liste = this.members();
+    const programme = !!Championnat.manche(t.championnat).phase || (['race', 'duel'].includes(t.mode) && Championnat.actif(t.programme));
+    return (!programme || liste.every(m => Number(m.q.programmeCourse) >= 2))
+      && (t.mode !== 'race' || !(t.aiCount >= 0) || liste.every(m => m.q.grilleIA));
+  }
+
+  pilotesProgramme() {
+    return this.members().filter(m => !m.q.spectator).slice(0, NET_SEATS).map(m => [m.pid, m.car]);
+  }
+
   canStart() {
     const m = this.members().filter(x => !x.q.spectator).slice(0, NET_SEATS);
     const t = this.settings(), need = t.mode === 'duel' ? 2 : 2;
@@ -206,13 +218,24 @@ class Net {
     change la sienne de lui-même en voyant la consigne, mais il y a un instant où sa présence porte
     encore l'ancienne : c'est cet instant-là que l'on ferme. */
     const conforme = (x) => !t.cat || t.cat === 'all' || !modelById(x.car.modelId) || modelById(x.car.modelId).catId === t.cat;
-    return this.creator && m.length >= need && m.every(x => x.ready && x.car && x.q.protocol === DRIVE_PROTOCOL && conforme(x));
+    const pilotes = t.championnat?.pilotes;
+    const grille = this.pilotesProgramme();
+    const memeGrille = !pilotes || (pilotes.length === grille.length && pilotes.every(([id, car], i) =>
+      grille[i][0] === id && grille[i][1]?.modelId === car?.modelId && grille[i][1]?.livree === car?.livree));
+    return this.creator && m.length >= need && memeGrille && this.grilleCompatible(t) && m.every(x => x.ready && x.car && x.q.protocol === DRIVE_PROTOCOL && conforme(x));
   }
 
   /** The host calls the start; everyone freezes the same list, in the same order, at that moment. */
   start() {
     if (!this.canStart()) return;
-    this.setTable({ go: Date.now() });
+    const go = Date.now();
+    let championnat = this.table.championnat;
+    if (!Championnat.manche(championnat).phase && ['race', 'duel'].includes(this.table.mode) && Championnat.actif(this.table.programme)) {
+      const cat = Championnat.categorieTable(this.table, this.mine.car.modelId);
+      championnat = Championnat.programme(this.table.programme, this.table.trackId, this.table.laps, go % 100000, cat);
+      championnat.pilotes = this.pilotesProgramme();
+    }
+    this.setTable({ go, championnat: championnat || {} });
   }
 
   /** La grille publiée par l'hôte, si elle est arrivée. L'hôte est le seul à publier les
@@ -285,13 +308,16 @@ class Net {
     this.mine.ch = false;                  // chacun repart « pas encore prêt » à chaque course
     this.snapAt = performance.now();
     this.post();
+    const manche = Championnat.manche(t.championnat);
     this.onStart({
-      mode: t.mode, trackId: t.trackId, laps: t.laps, aiCount: t.aiCount ?? -1, difficulty: t.difficulty,
+      championnat: t.championnat || {},
+      mode: t.mode, trackId: manche.circuit || t.trackId, laps: manche.tours || t.laps, aiCount: t.aiCount ?? -1, difficulty: t.difficulty,
       timeOfDay: t.timeOfDay === 'night' ? 'night' : 'day', degats: t.degats !== false,
       cat: t.cat || 'all', go: t.go, spectator: !!this.mine.spectator,
       // Personne ne choisit sa couleur : la place la donne. L'ordre étant celui de l'hôte, il est
       // le même sur tous les écrans, et chacun sait qui est qui sans qu'un mot passe sur le fil.
       humans: grid.map((g, i) => ({
+        pid: g.p,
         name: g.n || traduitPilote(i + 1),
         modelId: g.m || null,
         livree: g.l || 0,

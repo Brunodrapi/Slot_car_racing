@@ -3501,6 +3501,17 @@ l'échelle est redevenue monotone dans les deux sens.
 
 Chaque palier vaut cinq à six pour cent, soit l'écart qui séparait déjà moyen de difficile.
 
+## Programme de course
+
+La Course rapide et les tables multijoueurs en Course ou en Duel proposent le programme dans
+le paddock ou au bas du salon. Réglez la durée des essais et des qualifications en minutes
+(0 désactive la séance), choisissez les circuits dans l’ordre et, si besoin, imposez des places
+sur la grille. Les essais et les qualifications se courent sans contact entre les voitures.
+
+Les résultats et les points s’affichent après chaque séance. Les barèmes F1, GT Sprint et
+Le Mans suivent la catégorie. Dans une table ouverte, la voiture de l’hôte détermine le barème.
+Le jeu web et Godot utilisent le même programme pour les tables partagées.
+
 ## Les dégâts visibles
 
 La Course rapide propose les dégâts dans le paddock. En multijoueur, l’hôte les règle pour la

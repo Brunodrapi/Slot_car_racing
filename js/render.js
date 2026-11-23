@@ -338,6 +338,19 @@ class NightLighting {
       })) continue;
       this.lamps.push(lamp);
     }
+    this.galerie = [];
+    if (track.def?.lumiereTunnel) for (const tu of track.tunnels) {
+      const longueur = tu.n * track.ds, nombre = Math.floor(longueur / 12);
+      for (let i = 0; i < nombre; i++) {
+        const s = tu.from * track.ds + (i + 0.5) * longueur / nombre, k = track.idx(s);
+        for (const cote of [-1, 1]) {
+          const bord = cote > 0 ? track.hwL[k] : track.hwR[k];
+          const pos = track.pos(s, cote * (bord - 0.6));
+          this.galerie.push({ ...pos, heading: Math.atan2(-track.ny[k] * cote, -track.nx[k] * cote),
+            flood: true, length: Math.min(2 * bord, 12), width: 8, power: 0.55 });
+        }
+      }
+    }
     this.fields = [];
   }
 
@@ -382,6 +395,7 @@ class NightLighting {
     for (const lamp of this.lamps) if (near(lamp, lamp.radius)) {
       this.visibleLamps.push(lamp); this.fields.push(lamp);
     }
+    for (const lampe of this.galerie || []) if (near(lampe, 16)) this.fields.push(lampe);
     for (const car of race.cars) {
       if (car.fantome || !near(car.pos, 40)) continue;
       const p = car.pos, h = car.heading, c = car.cls;
@@ -439,7 +453,7 @@ class NightLighting {
     g.restore();
   }
 
-  draw(renderer, matrix) {
+  draw(renderer, matrix, horsPortails) {
     const canvas = renderer.nightCanvas, g = renderer.nightCtx;
     canvas.style.display = this.active ? 'block' : 'none';
     if (!this.active) return;
@@ -450,7 +464,9 @@ class NightLighting {
     g.fillStyle = f >= 1 ? NUIT_TEINTE : `rgb(${NUIT_TEINTE_RVB.map(mix).join(',')})`;
     g.fillRect(0, 0, canvas.width, canvas.height);
     g.setTransform(matrix);
-    g.save(); g.globalCompositeOperation = 'destination-out';
+    g.save();
+    if (horsPortails) g.clip(horsPortails, 'evenodd');
+    g.globalCompositeOperation = 'destination-out';
     for (const f of this.fields) {
       g.save(); g.translate(f.x, f.y); g.rotate(f.heading); g.globalAlpha = f.power;
       if (f.flood) g.drawImage(this.floodMask(), 0, -f.width, f.length, f.width * 2);
@@ -463,18 +479,19 @@ class NightLighting {
 
   /** Les sources de lumière, peintes par-dessus l'image déjà assombrie : `g` est un calque
    *  normal (le HUD dans le jeu), dans le même repère que le calque de nuit. */
-  glows(g, matrix) {
+  glows(g, matrix, horsPortails) {
     if (!this.active) return;
     const force = this.force ?? 1;
     g.save(); g.setTransform(matrix); g.globalAlpha = force;
-    // White front lenses and red light projected behind, without a car aura.
+    if (horsPortails) g.clip(horsPortails, 'evenodd');
+    // Les verres restent sur la carrosserie, le halo rouge est déjà sur la chaussée.
     for (const f of this.fields) {
       g.save(); g.translate(f.x, f.y); g.rotate(f.heading);
       if (f.beam) {
         drawLightLens(g, f.lens);
-      } else {
-        g.globalAlpha = (f.flood ? .065 : f.tint) * force;
-        g.drawImage(f.flood ? this.floodMask() : this.tailMask(), 0, -f.width, f.length, f.width * 2);
+      } else if (f.flood) {
+        g.globalAlpha = .065 * force;
+        g.drawImage(this.floodMask(), 0, -f.width, f.length, f.width * 2);
       }
       g.restore();
     }
@@ -2173,6 +2190,22 @@ class Renderer {
       g.fillStyle = 'rgba(255,208,128,0.9)';
       for (const l of tu.lampes) { g.beginPath(); g.arc(l[0], l[1], 0.7, 0, Math.PI * 2); g.fill(); }
     }
+    for (const f of this.night.galerie || []) {
+      if (f.x < vis.minX || f.x > vis.maxX || f.y < vis.minY || f.y > vis.maxY) continue;
+      g.save(); g.translate(f.x, f.y); g.rotate(f.heading);
+      g.globalAlpha = .22;
+      g.drawImage(this.night.floodMask(), 0, -f.width, f.length, f.width * 2);
+      g.globalAlpha = 1; g.fillStyle = '#fff1c5'; g.fillRect(-.10, -.65, .20, 1.30);
+      g.restore();
+    }
+    // Les reflets rouges, au sol sous les voitures et les tabliers.
+    if (this.night.nuit) for (const f of this.night.fields) {
+      if (!f.tail) continue;
+      g.save(); g.translate(f.x, f.y); g.rotate(f.heading);
+      g.globalAlpha = f.tint * this.night.force;
+      g.drawImage(this.night.tailMask(), 0, -f.width, f.length, f.width * 2);
+      g.restore();
+    }
     // Smoke, under the cars. A puff fades over its own life rather than over a fixed second, so a
     // big slow one stays up as long as it is meant to; and it thins as it grows, the way a cloud
     // does. Drawn before the cars, because a car swallowed by its own smoke is a car the driver
@@ -2253,14 +2286,24 @@ class Renderer {
       }
     }
     if(!race.opts.spectator||ui.app.spectator?.effectiveMode!=='full')drawMapRaceFlags(g,race,p=>p,7/cam.zoom,true);
+    let horsPortails = null;
+    for (const tu of this.paths.tunnels || []) {
+      if (!inView(tu.bbox)) continue;
+      if (!horsPortails) {
+        horsPortails = new Path2D();
+        horsPortails.rect(vis.minX, vis.minY, vis.maxX - vis.minX, vis.maxY - vis.minY);
+      }
+      horsPortails.addPath(tu.entree.corps);
+      horsPortails.addPath(tu.sortie.corps);
+    }
     const nightMatrix = g.getTransform();
     g.restore();
-    this.night.draw(this, nightMatrix);
+    this.night.draw(this, nightMatrix, horsPortails);
 
     const hud = this.hudCtx;
     hud.setTransform(1, 0, 0, 1, 0, 0);
     hud.clearRect(0, 0, this.hudCanvas.width, this.hudCanvas.height);
-    this.night.glows(hud, nightMatrix);
+    this.night.glows(hud, nightMatrix, horsPortails);
     hud.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     if (!race.opts.spectator) this._drawHUD(hud, race, ui);
     else ui.app.spectator?.drawMap(hud, race);
@@ -3695,7 +3738,7 @@ class Renderer {
     const mmBas = this.mm ? mmY + this.mm.size : P.t + boxH;
 
     const pos = race.positionOf(p), n = race.cars.length, tt = race.mode === 'timetrial';
-    const lapShown = tt ? p.lap + 1 : Math.min(race.laps, p.lap + 1);
+    const lapShown = tt || race.dureeSession ? p.lap + 1 : Math.min(race.laps, p.lap + 1);
     const y0 = P.t + 2, xs = P.l + 2, xe = W - P.r - 2;
     const wPos = mobile ? 90 : 120, headH = mobile ? 36 : 44;
     const pb = this.pauseBtn;
@@ -3719,7 +3762,7 @@ class Renderer {
     const lapY = px + pw > xe - lapW - 4 ? Math.max(y0 + headH + 6, y0 + ph * 2 + 12) : y0 + headH + 6;
     this._hudPaper(g, xe - lapW, lapY, lapW, lapH);
     {
-      const lbl = t('lap').toUpperCase(), num = String(lapShown), tot = tt ? '' : '/' + race.laps;
+      const lbl = t('lap').toUpperCase(), num = String(lapShown), tot = tt || race.dureeSession ? '' : '/' + race.laps;
       const fGrand = mobile ? 30 : 40, fMoyen = mobile ? 19 : 25, fPetit = mobile ? 15 : 19;
       const police = (taille) => `italic 900 ${taille}px Racing, Impact, sans-serif`;
       g.font = police(fPetit); const wl = g.measureText(lbl).width;
@@ -3754,7 +3797,8 @@ class Renderer {
       g.fillStyle = dark && nul ? '#ffb59c' : dark ? '#fff0d4' : '#33372e';
       this._texteChiffres(g, val, px + pw - 12, y + ph/2 + 1);
     };
-    timing(y0, nul ? t('lapVoid') : t('lap'), fmtTime(race.state === 'countdown' ? 0 : race.time - p.lapStart), true, flags);
+    timing(y0, race.dureeSession ? t(race.phase) : nul ? t('lapVoid') : t('lap'),
+      fmtTime(race.dureeSession ? Math.max(0, race.dureeSession - race.time) : race.state === 'countdown' ? 0 : race.time - p.lapStart), true, flags);
     timing(y0 + ph + 4, t('best'), p.bestLap != null ? fmtTime(p.bestLap) : '--:--.---', false);
     // le carré du premier drapeau, tel qu'il est peint : les essais lisent son centre
     { const tf = flags.length > 1 ? 10 : 12; this.hudZones.flags = {types:flags,x:px+8,y:y0+(ph-tf)/2,s:tf}; }

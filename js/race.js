@@ -168,9 +168,92 @@ const NET_FINISH_GRACE = 30; // seconds after the first finisher, multiplayer on
 const STATE_CODE = { countdown: 0, racing: 1, finishing: 2, finished: 3 };
 const STATE_NAME = ['countdown', 'racing', 'finishing', 'finished'];
 
+// Le programme et ses clés sont partagés avec Godot (championnat.gd).
+class Championnat {
+  static actif(options = {}) {
+    return !!(options.circuits?.length || options.essais > 0 || options.qualifications > 0 || Object.keys(options.positions || {}).length);
+  }
+
+  static categorieTable(table, modelId) {
+    return table.cat && table.cat !== 'all' ? table.cat : modelById(modelId)?.catId || 'gt';
+  }
+
+  static cleBareme(cat) { return cat === 'f1' ? 'f1' : cat === 'proto' ? 'lemans' : 'gt'; }
+
+  static programme(options, circuit, tours, graine, cat) {
+    const calendrier = options.circuits?.length ? options.circuits : [circuit];
+    const manches = [];
+    for (const id of calendrier) for (const phase of ['essais', 'qualifications', 'course']) {
+      const duree = clamp(Math.trunc(Number(options[phase]) || 0), 0, 60) * 60;
+      if (phase === 'course' || duree > 0) manches.push({ circuit: id, phase, duree, tours });
+    }
+    return { manches, index: 0, points: {}, pole: [], positions: { ...options.positions }, graine, bareme: this.cleBareme(cat) };
+  }
+
+  static manche(champ) { return champ?.manches?.[champ.index] || {}; }
+
+  static suite(champ) { return !!champ?.manches && champ.index + 1 < champ.manches.length; }
+
+  static avance(champ) {
+    if (!this.suite(champ)) return {};
+    const suivant = { ...champ, index: champ.index + 1 };
+    if (this.manche(suivant).phase === 'essais') suivant.pole = [];
+    return suivant;
+  }
+
+  static cle(race, car, i) {
+    if (!race.opts.humans && car.isPlayer) return 'joueur';
+    if (car.human != null) return String(race.opts.humans[car.human].pid ?? car.human);
+    return 'ia' + i;
+  }
+
+  static grille(race, champ) {
+    const entrees = race.cars.map((car, i) => ({ id: this.cle(race, car, i), car }));
+    const pole = race.phase === 'course' ? champ.pole || [] : [];
+    const places = Array(entrees.length).fill(null);
+    const libres = [];
+    const priorite = (id) => pole.includes(id) ? pole.indexOf(id) : Infinity;
+    entrees.sort((a, b) => priorite(a.id) - priorite(b.id));
+    for (const e of entrees) {
+      const index = Number(champ.positions?.[e.id]) - 1;
+      if (Number.isInteger(index) && index >= 0 && index < places.length && !places[index]) places[index] = e;
+      else libres.push(e);
+    }
+    const modele = modelById(race.opts.humans?.[0]?.modelId) || race.cls;
+    places.forEach((e, i) => {
+      const { car } = e || libres.shift();
+      const lat = (i % 2 === 0 ? 1 : -1) * Math.min(race.track.halfWidth * 0.45, modele.width * 0.9);
+      car.place(race.track.length - 8 - i * modele.length * 2.2, lat, 0);
+      car.gridLat = car.laneTarget = lat;
+    });
+  }
+
+  static attribue(champ, race) {
+    const resultat = { ...champ, points: { ...champ.points } };
+    const bareme = BAREMES_CHAMPIONNAT[champ.bareme === 'lemans' ? 'proto' : champ.bareme] || POINTS_GT_SPRINT;
+    if (race.phase === 'qualifications') resultat.pole = [];
+    race.results.forEach((ligne, i) => {
+      const id = this.cle(race, ligne.car, race.cars.indexOf(ligne.car));
+      const classe = race.phase === 'course' ? !ligne.car.abandon : ligne.bestLap > 0;
+      ligne.points = 0;
+      if (classe && race.phase === 'course') ligne.points = bareme[i] || 0;
+      if (classe && race.phase === 'qualifications') {
+        resultat.pole.push(id);
+        if (i === 0 && champ.bareme !== 'f1') ligne.points = 1;
+      }
+      resultat.points[id] = { nom: ligne.car.name, total: (resultat.points[id]?.total || 0) + ligne.points };
+    });
+    return resultat;
+  }
+}
+
 class Race {
   constructor(opts) {
-    this.opts = opts;
+    const manche = Championnat.manche(opts.championnat);
+    this.phase = manche.phase || 'course';
+    this.dureeSession = manche.duree || 0;
+    this.finishDeadline = this.dureeSession || null;
+    this.opts = this.dureeSession ? { ...opts, noContact: true } : opts;
     this.timeOfDay = opts.timeOfDay === 'night' ? 'night' : 'day';
     /* La catégorie est celle de la VOITURE du joueur, pas celle qu'on a passée.
 
@@ -195,7 +278,7 @@ class Race {
     signés. Mieux vaut que l'option n'existe pas là que d'avoir à l'expliquer. */
     // `opts.mode` et non `this.mode` : celui-ci n'est affecté que trente lignes plus bas, si bien
     // que le lire ici aurait rendu l'option inerte sans que rien ne le signale.
-    this.usure = USURE_ACTIVE && opts.wear && (opts.mode || 'race') === 'race' ? USURE : null;
+    this.usure = !this.dureeSession && USURE_ACTIVE && opts.wear && (opts.mode || 'race') === 'race' ? USURE : null;
     /* LES DÉGÂTS SONT UNE OPTION (essai, js/car.js) : « les dégâts doivent être une option » (Bruno). Le
     paddock la propose, oui par défaut (`save.degats`) ; en ligne, c'est l'hôte qui choisit. Sans elle,
     ni bosses, ni débris, ni fumée, ni perte de vitesse, ni abandon, ni jauge, ni stands — rien à
@@ -204,7 +287,7 @@ class Race {
     `degats` : elles coûtent, en course seulement. L'abandon (ABANDON_VITESSE) en solo seulement pour
     l'essai : en ligne il devrait passer par le réseau. */
     this.degatsVisu = DEGATS_ACTIVE && !!opts.degats;
-    this.degats = this.degatsVisu && !this.usure && (opts.mode || 'race') === 'race' ? { ...DEGATS, abandon: !opts.humans } : null;
+    this.degats = !this.dureeSession && this.degatsVisu && !this.usure && (opts.mode || 'race') === 'race' ? { ...DEGATS, abandon: !opts.humans } : null;
     // les stands : avec l'usure (pneus et tôle), ou avec les dégâts seuls (la tôle) — et pas sur un
     // circuit qui n'a pas de voie (`pitLane: false`) : la coche n'y mènerait nulle part
     this.stands = !!(this.usure || this.degats) && !!this.track.pit;
@@ -220,6 +303,7 @@ class Race {
     this.profiles = {};
     for (const name of LINE_NAMES) this.profiles[name] = speedProfile(this.track, this.cls, name, 0.98);
     this._buildGrid();
+    if (manche.phase) Championnat.grille(this, opts.championnat);
     /* Le guide de l'entraînement se prépare ICI, pendant le chargement, et non à la première image :
     la ligne idéale tout de suite, les deux autres juste après, pendant les feux. Elles se calculent
     de toute façon à la première demande si le joueur change de ligne avant. */
@@ -434,6 +518,13 @@ class Race {
     }
     if (this.state === 'finished') return;
     this._simulate(dt, throttleInput, brakingInput);
+    if (this.dureeSession && this.time >= this.dureeSession) {
+      if (!this.netDrive || (this.netDrive.host && this.netDrive.canFinalize())) {
+        this.state = 'finished';
+        this._classeRecu();
+      }
+      return;
+    }
     // le joueur a abandonné : on laisse voir l'épave un instant, puis la course se termine sans lui
     if (this.state === 'racing' && this.player.abandon && !this.netDrive) {
       // sept secondes : le temps de l'écran ABANDON (Renderer._ecranAbandon), comme le WASTED de GTA
@@ -482,7 +573,7 @@ class Race {
     const S = this._sillage;
     if (S && this.time >= S.n * S.pas) { S.joueur.push(this.player.progress); S.fantome.push(this.fantome.progress); S.n++; }
     this.time += dt;
-    if (this.netDrive && this.finishDeadline && this.time > this.finishDeadline) return;
+    if ((this.netDrive || this.dureeSession) && this.finishDeadline && this.time > this.finishDeadline) return;
     this.flags?.update();
     // rubber-banding: slow leaders that are far ahead of the player, help stragglers a little
     const pp = this.player.progress;
@@ -526,7 +617,7 @@ class Race {
       this.flags?.inspect(car);
       if (car.lap !== lapBefore) {
         this.events.push({ type: 'lap', car });
-        if (this.mode === 'race' && car.lap >= this.laps && !car.finished) {
+        if (this.mode === 'race' && !this.dureeSession && car.lap >= this.laps && !car.finished) {
           car.finished = true;
           car.finishTime = this.time;
           this.events.push({ type: 'finish', car });
@@ -908,6 +999,7 @@ class Race {
   /** Le classement d'un invité, bâti sur l'instantané reçu et non sur une simulation. */
   _classeRecu() {
     const order = this.standings();
+    if (this.dureeSession) order.sort((a, b) => (a.bestLap > 0 ? a.bestLap : Infinity) - (b.bestLap > 0 ? b.bestLap : Infinity));
     this.results = order.map((car, i) => ({
       car, pos: i + 1, points: car.abandon ? 0 : POINTS[i] || 0, abandon: !!car.abandon,
       time: this.tempsClasse(car),
