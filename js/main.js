@@ -449,6 +449,9 @@ class App {
     const cup = CUPS.find(c => c.id === cupId);
     const cs = cupState(this.save, cupId);
     if (cs.done) { this.ui.cupScreen(cupId); return; }
+    // Une coupe déjà entamée conserve le même barème pour toutes ses manches.
+    cs.bareme ??= cs.race > 0 ? 'historique' : cup.classId;
+    this.save.cups[cupId] = cs;
     const idx = Math.min(cs.race, cup.tracks.length - 1);
     const trackDef = this.trackDefById(cup.tracks[idx]), cat = categoryById(cup.classId);
     const seed = CUPS.indexOf(cup) * 101 + 7;
@@ -697,7 +700,11 @@ class App {
     save.racesDone++;
     if (ctx.cup) {
       const cs = cupState(save, ctx.cup.id);
-      for (const r of race.results) cs.points[r.car.name] = (cs.points[r.car.name] || 0) + r.points;
+      const bareme = BAREMES_CHAMPIONNAT[cs.bareme] || POINTS;
+      for (const r of race.results) {
+        r.points = r.abandon ? 0 : bareme[r.pos - 1] || 0;
+        cs.points[r.car.name] = (cs.points[r.car.name] || 0) + r.points;
+      }
       cs.race = ctx.raceIndex + 1;
       if (cs.race >= ctx.cup.tracks.length) {
         cs.done = true;

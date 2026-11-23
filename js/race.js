@@ -77,6 +77,9 @@ const DIFFICULTY = {
 };
 
 const POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1];
+const POINTS_GT_SPRINT = [16.5, 12, 9.5, 7.5, 6, 4.5, 3, 2, 1, 0.5];
+const BAREMES_CHAMPIONNAT = { f1: POINTS, gt: POINTS_GT_SPRINT, gt3: POINTS_GT_SPRINT,
+  proto: [50, 36, 30, 24, 20, 16, 12, 8, 4, 2] };
 
 /* La part FIXE de la pénalité d'une sortie de piste, en secondes.
 

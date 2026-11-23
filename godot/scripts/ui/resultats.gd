@@ -104,16 +104,16 @@ func _draw() -> void:
 		Style.texte(self, "+%.3f" % res.ecart if res.ecart > 0 else "", Vector2(r.position.x + 14 + cols[3], b), sz, ink)
 		Style.texte(self, "+%.1f s" % res.penalite if res.penalite > 0.05 else "", Vector2(r.position.x + 14 + cols[4], b), sz, Color("#e2533f") if res.penalite > 0.05 else ink)
 		Style.texte(self, Style.temps(res.meilleur), Vector2(r.position.x + 14 + cols[5], b), sz, ink)
-		if espace > 0: Style.texte(self, str(res.points), Vector2(r.end.x - 58, b), sz, ink)
+		if espace > 0: Style.texte(self, Championnat.formatPoints(float(res.points)), Vector2(r.end.x - 58, b), sz, ink)
 		y += h
 	if not totaux.is_empty():
 		var ordre := totaux.values()
-		ordre.sort_custom(func(a, b): return int(a.total) > int(b.total))
+		ordre.sort_custom(func(a, b): return float(a.total) > float(b.total))
 		Style.texte(self, Textes.t("championnat"), Vector2(r.position.x + 14, y + 22), 18, Style.CREME)
 		var col := r.size.x / 3
 		for i in mini(ordre.size(), 12):
 			var score: Dictionary = ordre[i]
-			Style.texte(self, "%d. %s   %d" % [i + 1, score.nom, score.total], Vector2(r.position.x + 14 + col * (i % 3), y + 42 + 14 * floori(i / 3.0)), 13, Style.PAPIER,
+			Style.texte(self, "%d. %s   %s" % [i + 1, score.nom, Championnat.formatPoints(float(score.total))], Vector2(r.position.x + 14 + col * (i % 3), y + 42 + 14 * floori(i / 3.0)), 13, Style.PAPIER,
 				HORIZONTAL_ALIGNMENT_LEFT, col - 18)
 	# le palmarès (js/ui.js, tropheeResultat) : le trophée gagné, ou ce qui manquait
 	var tr: Dictionary = App.dernierTrophee if App.derniereCourse == course else {}

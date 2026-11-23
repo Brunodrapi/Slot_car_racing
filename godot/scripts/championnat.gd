@@ -1,11 +1,30 @@
 class_name Championnat
 extends RefCounted
 
-const POINTS_COURSE := [25, 18, 15, 12, 10, 8, 6, 4, 2, 1]
-const POINTS_QUALIF := [3, 2, 1]
+const POINTS_F1 := [25, 18, 15, 12, 10, 8, 6, 4, 2, 1]
+const POINTS_GT := [16.5, 12, 9.5, 7.5, 6, 4.5, 3, 2, 1, 0.5]
+const POINTS_LE_MANS := [50, 36, 30, 24, 20, 16, 12, 8, 4, 2]
 
 
-static func programme(options: Dictionary, circuit: String, tours: int, graine: int) -> Dictionary:
+static func categorieTable(table: Dictionary, voitureHote: String) -> String:
+	var cat := String(table.get("cat", "all"))
+	if cat != "all" and not cat.is_empty(): return cat
+	return String(Catalogue.voiture(voitureHote).get("cat", "gt"))
+
+
+static func cleBareme(cat: String) -> String:
+	if cat == "f1": return "f1"
+	if cat == "proto": return "lemans"
+	return "gt"
+
+
+static func formatPoints(points: float) -> String:
+	if points == floorf(points): return str(int(points))
+	var affichage := "%.1f" % points
+	return affichage.replace(".", ",") if Textes.langue() == "fr" else affichage
+
+
+static func programme(options: Dictionary, circuit: String, tours: int, graine: int, cat: String) -> Dictionary:
 	var calendrier: Array = options.get("circuits", [])
 	if calendrier.is_empty(): calendrier = [circuit]
 	var manches := []
@@ -14,7 +33,7 @@ static func programme(options: Dictionary, circuit: String, tours: int, graine: 
 			var duree := clampi(int(options.get(phase, 0)), 0, 60)
 			if phase == "course" or duree > 0:
 				manches.append({ circuit = id, phase = phase, duree = duree * 60, tours = tours })
-	return { manches = manches, index = 0, points = {}, pole = [], positions = options.get("positions", {}).duplicate(), graine = graine }
+	return { manches = manches, index = 0, points = {}, pole = [], positions = options.get("positions", {}).duplicate(), graine = graine, bareme = cleBareme(cat) }
 
 
 static func actif(options: Dictionary) -> bool:
@@ -76,15 +95,18 @@ static func grille(course: Course, championnat: Dictionary) -> void:
 
 static func attribue(championnat: Dictionary, course: Course) -> Dictionary:
 	var resultat := championnat.duplicate(true)
-	var barème := POINTS_COURSE if course.phase == "course" else POINTS_QUALIF
+	var bareme := String(championnat.get("bareme", "gt"))
+	var pointsCourse: Array = {"f1": POINTS_F1, "gt": POINTS_GT, "lemans": POINTS_LE_MANS}.get(bareme, POINTS_GT)
 	if course.phase == "qualifications": resultat.pole = []
 	for i in course.results.size():
 		var ligne: Dictionary = course.results[i]
 		var id := cle(course, course.cars.find(ligne.car))
 		var classe: bool = not ligne.car.abandon if course.phase == "course" else ligne.meilleur > 0
-		var points: int = barème[i] if classe and i < barème.size() and course.phase != "essais" else 0
+		var points := 0.0
+		if classe and course.phase == "course" and i < pointsCourse.size(): points = float(pointsCourse[i])
+		elif classe and course.phase == "qualifications" and i == 0 and bareme != "f1": points = 1.0
 		if classe and course.phase == "qualifications": resultat.pole.append(id)
 		ligne.points = points
-		var total := int(resultat.points.get(id, {}).get("total", 0)) + points
+		var total := float(resultat.points.get(id, {}).get("total", 0)) + points
 		resultat.points[id] = { nom = ligne.car.nom, total = total }
 	return resultat

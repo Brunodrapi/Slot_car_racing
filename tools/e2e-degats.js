@@ -1,4 +1,4 @@
-// Les dégâts qui se voient (essai de la branche claude/degats-visuels, js/degats.js).
+// Les dégâts visibles de la recette (js/degats.js).
 //
 //   NODE_PATH=$(npm root -g) node tools/e2e-degats.js [dossier]
 //

@@ -162,6 +162,13 @@ func _construit() -> void:
 		champ.value_changed.connect(func(v): options[phase] = int(v); _sauve())
 		_ligne(gauche, Textes.t(phase)).add_child(champ)
 	gauche.add_child(_texte(Textes.t("programmeHint"), 17, Color("#565b4f")))
+	var voiture := String(App.reglages.voiture)
+	if enLigne:
+		var membres := Reseau.net.members()
+		if not membres.is_empty() and membres[0].car is Dictionary:
+			voiture = String(membres[0].car.get("modelId", voiture))
+	var categorie := Championnat.categorieTable(table, voiture)
+	gauche.add_child(_texte(Textes.t("bareme_" + Championnat.cleBareme(categorie)), 17, Color("#565b4f")))
 	var calendrier: Array = options.get("circuits", [])
 	droite.add_child(_texte(Textes.t("championnat"), 22))
 	var ajoute := _selection(190)

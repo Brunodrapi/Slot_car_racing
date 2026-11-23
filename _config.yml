@@ -1,0 +1,3 @@
+# Le projet Godot reste dans Git. Pages sert l’export dans essais/godot/.
+exclude:
+  - godot/

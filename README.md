@@ -404,13 +404,8 @@ recette n'en est pas changé, et ni la prod ni l'aperçu ne l'emportent : la fab
 que les pages chargent. Même canal RECETTE, même sauvegarde que la recette (même adresse) ; le service
 worker de l'essai ne couvre que son dossier.
 
-- `essais/degats/` — les dégâts qui se voient, branche `claude/degats-visuels` (tôle qui se froisse un
-  peu, étincelles, débris, fumée, feux cassés, perte de vitesse en course, jauge de tôle, stands pour
-  réparer, leurs mécaniciens et leurs bruits, abandon à 100 km/h droit dans un mur avec son écran façon
-  WASTED ; stands
-  en ligne droite à Kangaroo Mountain, et rendus à Monaco, les platanes entre la piste et la voie) :
-  brunodrapi.github.io/Slot_car_racing/essais/degats/. Le détail est dans le README de la branche.
-- `essais/godot/` — la version Godot, branche `claude/godot-prototype` : les 14 circuits, les 35 voitures et
+- Les dégâts font partie du jeu principal de la recette. L'ancien lien `essais/degats/` y renvoie.
+- `essais/godot/` — l’export du projet `godot/` de la recette : les 14 circuits, les 35 voitures et
   leurs livrées, l'IA, la course rapide, le contre-la-montre et l'entraînement (fantôme et guide), les
   menus, le son et les effets, la nuit, le français et l'anglais, le multijoueur aux mêmes tables que
   la recette (un joueur Godot et un joueur du jeu web à la même table) ; la physique et la course du jeu web
@@ -1524,7 +1519,7 @@ parking de la chicane. Le semis de maisons du thème n'y pousse plus. Plus de vo
 stands est rapprochée de la ligne droite (`barrierCloseZones`) et, à la place de la voie, deux
 rangées de platanes (`ville.alignements`, une rangée d'arbres le long du tour à quelques mètres de
 la protection) ; une troisième borde la ligne droite côté Condamine. Rallumer l'usure demandera de
-redonner une voie à ce circuit. *(Sur la branche `claude/degats-visuels`, les stands réparent les dégâts,
+redonner une voie à ce circuit. *(Dans la recette, les stands réparent les dégâts,
 et la voie est revenue : une rangée de platanes entre la piste et la voie — voir « Les dégâts
 visibles ».)* La piscine fait 68 × 17 m et
 s'adosse à la barrière de la Piscine, dans son axe. Tout reste
@@ -3506,17 +3501,11 @@ l'échelle est redevenue monotone dans les deux sens.
 
 Chaque palier vaut cinq à six pour cent, soit l'écart qui séparait déjà moyen de difficile.
 
-## Les dégâts visibles (essai, branche `claude/degats-visuels`)
+## Les dégâts visibles
 
-> **Un essai, sur sa propre branche.** Ni la recette ni la prod ne l'ont. Tout tient dans
-> `js/degats.js` (le dessin), `DEGATS` et `_marque` dans `js/car.js` (le coût et les chocs notés),
-> `_degats` dans `js/render.js` (les étincelles, les débris, la fumée), et l'option `deforme` de
-> `drawCarModel` et `drawCarShadow` (`js/carart.js`). Essai : `tools/e2e-degats.js`.
->
-> **Pour y jouer** : une copie compilée de cette branche est posée dans la recette, à
-> brunodrapi.github.io/Slot_car_racing/essais/degats/ (voir « Les essais jouables » dans le README de la
-> recette). Après un changement ici : `node tools/build-dist.js --sortie=/tmp/essai --canal=recette`,
-> puis, sur la recette, remplacer `essais/degats/` par `/tmp/essai` et pousser.
+La Course rapide propose les dégâts dans le paddock. En multijoueur, l’hôte les règle pour la
+table. Les bases du rendu sont dans `js/degats.js`, les effets dans `js/render.js`, et les dégâts
+mécaniques dans `js/car.js`. Vérification avec `tools/e2e-degats.js`.
 
 La demande : que les contacts abîment les voitures **à l'écran**, en plus de leur coûter des
 performances, sans compliquer.

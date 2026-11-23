@@ -235,7 +235,7 @@ func sauve() -> void:
 
 func lanceCourseRapide() -> void:
 	var options: Dictionary = reglages.get("programme", {})
-	championnatSolo = Championnat.programme(options, String(reglages.circuit), int(reglages.tours), randi() % 100000) if Championnat.actif(options) else {}
+	championnatSolo = Championnat.programme(options, String(reglages.circuit), int(reglages.tours), randi() % 100000, String(Catalogue.voiture(reglages.voiture).get("cat", "gt"))) if Championnat.actif(options) else {}
 	aller("course")
 
 

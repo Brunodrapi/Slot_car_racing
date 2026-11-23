@@ -1,1 +1,0 @@
-"use strict";const APP_VERSION="0.56.4",APP_DATE="2026-11-17",APP_CANAL="recette",APP_DISTRIBUTION="web";if("undefined"!=typeof document){const e=document.querySelector('meta[name="apple-mobile-web-app-title"]');e&&(e.content="GRIP Recette",document.title="GRIP Recette")}

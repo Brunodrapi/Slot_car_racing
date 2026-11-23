@@ -100,7 +100,7 @@ func open(nom: String, asHost: bool, code_: String = "", spectator := false) -> 
 		if asHost:
 			table.go = 0
 			table.championnat = {}
-		mine = { pid = pid, protocol = DRIVE_PROTOCOL, grilleIA = true, programmeCourse = true, name = nom if nom != "" else "Pilote", car = null, ready = false,
+		mine = { pid = pid, protocol = DRIVE_PROTOCOL, grilleIA = true, programmeCourse = 2, name = nom if nom != "" else "Pilote", car = null, ready = false,
 			spectator = not asHost and spectator }
 		room.onPeers(func(_p) -> void: peers = room.peers(); pump())
 		var err: String = await room.claim(code, asHost)
@@ -201,7 +201,7 @@ func setMine(patch: Dictionary) -> void:
 func grilleCompatible(t: Dictionary) -> bool:
 	var supporteIA: bool = t.get("mode") != "race" or int(t.get("aiCount", -1)) < 0 or members().all(func(m): return m.q.get("grilleIA", false))
 	var programme: bool = not t.get("championnat", {}).is_empty() or (t.get("mode") in ["race", "duel"] and Championnat.actif(t.get("programme", {})))
-	return supporteIA and (not programme or members().all(func(m): return m.q.get("programmeCourse", false)))
+	return supporteIA and (not programme or members().all(func(m): return int(m.q.get("programmeCourse", 0)) >= 2))
 
 
 func canStart() -> bool:
@@ -226,7 +226,8 @@ func start() -> void:
 	var programme: Dictionary = table.get("championnat", {})
 	var go := int(SalleRTC.maintenant())
 	if programme.is_empty() and table.mode in ["race", "duel"] and Championnat.actif(options):
-		programme = Championnat.programme(options, String(table.trackId), int(table.laps), go % 100000)
+		var categorie := Championnat.categorieTable(table, String(mine.car.get("modelId", "")))
+		programme = Championnat.programme(options, String(table.trackId), int(table.laps), go % 100000, categorie)
 		programme.pilotes = members().filter(func(m): return not m.q.get("spectator", false)).slice(0, NET_SEATS).map(func(m): return [m.pid, m.car])
 	setTable({ go = go, championnat = programme })
 
