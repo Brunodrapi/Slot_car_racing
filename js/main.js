@@ -481,14 +481,15 @@ class App {
     const hote = cfg.humans[0] || {};
     const catIA = cfg.cat && cfg.cat !== 'all' ? categoryById(cfg.cat)
       : hote.modelId ? categoryOfModel(hote.modelId) : cat;
-    const places = Math.max(cfg.humans.length + 1, Math.min(catIA.drivers || 10, 12));
+    const places = cfg.aiCount >= 0 ? Math.min(12, cfg.humans.length + cfg.aiCount)
+      : Math.max(cfg.humans.length + 1, Math.min(catIA.drivers || 10, 12));
     const roster = cfg.mode === 'race' ? makeRoster(places, 0, (cfg.go || 1) % 100000, catIA.id) : null;
     this._startRace({
       // A shared time trial is a race with the contact turned off: everyone on the same lap
       // counter, nobody able to knock anybody off.
       mode: cfg.mode === 'ghost' ? 'race' : 'race',
       noContact: cfg.mode === 'ghost',
-      aiFill: cfg.mode === 'race',
+      aiFill: cfg.mode === 'race', aiCount: cfg.aiCount,
       trackDef,
       classId: cat.id,
       modelId: mine.modelId || this.playerModelFor(cat.id).id,
