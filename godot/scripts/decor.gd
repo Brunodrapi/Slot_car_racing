@@ -7,9 +7,14 @@
 class_name Decor
 extends Node2D
 
+# Les reflets des feux arrière ne touchent que la surface sur laquelle roule la voiture.
+const LUMIERE_SOL := 2
+const LUMIERE_TABLIER := 4
+
 var fond := Color("#4e7a3a")
 var nCarreaux := 0
 var nTriangles := 0
+var champsGalerie: Array = []
 
 
 ## `chemin` sans extension : res://donnees/circuits/<id>-decor, ou user://decors/<id>-decor pour un
@@ -37,7 +42,9 @@ func charge(chemin: String) -> void:
 		mi.mesh = maille
 		mi.texture = atlas
 		# 0 sous toutes les voitures, 1 le tablier d'un croisement, 2 par-dessus toutes.
-		mi.z_index = [0, 2, 4][int(c.get("couche", 0))]
+		var couche := int(c.get("couche", 0))
+		mi.z_index = [0, 2, 4][couche]
+		mi.light_mask = [1 | LUMIERE_SOL, 1 | LUMIERE_TABLIER, 0][couche]
 		add_child(mi)
 		nCarreaux += 1
 		nTriangles += int(c.triangles)

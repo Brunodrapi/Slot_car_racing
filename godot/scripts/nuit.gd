@@ -121,12 +121,51 @@ func _ready() -> void:
 		add_child(lueur)
 		projecteurs.append(p)
 		champs.append({ x = p.x, y = p.y, cap = p.cap, type = "flood", longueur = p.longueur, largeur = p.largeur, puissance = p.puissance })
+	champs.append_array(jeu.decor.champsGalerie)
 	var mats := Node2D.new()
 	mats.material = _sansOmbre()
 	_matsNoeud = mats
 	mats.z_index = 5
 	mats.draw.connect(_mats.bind(mats))
 	add_child(mats)
+
+
+## Deux rampes sous la galerie. Leurs faisceaux rasent la chaussée depuis les bords.
+## Le décor les porte pour qu'ils soient déjà allumés lorsqu'on approche du portail de jour.
+static func eclaireGalerie(piste: Piste, decor: Decor) -> void:
+	if piste.lumiereTunnel.is_empty(): return
+	_textures()
+	var boitiers := Node2D.new()
+	var lampes: Array[Transform2D] = []
+	boitiers.material = _sansOmbre()
+	decor.add_child(boitiers)
+	for tunnel in piste.tunnels:
+		var debut := float(tunnel[0]) * piste.ds
+		var longueur := float(tunnel[1]) * piste.ds
+		var nombre := floori(longueur / 12.0)
+		for i in nombre:
+			var s := debut + (i + 0.5) * longueur / nombre
+			var k := piste.idx(s)
+			var normale := Vector2(piste.nx[k], piste.ny[k])
+			for cote in [-1.0, 1.0]:
+				var bord := piste.hwL[k] if cote > 0 else piste.hwR[k]
+				var origine := piste.pos(s, cote * (bord - 0.6))
+				var cap := (-normale * float(cote)).angle()
+				var portee := minf(2 * bord, 12.0)
+				var l := _lumiere(tFlood, portee, 8.0, 0.55)
+				l.color = Color("#ffdfab")
+				l.position = origine
+				l.rotation = cap
+				l.range_z_max = 1
+				decor.add_child(l)
+				decor.champsGalerie.append({ x = origine.x, y = origine.y, cap = cap, type = "flood", longueur = portee, largeur = 8.0, puissance = l.energy })
+				lampes.append(Transform2D(cap, origine))
+	boitiers.draw.connect(func():
+		for lampe in lampes:
+			boitiers.draw_set_transform_matrix(lampe)
+			boitiers.draw_rect(Rect2(-0.17, -0.8, 0.34, 1.6), Color("#665244"))
+			boitiers.draw_rect(Rect2(-0.10, -0.65, 0.20, 1.3), Color("#fff1c5"))
+	)
 
 
 ## Les mâts des projecteurs (NightLighting.fixtures), restés visibles dans le noir.
@@ -160,12 +199,10 @@ func ajouteVoiture(vue: VoitureVue, car: Voiture) -> void:
 		s.centered = false
 		s.offset = Vector2(0, -tTail.get_height() / 2.0)
 		s.material = _sansOmbre()
-		s.z_index = 5
 		add_child(s)
 		e.lueurs.append(s)
 	var verres := Node2D.new()
 	verres.material = _sansOmbre()
-	verres.z_index = 6
 	verres.draw.connect(_verres.bind(verres, feux))
 	vue.add_child(verres)
 	e.verres = verres
@@ -260,6 +297,9 @@ func maj(poses: Array) -> void:
 			var largeur := 1.1 if freine else .7
 			var pos: Vector2 = monde.call(q)
 			var cap := h + PI - signf(q.y) * .06
+			# Le halo est posé sur le sol, même lorsque la voiture roule sur un pont.
+			s.z_index = vue.z_index - 1
+			l.range_item_cull_mask = Decor.LUMIERE_TABLIER if vue.z_index == 3 else Decor.LUMIERE_SOL
 			l.position = pos; l.rotation = cap
 			l.scale = Vector2(longueur / tBeam.get_width(), largeur * 2 / tBeam.get_height())
 			l.energy = (.4 if freine else .035) * force

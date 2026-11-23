@@ -68,7 +68,7 @@ func _ready() -> void:
 			s.rotation = PI - signf(q.y) * .06
 			s.modulate = Color(1, 1, 1, .62)
 			s.visible = false
-			s.show_behind_parent = true
+			s.z_index = -1       # juste au-dessus du sol ou du tablier, sous toutes les carrosseries
 			add_child(s)
 			stops.append(s)
 			_stopsQ.append(Vector2(q.x, q.y))

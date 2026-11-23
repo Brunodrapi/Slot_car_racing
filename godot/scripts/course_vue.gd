@@ -100,6 +100,7 @@ func _ready() -> void:
 	decor = Decor.new()
 	decor.charge(chemin)
 	add_child(decor)
+	Nuit.eclaireGalerie(piste, decor)
 	effets = Effets.new()
 	add_child(effets)
 	degatsVue = DegatsVue.new()
