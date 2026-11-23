@@ -69,6 +69,8 @@ const NET_FINISH_GRACE := 30.0
 ## (pilotes de l'IA : nom, modele, livery, livree, skill), catalogue (Callable id -> Modele).
 # Le réglage de frein du joueur (js/race.js, poseFrein) et le mode RÉGLER (`reglage` : un levier de
 # freinage en haut de l'écran, et la pause propose d'enregistrer la configuration).
+var phase := "course"
+var dureeSession := 0.0
 var reglage := false
 var frein := 1.0
 var freinBase := 0.0
@@ -94,11 +96,14 @@ func _init(piste: Piste, opts: Dictionary, h: Hasard) -> void:
 	difficultes = opts.get("difficultes", {})
 	humans = opts.get("humans")
 	aiFill = opts.get("aiFill", false)
-	noContact = opts.get("noContact", false)
+	phase = String(opts.get("phase", "course"))
+	dureeSession = float(opts.get("dureeSession", 0))
+	if dureeSession > 0: finishDeadline = dureeSession
+	noContact = opts.get("noContact", false) or dureeSession > 0
 	spectator = opts.get("spectator", false)
 	degatsVisu = bool(opts.get("degats", false))
 	reglage = bool(opts.get("reglage", false))
-	if degatsVisu and mode == "race":
+	if degatsVisu and mode == "race" and dureeSession <= 0:
 		degats = Voiture.DEGATS.duplicate()
 		degats.abandon = humans == null      # l'abandon en solo seulement : en ligne il devrait passer par le réseau
 	# les stands, et pas sur un circuit sans voie : la coche n'y mènerait nulle part
@@ -117,6 +122,7 @@ func _buildGrid(opts: Dictionary) -> void:
 	var n: int
 	if solo: n = 1
 	elif humans != null and not aiFill: n = nh
+	elif humans != null and int(opts.get("aiCount", -1)) >= 0: n = nh + clampi(int(opts.aiCount), 0, 12 - nh)
 	else: n = maxi(nh + 1, mini(int(opts.get("nCars", c.drivers)), 12))
 	var roster: Array = opts.roster if opts.get("roster") is Array and (opts.roster as Array).size() else [{ nom = "IA", modele = "", livery = 0, livree = 0, skill = 0.5 }]
 	var gap := c.length * 2.2
@@ -232,6 +238,12 @@ func step(gaz: float) -> void:
 	if state == "finished":
 		return
 	_simulate(gaz)
+	if dureeSession > 0 and time >= dureeSession:
+		finishDeadline = dureeSession
+		if netDrive == null or (netDrive.host and netDrive.canFinalize()):
+			state = "finished"
+			_classe()
+		return
 	# le joueur a abandonné : on laisse voir l'épave sept secondes (l'écran ABANDON), puis la course
 	# se termine sans lui
 	if state == "racing" and player.abandon and netDrive == null:
@@ -276,7 +288,7 @@ func _simulate(gaz: float) -> void:
 	if fantome and time >= sillage.n * sillage.pas:
 		sillage.joueur.append(player.progress()); sillage.fantome.append(fantome.progress()); sillage.n += 1
 	time += dt
-	if netDrive != null and not is_nan(finishDeadline) and time > finishDeadline: return
+	if (netDrive != null or dureeSession > 0) and not is_nan(finishDeadline) and time > finishDeadline: return
 	_flagsUpdate()
 	var pp := player.progress()
 	# le trafic que l'IA regarde : ni le fantôme, ni une épave (elle attendrait derrière pour toujours)
@@ -314,7 +326,7 @@ func _simulate(gaz: float) -> void:
 		_flagsInspect(car, ic)
 		if car.lap != lapBefore:
 			evenements.append({ type = "lap", car = car })
-			if mode == "race" and car.lap >= laps and not car.finished:
+			if mode == "race" and dureeSession <= 0 and car.lap >= laps and not car.finished:
 				car.finished = true
 				car.finishTime = time
 				evenements.append({ type = "finish", car = car })
@@ -406,6 +418,8 @@ func _finish() -> void:
 ## Le classement final (race._finish, après la fin de la course).
 func _classe() -> void:
 	var ordre := standings()
+	if dureeSession > 0:
+		ordre.sort_custom(func(a, b): return a.bestLap > 0 and (b.bestLap <= 0 or a.bestLap < b.bestLap))
 	results = []
 	for i in ordre.size():
 		var car := ordre[i]

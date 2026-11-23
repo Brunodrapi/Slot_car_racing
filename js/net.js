@@ -82,7 +82,7 @@ class Net {
       if (!asHost && !/^[A-Z0-9]{4}$/.test(this.code)) throw new Error('code à quatre lettres');
       this.creator = !!asHost;
       this.completedGo = 0;
-      this.mine = { pid: this.pid, protocol: DRIVE_PROTOCOL, name: name || 'Pilote', car: null, ready: false, spectator: !asHost && spectator };
+      this.mine = { pid: this.pid, protocol: DRIVE_PROTOCOL, grilleIA: true, name: name || 'Pilote', car: null, ready: false, spectator: !asHost && spectator };
       this.room.onPeers(() => { this.peers = this.room.peers(); this.pump(); });
       await this.room.claim(this.code, asHost);
       this.state = 'lobby';
@@ -286,7 +286,7 @@ class Net {
     this.snapAt = performance.now();
     this.post();
     this.onStart({
-      mode: t.mode, trackId: t.trackId, laps: t.laps, difficulty: t.difficulty,
+      mode: t.mode, trackId: t.trackId, laps: t.laps, aiCount: t.aiCount ?? -1, difficulty: t.difficulty,
       timeOfDay: t.timeOfDay === 'night' ? 'night' : 'day', degats: t.degats !== false,
       cat: t.cat || 'all', go: t.go, spectator: !!this.mine.spectator,
       // Personne ne choisit sa couleur : la place la donne. L'ordre étant celui de l'hôte, il est

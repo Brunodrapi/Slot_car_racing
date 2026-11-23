@@ -97,8 +97,10 @@ func open(nom: String, asHost: bool, code_: String = "", spectator := false) -> 
 		# Une nouvelle table part sans départ donné. (Le jeu web garde l'heure du départ de la course
 		# précédente quand on quitte la table puis qu'on en rouvre une : la nouvelle partait alors dès
 		# qu'un second pilote s'asseyait.)
-		if asHost: table.go = 0
-		mine = { pid = pid, protocol = DRIVE_PROTOCOL, name = nom if nom != "" else "Pilote", car = null, ready = false,
+		if asHost:
+			table.go = 0
+			table.championnat = {}
+		mine = { pid = pid, protocol = DRIVE_PROTOCOL, grilleIA = true, programmeCourse = true, name = nom if nom != "" else "Pilote", car = null, ready = false,
 			spectator = not asHost and spectator }
 		room.onPeers(func(_p) -> void: peers = room.peers(); pump())
 		var err: String = await room.claim(code, asHost)
@@ -196,6 +198,12 @@ func setMine(patch: Dictionary) -> void:
 	onPeers.call()
 
 
+func grilleCompatible(t: Dictionary) -> bool:
+	var supporteIA: bool = t.get("mode") != "race" or int(t.get("aiCount", -1)) < 0 or members().all(func(m): return m.q.get("grilleIA", false))
+	var programme: bool = not t.get("championnat", {}).is_empty() or (t.get("mode") in ["race", "duel"] and Championnat.actif(t.get("programme", {})))
+	return supporteIA and (not programme or members().all(func(m): return m.q.get("programmeCourse", false)))
+
+
 func canStart() -> bool:
 	var m := members().filter(func(x): return not x.q.get("spectator", false)).slice(0, NET_SEATS)
 	var t := settings()
@@ -204,14 +212,23 @@ func canStart() -> bool:
 		if cat == "" or cat == "all": return true
 		var mod: Dictionary = Catalogue.voiture(String(x.car.get("modelId", ""))) if x.car is Dictionary else {}
 		return mod.is_empty() or mod.cat == cat
-	return creator and m.size() >= 2 and m.all(func(x): return x.ready and x.car is Dictionary \
+	var pilotes := m.map(func(x): return [x.pid, x.car])
+	var programme: Dictionary = t.get("championnat", {})
+	var memeGrille: bool = programme.is_empty() or programme.get("pilotes", pilotes) == pilotes
+	return creator and m.size() >= 2 and memeGrille and grilleCompatible(t) and m.all(func(x): return x.ready and x.car is Dictionary \
 		and int(x.q.get("protocol", 0)) == DRIVE_PROTOCOL and conforme.call(x))
 
 
 ## L'hôte donne le départ ; tout le monde gèle la même liste, dans le même ordre, à cet instant.
 func start() -> void:
 	if not canStart(): return
-	setTable({ go = int(SalleRTC.maintenant()) })
+	var options: Dictionary = table.get("programme", {})
+	var programme: Dictionary = table.get("championnat", {})
+	var go := int(SalleRTC.maintenant())
+	if programme.is_empty() and table.mode in ["race", "duel"] and Championnat.actif(options):
+		programme = Championnat.programme(options, String(table.trackId), int(table.laps), go % 100000)
+		programme.pilotes = members().filter(func(m): return not m.q.get("spectator", false)).slice(0, NET_SEATS).map(func(m): return [m.pid, m.car])
+	setTable({ go = go, championnat = programme })
 
 
 func hostGrid():
@@ -261,12 +278,15 @@ func pump() -> void:
 	var humans := []
 	for i in (g as Array).size():
 		var x: Dictionary = g[i]
-		humans.append({ name = String(x.n) if x.get("n") else Textes.t("driverN") % (i + 1),
+		humans.append({ pid = String(x.p), name = String(x.n) if x.get("n") else Textes.t("driverN") % (i + 1),
 			modelId = x.m if x.get("m") != null else null, livree = int(x.get("l", 0)) if x.get("l") != null else 0,
 			livery = i, local = x.p == pid })
-	onStart.call({ mode = t.get("mode", "race"), trackId = t.get("trackId", "monza"), laps = t.get("laps", 3),
+	var programme: Dictionary = t.get("championnat", {})
+	var manche := Championnat.manche(programme)
+	onStart.call({ mode = t.get("mode", "race"), trackId = manche.get("circuit", t.get("trackId", "monza")),
+		laps = manche.get("tours", t.get("laps", 3)), championnat = programme.duplicate(true),
 		difficulty = t.get("difficulty", "medium"), timeOfDay = "night" if t.get("timeOfDay") == "night" else "day",
-		degats = t.get("degats", false) == true,
+		degats = t.get("degats", false) == true, aiCount = int(t.get("aiCount", -1)),
 		cat = t.get("cat", "all") if t.get("cat") else "all", go = go, spectator = bool(mine.get("spectator", false)),
 		humans = humans })
 

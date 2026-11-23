@@ -19,21 +19,26 @@ static func cree(piste: Piste, L: Dictionary, voitureId: String, net: Net, h: Ha
 	for k in Catalogue.categories():
 		if k.id == catIA: pilotes = int(k.get("drivers", 10))
 	var places := maxi((L.humans as Array).size() + 1, mini(pilotes, 12))
-	var graine := int(L.go) % 100000 if int(L.go) else 1
+	var aiCount := int(L.get("aiCount", -1))
+	if aiCount >= 0: places = mini(12, L.humans.size() + aiCount)
+	var programme: Dictionary = L.get("championnat", {})
+	var manche := Championnat.manche(programme)
+	var graine := int(programme.graine) if not programme.is_empty() else int(L.go) % 100000 if int(L.go) else 1
 	var roster: Array = Catalogue.roster(places, 0, catIA, HasardGraine.new(graine)) if L.mode == "race" else []
 	var moi = L.humans.filter(func(x): return x.local)
 	var m: Dictionary = moi[0] if moi.size() else {}
 	var modeles := Catalogue.voituresDe(cat)
 	var c := Course.new(piste, {
 		modele = modele, difficulte = Catalogue.difficulte(String(L.get("difficulty", "medium"))), mode = "race",
-		laps = int(L.get("laps", 3)), difficultes = Catalogue.donnees.difficultes, humans = L.humans,
-		aiFill = L.mode == "race", noContact = L.mode == "ghost", spectator = bool(L.get("spectator", false)),
+		laps = int(L.get("laps", 3)), phase = manche.get("phase", "course"), dureeSession = manche.get("duree", 0), difficultes = Catalogue.donnees.difficultes, humans = L.humans,
+		nCars = places, aiCount = aiCount, aiFill = L.mode == "race", noContact = L.mode == "ghost", spectator = bool(L.get("spectator", false)),
 		roster = roster, nLivreries = (Catalogue.donnees.livreries as Array).size(), nomJoueur = m.get("name", "Pilote"),
-		livree = int(m.get("livree", 0)),
+		livree = int(m.get("livree", 0)), frein = ReglageFrein.frein(piste.id, voitureId) if not m.is_empty() else 1.0,
 		# les dégâts : le choix de l'hôte ; une table du jeu web publié ne le porte pas, et n'en a pas
 		degats = L.get("degats", false) == true,
 		modeleDe = func(id, i): return Catalogue.modele(id) if id is String and id != "" and Catalogue.modele(id) else Catalogue.modele(modeles[i % modeles.size()].id),
 	}, h if h != null else Hasard.new())
+	if not programme.is_empty(): Championnat.grille(c, programme)
 	c.broadcast = RaceBroadcast.new(c)
 	net.drive = NetDrive.new(net, c)
 	return c

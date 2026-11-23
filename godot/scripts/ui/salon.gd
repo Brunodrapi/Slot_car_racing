@@ -167,13 +167,14 @@ func _maj() -> void:
 			App.reglages.voiture = l[0].id; App.reglages.livree = 0
 			_voitureNet()
 			net.setMine({ ready = false })
-	if String(t.get("trackId", "")) != _circuitVu:
-		_circuitVu = String(t.get("trackId", "")); _suivre = true
+	var circuit := String(Championnat.manche(t.get("championnat", {})).get("circuit", t.get("trackId", "")))
+	if circuit != _circuitVu:
+		_circuitVu = circuit; _suivre = true
 	# Les boutons ne se refont que si ce qu'ils montrent a changé ; le reste se redessine.
 	var pilotes := net.members().filter(func(m): return not m.q.get("spectator", false)).size()
 	var s := JSON.stringify([net.state, net.busy, net.creator, t.get("mode"), t.get("timeOfDay"), t.get("degats"), cat, t.get("trackId"),
 		net.mine.get("ready"), net.mine.get("spectator"), App.reglages.voiture, App.reglages.livree, net.canStart(),
-		pilotes < 2, debutCircuits, debutVoitures, size, net.members().size(), _suivre])
+		pilotes, t.get("laps"), t.get("aiCount"), t.get("championnat"), ReglageFrein.active(_circuitVu, App.reglages.voiture).get("nom"), debutCircuits, debutVoitures, size, net.members().size(), _suivre])
 	if s != _signature:
 		_signature = s
 		_construit()
@@ -182,6 +183,9 @@ func _maj() -> void:
 
 func _b(t: String, r: Rect2, f: Color, e: Color, taille: int, action: Callable, cle: String, parent: Control = null) -> Bouton:
 	var b := Bouton.new(t, f, e, taille)
+	if cle == "heurenight" and Catalogue.voiture(App.reglages.voiture).get("cat") == "f1":
+		b.fond = ROUGE_SEL
+		b.encre = Color.WHITE
 	b.position = r.position
 	b.size = r.size
 	b.centre = true
@@ -198,11 +202,58 @@ func _seg(choix: Array, actuel: String, y: float, actif: bool, action: Callable,
 		var w := Style.largeur(c[1], 22) + 50
 		if x + w > W - M:
 			x = M; y += 52
-		var b := _b(c[1], Rect2(x, y, w, 44), ROUGE_SEL if c[0] == actuel else Style.NUIT_PLEINE, CARTE_SEL if c[0] == actuel else Style.CREME, 22,
+		var b := _b(c[1], Rect2(x, y, w, 44), VERT if c[0] == actuel else Style.NUIT_PLEINE, Color.WHITE if c[0] == actuel else Style.CREME, 22,
 			func(): action.call(c[0]), prefixe + str(c[0]))
 		b.disabled = not actif
 		x += w + 6
 	z[prefixe] = y + 44
+
+
+func _compteur(titre: String, valeur: String, rect: Rect2, cle: String, moins: Callable, plus: Callable, minAtteint: bool, maxAtteint: bool) -> void:
+	var x := rect.position.x
+	var y := rect.position.y
+	var w := rect.size.x
+	var editable: bool = net.creator and net.settings().get("championnat", {}).is_empty()
+	var gauche := _b("−", Rect2(x, y, 44, 44), Style.NUIT_PLEINE, Style.CREME, 24, moins, cle + "-")
+	gauche.disabled = not editable or minAtteint
+	var label := Label.new()
+	label.text = titre
+	label.position = Vector2(x + 48, y)
+	label.size = Vector2(w - 170, 44)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_color_override("font_color", TITRE)
+	cadre.add_child(label)
+	var capsule := _b(valeur, Rect2(x + w - 118, y + 5, 68, 34), VERT, Color.WHITE, 19, func(): pass, cle + "-valeur")
+	capsule.disabled = true
+	capsule.set_meta("fane", true)
+	var droite := _b("+", Rect2(x + w - 44, y, 44, 44), Style.NUIT_PLEINE, Style.CREME, 24, plus, cle + "+")
+	droite.disabled = not editable or maxAtteint
+
+
+# Les paramètres de grille appartiennent à la table. Le frein appartient au pilote.
+func _optionsPilote(t: Dictionary, pilotes: int, y: float, x: float, largeur: float) -> float:
+	if t.get("mode", "race") == "race":
+		var tours := int(t.get("laps", 3))
+		_compteur(Textes.t("lapsLabel"), str(tours), Rect2(x, y, largeur, 44), "tours",
+			func(): net.setTable({ laps = tours - 1 }), func(): net.setTable({ laps = tours + 1 }), tours <= 1, tours >= 10)
+		y += 50
+		var maxiIA := maxi(0, 12 - mini(pilotes, Net.NET_SEATS))
+		var ia := clampi(int(t.get("aiCount", -1)), -1, maxiIA)
+		var valeur := "Auto" if ia < 0 else str(ia)
+		_compteur(Textes.t("adversairesIA"), valeur, Rect2(x, y, largeur, 44), "adversaires",
+			func(): net.setTable({ aiCount = ia - 1 }), func(): net.setTable({ aiCount = ia + 1 }), ia <= -1, ia >= maxiIA)
+		y += 50
+	if not net.mine.get("spectator", false):
+		var circuit := String(Championnat.manche(t.get("championnat", {})).get("circuit", t.get("trackId", "monza")))
+		var voiture := String(App.reglages.voiture)
+		var cfg := ReglageFrein.active(circuit, voiture)
+		var valeur := Paddock._coupe(str(cfg.get("nom", Textes.t("regDefaut"))), 17, largeur - 136) + Paddock.LISTE
+		var b := _b("", Rect2(x, y, largeur, 44), Style.NUIT_PLEINE, Style.CREME, 19,
+			func(): ReglageFrein.suivante(circuit, voiture); App.sauve(); _maj(), "freinage")
+		b.dessinPlus = Paddock._pastille.bind(b, Textes.t("freinage"), valeur, 17)
+		y += 50
+	return y
 
 
 func _construit() -> void:
@@ -263,35 +314,9 @@ func _construit() -> void:
 			_b(Textes.t("becomeDriver") if net.mine.get("spectator", false) else Textes.t("becomeSpectator"), Rect2(M, y, 300, 44), Style.NUIT_PLEINE, Style.CREME, 18,
 				func(): net.setMine({ spectator = not net.mine.get("spectator", false), ready = false }); net.pump(), "role")
 			y += 56
-		# Le format
-		z.formatTitre = Vector2(M, y + 14); y += 24
-		_seg([["race", Textes.t("mRaceSeg")], ["duel", Textes.t("mDuelSeg")], ["ghost", Textes.t("mGhostSeg")]], String(t.get("mode", "race")), y, net.creator,
-			func(id): net.setTable({ mode = id }), "mode")
-		y = z.mode + 8
-		z.formatDesc = Vector2(M, y + 14); y += 30
-		# Le jour ou la nuit
-		z.heureTitre = Vector2(M, y + 14); y += 24
-		_seg([["day", Textes.t("daySeg")], ["night", Textes.t("nightSeg")]], "night" if t.get("timeOfDay") == "night" else "day", y, net.creator,
-			func(id): net.setTable({ timeOfDay = id }), "heure")
-		y = z.heure + 8
-		if t.get("timeOfDay") == "night":
-			z.nuitDesc = Vector2(M, y + 14); y += 30
-		# Les dégâts (essai du jeu web) : l'hôte choisit pour tout le monde. Une table du jeu web publié
-		# ne les connaît pas : coupés tant que l'hôte ne les active pas.
-		z.degatsTitre = Vector2(M, y + 14); y += 24
-		_seg([["1", Textes.t("on")], ["0", Textes.t("off")]], "1" if t.get("degats", false) == true else "0", y, net.creator,
-			func(id): net.setTable({ degats = id == "1" }), "degats")
-		y = z.degats + 8
-		z.degatsDesc = Vector2(M, y + 14); y += 30
-		# La catégorie
-		z.catTitre = Vector2(M, y + 14); y += 24
-		var cats := [["all", Textes.t("all")]]
-		for c in Catalogue.categories(): cats.append([c.id, Textes.nom(c.nom).to_upper()])
-		cats.sort_custom(func(a, b): return CATS.find(a[0]) < CATS.find(b[0]))
 		var cat := String(t.get("cat", "all")) if t.get("cat") else "all"
-		_seg(cats, cat, y, net.creator, func(id): net.setTable({ cat = id }), "cat")
-		y = z.cat + 8
-		z.catDesc = Vector2(M, y + 14); y += 34
+		var manche := Championnat.manche(t.get("championnat", {}))
+		var libre: bool = manche.is_empty()
 		# L'aperçu de la voiture et du circuit
 		if portrait:
 			z.apercuVoiture = Rect2(M, y, W - 2 * M, 250); y += 262
@@ -309,7 +334,7 @@ func _construit() -> void:
 		var nv := maxi(1, floori((W - 2 * M - 68) / 158.0))
 		# Comme le rail du jeu web qui se place sur la carte choisie.
 		if _suivre:
-			var ic := circuits.map(func(c): return c.id).find(String(t.get("trackId", "")))
+			var ic := circuits.map(func(c): return c.id).find(_circuitVu)
 			if ic >= 0 and (ic < debutCircuits or ic >= debutCircuits + nc): debutCircuits = ic - nc / 2
 			var iv := liste.map(func(c): return c.id).find(App.reglages.voiture)
 			if iv >= 0 and (iv < debutVoitures or iv >= debutVoitures + nv): debutVoitures = iv - nv / 2
@@ -319,13 +344,13 @@ func _construit() -> void:
 		var xc := _rangee(nc, 134.0, 10.0)
 		_b("‹", Rect2(xc - 34, y + 62, 28, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutCircuits = maxi(0, debutCircuits - nc); _maj(), "c-gauche")
 		_b("›", Rect2(xc + nc * 134 - 10 + 6, y + 62, 28, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutCircuits += nc; _maj(), "c-droite")
-		var choisi := String(t.get("trackId", ""))
+		var choisi := String(manche.get("circuit", t.get("trackId", "")))
 		for i in mini(nc, circuits.size() - debutCircuits):
 			var c: Dictionary = circuits[debutCircuits + i]
 			var b := _b(str(c.nom).to_upper(), Rect2(xc + i * 134, y, 124, 170), Style.PAPIER, Style.ENCRE, 15,
 				func(): net.setTable({ trackId = c.id, laps = _tours(c.id) }), "circuit-" + c.id)
 			b.choisi = c.id == choisi
-			b.disabled = not net.creator
+			b.disabled = not net.creator or not libre
 			b.set_meta("circuit", c.id)
 			b.ligne = 112
 			b.dessinPlus = _carteCircuit.bind(b)
@@ -340,10 +365,55 @@ func _construit() -> void:
 			var c: Dictionary = liste[debutVoitures + i]
 			var b := _b(str(c.nom).to_upper(), Rect2(xv + i * 158, y, 150, 206), Style.PAPIER, Style.ENCRE, 16, func(): _voiture(c.id), "voiture-" + c.id)
 			b.choisi = c.id == App.reglages.voiture
+			b.disabled = not libre
 			b.set_meta("voiture", c)
 			b.ligne = 128
 			b.dessinPlus = _carteVoiture.bind(b)
 		y += 230
+		# Le format
+		z.formatTitre = Vector2(M, y + 14); y += 24
+		_seg([["race", Textes.t("mRaceSeg")], ["duel", Textes.t("mDuelSeg")], ["ghost", Textes.t("mGhostSeg")]], String(t.get("mode", "race")), y, net.creator and libre,
+			func(id): net.setTable({ mode = id }), "mode")
+		y = z.mode + 8
+		z.formatDesc = Vector2(M, y + 14); y += 30
+		y = _optionsPilote(t, pilotes.size(), y, M, minf(362, W - 2 * M))
+		# Le jour ou la nuit
+		z.heureTitre = Vector2(M, y + 14); y += 24
+		_seg([["day", Textes.t("daySeg")], ["night", Textes.t("nightSeg")]], "night" if t.get("timeOfDay") == "night" else "day", y, net.creator and libre,
+			func(id): net.setTable({ timeOfDay = id }), "heure")
+		y = z.heure + 8
+		if t.get("timeOfDay") == "night":
+			z.nuitDesc = Vector2(M, y + 14); y += 30
+		# Les dégâts (essai du jeu web) : l'hôte choisit pour tout le monde. Une table du jeu web publié
+		# ne les connaît pas : coupés tant que l'hôte ne les active pas.
+		z.degatsTitre = Vector2(M, y + 14); y += 24
+		_seg([["1", Textes.t("on")], ["0", Textes.t("off")]], "1" if t.get("degats", false) == true else "0", y, net.creator and libre,
+			func(id): net.setTable({ degats = id == "1" }), "degats")
+		y = z.degats + 8
+		z.degatsDesc = Vector2(M, y + 14); y += 30
+		# La catégorie
+		z.catTitre = Vector2(M, y + 14); y += 24
+		var cats := [["all", Textes.t("all")]]
+		for c in Catalogue.categories(): cats.append([c.id, Textes.nom(c.nom).to_upper()])
+		cats.sort_custom(func(a, b): return CATS.find(a[0]) < CATS.find(b[0]))
+		_seg(cats, cat, y, net.creator and libre, func(id): net.setTable({ cat = id }), "cat")
+		y = z.cat + 8
+		z.catDesc = Vector2(M, y + 14); y += 34
+		if not libre:
+			var phase := String(manche.phase)
+			var nomPhase := Textes.t("courseSession" if phase == "course" else phase)
+			var nomCircuit: String = infos.get(manche.circuit, {}).get("nom", manche.circuit)
+			var prochain := _b(nomPhase + " · " + nomCircuit, Rect2(M, y + 8, 360, 44), VERT, Color.WHITE, 19, func(): pass, "session")
+			prochain.disabled = true
+			y += 54
+			if net.creator:
+				_b(Textes.t("annulerChampionnat"), Rect2(M, y + 8, 360, 44), Style.NUIT_PLEINE, Style.CREME, 19,
+					func(): net.setTable({ championnat = {} }), "annulerChampionnat")
+				y += 54
+		elif t.get("mode", "race") in ["race", "duel"]:
+			_b(Textes.t("programmeCourse"), Rect2(M, y + 8, 260, 44), Style.NUIT_PLEINE, Color("#9eeac5"), 19,
+				func(): App.aller("programme"), "programme")
+			y += 60
 		# La barre du bas
 		z.barre = Rect2(M, y, W - 2 * M, 92)
 		var pret: bool = net.mine.get("ready", false)
@@ -492,7 +562,7 @@ func _dessine() -> void:
 	var pilotes := m.filter(func(e): return not e.q.get("spectator", false))
 	Style.texte(ci, "%s · %s" % [net.link.label() if net.link else "Ping : —", Textes.t("roundTrip")], z.ping, 15, MUET)
 	if net.error != "": Style.texte(ci, Textes.netErreur(net.error), z.ping + Vector2(420, 0), 15, Color("#b3261e"))
-	if m.any(func(e): return not e.q.get("spectator", false) and int(e.q.get("protocol", 0)) != Net.DRIVE_PROTOCOL):
+	if not net.grilleCompatible(t) or m.any(func(e): return not e.q.get("spectator", false) and int(e.q.get("protocol", 0)) != Net.DRIVE_PROTOCOL):
 		Style.texte(ci, Textes.t("reloadAll"), z.ping + Vector2(420, 0), 15, Color("#b3261e"))
 	var ns := m.size() - pilotes.size()
 	# un spectateur, deux spectateurs ; en anglais, zéro spectators
@@ -522,7 +592,7 @@ func _dessine() -> void:
 	_titre(Textes.t("dayNightTitle"), z.heureTitre)
 	if z.has("nuitDesc"):
 		var f1: bool = Catalogue.voiture(App.reglages.voiture).get("cat") == "f1"
-		Style.texte(ci, Textes.t("nightF1Hint" if f1 else "nightHint"), z.nuitDesc, 15, MUET)
+		Style.texte(ci, Textes.t("nightF1Hint" if f1 else "nightHint"), z.nuitDesc, 15, ROUGE_SEL if f1 else MUET)
 	if z.has("degatsTitre"):
 		_titre(Textes.t("chipDegats"), z.degatsTitre)
 		Style.texte(ci, Textes.t("degatsHint"), z.degatsDesc, 15, MUET)
@@ -530,7 +600,7 @@ func _dessine() -> void:
 	var cat := String(t.get("cat", "all")) if t.get("cat") else "all"
 	Style.texte(ci, Textes.t("mCatOpen") if cat == "all" else Textes.t("mCatDesc"), z.catDesc, 15, MUET)
 	_apercuVoiture(ci, z.apercuVoiture)
-	var info: Dictionary = infos.get(String(t.get("trackId", "")), infos.values()[0])
+	var info: Dictionary = infos.get(_circuitVu, infos.values()[0])
 	_apercuCircuit(ci, z.apercuCircuit, info)
 	_titre(Textes.t("trackTitle"), z.circuitTitre)
 	_titre(Textes.t("modelTitle"), z.voitureTitre)
@@ -695,44 +765,15 @@ func _construitTel(cle: String) -> void:
 			y += 16 + 44
 		# Le format
 		y += 24
-		z.formatTitre = y
-		y = _segTel([["race", Textes.t("mRaceSeg")], ["duel", Textes.t("mDuelSeg")], ["ghost", Textes.t("mGhostSeg")]], String(t.get("mode", "race")), y + 38, net.creator,
-			func(id): net.setTable({ mode = id }), "mode")
-		var mode := String(t.get("mode", "race"))
-		z.formatDesc = [y + 16, Paddock._lignes(Textes.t({ race = "mRaceDesc", duel = "mDuelDesc", ghost = "mGhostDesc" }.get(mode, "mRaceDesc")), 16, 362)]
-		y += 16 + 24.0 * (z.formatDesc[1] as PackedStringArray).size()
-		# Le jour ou la nuit
-		y += 24
-		z.heureTitre = y
-		y = _segTel([["day", Textes.t("daySeg")], ["night", Textes.t("nightSeg")]], "night" if t.get("timeOfDay") == "night" else "day", y + 38, net.creator,
-			func(id): net.setTable({ timeOfDay = id }), "heure")
-		if t.get("timeOfDay") == "night":
-			var f1: bool = Catalogue.voiture(App.reglages.voiture).get("cat") == "f1"
-			z.nuitDesc = [y + 16, Paddock._lignes(Textes.t("nightF1Hint" if f1 else "nightHint"), 16, 362)]
-			y += 16 + 24.0 * (z.nuitDesc[1] as PackedStringArray).size()
-		# Les dégâts (essai du jeu web) : l'hôte choisit pour tout le monde
-		y += 24
-		z.degatsTitre = y
-		y = _segTel([["1", Textes.t("on")], ["0", Textes.t("off")]], "1" if t.get("degats", false) == true else "0", y + 38, net.creator,
-			func(id): net.setTable({ degats = id == "1" }), "degats")
-		z.degatsDesc = [y + 16, Paddock._lignes(Textes.t("degatsHint"), 16, 362)]
-		y += 16 + 24.0 * (z.degatsDesc[1] as PackedStringArray).size()
-		# La catégorie
-		y += 24
-		z.catTitre = y
-		var cats := [["all", Textes.t("all")]]
-		for c in Catalogue.categories(): cats.append([c.id, Textes.nom(c.nom).to_upper()])
-		cats.sort_custom(func(a, b): return CATS.find(a[0]) < CATS.find(b[0]))
 		var cat := String(t.get("cat", "all")) if t.get("cat") else "all"
-		y = _segTel(cats, cat, y + 38, net.creator, func(id): net.setTable({ cat = id }), "cat") + 8
-		z.catDesc = [y + 16, Paddock._lignes(Textes.t("mCatOpen") if cat == "all" else Textes.t("mCatDesc"), 16, 362)]
-		y += 16 + 24.0 * (z.catDesc[1] as PackedStringArray).size()
+		var manche := Championnat.manche(t.get("championnat", {}))
+		var libre: bool = manche.is_empty()
 		# L'aperçu de la voiture et du circuit
 		y += 16
 		var v := Catalogue.voiture(App.reglages.voiture)
 		z.nomVoiture = Paddock._lignes(str(v.nom).to_upper(), 40, 322)
 		z.apercuVoiture = Rect2(14, y, 362, 240)
-		var info: Dictionary = infos.get(String(t.get("trackId", "")), infos.values()[0])
+		var info: Dictionary = infos.get(_circuitVu, infos.values()[0])
 		z.nomCircuit = Paddock._lignes(str(info.nom).to_upper(), 36, 277)
 		z.apercuCircuit = Rect2(14, y + 250, 362, 280)
 		y += 530
@@ -740,7 +781,7 @@ func _construitTel(cle: String) -> void:
 		y += 24
 		z.circuitTitre = y
 		var circuits := Catalogue.circuits()
-		var choisi := String(t.get("trackId", ""))
+		var choisi := String(manche.get("circuit", t.get("trackId", "")))
 		var ic := maxi(0, circuits.map(func(c): return c.id).find(choisi))
 		if _suivre: doigt.railX.erase("circuits")
 		var rc := doigt.rail("circuits", Rect2(14, y + 38, 362, 169), 4 + circuits.size() * 118 - 10, 2 + ic * 118 + 54)
@@ -748,7 +789,7 @@ func _construitTel(cle: String) -> void:
 			var c: Dictionary = circuits[i]
 			var b := _b("", Rect2(2 + i * 118, 2, 108, 157), T_CARTE, PC_ENCRE(), 17, func(): net.setTable({ trackId = c.id, laps = _tours(c.id) }), "circuit-" + c.id, rc)
 			b.coupe = 0
-			b.disabled = not net.creator
+			b.disabled = not net.creator or not libre
 			b.set_meta("circuit", c.id)
 			b.set_meta("sel", c.id == choisi)
 			b.dessinPlus = Salon._carteCircuitTel.bind(b)
@@ -766,11 +807,60 @@ func _construitTel(cle: String) -> void:
 			var c: Dictionary = liste[i]
 			var b := _b("", Rect2(2 + i * 146, 2, 136, 203), T_CARTE, PC_ENCRE(), 17, func(): _voiture(c.id), "voiture-" + c.id, rv)
 			b.coupe = 0
+			b.disabled = not libre
 			b.set_meta("voiture", c)
 			b.set_meta("sel", c.id == App.reglages.voiture)
 			b.set_meta("livree", _livreeDe(c.id))
 			b.dessinPlus = Salon._carteVoitureTel.bind(b, avecCat)
 		y += 38 + 215
+		y += 18
+		z.formatTitre = y
+		y = _segTel([["race", Textes.t("mRaceSeg")], ["duel", Textes.t("mDuelSeg")], ["ghost", Textes.t("mGhostSeg")]], String(t.get("mode", "race")), y + 38, net.creator and libre,
+			func(id): net.setTable({ mode = id }), "mode")
+		var mode := String(t.get("mode", "race"))
+		z.formatDesc = [y + 16, Paddock._lignes(Textes.t({ race = "mRaceDesc", duel = "mDuelDesc", ghost = "mGhostDesc" }.get(mode, "mRaceDesc")), 16, 362)]
+		y += 16 + 24.0 * (z.formatDesc[1] as PackedStringArray).size()
+		y = _optionsPilote(t, pilotes.size(), y + 8, 14, 362)
+		# Le jour ou la nuit
+		y += 24
+		z.heureTitre = y
+		y = _segTel([["day", Textes.t("daySeg")], ["night", Textes.t("nightSeg")]], "night" if t.get("timeOfDay") == "night" else "day", y + 38, net.creator and libre,
+			func(id): net.setTable({ timeOfDay = id }), "heure")
+		if t.get("timeOfDay") == "night":
+			var f1: bool = Catalogue.voiture(App.reglages.voiture).get("cat") == "f1"
+			z.nuitDesc = [y + 16, Paddock._lignes(Textes.t("nightF1Hint" if f1 else "nightHint"), 16, 362)]
+			y += 16 + 24.0 * (z.nuitDesc[1] as PackedStringArray).size()
+		# Les dégâts (essai du jeu web) : l'hôte choisit pour tout le monde
+		y += 24
+		z.degatsTitre = y
+		y = _segTel([["1", Textes.t("on")], ["0", Textes.t("off")]], "1" if t.get("degats", false) == true else "0", y + 38, net.creator and libre,
+			func(id): net.setTable({ degats = id == "1" }), "degats")
+		z.degatsDesc = [y + 16, Paddock._lignes(Textes.t("degatsHint"), 16, 362)]
+		y += 16 + 24.0 * (z.degatsDesc[1] as PackedStringArray).size()
+		# La catégorie
+		y += 24
+		z.catTitre = y
+		var cats := [["all", Textes.t("all")]]
+		for c in Catalogue.categories(): cats.append([c.id, Textes.nom(c.nom).to_upper()])
+		cats.sort_custom(func(a, b): return CATS.find(a[0]) < CATS.find(b[0]))
+		y = _segTel(cats, cat, y + 38, net.creator and libre, func(id): net.setTable({ cat = id }), "cat") + 8
+		z.catDesc = [y + 16, Paddock._lignes(Textes.t("mCatOpen") if cat == "all" else Textes.t("mCatDesc"), 16, 362)]
+		y += 16 + 24.0 * (z.catDesc[1] as PackedStringArray).size()
+		if not libre:
+			var phase := String(manche.phase)
+			var nomPhase := Textes.t("courseSession" if phase == "course" else phase)
+			var nomCircuit: String = infos.get(manche.circuit, {}).get("nom", manche.circuit)
+			var prochain := _b(nomPhase + " · " + nomCircuit, Rect2(14, y + 8, 360, 44), VERT, Color.WHITE, 19, func(): pass, "session")
+			prochain.disabled = true
+			y += 54
+			if net.creator:
+				_b(Textes.t("annulerChampionnat"), Rect2(14, y + 8, 360, 44), Style.NUIT_PLEINE, Style.CREME, 19,
+					func(): net.setTable({ championnat = {} }), "annulerChampionnat")
+				y += 54
+		elif t.get("mode", "race") in ["race", "duel"]:
+			_b(Textes.t("programmeCourse"), Rect2(14, y + 8, 260, 44), Style.NUIT_PLEINE, Color("#9eeac5"), 19,
+				func(): App.aller("programme"), "programme")
+			y += 60
 		# La barre du bas : Prêt, et pour l'hôte Départ !
 		y += 26
 		var pret: bool = net.mine.get("ready", false)
@@ -831,7 +921,7 @@ func _segTel(choix: Array, actuel: String, y: float, actif: bool, action: Callab
 			x = 14.0
 			y += 50
 		var sel: bool = c[0] == actuel
-		var b := _b(c[1], Rect2(x, y, w, 44), ROUGE_SEL if sel else T_SOMBRE, CARTE_SEL if sel else Color("#f9efd9"), 22,
+		var b := _b(c[1], Rect2(x, y, w, 44), VERT if sel else T_SOMBRE, Color.WHITE if sel else Color("#f9efd9"), 22,
 			func(): action.call(c[0]), prefixe + str(c[0]))
 		b.coupe = w * 0.08
 		b.disabled = not actif
@@ -940,7 +1030,7 @@ func _dessineTel() -> void:
 	var yp: float = z.ping
 	Style.texte(ci, "%s · %s" % [net.link.label() if net.link else "Ping : —", Textes.t("roundTrip")], Vector2(14, yp + 18), 16, MUET)
 	var alerte := Textes.netErreur(net.error) if net.error != "" else ""
-	if m.any(func(e): return not e.q.get("spectator", false) and int(e.q.get("protocol", 0)) != Net.DRIVE_PROTOCOL): alerte = Textes.t("reloadAll")
+	if not net.grilleCompatible(t) or m.any(func(e): return not e.q.get("spectator", false) and int(e.q.get("protocol", 0)) != Net.DRIVE_PROTOCOL): alerte = Textes.t("reloadAll")
 	if alerte != "": Style.texte(ci, alerte, Vector2(14, yp + 42), 14, Color("#b3261e"), HORIZONTAL_ALIGNMENT_LEFT, 362)
 	# « PILOTES » et, en gris, le compte
 	var ns := m.size() - pilotes.size()
@@ -972,9 +1062,10 @@ func _dessineTel() -> void:
 		if not z.has(cle): continue
 		var d: Array = z[cle]
 		var l: PackedStringArray = d[1]
-		for i in l.size(): Style.texte(ci, l[i], Vector2(14, float(d[0]) + 24 * i + 18), 16, MUET)
+		var f1: bool = cle == "nuitDesc" and Catalogue.voiture(App.reglages.voiture).get("cat") == "f1"
+		for i in l.size(): Style.texte(ci, l[i], Vector2(14, float(d[0]) + 24 * i + 18), 16, ROUGE_SEL if f1 else MUET)
 	_apercuVoitureTel(ci, z.apercuVoiture)
-	var info: Dictionary = infos.get(String(t.get("trackId", "")), infos.values()[0])
+	var info: Dictionary = infos.get(_circuitVu, infos.values()[0])
 	_apercuCircuitTel(ci, z.apercuCircuit, info)
 	# la barre du bas
 	var b: Rect2 = z.barre

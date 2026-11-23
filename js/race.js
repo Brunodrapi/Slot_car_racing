@@ -237,6 +237,7 @@ class Race {
     const solo = this.mode === 'timetrial' && !humans;
     const n = solo ? 1
       : humans && !this.opts.aiFill ? nh
+      : humans && Number.isInteger(this.opts.aiCount) && this.opts.aiCount >= 0 ? Math.min(12, nh + this.opts.aiCount)
         : Math.max(nh + 1, Math.min(opts_n(this.opts, c), 12));
     const roster = this.opts.roster || makeRoster(n, this.opts.playerLivery || 0, null, this.cat.id);
     const catModels = modelsOf(this.cat.id);

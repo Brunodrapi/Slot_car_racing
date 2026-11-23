@@ -343,6 +343,7 @@ func acceptMeta(c: Voiture, m: Dictionary, _s: Dictionary) -> void:
 		if not (l is Array) or l.size() < 1 or not (l[0] is float or l[0] is int) or float(l[0]) <= 0: return
 	var ls = m.get("lapStart")
 	if not (ls is float or ls is int) or float(ls) > race.time + .3 or float(ls) < 0: return
+	if race.dureeSession > 0 and float(ls) > race.dureeSession: return
 	if not (m.get("fautes") is int) or int(m.fautes) < 0 or not (m.get("repris") is float or m.get("repris") is int) or float(m.repris) < 0: return
 	for i in c.lapTimes.size():
 		if absf(c.lapTimes[i] - float(laps[i][0])) > .001: return
@@ -350,7 +351,7 @@ func acceptMeta(c: Voiture, m: Dictionary, _s: Dictionary) -> void:
 	var wasFinished := c.finished
 	var oldLap := c.lap
 	applyMeta(c, m)
-	c.finished = int(m.lap) >= race.laps
+	c.finished = race.dureeSession <= 0 and int(m.lap) >= race.laps
 	if c.finished:
 		c.finishTime = float(m.lapStart)
 		if not is_nan(race.finishDeadline) and c.finishTime > race.finishDeadline:

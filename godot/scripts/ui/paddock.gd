@@ -232,7 +232,8 @@ func _enPiste() -> void:
 	App.reglages.mode = mode
 	App.sauve()
 	App.demarre()          # le moteur démarre
-	App.aller("course")
+	if mode == "race": App.lanceCourseRapide()
+	else: App.aller("course")
 
 
 # ---------- le dessin ----------
@@ -438,12 +439,16 @@ func _construitPC(cle: String) -> void:
 		var b := _bouton("", Rect2(x, 942, w, 38), Style.NUIT_PLEINE, PC_CREME, 17, p[2])
 		b.coupe = 0
 		b.set_meta("cle", p[3])
-		b.dessinPlus = Paddock._pastille.bind(b, p[0], p[1], 17)
+		b.dessinPlus = Paddock._pastille.bind(b, p[0], p[1], 17, p[3] == "nuit" and App.reglages.nuit and v.cat == "f1")
 		x += w + 8
 	var rg := _bouton(Textes.t("regRegler"), Rect2(x, 942, Style.largeur(Textes.t("regRegler"), 17) + 28, 38), Style.NUIT_PLEINE, PC_CREME, 17, _regler)
 	rg.coupe = 0
 	rg.centre = true
 	rg.set_meta("cle", "regler")
+	if race:
+		var programme := _bouton(Textes.t("programmeCourse"), Rect2(1291, 875, 273, 42), Style.NUIT_PLEINE, PC_CREME, 20, func(): App.aller("programme"))
+		programme.centre = true
+		programme.set_meta("cle", "programme")
 	var go := _bouton(Textes.t("onTrack"), Rect2(1291, 932, 273, 58), Color("#d22620"), Color("#fff2da"), 38, _enPiste)
 	go.centre = true
 	go.set_meta("cle", "go")
@@ -661,7 +666,7 @@ static func largeurPastille(nom: String, valeur: String, t: int) -> float:
 	return 14 + Style.largeur(nom + " :", t) + 8 + Style.largeur(valeur.trim_suffix(LISTE), t) + 16 + 10 + (t * 0.8 if liste else 0.0)
 
 
-static func _pastille(b: Bouton, nom: String, valeur: String, t: int) -> void:
+static func _pastille(b: Bouton, nom: String, valeur: String, t: int, alerte := false) -> void:
 	var y := b.size.y / 2 + t * 0.36
 	Style.texte(b, nom + " :", Vector2(14, y), t, Color("#fff0d2"))
 	var liste := valeur.ends_with(LISTE)
@@ -669,8 +674,8 @@ static func _pastille(b: Bouton, nom: String, valeur: String, t: int) -> void:
 	var xv := 14 + Style.largeur(nom + " :", t) + 8
 	var wv := Style.largeur(v, t) + 16 + (t * 0.8 if liste else 0.0)
 	var hv := b.size.y - 14
-	b.draw_rect(Rect2(xv, 7, wv, hv), PC_VERT)
-	Style.texte(b, v, Vector2(xv + 8, y), t, Color("#171c19"))
+	b.draw_rect(Rect2(xv, 7, wv, hv), Style.ROUGE if alerte else PC_VERT)
+	Style.texte(b, v, Vector2(xv + 8, y), t, Color.WHITE if alerte else Color("#171c19"))
 	if liste:
 		# la flèche d'une liste, comme celle d'un <select>
 		var c := Vector2(xv + wv - 8 - t * 0.3, b.size.y / 2 + 1)
@@ -976,6 +981,7 @@ func _construitTel(cle: String) -> void:
 	groupes.append([[Textes.t("freinage"), (String(cfg.nom) if not cfg.is_empty() else Textes.t("regDefaut")) + LISTE,
 		func(): ReglageFrein.suivante(App.reglages.circuit, v.id); App.sauve(); _construit(), "freinage"],
 		[Textes.t("regRegler"), "", _regler, "regler"]])
+	if race: groupes.append([[Textes.t("programmeCourse"), "", func(): App.aller("programme"), "programme"]])
 	var yr := y
 	x = 18.0
 	y = yr + 13
@@ -996,7 +1002,7 @@ func _construitTel(cle: String) -> void:
 			b.coupe = 9
 			b.centre = true
 			b.set_meta("cle", p[3])
-			if p[1] != "": b.dessinPlus = Paddock._pastilleTel.bind(b, p[0], p[1])
+			if p[1] != "": b.dessinPlus = Paddock._pastilleTel.bind(b, p[0], p[1], p[3] == "nuit" and App.reglages.nuit and v.cat == "f1")
 			basLigne = y + 40
 			x += w + 8
 		x += 2          # entre deux groupes, 10 au lieu de 8
@@ -1145,7 +1151,7 @@ static func largeurPastilleTel(nom: String, valeur: String) -> float:
 	return Style.largeur(nom + " :", 15) + Style.largeur(valeur.trim_suffix(LISTE), 15) + 48 + (16.0 if liste else 0.0)
 
 
-static func _pastilleTel(b: Bouton, nom: String, valeur: String) -> void:
+static func _pastilleTel(b: Bouton, nom: String, valeur: String, alerte := false) -> void:
 	Style.texte(b, nom + " :", Vector2(12, 25.6), 15, PC_CREME)
 	var liste := valeur.ends_with(LISTE)
 	var v := valeur.trim_suffix(LISTE)
@@ -1153,8 +1159,8 @@ static func _pastilleTel(b: Bouton, nom: String, valeur: String) -> void:
 	var wv := Style.largeur(v, 15) + 20 + (16.0 if liste else 0.0)
 	var r := Rect2(xv, 9, wv, 22)
 	var pts := PackedVector2Array([Vector2(r.position.x + 6, r.position.y), Vector2(r.end.x, r.position.y), Vector2(r.end.x - 6, r.end.y), Vector2(r.position.x, r.end.y)])
-	b.draw_colored_polygon(pts, PC_VERT)
-	Style.texte(b, v, Vector2(xv + 10, 25.6), 15, Color("#171c19"))
+	b.draw_colored_polygon(pts, Style.ROUGE if alerte else PC_VERT)
+	Style.texte(b, v, Vector2(xv + 10, 25.6), 15, Color.WHITE if alerte else Color("#171c19"))
 	if liste:
 		var c := Vector2(r.end.x - 16, 20)
 		b.draw_colored_polygon(PackedVector2Array([c + Vector2(-5, -3), c + Vector2(5, -3), c + Vector2(0, 3)]), Color("#171c19"))

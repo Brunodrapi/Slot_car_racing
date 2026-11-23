@@ -18,6 +18,11 @@ func _ready() -> void:
 	if course.netDrive != null:
 		# en ligne : la table reste ouverte, et c'est l'hôte qui relance
 		choix = [[Textes.t("backToTable"), Style.ROUGE, func(): App.retourTable()], [Textes.t("leaveTable"), Style.NUIT_PLEINE, func(): Reseau.net.leave(); App.enLigne = null; App.aller("accueil")]]
+	if not App.championnatResultats.is_empty():
+		var suite := Championnat.suite(App.championnatResultats)
+		var titre := Textes.t("mancheSuivante" if suite else ("backToTable" if course.netDrive != null else "paddock"))
+		if course.netDrive != null and not course.netDrive.host: titre = Textes.t("backToTable")
+		choix[0] = [titre, Style.ROUGE, App.sessionSuivante]
 	for d in choix:
 		var b := Bouton.new(d[0], d[1], Style.CREME, 26)
 		b.centre = true
@@ -48,8 +53,9 @@ func _cadre() -> Rect2:
 
 func _place() -> void:
 	var r := _cadre()
-	boutons[0].size = Vector2(220, 56); boutons[0].position = Vector2(r.end.x - 220, size.y - 76)
-	boutons[1].size = Vector2(200, 56); boutons[1].position = Vector2(r.end.x - 440, size.y - 76)
+	var premier := minf(320, r.size.x * 0.56) if not App.championnatResultats.is_empty() else 220.0
+	boutons[0].size = Vector2(premier, 56); boutons[0].position = Vector2(r.end.x - premier, size.y - 76)
+	boutons[1].size = Vector2(200, 56); boutons[1].position = Vector2(r.end.x - premier - 220, size.y - 76)
 	queue_redraw()
 
 
@@ -68,13 +74,21 @@ func _draw() -> void:
 	var lh := lw * logo.get_height() / logo.get_width()
 	draw_texture_rect(logo, Rect2(r.end.x - 12 - lw, r.position.y + 32 - lh / 2, lw, lh), false)
 	Style.texte(self, str(course.track.nom).to_upper(), r.position + Vector2(90, 46), 22, Style.PAPIER, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 104 - lw - 16)
+	if course.dureeSession > 0:
+		draw_rect(Rect2(r.position.x + 74, r.position.y + 8, r.size.x * 0.54, 54), Style.NUIT_PLEINE)
+		Style.texte(self, Textes.t(course.phase), r.position + Vector2(90, 46), 34, Style.CREME)
 	var y := r.position.y + 80
 	var cols := [0.0, 50.0, 400.0, 520.0, 630.0, 740.0]
 	var tetes := ["", Textes.t("colDriver"), Textes.t("colTime"), Textes.t("colGap"), Textes.t("colPenalty"), Textes.t("colBest")]
 	for i in tetes.size():
 		Style.texte(self, tetes[i], Vector2(r.position.x + 14 + cols[i], y + 18), 16, Style.PAPIER)
 	y += 28
-	var h := minf(40, (r.end.y - y) / maxf(1, course.results.size()))
+	var programme := App.championnatResultats
+	var totaux: Dictionary = programme.get("points", {})
+	var espace := 86 if not totaux.is_empty() else 0
+	if espace > 0:
+		Style.texte(self, Textes.t("pointsSession"), Vector2(r.end.x - 65, y - 10), 14, Style.PAPIER)
+	var h := minf(40, (r.end.y - y - espace) / maxf(1, course.results.size()))
 	for res in course.results:
 		var c: Voiture = res.car
 		var moi := c == p
@@ -90,7 +104,17 @@ func _draw() -> void:
 		Style.texte(self, "+%.3f" % res.ecart if res.ecart > 0 else "", Vector2(r.position.x + 14 + cols[3], b), sz, ink)
 		Style.texte(self, "+%.1f s" % res.penalite if res.penalite > 0.05 else "", Vector2(r.position.x + 14 + cols[4], b), sz, Color("#e2533f") if res.penalite > 0.05 else ink)
 		Style.texte(self, Style.temps(res.meilleur), Vector2(r.position.x + 14 + cols[5], b), sz, ink)
+		if espace > 0: Style.texte(self, str(res.points), Vector2(r.end.x - 58, b), sz, ink)
 		y += h
+	if not totaux.is_empty():
+		var ordre := totaux.values()
+		ordre.sort_custom(func(a, b): return int(a.total) > int(b.total))
+		Style.texte(self, Textes.t("championnat"), Vector2(r.position.x + 14, y + 22), 18, Style.CREME)
+		var col := r.size.x / 3
+		for i in mini(ordre.size(), 12):
+			var score: Dictionary = ordre[i]
+			Style.texte(self, "%d. %s   %d" % [i + 1, score.nom, score.total], Vector2(r.position.x + 14 + col * (i % 3), y + 42 + 14 * floori(i / 3.0)), 13, Style.PAPIER,
+				HORIZONTAL_ALIGNMENT_LEFT, col - 18)
 	# le palmarès (js/ui.js, tropheeResultat) : le trophée gagné, ou ce qui manquait
 	var tr: Dictionary = App.dernierTrophee if App.derniereCourse == course else {}
 	if not tr.is_empty():

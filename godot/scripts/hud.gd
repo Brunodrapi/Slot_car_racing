@@ -291,7 +291,7 @@ func _draw() -> void:
 		elif course.zones.size(): drapeaux.append("yellow")
 		if course.chequered: drapeaux.append("chequered")
 	var enTour := 0.0 if course.state == "countdown" else course.time - p.lapStart
-	_chrono(px, y0, pw, ph, Textes.t("lapVoid") if nul else Textes.t("lap"), Style.temps(enTour), true, drapeaux, nul, mobile)
+	_chrono(px, y0, pw, ph, Textes.t(course.phase) if course.dureeSession > 0 else (Textes.t("lapVoid") if nul else Textes.t("lap")), Style.temps(maxf(0, course.dureeSession - course.time)) if course.dureeSession > 0 else Style.temps(enTour), true, drapeaux, nul, mobile)
 	_chrono(px, y0 + ph + 4, pw, ph, Textes.t("best"), Style.temps(p.bestLap), false, [], false, mobile)
 	# Le bouton de pause
 	draw_rect(pb, Style.NUIT)
@@ -306,8 +306,8 @@ func _draw() -> void:
 	var lapH := 34.0 if mobile else 46.0
 	var lapY := maxf(y0 + headH + 6, y0 + ph * 2 + 12) if px + pw > xe - lapW - 4 else y0 + headH + 6
 	Style.biseau(self, Rect2(xe - lapW, lapY, lapW, lapH), Style.PAPIER)
-	var num := str(p.lap + 1 if tt else mini(course.laps, p.lap + 1))
-	var tot := "" if tt else "/%d" % course.laps
+	var num := str(p.lap + 1 if tt or course.dureeSession > 0 else mini(course.laps, p.lap + 1))
+	var tot := "" if tt or course.dureeSession > 0 else "/%d" % course.laps
 	var fGrand := 30 if mobile else 40
 	var fMoyen := 19 if mobile else 25
 	var fPetit := 15 if mobile else 19

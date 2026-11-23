@@ -15,6 +15,8 @@ var reglages := {
 var ecran: Node = null
 var derniereCourse: Course = null      # pour l'écran des résultats
 var dernierTrophee := {}               # ce que la dernière course a rapporté au palmarès (Palmares.attribue)
+var championnatSolo := {}
+var championnatResultats := {}
 var enLigne = null                     # la course de la table en ligne (Net.onStart), ou null
 
 
@@ -231,9 +233,40 @@ func sauve() -> void:
 	if f: f.store_string(JSON.stringify(reglages))
 
 
+func lanceCourseRapide() -> void:
+	var options: Dictionary = reglages.get("programme", {})
+	championnatSolo = Championnat.programme(options, String(reglages.circuit), int(reglages.tours), randi() % 100000) if Championnat.actif(options) else {}
+	aller("course")
+
+
+func finSession(course: Course) -> void:
+	var programme: Dictionary = enLigne.get("championnat", {}) if enLigne != null else championnatSolo
+	championnatResultats = Championnat.attribue(programme, course) if not programme.is_empty() else {}
+
+
+func sessionSuivante() -> void:
+	if enLigne != null:
+		if Reseau.net.isHost():
+			var prochain := championnatResultats.duplicate(true)
+			if Championnat.suite(prochain):
+				prochain.index += 1
+				if Championnat.manche(prochain).phase == "essais": prochain.pole = []
+			else: prochain = {}
+			Reseau.net.table.championnat = prochain
+		retourTable()
+	elif Championnat.suite(championnatResultats):
+		championnatSolo = championnatResultats.duplicate(true)
+		championnatSolo.index += 1
+		if Championnat.manche(championnatSolo).phase == "essais": championnatSolo.pole = []
+		aller("course")
+	else:
+		aller("paddock")
+
+
 ## Change d'écran. `nom` : accueil, paddock, course, resultats.
 func aller(nom: String, opts: Dictionary = {}) -> void:
 	if nom != "resultats": arreteCommentaire()
+	if nom != "course" and nom != "resultats" and nom != "programme": championnatSolo = {}
 	if ecran:
 		ecran.queue_free()
 	# la musique des menus : partout sauf en course
@@ -249,6 +282,7 @@ func aller(nom: String, opts: Dictionary = {}) -> void:
 		"reglages": ecran = Reglages.new()
 		"comment": ecran = CommentJouer.new()
 		"salon": ecran = Salon.new()
+		"programme": ecran = ProgrammeCourse.new()
 	get_tree().root.add_child.call_deferred(ecran)
 
 

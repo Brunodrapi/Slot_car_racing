@@ -63,7 +63,7 @@ var doigtFrein := -1                 # le doigt (ou -2 : la souris) qui tient le
 func _choix() -> void:
 	var R: Dictionary = App.reglages
 	enLigne = App.enLigne
-	circuitId = R.circuit
+	circuitId = Championnat.manche(App.championnatSolo).get("circuit", R.circuit)
 	voitureId = R.voiture
 	if enLigne != null:
 		circuitId = String(enLigne.trackId)
@@ -149,23 +149,26 @@ func _depart() -> void:
 		v.ombre.queue_free()
 		v.queue_free()
 	vues.clear()
+	var programme := App.championnatSolo
+	var manche := Championnat.manche(programme)
 	var h := Hasard.new()
 	var modele := Catalogue.modele(voitureId)
 	var cat: String = Catalogue.voiture(voitureId).cat
 	var n := int(R.adversaires) if R.mode == "race" else 1
 	# Le moteur C++ quand il est là (ordinateur, téléphone) ; sinon Course, en GDScript (web).
-	var classe = CourseNative if CourseNative.disponible() and App.reglages.get("natif", true) else Course
+	var classe = CourseNative if programme.is_empty() and CourseNative.disponible() and App.reglages.get("natif", true) else Course
 	if enLigne != null:
 		course = _courseEnLigne(modele, cat, h)
 	else: course = classe.new(piste, {
-		modele = modele, difficulte = Catalogue.difficulte(R.difficulte), mode = "timetrial" if R.mode == "training" else R.mode, laps = int(R.tours),
+		modele = modele, difficulte = Catalogue.difficulte(R.difficulte), mode = "timetrial" if R.mode == "training" else R.mode, laps = int(R.tours), phase = manche.get("phase", "course"), dureeSession = manche.get("duree", 0),
 		entrainement = R.mode == "training", difficultes = Catalogue.donnees.difficultes,
 		degats = bool(R.get("degats", true)),
 		# le frein du couple circuit + voiture (la pastille FREINAGE), et le mode RÉGLER
-		frein = ReglageFrein.frein(String(R.circuit), voitureId), reglage = reglageDemande,
-		nCars = n, roster = Catalogue.roster(maxi(n, 2), 0, cat, h), livree = int(R.livree), nomJoueur = R.nom,
+		frein = ReglageFrein.frein(circuitId, voitureId), reglage = reglageDemande,
+		nCars = n, roster = Catalogue.roster(maxi(n, 2), 0, cat, HasardGraine.new(int(programme.graine)) if not programme.is_empty() else h), livree = int(R.livree), nomJoueur = R.nom,
 		modeleDe = func(id, i): return Catalogue.modele(id) if id != "" else Catalogue.modele(Catalogue.voituresDe(cat)[i % Catalogue.voituresDe(cat).size()].id),
 	}, h)
+	if enLigne == null and not programme.is_empty(): Championnat.grille(course, programme)
 	prec.clear()
 	if nuit:
 		nuit.queue_free()
@@ -398,9 +401,8 @@ func _physics_process(_delta: float) -> void:
 	if course.player.lap != tourAvant and enLigne == null: _record()
 	if course.state == "finished" and finieDepuis < 0:
 		finieDepuis = 0.0
-		# le palmarès : une victoire en course rapide rapporte le trophée de son niveau
-		App.dernierTrophee = Palmares.attribue(course, String(App.reglages.difficulte)) if enLigne == null else {}
-		if App.dernierTrophee.get("nouveau", false): Mondial.synchroPalmares()
+		App.dernierTrophee = {}
+		App.finSession(course)
 
 
 ## Les événements de la course, en sons et en secousse (main.js, _handleEvents).
