@@ -318,7 +318,24 @@ class NightLighting {
   }
 
   prepare(race, cam, reach) {
-    this.active = race.timeOfDay === 'night';
+    this.nightRace = race.timeOfDay === 'night';
+    const outside = this.nightRace ? 1 : 0;
+    this.strength = outside;
+    const track = race.track, light = track?.def?.lumiereTunnel;
+    if (light && !race.opts.spectator) {
+      const car = race.player;
+      for (const tunnel of track.tunnels) {
+        const d = track.wrap(car.s - tunnel.from * track.ds);
+        const depth = Math.min(d, tunnel.n * track.ds - d);
+        if (depth <= 0) continue;
+        const k = track.idx(car.s);
+        const sea = NightLighting.smooth((car.lat + track.hwR[k]) / (track.hwL[k] + track.hwR[k]));
+        const inside = this.nightRace ? light.nuit : light.mur + (light.mer - light.mur) * sea;
+        this.strength += (inside - outside) * NightLighting.smooth(depth / light.portail);
+        break;
+      }
+    }
+    this.active = this.strength > 0;
     this.observer = race.opts.spectator ? cam : race.player.pos;
     this.fields = [];
     this.visibleLamps = [];
@@ -357,7 +374,7 @@ class NightLighting {
   }
 
   canSee(p) {
-    if (!this.active) return true;
+    if (!this.nightRace) return true;
     if (Math.hypot(p.x - this.observer.x, p.y - this.observer.y) > 45) return false;
     for (const f of this.fields) {
       const x = p.x - f.x, y = p.y - f.y, c = Math.cos(f.heading), s = Math.sin(f.heading);
@@ -389,6 +406,7 @@ class NightLighting {
     canvas.style.display = this.active ? 'block' : 'none';
     if (!this.active) return;
     g.setTransform(1, 0, 0, 1, 0, 0);
+    canvas.style.opacity = this.strength;
     g.clearRect(0, 0, canvas.width, canvas.height);
     g.fillStyle = 'rgba(3,7,18,.988)'; g.fillRect(0, 0, canvas.width, canvas.height);
     g.setTransform(matrix);
@@ -2100,7 +2118,7 @@ class Renderer {
     passe dessous. Le pont se peint donc par-dessus, et chacun retrouve son étage. */
     for (const tu of this.paths.tunnels || []) {
       if (!inView(tu.bbox)) continue;
-      g.fillStyle = 'rgba(8,8,14,0.55)'; g.fill(tu.sol);
+      g.fillStyle = T.def.lumiereTunnel ? 'rgba(8,8,14,0.12)' : 'rgba(8,8,14,0.55)'; g.fill(tu.sol);
       g.fillStyle = 'rgba(255,208,128,0.9)';
       for (const l of tu.lampes) { g.beginPath(); g.arc(l[0], l[1], 0.7, 0, Math.PI * 2); g.fill(); }
     }
@@ -3120,7 +3138,7 @@ class Renderer {
     const deforme = tole && tole.touche ? tole : null;
     if (!drawCarShadow(g, c, car.livree, { steer: car.steerAngle, deforme })) { g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(-c.length / 2, -c.width / 2, c.length, c.width); }
     g.restore();
-    if (freine && !this.night.active) this._feuxStop(g, c, art, car.livree, deforme);
+    if (freine && !this.night.nightRace) this._feuxStop(g, c, art, car.livree, deforme);
     drawCarModel(g, c, car.livery, { number: car.number, steer: car.steerAngle, livree: car.livree, deforme });
     if (car._patchs && car._patchs.length) this._scotch(g, car, deforme);
     g.restore();

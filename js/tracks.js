@@ -454,6 +454,8 @@ const TRACKS = [
        mais couvert n'est pas souterrain : à Monza ce sont les vingt-cinq mètres sous la passerelle
        du Serraglio, qu'on dessine déjà comme une passerelle. */
     tunnels: [[0.4550, 0.5617]],
+    // Part du filtre nocturne côté mer (+lat), côté mur et de nuit ; fondu aux portails en mètres.
+    lumiereTunnel: { mer: 0.12, mur: 0.32, nuit: 0.58, portail: 20 },
     /* Les panneaux repris à la main dans `lignes.html`, et gardés tels quels.
 
        Les FRACTIONS des panneaux ont été décalées de −0,0267 de tour : elles se comptent depuis la
