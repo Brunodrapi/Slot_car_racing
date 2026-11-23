@@ -44,12 +44,23 @@ const DEGATS_VISU = {
   plus pour la même bosse, et un coin ne perd jamais plus de 30 cm — sauf l'abandon (`epave`). */
   creuxMax: [0.3, 0.15, 0],   // m : ce que chaque anneau peut rentrer au plus
   seuil: 3.5,                 // m/s : en dessous, un contact ne cabosse rien (le seuil de la tôle)
-  creux: 0.015,               // m de tôle enfoncée par m/s au-delà du seuil
+  creux: 0.011,               // m de tôle enfoncée par m/s au-delà du seuil (ENFONCE.creux, js/car.js)
   rayon: 0.6,                 // m : portée d'un petit choc ; un peu plus pour un gros
   /* L'ABANDON : 100 km/h droit dans un mur (ABANDON_VITESSE, js/car.js). Le capot n'existe plus : le
   nez rentre aussi loin que l'habitacle le permet, et le compartiment moteur paraît à sa place. */
   epaveMax: [0.95, 0.55, 0],
   epaveCreux: 1.1, epaveRayon: 1.5,
+  /* LA TÔLE SUIT LES POINTS DE VIE. « Voiture relativement peu cabossée mais plus beaucoup de vie. Quand
+  on est à 12 %, on doit avoir un côté complètement enfoncé : visuellement ça doit se voir beaucoup
+  plus. » (Bruno) Les bosses des chocs ne marquent que l'endroit touché, alors que la vie compte toute la
+  zone (js/car.js, ENFONCE) : en plus, chaque zone de la caisse — le nez, les coins, les flancs,
+  l'arrière — rentre à proportion de ce qu'elle a pris (`car.enfoncement`), jusqu'à ces fractions de la
+  demi-longueur (le nez, l'arrière) ou de la demi-largeur (les flancs) quand elle est à fond. */
+  ecrase: [0.36, 0.5, 0.7, 0.5, 0.32, 0.5, 0.7, 0.5],
+  ecraseAnneau: 0.5,          // l'anneau du milieu suit à moitié : le pli reste lisse
+  ecraseCourbe: 0.8,          // < 1 : un enfoncement moyen se voit déjà bien
+  bosses: 0.6,                // la part des bosses locales, par-dessus les zones
+  froisse: 0.45,              // l'irrégularité du bord enfoncé : de la tôle froissée, pas une voiture plus petite
   ressort: 260, amorti: 7,    // la tôle qui tremble, puis se fige
   etincelles: 2,              // m/s : au-dessus, un contact contre du métal crache des étincelles
   frotte: 9,                  // m/s de glisse le long d'un rail : ça crache aussi
@@ -68,6 +79,12 @@ class Carrosserie {
     const n = N * R;
     this.rx = new Float32Array(n); this.ry = new Float32Array(n);   // au repos
     this.tx = new Float32Array(n); this.ty = new Float32Array(n);   // la bosse qui restera
+    this.bx = new Float32Array(n); this.by = new Float32Array(n);   // les bosses des chocs, à l'endroit touché
+    this.zx = new Float32Array(n); this.zy = new Float32Array(n);   // les zones enfoncées (les points de vie)
+    this._vu = null;                                                // les points de vie déjà dessinés
+    // par sommet du bord, tiré une fois : chaque voiture se froisse à sa façon
+    this.froisse = new Float32Array(N);
+    for (let i = 0; i < N; i++) this.froisse[i] = 1 - V.froisse / 2 + V.froisse * Math.random();
     this.dx = new Float32Array(n); this.dy = new Float32Array(n);   // la bosse de l'instant
     this.vx = new Float32Array(n); this.vy = new Float32Array(n);
     // Les sommets du bord, répartis côté par côté pour que les quatre coins en soient : l'avant et
@@ -110,16 +127,58 @@ class Carrosserie {
       if (dist >= r) continue;
       let f = 1 - (dist * dist) / (r * r); f *= f;
       const p = prof * f * (0.65 + 0.7 * Math.random());     // le hasard qui froisse le bord
-      this.tx[k] += nx * p; this.ty[k] += ny * p;
-      const m = Math.hypot(this.tx[k], this.ty[k]);
-      if (m > lim) { this.tx[k] *= lim / m; this.ty[k] *= lim / m; }
+      this.bx[k] += nx * p; this.by[k] += ny * p;
+      const m = Math.hypot(this.bx[k], this.by[k]);
+      if (m > lim) { this.bx[k] *= lim / m; this.by[k] *= lim / m; }
       this.vx[k] += nx * p * 2; this.vy[k] += ny * p * 2;     // le coup qui fait trembler
     }
-    this._ordonne(this.tx, this.ty);
-    this.touche = true; this.calme = false; this.version++; this.bosses = (this.bosses || 0) + 1;
+    this._cible();
+    this.bosses = (this.bosses || 0) + 1;
     this.fx = (this.fx * this.fw + px * force) / (this.fw + force);
     this.fy = (this.fy * this.fw + py * force) / (this.fw + force);
     this.fw += force;
+  }
+
+  /* Les zones de la caisse rentrent selon leurs points de vie (`car.enfoncement`, en m, 0,3 = à fond).
+  Chaque sommet du bord prend la zone où il se trouve — le même découpage que la physique, ±22,5°
+  autour de son centre —, fondue avec la voisine sur ses bords seulement, pour que tout le flanc rentre
+  et pas seulement son milieu ; il rentre droit vers l'intérieur de son côté, en biais dans un coin. */
+  ecrase(enf) {
+    const V = DEGATS_VISU, N = this.N, n = ENFONCE.zones;
+    if (this._vu && this._vu.every((e, z) => e === enf[z])) return;
+    this._vu = Float32Array.from(enf);
+    const hw = this.w / 2, hh = this.h / 2;
+    const niveaux = [];
+    for (let z = 0; z < n; z++) niveaux.push(V.ecrase[z] * Math.pow(clamp(enf[z] / ENFONCE.max, 0, 1), V.ecraseCourbe));
+    for (let i = 0; i < N; i++) {
+      const qx = this.rx[i] / hw, qy = this.ry[i] / hh;
+      const zf = ((Math.atan2(qy, qx) / (Math.PI / 4)) % n + n) % n;
+      const zr = Math.floor(zf + 0.5), zc = zr % n, d = zf - zr;
+      const voisine = (zc + (d > 0 ? 1 : n - 1)) % n;
+      const t = clamp((Math.abs(d) - 0.2) / 0.3, 0, 1), part = 0.5 * t * t * (3 - 2 * t);
+      const fr = (niveaux[zc] + (niveaux[voisine] - niveaux[zc]) * part) * this.froisse[i];
+      const ex = Math.sign(qx) * Math.pow(Math.abs(qx), 6), ey = Math.sign(qy) * Math.pow(Math.abs(qy), 6);
+      const el = Math.hypot(ex, ey) || 1;
+      const ux = -ex / el * hw * fr, uy = -ey / el * hh * fr;
+      this.zx[i] = ux; this.zy[i] = uy;
+      this.zx[N + i] = ux * V.ecraseAnneau; this.zy[N + i] = uy * V.ecraseAnneau;
+    }
+    this._cible();
+  }
+
+  /* Ce que la tôle doit rejoindre : les zones, plus les bosses des chocs ; jamais plus loin que l'épave,
+  et jamais un anneau à travers l'autre. */
+  _cible() {
+    const V = DEGATS_VISU, N = this.N;
+    for (let k = 0; k < N * this.R; k++) {
+      const lim = V.epaveMax[(k / N) | 0];
+      let cx = this.zx[k] + this.bx[k] * V.bosses, cy = this.zy[k] + this.by[k] * V.bosses;
+      const m = Math.hypot(cx, cy);
+      if (m > lim && m > 0) { cx *= lim / m; cy *= lim / m; }
+      this.tx[k] = cx; this.ty[k] = cy;
+    }
+    this._ordonne(this.tx, this.ty);
+    this.touche = true; this.calme = false; this.version++;
   }
 
   /* Un anneau ne passe jamais à travers le suivant : sinon les triangles entre les deux se retournent

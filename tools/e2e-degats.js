@@ -6,9 +6,11 @@
 //    la bosse se fige, les débris tombent. Captures avant, pendant (la tôle tremble), après.
 // 2. Un rail pris à 60 km/h en course : la voiture perd de la pointe (DEGATS), sa tôle est enfoncée,
 //    mais pas plus de 30 cm — les voitures sont résistantes — et elle n'abandonne pas.
+// 2c. La tôle suit les points de vie : à 12 % de vie, le flanc touché est rentré de près de la moitié
+//    de la demi-largeur (DEGATS_VISU.ecrase).
 // 2b. Les points de vie suivent la zone la plus enfoncée (ENFONCE, js/car.js) : un petit coup devant et
 //    un petit derrière ne comptent que pour le plus gros des deux ; des coups répétés au même endroit
-//    l'enfoncent à fond, et c'est 100 %. Un pare-chocs est dur, un flanc mou (ENFONCE.durete).
+//    l'enfoncent à fond, et c'est 100 % — et l'abandon. Un pare-chocs est dur, un flanc mou (ENFONCE.durete).
 // 3. Le coût du dessin : dix voitures cabossées de partout ne doivent pas coûter beaucoup plus que
 //    dix intactes — la caisse déformée est gardée en cache (Carrosserie.dessine).
 // 4. De nuit : un phare dont le coin a reculé s'éteint, celui d'en face reste allumé.
@@ -85,7 +87,8 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
       if (t) for (let k = 0; k < t.tx.length; k++) creux = Math.max(creux, Math.hypot(t.tx[k], t.ty[k]));
       return { tole: !!t, calme: t ? t.calme : null, creux, peau: !!(t && t.peau) };
     }));
-    for (const v of vitrine) assert.ok(v.tole && v.calme && v.peau && v.creux > 0.02 && v.creux <= 0.3 + 1e-6, 'une voiture touchée sans bosse figée, ou trop enfoncée : ' + JSON.stringify(v));
+    // des chocs posés à la main, sans la physique : seules les bosses locales (0,75 cm par m/s, × DEGATS_VISU.bosses)
+    for (const v of vitrine) assert.ok(v.tole && v.calme && v.peau && v.creux > 0.005 && v.creux <= 0.3 + 1e-6, 'une voiture touchée sans bosse figée, ou trop enfoncée : ' + JSON.stringify(v));
     assert.ok(await page.evaluate(() => app.renderer.eclats.debris.length > 4), 'pas de débris après quatre chocs');
 
     // 2. le rail, en course
@@ -110,7 +113,7 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
     // 2b. la zone la plus enfoncée, et la dureté de chaque zone
     const zones = await page.evaluate(() => {
       const p = app.race.player, cs = Math.cos(p.th), sn = Math.sin(p.th), E = ENFONCE;
-      const vide = () => { p.enfoncement.fill(0); p.damage = 0; };
+      const vide = () => { p.enfoncement.fill(0); p.damage = 0; p.abandon = false; p.abandonT = 0; p.engineStopped = false; p.engineCut = 0; };
       vide();
       p._enfonce(-cs, -sn, 5);                 // un petit coup dans le nez (la tôle rentre vers l'arrière)
       const unCoup = p.damage, attendu = E.creux * 5 * E.durete[0] / E.max;
@@ -120,13 +123,38 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
       const flanc = p.damage;
       vide(); let n = 0;
       while (p.damage < 1 && n < 20) { p._enfonce(-cs, -sn, 20); n++; }   // le nez, jusqu'au bout
-      const nezAFond = p.damage;
+      const nezAFond = p.damage, abandonAZero = p.abandon && p.engineCut === Infinity;   // la vie à zéro : l'abandon
       vide();
-      return { unCoup, attendu, deuxBouts, flanc, nezAFond, coupsPourLeNez: n, durete: E.durete };
+      return { unCoup, attendu, deuxBouts, flanc, nezAFond, abandonAZero, coupsPourLeNez: n, durete: E.durete };
     });
     assert.ok(Math.abs(zones.unCoup - zones.attendu) < 1e-6 && Math.abs(zones.deuxBouts - zones.unCoup) < 1e-6 && zones.nezAFond === 1,
       'les points de vie ne suivent pas la zone la plus enfoncée : ' + JSON.stringify(zones));
     assert.ok(zones.flanc > zones.unCoup * 3, 'un flanc devait être bien plus fragile qu\'un pare-chocs : ' + JSON.stringify(zones));
+    assert.ok(zones.abandonAZero, 'la vie à zéro devait être un abandon : ' + JSON.stringify(zones));
+
+    // 2c. la tôle suit les points de vie : « à 12 %, un côté complètement enfoncé » (Bruno). Le flanc
+    // gauche pris à 30 %, puis à 88 % ; on mesure de combien le milieu du flanc est rentré.
+    const flanc = await page.evaluate(() => {
+      const r = app.race, R = app.renderer, p = r.player, E = ENFONCE;
+      const mesure = (part) => {
+        R.carrosseries = new WeakMap();
+        p.enfoncement.fill(0);
+        p.enfoncement[2] = E.max * part; p.enfoncement[1] = p.enfoncement[3] = E.max * part * 0.35 * 0.6 / 1.4;
+        p.damage = part;
+        for (let i = 0; i < 120; i++) R.addEffects(r, 1 / 60);
+        const t = R.carrosseries.get(p);
+        if (!t) return null;
+        let rentre = 0;
+        for (let i = 0; i < t.N; i++) if (Math.abs(t.rx[i]) < 0.15 * t.w && t.ry[i] > 0) rentre = Math.max(rentre, -t.dy[i]);
+        return rentre / (t.h / 2);
+      };
+      const a30 = mesure(0.3), a88 = mesure(0.88);
+      return { a30, a88 };
+    });
+    await capture('4b-flanc-12.png', 1);
+    await page.evaluate(() => { const p = app.race.player; p.enfoncement.fill(0); p.damage = 0; app.renderer.carrosseries = new WeakMap(); });
+    console.log('  flanc enfoncé (part de la demi-largeur) : à 70 % de vie', flanc.a30 && flanc.a30.toFixed(2), '; à 12 %', flanc.a88 && flanc.a88.toFixed(2));
+    assert.ok(flanc.a88 > 0.4 && flanc.a30 > 0.1 && flanc.a88 > flanc.a30 * 1.8, 'à 12 % de vie, le flanc devait être bien enfoncé : ' + JSON.stringify(flanc));
 
     // 3. le coût du dessin
     const cout = await page.evaluate(() => {
@@ -157,6 +185,8 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
       const lay = carLightLayout(p.cls, p.livree), cote = Math.sign(lay.front[0].y);
       // un coup franc (36 m/s) : le coin est plus dur depuis ENFONCE.durete, et la bosse dessinée a sa part de hasard
       p.chocs.push({ nx: -0.75, ny: -0.66 * cote, v: 36, frotte: 0, sorte: 'voiture' });   // la tôle rentre vers l'autre côté
+      // et la physique enfonce la zone de ce coin, comme dans la course : la tôle suit les points de vie
+      { const cs = Math.cos(p.th), sn = Math.sin(p.th), nx = -0.75, ny = -0.66 * cote; p._enfonce(nx * cs - ny * sn, nx * sn + ny * cs, 36 - p.degats.chocSeuil); }
       for (let i = 0; i < 90; i++) R.addEffects(r, 1 / 60);
       return { avant, apres: phares() };
     });
