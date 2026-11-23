@@ -108,7 +108,7 @@ const I18N = {
     laps: 'tours', lapCustom: 'Perso', start: 'Départ !', locked: 'Verrouillé', unlockHint: 'Termine la coupe précédente dans le top 3 pour débloquer.',
     cup: 'Coupe', races: 'courses', raceOf: (a, b) => `Course ${a} / ${b}`, standings: 'Classement', nextRace: 'Prochaine course', startRace: 'Lancer la course',
     done: 'Terminée', inProgress: 'En cours', notStarted: 'Pas commencée', resetCup: 'Recommencer cette coupe', finalPos: (p) => `Classement final : P${p}`,
-    results: 'Résultats', pos: 'Pos', driver: 'Pilote', time: 'Temps', gap: 'Écart', bestLap: 'Meilleur tour', points: 'Pts', dnf: 'Non classé',
+    results: 'Résultats', pos: 'Pos', driver: 'Pilote', time: 'Temps', gap: 'Écart', bestLap: 'Meilleur tour', points: 'Pts', dnf: 'Non classé', abandonRes: 'Abandon', abandon: 'ABANDON', abandonSous: 'MOTEUR DÉTRUIT',
     penalty: 'Pénalité', voidLap: 'annulé', voidLapTitle: 'Tour annulé : sortie de piste',
     penaltyWhy: (n, s) => `${n} sortie${n > 1 ? 's' : ''} de piste · +${s} s au classement. Le temps gagné hors piste est repris ; les vibreurs ne comptent pas.`,
     next: 'Suivant', retry: 'Rejouer', menu: 'Menu', resume: 'Reprendre', restart: 'Recommencer', quit: 'Quitter', paused: 'Pause', endSession: 'Terminer',
@@ -178,7 +178,7 @@ const I18N = {
     multi: 'Multijoueur', multiIntro: 'Ouvre une table et donne son code à quatre lettres, ou saisis celui qu’on t’a donné. Tout passe directement d’un appareil à l’autre : rien n’est conservé, fermer la page ferme la table.',
     createTable: 'Ouvrir une table', joinTable: 'Rejoindre', tableCode: 'Code de la table', yourTable: 'Ta table', waiting: 'En attente…',
     mFormat: 'Format', mRace: 'Course', mDuel: 'Duel', mGhost: 'Contre-la-montre',
-    enPiste: 'En piste !', statVmax: 'Vitesse max.', statA100: 'Accélération', statB100: 'Freinage', statGrip: 'Adhérence', chipWear: 'Usure', chipControl: 'Commande', pilotLabel: 'Pilote',
+    enPiste: 'En piste !', statVmax: 'Vitesse max.', statA100: 'Accélération', statB100: 'Freinage', statGrip: 'Adhérence', chipWear: 'Usure', chipDegats: 'Dégâts', degatsHint: 'Les chocs cabossent la voiture et lui coûtent de la vitesse ; les stands la réparent.', chipControl: 'Commande', pilotLabel: 'Pilote',
     catAll: 'Toutes', mCat: 'Catégorie', mCatDesc: 'L\'hôte peut réserver la table à une catégorie : chacun choisit alors sa voiture dans celle-ci.', mCatOpen: 'Chacun prend la voiture qu\'il veut ; l\'IA court dans la catégorie de l\'hôte.',
     mRaceDesc: 'Tout le monde sur la grille, complétée par des IA, avec les contacts.',
     mDuelDesc: 'Les humains et personne d’autre.', mGhostDesc: 'Même circuit, chacun son tour, les voitures se traversent.',
@@ -260,7 +260,7 @@ const I18N = {
     laps: 'laps', lapCustom: 'Custom', start: 'Start!', locked: 'Locked', unlockHint: 'Finish the previous cup in the top 3 to unlock.',
     cup: 'Cup', races: 'races', raceOf: (a, b) => `Race ${a} / ${b}`, standings: 'Standings', nextRace: 'Next race', startRace: 'Start race',
     done: 'Complete', inProgress: 'In progress', notStarted: 'Not started', resetCup: 'Restart this cup', finalPos: (p) => `Final standing: P${p}`,
-    results: 'Results', pos: 'Pos', driver: 'Driver', time: 'Time', gap: 'Gap', bestLap: 'Best lap', points: 'Pts', dnf: 'DNF',
+    results: 'Results', pos: 'Pos', driver: 'Driver', time: 'Time', gap: 'Gap', bestLap: 'Best lap', points: 'Pts', dnf: 'DNF', abandonRes: 'DNF', abandon: 'DNF', abandonSous: 'ENGINE DESTROYED',
     penalty: 'Penalty', voidLap: 'void', voidLapTitle: 'Lap deleted: off track',
     penaltyWhy: (n, s) => `${n} excursion${n > 1 ? 's' : ''} · +${s} s on the classification. Time gained off track is taken back; kerbs do not count.`,
     next: 'Next', retry: 'Retry', menu: 'Menu', resume: 'Resume', restart: 'Restart', quit: 'Quit', paused: 'Paused', endSession: 'Finish',
@@ -330,7 +330,7 @@ const I18N = {
     multi: 'Multiplayer', multiIntro: 'Open a table and pass on its four-letter code, or type the one you were given. Everything goes straight from one device to the other: nothing is stored, closing the page closes the table.',
     createTable: 'Open a table', joinTable: 'Join', tableCode: 'Table code', yourTable: 'Your table', waiting: 'Waiting…',
     mFormat: 'Format', mRace: 'Race', mDuel: 'Duel', mGhost: 'Time trial',
-    enPiste: 'On track!', statVmax: 'Top speed', statA100: 'Acceleration', statB100: 'Braking', statGrip: 'Grip', chipWear: 'Wear', chipControl: 'Control', pilotLabel: 'Driver',
+    enPiste: 'On track!', statVmax: 'Top speed', statA100: 'Acceleration', statB100: 'Braking', statGrip: 'Grip', chipWear: 'Wear', chipDegats: 'Damage', degatsHint: 'Impacts dent the car and cost it speed; the pits repair it.', chipControl: 'Control', pilotLabel: 'Driver',
     catAll: 'All', mCat: 'Class', mCatDesc: 'The host can keep the table to one class: everyone then picks a car from it.', mCatOpen: 'Everyone takes any car; the AI races in the host\'s class.',
     mRaceDesc: 'Everyone on the grid, filled up with AI cars, contact on.',
     mDuelDesc: 'The people and nobody else.', mGhostDesc: 'Same circuit, each on their own lap, cars pass through each other.',
@@ -1470,6 +1470,7 @@ class UI {
     return `<div class="setup-bar"><div class="setup-reglages">
       <div class="setup-chips" data-pad-group>
         ${pastille(t('timeOfDay'), t(s.timeOfDay === 'night' ? 'night' : 'day'), `data-action="pickTimeOfDay" data-id="${s.timeOfDay === 'night' ? 'day' : 'night'}" aria-pressed="${s.timeOfDay === 'night'}"`)}
+        ${race && DEGATS_ACTIVE && !(USURE_ACTIVE && s.wear) ? pastille(t('chipDegats'), t(s.degats !== false ? 'on' : 'off'), `data-action="pickDegats" data-id="${s.degats !== false ? 0 : 1}" aria-pressed="${s.degats !== false}" title="${escapeHtml(t('degatsHint'))}"`) : ''}
         ${s.timeOfDay === 'night' ? `<small class="muted night-hint">${t(model.catId === 'f1' ? 'nightF1Hint' : 'nightHint')}</small>` : ''}
       </div>
       ${race ? `<div class="setup-chips" data-pad-group>
@@ -1578,6 +1579,9 @@ class UI {
       <h3>${t('timeOfDay')}</h3>
       <div class="seg">${['day', 'night'].map(v => `<button class="${(cfg.timeOfDay || 'day') === v ? 'sel' : ''}" data-action="netTimeOfDay" data-id="${v}" aria-pressed="${(cfg.timeOfDay || 'day') === v}" ${net.creator ? '' : 'disabled'}>${t(v)}</button>`).join('')}</div>
       ${cfg.timeOfDay === 'night' ? `<p class="muted">${t(model.catId === 'f1' ? 'nightF1Hint' : 'nightHint')}</p>` : ''}
+      ${DEGATS_ACTIVE ? `<h3>${t('chipDegats')}</h3>
+      <div class="seg">${[['1', 'on'], ['0', 'off']].map(([v, k]) => `<button class="${(cfg.degats !== false) === (v === '1') ? 'sel' : ''}" data-action="netDegats" data-id="${v}" aria-pressed="${(cfg.degats !== false) === (v === '1')}" ${net.creator ? '' : 'disabled'}>${t(k)}</button>`).join('')}</div>
+      <p class="muted">${t('degatsHint')}</p>` : ''}
       <h3>${t('mCat')}</h3>
       ${this.filtreCat('netCat', tcat, !net.creator)}
       <p class="muted">${t(tcat === 'all' ? 'mCatOpen' : 'mCatDesc')}</p>
@@ -1682,7 +1686,7 @@ class UI {
       : `<td class="${r.penalite > 0 ? 'warn' : 'muted'}">${r.penalite > 0 ? `+${r.penalite.toFixed(1)}<small> (${r.fautes})</small>` : '—'}</td>`;
     const table = isTT ? `<table class="tbl"><thead><tr><th>${t('lap')}</th><th>${t('time')}</th>${f ? `<th>${t('ghost')}</th>` : ''}</tr></thead><tbody>${p.lapTimes.map(tour).join('') || `<tr><td colspan="${f ? 3 : 2}">—</td></tr>`}</tbody></table>`
       : `<table class="tbl tbl-resultats"><thead><tr><th>${t('pos')}</th><th>${t('driver')}</th><th class="col-modele">${t('model')}</th><th>${t('gap')}</th>${avecPen ? `<th>${t('penalty')}</th>` : ''}<th>${t('bestLap')}</th>${ctx.cup ? `<th>${t('points')}</th>` : ''}</tr></thead><tbody>
-        ${res.map(r => `<tr class="${r.car.isPlayer ? 'me' : ''}"><td>${r.pos}</td><td class="pilote"><i class="dot" style="background:${r.car.livery.body}"></i>${escapeHtml(r.car.name)}<small class="modele-sous">${escapeHtml(r.car.cls.name)}</small></td><td class="muted col-modele">${escapeHtml(r.car.cls.name)}</td><td>${r.pos === 1 ? (r.time != null ? fmtTime(r.time) : '') : r.gap != null ? '+' + r.gap.toFixed(3) : t('dnf')}</td>${penCell(r)}<td>${r.bestLap != null ? fmtTime(r.bestLap) : '—'}</td>${ctx.cup ? `<td>${r.points}</td>` : ''}</tr>`).join('')}</tbody></table>`;
+        ${res.map(r => `<tr class="${r.car.isPlayer ? 'me' : ''}"><td>${r.pos}</td><td class="pilote"><i class="dot" style="background:${r.car.livery.body}"></i>${escapeHtml(r.car.name)}<small class="modele-sous">${escapeHtml(r.car.cls.name)}</small></td><td class="muted col-modele">${escapeHtml(r.car.cls.name)}</td><td>${r.abandon ? t('abandonRes') : r.pos === 1 ? (r.time != null ? fmtTime(r.time) : '') : r.gap != null ? '+' + r.gap.toFixed(3) : t('dnf')}</td>${penCell(r)}<td>${r.bestLap != null ? fmtTime(r.bestLap) : '—'}</td>${ctx.cup ? `<td>${r.points}</td>` : ''}</tr>`).join('')}</tbody></table>`;
     let cupPart = '';
     if (ctx.cup) {
       const cs = cupState(this.app.save, ctx.cup.id);
@@ -1930,6 +1934,7 @@ class UI {
       }
       case 'pickTimeOfDay': app.save.timeOfDay = id === 'night' ? 'night' : 'day'; storeSave(app.save); this.setupScreen(this.setup.mode); break;
       case 'pickWear': app.save.wear = id === '1'; storeSave(app.save); this.setupScreen(this.setup.mode); break;
+      case 'pickDegats': app.save.degats = id === '1'; storeSave(app.save); this.setupScreen(this.setup.mode); break;
       // « En piste » (et « Régler », qui va aussi en piste) : le moteur démarre (js/audio.js, DEMARRAGE)
       case 'startQuick': app.audio.demarre(); app.startQuick(this.setup.mode, this.setup.classId, this.setup.trackId); break;
       case 'startTune': app.audio.demarre(); app.startQuick(this.setup.mode, this.setup.classId, this.setup.trackId, true); break;
@@ -1941,6 +1946,7 @@ class UI {
       case 'netRole': app.net.setMine({ spectator: !app.net.mine.spectator, ready: false }); app.net.pump(); break;
       case 'netLeave': app.toMenu(); break;
       case 'netTimeOfDay': app.net.setTable({ timeOfDay: id === 'night' ? 'night' : 'day' }); break;
+      case 'netDegats': app.net.setTable({ degats: id === '1' }); break;
       case 'netMode': app.net.setTable({ mode: id }); break;
       case 'netTrack': app.net.setTable({ trackId: id, laps: lapsFor(app.trackDefById(id), categoryById(this.setup.classId)) }); break;
       case 'netReady': this._netReady(!app.net.mine.ready); break;

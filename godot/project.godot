@@ -1,0 +1,68 @@
+; SLOTLESS — Slot-Racing Unleashed : la version Godot du jeu web GRIP, pour Steam et iOS.
+; Ouvrir ce dossier dans Godot 4.7 (Projet > Importer > project.godot).
+
+config_version=5
+
+[application]
+
+config/name="SLOTLESS"
+config/description="Stand de frites et la Breithüft Apex R, avec la physique du jeu web portée en GDScript."
+run/main_scene="res://scenes/demarrage.tscn"
+config/features=PackedStringArray("4.7", "Mobile")
+config/icon="res://icon.svg"
+boot_splash/bg_color=Color(0.0901961, 0.0901961, 0.109804, 1)
+boot_splash/image="res://images/interface/demarrage-slotless.png"
+boot_splash/fullsize=false
+boot_splash/use_filter=true
+
+[autoload]
+
+App="*res://scripts/app.gd"
+Reseau="*res://scripts/reseau/reseau.gd"
+Mondial="*res://scripts/mondial.gd"
+
+[display]
+
+; Le cadre de référence est carré : une fenêtre de 1280 × 720 le montre à l'échelle 1, et un
+; téléphone en portrait garde une largeur lisible au lieu de tout rétrécir pour y faire tenir
+; 1280 points. La fenêtre de bureau s'ouvre, elle, en 1280 × 720.
+window/size/viewport_width=720
+window/size/viewport_height=720
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=4
+window/vsync/vsync_mode=1
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[physics]
+
+common/physics_ticks_per_second=120
+common/max_physics_steps_per_frame=12
+
+[rendering]
+
+; Le moteur « Mobile » (Vulkan, Metal, Direct3D 12) sur ordinateur et téléphone : c'est lui qui
+; lisse les bords des formes en 2D (MSAA). La version web garde « Compatibility » (WebGL 2), qui ne
+; le fait pas encore.
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+renderer/rendering_method.web="gl_compatibility"
+textures/canvas_textures/default_texture_filter=1
+anti_aliasing/quality/msaa_2d=2
+2d/snap/snap_2d_transforms_to_pixel=false
+
+[grip]
+
+; Où une version qui n'embarque pas les décors (web, essai pour ordinateur) va les chercher.
+decors_url="https://brunodrapi.github.io/Slot_car_racing/essais/godot/"
+; Les tables en ligne : celles de la recette du jeu web (slot-racer-v1-recette-…) ou celles de la
+; prod (slot-racer-v1-…). Une version vendue prendra « prod ».
+canal="recette"
+; La version Steam (étiquette d'export « steam ») : l'identifiant de l'application sur Steam.
+; 480 est l'application d'essai de Valve, en attendant celle de SLOTLESS.
+steam_app_id=480

@@ -52,6 +52,8 @@ class GameAudio {
     this.ctx = null;
     this.enabled = true;
     this.started = false;
+    this.prisesAbandon = new Map();
+    this.commentaireId = 0;
     this.rpm = 0;           // lu par le HUD et par les mesures
     this.gear = 0;
   }
@@ -215,13 +217,50 @@ class GameAudio {
 
   Une course qui démarre est le bon moment pour tout remettre d'aplomb : c'est là que le son compte,
   et c'est un geste du joueur, donc un contexte autorisé à reprendre. */
-  relance() {
+  relance(avecAbandon = false) {
+    this.arreteCommentaire();
     this.start();
+    if (avecAbandon && this.ctx && this.enabled) {
+      this._priseAbandon('big_shock');
+      this._priseAbandon('too_much_hits');
+    }
     this.resume();
     if (this.rate) { this.rate = false; this.jeu = null; this.clsId = null; }
   }
 
+  _priseAbandon(nom) {
+    if (!this.prisesAbandon.has(nom)) {
+      const prise = fetch('sounds/abandon/' + nom + '.mp3')
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+        .then(data => this.ctx.decodeAudioData(data))
+        .catch(() => { this.prisesAbandon.delete(nom); return null; });
+      this.prisesAbandon.set(nom, prise);
+    }
+    return this.prisesAbandon.get(nom);
+  }
+
+  async joueAbandon(grosChoc) {
+    if (!this.started || !this.enabled) return;
+    this.arreteCommentaire();
+    const id = this.commentaireId;
+    const prise = await this._priseAbandon(grosChoc ? 'big_shock' : 'too_much_hits');
+    if (!prise || id !== this.commentaireId) return;
+    const source = this.ctx.createBufferSource();
+    source.buffer = prise;
+    source.connect(this.master);
+    source.onended = () => { if (this.commentaire === source) this.commentaire = null; };
+    this.commentaire = source;
+    source.start();
+  }
+
+  arreteCommentaire() {
+    this.commentaireId++;
+    if (this.commentaire) this.commentaire.stop();
+    this.commentaire = null;
+  }
+
   setEnabled(on) {
+    if (!on) this.arreteCommentaire();
     this.enabled = on;
     if (this.master) this.master.gain.setTargetAtTime(on ? 0.5 : 0, this.ctx.currentTime, 0.05);
   }
@@ -276,9 +315,90 @@ class GameAudio {
     const w = Math.min(1, v / vmax);
     this.windGain.gain.setTargetAtTime(w * w * 0.11, t, 0.1);
     this.windFilter.frequency.setTargetAtTime(350 + v * 9, t, 0.1);
+    this._stand(car, t);
   }
 
-  idle() {
+  /* LES BRUITS DU STAND (essai des dégâts) : « cling, clac, zout zout ».
+
+  Tant que la voiture est arrêtée dans sa case, l'équipe travaille : des clés qui tintent (cling),
+  des pièces qu'on claque (clac), et la visseuse à chocs, deux coups (zout zout). Elle ouvre toujours
+  le bal, puis deux ou trois outils, puis de nouveau la visseuse, à quelques dixièmes de seconde
+  d'écart, jusqu'à ce que la voiture reparte. Fabriqués ici, sans fichier, comme le clac du levier : quelques dixièmes de
+  seconde ne valent pas un téléchargement. */
+  _stand(car, t) {
+    if (car.pitState !== 'arret') { this.standProchain = null; return; }
+    if (this.standProchain == null) { this.standProchain = t + 0.15; this.standN = 0; this.standOutils = 99; }
+    if (t < this.standProchain) return;
+    this.standN++;
+    /* Le rythme d'une équipe : la visseuse, puis deux ou trois outils, puis la visseuse… Tiré tout au
+    hasard, il arrivait d'enchaîner cinq visseuses sans une clé. */
+    if (this.standOutils >= 2 + (Math.random() < 0.5 ? 1 : 0)) {
+      this.zout(t); this.standOutils = 0; this.standProchain = t + 0.8 + Math.random() * 0.3;
+    } else {
+      this.standOutils++;
+      if (Math.random() < 0.55) { this.cling(t); this.standProchain = t + 0.18 + Math.random() * 0.32; }
+      else { this.clacStand(t); this.standProchain = t + 0.22 + Math.random() * 0.32; }
+    }
+  }
+
+  // Une clé qui tinte : trois partiels inharmoniques, comme une barre de métal frappée, l'aigu
+  // s'éteignant le premier.
+  cling(t) {
+    if (!this.started || !this.enabled) return;
+    const ctx = this.ctx, f = 1900 + Math.random() * 900;
+    for (const [k, a, d] of [[1, 0.2, 0.32], [2.76, 0.11, 0.18], [5.4, 0.05, 0.1]]) {
+      const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f * k;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(a, t + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      o.connect(g); g.connect(this.master); o.start(t); o.stop(t + d + 0.02);
+    }
+  }
+
+  // Une pièce qu'on claque : un éclat de bruit, et le choc sourd de ce qui retombe en place.
+  clacStand(t) {
+    if (!this.started || !this.enabled) return;
+    const ctx = this.ctx;
+    const n = ctx.createBufferSource(); n.buffer = this.noiseBuf;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1300 + Math.random() * 500; bp.Q.value = 2.2;
+    const ng = ctx.createGain(); ng.gain.setValueAtTime(0.0001, t);
+    ng.gain.exponentialRampToValueAtTime(0.55, t + 0.002); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+    n.connect(bp); bp.connect(ng); ng.connect(this.master); n.start(t, Math.random() * 0.5); n.stop(t + 0.07);
+    const o = ctx.createOscillator(); o.type = 'triangle';
+    o.frequency.setValueAtTime(170, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.08);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.45, t + 0.003); g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    o.connect(g); g.connect(this.master); o.start(t); o.stop(t + 0.12);
+  }
+
+  /* La visseuse à chocs : deux coups, zout zout. Une dent de scie grave qui monte un peu (le moteur
+  de l'outil qui lance), hachée trente fois par seconde (les chocs du marteau), et un souffle d'air
+  par-dessus. */
+  zout(t) {
+    if (!this.started || !this.enabled) return;
+    const ctx = this.ctx;
+    for (const d0 of [0, 0.3]) {
+      const t0 = t + d0, dur = 0.22;
+      const env = ctx.createGain(); env.gain.setValueAtTime(0.0001, t0);
+      env.gain.exponentialRampToValueAtTime(0.42, t0 + 0.015); env.gain.setValueAtTime(0.42, t0 + dur - 0.04);
+      env.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      env.connect(this.master);
+      const hache = ctx.createGain(); hache.gain.value = 0.5; hache.connect(env);
+      const lfo = ctx.createOscillator(); lfo.type = 'square'; lfo.frequency.value = 32;
+      const lfoG = ctx.createGain(); lfoG.gain.value = 0.5; lfo.connect(lfoG); lfoG.connect(hache.gain);
+      const o = ctx.createOscillator(); o.type = 'sawtooth';
+      o.frequency.setValueAtTime(95, t0); o.frequency.linearRampToValueAtTime(150, t0 + dur);
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 1.2;
+      o.connect(bp); bp.connect(hache);
+      const n = ctx.createBufferSource(); n.buffer = this.noiseBuf;
+      const nf = ctx.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 3000; nf.Q.value = 1;
+      const ng = ctx.createGain(); ng.gain.value = 0.25;
+      n.connect(nf); nf.connect(ng); ng.connect(hache);
+      for (const src of [o, lfo, n]) { src.start(t0); src.stop(t0 + dur + 0.02); }
+    }
+  }
+
+  idle({ laisserFinirCommentaire = false } = {}) {
+    if (!laisserFinirCommentaire) this.arreteCommentaire();
     if (!this.started) return;
     const t = this.ctx.currentTime;
     for (const g of [this.engGain, this.sqGain, this.grvGain, this.windGain]) {

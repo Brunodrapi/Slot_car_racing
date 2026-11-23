@@ -427,6 +427,7 @@ class App {
     (`ctx.mode`) pour revenir au bon paddock. */
     const entrainement = mode === 'training';
     this._startRace({
+      opponentRadar: mode === 'race' && !reglage,
       reglage: !!reglage,
       frein: freinDe(this.save, trackId, modelId),
       mode: entrainement ? 'timetrial' : mode, entrainement, ghostName: this.ui.t('ghost'),
@@ -438,6 +439,7 @@ class App {
       laps: this.save.laps || 5,
       difficulty: this.save.difficulty,
       wear: this.save.wear,
+      degats: this.save.degats !== false,   // les dégâts (essai), en option : oui par défaut
       playerLivery: this.save.livery,
       playerName: this.playerName(),
     }, { cup: null, mode, classId, trackId });
@@ -457,6 +459,7 @@ class App {
       laps: lapsFor(trackDef, cat),
       difficulty: this.save.difficulty,
       wear: this.save.wear,
+      degats: this.save.degats !== false,   // les dégâts (essai), en option : oui par défaut
       playerLivery: this.save.livery,
       playerName: this.playerName(),
       roster,
@@ -479,20 +482,22 @@ class App {
     const hote = cfg.humans[0] || {};
     const catIA = cfg.cat && cfg.cat !== 'all' ? categoryById(cfg.cat)
       : hote.modelId ? categoryOfModel(hote.modelId) : cat;
-    const places = Math.max(cfg.humans.length + 1, Math.min(catIA.drivers || 10, 12));
+    const places = cfg.aiCount >= 0 ? Math.min(12, cfg.humans.length + cfg.aiCount)
+      : Math.max(cfg.humans.length + 1, Math.min(catIA.drivers || 10, 12));
     const roster = cfg.mode === 'race' ? makeRoster(places, 0, (cfg.go || 1) % 100000, catIA.id) : null;
     this._startRace({
       // A shared time trial is a race with the contact turned off: everyone on the same lap
       // counter, nobody able to knock anybody off.
       mode: cfg.mode === 'ghost' ? 'race' : 'race',
       noContact: cfg.mode === 'ghost',
-      aiFill: cfg.mode === 'race',
+      aiFill: cfg.mode === 'race', aiCount: cfg.aiCount,
       trackDef,
       classId: cat.id,
       modelId: mine.modelId || this.playerModelFor(cat.id).id,
       laps: cfg.laps || lapsFor(trackDef, cat),
       difficulty: cfg.difficulty || this.save.difficulty,
       timeOfDay: cfg.timeOfDay === 'night' ? 'night' : 'day',
+      degats: cfg.degats !== false,   // le choix de l'hôte, le même pour tous
       playerLivery: mine.livery || 0,
       playerLivree: this.playerLivreeFor(mine.modelId || this.playerModelFor(cat.id).id),
       playerName: mine.name || this.playerName(),
@@ -534,7 +539,7 @@ class App {
     this.chargement = null;
     // Le son est remis d'aplomb ICI : contexte repris s'il avait été suspendu, prises rechargées si
     // leur téléchargement avait échoué. Voir `GameAudio.relance`.
-    this.audio.relance();
+    this.audio.relance(!!this.race.degats?.abandon);
     this.renderer.setTrack(this.race.track);
     this.renderer.cam.init = false;
     this.renderer.homePouce();
@@ -629,7 +634,7 @@ class App {
       : this.race?.player.finished ? 'completed' : 'abandoned');
     const race = this.race, ctx = this.raceCtx || {};
     this.state = 'results';
-    this.audio.idle();
+    this.audio.idle({ laisserFinirCommentaire: true });
     this.spectator?.close();
     if (ctx.spectator) { this.ui.resultsScreen(race, ctx); return; }
     const save = this.save;
@@ -721,6 +726,7 @@ class App {
     if (!this.race) return;
     const race = this.race;
     if (this.state === 'race' || this.state === 'paused' && this.raceCtx?.online) {
+      const dejaAbandonne = race.player.abandon;
       const net = this.net, online = net && net.state === 'playing';
       /* La barrière de chargement, tenue pendant le décompte.
 
@@ -782,6 +788,7 @@ class App {
         if (quiet > 2) this.ui.flash = { text: this.ui.t('netLost'), until: performance.now() + 600, color: '#ffb4a2' };
       }
       this._handleEvents(race);
+      if (!dejaAbandonne && race.player.abandon) this.audio.joueAbandon(race.player.grosChocFatal);
       this.analytics.observe(race, elapsed, !document.hidden, this.desktop ? this.controls.mode : 'touch');
       if (this.spectator) this.spectator.update(dt);
       else this.renderer.updateCamera(race, dt);

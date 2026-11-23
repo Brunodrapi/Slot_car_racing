@@ -1,0 +1,741 @@
+## Le tableau de bord de la course, d'après js/render.js (_drawHUD, _drawSlider,
+## _drawDesktopThrottle) : la position, les chronos, le tour, le classement autour du joueur, la
+## minicarte, le levier de ligne, la vitesse et ses dix segments, le GRIP, les feux de départ.
+class_name Hud
+extends Control
+
+var jeu
+var course: Course
+var mm := {}                      # la minicarte : points, échelle, origine, taille
+var go := -1.0                    # le « GO ! » qui s'efface
+var flash := ""
+var flashCouleur := Color.WHITE
+var flashJusqua := 0.0
+var pommeau := NAN
+var _bordRouge: GradientTexture2D
+var tactile := false
+# La pastille du pouce (js/render.js, pouce) : elle vient sous le doigt qui accélère.
+var pouce := { cx = 0.0, cy = 0.0, r = 46.0 }
+var pouceAncre := false
+var poucePress := 0.0
+const PASTEL := [Color8(158, 203, 240), Color8(166, 223, 166), Color8(240, 224, 154), Color8(200, 168, 234), Color8(242, 163, 163)]
+var consigne := -1                # le mot du guide : gaz, dose, lâche (-1 : pas de guide)
+const P := 14.0                   # la marge (this.pad)
+const VIF := [Color8(94, 196, 255), Color8(82, 230, 168), Color8(255, 214, 74), Color8(190, 140, 255), Color8(255, 96, 96)]
+const C_JAUNE := Color8(255, 212, 0)
+const C_BLEU := Color8(80, 200, 255)
+const C_IDEALE := Color8(245, 246, 250)
+
+
+func _ready() -> void:
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tactile = Style.tactile()
+	resized.connect(homePouce)
+	get_viewport().size_changed.connect(_cadre)
+	_cadre()
+
+
+## La taille du tableau de bord : l'écran entier, agrandi au doigt (Style.echelleTactile).
+func _cadre() -> void:
+	var vp := get_viewport_rect().size
+	var k := Style.echelleTactile(vp) if tactile else 1.0
+	set_anchors_preset(Control.PRESET_TOP_LEFT)
+	position = Vector2.ZERO
+	scale = Vector2(k, k)
+	size = vp / k
+
+
+func nouvelleCourse(c: Course) -> void:
+	course = c
+	homePouce.call_deferred()
+	go = -1.0
+	flash = ""
+	var T := c.track
+	var minX := INF
+	var minY := INF
+	var maxX := -INF
+	var maxY := -INF
+	for i in T.n:
+		minX = minf(minX, T.xs[i]); maxX = maxf(maxX, T.xs[i]); minY = minf(minY, T.ys[i]); maxY = maxf(maxY, T.ys[i])
+	mm = { minX = minX, minY = minY, w = maxX - minX, h = maxY - minY }
+
+
+func evenements(evts: Array) -> void:
+	for e in evts:
+		if e.type == "go": go = 1.2
+		elif e.type == "lap" and e.car == course.player and course.mode == "race" and course.player.lap == course.laps - 1:
+			annonce(Textes.t("lastLap"), Style.LIGNE_JAUNE)
+
+
+func annonce(t: String, c: Color) -> void:
+	flash = t
+	flashCouleur = c
+	flashJusqua = Time.get_ticks_msec() / 1000.0 + 2.5
+
+
+# ---------- la géométrie (js/render.js, _layoutHud) ----------
+func _droite() -> bool:
+	return App.reglages.cote == "right"
+
+
+## Téléphone ou écran étroit : les tailles serrées du jeu web (render.js, `mobile`).
+func _mobile() -> bool:
+	return tactile or size.x < 700
+
+
+## Paysage écrasé d'un téléphone (render.js, shortLandscape) : carte et levier plus courts.
+func _paysageCourt() -> bool:
+	return size.y < 560 and size.x > size.y
+
+
+func _levier() -> Dictionary:
+	var H := size.y
+	var len := clampf(H * (0.14 if _paysageCourt() else 0.19), 64, 160)
+	return { x = size.x - P - 22 if _droite() else P + 22, y = H - P - 30 - len, len = len }
+
+
+## Le rayon de la pastille et sa place de repos : au milieu du bas en portrait, du côté opposé au
+## levier en paysage (render.js, pouceHome).
+func _pouceRepos() -> Dictionary:
+	var W := size.x
+	var H := size.y
+	var r := clampf(minf(W * 0.12, H * 0.08), 32, 60)
+	var cx := W / 2
+	if W > H: cx = P + r + 22 if _droite() else W - P - r - 22
+	return { cx = cx, cy = H - P - r, r = r }
+
+
+func homePouce() -> void:
+	pouce = _pouceRepos()
+	pouceAncre = false
+
+
+## La pastille vient sous le pouce, et reste entière à l'écran (render.js, anchorPouce) : jamais
+## sur la colonne du levier, et assez bas pour que la vitesse tienne au-dessus.
+func anchorPouce(p: Vector2) -> void:
+	var r: float = _pouceRepos().r
+	var m := 8.0
+	var sl := _levier()
+	var lo: float = r + m if _droite() else sl.x + 30 + r
+	var hi: float = sl.x - 30 - r if _droite() else size.x - r - m
+	pouce = { cx = clampf(p.x, lo, hi) if hi > lo else hi, cy = clampf(p.y, r + 42 + m, size.y - r - m), r = r }
+	pouceAncre = true
+
+
+## Le bouton pause a la hauteur de l'étiquette de position, sa voisine de ligne (render.js,
+## pauseH) ; le doigt garde son carré de 44 px.
+func _pause() -> Rect2:
+	var c := 36.0 if _mobile() else 44.0
+	return Rect2(size.x - P - 2 - c, P + 2, c, c)
+
+
+func toucheePause(p: Vector2) -> bool:
+	return Rect2(size.x - P - 2 - 44, P + 2, 44, 44).grow(6).has_point(p)
+
+
+func dansLevier(p: Vector2) -> bool:
+	return (p.x > size.x * 0.58 if _droite() else p.x < size.x * 0.42) and p.y > size.y * 0.35
+
+
+func levierVers(p: Vector2) -> float:
+	var s := _levier()
+	# la coche des stands vit SOUS le rail : un doigt qui descend plus bas demande les stands
+	if course and course.standOuvert() and p.y > s.y + s.len + 8: return -2.0
+	return clampf((s.y + s.len / 2 - p.y) / (s.len / 2), -1, 1)
+
+
+## Les cadrans au-dessus du levier (render.js, jauges) : ici la tôle seule.
+func _jauges() -> Dictionary:
+	var s := _levier()
+	var rj := 14.0 if _paysageCourt() else (19.0 if _mobile() else 22.0)
+	if _paysageCourt():
+		return { r = rj, x = s.x + (-85.0 if _droite() else 85.0), y2 = size.y - P - 42 }
+	return { r = rj, x = s.x, y2 = s.y - 26 - rj - 10 }
+
+
+## Le cadran de tôle : combien il reste de voiture, vert puis orange puis rouge ; au stand, le
+## temps de réparation qui reste au-dessus (render.js).
+## LA TOUCHE ESPACE DU DÉPART (js/render.js, _toucheEspace) : beige, verte quand on appuie, et alors
+## un V dans un rond à sa droite. Au repos, elle respire, pour inviter à appuyer.
+var toucheEspaceVue := false              # ce que la touche montre (les essais le lisent)
+
+
+func _toucheEspace(c: Vector2, appuie: bool) -> void:
+	toucheEspaceVue = appuie
+	var k := 1.0 if appuie else 1.0 + 0.045 * sin(Time.get_ticks_msec() / 1000.0 * 5)
+	var w := 150.0 * k
+	var h := 34.0 * k
+	var r := Rect2(c - Vector2(w, h) / 2, Vector2(w, h))
+	var sb := StyleBoxFlat.new()
+	sb.set_corner_radius_all(roundi(7 * k))
+	sb.bg_color = Color(0, 0, 0, 0.35)
+	draw_style_box(sb, Rect2(r.position + Vector2(2, 3), r.size))
+	sb.bg_color = Color("#5fdc7f") if appuie else Color("#fbf1dc")
+	sb.border_color = Color("#171c19")
+	sb.set_border_width_all(3)
+	draw_style_box(sb, r)
+	Style.texte(self, Textes.t("padSpace").to_upper(), Vector2(r.position.x, c.y + 6 * k), roundi(16 * k), Color("#171c19"), HORIZONTAL_ALIGNMENT_CENTER, w)
+	if appuie:
+		var o := c + Vector2(w / 2 + 26, 0)
+		draw_circle(o, 15, Color("#5fdc7f"))
+		draw_arc(o, 15, 0, TAU, 32, Color("#171c19"), 2.5, true)
+		draw_polyline(PackedVector2Array([o + Vector2(-7, 0), o + Vector2(-2, 5.5), o + Vector2(7.5, -6)]), Color("#171c19"), 3.5, true)
+
+
+## LE LEVIER DE FREINAGE, en mode réglage seulement (render.js, reglageZone) : horizontal, en haut, sous la
+## minicarte ; le repère blanc du réglage d'origine ; jaune sous 1, bleu au-dessus ; « FREINAGE ×1,00 ».
+var zoneFrein := Rect2()
+
+
+func _leverFreinDessin(mmBas: float) -> void:
+	if not course.reglage:
+		zoneFrein = Rect2()
+		return
+	var mobile := _mobile()
+	var f := clampf(course.frein, ReglageFrein.MIN, ReglageFrein.MAX)
+	var u := (f - ReglageFrein.MIN) / (ReglageFrein.MAX - ReglageFrein.MIN)
+	var wR := minf(size.x - 2 * P - 8, 300.0 if mobile else 420.0)
+	var hR := 16.0 if mobile else 18.0
+	var xR := roundf((size.x - wR) / 2)
+	var yR := mmBas + (16.0 if mobile else 20.0)
+	zoneFrein = Rect2(xR, yR - 14, wR, hR + 28)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(10 / 255.0, 12 / 255.0, 20 / 255.0, 0.7)
+	sb.set_corner_radius_all(10)
+	draw_style_box(sb, Rect2(xR - 10, yR - 14, wR + 20, hR + 30))
+	sb.bg_color = Color(1, 1, 1, 0.16)
+	sb.set_corner_radius_all(roundi(hR / 2))
+	draw_style_box(sb, Rect2(xR, yR, wR, hR))
+	var xD := xR + wR * (1 - ReglageFrein.MIN) / (ReglageFrein.MAX - ReglageFrein.MIN)
+	draw_rect(Rect2(roundf(xD) - 1, yR - 4, 2, hR + 8), Color(1, 1, 1, 0.45))
+	sb.bg_color = Color("#f0e09a") if f < 1 else Color("#9ecbf0")
+	draw_style_box(sb, Rect2(xR, yR, maxf(hR, wR * u), hR))
+	var k := Vector2(xR + wR * u, yR + hR / 2)
+	draw_circle(k, hR * 0.78, Color("#f5f6fa"))
+	draw_arc(k, hR * 0.78, 0, TAU, 24, Color(12 / 255.0, 14 / 255.0, 22 / 255.0, 0.85), 2, true)
+	Style.texte(self, Textes.t("freinage") + "  ×" + ("%.2f" % f).replace(".", "," if Textes.langue() == "fr" else "."),
+		Vector2(xR, yR + hR + 17), 12 if mobile else 13, Color("#e8e8ec"), HORIZONTAL_ALIGNMENT_CENTER, wR)
+
+
+## Le freinage demandé par un appui sur le levier, ou null hors de lui (render.js, reglageValeurAt) ;
+## `tenu` : le doigt le tient déjà, il peut déborder.
+func freinVers(p: Vector2, tenu := false):
+	if zoneFrein.size.x <= 0: return null
+	if not tenu and not zoneFrein.grow_individual(14, 0, 14, 0).has_point(p): return null
+	var u := clampf((p.x - zoneFrein.position.x) / maxf(1, zoneFrein.size.x), 0, 1)
+	return roundf((ReglageFrein.MIN + u * (ReglageFrein.MAX - ReglageFrein.MIN)) * 100) / 100
+
+
+func _jaugeTole(p: Voiture) -> void:
+	var J := _jauges()
+	var r: float = J.r
+	var c := Vector2(J.x, J.y2)
+	Style.biseau(self, Rect2(c.x - r - 7, c.y - r - 8, (r + 7) * 2, r * 2.2 + 16), Style.PAPIER, 0)
+	var f := clampf(1 - p.damage, 0, 1)
+	var A0 := PI * 0.75
+	var SPAN := PI * 1.5
+	draw_arc(c, r * 0.78, A0, A0 + SPAN, 32, Color("#cec4ad"), r * 0.30, true)
+	var col := Color("#39864c") if f > 0.5 else (Color("#a36b08") if f > 0.22 else Color("#bd2d22"))
+	if f > 0.001: draw_arc(c, r * 0.78, A0, A0 + SPAN * f, 32, col, r * 0.30, true)
+	# la carrosserie, vue de dessus, capot en haut, avec son pare-brise
+	var k := r / 15
+	var o := c + Vector2(0, -r * 0.04)
+	draw_rect(Rect2(o + Vector2(-3.6, -5.2) * k, Vector2(7.2, 10.4) * k), Color("#364333"))
+	draw_rect(Rect2(o + Vector2(-2.3, -2.6) * k, Vector2(4.6, 3.2) * k), Color(20 / 255.0, 24 / 255.0, 34 / 255.0, 0.85))
+	Style.texte(self, str(roundi(f * 100)), Vector2(c.x - r, c.y + r * 0.72 + r * 0.24), roundi(r * 0.66), Color("#242b25"), HORIZONTAL_ALIGNMENT_CENTER, r * 2)
+	if p.pitState == "arret" and p.pitT > 0:
+		var taille := roundi(r * 0.8)
+		var txt := "%.1f s" % p.pitT
+		var lw := Style.largeur(txt, taille) + 12
+		var yb := c.y - r - 12 - taille
+		Style.biseau(self, Rect2(c.x - lw / 2, yb - 3, lw, taille + 6), Style.PAPIER, 0)
+		Style.texte(self, txt, Vector2(c.x - lw / 2, yb + taille * 0.85), taille, Color("#242b25"), HORIZONTAL_ALIGNMENT_CENTER, lw)
+
+
+func _mmPoint(x: float, y: float, taille: float) -> Vector2:
+	var sc: float = (taille - 20) / maxf(mm.w, mm.h)
+	var ox: float = 10 + ((taille - 20) - mm.w * sc) / 2
+	var oy: float = 10 + ((taille - 20) - mm.h * sc) / 2
+	return Vector2(ox + (x - mm.minX) * sc, oy + (y - mm.minY) * sc)
+
+
+# ---------- le dessin ----------
+func _draw() -> void:
+	if course == null: return
+	var p := course.player
+	var W := size.x
+	var H := size.y
+	var tt := course.mode == "timetrial"
+	var pos := course.positionOf(p)
+	var n := course.cars.size()
+	var y0 := P + 2
+	var xs := P + 2
+	var xe := W - P - 2
+	var mobile := _mobile()
+	var wPos := 90.0 if mobile else 120.0
+	var headH := 36.0 if mobile else 44.0
+	var pb := _pause()
+	# La position
+	Style.biseau(self, Rect2(xs, y0, wPos, headH), Style.PAPIER)
+	var fPos := 24 if mobile else 32
+	Style.texte(self, "TT" if tt and not course.entrainement else "P %d/%d" % [pos, n], Vector2(xs + 10, y0 + headH / 2 + fPos * 0.34), fPos, Style.ENCRE)
+	# Les chronos (la place du bouton pause comptée sur son carré de 44 px, comme render.js pb.s)
+	var pw := minf(172.0 if mobile else 230.0, maxf(110, xe - xs - wPos - 44 - 20))
+	var px := clampf((W - pw) / 2, xs + wPos + 8, xe - 44 - pw - 8)
+	var ph := 27.0 if mobile else 32.0
+	var nul := p.lapSale
+	var drapeaux := []
+	if course.state != "countdown":
+		var d := course.drapeauDe(p)
+		if d != "": drapeaux.append(d)
+		elif course.zones.size(): drapeaux.append("yellow")
+		if course.chequered: drapeaux.append("chequered")
+	var enTour := 0.0 if course.state == "countdown" else course.time - p.lapStart
+	_chrono(px, y0, pw, ph, Textes.t(course.phase) if course.dureeSession > 0 else (Textes.t("lapVoid") if nul else Textes.t("lap")), Style.temps(maxf(0, course.dureeSession - course.time)) if course.dureeSession > 0 else Style.temps(enTour), true, drapeaux, nul, mobile)
+	_chrono(px, y0 + ph + 4, pw, ph, Textes.t("best"), Style.temps(p.bestLap), false, [], false, mobile)
+	# Le bouton de pause
+	draw_rect(pb, Style.NUIT)
+	var bh := roundf(pb.size.y * 0.46)
+	var bw := maxf(4, roundf(pb.size.y * 0.13))
+	var ec := roundf(pb.size.y * 0.1)
+	var cx := pb.get_center().x
+	draw_rect(Rect2(cx - ec - bw, pb.position.y + (pb.size.y - bh) / 2, bw, bh), Color("#fff0d4"))
+	draw_rect(Rect2(cx + ec, pb.position.y + (pb.size.y - bh) / 2, bw, bh), Color("#fff0d4"))
+	# Le tour
+	var lapW := 108.0 if mobile else 150.0
+	var lapH := 34.0 if mobile else 46.0
+	var lapY := maxf(y0 + headH + 6, y0 + ph * 2 + 12) if px + pw > xe - lapW - 4 else y0 + headH + 6
+	Style.biseau(self, Rect2(xe - lapW, lapY, lapW, lapH), Style.PAPIER)
+	var num := str(p.lap + 1 if tt or course.dureeSession > 0 else mini(course.laps, p.lap + 1))
+	var tot := "" if tt or course.dureeSession > 0 else "/%d" % course.laps
+	var fGrand := 30 if mobile else 40
+	var fMoyen := 19 if mobile else 25
+	var fPetit := 15 if mobile else 19
+	var wl := Style.largeur(Textes.t("lap"), fPetit)
+	var wn := Style.largeur(num, fGrand)
+	var wt := Style.largeur(tot, fMoyen)
+	var x := xe - lapW + maxf(8, (lapW - (wl + 6 + wn + 2 + wt)) / 2)
+	var base := lapY + lapH * 0.82
+	Style.texte(self, Textes.t("lap"), Vector2(x, base), fPetit, Style.ENCRE); x += wl + 6
+	Style.texte(self, num, Vector2(x, base + (1 if mobile else 2)), fGrand, Style.ENCRE); x += wn + 2
+	if tot != "": Style.texte(self, tot, Vector2(x, base), fMoyen, Style.ENCRE)
+	# La carte, sous la position : son origine sert aussi au classement du téléphone (render.js, mmY, mmBas)
+	var taille := 76.0 if _paysageCourt() else minf(180, maxf(110, W * 0.18))
+	var mo := Vector2(P + 2, P + (46 if mobile else 56))
+	var mmBas := mo.y + taille
+	_leverFreinDessin(mmBas)
+	# Le classement autour du joueur
+	if not tt or (course.entrainement and course.state != "countdown"):
+		var ordre := course.standings()
+		var i0 := ordre.find(p)
+		# Au téléphone : deux lignes (celui de devant et soi), à gauche sous la carte, toutes sombres
+		var debut := maxi(0, i0 - 1) if mobile else maxi(0, mini(i0 - 1, ordre.size() - 3))
+		var lignes := 2 if mobile else 3
+		var rowH := 26.0 if mobile else 32.0
+		var bwid := 180.0 if mobile else 250.0
+		var bx := P + 2 if tactile else W - P - bwid
+		var by := mmBas + 4 if tactile else maxf(P + 100, lapY + lapH + 8)
+		var fCl := 15 if mobile else 18
+		for k in range(debut, mini(debut + lignes, ordre.size())):
+			var c: Voiture = ordre[k]
+			var yy := by + (k - debut) * rowH
+			var moi := c == p
+			var clair := moi and not mobile
+			Style.biseau(self, Rect2(bx, yy, bwid, rowH - 2), Style.PAPIER if clair else Color("#171b19df"))
+			var couleur := Color("#fff8e6aa") if c.fantome else Color(Catalogue.donnees.livreries[c.livery].body)
+			draw_rect(Rect2(bx + 10, yy + (rowH - 12) / 2, 10, 10), couleur)
+			draw_rect(Rect2(bx + 10, yy + (rowH - 12) / 2, 10, 10), Color("#394137"), false, 1)
+			var ink := Style.ENCRE if clair else Style.PAPIER
+			var bas := yy + rowH / 2 + fCl * 0.36
+			Style.texte(self, "%d  %s" % [k + 1, str(c.nom).to_upper()], Vector2(bx + 26, bas), fCl, ink, HORIZONTAL_ALIGNMENT_LEFT, 92 if mobile else 140)
+			var ecart := Textes.t("you")
+			if c.fantome:
+				var e := course.ecartFantome()
+				ecart = "%s%s s" % ["+" if e >= 0 else "−", _fmtEcart(absf(e))]
+			elif not moi:
+				var dist := absf(c.progress() - p.progress())
+				var allure := p.bestLap if p.bestLap > 0 else c.bestLap
+				var signe := "+" if c.progress() >= p.progress() else "−"
+				ecart = "%s%.1f s" % [signe, dist / course.track.length * allure] if allure > 0 else "%s%d m" % [signe, roundi(dist)]
+			var lE := 60.0 if mobile else 80.0
+			Style.texte(self, ecart, Vector2(bx + bwid - 14 - lE, bas), fCl, ink, HORIZONTAL_ALIGNMENT_RIGHT, lE)
+	# La minicarte
+	var pts := PackedVector2Array()
+	var T := course.track
+	for i in range(0, T.n, 6): pts.append(mo + _mmPoint(T.xs[i], T.ys[i], taille))
+	pts.append(pts[0])
+	draw_polyline(pts, Color(0, 0, 0, 0.55), 7, true)
+	draw_polyline(pts, Color("#fff8e6"), 3.5, true)
+	for c in course.cars:
+		var q := mo + _mmPoint(c.x, c.y, taille)
+		if c == p: continue
+		# La nuit, la carte ne montre que les voitures qu'on voit (NightLighting.canSee).
+		if jeu.nuit and not jeu.nuit.voit(Vector2(c.x, c.y), Vector2(p.x, p.y)): continue
+		draw_circle(q, 6, Color("#fff8e6bf") if c.fantome else Color(Catalogue.donnees.livreries[c.livery].body))
+	draw_circle(mo + _mmPoint(p.x, p.y, taille), 9, Color("#7fd4ff"))
+	# Le levier, la vitesse
+	_levierDessin(p)
+	# la jauge de tôle, quand les dégâts coûtent (render.js, toleSeule)
+	if not course.degats.is_empty(): _jaugeTole(p)
+	# Au doigt, pas de tableau de bord du PC : la vitesse est au-dessus de la pastille du pouce.
+	if tactile: _pouce(p)
+	else:
+		_vitesse(p)
+		if consigne >= 0 and course.state != "countdown": _consigne()
+	# Le départ
+	if course.state == "countdown":
+		var cnt := course.countdown
+		var feux := 0 if cnt > 3.2 else (1 if cnt > 2.4 else (2 if cnt > 1.6 else (3 if cnt > 0.8 else 4)))
+		var ccx := W / 2
+		var ccy := H * 0.22
+		Style.biseau(self, Rect2(ccx - 120, ccy - 30, 240, 60), Style.NUIT)
+		for k in 4:
+			draw_circle(Vector2(ccx - 75 + k * 50, ccy), 16, Color("#ff3b3b") if k < feux else Color(1, 1, 1, 0.15))
+		# Au clavier, plus de consignes écrites (js/render.js, _toucheEspace) : la touche ESPACE, beige,
+		# verte avec un V dans un rond quand on la tient. Au doigt, les consignes restent.
+		if tactile:
+			Style.texte(self, Textes.t("holdToGoTouch"), Vector2(0, ccy + 58), 24, Color.WHITE, HORIZONTAL_ALIGNMENT_CENTER, W)
+			Style.texte(self, Textes.t("lineHintTouch"), Vector2(0, ccy + 84), 16, Color("#cfd3dc"), HORIZONTAL_ALIGNMENT_CENTER, W)
+		else:
+			_toucheEspace(Vector2(ccx, ccy + 58), Input.is_action_pressed("gaz"))
+	elif go > 0:
+		Style.texte(self, Textes.t("go"), Vector2(0, H * 0.18 + 60), 80, Color(Color("#5be07a"), go / 1.2), HORIZONTAL_ALIGNMENT_CENTER, W)
+		go -= get_process_delta_time()
+	# l'abandon a son propre écran : plus de « sortie de piste, moteur coupé », qui promettrait de repartir
+	if p.herbe and not p.abandon:
+		Style.texte(self, Textes.t("offTrack"), Vector2(0, H * 0.3 + 30), 36, Color("#ff6b6b"), HORIZONTAL_ALIGNMENT_CENTER, W)
+		if p.engineStopped: Style.texte(self, Textes.t("engineCut"), Vector2(0, H * 0.3 + 60), 24, Color("#ffcf5c"), HORIZONTAL_ALIGNMENT_CENTER, W)
+	if p.finished and course.state != "finished":
+		Style.texte(self, Textes.t("finished", pos), Vector2(0, H * 0.3 + 40), 52, Color("#ffd400"), HORIZONTAL_ALIGNMENT_CENTER, W)
+	if flash != "" and Time.get_ticks_msec() / 1000.0 < flashJusqua:
+		Style.texte(self, flash, Vector2(0, maxf(H * 0.12, 120) + 30), 32, flashCouleur, HORIZONTAL_ALIGNMENT_CENTER, W)
+	# La mesure de fluidité, discrète, sous la minicarte
+	var appels := Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+	var mesure1 := "%d i/s · pire image %.1f ms" % [Engine.get_frames_per_second(), jeu.pireImage * 1000]
+	var mesure2 := "course %.2f ms/pas (%s) · %d appels" % [jeu.coutPas / 1000.0, "C++" if course is CourseNative else "GDScript", appels]
+	var gris := Color(1, 1, 1, 0.55)
+	if tactile:
+		# Au doigt, la colonne de gauche est pleine (carte, classement, levier) : la mesure se range à
+		# droite de la carte, sous le compteur de tours, sur deux lignes.
+		var mx := mo.x + taille + 8
+		Style.texte(self, mesure1, Vector2(mx, lapY + lapH + 14), 11, gris, HORIZONTAL_ALIGNMENT_LEFT, W - P - mx)
+		Style.texte(self, mesure2, Vector2(mx, lapY + lapH + 27), 11, gris, HORIZONTAL_ALIGNMENT_LEFT, W - P - mx)
+	else:
+		Style.texte(self, mesure1 + " · " + mesure2, Vector2(P + 2, mmBas + 18), 13, gris)
+	if course.mode == "race" and jeu.enLigne == null and not course.reglage and not p.abandon:
+		_radar()
+	# par-dessus tout le reste, comme le WASTED de GTA
+	if p.abandon and course.state != "finished": _ecranAbandon(p)
+
+
+## Distance au bord visible en mètres ; position du repère dans les coordonnées du HUD.
+func _reperesRadar() -> Array[Dictionary]:
+	var reperes: Array[Dictionary] = []
+	var bords := [[], [], [], []] # gauche, droite, haut, bas
+	var mobile := _mobile()
+	var tailleMax := 24.0 if mobile else 32.0
+	var demiMarque := 9.0 if mobile else 11.0
+	var marge := Vector2.ONE * (ceilf(tailleMax * 0.58) + 2)
+	var fin := size - marge
+	if fin.x <= marge.x or fin.y <= marge.y: return reperes
+	var versHud := get_global_transform_with_canvas().affine_inverse()
+	var p := course.player
+	var joueur: VoitureVue = jeu.vues[course.cars.find(p)]
+	var origine := (versHud * joueur.get_global_transform_with_canvas().origin).clamp(marge, fin)
+	var devant: Voiture = null
+	var derriere: Voiture = null
+	var distanceAvant := INF
+	var distanceArriere := INF
+	for c in course.cars:
+		if c == p or c.abandon or c.finished or c.inPit or c.fantome: continue
+		var ecart := course.track.diff(p.s, c.s)
+		if ecart > 0 and ecart < distanceAvant:
+			devant = c
+			distanceAvant = ecart
+		if ecart < 0 and -ecart < distanceArriere:
+			derriere = c
+			distanceArriere = -ecart
+	for c: Voiture in [devant, derriere]:
+		if c == null: continue
+		var vue: VoitureVue = jeu.vues[course.cars.find(c)]
+		var pose := versHud * vue.get_global_transform_with_canvas()
+		var demi := Vector2(vue.cotes.w, vue.cotes.h) / 2 + Vector2.ONE * 0.7
+		var caisse := pose * Rect2(-demi, 2 * demi)
+		var hors := Vector2.ZERO.max(-caisse.end).max(caisse.position - size)
+		var metres := hors.length() / pose.x.length()
+		if metres <= 0 or metres >= 35: continue
+		var dir := pose.origin - origine
+		var tx := ((marge.x if dir.x < 0 else fin.x) - origine.x) / dir.x if dir.x != 0 else INF
+		var ty := ((marge.y if dir.y < 0 else fin.y) - origine.y) / dir.y if dir.y != 0 else INF
+		var bord := (0 if dir.x < 0 else 1) if tx < ty else (2 if dir.y < 0 else 3)
+		var impact := origine + minf(tx, ty) * dir
+		var longueur := lerpf(tailleMax, 12.0 if mobile else 14.0, metres / 35)
+		bords[bord].append({voiture = c, cible = pose.origin, taille = longueur, leLong = impact.y if bord < 2 else impact.x})
+	# La flèche et le signe partagent une place sur le bord ; un seul avertissement pour la voiture qui précède.
+	var alerte := false
+	if devant != null and not p.inPit and not p.finished and course.state in ["racing", "finishing"]:
+		alerte = devant.braking or _vitesseSurPiste(p) - _vitesseSurPiste(devant) > 0.5
+	for bord in bords.size():
+		var groupe: Array = bords[bord]
+		if groupe.is_empty(): continue
+		var vertical := bord < 2
+		var debut := marge.y if vertical else marge.x * 2
+		var limite := fin.y if vertical else fin.x - marge.x
+		var somme := 0.0
+		for m in groupe:
+			m.alerte = alerte and m.voiture == devant
+			m.rayon = m.taille * 0.45 + 2 * demiMarque + 5 if m.alerte else m.taille * 0.58 + 2
+			somme += 2 * m.rayon
+		var espacement := clampf((limite - debut) / somme, 0, 1)
+		groupe.sort_custom(func(a, b): return a.leLong < b.leLong)
+		var curseur := debut
+		for m in groupe:
+			m.rayon *= espacement
+			m.leLong = maxf(m.leLong, curseur + m.rayon)
+			curseur = m.leLong + m.rayon
+		curseur = limite
+		for i in range(groupe.size() - 1, -1, -1):
+			var m: Dictionary = groupe[i]
+			var u := maxf(debut, minf(m.leLong, curseur - m.rayon))
+			curseur = u - m.rayon
+			m.centre = Vector2(marge.x if bord == 0 else fin.x, u) if vertical else Vector2(u, marge.y if bord == 2 else fin.y)
+			reperes.append(m)
+	return reperes
+
+
+func _vitesseSurPiste(c: Voiture) -> float:
+	var angle := c.th - course.track.headingAt(c.s)
+	return c.v * cos(angle) + c.vl * sin(angle)
+
+
+func _radar() -> void:
+	for m in _reperesRadar():
+		var centre: Vector2 = m.centre
+		var taille: float = m.taille
+		var dir := centre.direction_to(m.cible)
+		var base := centre - dir * (0.45 * taille)
+		var cote := dir.orthogonal() * (0.34 * taille)
+		var triangle := PackedVector2Array([centre + dir * (0.55 * taille), base + cote, base - cote])
+		draw_colored_polygon(triangle, Color(Catalogue.donnees.livreries[m.voiture.livery].body))
+		triangle.append(triangle[0])
+		draw_polyline(triangle, Color("#20251f"), 2, true)
+		if m.alerte:
+			var h := 9.0 if _mobile() else 11.0
+			var o := base - dir * (3 + h)
+			var rouge := Color("#ff3939")
+			draw_colored_polygon(PackedVector2Array([o + Vector2(-0.31, -1) * h, o + Vector2(0.31, -1) * h,
+				o + Vector2(0.23, 0.30) * h, o + Vector2(-0.23, 0.30) * h]), rouge)
+			draw_rect(Rect2(o + Vector2(-0.25, 0.52) * h, Vector2(0.5, 0.48) * h), rouge)
+
+
+## L'ABANDON, FAÇON « WASTED » DE GTA (render.js, _ecranAbandon) : un voile rouge monte sur tout
+## l'écran, plus sombre sur les bords ; le mot tombe en grand avec un léger rebond, sur une bande
+## sombre, au-dessus de l'épave pour la laisser voir, avec « MOTEUR DÉTRUIT » dessous.
+func _ecranAbandon(p: Voiture) -> void:
+	var W := size.x
+	var H := size.y
+	var a := p.abandonT
+	var f := clampf((a - 0.45) / 0.7, 0, 1)
+	if f <= 0: return
+	draw_rect(Rect2(0, 0, W, H), Color(150 / 255.0, 14 / 255.0, 18 / 255.0, 0.34 * f))
+	if _bordRouge == null:
+		var g := Gradient.new()
+		g.offsets = PackedFloat32Array([0.0, 0.35, 1.0])
+		g.colors = PackedColorArray([Color(50 / 255.0, 0, 0, 0), Color(50 / 255.0, 0, 0, 0), Color(50 / 255.0, 0, 0, 1)])
+		_bordRouge = GradientTexture2D.new()
+		_bordRouge.gradient = g
+		_bordRouge.fill = GradientTexture2D.FILL_RADIAL
+		_bordRouge.fill_from = Vector2(0.5, 0.5)
+		_bordRouge.fill_to = Vector2(1.0, 0.5)
+	draw_texture_rect(_bordRouge, Rect2(W / 2 - Vector2(W, H).length() * 0.62, H / 2 - Vector2(W, H).length() * 0.62, Vector2(W, H).length() * 1.24, Vector2(W, H).length() * 1.24), false, Color(1, 1, 1, 0.5 * f))
+	var m := clampf((a - 0.75) / 0.35, 0, 1)
+	if m <= 0: return
+	var taille := roundi(minf(minf(W * 0.16, H * 0.17), 150))
+	var y := H * 0.22
+	draw_rect(Rect2(0, y - taille * 0.66, W, taille * 1.32), Color(0, 0, 0, 0.5 * m))
+	var rebond := 1 + 0.32 * (1 - m) * (1 - m)
+	draw_set_transform(Vector2(W / 2, y), 0, Vector2(rebond, rebond))
+	var mot := Textes.t("abandon")
+	var lw := Style.largeur(mot, taille)
+	var base := taille * 0.36
+	Style.racing().draw_string_outline(get_canvas_item(), Vector2(-lw / 2, base), mot, HORIZONTAL_ALIGNMENT_LEFT, -1, taille, maxi(3, roundi(taille * 0.08)), Color(16 / 255.0, 0, 0, 0.9 * m))
+	Style.texte(self, mot, Vector2(-lw / 2, base), taille, Color(Color("#e8352b"), m))
+	var t2 := roundi(taille * 0.24)
+	var sous := Textes.t("abandonSous")
+	Style.texte(self, sous, Vector2(-Style.largeur(sous, t2) / 2, taille * 0.86 + t2 * 0.36), t2, Color(Color("#fff0d2"), m))
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+
+
+static func _fmtEcart(s: float) -> String:
+	var d := roundf(s * 10) / 10
+	return "%.1f" % d if d < 10 else str(roundi(s))
+
+
+## Le mot du guide, au-dessus de la vitesse (js/render.js, _drawConsigne).
+func _consigne(x := NAN, y := NAN) -> void:
+	if is_nan(x):
+		var L := minf(420, size.x - 32)
+		var h0 := 86.0 + 6 + 38
+		x = (P if _droite() else size.x - P - L) + 80
+		y = size.y - P - h0 - 8
+	var mot: String = Textes.t(["guideGaz", "guideDose", "guideLeve"][consigne])
+	var fond: Color = [Color("#12a35c"), Color("#171b19e6"), Color("#e0261c")][consigne]
+	var taille := 20
+	var h := taille + 10.0
+	var w := maxf(92, Style.largeur(mot, taille) + 26)
+	Style.biseau(self, Rect2(x - w / 2, y - h, w, h), fond)
+	if consigne == Course.GUIDE_DOSE:
+		var xx := x - w / 2 + 8
+		while xx < x + w / 2 - 8:
+			draw_line(Vector2(xx, y - 3), Vector2(minf(xx + 6, x + w / 2 - 8), y - 3), Color("#ff5a4a"), 2)
+			xx += 11
+	Style.texte(self, mot, Vector2(x - w / 2, y - h / 2 + 7), taille, Color("#ffb4a8") if consigne == Course.GUIDE_DOSE else Color("#fff8ea"), HORIZONTAL_ALIGNMENT_CENTER, w)
+
+
+func _chrono(x: float, y: float, w: float, h: float, label: String, valeur: String, sombre: bool, drapeaux: Array, nul: bool, mobile := false) -> void:
+	Style.biseau(self, Rect2(x, y, w, h), Style.NUIT if sombre else Style.PAPIER)
+	var t := 10.0 if drapeaux.size() > 1 else 12.0
+	for i in drapeaux.size():
+		_drapeau(drapeaux[i], Vector2(x + 8 + i * (t + 3), y + (h - t) / 2), t)
+	var ink := (Color("#ffb59c") if nul else Color("#fff0d4")) if sombre else Color("#33372e")
+	var lw := drapeaux.size() * (t + 3)
+	var fL := 13 if mobile else 16
+	var fV := 19 if mobile else 24
+	if w - 24 - Style.largeur(valeur, fV) - lw > 36:
+		Style.texte(self, label, Vector2(x + 11 + lw, y + h / 2 + fL * 0.37), fL, Color("#f6eacf") if sombre else Color("#34392f"))
+	Style.texte(self, valeur, Vector2(x, y + h / 2 + fV * 0.34), fV, ink, HORIZONTAL_ALIGNMENT_RIGHT, w - 12)
+
+
+func _drapeau(type: String, p: Vector2, s: float) -> void:
+	var c := Color("#3b82f6") if type == "blue" else (Color("#e9be37") if type == "yellow" else Color("#f5f3e8"))
+	draw_rect(Rect2(p, Vector2(s, s)), c)
+	if type == "penalty":
+		draw_colored_polygon(PackedVector2Array([p, p + Vector2(s, 0), p + Vector2(0, s)]), Color("#171a1d"))
+	elif type == "chequered":
+		var k := s / 4
+		for r in 4:
+			for q in 4:
+				if (r + q) % 2 == 0: draw_rect(Rect2(p + Vector2(q * k, r * k), Vector2(k, k)), Color("#171a1d"))
+	draw_rect(Rect2(p, Vector2(s, s)), Color(1, 1, 1, .85), false, 1)
+
+
+func _levierDessin(p: Voiture) -> void:
+	var s := _levier()
+	var crans := [[1.0, C_JAUNE, Textes.t("lineJaune")], [0.0, C_IDEALE, Textes.t("lineRace")], [-1.0, C_BLEU, Textes.t("lineBleu")]]
+	var cote := -1.0 if _droite() else 1.0
+	var lx: float = s.x + 19 * cote
+	var larg := maxf(maxf(Style.largeur(Textes.t("lineRace"), 15), Style.largeur(Textes.t("lineJaune"), 15)), Style.largeur(Textes.t("linePit"), 15))
+	# la coche des stands, sous le rail, quand elle sert (render.js, _drawSlider)
+	var ouvert := course.standOuvert()
+	var pitY: float = s.y + s.len + 22
+	var hFond: float = s.len + 52 + (22.0 if ouvert else 0.0)
+	var biseau := minf(9, hFond * .23)
+	var gauche: float = s.x - (19 + larg + 7) if _droite() else s.x - 22
+	Style.biseau(self, Rect2(gauche - biseau / 2, s.y - 26, 22 + 19 + larg + 7 + biseau, hFond), Color("#171b19da"))
+	var yCran := func(v: float) -> float: return s.y + s.len / 2 - v * s.len / 2
+	var bas: float = pitY if ouvert else yCran.call(-1.0)
+	draw_rect(Rect2(s.x - 3.5, yCran.call(1.0), 7, bas - yCran.call(1.0)), Color("#05070a"))
+	var actif := p.pitAsk or p.pitState != ""
+	var choisi := -2 if actif and ouvert else roundi(clampf(p.sel, -1, 1))
+	for c in crans:
+		var y: float = yCran.call(c[0])
+		draw_circle(Vector2(s.x, y), 10, Color("#05070a"))
+		draw_arc(Vector2(s.x, y), 6.5, 0, TAU, 24, c[1], 3.0 if choisi == int(c[0]) else 2.0, true)
+		if _droite(): Style.texte(self, c[2], Vector2(lx - 80, y + 5), 15, Color.WHITE if choisi == int(c[0]) else Style.GRIS, HORIZONTAL_ALIGNMENT_RIGHT, 80)
+		else: Style.texte(self, c[2], Vector2(lx, y + 5), 15, Color.WHITE if choisi == int(c[0]) else Style.GRIS)
+	if ouvert:
+		draw_circle(Vector2(s.x, pitY), 10, Color("#05070a"))
+		draw_arc(Vector2(s.x, pitY), 6.5, 0, TAU, 24, Color("#5be07a") if actif else Color("#cfa14a"), 3.0 if choisi == -2 else 2.0, true)
+		var cp := Color("#5be07a") if actif else (Color.WHITE if choisi == -2 else Style.GRIS)
+		if _droite(): Style.texte(self, Textes.t("linePit"), Vector2(lx - 80, pitY + 5), 15, cp, HORIZONTAL_ALIGNMENT_RIGHT, 80)
+		else: Style.texte(self, Textes.t("linePit"), Vector2(lx, pitY + 5), 15, cp)
+	var cible: float = pitY if choisi == -2 else yCran.call(float(choisi))
+	if is_nan(pommeau): pommeau = cible
+	pommeau += (cible - pommeau) * (1 - exp(-get_process_delta_time() * 1000 / 30))
+	var rgb := Color8(91, 224, 122) if choisi == -2 else (C_JAUNE if choisi > 0 else (C_BLEU if choisi < 0 else C_IDEALE))
+	draw_circle(Vector2(s.x, pommeau), 13, rgb)
+	draw_arc(Vector2(s.x, pommeau), 13, 0, TAU, 32, Color(0.05, 0.05, 0.09, 0.85), 2, true)
+	# La position réelle de la voiture entre les lignes : un petit trait.
+	var ys: float = yCran.call(clampf(p.selS, -1, 1))
+	draw_line(Vector2(s.x - 16, ys), Vector2(s.x - 10, ys), Color(1, 1, 1, 0.6), 2)
+
+
+func _vitesse(p: Voiture) -> void:
+	var L := minf(420, size.x - 32)
+	var bloc := 150.0
+	var hBloc := 86.0
+	var hautB := 18.0
+	var basB := 66.0
+	var hGrip := 38.0
+	var h := hBloc + 6 + hGrip
+	var x := P if _droite() else size.x - P - L
+	var y := size.y - P - h
+	var fond := Color("#1b1f23e8")
+	var forme := PackedVector2Array([Vector2(x + 16, y), Vector2(x + bloc - 6, y), Vector2(x + bloc + 14, y + hautB), Vector2(x + L, y + hautB),
+		Vector2(x + L - 10, y + basB), Vector2(x + bloc + 58, y + basB), Vector2(x + bloc + 42, y + hBloc), Vector2(x, y + hBloc)])
+	draw_colored_polygon(forme, fond)
+	var ferme := forme.duplicate(); ferme.append(forme[0])
+	draw_polyline(ferme, Color(1, 1, 1, 0.12), 1.5, true)
+	var kmh := roundi(maxf(0, p.speed()) * 3.6)
+	var case3 := Style.largeur("888", 64)
+	# Aligné à droite à la main : une largeur donnée à draw_string COUPE le texte qui la dépasse,
+	# et « 262 » est plus large que « 888 » dans cette police — le compteur affichait « 26 ».
+	var t := str(kmh)
+	Style.texte(self, t, Vector2(x + 22 + case3 - Style.largeur(t, 64), y + 66), 64, Color.WHITE)
+	Style.texte(self, "km/h", Vector2(x + 26 + case3, y + hBloc - 8), 18, Color("#c8ced9"))
+	var N := 10
+	var x0 := x + bloc + 22
+	var x1 := x + L - 22
+	var sy := y + hautB + 9
+	var sh := basB - hautB - 18
+	var pas := (x1 - x0) / N
+	var sw := pas - 5
+	var penche := 6.0
+	var part := clampf(maxf(0, p.speed()) / maxf(1, p.cls.vmax), 0, 1) * N
+	var gazOn := p.throttle > 0
+	for i in N:
+		var sx := x0 + i * pas
+		var seg := PackedVector2Array([Vector2(sx + penche, sy), Vector2(sx + sw + penche, sy), Vector2(sx + sw, sy + sh), Vector2(sx, sy + sh)])
+		draw_colored_polygon(seg, Color("#383e44"))
+		var allume := clampf(part - i, 0, 1)
+		if allume <= 0: continue
+		var c := (Color("#62f0e6") if i == 0 else Color("#52e6a8")) if gazOn else Color("#ff6e5a")
+		c.a = 0.25 + 0.75 * allume
+		draw_colored_polygon(seg, c)
+	var x5 := clampf(p.ressenti, 0, 1) * 4
+	var k := mini(3, int(x5))
+	var cGrip: Color = VIF[k].lerp(VIF[k + 1], x5 - k)
+	var yG := y + hBloc + 6
+	var lG := 128.0
+	draw_colored_polygon(PackedVector2Array([Vector2(x + 12, yG), Vector2(x + lG, yG), Vector2(x + lG - 12, yG + hGrip), Vector2(x, yG + hGrip)]), fond)
+	draw_circle(Vector2(x + 30, yG + hGrip / 2), 13, Color(cGrip, 0.25))
+	draw_circle(Vector2(x + 30, yG + hGrip / 2), 9, cGrip)
+	Style.texte(self, "GRIP", Vector2(x + 50, yG + hGrip / 2 + 9), 25, cGrip)
+
+
+## L'accélérateur au doigt : un disque translucide, sans rien à lire (js/render.js, _drawPouce).
+## La pastille du pouce (render.js, _drawPouce) : un disque sombre cerclé de crème, l'état ressenti
+## en pastel dedans, l'appui qui la fait légèrement rentrer ; la vitesse juste au-dessus, qui suit
+## la main ; et la consigne du guide au-dessus de la vitesse.
+func _pouce(p: Voiture) -> void:
+	if not pouceAncre and pouce.r != _pouceRepos().r: homePouce()
+	var c := Vector2(pouce.cx, pouce.cy)
+	poucePress += ((1.0 if p.throttle > 0 else 0.0) - poucePress) * 0.25
+	var pr: float = pouce.r * (1 - 0.06 * poucePress)
+	draw_circle(c, pr, Color("#171b19d9"))
+	draw_arc(c, pr, 0, TAU, 64, Color("#f2e6ca"), 2, true)
+	var x5 := clampf(p.ressenti, 0, 1) * 4
+	var k := mini(3, int(x5))
+	var col: Color = PASTEL[k].lerp(PASTEL[k + 1], x5 - k)
+	col.a = 0.62 + 0.14 * poucePress
+	draw_circle(c, pr * 0.77, col)
+	var kmh := str(roundi(maxf(0, p.speed()) * 3.6))
+	var hT := 28.0                     # les mesures « téléphone » du jeu web
+	var yT := c.y - pr - 10
+	var wNum := Style.largeur(kmh, int(hT + 4))
+	var wU := Style.largeur("km/h", 15)
+	var x0 := c.x - (wNum + 4 + wU) / 2
+	Style.biseau(self, Rect2(x0 - 8, yT - hT - 4, wNum + 4 + wU + 16, hT + 10), Color("#171b19c9"))
+	Style.texte(self, kmh, Vector2(x0, yT), int(hT + 4), Color("#fff0d4"))
+	Style.texte(self, "km/h", Vector2(x0 + wNum + 4, yT), 15, Color("#f2e6ca"))
+	if consigne >= 0 and course.state != "countdown": _consigne(c.x, yT - hT - 10)

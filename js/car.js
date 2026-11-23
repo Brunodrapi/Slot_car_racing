@@ -62,6 +62,84 @@ const USURE = {
   vmax: 0.18,        // vitesse de pointe perdue sur une voiture au maximum des dommages
 };
 
+/* LES DÉGÂTS SANS L'USURE — essai de la branche claude/degats-visuels.
+
+L'usure reste éteinte (`USURE_ACTIVE`), et les dommages vivaient avec elle. Ici ils en sortent : un
+choc franc contre une voiture ou une protection cabosse la voiture À L'ÉCRAN (js/degats.js) et lui
+coûte de la pointe et de la reprise, avec les réglages de la tôle ci-dessus — même seuil, même coût
+par m/s. Jamais d'adhérence.
+
+LA PERTE DE VITESSE MONTE À 35 % au maximum des dommages, contre 18 % pour la tôle de l'usure :
+« la perte de vitesse peut être augmentée à 35 % » (Bruno), maintenant que les stands réparent.
+
+En COURSE seulement, comme l'usure : en contre-la-montre et à l'entraînement le choc se voit mais ne
+coûte rien, un record ne se signe pas sur une voiture que les tours précédents ont abîmée. Il n'y a
+pas de stand pour réparer : ce qui est cassé le reste jusqu'au drapeau. */
+const DEGATS_ACTIVE = true;
+const DEGATS = { chocSeuil: USURE.chocSeuil, chocParVitesse: USURE.chocParVitesse, vmax: 0.35 };
+const FLANC_SEUIL = 6;    // m/s de rapprochement latéral avant qu'un coup de flanc ne casse (voir resolveCollisions)
+/* L'ABANDON. « Les voitures ne vont pas être détruites, ce n'est pas Destruction Derby : il faut
+qu'elles soient assez résistantes. Par contre si une voiture fonce à 100 km/h droit dans un mur, elle
+n'a plus de capot, elle ne démarre plus et ça fait un DNF. » (Bruno)
+
+Ce qui compte est la vitesse qui RENTRE dans la protection (la composante normale), comme pour la
+coupure moteur : longer un rail à 200 km/h n'est pas foncer dedans.
+
+« Plein gaz dans une ligne droite, la voiture ne casse pas. » (Bruno) Les pneus amortissaient l'abandon
+comme la coupure (×0,55) : il fallait 180 km/h droit dans un mur de pneus, et une voiture sortie plein
+gaz au bout d'une ligne droite, qui y rentre à 150-180 km/h, repartait. Pour l'abandon, un mur de pneus
+ne retient plus qu'un cinquième du choc (ABANDON_PNEUS) : 125 km/h dedans, et c'est fini. Ils amortissent
+toujours la tôle et la coupure.
+
+« Quand la vie arrive à zéro, c'est aussi un abandon. » (Bruno) La zone la plus enfoncée à fond, contre un
+mur comme contre une voiture (`_enfonce`), et c'est l'écran ABANDON : un accrochage ne tue pas, une suite
+de coups, si. En course seulement, et pas en ligne pour cet essai (l'abandon devrait passer par le
+réseau). */
+const ABANDON_VITESSE = 100 / 3.6;   // m/s
+const ABANDON_PNEUS = 0.8;           // ce qu'un mur de pneus laisse passer du choc, pour l'abandon
+
+/* LES POINTS DE VIE SUIVENT LA ZONE LA PLUS ENFONCÉE (essai des dégâts).
+
+« Les dégâts doivent être proportionnels à l'enfoncement de la caisse : un petit coup à l'avant et un
+petit coup à l'arrière, pas grave ; l'avant complètement enfoncé, là c'est grave. Je baserais les points
+de vie sur la zone la plus enfoncée. » (Bruno)
+
+Jusqu'ici chaque choc AJOUTAIT ses dommages, où qu'il tombe : dix petits coups répartis sur toute la
+voiture valaient un gros coup dans le nez. La caisse est maintenant découpée en huit zones — le nez, les
+quatre coins, les deux flancs, l'arrière — et chaque choc enfonce la sienne, et un peu ses deux voisines,
+de la même quantité que la tôle dessinée (js/degats.js : 1,5 cm par m/s au-delà du seuil, jamais plus de
+30 cm). Les dommages, ceux qui coûtent de la vitesse et que montre la jauge, sont l'enfoncement de la zone
+LA PLUS ENFONCÉE rapporté à ces 30 cm : un coin enfoncé à fond, c'est 100 %. Deux petits coups aux deux bouts
+ne font que le plus gros des deux ; deux coups au même endroit s'additionnent.
+
+Le calcul est fait ici, sans hasard, et non lu sur le dessin : la course doit donner le même résultat avec
+ou sans écran. */
+const ENFONCE = {
+  zones: 8,
+  /* « La voiture perd sa vie trop rapidement. » puis « deux fois plus lent, c'est trop ! » (Bruno) Entre
+  les deux : 1,1 cm par m/s au lieu de 1,5 au premier essai et 0,75 au deuxième. Un gros coup de flanc
+  dans un mur coûte environ 60 %. */
+  creux: 0.011,     // m par m/s au-delà du seuil, pour une zone de dureté 1 — comme la tôle dessinée
+  max: 0.3,         // m : une zone « complètement enfoncée »
+  voisines: 0.35,   // ce qu'un choc enfonce des deux zones d'à côté
+  /* LA DURETÉ DE CHAQUE ZONE : ce qu'elle s'enfonce, rapporté à `creux`. « Les tampons avant et arrière
+  doivent faire perdre moins de points de vie, c'est quand même assez régulier : les voitures doivent être
+  plus dures à l'avant et à l'arrière — c'est logique, il y a les pare-chocs. Pour les coups de côté, je
+  verrais quelque chose de plus fragile, de plus mou. » (Bruno) Dans l'ordre des zones : le nez, le coin
+  avant gauche, le flanc gauche, le coin arrière gauche, l'arrière, puis l'autre côté. Un pare-chocs
+  encaisse donc deux fois mieux qu'avant, un flanc s'enfonce une fois et demie plus ; les coins sont entre
+  les deux. La tôle dessinée suit les mêmes duretés (js/degats.js). */
+  durete: [0.3, 0.6, 1.4, 0.6, 0.3, 0.6, 1.4, 0.6],
+};
+
+/* La zone de la caisse que touche un choc : (lx, ly), la direction dans laquelle la tôle rentre, dans le
+repère de la voiture. Le point touché se prend sur le bord, du côté d'où vient le choc, au coin quand il
+arrive en biais — le même calcul que le dessin (`Renderer._degats`). */
+function zoneEnfonce(lx, ly) {
+  const n = ENFONCE.zones, px = -clamp(lx * 1.8, -1, 1), py = -clamp(ly * 1.8, -1, 1);
+  return ((Math.round(Math.atan2(py, px) / (2 * Math.PI / n)) % n) + n) % n;
+}
+
 /* L'arrêt au stand.
 
 Ce qu'il coûte est le cœur du réglage. Trop court, il n'y a aucune raison de ne pas s'arrêter ;
@@ -76,6 +154,10 @@ elle coupe légèrement par l'extérieur — et tout le monde s'y arrêterait à
 const STAND = {
   vitesse: 22,       // m/s dans la voie, environ 80 km/h
   service: 3.2,      // secondes à l'arrêt dans la case
+  /* La réparation seule (essai des dégâts, sans usure) : elle dure selon ce qu'il y a à réparer.
+  Une aile froissée se redresse en deux secondes, une voiture en morceaux en demande huit. */
+  reparationBase: 1.5,
+  reparation: 6.5,   // secondes de plus pour une voiture au maximum des dommages
   seuilArret: 3,     // m/s en dessous desquels on considère la voiture arrêtée dans la case
   demiBoite: 9,      // demi-longueur de la case d'arrêt, en mètres
 };
@@ -401,8 +483,19 @@ class Car {
     permet de couper la fonctionnalité SANS toucher au reste du code : `tyre` et `damage` existent
     toujours, ils ne bougent simplement jamais, et tout ce qui les lit trouve 1 et 0. */
     this.usure = opts.usure || null;
+    /* `degats` : la tôle seule, sans les pneus ni les stands (essai, voir DEGATS). */
+    this.degats = opts.degats || null;
     this.tyre = 1;      // 1 = neuf, 0 = mort
-    this.damage = 0;    // 0 = intact, 1 = épave
+    this.damage = 0;    // 0 = intact, 1 = épave — l'enfoncement de la zone la plus touchée (ENFONCE)
+    this.enfoncement = new Float32Array(ENFONCE.zones);   // m, par zone, depuis le nez dans le sens trigonométrique
+    /* Les chocs de l'image en cours, pour le DESSIN seulement (js/degats.js) : vers où la tôle a été
+    enfoncée, dans le repère de la voiture, à quelle vitesse, et ce qui a été touché. Le rendu les
+    vide à chaque image ; rien ici ne pèse sur la course. */
+    this.chocs = [];
+    this.reculChoc = 0;  // pas de physique avant qu'un frottement de flanc puisse recompter
+    this.abandon = false; // le moteur ne repartira plus (ABANDON_VITESSE)
+    this.grosChocFatal = false;
+    this.abandonT = 0;    // depuis combien de temps
     this.pitsDone = 0;
     /* `pitAsk` est l'INTENTION, `sel` reste la ligne.
 
@@ -532,7 +625,43 @@ class Car {
   cornerSpeed(k) { return cornerSpeedFor(this.cls, k, this.gripBoost * this.tyreGrip()); }
 
   // une voiture cabossée traîne : elle perd de la pointe et de la reprise, jamais de l'adhérence
-  damageFactor() { return this.usure ? 1 - this.usure.vmax * this.damage : 1; }
+  damageFactor() { const u = this.tole; return u ? 1 - u.vmax * this.damage : 1; }
+  // le réglage de la tôle en vigueur : celui de l'usure si elle est là, sinon celui des dégâts seuls
+  get tole() { return this.usure || this.degats; }
+
+  /* UN CHOC, POUR CE QUI SE VOIT. (nx, ny) : la direction dans laquelle la tôle rentre — de
+  l'obstacle vers la voiture —, dans le monde ; on la garde dans le repère de la voiture, où le
+  dessin la cherchera. `vitesse` : l'écart qui fait le choc ; `frotte` : ce qui glisse le long. */
+  /* Un choc qui enfonce la caisse : (nx, ny), la direction dans laquelle la tôle rentre, dans le monde ;
+  `force`, les m/s au-delà du seuil. Le point touché se prend comme pour le dessin : sur le bord de la
+  caisse, du côté d'où vient le choc, au coin quand il arrive en biais. */
+  _enfonce(nx, ny, force) {
+    if (!(force > 0)) return;
+    const E = ENFONCE, cs = Math.cos(this.th), sn = Math.sin(this.th);
+    const lx = nx * cs + ny * sn, ly = -nx * sn + ny * cs;
+    const k = zoneEnfonce(lx, ly), creux = E.creux * force;
+    // chaque zone s'enfonce selon sa propre dureté, les voisines comprises
+    for (const [z, part] of [[k, 1], [(k + 1) % E.zones, E.voisines], [(k + E.zones - 1) % E.zones, E.voisines]])
+      this.enfoncement[z] = Math.min(E.max, this.enfoncement[z] + creux * part * E.durete[z]);
+    this.damage = clamp(Math.max(...this.enfoncement) / E.max, 0, 1);
+    // plus de vie : c'est l'abandon, contre un mur comme contre une voiture
+    const u = this.tole;
+    if (this.damage >= 1 && u && u.abandon && !this.abandon) this._abandonne();
+  }
+
+  /* L'abandon : le moteur ne repartira plus (l'écran ABANDON, l'épave). */
+  _abandonne() {
+    this.abandon = true; this.damage = 1; this.enfoncement.fill(ENFONCE.max);
+    this.engineCut = Infinity; this.engineStopped = true;
+  }
+
+  _marque(nx, ny, vitesse, frotte, sorte, epave = false) {
+    // La marque de tôle utilise ×0,55 pour les pneus ; le seuil d'abandon utilise ABANDON_PNEUS.
+    if (epave) this.grosChocFatal = vitesse >= ABANDON_VITESSE * (sorte === 'tyres' ? 0.55 / ABANDON_PNEUS : 1);
+    if (this.chocs.length >= 12 || this.fantome) return;
+    const cs = Math.cos(this.th), sn = Math.sin(this.th);
+    this.chocs.push({ nx: nx * cs + ny * sn, ny: -nx * sn + ny * cs, v: vitesse, frotte: frotte || 0, sorte, epave });
+  }
 
   get progress() { return (this.lap - (this.started ? 0 : 1)) * this.track.length + this.track.wrap(this.s); }
   get pos() { return { x: this.x, y: this.y }; }
@@ -710,6 +839,7 @@ class Car {
     this.v=wx*cs+wy*sn; this.vl=wx*sn-wy*cs;
     this.w*=BARRIERE.lacet;this.Ff=0;this.Fr=0;
     this.slide=0;this.patine=0;this.patineFx=0;this.throttle=false;this.braking=false;this.brake=0;
+    let fatal=false;
     if(!this.engineStopped){
       const effective=impact*(pneus?.55:1);
       this.barrierHits++;
@@ -720,8 +850,15 @@ class Car {
         this.lastBarrierImpact.cut=this.engineCut;
       }
       this._leaveTrack(false); // une excursion et son impact ne comptent pas deux fautes
-      if(this.usure)this.damage=clamp(this.damage+this.usure.chocParVitesse*Math.max(0,effective-this.usure.chocSeuil),0,1);
+      const u=this.tole;
+      const etait=this.abandon;
+      if(u)this._enfonce(hit.nx,hit.ny,effective-u.chocSeuil);
+      // l'abandon (ABANDON_VITESSE, ABANDON_PNEUS), ou la vie à zéro (_enfonce) : le moteur ne repartira plus
+      if(u&&u.abandon&&!this.abandon&&impact*(pneus?ABANDON_PNEUS:1)>=ABANDON_VITESSE)this._abandonne();
+      fatal=this.abandon&&!etait;
+      if(fatal)this.lastBarrierImpact.cut=Infinity;
     }
+    this._marque(hit.nx,hit.ny,impact*(pneus?.55:1),Math.abs(vt),hit.barrier.kind,fatal);
     const pr=this.track.project(this.x,this.y,this.s,30);
     const ds=this.track.diff(this.s,pr.s);
     if(raceTime!=null&&ds>0&&ds<6)this._advance(ds,raceTime);else this.s=pr.s;
@@ -731,6 +868,7 @@ class Car {
 
   update(dt, throttle, raceTime, brakingInput = null) {
     const T = this.track, c = this.cls;
+    if (this.abandon) this.abandonT += dt;
     const wasStopped = this.engineStopped;
     this.engineCut = Math.max(0, this.engineCut - dt);
     this.engineStopped = this.engineCut > 1e-6;
@@ -756,7 +894,8 @@ class Car {
     Une première version exigeait en plus d'être déjà sur la droite de la piste, ce qui ne pouvait
     jamais arriver : la voiture ne se décale que parce qu'elle vise la voie, et elle ne visait la
     voie que si elle était déjà décalée. Personne n'entrait jamais aux stands. */
-    const zone = this.usure ? T.pitAt(this.s) : null;
+    // les stands existent avec l'usure, et avec les dégâts seuls (essai) : on y répare la tôle
+    const zone = this.tole ? T.pitAt(this.s) : null;
     this.inPit = !!(zone && (this.pitAsk || this.pitState));
     if (this.inPit) {
       if (!this.pitState) this.pitState = 'voie';
@@ -768,7 +907,8 @@ class Car {
       fasse resservir à l'image suivante, indéfiniment. */
       if (this.pitState === 'voie' && !this.pitServi && zone.dansZone && Math.abs(this.v) < STAND.seuilArret) {
         this.pitState = 'arret';
-        this.pitT = STAND.service;
+        this.pitT = this.usure ? STAND.service : STAND.reparationBase + STAND.reparation * this.damage;
+        this.pitT0 = this.pitT;   // pour le compte à rebours de l'écran
       }
     } else if (this.pitState === 'voie' && !zone) {
       /* Sorti de la voie : on retombe au neutre, et la demande s'éteint AVEC la sortie.
@@ -820,7 +960,7 @@ class Car {
       this.pitT -= dt;
       this.v = 0; this.vl = 0; this.w = 0;
       if (this.pitT <= 0) {
-        this.tyre = 1; this.damage = 0; this.pitsDone++;
+        this.tyre = 1; this.damage = 0; this.enfoncement.fill(0); this.pitsDone++;
         this.pitState = 'voie';
         this.pitAsk = false;     // servi : on ressort, et on ne redemande pas au tour suivant
         this.pitServi = true;
@@ -1411,11 +1551,14 @@ function aiThrottle(car, cars, dt, opts) {
 // car-to-car contact, resolved in world space along the track tangent / normal
 function resolveCollisions(cars, track) {
   const n = cars.length;
+  for (const c of cars) if (c.reculChoc > 0) c.reculChoc--;
   for (let i = 0; i < n; i++) {
     const a = cars[i];
     for (let j = i + 1; j < n; j++) {
       const b = cars[j];
       if (a.blueFlag || b.blueFlag) continue;
+      // une épave (abandon) ne se touche plus : on la contourne, ou on la traverse le temps qu'on l'enlève
+      if (a.abandon || b.abandon) continue;
       /* Pas de contact dans la voie des stands, ni avec la piste depuis la voie.
 
       Deux raisons, et la seconde compte plus que la première. D'abord c'est juste : un vrai
@@ -1438,9 +1581,28 @@ function resolveCollisions(cars, track) {
         if (rear.v > front.v) {
           const dv = rear.v - front.v;
           // le choc abîme les deux, à proportion de ce qui dépasse le seuil de simple frottement
-          const fort = Math.max(0, dv - (rear.usure ? rear.usure.chocSeuil : 0));
-          if (rear.usure && fort > 0) rear.damage = Math.min(1, rear.damage + rear.usure.chocParVitesse * fort);
-          if (front.usure && fort > 0) front.damage = Math.min(1, front.damage + front.usure.chocParVitesse * fort * 0.6);
+          const ur = rear.tole, uf = front.tole;
+          const fort = Math.max(0, dv - (ur ? ur.chocSeuil : 0));
+          /* L'avant de l'une rentre vers l'arrière, l'arrière de l'autre vers l'avant. PARE-CHOCS CONTRE
+          PARE-CHOCS quand les deux voitures se recouvrent sur plus de la moitié de leur largeur : chacune
+          prend alors le choc dans son propre axe. La direction d'un centre à l'autre, prise d'abord, penchait
+          de 20 à 40° dès que les voitures étaient un peu décalées — presque toujours — et le choc tombait au
+          coin : les « tampons », qui devaient toucher les pare-chocs, durs, touchaient les coins
+          (ENFONCE.durete). L'axe de la piste ne suffisait pas non plus : dans une épingle, les voitures sont
+          en biais sur elle.
+          Décalées de plus d'une demi-largeur, c'est bien un coin qui prend, et la direction d'un centre à
+          l'autre le dit. */
+          const enFace = latOverlap > 0.5 * Math.min(a.cls.width, b.cls.width);
+          const ux = front.x - rear.x, uy = front.y - rear.y, ul = Math.hypot(ux, uy) || 1;
+          // en face, chacune prend le choc dans son propre axe : le nez de l'une, l'arrière de l'autre
+          const [rx, ry] = enFace ? [-Math.cos(rear.th), -Math.sin(rear.th)] : [-ux / ul, -uy / ul];
+          const [fx, fy] = enFace ? [Math.cos(front.th), Math.sin(front.th)] : [ux / ul, uy / ul];
+          const ra = rear.abandon, fa = front.abandon;
+          if (ur) rear._enfonce(rx, ry, fort);
+          if (uf) front._enfonce(fx, fy, fort * 0.6);
+          // la vie à zéro sur ce choc : l'épave
+          rear._marque(rx, ry, dv, 0, 'voiture', rear.abandon && !ra);
+          front._marque(fx, fy, dv, 0, 'voiture', front.abandon && !fa);
           front.v += dv * 0.35;
           rear.v = front.v - dv * 0.1;
           const push = Math.min(longOverlap / 2, 0.1);
@@ -1449,6 +1611,37 @@ function resolveCollisions(cars, track) {
         }
       } else {
         const dir = dl >= 0 ? 1 : -1, sep = Math.min(latOverlap / 2, 0.1);
+        /* LE COUP DE FLANC (essai des dégâts). Jusqu'ici il ne cassait rien : une poussette, plafonnée.
+        On mesure maintenant à quelle vitesse les deux flancs se rapprochaient, dans le monde.
+
+        Son seuil est PLUS HAUT que celui d'un choc par l'arrière (FLANC_SEUIL, 6 m/s contre 3,5).
+        Deux voitures qui se serrent dans un virage se rapprochent vite sur le côté rien que parce
+        que leurs caps diffèrent de quelques degrés — à 60 m/s, trois degrés font déjà 3 m/s — et le
+        jeu traite ce contact en poussette, pas en accident. Au seuil commun, mesuré sur 25 s de
+        départ à Spa, les flancs faisaient les deux tiers de la tôle, et deux voitures finissaient
+        détruites. Ce qui passe le seuil, en revanche, coûte cher : un flanc est la zone la plus molle de
+        la caisse (ENFONCE.durete). Il coûtait d'abord deux fois moins qu'un choc de face ; « pour les coups
+        de côté, quelque chose de plus fragile » — c'est la dureté du flanc qui décide maintenant.
+
+        Un contact dure plusieurs pas de physique tant que les voitures se chevauchent : `reculChoc`
+        l'empêche de compter à chaque pas. */
+        if (a.reculChoc <= 0 && b.reculChoc <= 0) {
+          const vxa = a.v * Math.cos(a.th) + a.vl * Math.sin(a.th), vya = a.v * Math.sin(a.th) - a.vl * Math.cos(a.th);
+          const vxb = b.v * Math.cos(b.th) + b.vl * Math.sin(b.th), vyb = b.v * Math.sin(b.th) - b.vl * Math.cos(b.th);
+          const rapproche = ((vxa - vxb) * nx + (vya - vyb) * ny) * dir;
+          const glisse = Math.abs((vxa - vxb) * tx + (vya - vyb) * ty);
+          if (rapproche > 1.5 || glisse > 6) {
+            for (const [c, sg] of [[a, -1], [b, 1]]) {
+              const u = c.tole, fort = Math.max(0, rapproche - FLANC_SEUIL);
+              const ca = c.abandon;
+              if (u) c._enfonce(nx * dir * sg, ny * dir * sg, fort);
+              // pour le dessin, le même décalage : une bosse de flanc ne se creuse qu'au-delà de FLANC_SEUIL
+              const vu = Math.max(0, rapproche - (FLANC_SEUIL - (u ? u.chocSeuil : USURE.chocSeuil)));
+              c._marque(nx * dir * sg, ny * dir * sg, vu, glisse, 'voiture', c.abandon && !ca);
+              c.reculChoc = 30;
+            }
+          }
+        }
         a.x -= nx * dir * sep; a.y -= ny * dir * sep;
         b.x += nx * dir * sep; b.y += ny * dir * sep;
         // a nudge is a perturbation: a little lateral velocity and yaw, capped

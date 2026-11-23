@@ -1,0 +1,9 @@
+{
+  "name": "grip-godot-outils",
+  "private": true,
+  "description": "Les outils qui sortent le circuit du jeu web pour le prototype Godot.",
+  "dependencies": {
+    "clipper-lib": "6.4.2",
+    "earcut": "2.2.4"
+  }
+}

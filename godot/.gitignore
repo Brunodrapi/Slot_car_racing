@@ -1,0 +1,9 @@
+# Le cache d'import de Godot, refait à l'ouverture du projet.
+.godot/
+# Les enregistrements de référence du test de parité : 8 Mo, refaits en dix secondes par
+# `node tools/godot-exporte.js`.
+donnees/ref/
+# Les versions exportées.
+exports/
+# Les modules des outils (npm install dans godot/outils).
+outils/node_modules/

@@ -324,7 +324,9 @@ function drawCarShadow(g, model, livree, opts) {
   const [w, h] = topSize(model, art);
   const wheelOpts = {...opts, livree};
   const pneus = [...frontTires(model, w, h, wheelOpts), ...rearTires(model, w, h, wheelOpts)];
-  if (!pneus.length) { g.drawImage(art.shadow, -w / 2, -h / 2, w, h); return true; }
+  const deforme = opts && opts.deforme;
+  const silhouette = () => deforme ? deforme.dessine(g, art.shadow, w, h) : g.drawImage(art.shadow, -w / 2, -h / 2, w, h);
+  if (!pneus.length) { silhouette(); return true; }
   const roues = new Path2D();
   for (const p of pneus) {
     const t = new Path2D();
@@ -338,7 +340,7 @@ function drawCarShadow(g, model, livree, opts) {
   horsRoues.addPath(roues);
   g.save();
   g.clip(horsRoues, 'evenodd');
-  g.drawImage(art.shadow, -w / 2, -h / 2, w, h);
+  silhouette();
   g.restore();
   return true;
 }
@@ -352,10 +354,16 @@ function wheelLayout(model, opts) {
 
 // Where each front tire sits and how far it is turned, in the sprite's frame (+x forward).
 function frontTires(model, w, h, opts) {
-  return tirePositions(wheelLayout(model, opts).front, w, h, opts);
+  return suitTole(tirePositions(wheelLayout(model, opts).front, w, h, opts), opts);
 }
 function rearTires(model, w, h, opts) {
-  return tirePositions(wheelLayout(model, opts).rear, w, h, {steer:0});
+  return suitTole(tirePositions(wheelLayout(model, opts).rear, w, h, {steer:0}), opts);
+}
+// Une roue près d'un coin enfoncé recule avec lui (essai des dégâts, js/degats.js).
+function suitTole(tires, opts) {
+  const d = opts && opts.deforme;
+  if (!d) return tires;
+  return tires.map(p => { const [ox, oy] = d.decale(p.x, p.y); return {...p, x: p.x + ox, y: p.y + oy}; });
 }
 // Wishbones join the chassis to each front hub, underneath the tire at any steering angle.
 // Shared by the color pass and shadow, including the previously missing Windsor axle.
@@ -424,7 +432,9 @@ function drawCarModel(g, model, livery, opts) {
     if (layout && layout.suspension) {
       g.fillStyle = '#43494b'; g.fill(frontSuspension(model, w, h, opts));
     }
-    g.drawImage(art.img, -w / 2, -h / 2, w, h);
+    const deforme = opts && opts.deforme;
+    if (deforme) deforme.dessine(g, deforme.peau || art.img, w, h);
+    else g.drawImage(art.img, -w / 2, -h / 2, w, h);
     if (wheelsAbove) drawFrontWheels(g, model, w, h, opts);
     return;
   }

@@ -1110,6 +1110,26 @@ img.stat-ico { object-fit:contain; }
 @media (max-width:850px) {
   .setup-bar { display:contents; }
   .setup-reglages { padding:10px 8px; background:#fff0d2 url('../art/interface/ink.svg'); border-top:3px solid #252b24; }
+  /* DEUX COLONNES ÉGALES : « affichage mal équilibré » (Bruno). Les groupes se rangeaient chacun à sa
+  largeur — une pastille, puis trois, puis deux. Ils se rangent maintenant par lignes de deux, chaque
+  pastille sur la moitié de la largeur : les conditions (jour ou nuit, dégâts), la course (difficulté,
+  tours), le réglage (freinage, régler). Un groupe impair finit sa ligne seul, l'avis de nuit et la saisie
+  des tours prennent toute la largeur. */
+  .setup-reglages { display:flex; flex-direction:column; align-items:stretch; }
+  .setup-reglages .setup-chips { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px 8px; }
+  .setup-reglages .setup-chips > .chip { width:100%; min-width:0; justify-content:flex-start; }
+  .setup-reglages .setup-chips > .night-hint, .setup-reglages .setup-chips > .chip-input { grid-column:1 / -1; }
+  /* le freinage prend ce que « Régler » laisse ; sa mention « ici » répète le menu, et ne tenait pas */
+  .setup-reglages .setup-chips.setup-tuning { grid-template-columns:minmax(0,1fr) auto; }
+  .setup-reglages .setup-chips.setup-tuning .reg-ici { display:none; }
+  .setup-reglages .setup-chips > .chip-select select { min-width:0; max-width:100%; }
+}
+/* les plus petits téléphones (iPhone SE, 320 px) : la moitié de largeur ne loge « Difficulté : Difficile »
+   qu'en plus petit */
+@media (max-width:380px) {
+  .setup-reglages .setup-chips > .chip { font-size:14px; gap:5px; padding:6px 14px 6px 11px; }
+  .setup-reglages .setup-chips > .chip select { font-size:14px; padding:2px 4px; }
+  .setup-reglages .setup-chips > .chip > b { padding:2px 7px; margin-right:-2px; }
   .setup-screen .setup-launch.row.end, body.desktop .setup-screen .setup-launch.row.end { position:sticky; bottom:calc(-1 * max(12px,env(safe-area-inset-bottom))); z-index:5; width:auto; margin:0 -10px calc(-1 * max(12px,env(safe-area-inset-bottom))); padding:8px 10px max(10px,env(safe-area-inset-bottom)); background:#fff0d2 url('../art/interface/ink.svg'); border-top:3px solid #252b24; box-shadow:0 -8px 20px #0003; }
   .hero-performance { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px 6px; }
 }

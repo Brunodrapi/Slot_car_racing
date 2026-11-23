@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tests/salon_tel_photo.gd" id="1"]
+
+[node name="SalonTelPhoto" type="Node"]
+script = ExtResource("1")

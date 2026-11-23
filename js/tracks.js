@@ -454,6 +454,8 @@ const TRACKS = [
        mais couvert n'est pas souterrain : à Monza ce sont les vingt-cinq mètres sous la passerelle
        du Serraglio, qu'on dessine déjà comme une passerelle. */
     tunnels: [[0.4550, 0.5617]],
+    // Part du filtre nocturne côté mer (+lat), côté mur et de nuit ; fondu aux portails en mètres.
+    lumiereTunnel: { mer: 0.12, mur: 0.32, nuit: 0.58, portail: 20 },
     /* Les panneaux repris à la main dans `lignes.html`, et gardés tels quels.
 
        Les FRACTIONS des panneaux ont été décalées de −0,0267 de tour : elles se comptent depuis la
@@ -504,24 +506,29 @@ const TRACKS = [
     /* Monaco n'a pas de dégagement : un mur, et derrière le mur la ville. Rien dans `runoffs`,
        donc — c'est précisément ce qui fait ce circuit. La ville elle-même (`ville`, plus bas) est
        relevée sur une vue satellite ; l'implantation ne garde que ce qui tient au circuit : la
-       tribune de la Piscine et le parking de la chicane. Pas de voie des stands (`pitLane: false`) :
-       Bruno y veut les platanes du boulevard (`ville.alignements`), derrière une protection
-       rapprochée de la ligne droite (`barrierCloseZones`). */
+       tribune de la Piscine et le parking de la chicane.
+
+       LA VOIE DES STANDS EST REVENUE (essai des dégâts) sur le boulevard, côté port, comme au vrai
+       Monaco : sans elle, une voiture abîmée n'avait aucun moyen de réparer. Elle avait été retirée
+       (`pitLane: false`) pour les platanes du boulevard ; ils sont gardés ENTRE LA PISTE ET LA VOIE,
+       une rangée qui déborde sur les deux (`ville.alignements`, `depuis: 'bord'`). La protection
+       rapprochée de la ligne droite (`barrierCloseZones`) reste. */
     implantation: [
       { kind: 'parking', side: -1, from: 0.6, to: 0.66, recul: 10, prof: 22 },
       { kind: 'tribune', side: 1, from: 0.8, to: 0.88, recul: 8, prof: 14, module: 24 },
     ],
-    pitLane: false,
+    pitFrom: 0.918, pitTo: 0.042, pitAt: 0.98,
     barrierCloseZones: [{ side: -1, from: 0.915, to: 1.045 }],
     // La ville, relevée sur la même vue satellite : [x, y, cap, longueur, largeur, hauteur, toit]
     // (toit 0 immeuble, 1 terrasses, 2 tuiles), les jardins, et les repères posés à la main à leur
     // place relevée : la piscine, le Casino, l'Hôtel de Paris, le jardin de la place, l'auditorium.
     ville: {
-      // Les platanes du boulevard, de la Rascasse à Sainte-Dévote : deux rangées côté stands, là
-      // où passait la voie des stands, et une côté Condamine.
+      // Les platanes du boulevard, de la Rascasse à Sainte-Dévote : une rangée entre la piste et
+      // la voie des stands, à 60 cm du bord de la piste (dans la bande de 1,2 m qui les sépare, le
+      // feuillage déborde sur les deux), et une côté Condamine. Avant le retour des stands, il y en
+      // avait deux côté port, à 3,4 et 9 m derrière la protection, là où passe la voie.
       alignements: [
-        { from: 0.915, to: 0.045, side: -1, recul: 3.4, pas: 6.5, id: 'tree', e: 0.58 },
-        { from: 0.915, to: 0.045, side: -1, recul: 9, pas: 7, id: 'tree', e: 0.62 },
+        { from: 0.918, to: 0.042, side: -1, depuis: 'bord', recul: 0.6, pas: 6.5, id: 'tree', e: 0.58 },
         { from: 0.915, to: 0.05, side: 1, recul: 3.6, pas: 7, id: 'tree', e: 0.62 },
       ],
       reperes: [
@@ -1703,6 +1710,13 @@ const TRACKS = [
   {
     id: 'bathurst', name: 'Kangaroo Mountain', country: 'AU', flag: '🇦🇺', theme: 'bush',
     runoffJoinGap: 60,
+    /* LA VOIE DES STANDS EN LIGNE DROITE (essai des dégâts). Placée d'office, elle partait de la
+       droite d'avant le dernier virage, passait DANS ce virage à angle droit, et ne finissait qu'après
+       la ligne : « ça ne va pas, il faut en ligne droite, tant pis si ça fait passer la ligne
+       d'arrivée » (Bruno). Elle tient maintenant sur la droite de la ligne, de la sortie du virage
+       (20 m avant la ligne) à 216 m après, avant le léger virage qui suit : 236 m, la zone d'arrêt au
+       milieu. Les bâtiments des stands (`stands`, plus bas) la suivent. */
+    pitFrom: 0.9944, pitTo: 0.06, pitAt: 0.0272,
     architecture: 'pavillons',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.au,
@@ -1784,7 +1798,7 @@ const TRACKS = [
       { name: 'Murrays Corner', surface: 'gravel', side: -1, from: 0.882, to: 0.922, w: 14 },
     ],
     implantation: [
-      { kind: 'stands', side: -1, from: 0.955, to: 0.045, recul: 10, prof: 20, module: 36 },
+      { kind: 'stands', side: -1, from: 0.995, to: 0.06, recul: 10, prof: 20, module: 36 },
       { kind: 'tribune', side: 1, from: 0.96, to: 0.05, recul: 9, prof: 17, module: 28 },
       { kind: 'parking', side: -1, from: 0.06, to: 0.12, recul: 16, prof: 32 },
       { kind: 'bois', side: 1, from: 0.1, to: 0.24, recul: 10, prof: 44, densite: 0.4 },
