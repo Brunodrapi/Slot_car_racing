@@ -76,6 +76,7 @@ function serve() {
 (async () => {
   const out = process.argv[2] || '/tmp';
   const mode = process.argv[3] || 'race';
+  const championnat = process.argv.includes('--championship');
   fs.mkdirSync(out, { recursive: true });
   const server = await serve();
   const url = `http://127.0.0.1:${server.address().port}/index.html`;
@@ -121,13 +122,25 @@ function serve() {
   await B.waitForTimeout(800);
 
   if (mode !== 'race') { await A.click(`[data-action="netMode"][data-id="${mode}"]`); await A.waitForTimeout(300); }
+  if (championnat) {
+    await A.click('[data-action="programme"][data-id="multi"]');
+    await A.click('[data-action="programmeChoisir"][data-id="castellet"]');
+    await A.click('[data-action="programmeAjouter"]');
+    await A.fill('[data-programme-tours="0"]', '7');
+    await A.click('[data-action="programmeRetour"]');
+    await B.waitForFunction(() => app.net.settings().programme?.toursParManche?.[0] === 7);
+    await B.click('[data-action="programme"][data-id="multi"]');
+    if ((await B.inputValue('[data-programme-tours="0"]')) !== '7') throw Error('programme absent chez l’invité');
+    if (!await B.locator('[data-action="programmeAjouter"]').isDisabled()) throw Error('l’invité peut modifier le programme');
+    await B.click('[data-action="programmeRetour"]');
+  }
   if (process.argv.includes('--night')) {
     await A.click('[data-action="netTimeOfDay"][data-id="night"]');
     await B.waitForFunction(() => app.net.settings().timeOfDay === 'night');
     if (!await B.locator('[data-action="netTimeOfDay"][data-id="night"]').isDisabled()) throw Error('guest can edit lighting');
   }
   console.log('format', await A.evaluate(() => app.net.settings().mode));
-  await A.screenshot({path:`${out}/net-avant-pret.png`,fullPage:true});
+  if (!championnat) await A.screenshot({path:`${out}/net-avant-pret.png`,fullPage:true});
 
   await A.bringToFront();
   await A.click('[data-action="netReady"]');
@@ -137,8 +150,10 @@ function serve() {
   const seats = await A.evaluate(() => app.net.members().map(m => m.name + (m.ready ? '✓' : '·')));
   console.log('pilotes', seats.join(' '));
 
-  await A.screenshot({ path: `${out}/net-salon-hote.png` });
-  await B.screenshot({ path: `${out}/net-salon-invite.png` });
+  if (!championnat) {
+    await A.screenshot({ path: `${out}/net-salon-hote.png` });
+    await B.screenshot({ path: `${out}/net-salon-invite.png` });
+  }
 
   // ---- the flag
   await A.bringToFront();
@@ -146,6 +161,13 @@ function serve() {
   await A.waitForTimeout(1200);
   const started = await Promise.all([A, B].map(p => p.evaluate(() => app.state + '/' + (app.race ? app.race.cars.length : 0))));
   console.log('au départ', started.join(' | '));
+  if (championnat) {
+    for (const p of [A, B]) {
+      await p.waitForFunction(() => app.race?.track.id === 'castellet' && app.race.opts.laps === 7);
+    }
+    console.log('OK championnat : édition côté hôte, lecture seule côté invité et même manche au départ.');
+    await browser.close(); server.close(); process.exit(bad ? 1 : 0);
+  }
   if (process.argv.includes('--night')) for (const p of [A, B]) {
     const lighting = await p.evaluate(() => app.race?.timeOfDay);
     if (lighting !== 'night') throw Error('shared night setting lost: ' + lighting);

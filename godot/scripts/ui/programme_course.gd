@@ -42,6 +42,7 @@ func _ready() -> void:
 	liste.add_theme_constant_override("v_separation", 10)
 	scroll.add_child(liste)
 	var retour := _bouton(Textes.t("backWord"), 116)
+	retour.set_meta("cle", "programme-retour")
 	retour.size_flags_horizontal = Control.SIZE_SHRINK_END
 	retour.pressed.connect(_retour)
 	page.add_child(retour)
@@ -54,7 +55,8 @@ func _ready() -> void:
 func _place() -> void:
 	var largeur := minf(1320, maxf(0, size.x - 24))
 	liste.columns = 2 if largeur >= 720 else 1
-	if is_instance_valid(cartes): cartes.columns = 4 if largeur >= 1140 else (3 if largeur >= 625 else 2)
+	if is_instance_valid(cartes): cartes.columns = 4 if largeur >= 1250 else (3 if largeur >= 625 else 2)
+	if is_instance_valid(apercu): apercu.custom_minimum_size.y = 116 if liste.columns == 2 and size.y < 800 else 154
 	var hauteur := minf(maxf(0, size.y - 24), liste.get_combined_minimum_size().y + 164)
 	cadre.size = Vector2(largeur, hauteur)
 	cadre.position = ((size - cadre.size) / 2).round()
@@ -115,12 +117,12 @@ func _texte(nom: String, taille: int, couleur := Style.ENCRE) -> Label:
 	return label
 
 
-func _ligne(bloc: VBoxContainer, nom: String) -> HBoxContainer:
+func _ligne(bloc: VBoxContainer, nom: String, taille := 20) -> HBoxContainer:
 	var ligne := HBoxContainer.new()
 	ligne.custom_minimum_size.y = 42
 	ligne.add_theme_constant_override("separation", 8)
 	bloc.add_child(ligne)
-	var label := _texte(nom, 20)
+	var label := _texte(nom, taille)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	ligne.add_child(label)
 	return ligne
@@ -171,6 +173,9 @@ func _dessineApercu(nuit: bool) -> void:
 
 
 func _construit() -> void:
+	var y := scroll.scroll_vertical
+	var focus := get_viewport().gui_get_focus_owner()
+	var cle := String(focus.get_meta("cle", "")) if focus and liste.is_ancestor_of(focus) else ""
 	for enfant in liste.get_children():
 		liste.remove_child(enfant)
 		enfant.queue_free()
@@ -252,6 +257,7 @@ func _construit() -> void:
 				autre.set_meta("sel", autre == b)
 				autre.queue_redraw())
 	var ajoute := _bouton("+", 54)
+	ajoute.set_meta("cle", "programme-ajouter")
 	ajoute.taille = 40
 	ajoute.tooltip_text = Textes.t("ajouterCircuit")
 	ajoute.disabled = not editable or calendrier.size() >= 10
@@ -273,7 +279,7 @@ func _construit() -> void:
 	for i in calendrier.size():
 		var id: String = calendrier[i]
 		var carte := VBoxContainer.new()
-		carte.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		carte.custom_minimum_size.x = 147
 		cartes.add_child(carte)
 		var titre := _bouton(Textes.t("roundLabel", i + 1), 0)
 		titre.focus_mode = Control.FOCUS_NONE
@@ -282,13 +288,15 @@ func _construit() -> void:
 		var info: Dictionary = infos.get(id, {})
 		_circuitCarte(carte, info, id, nuit)
 		var champ := _champTour(toursParManche[i], editable)
-		_ligne(carte, Textes.t("lapsLabel")).add_child(champ)
+		champ.set_meta("cle", "programme-tours-%d" % i)
+		_ligne(carte, Textes.t("lapsLabel"), 16).add_child(champ)
 		champ.value_changed.connect(func(v): toursParManche[i] = int(v); options.toursParManche = toursParManche; _sauve())
 		var actions := HBoxContainer.new()
 		carte.add_child(actions)
 		for sens in [-1, 1]:
 			var j: int = i + sens
 			var deplace := _bouton("‹" if sens < 0 else "›", 31)
+			deplace.set_meta("cle", "programme-deplace-%d-%d" % [i, sens])
 			deplace.disabled = not editable or j < 0 or j >= calendrier.size()
 			actions.add_child(deplace)
 			deplace.pressed.connect(func():
@@ -298,6 +306,7 @@ func _construit() -> void:
 				options.toursParManche = toursParManche
 				_sauve(); _construit())
 		var retire := _bouton("×", 31)
+		retire.set_meta("cle", "programme-retire-%d" % i)
 		retire.disabled = not editable
 		actions.add_child(retire)
 		retire.pressed.connect(func():
@@ -338,6 +347,12 @@ func _construit() -> void:
 			_construit()
 		)
 	_place()
+	scroll.set_deferred("scroll_vertical", y)
+	if not cle.is_empty() and not Style.tactile():
+		for controle in liste.find_children("*", "Button", true, false):
+			if controle.get_meta("cle", "") == cle and not controle.disabled:
+				controle.grab_focus.call_deferred()
+				return
 
 
 func _circuitCarte(carte: VBoxContainer, info: Dictionary, id: String, nuit: bool) -> void:

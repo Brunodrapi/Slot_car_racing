@@ -536,15 +536,19 @@ class UI {
     // Presence and ping refresh repeatedly while waiting in the lobby. Replacing
     // every button for an unchanged table can detach the target between pointer
     // down/up (and interrupts gamepad focus). Refresh just the ping in that case.
-    const pingPattern = /<p class="muted net-ping">([\s\S]*?)<\/p>/;
-    const lobbyHtml = cle === 'salon' ? html.replace(pingPattern, '') : null;
+    const pingPattern = /(<(?:p class="muted net-ping"|span data-net-ping)>)([\s\S]*?)(<\/(?:p|span)>)/g;
+    const lobbyHtml = cle === 'salon' ? html.replace(pingPattern, '$1$3') : null;
     if (garder && cle === 'salon' && lobbyHtml === this._lobbyHtml) {
-      const ping = avant.querySelector('.net-ping'), match = html.match(pingPattern);
-      if (ping && match) ping.innerHTML = match[1];
+      const valeurs = [...html.matchAll(pingPattern)];
+      avant.querySelectorAll('.net-ping,[data-net-ping]').forEach((ping, index) => {
+        const contenu = valeurs[index]?.[2];
+        if (contenu != null && ping.innerHTML !== contenu) ping.innerHTML = contenu;
+      });
       return;
     }
     this._lobbyHtml = lobbyHtml;
     const y = garder ? avant.scrollTop : 0;
+    const yPaddock = garder ? avant.querySelector('.quick-grid')?.scrollTop : 0;
     /* Les rails aussi gardent leur place, et pour la même raison que la page.
 
     Choisir une voiture repeint tout l'écran. Sans cela, taper la neuvième carte ramenait le rail
@@ -558,6 +562,7 @@ class UI {
     this.root.innerHTML = `<div class="screen ${cls || ''}">${html}</div>`;
     this._cleEcran = cle == null ? null : cle;
     if (y) this.root.firstElementChild.scrollTop = y;
+    if (yPaddock) this.root.querySelector('.quick-grid').scrollTop = yPaddock;
     for (const r of this.root.querySelectorAll('[data-rail]')) {
       // à la première ouverture, on se place sur ce qui est déjà choisi plutôt qu'au début
       if (rails[r.dataset.rail] != null) r.scrollLeft = rails[r.dataset.rail];
@@ -1548,7 +1553,7 @@ class UI {
     const maximum = !enLigne ? (app.save.adversaires || Math.min(11, categorie.drivers - 1)) + 1
       : table.mode === 'duel' ? pilotes.length : table.aiCount >= 0 ? Math.min(12, pilotes.length + table.aiCount)
         : Math.max(pilotes.length + 1, Math.min(categorie.drivers, 12));
-    const calendrier = options.circuits || [], places = options.positions || {};
+    const calendrier = Array.isArray(options.circuits) ? options.circuits : [], places = options.positions || {};
     const tours = (enLigne ? table.laps : app.save.laps) || 5;
     const verrouAjout = !editable || calendrier.length >= 10 ? 'disabled' : '';
     const selection = app.trackDefById(this.circuitProgramme || circuit) || TRACKS[0];
@@ -1572,8 +1577,8 @@ class UI {
             <option value="0">${t('auto')}</option>${Array.from({length: maximum}, (_, i) => i + 1).map(i => `<option value="${i}" ${places[p.pid] === i ? 'selected' : ''}>${i}</option>`).join('')}
           </select></label>`).join('')}
         </section></div>
-        <section class="programme-carte">
-          <h3>${t('calendar')} <small>${calendrier.length} / 10</small></h3>
+        <section class="programme-carte programme-calendrier">
+          <h3>${t('calendar')} <small aria-live="polite">${calendrier.length} / 10</small></h3>
           <ol class="programme-manches">${calendrier.map((id,i) => {
             const tr = app.trackDefById(id);
             return `<li><h4>${this.t('round', i+1)}</h4><b>${nomCircuit(id)}</b>${tr ? this.imageCircuit(tr, nuit) : ''}
@@ -1590,10 +1595,11 @@ class UI {
     const enLigne = this._cleEcran === 'programme:multi';
     const app = this.app, table = enLigne ? app.net.settings() : null;
     if (enLigne && (!app.net.creator || Championnat.manche(table.championnat).phase)) return;
-    const options = structuredClone((enLigne ? table.programme : app.save.programme) || {});
+    const courant = (enLigne ? table.programme : app.save.programme) || {};
     const defaut = (enLigne ? table.laps : app.save.laps) || 5;
-    options.circuits ||= [];
-    options.toursParManche = options.circuits.map((_, i) => Championnat.toursManche(options, i, defaut));
+    const circuits = Array.isArray(courant.circuits) ? [...courant.circuits] : [];
+    const options = { ...courant, circuits, positions: { ...courant.positions },
+      toursParManche: circuits.map((_, i) => Championnat.toursManche(courant, i, defaut)) };
     action(options, defaut);
     if (enLigne) app.net.setTable({ programme: options });
     else { app.save.programme = options; storeSave(app.save); }
@@ -1724,7 +1730,7 @@ class UI {
       <div class="grid players">
         ${list.map((m, i) => `<div class="card ${m.isMe ? 'sel' : ''}">
           <b>${escapeHtml(m.name)}</b>
-          <small>${i === 0 ? t('host') : ''}${i === 0 && m.isMe ? ' · ' : ''}${m.isMe ? t('you') : ''}${i > 0 ? ' · ' + (net.link?.ping(m.pid) ?? '—') + ' ms' : ''}</small>
+          <small>${i === 0 ? t('host') : ''}${i === 0 && m.isMe ? ' · ' : ''}${m.isMe ? t('you') : ''}${i > 0 ? ` · <span data-net-ping>${net.link?.ping(m.pid) ?? '—'} ms</span>` : ''}</small>
           <small class="${m.ready ? 'ok' : 'muted'}">${m.q.spectator ? 'Spectateur' : m.ready ? '✓ ' + t('ready') : t('waiting')}</small>
         </div>`).join('')}
       </div>
@@ -2125,6 +2131,7 @@ class UI {
       case 'netTrack': app.net.setTable({ trackId: id, laps: lapsFor(app.trackDefById(id), categoryById(this.setup.classId)) }); break;
       case 'programme':
         this.programmeDefilement = this.root.firstElementChild?.scrollTop || 0;
+        this.programmeDefilementPaddock = this.root.querySelector('.quick-grid')?.scrollTop || 0;
         this.circuitProgramme = null;
         this.programmeScreen(id === 'multi');
         break;
@@ -2132,6 +2139,7 @@ class UI {
         if (this._cleEcran === 'programme:multi') this.lobbyScreen();
         else this.setupScreen(this.setup.mode);
         this.root.firstElementChild.scrollTop = this.programmeDefilement || 0;
+        if (this.programmeDefilementPaddock) this.root.querySelector('.quick-grid').scrollTop = this.programmeDefilementPaddock;
         break;
       case 'programmeChoisir': this.circuitProgramme = id; this.programmeScreen(this._cleEcran === 'programme:multi'); break;
       case 'programmeAjouter': this.editeProgramme((o, tours) => { if (o.circuits.length < 10) { o.circuits.push(id); o.toursParManche.push(tours); } }); break;
@@ -2271,7 +2279,8 @@ class UI {
       const positions = o.positions ||= {}, pid = el.dataset.programmePilote, place = Number(el.value);
       for (const [id, pos] of Object.entries(positions)) if (id === pid || pos === place) delete positions[id];
       if (place) positions[pid] = place;
-    });
+      for (const champ of this.root.querySelectorAll('[data-programme-pilote]')) champ.value = positions[champ.dataset.programmePilote] || 0;
+    }, false);
     if (el.id === 'net-laps') this.app.net.setTable({ laps: clamp(Math.round(Number(el.value) || 3), 1, 10) });
     if (el.id === 'net-ai') this.app.net.setTable({ aiCount: Number(el.value) });
     if (el.id === 'solo-ai') { s.adversaires = Number(el.value); storeSave(s); }

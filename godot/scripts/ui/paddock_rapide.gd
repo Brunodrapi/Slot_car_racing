@@ -6,6 +6,7 @@ var chronos: ScrollContainer
 var rails := {}
 var filtreChronos := "tous"
 var etroit := false
+var compact := false
 var doigt: Doigt
 
 
@@ -24,7 +25,8 @@ func _ready() -> void:
 
 
 func _redimension() -> void:
-	if etroit != (size.x < 900 or size.x < size.y): reconstruit.call_deferred()
+	var empile := size.x < 900 or size.x < size.y
+	if etroit != empile or compact != (not empile and size.y < 800): reconstruit.call_deferred()
 
 
 func _input(event: InputEvent) -> void:
@@ -141,6 +143,7 @@ func _onglets(parent: Control, cle: String, selection: String, action: Callable)
 		var active: bool = selection == c[0]
 		var b := _bouton(ligne, c[1], cle + c[0], action.bind(c[0]), 60, Paddock.PC_VERT if active else Style.NUIT_PLEINE, Paddock.PC_ENCRE if active else Paddock.PC_CREME)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if compact: b.custom_minimum_size.y = 36
 
 
 func reconstruit() -> void:
@@ -156,6 +159,7 @@ func reconstruit() -> void:
 		remove_child(enfant)
 		enfant.queue_free()
 	etroit = size.x < 900 or size.x < size.y
+	compact = not etroit and size.y < 800
 	paddock.portrait = etroit
 	var r := App.reglages
 	var voiture := Catalogue.voiture(r.voiture)
@@ -165,13 +169,17 @@ func reconstruit() -> void:
 	var bandeau := Control.new()
 	bandeau.custom_minimum_size.y = 65
 	add_child(bandeau)
-	bandeau.draw.connect(func(): BarreTitre.pc(bandeau, Rect2(Vector2.ZERO, bandeau.size), Textes.t("quickRace")))
+	bandeau.draw.connect(func():
+		var zone := Rect2(Vector2.ZERO, bandeau.size)
+		if etroit: BarreTitre.tel(bandeau, zone, Textes.t("quickRace"))
+		else: BarreTitre.pc(bandeau, zone, Textes.t("quickRace")))
 	var retour := _bouton(bandeau, "", "retour", func(): App.aller("accueil"), 113, Color.TRANSPARENT)
-	retour.size = Vector2(113, 65)
-	retour.dessinPlus = BarreTitre.retourPC.bind(retour)
+	retour.size = Vector2(73 if etroit else 113, 65)
+	retour.dessinPlus = BarreTitre.retourTel.bind(retour) if etroit else BarreTitre.retourPC.bind(retour)
 	retour.tooltip_text = Textes.t("backWord")
 	var titrePage := _bouton(self, Textes.t("raceSetup"), "", func(): pass, 385, Paddock.PC_CREME, Paddock.PC_ENCRE, 30)
 	titrePage.coupe = 12
+	if compact: titrePage.custom_minimum_size.y = 36
 	titrePage.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	titrePage.focus_mode = Control.FOCUS_NONE
 	titrePage.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -183,12 +191,13 @@ func reconstruit() -> void:
 	var grille := GridContainer.new()
 	grille.columns = 1 if etroit else 2
 	grille.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if not etroit: grille.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	grille.add_theme_constant_override("h_separation", 8)
 	grille.add_theme_constant_override("v_separation", 8)
 	page.add_child(grille)
 	var apercu := _papier(grille)
 	var art := Control.new()
-	art.custom_minimum_size = Vector2(0, 260 if etroit else 232)
+	art.custom_minimum_size = Vector2(0, 205 if compact else 260)
 	art.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	art.draw.connect(func(): Paddock.dessineCircuit(art, info, nuit))
 	apercu.add_child(art)
@@ -248,7 +257,8 @@ func _informations(parent: Control, cid: String, info: Dictionary, y: int) -> vo
 	chronos = ScrollContainer.new()
 	chronos.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	chronos.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_ALWAYS
-	chronos.custom_minimum_size.y = 112
+	chronos.custom_minimum_size.y = 84 if compact else 112
+	chronos.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	bloc.add_child(chronos)
 	var table := _boite(true)
 	table.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -292,8 +302,9 @@ func _reglages(parent: Control, voiture: Dictionary, cid: String, x: int) -> voi
 	for circuit in Catalogue.circuits():
 		var id := String(circuit.id)
 		var b := _bouton(cartes, String(circuit.nom).to_upper(), "circuit-" + id, func(): r.circuit = id; r.tours = paddock.infoCircuits[id].tours; _sauve(), 112, Paddock.PC_CREME, Paddock.PC_ENCRE, 14)
-		b.custom_minimum_size.y = 122
-		b.ligne = 91
+		b.custom_minimum_size.y = 100 if compact else 122
+		b.ligne = 74 if compact else 91
+		b.set_meta("compact", compact)
 		b.set_meta("circuit", id)
 		b.set_meta("sel", id == cid)
 		b.dessinPlus = Paddock._carteCircuitPC.bind(b)
@@ -324,7 +335,7 @@ func _garage(parent: Control, voiture: Dictionary, x: int) -> void:
 	_libelle(apercu, String(voiture.nom).to_upper(), 23)
 	var livrees: Array = voiture.livrees
 	var index := posmod(int(App.reglages.livree), livrees.size())
-	_image(apercu, _vignette(voiture.id, index), 155)
+	_image(apercu, _vignette(voiture.id, index), 114 if compact else 155)
 	var lv := _boite(false)
 	apercu.add_child(lv)
 	var precedent := _bouton(lv, "‹", "livree-gauche", _livree.bind(-1, livrees.size()))
@@ -344,7 +355,7 @@ func _garage(parent: Control, voiture: Dictionary, x: int) -> void:
 	for c in modeles:
 		var id := String(c.id)
 		var b := _bouton(cartes, Paddock._coupe(String(c.nom).to_upper(), 14, 110), "voiture-" + id, paddock._choisitVoiture.bind(id), 120, Paddock.PC_CREME, Paddock.PC_ENCRE, 14)
-		b.custom_minimum_size.y = 112
+		b.custom_minimum_size.y = 96 if compact else 112
 		b.ligne = 84
 		b.set_meta("voiture", c)
 		b.set_meta("sel", id == voiture.id)

@@ -683,7 +683,7 @@ static func _carteVoiturePC(b: Bouton, avecCat: bool) -> void:
 static func _carteCircuitPC(b: Bouton) -> void:
 	var info: Dictionary = Paddock.infosCircuits()[b.get_meta("circuit")]
 	var sel: bool = b.get_meta("sel", false)
-	var art := Rect2(5, 5, b.size.x - 10, 67)
+	var art := Rect2(5, 5, b.size.x - 10, 52 if b.get_meta("compact", false) else 67)
 	Style.couvre(b, info.image, art, 0.5)
 	Paddock._contour(b, info, art.grow(-6), true)
 	var dr := Style.drapeau(info.pays)

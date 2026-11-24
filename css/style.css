@@ -1436,23 +1436,29 @@ Bruno sur un iPhone à Dynamic Island :
 .quick-times-list td img,.quick-times-list td canvas { width:52px; height:29px; object-fit:contain; flex:none; }
 .quick-options,.quick-garage { padding:6px; }
 .quick-options .setup-reglages { display:grid; gap:4px; margin-top:5px; }
-.quick-options .setup-chips { flex-wrap:wrap; gap:4px; }
+.quick-options .setup-chips { flex-wrap:wrap; gap:5px; }
+.quick-options .setup-chips:first-child { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+.quick-options .setup-chips:first-child > .chip { justify-content:space-between; min-width:0; }
+.quick-options .setup-chips:first-child > .chip :is(b,select) { min-width:0; text-overflow:ellipsis; }
+.quick-paddock .quick-options .setup-chips.setup-tuning { display:flex; flex-wrap:wrap; }
+.quick-options .setup-tuning > button.chip { flex:none; }
 .quick-brakes { display:flex; align-items:stretch; max-width:100%; background:#171c19; }
 .setup-screen .quick-brakes > .chip { background:none; clip-path:none; padding-inline:8px; min-width:0; }
 .setup-screen .quick-brakes select { max-width:140px; min-width:0; }
 .setup-screen .quick-brakes > button { border-left:1px solid #676859; }
 .quick-garage { display:grid; grid-template-columns:minmax(0,36fr) minmax(0,64fr); gap:6px; }
 .quick-car,.quick-models { min-width:0; display:flex; flex-direction:column; }
-.quick-paddock .quick-car .paddock-car { height:auto; min-height:130px; flex:1; border:0; }
-.quick-paddock .quick-car .preview-copy { padding:5px 6px; }
+.quick-paddock .quick-car .paddock-car { height:auto; min-height:130px; flex:none; border:0; }
+.quick-paddock .quick-car .preview-copy { display:flex; flex-direction:column; flex:none; padding:5px 6px; line-height:1.1; }
+.quick-paddock .quick-car .preview-copy > :is(b,.eyebrow) { max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .quick-paddock .quick-car .preview-copy b { font-size:clamp(17px,2vw,29px); }
 .quick-paddock .quick-car .preview-copy .eyebrow { font-size:11px; }
 .quick-paddock .quick-car .preview-car { min-height:0; }
 .quick-paddock .quick-car .preview-car :is(img,canvas) { max-height:100%; object-fit:contain; }
 .quick-liveries { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:4px; background:#171c19; color:#fff0d2; text-align:center; font-size:13px; }
 .quick-liveries button { padding:0 8px; color:#fff0d2; min-height:30px; }
-.quick-models .filtre-cat { margin:0 0 4px; gap:3px; }
-.quick-models .filtre-cat button { padding:3px 8px; font-size:clamp(12px,1.3vw,18px); min-height:32px; }
+.quick-models .filtre-cat { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); margin:0 0 4px; gap:3px; }
+.quick-models .filtre-cat button { padding:3px 5px; font-size:clamp(12px,1.3vw,18px); min-width:0; min-height:32px; }
 .quick-paddock .rail .card { flex:0 0 clamp(84px,9vw,140px); min-width:0; padding:4px; }
 .quick-paddock .rail .card b { overflow-wrap:anywhere; font-size:clamp(11px,1.2vw,16px); }
 .quick-paddock .rail.models .card > :is(img,canvas) { height:41px; }
@@ -1461,9 +1467,10 @@ Bruno sur un iPhone à Dynamic Island :
 .quick-paddock .hero-performance .stat b { font-size:clamp(15px,1.6vw,23px); }
 .quick-paddock .hero-performance .stat-ico { width:20px; height:20px; flex-basis:20px; }
 .quick-paddock .hero-performance .stat > div > span { font-size:11px; }
-.quick-paddock .quick-footer { gap:7px; padding:5px 7px 4px; background:#fff0d2; }
+.quick-paddock .quick-footer { gap:7px; padding:6px 9px; background:#fff0d2; }
 .quick-footer-settings { display:flex; flex-wrap:wrap; gap:4px; }
 .quick-paddock .setup-launch .launch-damier { display:none; }
+.quick-paddock .setup-launch .primary { min-height:46px; padding:6px clamp(16px,2.6vw,32px); font-size:clamp(23px,2vw,32px); }
 .quick-footer .quick-footer-back { display:none; }
 .setup-screen button.chip:disabled,.setup-screen .chip:has(input:disabled),.lobby-reglages .chip:has(input:disabled) { opacity:1; background:#565b54; }
 .setup-screen button.chip:disabled > b,.setup-screen .chip > input:disabled { background:#d0d1c8; color:#272c26; }
@@ -1475,20 +1482,46 @@ Bruno sur un iPhone à Dynamic Island :
 .programme-plus { inset:50% auto auto 50%; transform:translate(-50%,-50%); width:56px; height:56px; font-size:44px; line-height:1; }
 .programme-selecteur .rail { margin-top:5px; }
 .programme-selecteur .rail .card { flex:0 0 95px; min-width:0; }
-.programme-carte .programme-manches { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,120px),1fr)); gap:8px; }
+.programme-carte .programme-manches { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,140px),1fr)); gap:8px; }
 .programme-manches li { min-width:0; display:flex; flex-direction:column; border:1px solid #d9c9a9; background:#fff0d2; }
 .programme-manches h4 { text-align:center; margin:0; padding:4px; background:#171c19; color:#fff0d2; }
 .programme-manches b { padding:4px 5px; font-size:14px; }
 .programme-manches .quick-track-art { height:105px; margin-top:auto; }
 .programme-manches .programme-ligne { padding:2px 4px; flex-wrap:wrap; gap:2px; }
 .programme-manches .programme-ligne input { width:3.2em; color:#171c19; background:#21b56f; padding:0 3px; }
-.programme-manches .programme-actions button { flex:1; min-width:0; padding:0 2px; color:#fff0d2; background:#171c19; }
+.programme-manches .programme-actions { justify-content:flex-end; gap:3px; padding:0 4px 4px; }
+.programme-manches .programme-actions button { flex:1; min-width:0; min-height:34px; padding:0 2px; color:#fff0d2; background:#171c19; font-size:18px; }
+@media (hover:hover) and (pointer:fine) {
+  :is(.quick-paddock,.programme-selecteur) .railbox { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:4px; }
+  :is(.quick-paddock,.programme-selecteur) .railbox > .railarrow {
+    position:static; transform:none; width:32px; min-height:44px; padding:0; color:#fff0d2; background:#171c19;
+  }
+  :is(.quick-paddock,.programme-selecteur) .railbox > .railarrow::before { display:none; }
+}
 @media (min-width:851px) {
-  body.desktop .screen.quick-paddock { grid-template-rows:auto auto minmax(min-content,1fr) auto; overflow-y:auto; }
-  body.desktop .quick-grid { grid-template-rows:minmax(225px,1.15fr) minmax(220px,1fr); }
+  body.desktop .screen.quick-paddock { grid-template-rows:auto auto minmax(0,1fr) auto; overflow:hidden; }
+  body.desktop .quick-grid { grid-template-rows:minmax(225px,1fr) auto; overflow:auto; }
+  body.desktop .quick-paddock :is(.quick-grid,.quick-footer) { width:100%; max-width:1680px; justify-self:center; }
+  body.desktop .quick-paddock .race-setup-title { margin-inline-start:max(0px,calc((100% - 1680px) / 2)); }
+  body.desktop .quick-paddock .quick-car .preview-car { height:clamp(135px,20vh,214px); flex:none; }
   body.desktop .quick-paddock .setup-chips { flex-wrap:wrap; }
-  body.desktop .quick-paddock .quick-footer { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); }
-  body.desktop .quick-paddock .quick-footer-back { display:inline-flex; }
+  body.desktop .quick-paddock .quick-footer { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:center; }
+  body.desktop .quick-paddock .quick-footer-back { display:inline-flex; justify-content:center; min-width:120px; }
+}
+@media (min-width:851px) and (max-height:690px) {
+  body.desktop .screen.quick-paddock { padding-block:6px; gap:6px; }
+  body.desktop .quick-paddock .topbar { min-height:48px; }
+  body.desktop .quick-paddock .paddock-logo { height:44px; }
+  body.desktop .quick-paddock .race-setup-title { font-size:25px; }
+  body.desktop .quick-grid { grid-template-rows:minmax(178px,1fr) auto; }
+  body.desktop .quick-paddock .quick-track-art { min-height:170px; }
+  body.desktop .quick-paddock .quick-car .preview-car { height:98px; }
+  body.desktop .quick-paddock .quick-options .chip { min-height:34px; padding-inline:8px; font-size:15px; }
+  body.desktop .quick-paddock .quick-options .chip select { font-size:15px; }
+  body.desktop .quick-paddock .track-card-art { height:38px; padding:3px; }
+  body.desktop .quick-paddock .track-card-art img { height:32px; }
+  body.desktop .quick-paddock .rail.tracks .card > b { font-size:14px; }
+  body.desktop .quick-paddock .quick-footer { padding:4px 7px; }
 }
 @media (max-width:850px) {
   .quick-grid,.programme-ecran .programme-colonnes { grid-template-columns:minmax(0,1fr); }
@@ -1500,9 +1533,15 @@ Bruno sur un iPhone à Dynamic Island :
   .quick-options .setup-chips { gap:4px; }
   .quick-options .chip { padding-inline:8px; font-size:15px; }
   .quick-options .chip select { font-size:16px; }
-  .quick-paddock .quick-footer { flex-wrap:wrap; }
+  .quick-paddock .quick-footer { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; }
+  .quick-paddock .quick-footer .setup-launch.row.end { position:static; width:auto; box-shadow:none; }
   .programme-ecran .programme-colonnes { margin:8px auto; }
 }
+@media (max-width:360px) {
+  .quick-options .setup-chips:first-child > .chip { flex-direction:column; align-items:flex-start; justify-content:center; min-height:54px; }
+  .quick-options .setup-chips:first-child > .chip :is(b,select) { max-width:100%; margin:0; }
+}
 @media (pointer:coarse) {
-  .quick-liveries button,.quick-times-head .filtre-cat button { min-height:44px; min-width:44px; }
+  .quick-liveries button,.quick-times-head .filtre-cat button,.programme-manches .programme-actions button { min-height:44px; }
+  .quick-liveries button,.quick-times-head .filtre-cat button { min-width:44px; }
 }
