@@ -71,7 +71,9 @@ func _choix() -> void:
 
 
 func _nuit() -> bool:
-	return enLigne.timeOfDay == "night" if enLigne != null else bool(App.reglages.get("nuit", false))
+	if enLigne != null: return enLigne.timeOfDay == "night"
+	if App.reglages.mode == "race" and Catalogue.voiture(App.reglages.voiture).get("cat") == "f1": return false
+	return bool(App.reglages.get("nuit", false))
 
 
 func _ready() -> void:
@@ -160,7 +162,7 @@ func _depart() -> void:
 	if enLigne != null:
 		course = _courseEnLigne(modele, cat, h)
 	else: course = classe.new(piste, {
-		modele = modele, difficulte = Catalogue.difficulte(R.difficulte), mode = "timetrial" if R.mode == "training" else R.mode, laps = int(R.tours), phase = manche.get("phase", "course"), dureeSession = manche.get("duree", 0),
+		modele = modele, difficulte = Catalogue.difficulte(R.difficulte), mode = "timetrial" if R.mode == "training" else R.mode, laps = int(manche.get("tours", R.tours)), phase = manche.get("phase", "course"), dureeSession = manche.get("duree", 0),
 		entrainement = R.mode == "training", difficultes = Catalogue.donnees.difficultes,
 		degats = bool(R.get("degats", true)),
 		# le frein du couple circuit + voiture (la pastille FREINAGE), et le mode RÉGLER

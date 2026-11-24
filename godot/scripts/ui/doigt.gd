@@ -47,10 +47,23 @@ func rail(nom: String, r: Rect2, largeur: float, centre: float) -> Control:
 func pose(nom: String, x: float) -> void:
 	if not rails.has(nom): return
 	var R: Dictionary = rails[nom]
+	if R.get("natif", false):
+		var vue: ScrollContainer = R.vue
+		var barre := vue.get_h_scroll_bar()
+		var maxi := maxf(0.0, barre.max_value - barre.page)
+		x = clampf(x, 0.0, maxi)
+		if (x <= 0 or x >= maxi) and nom == elanRail: elan = Vector2.ZERO
+		railX[nom] = x
+		vue.scroll_horizontal = roundi(x)
+		return
 	x = clampf(x, 0, R.maxi)
 	if (x <= 0 or x >= R.maxi) and nom == elanRail: elan = Vector2.ZERO
 	railX[nom] = x
 	(R.contenu as Control).position.x = -x
+
+
+func railNatif(nom: String, vue: ScrollContainer) -> void:
+	rails[nom] = { vue = vue, natif = true }
 
 
 ## Le rail fait voir le contrôle `c` (la manette, le clavier).
@@ -73,7 +86,9 @@ func entree(e: InputEvent) -> void:
 		if e.pressed:
 			# un nouveau doigt prend la main (un doigt dont on n'aurait pas su qu'il s'est levé ne bloque rien)
 			elan = Vector2.ZERO
-			etat = { actif = true, index = e.index, depart = e.position, axe = "", rail = _railSous(e.position), t = Time.get_ticks_usec(), v = Vector2.ZERO }
+			var nom := _railSous(e.position)
+			if nom != "" and rails[nom].get("natif", false): railX[nom] = float(rails[nom].vue.scroll_horizontal)
+			etat = { actif = true, index = e.index, depart = e.position, axe = "", rail = nom, t = Time.get_ticks_usec(), v = Vector2.ZERO }
 		elif actif() and e.index == int(etat.index):
 			if etat.axe != "":
 				elanRail = etat.rail if etat.axe == "x" else ""

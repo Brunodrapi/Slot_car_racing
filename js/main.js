@@ -440,6 +440,7 @@ class App {
       reglage: !!reglage,
       frein: freinDe(this.save, trackId, modelId),
       mode: entrainement ? 'timetrial' : mode, entrainement, ghostName: this.ui.t('ghost'),
+      timeOfDay: mode === 'race' && cat.id === 'f1' ? 'day' : this.save.timeOfDay,
       trackDef, classId, modelId,
       playerLivree: this.playerLivreeFor(modelId),
       // The circuit's own suggestion unless the player has asked for a number; a championship

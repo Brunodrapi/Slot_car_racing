@@ -114,6 +114,7 @@ const I18N = {
     next: 'Suivant', retry: 'Rejouer', menu: 'Menu', resume: 'Reprendre', restart: 'Recommencer', quit: 'Quitter', paused: 'Pause', endSession: 'Terminer',
     lap: 'Tour', last: 'Dernier', best: 'Meilleur', grip: 'adhérence', holdToGo: 'Maintiens Espace pour accélérer', holdToGoTouch: 'Maintiens l’écran pour accélérer', lineHintKeys: '↑ / ↓ : trajectoire', lineHintTouch: 'Pouce gauche : trajectoire',
     programmeCourse: 'Programme de course', essais: 'Essais libres', qualifications: 'Qualifications', championnat: 'Championnat',
+    raceSetup: 'Réglages de course', circuitTimes: 'Chronos du circuit', circuitLength: 'Longueur', circuitTurns: 'Virages', circuitRadius: 'Rayon minimal', circuitStraight: 'Ligne droite', circuitRecord: 'Record du circuit', opponents: 'Adversaires', calendar: 'Calendrier', round: n => `Course ${n}`, next: 'Suivant', previous: 'Précédent',
     grilleDepart: 'Grille de départ', ajouterCircuit: 'Ajouter un circuit', monterCircuit: 'Remonter le circuit', retirerCircuit: 'Retirer le circuit',
     programmeHint: '0 min désactive la séance.', bareme_f1: 'F1 · 25 pts pour la victoire. La qualification fixe la grille.',
     bareme_gt: 'GT Sprint · 16,5 pts pour la victoire et 1 pt pour la pole.', bareme_lemans: 'Le Mans · 50 pts pour la victoire et 1 pt pour la pole.',
@@ -271,6 +272,7 @@ const I18N = {
     next: 'Next', retry: 'Retry', menu: 'Menu', resume: 'Resume', restart: 'Restart', quit: 'Quit', paused: 'Paused', endSession: 'Finish',
     lap: 'Lap', last: 'Last', best: 'Best', grip: 'grip', holdToGo: 'Hold Space to accelerate', holdToGoTouch: 'Hold anywhere to accelerate', lineHintKeys: '↑ / ↓: racing line', lineHintTouch: 'Left thumb: line',
     programmeCourse: 'Race programme', essais: 'Free practice', qualifications: 'Qualifying', championnat: 'Championship',
+    raceSetup: 'Race setup', circuitTimes: 'Circuit lap times', circuitLength: 'Length', circuitTurns: 'Corners', circuitRadius: 'Minimum radius', circuitStraight: 'Longest straight', circuitRecord: 'Circuit record', opponents: 'Opponents', calendar: 'Calendar', round: n => `Race ${n}`, next: 'Next', previous: 'Previous',
     grilleDepart: 'Starting grid', ajouterCircuit: 'Add a track', monterCircuit: 'Move track up', retirerCircuit: 'Remove track',
     programmeHint: '0 min disables the session.', bareme_f1: 'F1 · 25 pts for the win. Qualifying sets the grid.',
     bareme_gt: 'GT Sprint · 16.5 pts for the win and 1 pt for pole.', bareme_lemans: 'Le Mans · 50 pts for the win and 1 pt for pole.',
@@ -632,8 +634,8 @@ class UI {
   hide() { this.root.classList.add('hidden'); this.root.innerHTML = ''; this._cleEcran = null; }
 
   // ---------- thumbnails ----------
-  thumb(trackDef, size) {
-    const key = trackDef.id + ':' + size;
+  thumb(trackDef, size, night = false) {
+    const key = trackDef.id + ':' + size + ':' + night;
     if (this.thumbs.has(key)) return this.thumbs.get(key);
     let url = '';
     try {
@@ -650,8 +652,8 @@ class UI {
       g.beginPath();
       for (let i = 0; i < T.n; i += 4) { if (i === 0) g.moveTo(T.xs[i], T.ys[i]); else g.lineTo(T.xs[i], T.ys[i]); }
       g.closePath();
-      g.strokeStyle = '#fff0cd'; g.lineWidth = (size >= 200 ? 16 : 10) / sc; g.stroke();
-      g.strokeStyle = '#171c19'; g.lineWidth = (size >= 200 ? 9 : 5) / sc; g.stroke();
+      g.strokeStyle = night ? '#000' : '#fff0cd'; g.lineWidth = (size >= 200 ? 16 : 10) / sc; g.stroke();
+      g.strokeStyle = night ? '#fff' : '#171c19'; g.lineWidth = (size >= 200 ? 9 : 5) / sc; g.stroke();
       g.fillStyle = '#c72d24'; g.beginPath(); g.arc(T.xs[0], T.ys[0], 3 / sc, 0, 7); g.fill();
       url = c.toDataURL();
     } catch (e) { url = ''; }
@@ -1330,7 +1332,7 @@ class UI {
     this._mondiaux = { circuit: trackId, par };
     // on ne repeint que si le joueur est toujours devant le même écran et le même circuit
     // le contre-la-montre et l'entraînement montrent tous deux les records
-    if ((this._cleEcran === 'depart:timetrial' || this._cleEcran === 'depart:training') && this.setup.trackId === trackId) this.setupScreen(this.setup.mode);
+    if (this._cleEcran?.startsWith('depart:') && this.setup.trackId === trackId) this.setupScreen(this.setup.mode);
   }
 
   /* Le filtre de catégorie posé au-dessus d'un rail de voitures.
@@ -1339,7 +1341,7 @@ class UI {
   `verrou` sert au salon : seul l'hôte choisit la catégorie de la table, les autres la lisent. */
   filtreCat(action, courant, verrou) {
     const ids = ['all'].concat(playableCategories().map(c => c.id));
-    return `<div class="seg filtre-cat">${ids.map(id => `<button class="${courant === id ? 'sel' : ''}" data-action="${action}" data-id="${id}" ${verrou ? 'disabled' : ''}>${id === 'all' ? this.t('catAll') : escapeHtml(this.L(categoryById(id).name))}</button>`).join('')}</div>`;
+    return `<div class="seg filtre-cat">${ids.map(id => `<button class="${courant === id ? 'sel' : ''}" data-action="${action}" data-id="${id}" aria-pressed="${courant === id}" ${verrou ? 'disabled' : ''}>${id === 'all' ? this.t('catAll') : escapeHtml(this.L(categoryById(id).name))}</button>`).join('')}</div>`;
   }
   filtreCourant() {
     const f = this.app.save.filtreCat;
@@ -1351,6 +1353,64 @@ class UI {
   }
   // Quand le rail mélange les catégories, chaque carte dit la sienne : c'est elle qui décide contre qui on court.
   etiquetteCat(m) { return `<small class="cattag cat-${escapeHtml(m.catId)}">${escapeHtml(this.L(categoryById(m.catId).name))}</small>`; }
+
+  imageCircuit(tr, night, extra = '') {
+    const art = this.circuitArt(tr);
+    return `<div class="quick-track-art${night ? ' circuit-nuit' : ''}">
+      <div class="quick-track-bg" ${art ? `style="background-image:url('${art}')"` : ''}></div>
+      <img src="${this.thumb(tr, 360, night)}" alt="${escapeHtml(tr.name)}">${extra}</div>`;
+  }
+
+  chronosCircuit(tr) {
+    const t = k => this.t(k), app = this.app, filtre = this.filtreChronos || 'all';
+    const mondiaux = this._mondiaux?.circuit === tr.id ? this._mondiaux.par : null;
+    if (!mondiaux) this._chargeMondiaux(tr.id);
+    const lignes = this.modelesVisibles(filtre).map(m => {
+      const perso = app.save.bestLaps[`${tr.id}|${m.catId}|${m.id}`];
+      return {m, perso, monde: mondiaux?.[m.id]};
+    }).filter(l => l.perso > 0 || l.monde?.temps > 0)
+      .sort((a, b) => Math.min(a.perso || Infinity, a.monde?.temps || Infinity) - Math.min(b.perso || Infinity, b.monde?.temps || Infinity));
+    return `<section class="quick-times"><div class="quick-times-head"><h3>${t('circuitTimes')}</h3>${this.filtreCat('chronoCat', filtre)}</div>
+      <div class="quick-times-list" data-chronos-scroll role="region" aria-label="${t('circuitTimes')}" tabindex="0">
+        ${lignes.length ? `<table aria-label="${t('circuitTimes')}"><thead><tr><th scope="col">${t('model')}</th><th scope="col">${t('yourBest')}</th><th scope="col">${t('worldBest')}</th></tr></thead><tbody>
+        ${lignes.map(({m, perso, monde}) => `<tr><td><span>${this.carIcon(m, LIVERIES[app.save.livery], app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}</b></span></td>
+          <td>${perso > 0 ? fmtTime(perso) : '—'}</td><td>${monde?.temps > 0 ? fmtTime(monde.temps) : '—'}</td></tr>`).join('')}</tbody></table>`
+          : `<p>${mondiaux ? '—' : '…'}</p>`}</div></section>`;
+  }
+
+  quickSetup(model, tr, laps, filtre, ouverts, perso) {
+    const t = k => this.t(k), app = this.app, s = app.save;
+    const nuit = s.timeOfDay === 'night' && model.catId !== 'f1';
+    const lumiere = `<button class="quick-light" data-action="pickTimeOfDay" data-id="${nuit ? 'day' : 'night'}" aria-label="${t('night')}" aria-pressed="${nuit}" ${model.catId === 'f1' ? 'disabled' : ''}>${nuit ? '☾' : '☀︎'}</button>`;
+    const circuit = app.trackCache(tr.id), virages = circuit.corners;
+    const rayon = circuit.k.reduce((m, v) => Math.max(m, Math.abs(v)), 0);
+    const droite = virages.reduce((m, v, i) => Math.max(m, (virages[i+1]?.from ?? virages[0].from + circuit.n) - v.to), 0) * circuit.ds;
+    const noms = this.lang === 'fr' ? new Intl.DisplayNames(['fr'], {type:'region'}) : new Intl.DisplayNames(['en'], {type:'region'});
+    const records = this._mondiaux?.circuit === tr.id ? Object.values(this._mondiaux.par) : [];
+    const record = Math.min(...records.map(l => l.temps).filter(temps => temps > 0));
+    const valeurs = [
+      [t('circuitLength'), this.longueur(tr)], [t('circuitTurns'), virages.length],
+      [t('circuitRadius'), rayon ? `${(1/rayon).toLocaleString(this.lang, {maximumFractionDigits:1})} m` : '—'],
+      [t('circuitStraight'), droite > 0 ? `${Math.round(droite)} m` : '—']
+    ];
+    const choixCircuits = TRACKS.concat(perso ? [perso] : []);
+    const choix = this.rail('tracks', 'tracks', choixCircuits.map(c => {
+      const verrou = c !== perso && !ouverts.has(c.id);
+      return `<button class="card ${c.id === tr.id ? 'sel' : ''}" data-action="pickTrack" data-id="${escapeHtml(c.id)}" ${verrou ? 'disabled' : ''}>
+        <span class="track-card-art" style="background-image:url('${this.circuitArt(c)}')"><img alt="" src="${this.thumb(c, 90)}"></span><b>${escapeHtml(c.name)}</b><small>${verrou ? t('locked') : this.longueur(c)}</small></button>`;
+    }).join(''));
+    const lv = app.playerLivreeFor(model.id), livre = model.livrees || [];
+    const livrees = `<div class="quick-liveries" aria-label="${t('livery')}">${[-1, 1].map((sens, i) => `${i ? `<span>${escapeHtml(livre[lv] ? nomLivree(livre[lv], this.lang) : model.name)}</span>` : ''}<button data-action="pickLivery" data-id="${(lv + sens + livre.length) % livre.length}" aria-label="${t(i ? 'next' : 'previous')}" ${livre.length < 2 ? 'disabled' : ''}>${i ? '›' : '‹'}</button>`).join('')}</div>`;
+    this.show(`${this.paddockTopbar(t('quickRace'))}<h1 class="race-setup-title">${t('raceSetup')}</h1>
+      <div class="quick-grid">
+        <div class="quick-preview">${this.imageCircuit(tr, nuit, lumiere)}</div>
+        <div class="quick-info"><div class="quick-track-name"><h2>${escapeHtml(tr.name)}</h2>${this.circuitFlag(tr)}<small>${tr.country ? escapeHtml(noms.of(tr.country)) : ''}</small><div class="quick-record"><small>${t('circuitRecord')}</small><b>${Number.isFinite(record) ? fmtTime(record) : '—'}</b></div></div>
+          <dl class="quick-facts">${valeurs.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>${this.chronosCircuit(tr)}</div>
+        <section class="quick-options">${choix}${this.setupBar(true, model, tr, laps, 'reglages')}</section>
+        <section class="quick-garage"><div class="quick-car">${this.carPreview(model)}${livrees}</div><div class="quick-models">
+          ${this.filtreCat('pickCat', filtre)}${this.rail('models', 'models', this.modelesVisibles(filtre).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${escapeHtml(m.id)}">${this.carIcon(m, LIVERIES[s.livery], app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}</b></button>`).join(''))}${this.heroStats(model)}</div></section>
+      </div>${this.setupBar(true, model, tr, laps, 'bas')}`, 'scroll setup-screen quick-paddock', 'depart:race');
+  }
 
   setupScreen(mode) {
     const t = (k, ...a) => this.t(k, ...a), s = this.app.save, st = this.setup, app = this.app;
@@ -1384,6 +1444,7 @@ class UI {
     const laps = s.laps || lapsFor(trackDef, cat);
     const livery = LIVERIES[s.livery];
     const race = mode === 'race', entrainement = mode === 'training';
+    if (race) return this.quickSetup(model, trackDef, laps, filtre, ut, perso);
     this.show(`
       ${this.paddockTopbar(race ? t('quickRace') : entrainement ? t('training') : t('timeTrial'))}
       <div class="setup-columns"><section class="setup-block car-sheet">
@@ -1471,7 +1532,7 @@ class UI {
   la seconde n'aurait plus été atteignable qu'à la souris. RB/LB passe donc d'une liste à l'autre. */
   boutonProgramme(options, enLigne) {
     const actif = Championnat.actif(options);
-    return `<button class="chip programme-bouton ${actif ? 'programme-actif' : ''}" data-action="programme" data-id="${enLigne ? 'multi' : 'solo'}" aria-pressed="${actif}">${this.t('programmeCourse')}</button>`;
+    return `<button class="chip programme-bouton ${actif ? 'programme-actif' : ''}" data-action="programme" data-id="${enLigne ? 'multi' : 'solo'}" aria-pressed="${actif}">${this.t('championnat')}</button>`;
   }
 
   programmeScreen(enLigne) {
@@ -1488,12 +1549,21 @@ class UI {
       : table.mode === 'duel' ? pilotes.length : table.aiCount >= 0 ? Math.min(12, pilotes.length + table.aiCount)
         : Math.max(pilotes.length + 1, Math.min(categorie.drivers, 12));
     const calendrier = options.circuits || [], places = options.positions || {};
-    const disponibles = TRACKS.filter(tr => !calendrier.includes(tr.id));
+    const tours = (enLigne ? table.laps : app.save.laps) || 5;
+    const verrouAjout = !editable || calendrier.length >= 10 ? 'disabled' : '';
+    const selection = app.trackDefById(this.circuitProgramme || circuit) || TRACKS[0];
+    const nuit = (enLigne ? table.timeOfDay : app.save.timeOfDay) === 'night' && categorie.id !== 'f1';
     const phases = ['essais', 'qualifications'];
     const nomCircuit = id => escapeHtml(app.trackDefById(id)?.name || id);
     this.show(`
-      ${this.paddockTopbar(t('programmeCourse'), 'programmeRetour', t('back'))}
+      ${this.paddockTopbar(t('championnat'), 'programmeRetour', t('back'))}
       <div class="programme-colonnes">
+        <div class="programme-gauche">
+        <section class="programme-carte programme-selecteur">
+          <h3>${nomCircuit(selection.id)}</h3>
+          ${this.imageCircuit(selection, nuit, `<button class="programme-plus" data-action="programmeAjouter" data-id="${escapeHtml(selection.id)}" aria-label="${t('ajouterCircuit')} · ${nomCircuit(selection.id)}" ${verrouAjout}>+</button>`)}
+          ${this.rail('champCircuits', 'tracks', TRACKS.map(tr => `<button class="card ${tr.id === selection.id ? 'sel' : ''}" data-action="programmeChoisir" data-id="${escapeHtml(tr.id)}"><span class="track-card-art" style="background-image:url('${this.circuitArt(tr)}')"><img alt="" src="${this.thumb(tr, 90)}"></span><b>${escapeHtml(tr.name)}</b></button>`).join(''))}
+        </section>
         <section class="programme-carte">
           ${phases.map(phase => `<label class="programme-ligne">${t(phase)} <span><input type="number" min="0" max="60" value="${Number(options[phase]) || 0}" data-programme-duree="${phase}" ${verrou}> min</span></label>`).join('')}
           <p class="muted">${t('programmeHint')} ${t('bareme_' + Championnat.cleBareme(categorie.id))}</p>
@@ -1501,30 +1571,36 @@ class UI {
           ${pilotes.map(p => `<label class="programme-ligne">${escapeHtml(p.name)}<select data-programme-pilote="${escapeHtml(p.pid)}" ${verrou}>
             <option value="0">${t('auto')}</option>${Array.from({length: maximum}, (_, i) => i + 1).map(i => `<option value="${i}" ${places[p.pid] === i ? 'selected' : ''}>${i}</option>`).join('')}
           </select></label>`).join('')}
-        </section>
+        </section></div>
         <section class="programme-carte">
-          <h3>${t('championnat')}</h3>
-          ${calendrier.length ? `<ol>${calendrier.map((id,i) => `<li><div class="programme-ligne"><span>${nomCircuit(id)}</span><div class="programme-actions">
-            <button data-action="programmeMonter" data-id="${i}" aria-label="${t('monterCircuit')}" ${i === 0 ? 'disabled' : verrou}>↑</button>
-            <button data-action="programmeRetirer" data-id="${i}" aria-label="${t('retirerCircuit')}" ${verrou}>×</button></div></div></li>`).join('')}</ol>` : `<p>${nomCircuit(circuit)}</p>`}
-          <select data-programme-circuit aria-label="${t('ajouterCircuit')}" ${disponibles.length ? verrou : 'disabled'}><option value="">${t('ajouterCircuit')}</option>
-            ${disponibles.map(tr => `<option value="${escapeHtml(tr.id)}">${nomCircuit(tr.id)}</option>`).join('')}</select>
+          <h3>${t('calendar')} <small>${calendrier.length} / 10</small></h3>
+          <ol class="programme-manches">${calendrier.map((id,i) => {
+            const tr = app.trackDefById(id);
+            return `<li><h4>${this.t('round', i+1)}</h4><b>${nomCircuit(id)}</b>${tr ? this.imageCircuit(tr, nuit) : ''}
+              <label class="programme-ligne">${t('lapCount')} <input type="number" min="1" max="99" value="${Championnat.toursManche(options,i,tours)}" data-programme-tours="${i}" ${verrou}></label>
+              <div class="programme-actions"><button data-action="programmeDeplacer" data-id="${i}" data-dir="-1" aria-label="${t('previous')}" ${i === 0 ? 'disabled' : verrou}>‹</button>
+              <button data-action="programmeDeplacer" data-id="${i}" data-dir="1" aria-label="${t('next')}" ${i === calendrier.length-1 ? 'disabled' : verrou}>›</button>
+              <button data-action="programmeRetirer" data-id="${i}" aria-label="${t('retirerCircuit')}" ${verrou}>×</button></div></li>`;
+          }).join('')}</ol>
         </section>
       </div>`, 'scroll selection-screen programme-ecran', enLigne ? 'programme:multi' : 'programme:solo');
   }
 
-  editeProgramme(action) {
+  editeProgramme(action, repeindre = true) {
     const enLigne = this._cleEcran === 'programme:multi';
     const app = this.app, table = enLigne ? app.net.settings() : null;
     if (enLigne && (!app.net.creator || Championnat.manche(table.championnat).phase)) return;
     const options = structuredClone((enLigne ? table.programme : app.save.programme) || {});
-    action(options);
+    const defaut = (enLigne ? table.laps : app.save.laps) || 5;
+    options.circuits ||= [];
+    options.toursParManche = options.circuits.map((_, i) => Championnat.toursManche(options, i, defaut));
+    action(options, defaut);
     if (enLigne) app.net.setTable({ programme: options });
     else { app.save.programme = options; storeSave(app.save); }
-    this.programmeScreen(enLigne);
+    if (repeindre) this.programmeScreen(enLigne);
   }
 
-  setupBar(race, model, trackDef, laps) {
+  setupBar(race, model, trackDef, laps, partie) {
     const t = (k, ...a) => this.t(k, ...a), s = this.app.save, st = this.setup, app = this.app;
     const suivant = (liste, cur) => liste[(liste.indexOf(cur) + 1) % liste.length];
     const pastille = (libelle, valeur, attrs, type = '') => `<button class="chip ${type}" ${attrs}><span>${libelle} :</span> <b>${valeur}</b></button>`;
@@ -1532,30 +1608,30 @@ class UI {
     const frein = freinDe(s, st.trackId, model.id);
     const desktop = app.desktop;
     const gamepad = desktop && app.controls.mode === 'gamepad';
-    return `<div class="setup-bar"><div class="setup-reglages">
-      <div class="setup-chips" data-pad-group>
+    const toursVerrou = s.programme?.circuits?.length ? 'disabled' : '';
+    const reglages = `<div class="setup-reglages">
+      ${!race ? `<div class="setup-chips" data-pad-group>
         ${pastille(t('timeOfDay'), t(s.timeOfDay === 'night' ? 'night' : 'day'), `data-action="pickTimeOfDay" data-id="${s.timeOfDay === 'night' ? 'day' : 'night'}" aria-pressed="${s.timeOfDay === 'night'}"`, s.timeOfDay === 'night' && model.catId === 'f1' ? 'nuit-f1' : '')}
-        ${race && DEGATS_ACTIVE && !(USURE_ACTIVE && s.wear) ? pastille(t('chipDegats'), t(s.degats !== false ? 'on' : 'off'), `data-action="pickDegats" data-id="${s.degats !== false ? 0 : 1}" aria-pressed="${s.degats !== false}" title="${escapeHtml(t('degatsHint'))}"`) : ''}
         ${s.timeOfDay === 'night' ? `<small class="muted night-hint">${t(model.catId === 'f1' ? 'nightF1Hint' : 'nightHint')}</small>` : ''}
-      </div>
+      </div>` : ''}
       ${race ? `<div class="setup-chips" data-pad-group>
         ${pastille(t('difficulty'), t(s.difficulty), `data-action="pickDiff" data-id="${suivant(NIVEAUX, s.difficulty)}"`)}
-        ${pastille(t('lapCount'), s.lapsPerso ? `${t('lapCustom')}` : (s.laps || 5), `data-action="pickLaps" data-id="${suivant([2, 5, 10, 20, 'perso'], toursCourants)}"`)}
-        ${s.lapsPerso ? `<label class="chip chip-input"><span>${t('lapCount')} :</span><input id="inp-laps" type="number" min="1" max="99" value="${Math.max(1, Math.min(99, s.laps || 5))}"></label>` : ''}
-        <label class="chip chip-select"><span>${t('adversairesIA')} :</span><select id="solo-ai"><option value="0">${t('auto')}</option>
+        <label class="chip chip-select"><span>${t('opponents')} :</span><select id="solo-ai"><option value="0">${t('auto')}</option>
           ${Array.from({length: 11}, (_, i) => i + 1).map(i => `<option value="${i}" ${s.adversaires === i ? 'selected' : ''}>${i}</option>`).join('')}</select></label>
-        ${this.boutonProgramme(s.programme, false)}
         ${USURE_ACTIVE ? pastille(t('chipWear'), t(s.wear ? 'on' : 'off'), `data-action="pickWear" data-id="${s.wear ? 0 : 1}" title="${escapeHtml(t('wearHint'))}"`) : ''}
       </div>` : ''}
       <!-- La liste et le choix actif sont propres au couple circuit+voiture.
            Un même nom peut conserver des valeurs pour plusieurs couples ; chacun retrouve
            son propre choix quand le joueur revient, y compris « Par défaut ». -->
       <div class="setup-chips setup-tuning" data-pad-group>
+        ${race && DEGATS_ACTIVE && !(USURE_ACTIVE && s.wear) ? pastille(t('chipDegats'), t(s.degats !== false ? 'on' : 'off'), `data-action="pickDegats" data-id="${s.degats !== false ? 0 : 1}" aria-pressed="${s.degats !== false}" title="${escapeHtml(t('degatsHint'))}"`) : ''}
+        <div class="quick-brakes">
         <label class="chip chip-select" data-pad-group title="${escapeHtml(t('regPortee'))}"><span>${t('freinage')} :</span><select id="sel-reglage">
           <option value="">${t('regDefaut')}</option>
           ${reglagesPour(s, st.trackId, model.id).map(c => `<option value="${escapeHtml(c.nom)}" ${configActive(s, st.trackId, model.id)?.nom === c.nom ? 'selected' : ''}>${escapeHtml(c.nom)}</option>`).join('')}
         </select><small class="reg-ici">${frein === 1 ? t('regIciDefaut') : t('regIci', frein)}</small></label>
         <button class="chip" data-action="startTune" data-pad-group>${t('regRegler')}</button>
+        </div>
       </div>
       ${desktop && MANETTE ? `<div class="setup-chips pc-controls" data-pad-group>
         <label class="chip chip-select" data-pad-group><span>${t('chipControl')} :</span><select id="sel-desktop-control">${[['keyboard', 'controlKeyboard'], ['wheel', 'controlWheel'], ['gamepad', 'controlGamepad']].map(([m, key]) =>
@@ -1571,12 +1647,18 @@ class UI {
         </span>
         <span class="sr" data-control-help aria-live="polite">${this.controlHelp()}</span>
       </div>` : ''}
-      </div>
+      </div>`;
+    const lancement = `<div class="setup-bar quick-footer">
+      ${race ? `<div class="quick-footer-settings">${this.boutonProgramme(s.programme, false)}
+        ${pastille(t('lapCount'), s.lapsPerso ? t('lapCustom') : (s.laps || 5), `data-action="pickLaps" data-id="${suivant([2, 5, 10, 20, 'perso'], toursCourants)}" ${toursVerrou}`)}
+        ${s.lapsPerso ? `<label class="chip chip-input"><span>${t('lapCount')} :</span><input id="inp-laps" type="number" min="1" max="99" value="${Math.max(1, Math.min(99, s.laps || 5))}" ${toursVerrou}></label>` : ''}</div>` : reglages}
+      ${race ? `<button class="chip quick-footer-back" data-action="menu">${t('back')}</button>` : ''}
       <div class="row end setup-launch">
         <span class="muted launch-resume">${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ${escapeHtml(model.name)} · ${race ? `${laps} ${t('laps')}` : st.mode === 'training' ? t('trainingIntro') : t('ttIntro')}</span>
         <span class="damier launch-damier" aria-hidden="true"></span><button class="big primary" data-action="startQuick">${t('enPiste')} <span aria-hidden="true">→</span></button>
       </div>
     </div>`;
+    return partie === 'reglages' ? reglages : lancement;
   }
 
   // ---------- racing together ----------
@@ -1659,8 +1741,8 @@ class UI {
       <section class="programme-carte lobby-reglages">
         <div><h3>${t('mFormat')}</h3><div class="seg">
           ${NET_MODES.map(m => bouton('netMode', m, t({race: 'mRace', duel: 'mDuel', ghost: 'mGhost'}[m]), cfg.mode === m)).join('')}</div>
-          ${cfg.mode === 'race' ? `<label class="chip chip-input"><span>${t('lapCount')}</span><input id="net-laps" type="number" min="1" max="10" value="${Number(cfg.laps) || 3}" ${verrou}></label>
-          <label class="chip chip-select"><span>${t('adversairesIA')}</span><select id="net-ai" ${verrou}>
+          ${cfg.mode === 'race' ? `<label class="chip chip-input"><span>${t('lapCount')}</span><input id="net-laps" type="number" min="1" max="10" value="${Number(cfg.laps) || 3}" ${cfg.programme?.circuits?.length ? 'disabled' : verrou}></label>
+          <label class="chip chip-select"><span>${t('opponents')}</span><select id="net-ai" ${verrou}>
             <option value="-1">${t('auto')}</option>${Array.from({length: maxIA + 1}, (_, i) => `<option value="${i}" ${cfg.aiCount === i ? 'selected' : ''}>${i}</option>`).join('')}</select></label>` : ''}
           ${!net.mine.spectator ? `<label class="chip chip-select"><span>${t('freinage')}</span><select id="net-frein" data-track="${escapeHtml(trackDef.id)}" data-model="${escapeHtml(model.id)}">
             <option value="">${t('regDefaut')}</option>${reglagesPour(s, trackDef.id, model.id).map(c => `<option value="${escapeHtml(c.nom)}" ${c.nom === frein?.nom ? 'selected' : ''}>${escapeHtml(c.nom)}</option>`).join('')}</select></label>` : ''}
@@ -2002,6 +2084,7 @@ class UI {
         if (id !== 'all') { app.save.cat = id; this.setup.classId = id; }
         storeSave(app.save); this.setupScreen(this.setup.mode); break;
       }
+      case 'chronoCat': this.filtreChronos = id; this.setupScreen(this.setup.mode); break;
       case 'pickModelCup': {
         const cup = CUPS.find(c => c.id === btn.dataset.cup);
         this._choisitOuTourne(id, cup ? app.playerModelFor(cup.classId).id : null, false); this.cupScreen(btn.dataset.cup); break;
@@ -2042,6 +2125,7 @@ class UI {
       case 'netTrack': app.net.setTable({ trackId: id, laps: lapsFor(app.trackDefById(id), categoryById(this.setup.classId)) }); break;
       case 'programme':
         this.programmeDefilement = this.root.firstElementChild?.scrollTop || 0;
+        this.circuitProgramme = null;
         this.programmeScreen(id === 'multi');
         break;
       case 'programmeRetour':
@@ -2049,8 +2133,13 @@ class UI {
         else this.setupScreen(this.setup.mode);
         this.root.firstElementChild.scrollTop = this.programmeDefilement || 0;
         break;
-      case 'programmeMonter': this.editeProgramme(o => { const i = Number(id); [o.circuits[i - 1], o.circuits[i]] = [o.circuits[i], o.circuits[i - 1]]; }); break;
-      case 'programmeRetirer': this.editeProgramme(o => o.circuits.splice(Number(id), 1)); break;
+      case 'programmeChoisir': this.circuitProgramme = id; this.programmeScreen(this._cleEcran === 'programme:multi'); break;
+      case 'programmeAjouter': this.editeProgramme((o, tours) => { if (o.circuits.length < 10) { o.circuits.push(id); o.toursParManche.push(tours); } }); break;
+      case 'programmeDeplacer': this.editeProgramme(o => {
+        const i = Number(id), j = i + Number(btn.dataset.dir);
+        for (const liste of [o.circuits, o.toursParManche]) [liste[i], liste[j]] = [liste[j], liste[i]];
+      }); break;
+      case 'programmeRetirer': this.editeProgramme(o => { o.circuits.splice(Number(id), 1); o.toursParManche.splice(Number(id), 1); }); break;
       case 'sessionSuivante': app.sessionSuivante(); break;
       case 'netAnnulerChampionnat': app.net.setTable({ championnat: {} }); break;
       case 'netReady': this._netReady(!app.net.mine.ready); break;
@@ -2173,8 +2262,11 @@ class UI {
     if (el.id === 'sel-lines') { s.showLines = el.value === '1'; storeSave(s); this.app.renderer.showLines = s.showLines; }
     // le côté du levier : le rendu le relit à chaque image, il n'y a rien d'autre à faire ici
     if (el.id === 'sel-side') { s.ctrlSide = el.value === 'right' ? 'right' : 'left'; storeSave(s); }
-    if (el.dataset.programmeDuree) this.editeProgramme(o => { o[el.dataset.programmeDuree] = clamp(Math.round(Number(el.value) || 0), 0, 60); });
-    if (el.hasAttribute('data-programme-circuit') && el.value) this.editeProgramme(o => { (o.circuits ||= []).push(el.value); });
+    if (el.dataset.programmeDuree) this.editeProgramme(o => { o[el.dataset.programmeDuree] = el.value = clamp(Math.round(Number(el.value) || 0), 0, 60); }, false);
+    if (el.hasAttribute('data-programme-tours')) this.editeProgramme((o, defaut) => {
+      const i = Number(el.dataset.programmeTours);
+      o.toursParManche[i] = el.value = clamp(Math.round(Number(el.value) || defaut), 1, 99);
+    }, false);
     if (el.dataset.programmePilote) this.editeProgramme(o => {
       const positions = o.positions ||= {}, pid = el.dataset.programmePilote, place = Number(el.value);
       for (const [id, pos] of Object.entries(positions)) if (id === pid || pos === place) delete positions[id];

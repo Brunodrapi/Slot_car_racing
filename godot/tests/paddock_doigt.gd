@@ -21,32 +21,41 @@ func _ready() -> void:
 	await get_tree().create_timer(0.6).timeout
 	var p: Control = app.ecran
 	_verifie(p.portrait, "la page est en portrait")
-	var rail: Control = p.rails.voitures.vue
-	var t := rail.get_global_transform()
-	var centre := t.origin + rail.size * t.get_scale() / 2
-	var x0: float = p.railX.voitures
+	var rapide: Control = p.rapide
+	var page: ScrollContainer = rapide.page
+	var rail: ScrollContainer = rapide.rails.voitures
+	var ecran := get_viewport().get_stretch_transform()
+	page.scroll_vertical = int(page.get_v_scroll_bar().max_value)
+	rail.scroll_horizontal = 0
+	await get_tree().process_frame
+	var centre := ecran * page.get_global_rect().intersection(rail.get_global_rect()).get_center()
+	var x0 := rail.scroll_horizontal
+	var y0 := page.scroll_vertical
 	# 1. un glissé de côté sur le rail
 	await _glisse(centre, centre + Vector2(-240, 6))
 	await get_tree().create_timer(0.6).timeout
-	_verifie(float(p.railX.voitures) > x0 + 60, "le rail a défilé (%.0f → %.0f)" % [x0, p.railX.voitures])
+	_verifie(rail.scroll_horizontal > x0 + 60, "le rail a défilé (%d → %d)" % [x0, rail.scroll_horizontal])
 	_verifie(app.reglages.voiture == "m1procar", "le glissé n'a pas choisi de voiture (%s)" % app.reglages.voiture)
 	# 2. un glissé vertical fait défiler la page
-	_verifie(float(p.defile) == 0.0, "toucher une carte ne fait pas sauter la page (%.0f)" % p.defile)
-	var y0: float = p.defile
-	await _glisse(Vector2(200, 900), Vector2(205, 500))
+	_verifie(page.scroll_vertical == y0, "le glissé du rail ne fait pas sauter la page")
+	page.scroll_vertical = 0
+	await get_tree().process_frame
+	var origine := ecran * (page.get_global_rect().position + Vector2(50, 235))
+	await _glisse(origine, origine + Vector2(5, -180))
 	await get_tree().create_timer(0.3).timeout
-	_verifie(float(p.defile) > y0 + 150, "la page a défilé (%.0f → %.0f)" % [y0, p.defile])
+	_verifie(page.scroll_vertical > 0, "la page a défilé (0 → %d)" % page.scroll_vertical)
 	_verifie(app.reglages.voiture == "m1procar", "le glissé de la page n'a rien choisi")
 	# 3. un appui bref sur une carte du rail la choisit
-	p = app.ecran
+	page.scroll_vertical = int(page.get_v_scroll_bar().max_value)
+	await get_tree().process_frame
 	var carte: Control = null
-	for b in (p.rails.voitures.contenu as Control).get_children():
-		var r := Rect2(b.get_global_transform().origin, b.size * b.get_global_transform().get_scale())
-		if b.get_meta("voiture").id != "m1procar" and get_viewport().get_visible_rect().encloses(r): carte = b
+	var visible := page.get_global_rect().intersection(rail.get_global_rect())
+	for b in rail.get_child(0).get_children():
+		if b.get_meta("voiture").id != "m1procar" and visible.encloses(b.get_global_rect()): carte = b
 	_verifie(carte != null, "une autre carte est à l'écran")
 	if carte:
 		var id: String = carte.get_meta("voiture").id
-		var c := carte.get_global_transform().origin + carte.size * carte.get_global_transform().get_scale() / 2
+		var c := ecran * carte.get_global_rect().get_center()
 		await _appui(c)
 		await get_tree().create_timer(0.3).timeout
 		_verifie(app.reglages.voiture == id, "l'appui a choisi %s (%s)" % [id, app.reglages.voiture])

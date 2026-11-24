@@ -237,13 +237,14 @@ func _compteur(titre: String, valeur: String, rect: Rect2, cle: String, moins: C
 func _optionsPilote(t: Dictionary, pilotes: int, y: float, x: float, largeur: float) -> float:
 	if t.get("mode", "race") == "race":
 		var tours := int(t.get("laps", 3))
+		var championnat: bool = not t.get("programme", {}).get("circuits", []).is_empty()
 		_compteur(Textes.t("lapsLabel"), str(tours), Rect2(x, y, largeur, 36), "tours",
-			func(): net.setTable({ laps = tours - 1 }), func(): net.setTable({ laps = tours + 1 }), tours <= 1, tours >= 10)
+			func(): net.setTable({ laps = tours - 1 }), func(): net.setTable({ laps = tours + 1 }), championnat or tours <= 1, championnat or tours >= 10)
 		y += 41
 		var maxiIA := maxi(0, 12 - mini(pilotes, Net.NET_SEATS))
 		var ia := clampi(int(t.get("aiCount", -1)), -1, maxiIA)
 		var valeur := "Auto" if ia < 0 else str(ia)
-		_compteur(Textes.t("adversairesIA"), valeur, Rect2(x, y, largeur, 36), "adversaires",
+		_compteur(Textes.t("opponentsLabel"), valeur, Rect2(x, y, largeur, 36), "adversaires",
 			func(): net.setTable({ aiCount = ia - 1 }), func(): net.setTable({ aiCount = ia + 1 }), ia <= -1, ia >= maxiIA)
 		y += 41
 	if not net.mine.get("spectator", false):
@@ -307,7 +308,7 @@ func _parametres(t: Dictionary, pilotes: int, y: float, manche: Dictionary, cat:
 			y += 44
 	elif mode in ["race", "duel"]:
 		var actif := Championnat.actif(t.get("programme", {}))
-		_b(Textes.t("programmeCourse"), Rect2(x, y + 3, minf(largeur, 260), 38), VERT if actif else Style.NUIT_PLEINE, Style.CREME, 19,
+		_b(Textes.t("championnat"), Rect2(x, y + 3, minf(largeur, 260), 38), VERT if actif else Style.NUIT_PLEINE, Style.ENCRE if actif else Style.CREME, 19,
 			func(): App.aller("programme"), "programme")
 		y += 44
 	y = maxf(y, bas) + 12

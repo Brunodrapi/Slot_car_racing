@@ -8,6 +8,7 @@ extends Control
 const DIFFICULTES := [["easy", "easy"], ["medium", "medium"], ["hard", "hard"], ["extreme", "extreme"], ["cauchemar", "cauchemar"]]
 
 var mode := "race"
+var rapide: Control
 var cadre: Control
 var portrait := false
 var filtre := "tous"
@@ -57,6 +58,11 @@ func _ready() -> void:
 	if Catalogue.voiture(App.reglages.voiture).is_empty(): App.reglages.voiture = "porsche991gt3r"
 	filtre = App.reglages.cat
 	Paddock.precharge()
+	if mode == "race":
+		rapide = load("res://scripts/ui/paddock_rapide.gd").new(self)
+		add_child(rapide)
+		App.prepareDemarrage()
+		return
 	cadre = Control.new()
 	cadre.draw.connect(_dessine)
 	add_child(cadre)
@@ -91,7 +97,24 @@ static func infosCircuits() -> Dictionary:
 		var contour := PackedVector2Array()
 		for i in range(0, n, 8): contour.append(Vector2(xs[i], ys[i]))
 		contour.append(contour[0])
-		_infos[c.id] = { nom = c.nom, pays = meta.pays, longueur = blob[int(sc[0]) + 2], tours = int(meta.tours), contour = contour, bornes = meta.bornes,
+		var longueur := float(blob[int(sc[0]) + 2])
+		var virages: Array[Vector2i] = []
+		var debut := -1
+		var pic := 0.0
+		for i in range(n + 1):
+			var courbure := absf(blob[int(meta.index.k[0]) + i % n])
+			pic = maxf(pic, courbure)
+			if courbure > 1.0 / 90.0:
+				if debut < 0: debut = i
+			elif debut >= 0:
+				if i - debut > 6: virages.append(Vector2i(debut, i))
+				debut = -1
+		var droite := 0
+		for i in virages.size():
+			var suivant := virages[i + 1].x if i + 1 < virages.size() else virages[0].x + n
+			droite = maxi(droite, suivant - virages[i].y)
+		_infos[c.id] = { nom = c.nom, pays = meta.pays, longueur = longueur, tours = int(meta.tours), contour = contour, bornes = meta.bornes,
+			virages = virages.size(), rayon = 1.0 / pic if pic > 0 else 0.0, droite = droite * longueur / n,
 			image = load("res://images/interface/circuits/%s.webp" % c.id) }
 	return _infos
 
@@ -108,6 +131,7 @@ static func precharge() -> void:
 
 
 func _input(e: InputEvent) -> void:
+	if rapide: return
 	if e is InputEventMouseButton and e.pressed and (e.button_index == MOUSE_BUTTON_WHEEL_DOWN or e.button_index == MOUSE_BUTTON_WHEEL_UP):
 		_defile(60.0 if e.button_index == MOUSE_BUTTON_WHEEL_DOWN else -60.0)
 	elif portrait:
@@ -118,6 +142,7 @@ func _input(e: InputEvent) -> void:
 ## un bouton qui prend le focus hors de l'écran est ramené dans la vue. Au téléphone, la page ou le
 ## rail lâché file encore un peu, comme une page de Safari.
 func _process(dt: float) -> void:
+	if rapide: return
 	var a := Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y)
 	if absf(a) > 0.25:
 		# sur ordinateur, la page ne défile pas : c'est la liste de la catégorie
@@ -148,7 +173,7 @@ func _defile(d: float) -> void:
 func _unhandled_input(e: InputEvent) -> void:
 	if e.is_action_pressed("ui_cancel"):
 		App.aller("accueil")
-	elif e is InputEventKey and e.pressed and (e.keycode == KEY_PAGEDOWN or e.keycode == KEY_PAGEUP):
+	elif not rapide and e is InputEventKey and e.pressed and (e.keycode == KEY_PAGEDOWN or e.keycode == KEY_PAGEUP):
 		_defile(400.0 if e.keycode == KEY_PAGEDOWN else -400.0)
 
 
@@ -163,6 +188,9 @@ func _bouton(t: String, r: Rect2, f: Color, e: Color, taille: int, action: Calla
 
 
 func _construit() -> void:
+	if rapide:
+		rapide.reconstruit()
+		return
 	var focus := get_viewport().gui_get_focus_owner() if is_inside_tree() else null
 	var cle: String = focus.get_meta("cle", "") if focus else ""
 	# la liste de la catégorie (sur ordinateur) reste : elle garde sa place dans le défilement
@@ -257,7 +285,7 @@ static func infoPiste(info: Dictionary, race: bool) -> String:
 
 
 ## Le tracé d'un circuit (js/ui.js, thumb) : noir sur un liseré crème, et le point rouge du départ.
-static func _contour(ci: CanvasItem, info: Dictionary, r: Rect2, petit := false, ep := -1.0, ombre := false) -> void:
+static func _contour(ci: CanvasItem, info: Dictionary, r: Rect2, petit := false, ep := -1.0, ombre := false, nuit := false) -> void:
 	var b: Dictionary = info.bornes
 	var w: float = b.maxX - b.minX
 	var h: float = b.maxY - b.minY
@@ -272,9 +300,19 @@ static func _contour(ci: CanvasItem, info: Dictionary, r: Rect2, petit := false,
 		var dec := PackedVector2Array()
 		for p in pts: dec.append(p + Vector2(2, 4))
 		ci.draw_polyline(dec, Color(0.09, 0.11, 0.1, 0.33), creme, true)
-	ci.draw_polyline(pts, Color("#fff0cd"), creme, true)
-	ci.draw_polyline(pts, Color("#171c19"), noir, true)
+	ci.draw_polyline(pts, Color.BLACK if nuit else Color("#fff0cd"), creme, true)
+	ci.draw_polyline(pts, Color.WHITE if nuit else Color("#171c19"), noir, true)
 	if pts.size(): ci.draw_circle(pts[0], noir * 0.3 if ep > 0 else (2.5 if petit else 5.0), Color("#c72d24"))
+
+
+static func dessineCircuit(ci: Control, info: Dictionary, nuit: bool) -> void:
+	var zone := Rect2(Vector2.ZERO, ci.size)
+	if zone.size.x <= 16 or zone.size.y <= 16: return
+	var image: Texture2D = info.get("image")
+	if image: Style.couvre(ci, image, zone, 0.5)
+	else: ci.draw_rect(zone, Color("#626b59"))
+	if nuit: ci.draw_rect(zone, Color(0, 0, 0, 0.33))
+	_contour(ci, info, zone.grow(-8), zone.size.y < 150, -1, false, nuit)
 
 
 func _record(circuit: String, voiture: String) -> float:

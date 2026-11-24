@@ -24,15 +24,21 @@ static func formatPoints(points: float) -> String:
 	return affichage.replace(".", ",") if Textes.langue() == "fr" else affichage
 
 
+static func toursManche(options: Dictionary, index: int, defaut: int) -> int:
+	var tours: Array = options.get("toursParManche", [])
+	var valeur := int(tours[index]) if index < tours.size() else 0
+	return clampi(valeur if valeur > 0 else defaut, 1, 99)
+
+
 static func programme(options: Dictionary, circuit: String, tours: int, graine: int, cat: String) -> Dictionary:
 	var calendrier: Array = options.get("circuits", [])
 	if calendrier.is_empty(): calendrier = [circuit]
 	var manches := []
-	for id in calendrier:
+	for index in calendrier.size():
 		for phase in ["essais", "qualifications", "course"]:
 			var duree := clampi(int(options.get(phase, 0)), 0, 60)
 			if phase == "course" or duree > 0:
-				manches.append({ circuit = id, phase = phase, duree = duree * 60, tours = tours })
+				manches.append({ circuit = calendrier[index], phase = phase, duree = duree * 60, tours = toursManche(options, index, tours) })
 	return { manches = manches, index = 0, points = {}, pole = [], positions = options.get("positions", {}).duplicate(), graine = graine, bareme = cleBareme(cat) }
 
 

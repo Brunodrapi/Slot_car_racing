@@ -6,6 +6,11 @@ var enLigne := false
 var liste: GridContainer
 var cadre: PanelContainer
 var fondPaddock: Texture2D
+var cartes: GridContainer
+var apercu: Control
+var choixCircuit := ""
+var scroll: ScrollContainer
+var doigt: Doigt
 
 const VERT := Color("#8ae8ad")
 
@@ -21,15 +26,16 @@ func _ready() -> void:
 	var page := VBoxContainer.new()
 	page.add_theme_constant_override("separation", 12)
 	cadre.add_child(page)
-	var titre := Bouton.new(Textes.t("programmeCourse"), Style.ROUGE, Style.CREME, 27)
+	var titre := Bouton.new(Textes.t("championnat"), Style.ROUGE, Style.CREME, 27)
 	titre.custom_minimum_size.y = 52
 	titre.focus_mode = Control.FOCUS_NONE
 	titre.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	page.add_child(titre)
-	var scroll := ScrollContainer.new()
+	scroll = ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	page.add_child(scroll)
+	doigt = Doigt.new(self, func(delta): scroll.scroll_vertical += roundi(delta))
 	liste = GridContainer.new()
 	liste.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	liste.add_theme_constant_override("h_separation", 12)
@@ -46,8 +52,9 @@ func _ready() -> void:
 
 
 func _place() -> void:
-	var largeur := minf(960, maxf(0, size.x - 24))
+	var largeur := minf(1320, maxf(0, size.x - 24))
 	liste.columns = 2 if largeur >= 720 else 1
+	if is_instance_valid(cartes): cartes.columns = 4 if largeur >= 1140 else (3 if largeur >= 625 else 2)
 	var hauteur := minf(maxf(0, size.y - 24), liste.get_combined_minimum_size().y + 164)
 	cadre.size = Vector2(largeur, hauteur)
 	cadre.position = ((size - cadre.size) / 2).round()
@@ -65,6 +72,17 @@ func _retour() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"): _retour()
+
+
+func _input(event: InputEvent) -> void:
+	if not is_instance_valid(scroll) or size.x >= size.y: return
+	if event is InputEventScreenTouch and event.pressed and not scroll.get_global_rect().has_point(event.position): return
+	doigt.entree(event)
+	if event is InputEventScreenDrag and doigt.actif() and doigt.etat.axe != "": get_viewport().set_input_as_handled()
+
+
+func _process(delta: float) -> void:
+	if size.x < size.y: doigt.avance(delta)
 
 
 func _papier(couleur: Color, marge: float) -> StyleBoxFlat:
@@ -136,12 +154,28 @@ func _sauve() -> void:
 		App.sauve()
 
 
+func _champTour(tours: int, editable: bool) -> SpinBox:
+	var champ := SpinBox.new()
+	champ.min_value = 1; champ.max_value = 99
+	champ.value = tours
+	champ.editable = editable
+	champ.custom_minimum_size = Vector2(72, 40)
+	var saisie := champ.get_line_edit()
+	saisie.add_theme_stylebox_override("normal", _papier(Paddock.PC_VERT, 5))
+	saisie.add_theme_color_override("font_color", Style.ENCRE)
+	return champ
+
+
+func _dessineApercu(nuit: bool) -> void:
+	Paddock.dessineCircuit(apercu, Paddock.infosCircuits()[choixCircuit], nuit)
+
+
 func _construit() -> void:
 	for enfant in liste.get_children():
 		liste.remove_child(enfant)
 		enfant.queue_free()
-	var editable := not enLigne or Reseau.net.creator
 	var table := Reseau.net.settings() if enLigne else {}
+	var editable: bool = not enLigne or (Reseau.net.creator and table.get("championnat", {}).is_empty())
 	var gauche := _bloc()
 	var droite := _bloc()
 	for phase in ["essais", "qualifications"]:
@@ -170,37 +204,106 @@ func _construit() -> void:
 	var categorie := Championnat.categorieTable(table, voiture)
 	gauche.add_child(_texte(Textes.t("bareme_" + Championnat.cleBareme(categorie)), 17, Color("#565b4f")))
 	var calendrier: Array = options.get("circuits", [])
-	droite.add_child(_texte(Textes.t("championnat"), 22))
-	var ajoute := _selection(190)
-	ajoute.add_item(Textes.t("ajouterCircuit"))
-	var circuits := Catalogue.circuits().filter(func(c): return c.id not in calendrier)
-	for c in circuits: ajoute.add_item(str(c.nom))
-	ajoute.disabled = not editable or circuits.is_empty()
-	ajoute.item_selected.connect(func(i):
-		if i == 0: return
-		calendrier.append(circuits[i - 1].id)
+	var defaut := int(table.get("laps", App.reglages.tours))
+	var toursParManche: Array = []
+	for i in calendrier.size(): toursParManche.append(Championnat.toursManche(options, i, defaut))
+	var infos := Paddock.infosCircuits()
+	var circuits := Catalogue.circuits()
+	if not infos.has(choixCircuit): choixCircuit = String(table.get("trackId", App.reglages.circuit))
+	if not infos.has(choixCircuit): choixCircuit = String(circuits[0].id)
+	var nuit: bool = categorie != "f1" and (table.get("timeOfDay") == "night" if enLigne else bool(App.reglages.nuit))
+	var titreCircuit := _texte(String(infos[choixCircuit].nom), 22)
+	gauche.add_child(titreCircuit)
+	gauche.move_child(titreCircuit, 0)
+	apercu = Control.new()
+	apercu.custom_minimum_size.y = 154
+	apercu.draw.connect(_dessineApercu.bind(nuit))
+	gauche.add_child(apercu)
+	gauche.move_child(apercu, 1)
+	var rail := ScrollContainer.new()
+	rail.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	rail.follow_focus = true
+	rail.custom_minimum_size.y = 129
+	gauche.add_child(rail)
+	doigt.railNatif("circuits", rail)
+	gauche.move_child(rail, 2)
+	var choix := HBoxContainer.new()
+	rail.add_child(choix)
+	var boutons: Array[Bouton] = []
+	for c in circuits:
+		var id := String(c.id)
+		var b := _bouton(Paddock._coupe(String(c.nom).to_upper(), 13, 105), 110)
+		b.custom_minimum_size.y = 115
+		b.taille = 13
+		b.ligne = 87
+		b.fond = Paddock.PC_CREME; b.encre = Paddock.PC_ENCRE
+		b.coupe = 0
+		b.set_meta("circuit", id)
+		b.set_meta("sel", id == choixCircuit)
+		b.dessinPlus = Paddock._carteCircuitPC.bind(b)
+		choix.add_child(b)
+		if id == choixCircuit: rail.set_deferred("scroll_horizontal", maxi(0, boutons.size() - 1) * 114)
+		boutons.append(b)
+		b.pressed.connect(func():
+			choixCircuit = id
+			titreCircuit.text = String(infos[id].nom)
+			apercu.queue_redraw()
+			for autre in boutons:
+				autre.set_meta("sel", autre == b)
+				autre.queue_redraw())
+	var ajoute := _bouton("+", 54)
+	ajoute.taille = 40
+	ajoute.tooltip_text = Textes.t("ajouterCircuit")
+	ajoute.disabled = not editable or calendrier.size() >= 10
+	apercu.add_child(ajoute)
+	ajoute.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	ajoute.position -= Vector2(27, 27)
+	ajoute.size = Vector2(54, 54)
+	ajoute.pressed.connect(func():
+		calendrier.append(choixCircuit)
+		toursParManche.append(defaut)
 		options.circuits = calendrier
-		_sauve()
-		_construit()
-	)
-	if calendrier.is_empty():
-		var id := String(table.get("trackId", App.reglages.circuit))
-		_ligne(droite, str(Paddock.infosCircuits().get(id, {}).get("nom", id)))
+		options.toursParManche = toursParManche
+		_sauve(); _construit())
+	droite.add_child(_texte("%s  ·  %d / 10" % [Textes.t("calendar"), calendrier.size()], 22))
+	cartes = GridContainer.new()
+	cartes.add_theme_constant_override("h_separation", 5)
+	cartes.add_theme_constant_override("v_separation", 8)
+	droite.add_child(cartes)
 	for i in calendrier.size():
 		var id: String = calendrier[i]
-		var circuit := _ligne(droite, "%d. %s" % [i + 1, Paddock.infosCircuits().get(id, {}).get("nom", id)])
-		var haut := _bouton("↑", 42)
-		haut.disabled = not editable or i == 0
-		circuit.add_child(haut)
-		haut.pressed.connect(func():
-			calendrier[i] = calendrier[i - 1]; calendrier[i - 1] = id
-			_sauve(); _construit()
-		)
-		var retire := _bouton("×", 42)
+		var carte := VBoxContainer.new()
+		carte.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cartes.add_child(carte)
+		var titre := _bouton(Textes.t("roundLabel", i + 1), 0)
+		titre.focus_mode = Control.FOCUS_NONE
+		titre.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		carte.add_child(titre)
+		var info: Dictionary = infos.get(id, {})
+		_circuitCarte(carte, info, id, nuit)
+		var champ := _champTour(toursParManche[i], editable)
+		_ligne(carte, Textes.t("lapsLabel")).add_child(champ)
+		champ.value_changed.connect(func(v): toursParManche[i] = int(v); options.toursParManche = toursParManche; _sauve())
+		var actions := HBoxContainer.new()
+		carte.add_child(actions)
+		for sens in [-1, 1]:
+			var j: int = i + sens
+			var deplace := _bouton("‹" if sens < 0 else "›", 31)
+			deplace.disabled = not editable or j < 0 or j >= calendrier.size()
+			actions.add_child(deplace)
+			deplace.pressed.connect(func():
+				var tours := int(toursParManche[i])
+				calendrier[i] = calendrier[j]; calendrier[j] = id
+				toursParManche[i] = toursParManche[j]; toursParManche[j] = tours
+				options.toursParManche = toursParManche
+				_sauve(); _construit())
+		var retire := _bouton("×", 31)
 		retire.disabled = not editable
-		circuit.add_child(retire)
-		retire.pressed.connect(func(): calendrier.remove_at(i); _sauve(); _construit())
-	droite.add_child(ajoute)
+		actions.add_child(retire)
+		retire.pressed.connect(func():
+			calendrier.remove_at(i); toursParManche.remove_at(i)
+			options.toursParManche = toursParManche
+			_sauve(); _construit())
 	var places: Dictionary = options.get("positions", {})
 	var pilotes := Reseau.net.members().filter(func(m): return not m.q.get("spectator", false)).slice(0, Net.NET_SEATS) if enLigne else [{pid = "joueur", name = App.reglages.nom}]
 	var maximum := int(App.reglages.adversaires)
@@ -234,3 +337,13 @@ func _construit() -> void:
 			_sauve()
 			_construit()
 		)
+	_place()
+
+
+func _circuitCarte(carte: VBoxContainer, info: Dictionary, id: String, nuit: bool) -> void:
+	carte.add_child(_texte(String(info.get("nom", id)), 16))
+	if info.is_empty(): return
+	var art := Control.new()
+	art.custom_minimum_size.y = 95
+	carte.add_child(art)
+	art.draw.connect(func(): Paddock.dessineCircuit(art, info, nuit))

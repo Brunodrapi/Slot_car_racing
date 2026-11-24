@@ -180,12 +180,16 @@ class Championnat {
 
   static cleBareme(cat) { return cat === 'f1' ? 'f1' : cat === 'proto' ? 'lemans' : 'gt'; }
 
+  static toursManche(options, index, defaut) {
+    return clamp(Math.trunc(Number(options.toursParManche?.[index]) || defaut), 1, 99);
+  }
+
   static programme(options, circuit, tours, graine, cat) {
     const calendrier = options.circuits?.length ? options.circuits : [circuit];
     const manches = [];
-    for (const id of calendrier) for (const phase of ['essais', 'qualifications', 'course']) {
+    for (const [index, id] of calendrier.entries()) for (const phase of ['essais', 'qualifications', 'course']) {
       const duree = clamp(Math.trunc(Number(options[phase]) || 0), 0, 60) * 60;
-      if (phase === 'course' || duree > 0) manches.push({ circuit: id, phase, duree, tours });
+      if (phase === 'course' || duree > 0) manches.push({ circuit: id, phase, duree, tours: this.toursManche(options, index, tours) });
     }
     return { manches, index: 0, points: {}, pole: [], positions: { ...options.positions }, graine, bareme: this.cleBareme(cat) };
   }
