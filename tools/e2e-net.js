@@ -135,9 +135,10 @@ function serve() {
     await B.locator('[data-action="programmeRetour"]').first().click();
   }
   if (process.argv.includes('--night')) {
+    await A.click('[data-action="netCat"][data-id="gt3"]');
     await A.click('[data-action="netTimeOfDay"][data-id="night"]');
     await B.waitForFunction(() => app.net.settings().timeOfDay === 'night');
-    if (!await B.locator('[data-action="netTimeOfDay"][data-id="night"]').isDisabled()) throw Error('guest can edit lighting');
+    if (!await B.locator('.quick-light[data-action="netTimeOfDay"]').isDisabled()) throw Error('guest can edit lighting');
   }
   console.log('format', await A.evaluate(() => app.net.settings().mode));
   if (!championnat) await A.screenshot({path:`${out}/net-avant-pret.png`,fullPage:true});

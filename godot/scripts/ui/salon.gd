@@ -212,6 +212,18 @@ func _choix(choix: Array, actuel: String, rect: Rect2, actif: bool, action: Call
 	return y + 40
 
 
+func _paddockTable(y: float) -> float:
+	var cadrePiste := Control.new()
+	var marge := 6 if portrait else int(M)
+	cadrePiste.position = Vector2(marge, y)
+	cadrePiste.size = Vector2(W - 2 * marge, 1240 if portrait else 535)
+	cadre.add_child(cadrePiste)
+	var paddock := Paddock.new("multi")
+	paddock.defileExterne.connect(_defile)
+	cadrePiste.add_child(paddock)
+	return y + cadrePiste.size.y + 8
+
+
 func _compteur(titre: String, valeur: String, rect: Rect2, cle: String, moins: Callable, plus: Callable, minAtteint: bool, maxAtteint: bool) -> void:
 	var x := rect.position.x
 	var y := rect.position.y
@@ -238,8 +250,20 @@ func _optionsPilote(t: Dictionary, pilotes: int, y: float, x: float, largeur: fl
 	if t.get("mode", "race") == "race":
 		var tours := int(t.get("laps", 3))
 		var championnat: bool = not t.get("programme", {}).get("circuits", []).is_empty()
-		_compteur(Textes.t("lapsLabel"), str(tours), Rect2(x, y, largeur, 36), "tours",
-			func(): net.setTable({ laps = tours - 1 }), func(): net.setTable({ laps = tours + 1 }), championnat or tours <= 1, championnat or tours >= 10)
+		if Style.tactile():
+			var label := Label.new()
+			label.text = Textes.t("lapsLabel")
+			label.position = Vector2(x, y + 4)
+			label.add_theme_color_override("font_color", TITRE)
+			cadre.add_child(label)
+			var menu := Style.menuNombre(1, 10, tours, "", championnat or not net.creator or not net.settings().get("championnat", {}).is_empty(), func(v): net.setTable({laps = v}))
+			menu.position = Vector2(x + largeur - 90, y)
+			menu.set_meta("cle", "tours")
+			cadre.add_child(menu)
+			y += 8
+		else:
+			_compteur(Textes.t("lapsLabel"), str(tours), Rect2(x, y, largeur, 36), "tours",
+				func(): net.setTable({ laps = tours - 1 }), func(): net.setTable({ laps = tours + 1 }), championnat or tours <= 1, championnat or tours >= 10)
 		y += 41
 		var maxiIA := maxi(0, 12 - mini(pilotes, Net.NET_SEATS))
 		var ia := clampi(int(t.get("aiCount", -1)), -1, maxiIA)
@@ -259,7 +283,7 @@ func _optionsPilote(t: Dictionary, pilotes: int, y: float, x: float, largeur: fl
 	return y
 
 
-func _parametres(t: Dictionary, pilotes: int, y: float, manche: Dictionary, cat: String) -> float:
+func _parametres(t: Dictionary, pilotes: int, y: float, manche: Dictionary) -> float:
 	var x := 14.0 if portrait else M
 	var total := 362.0 if portrait else W - 2 * M
 	var largeur := total - 24 if portrait else (total - 48) / 2
@@ -277,19 +301,9 @@ func _parametres(t: Dictionary, pilotes: int, y: float, manche: Dictionary, cat:
 	if not portrait:
 		x += largeur + 24
 		y = haut + 12
-	z.catTitre = Vector2(x, y + 15)
-	var cats := [["all", Textes.t("all")]]
-	for c in Catalogue.categories(): cats.append([c.id, Textes.nom(c.nom).to_upper()])
-	cats.sort_custom(func(a, b): return CATS.find(a[0]) < CATS.find(b[0]))
-	y = _choix(cats, cat, Rect2(x, y + 20, largeur, 0), editable, func(id): net.setTable({ cat = id }), "cat")
-	var demi := (largeur - 8) / 2
-	z.heureTitre = Vector2(x, y + 15)
-	z.degatsTitre = Vector2(x + demi + 8, y + 15)
-	var basHeure := _choix([["day", Textes.t("daySeg")], ["night", Textes.t("nightSeg")]], String(t.get("timeOfDay", "day")),
-		Rect2(x, y + 20, demi, 0), editable, func(id): net.setTable({ timeOfDay = id }), "heure")
-	var basDegats := _choix([["1", Textes.t("on")], ["0", Textes.t("off")]], "1" if t.get("degats", false) == true else "0",
-		Rect2(x + demi + 8, y + 20, demi, 0), editable, func(id): net.setTable({ degats = id == "1" }), "degats")
-	y = maxf(basHeure, basDegats)
+	z.degatsTitre = Vector2(x, y + 15)
+	y = _choix([["1", Textes.t("on")], ["0", Textes.t("off")]], "1" if t.get("degats", false) == true else "0",
+		Rect2(x, y + 20, largeur, 0), editable, func(id): net.setTable({ degats = id == "1" }), "degats")
 	if t.get("timeOfDay") == "night":
 		var f1: bool = Catalogue.voiture(App.reglages.voiture).get("cat") == "f1"
 		z.nuitDesc = [Vector2(x, y + 12), Paddock._lignes(Textes.t("nightF1Hint" if f1 else "nightHint"), 15, largeur), ROUGE_SEL if f1 else MUET]
@@ -320,7 +334,7 @@ func _dessineOptions(ci: CanvasItem) -> void:
 	var panneau: Rect2 = z.options
 	ci.draw_rect(panneau, Style.PAPIER)
 	ci.draw_rect(panneau, PANNEAU_BORD, false, 1)
-	for cle in [["formatTitre", "mFormatTitle"], ["catTitre", "mCatTitle"], ["heureTitre", "dayNightTitle"], ["degatsTitre", "chipDegats"]]:
+	for cle in [["formatTitre", "mFormatTitle"], ["degatsTitre", "chipDegats"]]:
 		Style.texte(ci, Textes.t(cle[1]), z[cle[0]], 15, TITRE)
 	if z.has("nuitDesc"):
 		var note: Array = z.nuitDesc
@@ -388,61 +402,8 @@ func _construit() -> void:
 			y += 56
 		var cat := String(t.get("cat", "all")) if t.get("cat") else "all"
 		var manche := Championnat.manche(t.get("championnat", {}))
-		var libre: bool = manche.is_empty()
-		# L'aperçu de la voiture et du circuit
-		if portrait:
-			z.apercuVoiture = Rect2(M, y, W - 2 * M, 250); y += 262
-			z.apercuCircuit = Rect2(M, y, W - 2 * M, 250); y += 274
-		else:
-			var lv := (W - 2 * M) * 0.6
-			z.apercuVoiture = Rect2(M, y, lv - 7, 300)
-			z.apercuCircuit = Rect2(M + lv + 7, y, W - 2 * M - lv - 7, 300)
-			y += 324
-		# La rangée des circuits
-		z.circuitTitre = Vector2(M, y + 14); y += 26
-		var circuits := Catalogue.circuits()
-		var nc := maxi(1, floori((W - 2 * M - 68) / 134.0))
-		var liste := _modeles()
-		var nv := maxi(1, floori((W - 2 * M - 68) / 158.0))
-		# Comme le rail du jeu web qui se place sur la carte choisie.
-		if _suivre:
-			var ic := circuits.map(func(c): return c.id).find(_circuitVu)
-			if ic >= 0 and (ic < debutCircuits or ic >= debutCircuits + nc): debutCircuits = ic - nc / 2
-			var iv := liste.map(func(c): return c.id).find(App.reglages.voiture)
-			if iv >= 0 and (iv < debutVoitures or iv >= debutVoitures + nv): debutVoitures = iv - nv / 2
-			_suivre = false
-		debutCircuits = clampi(debutCircuits, 0, maxi(0, circuits.size() - nc))
-		# les flèches collées aux cartes, la rangée centrée
-		var xc := _rangee(nc, 134.0, 10.0)
-		_b("‹", Rect2(xc - 34, y + 62, 28, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutCircuits = maxi(0, debutCircuits - nc); _maj(), "c-gauche")
-		_b("›", Rect2(xc + nc * 134 - 10 + 6, y + 62, 28, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutCircuits += nc; _maj(), "c-droite")
-		var choisi := String(manche.get("circuit", t.get("trackId", "")))
-		for i in mini(nc, circuits.size() - debutCircuits):
-			var c: Dictionary = circuits[debutCircuits + i]
-			var b := _b(str(c.nom).to_upper(), Rect2(xc + i * 134, y, 124, 170), Style.PAPIER, Style.ENCRE, 15,
-				func(): net.setTable({ trackId = c.id, laps = _tours(c.id) }), "circuit-" + c.id)
-			b.choisi = c.id == choisi
-			b.disabled = not net.creator or not libre
-			b.set_meta("circuit", c.id)
-			b.ligne = 112
-			b.dessinPlus = _carteCircuit.bind(b)
-		y += 196
-		# La rangée des voitures
-		z.voitureTitre = Vector2(M, y + 14); y += 26
-		debutVoitures = clampi(debutVoitures, 0, maxi(0, liste.size() - nv))
-		var xv := _rangee(nv, 158.0, 8.0)
-		_b("‹", Rect2(xv - 34, y + 80, 28, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutVoitures = maxi(0, debutVoitures - nv); _maj(), "v-gauche")
-		_b("›", Rect2(xv + nv * 158 - 8 + 6, y + 80, 28, 46), Style.NUIT_PLEINE, Style.CREME, 30, func(): debutVoitures += nv; _maj(), "v-droite")
-		for i in mini(nv, liste.size() - debutVoitures):
-			var c: Dictionary = liste[debutVoitures + i]
-			var b := _b(str(c.nom).to_upper(), Rect2(xv + i * 158, y, 150, 206), Style.PAPIER, Style.ENCRE, 16, func(): _voiture(c.id), "voiture-" + c.id)
-			b.choisi = c.id == App.reglages.voiture
-			b.disabled = not libre
-			b.set_meta("voiture", c)
-			b.ligne = 128
-			b.dessinPlus = _carteVoiture.bind(b)
-		y += 230
-		y = _parametres(t, pilotes.size(), y, manche, cat)
+		y = _paddockTable(y)
+		y = _parametres(t, pilotes.size(), y, manche)
 		# La barre du bas
 		z.barre = Rect2(M, y, W - 2 * M, 92)
 		var pret: bool = net.mine.get("ready", false)
@@ -614,11 +575,7 @@ func _dessine() -> void:
 		Style.texte(ci, " · ".join(tags), r.position + Vector2(12, 44), 12, MUET)
 		var etat := Textes.t("spectatorTag") if e.q.get("spectator", false) else ("✓ " + Textes.t("readyTag") if e.ready else Textes.t("waiting"))
 		Style.texte(ci, etat, r.position + Vector2(12, 64), 12, VERT if e.ready else MUET)
-	_apercuVoiture(ci, z.apercuVoiture)
 	var info: Dictionary = infos.get(_circuitVu, infos.values()[0])
-	_apercuCircuit(ci, z.apercuCircuit, info)
-	_titre(Textes.t("trackTitle"), z.circuitTitre)
-	_titre(Textes.t("modelTitle"), z.voitureTitre)
 	_dessineOptions(ci)
 	# La barre du bas
 	var b: Rect2 = z.barre
@@ -783,53 +740,8 @@ func _construitTel(cle: String) -> void:
 		y += 24
 		var cat := String(t.get("cat", "all")) if t.get("cat") else "all"
 		var manche := Championnat.manche(t.get("championnat", {}))
-		var libre: bool = manche.is_empty()
-		# L'aperçu de la voiture et du circuit
-		y += 16
-		var v := Catalogue.voiture(App.reglages.voiture)
-		z.nomVoiture = Paddock._lignes(str(v.nom).to_upper(), 40, 322)
-		z.apercuVoiture = Rect2(14, y, 362, 240)
-		var info: Dictionary = infos.get(_circuitVu, infos.values()[0])
-		z.nomCircuit = Paddock._lignes(str(info.nom).to_upper(), 36, 277)
-		z.apercuCircuit = Rect2(14, y + 250, 362, 280)
-		y += 530
-		# La rangée des circuits
-		y += 24
-		z.circuitTitre = y
-		var circuits := Catalogue.circuits()
-		var choisi := String(manche.get("circuit", t.get("trackId", "")))
-		var ic := maxi(0, circuits.map(func(c): return c.id).find(choisi))
-		if _suivre: doigt.railX.erase("circuits")
-		var rc := doigt.rail("circuits", Rect2(14, y + 38, 362, 169), 4 + circuits.size() * 118 - 10, 2 + ic * 118 + 54)
-		for i in circuits.size():
-			var c: Dictionary = circuits[i]
-			var b := _b("", Rect2(2 + i * 118, 2, 108, 157), T_CARTE, PC_ENCRE(), 17, func(): net.setTable({ trackId = c.id, laps = _tours(c.id) }), "circuit-" + c.id, rc)
-			b.coupe = 0
-			b.disabled = not net.creator or not libre
-			b.set_meta("circuit", c.id)
-			b.set_meta("sel", c.id == choisi)
-			b.dessinPlus = Salon._carteCircuitTel.bind(b)
-		y += 38 + 169
-		# La rangée des voitures
-		y += 24
-		z.voitureTitre = y
-		var liste := _modeles()
-		var iv := maxi(0, liste.map(func(c): return c.id).find(App.reglages.voiture))
-		if _suivre: doigt.railX.erase("voitures")
-		_suivre = false
-		var avecCat := cat == "all"
-		var rv := doigt.rail("voitures", Rect2(14, y + 38, 362, 215), 4 + liste.size() * 146 - 10, 2 + iv * 146 + 68)
-		for i in liste.size():
-			var c: Dictionary = liste[i]
-			var b := _b("", Rect2(2 + i * 146, 2, 136, 203), T_CARTE, PC_ENCRE(), 17, func(): _voiture(c.id), "voiture-" + c.id, rv)
-			b.coupe = 0
-			b.disabled = not libre
-			b.set_meta("voiture", c)
-			b.set_meta("sel", c.id == App.reglages.voiture)
-			b.set_meta("livree", _livreeDe(c.id))
-			b.dessinPlus = Salon._carteVoitureTel.bind(b, avecCat)
-		y += 38 + 215
-		y = _parametres(t, pilotes.size(), y + 16, manche, cat)
+		y = _paddockTable(y)
+		y = _parametres(t, pilotes.size(), y + 16, manche)
 		# La barre du bas : Prêt, et pour l'hôte Départ !
 		y += 26
 		var pret: bool = net.mine.get("ready", false)
@@ -1008,12 +920,8 @@ func _dessineTel() -> void:
 		Style.texte(ci, " · ".join(tags), r.position + Vector2(14, 44.3), 13, T_PETIT)
 		var etat := Textes.t("spectatorTag") if e.q.get("spectator", false) else (Textes.t("readyTag") if e.ready else Textes.t("waiting"))
 		Style.texte(ci, etat, r.position + Vector2(14, 63.3), 13, VERT if e.ready else T_PETIT)
-	for cle in [["circuitTitre", "trackTitle"], ["voitureTitre", "modelTitle"]]:
-		_h3(ci, Textes.t(cle[1]), Vector2(14, float(z[cle[0]]) + 14.6))
 	_dessineOptions(ci)
-	_apercuVoitureTel(ci, z.apercuVoiture)
 	var info: Dictionary = infos.get(_circuitVu, infos.values()[0])
-	_apercuCircuitTel(ci, z.apercuCircuit, info)
 	# la barre du bas
 	var b: Rect2 = z.barre
 	ci.draw_rect(b, PANNEAU)

@@ -1594,3 +1594,13 @@ body :is(.screen.quick-paddock,.screen.programme-ecran) .rail.tracks .track-card
   body.desktop .quick-paddock .quick-footer { grid-template-columns:minmax(0,1.4fr) minmax(0,.8fr) minmax(0,1fr); }
   body.desktop .quick-options .rail.tracks > .card { flex:0 0 calc((100% - 24px)/4); }
 }
+
+.quick-peak-model { display:block; white-space:normal; color:var(--quick-ink); font-size:.78em; line-height:1.1; }
+.screen.lobby-screen.quick-paddock { display:block; overflow-y:auto; }
+.lobby-screen .quick-grid { margin-block:10px; }
+.lobby-screen .quick-times-list { max-height:220px; }
+@media (min-width:851px) {
+  body.desktop .lobby-screen .quick-grid { grid-template-rows:minmax(300px,auto) auto; }
+  .lobby-screen .quick-preview .quick-track-art { min-height:300px; }
+}
+.programme-manches .programme-ligne select { width:4.2em; background:#21b56f; color:#171c19; }

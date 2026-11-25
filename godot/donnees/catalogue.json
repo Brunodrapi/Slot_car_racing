@@ -1966,6 +1966,10 @@
    "nom": "Parco Reale",
    "pays": "IT",
    "difficulty": 1,
+   "pointe": {
+    "kmh": 292,
+    "voiture": "xjr9"
+   },
    "drapeau": "🇮🇹",
    "theme": "park"
   },
@@ -1974,6 +1978,10 @@
    "nom": "Stand de frites",
    "pays": "BE",
    "difficulty": 3,
+   "pointe": {
+    "kmh": 268,
+    "voiture": "renaultrs10"
+   },
    "drapeau": "🇧🇪",
    "theme": "forest"
   },
@@ -1982,6 +1990,10 @@
    "nom": "Le Rocher",
    "pays": "MC",
    "difficulty": 4,
+   "pointe": {
+    "kmh": 221,
+    "voiture": "renaultrs10"
+   },
    "drapeau": "🇲🇨",
    "theme": "riviera"
   },
@@ -1990,6 +2002,10 @@
    "nom": "Royal Air Base",
    "pays": "GB",
    "difficulty": 2,
+   "pointe": {
+    "kmh": 249,
+    "voiture": "renaultrs10"
+   },
    "drapeau": "🇬🇧",
    "theme": "autumn"
   },
@@ -1998,6 +2014,10 @@
    "nom": "Fuji Yama",
    "pays": "JP",
    "difficulty": 4,
+   "pointe": {
+    "kmh": 265,
+    "voiture": "787b"
+   },
    "drapeau": "🇯🇵",
    "theme": "japan"
   },
@@ -2006,6 +2026,10 @@
    "nom": "Festival de Carnaval",
    "pays": "BR",
    "difficulty": 2,
+   "pointe": {
+    "kmh": 277,
+    "voiture": "xjr9"
+   },
    "drapeau": "🇧🇷",
    "theme": "tropical"
   },
@@ -2014,6 +2038,10 @@
    "nom": "Corkscrew Ranch",
    "pays": "US",
    "difficulty": 3,
+   "pointe": {
+    "kmh": 217,
+    "voiture": "ferrari312t"
+   },
    "drapeau": "🇺🇸",
    "theme": "california"
   },
@@ -2022,6 +2050,10 @@
    "nom": "Bratwurst Ring",
    "pays": "DE",
    "difficulty": 3,
+   "pointe": {
+    "kmh": 256,
+    "voiture": "787b"
+   },
    "drapeau": "🇩🇪",
    "theme": "forest"
   },
@@ -2030,6 +2062,10 @@
    "nom": "Autoroute 11",
    "pays": "FR",
    "difficulty": 2,
+   "pointe": {
+    "kmh": 271,
+    "voiture": "787b"
+   },
    "drapeau": "🇫🇷",
    "theme": "lemans"
   },
@@ -2038,6 +2074,10 @@
    "nom": "Kangaroo Mountain",
    "pays": "AU",
    "difficulty": 4,
+   "pointe": {
+    "kmh": 314,
+    "voiture": "xjr9"
+   },
    "drapeau": "🇦🇺",
    "theme": "bush"
   },
@@ -2046,6 +2086,10 @@
    "nom": "Apfelstrudel Ring",
    "pays": "AT",
    "difficulty": 1,
+   "pointe": {
+    "kmh": 246,
+    "voiture": "935"
+   },
    "drapeau": "🇦🇹",
    "theme": "alpine"
   },
@@ -2054,6 +2098,10 @@
    "nom": "Pastaga 83",
    "pays": "FR",
    "difficulty": 2,
+   "pointe": {
+    "kmh": 331,
+    "voiture": "xjr9"
+   },
    "drapeau": "🇫🇷",
    "theme": "lemans"
   },
@@ -2062,6 +2110,10 @@
    "nom": "Windmolen",
    "pays": "NL",
    "difficulty": 3,
+   "pointe": {
+    "kmh": 247,
+    "voiture": "renaultrs10"
+   },
    "drapeau": "🇳🇱",
    "theme": "dunes"
   },
@@ -2070,6 +2122,10 @@
    "nom": "Camping Glen",
    "pays": "US",
    "difficulty": 2,
+   "pointe": {
+    "kmh": 257,
+    "voiture": "renaultrs10"
+   },
    "drapeau": "🇺🇸",
    "theme": "glen"
   }

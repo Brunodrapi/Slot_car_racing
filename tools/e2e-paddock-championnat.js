@@ -107,12 +107,12 @@ async function scenario(navigateur, cadre) {
       const controle = typeof cible === 'string' ? page.locator(cible) : cible;
       return tactile ? controle.tap() : controle.click();
     };
-    const ouvrir = async () => {
+    const ouvrir = async (mode = 'race') => {
       await page.goto(url, { waitUntil: 'domcontentloaded' });
       await page.locator('.splash .poster').waitFor();
       if (tactile) await presse('.splash .poster');
       else await page.keyboard.press('Enter');
-      await presse('[data-action="setup"][data-mode="race"]');
+      await presse(`[data-action="setup"][data-mode="${mode}"]`);
       await page.locator('.quick-paddock').waitFor();
     };
 
@@ -120,7 +120,7 @@ async function scenario(navigateur, cadre) {
     await page.locator('.quick-times tbody tr').first().waitFor();
     const boutonChampionnat = page.locator('[data-action="programme"]');
     assert.equal(await boutonChampionnat.getAttribute('aria-pressed'), 'false');
-    assert(await page.locator('[data-action="pickLaps"]').isEnabled());
+    assert(await page.locator(tactile ? '#inp-laps' : '[data-action="pickLaps"]').isEnabled());
     assert.equal(await page.locator('.quick-facts dd').count(), 8);
     assert.equal(await page.locator('.quick-performance meter').count(), 5);
     assert(await page.locator('.quick-track-name .circuit-flag').evaluate(el => {
@@ -157,18 +157,19 @@ async function scenario(navigateur, cadre) {
     assert.deepEqual(await manches.locator(':scope > b').allTextContents(), ['Apfelstrudel Ring', 'Pastaga 83']);
 
     const tours = page.locator('[data-programme-tours]');
-    await tours.nth(0).fill('4');
-    await tours.nth(1).fill('12');
+    const regler = (champ, valeur) => tactile ? champ.selectOption(valeur) : champ.fill(valeur);
+    await regler(tours.nth(0), '4');
+    await regler(tours.nth(1), '12');
     await presse('[data-action="programmeDeplacer"][data-id="1"][data-dir="-1"]');
     assert.deepEqual(await manches.locator(':scope > b').allTextContents(), ['Pastaga 83', 'Apfelstrudel Ring']);
     assert.deepEqual(await tours.evaluateAll(champs => champs.map(champ => champ.value)), ['12', '4']);
     const essais = page.locator('[data-programme-duree="essais"]');
     const qualifs = page.locator('[data-programme-duree="qualifications"]');
-    await essais.fill('1');
-    await qualifs.fill('2');
+    await regler(essais, '1');
+    await regler(qualifs, '2');
     await page.locator('[data-programme-pilote="joueur"]').selectOption('2');
     await presse('[data-action="programmeAppliquer"]');
-    assert(await page.locator('[data-action="pickLaps"]').isDisabled());
+    assert(await page.locator(tactile ? '#inp-laps' : '[data-action="pickLaps"]').isDisabled());
 
     await ouvrir();
     await presse('[data-action="programme"]');
@@ -186,8 +187,8 @@ async function scenario(navigateur, cadre) {
       await presse('[data-action="setup"][data-mode="race"]');
       await presse('[data-action="programme"]');
     }
-    await essais.fill('0');
-    await qualifs.fill('0');
+    await regler(essais, '0');
+    await regler(qualifs, '0');
     await presse('[data-action="programmeRetirer"][data-id="1"]');
     assert.equal(await manches.count(), 1);
     await presse('[data-action="programmeAppliquer"]');
@@ -197,6 +198,19 @@ async function scenario(navigateur, cadre) {
       circuit: app.race.track.id, tours: app.race.opts.laps, phase: app.race.phase, voitures: app.race.cars.length
     }));
     assert.deepEqual(depart, { circuit: 'castellet', tours: 12, phase: 'course', voitures: 4 });
+    if (width === 1366 || width === 390) {
+      for (const mode of ['timetrial', 'training']) {
+        await ouvrir(mode);
+        await presse('[data-action="pickTrack"][data-id="lemans"]');
+        assert.match(await page.locator('.quick-facts').innerText(), /271 km\/h/);
+        assert.match(await page.locator('.quick-facts').innerText(), /Kaminari Hayate/i);
+        assert.equal(await page.locator('.quick-performance meter').count(), 5);
+        assert.equal(await page.locator('[data-action="programme"]').count(), 0);
+        await presse('[data-action="startQuick"]');
+        await page.waitForFunction(() => app.race?.track.id === 'lemans');
+        assert.deepEqual(await page.evaluate(() => [app.race.mode, app.race.entrainement]), ['timetrial', mode === 'training']);
+      }
+    }
     assert.deepEqual(erreurs, []);
     console.log(`OK ${width}×${height} ${tactile ? 'tactile' : 'souris'}`);
   } finally {

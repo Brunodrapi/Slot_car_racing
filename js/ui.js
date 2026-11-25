@@ -114,7 +114,7 @@ const I18N = {
     next: 'Suivant', retry: 'Rejouer', menu: 'Menu', resume: 'Reprendre', restart: 'Recommencer', quit: 'Quitter', paused: 'Pause', endSession: 'Terminer',
     lap: 'Tour', last: 'Dernier', best: 'Meilleur', grip: 'adhérence', holdToGo: 'Maintiens Espace pour accélérer', holdToGoTouch: 'Maintiens l’écran pour accélérer', lineHintKeys: '↑ / ↓ : trajectoire', lineHintTouch: 'Pouce gauche : trajectoire',
     programmeCourse: 'Programme de course', essais: 'Essais libres', qualifications: 'Qualifications', championnat: 'Championnat',
-    raceSetup: 'Réglages de course', circuitTimes: 'Chronos du circuit', applySeries: 'Appliquer', communityLaps: 'Tours communauté · 30 j', myTrackLaps: 'Mes tours', circuitPeak: 'Pointe estimée', carWeight: 'Poids', circuitLength: 'Longueur', circuitTurns: 'Virages', circuitRadius: 'Rayon minimal', circuitStraight: 'Ligne droite', circuitRecord: 'Record du circuit', opponents: 'Adversaires', calendar: 'Calendrier', round: n => `Course ${n}`, next: 'Suivant', previous: 'Précédent',
+    raceSetup: 'Réglages de course', circuitTimes: 'Chronos du circuit', applySeries: 'Appliquer', communityLaps: 'Tours communauté · 30 j', myTrackLaps: 'Mes tours', circuitPeak: 'Pointe simulée', carWeight: 'Poids', circuitLength: 'Longueur', circuitTurns: 'Virages', circuitRadius: 'Rayon minimal', circuitStraight: 'Ligne droite', circuitRecord: 'Record du circuit', opponents: 'Adversaires', calendar: 'Calendrier', round: n => `Course ${n}`, next: 'Suivant', previous: 'Précédent',
     grilleDepart: 'Grille de départ', ajouterCircuit: 'Ajouter un circuit', monterCircuit: 'Remonter le circuit', retirerCircuit: 'Retirer le circuit',
     programmeHint: '0 min désactive la séance.', bareme_f1: 'F1 · 25 pts pour la victoire. La qualification fixe la grille.',
     bareme_gt: 'GT Sprint · 16,5 pts pour la victoire et 1 pt pour la pole.', bareme_lemans: 'Le Mans · 50 pts pour la victoire et 1 pt pour la pole.',
@@ -272,7 +272,7 @@ const I18N = {
     next: 'Next', retry: 'Retry', menu: 'Menu', resume: 'Resume', restart: 'Restart', quit: 'Quit', paused: 'Paused', endSession: 'Finish',
     lap: 'Lap', last: 'Last', best: 'Best', grip: 'grip', holdToGo: 'Hold Space to accelerate', holdToGoTouch: 'Hold anywhere to accelerate', lineHintKeys: '↑ / ↓: racing line', lineHintTouch: 'Left thumb: line',
     programmeCourse: 'Race programme', essais: 'Free practice', qualifications: 'Qualifying', championnat: 'Championship',
-    raceSetup: 'Race setup', circuitTimes: 'Circuit lap times', applySeries: 'Apply', communityLaps: 'Community laps · 30d', myTrackLaps: 'My laps', circuitPeak: 'Est. top speed', carWeight: 'Weight', circuitLength: 'Length', circuitTurns: 'Corners', circuitRadius: 'Minimum radius', circuitStraight: 'Longest straight', circuitRecord: 'Circuit record', opponents: 'Opponents', calendar: 'Calendar', round: n => `Race ${n}`, next: 'Next', previous: 'Previous',
+    raceSetup: 'Race setup', circuitTimes: 'Circuit lap times', applySeries: 'Apply', communityLaps: 'Community laps · 30d', myTrackLaps: 'My laps', circuitPeak: 'Simulated top speed', carWeight: 'Weight', circuitLength: 'Length', circuitTurns: 'Corners', circuitRadius: 'Minimum radius', circuitStraight: 'Longest straight', circuitRecord: 'Circuit record', opponents: 'Opponents', calendar: 'Calendar', round: n => `Race ${n}`, next: 'Next', previous: 'Previous',
     grilleDepart: 'Starting grid', ajouterCircuit: 'Add a track', monterCircuit: 'Move track up', retirerCircuit: 'Remove track',
     programmeHint: '0 min disables the session.', bareme_f1: 'F1 · 25 pts for the win. Qualifying sets the grid.',
     bareme_gt: 'GT Sprint · 16.5 pts for the win and 1 pt for pole.', bareme_lemans: 'Le Mans · 50 pts for the win and 1 pt for pole.',
@@ -1234,44 +1234,16 @@ class UI {
   si bien que « Connecte-toi pour inscrire tes temps » proposait une connexion qui ne sert à rien
   (Bruno : « la connexion Google ne sert à rien »). La colonne du monde reste : c'est le temps à
   viser. */
-  records(trackId, cat, choisie, livery, entrainement = false) {
-    const t = (k, ...a) => this.t(k, ...a), s = this.app.save, app = this.app;
-    /* Les temps du monde arrivent APRÈS l'écran, jamais avant lui.
-
-    Attendre le réseau pour peindre aurait rendu un menu hors-ligne inutilisable, et un menu lent
-    partout ailleurs. On peint donc avec ce qu'on a — les temps locaux, qui sont là — et la colonne
-    du monde se remplit toute seule quand la réponse arrive. Si elle n'arrive jamais, il reste des
-    tirets : un tableau vide est une information, une page qui ne s'ouvre pas n'en est pas une. */
-    const mondiaux = this._mondiaux && this._mondiaux.circuit === trackId ? this._mondiaux.par : null;
-    if (!mondiaux) this._chargeMondiaux(trackId);
-    const lignes = modelsOf(cat.id)
-      .map(m => ({ m, b: s.bestLaps[`${trackId}|${cat.id}|${m.id}`], w: mondiaux ? mondiaux[m.id] : undefined }))
-      .sort((x, y) => (x.b == null ? 1 : 0) - (y.b == null ? 1 : 0) || (x.b || 0) - (y.b || 0));
-    const cell = (v) => v == null ? `<span class="muted">--:--.---</span>` : fmtTime(v);
-    return `<h3>${t('yourBest')}</h3>
-      ${entrainement ? '' : this.etatMondial()}
-      ${!entrainement && app.mondial && app.mondial.dernierRefus
+  statutChrono() {
+    const app = this.app, t = k => this.t(k);
+    return `${this.etatMondial()}
+      ${app.mondial && app.mondial.dernierRefus
         ? `<p class="warn mondial-note">${this.messageRefus(app.mondial.dernierRefus.raison)}${
             app.mondial.detailRefus ? ` <small class="detail">${escapeHtml(String(app.mondial.detailRefus))}</small>` : ''}
             ${RECONNEXION.has(app.mondial.dernierRefus.raison)
               ? `<button class="link" data-action="google">${t('reconnect')}</button>` : ''}
             ${REGLAGES.has(app.mondial.dernierRefus.raison)
-              ? `<button class="link" data-action="settings">${t('settings')}</button>` : ''}</p>` : ''}
-      <div class="records">
-        <div class="rhead">
-          <span></span><b></b>
-          <span class="rline-t">${t('yourBest')}</span>
-          <span class="rline-t">${t('worldBest')}</span>
-        </div>
-        ${lignes.map(({ m, b, w }) => `<div class="rline ${m.id === choisie.id ? 'sel' : ''}">
-          <span class="rline-img">${this.carIcon(m, livery, this.app.playerLivreeFor(m.id))}</span>
-          <b>${escapeHtml(m.name)}</b>
-          <span class="rline-t ${b == null ? 'muted' : ''}">${b == null ? '--:--.---' : fmtTime(b)}</span>
-          <span class="rline-t monde" title="${w ? escapeHtml(w.pilote || '') : ''}">${
-            mondiaux || !app.mondial ? cell(w && w.temps) : `<span class="muted">…</span>`}${
-            w && w.pilote ? `<small>${escapeHtml(w.pilote)}</small>` : ''}</span>
-        </div>`).join('')}
-      </div>`;
+              ? `<button class="link" data-action="settings">${t('settings')}</button>` : ''}</p>` : ''}`;
   }
 
   /* Le palmarès, sous la course rapide, comme les records sous le contre-la-montre.
@@ -1334,13 +1306,15 @@ class UI {
     this._enCours.add(trackId);
     const lignes = await app.mondial.records(trackId);
     this._enCours.delete(trackId);
-    if (this.setup.trackId !== trackId) return;
+    const salon = this._cleEcran === 'salon' && this.root.querySelector('[data-tours-communaute]')?.dataset.toursCommunaute === trackId;
+    if (!salon && this.setup.trackId !== trackId) return;
     const par = {};
     for (const l of lignes) if (!par[l.voiture] || l.temps < par[l.voiture].temps) par[l.voiture] = l;
     this._mondiaux = { circuit: trackId, par };
     // on ne repeint que si le joueur est toujours devant le même écran et le même circuit
     // le contre-la-montre et l'entraînement montrent tous deux les records
-    if (this._cleEcran?.startsWith('depart:') && this.setup.trackId === trackId) this.setupScreen(this.setup.mode);
+    if (salon) this.lobbyScreen();
+    else if (this._cleEcran?.startsWith('depart:') && this.setup.trackId === trackId) this.setupScreen(this.setup.mode);
   }
 
   /* Le filtre de catégorie posé au-dessus d'un rail de voitures.
@@ -1402,10 +1376,10 @@ class UI {
       `<div><dt>${nom}</dt><meter min="0" max="1" value="${Math.min(1, ratio)}"></meter><dd>${valeur}</dd></div>`).join('') + '</dl>';
   }
 
-  quickSetup(model, tr, laps, filtre, ouverts, perso) {
+  panneauxPaddock(model, tr, filtre, circuits, reglages, salon = null) {
     const t = k => this.t(k), app = this.app, s = app.save;
-    const nuit = s.timeOfDay === 'night' && model.catId !== 'f1';
-    const lumiere = `<button class="quick-light" data-action="pickTimeOfDay" data-id="${nuit ? 'day' : 'night'}" aria-label="${t('night')}" aria-pressed="${nuit}" ${model.catId === 'f1' ? 'disabled' : ''}>${nuit ? '☾' : '☀︎'}</button>`;
+    const nuit = (salon ? salon.horaire : s.timeOfDay) === 'night' && model.catId !== 'f1';
+    const lumiere = `<button class="quick-light" data-action="${salon ? 'netTimeOfDay' : 'pickTimeOfDay'}" data-id="${nuit ? 'day' : 'night'}" aria-label="${t('night')}" aria-pressed="${nuit}" ${model.catId === 'f1' || (salon && !salon.editable) ? 'disabled' : ''}>${nuit ? '☾' : '☀︎'}</button>`;
     const circuit = app.trackCache(tr.id), virages = circuit.corners;
     const rayon = circuit.k.reduce((m, v) => Math.max(m, Math.abs(v)), 0);
     const droite = virages.reduce((m, v, i) => Math.max(m, (virages[i+1]?.from ?? virages[0].from + circuit.n) - v.to), 0) * circuit.ds;
@@ -1418,33 +1392,33 @@ class UI {
       [t('circuitStraight'), droite > 0 ? `${Math.round(droite)} m` : '—']
     ];
     const difficulte = tr.difficulty ?? clamp(Math.ceil(virages.length * 400 / circuit.length), 1, 4);
-    const pointe = Math.round(speedProfile(circuit, model, 'racing', .98).reduce((v, n) => Math.max(v, n), 0) * 3.6);
-    valeurs.push([t('circuitPeak'), pointe + ' km/h'], [t('communityLaps'), this.toursCommunaute ? this.toursCommunaute[tr.id] || 0 : '—'],
+    const pointe = tr.pointe;
+    valeurs.push([t('circuitPeak'), pointe ? `${pointe.kmh} km/h<small class="quick-peak-model">${escapeHtml(modelById(pointe.voiture).name)}</small>` : '—'], [t('communityLaps'), this.toursCommunaute ? this.toursCommunaute[tr.id] || 0 : '—'],
       [t('myTrackLaps'), s.toursCircuit?.[tr.id] || 0], [t('circuitRecord'), this.chronoMondial(record)]);
     if (!this.releveTours && app.mondial?.toursRecents) {
       this.releveTours = app.mondial.toursRecents().then(tours => {
         this.toursCommunaute = tours;
         const cellule = this.root.querySelector('[data-tours-communaute]');
-        if (cellule) cellule.textContent = tours ? tours[this.setup.trackId] || 0 : '—';
+        if (cellule) cellule.textContent = tours ? tours[cellule.dataset.toursCommunaute] || 0 : '—';
       });
     }
-    const choixCircuits = TRACKS.concat(perso ? [perso] : []);
-    const choix = this.rail('tracks', 'tracks', choixCircuits.map(c => {
-      const verrou = c !== perso && !ouverts.has(c.id);
-      return `<button class="card ${c.id === tr.id ? 'sel' : ''}" data-action="pickTrack" data-id="${escapeHtml(c.id)}" ${verrou ? 'disabled' : ''}>
-        <span class="track-card-art" style="background-image:url('${this.circuitArt(c)}')"><img alt="" src="${this.thumb(c, 90)}"></span><b>${escapeHtml(c.name)}</b><small>${this.circuitFlag(c)} ${verrou ? t('locked') : this.longueur(c)}</small></button>`;
+
+    const ouverts = salon ? null : unlockedTracks(s);
+    const choix = this.rail(salon ? 'netTracks' : 'tracks', 'tracks', circuits.map(c => {
+      const verrou = salon ? !salon.editable : !c.custom && !ouverts.has(c.id) && !app.custom.tracks.includes(c);
+      return `<button class="card ${c.id === tr.id ? 'sel' : ''}" data-action="${salon ? 'netTrack' : 'pickTrack'}" data-id="${escapeHtml(c.id)}" ${verrou ? 'disabled' : ''}>
+        <span class="track-card-art" style="background-image:url('${this.circuitArt(c)}')"><img alt="" src="${this.thumb(c, 90)}"></span><b>${escapeHtml(c.name)}</b><small>${this.circuitFlag(c)} ${verrou && !salon ? t('locked') : this.longueur(c)}</small></button>`;
     }).join(''));
     const lv = app.playerLivreeFor(model.id), livre = model.livrees || [];
-    const livrees = `<div class="quick-liveries" aria-label="${t('livery')}">${[-1, 1].map((sens, i) => `${i ? `<span>${escapeHtml(livre[lv] ? nomLivree(livre[lv], this.lang) : model.name)}</span>` : ''}<button data-action="pickLivery" data-id="${(lv + sens + livre.length) % livre.length}" aria-label="${t(i ? 'next' : 'previous')}" ${livre.length < 2 ? 'disabled' : ''}>${i ? '›' : '‹'}</button>`).join('')}</div>`;
-    this.show(`${this.paddockTopbar(t('quickRace'))}<h1 class="race-setup-title">${t('raceSetup')}</h1>
-      <div class="quick-grid">
+    const livrees = `<div class="quick-liveries" aria-label="${t('livery')}">${[-1, 1].map((sens, i) => `${i ? `<span>${escapeHtml(livre[lv] ? nomLivree(livre[lv], this.lang) : model.name)}</span>` : ''}<button data-action="${salon ? 'netLivery' : 'pickLivery'}" data-id="${(lv + sens + livre.length) % livre.length}" aria-label="${t(i ? 'next' : 'previous')}" ${livre.length < 2 || (salon && !salon.libre) ? 'disabled' : ''}>${i ? '›' : '‹'}</button>`).join('')}</div>`;
+    return `<div class="quick-grid">
         <div class="quick-preview">${this.imageCircuit(tr, nuit, lumiere)}</div>
-        <div class="quick-info"><div class="quick-track-name"><h2>${escapeHtml(tr.name)}</h2>${this.circuitFlag(tr)}<small>${tr.country ? escapeHtml(noms.of(tr.country)) : ''}</small><label class="quick-difficulty">${t('difficultyLabel')} · ${difficulte}/4<meter value="${difficulte}" min="0" max="4"></meter></label></div>
-          <dl class="quick-facts">${valeurs.map(([k, v]) => `<div><dt>${k}</dt><dd ${k === t('communityLaps') ? 'data-tours-communaute' : k === t('circuitRecord') ? 'class="quick-world"' : ''}>${v}</dd></div>`).join('')}</dl>${this.chronosCircuit(tr)}</div>
-        <section class="quick-options"><h3>${t('track')}</h3>${choix}${this.setupBar(true, model, tr, laps, 'reglages')}</section>
+        <div class="quick-info"><div class="quick-track-name"><h2>${escapeHtml(tr.name)}</h2>${this.circuitFlag(tr)}<small>${tr.country ? escapeHtml(noms.of(tr.country)) : ''}</small><label class="quick-difficulty">${t('difficulty')} · ${difficulte}/4<meter value="${difficulte}" min="0" max="4"></meter></label></div>
+          <dl class="quick-facts">${valeurs.map(([k, v]) => `<div><dt>${k}</dt><dd ${k === t('communityLaps') ? `data-tours-communaute="${escapeHtml(tr.id)}"` : k === t('circuitRecord') ? 'class="quick-world"' : ''}>${v}</dd></div>`).join('')}</dl>${this.chronosCircuit(tr)}</div>
+        <section class="quick-options"><h3>${t('track')}</h3>${choix}${reglages}</section>
         <section class="quick-garage"><div class="quick-car">${this.carPreview(model)}${livrees}</div><div class="quick-models">
-          ${this.filtreCat('pickCat', filtre)}${this.rail('models', 'models', this.modelesVisibles(filtre).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${escapeHtml(m.id)}">${this.carIcon(m, LIVERIES[s.livery], app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}</b></button>`).join(''))}${this.ficheRapide(model)}</div></section>
-      </div>${this.setupBar(true, model, tr, laps, 'bas')}`, 'scroll setup-screen quick-paddock', 'depart:race');
+          ${this.filtreCat(salon ? 'netCat' : 'pickCat', filtre, salon && !salon.editable)}${this.rail(salon ? 'netModels' : 'models', 'models', this.modelesVisibles(filtre).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="${salon ? 'pickModelNet' : 'pickModel'}" ${salon && !salon.libre ? 'disabled' : ''} data-id="${escapeHtml(m.id)}">${this.carIcon(m, LIVERIES[s.livery], app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}</b></button>`).join(''))}${this.ficheRapide(model)}</div></section>
+      </div>`;
   }
 
   setupScreen(mode) {
@@ -1477,37 +1451,11 @@ class UI {
     const model = app.playerModelFor(cat.id);
     const trackDef = app.trackDefById(st.trackId);
     const laps = s.laps || lapsFor(trackDef, cat);
-    const livery = LIVERIES[s.livery];
-    const race = mode === 'race', entrainement = mode === 'training';
-    if (race) return this.quickSetup(model, trackDef, laps, filtre, ut, perso);
-    this.show(`
-      ${this.paddockTopbar(race ? t('quickRace') : entrainement ? t('training') : t('timeTrial'))}
-      <div class="setup-columns"><section class="setup-block car-sheet">
-      ${this.filtreCat('pickCat', filtre)}
-      ${this.carPreview(model)}
-      ${this.liveryChoices(model)}
-      ${this.heroStats(model)}
-      ${this.rail('models', 'models', this.modelesVisibles(filtre).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${m.id}">
-            ${this.carIcon(m, livery, app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}${m.custom ? ` <small>(${t('custom')})</small>` : ''}</b>
-            ${filtre === 'all' ? this.etiquetteCat(m) : ''}
-            ${this.repereLivree(m, app.playerLivreeFor(m.id))}
-            ${this.gauges(m)}</button>`).join(''))}
-      </section><section class="setup-block circuit-sheet">${this.trackPreview(trackDef, race ? laps : null)}
-      ${this.rail('tracks', 'tracks', TRACKS.map(tr => {
-        const locked = !ut.has(tr.id);
-        return `<button class="card ${tr.id === st.trackId ? 'sel' : ''} ${locked ? 'locked' : ''}" data-action="pickTrack" data-id="${tr.id}" ${locked ? 'disabled' : ''}>
-            <span class="track-card-art" ${this.circuitArt(tr) ? `style="background-image:url('${this.circuitArt(tr)}')"` : ''}><img alt="" src="${this.thumb(tr, 90)}"></span><b>${tr.name}</b><small>${locked ? t('locked') : `${tr.flag} ${this.longueur(tr)}`}</small></button>`;
-      }).join('') + (perso ? `<button class="card sel" data-action="pickTrack" data-id="${perso.id}">
-            <img alt="" src="${this.thumb(perso, 90)}"><b>${escapeHtml(perso.name)}</b><small>${perso.flag || '🏁'} ${this.longueur(perso)}</small></button>` : ''))}
-      <!-- La zone des circuits perso est retirée, comme le lien vers l'atelier l'avait été avant
-           elle. Elle n'était plus alimentée par rien : l'atelier n'est plus accessible depuis le
-           menu, si bien que la liste était soit vide, soit le musée des essais d'un ancien
-           réglage. Les tracés enregistrés ne sont pas effacés pour autant — ils restent dans le
-           navigateur et l'éditeur y mène encore par son adresse. -->
-      <div class="setup-records">${race ? this.palmaresListe(st.trackId, cat, model, livery) : this.records(st.trackId, cat, model, livery, entrainement)}</div>
-      </section></div>
-      ${this.setupBar(race, model, trackDef, laps)}
-    `, 'scroll setup-screen', 'depart:' + mode);
+    const race = mode === 'race', titre = race ? 'quickRace' : mode === 'training' ? 'training' : 'timeTrial';
+    const reglages = this.setupBar(race, model, trackDef, laps, 'reglages') + (mode === 'timetrial' ? this.statutChrono() : '');
+    this.show(`${this.paddockTopbar(t(titre))}<h1 class="race-setup-title">${t('raceSetup')}</h1>
+      ${this.panneauxPaddock(model, trackDef, filtre, TRACKS.concat(perso ? [perso] : []), reglages)}
+      ${this.setupBar(race, model, trackDef, laps, 'bas')}`, 'scroll setup-screen quick-paddock', 'depart:' + mode);
   }
 
   /* LA LÉGENDE DU GUIDE, dans la pause de l'entraînement : les trois signes tels qu'ils sont peints sur
@@ -1570,6 +1518,14 @@ class UI {
     return `<button class="chip programme-bouton ${actif ? 'programme-actif' : ''}" data-action="programme" data-id="${enLigne ? 'multi' : 'solo'}" aria-pressed="${actif}">${this.t('championnat')}</button>`;
   }
 
+  nombreMenu(min, max, valeur, attributs) {
+    if (this.app.desktop) return `<input type="number" min="${min}" max="${max}" value="${valeur}" ${attributs}>`;
+    return `<select ${attributs}>${Array.from({length:max - min + 1}, (_, i) => {
+      const n = min + i;
+      return `<option value="${n}" ${n === Number(valeur) ? 'selected' : ''}>${n}</option>`;
+    }).join('')}</select>`;
+  }
+
   programmeScreen(enLigne) {
     const app = this.app, net = app.net, t = k => this.t(k);
     const table = enLigne ? net.settings() : {};
@@ -1601,7 +1557,7 @@ class UI {
           ${this.rail('champCircuits', 'tracks', TRACKS.map(tr => `<button class="card ${tr.id === selection.id ? 'sel' : ''}" data-action="programmeChoisir" data-id="${escapeHtml(tr.id)}"><span class="track-card-art" style="background-image:url('${this.circuitArt(tr)}')"><img alt="" src="${this.thumb(tr, 90)}"></span><b>${escapeHtml(tr.name)}</b></button>`).join(''))}
         </section>
         <section class="programme-carte">
-          ${phases.map(phase => `<label class="programme-ligne">${t(phase)} <span><input type="number" min="0" max="60" value="${Number(options[phase]) || 0}" data-programme-duree="${phase}" ${verrou}> min</span></label>`).join('')}
+          ${phases.map(phase => `<label class="programme-ligne">${t(phase)} <span>${this.nombreMenu(0, 60, Number(options[phase]) || 0, `data-programme-duree="${phase}" ${verrou}`)} min</span></label>`).join('')}
           <p class="muted">${t('programmeHint')} ${t('bareme_' + Championnat.cleBareme(categorie.id))}</p>
           <h3>${t('grilleDepart')}</h3>
           ${pilotes.map(p => `<label class="programme-ligne">${escapeHtml(p.name)}<select data-programme-pilote="${escapeHtml(p.pid)}" ${verrou}>
@@ -1613,7 +1569,7 @@ class UI {
           <ol class="programme-manches">${calendrier.map((id,i) => {
             const tr = app.trackDefById(id);
             return `<li><h4>${this.t('round', i+1)}</h4><b>${nomCircuit(id)}</b>${tr ? this.imageCircuit(tr, nuit) : ''}
-              <label class="programme-ligne">${t('lapCount')} <input type="number" min="1" max="99" value="${Championnat.toursManche(options,i,tours)}" data-programme-tours="${i}" ${verrou}></label>
+              <label class="programme-ligne">${t('lapCount')} ${this.nombreMenu(1, 99, Championnat.toursManche(options,i,tours), `data-programme-tours="${i}" ${verrou}`)}</label>
               <div class="programme-actions"><button data-action="programmeDeplacer" data-id="${i}" data-dir="-1" aria-label="${t('previous')}" ${i === 0 ? 'disabled' : verrou}>‹</button>
               <button data-action="programmeDeplacer" data-id="${i}" data-dir="1" aria-label="${t('next')}" ${i === calendrier.length-1 ? 'disabled' : verrou}>›</button>
               <button data-action="programmeRetirer" data-id="${i}" aria-label="${t('retirerCircuit')}" ${verrou}>×</button></div></li>`;
@@ -1647,10 +1603,6 @@ class UI {
     const gamepad = desktop && app.controls.mode === 'gamepad';
     const toursVerrou = app.programmeActif && s.programme?.circuits?.length ? 'disabled' : '';
     const reglages = `<div class="setup-reglages">
-      ${!race ? `<div class="setup-chips" data-pad-group>
-        ${pastille(t('timeOfDay'), t(s.timeOfDay === 'night' ? 'night' : 'day'), `data-action="pickTimeOfDay" data-id="${s.timeOfDay === 'night' ? 'day' : 'night'}" aria-pressed="${s.timeOfDay === 'night'}"`, s.timeOfDay === 'night' && model.catId === 'f1' ? 'nuit-f1' : '')}
-        ${s.timeOfDay === 'night' ? `<small class="muted night-hint">${t(model.catId === 'f1' ? 'nightF1Hint' : 'nightHint')}</small>` : ''}
-      </div>` : ''}
       ${race ? `<div class="setup-chips" data-pad-group>
         ${pastille(t('difficulty'), t(s.difficulty), `data-action="pickDiff" data-id="${suivant(NIVEAUX, s.difficulty)}"`)}
         <label class="chip chip-select"><span>${t('opponents')} :</span><select id="solo-ai"><option value="0">${t('auto')}</option>
@@ -1687,9 +1639,9 @@ class UI {
       </div>`;
     const lancement = `<div class="setup-bar quick-footer">
       ${race ? `<div class="quick-footer-settings">${this.boutonProgramme(s.programme, false)}
-        ${pastille(t('lapCount'), s.lapsPerso ? t('lapCustom') : (s.laps || 5), `data-action="pickLaps" data-id="${suivant([2, 5, 10, 20, 'perso'], toursCourants)}" ${toursVerrou}`)}
-        ${s.lapsPerso ? `<label class="chip chip-input"><span>${t('lapCount')} :</span><input id="inp-laps" type="number" min="1" max="99" value="${Math.max(1, Math.min(99, s.laps || 5))}" ${toursVerrou}></label>` : ''}</div>` : reglages}
-      ${race ? `<button class="chip quick-footer-back" data-action="menu">${t('back')}</button>` : ''}
+        ${!desktop ? `<label class="chip chip-select"><span>${t('lapCount')} :</span>${this.nombreMenu(1,99,s.laps || 5, 'id="inp-laps" ' + toursVerrou)}</label>` : pastille(t('lapCount'), s.lapsPerso ? t('lapCustom') : (s.laps || 5), `data-action="pickLaps" data-id="${suivant([2, 5, 10, 20, 'perso'], toursCourants)}" ${toursVerrou}`)}
+        ${desktop && s.lapsPerso ? `<label class="chip chip-input"><span>${t('lapCount')} :</span><input id="inp-laps" type="number" min="1" max="99" value="${Math.max(1, Math.min(99, s.laps || 5))}" ${toursVerrou}></label>` : ''}</div>` : '<div></div>'}
+      <button class="chip quick-footer-back" data-action="menu">${t('back')}</button>
       <div class="row end setup-launch">
         <span class="muted launch-resume">${trackDef.flag || '🏁'} ${escapeHtml(trackDef.name)} · ${escapeHtml(model.name)} · ${race ? `${laps} ${t('laps')}` : st.mode === 'training' ? t('trainingIntro') : t('ttIntro')}</span>
         <span class="damier launch-damier" aria-hidden="true"></span><button class="big primary" data-action="startQuick">${t('enPiste')} <span aria-hidden="true">→</span></button>
@@ -1767,26 +1719,19 @@ class UI {
       </div>
       ${list.filter(m => !m.q.spectator).length < 2 ? this.lienDiscord('discordJoueurs', DISCORD_JOUEURS_URL) : ''}
       ${!net.creator ? `<button data-action="netRole">${net.mine.spectator ? 'Devenir pilote' : 'Devenir spectateur'}</button>` : ''}
-      ${this.selectionPreview(model, trackDef)}
-      <h3>${t('track')}</h3>
-      ${this.rail('netTracks', 'tracks', tracks.map(tr => `<button class="card ${tr.id === trackDef.id ? 'sel' : ''}" data-action="netTrack" data-id="${tr.id}" ${verrou}>
-          <span class="track-card-art" ${this.circuitArt(tr) ? `style="background-image:url('${this.circuitArt(tr)}')"` : ''}><img alt="" src="${this.thumb(tr, 90)}"></span><b>${escapeHtml(tr.name)}</b><small>${tr.flag || '🏁'} ${this.longueur(tr)}</small></button>`).join(''))}
-      <h3>${t('model')}</h3>
-      ${this.rail('netModels', 'models', this.modelesVisibles(tcat).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModelNet" data-id="${m.id}" ${libre ? '' : 'disabled'}>
-          ${this.carIcon(m, livery, app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}</b>${tcat === 'all' ? this.etiquetteCat(m) : ''}
-          ${this.repereLivree(m, app.playerLivreeFor(m.id))}</button>`).join(''))}
+      ${this.panneauxPaddock(model, trackDef, tcat, tracks, '', {editable, libre, horaire:cfg.timeOfDay})}
       <section class="programme-carte lobby-reglages">
         <div><h3>${t('mFormat')}</h3><div class="seg">
           ${NET_MODES.map(m => bouton('netMode', m, t({race: 'mRace', duel: 'mDuel', ghost: 'mGhost'}[m]), cfg.mode === m)).join('')}</div>
-          ${cfg.mode === 'race' ? `<label class="chip chip-input"><span>${t('lapCount')}</span><input id="net-laps" type="number" min="1" max="10" value="${Number(cfg.laps) || 3}" ${cfg.programme?.circuits?.length ? 'disabled' : verrou}></label>
+          ${cfg.mode === 'race' ? `<label class="chip chip-input"><span>${t('lapCount')}</span>${this.nombreMenu(1,10,Number(cfg.laps) || 3, 'id="net-laps" ' + (cfg.programme?.circuits?.length ? 'disabled' : verrou))}</label>
           <label class="chip chip-select"><span>${t('opponents')}</span><select id="net-ai" ${verrou}>
             <option value="-1">${t('auto')}</option>${Array.from({length: maxIA + 1}, (_, i) => `<option value="${i}" ${cfg.aiCount === i ? 'selected' : ''}>${i}</option>`).join('')}</select></label>` : ''}
           ${!net.mine.spectator ? `<label class="chip chip-select"><span>${t('freinage')}</span><select id="net-frein" data-track="${escapeHtml(trackDef.id)}" data-model="${escapeHtml(model.id)}">
             <option value="">${t('regDefaut')}</option>${reglagesPour(s, trackDef.id, model.id).map(c => `<option value="${escapeHtml(c.nom)}" ${c.nom === frein?.nom ? 'selected' : ''}>${escapeHtml(c.nom)}</option>`).join('')}</select></label>` : ''}
         </div>
-        <div><h3>${t('mCat')}</h3>${this.filtreCat('netCat', tcat, !editable)}
+        <div>
           <div class="lobby-reglages-paire">
-            <div><h3>${t('timeOfDay')}</h3><div class="seg">${['day','night'].map(v => bouton('netTimeOfDay', v, t(v), (cfg.timeOfDay || 'day') === v, v === 'night' && model.catId === 'f1' ? 'nuit-f1' : '')).join('')}</div></div>
+
             ${DEGATS_ACTIVE ? `<div><h3>${t('chipDegats')}</h3><div class="seg">${[['1','on'],['0','off']].map(([v,k]) => bouton('netDegats', v, t(k), (cfg.degats !== false) === (v === '1'))).join('')}</div></div>` : ''}
           </div>
           ${cfg.timeOfDay === 'night' && model.catId === 'f1' ? `<p class="warn">${t('nightF1Hint')}</p>` : ''}
@@ -1799,7 +1744,7 @@ class UI {
         <button class="${net.mine.ready ? '' : 'primary'}" data-action="netReady" ${net.mine.spectator ? 'disabled' : ''}>${net.mine.ready ? t('notReady') : t('ready')}</button>
         ${net.creator ? `<button class="big primary" data-action="netStart" ${net.canStart() ? '' : 'disabled'}>${t('start')}</button>` : `<span class="muted">${t('startWhenReady')}</span>`}
       </div>
-    `, 'scroll selection-screen lobby-screen', 'salon');
+    `, 'scroll selection-screen lobby-screen quick-paddock', 'salon');
   }
 
   careerScreen() {
@@ -2109,11 +2054,14 @@ class UI {
       fois de livrée ». Le premier appui sur une carte qui n'est pas la sienne la choisit — sinon
       changer de voiture changerait aussi sa peinture au passage, ce que personne ne demande. Une
       fois choisie, la carte devient le sélecteur de livrée. */
+      case 'netLivery':
       case 'pickLivery': {
         const model=app.playerModelFor(this.setup.classId), index=Number(id);
         if(!Number.isInteger(index)||index<0||index>=(model.livrees||[]).length)break;
         app.save.livrees=app.save.livrees||{};app.save.livrees[model.id]=index;storeSave(app.save);
-        this.setupScreen(this.setup.mode);break;
+        if (btn.dataset.action === 'netLivery') { this._netCar(); this.lobbyScreen(); }
+        else this.setupScreen(this.setup.mode);
+        break;
       }
       case 'pickModel': { this._choisitOuTourne(id, app.playerModelFor(this.setup.classId).id, true); this.setupScreen(this.setup.mode); break; }
       case 'pickCat': {
@@ -2121,7 +2069,7 @@ class UI {
         if (id !== 'all') { app.save.cat = id; this.setup.classId = id; }
         storeSave(app.save); this.setupScreen(this.setup.mode); break;
       }
-      case 'chronoCat': this.filtreChronos = id; this.setupScreen(this.setup.mode); break;
+      case 'chronoCat': this.filtreChronos = id; this._cleEcran === 'salon' ? this.lobbyScreen() : this.setupScreen(this.setup.mode); break;
       case 'pickModelCup': {
         const cup = CUPS.find(c => c.id === btn.dataset.cup);
         this._choisitOuTourne(id, cup ? app.playerModelFor(cup.classId).id : null, false); this.cupScreen(btn.dataset.cup); break;

@@ -106,6 +106,20 @@ static func tactile() -> bool:
 	return t
 
 
+## Valeurs entières choisies au doigt, sans ouvrir le clavier.
+static func menuNombre(minimum: int, maximum: int, valeur: int, suffixe: String, interdit: bool, change: Callable) -> OptionButton:
+	var menu := OptionButton.new()
+	menu.fit_to_longest_item = false
+	menu.custom_minimum_size = Vector2(78, 44)
+	menu.disabled = interdit
+	menu.add_theme_font_size_override("font_size", 18)
+	menu.add_theme_color_override("font_color", Color("#8ae8ad"))
+	for n in range(minimum, maximum + 1): menu.add_item(str(n) + suffixe, n)
+	menu.select(clampi(valeur, minimum, maximum) - minimum)
+	menu.item_selected.connect(func(i): App.clic(); change.call(menu.get_item_id(i)))
+	return menu
+
+
 ## Au doigt, le tableau de bord se dessine à la taille du jeu web : un point du tableau vaut un
 ## pixel d'écran du navigateur (390 de large sur un iPhone), au lieu d'un 720e de l'image. Sans cela,
 ## tout y était deux fois plus petit que dans le jeu web. Jamais en dessous de 1 (tablette, PC).

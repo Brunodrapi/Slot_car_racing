@@ -4,7 +4,7 @@ class_name Textes
 extends RefCounted
 
 const FR := {
-	applySeries = "APPLIQUER", communityLaps = "TOURS COMMUNAUTÉ · 30 J", myTrackLaps = "MES TOURS", circuitPeak = "POINTE ESTIMÉE", carWeight = "POIDS",
+	applySeries = "APPLIQUER", communityLaps = "TOURS COMMUNAUTÉ · 30 J", myTrackLaps = "MES TOURS", circuitPeak = "POINTE SIMULÉE", carWeight = "POIDS",
 	quickRace = "COURSE RAPIDE", timeTrial = "CONTRE-LA-MONTRE", training = "ENTRAÎNEMENT",
 	howto = "COMMENT JOUER", settings = "RÉGLAGES", pilot = "PILOTE : %s", quit = "QUITTER", back = "‹ RETOUR",
 	proto = "Version Godot · %d circuits · %d voitures", all = "TOUTES",
@@ -127,7 +127,7 @@ const FR := {
 	nightHint = "Visibilité réduite : phares et éclairage du circuit.", nightF1Hint = "F1 sans phares : éclairage du circuit uniquement.",
 }
 const EN := {
-	applySeries = "APPLY", communityLaps = "COMMUNITY LAPS · 30D", myTrackLaps = "MY LAPS", circuitPeak = "EST. TOP SPEED", carWeight = "WEIGHT",
+	applySeries = "APPLY", communityLaps = "COMMUNITY LAPS · 30D", myTrackLaps = "MY LAPS", circuitPeak = "SIMULATED TOP SPEED", carWeight = "WEIGHT",
 	quickRace = "QUICK RACE", timeTrial = "TIME TRIAL", training = "PRACTICE",
 	howto = "HOW TO PLAY", settings = "SETTINGS", pilot = "DRIVER: %s", quit = "QUIT", back = "‹ BACK",
 	proto = "Godot version · %d tracks · %d cars", all = "ALL",

@@ -55,11 +55,18 @@ static func _lit(brut: PackedByteArray, bloc: Array) -> Variant:
 
 
 
+# Les décors téléchargés persistent entre deux versions du jeu.
+const REVISIONS := {"lemans": "stands-2"}
+
+static func _cache(id: String) -> String:
+	var suffixe := "-" + str(REVISIONS[id]) if REVISIONS.has(id) else ""
+	return "user://decors/%s-decor%s" % [id, suffixe]
+
 ## Le décor d'un circuit est-il là ? Sinon (version web), on le télécharge à côté de la page.
 static func cheminDe(id: String) -> String:
 	var local := "res://donnees/circuits/%s-decor" % id
 	if FileAccess.file_exists(local + ".json"): return local
-	var cache := "user://decors/%s-decor" % id
+	var cache := _cache(id)
 	if FileAccess.file_exists(cache + ".ok"): return cache
 	return ""
 
@@ -82,7 +89,9 @@ static func telecharge(id: String, parent: Node, progres: Callable) -> bool:
 		var fini := [false, 0, 0, PackedByteArray()]
 		# Le corps est écrit à la main : `download_file` n'écrit rien dans la version web.
 		req.request_completed.connect(func(r, code, _h, b): fini[0] = true; fini[1] = r; fini[2] = code; fini[3] = b)
-		if req.request(base + "decors/" + fichiers[i]) != OK:
+		var url: String = base + "decors/" + fichiers[i]
+		if REVISIONS.has(id): url += "?v=" + str(REVISIONS[id])
+		if req.request(url) != OK:
 			req.queue_free()
 			return false
 		while not fini[0]:
@@ -91,11 +100,11 @@ static func telecharge(id: String, parent: Node, progres: Callable) -> bool:
 			if total > 0: progres.call((i + float(req.get_downloaded_bytes()) / total) / fichiers.size())
 		req.queue_free()
 		if fini[1] != HTTPRequest.RESULT_SUCCESS or fini[2] != 200: return false
-		var f := FileAccess.open("user://decors/" + fichiers[i], FileAccess.WRITE)
+		var f := FileAccess.open(_cache(id) + "." + str(fichiers[i]).get_extension(), FileAccess.WRITE)
 		if f == null: return false
 		f.store_buffer(fini[3])
 		f.close()
 	# Le témoin n'est posé qu'une fois les trois fichiers arrivés en entier.
-	var ok := FileAccess.open("user://decors/%s-decor.ok" % id, FileAccess.WRITE)
+	var ok := FileAccess.open(_cache(id) + ".ok", FileAccess.WRITE)
 	if ok: ok.store_string("1")
 	return true

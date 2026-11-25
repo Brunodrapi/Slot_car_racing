@@ -65,8 +65,8 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
     /* Deux couches de plus, pour les circuits qui passent au-dessus d'eux-mêmes : le tablier d'un
     croisement, peint par-dessus les voitures qui passent dessous et sous celles qui roulent
     dessus ; puis les passerelles et les têtes de tunnel, par-dessus toutes les voitures. */
-    const pd = source.indexOf('    if (T.drawRoad) for (const b of this.paths.bridges) {'), pf = source.indexOf('    for (const car of dessus) this._drawCar(g, car);', pd);
-    const hd = pf + '    for (const car of dessus) this._drawCar(g, car);'.length, hf = source.indexOf('    if(!race.opts.spectator||', hd);
+    const pd = source.indexOf('    if (T.drawRoad) for (const b of this.paths.bridges) {'), pf = source.indexOf('    for (const car of dessus)', pd);
+    const hd = source.indexOf('    for (const p of this.paths.passerelles)', pf), hf = source.indexOf('    if(!race.opts.spectator||', hd);
     if (pd < de || pf < pd || hf < hd) throw Error('Renderer.draw a changé : repères des ponts introuvables');
     const prePont = prelude + 'const pont=this.paths.bridges.length?T.crossings:[];';
     const ponts = new Function('g', 'vis', 'race', 'ui', prePont + source.slice(pd, pf));

@@ -214,6 +214,11 @@ func _construit() -> void:
 	var gauche := _bloc()
 	var droite := _bloc()
 	for phase in ["essais", "qualifications"]:
+		if Style.tactile():
+			var menu := Style.menuNombre(0, 60, int(options.get(phase, 0)), " min", not editable, func(v): options[phase] = v)
+			menu.set_meta("cle", "programme-" + phase)
+			_ligne(gauche, Textes.t(phase)).add_child(menu)
+			continue
 		var champ := SpinBox.new()
 		champ.min_value = 0; champ.max_value = 60
 		champ.suffix = " min"
@@ -317,10 +322,15 @@ func _construit() -> void:
 		carte.add_child(titre)
 		var info: Dictionary = infos.get(id, {})
 		_circuitCarte(carte, info, id, nuit)
-		var champ := _champTour(toursParManche[i], editable)
+		var changeTours := func(v): toursParManche[i] = int(v); options.toursParManche = toursParManche
+		var champ: Control
+		if Style.tactile(): champ = Style.menuNombre(1, 99, toursParManche[i], "", not editable, changeTours)
+		else:
+			var saisie := _champTour(toursParManche[i], editable)
+			saisie.value_changed.connect(changeTours)
+			champ = saisie
 		champ.set_meta("cle", "programme-tours-%d" % i)
 		_ligne(carte, Textes.t("lapsLabel"), 16).add_child(champ)
-		champ.value_changed.connect(func(v): toursParManche[i] = int(v); options.toursParManche = toursParManche)
 		var actions := HBoxContainer.new()
 		carte.add_child(actions)
 		for sens in [-1, 1]:

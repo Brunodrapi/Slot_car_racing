@@ -7,7 +7,6 @@ var rails := {}
 var filtreChronos := "tous"
 var etroit := false
 var compact := false
-var pointeParModele := {}
 var doigt: Doigt
 
 
@@ -54,7 +53,9 @@ func _defile(delta: float) -> void:
 		var avant := chronos.scroll_vertical
 		chronos.scroll_vertical += roundi(delta)
 		delta -= chronos.scroll_vertical - avant
+	var avantPage := page.scroll_vertical
 	page.scroll_vertical += roundi(delta)
+	if _multi(): paddock.defileExterne.emit((delta - (page.scroll_vertical - avantPage)) * scale.y)
 
 
 func _boite(vertical: bool) -> BoxContainer:
@@ -152,7 +153,38 @@ func _onglets(parent: Control, cle: String, selection: String, action: Callable)
 		var active: bool = selection == c[0]
 		var b := _bouton(ligne, c[1], cle + c[0], action.bind(c[0]), 60, Paddock.PC_VERT if active else Style.NUIT_PLEINE, Paddock.PC_ENCRE if active else Paddock.PC_CREME)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if cle == "onglet-": b.disabled = not _hote()
 		if compact: b.custom_minimum_size.y = 36
+
+
+func _multi() -> bool:
+	return paddock.mode == "multi"
+
+
+func _libre() -> bool:
+	return not _multi() or Reseau.net.settings().get("championnat", {}).is_empty()
+
+
+func _hote() -> bool:
+	return not _multi() or (Reseau.net.creator and _libre())
+
+
+func _choisitCircuit(id: String) -> void:
+	var tours := int(paddock.infoCircuits[id].tours)
+	if _multi(): Reseau.net.setTable({trackId = id, laps = tours})
+	else:
+		App.reglages.circuit = id
+		App.reglages.tours = tours
+		_sauve()
+
+
+func _choisitModele(id: String) -> void:
+	paddock._choisitVoiture(id)
+	if _multi(): _publieVoiture()
+
+
+func _publieVoiture() -> void:
+	Reseau.net.setMine({car = {modelId = App.reglages.voiture, livree = App.reglages.livree}, ready = false})
 
 
 func reconstruit() -> void:
@@ -172,26 +204,33 @@ func reconstruit() -> void:
 	paddock.portrait = etroit
 	var r := App.reglages
 	var voiture := Catalogue.voiture(r.voiture)
-	var cid := String(r.circuit)
+	var table := Reseau.net.settings() if _multi() else {}
+	var manche := Championnat.manche(table.get("championnat", {}))
+	var cid := String(manche.get("circuit", table.get("trackId", r.circuit)))
+	if _multi():
+		paddock.filtre = String(table.get("cat", "all"))
+		if paddock.filtre == "all": paddock.filtre = "tous"
 	var info: Dictionary = paddock.infoCircuits.get(cid, paddock.infoCircuits.values()[0])
-	var nuit: bool = bool(r.nuit) and voiture.cat != "f1"
-	var bandeau := Control.new()
-	bandeau.custom_minimum_size.y = 65
-	add_child(bandeau)
-	bandeau.draw.connect(func():
-		var zone := Rect2(Vector2.ZERO, bandeau.size)
-		if etroit: BarreTitre.tel(bandeau, zone, Textes.t("quickRace"))
-		else: BarreTitre.pc(bandeau, zone, Textes.t("quickRace")))
-	var retour := _bouton(bandeau, "", "retour", func(): App.aller("accueil"), 113, Color.TRANSPARENT)
-	retour.size = Vector2(73 if etroit else 113, 65)
-	retour.dessinPlus = BarreTitre.retourTel.bind(retour) if etroit else BarreTitre.retourPC.bind(retour)
-	retour.tooltip_text = Textes.t("backWord")
-	var titrePage := _bouton(self, Textes.t("raceSetup"), "", func(): pass, 385, Paddock.PC_CREME, Paddock.PC_ENCRE, 30)
-	titrePage.coupe = 12
-	if compact: titrePage.custom_minimum_size.y = 36
-	titrePage.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	titrePage.focus_mode = Control.FOCUS_NONE
-	titrePage.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var nuit: bool = (table.get("timeOfDay", "day") == "night" if _multi() else bool(r.nuit)) and voiture.cat != "f1"
+	if not _multi():
+		var titreMode := Textes.t({race="quickRace",timetrial="timeTrial",training="training"}.get(paddock.mode,"quickRace"))
+		var bandeau := Control.new()
+		bandeau.custom_minimum_size.y = 65
+		add_child(bandeau)
+		bandeau.draw.connect(func():
+			var zone := Rect2(Vector2.ZERO, bandeau.size)
+			if etroit: BarreTitre.tel(bandeau, zone, titreMode)
+			else: BarreTitre.pc(bandeau, zone, titreMode))
+		var retour := _bouton(bandeau, "", "retour", func(): App.aller("accueil"), 113, Color.TRANSPARENT)
+		retour.size = Vector2(73 if etroit else 113, 65)
+		retour.dessinPlus = BarreTitre.retourTel.bind(retour) if etroit else BarreTitre.retourPC.bind(retour)
+		retour.tooltip_text = Textes.t("backWord")
+		var titrePage := _bouton(self, Textes.t("raceSetup"), "", func(): pass, 385, Paddock.PC_CREME, Paddock.PC_ENCRE, 30)
+		titrePage.coupe = 12
+		if compact: titrePage.custom_minimum_size.y = 36
+		titrePage.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		titrePage.focus_mode = Control.FOCUS_NONE
+		titrePage.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	page = ScrollContainer.new()
 	page.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	page.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -210,8 +249,10 @@ func reconstruit() -> void:
 	art.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	art.draw.connect(func(): Paddock.dessineCircuit(art, info, nuit))
 	apercu.add_child(art)
-	var lumiere := _bouton(art, "", "nuit", func(): r.nuit = not r.nuit; _sauve(), 44, Color("#62665d") if voiture.cat == "f1" else Style.NUIT_PLEINE)
-	lumiere.disabled = voiture.cat == "f1"
+	var lumiere := _bouton(art, "", "nuit", func():
+		if _multi(): Reseau.net.setTable({timeOfDay = "day" if nuit else "night"})
+		else: r.nuit = not r.nuit; _sauve(), 44, Color("#62665d") if voiture.cat == "f1" else Style.NUIT_PLEINE)
+	lumiere.disabled = voiture.cat == "f1" or not _hote()
 	lumiere.tooltip_text = Textes.t("nightF1Hint" if lumiere.disabled else "dayNightLabel")
 	lumiere.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	var touche := 65 if etroit else 44
@@ -229,7 +270,7 @@ func reconstruit() -> void:
 			grille.get_child(1).custom_minimum_size.x = floorf(largeur * 0.56)
 		page.resized.connect(ajuste)
 		ajuste.call_deferred()
-	_bas()
+	if not _multi(): _bas()
 	page.set_deferred("scroll_vertical", y)
 	if not cle.is_empty():
 		for c in find_children("*", "Button", true, false):
@@ -244,12 +285,6 @@ func _lumiere(b: Bouton, nuit: bool) -> void:
 		for i in 8:
 			var rayon := Vector2.RIGHT.rotated(i * TAU / 8)
 			b.draw_line(centre + rayon * 10, centre + rayon * 14, Paddock.PC_CREME, 2, true)
-
-
-func profilMax(profil: PackedFloat32Array) -> float:
-	var maximum := 0.0
-	for vitesse in profil: maximum = maxf(maximum, vitesse)
-	return maximum
 
 
 func _informations(parent: Control, cid: String, info: Dictionary, y: int) -> void:
@@ -271,18 +306,13 @@ func _informations(parent: Control, cid: String, info: Dictionary, y: int) -> vo
 	var stats := GridContainer.new()
 	stats.columns = 4
 	bloc.add_child(stats)
-	var voiture := String(App.reglages.voiture)
-	var cle := cid + "/" + voiture
-	if not pointeParModele.has(cle):
-		var piste := Piste.charge("res://donnees/circuits/" + cid)
-		var profil := Course.speedProfile(piste, Catalogue.modele(voiture), "racing", 0.98)
-		pointeParModele[cle] = roundi(profilMax(profil) * 3.6)
+	var pointe: Dictionary = info.pointe
 	Mondial.chargeToursRecents()
 	var donnees := [
 		["circuitLength", "%d m" % roundi(info.longueur)], ["circuitTurns", str(info.virages)],
 		["circuitRadius", "%.1f m" % info.rayon if info.rayon > 0 else "—"],
 		["circuitStraight", "%d m" % roundi(info.droite) if info.droite > 0 else "—"],
-		["circuitPeak", "%d km/h" % pointeParModele[cle]],
+		["circuitPeak", "%d km/h" % int(pointe.kmh) if not pointe.is_empty() else "—"],
 		["communityLaps", str(Mondial.toursRecents.get(cid, 0)) if Mondial.toursDisponibles else "—"],
 		["myTrackLaps", str(App.reglages.get("toursCircuit", {}).get(cid, 0))],
 		["circuitRecord", Style.temps(record) if is_finite(record) else "—"]]
@@ -291,6 +321,7 @@ func _informations(parent: Control, cid: String, info: Dictionary, y: int) -> vo
 		var lib := _libelle(cellule, Textes.t(item[0]), 13, Paddock.PC_MUET)
 		lib.custom_minimum_size.y = 22 if etroit else 17
 		_libelle(cellule, item[1], 19, Color("#9462cf") if item[0] == "circuitRecord" else Paddock.PC_ENCRE)
+		if item[0] == "circuitPeak" and not pointe.is_empty(): _libelle(cellule, Catalogue.voiture(pointe.voiture).nom, 13, Paddock.PC_MUET)
 		if item[0] == "circuitRecord" and not detenteur.is_empty(): _libelle(cellule, detenteur, 13, Paddock.PC_MUET)
 	_libelle(bloc, Textes.t("circuitTimes"), 20)
 	_onglets(bloc, "chrono-", filtreChronos, func(id): filtreChronos = id; chronos.scroll_vertical = 0; reconstruit())
@@ -346,21 +377,24 @@ func _reglages(parent: Control, voiture: Dictionary, cid: String, x: int) -> voi
 	var cartes := _rail(bloc, "circuits", x)
 	for circuit in Catalogue.circuits():
 		var id := String(circuit.id)
-		var b := _bouton(cartes, String(circuit.nom).to_upper(), "circuit-" + id, func(): r.circuit = id; r.tours = paddock.infoCircuits[id].tours; _sauve(), 112, Paddock.PC_CREME, Paddock.PC_ENCRE, 14)
+		var b := _bouton(cartes, String(circuit.nom).to_upper(), "circuit-" + id, _choisitCircuit.bind(id), 112, Paddock.PC_CREME, Paddock.PC_ENCRE, 14)
 		b.custom_minimum_size.y = 100 if compact else 122
 		b.ligne = 74 if compact else 91
 		b.set_meta("compact", compact)
+		b.disabled = not _hote()
 		b.set_meta("circuit", id)
 		b.set_meta("sel", id == cid)
 		b.dessinPlus = Paddock._carteCircuitPC.bind(b)
-	var ligne := _boite(false)
-	bloc.add_child(ligne)
-	_pastille(ligne, "difficulte", Textes.t("difficultyLabel"), Paddock._nom(Paddock.DIFFICULTES, r.difficulte), func(): r.difficulte = Paddock._suivant(Paddock.DIFFICULTES, r.difficulte); _sauve())
-	_pastille(ligne, "adversaires", Textes.t("opponentsLabel"), str(int(r.adversaires) - 1), func(): r.adversaires = (int(r.adversaires) - 1) % 11 + 2; _sauve())
+	if _multi(): return
+	if paddock.mode == "race":
+		var ligne := _boite(false)
+		bloc.add_child(ligne)
+		_pastille(ligne, "difficulte", Textes.t("difficultyLabel"), Paddock._nom(Paddock.DIFFICULTES, r.difficulte), func(): r.difficulte = Paddock._suivant(Paddock.DIFFICULTES, r.difficulte); _sauve())
+		_pastille(ligne, "adversaires", Textes.t("opponentsLabel"), str(int(r.adversaires) - 1), func(): r.adversaires = (int(r.adversaires) - 1) % 11 + 2; _sauve())
 	var autres := HFlowContainer.new()
 	autres.add_theme_constant_override("h_separation", 5)
 	bloc.add_child(autres)
-	_pastille(autres, "degats", Textes.t("chipDegats"), Textes.t("on" if r.get("degats", true) else "off"), func(): r.degats = not r.get("degats", true); _sauve())
+	if paddock.mode == "race": _pastille(autres, "degats", Textes.t("chipDegats"), Textes.t("on" if r.get("degats", true) else "off"), func(): r.degats = not r.get("degats", true); _sauve())
 	var freins := _boite(false)
 	freins.add_theme_constant_override("separation", 0)
 	autres.add_child(freins)
@@ -368,6 +402,13 @@ func _reglages(parent: Control, voiture: Dictionary, cid: String, x: int) -> voi
 	var nom := Paddock._coupe(String(cfg.get("nom", Textes.t("regDefaut"))), 16, 140)
 	_pastille(freins, "freinage", Textes.t("freinage"), nom + Paddock.LISTE, func(): ReglageFrein.suivante(cid, voiture.id); _sauve())
 	_bouton(freins, Textes.t("regRegler"), "regler", paddock._regler, 82)
+
+	if paddock.mode == "timetrial":
+		var etat := Mondial.etat()
+		var texte := _libelle(bloc, etat.texte, 15, Paddock.PC_MUET)
+		texte.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		if Mondial.connexionPossible() and (Mondial.enCours or not Mondial.connecte()):
+			_bouton(bloc, Textes.t("signInCancel" if Mondial.enCours else "signIn"), "mondial", func(): (Mondial.annuler() if Mondial.enCours else Mondial.entrer()))
 
 
 func _garage(parent: Control, voiture: Dictionary, x: int) -> void:
@@ -397,12 +438,15 @@ func _garage(parent: Control, voiture: Dictionary, x: int) -> void:
 	var precedent := _bouton(lv, "‹", "livree-gauche", _livree.bind(-1, livrees.size()))
 	_libelle(lv, Textes.livree(livrees[index]), 15).horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var suivant := _bouton(lv, "›", "livree-droite", _livree.bind(1, livrees.size()))
-	precedent.disabled = livrees.size() < 2
+	precedent.disabled = livrees.size() < 2 or not _libre()
 	suivant.disabled = precedent.disabled
 	var choix := _boite(true)
 	choix.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	disposition.add_child(choix)
-	_onglets(choix, "onglet-", paddock.filtre, func(id): rails.erase("voitures"); paddock._choisitCategorie(id))
+	_onglets(choix, "onglet-", paddock.filtre, func(id):
+		rails.erase("voitures")
+		if _multi(): Reseau.net.setTable({cat = "all" if id == "tous" else id})
+		else: paddock._choisitCategorie(id))
 	var modeles: Array = Catalogue.donnees.voitures.filter(func(c): return paddock.filtre == "tous" or c.cat == paddock.filtre)
 	if x < 0:
 		for i in modeles.size():
@@ -410,9 +454,10 @@ func _garage(parent: Control, voiture: Dictionary, x: int) -> void:
 	var cartes := _rail(choix, "voitures", x)
 	for c in modeles:
 		var id := String(c.id)
-		var b := _bouton(cartes, Paddock._coupe(String(c.nom).to_upper(), 13, 80), "voiture-" + id, paddock._choisitVoiture.bind(id), 86, Paddock.PC_CREME, Paddock.PC_ENCRE, 13)
+		var b := _bouton(cartes, Paddock._coupe(String(c.nom).to_upper(), 13, 80), "voiture-" + id, _choisitModele.bind(id), 86, Paddock.PC_CREME, Paddock.PC_ENCRE, 13)
 		b.custom_minimum_size.y = 96 if compact else 112
 		b.ligne = 84
+		b.disabled = not _libre()
 		b.set_meta("voiture", c)
 		b.set_meta("sel", id == voiture.id)
 		b.dessinPlus = Paddock._carteVoiturePC.bind(b, false)
@@ -446,6 +491,7 @@ func _garage(parent: Control, voiture: Dictionary, x: int) -> void:
 func _livree(sens: int, nombre: int) -> void:
 	App.reglages.livree = posmod(int(App.reglages.livree) + sens, nombre)
 	_sauve()
+	if _multi(): _publieVoiture()
 
 
 func _bas() -> void:
@@ -455,8 +501,15 @@ func _bas() -> void:
 	var r := App.reglages
 	var programme: Dictionary = r.get("programme", {})
 	var actif := App.programmeActif and Championnat.actif(programme)
-	_bouton(ligne, Textes.t("championnat"), "programme", func(): App.aller("programme"), 145, Paddock.PC_VERT if actif else Style.NUIT_PLEINE, Paddock.PC_ENCRE if actif else Paddock.PC_CREME)
-	_pastille(ligne, "tours", Textes.t("lapsLabel"), str(int(r.tours)), func(): r.tours = int(r.tours) % 10 + 1; _sauve(), actif and not programme.get("circuits", []).is_empty())
+	if paddock.mode == "race":
+		_bouton(ligne, Textes.t("championnat"), "programme", func(): App.aller("programme"), 145, Paddock.PC_VERT if actif else Style.NUIT_PLEINE, Paddock.PC_ENCRE if actif else Paddock.PC_CREME)
+		if Style.tactile():
+			_libelle(ligne, Textes.t("lapsLabel"), 17)
+			var menu := Style.menuNombre(1, 99, int(r.tours), "", actif and not programme.get("circuits", []).is_empty(), func(v): r.tours = v; _sauve())
+			menu.set_meta("cle", "tours")
+			ligne.add_child(menu)
+		else:
+			_pastille(ligne, "tours", Textes.t("lapsLabel"), str(int(r.tours)), func(): r.tours = int(r.tours) % 10 + 1; _sauve(), actif and not programme.get("circuits", []).is_empty())
 	var espace := Control.new()
 	espace.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	ligne.add_child(espace)

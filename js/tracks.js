@@ -42,6 +42,7 @@ const DRAPEAUX = {
 const TRACKS = [
   {
     id: 'monza', name: 'Parco Reale', country: 'IT', difficulty: 1, flag: '🇮🇹', theme: 'park',
+    pointe: { kmh: 292, voiture: 'xjr9' },
     architecture: 'pavillons',
     // Trait noir de la reprise : la voie des stands quitte la piste à la sortie de la Parabolica,
     // et non plus au milieu du virage. Zone d'arrêt et sortie inchangées.
@@ -159,6 +160,7 @@ const TRACKS = [
   },
   {
     id: 'spa', name: 'Stand de frites', country: 'BE', difficulty: 3, flag: '🇧🇪', theme: 'forest',
+    pointe: { kmh: 268, voiture: 'renaultrs10' },
     architecture: 'pavillons',
     // Même langage de matériaux que Monza, adapté à la forêt ardennaise.
     // Les zones de dégagement annotées et tous les repères de gameplay sont conservés.
@@ -315,6 +317,7 @@ const TRACKS = [
   },
   {
     id: 'monaco', name: 'Le Rocher', country: 'MC', difficulty: 4, flag: '🇲🇨', theme: 'riviera',
+    pointe: { kmh: 221, voiture: 'renaultrs10' },
     revision: '2026-10-26T18:09:36Z',   // repris de tracks_11 : les retouches locales d'avant ne comptent plus
     runoffJoinGap: 60,
     defaultRunoff: 'asphalt', // Références monaco.jpg / monaco_2.jpg : aucun bac à gravier.
@@ -1087,6 +1090,7 @@ const TRACKS = [
   },
   {
     id: 'silverstone', name: 'Royal Air Base', country: 'GB', difficulty: 2, flag: '🇬🇧', theme: 'autumn',
+    pointe: { kmh: 249, voiture: 'renaultrs10' },
     architecture: 'graphique',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.gb,
@@ -1194,6 +1198,7 @@ const TRACKS = [
   },
   {
     id: 'suzuka', name: 'Fuji Yama', country: 'JP', difficulty: 4, flag: '🇯🇵', theme: 'japan',
+    pointe: { kmh: 265, voiture: '787b' },
     parallelClearance: true,
     architecture: 'graphique',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
@@ -1312,6 +1317,7 @@ const TRACKS = [
   },
   {
     id: 'interlagos', name: 'Festival de Carnaval', country: 'BR', difficulty: 2, flag: '🇧🇷', theme: 'tropical',
+    pointe: { kmh: 277, voiture: 'xjr9' },
     parallelClearance: true,
     architecture: 'plats',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
@@ -1395,6 +1401,7 @@ const TRACKS = [
   },
   {
     id: 'laguna', name: 'Corkscrew Ranch', country: 'US', difficulty: 3, flag: '🇺🇸', theme: 'california',
+    pointe: { kmh: 217, voiture: 'ferrari312t' },
     architecture: 'pavillons',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.us,
@@ -1476,6 +1483,7 @@ const TRACKS = [
   },
   {
     id: 'nurburgring', name: 'Bratwurst Ring', country: 'DE', difficulty: 3, flag: '🇩🇪', theme: 'forest',
+    pointe: { kmh: 256, voiture: '787b' },
     architecture: 'pavillons',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.de,
@@ -1580,11 +1588,14 @@ const TRACKS = [
   },
   {
     id: 'lemans', name: 'Autoroute 11', country: 'FR', difficulty: 2, flag: '🇫🇷', theme: 'lemans',
+    pointe: { kmh: 271, voiture: '787b' },
     architecture: 'pavillons',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.fr,
     length: 4200, width: 15,
     pts: TRACES.lemans,
+    // Les deux bretelles restent sur la droite des stands, entre la sortie Ford et la courbe Dunlop.
+    pitFrom: 0.994, pitTo: 0.024, pitAt: 0.0085,
     barrierPaths: [
       {side:-1,from:.8568,to:.8835,pts:[[238.1,347.4],[233.7,342.9],[232.4,341.6],[229.3,338.6],[225.8,335.6],[222.6,333.0],[219.1,330.4],[215.2,328.1],[211.4,326.2],[207.5,324.8],[203.5,323.4],[199.6,322.6],[195.7,321.8],[191.7,321.8],[187.7,321.9],[183.5,322.3],[179.1,323.1],[174.6,323.9],[170.2,324.9],[165.8,326.2],[161.5,327.5],[157.1,328.9],[152.7,330.6],[148.3,332.4],[143.9,334.3],[139.4,336.7],[135.3,339.2],[131.6,341.6],[128.3,344.0],[125.5,346.4],[123.2,348.6],[121.1,351.3],[119.5,354.4],[118.6,355.9],[117.3,361.7]]}, // Maison Blanche
       {side:-1,from:.0566,to:.1267,pts:[[-513.2,494.4],[-516.3,487.8],[-517.4,485.6],[-519.6,481.2],[-521.8,477.2],[-524.0,473.6],[-526.2,470.4],[-528.4,467.7],[-530.6,465.4],[-532.8,463.2],[-535.5,460.7],[-538.8,457.8],[-542.5,455.0],[-546.7,452.1],[-551.2,449.2],[-555.3,446.7],[-559.3,444.8],[-563.2,443.0],[-567.2,441.2],[-570.8,439.5],[-574.6,438.1],[-578.7,436.4],[-582.6,434.8],[-586.6,433.4],[-590.8,431.9],[-594.9,430.3],[-598.9,428.9],[-602.6,427.6],[-606.2,426.3],[-609.4,425.1],[-612.4,423.6],[-615.4,421.3],[-618.2,418.8],[-620.6,415.6],[-623.0,412.0],[-625.5,408.0],[-627.7,404.3],[-629.9,400.4],[-632.1,396.4],[-634.3,392.5],[-636.4,388.5],[-638.6,384.1],[-640.6,379.8],[-642.4,375.4],[-644.2,371.0],[-646.0,367.0],[-647.8,363.1],[-649.9,359.4],[-652.6,355.9],[-655.3,352.9],[-658.6,350.0],[-661.9,347.5],[-665.5,345.4],[-669.1,343.8],[-673.0,342.1],[-677.0,340.7],[-680.8,339.4],[-684.8,338.1],[-688.8,336.8],[-692.8,335.7],[-696.8,334.5],[-701.2,333.5],[-705.6,332.2],[-709.9,331.2],[-714.4,330.0],[-716.6,329.5],[-723.3,327.5]]}, // Esses et Tertre Rouge — extérieur
@@ -1685,7 +1696,7 @@ const TRACKS = [
         points: [[.9680,0],[.9725,11.8],[.9755,11.9],[.9785,14.6],[.9815,16.6],[.9875,16.6],[.9905,12],[.9937,0]] },
     ],
     implantation: [
-      { kind: 'stands', side: -1, from: 0.955, to: 0.035, recul: 12, prof: 26, module: 46 },
+      { kind: 'stands', side: -1, from: 0.998, to: 0.019, recul: 12, prof: 26, module: 46 },
       { kind: 'tribune', side: 1, from: 0.96, to: 0.045, recul: 11, prof: 20, module: 34 },
       { kind: 'bois', side: 1, from: 0.06, to: 0.29, recul: 13, prof: 70, essence: 'pinede' },
       { kind: 'bois', side: -1, from: 0.14, to: 0.29, recul: 14, prof: 80, essence: 'pinede' },
@@ -1709,6 +1720,7 @@ const TRACKS = [
   },
   {
     id: 'bathurst', name: 'Kangaroo Mountain', country: 'AU', difficulty: 4, flag: '🇦🇺', theme: 'bush',
+    pointe: { kmh: 314, voiture: 'xjr9' },
     runoffJoinGap: 60,
     /* LA VOIE DES STANDS EN LIGNE DROITE (essai des dégâts). Placée d'office, elle partait de la
        droite d'avant le dernier virage, passait DANS ce virage à angle droit, et ne finissait qu'après
@@ -1819,6 +1831,7 @@ const TRACKS = [
   },
   {
     id: 'redbullring', name: 'Apfelstrudel Ring', country: 'AT', difficulty: 1, flag: '🇦🇹', theme: 'alpine',
+    pointe: { kmh: 246, voiture: '935' },
     architecture: 'terrasses',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.at,
@@ -1907,6 +1920,7 @@ const TRACKS = [
     ligne droite du Mistral et le paddock entre les deux. Presque pas de gravier : le Castellet a
     remplacé ses bacs par le bitume peint, et c'est précisément pour cela qu'il a cette tête-là. */
     id: 'castellet', name: 'Pastaga 83', country: 'FR', difficulty: 2, flag: '🇫🇷', theme: 'lemans',
+    pointe: { kmh: 331, voiture: 'xjr9' },
     architecture: 'plats',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.fr,
@@ -2011,6 +2025,7 @@ const TRACKS = [
   },
   {
     id: 'zandvoort', name: 'Windmolen', country: 'NL', difficulty: 3, flag: '🇳🇱', theme: 'dunes',
+    pointe: { kmh: 247, voiture: 'renaultrs10' },
     parallelClearance: true, // Limiter les dégagements aux couloirs réellement disponibles.
     // Garder l’arrêt et les trois garages sur la ligne droite, hors de Hunserug.
     pitAt: 0.0039, pitLength: 220,
@@ -2149,6 +2164,7 @@ const TRACKS = [
        dans OpenStreetMap (`tools/traces.py`) : 5473 m pour 3,4 miles. « Camping Glen » : le Glen est
        célèbre pour ses campings autant que pour sa course (nom choisi par Bruno). */
     id: 'watkins', name: 'Camping Glen', country: 'US', difficulty: 2, flag: '🇺🇸', theme: 'glen',
+    pointe: { kmh: 257, voiture: 'renaultrs10' },
     architecture: 'pavillons',
     barriers: true,   // les rails bleus de l'Armco, partout
     kerb: ['#E9BE37', '#C9282E'],   // jaunes et rouges, comme les vrais (voir CIRCUIT_STYLES)

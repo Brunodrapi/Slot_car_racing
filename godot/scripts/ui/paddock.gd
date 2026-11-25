@@ -5,6 +5,8 @@
 class_name Paddock
 extends Control
 
+signal defileExterne(delta: float)
+
 const DIFFICULTES := [["easy", "easy"], ["medium", "medium"], ["hard", "hard"], ["extreme", "extreme"], ["cauchemar", "cauchemar"]]
 
 var mode := "race"
@@ -58,10 +60,10 @@ func _ready() -> void:
 	if Catalogue.voiture(App.reglages.voiture).is_empty(): App.reglages.voiture = "porsche991gt3r"
 	filtre = App.reglages.cat
 	Paddock.precharge()
-	if mode == "race":
+	if mode in ["race", "timetrial", "training", "multi"]:
 		rapide = load("res://scripts/ui/paddock_rapide.gd").new(self)
 		add_child(rapide)
-		App.prepareDemarrage()
+		if mode != "multi": App.prepareDemarrage()
 		return
 	cadre = Control.new()
 	cadre.draw.connect(_dessine)
@@ -113,7 +115,7 @@ static func infosCircuits() -> Dictionary:
 		for i in virages.size():
 			var suivant := virages[i + 1].x if i + 1 < virages.size() else virages[0].x + n
 			droite = maxi(droite, suivant - virages[i].y)
-		_infos[c.id] = { nom = c.nom, pays = meta.pays, difficulty = c.difficulty, longueur = longueur, tours = int(meta.tours), contour = contour, bornes = meta.bornes,
+		_infos[c.id] = { nom = c.nom, pays = meta.pays, difficulty = c.difficulty, pointe = c.get("pointe", {}), longueur = longueur, tours = int(meta.tours), contour = contour, bornes = meta.bornes,
 			virages = virages.size(), rayon = 1.0 / pic if pic > 0 else 0.0, droite = droite * longueur / n,
 			image = load("res://images/interface/circuits/%s.webp" % c.id) }
 	return _infos
@@ -171,6 +173,7 @@ func _defile(d: float) -> void:
 
 
 func _unhandled_input(e: InputEvent) -> void:
+	if mode == "multi": return
 	if e.is_action_pressed("ui_cancel"):
 		App.aller("accueil")
 	elif not rapide and e is InputEventKey and e.pressed and (e.keycode == KEY_PAGEDOWN or e.keycode == KEY_PAGEUP):
@@ -268,6 +271,7 @@ func _enPiste() -> void:
 ## Le fond du menu : l'image du paddock sur tout l'écran, comme le jeu web (#ui, center / cover).
 func _draw() -> void:
 	# au téléphone, du papier ; le paddock n'est que derrière la voiture (css/style.css, 0.39)
+	if mode == "multi": return
 	if size.x < size.y: draw_rect(Rect2(Vector2.ZERO, size), T_FOND)
 	else: Style.couvre(self, fondPaddock, Rect2(Vector2.ZERO, size), 0.5)
 
