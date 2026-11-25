@@ -114,7 +114,7 @@ const I18N = {
     next: 'Suivant', retry: 'Rejouer', menu: 'Menu', resume: 'Reprendre', restart: 'Recommencer', quit: 'Quitter', paused: 'Pause', endSession: 'Terminer',
     lap: 'Tour', last: 'Dernier', best: 'Meilleur', grip: 'adhérence', holdToGo: 'Maintiens Espace pour accélérer', holdToGoTouch: 'Maintiens l’écran pour accélérer', lineHintKeys: '↑ / ↓ : trajectoire', lineHintTouch: 'Pouce gauche : trajectoire',
     programmeCourse: 'Programme de course', essais: 'Essais libres', qualifications: 'Qualifications', championnat: 'Championnat',
-    raceSetup: 'Réglages de course', circuitTimes: 'Chronos du circuit', applySeries: 'Appliquer', communityLaps: 'Tours communauté · 30 j', myTrackLaps: 'Mes tours', circuitPeak: 'Pointe simulée', carWeight: 'Poids', circuitLength: 'Longueur', circuitTurns: 'Virages', circuitRadius: 'Rayon minimal', circuitStraight: 'Ligne droite', circuitRecord: 'Record du circuit', opponents: 'Adversaires', calendar: 'Calendrier', round: n => `Course ${n}`, next: 'Suivant', previous: 'Précédent',
+    raceSetup: 'Réglages de course', circuitTimes: 'Chronos du circuit', applySeries: 'Appliquer', communityLaps: 'Tours totaux', myTrackLaps: 'Mes tours', circuitPeak: 'Vitesse max', carWeight: 'Poids', circuitLength: 'Longueur', circuitTurns: 'Virages', circuitRadius: 'Rayon minimal', circuitStraight: 'Ligne droite', circuitRecord: 'Record du circuit', opponents: 'Adversaires', calendar: 'Calendrier', round: n => `Course ${n}`, next: 'Suivant', previous: 'Précédent',
     grilleDepart: 'Grille de départ', ajouterCircuit: 'Ajouter un circuit', monterCircuit: 'Remonter le circuit', retirerCircuit: 'Retirer le circuit',
     programmeHint: '0 min désactive la séance.', bareme_f1: 'F1 · 25 pts pour la victoire. La qualification fixe la grille.',
     bareme_gt: 'GT Sprint · 16,5 pts pour la victoire et 1 pt pour la pole.', bareme_lemans: 'Le Mans · 50 pts pour la victoire et 1 pt pour la pole.',
@@ -272,7 +272,7 @@ const I18N = {
     next: 'Next', retry: 'Retry', menu: 'Menu', resume: 'Resume', restart: 'Restart', quit: 'Quit', paused: 'Paused', endSession: 'Finish',
     lap: 'Lap', last: 'Last', best: 'Best', grip: 'grip', holdToGo: 'Hold Space to accelerate', holdToGoTouch: 'Hold anywhere to accelerate', lineHintKeys: '↑ / ↓: racing line', lineHintTouch: 'Left thumb: line',
     programmeCourse: 'Race programme', essais: 'Free practice', qualifications: 'Qualifying', championnat: 'Championship',
-    raceSetup: 'Race setup', circuitTimes: 'Circuit lap times', applySeries: 'Apply', communityLaps: 'Community laps · 30d', myTrackLaps: 'My laps', circuitPeak: 'Simulated top speed', carWeight: 'Weight', circuitLength: 'Length', circuitTurns: 'Corners', circuitRadius: 'Minimum radius', circuitStraight: 'Longest straight', circuitRecord: 'Circuit record', opponents: 'Opponents', calendar: 'Calendar', round: n => `Race ${n}`, next: 'Next', previous: 'Previous',
+    raceSetup: 'Race setup', circuitTimes: 'Circuit lap times', applySeries: 'Apply', communityLaps: 'Total laps', myTrackLaps: 'My laps', circuitPeak: 'Top speed', carWeight: 'Weight', circuitLength: 'Length', circuitTurns: 'Corners', circuitRadius: 'Minimum radius', circuitStraight: 'Longest straight', circuitRecord: 'Circuit record', opponents: 'Opponents', calendar: 'Calendar', round: n => `Race ${n}`, next: 'Next', previous: 'Previous',
     grilleDepart: 'Starting grid', ajouterCircuit: 'Add a track', monterCircuit: 'Move track up', retirerCircuit: 'Remove track',
     programmeHint: '0 min disables the session.', bareme_f1: 'F1 · 25 pts for the win. Qualifying sets the grid.',
     bareme_gt: 'GT Sprint · 16.5 pts for the win and 1 pt for pole.', bareme_lemans: 'Le Mans · 50 pts for the win and 1 pt for pole.',
@@ -1351,7 +1351,6 @@ class UI {
   chronosCircuit(tr) {
     const t = k => this.t(k), app = this.app, filtre = this.filtreChronos || 'all';
     const mondiaux = this._mondiaux?.circuit === tr.id ? this._mondiaux.par : null;
-    if (!mondiaux) this._chargeMondiaux(tr.id);
     const lignes = this.modelesVisibles(filtre).map(m => {
       const perso = app.save.bestLaps[`${tr.id}|${m.catId}|${m.id}`];
       return {m, perso, monde: mondiaux?.[m.id]};
@@ -1384,6 +1383,8 @@ class UI {
     const rayon = circuit.k.reduce((m, v) => Math.max(m, Math.abs(v)), 0);
     const droite = virages.reduce((m, v, i) => Math.max(m, (virages[i+1]?.from ?? virages[0].from + circuit.n) - v.to), 0) * circuit.ds;
     const noms = this.lang === 'fr' ? new Intl.DisplayNames(['fr'], {type:'region'}) : new Intl.DisplayNames(['en'], {type:'region'});
+    if (this._mondiaux?.circuit !== tr.id) this._chargeMondiaux(tr.id);
+    const chronosComplets = app.desktop || (!salon && this.setup.mode !== 'race');
     const records = this._mondiaux?.circuit === tr.id ? Object.values(this._mondiaux.par) : [];
     const record = records.reduce((best, lap) => lap.temps > 0 && (!best || lap.temps < best.temps) ? lap : best, null);
     const valeurs = [
@@ -1395,8 +1396,8 @@ class UI {
     const pointe = tr.pointe;
     valeurs.push([t('circuitPeak'), pointe ? `${pointe.kmh} km/h<small class="quick-peak-model">${escapeHtml(modelById(pointe.voiture).name)}</small>` : '—'], [t('communityLaps'), this.toursCommunaute ? this.toursCommunaute[tr.id] || 0 : '—'],
       [t('myTrackLaps'), s.toursCircuit?.[tr.id] || 0], [t('circuitRecord'), this.chronoMondial(record)]);
-    if (!this.releveTours && app.mondial?.toursRecents) {
-      this.releveTours = app.mondial.toursRecents().then(tours => {
+    if (!this.releveTours && app.mondial?.toursTotaux) {
+      this.releveTours = app.mondial.toursTotaux().then(tours => {
         this.toursCommunaute = tours;
         const cellule = this.root.querySelector('[data-tours-communaute]');
         if (cellule) cellule.textContent = tours ? tours[cellule.dataset.toursCommunaute] || 0 : '—';
@@ -1411,11 +1412,12 @@ class UI {
     }).join(''));
     const lv = app.playerLivreeFor(model.id), livre = model.livrees || [];
     const livrees = `<div class="quick-liveries" aria-label="${t('livery')}">${[-1, 1].map((sens, i) => `${i ? `<span>${escapeHtml(livre[lv] ? nomLivree(livre[lv], this.lang) : model.name)}</span>` : ''}<button data-action="${salon ? 'netLivery' : 'pickLivery'}" data-id="${(lv + sens + livre.length) % livre.length}" aria-label="${t(i ? 'next' : 'previous')}" ${livre.length < 2 || (salon && !salon.libre) ? 'disabled' : ''}>${i ? '›' : '‹'}</button>`).join('')}</div>`;
+    const selecteur = `<div class="quick-selector"><h3>${t('track')}</h3>${choix}</div>`;
     return `<div class="quick-grid">
-        <div class="quick-preview">${this.imageCircuit(tr, nuit, lumiere)}</div>
+        <div class="quick-preview">${this.imageCircuit(tr, nuit, lumiere)}${app.desktop ? '' : selecteur}</div>
         <div class="quick-info"><div class="quick-track-name"><h2>${escapeHtml(tr.name)}</h2>${this.circuitFlag(tr)}<small>${tr.country ? escapeHtml(noms.of(tr.country)) : ''}</small><label class="quick-difficulty">${t('difficulty')} · ${difficulte}/4<meter value="${difficulte}" min="0" max="4"></meter></label></div>
-          <dl class="quick-facts">${valeurs.map(([k, v]) => `<div><dt>${k}</dt><dd ${k === t('communityLaps') ? `data-tours-communaute="${escapeHtml(tr.id)}"` : k === t('circuitRecord') ? 'class="quick-world"' : ''}>${v}</dd></div>`).join('')}</dl>${this.chronosCircuit(tr)}</div>
-        <section class="quick-options"><h3>${t('track')}</h3>${choix}${reglages}</section>
+          <dl class="quick-facts">${valeurs.map(([k, v]) => `<div><dt>${k}</dt><dd ${k === t('communityLaps') ? `data-tours-communaute="${escapeHtml(tr.id)}"` : k === t('circuitRecord') ? 'class="quick-world"' : ''}>${v}</dd></div>`).join('')}</dl>${chronosComplets ? this.chronosCircuit(tr) : ''}</div>
+        ${app.desktop || reglages ? `<section class="quick-options">${app.desktop ? selecteur : ''}${reglages}</section>` : ''}
         <section class="quick-garage"><div class="quick-car">${this.carPreview(model)}${livrees}</div><div class="quick-models">
           ${this.filtreCat(salon ? 'netCat' : 'pickCat', filtre, salon && !salon.editable)}${this.rail(salon ? 'netModels' : 'models', 'models', this.modelesVisibles(filtre).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="${salon ? 'pickModelNet' : 'pickModel'}" ${salon && !salon.libre ? 'disabled' : ''} data-id="${escapeHtml(m.id)}">${this.carIcon(m, LIVERIES[s.livery], app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}</b></button>`).join(''))}${this.ficheRapide(model)}</div></section>
       </div>`;
@@ -1726,13 +1728,12 @@ class UI {
           ${cfg.mode === 'race' ? `<label class="chip chip-input"><span>${t('lapCount')}</span>${this.nombreMenu(1,10,Number(cfg.laps) || 3, 'id="net-laps" ' + (cfg.programme?.circuits?.length ? 'disabled' : verrou))}</label>
           <label class="chip chip-select"><span>${t('opponents')}</span><select id="net-ai" ${verrou}>
             <option value="-1">${t('auto')}</option>${Array.from({length: maxIA + 1}, (_, i) => `<option value="${i}" ${cfg.aiCount === i ? 'selected' : ''}>${i}</option>`).join('')}</select></label>` : ''}
-          ${!net.mine.spectator ? `<label class="chip chip-select"><span>${t('freinage')}</span><select id="net-frein" data-track="${escapeHtml(trackDef.id)}" data-model="${escapeHtml(model.id)}">
-            <option value="">${t('regDefaut')}</option>${reglagesPour(s, trackDef.id, model.id).map(c => `<option value="${escapeHtml(c.nom)}" ${c.nom === frein?.nom ? 'selected' : ''}>${escapeHtml(c.nom)}</option>`).join('')}</select></label>` : ''}
         </div>
         <div>
           <div class="lobby-reglages-paire">
-
-            ${DEGATS_ACTIVE ? `<div><h3>${t('chipDegats')}</h3><div class="seg">${[['1','on'],['0','off']].map(([v,k]) => bouton('netDegats', v, t(k), (cfg.degats !== false) === (v === '1'))).join('')}</div></div>` : ''}
+            ${DEGATS_ACTIVE ? `<button class="chip" data-action="netDegats" data-id="${cfg.degats === false ? 1 : 0}" aria-pressed="${cfg.degats !== false}" ${verrou}>${t('chipDegats')} <b>${t(cfg.degats === false ? 'off' : 'on')}</b></button>` : ''}
+          ${!net.mine.spectator ? `<label class="chip chip-select"><span>${t('freinage')}</span><select id="net-frein" data-track="${escapeHtml(trackDef.id)}" data-model="${escapeHtml(model.id)}">
+            <option value="">${t('regDefaut')}</option>${reglagesPour(s, trackDef.id, model.id).map(c => `<option value="${escapeHtml(c.nom)}" ${c.nom === frein?.nom ? 'selected' : ''}>${escapeHtml(c.nom)}</option>`).join('')}</select></label>` : ''}
           </div>
           ${cfg.timeOfDay === 'night' && model.catId === 'f1' ? `<p class="warn">${t('nightF1Hint')}</p>` : ''}
           ${libre ? (cfg.mode !== 'ghost' ? this.boutonProgramme(cfg.programme, true) : '') : `<div class="row"><strong>${t(manche.phase === 'course' ? 'mRace' : manche.phase)} · ${escapeHtml(trackDef.name)}</strong>

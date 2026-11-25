@@ -1604,3 +1604,34 @@ body :is(.screen.quick-paddock,.screen.programme-ecran) .rail.tracks .track-card
   .lobby-screen .quick-preview .quick-track-art { min-height:300px; }
 }
 .programme-manches .programme-ligne select { width:4.2em; background:#21b56f; color:#171c19; }
+
+.quick-selector { min-width:0; }
+.quick-selector h3 { margin:0 0 2px; font-size:15px; }
+body.mobile .quick-preview { display:flex; flex-direction:column; }
+body.mobile .quick-preview .quick-track-art { flex:1 0 auto; height:auto; }
+body.mobile .quick-selector { padding:4px 2px; }
+body.mobile .quick-options .setup-reglages { padding-inline:0; }
+body.mobile .lobby-screen .quick-garage { grid-column:1 / -1; }
+body.mobile .quick-paddock .setup-chips.setup-tuning { min-width:0; flex-wrap:nowrap; }
+body.mobile .quick-paddock .quick-options .setup-tuning > button.chip { width:auto; padding-inline:8px; gap:4px; }
+body.mobile .quick-brakes { min-width:0; }
+body.mobile .quick-brakes > label { flex:1; min-width:0; }
+body.mobile .quick-brakes select { min-width:0; text-overflow:ellipsis; }
+body.mobile .quick-paddock .quick-footer { display:flex; flex-wrap:nowrap; align-items:center; justify-content:space-between; gap:4px; }
+body.mobile .quick-footer-settings { flex-wrap:nowrap; min-width:0; }
+body.mobile .quick-paddock .quick-footer .setup-launch.row.end { flex:0 0 auto; width:auto; margin:0 0 0 auto; padding:0; align-self:center; background:none; border:0; box-shadow:none; }
+body.mobile .quick-paddock .quick-footer .setup-launch.row.end .primary { font-size:clamp(17px,5vw,23px); padding:6px 11px; }
+body.mobile .quick-paddock .quick-footer-settings .chip { width:auto; padding-inline:7px; gap:4px; }
+body.mobile .quick-footer-settings select { width:auto; }
+@media (max-width:380px) {
+  body.mobile .quick-options .setup-tuning > button.chip { flex-direction:column; justify-content:center; }
+  body.mobile .quick-paddock .quick-footer-settings .chip-select { flex-direction:column; gap:0; padding-block:2px; }
+  body.mobile .quick-brakes > .chip { padding-inline:5px; }
+  body.mobile .quick-footer .setup-launch .primary span { display:none; }
+}
+.lobby-reglages-paire { flex-wrap:nowrap; align-items:stretch; gap:4px; }
+.lobby-reglages-paire .chip { display:inline-flex; align-items:center; gap:5px; min-width:0; margin:0; padding:5px 9px; background:#171c19; color:#fff0d2; }
+.lobby-reglages-paire .chip b { background:#21b56f; padding:2px 6px; color:#171c19; }
+.lobby-reglages-paire .chip select { min-width:0; text-overflow:ellipsis; }
+body.mobile .quick-options .quick-brakes > label { gap:4px; padding-inline:5px; }
+body.mobile .quick-options .quick-brakes select { padding-inline:5px 17px; background-position:right 5px center; }

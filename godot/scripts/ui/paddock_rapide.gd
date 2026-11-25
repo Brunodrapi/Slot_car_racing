@@ -101,7 +101,7 @@ func _bouton(parent: Control, texte: String, cle: String, action: Callable, larg
 
 
 func _pastille(parent: Control, cle: String, nom: String, valeur: String, action: Callable, verrou := false) -> Bouton:
-	var taille := 20 if etroit else 16
+	var taille := 15 if etroit and cle in ["degats", "freinage"] else (20 if etroit else 16)
 	var b := _bouton(parent, "", cle, action, Paddock.largeurPastille(nom, valeur, taille), Color("#62665d") if verrou else Style.NUIT_PLEINE)
 	b.disabled = verrou
 	b.tooltip_text = "%s : %s" % [nom, valeur]
@@ -307,13 +307,13 @@ func _informations(parent: Control, cid: String, info: Dictionary, y: int) -> vo
 	stats.columns = 4
 	bloc.add_child(stats)
 	var pointe: Dictionary = info.pointe
-	Mondial.chargeToursRecents()
+	Mondial.chargeToursTotaux()
 	var donnees := [
 		["circuitLength", "%d m" % roundi(info.longueur)], ["circuitTurns", str(info.virages)],
 		["circuitRadius", "%.1f m" % info.rayon if info.rayon > 0 else "—"],
 		["circuitStraight", "%d m" % roundi(info.droite) if info.droite > 0 else "—"],
 		["circuitPeak", "%d km/h" % int(pointe.kmh) if not pointe.is_empty() else "—"],
-		["communityLaps", str(Mondial.toursRecents.get(cid, 0)) if Mondial.toursDisponibles else "—"],
+		["communityLaps", str(Mondial.toursTotaux.get(cid, 0)) if Mondial.toursDisponibles else "—"],
 		["myTrackLaps", str(App.reglages.get("toursCircuit", {}).get(cid, 0))],
 		["circuitRecord", Style.temps(record) if is_finite(record) else "—"]]
 	for item in donnees:
@@ -401,7 +401,7 @@ func _reglages(parent: Control, voiture: Dictionary, cid: String, x: int) -> voi
 	var cfg := ReglageFrein.active(cid, voiture.id)
 	var nom := Paddock._coupe(String(cfg.get("nom", Textes.t("regDefaut"))), 16, 140)
 	_pastille(freins, "freinage", Textes.t("freinage"), nom + Paddock.LISTE, func(): ReglageFrein.suivante(cid, voiture.id); _sauve())
-	_bouton(freins, Textes.t("regRegler"), "regler", paddock._regler, 82)
+	_bouton(freins, Textes.t("regRegler"), "regler", paddock._regler, 55 if etroit else 82)
 
 	if paddock.mode == "timetrial":
 		var etat := Mondial.etat()
@@ -502,10 +502,11 @@ func _bas() -> void:
 	var programme: Dictionary = r.get("programme", {})
 	var actif := App.programmeActif and Championnat.actif(programme)
 	if paddock.mode == "race":
-		_bouton(ligne, Textes.t("championnat"), "programme", func(): App.aller("programme"), 145, Paddock.PC_VERT if actif else Style.NUIT_PLEINE, Paddock.PC_ENCRE if actif else Paddock.PC_CREME)
+		_bouton(ligne, Textes.t("championnat"), "programme", func(): App.aller("programme"), 101 if etroit else 145, Paddock.PC_VERT if actif else Style.NUIT_PLEINE, Paddock.PC_ENCRE if actif else Paddock.PC_CREME)
 		if Style.tactile():
 			_libelle(ligne, Textes.t("lapsLabel"), 17)
 			var menu := Style.menuNombre(1, 99, int(r.tours), "", actif and not programme.get("circuits", []).is_empty(), func(v): r.tours = v; _sauve())
+			if etroit: menu.custom_minimum_size.x = 50
 			menu.set_meta("cle", "tours")
 			ligne.add_child(menu)
 		else:
@@ -518,7 +519,7 @@ func _bas() -> void:
 		var marge := Control.new()
 		marge.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		ligne.add_child(marge)
-	_bouton(ligne, Textes.t("onTrack"), "go", paddock._enPiste, 150, Paddock.PC_ROUGE, Paddock.PC_CREME, 23)
+	_bouton(ligne, Textes.t("onTrack"), "go", paddock._enPiste, 98 if etroit else 150, Paddock.PC_ROUGE, Paddock.PC_CREME, 23)
 
 
 func _sauve() -> void:

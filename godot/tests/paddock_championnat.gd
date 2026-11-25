@@ -31,6 +31,11 @@ func _ready() -> void:
 	_verifie(App.ecran.infoCircuits.monza.difficulty == 1, "Monza au premier niveau")
 	var paysage := not bool(rapide.etroit)
 	_verifie(_controle(rapide, "nuit").disabled, "nuit grisée en F1")
+	if not paysage:
+		for paire in [["degats", "freinage"], ["tours", "go"]]:
+			var a := _controle(rapide, paire[0]).get_global_rect()
+			var b := _controle(rapide, paire[1]).get_global_rect()
+			_verifie(a.end.x <= b.position.x + 1 and a.position.y < b.end.y and b.position.y < a.end.y and b.end.x <= get_viewport().get_visible_rect().size.x + 1, "%s et %s côte à côte" % paire)
 	if paysage:
 		for cle in ["degats", "regler", "livree-droite", "difficulte", "adversaires"]:
 			_verifie(rapide.page.get_global_rect().grow(1).encloses(_controle(rapide, cle).get_global_rect()), cle + " visible sur PC sans défiler")

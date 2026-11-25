@@ -271,15 +271,6 @@ func _optionsPilote(t: Dictionary, pilotes: int, y: float, x: float, largeur: fl
 		_compteur(Textes.t("opponentsLabel"), valeur, Rect2(x, y, largeur, 36), "adversaires",
 			func(): net.setTable({ aiCount = ia - 1 }), func(): net.setTable({ aiCount = ia + 1 }), ia <= -1, ia >= maxiIA)
 		y += 41
-	if not net.mine.get("spectator", false):
-		var circuit := String(Championnat.manche(t.get("championnat", {})).get("circuit", t.get("trackId", "monza")))
-		var voiture := String(App.reglages.voiture)
-		var cfg := ReglageFrein.active(circuit, voiture)
-		var valeur := Paddock._coupe(str(cfg.get("nom", Textes.t("regDefaut"))), 17, largeur - 150) + Paddock.LISTE
-		var b := _b("", Rect2(x, y, largeur, 36), Style.NUIT_PLEINE, Style.CREME, 19,
-			func(): ReglageFrein.suivante(circuit, voiture); App.sauve(); _maj(), "freinage")
-		b.dessinPlus = Paddock._pastille.bind(b, Textes.t("freinage"), valeur, 17)
-		y += 41
 	return y
 
 
@@ -301,9 +292,22 @@ func _parametres(t: Dictionary, pilotes: int, y: float, manche: Dictionary) -> f
 	if not portrait:
 		x += largeur + 24
 		y = haut + 12
-	z.degatsTitre = Vector2(x, y + 15)
-	y = _choix([["1", Textes.t("on")], ["0", Textes.t("off")]], "1" if t.get("degats", false) == true else "0",
-		Rect2(x, y + 20, largeur, 0), editable, func(id): net.setTable({ degats = id == "1" }), "degats")
+	var degats: bool = t.get("degats", false) == true
+	var etatDegats := Textes.t("on" if degats else "off")
+	var largeurDegats := Paddock.largeurPastille(Textes.t("chipDegats"), etatDegats, 15)
+	var boutonDegats := _b("", Rect2(x, y, largeurDegats, 36), Style.NUIT_PLEINE, Style.CREME, 15,
+		func(): net.setTable({ degats = not degats }), "degats")
+	boutonDegats.disabled = not editable
+	boutonDegats.dessinPlus = Paddock._pastille.bind(boutonDegats, Textes.t("chipDegats"), etatDegats, 15)
+	if not net.mine.get("spectator", false):
+		var circuit := String(Championnat.manche(t.get("championnat", {})).get("circuit", t.get("trackId", "monza")))
+		var voiture := String(App.reglages.voiture)
+		var cfg := ReglageFrein.active(circuit, voiture)
+		var valeur := Paddock._coupe(str(cfg.get("nom", Textes.t("regDefaut"))), 15, largeur - largeurDegats - 125) + Paddock.LISTE
+		var b := _b("", Rect2(x + largeurDegats + 4, y, largeur - largeurDegats - 4, 36), Style.NUIT_PLEINE, Style.CREME, 19,
+			func(): ReglageFrein.suivante(circuit, voiture); App.sauve(); _maj(), "freinage")
+		b.dessinPlus = Paddock._pastille.bind(b, Textes.t("freinage"), valeur, 15)
+	y += 41
 	if t.get("timeOfDay") == "night":
 		var f1: bool = Catalogue.voiture(App.reglages.voiture).get("cat") == "f1"
 		z.nuitDesc = [Vector2(x, y + 12), Paddock._lignes(Textes.t("nightF1Hint" if f1 else "nightHint"), 15, largeur), ROUGE_SEL if f1 else MUET]
@@ -334,8 +338,7 @@ func _dessineOptions(ci: CanvasItem) -> void:
 	var panneau: Rect2 = z.options
 	ci.draw_rect(panneau, Style.PAPIER)
 	ci.draw_rect(panneau, PANNEAU_BORD, false, 1)
-	for cle in [["formatTitre", "mFormatTitle"], ["degatsTitre", "chipDegats"]]:
-		Style.texte(ci, Textes.t(cle[1]), z[cle[0]], 15, TITRE)
+	Style.texte(ci, Textes.t("mFormatTitle"), z.formatTitre, 15, TITRE)
 	if z.has("nuitDesc"):
 		var note: Array = z.nuitDesc
 		var p: Vector2 = note[0]

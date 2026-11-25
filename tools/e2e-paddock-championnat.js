@@ -80,6 +80,16 @@ async function verifieVue(page, presse, cadre) {
   const livree = await page.locator('.quick-liveries span').innerText();
   await presse('.quick-liveries button:last-child');
   assert.notEqual(await page.locator('.quick-liveries span').innerText(), livree);
+  if (cadre.tactile) {
+    assert.equal(await page.locator('.quick-times').count(), 0);
+    assert(await page.locator('.quick-preview .quick-selector [data-action="pickTrack"]').count() > 1);
+    const rect = async s => page.locator(s).boundingBox();
+    for (const [gauche, droite] of [['[data-action="pickDegats"]', '#sel-reglage'], ['#inp-laps', '[data-action="startQuick"]']]) {
+      const a = await rect(gauche), b = await rect(droite);
+      assert(a.x + a.width <= b.x + 1 && a.y < b.y + b.height && b.y < a.y + a.height && b.x + b.width <= cadre.width, gauche + ' et ' + droite + ' sur une ligne');
+    }
+    return;
+  }
   await presse('[data-action="chronoCat"][data-id="gt3"]');
   const lignes = page.locator('.quick-times tbody tr');
   assert.deepEqual(await lignes.locator('td:last-child').allTextContents(), ['0:40.000', '0:43.000']);
@@ -94,6 +104,15 @@ async function scenario(navigateur, cadre) {
     await contexte.route('**/rest/v1/records?*', route => route.fulfill({ json: [
       { voiture: 'ferrari488gt3', temps: 43 }, { voiture: 'renaultrs10', temps: 38, pilote: 'Bruno' }, { voiture: 'porsche991gt3r', temps: 40 }
     ] }));
+    // Deux fenêtres disjointes du rapport, pour inclure des tours vieux de plus d'un an.
+    const periodes = [];
+    await contexte.route('**/rpc/analytics_report', route => {
+      const dates = route.request().postDataJSON();
+      periodes.push(dates);
+      const ancienne = dates.p_to < new Date(Date.now() - 365 * 86400000).toISOString().slice(0, 10);
+      return route.fulfill({json: {first_day: new Date(Date.now() - 400 * 86400000).toISOString().slice(0, 10),
+        rankings: {tracks: [{key:'monza', laps: ancienne ? 42 : 8}]}}});
+    });
     await contexte.route('**/functions/v1/**', route => route.fulfill({ json: {} }));
     // Rejoue une sauvegarde existante et le navigateur où structuredClone manquait.
     await contexte.addInitScript(save => {
@@ -117,12 +136,13 @@ async function scenario(navigateur, cadre) {
     };
 
     await ouvrir();
-    await page.locator('.quick-times tbody tr').first().waitFor();
+    await page.locator('.quick-facts .quick-world small').waitFor();
     const boutonChampionnat = page.locator('[data-action="programme"]');
     assert.equal(await boutonChampionnat.getAttribute('aria-pressed'), 'false');
     assert(await page.locator(tactile ? '#inp-laps' : '[data-action="pickLaps"]').isEnabled());
     assert.equal(await page.locator('.quick-facts dd').count(), 8);
     assert.equal(await page.locator('.quick-performance meter').count(), 5);
+    await page.locator('.quick-track-name .circuit-flag').evaluate(img => img.decode());
     assert(await page.locator('.quick-track-name .circuit-flag').evaluate(el => {
       const r = el.getBoundingClientRect();
       return el.complete && el.naturalWidth > 0 && Math.abs(r.width / r.height - 4/3) < .1;
@@ -130,6 +150,8 @@ async function scenario(navigateur, cadre) {
     await presse('[data-action="pickTrack"][data-id="monza"]');
     await page.locator('.quick-facts .quick-world small').waitFor();
     assert.equal(await page.locator('.quick-facts .quick-world').textContent(), '0:38.000Bruno');
+    await page.waitForFunction(() => document.querySelector('[data-tours-communaute="monza"]')?.textContent === '50');
+    assert.equal(Date.parse(periodes[0].p_from) - Date.parse(periodes[1].p_to), 86400000);
     assert.match(await page.locator('.quick-difficulty').innerText(), /1\/4/);
     assert.match(await page.locator('.quick-performance').innerText(), /690\s*kg/i);
     await verifieTraces(page);
@@ -201,6 +223,7 @@ async function scenario(navigateur, cadre) {
     if (width === 1366 || width === 390) {
       for (const mode of ['timetrial', 'training']) {
         await ouvrir(mode);
+        await page.locator('.quick-times tbody tr').first().waitFor();
         await presse('[data-action="pickTrack"][data-id="lemans"]');
         assert.match(await page.locator('.quick-facts').innerText(), /271 km\/h/);
         assert.match(await page.locator('.quick-facts').innerText(), /Kaminari Hayate/i);

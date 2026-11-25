@@ -87,7 +87,8 @@ function serve() {
     '--disable-backgrounding-occluded-windows',
     '--disable-renderer-backgrounding'
   ]});
-  const ctx = await browser.newContext({ serviceWorkers: 'block', viewport: { width: 900, height: 620 } });
+  const mobile = process.argv.includes('--mobile');
+  const ctx = await browser.newContext({ serviceWorkers: 'block', hasTouch: mobile, isMobile: mobile, viewport: mobile ? {width:390, height:844} : {width:900, height:620} });
   await ctx.addInitScript(STUB);
   let bad = 0;
   const open = async (tag, name) => {
@@ -103,7 +104,8 @@ function serve() {
     ne viendrait jamais. Deux noms différents, pour que la liste de la table dise quelque chose. */
     await p.evaluate((n) => { app.save.name = n; storeSave(app.save); app.mondial = null; }, name);
     await p.waitForTimeout(400);
-    await p.keyboard.press('Enter');   // l'écran-titre
+    if (mobile) await p.locator('.splash .poster').tap();
+    else await p.keyboard.press('Enter');   // l'écran-titre
     await p.waitForTimeout(250);
     return p;
   };
@@ -121,12 +123,23 @@ function serve() {
   await B.click('[data-action="netJoin"]');
   await B.waitForTimeout(800);
 
+  if (mobile) {
+    for (const p of [A, B]) {
+      await p.locator('.quick-preview [data-action="netTrack"]').first().waitFor();
+      if (await p.locator('.quick-times').count() || !await p.locator('.quick-facts .quick-world').isVisible()) throw Error('chronos du salon mobile');
+    }
+    await A.click('[data-action="netDegats"]');
+    const degats = await A.evaluate(() => app.net.settings().degats);
+    await B.waitForFunction(attendu => app.net.settings().degats === attendu, degats);
+    if (!await B.locator('[data-action="netDegats"]').isDisabled()) throw Error('dégâts modifiables chez l’invité');
+  }
   if (mode !== 'race') { await A.click(`[data-action="netMode"][data-id="${mode}"]`); await A.waitForTimeout(300); }
   if (championnat) {
     await A.click('[data-action="programme"][data-id="multi"]');
     await A.click('[data-action="programmeChoisir"][data-id="castellet"]');
     await A.click('[data-action="programmeAjouter"]');
-    await A.fill('[data-programme-tours="0"]', '7');
+    const tours = A.locator('[data-programme-tours="0"]');
+    if (mobile) await tours.selectOption('7'); else await tours.fill('7');
     await A.click('[data-action="programmeAppliquer"]');
     await B.waitForFunction(() => app.net.settings().programme?.toursParManche?.[0] === 7);
     await B.click('[data-action="programme"][data-id="multi"]');
