@@ -6,6 +6,10 @@ func _ready() -> void:
 	get_tree().create_timer(75).timeout.connect(func(): get_tree().quit(2))
 	await get_tree().create_timer(0.4).timeout
 	App.reglages.merge({nom = "PiloteTest", langue = "fr", cat = "gt3", voiture = "porsche991gt3r", son = false}, true)
+	# Les réponses du classement sont indépendantes du test de navigation.
+	Mondial.lectureTours = true
+	for circuit in Catalogue.circuits():
+		Mondial.cache[circuit.id] = {t = Time.get_ticks_msec(), par = {}}
 	for i in [1, 2]:
 		App.aller("accueil")
 		await _cadre()
