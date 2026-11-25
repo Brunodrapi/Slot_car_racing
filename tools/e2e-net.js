@@ -127,12 +127,12 @@ function serve() {
     await A.click('[data-action="programmeChoisir"][data-id="castellet"]');
     await A.click('[data-action="programmeAjouter"]');
     await A.fill('[data-programme-tours="0"]', '7');
-    await A.click('[data-action="programmeRetour"]');
+    await A.click('[data-action="programmeAppliquer"]');
     await B.waitForFunction(() => app.net.settings().programme?.toursParManche?.[0] === 7);
     await B.click('[data-action="programme"][data-id="multi"]');
     if ((await B.inputValue('[data-programme-tours="0"]')) !== '7') throw Error('programme absent chez l’invité');
     if (!await B.locator('[data-action="programmeAjouter"]').isDisabled()) throw Error('l’invité peut modifier le programme');
-    await B.click('[data-action="programmeRetour"]');
+    await B.locator('[data-action="programmeRetour"]').first().click();
   }
   if (process.argv.includes('--night')) {
     await A.click('[data-action="netTimeOfDay"][data-id="night"]');

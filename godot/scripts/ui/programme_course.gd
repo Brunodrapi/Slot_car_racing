@@ -21,12 +21,27 @@ func _ready() -> void:
 	options = (Reseau.net.settings().get("programme", {}) if enLigne else App.reglages.get("programme", {})).duplicate(true)
 	fondPaddock = Style.tex("res://images/interface/paddock.webp")
 	cadre = PanelContainer.new()
-	cadre.add_theme_stylebox_override("panel", _papier(Style.PAPIER, 14))
+	cadre.add_theme_stylebox_override("panel", _papier(Color.TRANSPARENT, 4))
 	add_child(cadre)
 	var page := VBoxContainer.new()
 	page.add_theme_constant_override("separation", 12)
 	cadre.add_child(page)
+	var barre := Control.new()
+	barre.custom_minimum_size.y = 58
+	page.add_child(barre)
+	barre.draw.connect(func():
+		var zone := Rect2(Vector2.ZERO, barre.size)
+		if size.x < size.y: BarreTitre.tel(barre, zone, Textes.t("quickRace"))
+		else: BarreTitre.pc(barre, zone, Textes.t("quickRace")))
+	var accueil := _bouton("", 96)
+	accueil.fond = Color.TRANSPARENT
+	accueil.size = Vector2(96,58)
+	accueil.dessinPlus = BarreTitre.retourPC.bind(accueil)
+	barre.add_child(accueil)
+	accueil.pressed.connect(_retour)
 	var titre := Bouton.new(Textes.t("championnat"), Style.ROUGE, Style.CREME, 27)
+	titre.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	titre.custom_minimum_size.x = 280
 	titre.custom_minimum_size.y = 52
 	titre.focus_mode = Control.FOCUS_NONE
 	titre.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -45,7 +60,18 @@ func _ready() -> void:
 	retour.set_meta("cle", "programme-retour")
 	retour.size_flags_horizontal = Control.SIZE_SHRINK_END
 	retour.pressed.connect(_retour)
-	page.add_child(retour)
+	var actions := HBoxContainer.new()
+	page.add_child(actions)
+	actions.add_child(retour)
+	var espace := Control.new()
+	espace.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	actions.add_child(espace)
+	if not enLigne or (Reseau.net.creator and Reseau.net.settings().get("championnat", {}).is_empty()):
+		var applique := _bouton(Textes.t("applySeries"), 145)
+		applique.fond = Style.ROUGE
+		applique.set_meta("cle", "programme-appliquer")
+		actions.add_child(applique)
+		applique.pressed.connect(_applique)
 	resized.connect(_place)
 	liste.minimum_size_changed.connect(_place.call_deferred)
 	_construit()
@@ -53,11 +79,13 @@ func _ready() -> void:
 
 
 func _place() -> void:
-	var largeur := minf(1320, maxf(0, size.x - 24))
+	var largeur := maxf(0, size.x - 24)
 	liste.columns = 2 if largeur >= 720 else 1
-	if is_instance_valid(cartes): cartes.columns = 4 if largeur >= 1250 else (3 if largeur >= 625 else 2)
+	if is_instance_valid(cartes): cartes.columns = clampi(int((largeur * 0.64 - 45) / 152), 2, 5) if liste.columns == 2 else clampi(int((largeur - 60) / 152), 1, 5)
 	if is_instance_valid(apercu): apercu.custom_minimum_size.y = 116 if liste.columns == 2 and size.y < 800 else 154
-	var hauteur := minf(maxf(0, size.y - 24), liste.get_combined_minimum_size().y + 164)
+	var hauteur := maxf(0, size.y - 16)
+	if liste.get_child_count() == 2:
+		liste.get_child(1).custom_minimum_size.x = largeur * 0.64 - 30 if liste.columns == 2 else 0
 	cadre.size = Vector2(largeur, hauteur)
 	cadre.position = ((size - cadre.size) / 2).round()
 	queue_redraw()
@@ -65,7 +93,7 @@ func _place() -> void:
 
 func _draw() -> void:
 	Style.couvre(self, fondPaddock, Rect2(Vector2.ZERO, size), 0.5)
-	draw_rect(Rect2(Vector2.ZERO, size), Color("#171b1980"))
+
 
 
 func _retour() -> void:
@@ -149,11 +177,13 @@ func _selection(largeur: float) -> OptionButton:
 	return menu
 
 
-func _sauve() -> void:
+func _applique() -> void:
 	if enLigne: Reseau.net.setTable({ programme = options.duplicate(true) })
 	else:
 		App.reglages.programme = options
+		App.programmeActif = Championnat.actif(options)
 		App.sauve()
+	_retour()
 
 
 func _champTour(tours: int, editable: bool) -> SpinBox:
@@ -198,7 +228,7 @@ func _construit() -> void:
 		saisie.add_theme_color_override("font_color", VERT)
 		saisie.add_theme_color_override("font_uneditable_color", VERT)
 		saisie.add_theme_font_size_override("font_size", 19)
-		champ.value_changed.connect(func(v): options[phase] = int(v); _sauve())
+		champ.value_changed.connect(func(v): options[phase] = int(v))
 		_ligne(gauche, Textes.t(phase)).add_child(champ)
 	gauche.add_child(_texte(Textes.t("programmeHint"), 17, Color("#565b4f")))
 	var voiture := String(App.reglages.voiture)
@@ -270,7 +300,7 @@ func _construit() -> void:
 		toursParManche.append(defaut)
 		options.circuits = calendrier
 		options.toursParManche = toursParManche
-		_sauve(); _construit())
+		_construit())
 	droite.add_child(_texte("%s  ·  %d / 10" % [Textes.t("calendar"), calendrier.size()], 22))
 	cartes = GridContainer.new()
 	cartes.add_theme_constant_override("h_separation", 5)
@@ -290,7 +320,7 @@ func _construit() -> void:
 		var champ := _champTour(toursParManche[i], editable)
 		champ.set_meta("cle", "programme-tours-%d" % i)
 		_ligne(carte, Textes.t("lapsLabel"), 16).add_child(champ)
-		champ.value_changed.connect(func(v): toursParManche[i] = int(v); options.toursParManche = toursParManche; _sauve())
+		champ.value_changed.connect(func(v): toursParManche[i] = int(v); options.toursParManche = toursParManche)
 		var actions := HBoxContainer.new()
 		carte.add_child(actions)
 		for sens in [-1, 1]:
@@ -304,7 +334,7 @@ func _construit() -> void:
 				calendrier[i] = calendrier[j]; calendrier[j] = id
 				toursParManche[i] = toursParManche[j]; toursParManche[j] = tours
 				options.toursParManche = toursParManche
-				_sauve(); _construit())
+				_construit())
 		var retire := _bouton("×", 31)
 		retire.set_meta("cle", "programme-retire-%d" % i)
 		retire.disabled = not editable
@@ -312,7 +342,7 @@ func _construit() -> void:
 		retire.pressed.connect(func():
 			calendrier.remove_at(i); toursParManche.remove_at(i)
 			options.toursParManche = toursParManche
-			_sauve(); _construit())
+			_construit())
 	var places: Dictionary = options.get("positions", {})
 	var pilotes := Reseau.net.members().filter(func(m): return not m.q.get("spectator", false)).slice(0, Net.NET_SEATS) if enLigne else [{pid = "joueur", name = App.reglages.nom}]
 	var maximum := int(App.reglages.adversaires)
@@ -343,7 +373,6 @@ func _construit() -> void:
 					if autre != id and int(places[autre]) == i: places.erase(autre)
 				places[id] = i
 			options.positions = places
-			_sauve()
 			_construit()
 		)
 	_place()

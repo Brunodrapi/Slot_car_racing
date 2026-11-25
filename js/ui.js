@@ -114,7 +114,7 @@ const I18N = {
     next: 'Suivant', retry: 'Rejouer', menu: 'Menu', resume: 'Reprendre', restart: 'Recommencer', quit: 'Quitter', paused: 'Pause', endSession: 'Terminer',
     lap: 'Tour', last: 'Dernier', best: 'Meilleur', grip: 'adhérence', holdToGo: 'Maintiens Espace pour accélérer', holdToGoTouch: 'Maintiens l’écran pour accélérer', lineHintKeys: '↑ / ↓ : trajectoire', lineHintTouch: 'Pouce gauche : trajectoire',
     programmeCourse: 'Programme de course', essais: 'Essais libres', qualifications: 'Qualifications', championnat: 'Championnat',
-    raceSetup: 'Réglages de course', circuitTimes: 'Chronos du circuit', circuitLength: 'Longueur', circuitTurns: 'Virages', circuitRadius: 'Rayon minimal', circuitStraight: 'Ligne droite', circuitRecord: 'Record du circuit', opponents: 'Adversaires', calendar: 'Calendrier', round: n => `Course ${n}`, next: 'Suivant', previous: 'Précédent',
+    raceSetup: 'Réglages de course', circuitTimes: 'Chronos du circuit', applySeries: 'Appliquer', communityLaps: 'Tours communauté · 30 j', myTrackLaps: 'Mes tours', circuitPeak: 'Pointe estimée', atLimit: 'Temps à la limite', circuitLength: 'Longueur', circuitTurns: 'Virages', circuitRadius: 'Rayon minimal', circuitStraight: 'Ligne droite', circuitRecord: 'Record du circuit', opponents: 'Adversaires', calendar: 'Calendrier', round: n => `Course ${n}`, next: 'Suivant', previous: 'Précédent',
     grilleDepart: 'Grille de départ', ajouterCircuit: 'Ajouter un circuit', monterCircuit: 'Remonter le circuit', retirerCircuit: 'Retirer le circuit',
     programmeHint: '0 min désactive la séance.', bareme_f1: 'F1 · 25 pts pour la victoire. La qualification fixe la grille.',
     bareme_gt: 'GT Sprint · 16,5 pts pour la victoire et 1 pt pour la pole.', bareme_lemans: 'Le Mans · 50 pts pour la victoire et 1 pt pour la pole.',
@@ -272,7 +272,7 @@ const I18N = {
     next: 'Next', retry: 'Retry', menu: 'Menu', resume: 'Resume', restart: 'Restart', quit: 'Quit', paused: 'Paused', endSession: 'Finish',
     lap: 'Lap', last: 'Last', best: 'Best', grip: 'grip', holdToGo: 'Hold Space to accelerate', holdToGoTouch: 'Hold anywhere to accelerate', lineHintKeys: '↑ / ↓: racing line', lineHintTouch: 'Left thumb: line',
     programmeCourse: 'Race programme', essais: 'Free practice', qualifications: 'Qualifying', championnat: 'Championship',
-    raceSetup: 'Race setup', circuitTimes: 'Circuit lap times', circuitLength: 'Length', circuitTurns: 'Corners', circuitRadius: 'Minimum radius', circuitStraight: 'Longest straight', circuitRecord: 'Circuit record', opponents: 'Opponents', calendar: 'Calendar', round: n => `Race ${n}`, next: 'Next', previous: 'Previous',
+    raceSetup: 'Race setup', circuitTimes: 'Circuit lap times', applySeries: 'Apply', communityLaps: 'Community laps · 30d', myTrackLaps: 'My laps', circuitPeak: 'Est. top speed', atLimit: 'Time at the limit', circuitLength: 'Length', circuitTurns: 'Corners', circuitRadius: 'Minimum radius', circuitStraight: 'Longest straight', circuitRecord: 'Circuit record', opponents: 'Opponents', calendar: 'Calendar', round: n => `Race ${n}`, next: 'Next', previous: 'Previous',
     grilleDepart: 'Starting grid', ajouterCircuit: 'Add a track', monterCircuit: 'Move track up', retirerCircuit: 'Remove track',
     programmeHint: '0 min disables the session.', bareme_f1: 'F1 · 25 pts for the win. Qualifying sets the grid.',
     bareme_gt: 'GT Sprint · 16.5 pts for the win and 1 pt for pole.', bareme_lemans: 'Le Mans · 50 pts for the win and 1 pt for pole.',
@@ -1328,10 +1328,13 @@ class UI {
   déclencherait la requête suivante, indéfiniment. */
   async _chargeMondiaux(trackId) {
     const app = this.app;
-    if (!app.mondial || this._enCours === trackId) return;
-    this._enCours = trackId;
+    if (!app.mondial) return;
+    this._enCours ??= new Set();
+    if (this._enCours.has(trackId)) return;
+    this._enCours.add(trackId);
     const lignes = await app.mondial.records(trackId);
-    this._enCours = null;
+    this._enCours.delete(trackId);
+    if (this.setup.trackId !== trackId) return;
     const par = {};
     for (const l of lignes) if (!par[l.voiture] || l.temps < par[l.voiture].temps) par[l.voiture] = l;
     this._mondiaux = { circuit: trackId, par };
@@ -1377,10 +1380,21 @@ class UI {
       .sort((a, b) => Math.min(a.perso || Infinity, a.monde?.temps || Infinity) - Math.min(b.perso || Infinity, b.monde?.temps || Infinity));
     return `<section class="quick-times"><div class="quick-times-head"><h3>${t('circuitTimes')}</h3>${this.filtreCat('chronoCat', filtre)}</div>
       <div class="quick-times-list" data-chronos-scroll role="region" aria-label="${t('circuitTimes')}" tabindex="0">
-        ${lignes.length ? `<table aria-label="${t('circuitTimes')}"><thead><tr><th scope="col">${t('model')}</th><th scope="col">${t('yourBest')}</th><th scope="col">${t('worldBest')}</th></tr></thead><tbody>
-        ${lignes.map(({m, perso, monde}) => `<tr><td><span>${this.carIcon(m, LIVERIES[app.save.livery], app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}</b></span></td>
+        ${lignes.length ? `<table aria-label="${t('circuitTimes')}"><thead><tr><th scope="col">#</th><th scope="col">${t('model')}</th><th scope="col">${t('yourBest')}</th><th scope="col">${t('worldBest')}</th></tr></thead><tbody>
+        ${lignes.map(({m, perso, monde}, i) => `<tr><td>${i+1}</td><td><span>${this.carIcon(m, LIVERIES[app.save.livery], app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}${monde?.pilote ? `<small>${escapeHtml(monde.pilote)}</small>` : ''}</b></span></td>
           <td>${perso > 0 ? fmtTime(perso) : '—'}</td><td>${monde?.temps > 0 ? fmtTime(monde.temps) : '—'}</td></tr>`).join('')}</tbody></table>`
           : `<p>${mondiaux ? '—' : '…'}</p>`}</div></section>`;
+  }
+
+  ficheRapide(m) {
+    const t = k => this.t(k), p = m.perf, limite = this.app.save.tempsLimite?.[m.id];
+    const stats = [[t('statVmax'), Math.round(p.vmax) + ' km/h', p.vmax/400],
+      [t('statGrip'), p.gripG.toFixed(2) + ' g', p.gripG/4],
+      [t('statA100'), p.a100.toFixed(1) + ' s', 2/p.a100],
+      [t('atLimit'), limite ? limite.toFixed(2) + ' s' : '—', (limite || 0)/2],
+      [t('statB100'), p.b100.toFixed(1) + ' m', 15/p.b100]];
+    return '<dl class="quick-performance">' + stats.map(([nom, valeur, ratio]) =>
+      `<div><dt>${nom}</dt><meter min="0" max="1" value="${Math.min(1, ratio)}"></meter><dd>${valeur}</dd></div>`).join('') + '</dl>';
   }
 
   quickSetup(model, tr, laps, filtre, ouverts, perso) {
@@ -1398,22 +1412,34 @@ class UI {
       [t('circuitRadius'), rayon ? `${(1/rayon).toLocaleString(this.lang, {maximumFractionDigits:1})} m` : '—'],
       [t('circuitStraight'), droite > 0 ? `${Math.round(droite)} m` : '—']
     ];
+    const difficulte = {spa:8, monaco:9, silverstone:7, suzuka:8, monza:6}[tr.id] ??
+      clamp(Math.round(virages.length * 1000 / circuit.length + 2), 1, 10);
+    const pointe = Math.round(speedProfile(circuit, model, 'racing', .98).reduce((v, n) => Math.max(v, n), 0) * 3.6);
+    valeurs.push([t('circuitPeak'), pointe + ' km/h'], [t('communityLaps'), this.toursCommunaute ? this.toursCommunaute[tr.id] || 0 : '—'],
+      [t('myTrackLaps'), s.toursCircuit?.[tr.id] || 0], [t('circuitRecord'), Number.isFinite(record) ? fmtTime(record) : '—']);
+    if (!this.releveTours && app.mondial?.toursRecents) {
+      this.releveTours = app.mondial.toursRecents().then(tours => {
+        this.toursCommunaute = tours;
+        const cellule = this.root.querySelector('[data-tours-communaute]');
+        if (cellule) cellule.textContent = tours ? tours[this.setup.trackId] || 0 : '—';
+      });
+    }
     const choixCircuits = TRACKS.concat(perso ? [perso] : []);
     const choix = this.rail('tracks', 'tracks', choixCircuits.map(c => {
       const verrou = c !== perso && !ouverts.has(c.id);
       return `<button class="card ${c.id === tr.id ? 'sel' : ''}" data-action="pickTrack" data-id="${escapeHtml(c.id)}" ${verrou ? 'disabled' : ''}>
-        <span class="track-card-art" style="background-image:url('${this.circuitArt(c)}')"><img alt="" src="${this.thumb(c, 90)}"></span><b>${escapeHtml(c.name)}</b><small>${verrou ? t('locked') : this.longueur(c)}</small></button>`;
+        <span class="track-card-art" style="background-image:url('${this.circuitArt(c)}')"><img alt="" src="${this.thumb(c, 90)}"></span><b>${escapeHtml(c.name)}</b><small>${this.circuitFlag(c)} ${verrou ? t('locked') : this.longueur(c)}</small></button>`;
     }).join(''));
     const lv = app.playerLivreeFor(model.id), livre = model.livrees || [];
     const livrees = `<div class="quick-liveries" aria-label="${t('livery')}">${[-1, 1].map((sens, i) => `${i ? `<span>${escapeHtml(livre[lv] ? nomLivree(livre[lv], this.lang) : model.name)}</span>` : ''}<button data-action="pickLivery" data-id="${(lv + sens + livre.length) % livre.length}" aria-label="${t(i ? 'next' : 'previous')}" ${livre.length < 2 ? 'disabled' : ''}>${i ? '›' : '‹'}</button>`).join('')}</div>`;
     this.show(`${this.paddockTopbar(t('quickRace'))}<h1 class="race-setup-title">${t('raceSetup')}</h1>
       <div class="quick-grid">
         <div class="quick-preview">${this.imageCircuit(tr, nuit, lumiere)}</div>
-        <div class="quick-info"><div class="quick-track-name"><h2>${escapeHtml(tr.name)}</h2>${this.circuitFlag(tr)}<small>${tr.country ? escapeHtml(noms.of(tr.country)) : ''}</small><div class="quick-record"><small>${t('circuitRecord')}</small><b>${Number.isFinite(record) ? fmtTime(record) : '—'}</b></div></div>
-          <dl class="quick-facts">${valeurs.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>${this.chronosCircuit(tr)}</div>
-        <section class="quick-options">${choix}${this.setupBar(true, model, tr, laps, 'reglages')}</section>
+        <div class="quick-info"><div class="quick-track-name"><h2>${escapeHtml(tr.name)}</h2>${this.circuitFlag(tr)}<small>${tr.country ? escapeHtml(noms.of(tr.country)) : ''}</small><label class="quick-difficulty">${t('difficultyLabel')}<meter value="${difficulte}" min="0" max="10">${difficulte}/10</meter></label></div>
+          <dl class="quick-facts">${valeurs.map(([k, v]) => `<div><dt>${k}</dt><dd ${k === t('communityLaps') ? 'data-tours-communaute' : ''}>${v}</dd></div>`).join('')}</dl>${this.chronosCircuit(tr)}</div>
+        <section class="quick-options"><h3>${t('track')}</h3>${choix}${this.setupBar(true, model, tr, laps, 'reglages')}</section>
         <section class="quick-garage"><div class="quick-car">${this.carPreview(model)}${livrees}</div><div class="quick-models">
-          ${this.filtreCat('pickCat', filtre)}${this.rail('models', 'models', this.modelesVisibles(filtre).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${escapeHtml(m.id)}">${this.carIcon(m, LIVERIES[s.livery], app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}</b></button>`).join(''))}${this.heroStats(model)}</div></section>
+          ${this.filtreCat('pickCat', filtre)}${this.rail('models', 'models', this.modelesVisibles(filtre).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${escapeHtml(m.id)}">${this.carIcon(m, LIVERIES[s.livery], app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}</b></button>`).join(''))}${this.ficheRapide(model)}</div></section>
       </div>${this.setupBar(true, model, tr, laps, 'bas')}`, 'scroll setup-screen quick-paddock', 'depart:race');
   }
 
@@ -1536,14 +1562,14 @@ class UI {
   la valeur au lieu de passer à la voisine : deux listes rangées côte à côte dans un même groupe,
   la seconde n'aurait plus été atteignable qu'à la souris. RB/LB passe donc d'une liste à l'autre. */
   boutonProgramme(options, enLigne) {
-    const actif = Championnat.actif(options);
+    const actif = (enLigne || !!this.app.programmeActif) && Championnat.actif(options);
     return `<button class="chip programme-bouton ${actif ? 'programme-actif' : ''}" data-action="programme" data-id="${enLigne ? 'multi' : 'solo'}" aria-pressed="${actif}">${this.t('championnat')}</button>`;
   }
 
   programmeScreen(enLigne) {
     const app = this.app, net = app.net, t = k => this.t(k);
     const table = enLigne ? net.settings() : {};
-    const options = (enLigne ? table.programme : app.save.programme) || {};
+    const options = this.brouillonProgramme || (enLigne ? table.programme : app.save.programme) || {};
     const editable = !enLigne || (net.creator && !Championnat.manche(table.championnat).phase);
     const verrou = editable ? '' : 'disabled';
     const circuit = table.trackId || this.setup.trackId;
@@ -1561,11 +1587,12 @@ class UI {
     const phases = ['essais', 'qualifications'];
     const nomCircuit = id => escapeHtml(app.trackDefById(id)?.name || id);
     this.show(`
-      ${this.paddockTopbar(t('championnat'), 'programmeRetour', t('back'))}
+      ${this.paddockTopbar(t(enLigne ? 'multi' : 'quickRace'), 'programmeRetour', t('back'))}
+      <h1 class="programme-titre">${t('championnat')}</h1>
       <div class="programme-colonnes">
         <div class="programme-gauche">
         <section class="programme-carte programme-selecteur">
-          <h3>${nomCircuit(selection.id)}</h3>
+          <h3>${nomCircuit(selection.id)} ${this.circuitFlag(selection)}</h3>
           ${this.imageCircuit(selection, nuit, `<button class="programme-plus" data-action="programmeAjouter" data-id="${escapeHtml(selection.id)}" aria-label="${t('ajouterCircuit')} · ${nomCircuit(selection.id)}" ${verrouAjout}>+</button>`)}
           ${this.rail('champCircuits', 'tracks', TRACKS.map(tr => `<button class="card ${tr.id === selection.id ? 'sel' : ''}" data-action="programmeChoisir" data-id="${escapeHtml(tr.id)}"><span class="track-card-art" style="background-image:url('${this.circuitArt(tr)}')"><img alt="" src="${this.thumb(tr, 90)}"></span><b>${escapeHtml(tr.name)}</b></button>`).join(''))}
         </section>
@@ -1588,21 +1615,21 @@ class UI {
               <button data-action="programmeRetirer" data-id="${i}" aria-label="${t('retirerCircuit')}" ${verrou}>×</button></div></li>`;
           }).join('')}</ol>
         </section>
-      </div>`, 'scroll selection-screen programme-ecran', enLigne ? 'programme:multi' : 'programme:solo');
+      </div><footer class="programme-pied"><button data-action="programmeRetour">${t('back')}</button>
+        ${editable ? `<button class="primary" data-action="programmeAppliquer">${t('applySeries')}</button>` : ''}</footer>`, 'scroll selection-screen programme-ecran', enLigne ? 'programme:multi' : 'programme:solo');
   }
 
   editeProgramme(action, repeindre = true) {
     const enLigne = this._cleEcran === 'programme:multi';
     const app = this.app, table = enLigne ? app.net.settings() : null;
     if (enLigne && (!app.net.creator || Championnat.manche(table.championnat).phase)) return;
-    const courant = (enLigne ? table.programme : app.save.programme) || {};
+    const courant = this.brouillonProgramme || (enLigne ? table.programme : app.save.programme) || {};
     const defaut = (enLigne ? table.laps : app.save.laps) || 5;
     const circuits = Array.isArray(courant.circuits) ? [...courant.circuits] : [];
     const options = { ...courant, circuits, positions: { ...courant.positions },
       toursParManche: circuits.map((_, i) => Championnat.toursManche(courant, i, defaut)) };
     action(options, defaut);
-    if (enLigne) app.net.setTable({ programme: options });
-    else { app.save.programme = options; storeSave(app.save); }
+    this.brouillonProgramme = options;
     if (repeindre) this.programmeScreen(enLigne);
   }
 
@@ -1614,7 +1641,7 @@ class UI {
     const frein = freinDe(s, st.trackId, model.id);
     const desktop = app.desktop;
     const gamepad = desktop && app.controls.mode === 'gamepad';
-    const toursVerrou = s.programme?.circuits?.length ? 'disabled' : '';
+    const toursVerrou = app.programmeActif && s.programme?.circuits?.length ? 'disabled' : '';
     const reglages = `<div class="setup-reglages">
       ${!race ? `<div class="setup-chips" data-pad-group>
         ${pastille(t('timeOfDay'), t(s.timeOfDay === 'night' ? 'night' : 'day'), `data-action="pickTimeOfDay" data-id="${s.timeOfDay === 'night' ? 'day' : 'night'}" aria-pressed="${s.timeOfDay === 'night'}"`, s.timeOfDay === 'night' && model.catId === 'f1' ? 'nuit-f1' : '')}
@@ -2133,13 +2160,28 @@ class UI {
         this.programmeDefilement = this.root.firstElementChild?.scrollTop || 0;
         this.programmeDefilementPaddock = this.root.querySelector('.quick-grid')?.scrollTop || 0;
         this.circuitProgramme = null;
+        this.brouillonProgramme = null;
         this.programmeScreen(id === 'multi');
         break;
+      case 'programmeAppliquer': {
+        const multi = this._cleEcran === 'programme:multi';
+        const options = this.brouillonProgramme || (multi ? app.net.settings().programme : app.save.programme) || {};
+        if (multi) {
+          if (!app.net.creator || Championnat.manche(app.net.settings().championnat).phase) break;
+          app.net.setTable({ programme: options });
+        } else {
+          app.save.programme = options;
+          app.programmeActif = Championnat.actif(options);
+          storeSave(app.save);
+        }
+      }
+      // Appliquer et Retour reviennent au même paddock.
       case 'programmeRetour':
+        this.brouillonProgramme = null;
         if (this._cleEcran === 'programme:multi') this.lobbyScreen();
         else this.setupScreen(this.setup.mode);
         this.root.firstElementChild.scrollTop = this.programmeDefilement || 0;
-        if (this.programmeDefilementPaddock) this.root.querySelector('.quick-grid').scrollTop = this.programmeDefilementPaddock;
+        if (this.programmeDefilementPaddock && this.root.querySelector('.quick-grid')) this.root.querySelector('.quick-grid').scrollTop = this.programmeDefilementPaddock;
         break;
       case 'programmeChoisir': this.circuitProgramme = id; this.programmeScreen(this._cleEcran === 'programme:multi'); break;
       case 'programmeAjouter': this.editeProgramme((o, tours) => { if (o.circuits.length < 10) { o.circuits.push(id); o.toursParManche.push(tours); } }); break;

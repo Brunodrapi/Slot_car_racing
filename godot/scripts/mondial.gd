@@ -32,6 +32,9 @@ var detailRefus := ""
 var envoi := {}                   # le rattrapage : { total, faits, rien, attente }
 var enCours := false              # une connexion attend son retour du navigateur
 var erreurConnexion := ""
+var toursRecents := {}
+var toursDisponibles := false
+var lectureTours := false
 var _lectures := {}
 var _serveurs: Array[TCPServer] = []
 var _clients: Array = []          # [{ c: StreamPeerTCP, recu: String }]
@@ -80,6 +83,19 @@ func nom() -> String:
 
 ## Le meilleur temps du monde par voiture sur ce circuit, ou null tant qu'il n'est pas arrivé.
 ## Une seule requête par circuit, gardée trois minutes (js/mondial.js, records).
+func chargeToursRecents() -> void:
+	if lectureTours: return
+	lectureTours = true
+	var maintenant := int(Time.get_unix_time_from_system())
+	var dates := { p_from = Time.get_date_string_from_unix_time(maintenant - 29 * 86400), p_to = Time.get_date_string_from_unix_time(maintenant) }
+	var r := await _http(HTTPClient.METHOD_POST, url() + "/rest/v1/rpc/analytics_report",
+		["apikey: " + CLE, "Content-Type: application/json"], JSON.stringify(dates))
+	if r.ok and r.rep is Dictionary:
+		for ligne in r.rep.get("rankings", {}).get("tracks", []): toursRecents[ligne.key] = ligne.laps
+		toursDisponibles = true
+		change.emit()
+
+
 func meilleurs(circuit: String) -> Variant:
 	var vu = cache.get(circuit)
 	if vu == null or Time.get_ticks_msec() - int(vu.t) > 180000:

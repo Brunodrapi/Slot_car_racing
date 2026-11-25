@@ -297,6 +297,20 @@ class Mondial {
   Une seule requête par circuit et non une par voiture : neuf requêtes pour peindre un écran
   seraient neuf occasions d'échouer et neuf allers-retours à attendre. Le résultat est gardé
   quelques minutes, parce qu'un record du monde ne change pas entre deux ouvertures d'un menu. */
+  async toursRecents() {
+    const fin = new Date(), debut = new Date(fin);
+    debut.setUTCDate(fin.getUTCDate() - 29);
+    try {
+      const r = await fetch(MONDIAL_URL + '/rest/v1/rpc/analytics_report', {
+        method: 'POST', headers: {apikey: MONDIAL_KEY, 'Content-Type':'application/json'},
+        body: JSON.stringify({p_from:debut.toISOString().slice(0,10), p_to:fin.toISOString().slice(0,10)})
+      });
+      if (!r.ok) return null;
+      const rapport = await r.json();
+      return Object.fromEntries((rapport.rankings?.tracks || []).map(l => [l.key,l.laps]));
+    } catch (_) { return null; }
+  }
+
   async records(circuit) {
     const vu = this.cache.get(circuit);
     if (vu && Date.now() - vu.t < 180000) return vu.lignes;

@@ -7,6 +7,7 @@ var rails := {}
 var filtreChronos := "tous"
 var etroit := false
 var compact := false
+var pointeParModele := {}
 var doigt: Doigt
 
 
@@ -15,8 +16,8 @@ func _init(parent: Paddock) -> void:
 
 
 func _ready() -> void:
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	offset_left = 10; offset_right = -10; offset_top = 8; offset_bottom = -8
+	paddock.resized.connect(_place)
+	_place()
 	add_theme_constant_override("separation", 7)
 	resized.connect(_redimension)
 	doigt = Doigt.new(self, _defile)
@@ -24,9 +25,17 @@ func _ready() -> void:
 	reconstruit()
 
 
+func _place() -> void:
+	var surface := paddock.size - Vector2(20, 16)
+	var facteur := minf(1.0, surface.x / 1640.0) if surface.x >= 900 and surface.x >= surface.y else 1.0
+	scale = Vector2.ONE * facteur
+	size = surface / facteur
+	position = Vector2(10, 8)
+
+
 func _redimension() -> void:
 	var empile := size.x < 900 or size.x < size.y
-	if etroit != empile or compact != (not empile and size.y < 800): reconstruit.call_deferred()
+	if etroit != empile or compact != (not empile and size.y < 900): reconstruit.call_deferred()
 
 
 func _input(event: InputEvent) -> void:
@@ -159,7 +168,7 @@ func reconstruit() -> void:
 		remove_child(enfant)
 		enfant.queue_free()
 	etroit = size.x < 900 or size.x < size.y
-	compact = not etroit and size.y < 800
+	compact = not etroit and size.y < 900
 	paddock.portrait = etroit
 	var r := App.reglages
 	var voiture := Catalogue.voiture(r.voiture)
@@ -213,6 +222,13 @@ func reconstruit() -> void:
 	_informations(grille, cid, info, yc)
 	_reglages(grille, voiture, cid, int(positions.get("circuits", 0)))
 	_garage(grille, voiture, int(positions.get("voitures", -1)))
+	if not etroit:
+		var ajuste := func():
+			var largeur := maxf(0, page.size.x - 24)
+			grille.get_child(0).custom_minimum_size.x = floorf(largeur * 0.44)
+			grille.get_child(1).custom_minimum_size.x = floorf(largeur * 0.56)
+		page.resized.connect(ajuste)
+		ajuste.call_deferred()
 	_bas()
 	page.set_deferred("scroll_vertical", y)
 	if not cle.is_empty():
@@ -230,22 +246,43 @@ func _lumiere(b: Bouton, nuit: bool) -> void:
 			b.draw_line(centre + rayon * 10, centre + rayon * 14, Paddock.PC_CREME, 2, true)
 
 
+func profilMax(profil: PackedFloat32Array) -> float:
+	var maximum := 0.0
+	for vitesse in profil: maximum = maxf(maximum, vitesse)
+	return maximum
+
+
 func _informations(parent: Control, cid: String, info: Dictionary, y: int) -> void:
 	var bloc := _papier(parent)
 	var entete := _boite(false)
 	bloc.add_child(entete)
 	_libelle(entete, String(info.nom).to_upper(), 28)
 	_image(entete, Style.drapeau(info.pays), 24, 36)
+	var niveaux := {"spa":8, "monaco":9, "silverstone":7, "suzuka":8, "monza":6}
+	var niveau := int(niveaux.get(cid, clampi(roundi(info.virages * 1000.0 / info.longueur + 2), 1, 10)))
+	var difficulte := _libelle(entete, "%s  %d/10" % [Textes.t("difficultyLabel"), niveau], 15, Paddock.PC_MUET)
+	difficulte.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	var resultatMondial: Variant = Mondial.meilleurs(cid)
 	var par: Dictionary = resultatMondial if resultatMondial is Dictionary else {}
 	var record := INF
 	for resultat in par.values(): record = minf(record, float(resultat.temps))
-	var stats := _boite(false)
+	var stats := GridContainer.new()
+	stats.columns = 4
 	bloc.add_child(stats)
+	var voiture := String(App.reglages.voiture)
+	var cle := cid + "/" + voiture
+	if not pointeParModele.has(cle):
+		var piste := Piste.charge("res://donnees/circuits/" + cid)
+		var profil := Course.speedProfile(piste, Catalogue.modele(voiture), "racing", 0.98)
+		pointeParModele[cle] = roundi(profilMax(profil) * 3.6)
+	Mondial.chargeToursRecents()
 	var donnees := [
 		["circuitLength", "%d m" % roundi(info.longueur)], ["circuitTurns", str(info.virages)],
 		["circuitRadius", "%.1f m" % info.rayon if info.rayon > 0 else "—"],
 		["circuitStraight", "%d m" % roundi(info.droite) if info.droite > 0 else "—"],
+		["circuitPeak", "%d km/h" % pointeParModele[cle]],
+		["communityLaps", str(Mondial.toursRecents.get(cid, 0)) if Mondial.toursDisponibles else "—"],
+		["myTrackLaps", str(App.reglages.get("toursCircuit", {}).get(cid, 0))],
 		["circuitRecord", Style.temps(record) if is_finite(record) else "—"]]
 	for item in donnees:
 		var cellule := _papier(stats, Paddock.PC_FEUILLE)
@@ -285,7 +322,12 @@ func _informations(parent: Control, cid: String, info: Dictionary, y: int) -> vo
 		var ligne := _boite(false)
 		table.add_child(ligne)
 		_image(ligne, _vignette(l.voiture.id), 30, 54)
-		_libelle(ligne, str(l.voiture.nom), 15)
+		var modele := _boite(true)
+		modele.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		ligne.add_child(modele)
+		_libelle(modele, str(l.voiture.nom), 15)
+		var pilote := String(par.get(l.voiture.id, {}).get("pilote", ""))
+		if not pilote.is_empty(): _libelle(modele, pilote, 12, Paddock.PC_MUET)
 		for temps in [l.local, l.monde]:
 			var valeur := _libelle(ligne, Style.temps(temps) if temps > 0 else "—", 16)
 			valeur.custom_minimum_size.x = 83
@@ -332,10 +374,21 @@ func _garage(parent: Control, voiture: Dictionary, x: int) -> void:
 	var apercu := _boite(true)
 	disposition.add_child(apercu)
 	apercu.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	apercu.size_flags_stretch_ratio = 0.48
 	_libelle(apercu, String(voiture.nom).to_upper(), 23)
 	var livrees: Array = voiture.livrees
 	var index := posmod(int(App.reglages.livree), livrees.size())
-	_image(apercu, _vignette(voiture.id, index), 114 if compact else 155)
+	var illustration := Control.new()
+	illustration.custom_minimum_size.y = 114 if compact else 155
+	apercu.add_child(illustration)
+	var vignette := _vignette(voiture.id, index)
+	illustration.draw.connect(func():
+		var zone := Rect2(Vector2.ZERO, illustration.size)
+		Style.couvre(illustration, paddock.fondPaddock, zone, 0.5)
+		if vignette:
+			var dimensions := vignette.get_size()
+			dimensions *= minf(zone.size.x / dimensions.x, zone.size.y / dimensions.y)
+			illustration.draw_texture_rect(vignette, Rect2((zone.size - dimensions) / 2, dimensions), false))
 	var lv := _boite(false)
 	apercu.add_child(lv)
 	var precedent := _bouton(lv, "‹", "livree-gauche", _livree.bind(-1, livrees.size()))
@@ -350,19 +403,41 @@ func _garage(parent: Control, voiture: Dictionary, x: int) -> void:
 	var modeles: Array = Catalogue.donnees.voitures.filter(func(c): return paddock.filtre == "tous" or c.cat == paddock.filtre)
 	if x < 0:
 		for i in modeles.size():
-			if modeles[i].id == voiture.id: x = maxi(0, (i - 1) * 125); break
+			if modeles[i].id == voiture.id: x = maxi(0, (i - 2) * 91); break
 	var cartes := _rail(choix, "voitures", x)
 	for c in modeles:
 		var id := String(c.id)
-		var b := _bouton(cartes, Paddock._coupe(String(c.nom).to_upper(), 14, 110), "voiture-" + id, paddock._choisitVoiture.bind(id), 120, Paddock.PC_CREME, Paddock.PC_ENCRE, 14)
+		var b := _bouton(cartes, Paddock._coupe(String(c.nom).to_upper(), 13, 80), "voiture-" + id, paddock._choisitVoiture.bind(id), 86, Paddock.PC_CREME, Paddock.PC_ENCRE, 13)
 		b.custom_minimum_size.y = 96 if compact else 112
 		b.ligne = 84
 		b.set_meta("voiture", c)
 		b.set_meta("sel", id == voiture.id)
 		b.dessinPlus = Paddock._carteVoiturePC.bind(b, false)
 	var perf: Dictionary = voiture.perf
-	_libelle(choix, "%s  ·  %d km/h" % [Textes.t("statVmax"), roundi(perf.vmax)], 16)
-	_libelle(choix, "%s  ·  %.2f g   /   0–100  ·  %.1f s" % [Textes.t("statGrip"), perf.gripG, perf.a100], 16)
+	var limite := float(App.reglages.get("tempsLimite", {}).get(voiture.id, 0))
+	var mesures := [
+		["statVmax", "%d km/h" % roundi(perf.vmax), perf.vmax / 400.0],
+		["statGrip", "%.2f g" % perf.gripG, perf.gripG / 4.0],
+		["statAcc", "%.1f s" % perf.a100, 2.0 / perf.a100],
+		["atLimit", "%.2f s" % limite if limite > 0 else "—", limite / 2.0],
+		["statB100", "%.1f m" % perf.b100, 15.0 / perf.b100]]
+	for mesure in mesures:
+		var rangee := _boite(false)
+		choix.add_child(rangee)
+		_libelle(rangee, Textes.t(mesure[0]), 15)
+		var jauge := ProgressBar.new()
+		jauge.show_percentage = false
+		jauge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		jauge.custom_minimum_size = Vector2(70, 8)
+		var encre := StyleBoxFlat.new()
+		encre.bg_color = Paddock.PC_VERT
+		jauge.add_theme_stylebox_override("fill", encre)
+		jauge.value = clampf(mesure[2] * 100.0, 0, 100)
+		rangee.add_child(jauge)
+		var valeur := _libelle(rangee, mesure[1], 15)
+		valeur.size_flags_horizontal = Control.SIZE_SHRINK_END
+		valeur.custom_minimum_size.x = 72
+		valeur.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 
 
 func _livree(sens: int, nombre: int) -> void:
@@ -376,9 +451,9 @@ func _bas() -> void:
 	bas.add_child(ligne)
 	var r := App.reglages
 	var programme: Dictionary = r.get("programme", {})
-	var actif := Championnat.actif(programme)
+	var actif := App.programmeActif and Championnat.actif(programme)
 	_bouton(ligne, Textes.t("championnat"), "programme", func(): App.aller("programme"), 145, Paddock.PC_VERT if actif else Style.NUIT_PLEINE, Paddock.PC_ENCRE if actif else Paddock.PC_CREME)
-	_pastille(ligne, "tours", Textes.t("lapsLabel"), str(int(r.tours)), func(): r.tours = int(r.tours) % 10 + 1; _sauve(), not programme.get("circuits", []).is_empty())
+	_pastille(ligne, "tours", Textes.t("lapsLabel"), str(int(r.tours)), func(): r.tours = int(r.tours) % 10 + 1; _sauve(), actif and not programme.get("circuits", []).is_empty())
 	var espace := Control.new()
 	espace.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	ligne.add_child(espace)

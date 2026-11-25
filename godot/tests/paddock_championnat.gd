@@ -24,11 +24,17 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 	var rapide: Control = App.ecran.rapide
+	_verifie(not App.programmeActif and not _controle(rapide, "tours").disabled, "le calendrier enregistré reste à appliquer")
 	var paysage := not bool(rapide.etroit)
 	_verifie(_controle(rapide, "nuit").disabled, "nuit grisée en F1")
 	if paysage:
 		for cle in ["degats", "regler", "livree-droite", "difficulte", "adversaires"]:
 			_verifie(rapide.page.get_global_rect().grow(1).encloses(_controle(rapide, cle).get_global_rect()), cle + " visible sur PC sans défiler")
+		var rail: ScrollContainer = rapide.rails.voitures
+		var carte: Control = rail.get_child(0).get_child(0)
+		_verifie(rail.size.x >= carte.size.x * 5 + 20, "cinq modèles tiennent dans le rail")
+		var jauges := rapide.find_children("*", "ProgressBar", true, false)
+		_verifie(jauges.size() == 5 and rapide.page.get_global_rect().encloses(jauges.back().get_global_rect()), "toute la fiche de performances est visible")
 		await _photo("paddock")
 	await _clic(_controle(rapide, "onglet-gt3"), rapide.page)
 	_verifie(not _controle(rapide, "nuit").disabled, "nuit disponible en GT3")
@@ -59,7 +65,7 @@ func _ready() -> void:
 	await _photo("championnat")
 	await _clic(_controle(championnat, "programme-retire-1"), championnat.scroll)
 	_verifie(championnat.options.circuits == ["spa"], "suppression d'une manche")
-	await _clic(_controle(championnat, "programme-retour"))
+	await _clic(_controle(championnat, "programme-appliquer"))
 	rapide = App.ecran.rapide
 	_verifie(_controle(rapide, "tours").disabled, "tours globaux grisés après retour")
 	await _clic(_controle(rapide, "go"))

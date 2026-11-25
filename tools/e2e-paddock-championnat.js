@@ -89,6 +89,19 @@ async function scenario(navigateur, cadre) {
 
     await ouvrir();
     await page.locator('.quick-times tbody tr').first().waitFor();
+    const boutonChampionnat = page.locator('[data-action="programme"]');
+    assert.equal(await boutonChampionnat.getAttribute('aria-pressed'), 'false');
+    assert(await page.locator('[data-action="pickLaps"]').isEnabled());
+    assert.equal(await page.locator('.quick-facts dd').count(), 8);
+    assert.equal(await page.locator('.quick-performance meter').count(), 5);
+    assert(await page.locator('.quick-track-name .circuit-flag').evaluate(el => {
+      const r = el.getBoundingClientRect();
+      return el.complete && el.naturalWidth > 0 && Math.abs(r.width / r.height - 4/3) < .1;
+    }));
+    await presse(boutonChampionnat);
+    await presse('[data-action="programmeAjouter"]');
+    await presse(page.locator('[data-action="programmeRetour"]').first());
+    assert.equal(await boutonChampionnat.getAttribute('aria-pressed'), 'false');
     await verifieVue(page, presse, cadre);
     await presse('[data-action="pickDiff"]');
     await page.locator('#solo-ai').selectOption('3');
@@ -118,7 +131,7 @@ async function scenario(navigateur, cadre) {
     await essais.fill('1');
     await qualifs.fill('2');
     await page.locator('[data-programme-pilote="joueur"]').selectOption('2');
-    await presse('[data-action="programmeRetour"]');
+    await presse('[data-action="programmeAppliquer"]');
     assert(await page.locator('[data-action="pickLaps"]').isDisabled());
 
     await ouvrir();
@@ -128,7 +141,7 @@ async function scenario(navigateur, cadre) {
     assert.equal(await qualifs.inputValue(), '2');
     assert.equal(await page.locator('[data-programme-pilote="joueur"]').inputValue(), '2');
     if (width === 1366) {
-      await presse('[data-action="programmeRetour"]');
+      await presse('[data-action="programmeAppliquer"]');
       await presse('[data-action="startQuick"]');
       await page.waitForFunction(() => app.state === 'race' && app.race?.phase === 'essais');
       assert.equal(await page.evaluate(() => app.race.dureeSession), 60);
@@ -141,7 +154,7 @@ async function scenario(navigateur, cadre) {
     await qualifs.fill('0');
     await presse('[data-action="programmeRetirer"][data-id="1"]');
     assert.equal(await manches.count(), 1);
-    await presse('[data-action="programmeRetour"]');
+    await presse('[data-action="programmeAppliquer"]');
     await presse('[data-action="startQuick"]');
     await page.waitForFunction(() => app.state === 'race' && app.race);
     const depart = await page.evaluate(() => ({

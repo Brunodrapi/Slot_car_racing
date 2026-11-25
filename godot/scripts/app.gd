@@ -15,6 +15,7 @@ var reglages := {
 var ecran: Node = null
 var derniereCourse: Course = null      # pour l'écran des résultats
 var dernierTrophee := {}               # ce que la dernière course a rapporté au palmarès (Palmares.attribue)
+var programmeActif := false
 var championnatSolo := {}
 var championnatResultats := {}
 var enLigne = null                     # la course de la table en ligne (Net.onStart), ou null
@@ -235,7 +236,7 @@ func sauve() -> void:
 
 func lanceCourseRapide() -> void:
 	var options: Dictionary = reglages.get("programme", {})
-	championnatSolo = Championnat.programme(options, String(reglages.circuit), int(reglages.tours), randi() % 100000, String(Catalogue.voiture(reglages.voiture).get("cat", "gt"))) if Championnat.actif(options) else {}
+	championnatSolo = Championnat.programme(options, String(reglages.circuit), int(reglages.tours), randi() % 100000, String(Catalogue.voiture(reglages.voiture).get("cat", "gt"))) if programmeActif and Championnat.actif(options) else {}
 	aller("course")
 
 

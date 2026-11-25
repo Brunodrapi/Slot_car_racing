@@ -664,7 +664,7 @@ static func _carteVoiturePC(b: Bouton, avecCat: bool) -> void:
 	b.draw_rect(Rect2(Vector2(1, 1), b.size - Vector2(2, 2)), PC_BORD, false, 2)
 	if d.get("vignette"):
 		var tex := Style.tex("res://images/vignettes/" + d.vignette)
-		var e := minf(132.0 / tex.get_width(), 52.0 / tex.get_height())
+		var e := minf(minf(132.0, b.size.x - 6) / tex.get_width(), 52.0 / tex.get_height())
 		var t := Vector2(tex.get_width(), tex.get_height()) * e
 		b.draw_texture_rect(tex, Rect2((b.size.x - t.x) / 2, 6 + (52 - t.y) / 2, t.x, t.y), false)
 	if avecCat:

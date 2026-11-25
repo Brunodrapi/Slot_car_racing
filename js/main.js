@@ -420,7 +420,7 @@ class App {
   seul moyen de régler un frein honnêtement, en roulant. */
   startQuick(mode, classId, trackId, reglage, championnat) {
     const cat = categoryById(classId);
-    if (!reglage && mode === 'race' && !championnat && Championnat.actif(this.save.programme)) {
+    if (!reglage && mode === 'race' && !championnat && this.programmeActif && Championnat.actif(this.save.programme)) {
       championnat = Championnat.programme(this.save.programme, trackId, this.save.laps || 5, Math.floor(Math.random() * 100000), cat.id);
     }
     const manche = Championnat.manche(championnat);
@@ -820,6 +820,11 @@ class App {
         const quiet = net.silence();
         if (quiet > 2) this.ui.flash = { text: this.ui.t('netLost'), until: performance.now() + 600, color: '#ffb4a2' };
       }
+      if (!this.spectator && race.state === 'racing') {
+        race.tempsLimite = race.player.usage >= 1 ? (race.tempsLimite || 0) + dt : 0;
+        const temps = this.save.tempsLimite ||= {};
+        if (race.tempsLimite > (temps[race.player.cls.id] || 0)) temps[race.player.cls.id] = race.tempsLimite;
+      }
       this._handleEvents(race);
       if (!dejaAbandonne && race.player.abandon) this.audio.joueAbandon(race.player.grosChocFatal);
       this.analytics.observe(race, elapsed, !document.hidden, this.desktop ? this.controls.mode : 'touch');
@@ -840,6 +845,11 @@ class App {
       if (ev.type === 'go') this.audio.beep(880, 0.4, 0.3);
       if (ev.type === 'crash' && ev.car.isPlayer) { this.audio.thud(); this.renderer.shake = 1; }
       if (ev.type === 'lap' && ev.car.isPlayer) {
+        if (!this.spectator) {
+          const tours = this.save.toursCircuit ||= {};
+          tours[race.track.id] = (tours[race.track.id] || 0) + 1;
+          storeSave(this.save);
+        }
         const lt = ev.car.lapTimes[ev.car.lapTimes.length - 1];
         const isBest = ev.car.bestLap === lt && ev.car.lapTimes.length > 1;
         this.ui.flash = { text: t('lapDone', ev.car.lap, fmtTime(lt)), until: performance.now() + 2500, color: isBest ? '#b48cff' : '#fff' };
