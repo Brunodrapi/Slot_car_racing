@@ -114,9 +114,9 @@ static func menuNombre(minimum: int, maximum: int, valeur: int, suffixe: String,
 	menu.disabled = interdit
 	menu.add_theme_font_size_override("font_size", 18)
 	menu.add_theme_color_override("font_color", Color("#8ae8ad"))
-	for n in range(minimum, maximum + 1): menu.add_item(str(n) + suffixe, n)
+	for n in range(minimum, maximum + 1): menu.add_item(str(n) + suffixe)
 	menu.select(clampi(valeur, minimum, maximum) - minimum)
-	menu.item_selected.connect(func(i): App.clic(); change.call(menu.get_item_id(i)))
+	menu.item_selected.connect(func(i): App.clic(); change.call(minimum + i))
 	return menu
 
 

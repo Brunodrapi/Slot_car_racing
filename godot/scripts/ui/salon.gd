@@ -232,10 +232,11 @@ func _compteur(titre: String, valeur: String, rect: Rect2, cle: String, moins: C
 	var label := Label.new()
 	label.text = titre
 	label.position = Vector2(x, y)
-	label.size = Vector2(w - 160, 36)
+	label.size = Vector2(w if w < 245 else w - 160, 24 if w < 245 else 36)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", 17)
 	cadre.add_child(label)
+	if w < 245: y += 23
 	var gauche := _b("−", Rect2(x + w - 152, y, 40, 36), Style.NUIT_PLEINE, Style.CREME, 22, moins, cle + "-")
 	gauche.disabled = not editable or minAtteint
 	var capsule := _b(valeur, Rect2(x + w - 107, y, 62, 36), VERT, Color.WHITE, 19, func(): pass, cle + "-valeur")
@@ -245,33 +246,35 @@ func _compteur(titre: String, valeur: String, rect: Rect2, cle: String, moins: C
 	droite.disabled = not editable or maxAtteint
 
 
-# Les paramètres de grille appartiennent à la table. Le frein appartient au pilote.
-func _optionsPilote(t: Dictionary, pilotes: int, y: float, x: float, largeur: float) -> float:
-	if t.get("mode", "race") == "race":
-		var tours := int(t.get("laps", 3))
-		var championnat: bool = not t.get("programme", {}).get("circuits", []).is_empty()
-		if Style.tactile():
+# Les deux réglages de grille occupent chacun la moitié de la rangée.
+func _optionsGrille(t: Dictionary, pilotes: int, y: float, x: float, largeur: float) -> float:
+	var tours := int(t.get("laps", 3))
+	var maxiIA := maxi(0, 12 - mini(pilotes, Net.NET_SEATS))
+	var ia := clampi(int(t.get("aiCount", -1)), -1, maxiIA)
+	var editable: bool = net.creator and t.get("championnat", {}).is_empty()
+	var toursBloques: bool = not t.get("programme", {}).get("circuits", []).is_empty()
+	var demi := (largeur - 8) / 2
+	var valeurIA := "Auto" if ia < 0 else str(ia)
+	if Style.tactile():
+		var menuTours := Style.menuNombre(1, 10, tours, "", not editable or toursBloques, func(v): net.setTable({laps = v}))
+		var menuIA := Style.menuNombre(-1, maxiIA, ia, "", not editable, func(v): net.setTable({aiCount = v}))
+		menuIA.set_item_text(0, "Auto")
+		for item in [[x, "lapsLabel", "tours", menuTours], [x + demi + 8, "opponentsLabel", "adversaires", menuIA]]:
 			var label := Label.new()
-			label.text = Textes.t("lapsLabel")
-			label.position = Vector2(x, y + 4)
+			label.text = Textes.t(item[1])
+			label.position = Vector2(item[0], y)
 			label.add_theme_color_override("font_color", TITRE)
 			cadre.add_child(label)
-			var menu := Style.menuNombre(1, 10, tours, "", championnat or not net.creator or not net.settings().get("championnat", {}).is_empty(), func(v): net.setTable({laps = v}))
-			menu.position = Vector2(x + largeur - 90, y)
-			menu.set_meta("cle", "tours")
+			var menu: OptionButton = item[3]
+			menu.position = Vector2(item[0], y + 22)
+			menu.set_meta("cle", item[2])
 			cadre.add_child(menu)
-			y += 8
-		else:
-			_compteur(Textes.t("lapsLabel"), str(tours), Rect2(x, y, largeur, 36), "tours",
-				func(): net.setTable({ laps = tours - 1 }), func(): net.setTable({ laps = tours + 1 }), championnat or tours <= 1, championnat or tours >= 10)
-		y += 41
-		var maxiIA := maxi(0, 12 - mini(pilotes, Net.NET_SEATS))
-		var ia := clampi(int(t.get("aiCount", -1)), -1, maxiIA)
-		var valeur := "Auto" if ia < 0 else str(ia)
-		_compteur(Textes.t("opponentsLabel"), valeur, Rect2(x, y, largeur, 36), "adversaires",
-			func(): net.setTable({ aiCount = ia - 1 }), func(): net.setTable({ aiCount = ia + 1 }), ia <= -1, ia >= maxiIA)
-		y += 41
-	return y
+		return y + 72
+	_compteur(Textes.t("lapsLabel"), str(tours), Rect2(x, y, demi, 36), "tours",
+		func(): net.setTable({ laps = tours - 1 }), func(): net.setTable({ laps = tours + 1 }), toursBloques or tours <= 1, toursBloques or tours >= 10)
+	_compteur(Textes.t("opponentsLabel"), valeurIA, Rect2(x + demi + 8, y, demi, 36), "adversaires",
+		func(): net.setTable({ aiCount = ia - 1 }), func(): net.setTable({ aiCount = ia + 1 }), ia <= -1, ia >= maxiIA)
+	return y + (64 if demi < 245 else 41)
 
 
 func _parametres(t: Dictionary, pilotes: int, y: float, manche: Dictionary) -> float:
@@ -287,13 +290,15 @@ func _parametres(t: Dictionary, pilotes: int, y: float, manche: Dictionary) -> f
 	z.formatTitre = Vector2(x, y + 15)
 	y = _choix([["race", Textes.t("mRaceSeg")], ["duel", Textes.t("mDuelSeg")], ["ghost", Textes.t("mGhostSeg")]], mode,
 		Rect2(x, y + 20, largeur, 0), editable, func(id): net.setTable({ mode = id }), "mode")
-	y = _optionsPilote(t, pilotes, y + 2, x, minf(largeur, 380))
+	y += 2
 	var bas := y
 	if not portrait:
 		x += largeur + 24
 		y = haut + 12
 	var degats: bool = t.get("degats", false) == true
 	var etatDegats := Textes.t("on" if degats else "off")
+	var avecProgramme: bool = libre and mode in ["race", "duel"]
+	var largeurProgramme := (94.0 if portrait else 145.0) if avecProgramme else 0.0
 	var largeurDegats := Paddock.largeurPastille(Textes.t("chipDegats"), etatDegats, 15)
 	var boutonDegats := _b("", Rect2(x, y, largeurDegats, 36), Style.NUIT_PLEINE, Style.CREME, 15,
 		func(): net.setTable({ degats = not degats }), "degats")
@@ -303,11 +308,25 @@ func _parametres(t: Dictionary, pilotes: int, y: float, manche: Dictionary) -> f
 		var circuit := String(Championnat.manche(t.get("championnat", {})).get("circuit", t.get("trackId", "monza")))
 		var voiture := String(App.reglages.voiture)
 		var cfg := ReglageFrein.active(circuit, voiture)
-		var valeur := Paddock._coupe(str(cfg.get("nom", Textes.t("regDefaut"))), 15, largeur - largeurDegats - 125) + Paddock.LISTE
-		var b := _b("", Rect2(x + largeurDegats + 4, y, largeur - largeurDegats - 4, 36), Style.NUIT_PLEINE, Style.CREME, 19,
+		var largeurFrein := largeur - largeurDegats - 4 - (largeurProgramme + 4 if avecProgramme else 0.0)
+		var nom := String(cfg.get("nom", Textes.t("regDefaut")))
+		var b := _b("", Rect2(x + largeurDegats + 4, y, largeurFrein, 36), Style.NUIT_PLEINE, Style.CREME, 15,
 			func(): ReglageFrein.suivante(circuit, voiture); App.sauve(); _maj(), "freinage")
-		b.dessinPlus = Paddock._pastille.bind(b, Textes.t("freinage"), valeur, 15)
+		b.tooltip_text = nom
+		if portrait:
+			b.dessinPlus = func():
+				Style.texte(b, Textes.t("freinage"), Vector2(0, 14), 13, Style.CREME, HORIZONTAL_ALIGNMENT_CENTER, b.size.x)
+				b.draw_rect(Rect2(6, 17, b.size.x - 12, 17), Paddock.PC_VERT)
+				Style.texte(b, Paddock._coupe(nom, 14, b.size.x - 18), Vector2(6, 31), 14, Style.ENCRE, HORIZONTAL_ALIGNMENT_CENTER, b.size.x - 12)
+		else:
+			var place := largeurFrein - Paddock.largeurPastille(Textes.t("freinage"), Paddock.LISTE, 15)
+			b.dessinPlus = Paddock._pastille.bind(b, Textes.t("freinage"), Paddock._coupe(nom, 15, place) + Paddock.LISTE, 15)
+	if avecProgramme:
+		var actif := Championnat.actif(t.get("programme", {}))
+		_b(Textes.t("championnat"), Rect2(x + largeur - largeurProgramme, y, largeurProgramme, 36), VERT if actif else Style.NUIT_PLEINE, Style.ENCRE if actif else Style.CREME, 19,
+			func(): App.aller("programme"), "programme")
 	y += 41
+	if mode == "race": y = _optionsGrille(t, pilotes, y, x, largeur)
 	if t.get("timeOfDay") == "night":
 		var f1: bool = Catalogue.voiture(App.reglages.voiture).get("cat") == "f1"
 		z.nuitDesc = [Vector2(x, y + 12), Paddock._lignes(Textes.t("nightF1Hint" if f1 else "nightHint"), 15, largeur), ROUGE_SEL if f1 else MUET]
@@ -324,11 +343,6 @@ func _parametres(t: Dictionary, pilotes: int, y: float, manche: Dictionary) -> f
 			_b(Textes.t("annulerChampionnat"), Rect2(x, y, minf(largeur, 380), 38), Style.NUIT_PLEINE, Style.CREME, 19,
 				func(): net.setTable({ championnat = {} }), "annulerChampionnat")
 			y += 44
-	elif mode in ["race", "duel"]:
-		var actif := Championnat.actif(t.get("programme", {}))
-		_b(Textes.t("championnat"), Rect2(x, y + 3, minf(largeur, 260), 38), VERT if actif else Style.NUIT_PLEINE, Style.ENCRE if actif else Style.CREME, 19,
-			func(): App.aller("programme"), "programme")
-		y += 44
 	y = maxf(y, bas) + 12
 	z.options = Rect2(14 if portrait else M, haut, total, y - haut)
 	return y + 12

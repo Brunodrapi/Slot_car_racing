@@ -31,6 +31,22 @@ func _ready() -> void:
 	await App.ecran._ouvre(true)
 	await _cadre()
 	var salon: Control = App.ecran
+	var degats := _controle(salon, "degats").get_global_rect()
+	var frein := _controle(salon, "freinage").get_global_rect()
+	var championnat := _controle(salon, "programme").get_global_rect()
+	var tours := _controle(salon, "tours" if Style.tactile() else "tours-valeur").get_global_rect()
+	var adversaires := _controle(salon, "adversaires" if Style.tactile() else "adversaires-valeur").get_global_rect()
+	_verifie(degats.position.y == frein.position.y and frein.position.y == championnat.position.y and degats.end.x <= frein.position.x + 1 and frein.end.x <= championnat.position.x + 1, "championnat à droite du freinage")
+	_verifie(tours.position.y >= degats.end.y and tours.position.y == adversaires.position.y and tours.end.x <= adversaires.position.x, "tours et adversaires sous les dégâts")
+	if Style.tactile():
+		var menuIA: OptionButton = _controle(salon, "adversaires")
+		_verifie(menuIA.get_item_id(0) != menuIA.get_item_id(1), "Auto et zéro sont deux choix distincts")
+		menuIA.item_selected.emit(2)
+		await _cadre()
+		_verifie(Reseau.net.settings().aiCount == 1, "choix du nombre d’adversaires")
+		_controle(salon, "adversaires").item_selected.emit(0)
+		await _cadre()
+		_verifie(Reseau.net.settings().aiCount == -1, "adversaires automatiques")
 	# Tester la propagation des choix à la table même quand ses commandes sont hors de la vue.
 	_controle(salon, "circuit-monza").pressed.emit()
 	await _cadre()

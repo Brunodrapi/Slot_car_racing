@@ -1725,18 +1725,19 @@ class UI {
       <section class="programme-carte lobby-reglages">
         <div><h3>${t('mFormat')}</h3><div class="seg">
           ${NET_MODES.map(m => bouton('netMode', m, t({race: 'mRace', duel: 'mDuel', ghost: 'mGhost'}[m]), cfg.mode === m)).join('')}</div>
-          ${cfg.mode === 'race' ? `<label class="chip chip-input"><span>${t('lapCount')}</span>${this.nombreMenu(1,10,Number(cfg.laps) || 3, 'id="net-laps" ' + (cfg.programme?.circuits?.length ? 'disabled' : verrou))}</label>
-          <label class="chip chip-select"><span>${t('opponents')}</span><select id="net-ai" ${verrou}>
-            <option value="-1">${t('auto')}</option>${Array.from({length: maxIA + 1}, (_, i) => `<option value="${i}" ${cfg.aiCount === i ? 'selected' : ''}>${i}</option>`).join('')}</select></label>` : ''}
         </div>
         <div>
           <div class="lobby-reglages-paire">
             ${DEGATS_ACTIVE ? `<button class="chip" data-action="netDegats" data-id="${cfg.degats === false ? 1 : 0}" aria-pressed="${cfg.degats !== false}" ${verrou}>${t('chipDegats')} <b>${t(cfg.degats === false ? 'off' : 'on')}</b></button>` : ''}
           ${!net.mine.spectator ? `<label class="chip chip-select"><span>${t('freinage')}</span><select id="net-frein" data-track="${escapeHtml(trackDef.id)}" data-model="${escapeHtml(model.id)}">
             <option value="">${t('regDefaut')}</option>${reglagesPour(s, trackDef.id, model.id).map(c => `<option value="${escapeHtml(c.nom)}" ${c.nom === frein?.nom ? 'selected' : ''}>${escapeHtml(c.nom)}</option>`).join('')}</select></label>` : ''}
+            ${libre && cfg.mode !== 'ghost' ? this.boutonProgramme(cfg.programme, true) : ''}
           </div>
+          ${cfg.mode === 'race' ? `<div class="lobby-grille"><label class="chip chip-input"><span>${t('lapCount')}</span>${this.nombreMenu(1,10,Number(cfg.laps) || 3, 'id="net-laps" ' + (cfg.programme?.circuits?.length ? 'disabled' : verrou))}</label>
+          <label class="chip chip-select"><span>${t('opponents')}</span><select id="net-ai" ${verrou}>
+            <option value="-1">${t('auto')}</option>${Array.from({length: maxIA + 1}, (_, i) => `<option value="${i}" ${cfg.aiCount === i ? 'selected' : ''}>${i}</option>`).join('')}</select></label></div>` : ''}
           ${cfg.timeOfDay === 'night' && model.catId === 'f1' ? `<p class="warn">${t('nightF1Hint')}</p>` : ''}
-          ${libre ? (cfg.mode !== 'ghost' ? this.boutonProgramme(cfg.programme, true) : '') : `<div class="row"><strong>${t(manche.phase === 'course' ? 'mRace' : manche.phase)} · ${escapeHtml(trackDef.name)}</strong>
+          ${libre ? '' : `<div class="row"><strong>${t(manche.phase === 'course' ? 'mRace' : manche.phase)} · ${escapeHtml(trackDef.name)}</strong>
             ${net.creator ? `<button data-action="netAnnulerChampionnat">${t('annulerChampionnat')}</button>` : ''}</div>`}
         </div>
       </section>

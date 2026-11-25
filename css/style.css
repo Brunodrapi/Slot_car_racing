@@ -1381,8 +1381,6 @@ Bruno sur un iPhone à Dynamic Island :
 .programme-actions button { min-width: 44px; min-height: 44px; }
 .lobby-reglages { margin-block: 14px; }
 .lobby-reglages .chip { margin: 4px 4px 0 0; }
-.lobby-reglages-paire { display: flex; flex-wrap: wrap; gap: 8px 20px; }
-.lobby-reglages-paire > div { min-width: 120px; }
 .lobby-reglages .seg button.sel:not(.nuit-f1), .lobby-reglages .chip select, .lobby-reglages .chip input {
   background: #2d8a4e;
   color: #fff8e6;
@@ -1629,9 +1627,21 @@ body.mobile .quick-footer-settings select { width:auto; }
   body.mobile .quick-brakes > .chip { padding-inline:5px; }
   body.mobile .quick-footer .setup-launch .primary span { display:none; }
 }
-.lobby-reglages-paire { flex-wrap:nowrap; align-items:stretch; gap:4px; }
+.lobby-reglages-paire,.lobby-grille { display:flex; align-items:stretch; gap:4px; }
+.lobby-grille { margin-top:6px; }
+.lobby-reglages-paire .programme-bouton.programme-actif { background:#2d8a4e; }
 .lobby-reglages-paire .chip { display:inline-flex; align-items:center; gap:5px; min-width:0; margin:0; padding:5px 9px; background:#171c19; color:#fff0d2; }
 .lobby-reglages-paire .chip b { background:#21b56f; padding:2px 6px; color:#171c19; }
 .lobby-reglages-paire .chip select { min-width:0; text-overflow:ellipsis; }
 body.mobile .quick-options .quick-brakes > label { gap:4px; padding-inline:5px; }
 body.mobile .quick-options .quick-brakes select { padding-inline:5px 17px; background-position:right 5px center; }
+
+@media (max-width:440px) {
+  .lobby-reglages-paire .chip { padding:5px 6px; gap:3px; min-height:44px; }
+  .lobby-reglages-paire .chip-select { flex-direction:column; justify-content:center; }
+  .lobby-reglages-paire .chip-select select { max-width:100%; }
+  .lobby-reglages-paire button { flex:none; }
+}
+@media (max-width:359px) {
+  .lobby-reglages-paire [data-action="netDegats"] { flex-direction:column; justify-content:center; }
+}

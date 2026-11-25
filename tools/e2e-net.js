@@ -88,7 +88,7 @@ function serve() {
     '--disable-renderer-backgrounding'
   ]});
   const mobile = process.argv.includes('--mobile');
-  const ctx = await browser.newContext({ serviceWorkers: 'block', hasTouch: mobile, isMobile: mobile, viewport: mobile ? {width:390, height:844} : {width:900, height:620} });
+  const ctx = await browser.newContext({ locale: 'fr-FR', serviceWorkers: 'block', hasTouch: mobile, isMobile: mobile, viewport: mobile ? {width:Number(process.env.GRIP_TEST_WIDTH || 390), height:844} : {width:900, height:620} });
   await ctx.addInitScript(STUB);
   let bad = 0;
   const open = async (tag, name) => {
@@ -133,6 +133,13 @@ function serve() {
     await B.waitForFunction(attendu => app.net.settings().degats === attendu, degats);
     if (!await B.locator('[data-action="netDegats"]').isDisabled()) throw Error('dégâts modifiables chez l’invité');
   }
+  const options = A.locator('.lobby-reglages');
+  await options.scrollIntoViewIfNeeded();
+  const [degats, frein, serie, tours, ia] = await Promise.all(['[data-action="netDegats"]', '#net-frein', '[data-action="programme"]', '#net-laps', '#net-ai'].map(s => options.locator(s).boundingBox()));
+  const memeLigne = (a,b) => a.y < b.y + b.height && b.y < a.y + a.height && a.x + a.width <= b.x + 1;
+  if (!memeLigne(degats, frein) || !memeLigne(frein, serie) || !memeLigne(tours, ia) || tours.y < degats.y + degats.height || serie.x + serie.width > A.viewportSize().width)
+    throw Error('Disposition des réglages du salon : ' + JSON.stringify({degats,frein,serie,tours,ia}));
+  await options.screenshot({path:out + '/reglages-salon.png'});
   if (mode !== 'race') { await A.click(`[data-action="netMode"][data-id="${mode}"]`); await A.waitForTimeout(300); }
   if (championnat) {
     await A.click('[data-action="programme"][data-id="multi"]');
