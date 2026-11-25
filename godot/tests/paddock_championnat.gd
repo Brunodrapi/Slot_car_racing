@@ -14,7 +14,7 @@ func _ready() -> void:
 		programme = { circuits = ["redbullring"], positions = {} }
 	}, true)
 	Mondial.cache.spa = { t = Time.get_ticks_msec(), par = {
-		ferrari488gt3 = { temps = 90.0 }, renaultrs10 = { temps = 93.0 }, porsche991gt3r = { temps = 89.0 }
+		ferrari488gt3 = { temps = 90.0 }, renaultrs10 = { temps = 93.0 }, porsche991gt3r = { temps = 89.0, pilote = "Bruno" }
 	} }
 	App.aller("accueil")
 	await _cadre()
@@ -25,6 +25,10 @@ func _ready() -> void:
 		return
 	var rapide: Control = App.ecran.rapide
 	_verifie(not App.programmeActif and not _controle(rapide, "tours").disabled, "le calendrier enregistré reste à appliquer")
+	var libelles := rapide.find_children("*", "Label", true, false).map(func(l): return l.text)
+	_verifie(libelles.has("≈ 690 kg"), "poids du modèle affiché")
+	_verifie(libelles.count("Bruno") == 2, "titulaire du record dans la fiche et le classement")
+	_verifie(App.ecran.infoCircuits.monza.difficulty == 1, "Monza au premier niveau")
 	var paysage := not bool(rapide.etroit)
 	_verifie(_controle(rapide, "nuit").disabled, "nuit grisée en F1")
 	if paysage:

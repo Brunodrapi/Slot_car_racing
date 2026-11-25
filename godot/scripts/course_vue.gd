@@ -389,11 +389,6 @@ func _physics_process(_delta: float) -> void:
 			course.time = maxf(0, (drive.link.now() - float(drive.epoch)) / 1000.0)
 	else:
 		course.step(gaz)
-		if course.state == "racing":
-			tempsLimite = tempsLimite + course.dt if course.player.usage >= 1 else 0.0
-			var id := course.player.cls.id
-			if not App.reglages.has("tempsLimite"): App.reglages.tempsLimite = {}
-			if tempsLimite > float(App.reglages.tempsLimite.get(id, 0)): App.reglages.tempsLimite[id] = tempsLimite
 	if drive != null:
 		if Reseau.net.isHost(): course.broadcast.sample(course)
 		drive.afterFrame(gaz, ligne)
@@ -413,7 +408,6 @@ func _physics_process(_delta: float) -> void:
 
 
 ## Les événements de la course, en sons et en secousse (main.js, _handleEvents).
-var tempsLimite := 0.0
 
 func _sons(evts: Array) -> void:
 	for e in evts:

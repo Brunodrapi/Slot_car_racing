@@ -41,7 +41,7 @@ const DRAPEAUX = {
 
 const TRACKS = [
   {
-    id: 'monza', name: 'Parco Reale', country: 'IT', flag: '🇮🇹', theme: 'park',
+    id: 'monza', name: 'Parco Reale', country: 'IT', difficulty: 1, flag: '🇮🇹', theme: 'park',
     architecture: 'pavillons',
     // Trait noir de la reprise : la voie des stands quitte la piste à la sortie de la Parabolica,
     // et non plus au milieu du virage. Zone d'arrêt et sortie inchangées.
@@ -158,7 +158,7 @@ const TRACKS = [
     },
   },
   {
-    id: 'spa', name: 'Stand de frites', country: 'BE', flag: '🇧🇪', theme: 'forest',
+    id: 'spa', name: 'Stand de frites', country: 'BE', difficulty: 3, flag: '🇧🇪', theme: 'forest',
     architecture: 'pavillons',
     // Même langage de matériaux que Monza, adapté à la forêt ardennaise.
     // Les zones de dégagement annotées et tous les repères de gameplay sont conservés.
@@ -314,7 +314,7 @@ const TRACKS = [
     ],
   },
   {
-    id: 'monaco', name: 'Le Rocher', country: 'MC', flag: '🇲🇨', theme: 'riviera',
+    id: 'monaco', name: 'Le Rocher', country: 'MC', difficulty: 4, flag: '🇲🇨', theme: 'riviera',
     revision: '2026-10-26T18:09:36Z',   // repris de tracks_11 : les retouches locales d'avant ne comptent plus
     runoffJoinGap: 60,
     defaultRunoff: 'asphalt', // Références monaco.jpg / monaco_2.jpg : aucun bac à gravier.
@@ -1086,7 +1086,7 @@ const TRACKS = [
     },
   },
   {
-    id: 'silverstone', name: 'Royal Air Base', country: 'GB', flag: '🇬🇧', theme: 'autumn',
+    id: 'silverstone', name: 'Royal Air Base', country: 'GB', difficulty: 2, flag: '🇬🇧', theme: 'autumn',
     architecture: 'graphique',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.gb,
@@ -1193,7 +1193,7 @@ const TRACKS = [
     ],
   },
   {
-    id: 'suzuka', name: 'Fuji Yama', country: 'JP', flag: '🇯🇵', theme: 'japan',
+    id: 'suzuka', name: 'Fuji Yama', country: 'JP', difficulty: 4, flag: '🇯🇵', theme: 'japan',
     parallelClearance: true,
     architecture: 'graphique',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
@@ -1311,7 +1311,7 @@ const TRACKS = [
     ],
   },
   {
-    id: 'interlagos', name: 'Festival de Carnaval', country: 'BR', flag: '🇧🇷', theme: 'tropical',
+    id: 'interlagos', name: 'Festival de Carnaval', country: 'BR', difficulty: 2, flag: '🇧🇷', theme: 'tropical',
     parallelClearance: true,
     architecture: 'plats',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
@@ -1394,7 +1394,7 @@ const TRACKS = [
     passerelles: [0.8625],
   },
   {
-    id: 'laguna', name: 'Corkscrew Ranch', country: 'US', flag: '🇺🇸', theme: 'california',
+    id: 'laguna', name: 'Corkscrew Ranch', country: 'US', difficulty: 3, flag: '🇺🇸', theme: 'california',
     architecture: 'pavillons',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.us,
@@ -1475,7 +1475,7 @@ const TRACKS = [
     passerelles: [0.0399, 0.6555, 0.7886],
   },
   {
-    id: 'nurburgring', name: 'Bratwurst Ring', country: 'DE', flag: '🇩🇪', theme: 'forest',
+    id: 'nurburgring', name: 'Bratwurst Ring', country: 'DE', difficulty: 3, flag: '🇩🇪', theme: 'forest',
     architecture: 'pavillons',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.de,
@@ -1579,7 +1579,7 @@ const TRACKS = [
     ],
   },
   {
-    id: 'lemans', name: 'Autoroute 11', country: 'FR', flag: '🇫🇷', theme: 'lemans',
+    id: 'lemans', name: 'Autoroute 11', country: 'FR', difficulty: 2, flag: '🇫🇷', theme: 'lemans',
     architecture: 'pavillons',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.fr,
@@ -1708,7 +1708,7 @@ const TRACKS = [
     },
   },
   {
-    id: 'bathurst', name: 'Kangaroo Mountain', country: 'AU', flag: '🇦🇺', theme: 'bush',
+    id: 'bathurst', name: 'Kangaroo Mountain', country: 'AU', difficulty: 4, flag: '🇦🇺', theme: 'bush',
     runoffJoinGap: 60,
     /* LA VOIE DES STANDS EN LIGNE DROITE (essai des dégâts). Placée d'office, elle partait de la
        droite d'avant le dernier virage, passait DANS ce virage à angle droit, et ne finissait qu'après
@@ -1818,7 +1818,7 @@ const TRACKS = [
     passerelles: [0.0050, 0.9391],
   },
   {
-    id: 'redbullring', name: 'Apfelstrudel Ring', country: 'AT', flag: '🇦🇹', theme: 'alpine',
+    id: 'redbullring', name: 'Apfelstrudel Ring', country: 'AT', difficulty: 1, flag: '🇦🇹', theme: 'alpine',
     architecture: 'terrasses',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.at,
@@ -1906,7 +1906,7 @@ const TRACKS = [
     Le reste est une pinède du Var posée sur un plateau, avec la piste d'aviation le long de la
     ligne droite du Mistral et le paddock entre les deux. Presque pas de gravier : le Castellet a
     remplacé ses bacs par le bitume peint, et c'est précisément pour cela qu'il a cette tête-là. */
-    id: 'castellet', name: 'Pastaga 83', country: 'FR', flag: '🇫🇷', theme: 'lemans',
+    id: 'castellet', name: 'Pastaga 83', country: 'FR', difficulty: 2, flag: '🇫🇷', theme: 'lemans',
     architecture: 'plats',
     barriers: true,   // protections dessinées et collisions : voir docs/spa-barrieres/README.md
     kerb: DRAPEAUX.fr,
@@ -2010,7 +2010,7 @@ const TRACKS = [
     ],
   },
   {
-    id: 'zandvoort', name: 'Windmolen', country: 'NL', flag: '🇳🇱', theme: 'dunes',
+    id: 'zandvoort', name: 'Windmolen', country: 'NL', difficulty: 3, flag: '🇳🇱', theme: 'dunes',
     parallelClearance: true, // Limiter les dégagements aux couloirs réellement disponibles.
     // Garder l’arrêt et les trois garages sur la ligne droite, hors de Hunserug.
     pitAt: 0.0039, pitLength: 220,
@@ -2148,7 +2148,7 @@ const TRACKS = [
     /* Watkins Glen, État de New York (0.52.77). Le grand tour — le Boot et l'Inner Loop —, relevé
        dans OpenStreetMap (`tools/traces.py`) : 5473 m pour 3,4 miles. « Camping Glen » : le Glen est
        célèbre pour ses campings autant que pour sa course (nom choisi par Bruno). */
-    id: 'watkins', name: 'Camping Glen', country: 'US', flag: '🇺🇸', theme: 'glen',
+    id: 'watkins', name: 'Camping Glen', country: 'US', difficulty: 2, flag: '🇺🇸', theme: 'glen',
     architecture: 'pavillons',
     barriers: true,   // les rails bleus de l'Armco, partout
     kerb: ['#E9BE37', '#C9282E'],   // jaunes et rouges, comme les vrais (voir CIRCUIT_STYLES)

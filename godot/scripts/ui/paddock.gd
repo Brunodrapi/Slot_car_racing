@@ -113,7 +113,7 @@ static func infosCircuits() -> Dictionary:
 		for i in virages.size():
 			var suivant := virages[i + 1].x if i + 1 < virages.size() else virages[0].x + n
 			droite = maxi(droite, suivant - virages[i].y)
-		_infos[c.id] = { nom = c.nom, pays = meta.pays, longueur = longueur, tours = int(meta.tours), contour = contour, bornes = meta.bornes,
+		_infos[c.id] = { nom = c.nom, pays = meta.pays, difficulty = c.difficulty, longueur = longueur, tours = int(meta.tours), contour = contour, bornes = meta.bornes,
 			virages = virages.size(), rayon = 1.0 / pic if pic > 0 else 0.0, droite = droite * longueur / n,
 			image = load("res://images/interface/circuits/%s.webp" % c.id) }
 	return _infos

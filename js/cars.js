@@ -76,48 +76,48 @@ const CATEGORIES = [
     base: { vmax: 315 / 3.6, accel: 9.1, brake: 18.6, grip: 14.6, df: 0.0042, slide: 0.56, laneK: 6, rearBias: 1.12, cliff: 0.14, slipPeak: 0.08, length: 4.2, width: 2.0 },
     drivers: 10, roadScale: 0.9, zoom: 1.15,
     models: [
-      { id: 'tyrrellp34', name: 'Sixpence Hexa', shape: 'wedge72',
+      { id: 'tyrrellp34', name: 'Sixpence Hexa', shape: 'wedge72', weightKg: 595,
         mul: { vmax: 0.921, accel: 1, brake: 1.07, grip: 0.993, df: 0.8, slide: 0.9 },
         colors: ['#174d9b', '#f4da38'], top: 'sprites/top/tyrrellp34.png', pick: 'sprites/pick/tyrrellp34.png',
         livrees: [{ id: '', nom: 'Bleu · Scheckter · 1976', en: 'Blue · Scheckter · 1976' }],
         engine: { cyl: 8, redline: 10500, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
-      { id: 'ferrari312t', name: 'Purosangue Dodici T', shape: 'wedge72',
+      { id: 'ferrari312t', name: 'Purosangue Dodici T', shape: 'wedge72', weightKg: 575,
         mul: { vmax: 0.984, accel: 1.06, brake: 1, grip: 1.038, df: 0.85, slide: 1.1 },
         colors: ['#dc282d', '#f5f3e9'], top: 'sprites/top/ferrari312t.png', pick: 'sprites/pick/ferrari312t.png',
         livrees: [{ id: '', nom: 'Lauda · 1975 · 12' }],
         engine: { cyl: 12, redline: 12500, idle: 1700, rough: 0.06, bright: 0.98, turbo: 0 } },
-      { id: 'mclarenm23', name: 'McHaggis Arrow 23', shape: 'wedge72',
+      { id: 'mclarenm23', name: 'McHaggis Arrow 23', shape: 'wedge72', weightKg: 575,
         mul: { vmax: 0.952, accel: 1.03, brake: 1, grip: 0.988, df: 0.95, slide: 1 },
         colors: ['#e3352d', '#f5f3e9'], top: 'sprites/top/mclarenm23.png', pick: 'sprites/pick/mclarenm23.png',
         livrees: [{ id: '', nom: 'Hunt · 1976 · 11' }],
         engine: { cyl: 8, redline: 10800, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
-      { id: 'lotus79', name: 'Bumblebee Ground 79', shape: 'wedge72',
+      { id: 'lotus79', name: 'Bumblebee Ground 79', shape: 'wedge72', weightKg: 610,
         mul: { vmax: 0.936, accel: 0.97, brake: 1, grip: 0.903, df: 1.45, slide: 0.95 },
         colors: ['#161719', '#d4b35e'], top: 'sprites/top/lotus79.png', pick: 'sprites/pick/lotus79.png',
         livrees: [{ id: '', nom: 'Noir et or · Andretti · 1978', en: 'Black and gold · Andretti · 1978' }],
         engine: { cyl: 8, redline: 11000, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
-      { id: 'lotus72', name: 'Bumblebee Wedge 72', shape: 'wedge72',
+      { id: 'lotus72', name: 'Bumblebee Wedge 72', shape: 'wedge72', weightKg: 530,
         mul: { vmax: 0.936, accel: 1.08, brake: 1.03, grip: 1.055, df: 0.6, slide: 1.05 },
         colors: ['#161719', '#d4b35e'], top: 'sprites/top/lotus72.png', pick: 'sprites/pick/lotus72.png',
         livrees: [{ id: '', nom: 'Noir et or · Fittipaldi · 1972', en: 'Black and gold · Fittipaldi · 1972' }],
         engine: { cyl: 8, redline: 10000, idle: 1500, rough: 0.1, bright: 0.9, turbo: 0 } },
-      { id: 'brabhambt46b', name: 'Boomerang Fan 46', shape: 'wedge72',
+      { id: 'brabhambt46b', name: 'Boomerang Fan 46', shape: 'wedge72', weightKg: 600,
         // Ventilateur : davantage d'accroche lente, moins de dépendance à l'appui de vitesse.
         mul: { vmax: 0.927, accel: 0.97, brake: 1, grip: 1.065, df: 0.58, slide: 0.88 },
         colors: ['#e8202a', '#f4f4f4'], top: 'sprites/top/brabhambt46b.png', pick: 'sprites/pick/brabhambt46b.png',
         livrees: [{ id: '', nom: 'Rouge · Lauda · 1978', en: 'Red · Lauda · 1978' }],
         engine: { cyl: 12, redline: 12000, idle: 1700, rough: 0.05, bright: 0.96, turbo: 0 } },
-      { id: 'williamsfw07', name: 'Windsor 07', shape: 'wedge72',
+      { id: 'williamsfw07', name: 'Windsor 07', shape: 'wedge72', weightKg: 579,
         mul: { vmax: 0.952, accel: 1.02, brake: 1.02, grip: 0.912, df: 1.35, slide: 0.97 },
         colors: ['#f4f4f4', '#1f6b3a'], top: 'sprites/top/williamsfw07.png', pick: 'sprites/pick/williamsfw07.png',
         livrees: [{ id: '', nom: 'Blanc et vert · Jones · 1979', en: 'White and green · Jones · 1979' }],
         engine: { cyl: 8, redline: 11000, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
-      { id: 'ligierjs11', name: 'Le Coq Bleu 11', shape: 'wedge72',
+      { id: 'ligierjs11', name: 'Le Coq Bleu 11', shape: 'wedge72', weightKg: 580,
         mul: { vmax: 0.946, accel: 0.99, brake: 1.08, grip: 0.913, df: 1.25, slide: 0.92 },
         colors: ['#2f7fd1', '#f4f4f4'], top: 'sprites/top/ligierjs11.png', pick: 'sprites/pick/ligierjs11.png',
         livrees: [{ id: '', nom: 'Bleu et blanc · Laffite · 1979', en: 'Blue and white · Laffite · 1979' }],
         engine: { cyl: 8, redline: 11000, idle: 1600, rough: 0.1, bright: 0.92, turbo: 0 } },
-      { id: 'renaultrs10', name: 'Somua Turbo 10', shape: 'wedge72',
+      { id: 'renaultrs10', name: 'Somua Turbo 10', shape: 'wedge72', weightKg: 690,
         mul: { vmax: 1, accel: 0.93, brake: 0.98, grip: 1.023, df: 1, slide: 1.04 },
         // Relance douce, puis poussée soutenue : courbe de jeu selon la vitesse, sans délai de turbo.
         driveCurve: { low: 0.94, high: 1.20, from: 80 / 3.6, to: 200 / 3.6 },
@@ -135,7 +135,7 @@ const CATEGORIES = [
     base: { vmax: 368 / 3.6, accel: 8, brake: 17, grip: 13.5, df: 0.0015, slide: 0.6, laneK: 6, rearBias: 1.06, cliff: 0.18, slipPeak: 0.12, length: 4.5, width: 2.0 },
     drivers: 10, roadScale: 0.9, zoom: 1.15,
     models: [
-      { id: 'm1procar', name: 'Howitzer K1', shape: 'gtBoxy', mul: { vmax: 0.842, accel: 1.06, brake: 1.03, grip: 0.966, df: 1, slide: 1 }, pick: 'sprites/pick/m1procar.png', engine: {
+      { id: 'm1procar', name: 'Howitzer K1', shape: 'gtBoxy', weightKg: 1020, mul: { vmax: 0.842, accel: 1.06, brake: 1.03, grip: 0.966, df: 1, slide: 1 }, pick: 'sprites/pick/m1procar.png', engine: {
         cyl: 6, redline: 9000, idle: 1100, rough: 0.15, bright: 0.78, turbo: 0,
 // Découpé dans l'onboard par `tools/enginecut.py`. Six boucles pour couvrir la plage
         // utile : une seule, transposée du ralenti au rupteur, fait trois octaves et ne sonne
@@ -149,7 +149,7 @@ const CATEGORIES = [
           { id: 'BASF', nom: 'Cibles rouges · 79', en: 'Red targets · 79' },
           { id: 'DENIM', nom: 'Bleu rayé · 81', en: 'Blue stripes · 81' },
         ] },
-      { id: 'f40', name: 'Purosangue Furia 40', shape: 'f40', mul: { vmax: 1, accel: 1.12, brake: 1, grip: 0.928, df: 1.5, slide: 1 }, pick: 'sprites/pick/f40.png', engine: {
+      { id: 'f40', name: 'Purosangue Furia 40', shape: 'f40', weightKg: 1050, mul: { vmax: 1, accel: 1.12, brake: 1, grip: 0.928, df: 1.5, slide: 1 }, pick: 'sprites/pick/f40.png', engine: {
         cyl: 8, redline: 7750, idle: 1000, rough: 0.15, bright: 0.8, turbo: 0.9,
         sample: { ramp: 'sounds/engine/v8-f40.json' },
       }, colors: ['#e0262c', '#22242b'], top: 'sprites/top/f40.png',
@@ -166,7 +166,7 @@ const CATEGORIES = [
           { id: 'red', nom: 'Rosso' },
           { id: 'yellow', nom: 'Crawford' },
         ] },
-      { id: 'countach', name: 'Stallone Furioso', shape: 'wedgeGT', mul: { vmax: 0.815, accel: 1.1, brake: 0.95, grip: 0.968, df: 1, slide: 1 }, pick: 'sprites/pick/countach.png', engine: {
+      { id: 'countach', name: 'Stallone Furioso', shape: 'wedgeGT', weightKg: 1300, mul: { vmax: 0.815, accel: 1.1, brake: 0.95, grip: 0.968, df: 1, slide: 1 }, pick: 'sprites/pick/countach.png', engine: {
         cyl: 12, redline: 7500, idle: 900, rough: 0.05, bright: 0.88, turbo: 0,
         // La rampe la plus large du jeu : vingt-cinq demi-tons, 1821 tr/min au rupteur, d'un seul
         // rapport et sans coupure. C'est ce qu'il faut pour n'avoir presque rien à confier à la
@@ -176,7 +176,7 @@ const CATEGORIES = [
       // La prise vient d'une 911 RSR, la seule 911 du plateau étant celle-ci. Un RSR est atmosphérique
       // là où la Turbo ne l'est pas : le sifflement reste à la synthèse, la matière du plat-six est
       // celle de l'enregistrement.
-      { id: '930', name: 'Breithüft Turbo 9', shape: 'roundGT', mul: { vmax: 0.802, accel: 1.09, brake: 1, grip: 1.026, df: 1, slide: 1.2 }, pick: 'sprites/pick/930.png', engine: {
+      { id: '930', name: 'Breithüft Turbo 9', shape: 'roundGT', weightKg: 1120, mul: { vmax: 0.802, accel: 1.09, brake: 1, grip: 1.026, df: 1, slide: 1.2 }, pick: 'sprites/pick/930.png', engine: {
         cyl: 6, redline: 7000, idle: 950, rough: 0.3, bright: 0.6, turbo: 0.85,
         sample: { ramp: 'sounds/engine/flat6-930.json', bas: 'sounds/engine/flat6-930-bas.json' },
       }, colors: ['#c9ced6', '#e0262c'], top: 'sprites/top/930.png',
@@ -194,7 +194,7 @@ const CATEGORIES = [
           { id: 'swiss', nom: 'Croix suisse · 30', en: 'Swiss cross · 30' },
           { id: 'valliant', nom: 'Turquoise arc-en-ciel · 5', en: 'Rainbow turquoise · 5' },
         ] },
-      { id: 'corvette', name: 'Moonshine Sting', shape: 'roundGT', mul: { vmax: 0.94, accel: 1.06, brake: 0.95, grip: 1.026, df: 0.9, slide: 1.3 }, pick: 'sprites/pick/corvette.png', engine: {
+      { id: 'corvette', name: 'Moonshine Sting', shape: 'roundGT', weightKg: 1130, mul: { vmax: 0.94, accel: 1.06, brake: 0.95, grip: 1.026, df: 0.9, slide: 1.3 }, pick: 'sprites/pick/corvette.png', engine: {
         cyl: 8, redline: 6000, idle: 750, rough: 0.7, bright: 0.4, turbo: 0,
         // Découpé dans son propre onboard. Les étiquettes portent une correction d'octave : sur
         // cette prise l'estimateur s'accrochait au demi-ordre plutôt qu'à l'allumage, ce que le
@@ -203,7 +203,7 @@ const CATEGORIES = [
         // octave trop bas.
         sample: { ramp: 'sounds/engine/v8-corvette.json' },
       }, colors: ['#d8dce2', '#e0262c'], top: 'sprites/top/corvette.png' },
-      { id: 'csl', name: 'Howitzer 3.0 Leicht', shape: 'gtBoxy', mul: { vmax: 0.734, accel: 1.02, brake: 1.03, grip: 1.016, df: 1.2, slide: 1.1 }, pick: 'sprites/pick/csl.png', engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.1, bright: 0.68, turbo: 0 }, colors: ['#f7f7f7', '#2166d8'], top: 'sprites/top/csl.png',
+      { id: 'csl', name: 'Howitzer 3.0 Leicht', shape: 'gtBoxy', weightKg: 1060, mul: { vmax: 0.734, accel: 1.02, brake: 1.03, grip: 1.016, df: 1.2, slide: 1.1 }, pick: 'sprites/pick/csl.png', engine: { cyl: 6, redline: 7000, idle: 950, rough: 0.1, bright: 0.68, turbo: 0 }, colors: ['#f7f7f7', '#2166d8'], top: 'sprites/top/csl.png',
         /* Trois livrées, et la première est celle qui existait déjà.
 
         Une livrée n'est pas une couleur ici : une illustration remplace le dessin vectoriel ET la
@@ -218,15 +218,15 @@ const CATEGORIES = [
         ] },
       // Les trois GT des années soixante et soixante-dix. Moteur avant, pneus étroits, peu d'appui :
       // elles se battent avec leur pointe et leur légèreté là où les autres ont de la gomme.
-      { id: '250gto', name: 'Purosangue Gran Corsa', shape: 'roundGT', mul: { vmax: 0.766, accel: 0.97, brake: 0.95, grip: 1.037, df: 0.5, slide: 0.95 },
+      { id: '250gto', name: 'Purosangue Gran Corsa', shape: 'roundGT', weightKg: 880, mul: { vmax: 0.766, accel: 0.97, brake: 0.95, grip: 1.037, df: 0.5, slide: 0.95 },
         colors: ['#c8161d', '#f4f4f4'], top: 'sprites/top/250gto.png', pick: 'sprites/pick/250gto.png',
         livrees: [{ id: '', nom: 'Rosso Corsa · 19' }, { id: 'francorchamps', nom: 'Francorchamps · jaune', en: 'Francorchamps · yellow' }, { id: 'walker', nom: 'Rob Walker · inspiration bleue', en: 'Rob Walker · blue tribute' }],
         engine: { cyl: 12, redline: 7500, idle: 900, rough: 0.05, bright: 0.85, turbo: 0 } },
-      { id: 'typee', name: 'Moggy Longnose', shape: 'roundGT', mul: { vmax: 0.734, accel: 0.95, brake: 0.93, grip: 1.066, df: 0.45, slide: 1 },
+      { id: 'typee', name: 'Moggy Longnose', shape: 'roundGT', weightKg: 975, mul: { vmax: 0.734, accel: 0.95, brake: 0.93, grip: 1.066, df: 0.45, slide: 1 },
         colors: ['#1d5c3a', '#f4f4f4'], top: 'sprites/top/typee.png', pick: 'sprites/pick/typee.png',
         livrees: [{ id: '', nom: 'Lightweight · British Racing Green' }, { id: 'cunningham', nom: 'Cunningham · blanc et bleu', en: 'Cunningham · white and blue' }, { id: 'ecosse', nom: 'Écurie Écosse · inspiration bleue', en: 'Écurie Écosse · blue tribute' }],
         engine: { cyl: 6, redline: 6500, idle: 850, rough: 0.12, bright: 0.6, turbo: 0 } },
-      { id: '240z', name: 'Kitsune Zeta 240', shape: 'roundGT', mul: { vmax: 0.682, accel: 1.02, brake: 1.05, grip: 1.036, df: 0.7, slide: 1.05 },
+      { id: '240z', name: 'Kitsune Zeta 240', shape: 'roundGT', weightKg: 1000, mul: { vmax: 0.682, accel: 1.02, brake: 1.05, grip: 1.036, df: 0.7, slide: 1.05 },
         colors: ['#f4f4f4', '#d12a2a'], top: 'sprites/top/240z.png', pick: 'sprites/pick/240z.png',
         livrees: [{ id: '', nom: 'BRE · 46' }, { id: 'sharp', nom: 'Bob Sharp · inspiration bleue', en: 'Bob Sharp · blue tribute' }, { id: 'dunlop', nom: 'Hommage jaune · 24', en: 'Yellow tribute · 24' }],
         engine: { cyl: 6, redline: 7500, idle: 950, rough: 0.12, bright: 0.66, turbo: 0 } },
@@ -241,52 +241,52 @@ const CATEGORIES = [
     base: { vmax: 290 / 3.6, accel: 9, brake: 19, grip: 14.2, df: 0.0027, slide: 0.56, laneK: 6, rearBias: 1.10, cliff: 0.16, slipPeak: 0.10, length: 4.6, width: 2.04 },
     drivers: 10, roadScale: 0.9, zoom: 1.15,
     models: [
-      { id: 'porsche991gt3r', name: 'Breithüft Apex R', shape: 'roundGT', length: 4.60, width: 2.03,
+      { id: 'porsche991gt3r', name: 'Breithüft Apex R', shape: 'roundGT', weightKg: 1220, length: 4.60, width: 2.03,
         mul: { vmax: 0.99, accel: 1.03, brake: 1.02, grip: 1.00, df: 0.98, slide: 1.08 },
         colors: ["#f4a7a3", "#a51e28"], top: 'sprites/top/porsche991gt3r.png', pick: 'sprites/pick/porsche991gt3r.png',
         livrees: [{"id": "", "nom": "Cochon rose · 92", "en": "Pink butcher cuts · 92"}, {"id": "grello", "nom": "Jaune fluo et vert · 911", "en": "Neon yellow and green · 911"}, {"id": "rexy", "nom": "Dinosaure vert · 56", "en": "Green dinosaur · 56"}],
         engine: { cyl: 6, redline: 9000, idle: 1500, rough: 0.22, bright: 0.88, turbo: 0, sample: { ramp: 'sounds/engine/flat6-930.json', bas: 'sounds/engine/flat6-930-bas.json' } } },
-      { id: 'ferrari488gt3', name: 'Purosangue Furia 48', shape: 'f40', length: 4.63, width: 2.05,
+      { id: 'ferrari488gt3', name: 'Purosangue Furia 48', shape: 'f40', weightKg: 1260, length: 4.63, width: 2.05,
         mul: { vmax: 1, accel: 1.02, brake: 1.01, grip: 0.99, df: 1.02, slide: 1.02 },
         colors: ["#e0262c", "#ffffff"], top: 'sprites/top/ferrari488gt3.png', pick: 'sprites/pick/ferrari488gt3.png',
         livrees: [{"id": "", "nom": "Rouge tricolore · 51", "en": "Red tricolour · 51"}, {"id": "garageitalia", "nom": "CHRONO · 07"}, {"id": "smp", "nom": "RMP Racing · 72"}],
         engine: { cyl: 8, redline: 7500, idle: 1200, rough: 0.12, bright: 0.82, turbo: 0.8, sample: { ramp: 'sounds/engine/v8-f40.json' } } },
-      { id: 'huracangt3', name: 'Stallone Fulmine', shape: 'wedgeGT', length: 4.61, width: 2.05,
+      { id: 'huracangt3', name: 'Stallone Fulmine', shape: 'wedgeGT', weightKg: 1230, length: 4.61, width: 2.05,
         mul: { vmax: 0.99, accel: 1.01, brake: 1.02, grip: 1.01, df: 1, slide: 1.05 },
         colors: ["#75ce16", "#191d21"], top: 'sprites/top/huracangt3.png', pick: 'sprites/pick/huracangt3.png',
         livrees: [{"id": "", "nom": "Vert et carbone · 63", "en": "Green and carbon · 63"}, {"id": "fff", "nom": "Chronographe · 7", "en": "Chronograph · 7"}, {"id": "attempto", "nom": "NET · 100"}],
         engine: { cyl: 10, redline: 8500, idle: 1400, rough: 0.08, bright: 0.94, turbo: 0 } },
-      { id: 'audir8lms', name: 'Autobahn Acht GT3', shape: 'wedgeGT', length: 4.58, width: 2.00,
+      { id: 'audir8lms', name: 'Autobahn Acht GT3', shape: 'wedgeGT', weightKg: 1225, length: 4.58, width: 2.00,
         mul: { vmax: 0.99, accel: 1, brake: 1.03, grip: 1.01, df: 1.01, slide: 0.96 },
         colors: ["#aeb3bc", "#2166d8"], top: 'sprites/top/audir8lms.png', pick: 'sprites/pick/audir8lms.png',
         livrees: [{"id": "", "nom": "Argent, noir et bleu · 3", "en": "Silver, black and blue · 3"}, {"id": "bwt", "nom": "BMT · rose · 26", "en": "BMT · pink · 26"}, {"id": "magnus", "nom": "Magnet Racing · 44"}],
         engine: { cyl: 10, redline: 8500, idle: 1400, rough: 0.10, bright: 0.92, turbo: 0 } },
-      { id: 'amggt3', name: 'Stern AWG GT3', shape: 'gtBoxy', length: 4.75, width: 2.05,
+      { id: 'amggt3', name: 'Stern AWG GT3', shape: 'gtBoxy', weightKg: 1285, length: 4.75, width: 2.05,
         mul: { vmax: 1, accel: 1.01, brake: 0.99, grip: 1.01, df: 0.99, slide: 0.96 },
         colors: ["#f2ef18", "#419c37"], top: 'sprites/top/amggt3.png', pick: 'sprites/pick/amggt3.png',
         livrees: [{"id": "", "nom": "Fan Filter · 47"}, {"id": "haribo", "nom": "Donut’s · 8"}, {"id": "dragon", "nom": "Dragon · 71"}],
         engine: { cyl: 8, redline: 7500, idle: 1100, rough: 0.65, bright: 0.65, turbo: 0, sample: { ramp: 'sounds/engine/v8-corvette.json' } } },
-      { id: 'bmwm6gt3', name: 'Howitzer K6 GT3', shape: 'gtBoxy', length: 4.94, width: 2.05,
+      { id: 'bmwm6gt3', name: 'Howitzer K6 GT3', shape: 'gtBoxy', weightKg: 1300, length: 4.94, width: 2.05,
         mul: { vmax: 1.01, accel: 1.02, brake: 0.98, grip: 1, df: 0.99, slide: 0.97 },
         colors: ["#ffffff", "#e4c32c"], top: 'sprites/top/bmwm6gt3.png', pick: 'sprites/pick/bmwm6gt3.png',
         livrees: [{"id": "", "nom": "RAVE · 99"}, {"id": "falken", "nom": "WAVES · 33"}, {"id": "schnitzer", "nom": "Bandes tricolores · 42", "en": "Tricolour stripes · 42"}],
         engine: { cyl: 8, redline: 7200, idle: 1100, rough: 0.35, bright: 0.7, turbo: 0.85, sample: { ramp: 'sounds/engine/v8-f40.json' } } },
-      { id: 'bentleygt3', name: 'Bramley Grand Tourer', shape: 'gtBoxy', length: 4.95, width: 2.03,
+      { id: 'bentleygt3', name: 'Bramley Grand Tourer', shape: 'gtBoxy', weightKg: 1300, length: 4.95, width: 2.03,
         mul: { vmax: 1.01, accel: 1.02, brake: 0.97, grip: 1.01, df: 0.97, slide: 0.94 },
         colors: ["#ffffff", "#185c43"], top: 'sprites/top/bentleygt3.png', pick: 'sprites/pick/bentleygt3.png',
         livrees: [{"id": "", "nom": "Blanc et vert · 7", "en": "White and green · 7"}, {"id": "abt", "nom": "APT · jaune et noir · 7", "en": "APT · yellow and black · 7"}, {"id": "singha", "nom": "SIMBA · gris et jaune · 7", "en": "SIMBA · grey and yellow · 7"}],
         engine: { cyl: 8, redline: 7000, idle: 1100, rough: 0.5, bright: 0.6, turbo: 0.8, sample: { ramp: 'sounds/engine/v8-corvette.json' } } },
-      { id: 'nissangtrgt3', name: 'Kitsune Raijin', shape: 'gtBoxy', length: 4.78, width: 2.04,
+      { id: 'nissangtrgt3', name: 'Kitsune Raijin', shape: 'gtBoxy', weightKg: 1300, length: 4.78, width: 2.04,
         mul: { vmax: 1.01, accel: 1.03, brake: 0.99, grip: 0.99, df: 1, slide: 1.02 },
         colors: ["#ffffff", "#e0262c"], top: 'sprites/top/nissangtrgt3.png', pick: 'sprites/pick/nissangtrgt3.png',
         livrees: [{"id": "", "nom": "Kitsune · blanc et rouge · 35", "en": "Kitsune · white and red · 35"}, {"id": "kcmg", "nom": "KCRG · 18"}, {"id": "nddp", "nom": "B-MIX · 3"}],
         engine: { cyl: 6, redline: 7500, idle: 1200, rough: 0.3, bright: 0.75, turbo: 0.9 } },
-      { id: 'mclaren650sgt3', name: 'McHaggis Blade 650', shape: 'wedgeGT', length: 4.58, width: 2.04,
+      { id: 'mclaren650sgt3', name: 'McHaggis Blade 650', shape: 'wedgeGT', weightKg: 1240, length: 4.58, width: 2.04,
         mul: { vmax: 0.99, accel: 1, brake: 1.02, grip: 1, df: 1.04, slide: 1 },
         colors: ["#ff8c1a", "#191d21"], top: 'sprites/top/mclaren650sgt3.png', pick: 'sprites/pick/mclaren650sgt3.png',
         livrees: [{"id": "", "nom": "TEKTO · orange · 59"}, {"id": "garage59", "nom": "Damier vert · 60", "en": "Green checks · 60"}, {"id": "kpax", "nom": "K-FOX · jaune et noir · 9", "en": "K-FOX · yellow and black · 9"}],
         engine: { cyl: 8, redline: 8500, idle: 1300, rough: 0.12, bright: 0.88, turbo: 0.85, sample: { ramp: 'sounds/engine/v8-f40.json' } } },
-      { id: 'v12vantagegt3', name: 'Ashford V12', shape: 'roundGT', length: 4.46, width: 1.98,
+      { id: 'v12vantagegt3', name: 'Ashford V12', shape: 'roundGT', weightKg: 1250, length: 4.46, width: 1.98,
         mul: { vmax: 0.99, accel: 1.02, brake: 1, grip: 1, df: 1.01, slide: 1.03 },
         colors: ["#222832", "#d6ee29"], top: 'sprites/top/v12vantagegt3.png', pick: 'sprites/pick/v12vantagegt3.png',
         livrees: [{"id": "", "nom": "Filets fluo · 10", "en": "Neon pinstripes · 10"}, {"id": "rmotorsport", "nom": "Liserés cyan · 62", "en": "Cyan accents · 62"}, {"id": "amr", "nom": "Vert foncé et jaune", "en": "Dark green and yellow"}],
@@ -302,7 +302,7 @@ const CATEGORIES = [
     base: { vmax: 386 / 3.6, accel: 8.6, brake: 17.8, grip: 13.6, df: 0.0034, slide: 0.6, laneK: 6, rearBias: 1.09, cliff: 0.15, slipPeak: 0.105, length: 4.5, width: 2.0 },
     drivers: 10, roadScale: 0.9, zoom: 1.15,
     models: [
-      { id: 'gt40', name: 'Redneck Endurance 40', shape: 'gt40', mul: { vmax: 0.876, accel: 1.07, brake: 0.97, grip: 1.101, df: 0.7, slide: 1.1 }, pick: 'sprites/pick/gt40.png', engine: {
+      { id: 'gt40', name: 'Redneck Endurance 40', shape: 'gt40', weightKg: 1215, mul: { vmax: 0.876, accel: 1.07, brake: 0.97, grip: 1.101, df: 0.7, slide: 1.1 }, pick: 'sprites/pick/gt40.png', engine: {
         cyl: 8, redline: 6200, idle: 800, rough: 0.6, bright: 0.45, turbo: 0,
         // Trois prises, et le moteur choisit. La montée ne porte que 4611 tr/min au rupteur — un
         // tirage entre deux rapports, tout ce qu'un onboard de course contient souvent — mais elle
@@ -328,14 +328,14 @@ const CATEGORIES = [
       tendance à mettre la queue dehors qui est sa signature — d'où `slide` au-dessus de tout le
       reste du plateau. Le rang de difficulté n'est pas choisi ici : il est MESURÉ par
       `tools/plateau-banc.js --sim`, qui le recalcule pour tout le plateau à la fois. */
-      { id: '935', name: 'Breithüft Langheck', shape: 'longTail', mul: { vmax: 0.948, accel: 1, brake: 0.95, grip: 1.083, df: 0.9, slide: 1.35 }, pick: 'sprites/pick/935.png', engine: {
+      { id: '935', name: 'Breithüft Langheck', shape: 'longTail', weightKg: 1025, mul: { vmax: 0.948, accel: 1, brake: 0.95, grip: 1.083, df: 0.9, slide: 1.35 }, pick: 'sprites/pick/935.png', engine: {
         cyl: 6, redline: 8000, idle: 1100, rough: 0.35, bright: 0.7, turbo: 0.9,
       }, colors: ['#f4f4f4', '#e0262c'], top: 'sprites/top/935.png' },
       // Un moteur rotatif n'a pas de cylindres : `cyl` ne sert qu'à placer l'allumage, et un
       // quatre-rotors allume quatre fois par tour d'arbre excentrique, exactement comme un V8 à
       // quatre temps. D'où huit, avec la rugosité d'un moteur parfaitement équilibré et un
       // rupteur très haut : c'est le cri de la 787B.
-      { id: '787b', name: 'Kaminari Hayate', shape: 'groupC', mul: { vmax: 0.907, accel: 1.04, brake: 1.05, grip: 0.939, df: 1.25, slide: 0.92 }, colors: ['#ff8c1a', '#1f6b3a'], top: 'sprites/top/787b.png', pick: 'sprites/pick/787b.png', engine: {
+      { id: '787b', name: 'Kaminari Hayate', shape: 'groupC', weightKg: 830, mul: { vmax: 0.907, accel: 1.04, brake: 1.05, grip: 0.939, df: 1.25, slide: 0.92 }, colors: ['#ff8c1a', '#1f6b3a'], top: 'sprites/top/787b.png', pick: 'sprites/pick/787b.png', engine: {
         cyl: 8, redline: 9000, idle: 1300, rough: 0.04, bright: 1.0, turbo: 0,
         // La montée tient de 6159 tr/min au rupteur, le pied levé a sa propre prise, et le
         // démarreur est joué une fois quand la course s'ouvre — d'un bout à l'autre, pas en grains :
@@ -346,20 +346,20 @@ const CATEGORIES = [
           start: 'sounds/engine/r26b-787b-start.json',
         },
       } },
-      { id: '962', name: 'Breithüft Aero 62', shape: 'groupC', mul: { vmax: 0.907, accel: 1, brake: 1.02, grip: 0.981, df: 1.15, slide: 0.95 },
+      { id: '962', name: 'Breithüft Aero 62', shape: 'groupC', weightKg: 850, mul: { vmax: 0.907, accel: 1, brake: 1.02, grip: 0.981, df: 1.15, slide: 0.95 },
         colors: ['#f4f4f4', '#1b3f8f'], top: 'sprites/top/962.png', pick: 'sprites/pick/962.png',
         livrees: [{ id: '', nom: 'Bleu, blanc et rouge · 17', en: 'Blue, white and red · 17' }, { id: 'shell', nom: 'Jaune et rouge · 7', en: 'Yellow and red · 7' }, { id: 'jager', nom: 'Orange · 17' }],
         engine: { cyl: 6, redline: 8200, idle: 1100, rough: 0.3, bright: 0.7, turbo: 0.95,
           sample: { ramp: 'sounds/engine/flat6-930.json', bas: 'sounds/engine/flat6-930-bas.json' } } },
-      { id: 'xjr9', name: 'Moggy Nightfall', shape: 'groupC', mul: { vmax: 1, accel: 0.96, brake: 0.96, grip: 1, df: 1.1, slide: 0.95 },
+      { id: 'xjr9', name: 'Moggy Nightfall', shape: 'groupC', weightKg: 881, mul: { vmax: 1, accel: 0.96, brake: 0.96, grip: 1, df: 1.1, slide: 0.95 },
         colors: ['#5b2a86', '#f4f4f4'], top: 'sprites/top/xjr9.png', pick: 'sprites/pick/xjr9.png',
         livrees: [{ id: '', nom: 'Violet et blanc · 2', en: 'Purple and white · 2' }, { id: 'castrol', nom: 'Vert et blanc · 60', en: 'Green and white · 60' }, { id: 'jps', nom: 'Hommage noir et or · 9', en: 'Black and gold tribute · 9' }],
         engine: { cyl: 12, redline: 7200, idle: 900, rough: 0.05, bright: 0.75, turbo: 0, sample: { ramp: 'sounds/engine/v12-countach.json' } } },
-      { id: '330p4', name: 'Purosangue Freccia', shape: 'gt40', mul: { vmax: 0.829, accel: 1.05, brake: 1.04, grip: 1.094, df: 0.6, slide: 1.05 },
+      { id: '330p4', name: 'Purosangue Freccia', shape: 'gt40', weightKg: 792, mul: { vmax: 0.829, accel: 1.05, brake: 1.04, grip: 1.094, df: 0.6, slide: 1.05 },
         colors: ['#d0141b', '#f4f4f4'], top: 'sprites/top/330p4.png', pick: 'sprites/pick/330p4.png',
         livrees: [{ id: '', nom: 'Daytona 1967 · 23' }, { id: 'giallo', nom: 'Équipe Nationale Belge · jaune', en: 'Équipe Nationale Belge · yellow' }, { id: 'piper', nom: 'David Piper · vert', en: 'David Piper · green' }],
         engine: { cyl: 12, redline: 8500, idle: 1000, rough: 0.05, bright: 0.9, turbo: 0, sample: { ramp: 'sounds/engine/v12-countach.json' } } },
-      { id: 'p68', name: 'Redneck Arrow 68', shape: 'longTail', mul: { vmax: 0.904, accel: 0.99, brake: 0.97, grip: 1.142, df: 0.55, slide: 1.2 },
+      { id: 'p68', name: 'Redneck Arrow 68', shape: 'longTail', weightKg: 670, mul: { vmax: 0.904, accel: 0.99, brake: 0.97, grip: 1.142, df: 0.55, slide: 1.2 },
         colors: ['#c62026', '#d9b45a'], top: 'sprites/top/p68.png', pick: 'sprites/pick/p68.png',
         livrees: [{ id: '', nom: 'Alan Mann Racing · 1968' }, { id: 'gulf', nom: 'Bleu ciel et orange · 7', en: 'Sky blue and orange · 7' }, { id: 'dunlop', nom: 'Hommage jaune · 68', en: 'Yellow tribute · 68' }],
         engine: { cyl: 8, redline: 9500, idle: 1300, rough: 0.12, bright: 0.88, turbo: 0 } },
@@ -604,6 +604,8 @@ function resolveModel(cat, m) {
     // handling balance: a model's `slide` multiplier above 1 makes it more tail-happy
     rearBias: (b.rearBias || 1.04) / Math.pow(mul.slide || 1, 0.5), cliff: b.cliff == null ? 0.25 : b.cliff, slipPeak: (b.slipPeak || 0.1) * Math.pow(mul.slide || 1, 0.5),
     length: m.length || b.length, width: m.width || b.width,
+    // Poids indicatif de la version de course, pour la fiche du garage.
+    weightKg: m.weightKg || null,
     // Courbe de poussée optionnelle : caractère moteur propre au modèle, sans état de turbo caché.
     driveCurve: m.driveCurve || null,
     drivers: cat.drivers, roadScale: cat.roadScale, zoom: cat.zoom,

@@ -36,11 +36,11 @@ const NUM = ['vmax','accel','brake','grip','df','slide','laneK','rearBias','clif
 const catalogue = {
   categories: CATEGORIES.map((c) => ({ id: c.id, nom: c.name, desc: c.desc || null, drivers: c.drivers, roadScale: c.roadScale, zoom: c.zoom })),
   voitures: MODELS.map((m) => ({ id: m.id, cat: m.catId, nom: m.name, shape: m.shape, colors: m.colors, drivers: m.drivers,
-    driveCurve: m.driveCurve || null, perf: perfOf(m), engine: m.engine || null,
+    driveCurve: m.driveCurve || null, perf: perfOf(m), weightKg: m.weightKg, engine: m.engine || null,
     livrees: (m.livrees && m.livrees.length ? m.livrees : [livreeDe(m, 0)]).map((l) => ({ id: l.id || '', nom: l.nom || m.name, en: l.en || null, top: l.top, pick: l.pick })) })),
   livreries: LIVERIES, pilotes: AI_NAMES, difficultes: DIFFICULTY, points: POINTS, penaliteFixe: PENALITE_FIXE, perfBornes: PERF_RANGE,
   vmaxEcran: VMAX_ECRAN, defaut: DEFAUT_CAT,
-  circuits: TRACKS.map((t) => ({ id: t.id, nom: t.name, pays: t.country, drapeau: t.flag, theme: t.theme || 'park' })),
+  circuits: TRACKS.map((t) => ({ id: t.id, nom: t.name, pays: t.country, difficulty: t.difficulty, drapeau: t.flag, theme: t.theme || 'park' })),
   champsNombres: [...NUM, 'dcFrom', 'dcTo', 'dcLow', 'dcHigh'],
 };
 // Les nombres de chaque voiture, à part (catalogue.bin) : ce sont eux que lit la physique.

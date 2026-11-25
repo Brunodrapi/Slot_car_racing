@@ -17,6 +17,35 @@ const ancienneSauvegarde = {
   programme: { circuits: ['redbullring'], positions: {} }
 };
 
+async function verifieTraces(page) {
+  const images = page.locator('.track-card-art img');
+  assert(await images.count() > 0);
+  assert(await images.evaluateAll(traces => traces.every(trace => {
+    const image = trace.getBoundingClientRect(), cadre = trace.parentElement.getBoundingClientRect();
+    return image.width > 0 && image.height > 0 && getComputedStyle(trace).objectFit === 'contain'
+      && image.left >= cadre.left - 1 && image.right <= cadre.right + 1
+      && image.top >= cadre.top - 1 && image.bottom <= cadre.bottom + 1;
+  })), 'un tracé déborde de son illustration');
+}
+
+async function verifieAjoutsSansDeplacement(page, tactile) {
+  const bouton = page.locator('.programme-plus'), manches = page.locator('.programme-manches li');
+  await bouton.scrollIntoViewIfNeeded();
+  const rect = await bouton.boundingBox(), avant = await manches.count();
+  const x = rect.x + 7, y = rect.y + 9;
+  if (!tactile) await page.mouse.move(x, y);
+  for (let n = 1; n <= 2; n++) {
+    if (tactile) await page.touchscreen.tap(x, y);
+    else {
+      await page.mouse.down();
+      assert.deepEqual(await bouton.boundingBox(), rect, 'le + bouge pendant la pression');
+      await page.mouse.up();
+    }
+    assert.equal(await manches.count(), avant + n);
+    assert.deepEqual(await bouton.boundingBox(), rect, 'le + bouge après un ajout');
+  }
+}
+
 async function verifieVue(page, presse, cadre) {
   const boutons = page.locator('.quick-options [data-action="pickDiff"], #solo-ai, [data-action="pickDegats"], #sel-reglage, [data-action="startTune"]');
   for (const bouton of await boutons.all()) {
@@ -55,7 +84,7 @@ async function verifieVue(page, presse, cadre) {
   const lignes = page.locator('.quick-times tbody tr');
   assert.deepEqual(await lignes.locator('td:last-child').allTextContents(), ['0:40.000', '0:43.000']);
   await presse('[data-action="chronoCat"][data-id="all"]');
-  assert.deepEqual(await lignes.locator('td:last-child').allTextContents(), ['0:38.000', '0:40.000', '0:43.000']);
+  assert.deepEqual(await lignes.locator('td:last-child').allTextContents(), ['0:38.000Bruno', '0:40.000', '0:43.000']);
 }
 
 async function scenario(navigateur, cadre) {
@@ -63,7 +92,7 @@ async function scenario(navigateur, cadre) {
   const contexte = await navigateur.newContext({ viewport: { width, height }, isMobile: !!tactile, hasTouch: !!tactile, ignoreHTTPSErrors: true });
   try {
     await contexte.route('**/rest/v1/records?*', route => route.fulfill({ json: [
-      { voiture: 'ferrari488gt3', temps: 43 }, { voiture: 'renaultrs10', temps: 38 }, { voiture: 'porsche991gt3r', temps: 40 }
+      { voiture: 'ferrari488gt3', temps: 43 }, { voiture: 'renaultrs10', temps: 38, pilote: 'Bruno' }, { voiture: 'porsche991gt3r', temps: 40 }
     ] }));
     await contexte.route('**/functions/v1/**', route => route.fulfill({ json: {} }));
     // Rejoue une sauvegarde existante et le navigateur où structuredClone manquait.
@@ -98,8 +127,15 @@ async function scenario(navigateur, cadre) {
       const r = el.getBoundingClientRect();
       return el.complete && el.naturalWidth > 0 && Math.abs(r.width / r.height - 4/3) < .1;
     }));
+    await presse('[data-action="pickTrack"][data-id="monza"]');
+    await page.locator('.quick-facts .quick-world small').waitFor();
+    assert.equal(await page.locator('.quick-facts .quick-world').textContent(), '0:38.000Bruno');
+    assert.match(await page.locator('.quick-difficulty').innerText(), /1\/4/);
+    assert.match(await page.locator('.quick-performance').innerText(), /690\s*kg/i);
+    await verifieTraces(page);
     await presse(boutonChampionnat);
-    await presse('[data-action="programmeAjouter"]');
+    await verifieTraces(page);
+    await verifieAjoutsSansDeplacement(page, tactile);
     await presse(page.locator('[data-action="programmeRetour"]').first());
     assert.equal(await boutonChampionnat.getAttribute('aria-pressed'), 'false');
     await verifieVue(page, presse, cadre);

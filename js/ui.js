@@ -114,7 +114,7 @@ const I18N = {
     next: 'Suivant', retry: 'Rejouer', menu: 'Menu', resume: 'Reprendre', restart: 'Recommencer', quit: 'Quitter', paused: 'Pause', endSession: 'Terminer',
     lap: 'Tour', last: 'Dernier', best: 'Meilleur', grip: 'adhérence', holdToGo: 'Maintiens Espace pour accélérer', holdToGoTouch: 'Maintiens l’écran pour accélérer', lineHintKeys: '↑ / ↓ : trajectoire', lineHintTouch: 'Pouce gauche : trajectoire',
     programmeCourse: 'Programme de course', essais: 'Essais libres', qualifications: 'Qualifications', championnat: 'Championnat',
-    raceSetup: 'Réglages de course', circuitTimes: 'Chronos du circuit', applySeries: 'Appliquer', communityLaps: 'Tours communauté · 30 j', myTrackLaps: 'Mes tours', circuitPeak: 'Pointe estimée', atLimit: 'Temps à la limite', circuitLength: 'Longueur', circuitTurns: 'Virages', circuitRadius: 'Rayon minimal', circuitStraight: 'Ligne droite', circuitRecord: 'Record du circuit', opponents: 'Adversaires', calendar: 'Calendrier', round: n => `Course ${n}`, next: 'Suivant', previous: 'Précédent',
+    raceSetup: 'Réglages de course', circuitTimes: 'Chronos du circuit', applySeries: 'Appliquer', communityLaps: 'Tours communauté · 30 j', myTrackLaps: 'Mes tours', circuitPeak: 'Pointe estimée', carWeight: 'Poids', circuitLength: 'Longueur', circuitTurns: 'Virages', circuitRadius: 'Rayon minimal', circuitStraight: 'Ligne droite', circuitRecord: 'Record du circuit', opponents: 'Adversaires', calendar: 'Calendrier', round: n => `Course ${n}`, next: 'Suivant', previous: 'Précédent',
     grilleDepart: 'Grille de départ', ajouterCircuit: 'Ajouter un circuit', monterCircuit: 'Remonter le circuit', retirerCircuit: 'Retirer le circuit',
     programmeHint: '0 min désactive la séance.', bareme_f1: 'F1 · 25 pts pour la victoire. La qualification fixe la grille.',
     bareme_gt: 'GT Sprint · 16,5 pts pour la victoire et 1 pt pour la pole.', bareme_lemans: 'Le Mans · 50 pts pour la victoire et 1 pt pour la pole.',
@@ -272,7 +272,7 @@ const I18N = {
     next: 'Next', retry: 'Retry', menu: 'Menu', resume: 'Resume', restart: 'Restart', quit: 'Quit', paused: 'Paused', endSession: 'Finish',
     lap: 'Lap', last: 'Last', best: 'Best', grip: 'grip', holdToGo: 'Hold Space to accelerate', holdToGoTouch: 'Hold anywhere to accelerate', lineHintKeys: '↑ / ↓: racing line', lineHintTouch: 'Left thumb: line',
     programmeCourse: 'Race programme', essais: 'Free practice', qualifications: 'Qualifying', championnat: 'Championship',
-    raceSetup: 'Race setup', circuitTimes: 'Circuit lap times', applySeries: 'Apply', communityLaps: 'Community laps · 30d', myTrackLaps: 'My laps', circuitPeak: 'Est. top speed', atLimit: 'Time at the limit', circuitLength: 'Length', circuitTurns: 'Corners', circuitRadius: 'Minimum radius', circuitStraight: 'Longest straight', circuitRecord: 'Circuit record', opponents: 'Opponents', calendar: 'Calendar', round: n => `Race ${n}`, next: 'Next', previous: 'Previous',
+    raceSetup: 'Race setup', circuitTimes: 'Circuit lap times', applySeries: 'Apply', communityLaps: 'Community laps · 30d', myTrackLaps: 'My laps', circuitPeak: 'Est. top speed', carWeight: 'Weight', circuitLength: 'Length', circuitTurns: 'Corners', circuitRadius: 'Minimum radius', circuitStraight: 'Longest straight', circuitRecord: 'Circuit record', opponents: 'Opponents', calendar: 'Calendar', round: n => `Race ${n}`, next: 'Next', previous: 'Previous',
     grilleDepart: 'Starting grid', ajouterCircuit: 'Add a track', monterCircuit: 'Move track up', retirerCircuit: 'Remove track',
     programmeHint: '0 min disables the session.', bareme_f1: 'F1 · 25 pts for the win. Qualifying sets the grid.',
     bareme_gt: 'GT Sprint · 16.5 pts for the win and 1 pt for pole.', bareme_lemans: 'Le Mans · 50 pts for the win and 1 pt for pole.',
@@ -1369,6 +1369,11 @@ class UI {
       <img src="${this.thumb(tr, 360, night)}" alt="${escapeHtml(tr.name)}">${extra}</div>`;
   }
 
+  chronoMondial(record) {
+    if (!(record?.temps > 0)) return '—';
+    return fmtTime(record.temps) + (record.pilote ? `<small>${escapeHtml(record.pilote)}</small>` : '');
+  }
+
   chronosCircuit(tr) {
     const t = k => this.t(k), app = this.app, filtre = this.filtreChronos || 'all';
     const mondiaux = this._mondiaux?.circuit === tr.id ? this._mondiaux.par : null;
@@ -1381,17 +1386,17 @@ class UI {
     return `<section class="quick-times"><div class="quick-times-head"><h3>${t('circuitTimes')}</h3>${this.filtreCat('chronoCat', filtre)}</div>
       <div class="quick-times-list" data-chronos-scroll role="region" aria-label="${t('circuitTimes')}" tabindex="0">
         ${lignes.length ? `<table aria-label="${t('circuitTimes')}"><thead><tr><th scope="col">#</th><th scope="col">${t('model')}</th><th scope="col">${t('yourBest')}</th><th scope="col">${t('worldBest')}</th></tr></thead><tbody>
-        ${lignes.map(({m, perso, monde}, i) => `<tr><td>${i+1}</td><td><span>${this.carIcon(m, LIVERIES[app.save.livery], app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}${monde?.pilote ? `<small>${escapeHtml(monde.pilote)}</small>` : ''}</b></span></td>
-          <td>${perso > 0 ? fmtTime(perso) : '—'}</td><td>${monde?.temps > 0 ? fmtTime(monde.temps) : '—'}</td></tr>`).join('')}</tbody></table>`
+        ${lignes.map(({m, perso, monde}, i) => `<tr><td>${i+1}</td><td><span>${this.carIcon(m, LIVERIES[app.save.livery], app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}</b></span></td>
+          <td>${perso > 0 ? fmtTime(perso) : '—'}</td><td class="quick-world">${this.chronoMondial(monde)}</td></tr>`).join('')}</tbody></table>`
           : `<p>${mondiaux ? '—' : '…'}</p>`}</div></section>`;
   }
 
   ficheRapide(m) {
-    const t = k => this.t(k), p = m.perf, limite = this.app.save.tempsLimite?.[m.id];
+    const t = k => this.t(k), p = m.perf;
     const stats = [[t('statVmax'), Math.round(p.vmax) + ' km/h', p.vmax/400],
       [t('statGrip'), p.gripG.toFixed(2) + ' g', p.gripG/4],
       [t('statA100'), p.a100.toFixed(1) + ' s', 2/p.a100],
-      [t('atLimit'), limite ? limite.toFixed(2) + ' s' : '—', (limite || 0)/2],
+      [t('carWeight'), m.weightKg ? '≈ ' + m.weightKg.toLocaleString(this.lang) + ' kg' : '—', (m.weightKg || 0)/1500],
       [t('statB100'), p.b100.toFixed(1) + ' m', 15/p.b100]];
     return '<dl class="quick-performance">' + stats.map(([nom, valeur, ratio]) =>
       `<div><dt>${nom}</dt><meter min="0" max="1" value="${Math.min(1, ratio)}"></meter><dd>${valeur}</dd></div>`).join('') + '</dl>';
@@ -1406,17 +1411,16 @@ class UI {
     const droite = virages.reduce((m, v, i) => Math.max(m, (virages[i+1]?.from ?? virages[0].from + circuit.n) - v.to), 0) * circuit.ds;
     const noms = this.lang === 'fr' ? new Intl.DisplayNames(['fr'], {type:'region'}) : new Intl.DisplayNames(['en'], {type:'region'});
     const records = this._mondiaux?.circuit === tr.id ? Object.values(this._mondiaux.par) : [];
-    const record = Math.min(...records.map(l => l.temps).filter(temps => temps > 0));
+    const record = records.reduce((best, lap) => lap.temps > 0 && (!best || lap.temps < best.temps) ? lap : best, null);
     const valeurs = [
       [t('circuitLength'), this.longueur(tr)], [t('circuitTurns'), virages.length],
       [t('circuitRadius'), rayon ? `${(1/rayon).toLocaleString(this.lang, {maximumFractionDigits:1})} m` : '—'],
       [t('circuitStraight'), droite > 0 ? `${Math.round(droite)} m` : '—']
     ];
-    const difficulte = {spa:8, monaco:9, silverstone:7, suzuka:8, monza:6}[tr.id] ??
-      clamp(Math.round(virages.length * 1000 / circuit.length + 2), 1, 10);
+    const difficulte = tr.difficulty ?? clamp(Math.ceil(virages.length * 400 / circuit.length), 1, 4);
     const pointe = Math.round(speedProfile(circuit, model, 'racing', .98).reduce((v, n) => Math.max(v, n), 0) * 3.6);
     valeurs.push([t('circuitPeak'), pointe + ' km/h'], [t('communityLaps'), this.toursCommunaute ? this.toursCommunaute[tr.id] || 0 : '—'],
-      [t('myTrackLaps'), s.toursCircuit?.[tr.id] || 0], [t('circuitRecord'), Number.isFinite(record) ? fmtTime(record) : '—']);
+      [t('myTrackLaps'), s.toursCircuit?.[tr.id] || 0], [t('circuitRecord'), this.chronoMondial(record)]);
     if (!this.releveTours && app.mondial?.toursRecents) {
       this.releveTours = app.mondial.toursRecents().then(tours => {
         this.toursCommunaute = tours;
@@ -1435,8 +1439,8 @@ class UI {
     this.show(`${this.paddockTopbar(t('quickRace'))}<h1 class="race-setup-title">${t('raceSetup')}</h1>
       <div class="quick-grid">
         <div class="quick-preview">${this.imageCircuit(tr, nuit, lumiere)}</div>
-        <div class="quick-info"><div class="quick-track-name"><h2>${escapeHtml(tr.name)}</h2>${this.circuitFlag(tr)}<small>${tr.country ? escapeHtml(noms.of(tr.country)) : ''}</small><label class="quick-difficulty">${t('difficultyLabel')}<meter value="${difficulte}" min="0" max="10">${difficulte}/10</meter></label></div>
-          <dl class="quick-facts">${valeurs.map(([k, v]) => `<div><dt>${k}</dt><dd ${k === t('communityLaps') ? 'data-tours-communaute' : ''}>${v}</dd></div>`).join('')}</dl>${this.chronosCircuit(tr)}</div>
+        <div class="quick-info"><div class="quick-track-name"><h2>${escapeHtml(tr.name)}</h2>${this.circuitFlag(tr)}<small>${tr.country ? escapeHtml(noms.of(tr.country)) : ''}</small><label class="quick-difficulty">${t('difficultyLabel')} · ${difficulte}/4<meter value="${difficulte}" min="0" max="4"></meter></label></div>
+          <dl class="quick-facts">${valeurs.map(([k, v]) => `<div><dt>${k}</dt><dd ${k === t('communityLaps') ? 'data-tours-communaute' : k === t('circuitRecord') ? 'class="quick-world"' : ''}>${v}</dd></div>`).join('')}</dl>${this.chronosCircuit(tr)}</div>
         <section class="quick-options"><h3>${t('track')}</h3>${choix}${this.setupBar(true, model, tr, laps, 'reglages')}</section>
         <section class="quick-garage"><div class="quick-car">${this.carPreview(model)}${livrees}</div><div class="quick-models">
           ${this.filtreCat('pickCat', filtre)}${this.rail('models', 'models', this.modelesVisibles(filtre).map(m => `<button class="card ${m.id === model.id ? 'sel' : ''}" data-action="pickModel" data-id="${escapeHtml(m.id)}">${this.carIcon(m, LIVERIES[s.livery], app.playerLivreeFor(m.id))}<b>${escapeHtml(m.name)}</b></button>`).join(''))}${this.ficheRapide(model)}</div></section>

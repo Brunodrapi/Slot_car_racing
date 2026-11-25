@@ -258,14 +258,16 @@ func _informations(parent: Control, cid: String, info: Dictionary, y: int) -> vo
 	bloc.add_child(entete)
 	_libelle(entete, String(info.nom).to_upper(), 28)
 	_image(entete, Style.drapeau(info.pays), 24, 36)
-	var niveaux := {"spa":8, "monaco":9, "silverstone":7, "suzuka":8, "monza":6}
-	var niveau := int(niveaux.get(cid, clampi(roundi(info.virages * 1000.0 / info.longueur + 2), 1, 10)))
-	var difficulte := _libelle(entete, "%s  %d/10" % [Textes.t("difficultyLabel"), niveau], 15, Paddock.PC_MUET)
+	var difficulte := _libelle(entete, "%s  %d/4" % [Textes.t("difficultyLabel"), int(info.difficulty)], 15, Paddock.PC_MUET)
 	difficulte.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	var resultatMondial: Variant = Mondial.meilleurs(cid)
 	var par: Dictionary = resultatMondial if resultatMondial is Dictionary else {}
 	var record := INF
-	for resultat in par.values(): record = minf(record, float(resultat.temps))
+	var detenteur := ""
+	for resultat in par.values():
+		if resultat.temps > 0 and resultat.temps < record:
+			record = resultat.temps
+			detenteur = str(resultat.get("pilote", ""))
 	var stats := GridContainer.new()
 	stats.columns = 4
 	bloc.add_child(stats)
@@ -288,7 +290,8 @@ func _informations(parent: Control, cid: String, info: Dictionary, y: int) -> vo
 		var cellule := _papier(stats, Paddock.PC_FEUILLE)
 		var lib := _libelle(cellule, Textes.t(item[0]), 13, Paddock.PC_MUET)
 		lib.custom_minimum_size.y = 22 if etroit else 17
-		_libelle(cellule, item[1], 19, Color("#a42622") if item[0] == "circuitRecord" else Paddock.PC_ENCRE)
+		_libelle(cellule, item[1], 19, Color("#9462cf") if item[0] == "circuitRecord" else Paddock.PC_ENCRE)
+		if item[0] == "circuitRecord" and not detenteur.is_empty(): _libelle(cellule, detenteur, 13, Paddock.PC_MUET)
 	_libelle(bloc, Textes.t("circuitTimes"), 20)
 	_onglets(bloc, "chrono-", filtreChronos, func(id): filtreChronos = id; chronos.scroll_vertical = 0; reconstruit())
 	chronos = ScrollContainer.new()
@@ -414,12 +417,12 @@ func _garage(parent: Control, voiture: Dictionary, x: int) -> void:
 		b.set_meta("sel", id == voiture.id)
 		b.dessinPlus = Paddock._carteVoiturePC.bind(b, false)
 	var perf: Dictionary = voiture.perf
-	var limite := float(App.reglages.get("tempsLimite", {}).get(voiture.id, 0))
+	var poids := int(voiture.get("weightKg", 0))
 	var mesures := [
 		["statVmax", "%d km/h" % roundi(perf.vmax), perf.vmax / 400.0],
 		["statGrip", "%.2f g" % perf.gripG, perf.gripG / 4.0],
 		["statAcc", "%.1f s" % perf.a100, 2.0 / perf.a100],
-		["atLimit", "%.2f s" % limite if limite > 0 else "—", limite / 2.0],
+		["carWeight", "≈ %d kg" % poids if poids > 0 else "—", poids / 1500.0],
 		["statB100", "%.1f m" % perf.b100, 15.0 / perf.b100]]
 	for mesure in mesures:
 		var rangee := _boite(false)

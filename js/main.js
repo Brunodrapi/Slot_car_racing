@@ -820,11 +820,6 @@ class App {
         const quiet = net.silence();
         if (quiet > 2) this.ui.flash = { text: this.ui.t('netLost'), until: performance.now() + 600, color: '#ffb4a2' };
       }
-      if (!this.spectator && race.state === 'racing') {
-        race.tempsLimite = race.player.usage >= 1 ? (race.tempsLimite || 0) + dt : 0;
-        const temps = this.save.tempsLimite ||= {};
-        if (race.tempsLimite > (temps[race.player.cls.id] || 0)) temps[race.player.cls.id] = race.tempsLimite;
-      }
       this._handleEvents(race);
       if (!dejaAbandonne && race.player.abandon) this.audio.joueAbandon(race.player.grosChocFatal);
       this.analytics.observe(race, elapsed, !document.hidden, this.desktop ? this.controls.mode : 'touch');

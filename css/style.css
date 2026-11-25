@@ -1463,6 +1463,9 @@ Bruno sur un iPhone à Dynamic Island :
 .quick-paddock .rail .card b { overflow-wrap:anywhere; font-size:clamp(11px,1.2vw,16px); }
 .quick-paddock .rail.models .card > :is(img,canvas) { height:41px; }
 .quick-paddock .track-card-art { height:49px; }
+.programme-selecteur .track-card-art { height:60px; }
+:is(.quick-paddock,.programme-selecteur) .track-card-art { box-sizing:border-box; overflow:hidden; }
+body :is(.screen.quick-paddock,.screen.programme-ecran) .rail.tracks .track-card-art img { width:100%; height:100%; max-width:100%; object-fit:contain; }
 .quick-paddock .hero-performance { padding:5px 2px; flex-wrap:wrap; gap:4px 10px; }
 .quick-paddock .hero-performance .stat b { font-size:clamp(15px,1.6vw,23px); }
 .quick-paddock .hero-performance .stat-ico { width:20px; height:20px; flex-basis:20px; }
@@ -1479,7 +1482,7 @@ Bruno sur un iPhone à Dynamic Island :
 .programme-carte { min-width:0; }
 .programme-carte h3 small { float:right; color:#5f6158; }
 .programme-selecteur .quick-track-art { height:clamp(138px,18vw,260px); }
-.programme-plus { inset:50% auto auto 50%; transform:translate(-50%,-50%); width:56px; height:56px; font-size:44px; line-height:1; }
+.programme-plus { inset:0; margin:auto; width:56px; height:56px; font-size:44px; line-height:1; }
 .programme-selecteur .rail { margin-top:5px; }
 .programme-selecteur .rail .card { flex:0 0 95px; min-width:0; }
 .programme-carte .programme-manches { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,140px),1fr)); gap:8px; }
@@ -1550,7 +1553,8 @@ Bruno sur un iPhone à Dynamic Island :
 .quick-track-name img.circuit-flag { flex:0 0 auto; width:32px; height:24px; max-height:none; object-fit:contain; }
 .quick-facts > div:nth-child(n+5) { border-top:1px solid var(--quick-rule); }
 .quick-facts > div:nth-child(5) { border-left:0; }
-.quick-facts > div:last-child dd { color:#a42622; }
+.quick-facts .quick-world, .quick-times-list .quick-world { color:#9462cf; }
+.quick-world small { display:block; color:#4f564d; font-size:.8em; white-space:normal; overflow-wrap:anywhere; line-height:1.1; }
 .quick-performance { margin:6px 0 0; display:grid; gap:3px; }
 .quick-performance div { display:grid; grid-template-columns:minmax(0,1fr) minmax(25px,.7fr) minmax(60px,auto); align-items:center; gap:6px; }
 .quick-performance dt { text-transform:uppercase; }
@@ -1560,6 +1564,7 @@ Bruno sur un iPhone à Dynamic Island :
 .quick-times-list { max-height:none; }
 .quick-times-list thead { position:sticky; top:0; background:#fff0d2; }
 .programme-plus { z-index:2; touch-action:manipulation; }
+.programme-plus:active:not(:disabled) { transform:none; }
 .programme-selecteur .quick-track-art > :is(img,.quick-track-bg) { pointer-events:none; }
 .programme-pied { display:flex; justify-content:space-between; width:min(100%,1320px); margin:8px auto; background:#fff0d2; padding:6px; }
 .programme-ecran .programme-colonnes { width:min(100%,1320px); }
