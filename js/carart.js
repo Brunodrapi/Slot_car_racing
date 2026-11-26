@@ -325,7 +325,7 @@ function drawCarShadow(g, model, livree, opts) {
   const wheelOpts = {...opts, livree};
   const pneus = [...frontTires(model, w, h, wheelOpts), ...rearTires(model, w, h, wheelOpts)];
   const deforme = opts && opts.deforme;
-  const silhouette = () => deforme ? deforme.dessine(g, art.shadow, w, h) : g.drawImage(art.shadow, -w / 2, -h / 2, w, h);
+  const silhouette = () => deforme ? deforme.dessine(g, art.shadow, w, h, true) : g.drawImage(art.shadow, -w / 2, -h / 2, w, h);
   if (!pneus.length) { silhouette(); return true; }
   const roues = new Path2D();
   for (const p of pneus) {

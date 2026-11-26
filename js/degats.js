@@ -62,6 +62,7 @@ const DEGATS_VISU = {
   bosses: 0.6,                // la part des bosses locales, par-dessus les zones
   froisse: 0.45,              // l'irrégularité du bord enfoncé : de la tôle froissée, pas une voiture plus petite
   ressort: 260, amorti: 7,    // la tôle qui tremble, puis se fige
+  retendTremble: 66,          // ms entre deux retentes de la tôle qui tremble (15 par seconde)
   etincelles: 2,              // m/s : au-dessus, un contact contre du métal crache des étincelles
   frotte: 9,                  // m/s de glisse le long d'un rail : ça crache aussi
   debris: 5,                  // m/s au-delà du seuil : des morceaux tombent
@@ -341,7 +342,7 @@ class Carrosserie {
   l'échelle de l'écran, par paliers d'un demi-octave pris au-dessus (de 1 à 1,4 fois l'écran : le
   trait reste net en tournant), si bien que le zoom de la caméra qui respire ne le refait pas à chaque
   image. */
-  dessine(g, img, w, h) {
+  dessine(g, img, w, h, ombre = false) {
     /* Une case par image : la caisse (la peau, ou le dessin tant que rien ne l'a rayé) et l'ombre. La clé
     était « caisse » pour la peau et « ombre » pour tout le reste : une voiture enfoncée sans rayure n'a
     pas de peau, sa caisse et son ombre tombaient dans la même case, et chacune chassait l'autre — la
@@ -361,12 +362,16 @@ class Carrosserie {
       // le dessin remplacé par la peau (la première rayure) : sa case ne sert plus
       if (this.caches.size > 2) this.caches.delete(this.caches.keys().next().value);
     }
-    /* Pendant que la tôle tremble, on ne la retend que trente fois par seconde : à soixante, plusieurs
-    voitures touchées ensemble au départ allongeaient l'image de 15 à 30 ms sur un téléphone, pour un
-    tremblement qui dure une demi-seconde et ne se lit pas mieux. Une bosse neuve ou figée se retend
-    toujours tout de suite. */
+    /* Pendant que la tôle tremble, on ne la retend que quinze fois par seconde (retendTremble) : à
+    soixante, plusieurs voitures touchées ensemble au départ allongeaient l'image de 15 à 30 ms sur
+    un téléphone, et à trente, des chocs en série faisaient encore ramer (banc des chocs : une voiture
+    touchée toutes les 100 ms, 19 images/s). La tôle oscille à moins de trois allers-retours par
+    seconde : quinze images par seconde la suivent. L'OMBRE, elle, ne tremble pas : elle prend la
+    bosse neuve tout de suite, puis attend que la tôle se fige — retendue à chaque fois, elle doublait
+    le coût pour un flou sombre sous la voiture. Une bosse neuve ou figée se retend toujours. */
     const maintenant = typeof performance !== 'undefined' ? performance.now() : 0;
-    const tremble = !this.calme && c.version >= 0 && c.version !== this.version && maintenant - (c.quand || 0) < 33 && c.bosses === this.bosses;
+    const tremble = !this.calme && c.version >= 0 && c.version !== this.version && c.bosses === this.bosses
+      && (ombre || maintenant - (c.quand || 0) < DEGATS_VISU.retendTremble);
     if (c.version !== this.version && !tremble) {
       c.quand = maintenant; c.bosses = this.bosses;
       const gc = c.cv.getContext('2d');

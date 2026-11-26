@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.56.24
+- Plus de saccades quand ça tape : la tôle qui tremble après un choc coûte moitié moins, et l'ombre des voitures ne tremble plus avec elle.
+
 ## 0.56.23
 - Course plus fluide sur téléphone avec les dégâts : une voiture cabossée ne coûte presque plus rien à dessiner, et les mécaniciens des stands ne se dessinent que quand on les voit.
 
