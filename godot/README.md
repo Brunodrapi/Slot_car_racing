@@ -212,6 +212,13 @@ lancement). Mesuré dans Chromium en iPhone émulé, dix voitures à Spa : un pa
 Le championnat et les courses en ligne restent en GDScript, partout. Le sinus de la bibliothèque
 d'Emscripten (musl) est celui qu'utilisait déjà le GDScript du navigateur.
 
+La version web se publie par `bash outils/publie-web.sh` (export, puis copie dans `essais/godot`).
+Le script corrige au passage le service worker que Godot écrit : il remplissait son cache à travers le
+cache HTTP du navigateur (dix minutes chez GitHub Pages), et un téléphone pouvait garder la page neuve
+avec le moteur d'avant — « GDExtension libraries are not supported by this engine version ». Il va
+maintenant chercher ses fichiers sur le réseau et remplace l'ancien dès qu'il est installé ; la page,
+si elle tombe malgré tout sur ce mélange, vide ses caches et se recharge une fois.
+
 La version Android n'a pas encore tourné sur un téléphone. Sa bibliothèque mathématique (bionic)
 n'arrondit pas le sinus exactement comme celle de Linux : on retrouvera donc des écarts du même
 ordre qu'entre Godot et le navigateur, que le test de parité montre sans effet sur la course.
