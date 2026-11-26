@@ -25,6 +25,17 @@ const MARGE := 0.6           # m : la distance à la carrosserie quand on contou
 const COULEURS := ["#d8342c", "#2f6fd6", "#2aa85a", "#f2b705", "#f07b1d", "#8b4fd1",
 	"#1fb3b3", "#e25aa0", "#8aa02a", "#c9cdd1", "#4a4f56", "#a0522d"]
 enum { ATTENTE, MARCHE_A, MARCHE_B, REPARE_A, REPARE_B, DEGAGE_P, SCOTCH }
+const POSES := 7
+const RANGS := 3 * PAR_GARAGE   # une couleur par box : trois garages de deux boxes au plus (Piste.pitGarages)
+const CASE := 128               # px : une case de la planche
+const BORD := 0.68              # m : la demi-case ; les mains et le scotch dépassent du mètre de la pose
+
+## Les poses dessinées une fois pour toutes dans une planche, sept poses sur six couleurs : chaque
+## mécanicien n'est plus qu'une image de la planche, et tous partent en un seul appel de dessin.
+## Dessinés trait par trait, ellipses, contours et gants, ils en coûtaient une vingtaine chacun :
+## 800 par image devant les stands, de quoi faire ramer un téléphone.
+static var planche: Texture2D = null
+static var _enCours := false
 
 var track: Piste
 var boxes: Array = []        # { s, couleur, voiture, cote, equipe }
@@ -221,12 +232,60 @@ func _marche(m: Dictionary, dt: float) -> bool:
 ## Le dessin d'une couche : « dessous » (sous les voitures — les mains de ceux des roues passent
 ## sous la caisse) ou « dessus » (ceux du scotch, le rouleau posé sur la carrosserie).
 func dessine(ci: CanvasItem, dessus: bool) -> void:
-	for b in boxes:
+	var tex := Mecanos.planche
+	for i in boxes.size():
+		var b: Dictionary = boxes[i]
 		for m in b.equipe:
 			if m.dessus != dessus: continue
 			ci.draw_set_transform(Vector2(m.x, m.y), m.a + PI / 2, Vector2(TAILLE, TAILLE))
-			Mecanos.pose(ci, m.pose, b.couleur)
+			if tex != null and i < RANGS:
+				ci.draw_texture_rect_region(tex, Rect2(-BORD, -BORD, 2 * BORD, 2 * BORD), Rect2(int(m.pose) * CASE, i * CASE, CASE, CASE))
+			else:
+				Mecanos.pose(ci, m.pose, b.couleur)
 	ci.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+
+
+## La planche des poses (voir `planche`), dessinée par la carte graphique dans une vue cachée puis
+## relue une fois. Ses couleurs sortent prémultipliées par leur opacité : on la pose avec
+## `materiau()`. Rend vrai quand elle est prête.
+static func preparePlanche(parent: Node) -> bool:
+	if planche != null: return true
+	if _enCours: return false
+	_enCours = true
+	var vp := SubViewport.new()
+	vp.size = Vector2i(CASE * POSES, CASE * RANGS)
+	vp.transparent_bg = true
+	vp.disable_3d = true
+	vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+	var toile := Node2D.new()
+	toile.draw.connect(func():
+		for r in RANGS:
+			for p in POSES:
+				toile.draw_set_transform(Vector2((p + 0.5) * CASE, (r + 0.5) * CASE), 0, Vector2.ONE * CASE / (2 * BORD))
+				Mecanos.pose(toile, p, Color(COULEURS[r]))
+		toile.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE))
+	vp.add_child(toile)
+	parent.add_child(vp)
+	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw
+	if not is_instance_valid(vp):
+		_enCours = false
+		return false
+	var img := vp.get_texture().get_image()
+	vp.queue_free()
+	_enCours = false
+	if img == null or img.is_empty(): return false
+	img.generate_mipmaps()
+	planche = ImageTexture.create_from_image(img)
+	return true
+
+
+static var _materiau: CanvasItemMaterial = null
+static func materiau() -> CanvasItemMaterial:
+	if _materiau == null:
+		_materiau = CanvasItemMaterial.new()
+		_materiau.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA
+	return _materiau
 
 
 ## Une pose, dans un carré d'un mètre centré, l'avant vers le haut (−y) : le casque blanc à bande

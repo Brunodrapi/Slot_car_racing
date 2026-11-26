@@ -34,6 +34,11 @@ var crossings: PackedFloat64Array
 var b_ax: PackedFloat64Array
 var b_ay: PackedFloat64Array
 var b_bx: PackedFloat64Array
+## La boîte de chaque protection, épaisseur comprise : un tri rapide avant le balayage (barrierHit).
+var b_x0: PackedFloat64Array
+var b_x1: PackedFloat64Array
+var b_y0: PackedFloat64Array
+var b_y1: PackedFloat64Array
 var b_by: PackedFloat64Array
 var b_tx: PackedFloat64Array
 var b_ty: PackedFloat64Array
@@ -118,6 +123,16 @@ func _chargeBarrieres(a: PackedFloat64Array, largeur: int) -> void:
 		b_tx[i] = a[o + 4]; b_ty[i] = a[o + 5]; b_nx[i] = a[o + 6]; b_ny[i] = a[o + 7]
 		b_len[i] = a[o + 8]; b_half[i] = a[o + 9]; b_s[i] = a[o + 10]; b_side[i] = a[o + 11]
 		b_level[i] = a[o + 12]; b_pneus[i] = int(a[o + 13])
+	for arr in ["b_x0", "b_x1", "b_y0", "b_y1"]:
+		var v := PackedFloat64Array()
+		v.resize(nBarrieres)
+		set(arr, v)
+	for i in nBarrieres:
+		var h := b_half[i]
+		var ex := b_ax[i] + b_tx[i] * b_len[i]
+		var ey := b_ay[i] + b_ty[i] * b_len[i]
+		b_x0[i] = minf(minf(b_ax[i], b_bx[i]), ex) - h; b_x1[i] = maxf(maxf(b_ax[i], b_bx[i]), ex) + h
+		b_y0[i] = minf(minf(b_ay[i], b_by[i]), ey) - h; b_y1[i] = maxf(maxf(b_ay[i], b_by[i]), ey) + h
 	# La grille se reconstruit exactement comme dans track.js : même parcours, même ordre.
 	var C := barrierCell
 	for id in nBarrieres:
@@ -279,9 +294,9 @@ func project(x: float, y: float, nearS: float, window: int = 8) -> PackedFloat64
 	var h := (i - 1 + N) % N
 	var bi := i
 	var t := 0.0
-	for paire in [[h, i], [i, j]]:
-		var a: int = paire[0]
-		var b: int = paire[1]
+	for k in 2:
+		var a := h if k == 0 else i
+		var b := i if k == 0 else j
 		var ax := xs[a]
 		var ay := ys[a]
 		var vx := xs[b] - ax
@@ -384,17 +399,17 @@ func barrierLevelAt(s: float) -> int:
 
 
 func barrierCandidates(x0: float, y0: float, x1: float, y1: float, pad: float) -> PackedInt32Array:
-	var ids := {}
+	# l'ordre de la première rencontre, comme le Set de track.js
+	var ids := PackedInt32Array()
 	if nBarrieres == 0:
-		return PackedInt32Array()
+		return ids
 	var C := barrierCell
 	for x in range(int(floorf((minf(x0, x1) - pad) / C)), int(floorf((maxf(x0, x1) + pad) / C)) + 1):
 		for y in range(int(floorf((minf(y0, y1) - pad) / C)), int(floorf((maxf(y0, y1) + pad) / C)) + 1):
-			var cle := Vector2i(x, y)
-			if barrierGrid.has(cle):
-				for id in barrierGrid[cle]:
-					ids[id] = true
-	return PackedInt32Array(ids.keys())
+			var l: PackedInt32Array = barrierGrid.get(Vector2i(x, y), PackedInt32Array())
+			for id in l:
+				if not ids.has(id): ids.append(id)
+	return ids
 
 
 ## Balayage continu d'un disque contre un segment épaissi : corps et extrémités.
@@ -417,15 +432,16 @@ func sweepBarrier(x: float, y: float, dx: float, dy: float, b: int, r: float) ->
 		var nny := (ex * ty + v * tx) / dist if dist > 1e-8 else b_ny[b]
 		best = _accepte(best, 0, nnx, nny, r - dist, dx, dy)
 	if absf(dv) > 1e-10:
-		for sgn in [-1.0, 1.0]:
+		for k in 2:
+			var sgn := -1.0 if k == 0 else 1.0
 			var t: float = (sgn * r - v) / dv
 			var along := u + du * t
 			if along >= 0 and along <= ln:
 				best = _accepte(best, t, -ty * sgn, tx * sgn, 0, dx, dy)
 	var aa := dx * dx + dy * dy
 	if aa > 1e-12:
-		for fin in [0.0, ln]:
-			var e2: float = u - fin
+		for k in 2:
+			var e2: float = u - (0.0 if k == 0 else ln)
 			var bb := 2 * (e2 * du + v * dv)
 			var cc := e2 * e2 + v * v - r * r
 			var disc := bb * bb - 4 * aa * cc
@@ -457,14 +473,27 @@ func barrierHit(car, fx: float, fy: float, fth: float) -> PackedFloat64Array:
 	var arm := maxf(0, car.cls.length / 2 - r)
 	var best := PackedFloat64Array()
 	var niveau := barrierLevelAt(car.s)
+	# Les seules protections qu'un disque peut toucher : celles dont la boîte croise la boîte du
+	# trajet des trois centres, élargie du rayon. Les autres ne rendraient rien ; l'ordre est gardé,
+	# le résultat est le même, sans les quelque 1 500 balayages par image que coûtait le GDScript.
+	var m := arm + r + 0.05
+	var x0 := minf(fx, car.x) - m
+	var x1 := maxf(fx, car.x) + m
+	var y0 := minf(fy, car.y) - m
+	var y1 := maxf(fy, car.y) + m
+	var proches := PackedInt32Array()
+	for b in cand:
+		if int(b_level[b]) != niveau or b_x1[b] < x0 or b_x0[b] > x1 or b_y1[b] < y0 or b_y0[b] > y1:
+			continue
+		proches.append(b)
+	if proches.is_empty():
+		return best
 	for d in [-arm, 0.0, arm]:
 		var x: float = fx + cos(fth) * d
 		var y: float = fy + sin(fth) * d
 		var dx: float = car.x + cos(car.th) * d - x
 		var dy: float = car.y + sin(car.th) * d - y
-		for b in cand:
-			if int(b_level[b]) != niveau:
-				continue
+		for b in proches:
 			var hit := sweepBarrier(x, y, dx, dy, b, r)
 			if not hit.is_empty() and (best.is_empty() or hit[0] < best[0]):
 				best = hit

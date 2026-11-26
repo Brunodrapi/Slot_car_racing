@@ -7,6 +7,8 @@ extends Control
 var jeu
 var course: Course
 var mm := {}                      # la minicarte : points, échelle, origine, taille
+var _mmTrace := PackedVector2Array()  # le tracé de la minicarte, gardé tant que sa place ne change pas
+var _mmCle := Vector3(-1, 0, 0)
 var go := -1.0                    # le « GO ! » qui s'efface
 var flash := ""
 var flashCouleur := Color.WHITE
@@ -58,6 +60,7 @@ func nouvelleCourse(c: Course) -> void:
 	for i in T.n:
 		minX = minf(minX, T.xs[i]); maxX = maxf(maxX, T.xs[i]); minY = minf(minY, T.ys[i]); maxY = maxf(maxY, T.ys[i])
 	mm = { minX = minX, minY = minY, w = maxX - minX, h = maxY - minY }
+	_mmCle = Vector3(-1, 0, 0)
 
 
 func evenements(evts: Array) -> void:
@@ -360,10 +363,14 @@ func _draw() -> void:
 			var lE := 60.0 if mobile else 80.0
 			Style.texte(self, ecart, Vector2(bx + bwid - 14 - lE, bas), fCl, ink, HORIZONTAL_ALIGNMENT_RIGHT, lE)
 	# La minicarte
-	var pts := PackedVector2Array()
-	var T := course.track
-	for i in range(0, T.n, 6): pts.append(mo + _mmPoint(T.xs[i], T.ys[i], taille))
-	pts.append(pts[0])
+	# le tracé ne bouge pas : ses 600 points se recalculaient à chaque image (1 ms de GDScript)
+	if _mmCle != Vector3(taille, mo.x, mo.y):
+		_mmCle = Vector3(taille, mo.x, mo.y)
+		_mmTrace = PackedVector2Array()
+		var T := course.track
+		for i in range(0, T.n, 6): _mmTrace.append(mo + _mmPoint(T.xs[i], T.ys[i], taille))
+		_mmTrace.append(_mmTrace[0])
+	var pts := _mmTrace
 	draw_polyline(pts, Color(0, 0, 0, 0.55), 7, true)
 	draw_polyline(pts, Color("#fff8e6"), 3.5, true)
 	for c in course.cars:
@@ -516,14 +523,14 @@ func _radar() -> void:
 		var base := centre - dir * (0.45 * taille)
 		var cote := dir.orthogonal() * (0.34 * taille)
 		var triangle := PackedVector2Array([centre + dir * (0.55 * taille), base + cote, base - cote])
-		draw_colored_polygon(triangle, Color(Catalogue.donnees.livreries[m.voiture.livery].body))
+		Style.plein(self, triangle, Color(Catalogue.donnees.livreries[m.voiture.livery].body))
 		triangle.append(triangle[0])
 		draw_polyline(triangle, Color("#20251f"), 2, true)
 		if m.alerte:
 			var h := 9.0 if _mobile() else 11.0
 			var o := base - dir * (3 + h)
 			var rouge := Color("#ff3939")
-			draw_colored_polygon(PackedVector2Array([o + Vector2(-0.31, -1) * h, o + Vector2(0.31, -1) * h,
+			Style.plein(self, PackedVector2Array([o + Vector2(-0.31, -1) * h, o + Vector2(0.31, -1) * h,
 				o + Vector2(0.23, 0.30) * h, o + Vector2(-0.23, 0.30) * h]), rouge)
 			draw_rect(Rect2(o + Vector2(-0.25, 0.52) * h, Vector2(0.5, 0.48) * h), rouge)
 
@@ -610,7 +617,7 @@ func _drapeau(type: String, p: Vector2, s: float) -> void:
 	var c := Color("#3b82f6") if type == "blue" else (Color("#e9be37") if type == "yellow" else Color("#f5f3e8"))
 	draw_rect(Rect2(p, Vector2(s, s)), c)
 	if type == "penalty":
-		draw_colored_polygon(PackedVector2Array([p, p + Vector2(s, 0), p + Vector2(0, s)]), Color("#171a1d"))
+		Style.plein(self, PackedVector2Array([p, p + Vector2(s, 0), p + Vector2(0, s)]), Color("#171a1d"))
 	elif type == "chequered":
 		var k := s / 4
 		for r in 4:
@@ -696,18 +703,18 @@ func _vitesse(p: Voiture) -> void:
 	for i in N:
 		var sx := x0 + i * pas
 		var seg := PackedVector2Array([Vector2(sx + penche, sy), Vector2(sx + sw + penche, sy), Vector2(sx + sw, sy + sh), Vector2(sx, sy + sh)])
-		draw_colored_polygon(seg, Color("#383e44"))
+		Style.plein(self, seg, Color("#383e44"))
 		var allume := clampf(part - i, 0, 1)
 		if allume <= 0: continue
 		var c := (Color("#62f0e6") if i == 0 else Color("#52e6a8")) if gazOn else Color("#ff6e5a")
 		c.a = 0.25 + 0.75 * allume
-		draw_colored_polygon(seg, c)
+		Style.plein(self, seg, c)
 	var x5 := clampf(p.ressenti, 0, 1) * 4
 	var k := mini(3, int(x5))
 	var cGrip: Color = VIF[k].lerp(VIF[k + 1], x5 - k)
 	var yG := y + hBloc + 6
 	var lG := 128.0
-	draw_colored_polygon(PackedVector2Array([Vector2(x + 12, yG), Vector2(x + lG, yG), Vector2(x + lG - 12, yG + hGrip), Vector2(x, yG + hGrip)]), fond)
+	Style.plein(self, PackedVector2Array([Vector2(x + 12, yG), Vector2(x + lG, yG), Vector2(x + lG - 12, yG + hGrip), Vector2(x, yG + hGrip)]), fond)
 	draw_circle(Vector2(x + 30, yG + hGrip / 2), 13, Color(cGrip, 0.25))
 	draw_circle(Vector2(x + 30, yG + hGrip / 2), 9, cGrip)
 	Style.texte(self, "GRIP", Vector2(x + 50, yG + hGrip / 2 + 9), 25, cGrip)

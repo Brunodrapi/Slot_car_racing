@@ -56,8 +56,21 @@ static func biseau(ci: CanvasItem, r: Rect2, c: Color, coupe := -1.0) -> void:
 	var w := r.size.x
 	var h := r.size.y
 	var pts := PackedVector2Array([Vector2(x + cut, y), Vector2(x + w, y), Vector2(x + w - cut, y + h), Vector2(x, y + h)])
-	ci.draw_colored_polygon(pts, c)
+	Style.plein(ci, pts, c)
 	Style.bord(ci, pts, c)
+
+
+## Un triangle ou un quadrilatère convexe, plein. draw_primitive se range avec ses voisins dans un
+## même appel de dessin, là où chaque draw_colored_polygon en coûte un : sur téléphone, c'est le
+## nombre d'appels WebGL qui pèse.
+static func plein(ci: CanvasItem, pts: PackedVector2Array, c: Color) -> void:
+	if pts.size() == 3 or pts.size() == 4:
+		var cs := PackedColorArray()
+		cs.resize(pts.size())
+		cs.fill(c)
+		ci.draw_primitive(pts, cs, PackedVector2Array())
+	else:
+		ci.draw_colored_polygon(pts, c)
 
 
 ## Un damier de `n` lignes dans un parallélogramme (le drapeau des en-têtes et des cartes).
@@ -74,7 +87,7 @@ static func damier(ci: CanvasItem, r: Rect2, n: int, c1: Color, c2: Color, pench
 			var d1 := penche * (1 - float(j + 1) / n)
 			var x1 := minf(x0 + cote, r.end.x)
 			var pts := PackedVector2Array([Vector2(x0 + d0, y0), Vector2(x1 + d0, y0), Vector2(x1 + d1, y0 + cote), Vector2(x0 + d1, y0 + cote)])
-			ci.draw_colored_polygon(pts, c)
+			Style.plein(ci, pts, c)
 			if penche != 0: Style.bord(ci, pts, c)
 
 

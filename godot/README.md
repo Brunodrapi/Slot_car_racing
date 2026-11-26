@@ -350,6 +350,8 @@ NODE_PATH=$(npm root -g) node godot/outils/essai-croise.js <recette> natif:godot
 | `scripts/reseau/` | le multijoueur (voir plus haut) |
 | `tests/parite.gd` | la preuve de la physique et de la course |
 | `tests/visite.tscn` | une visite photographiée des écrans (Xvfb) |
+| `tests/banc_fluidite.tscn` | le banc de fluidité de la course : images/s, physique, dessins par image (voir son en-tête) |
+| `tests/mecanos_photo.tscn` | les mécaniciens de près, planche ou trait par trait, de jour ou de nuit |
 | `donnees/`, `images/`, `sons/` | tout ce que les outils sortent du jeu web |
 | `outils/` | les captures, le maillage, les sons |
 | `../tools/godot-exporte.js` | l'export des circuits, du catalogue et des courses de référence |

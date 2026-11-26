@@ -192,7 +192,7 @@ func _pas(dt: float) -> void:
 
 ## Au sol, sous les voitures : les limites des boxes, puis les débris.
 func _draw() -> void:
-	for q in boxes: draw_colored_polygon(q, Color(244 / 255.0, 244 / 255.0, 240 / 255.0, 0.92))
+	for q in boxes: Style.plein(self, q, Color(244 / 255.0, 244 / 255.0, 240 / 255.0, 0.92))
 	for d in debris:
 		var fin: float = DEBRIS_VIE - d.age
 		var col: Color = d.col
@@ -205,7 +205,7 @@ func _draw() -> void:
 		var y: float = d.y
 		var pts := PackedVector2Array([Vector2(x + c * l - s * e, y + s * l + c * e), Vector2(x - c * l - s * e, y - s * l + c * e),
 			Vector2(x - c * l + s * e, y - s * l - c * e), Vector2(x + c * l + s * e, y + s * l - c * e)])
-		draw_colored_polygon(pts, col)
+		Style.plein(self, pts, col)
 		if d.l > 0.6:   # le capot, détouré
 			pts.append(pts[0])
 			draw_polyline(pts, Color(20 / 255.0, 20 / 255.0, 24 / 255.0, 0.6 * col.a), 0.06)

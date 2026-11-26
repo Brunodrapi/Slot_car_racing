@@ -198,6 +198,7 @@ func _depart() -> void:
 	degatsVue.nouvelleCourse(course)
 	mecanos = Mecanos.new(piste) if course.stands else null
 	mecanosDessous.queue_redraw(); mecanosDessus.queue_redraw()
+	if mecanos and OS.get_environment("GRIP_PLANCHE") != "0": _planche.call_deferred()
 	son.silence()
 	pause.visible = false
 	hud.nouvelleCourse(course)
@@ -388,7 +389,9 @@ func _physics_process(_delta: float) -> void:
 		if drive.link.synchronized and drive.epoch != null:
 			course.time = maxf(0, (drive.link.now() - float(drive.epoch)) / 1000.0)
 	else:
+		var tp := Time.get_ticks_usec() if App.chronos.has("actif") else 0
 		course.step(gaz)
+		if tp: App.chronos.physique = App.chronos.get("physique", 0) + Time.get_ticks_usec() - tp; App.chronos.pas = App.chronos.get("pas", 0) + 1
 	if drive != null:
 		if Reseau.net.isHost(): course.broadcast.sample(course)
 		drive.afterFrame(gaz, ligne)
@@ -442,6 +445,16 @@ func _record() -> void:
 		hud.annonce(Textes.t("newRecord", Style.temps(t)), Style.LIGNE_JAUNE)
 
 
+## Les mécaniciens passent sur leur planche dès qu'elle est prête (Mecanos.preparePlanche) : en
+## attendant, ils sont dessinés trait par trait.
+func _planche() -> void:
+	if not await Mecanos.preparePlanche(self) or not is_instance_valid(mecanosDessous): return
+	for n: Node2D in [mecanosDessous, mecanosDessus]:
+		n.material = Mecanos.materiau()
+		n.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		n.queue_redraw()
+
+
 func _process(dt: float) -> void:
 	if course == null: return
 	var a := 0.0 if enPause else Engine.get_physics_interpolation_fraction()
@@ -474,11 +487,20 @@ func _process(dt: float) -> void:
 	if guide.visible: guide.queue_redraw()
 	else: hud.consigne = -1
 	if not enPause:
+		var ch: Dictionary = App.chronos
+		var t0 := Time.get_ticks_usec() if ch.has("actif") else 0
 		effets.ajoute(course, dt)
+		var t1 := Time.get_ticks_usec() if t0 else 0
 		degatsVue.maj(course, vues, dt)
+		var t2 := Time.get_ticks_usec() if t0 else 0
 		if mecanos and mecanos.pas(course, vues, dt):
 			mecanosDessous.queue_redraw(); mecanosDessus.queue_redraw()
+		var t3 := Time.get_ticks_usec() if t0 else 0
 		son.maj(course.player, course.state != "countdown", dt)
+		if t0:
+			var t4 := Time.get_ticks_usec()
+			ch.effets = ch.get("effets", 0) + t1 - t0; ch.degats = ch.get("degats", 0) + t2 - t1
+			ch.mecanos = ch.get("mecanos", 0) + t3 - t2; ch.son = ch.get("son", 0) + t4 - t3
 	if secousse > 0:
 		secousse = maxf(0, secousse - dt * 2)
 		camera.offset = Vector2((randf() - 0.5) * secousse * 8, (randf() - 0.5) * secousse * 8) / camZoom

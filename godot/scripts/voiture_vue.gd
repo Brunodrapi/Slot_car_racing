@@ -119,7 +119,7 @@ func _roues(ci: CanvasItem, seulementAvant: bool) -> void:
 		for r in cotes.avant: _pneu(ci, r, braquage)
 	if not seulementAvant:
 		for q in cotes.get("suspension", []):
-			ci.draw_colored_polygon(PackedVector2Array([Vector2(q[0], q[1]), Vector2(q[2], q[3]), Vector2(q[4], q[5]), Vector2(q[6], q[7])]), Color("#43494b"))
+			Style.plein(ci, PackedVector2Array([Vector2(q[0], q[1]), Vector2(q[2], q[3]), Vector2(q[4], q[5]), Vector2(q[6], q[7])]), Color("#43494b"))
 
 
 func _pneu(ci: CanvasItem, r: Dictionary, angle: float) -> void:

@@ -59,6 +59,9 @@ func arreteCommentaire() -> void:
 	if _commentaire != null: _commentaire.stop()
 
 
+## Les chronos des bancs d'essai (tests/banc_fluidite) : vide en jeu, rien n'est mesuré.
+var chronos := {}
+
 ## LE CLIC DES MENUS. « Il faut, dans les deux versions, des clics dans les menus. » (Bruno) Chaque
 ## Bouton le joue quand on le prend (souris, doigt, clavier, manette) ; le même son que le jeu web
 ## (Son._synthClic). Il passe par le bus Master : le son coupé le coupe aussi.
