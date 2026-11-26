@@ -107,7 +107,7 @@ class Carrosserie {
     this.calme = true;     // plus rien ne tremble
     this.peau = null;      // la copie du dessin, avec ses plis
     this.version = 0;      // change à chaque bosse, chaque pli, chaque image où la tôle tremble
-    this.caches = {};      // la caisse et l'ombre déjà tendues sur l'anneau
+    this.caches = new Map();   // la caisse et l'ombre déjà tendues sur l'anneau, par image
     this.fx = 0; this.fy = 0; this.fw = 0;   // le foyer des chocs : d'où sort la fumée
   }
 
@@ -333,15 +333,33 @@ class Carrosserie {
   n'en fait qu'un `drawImage`, comme pour une voiture intacte. On ne retend que pendant la seconde
   où la tôle tremble, ou quand un pli vient d'être peint. Mesuré sans cache : dix voitures cabossées
   de partout faisaient passer une image de 2 à 34 ms. `img` : la peau (la caisse) ou l'ombre. */
+  /* L'IMAGE EN CACHE A LA TAILLE OÙ ON LA VOIT, pas à celle du dessin. Elle était à la résolution du
+  dessin (420 × 200 et sa marge) : chaque image du jeu la réduisait alors à la taille de la voiture à
+  l'écran, une quarantaine de pixels, pour chaque voiture touchée et son ombre. Mesuré à Spa sur le banc
+  mobile, dix voitures : `drawImage` passait de 0,1 à 3 ms par image dès les premiers accrochages, et les
+  images lentes de 33 à 50 ms ; GRIP 0.56.4, sans dégâts, n'avait pas ce coût. Le cache suit donc
+  l'échelle de l'écran, par paliers d'un demi-octave pris au-dessus (de 1 à 1,4 fois l'écran : le
+  trait reste net en tournant), si bien que le zoom de la caméra qui respire ne le refait pas à chaque
+  image. */
   dessine(g, img, w, h) {
-    const cle = img === this.peau ? 'caisse' : 'ombre';
+    /* Une case par image : la caisse (la peau, ou le dessin tant que rien ne l'a rayé) et l'ombre. La clé
+    était « caisse » pour la peau et « ombre » pour tout le reste : une voiture enfoncée sans rayure n'a
+    pas de peau, sa caisse et son ombre tombaient dans la même case, et chacune chassait l'autre — la
+    voiture était retendue deux fois par image, triangles et découpes compris. */
+    const cle = img;
     const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
-    const ku = iw / w, kv = ih / h, mx = Math.ceil(iw * 0.04), my = Math.ceil(ih * 0.06);
-    let c = this.caches[cle];
-    if (!c || c.img !== img) {
-      const cv = document.createElement('canvas');
-      cv.width = iw + 2 * mx; cv.height = ih + 2 * my;
-      c = this.caches[cle] = { cv, img, version: -1 };
+    const m = g.getTransform(), ecran = Math.hypot(m.a, m.b) || 1;                // pixels par mètre
+    const palier = Math.pow(2, Math.ceil(Math.log2(ecran) * 2) / 2);   // de 1 à 1,4 fois l'écran
+    const ku = Math.min(iw / w, palier), kv = ku * (ih / h) / (iw / w);         // jamais plus fin que le dessin
+    const mx = Math.ceil(w * ku * 0.04) + 1, my = Math.ceil(h * kv * 0.06) + 1;
+    let c = this.caches.get(cle);
+    if (!c || c.img !== img || c.ku !== ku) {
+      const cv = c && c.img === img ? c.cv : document.createElement('canvas');
+      cv.width = Math.ceil(w * ku) + 2 * mx; cv.height = Math.ceil(h * kv) + 2 * my;
+      c = { cv, img, ku, version: -1 };
+      this.caches.set(cle, c);
+      // le dessin remplacé par la peau (la première rayure) : sa case ne sert plus
+      if (this.caches.size > 2) this.caches.delete(this.caches.keys().next().value);
     }
     /* Pendant que la tôle tremble, on ne la retend que trente fois par seconde : à soixante, plusieurs
     voitures touchées ensemble au départ allongeaient l'image de 15 à 30 ms sur un téléphone, pour un
@@ -355,11 +373,20 @@ class Carrosserie {
       gc.setTransform(1, 0, 0, 1, 0, 0);
       gc.clearRect(0, 0, c.cv.width, c.cv.height);
       gc.imageSmoothingEnabled = true;
-      gc.setTransform(ku, 0, 0, kv, mx + iw / 2, my + ih / 2);   // des mètres de la voiture aux pixels du dessin
+      gc.setTransform(ku, 0, 0, kv, c.cv.width / 2, c.cv.height / 2);   // des mètres de la voiture aux pixels du cache
       this._tend(gc, img, w, h);
       c.version = this.version;
+      c.bitmap = null;
+      /* Une fois la tôle immobile, le cache devient une ImageBitmap : dessiner une image figée est la voie
+      rapide des navigateurs (Safari surtout, qui recopie une toile à chaque fois qu'on la dessine). Le
+      temps qu'elle arrive, et tant que ça tremble, c'est la toile qui se dessine. */
+      if (this.calme && typeof createImageBitmap === 'function') {
+        const v = c.version;
+        createImageBitmap(c.cv).then((bm) => { if (c.version === v && this.caches.get(cle) === c) c.bitmap = bm; else if (bm.close) bm.close(); }, () => {});
+      }
     }
-    g.drawImage(c.cv, -w / 2 - mx / ku, -h / 2 - my / kv, w + 2 * mx / ku, h + 2 * my / kv);
+    const lw = c.cv.width / ku, lh = c.cv.height / kv;
+    g.drawImage(c.bitmap || c.cv, -lw / 2, -lh / 2, lw, lh);
   }
 
   /* Tend `img` sur l'anneau, dans `g` (en mètres de la voiture). */

@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.56.23
+- Course plus fluide sur téléphone avec les dégâts : une voiture cabossée ne coûte presque plus rien à dessiner, et les mécaniciens des stands ne se dessinent que quand on les voit.
+
 ## 0.56.12
 - « En piste ! » : le démarrage du moteur s'entend vraiment, le moteur de la course prend le relais après lui.
 - La musique part dès le menu, y compris sur iPhone.

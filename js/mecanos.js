@@ -418,10 +418,25 @@ class Equipes {
   /* Dessin, dans le repère du monde. `couche` : 'dessous' (sous les voitures — tout le monde, sauf ceux
   du scotch au travail : les mains de ceux des roues passent ainsi sous la caisse) ou 'dessus' (ceux du
   scotch, le rouleau posé sur la carrosserie). */
+  /* Seuls ceux qui sont à l'écran se dessinent. Les dix équipes l'étaient à chaque image, où que soit la
+  caméra : une soixantaine de dessins par image, pour des stands qu'on ne voit que le temps de passer
+  devant (mesuré : 1 ms par image de `drawImage` sur le banc mobile). Le cadre de l'écran est ramené dans
+  le monde par l'inverse de la transformation, avec la taille d'un mécanicien de marge. */
   dessine(g, couche) {
     const t = MECANOS.taille, dessus = couche === 'dessus';
+    let vue = null;
+    if (g.canvas && g.getTransform) {
+      const inv = g.getTransform().inverse(), W = g.canvas.width, H = g.canvas.height;
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const [px, py] of [[0, 0], [W, 0], [0, H], [W, H]]) {
+        const x = inv.a * px + inv.c * py + inv.e, y = inv.b * px + inv.d * py + inv.f;
+        x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+      }
+      vue = { x0: x0 - t, y0: y0 - t, x1: x1 + t, y1: y1 + t };
+    }
     for (const b of this.boxes) for (const m of b.equipe) {
       if (!!m.dessus !== dessus) continue;
+      if (vue && (m.x < vue.x0 || m.x > vue.x1 || m.y < vue.y0 || m.y > vue.y1)) continue;
       g.save(); g.translate(m.x, m.y); g.rotate(m.a + Math.PI / 2);
       g.drawImage(MecanoSprites.frame(m.pose, b.couleur), -t / 2, -t / 2, t, t);
       g.restore();
