@@ -330,6 +330,15 @@ func _bande(c: Vector2, b: Dictionary, f: float) -> void:
 	if p + l * 0.07 < fin: g.draw_line(Vector2(p, -h / 2 + u), Vector2(p + l * 0.07, h / 2 - u), Color(1, 1, 1, 0.3), u)
 
 
+## La voiture retirée (une course qui recommence) : son ombre et celle de sa tôle cabossée sont
+## posées à côté d'elle dans la scène, pas dedans ; elles partent avec elle. L'ombre de la tôle
+## restait sur la piste, sans voiture, à l'endroit du dernier départ.
+func retire() -> void:
+	ombre.queue_free()
+	if ombreMaille: ombreMaille.queue_free()
+	queue_free()
+
+
 ## Réparée : la tôle repart neuve, plis compris.
 func toleNeuve() -> void:
 	tole = null

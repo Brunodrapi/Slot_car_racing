@@ -32,9 +32,8 @@ window/size/window_width_override=1280
 window/size/window_height_override=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-; On mobile browsers, render one pixel per CSS point (touch coordinates keep the same scale).
-window/dpi/allow_hidpi.web_android=false
-window/dpi/allow_hidpi.web_ios=false
+; Au téléphone, le navigateur rend au plus deux pixels par point (html/head_include de l'export
+; web) : à un pixel par point, un iPhone (trois par point) affichait tout flou, menus compris.
 window/handheld/orientation=4
 window/vsync/vsync_mode=1
 

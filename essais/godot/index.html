@@ -94,6 +94,8 @@ body {
 <link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
 <link rel="manifest" href="index.manifest.json">
 <script>
+// Au plus deux pixels par point : net sur un iPhone (il en a trois), sans neuf fois plus de pixels à peindre.
+(function () { try { var d = Object.getOwnPropertyDescriptor(window, 'devicePixelRatio') || Object.getOwnPropertyDescriptor(Window.prototype, 'devicePixelRatio'); var lit = d && d.get ? function () { return d.get.call(window); } : function () { return 1; }; if (lit() > 2) Object.defineProperty(window, 'devicePixelRatio', { configurable: true, get: function () { return Math.min(2, lit()); } }); } catch (e) {} })();
 window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); window.gripInvite = event; });
 window.addEventListener('appinstalled', () => { window.gripInstalle = true; window.gripInvite = null; });
 </script>
@@ -115,7 +117,7 @@ window.addEventListener('appinstalled', () => { window.gripInstalle = true; wind
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":30691676,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":30691596,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 

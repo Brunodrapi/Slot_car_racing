@@ -147,9 +147,7 @@ func _exit_tree() -> void:
 
 func _depart() -> void:
 	var R: Dictionary = App.reglages
-	for v in vues:
-		v.ombre.queue_free()
-		v.queue_free()
+	for v in vues: v.retire()
 	vues.clear()
 	var programme := App.championnatSolo
 	var manche := Championnat.manche(programme)
