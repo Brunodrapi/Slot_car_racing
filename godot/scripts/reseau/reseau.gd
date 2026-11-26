@@ -72,6 +72,7 @@ func _banc() -> void:
 			"leave": net.leave()
 			"ecran": App.aller(String(o.get("nom", "accueil")), o.get("opts", {}))
 			"auto": autopilote = bool(o.get("on", true))
+			"natif": App.reglages.natif = bool(o.get("on", true))
 			"nom": App.reglages.nom = String(o.get("nom", "Godot")); App.reglages.langue = String(o.get("langue", App.reglages.langue))
 			"voiture": App.reglages.voiture = String(o.get("id", "porsche991gt3r")); App.reglages.livree = int(o.get("livree", 0))
 	var etat := { ecran = App.ecran.get_class() if App.ecran else "", script = App.ecran.get_script().resource_path.get_file() if App.ecran and App.ecran.get_script() else "",
@@ -80,6 +81,12 @@ func _banc() -> void:
 		members = net.members().map(func(m): return { pid = m.pid, name = m.name, ready = m.ready, car = m.car, isMe = m.isMe,
 			protocol = m.q.get("protocol"), spectator = m.q.get("spectator", false) }) }
 	if net.drive: etat.course = net.drive.resume()
+	# une course seule : quel moteur la fait tourner (C++ ou GDScript), et ce que coûte un pas
+	var jeu = App.ecran
+	if jeu and "course" in jeu and jeu.course:
+		var fini := func(x: float) -> float: return x if is_finite(x) else -1.0     # « inf » n'est pas du JSON
+		etat.solo = { moteur = "C++" if jeu.course is CourseNative else "GDScript", coutPas = fini.call(jeu.coutPas), ips = Engine.get_frames_per_second(),
+			etat = jeu.course.state, pireImage = fini.call(jeu.pireImage) }
 	if _dossier == "":
 		JavaScriptBridge.eval("window.gripEtat = %s" % JSON.stringify(etat), true)
 	else:

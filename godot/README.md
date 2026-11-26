@@ -171,10 +171,10 @@ les commandes enregistrées. Résultat sur 27 567 pas :
 
 La course existe en deux langages, qui donnent la même course :
 
-- **en GDScript** (`scripts/voiture.gd`, `scripts/course.gd`) : la référence lisible, et celle de
-  la version web, qui ne charge pas de code natif ;
+- **en GDScript** (`scripts/voiture.gd`, `scripts/course.gd`) : la référence lisible, et le
+  repli quand le moteur C++ manque ;
 - **en C++** (`natif/src/`, une GDExtension) : la même transcription, dans le même ordre
-  d'opérations, pour l'ordinateur et le téléphone.
+  d'opérations, pour l'ordinateur, le téléphone, et le navigateur.
 
 L'écran de course prend le moteur C++ quand il est là (`CourseNative`) et revient à GDScript
 sinon. La grille, le classement, les résultats et le guide restent en GDScript. Seuls les pas de
@@ -196,12 +196,21 @@ processeurs ARM des téléphones des multiplications-additions en une seule inst
 arrondis ne seraient plus ceux de GDScript ni du jeu web.
 
 ```
-bash natif/construit.sh [linux|windows|android|tout]
+bash natif/construit.sh [linux|windows|android|web|tout]
 ```
 
 Ce script reconstruit les bibliothèques de `natif/bin/`, qui sont gardées dans le dépôt : on n'a
 besoin d'aucun outil C++ pour jouer ni pour exporter le jeu. Elles existent pour Linux, Windows
-(MinGW, sans autre dépendance que les DLL système) et Android arm64 (NDK r27).
+(MinGW, sans autre dépendance que les DLL système), Android arm64 (NDK r27) et le navigateur.
+
+**Dans le navigateur**, le C++ est un module WebAssembly (`libgrip.web.template_release.wasm32.nothreads.wasm`)
+chargé par le modèle d'export « dlink » de Godot (`variant/extensions_support=true` dans l'export Web) :
+le moteur du jeu sort alors en deux morceaux, `index.wasm` et `index.side.wasm`. Le module doit être
+construit par la version d'Emscripten qui a construit Godot (4.0.20 pour la 4.7.2 ; la console l'écrit au
+lancement). Mesuré dans Chromium en iPhone émulé, dix voitures à Spa : un pas de course coûte 0,21 à
+0,26 ms en C++, 2,2 à 2,4 ms en GDScript — de quoi rendre au téléphone 4 ms de chaque image à 60 i/s.
+Le championnat et les courses en ligne restent en GDScript, partout. Le sinus de la bibliothèque
+d'Emscripten (musl) est celui qu'utilisait déjà le GDScript du navigateur.
 
 La version Android n'a pas encore tourné sur un téléphone. Sa bibliothèque mathématique (bionic)
 n'arrondit pas le sinus exactement comme celle de Linux : on retrouvera donc des écarts du même

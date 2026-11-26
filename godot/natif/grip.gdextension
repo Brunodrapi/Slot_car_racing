@@ -11,3 +11,6 @@ windows.debug.x86_64 = "res://natif/bin/libgrip.windows.template_debug.x86_64.dl
 windows.release.x86_64 = "res://natif/bin/libgrip.windows.template_release.x86_64.dll"
 android.debug.arm64 = "res://natif/bin/libgrip.android.template_debug.arm64.so"
 android.release.arm64 = "res://natif/bin/libgrip.android.template_release.arm64.so"
+; le navigateur (export web sans fils d'exécution, modèle « dlink ») : construit par Emscripten 4.0.20,
+; la version qui a construit Godot 4.7.2 (natif/construit.sh web)
+web.release.wasm32 = "res://natif/bin/libgrip.web.template_release.wasm32.nothreads.wasm"
