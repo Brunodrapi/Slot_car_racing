@@ -36,6 +36,13 @@ du tout — elle se dessine exactement comme avant. */
 'use strict';
 
 const DEGATS_VISU = {
+  /* LA TÔLE QUI SE CABOSSE (Carrosserie : bosses, tremblement, plis peints) : COUPÉE pour l'instant.
+  « On ressent vraiment le lag sur mobile. […] Désactive les déformations (garde la fonction mais ne
+  l'active pas dans la version recette). On garde la gestion des dégâts mais sans la déformation. »
+  (Bruno) Restent les points de vie et ce qu'ils coûtent, les étincelles, les débris, la fumée, les
+  stands, leurs mécaniciens et leur scotch, l'abandon ; la voiture garde son dessin intact.
+  `?tole=1` dans l'adresse la remet, pour comparer. */
+  deformation: typeof location !== 'undefined' && /[?&]tole=1(&|$)/.test(location.search),
   points: 32,                 // sommets par anneau
   retraits: [0, 0.42, 0.9],   // m : chaque anneau, mesuré depuis le bord du dessin ; le dernier est fixe
   /* DES VOITURES RÉSISTANTES. « Le cabossage est trop fort : les voitures ne vont pas être

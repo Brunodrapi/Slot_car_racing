@@ -4,6 +4,9 @@ Ce qui change pour le joueur, version par version, en une ligne et sans détail 
 message des publications en prod (`tools/publier.sh`) ; le pourquoi et les mesures sont dans le code
 et dans le README.
 
+## 0.56.25
+- Pour l'instant, les voitures ne se cabossent plus (la fluidité sur téléphone d'abord) : les dégâts, ce qu'ils coûtent, la fumée, les débris, les stands et l'abandon restent.
+
 ## 0.56.24
 - Plus de saccades quand ça tape : la tôle qui tremble après un choc coûte moitié moins, et l'ombre des voitures ne tremble plus avec elle.
 

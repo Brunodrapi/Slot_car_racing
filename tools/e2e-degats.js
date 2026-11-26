@@ -2,6 +2,7 @@
 //
 //   NODE_PATH=$(npm root -g) node tools/e2e-degats.js [dossier]
 //
+// 0. Par défaut la tôle ne se cabosse pas (DEGATS_VISU.deformation) ; la suite la rallume pour l'éprouver.
 // 1. Quatre voitures, quatre chocs posés à la main (nez, flanc, arrière, coin) : chacune a sa tôle,
 //    la bosse se fige, les débris tombent. Captures avant, pendant (la tôle tremble), après.
 // 2. Un rail pris à 60 km/h en course : la voiture perd de la pointe (DEGATS), sa tôle est enfoncée,
@@ -48,6 +49,23 @@ const ROOT = path.resolve(__dirname, '..'), OUT = process.argv[2] || '/tmp/degat
     await page.evaluate(() => { app.mondial = null; app.save.name = 'Testeur'; app.save.lang = 'fr'; app.save.laps = 5; app.startQuick('race', 'gt3', 'spa'); });
     await page.waitForFunction(() => app.race && app.race.state === 'racing', null, { timeout: 30000 });
     await page.waitForTimeout(800);
+    // 0. Par défaut, la tôle ne se cabosse pas (DEGATS_VISU.deformation, coupée pour le téléphone) : un
+    //    choc fait ses débris, la fumée d'une voiture abîmée part d'où elle a pris le coup, mais aucune
+    //    carrosserie déformée. Puis on la rallume, pour éprouver la fonction gardée.
+    const sansTole = await page.evaluate(() => {
+      const r = app.race, R = app.renderer, p = r.player;
+      const debris = R.eclats.debris.length, dmg = p.damage;
+      p.damage = 0.9;
+      p.chocs.push({ nx: -1, ny: 0, v: 16, frotte: 0, sorte: 'rail' });
+      R.addEffects(r, 1 / 60);
+      for (let i = 0; i < 60; i++) R.addEffects(r, 1 / 60);
+      const fumee = R.particles.filter((q) => q.col === '78,78,84' || q.col === '150,150,156').length;
+      const foyer = !!p._foyer;
+      p.damage = dmg;
+      return { deformation: DEGATS_VISU.deformation, tole: !!R.carrosseries.get(p), debris: R.eclats.debris.length - debris, foyer, fumee };
+    });
+    assert.ok(!sansTole.deformation && !sansTole.tole && sansTole.debris > 0 && sansTole.foyer && sansTole.fumee > 0, 'la déformation coupée par défaut, le reste des dégâts gardé : ' + JSON.stringify(sansTole));
+    await page.evaluate(() => { DEGATS_VISU.deformation = true; app.renderer.carrosseries = new WeakMap(); app.renderer.eclats.vide(); app.race.player._foyer = null; });
     const capture = async (nom, pas) => {
       await page.evaluate((pas) => {
         const r = app.race, R = app.renderer;

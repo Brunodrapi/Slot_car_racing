@@ -1831,11 +1831,16 @@ class Renderer {
           // dégâts coupés (l'option du paddock) : pas de bosse, pas de débris — les étincelles restent
           if (force > 0 && race.degatsVisu !== false) {
             let couleur = car.livery && car.livery.body || '#8a8f96';
-            if (art) {
+            if (art && V.deformation) {
               if (!tole) { tole = new Carrosserie(w, h); tole.pitsVu = car.pitsDone; this.carrosseries.set(car, tole); }
               couleur = tole.teinte(art.img, px, py, e.nx, e.ny) || couleur;
               tole.choc(px, py, e.nx, e.ny, force, e.epave);
               tole.marque(art.img, px, py, e.nx, e.ny, force, e.epave);
+            } else {
+              // sans la tôle (DEGATS_VISU.deformation) : on garde seulement d'où vient la fumée,
+              // comme le fait Carrosserie.choc
+              const f = car._foyer || (car._foyer = { fx: 0, fy: 0, fw: 0 });
+              f.fx = (f.fx * f.fw + px * force) / (f.fw + force); f.fy = (f.fy * f.fw + py * force) / (f.fw + force); f.fw += force;
             }
             // l'abandon : le capot part en un morceau, et beaucoup d'éclats avec lui
             if (e.epave) this.eclats.eclate(X, Y, vx, vy, ox, oy, 18, couleur, true);
@@ -1850,15 +1855,17 @@ class Renderer {
       }
       chocs.length = 0;
       // la tôle suit les points de vie, zone par zone (figée à l'abandon : l'épave a son propre choc)
-      if (car.enfoncement && race.degatsVisu !== false && !car.fantome && !car.abandon && car.degats) {
+      if (V.deformation && car.enfoncement && race.degatsVisu !== false && !car.fantome && !car.abandon && car.degats) {
         const art = topArt(car.cls, car.livree);
         if (art && (tole || car.enfoncement.some((e) => e > 0))) {
           if (!tole) { const [w, h] = topSize(car.cls, art); tole = new Carrosserie(w, h); tole.pitsVu = car.pitsDone; this.carrosseries.set(car, tole); }
           tole.ecrase(car.enfoncement);
         }
       }
-      if (!tole) continue;
-      tole.pas(dt);
+      if (tole) tole.pas(dt);
+      if (car.damage < 0.001) car._foyer = null;          // réparée au stand : la fumée repart de zéro
+      const foyer = tole || car._foyer;
+      if (!foyer) continue;
       // la fumée d'une voiture très abîmée sort de là où elle a pris les coups
       if (roule && !car.fantome && car.damage > V.fumee && !(car.abandon && car.abandonT > 7)) {
         const q = clamp((car.damage - V.fumee) / (1 - V.fumee), 0, 1);
@@ -1866,7 +1873,7 @@ class Renderer {
         const n = Math.floor(attendu) + (Math.random() < attendu % 1 ? 1 : 0);
         const cs = Math.cos(car.heading), sn = Math.sin(car.heading);
         for (let i = 0; i < n; i++) {
-          const fx = tole.fx * 0.8, fy = tole.fy * 0.8;
+          const fx = foyer.fx * 0.8, fy = foyer.fy * 0.8;
           this._puff(car.x + fx * cs - fy * sn + (Math.random() - 0.5) * 0.5, car.y + fx * sn + fy * cs + (Math.random() - 0.5) * 0.5,
             (Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1.5,
             0.35 + q * 0.4 + Math.random() * 0.25, 0.8 + q * 0.8, q > 0.5 ? '78,78,84' : '150,150,156');
