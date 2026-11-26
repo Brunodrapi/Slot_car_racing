@@ -31,7 +31,7 @@ async function ouvre(browser, opts, lang, avant) {
   const erreurs = [];
   p.on('pageerror', (e) => erreurs.push(e.message));
   p.on('requestfailed', (r) => erreurs.push('introuvable : ' + r.url()));
-  await p.goto('file://' + path.join(ROOT, 'index.html'));
+  await p.goto(process.env.GRIP_TEST_URL || 'file://' + path.join(ROOT, 'index.html'));
   await p.waitForFunction(() => typeof app !== 'undefined' && app.save);
   await p.evaluate(() => { app.mondial = null; app.leaveSplash(); app.state = 'menu'; app.ui.menu(); });
   return { ctx, p, erreurs };

@@ -44,7 +44,7 @@ autres par le mode d'affichage du manifeste. Sans ça, l'entrée « Installez-mo
 déjà fait. */
 function jeuInstalle() {
   if (navigator.standalone === true) return true;
-  return ['standalone', 'fullscreen', 'minimal-ui'].some((m) => window.matchMedia && matchMedia(`(display-mode: ${m})`).matches);
+  return ['standalone', 'minimal-ui'].some((m) => window.matchMedia && matchMedia(`(display-mode: ${m})`).matches);
 }
 
 // iPhone et iPad (y compris l'iPad qui se dit Mac), Android, ou autre chose
@@ -74,7 +74,7 @@ const I18N = {
     /* Comment jouer, Installez-moi, Buy me a tea (« Faites un don » jusqu'à la 0.52.87) : les trois entrées du bas de l'accueil (0.52). Les
     deux libellés en « vous » sont ceux que Bruno a choisis pour le menu ; les écrans tutoient, comme
     tout le reste du jeu. Les textes d'installation portent leurs pictogrammes en argument. */
-    menuHowto: 'Comment jouer', menuInstall: 'Installez-moi', menuDon: 'Buy me a tea', menuAide: 'Aide et soutien',
+    menuHowto: 'Comment jouer', menuInstall: 'Installer le jeu', menuDon: 'Buy me a tea', menuAide: 'Aide et soutien',
     devlogLabel: (n, titre) => `Dernier devlog, n° ${n} : ${titre} (sur itch.io)`,
     // le conseil affiché au premier départ sur Chrome et Edge PC (js/chromium-cache.js)
     conseilFirefox: 'Pour une expérience optimisée, utilisez Firefox.', fermer: 'Fermer',
@@ -93,7 +93,7 @@ const I18N = {
     howLineTouch: 'Fais glisser le levier du pouce : jaune en haut, ligne idéale au milieu, bleue en bas. Chaque cran fait clac, et la voiture glisse sur sa nouvelle ligne. L’idéale est la plus rapide ; la jaune et la bleue servent à doubler.',
     howLineKeys: 'Chaque flèche monte ou descend le levier d’un cran : jaune en haut, ligne idéale au milieu, bleue en bas. La voiture glisse sur sa nouvelle ligne. L’idéale est la plus rapide ; la jaune et la bleue servent à doubler.',
     howNext: 'Suivant', howPlay: 'Jouer', howStep: (n, total) => `Geste ${n} sur ${total}`,
-    installWhy: 'Sur l’écran d’accueil, GRIP s’ouvre en plein écran, sans la barre du navigateur, et se joue même sans réseau.',
+    installWhy: 'Sur l’écran d’accueil, GRIP s’ouvre en plein écran, sans la barre du navigateur. Le téléchargement hors ligne est proposé séparément.',
     installNow: 'Installer GRIP', installDone: 'C’est fait : GRIP est sur ton écran d’accueil.',
     installIos: 'Sur iPhone et iPad', installAndroid: 'Sur Android',
     installIos1: (ic) => `Touche le bouton Partager ${ic} — en bas de Safari, ou dans la barre d’adresse.`,
@@ -233,7 +233,7 @@ const I18N = {
     title: 'GRIP — RACING THE LINE',
     career: 'Career', quickRace: 'Quick race', timeTrial: 'Time trial', settings: 'Settings', statistics: 'Public statistics', back: 'Back',
     editor: 'Track editor', workshop: 'Car workshop',
-    menuHowto: 'How to play', menuInstall: 'Install me', menuDon: 'Buy me a tea', menuAide: 'Help and support',
+    menuHowto: 'How to play', menuInstall: 'Install game', menuDon: 'Buy me a tea', menuAide: 'Help and support',
     devlogLabel: (n, titre) => `Latest devlog, #${n}: ${titre} (on itch.io)`,
     conseilFirefox: 'For the best experience, use Firefox.', fermer: 'Close',
     discordBug: 'Report a bug or make a request on Discord', discordJoueurs: 'Find players on Discord',
@@ -251,7 +251,7 @@ const I18N = {
     howLineTouch: 'Slide the lever with your thumb: yellow at the top, the racing line in the middle, blue at the bottom. Each notch clicks and the car glides onto its new line. The racing line is the fastest; yellow and blue are for overtaking.',
     howLineKeys: 'Each arrow moves the lever up or down one notch: yellow at the top, the racing line in the middle, blue at the bottom. The car glides onto its new line. The racing line is the fastest; yellow and blue are for overtaking.',
     howNext: 'Next', howPlay: 'Play', howStep: (n, total) => `Move ${n} of ${total}`,
-    installWhy: 'On your home screen, GRIP opens full screen, without the browser bar, and plays even offline.',
+    installWhy: 'On your home screen, GRIP opens full screen, without the browser bar. Offline play is available as a separate download.',
     installNow: 'Install GRIP', installDone: 'Done: GRIP is on your home screen.',
     installIos: 'On iPhone and iPad', installAndroid: 'On Android',
     installIos1: (ic) => `Tap the Share button ${ic} — at the bottom of Safari, or in the address bar.`,
@@ -961,7 +961,7 @@ class UI {
       </nav>
       <nav class="home-extras" data-pad-group aria-label="${t('menuAide')}">
         <button class="extra-card" data-action="howto">${PICTOS.aide}<span>${t('menuHowto')}</span></button>
-        ${!app.desktop && !app.installe && !jeuInstalle() ? `<button class="extra-card" data-action="install">${PICTOS.installer}<span>${t('menuInstall')}</span></button>` : ''}
+        ${(!app.desktop || app.invitInstall) && !app.installe && !jeuInstalle() ? `<button class="extra-card" data-action="install">${PICTOS.installer}<span>${t('menuInstall')}</span></button>` : ''}
         <a class="extra-card" href="${DON_URL}" target="_blank" rel="noopener">${PICTOS.the}<span>${t('menuDon')}</span></a>
       </nav></div>
       <footer class="home-footer"><button class="home-settings" data-action="settings"><img src="art/interface/gear.webp" alt="">${t('settings')}</button>
@@ -2030,8 +2030,8 @@ class UI {
         const invit = app.invitInstall;
         if (!invit) break;
         app.invitInstall = null;                 // une invitation ne sert qu'une fois
-        invit.prompt();
-        invit.userChoice.then((r) => { if (r && r.outcome === 'accepted') app.installe = true; })
+        Promise.resolve(invit.prompt()).then(() => invit.userChoice).then((r) => { if (r && r.outcome === 'accepted') app.installe = true; })
+          .catch(() => {})  // Le navigateur garde la main. Les étapes manuelles restent disponibles.
           .finally(() => { if (this.root.querySelector('.install-screen')) this.installScreen(); });
         break;
       }

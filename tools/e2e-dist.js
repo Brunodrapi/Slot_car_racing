@@ -79,7 +79,7 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     });
     ok(sons.rates.length === 0, `${sons.n} sons de moteur présents` + (sons.rates.length ? ' — manquent : ' + sons.rates.join(', ') : ''));
     console.log('Proposé, pas imposé');
-    const grip = () => p.evaluate(async () => (await caches.keys()).filter((k) => k.startsWith('grip-')).length);
+    const grip = () => p.evaluate(async () => (await caches.keys()).filter((k) => k.startsWith('slotless-pwa:')).length);
     await etat('absent');
     await p.waitForTimeout(1500);
     ok(await grip() === 0, 'rien ne se télécharge de soi-même : aucun cache du jeu');
@@ -110,7 +110,7 @@ const ok = (c, m) => { console.log((c ? '  ok    ' : '  FAUX  ') + m); if (!c) f
     if (OUT) await p.screenshot({ path: path.join(OUT, 'hl-reglages-telecharge.png') });
     const cache = await p.evaluate(async () => {
       const m = JSON.parse(await (await fetch('manifeste.json?t=1', { cache: 'no-store' })).text());
-      const c = await caches.open(m.cache);
+      const c = await caches.open('slotless-pwa:' + (await navigator.serviceWorker.ready).scope + ':' + m.cache);
       return { n: (await c.keys()).length, attendus: Object.keys(m.fichiers).length + 1, nom: m.cache };
     });
     ok(cache.n >= cache.attendus && cache.attendus > 100, `téléchargement : ${cache.n} fichiers en cache sur ${cache.attendus} (${cache.nom})`);

@@ -1,24 +1,34 @@
-/* GRIP — le jeu hors ligne. Fabriqué par tools/build-dist.js : ne pas modifier à la main. */
+/* GRIP — téléchargement hors ligne à la demande, partagé par la recette et la distribution. */
 const MANIFESTE = 'grip-manifeste.json';
-let actif = null;
+const scope = self.registration.scope;
+const prefix = 'slotless-pwa:' + scope + ':';
+let actif;
+async function appartient(nom) {
+  // Les anciennes installations utilisent un préfixe commun, mais leur manifeste a une URL propre.
+  return nom.startsWith(prefix) || (nom.startsWith('grip-') && !!await (await caches.open(nom)).match(MANIFESTE));
+}
 async function cacheActif() {
-  if (actif) return actif;
+  if (actif !== undefined) return actif;
   for (const k of await caches.keys()) {
-    if (k.startsWith('grip-') && await (await caches.open(k)).match(MANIFESTE)) { actif = k; break; }
+    if (await appartient(k) && await (await caches.open(k)).match(MANIFESTE)) { actif = k; break; }
   }
-  return actif;
+  return actif ??= null;
 }
 async function annoncer(m) {
-  for (const c of await self.clients.matchAll({ includeUncontrolled: true, type: 'window' })) c.postMessage(m);
+  for (const c of await self.clients.matchAll({ includeUncontrolled: true, type: 'window' })) {
+    const page = new URL(c.url);
+    if ([scope, new URL('index.html', scope).href].includes(page.origin + page.pathname)) c.postMessage(m);
+  }
 }
 async function installer(premiere) {
   const distant = await (await fetch('manifeste.json?t=' + Date.now(), { cache: 'no-store' })).json();
+  const nom = prefix + distant.cache;
   const nomAncien = await cacheActif();
-  if (nomAncien === distant.cache) { await annoncer({ type: 'pret', premiere }); return; }
+  if (nomAncien === nom) { await annoncer({ type: 'pret', premiere }); return; }
   let avant = {}, ancien = null;
   if (nomAncien) { ancien = await caches.open(nomAncien); const m = await ancien.match(MANIFESTE); if (m) avant = (await m.json()).fichiers; }
-  await caches.delete(distant.cache);                       // un essai interrompu : on repart de zéro
-  const neuf = await caches.open(distant.cache);
+  await caches.delete(nom);                       // un essai interrompu : on repart de zéro
+  const neuf = await caches.open(nom);
   const aCharger = [];
   for (const [u, [emp, t]] of Object.entries(distant.fichiers)) {   // l'inchangé se recopie
     const r = avant[u] && avant[u][0] === emp ? await ancien.match(u) : null;
@@ -41,17 +51,17 @@ async function installer(premiere) {
   try {
     await Promise.all([1, 2, 3, 4, 5, 6].map(ouvrier));
   } catch (err) {
-    await caches.delete(distant.cache);
+    await caches.delete(nom);
     throw err;
   }
   await neuf.put(MANIFESTE, new Response(JSON.stringify(distant), { headers: { 'Content-Type': 'application/json' } }));
-  for (const k of await caches.keys()) if (k.startsWith('grip-') && k !== distant.cache) await caches.delete(k);
-  actif = distant.cache;
+  for (const k of await caches.keys()) if (k !== nom && await appartient(k)) await caches.delete(k);
+  actif = nom;
   await annoncer({ type: 'pret', premiere });
 }
 async function supprimer() {
   actif = null;
-  for (const k of await caches.keys()) if (k.startsWith('grip-')) await caches.delete(k);
+  for (const k of await caches.keys()) if (await appartient(k)) await caches.delete(k);
   await annoncer({ type: 'supprime' });
 }
 self.addEventListener('install', (e) => {
@@ -60,20 +70,26 @@ self.addEventListener('install', (e) => {
 });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then(async (ks) => {
-    for (const k of ks) if (k.startsWith('grip-') && !(await (await caches.open(k)).match(MANIFESTE))) await caches.delete(k);
+    for (const k of ks) if (k.startsWith(prefix) && !(await (await caches.open(k)).match(MANIFESTE))) await caches.delete(k);
   }).then(() => self.clients.claim()));
 });
+let mutations = Promise.resolve();
 self.addEventListener('message', (e) => {
   const type = e.data && e.data.type;
-  if (type === 'telecharger') e.waitUntil(installer(true).catch(() => annoncer({ type: 'echec', premiere: true })));
-  else if (type === 'mettre-a-jour') e.waitUntil(installer(false).catch(() => annoncer({ type: 'echec' })));
-  else if (type === 'supprimer') e.waitUntil(supprimer());
+  const premiere = type === 'telecharger';
+  if (!premiere && type !== 'mettre-a-jour' && type !== 'supprimer') return;
+  mutations = mutations.then(() => type === 'supprimer' ? supprimer() : installer(premiere))
+    .catch(() => annoncer({ type: 'echec', premiere }));
+  e.waitUntil(mutations);
 });
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (url.origin !== location.origin) return;               // réseau, records, salons : jamais en cache
+  if (!url.href.startsWith(scope)) return;
+  const chemin = url.pathname.slice(new URL(scope).pathname.length);
+  if (chemin.includes('/') && !/^(art|css|js|sounds|sprites|vendor)\//.test(chemin)) return;
+  if (req.mode === 'navigate' && !['', 'index.html', 'analytics.html'].includes(chemin)) return;
   // toujours la version publiée — et itch.html, le pont d'itch.io : une page hors du cache retombait
   // sur index.html, et l'onglet de connexion aurait ouvert le jeu à la place du pont
   if (/\/(manifeste\.json|sw\.js|itch\.html)$/.test(url.pathname)) return;

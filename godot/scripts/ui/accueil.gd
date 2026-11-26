@@ -128,6 +128,11 @@ func _ready() -> void:
 	comment.icone = Accueil._svg(SVG_AIDE)
 	comment.pressed.connect(func(): App.aller("comment"))
 	extras.append(comment)
+	if OS.has_feature("web") and not JavaScriptBridge.eval("navigator.standalone === true || matchMedia('(display-mode: standalone)').matches || window.gripInstalle === true"):
+		var installer := _carte("extra", Textes.t("installGame"), Color("#fff0d2"), Color("#171b19"))
+		installer.icone = Accueil._svg('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M16 3v17m-7-7 7 7 7-7M5 22v6h22v-6" fill="none" stroke="#171b19" stroke-width="3"/></svg>')
+		installer.pressed.connect(_installer)
+		extras.append(installer)
 	# « Buy me a tea » (js/ui.js, DON_URL) : pas dans une application de téléphone, dont les boutiques
 	# encadrent les liens de paiement
 	if not OS.has_feature("mobile"):
@@ -157,6 +162,19 @@ func _ready() -> void:
 	resized.connect(_place)
 	_place()
 	modes[0].grab_focus.call_deferred()
+
+
+func _installer() -> void:
+	var ios: bool = JavaScriptBridge.eval("/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)")
+	var aide := AcceptDialog.new()
+	aide.title = Textes.t("installGame")
+	aide.dialog_text = Textes.t("installIOS" if ios else "installBrowser")
+	aide.dialog_autowrap = true
+	add_child(aide)
+	aide.confirmed.connect(aide.queue_free)
+	aide.canceled.connect(aide.queue_free)
+	aide.popup_centered(Vector2i(mini(430, int(size.x * 0.88)), 150))
+	JavaScriptBridge.eval("if (window.gripInvite) { const invite = window.gripInvite; window.gripInvite = null; invite.prompt().catch(() => {}); }")
 
 
 func _carte(genre: String, t: String, f: Color, e: Color) -> Carte:

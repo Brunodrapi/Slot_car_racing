@@ -32,6 +32,9 @@ window/size/window_width_override=1280
 window/size/window_height_override=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+; On mobile browsers, render one pixel per CSS point (touch coordinates keep the same scale).
+window/dpi/allow_hidpi.web_android=false
+window/dpi/allow_hidpi.web_ios=false
 window/handheld/orientation=4
 window/vsync/vsync_mode=1
 

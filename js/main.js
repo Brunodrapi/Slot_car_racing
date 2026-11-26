@@ -70,11 +70,11 @@ class App {
     /* L'installation sur l'écran d'accueil (écran « Installez-moi »).
 
     Chrome sur Android propose l'installation quand le jeu y a droit (manifeste et service worker en
-    place, donc en prod) : on garde l'invitation au lieu de la laisser s'afficher toute seule, et l'écran
+    place) : on garde l'invitation au lieu de la laisser s'afficher toute seule, et l'écran
     d'installation en fait un bouton. Une fois installé, l'entrée du menu s'efface. Safari n'envoie ni
     l'un ni l'autre : l'écran explique alors le chemin par Partager. */
     this.invitInstall = null;
-    this.installe = false;
+    this.installe = jeuInstalle();
     const rafraichit = () => {
       if (this.ui.root.querySelector('.install-screen')) this.ui.installScreen();
       else if (this.ui.root.querySelector('.home-screen')) this.ui.menu();

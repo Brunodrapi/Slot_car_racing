@@ -6,6 +6,8 @@ extends RefCounted
 const FR := {
 	applySeries = "APPLIQUER", communityLaps = "TOURS TOTAUX", myTrackLaps = "MES TOURS", circuitPeak = "VITESSE MAX", carWeight = "POIDS",
 	quickRace = "COURSE RAPIDE", timeTrial = "CONTRE-LA-MONTRE", training = "ENTRAÎNEMENT",
+	installGame = "INSTALLER LE JEU", installIOS = "Dans Safari, ouvre Partager, puis Sur l’écran d’accueil et Ajouter.",
+	installBrowser = "Dans le menu du navigateur, choisis Installer l’application ou Ajouter à l’écran d’accueil.",
 	howto = "COMMENT JOUER", settings = "RÉGLAGES", pilot = "PILOTE : %s", quit = "QUITTER", back = "‹ RETOUR",
 	proto = "Version Godot · %d circuits · %d voitures", all = "TOUTES",
 	statVmax = "VITESSE MAX.", statA100 = "0-100 KM/H", statB100 = "FREINAGE 100-0", statGrip = "ADHÉRENCE",
@@ -129,6 +131,8 @@ const FR := {
 const EN := {
 	applySeries = "APPLY", communityLaps = "TOTAL LAPS", myTrackLaps = "MY LAPS", circuitPeak = "TOP SPEED", carWeight = "WEIGHT",
 	quickRace = "QUICK RACE", timeTrial = "TIME TRIAL", training = "PRACTICE",
+	installGame = "INSTALL GAME", installIOS = "In Safari, open Share, then Add to Home Screen and Add.",
+	installBrowser = "Open the browser menu and choose Install app or Add to Home screen.",
 	howto = "HOW TO PLAY", settings = "SETTINGS", pilot = "DRIVER: %s", quit = "QUIT", back = "‹ BACK",
 	proto = "Godot version · %d tracks · %d cars", all = "ALL",
 	statVmax = "TOP SPEED", statA100 = "0-100 KM/H", statB100 = "BRAKING 100-0", statGrip = "GRIP",

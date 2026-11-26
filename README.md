@@ -389,11 +389,10 @@ suivant. `tools/e2e-dist.js` vérifie tout cela au format d'un iPhone : proposé
 depuis les réglages, en ligne, hors ligne, une mise à jour d'un seul fichier refusée puis acceptée,
 puis la suppression.
 
-**L'aperçu en recette (`apercu/`).** La version publiée, compilée et jouable hors ligne, servie dans la
-recette à brunodrapi.github.io/Slot_car_racing/apercu/ pour essayer ce qui n'existe qu'en prod : le
-téléchargement, le jeu sans réseau, la suppression, les mises à jour. Elle garde le canal RECETTE
-(pastille, tables du multijoueur, records et statistiques de la recette) et ne touche à rien de la
-prod. Elle ne se refait pas toute seule : `npm run apercu` la reconstruit, puis on la pousse. Ses images
+**L'aperçu en recette (`apercu/`).** La recette et son aperçu minifié proposent chacun l’installation sur
+l’écran d’accueil et le téléchargement hors ligne. Une suppression ou mise à jour du téléchargement
+n’agit que sur la version ouverte. L’aperçu utilise les tables du multijoueur, les records et les
+statistiques de la recette. `npm run apercu` reconstruit sa distribution et les manifestes hors ligne des deux versions. Ses images
 et ses sons sont les mêmes fichiers que ceux du dépôt, que git ne stocke qu'une fois : un aperçu coûte
 au dépôt le code minifié, quelques centaines de kilo-octets. L'éditeur n'y est pas, comme en prod.
 

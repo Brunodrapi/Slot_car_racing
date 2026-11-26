@@ -26,7 +26,7 @@ Le cache porte un nom tiré du CONTENU des fichiers : une nouvelle publication s
 même si l'on a oublié de changer la version.
 
 C'EST LA PROD. La recette, elle, est le dépôt lui-même, servi tel quel (brunodrapi.github.io/
-Slot_car_racing) : code source commenté, pas de service worker, une pastille RECETTE. Ce script écrit
+Slot_car_racing) : code source commenté, une pastille RECETTE. Ce script écrit
 « prod » dans `APP_CANAL` (js/version.js), ce qui retire la pastille et rend au jeu son nom. Les deux
 vivent sur des domaines différents, donc chacune avec sa sauvegarde : jouer à l'une ne touche pas à
 l'autre. */
@@ -41,11 +41,7 @@ const OUT = path.resolve(ROOT, arg('sortie') || 'dist');
 const DOMAINE = arg('domaine');
 const DISTRIBUTION = arg('distribution') || 'web';
 if(!['web','itch'].includes(DISTRIBUTION))throw new Error('--distribution=web ou --distribution=itch');
-/* L'APERÇU EN RECETTE : la version publiée, servie dans `apercu/` de la recette, pour essayer ce qui
-n'existe que là — le jeu hors ligne, son téléchargement, sa suppression. « Je suis bien en 0.52.57 sur
-la recette mais je ne vois pas les nouvelles options pour le téléchargement » : la recette sert le code
-source, sans service worker. L'aperçu garde le canal RECETTE (pastille, tables du multijoueur, records
-et statistiques de la recette) : il ne touche à rien de la prod. */
+/* L'aperçu minifié utilise le canal recette et son propre cache hors ligne. */
 const CANAL = arg('canal') || 'prod';
 if (!['prod', 'recette'].includes(CANAL)) throw new Error('--canal=prod ou --canal=recette');
 
@@ -66,112 +62,6 @@ const FICHIERS = ['favicon.ico', 'site.webmanifest', 'art/Pitstop.png',
   'art/icone-16.png', 'art/icone-32.png', 'art/icone-48.png', 'art/icone-180.png', 'art/icone-192.png',
   'art/icone-512.png', 'art/icone-maskable-512.png'];
 const EXCLURE = (rel) => /_reprise\.|\.md$|LICENSE$|(^|\/)\./.test(rel);
-
-/* LE SERVICE WORKER — le même texte à chaque publication (voir le manifeste plus bas).
-
-IL NE TÉLÉCHARGE RIEN DE LUI-MÊME, pas même la première fois (0.52.57) : « le téléchargement se fait
-automatiquement, je veux qu'il soit proposé mais pas imposé ». Cinquante mégaoctets d'office, sur un
-téléphone, c'était trop. Sans cache, il laisse passer chaque requête vers le réseau : le jeu se joue en
-ligne comme une page ordinaire. La page lui demande `telecharger` (la première fois, quand le joueur
-l'accepte), `mettre-a-jour` (une version plus récente, acceptée) ou `supprimer` (vider le cache, le
-jeu redevient une page en ligne). Pour une mise à jour, il bâtit le nouveau cache à côté de
-l'ancien, en recopiant les fichiers inchangés, et ne lâche l'ancien qu'une fois le nouveau complet —
-un téléchargement coupé laisse le jeu tel qu'il était. Un cache est complet quand il contient son
-manifeste, posé en dernier.
-
-Son texte a changé une fois, pour cela : le navigateur installe donc ce nouveau service worker de
-lui-même chez ceux qui avaient l'ancien, et leur cache, déjà téléchargé, reste en place. */
-const SERVICE_WORKER = `/* GRIP — le jeu hors ligne. Fabriqué par tools/build-dist.js : ne pas modifier à la main. */
-const MANIFESTE = 'grip-manifeste.json';
-let actif = null;
-async function cacheActif() {
-  if (actif) return actif;
-  for (const k of await caches.keys()) {
-    if (k.startsWith('grip-') && await (await caches.open(k)).match(MANIFESTE)) { actif = k; break; }
-  }
-  return actif;
-}
-async function annoncer(m) {
-  for (const c of await self.clients.matchAll({ includeUncontrolled: true, type: 'window' })) c.postMessage(m);
-}
-async function installer(premiere) {
-  const distant = await (await fetch('manifeste.json?t=' + Date.now(), { cache: 'no-store' })).json();
-  const nomAncien = await cacheActif();
-  if (nomAncien === distant.cache) { await annoncer({ type: 'pret', premiere }); return; }
-  let avant = {}, ancien = null;
-  if (nomAncien) { ancien = await caches.open(nomAncien); const m = await ancien.match(MANIFESTE); if (m) avant = (await m.json()).fichiers; }
-  await caches.delete(distant.cache);                       // un essai interrompu : on repart de zéro
-  const neuf = await caches.open(distant.cache);
-  const aCharger = [];
-  for (const [u, [emp, t]] of Object.entries(distant.fichiers)) {   // l'inchangé se recopie
-    const r = avant[u] && avant[u][0] === emp ? await ancien.match(u) : null;
-    if (r) await neuf.put(u, r); else aCharger.push([u, [emp, t]]);
-  }
-  const total = aCharger.reduce((s, [, [, t]]) => s + t, 0) || 1;
-  let fait = 0, dernier = 0;
-  const file = aCharger.slice();
-  const ouvrier = async () => {
-    while (file.length) {
-      const [u, [, t]] = file.shift();
-      const r = await fetch(u, { cache: 'reload' });
-      if (!r.ok) throw new Error(u + ' : ' + r.status);
-      await neuf.put(u, r);
-      fait += t;
-      const p = fait / total;
-      if (p - dernier > 0.02 || p >= 1) { dernier = p; annoncer({ type: 'progres', progres: Math.min(1, p), premiere, fait, total }); }
-    }
-  };
-  try {
-    await Promise.all([1, 2, 3, 4, 5, 6].map(ouvrier));
-  } catch (err) {
-    await caches.delete(distant.cache);
-    throw err;
-  }
-  await neuf.put(MANIFESTE, new Response(JSON.stringify(distant), { headers: { 'Content-Type': 'application/json' } }));
-  for (const k of await caches.keys()) if (k.startsWith('grip-') && k !== distant.cache) await caches.delete(k);
-  actif = distant.cache;
-  await annoncer({ type: 'pret', premiere });
-}
-async function supprimer() {
-  actif = null;
-  for (const k of await caches.keys()) if (k.startsWith('grip-')) await caches.delete(k);
-  await annoncer({ type: 'supprime' });
-}
-self.addEventListener('install', (e) => {
-  // Rien ne se télécharge à l'installation : un cache déjà là reste en place, et sinon on attend qu'on le demande.
-  e.waitUntil(self.skipWaiting());
-});
-self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then(async (ks) => {
-    for (const k of ks) if (k.startsWith('grip-') && !(await (await caches.open(k)).match(MANIFESTE))) await caches.delete(k);
-  }).then(() => self.clients.claim()));
-});
-self.addEventListener('message', (e) => {
-  const type = e.data && e.data.type;
-  if (type === 'telecharger') e.waitUntil(installer(true).catch(() => annoncer({ type: 'echec', premiere: true })));
-  else if (type === 'mettre-a-jour') e.waitUntil(installer(false).catch(() => annoncer({ type: 'echec' })));
-  else if (type === 'supprimer') e.waitUntil(supprimer());
-});
-self.addEventListener('fetch', (e) => {
-  const req = e.request;
-  if (req.method !== 'GET') return;
-  const url = new URL(req.url);
-  if (url.origin !== location.origin) return;               // réseau, records, salons : jamais en cache
-  // toujours la version publiée — et itch.html, le pont d'itch.io : une page hors du cache retombait
-  // sur index.html, et l'onglet de connexion aurait ouvert le jeu à la place du pont
-  if (/\\/(manifeste\\.json|sw\\.js|itch\\.html)$/.test(url.pathname)) return;
-  e.respondWith((async () => {
-    const nom = await cacheActif();
-    const c = nom ? await caches.open(nom) : null;
-    const trouve = c && (await c.match(req, { ignoreSearch: true }) || (req.mode === 'navigate' ? await c.match('index.html') : null));
-    if (trouve) return trouve;
-    try { return await fetch(req); } catch (err) {
-      if (req.mode === 'navigate' && c) { const i = await c.match('index.html'); if (i) return i; }
-      throw err;
-    }
-  })());
-});
-`;
 
 const copies = new Set();
 const lire = (rel) => fs.readFileSync(path.join(ROOT, rel));
@@ -194,6 +84,21 @@ function parcourir(rel) {
 }
 const sansRequete = (u) => u.split('?')[0].split('#')[0];
 const local = (u) => u && !/^([a-z]+:)?\/\//i.test(u) && !u.startsWith('data:') && !u.startsWith('#');
+
+function ecrireManifeste(dossier, liste) {
+  const fichiers = {};
+  const h = crypto.createHash('sha256');
+  for (const r of liste) {
+    const contenu = fs.readFileSync(path.join(dossier, r));
+    fichiers[encodeURI(r)] = [crypto.createHash('sha256').update(contenu).digest('hex').slice(0, 12), contenu.length];
+    h.update(r); h.update(contenu);
+  }
+  fichiers['./'] = fichiers['index.html'];
+  const version = /APP_VERSION\s*=\s*'([^']+)'/.exec(lire('js/version.js').toString('utf8'))[1];
+  const cache = `grip-${version}-${h.digest('hex').slice(0, 10)}`;
+  fs.writeFileSync(path.join(dossier, 'manifeste.json'), JSON.stringify({ version, cache, fichiers }));
+  return cache;
+}
 
 async function main() {
   fs.rmSync(OUT, { recursive: true, force: true });
@@ -287,18 +192,9 @@ async function main() {
   l'installé, le publié — et propose la mise à jour ; elle ne se fait que si on l'accepte, et ne
   télécharge alors que les fichiers dont l'empreinte a changé. */
   const liste = [...copies].filter((r) => r !== '.nojekyll' && r !== 'CNAME').sort();
-  const fichiers = {};
-  const h = crypto.createHash('sha256');
-  for (const r of liste) {
-    const contenu = fs.readFileSync(path.join(OUT, r));
-    fichiers[encodeURI(r)] = [crypto.createHash('sha256').update(contenu).digest('hex').slice(0, 12), contenu.length];
-    h.update(r); h.update(contenu);
-  }
-  fichiers['./'] = fichiers['index.html'];
-  const version = /APP_VERSION\s*=\s*'([^']+)'/.exec(lire('js/version.js').toString('utf8'))[1];
-  const cache = `grip-${version}-${h.digest('hex').slice(0, 10)}`;
-  fs.writeFileSync(path.join(OUT, 'manifeste.json'), JSON.stringify({ version, cache, fichiers }));
-  fs.writeFileSync(path.join(OUT, 'sw.js'), SERVICE_WORKER);
+  const cache = ecrireManifeste(OUT, liste);
+  copier('sw.js');
+  if (CANAL === 'recette' && DISTRIBUTION === 'web') ecrireManifeste(ROOT, liste);
   /* Le pont d'itch.io (itch.html) : la prod le sert au jeu d'itch.io, qui l'embarque dans un cadre et y
   ouvre l'onglet de connexion Google (js/mondial.js, PONT_URL). Écrit APRÈS le manifeste, comme sw.js :
   il ne fait pas partie du jeu hors ligne, et le service worker ne le sert jamais depuis un cache. L'export

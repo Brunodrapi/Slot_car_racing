@@ -1,8 +1,6 @@
 /* LE JEU HORS LIGNE ET SA MISE À JOUR, vus depuis la page.
 
-Ne sert que dans la version publiée (`npm run build`), qui fournit `sw.js` et `manifeste.json`. Dans le
-dépôt, ni l'un ni l'autre n'existent : l'enregistrement échoue, `MAJ.etat` reste « dev », et rien ne
-s'affiche.
+La recette et la distribution proposent chacune leur propre téléchargement hors ligne.
 
 Les états :
   absent        le jeu n'est pas téléchargé : il se joue en ligne. L'écran-titre PROPOSE de le
@@ -36,7 +34,7 @@ const MAJ = {
   progres: 0,           // 0..1 pendant un téléchargement
   fait: 0, total: 0,    // octets reçus et attendus pendant un téléchargement
   premiere: false,      // vrai pendant le premier téléchargement
-  sansServiceWorker: false,  // pas de `sw.js` ici : la recette, servie telle quelle (voir `horsLigneLigne`)
+  sansServiceWorker: false,
   ecouteurs: [],
   surChangement(f) { this.ecouteurs.push(f); },
   _poser(champs) { Object.assign(this, champs); for (const f of this.ecouteurs) { try { f(this); } catch (_) { /* l'interface se débrouille */ } } },
@@ -86,9 +84,8 @@ const MAJ = {
   },
 
   _demander(type) {
-    // `ready`, pas `controller` : après un rechargement forcé, la page n'est pas contrôlée, mais le
-    // service worker est là et répond quand même (il écrit à toutes les fenêtres).
-    return navigator.serviceWorker.ready.then((r) => r.active.postMessage({ type }));
+    // La recette et l’aperçu ont chacun une inscription sur la même origine.
+    return this.inscription.then((r) => r.active.postMessage({ type }));
   },
 
   /** Télécharger le jeu pour jouer hors ligne : la première fois, quand le joueur l'accepte. */
@@ -123,10 +120,7 @@ const MAJ = {
     else setTimeout(() => this._recharger(), 3000);
   },
 
-  /* Pas de service worker ici. Dans le dépôt (la recette), c'est normal : il n'y a pas de manifeste,
-  l'état reste « dev » et les réglages renvoient à l'aperçu. Dans une version publiée, c'est le
-  navigateur qui ne sait pas : « Sur iPhone je ne vois rien » — rien du tout, ni la proposition, ni la
-  taille, ni la ligne des réglages, et aucune explication. On le dit donc. */
+  // En navigation intégrée ou sans service worker, afficher la disponibilité du téléchargement.
   async _sansServiceWorker(raison) {
     this._poser({ sansServiceWorker: true, raison });
     const distant = await this.publie();
@@ -144,8 +138,23 @@ const MAJ = {
       else if (m.type === 'echec') this._poser({ etat: 'erreur', premiere: !!m.premiere });
       else if (m.type === 'supprime') this.verifier();
     });
-    navigator.serviceWorker.register('sw.js').then(() => this.verifier())
-      .catch((e) => this._sansServiceWorker(String((e && e.message) || e)));   // le dépôt, ou un navigateur qui refuse
+    this.inscription = navigator.serviceWorker.register('sw.js').then(async (r) => {
+      if (r.active) return r;
+      const worker = r.installing || r.waiting;
+      await new Promise((resolve, reject) => {
+        const verifier = () => {
+          if (worker.state === 'activated') resolve();
+          else if (worker.state === 'redundant') reject(new Error('Service worker indisponible'));
+          else return;
+          worker.removeEventListener('statechange', verifier);
+        };
+        worker.addEventListener('statechange', verifier);
+        verifier();
+      });
+      return r;
+    });
+    this.inscription.then(() => this.verifier())
+      .catch((e) => this._sansServiceWorker(String((e && e.message) || e)));
   },
 };
 
