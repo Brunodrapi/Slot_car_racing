@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1795672802|15721244';
+const CACHE_VERSION = '1795673602|9812030';
 /** @type {string} */
 const CACHE_PREFIX = 'SLOTLESS-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;

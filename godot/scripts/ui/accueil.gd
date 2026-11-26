@@ -170,10 +170,14 @@ func _installer() -> void:
 	aide.title = Textes.t("installGame")
 	aide.dialog_text = Textes.t("installIOS" if ios else "installBrowser")
 	aide.dialog_autowrap = true
+	var echelle := clampf(minf(size.x, size.y) / 390.0, 1.0, 2.0)
+	aide.get_label().add_theme_color_override("font_color", Color("#fff0d2"))
+	aide.get_label().add_theme_font_size_override("font_size", roundi(17 * echelle))
+	aide.get_ok_button().add_theme_font_size_override("font_size", roundi(18 * echelle))
 	add_child(aide)
 	aide.confirmed.connect(aide.queue_free)
 	aide.canceled.connect(aide.queue_free)
-	aide.popup_centered(Vector2i(mini(430, int(size.x * 0.88)), 150))
+	aide.popup_centered(Vector2i(mini(roundi(380 * echelle), int(size.x * 0.88)), roundi(160 * echelle)))
 	JavaScriptBridge.eval("if (window.gripInvite) { const invite = window.gripInvite; window.gripInvite = null; invite.prompt().catch(() => {}); }")
 
 
