@@ -1,5 +1,5 @@
 #!/bin/bash
-# Exporte la version web de SLOTLESS et la publie dans essais/godot (la recette).
+# Exporte la version web de GRIP et la publie dans essais/godot (la recette).
 #
 #   bash godot/outils/publie-web.sh
 #
@@ -17,8 +17,14 @@
 # (application/config/version, grip/date) : l'écran titre les affiche, comme celui du jeu web.
 # Après, l'application installable devient GRIP, comme le jeu web (site.webmanifest, balises Apple de
 # index.html) : son nom (« GRIP Recette » en recette, comme le jeu web), sa description, ses couleurs,
-# une icône de 192 en plus (Chrome la demande pour proposer l'installation). Godot, lui, la nommait
-# d'après le projet (SLOTLESS), qu'on ne renomme pas pour ne pas déplacer les sauvegardes.
+# une icône de 192 en plus (Chrome la demande pour proposer l'installation).
+#
+# LE JEU HORS LIGNE (scripts/hors_ligne.gd, web/hors-ligne.js) : la page reçoit la liste de ce qu'il faut
+# télécharger — le nom du cache du service worker, les fichiers du moteur et les décors, avec leurs
+# tailles — et le script qui range le moteur dans ce cache. Le service worker, lui, ne range le moteur
+# qu'avec l'accord du joueur (la marque « grip-hors-ligne » dans son cache), le reporte d'une version à
+# la suivante, sert la page en cache quand on l'ouvre par l'adresse du dossier, et efface aussi les
+# caches de l'ancien nom (SLOTLESS).
 set -e
 ICI=$(cd "$(dirname "$0")/.." && pwd)
 SORTIE="$ICI/exports/web"
@@ -47,11 +53,35 @@ import sys
 p = sys.argv[1]
 s = open(p).read()
 remplace = [
-    ("cache.addAll(CACHED_FILES)", "cache.addAll(CACHED_FILES.map((f) => new Request(f, { cache: 'reload' })))"),
+    ("cache.addAll(CACHED_FILES)", "cache.addAll(CACHED_FILES.map((f) => new Request(f, { cache: 'reload' }))).then(() => garderAccord(cache))"),
     ("response = await self.fetch(event.request);", "response = await self.fetch(event.request, { cache: 'reload' });"),
     # le nouveau service worker remplace l'ancien tout de suite, et efface son cache : sinon l'ancien
     # resservait sa page (cassée ou non) tant que l'application n'avait pas été fermée
     ("self.addEventListener('install', (event) => {", "self.addEventListener('install', (event) => {\n\tself.skipWaiting();"),
+    # le jeu hors ligne : l'accord du joueur, les caches de l'ancien nom
+    ("const FULL_CACHE = CACHED_FILES.concat(CACHEABLE_FILES);", """const FULL_CACHE = CACHED_FILES.concat(CACHEABLE_FILES);
+// GRIP, le jeu hors ligne (godot/web/hors-ligne.js) : la marque dit que le joueur a accepté de garder le
+// jeu sur l'appareil. Sans elle, le moteur ne va pas dans le cache ; une nouvelle version la reprend de
+// l'ancienne. Les caches de l'ancien nom du jeu (SLOTLESS) s'effacent avec les autres.
+const MARQUE = 'grip-hors-ligne';
+const ANCIENS_PREFIXES = ['SLOTLESS-sw-cache-'];
+function ancienCache(key) {
+	return (key.startsWith(CACHE_PREFIX) || ANCIENS_PREFIXES.some((p) => key.startsWith(p))) && key !== CACHE_NAME;
+}
+async function garderAccord(cache) {
+	for (const key of await caches.keys()) {
+		if (!ancienCache(key)) continue;
+		if (await (await caches.open(key)).match(MARQUE)) { await cache.put(MARQUE, new Response('1')); return; }
+	}
+}
+async function accordPour(cache, url) {
+	if (!CACHEABLE_FILES.some((f) => url.split('?')[0].endsWith('/' + f))) return true;
+	return !!(await cache.match(MARQUE));
+}"""),
+    ("keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)", "keys.filter((key) => ancienCache(key))"),
+    ("\tif (isCacheable) {\n\t\t// And update the cache", "\tif (isCacheable && await accordPour(cache, event.request.url)) {\n\t\t// And update the cache"),
+    # ouverte par l'adresse du dossier (…/essais/godot/) ou avec ?v=, la page en cache sert quand même
+    ("let cached = await cache.match(event.request);", "let cached = await cache.match(event.request, { ignoreSearch: true }) || (isNavigate ? await cache.match(CACHED_FILES[0]) : undefined);"),
 ]
 for avant, apres in remplace:
     if s.count(avant) != 1:
@@ -88,6 +118,28 @@ if n != 1 or "<link rel=\"manifest\"" not in s:
     sys.exit("index.html : titre ou manifeste introuvable, le modèle de Godot a changé")
 s = s.replace("<link rel=\"manifest\"", balises + "<link rel=\"manifest\"", 1)
 open(p, "w").write(s)
+PY
+python3 - "$SORTIE" "$ESSAI/decors" "$ICI/web/hors-ligne.js" "$ICI/project.godot" <<'PY'
+import json, os, re, sys
+d, decors, script, projet = sys.argv[1:5]
+sw = open(os.path.join(d, "index.service.worker.js")).read()
+cache = re.search(r"const CACHE_PREFIX = '([^']*)'", sw).group(1) + re.search(r"const CACHE_VERSION = '([^']*)'", sw).group(1)
+legers = json.loads(re.search(r"const CACHED_FILES = (\[[^\]]*\]);", sw).group(1))
+lourds = json.loads(re.search(r"const CACHEABLE_FILES = (\[[^\]]*\]);", sw).group(1))
+moteur = {f: os.path.getsize(os.path.join(d, f)) for f in legers + lourds}
+par = {}
+for f in sorted(os.listdir(decors)):
+    m = re.match(r"(.+)-decor\.(json|png|bin)$", f)
+    if m: par[m.group(1)] = par.get(m.group(1), 0) + os.path.getsize(os.path.join(decors, f))
+version = re.search(r'^config/version="([^"]*)"', open(projet).read(), re.M).group(1)
+donnees = {"version": version, "cache": cache, "moteur": moteur, "lourds": lourds, "decors": par}
+bloc = "<script>window.GRIP_HORS_LIGNE = %s;</script>\n<script>\n%s</script>\n" % (json.dumps(donnees, ensure_ascii=False), open(script).read())
+p = os.path.join(d, "index.html")
+s = open(p).read()
+if s.count("</head>") != 1: sys.exit("index.html : </head> introuvable")
+s = s.replace("</head>", bloc + "</head>", 1)
+open(p, "w").write(s)
+print("hors ligne : moteur %.1f Mo, %d décors %.1f Mo" % (sum(moteur.values()) / 1e6, len(par), sum(par.values()) / 1e6))
 PY
 for f in index.html index.js index.wasm index.side.wasm index.pck index.service.worker.js index.offline.html index.manifest.json \
          index.audio.worklet.js index.audio.position.worklet.js libgrip.web.template_release.wasm32.nothreads.wasm \

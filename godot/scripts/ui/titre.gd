@@ -4,11 +4,13 @@
 ##
 ## Deux affiches, celles du jeu web : 9:16 pour un téléphone debout, 16:9 pour un écran couché. Elles
 ## couvrent l'écran (object-fit: cover), calées comme dans le jeu web (65 % 60 % debout, 60 % 10 %
-## couchée) ; un voile sombre monte du bas. Les affiches de SLOTLESS restent à côté, pour Steam et iOS.
+## couchée) ; un voile sombre monte du bas. Celles de SLOTLESS restent dans le dépôt, hors des exports.
 ##
 ## En bas, comme dans le jeu web : le dernier devlog sur son ticket crème (.splash-devlog), qui ouvre
 ## itch.io sans entrer dans le jeu ; au-dessus, sur ordinateur, les commandes ; dans le coin, la
-## version sur sa pastille sombre, avec RECETTE en recette (.version, canalBadge).
+## version sur sa pastille sombre, avec RECETTE en recette (.version, canalBadge), et la taille du jeu.
+## En haut, la bulle du jeu hors ligne (.maj, HorsLigne) : le téléchargement proposé, sa progression,
+## puis ce qui est sur l'appareil.
 class_name Titre
 extends Control
 
@@ -30,6 +32,8 @@ var _dernierLien := -10000
 var _pastille: StyleBoxFlat
 var _systeme: Font
 var _systemeGras: Font
+var _bulle := Rect2()
+var _boutonsHL: Array = []              # [[Rect2, action]]
 
 
 func _ready() -> void:
@@ -51,6 +55,7 @@ func _ready() -> void:
 	_systemeGras = g
 	focus_mode = Control.FOCUS_ALL
 	grab_focus.call_deferred()
+	HorsLigne.verifier()
 
 
 func _process(_dt: float) -> void:
@@ -67,6 +72,17 @@ func _mesure() -> void:
 
 func _gui_input(e: InputEvent) -> void:
 	if not ((e is InputEventMouseButton or e is InputEventScreenTouch) and e.pressed): return
+	# la bulle du jeu hors ligne : ses boutons, et elle n'entre pas dans le jeu (js/main.js, .maj)
+	if _bulle.has_point(e.position):
+		accept_event()
+		if Time.get_ticks_msec() - _dernierLien < 800: return
+		for b in _boutonsHL:
+			if (b[0] as Rect2).has_point(e.position):
+				_dernierLien = Time.get_ticks_msec()
+				App.clic()
+				if b[1] == "telecharger": HorsLigne.telecharger()
+				elif b[1] == "nonMerci": HorsLigne.nonMerci()
+		return
 	# le ticket du devlog ouvre itch.io, et l'affiche reste (le doigt arrive en toucher et en clic : un seul lien)
 	if _ticket.has_point(e.position):
 		accept_event()
@@ -146,6 +162,7 @@ func _draw() -> void:
 		draw_rect(Rect2(cx, cy, cw, ch), Color(20 / 255.0, 18 / 255.0, 14 / 255.0, 0.7))
 		draw_string(_systeme, Vector2(cx + 12 * u, cy + 6 * u + tc * 0.95), cmd, HORIZONTAL_ALIGNMENT_LEFT, -1, tc, Color("#f3e6c8"))
 	_dessineVersion(u)
+	_dessineHorsLigne(u)
 
 
 ## Le ticket du dernier devlog (.splash-devlog) : crème, cerné de noir, son ombre portée, l'étiquette
@@ -198,7 +215,7 @@ func _dessineVersion(u: float) -> void:
 	var v := String(ProjectSettings.get_setting("application/config/version", ""))
 	if v == "": return
 	var d := String(ProjectSettings.get_setting("grip/date", ""))
-	var txt := "v" + v + ((" · " + d) if d != "" else "")
+	var txt := "v" + v + ((" · " + d) if d != "" else "") + ((" · " + HorsLigne.octets(HorsLigne.poids)) if HorsLigne.poids > 0 else "")
 	var recette := String(ProjectSettings.get_setting("grip/canal", "recette")) == "recette"
 	var tv := roundi(12 * u)
 	var tb := roundi(12 * 0.85 * u)
@@ -217,3 +234,80 @@ func _dessineVersion(u: float) -> void:
 		_pastille.bg_color = Color("#ff7a1a")
 		draw_style_box(_pastille, rb)
 		draw_string(_systemeGras, Vector2(rb.position.x + 6 * u, rb.position.y + hb / 2 + tb * 0.36), "RECETTE", HORIZONTAL_ALIGNMENT_LEFT, -1, tb, Color("#1a0d00"))
+
+
+## La bulle du jeu hors ligne (.maj) : sombre, en haut au milieu ; le texte, et ses boutons à côté
+## s'ils tiennent sur la ligne, sinon dessous (flex-wrap).
+func _dessineHorsLigne(u: float) -> void:
+	_boutonsHL = []
+	_bulle = Rect2()
+	var l := HorsLigne.ligneTitre()
+	var txt := String(l.texte)
+	if txt == "": return
+	var tt := roundi(13 * u)
+	var interieur := size.x - 24 * u - 28 * u
+	var lignes := _coupe(txt, tt, interieur)
+	var lh := tt * 1.3
+	var wt := 0.0
+	for li in lignes: wt = maxf(wt, _systeme.get_string_size(li, HORIZONTAL_ALIGNMENT_LEFT, -1, tt).x)
+	var boutons: Array = l.boutons
+	var hb := tt * 1.2 + 14 * u
+	var wbs: Array[float] = []
+	var wbt := 0.0
+	for b in boutons:
+		var wb := _systeme.get_string_size(String(b[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, tt).x + 24 * u
+		wbs.append(wb)
+		wbt += wb + (8 * u if wbt > 0 else 0.0)
+	var cote := not boutons.is_empty() and lignes.size() == 1 and wt + 12 * u + wbt <= interieur
+	var w := wt + 12 * u + wbt if cote else maxf(wt, wbt)
+	var h := maxf(lh, hb) if cote else lignes.size() * lh + ((8 * u + hb) if not boutons.is_empty() else 0.0)
+	_bulle = Rect2((size.x - w - 28 * u) / 2, 12 * u, w + 28 * u, h + 14 * u)
+	_pastille.bg_color = Color(12 / 255.0, 14 / 255.0, 20 / 255.0, 0.78)
+	var rayon := _pastille.corner_radius_top_left
+	_pastille.set_corner_radius_all(roundi(18 * u))
+	draw_style_box(_pastille, _bulle)
+	_pastille.set_corner_radius_all(rayon)
+	var y := _bulle.position.y + 7 * u
+	var x0 := _bulle.position.x + 14 * u
+	if cote:
+		var ty := y + h / 2 + tt * 0.36
+		draw_string(_systeme, Vector2(x0, ty), lignes[0], HORIZONTAL_ALIGNMENT_LEFT, -1, tt, Color("#f3e6c8"))
+		_dessineBoutons(boutons, wbs, x0 + wt + 12 * u, y + (h - hb) / 2, hb, tt, u)
+	else:
+		for li in lignes:
+			var lw := _systeme.get_string_size(li, HORIZONTAL_ALIGNMENT_LEFT, -1, tt).x
+			draw_string(_systeme, Vector2(_bulle.position.x + (_bulle.size.x - lw) / 2, y + lh / 2 + tt * 0.36), li, HORIZONTAL_ALIGNMENT_LEFT, -1, tt, Color("#f3e6c8"))
+			y += lh
+		if not boutons.is_empty():
+			_dessineBoutons(boutons, wbs, _bulle.position.x + (_bulle.size.x - wbt) / 2, y + 8 * u, hb, tt, u)
+
+
+## Les boutons de la bulle : « Télécharger » jaune (.primary), « Non merci » sombre.
+func _dessineBoutons(boutons: Array, largeurs: Array[float], x: float, y: float, h: float, tt: int, u: float) -> void:
+	var sb := StyleBoxFlat.new()
+	sb.set_corner_radius_all(roundi(14 * u))
+	for i in boutons.size():
+		var b: Array = boutons[i]
+		var r := Rect2(x, y, largeurs[i], h)
+		sb.bg_color = Color("#ffd400") if b[2] else Color("#1a1e2a")
+		sb.border_color = Color(1, 1, 1, 0.08)
+		sb.set_border_width_all(0 if b[2] else maxi(1, roundi(u)))
+		draw_style_box(sb, r)
+		var tw := _systeme.get_string_size(String(b[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, tt).x
+		draw_string(_systeme, Vector2(r.position.x + (r.size.x - tw) / 2, r.position.y + h / 2 + tt * 0.36), String(b[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, tt, Color("#1a1400") if b[2] else Color("#eef0f5"))
+		_boutonsHL.append([r.grow(4 * u), String(b[0])])
+		x += largeurs[i] + 8 * u
+
+
+func _coupe(t: String, taille: int, largeur: float) -> PackedStringArray:
+	var out := PackedStringArray()
+	var ligne := ""
+	for mot in t.split(" ", false):
+		var essai: String = mot if ligne == "" else ligne + " " + mot
+		if ligne != "" and _systeme.get_string_size(essai, HORIZONTAL_ALIGNMENT_LEFT, -1, taille).x > largeur:
+			out.append(ligne)
+			ligne = mot
+		else:
+			ligne = essai
+	if ligne != "": out.append(ligne)
+	return out

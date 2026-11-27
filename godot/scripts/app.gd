@@ -23,13 +23,13 @@ var enLigne = null                     # la course de la table en ligne (Net.onS
 
 func _ready() -> void:
 	# la version web s'appelle GRIP (outils/publie-web.sh pose le nom dans la page) : au démarrage, Godot
-	# remettait celui du projet (SLOTLESS) dans l'onglet, après le démarrage des scripts : on le change après lui
+	# remettait celui du projet dans l'onglet, après le démarrage des scripts : on le change après lui
 	if OS.has_feature("web"):
 		var nomPage := String(JavaScriptBridge.eval("(document.querySelector('meta[name=\"apple-mobile-web-app-title\"]') || {}).content || ''", true))
 		if nomPage != "":
 			DisplayServer.window_set_title.call_deferred(nomPage)
 			get_tree().create_timer(1.0).timeout.connect(func(): DisplayServer.window_set_title(nomPage))
-	_repriseGrip()
+	_reprise()
 	Catalogue.charge()
 	if FileAccess.file_exists(FICHIER):
 		var lu = JSON.parse_string(FileAccess.get_file_as_string(FICHIER))
@@ -157,18 +157,23 @@ func prepareDemarrage() -> void:
 		AudioServer.register_stream_as_sample(_demarrage.stream)
 
 
-## LE JEU S'APPELAIT GRIP — Racing the Line. Le dossier des sauvegardes porte le nom du projet : passé à
-## SLOTLESS, il change. Au premier lancement sous ce nom, on reprend ce que l'ancien dossier gardait —
-## réglages, records, palmarès, compte, décors téléchargés — pour ne rien perdre.
-const ANCIEN_NOM := "GRIP — Racing the Line"
+## LE DOSSIER DES SAUVEGARDES porte le nom du projet, sur ordinateur comme dans le navigateur
+## (/userfs/godot/app_userdata/<nom>, dans la base du site). Le jeu s'est appelé « GRIP — Racing the
+## Line », puis SLOTLESS, et s'appelle GRIP : au premier lancement sous ce nom, on reprend ce que le
+## dossier le plus récent gardait — réglages, records, palmarès, compte, décors téléchargés — pour ne
+## rien perdre. Les shaders compilés ne suivent pas : le moteur les refait.
+const ANCIENS_NOMS := ["SLOTLESS", "GRIP — Racing the Line"]     # du plus récent au plus ancien
 
 
-static func _repriseGrip() -> void:
-	if OS.has_feature("web") or OS.has_feature("mobile"): return
+static func _reprise() -> void:
+	if FileAccess.file_exists(FICHIER): return
 	var neuf := OS.get_user_data_dir()
-	var ancien := neuf.get_base_dir().path_join(ANCIEN_NOM)
-	if ancien == neuf or not DirAccess.dir_exists_absolute(ancien) or FileAccess.file_exists(FICHIER): return
-	_copieDossier(ancien, neuf)
+	for nom in ANCIENS_NOMS:
+		var ancien := neuf.get_base_dir().path_join(nom)
+		if ancien == neuf or not DirAccess.dir_exists_absolute(ancien): continue
+		if not FileAccess.file_exists(ancien.path_join(FICHIER.get_file())): continue
+		_copieDossier(ancien, neuf)
+		return
 
 
 static func _copieDossier(de: String, vers: String) -> void:
@@ -177,7 +182,7 @@ static func _copieDossier(de: String, vers: String) -> void:
 	if d == null: return
 	for f in d.get_files(): DirAccess.copy_absolute(de.path_join(f), vers.path_join(f))
 	for sd in d.get_directories():
-		if not sd.begins_with("."): _copieDossier(de.path_join(sd), vers.path_join(sd))
+		if not sd.begins_with(".") and sd != "shader_cache" and sd != "vulkan": _copieDossier(de.path_join(sd), vers.path_join(sd))
 
 
 ## Le volume général : le bus Master de Godot.

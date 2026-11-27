@@ -17,7 +17,7 @@ const LIGNE_JAUNE := Color("#ffd400")
 const LIGNE_BLEUE := Color("#50c8ff")
 
 ## Le logo du jeu dans tous les écrans : celui de GRIP (« remets le logo GRIP partout », pour la
-## publication sur itch.io et en production web). Celui de SLOTLESS reste à côté, pour Steam et iOS.
+## publication sur itch.io et en production web). Celui de SLOTLESS reste dans le dépôt, hors des exports.
 const LOGO := "res://images/interface/logo-grip.webp"
 
 static var _racing: FontFile

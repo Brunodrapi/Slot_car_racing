@@ -43,9 +43,13 @@ Le meilleur tour propre est gardé sur l'appareil, par circuit et par voiture.
 **Le logo est celui de GRIP**, partout : l'écran titre (les affiches du jeu web, l'invitation sur le toit
 de la voiture rouge), les menus, les bandeaux, la pause, les résultats, les réglages, l'image de
 démarrage et l'icône (`Style.LOGO`). Ceux de SLOTLESS restent dans `images/interface/`
-(`logo-slotless.webp`, `affiche-titre-*-slotless.webp`, `demarrage-slotless.png`), pour Steam et iOS.
-Le nom du projet (la fenêtre, l'exécutable, le dossier des sauvegardes) reste SLOTLESS ; la version web,
-elle, s'appelle GRIP (l'onglet et l'application installée, voir plus bas).
+(`logo-slotless.webp`, `affiche-titre-*-slotless.webp`, `demarrage-slotless.png`), hors des exports.
+
+**Le jeu s'appelle GRIP**, partout : le projet, la fenêtre, l'exécutable (`GRIP.exe`), l'onglet et
+l'application installée. Le dossier des sauvegardes porte le nom du projet, sur ordinateur comme dans
+le navigateur (`app_userdata/<nom>`) : au premier lancement sous ce nom, `App._reprise` reprend celui
+de SLOTLESS (ou, plus ancien, de « GRIP — Racing the Line ») — réglages, records, palmarès, compte,
+décors téléchargés. Le menu porte la version (`v0.56.25`, RECETTE en recette), comme celui du jeu web.
 
 **L'écran titre** porte, comme celui du jeu web, le dernier devlog sur son ticket crème (il ouvre
 itch.io sans entrer dans le jeu ; `Titre.DEVLOG`, à recopier de `DERNIER_DEVLOG` dans `js/ui.js` à
@@ -286,6 +290,17 @@ d'Apple (`apple-mobile-web-app-*`). Au téléphone, « Installer le jeu » ouvre
 téléphone, et le bouton « Installer GRIP » quand Chrome propose l'installation directe. Pour le
 photographier hors navigateur : `GRIP_ECRAN=installer GRIP_PLATEFORME=ios|android GRIP_INVITATION=1`
 avec `tests/accueil_photo.tscn`.
+
+**Le jeu hors ligne** (`scripts/hors_ligne.gd`, comme `js/maj.js` du jeu web) : l'écran titre propose de
+tout télécharger pour jouer sans réseau, avec la taille (le moteur, environ 85 Mo, et les décors des
+quatorze circuits, environ 66 Mo) ; « Non merci » ne le repropose plus, et la ligne « Jeu hors ligne »
+des réglages garde le bouton pour télécharger ou supprimer. Rien ne se télécharge sans accord : le
+moteur va dans le cache du service worker de Godot (`web/hors-ligne.js`, posé dans la page par
+`outils/publie-web.sh`), qui ne l'y range lui-même qu'une fois l'accord donné (la marque
+`grip-hors-ligne`) et le reporte d'une version à la suivante ; les décors vont dans les sauvegardes,
+là où une course range ceux qu'elle télécharge. Accepté, le jeu se complète tout seul au lancement
+suivant quand il manque quelque chose (une nouvelle version, un décor revu). Pour photographier les
+états sans navigateur : `GRIP_HORS_LIGNE=absent|installation|pret|erreur|indisponible`.
 
 La version Android n'a pas encore tourné sur un téléphone. Sa bibliothèque mathématique (bionic)
 n'arrondit pas le sinus exactement comme celle de Linux : on retrouvera donc des écarts du même

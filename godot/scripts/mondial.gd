@@ -551,9 +551,9 @@ func _repond(c: StreamPeerTCP, statut: int, html: String) -> void:
 
 
 func _page(message: String) -> String:
-	return "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'><title>SLOTLESS</title>" \
+	return "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width'><title>GRIP</title>" \
 		+ "<body style='background:#17171c;color:#f2e6ca;font:20px sans-serif;display:grid;place-items:center;height:90vh;text-align:center'>" \
-		+ "<div><b style='font-size:44px;font-style:italic'>SLOTLESS</b><p>%s</p></div>" % message
+		+ "<div><b style='font-size:44px;font-style:italic'>GRIP</b><p>%s</p></div>" % message
 
 
 static func _parametres(q: String) -> Dictionary:

@@ -4,9 +4,9 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1795812422|5626070';
+const CACHE_VERSION = '1795818035|11631204';
 /** @type {string} */
-const CACHE_PREFIX = 'SLOTLESS-sw-cache-';
+const CACHE_PREFIX = 'GRIP-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
 /** @type {string} */
 const OFFLINE_URL = 'index.offline.html';
@@ -19,17 +19,35 @@ const CACHED_FILES = ["index.html","index.js","index.offline.html","index.icon.p
 /** @type {string[]} */
 const CACHEABLE_FILES = ["index.wasm","index.pck","index.side.wasm","libgrip.web.template_release.wasm32.nothreads.wasm"];
 const FULL_CACHE = CACHED_FILES.concat(CACHEABLE_FILES);
+// GRIP, le jeu hors ligne (godot/web/hors-ligne.js) : la marque dit que le joueur a accepté de garder le
+// jeu sur l'appareil. Sans elle, le moteur ne va pas dans le cache ; une nouvelle version la reprend de
+// l'ancienne. Les caches de l'ancien nom du jeu (SLOTLESS) s'effacent avec les autres.
+const MARQUE = 'grip-hors-ligne';
+const ANCIENS_PREFIXES = ['SLOTLESS-sw-cache-'];
+function ancienCache(key) {
+	return (key.startsWith(CACHE_PREFIX) || ANCIENS_PREFIXES.some((p) => key.startsWith(p))) && key !== CACHE_NAME;
+}
+async function garderAccord(cache) {
+	for (const key of await caches.keys()) {
+		if (!ancienCache(key)) continue;
+		if (await (await caches.open(key)).match(MARQUE)) { await cache.put(MARQUE, new Response('1')); return; }
+	}
+}
+async function accordPour(cache, url) {
+	if (!CACHEABLE_FILES.some((f) => url.split('?')[0].endsWith('/' + f))) return true;
+	return !!(await cache.match(MARQUE));
+}
 
 self.addEventListener('install', (event) => {
 	self.skipWaiting();
-	event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(CACHED_FILES.map((f) => new Request(f, { cache: 'reload' })))));
+	event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(CACHED_FILES.map((f) => new Request(f, { cache: 'reload' }))).then(() => garderAccord(cache))));
 });
 
 self.addEventListener('activate', (event) => {
 	event.waitUntil(caches.keys().then(
 		function (keys) {
 			// Remove old caches.
-			return Promise.all(keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map((key) => caches.delete(key)));
+			return Promise.all(keys.filter((key) => ancienCache(key)).map((key) => caches.delete(key)));
 		}
 	).then(function () {
 		// Enable navigation preload if available.
@@ -80,7 +98,7 @@ async function fetchAndCache(event, cache, isCacheable) {
 		response = ensureCrossOriginIsolationHeaders(response);
 	}
 
-	if (isCacheable) {
+	if (isCacheable && await accordPour(cache, event.request.url)) {
 		// And update the cache
 		cache.put(event.request, response.clone());
 	}
@@ -122,7 +140,7 @@ self.addEventListener(
 						}
 					}
 				}
-				let cached = await cache.match(event.request);
+				let cached = await cache.match(event.request, { ignoreSearch: true }) || (isNavigate ? await cache.match(CACHED_FILES[0]) : undefined);
 				if (cached != null) {
 					if (ENSURE_CROSSORIGIN_ISOLATION_HEADERS) {
 						cached = ensureCrossOriginIsolationHeaders(cached);

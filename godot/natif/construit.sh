@@ -26,7 +26,7 @@ for t in template_debug template_release; do
   case $cible in windows|tout) build platform=windows use_mingw=yes target=$t ;; esac
   case $cible in android|tout) build platform=android arch=arm64 target=$t ndk_version="${NDK_VERSION:-27.2.12479018}" ;; esac
 done
-# Le navigateur : sans fils d'exécution (l'export web de SLOTLESS n'en a pas, pour l'iPhone), en module chargé
+# Le navigateur : sans fils d'exécution (l'export web de GRIP n'en a pas, pour l'iPhone), en module chargé
 # par le modèle « dlink » de Godot. Seulement la version publiée.
 case $cible in web|tout)
   source "${EMSDK:-/root/emsdk}/emsdk_env.sh" >/dev/null

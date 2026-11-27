@@ -29,6 +29,7 @@ var doigt: Doigt
 var L := {}
 var _police: Font
 var _gras: Font
+var _ticHL := -1
 
 
 func _ready() -> void:
@@ -91,6 +92,22 @@ func _ready() -> void:
 		b.pressed.connect(func(): (Mondial.sortir() if Mondial.connecte() else (Mondial.annuler() if Mondial.enCours else Mondial.entrer())))
 		cadre.add_child(b)
 		L.compte = b
+	# le jeu hors ligne (horsLigneLigne du jeu web) : ce qui est sur l'appareil, et le bouton pour le
+	# télécharger ou le supprimer ; seul le bouton agit, pas la ligne (toucher le texte ne supprime rien)
+	if OS.has_feature("web") or OS.get_environment("GRIP_HORS_LIGNE") != "":
+		var hl := Control.new()
+		hl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		hl.draw.connect(_dessineHorsLigne.bind(hl))
+		var bh := Bouton.new("", Color(0, 0, 0, 0), ACCENT, 13)
+		bh.coupe = 0
+		bh.set_meta("sansCadre", true)
+		bh.dessinPlus = _lienHorsLigne.bind(bh)
+		bh.pressed.connect(func(): (HorsLigne.supprimer() if HorsLigne.etat == "pret" else HorsLigne.telecharger()))
+		hl.add_child(bh)
+		cadre.add_child(hl)
+		L.horsLigne = hl
+		L.horsLigneBouton = bh
+		HorsLigne.verifier()
 	var bd := Bouton.new("", Color("#5865f2"), Color.WHITE, 18)
 	bd.dessinPlus = _discord.bind(bd)
 	bd.pressed.connect(func(): OS.shell_open(DISCORD_BUGS))
@@ -180,6 +197,10 @@ func _input(e: InputEvent) -> void:
 
 func _process(dt: float) -> void:
 	if portrait: doigt.avance(dt)
+	# le jeu hors ligne a changé (vérifié, téléchargé, en cours) : la ligne suit
+	if L.has("horsLigne") and HorsLigne.tic != _ticHL:
+		_ticHL = HorsLigne.tic
+		_place()
 
 
 func _defile(d: float) -> void:
@@ -234,6 +255,21 @@ func _place() -> void:
 	for i in lignes.size():
 		var v: String = (boutons[i].get_meta("valeur") as Callable).call()
 		cellules.append([lignes[i][0], boutons[i], _largeurListe(v), 40.0])
+	if L.has("horsLigne") and HorsLigne.etat != "dev":
+		var wc0 := larg if portrait else 580.0
+		var whl := wc0 - _largeur(Textes.t("hlTitre"), 16) - 16
+		var lh := HorsLigne.ligneReglages()
+		var lt := PackedStringArray()
+		for morceau in String(lh.texte).split("\n"): lt.append_array(_lignes(morceau, 13, whl))
+		L.horsLigneLignes = lt
+		L.horsLigneAction = String(lh.bouton)
+		var hh := 18.0 * lt.size() + (26.0 if L.horsLigneAction != "" else 0.0) + 4
+		var bh: Bouton = L.horsLigneBouton
+		bh.visible = L.horsLigneAction != ""
+		var tb := Textes.t("hlSupprimer" if L.horsLigneAction == "supprimer" else "hlTelecharger")
+		bh.size = Vector2(_largeur(tb, 13) + 6, 24)
+		bh.position = Vector2(whl - bh.size.x, hh - 26)
+		cellules.append(["hlTitre", L.horsLigne, whl, hh])
 	var cols := 1 if portrait else 2
 	var wc := larg if portrait else 580.0
 	L.libelles = []
@@ -288,6 +324,10 @@ func _place() -> void:
 	_defile(0)
 	for b in boutons: b.queue_redraw()
 	if L.has("compte"): (L.compte as Control).queue_redraw()
+	if L.has("horsLigne"):
+		(L.horsLigne as Control).visible = HorsLigne.etat != "dev"
+		(L.horsLigne as Control).queue_redraw()
+		(L.horsLigneBouton as Control).queue_redraw()
 	cadre.queue_redraw()
 	queue_redraw()
 
@@ -389,6 +429,25 @@ func _lienStats(b: Bouton) -> void:
 	b.draw_string(_police, Vector2(0, b.size.y / 2 + 5.5), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, c)
 	b.draw_line(Vector2(0, b.size.y / 2 + 9), Vector2(w, b.size.y / 2 + 9), c, 1.0)
 	BarreTitre.fleche(b, Vector2(w + 8, b.size.y / 2), Vector2(w + 22, b.size.y / 2), c, 1.6, 4.5)
+
+
+## La ligne du jeu hors ligne : l'état en petit, gris, collé à droite, sur une ou plusieurs lignes.
+func _dessineHorsLigne(c: Control) -> void:
+	var lt: PackedStringArray = L.get("horsLigneLignes", PackedStringArray())
+	for i in lt.size():
+		var w := _largeur(lt[i], 13)
+		c.draw_string(_police, Vector2(c.size.x - w, 2 + 18 * i + 13), lt[i], HORIZONTAL_ALIGNMENT_LEFT, -1, 13, MUET)
+
+
+## Son bouton (.link, .link.danger) : souligné, jaune pour télécharger, rouge pour supprimer.
+func _lienHorsLigne(b: Bouton) -> void:
+	var sup := String(L.get("horsLigneAction", "")) == "supprimer"
+	var t := Textes.t("hlSupprimer" if sup else "hlTelecharger")
+	var c := Color("#ff6b6b") if sup else ACCENT
+	var w := _largeur(t, 13)
+	var x := b.size.x - w - 1
+	b.draw_string(_police, Vector2(x, b.size.y / 2 + 4.5), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, c)
+	b.draw_line(Vector2(x, b.size.y / 2 + 6.5), Vector2(x + w, b.size.y / 2 + 6.5), c, 1.0)
 
 
 ## Le lien du compte : petit, gris, souligné, collé à droite.

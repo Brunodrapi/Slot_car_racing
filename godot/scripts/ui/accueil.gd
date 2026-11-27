@@ -344,7 +344,23 @@ func _draw() -> void:
 	if quitter.visible:
 		var qx := quitter.position.x
 		draw_line(Vector2(qx, pr.position.y + 8 * k), Vector2(qx, pr.end.y - 8 * k), Color("#f2e4c744"), 1.5 * k)
-	# la version, en bas
+	# la version, en bas (.home-version) : le numéro, et la pastille orange RECETTE en recette (canalBadge)
 	var v: Rect2 = _m.version
-	Style.texte(self, Textes.t("proto", [Catalogue.circuits().size(), Catalogue.donnees.voitures.size()]),
-		Vector2(v.position.x * k, v.end.y * k), roundi((9.0 if _m.portrait else 10.0) * k + 2), Color("#fff4da"))
+	var num := String(ProjectSettings.get_setting("application/config/version", ""))
+	if num != "":
+		var police := ThemeDB.fallback_font
+		var tv := roundi((9.0 if _m.portrait else 10.0) * k + 2)
+		var txt := "v" + num
+		var base := Vector2(v.position.x * k, v.end.y * k)
+		draw_string(police, base + Vector2(0, 1 * k), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, tv, Color(0, 0, 0, 0.6))
+		draw_string(police, base, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, tv, Color("#fff4da"))
+		if String(ProjectSettings.get_setting("grip/canal", "recette")) == "recette":
+			var tb := roundi(tv * 0.85)
+			var wb := police.get_string_size("RECETTE", HORIZONTAL_ALIGNMENT_LEFT, -1, tb).x + 12 * k
+			var hb := tb * 1.4
+			var rb := Rect2(base.x + police.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, tv).x + 6 * k, base.y - tv * 0.36 - hb / 2, wb, hb)
+			var sb := StyleBoxFlat.new()
+			sb.bg_color = Color("#ff7a1a")
+			sb.set_corner_radius_all(999)
+			draw_style_box(sb, rb)
+			draw_string(police, Vector2(rb.position.x + 6 * k, rb.position.y + hb / 2 + tb * 0.36), "RECETTE", HORIZONTAL_ALIGNMENT_LEFT, -1, tb, Color("#1a0d00"))
