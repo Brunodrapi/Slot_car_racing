@@ -29,6 +29,7 @@ class Carte extends Bouton:
 	var k := 1.0                         # pixels d'écran par pixel CSS
 	var colonne := false                 # une carte extra en colonne (téléphone) : l'icône au-dessus
 	var petit := ""                      # le « PILOTE : » avant le nom
+	var sous := ""                       # une ligne sous le nom (le championnat en cours)
 
 	func _draw() -> void:
 		var w := size.x
@@ -73,7 +74,10 @@ class Carte extends Bouton:
 				var tx := (114.0 if size.x > 400 * k else 90.0) * k
 				var sz := taille
 				while sz > 10 and Style.largeur(t, sz) > w * 0.9 - tx: sz -= 1
-				Style.texte(self, t, Vector2(tx, h / 2 + sz * 0.36), sz, encre)
+				if sous != "":
+					Style.texte(self, t, Vector2(tx, h / 2 + sz * 0.36 - 8 * k), sz, encre)
+					Tel.ecrit(self, sous, Vector2(tx, h / 2 + sz * 0.36 + 10 * k), roundi(14 * k), encre)
+				else: Style.texte(self, t, Vector2(tx, h / 2 + sz * 0.36), sz, encre)
 			"extra":
 				var poly2 := PackedVector2Array([Vector2(w * 0.05, 0), Vector2(w, 0), Vector2(w * 0.95, h), Vector2(0, h)])
 				draw_colored_polygon(poly2, Color("#fff8e8") if actif else Color("#fff0d2"))
@@ -118,10 +122,19 @@ func _ready() -> void:
 		[Textes.t("timeTrial"), Color("#f2c52c"), Color("#171b19"), "clock.webp", "timetrial"],
 		[Textes.t("training"), Color("#2f7fd6"), Color("#fff5dd"), "plaque-l.svg", "training"],
 		[Textes.t("multi"), Color("#12b974"), Color("#101b17"), "helmets.webp", "multi"]]
+	# au téléphone (la maquette) : le championnat devient un mode, et les symboles de Bruno — une manette
+	# pour la course rapide, la coupe, deux manettes pour le multijoueur
+	if Tel.actif():
+		defs[0][3] = "manette.webp"
+		defs[3][3] = "manettes.webp"
+		defs.insert(1, [Tel.t("championnat"), Color("#e2762a"), Color("#fff5dd"), "coupe.webp", "champ"])
 	for m in defs:
 		var b := _carte("mode", m[0], m[1], m[2])
 		b.icone = load("res://images/interface/" + m[3])
-		if m[4] == "multi": b.pressed.connect(func(): App.aller("salon"))
+		if m[4] == "champ":
+			b.pressed.connect(func(): App.aller("championnat"))
+			if ChampTel.enCours(): (b as Carte).sous = Tel.t("enCours", [ChampTel.numero(), ChampTel.nombre()])
+		elif m[4] == "multi": b.pressed.connect(func(): App.aller("salon"))
 		else: b.pressed.connect(func(): App.reglages.mode = m[4]; App.sauve(); App.aller("paddock", { mode = m[4] }))
 		modes.append(b)
 	var comment := _carte("extra", Textes.t("howto"), Color("#fff0d2"), Color("#171b19"))
@@ -235,9 +248,14 @@ func _place() -> void:
 		m.logo = Rect2(16, y, W - 32, lh)
 		y += lh + 10
 		var hc := clampf(H * 0.10, 68, 92)
+		var ecart := 9.0
+		if modes.size() > 4:
+			# cinq modes (le championnat) : des cartes un peu plus basses pour garder la barre du bas
+			hc = clampf(H * 0.085, 56, 80)
+			ecart = 8.0
 		for i in modes.size():
 			_pose(modes[i], Rect2(x, y, cw, hc), k, roundi(28 * k))      # mesuré : 28 px au téléphone
-			y += hc + 9
+			y += hc + ecart
 		y += 9 - 9 + 9
 		var ne := extras.size()
 		var ew := (cw - 7 * (ne - 1)) / ne

@@ -275,9 +275,24 @@ func aller(nom: String, opts: Dictionary = {}) -> void:
 		ecran.queue_free()
 	# la musique des menus : partout sauf en course
 	musique(nom != "course")
+	# au téléphone tenu debout, les écrans de la maquette (scripts/ui/tel) : le paddock sur un écran, le
+	# championnat comme un mode du menu, l'arrivée avec le classement
+	if Tel.actif():
+		var neuf: Control = null
+		var mode := String(opts.get("mode", reglages.mode))
+		if nom == "paddock" and mode == "race" and String(reglages.get("modeTel", "")) == "champ" and ChampTel.enCours(): mode = "champ"
+		if nom == "championnat" or (nom == "paddock" and mode == "champ"):
+			neuf = PaddockTel.new("champ") if ChampTel.enCours() else ChampionnatTel.new()
+		elif nom == "paddock" and mode in ["race", "timetrial", "training"]: neuf = PaddockTel.new(mode)
+		elif nom == "resultats" and derniereCourse != null and derniereCourse.netDrive == null: neuf = ResultatsTel.new(derniereCourse)
+		if neuf != null:
+			ecran = neuf
+			get_tree().root.add_child.call_deferred(ecran)
+			return
 	match nom:
 		"titre": ecran = Titre.new()
 		"accueil": ecran = Accueil.new()
+		"championnat": ecran = Paddock.new("race")
 		"paddock": ecran = Paddock.new(opts.get("mode", reglages.mode))
 		"course":
 			ecran = load("res://scenes/course.tscn").instantiate()
