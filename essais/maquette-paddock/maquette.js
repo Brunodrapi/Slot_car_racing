@@ -112,8 +112,8 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
     const c = circuit(), v = voiture();
     const course = enCourse(), champ = champEnCours();
     const ch = etat.champ;
-    // la course rapide : une seule course ; les réglages en bas, la fiche du circuit par son « i »
-    const rapide = etat.mode === 'race';
+    // la course rapide et le championnat : les réglages en bas, la fiche du circuit par son « i »
+    const rapide = enCourse();
     let pastilles;
     const jourNuit = `<button class="pastille" data-act="nuit" ${nuitPossible() ? '' : 'disabled'} aria-pressed="${nuit()}"><span class="lib">Moment</span><b>${nuit() ? '☾ Nuit' : '☀ Jour'}</b>${nuitPossible() ? '' : '<span class="note">Les F1 roulent de jour</span>'}</button>`;
     if (course) {
@@ -140,7 +140,7 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
         ${pastilles}
         ${rapide ? '' : '<div class="liens"><button data-act="feuille" data-id="reglages">Plus de réglages</button><button data-act="page-circuit">Chronos et fiche du circuit</button></div>'}
       </main>
-      <footer class="barre-bas">${rapide ? '<button class="chip" data-act="feuille" data-id="reglages">Réglages</button>' : ''}${resume}<button class="enpiste" data-act="enpiste">En piste ! →</button></footer>`;
+      <footer class="barre-bas${resume ? ' serree' : ''}">${rapide ? '<button class="chip" data-act="feuille" data-id="reglages">Réglages</button>' : ''}${resume}<button class="enpiste" data-act="enpiste">En piste ! →</button></footer>`;
   }
 
   // en bas du paddock et de la table, pendant un championnat : « Classement », et dessous ta place
@@ -498,7 +498,7 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
       <div class="defile">
         <p class="bareme"><b>Barème ${esc(nomCat(CH().cat))}</b> · ${esc(texteBareme())}</p>
         ${sectionsChamp(true)}
-        <p class="aide">${etat.table ? 'Le calendrier est figé jusqu\'à la fin. L\'hôte peut arrêter le championnat dans « Plus de réglages ».' : 'Le calendrier et la grille sont figés jusqu\'à la fin. Pour arrêter : « Plus de réglages », « Abandonner le championnat ».'}</p>
+        <p class="aide">${etat.table ? 'Le calendrier est figé jusqu\'à la fin. L\'hôte peut arrêter le championnat dans « Plus de réglages ».' : 'Le calendrier et la grille sont figés jusqu\'à la fin. Pour arrêter : « Réglages », « Abandonner le championnat ».'}</p>
       </div></div>`;
     el.querySelector('.defile').scrollTop = haut;
   }
@@ -605,7 +605,7 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
     'circuits-champ': () => { acteCircuit = 'champ-ajoute'; return ['Ajouter un circuit', contenuCircuits, 'haute']; },
     'circuits-table': () => { acteCircuit = 'table-circuit'; return ['Circuit de la table', contenuCircuits, 'haute']; },
     garage: () => ['Garage', contenuGarage, 'haute'],
-    reglages: () => [etat.table && etat.table.role !== 'hote' ? 'Réglages de la course' : !etat.table && etat.mode === 'race' ? 'Réglages' : 'Plus de réglages', contenuReglages, 'moyenne'],
+    reglages: () => [etat.table && etat.table.role !== 'hote' ? 'Réglages de la course' : !etat.table && enCourse() ? 'Réglages' : 'Plus de réglages', contenuReglages, 'moyenne'],
     freinage: () => ['Freinage', contenuFreinage, 'moyenne'],
     difficulte: () => ['Difficulté', contenuDifficulte, 'moyenne'],
     format: () => ['Format', contenuFormat, 'moyenne'],

@@ -5,8 +5,9 @@ l'option 1 de l'audit des écrans téléphone : un paddock sur un seul écran, e
 
 - **Paddock** : la carte du circuit (« i » pour sa fiche et ses chronos), la carte de la voiture, les
   flèches de livrée, trois pastilles (tours en « − + », difficulté, jour/nuit), et en bas « Réglages » et
-  EN PISTE. La course rapide est une seule course. Le contre-la-montre et l'entraînement gardent leurs deux
-  liens « Plus de réglages » et « Chronos et fiche du circuit ».
+  EN PISTE. La course rapide est une seule course. Le paddock du championnat a le même bas ; le
+  contre-la-montre et l'entraînement gardent leurs deux liens « Plus de réglages » et « Chronos et fiche
+  du circuit ».
 - **Circuit** : les 14 circuits en grille, leur difficulté en mots (Facile, Moyen, Difficile, Extrême,
   aux couleurs des pistes de ski). Un toucher choisit et referme.
 - **Garage** : la voiture en grand, ses livrées en vignettes, cinq barres sur une échelle commune aux
@@ -22,8 +23,8 @@ l'option 1 de l'audit des écrans téléphone : un paddock sur un seul écran, e
     (adversaires, ta place). Pas de classement ici : il n'y en a pas encore. « Lancer → ».
   - *son paddock* : celui de la course rapide, avec la course du calendrier (« Course 1/3 » sur la carte,
     qui ouvre le calendrier à lire ; tours figés), le garage limité à la catégorie, et en bas la pastille
-    « Classement, tu es 2e » qui ouvre le tableau complet. « Abandonner le championnat » est dans « Plus de
-    réglages ».
+    « Classement, tu es 2e » qui ouvre le tableau complet. « Abandonner le championnat » est dans
+    « Réglages ».
   - *l'arrivée* (EN PISTE, puis « Simuler l'arrivée ») : les trois premiers de la course et ta place,
     puis le classement du championnat (les cinq premiers et toi) avec les places gagnées ▲ ou perdues ▼.
     « Course suivante → », ou après la dernière, « Voir le podium → ».

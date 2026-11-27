@@ -67,6 +67,7 @@ const mesure = () => {
   await photo('18-championnat');
   await p.evaluate(() => document.querySelector('.app > .defile').scrollTop = 900); await photo('18b-championnat-bas');
   await touche('[data-act="champ-lancer"]'); await photo('19-paddock-championnat');
+  console.log('paddock du championnat : Réglages en bas, pas de liens =', await p.evaluate(() => !!document.querySelector('.barre-bas [data-id="reglages"]') && !document.querySelector('.liens')));
   await touche('[data-act="feuille"][data-id="classement"]'); await photo('19b-classement-vide'); await touche('.feuille [data-act="fermer"]');
   await touche('.carte-circuit'); await photo('19c-calendrier'); await touche('.page-circuit [data-act="fermer"]');
   await touche('[data-act="feuille"][data-id="garage"]'); await photo('19d-garage-championnat'); await touche('.feuille [data-act="fermer"]');

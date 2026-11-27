@@ -338,3 +338,6 @@ details.plus dd { margin: 0; font-weight: 700; text-align: right; }
 /* la pastille du classement sur deux étages, pour tenir à côté de Prêt et Départ */
 .barre-bas .chip.etage { display: grid; align-content: center; line-height: 1; padding: 4px 12px; text-align: left; }
 .barre-bas .chip.etage small { font-family: var(--texte); font-style: normal; font-weight: 700; font-size: 13px; text-transform: none; color: #ffd23c; margin-top: 3px; }
+/* trois boutons en bas (Réglages, Classement, EN PISTE) : EN PISTE reste sur une ligne */
+.barre-bas.serree { gap: 6px; }
+.barre-bas.serree .enpiste { white-space: nowrap; padding: 0 14px; font-size: 24px; }
