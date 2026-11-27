@@ -86,11 +86,20 @@ func _ready() -> void:
 		# La version web ne porte pas les décors : celui du circuit se télécharge une fois.
 		var couche0 := CanvasLayer.new()
 		add_child(couche0)
+		# Le texte prend tout l'écran et se centre dedans (ancré au centre par son coin, il grandissait
+		# vers la droite et sortait de l'écran d'un téléphone) ; sa taille suit la largeur ; il passe à la ligne.
 		chargement = Label.new()
-		chargement.add_theme_font_size_override("font_size", 34)
+		var cote := get_viewport().get_visible_rect().size
+		chargement.add_theme_font_size_override("font_size", roundi(clampf(minf(cote.x, cote.y) / 16.0, 22, 40)))
 		chargement.add_theme_color_override("font_color", Style.CREME)
-		chargement.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+		chargement.add_theme_color_override("font_outline_color", Color(0.06, 0.06, 0.07))
+		chargement.add_theme_constant_override("outline_size", 6)
+		chargement.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		chargement.offset_left = 24
+		chargement.offset_right = -24
 		chargement.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		chargement.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		chargement.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		chargement.text = Textes.t("loading", 0)
 		couche0.add_child(chargement)
 		var ok: bool = await Decor.telecharge(circuitId, self, func(f): chargement.text = Textes.t("loading", roundi(f * 100)))

@@ -122,7 +122,6 @@ func _draw() -> void:
 	var c := fond
 	if disabled and fondEteint.a > 0: c = fondEteint
 	elif _appui and c.a > 0: c = c.darkened(0.12) if c.v > 0.2 else c.lightened(0.12)
-	elif _appui: c = Color(0, 0, 0, 0.08)
 	if forme == Forme.ROND:
 		var r := minf(size.x, size.y) / 2
 		draw_circle(size / 2, r, c, true, -1, true)

@@ -39,7 +39,9 @@ func libelle(t: String) -> void:
 func _draw() -> void:
 	var r := Rect2(Vector2.ZERO, size)
 	var c := fond
-	if is_hovered() or has_focus(): c = c.lightened(0.12)
+	# au doigt, le survol et le focus restent sur ce qu'on a touché : pas d'éclaircissement ni de cadre
+	var doigt := Style.tactile()
+	if (is_hovered() or has_focus()) and not doigt: c = c.lightened(0.12)
 	if button_pressed or (is_pressed() and toggle_mode): c = c.darkened(0.1)
 	# éteint, il s'assombrit, sauf s'il pâlit (meta « fane » : le jeu web le rend à demi transparent)
 	if disabled and not get_meta("fane", false): c = c.darkened(0.3)
@@ -65,7 +67,7 @@ func _draw() -> void:
 	else:
 		Style.texte(self, t, Vector2(x, ty), sz, encre)
 	# un bouton qui dessine lui-même son cadre de focus (meta « sansCadre ») n'a pas celui-ci
-	if (choisi or has_focus()) and not get_meta("sansCadre", false):
+	if (choisi or (has_focus() and not doigt)) and not get_meta("sansCadre", false):
 		var o := Color(Style.LIGNE_JAUNE if has_focus() else Style.ROUGE)
 		var cut := minf(9, size.y * .23) if coupe < 0 else coupe
 		draw_polyline(PackedVector2Array([Vector2(cut, 1), Vector2(size.x - 1, 1), Vector2(size.x - cut, size.y - 1), Vector2(1, size.y - 1), Vector2(cut, 1)]), o, 3, true)

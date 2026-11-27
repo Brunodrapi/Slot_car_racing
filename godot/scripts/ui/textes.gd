@@ -5,7 +5,7 @@ extends RefCounted
 
 const FR := {
 	applySeries = "APPLIQUER", communityLaps = "TOURS TOTAUX", myTrackLaps = "MES TOURS", circuitPeak = "VITESSE MAX", carWeight = "POIDS",
-	quickRace = "COURSE RAPIDE", timeTrial = "CONTRE-LA-MONTRE", training = "ENTRAÎNEMENT",
+	quickRace = "COURSE RAPIDE", timeTrial = "CONTRE-LA-MONTRE", training = "ENTRAÎNEMENT", statistiques = "Statistiques publiques",
 	installGame = "INSTALLER LE JEU", installIOS = "Dans Safari, ouvre Partager, puis Sur l’écran d’accueil et Ajouter.",
 	installBrowser = "Dans le menu du navigateur, choisis Installer l’application ou Ajouter à l’écran d’accueil.",
 	howto = "COMMENT JOUER", settings = "RÉGLAGES", pilot = "PILOTE : %s", quit = "QUITTER", back = "‹ RETOUR",
@@ -20,7 +20,7 @@ const FR := {
 	signedInAs = "Connecté à Google · tes meilleurs tours partent au tableau mondial.",
 	recetteHorsTableau = "Connecté à Google · recette : tes temps restent ici, seuls ceux du jeu publié vont au tableau mondial.",
 	authFail = "La connexion a échoué : %s", authPort = "Le jeu n'a pas pu attendre le retour du navigateur (port local).",
-	authDelai = "Pas de retour du navigateur : connexion abandonnée.",
+	authDelai = "Pas de retour du navigateur : connexion abandonnée.", authVide = "revenu de chez Google sans session",
 	authSteam = "Steam n'a pas pu confirmer ton compte : tes temps restent ici.", signedInSteam = "Connecté avec Steam · tes meilleurs tours partent au tableau mondial.",
 	sending = "Envoi de tes temps au tableau mondial… %d sur %d.", sendingWait = "Envoi de tes temps… %d sur %d. Prochain dans %d s (le serveur les espace).",
 	sent = "%d temps envoyé(s) au tableau mondial.",
@@ -86,7 +86,7 @@ const FR := {
 	rgConnecte = "Connecté", rgSortir = "Se déconnecter", rgAnnuler = "Annuler", rgFr = "Français", rgEn = "English",
 	rgClavier = "Maintiens Espace pour accélérer, relâche pour freiner. ↑ / ↓ : trajectoire. Échap : pause.",
 	discordBug = "Signaler un bug ou faire une demande sur Discord",
-	howIntroTouch = "Un doigt pour la vitesse, un pouce pour la trajectoire.", howIntroKeys = "Une touche pour la vitesse, deux flèches pour la trajectoire.",
+	howIntroTouch = "Un doigt pour la vitesse, un doigt pour la trajectoire.", howIntroKeys = "Une touche pour la vitesse, deux flèches pour la trajectoire.",
 	howGasTitleTouch = "Appuie : ça accélère", howGasTitleKeys = "Espace enfoncée : ça accélère",
 	howGasTouch = "Pose le doigt n’importe où sur l’écran, hors du levier, et garde-le appuyé : la voiture accélère. La pastille vient sous ton doigt, la vitesse s’affiche juste au-dessus.",
 	howGasKeys = "Maintiens la barre Espace : la voiture accélère. Le tableau de bord, en bas de l’écran, donne la vitesse.",
@@ -130,7 +130,7 @@ const FR := {
 }
 const EN := {
 	applySeries = "APPLY", communityLaps = "TOTAL LAPS", myTrackLaps = "MY LAPS", circuitPeak = "TOP SPEED", carWeight = "WEIGHT",
-	quickRace = "QUICK RACE", timeTrial = "TIME TRIAL", training = "PRACTICE",
+	quickRace = "QUICK RACE", timeTrial = "TIME TRIAL", training = "PRACTICE", statistiques = "Public statistics",
 	installGame = "INSTALL GAME", installIOS = "In Safari, open Share, then Add to Home Screen and Add.",
 	installBrowser = "Open the browser menu and choose Install app or Add to Home screen.",
 	howto = "HOW TO PLAY", settings = "SETTINGS", pilot = "DRIVER: %s", quit = "QUIT", back = "‹ BACK",
@@ -145,7 +145,7 @@ const EN := {
 	signedInAs = "Signed in with Google · your best laps go to the world board.",
 	recetteHorsTableau = "Signed in with Google · test build: your times stay here, only the released game posts to the world board.",
 	authFail = "Sign-in failed: %s", authPort = "The game could not wait for the browser's answer (local port).",
-	authDelai = "No answer from the browser: sign-in abandoned.",
+	authDelai = "No answer from the browser: sign-in abandoned.", authVide = "back from Google without a session",
 	authSteam = "Steam could not confirm your account: your times stay here.", signedInSteam = "Signed in with Steam · your best laps go to the world board.",
 	sending = "Sending your times to the world board… %d of %d.", sendingWait = "Sending your times… %d of %d. Next in %d s (the server spaces them out).",
 	sent = "%d time(s) sent to the world board.",
@@ -211,7 +211,7 @@ const EN := {
 	rgConnecte = "Signed in", rgSortir = "Sign out", rgAnnuler = "Cancel", rgFr = "Français", rgEn = "English",
 	rgClavier = "Hold Space to accelerate; release to brake. ↑ / ↓: racing line. Esc: pause.",
 	discordBug = "Report a bug or make a request on Discord",
-	howIntroTouch = "One finger for speed, one thumb for your line.", howIntroKeys = "One key for speed, two arrows for your line.",
+	howIntroTouch = "One finger for speed, one finger for your line.", howIntroKeys = "One key for speed, two arrows for your line.",
 	howGasTitleTouch = "Press: you accelerate", howGasTitleKeys = "Hold Space: you accelerate",
 	howGasTouch = "Put a finger anywhere on the screen, away from the lever, and keep it down: the car accelerates. The pad comes under your finger and the speed shows just above it.",
 	howGasKeys = "Hold the Space bar: the car accelerates. The dashboard, at the bottom of the screen, shows your speed.",

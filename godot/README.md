@@ -87,7 +87,12 @@ arrêt au stand dans le vrai écran de course.
 - **la connexion Google** (paddock ou réglages) s'ouvre dans le navigateur de l'appareil et revient
   au jeu par une adresse locale (`http://localhost:<port>`, déjà autorisée dans Supabase) : c'est le
   flux PKCE, et la session se renouvelle seule. Les tours nets d'avant la connexion sont rattrapés,
-  espacés de seize secondes comme sur le web. La version web de Godot ne se connecte pas : elle lit.
+  espacés de seize secondes comme sur le web. **La version web de Godot** se connecte comme le jeu
+  web : la page part chez Google et revient sur elle-même, la session dans son fragment
+  (`#access_token=…`, lu au lancement puis effacé de la barre d'adresse). Cette adresse de retour doit
+  être autorisée dans Supabase (Authentication → URL Configuration → Redirect URLs). Dans un cadre
+  (itch.io), la page ne peut pas partir : la connexion n'y est pas proposée tant que le pont du jeu web
+  (`PONT_URL`) n'est pas repris pour Godot.
 
 **La version Steam se connecte toute seule**, par le ticket Steam du joueur : la fonction
 `supabase/functions/steam` le fait vérifier par Valve, donne au joueur un compte à lui (table

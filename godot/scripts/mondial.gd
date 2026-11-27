@@ -8,6 +8,11 @@
 ##    locale (http://localhost:<port>), déjà autorisée dans Supabase. C'est le flux PKCE : le jeu
 ##    garde un secret, Google et Supabase ne rendent qu'un code, que seul ce secret échange contre une
 ##    session. Rien à régler côté Supabase, et rien ne change pour le jeu web.
+##    Dans la VERSION WEB de Godot, comme dans le jeu web (js/mondial.js, entrer et _litRetour) : la page
+##    part chez Google et revient sur elle-même, la session dans son fragment (#access_token=…). Cette
+##    adresse de retour doit être autorisée dans Supabase, comme celle du jeu web. Dans un cadre
+##    (itch.io), la page ne peut pas partir : la connexion n'y est pas proposée (le jeu web y passe par
+##    un pont, PONT_URL, qui reste à faire pour Godot).
 ##
 ## Seule la version publiée (grip/canal = "prod") écrit au tableau ; la recette le lit, comme le web.
 ## Rien ici n'est indispensable : sans réseau, le tableau reste vide et la course continue.
@@ -50,6 +55,7 @@ var ouvreLien := func(u: String) -> void: OS.shell_open(u)
 
 func _ready() -> void:
 	_charge()
+	_litRetourWeb()
 	if connecte(): synchroPalmares.call_deferred()
 	# la version Steam se connecte toute seule, par le ticket Steam du joueur
 	elif SalleSteam.active(): entrerSteam.call_deferred()
@@ -66,9 +72,15 @@ func publie() -> bool:
 	return String(ProjectSettings.get_setting("grip/canal", "recette")) == "prod" or OS.get_environment("GRIP_MONDIAL_PUBLIE") == "1"
 
 
-## La connexion Google demande un navigateur à côté du jeu : pas dans la version web de Godot.
+## La connexion Google : partout, sauf dans la version web ouverte dans un cadre (itch.io), d'où la page
+## ne peut pas partir chez Google.
+static var _horsCadre = null
+
+
 func connexionPossible() -> bool:
-	return not OS.has_feature("web")
+	if not OS.has_feature("web"): return true
+	if _horsCadre == null: _horsCadre = bool(JavaScriptBridge.eval("window.self === window.top", true))
+	return _horsCadre
 
 
 func connecte() -> bool:
@@ -136,6 +148,9 @@ func _lis(circuit: String) -> void:
 ## locale le retour du navigateur, qui porte un code ; il l'échange contre une session (PKCE).
 func entrer() -> void:
 	if not connexionPossible(): return
+	if OS.has_feature("web"):
+		_entrerWeb()
+		return
 	annuler()
 	erreurConnexion = ""
 	var s := TCPServer.new()
@@ -155,6 +170,59 @@ func entrer() -> void:
 	enCours = true
 	_depuis = 0.0
 	change.emit()
+
+
+## Dans la version web : la page part chez Google et reviendra ici même (js/mondial.js, entrer). On
+## marque le départ, pour pouvoir dire au retour qu'il est revenu les mains vides.
+func _entrerWeb() -> void:
+	App.sauve()
+	_sauve()
+	erreurConnexion = ""
+	enCours = true
+	change.emit()
+	JavaScriptBridge.eval("(function(){try{sessionStorage.setItem('grip.godot.parti',String(Date.now()));}catch(e){}"
+		+ "var r=location.origin+location.pathname;location.href=%s+'/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(r);})()" % JSON.stringify(url()), true)
+
+
+## Au lancement de la version web : la page revient-elle de chez Google ? La session (ou l'erreur) est
+## dans le fragment de l'adresse ; on la prend, et on l'efface de la barre d'adresse (js/mondial.js,
+## _litRetour). Un départ marqué sans rien au retour est un échec, et on le dit.
+func _litRetourWeb() -> void:
+	if not OS.has_feature("web"): return
+	var brut = JavaScriptBridge.eval("(function(){var h=location.hash||'',q=location.search||'',p=0;"
+		+ "try{p=+(sessionStorage.getItem('grip.godot.parti')||0);sessionStorage.removeItem('grip.godot.parti');}catch(e){}"
+		+ "if(h.indexOf('access_token=')>=0||h.indexOf('error')>=0||/[?&](error|code)=/.test(q))history.replaceState(null,'',location.pathname);"
+		+ "return JSON.stringify({h:h.slice(1),q:q.slice(1),p:p,t:Date.now()});})()", true)
+	var d = JSON.parse_string(String(brut)) if brut != null else null
+	if not (d is Dictionary): return
+	var champs := {}
+	for morceau in (String(d.h) + "&" + String(d.q)).split("&", false):
+		var kv := morceau.split("=", true, 1)
+		if kv.size() == 2: champs[kv[0]] = kv[1].uri_decode()
+	if champs.has("error_description") or champs.has("error"):
+		erreurConnexion = String(champs.get("error_description", champs.get("error", ""))).replace("+", " ")
+	elif champs.has("access_token"):
+		var charge := _jwt(String(champs.access_token))
+		var meta: Dictionary = charge.get("user_metadata", {}) if charge.get("user_metadata") is Dictionary else {}
+		var expire := float(champs.get("expires_at", 0))
+		if expire <= 0: expire = Time.get_unix_time_from_system() + float(champs.get("expires_in", 3600))
+		session = { token = String(champs.access_token), refresh = String(champs.get("refresh_token", "")), expire = expire,
+			sub = String(charge.get("sub", "")), nom = String(meta.get("full_name", charge.get("email", ""))) }
+		erreurConnexion = ""
+		_sauve()
+		rattrape.call_deferred()
+	elif float(d.p) > 0 and float(d.t) - float(d.p) < 600000:
+		erreurConnexion = Textes.t("authVide")
+
+
+## La charge d'un jeton (JWT) : son milieu, en base64 d'URL.
+static func _jwt(jeton: String) -> Dictionary:
+	var parts := jeton.split(".")
+	if parts.size() < 2: return {}
+	var b := parts[1].replace("-", "+").replace("_", "/")
+	while b.length() % 4 != 0: b += "="
+	var d = JSON.parse_string(Marshalls.base64_to_raw(b).get_string_from_utf8())
+	return d if d is Dictionary else {}
 
 
 ## LA VERSION STEAM : la session vient du ticket Steam du joueur, vérifié par Valve côté serveur

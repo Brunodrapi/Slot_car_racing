@@ -10,6 +10,8 @@ class_name Reglages
 extends Control
 
 const DISCORD_BUGS := "https://discord.gg/hbwAzncc32"        # DISCORD_BUGS_URL du jeu web
+## Les statistiques publiques du jeu (le lien des réglages du jeu web, analytics.html), en production.
+const STATISTIQUES := "https://grip-game.github.io/analytics.html"
 const TEXTE := Color("#eef0f5")
 const MUET := Color("#9aa1b4")
 const CARTE := Color("#1a1e2a")
@@ -101,6 +103,14 @@ func _ready() -> void:
 	retour.pressed.connect(func(): App.aller("accueil"))
 	cadre.add_child(retour)
 	L.retour = retour
+	# les statistiques publiques, à côté du retour (le lien du jeu web)
+	var stats := Bouton.new("", Color(0, 0, 0, 0), TEXTE, 16)
+	stats.coupe = 0
+	stats.set_meta("sansCadre", true)
+	stats.dessinPlus = _lienStats.bind(stats)
+	stats.pressed.connect(func(): OS.shell_open(STATISTIQUES))
+	cadre.add_child(stats)
+	L.stats = stats
 	nom = LineEdit.new()
 	nom.text = R.nom
 	nom.max_length = 16
@@ -269,6 +279,9 @@ func _place() -> void:
 	y += 20 * (L.credit as PackedStringArray).size() + 30
 	(L.retour as Bouton).position = Vector2(x0, y)
 	(L.retour as Bouton).size = Vector2(_largeur(Textes.t("rgRetour"), 16) + 38, 46)
+	var ws := _largeur(Textes.t("statistiques"), 16) + 30
+	(L.stats as Bouton).position = Vector2(x0 + larg - ws, y)
+	(L.stats as Bouton).size = Vector2(ws, 46)
 	y += 46 + 20
 	hauteur = y
 	cadre.size = Vector2(W, hauteur)
@@ -366,6 +379,16 @@ func _seg(b: Bouton, t: String, choisi: bool) -> void:
 	sb.set_corner_radius_all(14)
 	b.draw_style_box(sb, Rect2(Vector2.ZERO, b.size))
 	b.draw_string(_police, Vector2(0, b.size.y / 2 + 5.5), t, HORIZONTAL_ALIGNMENT_CENTER, b.size.x, 16, Color("#1a1400") if choisi else TEXTE)
+
+
+## Le lien des statistiques publiques : souligné, avec sa flèche (la police ne l'a pas).
+func _lienStats(b: Bouton) -> void:
+	var t := Textes.t("statistiques")
+	var w := _largeur(t, 16)
+	var c := ACCENT if b.is_hovered() and not Style.tactile() else TEXTE
+	b.draw_string(_police, Vector2(0, b.size.y / 2 + 5.5), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, c)
+	b.draw_line(Vector2(0, b.size.y / 2 + 9), Vector2(w, b.size.y / 2 + 9), c, 1.0)
+	BarreTitre.fleche(b, Vector2(w + 8, b.size.y / 2), Vector2(w + 22, b.size.y / 2), c, 1.6, 4.5)
 
 
 ## Le lien du compte : petit, gris, souligné, collé à droite.

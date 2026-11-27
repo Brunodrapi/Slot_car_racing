@@ -34,7 +34,7 @@ class Carte extends Bouton:
 	func _draw() -> void:
 		var w := size.x
 		var h := size.y
-		var actif := has_focus() or is_hovered()
+		var actif := (has_focus() or is_hovered()) and not Style.tactile()
 		match genre:
 			"mode":
 				# l'ombre, la carte au coin droit biseauté (polygon 0 0, 96% 0, 100% 100%, 0 100%), le liseré
@@ -174,7 +174,7 @@ func _ready() -> void:
 	add_child(nom)
 	resized.connect(_place)
 	_place()
-	modes[0].grab_focus.call_deferred()
+	if not Style.tactile(): modes[0].grab_focus.call_deferred()
 
 
 func _installer() -> void:

@@ -408,9 +408,6 @@ static func garage(c: VBoxContainer, e: EcranTel, imposee := "", messageImpose :
 			lv.add_child(b)
 		c.add_child(lv)
 	c.add_child(stats(v, Catalogue.voiture(String(e.get("voitureAvant"))) if String(e.get("voitureAvant")) != String(v.id) else {}))
-	var avant := Catalogue.voiture(String(e.get("voitureAvant")))
-	if not avant.is_empty() and String(avant.id) != String(v.id): c.add_child(Tel.texte(Tel.t("legendeAvant", String(avant.nom)), 13))
-	else: c.add_child(Tel.texte(Tel.t("legendeEchelle", Catalogue.donnees.voitures.size()), 13))
 	var filtre := imposee if imposee != "" else String(e.get("filtreGarage"))
 	if imposee != "":
 		c.add_child(Tel.aide(messageImpose))
@@ -554,7 +551,7 @@ func _reglages(c: VBoxContainer) -> void:
 	regler.marges(14, 0, 14, 0)
 	regler.pressed.connect(_regler)
 	c.add_child(Tel.ligne(Tel.t("reglerFrein"), Tel.t("reglerTexte"), regler))
-	if mode == "timetrial": _ligneMondial(c)
+	_ligneMondial(c)
 	if champ():
 		var fleche := Tel.glyphe("droite", 16, Tel.VERT)
 		c.add_child(Tel.ligne(Tel.t("abandonner"), Tel.t("abandonnerTexte"), fleche, _ouvreAbandon, Tel.ROUGE))
