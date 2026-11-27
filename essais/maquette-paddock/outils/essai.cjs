@@ -56,33 +56,51 @@ const mesure = () => {
   await touche('[data-act="retour-depart"]'); await touche('[data-act="menu"]');
   await touche('[data-act="mode"][data-id="timetrial"]'); await photo('14-contre-la-montre');
   await touche('[data-act="menu"]'); await touche('[data-act="mode"][data-id="training"]'); await photo('15-entrainement');
-  // le championnat : trois courses, une reculée, des séances, lancé, une arrivée simulée, le classement
-  await touche('[data-act="menu"]'); await touche('[data-act="mode"][data-id="race"]');
-  await touche('[data-act="page-champ"]'); await photo('16-championnat-vide');
+  // le championnat, un mode du menu : son écran de départ, trois courses (une reculée), des séances,
+  // lancé ; le paddock du championnat, le classement, le calendrier ; trois arrivées, le podium ; l'abandon
+  await touche('[data-act="menu"]'); await photo('15b-menu'); await touche('[data-act="champ"]'); await photo('16-championnat-vide');
   for (const c of ['spa', 'monaco', 'zandvoort']) { await touche('[data-act="feuille"][data-id="circuits-champ"]'); await touche(`[data-act="champ-ajoute"][data-id="${c}"]`); await p.waitForTimeout(350); }
   await touche('[data-act="manche-tours"][data-id="1"][data-pas="1"]');
   await touche('[data-act="manche-menu"][data-id="0"]'); await photo('17-manche-menu'); await touche('[data-act="manche-descendre"]'); await p.waitForTimeout(350);
   for (let k = 0; k < 3; k++) await touche('[data-act="champ-seance"][data-id="qualifs"][data-pas="1"]');
+  await touche('[data-act="champ-place"][data-pas="1"]');
   await photo('18-championnat');
+  await p.evaluate(() => document.querySelector('.app > .defile').scrollTop = 900); await photo('18b-championnat-bas');
   await touche('[data-act="champ-lancer"]'); await photo('19-paddock-championnat');
+  await touche('[data-act="feuille"][data-id="classement"]'); await photo('19b-classement-vide'); await touche('.feuille [data-act="fermer"]');
+  await touche('.carte-circuit'); await photo('19c-calendrier'); await touche('.page-circuit [data-act="fermer"]');
+  await touche('[data-act="feuille"][data-id="garage"]'); await photo('19d-garage-championnat'); await touche('.feuille [data-act="fermer"]');
   await touche('[data-act="enpiste"]'); await photo('20-depart-championnat');
-  await touche('[data-act="champ-simuler"]'); await photo('21-arrivee');
-  await touche('[data-act="retour-depart"]'); await touche('[data-act="page-champ"]'); await photo('22-classement');
-  await touche('.page-circuit [data-act="fermer"]');
+  await touche('[data-act="champ-simuler"]'); await photo('21-arrivee-1');
+  await touche('[data-act="retour-depart"]'); await photo('22-paddock-course-2');
+  await touche('[data-act="enpiste"]'); await touche('[data-act="champ-simuler"]'); await photo('21b-arrivee-2');
+  await touche('[data-act="retour-depart"]'); await touche('[data-act="feuille"][data-id="classement"]'); await photo('22b-classement'); await touche('.feuille [data-act="fermer"]');
+  await touche('.carte-circuit'); await photo('22c-calendrier-3'); await touche('.page-circuit [data-act="fermer"]');
+  await touche('[data-act="enpiste"]'); await touche('[data-act="champ-simuler"]'); await photo('21c-arrivee-finale');
+  await touche('[data-act="champ-podium"]'); await photo('23-podium');
+  await touche('[data-act="champ-menu"]'); await photo('23b-menu-apres');
+  await touche('[data-act="champ"]'); console.log('après le podium, écran de départ =', await p.evaluate(() => !!document.querySelector('[data-act="champ-lancer"]')));
+  await touche('[data-act="champ-lancer"]'); await touche('[data-act="enpiste"]'); await touche('[data-act="champ-simuler"]'); await touche('[data-act="retour-depart"]');
+  await touche('.bandeau .retour'); await photo('23c-menu-en-cours'); await touche('[data-act="champ"]');
+  console.log('au menu, championnat repris =', await p.evaluate(() => (document.querySelector('.carte-circuit .changer') || {}).textContent));
+  await touche('[data-act="feuille"][data-id="reglages"]'); await photo('23d-reglages-championnat');
+  await touche('[data-act="feuille"][data-id="abandon"]'); await photo('23e-abandon'); await touche('[data-act="champ-abandon"]'); await p.waitForTimeout(400);
+  console.log('abandon : menu =', await p.evaluate(() => !!document.querySelector('.menu')), 'feuilles ouvertes =', await p.evaluate(() => document.querySelectorAll('.feuille.ouverte').length));
+  await touche('[data-act="mode"][data-id="race"]'); console.log('course rapide sans championnat =', await p.evaluate(() => !document.querySelector('.barre-bas .chip')));
   // le multijoueur : l'entrée, une table créée (les amis arrivent), prêt, les réglages de l'hôte, quitter, rejoindre
-  await touche('[data-act="menu"]'); await touche('[data-act="multi"]'); await photo('23-multi');
+  await touche('[data-act="menu"]'); await touche('[data-act="multi"]'); await photo('24-multi');
   await p.locator('#code').fill('ab'); console.log('code incomplet, Rejoindre désactivé =', await p.locator('[data-act="table-rejoindre"]').isDisabled());
-  await touche('[data-act="table-creer"]'); await p.waitForTimeout(9000); await photo('24-table-hote');
-  await touche('[data-act="pret"]'); await photo('25-table-prets');
-  await touche('.pilotes-barre'); await photo('26-pilotes'); await touche('.feuille [data-act="fermer"]');
-  await touche('[data-act="feuille"][data-id="format"]'); await photo('26b-format'); await touche('[data-act="table-format"][data-id="duel"]'); await p.waitForTimeout(350);
-  await touche('.carte-circuit'); await photo('26c-circuit-table'); await touche('[data-act="table-circuit"][data-id="spa"]'); await p.waitForTimeout(350);
-  await touche('[data-act="feuille"][data-id="reglages"]'); await photo('26d-reglages-table'); await touche('.feuille [data-act="fermer"]');
-  await touche('[data-act="feuille"][data-id="categorie"]'); await photo('26f-categorie'); await touche('[data-act="table-cat"][data-id="gt3"]'); await p.waitForTimeout(350); await photo('26e-table-duel');
-  await touche('.bandeau .retour'); await photo('27-quitter'); await touche('[data-act="table-quitter"]'); await p.waitForTimeout(400);
-  await p.locator('#code').fill('xk7p'); await touche('[data-act="table-rejoindre"]'); await photo('28-table-invite');
-  await touche('[data-act="feuille"][data-id="reglages"]'); await photo('28b-reglages-invite'); await touche('.feuille [data-act="fermer"]');
-  await touche('[data-act="pret"]'); await p.waitForTimeout(3200); await photo('29-depart-invite');
+  await touche('[data-act="table-creer"]'); await p.waitForTimeout(9000); await photo('25-table-hote');
+  await touche('[data-act="pret"]'); await photo('26-table-prets');
+  await touche('.pilotes-barre'); await photo('27-pilotes'); await touche('.feuille [data-act="fermer"]');
+  await touche('[data-act="feuille"][data-id="format"]'); await photo('27b-format'); await touche('[data-act="table-format"][data-id="duel"]'); await p.waitForTimeout(350);
+  await touche('.carte-circuit'); await photo('27c-circuit-table'); await touche('[data-act="table-circuit"][data-id="spa"]'); await p.waitForTimeout(350);
+  await touche('[data-act="feuille"][data-id="reglages"]'); await photo('27d-reglages-table'); await touche('.feuille [data-act="fermer"]');
+  await touche('[data-act="feuille"][data-id="categorie"]'); await photo('27f-categorie'); await touche('[data-act="table-cat"][data-id="gt3"]'); await p.waitForTimeout(350); await photo('27e-table-duel');
+  await touche('.bandeau .retour'); await photo('28-quitter'); await touche('[data-act="table-quitter"]'); await p.waitForTimeout(400);
+  await p.locator('#code').fill('xk7p'); await touche('[data-act="table-rejoindre"]'); await photo('29-table-invite');
+  await touche('[data-act="feuille"][data-id="reglages"]'); await photo('29b-reglages-invite'); await touche('.feuille [data-act="fermer"]');
+  await touche('[data-act="pret"]'); await p.waitForTimeout(3200); await photo('30-depart-invite');
   await touche('[data-act="retour-depart"]'); await touche('.bandeau .retour'); await touche('[data-act="table-quitter"]'); await p.waitForTimeout(400);
   await touche('[data-act="menu"]'); await touche('[data-act="mode"][data-id="race"]');
   // un geste vers le bas ferme une feuille
