@@ -350,3 +350,5 @@ details.plus dd { margin: 0; font-weight: 700; text-align: right; }
 .barre-bas .enpiste.pret { background: var(--vert); }
 /* sur les écrans les plus étroits (360 points), le titre du bandeau tient en entier */
 @media (max-width: 374px) { .bandeau h1 { font-size: 20px; padding: 0 12px; } .bandeau h1.long { font-size: 17px; } .bandeau .logo { width: 72px; } }
+/* les symboles du menu dans un même carré, quelle que soit leur forme (la manette est haute, la coupe large) */
+.mode img { width: 46px; height: 46px; object-fit: contain; flex: none; }

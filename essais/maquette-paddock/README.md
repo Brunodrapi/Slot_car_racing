@@ -48,7 +48,9 @@ l'option 1 de l'audit des écrans téléphone : un paddock sur un seul écran, e
   sont simulés : à une table créée, Léa et Marco arrivent puis se déclarent prêts ; à une table
   rejointe, l'hôte lance la course quand tu es prêt.
 
-Les cinq entrées s'ouvrent du petit menu. Une feuille
+Les cinq entrées s'ouvrent du petit menu. Ses symboles : une manette pour la course rapide, la coupe
+pour le championnat, deux manettes pour le multijoueur (les originaux recadrés dans `art/menu/`, leur
+version de 256 px dans `art/interface/`, comme les autres icônes du jeu). Une feuille
 se ferme par « Fermer », d'un geste vers le bas, en touchant le fond, ou par le retour du navigateur.
 Les choix restent dans le navigateur.
 

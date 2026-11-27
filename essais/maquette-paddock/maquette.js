@@ -75,17 +75,15 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
       <h1 class="titre${titre.length > 13 ? ' long' : ''}">${esc(titre)}</h1><span class="logo"><img src="${RACINE}art/interface/logo-grip.webp" alt="GRIP"></span></header>`;
   }
 
-  // la coupe du championnat (le jeu n'a pas d'image pour elle) : un trait d'encre sur du papier, comme les autres
-  const COUPE = `<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 6h20v9c0 7-4 12-10 12S14 22 14 15z" fill="#fbf4e2" stroke="#171b19" stroke-width="3" stroke-linejoin="round"/><path d="M14 10H7c0 7 3 11 8 11M34 10h7c0 7-3 11-8 11" fill="none" stroke="#171b19" stroke-width="3" stroke-linecap="round"/><path d="M21 27h6v7h-6zM15 34h18v7H15z" fill="#fbf4e2" stroke="#171b19" stroke-width="3" stroke-linejoin="round"/><path d="M24 10l1.6 3.3 3.6.5-2.6 2.5.6 3.6-3.2-1.7-3.2 1.7.6-3.6-2.6-2.5 3.6-.5z" fill="#d0342b"/></svg>`;
   function rendMenu() {
     const ch = etat.champ;
     app.innerHTML = `<div class="menu">
       <img class="logo-grand" src="${RACINE}art/interface/logo-grip.webp" alt="GRIP — Racing the Line">
-      <button class="mode rouge titre" data-act="mode" data-id="race"><img src="${RACINE}art/interface/wheel.webp" alt="">Course rapide</button>
-      <button class="mode orange titre" data-act="champ">${COUPE}<span>Championnat${ch.actif ? `<small>En cours · course ${ch.index + 1}/${ch.calendrier.length}</small>` : ''}</span></button>
+      <button class="mode rouge titre" data-act="mode" data-id="race"><img src="${RACINE}art/interface/manette.webp" alt="">Course rapide</button>
+      <button class="mode orange titre" data-act="champ"><img src="${RACINE}art/interface/coupe.webp" alt=""><span>Championnat${ch.actif ? `<small>En cours · course ${ch.index + 1}/${ch.calendrier.length}</small>` : ''}</span></button>
       <button class="mode jaune titre" data-act="mode" data-id="timetrial"><img src="${RACINE}art/interface/clock.webp" alt="">Contre-la-montre</button>
       <button class="mode bleu titre" data-act="mode" data-id="training"><img src="${RACINE}art/interface/plaque-l.svg" alt="">Entraînement</button>
-      <button class="mode vert titre" data-act="multi"><img src="${RACINE}art/interface/helmets.webp" alt="">Multijoueur</button>
+      <button class="mode vert titre" data-act="multi"><img src="${RACINE}art/interface/manettes.webp" alt="">Multijoueur</button>
       <p class="avertissement"><b>Maquette des écrans téléphone.</b> Aucune course ne part. Les circuits, voitures et livrées sont ceux du jeu ; les chronos, les arrivées et les amis du multijoueur sont simulés.</p>
     </div>`;
   }
