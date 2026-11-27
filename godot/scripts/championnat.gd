@@ -34,12 +34,30 @@ static func programme(options: Dictionary, circuit: String, tours: int, graine: 
 	var calendrier: Array = options.get("circuits", [])
 	if calendrier.is_empty(): calendrier = [circuit]
 	var manches := []
+	# Le championnat de contre-la-montre (la table du téléphone, « clm ») : chaque manche est une séance
+	# de qualifications de quelques minutes, sans course ; le meilleur tour de chacun fait le classement.
+	var clm := bool(options.get("clm", false))
 	for index in calendrier.size():
 		for phase in ["essais", "qualifications", "course"]:
 			var duree := clampi(int(options.get(phase, 0)), 0, 60)
+			if clm and phase == "qualifications": duree = minutesManche(options, index)
+			if clm and phase == "course": continue
 			if phase == "course" or duree > 0:
 				manches.append({ circuit = calendrier[index], phase = phase, duree = duree * 60, tours = toursManche(options, index, tours) })
-	return { manches = manches, index = 0, points = {}, pole = [], positions = options.get("positions", {}).duplicate(), graine = graine, bareme = cleBareme(cat) }
+	var p := { manches = manches, index = 0, points = {}, pole = [], positions = options.get("positions", {}).duplicate(), graine = graine, bareme = cleBareme(cat) }
+	if clm: p.clm = true
+	return p
+
+
+static func minutesManche(options: Dictionary, index: int) -> int:
+	var m: Array = options.get("minutesParManche", [])
+	var v := int(m[index]) if index < m.size() else 0
+	return clampi(v if v > 0 else 10, 1, 60)
+
+
+## La séance qui compte au classement : la course, ou en contre-la-montre la séance de qualifications.
+static func compte(championnat: Dictionary, phase: String) -> bool:
+	return phase == "course" or (bool(championnat.get("clm", false)) and phase == "qualifications")
 
 
 static func actif(options: Dictionary) -> bool:
@@ -104,12 +122,14 @@ static func attribue(championnat: Dictionary, course: Course) -> Dictionary:
 	var bareme := String(championnat.get("bareme", "gt"))
 	var pointsCourse: Array = {"f1": POINTS_F1, "gt": POINTS_GT, "lemans": POINTS_LE_MANS}.get(bareme, POINTS_GT)
 	if course.phase == "qualifications": resultat.pole = []
+	var clm := bool(championnat.get("clm", false))
 	for i in course.results.size():
 		var ligne: Dictionary = course.results[i]
 		var id := cle(course, course.cars.find(ligne.car))
 		var classe: bool = not ligne.car.abandon if course.phase == "course" else ligne.meilleur > 0
 		var points := 0.0
 		if classe and course.phase == "course" and i < pointsCourse.size(): points = float(pointsCourse[i])
+		elif classe and clm and course.phase == "qualifications" and i < pointsCourse.size(): points = float(pointsCourse[i])
 		elif classe and course.phase == "qualifications" and i == 0 and bareme != "f1": points = 1.0
 		if classe and course.phase == "qualifications": resultat.pole.append(id)
 		ligne.points = points

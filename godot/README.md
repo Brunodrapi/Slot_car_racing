@@ -129,6 +129,47 @@ Les commandes :
 - **Doigt** : le levier en bas à gauche (ou à droite, selon les réglages) pour la ligne, n'importe où
   ailleurs pour les gaz.
 
+## Le téléphone : les écrans de la maquette
+
+Au téléphone tenu debout, les écrans de la maquette (`essais/maquette-paddock` de la recette)
+remplacent ceux d'avant ; l'ordinateur, et une tablette couchée, gardent les leurs. Tout est dans
+`scripts/ui/tel/`, dessiné à l'échelle d'un téléphone de 390 points de large, avec les couleurs et
+les tailles de la maquette.
+
+- **Le menu** : cinq modes, avec les symboles de Bruno (une manette pour la course rapide, la coupe
+  du championnat, deux manettes pour le multijoueur) ; le championnat en cours le dit.
+- **Le paddock sur un seul écran** (course rapide, contre-la-montre, entraînement) : la carte du
+  circuit et son chrono (la fiche et les chronos), la voiture et ses livrées, trois pastilles, et en
+  bas « Réglages » et EN PISTE. Le circuit, le garage (cinq barres sur une échelle commune aux 35
+  voitures), les réglages, la difficulté et le freinage s'ouvrent en feuilles, qui se ferment par
+  « Fermer », d'un geste vers le bas, en touchant le voile ou par le retour de l'appareil.
+- **Le championnat**, sur le moteur du jeu (`Championnat`) : son écran de départ (la voiture, sa
+  catégorie fait le barème ; le calendrier de dix courses au plus ; les séances à la minute ; la
+  grille), puis son paddock (la course du calendrier, le garage limité à la catégorie, « Classement »
+  en bas) ; l'arrivée montre la course puis le classement avec les places gagnées ou perdues ; après
+  la dernière, le podium. À égalité de points, le plus de victoires passe devant. Il est gardé dans
+  les réglages (`championnatTel`) et survit à la fermeture du jeu.
+- **Le multijoueur**, sur les mêmes tables que le jeu web : la table est le paddock, avec la barre des
+  pilotes ; deux formats, la course (sans IA, c'est le format « duel » de la table) et le
+  contre-la-montre ; l'hôte (★) n'a pas de « Prêt » : Départ le vaut. Le championnat de la table se
+  prépare (calendrier, séances) et part au Départ ; en contre-la-montre, chaque manche est une séance
+  de qualifications dont le meilleur tour fait les points (`clm` dans le championnat ; proposé
+  seulement quand tous les pilotes ont la version Godot, le jeu web ne le connaissant pas).
+
+| | ce qui est vérifié |
+|---|---|
+| `tests/tel_photo.tscn` | chaque écran solo photographié, et deux courses de championnat menées jusqu'au podium |
+| `tests/table_tel_photo.tscn` | la table sur une salle factice (deux amis simulés) : hôte, duel, championnat de table en course et en contre-la-montre, invité |
+| `tests/championnat_clm.gd` | les séances du championnat de contre-la-montre et ce qui compte au classement |
+
+```
+GRIP_TACTILE=1 xvfb-run -a -s "-screen 0 1170x1992x24" godot --path godot --resolution 1170x1992 res://tests/tel_photo.tscn -- <dossier>
+GRIP_TACTILE=1 xvfb-run -a -s "-screen 0 1170x1992x24" godot --path godot --resolution 1170x1992 res://tests/table_tel_photo.tscn -- <dossier>
+```
+
+`GRIP_LANGUE=en` les fait en anglais. `GRIP_TEL=0` rend les écrans d'avant au téléphone, pour leurs
+essais (`tests/paddock_tel_photo.tscn`, `tests/salon_tel_photo.tscn`, `tests/paddock_doigt.tscn`…).
+
 ## La physique est la même : la preuve
 
 ```
@@ -363,6 +404,7 @@ NODE_PATH=$(npm root -g) node godot/outils/essai-croise.js <recette> natif:godot
 | `scripts/hud.gd` | le tableau de bord |
 | `scripts/son.gd`, `scripts/effets.gd` | le son, la gomme et la fumée |
 | `scripts/app.gd`, `scripts/ui/` | les réglages gardés et les écrans |
+| `scripts/ui/tel/` | les écrans du téléphone (la maquette) : paddock, feuilles, championnat, table, arrivée |
 | `scripts/reseau/` | le multijoueur (voir plus haut) |
 | `tests/parite.gd` | la preuve de la physique et de la course |
 | `tests/visite.tscn` | une visite photographiée des écrans (Xvfb) |

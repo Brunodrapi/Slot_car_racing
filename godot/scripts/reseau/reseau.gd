@@ -37,7 +37,7 @@ func _invite(lobby: int) -> void:
 	App.enLigne = null
 	App.aller("salon")
 	await get_tree().process_frame
-	if App.ecran is Salon: App.ecran.rejoins(code)
+	if App.ecran is Salon or App.ecran is SalonTel: App.ecran.rejoins(code)
 
 
 func _process(delta: float) -> void:

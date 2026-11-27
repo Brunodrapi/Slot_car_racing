@@ -88,13 +88,13 @@ static func courues() -> int:
 
 
 ## Le classement : les points, puis à égalité le plus de victoires, de deuxièmes places, etc.
-static func classement(prog := {}) -> Array:
+static func classement(prog := {}, moiCle := "joueur") -> Array:
 	var p: Dictionary = prog if not prog.is_empty() else programme()
-	var places: Dictionary = etat().get("places", {})
+	var places: Dictionary = etat().get("places", {}) if moiCle == "joueur" else {}
 	var liste := []
 	var points: Dictionary = p.get("points", {})
 	for cle in points:
-		liste.append({ cle = cle, nom = String(points[cle].nom), pts = float(points[cle].total), moi = cle == "joueur" })
+		liste.append({ cle = cle, nom = String(points[cle].nom), pts = float(points[cle].total), moi = cle == moiCle })
 	liste.sort_custom(func(a, b):
 		if a.pts != b.pts: return a.pts > b.pts
 		var pa: Array = (places.get(a.cle, []) as Array).duplicate()
@@ -166,3 +166,17 @@ static func seanceSuivante() -> void:
 	App.reglages.adversaires = int(etat().get("adversaires", App.reglages.adversaires))
 	App.demarre()
 	App.aller("course")
+
+
+## Les mêmes comptes pour un championnat quelconque (celui d'une table) : les séances qui comptent au
+## classement (la course, ou en contre-la-montre les qualifications), et celle qui vient.
+static func nombreDe(p: Dictionary) -> int:
+	return (p.get("manches", []) as Array).filter(func(m): return Championnat.compte(p, String(m.phase))).size()
+
+
+static func numeroDe(p: Dictionary) -> int:
+	var n := 1
+	var ms: Array = p.get("manches", [])
+	for j in mini(int(p.get("index", 0)), ms.size()):
+		if Championnat.compte(p, String(ms[j].phase)): n += 1
+	return mini(n, maxi(1, nombreDe(p)))

@@ -100,7 +100,7 @@ func open(nom: String, asHost: bool, code_: String = "", spectator := false) -> 
 		if asHost:
 			table.go = 0
 			table.championnat = {}
-		mine = { pid = pid, protocol = DRIVE_PROTOCOL, grilleIA = true, programmeCourse = 2, name = nom if nom != "" else "Pilote", car = null, ready = false,
+		mine = { pid = pid, protocol = DRIVE_PROTOCOL, grilleIA = true, programmeCourse = 2, championnatClm = 1, name = nom if nom != "" else "Pilote", car = null, ready = false,
 			spectator = not asHost and spectator }
 		room.onPeers(func(_p) -> void: peers = room.peers(); pump())
 		var err: String = await room.claim(code, asHost)
@@ -200,8 +200,12 @@ func setMine(patch: Dictionary) -> void:
 
 func grilleCompatible(t: Dictionary) -> bool:
 	var supporteIA: bool = t.get("mode") != "race" or int(t.get("aiCount", -1)) < 0 or members().all(func(m): return m.q.get("grilleIA", false))
-	var programme: bool = not t.get("championnat", {}).is_empty() or (t.get("mode") in ["race", "duel"] and Championnat.actif(t.get("programme", {})))
-	return supporteIA and (not programme or members().all(func(m): return int(m.q.get("programmeCourse", 0)) >= 2))
+	var programme: bool = not t.get("championnat", {}).is_empty() or (t.get("mode") in ["race", "duel"] and Championnat.actif(t.get("programme", {}))) \
+		or (t.get("mode") == "ghost" and bool(t.get("programme", {}).get("clm", false)))
+	# le championnat de contre-la-montre n'est connu que de la version Godot : tous les pilotes doivent l'avoir
+	var clm: bool = bool(t.get("championnat", {}).get("clm", false)) or (t.get("mode") == "ghost" and bool(t.get("programme", {}).get("clm", false)))
+	return supporteIA and (not programme or members().all(func(m): return int(m.q.get("programmeCourse", 0)) >= 2)) \
+		and (not clm or members().all(func(m): return int(m.q.get("championnatClm", 0)) >= 1))
 
 
 func canStart() -> bool:
@@ -225,7 +229,8 @@ func start() -> void:
 	var options: Dictionary = table.get("programme", {})
 	var programme: Dictionary = table.get("championnat", {})
 	var go := int(SalleRTC.maintenant())
-	if programme.is_empty() and table.mode in ["race", "duel"] and Championnat.actif(options):
+	var clm: bool = table.mode == "ghost" and bool(options.get("clm", false))
+	if programme.is_empty() and ((table.mode in ["race", "duel"] and Championnat.actif(options)) or clm):
 		var categorie := Championnat.categorieTable(table, String(mine.car.get("modelId", "")))
 		programme = Championnat.programme(options, String(table.trackId), int(table.laps), go % 100000, categorie)
 		programme.pilotes = members().filter(func(m): return not m.q.get("spectator", false)).slice(0, NET_SEATS).map(func(m): return [m.pid, m.car])

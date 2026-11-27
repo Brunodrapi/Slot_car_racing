@@ -8,6 +8,9 @@ var course: Course
 var champ := false            # le championnat seul, au téléphone
 var estCourse := true
 var podium := false
+var enLigne := false          # une course de table
+var champTable := false       # … d'un championnat de la table
+var avantTable := {}          # le championnat de la table avant cette séance
 
 
 func _init(c: Course) -> void:
@@ -16,14 +19,52 @@ func _init(c: Course) -> void:
 
 
 func _ready() -> void:
-	champ = String(App.reglages.get("modeTel", "")) == "champ" and course.netDrive == null and not App.championnatResultats.is_empty()
+	enLigne = course.netDrive != null
+	champ = not enLigne and String(App.reglages.get("modeTel", "")) == "champ" and not App.championnatResultats.is_empty()
+	champTable = enLigne and not App.championnatResultats.is_empty()
 	if champ: estCourse = ChampTel.apresSeance(course)
+	elif champTable:
+		avantTable = App.enLigne.get("championnat", {}) if App.enLigne != null else {}
+		estCourse = Championnat.compte(avantTable, course.phase)
 	else: estCourse = course.phase == "course"
 	super()
 
 
+## L'hôte continue d'envoyer le classement aux invités pendant que les résultats s'affichent.
+func _process(_dt: float) -> void:
+	var d = course.netDrive
+	if d != null and d.host and Reseau.net.state == "playing": d.afterFrame(0.0, 0.0)
+
+
 func retour() -> void:
-	_paddock()
+	if enLigne: App.retourTable()
+	else: _paddock()
+
+
+## Le classement du championnat montré ici : le seul, ou celui de la table.
+func _classement() -> Array:
+	if champTable: return ChampTel.classement(App.championnatResultats, Reseau.net.pid)
+	return ChampTel.classement()
+
+
+func _avant() -> Dictionary:
+	if not champTable: return ChampTel.etat().get("avant", {})
+	var avant := {}
+	if not (avantTable.get("points", {}) as Dictionary).is_empty():
+		var cl := ChampTel.classement(avantTable, "")
+		for i in cl.size(): avant[cl[i].cle] = i + 1
+	return avant
+
+
+func _fini() -> bool:
+	if champTable: return not Championnat.suite(App.championnatResultats)
+	return not ChampTel.enCours()
+
+
+## Les courses (ou manches) courues après celle-ci, et leur nombre.
+func _compte() -> Vector2i:
+	if champTable: return Vector2i(ChampTel.numeroDe(avantTable), ChampTel.nombreDe(avantTable))
+	return Vector2i(ChampTel.courues(), ChampTel.nombre())
 
 
 func _paddock() -> void:
@@ -59,17 +100,21 @@ func construit(v: Control) -> void:
 func _arrivee(b: VBoxContainer) -> void:
 	var p := course.player
 	var circuit := String(course.track.nom)
-	var n := ChampTel.nombre()
-	var numero := ChampTel.courues()
+	var cpt := _compte()
+	var n := cpt.y
+	var numero := cpt.x
 	var seance := course.phase != "course"
-	var clm := course.mode == "timetrial"
+	var clm: bool = course.mode == "timetrial" or (enLigne and App.enLigne != null and App.enLigne.get("mode") == "ghost")
+	var mot := Tel.t("manchesMot") if clm and champTable else Tel.t("coursesMot")
+	var mots := Tel.t("manchesMots") if clm and champTable else Tel.t("coursesMots")
+	var unChamp := champ or champTable
 	var titre := Tel.t("finSeance") if seance or clm else Tel.t("arrivee")
 	var h2 := Tel.titre(titre, 34, Tel.ROUGE)
 	b.add_child(h2)
 	var sous := circuit
-	if champ and estCourse: sous = Tel.t("simulee", [circuit, Tel.t("coursesMot"), numero, n]).replace(" · simulée", "")
-	elif champ: sous = "%s · %s" % [circuit, Textes.t(course.phase)]
-	elif clm: sous = "%s · %s" % [circuit, Textes.t("training" if course.entrainement else "timeTrial")]
+	if unChamp and estCourse: sous = Tel.t("simulee", [circuit, mot, numero, n])
+	elif unChamp: sous = "%s · %s" % [circuit, Textes.t(course.phase)]
+	elif clm and not enLigne: sous = "%s · %s" % [circuit, Textes.t("training" if course.entrainement else "timeTrial")]
 	elif not seance: sous = "%s · %s" % [circuit, Textes.t("finishPos", [course.positionOf(p), course.cars.size()])]
 	b.add_child(Tel.texte(sous, 15, Tel.ENCRE_DOUCE))
 	# la course : les premiers, et ta ligne si tu es plus loin
@@ -79,25 +124,32 @@ func _arrivee(b: VBoxContainer) -> void:
 		var c: Voiture = res.car
 		lignes.append({ cle = "", nom = String(c.nom), pts = float(res.get("points", 0)), moi = c == p,
 			temps = float(res.meilleur) if (seance or clm) else 0.0, ecart = float(res.get("ecart", 0)), abandon = res.get("abandon", false) })
-	var avecPoints := champ and lignes.any(func(l): return l.pts > 0)
-	var montres := 3 if champ and estCourse else 6
+	var avecPoints := unChamp and lignes.any(func(l): return l.pts > 0)
+	var montres := 3 if unChamp and estCourse else 6
 	_tete(liste, lignes, montres, func(l, i):
 		if avecPoints: return ChampionnatTel.ligneClassement(l, i, true, {}, true, l.temps)
 		return _ligneSimple(l, i, seance or clm))
 	b.add_child(liste)
 	# le championnat : le classement mis à jour, avec les flèches
-	if champ and estCourse:
-		var fini := not ChampTel.enCours()
-		var courues := ChampTel.courues()
-		var compl := Tel.t("final") if fini else Tel.t("apresN", [courues, Tel.t("coursesMots" if courues > 1 else "coursesMot"), n])
+	if unChamp and estCourse:
+		var fini := _fini()
+		var courues := numero
+		var compl := Tel.t("final") if fini else Tel.t("apresN", [courues, mots if courues > 1 else mot, n])
 		b.add_child(Tel.sousTitre(Tel.t("championnat"), compl))
-		var cl := ChampTel.classement()
-		var avant: Dictionary = ChampTel.etat().get("avant", {})
+		var cl := _classement()
+		var avant := _avant()
 		var gen := Tel.boite(true, 3)
 		_tete(gen, cl, 5, func(l, i): return ChampionnatTel.ligneClassement(l, i, false, avant if courues > 1 else {}, true))
 		b.add_child(gen)
 		if fini: b.add_child(Tel.gros(Tel.t("voirPodium"), func(): podium = true; reconstruit()))
+		elif champTable and Reseau.net.isHost(): b.add_child(Tel.gros(Tel.t("suivante", (Tel.t("manche") if clm else Tel.t("course"))), App.sessionSuivante))
+		elif champTable: b.add_child(Tel.gros(Tel.t("retourTable"), App.retourTable, false))
 		else: b.add_child(Tel.gros(Tel.t("suivante", Tel.t("course")), _paddock))
+	elif champTable:
+		b.add_child(Tel.gros(Tel.t("sessionSuivante") if Reseau.net.isHost() else Tel.t("retourTable"), App.sessionSuivante if Reseau.net.isHost() else App.retourTable, Reseau.net.isHost()))
+	elif enLigne:
+		b.add_child(Tel.gros(Tel.t("retourTable"), App.retourTable, false))
+		b.add_child(_puce(Tel.t("quitterTableBtn"), func(): Reseau.net.leave(); App.enLigne = null; App.aller("accueil")))
 	elif champ:
 		b.add_child(Tel.gros(Tel.t("sessionSuivante"), ChampTel.seanceSuivante))
 		b.add_child(_puce(Tel.t("paddock"), _paddock))
@@ -170,11 +222,14 @@ func _trophee(b: VBoxContainer) -> void:
 
 ## Le podium (maquette, podium) : le premier au milieu, le plus haut ; or, argent, bronze ; puis ta place.
 func _podium(b: VBoxContainer) -> void:
-	var cl := ChampTel.classement()
-	var moi := ChampTel.maPlace()
+	var cl := _classement()
+	var moi := 0
+	for i in cl.size():
+		if cl[i].moi: moi = i + 1
 	b.add_child(Tel.titre(Tel.t("champion") if moi == 1 else Tel.t("podium"), 34, Tel.ROUGE))
-	var n := ChampTel.nombre()
-	b.add_child(Tel.texte(Tel.t("champSous", [Tel.nomCat(String(ChampTel.etat().get("cat", ""))), n, Tel.t("coursesMots" if n > 1 else "coursesMot")]), 15, Tel.ENCRE_DOUCE))
+	var n := _compte().y
+	var catChamp := Championnat.categorieTable(Reseau.net.settings(), String(App.reglages.voiture)) if champTable else String(ChampTel.etat().get("cat", ""))
+	b.add_child(Tel.texte(Tel.t("champSous", [Tel.nomCat(catChamp), n, Tel.t("coursesMots" if n > 1 else "coursesMot")]), 15, Tel.ENCRE_DOUCE))
 	var marches := Tel.boite(false, 6)
 	marches.alignment = BoxContainer.ALIGNMENT_CENTER
 	var ordre := [1, 0, 2]
@@ -208,5 +263,12 @@ func _podium(b: VBoxContainer) -> void:
 		else (Tel.t("montes", [Tel.rang(moi), Championnat.formatPoints(float(mes.pts))]) if moi <= 3 else Tel.t("finis", [Tel.rang(moi), cl.size(), Championnat.formatPoints(float(mes.pts))])))
 	var info := Tel.texte(phrase, 15, Color.WHITE)
 	b.add_child(Tel.fond(Tel.marge(info, 12, 10, 12, 10), Tel.VERT if moi > 0 and moi <= 3 else Tel.ENCRE))
+	if champTable:
+		# à la table : l'hôte relance le même calendrier, ou rend la table ; les autres y retournent
+		if Reseau.net.isHost():
+			b.add_child(Tel.gros(Tel.t("nouveauChamp"), App.sessionSuivante, false, Tel.ROUGE, 24))
+			b.add_child(_puce(Tel.t("table"), func(): Reseau.net.setTable({ programme = {} }); App.sessionSuivante()))
+		else: b.add_child(Tel.gros(Tel.t("retourTable"), App.retourTable, false, Tel.ROUGE, 24))
+		return
 	b.add_child(Tel.gros(Tel.t("nouveauChamp"), func(): App.aller("championnat"), false, Tel.ROUGE, 24))
 	b.add_child(_puce(Tel.t("menu"), func(): App.aller("accueil")))

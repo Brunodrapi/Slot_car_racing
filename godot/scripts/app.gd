@@ -252,6 +252,14 @@ func sessionSuivante() -> void:
 	if enLigne != null:
 		if Reseau.net.isHost():
 			var prochain := championnatResultats.duplicate(true)
+			# le classement d'avant cette séance, pour les flèches de toute la table
+			var precedent: Dictionary = Reseau.net.settings().get("championnat", {})
+			if Championnat.compte(precedent, String(Championnat.manche(precedent).get("phase", ""))):
+				var cl := ChampTel.classement(precedent, "")
+				var avant := {}
+				if not (precedent.get("points", {}) as Dictionary).is_empty():
+					for i in cl.size(): avant[cl[i].cle] = i + 1
+				prochain.avant = avant
 			if Championnat.suite(prochain):
 				prochain.index += 1
 				if Championnat.manche(prochain).phase == "essais": prochain.pole = []
@@ -284,7 +292,8 @@ func aller(nom: String, opts: Dictionary = {}) -> void:
 		if nom == "championnat" or (nom == "paddock" and mode == "champ"):
 			neuf = PaddockTel.new("champ") if ChampTel.enCours() else ChampionnatTel.new()
 		elif nom == "paddock" and mode in ["race", "timetrial", "training"]: neuf = PaddockTel.new(mode)
-		elif nom == "resultats" and derniereCourse != null and derniereCourse.netDrive == null: neuf = ResultatsTel.new(derniereCourse)
+		elif nom == "resultats" and derniereCourse != null: neuf = ResultatsTel.new(derniereCourse)
+		elif nom == "salon": neuf = SalonTel.new()
 		if neuf != null:
 			ecran = neuf
 			get_tree().root.add_child.call_deferred(ecran)
