@@ -117,7 +117,7 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	fond = load("res://images/interface/accueil-pc.webp")
 	fondPortrait = load("res://images/interface/accueil-mobile.webp")
-	logo = load("res://images/interface/logo-slotless.webp")
+	logo = load(Style.LOGO)
 	var defs := [[Textes.t("quickRace"), Color("#e33228"), Color("#fff5dd"), "wheel.webp", "race"],
 		[Textes.t("timeTrial"), Color("#f2c52c"), Color("#171b19"), "clock.webp", "timetrial"],
 		[Textes.t("training"), Color("#2f7fd6"), Color("#fff5dd"), "plaque-l.svg", "training"],

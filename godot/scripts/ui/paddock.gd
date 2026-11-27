@@ -123,7 +123,7 @@ static func infosCircuits() -> Dictionary:
 
 ## Tout ce qui se dessine est chargé avant le premier dessin.
 static func precharge() -> void:
-	Style.tex("res://images/interface/logo-slotless.webp")
+	Style.tex(Style.LOGO)
 	for v in Catalogue.donnees.voitures:
 		for i in (v.livrees as Array).size():
 			var d := Catalogue.dessin(v.id, i)
@@ -521,7 +521,7 @@ func _dessinePC() -> void:
 	Style.damier(ci, Rect2(116, 10, 90, 65), 4, PC_CREME, Style.NUIT_PLEINE, 0)
 	Style.biseau(ci, Rect2(206, 10, 351, 65), PC_ROUGE, 22)
 	Style.texte(ci, Textes.t({ race = "quickRace", timetrial = "timeTrial", training = "training" }.get(mode, "quickRace")), Vector2(228, 60), 46, Color("#fff1d5"))
-	var logo := Style.tex("res://images/interface/logo-slotless.webp")
+	var logo := Style.tex(Style.LOGO)
 	var lh := 61.0
 	var lwl := lh * logo.get_width() / logo.get_height()
 	ci.draw_texture_rect(logo, Rect2(PC_W - 10 - lwl, 12, lwl, lh), false)

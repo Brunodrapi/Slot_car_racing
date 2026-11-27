@@ -9,9 +9,9 @@ config/name="SLOTLESS"
 config/description="Stand de frites et la Breithüft Apex R, avec la physique du jeu web portée en GDScript."
 run/main_scene="res://scenes/demarrage.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
-config/icon="res://icon.svg"
+config/icon="res://images/interface/icone-grip.png"
 boot_splash/bg_color=Color(0.0901961, 0.0901961, 0.109804, 1)
-boot_splash/image="res://images/interface/demarrage-slotless.png"
+boot_splash/image="res://images/interface/demarrage-grip.png"
 boot_splash/fullsize=false
 boot_splash/use_filter=true
 

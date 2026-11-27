@@ -10,7 +10,8 @@
 # l'export : le service worker va chercher ses fichiers sur le réseau, sans le cache HTTP, et le nouveau
 # remplace l'ancien dès qu'il est installé. La page, elle, se répare si elle tombe malgré tout sur un
 # moteur d'une autre version (html/head_include de l'export Web).
-# Les icônes ne sont pas recopiées : Godot les réencode à chaque export, à l'identique au pixel près.
+# Les icônes et l'image de chargement (index.png) sont recopiées aussi : elles suivent l'icône et l'image de
+# démarrage du projet (celles de GRIP depuis le retour du logo) ; Godot les réencode à l'identique.
 set -e
 ICI=$(cd "$(dirname "$0")/.." && pwd)
 SORTIE="$ICI/exports/web"
@@ -35,7 +36,8 @@ for avant, apres in remplace:
 open(p, "w").write(s)
 PY
 for f in index.html index.js index.wasm index.side.wasm index.pck index.service.worker.js index.offline.html index.manifest.json \
-         index.audio.worklet.js index.audio.position.worklet.js libgrip.web.template_release.wasm32.nothreads.wasm; do
+         index.audio.worklet.js index.audio.position.worklet.js libgrip.web.template_release.wasm32.nothreads.wasm \
+         index.png index.icon.png index.144x144.png index.180x180.png index.512x512.png index.apple-touch-icon.png; do
   [ -f "$SORTIE/$f" ] && cp "$SORTIE/$f" "$ESSAI/$f"
 done
 grep -o '"gdextensionLibs":\[[^]]*\]' "$ESSAI/index.html"

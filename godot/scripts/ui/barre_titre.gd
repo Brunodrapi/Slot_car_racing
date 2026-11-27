@@ -19,7 +19,7 @@ static func tel(ci: CanvasItem, r: Rect2, titre: String) -> void:
 	var x2 := x + 101
 	ci.draw_colored_polygon(PackedVector2Array([Vector2(x2 + 14, y), Vector2(x2 + w, y), Vector2(x2 + w - 28, y + 64), Vector2(x2, y + 64)]), ROUGE)
 	Style.texte(ci, titre, Vector2(x2 + 16, y + 41), 24, TEXTE)
-	var logo := Style.tex("res://images/interface/logo-slotless.webp")
+	var logo := Style.tex(Style.LOGO)
 	var lh := 72.0 * logo.get_height() / logo.get_width()
 	ci.draw_texture_rect(logo, Rect2(r.end.x - 78, y + 32 - lh / 2, 72, lh), false)
 
@@ -40,7 +40,7 @@ static func pc(ci: CanvasItem, r: Rect2, titre: String) -> void:
 	var x2 := x + 189
 	ci.draw_colored_polygon(PackedVector2Array([Vector2(x2 + 14, y), Vector2(x2 + w, y), Vector2(x2 + w - 28, y + 65), Vector2(x2, y + 65)]), ROUGE)
 	Style.texte(ci, titre, Vector2(x2 + 26, y + 50), 46, TEXTE)
-	var logo := Style.tex("res://images/interface/logo-slotless.webp")
+	var logo := Style.tex(Style.LOGO)
 	var lh := 190.0 * logo.get_height() / logo.get_width()
 	ci.draw_texture_rect(logo, Rect2(r.end.x - 200, y + 32.5 - lh / 2, 190, lh), false)
 

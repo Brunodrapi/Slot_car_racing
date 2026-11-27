@@ -52,7 +52,7 @@ func _draw() -> void:
 	while taille > 12 and Style.largeur(t, taille) > place: taille -= 1
 	Style.texte(self, t, Vector2(x1 + (12 if etroit else 16), 26 + taille * 0.36), taille, Tel.PAPIER)
 	# le logo
-	var logo := Style.tex("res://images/interface/logo-slotless.webp")
+	var logo := Style.tex(Style.LOGO)
 	if logo:
 		var lw := 84.0 - 16
 		var lh := lw * logo.get_height() / logo.get_width()

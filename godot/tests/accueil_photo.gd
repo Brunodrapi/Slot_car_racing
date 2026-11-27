@@ -1,4 +1,4 @@
-## La photo de l'écran titre (l'affiche de SLOTLESS, « Appuie pour commencer »), à la taille de la
+## La photo de l'écran titre (l'affiche de GRIP, « Appuie pour commencer »), à la taille de la
 ## fenêtre ; GRIP_ECRAN=accueil : celle du menu.
 ##   xvfb-run -a godot --path godot --resolution 1280x720 tests/accueil_photo.tscn -- <photo.png>
 extends Node

@@ -542,7 +542,7 @@ func _dessine() -> void:
 	var lt := Style.largeur(titre, 38) + 60
 	Style.biseau(ci, Rect2(296, 10, lt, 64), Style.ROUGE, 22)
 	Style.texte(ci, titre, Vector2(320, 58), 38, Style.CREME)
-	var logo := Style.tex("res://images/interface/logo-slotless.webp")
+	var logo := Style.tex(Style.LOGO)
 	if not portrait:
 		var lh := 52.0
 		var lw := lh * logo.get_width() / logo.get_height()
@@ -903,7 +903,7 @@ func _dessineTel() -> void:
 	ci.draw_colored_polygon(PackedVector2Array([Vector2(90, 12), Vector2(76 + wt, 12), Vector2(76 + wt - 28, 76), Vector2(76, 76)]), BarreTitre.ROUGE)
 	Style.texte(ci, titre, Vector2(92, 51), 19, BarreTitre.TEXTE)
 	Paddock._espace(ci, cs, Vector2(92 + Style.largeur(titre, 19) + 10, 51), 19, BarreTitre.TEXTE, 4.2)
-	var logo := Style.tex("res://images/interface/logo-slotless.webp")
+	var logo := Style.tex(Style.LOGO)
 	var lh := 72.0 * logo.get_height() / logo.get_width()
 	ci.draw_texture_rect(logo, Rect2(298, 44 - lh / 2, 72, lh), false)
 	var t := net.settings()

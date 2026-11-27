@@ -40,6 +40,12 @@ contenu du jeu y est, repris du code web et non réinventé :
 
 Le meilleur tour propre est gardé sur l'appareil, par circuit et par voiture.
 
+**Le logo est celui de GRIP**, partout : l'écran titre (les affiches du jeu web, l'invitation sur le toit
+de la voiture rouge), les menus, les bandeaux, la pause, les résultats, les réglages, l'image de
+démarrage et l'icône (`Style.LOGO`). Ceux de SLOTLESS restent dans `images/interface/`
+(`logo-slotless.webp`, `affiche-titre-*-slotless.webp`, `demarrage-slotless.png`), pour Steam et iOS.
+Le nom du projet (la fenêtre, l'onglet, l'exécutable, le dossier des sauvegardes) reste SLOTLESS.
+
 ## Les dégâts et les stands
 
 Repris de l'essai du jeu web (branche `claude/degats-visuels`, fusionnée dans cette branche pour
