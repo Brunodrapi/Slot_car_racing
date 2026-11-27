@@ -3,7 +3,8 @@
 Un paddock sur un seul écran (circuit, voiture, trois réglages, EN PISTE) et ses panneaux : le
 circuit, le garage, plus de réglages, la difficulté, l'écran du circuit (fiche et chronos). Puis le
 championnat, un mode du menu (son écran de départ, son paddock, l'arrivée avec le classement, le
-podium), et le multijoueur (entrée, table, réglages de l'hôte). Les données viennent du jeu
+podium), et le multijoueur (entrée, table, réglages de l'hôte, championnat de la table, en course
+ou en contre-la-montre). Les données viennent du jeu
 (donnees.json, outils/exporte.cjs) ; les chronos, les arrivées et les amis de la table sont simulés.
 Aucune course ne part. Les choix sont gardés dans ce navigateur. */
 'use strict';
@@ -13,7 +14,8 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const MODES = { race: 'Course rapide', champ: 'Championnat', timetrial: 'Contre-la-montre', training: 'Entraînement' };
   const rang = (n) => n === 1 ? '1er' : `${n}e`;
-  const FORMATS = { race: 'Course', duel: 'Duel', ghost: 'Contre-la-montre' };
+  // les formats de la table : une course sans voiture de l'IA est un duel
+  const FORMATS = { race: 'Course', ghost: 'Contre-la-montre' };
   const DESCRIPTIONS = {   // à écrire : une ligne par niveau, sous son nom
     easy: 'Les adversaires freinent tôt et pardonnent les erreurs.',
     medium: 'Une course disputée, à la portée de tous.',
@@ -34,14 +36,20 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
 
   const circuitPar = (id) => D.circuits.find((c) => c.id === id) || D.circuits[0];
   const voiturePar = (id) => D.voitures.find((v) => v.id === id) || D.voitures[0];
-  const champEnCours = () => !etat.table && etat.mode === 'champ' && etat.champ.actif && etat.champ.calendrier.length > 0;
+  // le championnat en jeu : celui de la table quand on est à une table, sinon le championnat seul
+  const CH = () => etat.table ? etat.table.champ : etat.champ;
+  const champEnCours = () => { const ch = CH(); return ch.actif && ch.calendrier.length > 0 && (!!etat.table || etat.mode === 'champ'); };
+  // un championnat de contre-la-montre (à la table) : ses manches sont des séances de qualifications
+  const champCLM = () => !!etat.table && (CH().actif ? CH().format : etat.table.reglages.format) === 'ghost';
+  const motManche = () => champCLM() ? 'Manche' : 'Course';
   const enCourse = () => etat.mode === 'race' || etat.mode === 'champ';   // des adversaires, des tours
-  const manche = () => etat.champ.calendrier[Math.min(etat.champ.index, etat.champ.calendrier.length - 1)];
-  const circuit = () => etat.table ? circuitPar(etat.table.reglages.circuit) : champEnCours() ? circuitPar(manche().circuit) : circuitPar(etat.circuit);
+  const manche = () => { const ch = CH(); return ch.calendrier[Math.min(ch.index, ch.calendrier.length - 1)]; };
+  const circuit = () => champEnCours() ? circuitPar(manche().circuit) : etat.table ? circuitPar(etat.table.reglages.circuit) : circuitPar(etat.circuit);
   const voiture = () => voiturePar(etat.voiture);
   const livreeDe = (v) => Math.min(v.livrees.length - 1, etat.livrees[v.id] || 0);
   const imageDe = (v, l = livreeDe(v)) => RACINE + v.livrees[l].image;
   const categorie = (id) => D.categories.find((c) => c.id === id);
+  const nomCat = (id) => id === 'all' ? 'Toutes catégories' : (categorie(id) || {}).nom || '';
   const niveau = (id) => D.niveaux.find((n) => n.id === id) || D.niveaux[1];
   const drapeau = (c) => c.code ? `<img class="drapeau" src="${RACINE}art/interface/flags/${esc(c.code)}.svg" alt="">` : '';
   // la difficulté d'un circuit en mots, aux couleurs des pistes de ski : vert, bleu, rouge, noir
@@ -104,6 +112,8 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
     const c = circuit(), v = voiture();
     const course = enCourse(), champ = champEnCours();
     const ch = etat.champ;
+    // la course rapide : une seule course ; les réglages en bas, la fiche du circuit par son « i »
+    const rapide = etat.mode === 'race';
     let pastilles;
     const jourNuit = `<button class="pastille" data-act="nuit" ${nuitPossible() ? '' : 'disabled'} aria-pressed="${nuit()}"><span class="lib">Moment</span><b>${nuit() ? '☾ Nuit' : '☀ Jour'}</b>${nuitPossible() ? '' : '<span class="note">Les F1 roulent de jour</span>'}</button>`;
     if (course) {
@@ -121,17 +131,20 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
     const carteC = champ ? carteCircuit(c, { acte: 'page-calendrier', id: '', etiquette: `Course ${ch.index + 1}/${ch.calendrier.length}`, libelle: `Championnat, course ${ch.index + 1} sur ${ch.calendrier.length} : ${c.nom}. Toucher pour le calendrier.` }) : carteCircuit(c);
     // en championnat, une ligne pour le classement : ta place, le tableau complet à un toucher
     const maPlace = champ && ch.index > 0 ? classement().findIndex((p) => p.nom === 'Toi') + 1 : 0;
-    const resume = champ ? `<button class="chip" data-act="feuille" data-id="classement" aria-label="${maPlace ? `Classement : tu es ${rang(maPlace)}. Toucher pour le tableau complet.` : 'Classement du championnat'}">${maPlace ? `Classement · ${rang(maPlace)}` : 'Classement'}</button>` : '';
+    const resume = champ ? puceClassement(maPlace) : '';
     app.innerHTML = `${bandeau(MODES[etat.mode], 'menu')}
       <main class="paddock">
         ${carteC}
         <button class="info" data-act="page-circuit" aria-label="Fiche et chronos du circuit" style="top:calc(52px + var(--haut) + 18px);left:18px;position:absolute">i</button>
         ${carteVoiture(v)}
         ${pastilles}
-        <div class="liens"><button data-act="feuille" data-id="reglages">Plus de réglages</button><button data-act="page-circuit">Chronos et fiche du circuit</button></div>
+        ${rapide ? '' : '<div class="liens"><button data-act="feuille" data-id="reglages">Plus de réglages</button><button data-act="page-circuit">Chronos et fiche du circuit</button></div>'}
       </main>
-      <footer class="barre-bas">${resume}<button class="enpiste" data-act="enpiste">En piste ! →</button></footer>`;
+      <footer class="barre-bas">${rapide ? '<button class="chip" data-act="feuille" data-id="reglages">Réglages</button>' : ''}${resume}<button class="enpiste" data-act="enpiste">En piste ! →</button></footer>`;
   }
+
+  // en bas du paddock et de la table, pendant un championnat : « Classement », et dessous ta place
+  const puceClassement = (place) => `<button class="chip etage" data-act="feuille" data-id="classement" aria-label="${place ? `Classement : tu es ${rang(place)}. Toucher pour le tableau complet.` : 'Classement du championnat'}"><b>Classement</b>${place ? `<small>Tu es ${rang(place)}</small>` : ''}</button>`;
 
   // ---------- le multijoueur : l'entrée ----------
   function rendMulti() {
@@ -169,7 +182,7 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
     minuteurs.forEach(clearTimeout); minuteurs = [];
     const moi = { nom: 'Toi', moi: true, hote: role === 'hote', pret: false, spect: role === 'spectateur', voiture: etat.voiture };
     const r = { format: 'race', circuit: etat.circuit, cat: 'all', tours: 3, ia: -1, degats: true, nuit: false };
-    etat.table = { role, code, reglages: r, membres: [moi], ping: {} };
+    etat.table = { role, code, reglages: r, membres: [moi], ping: {}, champ: champVide() };
     if (role === 'hote') {
       plus_tard(1500, () => etat.table.membres.push({ nom: AMIS[0], pret: false, voiture: voitureAuHasard(r.cat, AMIS[0]) }));
       plus_tard(3500, () => etat.table.membres.push({ nom: AMIS[1], pret: false, voiture: voitureAuHasard(r.cat, AMIS[1]) }));
@@ -190,24 +203,34 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
     const T = etat.table, r = T.reglages, c = circuit(), v = voiture(), moi = T.membres.find((m) => m.moi);
     const liste = pilotes(), prets = liste.filter((m) => m.pret).length;
     const hote = T.role === 'hote', spect = T.role === 'spectateur';
+    // pendant un championnat, le circuit, le format, la catégorie et les tours sont ceux du calendrier
+    const ch = T.champ, champ = champEnCours(), regle = hote && !champ, clm = r.format === 'ghost';
     // les mêmes pastilles que le paddock ; l'hôte seul les change, les autres les lisent
-    const tours = r.format !== 'ghost' ? `<div class="compteur" role="group" aria-label="Tours"><button data-act="tours" data-id="-1" aria-label="Un tour de moins" ${!hote || r.tours <= 1 ? 'disabled' : ''}>−</button><div><span class="lib">Tours</span><b>${r.tours}</b></div><button data-act="tours" data-id="1" aria-label="Un tour de plus" ${!hote || r.tours >= 10 ? 'disabled' : ''}>+</button></div>` : '';
-    const format = `<button class="pastille" data-act="feuille" data-id="format" ${hote ? '' : 'disabled'}><span class="lib">Format${hote ? ' ▾' : ''}</span><b>${FORMATS[r.format]}</b></button>`;
-    const cat = `<button class="pastille" data-act="feuille" data-id="categorie" ${hote ? '' : 'disabled'}><span class="lib">Catégorie${hote ? ' ▾' : ''}</span><b>${r.cat === 'all' ? 'Toutes' : esc(categorie(r.cat).nom)}</b></button>`;
+    const tours = !clm ? `<div class="compteur" role="group" aria-label="Tours"><button data-act="tours" data-id="-1" aria-label="Un tour de moins" ${!regle || r.tours <= 1 ? 'disabled' : ''}>−</button><div><span class="lib">Tours</span><b>${champ ? manche().tours : r.tours}</b></div><button data-act="tours" data-id="1" aria-label="Un tour de plus" ${!regle || r.tours >= 10 ? 'disabled' : ''}>+</button></div>`
+      : champ ? `<div class="pastille fixe"><span class="lib">Séance</span><b>${manche().minutes} min</b></div>` : '';
+    const sansIA = !clm && r.ia === 0;
+    const format = `<button class="pastille" data-act="feuille" data-id="format" ${regle ? '' : 'disabled'}><span class="lib">Format${regle ? ' ▾' : ''}</span><b>${FORMATS[r.format]}</b>${clm ? '' : `<span class="note">${sansIA ? 'Sans IA : un duel' : `IA : ${r.ia < 0 ? 'auto' : r.ia}`}</span>`}</button>`;
+    const cat = `<button class="pastille" data-act="feuille" data-id="categorie" ${regle ? '' : 'disabled'}><span class="lib">Catégorie${regle ? ' ▾' : ''}</span><b>${r.cat === 'all' ? 'Toutes' : esc(categorie(r.cat).nom)}</b></button>`;
     const jourNuit = `<button class="pastille" data-act="nuit" ${hote && nuitPossible() ? '' : 'disabled'} aria-pressed="${nuit()}"><span class="lib">Moment</span><b>${nuit() ? '☾ Nuit' : '☀ Jour'}</b>${nuitPossible() ? '' : '<span class="note">Les F1 roulent de jour</span>'}</button>`;
     const pils = liste.map((m) => `<span class="pil ${m.pret ? 'ok' : ''} ${m.moi ? 'moi' : ''}">${m.pret ? '✓' : '…'} ${esc(m.nom)}</span>`).join('');
     const tousPrets = prets === liste.length && liste.length > 1;
+    const n = ch.calendrier.length;
+    const carte = champ ? carteCircuit(c, { acte: 'page-calendrier', id: '', etiquette: `${motManche()} ${ch.index + 1}/${n}`, libelle: `Championnat de la table, ${motManche().toLowerCase()} ${ch.index + 1} sur ${n} : ${c.nom}. Toucher pour le calendrier.` })
+      : carteCircuit(c, hote ? { id: 'circuits-table' } : { acte: 'page-circuit', id: '', etiquette: 'Choisi par l\'hôte', libelle: `Circuit choisi par l'hôte : ${c.nom}. Toucher pour sa fiche.` });
+    // en bas : le championnat pour l'hôte ; lancé, le classement pour tous
+    const maPlace = champ && ch.index > 0 && !spect ? classement().findIndex((p) => p.nom === 'Toi') + 1 : 0;
+    const puce = champ ? puceClassement(maPlace) : hote ? '<button class="chip" data-act="page-champ-table">Championnat</button>' : '';
     app.innerHTML = `${bandeau(`Table ${T.code}`, 'feuille', 'Quitter')}
       <main class="paddock">
         <button class="pilotes-barre" data-act="feuille" data-id="pilotes" aria-label="Pilotes : ${liste.length} sur 8, ${prets} prêts. Toucher pour la liste et le code de la table.">
           <span class="compte titre">${liste.length}/8</span><span class="pils">${pils}${liste.length < 2 ? '<span class="pil vide">Donne le code à tes amis</span>' : ''}</span><span class="fleche" aria-hidden="true">›</span>
         </button>
-        ${carteCircuit(c, hote ? { id: 'circuits-table' } : { acte: 'page-circuit', id: '', etiquette: 'Choisi par l\'hôte', libelle: `Circuit choisi par l'hôte : ${c.nom}. Toucher pour sa fiche.` })}
+        ${carte}
         ${spect ? '<p class="aide encart">Tu regardes : la course s\'affichera quand l\'hôte la lancera.</p>' : carteVoiture(v)}
         <div class="pastilles table-pastilles ${tours ? '' : 'trois'}">${tours}${format}${cat}${jourNuit}</div>
         <div class="liens"><button data-act="feuille" data-id="reglages">${hote ? 'Plus de réglages' : 'Réglages de la course'}</button><button data-act="page-circuit">Chronos et fiche du circuit</button></div>
       </main>
-      <footer class="barre-bas">${spect ? '<span class="attente">L\'hôte lancera la course.</span>' : `${hote && r.format !== 'ghost' ? '<button class="chip" data-act="champ-table">Championnat</button>' : ''}<button class="chip ${moi.pret ? 'pret' : ''}" data-act="pret" aria-pressed="${moi.pret}">${moi.pret ? '✓ Prêt' : 'Prêt ?'}</button>`}
+      <footer class="barre-bas">${puce}${spect ? '<span class="attente">L\'hôte lancera la course.</span>' : `<button class="chip ${moi.pret ? 'pret' : ''}" data-act="pret" aria-pressed="${moi.pret}">${moi.pret ? '✓ Prêt' : 'Prêt ?'}</button>`}
         ${hote ? `<button class="enpiste" data-act="table-depart" ${tousPrets ? '' : 'disabled'}>${tousPrets ? 'Départ ! →' : `${prets}/${liste.length} prêts`}</button>` : spect ? '' : '<span class="attente">L\'hôte lance quand tout le monde est prêt.</span>'}</footer>`;
   }
 
@@ -269,7 +292,7 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
   let acteCircuit = 'circuit';
   const contenuCircuits = () => {
     const sel = acteCircuit === 'table-circuit' ? etat.table.reglages.circuit : acteCircuit === 'champ-ajoute' ? null : etat.circuit;
-    const dans = new Set(etat.champ.calendrier.map((m) => m.circuit));
+    const dans = new Set(CH().calendrier.map((m) => m.circuit));
     return `${acteCircuit === 'champ-ajoute' ? '<p class="aide">Toucher un circuit l\'ajoute à la fin du calendrier.</p>' : ''}<div class="grille-circuits">${D.circuits.map((c) => `<button class="vignette ${c.id === sel ? 'sel' : ''}" data-act="${acteCircuit}" data-id="${esc(c.id)}" aria-pressed="${c.id === sel}">
       <span class="art" style="background-image:url('${RACINE}${esc(c.art)}')"><img src="${esc(c.trace)}" alt=""></span>
       <b>${esc(c.nom)}</b><small>${drapeau(c)} ${esc(c.pays)} · ${metres(c.longueur)}</small><small>${points(c.difficulte)}${acteCircuit === 'champ-ajoute' && dans.has(c.id) ? ' déjà au calendrier' : ''}</small></button>`).join('')}</div>`;
@@ -292,7 +315,7 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
   };
   function contenuGarage() {
     const v = voiture(), l = livreeDe(v), cat = categorie(v.cat);
-    const imposee = etat.table && etat.table.reglages.cat !== 'all' ? etat.table.reglages.cat : champEnCours() ? etat.champ.cat : null;
+    const imposee = etat.table ? (etat.table.reglages.cat !== 'all' ? etat.table.reglages.cat : null) : champEnCours() ? etat.champ.cat : null;
     const filtre = imposee || etat.filtre || v.cat;
     const avant = voitureAvant && voitureAvant !== v.id ? D.voitures.find((x) => x.id === voitureAvant) : null;
     const liste = D.voitures.filter((x) => filtre === 'all' || x.cat === filtre);
@@ -309,14 +332,19 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
   const contenuReglages = () => {
     const freinage = `<button class="ligne" data-act="feuille" data-id="freinage"><span><b>Freinage</b><small>Propre à ce circuit et à cette voiture${etat.table ? ', à toi seul' : ''}.</small></span><span class="valeur">${etat.freinage ? esc(etat.freinage) : 'Par défaut'} ›</span></button>`;
     if (etat.table) {
-      const T = etat.table, r = T.reglages, hote = T.role === 'hote', maxIA = Math.max(0, 12 - pilotes().length);
+      const T = etat.table, r = T.reglages, hote = T.role === 'hote', maxIA = Math.max(0, 12 - pilotes().length), champ = champEnCours();
+      const ia = champ ? T.champ.ia : r.ia, iaTxt = ia < 0 ? 'Auto' : ia === 0 ? '0 : un duel' : ia;
       if (!hote) return `<p class="aide">Réglée par l'hôte.</p>
-        ${r.format === 'race' ? `<div class="ligne"><span><b>Voitures de l'IA</b></span><span class="valeur">${r.ia < 0 ? 'Auto' : r.ia}</span></div>` : ''}
+        ${r.format === 'race' ? `<div class="ligne"><span><b>Voitures de l'IA</b></span><span class="valeur">${iaTxt}</span></div>` : ''}
         <div class="ligne"><span><b>Dégâts</b></span><span class="valeur">${r.degats ? 'Activés' : 'Coupés'}</span></div>
         ${T.role === 'spectateur' ? '' : freinage}`;
-      return `${r.format === 'race' ? `<div class="ligne"><span><b>Voitures de l'IA</b><small>Auto, ou de 0 à ${maxIA}.</small></span><span class="pas"><button data-act="table-ia" data-id="-1" aria-label="Une de moins" ${r.ia < 0 ? 'disabled' : ''}>−</button><span>${r.ia < 0 ? 'Auto' : r.ia}</span><button data-act="table-ia" data-id="1" aria-label="Une de plus" ${r.ia >= maxIA ? 'disabled' : ''}>+</button></span></div>` : ''}
+      // les voitures de l'IA : sans elles, la course est un duel ; pendant un championnat, celles du départ
+      const lignIA = r.format !== 'race' ? '' : champ ? `<div class="ligne"><span><b>Voitures de l'IA</b><small>Celles du départ du championnat.</small></span><span class="valeur">${iaTxt}</span></div>`
+        : `<div class="ligne"><span><b>Voitures de l'IA</b><small>Auto, ou de 0 à ${maxIA}. Sans IA, la course est un duel.</small></span><span class="pas"><button data-act="table-ia" data-id="-1" aria-label="Une de moins" ${r.ia < 0 ? 'disabled' : ''}>−</button><span>${r.ia < 0 ? 'Auto' : r.ia}</span><button data-act="table-ia" data-id="1" aria-label="Une de plus" ${r.ia >= maxIA ? 'disabled' : ''}>+</button></span></div>`;
+      return `${lignIA}
         <button class="ligne" role="switch" aria-checked="${r.degats}" data-act="table-degats"><span><b>Dégâts</b><small>Les chocs coûtent de la vitesse. On répare aux stands.</small></span><span class="interrupteur" aria-hidden="true"></span></button>
-        ${freinage}`;
+        ${freinage}
+        ${champ ? '<button class="ligne" data-act="feuille" data-id="abandon"><span><b class="rouge">Arrêter le championnat</b><small>Pour toute la table : les points sont perdus.</small></span><span class="valeur">›</span></button>' : ''}`;
     }
     // en championnat, les adversaires sont ceux du départ : ils restent sur l'écran du championnat
     const champ = champEnCours();
@@ -327,13 +355,13 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
       ${champ ? '<button class="ligne" data-act="feuille" data-id="abandon"><span><b class="rouge">Abandonner le championnat</b><small>Les points sont perdus.</small></span><span class="valeur">›</span></button>' : ''}`;
   };
   const ligneAdversaires = () => `<div class="ligne"><span><b>Adversaires</b><small>Auto, ou de 1 à 11.</small></span><span class="pas"><button data-act="adversaires" data-id="-1" aria-label="Un adversaire de moins" ${etat.adversaires <= 0 ? 'disabled' : ''}>−</button><span>${etat.adversaires || 'Auto'}</span><button data-act="adversaires" data-id="1" aria-label="Un adversaire de plus" ${etat.adversaires >= 11 ? 'disabled' : ''}>+</button></span></div>`;
-  const contenuAbandon = () => `<p>Le championnat s'arrête : ses points sont perdus. Le calendrier reste, pour en relancer un.</p>
-      <div class="choix"><button class="danger" data-act="champ-abandon"><span><b>Abandonner</b></span></button><button data-act="fermer"><span><b>Continuer le championnat</b></span></button></div>`;
+  const contenuAbandon = () => `<p>${etat.table ? 'Le championnat s\'arrête pour toute la table' : 'Le championnat s\'arrête'} : ses points sont perdus. Le calendrier reste, pour en relancer un.</p>
+      <div class="choix"><button class="danger" data-act="champ-abandon"><span><b>${etat.table ? 'Arrêter' : 'Abandonner'}</b></span></button><button data-act="fermer"><span><b>Continuer le championnat</b></span></button></div>`;
   const contenuFreinage = () => `<div class="choix">${[['', 'Par défaut', 'Le freinage de la voiture, sans réglage.'], ['Tardif', 'Tardif', 'Un réglage enregistré (exemple).'], ['Prudent', 'Prudent', 'Un autre réglage enregistré (exemple).']].map(([id, nom, txt]) => `<button class="${etat.freinage === id ? 'sel' : ''}" data-act="freinage" data-id="${id}"><span><b>${nom}</b><small>${txt}</small></span></button>`).join('')}</div>`;
   const contenuDifficulte = () => `<div class="choix">${D.niveaux.map((n) => `<button class="${n.id === etat.difficulte ? 'sel' : ''}" data-act="difficulte" data-id="${n.id}" aria-pressed="${n.id === etat.difficulte}"><span><b>${esc(n.nom)}</b><small>${esc(DESCRIPTIONS[n.id] || '')}</small></span></button>`).join('')}</div>`;
 
   // le format de la table, comme la difficulté du paddock : une ligne par choix
-  const TEXTES_FORMAT = { race: 'Tous ensemble, avec l\'IA pour compléter la grille.', duel: 'Les pilotes de la table seulement, sans IA.', ghost: 'Chacun son tour, le meilleur chrono gagne.' };
+  const TEXTES_FORMAT = { race: 'Tous ensemble. Avec ou sans voitures de l\'IA (Plus de réglages) : sans elles, c\'est un duel.', ghost: 'Chacun roule seul, le meilleur tour gagne.' };
   const contenuFormat = () => `<div class="choix">${Object.entries(FORMATS).map(([id, nom]) => `<button class="${etat.table.reglages.format === id ? 'sel' : ''}" data-act="table-format" data-id="${id}" aria-pressed="${etat.table.reglages.format === id}"><span><b>${nom}</b><small>${TEXTES_FORMAT[id]}</small></span></button>`).join('')}</div>`;
   // la catégorie de la table : chacun choisit sa voiture dedans
   const contenuCategorie = () => { const r = etat.table.reglages; return `<p class="aide">Chacun choisit sa voiture dans la catégorie de la table. Une voiture d'une autre catégorie change d'elle-même.</p><div class="choix">${[['all', 'Toutes', 'Chacun prend la voiture qu\'il veut.'], ...D.categories.map((k) => [k.id, k.nom, `${D.voitures.filter((v) => v.cat === k.id).length} voitures.`])].map(([id, nom, txt]) => `<button class="${r.cat === id ? 'sel' : ''}" data-act="table-cat" data-id="${id}" aria-pressed="${r.cat === id}"><span><b>${esc(nom)}</b><small>${esc(txt)}</small></span></button>`).join('')}</div>`; };
@@ -351,7 +379,7 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
   // la course du calendrier : monter, descendre, retirer
   let mancheChoisie = 0;
   const contenuManche = () => {
-    const n = etat.champ.calendrier.length, i = mancheChoisie;
+    const n = CH().calendrier.length, i = mancheChoisie;
     return `<div class="choix"><button data-act="manche-monter" ${i === 0 ? 'disabled' : ''}><span><b>Avancer</b><small>Courir ce circuit plus tôt.</small></span></button>
       <button data-act="manche-descendre" ${i >= n - 1 ? 'disabled' : ''}><span><b>Reculer</b><small>Courir ce circuit plus tard.</small></span></button>
       <button class="danger" data-act="manche-retirer"><span><b>Retirer du calendrier</b></span></button></div>`;
@@ -402,39 +430,52 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
 
   // ---------- le championnat : son écran de départ, son calendrier, son classement ----------
   // le barème et les pilotes sont ceux du départ ; avant, la voiture choisie et les adversaires du réglage
-  const bareme = () => D.baremes[etat.champ.actif && etat.champ.cat ? etat.champ.cat : voiture().cat] || D.baremes.gt;
-  const concurrents = () => etat.champ.actif && etat.champ.pilotes ? etat.champ.pilotes : ['Toi', ...D.pilotes.slice(0, Math.max(1, etat.adversaires || 9))];
+  // la catégorie fait le barème ; une table « Toutes catégories » prend celui de 25 points
+  const catChamp = () => { const ch = CH(); return ch.actif && ch.cat ? ch.cat : etat.table ? etat.table.reglages.cat : voiture().cat; };
+  const bareme = () => D.baremes[catChamp()] || { points: D.baremes.f1.points, texte: '25 pts pour la victoire.', pole: false };
+  // en contre-la-montre, pas de point de pole : la manche est elle-même une qualification
+  const texteBareme = () => champCLM() ? `${pts(bareme().points[0])} pts pour le meilleur tour de la séance, ${pts(bareme().points[1])} pour le deuxième ; pas de point de pole.` : bareme().texte;
+  // les pilotes : à la table, ceux de la table et l'IA (aucune en contre-la-montre ni en duel)
+  const concurrents = () => {
+    const ch = CH();
+    if (ch.actif && ch.pilotes) return ch.pilotes;
+    if (etat.table) { const r = etat.table.reglages, noms = pilotes().map((m) => m.nom), ia = r.format === 'ghost' ? 0 : r.ia < 0 ? Math.max(0, 10 - noms.length) : r.ia; return [...noms, ...D.pilotes.slice(0, ia)]; }
+    return ['Toi', ...D.pilotes.slice(0, Math.max(1, etat.adversaires || 9))];
+  };
   // à égalité de points, le plus de victoires, puis de deuxièmes places, et ainsi de suite
-  const departage = (a, b) => { const pa = (etat.champ.places[a] || []).slice().sort((x, y) => x - y), pb = (etat.champ.places[b] || []).slice().sort((x, y) => x - y); for (let i = 0; i < Math.max(pa.length, pb.length); i++) if ((pa[i] || 99) !== (pb[i] || 99)) return (pa[i] || 99) - (pb[i] || 99); return 0; };
-  const classement = () => concurrents().map((nom) => ({ nom, pts: etat.champ.points[nom] || 0 })).sort((a, b) => b.pts - a.pts || departage(a.nom, b.nom));
+  const departage = (a, b) => { const pl = CH().places, pa = (pl[a] || []).slice().sort((x, y) => x - y), pb = (pl[b] || []).slice().sort((x, y) => x - y); for (let i = 0; i < Math.max(pa.length, pb.length); i++) if ((pa[i] || 99) !== (pb[i] || 99)) return (pa[i] || 99) - (pb[i] || 99); return 0; };
+  const classement = () => concurrents().map((nom) => ({ nom, pts: CH().points[nom] || 0 })).sort((a, b) => b.pts - a.pts || departage(a.nom, b.nom));
   // une ligne du classement ; la flèche dit combien de places on a gagnées ou perdues à la dernière course
   const ligneClassement = (p, i, { gain, fleche } = {}) => {
-    const avant = etat.champ.avant[p.nom], d = fleche && avant ? avant - (i + 1) : 0;
+    const avant = CH().avant[p.nom], d = fleche && avant ? avant - (i + 1) : 0;
     const f = !fleche || !avant ? '' : d > 0 ? `<span class="mvt haut" aria-label="gagne ${d} place${d > 1 ? 's' : ''}">▲${d}</span>` : d < 0 ? `<span class="mvt bas" aria-label="perd ${-d} place${d < -1 ? 's' : ''}">▼${-d}</span>` : '<span class="mvt" aria-label="même place">=</span>';
-    return `<li class="${p.nom === 'Toi' ? 'moi' : ''}"><span class="pos">${i + 1}</span><b>${esc(p.nom)}</b>${f}<span class="pts">${gain ? '+' : ''}${pts(p.pts)} pts</span></li>`;
+    return `<li class="${p.nom === 'Toi' ? 'moi' : ''}"><span class="pos">${i + 1}</span><b>${esc(p.nom)}${p.temps ? ` <small>${temps(p.temps)}</small>` : ''}</b>${f}<span class="pts">${gain ? '+' : ''}${pts(p.pts)} pts</span></li>`;
   };
   // les premiers, et ta ligne si tu es plus loin
   const tete = (liste, n, rendu) => { const moi = liste.findIndex((p) => p.nom === 'Toi'); return liste.slice(0, n).map(rendu).join('') + (moi >= n ? `<li class="saut" aria-hidden="true">…</li>${rendu(liste[moi], moi)}` : ''); };
 
   // le calendrier : modifiable sur l'écran de départ ; lancé, il se lit (courues, la prochaine, à venir)
   function sectionsChamp(fige) {
-    const ch = etat.champ, n = ch.calendrier.length;
+    const ch = CH(), n = ch.calendrier.length, clm = champCLM();
     const pas = (act, cle, val, txt, nom, min, max) => fige ? `<span class="valeur">${txt}</span>`
       : `<span class="pas"><button data-act="${act}" data-id="${cle}" data-pas="-1" aria-label="${nom} : moins" ${val <= min ? 'disabled' : ''}>−</button><span>${txt}</span><button data-act="${act}" data-id="${cle}" data-pas="1" aria-label="${nom} : plus" ${val >= max ? 'disabled' : ''}>+</button></span>`;
     const seance = (cle, nom) => `<div class="ligne"><span><b>${nom}</b><small>${ch[cle] ? ch[cle] + ' min avant chaque course' : 'Pas de séance'}</small></span>${pas('champ-seance', cle, ch[cle], ch[cle] ? ch[cle] + ' min' : '—', nom, 0, 60)}</div>`;
-    return `<section><h2 class="titre petit-titre">Calendrier <small>${fige ? `course ${ch.index + 1} sur ${n}` : `${n} / 10`}</small></h2>
+    // une manche de course a ses tours, une manche de contre-la-montre la durée de sa séance
+    const duree = (m, i) => clm ? (fige ? `<small>séance de ${m.minutes} min</small>` : `<span class="pas petit"><button data-act="manche-minutes" data-id="${i}" data-pas="-1" aria-label="Une minute de moins" ${m.minutes <= 1 ? 'disabled' : ''}>−</button><span>${m.minutes} min</span><button data-act="manche-minutes" data-id="${i}" data-pas="1" aria-label="Une minute de plus" ${m.minutes >= 60 ? 'disabled' : ''}>+</button></span>`)
+      : fige ? `<small>${m.tours} tours</small>` : `<span class="pas petit"><button data-act="manche-tours" data-id="${i}" data-pas="-1" aria-label="Un tour de moins" ${m.tours <= 1 ? 'disabled' : ''}>−</button><span>${m.tours} tours</span><button data-act="manche-tours" data-id="${i}" data-pas="1" aria-label="Un tour de plus" ${m.tours >= 99 ? 'disabled' : ''}>+</button></span>`;
+    return `<section><h2 class="titre petit-titre">Calendrier <small>${fige ? `${motManche().toLowerCase()} ${ch.index + 1} sur ${n}` : `${n} / 10`}</small></h2>
           <ol class="manches">${ch.calendrier.map((m, i) => { const c = circuitPar(m.circuit), passee = fige && i < ch.index, prochaine = fige && i === ch.index; return `<li class="${passee ? 'passee' : ''} ${prochaine ? 'prochaine' : ''}">
             <span class="num">${i + 1}</span><span class="mini" style="background-image:url('${RACINE}${esc(c.art)}')"></span>
-            <span class="infos"><b>${esc(c.nom)}</b>${fige ? `<small>${m.tours} tours</small>` : `<span class="pas petit"><button data-act="manche-tours" data-id="${i}" data-pas="-1" aria-label="Un tour de moins" ${m.tours <= 1 ? 'disabled' : ''}>−</button><span>${m.tours} tours</span><button data-act="manche-tours" data-id="${i}" data-pas="1" aria-label="Un tour de plus" ${m.tours >= 99 ? 'disabled' : ''}>+</button></span>`}</span>
-            ${fige ? `<span class="statut" aria-label="${passee ? 'courue' : prochaine ? 'la prochaine' : 'à venir'}">${passee ? '✓' : prochaine ? '▶' : ''}</span>` : `<button class="trois-points" data-act="manche-menu" data-id="${i}" aria-label="Course ${i + 1} : avancer, reculer ou retirer">⋯</button>`}</li>`; }).join('')}</ol>
+            <span class="infos"><b>${esc(c.nom)}</b>${duree(m, i)}</span>
+            ${fige ? `<span class="statut" aria-label="${passee ? 'courue' : prochaine ? 'la prochaine' : 'à venir'}">${passee ? '✓' : prochaine ? '▶' : ''}</span>` : `<button class="trois-points" data-act="manche-menu" data-id="${i}" aria-label="${motManche()} ${i + 1} : avancer, reculer ou retirer">⋯</button>`}</li>`; }).join('')}</ol>
           ${fige ? '' : `<button class="ajouter" data-act="feuille" data-id="circuits-champ" ${n >= 10 ? 'disabled' : ''}>+ Ajouter un circuit</button>`}
           ${!n ? '<p class="aide">Ajoute au moins un circuit pour lancer le championnat.</p>' : ''}
         </section>
-        <section><h2 class="titre petit-titre">Séances</h2>${seance('essais', 'Essais')}${seance('qualifs', 'Qualifications')}</section>
-        <section><h2 class="titre petit-titre">Grille de départ</h2>
+        <section><h2 class="titre petit-titre">Séances</h2>${seance('essais', 'Essais')}${clm ? '' : seance('qualifs', 'Qualifications')}</section>
+        ${etat.table ? '' : `<section><h2 class="titre petit-titre">Grille de départ</h2>
           ${fige ? `<div class="ligne"><span><b>Adversaires</b></span><span class="valeur">${concurrents().length - 1}</span></div>` : ligneAdversaires()}
           <div class="ligne"><span><b>Ta place</b><small>${ch.place ? 'Fixée pour toutes les courses.' : 'Auto : les qualifications, ou le tirage.'}</small></span>${pas('champ-place', '', ch.place, ch.place || 'Auto', 'Ta place', 0, 10)}</div>
-        </section>`;
+        </section>`}`;
   }
   // l'écran de départ du championnat, ouvert du menu : la voiture (sa catégorie fait le barème), le calendrier, les séances, la grille
   function rendChampDepart() {
@@ -444,7 +485,7 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
       <div class="defile">
         <section><h2 class="titre petit-titre">Voiture</h2>
           <button class="ligne ligne-voiture" data-act="feuille" data-id="garage"><img src="${imageDe(v)}" alt=""><span><b>${esc(v.nom)}</b><small>${esc(cat ? cat.nom : '')} : toutes les courses dans cette catégorie.</small></span><span class="valeur">Garage ›</span></button>
-          <p class="bareme"><b>Barème ${esc(cat ? cat.nom : '')}</b> · ${esc(bareme().texte)}</p></section>
+          <p class="bareme"><b>Barème ${esc(cat ? cat.nom : '')}</b> · ${esc(texteBareme())}</p></section>
         ${sectionsChamp(false)}
       </div>
       <footer class="barre-bas"><button class="enpiste" data-act="champ-lancer" ${n ? '' : 'disabled'}>Lancer →</button></footer>`;
@@ -453,30 +494,49 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
   // le calendrier en cours, depuis la carte du circuit du paddock : à lire seulement
   function rendCalendrier(el) {
     const haut = el.querySelector('.defile')?.scrollTop || 0;
-    el.innerHTML = `<div class="app">${bandeau('Calendrier', 'fermer', 'Paddock')}
+    el.innerHTML = `<div class="app">${bandeau('Calendrier', 'fermer', etat.table ? 'Table' : 'Paddock')}
       <div class="defile">
-        <p class="bareme"><b>Barème ${esc(categorie(etat.champ.cat).nom)}</b> · ${esc(bareme().texte)}</p>
+        <p class="bareme"><b>Barème ${esc(nomCat(CH().cat))}</b> · ${esc(texteBareme())}</p>
         ${sectionsChamp(true)}
-        <p class="aide">Le calendrier et la grille sont figés jusqu'à la fin. Pour arrêter : « Plus de réglages », « Abandonner le championnat ».</p>
+        <p class="aide">${etat.table ? 'Le calendrier est figé jusqu\'à la fin. L\'hôte peut arrêter le championnat dans « Plus de réglages ».' : 'Le calendrier et la grille sont figés jusqu\'à la fin. Pour arrêter : « Plus de réglages », « Abandonner le championnat ».'}</p>
       </div></div>`;
+    el.querySelector('.defile').scrollTop = haut;
+  }
+  /* Le championnat de la table, réglé par l'hôte : dans les deux formats. En course, chaque manche est
+  une course (sans IA, un duel) ; en contre-la-montre, une séance de qualifications où le meilleur tour
+  de chacun fait le classement. Le format et la catégorie restent ceux de la table. */
+  function rendChampTable(el) {
+    const T = etat.table, r = T.reglages, n = T.champ.calendrier.length;
+    const haut = el.querySelector('.defile')?.scrollTop || 0;
+    const quoi = r.format === 'ghost' ? 'chaque manche est une séance de qualifications : le meilleur tour de chacun marque les points.'
+      : `chaque manche est une course${r.ia === 0 ? ', un duel entre vous, sans IA' : ', avec l\'IA'}.`;
+    el.innerHTML = `<div class="app">${bandeau('Championnat', 'fermer', 'Table')}
+      <div class="defile">
+        <p class="bareme"><b>${FORMATS[r.format]}</b> · ${quoi} Le format et la catégorie se règlent à la table.</p>
+        <p class="bareme"><b>Barème ${esc(nomCat(r.cat))}</b> · ${esc(texteBareme())}</p>
+        ${sectionsChamp(false)}
+      </div>
+      <footer class="barre-bas"><button class="enpiste" data-act="champ-lancer" ${n ? '' : 'disabled'}>Lancer →</button></footer></div>`;
     el.querySelector('.defile').scrollTop = haut;
   }
   // le classement complet, depuis la pastille du paddock
   const contenuClassement = () => {
-    const ch = etat.champ, n = ch.calendrier.length;
-    return `<p class="aide">${ch.index ? `Après ${ch.index} course${ch.index > 1 ? 's' : ''} sur ${n}. Les flèches : les places gagnées ou perdues à la dernière course.` : 'Aucune course courue : le classement commence à la première arrivée.'}</p>
+    const ch = CH(), n = ch.calendrier.length, mot = motManche().toLowerCase();
+    return `<p class="aide">${ch.index ? `Après ${ch.index} ${mot}${ch.index > 1 ? 's' : ''} sur ${n}. Les flèches : les places gagnées ou perdues à la dernière ${mot}.` : `Aucune ${mot} courue : le classement commence à la première.`}</p>
       <ol class="classement">${classement().map((p, i) => ligneClassement(p, i, { fleche: ch.index > 1 })).join('')}</ol>
-      <p class="bareme"><b>Barème ${esc(categorie(ch.cat).nom)}</b> · ${esc(bareme().texte)}</p>`;
+      <p class="bareme"><b>Barème ${esc(nomCat(ch.cat))}</b> · ${esc(texteBareme())}</p>`;
   };
 
   // ---------- le départ, sans course ----------
   function depart({ annonce } = {}) {
     const c = circuit(), v = voiture(), T = etat.table;
-    const champ = champEnCours(), ch = etat.champ;
+    const champ = champEnCours(), ch = CH();
     let lignes, titre = 'En piste !';
     if (T) {
       const r = T.reglages;
-      lignes = [['Table', T.code], ['Format', FORMATS[r.format]], ['Circuit', c.nom], ['Pilotes', pilotes().map((m) => m.nom).join(', ')], ...(r.format !== 'ghost' ? [['Tours', r.tours]] : []), ...(r.format === 'race' ? [['IA', r.ia < 0 ? 'Auto' : r.ia]] : []), ['Catégorie', r.cat === 'all' ? 'Toutes' : categorie(r.cat).nom], ['Dégâts', r.degats ? 'Activés' : 'Coupés'], ['Moment', nuit() ? 'Nuit' : 'Jour'], ...(T.role === 'spectateur' ? [] : [['Ta voiture', v.nom]])];
+      const ia = champ ? ch.ia : r.ia;
+      lignes = [['Table', T.code], ['Format', r.format === 'race' && ia === 0 ? 'Course sans IA : duel' : FORMATS[r.format]], ...(champ ? [['Championnat', `${motManche()} ${ch.index + 1} sur ${ch.calendrier.length}`]] : []), ['Circuit', c.nom], ['Pilotes', pilotes().map((m) => m.nom).join(', ')],
+        ...(r.format !== 'ghost' ? [['Tours', champ ? manche().tours : r.tours]] : champ ? [['Séance', `${manche().minutes} min`]] : []), ...(r.format === 'race' && ia !== 0 ? [['IA', ia < 0 ? 'Auto' : ia]] : []), ['Catégorie', r.cat === 'all' ? 'Toutes' : categorie(r.cat).nom], ['Dégâts', r.degats ? 'Activés' : 'Coupés'], ['Moment', nuit() ? 'Nuit' : 'Jour'], ...(T.role === 'spectateur' ? [] : [['Ta voiture', v.nom]])];
     } else {
       lignes = [['Mode', MODES[etat.mode]], ...(champ ? [['Course', `${ch.index + 1} sur ${ch.calendrier.length}`]] : []), ['Circuit', c.nom], ['Voiture', v.nom], ['Livrée', v.livrees[livreeDe(v)].nom], ['Moment', nuit() ? 'Nuit' : 'Jour'],
         ...(enCourse() ? [['Tours', champ ? manche().tours : etat.tours], ['Difficulté', niveau(etat.difficulte).nom], ['Adversaires', champ ? concurrents().length - 1 : etat.adversaires || 'Auto'], ['Dégâts', etat.degats ? 'Activés' : 'Coupés']] : []),
@@ -495,40 +555,45 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
   L'écran d'arrivée montre la course, puis le classement du championnat avec les places gagnées ou
   perdues. À la dernière course, le bouton mène au podium. */
   function simuleArrivee(boite) {
-    const ch = etat.champ, b = bareme(), noms = concurrents(), m = manche(), c = circuitPar(m.circuit);
+    const ch = CH(), b = bareme(), noms = concurrents(), m = manche(), c = circuitPar(m.circuit), clm = champCLM();
     const chance = { easy: 0.2, medium: 0.4, hard: 0.55, extreme: 0.7, cauchemar: 0.85 }[etat.difficulte] ?? 0.4;
     const graine = hache(c.id + ch.index + Date.now());
     const maPlace = Math.min(noms.length - 1, Math.floor(Math.pow(graine, 1.6) * noms.length * chance * 1.6));
     const autres = noms.filter((n) => n !== 'Toi').sort((a, z) => hache(a + ch.index + graine) - hache(z + ch.index + graine));
-    autres.splice(maPlace, 0, 'Toi');
-    const gagnes = autres.map((nom, i) => ({ nom, pts: (b.points[i] || 0) + (b.pole && ch.qualifs && i === 0 ? 1 : 0) }));
+    if (noms.includes('Toi')) autres.splice(Math.min(maPlace, autres.length), 0, 'Toi');   // un spectateur n'est pas classé
+    // en contre-la-montre, le meilleur tour de chacun ; pas de pole : la manche est la qualification
+    const base = chronoMonde(voiture(), c);
+    const gagnes = autres.map((nom, i) => ({ nom, pts: (b.points[i] || 0) + (!clm && b.pole && ch.qualifs && i === 0 ? 1 : 0), temps: clm ? base * (1.004 + i * 0.0035 + hache(nom + graine) * 0.002) : 0 }));
     ch.avant = ch.index ? Object.fromEntries(classement().map((p, i) => [p.nom, i + 1])) : {};
     gagnes.forEach((g, i) => { ch.points[g.nom] = (ch.points[g.nom] || 0) + g.pts; (ch.places[g.nom] = ch.places[g.nom] || []).push(i + 1); });
     ch.index += 1;
     const n = ch.calendrier.length, derniere = ch.index >= n;
     const general = classement(), moi = general.findIndex((p) => p.nom === 'Toi') + 1;
     if (derniere) { ch.fini = moi; ch.actif = false; }
+    // à la table, la course suivante attend que chacun soit prêt (les amis simulés le sont tout de suite)
+    if (etat.table) for (const mb of etat.table.membres) mb.pret = !mb.moi;
     boite.classList.add('arrivee');
-    boite.innerHTML = `<h2 class="titre">Arrivée</h2><p class="sous">${esc(c.nom)} · course ${ch.index} sur ${n} · simulée</p>
+    boite.innerHTML = `<h2 class="titre">${clm ? 'Fin de la séance' : 'Arrivée'}</h2><p class="sous">${esc(c.nom)} · ${motManche().toLowerCase()} ${ch.index} sur ${n} · simulée</p>
       <ol class="classement serre">${tete(gagnes, 3, (g, i) => ligneClassement(g, i, { gain: true }))}</ol>
-      <h3 class="titre petit-titre">Championnat <small>${derniere ? 'final' : `après ${ch.index} course${ch.index > 1 ? 's' : ''} sur ${n}`}</small></h3>
+      <h3 class="titre petit-titre">Championnat <small>${derniere ? 'final' : `après ${ch.index} ${motManche().toLowerCase()}${ch.index > 1 ? 's' : ''} sur ${n}`}</small></h3>
       <ol class="classement serre">${tete(general, 5, (p, i) => ligneClassement(p, i, { fleche: ch.index > 1 }))}</ol>
-      <button class="enpiste" style="margin:4px 0 0" data-act="${derniere ? 'champ-podium' : 'retour-depart'}">${derniere ? 'Voir le podium →' : 'Course suivante →'}</button>`;
+      <button class="enpiste" style="margin:4px 0 0" data-act="${derniere ? 'champ-podium' : 'retour-depart'}">${derniere ? 'Voir le podium →' : `${motManche()} suivante →`}</button>`;
     boite.querySelector('.enpiste').focus();
     if (derniere) sauve(); else rend();
   }
   // le podium, après la dernière course : les trois premiers sur leurs marches, puis ta place
   function podium(boite) {
-    const ch = etat.champ, cl = classement(), moi = cl.findIndex((p) => p.nom === 'Toi') + 1, mes = cl[moi - 1];
+    const ch = CH(), cl = classement(), moi = cl.findIndex((p) => p.nom === 'Toi') + 1, mes = cl[moi - 1];
+    const T = etat.table, relance = !T || T.role === 'hote', mot = motManche().toLowerCase();
     const marche = (p, i) => `<li class="marche m${i + 1} ${p.nom === 'Toi' ? 'moi' : ''}"><b>${esc(p.nom)}</b><small>${pts(p.pts)} pts</small><span class="socle titre" aria-label="${rang(i + 1)}">${i + 1}</span></li>`;
     boite.className = 'boite podium-boite';
     boite.innerHTML = `<h2 class="titre">${moi === 1 ? 'Champion !' : 'Podium'}</h2>
-      <p class="sous">Championnat ${esc(categorie(ch.cat).nom)} · ${ch.calendrier.length} course${ch.calendrier.length > 1 ? 's' : ''}</p>
+      <p class="sous">Championnat ${esc(nomCat(ch.cat))}${champCLM() ? ' · contre-la-montre' : ''} · ${ch.calendrier.length} ${mot}${ch.calendrier.length > 1 ? 's' : ''}</p>
       <ol class="podium">${cl.slice(0, 3).map(marche).join('')}</ol>
-      <p class="bandeau-info ${moi > 3 ? 'neutre' : ''}">${moi === 1 ? `Tu gagnes le championnat avec ${pts(mes.pts)} points.` : moi <= 3 ? `Tu montes sur le podium : ${rang(moi)}, ${pts(mes.pts)} points.` : `Tu finis ${rang(moi)} sur ${cl.length}, avec ${pts(mes.pts)} points.`}</p>
-      <button class="enpiste" style="margin:4px 0 0" data-act="champ-nouveau">Nouveau championnat</button>
-      <button class="chip" data-act="champ-menu">Menu</button>`;
-    boite.querySelector('.enpiste').focus();
+      <p class="bandeau-info ${!moi || moi > 3 ? 'neutre' : ''}">${!moi ? `${esc(cl[0].nom)} gagne le championnat.` : moi === 1 ? `Tu gagnes le championnat avec ${pts(mes.pts)} points.` : moi <= 3 ? `Tu montes sur le podium : ${rang(moi)}, ${pts(mes.pts)} points.` : `Tu finis ${rang(moi)} sur ${cl.length}, avec ${pts(mes.pts)} points.`}</p>
+      ${relance ? '<button class="enpiste" style="margin:4px 0 0" data-act="champ-nouveau">Nouveau championnat</button>' : ''}
+      <button class="${relance ? 'chip' : 'enpiste'}" data-act="champ-menu">${T ? 'Table' : 'Menu'}</button>`;
+    boite.querySelector('button').focus();
   }
 
   let minuteur = 0;
@@ -540,20 +605,20 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
     'circuits-champ': () => { acteCircuit = 'champ-ajoute'; return ['Ajouter un circuit', contenuCircuits, 'haute']; },
     'circuits-table': () => { acteCircuit = 'table-circuit'; return ['Circuit de la table', contenuCircuits, 'haute']; },
     garage: () => ['Garage', contenuGarage, 'haute'],
-    reglages: () => [etat.table && etat.table.role !== 'hote' ? 'Réglages de la course' : 'Plus de réglages', contenuReglages, 'moyenne'],
+    reglages: () => [etat.table && etat.table.role !== 'hote' ? 'Réglages de la course' : !etat.table && etat.mode === 'race' ? 'Réglages' : 'Plus de réglages', contenuReglages, 'moyenne'],
     freinage: () => ['Freinage', contenuFreinage, 'moyenne'],
     difficulte: () => ['Difficulté', contenuDifficulte, 'moyenne'],
     format: () => ['Format', contenuFormat, 'moyenne'],
     pilotes: () => ['Pilotes', contenuPilotes, 'haute'],
     categorie: () => ['Catégorie', contenuCategorie, 'haute'],
-    manche: () => [`Course ${mancheChoisie + 1} · ${circuitPar(etat.champ.calendrier[mancheChoisie].circuit).nom}`, contenuManche, 'moyenne'],
+    manche: () => [`${motManche()} ${mancheChoisie + 1} · ${circuitPar(CH().calendrier[mancheChoisie].circuit).nom}`, contenuManche, 'moyenne'],
     classement: () => ['Classement', contenuClassement, 'haute'],
-    abandon: () => ['Abandonner le championnat ?', contenuAbandon, 'moyenne'],
+    abandon: () => [etat.table ? 'Arrêter le championnat ?' : 'Abandonner le championnat ?', contenuAbandon, 'moyenne'],
   };
   const montreMoi = () => etat.table && (etat.table.membres.find((m) => m.moi).voiture = etat.voiture);
   document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
-    const id = b.dataset.id, v = voiture(), ch = etat.champ, T = etat.table;
+    const id = b.dataset.id, v = voiture(), ch = CH(), T = etat.table;
     switch (b.dataset.act) {
       case 'mode': etat.mode = id; etat.ecran = 'paddock'; rend(); break;
       // le championnat, au menu : son paddock s'il est en cours, sinon son écran de départ
@@ -567,7 +632,7 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
       case 'fermer': history.back(); break;
       case 'page-circuit': ouvrePage(rendPage); break;
       case 'page-calendrier': ouvrePage(rendCalendrier); break;
-      case 'champ-table': toast('Dans le jeu : le même écran que le championnat seul, pour toute la table.'); break;
+      case 'page-champ-table': ouvrePage(rendChampTable); break;
       case 'circuit': etat.circuit = id; rend(); history.back(); break;
       case 'voiture': etat.voiture = id; if (T) { montreMoi(); T.membres.find((m) => m.moi).pret = false; } rafraichit(); break;
       case 'filtre': etat.filtre = id; rafraichit(); break;
@@ -584,20 +649,30 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
       case 'enpiste': depart(); break;
       case 'retour-depart': b.closest('.depart').remove(); break;
       // le championnat
-      case 'champ-ajoute': if (ch.calendrier.length < 10) ch.calendrier.push({ circuit: id, tours: etat.tours }); ch.fini = null; rafraichit(); history.back(); break;
+      case 'champ-ajoute': if (ch.calendrier.length < 10) ch.calendrier.push({ circuit: id, tours: T ? T.reglages.tours : etat.tours, minutes: 10 }); ch.fini = null; rafraichit(); history.back(); break;
       case 'manche-tours': { const m = ch.calendrier[Number(id)]; m.tours = Math.max(1, Math.min(99, m.tours + Number(b.dataset.pas))); rafraichit(); break; }
+      case 'manche-minutes': { const m = ch.calendrier[Number(id)]; m.minutes = Math.max(1, Math.min(60, (m.minutes || 10) + Number(b.dataset.pas))); rafraichit(); break; }
       case 'manche-menu': mancheChoisie = Number(id); ouvreFeuille('manche', ...FEUILLES.manche()); break;
       case 'manche-monter': case 'manche-descendre': { const i = mancheChoisie, j = i + (b.dataset.act === 'manche-monter' ? -1 : 1); [ch.calendrier[i], ch.calendrier[j]] = [ch.calendrier[j], ch.calendrier[i]]; history.back(); setTimeout(rafraichit, 30); break; }
       case 'manche-retirer': ch.calendrier.splice(mancheChoisie, 1); history.back(); setTimeout(rafraichit, 30); break;
       case 'champ-seance': ch[id] = Math.max(0, Math.min(60, ch[id] + Number(b.dataset.pas))); rafraichit(); break;
       case 'champ-place': ch.place = Math.max(0, Math.min(10, ch.place + Number(b.dataset.pas))); rafraichit(); break;
       // lancé, le championnat garde sa catégorie et ses pilotes jusqu'au bout
-      case 'champ-lancer': Object.assign(ch, { actif: true, index: 0, points: {}, places: {}, avant: {}, fini: null, cat: v.cat, pilotes: concurrents() }); etat.mode = 'champ'; etat.ecran = 'paddock'; rend(); break;
-      case 'champ-abandon': Object.assign(ch, { actif: false, index: 0, points: {}, places: {}, avant: {}, fini: null }); etat.ecran = 'menu'; fermeTout(); setTimeout(rend, 40); break;
+      case 'champ-lancer':
+        if (T) {   // à la table : le format, la catégorie, les pilotes et l'IA du moment, jusqu'au bout
+          const noms = concurrents();
+          Object.assign(ch, { actif: true, index: 0, points: {}, places: {}, avant: {}, fini: null, cat: T.reglages.cat, format: T.reglages.format, pilotes: noms, ia: T.reglages.format === 'ghost' ? 0 : noms.length - pilotes().length });
+          for (const mb of T.membres) mb.pret = !mb.moi;
+          history.back(); setTimeout(rafraichit, 30); break;
+        }
+        Object.assign(ch, { actif: true, index: 0, points: {}, places: {}, avant: {}, fini: null, cat: v.cat, pilotes: concurrents() }); etat.mode = 'champ'; etat.ecran = 'paddock'; rend(); break;
+      case 'champ-abandon': Object.assign(ch, { actif: false, index: 0, points: {}, places: {}, avant: {}, fini: null }); if (!T) etat.ecran = 'menu'; fermeTout(); setTimeout(rend, 40); break;
       case 'champ-simuler': simuleArrivee(b.closest('.boite')); break;
       case 'champ-podium': podium(b.closest('.boite')); break;
-      case 'champ-nouveau': b.closest('.depart').remove(); Object.assign(ch, { index: 0, points: {}, places: {}, avant: {}, fini: null }); etat.mode = 'champ'; etat.ecran = 'champ'; rend(); break;
-      case 'champ-menu': b.closest('.depart').remove(); etat.ecran = 'menu'; rend(); break;
+      case 'champ-nouveau': b.closest('.depart').remove(); Object.assign(ch, { index: 0, points: {}, places: {}, avant: {}, fini: null });
+        if (T) { rend(); ouvrePage(rendChampTable); break; }
+        etat.mode = 'champ'; etat.ecran = 'champ'; rend(); break;
+      case 'champ-menu': b.closest('.depart').remove(); if (!T) etat.ecran = 'menu'; rend(); break;
       // le multijoueur
       case 'table-creer': ouvreTable('hote', Array.from({ length: 4 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('')); break;
       case 'table-rejoindre': ouvreTable('invite', $('#code').value); break;

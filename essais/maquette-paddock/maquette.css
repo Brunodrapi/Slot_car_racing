@@ -328,3 +328,13 @@ details.plus dd { margin: 0; font-weight: 700; text-align: right; }
 .classement.serre { gap: 3px; }
 .classement.serre li { min-height: 30px; }
 .podium-boite .enpiste { font-size: 24px; white-space: nowrap; padding: 0 14px; }
+/* à la table en championnat de contre-la-montre : la durée de la séance, à lire seulement */
+.pastille.fixe { clip-path: none; cursor: default; }
+/* le meilleur tour de chacun, en contre-la-montre */
+.classement b small { font-family: var(--texte); font-style: normal; font-weight: 600; font-size: 13px; text-transform: none; color: var(--encre-douce); margin-left: 4px; }
+/* la pastille du classement sur deux étages, pour tenir à côté de Prêt et Départ */
+.barre-bas .chip.etage { display: grid; align-content: center; line-height: 1; padding: 4px 12px; text-align: left; }
+.barre-bas .chip.etage small { font-family: var(--texte); font-style: normal; font-weight: 700; font-size: 13px; text-transform: none; color: #ffd23c; margin-top: 3px; }
+/* la pastille du classement sur deux étages, pour tenir à côté de Prêt et Départ */
+.barre-bas .chip.etage { display: grid; align-content: center; line-height: 1; padding: 4px 12px; text-align: left; }
+.barre-bas .chip.etage small { font-family: var(--texte); font-style: normal; font-weight: 700; font-size: 13px; text-transform: none; color: #ffd23c; margin-top: 3px; }
