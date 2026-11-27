@@ -6,7 +6,8 @@ l'option 1 de l'audit des écrans téléphone : un paddock sur un seul écran, e
 - **Paddock** : la carte du circuit (« i » pour sa fiche), la carte de la voiture, les flèches de livrée,
   trois pastilles (tours en « − + », difficulté, jour/nuit), « Plus de réglages », « Chronos et fiche du
   circuit », Championnat et EN PISTE en bas.
-- **Circuit** : les 14 circuits en grille. Un toucher choisit et referme.
+- **Circuit** : les 14 circuits en grille, leur difficulté en mots (Facile, Moyen, Difficile, Extrême,
+  aux couleurs des pistes de ski). Un toucher choisit et referme.
 - **Garage** : la voiture en grand, ses livrées en vignettes, cinq barres sur une échelle commune aux
   35 voitures (un trait rouge marque la voiture qu'on avait en ouvrant), les catégories, la grille.
 - **Plus de réglages** : dégâts (interrupteur), adversaires (« − Auto + »), freinage (liste), Régler.
@@ -15,13 +16,16 @@ l'option 1 de l'audit des écrans téléphone : un paddock sur un seul écran, e
 
 - **Championnat** (la pastille en bas du paddock, en course rapide) : le barème de la catégorie, le
   calendrier (jusqu'à 10 courses : « + Ajouter un circuit », les tours de chacune en « − + », « ⋯ » pour
-  avancer, reculer ou retirer), les séances d'essais et de qualifications, ta place sur la grille.
+  avancer, reculer ou retirer), les séances d'essais et de qualifications (à la minute près), ta place sur la grille.
   « Lancer » : le paddock prend la course du calendrier (« Course 1/3 », tours figés) ; EN PISTE
   propose « Simuler l'arrivée », qui donne les points, puis le classement.
 - **Multijoueur** (au menu) : créer une table, ou la rejoindre avec un code de quatre caractères
-  (« Regarder » pour suivre sans piloter). À la table : le code et « Partager », les pilotes et leur
-  état, la course en une carte (« Modifier » pour l'hôte : format, circuit, catégorie, tours, IA,
-  dégâts, nuit, championnat), ta voiture, « Mon freinage », « Connexion », Prêt et Départ. Les amis
+  (« Regarder » pour suivre sans piloter). La table est le paddock, avec au-dessus la barre des
+  pilotes (« ✓ » quand ils sont prêts ; touchée, la liste, le code à partager et la connexion de
+  chacun). L'hôte change le circuit en touchant sa carte, les tours, le format et le moment par les
+  pastilles, la catégorie, l'IA et les dégâts dans « Plus de réglages » ; les autres lisent les mêmes
+  pastilles, et « Réglages de la course » leur montre le reste. Chacun garde sa voiture et son
+  freinage. En bas : Championnat (hôte), Prêt et Départ. Les amis
   sont simulés : à une table créée, Léa et Marco arrivent puis se déclarent prêts ; à une table
   rejointe, l'hôte lance la course quand tu es prêt.
 

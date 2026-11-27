@@ -39,7 +39,8 @@ img { display: block; max-width: 100%; }
 .carte .bandeau-nom .nom { font-size: 22px; line-height: 1; flex: 1; min-width: 0; }
 .carte .bandeau-nom small { font-family: var(--texte); font-weight: 600; font-size: 13px; color: var(--encre-douce); white-space: nowrap; }
 .drapeau { width: 26px; height: 17px; object-fit: cover; border: 1px solid #0003; flex: none; }
-.points { letter-spacing: 1px; color: var(--rouge); }
+.niveau-circuit { display: inline-block; font-family: var(--titre); font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 13px; line-height: 1; padding: 3px 7px 2px; color: #fff; letter-spacing: .02em; }
+.niveau-circuit.n1 { background: #2a9d4f; } .niveau-circuit.n2 { background: #2f6fd6; } .niveau-circuit.n3 { background: #d0342b; } .niveau-circuit.n4 { background: #171b19; }
 .carte .changer { position: absolute; top: 8px; right: 8px; background: var(--encre); color: var(--papier); font-family: var(--titre); font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 14px; padding: 6px 10px; pointer-events: none; }
 .carte-garage { background-image: url('../../art/interface/paddock.webp'); background-color: #c8baa0; }
 .info { position: absolute; top: 8px; left: 8px; width: 44px; height: 44px; border-radius: 50%; background: #fbf4e2; border: 2px solid var(--encre); font-family: Georgia, serif; font-weight: 700; font-style: italic; font-size: 22px; display: grid; place-items: center; z-index: 1; }
@@ -98,6 +99,7 @@ img { display: block; max-width: 100%; }
 .vignette .art { position: relative; aspect-ratio: 3 / 2; background: #6b8171 center / cover; }
 .vignette .art img { position: absolute; inset: 8% 10%; width: 80%; height: 84%; object-fit: contain; }
 .vignette b { font-family: var(--titre); font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 18px; line-height: 1; padding: 6px 7px 2px; }
+.vignette small + small { margin-top: -3px; }
 .vignette small { padding: 0 7px 7px; font-size: 13px; font-weight: 600; color: var(--encre-douce); display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
 .vignette small .drapeau { width: 20px; height: 13px; }
 
@@ -257,6 +259,21 @@ details.plus dd { margin: 0; font-weight: 700; text-align: right; }
 .page-circuit .barre-bas .chip { min-height: 52px; }
 .depart .chip { min-height: 48px; background: var(--encre); color: var(--papier); font-family: var(--titre); font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 18px; }
 .depart .classement { margin: 4px 0; }
+
+/* la table, sur le modèle du paddock : la barre des pilotes au-dessus des deux cartes */
+.pilotes-barre { flex: none; display: flex; align-items: center; gap: 8px; min-height: 48px; background: var(--encre); color: var(--papier); padding: 0 6px 0 10px; text-align: left; width: 100%; }
+.pilotes-barre .compte { font-size: 20px; flex: none; }
+.pilotes-barre .pils { flex: 1; min-width: 0; display: flex; gap: 5px; overflow: hidden; }
+.pil { flex: none; font-size: 14px; font-weight: 700; padding: 4px 8px; background: #3a3f3a; white-space: nowrap; }
+.pil.ok { background: var(--vert); }
+.pil.moi { outline: 2px solid #fbf4e2; outline-offset: -2px; }
+.pil.vide { background: transparent; font-weight: 600; opacity: .8; }
+.pilotes-barre .fleche { font-size: 26px; font-weight: 700; flex: none; width: 24px; text-align: center; }
+.aide.encart { flex: 1 1 0; display: grid; place-items: center; text-align: center; background: var(--carte); border: 2px dashed var(--filet); padding: 12px; }
+.ligne-bloc { display: grid; gap: 6px; background: var(--carte); border: 1px solid var(--filet); padding: 8px 10px; }
+.ligne-bloc b { font-family: var(--titre); font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 20px; }
+.ligne-bloc small { display: block; font-size: 13px; color: var(--encre-douce); }
+.barre-bas .chip + .chip { margin-left: -2px; }
 
 @media (prefers-reduced-motion: reduce) { .feuille, .voile, .page-circuit { transition: none; } }
 @media (min-width: 520px) { .app { border-left: 1px solid #2a2f2c; border-right: 1px solid #2a2f2c; } }
