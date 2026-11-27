@@ -1,4 +1,4 @@
-# La maquette du paddock téléphone
+# La maquette des écrans téléphone : paddock, championnat, multijoueur
 
 Les écrans seulement, sans jeu derrière : on clique partout, aucune course ne part. C'est
 l'option 1 de l'audit des écrans téléphone : un paddock sur un seul écran, et cinq panneaux.
@@ -13,13 +13,25 @@ l'option 1 de l'audit des écrans téléphone : un paddock sur un seul écran, e
 - **Difficulté** : les cinq niveaux, une phrase sous chacun (à écrire pour de bon).
 - **L'écran du circuit** : quatre chiffres, « Plus de détails », les chronos par catégorie.
 
-Les trois modes (course rapide, contre-la-montre, entraînement) s'ouvrent du petit menu. Une feuille
+- **Championnat** (la pastille en bas du paddock, en course rapide) : le barème de la catégorie, le
+  calendrier (jusqu'à 10 courses : « + Ajouter un circuit », les tours de chacune en « − + », « ⋯ » pour
+  avancer, reculer ou retirer), les séances d'essais et de qualifications, ta place sur la grille.
+  « Lancer » : le paddock prend la course du calendrier (« Course 1/3 », tours figés) ; EN PISTE
+  propose « Simuler l'arrivée », qui donne les points, puis le classement.
+- **Multijoueur** (au menu) : créer une table, ou la rejoindre avec un code de quatre caractères
+  (« Regarder » pour suivre sans piloter). À la table : le code et « Partager », les pilotes et leur
+  état, la course en une carte (« Modifier » pour l'hôte : format, circuit, catégorie, tours, IA,
+  dégâts, nuit, championnat), ta voiture, « Mon freinage », « Connexion », Prêt et Départ. Les amis
+  sont simulés : à une table créée, Léa et Marco arrivent puis se déclarent prêts ; à une table
+  rejointe, l'hôte lance la course quand tu es prêt.
+
+Les quatre modes s'ouvrent du petit menu. Une feuille
 se ferme par « Fermer », d'un geste vers le bas, en touchant le fond, ou par le retour du navigateur.
 Les choix restent dans le navigateur.
 
 Les circuits, voitures, livrées, fiches et images sont ceux du jeu, tirés par `outils/exporte.cjs`
 (à relancer quand le jeu change). Les chronos sont des exemples, calculés depuis la longueur du
-circuit et la vitesse de la voiture. Les images du jeu sont lues à la racine du site (`../../`).
+circuit et la vitesse de la voiture ; les arrivées du championnat et les amis du multijoueur sont simulés. Les images du jeu sont lues à la racine du site (`../../`).
 
 `outils/essai.cjs` passe chaque écran sur un iPhone 13 émulé, le photographie et le mesure comme
 l'audit : le paddock tient sur un écran, 14 cibles toutes d'au moins 44 points, une cinquantaine de mots,

@@ -50,7 +50,10 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/cs
         perf: { vmax: Math.round(m.perf.vmax), adherence: +m.perf.gripG.toFixed(2), acceleration: +m.perf.a100.toFixed(1), freinage: +m.perf.b100.toFixed(1) }, livrees };
     });
     const niveaux = NIVEAUX.map((n) => ({ id: n, nom: t(n) }));
-    return { circuits, categories, voitures, niveaux, version: typeof VERSION !== 'undefined' ? VERSION : '' };
+    // le championnat : le barème de chaque catégorie, et sa phrase ; les noms des pilotes de l'IA
+    const baremes = Object.fromEntries(categories.map((c) => [c.id, { points: BAREMES_CHAMPIONNAT[c.id] || POINTS, texte: t('bareme_' + Championnat.cleBareme(c.id)), pole: c.id !== 'f1' }]));
+    const pilotes = AI_NAMES.slice();
+    return { circuits, categories, voitures, niveaux, baremes, pilotes, version: typeof VERSION !== 'undefined' ? VERSION : '' };
   });
   fs.mkdirSync(path.join(ICI, 'traces'), { recursive: true });
   for (const c of d.circuits) {

@@ -1137,5 +1137,93 @@
    "nom": "Cauchemar"
   }
  ],
+ "baremes": {
+  "f1": {
+   "points": [
+    25,
+    18,
+    15,
+    12,
+    10,
+    8,
+    6,
+    4,
+    2,
+    1
+   ],
+   "texte": "F1 · 25 pts pour la victoire. La qualification fixe la grille.",
+   "pole": false
+  },
+  "gt": {
+   "points": [
+    16.5,
+    12,
+    9.5,
+    7.5,
+    6,
+    4.5,
+    3,
+    2,
+    1,
+    0.5
+   ],
+   "texte": "GT Sprint · 16,5 pts pour la victoire et 1 pt pour la pole.",
+   "pole": true
+  },
+  "gt3": {
+   "points": [
+    16.5,
+    12,
+    9.5,
+    7.5,
+    6,
+    4.5,
+    3,
+    2,
+    1,
+    0.5
+   ],
+   "texte": "GT Sprint · 16,5 pts pour la victoire et 1 pt pour la pole.",
+   "pole": true
+  },
+  "proto": {
+   "points": [
+    50,
+    36,
+    30,
+    24,
+    20,
+    16,
+    12,
+    8,
+    4,
+    2
+   ],
+   "texte": "Le Mans · 50 pts pour la victoire et 1 pt pour la pole.",
+   "pole": true
+  }
+ },
+ "pilotes": [
+  "L. Moreau",
+  "K. Tanaka",
+  "M. Rossi",
+  "A. Silva",
+  "J. Becker",
+  "S. Novak",
+  "D. Okafor",
+  "E. Lindqvist",
+  "R. Castillo",
+  "T. Nguyen",
+  "P. Dubois",
+  "H. Weber",
+  "N. Petrov",
+  "C. Ferreira",
+  "B. Andersen",
+  "Y. Sato",
+  "F. Marchetti",
+  "G. Larsen",
+  "I. Kovács",
+  "O. Haddad"
+ ],
  "version": ""
 }

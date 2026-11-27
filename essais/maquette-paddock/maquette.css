@@ -187,5 +187,76 @@ details.plus dd { margin: 0; font-weight: 700; text-align: right; }
 
 .toast { position: fixed; left: 50%; bottom: calc(96px + var(--bas)); transform: translateX(-50%); width: min(92%, 440px); background: var(--encre); color: var(--papier); padding: 12px 14px; font-size: 14px; line-height: 1.35; z-index: 40; box-shadow: 0 6px 20px #0008; }
 
+/* ---------- le multijoueur ---------- */
+.mode.vert { background: #2aa85a; }
+.mode { min-height: 64px; }
+.multi, .table { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 12px 16px; display: grid; gap: 12px; align-content: start; }
+.multi .intro { margin: 0; font-size: 16px; line-height: 1.45; }
+.gros { min-height: 60px; font-size: 24px; display: grid; place-items: center; padding: 0 16px; }
+.gros.rouge { background: var(--rouge); color: #fbf4e2; clip-path: polygon(2% 0, 100% 0, 98% 100%, 0 100%); }
+.gros.noir { background: var(--encre); color: var(--papier); }
+.gros.clair { background: var(--carte); border: 2px solid var(--encre); }
+.gros:disabled { opacity: .35; }
+.bloc { background: var(--carte); border: 2px solid var(--encre); padding: 12px; display: grid; gap: 8px; }
+.bloc h2 { margin: 0; font-size: 24px; }
+.bloc label { font-weight: 600; }
+#code { width: 100%; min-height: 64px; font-family: var(--titre); font-weight: 900; font-style: italic; font-size: 40px; letter-spacing: .4em; text-align: center; text-transform: uppercase; border: 2px solid var(--encre); background: #fff; color: var(--encre); padding: 0 0 0 .4em; }
+.deux { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.aide { margin: 0; font-size: 14px; color: var(--encre-douce); line-height: 1.4; }
+.code-carte { display: flex; align-items: center; gap: 10px; background: var(--encre); color: var(--papier); padding: 8px 8px 8px 12px; }
+.code-carte span { font-size: 13px; font-weight: 600; opacity: .8; max-width: 70px; line-height: 1.2; }
+.code-carte b { flex: 1; font-size: 36px; letter-spacing: .25em; color: #ffd23c; }
+.code-carte .noir { background: var(--papier); color: var(--encre); }
+.petit-titre { margin: 0 0 6px; font-size: 22px; }
+.petit-titre small { font-family: var(--texte); font-style: normal; font-weight: 600; font-size: 14px; text-transform: none; color: var(--encre-douce); }
+.membres { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.membres li { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 8px; background: var(--carte); border: 1px solid var(--filet); padding: 3px 10px 3px 3px; min-height: 50px; }
+.membres li.moi { border: 2px solid var(--rouge); }
+.membres img { height: 40px; justify-self: center; }
+.membres b { font-family: var(--titre); font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 18px; display: block; line-height: 1.05; }
+.membres small { font-size: 13px; color: var(--encre-douce); }
+.membres .etat { font-weight: 700; font-size: 14px; color: var(--encre-douce); }
+.membres .etat.ok { color: var(--vert); }
+.course-carte { position: relative; min-height: 96px; border: 2px solid var(--encre); background: #6b8171 center / cover; display: flex; align-items: flex-end; text-align: left; width: 100%; }
+.course-texte { flex: 1; background: #fbf4e2f2; border-top: 2px solid var(--encre); padding: 6px 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.course-texte b { font-size: 22px; line-height: 1; }
+.course-texte small { flex-basis: 100%; font-size: 13px; font-weight: 600; color: var(--encre-douce); }
+.course-action { position: absolute; top: 8px; right: 8px; background: var(--encre); color: var(--papier); font-family: var(--titre); font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 15px; padding: 7px 10px; }
+.table .carte.petite { flex: none; height: 150px; }
+.table .livree-barre { margin-top: -12px; }
+.barre-bas .chip.pret { background: var(--vert); }
+.barre-bas .enpiste:disabled { background: #8b8b80; font-size: 22px; }
+.attente { font-size: 14px; color: var(--encre-douce); font-weight: 600; flex: 1; }
+.segments.trois { grid-template-columns: repeat(3, 1fr); }
+.segments.trois button { font-size: 15px; padding: 0 4px; }
+.choix .danger b { color: var(--rouge); }
+
+/* ---------- le championnat ---------- */
+.bareme { margin: 0; background: var(--carte); border-left: 4px solid var(--rouge); padding: 8px 10px; font-size: 14px; line-height: 1.4; }
+.bandeau-info { margin: 0; background: var(--vert); color: #fff; padding: 10px 12px; font-weight: 700; }
+.classement { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.classement li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 8px; background: var(--carte); border: 1px solid var(--filet); min-height: 40px; padding: 0 10px 0 0; font-variant-numeric: tabular-nums; }
+.classement li.moi { border: 2px solid var(--rouge); }
+.classement .pos { background: var(--encre); color: var(--papier); align-self: stretch; display: grid; place-items: center; font-family: var(--titre); font-weight: 900; font-style: italic; font-size: 18px; }
+.classement b { font-family: var(--titre); font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 17px; }
+.classement span:last-child { font-weight: 700; }
+.manches { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; }
+.manches li { display: grid; grid-template-columns: 30px 62px minmax(0, 1fr) 48px; align-items: center; gap: 8px; background: var(--carte); border: 1px solid var(--filet); padding: 4px; min-height: 64px; }
+.manches li.prochaine { border: 2px solid var(--rouge); }
+.manches li.passee { opacity: .6; }
+.manches .num { background: var(--encre); color: var(--papier); align-self: stretch; display: grid; place-items: center; font-family: var(--titre); font-weight: 900; font-style: italic; font-size: 20px; }
+.manches .mini { align-self: stretch; background: #6b8171 center / cover; min-height: 54px; }
+.manches .infos { display: grid; gap: 2px; min-width: 0; }
+.manches .infos b { font-family: var(--titre); font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 17px; line-height: 1.05; }
+.pas.petit button { width: 44px; height: 44px; font-size: 20px; }
+.pas.petit span { min-width: 0; font-size: 15px; padding: 0 4px; white-space: nowrap; }
+.manches .statut { font-weight: 900; font-size: 22px; color: var(--rouge); text-align: center; }
+.trois-points { width: 44px; height: 54px; background: var(--encre); color: var(--papier); font-size: 24px; font-weight: 900; }
+.ajouter { width: 100%; min-height: 52px; border: 2px dashed var(--encre); background: transparent; font-family: var(--titre); font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 20px; }
+.ajouter:disabled { opacity: .35; }
+.page-circuit .barre-bas .chip { min-height: 52px; }
+.depart .chip { min-height: 48px; background: var(--encre); color: var(--papier); font-family: var(--titre); font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 18px; }
+.depart .classement { margin: 4px 0; }
+
 @media (prefers-reduced-motion: reduce) { .feuille, .voile, .page-circuit { transition: none; } }
 @media (min-width: 520px) { .app { border-left: 1px solid #2a2f2c; border-right: 1px solid #2a2f2c; } }
