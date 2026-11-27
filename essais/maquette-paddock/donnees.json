@@ -1,0 +1,1141 @@
+{
+ "circuits": [
+  {
+   "id": "monza",
+   "nom": "Parco Reale",
+   "pays": "Italie",
+   "code": "it",
+   "longueur": 2900,
+   "virages": 13,
+   "difficulte": 1,
+   "rayon": 9.2,
+   "droite": 652,
+   "pointe": {
+    "kmh": 292,
+    "voiture": "Moggy Nightfall"
+   },
+   "art": "art/interface/circuits/monza.webp",
+   "trace": "traces/monza.png",
+   "traceNuit": "traces/monza-nuit.png"
+  },
+  {
+   "id": "spa",
+   "nom": "Stand de frites",
+   "pays": "Belgique",
+   "code": "be",
+   "longueur": 3400,
+   "virages": 20,
+   "difficulte": 3,
+   "rayon": 7.9,
+   "droite": 528,
+   "pointe": {
+    "kmh": 268,
+    "voiture": "Somua Turbo 10"
+   },
+   "art": "art/interface/circuits/spa.webp",
+   "trace": "traces/spa.png",
+   "traceNuit": "traces/spa-nuit.png"
+  },
+  {
+   "id": "monaco",
+   "nom": "Le Rocher",
+   "pays": "Monaco",
+   "code": "mc",
+   "longueur": 2311,
+   "virages": 34,
+   "difficulte": 4,
+   "rayon": 7.2,
+   "droite": 307,
+   "pointe": {
+    "kmh": 221,
+    "voiture": "Somua Turbo 10"
+   },
+   "art": "art/interface/circuits/monaco.webp",
+   "trace": "traces/monaco.png",
+   "traceNuit": "traces/monaco-nuit.png"
+  },
+  {
+   "id": "silverstone",
+   "nom": "Royal Air Base",
+   "pays": "Royaume-Uni",
+   "code": "gb",
+   "longueur": 3300,
+   "virages": 23,
+   "difficulte": 2,
+   "rayon": 10.8,
+   "droite": 423,
+   "pointe": {
+    "kmh": 249,
+    "voiture": "Somua Turbo 10"
+   },
+   "art": "art/interface/circuits/silverstone.webp",
+   "trace": "traces/silverstone.png",
+   "traceNuit": "traces/silverstone-nuit.png"
+  },
+  {
+   "id": "suzuka",
+   "nom": "Fuji Yama",
+   "pays": "Japon",
+   "code": "jp",
+   "longueur": 3300,
+   "virages": 27,
+   "difficulte": 4,
+   "rayon": 10.5,
+   "droite": 504,
+   "pointe": {
+    "kmh": 265,
+    "voiture": "Kaminari Hayate"
+   },
+   "art": "art/interface/circuits/suzuka.webp",
+   "trace": "traces/suzuka.png",
+   "traceNuit": "traces/suzuka-nuit.png"
+  },
+  {
+   "id": "interlagos",
+   "nom": "Festival de Carnaval",
+   "pays": "Brésil",
+   "code": "br",
+   "longueur": 2700,
+   "virages": 27,
+   "difficulte": 2,
+   "rayon": 12.7,
+   "droite": 553,
+   "pointe": {
+    "kmh": 277,
+    "voiture": "Moggy Nightfall"
+   },
+   "art": "art/interface/circuits/interlagos.webp",
+   "trace": "traces/interlagos.png",
+   "traceNuit": "traces/interlagos-nuit.png"
+  },
+  {
+   "id": "laguna",
+   "nom": "Corkscrew Ranch",
+   "pays": "États-Unis",
+   "code": "us",
+   "longueur": 2400,
+   "virages": 13,
+   "difficulte": 3,
+   "rayon": 9.7,
+   "droite": 269,
+   "pointe": {
+    "kmh": 217,
+    "voiture": "Purosangue Dodici T"
+   },
+   "art": "art/interface/circuits/laguna.webp",
+   "trace": "traces/laguna.png",
+   "traceNuit": "traces/laguna-nuit.png"
+  },
+  {
+   "id": "nurburgring",
+   "nom": "Bratwurst Ring",
+   "pays": "Allemagne",
+   "code": "de",
+   "longueur": 3000,
+   "virages": 16,
+   "difficulte": 3,
+   "rayon": 9.4,
+   "droite": 483,
+   "pointe": {
+    "kmh": 256,
+    "voiture": "Kaminari Hayate"
+   },
+   "art": "art/interface/circuits/nurburgring.webp",
+   "trace": "traces/nurburgring.png",
+   "traceNuit": "traces/nurburgring-nuit.png"
+  },
+  {
+   "id": "lemans",
+   "nom": "Autoroute 11",
+   "pays": "France",
+   "code": "fr",
+   "longueur": 4200,
+   "virages": 32,
+   "difficulte": 2,
+   "rayon": 9.5,
+   "droite": 638,
+   "pointe": {
+    "kmh": 271,
+    "voiture": "Kaminari Hayate"
+   },
+   "art": "art/interface/circuits/lemans.webp",
+   "trace": "traces/lemans.png",
+   "traceNuit": "traces/lemans-nuit.png"
+  },
+  {
+   "id": "bathurst",
+   "nom": "Kangaroo Mountain",
+   "pays": "Australie",
+   "code": "au",
+   "longueur": 3600,
+   "virages": 26,
+   "difficulte": 4,
+   "rayon": 12,
+   "droite": 637,
+   "pointe": {
+    "kmh": 314,
+    "voiture": "Moggy Nightfall"
+   },
+   "art": "art/interface/circuits/bathurst.webp",
+   "trace": "traces/bathurst.png",
+   "traceNuit": "traces/bathurst-nuit.png"
+  },
+  {
+   "id": "redbullring",
+   "nom": "Apfelstrudel Ring",
+   "pays": "Autriche",
+   "code": "at",
+   "longueur": 2400,
+   "virages": 12,
+   "difficulte": 1,
+   "rayon": 9,
+   "droite": 497,
+   "pointe": {
+    "kmh": 246,
+    "voiture": "Breithüft Langheck"
+   },
+   "art": "art/interface/circuits/redbullring.webp",
+   "trace": "traces/redbullring.png",
+   "traceNuit": "traces/redbullring-nuit.png"
+  },
+  {
+   "id": "castellet",
+   "nom": "Pastaga 83",
+   "pays": "France",
+   "code": "fr",
+   "longueur": 3000,
+   "virages": 16,
+   "difficulte": 2,
+   "rayon": 8.6,
+   "droite": 972,
+   "pointe": {
+    "kmh": 331,
+    "voiture": "Moggy Nightfall"
+   },
+   "art": "art/interface/circuits/castellet.webp",
+   "trace": "traces/castellet.png",
+   "traceNuit": "traces/castellet-nuit.png"
+  },
+  {
+   "id": "zandvoort",
+   "nom": "Windmolen",
+   "pays": "Pays-Bas",
+   "code": "nl",
+   "longueur": 2400,
+   "virages": 16,
+   "difficulte": 3,
+   "rayon": 8.7,
+   "droite": 380,
+   "pointe": {
+    "kmh": 247,
+    "voiture": "Somua Turbo 10"
+   },
+   "art": "art/interface/circuits/zandvoort.webp",
+   "trace": "traces/zandvoort.png",
+   "traceNuit": "traces/zandvoort-nuit.png"
+  },
+  {
+   "id": "watkins",
+   "nom": "Camping Glen",
+   "pays": "États-Unis",
+   "code": "us",
+   "longueur": 3000,
+   "virages": 26,
+   "difficulte": 2,
+   "rayon": 13.1,
+   "droite": 525,
+   "pointe": {
+    "kmh": 257,
+    "voiture": "Somua Turbo 10"
+   },
+   "art": "art/interface/circuits/watkins.webp",
+   "trace": "traces/watkins.png",
+   "traceNuit": "traces/watkins-nuit.png"
+  }
+ ],
+ "categories": [
+  {
+   "id": "f1",
+   "nom": "F1"
+  },
+  {
+   "id": "gt",
+   "nom": "GT"
+  },
+  {
+   "id": "gt3",
+   "nom": "GT3"
+  },
+  {
+   "id": "proto",
+   "nom": "Proto"
+  }
+ ],
+ "voitures": [
+  {
+   "id": "tyrrellp34",
+   "nom": "Sixpence Hexa",
+   "cat": "f1",
+   "poids": 595,
+   "perf": {
+    "vmax": 290,
+    "adherence": 2.33,
+    "acceleration": 3.1,
+    "freinage": 18
+   },
+   "livrees": [
+    {
+     "nom": "Bleu · Scheckter · 1976",
+     "image": "sprites/pick/tyrrellp34.png"
+    }
+   ]
+  },
+  {
+   "id": "ferrari312t",
+   "nom": "Purosangue Dodici T",
+   "cat": "f1",
+   "poids": 575,
+   "perf": {
+    "vmax": 310,
+    "adherence": 2.45,
+    "acceleration": 2.9,
+    "freinage": 19.2
+   },
+   "livrees": [
+    {
+     "nom": "Lauda · 1975 · 12",
+     "image": "sprites/pick/ferrari312t.png"
+    }
+   ]
+  },
+  {
+   "id": "mclarenm23",
+   "nom": "McHaggis Arrow 23",
+   "cat": "f1",
+   "poids": 575,
+   "perf": {
+    "vmax": 300,
+    "adherence": 2.49,
+    "acceleration": 3,
+    "freinage": 19.2
+   },
+   "livrees": [
+    {
+     "nom": "Hunt · 1976 · 11",
+     "image": "sprites/pick/mclarenm23.png"
+    }
+   ]
+  },
+  {
+   "id": "lotus79",
+   "nom": "Bumblebee Ground 79",
+   "cat": "f1",
+   "poids": 610,
+   "perf": {
+    "vmax": 295,
+    "adherence": 2.9,
+    "acceleration": 3.2,
+    "freinage": 19.2
+   },
+   "livrees": [
+    {
+     "nom": "Noir et or · Andretti · 1978",
+     "image": "sprites/pick/lotus79.png"
+    }
+   ]
+  },
+  {
+   "id": "lotus72",
+   "nom": "Bumblebee Wedge 72",
+   "cat": "f1",
+   "poids": 530,
+   "perf": {
+    "vmax": 295,
+    "adherence": 2.21,
+    "acceleration": 2.9,
+    "freinage": 18.7
+   },
+   "livrees": [
+    {
+     "nom": "Noir et or · Fittipaldi · 1972",
+     "image": "sprites/pick/lotus72.png"
+    }
+   ]
+  },
+  {
+   "id": "brabhambt46b",
+   "nom": "Boomerang Fan 46",
+   "cat": "f1",
+   "poids": 600,
+   "perf": {
+    "vmax": 292,
+    "adherence": 2.21,
+    "acceleration": 3.2,
+    "freinage": 19.2
+   },
+   "livrees": [
+    {
+     "nom": "Rouge · Lauda · 1978",
+     "image": "sprites/pick/brabhambt46b.png"
+    }
+   ]
+  },
+  {
+   "id": "williamsfw07",
+   "nom": "Windsor 07",
+   "cat": "f1",
+   "poids": 579,
+   "perf": {
+    "vmax": 300,
+    "adherence": 2.8,
+    "acceleration": 3,
+    "freinage": 18.8
+   },
+   "livrees": [
+    {
+     "nom": "Blanc et vert · Jones · 1979",
+     "image": "sprites/pick/williamsfw07.png"
+    }
+   ]
+  },
+  {
+   "id": "ligierjs11",
+   "nom": "Le Coq Bleu 11",
+   "cat": "f1",
+   "poids": 580,
+   "perf": {
+    "vmax": 298,
+    "adherence": 2.7,
+    "acceleration": 3.1,
+    "freinage": 17.9
+   },
+   "livrees": [
+    {
+     "nom": "Bleu et blanc · Laffite · 1979",
+     "image": "sprites/pick/ligierjs11.png"
+    }
+   ]
+  },
+  {
+   "id": "renaultrs10",
+   "nom": "Somua Turbo 10",
+   "cat": "f1",
+   "poids": 690,
+   "perf": {
+    "vmax": 315,
+    "adherence": 2.59,
+    "acceleration": 3.5,
+    "freinage": 19.6
+   },
+   "livrees": [
+    {
+     "nom": "Jaune · Jabouille · 1979",
+     "image": "sprites/pick/renaultrs10.png"
+    }
+   ]
+  },
+  {
+   "id": "m1procar",
+   "nom": "Howitzer K1",
+   "cat": "gt",
+   "poids": 1020,
+   "perf": {
+    "vmax": 310,
+    "adherence": 1.71,
+    "acceleration": 3.3,
+    "freinage": 20.3
+   },
+   "livrees": [
+    {
+     "nom": "Bandes tricolores · 280",
+     "image": "sprites/pick/m1procar.png"
+    },
+    {
+     "nom": "Cibles rouges · 79",
+     "image": "sprites/pick/m1procar_BASF.png"
+    },
+    {
+     "nom": "Bleu rayé · 81",
+     "image": "sprites/pick/m1procar_DENIM.png"
+    }
+   ]
+  },
+  {
+   "id": "f40",
+   "nom": "Purosangue Furia 40",
+   "cat": "gt",
+   "poids": 1050,
+   "perf": {
+    "vmax": 368,
+    "adherence": 1.85,
+    "acceleration": 3.1,
+    "freinage": 20.9
+   },
+   "livrees": [
+    {
+     "nom": "Bleu · 56",
+     "image": "sprites/pick/f40.png"
+    },
+    {
+     "nom": "Rosso",
+     "image": "sprites/pick/f40_red.png"
+    },
+    {
+     "nom": "Crawford",
+     "image": "sprites/pick/f40_yellow.png"
+    }
+   ]
+  },
+  {
+   "id": "countach",
+   "nom": "Stallone Furioso",
+   "cat": "gt",
+   "poids": 1300,
+   "perf": {
+    "vmax": 300,
+    "adherence": 1.71,
+    "acceleration": 3.2,
+    "freinage": 21.9
+   },
+   "livrees": [
+    {
+     "nom": "Stallone Furioso",
+     "image": "sprites/pick/countach.png"
+    },
+    {
+     "nom": "Jaune · 88",
+     "image": "sprites/pick/countach_rainx.png"
+    },
+    {
+     "nom": "ludes, babe",
+     "image": "sprites/pick/countach_monaco83.png"
+    }
+   ]
+  },
+  {
+   "id": "930",
+   "nom": "Breithüft Turbo 9",
+   "cat": "gt",
+   "poids": 1120,
+   "perf": {
+    "vmax": 295,
+    "adherence": 1.79,
+    "acceleration": 3.2,
+    "freinage": 20.9
+   },
+   "livrees": [
+    {
+     "nom": "Blanc rayé · 46",
+     "image": "sprites/pick/930.png"
+    },
+    {
+     "nom": "Croix suisse · 30",
+     "image": "sprites/pick/930_swiss.png"
+    },
+    {
+     "nom": "Turquoise arc-en-ciel · 5",
+     "image": "sprites/pick/930_valliant.png"
+    }
+   ]
+  },
+  {
+   "id": "corvette",
+   "nom": "Moonshine Sting",
+   "cat": "gt",
+   "poids": 1130,
+   "perf": {
+    "vmax": 346,
+    "adherence": 1.76,
+    "acceleration": 3.3,
+    "freinage": 21.9
+   },
+   "livrees": [
+    {
+     "nom": "Moonshine Sting",
+     "image": "sprites/pick/corvette.png"
+    },
+    {
+     "nom": "Spirit of Le Mans · 76",
+     "image": "sprites/pick/corvette_spirit76.png"
+    },
+    {
+     "nom": "Étoiles et bandes · 49",
+     "image": "sprites/pick/corvette_bfg49.png"
+    }
+   ]
+  },
+  {
+   "id": "csl",
+   "nom": "Howitzer 3.0 Leicht",
+   "cat": "gt",
+   "poids": 1060,
+   "perf": {
+    "vmax": 270,
+    "adherence": 1.86,
+    "acceleration": 3.5,
+    "freinage": 20.3
+   },
+   "livrees": [
+    {
+     "nom": "Bandes tricolores · 25",
+     "image": "sprites/pick/csl.png"
+    },
+    {
+     "nom": "Noir, vert et rouge · 2",
+     "image": "sprites/pick/csl_castrol.png"
+    },
+    {
+     "nom": "Calder",
+     "image": "sprites/pick/csl_calder.png"
+    }
+   ]
+  },
+  {
+   "id": "250gto",
+   "nom": "Purosangue Gran Corsa",
+   "cat": "gt",
+   "poids": 880,
+   "perf": {
+    "vmax": 282,
+    "adherence": 1.62,
+    "acceleration": 3.7,
+    "freinage": 21.9
+   },
+   "livrees": [
+    {
+     "nom": "Rosso Corsa · 19",
+     "image": "sprites/pick/250gto.png"
+    },
+    {
+     "nom": "Francorchamps · jaune",
+     "image": "sprites/pick/250gto_francorchamps.png"
+    },
+    {
+     "nom": "Rob Walker · inspiration bleue",
+     "image": "sprites/pick/250gto_walker.png"
+    }
+   ]
+  },
+  {
+   "id": "typee",
+   "nom": "Moggy Longnose",
+   "cat": "gt",
+   "poids": 975,
+   "perf": {
+    "vmax": 270,
+    "adherence": 1.64,
+    "acceleration": 3.7,
+    "freinage": 22.3
+   },
+   "livrees": [
+    {
+     "nom": "Lightweight · British Racing Green",
+     "image": "sprites/pick/typee.png"
+    },
+    {
+     "nom": "Cunningham · blanc et bleu",
+     "image": "sprites/pick/typee_cunningham.png"
+    },
+    {
+     "nom": "Écurie Écosse · inspiration bleue",
+     "image": "sprites/pick/typee_ecosse.png"
+    }
+   ]
+  },
+  {
+   "id": "240z",
+   "nom": "Kitsune Zeta 240",
+   "cat": "gt",
+   "poids": 1000,
+   "perf": {
+    "vmax": 251,
+    "adherence": 1.69,
+    "acceleration": 3.5,
+    "freinage": 19.9
+   },
+   "livrees": [
+    {
+     "nom": "BRE · 46",
+     "image": "sprites/pick/240z.png"
+    },
+    {
+     "nom": "Bob Sharp · inspiration bleue",
+     "image": "sprites/pick/240z_sharp.png"
+    },
+    {
+     "nom": "Hommage jaune · 24",
+     "image": "sprites/pick/240z_dunlop.png"
+    }
+   ]
+  },
+  {
+   "id": "porsche991gt3r",
+   "nom": "Breithüft Apex R",
+   "cat": "gt3",
+   "poids": 1220,
+   "perf": {
+    "vmax": 287,
+    "adherence": 2.12,
+    "acceleration": 3.1,
+    "freinage": 18.5
+   },
+   "livrees": [
+    {
+     "nom": "Cochon rose · 92",
+     "image": "sprites/pick/porsche991gt3r.png"
+    },
+    {
+     "nom": "Jaune fluo et vert · 911",
+     "image": "sprites/pick/porsche991gt3r_grello.png"
+    },
+    {
+     "nom": "Dinosaure vert · 56",
+     "image": "sprites/pick/porsche991gt3r_rexy.png"
+    }
+   ]
+  },
+  {
+   "id": "ferrari488gt3",
+   "nom": "Purosangue Furia 48",
+   "cat": "gt3",
+   "poids": 1260,
+   "perf": {
+    "vmax": 290,
+    "adherence": 2.13,
+    "acceleration": 3.1,
+    "freinage": 18.6
+   },
+   "livrees": [
+    {
+     "nom": "Rouge tricolore · 51",
+     "image": "sprites/pick/ferrari488gt3.png"
+    },
+    {
+     "nom": "CHRONO · 07",
+     "image": "sprites/pick/ferrari488gt3_garageitalia.png"
+    },
+    {
+     "nom": "RMP Racing · 72",
+     "image": "sprites/pick/ferrari488gt3_smp.png"
+    }
+   ]
+  },
+  {
+   "id": "huracangt3",
+   "nom": "Stallone Fulmine",
+   "cat": "gt3",
+   "poids": 1230,
+   "perf": {
+    "vmax": 287,
+    "adherence": 2.15,
+    "acceleration": 3.1,
+    "freinage": 18.5
+   },
+   "livrees": [
+    {
+     "nom": "Vert et carbone · 63",
+     "image": "sprites/pick/huracangt3.png"
+    },
+    {
+     "nom": "Chronographe · 7",
+     "image": "sprites/pick/huracangt3_fff.png"
+    },
+    {
+     "nom": "NET · 100",
+     "image": "sprites/pick/huracangt3_attempto.png"
+    }
+   ]
+  },
+  {
+   "id": "audir8lms",
+   "nom": "Autobahn Acht GT3",
+   "cat": "gt3",
+   "poids": 1225,
+   "perf": {
+    "vmax": 287,
+    "adherence": 2.16,
+    "acceleration": 3.2,
+    "freinage": 18.3
+   },
+   "livrees": [
+    {
+     "nom": "Argent, noir et bleu · 3",
+     "image": "sprites/pick/audir8lms.png"
+    },
+    {
+     "nom": "BMT · rose · 26",
+     "image": "sprites/pick/audir8lms_bwt.png"
+    },
+    {
+     "nom": "Magnet Racing · 44",
+     "image": "sprites/pick/audir8lms_magnus.png"
+    }
+   ]
+  },
+  {
+   "id": "amggt3",
+   "nom": "Stern AWG GT3",
+   "cat": "gt3",
+   "poids": 1285,
+   "perf": {
+    "vmax": 290,
+    "adherence": 2.14,
+    "acceleration": 3.1,
+    "freinage": 19
+   },
+   "livrees": [
+    {
+     "nom": "Fan Filter · 47",
+     "image": "sprites/pick/amggt3.png"
+    },
+    {
+     "nom": "Donut’s · 8",
+     "image": "sprites/pick/amggt3_haribo.png"
+    },
+    {
+     "nom": "Dragon · 71",
+     "image": "sprites/pick/amggt3_dragon.png"
+    }
+   ]
+  },
+  {
+   "id": "bmwm6gt3",
+   "nom": "Howitzer K6 GT3",
+   "cat": "gt3",
+   "poids": 1300,
+   "perf": {
+    "vmax": 293,
+    "adherence": 2.13,
+    "acceleration": 3.1,
+    "freinage": 19.2
+   },
+   "livrees": [
+    {
+     "nom": "RAVE · 99",
+     "image": "sprites/pick/bmwm6gt3.png"
+    },
+    {
+     "nom": "WAVES · 33",
+     "image": "sprites/pick/bmwm6gt3_falken.png"
+    },
+    {
+     "nom": "Bandes tricolores · 42",
+     "image": "sprites/pick/bmwm6gt3_schnitzer.png"
+    }
+   ]
+  },
+  {
+   "id": "bentleygt3",
+   "nom": "Bramley Grand Tourer",
+   "cat": "gt3",
+   "poids": 1300,
+   "perf": {
+    "vmax": 293,
+    "adherence": 2.13,
+    "acceleration": 3.1,
+    "freinage": 19.4
+   },
+   "livrees": [
+    {
+     "nom": "Blanc et vert · 7",
+     "image": "sprites/pick/bentleygt3.png"
+    },
+    {
+     "nom": "APT · jaune et noir · 7",
+     "image": "sprites/pick/bentleygt3_abt.png"
+    },
+    {
+     "nom": "SIMBA · gris et jaune · 7",
+     "image": "sprites/pick/bentleygt3_singha.png"
+    }
+   ]
+  },
+  {
+   "id": "nissangtrgt3",
+   "nom": "Kitsune Raijin",
+   "cat": "gt3",
+   "poids": 1300,
+   "perf": {
+    "vmax": 293,
+    "adherence": 2.12,
+    "acceleration": 3.1,
+    "freinage": 19
+   },
+   "livrees": [
+    {
+     "nom": "Kitsune · blanc et rouge · 35",
+     "image": "sprites/pick/nissangtrgt3.png"
+    },
+    {
+     "nom": "KCRG · 18",
+     "image": "sprites/pick/nissangtrgt3_kcmg.png"
+    },
+    {
+     "nom": "B-MIX · 3",
+     "image": "sprites/pick/nissangtrgt3_nddp.png"
+    }
+   ]
+  },
+  {
+   "id": "mclaren650sgt3",
+   "nom": "McHaggis Blade 650",
+   "cat": "gt3",
+   "poids": 1240,
+   "perf": {
+    "vmax": 287,
+    "adherence": 2.16,
+    "acceleration": 3.2,
+    "freinage": 18.5
+   },
+   "livrees": [
+    {
+     "nom": "TEKTO · orange · 59",
+     "image": "sprites/pick/mclaren650sgt3.png"
+    },
+    {
+     "nom": "Damier vert · 60",
+     "image": "sprites/pick/mclaren650sgt3_garage59.png"
+    },
+    {
+     "nom": "K-FOX · jaune et noir · 9",
+     "image": "sprites/pick/mclaren650sgt3_kpax.png"
+    }
+   ]
+  },
+  {
+   "id": "v12vantagegt3",
+   "nom": "Ashford V12",
+   "cat": "gt3",
+   "poids": 1250,
+   "perf": {
+    "vmax": 287,
+    "adherence": 2.14,
+    "acceleration": 3.1,
+    "freinage": 18.8
+   },
+   "livrees": [
+    {
+     "nom": "Filets fluo · 10",
+     "image": "sprites/pick/v12vantagegt3.png"
+    },
+    {
+     "nom": "Liserés cyan · 62",
+     "image": "sprites/pick/v12vantagegt3_rmotorsport.png"
+    },
+    {
+     "nom": "Vert foncé et jaune",
+     "image": "sprites/pick/v12vantagegt3_amr.png"
+    }
+   ]
+  },
+  {
+   "id": "gt40",
+   "nom": "Redneck Endurance 40",
+   "cat": "proto",
+   "poids": 1215,
+   "perf": {
+    "vmax": 338,
+    "adherence": 2.13,
+    "acceleration": 3.1,
+    "freinage": 20.6
+   },
+   "livrees": [
+    {
+     "nom": "Holman Moody · 1966 · 5",
+     "image": "sprites/pick/gt40.png"
+    },
+    {
+     "nom": "Le Mans 1966 · 1",
+     "image": "sprites/pick/gt40_lemans1.png"
+    },
+    {
+     "nom": "Le Mans 1966 · 2",
+     "image": "sprites/pick/gt40_lemans2.png"
+    }
+   ]
+  },
+  {
+   "id": "935",
+   "nom": "Breithüft Langheck",
+   "cat": "proto",
+   "poids": 1025,
+   "perf": {
+    "vmax": 366,
+    "adherence": 2.28,
+    "acceleration": 3.3,
+    "freinage": 21
+   },
+   "livrees": [
+    {
+     "nom": "Breithüft Langheck",
+     "image": "sprites/pick/935.png"
+    },
+    {
+     "nom": "Orange · 16",
+     "image": "sprites/pick/935_jager.png"
+    },
+    {
+     "nom": "Valliance · 51",
+     "image": "sprites/pick/935_vaillant.png"
+    },
+    {
+     "nom": "Lemon Computer · 71",
+     "image": "sprites/pick/935_apple.png"
+    }
+   ]
+  },
+  {
+   "id": "787b",
+   "nom": "Kaminari Hayate",
+   "cat": "proto",
+   "poids": 830,
+   "perf": {
+    "vmax": 350,
+    "adherence": 2.38,
+    "acceleration": 3.1,
+    "freinage": 19.1
+   },
+   "livrees": [
+    {
+     "nom": "Kaminari Hayate",
+     "image": "sprites/pick/787b.png"
+    },
+    {
+     "nom": "Blanc et vert · 18",
+     "image": "sprites/pick/787b_efini18.png"
+    },
+    {
+     "nom": "Le Mans 1991 · 18",
+     "image": "sprites/pick/787b_lemans18.png"
+    }
+   ]
+  },
+  {
+   "id": "962",
+   "nom": "Breithüft Aero 62",
+   "cat": "proto",
+   "poids": 850,
+   "perf": {
+    "vmax": 350,
+    "adherence": 2.36,
+    "acceleration": 3.3,
+    "freinage": 19.6
+   },
+   "livrees": [
+    {
+     "nom": "Bleu, blanc et rouge · 17",
+     "image": "sprites/pick/962.png"
+    },
+    {
+     "nom": "Jaune et rouge · 7",
+     "image": "sprites/pick/962_shell.png"
+    },
+    {
+     "nom": "Orange · 17",
+     "image": "sprites/pick/962_jager.png"
+    }
+   ]
+  },
+  {
+   "id": "xjr9",
+   "nom": "Moggy Nightfall",
+   "cat": "proto",
+   "poids": 881,
+   "perf": {
+    "vmax": 386,
+    "adherence": 2.34,
+    "acceleration": 3.4,
+    "freinage": 20.8
+   },
+   "livrees": [
+    {
+     "nom": "Violet et blanc · 2",
+     "image": "sprites/pick/xjr9.png"
+    },
+    {
+     "nom": "Vert et blanc · 60",
+     "image": "sprites/pick/xjr9_castrol.png"
+    },
+    {
+     "nom": "Hommage noir et or · 9",
+     "image": "sprites/pick/xjr9_jps.png"
+    }
+   ]
+  },
+  {
+   "id": "330p4",
+   "nom": "Purosangue Freccia",
+   "cat": "proto",
+   "poids": 792,
+   "perf": {
+    "vmax": 320,
+    "adherence": 2.04,
+    "acceleration": 3.1,
+    "freinage": 19.3
+   },
+   "livrees": [
+    {
+     "nom": "Daytona 1967 · 23",
+     "image": "sprites/pick/330p4.png"
+    },
+    {
+     "nom": "Équipe Nationale Belge · jaune",
+     "image": "sprites/pick/330p4_giallo.png"
+    },
+    {
+     "nom": "David Piper · vert",
+     "image": "sprites/pick/330p4_piper.png"
+    }
+   ]
+  },
+  {
+   "id": "p68",
+   "nom": "Redneck Arrow 68",
+   "cat": "proto",
+   "poids": 670,
+   "perf": {
+    "vmax": 349,
+    "adherence": 2.06,
+    "acceleration": 3.3,
+    "freinage": 20.6
+   },
+   "livrees": [
+    {
+     "nom": "Alan Mann Racing · 1968",
+     "image": "sprites/pick/p68.png"
+    },
+    {
+     "nom": "Bleu ciel et orange · 7",
+     "image": "sprites/pick/p68_gulf.png"
+    },
+    {
+     "nom": "Hommage jaune · 68",
+     "image": "sprites/pick/p68_dunlop.png"
+    }
+   ]
+  }
+ ],
+ "niveaux": [
+  {
+   "id": "easy",
+   "nom": "Facile"
+  },
+  {
+   "id": "medium",
+   "nom": "Normal"
+  },
+  {
+   "id": "hard",
+   "nom": "Difficile"
+  },
+  {
+   "id": "extreme",
+   "nom": "Extrême"
+  },
+  {
+   "id": "cauchemar",
+   "nom": "Cauchemar"
+  }
+ ],
+ "version": ""
+}
