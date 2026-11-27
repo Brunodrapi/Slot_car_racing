@@ -1,6 +1,7 @@
 // La maquette sur un iPhone 13 émulé : chaque écran et chaque panneau photographié, et les mesures de
 // l'audit (cibles tactiles, petits textes, hauteur). Le paddock doit tenir sur un écran.
 //   node essais/maquette-paddock/outils/essai.cjs <dossier des photos>
+//   LARGEUR=360 node …   le même parcours sur un écran plus étroit (360 points, le plus petit courant)
 'use strict';
 const fs = require('fs'), path = require('path'), http = require('http');
 const { chromium, devices } = require('playwright');
@@ -15,7 +16,9 @@ const mesure = () => {
   for (let n; (n = w.nextNode());) { const t = n.textContent.trim(); if (!t || !n.parentElement || !vis(n.parentElement)) continue; textes.push({ t, px: parseFloat(getComputedStyle(n.parentElement).fontSize) }); }
   const app = document.querySelector('.app');
   const coupes = [...document.querySelectorAll('.titre, b, small, span')].filter(vis).filter((el) => el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).overflow === 'hidden').map((el) => el.textContent.trim().slice(0, 24));
-  return { cibles: cibles.length, petites, mots: textes.reduce((a, x) => a + x.t.split(/\s+/).length, 0), sous13: textes.filter((x) => x.px < 13).map((x) => x.t.slice(0, 18) + ' ' + x.px), defile: app ? Math.round(app.scrollHeight - innerHeight) : null, coupes };
+  // la barre du bas : un bouton qui sort de l'écran ou qui passe sur deux lignes
+  const bas = [...document.querySelectorAll('.barre-bas > *')].filter(vis).filter((el) => { const r = el.getBoundingClientRect(); return r.right > innerWidth + 0.5 || r.left < -0.5 || r.height > 60; }).map((el) => el.textContent.trim().slice(0, 16) + ' ' + Math.round(el.getBoundingClientRect().height));
+  return { cibles: cibles.length, petites, bas, mots: textes.reduce((a, x) => a + x.t.split(/\s+/).length, 0), sous13: textes.filter((x) => x.px < 13).map((x) => x.t.slice(0, 18) + ' ' + x.px), defile: app ? Math.round(app.scrollHeight - innerHeight) : null, coupes };
 };
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -26,7 +29,7 @@ const mesure = () => {
   });
   await new Promise((r) => srv.listen(0, '127.0.0.1', r));
   const b = await chromium.launch();
-  const ctx = await b.newContext({ ...devices['iPhone 13'], locale: 'fr-FR' });
+  const ctx = await b.newContext({ ...devices['iPhone 13'], locale: 'fr-FR', ...(process.env.LARGEUR ? { viewport: { width: +process.env.LARGEUR, height: 740 } } : {}) });
   const p = await ctx.newPage();
   const erreurs = [];
   p.on('pageerror', (e) => erreurs.push(String(e)));
@@ -55,6 +58,7 @@ const mesure = () => {
   await touche('[data-act="enpiste"]'); await photo('13-depart');
   await touche('[data-act="retour-depart"]'); await touche('[data-act="menu"]');
   await touche('[data-act="mode"][data-id="timetrial"]'); await photo('14-contre-la-montre');
+  console.log('contre-la-montre : Réglages en bas, chrono sur la carte, pas de liens =', await p.evaluate(() => !!document.querySelector('.barre-bas [data-id="reglages"]') && !!document.querySelector('.carte-zone .info img') && !document.querySelector('.liens')));
   await touche('[data-act="menu"]'); await touche('[data-act="mode"][data-id="training"]'); await photo('15-entrainement');
   // le championnat, un mode du menu : son écran de départ, trois courses (une reculée), des séances,
   // lancé ; le paddock du championnat, le classement, le calendrier ; trois arrivées, le podium ; l'abandon
@@ -91,8 +95,9 @@ const mesure = () => {
   // le multijoueur : l'entrée, une table créée (les amis arrivent), prêt, les réglages de l'hôte, quitter, rejoindre
   await touche('[data-act="menu"]'); await touche('[data-act="multi"]'); await photo('24-multi');
   await p.locator('#code').fill('ab'); console.log('code incomplet, Rejoindre désactivé =', await p.locator('[data-act="table-rejoindre"]').isDisabled());
-  await touche('[data-act="table-creer"]'); await p.waitForTimeout(9000); await photo('25-table-hote');
-  await touche('[data-act="pret"]'); await photo('26-table-prets');
+  await touche('[data-act="table-creer"]'); await photo('25a-table-seul'); await p.waitForTimeout(9000); await photo('25-table-hote');
+  console.log('table de l\'hôte : Réglages, chrono, pas de Prêt, Départ prêt =', await p.evaluate(() => !!document.querySelector('.barre-bas [data-id="reglages"]') && !!document.querySelector('.carte-zone .info') && !document.querySelector('[data-act="pret"]') && !document.querySelector('[data-act="table-depart"]').disabled));
+  await photo('26-table-prets');
   await touche('.pilotes-barre'); await photo('27-pilotes'); await touche('.feuille [data-act="fermer"]');
   await touche('[data-act="feuille"][data-id="format"]'); await photo('27b-format'); await touche('[data-act="table-format"][data-id="race"]'); await p.waitForTimeout(350);
   await touche('.carte-circuit'); await photo('27c-circuit-table'); await touche('[data-act="table-circuit"][data-id="spa"]'); await p.waitForTimeout(350);
@@ -103,15 +108,15 @@ const mesure = () => {
   for (const c of ['spa', 'monaco']) { await touche('[data-act="feuille"][data-id="circuits-champ"]'); await touche(`[data-act="champ-ajoute"][data-id="${c}"]`); await p.waitForTimeout(350); }
   await photo('27h-champ-table');
   await touche('[data-act="champ-lancer"]'); await p.waitForTimeout(350); await photo('27i-table-championnat');
-  await touche('[data-act="pret"]'); await touche('[data-act="table-depart"]'); await photo('27j-depart-table');
+  await touche('[data-act="table-depart"]'); await photo('27j-depart-table');
   await touche('[data-act="champ-simuler"]'); await photo('27k-arrivee-table'); await touche('[data-act="retour-depart"]'); await photo('27k2-table-course-2');
-  await touche('[data-act="pret"]'); await touche('[data-act="table-depart"]'); await touche('[data-act="champ-simuler"]'); await touche('[data-act="champ-podium"]'); await photo('27l-podium-table');
+  await touche('[data-act="table-depart"]'); await touche('[data-act="champ-simuler"]'); await touche('[data-act="champ-podium"]'); await photo('27l-podium-table');
   await touche('[data-act="champ-menu"]');
   // le même championnat en contre-la-montre : des séances de qualifications ; puis l'hôte l'arrête
   await touche('[data-act="feuille"][data-id="format"]'); await touche('[data-act="table-format"][data-id="ghost"]'); await p.waitForTimeout(350);
   await touche('[data-act="page-champ-table"]'); await touche('[data-act="manche-minutes"][data-id="0"][data-pas="1"]'); await photo('27m-champ-clm');
   await touche('[data-act="champ-lancer"]'); await p.waitForTimeout(350); await photo('27n-table-clm');
-  await touche('[data-act="pret"]'); await touche('[data-act="table-depart"]'); await touche('[data-act="champ-simuler"]'); await photo('27o-seance');
+  await touche('[data-act="table-depart"]'); await touche('[data-act="champ-simuler"]'); await photo('27o-seance');
   await touche('[data-act="retour-depart"]'); await touche('[data-act="feuille"][data-id="classement"]'); await photo('27o2-classement-clm'); await touche('.feuille [data-act="fermer"]');
   await touche('[data-act="feuille"][data-id="reglages"]'); await touche('[data-act="feuille"][data-id="abandon"]'); await photo('27p-arreter');
   await touche('[data-act="champ-abandon"]'); await p.waitForTimeout(400); await photo('27q-table-apres');

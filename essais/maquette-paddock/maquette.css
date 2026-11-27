@@ -341,3 +341,12 @@ details.plus dd { margin: 0; font-weight: 700; text-align: right; }
 /* trois boutons en bas (Réglages, Classement, EN PISTE) : EN PISTE reste sur une ligne */
 .barre-bas.serree { gap: 6px; }
 .barre-bas.serree .enpiste { white-space: nowrap; padding: 0 14px; font-size: 24px; }
+/* le chrono sur la carte du circuit : la fiche et les chronos, sur tous les écrans */
+.carte-zone { position: relative; flex: 1 1 0; min-height: 120px; display: flex; }
+.carte-zone > .carte { flex: 1 1 auto; min-height: 0; }
+.info img { width: 30px; height: 30px; object-fit: contain; }
+/* à la table : l'hôte (★) lance, les autres se déclarent prêts avec le grand bouton */
+.pil.hote { background: #7a5c12; }
+.barre-bas .enpiste.pret { background: var(--vert); }
+/* sur les écrans les plus étroits (360 points), le titre du bandeau tient en entier */
+@media (max-width: 374px) { .bandeau h1 { font-size: 20px; padding: 0 12px; } .bandeau h1.long { font-size: 17px; } .bandeau .logo { width: 72px; } }

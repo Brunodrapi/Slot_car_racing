@@ -91,12 +91,13 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
   }
 
   // la carte du circuit et celle de la voiture, partagées par le paddock et la table
+  // le chrono, en haut à gauche de la carte : la fiche du circuit et ses chronos, sur tous les écrans
   function carteCircuit(c, { acte = 'feuille', id = 'circuits', etiquette = 'Changer', libelle } = {}) {
-    return `<button class="carte carte-circuit ${nuit() ? 'nuit' : ''}" data-act="${acte}" data-id="${id}" style="background-image:url('${RACINE}${esc(c.art)}')" aria-label="${esc(libelle || 'Circuit : ' + c.nom + '. Toucher pour changer.')}">
+    return `<div class="carte-zone"><button class="carte carte-circuit ${nuit() ? 'nuit' : ''}" data-act="${acte}" data-id="${id}" style="background-image:url('${RACINE}${esc(c.art)}')" aria-label="${esc(libelle || 'Circuit : ' + c.nom + '. Toucher pour changer.')}">
         <img class="trace" src="${esc(nuit() ? c.traceNuit : c.trace)}" alt="">
         ${etiquette ? `<span class="changer">${esc(etiquette)}</span>` : ''}
         <span class="bandeau-nom"><span class="nom titre">${esc(c.nom)}</span>${drapeau(c)}<small>${metres(c.longueur)} · ${points(c.difficulte)}</small></span>
-      </button>`;
+      </button><button class="info" data-act="page-circuit" aria-label="Chronos et fiche du circuit"><img src="${RACINE}art/interface/clock.webp" alt=""></button></div>`;
   }
   function carteVoiture(v, petite = false) {
     const l = livreeDe(v), cat = categorie(v.cat);
@@ -112,8 +113,6 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
     const c = circuit(), v = voiture();
     const course = enCourse(), champ = champEnCours();
     const ch = etat.champ;
-    // la course rapide et le championnat : les réglages en bas, la fiche du circuit par son « i »
-    const rapide = enCourse();
     let pastilles;
     const jourNuit = `<button class="pastille" data-act="nuit" ${nuitPossible() ? '' : 'disabled'} aria-pressed="${nuit()}"><span class="lib">Moment</span><b>${nuit() ? '☾ Nuit' : '☀ Jour'}</b>${nuitPossible() ? '' : '<span class="note">Les F1 roulent de jour</span>'}</button>`;
     if (course) {
@@ -135,16 +134,17 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
     app.innerHTML = `${bandeau(MODES[etat.mode], 'menu')}
       <main class="paddock">
         ${carteC}
-        <button class="info" data-act="page-circuit" aria-label="Fiche et chronos du circuit" style="top:calc(52px + var(--haut) + 18px);left:18px;position:absolute">i</button>
         ${carteVoiture(v)}
         ${pastilles}
-        ${rapide ? '' : '<div class="liens"><button data-act="feuille" data-id="reglages">Plus de réglages</button><button data-act="page-circuit">Chronos et fiche du circuit</button></div>'}
       </main>
-      <footer class="barre-bas${resume ? ' serree' : ''}">${rapide ? '<button class="chip" data-act="feuille" data-id="reglages">Réglages</button>' : ''}${resume}<button class="enpiste" data-act="enpiste">En piste ! →</button></footer>`;
+      <footer class="barre-bas${resume ? ' serree' : ''}">${BOUTON_REGLAGES}${resume}<button class="enpiste" data-act="enpiste">En piste ! →</button></footer>`;
   }
 
   // en bas du paddock et de la table, pendant un championnat : « Classement », et dessous ta place
   const puceClassement = (place) => `<button class="chip etage" data-act="feuille" data-id="classement" aria-label="${place ? `Classement : tu es ${rang(place)}. Toucher pour le tableau complet.` : 'Classement du championnat'}"><b>Classement</b>${place ? `<small>Tu es ${rang(place)}</small>` : ''}</button>`;
+
+  // en bas à gauche de tous les écrans de course : les réglages
+  const BOUTON_REGLAGES = '<button class="chip" data-act="feuille" data-id="reglages">Réglages</button>';
 
   // ---------- le multijoueur : l'entrée ----------
   function rendMulti() {
@@ -201,7 +201,7 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
   const pilotes = () => etat.table.membres.filter((m) => !m.spect);
   function rendTable() {
     const T = etat.table, r = T.reglages, c = circuit(), v = voiture(), moi = T.membres.find((m) => m.moi);
-    const liste = pilotes(), prets = liste.filter((m) => m.pret).length;
+    const liste = pilotes();
     const hote = T.role === 'hote', spect = T.role === 'spectateur';
     // pendant un championnat, le circuit, le format, la catégorie et les tours sont ceux du calendrier
     const ch = T.champ, champ = champEnCours(), regle = hote && !champ, clm = r.format === 'ghost';
@@ -212,8 +212,10 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
     const format = `<button class="pastille" data-act="feuille" data-id="format" ${regle ? '' : 'disabled'}><span class="lib">Format${regle ? ' ▾' : ''}</span><b>${FORMATS[r.format]}</b>${clm ? '' : `<span class="note">${sansIA ? 'Sans IA : un duel' : `IA : ${r.ia < 0 ? 'auto' : r.ia}`}</span>`}</button>`;
     const cat = `<button class="pastille" data-act="feuille" data-id="categorie" ${regle ? '' : 'disabled'}><span class="lib">Catégorie${regle ? ' ▾' : ''}</span><b>${r.cat === 'all' ? 'Toutes' : esc(categorie(r.cat).nom)}</b></button>`;
     const jourNuit = `<button class="pastille" data-act="nuit" ${hote && nuitPossible() ? '' : 'disabled'} aria-pressed="${nuit()}"><span class="lib">Moment</span><b>${nuit() ? '☾ Nuit' : '☀ Jour'}</b>${nuitPossible() ? '' : '<span class="note">Les F1 roulent de jour</span>'}</button>`;
-    const pils = liste.map((m) => `<span class="pil ${m.pret ? 'ok' : ''} ${m.moi ? 'moi' : ''}">${m.pret ? '✓' : '…'} ${esc(m.nom)}</span>`).join('');
-    const tousPrets = prets === liste.length && liste.length > 1;
+    // l'hôte n'a pas de « Prêt » : appuyer sur Départ, c'est l'être ; il attend que les autres le soient
+    const pils = liste.map((m) => `<span class="pil ${m.hote ? 'hote' : m.pret ? 'ok' : ''} ${m.moi ? 'moi' : ''}">${m.hote ? '★' : m.pret ? '✓' : '…'} ${esc(m.nom)}</span>`).join('');
+    const autres = liste.filter((m) => !m.hote), autresPrets = autres.filter((m) => m.pret).length;
+    const tousPrets = autres.length > 0 && autresPrets === autres.length;
     const n = ch.calendrier.length;
     const carte = champ ? carteCircuit(c, { acte: 'page-calendrier', id: '', etiquette: `${motManche()} ${ch.index + 1}/${n}`, libelle: `Championnat de la table, ${motManche().toLowerCase()} ${ch.index + 1} sur ${n} : ${c.nom}. Toucher pour le calendrier.` })
       : carteCircuit(c, hote ? { id: 'circuits-table' } : { acte: 'page-circuit', id: '', etiquette: 'Choisi par l\'hôte', libelle: `Circuit choisi par l'hôte : ${c.nom}. Toucher pour sa fiche.` });
@@ -222,16 +224,16 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
     const puce = champ ? puceClassement(maPlace) : hote ? '<button class="chip" data-act="page-champ-table">Championnat</button>' : '';
     app.innerHTML = `${bandeau(`Table ${T.code}`, 'feuille', 'Quitter')}
       <main class="paddock">
-        <button class="pilotes-barre" data-act="feuille" data-id="pilotes" aria-label="Pilotes : ${liste.length} sur 8, ${prets} prêts. Toucher pour la liste et le code de la table.">
+        <button class="pilotes-barre" data-act="feuille" data-id="pilotes" aria-label="Pilotes : ${liste.length} sur 8, ${autresPrets} prêts sur ${autres.length}, plus l'hôte. Toucher pour la liste et le code de la table.">
           <span class="compte titre">${liste.length}/8</span><span class="pils">${pils}${liste.length < 2 ? '<span class="pil vide">Donne le code à tes amis</span>' : ''}</span><span class="fleche" aria-hidden="true">›</span>
         </button>
         ${carte}
         ${spect ? '<p class="aide encart">Tu regardes : la course s\'affichera quand l\'hôte la lancera.</p>' : carteVoiture(v)}
         <div class="pastilles table-pastilles ${tours ? '' : 'trois'}">${tours}${format}${cat}${jourNuit}</div>
-        <div class="liens"><button data-act="feuille" data-id="reglages">${hote ? 'Plus de réglages' : 'Réglages de la course'}</button><button data-act="page-circuit">Chronos et fiche du circuit</button></div>
       </main>
-      <footer class="barre-bas">${puce}${spect ? '<span class="attente">L\'hôte lancera la course.</span>' : `<button class="chip ${moi.pret ? 'pret' : ''}" data-act="pret" aria-pressed="${moi.pret}">${moi.pret ? '✓ Prêt' : 'Prêt ?'}</button>`}
-        ${hote ? `<button class="enpiste" data-act="table-depart" ${tousPrets ? '' : 'disabled'}>${tousPrets ? 'Départ ! →' : `${prets}/${liste.length} prêts`}</button>` : spect ? '' : '<span class="attente">L\'hôte lance quand tout le monde est prêt.</span>'}</footer>`;
+      <footer class="barre-bas${puce ? ' serree' : ''}">${BOUTON_REGLAGES}${puce}${spect ? '<span class="attente">L\'hôte lancera la course.</span>'
+        : hote ? `<button class="enpiste" data-act="table-depart" ${tousPrets ? '' : 'disabled'} aria-label="${tousPrets ? 'Départ' : `${autresPrets} pilotes prêts sur ${autres.length}`}">${tousPrets ? 'Départ ! →' : autres.length ? `${autresPrets}/${autres.length} prêts` : 'En attente'}</button>`
+        : `<button class="enpiste ${moi.pret ? 'pret' : ''}" data-act="pret" aria-pressed="${moi.pret}">${moi.pret ? '✓ Prêt' : 'Prêt ?'}</button>`}</footer>`;
   }
 
   function rend() {
@@ -361,7 +363,7 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
   const contenuDifficulte = () => `<div class="choix">${D.niveaux.map((n) => `<button class="${n.id === etat.difficulte ? 'sel' : ''}" data-act="difficulte" data-id="${n.id}" aria-pressed="${n.id === etat.difficulte}"><span><b>${esc(n.nom)}</b><small>${esc(DESCRIPTIONS[n.id] || '')}</small></span></button>`).join('')}</div>`;
 
   // le format de la table, comme la difficulté du paddock : une ligne par choix
-  const TEXTES_FORMAT = { race: 'Tous ensemble. Avec ou sans voitures de l\'IA (Plus de réglages) : sans elles, c\'est un duel.', ghost: 'Chacun roule seul, le meilleur tour gagne.' };
+  const TEXTES_FORMAT = { race: 'Tous ensemble. Avec ou sans voitures de l\'IA (Réglages) : sans elles, c\'est un duel.', ghost: 'Chacun roule seul, le meilleur tour gagne.' };
   const contenuFormat = () => `<div class="choix">${Object.entries(FORMATS).map(([id, nom]) => `<button class="${etat.table.reglages.format === id ? 'sel' : ''}" data-act="table-format" data-id="${id}" aria-pressed="${etat.table.reglages.format === id}"><span><b>${nom}</b><small>${TEXTES_FORMAT[id]}</small></span></button>`).join('')}</div>`;
   // la catégorie de la table : chacun choisit sa voiture dedans
   const contenuCategorie = () => { const r = etat.table.reglages; return `<p class="aide">Chacun choisit sa voiture dans la catégorie de la table. Une voiture d'une autre catégorie change d'elle-même.</p><div class="choix">${[['all', 'Toutes', 'Chacun prend la voiture qu\'il veut.'], ...D.categories.map((k) => [k.id, k.nom, `${D.voitures.filter((v) => v.cat === k.id).length} voitures.`])].map(([id, nom, txt]) => `<button class="${r.cat === id ? 'sel' : ''}" data-act="table-cat" data-id="${id}" aria-pressed="${r.cat === id}"><span><b>${esc(nom)}</b><small>${esc(txt)}</small></span></button>`).join('')}</div>`; };
@@ -369,7 +371,7 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
   const contenuPilotes = () => {
     const T = etat.table, liste = pilotes(), specs = T.membres.length - liste.length;
     return `<div class="code-carte"><span>Code de la table</span><b class="titre" aria-label="${T.code.split('').join(' ')}">${T.code}</b><button class="noir" data-act="partager">Partager</button></div>
-      <ul class="membres">${liste.map((m) => { const mv = voiturePar(m.voiture); return `<li class="${m.moi ? 'moi' : ''}"><img src="${imageDe(mv, 0)}" alt=""><span><b>${esc(m.nom)}</b><small>${[m.hote ? 'hôte' : '', esc(mv.nom), m.moi ? '' : Math.round(28 + hache(m.nom) * 70) + ' ms'].filter(Boolean).join(' · ')}</small></span><span class="etat ${m.pret ? 'ok' : ''}">${m.pret ? '✓ Prêt' : 'En attente'}</span></li>`; }).join('')}</ul>
+      <ul class="membres">${liste.map((m) => { const mv = voiturePar(m.voiture); return `<li class="${m.moi ? 'moi' : ''}"><img src="${imageDe(mv, 0)}" alt=""><span><b>${esc(m.nom)}</b><small>${[m.hote ? 'hôte' : '', esc(mv.nom), m.moi ? '' : Math.round(28 + hache(m.nom) * 70) + ' ms'].filter(Boolean).join(' · ')}</small></span><span class="etat ${m.hote || m.pret ? 'ok' : ''}">${m.hote ? '★ Lance' : m.pret ? '✓ Prêt' : 'En attente'}</span></li>`; }).join('')}</ul>
       <p class="aide">${liste.length}/8 pilotes${specs ? ` · ${specs} spectateur${specs > 1 ? 's' : ''}` : ''}. Le temps en ms est un aller-retour avec chacun : au-delà de 150, la course peut sauter.</p>
       ${liste.length < 2 ? '<button class="ligne" data-act="discord"><span><b>Trouver des joueurs</b><small>Le Discord de GRIP.</small></span><span class="valeur">›</span></button>' : ''}`;
   };
@@ -498,7 +500,7 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
       <div class="defile">
         <p class="bareme"><b>Barème ${esc(nomCat(CH().cat))}</b> · ${esc(texteBareme())}</p>
         ${sectionsChamp(true)}
-        <p class="aide">${etat.table ? 'Le calendrier est figé jusqu\'à la fin. L\'hôte peut arrêter le championnat dans « Plus de réglages ».' : 'Le calendrier et la grille sont figés jusqu\'à la fin. Pour arrêter : « Réglages », « Abandonner le championnat ».'}</p>
+        <p class="aide">${etat.table ? 'Le calendrier est figé jusqu\'à la fin. L\'hôte peut arrêter le championnat dans « Réglages ».' : 'Le calendrier et la grille sont figés jusqu\'à la fin. Pour arrêter : « Réglages », « Abandonner le championnat ».'}</p>
       </div></div>`;
     el.querySelector('.defile').scrollTop = haut;
   }
@@ -605,7 +607,7 @@ Aucune course ne part. Les choix sont gardés dans ce navigateur. */
     'circuits-champ': () => { acteCircuit = 'champ-ajoute'; return ['Ajouter un circuit', contenuCircuits, 'haute']; },
     'circuits-table': () => { acteCircuit = 'table-circuit'; return ['Circuit de la table', contenuCircuits, 'haute']; },
     garage: () => ['Garage', contenuGarage, 'haute'],
-    reglages: () => [etat.table && etat.table.role !== 'hote' ? 'Réglages de la course' : !etat.table && enCourse() ? 'Réglages' : 'Plus de réglages', contenuReglages, 'moyenne'],
+    reglages: () => [etat.table && etat.table.role !== 'hote' ? 'Réglages de la course' : 'Réglages', contenuReglages, 'moyenne'],
     freinage: () => ['Freinage', contenuFreinage, 'moyenne'],
     difficulte: () => ['Difficulté', contenuDifficulte, 'moyenne'],
     format: () => ['Format', contenuFormat, 'moyenne'],
