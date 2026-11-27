@@ -77,8 +77,8 @@ const mesure = () => {
   await touche('.pilotes-barre'); await photo('26-pilotes'); await touche('.feuille [data-act="fermer"]');
   await touche('[data-act="feuille"][data-id="format"]'); await photo('26b-format'); await touche('[data-act="table-format"][data-id="duel"]'); await p.waitForTimeout(350);
   await touche('.carte-circuit'); await photo('26c-circuit-table'); await touche('[data-act="table-circuit"][data-id="spa"]'); await p.waitForTimeout(350);
-  await touche('[data-act="feuille"][data-id="reglages"]'); await photo('26d-reglages-table');
-  await touche('[data-act="table-cat"][data-id="gt3"]'); await touche('.feuille [data-act="fermer"]'); await photo('26e-table-duel');
+  await touche('[data-act="feuille"][data-id="reglages"]'); await photo('26d-reglages-table'); await touche('.feuille [data-act="fermer"]');
+  await touche('[data-act="feuille"][data-id="categorie"]'); await photo('26f-categorie'); await touche('[data-act="table-cat"][data-id="gt3"]'); await p.waitForTimeout(350); await photo('26e-table-duel');
   await touche('.bandeau .retour'); await photo('27-quitter'); await touche('[data-act="table-quitter"]'); await p.waitForTimeout(400);
   await p.locator('#code').fill('xk7p'); await touche('[data-act="table-rejoindre"]'); await photo('28-table-invite');
   await touche('[data-act="feuille"][data-id="reglages"]'); await photo('28b-reglages-invite'); await touche('.feuille [data-act="fermer"]');

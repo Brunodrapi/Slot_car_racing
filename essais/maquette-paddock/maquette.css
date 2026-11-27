@@ -260,6 +260,11 @@ details.plus dd { margin: 0; font-weight: 700; text-align: right; }
 .depart .chip { min-height: 48px; background: var(--encre); color: var(--papier); font-family: var(--titre); font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 18px; }
 .depart .classement { margin: 4px 0; }
 
+/* à la table, quatre pastilles sur deux rangs : tours et format, catégorie et moment */
+.pastilles.table-pastilles { grid-template-columns: 1fr 1fr; }
+.pastilles.table-pastilles.trois { grid-template-columns: 1fr 1fr 1fr; }
+.table-pastilles .pastille, .table-pastilles .compteur { min-height: 48px; }
+.table-pastilles .compteur button { height: 48px; }
 /* la table, sur le modèle du paddock : la barre des pilotes au-dessus des deux cartes */
 .pilotes-barre { flex: none; display: flex; align-items: center; gap: 8px; min-height: 48px; background: var(--encre); color: var(--papier); padding: 0 6px 0 10px; text-align: left; width: 100%; }
 .pilotes-barre .compte { font-size: 20px; flex: none; }

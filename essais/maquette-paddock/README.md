@@ -22,8 +22,8 @@ l'option 1 de l'audit des écrans téléphone : un paddock sur un seul écran, e
 - **Multijoueur** (au menu) : créer une table, ou la rejoindre avec un code de quatre caractères
   (« Regarder » pour suivre sans piloter). La table est le paddock, avec au-dessus la barre des
   pilotes (« ✓ » quand ils sont prêts ; touchée, la liste, le code à partager et la connexion de
-  chacun). L'hôte change le circuit en touchant sa carte, les tours, le format et le moment par les
-  pastilles, la catégorie, l'IA et les dégâts dans « Plus de réglages » ; les autres lisent les mêmes
+  chacun). L'hôte change le circuit en touchant sa carte, les tours (course et duel), le format, la
+  catégorie des voitures et le moment par les pastilles, l'IA et les dégâts dans « Plus de réglages » ; les autres lisent les mêmes
   pastilles, et « Réglages de la course » leur montre le reste. Chacun garde sa voiture et son
   freinage. En bas : Championnat (hôte), Prêt et Départ. Les amis
   sont simulés : à une table créée, Léa et Marco arrivent puis se déclarent prêts ; à une table

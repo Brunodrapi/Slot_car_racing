@@ -179,8 +179,9 @@ les amis de la table sont simulés. Aucune course ne part. Les choix sont gardé
     const liste = pilotes(), prets = liste.filter((m) => m.pret).length;
     const hote = T.role === 'hote', spect = T.role === 'spectateur';
     // les mêmes pastilles que le paddock ; l'hôte seul les change, les autres les lisent
-    const tours = r.format === 'race' ? `<div class="compteur" role="group" aria-label="Tours"><button data-act="tours" data-id="-1" aria-label="Un tour de moins" ${!hote || r.tours <= 1 ? 'disabled' : ''}>−</button><div><span class="lib">Tours</span><b>${r.tours}</b></div><button data-act="tours" data-id="1" aria-label="Un tour de plus" ${!hote || r.tours >= 10 ? 'disabled' : ''}>+</button></div>` : '';
+    const tours = r.format !== 'ghost' ? `<div class="compteur" role="group" aria-label="Tours"><button data-act="tours" data-id="-1" aria-label="Un tour de moins" ${!hote || r.tours <= 1 ? 'disabled' : ''}>−</button><div><span class="lib">Tours</span><b>${r.tours}</b></div><button data-act="tours" data-id="1" aria-label="Un tour de plus" ${!hote || r.tours >= 10 ? 'disabled' : ''}>+</button></div>` : '';
     const format = `<button class="pastille" data-act="feuille" data-id="format" ${hote ? '' : 'disabled'}><span class="lib">Format${hote ? ' ▾' : ''}</span><b>${FORMATS[r.format]}</b></button>`;
+    const cat = `<button class="pastille" data-act="feuille" data-id="categorie" ${hote ? '' : 'disabled'}><span class="lib">Catégorie${hote ? ' ▾' : ''}</span><b>${r.cat === 'all' ? 'Toutes' : esc(categorie(r.cat).nom)}</b></button>`;
     const jourNuit = `<button class="pastille" data-act="nuit" ${hote && nuitPossible() ? '' : 'disabled'} aria-pressed="${nuit()}"><span class="lib">Moment</span><b>${nuit() ? '☾ Nuit' : '☀ Jour'}</b>${nuitPossible() ? '' : '<span class="note">Les F1 roulent de jour</span>'}</button>`;
     const pils = liste.map((m) => `<span class="pil ${m.pret ? 'ok' : ''} ${m.moi ? 'moi' : ''}">${m.pret ? '✓' : '…'} ${esc(m.nom)}</span>`).join('');
     const tousPrets = prets === liste.length && liste.length > 1;
@@ -191,7 +192,7 @@ les amis de la table sont simulés. Aucune course ne part. Les choix sont gardé
         </button>
         ${carteCircuit(c, hote ? { id: 'circuits-table' } : { acte: 'page-circuit', id: '', etiquette: 'Choisi par l\'hôte', libelle: `Circuit choisi par l'hôte : ${c.nom}. Toucher pour sa fiche.` })}
         ${spect ? '<p class="aide encart">Tu regardes : la course s\'affichera quand l\'hôte la lancera.</p>' : carteVoiture(v)}
-        <div class="pastilles ${tours ? '' : 'deux'}">${tours}${format}${jourNuit}</div>
+        <div class="pastilles table-pastilles ${tours ? '' : 'trois'}">${tours}${format}${cat}${jourNuit}</div>
         <div class="liens"><button data-act="feuille" data-id="reglages">${hote ? 'Plus de réglages' : 'Réglages de la course'}</button><button data-act="page-circuit">Chronos et fiche du circuit</button></div>
       </main>
       <footer class="barre-bas">${spect ? '<span class="attente">L\'hôte lancera la course.</span>' : `${hote && r.format !== 'ghost' ? '<button class="chip" data-act="champ-table">Championnat</button>' : ''}<button class="chip ${moi.pret ? 'pret' : ''}" data-act="pret" aria-pressed="${moi.pret}">${moi.pret ? '✓ Prêt' : 'Prêt ?'}</button>`}
@@ -297,13 +298,10 @@ les amis de la table sont simulés. Aucune course ne part. Les choix sont gardé
     if (etat.table) {
       const T = etat.table, r = T.reglages, hote = T.role === 'hote', maxIA = Math.max(0, 12 - pilotes().length);
       if (!hote) return `<p class="aide">Réglée par l'hôte.</p>
-        <div class="ligne"><span><b>Catégorie</b></span><span class="valeur">${r.cat === 'all' ? 'Toutes' : esc(categorie(r.cat).nom)}</span></div>
         ${r.format === 'race' ? `<div class="ligne"><span><b>Voitures de l'IA</b></span><span class="valeur">${r.ia < 0 ? 'Auto' : r.ia}</span></div>` : ''}
         <div class="ligne"><span><b>Dégâts</b></span><span class="valeur">${r.degats ? 'Activés' : 'Coupés'}</span></div>
         ${T.role === 'spectateur' ? '' : freinage}`;
-      return `<div class="ligne-bloc"><span><b>Catégorie des voitures</b><small>Chacun choisit sa voiture dans celle-ci.</small></span>
-          <div class="segments" role="group" aria-label="Catégorie">${[['all', 'Toutes'], ...D.categories.map((k) => [k.id, k.nom])].map(([id, nom]) => `<button data-act="table-cat" data-id="${id}" aria-pressed="${r.cat === id}">${esc(nom)}</button>`).join('')}</div></div>
-        ${r.format === 'race' ? `<div class="ligne"><span><b>Voitures de l'IA</b><small>Auto, ou de 0 à ${maxIA}.</small></span><span class="pas"><button data-act="table-ia" data-id="-1" aria-label="Une de moins" ${r.ia < 0 ? 'disabled' : ''}>−</button><span>${r.ia < 0 ? 'Auto' : r.ia}</span><button data-act="table-ia" data-id="1" aria-label="Une de plus" ${r.ia >= maxIA ? 'disabled' : ''}>+</button></span></div>` : ''}
+      return `${r.format === 'race' ? `<div class="ligne"><span><b>Voitures de l'IA</b><small>Auto, ou de 0 à ${maxIA}.</small></span><span class="pas"><button data-act="table-ia" data-id="-1" aria-label="Une de moins" ${r.ia < 0 ? 'disabled' : ''}>−</button><span>${r.ia < 0 ? 'Auto' : r.ia}</span><button data-act="table-ia" data-id="1" aria-label="Une de plus" ${r.ia >= maxIA ? 'disabled' : ''}>+</button></span></div>` : ''}
         <button class="ligne" role="switch" aria-checked="${r.degats}" data-act="table-degats"><span><b>Dégâts</b><small>Les chocs coûtent de la vitesse. On répare aux stands.</small></span><span class="interrupteur" aria-hidden="true"></span></button>
         ${freinage}`;
     }
@@ -319,6 +317,8 @@ les amis de la table sont simulés. Aucune course ne part. Les choix sont gardé
   // le format de la table, comme la difficulté du paddock : une ligne par choix
   const TEXTES_FORMAT = { race: 'Tous ensemble, avec l\'IA pour compléter la grille.', duel: 'Les pilotes de la table seulement, sans IA.', ghost: 'Chacun son tour, le meilleur chrono gagne.' };
   const contenuFormat = () => `<div class="choix">${Object.entries(FORMATS).map(([id, nom]) => `<button class="${etat.table.reglages.format === id ? 'sel' : ''}" data-act="table-format" data-id="${id}" aria-pressed="${etat.table.reglages.format === id}"><span><b>${nom}</b><small>${TEXTES_FORMAT[id]}</small></span></button>`).join('')}</div>`;
+  // la catégorie de la table : chacun choisit sa voiture dedans
+  const contenuCategorie = () => { const r = etat.table.reglages; return `<p class="aide">Chacun choisit sa voiture dans la catégorie de la table. Une voiture d'une autre catégorie change d'elle-même.</p><div class="choix">${[['all', 'Toutes', 'Chacun prend la voiture qu\'il veut.'], ...D.categories.map((k) => [k.id, k.nom, `${D.voitures.filter((v) => v.cat === k.id).length} voitures.`])].map(([id, nom, txt]) => `<button class="${r.cat === id ? 'sel' : ''}" data-act="table-cat" data-id="${id}" aria-pressed="${r.cat === id}"><span><b>${esc(nom)}</b><small>${esc(txt)}</small></span></button>`).join('')}</div>`; };
   // les pilotes : le code à partager, chacun avec sa voiture, son état et sa connexion
   const contenuPilotes = () => {
     const T = etat.table, liste = pilotes(), specs = T.membres.length - liste.length;
@@ -421,7 +421,7 @@ les amis de la table sont simulés. Aucune course ne part. Les choix sont gardé
     let lignes, titre = 'En piste !';
     if (T) {
       const r = T.reglages;
-      lignes = [['Table', T.code], ['Format', FORMATS[r.format]], ['Circuit', c.nom], ['Pilotes', pilotes().map((m) => m.nom).join(', ')], ...(r.format === 'race' ? [['Tours', r.tours], ['IA', r.ia < 0 ? 'Auto' : r.ia]] : []), ['Dégâts', r.degats ? 'Activés' : 'Coupés'], ['Moment', nuit() ? 'Nuit' : 'Jour'], ...(T.role === 'spectateur' ? [] : [['Ta voiture', v.nom]])];
+      lignes = [['Table', T.code], ['Format', FORMATS[r.format]], ['Circuit', c.nom], ['Pilotes', pilotes().map((m) => m.nom).join(', ')], ...(r.format !== 'ghost' ? [['Tours', r.tours]] : []), ...(r.format === 'race' ? [['IA', r.ia < 0 ? 'Auto' : r.ia]] : []), ['Catégorie', r.cat === 'all' ? 'Toutes' : categorie(r.cat).nom], ['Dégâts', r.degats ? 'Activés' : 'Coupés'], ['Moment', nuit() ? 'Nuit' : 'Jour'], ...(T.role === 'spectateur' ? [] : [['Ta voiture', v.nom]])];
     } else {
       lignes = [['Mode', MODES[etat.mode]], ...(champ ? [['Championnat', `Course ${ch.index + 1} sur ${ch.calendrier.length}`]] : []), ['Circuit', c.nom], ['Voiture', v.nom], ['Livrée', v.livrees[livreeDe(v)].nom], ['Moment', nuit() ? 'Nuit' : 'Jour'],
         ...(etat.mode === 'race' ? [['Tours', champ ? manche().tours : etat.tours], ['Difficulté', niveau(etat.difficulte).nom], ['Adversaires', etat.adversaires || 'Auto'], ['Dégâts', etat.degats ? 'Activés' : 'Coupés']] : []),
@@ -474,6 +474,7 @@ les amis de la table sont simulés. Aucune course ne part. Les choix sont gardé
     difficulte: () => ['Difficulté', contenuDifficulte, 'moyenne'],
     format: () => ['Format', contenuFormat, 'moyenne'],
     pilotes: () => ['Pilotes', contenuPilotes, 'haute'],
+    categorie: () => ['Catégorie', contenuCategorie, 'haute'],
     manche: () => [`Course ${mancheChoisie + 1} · ${circuitPar(etat.champ.calendrier[mancheChoisie].circuit).nom}`, contenuManche, 'moyenne'],
   };
   const montreMoi = () => etat.table && (etat.table.membres.find((m) => m.moi).voiture = etat.voiture);
@@ -534,7 +535,7 @@ les amis de la table sont simulés. Aucune course ne part. Les choix sont gardé
       case 'table-quitter': minuteurs.forEach(clearTimeout); minuteurs = []; etat.table = null; etat.ecran = 'multi'; fermeTout(); setTimeout(rend, 40); break;
       case 'table-format': T.reglages.format = id; rafraichit(); history.back(); break;
       case 'table-circuit': T.reglages.circuit = id; rafraichit(); history.back(); break;
-      case 'table-cat': T.reglages.cat = id; if (id !== 'all' && voiture().cat !== id) { etat.voiture = voitureAuHasard(id, 'moi'); montreMoi(); } for (const m of T.membres) if (!m.moi && id !== 'all' && voiturePar(m.voiture).cat !== id) m.voiture = voitureAuHasard(id, m.nom); rafraichit(); break;
+      case 'table-cat': T.reglages.cat = id; if (id !== 'all' && voiture().cat !== id) { etat.voiture = voitureAuHasard(id, 'moi'); montreMoi(); } for (const m of T.membres) if (!m.moi && id !== 'all' && voiturePar(m.voiture).cat !== id) m.voiture = voitureAuHasard(id, m.nom); rafraichit(); history.back(); break;
       case 'table-ia': T.reglages.ia = Math.max(-1, Math.min(12, T.reglages.ia + Number(id))); rafraichit(); break;
       case 'table-degats': T.reglages.degats = !T.reglages.degats; rafraichit(); break;
     }
