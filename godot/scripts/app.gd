@@ -22,6 +22,13 @@ var enLigne = null                     # la course de la table en ligne (Net.onS
 
 
 func _ready() -> void:
+	# la version web s'appelle GRIP (outils/publie-web.sh pose le nom dans la page) : au démarrage, Godot
+	# remettait celui du projet (SLOTLESS) dans l'onglet, après le démarrage des scripts : on le change après lui
+	if OS.has_feature("web"):
+		var nomPage := String(JavaScriptBridge.eval("(document.querySelector('meta[name=\"apple-mobile-web-app-title\"]') || {}).content || ''", true))
+		if nomPage != "":
+			DisplayServer.window_set_title.call_deferred(nomPage)
+			get_tree().create_timer(1.0).timeout.connect(func(): DisplayServer.window_set_title(nomPage))
 	_repriseGrip()
 	Catalogue.charge()
 	if FileAccess.file_exists(FICHIER):
@@ -294,6 +301,7 @@ func aller(nom: String, opts: Dictionary = {}) -> void:
 		elif nom == "paddock" and mode in ["race", "timetrial", "training"]: neuf = PaddockTel.new(mode)
 		elif nom == "resultats" and derniereCourse != null: neuf = ResultatsTel.new(derniereCourse)
 		elif nom == "salon": neuf = SalonTel.new()
+		elif nom == "installer": neuf = InstallerTel.new()
 		if neuf != null:
 			ecran = neuf
 			get_tree().root.add_child.call_deferred(ecran)

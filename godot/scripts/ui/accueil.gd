@@ -178,6 +178,10 @@ func _ready() -> void:
 
 
 func _installer() -> void:
+	# au téléphone, l'écran du jeu web (InstallerTel) ; sur ordinateur, l'aide et l'invitation du navigateur
+	if Tel.actif():
+		App.aller("installer")
+		return
 	var ios: bool = JavaScriptBridge.eval("/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)")
 	var aide := AcceptDialog.new()
 	aide.title = Textes.t("installGame")

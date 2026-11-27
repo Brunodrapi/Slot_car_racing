@@ -7,6 +7,9 @@ config_version=5
 
 config/name="SLOTLESS"
 config/description="Stand de frites et la Breithüft Apex R, avec la physique du jeu web portée en GDScript."
+; Le numéro du jeu web (js/version.js) : outils/publie-web.sh le recopie avant d'exporter, avec sa
+; date (grip/date). L'écran titre l'affiche, comme celui du jeu web.
+config/version="0.56.25"
 run/main_scene="res://scenes/demarrage.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
 config/icon="res://images/interface/icone-grip.png"
@@ -65,6 +68,7 @@ decors_url="https://brunodrapi.github.io/Slot_car_racing/essais/godot/"
 ; Les tables en ligne : celles de la recette du jeu web (slot-racer-v1-recette-…) ou celles de la
 ; prod (slot-racer-v1-…). Une version vendue prendra « prod ».
 canal="recette"
+date="2026-11-26"
 ; La version Steam (étiquette d'export « steam ») : l'identifiant de l'application sur Steam.
 ; 480 est l'application d'essai de Valve, en attendant celle de SLOTLESS.
 steam_app_id=480

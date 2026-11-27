@@ -44,7 +44,14 @@ Le meilleur tour propre est gardé sur l'appareil, par circuit et par voiture.
 de la voiture rouge), les menus, les bandeaux, la pause, les résultats, les réglages, l'image de
 démarrage et l'icône (`Style.LOGO`). Ceux de SLOTLESS restent dans `images/interface/`
 (`logo-slotless.webp`, `affiche-titre-*-slotless.webp`, `demarrage-slotless.png`), pour Steam et iOS.
-Le nom du projet (la fenêtre, l'onglet, l'exécutable, le dossier des sauvegardes) reste SLOTLESS.
+Le nom du projet (la fenêtre, l'exécutable, le dossier des sauvegardes) reste SLOTLESS ; la version web,
+elle, s'appelle GRIP (l'onglet et l'application installée, voir plus bas).
+
+**L'écran titre** porte, comme celui du jeu web, le dernier devlog sur son ticket crème (il ouvre
+itch.io sans entrer dans le jeu ; `Titre.DEVLOG`, à recopier de `DERNIER_DEVLOG` dans `js/ui.js` à
+chaque nouveau devlog) et la version dans le coin, sur sa pastille, avec RECETTE en recette. Le numéro
+est celui du jeu web (`js/version.js`) : `outils/publie-web.sh` le recopie dans le projet
+(`application/config/version`, `grip/date`) avant chaque export.
 
 ## Les dégâts et les stands
 
@@ -270,6 +277,15 @@ cache HTTP du navigateur (dix minutes chez GitHub Pages), et un téléphone pouv
 avec le moteur d'avant — « GDExtension libraries are not supported by this engine version ». Il va
 maintenant chercher ses fichiers sur le réseau et remplace l'ancien dès qu'il est installé ; la page,
 si elle tombe malgré tout sur ce mélange, vide ses caches et se recharge une fois.
+
+**La version web s'installe**, comme le jeu web (une application de l'écran d'accueil, en plein écran) :
+le script donne au manifeste le nom de GRIP (« GRIP Recette » en recette), sa description et ses
+couleurs, ajoute l'icône de 192 que Chrome demande, et pose dans la page le titre et les balises
+d'Apple (`apple-mobile-web-app-*`). Au téléphone, « Installer le jeu » ouvre l'écran du jeu web
+(`scripts/ui/tel/installer_tel.gd`) : pourquoi, les étapes de l'iPhone et d'Android avec les icônes du
+téléphone, et le bouton « Installer GRIP » quand Chrome propose l'installation directe. Pour le
+photographier hors navigateur : `GRIP_ECRAN=installer GRIP_PLATEFORME=ios|android GRIP_INVITATION=1`
+avec `tests/accueil_photo.tscn`.
 
 La version Android n'a pas encore tourné sur un téléphone. Sa bibliothèque mathématique (bionic)
 n'arrondit pas le sinus exactement comme celle de Linux : on retrouvera donc des écarts du même
