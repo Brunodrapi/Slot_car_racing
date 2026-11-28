@@ -416,19 +416,21 @@ func _draw() -> void:
 		Style.texte(self, Textes.t("finished", pos), Vector2(0, H * 0.3 + 40), 52, Color("#ffd400"), HORIZONTAL_ALIGNMENT_CENTER, W)
 	if flash != "" and Time.get_ticks_msec() / 1000.0 < flashJusqua:
 		Style.texte(self, flash, Vector2(0, maxf(H * 0.12, 120) + 30), 32, flashCouleur, HORIZONTAL_ALIGNMENT_CENTER, W)
-	# La mesure de fluidité, discrète, sous la minicarte
-	var appels := Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
-	var mesure1 := "%d i/s · pire image %.1f ms" % [Engine.get_frames_per_second(), jeu.pireImage * 1000]
-	var mesure2 := "course %.2f ms/pas (%s) · %d appels" % [jeu.coutPas / 1000.0, "C++" if course is CourseNative else "GDScript", appels]
-	var gris := Color(1, 1, 1, 0.55)
-	if tactile:
-		# Au doigt, la colonne de gauche est pleine (carte, classement, levier) : la mesure se range à
-		# droite de la carte, sous le compteur de tours, sur deux lignes.
-		var mx := mo.x + taille + 8
-		Style.texte(self, mesure1, Vector2(mx, lapY + lapH + 14), 11, gris, HORIZONTAL_ALIGNMENT_LEFT, W - P - mx)
-		Style.texte(self, mesure2, Vector2(mx, lapY + lapH + 27), 11, gris, HORIZONTAL_ALIGNMENT_LEFT, W - P - mx)
-	else:
-		Style.texte(self, mesure1 + " · " + mesure2, Vector2(P + 2, mmBas + 18), 13, gris)
+	# La mesure de fluidité, discrète, sous la minicarte : en recette seulement (pas dans le jeu publié),
+	# et GRIP_MESURE=0 la retire des photos
+	if String(ProjectSettings.get_setting("grip/canal", "recette")) != "prod" and OS.get_environment("GRIP_MESURE") != "0":
+		var appels := Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+		var mesure1 := "%d i/s · pire image %.1f ms" % [Engine.get_frames_per_second(), jeu.pireImage * 1000]
+		var mesure2 := "course %.2f ms/pas (%s) · %d appels" % [jeu.coutPas / 1000.0, "C++" if course is CourseNative else "GDScript", appels]
+		var gris := Color(1, 1, 1, 0.55)
+		if tactile:
+			# Au doigt, la colonne de gauche est pleine (carte, classement, levier) : la mesure se range à
+			# droite de la carte, sous le compteur de tours, sur deux lignes.
+			var mx := mo.x + taille + 8
+			Style.texte(self, mesure1, Vector2(mx, lapY + lapH + 14), 11, gris, HORIZONTAL_ALIGNMENT_LEFT, W - P - mx)
+			Style.texte(self, mesure2, Vector2(mx, lapY + lapH + 27), 11, gris, HORIZONTAL_ALIGNMENT_LEFT, W - P - mx)
+		else:
+			Style.texte(self, mesure1 + " · " + mesure2, Vector2(P + 2, mmBas + 18), 13, gris)
 	if course.mode == "race" and jeu.enLigne == null and not course.reglage and not p.abandon:
 		_radar()
 	# par-dessus tout le reste, comme le WASTED de GTA

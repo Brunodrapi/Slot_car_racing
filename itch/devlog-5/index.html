@@ -1,0 +1,121 @@
+<!doctype html>
+<!--
+Le devlog #5, mis en forme, à COPIER dans l'éditeur de billets d'itch.io.
+
+itch.io refuse le BBCode et le HTML collés comme du texte : son éditeur veut du texte enrichi. Cette page
+montre le billet tel qu'il doit paraître ; « Copier le billet » met dans le presse-papiers sa version
+enrichie (titres, gras, liste, liens, images par leur adresse) et sa version texte. On colle ensuite dans
+le corps du billet sur itch.io. Les images restent hébergées ici, en recette : ne pas déplacer ce dossier.
+
+La partie copiée est seulement <article id="billet">
+<p>A big GRIP update is live!</p>
+<p>This one changes a lot: you can now race full championships, cars take damage and pit for repairs, the menus have been rebuilt for phones, and the game installs on your phone and plays offline. And under the hood, GRIP now runs on a new engine.</p>
+
+<h2>🏆 Championships</h2>
+<p>Build your own season: <strong>up to ten races</strong> on the circuits of your choice, with practice and qualifying sessions. Your car's class sets the scoring (F1, GT Sprint or Le Mans points). After every race, the standings show who gained and who lost places, and the last race ends on the podium. On equal points, the driver with the most wins goes first.</p>
+<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-5/1-championnat.png" alt="A championship: the calendar, the standings, the final race and the podium"></p>
+<p>Online, the host can run a championship for the whole table, in race or in time-trial format. In time trial, every round is a qualifying session: your best lap scores the points.</p>
+
+<h2>💥 Damage &amp; Pit Stops</h2>
+<p>Contact now leaves its mark. Bumpers are tough, flanks are soft, and a damaged car loses up to <strong>35% of its top speed and acceleration</strong>, never its grip. Sparks, debris and smoke follow, and if you hit a wall head-on at full speed, your race is over.</p>
+<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-5/2-degats.png" alt="Damaged cars with debris on the track, and the DNF screen"></p>
+<p>Every circuit has a pit lane. Tick <strong>PIT</strong> under the lever, stop in your box and your crew rushes out: tape on the nose, new wheels, and you're back out after 1.5 to 8 seconds, depending on the damage. The AI pits too when it's badly hurt. Damage is an option in the paddock, on by default.</p>
+<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-5/3-stand.png" alt="A pit stop: the crew around the car in its box"></p>
+
+<h2>📱 Made for Phones</h2>
+<p>Hold your phone upright and the menus are all new: one screen per mode, your circuit and your car at a glance, a garage that compares all 35 cars on the same scale, settings in sheets you swipe away, and a big <strong>ON TRACK!</strong> button under your thumb.</p>
+<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-5/4-telephone.png" alt="The new phone menus: main menu, quick race paddock and garage"></p>
+
+<h2>📲 Install It, Play Offline</h2>
+<p>On <a href="https://grip-game.github.io/">grip-game.github.io</a>, GRIP installs like an app: <strong>Install game</strong> in the menu shows how, step by step, on iPhone and on Android. It then opens full screen, without the browser bar.</p>
+<p>You can also <strong>download the whole game</strong>, all 14 circuits included (about 150 MB), and race without a connection. The title screen offers it, and Settings let you delete it.</p>
+<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-5/5-hors-ligne.png" alt="Downloading the game for offline play, and the install guide"></p>
+
+<h2>🛠️ A New Engine</h2>
+<p>GRIP now runs on the Godot engine. The cars, the physics and the circuits are the same: the same race, replayed in both versions, ends lap for lap identical.</p>
+
+<h2>🔧 And Also</h2>
+<ul>
+<li>A radar at the edge of the screen points to your nearest rivals when they're out of view.</li>
+<li>Tune your braking for each circuit and car, with practice laps to find your braking point.</li>
+<li>In Monaco's tunnel, it gets dark even by day: headlights come on, and daylight returns at the exit.</li>
+<li>Night is a little less dark: the scenery shows through, tinted blue.</li>
+<li>Music in the menus, very quiet: “Too Cool” by Kevin MacLeod.</li>
+<li>The engine fires up when you hit ON TRACK!, and the menus click under your finger.</li>
+<li>On a keyboard, the SPACE key lights up at the start.</li>
+</ul>
+
+<h2>🚦 What's Next?</h2>
+<p>I'm still refining the cars, the circuits and the driving. Tell me how your first championship went, and how many pit stops Monaco cost you!</p>
+<p>Play the latest version here: <a href="https://grip-game.github.io/">https://grip-game.github.io/</a></p>
+<p>Feedback, suggestions and bug reports are always welcome!</p>
+<p><strong>SEE YOU ON THE TRACK!</strong></p>
+  </article>
+
+  <div class="images">
+    <p><b>Si itch.io n'affiche pas les images après le collage</b>, ajoute-les avec son bouton « image » (en envoyant le fichier), à la place de chaque image manquante :</p>
+    <ul>
+      <li><a href="1-championnat.png" download>1-championnat.png</a> — après « …the most wins goes first. »</li>
+      <li><a href="2-degats.png" download>2-degats.png</a> — après « …your race is over. »</li>
+      <li><a href="3-stand.png" download>3-stand.png</a> — après « …on by default. »</li>
+      <li><a href="4-telephone.png" download>4-telephone.png</a> — après « …under your thumb. »</li>
+      <li><a href="5-hors-ligne.png" download>5-hors-ligne.png</a> — après « …let you delete it. »</li>
+    </ul>
+  </div>
+</main>
+
+<script>
+(() => {
+  'use strict';
+  const etat = document.getElementById('etat');
+  const dit = (txt, ko) => { etat.textContent = txt; etat.className = ko ? 'ko' : ''; };
+
+  // Le HTML propre du billet, sans les espaces de mise en page entre balises.
+  const billet = () => {
+    const a = document.getElementById('billet');
+    return { html: a.innerHTML.replace(/>\s+</g, '><').trim(), texte: a.innerText.replace(/\n{3,}/g, '\n\n').trim() };
+  };
+
+  // Le presse-papiers enrichi d'abord (text/html + text/plain), puis l'ancienne méthode : sélection et copie.
+  async function copie(html, texte) {
+    if (navigator.clipboard && window.ClipboardItem) {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([texte], { type: 'text/plain' }),
+        })]);
+        return true;
+      } catch (_) { /* refusé : on essaie l'ancienne méthode */ }
+    }
+    const zone = document.createElement('div');
+    zone.contentEditable = 'true'; zone.innerHTML = html;
+    zone.style.cssText = 'position:fixed;left:-9999px;top:0;white-space:pre-wrap';
+    document.body.appendChild(zone);
+    const r = document.createRange(); r.selectNodeContents(zone);
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (_) {}
+    s.removeAllRanges(); zone.remove();
+    return ok;
+  }
+
+  document.getElementById('copier').addEventListener('click', async () => {
+    const b = billet();
+    if (await copie(b.html, b.texte)) dit('Billet copié ✓ — colle-le dans le corps du billet sur itch.io.');
+    else {
+      // dernier recours : le billet sélectionné à l'écran, à copier à la main
+      const r = document.createRange(); r.selectNodeContents(document.getElementById('billet'));
+      const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+      dit('Le navigateur refuse la copie automatique : le billet est sélectionné, copie-le à la main (Ctrl+C, ou appui long → Copier).', true);
+    }
+  });
+  document.getElementById('copierTitre').addEventListener('click', async () => {
+    const t = document.getElementById('titre').textContent;
+    let ok = false;
+    try { await navigator.clipboard.writeText(t); ok = true; } catch (_) { ok = await copie(t, t); }
+    dit(ok ? 'Titre copié ✓' : 'Copie refusée : sélectionne le titre à la main.', !ok);
+  });
+})();
+</script>
+</body>
+</html>
