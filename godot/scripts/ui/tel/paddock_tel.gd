@@ -86,8 +86,14 @@ func construit(v: Control) -> void:
 	if champ():
 		var place := ChampTel.maPlace() if ChampTel.courues() > 0 else 0
 		bas.append(Tel.puce(Tel.t("classement"), _ouvreClassement, Tel.t("tuEs", Tel.rang(place)) if place > 0 else ""))
-	bas.append(Tel.gros(Tel.t("enPiste"), _enPiste, true, Tel.ROUGE, 24 if champ() else 28))
-	col.add_child(Tel.barreBas(bas, champ()))
+	# en contre-la-montre, les temps vont au tableau mondial : la connexion est là, à portée de doigt,
+	# comme dans le jeu web (statutChrono), tant qu'on n'est pas connecté
+	var mondial := mode == "timetrial" and Mondial.connexionPossible() and not Mondial.connecte()
+	if mondial:
+		if Mondial.enCours: bas.append(Tel.puce(Textes.t("rgAnnuler"), Mondial.annuler, Tel.t("puceEnCours")))
+		else: bas.append(Tel.puce(Tel.t("puceConnexion"), Mondial.entrer, Tel.t("puceEchec") if Mondial.erreurConnexion != "" else Tel.t("puceMondial")))
+	bas.append(Tel.gros(Tel.t("enPiste"), _enPiste, true, Tel.ROUGE, 24 if champ() or mondial else 28))
+	col.add_child(Tel.barreBas(bas, champ() or mondial))
 
 
 ## La carte du circuit et son chrono (la fiche et les chronos), partagée avec la table.

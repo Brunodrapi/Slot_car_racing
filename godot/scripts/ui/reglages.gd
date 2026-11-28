@@ -251,7 +251,11 @@ func _place() -> void:
 	# le formulaire : au téléphone, une colonne ; sur ordinateur, deux (580 chacune, 40 d'écart)
 	var cellules := []            # [libellé, contrôle, largeur, hauteur]
 	cellules.append(["rgNom", nom, 244.0 if portrait else 270.0, 38.0])
-	if L.has("compte"): cellules.append(["rgCompte", L.compte, _largeur(_texteCompte(), 13) + 2, 28.0])
+	if L.has("compte"):
+		var ec := _etatCompte()
+		var wcpt := _largeur(String(ec[1]), 15) + 2
+		if String(ec[0]) != "": wcpt += _largeur(String(ec[0]), 15) + 10
+		cellules.append(["rgCompte", L.compte, wcpt, 32.0])
 	for i in lignes.size():
 		var v: String = (boutons[i].get_meta("valeur") as Callable).call()
 		cellules.append([lignes[i][0], boutons[i], _largeurListe(v), 40.0])
@@ -346,10 +350,14 @@ func _lignes(t: String, taille: int, largeur: float) -> PackedStringArray:
 	return out
 
 
-func _texteCompte() -> String:
-	if Mondial.connecte(): return Textes.t("rgConnecte") + " · " + Textes.t("rgSortir")
-	if Mondial.enCours: return Textes.t("rgAnnuler")
-	return Textes.t("rgGoogle")
+## Le compte (.compte du jeu web) : où l'on en est, puis ce qu'on peut faire. « Annuler » seul ne disait
+## pas qu'une connexion attendait (Bruno : « pas très lisible »).
+## [état, action, couleur de l'état]
+func _etatCompte() -> Array:
+	if Mondial.connecte(): return [Textes.t("rgConnecteGoogle"), Textes.t("rgSortir"), Color("#7fd48a")]
+	if Mondial.enCours: return [Textes.t("rgEnCours"), Textes.t("rgAnnuler"), MUET]
+	if Mondial.erreurConnexion != "": return [Textes.t("rgEchec"), Textes.t("rgReessayer"), Color("#ffb347")]
+	return ["", Textes.t("rgGoogle"), MUET]
 
 
 # ---------- le dessin ----------
@@ -450,13 +458,19 @@ func _lienHorsLigne(b: Bouton) -> void:
 	b.draw_line(Vector2(x, b.size.y / 2 + 6.5), Vector2(x + w, b.size.y / 2 + 6.5), c, 1.0)
 
 
-## Le lien du compte : petit, gris, souligné, collé à droite.
+## La ligne du compte, collée à droite : l'état dans sa couleur, puis l'action, soulignée, en jaune.
 func _lienCompte(b: Bouton) -> void:
-	var t := _texteCompte()
-	var w := _largeur(t, 13)
-	var x := b.size.x - w - 1
-	b.draw_string(_police, Vector2(x, b.size.y / 2 + 4.5), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, MUET)
-	b.draw_line(Vector2(x, b.size.y / 2 + 6.5), Vector2(x + w, b.size.y / 2 + 6.5), MUET, 1.0)
+	var ec := _etatCompte()
+	var a := String(ec[1])
+	var wa := _largeur(a, 15)
+	var x := b.size.x - wa - 1
+	var y := b.size.y / 2 + 5.5
+	b.draw_string(_police, Vector2(x, y), a, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, ACCENT)
+	b.draw_line(Vector2(x, y + 2.5), Vector2(x + wa, y + 2.5), ACCENT, 1.0)
+	var e := String(ec[0])
+	if e != "":
+		var we := _largeur(e, 15)
+		b.draw_string(_police, Vector2(x - 10 - we, y), e, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, ec[2])
 
 
 ## Le lien Discord (.lien-discord) : la bulle, puis le texte en capitales, sur une ou deux lignes.

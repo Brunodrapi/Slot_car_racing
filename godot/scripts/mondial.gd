@@ -46,6 +46,7 @@ var _clients: Array = []          # [{ c: StreamPeerTCP, recu: String }]
 var _verificateur := ""
 var _depuis := 0.0
 var _rattrapeEnCours := false
+var _departWeb := 0                # la version web est partie chez Google (Time.get_ticks_msec)
 # Le palmarès du compte (js/palmares.js, PalmaresSync) : "" pas tenté, en-cours, ok, indisponible, erreur.
 var etatPalmares := ""
 var _palmaresEnCours := false
@@ -179,7 +180,14 @@ func _entrerWeb() -> void:
 	_sauve()
 	erreurConnexion = ""
 	enCours = true
+	_departWeb = Time.get_ticks_msec()
 	change.emit()
+	# La page part chez Google et revient d'ordinaire en se rechargeant. Si elle revient sans se recharger
+	# (le bouton retour, le navigateur intégré qu'on referme dans l'application installée), le jeu reprend
+	# là où il était : on le note, pour ne pas rester sur « connexion en cours ».
+	JavaScriptBridge.eval("(function(){window.gripRevenu=0;if(!window.gripRetourEcoute){window.gripRetourEcoute=1;"
+		+ "addEventListener('pageshow',function(e){if(e.persisted)window.gripRevenu=Date.now();});"
+		+ "document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')window.gripRevenu=Date.now();});}})()", true)
 	JavaScriptBridge.eval("(function(){try{sessionStorage.setItem('grip.godot.parti',String(Date.now()));}catch(e){}"
 		+ "var r=location.origin+location.pathname;location.href=%s+'/auth/v1/authorize?provider=google&redirect_to='+encodeURIComponent(r);})()" % JSON.stringify(url()), true)
 
@@ -275,6 +283,12 @@ func sortir() -> void:
 
 
 func _process(dt: float) -> void:
+	# la version web revenue sans se recharger (ou partie depuis deux minutes sans résultat) : plus d'attente
+	if enCours and _departWeb > 0 and OS.has_feature("web"):
+		if float(JavaScriptBridge.eval("window.gripRevenu || 0", true)) > 0 or Time.get_ticks_msec() - _departWeb > 120000:
+			_departWeb = 0
+			enCours = false
+			change.emit()
 	if _serveurs.is_empty(): return
 	_depuis += dt
 	if _depuis > DELAI_CONNEXION:

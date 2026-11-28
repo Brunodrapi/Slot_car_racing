@@ -103,7 +103,11 @@ arrêt au stand dans le vrai écran de course.
   (`#access_token=…`, lu au lancement puis effacé de la barre d'adresse). Cette adresse de retour doit
   être autorisée dans Supabase (Authentication → URL Configuration → Redirect URLs). Dans un cadre
   (itch.io), la page ne peut pas partir : la connexion n'y est pas proposée tant que le pont du jeu web
-  (`PONT_URL`) n'est pas repris pour Godot.
+  (`PONT_URL`) n'est pas repris pour Godot. Si la page revient sans se recharger (le bouton retour, le
+  navigateur intégré de l'application installée qu'on referme), l'attente s'arrête d'elle-même. Au
+  téléphone, l'écran du contre-la-montre porte « Se connecter » dans sa barre du bas tant qu'on n'est
+  pas connecté, comme le jeu web ; les réglages disent l'état du compte en clair (« Connecté à Google »,
+  « Connexion en cours… », « La connexion a échoué ») à côté de l'action.
 
 **La version Steam se connecte toute seule**, par le ticket Steam du joueur : la fonction
 `supabase/functions/steam` le fait vérifier par Valve, donne au joueur un compte à lui (table

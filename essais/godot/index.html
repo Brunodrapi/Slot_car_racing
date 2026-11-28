@@ -107,7 +107,7 @@ body {
 window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); window.gripInvite = event; });
 window.addEventListener('appinstalled', () => { window.gripInstalle = true; window.gripInvite = null; });
 </script>
-	<script>window.GRIP_HORS_LIGNE = {"version": "0.56.25", "cache": "GRIP-sw-cache-1795818035|11631204", "moteur": {"index.html": 7730, "index.js": 2859484, "index.offline.html": 971, "index.icon.png": 231352, "index.apple-touch-icon.png": 32430, "index.audio.worklet.js": 7298, "index.audio.position.worklet.js": 2973, "index.wasm": 1508095, "index.pck": 35439688, "index.side.wasm": 44078870, "libgrip.web.template_release.wasm32.nothreads.wasm": 1118806}, "lourds": ["index.wasm", "index.pck", "index.side.wasm", "libgrip.web.template_release.wasm32.nothreads.wasm"], "decors": {"bathurst": 4223402, "castellet": 5442050, "interlagos": 4301290, "laguna": 3520941, "lemans": 6780676, "monaco": 5515440, "monza": 4081658, "nurburgring": 4541623, "redbullring": 3648552, "silverstone": 5085908, "spa": 5709043, "suzuka": 6225321, "watkins": 3768750, "zandvoort": 3421725}};</script>
+	<script>window.GRIP_HORS_LIGNE = {"version": "0.56.25", "cache": "GRIP-sw-cache-1795850158|10327457", "moteur": {"index.html": 7730, "index.js": 2859484, "index.offline.html": 971, "index.icon.png": 231352, "index.apple-touch-icon.png": 32430, "index.audio.worklet.js": 7298, "index.audio.position.worklet.js": 2973, "index.wasm": 1508095, "index.pck": 35441144, "index.side.wasm": 44078870, "libgrip.web.template_release.wasm32.nothreads.wasm": 1118806}, "lourds": ["index.wasm", "index.pck", "index.side.wasm", "libgrip.web.template_release.wasm32.nothreads.wasm"], "decors": {"bathurst": 4223402, "castellet": 5442050, "interlagos": 4301290, "laguna": 3520941, "lemans": 6780676, "monaco": 5515440, "monza": 4081658, "nurburgring": 4541623, "redbullring": 3648552, "silverstone": 5085908, "spa": 5709043, "suzuka": 6225321, "watkins": 3768750, "zandvoort": 3421725}};</script>
 <script>
 // LE JEU HORS LIGNE, côté page (scripts/hors_ligne.gd le pilote). outils/publie-web.sh pose ce script
 // dans index.html, avec window.GRIP_HORS_LIGNE : le nom du cache du service worker de Godot (une
@@ -190,7 +190,7 @@ window.addEventListener('appinstalled', () => { window.gripInstalle = true; wind
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":35439688,"index.wasm":1508095},"focusCanvas":true,"gdextensionLibs":["libgrip.web.template_release.wasm32.nothreads.wasm"],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":35441144,"index.wasm":1508095},"focusCanvas":true,"gdextensionLibs":["libgrip.web.template_release.wasm32.nothreads.wasm"],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
