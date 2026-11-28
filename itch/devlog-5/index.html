@@ -8,31 +8,43 @@ enrichie (titres, gras, liste, liens, images par leur adresse) et sa version tex
 le corps du billet sur itch.io. Les images restent hébergées ici, en recette : ne pas déplacer ce dossier.
 
 La partie copiée est seulement <article id="billet">
-<p>A big GRIP update is live!</p>
-<p>This one changes a lot: you can now race full championships, cars take damage and pit for repairs, the menus have been rebuilt for phones, and the game installs on your phone and plays offline. And under the hood, GRIP now runs on a new engine.</p>
+<p>Welcome to <strong>THE FENDER BENDER MEGA UPDATE</strong>, the biggest GRIP update yet!</p>
+<p>Cars now crumple, smoke and limp to the pits. You can race full championships. The screens have been redesigned, on computers and on phones. And under the hood, GRIP has changed technology: it now runs on a real game engine.</p>
+
+<h2>💥 Bent Metal and Pit Stops</h2>
+<p>Contact now leaves its mark. Bumpers are tough, flanks are soft, and a damaged car loses up to <strong>35% of its top speed and acceleration</strong>, never its grip. Sparks fly, debris stays on the track, smoke pours out, and if you hit a wall head-on at full speed, it's a <strong>DNF</strong>.</p>
+<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-5/1-degats.png" alt="Damaged cars and debris on the track, then the DNF screen"></p>
+<p>Every circuit now has a pit lane. Tick <strong>PIT</strong> under the lever, stop in your box, and your crew rushes out: tape on the nose, new wheels, and you're back out after 1.5 to 8 seconds, depending on the damage. The AI pits too when it's badly hurt. Damage is an option in the race setup, on by default.</p>
+<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-5/2-stand.png" alt="A pit stop: the crew around the car in its box"></p>
 
 <h2>🏆 Championships</h2>
 <p>Build your own season: <strong>up to ten races</strong> on the circuits of your choice, with practice and qualifying sessions. Your car's class sets the scoring (F1, GT Sprint or Le Mans points). After every race, the standings show who gained and who lost places, and the last race ends on the podium. On equal points, the driver with the most wins goes first.</p>
-<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-5/1-championnat.png" alt="A championship: the calendar, the standings, the final race and the podium"></p>
+<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-5/3-championnat.png" alt="A championship on a phone: the calendar, the standings, the final race and the podium"></p>
 <p>Online, the host can run a championship for the whole table, in race or in time-trial format. In time trial, every round is a qualifying session: your best lap scores the points.</p>
 
-<h2>💥 Damage &amp; Pit Stops</h2>
-<p>Contact now leaves its mark. Bumpers are tough, flanks are soft, and a damaged car loses up to <strong>35% of its top speed and acceleration</strong>, never its grip. Sparks, debris and smoke follow, and if you hit a wall head-on at full speed, your race is over.</p>
-<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-5/2-degats.png" alt="Damaged cars with debris on the track, and the DNF screen"></p>
-<p>Every circuit has a pit lane. Tick <strong>PIT</strong> under the lever, stop in your box and your crew rushes out: tape on the nose, new wheels, and you're back out after 1.5 to 8 seconds, depending on the damage. The AI pits too when it's badly hurt. Damage is an option in the paddock, on by default.</p>
-<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-5/3-stand.png" alt="A pit stop: the crew around the car in its box"></p>
+<h2>⚙️ A New Technology Under the Hood</h2>
+<p>GRIP started as a web page: JavaScript code drawing every frame itself in the browser. It has now moved to <strong>Godot</strong>, an open-source game engine. What you play in your browser is that engine, built for the web.</p>
+<p>What it changes:</p>
+<ul>
+<li>The scenery is drawn by your graphics card, and the car physics runs as compiled C++.</li>
+<li>The game installs like an app and plays offline (more below).</li>
+<li>The same game can now become a real app for computers and phones.</li>
+</ul>
+<p>What doesn't change: the cars, the physics and the circuits. I rebuilt them line by line and checked it: the same race, replayed in the old version and in the new one, ends lap for lap identical. Online lobbies work as before.</p>
 
-<h2>📱 Made for Phones</h2>
-<p>Hold your phone upright and the menus are all new: one screen per mode, your circuit and your car at a glance, a garage that compares all 35 cars on the same scale, settings in sheets you swipe away, and a big <strong>ON TRACK!</strong> button under your thumb.</p>
-<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-5/4-telephone.png" alt="The new phone menus: main menu, quick race paddock and garage"></p>
+<h2>🖥️ New Screens on Computer</h2>
+<p>The race setup now fits on <strong>one screen</strong>: the circuit, big, with its facts (length, corners, longest straight, top speed) and the lap times of every class, your record next to the world record; below, the tracks, the cars of each class with their five stat bars, and the race options: difficulty, opponents, damage and braking.</p>
+<p><strong>Championship</strong> opens the season planner: the calendar, the laps of each race, the practice and qualifying sessions, the starting grid. Settings are laid out in two columns, with the keyboard controls at the top, and the title screen now shows the latest devlog.</p>
+<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-5/4-pc.png" alt="The new race setup on a computer, and the championship planner"></p>
+
+<h2>📱 New Screens on Phone</h2>
+<p>Hold your phone upright and everything is new, made for one thumb: five modes in the menu, Championship included; one screen per mode, with your circuit and your car at a glance; the circuits, the garage (all 35 cars compared on the same scale), the difficulty and the settings in sheets you swipe away; and a big <strong>ON TRACK!</strong> button at the bottom. In time trial, signing in for the world board is one tap away. Turn your phone sideways and you get the computer screens.</p>
+<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-5/5-telephone.png" alt="The new phone menus: main menu, quick race and garage"></p>
 
 <h2>📲 Install It, Play Offline</h2>
 <p>On <a href="https://grip-game.github.io/">grip-game.github.io</a>, GRIP installs like an app: <strong>Install game</strong> in the menu shows how, step by step, on iPhone and on Android. It then opens full screen, without the browser bar.</p>
 <p>You can also <strong>download the whole game</strong>, all 14 circuits included (about 150 MB), and race without a connection. The title screen offers it, and Settings let you delete it.</p>
-<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-5/5-hors-ligne.png" alt="Downloading the game for offline play, and the install guide"></p>
-
-<h2>🛠️ A New Engine</h2>
-<p>GRIP now runs on the Godot engine. The cars, the physics and the circuits are the same: the same race, replayed in both versions, ends lap for lap identical.</p>
+<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-5/6-hors-ligne.png" alt="Downloading the game for offline play, and the install guide"></p>
 
 <h2>🔧 And Also</h2>
 <ul>
@@ -55,11 +67,12 @@ La partie copiée est seulement <article id="billet">
   <div class="images">
     <p><b>Si itch.io n'affiche pas les images après le collage</b>, ajoute-les avec son bouton « image » (en envoyant le fichier), à la place de chaque image manquante :</p>
     <ul>
-      <li><a href="1-championnat.png" download>1-championnat.png</a> — après « …the most wins goes first. »</li>
-      <li><a href="2-degats.png" download>2-degats.png</a> — après « …your race is over. »</li>
-      <li><a href="3-stand.png" download>3-stand.png</a> — après « …on by default. »</li>
-      <li><a href="4-telephone.png" download>4-telephone.png</a> — après « …under your thumb. »</li>
-      <li><a href="5-hors-ligne.png" download>5-hors-ligne.png</a> — après « …let you delete it. »</li>
+      <li><a href="1-degats.png" download>1-degats.png</a> — après « …it's a DNF. »</li>
+      <li><a href="2-stand.png" download>2-stand.png</a> — après « …on by default. »</li>
+      <li><a href="3-championnat.png" download>3-championnat.png</a> — après « …the most wins goes first. »</li>
+      <li><a href="4-pc.png" download>4-pc.png</a> — après « …the latest devlog. »</li>
+      <li><a href="5-telephone.png" download>5-telephone.png</a> — après « …the computer screens. »</li>
+      <li><a href="6-hors-ligne.png" download>6-hors-ligne.png</a> — après « …let you delete it. »</li>
     </ul>
   </div>
 </main>
