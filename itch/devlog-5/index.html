@@ -7,7 +7,70 @@ montre le billet tel qu'il doit paraître ; « Copier le billet » met dans le p
 enrichie (titres, gras, liste, liens, images par leur adresse) et sa version texte. On colle ensuite dans
 le corps du billet sur itch.io. Les images restent hébergées ici, en recette : ne pas déplacer ce dossier.
 
-La partie copiée est seulement <article id="billet">
+La partie copiée est seulement <article id="billet"> : ce qui est autour (le mode d'emploi) ne part pas.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>GRIP Devlog #5 — à copier dans itch.io</title>
+<style>
+  @font-face { font-family: Racing; src: url('../../art/interface/fonts/BarlowCondensed-BlackItalic.ttf') format('truetype'); font-weight: 900; font-style: italic; font-display: swap; }
+  :root { --papier: #fff0d2; --encre: #20261e; --rouge: #c92c23; --gris: #6c6658; --fond: #e9dfc8; }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--fond); color: var(--encre); font: 17px/1.55 system-ui, -apple-system, 'Segoe UI', sans-serif; }
+  .mode { position: sticky; top: 0; z-index: 2; background: #171b19; color: #fff0d2; padding: 12px 16px 14px; box-shadow: 0 3px 0 #0003; }
+  .mode h1 { margin: 0 0 6px; font: italic 900 24px/1.1 Racing, Impact, sans-serif; text-transform: uppercase; }
+  .mode ol { margin: 0 0 10px; padding-left: 20px; font-size: 15px; line-height: 1.45; }
+  .mode li { margin: 2px 0; }
+  .mode code { background: #ffffff1a; padding: 0 5px; border-radius: 3px; }
+  .boutons { display: flex; flex-wrap: wrap; gap: 8px; }
+  button, .lien { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 8px 14px; border: 2px solid #fff0d2; background: var(--rouge); color: #fff0d2; font: italic 900 18px/1.1 Racing, Impact, sans-serif; text-transform: uppercase; text-decoration: none; cursor: pointer; }
+  button.second, .lien { background: transparent; }
+  button:focus-visible, .lien:focus-visible { outline: 3px solid #e7b954; outline-offset: 2px; }
+  #etat { min-height: 1.4em; margin: 8px 0 0; font-size: 15px; color: #a8e0b8; }
+  #etat.ko { color: #ffb3a8; }
+  main { max-width: 760px; margin: 18px auto 40px; padding: 0 16px; }
+  .champ { margin: 0 0 14px; padding: 10px 14px; background: #fff7e6; border: 2px dashed #b6aa91; font-size: 15px; }
+  .champ b { display: block; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--gris); }
+  .champ img { display: block; width: 100%; max-width: 348px; height: auto; margin-top: 6px; border: 2px solid #171b19; }
+  article { background: var(--papier); border: 3px solid #171b19; box-shadow: 6px 7px 0 #171b1955; padding: 18px 22px 24px; overflow-wrap: anywhere; }
+  article h2 { margin: 26px 0 8px; font-size: 24px; line-height: 1.2; }
+  article p { margin: 10px 0; }
+  article ul { margin: 10px 0; padding-left: 24px; }
+  article img { display: block; width: 100%; height: auto; margin: 14px 0; border: 2px solid #171b19; }
+  article a { color: var(--rouge); }
+  .images { margin-top: 22px; font-size: 15px; }
+  .images ul { padding-left: 20px; }
+  .images a { color: var(--rouge); }
+  /* sur un téléphone, le mode d'emploi défile avec la page au lieu de lui prendre un tiers de l'écran */
+  @media (max-width: 700px), (max-height: 600px) { .mode { position: static; } }
+</style>
+</head>
+<body>
+<header class="mode">
+  <h1>Devlog #5 — à coller dans itch.io</h1>
+  <ol>
+    <li>Sur itch.io : <b>Edit game → Devlog → New post</b>. Colle le titre et choisis l'image de couverture (plus bas).</li>
+    <li>Ici, appuie sur <b>Copier le billet</b>.</li>
+    <li>Sur itch.io, clique dans le corps du billet et colle (<code>Ctrl+V</code>, ou appui long → <b>Coller</b> sur téléphone) : titres, gras, liste et images arrivent mis en forme.</li>
+  </ol>
+  <div class="boutons">
+    <button type="button" id="copier">📋 Copier le billet</button>
+    <button type="button" class="second" id="copierTitre">Copier le titre</button>
+  </div>
+  <p id="etat" role="status" aria-live="polite"></p>
+</header>
+
+<main>
+  <div class="champ"><b>Titre</b><span id="titre">GRIP Devlog #5 — The Fender Bender MEGA Update</span></div>
+  <div class="champ"><b>Image de couverture (champ « Cover image » du billet)</b>
+    <a href="0-couverture.png" download>Télécharger la couverture</a>
+    <img src="0-couverture.png" alt="Couverture du devlog #5"></div>
+
+  <article id="billet">
 <p>Welcome to <strong>THE FENDER BENDER MEGA UPDATE</strong>, the biggest GRIP update yet!</p>
 <p>Cars now crumple, smoke and limp to the pits. You can race full championships. The screens have been redesigned, on computers and on phones. And under the hood, GRIP has changed technology: it now runs on a real game engine.</p>
 
