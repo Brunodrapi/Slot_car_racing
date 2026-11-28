@@ -22,8 +22,8 @@ leur adresse). On colle ensuite dans le corps du billet sur itch.io.
 Images, dans `itch/devlog-5/` (le billet les affiche par leur adresse en recette : ne pas déplacer ce
 dossier), toutes tirées de la version Godot, en anglais :
 
-- `0-couverture.png` (696 × 512, image de couverture du billet) : une course cabossée, et le nom de la mise à jour
-- `1-degats.png` : la tôle et les débris après un choc, puis l'écran DNF
+- `0-couverture.png` (696 × 512, image de couverture du billet) : le peloton qui s'empile dans la première chicane de Parco Reale, et le nom de la mise à jour
+- `1-degats.png` : la sortie de la première chicane de Parco Reale (le peloton qui se touche, fumée et gomme), puis un DNF contre le mur de pneus à Kangaroo Mountain — de vraies courses, `godot/tests/course_photo.tscn`
 - `2-stand.png` : un arrêt au stand, l'équipe autour de la voiture
 - `3-championnat.png` : un championnat au téléphone (départ et calendrier, classement, arrivée finale, podium)
 - `4-pc.png` : les écrans du PC (la préparation de course sur un seul écran, le programme du championnat)
@@ -41,7 +41,7 @@ Cars now crumple, smoke and limp to the pits. You can race full championships. T
 💥 **Bent Metal and Pit Stops**
 Contact now leaves its mark. Bumpers are tough, flanks are soft, and a damaged car loses up to **35% of its top speed and acceleration**, never its grip. Sparks fly, debris stays on the track, smoke pours out, and if you hit a wall head-on at full speed, it's a **DNF**.
 
-*[image : 1-degats.png — Damaged cars and debris on the track, then the DNF screen]*
+*[image : 1-degats.png — Out of the first chicane at Parco Reale, the pack bumping and smoking, then a DNF against the tyre wall]*
 
 Every circuit now has a pit lane. Tick **PIT** under the lever, stop in your box, and your crew rushes out: tape on the nose, new wheels, and you're back out after 1.5 to 8 seconds, depending on the damage. The AI pits too when it's badly hurt. Damage is an option in the race setup, on by default.
 
@@ -111,7 +111,7 @@ Feedback, suggestions and bug reports are always welcome!
 
 <h2>💥 Bent Metal and Pit Stops</h2>
 <p>Contact now leaves its mark. Bumpers are tough, flanks are soft, and a damaged car loses up to <strong>35% of its top speed and acceleration</strong>, never its grip. Sparks fly, debris stays on the track, smoke pours out, and if you hit a wall head-on at full speed, it's a <strong>DNF</strong>.</p>
-<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-5/1-degats.png" alt="Damaged cars and debris on the track, then the DNF screen"></p>
+<p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-5/1-degats.png" alt="Out of the first chicane at Parco Reale, the pack bumping and smoking, then a DNF against the tyre wall"></p>
 <p>Every circuit now has a pit lane. Tick <strong>PIT</strong> under the lever, stop in your box, and your crew rushes out: tape on the nose, new wheels, and you're back out after 1.5 to 8 seconds, depending on the damage. The AI pits too when it's badly hurt. Damage is an option in the race setup, on by default.</p>
 <p><img src="https://brunodrapi.github.io/Slot_car_racing/itch/devlog-5/2-stand.png" alt="A pit stop: the crew around the car in its box"></p>
 
